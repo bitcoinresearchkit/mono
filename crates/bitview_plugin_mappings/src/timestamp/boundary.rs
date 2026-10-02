@@ -144,151 +144,36 @@ impl<I: VecIndex> Traversable for BoundaryTimestampVec<I> {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
-    use brk_types::Epoch;
-    use parking_lot::RwLock;
+    use bitview_vecs::RangeMapVec;
+    use brk_types::{BLOCKS_PER_DIFF_EPOCHS, Epoch};
+    use rangeindex::SharedRangeMap;
+    use vecdb::ReadableCloneableVec;
 
     use super::*;
 
-    #[derive(Clone)]
-    struct TestTimestamps(Arc<RwLock<Vec<Timestamp>>>);
-
-    impl TestTimestamps {
-        fn new(values: impl IntoIterator<Item = u32>) -> Self {
-            Self(Arc::new(RwLock::new(
-                values.into_iter().map(Timestamp::from).collect(),
-            )))
-        }
-
-        fn push(&self, value: u32) {
-            self.0.write().push(Timestamp::from(value));
-        }
-
-        fn replace(&self, index: usize, value: u32) {
-            self.0.write()[index] = Timestamp::from(value);
-        }
-    }
-
-    impl AnyVec for TestTimestamps {
-        fn version(&self) -> Version {
-            Version::ONE
-        }
-
-        fn name(&self) -> &str {
-            "timestamp"
-        }
-
-        fn len(&self) -> usize {
-            self.0.read().len()
-        }
-
-        fn index_type_to_string(&self) -> &'static str {
-            <Height as PrintableIndex>::to_string()
-        }
-
-        fn region_names(&self) -> Vec<String> {
-            Vec::new()
-        }
-
-        fn value_type_to_size_of(&self) -> usize {
-            size_of::<Timestamp>()
-        }
-
-        fn value_type_to_string(&self) -> &'static str {
-            short_type_name::<Timestamp>()
-        }
-    }
-
-    impl TypedVec for TestTimestamps {
-        type I = Height;
-        type T = Timestamp;
-    }
-
-    impl ReadableVec<Height, Timestamp> for TestTimestamps {
-        fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<Timestamp>) {
-            let values = self.0.read();
-            let to = to.min(values.len());
-            if from < to {
-                buf.extend_from_slice(&values[from..to]);
-            }
-        }
-
-        fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(Timestamp)) {
-            let values = self.0.read();
-            values[from.min(values.len())..to.min(values.len())]
-                .iter()
-                .copied()
-                .for_each(each);
-        }
-
-        fn fold_range_at<B, F: FnMut(B, Timestamp) -> B>(
-            &self,
-            from: usize,
-            to: usize,
-            init: B,
-            fold: F,
-        ) -> B {
-            let values = self.0.read();
-            values[from.min(values.len())..to.min(values.len())]
-                .iter()
-                .copied()
-                .fold(init, fold)
-        }
-
-        fn try_fold_range_at<B, E, F: FnMut(B, Timestamp) -> Result<B, E>>(
-            &self,
-            from: usize,
-            to: usize,
-            init: B,
-            fold: F,
-        ) -> Result<B, E> {
-            let values = self.0.read();
-            values[from.min(values.len())..to.min(values.len())]
-                .iter()
-                .copied()
-                .try_fold(init, fold)
-        }
-    }
-
     #[test]
-    fn samples_raw_boundary_timestamps() {
-        let source = TestTimestamps::new(100..108);
+    fn boundary_view_follows_source_append_rollback_and_rewrite() {
+        let period = BLOCKS_PER_DIFF_EPOCHS as usize;
+        let base = 1_700_000_000;
+        let timestamp = |index: usize| Timestamp::from(base + index as u32);
+        let source =
+            SharedRangeMap::<Timestamp, Height>::new((0..2 * period).map(timestamp).collect());
+        let source_view = RangeMapVec::new("timestamp", Version::ONE, source.clone());
         let timestamps =
-            BoundaryTimestampVec::<Epoch>::new(ReadableBoxedVec::new(source.clone()), 3);
-
-        assert_eq!(timestamps.len(), 3);
+            BoundaryTimestampVec::<Epoch>::new(source_view.read_only_boxed_clone(), period);
+        let reader = timestamps.read_only_boxed_clone();
+        assert_eq!(reader.collect(), [timestamp(0), timestamp(period)]);
+        source.update_at(2 * period, [timestamp(2 * period)]);
+        assert_eq!(reader.len(), 3);
+        assert_eq!(reader.collect_last(), Some(timestamp(2 * period)));
         assert_eq!(
-            timestamps.collect(),
-            [100_u32, 103, 106].map(Timestamp::from)
+            reader.read_sorted_at(&[0, 2]),
+            [timestamp(0), timestamp(2 * period)]
         );
-        assert_eq!(
-            timestamps.read_sorted(&[Epoch::from(0_usize), Epoch::from(2_usize)]),
-            [100_u32, 106].map(Timestamp::from)
-        );
-
-        source.push(108);
-        assert_eq!(timestamps.len(), 3);
-        source.push(109);
-        assert_eq!(timestamps.len(), 4);
-        assert_eq!(timestamps.collect_last(), Some(Timestamp::from(109_u32)));
-    }
-
-    #[test]
-    fn reads_rewritten_source_without_derived_invalidation() {
-        let inner = TestTimestamps::new(100..106);
-        let source = inner.clone();
-        let timestamps =
-            BoundaryTimestampVec::<Epoch>::new(ReadableBoxedVec::new(source.clone()), 3);
-
-        assert_eq!(
-            timestamps.collect_one(Epoch::from(1_usize)),
-            Some(Timestamp::from(103_u32))
-        );
-        inner.replace(3, 999);
-        assert_eq!(
-            timestamps.collect_one(Epoch::from(1_usize)),
-            Some(Timestamp::from(999_u32))
-        );
+        source.update_at(period + 1, []);
+        assert_eq!(reader.len(), 2);
+        assert_eq!(reader.collect_last(), Some(timestamp(period)));
+        source.update_at(period, [timestamp(123456)]);
+        assert_eq!(reader.collect_one_at(1), Some(timestamp(123456)));
     }
 }

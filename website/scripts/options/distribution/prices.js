@@ -10,7 +10,7 @@
  * - Realized: Price + Ratio comparison across cohorts
  * - Capitalized: Price + Ratio comparison across cohorts
  *
- * Cohorts without percentile patterns use basic Price/Ratio charts.
+ * Basic cohorts expose their realized price without a ratio.
  */
 
 import { colors } from "../../utils/colors.js";
@@ -49,7 +49,7 @@ export function createPricesSectionFull({ cohort, title }) {
         ],
         bottom: [
           baseline({
-            series: tree.realized.price.ratio,
+            series: tree.realized.mvrv.ratio,
             name: "Ratio",
             unit: Unit.ratio,
             base: 1,
@@ -80,88 +80,66 @@ export function createPricesSectionFull({ cohort, title }) {
 }
 
 /**
- * Create prices section for cohorts with basic ratio patterns only
- * (CohortCore, CohortBasic, CohortAddr, CohortWithoutRelative)
- * @param {{ cohort: CohortCore | CohortBasic | CohortAddr | CohortWithoutRelative | CohortAgeRange, title: (name: string) => string }} args
+ * Create prices section for cohorts with a realized price
+ * @param {{ cohort: CohortWithRealizedPrice, title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 export function createPricesSectionBasic({ cohort, title }) {
-  const { tree, color } = cohort;
   return {
     name: "Prices",
     tree: [
       {
         name: "Realized",
         title: title("Realized Price"),
-        top: [
-          price({
-            series: tree.realized.price,
-            name: "Realized",
-            color,
-          }),
-        ],
-        bottom: [
-          baseline({
-            series: tree.realized.price.ratio,
-            name: "Ratio",
-            unit: Unit.ratio,
-            base: 1,
-          }),
-        ],
+        top: [price({ series: cohort.tree.realized.price, name: "Realized", color: cohort.color })],
       },
     ],
   };
 }
 
 /**
- * Create prices section for grouped cohorts
- * @param {{ list: readonly CohortObject[], all: CohortAll, title: (name: string) => string }} args
- * @returns {PartialOptionsGroup}
- */
-/**
  * @param {readonly CohortWithRealizedPrice[]} list
  * @param {CohortAll} all
  * @param {(name: string) => string} title
- * @returns {PartialOptionsTree}
+ * @returns {PartialOptionsGroup}
  */
-function groupedRealizedPriceItems(list, all, title) {
-  return [
-    {
-      name: "Realized",
-      tree: [
-        {
-          name: "Price",
-          title: title("Realized Price"),
-          top: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
-            price({ series: tree.realized.price, name, color }),
-          ),
-        },
-        {
-          name: "Ratio",
-          title: title("Realized Price Ratio"),
-          bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
-            baseline({ series: tree.realized.mvrv, name, color, unit: Unit.ratio, base: 1 }),
-          ),
-        },
-      ],
-    },
-  ];
+function groupedRealizedPriceFolder(list, all, title) {
+  return {
+    name: "Realized",
+    tree: [
+      {
+        name: "Price",
+        title: title("Realized Price"),
+        top: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
+          price({ series: tree.realized.price, name, color }),
+        ),
+      },
+    ],
+  };
 }
 
 /** @param {{ list: readonly CohortWithRealizedPrice[], all: CohortAll, title: (name: string) => string }} args */
 export function createGroupedPricesSection({ list, all, title }) {
   return {
     name: "Prices",
-    tree: groupedRealizedPriceItems(list, all, title),
+    tree: [groupedRealizedPriceFolder(list, all, title)],
   };
 }
 
 /** @param {{ list: readonly (CohortAll | CohortFull | CohortLongTerm)[], all: CohortAll, title: (name: string) => string }} args */
 export function createGroupedPricesSectionFull({ list, all, title }) {
+  const realized = groupedRealizedPriceFolder(list, all, title);
+  realized.tree.push({
+    name: "Ratio",
+    title: title("Realized Price Ratio"),
+    bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
+      baseline({ series: tree.realized.mvrv.ratio, name, color, unit: Unit.ratio, base: 1 }),
+    ),
+  });
   return {
     name: "Prices",
     tree: [
-      ...groupedRealizedPriceItems(list, all, title),
+      realized,
       {
         name: "Capitalized",
         tree: [

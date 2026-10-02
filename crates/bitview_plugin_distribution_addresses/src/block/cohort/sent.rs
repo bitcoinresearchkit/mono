@@ -2,12 +2,6 @@ use brk_error::Result;
 
 use bitview_cohort::{AmountRangeId, ByAddrType};
 use brk_types::{Cents, Sats, TypeIndex};
-#[cfg(test)]
-use brk_types::{Height, OutputType};
-#[cfg(test)]
-use rustc_hash::FxHashMap;
-#[cfg(test)]
-use vecdb::VecIndex;
 
 use crate::{
     addr::{AddrMetricsState, AddrSendPreState},
@@ -15,30 +9,6 @@ use crate::{
 };
 
 use super::{super::cache::AddrLookup, transfer_address_cache::TransferAddressCache};
-
-/// Process sent UTXOs for address cohort membership and empty-address transitions.
-#[cfg(test)]
-fn process_sent(
-    sent_data: FxHashMap<Height, Vec<(OutputType, TypeIndex, Sats)>>,
-    cohorts: &mut AddrStates,
-    lookup: &mut AddrLookup<'_>,
-    current_price: Cents,
-    state: &mut AddrMetricsState,
-    addresses: &mut TransferAddressCache,
-    height_to_price: &[Cents],
-) -> Result<()> {
-    let mut typed = ByAddrType::<Vec<(TypeIndex, Sats, Cents)>>::default();
-    // Group independent addresses by type without changing any address's spend order.
-    for (height, spends) in sent_data {
-        let previous_price = height_to_price[height.to_usize()];
-        for (ty, index, value) in spends {
-            typed
-                .get_mut_unwrap(ty)
-                .push((index, value, previous_price));
-        }
-    }
-    process_typed_sent(typed, cohorts, lookup, current_price, state, addresses)
-}
 
 pub fn process_typed_sent(
     typed: ByAddrType<Vec<(TypeIndex, Sats, Cents)>>,
@@ -96,15 +66,13 @@ pub fn process_typed_sent(
 
 #[cfg(test)]
 mod tests {
-    use brk_types::{Cents, Height, OutputType, Sats, TxIndex, TypeIndex};
-    use rustc_hash::FxHashMap;
-
-    use super::process_sent;
+    use super::process_typed_sent;
     use crate::{
         addr::{AddrMetricsState, AddrTypeToTypeIndexMap},
-        block::{AddrCache, Received, TransferAddressCache, process_received},
+        block::{AddrCache, Received, TransferAddressCache, process_inputs, process_received},
         state::{AddrStates, RealizedOps},
     };
+    use brk_types::{Cents, Height, OutputType, Sats, TxIndex, TypeIndex};
 
     #[test]
     fn interleaved_spends_count_each_typed_address_once_and_empty_it() {
@@ -116,19 +84,23 @@ mod tests {
             (OutputType::P2PKH, 8),
             (OutputType::P2TR, 7),
         ];
-        let mut funded = AddrTypeToTypeIndexMap::default();
-        for (ty, index) in addresses {
-            let mut received = Received::new(Sats::ONE_BTC, TxIndex::new(0));
-            received.add(Sats::ONE_BTC, TxIndex::new(1));
-            funded.insert_for_type(ty, TypeIndex::new(index), received);
+        for (tx, price) in [(0, 100), (1, 150)] {
+            let mut funded = AddrTypeToTypeIndexMap::default();
+            for (ty, index) in addresses {
+                funded.insert_for_type(
+                    ty,
+                    TypeIndex::new(index),
+                    Received::new(Sats::ONE_BTC, TxIndex::new(tx)),
+                );
+            }
+            process_received(
+                funded,
+                &mut cohorts,
+                &mut cache.as_lookup(),
+                Cents::new(price),
+                &mut metrics,
+            );
         }
-        process_received(
-            funded,
-            &mut cohorts,
-            &mut cache.as_lookup(),
-            Cents::new(100),
-            &mut metrics,
-        );
         metrics.reset_per_block();
 
         // A zero-value output still makes its address bidirectional, and must be spent.
@@ -148,33 +120,60 @@ mod tests {
             &mut metrics,
         );
 
-        let sent = FxHashMap::from_iter([
-            (
-                Height::new(0),
-                vec![
-                    (OutputType::P2PKH, TypeIndex::new(7), Sats::ONE_BTC),
-                    (OutputType::P2PKH, TypeIndex::new(8), Sats::ONE_BTC),
-                    (OutputType::P2PKH, TypeIndex::new(7), Sats::ONE_BTC),
-                    (OutputType::P2TR, TypeIndex::new(7), Sats::ONE_BTC),
-                ],
-            ),
-            (
-                Height::new(1),
-                vec![
-                    (OutputType::P2PKH, TypeIndex::new(7), Sats::ZERO),
-                    (OutputType::P2PKH, TypeIndex::new(8), Sats::ONE_BTC),
-                    (OutputType::P2TR, TypeIndex::new(7), Sats::ONE_BTC),
-                ],
-            ),
-        ]);
-        process_sent(
+        let rows = [
+            (0, OutputType::P2PKH, 7, Sats::ONE_BTC, 10),
+            (0, OutputType::P2PKH, 8, Sats::ONE_BTC, 10),
+            (1, OutputType::P2PKH, 7, Sats::ONE_BTC, 11),
+            (0, OutputType::P2TR, 7, Sats::ONE_BTC, 11),
+            (2, OutputType::P2PKH, 7, Sats::ZERO, 12),
+            (1, OutputType::P2PKH, 8, Sats::ONE_BTC, 13),
+            (1, OutputType::P2TR, 7, Sats::ONE_BTC, 13),
+            (2, OutputType::OpReturn, 7, Sats::ZERO, 14),
+        ];
+        let inputs = process_inputs(
+            rows.into_iter().map(|row| TxIndex::new(row.4)),
+            &rows.map(|row| row.3),
+            &rows.map(|row| row.1),
+            &rows.map(|row| TypeIndex::new(row.2)),
+            &rows.map(|row| Height::new(row.0)),
+        );
+        for (ty, index) in addresses {
+            assert_eq!(
+                inputs.tx_index_vecs.get_unwrap(ty)[&TypeIndex::new(index)].len(),
+                if ty == OutputType::P2PKH && index == 7 {
+                    3
+                } else {
+                    2
+                },
+            );
+        }
+        let sent = inputs
+            .sent_data
+            .into_typed(&[100, 150, 200].map(Cents::new));
+        let mut pkh = sent.get_unwrap(OutputType::P2PKH).clone();
+        pkh.sort_by_key(|&(index, _, price)| (index, price));
+        assert_eq!(
+            pkh,
+            [
+                (7, Sats::ONE_BTC, 100),
+                (7, Sats::ONE_BTC, 150),
+                (7, Sats::ZERO, 200),
+                (8, Sats::ONE_BTC, 100),
+                (8, Sats::ONE_BTC, 150)
+            ]
+            .map(|(index, value, price)| (
+                TypeIndex::new(index),
+                value,
+                Cents::new(price)
+            )),
+        );
+        process_typed_sent(
             sent,
             &mut cohorts,
             &mut cache.as_lookup(),
             Cents::new(200),
             &mut metrics,
             &mut transfers,
-            &[Cents::new(100); 2],
         )
         .unwrap();
 
@@ -221,6 +220,6 @@ mod tests {
             assert_eq!(cohort.inner.realized.cap(), Cents::ZERO);
             profit += cohort.inner.realized.profit();
         }
-        assert_eq!(profit, Cents::new(600));
+        assert_eq!(profit, Cents::new(450));
     }
 }

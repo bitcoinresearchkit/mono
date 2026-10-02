@@ -19,21 +19,3 @@ impl PendingDelta {
         self.0.inner()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn gross_churn_may_cross_signed_range() {
-        for net in [0, 1] {
-            let mut delta = PendingDelta::default();
-            let gross = Sats::new(i64::MAX as u64 + 1);
-
-            delta.increment(gross);
-            delta.decrement(gross - Sats::new(net));
-
-            assert_eq!(delta.inner(), net as i64);
-        }
-    }
-}

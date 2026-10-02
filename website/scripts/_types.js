@@ -32,9 +32,9 @@
  * Bitview tree types (stable across regenerations)
  * @typedef {Bitview.SeriesTree_Cohorts} UtxoCohortTree
  * @typedef {Bitview.SeriesTree_Cohorts} AddrCohortTree
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "all">} AllUtxoPattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "term.short">} ShortTermPattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "term.long">} LongTermPattern
+ * @typedef {Bitview.SeriesTree_DistributionAggregated_Cohorts["all"]} AllUtxoPattern
+ * @typedef {Bitview.SeriesTree_DistributionAggregated_Cohorts["sth"]} ShortTermPattern
+ * @typedef {Bitview.SeriesTree_DistributionAggregated_Cohorts["lth"]} LongTermPattern
  * @typedef {AllUtxoPattern["unrealized"]} AllRelativePattern
  * @typedef {keyof Bitview.BtcCentsSatsUsdPattern} BtcSatsUsdKey
  * @typedef {Bitview.BtcCentsSatsUsdPattern} SupplyPattern
@@ -46,7 +46,7 @@
  * Bitview pattern types (using new pattern names)
  * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "age.under1h">} AgeRangePattern
  * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "utxoAmount._0sats">} UtxoAmountPattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "addrBalance._0sats">} AddrAmountPattern
+ * @typedef {ReturnType<typeof import("./options/distribution/data.js").addressBalanceTree>} AddrAmountPattern
  * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "epoch._0">} BasicUtxoPattern
  * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "epoch._0">} EpochPattern
  * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "type.empty">} EmptyPattern
@@ -67,7 +67,7 @@
  * AnyRatioPattern: price pattern with a ratio
  * @typedef {AnyPricePattern & { ratio: AnySeriesPattern }} AnyRatioPattern
  * FullValuePattern: block + cumulative + sum + average rolling windows (sats/btc/cents/usd)
- * @typedef {Bitview.AverageBlockCumulativeSumPattern2} FullValuePattern
+ * @typedef {Bitview.AverageBlockCumulativeSumPattern} FullValuePattern
  * RollingWindowSlot: a single rolling window with stats (pct10, pct25, median, pct75, pct90, max, min) per unit
  * @typedef {Bitview.MaxMedianMinPct10Pct25Pct75Pct90Pattern<number>} RollingWindowSlot
  * @typedef {Bitview.AnySeriesPattern} AnySeriesPattern
@@ -79,20 +79,17 @@
  * @typedef {BasicUtxoPattern["unrealized"]} BasicRelativePattern
  * @typedef {ShortTermPattern["unrealized"]} FullRelativePattern
  *
- * Profitability bucket pattern (supply + realized_cap + unrealized_pnl + nupl)
- * @typedef {ReturnType<typeof import("./options/distribution/data.js").buildCohortData>["profitabilityRange"][number]["pattern"]} RealizedSupplyPattern
- *
- * Realized pattern (full: cap + gross + capitalized + loss + mvrv + net + peak + price + profit + sell + sopr)
+ * Aggregate realized metrics (capitalization, prices and P&L)
  * @typedef {AllUtxoPattern["realized"]} RealizedPattern
- * @typedef {Pick<RealizedPattern, "profit" | "loss" | "netPnl" | "grossPnl" | "peakRegret" | "netPnlChange1mToRcap" | "profitToLossRatio">} FullRealizedProfitabilityPattern
+ * @typedef {Pick<RealizedPattern, "profit" | "loss" | "netPnl" | "grossPnl" | "peakRegret">} FullRealizedProfitabilityPattern
  *
- * Transfer volume pattern (block + cumulative + inProfit/inLoss + sum windows)
+ * Transfer volume pattern (block + cumulative + sum + average windows)
  * @typedef {AllUtxoPattern["activity"]["transferVolume"]} TransferVolumePattern
  *
  * Realized profit/loss pattern (block + cumulative + sum windows, cents/usd)
  * @typedef {Bitview.BlockCumulativeSumPattern} RealizedProfitLossPattern
  *
- * Full activity pattern (coindays, coinyears, dormancy, transfer volume)
+ * Aggregate activity pattern (coindays, coinyears and transfer volume)
  * @typedef {AllUtxoPattern["activity"]} FullActivityPattern
  *
  *
@@ -124,8 +121,8 @@
  * Address count pattern (base + delta with absolute + rate)
  * @typedef {Bitview.BaseDeltaPattern} AddrCountPattern
  * @typedef {{
- *   utxo: Bitview.SeriesTree_Addrs_AvgAmount["utxo"]["all"],
- *   addr: Bitview.SeriesTree_Addrs_AvgAmount["addr"]["all"],
+ *   utxo: Bitview.SeriesTree_Cohorts_Outputs_AvgAmount["all"],
+ *   addr: Bitview.SeriesTree_Addrs_AvgBalance["all"],
  * }} AvgAmountPattern
  * @typedef {Bitview.SeriesTree_Addrs_Exposed} ExposedTree
  * @typedef {Bitview.SeriesTree_Addrs_Reused} ReusedTree
@@ -139,7 +136,7 @@
 /**
  * Rolling windows pattern (24h, 1w, 1m, 1y)
  * @template T
- * @typedef {Bitview._1m1w1y24hPattern<T>} RollingWindowPattern
+ * @typedef {Bitview._1m1w1y24hPattern6<T>} RollingWindowPattern
  */
 /**
  * Sell side risk rolling windows pattern
@@ -160,7 +157,7 @@
 /**
  * Count pattern: height, cumulative, and rolling sum windows
  * @template T
- * @typedef {Bitview.AverageBlockCumulativeSumPattern<T>} CountPattern
+ * @typedef {Bitview.AverageBlockCumulativeSumPattern2<T>} CountPattern
  */
 /**
  * Full per-block pattern: height, cumulative, sum, and distribution stats (all flat)
@@ -223,23 +220,23 @@
  * @typedef {Bitview.Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} PercentilesPattern
  *
  * Cohort objects with specific pattern capabilities
- * @typedef {{ name: string, title: string, color: Color, tree: PatternWithRealizedPrice }} CohortWithRealizedPrice
+ * @typedef {{ name: string, title: string, color: Color, tree: { realized: { price: AnyPricePattern } } }} CohortWithRealizedPrice
  * @typedef {{ name: string, title: string, color: Color, tree: PatternWithFullRealized }} CohortWithFullRealized
  * @typedef {{ name: string, title: string, color: Color, tree: PatternWithNupl }} CohortWithNupl
  * @typedef {{ name: string, title: string, color: Color, tree: PatternWithCostBasis }} CohortWithCostBasis
  * @typedef {{ name: string, title: string, color: Color, tree: PatternWithActivity }} CohortWithActivity
  * @typedef {{ name: string, title: string, color: Color, tree: PatternWithCostBasisPercentiles }} CohortWithCostBasisPercentiles
  * @typedef {{ name: string, title: string, color: Color, tree: { realized: BasicRealizedProfitabilityPattern } }} CohortWithRealizedProfitLoss
- * @typedef {{ name: string, title: string, color: Color, tree: { realized: { cap: { usd: AnySeriesPattern, delta: FiatDeltaPattern } } } }} CohortWithRealizedCap
+ * @typedef {{ name: string, title: string, color: Color, tree: { realized: { cap: { usd: AnySeriesPattern, delta?: FiatDeltaPattern } } } }} CohortWithRealizedCap
  *
  * Cohorts with full NUPL and cost-basis percentiles.
  * @typedef {CohortFull | CohortLongTerm} CohortWithNuplPercentiles
  * @typedef {{ name: string, title: string, list: readonly CohortWithNuplPercentiles[], all: CohortAll }} CohortGroupWithNuplPercentiles
  *
  * Delta patterns with absolute + rate rolling windows
- * @typedef {Bitview.AbsoluteRatePattern} DeltaPattern
- * @typedef {Bitview.SeriesTree_Cohorts_Realized_Cap["all"]["delta"]} FiatDeltaPattern
- * @typedef {Bitview.SeriesTree_Cohorts_Supply_Delta["all"]} AmountDeltaPattern
+ * @typedef {Bitview.AbsoluteRatePattern2} DeltaPattern
+ * @typedef {AllUtxoPattern["realized"]["cap"]["delta"]} FiatDeltaPattern
+ * @typedef {AllUtxoPattern["supply"]["delta"]} AmountDeltaPattern
  * @typedef {Bitview.BtcSatsPattern} AmountPattern
  *
  * Generic tree node type for walking

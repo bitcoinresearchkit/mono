@@ -12,7 +12,6 @@ import { Unit } from "../../utils/units.js";
 import {
   line,
   baseline,
-  dotsBaseline,
   percentRatio,
   chartsFromCount,
   averagesArray,
@@ -34,12 +33,15 @@ import { lazyGroup } from "../lazy.js";
 // ============================================================================
 
 /**
- * @param {TransferVolumePattern} tv
+ * @param {FullActivityPattern | AgeRangePattern["activity"] | BasicUtxoPattern["activity"]} activity
  * @param {Color} color
  * @param {(name: string) => string} title
  * @returns {PartialOptionsTree}
  */
-function volumeTree(tv, color, title) {
+function volumeTree(activity, color, title) {
+  const tv = activity.transferVolume;
+  const inProfit = "transferVolumeInProfit" in activity ? activity.transferVolumeInProfit : activity.transferVolume.inProfit;
+  const inLoss = "transferVolumeInLoss" in activity ? activity.transferVolumeInLoss : activity.transferVolume.inLoss;
   return [
     ...satsBtcUsdFullTree({
       pattern: tv,
@@ -55,12 +57,12 @@ function volumeTree(tv, color, title) {
             title: title(`${w.title} Transfer Volume Profitability`),
             bottom: [
               ...satsBtcUsd({
-                pattern: tv.inProfit.sum[w.key],
+                pattern: inProfit.sum[w.key],
                 name: "In Profit",
                 color: colors.profit,
               }),
               ...satsBtcUsd({
-                pattern: tv.inLoss.sum[w.key],
+                pattern: inLoss.sum[w.key],
                 name: "In Loss",
                 color: colors.loss,
               }),
@@ -71,12 +73,12 @@ function volumeTree(tv, color, title) {
             title: title("Cumulative Transfer Volume Profitability"),
             bottom: [
               ...satsBtcUsd({
-                pattern: tv.inProfit.cumulative,
+                pattern: inProfit.cumulative,
                 name: "In Profit",
                 color: colors.profit,
               }),
               ...satsBtcUsd({
-                pattern: tv.inLoss.cumulative,
+                pattern: inLoss.cumulative,
                 name: "In Loss",
                 color: colors.loss,
               }),
@@ -85,7 +87,7 @@ function volumeTree(tv, color, title) {
           {
             name: "In Profit",
             tree: satsBtcUsdFullTree({
-              pattern: tv.inProfit,
+              pattern: inProfit,
               title,
               metric: "Transfer Volume In Profit",
               color: colors.profit,
@@ -94,7 +96,7 @@ function volumeTree(tv, color, title) {
           {
             name: "In Loss",
             tree: satsBtcUsdFullTree({
-              pattern: tv.inLoss,
+              pattern: inLoss,
               title,
               metric: "Transfer Volume In Loss",
               color: colors.loss,
@@ -106,18 +108,18 @@ function volumeTree(tv, color, title) {
 }
 
 /**
- * @param {{ transferVolume: TransferVolumePattern }} activity
+ * @param {FullActivityPattern | AgeRangePattern["activity"] | BasicUtxoPattern["activity"]} activity
  * @param {Color} color
  * @param {(name: string) => string} title
  * @returns {PartialOptionsGroup}
  */
 function volumeFolder(activity, color, title) {
-  return { name: "Volume", tree: volumeTree(activity.transferVolume, color, title) };
+  return { name: "Volume", tree: volumeTree(activity, color, title) };
 }
 
 /**
- * @param {{ transferVolume: TransferVolumePattern }} activity
- * @param {CountPattern<number>} adjustedTransferVolume
+ * @param {FullActivityPattern | AgeRangePattern["activity"] | BasicUtxoPattern["activity"]} activity
+ * @param {AllUtxoPattern["ratios"]["adjustedSopr"]["transferVolume"]} adjustedTransferVolume
  * @param {Color} color
  * @param {(name: string) => string} title
  * @returns {PartialOptionsGroup}
@@ -126,8 +128,8 @@ function volumeFolderWithAdjusted(activity, adjustedTransferVolume, color, title
   return {
     name: "Volume",
     tree: [
-      ...volumeTree(activity.transferVolume, color, title),
-      { name: "Adjusted", tree: chartsFromCount({ pattern: adjustedTransferVolume, title, metric: "Adjusted Transfer Volume", unit: Unit.usd }) },
+      ...volumeTree(activity, color, title),
+      { name: "Adjusted", tree: fiatCountTree(adjustedTransferVolume, title, "Adjusted Transfer Volume") },
     ],
   };
 }
@@ -137,14 +139,14 @@ function volumeFolderWithAdjusted(activity, adjustedTransferVolume, color, title
 // ============================================================================
 
 /**
- * @param {PatternAll["realized"] | PatternFull["realized"] | LongTermPattern["realized"]} realized
+ * @param {PatternAll["ratios"] | PatternFull["ratios"] | LongTermPattern["ratios"]} ratios
  */
-function soprWindows(realized) {
+function soprWindows(ratios) {
   return {
-    _24h: realized.sopr,
-    _1w: realized.soprRatioExtended._1w,
-    _1m: realized.soprRatioExtended._1m,
-    _1y: realized.soprRatioExtended._1y,
+    _24h: ratios.sopr,
+    _1w: ratios.soprRatioExtended._1w,
+    _1m: ratios.soprRatioExtended._1m,
+    _1y: ratios.soprRatioExtended._1y,
   };
 }
 
@@ -185,24 +187,34 @@ function singleRollingSoprTree(ratio, title, prefix = "") {
 }
 
 /**
- * @param {{ valueDestroyed: Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], title: (name: string) => string }} args
+ * @param {{ valueDestroyed: AllUtxoPattern["realized"]["valueDestroyed"], title: (name: string) => string }} args
  * @returns {PartialOptionsTree}
  */
 function valueDestroyedTree({ valueDestroyed, title }) {
+  return fiatCountTree(valueDestroyed, title, "Value Destroyed");
+}
+
+/**
+ * @param {AllUtxoPattern["realized"]["valueDestroyed"]} pattern
+ * @param {(name: string) => string} title
+ * @param {string} metric
+ * @returns {PartialOptionsTree}
+ */
+function fiatCountTree(pattern, title, metric) {
   return chartsFromCount({
     pattern: {
-      sum: mapWindows(valueDestroyed.sum, (value) => value.usd),
-      average: mapWindows(valueDestroyed.average, (value) => value.usd),
-      cumulative: valueDestroyed.cumulative.usd,
+      sum: mapWindows(pattern.sum, (value) => value.usd),
+      average: mapWindows(pattern.average, (value) => value.usd),
+      cumulative: pattern.cumulative.usd,
     },
     title,
-    metric: "Value Destroyed",
+    metric,
     unit: Unit.usd,
   });
 }
 
 /**
- * @param {{ valueDestroyed: Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], title: (name: string) => string }} args
+ * @param {{ valueDestroyed: AllUtxoPattern["realized"]["valueDestroyed"], title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 function valueDestroyedFolder({ valueDestroyed, title }) {
@@ -213,7 +225,7 @@ function valueDestroyedFolder({ valueDestroyed, title }) {
 }
 
 /**
- * @param {{ valueDestroyed: Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], adjusted: CountPattern<number>, title: (name: string) => string }} args
+ * @param {{ valueDestroyed: AllUtxoPattern["realized"]["valueDestroyed"], adjusted: AllUtxoPattern["ratios"]["adjustedSopr"]["valueDestroyed"], title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 function valueDestroyedFolderWithAdjusted({ valueDestroyed, adjusted, title }) {
@@ -221,7 +233,7 @@ function valueDestroyedFolderWithAdjusted({ valueDestroyed, adjusted, title }) {
     name: "Value Destroyed",
     tree: [
       ...valueDestroyedTree({ valueDestroyed, title }),
-      { name: "Adjusted", tree: chartsFromCount({ pattern: adjusted, title, metric: "Adjusted Value Destroyed", unit: Unit.usd }) },
+      { name: "Adjusted", tree: fiatCountTree(adjusted, title, "Adjusted Value Destroyed") },
     ],
   };
 }
@@ -231,7 +243,7 @@ function valueDestroyedFolderWithAdjusted({ valueDestroyed, adjusted, title }) {
 // ============================================================================
 
 /**
- * @param {PatternAll["realized"]["sellSideRiskRatio"] | PatternFull["realized"]["sellSideRiskRatio"] | LongTermPattern["realized"]["sellSideRiskRatio"]} sellSideRisk
+ * @param {PatternAll["ratios"]["sellSideRiskRatio"] | PatternFull["ratios"]["sellSideRiskRatio"] | LongTermPattern["ratios"]["sellSideRiskRatio"]} sellSideRisk
  * @param {(name: string) => string} title
  * @returns {PartialOptionsTree}
  */
@@ -290,7 +302,7 @@ function singleFullActivityTree(cohort, title, create) {
     lazyGroup("Dormancy", () => ({
       name: "Dormancy",
       tree: averagesArray({
-        windows: tree.activity.dormancy,
+        windows: tree.ratios.dormancy,
         title,
         metric: "Dormancy",
         unit: Unit.days,
@@ -298,7 +310,7 @@ function singleFullActivityTree(cohort, title, create) {
     })),
     lazyGroup("Sell Side Risk", () => ({
       name: "Sell Side Risk",
-      tree: singleSellSideRiskTree(tree.realized.sellSideRiskRatio, title),
+      tree: singleSellSideRiskTree(tree.ratios.sellSideRiskRatio, title),
     })),
   ];
 }
@@ -312,18 +324,18 @@ export function createActivitySectionWithAdjusted({ cohort, title }) {
       volume: () =>
         volumeFolderWithAdjusted(
           tree.activity,
-          tree.realized.adjustedSopr.transferVolume,
+          tree.ratios.adjustedSopr.transferVolume,
           color,
           title,
         ),
       sopr: () => ({
         name: "SOPR",
         tree: [
-          ...singleRollingSoprTree(soprWindows(tree.realized), title),
+          ...singleRollingSoprTree(soprWindows(tree.ratios), title),
           {
             name: "Adjusted",
             tree: singleRollingSoprTree(
-              tree.realized.adjustedSopr.ratio,
+              tree.ratios.adjustedSopr.ratio,
               title,
               "Adjusted ",
             ),
@@ -332,8 +344,8 @@ export function createActivitySectionWithAdjusted({ cohort, title }) {
       }),
       valueDestroyed: () =>
         valueDestroyedFolderWithAdjusted({
-          valueDestroyed: tree.realized.sopr.valueDestroyed,
-          adjusted: tree.realized.adjustedSopr.valueDestroyed,
+          valueDestroyed: tree.realized.valueDestroyed,
+          adjusted: tree.ratios.adjustedSopr.valueDestroyed,
           title,
         }),
     }),
@@ -349,11 +361,11 @@ export function createActivitySection({ cohort, title }) {
       volume: () => volumeFolder(tree.activity, color, title),
       sopr: () => ({
         name: "SOPR",
-        tree: singleRollingSoprTree(soprWindows(tree.realized), title),
+        tree: singleRollingSoprTree(soprWindows(tree.ratios), title),
       }),
       valueDestroyed: () =>
         valueDestroyedFolder({
-          valueDestroyed: tree.realized.sopr.valueDestroyed,
+          valueDestroyed: tree.realized.valueDestroyed,
           title,
         }),
     }),
@@ -367,25 +379,11 @@ export function createActivitySection({ cohort, title }) {
  */
 export function createActivitySectionWithActivity({ cohort, title }) {
   const { tree, color } = cohort;
-  const sopr = tree.realized.sopr;
-
   return {
     name: "Activity",
     tree: [
       volumeFolder(tree.activity, color, title),
-      {
-        name: "SOPR",
-        title: title("SOPR (24h)"),
-        bottom: [
-          dotsBaseline({
-            series: sopr,
-            name: "SOPR",
-            unit: Unit.ratio,
-            base: 1,
-          }),
-        ],
-      },
-      valueDestroyedFolder({ valueDestroyed: sopr.valueDestroyed, title }),
+      valueDestroyedFolder({ valueDestroyed: tree.realized.valueDestroyed, title }),
       {
         name: "Coindays Destroyed",
         tree: chartsFromCount({
@@ -541,7 +539,7 @@ function groupedSoprCharts(list, all, getRatio, title, prefix = "") {
 /**
  * @template {{ name: string, color: Color }} T
  * @template {{ name: string, color: Color }} A
- * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"] }} args
+ * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => AllUtxoPattern["realized"]["valueDestroyed"] }} args
  * @returns {PartialOptionsTree}
  */
 function groupedValueDestroyedTree({ list, all, title, getValueDestroyed }) {
@@ -556,7 +554,7 @@ function groupedValueDestroyedTree({ list, all, title, getValueDestroyed }) {
 /**
  * @template {{ name: string, color: Color }} T
  * @template {{ name: string, color: Color }} A
- * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"] }} args
+ * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => AllUtxoPattern["realized"]["valueDestroyed"] }} args
  * @returns {PartialOptionsGroup}
  */
 function groupedValueDestroyedFolder({ list, all, title, getValueDestroyed }) {
@@ -594,14 +592,18 @@ export function createGroupedActivitySection({ list, all, title }) {
   return {
     name: "Activity",
     tree: groupedFullActivityTree(list, all, title,
-      groupedVolumeFolder(list, all, title, (c) => c.tree.activity.transferVolume),
-      { name: "SOPR", tree: groupedSoprCharts(list, all, (c) => soprWindows(c.tree.realized), title) },
+      groupedVolumeFolder(list, all, title, (c) => ({
+        ...c.tree.activity.transferVolume,
+        inProfit: c.tree.activity.transferVolumeInProfit,
+        inLoss: c.tree.activity.transferVolumeInLoss,
+      })),
+      { name: "SOPR", tree: groupedSoprCharts(list, all, (c) => soprWindows(c.tree.ratios), title) },
       groupedValueDestroyedFolder({
         list,
         all,
         title,
         getValueDestroyed: (cohort) =>
-          cohort.tree.realized.sopr.valueDestroyed,
+          cohort.tree.realized.valueDestroyed,
       }),
     ),
   };
@@ -637,7 +639,7 @@ function groupedActivitySharedItems(list, all, title) {
         title: title(`${w.title} Dormancy`),
         bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
           line({
-            series: tree.activity.dormancy[w.key],
+            series: tree.ratios.dormancy[w.key],
             name,
             color,
             unit: Unit.days,
@@ -652,7 +654,7 @@ function groupedActivitySharedItems(list, all, title) {
         title: title(`${w.title} Sell Side Risk`),
         bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
           line({
-            series: tree.realized.sellSideRiskRatio[w.key].ratio,
+            series: tree.ratios.sellSideRiskRatio[w.key].ratio,
             name,
             color,
             unit: Unit.ratio,
@@ -672,26 +674,20 @@ export function createGroupedActivitySectionWithActivity({ list, all, title }) {
   return {
     name: "Activity",
     tree: [
-      groupedVolumeFolder(list, all, title, (c) => c.tree.activity.transferVolume),
-      {
-        name: "SOPR",
-        title: title("SOPR (24h)"),
-        bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
-          baseline({
-            series: tree.realized.sopr,
-            name,
-            color,
-            unit: Unit.ratio,
-            base: 1,
-          }),
-        ),
-      },
+      groupedVolumeFolder(list, all, title, (c) => {
+        const a = c.tree.activity;
+        return "transferVolumeInProfit" in a ? {
+          ...a.transferVolume,
+          inProfit: a.transferVolumeInProfit,
+          inLoss: a.transferVolumeInLoss,
+        } : a.transferVolume;
+      }),
       groupedValueDestroyedFolder({
         list,
         all,
         title,
         getValueDestroyed: (cohort) =>
-          cohort.tree.realized.sopr.valueDestroyed,
+          cohort.tree.realized.valueDestroyed,
       }),
       {
         name: "Coindays Destroyed",

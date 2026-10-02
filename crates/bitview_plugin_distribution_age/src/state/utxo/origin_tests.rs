@@ -1,91 +1,86 @@
+use bitview_cohort::AgeRangeId;
+use brk_types::{Cents, Height, ONE_DAY_IN_SEC, Sats, SupplyState, Timestamp};
+use statedb::Amount;
+
 use crate::{
     compute::{ComputeContext, PriceRangeMax},
-    state::UTXOStates,
+    state::{RealizedOps, UTXOStates, tick_tock_next_block},
 };
-use brk_types::{Cents, Height, Sats, SupplyState, Timestamp};
+
 #[test]
-fn aggregated_origins_match_individual_spends() {
-    let mut grouped = UTXOStates::new();
-    let mut individual = UTXOStates::new();
-    grouped.reset().unwrap();
-    individual.reset().unwrap();
-    let price = Cents::new(10_000);
-    let timestamp = Timestamp::new(1_700_000_000);
-    let supply = SupplyState {
-        value: Sats::ONE_BTC * 2u64,
-        utxo_count: 2,
-    };
-    grouped.receive_origins(supply, Height::ZERO, timestamp, price);
-    individual.receive_origins(supply, Height::ZERO, timestamp, price);
+fn origins_age_across_a_long_gap_before_spending_including_zero_value_outputs() {
+    let timestamps =
+        [0, 1800, 2 * ONE_DAY_IN_SEC].map(|elapsed| Timestamp::new(1_700_000_000 + elapsed));
+    let prices = [100, 150, 200].map(Cents::new);
     let mut peak = PriceRangeMax::default();
-    peak.extend(&[price; 3]);
+    peak.extend(&prices);
     let ctx = ComputeContext {
         starting_height: Height::ZERO,
         last_height: Height::new(2),
-        height_to_timestamp: &[timestamp; 3],
-        height_to_price: &[price; 3],
+        height_to_timestamp: &timestamps,
+        height_to_price: &prices,
         price_range_max: &peak,
     };
-    let grouped_blocks = grouped.send_origins([(Height::ZERO, supply)], Height::new(2), &ctx);
-    let individual_blocks = individual.send_origins(
-        [
-            (
-                Height::ZERO,
-                SupplyState {
-                    value: Sats::ONE_BTC,
-                    utxo_count: 1,
-                },
-            ),
-            (
-                Height::ZERO,
-                SupplyState {
-                    value: Sats::ONE_BTC,
-                    utxo_count: 1,
-                },
-            ),
-        ],
-        Height::new(2),
-        &ctx,
-    );
-    assert_eq!(grouped_blocks, 4 * Sats::ONE_BTC_U128);
-    assert_eq!(grouped_blocks, individual_blocks);
-    grouped.apply_pending();
-    individual.apply_pending();
-    for (a, b) in grouped.age_range.iter().zip(individual.age_range.iter()) {
-        assert_eq!(a.output_counts(), b.output_counts());
-        assert_eq!(a.supply_value(), b.supply_value());
-        assert_eq!(
-            a.realized_block_data().cap_raw,
-            b.realized_block_data().cap_raw
-        );
-        assert_eq!(a.transfer_volume(), b.transfer_volume());
-    }
-    assert_eq!(grouped.age_range.under_1h.supply.utxo_count, 0);
-}
-
-#[test]
-fn zero_value_spends_reduce_supply_and_increment_spent_counts() {
-    let mut states = UTXOStates::new();
-    states.reset().unwrap();
-    let price = Cents::new(10_000);
-    let timestamp = Timestamp::new(1_700_000_000);
-    let supply = SupplyState {
+    let funded = SupplyState {
+        value: Sats::ONE_BTC * 2u64,
+        utxo_count: 2,
+    };
+    let zero = SupplyState {
         value: Sats::ZERO,
         utxo_count: 3,
     };
-    states.receive_origins(supply, Height::ZERO, timestamp, price);
-    let mut peak = PriceRangeMax::default();
-    peak.extend(&[price]);
-    let ctx = ComputeContext {
-        starting_height: Height::ZERO,
-        last_height: Height::ZERO,
-        height_to_timestamp: &[timestamp],
-        height_to_price: &[price],
-        price_range_max: &peak,
-    };
-    states.send_origins([(Height::ZERO, supply)], Height::ZERO, &ctx);
+    let amounts = [
+        Amount {
+            sats: u64::from(funded.value),
+            count: 2,
+        },
+        Amount { sats: 0, count: 3 },
+    ];
+    let mut states = UTXOStates::new();
+    states.reset().unwrap();
+    states.receive_origins(funded, Height::ZERO, timestamps[0], prices[0]);
     states.apply_pending();
-    for counts in [
+    states.reset_block();
+    let first = tick_tock_next_block(&mut states, &amounts[..1], &ctx, timestamps[1]);
+    assert!((f64::from(first.coindays_created.under_1h) - 1.0 / 24.0).abs() < 1e-12);
+    states.receive_origins(zero, Height::new(1), timestamps[1], prices[1]);
+    states.apply_pending();
+    states.reset_block();
+
+    let tick = tick_tock_next_block(&mut states, &amounts, &ctx, timestamps[2]);
+    for &id in AgeRangeId::ALL {
+        let created = match id {
+            AgeRangeId::Under1H => 1.0 / 24.0,
+            AgeRangeId::From1HTo1D => 23.0 / 12.0,
+            AgeRangeId::From1DTo1W => 2.0,
+            _ => 0.0,
+        };
+        assert!((f64::from(*id.select(&tick.coindays_created)) - created).abs() < 1e-12);
+        let cohort = id.select(&states.age_range);
+        let active = id == AgeRangeId::From1DTo1W;
+        assert_eq!(
+            (cohort.supply.value, cohort.supply.utxo_count),
+            if active {
+                (funded.value, 5)
+            } else {
+                (Sats::ZERO, 0)
+            }
+        );
+        assert_eq!(
+            cohort.realized.cap(),
+            if active { Cents::new(200) } else { Cents::ZERO }
+        );
+    }
+    assert_eq!(tick.matured.under_1h, funded.value);
+    assert_eq!(tick.matured._1h_to_1d, funded.value);
+    let satblocks = states.send_origins(
+        [(Height::ZERO, funded), (Height::new(1), zero)],
+        Height::new(2),
+        &ctx,
+    );
+    assert_eq!(satblocks, 4 * Sats::ONE_BTC_U128);
+    states.apply_pending();
+    for spent in [
         states
             .age_range
             .iter()
@@ -102,7 +97,45 @@ fn zero_value_spends_reduce_supply_and_increment_spent_counts() {
             .map(|s| u64::from(s.output_counts().1))
             .sum(),
     ] {
-        assert_eq!(counts, 3);
+        assert_eq!(spent, 5);
     }
-    assert_eq!(states.age_range.under_1h.supply.utxo_count, 0);
+    for (supply, cap) in states
+        .age_range
+        .iter()
+        .map(|s| (s.supply.value, s.realized.cap()))
+        .chain(
+            states
+                .epoch
+                .iter()
+                .map(|s| (s.supply.value, s.realized.cap())),
+        )
+        .chain(
+            states
+                .class
+                .iter()
+                .map(|s| (s.supply.value, s.realized.cap())),
+        )
+    {
+        assert_eq!(supply, Sats::ZERO);
+        assert_eq!(cap, Cents::ZERO);
+    }
+    assert!(states.age_range.iter().all(|s| s.supply.utxo_count == 0));
+    assert!(states.epoch.iter().all(|s| s.supply.utxo_count == 0));
+    assert!(states.class.iter().all(|s| s.supply.utxo_count == 0));
+    assert_eq!(
+        states
+            .age_range
+            .iter()
+            .map(|s| s.realized.profit().inner())
+            .sum::<u64>(),
+        200
+    );
+    assert_eq!(
+        states
+            .age_range
+            .iter()
+            .map(|s| u64::from(s.transfer_volume()))
+            .sum::<u64>(),
+        u64::from(funded.value)
+    );
 }

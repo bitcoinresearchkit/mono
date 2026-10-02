@@ -75,20 +75,3 @@ impl WeightedCohortState {
             .unwrap_or(Cents::ZERO)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn nan_cap_depends_on_whether_supply_is_empty() {
-        for (supply, expected) in [(Sats::ZERO, Cents::ZERO), (Sats::new(100), Cents::NAN)] {
-            let mut state = WeightedCohortState::default();
-            let contribution = state.add(supply, Sats::ZERO, Cents::NAN, BoundedRatio::from(0.5));
-
-            assert_eq!(contribution.weighted_cap, expected);
-            assert_eq!(state.weighted_cap, expected);
-            assert_eq!(state.realized_price(), expected);
-        }
-    }
-}

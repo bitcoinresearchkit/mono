@@ -1,10 +1,10 @@
 use std::array;
 
 use bitview_cohort::{AGE_RANGE_COUNT, AgeAggregateId, AgeRange, AgeRangeId};
-use brk_types::{CentsCompact, PartsPerMillion32, Sats};
+use brk_types::{CentsCompact, CostBasisByPercentile, PartsPerMillion32, PercentileId, Sats};
 
 use super::*;
-use crate::{metrics::price_stats::PriceStats, projection::Projection};
+use crate::projection::Projection;
 
 fn projected<'a>(
     entries: &'a [(CentsCompact, [u64; AGE_RANGE_COUNT])],
@@ -66,7 +66,11 @@ fn fused_statistics_match_independent_cohort_projection_and_density() {
             };
             for &id in AgeAggregateId::ALL {
                 let expected = project(&|age| id.age_range_ids().contains(&age));
-                let expected = PriceStats::from_entries(expected.into_iter());
+                let mut reference = PriceDistribution::default();
+                for (price, sats) in expected {
+                    reference.push(price, sats);
+                }
+                let expected = reference.stats();
                 let actual = id.select(&buffer.prices).stats();
                 assert_eq!(actual.cost_basis, expected.cost_basis);
                 assert_eq!(actual.capitalized_price, expected.capitalized_price);
@@ -80,22 +84,25 @@ fn fused_statistics_match_independent_cohort_projection_and_density() {
             }
         }
     }
-    for (entries, spot, expected) in [
+    for (entries, spot, expected, capitalized_price) in [
         (
             &[(94, 10), (95, 20), (100, 30), (105, 40), (106, 100)][..],
             100,
             [0.45, 0.25, 0.2],
+            103,
         ),
         (
             &[(95, 10), (96, 10), (106, 10), (107, 10)][..],
             101,
             [0.5, 0.25, 0.25],
+            101,
         ),
-        (&[(200, 10)][..], 100, [0.0, 0.0, 0.0]),
+        (&[(200, 10)][..], 100, [0.0, 0.0, 0.0], 200),
         (
             &[(u32::MAX - 1, 2_100_000_000_000_000)][..],
             u64::from(u32::MAX - 1),
             [1.0, 1.0, 0.0],
+            u64::from(u32::MAX - 1),
         ),
     ] {
         let entries: Vec<_> = entries
@@ -115,7 +122,33 @@ fn fused_statistics_match_independent_cohort_projection_and_density() {
             [actual.total, actual.in_profit, actual.in_loss],
             expected.map(PartsPerMillion32::from)
         );
+        assert_eq!(
+            buffer.prices.all.stats().capitalized_price,
+            Cents::new(capitalized_price)
+        );
     }
+    let known = [(100, 5), (200, 5)].map(|(price, sats)| {
+        let mut supplies = [0; AGE_RANGE_COUNT];
+        supplies[AgeRangeId::Under1H.index()] = sats;
+        (CentsCompact::new(price), supplies)
+    });
+    buffer.update(
+        projected(&known, &AgeRange::from_fn(|_| 1.0)),
+        Cents::new(100),
+    );
+    let stats = buffer.prices.all.stats();
+    for (id, price) in [
+        (PercentileId::Pct50, 100),
+        (PercentileId::Pct55, 100),
+        (PercentileId::Pct60, 200),
+    ] {
+        assert_eq!(stats.cost_basis.per_coin[id as usize], Cents::new(price));
+    }
+    assert_eq!(
+        stats.cost_basis.per_dollar[PercentileId::Pct50 as usize],
+        Cents::new(200)
+    );
+    assert_eq!(stats.capitalized_price, Cents::new(166));
     buffer.update(
         projected(&entries[..0], &AgeRange::from_fn(|_| 1.0)),
         Cents::new(100),
@@ -125,6 +158,12 @@ fn fused_statistics_match_independent_cohort_projection_and_density() {
             .prices
             .iter()
             .all(|p| p.stats().capitalized_price.is_nan())
+    );
+    assert!(
+        buffer
+            .prices
+            .iter()
+            .all(|p| p.stats().cost_basis == CostBasisByPercentile::default())
     );
     assert!(buffer.density.iter().all(|d| *d == SupplyDensity::NAN));
 }

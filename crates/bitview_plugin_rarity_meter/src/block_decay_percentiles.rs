@@ -93,46 +93,61 @@ impl BlockDecayPercentiles {
 
 #[cfg(test)]
 mod tests {
-    use brk_types::StoredF32;
+    use std::f64::consts::LN_2;
 
-    use super::{BlockDecayPercentiles, HALF_LIFE_BLOCKS, START_HEIGHT};
-
-    fn quantile(percentiles: &BlockDecayPercentiles, quantile: f64) -> f64 {
-        let mut out = [0.0; 8];
-        percentiles.quantiles(&[quantile; 8], &mut out);
-        out[0]
-    }
+    use super::*;
 
     #[test]
-    fn one_half_life_doubles_relative_weight() {
-        let mut percentiles = BlockDecayPercentiles::default();
-        percentiles.add(START_HEIGHT, 1.0);
-        percentiles.add(START_HEIGHT + HALF_LIFE_BLOCKS, 2.0);
-        assert!((percentiles.mass - 3.0).abs() < f64::EPSILON);
-        assert_eq!(quantile(&percentiles, 0.5), 2.0);
-    }
-
-    #[test]
-    fn bulk_recovery_matches_incremental_state() {
+    fn bulk_and_incremental_quantiles_match_a_weighted_sorted_scan() {
+        // Explicit rounded buckets keep the reference independent of to_bucket.
+        let observations = [
+            (3.0014, 3.001),
+            (1.0006, 1.001),
+            (43.001, 43.0),
+            (f32::NAN, f64::NAN),
+            (0.0014, 0.001),
+            (3.0006, 3.001),
+        ];
+        let start = START_HEIGHT + HALF_LIFE_BLOCKS + 17;
         let values: Vec<_> = (0..1000)
-            .map(|index| StoredF32::from(index as f64 / 100.0))
+            .map(|index| StoredF32::from(observations[index % observations.len()].0))
             .collect();
+        let mut weighted: Vec<_> = (0..values.len())
+            .filter_map(|index| {
+                let bucket = observations[index % observations.len()].1;
+                let weight =
+                    (LN_2 * (start + index - START_HEIGHT) as f64 / HALF_LIFE_BLOCKS as f64).exp();
+                bucket.is_finite().then_some((bucket, weight))
+            })
+            .collect();
+        weighted.sort_unstable_by(|a, b| a.0.total_cmp(&b.0));
+        let mass: f64 = weighted.iter().map(|&(_, weight)| weight).sum();
+        let qs = [0.0001, 0.01, 0.1, 0.5, 0.9, 0.99, 0.999, 0.9999];
+        let expected = qs.map(|q| {
+            let mut cumulative = 0.0;
+            weighted
+                .iter()
+                .find(|&&(_, weight)| {
+                    cumulative += weight;
+                    cumulative >= q * mass
+                })
+                .unwrap()
+                .0
+        });
+        let mut bulk = BlockDecayPercentiles::default();
+        bulk.add_bulk(start, &values);
         let mut incremental = BlockDecayPercentiles::default();
         for (offset, value) in values.iter().enumerate() {
-            incremental.add(START_HEIGHT + offset, **value);
+            incremental.add(start + offset, **value);
         }
-
-        let mut recovered = BlockDecayPercentiles::default();
-        recovered.add_bulk(START_HEIGHT, &values);
-
-        let quantiles = [0.0001, 0.01, 0.1, 0.5, 0.9, 0.99, 0.999, 0.9999];
-        let mut incremental_out = [0.0; 8];
-        let mut recovered_out = [0.0; 8];
-        incremental.quantiles(&quantiles, &mut incremental_out);
-        recovered.quantiles(&quantiles, &mut recovered_out);
-
-        assert_eq!(incremental.len, recovered.len);
-        assert!((incremental.mass - recovered.mass).abs() < 1e-9);
-        assert_eq!(incremental_out, recovered_out);
+        for state in [bulk, incremental] {
+            assert_eq!(state.len(), values.len());
+            assert!((state.mass - mass).abs() < mass * 1e-12);
+            let mut actual = [0.0; 8];
+            state.quantiles(&qs, &mut actual);
+            for (actual, expected) in actual.into_iter().zip(expected) {
+                assert!((actual - expected).abs() < 1e-12);
+            }
+        }
     }
 }

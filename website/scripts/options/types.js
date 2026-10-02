@@ -257,6 +257,7 @@
  * @property {string} title
  * @property {Color} color
  * @property {PatternWithoutRelative} tree
+ * @property {AnyValuePattern} avgUtxoAmount
  *
  * Union of basic cohort types
  * @typedef {CohortBasicWithMarketCap | CohortBasicWithoutMarketCap} CohortBasic

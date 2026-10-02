@@ -17,7 +17,6 @@ import {
   createGroupedCohortFolderBasicWithMarketCap,
   createGroupedCohortFolderAddress,
   createGroupedAddressCohortFolder,
-  createUtxoProfitabilitySection,
   createAddressBalanceGiniLeaf,
 } from "./distribution/index.js";
 import { createMarketSection } from "./market.js";
@@ -88,6 +87,13 @@ export function createPartialOptions() {
 
             lazyGroup("LTH", () => createCohortFolderLongTerm(data().termLong)),
 
+            lazyGroup("Age Cutoffs", () => ({
+              name: "Age Cutoffs",
+              tree: data().ageCutoff.map((cohort) =>
+                lazyGroup(cohort.name, () => createCohortFolderFull(cohort)),
+              ),
+            })),
+
             lazyGroup("UTXO Age", () => {
               const { ageRange, cohortAll } = data();
               return {
@@ -131,12 +137,6 @@ export function createPartialOptions() {
                 ],
               };
             }),
-
-            lazyGroup("UTXO Profitability", () =>
-              createUtxoProfitabilitySection({
-                range: data().profitabilityRange,
-              }),
-            ),
 
             lazyGroup("Address Balance", () => {
               const { addressesAmountRange, cohortAll } = data();

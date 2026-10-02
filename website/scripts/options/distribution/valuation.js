@@ -5,7 +5,7 @@
 import { Unit } from "../../utils/units.js";
 import { colors } from "../../utils/colors.js";
 import { ROLLING_WINDOWS, line, baseline, mapWindows, sumsTreeBaseline, rollingPercentRatioTree, percentRatio, percentRatioBaseline } from "../series.js";
-import { ratioBottomSeries, mapCohortsWithAll, flatMapCohortsWithAll } from "../shared.js";
+import { mapCohortsWithAll, flatMapCohortsWithAll } from "../shared.js";
 import { priceLine } from "../constants.js";
 
 // ============================================================================
@@ -19,9 +19,11 @@ import { priceLine } from "../constants.js";
  * @returns {PartialOptionsTree}
  */
 function singleDeltaItems(tree, title) {
+  const delta = tree.realized.cap.delta;
+  if (!delta) return [];
   return [
-    { ...sumsTreeBaseline({ windows: mapWindows(tree.realized.cap.delta.absolute, (c) => c.usd), title, metric: "Realized Cap Change", unit: Unit.usd, legend: "Change" }), name: "Change" },
-    { ...rollingPercentRatioTree({ windows: tree.realized.cap.delta.rate, title, metric: "Realized Cap Growth Rate" }), name: "Growth Rate" },
+    { ...sumsTreeBaseline({ windows: mapWindows(delta.absolute, (c) => c.usd), title, metric: "Realized Cap Change", unit: Unit.usd, legend: "Change" }), name: "Change" },
+    { ...rollingPercentRatioTree({ windows: delta.rate, title, metric: "Realized Cap Growth Rate" }), name: "Growth Rate" },
   ];
 }
 
@@ -33,14 +35,20 @@ function singleDeltaItems(tree, title) {
  * @returns {PartialOptionsTree}
  */
 function groupedDeltaItems(list, all, title) {
+  const cohorts = list.flatMap(({ name, color, tree }) => {
+    const delta = tree.realized.cap.delta;
+    return delta ? [{ name, color, delta }] : [];
+  });
+  if (cohorts.length !== list.length) return [];
+  const aggregate = { name: all.name, color: all.color, delta: all.tree.realized.cap.delta };
   return [
     {
       name: "Change",
       tree: ROLLING_WINDOWS.map((w) => ({
         name: w.name,
         title: title(`${w.title} Realized Cap Change`),
-        bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
-          baseline({ series: tree.realized.cap.delta.absolute[w.key].usd, name, color, unit: Unit.usd }),
+        bottom: mapCohortsWithAll(cohorts, aggregate, ({ name, color, delta }) =>
+          baseline({ series: delta.absolute[w.key].usd, name, color, unit: Unit.usd }),
         ),
       })),
     },
@@ -49,8 +57,8 @@ function groupedDeltaItems(list, all, title) {
       tree: ROLLING_WINDOWS.map((w) => ({
         name: w.name,
         title: title(`${w.title} Realized Cap Growth Rate`),
-        bottom: flatMapCohortsWithAll(list, all, ({ name, color, tree }) =>
-          percentRatioBaseline({ pattern: tree.realized.cap.delta.rate[w.key], name, color }),
+        bottom: flatMapCohortsWithAll(cohorts, aggregate, ({ name, color, delta }) =>
+          percentRatioBaseline({ pattern: delta.rate[w.key], name, color }),
         ),
       })),
     },
@@ -59,7 +67,7 @@ function groupedDeltaItems(list, all, title) {
 
 /**
  * Grouped: MVRV + Change + Growth Rate items (flat)
- * @param {readonly (CohortWithRealizedCap & { tree: { realized: { mvrv: AnySeriesPattern } } })[]} list
+ * @param {readonly (CohortWithRealizedCap & { tree: { realized: { mvrv: { ratio: AnySeriesPattern } } } })[]} list
  * @param {CohortAll} all
  * @param {(name: string) => string} title
  * @returns {PartialOptionsTree}
@@ -70,7 +78,7 @@ function groupedDeltaAndMvrv(list, all, title) {
       name: "MVRV",
       title: title("MVRV"),
       bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
-        baseline({ series: tree.realized.mvrv, name, color, unit: Unit.ratio, base: 1 }),
+        baseline({ series: tree.realized.mvrv.ratio, name, color, unit: Unit.ratio, base: 1 }),
       ),
     },
     ...groupedDeltaItems(list, all, title),
@@ -124,19 +132,19 @@ export function createValuationSectionFull({ cohort, title }) {
             name: "Composition",
             title: title("Invested Capital Composition"),
             bottom: [
-              ...percentRatio({ pattern: tree.relative.investedCapital.inProfit.share, name: "In Profit", color: colors.profit }),
-              ...percentRatio({ pattern: tree.relative.investedCapital.inLoss.share, name: "In Loss", color: colors.loss }),
+              ...percentRatio({ pattern: tree.relative.investedCapitalInProfitShare, name: "In Profit", color: colors.profit }),
+              ...percentRatio({ pattern: tree.relative.investedCapitalInLossShare, name: "In Loss", color: colors.loss }),
               priceLine({ number: 100, color: colors.default, style: 0, unit: Unit.percentage }),
               priceLine({ number: 50, unit: Unit.percentage }),
             ],
           },
         ],
       },
-      { name: "MVRV", title: title("MVRV"), bottom: ratioBottomSeries(tree.realized.price) },
+      { name: "MVRV", title: title("MVRV"), bottom: [baseline({ series: tree.realized.mvrv.ratio, name: "MVRV", unit: Unit.ratio, base: 1 })] },
       {
         name: "% of Own Market Cap",
         title: title("Realized Cap (% of Own Market Cap)"),
-        bottom: percentRatio({ pattern: tree.realized.cap.toOwnMcap, name: "Realized Cap", color }),
+        bottom: percentRatio({ pattern: tree.relative.realizedCapToOwnMcap, name: "Realized Cap", color }),
       },
       ...singleDeltaItems(tree, title),
     ],
@@ -148,7 +156,7 @@ export function createValuationSectionFull({ cohort, title }) {
  * @param {{ cohort: CohortWithRealizedCap, title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
-export function createValuationSectionBase({ cohort, title }) {
+export function createValuationSection({ cohort, title }) {
   const { tree } = cohort;
   return {
     name: "Capitalization",
@@ -159,42 +167,14 @@ export function createValuationSectionBase({ cohort, title }) {
   };
 }
 
-/**
- * Basic capitalization (no invested capital, simple MVRV)
- * @param {{ cohort: CohortCore | CohortBasic | CohortAddr | CohortWithoutRelative, title: (name: string) => string }} args
- * @returns {PartialOptionsGroup}
- */
-export function createValuationSection({ cohort, title }) {
-  const base = createValuationSectionBase({ cohort, title });
-  return {
-    ...base,
-    tree: [
-      ...base.tree,
-      { name: "MVRV", title: title("MVRV"), bottom: [baseline({ series: cohort.tree.realized.mvrv, name: "MVRV", unit: Unit.ratio, base: 1 })] },
-    ],
-  };
-}
 
 // ============================================================================
 // Grouped Cohort Sections
 // ============================================================================
 
-/**
- * @param {{ list: readonly CohortWithRealizedCap[], all: CohortAll, title: (name: string) => string }} args
- * @returns {PartialOptionsGroup}
- */
-export function createGroupedValuationSectionBase({ list, all, title }) {
-  return {
-    name: "Capitalization",
-    tree: [
-      groupedRealizedCapTotal(list, all, title),
-      ...groupedDeltaItems(list, all, title),
-    ],
-  };
-}
 
 /**
- * @param {{ list: readonly (CohortWithRealizedCap & { tree: { realized: { mvrv: AnySeriesPattern } } })[], all: CohortAll, title: (name: string) => string }} args
+ * @param {{ list: readonly CohortWithRealizedCap[], all: CohortAll, title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 export function createGroupedValuationSection({ list, all, title }) {
@@ -202,7 +182,7 @@ export function createGroupedValuationSection({ list, all, title }) {
     name: "Capitalization",
     tree: [
       groupedRealizedCapTotal(list, all, title),
-      ...groupedDeltaAndMvrv(list, all, title),
+      ...groupedDeltaItems(list, all, title),
     ],
   };
 }

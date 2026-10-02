@@ -449,8 +449,8 @@ export function createNetworkSection() {
       exposedSubtree(addrs.exposed, "all", title),
       avgHoldingsSubtree(
         {
-          utxo: addrs.avgAmount.utxo.all,
-          addr: addrs.avgAmount.addr.all,
+          utxo: cohorts.outputs.avgAmount.all,
+          addr: addrs.avgBalance.all,
         },
         title,
       ),
@@ -486,8 +486,8 @@ export function createNetworkSection() {
         exposedSubtree(addrs.exposed, addrType, title),
         avgHoldingsSubtree(
           {
-            utxo: addrs.avgAmount.utxo[addrType],
-            addr: addrs.avgAmount.addr[addrType],
+            utxo: cohorts.outputs.avgAmount.byType[addrType],
+            addr: addrs.avgBalance[addrType],
           },
           title,
         ),
@@ -766,7 +766,7 @@ export function createNetworkSection() {
               title: "Average Holdings per UTXO by Type",
               bottom: addressTypes.flatMap((t) =>
                 satsBtcUsd({
-                  pattern: addrs.avgAmount.utxo[t.key],
+                  pattern: cohorts.outputs.avgAmount.byType[t.key],
                   name: t.name,
                   color: t.color,
                   defaultActive: t.defaultActive,
@@ -778,7 +778,7 @@ export function createNetworkSection() {
               title: "Average Holdings per Funded Address by Type",
               bottom: addressTypes.flatMap((t) =>
                 satsBtcUsd({
-                  pattern: addrs.avgAmount.addr[t.key],
+                  pattern: addrs.avgBalance[t.key],
                   name: t.name,
                   color: t.color,
                   defaultActive: t.defaultActive,

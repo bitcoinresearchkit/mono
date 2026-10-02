@@ -2,6 +2,7 @@ import { colors } from "../../utils/colors.js";
 import { entries } from "../../utils/array.js";
 import { bitview } from "../../utils/client.js";
 import { ageRanges } from "../age-ranges.js";
+import { AGE_CUTOFFS } from "../age-cutoffs.js";
 import { lazy } from "../lazy.js";
 import { selectCohortTree } from "./cohort-tree.js";
 
@@ -34,21 +35,20 @@ export function buildCohortData() {
     AMOUNT_RANGE_NAMES,
     SPENDABLE_TYPE_NAMES,
     CLASS_NAMES,
-    PROFITABILITY_RANGE_NAMES,
   } = bitview;
 
   const cohortAll = lazy(() => ({
     name: "",
     title: "",
     color: colors.bitcoin,
-    tree: selectCohortTree({ tree: cohorts, path: "all" }),
+    tree: bitview.series.distributionAggregated.cohorts.all,
     addressCount: {
       base: addrs.funded.all,
       delta: addrs.delta.all,
     },
     avgAmount: {
-      utxo: addrs.avgAmount.utxo.all,
-      addr: addrs.avgAmount.addr.all,
+      utxo: cohorts.outputs.avgAmount.all,
+      addr: addrs.avgBalance.all,
     },
   }));
 
@@ -57,7 +57,7 @@ export function buildCohortData() {
     name: shortNames.short,
     title: shortNames.long,
     color: colors.term.short,
-    tree: selectCohortTree({ tree: cohorts, path: "term.short" }),
+    tree: bitview.series.distributionAggregated.cohorts.sth,
   }));
 
   const longNames = TERM_NAMES.long;
@@ -65,8 +65,17 @@ export function buildCohortData() {
     name: longNames.short,
     title: longNames.long,
     color: colors.term.long,
-    tree: selectCohortTree({ tree: cohorts, path: "term.long" }),
+    tree: bitview.series.distributionAggregated.cohorts.lth,
   }));
+
+  const ageCutoff = lazy(() =>
+    AGE_CUTOFFS.map(({ key, name }, i, all) => ({
+      name,
+      title: `UTXOs ${name}`,
+      color: colors.at(i, all.length),
+      tree: bitview.series.distributionAggregated.cohorts[key],
+    })),
+  );
 
   const ageRange = lazy(() =>
     ageRanges.map(({ key, ...range }) => ({
@@ -99,10 +108,7 @@ export function buildCohortData() {
 
   const addressesAmountRange = lazy(() =>
     entries(AMOUNT_RANGE_NAMES).map(([key, names], i, arr) => {
-      const cohort = selectCohortTree({
-        tree: cohorts,
-        path: `addrBalance.${key}`,
-      });
+      const cohort = addressBalanceTree(key);
       return {
         name: names.short,
         title: `Addresses ${names.long}`,
@@ -127,8 +133,8 @@ export function buildCohortData() {
           delta: addrs.delta[key],
         },
         avgAmount: {
-          utxo: addrs.avgAmount.utxo[key],
-          addr: addrs.avgAmount.addr[key],
+          utxo: cohorts.outputs.avgAmount.byType[key],
+          addr: addrs.avgBalance[key],
         },
         exposed: addrs.exposed,
         reused: addrs.reused,
@@ -146,6 +152,7 @@ export function buildCohortData() {
         title: names.short,
         color: colors.scriptType[key],
         tree: selectCohortTree({ tree: cohorts, path: `type.${key}` }),
+        avgUtxoAmount: cohorts.outputs.avgAmount.byType[key],
       })),
   );
 
@@ -160,27 +167,6 @@ export function buildCohortData() {
       })),
   );
 
-  const profitability = lazy(() => {
-    const profitability = cohorts.profitability;
-    /** @param {keyof typeof profitability.supply} key */
-    const profitabilityRangePattern = (key) => ({
-      supply: profitability.supply[key],
-      realizedCap: profitability.realizedCap[key],
-      unrealizedPnl: profitability.unrealizedPnl[key],
-      nupl: profitability.nupl[key],
-    });
-
-    const profitabilityRange = entries(PROFITABILITY_RANGE_NAMES).map(
-      ([key, names], i, arr) => ({
-        name: names.short,
-        color: colors.at(i, arr.length),
-        pattern: profitabilityRangePattern(key),
-      }),
-    );
-
-    return profitabilityRange;
-  });
-
   return {
     get cohortAll() {
       return cohortAll();
@@ -190,6 +176,9 @@ export function buildCohortData() {
     },
     get termLong() {
       return termLong();
+    },
+    get ageCutoff() {
+      return ageCutoff();
     },
     get ageRange() {
       return ageRange();
@@ -212,8 +201,20 @@ export function buildCohortData() {
     get class() {
       return class_();
     },
-    get profitabilityRange() {
-      return profitability();
+  };
+}
+
+/** @param {keyof Bitview.SeriesTree_Addrs_ByBalance["supply"]} key */
+export function addressBalanceTree(key) {
+  const { byBalance } = bitview.series.addrs;
+  return {
+    supply: byBalance.supply[key],
+    outputs: { unspentCount: byBalance.utxoCount[key] },
+    activity: { transferVolume: byBalance.transferVolume[key] },
+    realized: {
+      cap: byBalance.realizedCap[key],
+      profit: byBalance.realizedProfit[key],
+      loss: byBalance.realizedLoss[key],
     },
   };
 }
