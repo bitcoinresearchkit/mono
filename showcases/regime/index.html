@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Bitcoin price against dollar and coin cost-basis percentiles, with Cointime and Coinflow weighting.">
+  <title>Bitcoin Regime</title>
+  <style>
+    @font-face {
+      font-family: Instrument;
+      src: url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2") format("woff2");
+      font-display: swap;
+    }
+    :root { color-scheme: dark; color: #eee; background: #000; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { height: 100dvh; min-height: 480px; display: grid; grid-template-rows: auto minmax(180px, 1fr) auto; }
+    header { padding: 18px 22px 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    h1 { margin: 0; font: 400 44px/1 Instrument, Georgia, serif; letter-spacing: -.025em; }
+    #weighting { display: flex; gap: 4px; padding: 4px; background: #141414; border-radius: 8px; }
+    button { font: inherit; font-size: 14px; cursor: pointer; color: #999; background: transparent; border: 0; padding: 10px 12px; border-radius: 5px; }
+    button:hover { color: #fff; }
+    button[aria-pressed="true"] { color: #fff; background: #303030; }
+    button:focus-visible, a:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    .plot { position: relative; min-height: 0; }
+    #chart { position: absolute; inset: 0; }
+    #status { position: absolute; z-index: 2; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: calc(100% - 32px); background: #202020ed; padding: 12px 16px; border-radius: 6px; font-size: 14px; text-align: center; }
+    #status:empty { display: none; }
+    #status.error { color: #ffb9b9; }
+    #status button { display: block; margin: 8px auto 0; color: #fff; background: #393939; }
+    footer { padding: 12px 22px 14px; border-top: 1px solid #222; }
+    .readout { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+    #price { font-size: 22px; letter-spacing: -.04em; }
+    #date, #mode-label { color: #999; font-size: 12px; }
+    .legend { display: grid; grid-template-columns: 3fr 2fr; gap: 24px; }
+    h2 { font-size: 12px; color: #999; font-weight: 400; margin: 0 0 10px; }
+    .levels { display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 1fr)); gap: 10px; }
+    .level { font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .level span { display: block; color: var(--color); margin-bottom: 5px; }
+    .level b { font-weight: 400; font-size: 14px; }
+    .note { display: flex; justify-content: space-between; gap: 16px; margin: 14px 0 0; color: #707070; font-size: 12px; line-height: 1.5; }
+    a { color: #999; text-decoration: none; }
+    a:hover { color: #fff; }
+    @media (max-width: 720px) {
+      header { padding: 14px 12px; align-items: flex-start; }
+      h1 { font-size: 36px; }
+      #weighting { flex-direction: column; }
+      button { padding: 7px 10px; font-size: 12px; }
+      footer { padding: 10px 12px; }
+      .legend { grid-template-columns: 1fr; gap: 16px; }
+      .readout { flex-wrap: wrap; gap: 6px 12px; }
+      .level b { font-size: 12px; }
+      .levels { gap: 5px; }
+      .note { font-size: 12px; }
+    }
+    @media (max-width: 320px), (max-height: 300px) {
+      main { min-height: 0; grid-template-rows: minmax(0, 1fr); }
+      header, footer { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Bitcoin Regime</h1>
+      <div id="weighting" role="group" aria-label="Cost-basis weighting">
+        <button type="button" data-mode="cointime" aria-pressed="true">Cointime weighted</button>
+        <button type="button" data-mode="coinflow" aria-pressed="false">Coinflow weighted</button>
+      </div>
+    </header>
+    <section class="plot" aria-label="Regime chart">
+      <div id="chart" role="img" aria-label="Bitcoin price and cost-basis percentiles in US dollars, on a logarithmic scale" aria-busy="true"></div>
+      <div id="status" role="status">Loading regime…</div>
+    </section>
+    <footer>
+      <div class="readout"><strong id="price">—</strong><time id="date"></time><span id="mode-label"></span></div>
+      <div class="legend">
+        <section><h2>Cost basis per dollar</h2><div id="dollar-levels" class="levels" style="--columns: 6"></div></section>
+        <section><h2>Cost basis per coin</h2><div id="coin-levels" class="levels" style="--columns: 4"></div></section>
+      </div>
+      <p class="note"><span>P100 uses the all-supply maximum cost basis in both modes.</span><a href="https://bitview.dev" target="_blank" rel="noreferrer">Bitview ↗</a></p>
+    </footer>
+  </main>
+  <script type="module">
+    const ORIGIN = "https://bitview.space";
+    // The deployed client, imported from a blob URL: direct remote module
+    // imports fail on some hosts.
+    const clientReady = (async () => {
+      const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
+        cache: "no-cache",
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
+      const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
+      try {
+        const { BitviewClient } = await import(url);
+        return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 });
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    })();
+    const START = "2012-01-01";
+    const DAY_ZERO = Date.UTC(2009, 0, 1);
+    const DAY_MS = 86_400_000;
+    const MODES = { cointime: "Cointime weighted", coinflow: "Coinflow weighted" };
+    const LEVELS = [
+      ...[100, 90, 80, 70, 60, 50].map((percentile, index) => ({
+        basis: "dollar", percentile, color: ["#fb7185", "#f38763", "#f5a45c", "#f8bd66", "#efd081", "#e9dfaa"][index],
+      })),
+      ...[50, 40, 30, 20].map((percentile, index) => ({
+        basis: "coin", percentile, color: ["#8bdcc3", "#5bbacb", "#658fdf", "#9b80e0"][index],
+      })),
+    ];
+    function metricName(mode, level) {
+      return level.percentile === 100 ? "cost_basis_max" : `${mode}_cost_basis_per_${level.basis}_pct${level.percentile}`;
+    }
+    function points(response) {
+      if (!Number.isInteger(response?.start) || !Array.isArray(response.data)) throw new Error("Invalid series data");
+      return response.data.map((value, offset) => {
+        const time = new Date(DAY_ZERO + (response.start + offset) * DAY_MS).toISOString().slice(0, 10);
+        return typeof value === "number" && Number.isFinite(value) && value > 0 ? { time, value } : { time };
+      });
+    }
+    async function fetchSeries(names) {
+      const client = await clientReady;
+      const entries = await Promise.all(names.map(async (name) => {
+        const dataPoints = points(await client.seriesEndpoint(name, "day1").slice(START).fetch());
+        if (!dataPoints.some(point => point.value !== undefined)) throw new Error(`No data for ${name}`);
+        return [name, dataPoints];
+      }));
+      return Object.fromEntries(entries);
+    }
+    const chartElement = document.getElementById("chart");
+    const status = document.getElementById("status");
+    const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+    const cache = new Map();
+    function load(key, names) {
+      if (!cache.has(key)) cache.set(key, fetchSeries(names).catch(error => { cache.delete(key); throw error; }));
+      return cache.get(key);
+    }
+    let activeMode = "cointime";
+    try {
+      const saved = new URLSearchParams(location.search).get("weight") || localStorage.getItem("brk-regime:weight");
+      if (Object.hasOwn(MODES, saved)) activeMode = saved;
+    } catch {}
+    let chart, priceSeries, activeData, latestTime, requestVersion = 0;
+    const levelSeries = [];
+    const levelValues = LEVELS.map(level => {
+      const element = document.createElement("div");
+      element.className = "level";
+      element.style.setProperty("--color", level.color);
+      const label = document.createElement("span");
+      label.textContent = `P${level.percentile}`;
+      const value = document.createElement("b");
+      value.textContent = "—";
+      element.append(label, value);
+      document.getElementById(`${level.basis}-levels`).append(element);
+      return value;
+    });
+    function showReadout(time) {
+      if (!activeData) return;
+      const format = name => {
+        const value = activeData[name].get(time);
+        return value === undefined ? "—" : money.format(value);
+      };
+      document.getElementById("price").textContent = `BTC ${format("price_close")}`;
+      document.getElementById("date").textContent = time;
+      document.getElementById("date").dateTime = time;
+      LEVELS.forEach((level, i) => { levelValues[i].textContent = format(metricName(activeMode, level)); });
+    }
+    function updateButtons() {
+      document.querySelectorAll("[data-mode]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.mode === activeMode)));
+    }
+    let chartLibrary;
+    function loadChartLibrary() {
+      return chartLibrary ??= new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://bitview.space/scripts/modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.js";
+        script.onload = () => resolve(window.LightweightCharts);
+        script.onerror = () => {
+          script.remove();
+          reject(new Error("Could not load the chart library."));
+        };
+        document.head.append(script);
+      }).catch(error => {
+        chartLibrary = undefined;
+        throw error;
+      });
+    }
+    async function activate(mode) {
+      const version = ++requestVersion;
+      chartElement.setAttribute("aria-busy", "true");
+      status.classList.remove("error");
+      status.textContent = `Loading ${MODES[mode].toLowerCase()} regime…`;
+      try {
+        const library = await loadChartLibrary();
+        const [market, weighted] = await Promise.all([
+          load("market", ["price_close", "cost_basis_max"]),
+          load(mode, LEVELS.filter(level => level.percentile !== 100).map(level => metricName(mode, level))),
+        ]);
+        if (version !== requestVersion) return;
+        if (!chart) {
+          chart = library.createChart(chartElement, {
+            autoSize: true,
+            layout: { background: { type: "solid", color: "#000" }, textColor: "#888", fontFamily: "ui-monospace, monospace", attributionLogo: true },
+            grid: { vertLines: { visible: false }, horzLines: { color: "#171717" } },
+            rightPriceScale: { mode: library.PriceScaleMode.Logarithmic, borderVisible: false, scaleMargins: { top: .08, bottom: .06 } },
+            timeScale: { borderVisible: false, rightOffset: 2 },
+            crosshair: { mode: library.CrosshairMode.Normal },
+          });
+          for (const level of LEVELS) levelSeries.push(chart.addSeries(library.LineSeries, {
+            color: level.color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+          }));
+          priceSeries = chart.addSeries(library.LineSeries, { color: "#fff", lineWidth: 2, priceLineVisible: false, lastValueVisible: true });
+          chart.subscribeCrosshairMove(event => showReadout(typeof event.time === "string" ? event.time : latestTime));
+          chartElement.addEventListener("dblclick", () => chart.timeScale().fitContent());
+        }
+        const range = chart.timeScale().getVisibleRange();
+        const data = { ...market, ...weighted };
+        LEVELS.forEach((level, i) => levelSeries[i].setData(data[metricName(mode, level)]));
+        priceSeries.setData(data.price_close);
+        activeMode = mode;
+        activeData = Object.fromEntries(Object.entries(data).map(([name, values]) => [name, new Map(values.map(point => [point.time, point.value]))]));
+        latestTime = data.price_close.findLast(point => point.value !== undefined).time;
+        document.getElementById("mode-label").textContent = MODES[mode];
+        showReadout(latestTime);
+        updateButtons();
+        if (range) chart.timeScale().setVisibleRange(range);
+        else chart.timeScale().fitContent();
+        try { localStorage.setItem("brk-regime:weight", mode); } catch {}
+        try {
+          const url = new URL(location.href);
+          url.searchParams.set("weight", mode);
+          history.replaceState(null, "", url);
+        } catch {}
+        status.textContent = "";
+      } catch (error) {
+        if (version !== requestVersion) return;
+        status.classList.add("error");
+        status.textContent = `Could not load ${MODES[mode].toLowerCase()} data. ${error.message}`;
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.textContent = "Retry";
+        retry.addEventListener("click", () => activate(mode));
+        status.append(retry);
+      } finally {
+        if (version === requestVersion) chartElement.setAttribute("aria-busy", "false");
+      }
+    }
+    document.getElementById("weighting").addEventListener("click", event => {
+      const mode = event.target.closest("button")?.dataset.mode;
+      if (Object.hasOwn(MODES, mode)) activate(mode);
+    });
+    updateButtons();
+    activate(activeMode);
+  </script>
+</body>
+</html>

@@ -32,7 +32,9 @@ fn captured_readers_share_appends_and_source_owned_invalidation() {
     assert!(reader.read_cached_into_at(0, 2, &mut Vec::new()));
     assert!(reader.read_cached_into_at(2, 3, &mut Vec::new()));
     assert_eq!(captured.collect(), [10, 20, 40]);
-    values.truncate_if_needed_at(1).unwrap();
+    values
+        .truncate_if_needed_with_stamp(1, Stamp::default())
+        .unwrap();
     assert!(captured.read_cached_into_at(0, 1, &mut Vec::new()));
     assert!(!captured.read_cached_into_at(1, 2, &mut Vec::new()));
     values.push(30);

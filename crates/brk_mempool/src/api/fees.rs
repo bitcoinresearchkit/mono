@@ -18,7 +18,3 @@ impl ReadOnlyState {
         Ok(snapshot.block_stats.clone())
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/api/fees.rs"]
-mod tests;

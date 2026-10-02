@@ -292,7 +292,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn attribution_changes_invalidate_rewards_in_memory_and_after_reopen() {
+    fn pool_cache_and_rewards_follow_reattribution_and_reopen() {
         let directory = tempdir().unwrap();
         for reopen in [false, true] {
             let db = Database::open(directory.path()).unwrap();
@@ -305,28 +305,66 @@ mod tests {
                 .validate_computed_version_or_reset(Version::ONE)
                 .unwrap();
             attribution.truncate_if_needed_at(0).unwrap();
-            for slug in [PoolSlug::F2Pool, PoolSlug::Unknown] {
+            for slug in [
+                PoolSlug::F2Pool,
+                PoolSlug::Unknown,
+                PoolSlug::F2Pool,
+                PoolSlug::F2Pool,
+                PoolSlug::Unknown,
+            ] {
                 attribution.push(slug);
             }
             attribution.write().unwrap();
             let heights = PoolHeights::build(&attribution);
             let source = PoolCumulativeVec::new("counts", PoolSlug::F2Pool, heights.clone());
+            let mut sorted = vec![StoredU64::from(99_u64)];
+            source.read_sorted_into_at(&[0, 2, 4], &mut sorted);
+            assert_eq!(sorted, [99_u64, 1, 2, 3].map(StoredU64::from));
+            let mut range = vec![StoredU64::from(99_u64)];
+            source.read_into_at(2, 5, &mut range);
+            assert_eq!(range, [99_u64, 2, 3, 3].map(StoredU64::from));
+            assert_eq!(
+                heights.block_numbers(
+                    &[PoolSlug::F2Pool, PoolSlug::F2Pool, PoolSlug::Unknown],
+                    Height::new(2),
+                ),
+                [2, 3, 2]
+            );
+            assert_eq!(
+                heights.latest_heights(PoolSlug::F2Pool, Height::new(4), 2),
+                [Height::new(3), Height::new(2)]
+            );
+            assert_eq!(
+                heights.latest_heights(PoolSlug::F2Pool, Height::new(2), 10),
+                [Height::new(2), Height::ZERO]
+            );
             let exit = Exit::new();
             rewards
                 .compute_transform(Height::ZERO, &source, |(h, count, _)| (h, count), &exit)
                 .unwrap();
-            assert_eq!(rewards.collect(), [1_u64, 1].map(StoredU64::from));
+            assert_eq!(rewards.collect(), [1_u64, 1, 2, 3, 3].map(StoredU64::from));
             attribution
                 .validate_computed_version_or_reset(Version::TWO)
                 .unwrap();
-            for slug in [PoolSlug::Unknown, PoolSlug::F2Pool] {
+            let replacement = [
+                PoolSlug::Unknown,
+                PoolSlug::F2Pool,
+                PoolSlug::F2Pool,
+                PoolSlug::Unknown,
+                PoolSlug::F2Pool,
+            ];
+            for slug in replacement {
                 attribution.push(slug);
             }
             attribution.write().unwrap();
+            heights.update(0, attribution.header().computed_version(), &replacement);
+            // Captured readers follow an empty rewind and replacement suffix.
+            heights.update(3, attribution.header().computed_version(), &[]);
+            assert_eq!(source.collect(), [0_u64, 1, 2].map(StoredU64::from));
             heights.update(
-                0,
+                3,
                 attribution.header().computed_version(),
-                &[PoolSlug::Unknown, PoolSlug::F2Pool],
+                &replacement[3..],
             );
             drop(attribution);
             drop(rewards);
@@ -347,84 +385,10 @@ mod tests {
             assert_ne!(source.version(), attribution.header().vec_version());
             // A near-tip request must still rebuild the stale historical prefix.
             rewards
-                .compute_transform(Height::new(2), &source, |(h, count, _)| (h, count), &exit)
+                .compute_transform(Height::new(5), &source, |(h, count, _)| (h, count), &exit)
                 .unwrap();
-            assert_eq!(rewards.collect(), [0_u64, 1].map(StoredU64::from));
+            assert_eq!(rewards.collect(), [0_u64, 1, 2, 2, 3].map(StoredU64::from));
             db.flush().unwrap();
         }
-    }
-
-    fn fixture() -> (PoolHeights, PoolCumulativeVec) {
-        let pool_heights = PoolHeights::default();
-        pool_heights.update(
-            0,
-            Version::ONE,
-            &[
-                PoolSlug::F2Pool,
-                PoolSlug::Unknown,
-                PoolSlug::F2Pool,
-                PoolSlug::F2Pool,
-                PoolSlug::Unknown,
-            ],
-        );
-        let cumulative = PoolCumulativeVec::new(
-            "f2pool_blocks_mined_cumulative",
-            PoolSlug::F2Pool,
-            pool_heights.clone(),
-        );
-        (pool_heights, cumulative)
-    }
-
-    #[test]
-    fn sorted_and_appending_reads_use_cumulative_ranks() {
-        let (_, cumulative) = fixture();
-        let mut sorted = vec![StoredU64::from(99_u64)];
-        cumulative.read_sorted_into_at(&[0, 2, 4], &mut sorted);
-        assert_eq!(sorted, [99_u64, 1, 2, 3].map(StoredU64::from));
-
-        let mut range = vec![StoredU64::from(99_u64)];
-        cumulative.read_into_at(2, 5, &mut range);
-        assert_eq!(range, [99_u64, 2, 3, 3].map(StoredU64::from));
-    }
-
-    #[test]
-    fn truncate_and_push_keep_length_and_counts_in_sync() {
-        let (pool_heights, cumulative) = fixture();
-
-        pool_heights.update(3, Version::ONE, &[]);
-        assert_eq!(cumulative.collect(), [1_u64, 1, 2].map(StoredU64::from));
-
-        pool_heights.update(3, Version::ONE, &[PoolSlug::Unknown, PoolSlug::F2Pool]);
-        assert_eq!(
-            cumulative.collect(),
-            [1_u64, 1, 2, 2, 3].map(StoredU64::from)
-        );
-    }
-
-    #[test]
-    fn bulk_block_numbers_use_one_height_per_slug() {
-        let (pool_heights, _) = fixture();
-
-        assert_eq!(
-            pool_heights.block_numbers(
-                &[PoolSlug::F2Pool, PoolSlug::Unknown, PoolSlug::F2Pool],
-                Height::from(0_u32),
-            ),
-            [1, 1, 2]
-        );
-    }
-
-    #[test]
-    fn latest_heights_are_limited_and_descending() {
-        let (pool_heights, _) = fixture();
-
-        assert_eq!(
-            pool_heights.latest_heights(PoolSlug::F2Pool, Height::from(4_u32), 2),
-            [Height::from(3_u32), Height::from(2_u32)]
-        );
-        assert_eq!(
-            pool_heights.latest_heights(PoolSlug::F2Pool, Height::from(2_u32), 10),
-            [Height::from(2_u32), Height::from(0_u32)]
-        );
     }
 }

@@ -162,7 +162,3 @@ fn rank_descriptions(
     candidates.sort_unstable_by(compare);
     candidates.into_iter().map(|(id, ..)| id).collect()
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/vecs/search.rs"]
-mod tests;

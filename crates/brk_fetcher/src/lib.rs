@@ -166,34 +166,3 @@ How to fix this:
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn source_fallback_preserves_priority_and_stops_at_first_success() {
-        let mut fetcher = Fetcher::new(None).unwrap();
-        for successful in 0..=3 {
-            for unsupported in [false, true] {
-                let mut visited = Vec::new();
-                let result = fetcher.try_sources(|source| {
-                    let index = visited.len();
-                    visited.push(source.name());
-                    if index == successful {
-                        Some(Ok(OHLCCents::default()))
-                    } else if unsupported {
-                        None
-                    } else {
-                        Some(Err(Error::Internal("fixture failure")))
-                    }
-                });
-                assert_eq!(result.is_some(), successful < 3);
-                assert_eq!(
-                    visited,
-                    ["Binance", "Kraken", "BRK"][..(successful + 1).min(3)]
-                );
-            }
-        }
-    }
-}

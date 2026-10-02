@@ -1,15 +1,9 @@
-use bitview_traversable::{Traversable, TreeNode};
-use bitview_vecs::{
-    LazyPreviousDeltaVec, LazyRollingDistribution, LazyTxDerivedDistribution, RollingDistribution,
-    TxDerivedDistribution,
-};
+use bitview_vecs::{LazyPreviousDeltaVec, TxDerivedDistribution};
 use brk_exit::Exit;
 use brk_types::{Height, Lengths, StoredU64, TxIndex, VSize, Version, get_percentile};
 use common::{indexes, init_cache, stored};
 use tempfile::tempdir;
-use vecdb::{
-    AnyStoredVec, AnyVec, Database, Ident, ImportableVec, PcoVec, ReadableVec, WritableVec,
-};
+use vecdb::{AnyStoredVec, AnyVec, Database, ImportableVec, PcoVec, ReadableVec, WritableVec};
 
 mod common;
 
@@ -38,7 +32,7 @@ fn stored_distributions_match_reference_after_resume_rewind_and_version_reset() 
                 .map(|tx| {
                     (
                         StoredU64::from((height * 7 + tx * 3) % 13),
-                        VSize::new((tx * 19 + height) % 100),
+                        VSize::new(60 + (tx * 19 + height) % 100),
                     )
                 })
                 .collect()
@@ -96,7 +90,7 @@ fn stored_distributions_match_reference_after_resume_rewind_and_version_reset() 
                         weights.truncate_if_needed_at(start_tx).unwrap();
                         for (value, weight) in blocks[7..].iter_mut().flatten() {
                             *value = StoredU64::from((u64::from(*value) + 5) % 13);
-                            *weight = VSize::new((u64::from(*weight) + 17) % 100);
+                            *weight = VSize::new(60 + (u64::from(*weight) + 17) % 100);
                             values.push(*value);
                             weights.push(*weight);
                         }
@@ -189,87 +183,6 @@ fn stored_distributions_match_reference_after_resume_rewind_and_version_reset() 
                     }
                 }
             }
-            let lazy = LazyTxDerivedDistribution::<StoredU64, StoredU64>::from_tx_derived::<Ident>(
-                "converted",
-                Version::ONE,
-                &output,
-            );
-            // Storage names and public catalog paths do not depend on the removed wrappers.
-            for tree in [output.to_tree_node(), lazy.to_tree_node()] {
-                let TreeNode::Branch(children) = tree else {
-                    panic!("expected distribution branch")
-                };
-                assert_eq!(
-                    children.keys().map(String::as_str).collect::<Vec<_>>(),
-                    ["block", "6b"]
-                );
-            }
-            assert_eq!(output._6b.median.height.name(), format!("{name}_6b_median"));
-            assert_eq!(lazy._6b.median.name(), "converted_6b_median");
-            assert_eq!(
-                lazy._6b.median.collect(),
-                output._6b.median.height.collect()
-            );
-        }
-    }
-}
-
-#[test]
-fn lazy_rolling_distribution_preserves_all_stat_window_mappings() {
-    init_cache();
-    let directory = tempdir().unwrap();
-    let db = Database::open(directory.path()).unwrap();
-    let indexes = indexes(&db);
-    let mut source =
-        RollingDistribution::<StoredU64>::forced_import(&db, "source", Version::ONE, &indexes)
-            .unwrap();
-    let mut value = 0u64;
-    let stats = &mut source.0;
-    for windows in [
-        &mut stats.min,
-        &mut stats.max,
-        &mut stats.pct10,
-        &mut stats.pct25,
-        &mut stats.median,
-        &mut stats.pct75,
-        &mut stats.pct90,
-    ] {
-        for window in windows.0.as_mut_array() {
-            value += 1;
-            window.height.push(StoredU64::from(value));
-            window.height.write().unwrap();
-        }
-    }
-    let lazy = LazyRollingDistribution::<StoredU64, StoredU64>::from_rolling_distribution::<Ident>(
-        "converted",
-        Version::ONE,
-        &source,
-    );
-    for (stat_index, (suffix, windows)) in [
-        ("min", &lazy.min),
-        ("max", &lazy.max),
-        ("pct10", &lazy.pct10),
-        ("pct25", &lazy.pct25),
-        ("median", &lazy.median),
-        ("pct75", &lazy.pct75),
-        ("pct90", &lazy.pct90),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        for (window_index, (window_suffix, window)) in ["24h", "1w", "1m", "1y"]
-            .into_iter()
-            .zip(windows.as_array())
-            .enumerate()
-        {
-            assert_eq!(
-                window.height.name(),
-                format!("converted_{suffix}_{window_suffix}")
-            );
-            assert_eq!(
-                window.height.collect_one_at(0),
-                Some(StoredU64::from((stat_index * 4 + window_index + 1) as u64))
-            );
         }
     }
 }

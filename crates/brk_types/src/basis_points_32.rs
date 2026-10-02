@@ -42,18 +42,8 @@ pub struct BasisPoints32(u32);
 impl BasisPoints32 {
     const SCALE: u32 = 10_000;
     pub const ZERO: Self = Self(0);
-    pub const ONE: Self = Self(Self::SCALE);
     pub const MAX: Self = Self(u32::MAX - 1);
     pub const NAN: Self = Self(u32::MAX);
-
-    /// Restore raw encoded bits, including the undefined sentinel.
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
-
-    pub const fn inner(self) -> u32 {
-        self.0
-    }
 
     pub const fn is_nan(self) -> bool {
         self.0 == u32::MAX

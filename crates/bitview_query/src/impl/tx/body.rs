@@ -22,27 +22,3 @@ impl ResolvedTxBody {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn frozen_body_owns_the_original_buffer_and_hashes_its_exact_bytes() {
-        for bytes in [
-            vec![],
-            b"[]".to_vec(),
-            vec![0, 255, 1],
-            "é".as_bytes().to_vec(),
-        ] {
-            let hash = RepresentationId::content_hash(&bytes);
-            let pointer = bytes.as_ptr();
-            let body = ResolvedTxBody::memory(bytes);
-            assert!(matches!(body.identity(), RepresentationId::Content(actual) if actual == hash));
-            let ResolvedTxBody::Memory { bytes, .. } = body else {
-                unreachable!()
-            };
-            assert_eq!(bytes.as_ptr(), pointer);
-        }
-    }
-}

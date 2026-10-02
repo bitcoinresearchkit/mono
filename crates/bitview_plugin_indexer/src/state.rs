@@ -114,35 +114,6 @@ mod tests {
     }
 
     #[test]
-    fn unchanged_bounds_do_not_wait_for_pinned_readers() {
-        let state = Arc::new(State::new());
-        let lengths = Lengths {
-            height: Height::new(2),
-            ..Default::default()
-        };
-        state.finish_update(lengths);
-        let prefix = state.pin_for(Duration::from_secs(1)).unwrap();
-        let writer = state.clone();
-        let (finished, done) = mpsc::channel();
-        let task = thread::spawn(move || {
-            writer.lower_before(&lengths);
-            writer.lower_before(&Lengths {
-                height: Height::new(3),
-                ..lengths
-            });
-            writer.finish_update(lengths);
-            finished.send(()).unwrap();
-        });
-        let result = done.recv_timeout(Duration::from_secs(2));
-        let readable = state.try_pin().is_some();
-        drop(prefix);
-        task.join().unwrap();
-        result.expect("unchanged bounds waited for a pinned reader");
-        assert!(readable);
-        assert_eq!(state.lengths(), lengths);
-    }
-
-    #[test]
     fn pinned_prefix_blocks_rollback_and_allows_nested_bound_reads() {
         let state = Arc::new(State::new());
         state.finish_update(Lengths {

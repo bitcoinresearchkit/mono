@@ -25,7 +25,3 @@ where
             .ok_or_else(|| Error::custom("expected a string or number"))
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/deser.rs"]
-mod tests;

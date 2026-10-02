@@ -520,22 +520,9 @@ fn reserialize_json(mut bytes: Vec<u8>) -> Result<Vec<u8>> {
 ///
 /// Raw vectors are not exposed outside the protected read view.
 ///
-/// ```compile_fail
-/// use bitview_query::ResolvedQuery;
-/// fn unbounded(resolved: ResolvedQuery) {
-///     resolved.vecs[0].write_json(None, None, &mut Vec::new()).unwrap();
-/// }
-/// ```
 ///
 /// A bounded column cannot outlive the query that owns its publication guards.
 ///
-/// ```compile_fail
-/// use bitview_query::ResolvedQuery;
-/// use vecdb::BoundedVec;
-/// fn detached(resolved: ResolvedQuery) -> BoundedVec<'static> {
-///     resolved.columns().next().unwrap()
-/// }
-/// ```
 pub struct ResolvedQuery {
     read: SeriesRead,
     pub format: Format,

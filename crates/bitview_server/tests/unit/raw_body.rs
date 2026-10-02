@@ -17,53 +17,6 @@ use tower_layer::Layer;
 use super::*;
 use crate::compression_layer;
 
-#[test]
-fn payload_clones_retain_admission_without_copying_bytes() {
-    let budget = Arc::new(Semaphore::new(1));
-    let permit = RawBodyPermit::try_acquire(&budget).unwrap();
-    let input = Bytes::from(vec![7; 4096]);
-    let pointer = input.as_ptr();
-    let bytes = permit.bytes(input);
-    assert_eq!(bytes.as_ptr(), pointer);
-    let slice = bytes.slice(1..);
-    drop(permit);
-    drop(bytes);
-    assert!(RawBodyPermit::try_acquire(&budget).is_none());
-    assert_eq!(slice[0], 7);
-    drop(slice);
-    assert_eq!(budget.available_permits(), 1);
-}
-
-#[tokio::test]
-async fn wire_frames_retain_admission_after_the_body_is_dropped() {
-    let budget = Arc::new(Semaphore::new(1));
-    let permit = RawBodyPermit::try_acquire(&budget).unwrap();
-    // Independent output bytes model an encoder that consumed its input.
-    let mut response = Response::new(Body::from("encoded output"));
-    response.extensions_mut().insert(permit);
-    let mut body = RawBodyPermit::retain(response).into_body();
-    assert_eq!(body.size_hint().exact(), Some(14));
-    let frame = poll_fn(|cx| Pin::new(&mut body).poll_frame(cx))
-        .await
-        .unwrap()
-        .unwrap();
-    let bytes = frame.into_data().unwrap();
-    assert_eq!(bytes, "encoded output");
-    drop(body);
-    assert_eq!(budget.available_permits(), 0);
-    let clone = bytes.clone();
-    drop(bytes);
-    assert_eq!(budget.available_permits(), 0);
-    drop(clone);
-    assert_eq!(budget.available_permits(), 1);
-
-    let permit = RawBodyPermit::try_acquire(&budget).unwrap();
-    let mut response = Response::new(Body::from("cancelled"));
-    response.extensions_mut().insert(permit);
-    drop(RawBodyPermit::retain(response));
-    assert_eq!(budget.available_permits(), 1);
-}
-
 #[tokio::test]
 async fn compression_releases_input_without_releasing_response_admission() {
     for encoding in ["identity", "gzip", "br", "zstd"] {

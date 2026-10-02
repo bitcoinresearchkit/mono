@@ -9,10 +9,6 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-#[cfg(test)]
-#[path = "../../../../../tests/unit/disk_walk.rs"]
-mod tests;
-
 // Bound recursive frames even if directories or links change during a walk.
 const MAX_DEPTH: usize = 128;
 

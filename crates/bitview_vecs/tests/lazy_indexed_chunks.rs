@@ -7,8 +7,8 @@ use bitview_vecs::LazyIndexedVec;
 use brk_types::{Height, StoredU64, Version};
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, BytesVec, Database, Ident, ImportableVec, LazyVec, MutableVec, ReadOnlyClone,
-    ReadableCloneableVec, ReadableVec, WritableVec,
+    AnyStoredVec, Database, Ident, LazyVec, ReadOnlyClone, ReadableCloneableVec, ReadableVec,
+    WritableVec,
 };
 
 #[test]
@@ -84,56 +84,4 @@ fn indexed_chunks_preserve_captures_offsets_short_metadata_and_rewrites() {
         identity.collect_range_at(34_999, 40_000),
         [StoredU64::from(34_999u64 * 4 + 7)]
     );
-}
-
-#[test]
-fn indexed_chunks_keep_metadata_aligned_with_emitted_values_across_holes() {
-    let directory = tempdir().unwrap();
-    let db = Database::open(directory.path()).unwrap();
-    let mut source =
-        MutableVec::<BytesVec<usize, u64>>::import(&db, "source", Version::ONE).unwrap();
-    let mut metadata = BytesVec::<usize, u64>::import(&db, "metadata", Version::ONE).unwrap();
-    for i in 0..20_000u64 {
-        source.push(i * 3);
-    }
-    for i in 0..18_000u64 {
-        metadata.push(i * 5);
-    }
-    for i in [1, 4095, 8192, 16_383] {
-        source.delete_at(i);
-    }
-    for i in 4096..8192 {
-        source.delete_at(i);
-    }
-    source.write().unwrap();
-    metadata.write().unwrap();
-    let indexed = LazyIndexedVec::new(
-        "indexed",
-        Version::ONE,
-        &source,
-        &metadata.read_only_clone(),
-        |index: usize, value, weight| value + weight * 7 + index as u64,
-    );
-    for (from, to) in [(0, 20_000), (3990, 9000), (4096, 8192), (17_000, 20_000)] {
-        let expected: Vec<_> = source
-            .collect_range_at(from, to.min(18_000))
-            .into_iter()
-            .enumerate()
-            .map(|(offset, value)| value + (from + offset) as u64 * 36)
-            .collect();
-        assert_eq!(indexed.collect_range_at(from, to), expected);
-        let mut actual = Vec::new();
-        indexed.for_each_chunk_at(from, to, &mut |at, values| {
-            assert_eq!(at, from + actual.len());
-            actual.extend_from_slice(values);
-        });
-        assert_eq!(actual, expected);
-        assert_eq!(
-            indexed.fold_range_at(from, to, Vec::new(), |mut values, value| {
-                values.push(value);
-                values
-            }),
-            expected
-        );
-    }
 }

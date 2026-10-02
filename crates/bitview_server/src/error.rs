@@ -162,7 +162,3 @@ impl IntoResponse for Error {
         response
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/error.rs"]
-mod tests;

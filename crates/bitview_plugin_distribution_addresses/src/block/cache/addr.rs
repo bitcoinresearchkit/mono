@@ -246,16 +246,4 @@ mod tests {
         ));
         Ok(())
     }
-
-    #[test]
-    fn block_address_round_trips_every_address_type() {
-        for addr_type in OutputType::ADDR_TYPES {
-            for type_index in [TypeIndex::from(0_u32), TypeIndex::from(u32::MAX)] {
-                let address = AddressKey::new(addr_type, type_index);
-
-                assert_eq!(address.addr_type(), addr_type);
-                assert_eq!(address.type_index(), type_index);
-            }
-        }
-    }
 }

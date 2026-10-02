@@ -1,13 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::MutableVec;
-use crate::{
-    AnyStoredVec, BytesVec, BytesVecReader, BytesVecValue, ImportableVec, Result, Stamp, StoredVec,
-    VecIndex, WritableVec,
-};
-
-#[cfg(feature = "zerocopy")]
-use crate::{VecReader, ZeroCopyStrategy, ZeroCopyVec, ZeroCopyVecValue};
+use crate::{AnyStoredVec, ImportableVec, Result, Stamp, StoredVec, VecIndex, WritableVec};
 
 pub trait MutableRawVec: StoredVec + ImportableVec + WritableVec<Self::I, Self::T> + Sized {
     type Reader;
@@ -106,21 +100,6 @@ where
     }
 
     #[inline]
-    pub fn prev_holes(&self) -> &BTreeSet<usize> {
-        self.holes.previous()
-    }
-
-    #[inline]
-    pub fn updated(&self) -> &BTreeMap<usize, V::T> {
-        self.current_updated()
-    }
-
-    #[inline]
-    pub fn prev_updated(&self) -> &BTreeMap<usize, V::T> {
-        self.previous_updated()
-    }
-
-    #[inline]
     pub fn get_with_reader(&self, index: V::I, reader: &V::Reader) -> Option<V::T> {
         self.get_with_reader_at(index.to_usize(), reader)
     }
@@ -140,11 +119,6 @@ where
         self.delete_at(index.to_usize());
     }
 
-    #[inline]
-    pub fn reserve_pushed(&mut self, additional: usize) {
-        self.vec.reserve_pushed(additional);
-    }
-
     /// Borrows the staged values for mutation without changing their length.
     #[inline]
     pub fn pushed_mut(&mut self) -> &mut [V::T] {
@@ -153,40 +127,5 @@ where
 
     pub fn take(&mut self, index: V::I, reader: &V::Reader) -> Option<V::T> {
         self.take_at(index.to_usize(), reader)
-    }
-}
-
-impl<I, T> MutableVec<BytesVec<I, T>>
-where
-    I: VecIndex,
-    T: BytesVecValue,
-{
-    #[inline]
-    pub fn get_append_only(&self, index: I, reader: &BytesVecReader<I, T>) -> Option<T> {
-        debug_assert!(
-            self.current_holes().is_empty() && self.current_updated().is_empty(),
-            "get_append_only requires a vector without holes or updates"
-        );
-        self.vec.get_append_only(index, reader)
-    }
-}
-
-#[cfg(feature = "zerocopy")]
-impl<I, T> MutableVec<ZeroCopyVec<I, T>>
-where
-    I: VecIndex,
-    T: ZeroCopyVecValue,
-{
-    #[inline]
-    pub fn get_append_only(
-        &self,
-        index: I,
-        reader: &VecReader<I, T, ZeroCopyStrategy<T>>,
-    ) -> Option<T> {
-        debug_assert!(
-            self.current_holes().is_empty() && self.current_updated().is_empty(),
-            "get_append_only requires a vector without holes or updates"
-        );
-        self.vec.get_append_only(index, reader)
     }
 }

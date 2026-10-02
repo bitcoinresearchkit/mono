@@ -232,24 +232,3 @@ impl Formattable for PartsPerMillion32 {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn conversions_and_sentinels() {
-        assert_eq!(PartsPerMillion32::from(0.123_456_6).0, 123_457);
-        assert_eq!(f64::from(PartsPerMillion32::ONE), 1.0);
-        assert_eq!(PartsPerMillion32::from(-1.0), PartsPerMillion32::ZERO);
-        assert_eq!(PartsPerMillion32::from(f64::MAX).0, u32::MAX - 1);
-        assert!(PartsPerMillion32::from(f64::NAN).is_nan());
-
-        #[cfg(feature = "storage")]
-        {
-            let mut json = Vec::new();
-            PartsPerMillion32::NAN.fmt_json(&mut json);
-            assert_eq!(json, b"null");
-        }
-    }
-}

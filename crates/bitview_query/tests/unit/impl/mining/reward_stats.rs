@@ -8,19 +8,6 @@ use vecdb::{
 use super::*;
 
 #[test]
-fn cumulative_delta_rejects_reversed_ranges_and_decreasing_values() {
-    let directory = tempdir().unwrap();
-    let database = Database::open(directory.path()).unwrap();
-    let mut values: EagerVec<PcoVec<Height, Sats>> =
-        EagerVec::forced_import(&database, "values", Version::ONE).unwrap();
-    values.push(Sats::from(10u64));
-    values.push(Sats::from(5u64));
-    values.write().unwrap();
-    assert!(cumulative_delta(&values, 1u32.into(), 0u32.into()).is_err());
-    assert!(cumulative_delta(&values, 1u32.into(), 1u32.into()).is_err());
-}
-
-#[test]
 fn cumulative_delta_matches_range_sum_across_read_strategies() {
     let directory = tempdir().unwrap();
     let db = Database::open(directory.path()).unwrap();

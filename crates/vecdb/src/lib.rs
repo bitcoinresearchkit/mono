@@ -59,9 +59,9 @@ pub use variants::{
     BytesStrategy, BytesVec, BytesVecReader, BytesVecValue, CompressedRangeCursor,
     CompressionStrategy, DeltaAvg, DeltaChange, DeltaOp, DeltaRate, DeltaSub, EagerVec,
     EncodedChunk, Ident, IndexVec, LazyDeltaVec, LazyVec, MapOption, MutableVec, OverflowVec,
-    OverflowVecReader, OverflowVecReaderCursor, OverflowVecValue, RawRangeCursor, RawStrategy,
-    ReadOnlyCompressedVec, ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec,
-    ReadWriteRawVec, UnaryTransform, VecReader, VecReaderCursor,
+    OverflowVecReader, OverflowVecValue, RawRangeCursor, RawStrategy, ReadOnlyCompressedVec,
+    ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec, ReadWriteRawVec, UnaryTransform,
+    VecReader, VecReaderCursor,
 };
 #[cfg(feature = "lz4")]
 pub use variants::{LZ4Strategy, LZ4Vec, LZ4VecValue};

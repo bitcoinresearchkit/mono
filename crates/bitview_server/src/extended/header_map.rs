@@ -65,8 +65,5 @@ impl HeaderMapExtended for HeaderMap {
     }
 }
 
-#[cfg(all(test, feature = "series"))]
-#[path = "../../tests/unit/extended/header_map.rs"]
-mod tests;
 #[cfg(feature = "series")]
 use std::fmt::Write;

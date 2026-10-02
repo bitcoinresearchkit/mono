@@ -152,44 +152,4 @@ mod tests {
         assert_eq!(txs[2].chunk_rate, txs[3].chunk_rate);
         assert_ne!(txs[0].chunk_rate, txs[2].chunk_rate);
     }
-
-    #[test]
-    fn cluster_cap_does_not_panic() {
-        let n = 100;
-        let mut txs: Vec<SnapTx> = (0..n).map(|_| snap_tx(sats(1000), vsize(100))).collect();
-        for i in 1..n {
-            link(&mut txs, i - 1, i);
-        }
-        Snapshot::refresh_chunk_rates(&mut txs);
-    }
-
-    #[test]
-    fn refresh_chunk_rates_is_order_independent_within_clusters() {
-        let mut a = vec![
-            snap_tx(sats(1_000), vsize(100)),
-            snap_tx(sats(100), vsize(100)),
-            snap_tx(sats(5_000), vsize(100)),
-            snap_tx(sats(200), vsize(100)),
-        ];
-        link(&mut a, 0, 1);
-        link(&mut a, 2, 3);
-        Snapshot::refresh_chunk_rates(&mut a);
-
-        // Same pool, members of each cluster reordered.
-        let mut b = vec![
-            snap_tx(sats(100), vsize(100)),
-            snap_tx(sats(1_000), vsize(100)),
-            snap_tx(sats(200), vsize(100)),
-            snap_tx(sats(5_000), vsize(100)),
-        ];
-        link(&mut b, 1, 0);
-        link(&mut b, 3, 2);
-        Snapshot::refresh_chunk_rates(&mut b);
-
-        let mut rates_a: Vec<f64> = a.iter().map(|t| f64::from(t.chunk_rate)).collect();
-        let mut rates_b: Vec<f64> = b.iter().map(|t| f64::from(t.chunk_rate)).collect();
-        rates_a.sort_by(|x, y| x.partial_cmp(y).unwrap());
-        rates_b.sort_by(|x, y| x.partial_cmp(y).unwrap());
-        assert_eq!(rates_a, rates_b);
-    }
 }

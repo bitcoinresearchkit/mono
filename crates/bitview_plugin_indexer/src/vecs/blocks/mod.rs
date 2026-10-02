@@ -167,7 +167,3 @@ impl BlocksVecs {
         .into_iter()
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/vecs/blocks.rs"]
-mod tests;

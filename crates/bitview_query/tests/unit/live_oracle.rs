@@ -1,7 +1,6 @@
 use std::cell::Cell;
 
 use bitview_plugin::Publication;
-use brk_error::Error;
 use brk_oracle::{Config, cents_to_bin};
 
 use super::*;
@@ -41,28 +40,4 @@ fn same_tip_publications_invalidate_the_warmed_window() {
     let next = "11".repeat(32).parse().unwrap();
     assert_eq!(read(next), seed.get());
     assert_eq!(builds.get(), 4);
-}
-
-#[test]
-fn failed_rebuild_does_not_return_or_publish_an_old_window() {
-    let cache = LiveOracle::default();
-    let tip = BlockHash::default();
-    cache
-        .get_or_try_init(tip, 0, || Ok(Oracle::from_seed()))
-        .unwrap();
-    for _ in 0..2 {
-        assert!(
-            cache
-                .get_or_try_init(tip, 1, || Err(Error::StateUpdating))
-                .is_err()
-        );
-    }
-    cache
-        .get_or_try_init(tip, 1, || Ok(Oracle::from_seed()))
-        .unwrap();
-    assert!(
-        cache
-            .get_or_try_init(tip, 1, || panic!("matching publication must reuse window"))
-            .is_ok()
-    );
 }

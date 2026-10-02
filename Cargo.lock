@@ -403,15 +403,12 @@ dependencies = [
  "bitview_default",
  "bitview_plugin",
  "bitview_plugin_indexer",
- "bitview_query",
  "bitview_runtime",
  "bitview_traversable",
  "bitviewd",
  "brk_error",
- "brk_exit",
  "brk_reader",
  "brk_types",
- "tempfile",
  "vecdb",
 ]
 
@@ -553,7 +550,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "tower",
  "tracing",
  "ureq",
 ]
@@ -593,7 +589,6 @@ dependencies = [
  "log",
  "schemars",
  "serde",
- "statedb",
  "tempfile",
  "vecdb",
 ]
@@ -823,7 +818,6 @@ dependencies = [
  "bitview_plugin_outputs",
  "bitview_plugin_price",
  "bitview_plugin_utxo_history",
- "bitview_query",
  "bitview_runtime",
  "bitview_transforms",
  "bitview_traversable",
@@ -857,7 +851,6 @@ dependencies = [
  "bitview_plugin_outputs",
  "bitview_plugin_price",
  "bitview_plugin_utxo_history",
- "bitview_query",
  "bitview_runtime",
  "bitview_traversable",
  "bitview_vecs",
@@ -892,7 +885,6 @@ dependencies = [
  "brk_oracle",
  "brk_types",
  "rayon",
- "tempfile",
  "tracing",
  "vecdb",
 ]
@@ -971,7 +963,6 @@ dependencies = [
  "rayon",
  "rustc-hash",
  "statedb",
- "tempfile",
  "tracing",
  "vecdb",
 ]
@@ -1202,7 +1193,6 @@ dependencies = [
  "brk_rpc",
  "brk_types",
  "derive_more",
- "rangeindex",
  "rayon",
  "rustc-hash",
  "smallvec",
@@ -1285,7 +1275,6 @@ dependencies = [
  "brk_types",
  "tempfile",
  "tracing",
- "vecdb",
 ]
 
 [[package]]
@@ -1305,7 +1294,6 @@ dependencies = [
  "axum",
  "bitcoin",
  "bitview_catalog",
- "bitview_cohort",
  "bitview_default",
  "bitview_plugin",
  "bitview_plugin_blocks",
@@ -1325,7 +1313,6 @@ dependencies = [
  "bitview_query",
  "bitview_runtime",
  "bitview_types",
- "bitview_urpd",
  "bitview_website",
  "brk_error",
  "brk_exit",
@@ -2864,7 +2851,6 @@ dependencies = [
  "include_dir",
  "rapidhash",
  "serde_json",
- "tempfile",
 ]
 
 [[package]]

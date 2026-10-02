@@ -19,12 +19,6 @@ pub struct ResolvedHistoricalPrice<'a> {
 }
 
 impl Query {
-    /// Completed four-hour closes, labeled by their exclusive interval end.
-    /// Point requests select the latest nonempty close at or before the timestamp.
-    pub fn historical_price(&self, timestamp: Option<Timestamp>) -> Result<HistoricalPrice> {
-        self.resolve_historical_price()?.get(timestamp)
-    }
-
     pub fn resolve_historical_price(&self) -> Result<ResolvedHistoricalPrice<'_>> {
         let plugins = self.plugins();
         let publication = self.read_publication()?;

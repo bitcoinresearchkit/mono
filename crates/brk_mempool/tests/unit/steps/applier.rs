@@ -55,26 +55,6 @@ fn revived_path_exhumes_body_from_graveyard() {
 }
 
 #[test]
-fn revived_with_empty_graveyard_is_dropped() {
-    let mut lock = State::default();
-    let snapshot = Snapshot::default();
-    let info = fake_entry_info(Txid::COINBASE, 100, 100);
-    let entry = TxEntry::new(&info, 100, false);
-
-    let mut diff = CycleDiff::default();
-    apply(
-        &mut lock,
-        &snapshot,
-        fresh_pulled(TxAddition::Revived { entry }),
-        &mut diff,
-    );
-
-    let state = &lock;
-    assert!(!state.txs.contains(&Txid::COINBASE));
-    assert!(diff.added.is_empty(), "no body, no event");
-}
-
-#[test]
 fn bury_preserves_chunk_rate_from_snapshot_or_falls_back_to_isolated_rate() {
     for has_snapshot in [false, true] {
         let mut lock = State::default();

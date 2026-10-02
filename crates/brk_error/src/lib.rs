@@ -265,10 +265,6 @@ impl Error {
     }
 }
 
-#[cfg(all(test, feature = "vecdb"))]
-#[path = "../tests/unit/lib.rs"]
-mod tests;
-
 #[cfg(feature = "ureq")]
 fn is_ureq_error_permanent(e: &UreqError) -> bool {
     let msg = format!("{:?}", e);

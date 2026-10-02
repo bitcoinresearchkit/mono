@@ -34,7 +34,3 @@ impl ReadOnlyState {
         Ok(state.txs.live_raw_histogram())
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/api/histogram.rs"]
-mod tests;

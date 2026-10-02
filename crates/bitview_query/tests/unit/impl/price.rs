@@ -54,25 +54,3 @@ fn completed_closes_are_causal_and_share_missing_data_rules() {
         .is_empty()
     );
 }
-
-#[test]
-fn invalid_mapping_or_source_price_is_not_silently_empty_or_zero() {
-    for mapping in [vec![2usize, 1], vec![0, 3]] {
-        let mapping: Vec<_> = mapping.into_iter().map(Height::from).collect();
-        assert!(
-            historical_prices(&mapping, 2, None, |_| panic!(
-                "invalid mapping must fail before reads"
-            ))
-            .is_err()
-        );
-    }
-    for result in [Ok(Cents::NAN), Err(Error::Internal("source read failed"))] {
-        let mut result = Some(result);
-        assert!(
-            historical_prices(&[Height::ZERO, Height::from(1usize)], 1, None, |_| result
-                .take()
-                .unwrap())
-            .is_err()
-        );
-    }
-}

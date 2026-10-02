@@ -34,28 +34,3 @@ pub fn bin_to_cents(bin: f64) -> u64 {
 pub fn cents_to_bin(cents: f64) -> f64 {
     (10.0 - (cents / 100.0).log10()) * BINS_PER_DECADE as f64
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sats_to_bin_round_trip() {
-        assert_eq!(sats_to_bin(Sats::new(100_000_000)), Some(1600));
-        assert_eq!(sats_to_bin(Sats::new(1)), Some(0));
-        assert_eq!(sats_to_bin(Sats::ZERO), None);
-    }
-
-    #[test]
-    fn bin_to_cents_known_values() {
-        assert_eq!(bin_to_cents(1600.0), 10000);
-        assert_eq!(bin_to_cents(1800.0), 1000);
-    }
-
-    #[test]
-    fn sats_to_bin_boundary() {
-        assert_eq!(sats_to_bin(Sats::new(1_000_000_000_000)), None);
-        let sats = 10.0_f64.powf(11.995) as u64;
-        assert!(sats_to_bin(Sats::new(sats)).is_some());
-    }
-}

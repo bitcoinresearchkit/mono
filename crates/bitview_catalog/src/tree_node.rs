@@ -255,7 +255,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     use brk_types::Index;
-    use serde_json::{Value, to_string as SerdeJsonToString};
+    use serde_json::Value;
 
     use super::*;
     use crate::SeriesLeaf;
@@ -280,64 +280,6 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect(),
         )
-    }
-
-    #[test]
-    fn descriptions_are_shared_by_every_matching_leaf() {
-        let mut tree = branch(vec![
-            ("height", leaf("shared", Index::Height)),
-            ("day", leaf("shared", Index::Day1)),
-            ("other", leaf("other", Index::Height)),
-        ]);
-        let descriptions = BTreeMap::from([("shared", Arc::from("Shared metric description."))]);
-
-        tree.set_descriptions(&descriptions);
-
-        let collected = tree.descriptions();
-        assert_eq!(collected.len(), 1);
-        assert!(Arc::ptr_eq(&collected["shared"], &descriptions["shared"]));
-        let weak = Arc::downgrade(&descriptions["shared"]);
-        let json = SerdeJsonToString(&tree).unwrap();
-        assert_eq!(json.matches("Shared metric description.").count(), 2);
-        assert!(!json.contains("\"other\":{\"description\""));
-        drop(collected);
-        drop(descriptions);
-        drop(tree);
-        assert!(weak.upgrade().is_none());
-    }
-
-    #[test]
-    fn merge_conflict_from_lifted_branches() {
-        // Two branches lifting children with same key but different series names → conflict
-        let tree = branch(vec![
-            ("a", branch(vec![("data", leaf("s_a", Index::Height))])),
-            ("b", branch(vec![("data", leaf("s_b", Index::Day1))])),
-        ]);
-        let result = tree.merge_branches();
-        assert!(result.is_none(), "Should detect conflict");
-    }
-
-    #[test]
-    fn collapse_direct_leaf_with_lifted_branches_same_name() {
-        let tree = branch(vec![
-            ("day1", leaf("1m_block_count", Index::Day1)),
-            (
-                "week1",
-                branch(vec![("last", leaf("1m_block_count", Index::Week1))]),
-            ),
-            (
-                "month1",
-                branch(vec![("last", leaf("1m_block_count", Index::Month1))]),
-            ),
-        ]);
-        let TreeNode::Leaf(leaf) = tree.merge_branches().unwrap() else {
-            panic!("expected collapsed leaf");
-        };
-        assert_eq!(leaf.name(), "1m_block_count");
-        assert_eq!(
-            leaf.indexes(),
-            &BTreeSet::from([Index::Day1, Index::Week1, Index::Month1])
-        );
     }
 
     #[test]

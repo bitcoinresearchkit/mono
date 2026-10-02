@@ -15,36 +15,6 @@ fn hashrate_window(len: usize) -> (HashrateSharedData, Vec<Option<StoredU64>>) {
 }
 
 #[test]
-fn pool_hashrate_samples_weeks_relative_to_the_requested_window() {
-    let (shared, cumulative) = hashrate_window(22);
-    let entries: Vec<_> = Query::hashrate_entries(&shared, &cumulative, "pool").collect();
-    assert_eq!(entries.len(), 3);
-    for (entry, day) in entries.iter().zip([37usize, 44, 51]) {
-        assert_eq!(entry.timestamp, Day1::from(day).to_timestamp());
-        assert_eq!(entry.share, 0.2);
-        assert_eq!(entry.avg_hashrate, 200);
-        assert_eq!(entry.pool_name, "pool");
-    }
-}
-
-#[test]
-fn pool_hashrate_requires_a_complete_lookback_before_its_first_sample() {
-    for len in 0..=7 {
-        let (shared, cumulative) = hashrate_window(len);
-        assert!(
-            Query::hashrate_entries(&shared, &cumulative, "pool")
-                .next()
-                .is_none()
-        );
-    }
-    let (shared, cumulative) = hashrate_window(8);
-    assert_eq!(
-        Query::hashrate_entries(&shared, &cumulative, "pool").count(),
-        1
-    );
-}
-
-#[test]
 fn skipped_samples_do_not_shift_the_weekly_cadence() {
     for missing in 0..7 {
         let (mut shared, mut cumulative) = hashrate_window(22);

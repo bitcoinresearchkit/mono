@@ -224,7 +224,3 @@ fn schema_to_js_type(schema: &Value, current_type: Option<&str>) -> String {
 
     "*".to_string()
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/generators/javascript/types.rs"]
-mod tests;

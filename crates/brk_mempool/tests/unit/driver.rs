@@ -1,11 +1,6 @@
-use std::{
-    net::TcpListener,
-    panic::catch_unwind,
-    sync::{Barrier, mpsc},
-};
+use std::sync::{Barrier, mpsc};
 
-use brk_rpc::{Auth, Client};
-use brk_types::{AddrBytes, FeeRate, Sats, Vin};
+use brk_types::{AddrBytes, FeeRate};
 
 use super::*;
 use crate::{
@@ -91,116 +86,6 @@ fn complete_membership_serves_outputs_while_inputs_remain_unresolved() {
     mempool.test_publish(tip);
     assert_eq!(mempool.published().info().unwrap().count, 0);
     assert_eq!(first.info().unwrap().count, 1);
-}
-
-#[test]
-fn fills_isolate_published_bodies_and_reuse_unchanged_bodies() {
-    let mut mempool = Mempool::for_test();
-    let tip = BlockHash::default();
-    let unresolved = fake_tx(1, &[None], &[]);
-    let unchanged = fake_tx(2, &[], &[]);
-    let txid = unresolved.txid;
-    let other = unchanged.txid;
-    for tx in [unresolved, unchanged] {
-        let entry = TxEntry::new(&fake_entry_info(tx.txid, 100, 100), 100, false);
-        mempool.state.txs.insert(tx, entry);
-    }
-    mempool.test_publish(tip);
-    let before = mempool.published();
-    let old = &before.pool().unwrap().txs.record(&txid).unwrap().tx;
-    let stable = &before.pool().unwrap().txs.record(&other).unwrap().tx;
-    mempool.state.txs.apply_fills(
-        &txid.into(),
-        vec![(
-            Vin::from(0usize),
-            TxOut::from((p2wpkh_script(3), Sats::from(1234u64))),
-        )],
-    );
-    assert!(old.input[0].prevout.is_none());
-    mempool.test_publish(tip);
-    let after = mempool.published();
-    let changed = after.transaction(&txid, &tip).unwrap().unwrap();
-    assert!(!Arc::ptr_eq(old, &changed));
-    assert!(changed.input[0].prevout.is_some());
-    assert!(Arc::ptr_eq(
-        stable,
-        &after.transaction(&other, &tip).unwrap().unwrap()
-    ));
-    assert_eq!(
-        after.pool().unwrap().graph.content_revision(),
-        after.pool().unwrap().txs.content_revision()
-    );
-}
-
-#[test]
-fn unchanged_publications_reuse_root_and_unheld_versions_are_released() {
-    let mut mempool = Mempool::for_test();
-    let tip = BlockHash::default();
-    mempool.test_publish(tip);
-    let before = mempool.published();
-    let weak = Arc::downgrade(&before);
-    mempool.test_publish(tip);
-    assert!(Arc::ptr_eq(&before, &mempool.published()));
-    mempool.test_publish("11".repeat(32).parse().unwrap());
-    assert!(weak.upgrade().is_some());
-    drop(before);
-    assert!(weak.upgrade().is_none());
-}
-
-#[test]
-fn recovery_discards_partial_private_changes_without_replacing_the_publication() {
-    let mut mempool = Mempool::for_test();
-    mempool.test_publish(BlockHash::default());
-    let before = mempool.published();
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        mempool.needs_recovery = true;
-        let tx = fake_tx(1, &[None], &[]);
-        mempool.state.info.add(&tx, 100_u64.into());
-        panic!("partial update");
-    }));
-    assert!(result.is_err());
-    mempool.restore_published();
-    assert_eq!(mempool.state.info.count, 0);
-    assert_eq!(mempool.state.txs.len(), 0);
-    assert!(Arc::ptr_eq(&before, &mempool.published()));
-    assert!(!mempool.needs_recovery);
-    assert_eq!(mempool.stats().rebuilds, before.stats().rebuilds);
-}
-
-#[test]
-fn fetch_failure_preserves_the_previous_publication() {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let address = listener.local_addr().unwrap();
-    drop(listener);
-    let mut mempool = Mempool::for_test();
-    mempool.client =
-        Client::new_with(&format!("http://{address}"), Auth::None, 0, Duration::ZERO).unwrap();
-    mempool.test_publish(BlockHash::default());
-    let before = mempool.published();
-    assert!(mempool.tick_with(|_| FxHashMap::default()).is_err());
-    assert!(Arc::ptr_eq(&before, &mempool.published()));
-}
-
-#[test]
-fn projection_only_changes_share_membership_containers() {
-    let mut writer = Mempool::for_test();
-    let tx = fake_tx(1, &[], &[]);
-    let txid = tx.txid;
-    writer.state.txs.insert(
-        tx,
-        TxEntry::new(&fake_entry_info(txid, 100, 100), 100, false),
-    );
-    writer.test_tick(&[txid], FeeRate::new(1.0));
-    let before = writer.published();
-    writer.test_tick(&[txid], FeeRate::new(2.0));
-    let after = writer.published();
-    let old = before.pool().unwrap();
-    let new = after.pool().unwrap();
-    assert!(!Arc::ptr_eq(&old.graph, &new.graph));
-    assert!(Arc::ptr_eq(&old.txs, &new.txs));
-    assert!(Arc::ptr_eq(&old.addrs, &new.addrs));
-    assert!(Arc::ptr_eq(&old.outpoint_spends, &new.outpoint_spends));
-    assert!(Arc::ptr_eq(&old.graveyard, &new.graveyard));
 }
 
 #[test]

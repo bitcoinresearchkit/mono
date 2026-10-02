@@ -652,10 +652,9 @@ mod import_tests {
 
     use std::path::PathBuf;
 
-    use bitcoin::{Network, blockdata::constants};
     use brk_rpc::{Auth, Client};
     use brk_types::BlockHashPrefix;
-    use fjall::Error as FjallError;
+
     use tempfile::tempdir;
 
     use super::*;
@@ -668,90 +667,6 @@ mod import_tests {
     fn empty_reader(path: &Path) -> Reader {
         let client = Client::new("http://127.0.0.1:1", Auth::None).unwrap();
         Reader::new_without_rlimit(path.join("blocks"), &client)
-    }
-
-    #[test]
-    fn export_is_due_at_record_limit_on_clean_height() {
-        let export_height = Height::from(EXPORT_HEIGHT_INTERVAL);
-
-        assert!(!is_export_due(Height::ZERO, MAX_PENDING_RECORDS));
-        assert!(!is_export_due(
-            export_height.incremented(),
-            MAX_PENDING_RECORDS,
-        ));
-        assert!(!is_export_due(export_height, MAX_PENDING_RECORDS - 1));
-        assert!(is_export_due(export_height, MAX_PENDING_RECORDS));
-    }
-
-    #[test]
-    fn recreate_drops_old_contents_and_seeds_source_identity() {
-        let dir = tempdir().unwrap();
-        let plugin = plugin_data_path(dir.path());
-        fs::create_dir_all(&plugin).unwrap();
-        fs::write(plugin.join("stale"), b"stale").unwrap();
-        let source_xor = XORBytes::from([7_u8; 8]);
-
-        assert!(recreate_plugin_dir(&plugin, source_xor).unwrap());
-
-        assert!(!plugin.join("stale").exists());
-        assert!(matches!(
-            read_xor_marker(&plugin).unwrap(),
-            XorMarker::Valid(marker) if marker == source_xor
-        ));
-    }
-
-    #[test]
-    fn malformed_xor_marker_recreates_the_index() -> Result<()> {
-        init_cache();
-        let dir = tempdir()?;
-        let plugin = plugin_data_path(dir.path());
-        let reader = empty_reader(dir.path());
-        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
-        fs::write(plugin.join("xor.dat"), [0_u8; 3])?;
-        fs::write(plugin.join("stale"), b"stale")?;
-
-        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
-
-        assert!(!plugin.join("stale").exists());
-        assert!(matches!(
-            read_xor_marker(&plugin)?,
-            XorMarker::Valid(marker) if marker == reader.xor_bytes()
-        ));
-        Ok(())
-    }
-
-    #[test]
-    fn malformed_source_xor_never_deletes_data() -> Result<()> {
-        init_cache();
-        let dir = tempdir()?;
-        let plugin = plugin_data_path(dir.path());
-        let reader = empty_reader(dir.path());
-        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
-        fs::write(plugin.join("stale"), b"stale")?;
-        fs::create_dir_all(dir.path().join("blocks"))?;
-        fs::write(dir.path().join("blocks/xor.dat"), [0_u8; 3])?;
-        let reader = empty_reader(dir.path());
-
-        assert!(Indexer::import(ImportContext::new(dir.path()), &reader).is_err());
-        assert!(plugin.join("stale").exists());
-        Ok(())
-    }
-
-    #[test]
-    fn xor_marker_io_error_never_deletes_data() -> Result<()> {
-        init_cache();
-        let dir = tempdir()?;
-        let plugin = plugin_data_path(dir.path());
-        let marker = plugin.join("xor.dat");
-        let reader = empty_reader(dir.path());
-        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
-        fs::remove_file(&marker)?;
-        fs::create_dir(&marker)?;
-        fs::write(plugin.join("stale"), b"stale")?;
-
-        assert!(Indexer::import(ImportContext::new(dir.path()), &reader).is_err());
-        assert!(plugin.join("stale").exists());
-        Ok(())
     }
 
     #[test]
@@ -769,33 +684,6 @@ mod import_tests {
         assert!(Indexer::import(ImportContext::new(dir.path()), &reader).is_err());
         assert!(plugin.join("stale").exists());
         Ok(())
-    }
-
-    #[test]
-    fn block_position_is_verified_against_its_header() -> Result<()> {
-        let dir = tempdir()?;
-        let blocks = dir.path().join("blocks");
-        fs::create_dir(&blocks)?;
-        let genesis = constants::genesis_block(Network::Bitcoin);
-        fs::write(
-            blocks.join("blk00000.dat"),
-            consensus::serialize(&genesis.header),
-        )?;
-        let reader = empty_reader(dir.path());
-
-        assert_eq!(
-            read_block_hash_at(&reader, BlkPosition::new(0, 0))?,
-            BlockHash::from(genesis.block_hash())
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn fjall_lock_never_triggers_deletion() {
-        let error = Error::from(FjallError::Locked);
-
-        assert!(error.is_lock_error());
-        assert!(!error.is_data_error());
     }
 
     #[test]

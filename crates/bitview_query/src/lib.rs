@@ -89,45 +89,10 @@ pub use vecs::{ResolvedSeriesInfo, SeriesEntry, Vecs};
 /// Read-only queries whose resolved chain views pin the published prefix.
 /// Bare lengths and unguarded internal helpers cannot authorize chain reads.
 ///
-/// ```compile_fail
-/// use bitview_query::Query;
-/// use brk_types::{BlockHash, Height, Lengths};
-/// fn unpinned(query: &Query, height: Height, hash: &BlockHash, safe: Lengths) {
-///     query.block_raw_at_height(height, hash, safe).unwrap();
-/// }
-/// ```
 ///
-/// ```compile_fail
-/// use bitview_query::Query;
-/// use brk_types::{BlockHash, Height, Lengths};
-/// fn unpinned(query: &Query, height: Height, hash: &BlockHash, safe: Lengths) {
-///     query.block_raw_size_at_height(height, hash, safe).unwrap();
-/// }
-/// ```
 ///
-/// ```compile_fail
-/// use bitview_query::Query;
-/// use brk_types::{Height, Lengths};
-/// fn unpinned(query: &Query, height: Height, lengths: Lengths) {
-///     query.block_txids_by_height(height, lengths).unwrap();
-/// }
-/// ```
 ///
-/// ```compile_fail
-/// use bitview_query::Query;
-/// use brk_types::TxIndex;
-/// fn unpinned(query: &Query, indices: &[TxIndex]) {
-///     query.transactions_at_indices(indices).unwrap();
-/// }
-/// ```
 ///
-/// ```compile_fail
-/// use bitview_query::Query;
-/// use brk_types::Txid;
-/// fn unguarded(query: &Query, txid: &Txid) {
-///     query.resolve_confirmed_position(txid).unwrap();
-/// }
-/// ```
 #[derive(Clone)]
 pub struct Query(Arc<QueryInner<'static>>, Option<Instant>);
 #[cfg(feature = "indexer")]

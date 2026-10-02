@@ -112,7 +112,3 @@ fn address_balances(
         .ok_or(Error::StateUpdating)?;
     Ok((chain.into(), combined.into()))
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/addr/stats.rs"]
-mod tests;

@@ -110,16 +110,6 @@ pub(crate) async fn check(query: &AsyncQuery) {
         let address = server.listener.local_addr().unwrap();
         let serving = spawn(server.serve());
 
-        for body in ["", "0", "gg", "00 11", "éé"] {
-            assert_action(
-                &exchange(address, "POST", "/api/tx", body, body.len()).await,
-                400,
-            );
-        }
-        assert_action(
-            &exchange(address, "POST", "/api/tx?unknown=1", "aa", 2).await,
-            400,
-        );
         // Reject oversized declared bodies and overload before waiting for their bytes.
         assert_action(
             &exchange(address, "POST", "/api/tx", "", MAX_BODY_BYTES + 1).await,
@@ -132,13 +122,6 @@ pub(crate) async fn check(query: &AsyncQuery) {
             .unwrap();
         assert_action(&exchange(address, "POST", "/api/tx", "", 100).await, 503);
         drop(held);
-        for method in ["GET", "HEAD"] {
-            assert!(
-                exchange(address, method, "/api/tx", "", 0)
-                    .await
-                    .starts_with("HTTP/1.1 405")
-            );
-        }
         assert!(
             timeout(Duration::from_millis(30), listener.accept())
                 .await

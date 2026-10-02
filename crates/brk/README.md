@@ -11,7 +11,7 @@ need through feature flags.
 
 ```toml
 [dependencies]
-brk = { version = "0.11", features = ["reader", "types"] }
+brk = { version = "0.12", features = ["reader", "types"] }
 ```
 
 ```rust,ignore
@@ -23,7 +23,7 @@ Feature flags match crate names without the `brk_` prefix. Use `full` to enable 
 
 ```toml
 [dependencies]
-brk = { version = "0.11", features = ["full"] }
+brk = { version = "0.12", features = ["full"] }
 ```
 
 ## Crates

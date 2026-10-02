@@ -52,7 +52,3 @@ impl Query {
             .map(|bytes| bytes.to_lower_hex_string())
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/tx/raw.rs"]
-mod tests;

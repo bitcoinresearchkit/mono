@@ -9,11 +9,19 @@ use vecdb::{
 
 const HOUR_SECONDS: u64 = 60 * 60;
 const DAY_SECONDS: u64 = 24 * HOUR_SECONDS;
+/// First backward read when locating a window start; grows 4x per step.
+const WINDOW_READ_CHUNK: usize = 1 << 10;
+/// Sorted requests closer than this many heights share one contiguous
+/// timestamp read; farther ones are read separately.
+const MAX_BRIDGED_GAP: usize = 1 << 16;
 
 /// A storage-free window-start vector backed by one monotonic timestamp source.
 ///
-/// Range and sorted reads find the first window start once, then advance it
-/// monotonically. Sorted reads jump over large request gaps with binary search.
+/// Every read uses contiguous timestamp ranges and searches them in memory.
+/// Point lookups into a compressed timestamp source decode a whole page per
+/// probe, which made per-day binary searches over full history cost hundreds
+/// of milliseconds. Range and sorted reads find the first window start once,
+/// then advance it monotonically.
 #[derive(Clone)]
 pub struct LazyWindowStartVec {
     name: Arc<str>,
@@ -60,16 +68,39 @@ impl LazyWindowStartVec {
         u64::from(current).saturating_sub(u64::from(older)) >= self.duration_seconds
     }
 
-    fn start_at(&self, mut begin: usize, mut end: usize, current: Timestamp) -> usize {
-        while begin < end {
-            let middle = begin + (end - begin) / 2;
-            if self.is_expired(current, self.timestamps.collect_one_at(middle).unwrap()) {
-                begin = middle + 1;
-            } else {
-                end = middle;
-            }
+    /// Reads `[lo, index]` with contiguous range reads only, where every
+    /// height below `lo` is expired relative to `index`'s timestamp.
+    ///
+    /// Timestamps are monotonic, so expiry is a prefix property: once the
+    /// first value of a backward chunk is expired, so is everything before
+    /// it. Each compressed page is decoded at most once per call.
+    fn window_prefix(&self, index: usize) -> Option<(usize, Vec<Timestamp>)> {
+        let mut lo = (index + 1).saturating_sub(WINDOW_READ_CHUNK);
+        let mut values = self.timestamps.collect_range_dyn(lo, index + 1);
+        if values.len() != index + 1 - lo {
+            return None;
         }
-        begin
+        let current = *values.last()?;
+        let mut chunk = WINDOW_READ_CHUNK;
+        while lo > 0 && !self.is_expired(current, values[0]) {
+            chunk = chunk.saturating_mul(4);
+            let older_lo = lo.saturating_sub(chunk);
+            let mut older = self.timestamps.collect_range_dyn(older_lo, lo);
+            if older.len() != lo - older_lo {
+                return None;
+            }
+            older.append(&mut values);
+            values = older;
+            lo = older_lo;
+        }
+        Some((lo, values))
+    }
+
+    /// Window start for `values[index - lo]` searched over `[0, index]`.
+    /// May return `index + 1` when the window is empty (zero duration).
+    fn prefix_start(&self, lo: usize, values: &[Timestamp], index: usize) -> usize {
+        let current = values[index - lo];
+        lo + values[..=index - lo].partition_point(|&older| self.is_expired(current, older))
     }
 
     fn try_for_each_value<E>(
@@ -83,12 +114,16 @@ impl LazyWindowStartVec {
             return Ok(());
         }
 
-        let timestamps = self.timestamps.collect_range_dyn(from, to);
-        let mut start = self.start_at(0, from + 1, timestamps[0]);
-        let mut older = self.timestamps.cursor();
-        for (offset, timestamp) in timestamps.into_iter().enumerate() {
-            let current = from + offset;
-            while start < current && self.is_expired(timestamp, older.get(start).unwrap()) {
+        let Some((lo, mut values)) = self.window_prefix(from) else {
+            return Ok(());
+        };
+        values.extend(self.timestamps.collect_range_dyn(from + 1, to));
+        let to = to.min(lo + values.len());
+
+        let mut start = self.prefix_start(lo, &values, from);
+        for current in from..to {
+            let timestamp = values[current - lo];
+            while start < current && self.is_expired(timestamp, values[start - lo]) {
                 start += 1;
             }
             each(Height::from(start))?;
@@ -183,38 +218,55 @@ impl ReadableVec<Height, Height> for LazyWindowStartVec {
     }
 
     fn collect_one_at(&self, index: usize) -> Option<Height> {
-        let current = self.timestamps.collect_one_at(index)?;
-        Some(Height::from(self.start_at(0, index + 1, current)))
+        if index >= self.timestamps.len() {
+            return None;
+        }
+        let (lo, values) = self.window_prefix(index)?;
+        Some(Height::from(self.prefix_start(lo, &values, index)))
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<Height>) {
-        let Some(&first) = indices.first() else {
-            return;
-        };
         let len = self.timestamps.len();
-        if first >= len {
-            return;
-        }
-
         let indices = &indices[..indices.partition_point(|&index| index < len)];
-        let timestamps = self.timestamps.read_sorted_at(indices);
-        let mut start = self.start_at(0, first + 1, timestamps[0]);
-        let mut older = self.timestamps.cursor();
-        let mut previous = first;
         out.reserve(indices.len());
-        for (&current, timestamp) in indices.iter().zip(timestamps) {
-            // For a large request gap, binary search costs fewer comparisons
-            // than walking the skipped history. Nearby requests keep the
-            // existing forward scan, including its cheap duplicate handling.
-            if start < current && current - previous > (current - start).ilog2() as usize + 1 {
-                start = self.start_at(start, current, timestamp);
-            } else {
-                while start < current && self.is_expired(timestamp, older.get(start).unwrap()) {
-                    start += 1;
-                }
+
+        // Window starts never decrease, so one start is carried across every
+        // requested index, exactly as a linear scan would.
+        let mut carried: Option<usize> = None;
+        let mut rest = indices;
+        while let Some(&first) = rest.first() {
+            let mut end = 1;
+            while end < rest.len() && rest[end] - rest[end - 1] <= MAX_BRIDGED_GAP {
+                end += 1;
             }
-            previous = current;
-            out.push(Height::from(start));
+            let (segment, next) = rest.split_at(end);
+            rest = next;
+
+            let Some((lo, mut values)) = self.window_prefix(first) else {
+                return;
+            };
+            let last = segment[segment.len() - 1];
+            values.extend(self.timestamps.collect_range_dyn(first + 1, last + 1));
+            let available = lo + values.len();
+
+            let fresh = self.prefix_start(lo, &values, first);
+            // After a skipped gap, a linear scan would have stopped at `first`.
+            let mut start = match carried {
+                Some(_) => fresh.min(first),
+                None => fresh,
+            };
+            for &current in segment {
+                if current >= available {
+                    return;
+                }
+                if start < current {
+                    let timestamp = values[current - lo];
+                    start += values[start - lo..current - lo]
+                        .partition_point(|&older| self.is_expired(timestamp, older));
+                }
+                out.push(Height::from(start));
+            }
+            carried = Some(start);
         }
     }
 }
@@ -361,55 +413,72 @@ mod tests {
     }
 
     #[test]
-    fn sorted_gap_search_matches_linear_reference_across_duplicates_and_rewrites() {
-        let mut time = 0u32;
-        let mut values: Vec<_> = (0..50_000)
+    fn sparse_segments_and_points_match_linear_reference() {
+        // Long enough that request gaps exceed MAX_BRIDGED_GAP, so sorted
+        // reads are split into independently read segments.
+        let mut time = 1_231_006_505_u32;
+        let values: Vec<u32> = (0..200_000_u32)
             .map(|i| {
-                time += if i % 7 == 0 {
-                    0
-                } else {
-                    (i % 9 * 600 + if i % 211 == 0 { 86400 } else { 0 }) as u32
+                time += match i % 101 {
+                    0 => 0,
+                    1 => 9_000 + i % 5_000,
+                    _ => 60 + i * 7_919 % 1_140,
                 };
                 time
             })
             .collect();
-        let source = TimestampVec::new(values.iter().copied());
-        let cached = source.clone();
-        for rewrite in [false, true] {
-            if rewrite {
-                values[49_999] += 86_400;
-                source.replace(49_999, values[49_999]);
-            }
-            for duration in [0, 1, HOUR_SECONDS, DAY_SECONDS, 14 * DAY_SECONDS, u64::MAX] {
-                let window = lazy_window(&cached, duration);
-                for indices in [
-                    vec![],
-                    vec![usize::MAX],
-                    vec![0, 0, 10, 511, 15_000, 49_999, 50_000, usize::MAX],
-                    (20_000..24_096).collect(),
-                    vec![49_999, 49_999],
-                ] {
-                    let mut expected = Vec::new();
-                    if let Some(&first) = indices.first().filter(|&&i| i < values.len()) {
-                        let mut start = values[..=first].partition_point(|&old| {
-                            u64::from(values[first]).saturating_sub(u64::from(old)) >= duration
-                        });
-                        for &current in indices.iter().take_while(|&&i| i < values.len()) {
-                            while start < current
-                                && u64::from(values[current])
-                                    .saturating_sub(u64::from(values[start]))
-                                    >= duration
-                            {
-                                start += 1;
-                            }
-                            expected.push(Height::from(start));
+        let cached = TimestampVec::new(values.iter().copied());
+        let gap = MAX_BRIDGED_GAP;
+
+        for duration in [
+            0,
+            HOUR_SECONDS,
+            DAY_SECONDS,
+            7 * DAY_SECONDS,
+            365 * DAY_SECONDS,
+        ] {
+            let window = lazy_window(&cached, duration);
+            let expired = |current: u32, older: u32| {
+                u64::from(current).saturating_sub(u64::from(older)) >= duration
+            };
+            let reference = |indices: &[usize]| {
+                let mut expected = Vec::new();
+                if let Some(&first) = indices.first().filter(|&&i| i < values.len()) {
+                    let mut start =
+                        values[..=first].partition_point(|&old| expired(values[first], old));
+                    for &current in indices.iter().take_while(|&&i| i < values.len()) {
+                        while start < current && expired(values[current], values[start]) {
+                            start += 1;
                         }
+                        expected.push(Height::from(start));
                     }
-                    let mut actual = vec![Height::from(99usize)];
-                    window.read_sorted_into_at(&indices, &mut actual);
-                    assert_eq!(&actual[1..], expected, "duration={duration}");
                 }
+                expected
+            };
+
+            for indices in [
+                vec![3, gap + 10, gap + 11, 2 * gap + 50, 199_999],
+                vec![0, 0, gap + 1, gap + 1, 199_999, 200_000],
+                (0..values.len()).step_by(144).collect(),
+                (0..values.len()).step_by(gap + 1).collect(),
+                vec![199_999],
+            ] {
+                assert_eq!(
+                    window.read_sorted_at(&indices),
+                    reference(&indices),
+                    "duration={duration}"
+                );
             }
+            for index in [0, 1, 1_023, 1_024, 1_025, 100_000, 199_999] {
+                assert_eq!(
+                    window.collect_one_at(index),
+                    reference(&[index]).first().copied(),
+                    "duration={duration} index={index}"
+                );
+            }
+            assert_eq!(window.collect_one_at(200_000), None);
+            let expected = reference(&(150_000..170_000).collect::<Vec<_>>());
+            assert_eq!(window.collect_range_at(150_000, 170_000), expected);
         }
     }
 
@@ -422,54 +491,5 @@ mod tests {
         timestamps.replace(4, (DAY_SECONDS + 18 * HOUR_SECONDS) as u32);
 
         assert_eq!(window.collect_one_at(4), Some(Height::from(2_usize)));
-    }
-
-    #[test]
-    fn range_linear_results_match_the_previous_forward_algorithm() {
-        let mut timestamp = 1_230_000_000_u32;
-        let values: Vec<u32> = (0..2_000)
-            .map(|i| {
-                let current = timestamp;
-                timestamp += 60 + ((i * 997) % 7_200) as u32;
-                current
-            })
-            .collect();
-        let timestamps = TimestampVec::new(values.iter().copied());
-        let cached = timestamps;
-
-        for duration_seconds in [
-            HOUR_SECONDS,
-            DAY_SECONDS,
-            7 * DAY_SECONDS,
-            365 * DAY_SECONDS,
-        ] {
-            let lookback = lazy_window(&cached, duration_seconds);
-
-            let expected: Vec<Height> = {
-                let mut start = 0;
-                values
-                    .iter()
-                    .enumerate()
-                    .map(|(current, &current_timestamp)| {
-                        while start < current
-                            && u64::from(current_timestamp).saturating_sub(u64::from(values[start]))
-                                >= duration_seconds
-                        {
-                            start += 1;
-                        }
-                        Height::from(start)
-                    })
-                    .collect()
-            };
-
-            assert_eq!(lookback.collect(), expected);
-            assert_eq!(lookback.collect_range_at(317, 1_713), expected[317..1_713]);
-
-            let indices = [0, 17, 318, 999, 1_712, 1_999];
-            assert_eq!(
-                lookback.read_sorted_at(&indices),
-                indices.map(|index| expected[index])
-            );
-        }
     }
 }

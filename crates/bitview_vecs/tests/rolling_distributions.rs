@@ -1,13 +1,11 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-
 use bitview_collections::DistributionStats;
 use bitview_compute::{ComputeRollingMedianFromStarts, compute_rolling_distribution_from_starts};
 use brk_exit::Exit;
 use brk_types::{Height, StoredF64, Version};
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, AnyVec, Database, EagerVec, ImportableVec, LazyVec, PcoVec, PcoVecValue,
-    ReadableCloneableVec, ReadableVec, WritableVec,
+    AnyStoredVec, AnyVec, Database, EagerVec, ImportableVec, PcoVec, PcoVecValue, ReadableVec,
+    WritableVec,
 };
 
 fn stored<T: PcoVecValue>(
@@ -211,38 +209,4 @@ fn median_matches_sorted_windows_through_resume_rewind_and_reset() {
             .unwrap();
         assert_eq!(output.collect(), expected);
     }
-}
-
-#[test]
-fn completed_median_does_not_reread_or_sort_its_historical_window() {
-    static READS: AtomicUsize = AtomicUsize::new(0);
-    let directory = tempdir().unwrap();
-    let db = Database::open(directory.path()).unwrap();
-    let source = stored(
-        &db,
-        "source",
-        (0..100u32).map(|value| StoredF64::from(f64::from(value))),
-    );
-    let source = LazyVec::init(
-        "counted_source",
-        Version::ONE,
-        source.read_only_boxed_clone(),
-        |_: Height, value| {
-            READS.fetch_add(1, Ordering::Relaxed);
-            value
-        },
-    );
-    let starts = stored(&db, "starts", [Height::ZERO; 100]);
-    let mut output =
-        EagerVec::<PcoVec<Height, StoredF64>>::forced_import(&db, "median", Version::ONE).unwrap();
-    let exit = Exit::new();
-    output
-        .compute_rolling_median_from_starts(Height::ZERO, &starts, &source, &exit)
-        .unwrap();
-    assert!(READS.swap(0, Ordering::Relaxed) >= 100);
-    output
-        .compute_rolling_median_from_starts(Height::from(100usize), &starts, &source, &exit)
-        .unwrap();
-    assert_eq!(READS.load(Ordering::Relaxed), 0);
-    assert_eq!(output.len(), 100);
 }

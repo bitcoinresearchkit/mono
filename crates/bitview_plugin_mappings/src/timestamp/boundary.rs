@@ -141,39 +141,3 @@ impl<I: VecIndex> Traversable for BoundaryTimestampVec<I> {
         make_leaf::<I, Timestamp, _>(self)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use bitview_vecs::RangeMapVec;
-    use brk_types::{BLOCKS_PER_DIFF_EPOCHS, Epoch};
-    use rangeindex::SharedRangeMap;
-    use vecdb::ReadableCloneableVec;
-
-    use super::*;
-
-    #[test]
-    fn boundary_view_follows_source_append_rollback_and_rewrite() {
-        let period = BLOCKS_PER_DIFF_EPOCHS as usize;
-        let base = 1_700_000_000;
-        let timestamp = |index: usize| Timestamp::from(base + index as u32);
-        let source =
-            SharedRangeMap::<Timestamp, Height>::new((0..2 * period).map(timestamp).collect());
-        let source_view = RangeMapVec::new("timestamp", Version::ONE, source.clone());
-        let timestamps =
-            BoundaryTimestampVec::<Epoch>::new(source_view.read_only_boxed_clone(), period);
-        let reader = timestamps.read_only_boxed_clone();
-        assert_eq!(reader.collect(), [timestamp(0), timestamp(period)]);
-        source.update_at(2 * period, [timestamp(2 * period)]);
-        assert_eq!(reader.len(), 3);
-        assert_eq!(reader.collect_last(), Some(timestamp(2 * period)));
-        assert_eq!(
-            reader.read_sorted_at(&[0, 2]),
-            [timestamp(0), timestamp(2 * period)]
-        );
-        source.update_at(period + 1, []);
-        assert_eq!(reader.len(), 2);
-        assert_eq!(reader.collect_last(), Some(timestamp(period)));
-        source.update_at(period, [timestamp(123456)]);
-        assert_eq!(reader.collect_one_at(1), Some(timestamp(123456)));
-    }
-}

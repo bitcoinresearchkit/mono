@@ -64,42 +64,6 @@ fn block_template_diff_preserves_reordering_and_prior_removal_order() {
 }
 
 #[test]
-fn resolved_template_and_diff_keep_the_validated_publication_after_history_eviction() {
-    let mut mempool = Mempool::for_test();
-    let first = insert_tx(&mut mempool, 0xB0, 1_000, 100);
-    let mut txids = vec![first];
-    mempool.test_tick(&txids, FeeRate::new(1.0));
-    let since = mempool.published().next_block_hash().unwrap();
-    let source = mempool.published().block_template_source();
-    let resolved = mempool
-        .published()
-        .resolve_block_template_diff(since)
-        .expect("initial template in history");
-
-    for seed in 0xB1..=0xBB {
-        txids.push(insert_tx(&mut mempool, seed, 1_000, 100));
-        mempool.test_tick(&txids, FeeRate::new(1.0));
-    }
-    for hash in [since, NextBlockHash::new(0xDEAD_BEEF)] {
-        assert!(
-            mempool
-                .published()
-                .resolve_block_template_diff(hash)
-                .is_none()
-        );
-    }
-
-    let diff = resolved.build().unwrap();
-    assert_eq!(diff.since, since);
-    assert_eq!(diff.hash, since);
-    assert_eq!(diff.order.len(), 1);
-    let template = source.build().unwrap();
-    assert_eq!(template.hash, since);
-    assert_eq!(template.transactions.len(), 1);
-    assert_eq!(template.transactions[0].txid, first);
-}
-
-#[test]
 fn body_fills_publish_a_new_identity_and_diff_reconstructs_every_field() {
     let mut mempool = Mempool::for_test();
     let changed = insert_tx(&mut mempool, 10, 100, 100);

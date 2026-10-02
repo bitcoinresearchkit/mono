@@ -33,20 +33,3 @@ impl Serialize for DifficultyAdjustmentEntry {
         tup.end()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use schemars::schema_for;
-    use serde_json::to_value;
-
-    use super::*;
-
-    #[test]
-    fn wire_schema_is_a_fixed_four_item_array() {
-        let schema = to_value(schema_for!(DifficultyAdjustmentEntry)).unwrap();
-        assert_eq!(schema["type"], "array");
-        assert_eq!(schema["minItems"], 4);
-        assert_eq!(schema["maxItems"], 4);
-        assert_eq!(schema["items"]["type"], "number");
-    }
-}

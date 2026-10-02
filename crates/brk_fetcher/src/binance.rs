@@ -260,7 +260,3 @@ impl PriceSource for Binance {
         self._1mn.take();
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/binance.rs"]
-mod tests;

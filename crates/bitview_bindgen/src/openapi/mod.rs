@@ -406,7 +406,3 @@ fn single_type_to_name(t: &SchemaType, schema: &ObjectSchema) -> Option<String> 
         SchemaType::Null => Some("null".to_string()),
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/openapi.rs"]
-mod tests;

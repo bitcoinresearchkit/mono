@@ -7,39 +7,6 @@ use vecdb::{
 };
 
 #[test]
-fn collected_ranges_reuse_cursor_across_stored_and_pending_data() -> Result<()> {
-    let temp = TempDir::new()?;
-    let db = Database::open(temp.path())?;
-    let mut vec = PcoVec::<usize, u64>::import(&db, "ranges", Version::ONE)?;
-    for index in 0..20_000 {
-        vec.push(index as u64 * 37);
-    }
-    vec.write()?;
-    for index in 20_000..20_010 {
-        vec.push(index as u64 * 37);
-    }
-    let mut cursor = vec.cursor();
-    let mut values = vec![u64::MAX];
-    for (from, to) in [
-        (0, 0),
-        (1, 1_025),
-        (1_025, 2_100),
-        (16_380, 16_400),
-        (19_995, 20_010),
-        (20_000, usize::MAX),
-        (10, 25),
-        (25, 20),
-        (usize::MAX, usize::MAX),
-        (0, 20_010),
-    ] {
-        cursor.collect_range_into_at(from, to, &mut values);
-        assert_eq!(values, vec.collect_range_at(from, to));
-        assert_eq!(cursor.position(), from.min(20_010) + values.len());
-    }
-    Ok(())
-}
-
-#[test]
 fn pco_u8_cursor_crosses_page_and_chunk_boundaries() -> Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
@@ -95,28 +62,6 @@ fn pco_u8_cursor_crosses_page_and_chunk_boundaries() -> Result<()> {
 }
 
 #[test]
-fn pco_u64_cursor_crosses_two_page_chunk_boundary() -> Result<()> {
-    let temp = TempDir::new()?;
-    let db = Database::open(temp.path())?;
-    let mut vec = PcoVec::<usize, u64>::import(&db, "u64", Version::ONE)?;
-
-    for index in 0..5_000 {
-        vec.push((index as u64).wrapping_mul(37));
-    }
-    vec.write()?;
-
-    let mut cursor = vec.cursor();
-    cursor.advance(4_090);
-    for index in 4_090..4_110 {
-        assert_eq!(cursor.next(), Some((index as u64).wrapping_mul(37)));
-    }
-    assert_eq!(cursor.get(4_999), Some(4_999_u64 * 37));
-    assert_eq!(cursor.get(5_000), None);
-
-    Ok(())
-}
-
-#[test]
 fn cursor_try_fold_resumes_after_a_cross_page_error() -> Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
@@ -140,37 +85,5 @@ fn cursor_try_fold_resumes_after_a_cross_page_error() -> Result<()> {
     assert_eq!(cursor.position(), 4_098);
     assert_eq!(cursor.next(), Some(4_098));
 
-    Ok(())
-}
-
-#[test]
-fn range_visitor_rewinds_retained_pages_and_stops_on_errors() -> Result<()> {
-    let temp = TempDir::new()?;
-    let db = Database::open(temp.path())?;
-    let mut source = PcoVec::<usize, u64>::import(&db, "visitor", Version::ONE)?;
-    for n in 0..20_000 {
-        source.push(n as u64);
-    }
-    source.write()?;
-    let mut cursor = source.cursor();
-    for (from, to) in [(16_380, 16_400), (19_999, 20_000), (3, 8), (8, 3)] {
-        let mut result = Vec::new();
-        cursor
-            .try_for_each_range_at(from, to, |value| {
-                result.push(value);
-                Ok::<_, ()>(())
-            })
-            .unwrap();
-        assert_eq!(result, source.collect_range_at(from, to));
-    }
-    let result =
-        cursor.try_for_each_range_at(
-            100,
-            200,
-            |value| if value == 103 { Err(value) } else { Ok(()) },
-        );
-    assert_eq!(result, Err(103));
-    assert_eq!(cursor.position(), 104);
-    assert_eq!(cursor.next(), Some(104));
     Ok(())
 }

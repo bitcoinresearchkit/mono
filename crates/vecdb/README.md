@@ -42,27 +42,6 @@ cargo add vecdb --features pco,derive
 
 ## Basic use
 
-```rust,no_run
-use std::path::Path;
-
-use vecdb::{
-    AnyStoredVec, AnyVec, BytesVec, Database, ImportableVec, ReadableVec,
-    Result, Version, WritableVec,
-};
-
-fn main() -> Result<()> {
-    let db = Database::open(Path::new("data"))?;
-    let mut values: BytesVec<usize, u64> =
-        BytesVec::import(&db, "values", Version::ONE)?;
-
-    values.push(21);
-    values.push(34);
-    values.flush()?;
-
-    assert_eq!(values.collect_range(0, 2), vec![21, 34]);
-    Ok(())
-}
-```
 
 The tuple `(database, name, version)` identifies stored data. Import validates
 its on-disk schema; `forced_import` resets incompatible data when the caller
@@ -106,16 +85,6 @@ Stored vectors accept a cache policy as their third type parameter:
 - `NoCache` (the default) has no cache allocation or cache-side locking.
 - `Budgeted` shares one immutable, process-wide byte limit across sources.
 
-```rust,no_run
-use vecdb::{Budgeted, BytesVec, Database, ImportableVec, Version};
-
-# fn example(db: &Database) -> vecdb::Result<()> {
-// Once at startup, before importing any budgeted source.
-Budgeted::init_global(64 * 1024 * 1024)?;
-let values = BytesVec::<usize, u64, Budgeted>::import(db, "values", Version::ONE)?;
-# Ok(())
-# }
-```
 
 Read-only and type-erased clones share the source's ranges. Use ordinary point,
 range, sorted, and fold reads; there is no shared whole-vector snapshot API.

@@ -10,7 +10,6 @@ use brk_types::{Height, StoredU64, Version};
 use vecdb::{Database, EagerVec, PcoVec, Rw, StorageMode};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("near_full_blocks"), Version::ONE);
-pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

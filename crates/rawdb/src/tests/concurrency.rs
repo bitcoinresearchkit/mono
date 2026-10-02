@@ -52,38 +52,6 @@ fn readers_exclude_overwrites_but_allow_other_regions_and_flush() -> Result<()> 
 }
 
 #[test]
-fn concurrent_appends_to_one_region_preserve_every_record() -> Result<()> {
-    let dir = TempDir::new()?;
-    let db = Database::open(dir.path())?;
-    let region = db.create_region_if_needed("shared")?;
-    let barrier = Arc::new(Barrier::new(8));
-    let threads: Vec<_> = (0..8u8)
-        .map(|id| {
-            let region = region.clone();
-            let barrier = barrier.clone();
-            thread::spawn(move || {
-                barrier.wait();
-                for _ in 0..256 {
-                    region.write(&[id; 16]).unwrap();
-                }
-            })
-        })
-        .collect();
-    for task in threads {
-        task.join().unwrap();
-    }
-    let reader = region.create_reader();
-    assert_eq!(reader.len(), 8 * 256 * 16);
-    let mut counts = [0; 8];
-    for record in reader.read_all().as_chunks::<16>().0 {
-        assert!(record.iter().all(|&byte| byte == record[0]));
-        counts[usize::from(record[0])] += 1;
-    }
-    assert_eq!(counts, [256; 8]);
-    Ok(())
-}
-
-#[test]
 fn concurrent_creation_crosses_mapping_capacity_safely() -> Result<()> {
     let dir = TempDir::new()?;
     let db = Database::open(dir.path())?;

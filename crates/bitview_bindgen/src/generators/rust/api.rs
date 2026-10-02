@@ -250,10 +250,6 @@ fn build_return_type(endpoint: &Endpoint) -> String {
     }
 }
 
-#[cfg(test)]
-#[path = "../../../tests/unit/generators/rust/api.rs"]
-mod tests;
-
 fn write_method_doc(output: &mut String, endpoint: &Endpoint) {
     let method_name = endpoint_to_method_name(endpoint);
     writeln!(

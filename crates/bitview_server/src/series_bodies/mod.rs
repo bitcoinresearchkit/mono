@@ -17,7 +17,6 @@ pub struct SeriesBodies {
     pub info: CacheParams,
     pub search_query: Arc<Semaphore>,
     pub data_query: Arc<Semaphore>,
-    pub response_bodies: Arc<Semaphore>,
 }
 
 impl SeriesBodies {
@@ -41,9 +40,6 @@ impl SeriesBodies {
             })),
             search_query: Arc::new(Semaphore::new(query_capacity)),
             data_query: Arc::new(Semaphore::new(query_capacity)),
-            // Independent of worker count: slow clients retain encoded bodies
-            // after formatting completes, while validators still need workers.
-            response_bodies: Arc::new(Semaphore::new(2)),
         }
     }
 }

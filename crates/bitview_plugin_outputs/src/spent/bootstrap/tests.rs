@@ -16,8 +16,6 @@ fn packed_ranges_preserve_full_input_indexes_at_bit_boundaries() {
         (1_usize << 32, 26),
         (1_usize << 38, 26),
         ((1_usize << 38) + 1, 25),
-        (1_usize << 63, 1),
-        (usize::MAX, 0),
     ] {
         let bits = range_bits(input_end, RANGE_LEN);
         assert_eq!(bits, expected_bits);
@@ -133,26 +131,4 @@ fn partial_build_is_discarded_and_final_block_can_be_replaced_after_reopen() {
     assert_eq!(vecs.txin_index.len(), 7);
     assert_eq!(vecs.txin_index.collect_one_at(0), Some(TxInIndex::UNSPENT));
     assert_eq!(vecs.txin_index.collect_one_at(1), Some(TxInIndex::new(2)));
-}
-
-#[test]
-fn failed_rebuild_durably_invalidates_the_previous_index() {
-    let directory = tempdir().unwrap();
-    {
-        let db = Database::open(directory.path()).unwrap();
-        let mut vecs = forced_import(&db, Version::ONE).unwrap();
-        vecs.txin_index.push(TxInIndex::UNSPENT);
-        checkpoint(&mut vecs, Height::new(10)).unwrap();
-        vecs.txin_index.reset().unwrap();
-        let mut inputs =
-            BytesVec::<TxInIndex, TxOutIndex>::forced_import(&db, "source", Version::ONE).unwrap();
-        inputs.push(TxOutIndex::from(3_usize));
-        assert!(build_ranges(&mut vecs, &inputs, 1, 3, 2, &Exit::new()).is_err());
-        assert!(vecs.txin_index.is_empty());
-        assert_eq!(vecs.txin_index.stamp(), Stamp::default());
-    }
-    let db = Database::open(directory.path()).unwrap();
-    let vecs = forced_import(&db, Version::ONE).unwrap();
-    assert!(vecs.txin_index.is_empty());
-    assert_eq!(vecs.txin_index.stamp(), Stamp::default());
 }

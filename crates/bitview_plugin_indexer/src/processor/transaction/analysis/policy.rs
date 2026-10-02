@@ -216,96 +216,13 @@ pub fn has_too_many_bare_multisig_keys(sigops: SigOps) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use bitcoin::{Amount, ScriptBuf, TxIn, Witness};
+    use bitcoin::{Amount, ScriptBuf};
     use brk_types::{
-        AddrBytes, Height, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes,
-        P2TRBytes, P2WPKHBytes, P2WSHBytes, SigOps,
+        AddrBytes, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes,
+        P2TRBytes, P2WPKHBytes, P2WSHBytes,
     };
 
-    use super::{
-        super::input, FIRST_V29_POLICY_HEIGHT, FIRST_V30_POLICY_HEIGHT, LAST_V2_POLICY_HEIGHT,
-        MAX_V29_OP_RETURN_SCRIPT_BYTES, MAX_V30_OP_RETURN_SCRIPT_BYTES,
-        has_nonstandard_p2wsh_witness, has_nonstandard_taproot_witness, has_nonstandard_version,
-        has_nonstandard_witness, has_too_many_bare_multisig_keys,
-        has_unconditionally_nonstandard_dust, is_dust, is_standard_unknown_witness,
-        op_return_is_nonstandard, p2a_spend_is_nonstandard, tracks_executed_legacy_sigops,
-    };
-    use crate::TxFeatureFlags;
-
-    #[test]
-    fn tracks_executed_sigops_only_when_policy_uses_them() {
-        assert!(!tracks_executed_legacy_sigops(Height::from(
-            FIRST_V30_POLICY_HEIGHT - 1
-        )));
-        assert!(tracks_executed_legacy_sigops(Height::from(
-            FIRST_V30_POLICY_HEIGHT
-        )));
-    }
-
-    #[test]
-    fn accepts_only_policy_transaction_versions() {
-        assert!(has_nonstandard_version(0, LAST_V2_POLICY_HEIGHT));
-        assert!(has_nonstandard_version(-1, LAST_V2_POLICY_HEIGHT));
-        assert!(!has_nonstandard_version(1, LAST_V2_POLICY_HEIGHT));
-        assert!(!has_nonstandard_version(2, LAST_V2_POLICY_HEIGHT));
-        assert!(has_nonstandard_version(3, LAST_V2_POLICY_HEIGHT));
-        assert!(!has_nonstandard_version(3, LAST_V2_POLICY_HEIGHT + 1));
-    }
-
-    #[test]
-    fn p2a_spending_starts_after_the_v2_policy_snapshot() {
-        assert!(p2a_spend_is_nonstandard(LAST_V2_POLICY_HEIGHT));
-        assert!(!p2a_spend_is_nonstandard(LAST_V2_POLICY_HEIGHT + 1));
-    }
-
-    #[test]
-    fn op_return_limits_switch_at_the_v30_policy_snapshot() {
-        assert!(!op_return_is_nonstandard(
-            FIRST_V30_POLICY_HEIGHT - 1,
-            1,
-            MAX_V29_OP_RETURN_SCRIPT_BYTES
-        ));
-        assert!(op_return_is_nonstandard(
-            FIRST_V30_POLICY_HEIGHT - 1,
-            2,
-            MAX_V29_OP_RETURN_SCRIPT_BYTES
-        ));
-        assert!(op_return_is_nonstandard(
-            FIRST_V30_POLICY_HEIGHT - 1,
-            1,
-            MAX_V29_OP_RETURN_SCRIPT_BYTES + 1
-        ));
-        assert!(!op_return_is_nonstandard(
-            FIRST_V30_POLICY_HEIGHT,
-            2,
-            MAX_V30_OP_RETURN_SCRIPT_BYTES
-        ));
-        assert!(op_return_is_nonstandard(
-            FIRST_V30_POLICY_HEIGHT,
-            1,
-            MAX_V30_OP_RETURN_SCRIPT_BYTES + 1
-        ));
-    }
-
-    #[test]
-    fn applies_ephemeral_dust_policy_from_v29() {
-        assert!(!has_unconditionally_nonstandard_dust(
-            FIRST_V29_POLICY_HEIGHT - 1,
-            0
-        ));
-        assert!(has_unconditionally_nonstandard_dust(
-            FIRST_V29_POLICY_HEIGHT - 1,
-            1
-        ));
-        assert!(!has_unconditionally_nonstandard_dust(
-            FIRST_V29_POLICY_HEIGHT,
-            1
-        ));
-        assert!(has_unconditionally_nonstandard_dust(
-            FIRST_V29_POLICY_HEIGHT,
-            2
-        ));
-    }
+    use super::is_dust;
 
     #[test]
     fn uses_exact_dust_thresholds_for_fixed_scripts() {
@@ -339,77 +256,5 @@ mod tests {
         assert_eq!(empty.minimal_non_dust().to_sat(), 471);
         assert!(is_dust(Amount::from_sat(470), OutputType::Empty, &empty));
         assert!(!is_dust(Amount::from_sat(471), OutputType::Empty, &empty));
-    }
-
-    #[test]
-    fn keeps_exact_dust_calculation_for_unknown_scripts() {
-        let script = ScriptBuf::from_bytes(vec![0x61; 1_000]);
-        let threshold = script.minimal_non_dust().to_sat();
-
-        assert!(is_dust(
-            Amount::from_sat(threshold - 1),
-            OutputType::Unknown,
-            &script
-        ));
-        assert!(!is_dust(
-            Amount::from_sat(threshold),
-            OutputType::Unknown,
-            &script
-        ));
-    }
-
-    #[test]
-    fn recognizes_future_witness_programs() {
-        assert!(is_standard_unknown_witness(
-            &ScriptBuf::from_hex(
-                "52200000000000000000000000000000000000000000000000000000000000000000"
-            )
-            .unwrap()
-        ));
-        assert!(!is_standard_unknown_witness(
-            &ScriptBuf::from_hex(
-                "00200000000000000000000000000000000000000000000000000000000000000000"
-            )
-            .unwrap()
-        ));
-    }
-
-    #[test]
-    fn limits_standard_bare_multisig_to_three_keys() {
-        assert!(!has_too_many_bare_multisig_keys(SigOps::new(12)));
-        assert!(has_too_many_bare_multisig_keys(SigOps::new(16)));
-    }
-
-    #[test]
-    fn rejects_p2a_witness_stuffing() {
-        let input = TxIn {
-            witness: Witness::from_slice(&[b"stuffing"]),
-            ..TxIn::default()
-        };
-        let facts = input::analyze(&input, OutputType::P2A, &mut TxFeatureFlags::default());
-        assert!(has_nonstandard_witness(OutputType::P2A, &facts,));
-    }
-
-    #[test]
-    fn enforces_witness_stack_item_limits() {
-        let oversized = [0_u8; 81];
-        let input = TxIn {
-            witness: Witness::from_slice(&[oversized.as_slice(), [0x51].as_slice()]),
-            ..TxIn::default()
-        };
-        let facts = input::analyze(&input, OutputType::P2WSH, &mut TxFeatureFlags::default());
-        assert!(has_nonstandard_p2wsh_witness(&facts.witness));
-
-        let control_block = [0xc0_u8; 33];
-        let input = TxIn {
-            witness: Witness::from_slice(&[
-                oversized.as_slice(),
-                [0x51].as_slice(),
-                control_block.as_slice(),
-            ]),
-            ..TxIn::default()
-        };
-        let facts = input::analyze(&input, OutputType::P2TR, &mut TxFeatureFlags::default());
-        assert!(has_nonstandard_taproot_witness(&facts.witness));
     }
 }

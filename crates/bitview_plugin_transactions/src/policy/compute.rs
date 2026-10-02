@@ -104,24 +104,3 @@ pub fn compute(
 fn dust_is_nonstandard(height: usize, fee: impl FnOnce() -> Sats) -> bool {
     height < FIRST_EPHEMERAL_DUST_HEIGHT || fee() != Sats::ZERO
 }
-
-#[cfg(test)]
-mod tests {
-    use brk_types::Sats;
-
-    use super::{FIRST_EPHEMERAL_DUST_HEIGHT, dust_is_nonstandard};
-
-    #[test]
-    fn zero_fee_ephemeral_dust_starts_at_activation() {
-        assert!(dust_is_nonstandard(
-            FIRST_EPHEMERAL_DUST_HEIGHT - 1,
-            || panic!("fees are irrelevant before activation"),
-        ));
-        assert!(!dust_is_nonstandard(FIRST_EPHEMERAL_DUST_HEIGHT, || {
-            Sats::ZERO
-        }));
-        assert!(dust_is_nonstandard(FIRST_EPHEMERAL_DUST_HEIGHT, || {
-            Sats::new(1)
-        }));
-    }
-}

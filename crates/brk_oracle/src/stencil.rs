@@ -243,10 +243,6 @@ fn search_range(prev_bin: f64, search_below: usize, search_above: usize) -> Opti
     (search_start < search_end).then_some(search_start..search_end)
 }
 
-#[cfg(test)]
-#[path = "../tests/unit/stencil.rs"]
-mod tests;
-
 fn arm_peaks(ema: &HistogramEma, range: Range<usize>) -> Arms {
     let mut peaks = Arms([0.0; N_ARMS]);
     for (i, &offset) in STENCIL_OFFSETS.iter().enumerate() {

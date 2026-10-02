@@ -114,7 +114,7 @@ impl<I: VecIndex> AnyVec for LazyOhlcVec<I> {
     }
 
     fn len(&self) -> usize {
-        self.first_heights.len()
+        self.first_heights.read().len()
     }
 
     fn index_type_to_string(&self) -> &'static str {

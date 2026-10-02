@@ -18,7 +18,3 @@ impl Drop for Cancellation {
         self.0.store(true, Ordering::Relaxed);
     }
 }
-
-#[cfg(test)]
-#[path = "../../../../tests/unit/api/server/disk/cancellation.rs"]
-mod tests;

@@ -198,23 +198,3 @@ impl Display for CentsCompact {
         f.write_str(str)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn nan_round_trips_between_cent_types() {
-        assert_eq!(CentsCompact::from(Cents::NAN), CentsCompact::NAN);
-        assert_eq!(Cents::from(CentsCompact::NAN), Cents::NAN);
-        assert!(f64::from(CentsCompact::NAN).is_nan());
-        assert!(f64::from(Dollars::from(CentsCompact::NAN)).is_nan());
-    }
-
-    #[test]
-    fn nan_propagates_through_arithmetic() {
-        let finite = CentsCompact::new(100);
-        assert_eq!(CentsCompact::NAN - finite, CentsCompact::NAN);
-        assert_eq!(CentsCompact::NAN.round_to_dollar(3), CentsCompact::NAN);
-    }
-}

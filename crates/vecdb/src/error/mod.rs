@@ -127,16 +127,3 @@ fn is_io_data_error(io_err: &io::Error) -> bool {
         io::ErrorKind::IsADirectory | io::ErrorKind::NotADirectory
     )
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn nested_rawdb_lock_is_classified_as_a_lock_error() {
-        let error = Error::RawDB(RawdbError::TryLock(fs::TryLockError::WouldBlock));
-
-        assert!(error.is_lock_error());
-        assert!(!error.is_data_error());
-    }
-}

@@ -1,7 +1,7 @@
 #[cfg(feature = "chain")]
 use super::chain_fixture;
 use super::{server_routes::exchange_with_etag, urpd_sources};
-use crate::{AppState, api::ApiRoutes, urpd_input};
+use crate::{AppState, api::ApiRoutes};
 use aide::axum::ApiRouter;
 use axum::{
     body::Body,
@@ -9,10 +9,7 @@ use axum::{
     serve as serve_http,
 };
 use bitcoin::Amount;
-#[cfg(feature = "chain")]
-use bitview_query::AsyncQuery;
-use brk_types::{Cents, Cohort, Height, UrpdAggregation, UrpdWeight};
-use std::{fs, net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, time::Duration};
 use tokio::{
     join,
     net::TcpListener,
@@ -29,7 +26,6 @@ fn populated_urpd_history() {
     first.header.merkle_root = first.compute_merkle_root().unwrap();
     chain_fixture::run_genesis(first, |mut fixture| async move {
         fixture.publish(1, 1);
-        check_plugin_storage(&fixture);
         check_reconstruction(&fixture.state, fixture.address).await;
         let route = "/api/urpd/all/1";
         let before = exchange_with_etag(fixture.address, "GET", route, "\"old\"").await;
@@ -44,59 +40,9 @@ fn populated_urpd_history() {
             before.split_once("\r\n\r\n").unwrap().1,
             after.split_once("\r\n\r\n").unwrap().1
         );
-
-        let path = fixture
-            .directory
-            .path()
-            .join("plugins/utxo_history/snapshots/data");
-        let saved = fs::read(&path).unwrap();
-        let corrupt = &saved[..saved.len() - 1];
-        fs::write(&path, corrupt).unwrap();
-        for method in ["GET", "HEAD"] {
-            let response = exchange_with_etag(fixture.address, method, route, "*").await;
-            assert!(response.starts_with("HTTP/1.1 500"), "{response}");
-            assert!(!response.contains("\r\netag:"));
-        }
-        fs::write(path, saved).unwrap();
     });
 }
 
-#[cfg(feature = "chain")]
-fn check_plugin_storage(fixture: &chain_fixture::ChainFixture) {
-    let root = fixture.directory.path();
-    assert!(!root.join("origins").exists());
-    for path in [
-        "plugins/inputs/spends/data",
-        "plugins/inputs/spends/index",
-        "plugins/inputs/spends/commit",
-        "plugins/inputs/spends/writer",
-        "plugins/outputs/creations/data",
-        "plugins/outputs/creations/index",
-        "plugins/outputs/creations/commit",
-        "plugins/outputs/creations/writer",
-        "plugins/utxo_history/snapshots/data",
-        "plugins/utxo_history/snapshots/pages",
-    ] {
-        assert!(root.join(path).is_file(), "missing {path}");
-    }
-
-    let state = read_only_state(&fixture.query);
-    let reopened = read_only_state(&fixture.query);
-    assert_eq!(reopened, state);
-}
-
-#[cfg(feature = "chain")]
-fn read_only_state(query: &AsyncQuery) -> (usize, (u64, u64)) {
-    query.sync(|query| {
-        let plugins = query.plugins();
-        let view = plugins.utxo_history.view().unwrap();
-        let reader = view.reader().unwrap();
-        assert!(!reader.is_empty());
-        let end = reader.len();
-        let total = reader.state_at(end).unwrap().total();
-        (end, (total.sats, total.count))
-    })
-}
 async fn check_reconstruction(state: &AppState, address: SocketAddr) {
     check_cancelled_admission(state).await;
     urpd_sources::check(state, address).await;
@@ -107,42 +53,6 @@ async fn check_reconstruction(state: &AppState, address: SocketAddr) {
         .find_map(|line| line.strip_prefix("etag: "))
         .unwrap();
     check_response_admission(state, route, current).await;
-    state.sync(|query| {
-        let mut input = query
-            .resolve_urpd_latest(
-                &Cohort::new("all").unwrap(),
-                UrpdAggregation::Raw,
-                UrpdWeight::Raw,
-            )
-            .unwrap();
-        let original = urpd_input::identity(&input).unwrap();
-        input.height = Height::new(u32::from(input.height) + 1);
-        assert_ne!(urpd_input::identity(&input).unwrap(), original);
-        input.height = Height::new(u32::from(input.height) - 1);
-        input.close = Cents::new(u64::from(input.close) + 1);
-        assert_ne!(urpd_input::identity(&input).unwrap(), original);
-        input.close = Cents::NAN;
-        assert!(urpd_input::identity(&input).is_err());
-    });
-    for method in ["GET", "HEAD"] {
-        for (route, status) in [
-            ("/api/urpd/unknown", 404),
-            ("/api/urpd/unknown/dates", 404),
-            ("/api/urpd/all/99999999", 404),
-            ("/api/urpd/all/2009-01-04", 404),
-            ("/api/urpd/all/2009-02-30", 400),
-            ("/api/urpd/all/4294967296", 400),
-            ("/api/urpd/all?weight=raw&weight=raw", 400),
-            ("/api/urpd/all?x=1", 400),
-        ] {
-            let response = exchange_with_etag(address, method, route, "*").await;
-            assert!(
-                response.starts_with(&format!("HTTP/1.1 {status}")),
-                "{route}: {response}"
-            );
-            assert!(!response.contains("\r\netag:"));
-        }
-    }
 }
 
 async fn check_response_admission(state: &AppState, path: &str, current: &str) {

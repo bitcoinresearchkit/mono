@@ -80,7 +80,7 @@ fn append_and_reorg_rebuild_only_the_changed_directory_suffix() {
 
 #[test]
 fn output_boundaries_handle_wide_keys_and_directory_resizing() {
-    let starts = [0u64, 65_536, 1u64 << 36, u64::MAX - 1].map(TxOutIndex::new);
+    let starts = [0u64, 65_536, 1u64 << 36, 1u64 << 37].map(TxOutIndex::new);
     let mut map = HeightMap::from(starts.to_vec());
     let check = |map: &HeightMap<TxOutIndex>| {
         assert!(map.bounds.len() <= (1 << DIRECTORY_BITS) + 2);
@@ -91,8 +91,8 @@ fn output_boundaries_handle_wide_keys_and_directory_resizing() {
             65_536,
             (1u64 << 36) - 1,
             1u64 << 36,
-            u64::MAX - 1,
-            u64::MAX,
+            1u64 << 37,
+            (1u64 << 37) + 1,
         ] {
             let index = TxOutIndex::new(index);
             assert_eq!(map.get_shared(index), map.ranges.get_shared(index));

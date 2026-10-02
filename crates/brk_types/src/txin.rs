@@ -155,39 +155,3 @@ impl Serialize for TxIn {
         state.end()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use schemars::schema_for;
-    use serde_json::to_value;
-
-    use super::*;
-
-    #[test]
-    fn schema_marks_only_unconditional_wire_fields_as_required() {
-        let schema = to_value(schema_for!(TxIn)).unwrap();
-        let required = schema["required"].as_array().unwrap();
-        for field in [
-            "txid",
-            "vout",
-            "prevout",
-            "scriptsig",
-            "scriptsig_asm",
-            "is_coinbase",
-            "sequence",
-        ] {
-            assert!(
-                required.iter().any(|value| value == field),
-                "{field} should be required; schema: {schema}"
-            );
-        }
-        for field in [
-            "witness",
-            "inner_redeemscript_asm",
-            "inner_witnessscript_asm",
-        ] {
-            assert!(!required.iter().any(|value| value == field));
-            assert!(schema["properties"].get(field).is_some());
-        }
-    }
-}

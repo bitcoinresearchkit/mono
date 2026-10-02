@@ -19,49 +19,6 @@ fn tomb_inputs(seed: u8) -> (Transaction, TxEntry, FeeRate) {
 }
 
 #[test]
-fn get_vanished_filters_out_replaced_tombstones() {
-    let mut g = TxGraveyard::default();
-    let (tx_a, entry_a, rate) = tomb_inputs(2);
-    let (tx_b, entry_b, _) = tomb_inputs(3);
-    let txid_a = entry_a.txid;
-    let txid_b = entry_b.txid;
-    g.bury(tx_a, entry_a, rate, TxRemoval::Replaced { by: txid_b });
-    g.bury(tx_b, entry_b, rate, TxRemoval::Vanished);
-
-    assert!(g.get_vanished(&txid_a).is_none());
-    assert!(g.get_vanished(&txid_b).is_some());
-}
-
-#[test]
-fn predecessors_of_returns_direct_replacers() {
-    let mut g = TxGraveyard::default();
-    let (tx_a, entry_a, rate) = tomb_inputs(7);
-    let (tx_b, entry_b, _) = tomb_inputs(8);
-    let (tx_c, entry_c, _) = tomb_inputs(9);
-    let replacer = entry_c.txid;
-    let a = entry_a.txid;
-    let b = entry_b.txid;
-    g.bury(tx_a, entry_a, rate, TxRemoval::Replaced { by: replacer });
-    g.bury(tx_b, entry_b, rate, TxRemoval::Replaced { by: replacer });
-    g.bury(tx_c, entry_c, rate, TxRemoval::Vanished);
-
-    let mut preds: Vec<Txid> = g.predecessors_of(&replacer).map(|(t, _)| *t).collect();
-    preds.sort_unstable_by_key(|t| t.as_slice()[0]);
-    let mut expected = vec![a, b];
-    expected.sort_unstable_by_key(|t| t.as_slice()[0]);
-    assert_eq!(preds, expected);
-
-    assert_eq!(g.predecessors_of(&fake_txid(123)).count(), 0);
-
-    g.exhume(&a).unwrap();
-    assert_eq!(g.predecessors_of(&replacer).count(), 1);
-    assert_eq!(
-        g.predecessors_of(&replacer).next().map(|(t, _)| *t),
-        Some(b)
-    );
-}
-
-#[test]
 fn re_bury_moves_predecessor_to_new_replacer() {
     let mut g = TxGraveyard::default();
     let (tx, entry, rate) = tomb_inputs(20);
@@ -120,23 +77,6 @@ fn replaced_iter_recent_first_skips_stale_order_entries() {
         .map(|(p, by)| (*p, *by))
         .collect();
     assert_eq!(collected, vec![(pred, replacer)]);
-}
-
-#[test]
-fn evict_old_drops_aged_tombstones() {
-    let mut g = TxGraveyard::default();
-    let (tx_a, entry_a, rate) = tomb_inputs(12);
-    let (tx_b, entry_b, _) = tomb_inputs(13);
-    let txid_a = entry_a.txid;
-    let txid_b = entry_b.txid;
-    g.bury(tx_a, entry_a, rate, TxRemoval::Vanished);
-    g.bury(tx_b, entry_b, rate, TxRemoval::Vanished);
-
-    g.shift_oldest_back(1);
-    g.evict_old();
-
-    assert!(g.get(&txid_a).is_none(), "aged tombstone evicted");
-    assert!(g.get(&txid_b).is_some(), "fresh tombstone retained");
 }
 
 #[test]

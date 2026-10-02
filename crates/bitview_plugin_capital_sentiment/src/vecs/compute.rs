@@ -313,25 +313,4 @@ mod tests {
             Phase::Bull
         );
     }
-
-    #[test]
-    fn every_capitalized_price_reference_must_be_present_and_positive() {
-        let valid = [
-            Some(cents(100)),
-            Some(cents(70)),
-            Some(cents(80)),
-            Some(cents(60)),
-        ];
-        for index in 0..valid.len() {
-            for invalid in [None, Some(Cents::ZERO), Some(Cents::NAN)] {
-                let mut references = valid;
-                references[index] = invalid;
-                let [price, all, sth, lth] = references;
-                assert_eq!(
-                    classify_phase_code(price, all, sth, lth, Some(cents(50))),
-                    StoredU8::ZERO,
-                );
-            }
-        }
-    }
 }

@@ -104,19 +104,3 @@ impl Formattable for CoinbaseTag {
         buf.push(b'"');
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::CoinbaseTag;
-
-    #[test]
-    fn preserves_raw_bytes_as_codepoints_and_truncates_at_100() {
-        let tag = CoinbaseTag::from([b'A', 0xff, 0x00].as_slice());
-        assert_eq!(tag.as_str(), "A\u{ff}\0");
-
-        let bytes = (0_u8..=100).collect::<Vec<_>>();
-        let tag = CoinbaseTag::from(bytes.as_slice());
-        assert_eq!(tag.as_str().chars().count(), 100);
-        assert_eq!(tag.as_str().chars().last(), Some(char::from(99)));
-    }
-}

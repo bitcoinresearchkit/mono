@@ -101,16 +101,3 @@ fn bulk_and_incremental_queries_match_a_sorted_reference() {
         Cents::ZERO
     );
 }
-
-#[test]
-fn absent_and_zero_cap_queries_keep_zero_percentiles() {
-    let mut index = PriceIndex::<2>::default();
-    index.add(CentsCompact::ZERO, 23, [true, false]);
-    let [all, empty] = index.percentiles(|q, n| (n.sats[q], n.cap[q]));
-    for result in [all, empty] {
-        assert_eq!(result.min_price, Cents::ZERO);
-        assert_eq!(result.max_price, Cents::ZERO);
-        assert_eq!(result.sat_prices, [Cents::ZERO; PERCENTILES_LEN]);
-        assert_eq!(result.usd_prices, [Cents::ZERO; PERCENTILES_LEN]);
-    }
-}

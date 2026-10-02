@@ -12,9 +12,7 @@ impl Mempool {
     pub(crate) fn test_state_mut(&mut self) -> &mut State {
         &mut self.state
     }
-    pub(crate) fn test_state(&self) -> &State {
-        &self.state
-    }
+
     pub(crate) fn published(&self) -> Arc<ReadOnlyState> {
         self.read_only.load()
     }

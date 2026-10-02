@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Bitcoin weighted supply density and bull/bear signals from local Bitview data." />
+    <title>Bitcoin Supply Density</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --background: #080a0b;
+        --foreground: #eceeea;
+        --muted: #808888;
+        --line: #252b2b;
+        --bull: #55c997;
+        --bear: #ef7979;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; margin: 0; }
+      body { background: var(--background); color: var(--foreground); overflow: hidden; }
+      main { height: 100dvh; display: flex; flex-direction: column; }
+      header { padding: 24px 28px 16px; flex-shrink: 0; }
+      .heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+      .eyebrow { color: var(--muted); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; margin-bottom: 8px; }
+      h1 { margin: 0; font: 400 clamp(30px, 4vw, 46px)/1 Georgia, serif; letter-spacing: -.035em; }
+      .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+      .switches { display: flex; padding: 3px; border: 1px solid var(--line); border-radius: 7px; }
+      button { font: inherit; font-size: 11px; border: 0; border-radius: 4px; padding: 9px 12px; color: var(--muted); background: transparent; cursor: pointer; }
+      button:hover { color: var(--foreground); }
+      button[aria-pressed="true"] { color: var(--foreground); background: #29312f; }
+      button:focus-visible { outline: 2px solid var(--bull); outline-offset: 3px; }
+      button:disabled { opacity: .45; cursor: wait; }
+      #readout { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-top: 20px; font-size: 12px; font-variant-numeric: tabular-nums; }
+      #readout span { white-space: nowrap; }
+      .label, #date { color: var(--muted); }
+      .profit { color: var(--bull); }
+      .loss { color: var(--bear); }
+      .signal { font-weight: 600; }
+      .density-readout { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+      #chart-wrap { position: relative; flex: 1; min-height: 0; }
+      #chart { position: absolute; inset: 0; }
+      #status { position: absolute; inset: 42% 20px auto; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.7; pointer-events: none; }
+      #status[data-error="true"] { color: var(--bear); }
+      #status:empty { display: none; }
+      footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 20px; padding: 12px 28px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); font-size: 10px; line-height: 1.6; color: var(--muted); }
+      footer strong { color: var(--foreground); font-weight: 400; }
+      footer a { color: inherit; text-decoration: none; }
+      @media (max-width: 640px) {
+        header { padding: 18px 14px 12px; }
+        .heading { align-items: flex-start; flex-direction: column; gap: 14px; }
+        .controls { width: 100%; justify-content: space-between; }
+        #readout { gap: 9px 16px; margin-top: 14px; font-size: 11px; }
+        footer { padding: 9px 14px max(9px, env(safe-area-inset-bottom)); font-size: 9px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="heading">
+          <div>
+            <div class="eyebrow">Bitcoin · local data · daily</div>
+            <h1>Supply Density</h1>
+          </div>
+          <div class="controls">
+            <div id="modes" class="switches" role="group" aria-label="Supply weighting">
+              <button type="button" data-mode="cointime" aria-pressed="true">Cointime</button>
+              <button type="button" data-mode="coinflow" aria-pressed="false">Coinflow</button>
+            </div>
+            <button type="button" id="refresh">Refresh</button>
+          </div>
+        </div>
+        <div id="readout">
+          <span id="date">—</span>
+          <span><span class="label">Price </span><span id="price">—</span></span>
+          <div class="density-readout" id="density-readout"><span>Supply Density</span><span class="label">Total <span data-side="total">—</span></span><span class="profit">Profit <span data-side="profit">—</span></span><span class="loss">Loss <span data-side="loss">—</span></span><span class="signal">—</span></div>
+        </div>
+      </header>
+      <section id="chart-wrap" aria-label="Price and density signal">
+        <div id="chart" role="img" aria-busy="true" aria-label="Bitcoin price with a cointime-weighted bull/bear density histogram"></div>
+        <div id="status" role="status">Loading local data…</div>
+      </section>
+      <footer>
+        <span><strong>Signal: total ≥25%.</strong> Supply density is the share of total weighted supply within ±5% of spot.</span>
+        <span><strong>Height:</strong> winning side ÷ (profit + loss), from 50% to 100%. Color always uses that day’s balance: profit → green · loss → red.</span>
+        <a href="http://localhost:3110" target="_blank" rel="noreferrer">Local Bitview ↗</a>
+      </footer>
+    </main>
+    <script type="module">
+      const ORIGIN = "http://localhost:3110";
+      // The deployed client, imported from a blob URL: direct remote module
+      // imports fail on some hosts.
+      const clientReady = (async () => {
+        const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
+          cache: "no-cache",
+          signal: AbortSignal.timeout(30_000),
+        });
+        if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
+        const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
+        try {
+          const { BitviewClient } = await import(url);
+          return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 });
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      })();
+      const DAY_ZERO = Date.UTC(2009, 0, 1) / 1000;
+      const DAY_SECONDS = 86400;
+      const SIGNAL_THRESHOLD = 250_000;
+      const COLORS = { price: "#eceeea", bull: "#55c997", bear: "#ef7979", muted: "#808888" };
+      const MODES = ["cointime", "coinflow"];
+      const SIDES = ["total", "profit", "loss"];
+
+      function signalFor(total, profit, loss) {
+        if (![total, profit, loss].every(Number.isFinite)) return null;
+        if (total < SIGNAL_THRESHOLD || profit === loss) return 0;
+        return profit > loss ? 1 : -1;
+      }
+
+      function valueAt(series, day) {
+        return series.data[day - series.start];
+      }
+
+      function buildRows(prices, density) {
+        const rows = [];
+        for (let offset = 0; offset < prices.data.length; offset++) {
+          const candle = prices.data[offset];
+          if (!Array.isArray(candle) || candle.length !== 4 || !candle.every(value => Number.isFinite(value) && value > 0)) continue;
+          const day = prices.start + offset;
+          const [open, high, low, close] = candle;
+          const [total, profit, loss] = density.map(series => valueAt(series, day));
+          const signal = signalFor(total, profit, loss);
+          const strength = signal ? Math.max(profit, loss) / (profit + loss) : null;
+          rows.push({ time: DAY_ZERO + day * DAY_SECONDS, open, high, low, close, total, profit, loss, signal, strength });
+        }
+        return rows;
+      }
+
+      function histogramPoint(row) {
+        return row.signal && Number.isFinite(row.strength)
+          ? { time: row.time, value: row.strength, color: row.signal > 0 ? COLORS.bull : COLORS.bear }
+          : { time: row.time };
+      }
+
+      function showCandles(range, visible) {
+        const bars = range ? range.to - range.from : Infinity;
+        return bars <= (visible ? 600 : 500);
+      }
+
+      function densitySeriesNames(weight) {
+        return SIDES.map(side => `${weight}_urpd_all_supply_density_${side === "total" ? "total" : `in_${side}`}_ppm`);
+      }
+
+      async function fetchSeries(name) {
+        const client = await clientReady;
+        const series = await client.seriesEndpoint(name, "day1").fetch();
+        if (!Number.isInteger(series.start) || !Array.isArray(series.data)) throw new Error(`${name}: invalid series response`);
+        return series;
+      }
+
+      const chartElement = document.getElementById("chart");
+      const status = document.getElementById("status");
+      const refresh = document.getElementById("refresh");
+      const buttons = [...document.querySelectorAll("[data-mode]")];
+      const readout = Object.fromEntries(["date", "price"].map(key => [key, document.getElementById(key)]));
+      const density = { readout: document.getElementById("density-readout"), rowsByMode: new Map(), rowsByTime: new Map(), histogram: null, error: "" };
+      let mode = "cointime";
+      let chart, priceLine, priceCandles;
+      let priceRows = [];
+      let priceByTime = new Map();
+      let candlesVisible = false;
+      let fitted = false;
+      let loading = false;
+
+      function updateReadout(time) {
+        const row = priceByTime.get(time) ?? priceRows.at(-1);
+        readout.date.textContent = row ? new Date(row.time * 1000).toISOString().slice(0, 10) : "—";
+        readout.price.textContent = row ? row.close.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }) : "—";
+        const entry = density.rowsByTime.get(row?.time);
+        for (const key of SIDES) density.readout.querySelector(`[data-side="${key}"]`).textContent = Number.isFinite(entry?.[key]) ? `${(entry[key] / 10_000).toFixed(2)}%` : "—";
+        const signal = entry?.signal;
+        const label = density.readout.querySelector(".signal");
+        label.textContent = signal === 1 ? "Bull" : signal === -1 ? "Bear" : signal === 0 ? "No signal" : "No density data";
+        if (signal) label.textContent += ` · ${(entry.strength * 100).toFixed(1)}%`;
+        label.style.color = signal === 1 ? COLORS.bull : signal === -1 ? COLORS.bear : COLORS.muted;
+      }
+
+      function updatePriceVisibility(range) {
+        const next = showCandles(range, candlesVisible);
+        if (next === candlesVisible) return;
+        candlesVisible = next;
+        priceLine.applyOptions({ visible: !next });
+        priceCandles.applyOptions({ visible: next });
+      }
+
+      function render() {
+        chartElement.setAttribute("aria-label", `Bitcoin price with ${mode}-weighted supply density bull/bear share pane`);
+        const range = chart.timeScale().getVisibleLogicalRange();
+        priceLine.setData(priceRows.map(row => ({ time: row.time, value: row.close })));
+        priceCandles.setData(priceRows.map(({ time, open, high, low, close }) => ({ time, open, high, low, close })));
+        const rows = density.rowsByMode.get(mode) ?? [];
+        density.rowsByTime = new Map(rows.map(row => [row.time, row]));
+        density.histogram.setData(rows.map(histogramPoint));
+        if (fitted && range) chart.timeScale().setVisibleLogicalRange(range);
+        else if (priceRows.length) { chart.timeScale().fitContent(); fitted = true; }
+        updatePriceVisibility(chart.timeScale().getVisibleLogicalRange());
+        updateReadout();
+        status.textContent = density.error;
+        status.dataset.error = String(Boolean(status.textContent));
+      }
+
+      async function load() {
+        if (loading) return;
+        loading = true;
+        refresh.disabled = true;
+        chartElement.setAttribute("aria-busy", "true");
+        status.dataset.error = "false";
+        status.textContent = "Loading local data…";
+        try {
+          const [prices, results] = await Promise.all([
+            fetchSeries("price_ohlc"),
+            Promise.allSettled(MODES.flatMap(weight => densitySeriesNames(weight).map(fetchSeries))),
+          ]);
+          priceRows = buildRows(prices, SIDES.map(() => ({ start: 0, data: [] })));
+          if (!priceRows.length) throw new Error("No daily price candles available");
+          priceByTime = new Map(priceRows.map(row => [row.time, row]));
+          const failed = results.find(item => item.status === "rejected");
+          if (failed) {
+            density.error = `Supply density could not load. ${density.rowsByMode.size ? "Showing previously loaded density. " : ""}Rebuild/restart local Bitview and refresh. (${failed.reason.message})`;
+          } else {
+            density.rowsByMode = new Map(MODES.map((weight, offset) => [weight, buildRows(prices, results.slice(offset * 3, offset * 3 + 3).map(item => item.value))]));
+            density.error = density.rowsByMode.get(mode).some(row => row.signal !== null) ? "" : "No supply density data yet.";
+          }
+          render();
+        } catch (error) {
+          status.dataset.error = "true";
+          status.textContent = `Could not refresh localhost:3110. ${error.message}.`;
+        } finally {
+          loading = false;
+          refresh.disabled = false;
+          chartElement.setAttribute("aria-busy", "false");
+        }
+      }
+
+      async function initialize() {
+        const { createChart, ColorType, LineSeries, CandlestickSeries, HistogramSeries, PriceScaleMode, CrosshairMode, createTextWatermark } = await import("../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs");
+        chart = createChart(chartElement, {
+          autoSize: true,
+          layout: { background: { type: ColorType.Solid, color: "#080a0b" }, textColor: COLORS.muted, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", attributionLogo: false, panes: { separatorColor: "#252b2b", separatorHoverColor: "#505b57", enableResize: true } },
+          grid: { vertLines: { visible: false }, horzLines: { color: "#151a1a" } },
+          crosshair: { mode: CrosshairMode.Normal },
+          rightPriceScale: { mode: PriceScaleMode.Logarithmic, borderColor: "#252b2b", minimumWidth: 72, scaleMargins: { top: .07, bottom: .07 } },
+          timeScale: { borderColor: "#252b2b", minBarSpacing: .05, rightOffset: 4, lockVisibleTimeRangeOnResize: true, shiftVisibleRangeOnNewBar: false },
+        });
+        const priceOptions = { color: COLORS.price, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, priceFormat: { type: "price", precision: 2, minMove: .01 } };
+        priceLine = chart.addSeries(LineSeries, priceOptions);
+        priceCandles = chart.addSeries(CandlestickSeries, { ...priceOptions, visible: false, upColor: "#080a0b", downColor: COLORS.price, wickUpColor: COLORS.price, wickDownColor: COLORS.price, borderUpColor: COLORS.price, borderDownColor: COLORS.price });
+        chart.panes()[0].setStretchFactor(3);
+        density.histogram = chart.addSeries(HistogramSeries, {
+          base: 0.5, priceLineVisible: false, lastValueVisible: false,
+          priceFormat: { type: "custom", formatter: value => `${(value * 100).toFixed(0)}%`, minMove: 0.01 },
+          autoscaleInfoProvider: () => ({ priceRange: { minValue: 0.5, maxValue: 1 } }),
+        }, 1);
+        chart.priceScale("right", 1).applyOptions({ mode: PriceScaleMode.Normal, minimumWidth: 72, scaleMargins: { top: .22, bottom: .06 }, borderColor: "#252b2b" });
+        const pane = chart.panes()[1];
+        pane.setStretchFactor(1);
+        pane.setPreserveEmptyPane(true);
+        createTextWatermark(pane, { horzAlign: "left", vertAlign: "top", lines: [{ text: "Supply Density · Total ≥25% · Winning share", color: COLORS.muted, fontSize: 11, fontFamily: "monospace" }] });
+        density.histogram.createPriceLine({ price: 0.5, color: "#38413e", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
+        chart.timeScale().subscribeVisibleLogicalRangeChange(updatePriceVisibility);
+        chart.subscribeCrosshairMove(({ time }) => updateReadout(time));
+        buttons.forEach(button => button.addEventListener("click", () => {
+          mode = button.dataset.mode;
+          buttons.forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+          render();
+        }));
+        refresh.addEventListener("click", load);
+        await load();
+      }
+      initialize().catch(error => {
+        status.dataset.error = "true";
+        status.textContent = `Could not initialize the chart: ${error.message}`;
+        chartElement.setAttribute("aria-busy", "false");
+      });
+    </script>
+  </body>
+</html>

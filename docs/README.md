@@ -103,7 +103,7 @@ Use the umbrella crate for BRK primitives without the full Bitview application:
 
 ```toml
 [dependencies]
-brk = { version = "0.11", features = ["reader", "rpc", "types"] }
+brk = { version = "0.12", features = ["reader", "rpc", "types"] }
 ```
 
 See the [`brk` crate guide](../crates/brk) for its feature map. For a new
@@ -123,7 +123,6 @@ cargo test --workspace
 ## Documentation
 
 - [Architecture](./ARCHITECTURE.md)
-- [Storage design, update policy, and remaining work](./STORAGE_ROLLBACK.md)
 - [Changelog](./CHANGELOG.md)
 - [Self-hosting](../crates/bitviewd)
 - [BRK crates](../crates/brk)

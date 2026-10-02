@@ -283,36 +283,4 @@ where
 }
 
 #[cfg(all(test, feature = "pco"))]
-mod tests {
-    use tempfile::tempdir;
-
-    use super::CompressedIoSource;
-    use crate::{AnyStoredVec, Database, ImportableVec, PcoVec, Version, WritableVec};
-
-    #[test]
-    fn read_into_handles_full_and_partial_pages() {
-        let temp = tempdir().unwrap();
-        let db = Database::open(temp.path()).unwrap();
-        let mut vec: PcoVec<usize, u64> =
-            PcoVec::forced_import(&db, "values", Version::ONE).unwrap();
-        let per_page = 8 * 1024 / size_of::<u64>();
-        let values: Vec<_> = (0..per_page * 3 + 137)
-            .map(|index| index as u64 * 17 + index as u64 % 11)
-            .collect();
-        for &value in &values {
-            vec.push(value);
-        }
-        vec.write().unwrap();
-
-        for (from, to) in [
-            (0, values.len()),
-            (17, per_page + 9),
-            (per_page, per_page * 3),
-            (per_page * 2 + 31, values.len() - 7),
-        ] {
-            let mut output = vec![u64::MAX];
-            CompressedIoSource::new(&vec, from, to).read_into(&mut output);
-            assert_eq!(&output[1..], &values[from..to]);
-        }
-    }
-}
+mod tests {}

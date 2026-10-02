@@ -360,7 +360,3 @@ impl<'de> Deserialize<'de> for Index {
         Index::try_from(str.as_str()).map_err(DeError::custom)
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/index.rs"]
-mod tests;

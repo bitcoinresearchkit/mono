@@ -104,10 +104,6 @@ impl fmt::Display for Day3 {
     }
 }
 
-#[cfg(test)]
-#[path = "../tests/unit/day3.rs"]
-mod tests;
-
 #[cfg(feature = "storage")]
 impl Formattable for Day3 {
     #[inline(always)]

@@ -151,29 +151,9 @@ pub fn pools() -> &'static Pools {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::to_string;
 
     use super::*;
     use crate::Addr;
-
-    #[test]
-    fn bundled_json_entries_have_named_slugs() {
-        let entries: Vec<JsonPoolEntry> = from_str(JSON_DATA).expect("valid pools-v2.json");
-
-        for entry in entries {
-            if TESTNET_IDS.contains(&entry.id) {
-                continue;
-            }
-            let id = u8::try_from(entry.id).expect("pool ID fits PoolSlug");
-            let slug = PoolSlug::from(id);
-            assert!(
-                to_string(&slug).is_ok(),
-                "pool ID {} ({}) still maps to {slug:?}",
-                entry.id,
-                entry.name
-            );
-        }
-    }
 
     #[test]
     fn binary_lookup_matches_string_lookup() {

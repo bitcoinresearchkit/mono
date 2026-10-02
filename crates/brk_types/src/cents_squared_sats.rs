@@ -23,8 +23,6 @@ use vecdb::{Bytes, Formattable};
 pub struct CentsSquaredSats(u128);
 
 impl CentsSquaredSats {
-    pub const ZERO: Self = Self(0);
-
     #[inline(always)]
     pub const fn new(value: u128) -> Self {
         Self(value)

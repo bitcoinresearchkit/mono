@@ -222,28 +222,3 @@ where
         Ok(accum)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use tempfile::tempdir;
-
-    use super::RawIoSource;
-    use crate::{AnyStoredVec, BytesVec, Database, ImportableVec, Version, WritableVec};
-
-    #[test]
-    fn read_into_appends_the_requested_range() {
-        let temp = tempdir().unwrap();
-        let db = Database::open(temp.path()).unwrap();
-        let mut vec: BytesVec<usize, u64> =
-            BytesVec::forced_import(&db, "values", Version::ONE).unwrap();
-        let values: Vec<_> = (0..10_000).map(|index| index as u64 * 37).collect();
-        for &value in &values {
-            vec.push(value);
-        }
-        vec.write().unwrap();
-
-        let mut output = vec![u64::MAX];
-        RawIoSource::new(&vec, 117, 9_731).read_into(&mut output);
-        assert_eq!(&output[1..], &values[117..9_731]);
-    }
-}

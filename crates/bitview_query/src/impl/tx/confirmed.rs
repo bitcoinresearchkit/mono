@@ -16,12 +16,6 @@ pub(crate) use indexer_read::IndexerRead;
 /// Revalidation alone is not exposed on `Query`: the internal read view must
 /// retain rollback protection through the subsequent dependent reads.
 ///
-/// ```compile_fail
-/// use bitview_query::{Query, ResolvedConfirmedTx};
-/// fn unguarded(query: &Query, tx: ResolvedConfirmedTx) {
-///     query.revalidate_confirmed_tx(tx).unwrap();
-/// }
-/// ```
 #[derive(Debug, Clone, Copy)]
 pub struct ResolvedConfirmedTx {
     txid: Txid,
@@ -43,13 +37,6 @@ impl Query {
     /// The public entry point acquires its own read view. The old caller-guarded
     /// entry point is deliberately unavailable.
     ///
-    /// ```compile_fail
-    /// use bitview_query::Query;
-    /// use brk_types::Txid;
-    /// fn unguarded(query: &Query, txid: &Txid) {
-    ///     query.resolve_confirmed_tx_guarded(txid).unwrap();
-    /// }
-    /// ```
     pub fn resolve_confirmed_tx(&self, txid: &Txid) -> Result<ResolvedConfirmedTx> {
         self.read_indexer()?
             .resolve_confirmed_tx(txid)

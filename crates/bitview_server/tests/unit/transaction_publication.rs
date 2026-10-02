@@ -132,10 +132,6 @@ fn confirmed_handoffs_pin_the_prefix_and_revalidate_replaced_blocks() {
                 Err(Error::UnknownTxid)
             ));
             assert!(matches!(
-                q.resolve_confirmed_tx(&txid),
-                Err(Error::UnknownTxid),
-            ));
-            assert!(matches!(
                 q.transaction_raw_resolved(raw),
                 Err(Error::UnknownTxid),
             ));

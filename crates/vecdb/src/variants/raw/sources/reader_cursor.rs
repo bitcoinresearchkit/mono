@@ -37,12 +37,6 @@ where
         self.pos
     }
 
-    /// Returns the number of values remaining.
-    #[inline(always)]
-    pub fn remaining(&self) -> usize {
-        self.reader.stored_len().saturating_sub(self.pos)
-    }
-
     /// Advances the position by `n` without reading.
     #[inline(always)]
     pub fn advance(&mut self, n: usize) {

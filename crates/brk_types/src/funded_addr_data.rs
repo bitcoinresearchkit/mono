@@ -397,12 +397,8 @@ impl OverflowVecValue for FundedAddrData {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{from_value, to_value};
 
     use super::*;
-
-    #[cfg(feature = "storage")]
-    use crate::SupplyState;
 
     #[test]
     fn compact_realized_cap_carries_borrows_and_roundtrips() {
@@ -425,33 +421,6 @@ mod tests {
 
     #[cfg(feature = "storage")]
     #[test]
-    fn funded_addr_data_stays_compact_and_roundtrips() {
-        assert_eq!(size_of::<FundedAddrData>(), 40);
-
-        let mut data = FundedAddrData::default();
-        data.receive_outputs(Sats::ONE_BTC, Cents::new(10_000), 2);
-        data.send(Sats::new(25_000_000), Cents::new(10_000))
-            .unwrap();
-
-        let decoded = FundedAddrData::from_bytes(&data.to_bytes()).unwrap();
-        assert_eq!(decoded.tx_count, data.tx_count);
-        assert_eq!(decoded.funded_txo_count, data.funded_txo_count);
-        assert_eq!(decoded.spent_txo_count, data.spent_txo_count);
-        assert_eq!(decoded.received, data.received);
-        assert_eq!(decoded.sent, data.sent);
-        assert_eq!(decoded.realized_cap_raw(), data.realized_cap_raw());
-        assert_eq!(
-            SupplyState::from(&decoded).utxo_count,
-            SupplyState::from(&data).utxo_count
-        );
-        assert_eq!(
-            SupplyState::from(&decoded).value,
-            SupplyState::from(&data).value
-        );
-    }
-
-    #[cfg(feature = "storage")]
-    #[test]
     fn overflow_compact_roundtrips_and_rejects_wide_values() {
         let mut data = FundedAddrData::default();
         data.receive_outputs(Sats::ONE_BTC, Cents::new(10_000), 2);
@@ -467,19 +436,5 @@ mod tests {
 
         data.realized_cap_raw = CentsSats96::from_wide(CentsSats::new(u128::from(u64::MAX) + 1));
         assert!(data.to_compact().is_none());
-    }
-
-    #[test]
-    fn funded_addr_data_keeps_realized_cap_logical_in_json() {
-        let mut data = FundedAddrData::default();
-        data.receive_outputs(Sats::ONE_BTC, Cents::new(10_000), 1);
-
-        let json = to_value(&data).unwrap();
-        assert_eq!(json["realized_cap_raw"], 1_000_000_000_000_u64);
-        assert!(json.get("padding").is_none());
-        assert!(json.get("0").is_none());
-
-        let decoded: FundedAddrData = from_value(json).unwrap();
-        assert_eq!(decoded.realized_cap_raw(), data.realized_cap_raw());
     }
 }

@@ -1,9 +1,18 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { BitviewClient } from '../../modules/bitview-client/index.js';
 
 const DAY_MS = 86_400_000;
 const DAY_ZERO = Date.UTC(2009, 0, 1);
+
+// One series per request: bulk reads are capped server-side.
+// buildSnapshot rejects any history that does not end at `end`.
+function fetchHistories(api, names, end) {
+  const client = new BitviewClient({ baseUrl: api.replace(/\/api\/?$/, ''), timeout: 60_000 });
+  return Promise.all(names.map(name => client.seriesEndpoint(name, 'day1').slice(0, end).fetch({ cache: false })));
+}
+
 const validPrice = value => Number.isSafeInteger(value) && value >= 0;
 const dateAt = day => new Date(DAY_ZERO + day * DAY_MS).toISOString().slice(0, 10);
 const validCandle = candle => Array.isArray(candle) && candle.length === 4 && candle.every(validPrice) &&
@@ -18,23 +27,7 @@ async function generateCloudSnapshot({ api = 'http://localhost:3110/api', startD
     throw new Error('--start must be a date between 2009-01-01 and today.');
   }
   // Start at genesis so stateful overlays can select before the display range.
-  // The API allows 32 series per request; keep the two batches at the same tip.
-  const batches = [];
-  for (let offset = 0; offset < seriesNames.length; offset += 32) {
-    batches.push(seriesNames.slice(offset, offset + 32));
-  }
-  const histories = (await Promise.all(batches.map(async names => {
-    const query = new URLSearchParams({ series: names.join(','), index: 'day1', start: '0', end: String(end) });
-    const response = await fetch(`${api.replace(/\/$/, '')}/series/bulk?${query}`, {
-      signal: AbortSignal.timeout(60_000),
-    });
-    if (!response.ok) throw new Error(`Local API returned ${response.status}: ${await response.text()}`);
-    return response.json();
-  }))).flat();
-  if (new Set(histories.map(history => history.stamp)).size !== 1) {
-    throw new Error('The backend changed during the refresh; rerun to capture a consistent snapshot.');
-  }
-  const snapshot = buildSnapshot(histories, start, end, now.toISOString());
+  const snapshot = buildSnapshot(await fetchHistories(api, seriesNames, end), start, end, now.toISOString());
   const html = await readFile(output, 'utf8');
   const dataTag = /(<script id="chart-data" type="application\/json">)[\s\S]*?(<\/script>)/g;
   if ([...html.matchAll(dataTag)].length !== 1) throw new Error('Expected one embedded chart snapshot.');

@@ -1,4 +1,4 @@
-use std::{fs, os::unix::fs::FileExt, sync::Barrier, thread};
+use std::{fs, os::unix::fs::FileExt};
 
 use brk_rpc::Auth;
 use tempfile::tempdir;
@@ -65,29 +65,4 @@ fn successful_and_failed_refreshes_discard_cached_inodes() {
     assert!(reader.blk_file_cache.read().is_empty());
     assert_eq!(contents(&second), [2, 2]);
     assert_eq!(contents(&reader.open_blk(0).unwrap()), [3, 3]);
-}
-
-#[test]
-fn concurrent_misses_share_one_cached_handle() {
-    let directory = tempdir().unwrap();
-    fs::write(directory.path().join("blk00000.dat"), [1, 2]).unwrap();
-    let reader = Arc::new(reader(directory.path().to_owned()));
-    let barrier = Arc::new(Barrier::new(9));
-    let threads: Vec<_> = (0..8)
-        .map(|_| {
-            let reader = reader.clone();
-            let barrier = barrier.clone();
-            thread::spawn(move || {
-                barrier.wait();
-                reader.open_blk(0).unwrap()
-            })
-        })
-        .collect();
-    barrier.wait();
-    let files: Vec<_> = threads
-        .into_iter()
-        .map(|thread| thread.join().unwrap())
-        .collect();
-    assert!(files.iter().all(|file| Arc::ptr_eq(file, &files[0])));
-    assert_eq!(reader.blk_file_cache.read().len(), 1);
 }

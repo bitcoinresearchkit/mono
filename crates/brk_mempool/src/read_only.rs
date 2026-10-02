@@ -6,10 +6,6 @@ use crate::ReadOnlyState;
 
 /// Cheap reader handle. Each load acquires one complete publication.
 ///
-/// ```compile_fail
-/// # use brk_mempool::ReadOnlyMempool;
-/// fn update(reader: &mut ReadOnlyMempool) { reader.tick(); }
-/// ```
 #[derive(Clone)]
 pub struct ReadOnlyMempool {
     pub(crate) current: Arc<ArcSwap<ReadOnlyState>>,

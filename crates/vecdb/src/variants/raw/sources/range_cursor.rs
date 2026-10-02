@@ -22,7 +22,6 @@ pub struct RawRangeCursor<'a, I, T, S> {
     window_position: usize,
     window_len: usize,
     unbuffered_bytes: usize,
-    range_end: usize,
 }
 
 impl<'a, I, T, S> RawRangeCursor<'a, I, T, S>
@@ -32,12 +31,6 @@ where
     S: RawStrategy<T>,
 {
     const SIZE_OF_T: usize = size_of::<T>();
-
-    /// Returns the current absolute vector position.
-    #[inline(always)]
-    pub fn position(&self) -> usize {
-        self.range_end - self.remaining()
-    }
 
     /// Returns the number of values remaining in the declared range.
     #[inline(always)]
@@ -139,7 +132,6 @@ where
                 window_position: 0,
                 window_len,
                 unbuffered_bytes: 0,
-                range_end: to,
             }
         } else {
             Self {
@@ -150,7 +142,6 @@ where
                 window_position: 0,
                 window_len: 0,
                 unbuffered_bytes: bytes,
-                range_end: to,
             }
         }
     }

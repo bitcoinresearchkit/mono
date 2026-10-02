@@ -133,10 +133,6 @@ mod tests {
                 Arc::default(),
             )
         }
-
-        fn replace(&self, index: usize, timestamp: Timestamp) {
-            self.0.write()[index] = timestamp;
-        }
     }
 
     impl AnyVec for TimestampVec {
@@ -233,24 +229,6 @@ mod tests {
                 .copied()
                 .try_fold(init, fold)
         }
-    }
-
-    #[test]
-    fn same_length_timestamp_changes_are_visible_without_derived_invalidation() {
-        let first = Timestamp::from(Date::new(2009, 1, 1));
-        let second = Timestamp::from(Date::new(2009, 1, 2));
-        let third = Timestamp::from(Date::new(2009, 1, 3));
-        let timestamps = TimestampVec::new([first, second]);
-        let cached_timestamps = timestamps.clone();
-        let day1 = Vecs::from_timestamps(
-            "day1",
-            ReadableBoxedVec::new(cached_timestamps.clone()),
-            |_, timestamp| Vecs::day1_from_timestamp(timestamp),
-        );
-
-        assert_eq!(day1.collect_one_at(1), Some(Day1::from(1_usize)));
-        timestamps.replace(1, third);
-        assert_eq!(day1.collect_one_at(1), Some(Day1::from(2_usize)));
     }
 
     fn check_resident_period<I: VecIndex + VecValue>(convert: fn(Height, Timestamp) -> I) {

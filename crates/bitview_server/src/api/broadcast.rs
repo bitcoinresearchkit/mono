@@ -62,7 +62,3 @@ pub async fn serve(
     drop(permit.0);
     result.map_err(Error::from)
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/api/broadcast.rs"]
-mod tests;

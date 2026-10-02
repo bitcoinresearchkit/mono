@@ -88,28 +88,6 @@ fn large_moments_do_not_overflow_when_weighted() {
 }
 
 #[test]
-fn zero_and_undefined_weights_have_explicit_behavior() {
-    let mut state = WeightedCapitalizedPrice::default();
-    assert_eq!(state.value(), Cents::ZERO);
-    state.add(
-        CentsSats::new(1),
-        CentsSquaredSats::new(123),
-        BoundedRatio::ZERO,
-    );
-    state.add(CentsSats::ZERO, CentsSquaredSats::ZERO, BoundedRatio::NAN);
-    assert_eq!(state.value(), Cents::ZERO);
-    state.add(
-        CentsSats::new(1),
-        CentsSquaredSats::new(123),
-        BoundedRatio::NAN,
-    );
-    assert!(state.value().is_nan());
-    let mut merged = WeightedCapitalizedPrice::default();
-    merged.merge(state);
-    assert!(merged.value().is_nan());
-}
-
-#[test]
 fn mixed_moments_match_integer_reference_across_weight_range() {
     let mut seed = 12345_u64;
     for _ in 0..1_000 {

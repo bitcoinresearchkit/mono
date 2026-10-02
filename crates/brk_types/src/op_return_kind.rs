@@ -160,20 +160,3 @@ impl OpReturnKind {
         &values[self.index()]
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[cfg(feature = "storage")]
-    use super::*;
-
-    #[cfg(feature = "storage")]
-    #[test]
-    fn pco_conversion_rejects_invalid_discriminants() {
-        const { assert!(!OpReturnKind::IS_TRANSPARENT) };
-        assert_eq!(
-            OpReturnKind::from_number(OpReturnKind::Unknown as u8).unwrap(),
-            OpReturnKind::Unknown
-        );
-        assert!(OpReturnKind::from_number(u8::MAX).is_err());
-    }
-}

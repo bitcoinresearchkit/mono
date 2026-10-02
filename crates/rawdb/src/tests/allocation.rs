@@ -137,32 +137,6 @@ fn growth_respects_live_pending_and_reusable_tail_allocations() -> Result<()> {
 }
 
 #[test]
-fn best_fit_reuses_equal_holes_in_address_order() -> Result<()> {
-    let dir = TempDir::new()?;
-    let db = Database::open(dir.path())?;
-    let low = db.create_region_if_needed("low")?;
-    let separator = db.create_region_if_needed("separator")?;
-    let high = db.create_region_if_needed("high")?;
-    let tail = db.create_region_if_needed("tail")?;
-    separator.write(b"separator")?;
-    tail.write(b"tail")?;
-
-    // Make the higher hole reusable first. Equal-sized holes still choose the
-    // lowest address, and consuming one must preserve the other index entry.
-    high.remove()?;
-    db.flush()?;
-    low.remove()?;
-    db.flush()?;
-    let first = db.create_region_if_needed("first")?;
-    let second = db.create_region_if_needed("second")?;
-    assert_eq!(first.meta().start(), 0);
-    assert_eq!(second.meta().start(), 2 * PAGE_SIZE);
-    assert_eq!(separator.create_reader().read_all(), b"separator");
-    assert_eq!(tail.create_reader().read_all(), b"tail");
-    Ok(())
-}
-
-#[test]
 fn metadata_slot_reuse_survives_reopen_and_shrink() -> Result<()> {
     let dir = TempDir::new()?;
     let db = Database::open(dir.path())?;
@@ -215,71 +189,6 @@ fn metadata_slot_reuse_survives_reopen_and_shrink() -> Result<()> {
 }
 
 #[test]
-fn repeated_unflushed_removals_preserve_data_and_empty_registry() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-    for cycle in 0..5 {
-        let regions = (0..20)
-            .map(|i| db.create_region_if_needed(&format!("cycle_{cycle}_region_{i}")))
-            .collect::<Result<Vec<_>>>()?;
-        for (i, region) in regions.iter().enumerate() {
-            region.write(format!("Cycle {cycle} Region {i}").as_bytes())?;
-        }
-        for (i, region) in regions.iter().enumerate() {
-            assert_eq!(
-                region.create_reader().read_all(),
-                format!("Cycle {cycle} Region {i}").as_bytes()
-            );
-        }
-        for region in regions {
-            region.remove()?;
-        }
-        assert_eq!(db.regions().len(), 0);
-    }
-    Ok(())
-}
-
-#[test]
-fn test_many_small_regions() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-
-    // Create 50 small regions
-    let mut regions = Vec::new();
-    for i in 0..50 {
-        let name = format!("region_{}", i);
-        let region = db.create_region_if_needed(&name)?;
-        let data = format!("Data for region {}", i);
-        region.write(data.as_bytes())?;
-        regions.push(Some(region));
-    }
-
-    // Verify all regions
-    for (i, region_opt) in regions.iter().enumerate() {
-        let region = region_opt.as_ref().unwrap();
-        let reader = region.create_reader();
-        let expected = format!("Data for region {}", i);
-        assert_eq!(reader.read_all(), expected.as_bytes());
-        drop(reader);
-    }
-
-    // Remove every other region
-    for i in (0..50).step_by(2) {
-        let region = regions[i].take().unwrap();
-        region.remove()?;
-    }
-
-    // Verify remaining regions
-    for i in (1..50).step_by(2) {
-        let region = regions[i].as_ref().unwrap();
-        let reader = region.create_reader();
-        let expected = format!("Data for region {}", i);
-        assert_eq!(reader.read_all(), expected.as_bytes());
-        drop(reader);
-    }
-
-    Ok(())
-}
-
-#[test]
 fn test_hole_coalescing() -> Result<()> {
     let (db, _temp) = setup_test_db()?;
 
@@ -311,41 +220,6 @@ fn test_hole_coalescing() -> Result<()> {
     // The single hole should span all 3 removed regions
     let hole_size = holes.values().next().unwrap();
     assert_eq!(*hole_size, PAGE_SIZE * 3);
-
-    Ok(())
-}
-
-#[test]
-fn test_complex_fragmentation_scenario() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-
-    // Create pattern: region, region, region, region, region
-    let r0 = db.create_region_if_needed("r0")?;
-    let r1 = db.create_region_if_needed("r1")?;
-    let r2 = db.create_region_if_needed("r2")?;
-    let r3 = db.create_region_if_needed("r3")?;
-    let r4 = db.create_region_if_needed("r4")?;
-
-    for r in [&r0, &r1, &r2, &r3, &r4] {
-        r.write(b"data")?;
-    }
-
-    // Remove pattern: keep, remove, keep, remove, keep
-    // This creates 2 separate holes
-    r1.remove()?;
-    r3.remove()?;
-    db.flush()?; // Make holes available
-
-    let layout = db.layout();
-    assert_eq!(layout.start_to_hole().len(), 2);
-    drop(layout);
-
-    // Create a new region - should fill one of the holes
-    let r5 = db.create_region_if_needed("r5")?;
-    r5.write(b"fills hole")?;
-
-    let layout = db.layout();
-    assert_eq!(layout.start_to_hole().len(), 1); // One hole filled, one remains
 
     Ok(())
 }

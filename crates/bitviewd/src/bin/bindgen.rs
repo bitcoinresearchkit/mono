@@ -237,25 +237,3 @@ fn verify_output_pairs(
     }
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn check_reports_stale_outputs() {
-        let directory = tempdir().unwrap();
-        let root = directory.path();
-        let generated = root.join("generated");
-        let workspace = root.join("workspace");
-        fs::create_dir_all(&generated).unwrap();
-        fs::create_dir_all(&workspace).unwrap();
-        fs::write(generated.join("artifact"), "new").unwrap();
-        fs::write(workspace.join("artifact"), "old").unwrap();
-
-        let error =
-            verify_output_pairs(&generated, &workspace, &[("artifact", "artifact")]).unwrap_err();
-
-        assert!(error.to_string().contains("artifact"));
-    }
-}

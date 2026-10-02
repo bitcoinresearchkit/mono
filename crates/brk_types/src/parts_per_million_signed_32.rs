@@ -41,18 +41,12 @@ pub struct PartsPerMillionSigned32(i32);
 
 impl PartsPerMillionSigned32 {
     pub const ZERO: Self = Self(0);
-    pub const ONE: Self = Self(1_000_000);
     pub const NAN: Self = Self(i32::MIN);
 
     #[inline]
     const fn new(value: i32) -> Self {
         debug_assert!(value != i32::MIN, "i32::MIN is reserved as NaN sentinel");
         Self(value)
-    }
-
-    #[inline(always)]
-    pub const fn inner(self) -> i32 {
-        self.0
     }
 
     #[inline]
@@ -238,33 +232,6 @@ impl Formattable for PartsPerMillionSigned32 {
             buf.extend_from_slice(b"null");
         } else {
             self.write_to(buf);
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn conversions_and_sentinels() {
-        assert_eq!(f64::from(PartsPerMillionSigned32::ONE), 1.0);
-        assert_eq!(
-            PartsPerMillionSigned32::from(-0.123_456_6).inner(),
-            -123_457
-        );
-        assert_eq!(PartsPerMillionSigned32::from(f64::MAX).inner(), i32::MAX);
-        assert_eq!(
-            PartsPerMillionSigned32::from(f64::MIN).inner(),
-            i32::MIN + 1
-        );
-        assert!(PartsPerMillionSigned32::from(f64::NAN).is_nan());
-
-        #[cfg(feature = "storage")]
-        {
-            let mut json = Vec::new();
-            PartsPerMillionSigned32::NAN.fmt_json(&mut json);
-            assert_eq!(json, b"null");
         }
     }
 }

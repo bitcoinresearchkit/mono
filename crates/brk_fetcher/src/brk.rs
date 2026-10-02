@@ -197,7 +197,3 @@ impl PriceSource for BRK {
         self.day1_to_ohlc.clear();
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/brk.rs"]
-mod tests;

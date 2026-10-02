@@ -39,37 +39,3 @@ impl HeightOrDateParam {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn height_parsing_uses_the_domain_width_without_truncation() {
-        for point in ["0", "840000", "4294967295"] {
-            let param = HeightOrDateParam {
-                point: point.into(),
-            };
-            let Ok(HeightOrDate::Height(height)) = param.resolve() else {
-                panic!("expected height");
-            };
-            assert_eq!(u32::from(height), point.parse::<u32>().unwrap());
-        }
-        for point in ["4294967296", "18446744073709551615", "-1", "invalid"] {
-            assert!(
-                HeightOrDateParam {
-                    point: point.into()
-                }
-                .resolve()
-                .is_err()
-            );
-        }
-        assert!(matches!(
-            HeightOrDateParam {
-                point: "2024-01-01".into()
-            }
-            .resolve(),
-            Ok(HeightOrDate::Date(_))
-        ));
-    }
-}

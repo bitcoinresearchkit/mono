@@ -356,7 +356,7 @@ fn simplify_property_value(mut obj: Map<String, Value>) -> Value {
 #[cfg(test)]
 mod tests {
     use aide::axum::ApiRouter;
-    use serde_json::{from_slice, from_str, json, to_string};
+    use serde_json::{from_str, to_string};
 
     use super::*;
     use crate::{ApiRoutes, AppState, finish_openapi};
@@ -367,33 +367,5 @@ mod tests {
         let serialized = to_string(&spec).unwrap();
         let through_json = compact_json(from_str(&serialized).unwrap());
         assert_eq!(ApiJson::new(&spec).bytes().as_ref(), through_json);
-    }
-
-    #[test]
-    fn nested_properties_preserve_extra_fields_and_union_shape() {
-        let spec = json!({
-            "properties": {
-                "object": {"type": "object", "properties": {
-                    "id": {"$ref": "#/components/schemas/Txid", "description": "drop"}
-                }, "additionalProperties": false},
-                "single": {"anyOf": [{"type": "string"}]},
-                "empty": {"anyOf": [true, {}, {"$ref": 1}]},
-                "non_object": false
-            },
-            "parameters": [{"schema": {"anyOf": [{"type": "string"}]}, "required": true}]
-        });
-        let value: Value = from_slice(&compact_json(spec)).unwrap();
-        assert_eq!(
-            value,
-            json!({
-                "properties": {
-                    "object": {"properties": {"id": "Txid"}, "additionalProperties": false},
-                    "single": ["string"],
-                    "empty": [],
-                    "non_object": false
-                },
-                "parameters": [{"type": "string", "required": true}]
-            })
-        );
     }
 }

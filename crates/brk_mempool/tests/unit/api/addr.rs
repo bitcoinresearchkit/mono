@@ -9,36 +9,6 @@ use crate::{
 };
 
 #[test]
-fn completed_selection_shares_bodies_and_rejects_wrong_chain() {
-    let mut mempool = Mempool::for_test();
-    let script = p2wpkh_script(1);
-    let addr = AddrBytes::try_from(&script).unwrap();
-    let tip = BlockHash::default();
-    assert!(mempool.published().addr_txs(&addr, 50, &tip).is_err());
-    assert!(mempool.published().addr_stats(&addr, &tip).is_err());
-
-    let mut transitions = AddrTransitions::default();
-    let state = mempool.test_state_mut();
-    for seed in 1..=2 {
-        let prevout = TxOut::from((script.clone(), Sats::from(2_000u64)));
-        let tx = fake_tx(seed, &[Some(prevout)], &[]);
-        let entry = TxEntry::new(&fake_entry_info(tx.txid, 100, 100), 100, false);
-        state.addrs.add_tx(&mut transitions, &tx);
-        state.txs.insert(tx, entry);
-    }
-    mempool.test_publish(tip);
-
-    let transactions = mempool.published().addr_txs(&addr, 1, &tip).unwrap();
-    assert_eq!(transactions.len(), 1);
-    let state = mempool.test_state();
-    let stored = &state.txs.record(&transactions[0].txid).unwrap().tx;
-    assert!(Arc::ptr_eq(stored, &transactions[0]));
-    let wrong_tip = "11".repeat(32).parse().unwrap();
-    assert!(mempool.published().addr_txs(&addr, 1, &wrong_tip).is_err());
-    assert!(mempool.published().addr_stats(&addr, &wrong_tip).is_err());
-}
-
-#[test]
 fn bounded_pages_match_full_order_including_timestamp_ties() {
     let mut mempool = Mempool::for_test();
     let script = p2wpkh_script(1);

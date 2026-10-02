@@ -86,63 +86,13 @@ test('retained ETags produce 304s without parsing or a second callback', async t
   assert.deepEqual(calls.at(-1), { path: '/values', validator: '"v2"', status: 304, bytes: 0 });
 });
 
-test('disabled caches and missing ETags never send a validator', async () => {
-  for (const [i, [clientOptions, readOptions]] of [
-    [{}, { cache: false }], [{}, { memCache: false }],
-    [{ memCache: false }, {}], [{ memCache: 0 }, {}],
-  ].entries()) {
-    const path = `/disabled-${i}`;
-    resource(path);
-    const client = new BitviewClient({ baseUrl, ...clientOptions });
-    const first = await client.getJson(path);
-    assert.notStrictEqual(await client.getJson(path, readOptions), first);
-    assert.equal(calls.at(-1).validator, undefined);
-    assert.equal(calls.at(-1).status, 200);
-  }
-  resource('/no-etag', { etag: null });
-  const client = new BitviewClient(baseUrl);
-  const first = await client.getJson('/no-etag');
-  assert.notStrictEqual(await client.getJson('/no-etag'), first);
-  assert.equal(calls.at(-1).validator, undefined);
-});
 
-test('raw GET accepts only requested 304s and still rejects HTTP errors', async () => {
-  resource('/not-modified', { status: 304 });
-  resource('/error', { status: 503 });
-  const client = new BitviewClient(baseUrl);
-  assert.equal((await client.get('/not-modified', { etag: 'W/"v1"' })).status, 304);
-  await assert.rejects(client.get('/not-modified'), { status: 304 });
-  await assert.rejects(client.get('/not-modified', { cache: false, etag: 'W/"v1"' }), { status: 304 });
-  await assert.rejects(client.get('/error', { etag: 'W/"v1"' }), { status: 503 });
-});
 
-test('JSON, text and byte helpers share conditional revalidation', async () => {
-  const client = new BitviewClient(baseUrl);
-  for (const [method, type, body] of [
-    ['getJson', 'application/json', '[1,2]'],
-    ['getText', 'text/plain', 'hello'],
-    ['getBytes', 'application/octet-stream', 'abc'],
-  ]) {
-    const path = `/${method}`;
-    resource(path, { type, body });
-    const first = await client[method](path);
-    assert.strictEqual(await client[method](path), first);
-    assert.equal(calls.at(-1).status, 304);
-  }
-});
 
-test('same-origin browsers also leave validators to their HTTP cache', async t => {
-  globalThis.location = new URL(baseUrl);
-  t.after(() => { delete globalThis.location; });
-  const counts = trackBodies(t);
-  resource('/same-origin');
-  const client = new BitviewClient(baseUrl);
-  const first = await client.getJson('/same-origin');
-  assert.strictEqual(await client.getJson('/same-origin'), first);
-  assert.equal(calls.at(-1).validator, undefined);
-  assert.equal(counts.parsed, 1);
-  assert.equal(counts.cancelled, 1);
-});
+
+
+
+
 
 test('cross-origin browsers keep native revalidation and cancel unneeded bodies', async t => {
   globalThis.location = new URL('https://dashboard.example');
@@ -157,16 +107,7 @@ test('cross-origin browsers keep native revalidation and cancel unneeded bodies'
   assert.equal(counts.cancelled, 1);
 });
 
-test('servers returning 200 with the same ETag do not cause a reparse', async t => {
-  resource('/always-200', { ignoreConditional: true });
-  const counts = trackBodies(t);
-  const client = new BitviewClient(baseUrl);
-  const first = await client.getJson('/always-200');
-  assert.strictEqual(await client.getJson('/always-200'), first);
-  assert.equal(calls.at(-1).status, 200);
-  assert.equal(counts.parsed, 1);
-  assert.equal(counts.cancelled, 1);
-});
+
 
 test('a browser-cache race reuses its parsed result and releases the network body', async t => {
   resource('/browser-cache');

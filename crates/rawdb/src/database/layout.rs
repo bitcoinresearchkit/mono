@@ -72,11 +72,6 @@ impl Layout {
         Some(size)
     }
 
-    #[cfg(test)]
-    pub(crate) fn start_to_region(&self) -> &BTreeMap<usize, Region> {
-        &self.start_to_region
-    }
-
     pub(crate) fn start_to_hole(&self) -> &BTreeMap<usize, usize> {
         &self.start_to_hole
     }

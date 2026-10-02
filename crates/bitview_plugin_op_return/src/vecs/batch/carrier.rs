@@ -118,21 +118,4 @@ mod tests {
         assert_eq!(policy.oversized.tx_count, 0);
         assert_eq!(policy.pre_v30_standard.tx_count, 0);
     }
-
-    #[test]
-    fn oversized_output_marks_pre_v30_nonstandard_once() {
-        let mut total = BlockMetrics::default();
-        let mut by_kind = [BlockMetrics::default(); OP_RETURN_KIND_COUNT];
-        let mut policy = Policy::default();
-        let mut carrier = Carrier::new(VSize::new(120), Sats::ZERO);
-        carrier.add_output(OpReturnKind::Unknown, Bytes::new(83));
-
-        carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
-
-        assert_eq!(policy.oversized.output_count, 1);
-        assert_eq!(policy.oversized.tx_vsize, VSize::new(120));
-        assert_eq!(policy.pre_v30_nonstandard.tx_count, 1);
-        assert_eq!(policy.multiple.tx_count, 0);
-        assert_eq!(policy.pre_v30_standard.tx_count, 0);
-    }
 }

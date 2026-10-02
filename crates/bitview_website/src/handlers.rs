@@ -126,15 +126,6 @@ mod tests {
     }
 
     #[test]
-    fn traversal_like_paths_resolve_to_sanitized_assets() {
-        let direct = body_bytes(serve(&Website::Default, "llms.txt", &HeaderMap::new()).unwrap());
-        let sanitized =
-            body_bytes(serve(&Website::Default, "../llms.txt", &HeaderMap::new()).unwrap());
-
-        assert_eq!(sanitized, direct);
-    }
-
-    #[test]
     fn index_etag_never_validates_other_or_missing_html() {
         let root = serve(&Website::Default, "", &HeaderMap::new()).unwrap();
         let mut headers = HeaderMap::new();

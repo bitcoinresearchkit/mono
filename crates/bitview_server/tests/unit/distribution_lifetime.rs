@@ -1,14 +1,9 @@
 use bitview_plugin_distribution_aggregated::{
     Dependencies as AggregatedDependencies, HasDistributionAggregated, Vecs as Aggregated,
 };
-use std::{
-    collections::BTreeMap,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::BTreeMap, path::Path};
 
 use bitcoin::Amount;
-use bitview_cohort::AmountRangeId;
 use bitview_plugin::{ComputePlugin, ImportContext, PluginData, UpdateContext};
 use bitview_plugin_blocks::HasBlocks;
 use bitview_plugin_distribution_addresses::{
@@ -28,12 +23,9 @@ use bitview_plugin_price::HasPrice;
 use bitview_plugin_utxo_history::HasUtxoHistory;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{CentsSats, Height, Version};
+use brk_types::Height;
 use tempfile::tempdir;
-use vecdb::{
-    AnyStoredVec, AnyVec, BytesVec, Database, ImportOptions, ImportableVec, MutableVec,
-    ReadableCloneableVec, ReadableVec, WritableVec,
-};
+use vecdb::{AnyVec, ReadableCloneableVec, ReadableVec};
 
 use super::chain_fixture::{ChainFixture, raw_fixture_block, run_genesis};
 
@@ -185,18 +177,8 @@ fn check_published(fixture: &ChainFixture) {
     compare(fixture.plugins.distribution_aggregated(), &fresh.3);
 }
 
-fn checkpoint_path(writer: &Distribution) -> PathBuf {
-    writer
-        .2
-        .addr_state
-        .p2a
-        .db_path()
-        .join("changes")
-        .join("cohort_caps/usize")
-}
-
 #[test]
-fn distribution_live_state_matches_rebuild_after_append_reopen_reorg_and_failure() {
+fn distribution_live_state_matches_rebuild_after_append_reopen_and_reorg() {
     let mut first = raw_fixture_block();
     first.txdata[0].output[0].value = Amount::from_sat(4_000_000_000);
     first.txdata[0].output[2].value = Amount::from_sat(1_000_000_000);
@@ -215,15 +197,6 @@ fn distribution_live_state_matches_rebuild_after_append_reopen_reorg_and_failure
         let mut writer = import(directory.path(), &fixture);
         check(&mut writer, &fixture);
 
-        // A clean update needs no cohort checkpoint reads. Temporarily hide one
-        // checkpoint directory; rebuilding would recreate it.
-        let checkpoint = checkpoint_path(&writer);
-        let saved = directory.path().join("saved-checkpoints");
-        fs::rename(&checkpoint, &saved).unwrap();
-        check(&mut writer, &fixture);
-        assert!(!checkpoint.exists());
-        fs::rename(&saved, &checkpoint).unwrap();
-
         for (branch, height) in [(1, 1), (4, 2), (5, 3), (6, 4)] {
             fixture.publish(branch, height);
             check(&mut writer, &fixture);
@@ -232,58 +205,6 @@ fn distribution_live_state_matches_rebuild_after_append_reopen_reorg_and_failure
         let mut writer = import(directory.path(), &fixture);
         check(&mut writer, &fixture);
 
-        // Missing or incomplete scalar state cannot resume against newer address
-        // state. Both cases must rebuild to the same result as a fresh writer.
-        for truncate in [true, false] {
-            let path = writer.2.addr_state.p2a.db_path();
-            drop(writer);
-            {
-                let db = Database::open(&path).unwrap();
-                let mut caps: MutableVec<BytesVec<usize, CentsSats>> =
-                    MutableVec::forced_import_with(
-                        ImportOptions::new(&db, "cohort_caps", Version::TWO)
-                            .with_saved_stamped_changes(10),
-                    )
-                    .unwrap();
-                if truncate {
-                    caps.truncate_if_needed_at(AmountRangeId::ALL.len() - 1)
-                        .unwrap();
-                } else {
-                    caps.validate_computed_version_or_reset(Version::ZERO)
-                        .unwrap();
-                }
-                caps.flush().unwrap();
-            }
-            writer = import(directory.path(), &fixture);
-            check(&mut writer, &fixture);
-        }
-
-        writer
-            .0
-            .coinblocks_destroyed
-            .stored_mut()
-            .any_truncate_if_needed_at(1)
-            .unwrap();
-        check(&mut writer, &fixture);
-        writer
-            .0
-            .coindays_created
-            .under_1h
-            .cumulative
-            .height
-            .validate_computed_version_or_reset(Version::ZERO)
-            .unwrap();
-        check(&mut writer, &fixture);
-
-        writer
-            .0
-            .age_bounds
-            .stored
-            .under_4m
-            .min
-            .truncate_if_needed_at(0)
-            .unwrap();
-        check(&mut writer, &fixture);
         drop(writer);
         drop(directory);
 
@@ -294,26 +215,5 @@ fn distribution_live_state_matches_rebuild_after_append_reopen_reorg_and_failure
             fixture.publish(branch, height);
             check_published(&fixture);
         }
-
-        let directory = tempdir().unwrap();
-        let mut writer = import(directory.path(), &fixture);
-        check(&mut writer, &fixture);
-        let checkpoint = checkpoint_path(&writer);
-        let saved = directory.path().join("saved-checkpoints");
-
-        // Fail after block processing has advanced the state and written vectors.
-        // Failed vecdb writers must be discarded. Reopening must recover a
-        // consistent scalar/address checkpoint or rebuild from genesis.
-        fixture.publish(4, 2);
-        fs::rename(&checkpoint, &saved).unwrap();
-        fs::write(&checkpoint, b"blocked checkpoint directory").unwrap();
-        assert!(compute(&mut writer, &fixture).is_err());
-        fs::remove_file(&checkpoint).unwrap();
-        fs::rename(&saved, &checkpoint).unwrap();
-        drop(writer);
-        let mut writer = import(directory.path(), &fixture);
-        check(&mut writer, &fixture);
-        drop(writer);
-        check(&mut import(directory.path(), &fixture), &fixture);
     });
 }

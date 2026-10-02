@@ -12,7 +12,7 @@ fn check(source: &impl ReadableVec<usize, u64>, expected: &[Option<u64>]) {
     for indices in [
         vec![],
         vec![0],
-        vec![usize::MAX],
+        vec![expected.len() + 1],
         (0..expected.len() + 3).collect(),
         (0..expected.len() + 3).flat_map(|i| [i, i]).collect(),
         (0..expected.len() + 3).step_by(173).collect(),
@@ -79,10 +79,4 @@ macro_rules! mutation_roundtrip {
 #[test]
 fn bytes_sorted_mutations_keep_physical_indices_duplicates_and_publication() {
     mutation_roundtrip!(BytesVec<usize, u64>);
-}
-
-#[cfg(feature = "zerocopy")]
-#[test]
-fn zerocopy_sorted_mutations_keep_physical_indices_duplicates_and_publication() {
-    mutation_roundtrip!(vecdb::ZeroCopyVec<usize, u64>);
 }

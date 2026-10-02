@@ -20,4 +20,3 @@ bitview_traversable = { workspace = true }
 brk_exit = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 tempfile = { workspace = true }
-vecdb = { workspace = true }

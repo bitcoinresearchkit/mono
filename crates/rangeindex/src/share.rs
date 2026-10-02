@@ -19,14 +19,6 @@ impl<I, V> SharedRangeMap<I, V> {
     pub fn read(&self) -> RwLockReadGuard<'_, RangeMap<I, V>> {
         self.0.read_recursive()
     }
-
-    pub fn len(&self) -> usize {
-        self.read().len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
 }
 
 impl<I: Ord + Copy, V> SharedRangeMap<I, V> {

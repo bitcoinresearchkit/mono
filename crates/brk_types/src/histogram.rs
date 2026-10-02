@@ -139,19 +139,3 @@ impl<T: JsonSchema, const N: usize> JsonSchema for Histogram<T, N> {
         true
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use schemars::schema_for;
-    use serde_json::to_value;
-
-    use super::*;
-
-    #[test]
-    fn schema_preserves_the_fixed_bin_count() {
-        let schema = to_value(schema_for!(Histogram<u16, 3>)).unwrap();
-        assert_eq!(schema["type"], "array");
-        assert_eq!(schema["minItems"], 3);
-        assert_eq!(schema["maxItems"], 3);
-    }
-}

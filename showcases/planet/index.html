@@ -1,0 +1,2014 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="Where Bitcoin blocks are mined: every block attributed to its mining pool's home country, live on a rotating planet."
+    />
+    <meta name="theme-color" content="#07080a" />
+    <title>Planet · Bitview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #07080a;
+        --ink: #eceae6;
+        --muted: #8b8f98;
+        --faint: #4a4e57;
+        --line: #1c1f25;
+        --panel: rgb(12 13 16 / 0.72);
+        --accent: #f7931a;
+        --live: #3fb26b;
+        --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--ink);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      button {
+        font: inherit;
+        color: inherit;
+      }
+
+      .stage {
+        position: fixed;
+        inset: 0;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+        touch-action: none;
+        outline: none;
+      }
+
+      canvas[data-dragging] {
+        cursor: grabbing;
+      }
+
+      canvas[data-pointing] {
+        cursor: pointer;
+      }
+
+      .label {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      header {
+        position: fixed;
+        z-index: 4;
+        top: 0;
+        right: 0;
+        left: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: clamp(1rem, 2.4vw, 1.6rem) clamp(1rem, 3vw, 2rem);
+        pointer-events: none;
+      }
+
+      header > * {
+        pointer-events: auto;
+      }
+
+      header a {
+        padding-block: 0.4rem;
+        text-decoration: none;
+      }
+
+      header a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.25rem;
+      }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 1.1rem;
+      }
+
+      .sound {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.4rem 0.6rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        cursor: pointer;
+        color: var(--muted);
+      }
+
+      .sound:hover,
+      .sound[aria-pressed="true"] {
+        color: var(--ink);
+      }
+
+      .sound svg {
+        width: 0.95rem;
+        height: 0.95rem;
+      }
+
+      .sound .on,
+      .sound[aria-pressed="true"] .off {
+        display: none;
+      }
+
+      .sound[aria-pressed="true"] .on {
+        display: block;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--muted);
+      }
+
+      .status::before {
+        width: 0.48rem;
+        height: 0.48rem;
+        border: 1px solid currentColor;
+        border-radius: 50%;
+        content: "";
+      }
+
+      .status[data-live] {
+        color: var(--ink);
+      }
+
+      .status[data-live]::before {
+        border-color: var(--live);
+        background: var(--live);
+        box-shadow: 0 0 0.8rem rgb(63 178 107 / 0.6);
+      }
+
+      .panel {
+        position: fixed;
+        z-index: 3;
+        top: 50%;
+        width: min(20rem, 26vw);
+        max-height: calc(100vh - 11rem);
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .panels {
+        display: contents;
+      }
+
+      .board {
+        left: clamp(1rem, 3vw, 2rem);
+      }
+
+      .feed {
+        right: clamp(1rem, 3vw, 2rem);
+      }
+
+      .kicker {
+        color: var(--muted);
+      }
+
+      .total {
+        margin: 0.6rem 0 0.15rem;
+        font-family: var(--mono);
+        font-size: clamp(2.4rem, 4.2vw, 3.6rem);
+        font-variant-numeric: tabular-nums;
+        font-weight: 540;
+        line-height: 0.9;
+        letter-spacing: -0.06em;
+      }
+
+      .total-sub {
+        margin: 0 0 1rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .periods {
+        display: flex;
+        gap: 0.2rem;
+        margin-bottom: 0.9rem;
+        padding: 0.2rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        align-self: flex-start;
+      }
+
+      .periods button {
+        min-width: 2.6rem;
+        padding: 0.35rem 0.6rem;
+        border: 0;
+        border-radius: 999px;
+        background: none;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .periods button:hover {
+        color: var(--ink);
+      }
+
+      .periods button[aria-pressed="true"] {
+        background: var(--ink);
+        color: var(--bg);
+      }
+
+      .list {
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        overflow-y: auto;
+        list-style: none;
+        scrollbar-width: thin;
+        scrollbar-color: var(--faint) transparent;
+        mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5rem), transparent);
+      }
+
+      .row {
+        display: grid;
+        width: 100%;
+        padding: 0.5rem 0.55rem 0.55rem;
+        border: 0;
+        border-radius: 0.6rem;
+        background: none;
+        text-align: left;
+        cursor: pointer;
+        grid-template-columns: 1.3rem 1.3rem 1fr auto;
+        align-items: center;
+        column-gap: 0.55rem;
+        row-gap: 0.4rem;
+        transition: background-color 0.2s;
+      }
+
+      .row:hover,
+      .row[data-active] {
+        background: rgb(255 255 255 / 0.06);
+      }
+
+      .row:focus-visible {
+        outline: 1px solid var(--muted);
+      }
+
+      .row[data-bump] {
+        animation: bump 2.4s ease-out;
+      }
+
+      @keyframes bump {
+        0% {
+          background: rgb(247 147 26 / 0.32);
+        }
+      }
+
+      .rank {
+        color: var(--faint);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .flag {
+        display: block;
+        width: 1.3rem;
+        height: 0.95rem;
+        border-radius: 2px;
+        object-fit: cover;
+        background: var(--line);
+        box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+      }
+
+      .moon-icon {
+        display: block;
+        width: 0.95rem;
+        height: 0.95rem;
+        margin-inline: auto;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #4a4e57, #26292f 75%);
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.09);
+      }
+
+      .name {
+        overflow: hidden;
+        font-size: 0.92rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .count {
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .count small {
+        margin-left: 0.4rem;
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      .bar {
+        height: 2px;
+        border-radius: 2px;
+        background: var(--line);
+        grid-column: 3 / -1;
+      }
+
+      .bar i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--accent);
+        transition: width 0.6s ease;
+      }
+
+      .row.moon .bar i {
+        background: #8b8f98;
+      }
+
+      .feed h2 {
+        margin: 0 0 0.7rem;
+        color: var(--muted);
+      }
+
+      .feed .list {
+        display: grid;
+        gap: 0.1rem;
+      }
+
+      .block {
+        grid-template-columns: 1.3rem 1fr auto;
+        row-gap: 0.15rem;
+      }
+
+      .block .meta {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-variant-numeric: tabular-nums;
+        grid-column: 2 / -1;
+      }
+
+      .block[data-new] {
+        animation: bump 3s ease-out;
+      }
+
+      .note {
+        position: fixed;
+        z-index: 3;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        margin: 0;
+        padding: 0 clamp(1rem, 3vw, 2rem) clamp(1rem, 2.4vw, 1.5rem);
+        color: var(--faint);
+        font-size: 0.78rem;
+        text-align: center;
+        pointer-events: none;
+      }
+
+      .toast {
+        position: fixed;
+        z-index: 5;
+        top: clamp(0.8rem, 2vw, 1.25rem);
+        left: 50%;
+        display: flex;
+        align-items: center;
+        max-width: calc(100vw - 2rem);
+        padding: 0.45rem 0.95rem;
+        border: 1px solid rgb(247 147 26 / 0.45);
+        border-radius: 999px;
+        white-space: nowrap;
+        background: rgb(12 13 16 / 0.86);
+        box-shadow: 0 0 2.5rem rgb(247 147 26 / 0.18);
+        text-align: center;
+        opacity: 0;
+        transform: translate(-50%, -0.6rem);
+        transition:
+          opacity 0.4s,
+          transform 0.4s;
+        pointer-events: none;
+        gap: 0.75rem;
+        backdrop-filter: blur(8px);
+      }
+
+      .toast[data-show] {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      .toast .label {
+        color: var(--accent);
+      }
+
+      .toast strong {
+        font-family: var(--mono);
+        font-size: 1rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 560;
+        letter-spacing: -0.03em;
+      }
+
+      .toast span:last-child {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        overflow: hidden;
+        gap: 0.45rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-overflow: ellipsis;
+      }
+
+      .toast .flag {
+        width: 1.1rem;
+        height: 0.8rem;
+      }
+
+      .tip {
+        position: fixed;
+        z-index: 6;
+        top: 0;
+        left: 0;
+        width: max-content;
+        max-width: 16.5rem;
+        padding: 0.75rem 0.85rem;
+        border: 1px solid var(--line);
+        border-radius: 0.8rem;
+        background: rgb(14 15 18 / 0.92);
+        box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 0.45);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s;
+        backdrop-filter: blur(8px);
+      }
+
+      .tip[data-show] {
+        opacity: 1;
+      }
+
+      .tip-head {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-weight: 600;
+      }
+
+      .tip-head .moon-icon {
+        margin: 0;
+      }
+
+      .tip-head .flag {
+        width: 1.6rem;
+        height: 1.15rem;
+      }
+
+      .tip-num {
+        margin-top: 0.55rem;
+        font-family: var(--mono);
+        font-size: 1.5rem;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.04em;
+      }
+
+      .tip-sub {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .tip ul {
+        display: grid;
+        margin: 0.6rem 0 0;
+        padding: 0.55rem 0 0;
+        border-top: 1px solid var(--line);
+        list-style: none;
+        gap: 0.2rem;
+        font-size: 0.8rem;
+      }
+
+      .tip li {
+        display: flex;
+        justify-content: space-between;
+        gap: 1.2rem;
+      }
+
+      .tip li span:last-child {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .tip p {
+        margin: 0.55rem 0 0;
+        color: var(--muted);
+        font-size: 0.75rem;
+        line-height: 1.4;
+      }
+
+      .error {
+        position: fixed;
+        z-index: 7;
+        inset: 0;
+        display: none;
+        place-content: center;
+        gap: 0.4rem;
+        color: var(--muted);
+        text-align: center;
+        background: rgb(7 8 10 / 0.88);
+      }
+
+      .error[data-show] {
+        display: grid;
+      }
+
+      .error strong {
+        color: var(--ink);
+      }
+
+      /* Narrow screens: globe on top, panels flow underneath. */
+      @media (max-width: 1100px) {
+        body {
+          overflow: auto;
+        }
+
+        .stage {
+          position: relative;
+          height: min(92vw, 70svh);
+          margin-top: 3.4rem;
+        }
+
+        .panels {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+          gap: 1rem 2rem;
+          padding: 0.5rem 1rem 1.5rem;
+        }
+
+        canvas {
+          touch-action: pan-y;
+        }
+
+        .panel {
+          position: static;
+          width: auto;
+          max-height: none;
+          margin: 0;
+          transform: none;
+        }
+
+        .feed .list {
+          max-height: 22rem;
+        }
+
+        .note {
+          position: static;
+          padding-bottom: 2rem;
+        }
+
+        header {
+          position: absolute;
+        }
+
+        .toast {
+          top: 3.6rem;
+          display: grid;
+          justify-items: center;
+          gap: 0.15rem;
+          padding: 0.55rem 1rem;
+          border-radius: 1rem;
+        }
+      }
+
+      /* Thumbnail previews: just the planet. */
+      @media (max-width: 520px) and (max-height: 520px), (max-height: 300px) {
+        body {
+          overflow: hidden;
+        }
+
+        .stage {
+          position: fixed;
+          height: auto;
+          margin: 0;
+        }
+
+        header,
+        .panels,
+        .note,
+        .toast {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .status[data-live]::before {
+          animation: breathe 2.4s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+          50% {
+            box-shadow: 0 0 1.4rem rgb(63 178 107 / 0.9);
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="label">
+      <a href="https://bitview.space">← Bitview</a>
+      <div class="controls">
+        <button class="sound label" id="sound" type="button" aria-pressed="false" title="Play a chime for each new block">
+          <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="m22 9-6 6M16 9l6 6"/></svg>
+          <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+          <span>Sound</span>
+        </button>
+        <span class="status" id="status">Connecting</span>
+      </div>
+    </header>
+
+    <div class="stage">
+      <canvas id="globe" tabindex="-1" aria-label="Rotating globe showing where Bitcoin blocks were mined. The country list holds the same data."></canvas>
+    </div>
+
+    <div class="panels">
+    <section class="panel board" aria-labelledby="board-title">
+      <span class="label kicker" id="board-title">Blocks mined by country</span>
+      <p class="total" id="total">—</p>
+      <p class="total-sub" id="total-sub">Loading…</p>
+      <div class="periods label" id="periods" role="group" aria-label="Time period"></div>
+      <ol class="list" id="board"></ol>
+    </section>
+
+    <section class="panel feed" aria-labelledby="feed-title">
+      <h2 class="label" id="feed-title">Latest blocks · tap to replay</h2>
+      <ol class="list" id="feed"></ol>
+    </section>
+    </div>
+
+    <p class="note">
+      Countries are where each mining pool is headquartered, not where its machines run. Blocks
+      without a known home orbit as the moon.
+    </p>
+
+    <div class="toast" id="toast" aria-live="polite"></div>
+    <div class="tip" id="tip" role="tooltip"></div>
+    <div class="error" id="error" role="alert"><strong>Can’t reach Bitview right now.</strong><span id="error-text"></span></div>
+
+    <script type="module">
+      import {
+        geoArea,
+        geoCentroid,
+        geoCircle,
+        geoContains,
+        geoDistance,
+        geoGraticule10,
+        geoOrthographic,
+        geoPath,
+        geoRotation,
+      } from "https://cdn.jsdelivr.net/npm/d3-geo@3/+esm";
+      import { feature, mesh } from "https://cdn.jsdelivr.net/npm/topojson-client@3/+esm";
+
+      const BASE = "https://bitview.space";
+      const ATLAS = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+      const POLL_MS = 10_000;
+
+      const PERIODS = [
+        ["24h", "24h", "in the past 24 hours"],
+        ["1w", "1W", "in the past week"],
+        ["1m", "1M", "in the past month"],
+        ["1y", "1Y", "in the past year"],
+        ["all", "All", "since the genesis block"],
+      ];
+
+      // Countries that host at least one known pool. `at` is [lon, lat] of the
+      // marker; `id` is the ISO 3166-1 numeric code used by world-atlas.
+      const COUNTRIES = {
+        US: { id: "840", name: "United States", at: [-98.5, 39.5], color: "#3c3b6e" },
+        CN: { id: "156", name: "China", at: [104, 35], color: "#de2910" },
+        CA: { id: "124", name: "Canada", at: [-106, 56], color: "#d52b1e" },
+        JP: { id: "392", name: "Japan", at: [138.3, 36.2], color: "#bc002d" },
+        IN: { id: "356", name: "India", at: [79, 22], color: "#ff9933" },
+        NO: { id: "578", name: "Norway", at: [9, 61], color: "#ba0c2f" },
+        RU: { id: "643", name: "Russia", at: [90, 60], color: "#0039a6" },
+        AU: { id: "036", name: "Australia", at: [134, -25], color: "#012169" },
+        GB: { id: "826", name: "United Kingdom", at: [-2, 54], color: "#012169" },
+        PL: { id: "616", name: "Poland", at: [19.4, 52], color: "#dc143c" },
+        SE: { id: "752", name: "Sweden", at: [15, 62], color: "#006aa7" },
+        DE: { id: "276", name: "Germany", at: [10.4, 51.1], color: "#dd0000" },
+        CZ: { id: "203", name: "Czechia", at: [15.5, 49.8], color: "#11457e" },
+        SI: { id: "705", name: "Slovenia", at: [14.8, 46.1], color: "#005da4" },
+        NL: { id: "528", name: "Netherlands", at: [5.3, 52.2], color: "#ae1c28" },
+        UA: { id: "804", name: "Ukraine", at: [31, 49], color: "#0057b7" },
+        AE: { id: "784", name: "United Arab Emirates", at: [54, 24], color: "#00732f" },
+        SG: { id: "702", name: "Singapore", at: [103.82, 1.35], color: "#ee2536", tiny: true },
+        SC: { id: "690", name: "Seychelles", at: [55.49, -4.68], color: "#003f87", tiny: true },
+        HK: { id: "344", name: "Hong Kong", at: [114.17, 22.32], color: "#de2910", tiny: true },
+        LT: { id: "440", name: "Lithuania", at: [23.9, 55.3], color: "#006a44" },
+        NZ: { id: "554", name: "New Zealand", at: [172.5, -41.5], color: "#012169" },
+      };
+
+      // Where each pool is run from, by Bitview pool slug. That's the operating
+      // headquarters, not the legal domicile: many pools sit in Singapore, Hong
+      // Kong, Cayman or Seychelles shells while being run elsewhere; those only
+      // decide when nothing else is known. Pools missing here (and `unknown`)
+      // are shown as the moon, e.g. Binance Pool, whose parent says it has no
+      // headquarters, and pools with no public operator information.
+      const HEADQUARTERS = {
+        US: `foundryusa marapool luxor ocean titan blockfills btcguild eligius eclipsemc
+             coinlab cointerra 21inc cloudhashing eobot simplecoinus shawnp0wers wk057
+             futurebitapollosolo portlandhodl
+             bitclub megabigpower hhtt telco214`, // BitClub: US operators (DOJ); MegaBigPower: Washington state; HHTT: run by fireduck; Telco 214: US telecom
+        // AntPool is legally Singaporean, SpiderPool Caymanian; both are run from Beijing.
+        CN: `antpool f2pool viabtc spiderpool poolin btccom huobipool okexpool okpooltop
+             okminer 1thash btctop 175btc asicminer btcc bwpool exxbw 8baochi tbdice
+             hotpool 1hash bixin connectbtc batpool btpool 58coin haozhuzhu 7pool dpool
+             rawpool haominer tangpool bytepool novablock lubiancom aaopool purebtccom
+             wayicn canoepool canoe okkong
+             secpool`, // SECPOOL: inferred. Chinese-first site, AntPool templates and custody (b10c, TheMinerMag); its app is sold by "Fair Mine Hub Limited"
+        CA: "bitfarms terrapool", // Terra Pool: run by DMG Blockchain Solutions (Vancouver) with Argo
+        JP: "sbicrypto bitcoincom", // Bitcoin.com was run from Tokyo while its pool mined (2016–2019)
+        IN: "gbminers bitcoinindia bitcoinindiapool",
+        NO: "bitminter",
+        RU: "bitcoinrussia 50btc sigmapoolcom innopolistech",
+        AU: "ozcoin ckpool solock kanopool digitalbtc digitalxmintsy", // ckpool and KanoPool: the Australian cgminer developers
+        GB: "ghashio pegapool", // GHash.IO: CEX.IO, London; PEGA Pool: PEGA Mining Ltd
+        PL: "polmine",
+        SE: "kncminer gogreenlight", // GoGreenLight: Uppsala, bought KnCMiner's hardware
+        DE: "bitalo",
+        CZ: "braiinspool braiinssolo",
+        SI: "nicehash", // Maribor
+        NL: "bitfury miningdutch",
+        UA: "bitcoinukraine",
+        LT: "whitepool", // WhiteBIT, which moved its headquarters from Kyiv to Vilnius
+        AE: "phoenix",
+        SG: "bitfufupool miningsquared", // Mining Squared: B² Network
+        HK: "emcdpool", // EMCD states Hong Kong as its headquarters (Russian-founded, Moscow office)
+        NZ: "bitparking", // run by doublec (Chris Double)
+        SC: "kucoinpool",
+      };
+
+      const POOL_COUNTRY = new Map(
+        Object.entries(HEADQUARTERS).flatMap(([cc, slugs]) =>
+          slugs.split(/\s+/).filter(Boolean).map((slug) => [slug, cc]),
+        ),
+      );
+      const CC_BY_ID = new Map(Object.entries(COUNTRIES).map(([cc, c]) => [c.id, cc]));
+
+      const $ = (id) => document.getElementById(id);
+      const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const number = new Intl.NumberFormat("en-US");
+      const percent = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
+      const flagUrl = (cc, width = 80) => `https://flagcdn.com/w${width}/${cc.toLowerCase()}.png`;
+
+      function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+
+      function flagImg(cc) {
+        const img = el("img", "flag");
+        img.src = flagUrl(cc);
+        img.alt = "";
+        img.loading = "lazy";
+        return img;
+      }
+
+      function ago(timestamp) {
+        const s = Math.max(0, Date.now() / 1000 - timestamp);
+        if (s < 60) return "just now";
+        if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+        if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+        return `${Math.floor(s / 86400)} d ago`;
+      }
+
+      // ── Client ────────────────────────────────────────────────────────────
+
+      async function loadClient() {
+        // Same-origin import isn't available from every host, so fetch the
+        // self-contained module and import it from a blob URL.
+        const response = await fetch(`${BASE}/scripts/modules/bitview-client/index.js`, {
+          cache: "no-cache",
+          signal: AbortSignal.timeout(30_000),
+        });
+        if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
+        const url = URL.createObjectURL(
+          new Blob([await response.text()], { type: "text/javascript" }),
+        );
+        try {
+          const { BitviewClient } = await import(url);
+          return new BitviewClient({ baseUrl: BASE, timeout: 25_000 });
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      }
+
+      async function loadAtlas() {
+        const response = await fetch(ATLAS, { signal: AbortSignal.timeout(30_000) });
+        if (!response.ok) throw new Error(`Map download failed (HTTP ${response.status}).`);
+        return response.json();
+      }
+
+      // ── Stats ─────────────────────────────────────────────────────────────
+
+      function emptyStats() {
+        return { total: 0, countries: new Map(), moon: { count: 0, unidentified: 0, pools: [] } };
+      }
+
+      function tally(pools) {
+        const stats = emptyStats();
+        for (const { slug, name, blockCount } of pools) if (blockCount) addBlocks(stats, slug, name, blockCount);
+        return stats;
+      }
+
+      function addBlocks(stats, slug, name, n = 1) {
+        stats.total += n;
+        const cc = POOL_COUNTRY.get(slug);
+        let bucket;
+        if (cc) {
+          bucket = stats.countries.get(cc);
+          if (!bucket) stats.countries.set(cc, (bucket = { cc, count: 0, pools: [] }));
+        } else {
+          bucket = stats.moon;
+          if (slug === "unknown") {
+            bucket.count += n;
+            bucket.unidentified += n;
+            return;
+          }
+        }
+        bucket.count += n;
+        const pool = bucket.pools.find((p) => p.slug === slug);
+        if (pool) pool.count += n;
+        else bucket.pools.push({ slug, name, count: n });
+        bucket.pools.sort((a, b) => b.count - a.count);
+      }
+
+      function ranked(stats) {
+        return [...stats.countries.values()].sort((a, b) => b.count - a.count);
+      }
+
+      // ── Sound ─────────────────────────────────────────────────────────────
+
+      let audio;
+      let soundOn = false;
+      try {
+        soundOn = localStorage.getItem("planet:sound") === "on";
+      } catch {}
+
+      function ensureAudio() {
+        audio ??= new AudioContext();
+        if (audio.state === "suspended") audio.resume();
+        return audio;
+      }
+
+      // A soft low thump followed by a two-note bell. The note depends on the
+      // country so the same place always sounds the same.
+      function chime(cc) {
+        if (!soundOn || !audio) return;
+        const ctx = audio;
+        const t = ctx.currentTime + 0.02;
+        const out = ctx.createGain();
+        out.gain.value = 0.5;
+        out.connect(ctx.destination);
+
+        const thump = ctx.createOscillator();
+        const thumpGain = ctx.createGain();
+        thump.frequency.setValueAtTime(110, t);
+        thump.frequency.exponentialRampToValueAtTime(42, t + 0.35);
+        thumpGain.gain.setValueAtTime(0.0001, t);
+        thumpGain.gain.exponentialRampToValueAtTime(0.5, t + 0.01);
+        thumpGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+        thump.connect(thumpGain).connect(out);
+        thump.start(t);
+        thump.stop(t + 0.65);
+
+        const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+        const index = cc ? [...cc].reduce((s, c) => s + c.charCodeAt(0), 0) % scale.length : 0;
+        const base = cc ? scale[index] : 392;
+        [base, base * 1.5].forEach((f, i) => {
+          const start = t + 0.08 + i * 0.11;
+          for (const [ratio, level, decay] of [
+            [1, 0.22, 2.2],
+            [2.01, 0.07, 1.2],
+            [3.0, 0.03, 0.7],
+          ]) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = f * ratio;
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.exponentialRampToValueAtTime(level, start + 0.008);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + decay);
+            osc.connect(gain).connect(out);
+            osc.start(start);
+            osc.stop(start + decay + 0.05);
+          }
+        });
+      }
+
+      const soundButton = $("sound");
+      soundButton.setAttribute("aria-pressed", String(soundOn));
+      soundButton.addEventListener("click", () => {
+        soundOn = !soundOn;
+        soundButton.setAttribute("aria-pressed", String(soundOn));
+        try {
+          localStorage.setItem("planet:sound", soundOn ? "on" : "off");
+        } catch {}
+        if (soundOn) {
+          ensureAudio();
+          chime("US");
+        }
+      });
+      // Browsers only start audio after a gesture; arm it on the first one.
+      addEventListener("pointerdown", () => soundOn && ensureAudio(), { once: true });
+
+      // ── Globe ─────────────────────────────────────────────────────────────
+
+      const canvas = $("globe");
+      const ctx = canvas.getContext("2d");
+      const projection = geoOrthographic().clipAngle(90).precision(0.4);
+      const path = geoPath(projection, ctx);
+      const graticule = geoGraticule10();
+      const sphere = { type: "Sphere" };
+
+      const HALO = 1.2; // atmosphere radius, in globe radii
+      let shades;
+      let W = 0;
+      let H = 0;
+      let R = 100;
+      let cx = 0;
+      let cy = 0;
+      let land;
+      let borders;
+      let features = [];
+      const featureById = new Map();
+      const mainland = new Map(); // id -> largest polygon, to fit the flag
+
+      function largestPolygon(f) {
+        if (f.geometry.type !== "MultiPolygon") return f;
+        const polygons = f.geometry.coordinates.map((coordinates) => ({ type: "Polygon", coordinates }));
+        return polygons.reduce((a, b) => (geoArea(b) > geoArea(a) ? b : a));
+      }
+
+      const rot = [-20, -25, 0];
+      let spin = null; // { from, to, t0, dur, resolve }
+      let holdUntil = 0;
+      let moonAngle = 0.6;
+      let moonFlashAt = -1e9;
+      let moonGlide = null; // { from, to, t0, dur, resolve }
+      const rings = [];
+      const flashes = new Map(); // id -> t0
+      const flags = new Map(); // cc -> Image
+
+      let stats = emptyStats();
+      let period = "1w";
+      let hover = null; // "moon" | atlas id
+      let pinned = null;
+      let focus = null; // key highlighted by a block event
+      let pointer = null; // { x, y, mouse }
+      let drag = null;
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = Math.min(devicePixelRatio || 1, 2);
+        W = rect.width;
+        H = rect.height;
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const wide = innerWidth > 1100;
+        const preview = W <= 520 && H <= 520;
+        const usableW = wide ? W - 2 * Math.min(320, W * 0.26) - 80 : W;
+        // Leave room for the atmosphere (HALO × R) unless the page is a thumbnail.
+        const fitH = preview ? (H - 16) / 2.15 : (H - (wide ? 150 : 8)) / (2 * HALO);
+        R = Math.max(60, Math.min(usableW / 2.9, fitH));
+        cx = W / 2;
+        cy = H / 2 + (wide ? 8 : 0);
+        projection.scale(R).translate([cx, cy]);
+
+        const halo = ctx.createRadialGradient(cx, cy, R * 0.95, cx, cy, R * HALO);
+        halo.addColorStop(0, "rgba(210,220,240,0.10)");
+        halo.addColorStop(1, "rgba(210,220,240,0)");
+        const ocean = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.05, cx, cy, R);
+        ocean.addColorStop(0, "#1b1e24");
+        ocean.addColorStop(1, "#0b0c0f");
+        const limb = ctx.createRadialGradient(cx - R * 0.25, cy - R * 0.3, R * 0.4, cx, cy, R * 1.02);
+        limb.addColorStop(0, "rgba(0,0,0,0)");
+        limb.addColorStop(1, "rgba(0,0,0,0.55)");
+        shades = { halo, ocean, limb };
+      }
+
+      let night = { at: 0, circles: [], sun: [0, 0] };
+
+      function nightSide() {
+        if (Date.now() - night.at < 60_000) return night.circles;
+        const date = new Date();
+        const dayOfYear = (date - Date.UTC(date.getUTCFullYear(), 0, 0)) / 864e5;
+        const declination = -23.44 * Math.cos(((2 * Math.PI) / 365) * (dayOfYear + 10));
+        const hours = date.getUTCHours() + date.getUTCMinutes() / 60;
+        const antisolar = [180 - 15 * (hours - 12), -declination];
+        const circle = geoCircle().center(antisolar);
+        night = {
+          at: Date.now(),
+          circles: [89, 84, 79].map((r) => circle.radius(r)()),
+          sun: [antisolar[0] - 180, declination],
+        };
+        return night.circles;
+      }
+
+      // Unit vector toward the sun in screen space: x right, y down, z at the viewer.
+      function sunVector() {
+        nightSide();
+        const [lon, lat] = geoRotation(rot)(night.sun).map((d) => (d * Math.PI) / 180);
+        return [Math.cos(lat) * Math.sin(lon), -Math.sin(lat), Math.cos(lat) * Math.cos(lon)];
+      }
+
+      function flag(cc) {
+        let img = flags.get(cc);
+        if (!img) {
+          img = new Image();
+          img.src = flagUrl(cc, 640);
+          flags.set(cc, img);
+        }
+        return img.complete && img.naturalWidth ? img : null;
+      }
+
+      function viewCenter() {
+        return [-rot[0], -rot[1]];
+      }
+
+      function visibility(at) {
+        const d = geoDistance(at, viewCenter());
+        return Math.max(0, Math.min(1, (Math.PI / 2 - d) / 0.2));
+      }
+
+      function moonGeometry(now) {
+        const a = R * 1.42;
+        const b = R * 0.3;
+        const tilt = -0.2;
+        const share = stats.total ? stats.moon.count / stats.total : 0;
+        const sin = Math.sin(moonAngle);
+        const cos = Math.cos(moonAngle);
+        const x = cx + a * cos * Math.cos(tilt) - b * sin * Math.sin(tilt);
+        const y = cy + a * cos * Math.sin(tilt) + b * sin * Math.cos(tilt);
+        const r = R * (0.045 + 0.09 * Math.sqrt(share)) * (1 + 0.12 * sin);
+        return { a, b, tilt, x, y, r, behind: sin < 0, flash: now - moonFlashAt };
+      }
+
+      function markerRadius(count) {
+        if (!stats.total || !count) return 0;
+        return Math.max(2.5, Math.sqrt(count / stats.total) * R * 0.17);
+      }
+
+      function anchorOf(key, now) {
+        if (key === "moon") {
+          const m = moonGeometry(now);
+          return { x: m.x, y: m.y - m.r, visible: !m.behind || Math.hypot(m.x - cx, m.y - cy) > R };
+        }
+        const cc = CC_BY_ID.get(key);
+        const at = cc ? COUNTRIES[cc].at : geoCentroid(featureById.get(key));
+        const [x, y] = projection(at);
+        return { x, y: y - (cc ? markerRadius(stats.countries.get(cc)?.count) : 0), visible: visibility(at) > 0.3 };
+      }
+
+      function hitTest(x, y, now) {
+        const m = moonGeometry(now);
+        if (Math.hypot(x - m.x, y - m.y) < m.r + 8 && (!m.behind || Math.hypot(m.x - cx, m.y - cy) > R)) return "moon";
+        if (Math.hypot(x - cx, y - cy) > R) return null;
+        const markerHit = (tiny) => {
+          for (const [cc, c] of Object.entries(COUNTRIES)) {
+            if (!!c.tiny !== tiny || visibility(c.at) < 0.5) continue;
+            const count = stats.countries.get(cc)?.count;
+            if (!count) continue;
+            const [px, py] = projection(c.at);
+            if (Math.hypot(x - px, y - py) < markerRadius(count) + 6) return c.id;
+          }
+          return null;
+        };
+        const tiny = markerHit(true);
+        if (tiny) return tiny;
+        const lonlat = projection.invert([x, y]);
+        if (lonlat) {
+          for (const f of features) if (geoContains(f, lonlat)) return f.id;
+        }
+        return markerHit(false);
+      }
+
+      function draw(now) {
+        ctx.clearRect(0, 0, W, H);
+        const moon = moonGeometry(now);
+        const active = hover ?? pinned ?? focus;
+        const sun = sunVector();
+
+        // Orbit, back half, and the moon when it passes behind.
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255,255,255,0.07)";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, moon.a, moon.b, moon.tilt, Math.PI, Math.PI * 2);
+        ctx.stroke();
+        if (moon.behind) drawMoon(moon, active === "moon", sun);
+
+        // Atmosphere.
+        ctx.fillStyle = shades.halo;
+        ctx.fillRect(cx - R * HALO, cy - R * HALO, R * HALO * 2, R * HALO * 2);
+
+        // Ocean.
+        ctx.beginPath();
+        path(sphere);
+        ctx.fillStyle = shades.ocean;
+        ctx.fill();
+
+        ctx.beginPath();
+        path(graticule);
+        ctx.strokeStyle = "rgba(255,255,255,0.035)";
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+
+        ctx.beginPath();
+        path(land);
+        ctx.fillStyle = "#30343b";
+        ctx.fill();
+
+        // Highlighted countries: hovered / pinned / just mined a block.
+        const lit = new Map();
+        for (const [id, t0] of flashes) {
+          const age = now - t0;
+          if (age > 4200) flashes.delete(id);
+          else lit.set(id, Math.min(1, age / 250) * Math.min(1, (4200 - age) / 900));
+        }
+        if (active && active !== "moon") lit.set(active, 1);
+        for (const [id, alpha] of lit) drawCountry(id, alpha);
+
+        ctx.beginPath();
+        path(borders);
+        ctx.strokeStyle = "rgba(9,10,12,0.9)";
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+
+        for (const id of lit.keys()) {
+          const f = featureById.get(id);
+          if (!f) continue;
+          ctx.beginPath();
+          path(f);
+          ctx.strokeStyle = `rgba(255,255,255,${0.55 * lit.get(id)})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+
+        // The real night side right now, with a soft twilight edge.
+        ctx.fillStyle = "rgba(0,0,0,0.13)";
+        for (const circle of nightSide()) {
+          ctx.beginPath();
+          path(circle);
+          ctx.fill();
+        }
+
+        // Limb shading gives the sphere some volume.
+        ctx.beginPath();
+        path(sphere);
+        ctx.fillStyle = shades.limb;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.09)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        drawRings(now);
+        drawMarkers(now, active);
+
+        // Orbit, front half.
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255,255,255,0.09)";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, moon.a, moon.b, moon.tilt, 0, Math.PI);
+        ctx.stroke();
+        if (!moon.behind) drawMoon(moon, active === "moon", sun);
+      }
+
+      function drawCountry(id, alpha) {
+        const f = featureById.get(id);
+        if (!f) return;
+        const cc = CC_BY_ID.get(id);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        path(f);
+        ctx.clip();
+        const img = cc && flag(cc);
+        ctx.fillStyle = cc ? COUNTRIES[cc].color : "#5b616c";
+        ctx.fillRect(0, 0, W, H);
+        if (img) {
+          const [[x0, y0], [x1, y1]] = path.bounds(mainland.get(id) ?? f);
+          const scale = Math.max((x1 - x0) / img.naturalWidth, (y1 - y0) / img.naturalHeight);
+          const w = img.naturalWidth * scale;
+          const h = img.naturalHeight * scale;
+          if (Number.isFinite(w)) ctx.drawImage(img, (x0 + x1 - w) / 2, (y0 + y1 - h) / 2, w, h);
+        }
+        ctx.restore();
+      }
+
+      function drawMarkers(now, active) {
+        for (const [cc, c] of Object.entries(COUNTRIES)) {
+          const count = stats.countries.get(cc)?.count;
+          if (!count) continue;
+          const vis = visibility(c.at);
+          if (!vis) continue;
+          const [x, y] = projection(c.at);
+          const r = markerRadius(count);
+          const on = active === c.id;
+          const flash = flashes.has(c.id) ? Math.max(0, 1 - (now - flashes.get(c.id)) / 1400) : 0;
+          ctx.globalAlpha = vis;
+          if (flash) {
+            const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 3 + 30);
+            glow.addColorStop(0, `rgba(255,190,110,${0.8 * flash})`);
+            glow.addColorStop(1, "rgba(247,147,26,0)");
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(x, y, r * 3 + 30, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fillStyle = on ? "rgba(247,147,26,0.10)" : "rgba(247,147,26,0.20)";
+          ctx.fill();
+          ctx.lineWidth = on ? 1.6 : 1;
+          ctx.strokeStyle = on ? "rgba(255,255,255,0.9)" : "rgba(247,147,26,0.7)";
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = on ? "#fff" : "#f7931a";
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function drawRings(now) {
+        const circle = geoCircle();
+        for (let i = rings.length - 1; i >= 0; i--) {
+          const ring = rings[i];
+          let alive = false;
+          for (let k = 0; k < 3; k++) {
+            const p = (now - ring.t0 - k * 380) / 2400;
+            if (p >= 1) continue;
+            alive = true;
+            if (p <= 0) continue;
+            const fade = (1 - p) ** 1.6;
+            ctx.beginPath();
+            path(circle.center(ring.at).radius(0.5 + p * 24)());
+            ctx.strokeStyle = `rgba(247,147,26,${0.9 * fade})`;
+            ctx.lineWidth = 0.6 + 2.2 * fade;
+            ctx.stroke();
+          }
+          if (!alive) rings.splice(i, 1);
+        }
+      }
+
+      // Craters as [x, y, radius] in moon radii, outlined like country borders.
+      const MOON_CRATERS = [
+        [-0.3, -0.25, 0.3], [0.28, 0.12, 0.22], [-0.12, 0.5, 0.16], [0.48, -0.45, 0.12], [-0.6, 0.22, 0.1], [0.12, -0.62, 0.08],
+      ];
+
+      // The half of a sphere facing `dir` (screen-space unit vector), as seen
+      // by the viewer: a half-disc plus or minus the terminator's half-ellipse.
+      function hemisphere(x, y, r, [dx, dy, dz]) {
+        const angle = Math.hypot(dx, dy) > 1e-3 ? Math.atan2(dy, dx) : 0;
+        ctx.beginPath();
+        ctx.ellipse(x, y, r, r, angle, -Math.PI / 2, Math.PI / 2);
+        if (dz >= 0) ctx.ellipse(x, y, dz * r, r, angle, Math.PI / 2, Math.PI * 1.5);
+        else ctx.ellipse(x, y, -dz * r, r, angle, Math.PI / 2, -Math.PI / 2, true);
+      }
+
+      function drawMoon(m, on, sun) {
+        if (m.flash < 2600) {
+          const p = m.flash / 2600;
+          for (let k = 0; k < 3; k++) {
+            const q = p * 1.4 - k * 0.2;
+            if (q <= 0 || q >= 1) continue;
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, m.r + q * R * 0.35, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(247,147,26,${0.8 * (1 - q) ** 1.5})`;
+            ctx.lineWidth = 2 * (1 - q) + 0.5;
+            ctx.stroke();
+          }
+          const glow = ctx.createRadialGradient(m.x, m.y, m.r * 0.5, m.x, m.y, m.r * 3);
+          glow.addColorStop(0, `rgba(247,147,26,${0.5 * (1 - p)})`);
+          glow.addColorStop(1, "rgba(247,147,26,0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, m.r * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        const { x, y, r } = m;
+        ctx.save();
+        ctx.globalAlpha = m.behind ? 0.6 : 1;
+
+        // Same materials as the planet: flat land, border-like craters.
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = "#3a3e46";
+        ctx.fill();
+        ctx.clip();
+        ctx.strokeStyle = "rgba(9,10,12,0.9)";
+        ctx.lineWidth = 0.6;
+        for (const [dx, dy, s] of MOON_CRATERS) {
+          ctx.beginPath();
+          ctx.arc(x + dx * r, y + dy * r, s * r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Night side from the real sun, shaded like the Earth's.
+        hemisphere(x, y, r, sun.map((v) => -v));
+        ctx.fillStyle = "rgba(0,0,0,0.36)";
+        ctx.fill();
+
+        const limb = ctx.createRadialGradient(x - r * 0.25, y - r * 0.3, r * 0.4, x, y, r * 1.02);
+        limb.addColorStop(0, "rgba(0,0,0,0)");
+        limb.addColorStop(1, "rgba(0,0,0,0.4)");
+        ctx.fillStyle = limb;
+        ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,255,255,0.09)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        if (!on && (!m.behind || Math.hypot(x - cx, y - cy) > R + r)) {
+          ctx.font = `650 ${Math.round(Math.max(9, Math.min(11, R * 0.035)))}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.fillStyle = `rgba(139,143,152,${m.behind ? 0.35 : 0.7})`;
+          ctx.fillText("UNKNOWN", x, y + r + 7);
+        }
+
+        if (on) {
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, m.r + 3, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(255,255,255,0.85)";
+          ctx.lineWidth = 1.4;
+          ctx.stroke();
+        }
+      }
+
+      function revealGlobe() {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.bottom < rect.height * 0.6 || rect.top > innerHeight * 0.4) {
+          scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
+        }
+      }
+
+      const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
+      function flyTo(at) {
+        const to = [-at[0], Math.max(-55, Math.min(55, -at[1])), 0];
+        const dLon = ((to[0] - rot[0] + 540) % 360) - 180;
+        const distance = Math.hypot(dLon, to[1] - rot[1]);
+        const dur = reducedMotion ? 0 : Math.min(2400, 700 + distance * 9);
+        return new Promise((resolve) => {
+          spin?.resolve();
+          spin = { from: [...rot], to: [rot[0] + dLon, to[1], 0], t0: performance.now(), dur, resolve };
+        });
+      }
+
+      // Bring the moon round to the front right of the planet.
+      function moonToFront() {
+        const turn = Math.PI * 2;
+        const to = moonAngle + ((((0.45 - moonAngle) % turn) + turn) % turn);
+        const dur = reducedMotion ? 0 : 500 + (to - moonAngle) * 260;
+        return new Promise((resolve) => {
+          moonGlide?.resolve();
+          moonGlide = { from: moonAngle, to, t0: performance.now(), dur, resolve };
+        });
+      }
+
+      let last = performance.now();
+      let lastHitAt = 0;
+      function frame(now) {
+        const dt = Math.min(64, now - last) / 1000;
+        last = now;
+
+        if (spin) {
+          const t = spin.dur ? Math.min(1, (now - spin.t0) / spin.dur) : 1;
+          const e = easeInOut(t);
+          rot[0] = spin.from[0] + (spin.to[0] - spin.from[0]) * e;
+          rot[1] = spin.from[1] + (spin.to[1] - spin.from[1]) * e;
+          if (t === 1) {
+            spin.resolve();
+            spin = null;
+            holdUntil = now + 6000;
+          }
+        } else if (!drag && !pinned && now > holdUntil && !reducedMotion) {
+          rot[0] += dt * 4.5;
+        }
+        if (moonGlide) {
+          const t = moonGlide.dur ? Math.min(1, (now - moonGlide.t0) / moonGlide.dur) : 1;
+          moonAngle = moonGlide.from + (moonGlide.to - moonGlide.from) * easeInOut(t);
+          if (t === 1) {
+            moonGlide.resolve();
+            moonGlide = null;
+          }
+        } else if (hover !== "moon" && pinned !== "moon" && focus !== "moon" && !reducedMotion) {
+          moonAngle += dt * 0.11;
+        }
+        projection.rotate(rot);
+
+        if (pointer && !drag && (pointer.dirty || now - lastHitAt > 150)) {
+          pointer.dirty = false;
+          lastHitAt = now;
+          const key = hitTest(pointer.x, pointer.y, now);
+          if (key !== hover) setHover(key);
+          if (pointer.mouse && Math.hypot(pointer.x - cx, pointer.y - cy) < R) holdUntil = Math.max(holdUntil, now + 1200);
+        }
+
+        draw(now);
+        placeTip(now);
+        if (onScreen) requestAnimationFrame(frame);
+        else running = false;
+      }
+
+      let onScreen = true;
+      let running = false;
+      function start() {
+        if (running) return;
+        running = true;
+        last = performance.now();
+        requestAnimationFrame(frame);
+      }
+      new IntersectionObserver(([entry]) => {
+        onScreen = entry.isIntersecting;
+        if (onScreen) start();
+      }).observe(canvas);
+
+      // ── Interaction ───────────────────────────────────────────────────────
+
+      function localPoint(event) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        const p = localPoint(event);
+        drag = { ...p, rot: [...rot], moved: false, id: event.pointerId };
+        spin?.resolve();
+        spin = null;
+      });
+
+      canvas.addEventListener("pointermove", (event) => {
+        const p = localPoint(event);
+        pointer = { ...p, mouse: event.pointerType === "mouse", dirty: true };
+        if (!drag || drag.id !== event.pointerId) {
+          canvas.toggleAttribute("data-pointing", !!hover);
+          return;
+        }
+        const dx = p.x - drag.x;
+        const dy = p.y - drag.y;
+        if (!drag.moved && Math.hypot(dx, dy) < 5) return;
+        if (!drag.moved) {
+          drag.moved = true;
+          canvas.setPointerCapture(event.pointerId);
+          canvas.setAttribute("data-dragging", "");
+          setHover(null);
+        }
+        const k = 70 / R;
+        rot[0] = drag.rot[0] + dx * k;
+        rot[1] = Math.max(-75, Math.min(75, drag.rot[1] - dy * k));
+      });
+
+      function endDrag(event) {
+        if (!drag || drag.id !== event.pointerId) return;
+        const tapped = !drag.moved && event.type === "pointerup";
+        drag = null;
+        canvas.removeAttribute("data-dragging");
+        holdUntil = performance.now() + 3500;
+        if (!tapped) return;
+        const p = localPoint(event);
+        const key = hitTest(p.x, p.y, performance.now());
+        pinned = key && key !== pinned ? key : null;
+        if (event.pointerType !== "mouse") pointer = null;
+        setHover(event.pointerType === "mouse" ? key : null);
+        renderTip();
+      }
+
+      canvas.addEventListener("pointerup", endDrag);
+      canvas.addEventListener("pointercancel", endDrag);
+      canvas.addEventListener("pointerleave", (event) => {
+        if (event.pointerType === "mouse") {
+          pointer = null;
+          setHover(null);
+        }
+      });
+      addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          pinned = null;
+          renderTip();
+        }
+      });
+
+      function setHover(key) {
+        if (key === hover) return;
+        hover = key;
+        canvas.toggleAttribute("data-pointing", !!key);
+        renderTip();
+      }
+
+      // ── Tooltip ───────────────────────────────────────────────────────────
+
+      const tip = $("tip");
+      let tipKey;
+
+      function periodText() {
+        return PERIODS.find(([p]) => p === period)[2];
+      }
+
+      function poolList(pools, limit = 4) {
+        const ul = el("ul");
+        for (const p of pools.slice(0, limit)) {
+          const li = el("li");
+          li.append(el("span", "", p.name), el("span", "", number.format(p.count)));
+          ul.append(li);
+        }
+        if (pools.length > limit) {
+          const rest = pools.slice(limit).reduce((s, p) => s + p.count, 0);
+          const li = el("li");
+          const more = pools.length - limit;
+          li.append(el("span", "", `${more} more pool${more === 1 ? "" : "s"}`), el("span", "", number.format(rest)));
+          ul.append(li);
+        }
+        return ul;
+      }
+
+      function renderTip() {
+        const key = hover ?? pinned;
+        tipKey = key;
+        syncActiveRow(key ?? focus);
+        if (!key) {
+          tip.removeAttribute("data-show");
+          return;
+        }
+        tip.replaceChildren();
+        const head = el("div", "tip-head");
+        if (key === "moon") {
+          const m = stats.moon;
+          head.append(el("span", "moon-icon"), el("span", "", "No known country"));
+          tip.append(head, el("div", "tip-num", number.format(m.count)));
+          tip.append(el("div", "tip-sub", `${stats.total ? percent.format(m.count / stats.total) : "0%"} of blocks ${periodText()}`));
+          const rows = [...(m.unidentified ? [{ name: "Unidentified miners", count: m.unidentified }] : []), ...m.pools];
+          if (rows.length) tip.append(poolList(rows));
+          tip.append(el("p", "", "Blocks whose miner couldn’t be identified, or from pools without a known home country."));
+        } else {
+          const cc = CC_BY_ID.get(key);
+          const f = featureById.get(key);
+          const name = cc ? COUNTRIES[cc].name : f?.properties.name ?? "Unknown";
+          if (cc) head.append(flagImg(cc));
+          head.append(el("span", "", name));
+          tip.append(head);
+          const c = cc && stats.countries.get(cc);
+          if (c?.count) {
+            const rank = ranked(stats).indexOf(c) + 1;
+            tip.append(el("div", "tip-num", number.format(c.count)));
+            tip.append(el("div", "tip-sub", `${percent.format(c.count / stats.total)} of blocks ${periodText()} · #${rank}`));
+            tip.append(poolList(c.pools));
+          } else {
+            tip.append(el("div", "tip-sub", `No blocks from pools based here ${periodText()}.`));
+          }
+        }
+        tip.setAttribute("data-show", "");
+      }
+
+      function placeTip(now) {
+        if (!tipKey) return;
+        const rect = canvas.getBoundingClientRect();
+        let x;
+        let y;
+        let hidden = false;
+        if (hover && pointer?.mouse && tipKey === hover) {
+          x = rect.left + pointer.x + 16;
+          y = rect.top + pointer.y + 16;
+        } else {
+          const a = anchorOf(tipKey, now);
+          hidden = !a.visible;
+          x = rect.left + a.x - tip.offsetWidth / 2;
+          y = rect.top + a.y - tip.offsetHeight - 14;
+          if (y < 8) y = rect.top + a.y + 28;
+          // Anchored to a globe that's scrolled out of view: nothing to point at.
+          if (rect.top + a.y < 0 || rect.top + a.y > innerHeight) hidden = true;
+        }
+        x = Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, x));
+        y = Math.max(8, Math.min(innerHeight - tip.offsetHeight - 8, y));
+        tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+        tip.style.visibility = hidden ? "hidden" : "visible";
+      }
+
+      // ── Board ─────────────────────────────────────────────────────────────
+
+      const board = $("board");
+      const rows = new Map();
+
+      function renderPeriods() {
+        const group = $("periods");
+        for (const [key, label] of PERIODS) {
+          const b = el("button", "", label);
+          b.type = "button";
+          b.dataset.period = key;
+          b.setAttribute("aria-pressed", String(key === period));
+          b.addEventListener("click", () => setPeriod(key));
+          group.append(b);
+        }
+      }
+
+      function renderBoard(bumped) {
+        rollTotal(stats.total, !!bumped);
+        $("total-sub").textContent = `blocks ${periodText()}`;
+        const list = ranked(stats).filter((c) => c.count);
+        const max = Math.max(1, list[0]?.count ?? 0, stats.moon.count);
+        const items = list.map((c, i) => ({ key: COUNTRIES[c.cc].id, rank: i + 1, cc: c.cc, name: COUNTRIES[c.cc].name, count: c.count }));
+        if (stats.moon.count) items.push({ key: "moon", rank: "", name: "No known country", count: stats.moon.count });
+        rows.clear();
+        board.replaceChildren(
+          ...items.map((item) => {
+            const li = el("li");
+            const b = el("button", item.key === "moon" ? "row moon" : "row");
+            b.type = "button";
+            const share = stats.total ? item.count / stats.total : 0;
+            const count = el("span", "count", number.format(item.count));
+            count.append(el("small", "", percent.format(share)));
+            const bar = el("span", "bar");
+            const fill = el("i");
+            fill.style.width = `${(item.count / max) * 100}%`;
+            bar.append(fill);
+            b.append(el("span", "rank", String(item.rank)), item.cc ? flagImg(item.cc) : el("span", "moon-icon"), el("span", "name", item.name), count, bar);
+            b.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && setHover(item.key));
+            b.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && setHover(null));
+            b.addEventListener("click", () => {
+              revealGlobe();
+              pinned = item.key;
+              if (item.cc) flyTo(COUNTRIES[item.cc].at);
+              else moonToFront();
+              renderTip();
+            });
+            if (item.key === bumped) b.setAttribute("data-bump", "");
+            rows.set(item.key, b);
+            li.append(b);
+            return li;
+          }),
+        );
+        syncActiveRow(hover ?? pinned ?? focus);
+        if (tipKey) renderTip();
+      }
+
+      let shownTotal = 0;
+      function rollTotal(to, animate) {
+        const from = shownTotal;
+        shownTotal = to;
+        const node = $("total");
+        if (!animate || reducedMotion) {
+          node.textContent = number.format(to);
+          return;
+        }
+        const t0 = performance.now();
+        const step = (now) => {
+          const t = Math.min(1, (now - t0) / 700);
+          node.textContent = number.format(Math.round(from + (to - from) * easeInOut(t)));
+          if (t < 1 && shownTotal === to) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+
+      function syncActiveRow(key) {
+        for (const [k, b] of rows) b.toggleAttribute("data-active", k === key);
+      }
+
+      // ── Feed ──────────────────────────────────────────────────────────────
+
+      const feed = $("feed");
+      const FEED_SIZE = 144; // about a day of blocks
+      let recent = [];
+
+      function blockPlace(block) {
+        const slug = block.extras?.pool?.slug ?? "unknown";
+        const cc = POOL_COUNTRY.get(slug);
+        return {
+          slug,
+          cc,
+          pool: slug === "unknown" ? "Unidentified miner" : block.extras?.pool?.name ?? slug,
+          place: cc ? COUNTRIES[cc].name : "No known country",
+        };
+      }
+
+      function renderFeed(newHeights = new Set()) {
+        feed.replaceChildren(
+          ...recent.map((block) => {
+            const { cc, pool, place } = blockPlace(block);
+            const li = el("li");
+            const b = el("button", "row block");
+            b.type = "button";
+            b.title = `Replay block ${number.format(block.height)}`;
+            const meta = el("span", "meta", `#${number.format(block.height)} · ${place} · ${ago(block.timestamp)}`);
+            meta.dataset.ts = block.timestamp;
+            b.append(cc ? flagImg(cc) : el("span", "moon-icon"), el("span", "name", pool), el("span"), meta);
+            b.addEventListener("click", () => {
+              revealGlobe();
+              enqueue(block, { count: false, replay: true });
+            });
+            if (newHeights.has(block.height)) b.setAttribute("data-new", "");
+            li.append(b);
+            return li;
+          }),
+        );
+      }
+
+      setInterval(() => {
+        for (const meta of feed.querySelectorAll(".meta")) {
+          meta.textContent = meta.textContent.replace(/[^·]+$/, ` ${ago(Number(meta.dataset.ts))}`);
+        }
+      }, 30_000);
+
+      // ── Block events ──────────────────────────────────────────────────────
+
+      const toast = $("toast");
+      let toastTimer;
+      const queue = [];
+      let playing = false;
+
+      function showToast(block, { replay }) {
+        const { cc, pool, place } = blockPlace(block);
+        const where = el("span");
+        if (cc) where.append(flagImg(cc));
+        where.append(`${pool} · ${place}`);
+        toast.replaceChildren(
+          el("span", "label", replay ? `Replay · ${ago(block.timestamp)}` : "New block"),
+          el("strong", "", `#${number.format(block.height)}`),
+          where,
+        );
+        toast.setAttribute("data-show", "");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.removeAttribute("data-show"), 6500);
+      }
+
+      // A wait that a newly queued block can cut short.
+      let wake = null;
+      function pause(ms) {
+        return new Promise((resolve) => {
+          const done = () => {
+            clearTimeout(timer);
+            if (wake === done) wake = null;
+            resolve();
+          };
+          const timer = setTimeout(done, ms);
+          wake = done;
+        });
+      }
+
+      function enqueue(block, options) {
+        // A replay replaces any replay still waiting its turn.
+        if (options.replay) {
+          for (let i = queue.length - 1; i >= 0; i--) if (queue[i][1].replay) queue.splice(i, 1);
+        }
+        queue.push([block, options]);
+        if (playing) wake?.();
+        else play();
+      }
+
+      async function play() {
+        playing = true;
+        while (queue.length) {
+          const [block, options] = queue.shift();
+          await celebrate(block, options);
+          if (queue.length) await pause(queue[0][1].replay ? 300 : 2500);
+        }
+        playing = false;
+        if (needsRefresh) refreshStats();
+      }
+
+      async function celebrate(block, { count = true, replay = false, silent = false }) {
+        const { slug, cc, pool } = blockPlace(block);
+        const key = cc ? COUNTRIES[cc].id : "moon";
+        if (!(document.hidden && !replay)) showToast(block, { replay });
+        pinned = null;
+        focus = key;
+        renderTip();
+        await (cc ? flyTo(COUNTRIES[cc].at) : moonToFront());
+        const now = performance.now();
+        if (cc) {
+          rings.push({ at: COUNTRIES[cc].at, t0: now });
+          flashes.set(key, now);
+        } else {
+          moonFlashAt = now;
+        }
+        if (!silent) chime(cc);
+        if (count) {
+          addBlocks(stats, slug, pool);
+          renderBoard(key);
+        }
+        holdUntil = performance.now() + 6000;
+        if (!queue.length) await pause(5000);
+        if (focus === key) {
+          focus = null;
+          renderTip();
+        }
+      }
+
+      // ── Data flow ─────────────────────────────────────────────────────────
+
+      let client;
+      let lastHeight = 0;
+      let needsRefresh = false;
+      const statsCache = new Map();
+
+      async function fetchStats(p) {
+        const cached = statsCache.get(p);
+        if (cached && Date.now() - cached.at < 60_000) return cached.stats;
+        const summary = await client.getPoolStats(p, { cache: false });
+        const result = tally(summary.pools);
+        statsCache.set(p, { at: Date.now(), stats: result });
+        return result;
+      }
+
+      async function setPeriod(p) {
+        period = p;
+        for (const b of $("periods").children) b.setAttribute("aria-pressed", String(b.dataset.period === p));
+        try {
+          const next = await fetchStats(p);
+          if (period !== p) return;
+          stats = structuredClone(next);
+          renderBoard();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      async function refreshStats() {
+        needsRefresh = false;
+        statsCache.clear();
+        try {
+          const next = await fetchStats(period);
+          if (!playing) {
+            stats = structuredClone(next);
+            renderBoard();
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      const status = $("status");
+      function setLive(live) {
+        status.textContent = live ? "Live" : "Offline";
+        status.toggleAttribute("data-live", live);
+      }
+
+      const poolNames = new Map();
+
+      // Blocks in [start, end) by height, newest first, shaped like the
+      // `/api/v1/blocks` entries the rest of the page reads.
+      async function fetchBlocks(start, end) {
+        const [pools, times] = await client.getSeriesBulk("pool,timestamp", "height", start, end, undefined, undefined, {
+          cache: false,
+          memCache: false,
+        });
+        return pools.data
+          .map((slug, i) => ({
+            height: pools.start + i,
+            timestamp: times.data[i],
+            extras: { pool: { slug, name: poolNames.get(slug) ?? slug } },
+          }))
+          .reverse();
+      }
+
+      let missed = null;
+
+      function showMissed() {
+        if (!missed || document.hidden) return;
+        enqueue(missed, { count: false, replay: true });
+        missed = null;
+      }
+
+      async function poll() {
+        try {
+          const tip = await client.getBlockTipHeight({ cache: false, memCache: false });
+          setLive(true);
+          if (tip <= lastHeight) return;
+          const blocks = await fetchBlocks(Math.max(lastHeight + 1, tip + 1 - FEED_SIZE), tip + 1);
+          const fresh = blocks.filter((b) => b.height > lastHeight).sort((a, b) => a.height - b.height);
+          recent = [...fresh.toReversed(), ...recent].slice(0, FEED_SIZE);
+          const gap = tip - lastHeight;
+          lastHeight = Math.max(lastHeight, blocks[0]?.height ?? lastHeight);
+          renderFeed(new Set(fresh.map((b) => b.height)));
+          needsRefresh = true;
+          // In a background tab or after a long sleep, sync quietly and keep
+          // only the newest block to show when the page is seen again.
+          if (gap > 3 || document.hidden) {
+            missed = fresh.at(-1) ?? missed;
+            if (!playing) refreshStats();
+            return;
+          }
+          for (const block of fresh) enqueue(block, { count: true });
+        } catch (error) {
+          console.error(error);
+          setLive(false);
+        }
+      }
+
+      // Load everything the page needs. Anything that fails is retried with
+      // backoff, keeping what already arrived, until the page comes up.
+      // Run a loader once; if it fails, the next call tries again.
+      function once(load) {
+        let promise;
+        return () =>
+          (promise ??= load().catch((error) => {
+            promise = null;
+            throw error;
+          }));
+      }
+
+      const readyMap = once(async () => {
+        const atlas = await loadAtlas();
+        land = feature(atlas, atlas.objects.land);
+        borders = mesh(atlas, atlas.objects.countries, (a, b) => a !== b);
+        features = feature(atlas, atlas.objects.countries).features.filter((f) => f.id);
+        for (const f of features) {
+          featureById.set(f.id, f);
+          if (CC_BY_ID.has(f.id)) mainland.set(f.id, largestPolygon(f));
+        }
+      });
+      const readyClient = once(async () => {
+        client = await loadClient();
+      });
+
+      async function boot() {
+        await Promise.all([readyMap(), readyClient()]);
+
+        const [initial, pools] = await Promise.all([fetchStats(period), client.getPools()]);
+        for (const pool of pools) poolNames.set(pool.slug, pool.name);
+        const blocks = await fetchBlocks(-FEED_SIZE);
+        stats = structuredClone(initial);
+        recent = blocks;
+        lastHeight = blocks[0]?.height ?? 0;
+        renderBoard();
+        renderFeed();
+        setLive(true);
+        setInterval(poll, POLL_MS);
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) return;
+          showMissed();
+          poll();
+        });
+
+        // Open with the most recent block so the page shows what it does.
+        setTimeout(() => {
+          if (blocks[0] && !playing) enqueue(blocks[0], { count: false, replay: true, silent: true });
+        }, 900);
+      }
+
+      async function bootWithRetry(attempt = 0) {
+        try {
+          await boot();
+          $("error").removeAttribute("data-show");
+        } catch (error) {
+          console.error(error);
+          setLive(false);
+          const wait = Math.min(30, 2 ** attempt * 2);
+          $("error-text").textContent = `${(error.message || "Network error").replace(/\.$/, "")}. Retrying in ${wait}s…`;
+          $("error").setAttribute("data-show", "");
+          setTimeout(() => bootWithRetry(attempt + 1), wait * 1000);
+        }
+      }
+
+      renderPeriods();
+      addEventListener("resize", resize);
+      resize();
+      start();
+      bootWithRetry();
+    </script>
+  </body>
+</html>

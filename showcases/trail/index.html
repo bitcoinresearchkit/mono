@@ -591,8 +591,23 @@
       (() => {
         "use strict";
 
-        const API = "https://bitview.space/api";
-        const LIVE_PRICE_URL = `${API}/oracle/price`;
+        const ORIGIN = "https://bitview.space";
+        // The deployed client, imported from a blob URL: direct remote module
+        // imports fail on some hosts.
+        const clientReady = (async () => {
+          const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
+            cache: "no-cache",
+            signal: AbortSignal.timeout(30_000),
+          });
+          if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
+          const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
+          try {
+            const { BitviewClient } = await import(url);
+            return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000, browserCache: false, memCache: false });
+          } finally {
+            URL.revokeObjectURL(url);
+          }
+        })();
         const PRICE_TRAIL_LIFT = 6;
         const PRICE_TRAIL_CORNER_RADIUS = 6;
         const CACHE_LIMIT = 4_500;
@@ -1192,12 +1207,12 @@
           };
         }
 
-        function summaryUrl(request) {
+        function summaryPath(request) {
           const query = new URLSearchParams({
             agg: "raw",
             weight: request.weight,
           });
-          return `${API}/urpd/${encodeURIComponent(request.cohort)}/${request.date}?${query}`;
+          return `/api/urpd/${encodeURIComponent(request.cohort)}/${request.date}?${query}`;
         }
 
         function cancelSummaryLoad() {
@@ -1233,16 +1248,12 @@
           state.summaryStatus = "loading";
 
           try {
-            const response = await fetch(
-              summaryUrl(request),
-              {
-                signal: controller.signal,
-                cache: "no-store",
-              },
-            );
-            if (!response.ok) {
-              throw new Error(`Raw URPD request failed (${response.status})`);
-            }
+            // The raw Response carries the ETag kept with the summary cache.
+            const client = await clientReady;
+            const response = await client.get(summaryPath(request), {
+              signal: controller.signal,
+              cache: false,
+            });
             const profile = await response.json();
             if (
               generation !== state.summaryGeneration ||
@@ -5291,26 +5302,11 @@
           }
 
           const request = (async () => {
-            const query = new URLSearchParams({
-              agg: AGGREGATION,
-              weight,
-            });
-            const url = `${API}/urpd/${encodeURIComponent(
-              cohort,
-            )}/${date}?${query}`;
-            const response = await fetch(url, {
+            const client = await clientReady;
+            const data = await client.getUrpdAt(cohort, date, AGGREGATION, weight, {
               signal,
-              cache: refresh
-                ? "no-store"
-                : date === latestAvailableDate()
-                  ? "no-cache"
-                  : "force-cache",
+              cache: !refresh,
             });
-            if (!response.ok) {
-              throw new Error(`URPD request failed (${response.status})`);
-            }
-
-            const data = await response.json();
             const buckets = Array.isArray(data.buckets)
               ? data.buckets
               : [];
@@ -5571,20 +5567,10 @@
                 ? cachedDates.availableDates
                 : null;
             if (!availableDates) {
-              const query = new URLSearchParams({
-                weight,
+              const client = await clientReady;
+              const responseDates = await client.listUrpdDates(cohort, weight, {
+                signal: controller.signal,
               });
-              const response = await fetch(
-                `${API}/urpd/${encodeURIComponent(cohort)}/dates?${query}`,
-                {
-                  cache: "no-cache",
-                  signal: controller.signal,
-                },
-              );
-              if (!response.ok) {
-                throw new Error(`Dates request failed (${response.status})`);
-              }
-              const responseDates = await response.json();
               if (generation !== state.loadGeneration) return;
               if (!Array.isArray(responseDates) || !responseDates.length) {
                 throw new Error("No URPD dates are available for this cohort");
@@ -5649,12 +5635,17 @@
         async function exactSummaryChanged(request, signal) {
           const cached = state.summaryCache.get(request.key);
           if (!cached) return false;
-          const response = await fetch(summaryUrl(request), {
-            method: "HEAD",
-            cache: "no-store",
-            signal,
-          });
-          if (!response.ok) return false;
+          // The browser revalidates its HTTP cache, so an unchanged profile
+          // costs a 304 and no body download.
+          const client = await clientReady;
+          let response;
+          try {
+            response = await client.get(summaryPath(request), { signal });
+          } catch (error) {
+            if (error.name === "AbortError") throw error;
+            return false;
+          }
+          await response.body?.cancel();
           const etag = response.headers?.get?.("etag") ?? "";
           if (!etag) return false;
           return etag !== cached.etag;
@@ -5669,14 +5660,10 @@
             LIVE_PRICE_TIMEOUT_MS,
           );
           try {
-            const response = await fetch(LIVE_PRICE_URL, {
-              cache: "no-store",
-              signal: controller.signal,
-            });
-            if (!response.ok) {
-              throw new Error(`Live price request failed (${response.status})`);
-            }
-            const price = Number(await response.json());
+            const client = await clientReady;
+            const price = Number(
+              await client.getOraclePrice({ cache: false, signal: controller.signal }),
+            );
             if (!(price > 0) || price === state.livePrice) return;
             state.livePrice = price;
             if (state.selectedIndex === state.dates.length - 1) {
@@ -5718,18 +5705,11 @@
           );
           let refreshSummary = false;
           try {
-            const query = new URLSearchParams({ weight });
-            const response = await fetch(
-              `${API}/urpd/${encodeURIComponent(cohort)}/dates?${query}`,
-              {
-                cache: "no-store",
-                signal: controller.signal,
-              },
-            );
-            if (!response.ok) {
-              throw new Error(`Dates request failed (${response.status})`);
-            }
-            const responseDates = await response.json();
+            const client = await clientReady;
+            const responseDates = await client.listUrpdDates(cohort, weight, {
+              signal: controller.signal,
+              cache: false,
+            });
             if (
               controller.signal.aborted ||
               cohort !== state.cohort ||

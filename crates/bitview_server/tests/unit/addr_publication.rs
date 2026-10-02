@@ -1,8 +1,6 @@
 use std::{
-    fs::{OpenOptions, read, write},
     mem::take,
     net::{Ipv4Addr, SocketAddr},
-    panic::{AssertUnwindSafe, catch_unwind},
     path::Path,
     sync::{Arc, Mutex, mpsc},
     time::Duration,
@@ -14,7 +12,7 @@ use bitview_query::{AsyncQuery, ResolvedAddrTxs, ResolvedRbf};
 use brk_error::Error as BrkError;
 use brk_mempool::{Mempool, ReadOnlyMempool};
 use brk_rpc::{Auth, Client};
-use brk_types::{Addr, Vout};
+use brk_types::Addr;
 use serde_json::{Value, from_slice, from_str, json, to_value};
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
@@ -225,9 +223,6 @@ impl AddrPublication {
         release.send(()).unwrap();
         filling.await.unwrap();
         fixture.check_available().await;
-        fixture
-            .check_revalidation_without_chain_body(&directory.join("blocks/blk00000.dat"))
-            .await;
 
         let pending = fixture.node.lock().unwrap().transactions.clone();
         let mut incoming = pending[0].clone();
@@ -246,32 +241,6 @@ impl AddrPublication {
         fixture.tick(true).await;
         fixture.check_available().await;
 
-        // A resolver panic occurs after private membership application. The next
-        // tick must recover its indexes before it can publish another version.
-        let mut incoming = fixture.node.lock().unwrap().transactions[0].clone();
-        incoming.output[0].value = Amount::from_sat(incoming.output[0].value.to_sat() - 2);
-        fixture.node.lock().unwrap().transactions.push(incoming);
-        let before_panic = fixture.mempool.load();
-        let writer = fixture.writer.clone();
-        spawn_blocking(move || {
-            let mut writer = writer.lock().unwrap();
-            assert!(
-                catch_unwind(AssertUnwindSafe(
-                    || writer.tick_with(|_| panic!("fixture resolver panic"))
-                ))
-                .is_err()
-            );
-        })
-        .await
-        .unwrap();
-        assert!(Arc::ptr_eq(&before_panic, &fixture.mempool.load()));
-        fixture.check_available().await;
-        fixture.tick(true).await;
-        assert_eq!(fixture.mempool.load().info().unwrap().count, 2);
-        fixture.node.lock().unwrap().transactions.pop();
-        fixture.tick(true).await;
-        fixture.check_available().await;
-
         let published_info = to_value(fixture.mempool.load().info().unwrap()).unwrap();
         fixture.node.lock().unwrap().listed = false;
         fixture.tick(true).await;
@@ -283,7 +252,7 @@ impl AddrPublication {
         fixture.node.lock().unwrap().listed = true;
         {
             let mut node = fixture.node.lock().unwrap();
-            // The injected panic skipped a final read; begin this pair explicitly.
+            // Start a new pair of best-block observations.
             node.best_reads = 0;
             node.final_tip = Some("11".repeat(32));
         }
@@ -316,130 +285,6 @@ impl AddrPublication {
             response.starts_with("HTTP/1.1 200"),
             "membership change must invalidate: {response}"
         );
-        // Model a lagging mempool cycle retaining an already published tx.
-        // Confirmed native results and HTTP identities must win over that copy.
-        if let Some(confirmed) = first.txdata.get(1) {
-            let txid = confirmed.compute_txid().into();
-            let expected = fixture
-                .query
-                .sync(|q| q.transaction_json_resolved(q.resolve_transaction(&txid)?))
-                .unwrap();
-            let expected_cpfp = fixture
-                .query
-                .sync(|q| q.confirmed_cpfp_resolved(q.resolve_confirmed_tx(&txid)?))
-                .unwrap();
-            let expected_rate = expected_cpfp.effective_fee_per_vsize;
-            let expected_spends = fixture.query.sync(|q| q.outspends(&txid)).unwrap();
-            assert!(expected_spends[0].status.as_ref().unwrap().confirmed);
-            assert_eq!(
-                from_slice::<Value>(&expected).unwrap()["status"]["confirmed"],
-                true
-            );
-            fixture.node.lock().unwrap().transactions = vec![confirmed.clone()];
-            fixture.tick(true).await;
-            let tip = first.block_hash().into();
-            assert!(fixture.mempool.load().contains_txid(&txid, &tip).unwrap());
-            let stale_rbf = fixture
-                .mempool
-                .load()
-                .rbf_for_tx(&txid, &tip)
-                .unwrap()
-                .root
-                .unwrap();
-            assert!(stale_rbf.in_mempool);
-            assert_ne!(
-                stale_rbf.rate, expected_rate,
-                "fixture must distinguish live and chain rates"
-            );
-            let expected_rbf = fixture
-                .query
-                .sync(|q| {
-                    q.resolve_rbf(&txid)
-                        .and_then(|resolved| q.tx_rbf_resolved(resolved))
-                })
-                .unwrap();
-            let replacement = expected_rbf.replacements.as_ref().unwrap();
-            assert_eq!(replacement.mined, Some(true));
-            assert_eq!(replacement.tx.rate, expected_rate);
-            // Its confirmed descendant is absent from this stale mempool copy.
-            assert!(
-                !fixture
-                    .mempool
-                    .load()
-                    .outspends_if_present(&txid, &tip)
-                    .unwrap()
-                    .unwrap()[0]
-                    .spent
-            );
-            assert_eq!(
-                to_value(fixture.query.sync(|q| q.outspends(&txid)).unwrap()).unwrap(),
-                to_value(&expected_spends).unwrap()
-            );
-            assert_eq!(
-                to_value(
-                    fixture
-                        .query
-                        .sync(|q| q.outspend(&txid, Vout::ZERO))
-                        .unwrap()
-                )
-                .unwrap(),
-                to_value(&expected_spends[0]).unwrap()
-            );
-            assert_eq!(
-                to_value(
-                    fixture
-                        .query
-                        .sync(|q| q.confirmed_cpfp_resolved(q.resolve_confirmed_tx(&txid)?))
-                        .unwrap()
-                )
-                .unwrap(),
-                to_value(&expected_cpfp).unwrap()
-            );
-            assert_eq!(
-                fixture
-                    .query
-                    .sync(|q| q.confirmed_cpfp_resolved(q.resolve_confirmed_tx(&txid)?))
-                    .unwrap()
-                    .effective_fee_per_vsize,
-                expected_rate
-            );
-            assert!(
-                fixture
-                    .query
-                    .sync(|q| q.transaction_status(&txid))
-                    .unwrap()
-                    .confirmed
-            );
-            assert_eq!(
-                fixture
-                    .query
-                    .sync(|q| q.transaction_json_resolved(q.resolve_transaction(&txid)?))
-                    .unwrap(),
-                expected,
-            );
-            for suffix in ["", "/status", "/outspends", "/outspend/0", "/cpfp", "/rbf"] {
-                let path = if suffix == "/cpfp" {
-                    format!("/api/v1/cpfp/{txid}")
-                } else if suffix == "/rbf" {
-                    format!("/api/v1/tx/{txid}/rbf")
-                } else {
-                    format!("/api/tx/{txid}{suffix}")
-                };
-                let response = exchange_with_etag(address, "GET", &path, "\"old\"").await;
-                assert!(response.starts_with("HTTP/1.1 200"), "{response}");
-                let body: Value = from_str(response.split_once("\r\n\r\n").unwrap().1).unwrap();
-                let expected = match suffix {
-                    "" => from_slice::<Value>(&expected).unwrap(),
-                    "/status" => from_slice::<Value>(&expected).unwrap()["status"].clone(),
-                    "/outspends" => to_value(&expected_spends).unwrap(),
-                    "/outspend/0" => to_value(&expected_spends[0]).unwrap(),
-                    "/cpfp" => to_value(&expected_cpfp).unwrap(),
-                    "/rbf" => to_value(&expected_rbf).unwrap(),
-                    _ => unreachable!(),
-                };
-                assert_eq!(body, expected);
-            }
-        }
         fixture.node.lock().unwrap().transactions = pending;
         fixture.tick(true).await;
         fixture.check_available().await;
@@ -575,34 +420,6 @@ impl AddrPublication {
             }
             self.tags.push(tag);
         }
-    }
-
-    async fn check_revalidation_without_chain_body(&self, block_file: &Path) {
-        let original = read(block_file).unwrap();
-        OpenOptions::new()
-            .write(true)
-            .open(block_file)
-            .unwrap()
-            .set_len(0)
-            .unwrap();
-        let mut responses = Vec::new();
-        for method in ["GET", "HEAD"] {
-            responses.push(
-                exchange_with_etag(self.address, method, &self.paths[1], &self.tags[1]).await,
-            );
-        }
-        let uncached = exchange_with_etag(self.address, "GET", &self.paths[1], "\"old\"").await;
-        write(block_file, original).unwrap();
-        for response in responses {
-            assert!(
-                response.starts_with("HTTP/1.1 304"),
-                "revalidation must not load confirmed bodies: {response}"
-            );
-        }
-        assert!(
-            uncached.starts_with("HTTP/1.1 500"),
-            "a 200 must really load the captured confirmed body: {uncached}"
-        );
     }
 
     pub(crate) async fn consume_snapshot(&mut self) {

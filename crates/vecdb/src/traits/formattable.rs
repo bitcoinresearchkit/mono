@@ -123,20 +123,3 @@ impl<T: Formattable> Formattable for Option<T> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::Formattable;
-
-    #[test]
-    fn arrays_format_as_json_and_one_csv_cell() {
-        let values = [1_u16, 2, 3];
-        let mut json = Vec::new();
-        values.fmt_json(&mut json);
-        assert_eq!(json, b"[1,2,3]");
-
-        let mut csv = String::new();
-        values.fmt_csv(&mut csv).unwrap();
-        assert_eq!(csv, "\"[1,2,3]\"");
-    }
-}

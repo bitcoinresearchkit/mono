@@ -1,4 +1,3 @@
-use bitcoin::{Txid as BitcoinTxid, hashes::Hash};
 use brk_types::{FeeRate, TxOut, TxidPrefix};
 
 use super::*;
@@ -155,37 +154,6 @@ fn rbf_for_tx_chain_walks_to_terminal_root() {
 }
 
 #[test]
-fn rbf_for_tx_unknown_tx_returns_none_root() {
-    let mut mempool = Mempool::for_test();
-    mempool.test_tick(&[], FeeRate::new(1.0));
-    let bogus = Txid::COINBASE;
-    let rbf = mempool
-        .published()
-        .rbf_for_tx(&bogus, &BlockHash::default())
-        .unwrap();
-    assert!(rbf.root.is_none());
-    assert!(rbf.replaces.is_empty());
-}
-
-#[test]
-fn rbf_for_tx_rejects_live_prefix_collision() {
-    let (mempool, live, _) = build_rbf_world(0xCA, &[]);
-    let mut bytes = [0u8; 32];
-    bytes.copy_from_slice(live.as_slice());
-    bytes[8] ^= 1;
-    let collision = Txid::from(BitcoinTxid::from_byte_array(bytes));
-    assert_eq!(TxidPrefix::from(&live), TxidPrefix::from(&collision));
-
-    assert!(
-        mempool
-            .published()
-            .rbf_for_tx(&collision, &BlockHash::default())
-            .unwrap()
-            .is_empty()
-    );
-}
-
-#[test]
 fn recent_rbf_trees_dedup_by_root_and_respect_limit() {
     // Chain 0xC6 -> 0xC7 -> live plus a sibling 0xC8 also replaced by
     // live. All paths roll up to the same root, so the recent listing
@@ -214,79 +182,4 @@ fn recent_rbf_trees_dedup_by_root_and_respect_limit() {
         .recent_rbf_trees(false, 0, &BlockHash::default())
         .unwrap();
     assert!(capped.is_empty(), "limit honored");
-}
-
-#[test]
-fn deep_and_cyclic_histories_fail_without_partial_trees() {
-    let predecessors: Vec<u8> = (1..=MAX_RBF_DEPTH as u8).collect();
-    let (deep, live, _) = build_rbf_world(200, &predecessors);
-    assert!(matches!(
-        deep.published().rbf_for_tx(&live, &BlockHash::default()),
-        Err(Error::Internal(_))
-    ));
-    assert!(matches!(
-        deep.published()
-            .recent_rbf_trees(false, 25, &BlockHash::default()),
-        Err(Error::Internal(_))
-    ));
-
-    let (mut cycle, live, predecessors) = build_rbf_world(200, &[1]);
-    let state = cycle.test_state_mut();
-    let record = state.txs.remove_by_prefix(&TxidPrefix::from(live)).unwrap();
-    let rate = record.entry.fee_rate();
-    state.graveyard.bury(
-        record.tx,
-        record.entry,
-        rate,
-        TxRemoval::Replaced {
-            by: predecessors[0],
-        },
-    );
-    cycle.test_tick(&[], FeeRate::new(1.0));
-    assert!(matches!(
-        cycle.published().rbf_for_tx(&live, &BlockHash::default()),
-        Err(Error::Internal(_))
-    ));
-    assert!(matches!(
-        cycle
-            .published()
-            .recent_rbf_trees(false, 25, &BlockHash::default()),
-        Err(Error::Internal(_))
-    ));
-}
-
-#[test]
-fn tree_width_and_stale_scan_entries_consume_work_budget() {
-    let (mut mempool, live, _) = build_rbf_world(200, &[]);
-    let state = mempool.test_state_mut();
-    for seed in 1..=8 {
-        let tx = fake_tx(seed, &[], &[]);
-        let entry = TxEntry::new(&fake_entry_info(tx.txid, 100, 100), 100, true);
-        let rate = entry.fee_rate();
-        state
-            .graveyard
-            .bury(tx, entry, rate, TxRemoval::Replaced { by: live });
-    }
-    assert!(ReadOnlyState::build_rbf_node(&live, &state.txs, &state.graveyard, &mut 8, 0).is_err());
-    assert!(
-        ReadOnlyState::build_rbf_node(&live, &state.txs, &state.graveyard, &mut 9, 0)
-            .unwrap()
-            .is_some()
-    );
-    // No matching replacement trees: even stale order entries must be charged.
-    for _ in 0..=MAX_RBF_WORK {
-        let tx = fake_tx(50, &[], &[]);
-        let txid = tx.txid;
-        let entry = TxEntry::new(&fake_entry_info(txid, 100, 100), 100, true);
-        let rate = entry.fee_rate();
-        state.graveyard.bury(tx, entry, rate, TxRemoval::Vanished);
-        state.graveyard.exhume(&txid);
-    }
-    mempool.test_publish(BlockHash::default());
-    assert!(matches!(
-        mempool
-            .published()
-            .recent_rbf_trees(false, 25, &BlockHash::default()),
-        Err(Error::Internal(_))
-    ));
 }

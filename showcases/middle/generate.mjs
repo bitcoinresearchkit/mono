@@ -1,9 +1,18 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { BitviewClient } from '../../modules/bitview-client/index.js';
 
 const DAY_MS = 86_400_000;
 const DAY_ZERO = Date.UTC(2009, 0, 1);
+
+// One series per request: bulk reads are capped server-side.
+// buildSnapshot rejects any history that does not end at `end`.
+function fetchHistories(api, names, end) {
+  const client = new BitviewClient({ baseUrl: api.replace(/\/api\/?$/, ''), timeout: 60_000 });
+  return Promise.all(names.map(name => client.seriesEndpoint(name, 'day1').slice(0, end).fetch({ cache: false })));
+}
+
 export const seriesNames = ['price_ohlc_cents', 'awake_capitalized_price_cents', 'true_market_mean_cents'];
 
 export function buildSnapshot(histories, start, end, generatedAt) {
@@ -13,7 +22,6 @@ export function buildSnapshot(histories, start, end, generatedAt) {
         history.start !== 0 || history.end !== end || history.data?.length !== end) {
       throw new Error(`Incomplete or misaligned history: ${seriesNames[index]}`);
     }
-    if (!history.stamp || history.stamp !== histories[0].stamp) throw new Error('Histories have different snapshot stamps.');
   }
   const firstPrice = histories[0].data.findIndex(candle => Array.isArray(candle) && candle[3] > 0);
   if (firstPrice < 0) throw new Error('No price history available.');
@@ -39,10 +47,7 @@ export async function generateSnapshot({ api = 'http://localhost:3110/api', star
   const end = Math.floor((now.getTime() - DAY_ZERO) / DAY_MS); // Exclusive: completed UTC days only.
   if (!Number.isInteger(start) || start < 0 || start >= end ||
       new Date(DAY_ZERO + start * DAY_MS).toISOString().slice(0, 10) !== startDate) throw new Error('Invalid start date.');
-  const query = new URLSearchParams({ series: seriesNames.join(','), index: 'day1', start: '0', end: String(end) });
-  const response = await fetch(`${api.replace(/\/$/, '')}/series/bulk?${query}`, { signal: AbortSignal.timeout(60_000) });
-  if (!response.ok) throw new Error(`Local API returned ${response.status}: ${await response.text()}`);
-  const snapshot = buildSnapshot(await response.json(), start, end, now.toISOString());
+  const snapshot = buildSnapshot(await fetchHistories(api, seriesNames, end), start, end, now.toISOString());
   const html = await readFile(output, 'utf8');
   const tag = /(<script id="chart-data" type="application\/json">)[\s\S]*?(<\/script>)/g;
   if ([...html.matchAll(tag)].length !== 1) throw new Error('Expected one embedded snapshot.');

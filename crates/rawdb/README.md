@@ -26,40 +26,6 @@ cargo add rawdb
 
 ## Usage
 
-```rust
-use rawdb::{Database, Result};
-
-fn main() -> Result<()> {
-    // open database
-    let temp_dir = tempfile::TempDir::new()?;
-    let db = Database::open(temp_dir.path())?;
-
-    // create regions
-    let region1 = db.create_region_if_needed("region1")?;
-    let region2 = db.create_region_if_needed("region2")?;
-
-    // write data (buffered in mmap, not yet durable)
-    region1.write(&[0, 1, 2, 3, 4])?;
-    region2.write_at(&[5, 6, 7, 8, 9], 0)?;
-
-    // flush to disk for durability
-    db.flush()?;
-
-    // read via mmap (data is immediately visible)
-    {
-        let reader = region1.create_reader();
-        let _data = reader.read_all();
-    } // reader dropped here, releasing its reference
-
-    // remove region (space becomes reusable hole after flush)
-    region1.remove()?;
-
-    // punch holes in the file
-    // db.compact()?; // doesn't work with doc-tests
-
-    Ok(())
-}
-```
 
 ## Sparse files
 

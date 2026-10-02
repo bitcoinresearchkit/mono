@@ -23,7 +23,3 @@ schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-bitview_traversable_derive = { workspace = true }
-serde_json = { workspace = true }

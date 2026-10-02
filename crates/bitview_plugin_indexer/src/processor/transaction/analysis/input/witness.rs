@@ -136,17 +136,8 @@ mod tests {
     use bitcoin::{ScriptBuf, TxIn, Witness, taproot::TAPROOT_ANNEX_PREFIX};
     use brk_types::OutputType;
 
-    use super::{analyze, has_inscription_envelope};
+    use super::analyze;
     use crate::TxFeatureFlags;
-
-    #[test]
-    fn recognizes_only_ord_envelopes() {
-        let inscription = ScriptBuf::from_hex("0063036f726468").unwrap();
-        let generic_envelope = ScriptBuf::from_hex("006303666f6f68").unwrap();
-
-        assert!(has_inscription_envelope(&inscription));
-        assert!(!has_inscription_envelope(&generic_envelope));
-    }
 
     #[test]
     fn reads_tapscript_before_control_block_and_annex() {
@@ -169,34 +160,5 @@ mod tests {
         assert!(facts.has_annex);
         assert!(flags.is_set(TxFeatureFlags::ANNEX));
         assert!(flags.is_set(TxFeatureFlags::INSCRIPTION));
-    }
-
-    #[test]
-    fn reads_fixed_shape_p2wpkh_once() {
-        let signature = [0x01; 71];
-        let public_key = [0x02; 33];
-        let witness = Witness::from_slice(&[signature.as_slice(), public_key.as_slice()]);
-        let mut flags = TxFeatureFlags::default();
-
-        let facts = analyze(&witness, OutputType::P2WPKH, &mut flags);
-
-        assert_eq!(facts.last, Some(public_key.as_slice()));
-        assert_eq!(facts.max_argument_bytes, signature.len());
-        assert_eq!(facts.stack_items, 2);
-        assert!(flags.is_set(TxFeatureFlags::SIGHASH_ALL));
-    }
-
-    #[test]
-    fn reads_taproot_key_path_once() {
-        let signature = [0x00; 64];
-        let witness = Witness::from_slice(&[signature]);
-        let mut flags = TxFeatureFlags::default();
-
-        let facts = analyze(&witness, OutputType::P2TR, &mut flags);
-
-        assert_eq!(facts.last, Some(signature.as_slice()));
-        assert_eq!(facts.max_argument_bytes, signature.len());
-        assert_eq!(facts.stack_items, 1);
-        assert!(flags.is_set(TxFeatureFlags::SIGHASH_DEFAULT));
     }
 }

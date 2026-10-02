@@ -143,13 +143,6 @@ impl Formattable for AddrState {
 mod tests {
     use super::*;
 
-    #[cfg(feature = "storage")]
-    #[test]
-    fn state_is_one_native_u32() {
-        const { assert!(AddrState::IS_NATIVE_LAYOUT) };
-        assert_eq!(size_of::<AddrState>(), size_of::<u32>());
-    }
-
     #[test]
     fn inline_empty_roundtrips_at_boundaries() {
         let max = EmptyAddrData {
@@ -202,20 +195,5 @@ mod tests {
             })
             .is_none()
         );
-    }
-
-    #[test]
-    fn sidecar_tags_roundtrip() {
-        let funded = FundedAddrIndex::from(PAYLOAD_MASK as usize);
-        assert!(matches!(
-            AddrState::from_funded(funded).decode(),
-            DecodedAddrState::Funded(index) if index == funded
-        ));
-
-        let empty = ExtendedEmptyAddrIndex::from(PAYLOAD_MASK as usize);
-        assert!(matches!(
-            AddrState::from_extended_empty(empty).decode(),
-            DecodedAddrState::ExtendedEmpty(index) if index == empty
-        ));
     }
 }

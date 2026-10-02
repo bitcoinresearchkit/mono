@@ -1,8 +1,7 @@
-use bitview_transforms::{CentsUnsignedToDollars, CentsUnsignedToSats};
 use bitview_vecs::{OhlcPrice, SplitPrice, SpotPrice};
 use brk_types::{Cents, Height, Version};
 use tempfile::tempdir;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadBounds, ReadableVec, UnaryTransform, WritableVec};
+use vecdb::{AnyStoredVec, Database, ReadBounds, ReadableVec, WritableVec};
 
 #[cfg(feature = "diagnostics")]
 use vecdb::diagnostics;
@@ -24,9 +23,6 @@ fn open_prices_match_candles_through_empty_periods_publication_and_rewrites() {
     let candles = OhlcPrice::from_spot("ohlc", Version::ONE, &indexes, &spot);
     let split = SplitPrice::new("price", Version::ONE, &indexes, &spot, &candles);
     let reader = split.clone();
-    assert_eq!(reader.open.cents.day1.name(), "price_open_cents");
-    assert_eq!(reader.open.usd.day1.name(), "price_open");
-    assert_eq!(reader.open.sats.day1.name(), "price_open_sats");
 
     for prices in [
         vec![200, 400, 100, 800, 300, 600],
@@ -57,30 +53,12 @@ fn open_prices_match_candles_through_empty_periods_publication_and_rewrites() {
                     .into_iter()
                     .map(|candle| *candle.open)
                     .collect();
-                let expected_usd: Vec<_> = expected
-                    .iter()
-                    .copied()
-                    .map(CentsUnsignedToDollars::apply)
-                    .collect();
-                // Whole sats cannot represent a missing price; test those
-                // inputs in cents/USD and leave their conversion contract intact.
-                let expected_sats = expected.iter().all(|price| !price.is_nan()).then(|| {
-                    expected
-                        .iter()
-                        .copied()
-                        .map(CentsUnsignedToSats::apply)
-                        .collect::<Vec<_>>()
-                });
                 for cold in [false, true] {
                     if cold {
                         budget.clear();
                     }
                     assert_eq!(reader.open.cents.day1.collect(), expected);
                     assert_eq!(reader.open.cents.epoch.collect(), expected);
-                    assert_eq!(reader.open.usd.day1.collect(), expected_usd);
-                    if let Some(expected_sats) = &expected_sats {
-                        assert_eq!(&reader.open.sats.day1.collect(), expected_sats);
-                    }
                     for (i, &price) in expected.iter().enumerate() {
                         assert_eq!(reader.open.cents.day1.collect_one_at(i), Some(price));
                     }

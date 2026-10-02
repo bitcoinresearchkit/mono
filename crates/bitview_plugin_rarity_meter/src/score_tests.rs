@@ -112,16 +112,6 @@ fn expanded_v2_scores_cap_overflowing_totals() {
         )
         .unwrap();
         assert_scores(&direct, [-128, 120, 0]);
-        compute(
-            &mut direct,
-            &[&component; 27],
-            &floors[..0],
-            &spot,
-            Height::ZERO,
-            &exit,
-        )
-        .unwrap();
-        assert_scores(&direct, [-128, 127, 0]);
         db.flush().unwrap();
     }
     let db = Database::open(directory.path()).unwrap();

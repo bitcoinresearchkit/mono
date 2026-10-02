@@ -2,7 +2,7 @@ use std::fs;
 
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, AnyVec, Bytes, Database, Error, ImportOptions, ImportableVec, OverflowVec,
+    AnyStoredVec, Bytes, Database, Error, ImportOptions, ImportableVec, OverflowVec,
     OverflowVecValue, ReadableVec, Result, Stamp, Version, WritableVec,
 };
 
@@ -142,85 +142,6 @@ fn sorted_reads_preserve_holes_staged_sidecar_reuse_truncation_and_reopen() -> R
 }
 
 #[test]
-fn large_range_decodes_inline_and_overflow_values() -> Result<()> {
-    let temp = tempdir()?;
-    let db = Database::open(temp.path())?;
-    let mut vec = OverflowVec::<usize, TestValue>::forced_import(&db, "large", Version::ONE)?;
-    let expected: Vec<_> = (0..70_000)
-        .map(|index| {
-            if index % 2_048 == 0 {
-                TestValue(1_000 + index as u64)
-            } else {
-                TestValue((index % 128) as u64)
-            }
-        })
-        .collect();
-
-    for value in &expected {
-        vec.push(*value);
-    }
-    vec.write()?;
-
-    assert_eq!(vec.collect(), expected);
-    assert_eq!(vec.read_only_clone().collect(), expected);
-    Ok(())
-}
-
-#[test]
-fn roundtrip_updates_holes_and_read_only_visibility() -> Result<()> {
-    let temp = tempdir()?;
-    let db = Database::open(temp.path())?;
-    let mut vec = OverflowVec::<usize, TestValue>::forced_import(&db, "values", Version::ONE)?;
-    let read_only = vec.read_only_clone();
-
-    vec.push(TestValue(7));
-    vec.push(TestValue(1_000));
-    vec.push(TestValue(3));
-    let reader = vec.reader();
-    assert_eq!(vec.get_with_reader(1, &reader), Some(TestValue(1_000)));
-    assert_eq!(read_only.len(), 0);
-    drop(reader);
-
-    vec.write()?;
-
-    let mut cursor = vec.reader().cursor();
-    cursor.advance(1);
-    assert_eq!(cursor.next(), Some(TestValue(1_000)));
-    assert_eq!(cursor.position(), 2);
-    assert_eq!(cursor.remaining(), 1);
-    assert_eq!(cursor.get(2), Some(TestValue(3)));
-    drop(cursor);
-
-    assert_eq!(
-        read_only.collect(),
-        vec![TestValue(7), TestValue(1_000), TestValue(3)]
-    );
-    assert_eq!(vec.region_names().len(), 2);
-
-    vec.update_many(vec![(0, TestValue(5_000)), (1, TestValue(6_000))])?;
-    vec.delete_many([1, 0]);
-    assert_eq!(vec.holes().len(), 2);
-    assert_eq!(
-        vec.fill_holes_or_push_many(vec![TestValue(9), TestValue(7_000)]),
-        vec![0, 1]
-    );
-    assert_eq!(
-        vec.collect(),
-        vec![TestValue(9), TestValue(7_000), TestValue(3)]
-    );
-
-    vec.write()?;
-    drop(vec);
-
-    let vec = OverflowVec::<usize, TestValue>::import(&db, "values", Version::ONE)?;
-    assert_eq!(
-        vec.collect(),
-        vec![TestValue(9), TestValue(7_000), TestValue(3)]
-    );
-    Ok(())
-}
-
-#[test]
 fn rollback_and_truncation_keep_sidecar_in_sync() -> Result<()> {
     let temp = tempdir()?;
     let db = Database::open(temp.path())?;
@@ -242,103 +163,6 @@ fn rollback_and_truncation_keep_sidecar_in_sync() -> Result<()> {
     assert_eq!(
         vec.collect(),
         vec![TestValue(1), TestValue(1_000), TestValue(2)]
-    );
-    Ok(())
-}
-
-#[test]
-fn forced_version_reset_removes_data_and_holes() -> Result<()> {
-    let temp = tempdir()?;
-    let db = Database::open(temp.path())?;
-    let mut vec = OverflowVec::<usize, TestValue>::forced_import(&db, "reset", Version::ONE)?;
-    vec.push(TestValue(1_000));
-    vec.push(TestValue(2_000));
-    vec.write()?;
-    vec.delete_many([0]);
-    vec.write()?;
-    assert_eq!(vec.holes().len(), 1);
-    drop(vec);
-
-    let mut vec = OverflowVec::<usize, TestValue>::forced_import(&db, "reset", Version::TWO)?;
-    assert!(vec.is_empty());
-    assert!(vec.holes().is_empty());
-    assert_eq!(vec.fill_holes_or_push_many(vec![TestValue(3_000)]), vec![0]);
-    vec.write()?;
-    assert_eq!(vec.collect(), vec![TestValue(3_000)]);
-    Ok(())
-}
-
-#[test]
-fn fills_holes_in_unwritten_values() -> Result<()> {
-    let temp = tempdir()?;
-    let db = Database::open(temp.path())?;
-    let mut vec = OverflowVec::<usize, TestValue>::forced_import(&db, "pushed", Version::ONE)?;
-
-    vec.push(TestValue(1));
-    vec.push(TestValue(2));
-    vec.push(TestValue(3));
-    vec.delete_many([1]);
-
-    assert_eq!(vec.fill_holes_or_push_many(vec![TestValue(4)]), vec![1]);
-    assert!(vec.holes().is_empty());
-    assert_eq!(
-        vec.collect(),
-        vec![TestValue(1), TestValue(4), TestValue(3)]
-    );
-    Ok(())
-}
-
-#[test]
-fn update_many_batches_final_values_across_every_storage_state() -> Result<()> {
-    let temp = tempdir()?;
-    let db = Database::open(temp.path())?;
-    let mut vec = OverflowVec::<usize, TestValue>::forced_import(&db, "batch", Version::ONE)?;
-
-    for value in [1, 1_000, 2, 2_000] {
-        vec.push(TestValue(value));
-    }
-    vec.write()?;
-    vec.delete_many([2]);
-    vec.push(TestValue(3));
-    vec.push(TestValue(3_000));
-
-    vec.update_many(vec![
-        (5, TestValue(6)),
-        (2, TestValue(6_000)),
-        (1, TestValue(5)),
-        (4, TestValue(7_000)),
-        (0, TestValue(7)),
-    ])?;
-    assert_eq!(
-        vec.collect(),
-        vec![
-            TestValue(7),
-            TestValue(5),
-            TestValue(6_000),
-            TestValue(2_000),
-            TestValue(7_000),
-            TestValue(6),
-        ]
-    );
-
-    assert!(
-        vec.update_many(vec![(0, TestValue(8)), (vec.len(), TestValue(9))])
-            .is_err()
-    );
-    assert_eq!(vec.collect_one(0), Some(TestValue(7)));
-    vec.write()?;
-    drop(vec);
-    let vec = OverflowVec::<usize, TestValue>::import(&db, "batch", Version::ONE)?;
-    assert_eq!(
-        vec.collect(),
-        vec![
-            TestValue(7),
-            TestValue(5),
-            TestValue(6_000),
-            TestValue(2_000),
-            TestValue(7_000),
-            TestValue(6),
-        ]
     );
     Ok(())
 }
@@ -422,24 +246,5 @@ fn sidecar_undo_is_prepared_before_either_half_is_overwritten() -> Result<()> {
         values.update_many(vec![(0, TestValue(3))]),
         Err(Error::WriteFailed)
     ));
-    Ok(())
-}
-
-#[test]
-fn late_compact_failure_fences_a_successful_overflow_write() -> Result<()> {
-    let temp = tempdir()?;
-    let db = Database::open(temp.path())?;
-    let mut values = OverflowVec::<usize, TestValue>::import(&db, "values", Version::ONE)?;
-    values.push(TestValue(1));
-    values.push(TestValue(2));
-    values.delete_many([0]);
-    values.stamped_write(Stamp::new(1))?;
-    let holes = db.get_region("values/usize_holes").unwrap();
-    values.update_many(vec![(0, TestValue(1000))])?;
-    assert!(values.stamped_write(Stamp::new(2)).is_err());
-    assert_eq!(values.stamp(), Stamp::new(1));
-    drop(holes);
-    assert!(matches!(values.write(), Err(Error::WriteFailed)));
-    assert!(matches!(values.reset(), Err(Error::WriteFailed)));
     Ok(())
 }

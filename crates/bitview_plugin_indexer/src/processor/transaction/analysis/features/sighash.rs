@@ -115,17 +115,3 @@ pub fn taproot_feature_flags(sighash_type: TapSighashType) -> u32 {
     }
     flags
 }
-
-#[cfg(test)]
-mod tests {
-    use super::is_ecdsa_signature_candidate;
-
-    #[test]
-    fn rejects_impossible_ecdsa_signature_encodings() {
-        assert!(!is_ecdsa_signature_candidate(&[0x30; 8]));
-        assert!(is_ecdsa_signature_candidate(&[0x30; 9]));
-        assert!(is_ecdsa_signature_candidate(&[0x30; 73]));
-        assert!(!is_ecdsa_signature_candidate(&[0x30; 74]));
-        assert!(!is_ecdsa_signature_candidate(&[0x02; 33]));
-    }
-}

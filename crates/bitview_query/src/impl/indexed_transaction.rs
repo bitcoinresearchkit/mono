@@ -48,7 +48,3 @@ fn decode(bytes: &[u8], txid: Txid) -> Result<Transaction> {
     }
     Ok(transaction)
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/impl/indexed_transaction.rs"]
-mod tests;

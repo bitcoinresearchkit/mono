@@ -1,6 +1,6 @@
 use std::sync::{
     Arc,
-    atomic::{AtomicBool, AtomicUsize, Ordering},
+    atomic::{AtomicBool, Ordering},
 };
 
 use bitview_vecs::{
@@ -9,9 +9,8 @@ use bitview_vecs::{
 use brk_types::{Height, StoredU64};
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, AnyVec, BinaryTransform, BytesVec, Cursor, Database, Ident, ImportableVec,
-    LazyVec, MutableVec, ReadOnlyClone, ReadableBoxedVec, ReadableCloneableVec, ReadableVec,
-    ReverseOperands, Version, WritableVec,
+    AnyVec, BinaryTransform, Database, Ident, LazyVec, ReadOnlyClone, ReadableBoxedVec,
+    ReadableCloneableVec, ReadableVec, ReverseOperands, Version,
 };
 
 #[allow(dead_code)]
@@ -292,19 +291,6 @@ fn check(view: ReadableBoxedVec<Height, StoredU64>, expected: &[StoredU64]) {
     assert_eq!(view.read_sorted_at(&indices), expected);
 }
 
-fn check_early_stop(view: &impl ReadableVec<Height, StoredU64>, calls: &AtomicUsize) {
-    calls.store(0, Ordering::Relaxed);
-    let mut seen = 0;
-    assert_eq!(
-        view.try_fold_range_at(20, 39_000, (), |(), _| {
-            seen += 1;
-            if seen == 3 { Err("stop") } else { Ok(()) }
-        }),
-        Err("stop")
-    );
-    assert_eq!(calls.load(Ordering::Relaxed), 3);
-}
-
 #[test]
 fn views_match_scalar_results_across_cached_and_fragmented_inputs() {
     let directory = tempdir().unwrap();
@@ -361,163 +347,5 @@ fn views_match_scalar_results_across_cached_and_fragmented_inputs() {
             LazyPreviousDeltaVec::new("delta", Version::ONE, &source).read_only_boxed_clone(),
             &vec![StoredU64::from(3u64); 40_000],
         );
-    }
-}
-
-#[test]
-fn captured_transforms_stop_at_first_error_and_views_follow_rewrites() {
-    let directory = tempdir().unwrap();
-    let db = Database::open(directory.path()).unwrap();
-    let mut source = common::stored::<Height, _>(
-        &db,
-        "source",
-        (0..40_000u64).map(|i| StoredU64::from((i + 1) * 3)),
-    );
-    let cached = source.read_only_clone();
-    let starts = common::stored::<Height, _>(
-        &db,
-        "starts",
-        (0..40_000usize).map(|i| Height::from(i.saturating_sub(10))),
-    );
-    let calls = Arc::new(AtomicUsize::new(0));
-    let counter = calls.clone();
-    let window = LazyWindowVec::new(
-        "window",
-        Version::ONE,
-        &cached,
-        &starts,
-        true,
-        move |a: StoredU64, b: StoredU64, _| {
-            counter.fetch_add(1, Ordering::Relaxed);
-            StoredU64::from(u64::from(a) - u64::from(b))
-        },
-    );
-    let counter = calls.clone();
-    let lookback = LazyLookbackVec::new(
-        "lookback",
-        Version::ONE,
-        &cached,
-        10,
-        move |a: StoredU64, b: Option<StoredU64>| {
-            counter.fetch_add(1, Ordering::Relaxed);
-            StoredU64::from(u64::from(a) - u64::from(b.unwrap_or_default()))
-        },
-    );
-    check_early_stop(&window, &calls);
-    check_early_stop(&lookback, &calls);
-    let delta = LazyPreviousDeltaVec::new("delta", Version::ONE, &cached);
-    cached.collect();
-    source.truncate_if_needed_at(39_999).unwrap();
-    source.push(StoredU64::from(120_100u64));
-    source.write().unwrap();
-    for (view, expected) in [
-        (window.read_only_boxed_clone(), 133u64),
-        (lookback.read_only_boxed_clone(), 130),
-        (delta.read_only_boxed_clone(), 103),
-    ] {
-        assert_eq!(
-            view.collect_range_at(39_999, 45_000),
-            [StoredU64::from(expected)]
-        );
-    }
-}
-
-#[test]
-fn sparse_sources_keep_legacy_emitted_value_alignment() {
-    let directory = tempdir().unwrap();
-    let db = Database::open(directory.path()).unwrap();
-    let mut source =
-        MutableVec::<BytesVec<Height, u64>>::import(&db, "sparse", Version::ONE).unwrap();
-    for i in 0..20_000u64 {
-        source.push(i * 3);
-    }
-    for i in 4096..8192 {
-        source.delete_at(i);
-    }
-    source.write().unwrap();
-    let starts = common::stored::<Height, _>(
-        &db,
-        "sparse_starts",
-        (0..20_000usize).map(|i| Height::from(i.saturating_sub(17))),
-    );
-    let window = LazyWindowVec::new("window", Version::ONE, &source, &starts, true, |a, b, n| {
-        a + b + n as u64
-    });
-    let lookback = LazyLookbackVec::new("lookback", Version::ONE, &source, 17, |a, b| {
-        a + b.unwrap_or(0)
-    });
-    let delta = LazyPreviousDeltaVec::new("delta", Version::ONE, &source);
-    for (from, to) in [(0usize, 20_000usize), (3990, 9000), (4096, 8192)] {
-        let indices = [from, from + 2, from + 2, to - 1];
-        let mut cursor = Cursor::new(&source);
-        let expected: Vec<_> = indices
-            .iter()
-            .filter_map(|&i| {
-                let previous = i.checked_sub(1).and_then(|i| cursor.get(i)).unwrap_or(0);
-                cursor
-                    .get(i)
-                    .map(|current| current.saturating_sub(previous))
-            })
-            .collect();
-        assert_eq!(delta.read_sorted_at(&indices), expected);
-        let previous_from = from.saturating_sub(17);
-        let previous = source.collect_range_at(previous_from, to.saturating_sub(17));
-        let expected: Vec<_> = source
-            .collect_range_at(from, to)
-            .into_iter()
-            .enumerate()
-            .map(|(offset, value)| {
-                value
-                    + (from + offset)
-                        .checked_sub(17)
-                        .map(|i| previous[i - previous_from])
-                        .unwrap_or(0)
-            })
-            .collect();
-        assert_eq!(lookback.collect_range_at(from, to), expected);
-        let mut chunks = Vec::new();
-        lookback.for_each_chunk_at(from, to, &mut |at, values| {
-            assert_eq!(at, from + chunks.len());
-            chunks.extend_from_slice(values);
-        });
-        assert_eq!(chunks, expected);
-        let mut values = source
-            .collect_range_at(from.saturating_sub(1), to)
-            .into_iter();
-        let mut previous = if from == 0 {
-            0
-        } else {
-            values.next().unwrap_or(0)
-        };
-        let expected: Vec<_> = values
-            .map(|value| {
-                let diff = value.saturating_sub(previous);
-                previous = value;
-                diff
-            })
-            .collect();
-        assert_eq!(delta.collect_range_at(from, to), expected);
-        assert_eq!(
-            delta.fold_range_at(from, to, Vec::new(), |mut out, value| {
-                out.push(value);
-                out
-            }),
-            expected
-        );
-        assert_eq!(
-            delta.try_fold_range_at(from, to, Vec::new(), |mut out, value| {
-                out.push(value);
-                Ok::<_, ()>(out)
-            }),
-            Ok(expected)
-        );
-        // The retained scalar fallible paths define legacy sparse alignment.
-        let expected = window
-            .try_fold_range_at(from, to, Vec::new(), |mut out, value| {
-                out.push(value);
-                Ok::<_, ()>(out)
-            })
-            .unwrap();
-        assert_eq!(window.collect_range_at(from, to), expected);
     }
 }

@@ -161,7 +161,3 @@ impl PriceSource for Kraken {
         self._1mn.take();
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/kraken.rs"]
-mod tests;

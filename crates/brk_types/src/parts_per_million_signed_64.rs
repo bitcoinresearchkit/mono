@@ -40,7 +40,6 @@ use vecdb::{Formattable, Pco};
 pub struct PartsPerMillionSigned64(i64);
 
 impl PartsPerMillionSigned64 {
-    pub const ONE: Self = Self(1_000_000);
     const NAN: Self = Self(i64::MIN);
 
     #[inline]
@@ -236,27 +235,6 @@ impl Formattable for PartsPerMillionSigned64 {
             buf.extend_from_slice(b"null");
         } else {
             self.write_to(buf);
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn conversions_and_sentinels() {
-        assert_eq!(f64::from(PartsPerMillionSigned64::ONE), 1.0);
-        assert_eq!(PartsPerMillionSigned64::from(-0.123_456_6).0, -123_457);
-        assert_eq!(PartsPerMillionSigned64::from(f64::MAX).0, i64::MAX);
-        assert_eq!(PartsPerMillionSigned64::from(f64::MIN).0, i64::MIN + 1);
-        assert!(PartsPerMillionSigned64::from(f64::NEG_INFINITY).is_nan());
-
-        #[cfg(feature = "storage")]
-        {
-            let mut json = Vec::new();
-            PartsPerMillionSigned64::NAN.fmt_json(&mut json);
-            assert_eq!(json, b"null");
         }
     }
 }

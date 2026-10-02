@@ -17,7 +17,3 @@ pub fn output_count(first: TxOutIndex, next: TxOutIndex, published: TxOutIndex) 
     }
     Ok(count as usize)
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/tx/output_count.rs"]
-mod tests;

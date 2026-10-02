@@ -44,24 +44,8 @@ pub struct PriceRatio(u32);
 
 impl PriceRatio {
     const SCALE: u32 = 1_000_000;
-    pub const ZERO: Self = Self(0);
-    pub const ONE: Self = Self(Self::SCALE);
     pub const MAX: Self = Self(u32::MAX - 1);
     pub const NAN: Self = Self(u32::MAX);
-
-    /// Whether the value is at the ceiling (exact ceiling and overflow coincide).
-    pub const fn is_saturated(self) -> bool {
-        self.0 == Self::MAX.0
-    }
-
-    /// Restore raw encoded bits, including the undefined sentinel.
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
-
-    pub const fn inner(self) -> u32 {
-        self.0
-    }
 
     pub const fn is_nan(self) -> bool {
         self.0 == u32::MAX

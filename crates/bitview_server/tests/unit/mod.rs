@@ -7,8 +7,6 @@ mod broadcast;
 #[cfg(all(feature = "chain", feature = "series"))]
 mod cache_reorg;
 #[cfg(feature = "chain")]
-mod cdn_mode;
-#[cfg(feature = "chain")]
 mod chain_fixture;
 #[cfg(any(feature = "chain", feature = "price"))]
 mod chain_rpc;
@@ -26,11 +24,6 @@ mod historical_price;
 mod mempool;
 #[cfg(feature = "chain")]
 mod mempool_publication;
-mod middleware;
-#[cfg(feature = "chain")]
-mod mining;
-#[cfg(feature = "price")]
-mod oracle;
 #[cfg(feature = "chain")]
 mod raw_responses;
 #[cfg(all(feature = "chain", feature = "series"))]

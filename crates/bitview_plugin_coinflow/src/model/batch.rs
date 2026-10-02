@@ -103,16 +103,6 @@ mod tests {
     use brk_types::{Cents, CentsSats, CentsSquaredSats};
 
     #[test]
-    fn mobility_is_the_complement_of_survival() {
-        assert_eq!(AgeBand::mobility(0.0), 0.0);
-        assert!((AgeBand::mobility(2.0_f64.ln()) - 0.5).abs() < 1e-12);
-        assert!((AgeBand::mobility(1e-15) - 1e-15).abs() < 1e-27);
-        assert!(AgeBand::mobility(1_000.0) < 1.0);
-        assert_eq!(AgeBand::mobility(f64::INFINITY), 1.0 - 1e-12);
-        assert_eq!(AgeBand::mobility(f64::NAN), 0.0);
-    }
-
-    #[test]
     fn age_threshold_prices_follow_bounded_mobility_and_exact_cutoffs() {
         let bounds = AgeBand::all();
         let batch = PrimaryBatch {

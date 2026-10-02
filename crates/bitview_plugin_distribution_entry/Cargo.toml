@@ -31,7 +31,6 @@ bitview_plugin_inputs = { workspace = true }
 bitview_plugin_outputs = { workspace = true }
 bitview_plugin_price = { workspace = true }
 bitview_plugin_utxo_history = { workspace = true }
-bitview_query = { workspace = true, default-features = false }
 bitview_runtime = { workspace = true }
 bitviewd = { workspace = true, default-features = false, features = ["full-api"] }
 bitview_plugin_indexer = { workspace = true }

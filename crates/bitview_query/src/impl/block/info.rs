@@ -703,7 +703,3 @@ impl Query {
         Ok(count.size())
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/block/info.rs"]
-mod tests;

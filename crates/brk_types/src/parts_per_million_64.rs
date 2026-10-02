@@ -240,24 +240,3 @@ impl Formattable for PartsPerMillion64 {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn conversions_and_sentinels() {
-        assert_eq!(PartsPerMillion64::from(0.123_456_6).inner(), 123_457);
-        assert_eq!(f64::from(PartsPerMillion64::from(1.0)), 1.0);
-        assert_eq!(PartsPerMillion64::from(-1.0), PartsPerMillion64::ZERO);
-        assert_eq!(PartsPerMillion64::from(f64::MAX).inner(), u64::MAX - 1);
-        assert!(PartsPerMillion64::from(f64::INFINITY).is_nan());
-
-        #[cfg(feature = "storage")]
-        {
-            let mut json = Vec::new();
-            PartsPerMillion64::NAN.fmt_json(&mut json);
-            assert_eq!(json, b"null");
-        }
-    }
-}

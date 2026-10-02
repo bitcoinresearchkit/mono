@@ -37,14 +37,4 @@ impl<'a> ImportOptions<'a> {
         self.saved_stamped_changes = num;
         self
     }
-
-    pub fn with_initial_capacity(mut self, capacity: usize) -> Self {
-        self.initial_capacity = Some(capacity);
-        self
-    }
-
-    pub fn with_max_compression_chunk_size(mut self, bytes: usize) -> Self {
-        self.max_compression_chunk_size = Some(bytes);
-        self
-    }
 }

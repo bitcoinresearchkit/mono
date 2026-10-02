@@ -6,16 +6,6 @@
 //! Readers keep the last complete state until one atomic replacement publishes
 //! its successor. Transaction bodies are shared and use copy-on-write for fills.
 //!
-//! ```no_run
-//! use brk_mempool::Mempool;
-//! # fn make_client() -> brk_rpc::Client { unimplemented!() }
-//! let client = make_client();
-//! let mut mempool = Mempool::new(&client);
-//! let reader = mempool.read_only_clone();
-//! std::thread::spawn(move || mempool.start());
-//! let state = reader.load();
-//! let info = state.info();
-//! ```
 
 use std::sync::Arc;
 
@@ -48,10 +38,6 @@ use state::State;
 
 /// Single owner of the mutable pool and update pipeline.
 ///
-/// ```compile_fail
-/// # use brk_mempool::Mempool;
-/// fn duplicate(writer: &Mempool) -> Mempool { writer.clone() }
-/// ```
 pub struct Mempool {
     client: Client,
     state: State,

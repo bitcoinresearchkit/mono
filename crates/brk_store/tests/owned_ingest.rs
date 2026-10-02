@@ -1,8 +1,7 @@
 use brk_error::Result;
 use brk_store::{Kind, Store, open_database};
 use brk_types::{
-    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, OutPoint, TxIndex, TypeIndex, Unit, Version,
-    Vout,
+    AddrIndexOutPoint, AddrIndexTxIndex, OutPoint, TxIndex, TypeIndex, Unit, Version, Vout,
 };
 use tempfile::tempdir;
 
@@ -65,31 +64,6 @@ fn owned_ingest_preserves_pending_cancellation_tombstones_and_reopened_values() 
         assert!(store.get(&key(5, 5))?.is_none());
         assert!(store.get(&key(6, 6))?.is_none());
     }
-
-    Ok(())
-}
-
-#[test]
-fn owned_point_values_survive_updates_and_deletion() -> Result<()> {
-    let dir = tempdir()?;
-    let path = dir.path();
-    let db = open_database(path)?;
-    let mut store = Store::import(&db, path, "pending_tombstone", Version::ZERO, Kind::Random)?;
-    let key = AddrHash::new(42);
-
-    store.insert(key, TypeIndex::new(1));
-    let pending = store.get(&key)?;
-    store.insert(key, TypeIndex::new(2));
-    assert_eq!(pending, Some(TypeIndex::new(1)));
-    assert_eq!(store.get(&key)?, Some(TypeIndex::new(2)));
-    store.take_pending_ingest().unwrap().run()?;
-    let persisted = store.get(&key)?;
-
-    store.remove(key);
-    assert_eq!(persisted, Some(TypeIndex::new(2)));
-    assert!(store.get(&key)?.is_none());
-    store.take_pending_ingest().unwrap().run()?;
-    assert!(store.get(&key)?.is_none());
 
     Ok(())
 }

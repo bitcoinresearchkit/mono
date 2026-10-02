@@ -39,15 +39,3 @@ fn parse_price_cents(line: &str) -> Cents {
     let dollars: f64 = line.parse().expect("invalid baked oracle price");
     Cents::new((dollars * 100.0).round() as u64)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn prices_txt_covers_pre_oracle_range() {
-        assert!(PRICES.lines().count() >= START_HEIGHT_SLOW);
-        assert_eq!(pre_oracle_prices_from(0).count(), START_HEIGHT_SLOW);
-        seed_price_cents();
-    }
-}

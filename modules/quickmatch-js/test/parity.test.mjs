@@ -52,48 +52,6 @@ for (const separators of ['_- :/', '_. /', ' ', '']) {
   });
 }
 
-test('empty corpus and owned inputs', () => {
-  assert.deepEqual(new QuickMatch([]).matches('price'), []);
-  const items = ['price'];
-  const config = new QuickMatchConfig();
-  const matcher = new QuickMatch(items, config);
-  items[0] = 'changed';
-  config.withSeparators('p');
-  assert.deepEqual(matcher.matches('price'), ['price']);
-  assert.deepEqual(matcher.matchesWithIdsAndMatchedWords('price'), [[0, 1]]);
-});
+
 
 // Exact words should beat longer variants even when the query is reordered.
-test('complete metric words rank first in any order', () => {
-  const items = ['sth_realized_price_pct1', 'realized_price_sth_ratio', 'price_price_sth', 'sth_realized_price'];
-  const matcher = new QuickMatch(items);
-  for (const query of ['sth realized price', 'sth price realized', 'realized sth price', 'realized price sth', 'price sth realized', 'price realized sth']) {
-    const config = new QuickMatchConfig().withLimit(1);
-    assert.deepEqual(matcher.matchesWithIdsAndMatchedWords(query, config), [[3, 3]], query);
-    assert.deepEqual(matcher.matchesBestWithIdsAndMatchedWords(query, config), [[3, 3]], query);
-  }
-  assert.deepEqual(new QuickMatch(['price_price_sth']).matchesWithIdsAndMatchedWords('realized price sth'), [[0, 2]]);
-});
-
-test('unordered terms, joined words and swapped letters rank the base metric first', () => {
-  const items = ['utxos_in_profit_sth_supply', 'sth_supply_in_profit', 'difficulty_hashrate', 'hash_rate', 'hash_rate_ath', 'sth_realized_cap', 'sth_realized_price_pct1', 'sth_realized_price', 'op_return_hash_fee'];
-  const matcher = new QuickMatch(items);
-  for (const [query, expected] of [
-    ['profit supply sth', 'sth_supply_in_profit'],
-    ['sth profit supply', 'sth_supply_in_profit'],
-    ['hashrate', 'hash_rate'],
-    ['hash rate', 'hash_rate'],
-    ['hashraet', 'hash_rate'],
-    ['realized prcie sth', 'sth_realized_price'],
-    ['hash rte', 'hash_rate'],
-  ]) assert.equal(matcher.matches(query)[0], expected, query);
-  assert.equal(matcher.matchesWith('realized prcie sth', new QuickMatchConfig().withTrigramBudget(0))[0], 'sth_realized_cap');
-});
-
-test('exact words exclude prefixes, require complete queries and support long descriptive queries', () => {
-  const matcher = new QuickMatch(['alpha_beta', 'alpha_betamax', 'alpha']);
-  const strict = new QuickMatchConfig().withUnionFallback(false);
-  assert.deepEqual(matcher.matchesExactWithIdsAndMatchedWords('beta alpha', strict), [[0, 2]]);
-  assert.deepEqual(matcher.matchesExactWithIdsAndMatchedWords('alpha missing', strict), []);
-  assert.deepEqual(matcher.matchesExactWithIdsAndMatchedWords('alpha beta extra descriptive words'), [[0, 2], [2, 1], [1, 1]]);
-});

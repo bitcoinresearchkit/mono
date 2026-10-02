@@ -48,24 +48,3 @@ impl ComputePlugin for Vecs {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn counts_only_consecutive_near_full_blocks() {
-        assert_eq!(
-            next_streak(Weight::from(NEAR_FULL_WEIGHT), StoredU64::ZERO),
-            StoredU64::from(1_u64)
-        );
-        assert_eq!(
-            next_streak(Weight::from(NEAR_FULL_WEIGHT + 1), StoredU64::from(4_u64)),
-            StoredU64::from(5_u64)
-        );
-        assert_eq!(
-            next_streak(Weight::from(NEAR_FULL_WEIGHT - 1), StoredU64::from(5_u64)),
-            StoredU64::ZERO
-        );
-    }
-}

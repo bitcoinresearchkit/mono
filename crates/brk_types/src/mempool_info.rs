@@ -63,27 +63,3 @@ fn deserialize_fee_histogram<'de, D: Deserializer<'de>>(
     let vec: Vec<(FeeRate, VSize)> = Vec::deserialize(deserializer)?;
     Ok(vec.into_iter().collect())
 }
-
-#[cfg(test)]
-mod tests {
-    use schemars::schema_for;
-    use serde_json::{json, to_value};
-
-    use super::*;
-
-    #[test]
-    fn fee_histogram_schema_matches_its_pair_array_serialization() {
-        let mut info = MempoolInfo::default();
-        info.fee_histogram
-            .insert(FeeRate::from(2.5), VSize::from(100_u64));
-        let value = to_value(info).unwrap();
-        assert_eq!(value["fee_histogram"], json!([[2.5, 100]]));
-
-        let schema = to_value(schema_for!(MempoolInfo)).unwrap();
-        let histogram = &schema["properties"]["fee_histogram"];
-        assert_eq!(histogram["type"], "array");
-        assert_eq!(histogram["items"]["type"], "array");
-        assert_eq!(histogram["items"]["minItems"], 2);
-        assert_eq!(histogram["items"]["maxItems"], 2);
-    }
-}

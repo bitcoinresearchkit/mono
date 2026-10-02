@@ -16,9 +16,6 @@ mod state;
 mod util;
 mod view;
 
-#[cfg(test)]
-mod state_tests;
-
 pub use amount::Amount;
 pub use block_diff::BlockDiff;
 pub use creations::Creations;

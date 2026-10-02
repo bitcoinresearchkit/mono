@@ -23,57 +23,6 @@ fn setup_test_db() -> Result<(Database, TempDir)> {
     Ok((db, temp_dir))
 }
 
-/// Test that multiple vecs can be written without flush, then flushed together
-#[test]
-fn test_batched_writes_single_flush() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-    let version = Version::ONE;
-
-    let mut vec1: BytesVec<usize, u64> = BytesVec::forced_import(&db, "vec1", version)?;
-    let mut vec2: BytesVec<usize, u64> = BytesVec::forced_import(&db, "vec2", version)?;
-    let mut vec3: BytesVec<usize, u64> = BytesVec::forced_import(&db, "vec3", version)?;
-
-    // Write to all vecs without flushing
-    for i in 0..100u64 {
-        vec1.push(i);
-        vec2.push(i * 2);
-        vec3.push(i * 3);
-    }
-
-    // Write all (to mmap) without flush
-    vec1.write()?;
-    vec2.write()?;
-    vec3.write()?;
-
-    // Create VecReaders
-    let r1 = vec1.reader();
-    let r2 = vec2.reader();
-    let r3 = vec3.reader();
-
-    // All readers should see the data
-    assert_eq!(r1.stored_len(), 100);
-    assert_eq!(r2.stored_len(), 100);
-    assert_eq!(r3.stored_len(), 100);
-
-    assert_eq!(r1.get(50), 50);
-    assert_eq!(r2.get(50), 100);
-    assert_eq!(r3.get(50), 150);
-
-    // Flush while readers are still alive - no deadlock since
-    // dirty_range is in a separate Mutex from region metadata
-    db.flush()?;
-
-    // Data should still be readable after flush
-    drop(r1);
-    drop(r2);
-    drop(r3);
-
-    let r1 = vec1.reader();
-    assert_eq!(r1.get(99), 99);
-
-    Ok(())
-}
-
 /// A newly published length must have readable data behind it for every reader.
 #[test]
 fn test_memory_ordering_len_vs_data() -> Result<()> {

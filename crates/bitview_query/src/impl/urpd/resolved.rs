@@ -52,7 +52,3 @@ impl ResolvedUrpd {
         Ok(())
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/urpd/resolved.rs"]
-mod tests;

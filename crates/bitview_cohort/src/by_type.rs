@@ -21,15 +21,6 @@ pub struct ByType<T> {
 }
 
 impl<T> ByType<T> {
-    pub fn from_fn(mut create: impl FnMut(OutputType) -> T) -> Self {
-        Self {
-            spendable: SpendableType::from_fn(|kind| create(kind.output_type())),
-            unspendable: UnspendableType {
-                op_return: create(OutputType::OpReturn),
-            },
-        }
-    }
-
     pub fn map_with_id<U>(&self, mut map: impl FnMut(CohortId, &T) -> U) -> ByType<U> {
         ByType {
             spendable: self.spendable.map_with_id(&mut map),
@@ -58,13 +49,6 @@ impl<T> ByType<T> {
         match output_type {
             OutputType::OpReturn => &self.unspendable.op_return,
             kind => self.spendable.get(kind),
-        }
-    }
-
-    pub fn get_mut(&mut self, output_type: OutputType) -> &mut T {
-        match output_type {
-            OutputType::OpReturn => &mut self.unspendable.op_return,
-            kind => self.spendable.get_mut(kind),
         }
     }
 

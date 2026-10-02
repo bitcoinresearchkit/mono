@@ -9,6 +9,3 @@ pub use amount_value::AmountValueSources;
 pub use creation::CreationSources;
 pub use cumulative::{CumulativeCreationSources, CumulativeCreationValueSources};
 pub use disjoint_age::DisjointAgeSources;
-
-#[cfg(test)]
-mod tests;

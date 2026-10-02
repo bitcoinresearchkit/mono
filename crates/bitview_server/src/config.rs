@@ -4,13 +4,14 @@ use std::{
 };
 
 use bitview_website::Website;
-use brk_types::Port;
+use brk_types::{OHLCCents, Port};
 
 use crate::cache::CdnCacheMode;
 
-/// Default max series-query response weight.
-/// 50 MB - generous enough for any honest query, low enough to limit cache-buster leverage.
-pub const DEFAULT_MAX_WEIGHT: usize = 50 * 1_000_000;
+/// Default max series-query response weight, in raw value bytes.
+/// 10k OHLC values (320 KB): the website's largest chart request, so every
+/// response stays light and fast without a server-wide body budget.
+pub const DEFAULT_MAX_WEIGHT: usize = 10_000 * size_of::<OHLCCents>();
 
 /// Default max UTXOs returned per address.
 /// Bounds worst-case work and response size, prevents heavy-address DDoS.

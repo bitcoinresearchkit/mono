@@ -13,9 +13,6 @@ include_dir = { workspace = true, optional = true }
 rapidhash = { workspace = true }
 serde_json = { workspace = true }
 
-[dev-dependencies]
-tempfile = { workspace = true }
-
 [features]
 default = []
 embedded = ["include_dir"]

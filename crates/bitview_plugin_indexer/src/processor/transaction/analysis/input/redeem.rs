@@ -75,39 +75,3 @@ impl Facts {
         sigops: 0,
     };
 }
-
-#[cfg(test)]
-mod tests {
-    use bitcoin::ScriptBuf;
-    use brk_types::OutputType;
-
-    use super::{Facts, Kind};
-
-    fn classify(hex: &str) -> Facts {
-        let script = ScriptBuf::from_hex(hex).unwrap();
-        Facts::analyze(Some(script.as_bytes()), OutputType::P2SH)
-    }
-
-    #[test]
-    fn classifies_redeem_scripts_once() {
-        assert_eq!(
-            classify("00140000000000000000000000000000000000000000").kind,
-            Kind::P2WPKH
-        );
-        assert_eq!(
-            classify("00200000000000000000000000000000000000000000000000000000000000000000").kind,
-            Kind::P2WSH
-        );
-        assert_eq!(
-            classify("51200000000000000000000000000000000000000000000000000000000000000000").kind,
-            Kind::Witness
-        );
-        assert_eq!(classify("ac").kind, Kind::Other);
-        assert_eq!(classify("ac").sigops(), Some(1));
-        assert_eq!(Facts::analyze(None, OutputType::P2SH).kind, Kind::None);
-        assert_eq!(
-            Facts::analyze(Some(&[0xac]), OutputType::P2PKH).kind,
-            Kind::None
-        );
-    }
-}

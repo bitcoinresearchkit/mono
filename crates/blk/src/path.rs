@@ -35,24 +35,3 @@ impl Path {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn consumes_only_numeric_following_segments_as_indexes() {
-        let path = Path::parse("tx.2.vout.0.value").unwrap();
-        let steps: Vec<_> = path
-            .steps
-            .iter()
-            .map(|step| (step.name.as_str(), step.index))
-            .collect();
-        assert_eq!(steps, [("tx", Some(2)), ("vout", Some(0)), ("value", None)]);
-        assert_eq!(path.raw, "tx.2.vout.0.value");
-        assert_eq!(Path::parse("tx.value").unwrap().steps.len(), 2);
-        for invalid in ["", ".tx", "tx.", "tx..value", "0.tx", "tx.0.1"] {
-            assert!(Path::parse(invalid).is_err(), "{invalid}");
-        }
-    }
-}

@@ -47,22 +47,3 @@ fn validate_origin(base: &str, label: &str) -> Result<(), String> {
     }
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn validates_and_normalizes_public_urls() {
-        assert_eq!(
-            public_url("https://mcp.example.com").unwrap(),
-            "https://mcp.example.com/"
-        );
-        assert_eq!(
-            public_url("http://127.0.0.1:3111/").unwrap(),
-            "http://127.0.0.1:3111/"
-        );
-        assert!(public_url("mcp.example.com").is_err());
-        assert!(public_url("https://mcp.example.com/server").is_err());
-    }
-}

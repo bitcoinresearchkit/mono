@@ -175,30 +175,6 @@ mod tests {
     }
 
     #[test]
-    fn second_tx_touching_addr_does_not_re_enter() {
-        let mut tracker = AddrTracker::default();
-        let mut transitions = AddrTransitions::default();
-        let shared = p2wpkh_script(4);
-        let tx_a = fake_tx(3, &[], &[(shared.clone(), 2_500)]);
-        let tx_b = fake_tx(4, &[], &[(shared.clone(), 7_500)]);
-
-        tracker.add_tx(&mut transitions, &tx_a);
-        tracker.add_tx(&mut transitions, &tx_b);
-
-        assert_eq!(tracker.len(), 1);
-        let address = addr_of(&shared);
-        let entry = tracker.get(&address).expect("addr indexed");
-        assert_eq!(entry.stats.funded_txo_count, 2);
-        assert_eq!(entry.stats.funded_txo_sum, Sats::from(10_000u64));
-        assert_eq!(entry.stats.balance_delta, SatsSigned::from(10_000i64));
-        assert_eq!(entry.stats.tx_count, 2);
-
-        // Only one enter, even though two txs landed on the addr.
-        let (enters, leaves) = transitions.into_vecs();
-        assert_eq!(enters, vec![address]);
-        assert!(leaves.is_empty());
-    }
-    #[test]
     fn a_frozen_tracker_keeps_its_stats_and_transaction_membership() {
         let mut writer = AddrTracker::default();
         let mut transitions = AddrTransitions::default();

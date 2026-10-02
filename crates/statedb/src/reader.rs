@@ -1,5 +1,5 @@
-use crate::{Amount, Creations, Cursor, History, Spends, State, snapshot::Snapshot, util::invalid};
-use std::{io::Result, ops::Range};
+use crate::{Creations, Cursor, History, Spends, State, snapshot::Snapshot, util::invalid};
+use std::io::Result;
 
 /// An immutable view of one published prefix. Its borrows prevent producer mutation.
 pub struct Reader<'a> {
@@ -49,25 +49,5 @@ impl Reader<'_> {
 
     pub fn cursor<'a>(&'a self, state: &'a mut State) -> Result<Cursor<'a>> {
         Cursor::new(state, self.end, self.spends, self.creations)
-    }
-
-    pub fn replay(
-        &self,
-        state: &mut State,
-        end: usize,
-        visit: impl FnMut(usize, Amount) -> Result<()>,
-    ) -> Result<()> {
-        self.validate_range(&(state.len()..end))?;
-        History::replay(state, end, self.spends, self.creations, visit)
-    }
-
-    fn validate_range(&self, range: &Range<usize>) -> Result<()> {
-        if range.start > range.end
-            || range.start < self.spends.start().max(self.creations.start())
-            || range.end > self.end
-        {
-            return Err(invalid("range outside published origin history"));
-        }
-        Ok(())
     }
 }

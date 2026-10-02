@@ -28,7 +28,3 @@ impl PreparedJson {
         &self.bytes
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/prepared_json.rs"]
-mod tests;

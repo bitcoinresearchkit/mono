@@ -6,7 +6,7 @@ use axum::{
     http::{Request, StatusCode},
     middleware::from_fn,
 };
-use tokio::{spawn, time::sleep};
+use tokio::time::timeout;
 use tower::ServiceExt;
 
 use crate::{AppState, api::ApiRoutes, request_deadline};
@@ -22,7 +22,6 @@ pub(crate) async fn check(state: &AppState) {
             .body(Body::empty())
             .unwrap()
     };
-    let budget = &state.series_bodies.response_bodies;
     for endpoint in ["timestamp/height", "timestamp/height/data", "bulk"] {
         for format in ["json", "csv"] {
             let selection = if endpoint == "bulk" {
@@ -41,13 +40,6 @@ pub(crate) async fn check(state: &AppState) {
                 assert!(first.headers().contains_key("content-disposition"));
             }
             let tag = first.headers()["etag"].to_str().unwrap().to_owned();
-            let second = router
-                .clone()
-                .oneshot(request("GET", &path, "\"old\""))
-                .await
-                .unwrap();
-            assert_eq!(second.status(), StatusCode::OK);
-            assert_eq!(budget.available_permits(), 0);
             for method in ["GET", "HEAD"] {
                 for condition in [tag.as_str(), "*"] {
                     let response = router
@@ -58,21 +50,22 @@ pub(crate) async fn check(state: &AppState) {
                     assert_eq!(response.status(), StatusCode::NOT_MODIFIED);
                 }
             }
-            let waiting_router = router.clone().layer(from_fn(request_deadline::apply));
-            let pending = spawn(waiting_router.oneshot(request("GET", &path, "\"old\"")));
-            sleep(Duration::from_millis(50)).await;
-            assert!(
-                !pending.is_finished(),
-                "capacity must wait inside the server"
-            );
-            drop(first);
-            let admitted = pending.await.unwrap().unwrap();
-            assert_eq!(admitted.status(), StatusCode::OK);
-            assert_eq!(budget.available_permits(), 0);
-            drop(admitted);
-            assert_eq!(budget.available_permits(), 1);
-            drop(second);
-            assert_eq!(budget.available_permits(), 2);
+            // Unsent bodies never block other series responses.
+            let deadline_router = router.clone().layer(from_fn(request_deadline::apply));
+            let mut held = vec![first];
+            for _ in 0..8 {
+                let response = timeout(
+                    Duration::from_secs(1),
+                    deadline_router
+                        .clone()
+                        .oneshot(request("GET", &path, "\"old\"")),
+                )
+                .await
+                .expect("held bodies must not delay new responses")
+                .unwrap();
+                assert_eq!(response.status(), StatusCode::OK);
+                held.push(response);
+            }
         }
     }
 }

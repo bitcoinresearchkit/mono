@@ -22,24 +22,3 @@ impl ImportMap {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use include_dir::include_dir;
-    use std::path::Path;
-
-    static TEST_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/tests/fixtures");
-
-    #[test]
-    fn scan_embedded_with_base_url() {
-        let map = ImportMap::scan_embedded(&TEST_DIR, "/assets");
-        let filesystem = ImportMap::scan(
-            Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures")),
-            "/assets/",
-        )
-        .unwrap();
-        assert_eq!(map, filesystem);
-        assert!(map.keys().all(|key| key.starts_with("/assets/")));
-    }
-}

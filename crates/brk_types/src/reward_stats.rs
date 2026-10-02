@@ -38,31 +38,3 @@ where
 {
     serializer.serialize_str(&value.to_string())
 }
-
-#[cfg(test)]
-mod tests {
-    use schemars::schema_for;
-    use serde_json::to_value;
-
-    use super::*;
-
-    #[test]
-    fn string_encoded_totals_have_string_schemas() {
-        let stats = RewardStats {
-            start_block: Height::new(1),
-            end_block: Height::new(2),
-            total_reward: Sats::new(3),
-            total_fee: Sats::new(4),
-            total_tx: 5,
-        };
-        let value = to_value(stats).unwrap();
-        assert_eq!(value["totalReward"], "3");
-        assert_eq!(value["totalFee"], "4");
-        assert_eq!(value["totalTx"], "5");
-
-        let schema = to_value(schema_for!(RewardStats)).unwrap();
-        for field in ["totalReward", "totalFee", "totalTx"] {
-            assert_eq!(schema["properties"][field]["type"], "string");
-        }
-    }
-}

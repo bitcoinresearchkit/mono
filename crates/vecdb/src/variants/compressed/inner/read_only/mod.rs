@@ -1,10 +1,7 @@
 use std::result::Result;
 
 use super::{CompressionStrategy, ReadOnlyCompressedVec, ReadWriteCompressedVec};
-use crate::{
-    CompressedIoSource, CompressedMmapSource, CompressedRangeCursor, VecIndex, VecValue,
-    cache::CachePolicy,
-};
+use crate::{CompressedIoSource, CompressedMmapSource, VecIndex, VecValue, cache::CachePolicy};
 
 pub mod any_vec;
 pub mod readable;
@@ -16,12 +13,6 @@ where
     T: VecValue,
     S: CompressionStrategy<T>,
 {
-    /// Creates a forward cursor over a bounded persisted range.
-    #[inline]
-    pub fn range_cursor_at(&self, from: usize, to: usize) -> CompressedRangeCursor<'_, I, T, S> {
-        CompressedRangeCursor::new(self.base.region(), &self.pages, self.base.len(), from, to)
-    }
-
     #[inline(always)]
     fn fold_source<B, F: FnMut(B, T) -> B>(
         &self,

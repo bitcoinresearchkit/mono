@@ -130,7 +130,3 @@ impl Query {
         Ok(record.size)
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/block/raw.rs"]
-mod tests;

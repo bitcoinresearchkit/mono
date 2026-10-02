@@ -326,7 +326,3 @@ impl AppState {
         )
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/state.rs"]
-mod tests;

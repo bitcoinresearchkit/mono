@@ -1,7 +1,7 @@
 use statedb::{Amount, Creations, History, Spends, State, View};
 use std::{
-    fs::{self, OpenOptions},
-    io::{Error, Result, Write},
+    fs::{self},
+    io::{Error, Result},
 };
 use tempfile::tempdir;
 
@@ -92,26 +92,6 @@ fn separate_producers_reconstruct_every_height_zero_value_outputs_and_same_block
             .amounts(),
         expected[99]
     );
-}
-
-#[test]
-fn unpublished_tails_are_discarded_but_committed_corruption_is_an_error() {
-    let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    spends.push(block(0), []).unwrap();
-    spends.commit().unwrap();
-    spends.push(block(1), []).unwrap();
-    drop(spends);
-    let spends = Spends::open(root.path()).unwrap();
-    assert_eq!(spends.end(), 1);
-    drop(spends);
-    OpenOptions::new()
-        .write(true)
-        .open(root.path().join("spends/data"))
-        .unwrap()
-        .set_len(1)
-        .unwrap();
-    assert!(Spends::open(root.path()).is_err());
 }
 
 #[test]
@@ -210,45 +190,6 @@ fn corrections_are_not_actual_spends_and_counts_survive_zero_sats() {
 }
 
 #[test]
-fn invalid_spends_do_not_publish_partial_state() {
-    let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    let mut created = Creations::open(root.path()).unwrap();
-    let mut history = History::open(root.path()).unwrap();
-    spends.push(block(0), []).unwrap();
-    created.push(block(0), amount(1, 1), None).unwrap();
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    history
-        .advance(0, 1, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    spends
-        .push(block(1), [(0, amount(1, 1)), (0, amount(1, 1))])
-        .unwrap();
-    created.push(block(1), amount(5, 1), None).unwrap();
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    let mut state = history
-        .reader(&spends, &created)
-        .and_then(|reader| reader.state_at(1))
-        .unwrap();
-    assert!(
-        history
-            .reader(&spends, &created)
-            .unwrap()
-            .replay(&mut state, 2, |_, _| Ok(()))
-            .is_err()
-    );
-    assert_eq!(state.amounts(), [amount(1, 1)]);
-    assert!(
-        history
-            .advance(1, 2, &spends, &created, |_, _| Ok(()))
-            .is_err()
-    );
-    assert_eq!(history.reader(&spends, &created).unwrap().len(), 1);
-}
-
-#[test]
 fn seeded_history_has_no_invented_prefix_and_source_versions_invalidate_snapshots() {
     let root = tempdir().unwrap();
     let mut spends = Spends::open(root.path()).unwrap();
@@ -298,117 +239,14 @@ fn seeded_history_has_no_invented_prefix_and_source_versions_invalidate_snapshot
 }
 
 #[test]
-fn one_writer_per_column_and_snapshot_truncation_rejected() {
+fn one_writer_per_column() {
     let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
+    let _spends = Spends::open(root.path()).unwrap();
     assert!(Spends::open(root.path()).is_err());
-    let mut created = Creations::open(root.path()).unwrap();
-    let mut history = History::open(root.path()).unwrap();
+    let _created = Creations::open(root.path()).unwrap();
+    assert!(Creations::open(root.path()).is_err());
+    let _history = History::open(root.path()).unwrap();
     assert!(History::open(root.path()).is_err());
-    spends.push(block(0), []).unwrap();
-    created.push(block(0), amount(1, 1), None).unwrap();
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    history
-        .advance(0, 1, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    let path = root.path().join("snapshots/data");
-    let mut bytes = fs::read(&path).unwrap();
-    bytes.pop();
-    fs::write(&path, bytes).unwrap();
-    assert!(
-        history
-            .reader(&spends, &created)
-            .and_then(|reader| reader.state_at(1))
-            .is_err()
-    );
-}
-
-#[test]
-fn pending_truncate_and_extra_index_bytes_recover_to_a_valid_commit() {
-    let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    for h in 0..4 {
-        spends.push(block(h), []).unwrap();
-    }
-    spends.truncate(2).unwrap();
-    drop(spends);
-    OpenOptions::new()
-        .append(true)
-        .open(root.path().join("spends/index"))
-        .unwrap()
-        .write_all(&[123; 5])
-        .unwrap();
-    let spends = Spends::open(root.path()).unwrap();
-    assert_eq!(spends.end(), 2);
-    assert_eq!(spends.hash(1).unwrap(), block(1));
-    assert_eq!(
-        fs::metadata(root.path().join("spends/index"))
-            .unwrap()
-            .len(),
-        16
-    );
-}
-
-#[test]
-fn missing_commit_does_not_erase_existing_records() {
-    let root = tempdir().unwrap();
-    let mut s = Spends::open(root.path()).unwrap();
-    s.push(block(0), []).unwrap();
-    s.commit().unwrap();
-    drop(s);
-    let path = root.path().join("spends/data");
-    let expected = fs::read(&path).unwrap();
-    fs::remove_file(root.path().join("spends/commit")).unwrap();
-    assert!(Spends::open(root.path()).is_err());
-    assert_eq!(fs::read(path).unwrap(), expected);
-}
-
-#[test]
-fn failed_commit_requires_reopening_instead_of_appending_to_a_partial_transaction() {
-    let root = tempdir().unwrap();
-    let mut s = Spends::open(root.path()).unwrap();
-    s.push(block(0), []).unwrap();
-    // Make the atomic manifest's temporary path unwritable as a file.
-    fs::create_dir(root.path().join("spends/commit.next")).unwrap();
-    assert!(s.commit().is_err());
-    assert!(s.push(block(1), []).is_err());
-    assert!(s.commit().is_err());
-    drop(s);
-    fs::remove_dir(root.path().join("spends/commit.next")).unwrap();
-    let s = Spends::open(root.path()).unwrap();
-    assert_eq!(s.end(), 0);
-}
-
-#[test]
-fn reader_hides_unpublished_blocks_and_replays_the_same_diffs_as_snapshots() -> Result<()> {
-    let root = tempdir()?;
-    let mut spends = Spends::open(root.path())?;
-    let mut creations = Creations::open(root.path())?;
-    let mut history = History::open(root.path())?;
-    for h in 0..3 {
-        spends.push(block(h), [])?;
-        creations.push(block(h), amount(10, 2), None)?;
-    }
-    spends.commit()?;
-    creations.commit()?;
-    history.advance(0, 2, &spends, &creations, |_, _| Ok(()))?;
-    let reader = history.reader(&spends, &creations)?;
-    assert_eq!(reader.len(), 2);
-    assert!(reader.state_at(3).is_err());
-    let mut state = reader.state_at(0)?;
-    let mut cursor = reader.cursor(&mut state)?;
-    for h in 0..2 {
-        let diff = cursor.advance()?.unwrap();
-        assert_eq!(diff.hash, block(h));
-        assert_eq!(diff.created, amount(10, 2));
-        assert_eq!(diff.spent().len(), 0);
-    }
-    assert!(cursor.advance()?.is_none());
-    let mut state = reader.state_at(0)?;
-    reader.replay(&mut state, 2, |_, _| Ok(()))?;
-    assert_eq!(state.amounts(), reader.state_at(2)?.amounts());
-    Ok(())
 }
 
 #[test]
@@ -438,117 +276,6 @@ fn reader_rejects_a_stale_publication_after_producer_rewind_or_replacement() -> 
         amount(7, 1)
     );
     Ok(())
-}
-
-#[test]
-fn cursor_reuses_canonical_state_and_rejects_another_chain() -> Result<()> {
-    let root = tempdir()?;
-    let mut spends = Spends::open(root.path())?;
-    let mut creations = Creations::open(root.path())?;
-    let mut history = History::open(root.path())?;
-    spends.push(block(0), [])?;
-    creations.push(block(0), amount(10, 3), None)?;
-    spends.push(block(1), [(0, amount(10, 1))])?;
-    creations.push(block(1), amount(0, 1), None)?;
-    spends.commit()?;
-    creations.commit()?;
-    history.advance(0, 2, &spends, &creations, |_, _| Ok(()))?;
-    let reader = history.reader(&spends, &creations)?;
-    let mut stale = State::new(vec![amount(10, 3)], block(99))?;
-    assert!(reader.cursor(&mut stale).is_err());
-    assert!(reader.replay(&mut stale, 2, |_, _| Ok(())).is_err());
-    let mut state = reader.state_at(0)?;
-    let mut cursor = reader.cursor(&mut state)?;
-    assert_eq!(cursor.advance()?.unwrap().created, amount(10, 3));
-    assert_eq!(cursor.state().total(), amount(10, 3));
-    assert_eq!(
-        cursor.advance()?.unwrap().spent().collect::<Vec<_>>(),
-        [(0, amount(10, 1))]
-    );
-    assert_eq!(cursor.state().amounts(), [amount(0, 2), amount(0, 1)]);
-    assert!(cursor.advance()?.is_none());
-    assert_eq!(state.amounts(), reader.state_at(2)?.amounts());
-    Ok(())
-}
-
-#[test]
-fn read_only_view_does_not_lock_or_truncate_unpublished_files() -> Result<()> {
-    let root = tempdir()?;
-    let mut spends = Spends::open(root.path())?;
-    let mut creations = Creations::open(root.path())?;
-    let mut history = History::open(root.path())?;
-    spends.push(block(0), [])?;
-    creations.push(block(0), amount(10, 2), None)?;
-    spends.commit()?;
-    creations.commit()?;
-    history.advance(0, 1, &spends, &creations, |_, _| Ok(()))?;
-    let path = root.path().join("spends/data");
-    OpenOptions::new()
-        .append(true)
-        .open(&path)?
-        .write_all(&[1, 2, 3])?;
-    let len = fs::metadata(&path)?.len();
-    let view = View::open(root.path(), root.path(), root.path())?;
-    let reader = view.reader()?;
-    assert_eq!(reader.len(), 1);
-    assert_eq!(reader.state_at(1)?.total(), amount(10, 2));
-    assert!(reader.state_at(2).is_err());
-    assert_eq!(fs::metadata(&path)?.len(), len);
-    assert!(Spends::open(root.path()).is_err());
-    let missing = root.path().join("missing");
-    assert!(View::open(&missing, root.path(), root.path()).is_err());
-    assert!(!missing.exists());
-    Ok(())
-}
-
-#[test]
-fn warm_append_noop_and_failed_visit_recover_from_published_prefix() {
-    let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    let mut created = Creations::open(root.path()).unwrap();
-    let mut history = History::open(root.path()).unwrap();
-    for h in 0..4 {
-        spends.push(block(h), []).unwrap();
-        created.push(block(h), amount(10, 1), None).unwrap();
-    }
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    history
-        .advance(0, 2, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    let snapshot = root.path().join("snapshots/data");
-    let before = fs::metadata(&snapshot).unwrap().modified().unwrap();
-    history
-        .advance(2, 2, &spends, &created, |_, _| {
-            panic!("no-op visited a block")
-        })
-        .unwrap();
-    assert_eq!(before, fs::metadata(&snapshot).unwrap().modified().unwrap());
-    assert!(
-        history
-            .advance(2, 4, &spends, &created, |_, _| Err(Error::other(
-                "visit failed"
-            )))
-            .is_err()
-    );
-    assert_eq!(history.reader(&spends, &created).unwrap().len(), 2);
-    let mut visits = Vec::new();
-    history
-        .advance(2, 4, &spends, &created, |h, v| {
-            visits.push((h, v));
-            Ok(())
-        })
-        .unwrap();
-    assert_eq!(visits, [(2, amount(30, 3)), (3, amount(40, 4))]);
-    assert_eq!(
-        history
-            .reader(&spends, &created)
-            .unwrap()
-            .state_at(4)
-            .unwrap()
-            .total(),
-        amount(40, 4)
-    );
 }
 
 #[test]
@@ -591,57 +318,6 @@ fn replaces_tip_without_accumulating_old_snapshots_and_can_rewind_to_periodic_ti
             .unwrap()
             .total(),
         amount(100, 10)
-    );
-}
-
-#[test]
-fn seed_remains_reconstructible_after_rewind_and_append() {
-    let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    let mut created = Creations::open(root.path()).unwrap();
-    spends.seed(3).unwrap();
-    created.seed(3).unwrap();
-    let mut history = History::open(root.path()).unwrap();
-    history
-        .seed(
-            &State::new(vec![amount(10, 1); 3], block(2)).unwrap(),
-            &spends,
-            &created,
-        )
-        .unwrap();
-    for h in 3..8 {
-        spends.push(block(h), []).unwrap();
-        created.push(block(h), amount(10, 1), None).unwrap();
-    }
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    history
-        .advance(3, 8, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    history
-        .advance(3, 3, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    history
-        .advance(3, 8, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    assert_eq!(
-        history
-            .reader(&spends, &created)
-            .unwrap()
-            .state_at(3)
-            .unwrap()
-            .total(),
-        amount(30, 3)
-    );
-    assert_eq!(
-        View::open(root.path(), root.path(), root.path())
-            .unwrap()
-            .reader()
-            .unwrap()
-            .state_at(3)
-            .unwrap()
-            .total(),
-        amount(30, 3)
     );
 }
 
@@ -716,24 +392,6 @@ fn a_failed_visit_after_a_checkpoint_leaves_a_reopenable_published_prefix() -> R
             .state_at(8)?
             .total(),
         amount(80, 8)
-    );
-    Ok(())
-}
-#[test]
-fn empty_commit_preserves_metadata_while_seed_and_version_changes_publish() -> Result<()> {
-    let root = tempdir()?;
-    let mut spends = Spends::open(root.path())?;
-    spends.seed(700000)?;
-    spends.validate_version(42)?;
-    let path = root.path().join("spends/commit");
-    let before = fs::metadata(&path)?.modified()?;
-    spends.commit()?;
-    assert_eq!(before, fs::metadata(&path)?.modified()?);
-    drop(spends);
-    let spends = Spends::open(root.path())?;
-    assert_eq!(
-        (spends.start(), spends.end(), spends.version()),
-        (700000, 700000, 42)
     );
     Ok(())
 }

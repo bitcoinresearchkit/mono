@@ -328,7 +328,3 @@ impl Client {
             .map_err(|e| Error::Parse(format!("{label}: {e}")))
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/rpc_client/methods.rs"]
-mod tests;

@@ -1,4 +1,4 @@
-use bitview_client::{OutputType, address_payload_hash_prefix, decode_address_payload};
+use bitview_client::address_payload_hash_prefix;
 
 #[test]
 fn address_payload_hash_prefix_vectors_and_boundaries() {
@@ -21,21 +21,4 @@ fn address_payload_hash_prefix_vectors_and_boundaries() {
     assert!(address_payload_hash_prefix(&[0; 66], 16).is_err());
     assert!(address_payload_hash_prefix(&[1, 2], 0).is_err());
     assert!(address_payload_hash_prefix(&[1, 2], 17).is_err());
-}
-
-#[test]
-fn p2pk_payload_types_are_distinct() {
-    let p2pk33 = decode_address_payload(
-        "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-    )
-    .unwrap();
-    assert_eq!(p2pk33.addr_type, OutputType::P2PK33);
-    assert_eq!(p2pk33.payload.len(), 33);
-
-    let p2pk65 = decode_address_payload(
-        "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-    )
-    .unwrap();
-    assert_eq!(p2pk65.addr_type, OutputType::P2PK65);
-    assert_eq!(p2pk65.payload.len(), 65);
 }

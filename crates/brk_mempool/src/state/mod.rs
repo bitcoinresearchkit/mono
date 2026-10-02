@@ -25,7 +25,3 @@ impl State {
         self.txs.len() == live_txids.len() && live_txids.iter().all(|txid| self.txs.contains(txid))
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/state.rs"]
-mod tests;

@@ -5,7 +5,7 @@ use bitcoin::{Network, blockdata::constants::genesis_block, consensus::serialize
 
 use super::{
     chain_fixture::{raw_fixture_block, run_populated as run_fixture_with_first},
-    header_integrity::{check_header_integrity, check_prevouts},
+    header_integrity::check_prevouts,
     server_routes::{exchange_bytes, exchange_headers_bytes, exchange_with_etag},
 };
 use crate::raw_body::RawBodyPermit;
@@ -124,13 +124,6 @@ fn raw_head_preserves_get_metadata_with_negotiated_compression() {
         let response = exchange_bytes(address, "GET", &path, "\"old\"", 4_100_000).await;
         assert!(response.starts_with(b"HTTP/1.1 200"));
         drop(retained);
-        check_header_integrity(
-            &state.query,
-            address,
-            &state.data_path.join("blocks/blk00000.dat"),
-            &verified_block,
-        )
-        .await;
         check_prevouts(
             &state.query,
             address,

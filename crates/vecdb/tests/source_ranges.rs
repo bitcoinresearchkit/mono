@@ -1,13 +1,7 @@
 #[cfg(feature = "pco")]
 use std::{sync::mpsc, thread, time::Duration};
-#[cfg(feature = "lz4")]
-use vecdb::LZ4Vec;
 #[cfg(feature = "pco")]
 use vecdb::PcoVec;
-#[cfg(feature = "zerocopy")]
-use vecdb::ZeroCopyVec;
-#[cfg(feature = "zstd")]
-use vecdb::ZstdVec;
 
 use tempfile::tempdir;
 use vecdb::{
@@ -94,24 +88,6 @@ fn raw_source_ranges() {
 #[test]
 fn pco_source_ranges() {
     check_source::<PcoVec<usize, u64, Budgeted>>();
-}
-
-#[cfg(feature = "lz4")]
-#[test]
-fn lz4_source_ranges() {
-    check_source::<LZ4Vec<usize, u64, Budgeted>>();
-}
-
-#[cfg(feature = "zstd")]
-#[test]
-fn zstd_source_ranges() {
-    check_source::<ZstdVec<usize, u64, Budgeted>>();
-}
-
-#[cfg(feature = "zerocopy")]
-#[test]
-fn zerocopy_source_ranges() {
-    check_source::<ZeroCopyVec<usize, u64, Budgeted>>();
 }
 
 #[cfg(feature = "pco")]

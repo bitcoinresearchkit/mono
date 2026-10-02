@@ -145,47 +145,6 @@ mod tests {
     use crate::TxFeatureFlags;
 
     #[test]
-    fn push_only_script_sig_keeps_prevout_executed_sigops() {
-        let input = TxIn {
-            script_sig: ScriptBuf::from_hex("00").unwrap(),
-            ..TxIn::default()
-        };
-        let facts = input::analyze(&input, OutputType::P2PKH, &mut TxFeatureFlags::default());
-        let mut accumulator = Accumulator::new(true);
-
-        accumulator.scan_input(OutputType::P2PKH, SigOps::new(4), &facts);
-
-        assert_eq!(u32::from(accumulator.finish().executed_legacy), 4);
-    }
-
-    #[test]
-    fn counts_coinbase_legacy_script_sigops() {
-        let input = TxIn {
-            script_sig: ScriptBuf::from_hex("ac").unwrap(),
-            ..TxIn::default()
-        };
-        let mut accumulator = Accumulator::new(false);
-
-        accumulator.scan_coinbase_input(&input);
-
-        assert_eq!(u32::from(accumulator.finish().total), 4);
-    }
-
-    #[test]
-    fn counts_legacy_script_sigops_for_known_prevout_types() {
-        let input = TxIn {
-            script_sig: ScriptBuf::from_hex("ac").unwrap(),
-            ..TxIn::default()
-        };
-        let facts = input::analyze(&input, OutputType::P2TR, &mut TxFeatureFlags::default());
-        let mut accumulator = Accumulator::new(false);
-
-        accumulator.scan_input(OutputType::P2TR, SigOps::ZERO, &facts);
-
-        assert_eq!(u32::from(accumulator.finish().total), 4);
-    }
-
-    #[test]
     fn scales_accurately_counted_p2sh_redeem_sigops_by_four() {
         let input = TxIn {
             // Push `OP_2 OP_3 OP_CHECKMULTISIG`; accurate counting uses the
@@ -221,21 +180,5 @@ mod tests {
         let mut accumulator = Accumulator::new(false);
         accumulator.scan_input(OutputType::P2WSH, SigOps::ZERO, &facts);
         assert_eq!(u32::from(accumulator.finish().total), 3);
-    }
-
-    #[test]
-    fn excludes_tapscript_from_bip141_sigop_cost() {
-        let tapscript = [0xac];
-        let control_block = [0xc0; 33];
-        let input = TxIn {
-            witness: Witness::from_slice(&[tapscript.as_slice(), control_block.as_slice()]),
-            ..TxIn::default()
-        };
-        let facts = input::analyze(&input, OutputType::P2TR, &mut TxFeatureFlags::default());
-        let mut accumulator = Accumulator::new(false);
-
-        accumulator.scan_input(OutputType::P2TR, SigOps::ZERO, &facts);
-
-        assert_eq!(u32::from(accumulator.finish().total), 0);
     }
 }

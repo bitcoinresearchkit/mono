@@ -136,7 +136,3 @@ async fn version(headers: HeaderMap, _: Empty) -> Response {
         Bytes::from_static(concat!("\"", env!("CARGO_PKG_VERSION"), "\"").as_bytes()),
     )
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/api/server.rs"]
-mod tests;

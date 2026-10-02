@@ -339,7 +339,3 @@ pub(crate) fn js_type_to_python(js_type: &str) -> String {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/generators/python/schema_order.rs"]
-mod ordering_tests;

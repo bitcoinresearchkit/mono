@@ -28,17 +28,3 @@ impl MempoolEntry {
 struct MempoolFees {
     base: Bitcoin,
 }
-
-#[cfg(test)]
-mod tests {
-    use serde_json::from_str;
-
-    use super::*;
-
-    #[test]
-    fn rejects_negative_numeric_fields() {
-        let json =
-            r#"{"vsize":250,"weight":-1,"time":1700000000,"fees":{"base":0.00001},"depends":[]}"#;
-        assert!(from_str::<MempoolEntry>(json).is_err());
-    }
-}

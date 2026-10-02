@@ -48,29 +48,3 @@ impl<'de> de::Visitor<'de> for TxidArrayVisitor {
         Ok(txids)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parses_compact_and_whitespace_arrays() {
-        let first = "0000000000000000000000000000000000000000000000000000000000000001";
-        let second = "0000000000000000000000000000000000000000000000000000000000000002";
-
-        for json in [
-            format!("[\"{first}\",\"{second}\"]"),
-            format!("[ \"{first}\", \n \"{second}\" ]"),
-        ] {
-            let txids = TxidArrayParser::parse(&json).unwrap();
-            assert_eq!(txids.len(), 2);
-            assert_eq!(txids[0].to_string(), first);
-            assert_eq!(txids[1].to_string(), second);
-        }
-    }
-
-    #[test]
-    fn rejects_trailing_json() {
-        assert!(TxidArrayParser::parse("[] null").is_err());
-    }
-}

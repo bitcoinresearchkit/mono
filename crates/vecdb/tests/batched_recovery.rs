@@ -1,13 +1,7 @@
 use brk_exit::Exit;
 use tempfile::tempdir;
-#[cfg(feature = "lz4")]
-use vecdb::LZ4Vec;
 #[cfg(feature = "pco")]
 use vecdb::PcoVec;
-#[cfg(feature = "zerocopy")]
-use vecdb::ZeroCopyVec;
-#[cfg(feature = "zstd")]
-use vecdb::ZstdVec;
 use vecdb::{
     AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, EagerVec, ImportableVec, ReadableVec,
     StoredVec, Version, WritableVec,
@@ -113,38 +107,11 @@ fn pco_batched_recovery() {
     check_recovery::<PcoVec<usize, u64, Budgeted>>(Compute::Batched);
 }
 
-#[cfg(feature = "lz4")]
-#[test]
-fn lz4_batched_recovery() {
-    check_recovery::<LZ4Vec<usize, u64>>(Compute::Batched);
-    check_recovery::<LZ4Vec<usize, u64, Budgeted>>(Compute::Batched);
-}
-
-#[cfg(feature = "zstd")]
-#[test]
-fn zstd_batched_recovery() {
-    check_recovery::<ZstdVec<usize, u64>>(Compute::Batched);
-    check_recovery::<ZstdVec<usize, u64, Budgeted>>(Compute::Batched);
-}
-
-#[cfg(feature = "zerocopy")]
-#[test]
-fn zerocopy_batched_recovery() {
-    check_recovery::<ZeroCopyVec<usize, u64>>(Compute::Batched);
-    check_recovery::<ZeroCopyVec<usize, u64, Budgeted>>(Compute::Batched);
-}
-
 #[test]
 fn zero_append_compute_transform_recovery() {
     check_recovery::<BytesVec<usize, u64>>(Compute::Transform);
     #[cfg(feature = "pco")]
     check_recovery::<PcoVec<usize, u64>>(Compute::Transform);
-    #[cfg(feature = "lz4")]
-    check_recovery::<LZ4Vec<usize, u64>>(Compute::Transform);
-    #[cfg(feature = "zstd")]
-    check_recovery::<ZstdVec<usize, u64>>(Compute::Transform);
-    #[cfg(feature = "zerocopy")]
-    check_recovery::<ZeroCopyVec<usize, u64>>(Compute::Transform);
 }
 
 #[allow(dead_code)]

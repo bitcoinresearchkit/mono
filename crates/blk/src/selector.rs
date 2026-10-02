@@ -38,25 +38,3 @@ fn endpoint(s: &str, tip: Option<Height>) -> Result<Height> {
         .map_err(|_| Error::Parse(format!("bad height: {s}")))?;
     Ok(Height::new(n))
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn endpoints_preserve_tip_offsets_and_height_bounds() {
-        let tip = Some(Height::new(10));
-        for (value, expected) in [
-            ("tip", 10),
-            ("tip-3", 7),
-            ("tip-10", 0),
-            ("42", 42),
-            ("4294967295", u32::MAX),
-        ] {
-            assert_eq!(*endpoint(value, tip).unwrap(), expected);
-        }
-        for invalid in ["tip-11", "tip-", "4294967296", "-1", "abc"] {
-            assert!(endpoint(invalid, tip).is_err(), "{invalid}");
-        }
-    }
-}

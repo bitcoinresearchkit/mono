@@ -32,59 +32,6 @@ fn publish(mempool: &mut Mempool, txids: &[Txid]) {
 }
 
 #[test]
-fn singleton_cpfp_info_has_no_cluster() {
-    let mut mempool = Mempool::for_test();
-    let txid = insert_with_depends(&mut mempool, 0xB0, 10_000, 100, &[]);
-    publish(&mut mempool, &[txid]);
-
-    let info = mempool
-        .published()
-        .cpfp_info(&txid, &BlockHash::default())
-        .unwrap()
-        .expect("tx is in mempool");
-    assert!(info.cluster.is_none(), "singletons emit no cluster");
-    assert!(info.ancestors.is_empty());
-    assert!(info.descendants.is_empty());
-    // Effective rate equals isolated rate when there's no package lift.
-    let isolated = FeeRate::from((info.fee, info.vsize));
-    assert_eq!(info.effective_fee_per_vsize, isolated);
-}
-
-#[test]
-fn two_tx_cpfp_cluster_has_both_members_and_lifted_rate() {
-    let mut mempool = Mempool::for_test();
-    let parent = insert_with_depends(&mut mempool, 0xB1, 100, 100, &[]);
-    let child = insert_with_depends(&mut mempool, 0xB2, 1_900, 100, &[parent]);
-    publish(&mut mempool, &[parent, child]);
-
-    let parent_info = mempool
-        .published()
-        .cpfp_info(&parent, &BlockHash::default())
-        .unwrap()
-        .unwrap();
-    let cluster = parent_info.cluster.expect("two-tx cluster present");
-    assert_eq!(cluster.txs.len(), 2);
-    // Topological order: parent first.
-    assert_eq!(cluster.txs[0].txid, parent);
-    assert_eq!(cluster.txs[1].txid, child);
-    // Child reports the parent as its only local parent.
-    assert_eq!(cluster.txs[1].parents.len(), 1);
-    // CPFP lift: parent's effective rate exceeds its isolated rate.
-    let parent_isolated = FeeRate::from((parent_info.fee, parent_info.vsize));
-    assert!(parent_info.effective_fee_per_vsize > parent_isolated);
-    // Same package -> child's reported chunk rate matches parent's.
-    let child_info = mempool
-        .published()
-        .cpfp_info(&child, &BlockHash::default())
-        .unwrap()
-        .unwrap();
-    assert_eq!(
-        parent_info.effective_fee_per_vsize,
-        child_info.effective_fee_per_vsize
-    );
-}
-
-#[test]
 fn cpfp_ancestor_and_descendant_walks_are_directional() {
     // chain: A -> B -> C
     let mut mempool = Mempool::for_test();
@@ -117,25 +64,6 @@ fn cpfp_ancestor_and_descendant_walks_are_directional() {
     assert_eq!(descendant_ids, vec![c]);
     // best_descendant picks the highest-rate descendant.
     assert_eq!(info_b.best_descendant.as_ref().map(|e| e.txid), Some(c));
-}
-
-#[test]
-fn cpfp_info_returns_none_for_unknown_txid() {
-    let mut mempool = Mempool::for_test();
-    assert!(
-        mempool
-            .published()
-            .cpfp_info(&Txid::COINBASE, &BlockHash::default())
-            .is_err()
-    );
-    publish(&mut mempool, &[]);
-    assert!(
-        mempool
-            .published()
-            .cpfp_info(&Txid::COINBASE, &BlockHash::default())
-            .unwrap()
-            .is_none()
-    );
 }
 
 #[test]

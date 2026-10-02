@@ -28,7 +28,6 @@ use crate::{
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
     params::{Empty, SeriesParam},
-    raw_body::RawBodyPermit,
 };
 
 pub fn serve_catalog(state: AppState, headers: HeaderMap) -> Response {
@@ -182,45 +181,37 @@ pub async fn serve(
     params.series.iter().try_for_each(validate_name)?;
     let max_weight = state.max_weight;
     let cdn_cache_mode = state.cdn_cache_mode;
-    let bodies = state.series_bodies.response_bodies.clone();
     state
-        .read_body(
-            &state.series_bodies.data_query,
-            &state.series_bodies.response_bodies,
-            move |q, permit| {
-                let resolved = q.resolve(params, max_weight)?;
-                let cache_params = CacheParams::series(
-                    resolved.version,
-                    resolved.start,
-                    resolved.end,
-                    resolved.stable_count,
-                    resolved.hash_prefix,
-                    cdn_cache_mode,
-                );
-                if cache_params.matches_etag(&headers) {
-                    return Ok(Some(Response::new_not_modified(&cache_params)));
-                }
-                let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&bodies)) else {
-                    return Ok(None);
-                };
-                let csv_filename = match resolved.format {
-                    Format::CSV => Some(resolved.csv_filename()),
-                    Format::JSON => None,
-                };
-                let bytes = to_bytes(q, resolved)?;
-                Ok(Some(permit.response(
-                    cache_params,
-                    bytes,
-                    move |h| match csv_filename {
-                        Some(filename) => {
-                            h.insert_content_disposition_attachment(&filename);
-                            h.insert_content_type_text_csv();
-                        }
-                        None => h.insert_content_type_application_json(),
-                    },
-                )))
-            },
-        )
+        .read_with_admission(&state.series_bodies.data_query, move |q| {
+            let resolved = q.resolve(params, max_weight)?;
+            let cache_params = CacheParams::series(
+                resolved.version,
+                resolved.start,
+                resolved.end,
+                resolved.stable_count,
+                resolved.hash_prefix,
+                cdn_cache_mode,
+            );
+            if cache_params.matches_etag(&headers) {
+                return Ok(Response::new_not_modified(&cache_params));
+            }
+            let csv_filename = match resolved.format {
+                Format::CSV => Some(resolved.csv_filename()),
+                Format::JSON => None,
+            };
+            let bytes = to_bytes(q, resolved)?;
+            Ok(AppState::assemble_response(
+                cache_params,
+                bytes,
+                move |h| match csv_filename {
+                    Some(filename) => {
+                        h.insert_content_disposition_attachment(&filename);
+                        h.insert_content_type_text_csv();
+                    }
+                    None => h.insert_content_type_application_json(),
+                },
+            ))
+        })
         .await
         .map_err(Into::into)
 }

@@ -8,7 +8,7 @@ use axum::{
 use tracing::{error, info};
 
 use crate::cache::{CacheParams, ErrorCachePolicy};
-#[cfg(any(feature = "chain", feature = "urpd", feature = "series"))]
+#[cfg(any(feature = "chain", feature = "urpd"))]
 use crate::raw_body::RawBodyPermit;
 
 pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body> {
@@ -34,7 +34,7 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
         CacheParams::apply_error_cache_control(response.headers_mut(), ErrorCachePolicy::NoStore);
         response.headers_mut().remove(ETAG);
     }
-    #[cfg(any(feature = "chain", feature = "urpd", feature = "series"))]
+    #[cfg(any(feature = "chain", feature = "urpd"))]
     let response = RawBodyPermit::retain(response);
     response
 }

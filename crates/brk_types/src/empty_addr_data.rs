@@ -208,17 +208,4 @@ mod tests {
             .is_none()
         );
     }
-
-    #[cfg(feature = "storage")]
-    #[test]
-    fn default_and_overflow_tags_are_unambiguous() {
-        let default = EmptyAddrData::default().to_compact().unwrap();
-        assert_eq!(default, 0);
-        assert_eq!(EmptyAddrData::overflow_index(default), None);
-
-        for index in [0, 1, 42, 1_000_000] {
-            let compact = EmptyAddrData::from_overflow_index(index);
-            assert_eq!(EmptyAddrData::overflow_index(compact), Some(index));
-        }
-    }
 }

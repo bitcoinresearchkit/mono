@@ -50,7 +50,7 @@ impl<I: VecIndex, T: VecValue> AnyVec for RangeMapVec<I, T> {
     }
 
     fn len(&self) -> usize {
-        self.mapping.len()
+        self.mapping.read().len()
     }
 
     fn index_type_to_string(&self) -> &'static str {

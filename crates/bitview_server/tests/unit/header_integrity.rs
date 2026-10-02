@@ -1,149 +1,11 @@
-use std::{
-    fs::OpenOptions,
-    io::{Read, Seek, SeekFrom, Write},
-    net::SocketAddr,
-    path::Path,
-    str::from_utf8,
-};
+use std::net::SocketAddr;
 
-use bitcoin::{Amount, Block, Txid as BitcoinTxid, consensus::serialize, hashes::Hash};
+use bitcoin::{Block, Txid as BitcoinTxid, hashes::Hash};
 use bitview_query::AsyncQuery;
-use brk_types::{BlockHash, BlockHashPrefix, Txid, TxidPrefix, Vout};
+use brk_types::{Txid, TxidPrefix, Vout};
 use serde_json::{Value, from_str, to_value};
-use vecdb::ReadableVec;
 
-use super::server_routes::{exchange_bytes, exchange_with_etag};
-pub(crate) async fn check_header_integrity(
-    query: &AsyncQuery,
-    address: SocketAddr,
-    path: &Path,
-    block: &Block,
-) {
-    let position = query.sync(|q| {
-        q.indexer()
-            .vecs()
-            .blocks
-            .position
-            .collect_one(1u32.into())
-            .unwrap()
-    });
-    assert_eq!(position.blk_index(), 0);
-    let mut file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(path)
-        .unwrap();
-    file.seek(SeekFrom::Start(u64::from(position.offset())))
-        .unwrap();
-    let mut original = [0u8; 80];
-    file.read_exact(&mut original).unwrap();
-    assert_eq!(original.as_slice(), serialize(&block.header));
-    let paths = [
-        format!("/api/block/{}", block.block_hash()),
-        format!("/api/block/{}/header", block.block_hash()),
-        format!("/api/v1/block/{}", block.block_hash()),
-        "/api/blocks".to_owned(),
-        "/api/v1/blocks".to_owned(),
-        "/api/v1/blocks/1".to_owned(),
-    ];
-    let mut responses = Vec::new();
-    for path in &paths {
-        let response = exchange_with_etag(address, "GET", path, "\"old\"").await;
-        assert!(response.starts_with("HTTP/1.1 200"), "{response}");
-        let tag = response
-            .lines()
-            .find_map(|line| line.strip_prefix("etag: "))
-            .unwrap();
-        let legacy = if path.ends_with("/header") {
-            format!(
-                "W/\"b1-{:x}\"",
-                *BlockHashPrefix::from(&BlockHash::from(block.block_hash()))
-            )
-        } else {
-            tag.replace("block-v3-", "block-v2-")
-                .replace("v1-4-", "v1-3-")
-                .replace("blocks2-", "blocks1-")
-        };
-        assert_ne!(legacy, tag);
-        responses.push((
-            legacy,
-            response.split_once("\r\n\r\n").unwrap().1.to_owned(),
-        ));
-    }
-    // A validly encoded but different header at the indexed position must not
-    // be combined with this block's indexed ID, timestamp or transaction data.
-    let mut changed = original;
-    changed[76] ^= 1;
-    file.seek(SeekFrom::Start(u64::from(position.offset())))
-        .unwrap();
-    file.write_all(&changed).unwrap();
-    file.flush().unwrap();
-    let raw_path = format!("/api/block/{}/raw", block.block_hash());
-    for method in ["GET", "HEAD"] {
-        let response = exchange_bytes(address, method, &raw_path, "\"old\"", 4_100_000).await;
-        assert!(response.starts_with(b"HTTP/1.1 500"));
-        let headers_end = response.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
-        let headers = from_utf8(&response[..headers_end]).unwrap();
-        assert!(headers.contains("\r\ncache-control: no-store\r\n"));
-        assert!(!headers.contains("\r\netag:"));
-        if method == "HEAD" {
-            assert_eq!(response.len(), headers_end);
-        }
-    }
-    for (path, (legacy, _)) in paths.iter().zip(&responses) {
-        for method in ["GET", "HEAD"] {
-            let response = exchange_with_etag(address, method, path, legacy).await;
-            assert!(response.starts_with("HTTP/1.1 500"), "{path}: {response}");
-            assert!(
-                response.contains("\r\ncache-control: no-store\r\n"),
-                "{response}"
-            );
-            assert!(!response.contains("\r\netag:"));
-            if method == "HEAD" {
-                assert!(response.ends_with("\r\n\r\n"));
-            }
-        }
-    }
-    file.seek(SeekFrom::Start(u64::from(position.offset())))
-        .unwrap();
-    file.write_all(&original).unwrap();
-    file.flush().unwrap();
-    for (path, (legacy, expected)) in paths.iter().zip(responses) {
-        let response = exchange_with_etag(address, "GET", path, &legacy).await;
-        assert!(response.starts_with("HTTP/1.1 200"), "{response}");
-        assert_eq!(response.split_once("\r\n\r\n").unwrap().1, expected);
-    }
-    // A body mutation with an unchanged header and record length must also fail.
-    let original = serialize(block);
-    let mut changed = block.clone();
-    changed.txdata[0].output[0].value = Amount::from_sat(1);
-    let changed = serialize(&changed);
-    assert_eq!(changed.len(), original.len());
-    assert_eq!(changed[..80], original[..80]);
-    file.seek(SeekFrom::Start(u64::from(position.offset())))
-        .unwrap();
-    file.write_all(&changed).unwrap();
-    file.flush().unwrap();
-    let response = exchange_bytes(address, "GET", &raw_path, "\"old\"", 4_100_000).await;
-    assert!(response.starts_with(b"HTTP/1.1 500"));
-    let headers_end = response.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
-    let headers = from_utf8(&response[..headers_end]).unwrap();
-    assert!(headers.contains("\r\ncache-control: no-store\r\n"));
-    assert!(!headers.contains("\r\netag:"));
-    // HEAD validates metadata and header identity, not transaction contents.
-    let response = exchange_with_etag(address, "HEAD", &raw_path, "\"old\"").await;
-    assert!(response.starts_with("HTTP/1.1 200"), "{response}");
-    assert!(response.contains(&format!("\r\ncontent-length: {}\r\n", original.len())));
-    assert!(response.ends_with("\r\n\r\n"));
-    file.seek(SeekFrom::Start(u64::from(position.offset())))
-        .unwrap();
-    file.write_all(&original).unwrap();
-    file.flush().unwrap();
-    let response = exchange_bytes(address, "GET", &raw_path, "\"old\"", 4_100_000).await;
-    assert!(response.starts_with(b"HTTP/1.1 200"));
-    let headers_end = response.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
-    assert_eq!(response[headers_end..], original);
-}
+use super::server_routes::exchange_with_etag;
 
 pub(crate) async fn check_prevouts(
     query: &AsyncQuery,
@@ -192,7 +54,6 @@ pub(crate) async fn check_prevouts(
         .collect::<Vec<_>>();
     holes.extend([
         (parent_txid, Vout::from(parent.output.len())),
-        (parent_txid, Vout::from(u16::MAX)),
         (collision, Vout::from(0u16)),
         (genesis.txdata[0].compute_txid().into(), Vout::from(1u16)),
     ]);

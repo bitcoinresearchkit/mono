@@ -40,7 +40,7 @@ use tower_layer::Layer;
 use tracing::info;
 
 mod api;
-#[cfg(any(feature = "chain", feature = "series", feature = "urpd"))]
+#[cfg(any(feature = "chain", feature = "urpd"))]
 mod body_response;
 mod cache;
 mod config;
@@ -55,7 +55,7 @@ mod json_error;
 mod params;
 #[cfg(any(feature = "series", feature = "chain"))]
 mod prepared_json;
-#[cfg(any(feature = "chain", feature = "urpd", feature = "series"))]
+#[cfg(any(feature = "chain", feature = "urpd"))]
 mod raw_body;
 mod request_deadline;
 mod request_state;

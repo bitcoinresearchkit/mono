@@ -1,10 +1,9 @@
 use bitview_compute::NumericValue;
 use bitview_transforms::{CentsUnsignedToDollars, SatsSignedToBitcoin, SatsToBitcoin};
 use brk_error::Result;
-use brk_exit::Exit;
-use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, SatsSigned, Version};
+use brk_types::{Bitcoin, Cents, Dollars, Sats, SatsSigned, Version};
 use schemars::JsonSchema;
-use vecdb::{Database, ReadableVec, Rw, UnaryTransform, VecIndex, VecValue};
+use vecdb::{Database, Rw, UnaryTransform};
 
 use crate::{IndexSources, LazyPerBlock, PerBlock, Value};
 
@@ -54,31 +53,5 @@ impl ValuePerBlock {
             usd,
             cents,
         })
-    }
-}
-
-impl ValuePerBlock {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn compute_sats_from_indexes<A, B>(
-        &mut self,
-        max_from: Height,
-        first_indexes: &impl ReadableVec<Height, A>,
-        indexes_count: &impl ReadableVec<Height, B>,
-        source: &impl ReadableVec<A, Sats>,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        A: VecIndex + VecValue,
-        B: VecValue,
-        usize: From<B>,
-    {
-        Ok(self.sats.height.compute_cumulative_sum_from_indexes(
-            max_from,
-            first_indexes,
-            indexes_count,
-            source,
-            |value| value,
-            exit,
-        )?)
     }
 }

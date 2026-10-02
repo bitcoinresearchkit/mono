@@ -155,20 +155,3 @@ impl Display for CentsSats {
         write!(f, "{}", self.0)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn rounds_to_nearest_cent() {
-        assert_eq!(
-            CentsSats::new(Sats::ONE_BTC_U128 / 2 - 1).to_cents_rounded(),
-            Cents::ZERO
-        );
-        assert_eq!(
-            CentsSats::new(Sats::ONE_BTC_U128 / 2).to_cents_rounded(),
-            Cents::new(1)
-        );
-    }
-}

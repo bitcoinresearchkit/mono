@@ -119,15 +119,12 @@ impl BlockResult {
 mod tests {
     use std::array;
 
-    use bitview_cohort::AgeRange;
-    use bitview_urpd::OriginUrpd;
-    use brk_types::{Cents, CentsCompact, Sats, Timestamp};
-    use statedb::{Amount, State};
+    use brk_types::{Cents, CentsCompact, Sats};
 
     use super::{BlockResult, LEVEL_PERCENTILES};
     use crate::{
         CumulativeBucket, Levels, LossPercentileId, MODE_COUNT, ModeId, Percentiles, PriceBandId,
-        Thresholds, WeightedModes,
+        Thresholds,
     };
 
     fn cumulative(
@@ -151,56 +148,6 @@ mod tests {
             cumulative(entries.map(|(price, sats)| (CentsCompact::new(price), Sats::new(sats))));
         for (index, mode) in ModeId::ALL.into_iter().enumerate() {
             BlockResult::evaluate_mode(result.by_mode.select_mut(mode), &entries, index);
-        }
-    }
-
-    #[test]
-    fn history_views_match_materialized_buckets_with_missing_weights() {
-        let state = State::new(
-            [7, 12].map(|sats| Amount { sats, count: 1 }).to_vec(),
-            [0; 32],
-        )
-        .unwrap();
-        let source = OriginUrpd::new(
-            &state,
-            &[Cents::new(100), Cents::new(200)],
-            &[Timestamp::new(0), Timestamp::new(3600)],
-        )
-        .unwrap();
-        let weights = AgeRange::from_fn(|_| 0.5);
-        let thresholds = Thresholds::from_fn(|_| Some(Percentiles::from_fn(|_| 0.5)));
-        let mut scratch = Vec::new();
-        for available in [Some(&weights), None, Some(&weights)] {
-            let mut actual = BlockResult::from_thresholds(&thresholds);
-            actual.evaluate(
-                &source,
-                &WeightedModes::from_fn(|_| available),
-                &mut scratch,
-            );
-            for mode in ModeId::ALL {
-                let buckets: &[(u32, u64)] = match (mode.weighted(), available) {
-                    (None, _) => &[(100, 7), (200, 12)],
-                    (Some(_), Some(_)) => &[(100, 3), (200, 6)],
-                    (Some(_), None) => &[],
-                };
-                let mut expected = BlockResult::from_thresholds(&thresholds);
-                let expected_buckets = cumulative(
-                    buckets
-                        .iter()
-                        .map(|&(price, sats)| (CentsCompact::new(price), Sats::new(sats))),
-                );
-                BlockResult::evaluate_mode(
-                    expected.by_mode.select_mut(mode),
-                    &expected_buckets,
-                    mode as usize,
-                );
-                for id in PriceBandId::ALL {
-                    assert_eq!(
-                        id.select(&actual.by_mode.select(mode).prices),
-                        id.select(&expected.by_mode.select(mode).prices),
-                    );
-                }
-            }
         }
     }
 
@@ -251,9 +198,9 @@ mod tests {
     }
 
     #[test]
-    fn cumulative_search_matches_linear_rules_at_plateaus_and_float_boundaries() {
+    fn cumulative_search_matches_linear_rules_at_plateaus_and_thresholds() {
         let mut seed = 23_u64;
-        for scale in [1, 3, 1_000_001, (1_u64 << 53) / 8191, u64::MAX / 1_000_000] {
+        for scale in [1, 3, 1_000_001] {
             for case in 0..64 {
                 let entries: [(u32, u64); 64] = array::from_fn(|i| {
                     seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);

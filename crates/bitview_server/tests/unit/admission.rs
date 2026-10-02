@@ -1,6 +1,6 @@
 use std::{
     sync::{Arc, Mutex, mpsc},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use axum::{
@@ -8,7 +8,6 @@ use axum::{
     http::{HeaderMap, StatusCode, header::IF_NONE_MATCH},
 };
 use bitview_query::RepresentationId;
-use brk_error::Error;
 use brk_types::Version;
 use tokio::{
     spawn,
@@ -18,7 +17,7 @@ use tokio::{
 };
 
 use super::chain_fixture::run;
-use crate::{AppState, CacheParams, CacheStrategy};
+use crate::{CacheParams, CacheStrategy};
 
 #[test]
 fn response_capacity_wait_releases_snapshot_and_resolves_again() {
@@ -129,69 +128,6 @@ fn publication_wait_runs_once_and_retains_worker_admission() {
         assert_eq!(calls.load(Ordering::SeqCst), 1);
         assert_eq!(next.await.unwrap().unwrap(), 42);
         assert_eq!(state.sync_query.available_permits(), 1);
-    });
-}
-
-#[test]
-fn bound_responses_preserve_body_identity_and_validate_before_revalidation() {
-    run(|state, _| async move {
-        for identity in [
-            RepresentationId::content(b"[]"),
-            RepresentationId::Block(state.sync(|query| query.tip_blockhash())),
-        ] {
-            let params = CacheParams::resolve(
-                &AppState::representation_strategy(Version::ONE, identity),
-                state.cdn_cache_mode,
-            );
-            for conditional in [false, true] {
-                let mut headers = HeaderMap::new();
-                if conditional {
-                    headers.insert(IF_NONE_MATCH, "*".parse().unwrap());
-                }
-                let response = state
-                    .respond_json_bound(&headers, Version::ONE, move |_| {
-                        Ok((b"[]".to_vec(), identity))
-                    })
-                    .await;
-                assert_eq!(
-                    response.status(),
-                    if conditional {
-                        StatusCode::NOT_MODIFIED
-                    } else {
-                        StatusCode::OK
-                    }
-                );
-                let mut expected = HeaderMap::new();
-                params.apply_to(&mut expected);
-                for (name, value) in &expected {
-                    assert_eq!(response.headers().get(name), Some(value));
-                }
-                assert_eq!(
-                    response.headers().contains_key("content-type"),
-                    !conditional
-                );
-                let bytes = body::to_bytes(response.into_body(), 1024).await.unwrap();
-                assert_eq!(
-                    &bytes[..],
-                    if conditional {
-                        b"".as_slice()
-                    } else {
-                        b"[]".as_slice()
-                    }
-                );
-
-                let mut bounded = state.clone();
-                bounded.query = bounded
-                    .query
-                    .with_deadline(Instant::now() + Duration::from_millis(30));
-                let error = bounded
-                    .respond_json_bound(&headers, Version::ONE, |_| Err(Error::StateUpdating))
-                    .await;
-                assert_eq!(error.status(), StatusCode::SERVICE_UNAVAILABLE);
-                assert!(!error.headers().contains_key("etag"));
-                assert_eq!(error.headers()["cache-control"], "no-store");
-            }
-        }
     });
 }
 

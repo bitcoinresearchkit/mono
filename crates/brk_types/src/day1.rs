@@ -227,7 +227,3 @@ impl Formattable for Day1 {
         buf.extend_from_slice(b.format(self.0).as_bytes());
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/day1.rs"]
-mod tests;

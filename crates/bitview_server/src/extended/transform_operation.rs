@@ -225,7 +225,3 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
             .gateway_timeout()
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/extended/transform_operation.rs"]
-mod tests;

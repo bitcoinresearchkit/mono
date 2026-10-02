@@ -3,10 +3,10 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering::Relaxed},
 };
 
-use bitview_vecs::{LazyAggVec, RangeMapVec};
+use bitview_vecs::RangeMapVec;
 use brk_types::{Date, Day1, Height, Timestamp, Version};
 use rangeindex::SharedRangeMap;
-use vecdb::{AnyVec, ReadableCloneableVec, ReadableVec};
+use vecdb::{AnyVec, ReadableVec};
 
 use super::{DatedResolutionVecs, ResolutionVecs};
 
@@ -153,41 +153,6 @@ fn resident_boundaries_replay_only_the_affected_height_suffix() {
     resolution.update(Height::ZERO);
     assert!(reader.collect().is_empty());
     assert!(reverse.collect().is_empty());
-}
-
-#[test]
-fn last_values_preserve_gaps_and_the_mutable_current_period() {
-    let periods = Periods::new(&[2, 2, 4]);
-    let mut resolution = ResolutionVecs::new(&periods);
-    let source = SharedRangeMap::<u64, Height>::new(vec![10, 20, 30]);
-    let source_view = RangeMapVec::new("metric", Version::ONE, source.clone());
-    let values: LazyAggVec<Day1, Option<u64>, Height, u64> = LazyAggVec::new(
-        "metric",
-        Version::ONE + resolution.first_height.version(),
-        source_view.read_only_boxed_clone(),
-        resolution.first_height.mapping().clone(),
-    );
-    assert_eq!(values.collect(), [None, None, Some(20), None, Some(30)]);
-
-    periods.update(3, &[4]);
-    source.update_at(3, [40]);
-    resolution.update(Height::new(3));
-    assert_eq!(values.collect(), [None, None, Some(20), None, Some(40)]);
-
-    periods.update(4, &[6]);
-    source.update_at(4, [50]);
-    resolution.update(Height::new(4));
-    assert_eq!(
-        values.collect(),
-        [None, None, Some(20), None, Some(40), None, Some(50)]
-    );
-
-    let reader = values.clone();
-    periods.update(2, &[3]);
-    source.update_at(2, [35]);
-    resolution.update(Height::new(2));
-    assert_eq!(reader.collect(), [None, None, Some(20), Some(35)]);
-    assert_eq!(reader.collect_one_at(4), None);
 }
 
 #[test]

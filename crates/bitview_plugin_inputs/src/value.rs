@@ -236,29 +236,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn batches_end_at_block_boundaries_within_budget() {
-        let boundaries = [0usize, 1, 5, 7, 13, 14].map(TxInIndex::from);
-        let mut at = 0;
-        let mut ranges = Vec::new();
-        while at < boundaries.len() - 1 {
-            let next = batch_end(&boundaries, at, boundaries.len() - 1, 6).unwrap();
-            ranges.push((at, next));
-            at = next;
-        }
-        assert_eq!(ranges, [(0, 2), (2, 3), (3, 4), (4, 5)]);
-        assert!(batch_end(&boundaries, 3, 5, 5).is_err());
-        assert_eq!(batch_end(&boundaries, 0, 1, 6).unwrap(), 1);
-    }
-
-    #[test]
-    fn incomplete_values_rewind_to_their_block_boundary() {
-        let boundaries = [0, 1, 5, 7, 13, 14];
-        for (values, expected) in [(0, 0), (1, 1), (4, 1), (5, 2), (6, 2), (13, 4), (14, 5)] {
-            assert_eq!(complete_height(5, values, |h| boundaries[h]), expected);
-        }
-    }
-
-    #[test]
     fn values_are_read_in_txout_order_and_scattered_to_input_order() {
         let mut entries = vec![
             Entry::new(0, TxOutIndex::from(8_usize)),

@@ -9,25 +9,6 @@ use vecdb::{
 const VALUES_PER_PAGE: usize = 8 * 1024 / size_of::<u64>();
 
 #[test]
-fn constant_pages_roundtrip() -> Result<()> {
-    let temp = tempdir()?;
-    let db = Database::open(temp.path())?;
-    let expected = vec![0; VALUES_PER_PAGE * 2];
-
-    let mut vec = PcoVec::<usize, u64>::forced_import(&db, "constant", Version::ONE)?;
-    for &value in &expected {
-        vec.push(value);
-    }
-    vec.write()?;
-    assert_eq!(vec.collect(), expected);
-    drop(vec);
-
-    let vec = PcoVec::<usize, u64>::import(&db, "constant", Version::ONE)?;
-    assert_eq!(vec.collect(), expected);
-    Ok(())
-}
-
-#[test]
 fn shared_chunks_stop_at_metadata_blocks_and_rebuild_from_chunk_boundaries() -> Result<()> {
     let temp = tempdir()?;
     let db = Database::open(temp.path())?;

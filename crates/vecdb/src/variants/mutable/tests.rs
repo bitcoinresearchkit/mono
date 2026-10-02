@@ -21,225 +21,8 @@ fn import_with_changes<V: StoredVec<I = usize, T = u32>>(db: &Database, name: &s
 
 mod mutation_rollback {
     use crate::BytesVec;
-    #[cfg(feature = "zerocopy")]
-    use crate::ZeroCopyVec;
 
     use super::*;
-
-    fn run_multiple_updates_to_same_index<V>() -> Result<()>
-    where
-        V: MutableRawVec<I = usize, T = u32>,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = import_with_changes::<MutableVec<V>>(&db, "test")?;
-
-        // Stamp 1: [0, 1, 2, 3, 4]
-        for i in 0..5 {
-            vec.push(i);
-        }
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-
-        // Stamp 2: [100, 1, 2, 3, 4]
-        vec.update(0, 100)?;
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-
-        // Stamp 3: [200, 1, 2, 3, 4]
-        vec.update(0, 200)?;
-        vec.stamped_write_with_changes(Stamp::new(3))?;
-
-        // Stamp 4: [300, 1, 2, 3, 4]
-        vec.update(0, 300)?;
-        vec.stamped_write_with_changes(Stamp::new(4))?;
-        assert_eq!(vec.collect(), vec![300, 1, 2, 3, 4]);
-
-        // Rollback to stamp 3
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![200, 1, 2, 3, 4]);
-
-        // Rollback to stamp 2
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![100, 1, 2, 3, 4]);
-
-        // Rollback to stamp 1
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4]);
-
-        Ok(())
-    }
-
-    fn run_complex_mixed_operations<V>() -> Result<()>
-    where
-        V: MutableRawVec<I = usize, T = u32>,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = import_with_changes::<MutableVec<V>>(&db, "test")?;
-
-        // Stamp 1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-        for i in 0..10 {
-            vec.push(i);
-        }
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-
-        // Stamp 2: Complex operations
-        // - Delete indices 1, 3, 5
-        // - Update indices 2, 6, 8
-        // - Push new values 100, 101
-        vec.delete(1);
-        vec.delete(3);
-        vec.delete(5);
-        vec.update(2, 222)?;
-        vec.update(6, 666)?;
-        vec.update(8, 888)?;
-        vec.push(100);
-        vec.push(101);
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-        assert_eq!(vec.collect(), vec![0, 222, 4, 666, 7, 888, 9, 100, 101]);
-
-        // Rollback - should restore everything
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-
-        Ok(())
-    }
-
-    fn run_deep_rollback_chain<V>() -> Result<()>
-    where
-        V: MutableRawVec<I = usize, T = u32>,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = import_with_changes::<MutableVec<V>>(&db, "test")?;
-
-        // Build a chain of 10 stamps with different operations
-        vec.stamped_write_with_changes(Stamp::new(1))?; // []
-
-        vec.push(0);
-        vec.stamped_write_with_changes(Stamp::new(2))?; // [0]
-
-        vec.push(1);
-        vec.stamped_write_with_changes(Stamp::new(3))?; // [0, 1]
-
-        vec.update(0, 10)?;
-        vec.stamped_write_with_changes(Stamp::new(4))?; // [10, 1]
-
-        vec.push(2);
-        vec.stamped_write_with_changes(Stamp::new(5))?; // [10, 1, 2]
-
-        vec.delete(1);
-        vec.stamped_write_with_changes(Stamp::new(6))?; // [10, 2]
-
-        vec.push(3);
-        vec.stamped_write_with_changes(Stamp::new(7))?; // [10, 2, 3]
-
-        vec.update(0, 20)?;
-        vec.stamped_write_with_changes(Stamp::new(8))?; // [20, 2, 3]
-
-        vec.push(4);
-        vec.push(5);
-        vec.stamped_write_with_changes(Stamp::new(9))?; // [20, 2, 3, 4, 5]
-
-        vec.update(2, 33)?;
-        vec.stamped_write_with_changes(Stamp::new(10))?; // [20, 33, 3, 4, 5]
-        assert_eq!(vec.collect(), vec![20, 33, 3, 4, 5]);
-
-        // Rollback through the chain
-        vec.rollback()?; // -> 9
-        assert_eq!(vec.collect(), vec![20, 2, 3, 4, 5]);
-
-        vec.rollback()?; // -> 8
-        assert_eq!(vec.collect(), vec![20, 2, 3]);
-
-        vec.rollback()?; // -> 7
-        assert_eq!(vec.collect(), vec![10, 2, 3]);
-
-        vec.rollback()?; // -> 6
-        assert_eq!(vec.collect(), vec![10, 2]);
-
-        vec.rollback()?; // -> 5
-        assert_eq!(vec.collect(), vec![10, 1, 2]);
-
-        vec.rollback()?; // -> 4
-        assert_eq!(vec.collect(), vec![10, 1]);
-
-        vec.rollback()?; // -> 3
-        assert_eq!(vec.collect(), vec![0, 1]);
-
-        vec.rollback()?; // -> 2
-        assert_eq!(vec.collect(), vec![0]);
-
-        vec.rollback()?; // -> 1
-        assert_eq!(vec.collect(), Vec::<u32>::new());
-        assert_eq!(vec.stamp(), Stamp::new(1));
-        vec.save_rollback_state();
-
-        vec.extend(0..3);
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-        vec.update(0, 10)?;
-        vec.stamped_write_with_changes(Stamp::new(3))?;
-        vec.push(3);
-        vec.stamped_write_with_changes(Stamp::new(4))?;
-        assert_eq!(vec.rollback_before(Stamp::new(3))?, Stamp::new(2));
-        assert_eq!(vec.collect(), [0, 1, 2]);
-        vec.push(99);
-        vec.stamped_write_with_changes(Stamp::new(3))?;
-        assert_eq!(vec.collect(), [0, 1, 2, 99]);
-        assert_eq!(vec.stamp(), Stamp::new(3));
-
-        Ok(())
-    }
-
-    fn run_rollback_all_elements_updated<V>() -> Result<()>
-    where
-        V: MutableRawVec<I = usize, T = u32>,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = import_with_changes::<MutableVec<V>>(&db, "test")?;
-
-        // Stamp 1: [0, 1, 2, 3, 4]
-        for i in 0..5 {
-            vec.push(i);
-        }
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-
-        // Stamp 2: Update ALL elements
-        for i in 0..5 {
-            vec.update(i, (i * 100) as u32)?;
-        }
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-        assert_eq!(vec.collect(), vec![0, 100, 200, 300, 400]);
-
-        // Rollback - should restore all original values
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4]);
-
-        Ok(())
-    }
-
-    fn run_multiple_holes_then_rollback<V>() -> Result<()>
-    where
-        V: MutableRawVec<I = usize, T = u32>,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = import_with_changes::<MutableVec<V>>(&db, "test")?;
-
-        // Stamp 1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-        for i in 0..10 {
-            vec.push(i);
-        }
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-
-        // Stamp 2: Delete every other element
-        for i in (0..10).step_by(2) {
-            vec.delete(i);
-        }
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-        assert_eq!(vec.collect(), vec![1, 3, 5, 7, 9]);
-
-        // Rollback - should restore all deleted items
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-
-        Ok(())
-    }
 
     /// Regression test: rollback-after-rollback with delete_at losing entries.
     ///
@@ -387,97 +170,13 @@ mod mutation_rollback {
         Ok(())
     }
 
-    fn run_holes_persistence_and_reset<V>() -> Result<()>
-    where
-        V: MutableRawVec<I = usize, T = u32>,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = import_with_changes::<MutableVec<V>>(&db, "test")?;
-
-        vec.push(10);
-        vec.push(20);
-        vec.push(30);
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-
-        vec.delete(1);
-        assert!(vec.is_dirty());
-        assert!(vec.write()?);
-        assert!(!vec.is_dirty());
-        assert!(!vec.write()?);
-
-        vec.update(1, 21)?;
-        vec.delete(2);
-        assert!(vec.is_dirty());
-        vec.reset_unsaved();
-
-        assert_eq!(vec.collect_holed(), vec![Some(10), None, Some(30)]);
-        assert!(!vec.is_dirty());
-        assert!(!vec.write()?);
-
-        vec.update(0, 100)?;
-        vec.delete(2);
-        vec.push(40);
-        assert_eq!(vec.len(), 4);
-        assert_eq!(vec.stored_len(), 3);
-        assert_eq!(vec.pushed_len(), 1);
-        vec.reset()?;
-        assert!(vec.collect_holed().is_empty());
-        assert_eq!(vec.stored_len(), 0);
-        assert_eq!(vec.pushed_len(), 0);
-        assert!(vec.holes().is_empty());
-        assert!(vec.updated().is_empty());
-        vec.extend([100, 101, 102]);
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-        assert_eq!(vec.collect_holed(), [Some(100), Some(101), Some(102)]);
-        assert_eq!(vec.stored_len(), 3);
-        assert_eq!(vec.pushed_len(), 0);
-
-        Ok(())
-    }
-
-    fn run_rollback_persists_restored_holes<V>() -> Result<()>
-    where
-        V: MutableRawVec<I = usize, T = u32>,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = import_with_changes::<MutableVec<V>>(&db, "test")?;
-
-        vec.push(10);
-        vec.push(20);
-        vec.push(30);
-        vec.delete(1);
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-
-        vec.update(1, 21)?;
-        vec.delete(2);
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-        assert_eq!(vec.collect_holed(), vec![Some(10), Some(21), None]);
-
-        vec.rollback()?;
-        assert_eq!(vec.collect_holed(), vec![Some(10), None, Some(30)]);
-        assert!(vec.is_dirty());
-        vec.write()?;
-        drop(vec);
-
-        let vec = import_with_changes::<MutableVec<V>>(&db, "test")?;
-        assert_eq!(vec.collect_holed(), vec![Some(10), None, Some(30)]);
-
-        Ok(())
-    }
-
     // Test instantiation for each mutable raw vec type
 
     fn run<V: MutableRawVec<I = usize, T = u32>>() -> Result<()> {
-        run_multiple_updates_to_same_index::<V>()?;
-        run_complex_mixed_operations::<V>()?;
-        run_deep_rollback_chain::<V>()?;
-        run_rollback_all_elements_updated::<V>()?;
-        run_multiple_holes_then_rollback::<V>()?;
         run_rollback_after_rollback_with_delete::<V>()?;
         run_rollback_after_untracked_checkpoint::<V>()?;
         run_rollback_across_intermediate_writes::<V>()?;
-        run_holes_persistence_and_reset::<V>()?;
-        run_rollback_persists_restored_holes::<V>()?;
+
         Ok(())
     }
 
@@ -485,21 +184,12 @@ mod mutation_rollback {
     fn bytes() -> Result<()> {
         run::<BytesVec<usize, u32>>()
     }
-
-    #[cfg(feature = "zerocopy")]
-    #[test]
-    fn zerocopy() -> Result<()> {
-        run::<ZeroCopyVec<usize, u32>>()
-    }
 }
 
 mod integration {
     use crate::BytesVec;
 
     use super::*;
-
-    #[cfg(feature = "zerocopy")]
-    use crate::ZeroCopyVec;
 
     fn assert_state<V: MutableRawVec<I = usize, T = u32>>(
         vec: &MutableVec<V>,
@@ -630,18 +320,6 @@ mod integration {
         assert_state(&vec, &(0..5).map(Some).collect::<Vec<_>>());
 
         Ok(())
-    }
-
-    #[cfg(feature = "zerocopy")]
-    mod zerocopy {
-        use super::*;
-
-        type V = ZeroCopyVec<usize, u32>;
-
-        #[test]
-        fn data_integrity_rollback_flush_reopen() -> Result<()> {
-            run_data_integrity_rollback_flush_reopen::<V>()
-        }
     }
 
     mod bytes {

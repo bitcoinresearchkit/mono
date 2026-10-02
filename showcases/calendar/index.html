@@ -154,7 +154,23 @@
       <noscript><p>This calendar needs JavaScript to load block data from Bitview.</p></noscript>
     </main>
     <script id="calendar-data">
-      const API = "https://bitview.space/api";
+      const ORIGIN = "https://bitview.space";
+      // The deployed client, imported from a blob URL: direct remote module
+      // imports fail on some hosts.
+      const clientReady = (async () => {
+        const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
+          cache: "no-cache",
+          signal: AbortSignal.timeout(30_000),
+        });
+        if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
+        const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
+        try {
+          const { BitviewClient } = await import(url);
+          return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 });
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      })();
       const DAY = 86400000;
       const GENESIS = "2009-01-03";
       const isoDay = value => new Date(value).toISOString().slice(0, 10);
@@ -233,8 +249,8 @@
         return days;
       }
 
-      // Quarter-sized ranges stay below the API's response-weight limit, even
-      // in fast-block years. An open end includes the latest indexed block.
+      // Quarter-sized ranges keep each request below the API's response-weight
+      // limit, even in fast-block years. An open end includes the latest indexed block.
       function requestRanges(from, to, today) {
         const ranges = [];
         let start = from < GENESIS ? GENESIS : from;
@@ -303,15 +319,14 @@
         return node;
       }
 
-      async function getJSON(path, signal) {
-        const response = await fetch(`${API}${path}`, { signal });
-        if (!response.ok) throw new Error(`Bitview is unavailable (HTTP ${response.status}).`);
-        return response.json();
+      async function fetchHeightSeries(names, start, end, signal) {
+        const client = await clientReady;
+        return Promise.all(names.map(name => client.seriesEndpoint(name, "height").slice(start, end).fetch({ signal })));
       }
 
       async function loadPools() {
         if (!poolRequest) {
-          poolRequest = getJSON("/v1/mining/pools", AbortSignal.timeout(25000)).then(pools => {
+          poolRequest = clientReady.then(client => client.getPools({ signal: AbortSignal.timeout(25000) })).then(pools => {
             if (!Array.isArray(pools)) throw new Error("The mining pool directory is unavailable.");
             for (const pool of pools) poolNames.set(pool.slug, pool.name);
           }).catch(error => { poolRequest = undefined; throw error; });
@@ -398,10 +413,8 @@
             blocks = cached.blocks.filter(block => block.day >= from && block.day < to);
           } else {
             const [responses] = await Promise.all([
-              Promise.all(requestRanges(from, to, todayUTC()).map(range => {
-                const query = new URLSearchParams({ series: "timestamp,timestamp_monotonic,pool", index: "height", ...range });
-                return getJSON(`/series/bulk?${query}`, signal);
-              })),
+              Promise.all(requestRanges(from, to, todayUTC()).map(range =>
+                fetchHeightSeries(["timestamp", "timestamp_monotonic", "pool"], range.start, range.end, signal))),
               loadPools(),
             ]);
             blocks = responses.flatMap(decodeBlocks).filter(block => block.day >= from && block.day < to);
@@ -412,11 +425,9 @@
           if (id !== generation) return;
           if (isDay && blocks.length && blocks.some(block => block.poolTotal === undefined)) {
             const pools = [...new Set(blocks.map(block => block.pool))];
-            const query = new URLSearchParams({
-              series: pools.map(pool => `${pool}_blocks_mined_cumulative`).join(","),
-              index: "height", start: blocks[0].height, end: blocks.at(-1).height + 1,
-            });
-            blocks = addPoolOrdinals(blocks, pools, await getJSON(`/series/bulk?${query}`, signal));
+            const names = pools.map(pool => `${pool}_blocks_mined_cumulative`);
+            const series = await fetchHeightSeries(names, blocks[0].height, blocks.at(-1).height + 1, signal);
+            blocks = addPoolOrdinals(blocks, pools, series);
           }
           if (id !== generation) return;
           loaded = { from, to, blocks, fetched: cached?.fetched ?? Date.now() };

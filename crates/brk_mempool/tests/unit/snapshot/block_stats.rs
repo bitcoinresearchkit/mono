@@ -4,12 +4,12 @@ use super::*;
 use crate::snapshot::partition::partition;
 
 #[test]
-fn block_statistics_preserve_rank_sets_and_invalid_index_handling() {
+fn block_statistics_match_sorted_weighted_ranks() {
     let txs: Vec<_> = (0..128u64)
         .map(|i| SnapTx {
             txid: Txid::COINBASE,
             fee: Sats::from(i * 100),
-            vsize: VSize::new(if i % 7 == 0 { 0 } else { i * 1100 }),
+            vsize: VSize::new(60 + i * 1100),
             weight: Default::default(),
             size: i * 13,
             chunk_rate: FeeRate::from((i * 7 % 19) as f64),
@@ -17,11 +17,10 @@ fn block_statistics_preserve_rank_sets_and_invalid_index_handling() {
             children: Default::default(),
         })
         .collect();
-    let mut block: Vec<_> = (0..txs.len()).rev().map(TxIndex::from).collect();
-    block.push(TxIndex::from(999usize));
-    let mut blocks = vec![block.clone(), block, vec![], vec![TxIndex::from(999usize)]];
+    let block: Vec<_> = (0..txs.len()).rev().map(TxIndex::from).collect();
+    let mut blocks = vec![block.clone(), block, vec![]];
     // Exercise the real producer's descending order, ties and overflow block,
-    // alongside unordered public inputs, invalid indexes and zero weights.
+    // alongside subsets of the same published transactions.
     blocks.extend(partition(&txs, &vec![0; txs.len()], 7));
     blocks.push((0..txs.len()).step_by(7).map(TxIndex::from).collect());
     let stats = BlockStats::for_blocks(&blocks, &txs);

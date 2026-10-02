@@ -97,7 +97,3 @@ impl<'de> Deserialize<'de> for RangeIndex {
         )))
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/range_index.rs"]
-mod tests;

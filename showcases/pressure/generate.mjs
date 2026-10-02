@@ -1,9 +1,18 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { BitviewClient } from '../../modules/bitview-client/index.js';
 
 const DAY_MS = 86_400_000;
 const DAY_ZERO = Date.UTC(2009, 0, 1);
+
+// One series per request: bulk reads are capped server-side.
+// buildSnapshot rejects any history that does not end at `end`.
+function fetchHistories(api, names, end) {
+  const client = new BitviewClient({ baseUrl: api.replace(/\/api\/?$/, ''), timeout: 60_000 });
+  return Promise.all(names.map(name => client.seriesEndpoint(name, 'day1').slice(0, end).fetch({ cache: false })));
+}
+
 const dateAt = day => new Date(DAY_ZERO + day * DAY_MS).toISOString().slice(0, 10);
 export const THRESHOLD = 500_000;
 export const seriesNames = [
@@ -31,9 +40,6 @@ export function buildSnapshot(histories, start, end, generatedAt) {
       throw new Error(`Incomplete or misaligned history: ${seriesNames[index]}`);
     }
   }
-  if (histories.some(history => !history.stamp || history.stamp !== histories[0].stamp)) {
-    throw new Error('Histories come from different snapshots; retry generation.');
-  }
   const rows = histories[0].data.slice(start).map((candle, offset) => {
     if (!Array.isArray(candle) || candle.length !== 4 ||
         !candle.every(value => Number.isSafeInteger(value) && value > 0) ||
@@ -58,10 +64,7 @@ export async function generateSnapshot({ api = 'http://localhost:3110/api', star
   if (!Number.isInteger(start) || start < 0 || start >= end || dateAt(start) !== startDate) {
     throw new Error('--start must be a date between 2009-01-01 and today.');
   }
-  const query = new URLSearchParams({ series: seriesNames.join(','), index: 'day1', start: '0', end: String(end) });
-  const response = await fetch(`${api.replace(/\/$/, '')}/series/bulk?${query}`, { signal: AbortSignal.timeout(60_000) });
-  if (!response.ok) throw new Error(`Local API returned ${response.status}: ${await response.text()}`);
-  const snapshot = buildSnapshot(await response.json(), start, end, now.toISOString());
+  const snapshot = buildSnapshot(await fetchHistories(api, seriesNames, end), start, end, now.toISOString());
   const html = await readFile(output, 'utf8');
   const dataTag = /(<script id="chart-data" type="application\/json">)[\s\S]*?(<\/script>)/g;
   if ([...html.matchAll(dataTag)].length !== 1) throw new Error('Expected one embedded chart snapshot.');

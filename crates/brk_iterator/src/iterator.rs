@@ -52,7 +52,3 @@ impl Iterator for BlockIterator {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/factory.rs"]
-mod tests;

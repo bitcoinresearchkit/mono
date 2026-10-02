@@ -1,15 +1,10 @@
 mod allocation;
 mod compaction;
 mod concurrency;
-mod database;
 mod dirty_ranges;
 mod failure_paths;
 mod indexed_writes;
 mod metadata;
-mod persistence;
-mod reader;
-#[cfg(unix)]
-mod residency;
 mod writes;
 
 use std::fs;

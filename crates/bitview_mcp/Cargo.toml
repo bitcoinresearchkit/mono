@@ -23,9 +23,6 @@ tokio = { workspace = true, features = ["macros", "net", "sync", "time"] }
 tracing = { workspace = true }
 ureq = { workspace = true }
 
-[dev-dependencies]
-tower = { version = "0.5.3", features = ["util"] }
-
 [[bin]]
 name = "bitview_mcp"
 path = "src/main.rs"

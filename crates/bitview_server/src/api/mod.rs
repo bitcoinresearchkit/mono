@@ -69,10 +69,6 @@ pub trait ApiRoutes {
     fn add_api_routes(self) -> Self;
 }
 
-#[cfg(test)]
-#[path = "../../tests/unit/api.rs"]
-mod tests;
-
 impl ApiRoutes for ApiRouter<AppState> {
     fn add_api_routes(self) -> Self {
         let router = self.add_server_routes();

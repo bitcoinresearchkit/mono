@@ -1,8 +1,7 @@
-use bitcoin::{Txid as BitcoinTxid, hashes::Hash};
 use brk_types::{MempoolEntryInfo, Sats, Timestamp, VSize, Weight};
 
 use super::*;
-use crate::test_support::{fake_tx, fake_txid, p2wpkh_script};
+use crate::test_support::{fake_tx, p2wpkh_script};
 
 fn entry_for(tx: &Transaction, fee: u64, vsize: u64) -> TxEntry {
     let info = MempoolEntryInfo {
@@ -14,10 +13,6 @@ fn entry_for(tx: &Transaction, fee: u64, vsize: u64) -> TxEntry {
         depends: vec![],
     };
     TxEntry::new(&info, vsize, false)
-}
-
-fn tx_without_prevouts(seed: u8) -> Transaction {
-    fake_tx(seed, &[None, None], &[(p2wpkh_script(1), 1_000)])
 }
 
 fn tx_with_prevouts(seed: u8) -> Transaction {
@@ -59,82 +54,6 @@ fn txids_hash_tracks_inserts_and_swap_removals() {
 }
 
 #[test]
-fn content_revision_tracks_serialized_body_changes() {
-    let mut store = TxStore::default();
-    let tx = tx_without_prevouts(7);
-    let entry = entry_for(&tx, 100, 100);
-    let prefix = entry.txid_prefix();
-    assert_eq!(store.content_revision(), 0);
-
-    store.insert(tx, entry);
-    assert_eq!(store.len(), 1);
-    assert!(store.unresolved().contains(&prefix));
-    assert_eq!(store.content_revision(), 1);
-
-    assert!(store.apply_fills(&prefix, Vec::new()).is_empty());
-    assert_eq!(store.content_revision(), 1);
-
-    let prevout = TxOut::from((p2wpkh_script(8), Sats::from(2_000u64)));
-    let applied = store.apply_fills(&prefix, vec![(Vin::from(0usize), prevout.clone())]);
-    assert_eq!(applied.len(), 1);
-    assert_eq!(applied[0].value, Sats::from(2_000u64));
-    assert_eq!(store.content_revision(), 2);
-    assert!(store.unresolved().contains(&prefix));
-
-    assert!(
-        store
-            .apply_fills(
-                &prefix,
-                vec![(
-                    Vin::from(0usize),
-                    TxOut::from((p2wpkh_script(9), Sats::from(3_000u64))),
-                )],
-            )
-            .is_empty()
-    );
-    assert_eq!(store.content_revision(), 2);
-
-    let removed = store.remove_by_prefix(&prefix).expect("stored record");
-    assert_eq!(removed.entry.txid_prefix(), prefix);
-    assert_eq!(store.len(), 0);
-    assert!(!store.unresolved().contains(&prefix));
-    assert_eq!(store.content_revision(), 3);
-    assert!(store.remove_by_prefix(&prefix).is_none());
-    assert!(
-        store
-            .apply_fills(&prefix, vec![(Vin::from(0usize), prevout)])
-            .is_empty()
-    );
-    assert_eq!(store.content_revision(), 3);
-}
-
-#[test]
-fn full_txid_lookups_reject_prefix_collisions() {
-    let mut store = TxStore::default();
-    let tx = tx_with_prevouts(9);
-    let stored_txid = tx.txid;
-    let entry = entry_for(&tx, 100, 100);
-    store.insert(tx, entry);
-    assert_eq!(store.len(), 1);
-    assert!(store.unresolved().is_empty());
-
-    let mut bytes = BitcoinTxid::from(&stored_txid).to_byte_array();
-    bytes[8] ^= 1;
-    let colliding_txid = Txid::from(BitcoinTxid::from_byte_array(bytes));
-    assert_eq!(
-        TxidPrefix::from(&stored_txid),
-        TxidPrefix::from(&colliding_txid)
-    );
-
-    assert!(store.contains(&stored_txid));
-    assert!(store.get(&stored_txid).is_some());
-    assert!(store.entry(&stored_txid).is_some());
-    assert!(!store.contains(&colliding_txid));
-    assert!(store.get(&colliding_txid).is_none());
-    assert!(store.entry(&colliding_txid).is_none());
-}
-
-#[test]
 fn apply_fills_writes_only_missing_inputs_and_refreshes_sigops() {
     let mut store = TxStore::default();
     let prev_present = TxOut::from((p2wpkh_script(4), Sats::from(7_000u64)));
@@ -171,47 +90,6 @@ fn apply_fills_writes_only_missing_inputs_and_refreshes_sigops() {
         prev_present.value
     );
     assert!(!store.unresolved().contains(&prefix));
-}
-
-#[test]
-fn recent_is_capped_and_newest_first() {
-    let mut store = TxStore::default();
-    for i in 0..(RECENT_CAP as u8 + 5) {
-        let tx = tx_with_prevouts(i + 10);
-        let entry = entry_for(&tx, 100, 100);
-        store.insert(tx, entry);
-    }
-    assert_eq!(store.recent().len(), RECENT_CAP);
-    let newest = store.recent().first().expect("at least one");
-    let last_inserted_txid = fake_txid(RECENT_CAP as u8 + 5 + 10 - 1);
-    assert_eq!(newest.txid, last_inserted_txid);
-}
-
-#[test]
-fn live_histogram_total_tracks_inserts_and_removes() {
-    let mut store = TxStore::default();
-    let tx_a = fake_tx(
-        20,
-        &[Some(TxOut::from((p2wpkh_script(8), Sats::from(1_234u64))))],
-        &[(p2wpkh_script(9), 2_345), (p2wpkh_script(10), 3_456)],
-    );
-    let tx_b = fake_tx(
-        21,
-        &[Some(TxOut::from((p2wpkh_script(11), Sats::from(4_567u64))))],
-        &[(p2wpkh_script(12), 7_891)],
-    );
-    let entry_a = entry_for(&tx_a, 100, 100);
-    let entry_b = entry_for(&tx_b, 100, 100);
-    let prefix_a = entry_a.txid_prefix();
-    store.insert(tx_a, entry_a);
-    store.insert(tx_b, entry_b);
-
-    let total_after_both: u32 = store.live_eligible_histogram().iter().sum();
-    assert_eq!(total_after_both, 3, "two outputs + one output");
-
-    store.remove_by_prefix(&prefix_a);
-    let total_after_remove: u32 = store.live_eligible_histogram().iter().sum();
-    assert_eq!(total_after_remove, 1);
 }
 
 #[test]

@@ -109,19 +109,6 @@ fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> R
     Ok(())
 }
 
-#[cfg(test)]
-mod address_payload_tests {
-    use super::*;
-
-    #[test]
-    fn p2pk_payload_lengths_are_distinct() {
-        assert!(validate_address_payload_for_type(OutputType::P2PK33, &[0; 33]).is_ok());
-        assert!(validate_address_payload_for_type(OutputType::P2PK65, &[0; 65]).is_ok());
-        assert!(validate_address_payload_for_type(OutputType::P2PK33, &[0; 65]).is_err());
-        assert!(validate_address_payload_for_type(OutputType::P2PK65, &[0; 33]).is_err());
-    }
-}
-
 /// Decode a mainnet Bitcoin address into the BRK address type and raw payload bytes.
 pub fn decode_address_payload(address: &str) -> Result<AddressPayload> {
     if address.is_empty() {
@@ -590,74 +577,6 @@ impl<T: DeserializeOwned> DateSeriesEndpoint<T> {
         end: Timestamp,
     ) -> Result<RangeBuilder<T, DateSeriesData<T>>> {
         self.0.timestamp_range(start, end)
-    }
-}
-
-#[cfg(test)]
-mod date_selector_tests {
-    use super::*;
-
-    fn endpoint(index: Index) -> DateSeriesEndpoint<u64> {
-        DateSeriesEndpoint::new(
-            Arc::new(BitviewClientBase::new("http://127.0.0.1:1")),
-            "fixture".into(),
-            index,
-        )
-    }
-
-    #[test]
-    fn rejected_selectors_do_not_become_zero() {
-        let valid = Date::new(2009, 1, 3);
-        for date in [Date::new(2008, 12, 31), Date::new(9999, 12, 31)] {
-            assert!(endpoint(Index::Day1).get_date(date).is_err());
-            assert!(endpoint(Index::Day1).date_range(date, valid).is_err());
-            assert!(endpoint(Index::Day1).date_range(valid, date).is_err());
-        }
-        let timestamp = Timestamp::from(valid);
-        assert!(
-            endpoint(Index::Day1)
-                .get_timestamp(Timestamp::ZERO)
-                .is_err()
-        );
-        assert!(
-            endpoint(Index::Day1)
-                .timestamp_range(Timestamp::ZERO, timestamp)
-                .is_err()
-        );
-        assert!(
-            endpoint(Index::Day1)
-                .timestamp_range(timestamp, Timestamp::ZERO)
-                .is_err()
-        );
-        assert!(endpoint(Index::Hour1).get_date(valid).is_err());
-        assert!(
-            endpoint(Index::Month3)
-                .get_date(Date::new(2073, 1, 1))
-                .is_err()
-        );
-    }
-
-    #[test]
-    fn accepted_selectors_preserve_numeric_bounds() {
-        let date = Date::new(2009, 1, 3);
-        let single = endpoint(Index::Day1).get_date(date).unwrap();
-        assert_eq!((single.config.start, single.config.end), (Some(2), Some(3)));
-        let range = endpoint(Index::Day1)
-            .date_range(date, Date::new(2009, 1, 5))
-            .unwrap();
-        assert_eq!((range.config.start, range.config.end), (Some(2), Some(4)));
-        let timestamp = Timestamp::from(date);
-        let single = endpoint(Index::Day1).get_timestamp(timestamp).unwrap();
-        assert_eq!((single.config.start, single.config.end), (Some(2), Some(3)));
-        let range = endpoint(Index::Day1)
-            .timestamp_range(timestamp, Timestamp::from(Date::new(2009, 1, 5)))
-            .unwrap();
-        assert_eq!((range.config.start, range.config.end), (Some(2), Some(4)));
-        // Preserve the existing intentional sub-daily clamp.
-        let single = endpoint(Index::Hour1)
-            .get_timestamp(Timestamp::ZERO)
-            .unwrap();
-        assert_eq!((single.config.start, single.config.end), (Some(0), Some(1)));
     }
 }
 

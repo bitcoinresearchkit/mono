@@ -17,8 +17,3 @@ brk_error = { version = "0.12.2", path = "../../crates/brk_error" }
 brk_reader = { version = "0.12.2", path = "../../crates/brk_reader" }
 brk_types = { version = "0.12.2", path = "../../crates/brk_types", features = ["storage"] }
 vecdb = { version = "0.12.2", path = "../../crates/vecdb", features = ["pco", "serde"] }
-
-[dev-dependencies]
-bitview_query = { version = "0.12.2", path = "../../crates/bitview_query", default-features = false }
-brk_exit = { version = "0.12.2", path = "../../crates/brk_exit" }
-tempfile = "3.27.0"

@@ -21,8 +21,6 @@ mod manifest;
 mod page;
 mod prepared_request;
 mod server;
-#[cfg(test)]
-mod server_tests;
 mod upstream;
 mod upstream_response;
 

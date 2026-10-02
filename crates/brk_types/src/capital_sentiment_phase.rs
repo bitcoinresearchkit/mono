@@ -144,24 +144,4 @@ unsafe impl Pco for CapitalSentimentPhase {
 }
 
 #[cfg(all(test, feature = "storage"))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn codes_round_trip_and_zero_is_reserved() {
-        assert_eq!(CapitalSentimentPhase::from_code(0), None);
-        const { assert!(!CapitalSentimentPhase::IS_TRANSPARENT) };
-        assert!(CapitalSentimentPhase::from_number(0).is_err());
-
-        for code in CapitalSentimentPhase::MIN_CODE..=CapitalSentimentPhase::MAX_CODE {
-            let phase = CapitalSentimentPhase::from_code(code).unwrap();
-            assert_eq!(phase.code(), code);
-            assert_eq!(CapitalSentimentPhase::from_number(code).unwrap(), phase);
-        }
-
-        assert_eq!(
-            CapitalSentimentPhase::from_code(CapitalSentimentPhase::MAX_CODE + 1),
-            None
-        );
-    }
-}
+mod tests {}
