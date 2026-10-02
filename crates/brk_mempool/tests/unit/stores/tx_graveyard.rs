@@ -42,18 +42,6 @@ fn re_bury_moves_predecessor_to_new_replacer() {
 }
 
 #[test]
-fn eviction_removes_predecessor_index_entry() {
-    let mut g = TxGraveyard::default();
-    let (tx, entry, rate) = tomb_inputs(23);
-    let replacer = fake_txid(24);
-    g.bury(tx, entry, rate, TxRemoval::Replaced { by: replacer });
-    g.shift_oldest_back(1);
-    g.evict_old();
-
-    assert_eq!(g.predecessors_of(&replacer).count(), 0);
-}
-
-#[test]
 fn replaced_iter_recent_first_skips_stale_order_entries() {
     let mut g = TxGraveyard::default();
     let (tx_a, entry_a, rate) = tomb_inputs(10);

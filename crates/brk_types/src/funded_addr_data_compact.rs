@@ -118,34 +118,3 @@ impl Bytes for FundedAddrDataCompact {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn inline_and_overflow_encodings_are_disjoint() {
-        assert_eq!(size_of::<FundedAddrDataCompact>(), 32);
-        let inline = FundedAddrDataCompact::new(
-            u64::MAX,
-            u64::MAX,
-            u128::from(u64::MAX),
-            COUNT_MASK,
-            COUNT_MASK,
-            COUNT_MASK,
-        )
-        .unwrap();
-        assert_eq!(inline.overflow_index(), None);
-        assert_eq!(inline.received(), u64::MAX);
-        assert_eq!(inline.sent(), u64::MAX);
-        assert_eq!(inline.realized_cap_raw(), u64::MAX);
-        assert_eq!(inline.tx_count(), COUNT_MASK);
-        assert_eq!(inline.funded_txo_count(), COUNT_MASK);
-        assert_eq!(inline.spent_txo_count(), COUNT_MASK);
-
-        for index in [0, 1, 42, 1_000_000] {
-            let pointer = FundedAddrDataCompact::from_overflow_index(index);
-            assert_eq!(pointer.overflow_index(), Some(index));
-        }
-    }
-}

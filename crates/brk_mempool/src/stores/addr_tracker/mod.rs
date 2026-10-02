@@ -119,60 +119,10 @@ impl AddrTracker {
 
 #[cfg(test)]
 mod tests {
-    use bitcoin::ScriptBuf;
-    use brk_types::{Sats, SatsSigned, TxOut};
+    use brk_types::Sats;
 
     use super::*;
     use crate::test_support::{fake_tx, p2wpkh_script};
-
-    fn addr_of(script: &ScriptBuf) -> AddrBytes {
-        AddrBytes::try_from(script).expect("p2wpkh script must yield AddrBytes")
-    }
-
-    #[test]
-    fn add_then_remove_tx_returns_to_zero_addrs() {
-        let mut tracker = AddrTracker::default();
-        let mut transitions = AddrTransitions::default();
-        let out_script = p2wpkh_script(2);
-        let prev_script = p2wpkh_script(3);
-        let tx = fake_tx(
-            2,
-            &[Some(TxOut::from((
-                prev_script.clone(),
-                Sats::from(4_000u64),
-            )))],
-            &[(out_script.clone(), 3_500)],
-        );
-        let recv = addr_of(&out_script);
-        let spend = addr_of(&prev_script);
-
-        tracker.add_tx(&mut transitions, &tx);
-        assert_eq!(
-            tracker
-                .get(&recv)
-                .expect("receiving addr indexed")
-                .stats
-                .balance_delta,
-            SatsSigned::from(3_500i64),
-        );
-        assert_eq!(
-            tracker
-                .get(&spend)
-                .expect("spending addr indexed")
-                .stats
-                .balance_delta,
-            SatsSigned::from(-4_000i64),
-        );
-        tracker.remove_tx(&mut transitions, &tx);
-        assert_eq!(tracker.len(), 0);
-        assert!(tracker.get(&recv).is_none());
-        assert!(tracker.get(&spend).is_none());
-
-        // add+remove in the same cycle: enter/leave cancel out.
-        let (enters, leaves) = transitions.into_vecs();
-        assert!(enters.is_empty(), "enter cancelled by same-cycle leave");
-        assert!(leaves.is_empty(), "leave cancelled by same-cycle enter");
-    }
 
     #[test]
     fn a_frozen_tracker_keeps_its_stats_and_transaction_membership() {

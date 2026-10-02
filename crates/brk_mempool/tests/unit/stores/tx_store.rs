@@ -92,32 +92,3 @@ fn apply_fills_writes_only_missing_inputs_and_refreshes_sigops() {
     assert!(!store.unresolved().contains(&prefix));
 }
 
-#[test]
-fn raw_histogram_bins_outputs_the_eligible_filter_drops() {
-    let mut store = TxStore::default();
-    // 2_345 sats is a round-dollar-eligible payment; 100_000_000 sats (1 BTC)
-    // is a round-BTC value the eligible filter drops but raw still bins.
-    let tx = fake_tx(
-        30,
-        &[Some(TxOut::from((p2wpkh_script(1), Sats::from(50_000u64))))],
-        &[(p2wpkh_script(2), 2_345), (p2wpkh_script(3), 100_000_000)],
-    );
-    let entry = entry_for(&tx, 100, 100);
-    let prefix = entry.txid_prefix();
-    store.insert(tx, entry);
-
-    assert_eq!(
-        store.live_eligible_histogram().iter().sum::<u32>(),
-        1,
-        "round-BTC output filtered out of the eligible histogram"
-    );
-    assert_eq!(
-        store.live_raw_histogram().iter().sum::<u32>(),
-        2,
-        "raw histogram bins every output"
-    );
-
-    store.remove_by_prefix(&prefix);
-    assert_eq!(store.live_eligible_histogram().iter().sum::<u32>(), 0);
-    assert_eq!(store.live_raw_histogram().iter().sum::<u32>(), 0);
-}

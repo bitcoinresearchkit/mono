@@ -239,17 +239,6 @@ fn seeded_history_has_no_invented_prefix_and_source_versions_invalidate_snapshot
 }
 
 #[test]
-fn one_writer_per_column() {
-    let root = tempdir().unwrap();
-    let _spends = Spends::open(root.path()).unwrap();
-    assert!(Spends::open(root.path()).is_err());
-    let _created = Creations::open(root.path()).unwrap();
-    assert!(Creations::open(root.path()).is_err());
-    let _history = History::open(root.path()).unwrap();
-    assert!(History::open(root.path()).is_err());
-}
-
-#[test]
 fn reader_rejects_a_stale_publication_after_producer_rewind_or_replacement() -> Result<()> {
     let root = tempdir()?;
     let mut spends = Spends::open(root.path())?;

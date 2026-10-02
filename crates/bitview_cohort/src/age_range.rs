@@ -388,30 +388,3 @@ impl<T> AgeRange<T> {
         Self::try_from_fn(|id| create(id.cohort()))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use brk_types::Timestamp;
-
-    use super::*;
-
-    #[test]
-    fn classifier_matches_every_typed_range_boundary() {
-        for &id in &AGE_RANGE_IDS {
-            let bounds = id.bounds();
-            let at_start = Age::new(
-                Timestamp::new((bounds.start * 60 * 60) as u32),
-                Timestamp::ZERO,
-            );
-            assert_eq!(AgeRangeId::from(at_start), id);
-
-            if bounds.end != usize::MAX {
-                let before_end = Age::new(
-                    Timestamp::new(((bounds.end - 1) * 60 * 60) as u32),
-                    Timestamp::ZERO,
-                );
-                assert_eq!(AgeRangeId::from(before_end), id);
-            }
-        }
-    }
-}

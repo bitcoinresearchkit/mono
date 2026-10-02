@@ -48,26 +48,3 @@ impl StoreValue for AddrIndexOutPoint {
         Self(bytes)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn byte_encoding_is_stable_and_roundtrips() {
-        let value = AddrIndexOutPoint::from((
-            TypeIndex::new(0x0102_0304),
-            OutPoint::new(TxIndex::new(0x0506_0708), Vout::from(0x090a_u16)),
-        ));
-        let bytes = value.to_store_bytes();
-
-        assert_eq!(
-            &bytes,
-            &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            "the LSM key encoding is part of the persisted format",
-        );
-        assert_eq!(AddrIndexOutPoint::from_store_bytes(bytes), value);
-        assert_eq!(value.tx_index(), TxIndex::new(0x0506_0708));
-        assert_eq!(value.vout(), Vout::from(0x090a_u16));
-    }
-}

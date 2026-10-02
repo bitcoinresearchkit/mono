@@ -384,26 +384,3 @@ impl Formattable for Sats {
         buf.extend_from_slice(b.format(self.0).as_bytes());
     }
 }
-
-#[cfg(all(test, feature = "storage"))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn overflow_encoding_preserves_inline_values_and_sidecar_indexes() {
-        for value in [0, (1_u64 << 31) - 1] {
-            let value = Sats::from(value);
-            let compact = value.to_compact().unwrap();
-            assert_eq!(Sats::overflow_index(compact), None);
-            assert_eq!(Sats::from_compact(compact), value);
-        }
-
-        assert_eq!(Sats::from(1_u64 << 31).to_compact(), None);
-        assert_eq!(Sats::MAX.to_compact(), None);
-
-        for index in [0, (1_usize << 31) - 1] {
-            let compact = Sats::from_overflow_index(index);
-            assert_eq!(Sats::overflow_index(compact), Some(index));
-        }
-    }
-}

@@ -322,11 +322,6 @@ impl Database {
         self.inner.regions.write()
     }
 
-    #[cfg(test)]
-    pub(crate) fn layout(&self) -> RwLockReadGuard<'_, Layout> {
-        self.inner.layout.read()
-    }
-
     pub(crate) fn layout_mut(&self) -> RwLockWriteGuard<'_, Layout> {
         self.inner.layout.write()
     }

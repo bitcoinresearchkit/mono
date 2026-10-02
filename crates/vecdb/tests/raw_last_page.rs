@@ -53,10 +53,6 @@ where
     Ok(())
 }
 
-// Fast-append fills exactly to page boundary
-
-// Incremental growth across multiple pages
-
 fn test_truncation_case<V>(truncate_to: usize, append_count: usize) -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
@@ -97,14 +93,6 @@ where
     Ok(())
 }
 
-// Reset clears raw pages
-
-// Reset after multi-page data (compressed + raw)
-
-// Read spanning compressed and raw pages
-
-// Multiple pages with raw tail
-
 // Reopen after each append, including batches that cross page boundaries.
 
 fn test_write_reopen_append_cycle<V>(counts: impl IntoIterator<Item = usize>) -> Result<()>
@@ -131,12 +119,6 @@ where
     assert_eq!(vec.collect(), (0..total).collect::<Vec<u32>>());
     Ok(())
 }
-
-// fold/iteration over mixed compressed+raw pages
-
-// Pushed (un-flushed) values mixed with stored raw page
-
-// Pushed values mixed with stored compressed + raw pages
 
 // Truncate all then rebuild (edge case)
 
@@ -186,8 +168,6 @@ fn page_cases<V: StoredVec<I = usize, T = u32>>() -> Result<()> {
 
     test_write_reopen_append_cycle::<V>((0..20usize).map(|cycle| 100 + cycle * 50))?;
     test_write_reopen_append_cycle::<V>((0..10).map(|_| PER_PAGE_U32 / 3 + 7))?;
-    // A second write stays a no-op for both one-page and multi-page data.
-
     test_truncate_to_zero_then_rebuild::<V>()?;
     Ok(())
 }

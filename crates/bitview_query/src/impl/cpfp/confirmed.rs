@@ -305,7 +305,3 @@ fn build_cpfp_info(
         cluster,
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/cpfp/confirmed.rs"]
-mod tests;

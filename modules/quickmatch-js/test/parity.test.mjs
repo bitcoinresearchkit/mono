@@ -51,7 +51,3 @@ for (const separators of ['_- :/', '_. /', ' ', '']) {
     assert.deepEqual(matcher.matches('price'), matcher.matchesWith('price', new QuickMatchConfig().withSeparators(separators)));
   });
 }
-
-
-
-// Exact words should beat longer variants even when the query is reordered.

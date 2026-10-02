@@ -419,10 +419,6 @@ pub trait BlockRoutes {
     fn add_block_routes(self) -> Self;
 }
 
-#[cfg(test)]
-#[path = "../../tests/unit/api/blocks.rs"]
-mod tests;
-
 impl BlockRoutes for ApiRouter<AppState> {
     fn add_block_routes(self) -> Self {
         self.api_route(

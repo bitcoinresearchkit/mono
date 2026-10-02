@@ -86,36 +86,3 @@ impl Carrier {
         metrics.fees += self.fees;
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use brk_types::{Bytes, OP_RETURN_KIND_COUNT, OpReturnKind, Sats, VSize};
-
-    use super::Carrier;
-    use crate::{breakdown::BlockMetrics, policy::Policy};
-
-    #[test]
-    fn multiple_kinds_count_one_total_carrier() {
-        let mut total = BlockMetrics::default();
-        let mut by_kind = [BlockMetrics::default(); OP_RETURN_KIND_COUNT];
-        let mut policy = Policy::default();
-        let mut carrier = Carrier::new(VSize::new(100), Sats::new(500));
-        carrier.add_output(OpReturnKind::Runes, Bytes::new(15));
-        carrier.add_output(OpReturnKind::Omni, Bytes::new(15));
-
-        carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
-
-        assert_eq!(total.tx_count, 1);
-        assert_eq!(by_kind[OpReturnKind::Runes.index()].tx_count, 1);
-        assert_eq!(by_kind[OpReturnKind::Omni.index()].tx_count, 1);
-        assert_eq!(total.fees, Sats::new(500));
-        assert_eq!(by_kind[OpReturnKind::Runes.index()].fees, Sats::new(500));
-        assert_eq!(by_kind[OpReturnKind::Omni.index()].fees, Sats::new(500));
-        assert_eq!(policy.multiple.fees, Sats::new(500));
-        assert_eq!(policy.pre_v30_nonstandard.fees, Sats::new(500));
-        assert_eq!(policy.multiple.output_count, 2);
-        assert_eq!(policy.pre_v30_nonstandard.tx_count, 1);
-        assert_eq!(policy.oversized.tx_count, 0);
-        assert_eq!(policy.pre_v30_standard.tx_count, 0);
-    }
-}

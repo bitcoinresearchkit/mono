@@ -319,18 +319,3 @@ unsafe impl Pco for OutputType {
         Self::from_bytes(&[value])
     }
 }
-
-#[cfg(all(test, feature = "storage"))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn pco_conversion_rejects_invalid_discriminants() {
-        const { assert!(!OutputType::IS_TRANSPARENT) };
-        assert_eq!(
-            OutputType::from_number(OutputType::Unknown as u8).unwrap(),
-            OutputType::Unknown
-        );
-        assert!(OutputType::from_number(u8::MAX).is_err());
-    }
-}

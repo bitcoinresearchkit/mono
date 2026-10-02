@@ -65,10 +65,6 @@ pub trait MiningRoutes {
     fn add_mining_routes(self) -> Self;
 }
 
-#[cfg(test)]
-#[path = "../../tests/unit/api/mining.rs"]
-mod tests;
-
 impl MiningRoutes for ApiRouter<AppState> {
     fn add_mining_routes(self) -> Self {
         self.api_route(

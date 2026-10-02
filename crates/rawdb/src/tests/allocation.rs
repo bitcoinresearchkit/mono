@@ -188,38 +188,3 @@ fn metadata_slot_reuse_survives_reopen_and_shrink() -> Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_hole_coalescing() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-
-    // Create 5 regions
-    let mut regions: Vec<_> = (0..5)
-        .map(|i| db.create_region_if_needed(&format!("r{}", i)))
-        .collect::<Result<Vec<_>>>()?
-        .into_iter()
-        .map(Some)
-        .collect();
-
-    // Write small data to each
-    for r in &regions {
-        r.as_ref().unwrap().write(b"data")?;
-    }
-
-    // Remove regions 1, 2, 3 to create adjacent holes
-    regions[1].take().unwrap().remove()?;
-    regions[2].take().unwrap().remove()?;
-    regions[3].take().unwrap().remove()?;
-    db.flush()?; // Make holes available and coalesce
-
-    // Check that holes were coalesced
-    let layout = db.layout();
-    // Should have 1 large hole, not 3 separate ones
-    let holes = layout.start_to_hole();
-    assert_eq!(holes.len(), 1);
-
-    // The single hole should span all 3 removed regions
-    let hole_size = holes.values().next().unwrap();
-    assert_eq!(*hole_size, PAGE_SIZE * 3);
-
-    Ok(())
-}

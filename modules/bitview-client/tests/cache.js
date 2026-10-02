@@ -86,14 +86,6 @@ test('retained ETags produce 304s without parsing or a second callback', async t
   assert.deepEqual(calls.at(-1), { path: '/values', validator: '"v2"', status: 304, bytes: 0 });
 });
 
-
-
-
-
-
-
-
-
 test('cross-origin browsers keep native revalidation and cancel unneeded bodies', async t => {
   globalThis.location = new URL('https://dashboard.example');
   t.after(() => { delete globalThis.location; });
@@ -106,8 +98,6 @@ test('cross-origin browsers keep native revalidation and cancel unneeded bodies'
   assert.equal(counts.parsed, 1);
   assert.equal(counts.cancelled, 1);
 });
-
-
 
 test('a browser-cache race reuses its parsed result and releases the network body', async t => {
   resource('/browser-cache');

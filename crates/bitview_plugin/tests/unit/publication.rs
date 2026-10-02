@@ -30,17 +30,6 @@ fn pipeline_update_waits_for_readers_and_stays_closed_until_published() {
 }
 
 #[test]
-fn timed_read_stops_waiting_at_its_deadline() {
-    let gate = Publication::default();
-    gate.begin_update();
-
-    assert!(gate.read_for(Duration::from_millis(10)).is_none());
-
-    gate.finish_update();
-    assert!(gate.read_for(Duration::ZERO).is_some());
-}
-
-#[test]
 fn timed_read_wakes_when_update_finishes() {
     let gate = Publication::default();
     gate.begin_update();

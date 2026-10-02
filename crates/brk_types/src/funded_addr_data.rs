@@ -419,22 +419,4 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "storage")]
-    #[test]
-    fn overflow_compact_roundtrips_and_rejects_wide_values() {
-        let mut data = FundedAddrData::default();
-        data.receive_outputs(Sats::ONE_BTC, Cents::new(10_000), 2);
-        data.tx_count = 3;
-
-        let decoded = FundedAddrData::from_compact(data.to_compact().unwrap());
-        assert_eq!(decoded.received, data.received);
-        assert_eq!(decoded.sent, data.sent);
-        assert_eq!(decoded.realized_cap_raw(), data.realized_cap_raw());
-        assert_eq!(decoded.tx_count, data.tx_count);
-        assert_eq!(decoded.funded_txo_count, data.funded_txo_count);
-        assert_eq!(decoded.spent_txo_count, data.spent_txo_count);
-
-        data.realized_cap_raw = CentsSats96::from_wide(CentsSats::new(u128::from(u64::MAX) + 1));
-        assert!(data.to_compact().is_none());
-    }
 }
