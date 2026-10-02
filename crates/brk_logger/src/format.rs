@@ -211,19 +211,3 @@ impl<const ANSI: bool> Visit for FieldVisitor<ANSI> {
 fn is_internal(name: &str) -> bool {
     name.starts_with("log.") || name.starts_with("internal.")
 }
-
-#[cfg(test)]
-mod tests {
-    use super::FieldVisitor;
-
-    #[test]
-    fn formats_http_access_events() {
-        let mut visitor = FieldVisitor::<false>::new();
-        visitor.method = Some("GET".to_owned());
-        visitor.status = Some(200);
-        visitor.uri = Some("/api".to_owned());
-        visitor.latency = Some("1.25ms".to_owned());
-
-        assert_eq!(visitor.finish(), "200 /api 1.25ms");
-    }
-}

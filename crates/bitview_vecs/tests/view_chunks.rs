@@ -274,7 +274,17 @@ fn check(view: ReadableBoxedVec<Height, StoredU64>, expected: &[StoredU64]) {
             expected
         );
     }
-    let indices = [0, 1, 16_383, 16_384, 34_999, 39_999, 40_000, usize::MAX];
+    let indices = [
+        0,
+        1,
+        16_383,
+        16_384,
+        16_384,
+        34_999,
+        39_999,
+        40_000,
+        usize::MAX,
+    ];
     let expected: Vec<_> = indices
         .iter()
         .filter_map(|&i| expected.get(i).copied())

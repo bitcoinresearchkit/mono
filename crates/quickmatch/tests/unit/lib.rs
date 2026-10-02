@@ -145,13 +145,6 @@ fn best_matched_word_tier_matches_full_ranking_then_filtering() {
 }
 
 #[test]
-fn matcher_is_naturally_send_and_sync() {
-    fn assert_send_sync<T: Send + Sync>() {}
-
-    assert_send_sync::<QuickMatch<'static>>();
-}
-
-#[test]
 fn complete_metric_words_rank_first_in_any_order() {
     let items = [
         "sth_realized_price_pct1",

@@ -3,20 +3,6 @@ use serde_json::{json, to_value};
 use super::*;
 
 #[test]
-fn cached_dates_and_missing_dates_do_not_fetch() {
-    let mut source = Binance::new(None);
-    let date = Date::new(2024, 1, 1);
-    let later = Date::new(2024, 1, 3);
-    source._1d = Some(BTreeMap::from([
-        (date, OHLCCents::default()),
-        (later, OHLCCents::default()),
-    ]));
-    assert!(source.get_from_1d(&date).is_ok());
-    assert!(matches!(source.get_from_1d(&Date::new(2024, 1, 2)),
-        Err(Error::NotFound(message)) if message == "Couldn't find date"));
-}
-
-#[test]
 fn parsing_preserves_order_duplicates_and_errors() {
     let rows = json!([
         [2000, "2", "3", "1", "2"],

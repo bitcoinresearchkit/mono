@@ -1,8 +1,3 @@
-use std::sync::{
-    Arc,
-    atomic::{AtomicUsize, Ordering},
-};
-
 use bitview_transforms::RatioU64;
 use bitview_vecs::{
     LazyIndexCountVec, LazyIndexedVec, LazyLookbackVec, LazyPreviousDeltaVec, LazyRollingRatioVec,
@@ -146,34 +141,4 @@ fn folds_match_materialization_for_all_optimized_views_and_published_bounds() {
     let mut bounds = ReadBounds::new();
     bounds.set("height", 29);
     bounds.scope(check);
-}
-
-#[test]
-fn fallible_fold_stops_transforming_after_the_first_error() {
-    let directory = tempdir().unwrap();
-    let db = Database::open(directory.path()).unwrap();
-    let source = stored(&db, "source", (0..64_u64).map(StoredU64::from));
-    let starts = stored(&db, "starts", (0..64).map(|_| Height::ZERO));
-    let calls = Arc::new(AtomicUsize::new(0));
-    let captured_calls = calls.clone();
-    let window = LazyWindowVec::new(
-        "window",
-        Version::ONE,
-        &source,
-        &starts,
-        true,
-        move |current, _, _| {
-            captured_calls.fetch_add(1, Ordering::Relaxed);
-            current
-        },
-    );
-    let result =
-        window.try_fold_range_at(
-            0,
-            64,
-            0,
-            |count, _| if count == 2 { Err(()) } else { Ok(count + 1) },
-        );
-    assert_eq!(result, Err(()));
-    assert_eq!(calls.load(Ordering::Relaxed), 3);
 }

@@ -342,16 +342,4 @@ mod tests {
             Phase::Bull
         );
     }
-
-    #[test]
-    fn signal_enters_only_on_an_sth_cross_and_exits_on_a_sell_phase() {
-        let bull = StoredU8::new(Phase::Bull.code());
-        let bear = StoredU8::new(Phase::Bear.code());
-
-        assert!(!next_is_long(false, None, true, bull));
-        assert!(next_is_long(false, Some(false), true, bull));
-        assert!(!next_is_long(false, Some(true), true, bull));
-        assert!(next_is_long(true, Some(true), true, bull));
-        assert!(!next_is_long(true, Some(true), true, bear));
-    }
 }

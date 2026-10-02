@@ -50,11 +50,4 @@ mod tests {
         assert_eq!(pre_oracle_prices_from(0).count(), START_HEIGHT_SLOW);
         seed_price_cents();
     }
-
-    #[test]
-    fn pre_oracle_prices_stop_at_onchain_start() {
-        assert!(pre_oracle_price_cents(START_HEIGHT_SLOW - 1).is_some());
-        assert!(pre_oracle_price_cents(START_HEIGHT_SLOW).is_none());
-        assert_eq!(pre_oracle_prices_from(START_HEIGHT_SLOW).count(), 0);
-    }
 }

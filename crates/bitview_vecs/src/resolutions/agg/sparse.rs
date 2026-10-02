@@ -121,111 +121,8 @@ mod tests {
     use super::{AggFold, Sparse};
     use vecdb::{BytesVec, Database, ImportableVec, ReadBounds, Version, WritableVec};
 
-    #[test]
-    fn point_reads_match_reference_buckets() {
-        let temp = tempdir().unwrap();
-        let db = Database::open(temp.path()).unwrap();
-        let mut source = BytesVec::<usize, u64>::import(&db, "values", Version::ONE).unwrap();
-        let values = [10, 20, 30, 40];
-        for &value in &values {
-            source.push(value);
-        }
-        for starts in [
-            vec![],
-            vec![0],
-            vec![0, 0, 0],
-            vec![0, 1, 1, 3, 4, 8],
-            vec![2, 2, 3],
-        ] {
-            let mapping = RangeMap::<usize, usize>::from(starts.clone());
-            for source_len in [0, 2, values.len()] {
-                let expected: Vec<_> = starts
-                    .iter()
-                    .enumerate()
-                    .map(|(i, &first)| {
-                        let end = starts
-                            .get(i + 1)
-                            .copied()
-                            .unwrap_or(source_len)
-                            .min(source_len);
-                        (first..end).last().map(|index| values[index])
-                    })
-                    .collect();
-                let mut bounds = ReadBounds::new();
-                bounds.set("usize", source_len);
-                bounds.scope(|| {
-                    for (i, &value) in expected.iter().enumerate() {
-                        assert_eq!(Sparse::collect_one(&source, &mapping, i), Some(value));
-                    }
-                    for i in [mapping.len(), usize::MAX] {
-                        assert_eq!(Sparse::collect_one(&source, &mapping, i), None);
-                    }
-                });
-            }
-        }
-    }
-
     fn mapping_source(values: &[usize]) -> RangeMap<usize, usize> {
         RangeMap::from(values.to_vec())
-    }
-
-    #[test]
-    fn clamps_partial_final_range_to_source_length() {
-        let temp = tempdir().unwrap();
-        let db = Database::open(temp.path()).unwrap();
-        let mut source: BytesVec<usize, u64> =
-            BytesVec::forced_import(&db, "source", Version::ONE).unwrap();
-
-        for value in [10, 20, 30] {
-            source.push(value);
-        }
-
-        let mapping = mapping_source(&[0, 2, 4]);
-        let values = Sparse::fold(
-            &source,
-            &mapping,
-            0,
-            mapping.len(),
-            Vec::new(),
-            |mut values, value| {
-                values.push(value);
-                values
-            },
-        );
-
-        assert_eq!(values, [Some(20), Some(30), None]);
-        assert_eq!(Sparse::collect_one(&source, &mapping, 1), Some(Some(30)));
-        assert_eq!(Sparse::collect_one(&source, &mapping, 2), Some(None));
-    }
-
-    #[test]
-    fn final_range_uses_the_published_source_bound() {
-        let temp = tempdir().unwrap();
-        let db = Database::open(temp.path()).unwrap();
-        let mut source: BytesVec<usize, u64> =
-            BytesVec::forced_import(&db, "bounded_source", Version::ONE).unwrap();
-
-        for value in [10, 20, 30] {
-            source.push(value);
-        }
-
-        let mut bounds = ReadBounds::new();
-        bounds.set("usize", 2);
-        let values = bounds.scope(|| {
-            Sparse::fold(
-                &source,
-                &mapping_source(&[0]),
-                0,
-                1,
-                Vec::new(),
-                |mut values, value| {
-                    values.push(value);
-                    values
-                },
-            )
-        });
-
-        assert_eq!(values, [Some(20)]);
     }
 
     #[test]
@@ -246,6 +143,7 @@ mod tests {
             vec![0, 1, 2, 3],
             vec![0, 2, 2, 3, 100],
             vec![0, 0, 4, 4, 4],
+            vec![2, 2, 3],
         ] {
             for source_len in [0, 2, values.len()] {
                 let expected: Vec<_> = mapping
@@ -269,6 +167,9 @@ mod tests {
                             Sparse::collect_one(&source, &mapping, index),
                             Some(expected)
                         );
+                    }
+                    for index in [mapping.len(), usize::MAX] {
+                        assert_eq!(Sparse::collect_one(&source, &mapping, index), None);
                     }
                     for from in 0..=mapping.len() {
                         for to in from..=mapping.len() {

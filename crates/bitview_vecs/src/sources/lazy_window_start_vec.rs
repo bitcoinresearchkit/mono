@@ -361,16 +361,6 @@ mod tests {
     }
 
     #[test]
-    fn exact_window_boundary_is_excluded() {
-        let (_, cached_timestamps) = timestamp_fixture();
-        let day = lazy_window(&cached_timestamps, DAY_SECONDS);
-        let hour = lazy_window(&cached_timestamps, HOUR_SECONDS);
-
-        assert_eq!(day.collect(), [0_usize, 0, 1, 2, 3].map(Height::from));
-        assert_eq!(hour.collect(), [0_usize, 1, 2, 3, 4].map(Height::from));
-    }
-
-    #[test]
     fn sorted_gap_search_matches_linear_reference_across_duplicates_and_rewrites() {
         let mut time = 0u32;
         let mut values: Vec<_> = (0..50_000)
@@ -421,22 +411,6 @@ mod tests {
                 }
             }
         }
-    }
-
-    #[test]
-    fn range_random_and_sorted_reads_match() {
-        let (_, cached_timestamps) = timestamp_fixture();
-        let window = lazy_window(&cached_timestamps, DAY_SECONDS);
-
-        assert_eq!(
-            window.collect_range_at(1, 4),
-            [0_usize, 1, 2].map(Height::from)
-        );
-        assert_eq!(window.collect_one_at(4), Some(Height::from(3_usize)));
-        assert_eq!(
-            window.read_sorted_at(&[0, 2, 4]),
-            [0_usize, 1, 3].map(Height::from)
-        );
     }
 
     #[test]

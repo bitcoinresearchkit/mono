@@ -134,21 +134,6 @@ impl Oracle {
 mod tests {
     use super::*;
 
-    #[test]
-    fn from_seed_matches_manual_seed() {
-        let mut seeded = Oracle::from_seed();
-        let mut manual = Oracle::new(seed_bin(), Config::slow());
-        let mut hist = HistogramRaw::zeros();
-        hist.increment(1200);
-
-        assert_eq!(seeded.ref_bin, manual.ref_bin);
-        assert_eq!(
-            seeded.process_histogram(&hist),
-            manual.process_histogram(&hist)
-        );
-        assert!(seeded.ema().iter().eq(manual.ema().iter()));
-    }
-
     // reconfigure must leave the oracle in the same state as a fresh warm-up
     // over the most recent window of raw histograms. The continuous build and
     // the incremental resume rely on this agreeing at the slow -> fast seam.

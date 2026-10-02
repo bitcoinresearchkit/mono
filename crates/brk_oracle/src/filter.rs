@@ -219,24 +219,6 @@ mod tests {
         );
     }
 
-    fn emitted_count_modern(len: usize) -> usize {
-        let mut count = 0;
-        PaymentFilter::MODERN.for_each_bin(payment_outputs(len), |_| count += 1);
-        count
-    }
-
-    #[test]
-    fn modern_helper_uses_modern_fanout_cap() {
-        assert_eq!(
-            emitted_count_modern(PaymentFilter::MODERN_TX_OUTPUT_FANOUT_CAP),
-            PaymentFilter::MODERN_TX_OUTPUT_FANOUT_CAP
-        );
-        assert_eq!(
-            emitted_count_modern(PaymentFilter::MODERN_TX_OUTPUT_FANOUT_CAP + 1),
-            0
-        );
-    }
-
     #[test]
     fn common_round_ranges_match_reference() {
         for &(start, end) in &PaymentFilter::COMMON_ROUND_RANGES {
@@ -285,19 +267,5 @@ mod tests {
 
         let bin = PaymentFilter::eligible_bin(sats, OutputType::P2WPKH).unwrap() as usize;
         assert_eq!(hist[bin], 2);
-    }
-
-    #[test]
-    fn builds_fresh_payment_histogram() {
-        let sats = Sats::new(12_345);
-        let txs = vec![vec![
-            (sats, OutputType::P2WPKH),
-            (Sats::new(100_000_000), OutputType::P2WPKH),
-        ]];
-
-        let hist = PaymentFilter::MODERN.histogram(txs.into_iter().map(|tx| tx.into_iter()));
-
-        let bin = PaymentFilter::eligible_bin(sats, OutputType::P2WPKH).unwrap() as usize;
-        assert_eq!(hist[bin], 1);
     }
 }

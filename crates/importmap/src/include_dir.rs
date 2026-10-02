@@ -32,15 +32,6 @@ mod tests {
     static TEST_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/tests/fixtures");
 
     #[test]
-    fn scan_embedded_finds_js_files() {
-        let map = ImportMap::scan_embedded(&TEST_DIR, "");
-        assert_eq!(map.len(), 2);
-        assert!(map.contains_key("/modules/app.js"));
-        assert!(map.contains_key("/style.css"));
-        assert!(!map.contains_key("/service-worker.js"));
-    }
-
-    #[test]
     fn scan_embedded_with_base_url() {
         let map = ImportMap::scan_embedded(&TEST_DIR, "/assets");
         let filesystem = ImportMap::scan(

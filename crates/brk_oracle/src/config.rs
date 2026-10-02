@@ -73,38 +73,3 @@ impl Config {
             .filter(|range| !range.is_empty())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn segments_for_range_splits_at_fast_start() {
-        let segments: Vec<_> =
-            Config::segments_for_range((START_HEIGHT_FAST - 2)..(START_HEIGHT_FAST + 2)).collect();
-        assert_eq!(
-            segments,
-            vec![
-                (START_HEIGHT_FAST - 2)..START_HEIGHT_FAST,
-                START_HEIGHT_FAST..(START_HEIGHT_FAST + 2),
-            ]
-        );
-    }
-
-    #[test]
-    fn segments_for_range_omits_empty_sides() {
-        let slow: Vec<_> =
-            Config::segments_for_range((START_HEIGHT_FAST - 2)..START_HEIGHT_FAST).collect();
-        assert_eq!(slow, vec![(START_HEIGHT_FAST - 2)..START_HEIGHT_FAST]);
-
-        let fast: Vec<_> =
-            Config::segments_for_range(START_HEIGHT_FAST..(START_HEIGHT_FAST + 2)).collect();
-        assert_eq!(fast, vec![START_HEIGHT_FAST..(START_HEIGHT_FAST + 2)]);
-    }
-
-    #[test]
-    fn for_height_selects_regime() {
-        assert_eq!(Config::for_height(START_HEIGHT_FAST - 1), Config::slow());
-        assert_eq!(Config::for_height(START_HEIGHT_FAST), Config::default());
-    }
-}

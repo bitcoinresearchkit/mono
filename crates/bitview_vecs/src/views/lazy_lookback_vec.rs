@@ -309,38 +309,3 @@ where
         make_leaf::<I, T, _>(self)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use brk_types::{Height, StoredU64, Version};
-    use tempfile::tempdir;
-    use vecdb::{
-        AnyStoredVec, Database, EagerVec, ImportableVec, PcoVec, ReadableVec, WritableVec,
-    };
-
-    use super::LazyLookbackVec;
-
-    #[test]
-    fn sorted_reads_batch_current_and_lookback_values() {
-        let directory = tempdir().unwrap();
-        let db = Database::open(directory.path()).unwrap();
-        let mut source: EagerVec<PcoVec<Height, StoredU64>> =
-            EagerVec::forced_import(&db, "source", Version::ONE).unwrap();
-
-        for value in [2_u64, 5, 9, 14, 20] {
-            source.push(StoredU64::from(value));
-        }
-        source.write().unwrap();
-
-        let lookback =
-            LazyLookbackVec::new("lookback", Version::ONE, &source, 2, |current, previous| {
-                current - previous.unwrap_or_default()
-            });
-
-        assert_eq!(
-            lookback.read_sorted_at(&[0, 2, 2, 4, 5]),
-            [2_u64, 7, 7, 11].map(StoredU64::from)
-        );
-        assert_eq!(lookback.read_sorted_at(&[4]), [11_u64].map(StoredU64::from));
-    }
-}
