@@ -31,11 +31,8 @@ impl HeaderInner {
         Ok(())
     }
 
-    pub fn import_and_verify(
-        region: &Region,
-        vec_version: Version,
-        format: Format,
-    ) -> Result<Self> {
+    /// Reads the header without checking it against an expected version or format.
+    pub fn read(region: &Region) -> Result<Self> {
         let len = region.meta().byte_len();
 
         if len < HEADER_OFFSET {
@@ -47,7 +44,15 @@ impl HeaderInner {
 
         let reader = region.create_reader();
         let vec = reader.read(0, HEADER_OFFSET);
-        let header = HeaderInner::from_bytes(vec)?;
+        HeaderInner::from_bytes(vec)
+    }
+
+    pub fn import_and_verify(
+        region: &Region,
+        vec_version: Version,
+        format: Format,
+    ) -> Result<Self> {
+        let header = Self::read(region)?;
 
         if header.header_version != HEADER_VERSION {
             return Err(Error::DifferentVersion {

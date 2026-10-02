@@ -3,5 +3,7 @@ rustflags = ["-C", "target-cpu=native"]
 
 [alias]
 bindgen = "run -p bitviewd --bin bitview-bindgen --features bindgen"
+api = "run -p bitview_devtools --bin bitview-api"
+surface = "run -p bitview_devtools --bin bitview-surface"
 dev = "run -p bitviewd --bin bitview-bindgen --features bindgen -- --run"
 prod = "run --release -p bitviewd"

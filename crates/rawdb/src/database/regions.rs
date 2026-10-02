@@ -37,6 +37,10 @@ impl Regions {
         self.by_id.values()
     }
 
+    pub(crate) fn ids(&self) -> impl Iterator<Item = &str> {
+        self.by_id.keys().map(|id| id.as_ref())
+    }
+
     #[inline]
     pub(crate) fn len(&self) -> usize {
         self.by_id.len()

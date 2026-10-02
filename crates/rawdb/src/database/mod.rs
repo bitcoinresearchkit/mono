@@ -84,6 +84,13 @@ impl Database {
         self.inner.data.ensure_len(len, &self.inner.writes)
     }
 
+    /// Identifiers of every region in the database, sorted.
+    pub fn region_ids(&self) -> Vec<String> {
+        let mut ids = self.regions().ids().map(str::to_owned).collect::<Vec<_>>();
+        ids.sort_unstable();
+        ids
+    }
+
     pub fn get_region(&self, id: &str) -> Option<Region> {
         let region = self.regions().get(id).cloned();
         if let Some(region) = &region {

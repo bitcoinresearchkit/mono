@@ -540,6 +540,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitview_devtools"
+version = "0.12.2"
+dependencies = [
+ "aide",
+ "bitview_catalog",
+ "bitview_default",
+ "bitview_plugin",
+ "bitview_plugin_blocks",
+ "bitview_plugin_distribution_aggregated",
+ "bitview_plugin_distribution_entry",
+ "bitview_plugin_distribution_profitability",
+ "bitview_plugin_mappings",
+ "bitview_plugin_price",
+ "bitview_query",
+ "bitview_runtime",
+ "bitview_server",
+ "bitview_traversable",
+ "brk_error",
+ "brk_reader",
+ "brk_rpc",
+ "serde_json",
+ "tempfile",
+ "vecdb",
+]
+
+[[package]]
 name = "bitview_mcp"
 version = "0.12.2"
 dependencies = [

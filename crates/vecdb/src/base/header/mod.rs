@@ -51,6 +51,16 @@ impl Header {
         })
     }
 
+    /// Reads a region's header without verifying it, for inspection tools.
+    pub fn read(region: &Region) -> Result<Self> {
+        let inner = HeaderInner::read(region)?;
+        Ok(Self {
+            inner: Arc::new(RwLock::new(inner)),
+            modified: false,
+            write_failed: Arc::new(AtomicBool::new(false)),
+        })
+    }
+
     pub(crate) fn update_stamp(&mut self, stamp: Stamp) {
         self.assert_writable();
         let mut inner = self.inner.write();
@@ -82,6 +92,16 @@ impl Header {
     #[inline(always)]
     pub fn computed_version(&self) -> Version {
         self.inner.read().computed_version
+    }
+
+    #[inline(always)]
+    pub fn header_version(&self) -> Version {
+        self.inner.read().header_version
+    }
+
+    #[inline(always)]
+    pub fn format(&self) -> Format {
+        self.inner.read().format
     }
 
     /// Computed sources carry their provenance; raw sources carry their schema.
