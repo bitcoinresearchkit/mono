@@ -11,7 +11,7 @@ use crate::GenericSyntax;
 /// Implementations of this trait provide the language-specific formatting
 /// for generated client code. This allows the core generation logic to be
 /// written once and reused across all supported languages.
-pub trait LanguageSyntax {
+pub(crate) trait LanguageSyntax {
     /// Convert a field name to the language's naming convention.
     ///
     /// - Python/Rust: `snake_case`

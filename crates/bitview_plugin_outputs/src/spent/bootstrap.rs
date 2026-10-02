@@ -93,8 +93,8 @@ fn build_ranges(
         while remaining > 0 {
             let len = remaining.min(records.len());
             file.read_exact(&mut records[..len])?;
-            for record in records[..len].chunks_exact(RECORD_LEN) {
-                let record = u64::from_le_bytes(record.try_into().unwrap());
+            for record in records[..len].as_chunks::<RECORD_LEN>().0 {
+                let record = u64::from_le_bytes(*record);
                 values[(record & mask) as usize] = TxInIndex::new(record >> range_bits);
             }
             remaining -= len;

@@ -65,7 +65,7 @@ impl<T: PcoVecValue + AddAssign, S: Clone> AmountSources<T, S> {
     where
         T: Default,
     {
-        let len = self.len();
+        let len = self.min_len();
         let values = self.last.accumulate(
             len,
             || AmountRange::try_from_fn(|id| id.select(&self.stored).collect_last().ok_or(())).ok(),
@@ -78,7 +78,7 @@ impl<T: PcoVecValue + AddAssign, S: Clone> AmountSources<T, S> {
         self.push(values);
     }
 
-    pub fn len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.stored.iter().map(AnyVec::len).min().unwrap_or(0)
     }
     pub fn checkpoint(&self, height: Height) -> Option<AmountRange<T>> {

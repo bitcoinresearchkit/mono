@@ -40,6 +40,7 @@ import { createTransactionsSection } from "./network/transactions.js";
 export function createNetworkSection() {
   const { blocks, transactions, inputs, outputs, supply, addrs, cohorts } =
     bitview.series;
+  const utxoCount = bitview.series.distributionAggregated.cohorts.all.outputs.unspentCount;
 
   const st = colors.scriptType;
 
@@ -1150,14 +1151,14 @@ export function createNetworkSection() {
             title: "UTXO Count",
             bottom: [
               line({
-                series: cohorts.outputs.unspentCount.all.base,
+                series: utxoCount.base,
                 name: "Count",
                 unit: Unit.count,
               }),
             ],
           },
           ...simpleDeltaTree({
-            delta: cohorts.outputs.unspentCount.all.delta,
+            delta: utxoCount.delta,
             metric: "UTXO Count",
             unit: Unit.count,
           }),

@@ -59,7 +59,7 @@ impl Vecs {
 
         let modes = Modes::try_from_fn(|mode| {
             let name = mode.name();
-            ModeVecs::forced_import(&db, &format!("bedrock_{name}"), version, &mappings)
+            ModeVecs::forced_import(&db, &format!("bedrock_{name}"), version, mappings)
         })?;
         let this = Self {
             db,

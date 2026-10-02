@@ -1,7 +1,7 @@
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, NoCache, ReadableCloneableVec,
-    ReadableVec, Version, WritableVec,
+    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, ReadableCloneableVec, ReadableVec,
+    Version, WritableVec,
 };
 
 #[test]
@@ -43,5 +43,4 @@ fn stored_policies_share_retained_ranges_through_clones() {
     assert_eq!(budget.used(), 0);
     assert_eq!(working_values, [12, 13]);
     assert_eq!(source.collect_range_at(2, 4), working_values);
-    assert_eq!(size_of::<NoCache>(), 0);
 }

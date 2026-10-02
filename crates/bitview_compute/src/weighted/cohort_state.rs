@@ -81,50 +81,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_nan_cap_contributes_zero() {
-        let mut state = WeightedCohortState::default();
-
-        let contribution = state.add(Sats::ZERO, Sats::ZERO, Cents::NAN, BoundedRatio::from(0.5));
-
-        assert_eq!(contribution.weighted_cap, Cents::ZERO);
-        assert_eq!(state.weighted_cap, Cents::ZERO);
-        assert_eq!(state.realized_price(), Cents::ZERO);
-    }
-
-    #[test]
-    fn nonempty_nan_cap_remains_nan() {
-        let mut state = WeightedCohortState::default();
-
-        state.add(
-            Sats::from(100_u64),
-            Sats::ZERO,
-            Cents::NAN,
-            BoundedRatio::from(0.5),
-        );
-
-        assert!(state.weighted_cap.is_nan());
-        assert!(state.realized_price().is_nan());
-    }
-
-    #[test]
-    fn bounded_weights_use_the_encoded_complement() {
-        let total = Sats::from(123_456_789_u64);
-        let total_cap = Cents::from(987_654_321_u64);
-        for value in [0.0, 1.0 / 3.0, 0.321, 1.0] {
-            let weight = BoundedRatio::from(value);
-            let split = WeightedCohortState::split_supply(total, weight);
-            assert_eq!(split.0, StoredF64::from(f64::from(weight)) * total);
-            assert_eq!(
-                split.1,
-                StoredF64::from(f64::from(weight.complement())) * total
-            );
-            assert!(split.0 + split.1 <= total);
-            assert!(total - split.0 - split.1 <= Sats::from(1_u64));
+    fn nan_cap_depends_on_whether_supply_is_empty() {
+        for (supply, expected) in [(Sats::ZERO, Cents::ZERO), (Sats::new(100), Cents::NAN)] {
             let mut state = WeightedCohortState::default();
-            let contribution = state.add(total, Sats::ZERO, total_cap, weight);
-            assert_eq!(contribution.weighted_supply, split.0);
-            assert_eq!(contribution.complement_supply, split.1);
-            assert!(state.weighted_cap <= total_cap);
+            let contribution = state.add(supply, Sats::ZERO, Cents::NAN, BoundedRatio::from(0.5));
+
+            assert_eq!(contribution.weighted_cap, expected);
+            assert_eq!(state.weighted_cap, expected);
+            assert_eq!(state.realized_price(), expected);
         }
     }
 }

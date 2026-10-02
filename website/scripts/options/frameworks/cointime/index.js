@@ -23,7 +23,8 @@ import {
  * @returns {PartialOptionsGroup}
  */
 export function createCointimeSection() {
-  const { cohorts, supply, cointime } = bitview.series;
+  const { distributionAggregated, supply, cointime } = bitview.series;
+  const realized = distributionAggregated.cohorts.all.realized;
   const {
     prices: cointimePrices,
     cap,
@@ -73,7 +74,7 @@ export function createCointimeSection() {
   // Reference lines for cap comparisons
   const capReferenceLines = /** @type {const} */ ([
     {
-      series: cohorts.realized.cap.all.usd,
+      series: realized.cap.usd,
       name: "Realized",
       color: colors.realized,
     },
@@ -146,7 +147,7 @@ export function createCointimeSection() {
 
   const supplyBreakdown = /** @type {const} */ ([
     {
-      pattern: cohorts.supply.total.all,
+      pattern: distributionAggregated.cohorts.all.supply.total,
       name: "Total",
       color: colors.bitcoin,
     },
@@ -223,12 +224,12 @@ export function createCointimeSection() {
             title: "Cointime Prices",
             top: [
               price({
-                series: cohorts.realized.price.all,
+                series: realized.price,
                 name: "Realized",
                 color: colors.realized,
               }),
               price({
-                series: cohorts.realized.capitalizedPrice.all,
+                series: realized.capitalizedPrice,
                 name: "Capitalized",
                 color: colors.capitalized,
               }),

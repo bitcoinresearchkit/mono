@@ -110,7 +110,7 @@ impl Fixture {
         self.history
             .advance(
                 from,
-                self.creations.len(),
+                self.creations.end(),
                 &self.spends,
                 &self.creations,
                 |_, _| Ok(()),

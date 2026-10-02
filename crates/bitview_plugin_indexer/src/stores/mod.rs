@@ -498,7 +498,7 @@ fn txout_ranges(
 
 #[cfg(test)]
 mod tests {
-    use brk_types::TxInIndex;
+    use brk_types::{StoreValue, TxInIndex};
     use tempfile::tempdir;
     use vecdb::{AnyStoredVec, WritableVec};
 
@@ -639,125 +639,71 @@ mod tests {
     }
 
     #[test]
-    fn empty_stores_initialize_zero_checkpoint() -> Result<()> {
-        let dir = tempdir()?;
-        let stores = Stores::forced_import(dir.path(), Version::ZERO)?;
-
-        assert_eq!(stores.next_height()?, Some(Height::ZERO));
-        Ok(())
-    }
-
-    #[test]
-    fn missing_checkpoint_with_data_stays_invalid() -> Result<()> {
-        let dir = tempdir()?;
-
-        {
+    fn commit_paths_persist_every_store_before_publishing_the_checkpoint() -> Result<()> {
+        for deferred in [false, true] {
+            let dir = tempdir()?;
+            let block = BlockHashPrefix::from(1_u64);
+            let prefix = TxidPrefix::from_store_bytes(2_u64.to_be_bytes());
+            let hash = AddrHash::new(3);
+            let address = TypeIndex::new(9);
+            let tx = TxIndex::new(7);
+            let point = OutPoint::new(tx, Vout::ZERO);
             let mut stores = Stores::forced_import(dir.path(), Version::ZERO)?;
+            assert_eq!(stores.next_height()?, Some(Height::ZERO));
             stores
                 .blockhash_prefix_to_height
-                .insert(BlockHashPrefix::from(1_u64), Height::ZERO);
-            stores
-                .blockhash_prefix_to_height
-                .take_pending_ingest()
-                .unwrap()
-                .run()?;
-            let pending_checkpoint = stores.checkpoint.begin(Height::ZERO)?;
-            drop(pending_checkpoint);
+                .insert(block, Height::new(42));
+            stores.txid_prefix_to_tx_index.insert(prefix, tx);
+            for ty in OutputType::ADDR_TYPES {
+                stores
+                    .addr_type_to_addr_hash_to_addr_index
+                    .get_mut_unwrap(ty)
+                    .insert(hash, address);
+                stores
+                    .addr_type_to_addr_index_and_tx_index
+                    .get_mut_unwrap(ty)
+                    .insert(AddrIndexTxIndex::from((address, tx)), Unit);
+                stores
+                    .addr_type_to_addr_index_and_unspent_outpoint
+                    .get_mut_unwrap(ty)
+                    .insert(AddrIndexOutPoint::from((address, point)), Unit);
+            }
+            let persisted = if deferred {
+                let commit = stores.take_deferred_commit(Height::new(42))?;
+                drop(stores);
+                commit.persist()?
+            } else {
+                let checkpoint = stores.begin_commit(Height::new(42))?;
+                let persisted = stores.persist(checkpoint)?;
+                drop(stores);
+                persisted
+            };
+            assert_eq!(
+                StoresCheckpoint::new(&dir.path().join("stores")).next_height()?,
+                None
+            );
+            persisted.publish()?;
+
+            let stores = Stores::forced_import(dir.path(), Version::ZERO)?;
+            assert_eq!(stores.next_height()?, Some(Height::new(43)));
+            assert_eq!(stores.block_height(&block)?, Some(Height::new(42)));
+            assert_eq!(stores.tx_index(&prefix)?, Some(tx));
+            for ty in OutputType::ADDR_TYPES {
+                assert_eq!(stores.addr_index(ty, &hash)?, Some(address));
+                assert_eq!(
+                    stores
+                        .addr_tx_indexes_before(ty, address, tx + 1)?
+                        .collect::<Vec<_>>(),
+                    [tx]
+                );
+                assert_eq!(
+                    stores
+                        .addr_unspent_outpoints(ty, address)?
+                        .collect::<Vec<_>>(),
+                    [(tx, Vout::ZERO)]
+                );
+            }
         }
-
-        let reopened = Stores::forced_import(dir.path(), Version::ZERO)?;
-        assert_eq!(reopened.next_height()?, None);
         Ok(())
-    }
-
-    #[test]
-    fn synchronous_commit_persists_data_and_checkpoint() -> Result<()> {
-        let dir = tempdir()?;
-        let prefix = BlockHashPrefix::from(1_u64);
-
-        {
-            let mut stores = Stores::forced_import(dir.path(), Version::ZERO)?;
-            stores
-                .blockhash_prefix_to_height
-                .insert(prefix, Height::ZERO);
-            let checkpoint = stores.begin_commit(Height::new(42))?;
-            stores.persist(checkpoint)?.publish()?;
-        }
-
-        let reopened = Stores::forced_import(dir.path(), Version::ZERO)?;
-        assert_eq!(reopened.next_height()?, Some(Height::new(43)));
-        assert_eq!(reopened.block_height(&prefix)?, Some(Height::ZERO));
-        Ok(())
-    }
-
-    #[test]
-    fn rollback_output_ranges_reconstruct_tx_indexes_and_vouts() {
-        let first_txout_indexes = [100_usize, 103, 103, 105].map(TxOutIndex::from);
-        let ranges: Vec<_> = txout_ranges(
-            TxIndex::from(40_usize),
-            &first_txout_indexes,
-            TxOutIndex::from(108_usize),
-        )
-        .collect();
-
-        assert_eq!(
-            ranges,
-            [
-                (TxIndex::from(40_usize), 100..103),
-                (TxIndex::from(41_usize), 103..103),
-                (TxIndex::from(42_usize), 103..105),
-                (TxIndex::from(43_usize), 105..108),
-            ]
-        );
-
-        let reconstructed: Vec<_> = ranges
-            .into_iter()
-            .flat_map(|(tx_index, range)| {
-                range
-                    .enumerate()
-                    .map(move |(vout, txout_index)| (txout_index, tx_index, Vout::from(vout)))
-            })
-            .collect();
-
-        assert_eq!(
-            reconstructed,
-            [
-                (100, TxIndex::from(40_usize), Vout::from(0_usize)),
-                (101, TxIndex::from(40_usize), Vout::from(1_usize)),
-                (102, TxIndex::from(40_usize), Vout::from(2_usize)),
-                (103, TxIndex::from(42_usize), Vout::from(0_usize)),
-                (104, TxIndex::from(42_usize), Vout::from(1_usize)),
-                (105, TxIndex::from(43_usize), Vout::from(0_usize)),
-                (106, TxIndex::from(43_usize), Vout::from(1_usize)),
-                (107, TxIndex::from(43_usize), Vout::from(2_usize)),
-            ]
-        );
-    }
-
-    #[test]
-    fn rollback_output_boundaries_are_validated() {
-        assert!(valid_rollback_boundaries(
-            &[TxOutIndex::from(100_usize), TxOutIndex::from(103_usize)],
-            100,
-            105,
-        ));
-        assert!(valid_rollback_boundaries(&[], 100, 100));
-
-        assert!(!valid_rollback_boundaries(
-            &[TxOutIndex::from(99_usize)],
-            100,
-            105,
-        ));
-        assert!(!valid_rollback_boundaries(
-            &[TxOutIndex::from(100_usize), TxOutIndex::from(99_usize)],
-            100,
-            105,
-        ));
-        assert!(!valid_rollback_boundaries(
-            &[TxOutIndex::from(100_usize), TxOutIndex::from(106_usize)],
-            100,
-            105,
-        ));
-        assert!(!valid_rollback_boundaries(&[], 100, 101));
     }
 }

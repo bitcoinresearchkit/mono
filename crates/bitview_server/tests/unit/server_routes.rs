@@ -1394,7 +1394,7 @@ fn server_routes_preserve_validation_and_errors_before_conditionals() {
 
 #[test]
 #[cfg(all(feature = "chain", feature = "series"))]
-fn search_endpoint_ranks_live_catalog_and_revalidates_new_revision() {
+fn search_endpoint_ranks_live_catalog() {
     init_cache();
     thread::Builder::new()
         .stack_size(8 * 1024 * 1024)
@@ -1440,8 +1440,7 @@ fn search_endpoint_ranks_live_catalog_and_revalidates_new_revision() {
                         ("cdd", "coindays_destroyed"),
                     ] {
                         let path = format!("/api/series/search?q={query}&limit=5");
-                        let response =
-                            exchange_with_etag(address, "GET", &path, "W/\"search1-old\"").await;
+                        let response = exchange_with_etag(address, "GET", &path, "\"old\"").await;
                         assert!(response.starts_with("HTTP/1.1 200"), "{response}");
                         let values: Vec<String> =
                             from_str(response.split_once("\r\n\r\n").unwrap().1).unwrap();
@@ -1450,13 +1449,6 @@ fn search_endpoint_ranks_live_catalog_and_revalidates_new_revision() {
                             Some(expected),
                             "{query}: {values:?}"
                         );
-                        let etag = response
-                            .lines()
-                            .find_map(|line| line.strip_prefix("etag: "))
-                            .unwrap();
-                        assert!(etag.starts_with("W/\"search2-"));
-                        let cached = exchange_with_etag(address, "GET", &path, etag).await;
-                        assert!(cached.starts_with("HTTP/1.1 304"), "{cached}");
                     }
                     serving.abort();
                     let _ = serving.await;

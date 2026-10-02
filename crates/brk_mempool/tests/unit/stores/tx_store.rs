@@ -1,4 +1,4 @@
-use bitcoin::{ScriptBuf, Txid as BitcoinTxid, hashes::Hash};
+use bitcoin::{Txid as BitcoinTxid, hashes::Hash};
 use brk_types::{MempoolEntryInfo, Sats, Timestamp, VSize, Weight};
 
 use super::*;
@@ -32,64 +32,6 @@ fn recompute_txids_hash(store: &TxStore) -> u64 {
 }
 
 #[test]
-fn insert_records_unresolved_when_prevouts_missing() {
-    let mut store = TxStore::default();
-    let tx = tx_without_prevouts(1);
-    let entry = entry_for(&tx, 100, 100);
-    let prefix = entry.txid_prefix();
-    store.insert(tx, entry);
-
-    assert!(store.unresolved().contains(&prefix));
-    assert_eq!(store.len(), 1);
-}
-
-#[test]
-fn insert_skips_unresolved_when_all_prevouts_present() {
-    let mut store = TxStore::default();
-    let tx = tx_with_prevouts(2);
-    let entry = entry_for(&tx, 200, 150);
-    let prefix = entry.txid_prefix();
-    store.insert(tx, entry);
-
-    assert!(!store.unresolved().contains(&prefix));
-    assert_eq!(store.len(), 1);
-}
-
-#[test]
-fn remove_by_prefix_clears_unresolved_and_returns_record() {
-    let mut store = TxStore::default();
-    let tx = tx_without_prevouts(3);
-    let entry = entry_for(&tx, 300, 200);
-    let prefix = entry.txid_prefix();
-    store.insert(tx, entry);
-    assert!(store.unresolved().contains(&prefix));
-
-    let removed = store.remove_by_prefix(&prefix).expect("record present");
-    assert_eq!(removed.entry.txid_prefix(), prefix);
-    assert!(!store.unresolved().contains(&prefix));
-    assert_eq!(store.len(), 0);
-    assert!(store.remove_by_prefix(&prefix).is_none());
-}
-
-#[test]
-fn swap_remove_preserves_remaining_lookups() {
-    let mut store = TxStore::default();
-    let mut prefixes = Vec::new();
-    for seed in 1..=3 {
-        let tx = tx_with_prevouts(seed);
-        let entry = entry_for(&tx, 100, 100);
-        prefixes.push(entry.txid_prefix());
-        store.insert(tx, entry);
-    }
-
-    store.remove_by_prefix(&prefixes[1]).expect("middle record");
-
-    assert!(store.record_by_prefix(&prefixes[0]).is_some());
-    assert!(store.record_by_prefix(&prefixes[1]).is_none());
-    assert!(store.record_by_prefix(&prefixes[2]).is_some());
-}
-
-#[test]
 fn txids_hash_tracks_inserts_and_swap_removals() {
     let mut store = TxStore::default();
     let mut prefixes = Vec::new();
@@ -104,6 +46,9 @@ fn txids_hash_tracks_inserts_and_swap_removals() {
     }
 
     store.remove_by_prefix(&prefixes[1]).expect("middle record");
+    assert!(store.record_by_prefix(&prefixes[0]).is_some());
+    assert!(store.record_by_prefix(&prefixes[1]).is_none());
+    assert!(store.record_by_prefix(&prefixes[2]).is_some());
     assert_eq!(store.txids_hash(), recompute_txids_hash(&store));
 
     store.remove_by_prefix(&prefixes[2]).expect("last record");
@@ -122,16 +67,19 @@ fn content_revision_tracks_serialized_body_changes() {
     assert_eq!(store.content_revision(), 0);
 
     store.insert(tx, entry);
+    assert_eq!(store.len(), 1);
+    assert!(store.unresolved().contains(&prefix));
     assert_eq!(store.content_revision(), 1);
 
     assert!(store.apply_fills(&prefix, Vec::new()).is_empty());
     assert_eq!(store.content_revision(), 1);
 
     let prevout = TxOut::from((p2wpkh_script(8), Sats::from(2_000u64)));
-    let applied = store.apply_fills(&prefix, vec![(Vin::from(0usize), prevout)]);
+    let applied = store.apply_fills(&prefix, vec![(Vin::from(0usize), prevout.clone())]);
     assert_eq!(applied.len(), 1);
     assert_eq!(applied[0].value, Sats::from(2_000u64));
     assert_eq!(store.content_revision(), 2);
+    assert!(store.unresolved().contains(&prefix));
 
     assert!(
         store
@@ -146,9 +94,17 @@ fn content_revision_tracks_serialized_body_changes() {
     );
     assert_eq!(store.content_revision(), 2);
 
-    store.remove_by_prefix(&prefix).expect("stored record");
+    let removed = store.remove_by_prefix(&prefix).expect("stored record");
+    assert_eq!(removed.entry.txid_prefix(), prefix);
+    assert_eq!(store.len(), 0);
+    assert!(!store.unresolved().contains(&prefix));
     assert_eq!(store.content_revision(), 3);
     assert!(store.remove_by_prefix(&prefix).is_none());
+    assert!(
+        store
+            .apply_fills(&prefix, vec![(Vin::from(0usize), prevout)])
+            .is_empty()
+    );
     assert_eq!(store.content_revision(), 3);
 }
 
@@ -159,6 +115,8 @@ fn full_txid_lookups_reject_prefix_collisions() {
     let stored_txid = tx.txid;
     let entry = entry_for(&tx, 100, 100);
     store.insert(tx, entry);
+    assert_eq!(store.len(), 1);
+    assert!(store.unresolved().is_empty());
 
     let mut bytes = BitcoinTxid::from(&stored_txid).to_byte_array();
     bytes[8] ^= 1;
@@ -213,37 +171,6 @@ fn apply_fills_writes_only_missing_inputs_and_refreshes_sigops() {
         prev_present.value
     );
     assert!(!store.unresolved().contains(&prefix));
-}
-
-#[test]
-fn apply_fills_unknown_prefix_is_noop() {
-    let mut store = TxStore::default();
-    let stray_prefix = TxidPrefix::from(&fake_txid(0xFF));
-    let applied = store.apply_fills(
-        &stray_prefix,
-        vec![(
-            Vin::from(0u32),
-            TxOut::from((ScriptBuf::new(), Sats::from(1u64))),
-        )],
-    );
-    assert!(applied.is_empty());
-}
-
-#[test]
-fn apply_fills_partial_keeps_unresolved() {
-    let mut store = TxStore::default();
-    let tx = tx_without_prevouts(5);
-    let entry = entry_for(&tx, 500, 300);
-    let prefix = entry.txid_prefix();
-    store.insert(tx, entry);
-
-    let one = TxOut::from((p2wpkh_script(7), Sats::from(3_000u64)));
-    let applied = store.apply_fills(&prefix, vec![(Vin::from(0u32), one)]);
-    assert_eq!(applied.len(), 1);
-    assert!(
-        store.unresolved().contains(&prefix),
-        "input 1 still has None prevout"
-    );
 }
 
 #[test]

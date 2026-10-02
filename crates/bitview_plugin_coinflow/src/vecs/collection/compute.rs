@@ -87,7 +87,7 @@ impl Vecs {
             .iter()
             .map(|vec| vec.len())
             .chain(coindays_created.iter().map(|vec| vec.len()))
-            .chain(iter::once(accounting.len()))
+            .chain(iter::once(accounting.min_len()))
             .chain(iter::once(timestamps.len()))
             .min()
             .unwrap_or_default();

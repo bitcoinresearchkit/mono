@@ -24,13 +24,16 @@ where
     /// Returns the number of values remaining.
     #[inline(always)]
     pub fn remaining(&self) -> usize {
-        self.reader.len().saturating_sub(self.position)
+        self.reader.stored_len().saturating_sub(self.position)
     }
 
     /// Advances the cursor by `count` without reading.
     #[inline(always)]
     pub fn advance(&mut self, count: usize) {
-        self.position = self.position.saturating_add(count).min(self.reader.len());
+        self.position = self
+            .position
+            .saturating_add(count)
+            .min(self.reader.stored_len());
     }
 
     /// Returns the persisted value at `index` without moving the cursor.

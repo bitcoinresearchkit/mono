@@ -6,7 +6,7 @@
 /// Find the longest common prefix among all strings.
 /// Returns the prefix WITH trailing underscore if found at word boundary.
 /// Returns None if no common prefix exists.
-pub fn find_common_prefix(names: &[&str]) -> Option<String> {
+pub(super) fn find_common_prefix(names: &[&str]) -> Option<String> {
     let first = *names.first()?;
     let mut prefix_len = first.len();
     // Track UTF-8 byte lengths while comparing each name only once.
@@ -46,7 +46,7 @@ pub fn find_common_prefix(names: &[&str]) -> Option<String> {
 /// Find the longest common suffix among all strings.
 /// Returns the suffix WITH leading underscore if found at word boundary.
 /// Returns None if no common suffix exists.
-pub fn find_common_suffix(names: &[&str]) -> Option<String> {
+pub(super) fn find_common_suffix(names: &[&str]) -> Option<String> {
     let first = *names.first()?;
     let mut suffix_len = first.len();
     for name in &names[1..] {

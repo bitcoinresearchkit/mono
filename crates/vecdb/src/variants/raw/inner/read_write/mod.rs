@@ -81,7 +81,7 @@ where
         let base = ReadWriteBaseVec::import(options, format)?;
 
         // Raw format requires data to be aligned to SIZE_OF_T
-        let region_len = base.region().meta().len();
+        let region_len = base.region().meta().byte_len();
         if region_len > HEADER_OFFSET
             && !(region_len - HEADER_OFFSET).is_multiple_of(Self::SIZE_OF_T)
         {
@@ -179,7 +179,7 @@ where
         // The reader snapshots the persisted boundary when it is created.
         // Using that boundary avoids reloading SharedLen for every lookup and
         // lets the inlined reader.get_at() reuse the same bounds check.
-        let stored_len = reader.len();
+        let stored_len = reader.stored_len();
         debug_assert_eq!(stored_len, self.stored_len(), "stale VecReader");
         if index >= stored_len {
             return self.base.pushed().get(index - stored_len).cloned();

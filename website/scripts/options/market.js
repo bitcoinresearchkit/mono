@@ -230,10 +230,11 @@ export function createMarketSection() {
   const {
     market,
     supply,
-    cohorts,
+    distributionAggregated,
     price: prices,
     indicators,
   } = bitview.series;
+  const realized = distributionAggregated.cohorts.all.realized;
   const { cointime, coinflow, rarityMeter } = bitview.series;
   const {
     movingAverage: ma,
@@ -543,7 +544,7 @@ export function createMarketSection() {
                 unit: Unit.usd,
               }),
               line({
-                series: cohorts.realized.cap.all.usd,
+                series: realized.cap.usd,
                 name: "Realized Cap",
                 color: colors.realized,
                 unit: Unit.usd,
@@ -580,7 +581,7 @@ export function createMarketSection() {
                 title: "Realized Cap",
                 bottom: [
                   line({
-                    series: cohorts.realized.cap.all.usd,
+                    series: realized.cap.usd,
                     name: "Realized Cap",
                     color: colors.realized,
                     unit: Unit.usd,
@@ -588,7 +589,7 @@ export function createMarketSection() {
                 ],
               },
               ...deltaTree({
-                delta: cohorts.realized.cap.all.delta,
+                delta: realized.cap.delta,
                 metric: "Realized Cap",
                 unit: Unit.usd,
                 extract: (v) => v.usd,

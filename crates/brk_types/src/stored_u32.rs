@@ -259,21 +259,13 @@ impl From<EmptyOutputIndex> for StoredU32 {
     }
 }
 
-impl StoredU32 {
-    fn index_name() -> &'static str {
-        "u32"
-    }
-    fn index_aliases() -> &'static [&'static str] {
-        &["u32"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for StoredU32 {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "u32"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["u32"]
     }
 }
 

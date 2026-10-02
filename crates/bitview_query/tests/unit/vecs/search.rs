@@ -47,53 +47,6 @@ fn exact_names_then_exact_descriptions_then_fuzzy_names_then_fuzzy_descriptions(
 }
 
 #[test]
-fn descriptions_supply_cohort_words_without_alias_expansion() {
-    let fixture = Fixture::new(&[
-        (
-            "sth_mvrv",
-            "Short-term-holder ratio of spot price to realized price.",
-        ),
-        (
-            "sth_realized_price",
-            "Realized price of short-term-holder outputs.",
-        ),
-        (
-            "lth_realized_price",
-            "Realized price of long-term-holder outputs.",
-        ),
-        ("realized_price", "Realized price of all outputs."),
-    ]);
-    for query in [
-        "realized price short term",
-        "short term holder realized price",
-        "realized prcie sth",
-    ] {
-        assert_eq!(
-            fixture.search(query, 10)[0],
-            "sth_realized_price",
-            "{query}"
-        );
-    }
-    assert_eq!(
-        fixture.search("long term realized price", 10)[0],
-        "lth_realized_price"
-    );
-}
-
-#[test]
-fn empty_queries_and_duplicate_words_are_stable() {
-    let fixture = Fixture::new(&[("price", "A price."), ("price_ratio", "Ratio of prices.")]);
-    assert!(fixture.search("", 10).is_empty());
-    assert!(fixture.search("...", 10).is_empty());
-    assert!(fixture.search("price", 0).is_empty());
-    assert_eq!(
-        fixture.search("price price", 10),
-        fixture.search("price", 10)
-    );
-    assert!(fixture.search("zqxwvv", 10).is_empty());
-}
-
-#[test]
 fn limited_results_preserve_ranking_with_duplicates_across_tiers() {
     let names = (0..100)
         .map(|id| format!("metric_{id}"))

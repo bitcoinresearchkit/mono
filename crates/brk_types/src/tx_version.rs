@@ -24,7 +24,7 @@ impl TxVersion {
     pub const ONE: Self = Self(1);
     pub const TWO: Self = Self(2);
     pub const THREE: Self = Self(3);
-    pub const NON_STANDARD: Self = Self(u8::MAX);
+    const NON_STANDARD: Self = Self(u8::MAX);
 }
 
 impl From<Version> for TxVersion {

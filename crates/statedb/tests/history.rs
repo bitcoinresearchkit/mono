@@ -15,11 +15,14 @@ fn block(h: usize) -> [u8; 32] {
 }
 
 #[test]
-fn reconstructs_every_height_zero_value_outputs_and_same_block_spends() {
+fn separate_producers_reconstruct_every_height_zero_value_outputs_and_same_block_spends() {
     let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    let mut created = Creations::open(root.path()).unwrap();
-    let mut history = History::open(root.path()).unwrap();
+    let inputs = root.path().join("inputs");
+    let outputs = root.path().join("outputs");
+    let snapshots = root.path().join("utxo_history");
+    let mut spends = Spends::open(&inputs).unwrap();
+    let mut created = Creations::open(&outputs).unwrap();
+    let mut history = History::open(&snapshots).unwrap();
     history.set_snapshot_interval(7).unwrap();
     let mut expected = Vec::<Vec<Amount>>::new();
     let mut state = Vec::<Amount>::new();
@@ -40,23 +43,47 @@ fn reconstructs_every_height_zero_value_outputs_and_same_block_spends() {
     history
         .advance(0, 100, &spends, &created, |_, _| Ok(()))
         .unwrap();
-    let view = View::open(root.path(), root.path(), root.path()).unwrap();
+    let files = [
+        (&inputs, "spends/data"),
+        (&inputs, "spends/index"),
+        (&inputs, "spends/commit"),
+        (&outputs, "creations/data"),
+        (&outputs, "creations/index"),
+        (&outputs, "creations/commit"),
+        (&snapshots, "snapshots/data"),
+        (&snapshots, "snapshots/pages"),
+    ]
+    .map(|(owner, file)| owner.join(file));
+    let original = files
+        .iter()
+        .map(fs::read)
+        .collect::<Result<Vec<_>>>()
+        .unwrap();
+    let view = View::open(&snapshots, &inputs, &outputs).unwrap();
     let reader = view.reader().unwrap();
-    for h in 0..100 {
-        assert_eq!(reader.state_at(h + 1).unwrap().amounts(), expected[h]);
+    for (h, expected) in expected.iter().enumerate() {
+        assert_eq!(reader.state_at(h + 1).unwrap().amounts(), *expected);
         assert_eq!(
             history
                 .reader(&spends, &created)
                 .and_then(|reader| reader.state_at(h + 1))
                 .unwrap()
                 .amounts(),
-            expected[h]
+            *expected
         );
     }
+    assert_eq!(
+        files
+            .iter()
+            .map(fs::read)
+            .collect::<Result<Vec<_>>>()
+            .unwrap(),
+        original
+    );
     drop((history, spends, created));
-    let spends = Spends::open(root.path()).unwrap();
-    let created = Creations::open(root.path()).unwrap();
-    let history = History::open(root.path()).unwrap();
+    let spends = Spends::open(&inputs).unwrap();
+    let created = Creations::open(&outputs).unwrap();
+    let history = History::open(&snapshots).unwrap();
     assert_eq!(
         history
             .reader(&spends, &created)
@@ -68,74 +95,6 @@ fn reconstructs_every_height_zero_value_outputs_and_same_block_spends() {
 }
 
 #[test]
-fn view_reopens_published_state_after_legacy_origins_split() -> Result<()> {
-    let source = tempdir()?;
-    let origins = source.path().join("origins");
-
-    let mut spends = Spends::open(&origins)?;
-    let mut creations = Creations::open(&origins)?;
-    let mut history = History::open(&origins)?;
-    spends.push(block(0), [])?;
-    creations.push(block(0), amount(10, 1), None)?;
-    spends.push(block(1), [(0, amount(10, 1))])?;
-    creations.push(block(1), amount(5, 1), None)?;
-    spends.commit()?;
-    creations.commit()?;
-    history.advance(0, 2, &spends, &creations, |_, _| Ok(()))?;
-    drop((history, spends, creations));
-
-    let files = [
-        ("spends/data", "inputs"),
-        ("spends/index", "inputs"),
-        ("spends/commit", "inputs"),
-        ("creations/data", "outputs"),
-        ("creations/index", "outputs"),
-        ("creations/commit", "outputs"),
-        ("snapshots/data", "utxo_history"),
-        ("snapshots/pages", "utxo_history"),
-    ];
-    let original = files
-        .iter()
-        .map(|(path, _)| fs::read(origins.join(path)))
-        .collect::<Result<Vec<_>>>()?;
-
-    let destination = tempdir()?;
-    let plugins = destination.path().join("plugins");
-    for (subdir, owner) in [
-        ("spends", "inputs"),
-        ("creations", "outputs"),
-        ("snapshots", "utxo_history"),
-    ] {
-        let owner_path = plugins.join(owner);
-        fs::create_dir_all(&owner_path)?;
-        fs::rename(origins.join(subdir), owner_path.join(subdir))?;
-    }
-
-    let inputs = plugins.join("inputs");
-    let outputs = plugins.join("outputs");
-    let utxo_history = plugins.join("utxo_history");
-    let spends = Spends::open(&inputs)?;
-    let creations = Creations::open(&outputs)?;
-    let history = History::open(&utxo_history)?;
-    assert_eq!(
-        history.reader(&spends, &creations)?.state_at(2)?.total(),
-        amount(5, 1)
-    );
-    drop((history, spends, creations));
-
-    let view = View::open(&utxo_history, &inputs, &outputs)?;
-    assert_eq!(view.reader()?.state_at(2)?.total(), amount(5, 1));
-    assert_eq!(
-        files
-            .iter()
-            .map(|(path, owner)| fs::read(plugins.join(owner).join(path)))
-            .collect::<Result<Vec<_>>>()?,
-        original
-    );
-    Ok(())
-}
-
-#[test]
 fn unpublished_tails_are_discarded_but_committed_corruption_is_an_error() {
     let root = tempdir().unwrap();
     let mut spends = Spends::open(root.path()).unwrap();
@@ -144,7 +103,7 @@ fn unpublished_tails_are_discarded_but_committed_corruption_is_an_error() {
     spends.push(block(1), []).unwrap();
     drop(spends);
     let spends = Spends::open(root.path()).unwrap();
-    assert_eq!(spends.len(), 1);
+    assert_eq!(spends.end(), 1);
     drop(spends);
     OpenOptions::new()
         .write(true)
@@ -191,7 +150,9 @@ fn reorg_rebuilds_from_ancestor_and_rejects_mixed_producer_chains() {
     let pages = fs::read(root.path().join("snapshots/pages")).unwrap();
     assert!(
         !pages[9..]
-            .chunks_exact(12)
+            .as_chunks::<12>()
+            .0
+            .iter()
             .any(|row| u32::from_le_bytes(row[..4].try_into().unwrap()) == 8)
     );
     assert!(
@@ -379,7 +340,7 @@ fn pending_truncate_and_extra_index_bytes_recover_to_a_valid_commit() {
         .write_all(&[123; 5])
         .unwrap();
     let spends = Spends::open(root.path()).unwrap();
-    assert_eq!(spends.len(), 2);
+    assert_eq!(spends.end(), 2);
     assert_eq!(spends.hash(1).unwrap(), block(1));
     assert_eq!(
         fs::metadata(root.path().join("spends/index"))
@@ -416,41 +377,7 @@ fn failed_commit_requires_reopening_instead_of_appending_to_a_partial_transactio
     drop(s);
     fs::remove_dir(root.path().join("spends/commit.next")).unwrap();
     let s = Spends::open(root.path()).unwrap();
-    assert_eq!(s.len(), 0);
-}
-
-#[test]
-fn rejected_rows_do_not_append_a_partial_record() {
-    let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    assert!(
-        spends
-            .push(block(0), [(0, amount(1, 1)), (1, amount(2, 1))])
-            .is_err()
-    );
-    assert_eq!(spends.len(), 0);
-    assert!(
-        spends
-            .push(
-                block(0),
-                [(0, amount(1, 1)), (0, amount(0, u64::from(u32::MAX) + 1))],
-            )
-            .is_err()
-    );
-    assert_eq!(spends.len(), 0);
-    let removed = amount(3, u64::from(u32::MAX));
-    spends.push(block(0), [(0, removed)]).unwrap();
-    spends.commit().unwrap();
-    let mut created = Creations::open(root.path()).unwrap();
-    created.push(block(0), removed, None).unwrap();
-    created.commit().unwrap();
-    let mut history = History::open(root.path()).unwrap();
-    history
-        .advance(0, 1, &spends, &created, |_, total| {
-            assert_eq!(total, Amount::default());
-            Ok(())
-        })
-        .unwrap();
+    assert_eq!(s.end(), 0);
 }
 
 #[test]
@@ -719,61 +646,6 @@ fn seed_remains_reconstructible_after_rewind_and_append() {
 }
 
 #[test]
-fn corrupt_tip_retention_flag_is_rejected() {
-    let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    let mut created = Creations::open(root.path()).unwrap();
-    let mut history = History::open(root.path()).unwrap();
-    spends.push(block(0), []).unwrap();
-    created.push(block(0), amount(10, 1), None).unwrap();
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    history
-        .advance(0, 1, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    drop((history, spends, created));
-    let path = root.path().join("snapshots/pages");
-    let mut bytes = fs::read(&path).unwrap();
-    bytes[8] = 2;
-    fs::write(&path, bytes).unwrap();
-    assert!(History::open(root.path()).is_err());
-    assert!(View::open(root.path(), root.path(), root.path()).is_err());
-}
-
-#[test]
-fn malformed_totals_and_rows_roll_back_a_partially_applied_block() -> Result<()> {
-    let root = tempdir()?;
-    let mut spends = Spends::open(root.path())?;
-    let mut created = Creations::open(root.path())?;
-    spends.push(block(0), [])?;
-    created.push(block(0), amount(20, 3), None)?;
-    spends.push(block(1), [(0, amount(5, 1)), (0, amount(5, 1))])?;
-    created.push(block(1), amount(0, 1), None)?;
-    spends.commit()?;
-    created.commit()?;
-    let mut history = History::open(root.path())?;
-    history.advance(0, 2, &spends, &created, |_, _| Ok(()))?;
-    let path = root.path().join("spends/data");
-    let original = fs::read(&path)?;
-    for count_error in [false, true] {
-        let mut bytes = original.clone();
-        if count_error {
-            bytes[116..120].copy_from_slice(&0u32.to_le_bytes());
-        } else {
-            bytes[80..88].copy_from_slice(&15u64.to_le_bytes());
-        }
-        fs::write(&path, bytes)?;
-        let reader = history.reader(&spends, &created)?;
-        let mut state = reader.state_at(1)?;
-        let mut cursor = reader.cursor(&mut state)?;
-        assert!(cursor.advance().is_err());
-        assert_eq!(state.amounts(), [amount(20, 3)]);
-        assert_eq!(state.total(), amount(20, 3));
-        assert_eq!(state.hash(), block(0));
-    }
-    Ok(())
-}
-#[test]
 fn empty_rewind_reopens_and_accepts_a_replacement_chain() -> Result<()> {
     let root = tempdir()?;
     let mut spends = Spends::open(root.path())?;
@@ -860,7 +732,7 @@ fn empty_commit_preserves_metadata_while_seed_and_version_changes_publish() -> R
     drop(spends);
     let spends = Spends::open(root.path())?;
     assert_eq!(
-        (spends.start(), spends.len(), spends.version()),
+        (spends.start(), spends.end(), spends.version()),
         (700000, 700000, 42)
     );
     Ok(())

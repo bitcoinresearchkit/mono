@@ -132,7 +132,7 @@ impl<T> Class<T> {
 }
 
 impl ClassId {
-    pub const fn cohort(self) -> CohortId {
+    pub(crate) const fn cohort(self) -> CohortId {
         CohortId::Class(self)
     }
 }

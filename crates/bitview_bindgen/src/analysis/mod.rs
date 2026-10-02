@@ -8,7 +8,7 @@ mod patterns;
 mod positions;
 mod tree;
 
-pub use names::*;
+use names::*;
 pub(crate) use patterns::*;
 pub(crate) use positions::*;
 use tree::get_shortest_leaf_name;

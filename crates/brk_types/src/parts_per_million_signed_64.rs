@@ -41,7 +41,7 @@ pub struct PartsPerMillionSigned64(i64);
 
 impl PartsPerMillionSigned64 {
     pub const ONE: Self = Self(1_000_000);
-    pub const NAN: Self = Self(i64::MIN);
+    const NAN: Self = Self(i64::MIN);
 
     #[inline]
     const fn new(value: i64) -> Self {
@@ -49,13 +49,8 @@ impl PartsPerMillionSigned64 {
         Self(value)
     }
 
-    #[inline(always)]
-    pub const fn inner(self) -> i64 {
-        self.0
-    }
-
     #[inline]
-    pub fn is_nan(self) -> bool {
+    fn is_nan(self) -> bool {
         self.0 == i64::MIN
     }
 
@@ -252,15 +247,9 @@ mod tests {
     #[test]
     fn conversions_and_sentinels() {
         assert_eq!(f64::from(PartsPerMillionSigned64::ONE), 1.0);
-        assert_eq!(
-            PartsPerMillionSigned64::from(-0.123_456_6).inner(),
-            -123_457
-        );
-        assert_eq!(PartsPerMillionSigned64::from(f64::MAX).inner(), i64::MAX);
-        assert_eq!(
-            PartsPerMillionSigned64::from(f64::MIN).inner(),
-            i64::MIN + 1
-        );
+        assert_eq!(PartsPerMillionSigned64::from(-0.123_456_6).0, -123_457);
+        assert_eq!(PartsPerMillionSigned64::from(f64::MAX).0, i64::MAX);
+        assert_eq!(PartsPerMillionSigned64::from(f64::MIN).0, i64::MIN + 1);
         assert!(PartsPerMillionSigned64::from(f64::NEG_INFINITY).is_nan());
 
         #[cfg(feature = "storage")]

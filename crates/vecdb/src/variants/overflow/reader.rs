@@ -50,7 +50,7 @@ where
     /// Returns the persisted value at `index`.
     ///
     /// # Panics
-    /// Panics if `index >= len()`.
+    /// Panics if `index >= stored_len()`.
     #[inline(always)]
     pub fn get(&self, index: I) -> T {
         self.get_at(index.to_usize())
@@ -59,7 +59,7 @@ where
     /// Returns the persisted value at raw `index`.
     ///
     /// # Panics
-    /// Panics if `index >= len()`.
+    /// Panics if `index >= stored_len()`.
     #[inline(always)]
     pub fn get_at(&self, index: usize) -> T {
         self.decode(self.compact.get_at(index))
@@ -81,8 +81,8 @@ where
 
     /// Returns the number of persisted values.
     #[inline(always)]
-    pub fn len(&self) -> usize {
-        self.compact.len()
+    pub fn stored_len(&self) -> usize {
+        self.compact.stored_len()
     }
 
     #[inline(always)]

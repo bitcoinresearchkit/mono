@@ -378,7 +378,7 @@ macro_rules! impl_mutable_raw_vec {
 
                 #[inline(always)]
                 fn reader_len(reader: &Self::Reader) -> usize {
-                    reader.len()
+                    reader.stored_len()
                 }
 
                 #[inline(always)]

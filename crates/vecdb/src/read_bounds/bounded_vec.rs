@@ -39,18 +39,18 @@ impl<'a> BoundedVec<'a> {
         self.source.value_type_to_string()
     }
 
-    pub fn len(&self) -> usize {
+    pub fn visible_len(&self) -> usize {
         self.bounds.scope(|| self.source.len().min(self.limit))
     }
 
     fn range(&self, from: Option<usize>, to: Option<usize>) -> (usize, usize) {
-        let len = self.len();
+        let len = self.visible_len();
         let to = to.unwrap_or(len).min(len);
         (from.unwrap_or(0).min(to), to)
     }
 
     fn signed_range(&self, from: Option<i64>, to: Option<i64>) -> (usize, usize) {
-        let len = self.len();
+        let len = self.visible_len();
         let to = to.map(|to| i64_to_usize(to, len)).unwrap_or(len);
         let from = from.map(|from| i64_to_usize(from, len)).unwrap_or(0);
         (from.min(to), to)
@@ -80,7 +80,7 @@ impl<'a> BoundedVec<'a> {
 
     #[cfg(feature = "serde")]
     pub fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> Result<()> {
-        if index >= self.len() {
+        if index >= self.visible_len() {
             return Ok(());
         }
         self.bounds

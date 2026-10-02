@@ -60,7 +60,6 @@ impl CumulativeValueByCohort {
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let vecs = self.stored.collect_vecs_mut();
-        vecs
+        self.stored.collect_vecs_mut()
     }
 }

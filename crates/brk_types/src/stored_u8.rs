@@ -117,21 +117,13 @@ impl From<StoredU8> for usize {
     }
 }
 
-impl StoredU8 {
-    fn index_name() -> &'static str {
-        "u8"
-    }
-    fn index_aliases() -> &'static [&'static str] {
-        &["u8"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for StoredU8 {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "u8"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["u8"]
     }
 }
 

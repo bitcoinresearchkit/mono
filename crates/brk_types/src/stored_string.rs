@@ -44,20 +44,12 @@ impl From<&StoredString> for ByteView {
         Self::new(value.as_bytes())
     }
 }
-impl StoredString {
-    fn index_name() -> &'static str {
-        "string"
-    }
-    fn index_aliases() -> &'static [&'static str] {
-        &["string"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for StoredString {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "string"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["string"]
     }
 }

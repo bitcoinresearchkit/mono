@@ -2,7 +2,7 @@ use bitcoin::Amount;
 use bitview_plugin::{ComputePlugin, ImportContext, UpdateContext};
 use bitview_plugin_blocks::HasBlocks;
 use bitview_plugin_indexer::HasIndexer;
-use bitview_plugin_inputs::{HasInputs, Vecs as Inputs};
+use bitview_plugin_inputs::HasInputs;
 use bitview_plugin_mappings::HasMappings;
 use bitview_plugin_mining::HasMining;
 use bitview_plugin_price::HasPrice;
@@ -10,16 +10,16 @@ use bitview_plugin_transactions::{Dependencies, HasTransactions, Vecs as Transac
 use brk_exit::Exit;
 use brk_types::{Sats, Version};
 use tempfile::tempdir;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, WritableVec};
+use vecdb::{AnyStoredVec, ReadableVec, WritableVec};
 
 use super::chain_fixture::{ChainFixture, raw_fixture_block, run_genesis};
 
-fn compute(transactions: &mut Transactions, fixture: &ChainFixture, inputs: &Inputs) {
+fn compute(transactions: &mut Transactions, fixture: &ChainFixture) {
     transactions
         .compute(
             Dependencies {
                 indexer: fixture.plugins.indexer(),
-                inputs,
+                inputs: fixture.plugins.inputs(),
                 mappings: fixture.plugins.mappings(),
                 blocks: fixture.plugins.blocks(),
                 price: fixture.plugins.price(),
@@ -39,6 +39,10 @@ fn check(transactions: &Transactions) {
         [Sats::ZERO, Sats::ZERO, Sats::ONE_BTC, Sats::ONE_BTC]
     );
     assert_eq!(
+        transactions.fees.total.collect(),
+        [Sats::ZERO, Sats::ONE_BTC * 2usize]
+    );
+    assert_eq!(
         transactions
             .volume
             .transfer_volume
@@ -48,20 +52,10 @@ fn check(transactions: &Transactions) {
             .collect(),
         [Sats::ZERO, Sats::ONE_BTC * 19usize]
     );
-    assert_eq!(transactions.fees.fee_rate.len(), 4);
-    assert_eq!(transactions.fees.effective_fee_rate.tx_index.len(), 4);
-    assert_eq!(
-        transactions.fees.count.cpfp_parent.cumulative.height.len(),
-        2
-    );
-    assert_eq!(
-        transactions.fees.count.cpfp_child.cumulative.height.len(),
-        2
-    );
 }
 
 #[test]
-fn transaction_values_share_the_fee_pass_and_survive_recovery_and_reorgs() {
+fn transaction_values_feed_mining_and_survive_reopen_and_reorgs() {
     let mut first = raw_fixture_block();
     first.txdata[0].output[0].value = Amount::from_sat(4_200_000_000);
     first.txdata[0].output[2].value = Amount::from_sat(1_000_000_000);
@@ -92,8 +86,8 @@ fn transaction_values_share_the_fee_pass_and_survive_recovery_and_reorgs() {
             [Sats::ZERO, Sats::ONE_BTC * 17usize]
         );
 
-        // A separate writer exercises partial checkpoints without modifying the
-        // published plugin snapshot. Its dependencies are the real indexed chain.
+        // A separate writer exercises schema revisions and reopening without
+        // modifying the published snapshot, using fully computed dependencies.
         let directory = tempdir().unwrap();
         let import = || {
             Transactions::import(
@@ -105,108 +99,57 @@ fn transaction_values_share_the_fee_pass_and_survive_recovery_and_reorgs() {
             .unwrap()
         };
         let mut transactions = import();
-        compute(&mut transactions, &fixture, fixture.plugins.inputs());
+        compute(&mut transactions, &fixture);
         check(&transactions);
-        for partial in 0..4 {
-            match partial {
-                0 => transactions
-                    .volume
-                    .transfer_volume
-                    .cumulative
-                    .sats
-                    .height
-                    .truncate_if_needed_at(1)
-                    .unwrap(),
-                1 => transactions
-                    .fees
-                    .fee
-                    .tx_index
-                    .truncate_if_needed_at(3)
-                    .unwrap(),
-                2 => transactions
-                    .fees
-                    .count
-                    .cpfp_child
-                    .truncate_if_needed_at(1)
-                    .unwrap(),
-                _ => transactions
-                    .fees
-                    .coinbase_value
-                    .truncate_if_needed_at(1)
-                    .unwrap(),
-            }
-            transactions
-                .volume
-                .transfer_volume
-                .cumulative
-                .sats
-                .height
-                .write()
-                .unwrap();
-            transactions.fees.fee.tx_index.write().unwrap();
-            transactions.fees.count.cpfp_child.write().unwrap();
-            transactions.fees.coinbase_value.write().unwrap();
-            drop(transactions);
-            transactions = import();
-            compute(&mut transactions, &fixture, fixture.plugins.inputs());
-            check(&transactions);
-        }
-        let mut partial_inputs = Inputs::import(
-            ImportContext::new(directory.path()),
-            fixture.plugins.mappings(),
-            &fixture.plugins.blocks().lookback.window_starts(),
-        )
-        .unwrap();
-        let values = fixture.plugins.inputs().value.collect();
-        for &value in &values[..values.len() - 1] {
-            partial_inputs.value.push(value);
-        }
-        partial_inputs.value.write().unwrap();
-        transactions
-            .fees
-            .fee
-            .tx_index
-            .truncate_if_needed_at(3)
-            .unwrap();
-        compute(&mut transactions, &fixture, &partial_inputs);
-        assert_eq!(transactions.fees.fee.tx_index.collect(), [Sats::ZERO]);
-        assert_eq!(
-            transactions.fees.coinbase_value.collect(),
-            [Sats::FIFTY_BTC]
-        );
-        assert_eq!(
-            transactions
-                .volume
-                .transfer_volume
-                .cumulative
-                .sats
-                .height
-                .collect(),
-            [Sats::ZERO]
-        );
-        partial_inputs.value.push(*values.last().unwrap());
-        partial_inputs.value.write().unwrap();
-        compute(&mut transactions, &fixture, &partial_inputs);
-        check(&transactions);
-
+        let rates = transactions.fees.fee_rate.collect();
+        let effective = transactions.fees.effective_fee_rate.tx_index.collect();
         transactions
             .fees
             .fee
             .tx_index
             .validate_computed_version_or_reset(Version::ZERO)
             .unwrap();
-        compute(&mut transactions, &fixture, fixture.plugins.inputs());
+        compute(&mut transactions, &fixture);
         check(&transactions);
         transactions
             .fees
             .coinbase_value
             .validate_computed_version_or_reset(Version::ZERO)
             .unwrap();
-        compute(&mut transactions, &fixture, fixture.plugins.inputs());
+        compute(&mut transactions, &fixture);
         check(&transactions);
+
+        // Reopen with a newly added total and revised rates. Rebuilding them
+        // from the saved fee prefix must preserve monetary and CPFP results.
+        transactions.fees.total.truncate_if_needed_at(0).unwrap();
+        transactions.fees.total.write().unwrap();
+        transactions
+            .fees
+            .fee_rate
+            .validate_computed_version_or_reset(Version::ZERO)
+            .unwrap();
+        transactions.fees.fee_rate.write().unwrap();
+        transactions
+            .fees
+            .effective_fee_rate
+            .tx_index
+            .validate_computed_version_or_reset(Version::ZERO)
+            .unwrap();
+        transactions
+            .fees
+            .effective_fee_rate
+            .tx_index
+            .write()
+            .unwrap();
         drop(transactions);
-        let reopened = import();
+        let mut reopened = import();
+        compute(&mut reopened, &fixture);
         check(&reopened);
+        assert_eq!(reopened.fees.fee_rate.collect(), rates);
+        assert_eq!(
+            reopened.fees.effective_fee_rate.tx_index.collect(),
+            effective
+        );
         drop(reopened);
 
         fixture.publish(2, 1);

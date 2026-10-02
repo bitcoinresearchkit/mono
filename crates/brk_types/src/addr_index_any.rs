@@ -16,8 +16,8 @@ const MIN_EMPTY_INDEX: u32 = u32::MAX - 4_000_000_000;
 pub struct AnyAddrIndex(TypeIndex);
 
 impl AnyAddrIndex {
-    fn to_enum(&self) -> AnyAddrDataIndexEnum {
-        AnyAddrDataIndexEnum::from(*self)
+    fn to_enum(self) -> AnyAddrDataIndexEnum {
+        AnyAddrDataIndexEnum::from(self)
     }
 }
 

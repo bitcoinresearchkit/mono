@@ -60,7 +60,7 @@ impl Sources {
             .map(|vec| vec.len())
             .min()
             .unwrap_or_default()
-            .min(accounting.len());
+            .min(accounting.min_len());
 
         let start = prepare_computed(
             self.primary_vecs_mut()

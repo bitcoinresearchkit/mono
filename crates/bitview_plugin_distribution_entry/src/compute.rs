@@ -73,7 +73,7 @@ impl ComputePlugin for Vecs {
             _ => (
                 LiveState {
                     origins: deps.history.state_at(start)?,
-                    cohorts: ByEntry::from_fn(|_| CohortState::new()),
+                    cohorts: ByEntry::from_fn(|_| CohortState::default()),
                     entries: Vec::new(),
                     prices: Vec::new(),
                     timestamps: Vec::new(),

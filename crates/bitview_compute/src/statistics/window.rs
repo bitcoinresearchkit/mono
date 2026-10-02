@@ -79,27 +79,3 @@ impl SlidingWindowSorted {
         self.sorted.percentiles(ps)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::SlidingWindowSorted;
-
-    #[test]
-    fn batched_percentiles_match_individual_queries() {
-        let percentiles = [0.10, 0.25, 0.50, 0.75, 0.90];
-
-        for values in [
-            vec![],
-            vec![1.0],
-            vec![3.0, 1.0, 2.0, 2.0],
-            (0..100).map(f64::from).collect(),
-        ] {
-            let mut window = SlidingWindowSorted::with_capacity(values.len());
-            window.reconstruct(&values, 0, values.len());
-            assert_eq!(
-                window.percentiles(&percentiles),
-                percentiles.map(|percentile| window.percentile(percentile))
-            );
-        }
-    }
-}

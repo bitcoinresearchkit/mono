@@ -16,14 +16,6 @@ fn frame(block: &Block) -> Vec<u8> {
 }
 
 #[test]
-fn raw_helpers_require_a_borrowed_prefix_guard() {
-    let _: fn(&Query, Height, &BlockHash, &SafeLengths) -> Result<Vec<u8>> =
-        Query::block_raw_at_height;
-    let _: fn(&Query, Height, &BlockHash, &SafeLengths) -> Result<u64> =
-        Query::block_raw_size_at_height;
-}
-
-#[test]
 fn raw_records_bound_allocation_and_verify_framing_and_identity() {
     let block = genesis_block(Network::Bitcoin);
     let bytes = serialize(&block);

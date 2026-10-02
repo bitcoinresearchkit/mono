@@ -102,21 +102,13 @@ impl From<StoredI16> for usize {
     }
 }
 
-impl StoredI16 {
-    fn index_name() -> &'static str {
-        "i16"
-    }
-    fn index_aliases() -> &'static [&'static str] {
-        &["i16"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for StoredI16 {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "i16"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["i16"]
     }
 }
 

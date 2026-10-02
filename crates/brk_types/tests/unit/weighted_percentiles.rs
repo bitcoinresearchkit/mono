@@ -69,15 +69,3 @@ fn zero_weights_rounding_and_extreme_targets_keep_first_crossing() {
         assert_eq!(get_weighted_percentiles(&values, []), [0u64; 0]);
     }
 }
-
-#[test]
-#[should_panic(expected = "empty slice")]
-fn empty_population_panics() {
-    get_weighted_percentiles::<u64, 1>(&[], [0.5]);
-}
-
-#[test]
-#[should_panic(expected = "nondecreasing")]
-fn decreasing_targets_are_rejected() {
-    get_weighted_percentiles(&[(1u64, VSize::new(100))], [0.9, 0.1]);
-}

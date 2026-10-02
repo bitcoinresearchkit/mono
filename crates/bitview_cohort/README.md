@@ -22,8 +22,8 @@ address predicates such as reused or exposed remain separate populations.
 
 ## Identity and Composition
 
-`CohortId` identifies a supported cohort and supplies its canonical name and age
-range membership. It composes the same typed selectors used by the collections;
+`CohortId` identifies a supported cohort and supplies its canonical name.
+It composes the same typed selectors used by the collections;
 there is no separate filter representation or caller-supplied cohort name.
 
 ```rust,ignore
@@ -43,7 +43,6 @@ pub enum CohortId {
 `CreationCohorts::get` accepts creation-based `CohortId` values and returns
 `None` for other families.
 
-`CohortId::age_ranges()` enumerates the disjoint age inputs of all/STH/LTH.
 Selection does not reconstruct a stored series from other series. Reconstruct
 threshold metrics from their disjoint inputs before applying ratios or window
 transforms. Exact realized prices require summed raw realized cap and supply;

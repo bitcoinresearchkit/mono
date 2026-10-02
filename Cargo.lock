@@ -469,7 +469,6 @@ version = "0.12.2"
 dependencies = [
  "bitview_traversable",
  "brk_types",
- "derive_more",
  "rayon",
  "schemars",
  "serde",
@@ -482,7 +481,6 @@ version = "0.12.2"
 dependencies = [
  "bitview_traversable",
  "brk_types",
- "vecdb",
 ]
 
 [[package]]
@@ -569,7 +567,6 @@ dependencies = [
  "brk_exit",
  "brk_types",
  "parking_lot",
- "tempfile",
  "vecdb",
 ]
 
@@ -700,7 +697,6 @@ dependencies = [
  "bitview_traversable",
  "bitview_vecs",
  "brk_types",
- "vecdb",
 ]
 
 [[package]]
@@ -1138,7 +1134,6 @@ dependencies = [
 name = "bitview_plugin_rarity_meter"
 version = "0.12.2"
 dependencies = [
- "bitview_cohort",
  "bitview_collections",
  "bitview_compute",
  "bitview_plugin",
@@ -1435,7 +1430,6 @@ dependencies = [
  "rayon",
  "schemars",
  "serde",
- "serde_json",
  "tempfile",
  "tracing",
  "vecdb",

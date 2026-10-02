@@ -31,7 +31,7 @@ define_cohort_id!(
 );
 
 impl UTXOAggregateId {
-    pub const fn age_range_ids(self) -> &'static [AgeRangeId] {
+    pub(crate) const fn age_range_ids(self) -> &'static [AgeRangeId] {
         match self {
             Self::All => AgeRangeId::ALL,
             Self::Sth => STH_AGE_RANGE_IDS,
@@ -39,7 +39,7 @@ impl UTXOAggregateId {
         }
     }
 
-    pub const fn cohort(self) -> CohortId {
+    const fn cohort(self) -> CohortId {
         match self {
             Self::All => CohortId::All,
             Self::Sth => CohortId::Term(Term::Sth),

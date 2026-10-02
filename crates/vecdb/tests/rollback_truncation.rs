@@ -1,6 +1,4 @@
-//! Rollback of stamps that included a `truncate_if_needed_at` shrink.
-//! (The `rollback_with_truncation` test in `tests/rollback.rs` is misnamed —
-//! it never actually calls `truncate_if_needed_at`.)
+//! Truncation rollback, reflush/reopen, and malformed change-file validation.
 
 use std::fs;
 
@@ -14,128 +12,49 @@ fn setup_db() -> Result<(Database, TempDir)> {
     Ok((db, temp))
 }
 
-fn import_with_changes<V>(db: &Database, name: &str, changes: u16) -> Result<V>
+fn import_with_changes<V>(db: &Database, name: &str) -> Result<V>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let mut options: ImportOptions = (db, name, Version::TWO).into();
-    options = options.with_saved_stamped_changes(changes);
+    options = options.with_saved_stamped_changes(10);
     V::forced_import_with(options)
 }
 
-fn run_rollback_after_pure_truncate<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _temp) = setup_db()?;
-    let mut vec = import_with_changes::<V>(&db, "pure_truncate", 10)?;
-
-    for i in 0..8 {
-        vec.push(i);
-    }
-    vec.stamped_write_with_changes(Stamp::new(1))?;
-    assert_eq!(vec.len(), 8);
-    assert_eq!(vec.collect(), (0..8).collect::<Vec<u32>>());
-
-    vec.truncate_if_needed_at(5)?;
-    vec.stamped_write_with_changes(Stamp::new(2))?;
-    assert_eq!(vec.len(), 5);
-    assert_eq!(vec.collect(), (0..5).collect::<Vec<u32>>());
-
-    vec.rollback()?;
-    assert_eq!(vec.len(), 8, "len mismatch after rollback of truncation");
-    assert_eq!(
-        vec.collect(),
-        (0..8).collect::<Vec<u32>>(),
-        "data mismatch after rollback of truncation"
-    );
-    assert_eq!(vec.stamp(), Stamp::new(1));
-
-    Ok(())
-}
-
-fn run_rollback_after_truncate_and_push<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _temp) = setup_db()?;
-    let mut vec = import_with_changes::<V>(&db, "truncate_push", 10)?;
-
-    for i in 0..5 {
-        vec.push(i);
-    }
-    vec.stamped_write_with_changes(Stamp::new(1))?;
-
-    vec.truncate_if_needed_at(3)?;
-    vec.push(100);
-    vec.push(200);
-    vec.stamped_write_with_changes(Stamp::new(2))?;
-    assert_eq!(vec.len(), 5);
-    assert_eq!(vec.collect(), vec![0, 1, 2, 100, 200]);
-
-    vec.rollback()?;
-    assert_eq!(vec.len(), 5, "len mismatch after rollback");
-    assert_eq!(
-        vec.collect(),
-        vec![0, 1, 2, 3, 4],
-        "data mismatch after rollback"
-    );
-    assert_eq!(vec.stamp(), Stamp::new(1));
-
-    Ok(())
-}
-
-fn run_rollback_truncate_then_reflush<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _temp) = setup_db()?;
-    let mut vec = import_with_changes::<V>(&db, "truncate_reflush", 10)?;
-
-    for i in 0..10 {
-        vec.push(i);
-    }
-    vec.stamped_write_with_changes(Stamp::new(1))?;
-
-    vec.truncate_if_needed_at(4)?;
-    vec.stamped_write_with_changes(Stamp::new(2))?;
-    assert_eq!(vec.len(), 4);
-
-    vec.rollback()?;
-    assert_eq!(vec.len(), 10);
-    assert_eq!(vec.collect(), (0..10).collect::<Vec<u32>>());
-
-    vec.stamped_write_with_changes(Stamp::new(2))?;
-    assert_eq!(vec.len(), 10);
-    assert_eq!(vec.stored_len(), 10);
-    assert_eq!(vec.collect(), (0..10).collect::<Vec<u32>>());
-
-    Ok(())
-}
-
-fn run_rollback_truncate_persistence<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _temp) = setup_db()?;
-    {
-        let mut vec = import_with_changes::<V>(&db, "persist", 10)?;
-        for i in 0..7 {
-            vec.push(i);
+fn run_truncate_rollback_and_reopen<V: StoredVec<I = usize, T = u32>>() -> Result<()> {
+    for (count, truncate_to, replacement) in [(8, 5, &[][..]), (5, 3, &[100, 200][..])] {
+        let (db, _temp) = setup_db()?;
+        let mut vec = import_with_changes::<V>(&db, "values")?;
+        for value in 0..count {
+            vec.push(value);
         }
         vec.stamped_write_with_changes(Stamp::new(1))?;
-
-        vec.truncate_if_needed_at(2)?;
+        vec.truncate_if_needed_at(truncate_to as usize)?;
+        for &value in replacement {
+            vec.push(value);
+        }
         vec.stamped_write_with_changes(Stamp::new(2))?;
-
-        vec.rollback()?;
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-    }
-    {
-        let vec = import_with_changes::<V>(&db, "persist", 10)?;
-        assert_eq!(vec.len(), 7);
-        assert_eq!(vec.collect(), (0..7).collect::<Vec<u32>>());
+        assert_eq!(
+            vec.collect(),
+            (0..truncate_to)
+                .chain(replacement.iter().copied())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(vec.rollback_before(Stamp::new(2))?, Stamp::new(1));
+        assert_eq!(vec.len(), count as usize);
+        assert_eq!(vec.collect(), (0..count).collect::<Vec<_>>());
         assert_eq!(vec.stamp(), Stamp::new(1));
+
+        for stamp in [Stamp::new(1), Stamp::new(2)] {
+            vec.stamped_write(stamp)?;
+            assert_eq!(vec.stored_len(), count as usize);
+            assert_eq!(vec.collect(), (0..count).collect::<Vec<_>>());
+            drop(vec);
+            vec = import_with_changes::<V>(&db, "values")?;
+            assert_eq!(vec.stamp(), stamp);
+            assert_eq!(vec.stored_len(), count as usize);
+            assert_eq!(vec.collect(), (0..count).collect::<Vec<_>>());
+        }
     }
     Ok(())
 }
@@ -145,7 +64,7 @@ where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _temp) = setup_db()?;
-    let mut vec = import_with_changes::<V>(&db, "malformed", 10)?;
+    let mut vec = import_with_changes::<V>(&db, "malformed")?;
     for value in 0..8 {
         vec.push(value);
     }
@@ -182,7 +101,7 @@ where
     assert_eq!(vec.collect(), (0..8).collect::<Vec<_>>());
     vec.write()?;
     drop(vec);
-    let vec = import_with_changes::<V>(&db, "malformed", 10)?;
+    let vec = import_with_changes::<V>(&db, "malformed")?;
     assert_eq!(vec.collect(), (0..8).collect::<Vec<_>>());
     Ok(())
 }
@@ -194,25 +113,13 @@ macro_rules! instantiate_for {
             type V = $ty;
 
             #[test]
-            fn malformed_rollback_preserves_state() -> vecdb::Result<()> {
+            fn malformed_rollback_preserves_state() -> Result<()> {
                 run_malformed_rollback_preserves_state::<V>()
             }
 
             #[test]
-            fn rollback_after_pure_truncate() -> vecdb::Result<()> {
-                run_rollback_after_pure_truncate::<V>()
-            }
-            #[test]
-            fn rollback_after_truncate_and_push() -> vecdb::Result<()> {
-                run_rollback_after_truncate_and_push::<V>()
-            }
-            #[test]
-            fn rollback_truncate_then_reflush() -> vecdb::Result<()> {
-                run_rollback_truncate_then_reflush::<V>()
-            }
-            #[test]
-            fn rollback_truncate_persistence() -> vecdb::Result<()> {
-                run_rollback_truncate_persistence::<V>()
+            fn truncate_rollback_reflush_and_reopen() -> Result<()> {
+                run_truncate_rollback_and_reopen::<V>()
             }
         }
     };

@@ -15,7 +15,7 @@ pub struct SeriesNameWithIndex {
 }
 
 impl SeriesNameWithIndex {
-    pub fn new(series: impl Into<SeriesName>, index: Index) -> Self {
+    fn new(series: impl Into<SeriesName>, index: Index) -> Self {
         Self {
             series: series.into(),
             index,

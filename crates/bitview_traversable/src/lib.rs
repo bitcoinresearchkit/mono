@@ -8,10 +8,10 @@ use schemars::{JsonSchema, SchemaGenerator};
 use serde::Serialize;
 use serde_json::to_value;
 use vecdb::{
-    AnyExportableVec, AnyVec, BytesVec, BytesVecValue, CachePolicy, CompressionStrategy, DeltaOp,
-    EagerVec, Formattable, IndexVec, LazyDeltaVec, LazyVec, MutableVec, OverflowVec,
-    OverflowVecValue, RawStrategy, ReadOnlyCompressedVec, ReadOnlyMutableVec, ReadOnlyOverflowVec,
-    ReadOnlyRawVec, ReadableVec, StoredVec, TypedVec, VecIndex, VecValue,
+    AnyVec, BytesVec, BytesVecValue, CachePolicy, CompressionStrategy, DeltaOp, EagerVec,
+    Formattable, IndexVec, LazyDeltaVec, LazyVec, MutableVec, OverflowVec, OverflowVecValue,
+    RawStrategy, ReadOnlyCompressedVec, ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec,
+    ReadableVec, StoredVec, TypedVec, VecIndex, VecValue,
 };
 
 #[cfg(feature = "lz4")]
@@ -34,6 +34,7 @@ use vecdb::ZstdVecValue;
 pub use bitview_catalog::{SeriesLeaf, SeriesLeafWithSchema, TreeBranch, TreeNode};
 pub use brk_types::Index;
 pub use indexmap::IndexMap;
+pub use vecdb::{AnyExportableVec, ReadOnlyClone, Ro, Rw};
 
 #[cfg(feature = "derive")]
 pub use bitview_traversable_derive::Traversable;

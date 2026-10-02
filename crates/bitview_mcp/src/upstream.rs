@@ -206,12 +206,6 @@ mod tests {
     use crate::manifest::Catalog;
 
     #[test]
-    fn encodes_path_segments_without_leaving_separators() {
-        assert_eq!(encode_component("a/b c"), "a%2Fb%20c");
-        assert_eq!(encode_component("ż"), "%C5%BC");
-    }
-
-    #[test]
     fn url_limit_counts_encoded_query_bytes() {
         let catalog = Catalog::embedded().unwrap();
         let operation = catalog.operation("get_series").unwrap();
@@ -227,7 +221,7 @@ mod tests {
         assert!(error.contains("32768-byte limit"));
 
         let arguments = json!({
-            "series": "price_close", "index": "day1",
+            "series": "a/b cż", "index": "day1",
             "start": "a b+#&ż", "end": "2025-01-01",
         });
         let prepared = upstream
@@ -235,7 +229,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             prepared.path,
-            "/api/series/price_close/day1?start=a%20b%2B%23%26%C5%BC&end=2025-01-01"
+            "/api/series/a%2Fb%20c%C5%BC/day1?start=a%20b%2B%23%26%C5%BC&end=2025-01-01"
         );
     }
 

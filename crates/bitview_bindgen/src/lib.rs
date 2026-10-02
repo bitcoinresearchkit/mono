@@ -24,17 +24,17 @@ use bitview_catalog::TreeNode;
 #[derive(Debug, Clone, Default)]
 pub struct ClientOutputPaths {
     /// Full path to Rust client file (e.g., "crates/bitview_client/src/generated.rs")
-    pub rust: Option<PathBuf>,
+    rust: Option<PathBuf>,
     /// Full path to the generated CLI command catalog.
-    pub cli: Option<PathBuf>,
+    cli: Option<PathBuf>,
     /// Full path to JavaScript client file (e.g., "modules/bitview-client/index.js")
-    pub javascript: Option<PathBuf>,
+    javascript: Option<PathBuf>,
     /// Full path to Python client file (e.g., "packages/bitview_client/__init__.py")
-    pub python: Option<PathBuf>,
+    python: Option<PathBuf>,
     /// Root directories for generated LLM client bundles.
-    pub llm: Vec<PathBuf>,
+    llm: Vec<PathBuf>,
     /// Full path to the machine-readable tool manifest in the LLM bundle.
-    pub llm_manifest: Option<PathBuf>,
+    llm_manifest: Option<PathBuf>,
 }
 
 impl ClientOutputPaths {
@@ -83,11 +83,11 @@ mod syntax;
 mod types;
 
 pub use analysis::*;
-pub use backends::*;
+pub(crate) use backends::*;
 pub use catalog::*;
 pub use generators::*;
 pub use openapi::*;
-pub use syntax::*;
+pub(crate) use syntax::*;
 pub use types::*;
 
 use generate::*;

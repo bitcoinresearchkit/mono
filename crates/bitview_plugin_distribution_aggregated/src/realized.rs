@@ -14,6 +14,7 @@ use vecdb::ReadableBoxedVec;
 #[derive(Clone, Traversable)]
 pub struct Realized {
     pub cap: LazyFiatPerBlockWithDeltas<Cents, CentsSigned, PartsPerMillionSigned64>,
+    /// Realized price: acquisition cost of remaining coins divided by their supply.
     pub price: Price<LazyPerBlock<Cents>>,
     pub capitalized_price: LazyPriceWithRatioPerBlock,
     pub profit: LazyFiatPerBlockCumulativeWithSums<Cents>,

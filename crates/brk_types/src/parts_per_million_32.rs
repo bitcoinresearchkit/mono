@@ -51,7 +51,7 @@ impl PartsPerMillion32 {
     }
 
     #[inline]
-    pub fn is_nan(self) -> bool {
+    fn is_nan(self) -> bool {
         self.0 == u32::MAX
     }
 

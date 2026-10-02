@@ -2,8 +2,7 @@ use brk_types::OutputType;
 
 use crate::{
     AgeRangeId, AmountRangeId, CLASS_NAMES, ClassId, ENTRY_NAMES, EPOCH_NAMES, EntryPrice, EpochId,
-    LTH_AGE_RANGE_IDS, OP_RETURN, SPENDABLE_TYPE_NAMES, STH_AGE_RANGE_IDS, TERM_NAMES, Term,
-    UTXO_ALL_NAME,
+    OP_RETURN, SPENDABLE_TYPE_NAMES, TERM_NAMES, Term, UTXO_ALL_NAME,
 };
 
 /// A supported cohort, composed from the selectors of its constituent groups.
@@ -36,17 +35,5 @@ impl CohortId {
             Self::Type(OutputType::OpReturn) => OP_RETURN,
             Self::Type(output_type) => SPENDABLE_TYPE_NAMES.get(output_type).id,
         }
-    }
-
-    /// Disjoint age ranges making up an age-based or all-chain cohort.
-    pub fn age_ranges(self) -> Option<impl Iterator<Item = AgeRangeId>> {
-        let ranges = match self {
-            Self::All => AgeRangeId::ALL,
-            Self::Term(Term::Sth) => STH_AGE_RANGE_IDS,
-            Self::Term(Term::Lth) => LTH_AGE_RANGE_IDS,
-            Self::Age(age) => &AgeRangeId::ALL[age.index()..=age.index()],
-            _ => return None,
-        };
-        Some(ranges.iter().copied())
     }
 }

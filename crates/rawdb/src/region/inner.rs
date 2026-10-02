@@ -45,7 +45,7 @@ impl RegionInner {
     /// Every metadata mutation takes both region access and the shared barrier.
     pub(crate) unsafe fn bounds(&self) -> (usize, usize, usize) {
         let meta = unsafe { &*self.meta.data_ptr() };
-        (meta.start(), meta.len(), meta.reserved())
+        (meta.start(), meta.byte_len(), meta.reserved())
     }
 
     pub(crate) fn mark_accessed(&self) {

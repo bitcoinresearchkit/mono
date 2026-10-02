@@ -204,7 +204,7 @@ impl DefaultPlugins {
                         spends: self.inputs.origins.spends(),
                         creations,
                         from: indexer.safe_lengths().height,
-                        end: creations.len(),
+                        end: creations.end(),
                     },
                     context,
                 )

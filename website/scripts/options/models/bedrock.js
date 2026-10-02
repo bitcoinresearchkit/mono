@@ -92,12 +92,12 @@ function modeChart(mode, ath) {
  * @returns {PartialOptionsGroup}
  */
 export function createBedrockSection() {
-  const { market, cohorts, cointime, coinflow, bedrock } = bitview.series;
+  const { market, distributionAggregated, cointime, coinflow, bedrock } = bitview.series;
   const modes = /** @type {readonly BedrockMode[]} */ ([
     {
       name: "Raw",
       tree: bedrock.raw,
-      inLoss: cohorts.relative.supply.inLoss.share.all.ratio,
+      inLoss: distributionAggregated.cohorts.all.relative.supplyInLossShare.ratio,
     },
     {
       name: "Cointime",

@@ -16,6 +16,7 @@ pub struct Activity {
     pub transfer_volume: LazyValuePerBlockCumulativeRolling,
     pub transfer_volume_in_profit: LazyValuePerBlockCumulativeRolling,
     pub transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling,
+    /// Coin days destroyed (CDD): spent coin amounts multiplied by their age in days.
     pub coindays_destroyed: LazyPerBlockCumulativeRolling<StoredF64>,
     pub coinyears_destroyed: LazyPerBlock<StoredF64, StoredF64>,
 }

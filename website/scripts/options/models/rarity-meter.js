@@ -19,40 +19,41 @@ import { createRarityMeterVariants } from "./rarity-meter-variants.js";
  * @returns {PartialOptionsGroup}
  */
 export function createRarityMeterSection() {
-  const { rarityMeter, cohorts } = bitview.series;
+  const { rarityMeter, distributionAggregated } = bitview.series;
+  const all = distributionAggregated.cohorts.all;
   const extremes = /** @type {const} */ ([
     {
       key: "coinsInLoss",
       name: "Coins in Loss",
-      source: cohorts.supply.inLoss.all.btc,
+      source: all.supply.inLoss.btc,
       unit: Unit.btc,
       color: colors.loss,
     },
     {
       key: "profitTaking",
       name: "Profit Taking",
-      source: cohorts.realized.profit.all.sum._24h.usd,
+      source: all.realized.profit.sum._24h.usd,
       unit: Unit.usd,
       color: colors.bitcoin,
     },
     {
       key: "capitulation",
       name: "Capitulation",
-      source: cohorts.realized.loss.all.sum._24h.usd,
+      source: all.realized.loss.sum._24h.usd,
       unit: Unit.usd,
       color: colors.loss,
     },
     {
       key: "peakRegret",
       name: "Peak Regret",
-      source: cohorts.realized.peakRegret.all.sum._24h.usd,
+      source: all.realized.peakRegret.sum._24h.usd,
       unit: Unit.usd,
       color: colors.regret,
     },
     {
       key: "sellerExhaustion",
       name: "Seller Exhaustion",
-      source: cohorts.realized.sellSideRiskRatio.all._24h.percent,
+      source: all.ratios.sellSideRiskRatio._24h.percent,
       unit: Unit.percentage,
       color: colors.profit,
     },

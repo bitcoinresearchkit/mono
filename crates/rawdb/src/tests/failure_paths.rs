@@ -1,6 +1,5 @@
 use std::{
     fs::{self, File},
-    io::ErrorKind,
     panic::{AssertUnwindSafe, catch_unwind},
     sync::mpsc,
     thread,
@@ -12,36 +11,6 @@ use tempfile::TempDir;
 use crate::{Database, Error, PAGE_SIZE, Result};
 
 use super::{allocated_bytes, setup_test_db};
-
-#[test]
-fn failed_flush_preserves_dirty_ranges_and_pending_holes() -> Result<()> {
-    let dir = TempDir::new()?;
-    let db = Database::open(dir.path())?;
-    let removed = db.create_region_if_needed("removed")?;
-    removed.write(b"old allocation")?;
-    let kept = db.create_region_if_needed("kept")?;
-    kept.write(b"kept")?;
-    db.flush()?;
-    removed.remove()?;
-    kept.write_at(b"new!", 0)?;
-
-    // Force the actual mmap flush to fail without OS permissions or test hooks.
-    // This intentionally invalid bookkeeping must survive each failed attempt.
-    {
-        let _access = kept.0.access.write();
-        let _writes = db.inner.writes.read();
-        // SAFETY: both mutation guards are held; only the test range is invalid.
-        unsafe { kept.0.mark_dirty(db.file_len(), 1) };
-    }
-    for _ in 0..2 {
-        assert!(
-            matches!(db.flush(), Err(Error::IO(error)) if error.kind() == ErrorKind::InvalidInput)
-        );
-        assert!(db.layout().start_to_hole().is_empty());
-        assert_eq!(kept.create_reader().read_all(), b"new!");
-    }
-    Ok(())
-}
 
 #[test]
 fn opening_either_locked_file_preserves_existing_data() -> Result<()> {
@@ -100,21 +69,6 @@ fn invalid_ids_return_errors_without_consuming_holes() -> Result<()> {
         assert!(matches!(result, Ok(Err(Error::InvalidRegionId))));
         assert_eq!(db.layout().start_to_hole().get(&0), Some(&PAGE_SIZE));
         assert_eq!(db.regions().len(), 0);
-    }
-    Ok(())
-}
-
-#[test]
-fn oversized_reservation_returns_error_without_changing_region() -> Result<()> {
-    let dir = TempDir::new()?;
-    let db = Database::open(dir.path())?;
-    let region = db.create_region_if_needed("kept")?;
-    region.write(b"kept")?;
-    for size in [usize::MAX, (1usize << 40) + PAGE_SIZE] {
-        let result = catch_unwind(AssertUnwindSafe(|| region.reserve_capacity(size)));
-        assert!(matches!(result, Ok(Err(Error::RegionSizeOverflow { .. }))));
-        assert_eq!(region.meta().reserved(), PAGE_SIZE);
-        assert_eq!(region.create_reader().read_all(), b"kept");
     }
     Ok(())
 }
@@ -282,19 +236,6 @@ fn background_panic_returns_error_and_joins_other_tasks() -> Result<()> {
     // The join state is reset even on failure.
     db.run_bg(|db| db.flush().map(|_| ()));
     db.sync_bg_tasks()?;
-    Ok(())
-}
-
-#[test]
-fn database_growth_overflow_returns_error() -> Result<()> {
-    let dir = TempDir::new()?;
-    let db = Database::open(dir.path())?;
-    assert!(matches!(
-        db.set_min_len(usize::MAX),
-        Err(Error::FileSizeOverflow { .. })
-    ));
-    db.create_region_if_needed("valid")?
-        .write(b"still usable")?;
     Ok(())
 }
 

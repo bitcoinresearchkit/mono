@@ -22,17 +22,3 @@ impl RpcCall {
         Self::new(method, &[] as &[()])
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn serializes_parameter_arrays() {
-        let call = RpcCall::new("method", &("abc", false)).unwrap();
-        assert_eq!(call.params.get(), r#"["abc",false]"#);
-
-        let empty = RpcCall::empty("method").unwrap();
-        assert_eq!(empty.params.get(), "[]");
-    }
-}

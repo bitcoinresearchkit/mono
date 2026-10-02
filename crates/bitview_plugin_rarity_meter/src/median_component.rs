@@ -50,7 +50,7 @@ impl MedianComponent {
         )?;
         component::compute(
             &mut self.component,
-            &starting_lengths,
+            starting_lengths,
             &self.relative.ratio.height,
             exit,
         )

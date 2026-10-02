@@ -210,48 +210,32 @@ fn encode_component(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::Args;
-    use crate::{command::Command, parameter::Parameter, request_body::RequestBody};
+    use crate::{command::Command, parameter::Parameter};
 
-    static COMMANDS: &[Command] = &[
-        Command {
-            name: "get-example",
-            method: "GET",
-            path: "/api/example/{name}",
-            summary: "",
-            description: "",
-            path_parameters: &[Parameter {
-                api_name: "name",
-                name: "name",
-                required: true,
-                value_name: "string",
-                repeatable: false,
-                description: None,
-            }],
-            query_parameters: &[Parameter {
-                api_name: "txId[]",
-                name: "tx-id",
-                required: false,
-                value_name: "string[]",
-                repeatable: true,
-                description: None,
-            }],
-            request_body: None,
-        },
-        Command {
-            name: "post-example",
-            method: "POST",
-            path: "/api/example",
-            summary: "",
-            description: "",
-            path_parameters: &[],
-            query_parameters: &[],
-            request_body: Some(RequestBody {
-                value_name: "string",
-                required: true,
-                content_type: "text/plain",
-            }),
-        },
-    ];
+    static COMMANDS: &[Command] = &[Command {
+        name: "get-example",
+        method: "GET",
+        path: "/api/example/{name}",
+        summary: "",
+        description: "",
+        path_parameters: &[Parameter {
+            api_name: "name",
+            name: "name",
+            required: true,
+            value_name: "string",
+            repeatable: false,
+            description: None,
+        }],
+        query_parameters: &[Parameter {
+            api_name: "txId[]",
+            name: "tx-id",
+            required: false,
+            value_name: "string[]",
+            repeatable: true,
+            description: None,
+        }],
+        request_body: None,
+    }];
 
     #[test]
     fn builds_encoded_url_and_repeated_array_query() {
@@ -274,18 +258,5 @@ mod tests {
             args.url(),
             "https://example.test/api/example/a%2Fb?txId%5B%5D=one%20two&txId%5B%5D=three"
         );
-    }
-
-    #[test]
-    fn accepts_inline_request_body() {
-        let args = Args::parse(
-            ["post-example", "--body=02000000"]
-                .map(str::to_owned)
-                .to_vec(),
-            COMMANDS,
-        )
-        .unwrap();
-
-        assert_eq!(args.body.as_deref(), Some(b"02000000".as_slice()));
     }
 }

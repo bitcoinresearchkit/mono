@@ -41,7 +41,7 @@ pub(crate) fn compute(
         value.truncate_if_needed_at(input_at(usize::from(from)))?;
         origins.prepare(indexer, value, from)?;
         if value.len() < input_at(origins.len()) {
-            origins.truncate(complete_height(origins.len(), value.len(), &input_at))?;
+            origins.truncate(complete_height(origins.len(), value.len(), input_at))?;
         }
     }
     let start = origins.len();
@@ -66,7 +66,7 @@ pub(crate) fn compute(
     }
     let output_heights = mappings.output_heights.read();
     let reader = vecs.outputs.value.reader();
-    debug_assert!(reader.len() < Entry::COINBASE_TXOUT_INDEX);
+    debug_assert!(reader.stored_len() < Entry::COINBASE_TXOUT_INDEX);
     // Fixed capacities preserve the existing combined 2 GiB sorting-buffer budget.
     let target = boundaries.last().unwrap().to_usize();
     let mut entries = Vec::with_capacity((target - value.len()).min(BATCH_SIZE));

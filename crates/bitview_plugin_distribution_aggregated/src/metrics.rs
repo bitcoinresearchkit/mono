@@ -68,16 +68,7 @@ impl Metrics {
     ) -> Result<()> {
         self.ratios
             .compute(from, &self.activity, &self.realized, exit)?;
-        self.relative.compute(
-            from,
-            &self.columns,
-            &self.supply,
-            &self.realized,
-            &self.unrealized,
-            all_supply,
-            all_market_cap,
-            exit,
-        )
+        self.compute_relative(from, all_supply, all_market_cap, exit)
     }
     pub(crate) fn state_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.columns.stored_vecs_mut()

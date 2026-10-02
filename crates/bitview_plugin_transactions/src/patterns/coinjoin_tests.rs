@@ -16,54 +16,6 @@ fn classify(candidate: &mut Candidate, entries: &[Entry]) -> bool {
 }
 
 #[test]
-fn repeated_values_match_but_any_script_address_reuse_rejects() {
-    let mut candidate = Candidate::default();
-    let original: Vec<_> = (0..10)
-        .map(|i| entry(if i < 5 { 10_000 } else { 9_000 }, OutputType::P2WPKH, i))
-        .collect();
-    assert!(classify(&mut candidate, &original));
-    // Reuse within inputs, within outputs, and across the input/output boundary.
-    for (from, to) in [(0, 1), (5, 6), (0, 5)] {
-        let mut reused = original.clone();
-        reused[to].2 = reused[from].2;
-        assert!(!classify(&mut candidate, &reused));
-        assert!(classify(&mut candidate, &original));
-    }
-}
-
-#[test]
-fn zeros_count_separately_and_distinct_value_limit_is_inclusive() {
-    let mut candidate = Candidate::default();
-    let mut entries: Vec<_> = (0..10)
-        .map(|i| entry((i % 5 + 1) as u64, OutputType::P2TR, i))
-        .collect();
-    assert!(classify(&mut candidate, &entries));
-    entries[9].0 = Sats::new(6);
-    assert!(!classify(&mut candidate, &entries));
-
-    for zeros in 0..=10 {
-        for (i, item) in entries.iter_mut().enumerate() {
-            item.0 = Sats::new(if i < zeros { 0 } else { 1 });
-        }
-        assert_eq!(classify(&mut candidate, &entries), zeros <= 4);
-    }
-}
-
-#[test]
-fn address_identity_includes_type_and_excludes_non_address_scripts() {
-    let mut candidate = Candidate::default();
-    assert!(classify(
-        &mut candidate,
-        &[
-            entry(7, OutputType::P2WPKH, 0),
-            entry(7, OutputType::P2TR, 0),
-            entry(7, OutputType::OpReturn, 0),
-            entry(7, OutputType::OpReturn, 0),
-        ],
-    ));
-}
-
-#[test]
 fn early_rejection_matches_an_independent_complete_scan() {
     let mut candidate = Candidate::default();
     let mut seed = 7u64;

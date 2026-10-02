@@ -66,7 +66,7 @@ impl Snapshots {
         }
         let mut entries: Vec<(usize, u64, u64)> = Vec::with_capacity((bytes.len() - HEADER) / ROW);
         let mut end = 0;
-        for row in bytes[HEADER..].chunks_exact(ROW) {
+        for row in bytes[HEADER..].as_chunks::<ROW>().0 {
             let h = u32::from_le_bytes(row[..4].try_into().unwrap()) as usize;
             let next = u64::from_le_bytes(row[4..].try_into().unwrap());
             if h > 100_000_000

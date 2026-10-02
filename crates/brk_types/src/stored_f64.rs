@@ -244,21 +244,13 @@ impl From<Bitcoin> for StoredF64 {
     }
 }
 
-impl StoredF64 {
-    fn index_name() -> &'static str {
-        "f64"
-    }
-    fn index_aliases() -> &'static [&'static str] {
-        &["f64"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for StoredF64 {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "f64"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["f64"]
     }
 }
 

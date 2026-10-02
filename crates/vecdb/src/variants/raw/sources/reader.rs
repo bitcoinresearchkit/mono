@@ -33,7 +33,7 @@ where
     /// Returns the value at typed `index`.
     ///
     /// # Panics
-    /// Panics if `index >= len()`.
+    /// Panics if `index >= stored_len()`.
     #[inline(always)]
     pub fn get(&self, index: I) -> T
     where
@@ -45,7 +45,7 @@ where
     /// Returns the value at raw `index`.
     ///
     /// # Panics
-    /// Panics if `index >= len()`.
+    /// Panics if `index >= stored_len()`.
     #[inline(always)]
     pub fn get_at(&self, index: usize) -> T {
         assert!(
@@ -78,7 +78,7 @@ where
 
     /// Returns the number of stored values.
     #[inline(always)]
-    pub fn len(&self) -> usize {
+    pub fn stored_len(&self) -> usize {
         self.stored_len
     }
 

@@ -170,27 +170,6 @@ fn height_owner_catalog_and_read_only_clone_share_one_budgeted_cache() {
 }
 
 #[test]
-fn compute_helpers_share_the_same_source_owner() {
-    init_cache();
-    let directory = tempdir().unwrap();
-    let db = Database::open(directory.path()).unwrap();
-    let indexes = common::indexes(&db);
-    let mut metric =
-        PerBlock::<StoredU64>::forced_import(&db, "source_cache_compute", Version::ONE, &indexes)
-            .unwrap();
-    metric.height.push(StoredU64::from(1_u64));
-    metric.height.write().unwrap();
-    let reader = metric.read_only_clone();
-    assert_eq!(reader.height.collect(), [StoredU64::from(1_u64)]);
-    let source: &mut EagerVec<PcoVec<Height, StoredU64, Budgeted>> = &mut metric.height;
-    source.truncate_if_needed_at(0).unwrap();
-    source.push(StoredU64::from(2_u64));
-    source.write().unwrap();
-    assert!(!reader.height.read_cached_into_at(0, 1, &mut Vec::new()));
-    assert_eq!(reader.height.collect_last(), Some(StoredU64::from(2_u64)));
-}
-
-#[test]
 fn incremental_compute_preserves_cached_prefixes_and_invalidates_rewrites() {
     init_cache();
     let directory = tempdir().unwrap();

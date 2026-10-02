@@ -1,4 +1,4 @@
-use crate::{columns::Columns, realized::Realized, supply::Supply, unrealized::Unrealized};
+use crate::metrics::Metrics;
 use bitview_cohort::AgeAggregateId;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_transforms::{RatioCents, RatioCentsSignedCents, RatioDollars, RatioSats};
@@ -129,121 +129,6 @@ impl Relative {
             )?,
         })
     }
-    pub(crate) fn compute(
-        &mut self,
-        from: Height,
-        c: &Columns,
-        supply: &Supply,
-        realized: &Realized,
-        unrealized: &Unrealized,
-        all_supply: &ReadableBoxedVec<Height, Sats>,
-        all_market_cap: &ReadableBoxedVec<Height, Cents>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.supply_dominance
-            .compute_binary::<_, _, RatioSats<PartsPerMillion32>>(
-                from, &c.supply, all_supply, exit,
-            )?;
-        self.supply_in_profit_share
-            .compute_binary::<_, _, RatioSats<PartsPerMillion32>>(
-                from,
-                &c.supply_profit,
-                &c.supply,
-                exit,
-            )?;
-        self.supply_in_loss_share
-            .compute_binary::<_, _, RatioSats<PartsPerMillion32>>(
-                from,
-                &c.supply_loss,
-                &c.supply,
-                exit,
-            )?;
-        self.unrealized_profit_to_mcap
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
-                from,
-                &c.unrealized_profit,
-                all_market_cap,
-                exit,
-            )?;
-        self.unrealized_loss_to_mcap
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
-                from,
-                &c.unrealized_loss,
-                all_market_cap,
-                exit,
-            )?;
-        self.unrealized_profit_to_own_mcap
-            .compute_binary::<_, _, RatioDollars<PartsPerMillion32>>(
-                from,
-                &unrealized.profit.usd.height,
-                &supply.total.usd.height,
-                exit,
-            )?;
-        self.unrealized_loss_to_own_mcap
-            .compute_binary::<_, _, RatioDollars<PartsPerMillion32>>(
-                from,
-                &unrealized.loss.usd.height,
-                &supply.total.usd.height,
-                exit,
-            )?;
-        self.unrealized_profit_to_own_gross_pnl
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
-                from,
-                &c.unrealized_profit,
-                &c.unrealized_gross_pnl,
-                exit,
-            )?;
-        self.unrealized_loss_to_own_gross_pnl
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
-                from,
-                &c.unrealized_loss,
-                &c.unrealized_gross_pnl,
-                exit,
-            )?;
-        self.net_unrealized_pnl_to_own_gross_pnl
-            .compute_binary::<_, _, RatioCentsSignedCents<PartsPerMillionSigned32>>(
-                from,
-                &c.unrealized_net_pnl,
-                &c.unrealized_gross_pnl,
-                exit,
-            )?;
-        self.invested_capital_in_profit_share
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
-                from,
-                &c.invested_profit,
-                &c.cap,
-                exit,
-            )?;
-        self.invested_capital_in_loss_share
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
-                from,
-                &c.invested_loss,
-                &c.cap,
-                exit,
-            )?;
-        self.realized_cap_to_own_mcap
-            .compute_binary::<_, _, RatioDollars<PartsPerMillion32>>(
-                from,
-                &realized.cap.usd.height,
-                &supply.total.usd.height,
-                exit,
-            )?;
-        self.net_pnl_change_1m_to_mcap
-            .compute_binary::<_, _, RatioCentsSignedCents<PartsPerMillionSigned64>>(
-                from,
-                &realized.net_pnl.delta.absolute._1m.cents.height,
-                all_market_cap,
-                exit,
-            )?;
-        self.net_pnl_change_1m_to_rcap
-            .compute_binary::<_, _, RatioCentsSignedCents<PartsPerMillionSigned64>>(
-                from,
-                &realized.net_pnl.delta.absolute._1m.cents.height,
-                &c.cap,
-                exit,
-            )?;
-        Ok(())
-    }
     pub(crate) fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         vec![
             &mut self.supply_dominance.ppm.height,
@@ -262,5 +147,142 @@ impl Relative {
             &mut self.net_pnl_change_1m_to_mcap.ppm.height,
             &mut self.net_pnl_change_1m_to_rcap.ppm.height,
         ]
+    }
+}
+
+impl Metrics {
+    pub(crate) fn compute_relative(
+        &mut self,
+        from: Height,
+        all_supply: &ReadableBoxedVec<Height, Sats>,
+        all_market_cap: &ReadableBoxedVec<Height, Cents>,
+        exit: &Exit,
+    ) -> Result<()> {
+        let Self {
+            relative,
+            columns: c,
+            supply,
+            realized,
+            unrealized,
+            ..
+        } = self;
+        relative
+            .supply_dominance
+            .compute_binary::<_, _, RatioSats<PartsPerMillion32>>(
+                from, &c.supply, all_supply, exit,
+            )?;
+        relative
+            .supply_in_profit_share
+            .compute_binary::<_, _, RatioSats<PartsPerMillion32>>(
+                from,
+                &c.supply_profit,
+                &c.supply,
+                exit,
+            )?;
+        relative
+            .supply_in_loss_share
+            .compute_binary::<_, _, RatioSats<PartsPerMillion32>>(
+                from,
+                &c.supply_loss,
+                &c.supply,
+                exit,
+            )?;
+        relative
+            .unrealized_profit_to_mcap
+            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+                from,
+                &c.unrealized_profit,
+                all_market_cap,
+                exit,
+            )?;
+        relative
+            .unrealized_loss_to_mcap
+            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+                from,
+                &c.unrealized_loss,
+                all_market_cap,
+                exit,
+            )?;
+        relative
+            .unrealized_profit_to_own_mcap
+            .compute_binary::<_, _, RatioDollars<PartsPerMillion32>>(
+                from,
+                &unrealized.profit.usd.height,
+                &supply.total.usd.height,
+                exit,
+            )?;
+        relative
+            .unrealized_loss_to_own_mcap
+            .compute_binary::<_, _, RatioDollars<PartsPerMillion32>>(
+                from,
+                &unrealized.loss.usd.height,
+                &supply.total.usd.height,
+                exit,
+            )?;
+        relative
+            .unrealized_profit_to_own_gross_pnl
+            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+                from,
+                &c.unrealized_profit,
+                &c.unrealized_gross_pnl,
+                exit,
+            )?;
+        relative
+            .unrealized_loss_to_own_gross_pnl
+            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+                from,
+                &c.unrealized_loss,
+                &c.unrealized_gross_pnl,
+                exit,
+            )?;
+        relative
+            .net_unrealized_pnl_to_own_gross_pnl
+            .compute_binary::<_, _, RatioCentsSignedCents<PartsPerMillionSigned32>>(
+                from,
+                &c.unrealized_net_pnl,
+                &c.unrealized_gross_pnl,
+                exit,
+            )?;
+        relative
+            .invested_capital_in_profit_share
+            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+                from,
+                &c.invested_profit,
+                &c.cap,
+                exit,
+            )?;
+        relative
+            .invested_capital_in_loss_share
+            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+                from,
+                &c.invested_loss,
+                &c.cap,
+                exit,
+            )?;
+        relative
+            .realized_cap_to_own_mcap
+            .compute_binary::<_, _, RatioDollars<PartsPerMillion32>>(
+                from,
+                &realized.cap.usd.height,
+                &supply.total.usd.height,
+                exit,
+            )?;
+        relative
+            .net_pnl_change_1m_to_mcap
+            .compute_binary::<_, _, RatioCentsSignedCents<PartsPerMillionSigned64>>(
+                from,
+                &realized.net_pnl.delta.absolute._1m.cents.height,
+                all_market_cap,
+                exit,
+            )?;
+        relative
+            .net_pnl_change_1m_to_rcap
+            .compute_binary::<_, _, RatioCentsSignedCents<PartsPerMillionSigned64>>(
+                from,
+                &realized.net_pnl.delta.absolute._1m.cents.height,
+                &c.cap,
+                exit,
+            )?;
+        Ok(())
     }
 }

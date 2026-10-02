@@ -11,10 +11,13 @@ pub struct MappedUTXOCohortState<R: RealizedOps, S: Accumulate>(
     pub CommonCohort<R, CostBasisData<S>>,
 );
 
-impl<R: RealizedOps, S: Accumulate> MappedUTXOCohortState<R, S> {
-    pub fn new() -> Self {
+impl<R: RealizedOps, S: Accumulate> Default for MappedUTXOCohortState<R, S> {
+    fn default() -> Self {
         Self(CommonCohort::new(CostBasisData::default()))
     }
+}
+
+impl<R: RealizedOps, S: Accumulate> MappedUTXOCohortState<R, S> {
     pub fn finish_restore(&mut self) {
         self.cost_basis.finish_restore();
     }

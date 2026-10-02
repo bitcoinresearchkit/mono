@@ -8,9 +8,9 @@ use bitview_traversable::Traversable;
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct AgeAggregate<T> {
     pub all: T,
-    /// Younger than 150 days.
+    /// Uses short-term-holder UTXOs younger than 150 days.
     pub sth: T,
-    /// At least 150 days old.
+    /// Uses long-term-holder UTXOs at least 150 days old.
     pub lth: T,
     /// Younger than 120 days.
     pub under_4m: T,

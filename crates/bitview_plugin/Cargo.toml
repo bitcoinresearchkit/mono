@@ -15,6 +15,3 @@ brk_error = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 parking_lot = { workspace = true, features = ["arc_lock", "send_guard"] }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-tempfile = { workspace = true }

@@ -34,7 +34,7 @@ fn test_empty_region_persistence() -> Result<()> {
     let db = Database::open(temp.path())?;
     let regions = db.regions();
     let region = regions.get("empty").expect("empty region should persist");
-    assert_eq!(region.meta().len(), 0);
+    assert_eq!(region.meta().byte_len(), 0);
 
     Ok(())
 }

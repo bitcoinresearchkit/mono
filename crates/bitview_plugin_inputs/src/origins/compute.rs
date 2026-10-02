@@ -73,7 +73,7 @@ impl OriginSpends {
             }
             let h = start + offset;
             self.push(Height::from(h), hashes[offset], &spent)?;
-            if (h + 1) % 10_000 == 0 || h + 1 == end {
+            if (h + 1).is_multiple_of(10_000) || h + 1 == end {
                 self.commit()?;
             }
         }

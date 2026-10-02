@@ -89,27 +89,20 @@ fn declared_types_share_a_family_without_any_naming_convention() {
 }
 
 #[test]
-fn equal_values_do_not_merge_distinct_declared_type_parameters() {
-    let mut catalog = family(["a", "b"], "Sats", Index::Height);
-    let TreeNode::Branch(branch) = &mut catalog else {
-        unreachable!()
-    };
-    branch.field_types.insert("max".into(), "fixture::Stats::B");
-    let tree = CatalogTree::from_catalog(&catalog, &detect_index_patterns(&catalog));
-    assert_eq!(tree.families[0].parameters, 2);
-}
-
-#[test]
-fn variable_public_projections_refine_the_declared_slot_safely() {
-    let mut catalog = family(["a", "b"], "Sats", Index::Height);
-    let TreeNode::Branch(branch) = &mut catalog else {
-        unreachable!()
-    };
-    branch
-        .children
-        .insert("max".into(), leaf("b", "Cents", Index::Day1));
-    let tree = CatalogTree::from_catalog(&catalog, &detect_index_patterns(&catalog));
-    assert_eq!(tree.families[0].parameters, 2);
+fn declared_slots_and_public_projections_keep_independent_parameters() {
+    for (declaration, kind, index) in [
+        ("fixture::Stats::B", "Sats", Index::Height),
+        ("fixture::Stats::A", "Cents", Index::Day1),
+    ] {
+        let mut catalog = family(["a", "b"], "Sats", Index::Height);
+        let TreeNode::Branch(branch) = &mut catalog else {
+            unreachable!()
+        };
+        branch.field_types.insert("max".into(), declaration);
+        branch.children.insert("max".into(), leaf("b", kind, index));
+        let tree = CatalogTree::from_catalog(&catalog, &detect_index_patterns(&catalog));
+        assert_eq!(tree.families[0].parameters, 2);
+    }
 }
 
 #[test]

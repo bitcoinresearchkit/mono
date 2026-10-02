@@ -604,12 +604,6 @@ impl EventState {
 mod tests {
     use super::*;
 
-    fn history(values: &[f64], config: Config) -> LiveHistory {
-        let mut history = LiveHistory::new();
-        history.rebuild(values.to_vec(), config);
-        history
-    }
-
     fn assert_same_state(left: EventState, right: EventState) {
         assert_eq!(left.thresholds.pct0_1, right.thresholds.pct0_1);
         assert_eq!(left.thresholds.pct0_05, right.thresholds.pct0_05);
@@ -619,7 +613,7 @@ mod tests {
     }
 
     #[test]
-    fn incremental_history_matches_coordinate_history() {
+    fn incremental_history_matches_coordinate_history_and_rebuilds_after_rollback() {
         let values = [3.0, 1.0, 2.0, 2.0, -1.0, 5.0, 4.0, 5.0];
         let mut coordinates = values.to_vec();
         coordinates.sort_unstable_by(f64::total_cmp);
@@ -638,6 +632,12 @@ mod tests {
             coordinate.add(value);
             incremental.observe(value, REALIZED);
         }
+        assert!(incremental.is_current(values.len(), WindowKind::Full));
+        incremental.rebuild(vec![1.0, 2.0], REALIZED);
+        assert!(incremental.is_current(2, WindowKind::Full));
+        assert_eq!(incremental.len(), 2);
+        assert_eq!(incremental.stats.kth(0), 1.0);
+        assert_eq!(incremental.stats.kth(1), 2.0);
     }
 
     #[test]
@@ -645,7 +645,8 @@ mod tests {
         let values: Vec<_> = (1..=MIN_HISTORY_BLOCKS + 1)
             .map(|value| value as f64)
             .collect();
-        let mut history = history(&values, SELLER_EXHAUSTION);
+        let mut history = LiveHistory::new();
+        history.rebuild(values, SELLER_EXHAUSTION);
 
         assert_eq!(history.len(), MIN_HISTORY_BLOCKS);
         assert_eq!(history.stats.kth(0), 2.0);
@@ -654,19 +655,5 @@ mod tests {
 
         assert_eq!(history.len(), MIN_HISTORY_BLOCKS);
         assert_eq!(history.stats.kth(0), 3.0);
-    }
-
-    #[test]
-    fn rollback_rebuild_replaces_incremental_state() {
-        let mut history = history(&[1.0, 2.0, 3.0], REALIZED);
-        history.observe(4.0, REALIZED);
-        assert!(history.is_current(4, WindowKind::Full));
-
-        history.rebuild(vec![1.0, 2.0], REALIZED);
-
-        assert!(history.is_current(2, WindowKind::Full));
-        assert_eq!(history.len(), 2);
-        assert_eq!(history.stats.kth(0), 1.0);
-        assert_eq!(history.stats.kth(1), 2.0);
     }
 }

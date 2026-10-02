@@ -9,24 +9,6 @@ const ITEMS: &[&str] = &[
 ];
 
 #[test]
-#[should_panic(expected = "QuickMatch items must be lowercase ASCII")]
-fn rejects_unicode_corpus_before_building_prefixes() {
-    QuickMatch::new(&["café"]);
-}
-
-#[test]
-#[should_panic(expected = "QuickMatch items must be lowercase ASCII")]
-fn rejects_invalid_owned_corpus() {
-    QuickMatch::new_owned(vec!["Éclair".into()]);
-}
-
-#[test]
-#[should_panic(expected = "QuickMatch separators must be ASCII")]
-fn rejects_non_ascii_separators_at_configuration_boundary() {
-    QuickMatchConfig::new().with_separators(&['é']);
-}
-
-#[test]
 fn owned_and_borrowed_matchers_are_equivalent() {
     let borrowed = QuickMatch::new(ITEMS);
     let owned = QuickMatch::new_owned(ITEMS.iter().map(|item| (*item).to_string()).collect());

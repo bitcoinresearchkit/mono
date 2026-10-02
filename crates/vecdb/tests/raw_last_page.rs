@@ -18,122 +18,39 @@ fn setup_db() -> Result<(Database, TempDir)> {
     Ok((db, temp))
 }
 
-// Small writes stay raw, data survives reopen
+// Single-value and small batches append to a raw tail, including after reopen.
 
-fn test_small_write_raw_survives_reopen<V>() -> Result<()>
+fn test_raw_tail_write_reopen_cycles<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
-    let (db, _tmp) = setup_db()?;
-    let values: Vec<u32> = (0..100).collect();
-
-    {
+    for batch in [1, 10, 50, 100] {
+        let (db, _tmp) = setup_db()?;
         let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-        for &v in &values {
-            vec.push(v);
+        let mut total = 0u32;
+        for _ in 0..3 {
+            for _ in 0..3 {
+                let start = total;
+                total += batch;
+                for value in start..total {
+                    vec.push(value);
+                }
+                vec.write()?;
+                assert_eq!(vec.stored_len(), total as usize);
+                assert_eq!(vec.collect(), (0..total).collect::<Vec<_>>());
+                assert_eq!(vec.collect_one(total as usize - 1), Some(total - 1));
+                let from = start.saturating_sub(1);
+                assert_eq!(
+                    vec.collect_range(from as usize, total as usize),
+                    (from..total).collect::<Vec<_>>()
+                );
+            }
+            drop(vec);
+            vec = V::forced_import(&db, "vec", Version::TWO)?;
+            assert_eq!(vec.stored_len(), total as usize);
+            assert_eq!(vec.collect(), (0..total).collect::<Vec<_>>());
         }
-        vec.write()?;
-        assert_eq!(vec.stored_len(), 100);
-        assert_eq!(vec.collect(), values);
     }
-
-    // Reopen and verify
-    {
-        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-        assert_eq!(vec.stored_len(), 100);
-        assert_eq!(vec.collect(), values);
-        assert_eq!(vec.collect_range(0, 1), vec![0]);
-        assert_eq!(vec.collect_range(50, 53), vec![50, 51, 52]);
-        assert_eq!(vec.collect_range(99, 100), vec![99]);
-    }
-
-    Ok(())
-}
-
-// Fast-append path: multiple small writes to same raw page
-
-fn test_fast_append_multiple_small_writes<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _tmp) = setup_db()?;
-    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-
-    // Write 10 values, flush → raw page
-    for v in 0..10u32 {
-        vec.push(v);
-    }
-    vec.write()?;
-    assert_eq!(vec.stored_len(), 10);
-
-    // Write 10 more → fast append (raw page, room left)
-    for v in 10..20u32 {
-        vec.push(v);
-    }
-    vec.write()?;
-    assert_eq!(vec.stored_len(), 20);
-    assert_eq!(vec.collect(), (0..20).collect::<Vec<u32>>());
-
-    // Write 10 more again → fast append
-    for v in 20..30u32 {
-        vec.push(v);
-    }
-    vec.write()?;
-    assert_eq!(vec.stored_len(), 30);
-    assert_eq!(vec.collect(), (0..30).collect::<Vec<u32>>());
-
-    // Range reads across appended data
-    assert_eq!(vec.collect_range(5, 15), (5..15).collect::<Vec<u32>>());
-    assert_eq!(vec.collect_range(15, 25), (15..25).collect::<Vec<u32>>());
-
-    Ok(())
-}
-
-// Fast-append survives reopen and continued appending
-
-fn test_fast_append_survives_reopen<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _tmp) = setup_db()?;
-    {
-        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-        for v in 0..50u32 {
-            vec.push(v);
-        }
-        vec.write()?;
-
-        // Fast append
-        for v in 50..100u32 {
-            vec.push(v);
-        }
-        vec.write()?;
-        assert_eq!(vec.collect(), (0..100).collect::<Vec<u32>>());
-    }
-
-    // Reopen and verify the raw page was persisted correctly
-    {
-        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-        assert_eq!(vec.stored_len(), 100);
-        assert_eq!(vec.collect(), (0..100).collect::<Vec<u32>>());
-    }
-
-    // Reopen and continue appending (should fast-append to existing raw page)
-    {
-        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-        for v in 100..150u32 {
-            vec.push(v);
-        }
-        vec.write()?;
-        assert_eq!(vec.collect(), (0..150).collect::<Vec<u32>>());
-    }
-
-    // Final reopen
-    {
-        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-        assert_eq!(vec.collect(), (0..150).collect::<Vec<u32>>());
-    }
-
     Ok(())
 }
 
@@ -162,6 +79,9 @@ where
             vec.collect_range(b - 2, b + 2),
             vec![(b - 2) as u32, (b - 1) as u32, b as u32, (b + 1) as u32]
         );
+        let read_only = vec.read_only_clone();
+        assert_eq!(read_only.collect(), values);
+        assert_eq!(read_only.collect_range(b - 2, b + 2), values[b - 2..b + 2]);
     }
 
     // Reopen and verify both compressed and raw pages survive
@@ -534,18 +454,16 @@ where
     Ok(())
 }
 
-// Write-reopen-append cycle (simulates real usage patterns)
+// Reopen after each append, including batches that cross page boundaries.
 
-fn test_write_reopen_append_cycle<V>() -> Result<()>
+fn test_write_reopen_append_cycle<V>(counts: impl IntoIterator<Item = usize>) -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-
     let mut total = 0u32;
-    for cycle in 0..20u32 {
+    for (cycle, count) in counts.into_iter().enumerate() {
         let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-        let count = 100 + cycle * 50;
         for _ in 0..count {
             vec.push(total);
             total += 1;
@@ -554,53 +472,12 @@ where
         assert_eq!(
             vec.collect(),
             (0..total).collect::<Vec<u32>>(),
-            "Cycle {}",
-            cycle
+            "Cycle {cycle}"
         );
     }
-
-    // Final verification after all cycles
-    {
-        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-        assert_eq!(vec.stored_len(), total as usize);
-        assert_eq!(vec.collect(), (0..total).collect::<Vec<u32>>());
-    }
-
-    Ok(())
-}
-
-// Write-reopen-append cycle crossing page boundaries
-
-fn test_write_reopen_cycle_crossing_pages<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _tmp) = setup_db()?;
-
-    // Use a chunk size that doesn't align with PER_PAGE to ensure we cross boundaries
-    let chunk = PER_PAGE_U32 / 3 + 7;
-    let mut total = 0u32;
-    for cycle in 0..10u32 {
-        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-        for _ in 0..chunk {
-            vec.push(total);
-            total += 1;
-        }
-        vec.write()?;
-        assert_eq!(
-            vec.collect(),
-            (0..total).collect::<Vec<u32>>(),
-            "Cycle {} (total={})",
-            cycle,
-            total
-        );
-    }
-
-    {
-        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-        assert_eq!(vec.collect(), (0..total).collect::<Vec<u32>>());
-    }
-
+    let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
+    assert_eq!(vec.stored_len(), total as usize);
+    assert_eq!(vec.collect(), (0..total).collect::<Vec<u32>>());
     Ok(())
 }
 
@@ -732,32 +609,6 @@ where
     Ok(())
 }
 
-// Single value writes (extreme fast-append case)
-
-fn test_single_value_writes<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _tmp) = setup_db()?;
-    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-
-    // Push and write one value at a time, 50 times
-    for v in 0..50u32 {
-        vec.push(v);
-        vec.write()?;
-    }
-
-    assert_eq!(vec.stored_len(), 50);
-    assert_eq!(vec.collect(), (0..50).collect::<Vec<u32>>());
-
-    // Reopen
-    drop(vec);
-    let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-    assert_eq!(vec.collect(), (0..50).collect::<Vec<u32>>());
-
-    Ok(())
-}
-
 // Truncate all then rebuild (edge case)
 
 fn test_truncate_to_zero_then_rebuild<V>() -> Result<()>
@@ -794,40 +645,10 @@ where
     Ok(())
 }
 
-// Read-only clone reads mixed pages correctly
-
-fn test_read_only_clone_mixed_pages<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _tmp) = setup_db()?;
-    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
-
-    let count = PER_PAGE_U32 + 200;
-    for v in 0..count as u32 {
-        vec.push(v);
-    }
-    vec.write()?;
-
-    let ro = vec.read_only_clone();
-    assert_eq!(ro.collect(), (0..count as u32).collect::<Vec<u32>>());
-
-    // Read across boundary via read-only clone
-    let b = PER_PAGE_U32;
-    assert_eq!(
-        ro.collect_range(b - 5, b + 5),
-        ((b - 5) as u32..(b + 5) as u32).collect::<Vec<u32>>()
-    );
-
-    Ok(())
-}
-
 // Test instantiation for each compression strategy
 
 fn page_cases<V: StoredVec<I = usize, T = u32>>() -> Result<()> {
-    test_small_write_raw_survives_reopen::<V>()?;
-    test_fast_append_multiple_small_writes::<V>()?;
-    test_fast_append_survives_reopen::<V>()?;
+    test_raw_tail_write_reopen_cycles::<V>()?;
     test_full_page_compressed_partial_raw::<V>()?;
     test_exact_page_boundary::<V>()?;
     test_fast_append_overflow::<V>()?;
@@ -841,17 +662,15 @@ fn page_cases<V: StoredVec<I = usize, T = u32>>() -> Result<()> {
     test_reset_after_multi_page::<V>()?;
     test_read_spanning_compressed_and_raw::<V>()?;
     test_multiple_pages_with_raw_tail::<V>()?;
-    test_write_reopen_append_cycle::<V>()?;
-    test_write_reopen_cycle_crossing_pages::<V>()?;
+    test_write_reopen_append_cycle::<V>((0..20usize).map(|cycle| 100 + cycle * 50))?;
+    test_write_reopen_append_cycle::<V>((0..10).map(|_| PER_PAGE_U32 / 3 + 7))?;
     // A second write stays a no-op for both one-page and multi-page data.
     test_noop_write::<V>(50)?;
     test_noop_write::<V>(PER_PAGE_U32 + 100)?;
     test_fold_over_mixed_pages::<V>()?;
     test_pushed_and_stored_raw_page::<V>()?;
     test_pushed_and_stored_mixed_pages::<V>()?;
-    test_single_value_writes::<V>()?;
     test_truncate_to_zero_then_rebuild::<V>()?;
-    test_read_only_clone_mixed_pages::<V>()?;
     Ok(())
 }
 

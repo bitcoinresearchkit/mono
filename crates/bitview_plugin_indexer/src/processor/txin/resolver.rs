@@ -104,7 +104,7 @@ impl InputResolver {
         )?;
 
         // Recent parents already have a cheap lookup in the store's pending map.
-        let stored_tx_count = processor.readers.tx_index_to_first_txout_index.len();
+        let stored_tx_count = processor.readers.tx_index_to_first_txout_index.stored_len();
         for (input, resolved) in self.inputs.iter().zip(&self.resolved) {
             if let (
                 UnresolvedInput::PreviousBlock { prefix, vout },

@@ -307,11 +307,11 @@ mod tests {
         }
 
         assert_eq!(reference_orders.len(), 8);
-    }
-
-    #[test]
-    fn equal_sth_and_lth_is_not_a_bull_structure() {
         assert_eq!(classify(70, 50, 50, 50, 100), Phase::CautiousBull);
+        assert_eq!(
+            classify_phase(cents(100), cents(70), cents(80), cents(60), None),
+            Phase::Bull
+        );
     }
 
     #[test]
@@ -333,13 +333,5 @@ mod tests {
                 );
             }
         }
-    }
-
-    #[test]
-    fn phase_is_available_without_sma() {
-        assert_eq!(
-            classify_phase(cents(100), cents(70), cents(80), cents(60), None),
-            Phase::Bull
-        );
     }
 }

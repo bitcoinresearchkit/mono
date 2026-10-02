@@ -22,7 +22,9 @@ use bitview_types::SyncStatus;
 #[cfg(feature = "indexer")]
 use brk_error::{Error, OptionData, Result};
 #[cfg(feature = "indexer")]
-use brk_mempool::{ReadOnlyMempool, ReadOnlyState};
+use brk_mempool::ReadOnlyMempool;
+#[cfg(any(feature = "chain", feature = "price"))]
+use brk_mempool::ReadOnlyState;
 #[cfg(feature = "indexer")]
 use brk_reader::Reader;
 #[cfg(feature = "indexer")]
@@ -47,6 +49,7 @@ mod query_plugin_set;
 mod query_plugins;
 mod representation_id;
 mod series_output;
+#[cfg(feature = "series")]
 mod vecs;
 
 #[cfg(feature = "indexer")]
@@ -79,6 +82,7 @@ pub use query_plugin_set::{
 pub use query_plugins::QueryPlugins;
 pub use representation_id::RepresentationId;
 pub use series_output::*;
+#[cfg(feature = "series")]
 pub use vecs::{ResolvedSeriesInfo, SeriesEntry, Vecs};
 
 #[cfg(feature = "indexer")]
@@ -128,8 +132,10 @@ pub use vecs::{ResolvedSeriesInfo, SeriesEntry, Vecs};
 pub struct Query(Arc<QueryInner<'static>>, Option<Instant>);
 #[cfg(feature = "indexer")]
 struct QueryInner<'a> {
+    #[cfg(feature = "series")]
     vecs: &'a Vecs<'a>,
     plugins: QueryPlugins<'a>,
+    #[cfg(any(feature = "chain", feature = "price"))]
     mempool: Option<ReadOnlyMempool>,
     #[cfg(feature = "price")]
     live_oracle: live_oracle::LiveOracle,
@@ -179,24 +185,27 @@ impl Query {
 
     /// Builds the process-lifetime read-only query view.
     ///
-    /// The cloned composition and its vector catalog are intentionally leaked
-    /// because the catalog contains references into that composition. A daemon
-    /// should call this once; repeated or multi-instance query construction is
-    /// outside this API's lifecycle contract.
-    pub fn build<P>(plugins: &P, mempool: Option<ReadOnlyMempool>) -> Self
+    /// The cloned composition is intentionally leaked so query views can borrow
+    /// it for the process lifetime. The series API also builds a catalog that
+    /// borrows this composition. A daemon should call this once; repeated or
+    /// multi-instance construction is outside this API's lifecycle contract.
+    pub fn build<P>(plugins: &P, _mempool: Option<ReadOnlyMempool>) -> Self
     where
         P: ReadOnlyClone,
         P::ReadOnly: QueryPluginSet + 'static,
     {
         let plugin_set = Box::leak(Box::new(plugins.read_only_clone()));
+        #[cfg(feature = "series")]
         let vecs = Box::leak(Box::new(Vecs::build(plugin_set)));
         let plugins = QueryPlugins::new(plugin_set);
 
         Self(
             Arc::new(QueryInner {
+                #[cfg(feature = "series")]
                 vecs,
                 plugins,
-                mempool,
+                #[cfg(any(feature = "chain", feature = "price"))]
+                mempool: _mempool,
                 #[cfg(feature = "price")]
                 live_oracle: Default::default(),
             }),
@@ -360,11 +369,13 @@ impl Query {
         &self.0.plugins
     }
 
+    #[cfg(any(feature = "chain", feature = "price"))]
     #[inline]
     fn mempool(&self) -> Option<Arc<ReadOnlyState>> {
         self.0.mempool.as_ref().map(ReadOnlyMempool::load)
     }
 
+    #[cfg(feature = "series")]
     #[inline]
     pub fn vecs(&self) -> &'static Vecs<'static> {
         self.0.vecs

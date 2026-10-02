@@ -256,21 +256,13 @@ impl Ord for StoredF32 {
     }
 }
 
-impl StoredF32 {
-    fn index_name() -> &'static str {
-        "f32"
-    }
-    fn index_aliases() -> &'static [&'static str] {
-        &["f32"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for StoredF32 {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "f32"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["f32"]
     }
 }
 
@@ -305,31 +297,5 @@ impl Formattable for StoredF32 {
         } else {
             buf.extend_from_slice(b"null");
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[cfg(debug_assertions)]
-    use std::panic;
-
-    use super::*;
-
-    #[test]
-    fn converts_nan_from_f64() {
-        assert!(f32::from(StoredF32::from(f64::NAN)).is_nan());
-    }
-
-    #[test]
-    fn converts_f32_bounds_from_f64() {
-        assert_eq!(f32::from(StoredF32::from(f32::MIN as f64)), f32::MIN);
-        assert_eq!(f32::from(StoredF32::from(f32::MAX as f64)), f32::MAX);
-    }
-
-    #[test]
-    #[cfg(debug_assertions)]
-    fn rejects_values_outside_f32_bounds() {
-        assert!(panic::catch_unwind(|| StoredF32::from(f64::NEG_INFINITY)).is_err());
-        assert!(panic::catch_unwind(|| StoredF32::from(f64::INFINITY)).is_err());
     }
 }

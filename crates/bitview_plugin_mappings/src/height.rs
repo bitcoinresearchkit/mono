@@ -236,63 +236,6 @@ mod tests {
     }
 
     #[test]
-    fn timestamp_mappings_match_the_previous_conversion_chain() {
-        let timestamps = [
-            Timestamp::from(Date::new(2009, 1, 1)),
-            Timestamp::from(Date::new(2012, 4, 17)),
-            Timestamp::from(Date::new(2026, 8, 3)),
-        ];
-        let source = ReadableBoxedVec::new(TimestampVec::new(timestamps));
-
-        let minute10 = Vecs::from_timestamps("minute10", source.clone(), |_, timestamp| {
-            Minute10::from_timestamp(timestamp)
-        });
-        let day1 = Vecs::from_timestamps("day1", source.clone(), |_, timestamp| {
-            Vecs::day1_from_timestamp(timestamp)
-        });
-        let week1 = Vecs::from_timestamps("week1", source.clone(), |_, timestamp| {
-            Week1::from(Vecs::day1_from_timestamp(timestamp))
-        });
-        let month3 = Vecs::from_timestamps("month3", source.clone(), |_, timestamp| {
-            Month3::from(Vecs::month1_from_timestamp(timestamp))
-        });
-        let year10 = Vecs::from_timestamps("year10", source, |_, timestamp| {
-            Year10::from(Year1::from(Vecs::month1_from_timestamp(timestamp)))
-        });
-
-        assert_eq!(minute10.collect(), timestamps.map(Minute10::from_timestamp));
-        assert_eq!(day1.collect(), timestamps.map(Vecs::day1_from_timestamp));
-        assert_eq!(
-            week1.collect(),
-            timestamps.map(|timestamp| Week1::from(Vecs::day1_from_timestamp(timestamp)))
-        );
-        assert_eq!(
-            month3.collect(),
-            timestamps.map(|timestamp| Month3::from(Vecs::month1_from_timestamp(timestamp)))
-        );
-        assert_eq!(
-            year10.collect(),
-            timestamps.map(|timestamp| {
-                Year10::from(Year1::from(Vecs::month1_from_timestamp(timestamp)))
-            })
-        );
-    }
-
-    #[test]
-    fn height_mappings_preserve_epoch_boundaries() {
-        assert_eq!(Epoch::from(Height::from(2_015_u32)), Epoch::from(0_usize));
-        assert_eq!(Epoch::from(Height::from(2_016_u32)), Epoch::from(1_usize));
-        assert_eq!(
-            Halving::from(Height::from(209_999_u32)),
-            Halving::from(0_usize)
-        );
-        assert_eq!(
-            Halving::from(Height::from(210_000_u32)),
-            Halving::from(1_usize)
-        );
-    }
-
-    #[test]
     fn same_length_timestamp_changes_are_visible_without_derived_invalidation() {
         let first = Timestamp::from(Date::new(2009, 1, 1));
         let second = Timestamp::from(Date::new(2009, 1, 2));

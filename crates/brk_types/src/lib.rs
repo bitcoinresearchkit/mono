@@ -77,6 +77,7 @@ mod feerate;
 mod feerate_percentiles;
 mod from_coarser;
 mod funded_addr_data;
+#[cfg(feature = "storage")]
 mod funded_addr_data_compact;
 mod funded_addr_index;
 mod halving;
@@ -274,6 +275,7 @@ pub use feerate::*;
 pub use feerate_percentiles::*;
 pub use from_coarser::*;
 pub use funded_addr_data::*;
+#[cfg(feature = "storage")]
 pub use funded_addr_data_compact::*;
 pub use funded_addr_index::*;
 pub use halving::*;

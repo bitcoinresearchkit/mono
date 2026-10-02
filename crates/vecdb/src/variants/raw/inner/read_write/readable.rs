@@ -88,7 +88,7 @@ where
             );
         }
         let reader = self.reader();
-        let stored_len = reader.len();
+        let stored_len = reader.stored_len();
         let pushed = self.base.pushed();
 
         out.reserve(indices.len());

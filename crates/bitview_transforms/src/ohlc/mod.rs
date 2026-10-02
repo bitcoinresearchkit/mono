@@ -1,7 +1,5 @@
 mod dollars;
 pub use dollars::OhlcCentsToDollars;
-mod open_cents;
-pub use open_cents::OhlcCentsToOpenCents;
 mod high_cents;
 pub use high_cents::OhlcCentsToHighCents;
 mod low_cents;

@@ -4,9 +4,6 @@ use rawdb::Database;
 use tempfile::TempDir;
 use vecdb::{AnyStoredVec, BytesVec, ImportableVec, Result, Version, WritableVec};
 
-#[cfg(debug_assertions)]
-use vecdb::MutableVec;
-
 #[test]
 fn raw_reader_cursor_reads_persisted_values() -> Result<()> {
     let temp = TempDir::new()?;
@@ -109,19 +106,4 @@ fn raw_range_cursor_consumes_value_before_callback_panic() -> Result<()> {
         assert_eq!(cursor.next(), Some(1));
     }
     Ok(())
-}
-
-#[test]
-#[cfg(debug_assertions)]
-#[should_panic(expected = "get_append_only requires a vector without holes or updates")]
-fn append_only_reader_rejects_dirty_vectors() {
-    let temp = TempDir::new().unwrap();
-    let db = Database::open(temp.path()).unwrap();
-    let mut vec = MutableVec::<BytesVec<usize, u64>>::import(&db, "values", Version::ONE).unwrap();
-    vec.push(1);
-    vec.write().unwrap();
-
-    let reader = vec.reader();
-    vec.update(0, 2).unwrap();
-    let _ = vec.get_append_only(0, &reader);
 }

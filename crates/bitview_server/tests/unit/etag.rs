@@ -16,11 +16,6 @@ fn matches_weak_strong_wildcard_and_list() {
     assert!(etag.matches(&headers(&["*"])));
     assert!(etag.matches(&headers(&["W/\"a\", W/\"s1-abc\""])));
     assert!(etag.matches(&headers(&["  W/\"s1-abc\"  "])));
-}
-
-#[test]
-fn checks_every_if_none_match_field() {
-    let etag = Etag::from("s1-abc".to_string());
     assert!(etag.matches(&headers(&["W/\"other\"", "W/\"s1-abc\""])));
 }
 

@@ -29,7 +29,7 @@ fn explicit_bounds_cover_lengths_ranges_json_csv_and_writer_lifetimes() {
     );
     bounds.set("usize", 2);
     let bounded = bounds.bind(&source).unwrap();
-    assert_eq!(bounded.len(), 2);
+    assert_eq!(bounded.visible_len(), 2);
     assert_eq!(bounded.range_count(None, None), 2);
     assert_eq!(bounded.range_count(Some(-1), None), 1);
     assert_eq!(bounded.range_count(Some(99), Some(1)), 0);

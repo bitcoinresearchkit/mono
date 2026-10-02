@@ -33,7 +33,7 @@ impl<T: BytesVecValue + Copy> DisjointAgeSources<T> {
         }
     }
 
-    pub fn len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.age.iter().map(AnyVec::len).min().unwrap_or_default()
     }
 

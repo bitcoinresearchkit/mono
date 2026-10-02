@@ -10,6 +10,9 @@ use bitview_traversable::Traversable;
 use bitview_vecs::SatsCents;
 use vecdb::StorageMode;
 
+type ValueSources =
+    SatsCents<LazyVec<Height, Sats, Height, StoredU64>, LazyVec<Height, Cents, Height, StoredU64>>;
+
 #[derive(Traversable)]
 pub struct CumulativeSizeValueSources<M: StorageMode = Rw> {
     pub sats: CumulativeUtxoSources<StoredU64, M>,
@@ -29,12 +32,7 @@ impl CumulativeSizeValueSources {
         cohort_id: CohortId,
         name: &str,
         version: Version,
-    ) -> Option<
-        SatsCents<
-            LazyVec<Height, Sats, Height, StoredU64>,
-            LazyVec<Height, Cents, Height, StoredU64>,
-        >,
-    > {
+    ) -> Option<ValueSources> {
         Some(SatsCents {
             sats: LazyVec::transformed::<StoredU64ToSats>(
                 &format!("{name}_cumulative_sats"),

@@ -40,7 +40,7 @@ where
 
     #[inline]
     fn real_stored_len(&self) -> usize {
-        (self.region().meta().len() - HEADER_OFFSET) / Self::SIZE_OF_T
+        (self.region().meta().byte_len() - HEADER_OFFSET) / Self::SIZE_OF_T
     }
 
     #[inline]

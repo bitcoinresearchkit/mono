@@ -121,21 +121,13 @@ impl From<StoredI64> for f64 {
     }
 }
 
-impl StoredI64 {
-    fn index_name() -> &'static str {
-        "i64"
-    }
-    fn index_aliases() -> &'static [&'static str] {
-        &["i64"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for StoredI64 {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "i64"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["i64"]
     }
 }
 

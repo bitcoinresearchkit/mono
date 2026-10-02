@@ -1,27 +1,21 @@
 use bitview_collections::Windows;
 use bitview_transforms::SatsToCents;
-use bitview_vecs::{
-    LazyWindowStartVec, ValuePerBlockCumulative, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
-    WindowStarts,
-};
+use bitview_vecs::{LazyWindowStartVec, ValuePerBlockCumulative, ValuePerBlockFull, WindowStarts};
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, StoredU64, Timestamp, TxIndex, Version};
 use common::{indexes, init_cache, stored};
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, AnyVec, BinaryTransform, Database, ImportableVec, PcoVec, ReadableVec,
-    WritableVec,
+    AnyStoredVec, BinaryTransform, Database, ImportableVec, PcoVec, ReadableVec, WritableVec,
 };
 
 mod common;
 
 #[test]
-fn full_value_retains_cumulative_rolling_versions_and_fiat_flows() {
+fn full_value_preserves_cumulative_and_distribution_fiat_flows() {
     init_cache();
     let directory = tempdir().unwrap();
-    let reference_directory = tempdir().unwrap();
     let db = Database::open(directory.path()).unwrap();
-    let reference_db = Database::open(reference_directory.path()).unwrap();
     let indexes = indexes(&db);
     let timestamps = stored::<Height, _>(
         &db,
@@ -38,23 +32,6 @@ fn full_value_retains_cumulative_rolling_versions_and_fiat_flows() {
     let mut full =
         ValuePerBlockFull::forced_import(&db, "value", Version::new(11), &indexes, &windows)
             .unwrap();
-    let reference = ValuePerBlockCumulativeRolling::forced_import(
-        &reference_db,
-        "value",
-        Version::new(13),
-        &indexes,
-        &windows,
-    )
-    .unwrap();
-    assert_eq!(
-        full.cumulative.sats.height.name(),
-        reference.cumulative.sats.height.name()
-    );
-    assert_eq!(
-        full.cumulative.sats.height.version(),
-        reference.cumulative.sats.height.version()
-    );
-    assert_eq!(full.block.sats.version(), reference.block.sats.version());
     let prices = stored::<Height, _>(
         &db,
         "prices",

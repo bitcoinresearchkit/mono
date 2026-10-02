@@ -9,9 +9,8 @@ repository.workspace = true
 
 [features]
 default = []
-storage = ["dep:bitview_traversable", "dep:vecdb", "brk_types/storage"]
+storage = ["dep:bitview_traversable", "brk_types/storage"]
 
 [dependencies]
 bitview_traversable = { workspace = true, optional = true }
 brk_types = { workspace = true }
-vecdb = { workspace = true, optional = true }

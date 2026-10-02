@@ -15,7 +15,7 @@ const MAX_ERROR_BODY_BYTES: usize = 4096;
 
 /// Matches `application/json` and `application/...+json`, ignoring parameters
 /// like `; charset=utf-8`. Used to skip JSON-error rewriting for already-JSON bodies.
-pub(crate) fn is_json_content_type(s: &str) -> bool {
+fn is_json_content_type(s: &str) -> bool {
     let mime = s.split(';').next().unwrap_or("").trim();
     mime == "application/json" || (mime.starts_with("application/") && mime.ends_with("+json"))
 }

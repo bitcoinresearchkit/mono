@@ -51,7 +51,7 @@ impl Header {
         })
     }
 
-    pub fn update_stamp(&mut self, stamp: Stamp) {
+    pub(crate) fn update_stamp(&mut self, stamp: Stamp) {
         self.assert_writable();
         let mut inner = self.inner.write();
         if inner.stamp != stamp {
@@ -96,7 +96,7 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn stamp(&self) -> Stamp {
+    pub(crate) fn stamp(&self) -> Stamp {
         self.inner.read().stamp
     }
 

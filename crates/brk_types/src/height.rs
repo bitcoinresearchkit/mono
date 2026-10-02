@@ -288,10 +288,10 @@ impl From<Height> for Stamp {
 }
 
 impl Height {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "height"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["h", "height", "blk", "block"]
     }
 }

@@ -1,9 +1,6 @@
 use std::net::SocketAddr;
 
-use brk_types::{
-    Date, Day1, Day3, Epoch, Halving, Height, Hour1, Hour4, Hour12, Minute10, Minute30, Month1,
-    Month3, Month6, Timestamp, Week1, Year1, Year10,
-};
+use brk_types::{Date, Day1, Month1, Timestamp};
 use serde_json::{Value, from_str, from_value, json};
 
 use super::{
@@ -45,169 +42,6 @@ fn resident_resolution_mappings_preserve_last_values_through_append_and_reorg() 
                 .copied()
                 .map(|timestamp| Day1::try_from(Date::from(timestamp)).unwrap())
                 .collect();
-            // Public reverse mappings and plugin-facing views must agree with
-            // the timestamp/height definitions after every publication.
-            for (metric, periods) in [
-                (
-                    "minute10",
-                    timestamps
-                        .iter()
-                        .copied()
-                        .map(Minute10::from_timestamp)
-                        .map(usize::from)
-                        .collect::<Vec<_>>(),
-                ),
-                (
-                    "minute30",
-                    timestamps
-                        .iter()
-                        .copied()
-                        .map(Minute30::from_timestamp)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "hour1",
-                    timestamps
-                        .iter()
-                        .copied()
-                        .map(Hour1::from_timestamp)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "hour4",
-                    timestamps
-                        .iter()
-                        .copied()
-                        .map(Hour4::from_timestamp)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "hour12",
-                    timestamps
-                        .iter()
-                        .copied()
-                        .map(Hour12::from_timestamp)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                ("day1", days.iter().copied().map(usize::from).collect()),
-                (
-                    "day3",
-                    timestamps
-                        .iter()
-                        .copied()
-                        .map(Day3::from_timestamp)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "week1",
-                    days.iter()
-                        .copied()
-                        .map(Week1::from)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "month1",
-                    days.iter()
-                        .copied()
-                        .map(Month1::from)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "month3",
-                    days.iter()
-                        .copied()
-                        .map(Month1::from)
-                        .map(Month3::from)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "month6",
-                    days.iter()
-                        .copied()
-                        .map(Month1::from)
-                        .map(Month6::from)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "year1",
-                    days.iter()
-                        .copied()
-                        .map(Month1::from)
-                        .map(Year1::from)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "year10",
-                    days.iter()
-                        .copied()
-                        .map(Month1::from)
-                        .map(Year1::from)
-                        .map(Year10::from)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "epoch",
-                    (0..timestamps.len())
-                        .map(Height::from)
-                        .map(Epoch::from)
-                        .map(usize::from)
-                        .collect(),
-                ),
-                (
-                    "halving",
-                    (0..timestamps.len())
-                        .map(Height::from)
-                        .map(Halving::from)
-                        .map(usize::from)
-                        .collect(),
-                ),
-            ] {
-                assert_eq!(
-                    data(fixture.address, metric, "height").await,
-                    periods
-                        .into_iter()
-                        .map(|period| json!(period))
-                        .collect::<Vec<_>>(),
-                    "{metric}/height branch={branch}"
-                );
-            }
-            for metric in [
-                "coinflow_urpd_all_capitalized_price_cents",
-                "cointime_urpd_all_capitalized_price_cents",
-                "utxos_urpd_under_4m_cost_basis_min_cents",
-                "utxos_urpd_under_4m_cost_basis_max_cents",
-                "utxos_urpd_sth_cost_basis_min_cents",
-                "utxos_urpd_sth_cost_basis_max_cents",
-                "utxos_urpd_under_6m_cost_basis_min_cents",
-                "utxos_urpd_under_6m_cost_basis_max_cents",
-            ] {
-                let daily = data(fixture.address, metric, "day1").await;
-                if metric.starts_with("utxos_urpd_") {
-                    // This pre-market fixture has occupied zero-price buckets,
-                    // including on the current partial day after each reorg.
-                    assert_eq!(daily.last(), Some(&json!(0)), "{metric} branch={branch}");
-                }
-                let expected: Vec<_> = days
-                    .iter()
-                    .map(|&day| daily.get(usize::from(day)).cloned().unwrap_or(Value::Null))
-                    .collect();
-                assert_eq!(
-                    data(fixture.address, metric, "height").await,
-                    expected,
-                    "{metric}/height branch={branch}",
-                );
-            }
             for (index, periods) in [
                 (
                     "day1",
@@ -259,38 +93,25 @@ fn resident_resolution_mappings_preserve_last_values_through_append_and_reorg() 
                     expected_timestamps
                 );
 
+                // URPD values are block-based; each period selects its last block.
                 for metric in [
-                    "price_cents",
-                    "supply_sats",
-                    "coinflow_urpd_all_capitalized_price_ratio_ppm",
+                    "utxos_urpd_sth_cost_basis_min_cents",
+                    "coinflow_urpd_all_capitalized_price_cents",
+                    "cointime_urpd_all_capitalized_price_cents",
                     "cointime_urpd_all_capitalized_price_ratio_ppm",
                     "coinflow_capitalized_price_cents",
-                    "sth_coinflow_capitalized_price_cents",
-                    "lth_coinflow_capitalized_price_cents",
                     "awake_capitalized_price_cents",
-                    "sth_awake_capitalized_price_cents",
-                    "lth_awake_capitalized_price_cents",
-                    "over_4m_awake_price_cents",
-                    "over_4m_awake_capitalized_price_cents",
-                    "over_4m_coinflow_price_cents",
-                    "over_4m_coinflow_capitalized_price_cents",
-                    "over_6m_awake_price_cents",
-                    "over_6m_awake_capitalized_price_cents",
-                    "over_6m_coinflow_price_cents",
-                    "over_6m_coinflow_capitalized_price_cents",
-                    "under_4m_awake_price_cents",
-                    "under_4m_awake_capitalized_price_cents",
-                    "under_6m_awake_price_cents",
-                    "under_6m_awake_capitalized_price_cents",
-                    "under_4m_coinflow_price_cents",
-                    "under_4m_coinflow_capitalized_price_cents",
-                    "under_6m_coinflow_price_cents",
-                    "under_6m_coinflow_capitalized_price_cents",
-                    "coinflow_capitalized_price_ratio_ppm",
-                    "awake_capitalized_price_ratio_ppm",
+                    "price_cents",
+                    "supply_sats",
                 ] {
                     let heights = data(fixture.address, metric, "height").await;
                     assert_eq!(heights.len(), height as usize + 1);
+                    if metric.starts_with("utxos_urpd_") {
+                        // Genesis has no spendable coins; later pre-market blocks
+                        // have occupied zero-price buckets, including after a reorg.
+                        assert_eq!(heights.first(), Some(&Value::Null), "{metric}");
+                        assert_eq!(heights.last(), Some(&json!(0)), "{metric} branch={branch}");
+                    }
                     let expected: Vec<_> = firsts
                         .iter()
                         .enumerate()

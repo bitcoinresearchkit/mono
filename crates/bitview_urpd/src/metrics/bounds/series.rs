@@ -52,7 +52,7 @@ impl AgeBoundsMetrics {
         Ok(Self { series, stored })
     }
 
-    pub fn len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.stored
             .iter()
             .flat_map(|v| [v.min.len(), v.max.len()])
@@ -73,7 +73,7 @@ impl AgeBoundsMetrics {
         height: Height,
         entries: impl IntoIterator<Item = (AgeRangeId, CentsCompact, Sats)>,
     ) -> Result<()> {
-        let start = self.len().min(usize::from(height));
+        let start = self.min_len().min(usize::from(height));
         for vec in self.stored_vecs_mut() {
             vec.any_truncate_if_needed_at(start)?;
         }

@@ -95,7 +95,7 @@ impl Journal {
             index_file.read_exact(&mut bytes)?;
             index.reserve(count);
             let mut previous = 0;
-            for chunk in bytes.chunks_exact(INDEX_BYTES) {
+            for chunk in bytes.as_chunks::<INDEX_BYTES>().0 {
                 let next = u64::from_le_bytes(chunk[..8].try_into().unwrap());
                 if next < previous || next - previous > MAX_RECORD as u64 {
                     return Err(invalid("invalid journal offset"));

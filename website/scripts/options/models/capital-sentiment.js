@@ -8,21 +8,22 @@ import { histogram, price } from "../series.js";
  * @returns {PartialOptionsGroup}
  */
 export function createCapitalSentimentSection() {
-  const { capitalSentiment, cohorts } = bitview.series;
+  const { capitalSentiment, distributionAggregated } = bitview.series;
+  const cohorts = distributionAggregated.cohorts;
   const sma = bitview.series.market.movingAverage.sma._1y;
   const references = () => [
     price({
-      series: cohorts.realized.capitalizedPrice.all,
+      series: cohorts.all.realized.capitalizedPrice,
       name: "All",
       color: colors.capitalized,
     }),
     price({
-      series: cohorts.realized.capitalizedPrice.sth,
+      series: cohorts.sth.realized.capitalizedPrice,
       name: "STH",
       color: colors.term.short,
     }),
     price({
-      series: cohorts.realized.capitalizedPrice.lth,
+      series: cohorts.lth.realized.capitalizedPrice,
       name: "LTH",
       color: colors.term.long,
     }),

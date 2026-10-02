@@ -55,7 +55,7 @@ impl History {
             .snapshots
             .latest((spends.version(), creations.version()))?;
         let (end, hash) = latest.as_ref().map_or((0, [0; 32]), |s| (s.len, s.hash()));
-        if end > spends.len().min(creations.len()) {
+        if end > spends.end().min(creations.end()) {
             return Err(invalid("published history exceeds producer prefix"));
         }
         if end > spends.start().max(creations.start())
@@ -85,14 +85,14 @@ impl History {
         created: &Creations,
         latest: Option<&Snapshot>,
     ) -> Result<State> {
-        if end > spends.len().min(created.len()) {
+        if end > spends.end().min(created.end()) {
             return Err(invalid("incomplete origin contributions"));
         }
         let mut state = None;
-        if let Some(snapshot) = latest.filter(|s| s.len <= end) {
-            if Self::matches(snapshot, spends, created)? {
-                state = Some(snapshot.state()?);
-            }
+        if let Some(snapshot) = latest.filter(|s| s.len <= end)
+            && Self::matches(snapshot, spends, created)?
+        {
+            state = Some(snapshot.state()?);
         }
         if state.is_none() {
             for snapshot in self
@@ -126,7 +126,7 @@ impl History {
         mut visit: impl FnMut(usize, Amount) -> Result<()>,
     ) -> Result<()> {
         let live = self.live.take();
-        if start > end || end > spends.len().min(created.len()) {
+        if start > end || end > spends.end().min(created.end()) {
             return Err(invalid("invalid origin range"));
         }
         let versions = (spends.version(), created.version());

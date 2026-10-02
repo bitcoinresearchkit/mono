@@ -6,6 +6,8 @@ use vecdb::{Cursor, PcoVec, ReadableVec};
 #[cfg(test)]
 mod tests;
 
+type InputColumns<'a> = (&'a [Sats], &'a [Height], &'a [OutputType], &'a [TypeIndex]);
+
 /// Bulk txin reader with reusable buffers.
 pub struct TxInReaders<'a, const WITH_INDEXES: bool = true> {
     input_values: Cursor<'a, TxInIndex, Sats, PcoVec<TxInIndex, Sats>>,
@@ -45,7 +47,7 @@ impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
         first_txin_index: usize,
         input_count: usize,
         current_height: Height,
-    ) -> Result<(&[Sats], &[Height], &[OutputType], &[TypeIndex])> {
+    ) -> Result<InputColumns<'_>> {
         let end = first_txin_index + input_count;
         self.input_values
             .collect_range_into_at(first_txin_index, end, &mut self.values_buf);

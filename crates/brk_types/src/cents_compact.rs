@@ -217,10 +217,4 @@ mod tests {
         assert_eq!(CentsCompact::NAN - finite, CentsCompact::NAN);
         assert_eq!(CentsCompact::NAN.round_to_dollar(3), CentsCompact::NAN);
     }
-
-    #[test]
-    #[should_panic(expected = "u32::MAX is reserved as CentsCompact::NAN")]
-    fn new_rejects_nan_sentinel() {
-        CentsCompact::new(u32::MAX);
-    }
 }

@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use crate::overwritten_output;
 use bitview_compute::prepare_computed;
 use bitview_vecs::CachedSeries;
@@ -12,23 +14,25 @@ use vecdb::{
 pub(crate) fn compute_sats(
     target: &mut CachedSeries<Height, Sats>,
     created: &mut Creations,
-    max_from: Height,
-    end: usize,
+    range: Range<usize>,
     first_txout: &impl ReadableVec<Height, TxOutIndex>,
-    output_types: &BytesVec<TxOutIndex, OutputType>,
-    values: &OverflowVec<TxOutIndex, Sats>,
+    output_data: (
+        &BytesVec<TxOutIndex, OutputType>,
+        &OverflowVec<TxOutIndex, Sats>,
+    ),
     hashes: &impl ReadableVec<Height, BlockHash>,
     exit: &Exit,
 ) -> Result<()> {
+    let (output_types, values) = output_data;
     let version = first_txout.version() + output_types.version() + values.version();
-    let end = end.min(first_txout.len());
+    let end = range.end.min(first_txout.len());
     let start = {
         let _lock = exit.lock();
         created.validate_version(u32::from(version).into())?;
         let start = prepare_computed(
             [target as &mut dyn AnyStoredVec],
             version,
-            usize::from(max_from).min(end).min(created.len()),
+            range.start.min(end).min(created.end()),
             exit,
         )?;
         created.truncate(start)?;

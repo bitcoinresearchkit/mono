@@ -89,8 +89,8 @@ pub const AGE_RANGE_IDS: [AgeRangeId; AGE_RANGE_COUNT] = [
     AgeRangeId::Over15Y,
 ];
 
-pub const STH_AGE_RANGE_IDS: &[AgeRangeId] = AGE_RANGE_IDS.split_at(STH_AGE_RANGE_COUNT).0;
-pub const LTH_AGE_RANGE_IDS: &[AgeRangeId] = AGE_RANGE_IDS.split_at(STH_AGE_RANGE_COUNT).1;
+pub(crate) const STH_AGE_RANGE_IDS: &[AgeRangeId] = AGE_RANGE_IDS.split_at(STH_AGE_RANGE_COUNT).0;
+pub(crate) const LTH_AGE_RANGE_IDS: &[AgeRangeId] = AGE_RANGE_IDS.split_at(STH_AGE_RANGE_COUNT).1;
 
 impl AgeRangeId {
     pub const ALL: &'static [Self] = &AGE_RANGE_IDS;

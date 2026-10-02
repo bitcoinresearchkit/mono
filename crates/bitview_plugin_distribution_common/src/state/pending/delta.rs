@@ -26,23 +26,14 @@ mod tests {
 
     #[test]
     fn gross_churn_may_cross_signed_range() {
-        let mut delta = PendingDelta::default();
-        let sats = Sats::new(i64::MAX as u64 + 1);
+        for net in [0, 1] {
+            let mut delta = PendingDelta::default();
+            let gross = Sats::new(i64::MAX as u64 + 1);
 
-        delta.increment(sats);
-        delta.decrement(sats);
+            delta.increment(gross);
+            delta.decrement(gross - Sats::new(net));
 
-        assert_eq!(delta.inner(), 0);
-    }
-
-    #[test]
-    fn retains_small_net_after_crossing_signed_range() {
-        let mut delta = PendingDelta::default();
-        let gross = Sats::new(i64::MAX as u64 + 1);
-
-        delta.increment(gross);
-        delta.decrement(gross - Sats::new(1));
-
-        assert_eq!(delta.inner(), 1);
+            assert_eq!(delta.inner(), net as i64);
+        }
     }
 }

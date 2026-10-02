@@ -1,7 +1,7 @@
 use std::array;
 
 use bitview_cohort::{AGE_RANGE_COUNT, AgeAggregateId, AgeRange, AgeRangeId};
-use brk_types::{CentsCompact, Sats};
+use brk_types::{CentsCompact, PartsPerMillion32, Sats};
 
 use super::*;
 use crate::{metrics::price_stats::PriceStats, projection::Projection};
@@ -79,6 +79,42 @@ fn fused_statistics_match_independent_cohort_projection_and_density() {
                 );
             }
         }
+    }
+    for (entries, spot, expected) in [
+        (
+            &[(94, 10), (95, 20), (100, 30), (105, 40), (106, 100)][..],
+            100,
+            [0.45, 0.25, 0.2],
+        ),
+        (
+            &[(95, 10), (96, 10), (106, 10), (107, 10)][..],
+            101,
+            [0.5, 0.25, 0.25],
+        ),
+        (&[(200, 10)][..], 100, [0.0, 0.0, 0.0]),
+        (
+            &[(u32::MAX - 1, 2_100_000_000_000_000)][..],
+            u64::from(u32::MAX - 1),
+            [1.0, 1.0, 0.0],
+        ),
+    ] {
+        let entries: Vec<_> = entries
+            .iter()
+            .map(|&(price, sats)| {
+                let mut supplies = [0; AGE_RANGE_COUNT];
+                supplies[AgeRangeId::Under1H.index()] = sats;
+                (CentsCompact::new(price), supplies)
+            })
+            .collect();
+        buffer.update(
+            projected(&entries, &AgeRange::from_fn(|_| 1.0)),
+            Cents::new(spot),
+        );
+        let actual = &buffer.density.all;
+        assert_eq!(
+            [actual.total, actual.in_profit, actual.in_loss],
+            expected.map(PartsPerMillion32::from)
+        );
     }
     buffer.update(
         projected(&entries[..0], &AgeRange::from_fn(|_| 1.0)),

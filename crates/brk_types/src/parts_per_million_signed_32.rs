@@ -56,7 +56,7 @@ impl PartsPerMillionSigned32 {
     }
 
     #[inline]
-    pub fn is_nan(self) -> bool {
+    fn is_nan(self) -> bool {
         self.0 == i32::MIN
     }
 

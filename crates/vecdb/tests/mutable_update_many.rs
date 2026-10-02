@@ -5,7 +5,7 @@ use vecdb::{
 };
 
 #[test]
-fn update_many_matches_individual_updates() -> Result<()> {
+fn update_many_resolves_holes_pending_values_and_duplicate_indexes() -> Result<()> {
     let directory = tempdir()?;
     let database = Database::open(directory.path())?;
     let mut vec =
@@ -23,55 +23,10 @@ fn update_many_matches_individual_updates() -> Result<()> {
     vec.update_many([(2, 20), (1, 10), (4, 40), (10, 110), (11, 111), (1, 12)])?;
 
     assert!(vec.holes().is_empty());
-    assert_eq!(
-        vec.collect_holed(),
-        vec![
-            Some(0),
-            Some(12),
-            Some(20),
-            Some(0),
-            Some(40),
-            Some(0),
-            Some(0),
-            Some(0),
-            Some(0),
-            Some(0),
-            Some(110),
-            Some(111),
-        ]
-    );
-
+    let expected = [0, 12, 20, 0, 40, 0, 0, 0, 0, 0, 110, 111].map(Some);
+    assert_eq!(vec.collect_holed(), expected);
     vec.write()?;
-    assert_eq!(
-        vec.collect_holed(),
-        vec![
-            Some(0),
-            Some(12),
-            Some(20),
-            Some(0),
-            Some(40),
-            Some(0),
-            Some(0),
-            Some(0),
-            Some(0),
-            Some(0),
-            Some(110),
-            Some(111),
-        ]
-    );
-    Ok(())
-}
-
-#[test]
-fn update_many_rejects_the_whole_out_of_range_batch() -> Result<()> {
-    let directory = tempdir()?;
-    let database = Database::open(directory.path())?;
-    let mut vec =
-        MutableVec::<BytesVec<usize, u32>>::forced_import(&database, "values", Version::ONE)?;
-    vec.push(1);
-
-    assert!(vec.update_many([(0, 2), (1, 3)]).is_err());
-    assert_eq!(vec.collect_holed(), vec![Some(1)]);
+    assert_eq!(vec.collect_holed(), expected);
     Ok(())
 }
 
@@ -95,6 +50,8 @@ fn update_many_preserves_stamped_rollback() -> Result<()> {
         for (index, value) in [(0, 100), (1, 102), (7, 103), (8, 104), (15, 105)] {
             expected[index] = Some(value);
         }
+        assert_eq!(vec.collect_holed(), expected);
+        assert!(vec.update_many([(0, 2), (16, 3)]).is_err());
         assert_eq!(vec.collect_holed(), expected);
         vec.stamped_write_with_changes(Stamp::new(2))?;
         assert_eq!(vec.collect_holed(), expected);

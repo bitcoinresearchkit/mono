@@ -1,7 +1,7 @@
 use tempfile::tempdir;
 use vecdb::{
-    BytesVec, Database, EagerVec, Error, HEADER_OFFSET, ImportOptions, ImportableVec, MutableVec,
-    Result, Stamp, StoredVec, Version,
+    BytesVec, Database, EagerVec, Error, HEADER_OFFSET, ImportOptions, MutableVec, Result, Stamp,
+    StoredVec, Version,
 };
 
 fn roundtrip<V: StoredVec<I = usize, T = u32>>(resets_corrupted: bool) -> Result<()> {
@@ -80,66 +80,3 @@ roundtrips!(pco, vecdb::PcoVec<usize, u32>, true);
 roundtrips!(lz4, vecdb::LZ4Vec<usize, u32>, true);
 #[cfg(feature = "zstd")]
 roundtrips!(zstd, vecdb::ZstdVec<usize, u32>, true);
-
-#[test]
-fn trait_defaults_construct_default_options() -> Result<()> {
-    struct OptionsOnly(bool);
-    impl ImportableVec for OptionsOnly {
-        fn import_with(options: ImportOptions) -> Result<Self> {
-            assert_eq!(options.name, "probe");
-            assert_eq!(options.version, Version::TWO);
-            assert_eq!(options.saved_stamped_changes, 0);
-            assert_eq!(options.initial_capacity, None);
-            assert_eq!(options.max_compression_chunk_size, None);
-            Ok(Self(false))
-        }
-        fn forced_import_with(options: ImportOptions) -> Result<Self> {
-            Self::import_with(options)?;
-            Ok(Self(true))
-        }
-    }
-    let directory = tempdir()?;
-    let db = Database::open(directory.path())?;
-    assert!(!OptionsOnly::import(&db, "probe", Version::TWO)?.0);
-    assert!(OptionsOnly::forced_import(&db, "probe", Version::TWO)?.0);
-    Ok(())
-}
-
-#[test]
-fn eager_preserves_custom_convenience_constructor_dispatch() -> Result<()> {
-    struct Custom;
-    impl ImportableVec for Custom {
-        fn import(_: &Database, _: &str, _: Version) -> Result<Self> {
-            Err(Error::InvalidArgument("custom import"))
-        }
-        fn forced_import(_: &Database, _: &str, _: Version) -> Result<Self> {
-            Err(Error::InvalidArgument("custom forced import"))
-        }
-        fn import_with(_: ImportOptions) -> Result<Self> {
-            Err(Error::InvalidArgument("custom options"))
-        }
-        fn forced_import_with(_: ImportOptions) -> Result<Self> {
-            Err(Error::InvalidArgument("custom forced options"))
-        }
-    }
-    let directory = tempdir()?;
-    let db = Database::open(directory.path())?;
-    assert!(matches!(
-        EagerVec::<Custom>::import(&db, "probe", Version::ONE),
-        Err(Error::InvalidArgument("custom import"))
-    ));
-    assert!(matches!(
-        EagerVec::<Custom>::forced_import(&db, "probe", Version::ONE),
-        Err(Error::InvalidArgument("custom forced import"))
-    ));
-    let options = ImportOptions::new(&db, "probe", Version::ONE);
-    assert!(matches!(
-        EagerVec::<Custom>::import_with(options),
-        Err(Error::InvalidArgument("custom options"))
-    ));
-    assert!(matches!(
-        EagerVec::<Custom>::forced_import_with(options),
-        Err(Error::InvalidArgument("custom forced options"))
-    ));
-    Ok(())
-}

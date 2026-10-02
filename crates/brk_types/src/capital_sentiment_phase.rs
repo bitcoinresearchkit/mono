@@ -143,11 +143,10 @@ unsafe impl Pco for CapitalSentimentPhase {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "storage"))]
 mod tests {
     use super::*;
 
-    #[cfg(feature = "storage")]
     #[test]
     fn codes_round_trip_and_zero_is_reserved() {
         assert_eq!(CapitalSentimentPhase::from_code(0), None);

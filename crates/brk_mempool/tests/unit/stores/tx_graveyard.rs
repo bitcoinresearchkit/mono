@@ -19,24 +19,6 @@ fn tomb_inputs(seed: u8) -> (Transaction, TxEntry, FeeRate) {
 }
 
 #[test]
-fn bury_then_exhume_roundtrips_the_tombstone() {
-    let mut g = TxGraveyard::default();
-    let (tx, entry, rate) = tomb_inputs(1);
-    let txid = entry.txid;
-    g.bury(tx, entry, rate, TxRemoval::Vanished);
-    assert_eq!(g.tombstones_len(), 1);
-    assert!(g.get(&txid).is_some());
-
-    let resurrected = g.exhume(&txid).expect("tombstone present");
-    assert_eq!(resurrected.entry.txid, txid);
-    assert!(g.get(&txid).is_none());
-    assert_eq!(g.tombstones_len(), 0);
-    // `order` still references the exhumed entry until evict_old
-    // runs. The timestamp-match check on evict skips stale rows.
-    assert_eq!(g.order_len(), 1);
-}
-
-#[test]
 fn get_vanished_filters_out_replaced_tombstones() {
     let mut g = TxGraveyard::default();
     let (tx_a, entry_a, rate) = tomb_inputs(2);
@@ -48,26 +30,6 @@ fn get_vanished_filters_out_replaced_tombstones() {
 
     assert!(g.get_vanished(&txid_a).is_none());
     assert!(g.get_vanished(&txid_b).is_some());
-}
-
-#[test]
-fn replacement_root_walks_replaced_chain() {
-    let mut g = TxGraveyard::default();
-    let (tx_a, entry_a, rate) = tomb_inputs(4);
-    let (tx_b, entry_b, _) = tomb_inputs(5);
-    let (tx_c, entry_c, _) = tomb_inputs(6);
-    let a = entry_a.txid;
-    let b = entry_b.txid;
-    let c = entry_c.txid;
-    g.bury(tx_a, entry_a, rate, TxRemoval::Replaced { by: b });
-    g.bury(tx_b, entry_b, rate, TxRemoval::Replaced { by: c });
-    g.bury(tx_c, entry_c, rate, TxRemoval::Vanished);
-
-    assert_eq!(g.replacement_root_of(a, &mut 10).unwrap(), c);
-    assert_eq!(g.replacement_root_of(c, &mut 10).unwrap(), c);
-
-    let unknown = fake_txid(99);
-    assert_eq!(g.replacement_root_of(unknown, &mut 10).unwrap(), unknown);
 }
 
 #[test]

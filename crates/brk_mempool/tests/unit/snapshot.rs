@@ -3,7 +3,7 @@ use brk_types::{Sats, VSize, Weight};
 use smallvec::SmallVec;
 
 use super::*;
-use crate::test_support::fake_tx;
+use crate::test_support::fake_txid;
 
 impl Snapshot {
     /// Test-only: stitch a snapshot from `(prefix, chunk_rate)` pairs
@@ -39,44 +39,9 @@ impl Snapshot {
     }
 }
 
-fn snap_tx(seed: u8) -> SnapTx {
-    let mut bytes = [0u8; 32];
-    bytes[0] = seed;
-    SnapTx {
-        txid: Txid::from(BitcoinTxid::from_byte_array(bytes)),
-        fee: Sats::from(1_234u64),
-        vsize: VSize::from(100u64),
-        weight: Weight::from(400u64),
-        size: 100,
-        chunk_rate: FeeRate::from((Sats::from(1_234u64), VSize::from(100u64))),
-        parents: SmallVec::new(),
-        children: SmallVec::new(),
-    }
-}
-
-fn template_hash(seeds: &[u8]) -> NextBlockHash {
-    let mut snapshot = Snapshot::default();
-    let bodies = seeds
-        .iter()
-        .map(|seed| Arc::new(fake_tx(*seed, &[], &[])))
-        .collect();
-    snapshot.set_template(bodies, 0, false);
-    snapshot.next_block_hash
-}
-
-#[test]
-fn next_block_hash_changes_with_block0_membership() {
-    assert_ne!(template_hash(&[1, 2]), template_hash(&[1, 2, 3]));
-}
-
-#[test]
-fn next_block_hash_changes_with_block0_order() {
-    assert_ne!(template_hash(&[1, 2, 3]), template_hash(&[3, 2, 1]));
-}
-
 #[test]
 fn full_txid_lookup_rejects_prefix_collision() {
-    let indexed = snap_tx(1).txid;
+    let indexed = fake_txid(1);
     let mut bytes = [0u8; 32];
     bytes[0] = 1;
     bytes[8] = 1;

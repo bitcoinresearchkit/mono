@@ -86,7 +86,7 @@ impl Region {
         let Some(end) = offset.checked_add(len) else {
             return false;
         };
-        if end > meta.len() {
+        if end > meta.byte_len() {
             return false;
         }
         let Some(absolute_start) = meta.start().checked_add(offset) else {
@@ -121,7 +121,7 @@ impl Region {
         if capacity <= meta.reserved() {
             return Ok(());
         }
-        let len = meta.len();
+        let len = meta.byte_len();
         drop(meta);
         let _writes = self.reserve_inner(&db, capacity, len)?;
         db.regions().update_bounds(self.index(), &self.meta());
@@ -332,7 +332,7 @@ impl Region {
     /// Keeps the first `from` bytes without changing reserved capacity.
     /// Returns an error if `from` exceeds the current length.
     pub fn truncate(&self, from: usize) -> Result<()> {
-        if from == self.meta().len() {
+        if from == self.meta().byte_len() {
             return Ok(());
         }
         let db = self.db();
@@ -340,13 +340,13 @@ impl Region {
         let _writes = db.inner.writes.read();
         let regions = db.regions();
         let mut meta = self.0.meta.write();
-        if from > meta.len() {
+        if from > meta.byte_len() {
             return Err(Error::TruncateInvalid {
                 from,
-                current_len: meta.len(),
+                current_len: meta.byte_len(),
             });
         }
-        if from != meta.len() {
+        if from != meta.byte_len() {
             meta.set_len(from);
             self.0.tail_needs_punch.store(true, Ordering::Relaxed);
             regions.update_bounds(self.index(), &meta);
@@ -366,7 +366,7 @@ impl Region {
             let Some(offset) = at else {
                 return Ok(());
             };
-            let len = self.meta().len();
+            let len = self.meta().byte_len();
             if offset > len {
                 return Err(Error::WriteOutOfBounds {
                     position: offset,

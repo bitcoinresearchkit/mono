@@ -138,7 +138,7 @@ fn check_cache_eviction() -> bool {
 // --- Vec size ---
 
 fn print_vec_size(vec: &impl AnyStoredVec, label: &str) {
-    let region_bytes = vec.region().meta().len();
+    let region_bytes = vec.region().meta().byte_len();
     let logical_bytes = vec.len() * vec.value_type_to_size_of();
     let ratio = if logical_bytes > 0 {
         region_bytes as f64 / logical_bytes as f64
@@ -294,7 +294,7 @@ fn bench_vec<
     can_purge: bool,
 ) {
     let total_bytes = count * 8;
-    let disk_bytes = vec.region().meta().len();
+    let disk_bytes = vec.region().meta().byte_len();
     let ratio = if total_bytes > 0 {
         disk_bytes as f64 / total_bytes as f64
     } else {

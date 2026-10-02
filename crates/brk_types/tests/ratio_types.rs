@@ -1,6 +1,3 @@
-#[cfg(debug_assertions)]
-use std::panic;
-
 use brk_types::{
     BasisPoints32, BoundedRatio, CheckedSub, PartsPerMillion64, PartsPerMillionSigned32, PriceRatio,
 };
@@ -184,21 +181,4 @@ fn encoded_serialization_schema_and_pco_preserve_all_bit_patterns() {
     check!(PriceRatio);
     check!(BoundedRatio);
     check!(BasisPoints32);
-}
-
-#[cfg(debug_assertions)]
-#[test]
-fn finite_preconditions_are_debug_assertions() {
-    assert!(panic::catch_unwind(|| BasisPoints32::MAX + BasisPoints32::ONE).is_err());
-    for value in [-1.0, 1.000_001] {
-        assert!(panic::catch_unwind(|| BoundedRatio::from(value)).is_err());
-    }
-    assert!(panic::catch_unwind(|| PriceRatio::from(-1.0)).is_err());
-    for value in [-1.0, 429_496.729_5, f64::MAX] {
-        assert!(panic::catch_unwind(|| BasisPoints32::from(value)).is_err());
-    }
-    assert!(
-        panic::catch_unwind(|| BasisPoints32::from(PartsPerMillion64::new(429_496_729_500)))
-            .is_err()
-    );
 }

@@ -13,7 +13,7 @@ pub(crate) fn unwrap_allof(schema: &Value) -> &Value {
 
 /// Extract inner type from a wrapper generic like `Close<Dollars>` -> `Dollars`.
 /// Also handles malformed types like `Dollars>` (from vecdb's short_type_name).
-pub fn extract_inner_type(type_str: &str) -> String {
+pub(crate) fn extract_inner_type(type_str: &str) -> String {
     inner_type(type_str).to_owned()
 }
 

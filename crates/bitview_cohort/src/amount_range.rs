@@ -181,7 +181,7 @@ impl AmountRangeId {
         CohortId::Amount(self)
     }
 
-    pub fn name(self) -> &'static CohortName {
+    pub(crate) fn name(self) -> &'static CohortName {
         self.select(&AMOUNT_RANGE_NAMES)
     }
 }

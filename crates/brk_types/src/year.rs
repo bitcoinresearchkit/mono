@@ -105,21 +105,13 @@ impl Div<usize> for Year {
     }
 }
 
-impl Year {
-    fn index_name() -> &'static str {
-        "year"
-    }
-    fn index_aliases() -> &'static [&'static str] {
-        &["year"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for Year {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "year"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["year"]
     }
 }
 

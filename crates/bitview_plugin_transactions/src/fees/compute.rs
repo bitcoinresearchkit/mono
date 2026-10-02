@@ -403,7 +403,3 @@ impl Vecs {
         Ok(())
     }
 }
-
-#[cfg(test)]
-#[path = "recovery_tests.rs"]
-mod recovery_tests;

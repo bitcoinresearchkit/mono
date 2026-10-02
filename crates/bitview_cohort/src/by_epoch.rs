@@ -68,7 +68,7 @@ impl<T> ByEpoch<T> {
 }
 
 impl EpochId {
-    pub const fn cohort(self) -> CohortId {
+    pub(crate) const fn cohort(self) -> CohortId {
         CohortId::Epoch(self)
     }
 }

@@ -2,7 +2,6 @@ use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Height;
 use rayon::join;
 use vecdb::AnyVec;
 
@@ -74,11 +73,9 @@ impl Vecs {
         value::compute_sats(
             &mut self.value.op_return.cumulative.sats.height,
             &mut self.creations,
-            Height::from(start),
-            end,
+            start..end,
             &outputs.first_txout_index,
-            &outputs.output_type,
-            &outputs.value,
+            (&outputs.output_type, &outputs.value),
             &indexer.vecs().blocks.blockhash,
             exit,
         )?;

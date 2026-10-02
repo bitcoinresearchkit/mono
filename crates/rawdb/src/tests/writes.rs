@@ -89,7 +89,7 @@ fn test_reserve_region_capacity_preserves_data() -> Result<()> {
 
     let meta = region.meta();
     assert_ne!(meta.start(), initial_start);
-    assert_eq!(meta.len(), b"preserved".len());
+    assert_eq!(meta.byte_len(), b"preserved".len());
     assert_eq!(meta.reserved(), PAGE_SIZE * 4);
     drop(meta);
     assert_eq!(region.create_reader().read_all(), b"preserved");
@@ -290,14 +290,14 @@ fn test_truncate_write() -> Result<()> {
     region.write(b"Hello, World!")?;
 
     let meta_before = region.meta();
-    assert_eq!(meta_before.len(), 13);
+    assert_eq!(meta_before.byte_len(), 13);
     drop(meta_before);
 
     // Truncate write - should set length to exactly the written data
     region.truncate_write(7, b"Rust")?;
 
     let meta_after = region.meta();
-    assert_eq!(meta_after.len(), 11); // 7 + 4
+    assert_eq!(meta_after.byte_len(), 11); // 7 + 4
     let start = meta_after.start();
     drop(meta_after);
 

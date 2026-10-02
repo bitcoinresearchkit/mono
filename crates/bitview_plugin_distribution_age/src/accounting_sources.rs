@@ -47,7 +47,7 @@ impl AccountingSources<'_> {
         )
     }
 
-    pub fn len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.supplies
             .iter()
             .map(|v| v.len())

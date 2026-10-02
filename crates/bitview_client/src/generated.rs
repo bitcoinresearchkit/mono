@@ -72733,21 +72733,6 @@ impl BitviewClient {
         ))
     }
 
-    /// Decode a mainnet Bitcoin address into the BRK address type and raw payload bytes.
-    pub fn decode_address_payload(address: &str) -> Result<AddressPayload> {
-        decode_address_payload(address)
-    }
-
-    /// Compute the RapidHash v3 hash-prefix for raw address payload bytes.
-    pub fn address_payload_hash_prefix(payload: &[u8], nibbles: usize) -> Result<String> {
-        address_payload_hash_prefix(payload, nibbles)
-    }
-
-    /// Decode a mainnet Bitcoin address and compute its hash prefix.
-    pub fn address_hash_prefix(address: &str, nibbles: usize) -> Result<AddressHashPrefix> {
-        address_hash_prefix(address, nibbles)
-    }
-
     /// Fetch address hash-prefix matches from raw payload bytes matching `addr_type` length.
     pub fn get_address_payload_hash_prefix_matches(
         &self,

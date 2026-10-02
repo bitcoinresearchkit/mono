@@ -1,7 +1,7 @@
 use brk_types::Index;
 
 /// Convert a string to PascalCase (e.g., "fee_rate" -> "FeeRate").
-pub fn to_pascal_case(s: &str) -> String {
+pub(crate) fn to_pascal_case(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     for word in s.split(['-', '_']) {
         let mut chars = word.chars();
@@ -14,7 +14,7 @@ pub fn to_pascal_case(s: &str) -> String {
 }
 
 /// Convert a string to snake_case (no keyword escaping — backends handle that).
-pub fn to_snake_case(s: &str) -> String {
+pub(crate) fn to_snake_case(s: &str) -> String {
     let mut sanitized = s.to_lowercase();
     if sanitized.contains('-') {
         sanitized = sanitized.replace('-', "_");
@@ -38,7 +38,7 @@ pub(crate) fn escape_rust_keyword(name: &str) -> String {
 }
 
 /// Convert a string to camelCase (e.g., "fee_rate" -> "feeRate").
-pub fn to_camel_case(s: &str) -> String {
+pub(crate) fn to_camel_case(s: &str) -> String {
     let mut result = to_pascal_case(s);
     if let Some(first) = result.chars().next() {
         if first.is_ascii() {
@@ -70,7 +70,7 @@ pub(crate) fn child_type_name(parent: &str, child: &str) -> String {
 
 /// Escape Python reserved keywords by appending an underscore.
 /// Also prefixes names starting with digits with an underscore.
-pub fn escape_python_keyword(name: &str) -> String {
+pub(crate) fn escape_python_keyword(name: &str) -> String {
     const PYTHON_KEYWORDS: &[&str] = &[
         "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class",
         "continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global",

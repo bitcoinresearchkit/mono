@@ -2,25 +2,24 @@ import { bitview } from "../../utils/client.js";
 
 /** Build each meter's source list to match the Rarity Meter plugin. */
 export function createRarityMeterVariants() {
-  const { rarityMeter, cohorts, cointime, coinflow, bedrock } = bitview.series;
-  const references = rarityMeter.referencePrices;
+  const { rarityMeter, distributionAggregated, cointime, coinflow, bedrock } = bitview.series;
+  const cohorts = distributionAggregated.cohorts;
   const components = rarityMeter.components;
-  const realized = cohorts.realized;
   const sources = {
-    under4mRealizedPrice: { name: "<4M Realized Price", series: references.under4m },
-    under6mRealizedPrice: { name: "<6M Realized Price", series: references.under6m },
-    under4mCapitalizedPrice: { name: "<4M Capitalized Price", series: references.under4mCapitalizedPrice },
-    under6mCapitalizedPrice: { name: "<6M Capitalized Price", series: references.under6mCapitalizedPrice },
-    sthRealizedPrice: { name: "STH Realized Price", series: realized.price.term.short },
-    sthCapitalizedPrice: { name: "STH Capitalized Price", series: realized.capitalizedPrice.sth },
+    under4mRealizedPrice: { name: "<4M Realized Price", series: cohorts.under4m.realized.price },
+    under6mRealizedPrice: { name: "<6M Realized Price", series: cohorts.under6m.realized.price },
+    under4mCapitalizedPrice: { name: "<4M Capitalized Price", series: cohorts.under4m.realized.capitalizedPrice },
+    under6mCapitalizedPrice: { name: "<6M Capitalized Price", series: cohorts.under6m.realized.capitalizedPrice },
+    sthRealizedPrice: { name: "STH Realized Price", series: cohorts.sth.realized.price },
+    sthCapitalizedPrice: { name: "STH Capitalized Price", series: cohorts.sth.realized.capitalizedPrice },
     sthMedianPriceBtcWeighted: { name: "STH Median (BTC Weighted)", series: components.sthMedianPriceBtcWeighted },
     sthMedianPriceUsdWeighted: { name: "STH Median (USD Weighted)", series: components.sthMedianPriceUsdWeighted },
-    over4mRealizedPrice: { name: ">4M Realized Price", series: references.over4m },
-    over6mRealizedPrice: { name: ">6M Realized Price", series: references.over6m },
-    realizedPrice: { name: "Realized Price", series: realized.price.all },
-    capitalizedPrice: { name: "Capitalized Price", series: realized.capitalizedPrice.all },
-    lthRealizedPrice: { name: "LTH Realized Price", series: realized.price.term.long },
-    lthCapitalizedPrice: { name: "LTH Capitalized Price", series: realized.capitalizedPrice.lth },
+    over4mRealizedPrice: { name: ">4M Realized Price", series: cohorts.over4m.realized.price },
+    over6mRealizedPrice: { name: ">6M Realized Price", series: cohorts.over6m.realized.price },
+    realizedPrice: { name: "Realized Price", series: cohorts.all.realized.price },
+    capitalizedPrice: { name: "Capitalized Price", series: cohorts.all.realized.capitalizedPrice },
+    lthRealizedPrice: { name: "LTH Realized Price", series: cohorts.lth.realized.price },
+    lthCapitalizedPrice: { name: "LTH Capitalized Price", series: cohorts.lth.realized.capitalizedPrice },
     medianPriceBtcWeighted: { name: "Median (BTC Weighted)", series: components.medianPriceBtcWeighted },
     medianPriceUsdWeighted: { name: "Median (USD Weighted)", series: components.medianPriceUsdWeighted },
     cointimeMedianPriceBtcWeighted: { name: "Cointime Median (BTC Weighted)", series: components.cointimeMedianPriceBtcWeighted },

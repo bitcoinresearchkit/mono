@@ -9,8 +9,11 @@ use vecdb::ReadableBoxedVec;
 
 #[derive(Clone, Traversable)]
 pub struct Supply {
+    /// Total unspent supply.
     pub total: LazySpotValuePerBlock,
+    /// Supply in profit: acquisition price is at or below the current spot price.
     pub in_profit: LazySpotValuePerBlock,
+    /// Supply in loss: acquisition price is above the current spot price.
     pub in_loss: LazySpotValuePerBlock,
     pub delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
 }

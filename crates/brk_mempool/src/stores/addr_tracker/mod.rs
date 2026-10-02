@@ -130,28 +130,6 @@ mod tests {
     }
 
     #[test]
-    fn add_tx_records_enter_for_new_addr() {
-        let mut tracker = AddrTracker::default();
-        let mut transitions = AddrTransitions::default();
-        let out_script = p2wpkh_script(1);
-        let tx = fake_tx(1, &[], &[(out_script.clone(), 5_000)]);
-        let bytes = addr_of(&out_script);
-
-        tracker.add_tx(&mut transitions, &tx);
-
-        assert_eq!(tracker.len(), 1);
-        let entry = tracker.get(&bytes).expect("addr indexed");
-        assert_eq!(entry.stats.funded_txo_count, 1);
-        assert_eq!(entry.stats.funded_txo_sum, Sats::from(5_000u64));
-        assert_eq!(entry.stats.balance_delta, SatsSigned::from(5_000i64));
-        assert_eq!(entry.stats.tx_count, 1);
-
-        let (enters, leaves) = transitions.into_vecs();
-        assert_eq!(enters, vec![bytes]);
-        assert!(leaves.is_empty());
-    }
-
-    #[test]
     fn add_then_remove_tx_returns_to_zero_addrs() {
         let mut tracker = AddrTracker::default();
         let mut transitions = AddrTransitions::default();
@@ -207,14 +185,18 @@ mod tests {
         tracker.add_tx(&mut transitions, &tx_a);
         tracker.add_tx(&mut transitions, &tx_b);
 
-        let entry = tracker.get(&addr_of(&shared)).expect("addr indexed");
+        assert_eq!(tracker.len(), 1);
+        let address = addr_of(&shared);
+        let entry = tracker.get(&address).expect("addr indexed");
         assert_eq!(entry.stats.funded_txo_count, 2);
         assert_eq!(entry.stats.funded_txo_sum, Sats::from(10_000u64));
+        assert_eq!(entry.stats.balance_delta, SatsSigned::from(10_000i64));
         assert_eq!(entry.stats.tx_count, 2);
 
         // Only one enter, even though two txs landed on the addr.
-        let (enters, _) = transitions.into_vecs();
-        assert_eq!(enters.len(), 1);
+        let (enters, leaves) = transitions.into_vecs();
+        assert_eq!(enters, vec![address]);
+        assert!(leaves.is_empty());
     }
     #[test]
     fn a_frozen_tracker_keeps_its_stats_and_transaction_membership() {

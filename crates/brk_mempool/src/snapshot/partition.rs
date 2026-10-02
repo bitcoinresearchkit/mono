@@ -74,59 +74,24 @@ mod tests {
     }
 
     #[test]
-    fn higher_chunk_rate_packs_first() {
-        let txs = vec![snap_tx(1, 100, 100), snap_tx(2, 1_000, 100)];
-        let blocks = partition(&txs, &[0, 0], 3);
-        assert_eq!(blocks[0][0], TxIndex::from(1usize));
-        assert_eq!(blocks[0][1], TxIndex::from(0usize));
-    }
-
-    #[test]
-    fn excluded_txs_are_skipped() {
-        let txs = vec![snap_tx(1, 100, 100), snap_tx(2, 1_000, 100)];
-        let excluded = [0, 1];
-        let blocks = partition(&txs, &excluded, 3);
-        let flat: Vec<TxIndex> = blocks.into_iter().flatten().collect();
-        assert_eq!(flat, vec![TxIndex::from(0usize)]);
-    }
-
-    #[test]
-    fn vsize_cap_respected_except_for_last_block() {
+    fn packing_preserves_rate_ties_exclusions_and_last_block_overflow() {
         let big = u64::from(VSize::MAX_BLOCK) - 100;
-        // Three "fills the rest of a block" sized txs, one block window.
-        // Final block has no cap, so all three end up in it when the
-        // request is one block deep.
-        let txs = vec![
-            snap_tx(1, 1_000, big),
-            snap_tx(2, 900, big),
-            snap_tx(3, 800, big),
+        let txs = [
+            snap_tx(0x20, big * 3, big),
+            snap_tx(0x00, big * 100, big),
+            snap_tx(0x10, big * 3, big),
+            snap_tx(0x30, big * 2, big),
         ];
-        let included = [0, 0, 0];
-        let one_block = partition(&txs, &included, 1);
-        assert_eq!(one_block.len(), 1);
-        assert_eq!(one_block[0].len(), 3, "final block ignores vsize cap");
-
-        // With three slots, the first two get one tx each, last block
-        // soaks up the rest.
-        let three_blocks = partition(&txs, &included, 3);
-        assert_eq!(three_blocks[0].len(), 1);
-        assert_eq!(three_blocks[1].len(), 1);
-        assert_eq!(three_blocks[2].len(), 1);
-    }
-
-    #[test]
-    fn txid_breaks_ties_within_same_rate() {
-        // Identical rate, distinct txids: order must follow ascending txid.
-        let txs = vec![
-            snap_tx(0x20, 100, 100),
-            snap_tx(0x10, 100, 100),
-            snap_tx(0x30, 100, 100),
-        ];
-        let blocks = partition(&txs, &[0, 0, 0], 1);
-        let txids: Vec<u8> = blocks[0]
-            .iter()
-            .map(|i| txs[i.as_usize()].txid[0])
-            .collect();
-        assert_eq!(txids, vec![0x10, 0x20, 0x30]);
+        for (slots, expected) in [
+            (1, vec![vec![2, 0, 3]]),
+            (2, vec![vec![2], vec![0, 3]]),
+            (3, vec![vec![2], vec![0], vec![3]]),
+        ] {
+            let actual: Vec<Vec<_>> = partition(&txs, &[0, 1, 0, 0], slots)
+                .into_iter()
+                .map(|block| block.into_iter().map(|index| index.as_usize()).collect())
+                .collect();
+            assert_eq!(actual, expected);
+        }
     }
 }

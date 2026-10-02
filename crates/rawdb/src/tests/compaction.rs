@@ -46,7 +46,7 @@ fn test_punch_holes() -> Result<()> {
     let allocated_after = allocated_bytes(&db)?;
 
     let meta = region.meta();
-    assert_eq!(meta.len(), 100);
+    assert_eq!(meta.byte_len(), 100);
     assert!(allocated_after < allocated_before);
 
     Ok(())

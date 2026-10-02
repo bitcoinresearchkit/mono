@@ -5,6 +5,10 @@ use vecdb::{
 };
 
 fn check(source: &impl ReadableVec<usize, u64>, expected: &[Option<u64>]) {
+    assert_eq!(
+        source.collect(),
+        expected.iter().copied().flatten().collect::<Vec<_>>()
+    );
     for indices in [
         vec![],
         vec![0],
@@ -37,7 +41,7 @@ macro_rules! mutation_roundtrip {
         }
         source.write().unwrap();
         let reader = source.read_only_clone();
-        for i in (0..expected.len()).step_by(17) {
+        for i in (0..expected.len()).step_by(17).chain([5, 6, 7]) {
             source.delete_at(i);
             expected[i] = None;
         }

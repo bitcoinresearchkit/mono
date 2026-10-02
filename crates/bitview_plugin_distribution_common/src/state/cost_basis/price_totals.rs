@@ -4,7 +4,7 @@ use bitview_compute::FenwickNode;
 #[derive(Clone, Copy, Debug)]
 pub struct PriceTotals<const N: usize> {
     pub sats: [i64; N],
-    pub cap: [i128; N],
+    pub(crate) cap: [i128; N],
 }
 
 impl<const N: usize> Default for PriceTotals<N> {

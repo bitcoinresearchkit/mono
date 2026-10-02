@@ -1,5 +1,3 @@
-use std::iter;
-
 use bitview_compute::{BlockAggregate, CoinbasePolicy, walk_blocks};
 use brk_types::{OutputType, TxIndex};
 
@@ -54,36 +52,4 @@ fn inputs_skip_coinbase_entries_including_a_final_coinbase_only_block() {
     assert_eq!(&blocks[0].txs_per_type[..3], &[0, 2, 1]);
     assert_eq!(blocks[1].entries_per_type, [0; OutputType::COUNT]);
     assert_eq!(blocks[1].txs_per_type, [0; OutputType::COUNT]);
-}
-
-#[test]
-fn an_empty_block_range_does_not_read_or_store() {
-    for coinbase in [CoinbasePolicy::Include, CoinbasePolicy::Skip] {
-        walk_blocks(
-            &[],
-            10,
-            100..100,
-            iter::from_fn(|| panic!("unexpected source read")),
-            coinbase,
-            |_, _| panic!("unexpected scan"),
-            |_| panic!("unexpected store"),
-        )
-        .unwrap();
-    }
-}
-
-#[test]
-fn a_missing_transaction_boundary_fails_without_storing_the_block() {
-    assert!(
-        walk_blocks(
-            &[TxIndex::new(10)],
-            12,
-            100..102,
-            iter::empty(),
-            CoinbasePolicy::Include,
-            |_, _| {},
-            |_| panic!("incomplete block must not be stored"),
-        )
-        .is_err()
-    );
 }

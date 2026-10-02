@@ -39,7 +39,7 @@ fn checkpoint(vecs: &mut Vecs) {
 
 #[test]
 fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
-    let cache = crate::test_common::init_cache();
+    let cache = crate::test_cache::init_cache();
     let directory = tempdir().unwrap();
     let client = Client::new("http://127.0.0.1:1", Auth::None).unwrap();
     let reader = Reader::new_without_rlimit(directory.path().join("blocks"), &client);

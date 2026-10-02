@@ -48,30 +48,30 @@ impl Vecs {
         let version = STORAGE.schema_version();
 
         let phase_code =
-            PerBlock::forced_import(&db, "capital_sentiment_phase_code", version, &mappings)?;
+            PerBlock::forced_import(&db, "capital_sentiment_phase_code", version, mappings)?;
         let is_long = PerBlock::<StoredBool>::forced_import(
             &db,
             "capital_sentiment_is_long",
             version,
-            &mappings,
+            mappings,
         )?;
         let is_short = LazyPerBlock::from_height_source::<IsLongToIsShort>(
             "capital_sentiment_is_short",
             version,
             &is_long.height,
-            &mappings,
+            mappings,
         );
         let phase = LazyPerBlock::from_height_source::<CodeToPhase>(
             "capital_sentiment_phase",
             version,
             &phase_code.height,
-            &mappings,
+            mappings,
         );
         let score = LazyPerBlock::from_height_source::<PhaseToScore>(
             "capital_sentiment_score",
             version,
             &phase.height,
-            &mappings,
+            mappings,
         );
 
         let this = Self {

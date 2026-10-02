@@ -10,10 +10,6 @@ pub struct Port(u16);
 
 impl Port {
     pub const DEFAULT: Self = Self(3110);
-
-    pub const fn new(port: u16) -> Self {
-        Self(port)
-    }
 }
 
 impl Default for Port {

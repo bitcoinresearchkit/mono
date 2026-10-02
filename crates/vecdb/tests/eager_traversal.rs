@@ -104,7 +104,12 @@ fn lifecycle<T: VecValue, O: BytesVecValue + PartialEq>(
     let exit = Exit::new();
     let mut source = CountingSource::new(values);
     let mut output = EagerVec::import(&db, "output", Version::ONE)?;
-    for from in [0, 3, expected.len(), expected.len() + 4, 1] {
+    let split = expected.len().min(3);
+    let tail = source.values.split_off(split);
+    compute(&mut output, 0, &source, &exit)?;
+    assert_eq!(output.collect(), expected[..split]);
+    source.values.extend(tail);
+    for from in [split, expected.len(), expected.len() + 4, 1] {
         source.reads.store(0, Ordering::Relaxed);
         compute(&mut output, from, &source, &exit)?;
         assert_eq!(output.collect(), expected);
@@ -139,6 +144,32 @@ fn integer_compute_paths_preserve_resume_and_version_reset() -> VecdbResult<()> 
             out.compute_cumulative_transformed_binary(from, source, source, |a, b| a + b, exit)
         },
     )?;
+    let highs: Vec<_> = (1..=values.len())
+        .map(|end| *values[..end].iter().max().unwrap())
+        .collect();
+    lifecycle(values.clone(), &highs, |out, from, source, exit| {
+        out.compute_all_time_high(from, source, exit)
+    })?;
+    for exclude_default in [false, true] {
+        let values = if exclude_default {
+            vec![0_u64, 10, 5, 0, 12, 3, 0, 2]
+        } else {
+            values.clone()
+        };
+        let lows: Vec<_> = (1..=values.len())
+            .map(|end| {
+                values[..end]
+                    .iter()
+                    .copied()
+                    .filter(|&value| !exclude_default || value != 0)
+                    .min()
+                    .unwrap_or_default()
+            })
+            .collect();
+        lifecycle(values, &lows, |out, from, source, exit| {
+            out.compute_all_time_low(from, source, exit, exclude_default)
+        })?;
+    }
     for sources in 1..=4 {
         let expected: Vec<_> = values.iter().map(|value| value * sources as u64).collect();
         lifecycle(
@@ -180,18 +211,15 @@ fn integer_compute_paths_preserve_resume_and_version_reset() -> VecdbResult<()> 
 
 #[test]
 fn sma_preserves_resume_and_version_reset() -> VecdbResult<()> {
-    let values = vec![2_f32, 8., 1., 9., 4., 3., 7., 6.];
-    let mut sma = Vec::new();
-    let mut previous = 0.0;
-    for (i, &value) in values.iter().enumerate() {
-        previous = if i >= 3 {
-            previous + (value - values[i - 3]) / 3.0
-        } else {
-            (previous * i as f32 + value) / (i + 1) as f32
-        };
-        sma.push(previous);
-    }
-    lifecycle(values.clone(), &sma, |out, from, source, exit| {
+    // Integer means let the reference sum windows without repeating the recurrence.
+    let values = vec![3_f32, 9., 0., 12., 6., 3., 9., 6.];
+    let sma: Vec<_> = (0..values.len())
+        .map(|i| {
+            let window = &values[i.saturating_sub(2)..=i];
+            window.iter().sum::<f32>() / window.len() as f32
+        })
+        .collect();
+    lifecycle(values, &sma, |out, from, source, exit| {
         out.compute_sma(from, source, 3, exit, None)
     })?;
     Ok(())

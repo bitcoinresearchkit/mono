@@ -45,40 +45,26 @@ mod tests {
     }
 
     #[test]
-    fn enter_leave_enter_collapses_to_single_enter() {
-        let mut t = AddrTransitions::default();
-        let a = addr(3);
-        t.record_enter(a.clone());
-        t.record_leave(a.clone());
-        t.record_enter(a.clone());
-        let (enters, leaves) = t.into_vecs();
-        assert_eq!(enters, vec![a]);
-        assert!(leaves.is_empty());
-    }
-
-    #[test]
-    fn leave_enter_leave_collapses_to_single_leave() {
-        let mut t = AddrTransitions::default();
-        let a = addr(4);
-        t.record_leave(a.clone());
-        t.record_enter(a.clone());
-        t.record_leave(a.clone());
-        let (enters, leaves) = t.into_vecs();
-        assert!(enters.is_empty());
-        assert_eq!(leaves, vec![a]);
-    }
-
-    #[test]
-    fn distinct_addrs_dont_interfere() {
-        let mut t = AddrTransitions::default();
-        let a = addr(5);
-        let b = addr(6);
-        t.record_enter(a.clone());
-        t.record_leave(b.clone());
-        let (mut enters, mut leaves) = t.into_vecs();
+    fn same_cycle_cancellation_keeps_distinct_addresses_independent() {
+        let mut transitions = AddrTransitions::default();
+        for (seed, changes) in [
+            (3, &[true, false, true][..]),
+            (4, &[false, true, false][..]),
+            (5, &[true][..]),
+            (6, &[false][..]),
+        ] {
+            for &enters in changes {
+                if enters {
+                    transitions.record_enter(addr(seed));
+                } else {
+                    transitions.record_leave(addr(seed));
+                }
+            }
+        }
+        let (mut enters, mut leaves) = transitions.into_vecs();
         enters.sort_by_key(|x| x.as_slice()[0]);
         leaves.sort_by_key(|x| x.as_slice()[0]);
-        assert_eq!(enters, vec![a]);
-        assert_eq!(leaves, vec![b]);
+        assert_eq!(enters, [addr(3), addr(5)]);
+        assert_eq!(leaves, [addr(4), addr(6)]);
     }
 }

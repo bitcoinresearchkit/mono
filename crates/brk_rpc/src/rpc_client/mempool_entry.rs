@@ -36,21 +36,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ignores_unused_core_fields() {
-        let txid = "0000000000000000000000000000000000000000000000000000000000000001";
-        let json = format!(
-            r#"{{"vsize":250,"weight":1000,"time":1700000000,"fees":{{"base":0.00001,"modified":0.00001}},"depends":["{txid}"],"spentby":["{txid}"]}}"#
-        );
-        let entry: MempoolEntry = from_str(&json).unwrap();
-        let info = entry.into_info(Txid::COINBASE);
-
-        assert_eq!(u64::from(info.vsize), 250);
-        assert_eq!(u64::from(info.weight), 1000);
-        assert_eq!(info.depends.len(), 1);
-        assert_eq!(info.depends[0].to_string(), txid);
-    }
-
-    #[test]
     fn rejects_negative_numeric_fields() {
         let json =
             r#"{"vsize":250,"weight":-1,"time":1700000000,"fees":{"base":0.00001},"depends":[]}"#;

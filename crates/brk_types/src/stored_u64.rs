@@ -283,21 +283,13 @@ impl From<EmptyOutputIndex> for StoredU64 {
     }
 }
 
-impl StoredU64 {
-    fn index_name() -> &'static str {
-        "u64"
-    }
-    fn index_aliases() -> &'static [&'static str] {
-        &["u64"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for StoredU64 {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "u64"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["u64"]
     }
 }
 

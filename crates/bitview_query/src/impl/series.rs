@@ -47,7 +47,7 @@ impl Query {
         end: usize,
         buf: &mut Vec<u8>,
     ) -> Result<()> {
-        let end = end.min(vec.len());
+        let end = end.min(vec.visible_len());
         let start = start.min(end);
         let mut integer = Buffer::new();
 
@@ -170,7 +170,7 @@ impl Query {
         let entry = self.get_entry(series, index)?;
         let read = SeriesRead::new(self, vec![entry])?;
         let vec = read.columns().next().unwrap();
-        let len = vec.len();
+        let len = vec.visible_len();
         if len == 0 {
             return Err(Error::NoData);
         }
@@ -183,7 +183,7 @@ impl Query {
     pub fn len(&self, series: &SeriesName, index: Index) -> Result<usize> {
         let entry = self.get_entry(series, index)?;
         let read = SeriesRead::new(self, vec![entry])?;
-        Ok(read.columns().next().unwrap().len())
+        Ok(read.columns().next().unwrap().visible_len())
     }
 
     /// Metadata lookup without missing-name suggestions. Unsupported indexes
@@ -225,7 +225,11 @@ impl Query {
         let safe = read.safe_lengths();
         let index = params.index;
 
-        let total = read.columns().map(|vec| vec.len()).min().unwrap_or(0);
+        let total = read
+            .columns()
+            .map(|vec| vec.visible_len())
+            .min()
+            .unwrap_or(0);
         let version: Version = read.columns().map(|v| v.version()).sum();
 
         let resolve_bound = |ri: RangeIndex| -> Result<usize> {
@@ -482,7 +486,7 @@ impl Query {
     fn height_for_timestamp(&self, ts: Timestamp, read: &SeriesRead) -> Result<usize> {
         let current_height: usize = read.safe_lengths().last_height().unwrap_or_default().into();
         let timestamps = &self.plugins().mappings.timestamp.monotonic;
-        let len = read.bind(timestamps)?.len();
+        let len = read.bind(timestamps)?.visible_len();
         let mut position = 0;
         let mut end = len;
         while position < end {
@@ -565,7 +569,3 @@ impl ResolvedQuery {
         filename
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/impl/series.rs"]
-mod tests;

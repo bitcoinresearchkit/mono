@@ -102,7 +102,7 @@ where
             &Self::pages_region_name_with(name),
             initial_capacity.div_ceil(Self::PER_PAGE),
         )?;
-        let region_len = base.region().meta().len();
+        let region_len = base.region().meta().byte_len();
         if pages.next_start() != u64::try_from(region_len).map_err(|_| Error::Overflow)? {
             return Err(Error::CorruptedRegion {
                 name: name.to_string(),
@@ -128,7 +128,7 @@ where
         }) {
             return Err(Error::CorruptedRegion {
                 name: name.to_string(),
-                region_len: this.base.region().meta().len(),
+                region_len: this.base.region().meta().byte_len(),
             });
         }
         let len = this.real_stored_len();

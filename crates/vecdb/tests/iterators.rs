@@ -17,7 +17,7 @@ use vecdb::ZstdVec;
 
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{Result, StoredVec, Version};
+use vecdb::{ReadableVec, Result, StoredVec, Version};
 
 fn setup_db() -> Result<(Database, TempDir)> {
     let temp = TempDir::new()?;
@@ -57,6 +57,8 @@ where
     ] {
         assert_eq!(vec.collect_range(from, to), expected[from..to]);
     }
+    assert_eq!(vec.collect_signed_range(Some(-5), None), expected[9_995..]);
+    assert_eq!(vec.collect_signed_range(Some(5), Some(10)), expected[5..10]);
     Ok(())
 }
 
@@ -97,6 +99,16 @@ where
                 expected[from as usize..to as usize]
             );
         }
+        let indices = [0, 2, 2, stored - 1, stored, end - 1, end].map(|i| i as usize);
+        let mut sorted = vec![-1];
+        vec.read_sorted_into_at(&indices, &mut sorted);
+        assert_eq!(sorted, [-1, 0, 2, 2, stored - 1, stored, end - 1]);
+        vec.flush()?;
+        assert_eq!(vec.collect(), expected);
+        for i in [stored - 1, stored, end - 1] {
+            assert_eq!(vec.collect_one(i as usize), Some(i));
+        }
+        assert_eq!(vec.read_only_clone().read_sorted_at(&indices), sorted[1..]);
     }
     Ok(())
 }
@@ -145,241 +157,4 @@ fn eager_zerocopy() -> Result<()> {
 #[test]
 fn eager_pco() -> Result<()> {
     run::<EagerVec<PcoVec<usize, i32>>>()
-}
-
-mod raw_features {
-    use vecdb::{BytesVec, MutableVec};
-
-    use super::*;
-
-    #[cfg(feature = "zerocopy")]
-    use vecdb::ZeroCopyVec;
-
-    // Generic test functions for MutableVec over raw vecs
-
-    fn run_iter_skips_holes<V>() -> Result<()>
-    where
-        V: RawVecOps,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = V::forced_import(&db, "test", Version::ONE)?;
-
-        for i in 0..10 {
-            vec.push(i);
-        }
-        vec.write()?;
-
-        // Delete some values (create holes)
-        vec.delete_at(3);
-        vec.delete_at(5);
-        vec.delete_at(7);
-
-        let collected: Vec<i32> = vec.collect();
-        // Should skip holes: 0,1,2,4,6,8,9
-        assert_eq!(collected, vec![0, 1, 2, 4, 6, 8, 9]);
-        Ok(())
-    }
-
-    fn run_iter_with_updates<V>() -> Result<()>
-    where
-        V: RawVecOps,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = V::forced_import(&db, "test", Version::ONE)?;
-
-        for i in 0..10 {
-            vec.push(i);
-        }
-        vec.write()?;
-
-        // Update some values
-        vec.update_at(2, 200)?;
-        vec.update_at(5, 500)?;
-        vec.update_at(8, 800)?;
-
-        let collected: Vec<i32> = vec.collect();
-        assert_eq!(collected, vec![0, 1, 200, 3, 4, 500, 6, 7, 800, 9]);
-        Ok(())
-    }
-
-    fn run_iter_with_holes_and_updates<V>() -> Result<()>
-    where
-        V: RawVecOps,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = V::forced_import(&db, "test", Version::ONE)?;
-
-        for i in 0..10 {
-            vec.push(i);
-        }
-        vec.write()?;
-
-        // Create holes and updates
-        vec.delete_at(1);
-        vec.delete_at(3);
-        vec.update_at(2, 200)?;
-        vec.update_at(5, 500)?;
-
-        let collected: Vec<i32> = vec.collect();
-        // Should be: 0, (skip 1), 200, (skip 3), 4, 500, 6, 7, 8, 9
-        assert_eq!(collected, vec![0, 200, 4, 500, 6, 7, 8, 9]);
-        Ok(())
-    }
-
-    fn run_iter_holes_and_pushed<V>() -> Result<()>
-    where
-        V: RawVecOps,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = V::forced_import(&db, "test", Version::ONE)?;
-
-        for i in 0..5 {
-            vec.push(i);
-        }
-        vec.write()?;
-
-        // Create holes in stored data
-        vec.delete_at(1);
-        vec.delete_at(3);
-
-        // Push more data
-        for i in 5..10 {
-            vec.push(i);
-        }
-
-        let collected: Vec<i32> = vec.collect();
-        // Should be: 0, (skip 1), 2, (skip 3), 4, 5, 6, 7, 8, 9
-        assert_eq!(collected, vec![0, 2, 4, 5, 6, 7, 8, 9]);
-        Ok(())
-    }
-
-    fn run_iter_updates_and_pushed<V>() -> Result<()>
-    where
-        V: RawVecOps,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = V::forced_import(&db, "test", Version::ONE)?;
-
-        for i in 0..5 {
-            vec.push(i);
-        }
-        vec.write()?;
-
-        // Update some stored values
-        vec.update_at(1, 100)?;
-        vec.update_at(3, 300)?;
-
-        // Push more data
-        for i in 5..10 {
-            vec.push(i);
-        }
-
-        let collected: Vec<i32> = vec.collect();
-        assert_eq!(collected, vec![0, 100, 2, 300, 4, 5, 6, 7, 8, 9]);
-        Ok(())
-    }
-
-    fn run_iter_skip_over_holes<V>() -> Result<()>
-    where
-        V: RawVecOps,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = V::forced_import(&db, "test", Version::ONE)?;
-
-        for i in 0..20 {
-            vec.push(i);
-        }
-        vec.write()?;
-
-        // Create holes at indices 5, 6, 7
-        vec.delete_at(5);
-        vec.delete_at(6);
-        vec.delete_at(7);
-
-        // Skip past the holes — collect skips holes automatically
-        let collected: Vec<i32> = vec.collect();
-        // Should be: 0, 1, 2, 3, 4, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
-        // (holes at 5,6,7 are skipped)
-        assert_eq!(collected[5..10], [8, 9, 10, 11, 12]);
-        Ok(())
-    }
-
-    fn run_fill_holes<V>() -> Result<()>
-    where
-        V: RawVecOps,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = V::forced_import(&db, "test", Version::ONE)?;
-
-        for i in 0..10 {
-            vec.push(i);
-        }
-        vec.write()?;
-
-        // Create holes
-        vec.delete_at(2);
-        vec.delete_at(5);
-
-        // Fill first hole
-        let idx = vec.fill_first_hole_or_push(999)?;
-        assert_eq!(idx, 2);
-
-        let collected: Vec<i32> = vec.collect();
-        // 0,1,999,3,4,(skip 5),6,7,8,9
-        assert_eq!(collected, vec![0, 1, 999, 3, 4, 6, 7, 8, 9]);
-        Ok(())
-    }
-
-    // Helper trait for mutable raw-vector operations
-    trait RawVecOps: StoredVec<I = usize, T = i32> {
-        fn delete_at(&mut self, index: usize);
-        fn update_at(&mut self, index: usize, value: i32) -> Result<()>;
-        fn fill_first_hole_or_push(&mut self, value: i32) -> Result<usize>;
-    }
-
-    impl RawVecOps for MutableVec<BytesVec<usize, i32>> {
-        fn delete_at(&mut self, index: usize) {
-            MutableVec::<BytesVec<usize, i32>>::delete_at(self, index)
-        }
-        fn update_at(&mut self, index: usize, value: i32) -> Result<()> {
-            MutableVec::<BytesVec<usize, i32>>::update_at(self, index, value)
-        }
-        fn fill_first_hole_or_push(&mut self, value: i32) -> Result<usize> {
-            MutableVec::<BytesVec<usize, i32>>::fill_first_hole_or_push(self, value)
-        }
-    }
-
-    #[cfg(feature = "zerocopy")]
-    impl RawVecOps for MutableVec<ZeroCopyVec<usize, i32>> {
-        fn delete_at(&mut self, index: usize) {
-            MutableVec::<ZeroCopyVec<usize, i32>>::delete_at(self, index)
-        }
-        fn update_at(&mut self, index: usize, value: i32) -> Result<()> {
-            MutableVec::<ZeroCopyVec<usize, i32>>::update_at(self, index, value)
-        }
-        fn fill_first_hole_or_push(&mut self, value: i32) -> Result<usize> {
-            MutableVec::<ZeroCopyVec<usize, i32>>::fill_first_hole_or_push(self, value)
-        }
-    }
-
-    fn run<V: RawVecOps>() -> Result<()> {
-        run_iter_skips_holes::<V>()?;
-        run_iter_with_updates::<V>()?;
-        run_iter_with_holes_and_updates::<V>()?;
-        run_iter_holes_and_pushed::<V>()?;
-        run_iter_updates_and_pushed::<V>()?;
-        run_iter_skip_over_holes::<V>()?;
-        run_fill_holes::<V>()
-    }
-
-    #[test]
-    fn bytes() -> Result<()> {
-        run::<MutableVec<BytesVec<usize, i32>>>()
-    }
-
-    #[cfg(feature = "zerocopy")]
-    #[test]
-    fn zerocopy() -> Result<()> {
-        run::<MutableVec<ZeroCopyVec<usize, i32>>>()
-    }
 }

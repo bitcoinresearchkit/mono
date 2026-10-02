@@ -12,13 +12,9 @@ default = []
 storage = ["dep:bitview_traversable", "dep:vecdb", "brk_types/storage"]
 
 [dependencies]
-derive_more = { workspace = true }
 bitview_traversable = { workspace = true, optional = true }
 brk_types = { workspace = true }
 vecdb = { workspace = true, optional = true }
 rayon = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
-
-[package.metadata.cargo-machete]
-ignored = ["vecdb"]

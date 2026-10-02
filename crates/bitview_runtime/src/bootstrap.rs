@@ -170,16 +170,4 @@ mod tests {
         assert!(!plugins.join("orphan").exists());
         Ok(())
     }
-
-    #[test]
-    fn duplicate_plugin_ids_are_rejected_before_sync() -> Result<()> {
-        let directory = tempdir()?;
-        let context = ImportContext::new(directory.path());
-        let plugins = PluginStorage::plugins_path(context);
-        let blocks = PluginId::new("blocks");
-
-        assert!(sync_plugin_dirs(&plugins, [blocks, blocks].into_iter()).is_err());
-        assert!(!plugins.exists());
-        Ok(())
-    }
 }

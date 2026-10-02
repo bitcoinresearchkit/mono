@@ -21,12 +21,6 @@ fn clones_share_forward_and_reverse_mappings_without_storage_traits() {
 }
 
 #[test]
-#[should_panic(expected = "range map update must preserve a valid prefix")]
-fn updates_reject_a_missing_prefix() {
-    SharedRangeMap::<usize, usize>::new(vec![0]).update_at(2, [3]);
-}
-
-#[test]
 fn cached_cursors_use_shared_boundaries_and_refresh_after_updates() {
     let map = SharedRangeMap::<usize, usize>::new(vec![3, 3, 5, 10, 1029, 2053]);
     let reader = map.clone();

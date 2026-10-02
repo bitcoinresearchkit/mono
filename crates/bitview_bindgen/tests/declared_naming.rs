@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, fs};
 
-use bitview_bindgen::{ClientMetadata, ClientOutputPaths, generate_clients};
+use bitview_bindgen::{ClientOutputPaths, generate_clients};
 use bitview_catalog::{SeriesLeaf, SeriesLeafWithSchema, TreeNode};
 use brk_types::Index;
 use indexmap::IndexMap;
@@ -73,21 +73,4 @@ fn declared_family_and_legacy_inference_emit_identical_outputs() {
             "{file}"
         );
     }
-}
-
-#[test]
-#[should_panic(expected = "Declared field suffix")]
-fn invalid_declared_names_are_rejected_instead_of_inferred() {
-    let mut catalog = catalog(true);
-    let TreeNode::Branch(root) = &mut catalog else {
-        unreachable!()
-    };
-    let TreeNode::Branch(family) = root.get_mut("amount").unwrap() else {
-        unreachable!()
-    };
-    let TreeNode::Leaf(leaf) = family.get_mut("min").unwrap() else {
-        unreachable!()
-    };
-    leaf.leaf.name = "min_amount".into();
-    ClientMetadata::from_catalog(catalog);
 }

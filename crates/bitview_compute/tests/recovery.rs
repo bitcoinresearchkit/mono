@@ -2,33 +2,62 @@ use bitview_compute::{compute_rolling_extrema_from_starts, prepare_computed};
 use brk_exit::Exit;
 use tempfile::TempDir;
 use vecdb::{
-    AnyStoredVec, BytesVec, Database, EagerVec, ImportableVec, ReadableVec, StoredVec, Version,
-    WritableVec,
+    AnyStoredVec, BytesVec, Database, EagerVec, ImportableVec, PcoVec, ReadableVec, StoredVec,
+    Version, WritableVec,
 };
 
 #[test]
-fn group_rewind_is_visible_without_new_rows() {
+fn grouped_outputs_publish_the_shortest_valid_prefix_without_new_rows() {
     let temp = TempDir::new().unwrap();
     let db = Database::open(temp.path()).unwrap();
     let exit = Exit::new();
-    let mut a = BytesVec::<usize, u64>::import(&db, "a", Version::ONE).unwrap();
-    let mut b = BytesVec::<usize, u64>::import(&db, "b", Version::ONE).unwrap();
-    for target in [&mut a, &mut b] {
-        target
-            .validate_computed_version_or_reset(Version::TWO)
+    let mut left = BytesVec::<usize, u64>::import(&db, "left", Version::ONE).unwrap();
+    let mut right = EagerVec::<PcoVec<usize, u32>>::import(&db, "right", Version::ONE).unwrap();
+    let left_reader = left.read_only_clone();
+    let right_reader = right.read_only_clone();
+    for (left_len, right_len, right_version, max_from, expected) in [
+        (5, 3, Version::ONE, 9, 3),
+        (3, 5, Version::ONE, 9, 3),
+        (5, 5, Version::ONE, 2, 2),
+        (5, 5, Version::TWO, 9, 0),
+        (0, 5, Version::ONE, 9, 0),
+        (5, 5, Version::ONE, 0, 0),
+        (5, 5, Version::ONE, 5, 5),
+    ] {
+        left.validate_computed_version_or_reset(Version::ONE)
             .unwrap();
-        for n in 0..5 {
-            target.push(n);
+        right
+            .validate_computed_version_or_reset(right_version)
+            .unwrap();
+        left.truncate_if_needed_at(0).unwrap();
+        right.truncate_if_needed_at(0).unwrap();
+        for n in 0..left_len {
+            left.push(n as u64);
         }
-        target.write().unwrap();
+        for n in 0..right_len {
+            right.push(n as u32);
+        }
+        left.write().unwrap();
+        right.write().unwrap();
+        assert_eq!(
+            prepare_computed(
+                [&mut left as &mut dyn AnyStoredVec, &mut right],
+                Version::ONE,
+                max_from,
+                &exit,
+            )
+            .unwrap(),
+            expected,
+        );
+        assert_eq!(
+            left_reader.collect(),
+            (0..expected as u64).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            right_reader.collect(),
+            (0..expected as u32).collect::<Vec<_>>()
+        );
     }
-    let reader = a.read_only_clone();
-    b.truncate_if_needed_at(3).unwrap();
-    assert_eq!(
-        prepare_computed([&mut a, &mut b], Version::TWO, 5, &exit).unwrap(),
-        3
-    );
-    assert_eq!(reader.collect(), [0, 1, 2]);
 }
 
 #[test]

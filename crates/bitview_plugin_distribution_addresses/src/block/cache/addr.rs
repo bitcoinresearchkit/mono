@@ -90,11 +90,13 @@ impl AddrCache {
     ) {
         self.addresses.clear();
         let first_addr_indexes = first_addr_indexes.output_type_refs();
-        self.addresses.extend(addresses.filter_map(|(ty, index)| {
-            first_addr_indexes[ty as usize]
-                .is_some_and(|&first| index < first)
-                .then(|| AddressKey::new(ty, index))
-        }));
+        self.addresses.extend(
+            addresses
+                .filter(|&(ty, index)| {
+                    first_addr_indexes[ty as usize].is_some_and(|&first| index < first)
+                })
+                .map(|(ty, index)| AddressKey::new(ty, index)),
+        );
         self.addresses.sort_unstable();
         self.addresses.dedup();
         let funded = self.funded.output_type_refs();

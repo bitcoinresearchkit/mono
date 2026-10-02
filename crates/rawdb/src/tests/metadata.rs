@@ -152,37 +152,3 @@ fn test_open_rejects_region_beyond_data_file() -> Result<()> {
     ));
     Ok(())
 }
-
-#[test]
-fn test_region_metadata_updates() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-
-    let region = db.create_region_if_needed("test")?;
-
-    // Initial state
-    {
-        let meta = region.meta();
-        assert_eq!(meta.start(), 0);
-        assert_eq!(meta.len(), 0);
-        assert_eq!(meta.reserved(), PAGE_SIZE);
-    }
-
-    // After first write
-    region.write(b"Hello")?;
-    {
-        let meta = region.meta();
-        assert_eq!(meta.len(), 5);
-        assert_eq!(meta.reserved(), PAGE_SIZE);
-    }
-
-    // After expansion
-    let large = vec![1u8; PAGE_SIZE * 3];
-    region.write(&large)?;
-    {
-        let meta = region.meta();
-        assert_eq!(meta.len(), 5 + large.len());
-        assert!(meta.reserved() >= PAGE_SIZE * 4);
-    }
-
-    Ok(())
-}

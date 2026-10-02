@@ -1,18 +1,14 @@
 use bitview_vecs::RangeMapVec;
 use brk_types::{Height, TxIndex, Version};
 use rangeindex::SharedRangeMap;
-use vecdb::{AnyVec, ReadableVec};
+use vecdb::ReadableVec;
 
 #[test]
-fn forward_reads_and_reverse_lookups_share_updates() {
+fn readers_share_rewrites_appends_and_resets() {
     let mapping = SharedRangeMap::new([0, 2, 2, 5].map(TxIndex::new).to_vec());
     let index =
         RangeMapVec::<Height, TxIndex>::new("first_tx_index", Version::ONE, mapping.clone());
     let clone = index.clone();
-    assert_eq!(
-        mapping.read().get_shared(TxIndex::new(2)),
-        Some(Height::new(2))
-    );
     assert_eq!(clone.collect_one_at(4), None);
     let mut out = vec![TxIndex::new(99)];
     index.read_sorted_into_at(&[0, 1, 1, 3, 4, usize::MAX], &mut out);
@@ -20,11 +16,6 @@ fn forward_reads_and_reverse_lookups_share_updates() {
 
     mapping.update_at(2, [3, 8].map(TxIndex::new));
     assert_eq!(clone.collect(), [0, 2, 3, 8].map(TxIndex::new));
-    assert_eq!(
-        mapping.read().get_shared(TxIndex::new(2)),
-        Some(Height::new(1))
-    );
-    assert_eq!(clone.version(), Version::ONE);
     mapping.update_at(4, [9].map(TxIndex::new));
     assert_eq!(clone.collect_one_at(4), Some(TxIndex::new(9)));
     mapping.update_at(0, []);

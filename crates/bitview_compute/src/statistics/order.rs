@@ -249,47 +249,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bulk_build_and_rank_queries_preserve_duplicates() {
-        let stats = ExactOrderStats::from_unsorted(vec![3.0, 1.0, 2.0, 2.0]);
-
-        assert_eq!(stats.len(), 4);
-        assert_eq!(stats.kth(0), 1.0);
-        assert_eq!(stats.kth(1), 2.0);
-        assert_eq!(stats.kth(2), 2.0);
-        assert_eq!(stats.kth(3), 3.0);
-        assert_eq!(stats.count_lt(2.0), 1);
-        assert_eq!(stats.count_le(2.0), 3);
-        let mut values = [0.0; 5];
-        stats.values_at(&[0, 0, 2, 3, 3], &mut values);
-        assert_eq!(values, [1.0, 1.0, 2.0, 3.0, 3.0]);
-    }
-
-    #[test]
-    fn insert_and_remove_update_order_statistics() {
-        let mut stats = ExactOrderStats::new(4);
-        for value in [3.0, 1.0, 2.0, 2.0] {
-            stats.insert(value);
-        }
-
-        assert!(stats.remove(2.0));
-        assert!(!stats.remove(4.0));
-        assert_eq!(stats.len(), 3);
-        assert_eq!(stats.kth(0), 1.0);
-        assert_eq!(stats.kth(1), 2.0);
-        assert_eq!(stats.kth(2), 3.0);
-    }
-
-    #[test]
-    fn total_order_distinguishes_signed_zero() {
-        let stats = ExactOrderStats::from_unsorted(vec![0.0, -0.0]);
-
-        assert_eq!(stats.kth(0).to_bits(), (-0.0_f64).to_bits());
-        assert_eq!(stats.kth(1).to_bits(), 0.0_f64.to_bits());
-        assert_eq!(stats.count_lt(0.0), 1);
-        assert_eq!(stats.count_le(-0.0), 1);
-    }
-
-    #[test]
     fn growing_history_preserves_ranks_and_removal_after_repartitioning() {
         let values: Vec<_> = (0..20_000)
             .map(|i| match i % 17 {
@@ -312,6 +271,13 @@ mod tests {
             for (i, value) in sorted.iter().enumerate() {
                 assert_eq!(stats.kth(i).to_bits(), value.to_bits());
             }
+            let targets = [0, 0, sorted.len() / 2, sorted.len() - 1, sorted.len() - 1];
+            let mut actual = [0.0; 5];
+            stats.values_at(&targets, &mut actual);
+            assert_eq!(
+                actual.map(f64::to_bits),
+                targets.map(|i| sorted[i].to_bits())
+            );
             for value in [-505.0, -0.0, 0.0, 504.0, 505.0] {
                 assert_eq!(
                     stats.count_lt(value),
@@ -340,7 +306,9 @@ mod tests {
                 expected.map(f64::to_bits)
             );
         };
+        check(&ExactOrderStats::from_unsorted(values.clone()), &values);
         check(&stats, &values);
+        assert!(!stats.remove(505.0));
         for &value in &values[..15_000] {
             assert!(stats.remove(value));
         }

@@ -1,6 +1,8 @@
 use crate::{Amount, journal::Journal, journal_reader::JournalReader, util::invalid};
 use std::{io::Result, path::Path};
 
+type CreationRecord = ([u8; 32], Amount, Option<(u32, Amount)>);
+
 /// Output facts are the second column of each complete block diff.
 pub struct Creations {
     journal: Journal,
@@ -16,7 +18,7 @@ impl Creations {
             journal: Journal::open_reader(&path.join("creations"))?,
         })
     }
-    pub fn len(&self) -> usize {
+    pub fn end(&self) -> usize {
         self.journal.len()
     }
     pub(crate) fn start(&self) -> usize {
@@ -47,7 +49,7 @@ impl Creations {
             return Err(invalid("supply without outputs"));
         }
         if let Some((origin, removed)) = correction
-            && (origin as usize >= self.len() || removed.count == 0)
+            && (origin as usize >= self.end() || removed.count == 0)
         {
             return Err(invalid("invalid output correction"));
         }
@@ -68,7 +70,7 @@ impl Creations {
         self.journal.read_prefix(height, &mut hash)?;
         Ok(hash)
     }
-    pub fn read(&self, height: usize) -> Result<([u8; 32], Amount, Option<(u32, Amount)>)> {
+    pub fn read(&self, height: usize) -> Result<CreationRecord> {
         let mut bytes = Vec::new();
         self.journal.read(height, &mut bytes)?;
         Self::decode(height, &bytes)
@@ -76,10 +78,7 @@ impl Creations {
     pub(crate) fn cursor(&self, end: usize) -> JournalReader<'_> {
         JournalReader::new(&self.journal, end)
     }
-    pub(crate) fn decode(
-        height: usize,
-        bytes: &[u8],
-    ) -> Result<([u8; 32], Amount, Option<(u32, Amount)>)> {
+    pub(crate) fn decode(height: usize, bytes: &[u8]) -> Result<CreationRecord> {
         if bytes.len() != 48 && bytes.len() != 68 {
             return Err(invalid("invalid creation record"));
         }

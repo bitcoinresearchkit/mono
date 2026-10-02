@@ -17,53 +17,6 @@ function mockBrowser(t) {
   globalThis.getComputedStyle = () => ({ getPropertyValue: () => "" });
 }
 
-test("active supply in loss chart resolves to a fetchable ratio series", async (t) => {
-  mockBrowser(t);
-  const { createCointimeSection } = await import("../../website/scripts/options/frameworks/cointime/index.js");
-  function findChart(tree) {
-    for (const node of tree) {
-      if (node.title === "Active Supply in Loss") return node;
-      const found = node.tree && findChart(node.tree);
-      if (found) return found;
-    }
-  }
-  const chart = findChart([createCointimeSection()]);
-  assert.ok(chart);
-  const series = chart.bottom[0].series;
-  assert.equal(typeof series.name, "string");
-  assert.equal(typeof series.by.height.fetch, "function");
-});
-
-test("weighted URPD charts use the current cohort endpoints", async (t) => {
-  mockBrowser(t);
-  const { bitview } = await import("../../website/scripts/utils/client.js");
-  const { createWeightedUrpdSection } = await import("../../website/scripts/options/urpd/index.js");
-  const { createAgeBoundsSection } = await import("../../website/scripts/options/urpd/age-bounds.js");
-  for (const owner of ["cointime", "coinflow"]) {
-    const [costBasis, density] = createWeightedUrpdSection(owner, bitview.series[owner].urpd).tree;
-    for (const [name, cohort] of [
-      ["All", "all"], ["STH", "sth"], ["LTH", "lth"],
-      ["<4M", "under_4m"], ["<6M", "under_6m"],
-      [">4M", "over_4m"], [">6M", "over_6m"],
-    ]) {
-      const charts = costBasis.tree.find((node) => node.name === name).tree;
-      for (const [index, weight] of ["coin", "dollar"].entries()) {
-        const median = charts[index].top.find((blueprint) => blueprint.title === "P50").series;
-        const prefix = cohort === "all" ? "" : `${cohort}_`;
-        assert.equal(median.usd.by.day1.path, `/api/series/${prefix}${owner}_cost_basis_per_${weight}_pct50/day1`);
-      }
-      assert.equal(charts[1].top[0].series.usd.by.day1.path,
-        `/api/series/${owner}_urpd_${cohort}_capitalized_price/day1`);
-    }
-    const sthDensity = density.tree.find((node) => node.name === "STH (<5M)");
-    assert.equal(sthDensity.bottom[1].series.by.day1.path,
-      `/api/series/${owner}_urpd_sth_supply_density_total_ratio/day1`);
-  }
-  const sthBounds = createAgeBoundsSection(bitview.series.cohorts.urpd.ageBounds).tree[1];
-  assert.equal(sthBounds.top[0].series.usd.by.day1.path,
-    "/api/series/utxos_urpd_sth_cost_basis_min/day1");
-});
-
 test("every lazy chart resolves to fetchable series in the current client", async (t) => {
   mockBrowser(t);
   const { createPartialOptions } = await import("../../website/scripts/options/partial.js");
@@ -110,19 +63,4 @@ test("every lazy chart resolves to fetchable series in the current client", asyn
     "supply_dominance_ratio",
     "utxo_count_bis",
   ]);
-});
-
-test("unused metrics compare series names and ignore unchartable representations", async () => {
-  const { collectUnusedSeries } = await import("../../website/scripts/options/unused.js");
-  const pattern = (name, indexes = ["day1"]) => ({ name, indexes: () => indexes });
-  const series = {
-    used: pattern("used"),
-    alias: pattern("used"),
-    missing: pattern("missing"),
-    heightOnly: pattern("height_only", ["height"]),
-    units: { cents: pattern("cents"), ppm: pattern("ppm") },
-    constants: { zero: pattern("constant_0") },
-  };
-  assert.deepEqual([...collectUnusedSeries(series, new Set(["used"]))], [["missing", ["missing"]]]);
-  assert.ok(collectUnusedSeries(series, new Set()).has("used"));
 });

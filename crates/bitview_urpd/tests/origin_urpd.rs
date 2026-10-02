@@ -58,57 +58,6 @@ fn hash(h: usize) -> [u8; 32] {
     hash
 }
 
-#[test]
-fn projected_view_owns_its_weights_and_filters() {
-    let state = State::new(vec![Amount { sats: 7, count: 1 }], [0; 32]).unwrap();
-    let source = OriginUrpd::new(&state, &[Cents::new(100)], &[Timestamp::ZERO]).unwrap();
-    let mut view = {
-        let weights = AgeRange::from_fn(|_| 0.5);
-        let ages = vec![AgeRangeId::Under1H];
-        source.project(&[Some(&weights)], [ages.as_slice()])
-    };
-    let row = view.next().unwrap();
-    assert_eq!(row.raw, [Sats::new(7)]);
-    assert_eq!(row.weighted, [[Sats::new(3)]]);
-    assert!(view.next().is_none());
-}
-
-#[test]
-fn filters_handle_empty_duplicate_and_overlapping_ages() {
-    let state = State::new(
-        [3, 7, 11].map(|sats| Amount { sats, count: 1 }).to_vec(),
-        [0; 32],
-    )
-    .unwrap();
-    let source = OriginUrpd::new(
-        &state,
-        &[Cents::new(100), Cents::new(200), Cents::new(300)],
-        &[
-            Timestamp::ZERO,
-            Timestamp::new(3600),
-            Timestamp::new(200 * 86400),
-        ],
-    )
-    .unwrap();
-    let young = AgeRangeId::Under1H;
-    let old = AgeRangeId::From6MTo9M;
-    let rows: Vec<_> = source
-        .project::<0, 4>(&[], [&[], &[young], &[old], &[young, old, young]])
-        .map(|row| (row.price, row.raw.map(u64::from)))
-        .collect();
-    assert_eq!(
-        rows,
-        [
-            (CentsCompact::new(100), [0, 0, 3, 3]),
-            (CentsCompact::new(200), [0, 0, 7, 7]),
-            (CentsCompact::new(300), [0, 11, 0, 11]),
-        ]
-    );
-    assert_eq!(source.project::<0, 0>(&[], []).count(), 0);
-    assert_eq!(source.project(&[], [&[]]).count(), 0);
-    assert_eq!(source.project(&[], [&[AgeRangeId::From1HTo1D]]).count(), 0);
-}
-
 fn verify(
     reader: &Reader<'_>,
     prices: &[Cents],

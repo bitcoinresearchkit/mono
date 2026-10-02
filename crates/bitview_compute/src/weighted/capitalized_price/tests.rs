@@ -68,8 +68,9 @@ fn preserves_sub_raw_unit_weights_and_integer_price_boundaries() {
 
 #[test]
 fn large_moments_do_not_overflow_when_weighted() {
-    let cap = u128::MAX / 10;
-    let second = cap * 7;
+    let price = 20_000_000_u128;
+    let cap = price * 2_100_000_000_000_000;
+    let second = cap * price;
     assert!(
         second
             .checked_mul(u128::from(BoundedRatio::SCALE))
@@ -82,7 +83,7 @@ fn large_moments_do_not_overflow_when_weighted() {
     ] {
         let mut state = WeightedCapitalizedPrice::default();
         state.add(CentsSats::new(cap), CentsSquaredSats::new(second), weight);
-        assert_eq!(state.value(), Cents::new(7));
+        assert_eq!(state.value(), Cents::from(price));
     }
 }
 

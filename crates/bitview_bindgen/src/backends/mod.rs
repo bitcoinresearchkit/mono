@@ -6,5 +6,5 @@
 mod javascript;
 mod python;
 
-pub use javascript::JavaScriptSyntax;
-pub use python::PythonSyntax;
+pub(crate) use javascript::JavaScriptSyntax;
+pub(crate) use python::PythonSyntax;

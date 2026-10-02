@@ -27,7 +27,7 @@ impl OriginSpends {
         self.store.start()
     }
     pub(crate) fn len(&self) -> usize {
-        self.store.len()
+        self.store.end()
     }
     pub(super) fn hash(&self, height: usize) -> Result<BlockHash> {
         Ok(BlockHash::from_bytes(&self.store.hash(height)?)?)

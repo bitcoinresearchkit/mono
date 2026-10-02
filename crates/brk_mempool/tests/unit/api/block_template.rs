@@ -19,71 +19,6 @@ fn insert_tx(mempool: &mut Mempool, seed: u8, fee: u64, vsize: u64) -> Txid {
 }
 
 #[test]
-fn block_template_source_tracks_snapshot_and_body_changes() {
-    let mut mempool = Mempool::for_test();
-    let txid = insert_tx(&mut mempool, 0xA7, 1_234, 100);
-    mempool.test_tick(&[txid], FeeRate::new(1.0));
-    let initial = mempool.published().block_template_source();
-
-    let prefix = TxidPrefix::from(&txid);
-    let prevout = TxOut::from((p2wpkh_script(0xA8), Sats::from(2_000u64)));
-    mempool
-        .test_state_mut()
-        .txs
-        .apply_fills(&prefix, vec![(Vin::from(0usize), prevout)]);
-    let after_body_change = mempool.published().block_template_source();
-    assert!(
-        initial == after_body_change,
-        "unpublished fills cannot change a published template"
-    );
-
-    mempool.test_tick(&[txid], FeeRate::new(2.0));
-    let after_snapshot_change = mempool.published().block_template_source();
-    assert!(after_body_change != after_snapshot_change);
-}
-
-#[test]
-fn block_template_diff_round_trip_reconstructs_t1_from_t0() {
-    // T0: pool has two txs, both in gbt -> block 0.
-    let mut mempool = Mempool::for_test();
-    let txid_a = insert_tx(&mut mempool, 0xA1, 1_111, 100);
-    let txid_b = insert_tx(&mut mempool, 0xA2, 2_222, 100);
-    mempool.test_tick(&[txid_a, txid_b], FeeRate::new(1.0));
-    let t0 = mempool.published().block_template_source().build().unwrap();
-
-    // T1: add a third tx, advance gbt. block_template_diff(t0.hash) must
-    // be reconstructible into the new block 0 ordering by combining the
-    // retained prior-indexed bodies from T0 with the New bodies inline.
-    let txid_c = insert_tx(&mut mempool, 0xA3, 3_333, 100);
-    mempool.test_tick(&[txid_a, txid_b, txid_c], FeeRate::new(1.0));
-    let t1 = mempool.published().block_template_source().build().unwrap();
-
-    let diff = mempool
-        .published()
-        .resolve_block_template_diff(t0.hash)
-        .map(|resolved| resolved.build())
-        .transpose()
-        .unwrap()
-        .expect("t0 is still in history");
-    assert_eq!(diff.since, t0.hash);
-    assert_eq!(diff.hash, t1.hash);
-
-    let mut reconstructed = Vec::with_capacity(diff.order.len());
-    for entry in &diff.order {
-        match entry {
-            BlockTemplateDiffEntry::Retained(idx) => {
-                reconstructed.push(t0.transactions[*idx as usize].clone());
-            }
-            BlockTemplateDiffEntry::New(tx) => reconstructed.push(tx.clone()),
-        }
-    }
-    let expected: Vec<_> = t1.transactions.iter().map(|tx| tx.txid).collect();
-    let got: Vec<_> = reconstructed.iter().map(|tx| tx.txid).collect();
-    assert_eq!(got, expected, "diff round-trips back into T1 ordering");
-    assert!(diff.removed.is_empty());
-}
-
-#[test]
 fn block_template_diff_preserves_reordering_and_prior_removal_order() {
     let mut mempool = Mempool::for_test();
     let a = insert_tx(&mut mempool, 30, 100, 100);
@@ -93,6 +28,14 @@ fn block_template_diff_preserves_reordering_and_prior_removal_order() {
     let added = insert_tx(&mut mempool, 34, 100, 100);
     mempool.test_tick(&[a, b, c, d], FeeRate::new(1.0));
     let before = mempool.published().next_block_hash().unwrap();
+
+    let mut previous = before;
+    for ids in [&[d, c, b, a][..], &[d, c, b][..]] {
+        mempool.test_tick(ids, FeeRate::new(1.0));
+        let hash = mempool.published().next_block_hash().unwrap();
+        assert_ne!(hash, previous);
+        previous = hash;
+    }
 
     mempool.test_tick(&[d, added, b], FeeRate::new(1.0));
     let diff = mempool
@@ -121,19 +64,6 @@ fn block_template_diff_preserves_reordering_and_prior_removal_order() {
 }
 
 #[test]
-fn block_template_diff_unknown_since_returns_none() {
-    let mut mempool = Mempool::for_test();
-    mempool.test_tick(&[], FeeRate::new(1.0));
-    let bogus = NextBlockHash::new(0xDEAD_BEEF);
-    assert!(
-        mempool
-            .published()
-            .resolve_block_template_diff(bogus)
-            .is_none()
-    );
-}
-
-#[test]
 fn resolved_template_and_diff_keep_the_validated_publication_after_history_eviction() {
     let mut mempool = Mempool::for_test();
     let first = insert_tx(&mut mempool, 0xB0, 1_000, 100);
@@ -150,12 +80,14 @@ fn resolved_template_and_diff_keep_the_validated_publication_after_history_evict
         txids.push(insert_tx(&mut mempool, seed, 1_000, 100));
         mempool.test_tick(&txids, FeeRate::new(1.0));
     }
-    assert!(
-        mempool
-            .published()
-            .resolve_block_template_diff(since)
-            .is_none()
-    );
+    for hash in [since, NextBlockHash::new(0xDEAD_BEEF)] {
+        assert!(
+            mempool
+                .published()
+                .resolve_block_template_diff(hash)
+                .is_none()
+        );
+    }
 
     let diff = resolved.build().unwrap();
     assert_eq!(diff.since, since);
@@ -174,7 +106,8 @@ fn body_fills_publish_a_new_identity_and_diff_reconstructs_every_field() {
     let stable = insert_tx(&mut mempool, 11, 100, 100);
     let ids = [changed, stable];
     mempool.test_tick(&ids, FeeRate::new(1.0));
-    let before = mempool.published().block_template_source().build().unwrap();
+    let source = mempool.published().block_template_source();
+    let before = source.clone().build().unwrap();
     let published = mempool.published().snapshot();
     mempool.test_state_mut().txs.apply_fills(
         &TxidPrefix::from(changed),
@@ -183,6 +116,7 @@ fn body_fills_publish_a_new_identity_and_diff_reconstructs_every_field() {
             TxOut::from((p2wpkh_script(12), Sats::from(2_000u64))),
         )],
     );
+    assert!(source == mempool.published().block_template_source());
     assert!(
         published.template_transactions()[0].input[0]
             .prevout
@@ -197,6 +131,7 @@ fn body_fills_publish_a_new_identity_and_diff_reconstructs_every_field() {
         .rebuilder
         .tick(&mempool.state, &ids, FeeRate::new(1.0));
     mempool.publish_observation(Default::default(), true);
+    assert!(source != mempool.published().block_template_source());
     let after = mempool.published().block_template_source().build().unwrap();
     assert_ne!(before.hash, after.hash);
     assert!(after.transactions[0].input[0].prevout.is_some());

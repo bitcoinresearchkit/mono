@@ -132,47 +132,26 @@ fn rbf_requires_matching_publication_and_graph_revision() {
 }
 
 #[test]
-fn rbf_for_tx_single_replacement_returns_root_and_replaces() {
-    // pred -> live. rbf_for_tx(pred) walks forward to live and lists
-    // pred under its `replaces` tree.
-    let (mempool, live, preds) = build_rbf_world(0xC0, &[0xC1]);
-    let pred = preds[0];
-
-    let rbf = mempool
-        .published()
-        .rbf_for_tx(&pred, &BlockHash::default())
-        .unwrap();
-    let root = rbf.root.expect("terminal replacer reachable");
-    assert_eq!(root.txid, live);
-    assert!(root.in_mempool);
-    assert!(!root.replaces[0].in_mempool);
-    let replaced_txids: Vec<Txid> = root.replaces.iter().map(|n| n.txid).collect();
-    assert_eq!(replaced_txids, vec![pred]);
-    // Convenience list: direct predecessors of the requested tx.
-    assert!(
-        rbf.replaces.is_empty(),
-        "pred has no predecessors of its own"
-    );
-}
-
-#[test]
 fn rbf_for_tx_chain_walks_to_terminal_root() {
-    // A -> B -> C(live). rbf_for_tx(A) walks A -> B -> C, root is C.
-    // root.replaces is B, B.replaces is A.
-    let (mempool, live, preds) = build_rbf_world(0xC2, &[0xC3, 0xC4]);
-    let a = preds[0];
-    let b = preds[1];
-
-    let rbf = mempool
-        .published()
-        .rbf_for_tx(&a, &BlockHash::default())
-        .unwrap();
-    let root = rbf.root.expect("terminal replacer reachable");
-    assert_eq!(root.txid, live);
-    assert_eq!(root.replaces.len(), 1);
-    assert_eq!(root.replaces[0].txid, b);
-    assert_eq!(root.replaces[0].replaces.len(), 1);
-    assert_eq!(root.replaces[0].replaces[0].txid, a);
+    for predecessors in [&[0xC3][..], &[0xC3, 0xC4][..]] {
+        let (mempool, live, preds) = build_rbf_world(0xC2, predecessors);
+        let rbf = mempool
+            .published()
+            .rbf_for_tx(&preds[0], &BlockHash::default())
+            .unwrap();
+        let root = rbf.root.expect("terminal replacer reachable");
+        assert_eq!(root.txid, live);
+        assert!(root.in_mempool);
+        let mut node = &root;
+        for txid in preds.iter().rev() {
+            assert_eq!(node.replaces.len(), 1);
+            node = &node.replaces[0];
+            assert_eq!(node.txid, *txid);
+            assert!(!node.in_mempool);
+        }
+        assert!(node.replaces.is_empty());
+        assert!(rbf.replaces.is_empty());
+    }
 }
 
 #[test]

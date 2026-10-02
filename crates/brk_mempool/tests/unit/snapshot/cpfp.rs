@@ -93,6 +93,18 @@ fn cpfp_ancestor_and_descendant_walks_are_directional() {
     let c = insert_with_depends(&mut mempool, 0xB5, 5_800, 100, &[b]);
     publish(&mut mempool, &[a, b, c]);
 
+    for txid in [a, b, c] {
+        assert_eq!(
+            mempool
+                .published()
+                .cpfp_info(&txid, &BlockHash::default())
+                .unwrap()
+                .unwrap()
+                .effective_fee_per_vsize,
+            FeeRate::new(20.0)
+        );
+    }
+
     // B sees A as an ancestor and C as a descendant.
     let info_b = mempool
         .published()

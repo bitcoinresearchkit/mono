@@ -79,8 +79,10 @@ fn creation_cohorts_reopen_without_storing_holder_aggregates() {
         let db = Database::open(dir.path()).unwrap();
         let mut sources =
             CreationSources::<StoredU64>::forced_import(&db, "exact", version).unwrap();
-        let mut direct = UTXOCoreValues::default();
-        direct.age_range = AgeRange::from_fn(|id| StoredU64::from(id.index() as u64 + 1));
+        let direct = UTXOCoreValues {
+            age_range: AgeRange::from_fn(|id| StoredU64::from(id.index() as u64 + 1)),
+            ..Default::default()
+        };
         sources.push(direct);
         for vec in sources.collect_vecs_mut() {
             assert_eq!(vec.len(), 1);
@@ -132,7 +134,7 @@ fn amount_composition_keeps_checkpoint_invalidation_and_reader_projection() {
     for vec in amounts.stored_vecs_mut() {
         vec.write().unwrap();
     }
-    assert_eq!(amounts.len(), 3);
+    assert_eq!(amounts.min_len(), 3);
     assert!(
         amounts
             .checkpoint(Height::from(2_usize))

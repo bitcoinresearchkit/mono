@@ -8,29 +8,29 @@ mod positions;
 mod schema;
 mod structural_pattern;
 
-pub use case::*;
+pub(crate) use case::*;
 pub use index_set_pattern::*;
 pub use metadata::*;
 pub use pattern_field::*;
 pub use positions::*;
-pub use schema::*;
+pub(crate) use schema::*;
 pub use structural_pattern::*;
 
 /// Language-specific syntax for generic type annotations.
 #[derive(Clone, Copy)]
-pub struct GenericSyntax {
+pub(crate) struct GenericSyntax {
     open: char,
     close: char,
     default_type: &'static str,
 }
 
 impl GenericSyntax {
-    pub const PYTHON: Self = Self {
+    pub(crate) const PYTHON: Self = Self {
         open: '[',
         close: ']',
         default_type: "Any",
     };
-    pub const JAVASCRIPT: Self = Self {
+    pub(crate) const JAVASCRIPT: Self = Self {
         open: '<',
         close: '>',
         default_type: "unknown",
@@ -46,7 +46,7 @@ impl GenericSyntax {
     ///
     /// For Python, wrapper newtypes like `Close<Cents>` are flattened to just `Cents`
     /// because Python type aliases can't be parameterized. This matches JS behavior.
-    pub fn convert(&self, type_str: &str) -> String {
+    fn convert(&self, type_str: &str) -> String {
         // Flatten nested generics to innermost type (e.g., Close<Cents> -> Cents)
         // This is needed because wrapper types like Close, Open, High, Low are
         // just type aliases in generated code, not actual generic classes.

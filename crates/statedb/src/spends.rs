@@ -21,7 +21,7 @@ impl Spends {
     pub fn start(&self) -> usize {
         self.journal.base
     }
-    pub fn len(&self) -> usize {
+    pub fn end(&self) -> usize {
         self.journal.len()
     }
     pub fn version(&self) -> u64 {
@@ -49,7 +49,7 @@ impl Spends {
         self.buffer.extend_from_slice(&Amount::default().encode());
         let mut total = Amount::default();
         for (origin, amount) in rows {
-            if origin as usize > self.len() || amount.count == 0 {
+            if origin as usize > self.end() || amount.count == 0 {
                 return Err(invalid("invalid spent origin"));
             }
             total = total.checked_add(amount)?;
@@ -78,7 +78,7 @@ impl Spends {
         ))
     }
     pub(crate) fn rows(bytes: &[u8]) -> impl ExactSizeIterator<Item = (u32, Amount)> + Clone + '_ {
-        bytes.chunks_exact(16).map(|row| {
+        bytes.as_chunks::<16>().0.iter().map(|row| {
             (
                 u32::from_le_bytes(row[..4].try_into().unwrap()),
                 Amount {

@@ -326,11 +326,11 @@ fn gen_traversable(input: &DeriveInput) -> ProcMacro2TokenStream {
                     { #to_tree_node_body }.with_source(concat!(module_path!(), "::", stringify!(#name)))
                 }
 
-                fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
+                fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
                     self.0.iter_any_exportable()
                 }
 
-                fn iter_any_visible(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
+                fn iter_any_visible(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
                     self.0.iter_any_visible()
                 }
 
@@ -353,7 +353,7 @@ fn gen_traversable(input: &DeriveInput) -> ProcMacro2TokenStream {
                     bitview_traversable::TreeNode::branch(bitview_traversable::IndexMap::new())
                 }
 
-                fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
+                fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
                     std::iter::empty()
                 }
 
@@ -391,11 +391,11 @@ fn gen_traversable(input: &DeriveInput) -> ProcMacro2TokenStream {
                     self.#field_name.to_tree_node().with_source(concat!(module_path!(), "::", stringify!(#name)))
                 }
 
-                fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
+                fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
                     self.#field_name.iter_any_exportable()
                 }
 
-                fn iter_any_visible(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
+                fn iter_any_visible(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
                     self.#field_name.iter_any_visible()
                 }
 
@@ -647,7 +647,7 @@ fn generate_iter_body(
     let (init_part, chain_part) = if let Some((&first, rest)) = fields.split_first() {
         (
             quote! {
-                let mut iter: Box<dyn Iterator<Item = &dyn vecdb::AnyExportableVec>> =
+                let mut iter: Box<dyn Iterator<Item = &dyn bitview_traversable::AnyExportableVec>> =
                     Box::new(self.#first.#method_ident());
             },
             quote! {
@@ -657,7 +657,7 @@ fn generate_iter_body(
     } else {
         (
             quote! {
-                let mut iter: Box<dyn Iterator<Item = &dyn vecdb::AnyExportableVec>> =
+                let mut iter: Box<dyn Iterator<Item = &dyn bitview_traversable::AnyExportableVec>> =
                     Box::new(std::iter::empty());
             },
             quote! {},
@@ -702,7 +702,7 @@ fn generate_iterator_impl(infos: &[FieldInfo], struct_hidden: bool) -> ProcMacro
     let visible_impl = if struct_hidden {
         // Entire struct is hidden — iter_any_visible returns nothing
         quote! {
-            fn iter_any_visible(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
+            fn iter_any_visible(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
                 std::iter::empty()
             }
         }
@@ -722,14 +722,14 @@ fn generate_iterator_impl(infos: &[FieldInfo], struct_hidden: bool) -> ProcMacro
         let visible_body =
             generate_iter_body(&visible_regular, &visible_option, "iter_any_visible");
         quote! {
-            fn iter_any_visible(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
+            fn iter_any_visible(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
                 #visible_body
             }
         }
     };
 
     quote! {
-        fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
+        fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
             #exportable_body
         }
         #visible_impl
@@ -902,9 +902,9 @@ fn gen_roc_field_value(
 
     if is_relevant(&field.ty) {
         if is_box_type(&field.ty) {
-            quote! { Box::new(vecdb::ReadOnlyClone::read_only_clone(&*#self_access)) }
+            quote! { Box::new(bitview_traversable::ReadOnlyClone::read_only_clone(&*#self_access)) }
         } else {
-            quote! { vecdb::ReadOnlyClone::read_only_clone(&#self_access) }
+            quote! { bitview_traversable::ReadOnlyClone::read_only_clone(&#self_access) }
         }
     } else {
         quote! { #self_access.clone() }
@@ -1012,8 +1012,8 @@ fn gen_read_only_clone_storage_mode(
         })
     };
 
-    let ty_args_rw = make_ty_args(quote! { vecdb::Rw });
-    let ty_args_ro = make_ty_args(quote! { vecdb::Ro });
+    let ty_args_rw = make_ty_args(quote! { bitview_traversable::Rw });
+    let ty_args_ro = make_ty_args(quote! { bitview_traversable::Ro });
     let where_clause = &generics.where_clause;
 
     let body = gen_roc_body(name, data, |ty| type_contains_ident(ty, mode_param));
@@ -1025,7 +1025,7 @@ fn gen_read_only_clone_storage_mode(
     };
 
     quote! {
-        impl #impl_generics vecdb::ReadOnlyClone for #name<#(#ty_args_rw),*> #where_clause {
+        impl #impl_generics bitview_traversable::ReadOnlyClone for #name<#(#ty_args_rw),*> #where_clause {
             type ReadOnly = #name<#(#ty_args_ro),*>;
 
             fn read_only_clone(&self) -> Self::ReadOnly {
@@ -1079,9 +1079,9 @@ fn gen_read_only_clone_generics(
                 let bounds = &tp.bounds;
                 if is_container(ident) {
                     if bounds.is_empty() {
-                        quote! { #ident: vecdb::ReadOnlyClone }
+                        quote! { #ident: bitview_traversable::ReadOnlyClone }
                     } else {
-                        quote! { #ident: #bounds + vecdb::ReadOnlyClone }
+                        quote! { #ident: #bounds + bitview_traversable::ReadOnlyClone }
                     }
                 } else if bounds.is_empty() {
                     quote! { #ident }
@@ -1106,7 +1106,7 @@ fn gen_read_only_clone_generics(
     let ro_ty_args = collect_ty_args(generics, |tp| {
         let id = &tp.ident;
         if is_container(id) {
-            quote! { <#id as vecdb::ReadOnlyClone>::ReadOnly }
+            quote! { <#id as bitview_traversable::ReadOnlyClone>::ReadOnly }
         } else {
             quote! { #id }
         }
@@ -1120,7 +1120,7 @@ fn gen_read_only_clone_generics(
             let ident = &tp.ident;
             let bounds = &tp.bounds;
             extra_where.push(quote! {
-                <#ident as vecdb::ReadOnlyClone>::ReadOnly: #bounds
+                <#ident as bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
             });
         }
     }
@@ -1135,7 +1135,7 @@ fn gen_read_only_clone_generics(
                 let ident = &seg.ident;
                 let bounds = &pt.bounds;
                 extra_where.push(quote! {
-                    <#ident as vecdb::ReadOnlyClone>::ReadOnly: #bounds
+                    <#ident as bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
                 });
             }
         }
@@ -1155,7 +1155,7 @@ fn gen_read_only_clone_generics(
     });
 
     quote! {
-        impl<#(#impl_params),*> vecdb::ReadOnlyClone for #name<#(#self_ty_args),*> #combined_where {
+        impl<#(#impl_params),*> bitview_traversable::ReadOnlyClone for #name<#(#self_ty_args),*> #combined_where {
             type ReadOnly = #name<#(#ro_ty_args),*>;
 
             fn read_only_clone(&self) -> Self::ReadOnly {

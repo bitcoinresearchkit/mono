@@ -73,5 +73,5 @@ where
 }
 
 #[cfg(test)]
-#[path = "../../bitview_vecs/tests/common/mod.rs"]
-mod test_common;
+#[path = "../../bitview_vecs/tests/common/cache.rs"]
+mod test_cache;

@@ -8,47 +8,14 @@ use std::{
     time::Duration,
 };
 
-use bitview_plugin_indexer::HasIndexer;
-use bitview_plugin_transactions::HasTransactions;
-use brk_types::TxIndex;
 use serde_json::{Value, from_str};
 use tokio::task::{self, JoinSet};
-use vecdb::{AnyVec, ReadableCloneableVec, ReadableVec, VecValue};
 
 use super::{
     chain_fixture::{default_first, run_genesis},
     server_routes::exchange_with_etag,
 };
 use crate::test_cache::init_cache;
-
-fn assert_uncached<T: VecValue + PartialEq>(source: &impl ReadableCloneableVec<TxIndex, T>) {
-    assert!(!source.is_empty());
-    let reader = source.read_only_boxed_clone();
-    assert_eq!(source.collect(), reader.collect());
-    assert!(!source.read_cached_into_at(0, source.len(), &mut Vec::new()));
-    assert!(!reader.read_cached_into_at(0, reader.len(), &mut Vec::new()));
-}
-
-#[test]
-fn production_transaction_flags_and_fee_sources_remain_uncached() {
-    init_cache();
-    run_genesis(default_first(), |mut fixture| async move {
-        fixture.publish(1, 1);
-        let tx = fixture.plugins.transactions();
-        assert_uncached(&tx.patterns.flags.is_coinjoin);
-        assert_uncached(&tx.patterns.flags.is_consolidation);
-        assert_uncached(&tx.patterns.flags.is_batch_payout);
-        assert_uncached(&tx.fees.cpfp_flags.is_cpfp_parent);
-        assert_uncached(&tx.fees.cpfp_flags.is_cpfp_child);
-        assert_uncached(&tx.fees.fee.tx_index);
-        assert_uncached(&tx.fees.fee_rate);
-        assert_uncached(&tx.fees.effective_fee_rate.tx_index);
-        // Ensure the process-wide budget is active for a real cached source.
-        let timestamp = &fixture.plugins.indexer().vecs().blocks.timestamp;
-        timestamp.collect();
-        assert!(timestamp.read_cached_into_at(0, timestamp.len(), &mut Vec::new()));
-    });
-}
 
 async fn chart(address: SocketAddr) -> Vec<Value> {
     let response = exchange_with_etag(

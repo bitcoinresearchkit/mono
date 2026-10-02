@@ -252,51 +252,8 @@ mod tests {
     use brk_types::{FeeRate, OutPoint, Sats, TxInIndex, TxIndex, VSize, Vout};
 
     #[test]
-    fn marks_actual_cpfp_roles() {
-        let mut rates = Vec::new();
-        Cluster::default().compute(
-            &[TxInIndex::from(0usize), TxInIndex::from(1usize)],
-            &[
-                OutPoint::COINBASE,
-                OutPoint::new(TxIndex::from(10usize), Vout::ZERO),
-            ],
-            0,
-            10,
-            &[Sats::new(100), Sats::new(200)],
-            &[VSize::new(100), VSize::new(100)],
-            &[FeeRate::new(1.0), FeeRate::new(2.0)],
-            &mut rates,
-        );
-
-        assert_eq!(rates, [FeeRate::new(1.5), FeeRate::new(1.5)]);
-        assert_eq!(
-            [
-                (rates[0] > FeeRate::new(1.0), rates[0] < FeeRate::new(1.0)),
-                (rates[1] > FeeRate::new(2.0), rates[1] < FeeRate::new(2.0)),
-            ],
-            [(true, false), (false, true)]
-        );
-    }
-
-    #[test]
     fn keeps_independent_transaction_rates_separate() {
         let mut rates = Vec::new();
-        Cluster::default().compute(
-            &[TxInIndex::from(0usize), TxInIndex::from(1usize)],
-            &[
-                OutPoint::COINBASE,
-                OutPoint::new(TxIndex::from(9usize), Vout::ZERO),
-            ],
-            0,
-            10,
-            &[Sats::new(100), Sats::new(300)],
-            &[VSize::new(100), VSize::new(100)],
-            &[FeeRate::new(1.0), FeeRate::new(3.0)],
-            &mut rates,
-        );
-
-        assert_eq!(rates, [FeeRate::new(1.0), FeeRate::new(3.0)]);
-
         // Reuse the scratch state across changing block sizes, mixing isolated
         // transactions with a chain whose first child spends its parent twice.
         let mut cluster = Cluster::default();
@@ -307,12 +264,13 @@ mod tests {
             for tx in 0..n {
                 starts.push(TxInIndex::from(outpoints.len()));
                 match tx {
+                    0 => outpoints.push(OutPoint::COINBASE),
                     2 => outpoints.extend([
                         OutPoint::new(TxIndex::from(10usize), Vout::ZERO),
                         OutPoint::new(TxIndex::from(10usize), Vout::from(1u32)),
                     ]),
                     4 => outpoints.push(OutPoint::new(TxIndex::from(12usize), Vout::ZERO)),
-                    _ => outpoints.push(OutPoint::COINBASE),
+                    _ => outpoints.push(OutPoint::new(TxIndex::from(9usize), Vout::ZERO)),
                 }
                 fees.push(Sats::from(match tx {
                     0 => 0u64,

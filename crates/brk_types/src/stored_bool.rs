@@ -29,7 +29,7 @@ impl JsonSchema for StoredBool {
 
 impl StoredBool {
     pub const FALSE: Self = Self(0);
-    pub const TRUE: Self = Self(1);
+    const TRUE: Self = Self(1);
 
     pub fn is_true(&self) -> bool {
         *self == Self::TRUE
@@ -54,21 +54,13 @@ impl From<StoredBool> for usize {
     }
 }
 
-impl StoredBool {
-    fn index_name() -> &'static str {
-        "bool"
-    }
-    fn index_aliases() -> &'static [&'static str] {
-        &["bool"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for StoredBool {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "bool"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["bool"]
     }
 }
 

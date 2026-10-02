@@ -96,7 +96,7 @@ impl Fixture {
         fork: u8,
     ) {
         let mut hash = [fork; 32];
-        hash[..8].copy_from_slice(&(self.creations.len() as u64).to_le_bytes());
+        hash[..8].copy_from_slice(&(self.creations.end() as u64).to_le_bytes());
         self.spends.push(hash, removed.iter().copied()).unwrap();
         self.creations.push(hash, created, None).unwrap();
         self.price.spot.cents.height.push(Cents::new(price));
@@ -113,7 +113,7 @@ impl Fixture {
         self.history
             .advance(
                 from,
-                self.creations.len(),
+                self.creations.end(),
                 &self.spends,
                 &self.creations,
                 |_, state| {

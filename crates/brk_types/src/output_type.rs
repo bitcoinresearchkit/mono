@@ -320,11 +320,10 @@ unsafe impl Pco for OutputType {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "storage"))]
 mod tests {
     use super::*;
 
-    #[cfg(feature = "storage")]
     #[test]
     fn pco_conversion_rejects_invalid_discriminants() {
         const { assert!(!OutputType::IS_TRANSPARENT) };

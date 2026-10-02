@@ -32,7 +32,7 @@ pub(crate) async fn check(state: &AppState, address: SocketAddr, monotonic_time:
             .unwrap();
             let read = query.search(&params).unwrap();
             let column = read.columns().next().unwrap();
-            assert_eq!(column.len(), last + 1);
+            assert_eq!(column.visible_len(), last + 1);
             let mut expected = Vec::new();
             column.write_json(None, None, &mut expected).unwrap();
             let values: Value = from_slice(&expected).unwrap();

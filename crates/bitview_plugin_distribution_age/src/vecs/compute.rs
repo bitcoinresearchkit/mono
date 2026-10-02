@@ -44,7 +44,7 @@ impl ComputePlugin for Vecs {
         let start = usize::from(deps.from)
             .min(end)
             .min(usize::from(self.cohorts.min_resume_len()))
-            .min(self.age_bounds.len())
+            .min(self.age_bounds.min_len())
             .min(self.coinblocks_destroyed.block.len())
             .min(
                 self.coindays_created

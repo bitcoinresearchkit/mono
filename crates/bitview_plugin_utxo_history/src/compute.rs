@@ -21,7 +21,7 @@ impl ComputePlugin for Vecs {
             end,
         } = dependencies;
         self.db.sync_bg_tasks()?;
-        let end = end.min(creations.len()).min(spends.len());
+        let end = end.min(creations.end()).min(spends.end());
         let version = Version::TWO
             + Version::from(creations.version() as u32)
             + Version::from(spends.version() as u32);

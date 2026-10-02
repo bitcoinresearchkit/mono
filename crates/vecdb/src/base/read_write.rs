@@ -37,7 +37,7 @@ where
             .db
             .create_region_if_needed(&vec_region_name_with::<I>(options.name))?;
 
-        let region_len = region.meta().len();
+        let region_len = region.meta().byte_len();
         if region_len > 0 && region_len < HEADER_OFFSET {
             return Err(Error::CorruptedRegion {
                 name: region.meta().id().to_string(),

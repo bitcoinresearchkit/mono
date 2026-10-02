@@ -43,7 +43,7 @@ fn shared_chunks_stop_at_metadata_blocks_and_rebuild_from_chunk_boundaries() -> 
     // 21 pages occupy one full 136-byte metadata block and five records in
     // the second block: 136 + 8-byte base + 5 * 8-byte records.
     let pages = db.get_region(&vec.region_names()[1]).expect("pages region");
-    assert_eq!(pages.meta().len(), 184);
+    assert_eq!(pages.meta().byte_len(), 184);
     assert_eq!(
         vec.collect_range_at(VALUES_PER_PAGE * 15 - 7, VALUES_PER_PAGE * 16 + 7),
         initial[VALUES_PER_PAGE * 15 - 7..VALUES_PER_PAGE * 16 + 7]

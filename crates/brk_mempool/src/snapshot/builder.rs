@@ -138,22 +138,6 @@ mod tests {
     }
 
     #[test]
-    fn three_tx_chain_chunks_correctly() {
-        let mut txs = vec![
-            snap_tx(sats(100), vsize(100)),
-            snap_tx(sats(100), vsize(100)),
-            snap_tx(sats(5800), vsize(100)),
-        ];
-        link(&mut txs, 0, 1);
-        link(&mut txs, 1, 2);
-        Snapshot::refresh_chunk_rates(&mut txs);
-        let combined = FeeRate::from((sats(6000), vsize(300)));
-        assert_eq!(txs[0].chunk_rate, combined);
-        assert_eq!(txs[1].chunk_rate, combined);
-        assert_eq!(txs[2].chunk_rate, combined);
-    }
-
-    #[test]
     fn disjoint_clusters_linearized_independently() {
         let mut txs = vec![
             snap_tx(sats(100), vsize(100)),

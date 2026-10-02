@@ -40,13 +40,13 @@ where
     /// Returns the number of values remaining.
     #[inline(always)]
     pub fn remaining(&self) -> usize {
-        self.reader.len().saturating_sub(self.pos)
+        self.reader.stored_len().saturating_sub(self.pos)
     }
 
     /// Advances the position by `n` without reading.
     #[inline(always)]
     pub fn advance(&mut self, n: usize) {
-        self.pos = self.pos.saturating_add(n).min(self.reader.len());
+        self.pos = self.pos.saturating_add(n).min(self.reader.stored_len());
     }
 
     /// Returns the value at absolute `index` without changing the position.

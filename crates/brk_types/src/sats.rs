@@ -385,11 +385,10 @@ impl Formattable for Sats {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "storage"))]
 mod tests {
     use super::*;
 
-    #[cfg(feature = "storage")]
     #[test]
     fn overflow_encoding_preserves_inline_values_and_sidecar_indexes() {
         for value in [0, (1_u64 << 31) - 1] {

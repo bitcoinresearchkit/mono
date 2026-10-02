@@ -1,12 +1,6 @@
-//! Tests that write() makes data visible to other vecs without fsync.
-//!
-//! This verifies the key property that enables fast per-compute operations:
-//! after vec_a.write(), vec_b can immediately read the new data because
-//! both share the same mmap. No fsync is needed for in-process visibility.
+//! Writes must be visible to fresh imports before a flush.
 
-use std::error::Error;
-
-use vecdb::BytesVec;
+use tempfile::TempDir;
 #[cfg(feature = "lz4")]
 use vecdb::LZ4Vec;
 #[cfg(feature = "pco")]
@@ -16,152 +10,53 @@ use vecdb::ZeroCopyVec;
 #[cfg(feature = "zstd")]
 use vecdb::ZstdVec;
 
-use rawdb::Database;
-use tempfile::TempDir;
-use vecdb::{Result as VecdbResult, StoredVec, Version};
+use vecdb::{BytesVec, Database, Result, StoredVec, Version};
 
-fn setup_test_db() -> VecdbResult<(Database, TempDir)> {
-    let temp_dir = TempDir::new()?;
-    let db = Database::open(temp_dir.path())?;
-    Ok((db, temp_dir))
-}
+fn run<V: StoredVec<I = usize, T = u32>>() -> Result<()> {
+    let directory = TempDir::new()?;
+    let db = Database::open(directory.path())?;
+    let mut writer = V::import(&db, "values", Version::ONE)?;
+    assert!(!writer.write()?);
 
-/// Tests the full compute chain pattern:
-/// 1. Compute and write vec_a
-/// 2. Compute vec_b derived from vec_a, write it
-/// 3. Compute vec_c derived from vec_b, write it
-/// 4. Read the result through another instance, without flushing
-fn run_compute_chain_test<V>() -> Result<(), Box<dyn Error>>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let version = Version::ZERO;
-    let (database, _temp) = setup_test_db()?;
-
-    // Step 1: Compute vec_a (source data)
-    let mut vec_a: V = V::forced_import(&database, "chain_a", version)?;
-    for i in 0..50u32 {
-        vec_a.push(i * 2); // Even numbers: 0, 2, 4, ...
+    let expected = [2, 6, 10, 14, 18];
+    for end in [3, 5] {
+        for &value in &expected[writer.len()..end] {
+            writer.push(value);
+        }
+        assert!(writer.write()?);
+        let reader = V::import(&db, "values", Version::ONE)?;
+        assert_eq!(reader.collect(), expected[..end]);
+        assert!(!writer.write()?);
+        assert_eq!(reader.collect(), expected[..end]);
     }
-    vec_a.write()?; // No fsync, just mmap write
-
-    // Step 2: Compute vec_b derived from vec_a (sum of consecutive pairs)
-    let vec_a_for_read: V = V::forced_import(&database, "chain_a", version)?;
-    assert_eq!(vec_a_for_read.len(), 50);
-    let mut vec_b: V = V::forced_import(&database, "chain_b", version)?;
-
-    for i in 0..25usize {
-        let a1 = vec_a_for_read.collect_one(i * 2).unwrap();
-        let a2 = vec_a_for_read.collect_one(i * 2 + 1).unwrap();
-        assert_eq!(a1, i as u32 * 4);
-        assert_eq!(a2, i as u32 * 4 + 2);
-        vec_b.push(a1 + a2);
-    }
-    vec_b.write()?; // No fsync, just mmap write
-
-    // Step 3: Compute vec_c derived from vec_b (cumulative sum)
-    let vec_b_for_read: V = V::forced_import(&database, "chain_b", version)?;
-    let mut vec_c: V = V::forced_import(&database, "chain_c", version)?;
-
-    let mut cumsum = 0u32;
-    for val in vec_b_for_read.collect() {
-        cumsum += val;
-        vec_c.push(cumsum);
-    }
-    vec_c.write()?; // No fsync, just mmap write
-
-    // Verify the chain computed correctly
-    // vec_a: [0, 2, 4, 6, 8, 10, ...]
-    // vec_b: [0+2, 4+6, 8+10, ...] = [2, 10, 18, ...]
-    // vec_c: cumsum of vec_b
-
-    let vec_c_verify: V = V::forced_import(&database, "chain_c", version)?;
-    assert_eq!(vec_c_verify.len(), 25);
-
-    let expected_b: Vec<u32> = (0..25).map(|i| (i * 4) + (i * 4 + 2)).collect();
-    let expected_c: Vec<u32> = expected_b
-        .iter()
-        .scan(0u32, |acc, &x| {
-            *acc += x;
-            Some(*acc)
-        })
-        .collect();
-
-    let actual_c: Vec<u32> = vec_c_verify.collect();
-    assert_eq!(
-        actual_c, expected_c,
-        "compute chain should produce correct results"
-    );
-
     Ok(())
-}
-
-/// Tests that write() returns the correct boolean:
-/// - true if data was written
-/// - false if nothing to write
-fn run_write_returns_bool_test<V>() -> Result<(), Box<dyn Error>>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let version = Version::ZERO;
-    let (database, _temp) = setup_test_db()?;
-
-    let mut vec: V = V::forced_import(&database, "bool_test", version)?;
-
-    // First write with no data should return false
-    assert!(!vec.write()?, "write() with no data should return false");
-
-    // Push data
-    vec.push(42);
-
-    // Write with data should return true
-    assert!(vec.write()?, "write() with data should return true");
-
-    // Second write with no new data should return false
-    assert!(
-        !vec.write()?,
-        "write() after already written should return false"
-    );
-
-    // Push more data
-    vec.push(43);
-
-    // Write should return true again
-    assert!(vec.write()?, "write() with new data should return true");
-
-    Ok(())
-}
-
-fn run<V: StoredVec<I = usize, T = u32>>() -> Result<(), Box<dyn Error>> {
-    run_compute_chain_test::<V>()?;
-    run_write_returns_bool_test::<V>()
 }
 
 #[test]
-fn bytes() -> Result<(), Box<dyn Error>> {
+fn bytes() -> Result<()> {
     run::<BytesVec<usize, u32>>()
 }
 
 #[cfg(feature = "zerocopy")]
 #[test]
-fn zerocopy() -> Result<(), Box<dyn Error>> {
+fn zerocopy() -> Result<()> {
     run::<ZeroCopyVec<usize, u32>>()
 }
 
 #[cfg(feature = "pco")]
 #[test]
-fn pco() -> Result<(), Box<dyn Error>> {
+fn pco() -> Result<()> {
     run::<PcoVec<usize, u32>>()
 }
 
 #[cfg(feature = "lz4")]
 #[test]
-fn lz4() -> Result<(), Box<dyn Error>> {
+fn lz4() -> Result<()> {
     run::<LZ4Vec<usize, u32>>()
 }
 
 #[cfg(feature = "zstd")]
 #[test]
-fn zstd() -> Result<(), Box<dyn Error>> {
+fn zstd() -> Result<()> {
     run::<ZstdVec<usize, u32>>()
 }

@@ -168,12 +168,12 @@ impl BalanceMetrics {
     pub fn min_resume_len(&self) -> Height {
         Height::from(
             [
-                self.supply_source.len(),
-                self.utxo_count.len(),
-                self.transfer_volume.len(),
-                self.realized_cap.len(),
-                self.realized_profit.len(),
-                self.realized_loss.len(),
+                self.supply_source.min_len(),
+                self.utxo_count.min_len(),
+                self.transfer_volume.min_len(),
+                self.realized_cap.min_len(),
+                self.realized_profit.min_len(),
+                self.realized_loss.min_len(),
             ]
             .into_iter()
             .min()

@@ -32,30 +32,9 @@ pub(super) fn sum<'a, I: VecIndex>(
 mod tests {
     use brk_types::{Sats, TxInIndex, Version};
     use tempfile::tempdir;
-    use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, ReadableVec, WritableVec};
+    use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, WritableVec};
 
     use super::sum;
-
-    #[test]
-    fn sums_complete_transactions_with_coinbase_and_reused_scratch() {
-        let directory = tempdir().unwrap();
-        let db = Database::open(directory.path()).unwrap();
-        let mut source =
-            PcoVec::<TxInIndex, Sats>::forced_import(&db, "values", Version::ONE).unwrap();
-        for value in [7, u64::MAX, 2, 3, 0, 9] {
-            source.push(Sats::from(value));
-        }
-        source.write().unwrap();
-        let mut sums = vec![Sats::MAX; 10];
-        source.for_each_range_at(
-            1,
-            6,
-            sum(&[1usize, 2, 4].map(TxInIndex::from), 6, &mut sums),
-        );
-        assert_eq!(sums, [Sats::MAX, Sats::new(5), Sats::new(9)]);
-        source.for_each_range_at(4, 6, sum(&[TxInIndex::from(4usize)], 6, &mut sums));
-        assert_eq!(sums, [Sats::new(9)]);
-    }
 
     #[test]
     fn retained_decoder_sums_adjacent_blocks_across_compressed_pages() {

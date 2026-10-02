@@ -57,18 +57,16 @@ fn op_return_values_survive_resume_reorg_version_change_and_empty_chain() {
     compute_sats(
         &mut target,
         &mut created,
-        Height::ZERO,
-        first.len(),
+        0..first.len(),
         &first,
-        &types,
-        &values,
+        (&types, &values),
         &hashes,
         &exit,
     )
     .unwrap();
     assert_eq!(target.collect(), expected);
     assert_eq!(
-        (0..created.len())
+        (0..created.end())
             .map(|h| created.read(h).unwrap().1)
             .map(|v| (v.sats, v.count))
             .collect::<Vec<_>>(),
@@ -79,11 +77,9 @@ fn op_return_values_survive_resume_reorg_version_change_and_empty_chain() {
     compute_sats(
         &mut target,
         &mut created,
-        Height::new(4),
-        first.len(),
+        4..first.len(),
         &first,
-        &types,
-        &values,
+        (&types, &values),
         &hashes,
         &exit,
     )
@@ -91,18 +87,16 @@ fn op_return_values_survive_resume_reorg_version_change_and_empty_chain() {
     compute_sats(
         &mut target,
         &mut created,
-        Height::new(4),
-        first.len(),
+        4..first.len(),
         &first,
-        &types,
-        &values,
+        (&types, &values),
         &hashes,
         &exit,
     )
     .unwrap();
     assert_eq!(target.collect(), expected);
     assert_eq!(
-        (0..created.len())
+        (0..created.end())
             .map(|h| created.read(h).unwrap().1)
             .map(|v| (v.sats, v.count))
             .collect::<Vec<_>>(),
@@ -120,11 +114,9 @@ fn op_return_values_survive_resume_reorg_version_change_and_empty_chain() {
     compute_sats(
         &mut target,
         &mut created,
-        Height::new(2),
-        first.len(),
+        2..first.len(),
         &first,
-        &types,
-        &values,
+        (&types, &values),
         &hashes,
         &exit,
     )
@@ -156,11 +148,9 @@ fn op_return_values_survive_resume_reorg_version_change_and_empty_chain() {
     compute_sats(
         &mut target,
         &mut created,
-        Height::new(2),
-        first.len(),
+        2..first.len(),
         &first,
-        &types,
-        &values,
+        (&types, &values),
         &hashes,
         &exit,
     )
@@ -171,11 +161,9 @@ fn op_return_values_survive_resume_reorg_version_change_and_empty_chain() {
     compute_sats(
         &mut target,
         &mut created,
-        Height::new(2),
-        first.len(),
+        2..first.len(),
         &first,
-        &types,
-        &values,
+        (&types, &values),
         &hashes,
         &exit,
     )
@@ -186,11 +174,9 @@ fn op_return_values_survive_resume_reorg_version_change_and_empty_chain() {
     compute_sats(
         &mut target,
         &mut created,
-        Height::new(2),
-        first.len(),
+        2..first.len(),
         &first,
-        &types,
-        &values,
+        (&types, &values),
         &hashes,
         &exit,
     )

@@ -124,9 +124,9 @@ impl RealizedVecs {
             .min(self.loss.stored.min_len())
             .min(self.net_pnl.stored.min_len())
             .min(self.value_destroyed.stored.min_len())
-            .min(self.cap_raw.len())
-            .min(self.capitalized_cap_raw.len())
-            .min(self.peak_regret_raw.len())
+            .min(self.cap_raw.min_len())
+            .min(self.capitalized_cap_raw.min_len())
+            .min(self.peak_regret_raw.min_len())
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {

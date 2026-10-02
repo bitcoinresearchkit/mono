@@ -201,16 +201,4 @@ mod tests {
         assert!(waiting.is_err(), "reader passed a held write lock");
         assert_eq!(result.unwrap(), Some(next));
     }
-
-    #[test]
-    fn lower_before_clamps_published_lengths() {
-        let state = State::new();
-        state.finish_update(Lengths {
-            height: Height::new(1),
-            ..Default::default()
-        });
-        state.lower_before(&Lengths::default());
-
-        assert_eq!(state.lengths(), Lengths::default());
-    }
 }

@@ -161,60 +161,50 @@ mod tests {
     use super::*;
 
     #[test]
-    fn batched_searches_share_repeated_targets_and_skip_absent_fields() {
-        let mut tree = FenwickTree::<u32>::new(13);
+    fn builds_and_batched_searches_preserve_frequencies_without_repeated_reads() {
         let frequencies = [3, 0, 2, 0, 0, 5, 1, 0, 7, 0, 0, 0, 4];
-        for (bucket, frequency) in frequencies.into_iter().enumerate() {
-            tree.add(bucket, &frequency);
-        }
-        let calls = Cell::new(0);
-        let result = tree.kth_many([Some([6; 8]), Some([40; 8]), None], &|q, n| {
-            calls.set(calls.get() + 1);
-            match q {
-                0 => *n,
-                1 => 2 * n,
-                _ => panic!("absent query was searched"),
+        for bulk in [false, true] {
+            let mut tree = FenwickTree::<u32>::new(frequencies.len());
+            for (bucket, frequency) in frequencies.into_iter().enumerate() {
+                if bulk {
+                    tree.add_raw(bucket, &frequency);
+                } else {
+                    tree.add(bucket, &frequency);
+                }
             }
-        });
-        assert_eq!(result, [[5; 8], [12; 8], [0; 8]]);
-        // Two active fields share one extraction per tree level across eight ranks.
-        assert!(calls.get() <= 2 * 4);
+            if bulk {
+                tree.build_in_place();
+            }
+            let mut prefix = 0;
+            for (bucket, frequency) in frequencies.into_iter().enumerate() {
+                prefix += frequency;
+                assert_eq!(tree.prefix_sum(bucket), prefix);
+            }
+            let calls = Cell::new(0);
+            let result = tree.kth_many([Some([6; 8]), Some([40; 8]), None], &|q, n| {
+                calls.set(calls.get() + 1);
+                match q {
+                    0 => *n,
+                    1 => 2 * n,
+                    _ => panic!("absent query was searched"),
+                }
+            });
+            assert_eq!(result, [[5; 8], [12; 8], [0; 8]]);
+            // Two active fields share one extraction per tree level across eight ranks.
+            assert!(calls.get() <= 2 * 4);
 
-        let targets = [21, 0, 5, 2, 9, 3, 17, 4];
-        let expected = targets.map(|target| {
-            let mut sum = 0;
-            frequencies
-                .iter()
-                .position(|frequency| {
-                    sum += frequency;
-                    sum > target
-                })
-                .unwrap()
-        });
-        assert_eq!(tree.kth(targets, &|n| *n), expected);
-    }
-
-    #[test]
-    fn build_in_place_matches_add() {
-        let mut tree_add = FenwickTree::<u32>::new(8);
-        tree_add.add(0, &5);
-        tree_add.add(2, &3);
-        tree_add.add(5, &7);
-        tree_add.add(7, &1);
-
-        let mut tree_bulk = FenwickTree::<u32>::new(8);
-        tree_bulk.add_raw(0, &5);
-        tree_bulk.add_raw(2, &3);
-        tree_bulk.add_raw(5, &7);
-        tree_bulk.add_raw(7, &1);
-        tree_bulk.build_in_place();
-
-        for i in 0..8 {
-            assert_eq!(
-                tree_add.prefix_sum(i),
-                tree_bulk.prefix_sum(i),
-                "mismatch at bucket {i}"
-            );
+            let targets = [21, 0, 5, 2, 9, 3, 17, 4];
+            let expected = targets.map(|target| {
+                let mut sum = 0;
+                frequencies
+                    .iter()
+                    .position(|frequency| {
+                        sum += frequency;
+                        sum > target
+                    })
+                    .unwrap()
+            });
+            assert_eq!(tree.kth(targets, &|n| *n), expected);
         }
     }
 }

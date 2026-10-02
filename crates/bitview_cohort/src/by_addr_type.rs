@@ -30,7 +30,7 @@ pub enum AddrTypeId {
     P2A,
 }
 
-pub(crate) const ADDR_TYPE_IDS: [AddrTypeId; ADDR_TYPE_COUNT] = [
+const ADDR_TYPE_IDS: [AddrTypeId; ADDR_TYPE_COUNT] = [
     AddrTypeId::P2PK65,
     AddrTypeId::P2PK33,
     AddrTypeId::P2PKH,

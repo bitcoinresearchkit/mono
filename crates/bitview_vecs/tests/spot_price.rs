@@ -3,10 +3,7 @@ use bitview_vecs::{OhlcPrice, SplitPrice, SpotPrice};
 use brk_types::{Cents, Height, Version};
 use common::init_cache;
 use tempfile::tempdir;
-use vecdb::{
-    AnyStoredVec, AnyVec, Budgeted, Database, EagerVec, PcoVec, ReadableVec, UnaryTransform,
-    WritableVec,
-};
+use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, UnaryTransform, WritableVec};
 
 mod common;
 
@@ -19,7 +16,6 @@ fn shared_price_shapes_preserve_integer_units_inverse_extrema_empty_periods_and_
     indexes.first_height.day1 =
         common::first_heights("day_starts", [0usize, 2, 2, 4].map(Height::from));
     let mut spot = SpotPrice::forced_import(&db, "price", Version::new(31), &indexes).unwrap();
-    let _: &EagerVec<PcoVec<Height, Cents, Budgeted>> = &spot.cents.height;
     for value in [200u64, 400, 100, 800, 300, 600] {
         spot.cents.height.push(Cents::from(value));
     }

@@ -25,21 +25,6 @@ fn fresh_pulled(addition: TxAddition) -> TxsPulled {
 }
 
 #[test]
-fn insert_one_updates_all_stores() {
-    let mut lock = State::default();
-    let snapshot = Snapshot::default();
-    let mut diff = CycleDiff::default();
-    let (addition, txid) = fresh_addition(0xC0, 200, 100);
-
-    apply(&mut lock, &snapshot, fresh_pulled(addition), &mut diff);
-
-    let state = &lock;
-    assert!(state.txs.contains(&txid));
-    assert_eq!(diff.added.len(), 1);
-    assert_eq!(diff.added[0].txid, txid);
-}
-
-#[test]
 fn revived_path_exhumes_body_from_graveyard() {
     let mut lock = State::default();
     let snapshot = Snapshot::default();
@@ -90,68 +75,46 @@ fn revived_with_empty_graveyard_is_dropped() {
 }
 
 #[test]
-fn bury_preserves_chunk_rate_from_snapshot() {
-    let mut lock = State::default();
-    let (addition, txid) = fresh_addition(0xC2, 100, 100);
+fn bury_preserves_chunk_rate_from_snapshot_or_falls_back_to_isolated_rate() {
+    for has_snapshot in [false, true] {
+        let mut lock = State::default();
+        let (addition, txid) = fresh_addition(0xC2, 100, 100);
+        let mut diff = CycleDiff::default();
+        apply(
+            &mut lock,
+            &Snapshot::default(),
+            fresh_pulled(addition),
+            &mut diff,
+        );
+        assert!(lock.txs.contains(&txid));
+        assert_eq!(diff.added.len(), 1);
+        assert_eq!(diff.added[0].txid, txid);
 
-    // Publish first to plant the tx, with a fee-rate that differs
-    // from the snapshot's stub rate so we can tell them apart.
-    apply(
-        &mut lock,
-        &Snapshot::default(),
-        fresh_pulled(addition),
-        &mut CycleDiff::default(),
-    );
-    let isolated_rate = FeeRate::from((Sats::from(100u64), VSize::from(100u64)));
+        let isolated_rate = FeeRate::from((Sats::from(100u64), VSize::from(100u64)));
+        let cpfp_rate = FeeRate::from((Sats::from(500u64), VSize::from(100u64)));
+        let prefix = TxidPrefix::from(&txid);
+        let (snapshot, expected) = if has_snapshot {
+            (
+                Snapshot::for_test_with_chunk_rates(&[(prefix, cpfp_rate, txid)]),
+                cpfp_rate,
+            )
+        } else {
+            (Snapshot::default(), isolated_rate)
+        };
 
-    let cpfp_rate = FeeRate::from((Sats::from(500u64), VSize::from(100u64)));
-    let prefix = TxidPrefix::from(&txid);
-    let snapshot = Snapshot::for_test_with_chunk_rates(&[(prefix, cpfp_rate, txid)]);
-
-    let mut diff = CycleDiff::default();
-    apply(
-        &mut lock,
-        &snapshot,
-        TxsPulled {
-            live_len: 0,
-            added: vec![],
-            removed: vec![(prefix, TxRemoval::Vanished)],
-        },
-        &mut diff,
-    );
-
-    assert_eq!(diff.removed.len(), 1);
-    assert_eq!(diff.removed[0].chunk_rate, cpfp_rate);
-    assert_ne!(diff.removed[0].chunk_rate, isolated_rate);
-    let state = &lock;
-    assert_eq!(state.graveyard.get(&txid).unwrap().chunk_rate, cpfp_rate);
-}
-
-#[test]
-fn bury_falls_back_to_isolated_rate_when_snapshot_misses() {
-    let mut lock = State::default();
-    let (addition, txid) = fresh_addition(0xC3, 700, 100);
-    apply(
-        &mut lock,
-        &Snapshot::default(),
-        fresh_pulled(addition),
-        &mut CycleDiff::default(),
-    );
-
-    let isolated_rate = FeeRate::from((Sats::from(700u64), VSize::from(100u64)));
-    let prefix = TxidPrefix::from(&txid);
-
-    let mut diff = CycleDiff::default();
-    apply(
-        &mut lock,
-        &Snapshot::default(),
-        TxsPulled {
-            live_len: 0,
-            added: vec![],
-            removed: vec![(prefix, TxRemoval::Vanished)],
-        },
-        &mut diff,
-    );
-
-    assert_eq!(diff.removed[0].chunk_rate, isolated_rate);
+        let mut diff = CycleDiff::default();
+        apply(
+            &mut lock,
+            &snapshot,
+            TxsPulled {
+                live_len: 0,
+                added: vec![],
+                removed: vec![(prefix, TxRemoval::Vanished)],
+            },
+            &mut diff,
+        );
+        assert_eq!(diff.removed.len(), 1);
+        assert_eq!(diff.removed[0].chunk_rate, expected);
+        assert_eq!(lock.graveyard.get(&txid).unwrap().chunk_rate, expected);
+    }
 }

@@ -11,8 +11,8 @@ use vecdb::ZstdVec;
 
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, ReadableVec, StoredVec, Version,
-    WritableVec,
+    AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, ImportableVec, ReadableVec, StoredVec,
+    Version, WritableVec,
 };
 
 fn check_source<V: StoredVec<I = usize, T = u64>>() {
@@ -22,11 +22,13 @@ fn check_source<V: StoredVec<I = usize, T = u64>>() {
     let _serial = cache::TEST_LOCK.lock().unwrap();
     let budget = init_cache();
     let mut source = V::import(&db, "source", Version::ONE).unwrap();
+    let captured = source.read_only_clone();
+    assert!(captured.is_empty());
     for i in 0..LEN {
         source.push(i as u64);
     }
+    assert!(captured.is_empty());
     source.write().unwrap();
-    let captured = source.read_only_clone();
     assert_eq!(captured.collect_one_at(42), Some(42));
     assert!(!source.read_cached_into_at(0, LEN, &mut Vec::new()));
     let indices = [42, 42, 1023, 1024, 8191, 8192, LEN - 1, LEN];
@@ -42,6 +44,8 @@ fn check_source<V: StoredVec<I = usize, T = u64>>() {
     assert_eq!(captured.collect(), expected);
 
     source.push(LEN as u64);
+    assert_eq!(captured.len(), LEN);
+    assert_eq!(captured.collect_one_at(LEN), None);
     source.write().unwrap();
     assert!(captured.read_cached_into_at(0, LEN, &mut Vec::new()));
     assert!(captured.read_cached_into_at(LEN, LEN + 1, &mut Vec::new()));

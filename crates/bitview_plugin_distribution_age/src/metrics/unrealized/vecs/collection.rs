@@ -89,15 +89,14 @@ impl UnrealizedVecs {
     }
 
     #[inline(always)]
-
     pub fn min_resume_len(&self) -> usize {
         self.profit
             .stored
             .min_len()
             .min(self.loss.stored.min_len())
             .min(self.net_pnl.stored.min_len())
-            .min(self.capitalized_cap_in_profit_raw.len())
-            .min(self.capitalized_cap_in_loss_raw.len())
+            .min(self.capitalized_cap_in_profit_raw.min_len())
+            .min(self.capitalized_cap_in_loss_raw.min_len())
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {

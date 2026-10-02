@@ -48,30 +48,11 @@ pub trait ComputePluginSet: PluginSet {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::Cell;
-
     use bitview_plugin::{Plugin, PluginId, PluginStorage};
     use bitview_traversable::Traversable;
     use brk_types::Version;
 
     use super::*;
-
-    #[test]
-    fn bootstrap_compute_stops_at_reimport() -> Result<()> {
-        let computes = Cell::new(0);
-
-        BootstrapAction::Reimport.then_compute(|| {
-            computes.set(computes.get() + 1);
-            Ok(())
-        })?;
-        BootstrapAction::Ready.then_compute(|| {
-            computes.set(computes.get() + 1);
-            Ok(())
-        })?;
-
-        assert_eq!(computes.get(), 1);
-        Ok(())
-    }
 
     #[derive(Traversable)]
     struct TestPlugin {

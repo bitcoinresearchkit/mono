@@ -36,7 +36,7 @@ impl HeaderInner {
         vec_version: Version,
         format: Format,
     ) -> Result<Self> {
-        let len = region.meta().len();
+        let len = region.meta().byte_len();
 
         if len < HEADER_OFFSET {
             return Err(Error::WrongLength {

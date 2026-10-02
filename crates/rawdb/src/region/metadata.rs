@@ -44,7 +44,7 @@ impl RegionMetadata {
         self.start = start;
     }
 
-    pub fn len(&self) -> usize {
+    pub fn byte_len(&self) -> usize {
         self.len
     }
 
@@ -67,7 +67,7 @@ impl RegionMetadata {
     }
 
     pub(crate) fn set_reserved(&mut self, reserved: usize) {
-        assert!(self.len() <= reserved);
+        assert!(self.byte_len() <= reserved);
         assert!(reserved >= PAGE_SIZE);
         assert!(reserved.is_multiple_of(PAGE_SIZE));
         assert!(reserved <= MAX_RESERVED_SIZE);
