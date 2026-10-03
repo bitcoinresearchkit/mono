@@ -1,7 +1,7 @@
-use bitview_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId, for_each_age_crossing};
+use bitview_cohort::{AGE_RANGE_COUNT, Age, AgeRange, AgeRangeId, for_each_age_crossing};
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
-use brk_types::{Age, Cents, Timestamp};
+use brk_types::{Cents, Timestamp};
 use rustc_hash::FxHashMap;
 use statedb::{Cursor, State};
 

@@ -1,5 +1,6 @@
+use bitview_cohort::Age;
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
-use brk_types::{Age, Cents, Height, Sats, Timestamp};
+use brk_types::{Cents, Height, Sats, Timestamp};
 
 use crate::{
     compute::ComputeContext,

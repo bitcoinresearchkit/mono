@@ -76,7 +76,7 @@ impl Timestamp {
     }
 
     #[inline]
-    pub(crate) fn difference_in_hours_between(&self, older: Self) -> usize {
+    pub fn difference_in_hours_between(&self, older: Self) -> usize {
         ((self.0 - older.0) / ONE_HOUR_IN_SEC) as usize
     }
 

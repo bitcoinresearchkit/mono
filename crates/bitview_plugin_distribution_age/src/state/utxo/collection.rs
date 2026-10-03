@@ -1,7 +1,7 @@
-use bitview_cohort::{AgeRange, ByEpoch, Class};
+use bitview_cohort::{Age, AgeRange, ByEpoch, Class};
 use bitview_primitives::CostBasisSnapshot;
 use brk_error::Result;
-use brk_types::{Age, Height};
+use brk_types::Height;
 use rayon::scope as RayonScope;
 use statedb::Amount;
 

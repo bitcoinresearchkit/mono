@@ -2,11 +2,10 @@ use std::ops::Range;
 
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
-use brk_types::Age;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{CohortContext, CohortId, CohortName, Term};
+use super::{Age, CohortContext, CohortId, CohortName, Term};
 
 // Age boundary constants in hours
 const HOURS_1H: usize = 1;

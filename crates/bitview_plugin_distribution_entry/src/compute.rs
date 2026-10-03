@@ -1,9 +1,9 @@
-use bitview_cohort::{ByEntry, EntryPrice};
+use bitview_cohort::{Age, ByEntry, EntryPrice};
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
 use brk_error::{Error, Result};
 use brk_exit::Exit;
-use brk_types::{Age, Cents, Height, Sats, Version};
+use brk_types::{Cents, Height, Sats, Version};
 use statedb::Amount;
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Stamp};
 

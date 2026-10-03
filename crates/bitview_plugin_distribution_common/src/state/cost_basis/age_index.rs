@@ -1,9 +1,9 @@
 use bitview_cohort::{
-    AgeAggregateId, AgeRangeId, HOURS_4M, HOURS_5M, HOURS_6M, for_each_age_cutoff,
+    Age, AgeAggregateId, AgeRangeId, HOURS_4M, HOURS_5M, HOURS_6M, for_each_age_cutoff,
 };
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
-use brk_types::{Age, Cents, Height, Timestamp};
+use brk_types::{Cents, Height, Timestamp};
 use statedb::{Cursor, Reader, State};
 use vecdb::ReadableVec;
 

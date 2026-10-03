@@ -1,4 +1,4 @@
-use crate::{Sats, Timestamp};
+use brk_types::{Sats, Timestamp};
 
 /// Represents the age of a UTXO or address balance.
 /// Encapsulates all age-related calculations in one type-safe struct.

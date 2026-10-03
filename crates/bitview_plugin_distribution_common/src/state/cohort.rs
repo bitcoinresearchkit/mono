@@ -1,5 +1,6 @@
+use bitview_cohort::Age;
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
-use brk_types::{Age, Cents, CentsSats, Sats};
+use brk_types::{Cents, CentsSats, Sats};
 
 use super::{
     SendPrecomputed,

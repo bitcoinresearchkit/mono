@@ -3,6 +3,7 @@
 #[macro_use]
 mod macros;
 
+mod age;
 mod age_aggregate;
 mod age_range;
 mod amount_range;
@@ -17,13 +18,13 @@ mod cohort_id;
 mod cohort_name;
 mod profitability_range;
 mod spendable_type;
+mod term;
 mod unspendable_type;
 mod utxo_aggregate;
 mod utxo_all_and_sth;
 mod with_addr_types;
 
-pub use brk_types::{Age, Term};
-
+pub use age::Age;
 pub use age_aggregate::{AgeAggregate, AgeAggregateId};
 pub use age_range::*;
 pub use amount_range::*;
@@ -38,6 +39,7 @@ pub use cohort_id::CohortId;
 pub use cohort_name::*;
 pub use profitability_range::*;
 pub use spendable_type::*;
+pub use term::Term;
 pub use unspendable_type::*;
 pub use utxo_aggregate::*;
 pub use utxo_all_and_sth::*;
