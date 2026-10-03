@@ -39,8 +39,11 @@ The author contract is deliberately small:
 1. Define one `PluginStorage` and return it from `Plugin`.
 2. Accept `ImportContext` in the plugin constructor and open the database
    through that storage descriptor.
-3. Define a typed dependency struct and implement `ComputePlugin`, using
-   `UpdateContext` only for shared update control such as `Exit`.
+3. Define a typed dependency struct and implement `ComputePlugin`: return the
+   plugin's database from `database()` and compute in `compute_state`; the
+   provided `compute` syncs that database before and compacts it after a
+   successful computation. Use `UpdateContext` only for shared update control
+   such as `Exit`.
 4. Put the plugin in a derived `PluginSet`, call it in the composition's typed
    compute schedule, and expose a read-only accessor for consumers that need
    it. Delegate `ComputePluginSet::publication` to the default composition so

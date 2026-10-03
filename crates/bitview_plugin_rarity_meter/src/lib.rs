@@ -121,7 +121,11 @@ where
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -135,7 +139,6 @@ impl ComputePlugin for Vecs {
             coinflow,
             price: prices,
         } = dependencies;
-        self.db.sync_bg_tasks()?;
 
         let spot = &prices.spot.cents.height;
         let metrics = &distribution_aggregated.cohorts.all;
@@ -295,8 +298,6 @@ impl ComputePlugin for Vecs {
             starting_height,
             exit,
         )?;
-
-        context.compact_database(&self.db);
 
         Ok(())
     }

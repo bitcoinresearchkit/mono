@@ -1,6 +1,7 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use rayon::join;
+use vecdb::Database;
 
 use super::{Vecs, count, features, fees, inscription, patterns, policy, sigops, size, versions};
 use crate::Dependencies;
@@ -8,7 +9,11 @@ use crate::Dependencies;
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -21,7 +26,6 @@ impl ComputePlugin for Vecs {
             price: prices,
         } = dependencies;
         let exit = context.exit();
-        self.db.sync_bg_tasks()?;
 
         let ((r1, r2), (r3, r4)) = join(
             || {
@@ -66,7 +70,6 @@ impl ComputePlugin for Vecs {
             exit,
         )?;
 
-        context.compact_database(&self.db);
         Ok(())
     }
 }

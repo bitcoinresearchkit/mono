@@ -1,7 +1,7 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use brk_types::{StoredU64, Weight};
-use vecdb::{ReadableVec, VecIndex};
+use vecdb::{Database, ReadableVec, VecIndex};
 
 use super::{Dependencies, Vecs};
 
@@ -18,13 +18,16 @@ fn next_streak(weight: Weight, previous: StoredU64) -> StoredU64 {
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
         let exit = context.exit();
-        self.db.sync_bg_tasks()?;
 
         self.streak.compute_transform(
             dependencies.safe_height,
@@ -39,12 +42,6 @@ impl ComputePlugin for Vecs {
             },
             exit,
         )?;
-
-        let exit = exit.clone();
-        self.db.run_bg(move |db| {
-            let _lock = exit.lock();
-            db.compact_deferred_default()
-        });
         Ok(())
     }
 }

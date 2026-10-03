@@ -6,7 +6,7 @@ use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Timestamp, Version};
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
+use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
 
 use super::Vecs;
 use crate::{Dependencies, model::PrimaryBatch};
@@ -16,12 +16,15 @@ const WRITE_INTERVAL: usize = 20_000;
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        self.db.sync_bg_tasks()?;
         self.compute_primary(dependencies, context.exit())?;
         let supplies = dependencies
             .distribution_age
@@ -40,7 +43,6 @@ impl ComputePlugin for Vecs {
             &supplies,
             context.exit(),
         )?;
-        context.compact_database(&self.db);
         Ok(())
     }
 }

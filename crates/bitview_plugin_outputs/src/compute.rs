@@ -3,7 +3,7 @@ use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
 use rayon::join;
-use vecdb::AnyVec;
+use vecdb::{AnyVec, Database};
 
 use super::{Vecs, by_type, count, spent, value};
 use crate::Dependencies;
@@ -11,7 +11,11 @@ use crate::Dependencies;
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        None
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,

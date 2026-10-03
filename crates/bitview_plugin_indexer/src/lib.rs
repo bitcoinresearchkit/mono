@@ -28,8 +28,8 @@ use state::State;
 use stores::Stores;
 use tracing::{debug, error, info, warn};
 use vecdb::{
-    AnyExportableVec, AnyVec, RawDBError, ReadOnlyClone, ReadableVec, Ro, Rw, StorageMode,
-    WritableVec, unlikely,
+    AnyExportableVec, AnyVec, Database, RawDBError, ReadOnlyClone, ReadableVec, Ro, Rw,
+    StorageMode, WritableVec, unlikely,
 };
 use vecs::{
     AddrsVecs, InputsVecs, OpReturnVecs, OutputsVecs, ScriptsVecs, TransactionCounts,
@@ -623,7 +623,15 @@ where
 impl ComputePlugin for Indexer {
     type Dependencies<'a> = ();
 
-    fn compute(&mut self, (): Self::Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+    fn database(&self) -> Option<&Database> {
+        None
+    }
+
+    fn compute_state(
+        &mut self,
+        (): Self::Dependencies<'_>,
+        context: UpdateContext<'_>,
+    ) -> Result<()> {
         self.index_inner(context.exit(), cfg!(debug_assertions))
     }
 }

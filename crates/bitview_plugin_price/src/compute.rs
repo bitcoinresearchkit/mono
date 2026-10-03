@@ -9,7 +9,7 @@ use brk_oracle::{
 };
 use brk_types::Cents;
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;
 use crate::{Dependencies, feed_blocks_for_warmup, feed_blocks_with};
@@ -131,7 +131,11 @@ impl Vecs {
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -139,15 +143,12 @@ impl ComputePlugin for Vecs {
         let Dependencies { indexer } = dependencies;
         let exit = context.exit();
 
-        self.db.sync_bg_tasks()?;
-
         self.compute_prices(indexer, exit)?;
         {
             let _lock = exit.lock();
             self.spot.cents.height.write()?;
         }
 
-        context.compact_database(&self.db);
         Ok(())
     }
 }

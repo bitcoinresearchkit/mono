@@ -38,7 +38,7 @@ immutable published prefix, `state_at`, `cursor`, `replay`, and identity checks
 for reusable analytical state. `View` opens read-only files for queries. The
 caller holds the pipeline publication guard through state capture, excluding
 snapshot writes and producer rewinds. Each plugin still owns its complete
-`ComputePlugin::compute()` update with read-only dependencies.
+`ComputePlugin::compute_state()` update with read-only dependencies.
 
 ## Storage
 

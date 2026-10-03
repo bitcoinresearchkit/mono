@@ -2,14 +2,18 @@ use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use brk_types::{Sats, StoredU64, Version};
-use vecdb::{AnyStoredVec, WritableVec};
+use vecdb::{AnyStoredVec, Database, WritableVec};
 
 use crate::{Dependencies, Vecs};
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -20,7 +24,6 @@ impl ComputePlugin for Vecs {
             from,
             end,
         } = dependencies;
-        self.db.sync_bg_tasks()?;
         let end = end.min(creations.end()).min(spends.end());
         let version = Version::TWO
             + Version::from(creations.version() as u32)

@@ -2,7 +2,7 @@ use bitview_cohort::AgeRange;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use rayon::join;
-use vecdb::AnyVec;
+use vecdb::{AnyVec, Database};
 
 use super::{Vecs, activity, adjusted, age_range, aggregate, cap, prices, reserve_risk, value};
 use crate::Dependencies;
@@ -29,8 +29,6 @@ impl Vecs {
         let velocity_native = &velocity_native.height;
         let velocity_fiat = &velocity_fiat.height;
         let exit = context.exit();
-
-        self.db.sync_bg_tasks()?;
 
         // Activity computes first (liveliness, vaultedness, etc.)
         activity::compute(
@@ -130,7 +128,11 @@ impl Vecs {
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -153,7 +155,6 @@ impl ComputePlugin for Vecs {
             &supplies,
             context.exit(),
         )?;
-        context.compact_database(&self.db);
         Ok(())
     }
 }

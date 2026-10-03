@@ -1,5 +1,6 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
+use vecdb::Database;
 
 use super::{Vecs, hashrate, rewards};
 use crate::Dependencies;
@@ -7,7 +8,11 @@ use crate::Dependencies;
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -19,8 +24,6 @@ impl ComputePlugin for Vecs {
             price: prices,
         } = dependencies;
         let exit = context.exit();
-
-        self.db.sync_bg_tasks()?;
 
         // Block rewards (coinbase, subsidy, fee_dominance, etc.)
         rewards::compute(
@@ -43,7 +46,6 @@ impl ComputePlugin for Vecs {
             exit,
         )?;
 
-        context.compact_database(&self.db);
         Ok(())
     }
 }

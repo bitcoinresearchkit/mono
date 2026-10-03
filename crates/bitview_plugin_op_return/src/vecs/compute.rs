@@ -1,7 +1,7 @@
 use brk_error::Result;
 
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use vecdb::AnyVec;
+use vecdb::{AnyVec, Database};
 
 use super::{Vecs, batch::Batch};
 use crate::Dependencies;
@@ -11,15 +11,17 @@ const WRITE_INTERVAL: usize = 10_000;
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
         let Dependencies { indexer, fees } = dependencies;
         let exit = context.exit();
-
-        self.db.sync_bg_tasks()?;
 
         let starting_lengths = indexer.safe_lengths();
         let vecs = indexer.vecs();
@@ -54,7 +56,6 @@ impl ComputePlugin for Vecs {
             }
         }
 
-        context.compact_database(&self.db);
         Ok(())
     }
 }

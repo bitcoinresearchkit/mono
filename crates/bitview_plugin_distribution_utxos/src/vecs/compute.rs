@@ -1,7 +1,7 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use brk_types::Height;
-use vecdb::{AnyVec, ReadableVec};
+use vecdb::{AnyVec, Database, ReadableVec};
 
 use crate::{
     Dependencies,
@@ -15,9 +15,12 @@ use super::Vecs;
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         let live = self.live.take();
-        self.db.sync_bg_tasks()?;
         let version = deps.version();
         let exit = context.exit();
         let changed = {
@@ -104,7 +107,6 @@ impl ComputePlugin for Vecs {
             )?;
             from = next;
         }
-        context.compact_database(&self.db);
         self.live = Some(LiveState {
             end,
             hash: end

@@ -9,13 +9,16 @@ use bitview_plugin_distribution_common::state::cost_basis::{PriceIndex, age_inde
 use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_types::{CentsCompact, Height, PartsPerMillion32, Version};
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp};
+use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Stamp};
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
-    fn compute(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+    fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         let live = self.live.take();
-        self.db.sync_bg_tasks()?;
         let sources = Sources::new(deps.age);
         let version = (
             deps.price.spot.cents.height.version(),
@@ -151,7 +154,6 @@ impl ComputePlugin for Vecs {
             )?;
         }
         self.save(end, true, context.exit())?;
-        context.compact_database(&self.db);
         self.live = Some(live);
         Ok(())
     }

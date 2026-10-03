@@ -3,6 +3,7 @@ use bitview_transforms::RatioDollars;
 use brk_error::Result;
 use brk_types::{BasisPoints32, Dollars, PartsPerMillion64, StoredF32};
 use rayon::join;
+use vecdb::Database;
 
 use super::Vecs;
 use crate::{Dependencies, gini};
@@ -10,7 +11,11 @@ use crate::{Dependencies, gini};
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -24,8 +29,6 @@ impl ComputePlugin for Vecs {
             market,
         } = dependencies;
         let exit = context.exit();
-
-        self.db.sync_bg_tasks()?;
 
         let starting_height = indexer.safe_lengths().height;
         let Self {
@@ -103,7 +106,6 @@ impl ComputePlugin for Vecs {
         rhodl_result?;
         seller_exhaustion_result?;
 
-        context.compact_database(&self.db);
         Ok(())
     }
 }

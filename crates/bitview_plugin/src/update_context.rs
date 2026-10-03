@@ -16,9 +16,9 @@ impl<'a> UpdateContext<'a> {
         self.exit
     }
 
-    /// Schedule deferred compaction under this update's shutdown lock.
-    /// The next update must call `db.sync_bg_tasks()` before writing again.
-    pub fn compact_database(self, db: &Database) {
+    /// Schedule deferred compaction under this update's shutdown lock; the next
+    /// [`crate::ComputePlugin::compute`] joins it before writing again.
+    pub(crate) fn compact_database(self, db: &Database) {
         let exit = self.exit.clone();
         db.run_bg(move |db| {
             let _lock = exit.lock();

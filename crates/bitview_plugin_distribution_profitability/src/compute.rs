@@ -4,7 +4,7 @@ use bitview_plugin_distribution_common::state::cost_basis::PriceIndex;
 use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_types::{CentsCompact, Height, Version};
-use vecdb::{AnyVec, ReadableVec, Stamp};
+use vecdb::{AnyVec, Database, ReadableVec, Stamp};
 
 use crate::{
     Dependencies, Vecs,
@@ -14,9 +14,12 @@ use crate::{
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         let live = self.live.take();
-        self.db.sync_bg_tasks()?;
         let version = (
             deps.prices.version(),
             deps.timestamps.version(),
@@ -96,7 +99,6 @@ impl ComputePlugin for Vecs {
             }
         }
         drop(cursor);
-        context.compact_database(&self.db);
         self.live = Some(live);
         Ok(())
     }

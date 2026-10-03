@@ -10,7 +10,7 @@ use bitview_urpd::COMPUTE_VERSION as URPD_COMPUTE_VERSION;
 use brk_error::Result;
 use brk_types::Version;
 use log::info;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
+use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
 
 use super::Vecs;
 use crate::{
@@ -21,7 +21,11 @@ use crate::{
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -35,7 +39,6 @@ impl ComputePlugin for Vecs {
             cointime,
             coinflow,
         } = dependencies;
-        self.db.sync_bg_tasks()?;
 
         let cointime_wakefulness =
             AgeRange::from_fn(|id| &id.select(&cointime.age_range.activity.wakefulness).height);
@@ -142,7 +145,6 @@ impl ComputePlugin for Vecs {
         self.calibration = Some(calibration);
         self.replay = replay;
         self.scratch = scratch;
-        context.compact_database(&self.db);
         Ok(())
     }
 }

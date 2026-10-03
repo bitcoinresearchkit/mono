@@ -12,7 +12,7 @@ A resident price index advances from canonical UTXO History and supplies
 percentiles and density for all seven filters. Shared price-index algorithms
 live in Distribution Common; this plugin owns its index, database and recovery.
 
-The plugin implements one complete `ComputePlugin::compute()`. It consumes
+The plugin implements one complete `ComputePlugin::compute_state()`. It consumes
 read-only Age, History, price and mapping dependencies. Append updates retain
 validated state; reopen, reorg, source-version changes and partial accounting
 writes restore the canonical state. Incomplete derived ratios are repaired

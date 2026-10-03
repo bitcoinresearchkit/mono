@@ -4,7 +4,7 @@ use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_types::{Age, Cents, CostBasisSnapshot, Height, Sats, SupplyState, Version};
 use statedb::Amount;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp};
+use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Stamp};
 
 use crate::{
     Dependencies, Vecs,
@@ -25,9 +25,12 @@ fn classify(price: Cents, previous: Cents) -> EntryPrice {
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         let live = self.live.take();
-        self.db.sync_bg_tasks()?;
         let version = (
             deps.prices.version(),
             deps.timestamps.version(),
@@ -152,7 +155,6 @@ impl ComputePlugin for Vecs {
         for cohort in self.cohorts.iter_mut() {
             cohort.compute_rest(Height::from(start), context.exit())?;
         }
-        context.compact_database(&self.db);
         self.live = Some(live);
         Ok(())
     }

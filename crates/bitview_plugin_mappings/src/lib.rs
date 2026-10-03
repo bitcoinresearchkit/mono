@@ -335,14 +335,17 @@ impl Vecs {
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
         let Dependencies { indexer } = dependencies;
         let exit = context.exit();
-        self.db.sync_bg_tasks()?;
 
         let starting_height = indexer.safe_lengths().height;
 
@@ -371,7 +374,6 @@ impl ComputePlugin for Vecs {
         self.year1.update(starting_height);
         self.year10.update(starting_height);
 
-        context.compact_database(&self.db);
         Ok(())
     }
 }

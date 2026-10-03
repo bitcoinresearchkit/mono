@@ -4,7 +4,7 @@ use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{CapitalSentimentPhase as Phase, Cents, Height, StoredBool, StoredU8, Version};
-use vecdb::{AnyStoredVec, Cursor, ReadableVec, WritableVec};
+use vecdb::{AnyStoredVec, Cursor, Database, ReadableVec, WritableVec};
 
 use super::Vecs;
 use crate::Dependencies;
@@ -14,7 +14,11 @@ const WRITE_INTERVAL_BLOCKS: usize = 1_000;
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -26,8 +30,6 @@ impl ComputePlugin for Vecs {
             moving_average,
         } = dependencies;
         let exit = context.exit();
-
-        self.db.sync_bg_tasks()?;
 
         let spot = &prices.spot.cents.height;
         let sma = &moving_average.sma._1y.cents.height;
@@ -60,8 +62,6 @@ impl ComputePlugin for Vecs {
             usize::from(indexer.safe_lengths().height),
             exit,
         )?;
-
-        context.compact_database(&self.db);
 
         Ok(())
     }

@@ -2,7 +2,7 @@
 
 Owns address records, funded/empty counts, activity, reuse/exposure, and balance
 cohorts (supply, output counts, transfer volume, realized cap and profit/loss).
-Its complete `ComputePlugin::compute()` resumes or rolls back its own database
+Its complete `ComputePlugin::compute_state()` resumes or rolls back its own database
 and state. It reads completed output-type supply for address balance averages and ratios;
 global supply comes from UTXO History. Average UTXO value belongs to UTXOs.
 Balance cohorts expose total realized cap without cap change/growth.

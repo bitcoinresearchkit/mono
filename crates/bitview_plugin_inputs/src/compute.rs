@@ -2,7 +2,7 @@ use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use brk_types::Height;
 use rayon::join;
-use vecdb::AnyVec;
+use vecdb::{AnyVec, Database};
 
 use super::{Vecs, value};
 use crate::Dependencies;
@@ -10,7 +10,11 @@ use crate::Dependencies;
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -21,8 +25,6 @@ impl ComputePlugin for Vecs {
             mappings,
         } = dependencies;
         let exit = context.exit();
-
-        self.db.sync_bg_tasks()?;
 
         let Vecs {
             value,
@@ -51,7 +53,6 @@ impl ComputePlugin for Vecs {
         value_result?;
         rest_result?;
 
-        context.compact_database(&self.db);
         Ok(())
     }
 }

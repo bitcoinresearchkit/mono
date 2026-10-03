@@ -210,7 +210,11 @@ impl Vecs {
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
-    fn compute(
+    fn database(&self) -> Option<&Database> {
+        Some(&self.db)
+    }
+
+    fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
@@ -221,7 +225,6 @@ impl ComputePlugin for Vecs {
             mining,
         } = dependencies;
         let exit = context.exit();
-        self.db.sync_bg_tasks()?;
 
         self.compute_pool(indexer, exit)?;
 
@@ -229,7 +232,6 @@ impl ComputePlugin for Vecs {
             .par_iter_mut()
             .try_for_each(|(_, vecs)| vecs.compute(indexer, prices, mining, exit))?;
 
-        context.compact_database(&self.db);
         Ok(())
     }
 }
