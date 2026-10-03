@@ -1537,12 +1537,12 @@ class BitviewError extends Error {
   }
 }
 
-// Date conversion constants and helpers
-const _GENESIS = new Date(2009, 0, 3);  // day1 0, week1 0
-const _DAY_ONE = new Date(2009, 0, 9);  // day1 1 (6 day gap after genesis)
+// Date conversion constants and helpers, mirroring the server's indexes: UTC, from 2009-01-01
+// (week1 buckets ISO weeks, which start three days earlier; year10 buckets calendar decades, 2009 alone in the first).
 const _MS_PER_DAY = 86400000;
 const _MS_PER_WEEK = 7 * _MS_PER_DAY;
 const _EPOCH_MS = 1230768000000;
+/** @typedef {'minute10'|'minute30'|'hour1'|'hour4'|'hour12'|'day1'|'day3'|'week1'|'month1'|'month3'|'month6'|'year1'|'year10'} DateIndex */
 const _DATE_INDEXES = new Set([
   'minute10', 'minute30',
   'hour1', 'hour4', 'hour12',
@@ -1552,7 +1552,7 @@ const _DATE_INDEXES = new Set([
 ]);
 
 /** @param {number} months @returns {globalThis.Date} */
-const _addMonths = (months) => new Date(2009, months, 1);
+const _addMonths = (months) => new Date(Date.UTC(2009, months, 1));
 
 /**
  * Convert an index value to a Date for date-based indexes.
@@ -1567,14 +1567,14 @@ function indexToDate(index, i) {
     case 'hour1': return new Date(_EPOCH_MS + i * 3600000);
     case 'hour4': return new Date(_EPOCH_MS + i * 14400000);
     case 'hour12': return new Date(_EPOCH_MS + i * 43200000);
-    case 'day1': return i === 0 ? _GENESIS : new Date(_DAY_ONE.getTime() + (i - 1) * _MS_PER_DAY);
+    case 'day1': return new Date(_EPOCH_MS + i * _MS_PER_DAY);
     case 'day3': return new Date(_EPOCH_MS - 86400000 + i * 259200000);
-    case 'week1': return new Date(_GENESIS.getTime() + i * _MS_PER_WEEK);
+    case 'week1': return new Date(_EPOCH_MS + i * _MS_PER_WEEK);
     case 'month1': return _addMonths(i);
     case 'month3': return _addMonths(i * 3);
     case 'month6': return _addMonths(i * 6);
-    case 'year1': return new Date(2009 + i, 0, 1);
-    case 'year10': return new Date(2009 + i * 10, 0, 1);
+    case 'year1': return new Date(Date.UTC(2009 + i, 0, 1));
+    case 'year10': return new Date(Date.UTC(i === 0 ? 2009 : 2000 + i * 10, 0, 1));
     default: throw new Error(`${index} is not a date-based index`);
   }
 }
@@ -1594,17 +1594,14 @@ function dateToIndex(index, d) {
     case 'hour1': return Math.floor((ms - _EPOCH_MS) / 3600000);
     case 'hour4': return Math.floor((ms - _EPOCH_MS) / 14400000);
     case 'hour12': return Math.floor((ms - _EPOCH_MS) / 43200000);
-    case 'day1': {
-      if (ms < _DAY_ONE.getTime()) return 0;
-      return 1 + Math.floor((ms - _DAY_ONE.getTime()) / _MS_PER_DAY);
-    }
+    case 'day1': return Math.max(0, Math.floor((ms - _EPOCH_MS) / _MS_PER_DAY));
     case 'day3': return Math.floor((ms - _EPOCH_MS + 86400000) / 259200000);
-    case 'week1': return Math.floor((ms - _GENESIS.getTime()) / _MS_PER_WEEK);
-    case 'month1': return (d.getFullYear() - 2009) * 12 + d.getMonth();
-    case 'month3': return (d.getFullYear() - 2009) * 4 + Math.floor(d.getMonth() / 3);
-    case 'month6': return (d.getFullYear() - 2009) * 2 + Math.floor(d.getMonth() / 6);
-    case 'year1': return d.getFullYear() - 2009;
-    case 'year10': return Math.floor((d.getFullYear() - 2009) / 10);
+    case 'week1': return Math.max(0, Math.floor((ms - _EPOCH_MS + 3 * _MS_PER_DAY) / _MS_PER_WEEK));
+    case 'month1': return (d.getUTCFullYear() - 2009) * 12 + d.getUTCMonth();
+    case 'month3': return (d.getUTCFullYear() - 2009) * 4 + Math.floor(d.getUTCMonth() / 3);
+    case 'month6': return (d.getUTCFullYear() - 2009) * 2 + Math.floor(d.getUTCMonth() / 6);
+    case 'year1': return d.getUTCFullYear() - 2009;
+    case 'year10': return Math.max(0, Math.floor((d.getUTCFullYear() - 2000) / 10));
     default: throw new Error(`${index} is not a date-based index`);
   }
 }
@@ -14262,12 +14259,13 @@ class BitviewClient extends BitviewClientBase {
    * Use this for programmatic access when the series name is determined at runtime.
    * For type-safe access, use the `series` tree instead.
    *
+   * @template {Index} I
    * @param {string} series - The series name
-   * @param {Index} index - The index name
-   * @returns {SeriesEndpoint<unknown>}
+   * @param {I} index - The index name; date indexes also slice by Date
+   * @returns {I extends DateIndex ? DateSeriesEndpoint<unknown> : SeriesEndpoint<unknown>}
    */
   seriesEndpoint(series, index) {
-    return _endpoint(this, series, index);
+    return /** @type {any} */ (_endpoint(this, series, index));
   }
 
   /**

@@ -191,12 +191,17 @@ pub(crate) fn generate_main_client(
     )
     .unwrap();
     writeln!(output, "   *").unwrap();
+    writeln!(output, "   * @template {{Index}} I").unwrap();
     writeln!(output, "   * @param {{string}} series - The series name").unwrap();
-    writeln!(output, "   * @param {{Index}} index - The index name").unwrap();
-    writeln!(output, "   * @returns {{SeriesEndpoint<unknown>}}").unwrap();
+    writeln!(output, "   * @param {{I}} index - The index name; date indexes also slice by Date").unwrap();
+    writeln!(
+        output,
+        "   * @returns {{I extends DateIndex ? DateSeriesEndpoint<unknown> : SeriesEndpoint<unknown>}}"
+    )
+    .unwrap();
     writeln!(output, "   */").unwrap();
     writeln!(output, "  seriesEndpoint(series, index) {{").unwrap();
-    writeln!(output, "    return _endpoint(this, series, index);").unwrap();
+    writeln!(output, "    return /** @type {{any}} */ (_endpoint(this, series, index));").unwrap();
     writeln!(output, "  }}\n").unwrap();
 
     generate_api_methods(output, endpoints);

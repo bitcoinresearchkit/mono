@@ -271,9 +271,10 @@ pub(crate) fn generate_endpoint_class(output: &mut String) {
     writeln!(
         output,
         r#"# Date conversion constants
-_GENESIS = date(2009, 1, 3)  # day1 0, week1 0
-_DAY_ONE = date(2009, 1, 9)  # day1 1 (6 day gap after genesis)
+# Mirrors the server's indexes: UTC, from 2009-01-01 (week1 buckets ISO weeks, which start three days earlier;
+# year10 buckets calendar decades, 2009 alone in the first)
 _EPOCH = datetime(2009, 1, 1, tzinfo=timezone.utc)
+_EPOCH_DATE = _EPOCH.date()
 _DATE_INDEXES = frozenset([
     'minute10', 'minute30',
     'hour1', 'hour4', 'hour12',
@@ -295,11 +296,11 @@ def _index_to_date(index: str, i: int) -> Union[date, datetime]:
     elif index == 'hour12':
         return _EPOCH + timedelta(hours=i * 12)
     elif index == 'day1':
-        return _GENESIS if i == 0 else _DAY_ONE + timedelta(days=i - 1)
+        return _EPOCH_DATE + timedelta(days=i)
     elif index == 'day3':
         return _EPOCH.date() - timedelta(days=1) + timedelta(days=i * 3)
     elif index == 'week1':
-        return _GENESIS + timedelta(weeks=i)
+        return _EPOCH_DATE + timedelta(weeks=i)
     elif index == 'month1':
         return date(2009 + i // 12, i % 12 + 1, 1)
     elif index == 'month3':
@@ -311,7 +312,7 @@ def _index_to_date(index: str, i: int) -> Union[date, datetime]:
     elif index == 'year1':
         return date(2009 + i, 1, 1)
     elif index == 'year10':
-        return date(2009 + i * 10, 1, 1)
+        return date(2009 if i == 0 else 2000 + i * 10, 1, 1)
     else:
         raise ValueError(f"{{index}} is not a date-based index")
 
@@ -331,15 +332,15 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
         div = {{'minute10': 600, 'minute30': 1800,
                'hour1': 3600, 'hour4': 14400, 'hour12': 43200}}
         return secs // div[index]
-    dd = d.date() if isinstance(d, datetime) else d
+    if isinstance(d, datetime):
+        d = (d.astimezone(timezone.utc) if d.tzinfo else d).date()
+    dd = d
     if index == 'day1':
-        if dd < _DAY_ONE:
-            return 0
-        return 1 + (dd - _DAY_ONE).days
+        return max(0, (dd - _EPOCH_DATE).days)
     elif index == 'day3':
         return (dd - date(2008, 12, 31)).days // 3
     elif index == 'week1':
-        return (dd - _GENESIS).days // 7
+        return max(0, ((dd - _EPOCH_DATE).days + 3) // 7)
     elif index == 'month1':
         return (dd.year - 2009) * 12 + (dd.month - 1)
     elif index == 'month3':
@@ -349,7 +350,7 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
     elif index == 'year1':
         return dd.year - 2009
     elif index == 'year10':
-        return (dd.year - 2009) // 10
+        return max(0, (dd.year - 2000) // 10)
     else:
         raise ValueError(f"{{index}} is not a date-based index")
 
