@@ -37,6 +37,11 @@ pub(crate) fn escape_rust_keyword(name: &str) -> String {
     }
 }
 
+/// Rust client field name for a catalog key: snake_case, keyword-escaped.
+pub(crate) fn rust_field_name(key: &str) -> String {
+    escape_rust_keyword(&to_snake_case(key))
+}
+
 /// Convert a string to camelCase (e.g., "fee_rate" -> "feeRate").
 pub(crate) fn to_camel_case(s: &str) -> String {
     let mut result = to_pascal_case(s);

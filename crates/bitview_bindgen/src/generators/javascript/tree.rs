@@ -9,8 +9,8 @@ use bitview_catalog::TreeNode;
 
 use super::{api::generate_api_methods, client::generate_static_constants};
 use crate::{
-    ClientMetadata, Endpoint, GenericSyntax, JavaScriptSyntax, PatternField, build_child_path,
-    generate_leaf_field, generate_tree_node_field, prepare_tree_node, to_camel_case,
+    ClientMetadata, Endpoint, GenericSyntax, JavaScriptSyntax, LanguageSyntax, PatternField,
+    build_child_path, generate_leaf_field, generate_tree_node_field, prepare_tree_node,
 };
 
 /// Generate JSDoc typedefs for the series tree.
@@ -61,7 +61,7 @@ fn generate_tree_typedef(
             output,
             " * @property {{{}}} {}",
             js_type,
-            to_camel_case(&child.field.name)
+            JavaScriptSyntax.field_name(&child.field.name)
         )
         .unwrap();
     }
@@ -229,7 +229,7 @@ fn generate_tree_initializer(
 
     let syntax = JavaScriptSyntax;
     for child in &ctx.children {
-        let field_name = to_camel_case(child.name);
+        let field_name = syntax.field_name(child.name);
 
         if child.is_leaf {
             if let TreeNode::Leaf(leaf) = child.node {

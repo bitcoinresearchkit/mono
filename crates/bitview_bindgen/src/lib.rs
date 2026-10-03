@@ -76,6 +76,7 @@ impl ClientOutputPaths {
 mod analysis;
 mod backends;
 mod catalog;
+mod client_paths;
 mod generate;
 mod generators;
 mod openapi;
@@ -85,6 +86,7 @@ mod types;
 pub use analysis::*;
 pub(crate) use backends::*;
 pub use catalog::*;
+pub use client_paths::*;
 pub use generators::*;
 pub use openapi::*;
 pub(crate) use syntax::*;

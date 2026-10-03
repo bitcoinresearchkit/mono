@@ -2,9 +2,7 @@
 
 use std::fmt::Write;
 
-use crate::{
-    CatalogTree, CatalogType, CatalogValue, IndexSetPattern, escape_rust_keyword, to_snake_case,
-};
+use crate::{CatalogTree, CatalogType, CatalogValue, IndexSetPattern, rust_field_name};
 
 pub(crate) fn generate_tree(output: &mut String, tree: &CatalogTree, indexes: &[IndexSetPattern]) {
     output.push_str(
@@ -32,7 +30,7 @@ trait FromCatalog: Sized + Send + Sync + 'static {
         writeln!(output, "/// Catalog projection of {}.", family.source).unwrap();
         writeln!(output, "pub struct {}{generic} {{", family.name).unwrap();
         for (field, slot) in &family.fields {
-            let field = escape_rust_keyword(&to_snake_case(field));
+            let field = rust_field_name(field);
             writeln!(output, "    pub {field}: LazyNode<T{slot}>,").unwrap();
         }
         writeln!(output, "}}\n").unwrap();
@@ -56,7 +54,7 @@ trait FromCatalog: Sized + Send + Sync + 'static {
         .unwrap();
         output.push_str("    fn from_catalog(client: Arc<BitviewClientBase>, binding: usize) -> Self {\n        let CatalogBinding::Branch(children) = &CATALOG_BINDINGS[binding] else { unreachable!(\"expected catalog branch\") };\n        Self {\n");
         for (i, (field, slot)) in family.fields.iter().enumerate() {
-            let field = escape_rust_keyword(&to_snake_case(field));
+            let field = rust_field_name(field);
             writeln!(output, "            {field}: lazy_node((client.clone(), children[{i}]), |(client, binding)| T{slot}::from_catalog(client, binding)),").unwrap();
         }
         output.push_str("        }\n    }\n}\n\n");

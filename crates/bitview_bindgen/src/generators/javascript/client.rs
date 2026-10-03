@@ -4,8 +4,8 @@ use std::fmt::Write;
 
 use crate::{
     ClientConstants, ClientMetadata, GenericSyntax, IndexSetPattern, JavaScriptSyntax,
-    StructuralPattern, camel_case_keys, cohort_constants, format_json,
-    generate_parameterized_field, to_camel_case,
+    LanguageSyntax, StructuralPattern, camel_case_keys, cohort_constants, format_json,
+    generate_parameterized_field,
 };
 
 /// Generate the base BitviewClient class with HTTP functionality.
@@ -1084,7 +1084,7 @@ pub(crate) fn generate_structural_patterns(
                 output,
                 " * @property {{{}}} {}",
                 js_type,
-                to_camel_case(&field.name)
+                JavaScriptSyntax.field_name(&field.name)
             )
             .unwrap();
         }

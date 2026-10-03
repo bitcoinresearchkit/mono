@@ -6,7 +6,8 @@ pub trait PluginData {
     /// Visits every public vector.
     fn for_each_visible<'a>(&'a self, visit: &mut dyn FnMut(&'a dyn AnyExportableVec));
 
-    /// Visits every vector, including hidden ones.
+    /// Visits every traversable vector, hidden ones included. Fields the
+    /// traversal skips (`#[traversable(skip)]`, write-only state) are not visited.
     fn for_each_exportable<'a>(&'a self, visit: &mut dyn FnMut(&'a dyn AnyExportableVec));
 }
 

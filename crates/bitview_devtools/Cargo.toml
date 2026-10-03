@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 aide = { workspace = true }
+bitview_bindgen = { workspace = true }
 bitview_catalog = { workspace = true }
 bitview_default = { workspace = true }
 bitview_plugin = { workspace = true }

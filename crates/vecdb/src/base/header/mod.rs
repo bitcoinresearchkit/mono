@@ -30,12 +30,7 @@ impl Header {
         vec_version: Version,
         format: Format,
     ) -> Result<Self> {
-        let inner = HeaderInner::create_and_write(region, vec_version, format)?;
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner)),
-            modified: false,
-            write_failed: Arc::new(AtomicBool::new(false)),
-        })
+        HeaderInner::create_and_write(region, vec_version, format).map(Self::from_inner)
     }
 
     pub(crate) fn import_and_verify(
@@ -43,22 +38,23 @@ impl Header {
         vec_version: Version,
         format: Format,
     ) -> Result<Self> {
-        let inner = HeaderInner::import_and_verify(region, vec_version, format)?;
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner)),
-            modified: false,
-            write_failed: Arc::new(AtomicBool::new(false)),
-        })
+        HeaderInner::import_and_verify(region, vec_version, format).map(Self::from_inner)
     }
 
-    /// Reads a region's header without verifying it, for inspection tools.
-    pub fn read(region: &Region) -> Result<Self> {
-        let inner = HeaderInner::read(region)?;
-        Ok(Self {
+    /// Reads a region's leading bytes as a vector header, without checking its
+    /// versions or format. For inspection tools: on a region that doesn't hold a
+    /// vector the fields are meaningless. [`Self::is_current`] tells whether the
+    /// bytes look like a current-format header; it can't prove the region holds one.
+    pub fn read_unverified(region: &Region) -> Result<Self> {
+        HeaderInner::read(region).map(Self::from_inner)
+    }
+
+    fn from_inner(inner: HeaderInner) -> Self {
+        Self {
             inner: Arc::new(RwLock::new(inner)),
             modified: false,
             write_failed: Arc::new(AtomicBool::new(false)),
-        })
+        }
     }
 
     pub(crate) fn update_stamp(&mut self, stamp: Stamp) {
@@ -97,6 +93,12 @@ impl Header {
     #[inline(always)]
     pub fn header_version(&self) -> Version {
         self.inner.read().header_version
+    }
+
+    /// Whether the decoded header version is the current one.
+    #[inline(always)]
+    pub fn is_current(&self) -> bool {
+        self.header_version() == HEADER_VERSION
     }
 
     #[inline(always)]

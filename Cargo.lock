@@ -544,6 +544,7 @@ name = "bitview_devtools"
 version = "0.12.2"
 dependencies = [
  "aide",
+ "bitview_bindgen",
  "bitview_catalog",
  "bitview_default",
  "bitview_plugin",
