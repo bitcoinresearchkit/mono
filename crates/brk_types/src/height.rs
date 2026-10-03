@@ -328,20 +328,12 @@ impl Formattable for Height {
 }
 
 impl FromCoarserIndex<Epoch> for Height {
-    fn min_from(coarser: Epoch) -> usize {
-        usize::from(coarser) * BLOCKS_PER_DIFF_EPOCHS as usize
-    }
-
     fn max_from_(coarser: Epoch) -> usize {
         (usize::from(coarser) + 1) * BLOCKS_PER_DIFF_EPOCHS as usize - 1
     }
 }
 
 impl FromCoarserIndex<Halving> for Height {
-    fn min_from(coarser: Halving) -> usize {
-        usize::from(coarser) * BLOCKS_PER_HALVING as usize
-    }
-
     fn max_from_(coarser: Halving) -> usize {
         (usize::from(coarser) + 1) * BLOCKS_PER_HALVING as usize - 1
     }

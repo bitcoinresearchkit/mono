@@ -55,10 +55,6 @@ impl Date {
         (self.0 % 1_00) as u8
     }
 
-    pub(crate) fn into_jiff(self) -> Date_ {
-        self.into()
-    }
-
     /// Validate dates constructed directly or decoded from persisted values.
     pub fn try_into_jiff(self) -> ErrorResult<Date_> {
         let year = i16::try_from(self.0 / 10_000).map_err(|_| Error::UnindexableDate)?;
@@ -173,8 +169,12 @@ impl From<Month6> for Date {
 impl From<Year10> for Date {
     #[inline]
     fn from(value: Year10) -> Self {
-        // Decade 0 is 2009, add i*10 years
-        let year = 2009i16 + usize::from(value) as i16 * 10;
+        // Calendar decades, as `Year10` buckets them: decade 0 (the 2000s) starts at 2009,
+        // decade i at 2000 + 10i
+        let year = match usize::from(value) {
+            0 => 2009,
+            decade => 2000 + decade as i16 * 10,
+        };
         Self::from(Date_::constant(year, 1, 1))
     }
 }

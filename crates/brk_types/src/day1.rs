@@ -5,12 +5,11 @@ use std::{
 
 use brk_error::{Error, Result};
 use itoa::Buffer;
-use jiff::Span;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{Date, Timestamp};
-use crate::{CheckedSub, FromCoarserIndex, Month1, Month3, Month6, Week1, Year1, Year10};
+use crate::CheckedSub;
 
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
@@ -91,105 +90,6 @@ impl Rem<usize> for Day1 {
     type Output = Self;
     fn rem(self, rhs: usize) -> Self::Output {
         Self(self.0 % rhs as u16)
-    }
-}
-
-impl FromCoarserIndex<Week1> for Day1 {
-    fn min_from(coarser: Week1) -> usize {
-        usize::from(coarser) * 7
-    }
-
-    fn max_from_(coarser: Week1) -> usize {
-        usize::from(coarser) * 7 + 6
-    }
-}
-
-impl FromCoarserIndex<Month1> for Day1 {
-    fn min_from(coarser: Month1) -> usize {
-        let d = Date::new(2009, 1, 1)
-            .into_jiff()
-            .checked_add(Span::new().months(u16::from(coarser)))
-            .unwrap();
-        Day1::try_from(Date::from(d)).unwrap().into()
-    }
-
-    fn max_from_(coarser: Month1) -> usize {
-        let d = Date::new(2009, 1, 31)
-            .into_jiff()
-            .checked_add(Span::new().months(u16::from(coarser)))
-            .unwrap();
-        Day1::try_from(Date::from(d)).unwrap().into()
-    }
-}
-
-impl FromCoarserIndex<Month3> for Day1 {
-    fn min_from(coarser: Month3) -> usize {
-        let d = Date::new(2009, 1, 1)
-            .into_jiff()
-            .checked_add(Span::new().months(3 * u8::from(coarser)))
-            .unwrap();
-        Day1::try_from(Date::from(d)).unwrap().into()
-    }
-
-    fn max_from_(coarser: Month3) -> usize {
-        let d = Date::new(2009, 3, 31)
-            .into_jiff()
-            .checked_add(Span::new().months(3 * u8::from(coarser)))
-            .unwrap();
-        Day1::try_from(Date::from(d)).unwrap().into()
-    }
-}
-
-impl FromCoarserIndex<Month6> for Day1 {
-    fn min_from(coarser: Month6) -> usize {
-        let d = Date::new(2009, 1, 1)
-            .into_jiff()
-            .checked_add(Span::new().months(6 * u8::from(coarser)))
-            .unwrap();
-        Day1::try_from(Date::from(d)).unwrap().into()
-    }
-
-    fn max_from_(coarser: Month6) -> usize {
-        let d = Date::new(2009, 5, 31)
-            .into_jiff()
-            .checked_add(Span::new().months(1 + 6 * u8::from(coarser)))
-            .unwrap();
-        Day1::try_from(Date::from(d)).unwrap().into()
-    }
-}
-
-impl FromCoarserIndex<Year1> for Day1 {
-    fn min_from(coarser: Year1) -> usize {
-        Self::try_from(Date::new(2009 + u8::from(coarser) as u16, 1, 1))
-            .unwrap()
-            .into()
-    }
-
-    fn max_from_(coarser: Year1) -> usize {
-        Self::try_from(Date::new(2009 + u8::from(coarser) as u16, 12, 31))
-            .unwrap()
-            .into()
-    }
-}
-
-impl FromCoarserIndex<Year10> for Day1 {
-    fn min_from(coarser: Year10) -> usize {
-        let coarser = u8::from(coarser);
-        if coarser == 0 {
-            // Decade 0 starts at 2000, before INDEX_ZERO (2009-01-01)
-            0
-        } else {
-            Self::try_from(Date::new(2000 + 10 * coarser as u16, 1, 1))
-                .unwrap()
-                .into()
-        }
-    }
-
-    fn max_from_(coarser: Year10) -> usize {
-        let coarser = u8::from(coarser);
-        Self::try_from(Date::new(2009 + 10 * coarser as u16, 12, 31))
-            .unwrap()
-            .into()
     }
 }
 
