@@ -40,14 +40,14 @@ pub struct InputsVecs<M: StorageMode = Rw> {
 }
 
 impl InputsVecs {
-    pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, version: Version) -> Result<Self> {
         let (first_txin_index, outpoint, txout_index, tx_index, output_type, type_index) = parallel_import! {
-            first_txin_index = PcoVec::forced_import(db, "first_txin_index", version),
-            outpoint = PcoVec::forced_import(db, "outpoint", version),
-            txout_index = PcoVec::forced_import(db, "txout_index", version),
-            tx_index = PcoVec::forced_import(db, "tx_index", version),
-            output_type = PcoVec::forced_import(db, "output_type", version),
-            type_index = PcoVec::forced_import(db, "type_index", version),
+            first_txin_index = PcoVec::import(db, "first_txin_index", version),
+            outpoint = PcoVec::import(db, "outpoint", version),
+            txout_index = PcoVec::import(db, "txout_index", version),
+            tx_index = PcoVec::import(db, "tx_index", version),
+            output_type = PcoVec::import(db, "output_type", version),
+            type_index = PcoVec::import(db, "type_index", version),
         };
         Ok(Self {
             first_txin_index,

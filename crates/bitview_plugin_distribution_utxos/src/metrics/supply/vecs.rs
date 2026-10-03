@@ -18,7 +18,7 @@ pub struct SupplyVecs<M: StorageMode = Rw> {
     pub dominance: UtxoGroups<LazyPercentPerBlock<PartsPerMillion32>>,
 }
 impl SupplyVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -26,10 +26,10 @@ impl SupplyVecs {
         spot_price: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Box<Self>> {
-        let total = SupplyTotal::forced_import(db, version, mappings, spot_price, all_supply)?;
+        let total = SupplyTotal::import(db, version, mappings, spot_price, all_supply)?;
         let all_supply = total.all_supply();
         let utxo = total.cohorts.map_with_id(|cohort_id, total| {
-            SupplyBase::from_total(
+            SupplyBase::new(
                 CohortContext::Utxo,
                 cohort_id,
                 version,

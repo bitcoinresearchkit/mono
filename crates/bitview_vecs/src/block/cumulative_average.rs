@@ -38,7 +38,7 @@ where
     C: NumericValue + JsonSchema,
     F: UnaryTransform<C, T>,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,

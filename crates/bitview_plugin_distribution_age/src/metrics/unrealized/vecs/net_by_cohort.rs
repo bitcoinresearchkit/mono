@@ -17,9 +17,9 @@ pub struct NetUnrealizedByCohort<M: StorageMode = Rw> {
 }
 
 impl NetUnrealizedByCohort {
-    pub fn forced_import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
+    pub fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
         let metric = "net_unrealized_pnl";
-        let stored = CreationSources::forced_import(db, "net_unrealized_pnl_cents", version)?;
+        let stored = CreationSources::import(db, "net_unrealized_pnl_cents", version)?;
         let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let source = stored

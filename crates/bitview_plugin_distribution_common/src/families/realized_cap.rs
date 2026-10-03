@@ -15,8 +15,8 @@ pub struct RealizedCapByCohort<G: CohortGroup, M: StorageMode = Rw> {
 }
 
 impl<G: CohortGroup> RealizedCapByCohort<G> {
-    pub fn forced_import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
-        let stored = CohortSources::forced_import(db, "realized_cap_cents", version)?;
+    pub fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
+        let stored = CohortSources::import(db, "realized_cap_cents", version)?;
         let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "realized_cap");
             LazyFiatPerBlock::from_cents_source(

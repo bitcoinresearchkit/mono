@@ -10,7 +10,7 @@ use super::{Vecs, seconds_to_days::SecondsToDays};
 const VERSION: Version = Version::TWO;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -18,10 +18,9 @@ impl Vecs {
     ) -> Result<Self> {
         let v = version + VERSION;
 
-        let high = Price::forced_import(db, "price_ath", v, mappings)?;
+        let high = Price::import(db, "price_ath", v, mappings)?;
 
-        let max_days_between =
-            PerBlock::forced_import(db, "max_days_between_price_ath", v, mappings)?;
+        let max_days_between = PerBlock::import(db, "max_days_between_price_ath", v, mappings)?;
 
         let max_years_between = LazyPerBlock::from_resolutions::<DaysToYears>(
             "max_years_between_price_ath",
@@ -29,7 +28,7 @@ impl Vecs {
             &max_days_between,
         );
 
-        let seconds_since = PerBlock::forced_import(db, "seconds_since_price_ath", v, mappings)?;
+        let seconds_since = PerBlock::import(db, "seconds_since_price_ath", v, mappings)?;
         let days_since = LazyPerBlock::from_resolutions::<SecondsToDays>(
             "days_since_price_ath",
             v,

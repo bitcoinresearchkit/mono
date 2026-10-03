@@ -12,12 +12,7 @@ pub(crate) struct DensitySources<M: StorageMode = Rw> {
     stored: AgeAggregate<CachedSeries<Height, PartsPerMillion32, M>>,
 }
 impl DensitySources {
-    pub fn forced_import(
-        db: &Database,
-        metric: &str,
-        v: Version,
-        mappings: &Mappings,
-    ) -> Result<Self> {
+    pub fn import(db: &Database, metric: &str, v: Version, mappings: &Mappings) -> Result<Self> {
         let stored = AgeAggregate::try_from_fn(|id| {
             import_cached(db, &id.metric_name(&format!("{metric}_ppm")), v)
         })?;

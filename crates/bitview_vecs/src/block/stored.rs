@@ -25,7 +25,7 @@ impl<T> PerBlock<T>
 where
     T: PcoVecValue + PartialOrd + JsonSchema + 'static,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,

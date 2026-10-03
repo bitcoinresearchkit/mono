@@ -46,14 +46,9 @@ impl Vecs {
         let db = STORAGE.open_database(context, 100_000)?;
         let version = STORAGE.schema_version();
 
-        let phase_code =
-            PerBlock::forced_import(&db, "capital_sentiment_phase_code", version, mappings)?;
-        let is_long = PerBlock::<StoredBool>::forced_import(
-            &db,
-            "capital_sentiment_is_long",
-            version,
-            mappings,
-        )?;
+        let phase_code = PerBlock::import(&db, "capital_sentiment_phase_code", version, mappings)?;
+        let is_long =
+            PerBlock::<StoredBool>::import(&db, "capital_sentiment_is_long", version, mappings)?;
         let is_short = LazyPerBlock::from_height_source::<IsLongToIsShort>(
             "capital_sentiment_is_short",
             version,

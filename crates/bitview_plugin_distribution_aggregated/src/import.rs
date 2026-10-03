@@ -23,9 +23,9 @@ impl Vecs {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let version = STORAGE.schema_version();
         let spot = price.spot.cents.height.read_only_boxed_clone();
-        let cost_basis = CostBasisVecs::forced_import(&db, version, mappings)?;
+        let cost_basis = CostBasisVecs::import(&db, version, mappings)?;
         let cohorts = AgeAggregate::try_from_fn(|id| {
-            Metrics::forced_import(
+            Metrics::import(
                 &db,
                 id,
                 version,

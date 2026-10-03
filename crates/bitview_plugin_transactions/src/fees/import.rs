@@ -12,7 +12,7 @@ use super::{CountVecs, CpfpFlags, Vecs};
 const VERSION: Version = Version::new(5);
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &IndexSources,
@@ -20,7 +20,7 @@ impl Vecs {
     ) -> Result<Self> {
         let v = version + VERSION;
         let count = |name| {
-            PerBlockCumulativeRolling::forced_import(
+            PerBlockCumulativeRolling::import(
                 db,
                 name,
                 version + Version::ONE,
@@ -35,27 +35,14 @@ impl Vecs {
 
         Ok(Vecs {
             count,
-            total: EagerVec::forced_import(db, "fee_total", v)?,
-            coinbase_value: EagerVec::forced_import(db, "coinbase_value", v)?,
-            fee: PerTxDistribution::forced_import(db, "fee", v, mappings)?,
-            fee_rate: EagerVec::forced_import(db, "fee_rate", v)?,
-            effective_fee_rate: PerTxDistribution::forced_import(
-                db,
-                "effective_fee_rate",
-                v,
-                mappings,
-            )?,
+            total: EagerVec::import(db, "fee_total", v)?,
+            coinbase_value: EagerVec::import(db, "coinbase_value", v)?,
+            fee: PerTxDistribution::import(db, "fee", v, mappings)?,
+            fee_rate: EagerVec::import(db, "fee_rate", v)?,
+            effective_fee_rate: PerTxDistribution::import(db, "effective_fee_rate", v, mappings)?,
             cpfp_flags: CpfpFlags {
-                is_cpfp_parent: EagerVec::forced_import(
-                    db,
-                    "is_cpfp_parent",
-                    version + Version::ONE,
-                )?,
-                is_cpfp_child: EagerVec::forced_import(
-                    db,
-                    "is_cpfp_child",
-                    version + Version::ONE,
-                )?,
+                is_cpfp_parent: EagerVec::import(db, "is_cpfp_parent", version + Version::ONE)?,
+                is_cpfp_child: EagerVec::import(db, "is_cpfp_child", version + Version::ONE)?,
             },
         })
     }

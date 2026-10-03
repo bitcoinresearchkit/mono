@@ -38,15 +38,14 @@ impl<T> PerBlockCumulativeRolling<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
-        let cumulative =
-            PerBlock::forced_import(db, &format!("{name}_cumulative"), version, indexes)?;
+        let cumulative = PerBlock::import(db, &format!("{name}_cumulative"), version, indexes)?;
         let source = cumulative.resolutions.height_source();
         let block = LazyPreviousDeltaVec::new(name, version, source);
         let rolling = RollingTotals::new(name, version, source, window_starts, indexes);

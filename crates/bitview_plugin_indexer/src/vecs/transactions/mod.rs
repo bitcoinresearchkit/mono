@@ -101,7 +101,7 @@ impl TransactionsVecs {
         )
     }
 
-    pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, version: Version) -> Result<Self> {
         let (
             first_tx_index,
             txid,
@@ -115,17 +115,17 @@ impl TransactionsVecs {
             first_txout_index,
             position,
         ) = parallel_import! {
-            first_tx_index = PcoVec::forced_import(db, "first_tx_index", version),
-            txid = BytesVec::forced_import(db, "txid", version),
-            tx_version = PcoVec::forced_import(db, "tx_version", version),
-            raw_locktime = PcoVec::forced_import(db, "raw_locktime", version),
-            weight = PcoVec::forced_import(db, "tx_weight", version),
-            total_size = PcoVec::forced_import(db, "total_size", version),
-            total_sigop_cost = PcoVec::forced_import(db, "total_sigop_cost", version),
-            is_explicitly_rbf = PcoVec::forced_import(db, "is_explicitly_rbf", version),
-            first_txin_index = PcoVec::forced_import(db, "first_txin_index", version),
-            first_txout_index = BytesVec::forced_import(db, "first_txout_index", version),
-            position = PcoVec::forced_import(db, "tx_position", version),
+            first_tx_index = PcoVec::import(db, "first_tx_index", version),
+            txid = BytesVec::import(db, "txid", version),
+            tx_version = PcoVec::import(db, "tx_version", version),
+            raw_locktime = PcoVec::import(db, "raw_locktime", version),
+            weight = PcoVec::import(db, "tx_weight", version),
+            total_size = PcoVec::import(db, "total_size", version),
+            total_sigop_cost = PcoVec::import(db, "total_sigop_cost", version),
+            is_explicitly_rbf = PcoVec::import(db, "is_explicitly_rbf", version),
+            first_txin_index = PcoVec::import(db, "first_txin_index", version),
+            first_txout_index = BytesVec::import(db, "first_txout_index", version),
+            position = PcoVec::import(db, "tx_position", version),
         };
         Ok(Self {
             first_tx_index,

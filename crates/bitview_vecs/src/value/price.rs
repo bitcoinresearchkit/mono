@@ -27,13 +27,13 @@ pub struct Price<C, U = LazyPerBlock<Dollars, Cents>, S = LazyPerBlock<SatsFract
 
 impl Price<PerBlock<Cents>> {
     /// Import from database: stored cents, lazy USD + sats.
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let cents = PerBlock::forced_import(db, &format!("{name}_cents"), version, indexes)?;
+        let cents = PerBlock::import(db, &format!("{name}_cents"), version, indexes)?;
         let usd = LazyPerBlock::from_resolutions::<CentsUnsignedToDollars>(name, version, &cents);
         Ok(Self::from_cents_and_usd(name, version, cents, usd))
     }

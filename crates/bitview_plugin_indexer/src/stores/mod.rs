@@ -96,7 +96,7 @@ impl Stores {
         self.txid_prefix_to_tx_index.get(prefix)
     }
 
-    pub fn forced_import(parent: &Path, version: Version) -> Result<Self> {
+    pub fn import(parent: &Path, version: Version) -> Result<Self> {
         let pathbuf = parent.join("stores");
         let path = pathbuf.as_path();
 

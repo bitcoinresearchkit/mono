@@ -17,7 +17,7 @@ pub struct StdDevPerBlock<M: StorageMode = Rw> {
 }
 
 impl StdDevPerBlock {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         period: &str,
@@ -32,8 +32,8 @@ impl StdDevPerBlock {
             format!("_{period}")
         };
 
-        let sma = PerBlock::forced_import(db, &format!("{name}_sma{p}"), version, indexes)?;
-        let sd = PerBlock::forced_import(db, &format!("{name}_sd{p}"), version, indexes)?;
+        let sma = PerBlock::import(db, &format!("{name}_sma{p}"), version, indexes)?;
+        let sd = PerBlock::import(db, &format!("{name}_sd{p}"), version, indexes)?;
 
         Ok(Self { days, sma, sd })
     }

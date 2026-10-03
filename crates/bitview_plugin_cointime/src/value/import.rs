@@ -8,35 +8,35 @@ use vecdb::Database;
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Vecs {
-            destroyed: PerBlockCumulativeRolling::forced_import(
+            destroyed: PerBlockCumulativeRolling::import(
                 db,
                 "cointime_value_destroyed",
                 version,
                 mappings,
                 window_starts,
             )?,
-            created: PerBlockCumulativeRolling::forced_import(
+            created: PerBlockCumulativeRolling::import(
                 db,
                 "cointime_value_created",
                 version,
                 mappings,
                 window_starts,
             )?,
-            stored: PerBlockCumulativeRolling::forced_import(
+            stored: PerBlockCumulativeRolling::import(
                 db,
                 "cointime_value_stored",
                 version,
                 mappings,
                 window_starts,
             )?,
-            vocdd: PerBlockCumulativeRolling::forced_import(
+            vocdd: PerBlockCumulativeRolling::import(
                 db,
                 "vocdd",
                 version + Version::ONE,

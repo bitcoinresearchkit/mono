@@ -22,7 +22,7 @@ impl Vecs {
         let version =
             STORAGE.schema_version() + POOL_ATTRIBUTION_VERSION + Version::new(pools.len() as u32);
 
-        let pool = BytesVec::forced_import(&db, "pool", version)?;
+        let pool = BytesVec::import(&db, "pool", version)?;
         let pool_heights = PoolHeights::build(&pool);
 
         let mut major_map = BTreeMap::new();
@@ -32,7 +32,7 @@ impl Vecs {
             if pool.slug.is_major() {
                 major_map.insert(
                     pool.slug,
-                    major::Vecs::forced_import(
+                    major::Vecs::import(
                         &db,
                         pool.slug,
                         pool_heights.clone(),

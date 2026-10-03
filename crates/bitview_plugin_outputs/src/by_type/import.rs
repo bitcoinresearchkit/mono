@@ -9,7 +9,7 @@ use vecdb::Database;
 use super::{SpendableOutputCount, Vecs, WithOutputTypes};
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,

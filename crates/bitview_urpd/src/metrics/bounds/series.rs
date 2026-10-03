@@ -18,7 +18,7 @@ pub struct AgeBoundsMetrics<M: StorageMode = Rw> {
 }
 
 impl AgeBoundsMetrics {
-    pub fn forced_import(db: &Database, version: Version, mappings: &IndexSources) -> Result<Self> {
+    pub fn import(db: &Database, version: Version, mappings: &IndexSources) -> Result<Self> {
         let version = version + Version::new(3);
         let stored = AgeAggregate::try_from_fn(|id| {
             let age = id.name();

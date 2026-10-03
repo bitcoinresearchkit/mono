@@ -10,7 +10,7 @@ use vecdb::{BinaryTransform, Database, ReadableCloneableVec};
 use super::{Cagr, Vecs};
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -38,12 +38,12 @@ impl Vecs {
                 ))
             })?;
 
-        let cagr = Cagr::from_returns(version, &periods);
+        let cagr = Cagr::new(version, &periods);
 
         let mut days_iter = Windows::<()>::DAYS.iter();
         let sd_24h = Windows::try_from_fn(|suffix| {
             let days = *days_iter.next().unwrap();
-            StdDevPerBlock::forced_import(
+            StdDevPerBlock::import(
                 db,
                 "price_return_24h",
                 suffix,

@@ -21,7 +21,7 @@ pub struct MedianComponent<M: StorageMode = Rw> {
 }
 
 impl MedianComponent {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -30,8 +30,8 @@ impl MedianComponent {
     ) -> Result<Self> {
         Ok(Self {
             price: Price::from_height_source(name, version, source, indexes),
-            relative: RatioPerBlock::forced_import(db, name, version, indexes)?,
-            component: Component::forced_import(db, name, version, indexes, source)?,
+            relative: RatioPerBlock::import(db, name, version, indexes)?,
+            component: Component::import(db, name, version, indexes, source)?,
         })
     }
 

@@ -25,7 +25,7 @@ impl Vecs {
         let version = STORAGE.schema_version();
 
         let addr = AddrVecs::new(version, indexer);
-        let monotonic = Timestamps::forced_import_monotonic(&db, version)?;
+        let monotonic = Timestamps::import_monotonic(&db, version)?;
         let chain_counts = ChainCounts::new(version, indexer);
         let monotonic_source = monotonic.read_only_boxed_clone();
         let epoch_source = IndexVec::new(
@@ -140,7 +140,7 @@ impl Vecs {
         let txin_index = TxInIndexVecs::new(version, indexer);
         let txout_index = TxOutIndexVecs::new(version, indexer);
 
-        let timestamp = Timestamps::from_locals(
+        let timestamp = Timestamps::new(
             version,
             monotonic,
             indexer.vecs().blocks.timestamp.read_only_boxed_clone(),

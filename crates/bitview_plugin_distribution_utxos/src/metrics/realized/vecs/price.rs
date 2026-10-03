@@ -18,9 +18,9 @@ pub struct RealizedPriceByCohort<M: StorageMode = Rw> {
 }
 
 impl RealizedPriceByCohort {
-    pub fn forced_import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
+    pub fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
         let version = version + Version::ONE;
-        let stored = UtxoSources::forced_import(db, "realized_price_cents", version)?;
+        let stored = UtxoSources::import(db, "realized_price_cents", version)?;
         let cohorts = UtxoGroups::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "realized_price");
             Price::from_height_source(

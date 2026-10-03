@@ -14,10 +14,10 @@ pub struct DisjointAgeSources<T: BytesVecValue, M: StorageMode = Rw> {
 }
 
 impl<T: BytesVecValue + Copy> DisjointAgeSources<T> {
-    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Ok(Self {
             age: AgeRange::try_new(|id| {
-                BytesVec::forced_import(
+                BytesVec::import(
                     db,
                     &CohortContext::Utxo.metric_name(id, name),
                     version + Version::ONE,

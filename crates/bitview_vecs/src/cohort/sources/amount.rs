@@ -26,7 +26,7 @@ pub struct AmountSources<T: PcoVecValue, S: Clone, M: StorageMode = Rw> {
 
 impl<T: PcoVecValue + AddAssign, S: Clone> AmountSources<T, S> {
     #[allow(clippy::too_many_arguments)]
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         storage_name: &str,
         context: CohortContext,

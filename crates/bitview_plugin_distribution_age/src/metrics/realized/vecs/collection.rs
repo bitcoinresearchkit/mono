@@ -52,39 +52,37 @@ pub struct RealizedVecs<M: StorageMode = Rw> {
 }
 
 impl RealizedVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Box<Self>> {
-        let cap_raw = DisjointAgeSources::forced_import(db, "cap_raw", version)?;
-        let capitalized_cap_raw =
-            DisjointAgeSources::forced_import(db, "capitalized_cap_raw", version)?;
-        let cap = RealizedCapByCohort::forced_import(db, version, mappings)?;
-        let profit = CumulativeRealizedByCohort::forced_import(
+        let cap_raw = DisjointAgeSources::import(db, "cap_raw", version)?;
+        let capitalized_cap_raw = DisjointAgeSources::import(db, "capitalized_cap_raw", version)?;
+        let cap = RealizedCapByCohort::import(db, version, mappings)?;
+        let profit = CumulativeRealizedByCohort::import(
             db,
             "realized_profit",
             version + Version::ONE,
             mappings,
             window_starts,
         )?;
-        let loss = CumulativeRealizedByCohort::forced_import(
+        let loss = CumulativeRealizedByCohort::import(
             db,
             "realized_loss",
             version + Version::ONE,
             mappings,
             window_starts,
         )?;
-        let net_pnl =
-            CumulativeNetRealizedByCohort::forced_import(db, version, mappings, window_starts)?;
-        let value_destroyed = CumulativeValueDestroyedByCohort::forced_import(
+        let net_pnl = CumulativeNetRealizedByCohort::import(db, version, mappings, window_starts)?;
+        let value_destroyed = CumulativeValueDestroyedByCohort::import(
             db,
             version + Version::ONE,
             mappings,
             window_starts,
         )?;
-        let peak_regret_raw = DisjointAgeSources::forced_import(db, "peak_regret_raw", version)?;
+        let peak_regret_raw = DisjointAgeSources::import(db, "peak_regret_raw", version)?;
 
         Ok(Box::new(Self {
             cap,

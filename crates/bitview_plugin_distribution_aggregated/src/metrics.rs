@@ -29,7 +29,7 @@ pub struct Metrics<M: StorageMode = Rw> {
     pub(crate) columns: Columns<M>,
 }
 impl Metrics {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         id: AgeAggregateId,
         v: Version,
@@ -38,12 +38,12 @@ impl Metrics {
         spot: &ReadableBoxedVec<Height, Cents>,
         cost_basis: CostBasis,
     ) -> Result<Self> {
-        let columns = Columns::forced_import(db, id, v)?;
+        let columns = Columns::import(db, id, v)?;
         let supply = Supply::new(id, v, &columns, mappings, windows, spot);
         let outputs = Outputs::new(id, v, &columns, mappings, windows);
         let activity = Activity::new(id, v, &columns, mappings, windows);
         let realized = Realized::new(id, v, &columns, mappings, windows, spot);
-        let relative = Relative::forced_import(db, id, v, mappings)?;
+        let relative = Relative::import(db, id, v, mappings)?;
         let unrealized = Unrealized::new(id, v, &columns, mappings);
         Ok(Self {
             supply,
@@ -52,7 +52,7 @@ impl Metrics {
             realized,
             unrealized,
             cost_basis,
-            ratios: Ratios::forced_import(db, id, v, mappings, &columns, windows)?,
+            ratios: Ratios::import(db, id, v, mappings, &columns, windows)?,
             relative,
             columns,
         })

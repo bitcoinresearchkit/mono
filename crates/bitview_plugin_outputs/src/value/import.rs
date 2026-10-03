@@ -7,18 +7,9 @@ use vecdb::Database;
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
-        db: &Database,
-        version: Version,
-        mappings: &MappingsVecs,
-    ) -> Result<Self> {
+    pub(crate) fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
         Ok(Vecs {
-            op_return: ValuePerBlockCumulative::forced_import(
-                db,
-                "op_return_value",
-                version,
-                mappings,
-            )?,
+            op_return: ValuePerBlockCumulative::import(db, "op_return_value", version, mappings)?,
         })
     }
 }

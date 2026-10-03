@@ -41,7 +41,7 @@ pub struct RealizedMetrics<M: StorageMode = Rw> {
 }
 
 impl RealizedMetrics {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         id: CohortId,
         version: Version,
@@ -96,7 +96,7 @@ impl RealizedMetrics {
                 mappings,
                 windows,
             ),
-            sopr: PerBlock::forced_import(db, &name("sopr_24h"), version, mappings)?,
+            sopr: PerBlock::import(db, &name("sopr_24h"), version, mappings)?,
             value_destroyed: LazyFiatPerBlockCumulativeRolling::from_cumulative_cents_source(
                 &name("value_destroyed"),
                 version,

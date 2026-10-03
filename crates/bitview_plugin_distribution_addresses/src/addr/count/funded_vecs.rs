@@ -24,15 +24,15 @@ pub struct FundedAddrCountsVecs<M: StorageMode = Rw> {
 }
 
 impl FundedAddrCountsVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
-            counts: AddrCountsVecs::forced_import(db, "addr_count", version, mappings)?,
-            balance: AmountSources::forced_import(
+            counts: AddrCountsVecs::import(db, "addr_count", version, mappings)?,
+            balance: AmountSources::import(
                 db,
                 "addrs_addr_count_by_balance_range",
                 CohortContext::Addr,

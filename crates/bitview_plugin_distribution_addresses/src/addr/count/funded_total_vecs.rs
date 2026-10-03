@@ -22,20 +22,15 @@ pub struct AddrCountFundedTotalVecs<M: StorageMode = Rw> {
 }
 
 impl AddrCountFundedTotalVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
         Ok(Self {
-            funded: AddrCountsVecs::forced_import(
-                db,
-                &format!("{name}_addr_count"),
-                version,
-                mappings,
-            )?,
-            total: AddrCountsVecs::forced_import(
+            funded: AddrCountsVecs::import(db, &format!("{name}_addr_count"), version, mappings)?,
+            total: AddrCountsVecs::import(
                 db,
                 &format!("total_{name}_addr_count"),
                 version,

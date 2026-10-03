@@ -8,7 +8,7 @@ use vecdb::{Database, Ident};
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -26,16 +26,11 @@ impl Vecs {
                 usd: thermo_usd,
                 cents: thermo_cents,
             },
-            investor: FiatPerBlock::forced_import(db, "investor_cap", version, mappings)?,
-            vaulted: FiatPerBlock::forced_import(db, "vaulted_cap", version, mappings)?,
-            active: FiatPerBlock::forced_import(db, "active_cap", version, mappings)?,
-            cointime: FiatPerBlock::forced_import(
-                db,
-                "cointime_cap",
-                version + Version::ONE,
-                mappings,
-            )?,
-            aviv: RatioPerBlock::forced_import(db, "aviv", version, mappings)?,
+            investor: FiatPerBlock::import(db, "investor_cap", version, mappings)?,
+            vaulted: FiatPerBlock::import(db, "vaulted_cap", version, mappings)?,
+            active: FiatPerBlock::import(db, "active_cap", version, mappings)?,
+            cointime: FiatPerBlock::import(db, "cointime_cap", version + Version::ONE, mappings)?,
+            aviv: RatioPerBlock::import(db, "aviv", version, mappings)?,
         })
     }
 }

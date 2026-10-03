@@ -16,13 +16,13 @@ pub struct UnspentOutputCount<G: CohortGroup, M: StorageMode = Rw> {
 }
 
 impl<G: CohortGroup> UnspentOutputCount<G> {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let stored = CohortSources::forced_import(db, "utxo_count", version)?;
+        let stored = CohortSources::import(db, "utxo_count", version)?;
         let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "utxo_count");
             LazyPerBlockWithDeltas::from_height_source(

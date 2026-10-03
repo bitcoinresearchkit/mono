@@ -27,17 +27,16 @@ impl<T> PerBlockRolling<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
-        let cumulative =
-            PerBlock::forced_import(db, &format!("{name}_cumulative"), version, indexes)?;
+        let cumulative = PerBlock::import(db, &format!("{name}_cumulative"), version, indexes)?;
         let cumulative_source = cumulative.height.read_only_clone();
-        let rolling = RollingComplete::forced_import(
+        let rolling = RollingComplete::import(
             db,
             name,
             version,

@@ -8,7 +8,7 @@ use vecdb::{Database, ReadableBoxedVec, ReadableCloneableVec};
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -18,7 +18,7 @@ impl Vecs {
     ) -> Result<Self> {
         macro_rules! import {
             ($name:expr) => {
-                PriceWithRatioPerBlock::forced_import(db, $name, version, mappings, spot_price)?
+                PriceWithRatioPerBlock::import(db, $name, version, mappings, spot_price)?
             };
         }
 

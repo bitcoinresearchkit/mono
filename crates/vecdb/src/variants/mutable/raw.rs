@@ -1,10 +1,16 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::MutableVec;
-use crate::{AnyStoredVec, ImportableVec, Result, Stamp, StoredVec, VecIndex, WritableVec};
+use crate::{
+    AnyStoredVec, ImportOptions, ImportableVec, Result, Stamp, StoredVec, VecIndex, WritableVec,
+};
 
 pub trait MutableRawVec: StoredVec + ImportableVec + WritableVec<Self::I, Self::T> + Sized {
     type Reader;
+
+    /// Imports without resetting: a version or format mismatch is an error, so the
+    /// wrapper can reset its own regions along with the vector.
+    fn import_strict_with(options: ImportOptions) -> Result<Self>;
 
     fn reader(&self) -> Self::Reader;
     fn reader_len(reader: &Self::Reader) -> usize;

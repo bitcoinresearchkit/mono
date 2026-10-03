@@ -30,14 +30,14 @@ impl<T> TxDerivedDistribution<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let block = PerBlockDistribution::forced_import(db, name, version, indexes)?;
-        let _6b = PerBlockDistribution::forced_import(db, &format!("{name}_6b"), version, indexes)?;
+        let block = PerBlockDistribution::import(db, name, version, indexes)?;
+        let _6b = PerBlockDistribution::import(db, &format!("{name}_6b"), version, indexes)?;
 
         Ok(Self { block, _6b })
     }

@@ -53,17 +53,22 @@ macro_rules! impl_vec_wrapper {
 
         impl_vec_wrapper!(@deref_mut $deref_mut, $wrapper, $inner);
 
+        impl<I, T: $crate::VecValue, C: $crate::cache::CachePolicy> $wrapper<I, T, C>
+        where
+            I: $crate::VecIndex,
+            T: $value_trait,
+        {
+            /// On-disk format of this vector type.
+            pub(crate) const FORMAT: $crate::Format = $format;
+        }
+
         impl<I, T: $crate::VecValue, C: $crate::cache::CachePolicy> $crate::ImportableVec for $wrapper<I, T, C>
         where
             I: $crate::VecIndex,
             T: $value_trait,
         {
             fn import_with(options: $crate::ImportOptions) -> $crate::Result<Self> {
-                Ok(Self(<$inner>::import_with(options, $format)?))
-            }
-
-            fn forced_import_with(options: $crate::ImportOptions) -> $crate::Result<Self> {
-                Ok(Self(<$inner>::forced_import_with(options, $format)?))
+                Ok(Self(<$inner>::import_with(options, Self::FORMAT)?))
             }
         }
 
@@ -370,6 +375,13 @@ macro_rules! impl_mutable_raw_vec {
                 T: $value,
             {
                 type Reader = $reader;
+
+                fn import_strict_with(options: ImportOptions) -> Result<Self> {
+                    Ok(Self(ReadWriteRawVec::import_strict_with(
+                        options,
+                        Self::FORMAT,
+                    )?))
+                }
 
                 #[inline]
                 fn reader(&self) -> Self::Reader {

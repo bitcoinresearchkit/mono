@@ -15,14 +15,14 @@ pub struct PercentRollingWindows<B: FixedRatio, M: StorageMode = Rw>(
 );
 
 impl<B: FixedRatio> PercentRollingWindows<B> {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
         Ok(Self(Windows::try_from_fn(|suffix| {
-            PercentPerBlock::forced_import(
+            PercentPerBlock::import(
                 db,
                 &format!("{name}_{suffix}"),
                 version + Version::ONE,

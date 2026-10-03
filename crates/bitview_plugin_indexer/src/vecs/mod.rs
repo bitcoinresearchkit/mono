@@ -51,7 +51,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 }
 
 impl Vecs {
-    pub fn forced_import(parent: &Path, version: Version) -> Result<Self> {
+    pub fn import(parent: &Path, version: Version) -> Result<Self> {
         debug!("Opening vecs database...");
         let db = Database::open(&parent.join("vecs"))?;
         debug!("Setting min len...");
@@ -67,14 +67,14 @@ impl Vecs {
             scripts,
             op_return,
         ) = parallel_import! {
-            blocks = BlocksVecs::forced_import(&db, version),
-            transactions = TransactionsVecs::forced_import(&db, version),
-            transaction_features = TransactionFeaturesVecs::forced_import(&db, version),
-            inputs = InputsVecs::forced_import(&db, version),
-            outputs = OutputsVecs::forced_import(&db, version),
-            addrs = AddrsVecs::forced_import(&db, version),
-            scripts = ScriptsVecs::forced_import(&db, version),
-            op_return = OpReturnVecs::forced_import(&db, version),
+            blocks = BlocksVecs::import(&db, version),
+            transactions = TransactionsVecs::import(&db, version),
+            transaction_features = TransactionFeaturesVecs::import(&db, version),
+            inputs = InputsVecs::import(&db, version),
+            outputs = OutputsVecs::import(&db, version),
+            addrs = AddrsVecs::import(&db, version),
+            scripts = ScriptsVecs::import(&db, version),
+            op_return = OpReturnVecs::import(&db, version),
         };
 
         let this = Self {

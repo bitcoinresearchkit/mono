@@ -16,7 +16,7 @@ pub struct CohortSources<G: CohortGroup, T: PcoVecValue, M: StorageMode = Rw> {
 }
 
 impl<G: CohortGroup, T: PcoVecValue> CohortSources<G, T> {
-    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Ok(Self {
             cohorts: G::try_new(|id| {
                 import_cached(

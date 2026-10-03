@@ -30,28 +30,16 @@ pub struct UnrealizedVecs<M: StorageMode = Rw> {
 }
 
 impl UnrealizedVecs {
-    pub fn forced_import(
-        db: &Database,
-        version: Version,
-        mappings: &MappingsVecs,
-    ) -> Result<Box<Self>> {
-        let profit = UnrealizedByCohort::forced_import(
-            db,
-            "unrealized_profit",
-            version + Version::ONE,
-            mappings,
-        )?;
-        let loss = UnrealizedByCohort::forced_import(
-            db,
-            "unrealized_loss",
-            version + Version::ONE,
-            mappings,
-        )?;
-        let net_pnl = NetUnrealizedByCohort::forced_import(db, version, mappings)?;
+    pub fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Box<Self>> {
+        let profit =
+            UnrealizedByCohort::import(db, "unrealized_profit", version + Version::ONE, mappings)?;
+        let loss =
+            UnrealizedByCohort::import(db, "unrealized_loss", version + Version::ONE, mappings)?;
+        let net_pnl = NetUnrealizedByCohort::import(db, version, mappings)?;
         let capitalized_cap_in_profit_raw =
-            DisjointAgeSources::forced_import(db, "capitalized_cap_in_profit_raw", version)?;
+            DisjointAgeSources::import(db, "capitalized_cap_in_profit_raw", version)?;
         let capitalized_cap_in_loss_raw =
-            DisjointAgeSources::forced_import(db, "capitalized_cap_in_loss_raw", version)?;
+            DisjointAgeSources::import(db, "capitalized_cap_in_loss_raw", version)?;
         Ok(Box::new(Self {
             profit,
             loss,

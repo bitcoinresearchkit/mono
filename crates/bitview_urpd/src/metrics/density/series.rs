@@ -22,7 +22,7 @@ pub struct DensitySeries<M: StorageMode = Rw> {
 }
 
 impl DensitySeries {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,

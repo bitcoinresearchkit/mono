@@ -32,7 +32,7 @@ pub struct BalanceMetrics<M: StorageMode = Rw> {
 }
 
 impl BalanceMetrics {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -42,7 +42,7 @@ impl BalanceMetrics {
     ) -> Result<Box<Self>> {
         let balance_version = version + Version::ONE;
         let cumulative_version = version + Version::TWO;
-        let supply_source = AmountSources::forced_import(
+        let supply_source = AmountSources::import(
             db,
             "addrs_supply_sats_by_balance_range",
             CohortContext::Addr,
@@ -59,7 +59,7 @@ impl BalanceMetrics {
             },
         )?;
         let supply = AmountRange::from_fn(|id| {
-            SupplyBase::from_total(
+            SupplyBase::new(
                 CohortContext::Addr,
                 id.cohort(),
                 balance_version,
@@ -69,7 +69,7 @@ impl BalanceMetrics {
                 windows,
             )
         });
-        let utxo_count = AmountSources::forced_import(
+        let utxo_count = AmountSources::import(
             db,
             "addrs_utxo_count_by_balance_range",
             CohortContext::Addr,
@@ -86,7 +86,7 @@ impl BalanceMetrics {
                 )
             },
         )?;
-        let transfer_volume = AmountValueSources::forced_import(
+        let transfer_volume = AmountValueSources::import(
             db,
             "addrs_transfer_volume_cumulative_by_balance_range",
             CohortContext::Addr,
@@ -103,7 +103,7 @@ impl BalanceMetrics {
                 )
             },
         )?;
-        let realized_cap = AmountSources::forced_import(
+        let realized_cap = AmountSources::import(
             db,
             "addrs_realized_cap_cents_by_balance_range",
             CohortContext::Addr,
@@ -114,7 +114,7 @@ impl BalanceMetrics {
             },
         )?;
         let cumulative = |metric: &str| {
-            AmountSources::forced_import(
+            AmountSources::import(
                 db,
                 &format!("addrs_{metric}_cumulative_cents_by_balance_range"),
                 CohortContext::Addr,

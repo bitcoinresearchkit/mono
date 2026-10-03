@@ -21,7 +21,7 @@ pub struct AddrSupplyVecs<M: StorageMode = Rw> {
 }
 
 impl AddrSupplyVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,

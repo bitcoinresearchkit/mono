@@ -36,7 +36,7 @@ pub struct Total<M: StorageMode = Rw> {
 
 impl Total {
     #[allow(clippy::too_many_arguments)]
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         prefix: &str,
         version: Version,
@@ -45,28 +45,28 @@ impl Total {
         block_size: &impl ReadableCloneableVec<Height, StoredU64>,
         chain_fees: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
-        let data_bytes = PerBlockCumulativeRolling::forced_import(
+        let data_bytes = PerBlockCumulativeRolling::import(
             db,
             &format!("{prefix}_data_bytes"),
             version,
             mappings,
             window_starts,
         )?;
-        let tx_count = PerBlockCumulativeRolling::forced_import(
+        let tx_count = PerBlockCumulativeRolling::import(
             db,
             &format!("{prefix}_tx_count"),
             version,
             mappings,
             window_starts,
         )?;
-        let tx_vsize = PerBlockCumulativeRolling::forced_import(
+        let tx_vsize = PerBlockCumulativeRolling::import(
             db,
             &format!("{prefix}_tx_vsize"),
             version,
             mappings,
             window_starts,
         )?;
-        let fees = PerBlockCumulativeRolling::forced_import(
+        let fees = PerBlockCumulativeRolling::import(
             db,
             &format!("{prefix}_fees"),
             version,

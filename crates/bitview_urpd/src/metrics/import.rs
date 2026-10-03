@@ -7,7 +7,7 @@ use vecdb::{Database, ReadableBoxedVec};
 use super::{Metrics, cohort::CohortMetrics};
 
 impl Metrics {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         owner: &str,
         version: Version,
@@ -19,7 +19,7 @@ impl Metrics {
             replay: Default::default(),
             buffer: Default::default(),
             cohorts: AgeAggregate::try_from_fn(|id| {
-                CohortMetrics::forced_import(db, owner, id, version, indexes, spot)
+                CohortMetrics::import(db, owner, id, version, indexes, spot)
             })?,
         })
     }

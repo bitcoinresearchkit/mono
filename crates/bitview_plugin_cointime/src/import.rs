@@ -29,8 +29,8 @@ impl Vecs {
         let version = STORAGE.schema_version();
         let v1 = version + Version::ONE;
         let spot_price = prices.spot.cents.height.read_only_boxed_clone();
-        let activity = activity::Vecs::forced_import(&db, version, mappings, window_starts)?;
-        let age_range = age_range::Vecs::forced_import(
+        let activity = activity::Vecs::import(&db, version, mappings, window_starts)?;
+        let age_range = age_range::Vecs::import(
             &db,
             version,
             mappings,
@@ -38,18 +38,17 @@ impl Vecs {
             &spot_price,
             distribution_age,
         )?;
-        let supply =
-            supply::Vecs::forced_import(&db, v1, mappings, &spot_price, &activity, all_chain)?;
-        let aggregate = aggregate::Vecs::forced_import(
+        let supply = supply::Vecs::import(&db, v1, mappings, &spot_price, &activity, all_chain)?;
+        let aggregate = aggregate::Vecs::import(
             &db,
             version + Version::new(4),
             mappings,
             &spot_price,
             &supply.active_supply_in_loss_share.bounded,
         )?;
-        let value = value::Vecs::forced_import(&db, v1, mappings, window_starts)?;
-        let cap = cap::Vecs::forced_import(&db, version + Version::TWO, mappings, subsidy_cents)?;
-        let prices = prices::Vecs::forced_import(
+        let value = value::Vecs::import(&db, v1, mappings, window_starts)?;
+        let cap = cap::Vecs::import(&db, version + Version::TWO, mappings, subsidy_cents)?;
+        let prices = prices::Vecs::import(
             &db,
             version + Version::new(3),
             mappings,
@@ -57,10 +56,10 @@ impl Vecs {
             all_chain,
             cap.cointime.cents.resolutions.height_source(),
         )?;
-        let adjusted = adjusted::Vecs::forced_import(&db, version, mappings)?;
-        let reserve_risk = reserve_risk::Vecs::forced_import(&db, v1, mappings, &spot_price)?;
+        let adjusted = adjusted::Vecs::import(&db, version, mappings)?;
+        let reserve_risk = reserve_risk::Vecs::import(&db, v1, mappings, &spot_price)?;
 
-        let urpd = UrpdMetrics::forced_import(&db, "cointime", version, mappings, &spot_price)?;
+        let urpd = UrpdMetrics::import(&db, "cointime", version, mappings, &spot_price)?;
         let this = Self {
             db,
             activity,

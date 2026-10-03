@@ -11,20 +11,15 @@ pub struct CostBasisMetrics<M: StorageMode = Rw> {
 }
 
 impl CostBasisMetrics {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         mappings: &IndexSources,
     ) -> Result<Self> {
         Ok(Self {
-            per_coin: PercentilesVecs::forced_import(
-                db,
-                &format!("{name}_per_coin"),
-                version,
-                mappings,
-            )?,
-            per_dollar: PercentilesVecs::forced_import(
+            per_coin: PercentilesVecs::import(db, &format!("{name}_per_coin"), version, mappings)?,
+            per_dollar: PercentilesVecs::import(
                 db,
                 &format!("{name}_per_dollar"),
                 version,

@@ -32,12 +32,12 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
 }
 
 impl OutputsVecs {
-    pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, version: Version) -> Result<Self> {
         let (first_txout_index, value, output_type, type_index) = parallel_import! {
-            first_txout_index = PcoVec::forced_import(db, "first_txout_index", version),
-            value = OverflowVec::forced_import(db, "value", version),
-            output_type = BytesVec::forced_import(db, "output_type", version),
-            type_index = BytesVec::forced_import(db, "type_index", version),
+            first_txout_index = PcoVec::import(db, "first_txout_index", version),
+            value = OverflowVec::import(db, "value", version),
+            output_type = BytesVec::import(db, "output_type", version),
+            type_index = BytesVec::import(db, "type_index", version),
         };
         Ok(Self {
             first_txout_index,

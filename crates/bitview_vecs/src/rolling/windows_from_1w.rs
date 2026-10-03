@@ -16,14 +16,14 @@ pub struct RollingWindowsFrom1w<T: NumericValue + JsonSchema, M: StorageMode = R
 );
 
 impl<T: NumericValue + JsonSchema> RollingWindowsFrom1w<T> {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
         Ok(Self(WindowsFrom1w::try_from_fn(|suffix| {
-            PerBlock::forced_import(
+            PerBlock::import(
                 db,
                 &format!("{name}_{suffix}"),
                 version + Version::ONE,

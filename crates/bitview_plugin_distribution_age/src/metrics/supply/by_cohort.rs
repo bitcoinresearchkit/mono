@@ -17,14 +17,14 @@ pub struct SupplyByCohort<M: StorageMode = Rw> {
 }
 
 impl SupplyByCohort {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         metric: &str,
         version: Version,
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let stored = CreationSources::forced_import(db, &format!("{metric}_sats"), version)?;
+        let stored = CreationSources::import(db, &format!("{metric}_sats"), version)?;
         let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let source = stored.get(cohort_id).expect("supported supply cohort");

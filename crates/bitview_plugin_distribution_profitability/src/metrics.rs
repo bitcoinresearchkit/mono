@@ -34,7 +34,7 @@ pub struct Metrics<M: StorageMode = Rw> {
 }
 
 impl Metrics {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &Mappings,

@@ -21,15 +21,14 @@ impl<G: CohortGroup> SpentOutputCount<G>
 where
     G::Of<StoredU64>: AddAssign + Clone + Default,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
-        let stored =
-            CumulativeCohortSources::forced_import(db, "spent_utxo_count_cumulative", version)?;
+        let stored = CumulativeCohortSources::import(db, "spent_utxo_count_cumulative", version)?;
         let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "spent_utxo_count");
             LazyPerBlockCumulativeRolling::from_cumulative_source(

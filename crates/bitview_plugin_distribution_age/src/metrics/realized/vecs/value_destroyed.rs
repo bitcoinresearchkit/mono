@@ -18,18 +18,15 @@ pub struct CumulativeValueDestroyedByCohort<M: StorageMode = Rw> {
 }
 
 impl CumulativeValueDestroyedByCohort {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let metric = "value_destroyed";
-        let stored = CumulativeCreationSources::forced_import(
-            db,
-            "value_destroyed_cumulative_cents",
-            version,
-        )?;
+        let stored =
+            CumulativeCreationSources::import(db, "value_destroyed_cumulative_cents", version)?;
         let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let source = stored

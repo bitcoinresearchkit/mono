@@ -65,7 +65,7 @@ pub struct ReusedAddrVecs<M: StorageMode = Rw> {
 
 impl ReusedAddrVecs {
     #[allow(clippy::too_many_arguments)]
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -76,8 +76,8 @@ impl ReusedAddrVecs {
         inputs_by_type: &InputsByTypeVecs,
         all_supply: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
-        let count = AddrCountFundedTotalVecs::forced_import(db, name, version, mappings)?;
-        let events = AddrEventsVecs::forced_import(
+        let count = AddrCountFundedTotalVecs::import(db, name, version, mappings)?;
+        let events = AddrEventsVecs::import(
             db,
             name,
             version,
@@ -86,9 +86,9 @@ impl ReusedAddrVecs {
             outputs_by_type,
             inputs_by_type,
         )?;
-        let supply = AddrSupplyVecs::forced_import(db, name, version, mappings, spot_price)?;
+        let supply = AddrSupplyVecs::import(db, name, version, mappings, spot_price)?;
         let supply_share =
-            AddrSupplyShareVecs::forced_import(db, name, version, mappings, &supply, all_supply)?;
+            AddrSupplyShareVecs::import(db, name, version, mappings, &supply, all_supply)?;
 
         Ok(Self {
             count,

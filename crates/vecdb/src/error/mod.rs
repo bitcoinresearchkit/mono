@@ -41,8 +41,6 @@ pub enum Error {
     RawDB(#[from] RawdbError),
     #[error("Wrong length: received: {received:?}, expected: {expected:?}")]
     WrongLength { received: usize, expected: usize },
-    #[error("Wrong endian")]
-    WrongEndian,
     #[error("Iterator ended")]
     IteratorEnded,
     #[error("Different version received: {received:?}, expected: {expected:?}")]
@@ -113,7 +111,6 @@ impl Error {
             | Error::StampMismatch { .. }
             | Error::CorruptedRegion { .. }
             | Error::DecompressionMismatch { .. }
-            | Error::WrongEndian
             | Error::WrongLength { .. }
             | Error::InvalidFormat(_) => true,
             _ => false,

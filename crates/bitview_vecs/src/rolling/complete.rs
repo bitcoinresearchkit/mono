@@ -31,7 +31,7 @@ impl<T> RollingComplete<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -40,7 +40,7 @@ where
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
         let rolling = RollingTotals::new(name, version, cumulative, window_starts, indexes);
-        let distribution = RollingDistribution::forced_import(db, name, version, indexes)?;
+        let distribution = RollingDistribution::import(db, name, version, indexes)?;
 
         Ok(Self {
             rolling,

@@ -59,7 +59,7 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
 }
 
 impl BlocksVecs {
-    pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, version: Version) -> Result<Self> {
         let (
             blockhash,
             coinbase_tag,
@@ -73,17 +73,17 @@ impl BlocksVecs {
             segwit_size,
             segwit_weight,
         ) = parallel_import! {
-            blockhash = BytesVec::forced_import(db, "blockhash", version),
-            coinbase_tag = BytesVec::forced_import(db, "coinbase_tag", version),
-            difficulty = PcoVec::forced_import(db, "difficulty", version),
-            timestamp = PcoVec::forced_import(db, "timestamp", version),
-            median_time = PcoVec::forced_import(db, "median_time", version),
-            total_size = PcoVec::forced_import(db, "total_size", version),
-            weight = PcoVec::forced_import(db, "block_weight", version),
-            position = PcoVec::forced_import(db, "block_position", version),
-            segwit_txs = PcoVec::forced_import(db, "segwit_txs", version),
-            segwit_size = PcoVec::forced_import(db, "segwit_size", version),
-            segwit_weight = PcoVec::forced_import(db, "segwit_weight", version),
+            blockhash = BytesVec::import(db, "blockhash", version),
+            coinbase_tag = BytesVec::import(db, "coinbase_tag", version),
+            difficulty = PcoVec::import(db, "difficulty", version),
+            timestamp = PcoVec::import(db, "timestamp", version),
+            median_time = PcoVec::import(db, "median_time", version),
+            total_size = PcoVec::import(db, "total_size", version),
+            weight = PcoVec::import(db, "block_weight", version),
+            position = PcoVec::import(db, "block_position", version),
+            segwit_txs = PcoVec::import(db, "segwit_txs", version),
+            segwit_size = PcoVec::import(db, "segwit_size", version),
+            segwit_weight = PcoVec::import(db, "segwit_weight", version),
         };
         let mut this = Self {
             blockhash,

@@ -25,13 +25,13 @@ impl<C> UnrealizedByCohort<C>
 where
     C: FiatType + PcoVecValue + AddAssign,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         metric: &str,
         version: Version,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
-        let stored = CreationSources::forced_import(db, &format!("{metric}_cents"), version)?;
+        let stored = CreationSources::import(db, &format!("{metric}_cents"), version)?;
         let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let source = stored.get(cohort_id).expect("supported unrealized cohort");

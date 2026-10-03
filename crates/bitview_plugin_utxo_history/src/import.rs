@@ -19,7 +19,7 @@ impl Vecs {
         let version = STORAGE.schema_version();
         let this = Self {
             supply: import_cached(&db, "unspent_sats", version)?,
-            count: PerBlock::forced_import(&db, "utxo_count_bis", version, mappings)?,
+            count: PerBlock::import(&db, "utxo_count_bis", version, mappings)?,
             history: History::open(db.path())?,
             spends_path,
             creations_path,

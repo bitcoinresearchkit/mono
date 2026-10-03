@@ -7,7 +7,7 @@ use vecdb::{Database, ReadableCloneableVec};
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         indexes: &IndexSources,
@@ -15,26 +15,21 @@ impl Vecs {
     ) -> Result<Self> {
         let version = version + Version::ONE;
         Ok(Vecs {
-            count: PerBlockCumulativeRolling::forced_import(
+            count: PerBlockCumulativeRolling::import(
                 db,
                 "tx_count_inscription",
                 version,
                 indexes,
                 window_starts,
             )?,
-            fees: PerBlockCumulativeRolling::forced_import(
+            fees: PerBlockCumulativeRolling::import(
                 db,
                 "inscription_fees",
                 version,
                 indexes,
                 window_starts,
             )?,
-            fee_share: PercentPerBlock::forced_import(
-                db,
-                "inscription_fee_share",
-                version,
-                indexes,
-            )?,
+            fee_share: PercentPerBlock::import(db, "inscription_fee_share", version, indexes)?,
         })
     }
 }

@@ -18,7 +18,7 @@ pub struct AdjustedSopr<M: StorageMode = Rw> {
     pub value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
 }
 impl AdjustedSopr {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         id: AgeAggregateId,
         v: Version,
@@ -32,12 +32,7 @@ impl AdjustedSopr {
             c.adjusted_volume.read_only_boxed_clone(),
         );
         Ok(Self {
-            ratio: RollingWindows::forced_import(
-                db,
-                &id.metric_name("adjusted_sopr"),
-                v,
-                mappings,
-            )?,
+            ratio: RollingWindows::import(db, &id.metric_name("adjusted_sopr"), v, mappings)?,
             transfer_volume: LazyFiatPerBlockCumulativeRolling::from_cumulative_cents_source(
                 &id.metric_name("adj_value_created"),
                 v,

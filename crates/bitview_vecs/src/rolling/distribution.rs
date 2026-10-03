@@ -21,14 +21,14 @@ impl<T> RollingDistribution<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
         Ok(Self(DistributionStats::try_from_fn(|suffix| {
-            RollingWindows::forced_import(db, &format!("{name}_{suffix}"), version, indexes)
+            RollingWindows::import(db, &format!("{name}_{suffix}"), version, indexes)
         })?))
     }
 

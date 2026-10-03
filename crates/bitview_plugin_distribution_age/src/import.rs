@@ -22,11 +22,10 @@ impl Vecs {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let version = STORAGE.schema_version();
         let spot = prices.spot.cents.height.read_only_boxed_clone();
-        let cohorts =
-            CohortMetrics::forced_import(&db, version, mappings, windows, &spot, all_supply)?;
-        let age_bounds = AgeBoundsMetrics::forced_import(&db, version, mappings)?;
+        let cohorts = CohortMetrics::import(&db, version, mappings, windows, &spot, all_supply)?;
+        let age_bounds = AgeBoundsMetrics::import(&db, version, mappings)?;
         let coindays_created = AgeRange::try_from_fn(|id| {
-            PerBlockCumulativeRolling::forced_import(
+            PerBlockCumulativeRolling::import(
                 &db,
                 &format!(
                     "{}_coindays_created",
@@ -37,7 +36,7 @@ impl Vecs {
                 windows,
             )
         })?;
-        let coinblocks_destroyed = PerBlockCumulativeRolling::forced_import(
+        let coinblocks_destroyed = PerBlockCumulativeRolling::import(
             &db,
             "coinblocks_destroyed",
             version + Version::TWO,

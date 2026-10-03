@@ -31,98 +31,98 @@ pub struct Relative<M: StorageMode = Rw> {
     pub net_pnl_change_1m_to_rcap: PercentPerBlock<PartsPerMillionSigned64, M>,
 }
 impl Relative {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         id: AgeAggregateId,
         v: Version,
         mappings: &Mappings,
     ) -> Result<Self> {
         Ok(Self {
-            supply_dominance: PercentPerBlock::forced_import(
+            supply_dominance: PercentPerBlock::import(
                 db,
                 &id.metric_name("supply_dominance"),
                 v,
                 mappings,
             )?,
-            supply_in_profit_share: PercentPerBlock::forced_import(
+            supply_in_profit_share: PercentPerBlock::import(
                 db,
                 &id.metric_name("supply_in_profit_share"),
                 v,
                 mappings,
             )?,
-            supply_in_loss_share: PercentPerBlock::forced_import(
+            supply_in_loss_share: PercentPerBlock::import(
                 db,
                 &id.metric_name("supply_in_loss_share"),
                 v,
                 mappings,
             )?,
-            unrealized_profit_to_mcap: PercentPerBlock::forced_import(
+            unrealized_profit_to_mcap: PercentPerBlock::import(
                 db,
                 &id.metric_name("unrealized_profit_to_mcap"),
                 v,
                 mappings,
             )?,
-            unrealized_loss_to_mcap: PercentPerBlock::forced_import(
+            unrealized_loss_to_mcap: PercentPerBlock::import(
                 db,
                 &id.metric_name("unrealized_loss_to_mcap"),
                 v,
                 mappings,
             )?,
-            unrealized_profit_to_own_mcap: PercentPerBlock::forced_import(
+            unrealized_profit_to_own_mcap: PercentPerBlock::import(
                 db,
                 &id.metric_name("unrealized_profit_to_own_mcap"),
                 v,
                 mappings,
             )?,
-            unrealized_loss_to_own_mcap: PercentPerBlock::forced_import(
+            unrealized_loss_to_own_mcap: PercentPerBlock::import(
                 db,
                 &id.metric_name("unrealized_loss_to_own_mcap"),
                 v,
                 mappings,
             )?,
-            unrealized_profit_to_own_gross_pnl: PercentPerBlock::forced_import(
+            unrealized_profit_to_own_gross_pnl: PercentPerBlock::import(
                 db,
                 &id.metric_name("unrealized_profit_to_own_gross_pnl"),
                 v,
                 mappings,
             )?,
-            unrealized_loss_to_own_gross_pnl: PercentPerBlock::forced_import(
+            unrealized_loss_to_own_gross_pnl: PercentPerBlock::import(
                 db,
                 &id.metric_name("unrealized_loss_to_own_gross_pnl"),
                 v,
                 mappings,
             )?,
-            net_unrealized_pnl_to_own_gross_pnl: PercentPerBlock::forced_import(
+            net_unrealized_pnl_to_own_gross_pnl: PercentPerBlock::import(
                 db,
                 &id.metric_name("net_unrealized_pnl_to_own_gross_pnl"),
                 v,
                 mappings,
             )?,
-            invested_capital_in_profit_share: PercentPerBlock::forced_import(
+            invested_capital_in_profit_share: PercentPerBlock::import(
                 db,
                 &id.metric_name("invested_capital_in_profit_share"),
                 v,
                 mappings,
             )?,
-            invested_capital_in_loss_share: PercentPerBlock::forced_import(
+            invested_capital_in_loss_share: PercentPerBlock::import(
                 db,
                 &id.metric_name("invested_capital_in_loss_share"),
                 v,
                 mappings,
             )?,
-            realized_cap_to_own_mcap: PercentPerBlock::forced_import(
+            realized_cap_to_own_mcap: PercentPerBlock::import(
                 db,
                 &id.metric_name("realized_cap_to_own_mcap"),
                 v,
                 mappings,
             )?,
-            net_pnl_change_1m_to_mcap: PercentPerBlock::forced_import(
+            net_pnl_change_1m_to_mcap: PercentPerBlock::import(
                 db,
                 &id.metric_name("net_pnl_change_1m_to_mcap"),
                 v,
                 mappings,
             )?,
-            net_pnl_change_1m_to_rcap: PercentPerBlock::forced_import(
+            net_pnl_change_1m_to_rcap: PercentPerBlock::import(
                 db,
                 &id.metric_name("net_pnl_change_1m_to_rcap"),
                 v,

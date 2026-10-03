@@ -29,7 +29,7 @@ impl<T> PerBlockFullFromCumulative<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub fn forced_import<V>(
+    pub fn import<V>(
         db: &Database,
         name: &str,
         version: Version,
@@ -47,7 +47,7 @@ where
             cumulative_source,
             indexes,
         );
-        let rolling = RollingComplete::forced_import(
+        let rolling = RollingComplete::import(
             db,
             name,
             version,

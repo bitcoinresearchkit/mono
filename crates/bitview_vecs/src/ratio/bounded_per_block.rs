@@ -16,13 +16,13 @@ pub struct BoundedRatioPerBlock<M: StorageMode = Rw> {
 }
 
 impl BoundedRatioPerBlock {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let bounded = PerBlock::forced_import(db, &format!("{name}_bounded"), version, indexes)?;
+        let bounded = PerBlock::import(db, &format!("{name}_bounded"), version, indexes)?;
         let ratio = LazyPerBlock::from_resolutions::<BoundedToF64>(name, version, &bounded);
         Ok(Self { bounded, ratio })
     }

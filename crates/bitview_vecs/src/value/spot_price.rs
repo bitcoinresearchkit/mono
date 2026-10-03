@@ -15,13 +15,13 @@ pub struct SpotPrice<M: StorageMode = Rw>(
 );
 
 impl SpotPrice {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let cents = PerBlock::forced_import(db, &format!("{name}_cents"), version, indexes)?;
+        let cents = PerBlock::import(db, &format!("{name}_cents"), version, indexes)?;
         let usd = LazyPerBlock::from_resolutions::<CentsUnsignedToDollars>(name, version, &cents);
         let sats = LazyPerBlock::from_resolutions::<CentsUnsignedToSats>(
             &format!("{name}_sats"),

@@ -55,24 +55,27 @@ where
     /// # Warning
     ///
     /// This will DELETE all existing data on format/version errors. Use with caution.
-    pub(crate) fn forced_import_with(options: ImportOptions, format: Format) -> CrateResult<Self> {
-        let res = Self::import_with(options, format);
+    pub(crate) fn import_with(options: ImportOptions, format: Format) -> CrateResult<Self> {
+        let res = Self::import_strict_with(options, format);
         match res {
-            Err(Error::WrongEndian)
-            | Err(Error::WrongLength { .. })
+            Err(Error::WrongLength { .. })
             | Err(Error::DifferentFormat { .. })
             | Err(Error::DifferentVersion { .. }) => {
                 debug!("Resetting {}...", options.name);
                 options
                     .db
                     .remove_region_if_exists(&vec_region_name_with::<I>(options.name))?;
-                Self::import_with(options, format)
+                Self::import_strict_with(options, format)
             }
             _ => res,
         }
     }
 
-    pub(crate) fn import_with(mut options: ImportOptions, format: Format) -> CrateResult<Self> {
+    /// Imports without resetting: a version or format mismatch is an error.
+    pub(crate) fn import_strict_with(
+        mut options: ImportOptions,
+        format: Format,
+    ) -> CrateResult<Self> {
         options.version = options.version + VERSION;
 
         let name = options.name;

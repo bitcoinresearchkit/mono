@@ -47,7 +47,7 @@ pub struct Component<M: StorageMode = Rw> {
 const VERSION: Version = Version::new(12);
 
 impl Component {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,

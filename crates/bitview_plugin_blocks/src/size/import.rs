@@ -13,7 +13,7 @@ fn block_vbytes(_: Height, weight: Weight) -> StoredU64 {
 }
 
 impl Vecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         indexer: &Indexer,
@@ -21,7 +21,7 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
-            vbytes: PerBlockFull::forced_import(
+            vbytes: PerBlockFull::import(
                 db,
                 "block_vbytes",
                 version,
@@ -30,13 +30,7 @@ impl Vecs {
                 mappings,
                 window_starts,
             )?,
-            size: PerBlockRolling::forced_import(
-                db,
-                "block_size",
-                version,
-                mappings,
-                window_starts,
-            )?,
+            size: PerBlockRolling::import(db, "block_size", version, mappings, window_starts)?,
         })
     }
 }

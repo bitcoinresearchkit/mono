@@ -8,7 +8,7 @@ use vecdb::{Database, EagerVec, ImportableVec};
 use super::{CountVecs, Vecs};
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -16,7 +16,7 @@ impl Vecs {
     ) -> Result<Self> {
         Ok(Vecs {
             count: CountVecs {
-                nonstandard: PerBlockCumulativeRolling::forced_import(
+                nonstandard: PerBlockCumulativeRolling::import(
                     db,
                     "nonstandard_count",
                     version,
@@ -24,7 +24,7 @@ impl Vecs {
                     window_starts,
                 )?,
             },
-            is_nonstandard: EagerVec::forced_import(db, "is_nonstandard", version)?,
+            is_nonstandard: EagerVec::import(db, "is_nonstandard", version)?,
         })
     }
 }

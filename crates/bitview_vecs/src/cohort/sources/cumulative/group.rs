@@ -21,9 +21,9 @@ impl<G: CohortGroup, T: PcoVecValue> CumulativeCohortSources<G, T>
 where
     G::Of<T>: AddAssign + Clone + Default,
 {
-    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Ok(Self {
-            stored: CohortSources::forced_import(db, name, version)?,
+            stored: CohortSources::import(db, name, version)?,
             last: Default::default(),
         })
     }

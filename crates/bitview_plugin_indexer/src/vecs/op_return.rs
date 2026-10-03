@@ -26,13 +26,13 @@ pub struct OpReturnVecs<M: StorageMode = Rw> {
 }
 
 impl OpReturnVecs {
-    pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, version: Version) -> Result<Self> {
         let (first_index, to_tx_index, kind, post_op_return_bytes) = parallel_import! {
-            first_index = PcoVec::forced_import(db, "first_op_return_index", version),
-            to_tx_index = PcoVec::forced_import(db, "tx_index", version),
-            kind = PcoVec::forced_import(db, "kind", version),
+            first_index = PcoVec::import(db, "first_op_return_index", version),
+            to_tx_index = PcoVec::import(db, "tx_index", version),
+            kind = PcoVec::import(db, "kind", version),
             post_op_return_bytes =
-                PcoVec::forced_import(db, "op_return_post_op_return_bytes", version),
+                PcoVec::import(db, "op_return_post_op_return_bytes", version),
         };
         Ok(Self {
             first_index,

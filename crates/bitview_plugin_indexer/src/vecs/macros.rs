@@ -4,9 +4,9 @@
 /// # Example
 /// ```ignore
 /// let (a, b, c) = parallel_import! {
-///     a = SomeVec::forced_import(&db, version),
-///     b = OtherVec::forced_import(&db, version),
-///     c = ThirdVec::forced_import(&db, version),
+///     a = SomeVec::import(&db, version),
+///     b = OtherVec::import(&db, version),
+///     c = ThirdVec::import(&db, version),
 /// };
 /// ```
 macro_rules! parallel_import {

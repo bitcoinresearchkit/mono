@@ -38,7 +38,7 @@ impl SupplyMetrics {
             prices,
         );
         Self {
-            base: SupplyBase::from_total(
+            base: SupplyBase::new(
                 CohortContext::Utxo,
                 id,
                 version,

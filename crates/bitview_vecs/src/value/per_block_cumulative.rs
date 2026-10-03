@@ -20,15 +20,14 @@ pub struct ValuePerBlockCumulative<M: StorageMode = Rw> {
 const VERSION: Version = Version::ONE;
 
 impl ValuePerBlockCumulative {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
         let v = version + VERSION;
-        let cumulative =
-            ValuePerBlock::forced_import(db, &format!("{name}_cumulative"), v, indexes)?;
+        let cumulative = ValuePerBlock::import(db, &format!("{name}_cumulative"), v, indexes)?;
         let block = LazyValueBlock::from_cumulative(name, v, &cumulative);
 
         Ok(Self { block, cumulative })

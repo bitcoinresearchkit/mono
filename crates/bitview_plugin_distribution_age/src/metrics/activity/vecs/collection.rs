@@ -30,14 +30,14 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
 }
 
 impl ActivityVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Box<Self>> {
         let version = version + Version::ONE;
-        let transfer_volume = Box::new(CumulativeValueByCohort::forced_import(
+        let transfer_volume = Box::new(CumulativeValueByCohort::import(
             db,
             "transfer_volume",
             version,
@@ -45,15 +45,15 @@ impl ActivityVecs {
             window_starts,
         )?);
         let coindays_destroyed =
-            CoindaysDestroyedByCohort::forced_import(db, version, mappings, window_starts)?;
-        let transfer_volume_in_profit = Box::new(CoreCumulativeValueByCohort::forced_import(
+            CoindaysDestroyedByCohort::import(db, version, mappings, window_starts)?;
+        let transfer_volume_in_profit = Box::new(CoreCumulativeValueByCohort::import(
             db,
             "transfer_volume_in_profit",
             version,
             mappings,
             window_starts,
         )?);
-        let transfer_volume_in_loss = Box::new(CoreCumulativeValueByCohort::forced_import(
+        let transfer_volume_in_loss = Box::new(CoreCumulativeValueByCohort::import(
             db,
             "transfer_volume_in_loss",
             version,

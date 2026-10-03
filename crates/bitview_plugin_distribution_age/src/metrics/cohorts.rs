@@ -29,7 +29,7 @@ pub struct CohortMetrics<M: StorageMode = Rw> {
 
 impl CohortMetrics<Rw> {
     /// Import all cohort metrics from the database.
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -40,21 +40,20 @@ impl CohortMetrics<Rw> {
         let v = version + VERSION;
 
         // Supply must exist before either branch can build its shared views.
-        let supply =
-            SupplyVecs::forced_import(db, v, mappings, window_starts, spot_price, all_supply)?;
+        let supply = SupplyVecs::import(db, v, mappings, window_starts, spot_price, all_supply)?;
 
         // These branches are independent once the supply sources exist.
         let ((realized, unrealized), (outputs, activity)) = thread::scope(|scope| -> Result<_> {
             let outputs_activity = thread::Builder::new()
                 .stack_size(IMPORT_STACK_SIZE)
                 .spawn_scoped(scope, || -> Result<_> {
-                    let outputs = OutputsVecs::forced_import(db, v, mappings, window_starts)?;
-                    let activity = ActivityVecs::forced_import(db, v, mappings, window_starts)?;
+                    let outputs = OutputsVecs::import(db, v, mappings, window_starts)?;
+                    let activity = ActivityVecs::import(db, v, mappings, window_starts)?;
                     Ok((outputs, activity))
                 })?;
 
-            let realized = RealizedVecs::forced_import(db, v, mappings, window_starts)?;
-            let unrealized = UnrealizedVecs::forced_import(db, v, mappings)?;
+            let realized = RealizedVecs::import(db, v, mappings, window_starts)?;
+            let unrealized = UnrealizedVecs::import(db, v, mappings)?;
             Ok(((realized, unrealized), outputs_activity.join().unwrap()?))
         })?;
 

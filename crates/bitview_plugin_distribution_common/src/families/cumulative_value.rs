@@ -23,18 +23,15 @@ impl<G: CohortGroup> CumulativeValueByCohort<G>
 where
     G::Of<StoredU64>: std::ops::AddAssign + Clone + Default,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         metric: &str,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let stored = CumulativeCohortValueSources::forced_import(
-            db,
-            &format!("{metric}_cumulative"),
-            version,
-        )?;
+        let stored =
+            CumulativeCohortValueSources::import(db, &format!("{metric}_cumulative"), version)?;
         let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let SatsCents { sats, cents } = stored

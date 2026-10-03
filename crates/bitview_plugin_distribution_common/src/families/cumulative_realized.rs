@@ -24,18 +24,15 @@ impl<G: CohortGroup> CumulativeRealizedByCohort<G>
 where
     G::Of<Cents>: AddAssign + Clone + Default,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         metric: &str,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let stored = CumulativeCohortSources::forced_import(
-            db,
-            &format!("{metric}_cumulative_cents"),
-            version,
-        )?;
+        let stored =
+            CumulativeCohortSources::import(db, &format!("{metric}_cumulative_cents"), version)?;
         let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let source = stored

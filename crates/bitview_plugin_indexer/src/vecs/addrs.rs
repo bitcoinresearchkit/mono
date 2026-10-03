@@ -43,7 +43,7 @@ pub struct AddrsVecs<M: StorageMode = Rw> {
 }
 
 impl AddrsVecs {
-    pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, version: Version) -> Result<Self> {
         let (
             first_p2pk65_addr_index,
             first_p2pk33_addr_index,
@@ -62,22 +62,22 @@ impl AddrsVecs {
             p2tr_bytes,
             p2a_bytes,
         ) = parallel_import! {
-            first_p2pk65_addr_index = PcoVec::forced_import(db, "first_p2pk65_addr_index", version),
-            first_p2pk33_addr_index = PcoVec::forced_import(db, "first_p2pk33_addr_index", version),
-            first_p2pkh_addr_index = PcoVec::forced_import(db, "first_p2pkh_addr_index", version),
-            first_p2sh_addr_index = PcoVec::forced_import(db, "first_p2sh_addr_index", version),
-            first_p2wpkh_addr_index = PcoVec::forced_import(db, "first_p2wpkh_addr_index", version),
-            first_p2wsh_addr_index = PcoVec::forced_import(db, "first_p2wsh_addr_index", version),
-            first_p2tr_addr_index = PcoVec::forced_import(db, "first_p2tr_addr_index", version),
-            first_p2a_addr_index = PcoVec::forced_import(db, "first_p2a_addr_index", version),
-            p2pk65_bytes = BytesVec::forced_import(db, "p2pk65_bytes", version),
-            p2pk33_bytes = BytesVec::forced_import(db, "p2pk33_bytes", version),
-            p2pkh_bytes = BytesVec::forced_import(db, "p2pkh_bytes", version),
-            p2sh_bytes = BytesVec::forced_import(db, "p2sh_bytes", version),
-            p2wpkh_bytes = BytesVec::forced_import(db, "p2wpkh_bytes", version),
-            p2wsh_bytes = BytesVec::forced_import(db, "p2wsh_bytes", version),
-            p2tr_bytes = BytesVec::forced_import(db, "p2tr_bytes", version),
-            p2a_bytes = BytesVec::forced_import(db, "p2a_bytes", version),
+            first_p2pk65_addr_index = PcoVec::import(db, "first_p2pk65_addr_index", version),
+            first_p2pk33_addr_index = PcoVec::import(db, "first_p2pk33_addr_index", version),
+            first_p2pkh_addr_index = PcoVec::import(db, "first_p2pkh_addr_index", version),
+            first_p2sh_addr_index = PcoVec::import(db, "first_p2sh_addr_index", version),
+            first_p2wpkh_addr_index = PcoVec::import(db, "first_p2wpkh_addr_index", version),
+            first_p2wsh_addr_index = PcoVec::import(db, "first_p2wsh_addr_index", version),
+            first_p2tr_addr_index = PcoVec::import(db, "first_p2tr_addr_index", version),
+            first_p2a_addr_index = PcoVec::import(db, "first_p2a_addr_index", version),
+            p2pk65_bytes = BytesVec::import(db, "p2pk65_bytes", version),
+            p2pk33_bytes = BytesVec::import(db, "p2pk33_bytes", version),
+            p2pkh_bytes = BytesVec::import(db, "p2pkh_bytes", version),
+            p2sh_bytes = BytesVec::import(db, "p2sh_bytes", version),
+            p2wpkh_bytes = BytesVec::import(db, "p2wpkh_bytes", version),
+            p2wsh_bytes = BytesVec::import(db, "p2wsh_bytes", version),
+            p2tr_bytes = BytesVec::import(db, "p2tr_bytes", version),
+            p2a_bytes = BytesVec::import(db, "p2a_bytes", version),
         };
         Ok(Self {
             p2pk65: AddrTypeVecs {

@@ -24,10 +24,10 @@ macro_rules! define_vecs {
         }
 
         impl TransactionFeaturesVecs {
-            pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+            pub fn import(db: &Database, version: Version) -> Result<Self> {
                 let (count, $($vector,) +) = parallel_import! {
-                    count = TransactionCountVecs::forced_import(db, version),
-                    $($vector = PcoVec::forced_import(db, stringify!($vector), version),) +
+                    count = TransactionCountVecs::import(db, version),
+                    $($vector = PcoVec::import(db, stringify!($vector), version),) +
                 };
                 Ok(Self { count, $($vector,) + })
             }

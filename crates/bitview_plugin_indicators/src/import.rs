@@ -30,7 +30,7 @@ impl Vecs {
 
         let bps_version = v + Version::ONE;
         let puell_multiple =
-            BasisPointsPerBlock::forced_import(&db, "puell_multiple", bps_version, mappings)?;
+            BasisPointsPerBlock::import(&db, "puell_multiple", bps_version, mappings)?;
         let nvt_source = all_chain.with_market_cap(
             "nvt_bps_source",
             bps_version,
@@ -46,8 +46,8 @@ impl Vecs {
         );
         let nvt =
             LazyBasisPointsPerBlock::from_height_source("nvt", bps_version, &nvt_source, mappings);
-        let gini = PercentPerBlock::forced_import(&db, "gini", v, mappings)?;
-        let rhodl_ratio = RatioPerBlock::forced_import_ppm(&db, "rhodl_ratio", v, mappings)?;
+        let gini = PercentPerBlock::import(&db, "gini", v, mappings)?;
+        let rhodl_ratio = RatioPerBlock::import_ppm(&db, "rhodl_ratio", v, mappings)?;
         let thermo_source = all_chain.with_market_cap(
             "thermo_cap_multiple_bps_source",
             bps_version,
@@ -135,7 +135,7 @@ impl Vecs {
         );
         let stock_to_flow =
             LazyPerBlock::from_height_source::<Ident>("stock_to_flow", v, &stock_source, mappings);
-        let seller_exhaustion = PerBlock::forced_import(&db, "seller_exhaustion", v, mappings)?;
+        let seller_exhaustion = PerBlock::import(&db, "seller_exhaustion", v, mappings)?;
 
         let this = Self {
             db,

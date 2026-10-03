@@ -8,14 +8,14 @@ use vecdb::Database;
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Vecs {
-            total: PerBlockFullFromCumulative::forced_import(
+            total: PerBlockFullFromCumulative::import(
                 db,
                 "tx_count",
                 version,

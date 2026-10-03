@@ -46,7 +46,7 @@ pub struct AddrActivityVecs<M: StorageMode = Rw> {
 }
 
 impl AddrActivityVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -55,7 +55,7 @@ impl AddrActivityVecs {
         let cumulative_version = version + Version::TWO;
         let import = |name: &str| -> Result<_> {
             let source = |name: &str| {
-                PerBlockCumulativeRolling::forced_import(
+                PerBlockCumulativeRolling::import(
                     db,
                     name,
                     cumulative_version + Version::ONE,

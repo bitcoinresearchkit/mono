@@ -50,9 +50,10 @@ Every built-in plugin crate (except the indexer and constants) has the same root
   compute.rs}` when the family is large enough to split, otherwise a single
   `<family>.rs`.
 
-Constructors are associated functions: database-backed families use
-`forced_import`, lazy views `new` (or `from_*` when derived from one source),
-other stores `open`, and only the plugin itself has `import`. Computations on a plugin's own types are methods
+Constructors are associated functions: the plugin and its database-backed
+families `import` (like vecdb's vectors, resetting data whose version changed),
+lazy views `new` (or `from_*` when derived from one source), and other stores
+`open`. Computations on a plugin's own types are methods
 (`self.family.compute(..)`); free functions remain only for helpers over
 imported vector types.
 

@@ -14,10 +14,10 @@ impl<G: CohortGroup> CumulativeCohortValueSources<G>
 where
     G::Of<StoredU64>: std::ops::AddAssign + Clone + Default,
 {
-    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Ok(Self {
-            sats: CumulativeCohortSources::forced_import(db, &format!("{name}_sats"), version)?,
-            cents: CumulativeCohortSources::forced_import(db, &format!("{name}_cents"), version)?,
+            sats: CumulativeCohortSources::import(db, &format!("{name}_sats"), version)?,
+            cents: CumulativeCohortSources::import(db, &format!("{name}_cents"), version)?,
         })
     }
 

@@ -17,7 +17,7 @@ pub(crate) struct CumulativeSource<T: PcoVecValue, M: StorageMode = Rw> {
 }
 
 impl<T: PcoVecValue + Copy + Default + AddAssign> CumulativeSource<T> {
-    pub(crate) fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub(crate) fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Ok(Self {
             stored: import_cached(db, name, version)?,
             last: Default::default(),

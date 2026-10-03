@@ -16,14 +16,14 @@ pub struct PerBlockDistribution<T: ComputedVecValue + PartialOrd + JsonSchema, M
 );
 
 impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
         Ok(Self(DistributionStats::try_from_fn(|suffix| {
-            PerBlock::forced_import(db, &format!("{name}_{suffix}"), version, indexes)
+            PerBlock::import(db, &format!("{name}_{suffix}"), version, indexes)
         })?))
     }
 

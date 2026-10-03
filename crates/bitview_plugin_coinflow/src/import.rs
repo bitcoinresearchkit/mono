@@ -19,7 +19,7 @@ use crate::{
 };
 
 impl AggregateSources {
-    fn forced_import(db: &Database, version: Version) -> Result<Self> {
+    fn import(db: &Database, version: Version) -> Result<Self> {
         Ok(Self {
             under_4m_price: import_cached(db, "under_4m_coinflow_price_cents", version)?,
             under_4m_capitalized_price: import_cached(
@@ -150,7 +150,7 @@ impl Vecs {
                 "{}_spending_rate",
                 CohortContext::Utxo.full_name(id.cohort())
             );
-            PerBlock::forced_import(db, &name, version, mappings)
+            PerBlock::import(db, &name, version, mappings)
         })?;
         let mobility_source = AgeRange::try_from_fn(|id| {
             let name = format!(
@@ -165,7 +165,7 @@ impl Vecs {
                     "{}_spending_exposure",
                     CohortContext::Utxo.full_name(id.cohort())
                 );
-                PerBlock::forced_import(db, &name, version, mappings)
+                PerBlock::import(db, &name, version, mappings)
             })?,
             mobility: AgeRangeId::series(CohortContext::Utxo, |id, name| {
                 LazyPerBlock::from_height_source::<BoundedToF64>(
@@ -214,7 +214,7 @@ impl Vecs {
             immobile: supply_for(MobilityId::Immobile),
         };
 
-        let aggregate_sources = AggregateSources::forced_import(db, version)?;
+        let aggregate_sources = AggregateSources::import(db, version)?;
         let all = AggregateVecs::new(
             UTXOAggregateId::All,
             version,
@@ -237,7 +237,7 @@ impl Vecs {
             &spot_price,
         );
 
-        let urpd = UrpdMetrics::forced_import(db, "coinflow", version, mappings, &spot_price)?;
+        let urpd = UrpdMetrics::import(db, "coinflow", version, mappings, &spot_price)?;
         let this = Self {
             db: database,
             urpd,

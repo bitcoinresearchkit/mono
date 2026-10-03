@@ -38,7 +38,7 @@ where
         format!("{name}_overflow")
     }
 
-    fn import_inner(mut options: ImportOptions, forced: bool) -> Result<Self> {
+    fn import_inner(mut options: ImportOptions) -> Result<Self> {
         options.version = options.version.combine(VERSION).combine(T::VERSION);
         let overflow_name = Self::overflow_name(options.name);
         let overflow_options = ImportOptions {
@@ -47,24 +47,10 @@ where
             ..options
         };
 
-        let mut compact = if forced {
-            MutableVec::<BytesVec<_, _>>::forced_import_with(options)?
-        } else {
-            MutableVec::<BytesVec<_, _>>::import_with(options)?
-        };
-        let mut overflow = if forced {
-            MutableVec::<BytesVec<_, _>>::forced_import_with(overflow_options)?
-        } else {
-            MutableVec::<BytesVec<_, _>>::import_with(overflow_options)?
-        };
+        let mut compact = MutableVec::<BytesVec<_, _>>::import_with(options)?;
+        let mut overflow = MutableVec::<BytesVec<_, _>>::import_with(overflow_options)?;
 
         if compact.stamp() != overflow.stamp() {
-            if !forced {
-                return Err(Error::StampMismatch {
-                    file: overflow.stamp(),
-                    vec: compact.stamp(),
-                });
-            }
             compact.reset()?;
             overflow.reset()?;
             overflow.write()?;
@@ -286,11 +272,7 @@ where
     T: OverflowVecValue,
 {
     fn import_with(options: ImportOptions) -> Result<Self> {
-        Self::import_inner(options, false)
-    }
-
-    fn forced_import_with(options: ImportOptions) -> Result<Self> {
-        Self::import_inner(options, true)
+        Self::import_inner(options)
     }
 }
 

@@ -21,7 +21,7 @@ pub struct AmountValueSources<S: Clone, M: StorageMode = Rw> {
 
 impl<S: Clone> AmountValueSources<S> {
     #[allow(clippy::too_many_arguments)]
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         storage_name: &str,
         context: CohortContext,
@@ -33,7 +33,7 @@ impl<S: Clone> AmountValueSources<S> {
             LazyVec<Height, Cents, Height, StoredU64>,
         ) -> S,
     ) -> Result<Self> {
-        let sats = AmountSources::forced_import(
+        let sats = AmountSources::import(
             db,
             &format!("{storage_name}_sats"),
             context,
@@ -41,7 +41,7 @@ impl<S: Clone> AmountValueSources<S> {
             version,
             |_, _| (),
         )?;
-        let cents = AmountSources::forced_import(
+        let cents = AmountSources::import(
             db,
             &format!("{storage_name}_cents"),
             context,

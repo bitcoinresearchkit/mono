@@ -18,18 +18,15 @@ pub struct CoreCumulativeValueByCohort<M: StorageMode = Rw> {
 }
 
 impl CoreCumulativeValueByCohort {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         metric: &str,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let stored = CumulativeCreationValueSources::forced_import(
-            db,
-            &format!("{metric}_cumulative"),
-            version,
-        )?;
+        let stored =
+            CumulativeCreationValueSources::import(db, &format!("{metric}_cumulative"), version)?;
         let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let SatsCents { sats, cents } = stored

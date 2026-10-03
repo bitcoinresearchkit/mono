@@ -42,7 +42,7 @@ macro_rules! define_counts {
         }
 
         impl TransactionCountVecs {
-            pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+            pub fn import(db: &Database, version: Version) -> Result<Self> {
                 let (
                     v1,
                     v2,
@@ -53,14 +53,14 @@ macro_rules! define_counts {
                     one_output,
                     $($($count,)?) +
                 ) = parallel_import! {
-                    v1 = PcoVec::forced_import(db, "tx_count_v1", version),
-                    v2 = PcoVec::forced_import(db, "tx_count_v2", version),
-                    v3 = PcoVec::forced_import(db, "tx_count_v3", version),
-                    other_version = PcoVec::forced_import(db, "tx_count_other_version", version),
-                    explicitly_rbf = PcoVec::forced_import(db, "tx_count_explicitly_rbf", version),
-                    one_input = PcoVec::forced_import(db, "tx_count_one_input", version),
-                    one_output = PcoVec::forced_import(db, "tx_count_one_output", version),
-                    $($($count = PcoVec::forced_import(
+                    v1 = PcoVec::import(db, "tx_count_v1", version),
+                    v2 = PcoVec::import(db, "tx_count_v2", version),
+                    v3 = PcoVec::import(db, "tx_count_v3", version),
+                    other_version = PcoVec::import(db, "tx_count_other_version", version),
+                    explicitly_rbf = PcoVec::import(db, "tx_count_explicitly_rbf", version),
+                    one_input = PcoVec::import(db, "tx_count_one_input", version),
+                    one_output = PcoVec::import(db, "tx_count_one_output", version),
+                    $($($count = PcoVec::import(
                         db,
                         concat!("tx_count_", stringify!($count)),
                         version,

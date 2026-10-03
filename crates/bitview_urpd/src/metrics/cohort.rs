@@ -25,7 +25,7 @@ pub struct CohortMetrics<M: StorageMode = Rw> {
 }
 
 impl CohortMetrics {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         owner: &str,
         cohort: AgeAggregateId,
@@ -37,7 +37,7 @@ impl CohortMetrics {
         let capitalized_price_stored =
             import_cached(db, &format!("{name}_capitalized_price_cents"), version)?;
         Ok(Self {
-            cost_basis: CostBasisMetrics::forced_import(
+            cost_basis: CostBasisMetrics::import(
                 db,
                 &cohort.metric_name(&format!("{owner}_cost_basis")),
                 version,
@@ -51,7 +51,7 @@ impl CohortMetrics {
                 spot,
             ),
             capitalized_price_stored,
-            supply_density: DensitySeries::forced_import(
+            supply_density: DensitySeries::import(
                 db,
                 &format!("{name}_supply_density"),
                 version,

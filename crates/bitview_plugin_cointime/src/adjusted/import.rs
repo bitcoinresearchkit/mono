@@ -7,25 +7,21 @@ use vecdb::Database;
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
-        db: &Database,
-        version: Version,
-        mappings: &MappingsVecs,
-    ) -> Result<Self> {
+    pub(crate) fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
         Ok(Vecs {
-            inflation_rate: PercentPerBlock::forced_import(
+            inflation_rate: PercentPerBlock::import(
                 db,
                 "cointime_adj_inflation_rate",
                 version + Version::new(3),
                 mappings,
             )?,
-            tx_velocity_native: PerBlock::forced_import(
+            tx_velocity_native: PerBlock::import(
                 db,
                 "cointime_adj_tx_velocity_btc",
                 version,
                 mappings,
             )?,
-            tx_velocity_fiat: PerBlock::forced_import(
+            tx_velocity_fiat: PerBlock::import(
                 db,
                 "cointime_adj_tx_velocity_usd",
                 version,

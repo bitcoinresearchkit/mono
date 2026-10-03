@@ -24,18 +24,15 @@ pub struct CumulativeNetRealizedByCohort<M: StorageMode = Rw> {
 }
 
 impl CumulativeNetRealizedByCohort {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
-        let stored = CumulativeCreationSources::forced_import(
-            db,
-            "net_realized_pnl_cumulative_cents",
-            version,
-        )?;
+        let stored =
+            CumulativeCreationSources::import(db, "net_realized_pnl_cumulative_cents", version)?;
         let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "net_realized_pnl");
             let source = stored

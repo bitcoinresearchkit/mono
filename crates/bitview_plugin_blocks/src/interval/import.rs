@@ -8,13 +8,13 @@ use vecdb::Database;
 use super::Vecs;
 
 impl Vecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let interval = PerBlockCumulativeAverage::forced_import(
+        let interval = PerBlockCumulativeAverage::import(
             db,
             "block_interval",
             version,

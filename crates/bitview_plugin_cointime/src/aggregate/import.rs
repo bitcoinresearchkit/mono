@@ -12,7 +12,7 @@ use vecdb::{Database, PcoVecValue, ReadableBoxedVec, ReadableCloneableVec};
 use super::{AwakeVecs, CohortVecs, DormantVecs, Sources, Vecs};
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -20,7 +20,7 @@ impl Vecs {
         all_supply_in_loss_share: &PerBlock<BoundedRatio>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
-        let sources = Sources::forced_import(db, version)?;
+        let sources = Sources::import(db, version)?;
         let all_loss_share = all_supply_in_loss_share.height.read_only_boxed_clone();
         let term_loss_share = |term: Term| {
             sources
@@ -119,7 +119,7 @@ impl Vecs {
 }
 
 impl Sources {
-    pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, version: Version) -> Result<Self> {
         let version = version + Version::ONE;
         Ok(Self {
             under_4m_awake_price: import_cached(db, "under_4m_awake_price_cents", version)?,

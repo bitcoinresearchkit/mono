@@ -92,7 +92,7 @@ impl<T> Extreme<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -100,19 +100,19 @@ where
     ) -> Result<Self> {
         let version = version + Version::ONE;
         let thresholds = ThresholdVecs {
-            threshold_pct0_1: PerBlock::forced_import(
+            threshold_pct0_1: PerBlock::import(
                 db,
                 &format!("{name}_threshold_pct0_1"),
                 version,
                 mappings,
             )?,
-            threshold_pct0_05: PerBlock::forced_import(
+            threshold_pct0_05: PerBlock::import(
                 db,
                 &format!("{name}_threshold_pct0_05"),
                 version,
                 mappings,
             )?,
-            threshold_pct0_025: PerBlock::forced_import(
+            threshold_pct0_025: PerBlock::import(
                 db,
                 &format!("{name}_threshold"),
                 version,
@@ -122,8 +122,8 @@ where
 
         Ok(Self {
             thresholds,
-            tail: PercentPerBlock::forced_import(db, &format!("{name}_tail"), version, mappings)?,
-            rank: PerBlock::forced_import(db, &format!("{name}_rank"), version, mappings)?,
+            tail: PercentPerBlock::import(db, &format!("{name}_tail"), version, mappings)?,
+            rank: PerBlock::import(db, &format!("{name}_rank"), version, mappings)?,
             history: LiveHistory::new(),
         })
     }

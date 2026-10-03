@@ -38,11 +38,7 @@ pub struct CostBasisVecs<M: StorageMode = Rw> {
 }
 
 impl CostBasisVecs {
-    pub fn forced_import(
-        db: &Database,
-        version: Version,
-        mappings: &MappingsVecs,
-    ) -> Result<Box<Self>> {
+    pub fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Box<Self>> {
         let aggregate_version = version + Version::ONE;
         let in_profit_per_coin_source = Self::import_prices(
             db,
@@ -75,7 +71,7 @@ impl CostBasisVecs {
         let per_dollar_sources =
             Self::import_percentiles(db, "cost_basis_per_dollar", version, mappings)?;
         let supply_density_source =
-            DensitySources::forced_import(db, "supply_density", aggregate_version, mappings)?;
+            DensitySources::import(db, "supply_density", aggregate_version, mappings)?;
         let cohorts = AgeAggregate::from_fn(|id| CostBasis {
             in_profit: CostBasisSide {
                 per_coin: Price::from_height_source(
@@ -143,7 +139,7 @@ impl CostBasisVecs {
         mappings: &MappingsVecs,
     ) -> Result<AgeAggregate<Price<PerBlock<Cents>>>> {
         AgeAggregate::try_from_fn(|id| {
-            Price::forced_import(
+            Price::import(
                 db,
                 &id.metric_name(metric),
                 version + Version::ONE,
@@ -160,7 +156,7 @@ impl CostBasisVecs {
     ) -> Result<AgeAggregate<PercentilesVecs>> {
         AgeAggregate::try_from_fn(|id| {
             let version = base_version;
-            PercentilesVecs::forced_import(db, &id.metric_name(metric), version, mappings)
+            PercentilesVecs::import(db, &id.metric_name(metric), version, mappings)
         })
     }
 

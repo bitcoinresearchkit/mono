@@ -18,7 +18,7 @@ pub struct PercentilesVecs<M: StorageMode = Rw> {
 }
 
 impl PercentilesVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         prefix: &str,
         version: Version,

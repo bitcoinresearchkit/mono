@@ -20,7 +20,7 @@ pub struct RollingDistributionValuePerBlock<M: StorageMode = Rw>(
 );
 
 impl RollingDistributionValuePerBlock {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -28,7 +28,7 @@ impl RollingDistributionValuePerBlock {
     ) -> Result<Self> {
         Ok(Self(DistributionStats::try_from_fn(|stat_suffix| {
             Windows::try_from_fn(|window_suffix| {
-                ValuePerBlock::forced_import(
+                ValuePerBlock::import(
                     db,
                     &format!("{name}_{stat_suffix}_{window_suffix}"),
                     version,

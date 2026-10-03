@@ -32,11 +32,11 @@ impl Vecs {
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 20_000_000)?;
 
-        let caps = RealizedCaps::forced_import(&db, SAVED_CHECKPOINTS)?;
+        let caps = RealizedCaps::import(&db, SAVED_CHECKPOINTS)?;
         let version = STORAGE.schema_version();
         let spot_price = prices.spot.cents.height.read_only_boxed_clone();
 
-        let balances = BalanceMetrics::forced_import(
+        let balances = BalanceMetrics::import(
             &db,
             version,
             mappings,
@@ -45,16 +45,15 @@ impl Vecs {
             all_supply,
         )?;
 
-        let addr_state = AddrStateVecs::forced_import(&db, version)?;
+        let addr_state = AddrStateVecs::import(&db, version)?;
 
         let funded_addr_count =
-            FundedAddrCountsVecs::forced_import(&db, version, mappings, window_starts)?;
-        let empty_addr_count =
-            AddrCountsVecs::forced_import(&db, "empty_addr_count", version, mappings)?;
-        let addr_activity = AddrActivityVecs::forced_import(&db, version, mappings, window_starts)?;
+            FundedAddrCountsVecs::import(&db, version, mappings, window_starts)?;
+        let empty_addr_count = AddrCountsVecs::import(&db, "empty_addr_count", version, mappings)?;
+        let addr_activity = AddrActivityVecs::import(&db, version, mappings, window_starts)?;
 
         // Stored total = addr_count + empty_addr_count (global + per-type, with all derived mappings)
-        let total_addr_count = TotalAddrCountVecs::forced_import(&db, version, mappings)?;
+        let total_addr_count = TotalAddrCountVecs::import(&db, version, mappings)?;
 
         // Per-block delta of total (global + per-type)
         let new_addr_count =
@@ -64,7 +63,7 @@ impl Vecs {
         // `reused_*` uses the receive-side predicate (funded_txo_count > 1,
         // industry standard). `respent_*` uses the spend-side counterpart
         // (spent_txo_count > 1, strictly more restrictive).
-        let reused_addr_count = ReusedAddrVecs::forced_import(
+        let reused_addr_count = ReusedAddrVecs::import(
             &db,
             "reused",
             version,
@@ -75,7 +74,7 @@ impl Vecs {
             inputs_by_type,
             all_supply,
         )?;
-        let respent_addr_count = ReusedAddrVecs::forced_import(
+        let respent_addr_count = ReusedAddrVecs::import(
             &db,
             "respent",
             version,
@@ -89,13 +88,13 @@ impl Vecs {
 
         // Exposed address tracking (counts + supply) - quantum / pubkey-exposure sense
         let exposed_addr_vecs =
-            ExposedAddrVecs::forced_import(&db, version, mappings, &spot_price, all_supply)?;
+            ExposedAddrVecs::import(&db, version, mappings, &spot_price, all_supply)?;
 
         // Growth rate: delta change + rate (global + per-type)
         let delta = DeltaVecs::new(version, &funded_addr_count.counts, window_starts, mappings);
 
         // Average funded-address balance, globally and per address type.
-        let avg_balance = AvgBalanceVecs::forced_import(
+        let avg_balance = AvgBalanceVecs::import(
             &db,
             version,
             mappings,

@@ -18,15 +18,15 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
 }
 
 impl OutputsVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Box<Self>> {
         Ok(Box::new(Self {
-            unspent_count: UnspentOutputCount::forced_import(db, version, mappings, window_starts)?,
-            spent_count: SpentOutputCount::forced_import(db, version, mappings, window_starts)?,
+            unspent_count: UnspentOutputCount::import(db, version, mappings, window_starts)?,
+            spent_count: SpentOutputCount::import(db, version, mappings, window_starts)?,
         }))
     }
 

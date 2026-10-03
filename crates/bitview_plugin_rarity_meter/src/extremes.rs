@@ -55,33 +55,18 @@ pub struct Extremes<M: StorageMode = Rw> {
 }
 
 impl Extremes {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         parent_version: Version,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
         let version = parent_version + VERSION;
         Ok(Extremes {
-            coins_in_loss: Extreme::forced_import(
-                db,
-                "rarity_meter_coins_in_loss",
-                version,
-                mappings,
-            )?,
-            profit_taking: Extreme::forced_import(
-                db,
-                "rarity_meter_profit_taking",
-                version,
-                mappings,
-            )?,
-            capitulation: Extreme::forced_import(
-                db,
-                "rarity_meter_capitulation",
-                version,
-                mappings,
-            )?,
-            peak_regret: Extreme::forced_import(db, "rarity_meter_peak_regret", version, mappings)?,
-            seller_exhaustion: Extreme::forced_import(
+            coins_in_loss: Extreme::import(db, "rarity_meter_coins_in_loss", version, mappings)?,
+            profit_taking: Extreme::import(db, "rarity_meter_profit_taking", version, mappings)?,
+            capitulation: Extreme::import(db, "rarity_meter_capitulation", version, mappings)?,
+            peak_regret: Extreme::import(db, "rarity_meter_peak_regret", version, mappings)?,
+            seller_exhaustion: Extreme::import(
                 db,
                 "rarity_meter_seller_exhaustion",
                 version,

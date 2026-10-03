@@ -11,7 +11,7 @@ use vecdb::Database;
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -20,7 +20,7 @@ impl Vecs {
     ) -> Result<Self> {
         let v = version + Version::TWO;
         Ok(Vecs {
-            transfer_volume: ValuePerBlockCumulativeRolling::forced_import(
+            transfer_volume: ValuePerBlockCumulativeRolling::import(
                 db,
                 "transfer_volume_bis",
                 version,

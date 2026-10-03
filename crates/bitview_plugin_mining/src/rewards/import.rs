@@ -12,27 +12,27 @@ use vecdb::{Database, EagerVec, ImportableVec};
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let coinbase = ValuePerBlockCumulativeRolling::forced_import(
+        let coinbase = ValuePerBlockCumulativeRolling::import(
             db,
             "coinbase",
             version,
             mappings,
             window_starts,
         )?;
-        let subsidy = ValuePerBlockCumulativeRolling::forced_import(
+        let subsidy = ValuePerBlockCumulativeRolling::import(
             db,
             "subsidy",
             version,
             mappings,
             window_starts,
         )?;
-        let fees = ValuePerBlockFull::forced_import(db, "fees", version, mappings, window_starts)?;
+        let fees = ValuePerBlockFull::import(db, "fees", version, mappings, window_starts)?;
         let fees_source = fees.cumulative_sats_source();
 
         let fee_dominance = LazyPercentCumulativeRolling::from_cumulative_ratio_with_numerator::<
@@ -69,13 +69,8 @@ impl Vecs {
             coinbase,
             subsidy,
             fees,
-            output_volume: EagerVec::forced_import(db, "output_volume", version)?,
-            unclaimed: ValuePerBlockCumulative::forced_import(
-                db,
-                "unclaimed_rewards",
-                version,
-                mappings,
-            )?,
+            output_volume: EagerVec::import(db, "output_volume", version)?,
+            unclaimed: ValuePerBlockCumulative::import(db, "unclaimed_rewards", version, mappings)?,
             fee_dominance,
             subsidy_dominance,
             fee_to_subsidy,

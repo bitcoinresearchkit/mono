@@ -17,14 +17,13 @@ pub struct CountPerBlockRollingAverage<M: StorageMode = Rw>(
 );
 
 impl CountPerBlockRollingAverage {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
-        PerBlockCumulativeAverage::forced_import(db, name, version, indexes, window_starts)
-            .map(Self)
+        PerBlockCumulativeAverage::import(db, name, version, indexes, window_starts).map(Self)
     }
 }

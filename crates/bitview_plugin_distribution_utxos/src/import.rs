@@ -18,8 +18,8 @@ impl Vecs {
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 20_000_000)?;
-        let caps = RealizedCaps::forced_import(&db, SAVED_CHECKPOINTS)?;
-        let cohorts = CohortMetrics::forced_import(
+        let caps = RealizedCaps::import(&db, SAVED_CHECKPOINTS)?;
+        let cohorts = CohortMetrics::import(
             &db,
             STORAGE.schema_version(),
             mappings,

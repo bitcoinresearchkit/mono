@@ -125,7 +125,7 @@ pub struct Components<M: StorageMode = Rw> {
 }
 
 impl Components {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -137,56 +137,56 @@ impl Components {
 
         macro_rules! import {
             ($name:expr, $source:expr) => {
-                Component::forced_import(db, $name, version, mappings, &$source.cents.height)?
+                Component::import(db, $name, version, mappings, &$source.cents.height)?
             };
         }
 
         Ok(Components {
             realized_price: import!("realized_price", utxos.all.realized.price),
             capitalized_price: import!("capitalized_price", utxos.all.realized.capitalized_price),
-            median_price_btc_weighted: MedianComponent::forced_import(
+            median_price_btc_weighted: MedianComponent::import(
                 db,
                 "median_price_btc_weighted",
                 version,
                 mappings,
                 &utxos.all.cost_basis.per_coin.pct50.cents.height,
             )?,
-            median_price_usd_weighted: MedianComponent::forced_import(
+            median_price_usd_weighted: MedianComponent::import(
                 db,
                 "median_price_usd_weighted",
                 version,
                 mappings,
                 &utxos.all.cost_basis.per_dollar.pct50.cents.height,
             )?,
-            sth_median_price_btc_weighted: MedianComponent::forced_import(
+            sth_median_price_btc_weighted: MedianComponent::import(
                 db,
                 "sth_median_price_btc_weighted",
                 version,
                 mappings,
                 &utxos.sth.cost_basis.per_coin.pct50.cents.height,
             )?,
-            sth_median_price_usd_weighted: MedianComponent::forced_import(
+            sth_median_price_usd_weighted: MedianComponent::import(
                 db,
                 "sth_median_price_usd_weighted",
                 version,
                 mappings,
                 &utxos.sth.cost_basis.per_dollar.pct50.cents.height,
             )?,
-            lth_median_price_btc_weighted: MedianComponent::forced_import(
+            lth_median_price_btc_weighted: MedianComponent::import(
                 db,
                 "lth_median_price_btc_weighted",
                 version,
                 mappings,
                 &utxos.lth.cost_basis.per_coin.pct50.cents.height,
             )?,
-            lth_median_price_usd_weighted: MedianComponent::forced_import(
+            lth_median_price_usd_weighted: MedianComponent::import(
                 db,
                 "lth_median_price_usd_weighted",
                 version,
                 mappings,
                 &utxos.lth.cost_basis.per_dollar.pct50.cents.height,
             )?,
-            cointime_median_price_btc_weighted: MedianComponent::forced_import(
+            cointime_median_price_btc_weighted: MedianComponent::import(
                 db,
                 "cointime_median_price_btc_weighted",
                 version,
@@ -201,7 +201,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            cointime_median_price_usd_weighted: MedianComponent::forced_import(
+            cointime_median_price_usd_weighted: MedianComponent::import(
                 db,
                 "cointime_median_price_usd_weighted",
                 version,
@@ -216,7 +216,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            coinflow_median_price_btc_weighted: MedianComponent::forced_import(
+            coinflow_median_price_btc_weighted: MedianComponent::import(
                 db,
                 "coinflow_median_price_btc_weighted",
                 version,
@@ -231,7 +231,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            coinflow_median_price_usd_weighted: MedianComponent::forced_import(
+            coinflow_median_price_usd_weighted: MedianComponent::import(
                 db,
                 "coinflow_median_price_usd_weighted",
                 version,
@@ -246,7 +246,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            sth_cointime_median_price_btc_weighted: MedianComponent::forced_import(
+            sth_cointime_median_price_btc_weighted: MedianComponent::import(
                 db,
                 "sth_cointime_median_price_btc_weighted",
                 version,
@@ -261,7 +261,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            sth_cointime_median_price_usd_weighted: MedianComponent::forced_import(
+            sth_cointime_median_price_usd_weighted: MedianComponent::import(
                 db,
                 "sth_cointime_median_price_usd_weighted",
                 version,
@@ -276,7 +276,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            lth_cointime_median_price_btc_weighted: MedianComponent::forced_import(
+            lth_cointime_median_price_btc_weighted: MedianComponent::import(
                 db,
                 "lth_cointime_median_price_btc_weighted",
                 version,
@@ -291,7 +291,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            lth_cointime_median_price_usd_weighted: MedianComponent::forced_import(
+            lth_cointime_median_price_usd_weighted: MedianComponent::import(
                 db,
                 "lth_cointime_median_price_usd_weighted",
                 version,
@@ -306,7 +306,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            sth_coinflow_median_price_btc_weighted: MedianComponent::forced_import(
+            sth_coinflow_median_price_btc_weighted: MedianComponent::import(
                 db,
                 "sth_coinflow_median_price_btc_weighted",
                 version,
@@ -321,7 +321,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            sth_coinflow_median_price_usd_weighted: MedianComponent::forced_import(
+            sth_coinflow_median_price_usd_weighted: MedianComponent::import(
                 db,
                 "sth_coinflow_median_price_usd_weighted",
                 version,
@@ -336,7 +336,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            lth_coinflow_median_price_btc_weighted: MedianComponent::forced_import(
+            lth_coinflow_median_price_btc_weighted: MedianComponent::import(
                 db,
                 "lth_coinflow_median_price_btc_weighted",
                 version,
@@ -351,7 +351,7 @@ impl Components {
                     .cents
                     .height,
             )?,
-            lth_coinflow_median_price_usd_weighted: MedianComponent::forced_import(
+            lth_coinflow_median_price_usd_weighted: MedianComponent::import(
                 db,
                 "lth_coinflow_median_price_usd_weighted",
                 version,

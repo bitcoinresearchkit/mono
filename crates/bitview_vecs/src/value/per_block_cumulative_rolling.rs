@@ -20,7 +20,7 @@ pub struct ValuePerBlockCumulativeRolling<M: StorageMode = Rw> {
 const VERSION: Version = Version::TWO;
 
 impl ValuePerBlockCumulativeRolling {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -29,7 +29,7 @@ impl ValuePerBlockCumulativeRolling {
     ) -> Result<Self> {
         let v = version + VERSION;
 
-        let inner = ValuePerBlockCumulative::forced_import(db, name, v, indexes)?;
+        let inner = ValuePerBlockCumulative::import(db, name, v, indexes)?;
         let rolling = RollingAmountTotals::new(
             name,
             v,

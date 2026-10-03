@@ -11,14 +11,14 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
     pub transfer_volume: Box<CumulativeValueByCohort<M>>,
 }
 impl ActivityVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         windows: &Windows<&LazyWindowStartVec>,
     ) -> Result<Box<Self>> {
         Ok(Box::new(Self {
-            transfer_volume: Box::new(CumulativeValueByCohort::forced_import(
+            transfer_volume: Box::new(CumulativeValueByCohort::import(
                 db,
                 "transfer_volume",
                 version + Version::ONE,

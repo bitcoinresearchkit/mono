@@ -9,7 +9,7 @@ use vecdb::Database;
 use super::{DerivedVecs, Vecs};
 
 impl DerivedVecs {
-    fn forced_import_with_prefix(
+    fn import_with_prefix(
         db: &Database,
         prefix: &str,
         version: Version,
@@ -25,7 +25,7 @@ impl DerivedVecs {
         let liveliness_name = name("liveliness");
         let version = version + Version::ONE;
         let liveliness_source =
-            PerBlock::forced_import(db, &name("liveliness_bounded_source"), version, mappings)?;
+            PerBlock::import(db, &name("liveliness_bounded_source"), version, mappings)?;
         let liveliness = LazyPerBlock::from_resolutions::<BoundedToF64>(
             &liveliness_name,
             version,
@@ -52,28 +52,28 @@ impl DerivedVecs {
 }
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Vecs {
-            coinblocks_created: PerBlockCumulativeRolling::forced_import(
+            coinblocks_created: PerBlockCumulativeRolling::import(
                 db,
                 "coinblocks_created",
                 version,
                 mappings,
                 window_starts,
             )?,
-            coinblocks_stored: PerBlockCumulativeRolling::forced_import(
+            coinblocks_stored: PerBlockCumulativeRolling::import(
                 db,
                 "coinblocks_stored",
                 version,
                 mappings,
                 window_starts,
             )?,
-            derived: DerivedVecs::forced_import_with_prefix(db, "", version, mappings)?,
+            derived: DerivedVecs::import_with_prefix(db, "", version, mappings)?,
         })
     }
 }

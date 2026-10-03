@@ -8,13 +8,13 @@ use vecdb::Database;
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        Ok(Self(PerBlockAggregated::forced_import(
+        Ok(Self(PerBlockAggregated::import(
             db,
             "input_count",
             version,

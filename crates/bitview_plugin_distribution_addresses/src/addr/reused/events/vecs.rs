@@ -121,7 +121,7 @@ impl AddrEventsVecs {
         WithAddrTypes { all, by_addr_type }
     }
     #[allow(clippy::too_many_arguments)]
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -132,7 +132,7 @@ impl AddrEventsVecs {
     ) -> Result<Self> {
         let import_count = |name: &str| -> Result<_> {
             let import = |name: &str| {
-                PerBlockCumulativeRolling::forced_import(
+                PerBlockCumulativeRolling::import(
                     db,
                     name,
                     version + Version::ONE,
@@ -199,14 +199,14 @@ impl AddrEventsVecs {
             &input_denominators,
         );
 
-        let active_reused_addr_count = CountPerBlockRollingAverage::forced_import(
+        let active_reused_addr_count = CountPerBlockRollingAverage::import(
             db,
             &format!("active_{name}_addr_count"),
             version,
             mappings,
             window_starts,
         )?;
-        let active_reused_addr_share = PerBlockRollingAverage::forced_import(
+        let active_reused_addr_share = PerBlockRollingAverage::import(
             db,
             &format!("active_{name}_addr_share"),
             version,

@@ -7,7 +7,7 @@ use vecdb::{Database, Ident, ReadableCloneableVec};
 use super::{Vecs, price_min_max_vecs::PriceMinMaxVecs};
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -28,16 +28,16 @@ impl Vecs {
 
         Ok(Vecs {
             min: PriceMinMaxVecs {
-                _1w: Price::forced_import(db, "price_min_1w", version + v1, mappings)?,
-                _2w: Price::forced_import(db, "price_min_2w", version + v1, mappings)?,
-                _1m: Price::forced_import(db, "price_min_1m", version + v1, mappings)?,
-                _1y: Price::forced_import(db, "price_min_1y", version + v1, mappings)?,
+                _1w: Price::import(db, "price_min_1w", version + v1, mappings)?,
+                _2w: Price::import(db, "price_min_2w", version + v1, mappings)?,
+                _1m: Price::import(db, "price_min_1m", version + v1, mappings)?,
+                _1y: Price::import(db, "price_min_1y", version + v1, mappings)?,
             },
             max: PriceMinMaxVecs {
-                _1w: Price::forced_import(db, "price_max_1w", version + v1, mappings)?,
-                _2w: Price::forced_import(db, "price_max_2w", version + v1, mappings)?,
-                _1m: Price::forced_import(db, "price_max_1m", version + v1, mappings)?,
-                _1y: Price::forced_import(db, "price_max_1y", version + v1, mappings)?,
+                _1w: Price::import(db, "price_max_1w", version + v1, mappings)?,
+                _2w: Price::import(db, "price_max_2w", version + v1, mappings)?,
+                _1m: Price::import(db, "price_max_1m", version + v1, mappings)?,
+                _1y: Price::import(db, "price_max_1y", version + v1, mappings)?,
             },
             true_range: LazyPerBlock::from_height_source::<Ident>(
                 "price_true_range",
@@ -45,13 +45,13 @@ impl Vecs {
                 &true_range_source,
                 mappings,
             ),
-            true_range_sum_2w: PerBlock::forced_import(
+            true_range_sum_2w: PerBlock::import(
                 db,
                 "price_true_range_sum_2w",
                 version + v1,
                 mappings,
             )?,
-            choppiness_index_2w: PercentPerBlock::forced_import(
+            choppiness_index_2w: PercentPerBlock::import(
                 db,
                 "price_choppiness_index_2w",
                 version + v1,

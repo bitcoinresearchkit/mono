@@ -16,7 +16,7 @@ use super::{ActivitySeries, SupplyVecs, Vecs};
 const VERSION: Version = Version::new(4);
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         parent_version: Version,
         mappings: &MappingsVecs,
@@ -28,13 +28,7 @@ impl Vecs {
         let import_coindays = |metric: &str| {
             AgeRange::try_from_fn(|id| {
                 let name = format!("{}_{metric}", CohortContext::Utxo.full_name(id.cohort()));
-                PerBlockCumulativeRolling::forced_import(
-                    db,
-                    &name,
-                    version,
-                    mappings,
-                    window_starts,
-                )
+                PerBlockCumulativeRolling::import(db, &name, version, mappings, window_starts)
             })
         };
         let coindays_consumed = import_coindays("coindays_consumed")?;

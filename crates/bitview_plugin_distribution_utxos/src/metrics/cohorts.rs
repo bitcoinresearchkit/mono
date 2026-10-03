@@ -20,7 +20,7 @@ pub struct CohortMetrics<M: StorageMode = Rw> {
     pub realized: Box<RealizedVecs<M>>,
 }
 impl CohortMetrics {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -29,10 +29,10 @@ impl CohortMetrics {
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
         Ok(Self {
-            supply: SupplyVecs::forced_import(db, version, mappings, windows, spot, all_supply)?,
-            outputs: OutputsVecs::forced_import(db, version, mappings, windows, spot)?,
-            activity: ActivityVecs::forced_import(db, version, mappings, windows)?,
-            realized: RealizedVecs::forced_import(db, version, mappings, windows)?,
+            supply: SupplyVecs::import(db, version, mappings, windows, spot, all_supply)?,
+            outputs: OutputsVecs::import(db, version, mappings, windows, spot)?,
+            activity: ActivityVecs::import(db, version, mappings, windows)?,
+            realized: RealizedVecs::import(db, version, mappings, windows)?,
         })
     }
     pub fn push(&mut self, states: &UTXOStates, price: Cents) {

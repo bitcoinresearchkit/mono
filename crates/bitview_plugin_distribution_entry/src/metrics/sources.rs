@@ -33,7 +33,7 @@ pub(crate) struct Sources<M: StorageMode = Rw> {
 }
 
 impl Sources {
-    pub(crate) fn forced_import(db: &Database, id: CohortId, version: Version) -> Result<Self> {
+    pub(crate) fn import(db: &Database, id: CohortId, version: Version) -> Result<Self> {
         let name = |metric| CohortContext::Utxo.metric_name(id, metric);
         Ok(Self {
             supply: import_cached(db, &name("supply_sats"), version)?,
@@ -45,62 +45,62 @@ impl Sources {
             unrealized_profit: import_cached(db, &name("unrealized_profit_cents"), version)?,
             unrealized_loss: import_cached(db, &name("unrealized_loss_cents"), version)?,
             unrealized_net_pnl: import_cached(db, &name("net_unrealized_pnl_cents"), version)?,
-            spent_count: CumulativeSource::forced_import(
+            spent_count: CumulativeSource::import(
                 db,
                 &name("spent_utxo_count_cumulative"),
                 version,
             )?,
-            transfer_sats: CumulativeSource::forced_import(
+            transfer_sats: CumulativeSource::import(
                 db,
                 &name("transfer_volume_cumulative_sats"),
                 version,
             )?,
-            transfer_cents: CumulativeSource::forced_import(
+            transfer_cents: CumulativeSource::import(
                 db,
                 &name("transfer_volume_cumulative_cents"),
                 version,
             )?,
-            profit_sats: CumulativeSource::forced_import(
+            profit_sats: CumulativeSource::import(
                 db,
                 &name("transfer_volume_in_profit_cumulative_sats"),
                 version,
             )?,
-            profit_cents: CumulativeSource::forced_import(
+            profit_cents: CumulativeSource::import(
                 db,
                 &name("transfer_volume_in_profit_cumulative_cents"),
                 version,
             )?,
-            loss_sats: CumulativeSource::forced_import(
+            loss_sats: CumulativeSource::import(
                 db,
                 &name("transfer_volume_in_loss_cumulative_sats"),
                 version,
             )?,
-            loss_cents: CumulativeSource::forced_import(
+            loss_cents: CumulativeSource::import(
                 db,
                 &name("transfer_volume_in_loss_cumulative_cents"),
                 version,
             )?,
-            coindays: CumulativeSource::forced_import(
+            coindays: CumulativeSource::import(
                 db,
                 &name("coindays_destroyed_cumulative"),
                 version,
             )?,
-            realized_profit: CumulativeSource::forced_import(
+            realized_profit: CumulativeSource::import(
                 db,
                 &name("realized_profit_cumulative_cents"),
                 version,
             )?,
-            realized_loss: CumulativeSource::forced_import(
+            realized_loss: CumulativeSource::import(
                 db,
                 &name("realized_loss_cumulative_cents"),
                 version,
             )?,
-            realized_net_pnl: CumulativeSource::forced_import(
+            realized_net_pnl: CumulativeSource::import(
                 db,
                 &name("net_realized_pnl_cumulative_cents"),
                 version,
             )?,
-            value_destroyed: CumulativeSource::forced_import(
+            value_destroyed: CumulativeSource::import(
                 db,
                 &name("value_destroyed_cumulative_cents"),
                 version,

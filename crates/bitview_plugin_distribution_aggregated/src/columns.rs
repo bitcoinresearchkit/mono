@@ -47,7 +47,7 @@ pub(crate) struct Columns<M: StorageMode = Rw> {
     peak: M::WriteOnly<CumulativeState<Cents>>,
 }
 impl Columns {
-    pub fn forced_import(db: &Database, id: AgeAggregateId, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, id: AgeAggregateId, version: Version) -> Result<Self> {
         Ok(Self {
             supply: import_cached(db, &id.metric_name("supply_sats"), version)?,
             count: import_cached(db, &id.metric_name("utxo_count"), version)?,

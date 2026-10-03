@@ -41,7 +41,7 @@ pub struct RarityMeterInner<M: StorageMode = Rw> {
 const VERSION: Version = Version::TWO;
 
 impl RarityMeterInner {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         prefix: &str,
         version: Version,
@@ -49,7 +49,7 @@ impl RarityMeterInner {
     ) -> Result<Self> {
         let version = version + VERSION;
         let prices = RarityPercentiles::try_from_fn(|id| {
-            Price::forced_import(
+            Price::import(
                 db,
                 &format!("{prefix}_{}", id.price_suffix()),
                 version,
@@ -59,9 +59,9 @@ impl RarityMeterInner {
 
         Ok(RarityMeterInner {
             prices,
-            index: PerBlock::forced_import(db, &format!("{prefix}_index"), version, mappings)?,
+            index: PerBlock::import(db, &format!("{prefix}_index"), version, mappings)?,
             // Rebuild scores using capped totals instead of overflowing i8 sums.
-            score: PerBlock::forced_import(
+            score: PerBlock::import(
                 db,
                 &format!("{prefix}_score"),
                 version + Version::ONE,

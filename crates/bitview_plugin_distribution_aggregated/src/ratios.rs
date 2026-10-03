@@ -24,7 +24,7 @@ pub struct Ratios<M: StorageMode = Rw> {
     pub profit_to_loss_ratio: RollingWindows<StoredF32, M>,
 }
 impl Ratios {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         id: AgeAggregateId,
         v: Version,
@@ -33,22 +33,22 @@ impl Ratios {
         windows: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
-            adjusted_sopr: AdjustedSopr::forced_import(db, id, v, columns, mappings, windows)?,
-            dormancy: RollingWindows::forced_import(db, &id.metric_name("dormancy"), v, mappings)?,
-            sopr: PerBlock::forced_import(db, &id.metric_name("sopr_24h"), v, mappings)?,
-            sopr_ratio_extended: RollingWindowsFrom1w::forced_import(
+            adjusted_sopr: AdjustedSopr::import(db, id, v, columns, mappings, windows)?,
+            dormancy: RollingWindows::import(db, &id.metric_name("dormancy"), v, mappings)?,
+            sopr: PerBlock::import(db, &id.metric_name("sopr_24h"), v, mappings)?,
+            sopr_ratio_extended: RollingWindowsFrom1w::import(
                 db,
                 &id.metric_name("sopr"),
                 v,
                 mappings,
             )?,
-            sell_side_risk_ratio: PercentRollingWindows::forced_import(
+            sell_side_risk_ratio: PercentRollingWindows::import(
                 db,
                 &id.metric_name("sell_side_risk_ratio"),
                 v,
                 mappings,
             )?,
-            profit_to_loss_ratio: RollingWindows::forced_import(
+            profit_to_loss_ratio: RollingWindows::import(
                 db,
                 &id.metric_name("realized_profit_to_loss_ratio"),
                 v,

@@ -19,14 +19,14 @@ pub struct SupplyTotal<G: CohortGroup, M: StorageMode = Rw> {
 }
 
 impl<G: CohortGroup> SupplyTotal<G> {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let stored = CohortSources::forced_import(db, "supply_sats", version)?;
+        let stored = CohortSources::import(db, "supply_sats", version)?;
         let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "supply");
             let source = stored.get(cohort_id).expect("total-supply cohort source");

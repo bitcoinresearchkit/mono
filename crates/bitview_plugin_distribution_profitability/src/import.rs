@@ -16,8 +16,7 @@ impl Vecs {
         prices: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
-        let metrics =
-            Metrics::forced_import(&db, STORAGE.schema_version(), mappings, windows, prices)?;
+        let metrics = Metrics::import(&db, STORAGE.schema_version(), mappings, windows, prices)?;
         STORAGE.finalize_database(&db)?;
         Ok(Self {
             db,

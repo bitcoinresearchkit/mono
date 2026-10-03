@@ -13,8 +13,8 @@ use super::AddrCountsVecs;
 pub struct TotalAddrCountVecs<M: StorageMode = Rw>(#[traversable(flatten)] pub AddrCountsVecs<M>);
 
 impl TotalAddrCountVecs {
-    pub fn forced_import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
-        Ok(Self(AddrCountsVecs::forced_import(
+    pub fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
+        Ok(Self(AddrCountsVecs::import(
             db,
             "total_addr_count",
             version,

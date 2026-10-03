@@ -32,7 +32,7 @@ impl Vecs {
         let circulating =
             LazyValuePerBlock::spot_identity("circulating_supply", supply_metrics, version);
 
-        let burned = burned::Vecs::forced_import(&db, version, mappings)?;
+        let burned = burned::Vecs::import(&db, version, mappings)?;
 
         let inflation_version = version + Version::TWO;
         let inflation_source = LazyWindowVec::<Height, Sats, PartsPerMillionSigned64>::new(

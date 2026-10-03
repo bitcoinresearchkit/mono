@@ -9,13 +9,13 @@ use vecdb::{Database, LazyVec, ReadableCloneableVec};
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         indexer: &Indexer,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
-        let weight = TxDerivedDistribution::forced_import(db, "tx_weight", version, mappings)?;
+        let weight = TxDerivedDistribution::import(db, "tx_weight", version, mappings)?;
 
         let tx_index_to_vsize = LazyVec::transformed::<WeightToVSize>(
             "tx_vsize",

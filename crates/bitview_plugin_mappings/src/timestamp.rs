@@ -55,15 +55,15 @@ pub struct Timestamps<M: StorageMode = Rw> {
 }
 
 impl Timestamps {
-    pub fn forced_import_monotonic(
+    pub fn import_monotonic(
         db: &Database,
         version: Version,
     ) -> Result<EagerVec<PcoVec<Height, Timestamp, Budgeted>>> {
-        Ok(EagerVec::forced_import(db, "timestamp_monotonic", version)?)
+        Ok(EagerVec::import(db, "timestamp_monotonic", version)?)
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn from_locals(
+    pub fn new(
         version: Version,
         monotonic: EagerVec<PcoVec<Height, Timestamp, Budgeted>>,
         raw_timestamps: ReadableBoxedVec<Height, Timestamp>,

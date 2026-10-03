@@ -9,7 +9,7 @@ use vecdb::Database;
 use crate::{ModeVecs, Modes, Percentiles, PriceBands, STORAGE, Vecs};
 
 impl ModeVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -58,7 +58,7 @@ impl Vecs {
 
         let modes = Modes::try_from_fn(|mode| {
             let name = mode.name();
-            ModeVecs::forced_import(&db, &format!("bedrock_{name}"), version, mappings)
+            ModeVecs::import(&db, &format!("bedrock_{name}"), version, mappings)
         })?;
         let this = Self {
             db,

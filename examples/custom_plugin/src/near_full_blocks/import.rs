@@ -7,8 +7,7 @@ use super::{STORAGE, Vecs};
 impl Vecs {
     pub(crate) fn import(context: ImportContext<'_>) -> Result<Self> {
         let db = STORAGE.open_database(context, 1)?;
-        let streak =
-            EagerVec::forced_import(&db, "near_full_block_streak", STORAGE.schema_version())?;
+        let streak = EagerVec::import(&db, "near_full_block_streak", STORAGE.schema_version())?;
 
         let this = Self { db, streak };
         STORAGE.finalize_database(&this.db)?;

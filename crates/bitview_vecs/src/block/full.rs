@@ -33,7 +33,7 @@ where
     S: VecValue,
 {
     #[allow(clippy::too_many_arguments)]
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -43,9 +43,8 @@ where
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
         let block = LazyVec::init(name, version, source.read_only_boxed_clone(), compute_block);
-        let cumulative =
-            PerBlock::forced_import(db, &format!("{name}_cumulative"), version, indexes)?;
-        let rolling = RollingComplete::forced_import(
+        let cumulative = PerBlock::import(db, &format!("{name}_cumulative"), version, indexes)?;
+        let rolling = RollingComplete::import(
             db,
             name,
             version,

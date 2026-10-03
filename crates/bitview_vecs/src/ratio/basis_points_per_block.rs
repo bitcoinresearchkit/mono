@@ -17,13 +17,13 @@ pub struct BasisPointsPerBlock<M: StorageMode = Rw> {
 }
 
 impl BasisPointsPerBlock {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let bps = PerBlock::forced_import(db, &format!("{name}_bps"), version, indexes)?;
+        let bps = PerBlock::import(db, &format!("{name}_bps"), version, indexes)?;
         let ratio = LazyPerBlock::from_resolutions::<FixedToRatio>(name, version, &bps);
         Ok(Self { bps, ratio })
     }

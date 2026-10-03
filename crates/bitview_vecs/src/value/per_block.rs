@@ -29,17 +29,17 @@ pub type ValuePerBlock<M = Rw> = Value<
 >;
 
 impl ValuePerBlock {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let sats = PerBlock::forced_import(db, &format!("{name}_sats"), version, indexes)?;
+        let sats = PerBlock::import(db, &format!("{name}_sats"), version, indexes)?;
 
         let btc = LazyPerBlock::from_resolutions::<SatsToBitcoin>(name, version, &sats);
 
-        let cents = PerBlock::forced_import(db, &format!("{name}_cents"), version, indexes)?;
+        let cents = PerBlock::import(db, &format!("{name}_cents"), version, indexes)?;
 
         let usd = LazyPerBlock::from_resolutions::<CentsUnsignedToDollars>(
             &format!("{name}_usd"),

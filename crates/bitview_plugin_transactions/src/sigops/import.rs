@@ -8,14 +8,14 @@ use vecdb::Database;
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Vecs {
-            total: PerBlockCumulativeRolling::forced_import(
+            total: PerBlockCumulativeRolling::import(
                 db,
                 "total_sigop_cost",
                 version,

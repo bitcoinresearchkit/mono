@@ -25,13 +25,13 @@ impl FiatType for CentsSigned {
 pub type FiatPerBlock<C, M = Rw> = Fiat<PerBlock<C, M>, LazyPerBlock<Dollars, C>>;
 
 impl<C: FiatType> FiatPerBlock<C> {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let cents = PerBlock::forced_import(db, &format!("{name}_cents"), version, indexes)?;
+        let cents = PerBlock::import(db, &format!("{name}_cents"), version, indexes)?;
         let usd = LazyPerBlock::from_resolutions::<C::ToDollars>(name, version, &cents);
         Ok(Self { usd, cents })
     }

@@ -10,7 +10,7 @@ use super::{Vecs, sma::SmaVecs, vecs::EmaPeriodId};
 const EMA_VERSION: Version = Version::TWO;
 
 impl Vecs {
-    pub(crate) fn forced_import(
+    pub(crate) fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,

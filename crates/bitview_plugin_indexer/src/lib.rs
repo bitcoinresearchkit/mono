@@ -246,11 +246,11 @@ impl Indexer {
 
         let try_import = || -> Result<Self> {
             let i = Instant::now();
-            let vecs = Vecs::forced_import(&plugin_path, STORAGE.schema_version())?;
+            let vecs = Vecs::import(&plugin_path, STORAGE.schema_version())?;
             info!("Loaded indexer vectors in {:.2?}", i.elapsed());
 
             let i = Instant::now();
-            let stores = Stores::forced_import(&plugin_path, STORAGE.schema_version())?;
+            let stores = Stores::import(&plugin_path, STORAGE.schema_version())?;
             info!("Loaded indexer state in {:.2?}", i.elapsed());
 
             Ok(Self {

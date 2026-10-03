@@ -40,9 +40,7 @@ mod mutable {
         db: &Database,
         name: &str,
     ) -> Result<V> {
-        V::forced_import_with(
-            ImportOptions::new(db, name, Version::TWO).with_saved_stamped_changes(10),
-        )
+        V::import_with(ImportOptions::new(db, name, Version::TWO).with_saved_stamped_changes(10))
     }
 
     mod mutation_rollback {
@@ -382,7 +380,7 @@ mod truncation {
     {
         let mut options: ImportOptions = (db, name, Version::TWO).into();
         options = options.with_saved_stamped_changes(10);
-        V::forced_import_with(options)
+        V::import_with(options)
     }
 
     fn run_truncate_rollback_and_reopen<V: StoredVec<I = usize, T = u32>>() -> Result<()> {
@@ -454,8 +452,8 @@ mod recovery {
     use crate::PcoVec;
     use crate::tests::init_cache;
     use crate::{
-        AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, EagerVec, ImportableVec, ReadableVec,
-        StoredVec, Version, WritableVec,
+        AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, EagerVec, ImportableVec, MutableVec,
+        ReadableVec, Result, StoredVec, Version, WritableVec,
     };
     use brk_exit::Exit;
     use tempfile::tempdir;
@@ -485,16 +483,14 @@ mod recovery {
                 {
                     let db = Database::open(directory.path()).unwrap();
                     let mut source =
-                        EagerVec::<BytesVec<usize, u64>>::forced_import(&db, "source", version)
-                            .unwrap();
+                        EagerVec::<BytesVec<usize, u64>>::import(&db, "source", version).unwrap();
                     source.truncate_if_needed_at(0).unwrap();
                     for &value in expected {
                         source.push(value);
                     }
                     source.write().unwrap();
                     dependency_version = source.version();
-                    let mut output =
-                        EagerVec::<V>::forced_import(&db, "output", Version::ONE).unwrap();
+                    let mut output = EagerVec::<V>::import(&db, "output", Version::ONE).unwrap();
                     let previous = output.collect();
                     let start =
                         if output.version() == output.header().vec_version() + dependency_version {
@@ -536,7 +532,7 @@ mod recovery {
                     // No extra write/flush: the compute call must publish truncation itself.
                 }
                 let db = Database::open(directory.path()).unwrap();
-                let output = EagerVec::<V>::forced_import(&db, "output", Version::ONE).unwrap();
+                let output = EagerVec::<V>::import(&db, "output", Version::ONE).unwrap();
                 assert_eq!(output.len(), to, "reopened length at max_from={max_from}");
                 assert_eq!(output.collect_range_at(0, to), expected);
                 assert_eq!(
@@ -569,6 +565,38 @@ mod recovery {
         check_recovery::<BytesVec<usize, u64>>(Compute::Transform);
         #[cfg(feature = "pco")]
         check_recovery::<PcoVec<usize, u64>>(Compute::Transform);
+    }
+
+    #[test]
+    fn version_change_resets_mutable_holes() -> Result<()> {
+        let _serial = crate::tests::serial();
+        let directory = tempdir()?;
+        let database = Database::open(directory.path())?;
+        {
+            let mut mutable =
+                MutableVec::<BytesVec<usize, u64>>::import(&database, "mutable", Version::ONE)?;
+            mutable.push(1);
+            mutable.push(2);
+            mutable.push(3);
+            mutable.write()?;
+            mutable.delete(1);
+            mutable.write()?;
+        }
+
+        let mut mutable =
+            MutableVec::<BytesVec<usize, u64>>::import(&database, "mutable", Version::TWO)?;
+        assert_eq!(mutable.len(), 0);
+        mutable.push(4);
+        mutable.push(5);
+        mutable.write()?;
+        assert_eq!(mutable.collect_holed(), [Some(4), Some(5)]);
+        drop(mutable);
+
+        let mutable =
+            MutableVec::<BytesVec<usize, u64>>::import(&database, "mutable", Version::TWO)?;
+        assert_eq!(mutable.collect_holed(), [Some(4), Some(5)]);
+
+        Ok(())
     }
 }
 
@@ -669,7 +697,7 @@ mod overflow {
         let db = Database::open(temp.path())?;
         let options =
             ImportOptions::new(&db, "rollback", Version::ONE).with_saved_stamped_changes(5);
-        let mut vec = OverflowVec::<usize, TestValue>::forced_import_with(options)?;
+        let mut vec = OverflowVec::<usize, TestValue>::import_with(options)?;
 
         vec.push(TestValue(1));
         vec.push(TestValue(1_000));
@@ -731,7 +759,7 @@ mod grouped_pco {
         let _serial = crate::tests::serial();
         let temp = tempdir()?;
         let db = Database::open(temp.path())?;
-        let mut vec = PcoVec::<usize, u64>::forced_import(&db, "values", Version::ONE)?;
+        let mut vec = PcoVec::<usize, u64>::import(&db, "values", Version::ONE)?;
         let initial: Vec<_> = (0..VALUES_PER_PAGE * 20 + 137)
             .map(|index| (index as u64).wrapping_mul(6364136223846793005))
             .collect();
@@ -791,16 +819,13 @@ mod retain_regions {
             let _ = database.create_region_if_needed("stale")?;
 
             let mut compressed =
-                PcoVec::<usize, u64>::forced_import(&database, "compressed", Version::ONE)?;
+                PcoVec::<usize, u64>::import(&database, "compressed", Version::ONE)?;
             compressed.push(10);
             compressed.push(20);
             compressed.write()?;
 
-            let mut mutable = MutableVec::<BytesVec<usize, u64>>::forced_import(
-                &database,
-                "mutable",
-                Version::ONE,
-            )?;
+            let mut mutable =
+                MutableVec::<BytesVec<usize, u64>>::import(&database, "mutable", Version::ONE)?;
             mutable.push(1);
             mutable.push(2);
             mutable.push(3);

@@ -21,7 +21,7 @@ pub struct AddrCountsVecs<M: StorageMode = Rw> {
 }
 
 impl AddrCountsVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,

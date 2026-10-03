@@ -19,7 +19,7 @@ impl Vecs {
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
         let cohorts = ByEntry::try_from_fn(|id| {
-            CohortMetrics::forced_import(
+            CohortMetrics::import(
                 &db,
                 CohortId::Entry(id),
                 STORAGE.schema_version(),

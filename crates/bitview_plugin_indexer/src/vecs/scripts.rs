@@ -25,7 +25,7 @@ pub struct ScriptsVecs<M: StorageMode = Rw> {
 }
 
 impl ScriptsVecs {
-    pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, version: Version) -> Result<Self> {
         let (
             first_empty_output_index,
             first_p2ms_output_index,
@@ -36,14 +36,14 @@ impl ScriptsVecs {
             p2ms_legacy_sigops,
             unknown_legacy_sigops,
         ) = parallel_import! {
-            first_empty_output_index = PcoVec::forced_import(db, "first_empty_output_index", version),
-            first_p2ms_output_index = PcoVec::forced_import(db, "first_p2ms_output_index", version),
-            first_unknown_output_index = PcoVec::forced_import(db, "first_unknown_output_index", version),
-            empty_output_index_to_tx_index = PcoVec::forced_import(db, "tx_index", version),
-            p2ms_output_index_to_tx_index = PcoVec::forced_import(db, "tx_index", version),
-            unknown_output_index_to_tx_index = PcoVec::forced_import(db, "tx_index", version),
-            p2ms_legacy_sigops = BytesVec::forced_import(db, "p2ms_legacy_sigops", version),
-            unknown_legacy_sigops = BytesVec::forced_import(db, "unknown_legacy_sigops", version),
+            first_empty_output_index = PcoVec::import(db, "first_empty_output_index", version),
+            first_p2ms_output_index = PcoVec::import(db, "first_p2ms_output_index", version),
+            first_unknown_output_index = PcoVec::import(db, "first_unknown_output_index", version),
+            empty_output_index_to_tx_index = PcoVec::import(db, "tx_index", version),
+            p2ms_output_index_to_tx_index = PcoVec::import(db, "tx_index", version),
+            unknown_output_index_to_tx_index = PcoVec::import(db, "tx_index", version),
+            p2ms_legacy_sigops = BytesVec::import(db, "p2ms_legacy_sigops", version),
+            unknown_legacy_sigops = BytesVec::import(db, "unknown_legacy_sigops", version),
         };
         Ok(Self {
             empty: ScriptTypeVecs {

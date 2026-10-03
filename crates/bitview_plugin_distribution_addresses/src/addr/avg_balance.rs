@@ -22,7 +22,7 @@ pub struct AvgBalanceVecs<M: StorageMode = Rw> {
 }
 
 impl AvgBalanceVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,

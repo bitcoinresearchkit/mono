@@ -43,9 +43,11 @@ cargo add vecdb --features pco,derive
 ## Basic use
 
 
-The tuple `(database, name, version)` identifies stored data. Import validates
-its on-disk schema; `forced_import` resets incompatible data when the caller
-explicitly wants rebuild behavior.
+The tuple `(database, name, version)` identifies stored data. `import` opens it,
+creating it if needed, and deletes it (with any sidecar regions) when the stored
+version or format differs, so the caller rebuilds it: bump the version whenever
+stored values change meaning. Compressed vectors also reset a corrupt layout;
+other corruption is an error.
 
 ## Reads, writes, and rollback
 

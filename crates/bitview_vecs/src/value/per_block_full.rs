@@ -46,7 +46,7 @@ impl ValuePerBlockFull {
         self.cumulative.sats.resolutions.height_source()
     }
 
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -54,15 +54,10 @@ impl ValuePerBlockFull {
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
         let full_version = version + VERSION;
-        let inner = ValuePerBlockCumulativeRolling::forced_import(
-            db,
-            name,
-            full_version,
-            indexes,
-            window_starts,
-        )?;
+        let inner =
+            ValuePerBlockCumulativeRolling::import(db, name, full_version, indexes, window_starts)?;
         let distribution =
-            RollingDistributionValuePerBlock::forced_import(db, name, full_version, indexes)?;
+            RollingDistributionValuePerBlock::import(db, name, full_version, indexes)?;
 
         Ok(Self {
             inner,

@@ -18,14 +18,14 @@ pub struct CoindaysDestroyedByCohort<M: StorageMode = Rw> {
 }
 
 impl CoindaysDestroyedByCohort {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let stored =
-            CumulativeCreationSources::forced_import(db, "coindays_destroyed_cumulative", version)?;
+            CumulativeCreationSources::import(db, "coindays_destroyed_cumulative", version)?;
         let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "coindays_destroyed");
             let source = stored

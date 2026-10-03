@@ -71,18 +71,17 @@ pub struct ExposedAddrVecs<M: StorageMode = Rw> {
 }
 
 impl ExposedAddrVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
         all_supply: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
-        let count = AddrCountFundedTotalVecs::forced_import(db, "exposed", version, mappings)?;
-        let supply = AddrSupplyVecs::forced_import(db, "exposed", version, mappings, spot_price)?;
-        let supply_share = AddrSupplyShareVecs::forced_import(
-            db, "exposed", version, mappings, &supply, all_supply,
-        )?;
+        let count = AddrCountFundedTotalVecs::import(db, "exposed", version, mappings)?;
+        let supply = AddrSupplyVecs::import(db, "exposed", version, mappings, spot_price)?;
+        let supply_share =
+            AddrSupplyShareVecs::import(db, "exposed", version, mappings, &supply, all_supply)?;
 
         Ok(Self {
             count,

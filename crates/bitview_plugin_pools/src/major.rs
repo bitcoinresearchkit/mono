@@ -33,7 +33,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 }
 
 impl Vecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         slug: PoolSlug,
         pool_heights: PoolHeights,
@@ -45,7 +45,7 @@ impl Vecs {
 
         let base = minor::Vecs::new(slug, pool_heights, version, mappings, window_starts);
 
-        let rewards = ValuePerBlockCumulativeRolling::forced_import(
+        let rewards = ValuePerBlockCumulativeRolling::import(
             db,
             &suffix("rewards"),
             version,

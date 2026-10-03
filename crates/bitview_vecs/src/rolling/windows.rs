@@ -19,14 +19,14 @@ impl<T> RollingWindows<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
         Ok(Self(Windows::try_from_fn(|suffix| {
-            PerBlock::forced_import(db, &format!("{name}_{suffix}"), version, indexes)
+            PerBlock::import(db, &format!("{name}_{suffix}"), version, indexes)
         })?))
     }
 }

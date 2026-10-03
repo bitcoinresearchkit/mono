@@ -19,7 +19,7 @@ pub struct SupplyBase {
 }
 
 impl SupplyBase {
-    pub fn from_total(
+    pub fn new(
         context: CohortContext,
         cohort: CohortId,
         version: Version,
@@ -39,7 +39,7 @@ impl SupplyBase {
         let dominance =
             LazyPercentPerBlock::from_height_source(&dominance_name, version, &source, mappings);
 
-        Self::new(
+        Self::from_parts(
             context,
             cohort,
             version,
@@ -50,7 +50,7 @@ impl SupplyBase {
         )
     }
 
-    fn new(
+    fn from_parts(
         context: CohortContext,
         cohort: CohortId,
         version: Version,

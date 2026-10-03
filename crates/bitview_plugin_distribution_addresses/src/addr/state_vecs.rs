@@ -46,7 +46,7 @@ pub struct AddrStateVecs<M: StorageMode = Rw> {
 }
 
 impl AddrStateVecs {
-    pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
+    pub fn import(db: &Database, version: Version) -> Result<Self> {
         let primary = || {
             ImportOptions::new(db, "addr_state", version)
                 .with_saved_stamped_changes(SAVED_CHECKPOINTS)
@@ -56,22 +56,19 @@ impl AddrStateVecs {
         };
 
         Ok(Self {
-            p2a: MutableVec::forced_import_with(primary())?,
-            p2pk33: MutableVec::forced_import_with(primary())?,
-            p2pk65: MutableVec::forced_import_with(primary())?,
-            p2pkh: MutableVec::forced_import_with(primary())?,
-            p2sh: MutableVec::forced_import_with(primary())?,
-            p2tr: MutableVec::forced_import_with(primary())?,
-            p2wpkh: MutableVec::forced_import_with(primary())?,
-            p2wsh: MutableVec::forced_import_with(primary())?,
-            funded: OverflowVec::forced_import_with(sidecar(
+            p2a: MutableVec::import_with(primary())?,
+            p2pk33: MutableVec::import_with(primary())?,
+            p2pk65: MutableVec::import_with(primary())?,
+            p2pkh: MutableVec::import_with(primary())?,
+            p2sh: MutableVec::import_with(primary())?,
+            p2tr: MutableVec::import_with(primary())?,
+            p2wpkh: MutableVec::import_with(primary())?,
+            p2wsh: MutableVec::import_with(primary())?,
+            funded: OverflowVec::import_with(sidecar(
                 "funded_addr_data",
                 version + FUNDED_DATA_VERSION,
             ))?,
-            extended_empty: OverflowVec::forced_import_with(sidecar(
-                "extended_empty_addr_data",
-                version,
-            ))?,
+            extended_empty: OverflowVec::import_with(sidecar("extended_empty_addr_data", version))?,
         })
     }
 

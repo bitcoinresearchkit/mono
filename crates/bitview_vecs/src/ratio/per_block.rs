@@ -18,16 +18,16 @@ pub struct RatioPerBlock<R: FixedRatio, M: StorageMode = Rw> {
 const VERSION: Version = Version::new(3);
 
 impl<R: FixedRatio> RatioPerBlock<R> {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        Self::forced_import_ppm(db, &format!("{name}_ratio"), version, indexes)
+        Self::import_ppm(db, &format!("{name}_ratio"), version, indexes)
     }
 
-    pub fn forced_import_ppm(
+    pub fn import_ppm(
         db: &Database,
         name: &str,
         version: Version,
@@ -35,7 +35,7 @@ impl<R: FixedRatio> RatioPerBlock<R> {
     ) -> Result<Self> {
         let v = version + VERSION;
 
-        let ppm = PerBlock::forced_import(db, &format!("{name}_{}", R::SUFFIX), v, indexes)?;
+        let ppm = PerBlock::import(db, &format!("{name}_{}", R::SUFFIX), v, indexes)?;
 
         let ratio = LazyPerBlock::from_resolutions::<R::ToRatio>(name, v, &ppm);
 

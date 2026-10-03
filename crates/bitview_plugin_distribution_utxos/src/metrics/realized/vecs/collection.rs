@@ -14,22 +14,22 @@ pub struct RealizedVecs<M: StorageMode = Rw> {
     pub loss: CumulativeRealizedByCohort<M>,
 }
 impl RealizedVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Box<Self>> {
-        let cap = RealizedCapByCohort::forced_import(db, version, mappings)?;
-        let price = RealizedPriceByCohort::forced_import(db, version, mappings)?;
-        let profit = CumulativeRealizedByCohort::forced_import(
+        let cap = RealizedCapByCohort::import(db, version, mappings)?;
+        let price = RealizedPriceByCohort::import(db, version, mappings)?;
+        let profit = CumulativeRealizedByCohort::import(
             db,
             "realized_profit",
             version + Version::ONE,
             mappings,
             window_starts,
         )?;
-        let loss = CumulativeRealizedByCohort::forced_import(
+        let loss = CumulativeRealizedByCohort::import(
             db,
             "realized_loss",
             version + Version::ONE,

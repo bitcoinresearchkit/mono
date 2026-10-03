@@ -23,7 +23,7 @@ pub struct Cagr {
 }
 
 impl Cagr {
-    pub(super) fn from_returns(
+    pub(super) fn new(
         version: Version,
         periods: &ByLookbackPeriod<LazyPercentPerBlock<PartsPerMillionSigned64>>,
     ) -> Self {

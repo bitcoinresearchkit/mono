@@ -43,7 +43,7 @@ pub struct SupplyVecs<M: StorageMode = Rw> {
 }
 
 impl SupplyVecs {
-    pub fn forced_import(
+    pub fn import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
@@ -51,14 +51,13 @@ impl SupplyVecs {
         spot_price: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Box<Self>> {
-        let total = SupplyTotal::forced_import(db, version, mappings, spot_price, all_supply)?;
+        let total = SupplyTotal::import(db, version, mappings, spot_price, all_supply)?;
         let all_supply = total.all_supply();
         let in_profit =
-            SupplyByCohort::forced_import(db, "supply_in_profit", version, mappings, spot_price)?;
-        let in_loss =
-            SupplyByCohort::forced_import(db, "supply_in_loss", version, mappings, spot_price)?;
+            SupplyByCohort::import(db, "supply_in_profit", version, mappings, spot_price)?;
+        let in_loss = SupplyByCohort::import(db, "supply_in_loss", version, mappings, spot_price)?;
         let utxo = total.cohorts.map_with_id(|cohort_id, total| {
-            SupplyBase::from_total(
+            SupplyBase::new(
                 CohortContext::Utxo,
                 cohort_id,
                 version,
@@ -78,14 +77,14 @@ impl SupplyVecs {
                 CohortContext::Utxo.full_name(id.cohort())
             );
             Ok(SatsCents {
-                sats: PerBlockCumulativeRolling::forced_import(
+                sats: PerBlockCumulativeRolling::import(
                     db,
                     &format!("{name}_raw_sats"),
                     matured_version + Version::ONE,
                     mappings,
                     window_starts,
                 )?,
-                cents: PerBlockCumulativeRolling::forced_import(
+                cents: PerBlockCumulativeRolling::import(
                     db,
                     &format!("{name}_raw_cents"),
                     matured_version + Version::ONE,

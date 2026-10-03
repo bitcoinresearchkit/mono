@@ -22,7 +22,7 @@ where
             .transpose()?;
         let has_stored_holes = holes.is_some();
         Ok(Self::from_parts(
-            V::import_with(options)?,
+            V::import_strict_with(options)?,
             holes.unwrap_or_default(),
             has_stored_holes,
         ))
@@ -34,19 +34,14 @@ where
     V: MutableRawVec,
 {
     fn import_with(options: ImportOptions) -> Result<Self> {
-        Self::import_inner(options)
-    }
-
-    fn forced_import_with(options: ImportOptions) -> Result<Self> {
         match Self::import_inner(options) {
-            Err(Error::WrongEndian)
-            | Err(Error::WrongLength { .. })
+            Err(Error::WrongLength { .. })
             | Err(Error::DifferentFormat { .. })
             | Err(Error::DifferentVersion { .. }) => {
                 options
                     .db
                     .remove_region_if_exists(&Self::holes_region_name_with(options.name))?;
-                Ok(Self::new(V::forced_import_with(options)?))
+                Ok(Self::new(V::import_with(options)?))
             }
             result => result,
         }

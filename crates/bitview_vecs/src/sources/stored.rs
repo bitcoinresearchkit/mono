@@ -12,5 +12,5 @@ pub fn import_cached<I: VecIndex, T: PcoVecValue>(
     name: &str,
     version: Version,
 ) -> Result<CachedSeries<I, T>> {
-    Ok(EagerVec::forced_import(db, name, version)?)
+    Ok(EagerVec::import(db, name, version)?)
 }

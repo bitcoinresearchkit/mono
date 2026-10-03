@@ -60,11 +60,10 @@ where
     /// # Warning
     ///
     /// This will DELETE all existing data on format/version errors. Use with caution.
-    pub fn forced_import_with(options: ImportOptions, format: Format) -> CrateResult<Self> {
-        let res = Self::import_with(options, format);
+    pub fn import_with(options: ImportOptions, format: Format) -> CrateResult<Self> {
+        let res = Self::import_strict_with(options, format);
         match res {
-            Err(Error::WrongEndian)
-            | Err(Error::WrongLength { .. })
+            Err(Error::WrongLength { .. })
             | Err(Error::DifferentFormat { .. })
             | Err(Error::DifferentVersion { .. })
             | Err(Error::CorruptedRegion { .. }) => {
@@ -75,14 +74,14 @@ where
                 options
                     .db
                     .remove_region_if_exists(&Self::pages_region_name_with(options.name))?;
-                Self::import_with(options, format)
+                Self::import_strict_with(options, format)
             }
             _ => res,
         }
     }
 
     #[inline]
-    pub fn import_with(mut options: ImportOptions, format: Format) -> CrateResult<Self> {
+    fn import_strict_with(mut options: ImportOptions, format: Format) -> CrateResult<Self> {
         options.version = options.version + VERSION;
         let db = options.db;
         let name = options.name;
