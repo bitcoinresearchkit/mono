@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use bitview::{Config as RunnerConfig, DEFAULT_CACHE_BUDGET};
+use crate::{DEFAULT_CACHE_BUDGET, RunConfig};
 use bitview_server::{
     CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, ServerConfig, Website,
 };
@@ -78,7 +78,7 @@ impl Config {
         Self::read(&default_bitview_dir().join("config.toml"))
     }
 
-    pub fn import() -> Result<RunnerConfig> {
+    pub fn import() -> Result<RunConfig> {
         let config_args = Self::parse_args()?;
 
         let config = Self::load()?.with_overrides(config_args);
@@ -378,8 +378,8 @@ impl Config {
         }
     }
 
-    fn runner(&self) -> Result<RunnerConfig> {
-        Ok(RunnerConfig {
+    fn runner(&self) -> Result<RunConfig> {
+        Ok(RunConfig {
             client: self.connect().client()?,
             blocks_path: self.connect().blocks_dir(),
             server: self.server_config(),

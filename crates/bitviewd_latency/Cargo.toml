@@ -8,5 +8,5 @@ publish = false
 
 [dependencies]
 jiff = { workspace = true }
-bitviewd = { workspace = true, default-features = false }
+bitview = { workspace = true }
 tempfile = { workspace = true }

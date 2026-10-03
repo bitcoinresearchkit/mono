@@ -86,7 +86,6 @@ bitview_types = { version = "0.12.2", path = "crates/bitview_types" }
 bitview_urpd = { version = "0.12.2", path = "crates/bitview_urpd" }
 bitview_vecs = { version = "0.12.2", path = "crates/bitview_vecs" }
 bitview_website = { version = "0.12.2", path = "crates/bitview_website" }
-bitviewd = { version = "0.12.2", path = "crates/bitviewd", default-features = false }
 brk_alloc = { version = "0.12.2", path = "crates/brk_alloc" }
 brk_cpfp = { version = "0.12.2", path = "crates/brk_cpfp" }
 brk_error = { version = "0.12.2", path = "crates/brk_error" }

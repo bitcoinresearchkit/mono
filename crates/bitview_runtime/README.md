@@ -25,7 +25,7 @@ shared lifecycle resources extensible without turning the contexts into a
 service locator.
 
 Custom applications normally use [`bitview`](https://crates.io/crates/bitview),
-which adds query, mempool, and HTTP services around a supplied composition. The
-official process shell and composition are provided by
-[`bitviewd`](https://crates.io/crates/bitviewd) and
-[`bitview_default`](https://crates.io/crates/bitview_default).
+the daemon runtime (configuration, logging, signals, query, mempool, and HTTP
+services) around a supplied composition. The official composition is
+[`bitview_default`](https://crates.io/crates/bitview_default), run by the
+[`bitviewd`](https://crates.io/crates/bitviewd) binary.

@@ -2,8 +2,8 @@
 
 use std::process::ExitCode;
 
+use bitview::run;
 use bitview_default::DefaultPlugins;
-use bitviewd::run;
 
 #[global_allocator]
 static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;

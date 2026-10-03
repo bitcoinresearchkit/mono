@@ -13,7 +13,6 @@ vecdb = { workspace = true }
 brk_exit = { workspace = true }
 bitview = { workspace = true }
 bitview_default = { workspace = true }
-bitviewd = { workspace = true }
 brk_error = { workspace = true }
 brk_logger = { workspace = true }
 brk_reader = { workspace = true }

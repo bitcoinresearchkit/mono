@@ -6,7 +6,7 @@ Identify endpoints worth optimizing from existing `bitviewd` access logs.
 cargo run --release -p bitviewd_latency
 ```
 
-No flags. Uses the existing `bitviewd::Config::load()` to obtain the daemon's
+No flags. Uses the existing `bitview::Config::load()` to obtain the daemon's
 configured data directory. Reads `<bitviewdir>/logs` and atomically replaces
 `<bitviewdir>/latency.md`, then prints its path. Normally these are
 `~/.bitview/logs` and `~/.bitview/latency.md`.

@@ -1,7 +1,6 @@
 use benchmark::Benchmark;
-use bitview::{Config as RunnerConfig, ImportContext, UpdateContext, bootstrap};
+use bitview::{Config, ImportContext, RunConfig, UpdateContext, bootstrap};
 use bitview_default::DefaultPlugins;
-use bitviewd::Config;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_logger::init;
@@ -26,7 +25,7 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<()> {
-    let RunnerConfig {
+    let RunConfig {
         client,
         blocks_path,
         server,

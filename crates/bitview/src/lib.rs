@@ -10,6 +10,7 @@ use bitview_query::AsyncQuery;
 use bitview_server::{Server, ServerConfig};
 use brk_error::{Error, Result};
 use brk_exit::Exit;
+use brk_logger::init;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::Client;
@@ -20,14 +21,18 @@ use tokio::{
 use tracing::info;
 use vecdb::{Budgeted, ReadOnlyClone};
 
+mod config;
+mod paths;
+
 pub use bitview_query::QueryPluginSet;
 pub use bitview_runtime::{
     BootstrapAction, ComputePluginSet, DEFAULT_CACHE_BUDGET, ImportContext, PluginSet,
     UpdateContext, bootstrap, update,
 };
+pub use config::Config;
 
 /// Fully resolved settings for one Bitview runner.
-pub struct Config {
+pub struct RunConfig {
     /// Bitcoin Core RPC client.
     pub client: Client,
     /// Directory containing Bitcoin Core's block files.
@@ -38,10 +43,28 @@ pub struct Config {
     pub cache_budget: usize,
 }
 
+/// Runs the Bitview daemon process with the supplied composition: reads the
+/// configuration file and arguments, initializes logging and the shutdown handler,
+/// then serves until exit.
+pub fn run<P>(import: impl FnMut(ImportContext<'_>, &Reader) -> Result<P>) -> Result<()>
+where
+    P: ComputePluginSet + ReadOnlyClone,
+    P::ReadOnly: QueryPluginSet + 'static,
+{
+    let config = Config::import()?;
+
+    init(Some(&config.server.logs_path()))?;
+
+    let exit = Exit::new();
+    exit.set_ctrlc_handler();
+
+    run_with(config, exit, import)
+}
+
 /// Runs one process-lifetime plugin composition with resolved settings and a
 /// shutdown coordinator.
-pub fn run<P>(
-    config: Config,
+fn run_with<P>(
+    config: RunConfig,
     exit: Exit,
     mut import: impl FnMut(ImportContext<'_>, &Reader) -> Result<P>,
 ) -> Result<()>
@@ -49,7 +72,7 @@ where
     P: ComputePluginSet + ReadOnlyClone,
     P::ReadOnly: QueryPluginSet + 'static,
 {
-    let Config {
+    let RunConfig {
         client,
         blocks_path,
         server,

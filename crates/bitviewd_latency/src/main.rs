@@ -1,6 +1,6 @@
 use std::{env, error::Error, io::Write, process::ExitCode, result::Result as StdResult};
 
-use bitviewd::Config;
+use bitview::Config;
 use tempfile::NamedTempFile;
 
 mod analysis;
@@ -14,7 +14,7 @@ type Result<T> = StdResult<T, Box<dyn Error>>;
 
 fn run() -> Result<()> {
     if env::args_os().len() != 1 {
-        return Err("no arguments supported; paths come from bitviewd::Config".into());
+        return Err("no arguments supported; paths come from bitview::Config".into());
     }
     let config = Config::load()?.server_config();
     let parent = &config.data_path;

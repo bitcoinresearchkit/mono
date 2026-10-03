@@ -381,10 +381,15 @@ dependencies = [
  "bitview_server",
  "brk_error",
  "brk_exit",
+ "brk_logger",
  "brk_mempool",
  "brk_reader",
  "brk_rpc",
+ "lexopt",
+ "owo-colors",
+ "serde",
  "tokio",
+ "toml",
  "tracing",
  "vecdb",
 ]
@@ -400,7 +405,6 @@ dependencies = [
  "bitview_primitives",
  "bitview_runtime",
  "bitview_traversable",
- "bitviewd",
  "brk_alloc",
  "brk_error",
  "brk_reader",
@@ -843,7 +847,6 @@ dependencies = [
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
- "bitviewd",
  "brk_alloc",
  "brk_error",
  "brk_exit",
@@ -875,7 +878,6 @@ dependencies = [
  "bitview_runtime",
  "bitview_traversable",
  "bitview_vecs",
- "bitviewd",
  "brk_alloc",
  "brk_error",
  "brk_exit",
@@ -1466,18 +1468,12 @@ dependencies = [
  "bitview_query",
  "bitview_server",
  "brk_alloc",
- "brk_error",
  "brk_exit",
- "brk_logger",
  "brk_reader",
  "brk_rpc",
  "color-eyre",
- "lexopt",
- "owo-colors",
- "serde",
  "serde_json",
  "tempfile",
- "toml",
  "vecdb",
 ]
 
@@ -1487,7 +1483,6 @@ version = "0.12.2"
 dependencies = [
  "bitview",
  "bitview_default",
- "bitviewd",
  "brk_alloc",
  "brk_error",
  "brk_exit",
@@ -1512,7 +1507,7 @@ dependencies = [
 name = "bitviewd_latency"
 version = "0.12.2"
 dependencies = [
- "bitviewd",
+ "bitview",
  "jiff",
  "tempfile",
 ]

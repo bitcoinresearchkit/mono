@@ -4,10 +4,9 @@ Bitview is a composable, self-hostable Bitcoin data platform built on the
 [Bitcoin Research Kit](https://bitcoinresearchkit.org). Learn more at
 [bitview.dev](https://bitview.dev).
 
-This package provides the `bitviewd` process shell and executable: command-line
-arguments, configuration files, logging, signal handling, and the official
-plugin composition. The composition-agnostic daemon runner lives in the
-`bitview` crate.
+This package provides the `bitviewd` executable: the official plugin composition
+(`bitview_default`) run by the `bitview` daemon runtime, which owns command-line
+arguments, configuration files, logging, signal handling, and serving.
 
 [bitview.space](https://bitview.space) is the official free hosted instance.
 For AI clients, the official stateless, read-only MCP endpoint is
@@ -64,7 +63,7 @@ From the workspace, run `cargo bindgen` after API changes and before building
 consumers of generated clients. `cargo bindgen -- --check` verifies that the
 checked-in outputs are current without overwriting them. `cargo dev` generates
 first and starts the daemon only after generation succeeds; daemon arguments
-can be passed with `cargo dev -- --port 3110`. `cargo prod` starts the daemon
+can be passed with `cargo dev -- --serverport 3110`. `cargo prod` starts the daemon
 without generation. Normal server startup never generates files; installed
 users do not need to run bindgen.
 
@@ -122,24 +121,10 @@ independent plugins.
 
 ## Custom plugins
 
-The [custom plugin example](https://github.com/bitcoinresearchkit/brk/tree/main/examples/custom_plugin) is a complete, runnable
-template with persistent storage, typed dependencies, reorg-safe computation,
-composition, read-only queries, and automatic series API exposure.
-
-Custom compositions can reuse the daemon shell without compiling the official
-composition:
-
-```toml
-bitviewd = { version = "0.12", default-features = false, features = ["series"] }
-```
-
-Route-family features (`chain`, `series`, `urpd`, `price`) flow through `bitview`
-and `bitview_server` to `bitview_query`, so only the selected typed API surface
-and its plugin crates are compiled. The
-indexer is the mandatory runner baseline.
-
-Use `features = ["full-api"]` to enable the complete chain, series, and URPD API
-without selecting `bitview_default`.
+The [custom plugin example](https://github.com/bitcoinresearchkit/brk/tree/main/examples/custom_plugin)
+is a complete, runnable template. Custom binaries call
+[`bitview::run`](https://crates.io/crates/bitview) with their own composition
+(extending `bitview_default` or not); see the `bitview` README for features.
 
 ## License
 

@@ -53,15 +53,16 @@ name lookups.
 
 ### Application and interfaces
 
-- [`bitview`](../crates/bitview) is the composition-independent runner. It owns
-  the update loop, mempool monitoring, query creation, and server startup.
+- [`bitview`](../crates/bitview) is the composition-independent daemon runtime:
+  configuration (file and arguments), logging, signal handling, the update loop,
+  mempool monitoring, query creation, and server startup.
 - [`bitview_query`](../crates/bitview_query) exposes generic series discovery
   plus typed capabilities for enabled plugins.
 - [`bitview_server`](../crates/bitview_server) maps those capabilities to REST,
   OpenAPI, JSON/CSV responses, and cache-aware HTTP behavior. Route families
   that are not compiled into a composition are not registered.
-- [`bitviewd`](../crates/bitviewd) is the official process boundary: arguments,
-  configuration, logging, signal handling, and the default composition.
+- [`bitviewd`](../crates/bitviewd) is the official binary: `bitview::run` with
+  the default composition.
 - [`bitview_mcp`](../crates/bitview_mcp) exposes stateless, read-only MCP tools
   generated from non-deprecated REST `GET` operations and forwards calls to a
   configured Bitview server.
