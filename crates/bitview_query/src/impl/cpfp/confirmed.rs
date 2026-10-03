@@ -1,8 +1,8 @@
+use brk_cpfp::{ChunkInput, find_seed_chunk, linearize};
 use brk_error::{OptionData, Result};
 use brk_types::{
-    CPFP_CHAIN_LIMIT, ChunkInput, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry,
-    CpfpInfo, FeeRate, Height, Sats, SigOps, TxIndex, Txid, VSize, Weight, find_seed_chunk,
-    linearize,
+    CPFP_CHAIN_LIMIT, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, FeeRate,
+    Height, Sats, SigOps, TxIndex, Txid, VSize, Weight,
 };
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use smallvec::SmallVec;

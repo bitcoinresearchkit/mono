@@ -1,4 +1,4 @@
-use crate::{CpfpClusterTxIndex, Sats, VSize};
+use brk_types::{CpfpClusterTxIndex, Sats, VSize};
 
 /// One cluster member's input to Single Fee Linearization: its
 /// `(fee, vsize)` and parent edges as local indices into the same array.

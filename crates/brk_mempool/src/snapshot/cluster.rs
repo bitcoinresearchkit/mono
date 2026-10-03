@@ -1,10 +1,11 @@
 //! Cluster primitives over `SnapTx` adjacency: connected-component
 //! discovery, topo-sort, and the glue to Single Fee Linearization
-//! ([`brk_types::linearize`], shared with bitview_query's confirmed-cpfp).
+//! ([`brk_cpfp::linearize`], shared with bitview_query's confirmed CPFP and the transactions plugin).
 
 use std::collections::VecDeque;
 
-use brk_types::{ChunkInput, CpfpClusterChunk, CpfpClusterTxIndex, linearize as TypesLinearize};
+use brk_cpfp::ChunkInput;
+use brk_types::{CpfpClusterChunk, CpfpClusterTxIndex};
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 
@@ -74,7 +75,7 @@ pub fn linearize(txs: &[SnapTx], component: &[TxIndex]) -> (Vec<TxIndex>, Vec<Cp
             }
         })
         .collect();
-    let chunks = TypesLinearize(&inputs);
+    let chunks = brk_cpfp::linearize(&inputs);
     (members, chunks)
 }
 

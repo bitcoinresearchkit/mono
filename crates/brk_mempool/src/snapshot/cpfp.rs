@@ -6,10 +6,11 @@
 //! - cluster: connected component over `parents ∪ children`,
 //!   linearized for wire shape and seed chunk feerate.
 
+use brk_cpfp::find_seed_chunk;
 use brk_error::Result;
 use brk_types::{
     BlockHash, CPFP_CHAIN_LIMIT, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry,
-    CpfpInfo, FeeRate, SigOps, Txid, VSize, find_seed_chunk,
+    CpfpInfo, FeeRate, SigOps, Txid, VSize,
 };
 use rustc_hash::{FxBuildHasher, FxHashSet};
 

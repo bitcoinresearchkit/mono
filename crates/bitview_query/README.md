@@ -115,6 +115,7 @@ operation rather than by callers. Ordinary storage/compute reads remain unbounde
 
 - `bitview_runtime::PluginSet` for generic plugin discovery
 - `brk_mempool` for mempool queries
+- `brk_cpfp` for confirmed CPFP clusters (`chain`)
 - `brk_reader` for raw block access
 
 ## Features

@@ -9,7 +9,8 @@ templates and mempool state: values that are intrinsically tied to Bitcoin,
 including responses shared with `brk_mempool` such as `MempoolInfo`. Bitview's
 index, value and state types (calendar indexes, protocol epochs, per-type address
 indexes, `Stored*` scalars) live in `bitview_primitives`; query-protocol types and
-REST response DTOs live in `bitview_types`; `TreeNode` lives in `bitview_catalog`.
+REST response DTOs live in `bitview_types`; `TreeNode` lives in `bitview_catalog`; CPFP
+linearization lives in `brk_cpfp`.
 
 ## Type categories
 

@@ -1203,6 +1203,7 @@ dependencies = [
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
+ "brk_cpfp",
  "brk_error",
  "brk_exit",
  "brk_types",
@@ -1277,6 +1278,7 @@ dependencies = [
  "bitview_traversable",
  "bitview_types",
  "bitview_urpd",
+ "brk_cpfp",
  "brk_error",
  "brk_mempool",
  "brk_oracle",
@@ -1535,6 +1537,13 @@ name = "brk_byteview"
 version = "0.12.2"
 
 [[package]]
+name = "brk_cpfp"
+version = "0.12.2"
+dependencies = [
+ "brk_types",
+]
+
+[[package]]
 name = "brk_error"
 version = "0.12.2"
 dependencies = [
@@ -1609,6 +1618,7 @@ version = "0.12.2"
 dependencies = [
  "arc-swap",
  "bitcoin",
+ "brk_cpfp",
  "brk_error",
  "brk_oracle",
  "brk_rpc",

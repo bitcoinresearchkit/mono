@@ -24,6 +24,8 @@ MCP clients -------------------------------> MCP adapter ------------------|
   RPC data.
 - [`brk_mempool`](../crates/brk_mempool) maintains live mempool state and
   projected blocks.
+- [`brk_cpfp`](../crates/brk_cpfp) linearizes CPFP clusters into feerate chunks,
+  for the mempool and for confirmed blocks alike.
 - [`brk_types`](../crates/brk_types), [`brk_store`](../crates/brk_store), and
   [`vecdb`](../crates/vecdb) provide the shared domain and storage primitives.
 

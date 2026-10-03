@@ -9,7 +9,9 @@
 //! takes O((n + edges) * ceil(n / 64)) work and O(n² / 64) words of scratch space.
 //! This also supports confirmed components larger than mempool policy limits.
 
-use crate::{ChunkInput, CpfpClusterChunk, CpfpClusterTxIndex, FeeRate, Sats, VSize};
+use brk_types::{CpfpClusterChunk, CpfpClusterTxIndex, FeeRate, Sats, VSize};
+
+use crate::ChunkInput;
 
 struct Candidate {
     ancestors: Vec<u64>,

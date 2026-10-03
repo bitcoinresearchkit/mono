@@ -13,6 +13,7 @@ bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_transforms = { workspace = true }
 bitview_collections = { workspace = true, features = ["storage"] }
 bitview_vecs = { workspace = true }
+brk_cpfp = { workspace = true }
 brk_exit = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_blocks = { workspace = true }

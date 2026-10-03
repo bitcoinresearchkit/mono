@@ -1,0 +1,11 @@
+[package]
+name = "brk_cpfp"
+description = "Single Fee Linearization of CPFP transaction clusters"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+brk_types = { workspace = true }
