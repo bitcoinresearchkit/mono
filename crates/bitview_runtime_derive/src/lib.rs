@@ -2,8 +2,8 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as ProcMacro2TokenStream;
 use quote::quote;
 use syn::{
-    Data, DeriveInput, Error, Field, Fields, GenericArgument, Meta, PathArguments, Result, Token,
-    Type, WherePredicate, parse_macro_input, parse_quote, punctuated::Punctuated,
+    Data, DeriveInput, Error, Field, Fields, GenericArgument, Path, PathArguments, Result, Type,
+    WherePredicate, parse_macro_input, parse_quote,
 };
 
 enum FieldKind {
@@ -12,29 +12,31 @@ enum FieldKind {
     Skip,
 }
 
-fn field_kind(field: &Field) -> Result<FieldKind> {
+/// The field's role, plus the capability traits (`has = Trait<..>`) whose single
+/// accessor method, named after the field, returns it.
+fn field_attributes(field: &Field) -> Result<(FieldKind, Vec<Path>)> {
     let mut kind = FieldKind::Plugin;
+    let mut capabilities = Vec::new();
 
     for attribute in &field.attrs {
         if !attribute.path().is_ident("plugin_set") {
             continue;
         }
-
-        let metadata =
-            attribute.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
-
-        for meta in metadata {
-            match meta {
-                Meta::Path(path) if path.is_ident("flatten") => kind = FieldKind::Flatten,
-                Meta::Path(path) if path.is_ident("skip") => kind = FieldKind::Skip,
-                _ => {
-                    return Err(Error::new_spanned(meta, "expected `flatten` or `skip`"));
-                }
+        attribute.parse_nested_meta(|meta| {
+            if meta.path.is_ident("flatten") {
+                kind = FieldKind::Flatten;
+            } else if meta.path.is_ident("skip") {
+                kind = FieldKind::Skip;
+            } else if meta.path.is_ident("has") {
+                capabilities.push(meta.value()?.parse()?);
+            } else {
+                return Err(meta.error("expected `flatten`, `skip` or `has = Trait<..>`"));
             }
-        }
+            Ok(())
+        })?;
     }
 
-    Ok(kind)
+    Ok((kind, capabilities))
 }
 
 fn boxed_inner(ty: &Type) -> Option<&Type> {
@@ -77,11 +79,13 @@ fn derive_plugin_set_inner(input: DeriveInput) -> Result<ProcMacro2TokenStream> 
     };
 
     let mut generics = input.generics;
+    let (own_impl_generics, own_ty_generics, own_where_clause) = generics.split_for_impl();
+    let mut capability_impls = Vec::new();
     let mut visits = Vec::new();
     let mut predicates = Vec::<WherePredicate>::new();
 
     for field in fields.named {
-        let kind = field_kind(&field)?;
+        let (kind, capabilities) = field_attributes(&field)?;
         let ident = field.ident.expect("named fields have identifiers");
         let ty = field.ty;
         let inner = boxed_inner(&ty);
@@ -91,6 +95,16 @@ fn derive_plugin_set_inner(input: DeriveInput) -> Result<ProcMacro2TokenStream> 
             quote! { &self.#ident }
         };
         let field_ty = inner.unwrap_or(&ty);
+
+        for capability in capabilities {
+            capability_impls.push(quote! {
+                impl #own_impl_generics #capability for #name #own_ty_generics #own_where_clause {
+                    fn #ident(&self) -> &#field_ty {
+                        #reference
+                    }
+                }
+            });
+        }
 
         match kind {
             FieldKind::Plugin => {
@@ -124,5 +138,7 @@ fn derive_plugin_set_inner(input: DeriveInput) -> Result<ProcMacro2TokenStream> 
                 #(#visits)*
             }
         }
+
+        #(#capability_impls)*
     })
 }

@@ -24,6 +24,7 @@ struct Plugins<M: StorageMode = Rw> {
     #[traversable(flatten)]
     #[plugin_set(flatten)]
     defaults: DefaultPlugins<M>,
+    #[plugin_set(has = HasDistributionEntry<M>)]
     distribution_entry: DistributionEntry<M>,
 }
 
@@ -78,12 +79,6 @@ impl Plugins {
             },
             context,
         )
-    }
-}
-
-impl<M: StorageMode> HasDistributionEntry<M> for Plugins<M> {
-    fn distribution_entry(&self) -> &DistributionEntry<M> {
-        &self.distribution_entry
     }
 }
 

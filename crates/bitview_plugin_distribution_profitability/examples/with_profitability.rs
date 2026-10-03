@@ -24,6 +24,7 @@ struct Plugins<M: StorageMode = Rw> {
     #[plugin_set(flatten)]
     defaults: DefaultPlugins<M>,
     #[traversable(flatten)]
+    #[plugin_set(has = HasDistributionProfitability<M>)]
     distribution_profitability: DistributionProfitability<M>,
 }
 
@@ -67,12 +68,6 @@ impl Plugins {
             },
             context,
         )
-    }
-}
-
-impl<M: StorageMode> HasDistributionProfitability<M> for Plugins<M> {
-    fn distribution_profitability(&self) -> &DistributionProfitability<M> {
-        &self.distribution_profitability
     }
 }
 

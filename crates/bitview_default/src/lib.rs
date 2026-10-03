@@ -29,39 +29,55 @@ use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use vecdb::{Rw, StorageMode};
 
-mod capabilities;
 mod compute;
 mod import;
 mod timing;
 
 #[derive(PluginSet, Traversable)]
 pub struct DefaultPlugins<M: StorageMode = Rw> {
+    #[plugin_set(has = bitview_plugin_indexer::HasIndexer<M>)]
     #[traversable(flatten)]
     indexer: Box<Indexer<M>>,
+    #[plugin_set(has = bitview_plugin_blocks::HasBlocks<M>)]
     blocks: Box<Blocks<M>>,
+    #[plugin_set(has = bitview_plugin_mining::HasMining<M>)]
     mining: Box<Mining<M>>,
+    #[plugin_set(has = bitview_plugin_transactions::HasTransactions<M>)]
     transactions: Box<Transactions<M>>,
+    #[plugin_set(has = bitview_plugin_cointime::HasCointime<M>)]
     cointime: Box<Cointime<M>>,
+    #[plugin_set(has = bitview_plugin_coinflow::HasCoinflow<M>)]
     coinflow: Box<Coinflow<M>>,
     bedrock: Box<Bedrock<M>>,
     capital_sentiment: Box<CapitalSentiment<M>>,
     rarity_meter: Box<RarityMeter<M>>,
     constants: Box<Constants>,
+    #[plugin_set(has = bitview_plugin_mappings::HasMappings<M>)]
     mappings: Box<Mappings<M>>,
     indicators: Box<Indicators<M>>,
+    #[plugin_set(has = bitview_plugin_market::HasMarket<M>)]
     market: Box<Market<M>>,
+    #[plugin_set(has = bitview_plugin_pools::HasPools<M>)]
     pools: Box<Pools<M>>,
+    #[plugin_set(has = bitview_plugin_price::HasPrice<M>)]
     price: Box<Price<M>>,
+    #[plugin_set(has = bitview_plugin_distribution_age::HasDistributionAge<M>)]
     #[traversable(flatten)]
     distribution_age: Box<DistributionAge<M>>,
+    #[plugin_set(has = bitview_plugin_distribution_aggregated::HasDistributionAggregated<M>)]
     distribution_aggregated: Box<DistributionAggregated<M>>,
+    #[plugin_set(has = bitview_plugin_distribution_utxos::HasDistributionUtxos<M>)]
     #[traversable(flatten)]
     distribution_utxos: Box<DistributionUtxos<M>>,
+    #[plugin_set(has = bitview_plugin_distribution_addresses::HasDistributionAddresses<M>)]
     #[traversable(flatten)]
     distribution_addresses: Box<DistributionAddresses<M>>,
     supply: Box<Supply<M>>,
+    #[plugin_set(has = bitview_plugin_inputs::HasInputs<M>)]
     inputs: Box<Inputs<M>>,
+    #[plugin_set(has = bitview_plugin_outputs::HasOutputs<M>)]
     outputs: Box<Outputs<M>>,
+    #[plugin_set(has = bitview_plugin_utxo_history::HasUtxoHistory<M>)]
     utxo_history: Box<UtxoHistory<M>>,
     op_return: Box<OpReturn<M>>,
 }

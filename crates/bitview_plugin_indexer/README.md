@@ -45,8 +45,9 @@ source or on-disk schema is incompatible, its owned plugin directory is rebuilt.
 ## Use in a composition
 
 The normal entrypoint is `Indexer::import`, supplied by a plugin-set importer.
-Other plugins express their dependency through `HasIndexer`; the runtime then
-gives them read-only access to the published indexer state.
+Plugins receive the indexer through their typed `Dependencies`. Compositions
+implement `HasIndexer` with `#[plugin_set(has = ...)]` so queries and
+composition code can read the published indexer state.
 
 For a complete composition example, see
 [`examples/custom_plugin`](../../examples/custom_plugin). The official graph is
