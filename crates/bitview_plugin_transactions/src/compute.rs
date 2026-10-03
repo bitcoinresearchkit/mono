@@ -3,7 +3,7 @@ use brk_error::Result;
 use rayon::join;
 use vecdb::Database;
 
-use super::{Vecs, count, features, fees, inscription, patterns, policy, sigops, size, versions};
+use super::Vecs;
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
@@ -30,14 +30,14 @@ impl ComputePlugin for Vecs {
         let ((r1, r2), (r3, r4)) = join(
             || {
                 join(
-                    || count::compute(&mut self.count, indexer, &blocks.lookback, exit),
-                    || features::compute(&mut self.features, indexer, exit),
+                    || self.count.compute(indexer, &blocks.lookback, exit),
+                    || self.features.compute(indexer, exit),
                 )
             },
             || {
                 join(
-                    || versions::compute(&mut self.versions, indexer, exit),
-                    || size::compute(&mut self.size, indexer, mappings, exit),
+                    || self.versions.compute(indexer, exit),
+                    || self.size.compute(indexer, mappings, exit),
                 )
             },
         );
@@ -46,10 +46,9 @@ impl ComputePlugin for Vecs {
         r3?;
         r4?;
 
-        sigops::compute(&mut self.sigops, indexer, mappings, exit)?;
+        self.sigops.compute(indexer, mappings, exit)?;
 
-        fees::compute(
-            &mut self.fees,
+        self.fees.compute(
             indexer,
             &inputs.value,
             mappings,
@@ -58,11 +57,13 @@ impl ComputePlugin for Vecs {
             exit,
         )?;
 
-        inscription::compute(&mut self.inscription, indexer, mappings, &self.fees, exit)?;
+        self.inscription
+            .compute(indexer, mappings, &self.fees, exit)?;
 
-        patterns::compute(&mut self.patterns, indexer, &inputs.value, mappings, exit)?;
+        self.patterns
+            .compute(indexer, &inputs.value, mappings, exit)?;
 
-        policy::compute(&mut self.policy, indexer, mappings, &self.fees, exit)?;
+        self.policy.compute(indexer, mappings, &self.fees, exit)?;
 
         self.volume.transfer_volume.compute_cents(
             indexer.safe_lengths().height,

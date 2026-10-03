@@ -9,35 +9,37 @@ use vecdb::ReadableVec;
 
 use super::{Vecs, vecs::EmaPeriodId};
 
-pub fn compute(
-    vecs: &mut Vecs,
-    indexer: &Indexer,
-    blocks: &BlocksVecs,
-    prices: &PriceVecs,
-    exit: &Exit,
-) -> Result<()> {
-    let starting_lengths = indexer.safe_lengths();
-    let close = &prices.spot.cents.height;
+impl Vecs {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        blocks: &BlocksVecs,
+        prices: &PriceVecs,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_lengths = indexer.safe_lengths();
+        let close = &prices.spot.cents.height;
 
-    compute_sma_prefix(
-        &mut vecs.sma_prefix_sum,
-        starting_lengths.height,
-        close,
-        exit,
-    )?;
+        compute_sma_prefix(
+            &mut self.sma_prefix_sum,
+            starting_lengths.height,
+            close,
+            exit,
+        )?;
 
-    for &period in EmaPeriodId::ALL {
-        period
-            .select_mut(&mut vecs.ema_stored)
-            .compute_rolling_ema(
-                starting_lengths.height,
-                blocks.lookback.start_vec(period.days()),
-                close,
-                exit,
-            )?;
+        for &period in EmaPeriodId::ALL {
+            period
+                .select_mut(&mut self.ema_stored)
+                .compute_rolling_ema(
+                    starting_lengths.height,
+                    blocks.lookback.start_vec(period.days()),
+                    close,
+                    exit,
+                )?;
+        }
+
+        Ok(())
     }
-
-    Ok(())
 }
 
 fn compute_sma_prefix(

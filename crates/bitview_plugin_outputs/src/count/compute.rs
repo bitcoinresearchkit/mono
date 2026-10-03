@@ -5,11 +5,18 @@ use brk_exit::Exit;
 
 use super::Vecs;
 
-pub fn compute(vecs: &mut Vecs, indexer: &Indexer, blocks: &BlocksVecs, exit: &Exit) -> Result<()> {
-    let starting_height = indexer.safe_lengths().height;
-    let window_starts = blocks.lookback.window_starts();
+impl Vecs {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        blocks: &BlocksVecs,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_height = indexer.safe_lengths().height;
+        let window_starts = blocks.lookback.window_starts();
 
-    vecs.total
-        .compute_rest(starting_height, &window_starts, exit)?;
-    Ok(())
+        self.total
+            .compute_rest(starting_height, &window_starts, exit)?;
+        Ok(())
+    }
 }

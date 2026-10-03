@@ -10,16 +10,17 @@ mod returns;
 mod technical;
 mod volatility;
 
+pub use dependencies::Dependencies;
+pub use has::HasMarket;
+pub use moving_average::Vecs as MovingAverageVecs;
+
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use ath::Vecs as AthVecs;
-pub use dependencies::Dependencies;
-pub use has::HasMarket;
 use lookback::Vecs as LookbackVecs;
-pub use moving_average::Vecs as MovingAverageVecs;
 use range::Vecs as RangeVecs;
 use returns::Vecs as ReturnsVecs;
 use technical::Vecs as TechnicalVecs;
@@ -27,6 +28,7 @@ use volatility::Vecs as VolatilityVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("market"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
+
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]

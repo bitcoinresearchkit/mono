@@ -9,7 +9,7 @@ use vecdb::Ident;
 use super::Vecs;
 
 impl Vecs {
-    pub fn forced_import(
+    pub fn new(
         version: Version,
         mappings: &MappingsVecs,
         all_chain: &AllChainSources,

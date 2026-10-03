@@ -5,21 +5,23 @@ use brk_exit::Exit;
 
 use super::Vecs;
 
-pub fn compute(
-    vecs: &mut Vecs,
-    indexer: &Indexer,
-    mappings: &MappingsVecs,
-    exit: &Exit,
-) -> Result<()> {
-    let starting_lengths = indexer.safe_lengths();
+impl Vecs {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        mappings: &MappingsVecs,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_lengths = indexer.safe_lengths();
 
-    vecs.weight.derive_from(
-        mappings,
-        &starting_lengths,
-        &indexer.vecs().transactions.first_tx_index,
-        &indexer.vecs().transactions.weight,
-        exit,
-    )?;
+        self.weight.derive_from(
+            mappings,
+            &starting_lengths,
+            &indexer.vecs().transactions.first_tx_index,
+            &indexer.vecs().transactions.weight,
+            exit,
+        )?;
 
-    Ok(())
+        Ok(())
+    }
 }

@@ -7,25 +7,27 @@ use vecdb::Database;
 
 use super::Vecs;
 
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    mappings: &MappingsVecs,
-    window_starts: &Windows<&LazyWindowStartVec>,
-) -> Result<Vecs> {
-    let import = |name| {
-        PerBlockCumulativeRolling::forced_import(
-            db,
-            name,
-            version + Version::ONE,
-            mappings,
-            window_starts,
-        )
-    };
-    Ok(Vecs {
-        v1: import("tx_v1")?,
-        v2: import("tx_v2")?,
-        v3: import("tx_v3")?,
-        other: import("tx_other_version")?,
-    })
+impl Vecs {
+    pub(crate) fn forced_import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        window_starts: &Windows<&LazyWindowStartVec>,
+    ) -> Result<Self> {
+        let import = |name| {
+            PerBlockCumulativeRolling::forced_import(
+                db,
+                name,
+                version + Version::ONE,
+                mappings,
+                window_starts,
+            )
+        };
+        Ok(Vecs {
+            v1: import("tx_v1")?,
+            v2: import("tx_v2")?,
+            v3: import("tx_v3")?,
+            other: import("tx_other_version")?,
+        })
+    }
 }

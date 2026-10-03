@@ -1,4 +1,3 @@
-use crate::{data::Data, unrealized_data::UnrealizedData};
 use bitview_cohort::AgeAggregateId;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, CumulativeState, import_cached};
@@ -7,6 +6,8 @@ use brk_types::{
     Cents, CentsSigned, Height, PartsPerMillionSigned32, Sats, StoredF64, StoredU64, Version,
 };
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
+
+use crate::{data::Data, unrealized_data::UnrealizedData};
 
 #[derive(Traversable)]
 pub(crate) struct Columns<M: StorageMode = Rw> {
@@ -46,7 +47,7 @@ pub(crate) struct Columns<M: StorageMode = Rw> {
     peak: M::WriteOnly<CumulativeState<Cents>>,
 }
 impl Columns {
-    pub fn import(db: &Database, id: AgeAggregateId, version: Version) -> Result<Self> {
+    pub fn forced_import(db: &Database, id: AgeAggregateId, version: Version) -> Result<Self> {
         Ok(Self {
             supply: import_cached(db, &id.metric_name("supply_sats"), version)?,
             count: import_cached(db, &id.metric_name("utxo_count"), version)?,

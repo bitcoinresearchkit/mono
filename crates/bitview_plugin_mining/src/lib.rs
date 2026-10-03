@@ -1,18 +1,18 @@
+mod compute;
 mod dependencies;
 mod has;
 mod hashrate;
+mod import;
 mod rewards;
 
-mod compute;
-mod import;
+pub use dependencies::Dependencies;
+pub use has::HasMining;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
-pub use dependencies::Dependencies;
-pub use has::HasMining;
 use hashrate::Vecs as HashrateVecs;
 use rewards::Vecs as RewardsVecs;
 

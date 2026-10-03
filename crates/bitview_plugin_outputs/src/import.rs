@@ -16,12 +16,12 @@ impl Vecs {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let version = STORAGE.schema_version();
 
-        let spent = spent::forced_import(&db, version)?;
-        let count = count::forced_import(&db, version, mappings, window_starts)?;
+        let spent = spent::Vecs::forced_import(&db, version)?;
+        let count = count::Vecs::forced_import(&db, version, mappings, window_starts)?;
         let per_sec =
             LazyPerSecondWindows::new("outputs_per_sec", version, &count.total.rolling.sum);
-        let by_type = by_type::forced_import(&db, version, mappings, window_starts)?;
-        let value = value::forced_import(&db, version, mappings)?;
+        let by_type = by_type::Vecs::forced_import(&db, version, mappings, window_starts)?;
+        let value = value::Vecs::forced_import(&db, version, mappings)?;
 
         let creations = Creations::open(db.path())?;
         let this = Self {

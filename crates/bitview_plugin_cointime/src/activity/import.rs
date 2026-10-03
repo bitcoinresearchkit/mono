@@ -51,27 +51,29 @@ impl DerivedVecs {
     }
 }
 
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    mappings: &MappingsVecs,
-    window_starts: &Windows<&LazyWindowStartVec>,
-) -> Result<Vecs> {
-    Ok(Vecs {
-        coinblocks_created: PerBlockCumulativeRolling::forced_import(
-            db,
-            "coinblocks_created",
-            version,
-            mappings,
-            window_starts,
-        )?,
-        coinblocks_stored: PerBlockCumulativeRolling::forced_import(
-            db,
-            "coinblocks_stored",
-            version,
-            mappings,
-            window_starts,
-        )?,
-        derived: DerivedVecs::forced_import_with_prefix(db, "", version, mappings)?,
-    })
+impl Vecs {
+    pub(crate) fn forced_import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        window_starts: &Windows<&LazyWindowStartVec>,
+    ) -> Result<Self> {
+        Ok(Vecs {
+            coinblocks_created: PerBlockCumulativeRolling::forced_import(
+                db,
+                "coinblocks_created",
+                version,
+                mappings,
+                window_starts,
+            )?,
+            coinblocks_stored: PerBlockCumulativeRolling::forced_import(
+                db,
+                "coinblocks_stored",
+                version,
+                mappings,
+                window_starts,
+            )?,
+            derived: DerivedVecs::forced_import_with_prefix(db, "", version, mappings)?,
+        })
+    }
 }

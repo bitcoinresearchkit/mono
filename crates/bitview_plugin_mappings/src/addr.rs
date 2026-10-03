@@ -44,7 +44,7 @@ pub struct Vecs {
 }
 
 impl Vecs {
-    pub fn forced_import(version: Version, indexer: &Indexer) -> Self {
+    pub fn new(version: Version, indexer: &Indexer) -> Self {
         Self {
             p2pk33: AddressVecs {
                 identity: LazyVec::init(

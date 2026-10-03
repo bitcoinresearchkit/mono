@@ -5,7 +5,7 @@ use brk_exit::Exit;
 use rayon::join;
 use vecdb::{AnyVec, Database};
 
-use super::{Vecs, count, spent, value};
+use super::{Vecs, value};
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
@@ -41,7 +41,7 @@ impl ComputePlugin for Vecs {
         } = self;
 
         let exit = context.exit();
-        count::compute(count, indexer, blocks, exit)?;
+        count.compute(indexer, blocks, exit)?;
         let (fiat, types) = join(
             || {
                 value.op_return.compute_cents(
@@ -54,7 +54,7 @@ impl ComputePlugin for Vecs {
         );
         fiat?;
         types?;
-        let lock = spent::compute(spent, indexer, exit)?;
+        let lock = spent.compute(indexer, exit)?;
         db.run_bg(move |db| {
             let _lock = lock;
             db.compact_deferred_default()

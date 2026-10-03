@@ -9,51 +9,53 @@ use vecdb::{ReadableVec, UnaryTransform, VecIndex};
 
 use super::{Vecs, seconds_to_days::SecondsToDays};
 
-pub fn compute(
-    vecs: &mut Vecs,
-    indexer: &Indexer,
-    prices: &PriceVecs,
-    mappings: &MappingsVecs,
-    exit: &Exit,
-) -> Result<()> {
-    let starting_height = indexer.safe_lengths().height;
+impl Vecs {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        prices: &PriceVecs,
+        mappings: &MappingsVecs,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_height = indexer.safe_lengths().height;
 
-    vecs.high.cents.height.compute_all_time_high(
-        starting_height,
-        &prices.spot.cents.height,
-        exit,
-    )?;
+        self.high.cents.height.compute_all_time_high(
+            starting_height,
+            &prices.spot.cents.height,
+            exit,
+        )?;
 
-    compute_seconds_since(
-        &mut vecs.seconds_since.height,
-        starting_height,
-        &vecs.high.cents.height,
-        &prices.spot.cents.height,
-        &mappings.timestamp.monotonic,
-        exit,
-    )?;
+        compute_seconds_since(
+            &mut self.seconds_since.height,
+            starting_height,
+            &self.high.cents.height,
+            &prices.spot.cents.height,
+            &mappings.timestamp.monotonic,
+            exit,
+        )?;
 
-    let mut prev = None;
-    vecs.max_days_between.height.compute_transform(
-        starting_height,
-        &vecs.seconds_since.height,
-        |(i, seconds, slf)| {
-            if prev.is_none() {
-                let i = i.to_usize();
-                prev.replace(if i > 0 {
-                    slf.collect_one_at(i - 1).unwrap()
-                } else {
-                    StoredF32::default()
-                });
-            }
-            let max = prev.unwrap().max(SecondsToDays::apply(seconds));
-            prev.replace(max);
-            (i, max)
-        },
-        exit,
-    )?;
+        let mut prev = None;
+        self.max_days_between.height.compute_transform(
+            starting_height,
+            &self.seconds_since.height,
+            |(i, seconds, slf)| {
+                if prev.is_none() {
+                    let i = i.to_usize();
+                    prev.replace(if i > 0 {
+                        slf.collect_one_at(i - 1).unwrap()
+                    } else {
+                        StoredF32::default()
+                    });
+                }
+                let max = prev.unwrap().max(SecondsToDays::apply(seconds));
+                prev.replace(max);
+                (i, max)
+            },
+            exit,
+        )?;
 
-    Ok(())
+        Ok(())
+    }
 }
 
 fn compute_seconds_since(

@@ -23,7 +23,7 @@ pub struct Vecs {
 }
 
 impl Vecs {
-    pub fn forced_import(
+    pub fn new(
         slug: PoolSlug,
         pool_heights: PoolHeights,
         version: Version,

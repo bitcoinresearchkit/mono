@@ -9,52 +9,54 @@ use vecdb::{BinaryTransform, Database, ReadableCloneableVec};
 
 use super::{Cagr, Vecs};
 
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    mappings: &MappingsVecs,
-    window_starts: &ByLookbackPeriod<&impl ReadableCloneableVec<Height, Height>>,
-    prices: &PriceVecs,
-) -> Result<Vecs> {
-    let periods =
-        ByLookbackPeriod::try_from_period(window_starts, |name, _days, window_starts| {
-            let metric_name = format!("price_return_{name}");
-            let source = LazyWindowVec::<Height, Dollars, PartsPerMillionSigned64>::new(
-                &format!("{metric_name}_ppm_source"),
-                version,
-                &prices.spot.usd.height,
-                *window_starts,
-                false,
-                |current, past, _| {
-                    RatioDiffDollars::<PartsPerMillionSigned64>::apply(current, past)
-                },
-            );
-            Ok::<_, Error>(LazyPercentPerBlock::from_height_source(
-                &metric_name,
-                version,
-                &source,
+impl Vecs {
+    pub(crate) fn forced_import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        window_starts: &ByLookbackPeriod<&impl ReadableCloneableVec<Height, Height>>,
+        prices: &PriceVecs,
+    ) -> Result<Self> {
+        let periods =
+            ByLookbackPeriod::try_from_period(window_starts, |name, _days, window_starts| {
+                let metric_name = format!("price_return_{name}");
+                let source = LazyWindowVec::<Height, Dollars, PartsPerMillionSigned64>::new(
+                    &format!("{metric_name}_ppm_source"),
+                    version,
+                    &prices.spot.usd.height,
+                    *window_starts,
+                    false,
+                    |current, past, _| {
+                        RatioDiffDollars::<PartsPerMillionSigned64>::apply(current, past)
+                    },
+                );
+                Ok::<_, Error>(LazyPercentPerBlock::from_height_source(
+                    &metric_name,
+                    version,
+                    &source,
+                    mappings,
+                ))
+            })?;
+
+        let cagr = Cagr::from_returns(version, &periods);
+
+        let mut days_iter = Windows::<()>::DAYS.iter();
+        let sd_24h = Windows::try_from_fn(|suffix| {
+            let days = *days_iter.next().unwrap();
+            StdDevPerBlock::forced_import(
+                db,
+                "price_return_24h",
+                suffix,
+                days,
+                version + Version::ONE,
                 mappings,
-            ))
+            )
         })?;
 
-    let cagr = Cagr::from_returns(version, &periods);
-
-    let mut days_iter = Windows::<()>::DAYS.iter();
-    let sd_24h = Windows::try_from_fn(|suffix| {
-        let days = *days_iter.next().unwrap();
-        StdDevPerBlock::forced_import(
-            db,
-            "price_return_24h",
-            suffix,
-            days,
-            version + Version::ONE,
-            mappings,
-        )
-    })?;
-
-    Ok(Vecs {
-        periods,
-        cagr,
-        sd_24h,
-    })
+        Ok(Vecs {
+            periods,
+            cagr,
+            sd_24h,
+        })
+    }
 }

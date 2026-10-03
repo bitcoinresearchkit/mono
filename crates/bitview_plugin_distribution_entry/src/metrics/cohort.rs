@@ -28,7 +28,7 @@ pub struct CohortMetrics<M: StorageMode = Rw> {
 }
 
 impl CohortMetrics {
-    pub(crate) fn import(
+    pub(crate) fn forced_import(
         db: &Database,
         id: CohortId,
         version: Version,
@@ -37,9 +37,9 @@ impl CohortMetrics {
         prices: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let sources = Sources::import(db, id, version)?;
+        let sources = Sources::forced_import(db, id, version)?;
         let realized =
-            RealizedMetrics::import(db, id, version, &sources, mappings, windows, prices)?;
+            RealizedMetrics::forced_import(db, id, version, &sources, mappings, windows, prices)?;
         let unrealized = UnrealizedMetrics::new(id, version, &sources, &realized.price, mappings);
         Ok(Self {
             supply: SupplyMetrics::new(

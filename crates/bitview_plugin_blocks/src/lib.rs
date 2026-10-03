@@ -1,34 +1,33 @@
+mod compute;
 mod count;
 mod dependencies;
 mod difficulty;
 mod halving;
 mod has;
+mod import;
 mod interval;
 mod lookback;
 mod size;
 mod weight;
 
-mod compute;
-mod import;
+pub use count::Vecs as CountVecs;
+pub use dependencies::Dependencies;
+pub use difficulty::Vecs as DifficultyVecs;
+pub use has::HasBlocks;
+pub use lookback::Vecs as LookbackVecs;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
-pub use count::Vecs as CountVecs;
-pub use dependencies::Dependencies;
-pub use difficulty::Vecs as DifficultyVecs;
 use halving::Vecs as HalvingVecs;
-pub use has::HasBlocks;
 use interval::Vecs as IntervalVecs;
-pub use lookback::Vecs as LookbackVecs;
 use size::Vecs as UtxosVecs;
 use weight::Vecs as WeightVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("blocks"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
-
 pub const ONE_TERA_HASH: f64 = 1_000_000_000_000.0;
 
 #[derive(Traversable)]

@@ -1,20 +1,61 @@
 #![doc = include_str!("../README.md")]
+
 mod addr;
 mod block;
+mod checkpoint;
 mod compute;
 mod dependencies;
 mod has;
+mod import;
 mod metrics;
 mod state;
-mod vecs;
-use bitview_cohort::AmountRangeId;
-use bitview_plugin::{PluginId, PluginStorage};
-use brk_types::Version;
+
 pub use dependencies::Dependencies;
 pub use has::HasDistributionAddresses;
-pub use vecs::Vecs;
+
+use bitview_cohort::AmountRangeId;
+use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_plugin_distribution_common::{RealizedCaps, replay::LiveState};
+use bitview_traversable::Traversable;
+use brk_error::Result;
+use brk_types::Version;
+use vecdb::{Database, Rw, StorageMode};
+
+use addr::{AddrStateVecs, AddrVecs};
+use metrics::BalanceMetrics;
+use state::AddrStates;
+
 const STORAGE: PluginStorage =
     PluginStorage::new(PluginId::new("distribution_addresses"), Version::new(46));
 pub const ID: PluginId = STORAGE.id();
 const SAVED_CHECKPOINTS: u16 = 10;
 const CAP_COUNT: usize = AmountRangeId::ALL.len();
+
+#[derive(Traversable)]
+pub struct Vecs<M: StorageMode = Rw> {
+    #[traversable(skip)]
+    db: Database,
+    live: M::WriteOnly<Option<LiveState<AddrStates>>>,
+    caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
+    #[traversable(wrap = "addrs", rename = "state")]
+    pub addr_state: AddrStateVecs<M>,
+    #[traversable(wrap = "addrs", rename = "by_balance")]
+    balances: Box<BalanceMetrics<M>>,
+    addrs: AddrVecs<M>,
+}
+
+impl<M: StorageMode> Plugin for Vecs<M>
+where
+    Self: Traversable + Send + Sync,
+{
+    fn storage(&self) -> PluginStorage {
+        STORAGE
+    }
+}
+
+impl Vecs {
+    fn flush(&self) -> Result<()> {
+        self.db.flush()?;
+        Ok(())
+    }
+}

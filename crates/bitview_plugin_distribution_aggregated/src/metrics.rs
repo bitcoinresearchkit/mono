@@ -1,8 +1,3 @@
-use crate::unrealized_data::UnrealizedData;
-use crate::{
-    activity::Activity, columns::Columns, cost_basis::CostBasis, data::Data, outputs::Outputs,
-    ratios::Ratios, realized::Realized, relative::Relative, supply::Supply, unrealized::Unrealized,
-};
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
@@ -12,6 +7,12 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
+
+use crate::{
+    activity::Activity, columns::Columns, cost_basis::CostBasis, data::Data, outputs::Outputs,
+    ratios::Ratios, realized::Realized, relative::Relative, supply::Supply, unrealized::Unrealized,
+    unrealized_data::UnrealizedData,
+};
 
 /// One complete metric layout, instantiated identically for every age filter.
 #[derive(Traversable)]
@@ -28,7 +29,7 @@ pub struct Metrics<M: StorageMode = Rw> {
     pub(crate) columns: Columns<M>,
 }
 impl Metrics {
-    pub(crate) fn import(
+    pub(crate) fn forced_import(
         db: &Database,
         id: AgeAggregateId,
         v: Version,
@@ -37,12 +38,12 @@ impl Metrics {
         spot: &ReadableBoxedVec<Height, Cents>,
         cost_basis: CostBasis,
     ) -> Result<Self> {
-        let columns = Columns::import(db, id, v)?;
+        let columns = Columns::forced_import(db, id, v)?;
         let supply = Supply::new(id, v, &columns, mappings, windows, spot);
         let outputs = Outputs::new(id, v, &columns, mappings, windows);
         let activity = Activity::new(id, v, &columns, mappings, windows);
         let realized = Realized::new(id, v, &columns, mappings, windows, spot);
-        let relative = Relative::import(db, id, v, mappings)?;
+        let relative = Relative::forced_import(db, id, v, mappings)?;
         let unrealized = Unrealized::new(id, v, &columns, mappings);
         Ok(Self {
             supply,
@@ -51,7 +52,7 @@ impl Metrics {
             realized,
             unrealized,
             cost_basis,
-            ratios: Ratios::import(db, id, v, mappings, &columns, windows)?,
+            ratios: Ratios::forced_import(db, id, v, mappings, &columns, windows)?,
             relative,
             columns,
         })

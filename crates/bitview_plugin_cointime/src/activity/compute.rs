@@ -7,42 +7,44 @@ use brk_types::{Bitcoin, BoundedRatio, StoredF64};
 
 use super::Vecs;
 
-pub fn compute(
-    vecs: &mut Vecs,
-    indexer: &Indexer,
-    distribution_age: &AgeVecs,
-    distribution_aggregated: &AggregatedVecs,
-    exit: &Exit,
-) -> Result<()> {
-    let starting_height = indexer.safe_lengths().height;
-    let circulating_supply = &distribution_aggregated.cohorts.all.supply.total.sats.height;
+impl Vecs {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        distribution_age: &AgeVecs,
+        distribution_aggregated: &AggregatedVecs,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_height = indexer.safe_lengths().height;
+        let circulating_supply = &distribution_aggregated.cohorts.all.supply.total.sats.height;
 
-    vecs.coinblocks_created.compute_cumulative_transformed(
-        starting_height,
-        circulating_supply,
-        |value| StoredF64::from(Bitcoin::from(value)),
-        exit,
-    )?;
+        self.coinblocks_created.compute_cumulative_transformed(
+            starting_height,
+            circulating_supply,
+            |value| StoredF64::from(Bitcoin::from(value)),
+            exit,
+        )?;
 
-    vecs.coinblocks_stored.cumulative.height.compute_subtract(
-        starting_height,
-        &vecs.coinblocks_created.cumulative.height,
-        &distribution_age.coinblocks_destroyed.cumulative.height,
-        exit,
-    )?;
+        self.coinblocks_stored.cumulative.height.compute_subtract(
+            starting_height,
+            &self.coinblocks_created.cumulative.height,
+            &distribution_age.coinblocks_destroyed.cumulative.height,
+            exit,
+        )?;
 
-    vecs.derived.liveliness_source.height.compute_transform2(
-        starting_height,
-        &distribution_age.coinblocks_destroyed.cumulative.height,
-        &vecs.coinblocks_created.cumulative.height,
-        |(h, destroyed, created, ..)| {
-            (
-                h,
-                BoundedRatio::from(f64::from(destroyed) / f64::from(created)),
-            )
-        },
-        exit,
-    )?;
+        self.derived.liveliness_source.height.compute_transform2(
+            starting_height,
+            &distribution_age.coinblocks_destroyed.cumulative.height,
+            &self.coinblocks_created.cumulative.height,
+            |(h, destroyed, created, ..)| {
+                (
+                    h,
+                    BoundedRatio::from(f64::from(destroyed) / f64::from(created)),
+                )
+            },
+            exit,
+        )?;
 
-    Ok(())
+        Ok(())
+    }
 }

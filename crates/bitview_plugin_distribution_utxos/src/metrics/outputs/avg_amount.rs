@@ -18,7 +18,7 @@ pub struct AvgAmount<M: StorageMode = Rw> {
 }
 
 impl AvgAmount {
-    pub fn import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         mappings: &Mappings,

@@ -3,7 +3,7 @@ use brk_error::Result;
 use rayon::join;
 use vecdb::{AnyVec, Database};
 
-use super::{Vecs, activity, adjusted, age_range, aggregate, cap, prices, reserve_risk, value};
+use super::Vecs;
 use crate::Dependencies;
 
 impl Vecs {
@@ -30,21 +30,15 @@ impl Vecs {
         let exit = context.exit();
 
         // Activity computes first (liveliness, vaultedness, etc.)
-        activity::compute(
-            &mut self.activity,
-            indexer,
-            distribution_age,
-            distribution_aggregated,
-            exit,
-        )?;
-        age_range::compute(&mut self.age_range, indexer, distribution_age, exit)?;
+        self.activity
+            .compute(indexer, distribution_age, distribution_aggregated, exit)?;
+        self.age_range.compute(indexer, distribution_age, exit)?;
 
         // Age-range supply is lazy over the same cached inputs as aggregates.
         // Adjusted and value compute independently.
         let (r1, r2) = join(
             || {
-                aggregate::compute(
-                    &mut self.aggregate,
+                self.aggregate.compute(
                     indexer,
                     distribution_age,
                     &mut self.age_range,
@@ -55,8 +49,7 @@ impl Vecs {
             || {
                 join(
                     || {
-                        adjusted::compute(
-                            &mut self.adjusted,
+                        self.adjusted.compute(
                             indexer,
                             inflation_rate,
                             velocity_native,
@@ -66,8 +59,7 @@ impl Vecs {
                         )
                     },
                     || {
-                        value::compute(
-                            &mut self.value,
+                        self.value.compute(
                             indexer,
                             prices,
                             distribution_age,
@@ -84,8 +76,7 @@ impl Vecs {
         r2.1?;
 
         // Cap depends on activity + value
-        cap::compute(
-            &mut self.cap,
+        self.cap.compute(
             indexer,
             distribution_aggregated,
             &self.activity,
@@ -96,8 +87,7 @@ impl Vecs {
         // Phase 4: pricing and reserve_risk are independent
         let (r3, r4) = join(
             || {
-                prices::compute(
-                    &mut self.prices,
+                self.prices.compute(
                     indexer,
                     distribution_aggregated,
                     &self.activity,
@@ -107,14 +97,8 @@ impl Vecs {
                 )
             },
             || {
-                reserve_risk::compute(
-                    &mut self.reserve_risk,
-                    indexer,
-                    blocks,
-                    prices,
-                    &self.value,
-                    exit,
-                )
+                self.reserve_risk
+                    .compute(indexer, blocks, prices, &self.value, exit)
             },
         );
         r3?;

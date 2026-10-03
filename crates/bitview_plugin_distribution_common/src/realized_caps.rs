@@ -11,7 +11,7 @@ pub struct RealizedCaps<const N: usize> {
 }
 
 impl<const N: usize> RealizedCaps<N> {
-    pub fn import(db: &Database, saved_checkpoints: u16) -> Result<Self> {
+    pub fn forced_import(db: &Database, saved_checkpoints: u16) -> Result<Self> {
         Ok(Self {
             values: MutableVec::forced_import_with(
                 ImportOptions::new(db, "cohort_caps", Version::TWO)

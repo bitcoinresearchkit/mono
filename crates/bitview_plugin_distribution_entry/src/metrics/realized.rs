@@ -41,7 +41,7 @@ pub struct RealizedMetrics<M: StorageMode = Rw> {
 }
 
 impl RealizedMetrics {
-    pub(crate) fn import(
+    pub(crate) fn forced_import(
         db: &Database,
         id: CohortId,
         version: Version,

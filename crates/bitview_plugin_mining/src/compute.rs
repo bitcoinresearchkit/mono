@@ -2,7 +2,7 @@ use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use vecdb::Database;
 
-use super::{Vecs, hashrate, rewards};
+use super::Vecs;
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
@@ -26,17 +26,10 @@ impl ComputePlugin for Vecs {
         let exit = context.exit();
 
         // Block rewards (coinbase, subsidy, fee_dominance, etc.)
-        rewards::compute(
-            &mut self.rewards,
-            indexer,
-            &blocks.lookback,
-            transactions,
-            prices,
-            exit,
-        )?;
+        self.rewards
+            .compute(indexer, &blocks.lookback, transactions, prices, exit)?;
 
-        hashrate::compute(
-            &mut self.hashrate,
+        self.hashrate.compute(
             indexer,
             &blocks.count,
             &blocks.lookback,

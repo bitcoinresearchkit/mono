@@ -27,65 +27,66 @@ fn unclaimed_rewards(height: Height, subsidy: Sats) -> Sats {
         .unwrap_or_else(|| panic!("derived subsidy {subsidy:?} exceeds schedule at {height:?}"))
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn compute(
-    vecs: &mut Vecs,
-    indexer: &Indexer,
-    lookback: &LookbackVecs,
-    transactions: &TransactionsVecs,
-    prices: &PriceVecs,
-    exit: &Exit,
-) -> Result<()> {
-    let starting_height = indexer.safe_lengths().height;
+impl Vecs {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        lookback: &LookbackVecs,
+        transactions: &TransactionsVecs,
+        prices: &PriceVecs,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_height = indexer.safe_lengths().height;
 
-    // coinbase and fees are independent — parallelize
-    let window_starts = lookback.window_starts();
-    let (r_coinbase, r_fees) = join(
-        || {
-            vecs.coinbase.compute_from(
-                starting_height,
-                &prices.spot.cents.height,
-                &transactions.fees.coinbase_value,
-                |_, value| value,
-                exit,
-            )
-        },
-        || {
-            vecs.fees.compute_from(
-                starting_height,
-                &window_starts,
-                &prices.spot.cents.height,
-                &transactions.fees.total,
-                exit,
-            )
-        },
-    );
-    r_coinbase?;
-    r_fees?;
+        // coinbase and fees are independent — parallelize
+        let window_starts = lookback.window_starts();
+        let (r_coinbase, r_fees) = join(
+            || {
+                self.coinbase.compute_from(
+                    starting_height,
+                    &prices.spot.cents.height,
+                    &transactions.fees.coinbase_value,
+                    |_, value| value,
+                    exit,
+                )
+            },
+            || {
+                self.fees.compute_from(
+                    starting_height,
+                    &window_starts,
+                    &prices.spot.cents.height,
+                    &transactions.fees.total,
+                    exit,
+                )
+            },
+        );
+        r_coinbase?;
+        r_fees?;
 
-    vecs.subsidy.compute_from_pair(
-        starting_height,
-        &prices.spot.cents.height,
-        &vecs.coinbase.block.sats,
-        &vecs.fees.block.sats,
-        derived_subsidy,
-        exit,
-    )?;
+        self.subsidy.compute_from_pair(
+            starting_height,
+            &prices.spot.cents.height,
+            &self.coinbase.block.sats,
+            &self.fees.block.sats,
+            derived_subsidy,
+            exit,
+        )?;
 
-    vecs.output_volume.compute_subtract(
-        starting_height,
-        &transactions.volume.transfer_volume.block.sats,
-        &vecs.fees.block.sats,
-        exit,
-    )?;
+        self.output_volume.compute_subtract(
+            starting_height,
+            &transactions.volume.transfer_volume.block.sats,
+            &self.fees.block.sats,
+            exit,
+        )?;
 
-    vecs.unclaimed.compute_from(
-        starting_height,
-        &prices.spot.cents.height,
-        &vecs.subsidy.block.sats,
-        unclaimed_rewards,
-        exit,
-    )?;
+        self.unclaimed.compute_from(
+            starting_height,
+            &prices.spot.cents.height,
+            &self.subsidy.block.sats,
+            unclaimed_rewards,
+            exit,
+        )?;
 
-    Ok(())
+        Ok(())
+    }
 }

@@ -1,9 +1,8 @@
 use bitview_cohort::{AmountRange, AmountRangeId};
 use brk_types::{Cents, Height, StoredU64};
 
-use crate::{addr::FundedAddrCountsVecs, metrics::BalanceMetrics};
-
 use super::AddrCohortState;
+use crate::{addr::FundedAddrCountsVecs, metrics::BalanceMetrics};
 
 pub struct AddrStates {
     pub amount_range: AmountRange<AddrCohortState>,
@@ -16,7 +15,7 @@ impl AddrStates {
         }
     }
 
-    pub fn import(
+    pub fn restore(
         &mut self,
         metrics: &BalanceMetrics,
         funded: &FundedAddrCountsVecs,

@@ -1,4 +1,3 @@
-use crate::columns::Columns;
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
@@ -8,7 +7,9 @@ use bitview_vecs::{LazyFiatPerBlockCumulativeRolling, LazyWindowStartVec, Rollin
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, StoredF32, Version};
-use vecdb::{AnyStoredVec, Database, LazyVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Database, LazyVec, ReadableCloneableVec, Rw, StorageMode};
+
+use crate::columns::Columns;
 
 #[derive(Traversable)]
 pub struct AdjustedSopr<M: StorageMode = Rw> {
@@ -17,7 +18,7 @@ pub struct AdjustedSopr<M: StorageMode = Rw> {
     pub value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
 }
 impl AdjustedSopr {
-    pub(crate) fn import(
+    pub(crate) fn forced_import(
         db: &Database,
         id: AgeAggregateId,
         v: Version,
@@ -78,4 +79,3 @@ impl AdjustedSopr {
             .collect()
     }
 }
-use vecdb::ReadableCloneableVec;

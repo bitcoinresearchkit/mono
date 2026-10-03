@@ -1,0 +1,66 @@
+use bitview_plugin::ImportContext;
+use bitview_plugin_coinflow::Vecs as CoinflowVecs;
+use bitview_plugin_cointime::Vecs as CointimeVecs;
+use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
+use bitview_plugin_mappings::Vecs as MappingsVecs;
+use brk_error::Result;
+
+use crate::{STORAGE, Vecs, components, extremes, inner};
+
+impl Vecs {
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &MappingsVecs,
+        distribution_aggregated: &AggregatedVecs,
+        cointime: &CointimeVecs,
+        coinflow: &CoinflowVecs,
+    ) -> Result<Self> {
+        let db = STORAGE.open_database(context, 100_000)?;
+        let version = STORAGE.schema_version();
+        let this = Self {
+            components: components::Components::forced_import(
+                &db,
+                version,
+                mappings,
+                distribution_aggregated,
+                cointime,
+                coinflow,
+            )?,
+            extremes: extremes::Extremes::forced_import(&db, version, mappings)?,
+            full: inner::RarityMeterInner::forced_import(&db, "rarity_meter", version, mappings)?,
+            full_v2: inner::RarityMeterInner::forced_import(
+                &db,
+                "rarity_meter_v2",
+                version,
+                mappings,
+            )?,
+            local: inner::RarityMeterInner::forced_import(
+                &db,
+                "local_rarity_meter",
+                version,
+                mappings,
+            )?,
+            local_v2: inner::RarityMeterInner::forced_import(
+                &db,
+                "local_rarity_meter_v2",
+                version,
+                mappings,
+            )?,
+            cycle: inner::RarityMeterInner::forced_import(
+                &db,
+                "cycle_rarity_meter",
+                version,
+                mappings,
+            )?,
+            cycle_v2: inner::RarityMeterInner::forced_import(
+                &db,
+                "cycle_rarity_meter_v2",
+                version,
+                mappings,
+            )?,
+            db,
+        };
+        STORAGE.finalize_database(&this.db)?;
+        Ok(this)
+    }
+}

@@ -46,102 +46,116 @@ pub struct Component<M: StorageMode = Rw> {
 
 const VERSION: Version = Version::new(12);
 
-pub fn forced_import(
-    db: &Database,
-    name: &str,
-    version: Version,
-    mappings: &IndexSources,
-    price_source: &impl ReadableCloneableVec<Height, Cents>,
-) -> Result<Component> {
-    let version = version + VERSION;
-    let component_price = ComponentPrice::new(name, version, price_source);
-    let ratios = RarityPercentiles::try_from_fn(|id| {
-        import_cached(db, &format!("{name}_ratio_{}_ppm", id.suffix()), version)
-    })?;
-    let bands = RarityPercentiles::from_fn(|id| {
-        let suffix = id.suffix();
-        let ratio = LazyRatioPerBlock::from_height_source(
-            &format!("{name}_ratio_{suffix}"),
-            version,
-            ratios.get(id),
-            mappings,
-        );
-        let price = component_price.price_for_ratio(
-            &format!("{name}_{suffix}"),
-            version,
-            &ratio.ppm.height,
-            mappings,
-        );
-        Band { ratio, price }
-    });
+impl Component {
+    pub(crate) fn forced_import(
+        db: &Database,
+        name: &str,
+        version: Version,
+        mappings: &IndexSources,
+        price_source: &impl ReadableCloneableVec<Height, Cents>,
+    ) -> Result<Self> {
+        let version = version + VERSION;
+        let component_price = ComponentPrice::new(name, version, price_source);
+        let ratios = RarityPercentiles::try_from_fn(|id| {
+            import_cached(db, &format!("{name}_ratio_{}_ppm", id.suffix()), version)
+        })?;
+        let bands = RarityPercentiles::from_fn(|id| {
+            let suffix = id.suffix();
+            let ratio = LazyRatioPerBlock::from_height_source(
+                &format!("{name}_ratio_{suffix}"),
+                version,
+                ratios.get(id),
+                mappings,
+            );
+            let price = component_price.price_for_ratio(
+                &format!("{name}_{suffix}"),
+                version,
+                &ratio.ppm.height,
+                mappings,
+            );
+            Band { ratio, price }
+        });
 
-    Ok(Component {
-        bands,
-        ratios,
-        price: component_price,
-        block_decay_pct: BlockDecayPercentiles::default(),
-    })
-}
+        Ok(Component {
+            bands,
+            ratios,
+            price: component_price,
+            block_decay_pct: BlockDecayPercentiles::default(),
+        })
+    }
 
-pub fn compute(
-    component: &mut Component,
-    starting_lengths: &Lengths,
-    ratio_source: &impl ReadableVec<Height, StoredF32>,
-    exit: &Exit,
-) -> Result<()> {
-    let block_decay_pct = &mut component.block_decay_pct;
-    {
-        let _lock = exit.lock();
-        for vec in component.ratios.iter_mut() {
-            vec.validate_computed_version_or_reset(ratio_source.version())?;
-        }
-    }
-    let start = component
-        .ratios
-        .iter()
-        .map(|v| v.len())
-        .min()
-        .unwrap_or_default()
-        .min(usize::from(starting_lengths.height))
-        .min(ratio_source.len());
-    {
-        let _lock = exit.lock();
-        for vec in component.ratios.iter_mut() {
-            vec.truncate_if_needed_at(start)?;
-            vec.write()?;
-        }
-    }
-    let expected_len = start.saturating_sub(START_HEIGHT);
-    if block_decay_pct.len() != expected_len {
-        block_decay_pct.reset();
-        if start > START_HEIGHT {
-            let historical = ratio_source.collect_range_at(START_HEIGHT, start);
-            block_decay_pct.add_bulk(START_HEIGHT, &historical);
-        }
-    }
-    let mut chunk_start = start;
-    while chunk_start < ratio_source.len() {
-        let end = (chunk_start + COMPUTE_BATCH_SIZE).min(ratio_source.len());
-        let new_ratios = ratio_source.collect_range_at(chunk_start, end);
-        let mut out = [0.0; RARITY_PERCENTILES_LEN];
-        for (offset, ratio) in new_ratios.iter().enumerate() {
-            let height = chunk_start + offset;
-            if height >= START_HEIGHT {
-                block_decay_pct.add(height, **ratio);
-            }
-            block_decay_pct.quantiles(&RARITY_PERCENTILES, &mut out);
-            for (target, value) in component.ratios.iter_mut().zip(out) {
-                target.push(PartsPerMillion32::from(value));
+    pub(crate) fn compute(
+        &mut self,
+        starting_lengths: &Lengths,
+        ratio_source: &impl ReadableVec<Height, StoredF32>,
+        exit: &Exit,
+    ) -> Result<()> {
+        let block_decay_pct = &mut self.block_decay_pct;
+        {
+            let _lock = exit.lock();
+            for vec in self.ratios.iter_mut() {
+                vec.validate_computed_version_or_reset(ratio_source.version())?;
             }
         }
-        let _lock = exit.lock();
-        for vec in component.ratios.iter_mut() {
-            vec.write()?;
+        let start = self
+            .ratios
+            .iter()
+            .map(|v| v.len())
+            .min()
+            .unwrap_or_default()
+            .min(usize::from(starting_lengths.height))
+            .min(ratio_source.len());
+        {
+            let _lock = exit.lock();
+            for vec in self.ratios.iter_mut() {
+                vec.truncate_if_needed_at(start)?;
+                vec.write()?;
+            }
         }
-        chunk_start = end;
+        let expected_len = start.saturating_sub(START_HEIGHT);
+        if block_decay_pct.len() != expected_len {
+            block_decay_pct.reset();
+            if start > START_HEIGHT {
+                let historical = ratio_source.collect_range_at(START_HEIGHT, start);
+                block_decay_pct.add_bulk(START_HEIGHT, &historical);
+            }
+        }
+        let mut chunk_start = start;
+        while chunk_start < ratio_source.len() {
+            let end = (chunk_start + COMPUTE_BATCH_SIZE).min(ratio_source.len());
+            let new_ratios = ratio_source.collect_range_at(chunk_start, end);
+            let mut out = [0.0; RARITY_PERCENTILES_LEN];
+            for (offset, ratio) in new_ratios.iter().enumerate() {
+                let height = chunk_start + offset;
+                if height >= START_HEIGHT {
+                    block_decay_pct.add(height, **ratio);
+                }
+                block_decay_pct.quantiles(&RARITY_PERCENTILES, &mut out);
+                for (target, value) in self.ratios.iter_mut().zip(out) {
+                    target.push(PartsPerMillion32::from(value));
+                }
+            }
+            let _lock = exit.lock();
+            for vec in self.ratios.iter_mut() {
+                vec.write()?;
+            }
+            chunk_start = end;
+        }
+
+        Ok(())
     }
 
-    Ok(())
+    pub fn needs_compute(
+        &self,
+        starting_height: Height,
+        ratio_source: &impl ReadableVec<Height, StoredF32>,
+    ) -> bool {
+        self.ratios.iter().any(|v| {
+            v.len() != ratio_source.len()
+                || v.version() != v.header().vec_version() + ratio_source.version()
+                || v.len() > usize::from(starting_height)
+        })
+    }
 }
 
 pub fn boundary_version(component: &Component) -> Version {
@@ -171,18 +185,4 @@ pub fn collect_boundary_prices(
     component
         .price
         .collect_boundary_prices(component.ratios.boundary_refs(), start, end)
-}
-
-impl Component {
-    pub fn needs_compute(
-        &self,
-        starting_height: Height,
-        ratio_source: &impl ReadableVec<Height, StoredF32>,
-    ) -> bool {
-        self.ratios.iter().any(|v| {
-            v.len() != ratio_source.len()
-                || v.version() != v.header().vec_version() + ratio_source.version()
-                || v.len() > usize::from(starting_height)
-        })
-    }
 }

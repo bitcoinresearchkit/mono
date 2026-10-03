@@ -8,26 +8,28 @@ use vecdb::{Database, LazyVec, ReadableCloneableVec};
 
 use super::Vecs;
 
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    indexer: &Indexer,
-    mappings: &MappingsVecs,
-) -> Result<Vecs> {
-    let weight = TxDerivedDistribution::forced_import(db, "tx_weight", version, mappings)?;
+impl Vecs {
+    pub(crate) fn forced_import(
+        db: &Database,
+        version: Version,
+        indexer: &Indexer,
+        mappings: &MappingsVecs,
+    ) -> Result<Self> {
+        let weight = TxDerivedDistribution::forced_import(db, "tx_weight", version, mappings)?;
 
-    let tx_index_to_vsize = LazyVec::transformed::<WeightToVSize>(
-        "tx_vsize",
-        version,
-        indexer.vecs().transactions.weight.read_only_boxed_clone(),
-    );
+        let tx_index_to_vsize = LazyVec::transformed::<WeightToVSize>(
+            "tx_vsize",
+            version,
+            indexer.vecs().transactions.weight.read_only_boxed_clone(),
+        );
 
-    let vsize = LazyPerTxDistributionTransformed::new::<WeightToVSize>(
-        "tx_vsize",
-        version,
-        tx_index_to_vsize,
-        &weight,
-    );
+        let vsize = LazyPerTxDistributionTransformed::new::<WeightToVSize>(
+            "tx_vsize",
+            version,
+            tx_index_to_vsize,
+            &weight,
+        );
 
-    Ok(Vecs { vsize, weight })
+        Ok(Vecs { vsize, weight })
+    }
 }

@@ -7,23 +7,25 @@ use vecdb::{Database, ReadableBoxedVec};
 
 use super::{super::activity, LazyBaseVecs, Vecs};
 
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    mappings: &MappingsVecs,
-    spot_price: &ReadableBoxedVec<Height, Cents>,
-    activity: &activity::Vecs,
-    all_chain: &AllChainSources,
-) -> Result<Vecs> {
-    Ok(Vecs {
-        base: LazyBaseVecs::new(version, mappings, spot_price, activity, all_chain),
-        active_supply_in_loss_share: BoundedRatioPerBlock::forced_import(
-            db,
-            "cointime_supply_in_loss_share",
-            version + Version::ONE,
-            mappings,
-        )?,
-    })
+impl Vecs {
+    pub(crate) fn forced_import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        spot_price: &ReadableBoxedVec<Height, Cents>,
+        activity: &activity::Vecs,
+        all_chain: &AllChainSources,
+    ) -> Result<Self> {
+        Ok(Vecs {
+            base: LazyBaseVecs::new(version, mappings, spot_price, activity, all_chain),
+            active_supply_in_loss_share: BoundedRatioPerBlock::forced_import(
+                db,
+                "cointime_supply_in_loss_share",
+                version + Version::ONE,
+                mappings,
+            )?,
+        })
+    }
 }
 
 impl LazyBaseVecs {

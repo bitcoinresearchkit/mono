@@ -12,34 +12,34 @@ use crate::FeesVecs;
 
 const WRITE_INTERVAL: usize = 10_000;
 
-pub fn compute(
-    vecs: &mut Vecs,
-    indexer: &Indexer,
-    mappings: &MappingsVecs,
-    fees: &FeesVecs,
-    exit: &Exit,
-) -> Result<()> {
-    let starting_height = indexer.safe_lengths().height;
-    let features = &indexer.vecs().transaction_features;
-    vecs.count.compute_cumulative_transformed(
-        starting_height,
-        &features.count.inscription,
-        StoredU64::from,
-        exit,
-    )?;
-    vecs.compute_fees(
-        starting_height,
-        &indexer.vecs().transactions.first_tx_index,
-        &mappings.height.tx_index_count,
-        &features.count.inscription,
-        &features.has_inscription,
-        &fees.fee.tx_index,
-        &fees.total,
-        exit,
-    )
-}
-
 impl Vecs {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        mappings: &MappingsVecs,
+        fees: &FeesVecs,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_height = indexer.safe_lengths().height;
+        let features = &indexer.vecs().transaction_features;
+        self.count.compute_cumulative_transformed(
+            starting_height,
+            &features.count.inscription,
+            StoredU64::from,
+            exit,
+        )?;
+        self.compute_fees(
+            starting_height,
+            &indexer.vecs().transactions.first_tx_index,
+            &mappings.height.tx_index_count,
+            &features.count.inscription,
+            &features.has_inscription,
+            &fees.fee.tx_index,
+            &fees.total,
+            exit,
+        )
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn compute_fees(
         &mut self,

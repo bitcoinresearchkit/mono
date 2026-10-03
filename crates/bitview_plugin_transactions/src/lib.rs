@@ -1,10 +1,12 @@
 #![allow(clippy::type_complexity)]
 
+mod compute;
 mod count;
 mod dependencies;
 mod features;
 mod fees;
 mod has;
+mod import;
 mod inscription;
 mod patterns;
 mod policy;
@@ -13,8 +15,9 @@ mod size;
 mod versions;
 mod volume;
 
-mod compute;
-mod import;
+pub use dependencies::Dependencies;
+pub use fees::Vecs as FeesVecs;
+pub use has::HasTransactions;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
@@ -22,10 +25,7 @@ use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use count::Vecs as CountVecs;
-pub use dependencies::Dependencies;
 use features::Vecs as FeaturesVecs;
-pub use fees::Vecs as FeesVecs;
-pub use has::HasTransactions;
 use inscription::Vecs as InscriptionVecs;
 use patterns::Vecs as PatternsVecs;
 use policy::Vecs as PolicyVecs;

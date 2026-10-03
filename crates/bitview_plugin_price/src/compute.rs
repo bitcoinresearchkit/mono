@@ -1,7 +1,6 @@
-use brk_error::{Error, OptionData, Result};
-
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
+use brk_error::{Error, OptionData, Result};
 use brk_exit::Exit;
 use brk_oracle::{
     Config, Oracle, START_HEIGHT_FAST, START_HEIGHT_SLOW, bin_to_cents, cents_to_bin,
@@ -11,8 +10,7 @@ use brk_types::Cents;
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, VecIndex, WritableVec};
 
-use super::Vecs;
-use crate::{Dependencies, feed_blocks_for_warmup, feed_blocks_with};
+use crate::{Dependencies, Vecs, feed_blocks_for_warmup, feed_blocks_with};
 
 impl Vecs {
     fn compute_prices(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {

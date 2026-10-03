@@ -3,7 +3,7 @@ use brk_error::Result;
 use rayon::join;
 use vecdb::Database;
 
-use super::{Vecs, ath, moving_average, range, returns, technical};
+use super::Vecs;
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
@@ -27,19 +27,11 @@ impl ComputePlugin for Vecs {
         let exit = context.exit();
 
         let (ath, (range, moving_average)) = join(
-            || ath::compute(&mut self.ath, indexer, prices, mappings, exit),
+            || self.ath.compute(indexer, prices, mappings, exit),
             || {
                 join(
-                    || range::compute(&mut self.range, indexer, prices, blocks, exit),
-                    || {
-                        moving_average::compute(
-                            &mut self.moving_average,
-                            indexer,
-                            blocks,
-                            prices,
-                            exit,
-                        )
-                    },
+                    || self.range.compute(indexer, prices, blocks, exit),
+                    || self.moving_average.compute(indexer, blocks, prices, exit),
                 )
             },
         );
@@ -48,16 +40,10 @@ impl ComputePlugin for Vecs {
         moving_average?;
 
         let (returns, technical) = join(
-            || returns::compute(&mut self.returns, indexer, blocks, exit),
+            || self.returns.compute(indexer, blocks, exit),
             || {
-                technical::compute(
-                    &mut self.technical,
-                    indexer,
-                    prices,
-                    blocks,
-                    &self.moving_average,
-                    exit,
-                )
+                self.technical
+                    .compute(indexer, prices, blocks, &self.moving_average, exit)
             },
         );
         returns?;

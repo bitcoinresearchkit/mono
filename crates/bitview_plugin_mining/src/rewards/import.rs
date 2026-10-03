@@ -11,72 +11,74 @@ use vecdb::{Database, EagerVec, ImportableVec};
 
 use super::Vecs;
 
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    mappings: &MappingsVecs,
-    window_starts: &Windows<&LazyWindowStartVec>,
-) -> Result<Vecs> {
-    let coinbase = ValuePerBlockCumulativeRolling::forced_import(
-        db,
-        "coinbase",
-        version,
-        mappings,
-        window_starts,
-    )?;
-    let subsidy = ValuePerBlockCumulativeRolling::forced_import(
-        db,
-        "subsidy",
-        version,
-        mappings,
-        window_starts,
-    )?;
-    let fees = ValuePerBlockFull::forced_import(db, "fees", version, mappings, window_starts)?;
-    let fees_source = fees.cumulative_sats_source();
-
-    let fee_dominance = LazyPercentCumulativeRolling::from_cumulative_ratio_with_numerator::<
-        Sats,
-        Sats,
-        RatioSats<PartsPerMillion32>,
-    >(
-        "fee_dominance",
-        version,
-        fees_source,
-        coinbase.cumulative.sats.resolutions.height_source(),
-        window_starts,
-        mappings,
-    );
-    let subsidy_dominance = LazyPercentCumulativeRolling::from_lazy_source::<OneMinusPpm>(
-        "subsidy_dominance",
-        version,
-        &fee_dominance,
-    );
-    let fee_to_subsidy = LazyPercentRollingWindows::from_cumulative_ratio_with_numerator::<
-        Sats,
-        Sats,
-        RatioSats<PartsPerMillion64>,
-    >(
-        "fee_to_subsidy",
-        version + Version::ONE,
-        fees_source,
-        subsidy.cumulative.sats.resolutions.height_source(),
-        window_starts,
-        mappings,
-    );
-
-    Ok(Vecs {
-        coinbase,
-        subsidy,
-        fees,
-        output_volume: EagerVec::forced_import(db, "output_volume", version)?,
-        unclaimed: ValuePerBlockCumulative::forced_import(
+impl Vecs {
+    pub(crate) fn forced_import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        window_starts: &Windows<&LazyWindowStartVec>,
+    ) -> Result<Self> {
+        let coinbase = ValuePerBlockCumulativeRolling::forced_import(
             db,
-            "unclaimed_rewards",
+            "coinbase",
             version,
             mappings,
-        )?,
-        fee_dominance,
-        subsidy_dominance,
-        fee_to_subsidy,
-    })
+            window_starts,
+        )?;
+        let subsidy = ValuePerBlockCumulativeRolling::forced_import(
+            db,
+            "subsidy",
+            version,
+            mappings,
+            window_starts,
+        )?;
+        let fees = ValuePerBlockFull::forced_import(db, "fees", version, mappings, window_starts)?;
+        let fees_source = fees.cumulative_sats_source();
+
+        let fee_dominance = LazyPercentCumulativeRolling::from_cumulative_ratio_with_numerator::<
+            Sats,
+            Sats,
+            RatioSats<PartsPerMillion32>,
+        >(
+            "fee_dominance",
+            version,
+            fees_source,
+            coinbase.cumulative.sats.resolutions.height_source(),
+            window_starts,
+            mappings,
+        );
+        let subsidy_dominance = LazyPercentCumulativeRolling::from_lazy_source::<OneMinusPpm>(
+            "subsidy_dominance",
+            version,
+            &fee_dominance,
+        );
+        let fee_to_subsidy = LazyPercentRollingWindows::from_cumulative_ratio_with_numerator::<
+            Sats,
+            Sats,
+            RatioSats<PartsPerMillion64>,
+        >(
+            "fee_to_subsidy",
+            version + Version::ONE,
+            fees_source,
+            subsidy.cumulative.sats.resolutions.height_source(),
+            window_starts,
+            mappings,
+        );
+
+        Ok(Vecs {
+            coinbase,
+            subsidy,
+            fees,
+            output_volume: EagerVec::forced_import(db, "output_volume", version)?,
+            unclaimed: ValuePerBlockCumulative::forced_import(
+                db,
+                "unclaimed_rewards",
+                version,
+                mappings,
+            )?,
+            fee_dominance,
+            subsidy_dominance,
+            fee_to_subsidy,
+        })
+    }
 }

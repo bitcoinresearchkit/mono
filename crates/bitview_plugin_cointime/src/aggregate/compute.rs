@@ -17,29 +17,30 @@ use super::{super::AgeRangeVecs, Sources, Vecs};
 
 const WRITE_INTERVAL: usize = 10_000;
 
-pub fn compute(
-    vecs: &mut Vecs,
-    indexer: &Indexer,
-    distribution_age: &AgeVecs,
-    age_range: &mut AgeRangeVecs,
-    all_supply_in_loss_share: &mut PerBlock<BoundedRatio>,
-    exit: &Exit,
-) -> Result<()> {
-    let starting_height = indexer.safe_lengths().height;
-    let accounting = distribution_age.accounting_sources();
-    let weights = AgeRange::from_fn(|id| id.select(&age_range.activity_sources));
+impl Vecs {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        distribution_age: &AgeVecs,
+        age_range: &mut AgeRangeVecs,
+        all_supply_in_loss_share: &mut PerBlock<BoundedRatio>,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_height = indexer.safe_lengths().height;
+        let accounting = distribution_age.accounting_sources();
+        let weights = AgeRange::from_fn(|id| id.select(&age_range.activity_sources));
 
-    vecs.sources.compute_primary(
-        starting_height,
-        &accounting,
-        &weights,
-        &mut all_supply_in_loss_share.height,
-        exit,
-    )
+        self.sources.compute_primary(
+            starting_height,
+            &accounting,
+            &weights,
+            &mut all_supply_in_loss_share.height,
+            exit,
+        )
+    }
 }
 
 impl Sources {
-    #[allow(clippy::too_many_arguments)]
     fn compute_primary<W>(
         &mut self,
         starting_height: Height,

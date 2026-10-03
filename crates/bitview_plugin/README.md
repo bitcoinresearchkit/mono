@@ -34,6 +34,35 @@ Generic composition and update lifecycle traits live in
 The plugin API remains experimental while the built-in Bitview modules are
 extracted into independent crates.
 
+## Plugin layout
+
+Every built-in plugin crate (except the indexer and constants) has the same root:
+
+- `lib.rs`, in this order: `macro_rules!` used by its modules, module
+  declarations, re-exports, imports, `STORAGE` (and `ID` when the composition
+  names the plugin), the `Vecs` struct, its `impl Plugin`, then any other impls;
+- `dependencies.rs`: the typed `Dependencies` its computation borrows;
+- `import.rs`: `Vecs::import(ImportContext, ..)`;
+- `compute.rs`: `impl ComputePlugin for Vecs` (plugins with replay machinery keep
+  it in `compute/mod.rs` next to that machinery);
+- `has.rs` (optional): the `HasX` capability trait other plugins depend on;
+- one module per metric family: `<family>/{mod.rs, vecs.rs or vecs/, import.rs,
+  compute.rs}` when the family is large enough to split, otherwise a single
+  `<family>.rs`.
+
+Constructors are associated functions: database-backed families use
+`forced_import`, lazy views `new` (or `from_*` when derived from one source),
+other stores `open`, and only the plugin itself has `import`. Computations on a plugin's own types are methods
+(`self.family.compute(..)`); free functions remain only for helpers over
+imported vector types.
+
+To schedule a built-in plugin, add its field to `DefaultPlugins`
+(`bitview_default/src/lib.rs`, with `#[plugin_set(has = ..)]` when others
+depend on it), construct it in `bitview_default/src/import.rs`, and call its
+`compute` in `bitview_default/src/compute.rs` after every plugin its
+`Dependencies` borrow. `examples/custom_plugin` shows the same steps for an
+external plugin.
+
 ## Pipeline publication
 
 Plugins do not own individual locks. `ComputePluginSet::publication` exposes one

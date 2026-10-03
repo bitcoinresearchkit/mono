@@ -30,24 +30,26 @@ fn forced_import_macd(
     })
 }
 
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    mappings: &MappingsVecs,
-    returns: &LazyPerBlock<StoredF32, PartsPerMillionSigned64>,
-) -> Result<Vecs> {
-    let v = version + VERSION;
+impl Vecs {
+    pub(crate) fn forced_import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        returns: &LazyPerBlock<StoredF32, PartsPerMillionSigned64>,
+    ) -> Result<Self> {
+        let v = version + VERSION;
 
-    let rsi = WindowsTo1m::try_from_fn(|tf| {
-        rsi_chain::forced_import(db, tf, v + Version::TWO, mappings, returns)
-    })?;
-    let macd = WindowsTo1m::try_from_fn(|tf| forced_import_macd(db, tf, v, mappings))?;
+        let rsi = WindowsTo1m::try_from_fn(|tf| {
+            rsi_chain::RsiChain::forced_import(db, tf, v + Version::TWO, mappings, returns)
+        })?;
+        let macd = WindowsTo1m::try_from_fn(|tf| forced_import_macd(db, tf, v, mappings))?;
 
-    let pi_cycle = RatioPerBlock::forced_import_ppm(db, "pi_cycle", v, mappings)?;
+        let pi_cycle = RatioPerBlock::forced_import_ppm(db, "pi_cycle", v, mappings)?;
 
-    Ok(Vecs {
-        rsi,
-        pi_cycle,
-        macd,
-    })
+        Ok(Vecs {
+            rsi,
+            pi_cycle,
+            macd,
+        })
+    }
 }

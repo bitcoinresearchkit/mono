@@ -1,4 +1,3 @@
-use crate::metrics::Metrics;
 use bitview_cohort::AgeAggregateId;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_transforms::{RatioCents, RatioCentsSignedCents, RatioDollars, RatioSats};
@@ -11,6 +10,8 @@ use brk_types::{
     Version,
 };
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
+
+use crate::metrics::Metrics;
 #[derive(Traversable)]
 pub struct Relative<M: StorageMode = Rw> {
     pub supply_dominance: PercentPerBlock<PartsPerMillion32, M>,
@@ -30,7 +31,7 @@ pub struct Relative<M: StorageMode = Rw> {
     pub net_pnl_change_1m_to_rcap: PercentPerBlock<PartsPerMillionSigned64, M>,
 }
 impl Relative {
-    pub(crate) fn import(
+    pub(crate) fn forced_import(
         db: &Database,
         id: AgeAggregateId,
         v: Version,

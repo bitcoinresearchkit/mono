@@ -1,4 +1,3 @@
-use crate::metrics::outputs::AvgAmount;
 use bitview_cohort::UtxoGroups;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
@@ -9,6 +8,7 @@ use brk_types::{Cents, Height, StoredU64, Version};
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
 
 use super::{SpentOutputCount, UnspentOutputCount};
+use crate::metrics::outputs::AvgAmount;
 
 #[derive(Traversable)]
 pub struct OutputsVecs<M: StorageMode = Rw> {
@@ -28,7 +28,7 @@ impl OutputsVecs {
         spot: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Box<Self>> {
         Ok(Box::new(Self {
-            avg_amount: AvgAmount::import(db, version, mappings, spot)?,
+            avg_amount: AvgAmount::forced_import(db, version, mappings, spot)?,
             unspent_count: UnspentOutputCount::forced_import(db, version, mappings, window_starts)?,
             spent_count: SpentOutputCount::forced_import(db, version, mappings, window_starts)?,
         }))

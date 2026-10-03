@@ -7,20 +7,22 @@ use vecdb::Database;
 
 use super::Vecs;
 
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    mappings: &MappingsVecs,
-    window_starts: &Windows<&LazyWindowStartVec>,
-) -> Result<Vecs> {
-    Ok(Vecs {
-        total: PerBlockFullFromCumulative::forced_import(
-            db,
-            "tx_count",
-            version,
-            &mappings.transaction_count_source(),
-            mappings,
-            window_starts,
-        )?,
-    })
+impl Vecs {
+    pub(crate) fn forced_import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        window_starts: &Windows<&LazyWindowStartVec>,
+    ) -> Result<Self> {
+        Ok(Vecs {
+            total: PerBlockFullFromCumulative::forced_import(
+                db,
+                "tx_count",
+                version,
+                &mappings.transaction_count_source(),
+                mappings,
+                window_starts,
+            )?,
+        })
+    }
 }

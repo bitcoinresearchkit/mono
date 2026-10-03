@@ -1,8 +1,12 @@
-use std::path::PathBuf;
 mod compute;
 mod dependencies;
 mod has;
 mod import;
+
+pub use dependencies::Dependencies;
+pub use has::HasUtxoHistory;
+
+use std::path::PathBuf;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
@@ -11,9 +15,6 @@ use brk_error::Result;
 use brk_types::{Height, Sats, StoredU64, Version};
 use statedb::{Creations, History, Reader, Spends, View};
 use vecdb::{Database, Rw, StorageMode};
-
-pub use dependencies::Dependencies;
-pub use has::HasUtxoHistory;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("utxo_history"), Version::ONE);
 pub const ID: PluginId = STORAGE.id();

@@ -7,113 +7,115 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::{BoundedRatio, Cents, Height, Version};
-use vecdb::{Database, PcoVecValue, ReadableBoxedVec};
+use vecdb::{Database, PcoVecValue, ReadableBoxedVec, ReadableCloneableVec};
 
 use super::{AwakeVecs, CohortVecs, DormantVecs, Sources, Vecs};
 
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    mappings: &MappingsVecs,
-    spot_price: &ReadableBoxedVec<Height, Cents>,
-    all_supply_in_loss_share: &PerBlock<BoundedRatio>,
-) -> Result<Vecs> {
-    let version = version + Version::ONE;
-    let sources = Sources::forced_import(db, version)?;
-    let all_loss_share = all_supply_in_loss_share.height.read_only_boxed_clone();
-    let term_loss_share = |term: Term| {
-        sources
-            .supply_in_loss_share
-            .get(term)
-            .read_only_boxed_clone()
-    };
-    let all = CohortVecs::new(
-        UTXOAggregateId::All,
-        version,
-        &sources,
-        all_loss_share,
-        mappings,
-        spot_price,
-    );
-    let sth = CohortVecs::new(
-        UTXOAggregateId::Sth,
-        version,
-        &sources,
-        term_loss_share(Term::Sth),
-        mappings,
-        spot_price,
-    );
-    let lth = CohortVecs::new(
-        UTXOAggregateId::Lth,
-        version,
-        &sources,
-        term_loss_share(Term::Lth),
-        mappings,
-        spot_price,
-    );
+impl Vecs {
+    pub(crate) fn forced_import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        spot_price: &ReadableBoxedVec<Height, Cents>,
+        all_supply_in_loss_share: &PerBlock<BoundedRatio>,
+    ) -> Result<Self> {
+        let version = version + Version::ONE;
+        let sources = Sources::forced_import(db, version)?;
+        let all_loss_share = all_supply_in_loss_share.height.read_only_boxed_clone();
+        let term_loss_share = |term: Term| {
+            sources
+                .supply_in_loss_share
+                .get(term)
+                .read_only_boxed_clone()
+        };
+        let all = CohortVecs::new(
+            UTXOAggregateId::All,
+            version,
+            &sources,
+            all_loss_share,
+            mappings,
+            spot_price,
+        );
+        let sth = CohortVecs::new(
+            UTXOAggregateId::Sth,
+            version,
+            &sources,
+            term_loss_share(Term::Sth),
+            mappings,
+            spot_price,
+        );
+        let lth = CohortVecs::new(
+            UTXOAggregateId::Lth,
+            version,
+            &sources,
+            term_loss_share(Term::Lth),
+            mappings,
+            spot_price,
+        );
 
-    Ok(Vecs {
-        all,
-        sth,
-        lth,
-        under_4m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
-            "under_4m_awake_price",
-            version,
-            &sources.under_4m_awake_price,
-            mappings,
-            spot_price,
-        ),
-        under_4m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
-            "under_4m_awake_capitalized_price",
-            version,
-            &sources.under_4m_awake_capitalized_price,
-            mappings,
-            spot_price,
-        ),
-        under_6m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
-            "under_6m_awake_price",
-            version,
-            &sources.under_6m_awake_price,
-            mappings,
-            spot_price,
-        ),
-        under_6m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
-            "under_6m_awake_capitalized_price",
-            version,
-            &sources.under_6m_awake_capitalized_price,
-            mappings,
-            spot_price,
-        ),
-        over_4m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
-            "over_4m_awake_price",
-            version,
-            &sources.over_4m_awake_price,
-            mappings,
-            spot_price,
-        ),
-        over_4m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
-            "over_4m_awake_capitalized_price",
-            version,
-            &sources.over_4m_awake_capitalized_price,
-            mappings,
-            spot_price,
-        ),
-        over_6m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
-            "over_6m_awake_price",
-            version,
-            &sources.over_6m_awake_price,
-            mappings,
-            spot_price,
-        ),
-        over_6m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
-            "over_6m_awake_capitalized_price",
-            version,
-            &sources.over_6m_awake_capitalized_price,
-            mappings,
-            spot_price,
-        ),
-        sources,
-    })
+        Ok(Vecs {
+            all,
+            sth,
+            lth,
+            under_4m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "under_4m_awake_price",
+                version,
+                &sources.under_4m_awake_price,
+                mappings,
+                spot_price,
+            ),
+            under_4m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "under_4m_awake_capitalized_price",
+                version,
+                &sources.under_4m_awake_capitalized_price,
+                mappings,
+                spot_price,
+            ),
+            under_6m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "under_6m_awake_price",
+                version,
+                &sources.under_6m_awake_price,
+                mappings,
+                spot_price,
+            ),
+            under_6m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "under_6m_awake_capitalized_price",
+                version,
+                &sources.under_6m_awake_capitalized_price,
+                mappings,
+                spot_price,
+            ),
+            over_4m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "over_4m_awake_price",
+                version,
+                &sources.over_4m_awake_price,
+                mappings,
+                spot_price,
+            ),
+            over_4m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "over_4m_awake_capitalized_price",
+                version,
+                &sources.over_4m_awake_capitalized_price,
+                mappings,
+                spot_price,
+            ),
+            over_6m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "over_6m_awake_price",
+                version,
+                &sources.over_6m_awake_price,
+                mappings,
+                spot_price,
+            ),
+            over_6m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "over_6m_awake_capitalized_price",
+                version,
+                &sources.over_6m_awake_capitalized_price,
+                mappings,
+                spot_price,
+            ),
+            sources,
+        })
+    }
 }
 
 impl Sources {
@@ -236,4 +238,3 @@ impl CohortVecs {
         }
     }
 }
-use vecdb::ReadableCloneableVec;

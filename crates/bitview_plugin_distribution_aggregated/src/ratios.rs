@@ -1,17 +1,19 @@
-use crate::adjusted_sopr::AdjustedSopr;
-use crate::columns::Columns;
-use crate::{activity::Activity, realized::Realized};
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_transforms::{RatioCents, RatioCentsF32, SoprRatio};
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyWindowStartVec;
-use bitview_vecs::{PerBlock, PercentRollingWindows, RollingWindows, RollingWindowsFrom1w};
+use bitview_vecs::{
+    LazyWindowStartVec, PerBlock, PercentRollingWindows, RollingWindows, RollingWindowsFrom1w,
+};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, PartsPerMillion32, StoredF32, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
+
+use crate::{
+    activity::Activity, adjusted_sopr::AdjustedSopr, columns::Columns, realized::Realized,
+};
 #[derive(Traversable)]
 pub struct Ratios<M: StorageMode = Rw> {
     pub adjusted_sopr: AdjustedSopr<M>,
@@ -22,7 +24,7 @@ pub struct Ratios<M: StorageMode = Rw> {
     pub profit_to_loss_ratio: RollingWindows<StoredF32, M>,
 }
 impl Ratios {
-    pub(crate) fn import(
+    pub(crate) fn forced_import(
         db: &Database,
         id: AgeAggregateId,
         v: Version,
@@ -31,7 +33,7 @@ impl Ratios {
         windows: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
-            adjusted_sopr: AdjustedSopr::import(db, id, v, columns, mappings, windows)?,
+            adjusted_sopr: AdjustedSopr::forced_import(db, id, v, columns, mappings, windows)?,
             dormancy: RollingWindows::forced_import(db, &id.metric_name("dormancy"), v, mappings)?,
             sopr: PerBlock::forced_import(db, &id.metric_name("sopr_24h"), v, mappings)?,
             sopr_ratio_extended: RollingWindowsFrom1w::forced_import(

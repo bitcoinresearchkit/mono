@@ -17,7 +17,7 @@ impl UTXOStates {
         }
     }
 
-    pub fn import(&mut self, metrics: &CohortMetrics, height: Height) -> Option<()> {
+    pub fn restore(&mut self, metrics: &CohortMetrics, height: Height) -> Option<()> {
         let previous = height.decremented()?;
         for ((state, supply), count) in self
             .amount_range
@@ -31,12 +31,12 @@ impl UTXOStates {
                     .zip(metrics.outputs.unspent_count.cohorts.type_.iter()),
             )
         {
-            Self::import_one(state, &supply.sats.height, &count.height, previous)?;
+            Self::restore_one(state, &supply.sats.height, &count.height, previous)?;
         }
         Some(())
     }
 
-    fn import_one(
+    fn restore_one(
         state: &mut UTXOCohortState<MinimalRealizedState, ()>,
         supply: &impl ReadableVec<Height, Sats>,
         count: &impl ReadableVec<Height, StoredU64>,

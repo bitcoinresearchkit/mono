@@ -1,9 +1,12 @@
+mod block;
+mod sources;
+mod values;
+
 use std::time::{Duration, Instant};
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::{HeightMap, Vecs as MappingsVecs};
 use bitview_vecs::CachedSeries;
-use block::Block;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Lengths, Sats, StoredBool, StoredU64, TxInIndex, TxIndex};
@@ -12,65 +15,61 @@ use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, Error as VecError, PcoVec, ReadableVec, VecIndex, WritableVec};
 
 use super::{super::size, Vecs};
-
-mod block;
-mod sources;
+use block::Block;
 use sources::Sources;
-mod values;
 
 const COMPUTE_BATCH_HEIGHTS: usize = 64;
 
-#[allow(clippy::too_many_arguments)]
-pub fn compute(
-    vecs: &mut Vecs,
-    indexer: &Indexer,
-    input_values: &PcoVec<TxInIndex, Sats>,
-    mappings: &MappingsVecs,
-    size_vecs: &size::Vecs,
-    transfer_volume: &mut CachedSeries<Height, Sats>,
-    exit: &Exit,
-) -> Result<()> {
-    let starting_lengths = indexer.safe_lengths();
-
-    vecs.compute_fees(
-        Sources::from(indexer),
-        starting_lengths,
-        input_values,
-        &mappings.tx_heights.read(),
-        &mappings.height.tx_index_count,
-        transfer_volume,
-        exit,
-    )?;
-
-    let vsize_source = &size_vecs.vsize.tx_index;
-    let (r1, r2) = join(
-        || {
-            vecs.fee.derive_from_with_skip(
-                mappings,
-                &starting_lengths,
-                &indexer.vecs().transactions.first_tx_index,
-                exit,
-                1,
-            )
-        },
-        || {
-            vecs.effective_fee_rate.derive_from_with_skip_weighted(
-                mappings,
-                &starting_lengths,
-                &indexer.vecs().transactions.first_tx_index,
-                vsize_source,
-                exit,
-                1,
-            )
-        },
-    );
-    r1?;
-    r2?;
-
-    Ok(())
-}
-
 impl Vecs {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        input_values: &PcoVec<TxInIndex, Sats>,
+        mappings: &MappingsVecs,
+        size_vecs: &size::Vecs,
+        transfer_volume: &mut CachedSeries<Height, Sats>,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_lengths = indexer.safe_lengths();
+
+        self.compute_fees(
+            Sources::from(indexer),
+            starting_lengths,
+            input_values,
+            &mappings.tx_heights.read(),
+            &mappings.height.tx_index_count,
+            transfer_volume,
+            exit,
+        )?;
+
+        let vsize_source = &size_vecs.vsize.tx_index;
+        let (r1, r2) = join(
+            || {
+                self.fee.derive_from_with_skip(
+                    mappings,
+                    &starting_lengths,
+                    &indexer.vecs().transactions.first_tx_index,
+                    exit,
+                    1,
+                )
+            },
+            || {
+                self.effective_fee_rate.derive_from_with_skip_weighted(
+                    mappings,
+                    &starting_lengths,
+                    &indexer.vecs().transactions.first_tx_index,
+                    vsize_source,
+                    exit,
+                    1,
+                )
+            },
+        );
+        r1?;
+        r2?;
+
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn compute_fees(
         &mut self,

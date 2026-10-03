@@ -1,8 +1,9 @@
+use std::path::Path;
+
 use brk_error::Result;
 use brk_types::{BlockHash, Height, SupplyState, Version};
 use rustc_hash::FxHashMap;
 use statedb::{Amount, Spends};
-use std::path::Path;
 use vecdb::Bytes;
 
 /// Inputs owns spend production; statedb owns its files and encoding.
@@ -14,7 +15,7 @@ impl OriginSpends {
         &self.store
     }
 
-    pub(crate) fn import(path: &Path) -> Result<Self> {
+    pub(crate) fn open(path: &Path) -> Result<Self> {
         Ok(Self {
             store: Spends::open(path)?,
         })

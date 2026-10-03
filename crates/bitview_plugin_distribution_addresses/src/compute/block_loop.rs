@@ -11,16 +11,15 @@ use rayon::{join, prelude::*};
 use tracing::{debug, info};
 use vecdb::{AnyVec, ReadableVec, VecIndex, unlikely};
 
-use super::{
-    super::{state::AddrStates, vecs::Vecs},
-    AddrReaders, Workspace,
-};
+use super::{AddrReaders, Workspace};
 use crate::{
+    Vecs,
     addr::AddrMetricsState,
     block::{
         TransferAddressCache, process_inputs, process_outputs, process_received, process_typed_sent,
     },
     compute::write::write,
+    state::AddrStates,
 };
 
 /// Process every block of `blocks`.

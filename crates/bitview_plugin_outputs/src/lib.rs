@@ -1,27 +1,26 @@
 mod by_type;
+mod compute;
 mod correction;
 mod count;
 mod dependencies;
 mod has;
+mod import;
 mod spent;
 mod value;
-pub use correction::overwritten_output;
 
-mod compute;
-mod import;
+pub use by_type::Vecs as ByTypeVecs;
+pub use correction::overwritten_output;
+pub use dependencies::Dependencies;
+pub use has::HasOutputs;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
+use bitview_vecs::LazyPerSecondWindows;
 use brk_types::Version;
 use statedb::Creations;
 use vecdb::{Database, Rw, StorageMode};
 
-use bitview_vecs::LazyPerSecondWindows;
-
-pub use by_type::Vecs as ByTypeVecs;
 use count::Vecs as CountVecs;
-pub use dependencies::Dependencies;
-pub use has::HasOutputs;
 use spent::Vecs as SpentVecs;
 use value::Vecs as ValueVecs;
 

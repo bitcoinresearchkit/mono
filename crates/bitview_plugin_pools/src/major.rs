@@ -43,7 +43,7 @@ impl Vecs {
     ) -> Result<Self> {
         let suffix = |s: &str| format!("{}_{s}", slug);
 
-        let base = minor::Vecs::forced_import(slug, pool_heights, version, mappings, window_starts);
+        let base = minor::Vecs::new(slug, pool_heights, version, mappings, window_starts);
 
         let rewards = ValuePerBlockCumulativeRolling::forced_import(
             db,

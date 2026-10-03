@@ -12,52 +12,52 @@ use super::Vecs;
 const HOURS_PER_DAY: f64 = 24.0;
 const WRITE_INTERVAL: usize = 10_000;
 
-pub fn compute(
-    vecs: &mut Vecs,
-    indexer: &Indexer,
-    distribution_age: &AgeVecs,
-    exit: &Exit,
-) -> Result<()> {
-    let starting_height = indexer.safe_lengths().height;
-    let transfer_volumes = AgeRange::from_fn(|id| {
-        &id.select(
-            &distribution_age
-                .cohorts
-                .activity
-                .transfer_volume
-                .cohorts
-                .age,
-        )
-        .block
-        .sats
-    });
-    let coindays_destroyed = AgeRange::from_fn(|id| {
-        &id.select(
-            &distribution_age
-                .cohorts
-                .activity
-                .coindays_destroyed
-                .cohorts
-                .age,
-        )
-        .block
-    });
-    let coindays_created = AgeRange::from_fn(|id| {
-        &id.select(&distribution_age.coindays_created)
-            .cumulative
-            .height
-    });
-
-    vecs.compute_consumed(
-        starting_height,
-        &transfer_volumes,
-        &coindays_destroyed,
-        exit,
-    )?;
-    vecs.compute_rest(starting_height, &coindays_created, exit)
-}
-
 impl Vecs {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        distribution_age: &AgeVecs,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_height = indexer.safe_lengths().height;
+        let transfer_volumes = AgeRange::from_fn(|id| {
+            &id.select(
+                &distribution_age
+                    .cohorts
+                    .activity
+                    .transfer_volume
+                    .cohorts
+                    .age,
+            )
+            .block
+            .sats
+        });
+        let coindays_destroyed = AgeRange::from_fn(|id| {
+            &id.select(
+                &distribution_age
+                    .cohorts
+                    .activity
+                    .coindays_destroyed
+                    .cohorts
+                    .age,
+            )
+            .block
+        });
+        let coindays_created = AgeRange::from_fn(|id| {
+            &id.select(&distribution_age.coindays_created)
+                .cumulative
+                .height
+        });
+
+        self.compute_consumed(
+            starting_height,
+            &transfer_volumes,
+            &coindays_destroyed,
+            exit,
+        )?;
+        self.compute_rest(starting_height, &coindays_created, exit)
+    }
+
     fn compute_consumed(
         &mut self,
         starting_height: Height,

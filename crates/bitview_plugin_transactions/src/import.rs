@@ -20,16 +20,16 @@ impl Vecs {
         let db = STORAGE.open_database(context, 10_000_000)?;
         let version = STORAGE.schema_version();
 
-        let count = count::forced_import(&db, version, mappings, window_starts)?;
-        let features = features::forced_import(&db, version, mappings, window_starts)?;
-        let size = size::forced_import(&db, version, indexer, mappings)?;
-        let fees = fees::forced_import(&db, version, mappings, window_starts)?;
-        let inscription = inscription::forced_import(&db, version, mappings, window_starts)?;
-        let patterns = patterns::forced_import(&db, version, mappings, window_starts)?;
-        let policy = policy::forced_import(&db, version, mappings, window_starts)?;
-        let sigops = sigops::forced_import(&db, version, mappings, window_starts)?;
-        let versions = versions::forced_import(&db, version, mappings, window_starts)?;
-        let volume = volume::forced_import(
+        let count = count::Vecs::forced_import(&db, version, mappings, window_starts)?;
+        let features = features::Vecs::forced_import(&db, version, mappings, window_starts)?;
+        let size = size::Vecs::forced_import(&db, version, indexer, mappings)?;
+        let fees = fees::Vecs::forced_import(&db, version, mappings, window_starts)?;
+        let inscription = inscription::Vecs::forced_import(&db, version, mappings, window_starts)?;
+        let patterns = patterns::Vecs::forced_import(&db, version, mappings, window_starts)?;
+        let policy = policy::Vecs::forced_import(&db, version, mappings, window_starts)?;
+        let sigops = sigops::Vecs::forced_import(&db, version, mappings, window_starts)?;
+        let versions = versions::Vecs::forced_import(&db, version, mappings, window_starts)?;
+        let volume = volume::Vecs::forced_import(
             &db,
             version,
             mappings,

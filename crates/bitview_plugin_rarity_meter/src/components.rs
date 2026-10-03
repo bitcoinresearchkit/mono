@@ -10,7 +10,7 @@ use brk_types::{Cents, Height, Version};
 use rayon::prelude::*;
 use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
-use super::{Component, component, median_component::MedianComponent};
+use super::{Component, median_component::MedianComponent};
 
 #[derive(Traversable)]
 pub struct Components<M: StorageMode = Rw> {
@@ -124,410 +124,419 @@ pub struct Components<M: StorageMode = Rw> {
     pub coinflow_price: Component<M>,
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    mappings: &MappingsVecs,
-    distribution_aggregated: &AggregatedVecs,
-    cointime: &CointimeVecs,
-    coinflow: &CoinflowVecs,
-) -> Result<Components> {
-    let utxos = &distribution_aggregated.cohorts;
+impl Components {
+    pub(crate) fn forced_import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        distribution_aggregated: &AggregatedVecs,
+        cointime: &CointimeVecs,
+        coinflow: &CoinflowVecs,
+    ) -> Result<Self> {
+        let utxos = &distribution_aggregated.cohorts;
 
-    macro_rules! import {
-        ($name:expr, $source:expr) => {
-            component::forced_import(db, $name, version, mappings, &$source.cents.height)?
-        };
+        macro_rules! import {
+            ($name:expr, $source:expr) => {
+                Component::forced_import(db, $name, version, mappings, &$source.cents.height)?
+            };
+        }
+
+        Ok(Components {
+            realized_price: import!("realized_price", utxos.all.realized.price),
+            capitalized_price: import!("capitalized_price", utxos.all.realized.capitalized_price),
+            median_price_btc_weighted: MedianComponent::forced_import(
+                db,
+                "median_price_btc_weighted",
+                version,
+                mappings,
+                &utxos.all.cost_basis.per_coin.pct50.cents.height,
+            )?,
+            median_price_usd_weighted: MedianComponent::forced_import(
+                db,
+                "median_price_usd_weighted",
+                version,
+                mappings,
+                &utxos.all.cost_basis.per_dollar.pct50.cents.height,
+            )?,
+            sth_median_price_btc_weighted: MedianComponent::forced_import(
+                db,
+                "sth_median_price_btc_weighted",
+                version,
+                mappings,
+                &utxos.sth.cost_basis.per_coin.pct50.cents.height,
+            )?,
+            sth_median_price_usd_weighted: MedianComponent::forced_import(
+                db,
+                "sth_median_price_usd_weighted",
+                version,
+                mappings,
+                &utxos.sth.cost_basis.per_dollar.pct50.cents.height,
+            )?,
+            lth_median_price_btc_weighted: MedianComponent::forced_import(
+                db,
+                "lth_median_price_btc_weighted",
+                version,
+                mappings,
+                &utxos.lth.cost_basis.per_coin.pct50.cents.height,
+            )?,
+            lth_median_price_usd_weighted: MedianComponent::forced_import(
+                db,
+                "lth_median_price_usd_weighted",
+                version,
+                mappings,
+                &utxos.lth.cost_basis.per_dollar.pct50.cents.height,
+            )?,
+            cointime_median_price_btc_weighted: MedianComponent::forced_import(
+                db,
+                "cointime_median_price_btc_weighted",
+                version,
+                mappings,
+                &cointime
+                    .urpd
+                    .cohorts
+                    .all
+                    .cost_basis
+                    .per_coin
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            cointime_median_price_usd_weighted: MedianComponent::forced_import(
+                db,
+                "cointime_median_price_usd_weighted",
+                version,
+                mappings,
+                &cointime
+                    .urpd
+                    .cohorts
+                    .all
+                    .cost_basis
+                    .per_dollar
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            coinflow_median_price_btc_weighted: MedianComponent::forced_import(
+                db,
+                "coinflow_median_price_btc_weighted",
+                version,
+                mappings,
+                &coinflow
+                    .urpd
+                    .cohorts
+                    .all
+                    .cost_basis
+                    .per_coin
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            coinflow_median_price_usd_weighted: MedianComponent::forced_import(
+                db,
+                "coinflow_median_price_usd_weighted",
+                version,
+                mappings,
+                &coinflow
+                    .urpd
+                    .cohorts
+                    .all
+                    .cost_basis
+                    .per_dollar
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            sth_cointime_median_price_btc_weighted: MedianComponent::forced_import(
+                db,
+                "sth_cointime_median_price_btc_weighted",
+                version,
+                mappings,
+                &cointime
+                    .urpd
+                    .cohorts
+                    .sth
+                    .cost_basis
+                    .per_coin
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            sth_cointime_median_price_usd_weighted: MedianComponent::forced_import(
+                db,
+                "sth_cointime_median_price_usd_weighted",
+                version,
+                mappings,
+                &cointime
+                    .urpd
+                    .cohorts
+                    .sth
+                    .cost_basis
+                    .per_dollar
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            lth_cointime_median_price_btc_weighted: MedianComponent::forced_import(
+                db,
+                "lth_cointime_median_price_btc_weighted",
+                version,
+                mappings,
+                &cointime
+                    .urpd
+                    .cohorts
+                    .lth
+                    .cost_basis
+                    .per_coin
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            lth_cointime_median_price_usd_weighted: MedianComponent::forced_import(
+                db,
+                "lth_cointime_median_price_usd_weighted",
+                version,
+                mappings,
+                &cointime
+                    .urpd
+                    .cohorts
+                    .lth
+                    .cost_basis
+                    .per_dollar
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            sth_coinflow_median_price_btc_weighted: MedianComponent::forced_import(
+                db,
+                "sth_coinflow_median_price_btc_weighted",
+                version,
+                mappings,
+                &coinflow
+                    .urpd
+                    .cohorts
+                    .sth
+                    .cost_basis
+                    .per_coin
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            sth_coinflow_median_price_usd_weighted: MedianComponent::forced_import(
+                db,
+                "sth_coinflow_median_price_usd_weighted",
+                version,
+                mappings,
+                &coinflow
+                    .urpd
+                    .cohorts
+                    .sth
+                    .cost_basis
+                    .per_dollar
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            lth_coinflow_median_price_btc_weighted: MedianComponent::forced_import(
+                db,
+                "lth_coinflow_median_price_btc_weighted",
+                version,
+                mappings,
+                &coinflow
+                    .urpd
+                    .cohorts
+                    .lth
+                    .cost_basis
+                    .per_coin
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            lth_coinflow_median_price_usd_weighted: MedianComponent::forced_import(
+                db,
+                "lth_coinflow_median_price_usd_weighted",
+                version,
+                mappings,
+                &coinflow
+                    .urpd
+                    .cohorts
+                    .lth
+                    .cost_basis
+                    .per_dollar
+                    .pct50
+                    .cents
+                    .height,
+            )?,
+            sth_realized_price: import!("sth_realized_price", utxos.sth.realized.price),
+            sth_capitalized_price: import!(
+                "sth_capitalized_price",
+                utxos.sth.realized.capitalized_price
+            ),
+            lth_realized_price: import!("lth_realized_price", utxos.lth.realized.price),
+            lth_capitalized_price: import!(
+                "lth_capitalized_price",
+                utxos.lth.realized.capitalized_price
+            ),
+            over_6m_realized_price: import!("over_6m_realized_price", utxos.over_6m.realized.price),
+            over_4m_realized_price: import!("over_4m_realized_price", utxos.over_4m.realized.price),
+            under_4m_realized_price: import!(
+                "under_4m_realized_price",
+                utxos.under_4m.realized.price
+            ),
+            under_6m_realized_price: import!(
+                "under_6m_realized_price",
+                utxos.under_6m.realized.price
+            ),
+            under_4m_capitalized_price: import!(
+                "under_4m_capitalized_price",
+                utxos.under_4m.realized.capitalized_price
+            ),
+            under_6m_capitalized_price: import!(
+                "under_6m_capitalized_price",
+                utxos.under_6m.realized.capitalized_price
+            ),
+            vaulted_price: import!("vaulted_price", cointime.prices.vaulted),
+            active_price: import!("active_price", cointime.prices.active),
+            true_market_mean_price: import!(
+                "true_market_mean_price",
+                cointime.prices.true_market_mean
+            ),
+            cointime_price: import!("cointime_price", cointime.prices.cointime),
+            awake_price: import!("awake_price", cointime.aggregate.all.awake.price),
+            coinflow_price: import!("coinflow_price", coinflow.all.price),
+        })
     }
 
-    Ok(Components {
-        realized_price: import!("realized_price", utxos.all.realized.price),
-        capitalized_price: import!("capitalized_price", utxos.all.realized.capitalized_price),
-        median_price_btc_weighted: MedianComponent::forced_import(
-            db,
-            "median_price_btc_weighted",
-            version,
-            mappings,
-            &utxos.all.cost_basis.per_coin.pct50.cents.height,
-        )?,
-        median_price_usd_weighted: MedianComponent::forced_import(
-            db,
-            "median_price_usd_weighted",
-            version,
-            mappings,
-            &utxos.all.cost_basis.per_dollar.pct50.cents.height,
-        )?,
-        sth_median_price_btc_weighted: MedianComponent::forced_import(
-            db,
-            "sth_median_price_btc_weighted",
-            version,
-            mappings,
-            &utxos.sth.cost_basis.per_coin.pct50.cents.height,
-        )?,
-        sth_median_price_usd_weighted: MedianComponent::forced_import(
-            db,
-            "sth_median_price_usd_weighted",
-            version,
-            mappings,
-            &utxos.sth.cost_basis.per_dollar.pct50.cents.height,
-        )?,
-        lth_median_price_btc_weighted: MedianComponent::forced_import(
-            db,
-            "lth_median_price_btc_weighted",
-            version,
-            mappings,
-            &utxos.lth.cost_basis.per_coin.pct50.cents.height,
-        )?,
-        lth_median_price_usd_weighted: MedianComponent::forced_import(
-            db,
-            "lth_median_price_usd_weighted",
-            version,
-            mappings,
-            &utxos.lth.cost_basis.per_dollar.pct50.cents.height,
-        )?,
-        cointime_median_price_btc_weighted: MedianComponent::forced_import(
-            db,
-            "cointime_median_price_btc_weighted",
-            version,
-            mappings,
-            &cointime
-                .urpd
-                .cohorts
-                .all
-                .cost_basis
-                .per_coin
-                .pct50
-                .cents
-                .height,
-        )?,
-        cointime_median_price_usd_weighted: MedianComponent::forced_import(
-            db,
-            "cointime_median_price_usd_weighted",
-            version,
-            mappings,
-            &cointime
-                .urpd
-                .cohorts
-                .all
-                .cost_basis
-                .per_dollar
-                .pct50
-                .cents
-                .height,
-        )?,
-        coinflow_median_price_btc_weighted: MedianComponent::forced_import(
-            db,
-            "coinflow_median_price_btc_weighted",
-            version,
-            mappings,
-            &coinflow
-                .urpd
-                .cohorts
-                .all
-                .cost_basis
-                .per_coin
-                .pct50
-                .cents
-                .height,
-        )?,
-        coinflow_median_price_usd_weighted: MedianComponent::forced_import(
-            db,
-            "coinflow_median_price_usd_weighted",
-            version,
-            mappings,
-            &coinflow
-                .urpd
-                .cohorts
-                .all
-                .cost_basis
-                .per_dollar
-                .pct50
-                .cents
-                .height,
-        )?,
-        sth_cointime_median_price_btc_weighted: MedianComponent::forced_import(
-            db,
-            "sth_cointime_median_price_btc_weighted",
-            version,
-            mappings,
-            &cointime
-                .urpd
-                .cohorts
-                .sth
-                .cost_basis
-                .per_coin
-                .pct50
-                .cents
-                .height,
-        )?,
-        sth_cointime_median_price_usd_weighted: MedianComponent::forced_import(
-            db,
-            "sth_cointime_median_price_usd_weighted",
-            version,
-            mappings,
-            &cointime
-                .urpd
-                .cohorts
-                .sth
-                .cost_basis
-                .per_dollar
-                .pct50
-                .cents
-                .height,
-        )?,
-        lth_cointime_median_price_btc_weighted: MedianComponent::forced_import(
-            db,
-            "lth_cointime_median_price_btc_weighted",
-            version,
-            mappings,
-            &cointime
-                .urpd
-                .cohorts
-                .lth
-                .cost_basis
-                .per_coin
-                .pct50
-                .cents
-                .height,
-        )?,
-        lth_cointime_median_price_usd_weighted: MedianComponent::forced_import(
-            db,
-            "lth_cointime_median_price_usd_weighted",
-            version,
-            mappings,
-            &cointime
-                .urpd
-                .cohorts
-                .lth
-                .cost_basis
-                .per_dollar
-                .pct50
-                .cents
-                .height,
-        )?,
-        sth_coinflow_median_price_btc_weighted: MedianComponent::forced_import(
-            db,
-            "sth_coinflow_median_price_btc_weighted",
-            version,
-            mappings,
-            &coinflow
-                .urpd
-                .cohorts
-                .sth
-                .cost_basis
-                .per_coin
-                .pct50
-                .cents
-                .height,
-        )?,
-        sth_coinflow_median_price_usd_weighted: MedianComponent::forced_import(
-            db,
-            "sth_coinflow_median_price_usd_weighted",
-            version,
-            mappings,
-            &coinflow
-                .urpd
-                .cohorts
-                .sth
-                .cost_basis
-                .per_dollar
-                .pct50
-                .cents
-                .height,
-        )?,
-        lth_coinflow_median_price_btc_weighted: MedianComponent::forced_import(
-            db,
-            "lth_coinflow_median_price_btc_weighted",
-            version,
-            mappings,
-            &coinflow
-                .urpd
-                .cohorts
-                .lth
-                .cost_basis
-                .per_coin
-                .pct50
-                .cents
-                .height,
-        )?,
-        lth_coinflow_median_price_usd_weighted: MedianComponent::forced_import(
-            db,
-            "lth_coinflow_median_price_usd_weighted",
-            version,
-            mappings,
-            &coinflow
-                .urpd
-                .cohorts
-                .lth
-                .cost_basis
-                .per_dollar
-                .pct50
-                .cents
-                .height,
-        )?,
-        sth_realized_price: import!("sth_realized_price", utxos.sth.realized.price),
-        sth_capitalized_price: import!(
-            "sth_capitalized_price",
-            utxos.sth.realized.capitalized_price
-        ),
-        lth_realized_price: import!("lth_realized_price", utxos.lth.realized.price),
-        lth_capitalized_price: import!(
-            "lth_capitalized_price",
-            utxos.lth.realized.capitalized_price
-        ),
-        over_6m_realized_price: import!("over_6m_realized_price", utxos.over_6m.realized.price),
-        over_4m_realized_price: import!("over_4m_realized_price", utxos.over_4m.realized.price),
-        under_4m_realized_price: import!("under_4m_realized_price", utxos.under_4m.realized.price),
-        under_6m_realized_price: import!("under_6m_realized_price", utxos.under_6m.realized.price),
-        under_4m_capitalized_price: import!(
-            "under_4m_capitalized_price",
-            utxos.under_4m.realized.capitalized_price
-        ),
-        under_6m_capitalized_price: import!(
-            "under_6m_capitalized_price",
-            utxos.under_6m.realized.capitalized_price
-        ),
-        vaulted_price: import!("vaulted_price", cointime.prices.vaulted),
-        active_price: import!("active_price", cointime.prices.active),
-        true_market_mean_price: import!("true_market_mean_price", cointime.prices.true_market_mean),
-        cointime_price: import!("cointime_price", cointime.prices.cointime),
-        awake_price: import!("awake_price", cointime.aggregate.all.awake.price),
-        coinflow_price: import!("coinflow_price", coinflow.all.price),
-    })
-}
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        distribution_aggregated: &AggregatedVecs,
+        cointime: &CointimeVecs,
+        coinflow: &CoinflowVecs,
+        spot: &impl ReadableVec<Height, Cents>,
+        exit: &Exit,
+    ) -> Result<()> {
+        let starting_lengths = indexer.safe_lengths();
+        let utxos = &distribution_aggregated.cohorts;
 
-#[allow(clippy::too_many_arguments)]
-pub fn compute(
-    components: &mut Components,
-    indexer: &Indexer,
-    distribution_aggregated: &AggregatedVecs,
-    cointime: &CointimeVecs,
-    coinflow: &CoinflowVecs,
-    spot: &impl ReadableVec<Height, Cents>,
-    exit: &Exit,
-) -> Result<()> {
-    let starting_lengths = indexer.safe_lengths();
-    let utxos = &distribution_aggregated.cohorts;
+        [
+            &mut self.median_price_btc_weighted,
+            &mut self.median_price_usd_weighted,
+            &mut self.sth_median_price_btc_weighted,
+            &mut self.sth_median_price_usd_weighted,
+            &mut self.lth_median_price_btc_weighted,
+            &mut self.lth_median_price_usd_weighted,
+            &mut self.cointime_median_price_btc_weighted,
+            &mut self.cointime_median_price_usd_weighted,
+            &mut self.coinflow_median_price_btc_weighted,
+            &mut self.coinflow_median_price_usd_weighted,
+            &mut self.sth_cointime_median_price_btc_weighted,
+            &mut self.sth_cointime_median_price_usd_weighted,
+            &mut self.lth_cointime_median_price_btc_weighted,
+            &mut self.lth_cointime_median_price_usd_weighted,
+            &mut self.sth_coinflow_median_price_btc_weighted,
+            &mut self.sth_coinflow_median_price_usd_weighted,
+            &mut self.lth_coinflow_median_price_btc_weighted,
+            &mut self.lth_coinflow_median_price_usd_weighted,
+        ]
+        .into_par_iter()
+        .try_for_each(|median| median.compute(&starting_lengths, spot, exit))?;
 
-    [
-        &mut components.median_price_btc_weighted,
-        &mut components.median_price_usd_weighted,
-        &mut components.sth_median_price_btc_weighted,
-        &mut components.sth_median_price_usd_weighted,
-        &mut components.lth_median_price_btc_weighted,
-        &mut components.lth_median_price_usd_weighted,
-        &mut components.cointime_median_price_btc_weighted,
-        &mut components.cointime_median_price_usd_weighted,
-        &mut components.coinflow_median_price_btc_weighted,
-        &mut components.coinflow_median_price_usd_weighted,
-        &mut components.sth_cointime_median_price_btc_weighted,
-        &mut components.sth_cointime_median_price_usd_weighted,
-        &mut components.lth_cointime_median_price_btc_weighted,
-        &mut components.lth_cointime_median_price_usd_weighted,
-        &mut components.sth_coinflow_median_price_btc_weighted,
-        &mut components.sth_coinflow_median_price_usd_weighted,
-        &mut components.lth_coinflow_median_price_btc_weighted,
-        &mut components.lth_coinflow_median_price_usd_weighted,
-    ]
-    .into_par_iter()
-    .try_for_each(|median| median.compute(&starting_lengths, spot, exit))?;
+        let jobs = [
+            (
+                &mut self.realized_price,
+                &utxos.all.realized.mvrv.ratio.height,
+            ),
+            (
+                &mut self.capitalized_price,
+                &utxos.all.realized.capitalized_price.relative.ratio.height,
+            ),
+            (
+                &mut self.sth_realized_price,
+                &utxos.sth.realized.mvrv.ratio.height,
+            ),
+            (
+                &mut self.sth_capitalized_price,
+                &utxos.sth.realized.capitalized_price.relative.ratio.height,
+            ),
+            (
+                &mut self.lth_realized_price,
+                &utxos.lth.realized.mvrv.ratio.height,
+            ),
+            (
+                &mut self.lth_capitalized_price,
+                &utxos.lth.realized.capitalized_price.relative.ratio.height,
+            ),
+            (
+                &mut self.over_6m_realized_price,
+                &utxos.over_6m.realized.mvrv.ratio.height,
+            ),
+            (
+                &mut self.over_4m_realized_price,
+                &utxos.over_4m.realized.mvrv.ratio.height,
+            ),
+            (
+                &mut self.under_4m_realized_price,
+                &utxos.under_4m.realized.mvrv.ratio.height,
+            ),
+            (
+                &mut self.under_6m_realized_price,
+                &utxos.under_6m.realized.mvrv.ratio.height,
+            ),
+            (
+                &mut self.under_4m_capitalized_price,
+                &utxos
+                    .under_4m
+                    .realized
+                    .capitalized_price
+                    .relative
+                    .ratio
+                    .height,
+            ),
+            (
+                &mut self.under_6m_capitalized_price,
+                &utxos
+                    .under_6m
+                    .realized
+                    .capitalized_price
+                    .relative
+                    .ratio
+                    .height,
+            ),
+            (
+                &mut self.vaulted_price,
+                &cointime.prices.vaulted.relative.ratio.height,
+            ),
+            (
+                &mut self.active_price,
+                &cointime.prices.active.relative.ratio.height,
+            ),
+            (
+                &mut self.true_market_mean_price,
+                &cointime.prices.true_market_mean.relative.ratio.height,
+            ),
+            (
+                &mut self.cointime_price,
+                &cointime.prices.cointime.relative.ratio.height,
+            ),
+            (
+                &mut self.awake_price,
+                &cointime.aggregate.all.awake.price.relative.ratio.height,
+            ),
+            (
+                &mut self.coinflow_price,
+                &coinflow.all.price.relative.ratio.height,
+            ),
+        ];
+        let has_work = jobs
+            .iter()
+            .any(|(component, source)| component.needs_compute(starting_lengths.height, *source));
+        let compute =
+            |(component, source)| Component::compute(component, &starting_lengths, source, exit);
 
-    let jobs = [
-        (
-            &mut components.realized_price,
-            &utxos.all.realized.mvrv.ratio.height,
-        ),
-        (
-            &mut components.capitalized_price,
-            &utxos.all.realized.capitalized_price.relative.ratio.height,
-        ),
-        (
-            &mut components.sth_realized_price,
-            &utxos.sth.realized.mvrv.ratio.height,
-        ),
-        (
-            &mut components.sth_capitalized_price,
-            &utxos.sth.realized.capitalized_price.relative.ratio.height,
-        ),
-        (
-            &mut components.lth_realized_price,
-            &utxos.lth.realized.mvrv.ratio.height,
-        ),
-        (
-            &mut components.lth_capitalized_price,
-            &utxos.lth.realized.capitalized_price.relative.ratio.height,
-        ),
-        (
-            &mut components.over_6m_realized_price,
-            &utxos.over_6m.realized.mvrv.ratio.height,
-        ),
-        (
-            &mut components.over_4m_realized_price,
-            &utxos.over_4m.realized.mvrv.ratio.height,
-        ),
-        (
-            &mut components.under_4m_realized_price,
-            &utxos.under_4m.realized.mvrv.ratio.height,
-        ),
-        (
-            &mut components.under_6m_realized_price,
-            &utxos.under_6m.realized.mvrv.ratio.height,
-        ),
-        (
-            &mut components.under_4m_capitalized_price,
-            &utxos
-                .under_4m
-                .realized
-                .capitalized_price
-                .relative
-                .ratio
-                .height,
-        ),
-        (
-            &mut components.under_6m_capitalized_price,
-            &utxos
-                .under_6m
-                .realized
-                .capitalized_price
-                .relative
-                .ratio
-                .height,
-        ),
-        (
-            &mut components.vaulted_price,
-            &cointime.prices.vaulted.relative.ratio.height,
-        ),
-        (
-            &mut components.active_price,
-            &cointime.prices.active.relative.ratio.height,
-        ),
-        (
-            &mut components.true_market_mean_price,
-            &cointime.prices.true_market_mean.relative.ratio.height,
-        ),
-        (
-            &mut components.cointime_price,
-            &cointime.prices.cointime.relative.ratio.height,
-        ),
-        (
-            &mut components.awake_price,
-            &cointime.aggregate.all.awake.price.relative.ratio.height,
-        ),
-        (
-            &mut components.coinflow_price,
-            &coinflow.all.price.relative.ratio.height,
-        ),
-    ];
-    let has_work = jobs
-        .iter()
-        .any(|(component, source)| component.needs_compute(starting_lengths.height, *source));
-    let compute =
-        |(component, source)| component::compute(component, &starting_lengths, source, exit);
-
-    if has_work {
-        jobs.into_par_iter().try_for_each(compute)
-    } else {
-        jobs.into_iter().try_for_each(compute)
+        if has_work {
+            jobs.into_par_iter().try_for_each(compute)
+        } else {
+            jobs.into_iter().try_for_each(compute)
+        }
     }
 }

@@ -7,8 +7,6 @@ use vecdb::{Database, Rw, StorageMode, UnaryTransform};
 
 mod compute;
 
-pub use compute::compute;
-
 struct Gain;
 
 impl UnaryTransform<StoredF32, StoredF32> for Gain {
@@ -58,47 +56,54 @@ pub struct RsiChain<M: StorageMode = Rw> {
     pub stoch_rsi_d: PercentPerBlock<PartsPerMillion32, M>,
 }
 
-pub fn forced_import(
-    db: &Database,
-    tf: &str,
-    version: Version,
-    mappings: &MappingsVecs,
-    returns: &LazyPerBlock<StoredF32, PartsPerMillionSigned64>,
-) -> Result<RsiChain> {
-    macro_rules! import {
-        ($name:expr) => {
-            PerBlock::forced_import(db, &format!("rsi_{}_{}", $name, tf), version, mappings)?
-        };
+impl RsiChain {
+    pub(crate) fn forced_import(
+        db: &Database,
+        tf: &str,
+        version: Version,
+        mappings: &MappingsVecs,
+        returns: &LazyPerBlock<StoredF32, PartsPerMillionSigned64>,
+    ) -> Result<Self> {
+        macro_rules! import {
+            ($name:expr) => {
+                PerBlock::forced_import(db, &format!("rsi_{}_{}", $name, tf), version, mappings)?
+            };
+        }
+
+        macro_rules! percent_import {
+            ($name:expr) => {
+                PercentPerBlock::forced_import(
+                    db,
+                    &format!("rsi_{}_{}", $name, tf),
+                    version,
+                    mappings,
+                )?
+            };
+        }
+
+        let average_gain = import!("average_gain");
+        let average_loss = import!("average_loss");
+        let rsi = PercentPerBlock::forced_import(db, &format!("rsi_{tf}"), version, mappings)?;
+
+        Ok(RsiChain {
+            gains: LazyPerBlock::from_lazy::<Gain, PartsPerMillionSigned64>(
+                &format!("rsi_gains_{tf}"),
+                version,
+                returns,
+            ),
+            losses: LazyPerBlock::from_lazy::<Loss, PartsPerMillionSigned64>(
+                &format!("rsi_losses_{tf}"),
+                version,
+                returns,
+            ),
+            average_gain,
+            average_loss,
+            rsi,
+            rsi_min: percent_import!("min"),
+            rsi_max: percent_import!("max"),
+            stoch_rsi: percent_import!("stoch"),
+            stoch_rsi_k: percent_import!("stoch_k"),
+            stoch_rsi_d: percent_import!("stoch_d"),
+        })
     }
-
-    macro_rules! percent_import {
-        ($name:expr) => {
-            PercentPerBlock::forced_import(db, &format!("rsi_{}_{}", $name, tf), version, mappings)?
-        };
-    }
-
-    let average_gain = import!("average_gain");
-    let average_loss = import!("average_loss");
-    let rsi = PercentPerBlock::forced_import(db, &format!("rsi_{tf}"), version, mappings)?;
-
-    Ok(RsiChain {
-        gains: LazyPerBlock::from_lazy::<Gain, PartsPerMillionSigned64>(
-            &format!("rsi_gains_{tf}"),
-            version,
-            returns,
-        ),
-        losses: LazyPerBlock::from_lazy::<Loss, PartsPerMillionSigned64>(
-            &format!("rsi_losses_{tf}"),
-            version,
-            returns,
-        ),
-        average_gain,
-        average_loss,
-        rsi,
-        rsi_min: percent_import!("min"),
-        rsi_max: percent_import!("max"),
-        stoch_rsi: percent_import!("stoch"),
-        stoch_rsi_k: percent_import!("stoch_k"),
-        stoch_rsi_d: percent_import!("stoch_d"),
-    })
 }

@@ -1,22 +1,21 @@
 #![allow(clippy::type_complexity)]
 
-use bitview_plugin::{ImportContext, Plugin, PluginId, PluginStorage};
-use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_traversable::Traversable;
-use bitview_vecs::{OhlcPrice, SplitPrice, SpotPrice};
-use brk_error::Result;
-use brk_oracle::VERSION as ORACLE_VERSION;
-use brk_types::Version;
-use vecdb::{Database, Rw, StorageMode};
-
 mod compute;
-mod oracle_feed;
-pub use oracle_feed::{feed_blocks_for_warmup, feed_blocks_with};
 mod dependencies;
 mod has;
+mod import;
+mod oracle_feed;
 
 pub use dependencies::Dependencies;
 pub use has::HasPrice;
+pub use oracle_feed::{feed_blocks_for_warmup, feed_blocks_with};
+
+use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_traversable::Traversable;
+use bitview_vecs::{OhlcPrice, SplitPrice, SpotPrice};
+use brk_oracle::VERSION as ORACLE_VERSION;
+use brk_types::Version;
+use vecdb::{Database, Rw, StorageMode};
 
 const STORAGE: PluginStorage =
     PluginStorage::new(PluginId::new("price"), Version::new(20 + ORACLE_VERSION));
@@ -51,31 +50,5 @@ where
 {
     fn storage(&self) -> PluginStorage {
         STORAGE
-    }
-}
-
-impl Vecs {
-    pub fn import(context: ImportContext<'_>, mappings: &MappingsVecs) -> Result<Self> {
-        let db = STORAGE.open_database(context, 100_000)?;
-        let this = Self::forced_import_inner(&db, STORAGE.schema_version(), mappings)?;
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
-    }
-
-    fn forced_import_inner(
-        db: &Database,
-        version: Version,
-        mappings: &MappingsVecs,
-    ) -> Result<Self> {
-        let spot = SpotPrice::forced_import(db, "price", version, mappings)?;
-        let ohlc = OhlcPrice::from_spot("price_ohlc", version, mappings, &spot);
-        let split = SplitPrice::new("price", version, mappings, &spot, &ohlc);
-
-        Ok(Self {
-            db: db.clone(),
-            split,
-            ohlc,
-            spot,
-        })
     }
 }

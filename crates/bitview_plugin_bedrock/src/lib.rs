@@ -37,8 +37,10 @@ macro_rules! impl_named_row_formattable {
 
 mod block_result;
 mod calibration;
+mod compute;
 mod cumulative_bucket;
 mod dependencies;
+mod import;
 mod level_id;
 mod levels;
 mod loss_percentile_id;
@@ -50,13 +52,20 @@ mod percentiles;
 mod price_band_id;
 mod price_bands;
 mod thresholds;
-mod vecs;
 mod weighted;
+
+pub use dependencies::Dependencies;
+
+use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_traversable::Traversable;
+use bitview_urpd::Replay;
+use brk_types::Version;
+use derive_more::{Deref, DerefMut};
+use vecdb::{Database, Rw, StorageMode};
 
 use block_result::BlockResult;
 use calibration::Calibration;
 use cumulative_bucket::CumulativeBucket;
-pub use dependencies::Dependencies;
 use level_id::{LEVEL_COUNT, LevelId};
 use levels::Levels;
 use loss_percentile_id::LossPercentileId;
@@ -70,12 +79,32 @@ use price_bands::PriceBands;
 use thresholds::Thresholds;
 use weighted::{WeightedModeId, WeightedModes};
 
-use bitview_plugin::{PluginId, PluginStorage};
-use brk_types::Version;
-
-pub use vecs::Vecs;
-
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("bedrock"), Version::new(15));
 pub const ID: PluginId = STORAGE.id();
-
 const WRITE_INTERVAL_BLOCKS: usize = 10_000;
+
+#[derive(Deref, DerefMut, Traversable)]
+pub struct Vecs<M: StorageMode = Rw> {
+    #[traversable(skip)]
+    db: Database,
+    #[traversable(skip)]
+    calibration: M::WriteOnly<Option<Calibration>>,
+    #[traversable(skip)]
+    replay: M::WriteOnly<Replay>,
+    #[traversable(skip)]
+    scratch: M::WriteOnly<Vec<CumulativeBucket>>,
+
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    modes: Modes<ModeVecs<M>>,
+}
+
+impl<M: StorageMode> Plugin for Vecs<M>
+where
+    Self: Traversable + Send + Sync,
+{
+    fn storage(&self) -> PluginStorage {
+        STORAGE
+    }
+}
