@@ -30,7 +30,7 @@ pub mod writable;
 /// # Common Operations
 /// - Transformations: `compute_transform()`, `compute_batched_to()`
 /// - Arithmetic: `compute_subtract()`, `compute_multiply()`
-/// - Moving statistics: `compute_sma()`, `compute_rolling_ema()`, `compute_rolling_sum()`
+/// - Custom computations: `compute_init()` (rolling statistics build on it downstream)
 #[derive(Debug)]
 #[must_use = "Vector should be stored to keep data accessible"]
 pub struct EagerVec<V>(V);
@@ -39,8 +39,17 @@ impl<V> EagerVec<V>
 where
     V: StoredVec,
 {
-    /// Validates version, truncates to `max_from`, then runs `f` in batched writes.
-    fn compute_init<F>(&mut self, version: Version, max_from: V::I, exit: &Exit, f: F) -> Result<()>
+    /// Validates the dependency `version` (the vector's own version is added; data
+    /// resets on change), truncates to `max_from`, then calls `f` and writes, repeating
+    /// while `f` filled a whole batch. `f` must append up to [`Self::batch_end`] while
+    /// work remains; a shorter batch ends the computation.
+    pub fn compute_init<F>(
+        &mut self,
+        version: Version,
+        max_from: V::I,
+        exit: &Exit,
+        f: F,
+    ) -> Result<()>
     where
         F: FnMut(&mut Self) -> Result<()>,
     {
@@ -69,7 +78,7 @@ where
 
     /// Helper that repeatedly calls a compute function until it completes.
     /// Persists every successful batch, including a truncation-only final batch.
-    pub fn repeat_until_complete<F>(&mut self, exit: &Exit, mut f: F) -> Result<()>
+    fn repeat_until_complete<F>(&mut self, exit: &Exit, mut f: F) -> Result<()>
     where
         F: FnMut(&mut Self) -> Result<()>,
     {

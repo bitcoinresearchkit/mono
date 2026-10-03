@@ -1,4 +1,4 @@
-use bitview_compute::compute_rolling_extrema_from_starts;
+use bitview_compute::{ComputeRollingStats, compute_rolling_extrema_from_starts};
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;

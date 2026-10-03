@@ -16,7 +16,7 @@ pub use cohort_weight::{collect_cohort_weights, resolve_cohort_weight};
 pub use drawdown::ComputeDrawdown;
 pub use prepare::prepare_computed;
 pub use statistics::{
-    ComputeRollingMedianFromStarts, ExactOrderStats, FenwickNode, FenwickTree,
+    ComputeRollingMedianFromStarts, ComputeRollingStats, ExactOrderStats, FenwickNode, FenwickTree,
     compute_rolling_distribution_from_starts, compute_rolling_extrema_from_starts,
 };
 pub use traits::{ComputedVecValue, FixedRatio, NumericValue};

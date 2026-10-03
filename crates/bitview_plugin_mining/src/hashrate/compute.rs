@@ -1,3 +1,4 @@
+use bitview_compute::ComputeRollingStats;
 use bitview_plugin_blocks::{CountVecs, DifficultyVecs, LookbackVecs, ONE_TERA_HASH};
 use bitview_plugin_indexer::Indexer;
 use bitview_transforms::RatioDiffF32;

@@ -1,3 +1,4 @@
+use bitview_compute::ComputeRollingStats;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;

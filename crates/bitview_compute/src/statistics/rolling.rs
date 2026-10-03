@@ -1,17 +1,151 @@
 use std::ops::{Add, AddAssign, SubAssign};
 
 use brk_exit::Exit;
+use vecdb::{
+    AnyVec, EagerVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, Version, WritableVec,
+};
 
-use super::super::EagerVec;
-use crate::{AnyVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, Version, WritableVec};
+/// Rolling, expanding and all-time statistics computed into an [`EagerVec`].
+pub trait ComputeRollingStats {
+    type I: VecIndex;
+    type T: VecValue;
 
-impl<V> EagerVec<V>
+    /// Compute rolling sum with variable window starts.
+    /// For each index i, computes sum of values from `window_starts[i]` to i (inclusive).
+    fn compute_rolling_sum<A>(
+        &mut self,
+        max_from: Self::I,
+        window_starts: &impl ReadableVec<Self::I, Self::I>,
+        values: &impl ReadableVec<Self::I, A>,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        A: VecValue,
+        Self::T: From<A> + Default + AddAssign + SubAssign;
+
+    /// Compute rolling average with variable window starts.
+    /// For each index i, computes mean of values from `window_starts[i]` to i (inclusive).
+    fn compute_rolling_average<A>(
+        &mut self,
+        max_from: Self::I,
+        window_starts: &impl ReadableVec<Self::I, Self::I>,
+        values: &impl ReadableVec<Self::I, A>,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        A: VecValue,
+        f64: From<A> + From<Self::T>,
+        Self::T: From<f64> + Default;
+
+    /// Compute rolling standard deviation with variable window starts.
+    /// For each index `i`, computes SD of values from `window_starts[i]` to `i` (inclusive),
+    /// using the provided rolling mean.
+    /// `SD = sqrt(E[X²] - E[X]²)` where `E[X²]` is the rolling mean of squares
+    /// and `E[X]` is the rolling mean from the `mean` parameter.
+    fn compute_rolling_sd<A, B>(
+        &mut self,
+        max_from: Self::I,
+        window_starts: &impl ReadableVec<Self::I, Self::I>,
+        values: &impl ReadableVec<Self::I, A>,
+        mean: &impl ReadableVec<Self::I, B>,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        A: VecValue,
+        B: VecValue,
+        f64: From<A> + From<B> + From<Self::T>,
+        Self::T: From<f64>;
+
+    /// Compute expanding (all-time) standard deviation.
+    /// For each index `i`, computes SD of all values from 0 to `i` (inclusive).
+    /// `SD = sqrt(E[X²] - E[X]²)`.
+    fn compute_expanding_sd<A, B>(
+        &mut self,
+        max_from: Self::I,
+        values: &impl ReadableVec<Self::I, A>,
+        mean: &impl ReadableVec<Self::I, B>,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        A: VecValue,
+        B: VecValue,
+        f64: From<A> + From<B> + From<Self::T>,
+        Self::T: From<f64>;
+
+    /// Compute rolling EMA with variable window starts.
+    /// For each index `i`, computes an exponential moving average with
+    /// `α = 2/(span+1)` where `span = i - window_starts[i] + 1`.
+    fn compute_rolling_ema<A>(
+        &mut self,
+        max_from: Self::I,
+        window_starts: &impl ReadableVec<Self::I, Self::I>,
+        values: &impl ReadableVec<Self::I, A>,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        A: VecValue,
+        f64: From<A> + From<Self::T>,
+        Self::T: From<f64> + Default;
+
+    /// Compute rolling RMA (Wilder's smoothing) with variable window starts.
+    /// `α = 1/span` where `span = i - window_starts[i] + 1`.
+    fn compute_rolling_rma<A>(
+        &mut self,
+        max_from: Self::I,
+        window_starts: &impl ReadableVec<Self::I, Self::I>,
+        values: &impl ReadableVec<Self::I, A>,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        A: VecValue,
+        f64: From<A> + From<Self::T>,
+        Self::T: From<f64> + Default;
+
+    fn compute_sma<A>(
+        &mut self,
+        max_from: Self::I,
+        source: &impl ReadableVec<Self::I, A>,
+        window: usize,
+        exit: &Exit,
+        min_i: Option<Self::I>,
+    ) -> Result<()>
+    where
+        Self::T: Add<Self::T, Output = Self::T> + From<A> + From<f32>,
+        A: VecValue,
+        f32: From<Self::T> + From<A>;
+
+    /// Computes the all time high of a source.
+    fn compute_all_time_high<A>(
+        &mut self,
+        max_from: Self::I,
+        source: &impl ReadableVec<Self::I, A>,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        Self::T: From<A> + Ord + Default,
+        A: VecValue;
+
+    /// Computes the all time low of a source.
+    fn compute_all_time_low<A>(
+        &mut self,
+        max_from: Self::I,
+        source: &impl ReadableVec<Self::I, A>,
+        exit: &Exit,
+        exclude_default: bool,
+    ) -> Result<()>
+    where
+        Self::T: From<A> + Ord + Default,
+        A: VecValue;
+}
+
+impl<V> ComputeRollingStats for EagerVec<V>
 where
     V: StoredVec,
 {
-    /// Compute rolling sum with variable window starts.
-    /// For each index i, computes sum of values from `window_starts[i]` to i (inclusive).
-    pub fn compute_rolling_sum<A>(
+    type I = V::I;
+    type T = V::T;
+
+    fn compute_rolling_sum<A>(
         &mut self,
         max_from: V::I,
         window_starts: &impl ReadableVec<V::I, V::I>,
@@ -73,9 +207,7 @@ where
         )
     }
 
-    /// Compute rolling average with variable window starts.
-    /// For each index i, computes mean of values from `window_starts[i]` to i (inclusive).
-    pub fn compute_rolling_average<A>(
+    fn compute_rolling_average<A>(
         &mut self,
         max_from: V::I,
         window_starts: &impl ReadableVec<V::I, V::I>,
@@ -142,12 +274,7 @@ where
         )
     }
 
-    /// Compute rolling standard deviation with variable window starts.
-    /// For each index `i`, computes SD of values from `window_starts[i]` to `i` (inclusive),
-    /// using the provided rolling mean.
-    /// `SD = sqrt(E[X²] - E[X]²)` where `E[X²]` is the rolling mean of squares
-    /// and `E[X]` is the rolling mean from the `mean` parameter.
-    pub fn compute_rolling_sd<A, B>(
+    fn compute_rolling_sd<A, B>(
         &mut self,
         max_from: V::I,
         window_starts: &impl ReadableVec<V::I, V::I>,
@@ -224,10 +351,7 @@ where
         )
     }
 
-    /// Compute expanding (all-time) standard deviation.
-    /// For each index `i`, computes SD of all values from 0 to `i` (inclusive).
-    /// `SD = sqrt(E[X²] - E[X]²)`.
-    pub fn compute_expanding_sd<A, B>(
+    fn compute_expanding_sd<A, B>(
         &mut self,
         max_from: V::I,
         values: &impl ReadableVec<V::I, A>,
@@ -275,10 +399,7 @@ where
         })
     }
 
-    /// Compute rolling EMA with variable window starts.
-    /// For each index `i`, computes an exponential moving average with
-    /// `α = 2/(span+1)` where `span = i - window_starts[i] + 1`.
-    pub fn compute_rolling_ema<A>(
+    fn compute_rolling_ema<A>(
         &mut self,
         max_from: V::I,
         window_starts: &impl ReadableVec<V::I, V::I>,
@@ -290,14 +411,12 @@ where
         f64: From<A> + From<V::T>,
         V::T: From<f64> + Default,
     {
-        self.compute_rolling_exponential(max_from, window_starts, values, exit, |span| {
+        compute_rolling_exponential(self, max_from, window_starts, values, exit, |span| {
             2.0 / (span + 1.0)
         })
     }
 
-    /// Compute rolling RMA (Wilder's smoothing) with variable window starts.
-    /// `α = 1/span` where `span = i - window_starts[i] + 1`.
-    pub fn compute_rolling_rma<A>(
+    fn compute_rolling_rma<A>(
         &mut self,
         max_from: V::I,
         window_starts: &impl ReadableVec<V::I, V::I>,
@@ -309,59 +428,12 @@ where
         f64: From<A> + From<V::T>,
         V::T: From<f64> + Default,
     {
-        self.compute_rolling_exponential(max_from, window_starts, values, exit, |span| 1.0 / span)
+        compute_rolling_exponential(self, max_from, window_starts, values, exit, |span| {
+            1.0 / span
+        })
     }
 
-    fn compute_rolling_exponential<A, F>(
-        &mut self,
-        max_from: V::I,
-        window_starts: &impl ReadableVec<V::I, V::I>,
-        values: &impl ReadableVec<V::I, A>,
-        exit: &Exit,
-        alpha_fn: F,
-    ) -> Result<()>
-    where
-        A: VecValue,
-        f64: From<A> + From<V::T>,
-        V::T: From<f64> + Default,
-        F: Fn(f64) -> f64,
-    {
-        self.compute_init(
-            Version::new(2) + window_starts.version() + values.version(),
-            max_from,
-            exit,
-            |this| {
-                let skip = this.len();
-                let source_len = window_starts.len().min(values.len());
-                let end = this.batch_end(source_len);
-                if skip >= end {
-                    return Ok(());
-                }
-
-                let mut prev = if skip > 0 {
-                    f64::from(this.collect_one_at(skip - 1).unwrap())
-                } else {
-                    0.0_f64
-                };
-
-                let starts_batch = window_starts.collect_range_at(skip, end);
-                let values_batch = values.collect_range_at(skip, end);
-
-                for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
-                    let i = skip + j;
-                    let span = (i - start.to_usize() + 1) as f64;
-                    let alpha = alpha_fn(span);
-                    let value = f64::from(value);
-                    prev = alpha * value + (1.0 - alpha) * prev;
-                    this.push(V::T::from(prev));
-                }
-
-                Ok(())
-            },
-        )
-    }
-
-    pub fn compute_sma<A>(
+    fn compute_sma<A>(
         &mut self,
         max_from: V::I,
         source: &impl ReadableVec<V::I, A>,
@@ -431,54 +503,7 @@ where
         })
     }
 
-    fn compute_all_time_extreme<A, F>(
-        &mut self,
-        max_from: V::I,
-        source: &impl ReadableVec<V::I, A>,
-        exit: &Exit,
-        compare: F,
-        exclude_default: bool,
-    ) -> Result<()>
-    where
-        V::T: From<A> + Ord + Default,
-        A: VecValue,
-        F: Fn(V::T, V::T) -> V::T + Copy,
-    {
-        let mut prev = None;
-        self.compute_transform(
-            max_from,
-            source,
-            |(i, v, this)| {
-                let v = V::T::from(v);
-                if prev.is_none() {
-                    let idx = i.to_usize();
-                    prev = Some(if idx > 0 {
-                        this.collect_one_at(idx - 1).unwrap()
-                    } else {
-                        v.clone()
-                    });
-                }
-                let extreme = compare(prev.as_ref().unwrap().clone(), v.clone());
-
-                let next = if !exclude_default || extreme != V::T::default() {
-                    extreme
-                } else {
-                    // Keep the non-default value for future comparisons
-                    if v != V::T::default() {
-                        v
-                    } else {
-                        prev.as_ref().unwrap().clone()
-                    }
-                };
-                prev.replace(next.clone());
-                (i, next)
-            },
-            exit,
-        )
-    }
-
-    /// Computes the all time high of a source.
-    pub fn compute_all_time_high<A>(
+    fn compute_all_time_high<A>(
         &mut self,
         max_from: V::I,
         source: &impl ReadableVec<V::I, A>,
@@ -488,11 +513,10 @@ where
         V::T: From<A> + Ord + Default,
         A: VecValue,
     {
-        self.compute_all_time_extreme(max_from, source, exit, |prev, v| prev.max(v), false)
+        compute_all_time_extreme(self, max_from, source, exit, |prev, v| prev.max(v), false)
     }
 
-    /// Computes the all time low of a source.
-    pub fn compute_all_time_low<A>(
+    fn compute_all_time_low<A>(
         &mut self,
         max_from: V::I,
         source: &impl ReadableVec<V::I, A>,
@@ -503,7 +527,8 @@ where
         V::T: From<A> + Ord + Default,
         A: VecValue,
     {
-        self.compute_all_time_extreme(
+        compute_all_time_extreme(
+            self,
             max_from,
             source,
             exit,
@@ -511,4 +536,99 @@ where
             exclude_default,
         )
     }
+}
+
+fn compute_rolling_exponential<V: StoredVec, A, F>(
+    vec: &mut EagerVec<V>,
+    max_from: V::I,
+    window_starts: &impl ReadableVec<V::I, V::I>,
+    values: &impl ReadableVec<V::I, A>,
+    exit: &Exit,
+    alpha_fn: F,
+) -> Result<()>
+where
+    A: VecValue,
+    f64: From<A> + From<V::T>,
+    V::T: From<f64> + Default,
+    F: Fn(f64) -> f64,
+{
+    vec.compute_init(
+        Version::new(2) + window_starts.version() + values.version(),
+        max_from,
+        exit,
+        |this| {
+            let skip = this.len();
+            let source_len = window_starts.len().min(values.len());
+            let end = this.batch_end(source_len);
+            if skip >= end {
+                return Ok(());
+            }
+
+            let mut prev = if skip > 0 {
+                f64::from(this.collect_one_at(skip - 1).unwrap())
+            } else {
+                0.0_f64
+            };
+
+            let starts_batch = window_starts.collect_range_at(skip, end);
+            let values_batch = values.collect_range_at(skip, end);
+
+            for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
+                let i = skip + j;
+                let span = (i - start.to_usize() + 1) as f64;
+                let alpha = alpha_fn(span);
+                let value = f64::from(value);
+                prev = alpha * value + (1.0 - alpha) * prev;
+                this.push(V::T::from(prev));
+            }
+
+            Ok(())
+        },
+    )
+}
+
+fn compute_all_time_extreme<V: StoredVec, A, F>(
+    vec: &mut EagerVec<V>,
+    max_from: V::I,
+    source: &impl ReadableVec<V::I, A>,
+    exit: &Exit,
+    compare: F,
+    exclude_default: bool,
+) -> Result<()>
+where
+    V::T: From<A> + Ord + Default,
+    A: VecValue,
+    F: Fn(V::T, V::T) -> V::T + Copy,
+{
+    let mut prev = None;
+    vec.compute_transform(
+        max_from,
+        source,
+        |(i, v, this)| {
+            let v = V::T::from(v);
+            if prev.is_none() {
+                let idx = i.to_usize();
+                prev = Some(if idx > 0 {
+                    this.collect_one_at(idx - 1).unwrap()
+                } else {
+                    v.clone()
+                });
+            }
+            let extreme = compare(prev.as_ref().unwrap().clone(), v.clone());
+
+            let next = if !exclude_default || extreme != V::T::default() {
+                extreme
+            } else {
+                // Keep the non-default value for future comparisons
+                if v != V::T::default() {
+                    v
+                } else {
+                    prev.as_ref().unwrap().clone()
+                }
+            };
+            prev.replace(next.clone());
+            (i, next)
+        },
+        exit,
+    )
 }

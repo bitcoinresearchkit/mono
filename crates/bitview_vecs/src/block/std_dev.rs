@@ -1,3 +1,4 @@
+use bitview_compute::ComputeRollingStats;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
