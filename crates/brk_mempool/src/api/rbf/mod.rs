@@ -21,6 +21,21 @@ const MAX_RBF_WORK: usize = 4096;
 // Also bounds later enrichment, JSON nesting and recursive destruction.
 const MAX_RBF_DEPTH: usize = 32;
 
+/// A history walk that ran past one of its bounds.
+enum Exceeded {
+    Work,
+    Depth,
+}
+
+impl From<Exceeded> for Error {
+    fn from(exceeded: Exceeded) -> Self {
+        Error::Internal(match exceeded {
+            Exceeded::Work => "RBF history exceeds traversal limit",
+            Exceeded::Depth => "RBF history exceeds depth limit",
+        })
+    }
+}
+
 impl ReadOnlyState {
     /// Walk forward through `Replaced { by }` to the terminal replacer
     /// and return its full predecessor tree, plus the requested tx's
@@ -31,7 +46,10 @@ impl ReadOnlyState {
         let state = self.pool()?;
         state.ensure_resolved_at(tip)?;
         let mut remaining = MAX_RBF_WORK;
-        let root_txid = state.graveyard.replacement_root_of(*txid, &mut remaining)?;
+        let root_txid = state
+            .graveyard
+            .replacement_root_of(*txid, &mut remaining)
+            .ok_or(Exceeded::Work)?;
         let replaces: Vec<_> = state
             .graveyard
             .predecessors_of(txid)
@@ -40,7 +58,7 @@ impl ReadOnlyState {
             .collect();
         remaining = remaining
             .checked_sub(replaces.len())
-            .ok_or(Error::Internal("RBF history exceeds traversal limit"))?;
+            .ok_or(Exceeded::Work)?;
         let mut root =
             Self::build_rbf_node(&root_txid, &state.txs, &state.graveyard, &mut remaining, 0)?;
         if let Some(root) = root.as_mut() {
@@ -52,8 +70,10 @@ impl ReadOnlyState {
     /// Recent terminal-replacer trees, most-recent first, deduplicated
     /// by root, capped at `limit`. `full_rbf_only` drops trees with no
     /// non-signaling predecessor.
-    /// The whole request shares the same work/depth limits as `rbf_for_tx`,
-    /// including discarded candidates and stale graveyard order entries.
+    /// The whole request shares one work budget, charged for discarded
+    /// candidates and stale graveyard entries too. Once it runs out the
+    /// listing ends with the complete trees found so far; a tree nested
+    /// deeper than `rbf_for_tx` allows is skipped, never truncated.
     pub fn recent_rbf_trees(
         &self,
         full_rbf_only: bool,
@@ -68,23 +88,27 @@ impl ReadOnlyState {
         let mut seen: FxHashSet<Txid> = FxHashSet::default();
         let mut remaining = MAX_RBF_WORK;
         let mut trees = Vec::new();
-        for candidate in state.graveyard.replacement_candidates_recent_first() {
-            remaining = remaining
-                .checked_sub(1)
-                .ok_or(Error::Internal("RBF history exceeds traversal limit"))?;
+        for candidate in state.graveyard.replacements_recent_first() {
+            let Some(left) = remaining.checked_sub(1) else {
+                break;
+            };
+            remaining = left;
             let Some((_, by)) = candidate else { continue };
-            let root = state.graveyard.replacement_root_of(*by, &mut remaining)?;
+            let Some(root) = state.graveyard.replacement_root_of(*by, &mut remaining) else {
+                break;
+            };
             if !seen.insert(root) {
                 continue;
             }
-            if let Some(node) =
-                Self::build_rbf_node(&root, &state.txs, &state.graveyard, &mut remaining, 0)?
-                && (!full_rbf_only || node.full_rbf)
-            {
-                trees.push(node);
-                if trees.len() == limit {
-                    break;
+            match Self::build_rbf_node(&root, &state.txs, &state.graveyard, &mut remaining, 0) {
+                Ok(Some(node)) if !full_rbf_only || node.full_rbf => {
+                    trees.push(node);
+                    if trees.len() == limit {
+                        break;
+                    }
                 }
+                Ok(_) | Err(Exceeded::Depth) => {}
+                Err(Exceeded::Work) => break,
             }
         }
         // Resolve rates only for returned trees, after filtering and admission.
@@ -100,13 +124,11 @@ impl ReadOnlyState {
         graveyard: &TxGraveyard,
         remaining: &mut usize,
         depth: usize,
-    ) -> Result<Option<RbfNode>> {
+    ) -> std::result::Result<Option<RbfNode>, Exceeded> {
         if depth >= MAX_RBF_DEPTH {
-            return Err(Error::Internal("RBF history exceeds depth limit"));
+            return Err(Exceeded::Depth);
         }
-        *remaining = remaining
-            .checked_sub(1)
-            .ok_or(Error::Internal("RBF history exceeds traversal limit"))?;
+        *remaining = remaining.checked_sub(1).ok_or(Exceeded::Work)?;
         let Some((tx, entry, rate, in_mempool)) = Self::resolve_rbf_node(txid, txs, graveyard)
         else {
             return Ok(None);

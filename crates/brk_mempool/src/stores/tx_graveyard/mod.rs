@@ -4,7 +4,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use brk_error::{Error, Result};
 use brk_types::{FeeRate, Transaction, Txid};
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
@@ -25,6 +24,9 @@ pub struct TxGraveyard {
     tombstones: FxHashMap<Txid, TxTombstone>,
     predecessors_by_replacer: FxHashMap<Txid, SmallVec<[Txid; 1]>>,
     order: VecDeque<(Instant, Txid)>,
+    /// The `Replaced` burials of `order`, so RBF listings never scan the far
+    /// more numerous mined and dropped txs.
+    replacements: VecDeque<(Instant, Txid)>,
 }
 
 impl TxGraveyard {
@@ -48,15 +50,14 @@ impl TxGraveyard {
     /// Returns the first txid in the chain that isn't a `Replaced`
     /// tombstone: live, `Vanished`, or unknown (chain broken because an
     /// intermediate `by` aged out of the graveyard).
-    /// Every step consumes the caller's shared budget, so cycles also terminate.
-    pub fn replacement_root_of(&self, mut txid: Txid, remaining: &mut usize) -> Result<Txid> {
+    /// Every step consumes the caller's shared budget, so cycles also terminate;
+    /// `None` once it runs out.
+    pub fn replacement_root_of(&self, mut txid: Txid, remaining: &mut usize) -> Option<Txid> {
         loop {
-            *remaining = remaining
-                .checked_sub(1)
-                .ok_or(Error::Internal("RBF history exceeds traversal limit"))?;
+            *remaining = remaining.checked_sub(1)?;
             match self.tombstones.get(&txid).map(|t| &t.removal) {
                 Some(TxRemoval::Replaced { by }) => txid = *by,
-                _ => return Ok(txid),
+                _ => return Some(txid),
             }
         }
     }
@@ -80,13 +81,11 @@ impl TxGraveyard {
     /// event first). Caller walks the replacer chain forward to find
     /// each tree's terminal replacer.
     ///
-    /// `order` may carry stale entries (re-buries, prior exhumes). The
+    /// `replacements` may carry stale entries (re-buries, prior exhumes). The
     /// `removed_at == t` check marks those as `None`, so callers can charge
     /// every scanned entry against their work budget, including stale entries.
-    pub fn replacement_candidates_recent_first(
-        &self,
-    ) -> impl Iterator<Item = Option<(&Txid, &Txid)>> {
-        self.order.iter().rev().map(|(t, txid)| {
+    pub fn replacements_recent_first(&self) -> impl Iterator<Item = Option<(&Txid, &Txid)>> {
+        self.replacements.iter().rev().map(|(t, txid)| {
             let ts = self.tombstones.get(txid)?;
             if ts.removed_at != *t {
                 return None;
@@ -120,6 +119,7 @@ impl TxGraveyard {
                 .entry(replacer)
                 .or_default()
                 .push(txid);
+            self.replacements.push_back((removed_at, txid));
         }
         self.order.push_back((removed_at, txid));
         self.revision = self.revision.wrapping_add(1);
@@ -155,6 +155,13 @@ impl TxGraveyard {
     /// exhumes). The timestamp-match check skips those without disturbing
     /// live tombstones.
     pub fn evict_old(&mut self) {
+        while self
+            .replacements
+            .front()
+            .is_some_and(|(t, _)| t.elapsed() >= RETENTION)
+        {
+            self.replacements.pop_front();
+        }
         while let Some(&(t, _)) = self.order.front() {
             if t.elapsed() < RETENTION {
                 break;
