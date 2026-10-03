@@ -1,3 +1,5 @@
+use std::ops::AddAssign;
+
 use crate::{AgeRange, ByEpoch, Class, CohortId};
 
 #[cfg(feature = "storage")]
@@ -57,6 +59,18 @@ impl<T> CreationCohorts<T> {
             age: AgeRange::from_fn(|id| map(id.cohort(), id.select(&self.age))),
             epoch: ByEpoch::from_fn(|id| map(id.cohort(), id.select(&self.epoch))),
             class: Class::from_fn(|id| map(id.cohort(), id.select(&self.class))),
+        }
+    }
+
+    pub fn map<U>(&self, mut map: impl FnMut(&T) -> U) -> CreationCohorts<U> {
+        self.map_with_id(|_, value| map(value))
+    }
+}
+
+impl<T: AddAssign + Copy> AddAssign for CreationCohorts<T> {
+    fn add_assign(&mut self, rhs: Self) {
+        for (left, right) in self.iter_mut().zip(rhs.iter()) {
+            *left += *right;
         }
     }
 }

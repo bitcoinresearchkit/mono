@@ -1,4 +1,4 @@
-use bitview_cohort::{CohortContext, CohortId, CreationCohorts, UTXOCoreValues};
+use bitview_cohort::{CohortContext, CohortId, CreationCohorts};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazySpotValuePerBlock;
@@ -39,11 +39,11 @@ impl SupplyByCohort {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, cohort_values: UTXOCoreValues<Sats>) {
-        self.stored.push(cohort_values);
+    pub fn push(&mut self, cohort_values: CreationCohorts<Sats>) {
+        self.stored.push(&cohort_values);
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        self.stored.collect_vecs_mut()
+        self.stored.stored_vecs_mut().collect()
     }
 }

@@ -1,3 +1,4 @@
+pub mod families;
 pub mod metrics;
 pub mod state;
 

@@ -1,4 +1,4 @@
-use bitview_cohort::{AgeRange, UTXOCoreValues};
+use bitview_cohort::{AgeRange, CreationCohorts};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::DisjointAgeSources;
@@ -62,36 +62,30 @@ impl UnrealizedVecs {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, cohort_values: &UTXOCoreValues<UnrealizedState>) {
+    pub fn push(&mut self, cohort_values: &CreationCohorts<UnrealizedState>) {
         let profit = cohort_values.map(|state| state.unrealized_profit);
-        self.profit.stored.push(profit);
+        self.profit.stored.push(&profit);
         let loss = cohort_values.map(|state| state.unrealized_loss);
-        self.loss.stored.push(loss);
-        self.net_pnl.stored.push(cohort_values.map(|state| {
+        self.loss.stored.push(&loss);
+        self.net_pnl.stored.push(&cohort_values.map(|state| {
             CentsSigned::new(
                 state.unrealized_profit.inner() as i64 - state.unrealized_loss.inner() as i64,
             )
         }));
         self.capitalized_cap_in_profit_raw
             .push_age(&AgeRange::from_fn(|id| {
-                CentsSquaredSats::new(
-                    id.select(&cohort_values.age_range)
-                        .capitalized_cap_in_profit_raw,
-                )
+                CentsSquaredSats::new(id.select(&cohort_values.age).capitalized_cap_in_profit_raw)
             }));
         self.capitalized_cap_in_loss_raw
             .push_age(&AgeRange::from_fn(|id| {
-                CentsSquaredSats::new(
-                    id.select(&cohort_values.age_range)
-                        .capitalized_cap_in_loss_raw,
-                )
+                CentsSquaredSats::new(id.select(&cohort_values.age).capitalized_cap_in_loss_raw)
             }));
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = self.profit.stored.collect_vecs_mut();
-        vecs.extend(self.loss.stored.collect_vecs_mut());
-        vecs.extend(self.net_pnl.stored.collect_vecs_mut());
+        let mut vecs = self.profit.stored.stored_vecs_mut().collect::<Vec<_>>();
+        vecs.extend(self.loss.stored.stored_vecs_mut());
+        vecs.extend(self.net_pnl.stored.stored_vecs_mut());
         vecs.extend(self.capitalized_cap_in_profit_raw.collect_vecs_mut());
         vecs.extend(self.capitalized_cap_in_loss_raw.collect_vecs_mut());
         vecs

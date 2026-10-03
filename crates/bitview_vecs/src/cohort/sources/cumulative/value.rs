@@ -1,20 +1,23 @@
-use bitview_cohort::{CohortId, UTXOCoreValues};
+use bitview_cohort::{CohortGroup, CohortId};
 use bitview_transforms::{StoredU64ToCents, StoredU64ToSats};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, StoredU64, Version};
-use vecdb::{AnyStoredVec, Database, LazyVec, Rw};
+use vecdb::{AnyStoredVec, Database, LazyVec, ReadableCloneableVec, Rw};
 
-use super::CumulativeCreationSources;
+use super::CumulativeCohortSources;
 use crate::SatsCents;
 
-pub type CumulativeCreationValueSources<M = Rw> =
-    SatsCents<CumulativeCreationSources<StoredU64, M>>;
+pub type CumulativeCohortValueSources<G, M = Rw> =
+    SatsCents<CumulativeCohortSources<G, StoredU64, M>>;
 
-impl CumulativeCreationValueSources {
+impl<G: CohortGroup> CumulativeCohortValueSources<G>
+where
+    G::Of<StoredU64>: std::ops::AddAssign + Clone + Default,
+{
     pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Ok(Self {
-            sats: CumulativeCreationSources::forced_import(db, &format!("{name}_sats"), version)?,
-            cents: CumulativeCreationSources::forced_import(db, &format!("{name}_cents"), version)?,
+            sats: CumulativeCohortSources::forced_import(db, &format!("{name}_sats"), version)?,
+            cents: CumulativeCohortSources::forced_import(db, &format!("{name}_cents"), version)?,
         })
     }
 
@@ -43,21 +46,16 @@ impl CumulativeCreationValueSources {
         })
     }
 
-    pub fn push_block(
-        &mut self,
-        sats: impl Into<UTXOCoreValues<Sats>>,
-        cents: impl Into<UTXOCoreValues<Cents>>,
-    ) {
+    pub fn push_block(&mut self, sats: &G::Of<Sats>, cents: &G::Of<Cents>) {
         self.sats
-            .push_block(sats.into().map(|value| StoredU64::from(u64::from(*value))));
+            .push_block(G::map(sats, |value| StoredU64::from(u64::from(*value))));
         self.cents
-            .push_block(cents.into().map(|value| StoredU64::from(u64::from(*value))));
+            .push_block(G::map(cents, |value| StoredU64::from(u64::from(*value))));
     }
 
-    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = self.sats.collect_vecs_mut();
-        vecs.extend(self.cents.collect_vecs_mut());
-        vecs
+    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.sats
+            .stored_vecs_mut()
+            .chain(self.cents.stored_vecs_mut())
     }
 }
-use vecdb::ReadableCloneableVec;

@@ -1,5 +1,6 @@
 use super::{ActivityVecs, OutputsVecs, RealizedVecs, SupplyVecs};
-use crate::{state::UTXOStates, values::UtxoValues};
+use crate::state::UTXOStates;
+use bitview_cohort::UtxoGroups;
 use bitview_cohort::{AmountRange, SpendableType};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
@@ -35,36 +36,37 @@ impl CohortMetrics {
         })
     }
     pub fn push(&mut self, states: &UTXOStates, price: Cents) {
-        let supply = UtxoValues {
-            amount_range: AmountRange::from_fn(|id| id.select(&states.amount_range).supply_value()),
+        let supply = UtxoGroups {
+            utxo_amount: AmountRange::from_fn(|id| id.select(&states.amount_range).supply_value()),
             type_: SpendableType::from_fn(|id| id.select(&states.type_).supply_value()),
         };
-        let counts = UtxoValues {
-            amount_range: AmountRange::from_fn(|id| {
-                id.select(&states.amount_range).output_counts()
-            }),
+        let counts = UtxoGroups {
+            utxo_amount: AmountRange::from_fn(|id| id.select(&states.amount_range).output_counts()),
             type_: SpendableType::from_fn(|id| id.select(&states.type_).output_counts()),
         };
-        let sent = UtxoValues {
-            amount_range: AmountRange::from_fn(|id| {
+        let sent = UtxoGroups {
+            utxo_amount: AmountRange::from_fn(|id| {
                 id.select(&states.amount_range).transfer_volume()
             }),
             type_: SpendableType::from_fn(|id| id.select(&states.type_).transfer_volume()),
         };
-        let realized = UtxoValues {
-            amount_range: AmountRange::from_fn(|id| {
+        let realized = UtxoGroups {
+            utxo_amount: AmountRange::from_fn(|id| {
                 id.select(&states.amount_range).realized_block_data()
             }),
             type_: SpendableType::from_fn(|id| id.select(&states.type_).realized_block_data()),
         };
         self.outputs.avg_amount.push(&supply.type_, &counts.type_);
-        self.supply.total.stored.push(supply);
+        self.supply.total.stored.push(&supply);
         self.outputs.push(counts.map(|v| v.0), counts.map(|v| v.1));
         self.activity
             .transfer_volume
-            .push_block(sent.clone(), sent.map(|v| SatsToCents::apply(*v, price)));
-        self.realized.cap.stored.push(realized.map(|v| v.cap));
-        self.realized.price.stored.push(realized.map(|v| v.price()));
+            .push_block(&sent, &sent.map(|v| SatsToCents::apply(*v, price)));
+        self.realized.cap.stored.push(&realized.map(|v| v.cap));
+        self.realized
+            .price
+            .stored
+            .push(&realized.map(|v| v.price()));
         self.realized
             .profit
             .stored

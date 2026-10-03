@@ -1,23 +1,26 @@
-use bitview_cohort::{CohortContext, CreationCohorts};
+use std::ops::AddAssign;
+
+use bitview_cohort::{CohortContext, CohortGroup};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyWindowStartVec};
+use bitview_vecs::{CumulativeCohortSources, LazyPerBlockCumulativeRolling, LazyWindowStartVec};
 use brk_error::Result;
 use brk_types::{StoredU64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::metrics::CumulativeCreationSources;
-
 #[derive(Traversable)]
-pub struct SpentOutputCount<M: StorageMode = Rw> {
+pub struct SpentOutputCount<G: CohortGroup, M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: CreationCohorts<LazyPerBlockCumulativeRolling<StoredU64>>,
+    cohorts: G::Of<LazyPerBlockCumulativeRolling<StoredU64>>,
     #[traversable(hidden)]
-    pub stored: CumulativeCreationSources<StoredU64, M>,
+    pub stored: CumulativeCohortSources<G, StoredU64, M>,
 }
 
-impl SpentOutputCount {
+impl<G: CohortGroup> SpentOutputCount<G>
+where
+    G::Of<StoredU64>: AddAssign + Clone + Default,
+{
     pub fn forced_import(
         db: &Database,
         version: Version,
@@ -26,8 +29,8 @@ impl SpentOutputCount {
     ) -> Result<Self> {
         let version = version + Version::ONE;
         let stored =
-            CumulativeCreationSources::forced_import(db, "spent_utxo_count_cumulative", version)?;
-        let cohorts = CreationCohorts::new(|cohort_id| {
+            CumulativeCohortSources::forced_import(db, "spent_utxo_count_cumulative", version)?;
+        let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "spent_utxo_count");
             LazyPerBlockCumulativeRolling::from_cumulative_source(
                 &name,

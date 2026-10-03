@@ -1,4 +1,4 @@
-use bitview_cohort::UTXOCoreValues;
+use bitview_cohort::CreationCohorts;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -99,8 +99,10 @@ impl RealizedVecs {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, cohort_values: &UTXOCoreValues<RealizedBlockData>) {
-        self.cap.stored.push(cohort_values.map(|values| values.cap));
+    pub fn push(&mut self, cohort_values: &CreationCohorts<RealizedBlockData>) {
+        self.cap
+            .stored
+            .push(&cohort_values.map(|values| values.cap));
         self.profit
             .stored
             .push_block(cohort_values.map(|values| values.profit));
@@ -116,11 +118,11 @@ impl RealizedVecs {
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = self.cap.stored.collect_vecs_mut();
-        vecs.extend(self.profit.stored.collect_vecs_mut());
-        vecs.extend(self.loss.stored.collect_vecs_mut());
-        vecs.extend(self.net_pnl.stored.collect_vecs_mut());
-        vecs.extend(self.value_destroyed.stored.collect_vecs_mut());
+        let mut vecs = self.cap.stored.stored_vecs_mut().collect::<Vec<_>>();
+        vecs.extend(self.profit.stored.stored_vecs_mut());
+        vecs.extend(self.loss.stored.stored_vecs_mut());
+        vecs.extend(self.net_pnl.stored.stored_vecs_mut());
+        vecs.extend(self.value_destroyed.stored.stored_vecs_mut());
         vecs.extend(self.cap_raw.collect_vecs_mut());
         vecs.extend(self.capitalized_cap_raw.collect_vecs_mut());
         vecs.extend(self.peak_regret_raw.collect_vecs_mut());

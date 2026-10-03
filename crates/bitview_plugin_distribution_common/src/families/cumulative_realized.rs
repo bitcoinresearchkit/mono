@@ -1,24 +1,29 @@
-use crate::cumulative::CumulativeUtxoSources;
-use crate::groups::UtxoGroups;
-use bitview_cohort::CohortContext;
+use std::ops::AddAssign;
+
+use bitview_cohort::{CohortContext, CohortGroup};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec};
+use bitview_vecs::{
+    CumulativeCohortSources, LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec,
+};
 use brk_error::Result;
 use brk_types::{Cents, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 #[derive(Traversable)]
-pub struct CumulativeRealizedByCohort<M: StorageMode = Rw> {
+pub struct CumulativeRealizedByCohort<G: CohortGroup, M: StorageMode = Rw> {
     #[traversable(flatten)]
     /// Includes spends grouped by the address's pre-spend balance.
-    pub cohorts: UtxoGroups<LazyFiatPerBlockCumulativeWithSums<Cents>>,
+    cohorts: G::Of<LazyFiatPerBlockCumulativeWithSums<Cents>>,
     #[traversable(hidden)]
-    pub stored: CumulativeUtxoSources<Cents, M>,
+    pub stored: CumulativeCohortSources<G, Cents, M>,
 }
 
-impl CumulativeRealizedByCohort {
+impl<G: CohortGroup> CumulativeRealizedByCohort<G>
+where
+    G::Of<Cents>: AddAssign + Clone + Default,
+{
     pub fn forced_import(
         db: &Database,
         metric: &str,
@@ -26,12 +31,12 @@ impl CumulativeRealizedByCohort {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let stored = CumulativeUtxoSources::forced_import(
+        let stored = CumulativeCohortSources::forced_import(
             db,
             &format!("{metric}_cumulative_cents"),
             version,
         )?;
-        let cohorts = UtxoGroups::new(|cohort_id| {
+        let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let source = stored
                 .stored

@@ -1,7 +1,13 @@
 mod collection;
-mod spent;
-mod unspent;
 
 pub use collection::OutputsVecs;
-pub use spent::SpentOutputCount;
-pub use unspent::UnspentOutputCount;
+pub type SpentOutputCount<M = vecdb::Rw> =
+    bitview_plugin_distribution_common::families::SpentOutputCount<
+        bitview_cohort::cohort_group::Utxo,
+        M,
+    >;
+pub type UnspentOutputCount<M = vecdb::Rw> =
+    bitview_plugin_distribution_common::families::UnspentOutputCount<
+        bitview_cohort::cohort_group::Utxo,
+        M,
+    >;

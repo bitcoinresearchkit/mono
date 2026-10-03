@@ -1,5 +1,5 @@
 use crate::metrics::outputs::AvgAmount;
-use crate::values::UtxoValues;
+use bitview_cohort::UtxoGroups;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -37,10 +37,10 @@ impl OutputsVecs {
     #[inline(always)]
     pub fn push(
         &mut self,
-        unspent_count: UtxoValues<StoredU64>,
-        spent_count: UtxoValues<StoredU64>,
+        unspent_count: UtxoGroups<StoredU64>,
+        spent_count: UtxoGroups<StoredU64>,
     ) {
-        self.unspent_count.stored.push(unspent_count);
+        self.unspent_count.stored.push(&unspent_count);
         self.spent_count.stored.push_block(spent_count);
     }
 

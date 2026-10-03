@@ -1,6 +1,6 @@
 use super::{SupplyBase, SupplyTotal};
-use crate::groups::UtxoGroups;
 use bitview_cohort::CohortContext;
+use bitview_cohort::UtxoGroups;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;

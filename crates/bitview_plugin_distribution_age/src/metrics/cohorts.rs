@@ -1,6 +1,6 @@
 use std::thread;
 
-use bitview_cohort::{AgeRange, ByEpoch, Class, UTXOCoreValues};
+use bitview_cohort::{AgeRange, ByEpoch, Class, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -83,13 +83,13 @@ impl CohortMetrics<Rw> {
             ..
         } = states;
 
-        let total = UTXOCoreValues {
-            age_range: AgeRange::from_fn(|id| id.select(age_range).supply_value()),
+        let total = CreationCohorts {
+            age: AgeRange::from_fn(|id| id.select(age_range).supply_value()),
             epoch: ByEpoch::from_fn(|id| id.select(epoch).supply_value()),
             class: Class::from_fn(|id| id.select(class).supply_value()),
         };
-        let profitability = UTXOCoreValues {
-            age_range: AgeRange::from_fn(|id| {
+        let profitability = CreationCohorts {
+            age: AgeRange::from_fn(|id| {
                 id.select_mut(age_range)
                     .compute_unrealized_state(height_price)
             }),
@@ -113,8 +113,8 @@ impl CohortMetrics<Rw> {
             ..
         } = states;
 
-        let cohort_values = UTXOCoreValues {
-            age_range: AgeRange::from_fn(|id| id.select(age_range).output_counts()),
+        let cohort_values = CreationCohorts {
+            age: AgeRange::from_fn(|id| id.select(age_range).output_counts()),
             epoch: ByEpoch::from_fn(|id| id.select(epoch).output_counts()),
             class: Class::from_fn(|id| id.select(class).output_counts()),
         };
@@ -133,13 +133,13 @@ impl CohortMetrics<Rw> {
             ..
         } = states;
 
-        let transfer_volume = UTXOCoreValues {
-            age_range: AgeRange::from_fn(|id| id.select(age_range).transfer_volume()),
+        let transfer_volume = CreationCohorts {
+            age: AgeRange::from_fn(|id| id.select(age_range).transfer_volume()),
             epoch: ByEpoch::from_fn(|id| id.select(epoch).transfer_volume()),
             class: Class::from_fn(|id| id.select(class).transfer_volume()),
         };
-        let core = UTXOCoreValues {
-            age_range: AgeRange::from_fn(|id| id.select(age_range).core_activity()),
+        let core = CreationCohorts {
+            age: AgeRange::from_fn(|id| id.select(age_range).core_activity()),
             epoch: ByEpoch::from_fn(|id| id.select(epoch).core_activity()),
             class: Class::from_fn(|id| id.select(class).core_activity()),
         };
@@ -178,8 +178,8 @@ impl CohortMetrics<Rw> {
                 id.select(age_range).realized.capitalized_cap_raw()
             }));
 
-        let cohort_values = UTXOCoreValues {
-            age_range: AgeRange::from_fn(|id| id.select(age_range).realized_block_data()),
+        let cohort_values = CreationCohorts {
+            age: AgeRange::from_fn(|id| id.select(age_range).realized_block_data()),
             epoch: ByEpoch::from_fn(|id| id.select(epoch).realized_block_data()),
             class: Class::from_fn(|id| id.select(class).realized_block_data()),
         };

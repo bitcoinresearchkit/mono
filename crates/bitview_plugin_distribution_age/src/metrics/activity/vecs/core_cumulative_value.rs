@@ -1,4 +1,4 @@
-use bitview_cohort::{CohortContext, CreationCohorts, UTXOCoreValues};
+use bitview_cohort::{CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -48,11 +48,11 @@ impl CoreCumulativeValueByCohort {
     }
 
     #[inline(always)]
-    pub fn push_block(&mut self, sats: UTXOCoreValues<Sats>, cents: UTXOCoreValues<Cents>) {
-        self.stored.push_block(sats, cents);
+    pub fn push_block(&mut self, sats: CreationCohorts<Sats>, cents: CreationCohorts<Cents>) {
+        self.stored.push_block(&sats, &cents);
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        self.stored.collect_vecs_mut()
+        self.stored.stored_vecs_mut().collect()
     }
 }

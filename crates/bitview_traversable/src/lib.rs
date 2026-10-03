@@ -34,7 +34,7 @@ use vecdb::ZstdVecValue;
 pub use bitview_catalog::{SeriesLeaf, SeriesLeafWithSchema, TreeBranch, TreeNode};
 pub use brk_types::Index;
 pub use indexmap::IndexMap;
-pub use vecdb::{AnyExportableVec, ReadOnlyClone, Ro, Rw};
+pub use vecdb::{AnyExportableVec, ReadOnlyClone, Ro, Rw, StorageMode};
 
 #[cfg(feature = "derive")]
 pub use bitview_traversable_derive::Traversable;

@@ -1,4 +1,4 @@
-use bitview_cohort::UTXOCoreValues;
+use bitview_cohort::CreationCohorts;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -33,16 +33,20 @@ impl OutputsVecs {
     #[inline(always)]
     pub fn push(
         &mut self,
-        unspent_count: UTXOCoreValues<StoredU64>,
-        spent_count: UTXOCoreValues<StoredU64>,
+        unspent_count: CreationCohorts<StoredU64>,
+        spent_count: CreationCohorts<StoredU64>,
     ) {
-        self.unspent_count.stored.push(unspent_count);
+        self.unspent_count.stored.push(&unspent_count);
         self.spent_count.stored.push_block(spent_count);
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = self.unspent_count.stored.collect_vecs_mut();
-        vecs.extend(self.spent_count.stored.collect_vecs_mut());
+        let mut vecs = self
+            .unspent_count
+            .stored
+            .stored_vecs_mut()
+            .collect::<Vec<_>>();
+        vecs.extend(self.spent_count.stored.stored_vecs_mut());
         vecs
     }
 }

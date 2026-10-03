@@ -1,7 +1,7 @@
 use std::{collections::BTreeSet, iter};
 
 use proc_macro::TokenStream;
-use proc_macro2::{Span, TokenStream as ProcMacro2TokenStream};
+use proc_macro2::{Group, Span, TokenStream as ProcMacro2TokenStream, TokenTree};
 use quote::quote;
 use syn::{
     Attribute, Data, DataStruct, DeriveInput, Error, Expr, ExprLit, Field, Fields, FieldsNamed,
@@ -192,6 +192,24 @@ fn is_write_only_type(ty: &Type) -> bool {
                     if args.args.len() == 1)))
 }
 
+/// The `T` of a `Box<T>` field type.
+fn extract_box_inner(ty: &Type) -> Option<&Type> {
+    let Type::Path(type_path) = ty else {
+        return None;
+    };
+    let seg = type_path.path.segments.last()?;
+    if seg.ident != "Box" {
+        return None;
+    }
+    match &seg.arguments {
+        PathArguments::AngleBracketed(args) => args.args.iter().find_map(|arg| match arg {
+            GenericArgument::Type(inner) => Some(inner),
+            _ => None,
+        }),
+        _ => None,
+    }
+}
+
 fn is_box_type(ty: &Type) -> bool {
     matches!(
         ty,
@@ -256,6 +274,65 @@ fn type_contains_ident(ty: &Type, ident: &Ident) -> bool {
         Type::Paren(p) => type_contains_ident(&p.elem, ident),
         _ => false,
     }
+}
+
+/// Whether `ty` reaches through one of `params`, as in `G::Of<..>`: a generated
+/// impl cannot see through such a projection without an explicit bound.
+fn type_projects_param(ty: &Type, params: &[&Ident]) -> bool {
+    match ty {
+        Type::Path(type_path) => {
+            let segments = &type_path.path.segments;
+            type_path
+                .qself
+                .as_ref()
+                .is_some_and(|q| params.iter().any(|p| type_contains_ident(&q.ty, p)))
+                || (segments.len() > 1 && params.iter().any(|p| segments[0].ident == **p))
+                || segments.iter().any(|seg| match &seg.arguments {
+                    PathArguments::AngleBracketed(args) => args.args.iter().any(|arg| {
+                        matches!(arg, GenericArgument::Type(inner) if type_projects_param(inner, params))
+                    }),
+                    _ => false,
+                })
+        }
+        Type::Reference(r) => type_projects_param(&r.elem, params),
+        Type::Tuple(t) => t.elems.iter().any(|e| type_projects_param(e, params)),
+        Type::Array(a) => type_projects_param(&a.elem, params),
+        Type::Slice(s) => type_projects_param(&s.elem, params),
+        Type::Paren(p) => type_projects_param(&p.elem, params),
+        _ => false,
+    }
+}
+
+/// Replaces the storage-mode param `mode` in `tokens` with the concrete `to`,
+/// qualifying projections such as `M::Stored<..>` as `<to as StorageMode>::..`.
+fn substitute_mode(
+    tokens: ProcMacro2TokenStream,
+    mode: &Ident,
+    to: &ProcMacro2TokenStream,
+) -> ProcMacro2TokenStream {
+    let trees: Vec<TokenTree> = tokens.into_iter().collect();
+    let mut out = ProcMacro2TokenStream::new();
+    for (i, tree) in trees.iter().enumerate() {
+        match tree {
+            TokenTree::Ident(ident) if ident == mode => {
+                let projects =
+                    matches!(trees.get(i + 1), Some(TokenTree::Punct(p)) if p.as_char() == ':');
+                out.extend(if projects {
+                    quote! { <#to as bitview_traversable::StorageMode> }
+                } else {
+                    to.clone()
+                });
+            }
+            TokenTree::Group(group) => {
+                let mut substituted =
+                    Group::new(group.delimiter(), substitute_mode(group.stream(), mode, to));
+                substituted.set_span(group.span());
+                out.extend([TokenTree::Group(substituted)]);
+            }
+            other => out.extend([other.clone()]),
+        }
+    }
+    out
 }
 
 /// Find the generic type parameter bounded by `StorageMode`, if any.
@@ -1003,7 +1080,63 @@ fn gen_read_only_clone_storage_mode(
 
     let ty_args_rw = make_ty_args(quote! { bitview_traversable::Rw });
     let ty_args_ro = make_ty_args(quote! { bitview_traversable::Ro });
-    let where_clause = &generics.where_clause;
+
+    // With other type params, the conversion of each field depending on them is
+    // stated: fields holding `M` convert through `ReadOnlyClone`, projections
+    // such as `G::Of<..>` clone.
+    let other_params: Vec<&Ident> = generics
+        .type_params()
+        .map(|p| &p.ident)
+        .filter(|ident| *ident != mode_param)
+        .collect();
+    let fields: Vec<&Field> = match &data.fields {
+        Fields::Named(named) => named.named.iter().collect(),
+        Fields::Unnamed(unnamed) => unnamed.unnamed.iter().collect(),
+        Fields::Unit => Vec::new(),
+    };
+    let field_bounds = fields
+        .into_iter()
+        .filter(|f| !is_write_only_type(&f.ty))
+        .filter_map(|f| {
+            let ty = &f.ty;
+            if is_field_skipped(f) {
+                // Skipped fields are cloned unless they reset to `None`/`PhantomData`.
+                let cloned = !is_option_type(ty) && !is_phantom_data_type(ty);
+                return (cloned && type_projects_param(ty, &other_params))
+                    .then(|| quote! { #ty: Clone });
+            }
+            let generic = other_params.iter().any(|p| type_contains_ident(ty, p));
+            if generic && type_contains_ident(ty, mode_param) {
+                // Boxed fields convert their contents.
+                let ty = extract_box_inner(ty).unwrap_or(ty);
+                let rw = substitute_mode(
+                    quote! { #ty },
+                    mode_param,
+                    &quote! { bitview_traversable::Rw },
+                );
+                let ro = substitute_mode(
+                    quote! { #ty },
+                    mode_param,
+                    &quote! { bitview_traversable::Ro },
+                );
+                Some(quote! { #rw: bitview_traversable::ReadOnlyClone<ReadOnly = #ro> })
+            } else if type_projects_param(ty, &other_params) {
+                Some(quote! { #ty: Clone })
+            } else {
+                None
+            }
+        });
+    let predicates: Vec<ProcMacro2TokenStream> = generics
+        .where_clause
+        .iter()
+        .flat_map(|w| w.predicates.iter().map(|p| quote! { #p }))
+        .chain(field_bounds)
+        .collect();
+    let where_clause = if predicates.is_empty() {
+        quote! {}
+    } else {
+        quote! { where #(#predicates),* }
+    };
 
     let body = gen_roc_body(name, data, |ty| type_contains_ident(ty, mode_param));
 

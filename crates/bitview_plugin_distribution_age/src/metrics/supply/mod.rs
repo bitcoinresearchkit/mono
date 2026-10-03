@@ -1,9 +1,11 @@
 use bitview_plugin_distribution_common::metrics::SupplyBase;
 mod by_cohort;
 
-mod total;
 mod vecs;
 
 pub use by_cohort::SupplyByCohort;
-pub use total::SupplyTotal;
+pub type SupplyTotal<M = vecdb::Rw> = bitview_plugin_distribution_common::families::SupplyTotal<
+    bitview_cohort::cohort_group::Creation,
+    M,
+>;
 pub use vecs::SupplyVecs;

@@ -1,25 +1,24 @@
-use crate::groups::UtxoGroups;
-use crate::sources::UtxoSources;
-use crate::values::UtxoValues;
-use bitview_cohort::{CohortContext, CohortId};
+use bitview_cohort::{AgeRange, CohortContext, CohortGroup, cohort_group::Creation};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazySpotValuePerBlock;
+use bitview_vecs::{CohortSources, LazySpotValuePerBlock};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, ReadableCloneableVec, Rw, StorageMode};
+use vecdb::{
+    AnyStoredVec, Database, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
+};
 
 #[derive(Traversable)]
-pub struct SupplyTotal<M: StorageMode = Rw> {
+pub struct SupplyTotal<G: CohortGroup, M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: UtxoGroups<LazySpotValuePerBlock>,
+    pub cohorts: G::Of<LazySpotValuePerBlock>,
     #[traversable(hidden)]
-    pub stored: UtxoSources<Sats, M>,
+    pub stored: CohortSources<G, Sats, M>,
     #[traversable(skip)]
     all_supply: ReadableBoxedVec<Height, Sats>,
 }
 
-impl SupplyTotal {
+impl<G: CohortGroup> SupplyTotal<G> {
     pub fn forced_import(
         db: &Database,
         version: Version,
@@ -27,22 +26,17 @@ impl SupplyTotal {
         spot_price: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let stored = UtxoSources::forced_import(db, "supply_sats", version)?;
-        let all_supply = all_supply.read_only_boxed_clone();
-        let cohorts = UtxoGroups::new(|cohort_id| {
+        let stored = CohortSources::forced_import(db, "supply_sats", version)?;
+        let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "supply");
-            let source = stored.get(cohort_id).expect("UTXO supply source");
+            let source = stored.get(cohort_id).expect("total-supply cohort source");
             LazySpotValuePerBlock::from_sats_source(&name, version, source, mappings, spot_price)
         });
         Ok(Self {
             cohorts,
             stored,
-            all_supply,
+            all_supply: all_supply.read_only_boxed_clone(),
         })
-    }
-
-    pub fn get(&self, cohort_id: CohortId) -> Option<&LazySpotValuePerBlock> {
-        self.cohorts.get(cohort_id)
     }
 
     pub fn all_supply(&self) -> &ReadableBoxedVec<Height, Sats> {
@@ -50,11 +44,17 @@ impl SupplyTotal {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, cohort_values: UtxoValues<Sats>) {
-        self.stored.push(cohort_values);
+    pub fn push(&mut self, supplies: &G::Of<Sats>) {
+        self.stored.push(supplies);
     }
 
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.stored.stored_vecs_mut()
+    }
+}
+
+impl SupplyTotal<Creation> {
+    pub fn age_supplies(&self) -> AgeRange<&impl ReadableVec<Height, Sats>> {
+        AgeRange::from_fn(|id| &id.select(&self.cohorts.age).sats.height)
     }
 }

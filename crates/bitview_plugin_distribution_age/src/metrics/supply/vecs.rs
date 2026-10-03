@@ -1,4 +1,4 @@
-use bitview_cohort::{AgeRange, AgeRangeId, CohortContext, CreationCohorts, UTXOCoreValues};
+use bitview_cohort::{AgeRange, AgeRangeId, CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::{SatsToCents, StoredU64ToCents, StoredU64ToSats};
@@ -146,19 +146,19 @@ impl SupplyVecs {
     #[inline(always)]
     pub fn push(
         &mut self,
-        total: UTXOCoreValues<Sats>,
-        profitability: &UTXOCoreValues<UnrealizedState>,
+        total: CreationCohorts<Sats>,
+        profitability: &CreationCohorts<UnrealizedState>,
     ) {
         let in_profit = profitability.map(|state| state.supply_in_profit);
         let in_loss = profitability.map(|state| state.supply_in_loss);
 
-        self.total.push(total);
+        self.total.push(&total);
         self.in_profit.push(in_profit);
         self.in_loss.push(in_loss);
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = self.total.collect_vecs_mut();
+        let mut vecs: Vec<_> = self.total.stored_vecs_mut().collect();
         vecs.extend(
             self.matured_sources
                 .iter_mut()

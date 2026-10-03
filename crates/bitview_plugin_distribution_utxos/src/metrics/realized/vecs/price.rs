@@ -1,6 +1,6 @@
-use crate::groups::UtxoGroups;
 use crate::sources::UtxoSources;
 use bitview_cohort::CohortContext;
+use bitview_cohort::UtxoGroups;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, Price};

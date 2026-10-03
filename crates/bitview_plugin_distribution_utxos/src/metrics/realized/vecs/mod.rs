@@ -1,8 +1,14 @@
-mod cap;
 mod collection;
-mod cumulative;
 mod price;
-use cap::RealizedCapByCohort;
+type RealizedCapByCohort<M = vecdb::Rw> =
+    bitview_plugin_distribution_common::families::RealizedCapByCohort<
+        bitview_cohort::cohort_group::Utxo,
+        M,
+    >;
 pub use collection::RealizedVecs;
-use cumulative::CumulativeRealizedByCohort;
+type CumulativeRealizedByCohort<M = vecdb::Rw> =
+    bitview_plugin_distribution_common::families::CumulativeRealizedByCohort<
+        bitview_cohort::cohort_group::Utxo,
+        M,
+    >;
 use price::RealizedPriceByCohort;

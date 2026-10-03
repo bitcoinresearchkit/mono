@@ -1,47 +1,39 @@
-use bitview_cohort::{CohortContext, CreationCohorts};
+use bitview_cohort::{CohortContext, CohortGroup};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlockWithDeltas, LazyWindowStartVec};
+use bitview_vecs::{CohortSources, LazyPerBlockWithDeltas, LazyWindowStartVec};
 use brk_error::Result;
 use brk_types::{PartsPerMillionSigned64, StoredI64, StoredU64, Version};
-use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
-
-use crate::metrics::CreationSources;
+use vecdb::{Database, Rw, StorageMode};
 
 #[derive(Traversable)]
-pub struct UnspentOutputCount<M: StorageMode = Rw> {
+pub struct UnspentOutputCount<G: CohortGroup, M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts:
-        CreationCohorts<LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>>,
+    pub cohorts: G::Of<LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>>,
     #[traversable(hidden)]
-    pub stored: CreationSources<StoredU64, M>,
+    pub stored: CohortSources<G, StoredU64, M>,
 }
 
-impl UnspentOutputCount {
+impl<G: CohortGroup> UnspentOutputCount<G> {
     pub fn forced_import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let stored = CreationSources::forced_import(db, "utxo_count", version)?;
-        let cohorts = CreationCohorts::new(|cohort_id| {
+        let stored = CohortSources::forced_import(db, "utxo_count", version)?;
+        let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "utxo_count");
-            let source = stored
-                .get(cohort_id)
-                .expect("unspent-output cohort source")
-                .read_only_boxed_clone();
             LazyPerBlockWithDeltas::from_height_source(
                 &name,
                 version,
-                &source,
+                stored.get(cohort_id).expect("unspent-output cohort source"),
                 Version::TWO,
                 mappings,
                 window_starts,
             )
         });
-
         Ok(Self { cohorts, stored })
     }
 }

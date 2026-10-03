@@ -38,17 +38,13 @@ plugins retain provider policy. Investment-specific stacks retain the existing
 Opening-price views batch first-price lookups (or the preceding close for empty
 periods) directly against the shared spot source; they do not build full candles.
 
-`UTXOCoreSources` owns native age/epoch/class collections.
-`UTXOTypedSources` composes that core with output types; `UTXOSources` adds
-output amounts. Every metric/cohort has one independently stored, cached source.
-Logical membership and value collections remain in `bitview_cohort`. Plugins keep these
-sources separate from public views, which reuse the source cache.
-
-Additive metrics store totals derived from canonical disjoint cohort values.
-`ExactUTXOSources` accepts independently calculated all/STH/LTH and threshold
-results instead; neither policy substitutes for the other. Cumulative scalar
-and sats/cents families share writer-checkpoint handling. Amount views compose
-the same block families.
+`CohortSources<G, T>` stores one independently cached series per cohort of a
+`bitview_cohort::CohortGroup` (creation: age/epoch/class; UTXO: amount/type);
+`CumulativeCohortSources` and `CumulativeCohortValueSources` store running
+totals and sats/cents pairs with shared writer-checkpoint handling. Logical
+membership and value collections remain in `bitview_cohort`. Plugins keep these
+sources separate from public views, which reuse the source cache. Amount views
+compose the same block families.
 
 `TypeCounts` composes a typed breakdown with `CountTotal`. Plugins select the
 total's adjustment and retention, including coinbase exclusion; vector assembly

@@ -75,7 +75,7 @@ impl SpendableTypeId {
         }
     }
 
-    const fn from_output_type(value: OutputType) -> Option<Self> {
+    pub(crate) const fn from_output_type(value: OutputType) -> Option<Self> {
         match value {
             OutputType::P2PK65 => Some(Self::P2PK65),
             OutputType::P2PK33 => Some(Self::P2PK33),

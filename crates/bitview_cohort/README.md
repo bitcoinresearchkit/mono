@@ -9,10 +9,10 @@ Enable the `storage` feature for traversal, vecdb formatting traits, and
 storage-enabled BRK types. The Rust client leaves this feature disabled.
 
 `CreationCohorts` groups the three disjoint creation-based families: age, epoch
-and creation year. `UTXOCoreValues` supports mapping and addition over those
-families. Amount and output-type cohorts use their own
-`AmountRange` and `SpendableType` collections. Consumers compose only the
-families they need and reconstruct under/over thresholds from disjoint inputs.
+and creation year. `UtxoGroups` groups the disjoint amount and spendable-type
+families. Both hold per-cohort series and per-block values alike, with mapping
+and addition. Consumers compose only the families they need and reconstruct
+under/over thresholds from disjoint inputs.
 Entry-price cohorts use their own `ByEntry` collection in the optional
 `bitview_plugin_distribution_entry` plugin.
 

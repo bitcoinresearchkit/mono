@@ -9,9 +9,13 @@ mod supply;
 mod unrealized;
 
 pub use activity::ActivityVecs;
-pub use bitview_vecs::{
-    CreationSources, CumulativeCreationSources, CumulativeCreationValueSources,
-};
+use bitview_cohort::cohort_group::Creation;
+use bitview_vecs::{CohortSources, CumulativeCohortSources, CumulativeCohortValueSources};
+use vecdb::Rw;
+
+pub type CreationSources<T, M = Rw> = CohortSources<Creation, T, M>;
+pub type CumulativeCreationSources<T, M = Rw> = CumulativeCohortSources<Creation, T, M>;
+pub type CumulativeCreationValueSources<M = Rw> = CumulativeCohortValueSources<Creation, M>;
 pub use cohorts::CohortMetrics;
 
 pub use outputs::OutputsVecs;

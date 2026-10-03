@@ -1,4 +1,4 @@
-use bitview_cohort::UTXOCoreValues;
+use bitview_cohort::CreationCohorts;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::SatsToCents;
@@ -72,10 +72,10 @@ impl ActivityVecs {
     pub fn push(
         &mut self,
         height_price: Cents,
-        transfer_volume: UTXOCoreValues<Sats>,
-        coindays_destroyed: UTXOCoreValues<StoredF64>,
-        transfer_volume_in_profit: UTXOCoreValues<Sats>,
-        transfer_volume_in_loss: UTXOCoreValues<Sats>,
+        transfer_volume: CreationCohorts<Sats>,
+        coindays_destroyed: CreationCohorts<StoredF64>,
+        transfer_volume_in_profit: CreationCohorts<Sats>,
+        transfer_volume_in_loss: CreationCohorts<Sats>,
     ) {
         let transfer_value = transfer_volume.map(|sats| SatsToCents::apply(*sats, height_price));
         let profit_value =
@@ -84,7 +84,7 @@ impl ActivityVecs {
             transfer_volume_in_loss.map(|sats| SatsToCents::apply(*sats, height_price));
 
         self.transfer_volume
-            .push_block(transfer_volume, transfer_value);
+            .push_block(&transfer_volume, &transfer_value);
         self.coindays_destroyed
             .stored
             .push_block(coindays_destroyed);
@@ -95,8 +95,8 @@ impl ActivityVecs {
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = self.transfer_volume.collect_vecs_mut();
-        vecs.extend(self.coindays_destroyed.stored.collect_vecs_mut());
+        let mut vecs: Vec<_> = self.transfer_volume.stored_vecs_mut().collect();
+        vecs.extend(self.coindays_destroyed.stored.stored_vecs_mut());
         vecs.extend(self.transfer_volume_in_profit.collect_vecs_mut());
         vecs.extend(self.transfer_volume_in_loss.collect_vecs_mut());
         vecs
