@@ -1,4 +1,4 @@
-use brk_types::Cohort;
+use bitview_types::Cohort;
 use schemars::JsonSchema;
 use serde::Deserialize;
 

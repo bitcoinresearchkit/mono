@@ -4,9 +4,9 @@ use std::{
 };
 
 use bitview_website::Website;
-use brk_types::{OHLCCents, Port};
+use brk_types::OHLCCents;
 
-use crate::cache::CdnCacheMode;
+use crate::{Port, cache::CdnCacheMode};
 
 /// Default max series-query response weight, in raw value bytes.
 /// 10k OHLC values (320 KB): the website's largest chart request, so every

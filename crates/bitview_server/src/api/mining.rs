@@ -1,12 +1,12 @@
-use crate::request_state::RequestState;
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{body::Bytes, extract::Path, http::HeaderMap, response::Response};
 use bitcoin::hashes::{Hash, HashEngine, sha256};
-use brk_types::{
-    BlockFeeRatesEntry, BlockFeesEntry, BlockHash, BlockInfoV1, BlockRewardsEntry,
-    BlockSizesWeights, DifficultyAdjustmentEntry, Dollars, HashrateSummary, Height, PoolDetail,
-    PoolHashrateEntry, PoolInfo, PoolSlug, PoolsSummary, RewardStats,
+use bitview_types::{
+    BlockFeeRatesEntry, BlockFeesEntry, BlockInfoV1, BlockRewardsEntry, BlockSizesWeights,
+    DifficultyAdjustmentEntry, HashrateSummary, PoolDetail, PoolHashrateEntry, PoolInfo,
+    PoolsSummary, RewardStats,
 };
+use brk_types::{BlockHash, Dollars, Height, PoolSlug};
 use serde_json::to_vec;
 
 use super::blocks;
@@ -15,6 +15,7 @@ use crate::{
     error::Result,
     extended::TransformResponseExtended,
     params::{BlockCountParam, Empty, PoolSlugAndHeightParam, PoolSlugParam, TimePeriodParam},
+    request_state::RequestState,
 };
 
 const HASHRATE_MAX_POINTS: usize = 200;

@@ -1,9 +1,8 @@
 use bitview_cohort::{AgeAggregateId, AgeRange, AgeRangeId, CohortContext};
+use bitview_types::{Cohort, UrpdAggregation, UrpdWeight};
 use bitview_urpd::OriginUrpd;
 use brk_error::{Error, OptionData, Result};
-use brk_types::{
-    Cents, CentsCompact, Cohort, Date, Day1, Height, Sats, UrpdAggregation, UrpdWeight,
-};
+use brk_types::{Cents, CentsCompact, Date, Day1, Height, Sats};
 use vecdb::{AnyVec, ReadableVec};
 
 use crate::Query;

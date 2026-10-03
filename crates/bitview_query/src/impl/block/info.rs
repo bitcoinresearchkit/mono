@@ -9,10 +9,10 @@ use bitcoin::{
     io::FromStd,
 };
 use bitview_plugin_indexer::SafeLengths;
+use bitview_types::{BlockExtras, BlockHeader, BlockInfo, BlockInfoV1, BlockPool};
 use brk_error::{Error, OptionData, Result};
 use brk_types::{
-    BlockExtras, BlockHash, BlockHeader, BlockInfo, BlockInfoV1, BlockPool, Dollars, FeeRate,
-    Height, Lengths, PoolSlug, Sats, Timestamp, TxIndex, VSize, pools,
+    BlockHash, Dollars, FeeRate, Height, Lengths, PoolSlug, Sats, Timestamp, TxIndex, VSize, pools,
 };
 use vecdb::{ReadableVec, VecIndex};
 

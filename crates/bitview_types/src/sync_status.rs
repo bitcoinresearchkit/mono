@@ -1,7 +1,6 @@
+use brk_types::{Height, Timestamp};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use brk_types::{Height, Timestamp};
 
 /// Sync status of the indexer
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]

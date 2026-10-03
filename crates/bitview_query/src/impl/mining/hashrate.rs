@@ -1,5 +1,6 @@
+use bitview_types::{DifficultyEntry, HashrateEntry, HashrateSummary, TimePeriod};
 use brk_error::{Error, OptionData, Result};
-use brk_types::{DifficultyEntry, HashrateEntry, HashrateSummary, Height, TimePeriod};
+use brk_types::Height;
 use vecdb::{ReadableOptionVec, ReadableVec, VecIndex};
 
 use super::{epochs::iter_difficulty_epochs, start_height};

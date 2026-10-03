@@ -5,17 +5,19 @@ Bitcoin domain and storage-index types shared across BRK and Bitview.
 ## What it provides
 
 Purpose-built types for heights, amounts, hashes, addresses, transactions,
-calendar indexes, protocol epochs, and API values that are intrinsically tied
-to Bitcoin. Query-protocol types such as `SeriesSelection`, `SeriesData`,
-and `Pagination` live in `bitview_types`; `TreeNode` lives in `bitview_catalog`.
+calendar indexes, protocol epochs, and values that are intrinsically tied to
+Bitcoin, including responses shared with `brk_mempool` such as `MempoolInfo`.
+Query-protocol types such as `SeriesSelection`, `SeriesData` and `Pagination`,
+and Bitview-only REST response DTOs, live in `bitview_types`; `TreeNode` lives
+in `bitview_catalog`.
 
 ## Type categories
 
 | Category | Examples |
 |----------|----------|
-| Block metadata | `Height`, `BlockHash`, `BlockTimestamp`, `BlkPosition` |
+| Block metadata | `Height`, `BlockHash`, `BlkPosition`, `ReadBlock` |
 | Transactions | `Txid`, `TxIndex`, `TxIn`, `TxOut`, `VSize`, `Weight` |
-| Addresses | `Addr`, `OutputType`, `P2PKHAddrIndex`, `AddrStats` |
+| Addresses | `Addr`, `AddrBytes`, `OutputType`, `P2PKHAddrIndex` |
 | Values | `Sats`, `Bitcoin`, `Dollars`, `Cents`, `OHLCCents` |
 | Time indexes | `Day1`, `Day3`, `Week1`, `Month1`, `Month3`, `Month6`, `Year1`, `Year10` |
 | Protocol | `Epoch`, `Halving`, `TxVersion`, `RawLockTime` |

@@ -1,6 +1,7 @@
 use bitview_plugin::PublicationReadGuard;
+use bitview_types::BlockInfoV1;
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, BlockInfoV1, Dollars, Height};
+use brk_types::{BlockHash, Dollars, Height};
 use vecdb::{ReadableVec, VecIndex};
 
 use super::ResolvedBlocks;

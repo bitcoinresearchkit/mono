@@ -1,10 +1,8 @@
 use std::str::FromStr;
 
+use bitview_types::{AddrChainStats, AddrStats};
 use brk_error::{Error, OptionData, Result};
-use brk_types::{
-    Addr, AddrBytes, AddrChainStats, AddrStats, DecodedAddrState, Dollars, OutputType, Sats,
-    TypeIndex,
-};
+use brk_types::{Addr, AddrBytes, DecodedAddrState, Dollars, OutputType, Sats, TypeIndex};
 use vecdb::ReadableVec;
 
 use crate::Query;

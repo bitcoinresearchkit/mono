@@ -1,9 +1,10 @@
 use bitcoin::{ScriptBuf, Transaction as BitcoinTransaction};
 use bitview_plugin_indexer::SafeLengths;
+use bitview_types::BlockTxIndex;
 use brk_error::{Error, OptionData, Result};
 use brk_types::{
-    BlkPosition, BlockTxIndex, Height, OutPoint, OutputType, RawLockTime, Sats, SigOps, StoredU32,
-    Transaction, TxIn, TxInIndex, TxIndex, TxOut, TxStatus, Txid, TypeIndex, Vout, Weight,
+    BlkPosition, Height, OutPoint, OutputType, RawLockTime, Sats, SigOps, StoredU32, Transaction,
+    TxIn, TxInIndex, TxIndex, TxOut, TxStatus, Txid, TypeIndex, Vout, Weight,
 };
 use rustc_hash::FxHashMap;
 use vecdb::{ReadableVec, VecIndex};

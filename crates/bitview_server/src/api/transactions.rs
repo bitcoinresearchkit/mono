@@ -8,10 +8,8 @@ use axum::{
     http::HeaderMap,
     response::Response,
 };
-use brk_types::{
-    CpfpInfo, Hex, MerkleProof, RbfResponse, Transaction, TxOutspend, TxStatus, Txid, TxidPrefix,
-    Version,
-};
+use bitview_types::{Hex, MerkleProof, RbfResponse};
+use brk_types::{CpfpInfo, Transaction, TxOutspend, TxStatus, Txid, TxidPrefix, Version};
 use serde_json::to_vec;
 use tower_http::limit::RequestBodyLimitLayer;
 

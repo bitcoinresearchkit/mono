@@ -1,7 +1,6 @@
+use bitview_types::{BlockSizeEntry, BlockSizesWeights, BlockWeightEntry, TimePeriod};
 use brk_error::{Error, Result};
-use brk_types::{
-    BlockSizeEntry, BlockSizesWeights, BlockWeightEntry, StoredU64, TimePeriod, Weight,
-};
+use brk_types::{StoredU64, Weight};
 
 use super::block_window::BlockWindow;
 use crate::Query;

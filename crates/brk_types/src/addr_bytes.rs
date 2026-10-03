@@ -195,7 +195,7 @@ impl From<P2ABytes> for AddrBytes {
 
 impl AddrBytes {
     /// Parse an address string to a ScriptBuf
-    pub(crate) fn addr_to_script(addr: &str) -> Result<ScriptBuf, Error> {
+    pub fn addr_to_script(addr: &str) -> Result<ScriptBuf, Error> {
         if let Ok(addr) = Address::from_str(addr) {
             if !addr.is_valid_for_network(Network::Bitcoin) {
                 return Err(Error::InvalidNetwork);

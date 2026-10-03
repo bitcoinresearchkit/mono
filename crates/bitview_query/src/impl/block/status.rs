@@ -1,6 +1,7 @@
 use bitview_plugin_indexer::SafeLengths;
+use bitview_types::BlockStatus;
 use brk_error::{OptionData, Result};
-use brk_types::{BlockHash, BlockStatus, Height};
+use brk_types::{BlockHash, Height};
 use vecdb::ReadableVec;
 
 use crate::Query;

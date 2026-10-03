@@ -1,11 +1,8 @@
-use crate::request_state::RequestState;
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{body::Bytes, extract::Path, http::HeaderMap, response::Response};
 use bitview_query::RepresentationId;
-use brk_types::{
-    Addr, AddrHashPrefixMatches, AddrStats, AddrValidation, BlockHashPrefix, Transaction, Txid,
-    Utxo, Version,
-};
+use bitview_types::{AddrHashPrefixMatches, AddrStats, AddrValidation, Utxo};
+use brk_types::{Addr, BlockHashPrefix, Transaction, Txid, Version};
 use serde_json::to_vec;
 
 use crate::{
@@ -13,6 +10,7 @@ use crate::{
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
     params::{AddrAfterTxidParam, AddrHashPrefixParam, AddrParam, Empty, ValidateAddrParam},
+    request_state::RequestState,
 };
 
 /// Esplora `/txs` and `/txs/chain` page sizes. Wire-protocol constants from

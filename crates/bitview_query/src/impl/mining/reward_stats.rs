@@ -1,5 +1,6 @@
+use bitview_types::RewardStats;
 use brk_error::{Error, OptionData, Result};
-use brk_types::{Height, RewardStats};
+use brk_types::Height;
 use vecdb::{AnyVec, CheckedSub, ReadableVec, VecIndex, VecValue};
 
 use crate::Query;

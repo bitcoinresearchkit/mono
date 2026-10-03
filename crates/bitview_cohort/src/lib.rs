@@ -53,7 +53,7 @@ mod creation_cohorts;
 pub use creation_cohorts::CreationCohorts;
 
 /// Cohort-group markers, kept off the root: the client glob-imports this crate and
-/// `brk_types`, whose `Utxo` would become ambiguous (workspace builds unify the
+/// `bitview_types`, whose `Utxo` would become ambiguous (workspace builds unify the
 /// `storage` feature).
 #[cfg(feature = "storage")]
 pub mod cohort_group;

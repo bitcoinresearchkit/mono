@@ -1,9 +1,9 @@
-use crate::request_state::RequestState;
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{body::Bytes, extract::Path, http::HeaderMap, response::Response};
+use bitview_types::ReplacementNode;
 use brk_types::{
-    BlockTemplate, BlockTemplateDiff, Dollars, MempoolInfo, MempoolRecentTx, NextBlockHash,
-    ReplacementNode, Txid, Version,
+    BlockTemplate, BlockTemplateDiff, Dollars, MempoolInfo, MempoolRecentTx, NextBlockHash, Txid,
+    Version,
 };
 use serde_json::to_vec;
 
@@ -14,6 +14,7 @@ use crate::{
     error::Result,
     extended::{HeaderMapExtended, TransformResponseExtended},
     params::{Empty, NextBlockHashParam},
+    request_state::RequestState,
 };
 
 pub trait MempoolRoutes {

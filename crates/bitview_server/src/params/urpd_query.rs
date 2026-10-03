@@ -1,4 +1,4 @@
-use brk_types::{UrpdAggregation, UrpdWeight};
+use bitview_types::{UrpdAggregation, UrpdWeight};
 use schemars::JsonSchema;
 use serde::Deserialize;
 

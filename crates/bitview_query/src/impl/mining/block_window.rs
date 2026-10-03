@@ -1,5 +1,6 @@
+use bitview_types::TimePeriod;
 use brk_error::{Error, Result};
-use brk_types::{Height, TimePeriod, Timestamp};
+use brk_types::{Height, Timestamp};
 use rustc_hash::FxHashMap;
 use vecdb::{ReadableVec, VecIndex, VecValue};
 

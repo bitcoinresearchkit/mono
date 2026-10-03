@@ -8,8 +8,12 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+bitcoin = { workspace = true }
 brk_types = { workspace = true }
 derive_more = { workspace = true }
+itoa = "1.0.18"
+jiff = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true, features = ["rc"] }
 serde_json = { workspace = true }
+strum = { version = "0.28", features = ["derive"] }

@@ -8,11 +8,10 @@ use std::{
 
 use bitview::{Config as RunnerConfig, DEFAULT_CACHE_BUDGET};
 use bitview_server::{
-    CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig, Website,
+    CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, ServerConfig, Website,
 };
 use brk_error::{Error, Result};
 use brk_rpc::ConnectArgs;
-use brk_types::Port;
 use lexopt::{
     Arg::{Long, Short},
     Parser, ValueExt,

@@ -1,4 +1,4 @@
-use brk_types::UrpdWeight;
+use bitview_types::UrpdWeight;
 use schemars::JsonSchema;
 use serde::Deserialize;
 

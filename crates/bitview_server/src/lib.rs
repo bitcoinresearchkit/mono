@@ -53,6 +53,7 @@ mod extended;
 mod historical_price_cache;
 mod json_error;
 mod params;
+mod port;
 #[cfg(any(feature = "series", feature = "chain"))]
 mod prepared_json;
 #[cfg(any(feature = "chain", feature = "urpd"))]
@@ -70,8 +71,8 @@ mod urpd_input;
 pub use api::ApiRoutes;
 
 pub use bitview_website::Website;
-pub use brk_types::Port;
 pub use cache::CdnCacheMode;
+pub use port::Port;
 
 pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig};
 

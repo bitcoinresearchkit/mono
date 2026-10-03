@@ -2,13 +2,12 @@ use std::fmt::Write;
 
 use bitview_catalog::TreeNode;
 use bitview_types::{
-    DetailedSeriesCount, Format, IndexInfo, Limit, PaginatedSeries, Pagination, SearchQuery,
-    SeriesInfo, SeriesName, SeriesSelection,
+    DetailedSeriesCount, Format, IndexInfo, Limit, PaginatedSeries, Pagination, RangeIndex,
+    SearchQuery, SeriesInfo, SeriesName, SeriesSelection,
 };
 use brk_error::{Error, Result, SeriesNotFound, truncate_series_name};
 use brk_types::{
-    BlockHashPrefix, CacheClass, Date, Epoch, Halving, Height, Index, RangeIndex, Timestamp,
-    Version,
+    BlockHashPrefix, CacheClass, Date, Epoch, Halving, Height, Index, Timestamp, Version,
 };
 use itoa::Buffer;
 use jiff::civil::Date as CivilDate;

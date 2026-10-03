@@ -7,10 +7,11 @@ use bitcoin::{
     hex::DisplayHex,
 };
 use bitview_plugin_indexer::SafeLengths;
+use bitview_types::MerkleProof;
 use brk_error::{Error, OptionData, Result};
 use brk_types::{
-    BlockHash, Height, Lengths, MerkleProof, Timestamp, Transaction, TxIndex, TxOutIndex, TxStatus,
-    Txid, TxidPrefix,
+    BlockHash, Height, Lengths, Timestamp, Transaction, TxIndex, TxOutIndex, TxStatus, Txid,
+    TxidPrefix,
 };
 use vecdb::{ReadableVec, VecIndex};
 

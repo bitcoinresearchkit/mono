@@ -1,4 +1,3 @@
-use crate::request_state::RequestState;
 use std::borrow::Cow;
 
 use aide::axum::{ApiRouter, routing::get_with};
@@ -8,8 +7,7 @@ use axum::{
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
-use bitview_types::{Health, SyncStatus};
-use brk_types::DiskUsage;
+use bitview_types::{DiskUsage, Health, SyncStatus};
 use jiff::Timestamp;
 
 use super::AppState;
@@ -18,6 +16,7 @@ use crate::{
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
     params::Empty,
+    request_state::RequestState,
 };
 
 mod disk;

@@ -1,7 +1,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use bitview_types::DifficultyAdjustment;
 use brk_error::{Error, OptionData, Result};
-use brk_types::{BLOCKS_PER_DIFF_EPOCHS as BLOCKS_PER_EPOCH, DifficultyAdjustment, Epoch, Height};
+use brk_types::{BLOCKS_PER_DIFF_EPOCHS as BLOCKS_PER_EPOCH, Epoch, Height};
 use vecdb::ReadableVec;
 
 use crate::Query;

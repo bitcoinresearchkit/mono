@@ -1,5 +1,6 @@
+use bitview_types::TimePeriod;
 use brk_error::{Error as QueryError, OptionData, Result};
-use brk_types::{Height, TimePeriod};
+use brk_types::Height;
 use vecdb::ReadableVec;
 
 use crate::Query;

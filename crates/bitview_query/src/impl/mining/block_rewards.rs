@@ -1,5 +1,6 @@
+use bitview_types::{BlockRewardsEntry, TimePeriod};
 use brk_error::Result;
-use brk_types::{BlockRewardsEntry, Cents, Sats, TimePeriod};
+use brk_types::{Cents, Sats};
 
 use super::block_window::BlockWindow;
 use crate::Query;

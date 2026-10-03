@@ -1,4 +1,3 @@
-use crate::request_state::RequestState;
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     body::Bytes,
@@ -8,11 +7,9 @@ use axum::{
 };
 use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_query::{Query, ResolvedBlocks, ResolvedBlocksV1};
+use bitview_types::{BlockInfo, BlockInfoV1, BlockStatus, BlockTimestamp, BlockTxIndex, Hex};
 use brk_error::{Error as QueryError, Result as QueryResult};
-use brk_types::{
-    BlockHash, BlockInfo, BlockInfoV1, BlockStatus, BlockTimestamp, BlockTxIndex, Dollars, Height,
-    Hex, Timestamp, Transaction, Txid,
-};
+use brk_types::{BlockHash, Dollars, Height, Timestamp, Transaction, Txid};
 use serde::Serialize;
 use serde_json::to_vec;
 
@@ -23,6 +20,7 @@ use crate::{
         BlockHashParam, BlockHashStartIndex, BlockHashTxIndex, Empty, HeightParam, TimestampParam,
     },
     raw_body::RawBodyPermit,
+    request_state::RequestState,
 };
 
 const BLOCK_TXS_PAGE_SIZE: u32 = 25;

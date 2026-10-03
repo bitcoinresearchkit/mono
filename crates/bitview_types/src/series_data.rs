@@ -1,10 +1,9 @@
 use std::ops::Range;
 
+use brk_types::{Date, Index, Timestamp};
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::Value;
-
-use brk_types::{Date, Index, Timestamp};
 
 /// Series data with range information.
 ///

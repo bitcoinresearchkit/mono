@@ -1,5 +1,5 @@
+use bitview_types::{DifficultyAdjustmentEntry, TimePeriod};
 use brk_error::Result;
-use brk_types::{DifficultyAdjustmentEntry, TimePeriod};
 use vecdb::VecIndex;
 
 use super::{epochs::iter_difficulty_epochs, start_height};

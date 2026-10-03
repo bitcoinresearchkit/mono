@@ -1,7 +1,7 @@
 use bitcoin::Amount;
-use bitview_urpd::build_response;
+use bitview_types::{Urpd, UrpdBucket};
 use brk_error::{Error, Result};
-use brk_types::{CentsCompact, Sats, Urpd};
+use brk_types::{Bitcoin, Cents, CentsCompact, CentsSats, CentsSigned, Dollars, Sats};
 
 use super::ResolvedUrpd;
 
@@ -10,17 +10,52 @@ impl ResolvedUrpd {
         &self.entries
     }
 
+    /// Aggregates the validated, sorted entries into response buckets.
     pub fn build(self) -> Result<Urpd> {
         self.validate()?;
-        Ok(build_response(
-            self.cohort,
-            self.height,
-            self.date,
-            self.weight,
-            self.close,
-            self.entries.into_vec(),
-            self.aggregation,
-        ))
+        let close = self.close;
+        let mut buckets = Vec::new();
+        let mut total = Sats::ZERO;
+        let mut current: Option<(Cents, Sats, CentsSats)> = None;
+        let finish = |(price, supply, capital): (Cents, Sats, CentsSats)| {
+            let realized_cap = capital.to_cents();
+            let market_cap = CentsSats::from_price_sats(close, supply).to_cents();
+            UrpdBucket {
+                price_floor: Dollars::from(price),
+                supply: Bitcoin::from(supply),
+                realized_cap: Dollars::from(realized_cap),
+                unrealized_pnl: Dollars::from(
+                    CentsSigned::from(market_cap.inner()) - CentsSigned::from(realized_cap.inner()),
+                ),
+            }
+        };
+        for &(price, supply) in &self.entries {
+            let price = Cents::from(price);
+            let floor = self.aggregation.bucket_floor(price);
+            let capital = CentsSats::from_price_sats(price, supply);
+            total += supply;
+            if let Some((last, sats, cap)) = &mut current
+                && *last == floor
+            {
+                *sats += supply;
+                *cap += capital;
+            } else if let Some(previous) = current.replace((floor, supply, capital)) {
+                buckets.push(finish(previous));
+            }
+        }
+        if let Some(last) = current {
+            buckets.push(finish(last));
+        }
+        Ok(Urpd {
+            cohort: self.cohort,
+            date: self.date,
+            height: self.height,
+            weight: self.weight,
+            aggregation: self.aggregation,
+            close: Dollars::from(close),
+            total_supply: Bitcoin::from(total),
+            buckets,
+        })
     }
 
     pub fn validate(&self) -> Result<()> {

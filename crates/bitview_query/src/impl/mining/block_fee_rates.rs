@@ -1,5 +1,5 @@
+use bitview_types::{BlockFeeRatesEntry, FeeRatePercentiles, TimePeriod};
 use brk_error::Result;
-use brk_types::{BlockFeeRatesEntry, FeeRatePercentiles, TimePeriod};
 
 use super::block_window::BlockWindow;
 use crate::Query;

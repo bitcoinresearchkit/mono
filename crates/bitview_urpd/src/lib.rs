@@ -2,7 +2,6 @@
 mod metrics;
 mod projected_bucket;
 mod projection;
-mod response;
 
 use brk_types::Version;
 
@@ -13,7 +12,6 @@ pub const COMPUTE_VERSION: Version = Version::ONE;
 pub const COST_BASIS_PRICE_DIGITS: i32 = 5;
 pub use metrics::{Metrics, bounds::AgeBoundsMetrics};
 pub use projected_bucket::ProjectedBucket;
-pub use response::build_response;
 
 mod origin_urpd;
 pub use origin_urpd::OriginUrpd;

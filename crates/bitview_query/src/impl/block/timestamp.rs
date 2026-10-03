@@ -1,5 +1,6 @@
+use bitview_types::BlockTimestamp;
 use brk_error::{Error, OptionData, Result};
-use brk_types::{BlockHash, BlockTimestamp, Height, Timestamp};
+use brk_types::{BlockHash, Height, Timestamp};
 use jiff::Timestamp as JiffTimestamp;
 use vecdb::ReadableVec;
 

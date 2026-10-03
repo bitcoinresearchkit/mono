@@ -1,9 +1,8 @@
 use std::{borrow::Cow, sync::Arc};
 
+use brk_types::Index;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use brk_types::Index;
 
 /// Metadata about a series
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]

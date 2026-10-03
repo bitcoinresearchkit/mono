@@ -50,7 +50,6 @@ brk_error = { workspace = true }
 brk_logger = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
-brk_types = { workspace = true, features = ["storage"] }
 color-eyre = { workspace = true, optional = true }
 lexopt = "0.3"
 owo-colors = { workspace = true }

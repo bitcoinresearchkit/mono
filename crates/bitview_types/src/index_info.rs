@@ -1,9 +1,8 @@
 use std::borrow::Cow;
 
+use brk_types::Index;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use brk_types::Index;
 
 /// Information about an available index and its query aliases
 #[derive(Clone, Serialize, Deserialize, JsonSchema)]

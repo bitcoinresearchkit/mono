@@ -1,7 +1,6 @@
+use brk_types::Index;
 use schemars::JsonSchema;
 use serde::Deserialize;
-
-use brk_types::Index;
 
 use crate::{DataRangeFormat, SeriesList, SeriesName};
 

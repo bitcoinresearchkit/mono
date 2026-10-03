@@ -1,7 +1,7 @@
+use bitview_types::BlockTxIndex;
+use brk_types::BlockHash;
 use schemars::JsonSchema;
 use serde::Deserialize;
-
-use brk_types::{BlockHash, BlockTxIndex};
 
 /// Block hash + starting transaction index path parameters
 #[derive(Deserialize, JsonSchema)]

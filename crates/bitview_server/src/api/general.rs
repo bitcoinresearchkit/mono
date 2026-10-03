@@ -1,13 +1,14 @@
-use crate::request_state::RequestState;
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Query, http::HeaderMap};
-use brk_types::{DifficultyAdjustment, HistoricalPrice, Prices, Timestamp};
+use bitview_types::{DifficultyAdjustment, HistoricalPrice, Prices};
+use brk_types::Timestamp;
 
 use super::historical_price;
 use crate::{
     AppState,
     extended::TransformResponseExtended,
     params::{Empty, OptionalTimestampParam},
+    request_state::RequestState,
 };
 
 pub trait GeneralRoutes {

@@ -35,13 +35,28 @@ impl Pool {
         self.slug
     }
 
+    /// Known payout addresses for pool identification
+    pub fn addrs(&self) -> &[&'static str] {
+        &self.addrs
+    }
+
+    /// Coinbase tags used to identify blocks mined by this pool
+    pub fn tags(&self) -> &[&'static str] {
+        &self.tags
+    }
+
+    /// Pool website URL
+    pub fn link(&self) -> &'static str {
+        self.link
+    }
+
     /// Pool ID matching mempool.space's `unique_id` field (0-indexed, raw pools-v2.json value)
     pub fn mempool_unique_id(&self) -> u8 {
         self.slug.into()
     }
 
     /// Pool ID matching mempool.space's `id` field (1-indexed)
-    pub(crate) fn mempool_id(&self) -> u8 {
+    pub fn mempool_id(&self) -> u8 {
         self.mempool_unique_id() + 1
     }
 }

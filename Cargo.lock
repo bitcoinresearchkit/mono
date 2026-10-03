@@ -1327,11 +1327,15 @@ dependencies = [
 name = "bitview_types"
 version = "0.12.2"
 dependencies = [
+ "bitcoin",
  "brk_types",
  "derive_more",
+ "itoa",
+ "jiff",
  "schemars",
  "serde",
  "serde_json",
+ "strum",
 ]
 
 [[package]]
@@ -1403,7 +1407,6 @@ dependencies = [
  "brk_logger",
  "brk_reader",
  "brk_rpc",
- "brk_types",
  "color-eyre",
  "lexopt",
  "owo-colors",
