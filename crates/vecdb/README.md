@@ -101,8 +101,7 @@ chance, busy sources are skipped, and a read stays uncached if two bounded passe
 cannot free enough space.
 Source writes invalidate changed suffixes and preserve unchanged prefixes.
 Successful persisted writes can extend an already-retained tail, but do not warm
-cold caches. `Budgeted::global()?.clear()` evicts retained data without changing
-source data. Missing or repeated initialization is an error; a zero-byte
+cold caches. Missing or repeated initialization is an error; a zero-byte
 budget disables retention. `NoCache` needs no initialization or global lookup.
 
 Global and per-source charges account for allocation capacity and follow buffer

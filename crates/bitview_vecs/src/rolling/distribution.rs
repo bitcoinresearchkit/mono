@@ -21,7 +21,7 @@ impl<T> RollingDistribution<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub fn forced_import(
+    pub(crate) fn forced_import(
         db: &Database,
         name: &str,
         version: Version,

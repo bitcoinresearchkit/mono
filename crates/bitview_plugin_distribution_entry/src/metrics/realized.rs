@@ -18,13 +18,13 @@ use super::Sources;
 #[derive(Traversable)]
 pub struct RealizedMetrics<M: StorageMode = Rw> {
     /// Creation-date value of this cohort's unspent outputs.
-    pub(crate) cap: LazyFiatPerBlockWithDeltas<Cents, CentsSigned, PartsPerMillionSigned64>,
+    cap: LazyFiatPerBlockWithDeltas<Cents, CentsSigned, PartsPerMillionSigned64>,
     /// Satoshi-weighted creation price of this cohort's unspent outputs.
     pub(crate) price: LazyPriceWithRatioPerBlock,
     /// Profit realized by outputs spent from this cohort.
-    pub(crate) profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Loss realized by outputs spent from this cohort.
-    pub(crate) loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Realized profit minus realized loss.
     net_pnl: LazyFiatPerBlockCumulativeWithSumsAndDeltas<
         CentsSigned,

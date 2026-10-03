@@ -10,8 +10,8 @@ use brk_error::Result;
 
 /// One rendered snapshot file, relative to `snapshots/`.
 pub struct Snapshot {
-    pub file: &'static str,
-    pub contents: String,
+    pub(crate) file: &'static str,
+    pub(crate) contents: String,
 }
 
 /// Records the snapshots as the local baseline, or with `--check` compares against it.

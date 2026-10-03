@@ -196,8 +196,8 @@ impl Region {
     }
 
     /// Appends data to the region. Not durable until `flush()`.
-    #[inline]
-    pub fn write(&self, data: &[u8]) -> Result<()> {
+    #[cfg(test)]
+    pub(crate) fn write(&self, data: &[u8]) -> Result<()> {
         self.write_with(data, None, false)
     }
 
@@ -255,75 +255,6 @@ impl Region {
             // Each exclusive borrow ends before the next callback.
             let bytes = unsafe { slice::from_raw_parts_mut(ptr.add(index * value_len), value_len) };
             write_fn(&value, bytes);
-        }
-    }
-
-    /// Writes ascending (offset, value) pairs within the region's current length.
-    /// The first and last offsets define the batch's bounds. Every write must
-    /// fall within those bounds. Both endpoints are read before the middle;
-    /// write callbacks still run in forward order.
-    /// Written bytes remain dirty if the iterator or callback panics. The callback
-    /// may read other regions, but must not write, resize, or flush this database.
-    #[inline]
-    pub fn batch_write_ordered<T, F>(
-        &self,
-        mut iter: impl DoubleEndedIterator<Item = (usize, T)>,
-        value_len: usize,
-        mut write_fn: F,
-    ) where
-        F: FnMut(&T, &mut [u8]),
-    {
-        let Some(first) = iter.next() else {
-            return;
-        };
-        let last = iter.next_back();
-        let last_offset = last.as_ref().map_or(first.0, |value| value.0);
-        let db = self.db();
-        let storage = &**db.inner;
-        let _access = self.0.access.write();
-        let _writes = storage.writes.read();
-        // SAFETY: access keeps bounds stable; the barrier prevents remapping.
-        let (region_start, region_len, _) = unsafe { self.0.bounds() };
-        let end = last_offset
-            .checked_add(value_len)
-            .expect("batch offset overflow");
-        assert!(
-            first.0 <= last_offset && end <= region_len,
-            "batch bounds exceed region"
-        );
-        // SAFETY: the barrier prevents remapping, and allocation/import validate bounds.
-        let ptr = unsafe {
-            storage
-                .data
-                .mapping()
-                .as_mut_ptr()
-                .add(region_start + first.0)
-        };
-        let _dirty = DirtyWrite {
-            region: &self.0,
-            start: first.0,
-            end,
-        };
-        let span_len = end - first.0;
-        // SAFETY: the validated span is exclusively held and cannot be remapped.
-        let bytes = unsafe { slice::from_raw_parts_mut(ptr, span_len) };
-        let mut write = |offset: usize, value: &T| {
-            let relative = offset.wrapping_sub(first.0);
-            let dst = bytes
-                .get_mut(relative..)
-                .and_then(|tail| tail.get_mut(..value_len))
-                .expect("offset outside batch bounds");
-            write_fn(value, dst);
-        };
-        write(first.0, &first.1);
-        if let Some((offset, value)) = iter.next() {
-            write(offset, &value);
-            for (offset, value) in iter {
-                write(offset, &value);
-            }
-        }
-        if let Some((offset, value)) = last {
-            write(offset, &value);
         }
     }
 

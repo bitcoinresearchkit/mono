@@ -8,10 +8,10 @@ use crate::{IndexSetPattern, to_pascal_case};
 /// Compiled, lossless catalog bindings and their structural record families.
 #[derive(Debug, Clone, Default)]
 pub struct CatalogTree {
-    pub families: Vec<CatalogFamily>,
-    pub types: Vec<CatalogType>,
-    pub nodes: Vec<CatalogNode>,
-    pub root: usize,
+    pub(crate) families: Vec<CatalogFamily>,
+    pub(crate) types: Vec<CatalogType>,
+    pub(crate) nodes: Vec<CatalogNode>,
+    pub(crate) root: usize,
 }
 
 #[derive(Default)]
@@ -24,7 +24,7 @@ struct Compiler {
 }
 
 impl CatalogTree {
-    pub fn from_catalog(catalog: &TreeNode, indexes: &[IndexSetPattern]) -> Self {
+    pub(crate) fn from_catalog(catalog: &TreeNode, indexes: &[IndexSetPattern]) -> Self {
         let mut compiler = Compiler::default();
         compiler.tree.root = compiler.compile(catalog, &mut Vec::new(), indexes);
         compiler.name_families();

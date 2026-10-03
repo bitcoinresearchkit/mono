@@ -1,4 +1,4 @@
-use std::{env, process::ExitCode, thread};
+use std::{env, process::ExitCode};
 
 use args::Args;
 use brk_error::Result;
@@ -41,12 +41,7 @@ fn run() -> Result<()> {
     let mode = Mode::pick(args.pretty, args.compact, args.paths.len())?;
     let reader = Reader::new(args.connect.blocks_dir(), &client);
     let formatter = Formatter::new(mode, args.paths);
-    let parser_threads = (thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(2)
-        / 2)
-    .max(1);
-    for block in reader.range_with(start, end, parser_threads)?.iter() {
+    for block in reader.range(start, end)?.iter() {
         let block = block?;
         let line = formatter.format(&Ctx::new(&block, network))?;
         if !line.is_empty() {

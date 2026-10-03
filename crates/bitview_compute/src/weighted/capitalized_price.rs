@@ -11,7 +11,12 @@ pub struct WeightedCapitalizedPrice {
 }
 
 impl WeightedCapitalizedPrice {
-    pub fn add(&mut self, cap: CentsSats, capitalized_cap: CentsSquaredSats, weight: BoundedRatio) {
+    pub(crate) fn add(
+        &mut self,
+        cap: CentsSats,
+        capitalized_cap: CentsSquaredSats,
+        weight: BoundedRatio,
+    ) {
         if cap == CentsSats::ZERO || weight == BoundedRatio::ZERO {
             return;
         }

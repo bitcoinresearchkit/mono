@@ -15,7 +15,7 @@ where
 {
     pub height: LazyDeltaVec<Height, S, T, Op>,
     #[traversable(flatten)]
-    pub resolutions: Box<Resolutions<T>>,
+    pub(crate) resolutions: Box<Resolutions<T>>,
 }
 
 impl<S, T, Op> LazyDeltaFromHeight<S, T, Op>

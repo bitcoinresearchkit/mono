@@ -14,7 +14,6 @@ use brk_rpc::Client;
 
 mod api;
 mod cycle;
-mod diagnostics;
 mod driver;
 mod read_only;
 mod snapshot;
@@ -24,7 +23,6 @@ mod stores;
 
 pub use api::{BlockTemplateSource, RbfForTx, RbfNode, ResolvedBlockTemplateDiff};
 pub use cycle::{Cycle, TxAdded, TxRemoved};
-pub use diagnostics::MempoolStats;
 pub use read_only::ReadOnlyMempool;
 pub use snapshot::Snapshot;
 pub use state::ReadOnlyState;
@@ -58,10 +56,5 @@ impl Mempool {
 
     pub fn read_only_clone(&self) -> ReadOnlyMempool {
         self.read_only.clone()
-    }
-
-    /// Working-cycle counters, for the update owner and CLI.
-    fn stats(&self) -> MempoolStats {
-        MempoolStats::from(self)
     }
 }

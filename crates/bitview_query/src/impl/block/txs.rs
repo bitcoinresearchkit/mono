@@ -103,7 +103,7 @@ impl Query {
 
         // ── Phase 1: Decode all transactions, collect outpoints ─────────
 
-        let txid_cursor = indexer.vecs().transactions.txid.reader().cursor();
+        let txids = indexer.vecs().transactions.txid.reader();
         let mut total_size_cursor = indexer.vecs().transactions.total_size.cursor();
         let mut sigops_cursor = indexer.vecs().transactions.total_sigop_cost.cursor();
         let mut first_txin_cursor = indexer.vecs().transactions.first_txin_index.cursor();
@@ -130,7 +130,7 @@ impl Query {
             let tx_index = indices[pos];
             let idx = tx_index.to_usize();
 
-            let txid: Txid = txid_cursor.get(idx).data()?;
+            let txid: Txid = txids.try_get_at(idx).data()?;
             let total_size: StoredU32 = total_size_cursor.get(idx).data()?;
             let total_sigop_cost: SigOps = sigops_cursor.get(idx).data()?;
             let first_txin_index: TxInIndex = first_txin_cursor.get(idx).data()?;

@@ -32,14 +32,6 @@ impl TxGraveyard {
         self.revision
     }
 
-    pub fn tombstones_len(&self) -> usize {
-        self.tombstones.len()
-    }
-
-    pub fn order_len(&self) -> usize {
-        self.order.len()
-    }
-
     pub fn get(&self, txid: &Txid) -> Option<&TxTombstone> {
         self.tombstones.get(txid)
     }

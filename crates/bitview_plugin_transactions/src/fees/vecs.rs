@@ -13,7 +13,7 @@ pub use cpfp_flags::CpfpFlags;
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    pub count: CountVecs<M>,
+    pub(crate) count: CountVecs<M>,
     /// Coinbase output sum retained from the fee pass for mining rewards.
     #[traversable(hidden)]
     pub coinbase_value: M::Stored<EagerVec<PcoVec<Height, Sats>>>,
@@ -30,7 +30,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Raw transaction fee rate in sat/vB: fee divided by virtual size and
     /// rounded upward to the nearest 0.001 sat/vB. Coinbase and zero-fee
     /// transactions are zero.
-    pub fee_rate: M::Stored<EagerVec<PcoVec<TxIndex, FeeRate>>>,
+    pub(crate) fee_rate: M::Stored<EagerVec<PcoVec<TxIndex, FeeRate>>>,
     /// Effective transaction fee rate in sat/vB after applying Bitcoin Core's
     /// Single Fee Linearization (SFL) independently to each same-block dependency
     /// component. Every transaction in an ancestor-closed SFL chunk receives
@@ -44,5 +44,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub cpfp_flags: CpfpFlags<M::Stored<EagerVec<PcoVec<TxIndex, StoredBool>>>>,
+    pub(crate) cpfp_flags: CpfpFlags<M::Stored<EagerVec<PcoVec<TxIndex, StoredBool>>>>,
 }

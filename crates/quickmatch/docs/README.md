@@ -20,7 +20,7 @@ npm install quickmatch-js
 
 ## Usage
 
-Corpus items must be lowercase ASCII, and custom separators must be ASCII.
+Corpus items must be lowercase ASCII.
 Constructors enforce these programmer preconditions with diagnostic panics;
 normalize or validate dynamic input before building a matcher. Query text is
 lowercased and non-ASCII query characters are ignored. This is not a Unicode
@@ -33,22 +33,14 @@ use quickmatch::{QuickMatch, QuickMatchConfig};
 
 let items = vec!["file_name", "file_size", "created_at", "updated_at"];
 let qm = QuickMatch::new(&items);
+let config = QuickMatchConfig::new().with_limit(5);
 
-qm.matches("file name");  // ["file_name", "file_size"]
-qm.matches("filename");   // ["file_name", "file_size"]  (compound match)
-qm.matches("filenme");    // ["file_name", "file_size"]  (trigram fuzzy)
-
-// Custom query config; results contain (item index, matched word count).
-let config = QuickMatchConfig::new()
-    .with_limit(5)
-    .with_trigram_budget(10);
+// Results contain (item index, matched word count); "filename" and "filenme"
+// also match through compound and trigram fuzzy matching.
 let results = qm.matches_with_ids_and_matched_words("file name", &config);
 
-// Owned items with custom corpus separators.
-let qm = QuickMatch::new_owned_with(
-    items.iter().map(|item| (*item).to_owned()).collect(),
-    config.with_separators(&['_', '-', ' ']),
-);
+// Whole words only, in any order.
+let exact = qm.matches_exact_with_ids_and_matched_words("name file", &config);
 ```
 
 **JavaScript**
@@ -83,14 +75,9 @@ Query words match in any order, including prefixes and joined adjacent words. Bo
 
 ## Config
 
-All options are documented in the `QuickMatchConfig` source. Builder methods:
-
-| Rust | JS | Default |
-|------|-----|---------|
-| `with_limit(n)` | `withLimit(n)` | 100 |
-| `with_trigram_budget(n)` | `withTrigramBudget(n)` | 6 |
-| `with_min_score(n)` | `withMinScore(n)` | 2 |
-| `with_separators(&[..])` | `withSeparators(s)` | `_- :/` |
+Rust exposes `with_limit(n)` (default 100) and `with_union_fallback(bool)` (default `true`).
+The trigram budget (6), minimum fuzzy score (2) and separators (`_- :/`) are fixed.
+The JS package additionally exposes `withTrigramBudget`, `withMinScore` and `withSeparators`.
 
 ## Performance
 

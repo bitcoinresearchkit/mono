@@ -18,7 +18,7 @@ pub struct LazyRollingSumsFiatFromHeight<C: FiatType>(
 );
 
 impl<C: FiatType> LazyRollingSumsFiatFromHeight<C> {
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         cumulative_cents: &impl ReadableCloneableVec<Height, C>,

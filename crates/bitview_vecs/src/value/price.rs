@@ -22,7 +22,7 @@ pub struct Price<C, U = LazyPerBlock<Dollars, Cents>, S = LazyPerBlock<SatsFract
     /// Reported in cents per BTC.
     pub cents: C,
     /// Reported in sats per USD: 100,000,000 divided by the price in USD per BTC.
-    pub sats: S,
+    pub(crate) sats: S,
 }
 
 impl Price<PerBlock<Cents>> {

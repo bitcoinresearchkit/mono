@@ -12,7 +12,7 @@ use crate::{PatternBaseResult, analysis};
 #[derive(Debug)]
 pub struct ClientMetadata {
     /// The catalog tree structure (with schemas in leaves)
-    pub catalog: TreeNode,
+    pub(crate) catalog: TreeNode,
     /// Structural patterns - tree node shapes that repeat
     pub(crate) structural_patterns: Vec<StructuralPattern>,
     /// Index set patterns - sets of indexes that appear together on series
@@ -27,7 +27,7 @@ pub struct ClientMetadata {
 
 impl ClientMetadata {
     /// Extract metadata from a catalog TreeNode directly.
-    pub fn from_catalog(catalog: TreeNode) -> Self {
+    pub(crate) fn from_catalog(catalog: TreeNode) -> Self {
         let (structural_patterns, concrete_to_pattern, concrete_to_type_param, node_bases) =
             analysis::detect_structural_patterns(&catalog);
         let index_set_patterns = analysis::detect_index_patterns(&catalog);
@@ -101,7 +101,7 @@ impl ClientMetadata {
     }
 
     /// Get the pre-computed PatternBaseResult for a tree path.
-    pub fn get_node_base(&self, path: &str) -> Option<&PatternBaseResult> {
+    pub(crate) fn get_node_base(&self, path: &str) -> Option<&PatternBaseResult> {
         self.node_bases.get(path)
     }
 

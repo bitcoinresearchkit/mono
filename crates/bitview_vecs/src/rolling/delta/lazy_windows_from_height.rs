@@ -16,11 +16,11 @@ where
 {
     /// Absolute change from the start of a trailing window through the
     /// represented block.
-    pub absolute: Windows<LazyDeltaFromHeight<S, C, DeltaChange>>,
+    absolute: Windows<LazyDeltaFromHeight<S, C, DeltaChange>>,
     /// Relative change from the start of a trailing window through the
     /// represented block, divided by the starting value. Returns zero when the
     /// starting value is zero.
-    pub rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
+    rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
 }
 
 impl<S, C, B> LazyRollingDeltasFromHeight<S, C, B>

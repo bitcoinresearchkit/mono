@@ -89,8 +89,6 @@ bitviewd = { version = "0.12.2", path = "crates/bitviewd", default-features = fa
 brk_alloc = { version = "0.12.2", path = "crates/brk_alloc" }
 brk_error = { version = "0.12.2", path = "crates/brk_error" }
 brk_exit = { version = "0.12.2", path = "crates/brk_exit" }
-brk_fetcher = { version = "0.12.2", path = "crates/brk_fetcher" }
-brk_iterator = { version = "0.12.2", path = "crates/brk_iterator" }
 brk_logger = { version = "0.12.2", path = "crates/brk_logger" }
 brk_mempool = { version = "0.12.2", path = "crates/brk_mempool" }
 brk_oracle = { version = "0.12.2", path = "crates/brk_oracle" }

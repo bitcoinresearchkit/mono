@@ -47,7 +47,7 @@ where
     }
 
     /// `version` includes the boundary mapping's schema version.
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         source: ReadableBoxedVec<S1I, S1T>,

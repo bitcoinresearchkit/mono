@@ -41,32 +41,6 @@ impl Query {
         self.addr_txs_chain_at(resolved)
     }
 
-    pub fn addr_txids(
-        &self,
-        addr: Addr,
-        after_txid: Option<Txid>,
-        limit: usize,
-    ) -> Result<Vec<Txid>> {
-        let pin = self.pin_safe_lengths()?;
-        let txindices = self.addr_txindices(&addr, after_txid, limit, &pin)?;
-        let txid_reader = self.indexer().vecs().transactions.txid.reader();
-        Ok(txindices
-            .into_iter()
-            .map(|tx_index| txid_reader.get(tx_index))
-            .collect())
-    }
-
-    fn addr_txindices(
-        &self,
-        addr: &Addr,
-        after_txid: Option<Txid>,
-        limit: usize,
-        pin: &SafeLengths,
-    ) -> Result<Vec<TxIndex>> {
-        let (output_type, type_index) = self.resolve_addr(addr)?;
-        self.addr_txindices_for(output_type, type_index, after_txid, limit, pin)
-    }
-
     fn addr_txindices_for(
         &self,
         output_type: OutputType,

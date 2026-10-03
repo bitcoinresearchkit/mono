@@ -22,7 +22,7 @@ where
     T: ComputedVecValue + JsonSchema + 'static,
     S1T: NumericValue + JsonSchema,
 {
-    pub fn from_rolling_distribution<F: UnaryTransform<S1T, T>>(
+    pub(crate) fn from_rolling_distribution<F: UnaryTransform<S1T, T>>(
         name: &str,
         version: Version,
         source: &RollingDistribution<S1T>,

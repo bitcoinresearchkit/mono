@@ -30,9 +30,6 @@ impl Creations {
     pub fn validate_version(&mut self, version: u64) -> Result<()> {
         self.journal.validate_version(version)
     }
-    pub fn seed(&mut self, height: usize) -> Result<()> {
-        self.journal.seed(height)
-    }
     pub fn truncate(&mut self, height: usize) -> Result<()> {
         self.journal.truncate(height)
     }
@@ -69,11 +66,6 @@ impl Creations {
         let mut hash = [0; 32];
         self.journal.read_prefix(height, &mut hash)?;
         Ok(hash)
-    }
-    pub fn read(&self, height: usize) -> Result<CreationRecord> {
-        let mut bytes = Vec::new();
-        self.journal.read(height, &mut bytes)?;
-        Self::decode(height, &bytes)
     }
     pub(crate) fn cursor(&self, end: usize) -> JournalReader<'_> {
         JournalReader::new(&self.journal, end)

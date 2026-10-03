@@ -69,7 +69,7 @@ impl Query {
 
     /// Resolve a transaction index to its txid and containing block height from
     /// one guarded indexer/mappings snapshot.
-    pub fn txid_and_height_by_index(&self, index: TxIndex) -> Result<(Txid, Height)> {
+    fn txid_and_height_by_index(&self, index: TxIndex) -> Result<(Txid, Height)> {
         let plugins = self.plugins();
         let pin = self.pin_safe_lengths()?;
         if index >= pin.lengths().tx_index {

@@ -19,16 +19,16 @@ use vecdb::{Budgeted, ReadableCloneableVec, Rw, StorageMode};
 pub struct AllPlugins<M: StorageMode = Rw> {
     #[traversable(flatten)]
     #[plugin_set(flatten)]
-    pub defaults: DefaultPlugins<M>,
-    pub distribution_entry: DistributionEntry<M>,
+    pub(crate) defaults: DefaultPlugins<M>,
+    distribution_entry: DistributionEntry<M>,
     #[traversable(flatten)]
-    pub distribution_profitability: DistributionProfitability<M>,
+    distribution_profitability: DistributionProfitability<M>,
 }
 
 /// A fresh offline import; the data directory lives as long as this value.
 pub struct Imported {
     pub plugins: AllPlugins,
-    pub dir: TempDir,
+    pub(crate) dir: TempDir,
 }
 
 /// Imports every plugin into a temporary directory, without a node (like bindgen).

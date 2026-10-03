@@ -11,6 +11,7 @@ use parking_lot::Mutex;
 
 pub(super) trait Reclaim: Send + Sync {
     fn try_clear(&self);
+    #[cfg(test)]
     fn clear(&self);
 }
 
@@ -33,11 +34,11 @@ impl CacheBudget {
         }
     }
 
-    pub fn limit(&self) -> usize {
+    pub(crate) fn limit(&self) -> usize {
         self.limit
     }
 
-    pub fn used(&self) -> usize {
+    pub(crate) fn used(&self) -> usize {
         self.used.load(Relaxed)
     }
 
@@ -52,7 +53,8 @@ impl CacheBudget {
     }
 
     /// Evicts retained data without invalidating the underlying source generation.
-    pub fn clear(&self) {
+    #[cfg(test)]
+    pub(crate) fn clear(&self) {
         let caches: Vec<_> = self
             .registry
             .lock()

@@ -188,5 +188,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(crate) ema_stored: EmaVecs<CachedSeries<Height, Cents, M>>,
     /// Cumulative integer-cent prices shared by all SMA windows.
     #[traversable(hidden)]
-    pub sma_prefix_sum: CachedSeries<Height, StoredU64, M>,
+    pub(crate) sma_prefix_sum: CachedSeries<Height, StoredU64, M>,
 }

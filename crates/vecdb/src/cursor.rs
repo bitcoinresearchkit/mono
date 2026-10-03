@@ -118,7 +118,7 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
     /// The last chunk may read past `n` — leftover data stays in the buffer
     /// for subsequent `next()` calls.
     #[inline]
-    pub fn fold<B>(&mut self, n: usize, init: B, mut f: impl FnMut(B, T) -> B) -> B {
+    fn fold<B>(&mut self, n: usize, init: B, mut f: impl FnMut(B, T) -> B) -> B {
         match self.try_fold(n, init, |acc, value| Ok::<_, Infallible>(f(acc, value))) {
             Ok(value) => value,
             Err(error) => match error {},
@@ -132,7 +132,7 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
     /// Returns the first error from `f`. The failing value is consumed, so the
     /// cursor resumes at the following value.
     #[inline]
-    pub fn try_fold<B, E>(
+    fn try_fold<B, E>(
         &mut self,
         n: usize,
         init: B,

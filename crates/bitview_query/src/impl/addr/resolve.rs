@@ -14,7 +14,7 @@ impl Query {
         }
     }
 
-    pub fn resolve_addr(&self, addr: &Addr) -> Result<(OutputType, TypeIndex)> {
+    pub(crate) fn resolve_addr(&self, addr: &Addr) -> Result<(OutputType, TypeIndex)> {
         let bytes = AddrBytes::from_str(addr)?;
         self.resolve_addr_bytes(&bytes)
     }

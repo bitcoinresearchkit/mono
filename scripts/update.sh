@@ -15,4 +15,4 @@ echo "Updated rust-toolchain.toml to $RUST_VERSION"
 cargo clean
 cargo upgrade --incompatible
 cargo update
-cargo build --package brk
+cargo check --workspace

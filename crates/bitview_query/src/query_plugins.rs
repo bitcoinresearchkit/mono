@@ -38,7 +38,7 @@ pub struct QueryPlugins<'a> {
     #[cfg(feature = "distribution_age")]
     pub(crate) distribution_age: &'a DistributionAge<Ro>,
     #[cfg(feature = "mappings")]
-    pub mappings: &'a Mappings<Ro>,
+    pub(crate) mappings: &'a Mappings<Ro>,
     #[cfg(feature = "blocks")]
     pub(crate) blocks: &'a Blocks<Ro>,
     #[cfg(feature = "inputs")]
@@ -48,11 +48,11 @@ pub struct QueryPlugins<'a> {
     #[cfg(feature = "outputs")]
     pub(crate) outputs: &'a Outputs<Ro>,
     #[cfg(feature = "utxo_history")]
-    pub utxo_history: &'a UtxoHistory<Ro>,
+    pub(crate) utxo_history: &'a UtxoHistory<Ro>,
     #[cfg(feature = "pools")]
     pub(crate) pools: &'a Pools<Ro>,
     #[cfg(feature = "price")]
-    pub price: &'a Price<Ro>,
+    pub(crate) price: &'a Price<Ro>,
     #[cfg(feature = "transactions")]
     pub(crate) transactions: &'a Transactions<Ro>,
     #[cfg(feature = "coinflow")]

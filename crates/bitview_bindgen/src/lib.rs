@@ -18,8 +18,7 @@ use bitview_catalog::TreeNode;
 ///     .javascript("modules/bitview-client/index.js")
 ///     .python("packages/bitview_client/__init__.py")
 ///     .llm_manifest("crates/bitview_mcp/generated/manifest.json")
-///     .llm("website")
-///     .llm("website_next");
+///     .llm("website");
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct ClientOutputPaths {
@@ -83,11 +82,11 @@ mod openapi;
 mod syntax;
 mod types;
 
-pub use analysis::*;
+pub(crate) use analysis::*;
 pub(crate) use backends::*;
 pub use catalog::*;
 pub use client_paths::*;
-pub use generators::*;
+pub(crate) use generators::*;
 pub use openapi::*;
 pub(crate) use syntax::*;
 pub use types::*;
@@ -109,8 +108,7 @@ pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
 ///     .javascript("modules/bitview-client/index.js")
 ///     .python("packages/bitview_client/__init__.py")
 ///     .llm_manifest("crates/bitview_mcp/generated/manifest.json")
-///     .llm("website")
-///     .llm("website_next");
+///     .llm("website");
 ///
 /// generate_clients(&catalog, &openapi_json, &paths)?;
 /// ```

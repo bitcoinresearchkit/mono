@@ -8,7 +8,7 @@ pub struct State {
     total: Amount,
 }
 impl State {
-    pub fn new(amounts: Vec<Amount>, hash: [u8; 32]) -> Result<Self> {
+    pub(crate) fn new(amounts: Vec<Amount>, hash: [u8; 32]) -> Result<Self> {
         let total = amounts.iter().try_fold(Amount::default(), |total, &v| {
             if v.count == 0 && v.sats != 0 {
                 return Err(invalid("supply without outputs"));
@@ -33,7 +33,7 @@ impl State {
     pub fn hash(&self) -> [u8; 32] {
         self.hash
     }
-    pub fn total(&self) -> Amount {
+    pub(crate) fn total(&self) -> Amount {
         self.total
     }
     /// A failed block never changes the state.

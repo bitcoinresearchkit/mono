@@ -8,7 +8,7 @@ pub type LazyRollingAvgFiatFromHeight<C> =
     Fiat<LazyRollingAvgFromHeight<C>, LazyPerBlock<Dollars, StoredF32>>;
 
 impl<C: FiatType> LazyRollingAvgFiatFromHeight<C> {
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         cumulative: &impl ReadableCloneableVec<Height, C>,

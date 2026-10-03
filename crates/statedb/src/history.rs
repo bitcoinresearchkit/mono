@@ -27,24 +27,13 @@ impl History {
             live: None,
         })
     }
-    pub fn set_snapshot_interval(&mut self, interval: usize) -> Result<()> {
+    #[cfg(test)]
+    pub(crate) fn set_snapshot_interval(&mut self, interval: usize) -> Result<()> {
         if interval == 0 {
             return Err(invalid("zero snapshot interval"));
         }
         self.interval = interval;
         Ok(())
-    }
-    pub fn seed(&mut self, state: &State, spends: &Spends, created: &Creations) -> Result<()> {
-        if state.len() != spends.start()
-            || state.len() != created.start()
-            || !self.snapshots.is_empty()
-        {
-            return Err(invalid("invalid origin history seed"));
-        }
-        self.snapshots.begin(state.len(), false)?;
-        self.snapshots
-            .push(state, (spends.version(), created.version()), true)?;
-        self.snapshots.finish()
     }
     pub fn reader<'a>(
         &'a self,
@@ -181,7 +170,7 @@ impl History {
         self.live = Some((state, versions));
         Ok(())
     }
-    pub(crate) fn replay(
+    fn replay(
         state: &mut State,
         end: usize,
         spends: &Spends,

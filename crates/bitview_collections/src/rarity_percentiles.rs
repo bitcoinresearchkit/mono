@@ -35,7 +35,7 @@ pub struct RarityPercentiles<T> {
     /// Uses the 90% quantile.
     pct90: T,
     /// Uses the 95% quantile.
-    pub pct95: T,
+    pct95: T,
     /// Uses the 98% quantile.
     pct98: T,
     /// Uses the 99% quantile.

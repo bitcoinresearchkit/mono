@@ -3,14 +3,14 @@ use std::io::Result;
 /// A block view into the cursor's read window; no decoded row buffer or copy.
 #[derive(Clone, Copy)]
 pub struct BlockDiff<'a> {
-    pub hash: [u8; 32],
+    pub(crate) hash: [u8; 32],
     pub created: Amount,
     pub(crate) removed_total: Amount,
     rows: &'a [u8],
     correction: Option<(u32, Amount)>,
 }
 impl<'a> BlockDiff<'a> {
-    pub fn spent(&self) -> impl ExactSizeIterator<Item = (u32, Amount)> + Clone + '_ {
+    fn spent(&self) -> impl ExactSizeIterator<Item = (u32, Amount)> + Clone + '_ {
         Spends::rows(self.rows)
     }
     pub fn removed(&self) -> impl Iterator<Item = (u32, Amount)> + Clone + '_ {

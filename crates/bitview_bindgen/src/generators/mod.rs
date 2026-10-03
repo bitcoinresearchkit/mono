@@ -10,16 +10,16 @@
 use std::{fmt::Write, fs, io, path::Path};
 
 mod cli;
-pub mod javascript;
+pub(crate) mod javascript;
 mod llm;
-pub mod python;
-pub mod rust;
+pub(crate) mod python;
+pub(crate) mod rust;
 
 pub(crate) use cli::generate_cli;
-pub use javascript::generate_javascript_client;
+pub(crate) use javascript::generate_javascript_client;
 pub(crate) use llm::generate_llm_clients;
-pub use python::generate_python_client;
-pub use rust::generate_rust_client;
+pub(crate) use python::generate_python_client;
+pub(crate) use rust::generate_rust_client;
 
 /// Types that are manually defined as generics in client code, not from schema.
 pub(crate) const MANUAL_GENERIC_TYPES: &[&str] = &["SeriesData", "SeriesEndpoint"];

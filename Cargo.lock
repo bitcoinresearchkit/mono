@@ -1466,22 +1466,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "brk"
-version = "0.12.2"
-dependencies = [
- "brk_error",
- "brk_fetcher",
- "brk_iterator",
- "brk_logger",
- "brk_mempool",
- "brk_oracle",
- "brk_reader",
- "brk_rpc",
- "brk_store",
- "brk_types",
-]
-
-[[package]]
 name = "brk_alloc"
 version = "0.12.2"
 dependencies = [
@@ -1519,17 +1503,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "brk_fetcher"
-version = "0.12.2"
-dependencies = [
- "brk_error",
- "brk_types",
- "serde_json",
- "tracing",
- "ureq",
-]
-
-[[package]]
 name = "brk_fjall"
 version = "0.12.2"
 dependencies = [
@@ -1537,16 +1510,6 @@ dependencies = [
  "flume",
  "log",
  "tempfile",
-]
-
-[[package]]
-name = "brk_iterator"
-version = "0.12.2"
-dependencies = [
- "brk_error",
- "brk_reader",
- "brk_rpc",
- "brk_types",
 ]
 
 [[package]]

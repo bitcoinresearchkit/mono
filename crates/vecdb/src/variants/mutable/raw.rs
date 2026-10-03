@@ -36,7 +36,7 @@ where
     }
 
     #[inline]
-    pub fn get_with_reader_at(&self, index: usize, reader: &V::Reader) -> Option<V::T> {
+    pub(crate) fn get_with_reader_at(&self, index: usize, reader: &V::Reader) -> Option<V::T> {
         if !self.current_holes().is_empty() && self.current_holes().contains(&index) {
             return None;
         }
@@ -57,7 +57,7 @@ where
     }
 
     #[inline]
-    pub fn delete_at(&mut self, index: usize) {
+    pub(crate) fn delete_at(&mut self, index: usize) {
         self.header().assert_writable();
         if index >= self.vec.len() {
             return;
@@ -68,14 +68,16 @@ where
         self.mut_holes().insert(index);
     }
 
-    pub fn collect_holed(&self) -> Vec<Option<V::T>> {
+    #[cfg(test)]
+    pub(crate) fn collect_holed(&self) -> Vec<Option<V::T>> {
         let reader = self.reader();
         (0..self.vec.len())
             .map(|index| self.get_with_reader_at(index, &reader))
             .collect()
     }
 
-    pub fn take_at(&mut self, index: usize, reader: &V::Reader) -> Option<V::T> {
+    #[cfg(test)]
+    fn take_at(&mut self, index: usize, reader: &V::Reader) -> Option<V::T> {
         let value = self.get_with_reader_at(index, reader);
         if value.is_some() {
             self.delete_at(index);
@@ -84,7 +86,7 @@ where
     }
 
     #[inline]
-    pub fn fill_first_hole_or_push(&mut self, value: V::T) -> Result<V::I> {
+    pub(crate) fn fill_first_hole_or_push(&mut self, value: V::T) -> Result<V::I> {
         self.header().check_writable()?;
         if let Some(index) = self.mut_holes().pop_first() {
             self.update_value_at(index, value)?;
@@ -95,7 +97,7 @@ where
     }
 
     #[inline]
-    pub fn holes(&self) -> &BTreeSet<usize> {
+    pub(crate) fn holes(&self) -> &BTreeSet<usize> {
         self.current_holes()
     }
 
@@ -104,18 +106,19 @@ where
         self.get_with_reader_at(index.to_usize(), reader)
     }
 
+    #[cfg(test)]
     #[inline]
-    pub fn update(&mut self, index: V::I, value: V::T) -> Result<()> {
+    pub(crate) fn update(&mut self, index: V::I, value: V::T) -> Result<()> {
         self.update_value_at(index.to_usize(), value)
     }
 
     #[inline]
-    pub fn update_at(&mut self, index: usize, value: V::T) -> Result<()> {
+    pub(crate) fn update_at(&mut self, index: usize, value: V::T) -> Result<()> {
         self.update_value_at(index, value)
     }
 
     #[inline]
-    pub fn delete(&mut self, index: V::I) {
+    pub(crate) fn delete(&mut self, index: V::I) {
         self.delete_at(index.to_usize());
     }
 
@@ -125,7 +128,8 @@ where
         self.vec.pushed_mut()
     }
 
-    pub fn take(&mut self, index: V::I, reader: &V::Reader) -> Option<V::T> {
+    #[cfg(test)]
+    pub(crate) fn take(&mut self, index: V::I, reader: &V::Reader) -> Option<V::T> {
         self.take_at(index.to_usize(), reader)
     }
 }

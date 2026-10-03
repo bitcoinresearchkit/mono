@@ -10,9 +10,9 @@ use crate::{IndexSources, LazyPerBlock};
 pub struct LazyBasisPointsPerBlock {
     /// Unitless ratio in basis points; 10,000 represents 1.0. Floored to whole
     /// basis points, with u32::MAX reserved for undefined values.
-    pub bps: LazyPerBlock<BasisPoints32>,
+    bps: LazyPerBlock<BasisPoints32>,
     /// Unitless decimal ratio derived as basis points divided by 10,000.
-    pub ratio: LazyPerBlock<StoredF32, BasisPoints32>,
+    ratio: LazyPerBlock<StoredF32, BasisPoints32>,
 }
 
 impl LazyBasisPointsPerBlock {

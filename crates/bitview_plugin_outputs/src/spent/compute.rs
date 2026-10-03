@@ -197,7 +197,7 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
 }
 
 /// Save undo before changing stored outputs, then make the batch durable.
-pub(super) fn checkpoint(vecs: &mut Vecs, height: Height) -> Result<()> {
+fn checkpoint(vecs: &mut Vecs, height: Height) -> Result<()> {
     vecs.txin_index
         .stamped_write_with_changes(Stamp::from(height.incremented()))?;
     vecs.txin_index.flush()?;

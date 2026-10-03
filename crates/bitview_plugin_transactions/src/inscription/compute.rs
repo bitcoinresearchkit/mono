@@ -41,7 +41,7 @@ pub fn compute(
 
 impl Vecs {
     #[allow(clippy::too_many_arguments)]
-    pub(super) fn compute_fees(
+    fn compute_fees(
         &mut self,
         starting_height: Height,
         first_tx: &impl ReadableVec<Height, TxIndex>,

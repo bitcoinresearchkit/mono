@@ -73,7 +73,7 @@ where
 
     /// Returns the persisted value at raw `index`, or `None` if out of bounds.
     #[inline(always)]
-    pub(crate) fn try_get_at(&self, index: usize) -> Option<T> {
+    fn try_get_at(&self, index: usize) -> Option<T> {
         self.compact
             .try_get_at(index)
             .map(|compact| self.decode(compact))

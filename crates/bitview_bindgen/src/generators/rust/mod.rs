@@ -2,7 +2,7 @@
 //!
 //! This module generates a Rust client with full type safety for the Bitview API.
 
-pub(crate) mod api;
+mod api;
 mod client;
 mod tree;
 mod types;
@@ -24,7 +24,7 @@ use bitview_catalog::TreeNode;
 /// Generate a Rust client directly from the source catalog and OpenAPI endpoints.
 ///
 /// `output_path` is the full path to the output file (e.g., "crates/bitview_client/src/generated.rs").
-pub fn generate_rust_client(
+pub(crate) fn generate_rust_client(
     catalog: &TreeNode,
     endpoints: &[Endpoint],
     output_path: &Path,

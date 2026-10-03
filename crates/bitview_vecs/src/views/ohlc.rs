@@ -19,7 +19,7 @@ pub struct LazyOhlcVec<I: VecIndex> {
 
 impl<I: VecIndex> LazyOhlcVec<I> {
     /// `version` includes the boundary mapping's schema version.
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         prices: &(impl ReadableCloneableVec<Height, Cents> + ?Sized),

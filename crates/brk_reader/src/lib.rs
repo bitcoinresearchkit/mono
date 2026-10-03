@@ -27,7 +27,7 @@ mod scan;
 mod xor_bytes;
 mod xor_index;
 
-pub use blk_index_to_blk_path::BlkIndexToBlkPath;
+pub(crate) use blk_index_to_blk_path::BlkIndexToBlkPath;
 pub use blk_read::BlkRead;
 pub use block_receiver::BlockReceiver;
 
@@ -83,10 +83,6 @@ impl Reader {
         self.0.xor_bytes
     }
 
-    pub fn first_block_height(&self, blk_path: &Path, xor_bytes: XORBytes) -> Result<Height> {
-        bisect::first_block_height(&self.0.client, blk_path, xor_bytes)
-    }
-
     pub fn read_raw_bytes(&self, position: BlkPosition, size: usize) -> Result<Vec<u8>> {
         let file = self.0.open_blk(position.blk_index())?;
         let mut buffer = vec![0u8; size];
@@ -98,30 +94,13 @@ impl Reader {
     /// Streams every canonical block strictly after `hash` (or from
     /// genesis when `None`) up to the current chain tip.
     pub fn after(&self, hash: Option<BlockHash>) -> Result<BlockReceiver> {
-        self.after_with(hash, pipeline::DEFAULT_PARSER_THREADS)
-    }
-
-    pub fn after_with(
-        &self,
-        hash: Option<BlockHash>,
-        parser_threads: usize,
-    ) -> Result<BlockReceiver> {
         let tip = self.0.client.get_last_height()?;
         let canonical = CanonicalRange::walk(&self.0.client, hash.as_ref(), tip)?;
-        pipeline::spawn(self.0.clone(), canonical, parser_threads)
+        pipeline::spawn(self.0.clone(), canonical, pipeline::DEFAULT_PARSER_THREADS)
     }
 
     /// Inclusive height range `start..=end` in canonical order.
     pub fn range(&self, start: Height, end: Height) -> Result<BlockReceiver> {
-        self.range_with(start, end, pipeline::DEFAULT_PARSER_THREADS)
-    }
-
-    pub fn range_with(
-        &self,
-        start: Height,
-        end: Height,
-        parser_threads: usize,
-    ) -> Result<BlockReceiver> {
         let tip = self.0.client.get_last_height()?;
         if end > tip {
             return Err(Error::OutOfRange(
@@ -129,6 +108,6 @@ impl Reader {
             ));
         }
         let canonical = CanonicalRange::between(&self.0.client, start, end)?;
-        pipeline::spawn(self.0.clone(), canonical, parser_threads)
+        pipeline::spawn(self.0.clone(), canonical, pipeline::DEFAULT_PARSER_THREADS)
     }
 }

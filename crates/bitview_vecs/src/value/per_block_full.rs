@@ -17,7 +17,7 @@ pub struct ValuePerBlockFull<M: StorageMode = Rw> {
     #[traversable(flatten)]
     inner: ValuePerBlockCumulativeRolling<M>,
     #[traversable(flatten)]
-    pub distribution: RollingDistributionValuePerBlock<M>,
+    distribution: RollingDistributionValuePerBlock<M>,
 }
 
 const VERSION: Version = Version::TWO;

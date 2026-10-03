@@ -26,7 +26,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// trailing window.
     pub(crate) tx_share: SpendableType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     #[traversable(hidden)]
-    pub input_count_stored: SpendableType<CachedSeries<Height, StoredU64, M>>,
+    pub(crate) input_count_stored: SpendableType<CachedSeries<Height, StoredU64, M>>,
     #[traversable(hidden)]
     pub(crate) tx_count_stored: SpendableType<CachedSeries<Height, StoredU64, M>>,
 }

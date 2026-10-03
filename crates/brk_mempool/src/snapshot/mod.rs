@@ -26,11 +26,11 @@ pub use tx_index::TxIndex;
 pub struct Snapshot {
     /// Dense per-tx data indexed by `TxIndex`. Each entry carries the
     /// linearized chunk rate plus parent/child adjacency.
-    pub txs: Vec<SnapTx>,
+    txs: Vec<SnapTx>,
     /// Projected blocks. `blocks[0]` is Core's `getblocktemplate`
     /// (Bitcoin Core's actual selection). The rest are greedy-packed
     /// by descending chunk rate, with a final overflow block.
-    pub blocks: Vec<Vec<TxIndex>>,
+    pub(crate) blocks: Vec<Vec<TxIndex>>,
     pub(crate) block_stats: Vec<BlockStats>,
     pub fees: RecommendedFees,
     min_fee: FeeRate,

@@ -1,17 +1,13 @@
 use std::{thread::sleep, time::Duration};
 
 use bitcoin::{
-    Block, BlockHash as BitcoinBlockHash, Network, Transaction, Txid as BitcoinTxid,
-    consensus::encode,
+    BlockHash as BitcoinBlockHash, Network, Transaction, Txid as BitcoinTxid, consensus::encode,
 };
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, FeeRate, Height, MempoolEntryInfo, Txid};
 use corepc_jsonrpc::error::Error as JsonRpcError;
 use corepc_types::{
-    v17::{
-        GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate, GetBlockVerboseOne,
-        GetBlockVerboseZero,
-    },
+    v17::{GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate, GetBlockVerboseOne},
     v24::GetMempoolInfo,
     v28::GetBlockchainInfo,
 };
@@ -60,7 +56,7 @@ impl Client {
     }
 
     /// Returns the numbers of block in the longest chain.
-    pub fn get_block_count(&self) -> Result<u64> {
+    fn get_block_count(&self) -> Result<u64> {
         let r: GetBlockCount = self.0.call_with_retry("getblockcount", &NO_ARGS)?;
         Ok(r.0)
     }
@@ -69,17 +65,6 @@ impl Client {
     pub fn get_last_height(&self) -> Result<Height> {
         self.get_block_count().map(Height::from)
     }
-
-    pub fn get_block<'a, H>(&self, hash: &'a H) -> Result<Block>
-    where
-        &'a H: Into<&'a BitcoinBlockHash>,
-    {
-        let hash: &BitcoinBlockHash = hash.into();
-        let r: GetBlockVerboseZero = self.0.call_with_retry("getblock", &(hash, 0u8))?;
-        r.block()
-            .map_err(|e| Error::Parse(format!("decode getblock: {e}")))
-    }
-
     pub fn get_block_info<'a, H>(&self, hash: &'a H) -> Result<GetBlockVerboseOne>
     where
         &'a H: Into<&'a BitcoinBlockHash>,
@@ -95,16 +80,6 @@ impl Client {
         let hash: &BitcoinBlockHash = hash.into();
         self.0.call_with_retry("getblockheader", &(hash,))
     }
-
-    pub fn get_block_hash<H>(&self, height: H) -> Result<BlockHash>
-    where
-        H: Into<u64> + Copy,
-    {
-        let height: u64 = height.into();
-        let hash: BitcoinBlockHash = self.0.call_with_retry("getblockhash", &(height,))?;
-        Ok(BlockHash::from(hash))
-    }
-
     /// Get every canonical block hash for the inclusive height range
     /// `start..=end` in a single JSON-RPC batch request. Returns hashes
     /// in canonical order (`start`, `start+1`, …, `end`). Use this

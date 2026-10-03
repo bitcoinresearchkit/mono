@@ -22,7 +22,7 @@ impl WeightedCohortState {
     }
 
     #[inline]
-    pub fn add(
+    pub(crate) fn add(
         &mut self,
         total_supply: Sats,
         loss_supply: Sats,

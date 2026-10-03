@@ -1,35 +1,32 @@
-use crate::{
-    CachedRangeMapCursor, RangeMapCursor,
-    cached_cursor::{LookupCache, cached_get, empty_cache},
-};
+use std::marker::PhantomData;
+
+use crate::RangeMapCursor;
 
 /// Maps ranges of indices to values for efficient reverse lookups.
 ///
 /// Stores first_index values in a sorted Vec and uses binary search
 /// to find the value for any index. The value is derived from the position.
-///
-/// Includes a direct-mapped cache for O(1) floor lookups when there's locality.
 pub struct RangeMap<I, V> {
     first_indexes: Vec<I>,
-    cache: LookupCache<I, V>,
+    value: PhantomData<fn() -> V>,
 }
 
-impl<I: Default + Copy, V: Default + Copy> Clone for RangeMap<I, V> {
+impl<I: Clone, V> Clone for RangeMap<I, V> {
     fn clone(&self) -> Self {
         Self::from(self.first_indexes.clone())
     }
 }
 
-impl<I: Default + Copy, V: Default + Copy> From<Vec<I>> for RangeMap<I, V> {
+impl<I, V> From<Vec<I>> for RangeMap<I, V> {
     fn from(first_indexes: Vec<I>) -> Self {
         Self {
             first_indexes,
-            cache: empty_cache(),
+            value: PhantomData,
         }
     }
 }
 
-impl<I: Default + Copy, V: Default + Copy> Default for RangeMap<I, V> {
+impl<I, V> Default for RangeMap<I, V> {
     fn default() -> Self {
         Self::from(Vec::new())
     }
@@ -47,18 +44,9 @@ impl<I, V> RangeMap<I, V> {
         &self.first_indexes
     }
 
-    /// Truncate to `new_len` ranges and clear the cache.
+    /// Truncate to `new_len` ranges.
     pub fn truncate(&mut self, new_len: usize) {
-        if new_len < self.len() {
-            self.first_indexes.truncate(new_len);
-            self.clear_cache();
-        }
-    }
-
-    fn clear_cache(&mut self) {
-        for entry in self.cache.iter_mut() {
-            entry.3 = false;
-        }
+        self.first_indexes.truncate(new_len);
     }
 }
 
@@ -66,7 +54,7 @@ impl<I: Ord + Copy, V> RangeMap<I, V> {
     /// Push a new first_index. Value is implicitly the current length.
     /// Must be called in order (first_index must be >= all previous).
     #[inline]
-    pub fn push(&mut self, first_index: I) {
+    fn push(&mut self, first_index: I) {
         debug_assert!(
             self.first_indexes
                 .last()
@@ -86,26 +74,14 @@ impl<I: Ord + Copy, V> RangeMap<I, V> {
     }
 }
 
-impl<I: Ord + Copy + Default + Into<usize>, V: From<usize> + Copy + Default> RangeMap<I, V> {
+impl<I: Ord + Copy, V: From<usize>> RangeMap<I, V> {
     /// Request-local floor lookup hint. The shared borrow prevents mutations
     /// from invalidating a remembered interval.
     pub fn cursor(&self) -> RangeMapCursor<'_, I, V> {
         RangeMapCursor::new(self)
     }
 
-    /// Compute-local cache for interleaved lookups without cloning boundaries.
-    pub fn cached_cursor(&self) -> CachedRangeMapCursor<'_, I, V> {
-        CachedRangeMapCursor::new(self)
-    }
-
-    /// Floor: returns the value (position) of the largest first_index <= given index.
-    #[inline]
-    pub fn get(&mut self, index: I) -> Option<V> {
-        cached_get(&self.first_indexes, &mut self.cache, index)
-    }
-
-    /// Shared (immutable) floor lookup — binary search only, no cache update.
-    /// Use when you only have `&self` (e.g. read-only clones in the query layer).
+    /// Floor lookup by binary search.
     #[inline]
     pub fn get_shared(&self, index: I) -> Option<V> {
         if self.first_indexes.is_empty() {

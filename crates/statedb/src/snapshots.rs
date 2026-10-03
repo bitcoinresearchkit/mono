@@ -130,9 +130,6 @@ impl Snapshots {
             .rev()
             .map(move |&e| self.read(e, versions))
     }
-    pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
-    }
     pub fn begin(&mut self, start: usize, include_start: bool) -> Result<()> {
         self.healthy()?;
         if !self.writable {

@@ -14,7 +14,7 @@ use crate::{IndexSources, LazyPercentPerBlock, LazyPercentRollingWindows};
 #[derive(Clone, Traversable)]
 pub struct LazyPercentCumulativeRolling<B: FixedRatio> {
     #[traversable(flatten)]
-    pub cumulative: LazyPercentPerBlock<B>,
+    cumulative: LazyPercentPerBlock<B>,
     #[traversable(flatten)]
     rolling: LazyPercentRollingWindows<B>,
 }

@@ -26,7 +26,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// coinbase transactions.
     pub(crate) tx_share: ByType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     #[traversable(hidden)]
-    pub output_count_stored: ByType<CachedSeries<Height, StoredU64, M>>,
+    pub(crate) output_count_stored: ByType<CachedSeries<Height, StoredU64, M>>,
     #[traversable(hidden)]
     pub(crate) tx_count_stored: ByType<CachedSeries<Height, StoredU64, M>>,
 }

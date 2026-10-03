@@ -22,7 +22,7 @@ where
     /// Relative change from the start of a trailing window through the
     /// represented block, divided by the starting value. Returns zero when the
     /// starting value is zero.
-    pub rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
+    rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
 }
 
 impl<S, C, B> LazyRollingDeltasFiatFromHeight<S, C, B>

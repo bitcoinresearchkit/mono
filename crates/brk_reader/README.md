@@ -61,9 +61,8 @@ Each `ReadBlock` gives you access to:
 Two strategies, picked per call:
 
 * **forward** — one reader thread walks blk files in order from a
-  bisection lower bound, ships canonical hits to a parser pool of `N`
-  threads (default `N = 1`, configurable via `after_with` /
-  `range_with`), which decode bodies in parallel and emit in-order.
+  bisection lower bound and ships canonical hits to a parser thread,
+  which decodes bodies and emits them in order.
 * **tail** — single-threaded reverse scan of the newest blk files,
   used when the requested range sits within ~8 files of the chain
   tip. Avoids the forward pipeline's bisection + 21-file backoff

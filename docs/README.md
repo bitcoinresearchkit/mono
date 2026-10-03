@@ -2,7 +2,6 @@
 
 [![MIT Licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/bitcoinresearchkit/brk/blob/main/LICENSE)
 [![Bitview](https://img.shields.io/crates/v/bitviewd.svg?label=bitviewd)](https://crates.io/crates/bitviewd)
-[![BRK](https://img.shields.io/crates/v/brk.svg?label=brk)](https://crates.io/crates/brk)
 [![Supported by OpenSats](https://img.shields.io/badge/supported%20by-opensats-ff7b00)](https://opensats.org/)
 [![Discord](https://img.shields.io/discord/1350431684562124850?label=Discord&logo=discord&color=5865F2)](https://discord.gg/WACpShCB7M)
 
@@ -45,7 +44,7 @@ See [Architecture](./ARCHITECTURE.md) for the component and data-flow details.
 
 | Path | Purpose |
 |---|---|
-| [`crates/brk`](../crates/brk) and `crates/brk_*` | BRK umbrella crate and reusable Bitcoin primitives |
+| `crates/brk_*` | Reusable Bitcoin primitives |
 | `crates/bitview_plugin_*` | Official indexing and analytics plugins |
 | `crates/bitview*` | Plugin contract, runtime, composition, query/server stack, daemon, code generation, and Rust clients |
 | `crates/{vecdb,rawdb,byteview,fjall,lsm-tree}` | Storage and data infrastructure |
@@ -99,15 +98,16 @@ initial sync, storage, and custom compositions.
 
 ## Build with BRK
 
-Use the umbrella crate for BRK primitives without the full Bitview application:
+Use the BRK crates directly for primitives without the full Bitview application:
 
 ```toml
 [dependencies]
-brk = { version = "0.12", features = ["reader", "rpc", "types"] }
+brk_reader = "0.12"
+brk_rpc = "0.12"
+brk_types = "0.12"
 ```
 
-See the [`brk` crate guide](../crates/brk) for its feature map. For a new
-Bitview metric or composition, start with the
+For a new Bitview metric or composition, start with the
 [custom plugin example](../examples/custom_plugin) and the
 [`bitview_plugin` contract](../crates/bitview_plugin).
 
@@ -125,7 +125,6 @@ cargo test --workspace
 - [Architecture](./ARCHITECTURE.md)
 - [Changelog](./CHANGELOG.md)
 - [Self-hosting](../crates/bitviewd)
-- [BRK crates](../crates/brk)
 - [Plugin contract](../crates/bitview_plugin)
 - [Custom plugin example](../examples/custom_plugin)
 - [Professional hosting](./PROFESSIONAL_HOSTING.md)

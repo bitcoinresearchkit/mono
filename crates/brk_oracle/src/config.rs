@@ -46,7 +46,7 @@ impl Config {
     /// octave-locks onto in the thin pre-2018 output mix. Window grows to 40 to
     /// hold the decay, and a shape-anchoring restoring force (`shape_weight`)
     /// pulls the pick toward the octave whose arm-shape looks like real payments.
-    pub(crate) fn slow() -> Self {
+    fn slow() -> Self {
         Self {
             alpha: 0.10,
             window_size: 40,

@@ -76,10 +76,8 @@ error; valid-looking data corruption cannot be detected by rawdb.
   Allocation changes are serialized. Flush and compaction exclude mutations,
   while ordinary reads can continue.
 - Batch callbacks must not reenter their region or resize/flush the database.
-  They may read other regions while file growth waits. Ordered batches use a
-  double-ended iterator: the first and last items establish the writable span
-  before callbacks run in forward order. Each write is checked against that
-  span, which remains dirty if an iterator or callback panics.
+  They may read other regions while file growth waits. Written bytes remain
+  dirty if a callback panics.
 - Keep a `Database` alive while using region handles. A `Reader` owns the
   database and region handles needed for its own lifetime. Release metadata and
   read guards before requesting conflicting operations.

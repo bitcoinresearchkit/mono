@@ -12,7 +12,7 @@ use vecdb::{BinaryTransform, ReadableCloneableVec};
 
 #[derive(Clone, Traversable)]
 pub struct SupplyBase {
-    pub total: LazySpotValuePerBlock,
+    total: LazySpotValuePerBlock,
     pub delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
     #[traversable(rename = "dominance")]
     pub dominance: LazyPercentPerBlock<PartsPerMillion32>,

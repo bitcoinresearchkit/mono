@@ -3,7 +3,7 @@ use std::{collections::VecDeque, sync::Arc};
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, NextBlockHash, Transaction};
 
-use crate::{MempoolStats, Snapshot};
+use crate::Snapshot;
 
 use super::{Pool, State};
 
@@ -19,7 +19,6 @@ pub struct ReadOnlyState {
     projection: Arc<Snapshot>,
     projection_tip: Option<BlockHash>,
     history: VecDeque<(NextBlockHash, Arc<[Arc<Transaction>]>)>,
-    stats: MempoolStats,
 }
 
 impl ReadOnlyState {
@@ -29,7 +28,6 @@ impl ReadOnlyState {
         tip: BlockHash,
         graph: Arc<Snapshot>,
         membership_complete: bool,
-        stats: MempoolStats,
     ) -> Option<Self> {
         let pool_changed = membership_complete
             && !self
@@ -38,7 +36,7 @@ impl ReadOnlyState {
                 .is_some_and(|pool| pool.matches(state, &tip, &graph));
         let projection_changed = graph.ensure_projection().is_ok()
             && (self.projection_tip != Some(tip) || !Arc::ptr_eq(&self.projection, &graph));
-        if !pool_changed && !projection_changed && self.stats == stats {
+        if !pool_changed && !projection_changed {
             return None;
         }
         let mut next = self.clone();
@@ -61,7 +59,6 @@ impl ReadOnlyState {
             next.projection = graph;
             next.projection_tip = Some(tip);
         }
-        next.stats = stats;
         Some(next)
     }
 
@@ -70,13 +67,8 @@ impl ReadOnlyState {
     }
 
     /// Last valid template projection; its source may be newer than retained membership.
-    pub fn snapshot(&self) -> Arc<Snapshot> {
+    pub(crate) fn snapshot(&self) -> Arc<Snapshot> {
         self.projection.clone()
-    }
-
-    /// Writer counters from the last coherent cycle, including incomplete fetch progress.
-    pub fn stats(&self) -> MempoolStats {
-        self.stats.clone()
     }
 
     pub(crate) fn historical_block0(&self, hash: NextBlockHash) -> Option<Arc<[Arc<Transaction>]>> {

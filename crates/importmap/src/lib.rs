@@ -33,7 +33,7 @@ impl ImportMap {
     const MARKER_CLOSE: &str = "<!-- /IMPORTMAP -->";
 
     /// Create an empty import map (useful for dev mode).
-    pub fn empty() -> Self {
+    fn empty() -> Self {
         Self::default()
     }
 

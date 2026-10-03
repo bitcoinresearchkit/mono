@@ -28,7 +28,6 @@ let paths = ClientOutputPaths::new()
     .javascript("modules/bitview-client/index.js")
     .python("packages/bitview_client/bitview_client/__init__.py")
     .llm("website")
-    .llm("website_next")
     .llm_manifest("crates/bitview_mcp/generated/manifest.json");
 
 generate_clients(&catalog, &openapi_json, &paths)?;

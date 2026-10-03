@@ -12,5 +12,5 @@ use names::*;
 pub(crate) use patterns::*;
 pub(crate) use positions::*;
 use tree::get_shortest_leaf_name;
-pub use tree::{PatternBaseResult, detect_index_patterns};
+pub(crate) use tree::{PatternBaseResult, detect_index_patterns};
 pub(crate) use tree::{get_fields_with_child_info, get_node_fields};

@@ -7,9 +7,3 @@ pub mod conversions;
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[must_use = "Stamp values should be used for tracking"]
 pub struct Stamp(u64);
-
-impl Stamp {
-    pub fn new(stamp: u64) -> Self {
-        Self(stamp)
-    }
-}

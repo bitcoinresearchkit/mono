@@ -156,40 +156,6 @@ where
         self.base.reserve_pushed(additional);
     }
 
-    #[inline]
-    pub fn fold_stored_io<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        f: F,
-    ) -> B {
-        let stored_len = self.stored_len();
-        let from = from.min(stored_len);
-        let to = to.min(stored_len);
-        if from >= to {
-            return init;
-        }
-        CompressedIoSource::new(self, from, to).fold(init, f)
-    }
-
-    #[inline]
-    pub fn fold_stored_mmap<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        f: F,
-    ) -> B {
-        let stored_len = self.stored_len();
-        let from = from.min(stored_len);
-        let to = to.min(stored_len);
-        if from >= to {
-            return init;
-        }
-        CompressedMmapSource::new(self, from, to).fold(init, f)
-    }
-
     pub const PER_PAGE: usize = COMPRESSED_PAGE_SIZE / size_of::<T>();
 
     #[inline]

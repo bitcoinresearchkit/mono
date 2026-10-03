@@ -13,7 +13,7 @@ where
     C: AmountType,
 {
     /// Reported in BTC; one BTC equals 100,000,000 satoshis.
-    pub btc: LazyPerBlock<Bitcoin, C>,
+    pub(crate) btc: LazyPerBlock<Bitcoin, C>,
     /// Reported in satoshis.
-    pub sats: LazyDeltaFromHeight<S, C, DeltaChange>,
+    pub(crate) sats: LazyDeltaFromHeight<S, C, DeltaChange>,
 }

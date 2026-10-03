@@ -54,7 +54,7 @@ impl RegionMetadata {
         self.len = len;
     }
 
-    pub fn reserved(&self) -> usize {
+    pub(crate) fn reserved(&self) -> usize {
         self.reserved
     }
 

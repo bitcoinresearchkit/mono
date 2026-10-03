@@ -23,7 +23,7 @@ where
 {
     pub block: PerBlockDistribution<T, M>,
     /// Uses the six-block window ending at the represented block.
-    pub _6b: PerBlockDistribution<T, M>,
+    pub(crate) _6b: PerBlockDistribution<T, M>,
 }
 
 impl<T> TxDerivedDistribution<T>
@@ -60,7 +60,7 @@ where
         )
     }
 
-    pub fn derive_from_with_skip(
+    pub(crate) fn derive_from_with_skip(
         &mut self,
         indexes: &IndexSources,
         starting_lengths: &Lengths,
@@ -95,7 +95,7 @@ where
     /// Like `derive_from_with_skip` but uses vsize-weighted percentiles for both
     /// the per-block and rolling six-block distributions.
     #[allow(clippy::too_many_arguments)]
-    pub fn derive_from_with_skip_weighted(
+    pub(crate) fn derive_from_with_skip_weighted(
         &mut self,
         indexes: &IndexSources,
         starting_lengths: &Lengths,

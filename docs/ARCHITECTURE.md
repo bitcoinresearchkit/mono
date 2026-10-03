@@ -27,8 +27,8 @@ MCP clients -------------------------------> MCP adapter ------------------|
 - [`brk_types`](../crates/brk_types), [`brk_store`](../crates/brk_store), and
   [`vecdb`](../crates/vecdb) provide the shared domain and storage primitives.
 
-These crates can be used independently through the [`brk`](../crates/brk)
-umbrella crate. They do not require the Bitview application.
+These crates can be used independently; they do not require the Bitview
+application.
 
 ### Plugin platform
 

@@ -18,10 +18,6 @@ impl AddrTracker {
         self.0.get(addr).map(Arc::as_ref)
     }
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
     pub fn add_tx(&mut self, transitions: &mut AddrTransitions, tx: &Transaction) {
         let txid = &tx.txid;
         for txin in &tx.input {

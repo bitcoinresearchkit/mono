@@ -198,11 +198,6 @@ impl Journal {
         }
         Ok((start, end))
     }
-    pub fn read(&self, height: usize, bytes: &mut Vec<u8>) -> Result<()> {
-        let (start, end) = self.bounds(height)?;
-        bytes.resize((end - start) as usize, 0);
-        self.data.get_ref().read_exact_at(bytes, start)
-    }
     pub(crate) fn read_prefix(&self, height: usize, bytes: &mut [u8]) -> Result<()> {
         let (start, end) = self.bounds(height)?;
         if end - start < bytes.len() as u64 {
@@ -335,17 +330,6 @@ impl Journal {
             self.poisoned = true;
         }
         result
-    }
-    pub fn seed(&mut self, base: usize) -> Result<()> {
-        if self._lock.is_none() {
-            return Err(invalid("read-only journal"));
-        }
-        self.healthy()?;
-        if self.len() != 0 || base > u32::MAX as usize {
-            return Err(invalid("seed requires an empty journal"));
-        }
-        self.base = base;
-        self.commit_inner(true)
     }
     pub fn validate_version(&mut self, version: u64) -> Result<()> {
         if self._lock.is_none() {

@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use crate::{BytesStrategy, BytesVecValue, VecIndex, VecReader, VecReaderCursor};
+use crate::{BytesStrategy, BytesVecValue, VecIndex, VecReader};
 
 pub struct BytesVecReader<I, T>(VecReader<I, T, BytesStrategy<T>>)
 where
@@ -15,12 +15,6 @@ where
     #[doc(hidden)]
     pub(crate) fn new(reader: VecReader<I, T, BytesStrategy<T>>) -> Self {
         Self(reader)
-    }
-
-    /// Creates an allocation-free cursor over the persisted values.
-    #[inline]
-    pub fn cursor(self) -> VecReaderCursor<I, T, BytesStrategy<T>> {
-        self.0.cursor()
     }
 }
 

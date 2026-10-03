@@ -17,7 +17,7 @@ pub(crate) mod types;
 /// Generate JavaScript + JSDoc client from metadata and OpenAPI endpoints.
 ///
 /// `output_path` is the full path to the output file (e.g., "modules/bitview-client/index.js").
-pub fn generate_javascript_client(
+pub(crate) fn generate_javascript_client(
     metadata: &ClientMetadata,
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,

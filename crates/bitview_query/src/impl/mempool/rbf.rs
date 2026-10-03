@@ -39,7 +39,7 @@ impl Query {
     }
 
     /// Enrich an already resolved tree without repeating its mempool lookup.
-    pub fn tx_rbf_resolved(&self, rbf: ResolvedRbf) -> Result<RbfResponse> {
+    fn tx_rbf_resolved(&self, rbf: ResolvedRbf) -> Result<RbfResponse> {
         if rbf.source.is_empty() {
             return Ok(RbfResponse::EMPTY);
         }
@@ -69,7 +69,7 @@ impl Query {
     /// `GET /api/v1/replacements` and `GET /api/v1/fullrbf/replacements`.
     /// Most-recent first, capped at 25. `full_rbf_only` keeps only
     /// trees with at least one non-signaling predecessor.
-    pub fn recent_replacements(&self, full_rbf_only: bool) -> Result<Vec<ReplacementNode>> {
+    fn recent_replacements(&self, full_rbf_only: bool) -> Result<Vec<ReplacementNode>> {
         let _publication = self.read_publication()?;
         let read = self.read_indexer()?;
         let trees = self.require_mempool()?.recent_rbf_trees(

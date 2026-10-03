@@ -12,10 +12,10 @@ use crate::{
 pub struct LazyFiatPerBlockCumulativeWithSums<C: FiatType> {
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
-    pub block: LazyFiatBlock<C>,
+    block: LazyFiatBlock<C>,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
-    pub cumulative: LazyFiatPerBlock<C>,
+    pub(crate) cumulative: LazyFiatPerBlock<C>,
     pub sum: LazyRollingSumsFiatFromHeight<C>,
 }
 

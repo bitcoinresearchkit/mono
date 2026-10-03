@@ -1,4 +1,4 @@
-use crate::{Amount, Creations, History, Spends, State, View};
+use crate::{Amount, Creations, History, Spends, View};
 use std::{
     fs::{self},
     io::{Error, Result},
@@ -154,50 +154,36 @@ fn reorg_rebuilds_from_ancestor_and_rejects_mixed_producer_chains() {
 }
 
 #[test]
-fn seeded_history_has_no_invented_prefix_and_source_versions_invalidate_snapshots() {
+fn source_versions_invalidate_snapshots() {
     let root = tempdir().unwrap();
     let mut spends = Spends::open(root.path()).unwrap();
     let mut created = Creations::open(root.path()).unwrap();
     let mut history = History::open(root.path()).unwrap();
-    spends.seed(3).unwrap();
-    created.seed(3).unwrap();
     spends.validate_version(7).unwrap();
     created.validate_version(8).unwrap();
-    history
-        .seed(
-            &State::new(vec![amount(10, 1); 3], block(2)).unwrap(),
-            &spends,
-            &created,
-        )
-        .unwrap();
-    assert!(
-        history
-            .reader(&spends, &created)
-            .and_then(|reader| reader.state_at(2))
-            .is_err()
-    );
-    spends.push(block(3), []).unwrap();
-    created.push(block(3), amount(2, 1), None).unwrap();
+    for height in 0..2 {
+        spends.push(block(height), []).unwrap();
+        created.push(block(height), amount(10, 1), None).unwrap();
+    }
     spends.commit().unwrap();
     created.commit().unwrap();
     history
-        .advance(3, 4, &spends, &created, |_, _| Ok(()))
+        .advance(0, 2, &spends, &created, |_, _| Ok(()))
         .unwrap();
     assert_eq!(
         history
             .reader(&spends, &created)
-            .and_then(|reader| reader.state_at(4))
+            .and_then(|reader| reader.state_at(2))
             .unwrap()
             .total(),
-        amount(32, 4)
+        amount(20, 2)
     );
     spends.validate_version(9).unwrap();
-    assert_eq!(spends.start(), 0);
     assert_eq!(history.reader(&spends, &created).unwrap().len(), 0);
     assert!(
         history
             .reader(&spends, &created)
-            .and_then(|reader| reader.state_at(4))
+            .and_then(|reader| reader.state_at(2))
             .is_err()
     );
 }

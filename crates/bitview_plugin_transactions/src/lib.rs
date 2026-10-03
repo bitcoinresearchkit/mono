@@ -47,7 +47,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     size: UtxosVecs<M>,
     pub fees: FeesVecs<M>,
     inscription: InscriptionVecs<M>,
-    pub patterns: PatternsVecs<M>,
+    patterns: PatternsVecs<M>,
     /// BRK's transaction-local approximation of default Bitcoin Core relay
     /// standardness at the represented block height. It checks version,
     /// size and weight, scripts and witnesses, signature-operation limits,

@@ -30,9 +30,6 @@ impl Spends {
     pub fn validate_version(&mut self, version: u64) -> Result<()> {
         self.journal.validate_version(version)
     }
-    pub fn seed(&mut self, height: usize) -> Result<()> {
-        self.journal.seed(height)
-    }
     pub fn truncate(&mut self, height: usize) -> Result<()> {
         self.journal.truncate(height)
     }

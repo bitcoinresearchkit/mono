@@ -44,7 +44,7 @@ where
 {
     const SIZE_OF_T: usize = size_of::<T>();
 
-    pub fn read_only_clone(&self) -> ReadOnlyRawVec<I, T, S, C> {
+    pub(crate) fn read_only_clone(&self) -> ReadOnlyRawVec<I, T, S, C> {
         ReadOnlyRawVec {
             base: self.base.read_only_base(),
             cache: self.cache.clone(),
@@ -185,38 +185,6 @@ where
             return self.base.pushed().get(index - stored_len).cloned();
         }
         Some(reader.get_at(index))
-    }
-
-    pub fn fold_stored_io<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        f: F,
-    ) -> B {
-        let stored_len = self.stored_len();
-        let from = from.min(stored_len);
-        let to = to.min(stored_len);
-        if from >= to {
-            return init;
-        }
-        RawIoSource::new(self, from, to).fold(init, f)
-    }
-
-    pub fn fold_stored_mmap<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        f: F,
-    ) -> B {
-        let stored_len = self.stored_len();
-        let from = from.min(stored_len);
-        let to = to.min(stored_len);
-        if from >= to {
-            return init;
-        }
-        RawMmapSource::new(self, from, to).fold(init, f)
     }
 
     pub(crate) fn base(&self) -> &ReadWriteBaseVec<I, T> {

@@ -9,7 +9,7 @@ pub struct CohortState<R: RealizedOps, C: CostBasisOps> {
     pub supply: SupplyState,
     pub realized: R,
     pub sent: Sats,
-    pub spent_utxo_count: u64,
+    pub(crate) spent_utxo_count: u64,
     pub(crate) satdays_destroyed: Sats,
     pub(crate) cost_basis: C,
 }

@@ -9,7 +9,7 @@ use vecdb::{ReadableVec, VecIndex};
 use crate::{Query, RepresentationId};
 
 impl Query {
-    pub fn outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
+    fn outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
         let _guard = self.read_publication()?;
         let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid) {
             Ok(outputs) => outputs,
@@ -44,7 +44,7 @@ impl Query {
         Ok((bytes, identity))
     }
 
-    pub fn outspends(&self, txid: &Txid) -> Result<Vec<TxOutspend>> {
+    fn outspends(&self, txid: &Txid) -> Result<Vec<TxOutspend>> {
         let _guard = self.read_publication()?;
         let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid) {
             Ok(outputs) => outputs,

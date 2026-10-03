@@ -9,13 +9,11 @@ use crate::RangeMap;
 #[derive(Clone)]
 pub struct SharedRangeMap<I, V>(Arc<RwLock<RangeMap<I, V>>>);
 
-impl<I: Default + Copy, V: Default + Copy> SharedRangeMap<I, V> {
+impl<I, V> SharedRangeMap<I, V> {
     pub fn new(first_indexes: Vec<I>) -> Self {
         Self(Arc::new(RwLock::new(RangeMap::from(first_indexes))))
     }
-}
 
-impl<I, V> SharedRangeMap<I, V> {
     pub fn read(&self) -> RwLockReadGuard<'_, RangeMap<I, V>> {
         self.0.read_recursive()
     }

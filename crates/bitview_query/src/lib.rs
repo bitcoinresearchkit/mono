@@ -48,7 +48,6 @@ mod query_plugin_set;
 #[cfg(feature = "indexer")]
 mod query_plugins;
 mod representation_id;
-mod series_output;
 #[cfg(feature = "series")]
 mod vecs;
 
@@ -81,7 +80,6 @@ pub use query_plugin_set::{
 #[cfg(feature = "indexer")]
 pub use query_plugins::QueryPlugins;
 pub use representation_id::RepresentationId;
-pub use series_output::*;
 #[cfg(feature = "series")]
 pub use vecs::{ResolvedSeriesInfo, SeriesEntry, Vecs};
 
@@ -111,7 +109,7 @@ impl Query {
     const UPDATE_WAIT_TIMEOUT: Duration = Duration::from_secs(4);
 
     /// A cheap request-local view; shared data and publication guards are unchanged.
-    pub fn with_deadline(&self, deadline: Instant) -> Self {
+    fn with_deadline(&self, deadline: Instant) -> Self {
         Self(Arc::clone(&self.0), Some(deadline))
     }
 
@@ -154,7 +152,7 @@ impl Query {
     /// it for the process lifetime. The series API also builds a catalog that
     /// borrows this composition. A daemon should call this once; repeated or
     /// multi-instance construction is outside this API's lifecycle contract.
-    pub fn build<P>(plugins: &P, _mempool: Option<ReadOnlyMempool>) -> Self
+    fn build<P>(plugins: &P, _mempool: Option<ReadOnlyMempool>) -> Self
     where
         P: ReadOnlyClone,
         P::ReadOnly: QueryPluginSet + 'static,
@@ -188,7 +186,7 @@ impl Query {
     /// committed, so the highest is `N-1`. Pre-genesis (`N == 0`) falls
     /// back to `Height::default()` and clients treat it as "nothing
     /// indexed yet".
-    pub fn height(&self) -> Height {
+    fn height(&self) -> Height {
         self.safe_lengths().last_height().unwrap_or_default()
     }
 
@@ -309,7 +307,7 @@ impl Query {
     }
 
     #[inline]
-    pub fn reader(&self) -> &Reader {
+    fn reader(&self) -> &Reader {
         self.indexer().reader()
     }
 
@@ -324,13 +322,13 @@ impl Query {
     }
 
     #[inline]
-    pub fn indexer(&self) -> &Indexer<Ro> {
+    fn indexer(&self) -> &Indexer<Ro> {
         self.0.plugins.indexer
     }
 
     /// The shared read-only plugin composition backing this query view.
     #[inline]
-    pub fn plugins(&self) -> &QueryPlugins<'static> {
+    fn plugins(&self) -> &QueryPlugins<'static> {
         &self.0.plugins
     }
 

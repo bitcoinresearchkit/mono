@@ -150,8 +150,7 @@ impl<M: StorageMode> Indexer<M> {
     /// Reads the on-disk blockhash vec at `safe_lengths.height - 1` so
     /// the answer always agrees with `safe_lengths`. The indexer's loop
     /// pushes new hashes per block before `safe_lengths` advances (that
-    /// only happens after the compute pass via
-    /// [`Indexer::finish_update`]); reading from a live cache
+    /// only happens after the compute pass); reading from a live cache
     /// here would mint a tip ahead of every safe-bound endpoint and
     /// cause cache etags to invalidate before the data they cover is
     /// actually queryable.
@@ -238,23 +237,6 @@ impl Indexer {
     pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         validate_reader_source(reader)?;
         Self::import_inner(context, reader, true)
-    }
-
-    pub fn checked_index(&mut self, exit: &Exit) -> Result<()> {
-        self.begin_update();
-        self.index_inner(exit, true)
-    }
-
-    fn begin_update(&self) {
-        self.state.publication.begin_update();
-    }
-
-    /// Publish disk state as the new safe-lengths snapshot. Drains pending
-    /// bg ingest first so stores are queryable at the new bound.
-    pub fn finish_update(&mut self) -> Result<()> {
-        self.commit()?;
-        self.state.publication.finish_update();
-        Ok(())
     }
 
     fn import_inner(context: ImportContext<'_>, reader: &Reader, can_retry: bool) -> Result<Self> {

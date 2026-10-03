@@ -26,7 +26,10 @@ struct Member {
 }
 
 impl Query {
-    pub fn confirmed_cpfp_resolved(&self, transaction: ResolvedConfirmedTx) -> Result<CpfpInfo> {
+    pub(crate) fn confirmed_cpfp_resolved(
+        &self,
+        transaction: ResolvedConfirmedTx,
+    ) -> Result<CpfpInfo> {
         let publication = self.read_publication()?;
         let read = self.read_indexer()?;
         let (_, seed, height) = read.revalidate_confirmed_tx(transaction)?;
@@ -115,14 +118,9 @@ impl Query {
         let mut first_txin = indexer.vecs().transactions.first_txin_index.cursor();
         let mut input_count = plugins.mappings.tx_index.input_count.cursor();
         let mut outpoint = indexer.vecs().inputs.outpoint.cursor();
-        let first_txout = indexer
-            .vecs()
-            .transactions
-            .first_txout_index
-            .reader()
-            .cursor();
+        let first_txout = indexer.vecs().transactions.first_txout_index.reader();
         let mut output_count = plugins.mappings.tx_index.output_count.cursor();
-        let spent = plugins.outputs.spent.txin_index.reader().cursor();
+        let spent = plugins.outputs.spent.txin_index.reader();
         let mut spending_tx = indexer.vecs().inputs.tx_index.cursor();
 
         let mut parents_of = |tx: TxIndex| -> Result<SmallVec<[TxIndex; 2]>> {
@@ -146,11 +144,11 @@ impl Query {
 
         let mut children_of = |tx: TxIndex| -> Result<SmallVec<[TxIndex; 2]>> {
             let position = tx.to_usize();
-            let first = usize::from(first_txout.get(position).data()?);
+            let first = usize::from(first_txout.try_get_at(position).data()?);
             let count = u64::from(output_count.get(position).data()?) as usize;
             let mut children = SmallVec::new();
             for output in first..first + count {
-                let input = spent.get(output).data()?;
+                let input = spent.try_get_at(output).data()?;
                 if input.is_unspent() {
                     continue;
                 }

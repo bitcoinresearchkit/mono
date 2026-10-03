@@ -2,7 +2,7 @@ use brk_types::{Cents, CentsSats, CentsSigned, Sats};
 
 #[derive(Clone, Default)]
 pub struct RealizedBlockData {
-    pub cap_raw: CentsSats,
+    pub(crate) cap_raw: CentsSats,
     pub(crate) supply: Sats,
     pub cap: Cents,
     pub profit: Cents,

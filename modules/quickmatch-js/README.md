@@ -1,7 +1,7 @@
 # QuickMatch JS
 
-Dependency-free fuzzy search over lowercase ASCII item names, matching the Rust
-`crates/quickmatch` implementation. Queries may contain Unicode: surrounding
+Dependency-free fuzzy search over lowercase ASCII item names, ranking like the
+Rust `crates/quickmatch` implementation with its default configuration. Queries may contain Unicode: surrounding
 Unicode whitespace is trimmed, non-ASCII characters are removed, and ASCII
 letters are lowercased, in that order.
 
@@ -24,11 +24,11 @@ copies the input array and configuration.
 Query words match in any order, including prefixes and joined adjacent words.
 Bounded adjacent-letter corrections run before the trigram fallback and must match whole indexed words.
 Results sort by matched-word count, fuzzy score, first match position, item
-length, then text. Identical items tie-break by original ID in both languages.
+length, then text. Identical items tie-break by original ID.
 `matchesExactWithIdsAndMatchedWords(query, config)` matches whole words only,
 with no prefixes or typos. Set `unionFallback` to `false` to require every query word.
 The best-tier method returns only results with the highest matched-word count,
-subject to the same limit. Union fallback defaults to `true`, as in Rust.
+subject to the same limit. Union fallback defaults to `true`.
 
 ## Development and releases
 

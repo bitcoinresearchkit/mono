@@ -13,7 +13,6 @@ const NUM_BLOCKS: usize = 8;
 #[derive(Default)]
 pub struct Rebuilder {
     snapshot: Arc<Snapshot>,
-    rebuild_count: u64,
 }
 
 impl Rebuilder {
@@ -34,11 +33,6 @@ impl Rebuilder {
         }
 
         self.snapshot = Arc::new(Self::build_snapshot(state, gbt_txids, min_fee));
-        self.rebuild_count += 1;
-    }
-
-    pub fn rebuild_count(&self) -> u64 {
-        self.rebuild_count
     }
 
     fn build_snapshot(state: &State, gbt_txids: &[Txid], min_fee: FeeRate) -> Snapshot {

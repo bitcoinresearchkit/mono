@@ -9,7 +9,7 @@ use crate::{IndexSources, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRo
 /// Total-count views used by their breakdowns, without a separate retained cache.
 #[derive(Clone, Traversable)]
 pub struct CountTotal {
-    pub all: LazyPerBlockCumulativeRolling<StoredU64>,
+    all: LazyPerBlockCumulativeRolling<StoredU64>,
 }
 
 impl CountTotal {

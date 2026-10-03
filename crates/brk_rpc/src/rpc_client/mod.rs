@@ -44,20 +44,11 @@ impl Client {
         self.0.asynchronous()
     }
     pub fn new(url: &str, auth: Auth) -> Result<Self> {
-        Self::new_with(url, auth, 1_000_000, Duration::from_secs(1))
-    }
-
-    pub fn new_with(
-        url: &str,
-        auth: Auth,
-        max_retries: usize,
-        retry_delay: Duration,
-    ) -> Result<Self> {
         Ok(Self(Arc::new(ClientInner::new(
             url,
             auth,
-            max_retries,
-            retry_delay,
+            1_000_000,
+            Duration::from_secs(1),
         )?)))
     }
 }

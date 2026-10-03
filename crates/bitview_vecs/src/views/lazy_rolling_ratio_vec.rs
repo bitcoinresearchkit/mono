@@ -42,7 +42,7 @@ where
         value
     }
 
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         source: &(impl ReadableCloneableVec<Height, S> + ?Sized),

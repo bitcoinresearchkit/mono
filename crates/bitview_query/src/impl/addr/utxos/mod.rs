@@ -21,12 +21,6 @@ impl ResolvedAddrUtxos {
 }
 
 impl Query {
-    pub fn addr_utxos(&self, addr: Addr, max_utxos: usize) -> Result<Vec<Utxo>> {
-        let resolved = self.resolve_addr_utxos(&addr, max_utxos)?;
-        self.addr_utxos_resolved(resolved, max_utxos)
-            .map(|(utxos, _)| utxos)
-    }
-
     pub fn resolve_addr_utxos(&self, addr: &Addr, max_utxos: usize) -> Result<ResolvedAddrUtxos> {
         let addr = AddrBytes::from_str(addr)?;
         let guard = self.read_publication()?;

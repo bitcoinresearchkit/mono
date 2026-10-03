@@ -16,7 +16,7 @@ use serde_json::{Value, from_slice, to_writer};
 use vecdb::{BoundedVec, ReadableVec, ValueWriter, i64_to_usize};
 
 use crate::{
-    Output, Query, ResolvedSeriesInfo, SeriesOutput,
+    Output, Query, ResolvedSeriesInfo,
     vecs::{SeriesEntry, SeriesEntryLookup},
 };
 
@@ -196,7 +196,7 @@ impl Query {
 
     /// Search for vecs matching the given series and index.
     /// Returns error if no series requested or any requested series is not found.
-    pub fn search(&self, params: &SeriesSelection) -> Result<SeriesRead> {
+    fn search(&self, params: &SeriesSelection) -> Result<SeriesRead> {
         SeriesRead::new(self, self.search_entries(params)?)
     }
 
@@ -274,7 +274,6 @@ impl Query {
             format: params.format(),
             index: params.index,
             version,
-            total,
             start,
             end,
             hash_prefix,
@@ -334,28 +333,26 @@ impl Query {
 
     /// Format a resolved query (expensive).
     #[inline]
-    pub fn format(&self, resolved: ResolvedQuery) -> Result<SeriesOutput> {
+    pub fn format(&self, resolved: ResolvedQuery) -> Result<Output> {
         Self::format_as(resolved, JsonShape::Single)
     }
 
     /// Format a resolved bulk query, always returning a JSON array.
     #[inline]
-    pub fn format_bulk(&self, resolved: ResolvedQuery) -> Result<SeriesOutput> {
+    pub fn format_bulk(&self, resolved: ResolvedQuery) -> Result<Output> {
         Self::format_as(resolved, JsonShape::Bulk)
     }
 
     /// Raw JSON values without the SeriesData wrapper. CSV is unchanged.
-    pub fn format_raw(&self, resolved: ResolvedQuery) -> Result<SeriesOutput> {
+    pub fn format_raw(&self, resolved: ResolvedQuery) -> Result<Output> {
         Self::format_as(resolved, JsonShape::Raw)
     }
 
-    fn format_as(resolved: ResolvedQuery, shape: JsonShape) -> Result<SeriesOutput> {
+    fn format_as(resolved: ResolvedQuery, shape: JsonShape) -> Result<Output> {
         let ResolvedQuery {
             read,
             format,
             index,
-            version,
-            total,
             start,
             end,
             ..
@@ -387,13 +384,7 @@ impl Query {
             }
         };
 
-        Ok(SeriesOutput {
-            output,
-            version,
-            total,
-            start,
-            end,
-        })
+        Ok(output)
     }
 
     #[inline]
@@ -518,17 +509,13 @@ fn reserialize_json(mut bytes: Vec<u8>) -> Result<Vec<u8>> {
 /// formatting. `stable_count` is `None` when any selected series can mutate
 /// existing entries independently of its append/reorg window.
 ///
-/// Raw vectors are not exposed outside the protected read view.
-///
-///
-/// A bounded column cannot outlive the query that owns its publication guards.
-///
+/// Raw vectors are not exposed outside the protected read view, and a bounded
+/// column cannot outlive the query that owns its publication guards.
 pub struct ResolvedQuery {
     read: SeriesRead,
     pub format: Format,
     index: Index,
     pub version: Version,
-    total: usize,
     pub start: usize,
     pub end: usize,
     pub hash_prefix: BlockHashPrefix,
@@ -536,7 +523,7 @@ pub struct ResolvedQuery {
 }
 
 impl ResolvedQuery {
-    pub fn columns(&self) -> impl ExactSizeIterator<Item = BoundedVec<'_>> + '_ {
+    fn columns(&self) -> impl ExactSizeIterator<Item = BoundedVec<'_>> + '_ {
         self.read.columns()
     }
 

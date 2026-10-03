@@ -10,21 +10,21 @@ for readers. Clones share the same state through `Arc`.
 
 ```rust,ignore
 let mempool = Mempool::new(&rpc_client);
-let driver = mempool.clone();
+let mut driver = mempool.clone();
 
-std::thread::spawn(move || driver.start());
+std::thread::spawn(move || driver.start_with(resolver));
 
 let fees = mempool.fees();
 let info = mempool.info();
 let projected_blocks = mempool.block_stats();
 ```
 
-`start` runs one update cycle per second and does not return. Its default
-confirmed-prevout resolver calls `getrawtransaction`, so Bitcoin Core must have
-`txindex=1`. Bitview instead uses `start_with` to supply prevouts from its own
-indexer. Only one driver may run for a `Mempool` instance.
+`start_with` runs one update cycle per second and does not return; `resolver`
+supplies confirmed prevouts (Bitview resolves them from its own indexer). Only
+one driver may run for a `Mempool` instance.
 
-Use `tick` or `tick_with` to drive one cycle manually. They return a `Cycle`
+Use `tick` to drive one cycle manually; it resolves confirmed prevouts with
+`getrawtransaction`, so Bitcoin Core must have `txindex=1`. It returns a `Cycle`
 describing the observed additions, removals, and other state changes.
 Concurrent manual cycles return `StateUpdating` before issuing RPCs or changing
 state.
@@ -33,9 +33,9 @@ state.
 
 Readers access the latest published state without driving a rebuild:
 
-- `snapshot` and `stats` expose diagnostic state. `info`, txid lists/hashes,
-  recent transactions and transaction times require a completed pool observation
-  and return an error during startup, incomplete updates or failed polls.
+- `info`, txid lists/hashes, recent transactions and transaction times require a
+  completed pool observation and return an error during startup, incomplete
+  updates or failed polls.
 - `fees` and `block_stats` expose recommendations and projected-block
   statistics.
 - `block_template` returns the projected next block in Bitcoin Core

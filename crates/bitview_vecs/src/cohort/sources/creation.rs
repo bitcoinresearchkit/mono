@@ -51,7 +51,7 @@ impl<T: PcoVecValue> CreationSources<T> {
         }
     }
 
-    pub fn collect_last(&self) -> Option<UTXOCoreValues<T>> {
+    pub(crate) fn collect_last(&self) -> Option<UTXOCoreValues<T>> {
         Some(UTXOCoreValues {
             age_range: AgeRange::try_from_fn(|id| {
                 id.select(&self.cohorts.age).collect_last().ok_or(())

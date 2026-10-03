@@ -1,0 +1,82 @@
+# cargo-hawk (`cargo visibility`): we are the only consumer of our crates, so every workspace binary is a
+# production entry point. The client, the crates it re-exports wholesale (bitview_types, bitview_catalog,
+# bitview_cohort, brk_types) and vendored forks are external boundaries (excluded in the cargo alias).
+
+[[production]]
+package = "importmap"
+bin = "importmap"
+reason = "workspace binary"
+
+[[production]]
+package = "bitview_cli"
+bin = "bitview-cli"
+reason = "workspace binary"
+
+[[production]]
+package = "bitview_devtools"
+bin = "bitview-api"
+reason = "workspace binary"
+
+[[production]]
+package = "bitview_devtools"
+bin = "bitview-surface"
+reason = "workspace binary"
+
+[[production]]
+package = "bitviewd"
+bin = "bitview-bindgen"
+reason = "workspace binary"
+
+[[production]]
+package = "bitviewd"
+bin = "bitviewd"
+reason = "workspace binary"
+
+[[production]]
+package = "bitview_mcp"
+bin = "bitview_mcp"
+reason = "workspace binary"
+
+[[production]]
+package = "bitviewd_bench"
+bin = "bitviewd_bench"
+reason = "workspace binary"
+
+[[production]]
+package = "bitviewd_bench_visualizer"
+bin = "bitviewd_bench_visualizer"
+reason = "workspace binary"
+
+[[production]]
+package = "bitviewd_latency"
+bin = "bitviewd_latency"
+reason = "workspace binary"
+
+[[production]]
+package = "blk"
+bin = "blk"
+reason = "workspace binary"
+
+[[production]]
+package = "mmpl"
+bin = "mmpl"
+reason = "workspace binary"
+
+[[production]]
+package = "bitview-custom-plugin-example"
+bin = "bitview-custom-plugin-example"
+reason = "workspace binary"
+
+[[override]]
+lint = "hawk::unnecessary_public"
+crate = "statedb"
+item = "state::State::is_empty"
+level = "allow"
+reason = "pairs with the public `len` (clippy::len_without_is_empty)"
+
+[[override]]
+lint = "hawk::unnecessary_public"
+crate = "bitview_compute"
+item = "statistics::order::ExactOrderStats::is_empty"
+level = "allow"
+reason = "pairs with the public `len` (clippy::len_without_is_empty)"

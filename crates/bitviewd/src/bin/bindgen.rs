@@ -48,8 +48,6 @@ const GENERATED_OUTPUTS: &[(&str, &str)] = &[
     ),
     ("website/llms.txt", "website/llms.txt"),
     ("website/llms-full.txt", "website/llms-full.txt"),
-    ("website_next/llms.txt", "website_next/llms.txt"),
-    ("website_next/llms-full.txt", "website_next/llms-full.txt"),
     (
         "crates/bitview_mcp/generated/manifest.json",
         "crates/bitview_mcp/generated/manifest.json",
@@ -168,7 +166,6 @@ fn output_paths(root: &Path, scope: OutputScope) -> ClientOutputPaths {
         .javascript(root.join("modules/bitview-client/index.js"))
         .python(root.join("packages/bitview_client/bitview_client/__init__.py"))
         .llm(root.join("website"))
-        .llm(root.join("website_next"))
         .llm_manifest(root.join("crates/bitview_mcp/generated/manifest.json"))
 }
 

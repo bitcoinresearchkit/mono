@@ -5,9 +5,9 @@ use serde_json::Value;
 #[derive(Debug, Clone)]
 pub struct Endpoint {
     /// HTTP method (GET, POST, etc.)
-    pub method: String,
+    pub(crate) method: String,
     /// Path template (e.g., "/blocks/{hash}")
-    pub path: String,
+    pub(crate) path: String,
     /// Operation ID (e.g., "getBlockByHash")
     pub(crate) operation_id: Option<String>,
     /// Short summary
@@ -17,9 +17,9 @@ pub struct Endpoint {
     /// Path parameters
     pub(crate) path_params: Vec<Parameter>,
     /// Query parameters
-    pub query_params: Vec<Parameter>,
+    pub(crate) query_params: Vec<Parameter>,
     /// Request body, if any (POST/PUT/PATCH).
-    pub request_body: Option<RequestBody>,
+    pub(crate) request_body: Option<RequestBody>,
     /// Body kind for the 200 response.
     pub(crate) response_kind: ResponseKind,
     /// Raw JSON schema for the application/json 200 response, when present.
@@ -29,7 +29,7 @@ pub struct Endpoint {
     /// Whether this endpoint is explicitly excluded from MCP tool generation.
     pub(crate) mcp_ignored: bool,
     /// Whether this endpoint supports CSV format (text/csv content type)
-    pub supports_csv: bool,
+    pub(crate) supports_csv: bool,
 }
 
 impl Endpoint {

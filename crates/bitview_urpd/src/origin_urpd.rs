@@ -67,7 +67,7 @@ impl OriginUrpd {
         Ok(source)
     }
     /// Append newly available creation prices without rebuilding the occupied histogram.
-    pub fn extend_prices(&mut self, prices: &[Cents]) -> Result<()> {
+    pub(crate) fn extend_prices(&mut self, prices: &[Cents]) -> Result<()> {
         if prices.iter().any(|p| p.is_nan()) {
             return Err(Error::Internal("invalid origin price"));
         }
@@ -116,7 +116,11 @@ impl OriginUrpd {
         self.reorder_at = len.max(1).saturating_mul(2);
     }
     /// Apply exactly one block, including all age crossings before its spends.
-    pub fn advance(&mut self, cursor: &mut Cursor<'_>, timestamps: &[Timestamp]) -> Result<()> {
+    pub(crate) fn advance(
+        &mut self,
+        cursor: &mut Cursor<'_>,
+        timestamps: &[Timestamp],
+    ) -> Result<()> {
         let h = cursor.state().len();
         let current = *timestamps
             .get(h)

@@ -8,13 +8,13 @@ use crate::{Budgeted, CacheBudget};
 
 static TEST_LOCK: Mutex<()> = Mutex::new(());
 
-pub fn init_cache() -> &'static CacheBudget {
+pub(crate) fn init_cache() -> &'static CacheBudget {
     static CACHE: OnceLock<&'static CacheBudget> = OnceLock::new();
     CACHE.get_or_init(|| Budgeted::init_global(512 * 1024).unwrap())
 }
 
 /// Tests share the process-wide cache budget and some assert on it, so they run one at a time.
-pub fn serial() -> MutexGuard<'static, ()> {
+fn serial() -> MutexGuard<'static, ()> {
     TEST_LOCK.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
@@ -69,25 +69,25 @@ mod mutable {
             for &v in &[10, 20, 30, 40, 50] {
                 vec.push(v);
             }
-            vec.stamped_write_with_changes(Stamp::new(1))?;
+            vec.stamped_write_with_changes(Stamp::from(1))?;
             assert_eq!(vec.collect(), vec![10, 20, 30, 40, 50]);
 
             // Stamp 2: update slot 2 (30 → 99), delete slot 1 (creates hole)
             vec.update(2, 99)?;
             vec.delete(1);
-            vec.stamped_write_with_changes(Stamp::new(2))?;
+            vec.stamped_write_with_changes(Stamp::from(2))?;
             assert_eq!(vec.collect(), vec![10, 99, 40, 50]);
 
             // First rollback → back to stamp 1
             vec.rollback()?;
             assert_eq!(vec.collect(), vec![10, 20, 30, 40, 50]);
-            assert_eq!(vec.stamp(), Stamp::new(1));
+            assert_eq!(vec.stamp(), Stamp::from(1));
 
             // Now reprocess: delete slot 2 (the one we just restored), update slot 3
             // This simulates an address becoming empty during reprocessing
             vec.delete(2); // removes 30 from updated.current
             vec.update(3, 88)?;
-            vec.stamped_write_with_changes(Stamp::new(3))?;
+            vec.stamped_write_with_changes(Stamp::from(3))?;
             assert_eq!(vec.collect(), vec![10, 20, 88, 50]);
 
             // Second rollback → must go back to stamp 1 values
@@ -100,7 +100,7 @@ mod mutable {
                  Slot 2 was deleted during reprocessing but its prev value (30) \
                  must still be tracked in the change file."
             );
-            assert_eq!(vec.stamp(), Stamp::new(1));
+            assert_eq!(vec.stamp(), Stamp::from(1));
 
             Ok(())
         }
@@ -115,7 +115,7 @@ mod mutable {
                 for i in 0..100 {
                     vec.push(i);
                 }
-                vec.stamped_write_with_changes(Stamp::new(1))?;
+                vec.stamped_write_with_changes(Stamp::from(1))?;
 
                 // An intermediate write may already have collected rollback values.
                 vec.update(65, 650)?;
@@ -127,9 +127,9 @@ mod mutable {
                 vec.push(900);
                 if erased {
                     let stored: &mut dyn AnyStoredVec = &mut vec;
-                    stored.any_stamped_write_maybe_with_changes(Stamp::new(2), false)?;
+                    stored.any_stamped_write_maybe_with_changes(Stamp::from(2), false)?;
                 } else {
-                    vec.stamped_write_maybe_with_changes(Stamp::new(2), false)?;
+                    vec.stamped_write_maybe_with_changes(Stamp::from(2), false)?;
                 }
                 vec.flush()?;
                 assert_eq!(vec.find_rollback_files()?.len(), 1);
@@ -142,27 +142,27 @@ mod mutable {
 
                 let db = Database::open(temp.path())?;
                 let mut vec = import_with_changes::<MutableVec<V>>(&db, "test")?;
-                assert_eq!(vec.stamp(), Stamp::new(2));
+                assert_eq!(vec.stamp(), Stamp::from(2));
                 assert_eq!(vec.collect_holed(), baseline);
                 vec.update(65, 999)?;
                 vec.update(67, 670)?;
                 vec.push(901);
                 if erased {
                     let stored: &mut dyn AnyStoredVec = &mut vec;
-                    stored.any_stamped_write_maybe_with_changes(Stamp::new(3), true)?;
+                    stored.any_stamped_write_maybe_with_changes(Stamp::from(3), true)?;
                 } else {
-                    vec.stamped_write_maybe_with_changes(Stamp::new(3), true)?;
+                    vec.stamped_write_maybe_with_changes(Stamp::from(3), true)?;
                 }
                 vec.rollback()?;
                 assert_eq!(vec.collect_holed(), baseline);
-                assert_eq!(vec.stamp(), Stamp::new(2));
+                assert_eq!(vec.stamp(), Stamp::from(2));
                 vec.flush()?;
                 drop((vec, db));
 
                 let db = Database::open(temp.path())?;
                 let vec = import_with_changes::<MutableVec<V>>(&db, "test")?;
                 assert_eq!(vec.collect_holed(), baseline);
-                assert_eq!(vec.stamp(), Stamp::new(2));
+                assert_eq!(vec.stamp(), Stamp::from(2));
             }
             Ok(())
         }
@@ -176,7 +176,7 @@ mod mutable {
 
             vec.push(10);
             vec.push(20);
-            vec.stamped_write_with_changes(Stamp::new(1))?;
+            vec.stamped_write_with_changes(Stamp::from(1))?;
 
             vec.update(0, 11)?;
             vec.write()?;
@@ -186,12 +186,12 @@ mod mutable {
 
             vec.update(0, 12)?;
             vec.update(2, 31)?;
-            vec.stamped_write_with_changes(Stamp::new(2))?;
+            vec.stamped_write_with_changes(Stamp::from(2))?;
             assert_eq!(vec.collect(), vec![12, 20, 31]);
 
             vec.rollback()?;
             assert_eq!(vec.collect(), vec![10, 20]);
-            assert_eq!(vec.stamp(), Stamp::new(1));
+            assert_eq!(vec.stamp(), Stamp::from(1));
 
             Ok(())
         }
@@ -256,13 +256,13 @@ mod mutable {
             for i in 0..5 {
                 vec.push(i);
             }
-            vec.stamped_write_with_changes(Stamp::new(1))?;
+            vec.stamped_write_with_changes(Stamp::from(1))?;
 
             // Phase 2: More work
             for i in 5..10 {
                 vec.push(i);
             }
-            vec.stamped_write_with_changes(Stamp::new(2))?;
+            vec.stamped_write_with_changes(Stamp::from(2))?;
 
             // Checkpoint 1
             let checkpoint1_data = vec.collect_holed();
@@ -272,15 +272,15 @@ mod mutable {
             // Phase 3: Three more operations with flush
             vec.update(2, 100)?;
             vec.update(7, 200)?;
-            vec.stamped_write_with_changes(Stamp::new(3))?;
+            vec.stamped_write_with_changes(Stamp::from(3))?;
 
             vec.push(20);
             vec.push(21);
-            vec.stamped_write_with_changes(Stamp::new(4))?;
+            vec.stamped_write_with_changes(Stamp::from(4))?;
 
             vec.delete(5);
             vec.push(30);
-            vec.stamped_write_with_changes(Stamp::new(5))?;
+            vec.stamped_write_with_changes(Stamp::from(5))?;
 
             // Checkpoint 2
             let checkpoint2_data = vec.collect_holed();
@@ -290,7 +290,7 @@ mod mutable {
             let checkpoint2_stamp = vec.stamp();
 
             // Undo last 3 operations and finish the rewind before replaying.
-            assert_eq!(vec.rollback_before(Stamp::new(3))?, checkpoint1_stamp);
+            assert_eq!(vec.rollback_before(Stamp::from(3))?, checkpoint1_stamp);
 
             // Verify in-memory data matches checkpoint1
             let after_undo_data = vec.collect_holed();
@@ -315,15 +315,15 @@ mod mutable {
             // Redo the same 3 operations
             vec.update(2, 100)?;
             vec.update(7, 200)?;
-            vec.stamped_write_with_changes(Stamp::new(3))?;
+            vec.stamped_write_with_changes(Stamp::from(3))?;
 
             vec.push(20);
             vec.push(21);
-            vec.stamped_write_with_changes(Stamp::new(4))?;
+            vec.stamped_write_with_changes(Stamp::from(4))?;
 
             vec.delete(5);
             vec.push(30);
-            vec.stamped_write_with_changes(Stamp::new(5))?;
+            vec.stamped_write_with_changes(Stamp::from(5))?;
 
             // Verify in-memory data matches checkpoint2
             let after_redo_data = vec.collect_holed();
@@ -343,7 +343,7 @@ mod mutable {
             let mut vec = import_with_changes::<MutableVec<V>>(&database, "vec")?;
 
             assert_state(&vec, &checkpoint2_data);
-            assert_eq!(vec.rollback_before(Stamp::new(2))?, Stamp::new(1));
+            assert_eq!(vec.rollback_before(Stamp::from(2))?, Stamp::from(1));
             assert_state(&vec, &(0..5).map(Some).collect::<Vec<_>>());
 
             Ok(())
@@ -392,24 +392,24 @@ mod truncation {
             for value in 0..count {
                 vec.push(value);
             }
-            vec.stamped_write_with_changes(Stamp::new(1))?;
+            vec.stamped_write_with_changes(Stamp::from(1))?;
             vec.truncate_if_needed_at(truncate_to as usize)?;
             for &value in replacement {
                 vec.push(value);
             }
-            vec.stamped_write_with_changes(Stamp::new(2))?;
+            vec.stamped_write_with_changes(Stamp::from(2))?;
             assert_eq!(
                 vec.collect(),
                 (0..truncate_to)
                     .chain(replacement.iter().copied())
                     .collect::<Vec<_>>()
             );
-            assert_eq!(vec.rollback_before(Stamp::new(2))?, Stamp::new(1));
+            assert_eq!(vec.rollback_before(Stamp::from(2))?, Stamp::from(1));
             assert_eq!(vec.len(), count as usize);
             assert_eq!(vec.collect(), (0..count).collect::<Vec<_>>());
-            assert_eq!(vec.stamp(), Stamp::new(1));
+            assert_eq!(vec.stamp(), Stamp::from(1));
 
-            for stamp in [Stamp::new(1), Stamp::new(2)] {
+            for stamp in [Stamp::from(1), Stamp::from(2)] {
                 vec.stamped_write(stamp)?;
                 assert_eq!(vec.stored_len(), count as usize);
                 assert_eq!(vec.collect(), (0..count).collect::<Vec<_>>());
@@ -589,7 +589,7 @@ mod update_many {
                 ImportOptions::new(&database, "values", Version::ONE).with_saved_stamped_changes(4);
             let mut vec = MutableVec::<BytesVec<usize, u32>>::import_with(options)?;
             vec.fill_to(stored_len, 0)?;
-            vec.stamped_write_with_changes(Stamp::new(1))?;
+            vec.stamped_write_with_changes(Stamp::from(1))?;
             vec.fill_to(16, 0)?;
             vec.update(1, 40)?;
 
@@ -603,11 +603,11 @@ mod update_many {
             assert_eq!(vec.collect_holed(), expected);
             assert!(vec.update_many([(0, 2), (16, 3)]).is_err());
             assert_eq!(vec.collect_holed(), expected);
-            vec.stamped_write_with_changes(Stamp::new(2))?;
+            vec.stamped_write_with_changes(Stamp::from(2))?;
             assert_eq!(vec.collect_holed(), expected);
 
             vec.rollback()?;
-            assert_eq!(vec.stamp(), Stamp::new(1));
+            assert_eq!(vec.stamp(), Stamp::from(1));
             assert_eq!(vec.collect_holed(), vec![Some(0); stored_len]);
         }
         Ok(())
@@ -674,15 +674,15 @@ mod overflow {
         vec.push(TestValue(1));
         vec.push(TestValue(1_000));
         vec.push(TestValue(2));
-        vec.stamped_write_with_changes(Stamp::new(1))?;
+        vec.stamped_write_with_changes(Stamp::from(1))?;
 
         vec.truncate_if_needed_at(1)?;
         vec.push(TestValue(4_000));
-        vec.stamped_write_with_changes(Stamp::new(2))?;
+        vec.stamped_write_with_changes(Stamp::from(2))?;
         assert_eq!(vec.collect(), vec![TestValue(1), TestValue(4_000)]);
 
         vec.rollback()?;
-        assert_eq!(vec.stamp(), Stamp::new(1));
+        assert_eq!(vec.stamp(), Stamp::from(1));
         assert_eq!(
             vec.collect(),
             vec![TestValue(1), TestValue(1_000), TestValue(2)]
@@ -698,13 +698,13 @@ mod overflow {
         let options = ImportOptions::new(&db, "values", Version::ONE).with_saved_stamped_changes(4);
         let mut values = OverflowVec::<usize, TestValue>::import_with(options)?;
         values.push(TestValue(1000));
-        values.stamped_write_with_changes(Stamp::new(1))?;
+        values.stamped_write_with_changes(Stamp::from(1))?;
         let published = values.read_only_clone();
         fs::create_dir(temp.path().join("changes/values/usize/2"))?;
         values.update_many(vec![(0, TestValue(2000))])?;
-        assert!(values.stamped_write_with_changes(Stamp::new(2)).is_err());
+        assert!(values.stamped_write_with_changes(Stamp::from(2)).is_err());
         assert_eq!(published.collect(), [TestValue(1000)]);
-        assert_eq!(values.stamp(), Stamp::new(1));
+        assert_eq!(values.stamp(), Stamp::from(1));
         assert!(matches!(values.write(), Err(Error::WriteFailed)));
         assert!(matches!(values.reset(), Err(Error::WriteFailed)));
         assert!(matches!(

@@ -19,7 +19,7 @@ impl Budgeted {
         Self::global()
     }
 
-    pub fn global() -> Result<&'static CacheBudget> {
+    fn global() -> Result<&'static CacheBudget> {
         BUDGET.get().ok_or(Error::InvalidArgument(
             "initialize the global cache budget before importing budgeted vectors",
         ))

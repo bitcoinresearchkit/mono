@@ -30,7 +30,6 @@ fn select_and_sort(bucket: &mut [RankedItem], take: usize) {
 /// ("hashrate" → "hash_rate"), and typo tolerance ("suply" → "supply").
 /// Results are ranked: exact matches first, then by specificity.
 pub struct QuickMatch<'a> {
-    config: QuickMatchConfig,
     items: Vec<Cow<'a, str>>,
     item_rank: Vec<ItemId>,
     max_word_count: usize,
@@ -46,13 +45,10 @@ impl<'a> QuickMatch<'a> {
     /// # Panics
     /// Panics if an item is not lowercase ASCII or there are more than u32::MAX items.
     pub fn new(items: &[&'a str]) -> Self {
-        Self::build(
-            items.iter().copied().map(Cow::Borrowed).collect(),
-            QuickMatchConfig::default(),
-        )
+        Self::build(items.iter().copied().map(Cow::Borrowed).collect())
     }
 
-    fn build(items: Vec<Cow<'a, str>>, config: QuickMatchConfig) -> Self {
+    fn build(items: Vec<Cow<'a, str>>) -> Self {
         assert!(u32::try_from(items.len()).is_ok(), "Too many items");
         assert!(
             items
@@ -66,7 +62,7 @@ impl<'a> QuickMatch<'a> {
         let mut max_word_len = 0;
         let mut max_query_len = 0;
         let mut max_words = 0;
-        let sep = sep_table(config.separators());
+        let sep = sep_table(SEPARATORS);
 
         for (id, item) in items.iter().enumerate() {
             let id = ItemId(id as u32);
@@ -138,7 +134,6 @@ impl<'a> QuickMatch<'a> {
             item_rank,
             word_index,
             trigram_index,
-            config,
         }
     }
 
@@ -152,13 +147,6 @@ impl<'a> QuickMatch<'a> {
         }
     }
 
-    pub fn matches(&self, query: &str) -> Vec<&str> {
-        self.matches_with_ids_and_matched_words(query, &self.config)
-            .into_iter()
-            .map(|(id, _)| self.item(ItemId(id)))
-            .collect()
-    }
-
     /// Matches and returns each result's compact zero-based position in the
     /// original item slice and matched query-word count.
     pub fn matches_with_ids_and_matched_words(
@@ -166,17 +154,7 @@ impl<'a> QuickMatch<'a> {
         query: &str,
         config: &QuickMatchConfig,
     ) -> Vec<(u32, u32)> {
-        self.matches_with_ids_and_matched_words_inner::<false, false>(query, config)
-    }
-
-    /// Matches and returns only the highest matched-query-word tier, with each
-    /// result's compact zero-based position in the original item slice.
-    pub fn matches_best_with_ids_and_matched_words(
-        &self,
-        query: &str,
-        config: &QuickMatchConfig,
-    ) -> Vec<(u32, u32)> {
-        self.matches_with_ids_and_matched_words_inner::<true, false>(query, config)
+        self.matches_with_ids_and_matched_words_inner::<false>(query, config)
     }
 
     /// Whole query words, in any order, without prefix or typo matching.
@@ -186,16 +164,16 @@ impl<'a> QuickMatch<'a> {
         query: &str,
         config: &QuickMatchConfig,
     ) -> Vec<(u32, u32)> {
-        self.matches_with_ids_and_matched_words_inner::<false, true>(query, config)
+        self.matches_with_ids_and_matched_words_inner::<true>(query, config)
     }
 
-    fn matches_with_ids_and_matched_words_inner<const BEST_ONLY: bool, const EXACT_WORDS: bool>(
+    fn matches_with_ids_and_matched_words_inner<const EXACT_WORDS: bool>(
         &self,
         query: &str,
         config: &QuickMatchConfig,
     ) -> Vec<(u32, u32)> {
         let limit = config.limit().min(self.items.len());
-        let trigram_budget = config.trigram_budget();
+        let trigram_budget = TRIGRAM_BUDGET;
 
         if limit == 0 {
             return vec![];
@@ -212,7 +190,7 @@ impl<'a> QuickMatch<'a> {
             return vec![];
         }
 
-        let sep = sep_table(config.separators());
+        let sep = sep_table(SEPARATORS);
 
         let mut query_words: Vec<&str> = vec![];
         for w in words(&query, &sep) {
@@ -245,7 +223,7 @@ impl<'a> QuickMatch<'a> {
             } else {
                 Self::intersect_lists(&known_lists).unwrap_or_default()
             };
-            return self.rank::<BEST_ONLY, true>(
+            return self.rank::<true>(
                 candidates.into_iter().map(|id| (id, 0)),
                 &query_words,
                 &sep,
@@ -304,7 +282,7 @@ impl<'a> QuickMatch<'a> {
                 let mut lists = known_lists.clone();
                 lists.extend(corrections.iter().map(Vec::as_slice));
                 if let Some(candidates) = Self::intersect_lists(&lists) {
-                    return self.rank::<BEST_ONLY, false>(
+                    return self.rank::<false>(
                         candidates.into_iter().map(|id| (id, 0)),
                         &query_words,
                         &sep,
@@ -320,8 +298,8 @@ impl<'a> QuickMatch<'a> {
             let min_len = query.len().saturating_sub(3);
             let (scores, hit_count) =
                 self.score_trigrams(&unknown_words, trigram_budget, pool.as_deref(), min_len);
-            let min_score = hit_count.div_ceil(2).max(config.min_score());
-            let results = self.rank::<BEST_ONLY, false>(
+            let min_score = hit_count.div_ceil(2).max(MIN_SCORE);
+            let results = self.rank::<false>(
                 scores.into_iter().filter(|(_, s)| *s >= min_score),
                 &query_words,
                 &sep,
@@ -342,7 +320,7 @@ impl<'a> QuickMatch<'a> {
                 Vec::new()
             }
         });
-        self.rank::<BEST_ONLY, false>(
+        self.rank::<false>(
             candidates.into_iter().map(|id| (id, 0)),
             &query_words,
             &sep,
@@ -384,7 +362,7 @@ impl<'a> QuickMatch<'a> {
 
     /// Bucket by matched-word count, then sort each needed bucket by fuzzy
     /// score, match position, and length.
-    fn rank<const BEST_ONLY: bool, const EXACT_WORDS: bool>(
+    fn rank<const EXACT_WORDS: bool>(
         &self,
         candidates: impl IntoIterator<Item = (ItemId, usize)>,
         query_words: &[&str],
@@ -396,10 +374,6 @@ impl<'a> QuickMatch<'a> {
             let (matched, position) = word_match(self.item(item), query_words, sep, EXACT_WORDS);
             (matched >= min_matched).then_some((item, fuzzy, matched, position))
         });
-        if BEST_ONLY {
-            return self.rank_best(candidates, limit);
-        }
-
         let mut buckets: Vec<Vec<RankedItem>> = vec![vec![]; query_words.len() + 1];
 
         for (item, fuzzy, matched, position) in candidates {
@@ -424,34 +398,6 @@ impl<'a> QuickMatch<'a> {
         }
 
         results
-    }
-
-    fn rank_best(
-        &self,
-        candidates: impl Iterator<Item = (ItemId, usize, usize, usize)>,
-        limit: usize,
-    ) -> Vec<(u32, u32)> {
-        let mut best_matched = 0;
-        let mut bucket = Vec::with_capacity(candidates.size_hint().1.unwrap_or(0).min(limit));
-
-        for (item, fuzzy, matched, position) in candidates {
-            if matched < best_matched {
-                continue;
-            }
-            if matched > best_matched {
-                best_matched = matched;
-                bucket.clear();
-            }
-            bucket.push((item, fuzzy, position, self.item_rank[item.0 as usize]));
-        }
-
-        let take = limit.min(bucket.len());
-        select_and_sort(&mut bucket, take);
-        bucket
-            .into_iter()
-            .take(take)
-            .map(|(id, ..)| (id.0, best_matched as u32))
-            .collect()
     }
 
     fn item(&self, id: ItemId) -> &str {
@@ -528,13 +474,7 @@ impl QuickMatch<'static> {
     /// Own pre-formatted lowercase ASCII items. Panics on invalid corpus input,
     /// as documented by [`Self::new`].
     pub fn new_owned(items: Vec<String>) -> Self {
-        Self::new_owned_with(items, QuickMatchConfig::default())
-    }
-
-    /// Own pre-formatted lowercase ASCII items with a custom configuration.
-    /// Panics on invalid corpus input, as documented by [`Self::new`].
-    pub fn new_owned_with(items: Vec<String>, config: QuickMatchConfig) -> Self {
-        Self::build(items.into_iter().map(Cow::Owned).collect(), config)
+        Self::build(items.into_iter().map(Cow::Owned).collect())
     }
 }
 
@@ -542,7 +482,7 @@ fn item_order(a: &str, b: &str) -> Ordering {
     a.len().cmp(&b.len()).then_with(|| a.cmp(b))
 }
 
-/// Builds a byte lookup table from the configured separator chars. Separators
+/// Builds a byte lookup table from the separator chars. Separators
 /// are ASCII, so a byte-indexed table is exact even for multi-byte UTF-8:
 /// continuation and lead bytes are all >= 128 and never flagged.
 fn sep_table(separators: &[char]) -> [bool; 256] {

@@ -12,7 +12,7 @@ pub struct OutputMetrics {
     /// Number of unspent outputs in this cohort.
     unspent_count: LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>,
     /// Number of outputs spent from this cohort.
-    pub(crate) spent_count: LazyPerBlockCumulativeRolling<StoredU64>,
+    spent_count: LazyPerBlockCumulativeRolling<StoredU64>,
 }
 
 impl OutputMetrics {

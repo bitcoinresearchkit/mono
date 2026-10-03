@@ -22,11 +22,6 @@ use crate::{
 const PERIOD: Duration = Duration::from_millis(1000);
 
 impl Mempool {
-    /// Drive updates using Core's confirmed-parent resolver (`txindex=1`).
-    pub fn start(&mut self) {
-        self.start_with(prevouts::rpc_resolver(self.client.clone()));
-    }
-
     /// Drive one update per second. Overrunning cycles resume immediately.
     /// The exclusive writer borrow prevents concurrent drivers or manual ticks.
     pub fn start_with<F>(&mut self, resolver: F)
@@ -59,7 +54,7 @@ impl Mempool {
     /// Resolve confirmed parents with `resolver`; mempool parents are filled
     /// internally. Failed observations leave the public state intact. Applied
     /// changes still appear in Cycle, even when a final observation fails.
-    pub fn tick_with<F>(&mut self, resolver: F) -> Result<Cycle>
+    fn tick_with<F>(&mut self, resolver: F) -> Result<Cycle>
     where
         F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
     {
@@ -142,14 +137,13 @@ impl Mempool {
         })
     }
 
-    pub(crate) fn publish_observation(&mut self, tip: BlockHash, membership_complete: bool) {
+    fn publish_observation(&mut self, tip: BlockHash, membership_complete: bool) {
         let previous = self.read_only.load();
         if let Some(next) = previous.updated(
             &self.state,
             tip,
             self.rebuilder.snapshot(),
             membership_complete,
-            self.stats(),
         ) {
             self.read_only.current.store(Arc::new(next));
         }

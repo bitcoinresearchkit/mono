@@ -11,10 +11,6 @@ use rustc_hash::FxHashMap;
 pub struct OutpointSpends(FxHashMap<OutpointPrefix, TxidPrefix>);
 
 impl OutpointSpends {
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
     pub fn insert_spends(&mut self, tx: &Transaction, spender: TxidPrefix) {
         for key in Self::spent_outpoints(tx) {
             self.0.insert(key, spender);

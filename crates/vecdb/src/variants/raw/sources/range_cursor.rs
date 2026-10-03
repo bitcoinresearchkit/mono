@@ -34,7 +34,7 @@ where
 
     /// Returns the number of values remaining in the declared range.
     #[inline(always)]
-    pub fn remaining(&self) -> usize {
+    fn remaining(&self) -> usize {
         (self.unbuffered_bytes + self.window_len - self.window_position) / Self::SIZE_OF_T
     }
 
@@ -91,7 +91,7 @@ where
 
     /// Folds over up to the next `n` values and advances the position.
     #[inline]
-    pub fn fold<B>(&mut self, n: usize, mut value: B, mut fold: impl FnMut(B, T) -> B) -> B {
+    fn fold<B>(&mut self, n: usize, mut value: B, mut fold: impl FnMut(B, T) -> B) -> B {
         let mut remaining = n.min(self.remaining());
         while remaining > 0 {
             if self.window_position == self.window_len && !self.refill() {

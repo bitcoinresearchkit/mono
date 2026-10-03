@@ -6,5 +6,5 @@ pub struct RequestBody {
     /// Media type selected from the OpenAPI request body content map.
     pub(crate) content_type: String,
     /// Whether the body is required.
-    pub required: bool,
+    pub(crate) required: bool,
 }

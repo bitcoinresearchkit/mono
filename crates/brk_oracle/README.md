@@ -124,7 +124,7 @@ The oracle consumes one pre-built histogram per block via `process_histogram(&hi
 
 The caller filters as it builds the histogram, applying the [step 1](#1-filter-outputs) rules. `PaymentFilter::for_height(height).histogram(txs)` builds a fresh block histogram from non-coinbase transaction outputs. Incremental live callers use `PaymentFilter::MODERN.for_each_bin(outputs, emit)`, which applies the modern fan-out cap without requiring a height. `PaymentFilter::eligible_bin(sats, output_type)` returns an individual output's bin index, or `None` if filtered. The transaction-level rules include the OP_RETURN drop, the >100 transaction-output fan-out cap below height 630,000, and the >250 cap from height 630,000 onward.
 
-The initial seed must be close to the real price at the starting height. The crate includes typed pre-oracle helpers for exchange prices at heights 0..340,000. `Oracle::from_seed()` uses the last baked price, height 339,999 (one below `START_HEIGHT_SLOW`), and the slow cold-start config to seed the oracle's first on-chain computation at height 340,000.
+The initial seed must be close to the real price at the starting height. The crate includes typed pre-oracle helpers for exchange prices at heights 0..340,000.
 
 ## Configuration
 

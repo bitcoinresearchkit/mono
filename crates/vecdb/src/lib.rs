@@ -31,7 +31,8 @@ mod traits;
 mod variants;
 mod version;
 
-pub use base::{Format, HEADER_OFFSET, Header, ImportOptions, SharedLen, WithPrev};
+pub(crate) use base::HEADER_OFFSET;
+pub use base::{Format, Header, ImportOptions, SharedLen, WithPrev};
 pub use bytes::Bytes;
 
 pub use cursor::Cursor;
@@ -61,7 +62,7 @@ pub use variants::{
     EncodedChunk, Ident, IndexVec, LazyDeltaVec, LazyVec, MapOption, MutableVec, OverflowVec,
     OverflowVecReader, OverflowVecValue, RawRangeCursor, RawStrategy, ReadOnlyCompressedVec,
     ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec, ReadWriteRawVec, UnaryTransform,
-    VecReader, VecReaderCursor,
+    VecReader,
 };
 #[cfg(feature = "lz4")]
 pub use variants::{LZ4Strategy, LZ4Vec, LZ4VecValue};

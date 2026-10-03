@@ -4,11 +4,11 @@ Thread-safe Bitcoin Core RPC client with automatic retries.
 
 ## What It Enables
 
-Query a Bitcoin Core node for blocks, transactions, mempool data, and chain state. Handles connection failures gracefully with configurable retry logic.
+Query a Bitcoin Core node for blocks, transactions, mempool data, and chain state. Handles connection failures gracefully by retrying.
 
 ## Key Features
 
-- **Auto-retry**: Up to 1M retries with configurable delay on transient failures
+- **Auto-retry**: Up to 1M retries, one second apart, on transient failures
 - **Thread-safe**: Clone freely, share across threads
 - **Focused RPC coverage**: Blocks, headers, transactions, mempool, and UTXO queries
 - **Mempool transactions**: Resolves prevouts for mempool tx fee calculation
@@ -24,21 +24,18 @@ let client = Client::new("http://localhost:8332", Auth::CookieFile(cookie_path))
 let client = ConnectArgs::default().client()?;
 
 let height = client.get_last_height()?;
-let hash = client.get_block_hash(height)?;
-let block = client.get_block(&hash)?;
+let tip = client.get_best_block_hash()?;
+let header = client.get_block_header_info(&tip)?;
 
 // Mempool
-let txids = client.get_raw_mempool()?;
-let entries = client.get_raw_mempool_verbose()?;
+let state = client.fetch_mempool_state()?;
 ```
 
 ## Key Methods
 
-- `get_block`, `get_block_hash`, `get_block_header_info`
-- `get_raw_transaction`, `get_mempool_raw_tx`, `get_tx_out`
-- `get_raw_mempool`, `get_raw_mempool_verbose`
-- `get_blockchain_info`, `get_last_height`
-- `is_in_main_chain`, `get_closest_valid_height`
+- `get_last_height`, `get_best_block_hash`, `get_block_info`, `get_block_header_info`, `get_block_hashes_range`
+- `get_raw_transactions`, `fetch_mempool_state`, `fetch_new_pool_data`
+- `get_closest_valid_height`, `get_network`, `wait_for_synced_node`
 
 ## Built On
 

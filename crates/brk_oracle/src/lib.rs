@@ -38,7 +38,6 @@ pub use histogram_raw::HistogramRaw;
 use scale::NUM_BINS;
 pub use scale::{bin_to_cents, cents_to_bin, sats_to_bin};
 pub use seed::pre_oracle_prices_from;
-use seed::seed_bin;
 
 use stencil::Stencil;
 use window::EmaWindow;
@@ -57,7 +56,7 @@ pub struct Oracle {
 }
 
 impl Oracle {
-    pub fn new(start_bin: f64, config: Config) -> Self {
+    fn new(start_bin: f64, config: Config) -> Self {
         Self {
             window: EmaWindow::new(config.window_size, config.alpha),
             ref_bin: start_bin,
@@ -65,12 +64,6 @@ impl Oracle {
             stencil: Stencil::new(config.shape_weight),
             config,
         }
-    }
-
-    /// Create an oracle ready to process height [`START_HEIGHT_SLOW`], seeded from
-    /// the baked pre-oracle price tape and using the slow cold-start config.
-    pub fn from_seed() -> Self {
-        Self::new(seed_bin(), Config::slow())
     }
 
     /// Create an oracle restored from a known price. `fill` should call
@@ -121,7 +114,7 @@ impl Oracle {
         self.window.ema()
     }
 
-    pub fn price_cents(&self) -> Cents {
+    fn price_cents(&self) -> Cents {
         bin_to_cents(self.ref_bin).into()
     }
 

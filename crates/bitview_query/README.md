@@ -21,9 +21,6 @@ API. Supports pagination, range queries, and multiple output formats.
 ```rust,ignore
 let query = Query::build(&plugins, Some(mempool));
 
-// Current height
-let height = query.height();
-
 // Series queries use a cheap resolve phase before formatting.
 let selection = SeriesSelection::from((
     Index::Height,
@@ -34,10 +31,11 @@ let resolved = query.resolve(selection, usize::MAX)?;
 let data = query.format(resolved)?;
 
 // Block queries
-let info = query.block_by_height(Height::new(840_000))?;
+let hash = query.resolve_block_hash(Height::new(840_000))?;
+let status = query.block_status(&hash)?;
 
 // Transaction queries
-let tx = query.transaction(txid.into())?;
+let tx = query.resolve_transaction(&txid)?;
 
 // Address queries
 let stats = query.addr(address)?;
@@ -48,11 +46,11 @@ let stats = query.addr(address)?;
 | Domain | Methods |
 |--------|---------|
 | Series | `search_series`, `resolve`, `format`, `series_count`, `series_list`, `series_catalog`, `series_info` |
-| Blocks | `block`, `block_by_height`, `blocks`, `block_txs`, `block_status`, `block_by_timestamp` |
-| Transactions | `transaction`, `transaction_status`, `transaction_hex`, `outspend`, `outspends` |
-| Addresses | `addr`, `addr_txids`, `addr_utxos` |
+| Blocks | `resolve_block_hash`, `resolve_block_v1`, `resolve_blocks`, `resolve_block_by_timestamp`, `block_status` |
+| Transactions | `resolve_transaction`, `transaction_status`, `transaction_hex_resolved`, `outspend_json`, `outspends_json` |
+| Addresses | `addr`, `addr_txs_resolved`, `addr_utxos_resolved`, `addr_mempool_txs`, `addr_hash_prefix_matches` |
 | Mining | `difficulty_adjustments`, `hashrate`, `mining_pools`, `reward_stats` |
-| Mempool | `mempool_info`, `recommended_fees`, `mempool_blocks` |
+| Mempool | `mempool_info_json`, `recommended_fees`, `mempool_blocks` |
 
 ## Async Usage
 
@@ -60,10 +58,7 @@ let stats = query.addr(address)?;
 let async_query = AsyncQuery::build(&plugins, mempool);
 
 // Run a read with deadline-bounded publication protection.
-let result = async_query.read(move |q| q.block_by_height(height)).await;
-
-// Access inner Query
-let height = async_query.inner().height();
+let result = async_query.read(move |q| q.resolve_block_hash(height)).await;
 ```
 
 `with_deadline(Instant)` creates a cheap request-local query view sharing the

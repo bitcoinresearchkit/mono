@@ -28,7 +28,7 @@ impl ConnectArgs {
             .unwrap_or_else(|| self.bitcoin_dir().join("blocks"))
     }
 
-    pub fn url(&self) -> String {
+    fn url(&self) -> String {
         format!(
             "http://{}:{}",
             self.rpcconnect.as_deref().unwrap_or("localhost"),
@@ -36,7 +36,7 @@ impl ConnectArgs {
         )
     }
 
-    pub fn cookie_path(&self) -> PathBuf {
+    fn cookie_path(&self) -> PathBuf {
         self.rpccookiefile
             .clone()
             .unwrap_or_else(|| self.bitcoin_dir().join(".cookie"))
@@ -44,7 +44,7 @@ impl ConnectArgs {
 
     /// User and password when a password is set, else the cookie file when there is one
     /// (`bitcoin-cli`'s rule).
-    pub fn auth(&self) -> Option<Auth> {
+    fn auth(&self) -> Option<Auth> {
         match self.rpcpassword.as_deref() {
             Some(password) if !password.is_empty() => Some(Auth::UserPass(
                 self.rpcuser.clone().unwrap_or_default(),

@@ -3,10 +3,10 @@ use serde_json::Value;
 /// Parameter information.
 #[derive(Debug, Clone)]
 pub struct Parameter {
-    pub name: String,
-    pub required: bool,
-    pub param_type: String,
-    pub description: Option<String>,
+    pub(crate) name: String,
+    pub(crate) required: bool,
+    pub(crate) param_type: String,
+    pub(crate) description: Option<String>,
     /// Original OpenAPI/JSON Schema for schema-driven generators.
-    pub schema: Value,
+    pub(crate) schema: Value,
 }

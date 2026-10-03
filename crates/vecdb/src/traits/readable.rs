@@ -30,9 +30,8 @@ pub const READ_CHUNK_SIZE: usize = 4096;
 ///
 /// # Point reads
 ///
-/// For raw vecs, use `VecReader::get()` for O(1) random access.
-/// For short or unbounded sequential persisted raw reads, use
-/// `vec.reader().cursor()` to avoid the general cursor's staging buffer.
+/// For raw vecs, use `VecReader::get()` for O(1) random access, including short
+/// sequential persisted reads without the general cursor's staging buffer.
 /// For a known persisted raw range, use `vec.range_cursor_at(from, to)` so a
 /// cold scan can use buffered I/O while resident data stays zero-copy.
 /// Compressed vectors expose the same bounded `range_cursor_at` role: pages are

@@ -1,9 +1,4 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    path::PathBuf,
-    result::Result as StdResult,
-    sync::Arc,
-};
+use std::{collections::BTreeMap, path::PathBuf, result::Result as StdResult, sync::Arc};
 
 use parking_lot::RwLock;
 use rawdb::{Database, Region};
@@ -170,7 +165,7 @@ where
         }
     }
 
-    pub fn read_only_clone(&self) -> ReadOnlyOverflowVec<I, T> {
+    pub(crate) fn read_only_clone(&self) -> ReadOnlyOverflowVec<I, T> {
         ReadOnlyOverflowVec::new(
             self.compact.read_only_clone(),
             self.overflow.read_only_clone(),
@@ -190,12 +185,8 @@ where
             .map(|compact| self.decode(compact, reader))
     }
 
-    pub fn holes(&self) -> &BTreeSet<usize> {
-        self.compact.holes()
-    }
-
     #[inline(always)]
-    pub fn push(&mut self, value: T) {
+    pub(crate) fn push(&mut self, value: T) {
         self.header().assert_writable();
         let compact = self.encode(&value);
         self.compact.push(compact);

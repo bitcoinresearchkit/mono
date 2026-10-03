@@ -20,14 +20,7 @@ use jiff::Error as JiffError;
 use pco::errors::PcoError;
 #[cfg(feature = "serde_json")]
 use serde_json::Error as SerdeJsonError;
-use std::{
-    borrow::Cow,
-    fmt,
-    io::{self, Error as IoError},
-    path::PathBuf,
-    result::Result as StdResult,
-    time,
-};
+use std::{borrow::Cow, fmt, io, path::PathBuf, result::Result as StdResult, time};
 
 use thiserror::Error;
 
@@ -236,50 +229,6 @@ impl Error {
         #[cfg(not(feature = "fjall"))]
         {
             is_vecdb_data
-        }
-    }
-
-    /// Returns true if this network/fetch error indicates a permanent/blocking condition
-    /// that won't be resolved by retrying (e.g., DNS failure, connection refused, blocked endpoint).
-    /// Returns false for transient errors worth retrying (timeouts, rate limits, server errors).
-    pub fn is_network_permanently_blocked(&self) -> bool {
-        match self {
-            #[cfg(feature = "ureq")]
-            Error::Ureq(e) => is_ureq_error_permanent(e),
-            Error::IO(e) => is_io_error_permanent(e),
-            // 403 Forbidden suggests IP/geo blocking; 429 and 5xx are transient
-            Error::HttpStatus { status, .. } => *status == 403,
-            // Other errors are data/parsing related, not network - treat as transient
-            _ => false,
-        }
-    }
-}
-
-#[cfg(feature = "ureq")]
-fn is_ureq_error_permanent(e: &UreqError) -> bool {
-    let msg = format!("{:?}", e);
-    msg.contains("nodename nor servname")
-        || msg.contains("Name or service not known")
-        || msg.contains("No such host")
-        || msg.contains("connection refused")
-        || msg.contains("Connection refused")
-        || msg.contains("certificate")
-        || msg.contains("SSL")
-        || msg.contains("TLS")
-        || msg.contains("handshake")
-}
-
-fn is_io_error_permanent(e: &IoError) -> bool {
-    use std::io::ErrorKind::*;
-    match e.kind() {
-        // Permanent errors
-        ConnectionRefused | PermissionDenied | AddrNotAvailable => true,
-        // Check the error message for DNS failures
-        _ => {
-            let msg = e.to_string();
-            msg.contains("nodename nor servname")
-                || msg.contains("Name or service not known")
-                || msg.contains("No such host")
         }
     }
 }

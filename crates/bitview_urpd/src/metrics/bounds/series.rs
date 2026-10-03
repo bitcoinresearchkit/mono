@@ -14,7 +14,7 @@ pub struct AgeBoundsMetrics<M: StorageMode = Rw> {
     #[traversable(flatten)]
     series: AgeAggregate<PriceBounds<Price<LazyPerBlock<Cents>>>>,
     #[traversable(hidden)]
-    pub stored: AgeAggregate<PriceBounds<CachedSeries<Height, Cents, M>>>,
+    stored: AgeAggregate<PriceBounds<CachedSeries<Height, Cents, M>>>,
 }
 
 impl AgeBoundsMetrics {

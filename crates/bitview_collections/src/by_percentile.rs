@@ -70,31 +70,6 @@ impl<T> ByPercentile<T> {
         })
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
-        [
-            &self.pct05,
-            &self.pct10,
-            &self.pct15,
-            &self.pct20,
-            &self.pct25,
-            &self.pct30,
-            &self.pct35,
-            &self.pct40,
-            &self.pct45,
-            &self.pct50,
-            &self.pct55,
-            &self.pct60,
-            &self.pct65,
-            &self.pct70,
-            &self.pct75,
-            &self.pct80,
-            &self.pct85,
-            &self.pct90,
-            &self.pct95,
-        ]
-        .into_iter()
-    }
-
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         [
             &mut self.pct05,

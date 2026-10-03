@@ -186,7 +186,7 @@ impl Database {
         self.flush_inner(&_writes).map(|(regions, _)| regions)
     }
 
-    pub(crate) fn flush_inner(&self, _writes: &RwLockWriteGuard<'_, ()>) -> Result<(usize, bool)> {
+    fn flush_inner(&self, _writes: &RwLockWriteGuard<'_, ()>) -> Result<(usize, bool)> {
         // The caller holds the mutation barrier, so dirty state stays stable.
         // Leave it intact until both files are durable; errors need no rollback.
         let mut layout = self.layout_mut();

@@ -39,11 +39,6 @@ impl<T: VecValue> CursorState<T> {
         }
     }
 
-    #[inline(always)]
-    fn remaining(&self) -> usize {
-        self.end - self.position
-    }
-
     #[inline]
     fn advance(&mut self, n: usize) {
         self.position = self.position.saturating_add(n).min(self.end);
@@ -163,12 +158,6 @@ where
         self.state.position
     }
 
-    /// Returns the number of values remaining in the declared range.
-    #[inline(always)]
-    pub fn remaining(&self) -> usize {
-        self.state.remaining()
-    }
-
     /// Advances within the declared range without decoding values.
     #[inline]
     pub fn advance(&mut self, n: usize) {
@@ -201,7 +190,7 @@ where
 
     /// Folds over up to the next `n` values and advances the position.
     #[inline]
-    pub fn fold<B>(&mut self, n: usize, value: B, mut fold: impl FnMut(B, T) -> B) -> B {
+    fn fold<B>(&mut self, n: usize, value: B, mut fold: impl FnMut(B, T) -> B) -> B {
         let end = self.state.position.saturating_add(n).min(self.state.end);
         if self.state.contains_until(end) {
             return self.state.fold_buffered_until(end, value, &mut fold);

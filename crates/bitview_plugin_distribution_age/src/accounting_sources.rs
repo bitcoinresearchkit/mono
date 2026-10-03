@@ -8,10 +8,10 @@ use crate::Vecs;
 
 /// Read-only accounting inputs for weighted consumers; no cloned source or result cache.
 pub struct AccountingSources<'a> {
-    pub supplies: AgeRange<&'a dyn ReadableVec<Height, Sats>>,
-    pub loss_supplies: AgeRange<&'a dyn ReadableVec<Height, Sats>>,
-    pub cap_raw: AgeRange<&'a dyn ReadableVec<Height, CentsSats>>,
-    pub capitalized_cap_raw: AgeRange<&'a dyn ReadableVec<Height, CentsSquaredSats>>,
+    supplies: AgeRange<&'a dyn ReadableVec<Height, Sats>>,
+    loss_supplies: AgeRange<&'a dyn ReadableVec<Height, Sats>>,
+    cap_raw: AgeRange<&'a dyn ReadableVec<Height, CentsSats>>,
+    capitalized_cap_raw: AgeRange<&'a dyn ReadableVec<Height, CentsSquaredSats>>,
 }
 
 impl Vecs {

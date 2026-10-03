@@ -14,7 +14,7 @@ where
 {
     block: LazyDistribution<Height, T, S1T>,
     /// Uses the six-block window ending at the represented block.
-    pub _6b: LazyDistribution<Height, T, S1T>,
+    _6b: LazyDistribution<Height, T, S1T>,
 }
 
 impl<T, S1T> LazyTxDerivedDistribution<T, S1T>
@@ -22,7 +22,7 @@ where
     T: ComputedVecValue + JsonSchema + 'static,
     S1T: ComputedVecValue + PartialOrd + JsonSchema,
 {
-    pub fn from_tx_derived<F: UnaryTransform<S1T, T>>(
+    pub(crate) fn from_tx_derived<F: UnaryTransform<S1T, T>>(
         name: &str,
         version: Version,
         source: &TxDerivedDistribution<S1T>,

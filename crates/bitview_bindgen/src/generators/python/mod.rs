@@ -15,7 +15,7 @@ use crate::{ClientMetadata, Endpoint, TypeSchemas};
 /// Generate Python client from metadata and OpenAPI endpoints.
 ///
 /// `output_path` is the full path to the output file (e.g., "packages/bitview_client/__init__.py").
-pub fn generate_python_client(
+pub(crate) fn generate_python_client(
     metadata: &ClientMetadata,
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,

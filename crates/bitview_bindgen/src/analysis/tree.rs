@@ -114,7 +114,7 @@ fn collect_index_sets_from_tree<'a>(
 #[derive(Debug, Clone)]
 pub struct PatternBaseResult {
     /// The computed base name for the pattern.
-    pub base: String,
+    pub(crate) base: String,
     /// Whether an outlier child was excluded to find the pattern.
     /// If true, pattern factory should not be used.
     pub(crate) has_outlier: bool,

@@ -14,7 +14,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bitview_catalog::TreeNode;
-use bitview_query::{Output, Query as BrkQuery, ResolvedQuery, SeriesOutput};
+use bitview_query::{Output, Query as BrkQuery, ResolvedQuery};
 use bitview_types::{
     DataRangeFormat, DetailedSeriesCount, Format, IndexInfo, PaginatedSeries, Pagination,
     SearchQuery, SeriesData, SeriesInfo, SeriesName, SeriesNameWithIndex, SeriesSelection,
@@ -216,8 +216,8 @@ pub async fn serve(
         .map_err(Into::into)
 }
 
-fn output_to_bytes(out: SeriesOutput) -> Bytes {
-    match out.output {
+fn output_to_bytes(out: Output) -> Bytes {
+    match out {
         Output::CSV(s) => Bytes::from(s),
         Output::Json(v) => Bytes::from(v),
     }

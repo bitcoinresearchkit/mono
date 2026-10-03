@@ -6,6 +6,6 @@ mod ratio;
 
 pub use capitalized_price::WeightedCapitalizedPrice;
 pub use cohort_aggregates::WeightedCohortAggregates;
-pub use cohort_contribution::WeightedCohortContribution;
+pub(crate) use cohort_contribution::WeightedCohortContribution;
 pub use cohort_state::WeightedCohortState;
 pub use ratio::WeightedRatio;

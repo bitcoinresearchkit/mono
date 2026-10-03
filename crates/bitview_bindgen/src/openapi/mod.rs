@@ -18,11 +18,11 @@ mod request_body;
 mod response_kind;
 mod text_schema;
 
-pub use endpoint::Endpoint;
-pub use parameter::Parameter;
-pub use request_body::RequestBody;
-pub use response_kind::ResponseKind;
-pub use text_schema::TextSchema;
+pub(crate) use endpoint::Endpoint;
+pub(crate) use parameter::Parameter;
+pub(crate) use request_body::RequestBody;
+pub(crate) use response_kind::ResponseKind;
+pub(crate) use text_schema::TextSchema;
 
 /// Type schema extracted from OpenAPI components
 #[derive(Default, Deref, DerefMut)]
@@ -38,7 +38,7 @@ impl From<BTreeMap<String, Value>> for TypeSchemas {
 ///
 /// Pre-processes the JSON to handle oas3 limitations:
 /// - Removes unsupported siblings from `$ref` objects (oas3 only supports `summary` and `description`)
-pub fn parse_openapi_json(json: &str) -> io::Result<Spec> {
+pub(crate) fn parse_openapi_json(json: &str) -> io::Result<Spec> {
     let mut value: Value =
         from_str(json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
@@ -98,7 +98,7 @@ fn clean_for_oas3(value: &mut Value) {
 }
 
 /// Extract all endpoints from OpenAPI spec
-pub fn extract_endpoints(spec: &Spec) -> Vec<Endpoint> {
+pub(crate) fn extract_endpoints(spec: &Spec) -> Vec<Endpoint> {
     let mut endpoints = Vec::new();
 
     let Some(paths) = &spec.paths else {

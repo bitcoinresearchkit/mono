@@ -24,7 +24,7 @@ impl Query {
         self.mempool().ok_or(Error::MempoolNotAvailable)
     }
 
-    pub fn mempool_info(&self) -> Result<MempoolInfo> {
+    fn mempool_info(&self) -> Result<MempoolInfo> {
         self.require_mempool()?.info()
     }
 
@@ -55,7 +55,7 @@ impl Query {
             .collect())
     }
 
-    pub fn mempool_recent(&self) -> Result<Vec<MempoolRecentTx>> {
+    fn mempool_recent(&self) -> Result<Vec<MempoolRecentTx>> {
         self.require_mempool()?.recent_txs()
     }
 

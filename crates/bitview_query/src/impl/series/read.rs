@@ -81,7 +81,7 @@ impl SeriesRead {
             .ok_or(Error::Internal("Missing published series bound"))
     }
 
-    pub fn columns(&self) -> impl ExactSizeIterator<Item = BoundedVec<'_>> + '_ {
+    pub(crate) fn columns(&self) -> impl ExactSizeIterator<Item = BoundedVec<'_>> + '_ {
         self.vecs.iter().map(|vec| {
             self.bounds
                 .bind(*vec)
