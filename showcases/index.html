@@ -1,0 +1,1073 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f2efe8" />
+    <meta name="description" content="What can be built on Bitview's data: a pile of single-file pages, from explorers to on-chain indicators." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23171512'/%3E%3Cg%20transform='translate(12%209)%20scale(.23)'%20fill='%23f2efe8'%3E%3Cpolygon%20fill-opacity='.4'%20points='86.6,100%20173.2,150%2086.6,200%200,150'/%3E%3Cpolygon%20fill-opacity='.4'%20points='86.6,100%200,150%200,50%2086.6,0'/%3E%3Cpolygon%20fill-opacity='.4'%20points='86.6,100%20173.2,150%20173.2,50%2086.6,0'/%3E%3Cpolygon%20points='173.2,100%20173.2,150%2086.6,200%2086.6,150'/%3E%3Cpolygon%20points='0,100%200,150%2086.6,200%2086.6,150'/%3E%3C/g%3E%3C/svg%3E" type="image/svg+xml" />
+    <title>Showcases · bitview</title>
+    <style>
+      @font-face {
+        font-family: Lilex;
+        src: url("./fonts/Lilex.woff2") format("woff2");
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Instrument;
+        src: url("./fonts/InstrumentSerif-Regular.woff2") format("woff2");
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Instrument;
+        src: url("./fonts/InstrumentSerif-Italic.woff2") format("woff2");
+        font-style: italic;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: light;
+        --paper: #f2efe8;
+        --ink: #1a1815;
+        --soft: #5d584f;
+        --muted: #8f897e;
+        --rule: #dcd6c9;
+        --accent: #e5533d;
+        --mono: Lilex, ui-monospace, SFMono-Regular, Menlo, monospace;
+        --serif: Instrument, Georgia, serif;
+        --disk: min(15rem, 19vw, 27svh);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-snap-type: y mandatory;
+        background: var(--paper);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+        font: 13px/1.55 var(--mono);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button {
+        font: inherit;
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 3px;
+      }
+
+      .site-header {
+        position: fixed;
+        top: 0;
+        right: 0;
+        left: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.4rem 2.5rem;
+        transition: opacity 260ms ease;
+      }
+
+      .site-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1rem;
+      }
+
+      .site-brand-mark {
+        display: inline-grid;
+        padding: 0.2rem 0.3rem;
+        border-radius: 0.25rem;
+        place-items: center;
+        color: var(--paper);
+        background: var(--ink);
+      }
+
+      .site-brand-cube {
+        display: block;
+        width: 1.3rem;
+        height: 1.5rem;
+
+        .glass {
+          fill: currentColor;
+          fill-opacity: 0.4;
+        }
+
+        .liquid {
+          fill: currentColor;
+        }
+      }
+
+      .tip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        color: var(--muted);
+        font-size: 12px;
+
+        &::before {
+          content: "";
+          width: 0.45rem;
+          height: 0.45rem;
+          border-radius: 50%;
+          background: #2fa66a;
+          animation: pulse 2.4s ease-out infinite;
+        }
+
+        b {
+          color: var(--ink);
+          font-weight: 500;
+        }
+
+        &:hover b {
+          text-decoration: underline;
+          text-underline-offset: 3px;
+        }
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgb(47 166 106 / 0.45);
+        }
+
+        70%,
+        100% {
+          box-shadow: 0 0 0 0.5rem rgb(47 166 106 / 0);
+        }
+      }
+
+      .stage {
+        --x: 46%;
+        --y: 61%;
+
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        transition:
+          opacity 260ms ease,
+          scale 260ms ease;
+
+        /* The isometric floor, drawn flat: its lines run at ±30°, a quarter disk apart. */
+        &::before {
+          --step: calc(var(--disk) * 0.177);
+
+          content: "";
+          position: absolute;
+          inset: 0;
+          background:
+            repeating-linear-gradient(30deg, var(--rule) 0 1px, transparent 1px var(--step)),
+            repeating-linear-gradient(150deg, var(--rule) 0 1px, transparent 1px var(--step));
+          background-position: var(--x) var(--y);
+          mask-image: radial-gradient(42rem 30rem at var(--x) var(--y), #000 10%, transparent 75%);
+        }
+      }
+
+      [data-leaving] {
+        .stage {
+          opacity: 0;
+          scale: 1.03;
+        }
+
+        .site-header {
+          opacity: 0;
+        }
+      }
+
+      /* Every showcase at a glance, beside the pile. */
+      .index {
+        position: absolute;
+        top: 50%;
+        left: 2.5rem;
+        width: 15rem;
+        translate: 0 -46%;
+
+        h1 {
+          margin: 0;
+          font: 400 2.9rem / 0.95 var(--serif);
+          letter-spacing: -0.01em;
+        }
+
+        .lede {
+          margin: 0.8rem 0 1.4rem;
+          color: var(--soft);
+          font-size: 12px;
+        }
+
+        ol {
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+
+        .group {
+          margin: 0.9rem 0 0.25rem;
+          color: var(--muted);
+          font-size: 10px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+
+        a {
+          display: flex;
+          align-items: center;
+          gap: 0.7rem;
+          padding: 0.08rem 0;
+          color: var(--muted);
+          font-size: 12px;
+          transition: color 150ms ease;
+
+          span {
+            width: 1.2rem;
+            color: #b9b3a7;
+            font-size: 10px;
+          }
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          &[aria-current="true"] {
+            color: var(--ink);
+
+            span {
+              color: var(--accent);
+            }
+
+            &::after {
+              content: "";
+              flex: 1;
+              height: 1px;
+              margin-left: 0.25rem;
+              background: linear-gradient(90deg, var(--accent), transparent);
+            }
+          }
+        }
+
+        .hint {
+          margin: 1.4rem 0 0;
+          color: var(--muted);
+          font-size: 10.5px;
+        }
+      }
+
+      /* An orthographic, isometric camera: no perspective, a 45° turn and a tilt from above. */
+      .scene {
+        position: absolute;
+        top: var(--y);
+        left: var(--x);
+        transform: rotateX(-35.264deg) rotateY(45deg);
+        transform-style: preserve-3d;
+
+        > * {
+          position: absolute;
+          pointer-events: none;
+        }
+      }
+
+      .shadow {
+        width: calc(var(--disk) * 1.04);
+        height: calc(var(--disk) * 1.07);
+        margin: calc(var(--disk) * -0.535) 0 0 calc(var(--disk) * -0.52);
+        border-radius: 8%;
+        background: rgb(52 40 24 / 0.2);
+        filter: blur(calc(var(--disk) * 0.05));
+      }
+
+      .held-shadow {
+        width: calc(var(--disk) * 1.3);
+        height: calc(var(--disk) * 0.34);
+        margin: calc(var(--disk) * -0.17) 0 0 calc(var(--disk) * -0.65);
+        background: radial-gradient(closest-side, rgb(52 40 24 / 0.22), transparent);
+      }
+
+      .disk {
+        --th: calc(var(--disk) * 0.036);
+
+        position: absolute;
+        width: var(--disk);
+        height: calc(var(--disk) * 310 / 300);
+        margin: calc(var(--disk) * -155 / 300) 0 0 calc(var(--disk) * -0.5);
+        cursor: pointer;
+        pointer-events: auto;
+        transform-style: preserve-3d;
+        will-change: transform;
+        transition: translate 220ms ease;
+
+        &.top:hover {
+          translate: 0 calc(var(--disk) * -0.05) 0;
+        }
+
+        /* One flat plane for the face, so the sides never split the label from its gloss. */
+        .face {
+          position: absolute;
+          inset: 0;
+        }
+
+        svg {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+
+        /* Light catching the plastic, swept by the disk's angle. */
+        .gloss {
+          position: absolute;
+          inset: 0;
+          clip-path: polygon(0 0, 93.3% 0, 100% 6.5%, 100% 100%, 0 100%);
+          border-radius: 3.3%;
+          background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.2) 46%, rgb(255 255 255 / 0.06) 52%, transparent 60%) var(--gloss, 100%) 0 / 300% 100% no-repeat;
+        }
+
+        /* Four sides, each folded back from the face: a floppy is two shells with a seam between. */
+        .edge {
+          position: absolute;
+        }
+
+        .bottom,
+        .top {
+          left: 0;
+          right: 0;
+          height: var(--th);
+          background: linear-gradient(var(--edge) 44%, var(--seam) 50%, var(--edge) 56%);
+        }
+
+        .bottom {
+          bottom: 0;
+          transform: rotateX(90deg);
+          transform-origin: bottom;
+        }
+
+        .top {
+          top: 0;
+          right: 7.3%;
+          transform: rotateX(-90deg);
+          transform-origin: top;
+        }
+
+        .left,
+        .right {
+          top: 0;
+          bottom: 0;
+          width: var(--th);
+          background: linear-gradient(90deg, var(--edge-dark) 44%, var(--seam) 50%, var(--edge-dark) 56%);
+        }
+
+        .left {
+          left: 0;
+          transform: rotateY(90deg);
+          transform-origin: left;
+        }
+
+        .right {
+          top: 7.1%;
+          right: 0;
+          transform: rotateY(-90deg);
+          transform-origin: right;
+        }
+      }
+
+      .ticks {
+        display: none;
+        align-items: end;
+        gap: 3px;
+        height: 1rem;
+        margin-bottom: 0.9rem;
+
+        span {
+          width: 3px;
+          height: 0.55rem;
+          border-radius: 1px;
+          background: var(--rule);
+          transition:
+            height 200ms ease,
+            background 200ms ease;
+        }
+
+        .on {
+          height: 1rem;
+          background: var(--accent);
+        }
+      }
+
+      .caption {
+        position: absolute;
+        right: 2.5rem;
+        bottom: 11%;
+        width: min(20rem, 24vw);
+
+        .line {
+          position: absolute;
+          top: 0.55rem;
+          right: calc(100% + 0.75rem);
+          width: clamp(2rem, 5vw, 5rem);
+          height: 1px;
+          background: var(--rule);
+        }
+
+        .meta {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          color: var(--muted);
+          font-size: 10.5px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+
+          &::before {
+            content: "";
+            width: 0.45rem;
+            height: 0.45rem;
+            border-radius: 1px;
+            background: var(--accent);
+            transition: background 300ms ease;
+          }
+        }
+
+        h2 {
+          margin: 0.7rem 0 0;
+          font: 400 clamp(2.4rem, 3.7vw, 3.6rem) / 0.95 var(--serif);
+          letter-spacing: -0.01em;
+          text-wrap: balance;
+        }
+
+        p {
+          margin: 0.9rem 0 0;
+          color: var(--soft);
+          font-size: 13px;
+          text-wrap: pretty;
+        }
+
+        .actions {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin: 1.3rem 0 0;
+        }
+
+        .open {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.6rem;
+          border: 1px solid var(--ink);
+          border-radius: 999px;
+          padding: 0.5rem 1rem 0.5rem 1.1rem;
+          font-size: 11.5px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          transition:
+            color 150ms ease,
+            background 150ms ease;
+
+          &:hover {
+            color: var(--paper);
+            background: var(--ink);
+          }
+        }
+
+        .step {
+          display: grid;
+          width: 2.15rem;
+          height: 2.15rem;
+          border: 1px solid var(--rule);
+          border-radius: 50%;
+          padding: 0;
+          place-items: center;
+          background: none;
+          font-size: 13px;
+          cursor: pointer;
+          transition: border-color 150ms ease;
+
+          &:hover {
+            border-color: var(--ink);
+          }
+
+          &[aria-disabled="true"] {
+            color: var(--rule);
+            border-color: var(--rule);
+            cursor: default;
+          }
+        }
+
+        > :not(.line, .actions) {
+          transition:
+            opacity 180ms ease,
+            translate 180ms ease;
+        }
+
+        &[data-changing] > :not(.line, .actions) {
+          opacity: 0;
+          translate: 0 0.35rem;
+        }
+      }
+
+      .stops {
+        pointer-events: none;
+      }
+
+      .stop {
+        height: 38svh;
+        scroll-snap-align: start;
+      }
+
+      .stops::after {
+        content: "";
+        display: block;
+        height: 62svh;
+      }
+
+      @media (max-width: 68rem) {
+        .stage {
+          --x: 50%;
+          --y: 50%;
+        }
+
+        .index {
+          display: none;
+        }
+
+        .caption {
+          right: auto;
+          bottom: 2.5rem;
+          left: 2.5rem;
+          width: min(24rem, 44vw);
+
+          .line {
+            display: none;
+          }
+        }
+
+        .ticks {
+          display: flex;
+        }
+      }
+
+      @media (max-height: 46rem) {
+        .index :is(ol, .hint) {
+          display: none;
+        }
+      }
+
+      @media (max-width: 52rem) {
+        :root {
+          --disk: min(7.6rem, 31vw, 15svh);
+        }
+
+        .site-header {
+          padding: 1rem 1.25rem;
+        }
+
+        .stage {
+          --y: 60%;
+        }
+
+        .caption {
+          right: 1.25rem;
+          bottom: 1.5rem;
+          left: 1.25rem;
+          width: auto;
+
+          h2 {
+            font-size: 2.3rem;
+          }
+
+          p {
+            margin-top: 0.6rem;
+          }
+
+          .actions {
+            margin-top: 1rem;
+          }
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-snap-type: none;
+        }
+
+        .tip::before {
+          animation: none;
+        }
+
+        .caption > *,
+        .stage {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-brand" href="https://bitview.space" aria-label="bitview home">
+        <span class="site-brand-mark" aria-hidden="true">
+          <svg class="site-brand-cube" viewBox="0 0 173.2 200" focusable="false">
+            <polygon class="glass" points="86.6,100 173.2,150 86.6,200 0,150" />
+            <polygon class="glass" points="86.6,100 0,150 0,50 86.6,0" />
+            <polygon class="glass" points="86.6,100 173.2,150 173.2,50 86.6,0" />
+            <polygon class="liquid" points="173.2,100 173.2,150 86.6,200 86.6,150" />
+            <polygon class="liquid" points="0,100 0,150 86.6,200 86.6,150" />
+          </svg>
+        </span>
+        <span>bitview</span>
+      </a>
+      <a class="tip" id="tip" href="./chain/" hidden>Block <b id="tip-height"></b></a>
+    </header>
+
+    <main class="stage">
+      <nav class="index" aria-label="Showcases">
+        <h1>Showcases</h1>
+        <p class="lede">Single files, each reading live data from a Bitcoin node through Bitview.</p>
+        <ol id="index"></ol>
+        <p class="hint">Scroll, or ↑ ↓ · Enter opens</p>
+      </nav>
+
+      <div class="scene" id="scene" aria-hidden="true">
+        <div class="shadow" id="shadow-next"></div>
+        <div class="shadow" id="shadow-seen"></div>
+        <div class="held-shadow" id="shadow-held"></div>
+      </div>
+
+      <section class="caption" id="caption" aria-live="polite">
+        <span class="line" aria-hidden="true"></span>
+        <div class="ticks" id="ticks" aria-hidden="true"></div>
+        <div class="meta"><span id="group"></span><span id="position"></span></div>
+        <h2 id="title"></h2>
+        <p id="description"></p>
+        <div class="actions">
+          <a class="open" id="open" href="#"><span>Open</span><span aria-hidden="true">↗</span></a>
+          <button class="step" id="previous" type="button" aria-label="Previous showcase">↑</button>
+          <button class="step" id="next" type="button" aria-label="Next showcase">↓</button>
+        </div>
+      </section>
+    </main>
+
+    <div class="stops" id="stops" aria-hidden="true"></div>
+
+    <script type="module">
+      // @ts-check
+      // Two piles of floppy disks, one per showcase: the ones still to see, the ones seen, and the
+      // one held up in between. Every label is drawn here, by hand, as SVG.
+
+      const cube = (x, y, s, top, left, right) =>
+        `<path d="M${x} ${y}l${s * 0.87} ${s * 0.5}l${-s * 0.87} ${s * 0.5}l${-s * 0.87} ${-s * 0.5}z" fill="${top}"/>` +
+        `<path d="M${x - s * 0.87} ${y + s * 0.5}l${s * 0.87} ${s * 0.5}v${s}l${-s * 0.87} ${-s * 0.5}z" fill="${left}"/>` +
+        `<path d="M${x} ${y + s}l${s * 0.87} ${-s * 0.5}v${s}l${-s * 0.87} ${s * 0.5}z" fill="${right}"/>`;
+      const line = (points, stroke, width = 2.5) =>
+        `<polyline points="${points}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-linejoin="round" stroke-linecap="round"/>`;
+      const PRICE = "6,128 30,112 46,118 70,86 92,96 116,60 134,72 158,44 180,58 204,30 238,22";
+      /** Stacked ribbons rising left to right, bottom color first. */
+      const ribbons = (colors, step = 12) =>
+        colors.map((color, i) => `<path d="M0 ${132 - i * step}C50 ${108 - i * step} 70 ${118 - i * step} 120 ${78 - i * step}S200 ${52 - i * step} 244 ${30 - i * step}V152H0z" fill="${color}"/>`).join("");
+
+      /** Label art, 244×152, in each page's own colors. */
+      const ART = {
+        bitview: `<rect width="244" height="152" fill="#111"/>${cube(122, 24, 52, "#5a5a5a", "#3c3c3c", "#2a2a2a")}<path d="M122 76l45 26v26l-45 26z" fill="#f7931a"/><path d="M122 76l-45 26v26l45 26z" fill="#d97a0c"/>`,
+        chain: `<rect width="244" height="152" fill="#0b0b0b"/>${cube(70, 14, 30, "#3a3a3a", "#2a2a2a", "#1f1f1f")}${cube(122, 46, 30, "#f47a20", "#d4600f", "#b84f08")}${cube(174, 78, 30, "#3a3a3a", "#2a2a2a", "#1f1f1f")}`,
+        explorer: `<rect width="244" height="152" fill="#faf9f6"/><rect x="12" y="14" width="54" height="124" rx="4" fill="#efece5"/>${[0, 1, 2, 3, 4, 5, 6].map((i) => `<rect x="20" y="${24 + i * 15}" width="${26 + (i % 3) * 8}" height="4" rx="2" fill="#cfcbc2"/>`).join("")}<text x="80" y="44" font-family="Georgia,serif" font-size="24" fill="#ad512c">39,412</text><text x="80" y="62" font-family="Georgia,serif" font-size="13" fill="#292e29">series</text><path d="M80 130L102 118L122 124L146 96L168 104L190 74L230 62V134H80z" fill="#ad512c" opacity=".14"/>${line("80,130 102,118 122,124 146,96 168,104 190,74 230,62", "#d66a2b", 2.2)}`,
+        wallets: `<rect width="244" height="152" fill="#0f1a16"/><path d="M14 132H60V104H104V86H140V96H180V58H230V132z" fill="#c9a35c" opacity=".22"/>${line("14,132 60,132 60,104 104,104 104,86 140,86 140,96 180,96 180,58 230,58", "#d8b46b", 2.4)}<text x="16" y="44" font-family="Georgia,serif" font-size="30" fill="#ece5d3">₿0.42</text>`,
+        studio: `<rect width="244" height="152" fill="#eef0f2"/>${[0, 1, 2, 3].map((i) => `<path d="M10 ${28 + i * 30}H234" stroke="#d6dbe1"/>`).join("")}${line(PRICE, "#2c2f33", 2.2)}${line("6,140 40,132 70,120 104,118 130,100 170,92 204,76 238,70", "#e8642c", 2.2)}<rect x="12" y="10" width="62" height="12" rx="6" fill="#fff" stroke="#d6dbe1"/>`,
+        planet: `<rect width="244" height="152" fill="#07080b"/><ellipse cx="122" cy="80" rx="108" ry="22" fill="none" stroke="#2a2e36"/><circle cx="122" cy="76" r="56" fill="#16191f"/><path d="M122 20v112M76 44c30 18 62 18 92 0M70 96c34-16 70-16 104 0" fill="none" stroke="#262a31"/><path d="M110 58c10-8 26-6 30 4 4 12-6 24-18 22s-20-14-12-26z" fill="#de2910"/><circle cx="124" cy="68" r="11" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="210" cy="92" r="7" fill="#3a3e46"/><circle cx="58" cy="54" r="2.5" fill="#f7931a"/>`,
+        calendar: `<rect width="244" height="152" fill="#fff"/>${Array.from({ length: 35 }, (_, i) => {
+          const x = 30 + (i % 7) * 31;
+          const y = 22 + Math.floor(i / 7) * 26;
+          return [3, 11, 17, 24, 30].includes(i)
+            ? `<path d="M${x} ${y - 7}l6 11h-12z" fill="#13a374"/>`
+            : `<circle cx="${x - 2}" cy="${y - 4}" r="2.3" fill="#222"/><circle cx="${x + 2}" cy="${y}" r="2.3" fill="#f7931a"/>`;
+        }).join("")}`,
+        api: `<rect width="244" height="152" fill="#0b1713"/><text font-family="Lilex,monospace" font-size="12"><tspan x="16" y="34" fill="#7cc4f5">GET</tspan><tspan x="48" y="34" fill="#e3f2e9">/api/block/</tspan><tspan x="134" y="34" fill="#f2c46d">{hash}</tspan><tspan x="16" y="62" fill="#5fe0a4">{</tspan><tspan x="30" y="80" fill="#7cc4f5">"height"</tspan><tspan x="96" y="80" fill="#5fe0a4">840000</tspan><tspan x="30" y="98" fill="#7cc4f5">"tx_count"</tspan><tspan x="110" y="98" fill="#5fe0a4">3050</tspan><tspan x="16" y="116" fill="#5fe0a4">}</tspan></text><rect x="16" y="128" width="40" height="12" rx="3" fill="#5fe0a4"/>`,
+        height: `<rect width="244" height="152" fill="#f7931a"/><text x="122" y="102" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-weight="700" font-size="60" letter-spacing="-4" fill="#17100a">969,7</text><text x="122" y="126" text-anchor="middle" font-family="Lilex,monospace" font-size="8" letter-spacing="2" fill="#5a3a10">LATEST INDEXED BLOCK</text>`,
+        floor: `<rect width="244" height="152" fill="#cc7a00"/><text x="18" y="56" font-family="Georgia,serif" font-size="34" fill="#140c00">Finding</text><text x="18" y="88" font-family="Georgia,serif" font-style="italic" font-size="30" fill="#140c00">the floor</text>${line("18,136 64,136 64,122 110,122 110,110 156,110 156,98 226,98", "#140c00", 2)}<path d="M18 116H226" stroke="#140c00" stroke-dasharray="4 4" opacity=".5"/>`,
+        trail: `<rect width="244" height="152" fill="#091513"/>${Array.from({ length: 16 }, (_, i) => {
+          const h = [30, 46, 22, 60, 38, 74, 52, 28, 64, 90, 44, 36, 70, 50, 26, 40][i];
+          const x = 22 + i * 13;
+          const y = 132 - i * 4;
+          const color = i % 5 === 3 ? "#9a9a9a" : i % 3 ? "#2f8f4e" : "#7a5a2a";
+          return `<path d="M${x} ${y}v${-h}l8 -4v${h}z" fill="${color}"/><path d="M${x + 8} ${y - 4}v${-h}l4 2v${h}z" fill="#000" opacity=".35"/>`;
+        }).join("")}`,
+        bedrock: `<rect width="244" height="152" fill="#5ab9c1"/>${[
+          ["#1f6d7e", 46], ["#c7943f", 64], ["#8a5a33", 80], ["#5b3a26", 94], ["#8b8f94", 108], ["#4c5055", 120], ["#111316", 132],
+        ].map(([color, y]) => `<path d="M0 ${Number(y) + 18}C40 ${Number(y) + 10} 60 ${Number(y) - 6} 110 ${Number(y) - 4}S190 ${Number(y) - 30} 244 ${Number(y) - 40}V152H0z" fill="${color}"/>`).join("")}${line("0,58 30,52 52,30 74,48 100,40 124,22 148,36 176,18 204,26 244,8", "#fff", 2)}`,
+        rarity: `<rect width="244" height="152" fill="#000"/>${ribbons(["#6f2bff", "#2f6cff", "#00d0f0", "#11b981", "#f0c400", "#ff8a00", "#ff2d6f"])}${line("0,128 40,116 70,104 100,92 124,78 150,72 180,52 206,46 244,30", "#fff", 2)}`,
+        regime: `<rect width="244" height="152" fill="#000"/>${["#fb7185", "#f5a45c", "#efd081", "#8bdcc3", "#658fdf", "#9b80e0"].map((color, i) => `<path d="M0 ${40 + i * 16}C60 ${36 + i * 16} 110 ${20 + i * 18} 160 ${18 + i * 16}S220 ${8 + i * 14} 244 ${6 + i * 14}V${22 + i * 14}C220 ${24 + i * 14} 200 ${34 + i * 16} 160 ${34 + i * 16}S60 ${52 + i * 16} 0 ${56 + i * 16}z" fill="${color}" opacity=".34"/>`).join("")}${line("0,74 30,64 56,46 80,58 104,44 130,30 154,46 180,26 206,32 244,18", "#fff", 2)}`,
+        sentiment: `<rect width="244" height="152" fill="#000"/>${[
+          ["#0f6b39", 0, 40], ["#7a1820", 40, 36], ["#7a5a10", 76, 18], ["#0f6b39", 94, 70], ["#7a1820", 164, 40], ["#0f6b39", 204, 40],
+        ].map(([color, x, w]) => `<rect x="${x}" width="${w}" height="120" fill="${color}"/>`).join("")}<rect y="124" width="244" height="12" fill="#00a84a"/><rect x="40" y="138" width="54" height="10" fill="#d62828"/><rect x="164" y="138" width="40" height="10" fill="#d62828"/>${line("0,100 20,84 40,60 56,76 76,92 94,80 120,52 150,40 164,30 180,56 204,62 244,34", "#fff", 2)}`,
+        events: `<rect width="244" height="152" fill="#0c0c0c"/>${line(PRICE, "#f5f5f5", 1.8)}${[
+          [46, 106, "#00c950"], [70, 74, "#00c950"], [94, 108, "#fb2c36"], [118, 50, "#00c950"], [136, 84, "#f6339a"], [160, 32, "#00c950"], [182, 70, "#fb2c36"], [206, 18, "#f0b100"],
+        ].map(([x, y, color]) => `<circle cx="${x}" cy="${y}" r="4" fill="${color}"/>`).join("")}${[30, 92, 160, 206].map((x, i) => `<rect x="${x}" y="${136 + (i % 2) * 6}" width="2" height="5" fill="${["#00c950", "#fb2c36", "#00c950", "#f0b100"][i]}"/>`).join("")}`,
+        wave: `<rect width="244" height="152" fill="#10283a"/>${["#d50ced", "#863dff", "#1e6fff", "#00a5ca", "#00aa71", "#6dba00", "#e19b00", "#f2660f", "#f11325"].map((color, i) => `<path d="M0 ${18 + i * 15}C40 ${30 + i * 15} 60 ${12 + i * 15} 100 ${30 + i * 15}S170 ${14 + i * 14} 244 ${36 + i * 13}V152H0z" fill="${color}"/>`).join("")}`,
+        clouds: `<rect width="244" height="152" fill="#100f0d"/>${[
+          ["#d50ced", 98, 30], ["#f2660f", 70, 22], ["#e19b00", 46, 12],
+        ].map(([color, y, h]) => {
+          const [top, depth] = [Number(y), Number(h)];
+          return `<path d="M0 ${top + 30}C60 ${top + 26} 100 ${top} 160 ${top - 14}S220 ${top - 30} 244 ${top - 34}V${top - 34 + depth}C220 ${top - 26 + depth} 200 ${top - 14 + depth} 160 ${top + depth}S60 ${top + 30 + depth} 0 ${top + 34 + depth}z" fill="${color}" opacity=".35" stroke="${color}"/>`;
+        }).join("")}${line("0,120 30,104 56,84 80,96 110,62 140,70 166,40 190,52 216,30 244,36", "#f0f1e9", 1.8)}`,
+        middle: `<rect width="244" height="152" fill="#100f0d"/><path d="M0 76H244" stroke="#96918a" stroke-dasharray="3 4"/>${line("0,40 40,92 80,70 120,84 160,72 200,78 244,74", "#1e6fff", 2.2)}${line("0,30 40,104 80,86 120,96 160,82 200,90 244,86", "#00b747", 2.2)}<text x="206" y="68" font-family="Lilex,monospace" font-size="11" fill="#96918a">50%</text>`,
+        density: `<rect width="244" height="152" fill="#080a0b"/>${line("0,70 30,58 56,44 80,52 106,36 130,40 156,26 180,32 210,20 244,16", "#eceeea", 1.6)}${Array.from({ length: 30 }, (_, i) => {
+          const h = [10, 28, 6, 34, 0, 18, 30, 0, 12, 40, 22, 0, 8, 26, 36, 0, 14, 4, 30, 18, 0, 24, 38, 10, 0, 20, 32, 6, 16, 28][i];
+          return h ? `<rect x="${4 + i * 8}" y="${144 - h}" width="5" height="${h}" fill="${[1, 3, 9, 14, 22].includes(i) ? "#ef7979" : "#55c997"}"/>` : "";
+        }).join("")}`,
+        dev: `<rect width="244" height="152" fill="#0e0d0c"/>${[0, 1, 2, 3].map((i) => `<rect x="44" y="${18 + i * 30}" width="156" height="24" rx="4" fill="#1d1b19" stroke="#2c2926"/><circle cx="60" cy="${30 + i * 30}" r="3" fill="${i === 1 ? "#55c997" : "#f7931a"}"/><circle cx="72" cy="${30 + i * 30}" r="3" fill="#3a3631"/>${[0, 1, 2, 3, 4, 5].map((k) => `<rect x="${120 + k * 12}" y="${24 + i * 30}" width="6" height="12" rx="1" fill="#2c2926"/>`).join("")}`).join("")}`,
+        brk: `<rect width="244" height="152" fill="#f3f0e8"/>${cube(122, 20, 58, "#d98a4e", "#b7410e", "#8f3209")}<text x="96" y="122" font-family="Lilex,monospace" font-weight="700" font-size="15" fill="#f3f0e8" transform="rotate(30 96 122)">BRK</text>`,
+      };
+
+      const DISKS = [
+        { id: "bitview", href: "https://bitview.space", group: "Explore", title: "Bitview", label: "bitview.space", body: "#1c1c1c", accent: "#f7931a", description: "The app all of this comes from: charts, an explorer and every series, live." },
+        { id: "chain", href: "./chain/", group: "Explore", title: "Chain", label: "chain", body: "#2b2b2b", accent: "#f47a20", description: "Blocks as cubes, the next ones projected from the mempool, each opened down to its transactions." },
+        { id: "explorer", href: "./explorer/", group: "Explore", title: "Explorer", label: "explorer", body: "#e6e1d6", accent: "#ad512c", description: "Every series in the catalog: browse it, search it, chart any of it, download it as CSV." },
+        { id: "wallets", href: "./wallets/", group: "Explore", title: "Wallets", label: "wallets", body: "#1b2c26", accent: "#c9a35c", description: "Watch xpubs and descriptors privately: addresses derived in your browser, looked up in anonymity sets." },
+        { id: "studio", href: "./studio/", group: "Explore", title: "Studio", label: "studio", body: "#cfd5dc", accent: "#e8642c", description: "Compose your own charts from any series, and keep them in your browser." },
+        { id: "planet", href: "./planet/", group: "Explore", title: "Planet", label: "planet", body: "#1c2235", accent: "#de2910", description: "Where blocks come from: every pool's home on a live globe, with replays of the latest blocks." },
+        { id: "calendar", href: "./calendar/", group: "Explore", title: "Miner calendar", label: "calendar", body: "#dedad2", accent: "#13a374", description: "Every day of the year, the pool that found the most blocks, and every block of any day." },
+        { id: "api", href: "./api/", group: "Explore", title: "API", label: "api", body: "#123329", accent: "#2fbf84", description: "Every endpoint, documented from the server's own spec and runnable in place." },
+        { id: "height", href: "./height/", group: "Explore", title: "Height", label: "height", body: "#f7931a", accent: "#f7931a", description: "The smallest page possible: one request, one number, the latest block." },
+        { id: "floor", href: "./floor/", group: "Stories", title: "Finding the floor", label: "floor", body: "#e3a12c", accent: "#cc7a00", description: "A long-form search for a Bitcoin floor that explains why a bottom forms where it does." },
+        { id: "trail", href: "./trail/", group: "Stories", title: "Satoshi trail", label: "trail", body: "#143d32", accent: "#2f8f4e", description: "Supply by the price it last moved at, through time, in two or three dimensions." },
+        { id: "bedrock", href: "./bedrock/", group: "Indicators", title: "Bedrock", label: "bedrock", body: "#2c7d85", accent: "#2c7d85", description: "Strata of prices where historically rare levels of supply in loss would return." },
+        { id: "rarity", href: "./rarity/", group: "Indicators", title: "Rarity meter", label: "rarity", body: "#e0245e", accent: "#6f2bff", description: "How unusual the price is against its own cost-basis history, in percentile bands." },
+        { id: "regime", href: "./regime/", group: "Indicators", title: "Regime", label: "regime", body: "#3d2f52", accent: "#9b80e0", description: "The price moving through the weighted cost-basis percentiles of every holder." },
+        { id: "sentiment", href: "./sentiment/", group: "Indicators", title: "Sentiment", label: "sentiment", body: "#1f6b3e", accent: "#00a84a", description: "Bull, bear or limbo from capitalized prices, with every long and short it called." },
+        { id: "events", href: "./events/", group: "Indicators", title: "Extreme events", label: "events", body: "#6e2030", accent: "#fb2c36", description: "The days profit taking, capitulation or regret reached historic extremes." },
+        { id: "wave", href: "./wave/", group: "Indicators", title: "HODL wave", label: "wave", body: "#2458a6", accent: "#1e6fff", description: "Supply by age since 2009, weighted by how active coins are, or not." },
+        { id: "clouds", href: "./clouds/", group: "Indicators", title: "Clouds", label: "clouds", body: "#4a2c5c", accent: "#d50ced", description: "Where short- and long-term holders' weighted cost bases sit around the price." },
+        { id: "middle", href: "./middle/", group: "Indicators", title: "Middle", label: "middle", body: "#15486d", accent: "#00b747", description: "Which model price splits Bitcoin's history closest to half the days above, half below." },
+        { id: "density", href: "./density/", group: "Indicators", title: "Supply density", label: "density", body: "#2a4a3b", accent: "#3fae7d", description: "How much of a cohort's supply crowds around the price, and which side of it wins." },
+        { id: "dev", href: "./dev/", group: "Build", title: "Run Bitview", label: "self-host", body: "#3a3a3a", accent: "#f7931a", description: "The server behind all of this, on your own Bitcoin node." },
+        { id: "brk", href: "./brk/", group: "Build", title: "Bitcoin Research Kit", label: "brk", body: "#b7410e", accent: "#b7410e", description: "The Rust crates underneath: RPC, block files, mempool, prices, types and storage." },
+      ];
+
+      const shade = (hex, amount) => {
+        const value = parseInt(hex.slice(1), 16);
+        const channel = (shift) => Math.max(0, Math.min(255, ((value >> shift) & 255) + amount));
+        return `rgb(${channel(16)} ${channel(8)} ${channel(0)})`;
+      };
+      const pad = (n) => String(n).padStart(2, "0");
+
+      /**
+       * A 3.5" floppy, 300×310: a two-tone shell, the recess its brushed shutter slides in, the
+       * media behind the slot, the insertion arrow, write-protect tab and density hole, and a label.
+       */
+      function floppy(disk, index) {
+        const id = `f${index}`;
+        const deep = shade(disk.body, -58);
+        return `<svg viewBox="0 0 300 310" aria-hidden="true">
+          <defs>
+            <linearGradient id="${id}-shell" x2="0" y2="1"><stop offset="0" stop-color="${shade(disk.body, 22)}"/><stop offset=".3" stop-color="${disk.body}"/><stop offset="1" stop-color="${shade(disk.body, -12)}"/></linearGradient>
+            <linearGradient id="${id}-metal" x2="1"><stop offset="0" stop-color="#8f949a"/><stop offset=".42" stop-color="#e6e8ea"/><stop offset=".58" stop-color="#d0d3d6"/><stop offset="1" stop-color="#868b91"/></linearGradient>
+            <pattern id="${id}-brush" width="2.5" height="8" patternUnits="userSpaceOnUse"><rect width=".8" height="8" fill="#fff" opacity=".35"/></pattern>
+            <clipPath id="${id}-art"><rect width="244" height="150" rx="3"/></clipPath>
+          </defs>
+          <path d="M10 0H280L300 20V300a10 10 0 0 1-10 10H10A10 10 0 0 1 0 300V10A10 10 0 0 1 10 0z" fill="url(#${id}-shell)"/>
+          <path d="M54 0H246V102a5 5 0 0 1-5 5H59a5 5 0 0 1-5-5z" fill="${deep}" opacity=".3"/>
+          <rect x="64" width="160" height="98" rx="2" fill="url(#${id}-metal)"/>
+          <rect x="64" width="160" height="98" rx="2" fill="url(#${id}-brush)"/>
+          <rect x="64" y="96" width="160" height="2" fill="#000" opacity=".15"/>
+          <rect x="138" y="12" width="32" height="74" rx="3" fill="#24180f"/>
+          <path d="M140 14h28v26q-14 7-28 0z" fill="#5a4330" opacity=".55"/>
+          <path d="M24 30l8-11 8 11z" fill="${deep}" opacity=".7"/>
+          <rect x="10" y="272" width="15" height="22" rx="2" fill="${deep}"/>
+          <rect x="10" y="272" width="15" height="11" rx="2" fill="${shade(disk.body, -24)}"/>
+          <rect x="275" y="272" width="15" height="22" rx="2" fill="${deep}"/>
+          <rect x="28" y="114" width="244" height="190" rx="4" fill="#f8f5ee"/>
+          <path d="M32 114h236a4 4 0 0 1 4 4v3H28v-3a4 4 0 0 1 4-4z" fill="${disk.accent}"/>
+          <text x="38" y="143" font-family="Instrument,Georgia,serif" font-style="italic" font-size="21" fill="#2a2724">${disk.label}</text>
+          <text x="262" y="142" text-anchor="end" font-family="Lilex,monospace" font-size="9" letter-spacing=".5" fill="#9a948a">№ ${pad(index + 1)}</text>
+          <svg x="28" y="154" width="244" height="150" viewBox="0 0 244 150"><g clip-path="url(#${id}-art)">${ART[disk.id]}</g></svg>
+        </svg>`;
+      }
+
+      /** @type {(id: string) => any} */
+      const $ = (id) => document.getElementById(id);
+      const N = DISKS.length;
+      const scene = $("scene");
+      const stops = $("stops");
+      const caption = $("caption");
+      const WIDE = matchMedia("(min-width: 52rem)");
+      const FINE = matchMedia("(pointer: fine)");
+      const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+      // A slightly messy pile: every disk keeps its own small offset and twist, the same on each visit.
+      const JITTER = DISKS.map((_, i) => {
+        const noise = (k) => {
+          const x = Math.sin((i + 1) * 12.9898 + k * 78.233) * 43758.5453;
+          return x - Math.floor(x) - 0.5;
+        };
+        return { x: noise(1) * 0.05, z: noise(2) * 0.05, angle: noise(3) * 8 };
+      });
+
+      const disks = DISKS.map((disk, index) => {
+        // Not focusable: the index beside the pile is the way in for keyboards.
+        const element = document.createElement("div");
+        element.className = "disk";
+        element.style.setProperty("--edge", shade(disk.body, -22));
+        element.style.setProperty("--edge-dark", shade(disk.body, -42));
+        element.style.setProperty("--seam", shade(disk.body, -70));
+        element.innerHTML = `<span class="face">${floppy(disk, index)}<i class="gloss"></i></span><i class="edge bottom"></i><i class="edge left"></i><i class="edge top"></i><i class="edge right"></i>`;
+        element.addEventListener("click", () => pick(index));
+        scene.append(element);
+        stops.append(Object.assign(document.createElement("div"), { className: "stop" }));
+        $("ticks").append(document.createElement("span"));
+        return element;
+      });
+
+      const entries = [];
+      DISKS.forEach((disk, index) => {
+        if (disk.group !== DISKS[index - 1]?.group) {
+          $("index").append(Object.assign(document.createElement("li"), { className: "group", textContent: disk.group }));
+        }
+        // Real links, so any entry opens in a new tab; a plain click moves the pile there first.
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = disk.href;
+        link.innerHTML = `<span>${pad(index + 1)}</span>${disk.title}`;
+        link.addEventListener("click", (/** @type {MouseEvent} */ event) => {
+          if (!plain(event)) return;
+          event.preventDefault();
+          pick(index);
+        });
+        item.append(link);
+        $("index").append(item);
+        entries.push(link);
+      });
+
+      let focused = -1;
+      // Where the pile is headed, so quick presses and notches add up while it moves.
+      let target = 0;
+      let steering = false;
+      // Unrounded: snap points sit at fractional offsets (38svh), and the glide must land exactly on one.
+      const stepHeight = () => /** @type {HTMLElement} */ (stops.firstElementChild).getBoundingClientRect().height;
+      /** A click that should stay in this tab, not one opening a new tab or window. */
+      const plain = (/** @type {MouseEvent} */ event) => !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0);
+      const go = (index) => {
+        target = Math.max(0, Math.min(N - 1, index));
+        steering = Math.abs(scrollY - target * stepHeight()) >= 1;
+        scrollTo({ top: target * stepHeight(), behavior: reducedMotion.matches ? "auto" : "smooth" });
+      };
+      const open = (index) => {
+        if (!DISKS[index]) return;
+        const { href } = DISKS[index];
+        if (reducedMotion.matches) return void (location.href = href);
+        document.body.dataset.leaving = "";
+        setTimeout(() => (location.href = href), 240);
+      };
+      addEventListener("pageshow", () => delete document.body.dataset.leaving);
+      const pick = (index) => (index === focused ? open(index) : go(index));
+
+      // The camera is 35.264° (atan √½) above the floor, turned 45°.
+      const COS = Math.cos(Math.atan(Math.SQRT1_2));
+      const SIN = Math.sin(Math.atan(Math.SQRT1_2));
+      /** A screen-space offset (right, down, toward the viewer) in scene coordinates. */
+      const toScene = (x, y, z) => {
+        const y1 = COS * y - SIN * z;
+        const z1 = SIN * y + COS * z;
+        return [Math.SQRT1_2 * (x - z1), y1, Math.SQRT1_2 * (x + z1)];
+      };
+
+      /** @type {{ width: number, thickness: number, zoom: number, next: number[], seen: number[], held: number[] }} */
+      let geometry;
+      function measure() {
+        const wide = WIDE.matches;
+        const width = disks[0].offsetWidth;
+        const height = (width * 310) / 300;
+        const thickness = width * 0.036;
+        const zoom = wide ? 1.3 : 1.6;
+        // Far enough apart that the two piles never share floor.
+        const [x, , z] = toScene(width * (wide ? 0.98 : 0.82), 0, 0);
+        // Wide: held between the piles. Narrow: held above them, clear of a full pile.
+        const pile = (N - 1) * thickness * COS + (SIN * Math.SQRT1_2 * (width + height)) / 2;
+        const lift = wide ? height * 0.62 : pile + (height * zoom) / 2 + width * 0.12;
+        const held = toScene(0, -lift, width * 1.3);
+        geometry = { width, thickness, zoom, next: [x, z], seen: [-x, -z], held };
+        $("shadow-next").style.transform = `translate3d(${x}px, -1px, ${z}px) rotateX(90deg)`;
+        $("shadow-seen").style.transform = `translate3d(${-x}px, -1px, ${-z}px) rotateX(90deg)`;
+        $("shadow-held").style.transform = `translate3d(${held[0]}px, -1px, ${held[2]}px) rotateY(-45deg) rotateX(90deg)`;
+      }
+
+      const tilt = { x: 0, y: 0, toX: 0, toY: 0 };
+      const arrival = reducedMotion.matches ? -Infinity : performance.now();
+
+      /**
+       * Everything follows one continuous focus: disks after it lie on the pile to see, disks
+       * before it on the pile seen, and the focused one is lifted off, turned to face the screen
+       * and held up between them.
+       */
+      function render() {
+        frame = 0;
+        const step = stepHeight();
+        // No room to lay anything out (a zero-height frame): wait for a resize.
+        if (!(step > 0)) return;
+        const focus = scrollY / step;
+        if (steering) steering = Math.abs(focus - target) * step >= 1;
+        else target = Math.round(focus);
+        tilt.x += (tilt.toX - tilt.x) * 0.12;
+        tilt.y += (tilt.toY - tilt.y) * 0.12;
+        const { width, thickness, zoom, next, seen, held } = geometry;
+        const now = performance.now();
+        let arriving = false;
+        const nearest = Math.max(0, Math.min(N - 1, Math.round(focus)));
+        disks.forEach((disk, index) => {
+          const d = index - focus;
+          const t = Math.max(0, 1 - Math.abs(d));
+          const [px, pz] = d > 0 ? next : seen;
+          const level = d > 0 ? N - 1 - index : index;
+          const jitter = JITTER[index];
+          const rest = [px + jitter.x * width, -(level + 1) * thickness, pz + jitter.z * width];
+          const arc = Math.sin(Math.PI * t) * width * 0.15;
+          const landed = Math.min(1, Math.max(0, (now - arrival - (t > 0 ? N : level) * 35) / 520));
+          arriving ||= landed < 1;
+          const fall = (1 - landed) ** 3 * width * 2.6;
+          const [x, y, z] = rest.map((value, axis) => value + (held[axis] - value) * t);
+          const scale = (1 + (zoom - 1) * t).toFixed(4);
+          disk.style.transform =
+            `translate3d(${x.toFixed(1)}px, ${(y - arc - fall).toFixed(1)}px, ${z.toFixed(1)}px) ` +
+            `rotateY(${(-45 * t).toFixed(2)}deg) rotateX(${(90 - 54.736 * t).toFixed(2)}deg) ` +
+            `rotateY(${(tilt.x * t).toFixed(2)}deg) rotateX(${(tilt.y * t).toFixed(2)}deg) ` +
+            `rotateZ(${(jitter.angle * (1 - t)).toFixed(2)}deg) scale3d(${scale}, ${scale}, ${scale})`;
+          disk.style.setProperty("--gloss", `${(100 - 66 * t - tilt.x * 2.5 * t).toFixed(1)}%`);
+          disk.classList.toggle("top", Math.abs(index - nearest) === 1);
+        });
+        const clamp = (value) => Math.max(0, Math.min(1, value));
+        $("shadow-next").style.opacity = clamp(N - 1 - focus).toFixed(3);
+        $("shadow-seen").style.opacity = clamp(focus).toFixed(3);
+        $("shadow-held").style.opacity = ((1 - 2 * Math.abs(focus - Math.round(focus))) ** 3).toFixed(3);
+        if (nearest !== focused) show(nearest);
+        if (arriving || Math.abs(tilt.toX - tilt.x) + Math.abs(tilt.toY - tilt.y) > 0.02) schedule();
+      }
+
+      function show(index) {
+        const first = focused < 0;
+        focused = index;
+        const disk = DISKS[index];
+        entries.forEach((entry, i) => entry.setAttribute("aria-current", String(i === index)));
+        $("previous").setAttribute("aria-disabled", String(index === 0));
+        $("next").setAttribute("aria-disabled", String(index === N - 1));
+        [...$("ticks").children].forEach((tick, i) => tick.classList.toggle("on", i === index));
+        document.documentElement.style.setProperty("--accent", disk.accent);
+        const fill = () => {
+          $("group").textContent = disk.group;
+          $("position").textContent = `${pad(index + 1)} / ${N}`;
+          $("title").textContent = disk.title;
+          $("description").textContent = disk.description;
+          $("open").href = disk.href;
+          $("open").firstElementChild.textContent = disk.href.startsWith("http") ? "Visit" : "Open";
+          caption.removeAttribute("data-changing");
+        };
+        if (first || reducedMotion.matches) fill();
+        else {
+          caption.dataset.changing = "";
+          setTimeout(fill, 140);
+        }
+        // Once the pile settles: browsers throttle rapid history updates.
+        clearTimeout(hashTimer);
+        hashTimer = setTimeout(() => history.replaceState(null, "", `#${disk.id}`), 250);
+      }
+      let hashTimer = 0;
+
+      let frame = 0;
+      const schedule = () => (frame ||= requestAnimationFrame(render));
+      addEventListener("scroll", schedule, { passive: true });
+      addEventListener("resize", () => {
+        measure();
+        schedule();
+      });
+      addEventListener("touchstart", () => (steering = false), { passive: true });
+      // Wherever a scroll settles (a glide, a swipe, the scrollbar), steps count from there again.
+      addEventListener("scrollend", () => {
+        steering = false;
+        schedule();
+      });
+      addEventListener("hashchange", () => {
+        const index = DISKS.findIndex((disk) => `#${disk.id}` === location.hash);
+        if (index >= 0) go(index);
+      });
+      $("previous").addEventListener("click", () => go(target - 1));
+      $("next").addEventListener("click", () => go(target + 1));
+
+      // The held disk leans a little toward the pointer.
+      addEventListener("pointermove", (event) => {
+        if (!FINE.matches || reducedMotion.matches) return;
+        tilt.toX = (event.clientX / innerWidth - 0.5) * 16;
+        tilt.toY = -(event.clientY / innerHeight - 0.5) * 12;
+        schedule();
+      });
+      document.documentElement.addEventListener("pointerleave", () => {
+        tilt.toX = tilt.toY = 0;
+        schedule();
+      });
+
+      // One floppy per wheel gesture: a mouse notch, or a trackpad swipe along with all of its inertia.
+      let wheelAt = -Infinity;
+      let wheelSum = 0;
+      addEventListener(
+        "wheel",
+        (event) => {
+          if (event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+          event.preventDefault();
+          if (event.timeStamp - wheelAt > 200) wheelSum = 0;
+          wheelAt = event.timeStamp;
+          if (Number.isNaN(wheelSum)) return;
+          wheelSum += event.deltaY * [1, 40, innerHeight][event.deltaMode];
+          if (Math.abs(wheelSum) < 20) return;
+          go(target + Math.sign(wheelSum));
+          wheelSum = NaN;
+        },
+        { passive: false },
+      );
+
+      addEventListener("keydown", (event) => {
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
+        if (["ArrowDown", "ArrowRight", "PageDown"].includes(event.key)) go(target + 1);
+        else if (["ArrowUp", "ArrowLeft", "PageUp"].includes(event.key)) go(target - 1);
+        else if (event.key === "Home") go(0);
+        else if (event.key === "End") go(N - 1);
+        else if (event.key === "Enter" && !(event.target instanceof HTMLAnchorElement || event.target instanceof HTMLButtonElement)) open(focused);
+        else return;
+        event.preventDefault();
+      });
+
+      $("open").addEventListener("click", (/** @type {MouseEvent} */ event) => {
+        if (!plain(event)) return;
+        event.preventDefault();
+        open(focused);
+      });
+
+      // The latest block, live, as proof of where all of this comes from.
+      async function refreshTip() {
+        try {
+          const response = await fetch("https://bitview.space/api/blocks/tip/height");
+          if (!response.ok) return;
+          $("tip-height").textContent = Number(await response.text()).toLocaleString("en-US");
+          $("tip").hidden = false;
+        } catch {}
+      }
+      refreshTip();
+      setInterval(refreshTip, 60_000);
+
+      // Start at the floppy named in the URL, if any.
+      const start = Math.max(0, DISKS.findIndex((disk) => `#${disk.id}` === location.hash));
+      measure();
+      scrollTo({ top: start * stepHeight() });
+      target = start;
+      render();
+    </script>
+  </body>
+</html>

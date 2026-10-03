@@ -684,21 +684,10 @@
     <div class="error" id="error" role="alert"><strong>Can’t reach Bitview right now.</strong><span id="error-text"></span></div>
 
     <script type="module">
-      import {
-        geoArea,
-        geoCentroid,
-        geoCircle,
-        geoContains,
-        geoDistance,
-        geoGraticule10,
-        geoOrthographic,
-        geoPath,
-        geoRotation,
-      } from "https://cdn.jsdelivr.net/npm/d3-geo@3/+esm";
-      import { feature, mesh } from "https://cdn.jsdelivr.net/npm/topojson-client@3/+esm";
+      // @ts-check
 
       const BASE = "https://bitview.space";
-      const ATLAS = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+      const ATLAS = "../modules/world-atlas/2.0.2/countries-110m.json";
       const POLL_MS = 10_000;
 
       const PERIODS = [
@@ -783,11 +772,59 @@
       );
       const CC_BY_ID = new Map(Object.entries(COUNTRIES).map(([cc, c]) => [c.id, cc]));
 
+      /** @type {(id: string) => any} */
       const $ = (id) => document.getElementById(id);
       const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
       const number = new Intl.NumberFormat("en-US");
       const percent = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
-      const flagUrl = (cc, width = 80) => `https://flagcdn.com/w${width}/${cc.toLowerCase()}.png`;
+      // Minimal flags, drawn here: recognizable as icons and as a fill on the globe (30×20).
+      const star = (x, y, r, turn = 0) =>
+        `<polygon points="${Array.from({ length: 10 }, (_, i) => {
+          const a = turn + (i * Math.PI) / 5 - Math.PI / 2;
+          const d = i % 2 ? r * 0.4 : r;
+          return `${(x + d * Math.cos(a)).toFixed(2)},${(y + d * Math.sin(a)).toFixed(2)}`;
+        }).join(" ")}"/>`;
+      const bands = (colors, vertical = false) =>
+        colors.map((color, i) => {
+          const size = (vertical ? 30 : 20) / colors.length;
+          return vertical
+            ? `<rect x="${size * i}" width="${size + 0.05}" height="20" fill="${color}"/>`
+            : `<rect y="${size * i}" width="30" height="${size + 0.05}" fill="${color}"/>`;
+        }).join("");
+      const nordic = (field, cross, inner) =>
+        `<rect width="30" height="20" fill="${field}"/><path d="M8 0h4v20H8zM0 8h30v4H0z" fill="${cross}"/>` +
+        (inner ? `<path d="M9 0h2v20H9zM0 9h30v2H0z" fill="${inner}"/>` : "");
+      const UNION =
+        `<rect width="30" height="20" fill="#012169"/><path d="M0 0L30 20M30 0L0 20" stroke="#fff" stroke-width="4"/>` +
+        `<path d="M0 0L30 20M30 0L0 20" stroke="#c8102e" stroke-width="1.4"/><path d="M15 0v20M0 10h30" stroke="#fff" stroke-width="6"/>` +
+        `<path d="M15 0v20M0 10h30" stroke="#c8102e" stroke-width="3.6"/>`;
+      const CANTON = `<svg width="15" height="10" viewBox="0 0 30 20">${UNION}</svg>`;
+      const FLAGS = {
+        US: `<rect width="30" height="20" fill="#fff"/><path d="${Array.from({ length: 7 }, (_, i) => `M0 ${(i * 40) / 13}h30v${20 / 13}H0z`).join("")}" fill="#b22234"/><rect width="12" height="${140 / 13}" fill="#3c3b6e"/><g fill="#fff">${Array.from({ length: 20 }, (_, i) => `<circle cx="${1.5 + (i % 5) * 2.25}" cy="${1.4 + Math.floor(i / 5) * 2.6}" r=".5"/>`).join("")}</g>`,
+        CN: `<rect width="30" height="20" fill="#ee1c25"/><g fill="#ffde00">${star(5, 5, 3)}${star(10, 2, 1, 0.5)}${star(12, 4, 1, 0.9)}${star(12, 7, 1, 0)}${star(10, 9, 1, 0.5)}</g>`,
+        CA: `${bands(["#d52b1e", "#fff", "#fff", "#d52b1e"], true)}<path d="M15 4.4l1.1 2.2 1.3-.6-.5 3.2 1.9-2 .4 1.1 2-.4-.7 2 .9.4-3.2 2.6.3 1.1-3-.4V17h-1v-3.4l-3 .4.3-1.1-3.2-2.6.9-.4-.7-2 2 .4.4-1.1 1.9 2-.5-3.2 1.3.6z" fill="#d52b1e"/>`,
+        JP: `<rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="6" fill="#bc002d"/>`,
+        IN: `${bands(["#ff9933", "#fff", "#138808"])}<circle cx="15" cy="10" r="2.4" fill="none" stroke="#000080" stroke-width=".6"/><circle cx="15" cy="10" r=".6" fill="#000080"/>`,
+        NO: nordic("#ba0c2f", "#fff", "#00205b"),
+        RU: bands(["#fff", "#0039a6", "#d52b1e"]),
+        AU: `<rect width="30" height="20" fill="#012169"/>${CANTON}<g fill="#fff">${star(7.5, 15, 2.2)}${star(22.5, 15.5, 1.2)}${star(19.5, 9, 1.1)}${star(25.5, 8, 1.1)}${star(22.5, 3.8, 1.1)}</g>`,
+        GB: UNION,
+        PL: bands(["#fff", "#dc143c"]),
+        SE: nordic("#006aa7", "#fecc00"),
+        DE: bands(["#000", "#dd0000", "#ffce00"]),
+        CZ: `${bands(["#fff", "#d7141a"])}<path d="M0 0l15 10L0 20z" fill="#11457e"/>`,
+        SI: `${bands(["#fff", "#005da4", "#ed1c24"])}<path d="M6 3.4h5v3.4c0 2-2.5 3-2.5 3S6 8.8 6 6.8z" fill="#005da4" stroke="#ed1c24" stroke-width=".4"/><path d="M6.7 7.3l1.8-2.2 1.8 2.2z" fill="#fff"/>`,
+        NL: bands(["#ae1c28", "#fff", "#21468b"]),
+        UA: bands(["#0057b7", "#ffd700"]),
+        AE: `${bands(["#00732f", "#fff", "#000"])}<rect width="7.5" height="20" fill="#ff0000"/>`,
+        SG: `${bands(["#ef3340", "#fff"])}<circle cx="6.5" cy="5" r="3.2" fill="#fff"/><circle cx="7.8" cy="5" r="3" fill="#ef3340"/><g fill="#fff">${[0, 1, 2, 3, 4].map((i) => star(10.2 + 1.6 * Math.cos(-Math.PI / 2 + (i * 2 * Math.PI) / 5), 5 + 1.6 * Math.sin(-Math.PI / 2 + (i * 2 * Math.PI) / 5), 0.55)).join("")}</g>`,
+        SC: `<path d="M0 20V0h10z" fill="#003f87"/><path d="M0 20L10 0h10z" fill="#fcd856"/><path d="M0 20L20 0h10v6.7z" fill="#d62828"/><path d="M0 20l30-13.3v6.6z" fill="#fff"/><path d="M0 20l30-6.7V20z" fill="#007a3d"/>`,
+        HK: `<rect width="30" height="20" fill="#de2910"/><g fill="#fff">${[0, 1, 2, 3, 4].map((i) => `<ellipse cx="15" cy="6.6" rx="1.5" ry="3.3" transform="rotate(${i * 72 + 18} 15 10)"/>`).join("")}</g>`,
+        LT: bands(["#fdb913", "#006a44", "#c1272d"]),
+        NZ: `<rect width="30" height="20" fill="#012169"/>${CANTON}<g fill="#c8102e" stroke="#fff" stroke-width=".4">${star(22.5, 15.5, 1.5)}${star(19.5, 8.5, 1.2)}${star(25.5, 7.5, 1.1)}${star(22.5, 3.6, 1.1)}</g>`,
+      };
+      const flagUrl = (cc) =>
+        `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" width="300" height="200">${FLAGS[cc] ?? ""}</svg>`)}`;
 
       function el(tag, className, text) {
         const node = document.createElement(tag);
@@ -815,22 +852,8 @@
       // ── Client ────────────────────────────────────────────────────────────
 
       async function loadClient() {
-        // Same-origin import isn't available from every host, so fetch the
-        // self-contained module and import it from a blob URL.
-        const response = await fetch(`${BASE}/scripts/modules/bitview-client/index.js`, {
-          cache: "no-cache",
-          signal: AbortSignal.timeout(30_000),
-        });
-        if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
-        const url = URL.createObjectURL(
-          new Blob([await response.text()], { type: "text/javascript" }),
-        );
-        try {
-          const { BitviewClient } = await import(url);
-          return new BitviewClient({ baseUrl: BASE, timeout: 25_000 });
-        } finally {
-          URL.revokeObjectURL(url);
-        }
+        const { BitviewClient } = await import("../modules/bitview-client/index.js");
+        return new BitviewClient({ baseUrl: BASE, timeout: 25_000 });
       }
 
       async function loadAtlas() {
@@ -956,10 +979,237 @@
 
       const canvas = $("globe");
       const ctx = canvas.getContext("2d");
-      const projection = geoOrthographic().clipAngle(90).precision(0.4);
-      const path = geoPath(projection, ctx);
-      const graticule = geoGraticule10();
-      const sphere = { type: "Sphere" };
+      // An orthographic globe, written out: just the geometry this page needs. -----------
+      // Points are [lon, lat] degrees; `view` turns them into unit vectors in view space,
+      // [right, up, toward the viewer], after spinning by rot[0] and tilting by rot[1].
+      const RAD = Math.PI / 180;
+      const TAU = Math.PI * 2;
+
+      /** @param {number[]} point [lon, lat] */
+      function view([lon, lat]) {
+        const spin = (lon + rot[0]) * RAD;
+        const phi = lat * RAD;
+        const tilt = rot[1] * RAD;
+        const x = Math.cos(phi) * Math.cos(spin);
+        const y = Math.cos(phi) * Math.sin(spin);
+        const z = Math.sin(phi);
+        return [y, z * Math.cos(tilt) + x * Math.sin(tilt), x * Math.cos(tilt) - z * Math.sin(tilt)];
+      }
+      const toScreen = (/** @type {number[]} */ [x, y]) => [cx + R * x, cy - R * y];
+      const project = (/** @type {number[]} */ point) => toScreen(view(point));
+
+      /** Screen point to [lon, lat], or null off the globe. */
+      function invert(sx, sy) {
+        const x = (sx - cx) / R;
+        const y = (cy - sy) / R;
+        const d = x * x + y * y;
+        if (d > 1) return null;
+        const z = Math.sqrt(1 - d);
+        const tilt = rot[1] * RAD;
+        const lon = Math.atan2(x, z * Math.cos(tilt) + y * Math.sin(tilt)) / RAD - rot[0];
+        const lat = Math.asin(Math.max(-1, Math.min(1, y * Math.cos(tilt) - z * Math.sin(tilt)))) / RAD;
+        return [((lon + 540) % 360) - 180, lat];
+      }
+
+      /** Angle between two points, in radians. @param {number[]} a @param {number[]} b */
+      function distance([lon1, lat1], [lon2, lat2]) {
+        const [a, b] = [lat1 * RAD, lat2 * RAD];
+        const h = Math.sin((b - a) / 2) ** 2 + Math.cos(a) * Math.cos(b) * Math.sin(((lon2 - lon1) * RAD) / 2) ** 2;
+        return 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+      }
+
+      /** A circle of `radius` degrees around `center`, clockwise (interior on the right) like the atlas. @param {number[]} center */
+      function circle([lon, lat], radius, step = 4) {
+        const [phi, d] = [lat * RAD, radius * RAD];
+        const ring = [];
+        for (let bearing = 0; bearing <= 360; bearing += step) {
+          const t = bearing * RAD;
+          const lat2 = Math.asin(Math.sin(phi) * Math.cos(d) + Math.cos(phi) * Math.sin(d) * Math.cos(t));
+          const lon2 = lon * RAD + Math.atan2(Math.sin(t) * Math.sin(d) * Math.cos(phi), Math.cos(d) - Math.sin(phi) * Math.sin(lat2));
+          ring.push([lon2 / RAD, lat2 / RAD]);
+        }
+        return ring;
+      }
+
+      /** Meridians and parallels every 10°, like a classic graticule. */
+      const graticule = {
+        type: "MultiLineString",
+        coordinates: [
+          ...Array.from({ length: 36 }, (_, i) => {
+            const lon = -180 + i * 10;
+            const extent = lon % 90 ? 80 : 90;
+            return Array.from({ length: extent + 1 }, (_, k) => [lon, -extent + 2 * k]);
+          }),
+          ...Array.from({ length: 17 }, (_, i) => Array.from({ length: 181 }, (_, k) => [-180 + 2 * k, -80 + i * 10])),
+        ],
+      };
+
+      /** Where the edge a→b (view vectors on opposite sides) meets the horizon. */
+      function horizon(a, b) {
+        const t = a[2] / (a[2] - b[2]);
+        const x = a[0] + (b[0] - a[0]) * t;
+        const y = a[1] + (b[1] - a[1]) * t;
+        const n = Math.hypot(x, y) || 1;
+        return [x / n, y / n, 0];
+      }
+
+      /** The visible runs of a line, as view-space polylines. */
+      function clipLine(line) {
+        const runs = [];
+        let run = null;
+        let previous = null;
+        for (const point of line) {
+          const v = view(point);
+          if (previous && previous[2] > 0 !== v[2] > 0) {
+            const edge = horizon(previous, v);
+            if (run) {
+              run.push(edge);
+              runs.push(run);
+              run = null;
+            } else run = [edge];
+          }
+          if (v[2] > 0) (run ??= []).push(v);
+          previous = v;
+        }
+        if (run) runs.push(run);
+        return runs;
+      }
+
+      /** The visible part of a polygon (interior on the right of every ring), closed along the horizon. */
+      function clipPolygon(rings) {
+        const closed = [];
+        const runs = [];
+        for (const ring of rings) {
+          const views = ring.map(view);
+          const hidden = views.findIndex((v) => v[2] <= 0);
+          if (hidden < 0) {
+            closed.push(views);
+            continue;
+          }
+          if (!views.some((v) => v[2] > 0)) continue; // wholly on the far side
+          // Start from a hidden point: every visible run then has a horizon entry and exit.
+          let run = null;
+          for (let i = 1; i <= views.length; i += 1) {
+            const previous = views[(hidden + i - 1) % views.length];
+            const v = views[(hidden + i) % views.length];
+            if (previous[2] <= 0 && v[2] > 0) run = [horizon(previous, v), v];
+            else if (v[2] > 0) run?.push(v);
+            else if (previous[2] > 0) {
+              run.push(horizon(previous, v));
+              runs.push(run);
+              run = null;
+            }
+          }
+        }
+        // From each exit, follow the horizon clockwise to the nearest entry, until the loop closes.
+        const angle = ([x, y]) => Math.atan2(y, x);
+        while (runs.length) {
+          const path = runs.shift();
+          for (;;) {
+            const exit = angle(path.at(-1));
+            const sweep = (point) => (((exit - angle(point)) % TAU) + TAU) % TAU;
+            let next = -1;
+            let gap = sweep(path[0]);
+            runs.forEach((run, index) => {
+              const candidate = sweep(run[0]);
+              if (candidate < gap) [gap, next] = [candidate, index];
+            });
+            for (let a = 0.08; a < gap; a += 0.08) path.push([Math.cos(exit - a), Math.sin(exit - a), 0]);
+            if (next < 0) break;
+            path.push(...runs.splice(next, 1)[0]);
+          }
+          closed.push(path);
+        }
+        return closed;
+      }
+
+      function trace(paths, close) {
+        for (const path of paths) {
+          path.forEach((v, i) => {
+            const [x, y] = toScreen(v);
+            if (i) ctx.lineTo(x, y);
+            else ctx.moveTo(x, y);
+          });
+          if (close) ctx.closePath();
+        }
+      }
+
+      /** Adds a geometry's visible part to the current canvas path. */
+      function traceGeometry(geometry) {
+        if (geometry.type === "Polygon") trace(clipPolygon(geometry.coordinates), true);
+        else if (geometry.type === "MultiPolygon") for (const polygon of geometry.coordinates) trace(clipPolygon(polygon), true);
+        else if (geometry.type === "MultiLineString") for (const line of geometry.coordinates) trace(clipLine(line), false);
+      }
+
+      /** Screen bounds of a polygon's visible part. */
+      function bounds(geometry) {
+        const polygons = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
+        const points = polygons.flatMap((polygon) => clipPolygon(polygon).flat()).map(toScreen);
+        const xs = points.map(([x]) => x);
+        const ys = points.map(([, y]) => y);
+        return [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]];
+      }
+
+      const polygonsOf = (geometry) => (geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates);
+      /** Planar area of a polygon's outer ring, in square degrees: enough to rank a country's parts. */
+      const ringArea = (ring) => Math.abs(ring.reduce((sum, [x, y], i) => sum + x * ring[(i + 1) % ring.length][1] - ring[(i + 1) % ring.length][0] * y, 0)) / 2;
+
+      /** Whether [lon, lat] lies inside a geometry (the atlas is cut at the antimeridian). @param {number[]} point */
+      function contains(geometry, point) {
+        const [lon, lat] = point;
+        let inside = false;
+        for (const ring of polygonsOf(geometry).flat()) {
+          for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const [xi, yi] = ring[i];
+            const [xj, yj] = ring[j];
+            if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+          }
+        }
+        return inside;
+      }
+
+      /** Center of a geometry's largest part: the mean direction of its outer ring. */
+      function centroid(geometry) {
+        const ring = polygonsOf(geometry).reduce((a, b) => (ringArea(b[0]) > ringArea(a[0]) ? b : a))[0];
+        let [x, y, z] = [0, 0, 0];
+        for (const [lon, lat] of ring) {
+          x += Math.cos(lat * RAD) * Math.cos(lon * RAD);
+          y += Math.cos(lat * RAD) * Math.sin(lon * RAD);
+          z += Math.sin(lat * RAD);
+        }
+        return [Math.atan2(y, x) / RAD, Math.atan2(z, Math.hypot(x, y)) / RAD];
+      }
+
+      /** TopoJSON → plain geometries: decode the quantized arcs and stitch them into rings. */
+      function decodeTopology(topology) {
+        const [kx, ky] = topology.transform.scale;
+        const [dx, dy] = topology.transform.translate;
+        const arcs = topology.arcs.map((arc) => {
+          let [x, y] = [0, 0];
+          return arc.map(([ax, ay]) => [(x += ax) * kx + dx, (y += ay) * ky + dy]);
+        });
+        const line = (indexes) => indexes.flatMap((index, i) => {
+          const points = index < 0 ? arcs[~index].toReversed() : arcs[index];
+          return i ? points.slice(1) : points;
+        });
+        const geometries = (name) => topology.objects[name].geometries.map(({ type, arcs: indexes, id }) => ({
+          id,
+          type,
+          coordinates: type === "Polygon" ? indexes.map(line) : indexes.map((polygon) => polygon.map(line)),
+        }));
+        /** Arcs used by two different geometries of `name`: the borders between them. */
+        const shared = (name) => {
+          const owners = new Map();
+          topology.objects[name].geometries.forEach((geometry, owner) => {
+            for (const index of geometry.arcs.flat(2)) {
+              const arc = index < 0 ? ~index : index;
+              owners.set(arc, (owners.get(arc) ?? new Set()).add(owner));
+            }
+          });
+          return { type: "MultiLineString", coordinates: [...owners].filter(([, set]) => set.size > 1).map(([arc]) => arcs[arc]) };
+        };
+        return { geometries, shared };
+      }
 
       const HALO = 1.2; // atmosphere radius, in globe radii
       let shades;
@@ -968,16 +1218,16 @@
       let R = 100;
       let cx = 0;
       let cy = 0;
-      let land;
-      let borders;
+      let land = [];
+      let borders = { type: "MultiLineString", coordinates: [] };
       let features = [];
       const featureById = new Map();
       const mainland = new Map(); // id -> largest polygon, to fit the flag
 
       function largestPolygon(f) {
-        if (f.geometry.type !== "MultiPolygon") return f;
-        const polygons = f.geometry.coordinates.map((coordinates) => ({ type: "Polygon", coordinates }));
-        return polygons.reduce((a, b) => (geoArea(b) > geoArea(a) ? b : a));
+        if (f.type !== "MultiPolygon") return f;
+        const coordinates = f.coordinates.reduce((a, b) => (ringArea(b[0]) > ringArea(a[0]) ? b : a));
+        return { type: "Polygon", coordinates };
       }
 
       const rot = [-20, -25, 0];
@@ -1014,7 +1264,6 @@
         R = Math.max(60, Math.min(usableW / 2.9, fitH));
         cx = W / 2;
         cy = H / 2 + (wide ? 8 : 0);
-        projection.scale(R).translate([cx, cy]);
 
         const halo = ctx.createRadialGradient(cx, cy, R * 0.95, cx, cy, R * HALO);
         halo.addColorStop(0, "rgba(210,220,240,0.10)");
@@ -1033,14 +1282,13 @@
       function nightSide() {
         if (Date.now() - night.at < 60_000) return night.circles;
         const date = new Date();
-        const dayOfYear = (date - Date.UTC(date.getUTCFullYear(), 0, 0)) / 864e5;
+        const dayOfYear = (date.getTime() - Date.UTC(date.getUTCFullYear(), 0, 0)) / 864e5;
         const declination = -23.44 * Math.cos(((2 * Math.PI) / 365) * (dayOfYear + 10));
         const hours = date.getUTCHours() + date.getUTCMinutes() / 60;
         const antisolar = [180 - 15 * (hours - 12), -declination];
-        const circle = geoCircle().center(antisolar);
         night = {
           at: Date.now(),
-          circles: [89, 84, 79].map((r) => circle.radius(r)()),
+          circles: [89, 84, 79].map((r) => ({ type: "Polygon", coordinates: [circle(antisolar, r)] })),
           sun: [antisolar[0] - 180, declination],
         };
         return night.circles;
@@ -1049,15 +1297,15 @@
       // Unit vector toward the sun in screen space: x right, y down, z at the viewer.
       function sunVector() {
         nightSide();
-        const [lon, lat] = geoRotation(rot)(night.sun).map((d) => (d * Math.PI) / 180);
-        return [Math.cos(lat) * Math.sin(lon), -Math.sin(lat), Math.cos(lat) * Math.cos(lon)];
+        const [x, y, z] = view(night.sun);
+        return [x, -y, z];
       }
 
       function flag(cc) {
         let img = flags.get(cc);
         if (!img) {
           img = new Image();
-          img.src = flagUrl(cc, 640);
+          img.src = flagUrl(cc);
           flags.set(cc, img);
         }
         return img.complete && img.naturalWidth ? img : null;
@@ -1068,7 +1316,7 @@
       }
 
       function visibility(at) {
-        const d = geoDistance(at, viewCenter());
+        const d = distance(at, viewCenter());
         return Math.max(0, Math.min(1, (Math.PI / 2 - d) / 0.2));
       }
 
@@ -1096,8 +1344,8 @@
           return { x: m.x, y: m.y - m.r, visible: !m.behind || Math.hypot(m.x - cx, m.y - cy) > R };
         }
         const cc = CC_BY_ID.get(key);
-        const at = cc ? COUNTRIES[cc].at : geoCentroid(featureById.get(key));
-        const [x, y] = projection(at);
+        const at = cc ? COUNTRIES[cc].at : centroid(featureById.get(key));
+        const [x, y] = project(at);
         return { x, y: y - (cc ? markerRadius(stats.countries.get(cc)?.count) : 0), visible: visibility(at) > 0.3 };
       }
 
@@ -1110,16 +1358,16 @@
             if (!!c.tiny !== tiny || visibility(c.at) < 0.5) continue;
             const count = stats.countries.get(cc)?.count;
             if (!count) continue;
-            const [px, py] = projection(c.at);
+            const [px, py] = project(c.at);
             if (Math.hypot(x - px, y - py) < markerRadius(count) + 6) return c.id;
           }
           return null;
         };
         const tiny = markerHit(true);
         if (tiny) return tiny;
-        const lonlat = projection.invert([x, y]);
+        const lonlat = invert(x, y);
         if (lonlat) {
-          for (const f of features) if (geoContains(f, lonlat)) return f.id;
+          for (const f of features) if (contains(f, lonlat)) return f.id;
         }
         return markerHit(false);
       }
@@ -1144,18 +1392,18 @@
 
         // Ocean.
         ctx.beginPath();
-        path(sphere);
+        ctx.arc(cx, cy, R, 0, TAU);
         ctx.fillStyle = shades.ocean;
         ctx.fill();
 
         ctx.beginPath();
-        path(graticule);
+        traceGeometry(graticule);
         ctx.strokeStyle = "rgba(255,255,255,0.035)";
         ctx.lineWidth = 0.6;
         ctx.stroke();
 
         ctx.beginPath();
-        path(land);
+        for (const part of land) traceGeometry(part);
         ctx.fillStyle = "#30343b";
         ctx.fill();
 
@@ -1170,7 +1418,7 @@
         for (const [id, alpha] of lit) drawCountry(id, alpha);
 
         ctx.beginPath();
-        path(borders);
+        traceGeometry(borders);
         ctx.strokeStyle = "rgba(9,10,12,0.9)";
         ctx.lineWidth = 0.6;
         ctx.stroke();
@@ -1179,7 +1427,7 @@
           const f = featureById.get(id);
           if (!f) continue;
           ctx.beginPath();
-          path(f);
+          traceGeometry(f);
           ctx.strokeStyle = `rgba(255,255,255,${0.55 * lit.get(id)})`;
           ctx.lineWidth = 1;
           ctx.stroke();
@@ -1187,15 +1435,15 @@
 
         // The real night side right now, with a soft twilight edge.
         ctx.fillStyle = "rgba(0,0,0,0.13)";
-        for (const circle of nightSide()) {
+        for (const cap of nightSide()) {
           ctx.beginPath();
-          path(circle);
+          traceGeometry(cap);
           ctx.fill();
         }
 
         // Limb shading gives the sphere some volume.
         ctx.beginPath();
-        path(sphere);
+        ctx.arc(cx, cy, R, 0, TAU);
         ctx.fillStyle = shades.limb;
         ctx.fill();
         ctx.strokeStyle = "rgba(255,255,255,0.09)";
@@ -1221,13 +1469,13 @@
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.beginPath();
-        path(f);
+        traceGeometry(f);
         ctx.clip();
         const img = cc && flag(cc);
         ctx.fillStyle = cc ? COUNTRIES[cc].color : "#5b616c";
         ctx.fillRect(0, 0, W, H);
         if (img) {
-          const [[x0, y0], [x1, y1]] = path.bounds(mainland.get(id) ?? f);
+          const [[x0, y0], [x1, y1]] = bounds(mainland.get(id) ?? f);
           const scale = Math.max((x1 - x0) / img.naturalWidth, (y1 - y0) / img.naturalHeight);
           const w = img.naturalWidth * scale;
           const h = img.naturalHeight * scale;
@@ -1242,7 +1490,7 @@
           if (!count) continue;
           const vis = visibility(c.at);
           if (!vis) continue;
-          const [x, y] = projection(c.at);
+          const [x, y] = project(c.at);
           const r = markerRadius(count);
           const on = active === c.id;
           const flash = flashes.has(c.id) ? Math.max(0, 1 - (now - flashes.get(c.id)) / 1400) : 0;
@@ -1272,7 +1520,6 @@
       }
 
       function drawRings(now) {
-        const circle = geoCircle();
         for (let i = rings.length - 1; i >= 0; i--) {
           const ring = rings[i];
           let alive = false;
@@ -1283,7 +1530,7 @@
             if (p <= 0) continue;
             const fade = (1 - p) ** 1.6;
             ctx.beginPath();
-            path(circle.center(ring.at).radius(0.5 + p * 24)());
+            trace(clipLine(circle(ring.at, 0.5 + p * 24)), false);
             ctx.strokeStyle = `rgba(247,147,26,${0.9 * fade})`;
             ctx.lineWidth = 0.6 + 2.2 * fade;
             ctx.stroke();
@@ -1440,7 +1687,6 @@
         } else if (hover !== "moon" && pinned !== "moon" && focus !== "moon" && !reducedMotion) {
           moonAngle += dt * 0.11;
         }
-        projection.rotate(rot);
 
         if (pointer && !drag && (pointer.dirty || now - lastHitAt > 150)) {
           pointer.dirty = false;
@@ -1652,7 +1898,7 @@
         const list = ranked(stats).filter((c) => c.count);
         const max = Math.max(1, list[0]?.count ?? 0, stats.moon.count);
         const items = list.map((c, i) => ({ key: COUNTRIES[c.cc].id, rank: i + 1, cc: c.cc, name: COUNTRIES[c.cc].name, count: c.count }));
-        if (stats.moon.count) items.push({ key: "moon", rank: "", name: "No known country", count: stats.moon.count });
+        if (stats.moon.count) items.push(/** @type {any} */ ({ key: "moon", rank: "", name: "No known country", count: stats.moon.count }));
         rows.clear();
         board.replaceChildren(
           ...items.map((item) => {
@@ -1778,7 +2024,7 @@
       // A wait that a newly queued block can cut short.
       let wake = null;
       function pause(ms) {
-        return new Promise((resolve) => {
+        return new Promise((/** @type {(value?: unknown) => void} */ resolve) => {
           const done = () => {
             clearTimeout(timer);
             if (wake === done) wake = null;
@@ -1952,10 +2198,10 @@
       }
 
       const readyMap = once(async () => {
-        const atlas = await loadAtlas();
-        land = feature(atlas, atlas.objects.land);
-        borders = mesh(atlas, atlas.objects.countries, (a, b) => a !== b);
-        features = feature(atlas, atlas.objects.countries).features.filter((f) => f.id);
+        const atlas = decodeTopology(await loadAtlas());
+        land = atlas.geometries("land");
+        borders = atlas.shared("countries");
+        features = atlas.geometries("countries").filter((f) => f.id);
         for (const f of features) {
           featureById.set(f.id, f);
           if (CC_BY_ID.has(f.id)) mainland.set(f.id, largestPolygon(f));

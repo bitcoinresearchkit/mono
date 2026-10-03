@@ -1,5 +1,0 @@
-[data-btc-amount] {
-  [data-btc-muted] {
-    color: color-mix(in oklch, currentColor 45%, transparent);
-  }
-}

@@ -5,12 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>Bitcoin Bedrock Model</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <style>
     @font-face {
       font-family: "Lilex";
       src:
-        url("https://cdn.jsdelivr.net/fontsource/fonts/lilex:vf@5.3.0/latin-wght-normal.woff2")
+        url("../fonts/Lilex.woff2")
         format("woff2-variations");
       font-style: normal;
       font-weight: 100 700;
@@ -20,7 +19,7 @@
     @font-face {
       font-family: "Instrument";
       src:
-        url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+        url("../fonts/InstrumentSerif-Regular.woff2")
         format("woff2");
       font-style: normal;
       font-weight: 400;
@@ -456,26 +455,14 @@
   </main>
 
   <script>
+    // @ts-check
     (async () => {
       "use strict";
 
       const ORIGIN = "https://bitview.space";
-      // The deployed client, imported from a blob URL: direct remote module
-      // imports fail on some hosts.
-      const clientReady = (async () => {
-        const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
-          cache: "no-cache",
-          signal: AbortSignal.timeout(30_000),
-        });
-        if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
-        const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
-        try {
-          const { BitviewClient } = await import(url);
-          return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 });
-        } finally {
-          URL.revokeObjectURL(url);
-        }
-      })();
+      const clientReady = import("../modules/bitview-client/index.js").then(
+        ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 }),
+      );
       const DAY_MS = 86_400_000;
       const INITIAL_START_DATE = "2016-01-01";
       const INDEXES = {
@@ -505,7 +492,7 @@
       const statusElement = document.getElementById("status");
       const currentBedrockLabel = document.getElementById("current-bedrock-label");
       const currentBedrockValue = document.getElementById("current-bedrock-value");
-      const modeSelect = document.getElementById("mode");
+      const modeSelect = /** @type {HTMLSelectElement} */ (document.getElementById("mode"));
       const interfaceToggle = document.getElementById("interface-toggle");
       const scaleToggle = document.getElementById("scale-toggle");
       const canHover = window.matchMedia("(hover: hover)");
@@ -608,7 +595,7 @@
       }
 
       const LightweightCharts = await import(
-        "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs"
+        "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs"
       );
       let interfaceShown = savedView() === "technical";
       persistView(interfaceShown ? "technical" : "art");

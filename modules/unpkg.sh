@@ -408,3 +408,4 @@ main() {
 main "quickmatch-js"
 main "lean-qr"
 main "lightweight-charts"
+main "world-atlas" "2.0.2"

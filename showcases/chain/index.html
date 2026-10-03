@@ -1,0 +1,4790 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Live Bitcoin blocks as cubes on a belt: confirmed, projected from the mempool, and opened up transaction by transaction."
+    />
+    <meta name="theme-color" content="#0b0b0b" />
+    <title>Chain · bitview</title>
+    <link rel="preconnect" href="https://bitview.space" crossorigin />
+    <style>
+      @font-face {
+        font-family: Lilex;
+        src: url("../fonts/Lilex.woff2") format("woff2");
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Instrument;
+        src: url("../fonts/InstrumentSerif-Regular.woff2") format("woff2");
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Instrument;
+        src: url("../fonts/InstrumentSerif-Italic.woff2") format("woff2");
+        font-style: italic;
+        font-display: swap;
+      }
+
+      @property --block-interval {
+        syntax: "<number>";
+        inherits: false;
+        initial-value: 600;
+      }
+
+      :root {
+        color-scheme: dark;
+
+        --white: oklch(95% 0 0);
+        --gray: oklch(55% 0 0);
+        --black: oklch(15% 0 0);
+        --red: oklch(0.607 0.241 26.328);
+        --orange: oklch(67.64% 0.191 44.41);
+        --amber: oklch(0.7175 0.1835 64.199);
+        --yellow: oklch(0.738 0.173 80.9405);
+        --avocado: oklch(0.72 0.19 110);
+        --lime: oklch(0.708 0.2165 131.267);
+        --green: oklch(0.675 0.2065 149.3965);
+        --emerald: oklch(0.646 0.1575 162.8525);
+        --teal: oklch(0.652 0.129 183.6035);
+        --cyan: oklch(0.662 0.1345 218.472);
+        --sky: oklch(0.6365 0.1635 239.6445);
+        --blue: oklch(0.5845 0.2295 261.348);
+        --indigo: oklch(0.548 0.2475 277.0415);
+        --violet: oklch(0.5735 0.2655 292.863);
+        --purple: oklch(0.5925 0.2765 303.1105);
+        --fuchsia: oklch(0.629 0.294 322.523);
+        --pink: oklch(0.624 0.245 357.444);
+        --rose: oklch(0.6155 0.2495 17.012);
+
+        --font-mono:
+          Lilex, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        --font-serif:
+          Instrument, Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
+        --font-size-xs: 0.75rem;
+        --line-height-xs: calc(1 / 0.75);
+        --font-size-sm: 0.875rem;
+        --line-height-sm: calc(1.25 / 0.875);
+        --font-size-base: 1rem;
+        --line-height-base: 1.5;
+        --font-size-lg: 1.25rem;
+        --line-height-lg: calc(1.5 / 1.25);
+        --font-weight-regular: 400;
+        --font-weight-strong: 450;
+
+        --control-radius: 0.3125rem;
+        --control-padding: 0.75rem 1rem;
+        --button-color: light-dark(var(--white), var(--black));
+        --button-background: var(--gray);
+        --button-hover-background: light-dark(var(--black), var(--white));
+        --button-active-background: var(--orange);
+
+        --page-x: 2rem;
+        --transition-duration: 150ms;
+      }
+
+      @media (max-width: 34rem) {
+        :root {
+          --page-x: 1rem;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      *:not(dialog) {
+        margin: 0;
+      }
+
+      html {
+        height: 100%;
+        background: var(--black);
+        font-family: var(--font-mono);
+      }
+
+      body {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        height: 100%;
+        overflow: hidden;
+        color: var(--white);
+        background: var(--black);
+        line-height: 1.5;
+      }
+
+      input,
+      button {
+        font: inherit;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        overflow-wrap: break-word;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      a,
+      button,
+      input,
+      summary {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+      }
+
+      button,
+      input,
+      :where(a[data-button]) {
+        appearance: none;
+        min-width: 0;
+        border-radius: var(--control-radius);
+        padding: var(--control-padding);
+        font-size: var(--font-size-sm);
+        line-height: 1;
+
+        &:focus-visible {
+          outline: 2px solid var(--orange);
+          outline-offset: 2px;
+        }
+      }
+
+      button,
+      :where(a[data-button]) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        color: var(--button-color);
+        background: var(--button-background);
+        text-decoration: none;
+        text-transform: uppercase;
+        -webkit-user-select: none;
+        user-select: none;
+        cursor: pointer;
+
+        @media (hover: hover) and (pointer: fine) {
+          &:hover {
+            background: var(--button-hover-background);
+          }
+        }
+
+        &:active {
+          background: var(--button-active-background);
+        }
+
+        &[data-press] {
+          background: var(--button-hover-background);
+        }
+
+        &:disabled,
+        &[aria-disabled="true"] {
+          opacity: 0.35;
+          pointer-events: none;
+        }
+      }
+
+      input {
+        border: 1px solid var(--gray);
+        color: var(--white);
+        background: transparent;
+
+        &::placeholder {
+          color: color-mix(in oklch, var(--white) 55%, transparent);
+        }
+
+        &[aria-invalid="true"] {
+          border-color: var(--red);
+          color: var(--red);
+        }
+      }
+
+      ::selection {
+        color: var(--black);
+        background-color: var(--orange);
+      }
+
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--gray) transparent;
+      }
+
+      /* Header ------------------------------------------------------------ */
+
+      .site-header {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.875rem var(--page-x);
+        border-bottom: 1px solid oklch(20% 0 0);
+        line-height: 1;
+      }
+
+      .site-brand {
+        --brand-color: var(--white);
+
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--brand-color);
+        font-size: var(--font-size-base);
+        text-decoration: none;
+        text-transform: lowercase;
+        opacity: 0.82;
+        mix-blend-mode: difference;
+        transition: opacity 150ms ease;
+        pointer-events: auto;
+
+        &:hover,
+        &:focus-visible {
+          opacity: 1;
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--white);
+          outline-offset: 0.35rem;
+        }
+
+        &:active {
+          --brand-color: var(--orange);
+        }
+      }
+
+      .site-brand-mark {
+        display: inline-grid;
+        padding: 0.2rem 0.3rem;
+        border-radius: 0.25rem;
+        place-items: center;
+        color: var(--black);
+        background: var(--brand-color);
+      }
+
+      .site-brand-cube {
+        display: block;
+        width: 1.299rem;
+        height: 1.5rem;
+        overflow: hidden;
+
+        .glass {
+          fill: currentColor;
+          fill-opacity: 0.4;
+        }
+
+        .liquid {
+          fill: currentColor;
+        }
+
+        .liquid-group {
+          transform-box: view-box;
+          animation: brand-fill 5s linear infinite alternate;
+        }
+      }
+
+      @keyframes brand-fill {
+        from {
+          transform: translateY(49.5%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      #jump {
+        position: relative;
+        pointer-events: auto;
+
+        input {
+          width: min(15rem, 46vw);
+          height: 2rem;
+          padding: 0 2rem 0 0.75rem;
+          border-color: color-mix(in oklch, var(--gray) 60%, transparent);
+          background: color-mix(in oklch, var(--black) 82%, transparent);
+          backdrop-filter: blur(0.25rem);
+          font-size: var(--font-size-xs);
+        }
+
+        kbd {
+          position: absolute;
+          top: 50%;
+          right: 0.5rem;
+          translate: 0 -50%;
+          border: 1px solid color-mix(in oklch, var(--gray) 60%, transparent);
+          border-radius: 0.2rem;
+          padding: 0.1rem 0.3rem;
+          color: var(--gray);
+          font: inherit;
+          font-size: 0.625rem;
+          line-height: 1;
+          pointer-events: none;
+        }
+
+        input:focus + kbd {
+          display: none;
+        }
+
+        @media (hover: none) {
+          kbd {
+            display: none;
+          }
+
+          input {
+            padding-right: 0.75rem;
+          }
+        }
+      }
+
+      /* Pages ------------------------------------------------------------- */
+
+      #explore {
+        --cube-size: 4.25rem;
+        --cube-width: calc(var(--cube-size) * sqrt(3));
+        --cube-height: calc(var(--cube-size) * 2);
+
+        display: grid;
+        grid-template-rows: calc(var(--cube-height) + 2.5rem) minmax(0, 1fr);
+        min-height: 0;
+        overflow: hidden;
+
+        @media (min-width: 48rem) {
+          --cube-size: 5rem;
+
+          grid-template-rows: minmax(0, 1fr);
+          grid-template-columns: calc(var(--cube-width) + 5rem) minmax(0, 1fr);
+        }
+      }
+
+      @keyframes fade-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* Chain ------------------------------------------------------------- */
+
+      #chain {
+        --color: var(--white);
+        --border-color: oklch(20% 0 0);
+        --cube-font-size: calc(var(--cube-size) / 7);
+        --iso-scale: calc(sqrt(3) / 2);
+        --cube-empty-alpha: 0.4;
+        --face-step: 0.033;
+        --min-gap: 0.75rem;
+        --max-gap: calc(var(--cube-size) * 3);
+        --min-block-interval: 0;
+        --max-block-interval: 10800;
+
+        position: relative;
+        isolation: isolate;
+        container-type: size;
+        min-width: 0;
+        min-height: 0;
+        border-bottom: 1px solid var(--border-color);
+        transition: opacity 200ms ease;
+
+        &[data-loading],
+        &[data-reorganizing],
+        &[data-jumping] {
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        [data-dim] {
+          opacity: 0.5;
+        }
+
+        [data-chain-scroll] {
+          height: 100%;
+          overflow-x: auto;
+          overflow-y: hidden;
+          overscroll-behavior: contain;
+          scrollbar-width: none;
+        }
+
+        /* Oldest first in the DOM; reversed so the newest (and the projected blocks) lead. */
+        [data-chain-blocks] {
+          display: flex;
+          flex-direction: row-reverse;
+          justify-content: flex-end;
+          align-items: center;
+          width: max-content;
+          min-width: 100%;
+          height: 100%;
+          padding-inline: 2.75rem;
+        }
+
+        @media (min-width: 48rem) {
+          border-bottom: 0;
+          border-right: 1px solid var(--border-color);
+
+          [data-chain-scroll] {
+            overflow-x: hidden;
+            overflow-y: auto;
+          }
+
+          [data-chain-blocks] {
+            flex-direction: column-reverse;
+            width: 100%;
+            min-width: 0;
+            height: max-content;
+            min-height: 100%;
+            padding-block: 3.25rem;
+          }
+        }
+
+        &:not([data-loading]) [data-cube][data-enter] [data-cube-visual] {
+          animation: fade-in 300ms ease-out var(--enter-delay, 0ms) both;
+        }
+
+        [data-cube] {
+          --cube-face-base: var(--border-color);
+          --face-top: oklch(
+            from var(--cube-face-base) calc(l + var(--face-step) * 2) c h
+          );
+          --face-right: var(--cube-face-base);
+          --face-left: oklch(from var(--cube-face-base) calc(l + var(--face-step)) c h);
+          --face-bottom: oklch(
+            from var(--cube-face-base) calc(l - var(--face-step) * 3) c h
+          );
+          --is-empty: round(down, calc(1 - var(--fill)), 1);
+          --cube-fall-off: pow(
+            clamp(
+              0,
+              (var(--block-interval, 600) - var(--min-block-interval)) /
+                (var(--max-block-interval) - var(--min-block-interval)),
+              1
+            ),
+            0.7
+          );
+          --block-gap: calc(
+            var(--min-gap) + var(--cube-fall-off) * (var(--max-gap) - var(--min-gap))
+          );
+
+          display: block;
+          position: relative;
+          flex-shrink: 0;
+          width: var(--cube-width);
+          height: var(--cube-height);
+          overflow: visible;
+          color: var(--color);
+          text-decoration: none;
+          -webkit-user-select: none;
+          user-select: none;
+          pointer-events: none;
+          transition: --block-interval 650ms cubic-bezier(0.22, 1, 0.36, 1);
+
+          & + & {
+            margin-right: var(--block-gap);
+
+            @media (min-width: 48rem) {
+              margin-right: 0;
+              margin-bottom: var(--block-gap);
+            }
+          }
+
+          &[data-selected] {
+            color: var(--black);
+            --cube-face-base: var(--orange);
+          }
+
+          &[data-hash]:hover:not(:active, [data-press]) {
+            color: var(--black);
+            --cube-face-base: var(--white);
+          }
+
+          &[data-hash]:focus-visible {
+            outline: none;
+            color: var(--black);
+            --cube-face-base: var(--white);
+          }
+
+          &[data-hash]:active,
+          &[data-press] {
+            color: var(--black);
+            --cube-face-base: var(--orange);
+          }
+
+          &[data-projected] [data-cube-visual] {
+            animation: projected-cube-pulse 4s ease-in-out infinite;
+          }
+
+          &[data-placeholder] {
+            visibility: hidden;
+          }
+
+          &[data-skeleton] [data-role="text"] {
+            visibility: hidden;
+          }
+
+          [data-cube-visual] {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+          }
+
+          [data-face] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            width: var(--cube-size);
+            height: var(--cube-size);
+            transform-origin: 0 0;
+            transform: translateY(50%) var(--face-orient)
+              translate(
+                calc(var(--cube-size) * var(--face-x)),
+                calc(var(--cube-size) * var(--face-y))
+              )
+              scale(var(--face-scale-x, 1), var(--face-scale-y));
+            pointer-events: auto;
+          }
+
+          [data-role="liquid"] {
+            --face-scale-y: calc(var(--iso-scale) * var(--fill));
+            --face-stack-shift: calc(var(--iso-scale) * (1 - var(--fill)));
+
+            background: var(--face-color);
+            opacity: calc(1 - var(--is-empty));
+          }
+
+          [data-role="glass"] {
+            --face-scale-y: calc(var(--iso-scale) * (1 - var(--fill)));
+            --face-stack-shift: 0;
+
+            background: oklch(from var(--face-color) l c h / var(--cube-empty-alpha));
+          }
+
+          [data-role="text"] {
+            --face-scale-y: var(--iso-scale);
+            --face-stack-shift: 0;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly;
+            padding: 0.1rem;
+            font-size: var(--cube-font-size);
+            font-weight: var(--font-weight-strong);
+            line-height: 1;
+            text-align: center;
+            pointer-events: none;
+
+            &[data-side="top"] {
+              text-transform: uppercase;
+            }
+
+            [data-cube-height] {
+              font-weight: var(--font-weight-regular);
+            }
+
+            [data-cube-pool] {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 0.1em;
+              width: 100%;
+
+              img {
+                width: 1.25em;
+                height: 1.25em;
+                flex-shrink: 0;
+              }
+
+              span {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              }
+            }
+          }
+
+          [data-side="top"],
+          [data-side="bottom"] {
+            --face-orient: rotate(30deg) skewX(-30deg);
+            --face-scale-y: var(--iso-scale);
+          }
+
+          [data-side="right"],
+          [data-side="rear-left"] {
+            --face-orient: rotate(-30deg) skewX(-30deg);
+          }
+
+          [data-side="left"],
+          [data-side="rear-right"] {
+            --face-orient: rotate(30deg) skewX(30deg);
+          }
+
+          [data-side="top"],
+          [data-side="rear-right"] {
+            --face-y: calc(var(--face-stack-shift) - var(--iso-scale));
+          }
+
+          [data-side="left"],
+          [data-side="rear-left"] {
+            --face-y: var(--face-stack-shift);
+          }
+
+          [data-side="right"] {
+            --face-y: calc(var(--face-stack-shift) + var(--iso-scale));
+          }
+
+          [data-side="bottom"] {
+            --face-y: 0;
+          }
+
+          [data-side="top"] {
+            --face-color: var(--face-top);
+            --face-x: 0;
+          }
+
+          [data-side="bottom"] {
+            --face-color: var(--face-bottom);
+            --face-x: 1;
+          }
+
+          [data-side="right"] {
+            --face-color: var(--face-right);
+            --face-x: 1;
+          }
+
+          [data-side="left"] {
+            --face-color: var(--face-left);
+            --face-x: 0;
+          }
+
+          [data-side="rear-right"] {
+            --face-color: var(--face-left);
+            --face-x: 1;
+          }
+
+          [data-side="rear-left"] {
+            --face-color: var(--face-top);
+            --face-scale-x: -1;
+            --face-x: 1;
+          }
+
+          [data-role="liquid"][data-side="top"] {
+            --face-x: calc(1 - var(--fill));
+          }
+
+          [data-block-interval] {
+            position: absolute;
+            top: 0;
+            left: 100%;
+            z-index: 0;
+            display: grid;
+            place-items: center;
+            width: max(0px, var(--block-gap));
+            height: 100%;
+            container: block-interval / size;
+            background: linear-gradient(var(--border-color), var(--border-color)) center / 100% 1px no-repeat;
+            color: color-mix(in oklch, var(--color) 45%, transparent);
+            font-size: calc(var(--cube-font-size) * 0.85);
+            line-height: 1;
+            white-space: nowrap;
+            pointer-events: none;
+            animation: fade-in 200ms ease-out both;
+
+            span {
+              grid-area: 1 / 1;
+              padding: 0.15em 0.35em;
+              background: var(--black);
+            }
+
+            @media (min-width: 48rem) {
+              top: 100%;
+              left: 0;
+              width: 100%;
+              height: max(0px, var(--block-gap));
+              background-size: 1px 100%;
+            }
+          }
+
+          &[data-enter] [data-block-interval],
+          &[data-new-block-enter] [data-block-interval],
+          &[data-enter] + & [data-block-interval] {
+            opacity: 0;
+            animation: none;
+          }
+        }
+
+        [data-chain-boundary] {
+          position: absolute;
+          top: 50%;
+          left: calc(100% + var(--block-gap) / 2);
+          z-index: -1;
+          display: none;
+          height: 100cqh;
+          translate: 0 -50%;
+          border-left: 1px dashed color-mix(in oklch, var(--color) 25%, transparent);
+          color: color-mix(in oklch, var(--color) 35%, transparent);
+          font-size: calc(var(--cube-font-size) * 0.75);
+          letter-spacing: 0.08em;
+          line-height: 1;
+          pointer-events: none;
+
+          span {
+            position: absolute;
+            top: 0.75rem;
+            writing-mode: vertical-rl;
+          }
+
+          span:first-child {
+            right: 0.35rem;
+          }
+
+          span:last-child {
+            left: 0.35rem;
+          }
+
+          @media (min-width: 48rem) {
+            top: calc(100% + var(--block-gap) / 2);
+            left: 50%;
+            width: 100cqw;
+            height: 0;
+            translate: -50% 0;
+            border-top: 1px dashed color-mix(in oklch, var(--color) 25%, transparent);
+            border-left: 0;
+
+            span:first-child,
+            span:last-child {
+              top: auto;
+              right: 0.75rem;
+              left: auto;
+              writing-mode: horizontal-tb;
+            }
+
+            span:first-child {
+              bottom: 0.4rem;
+            }
+
+            span:last-child {
+              top: 0.4rem;
+            }
+          }
+        }
+
+        [data-cube][data-tip] + [data-cube][data-projected] [data-chain-boundary] {
+          display: block;
+        }
+
+        [data-edge] {
+          position: absolute;
+          top: 50%;
+          left: 0.5rem;
+          z-index: 2;
+          width: 1.75rem;
+          height: 1.75rem;
+          translate: 0 -50%;
+          border-radius: 999rem;
+          padding: 0;
+          font-size: var(--font-size-base);
+          opacity: 0;
+          scale: 0.85;
+          pointer-events: none;
+          transition:
+            opacity 150ms ease,
+            scale 150ms ease;
+
+          &[data-visible] {
+            opacity: 1;
+            scale: 1;
+            pointer-events: auto;
+          }
+
+          @media (min-width: 48rem) {
+            top: 0.75rem;
+            left: 50%;
+            translate: -50% 0;
+            rotate: 90deg;
+          }
+        }
+
+        > [data-chain-status] {
+          position: absolute;
+          inset: 0;
+          z-index: 2;
+          display: grid;
+          place-items: center;
+          color: var(--gray);
+          font-size: var(--font-size-xs);
+          letter-spacing: 0.08em;
+          text-align: center;
+          text-transform: uppercase;
+          pointer-events: none;
+          animation: fade-in 300ms ease 500ms both;
+
+          &[hidden] {
+            display: none;
+          }
+        }
+      }
+
+      #chain [data-interval-full],
+      #chain [data-interval-compact] {
+        display: none;
+      }
+
+      @container block-interval (inline-size >= 4ch) and (block-size >= 1.6em) {
+        #chain [data-interval-compact] {
+          display: inline;
+        }
+      }
+
+      @container block-interval (inline-size >= 8ch) and (block-size >= 1.6em) {
+        #chain [data-interval-full] {
+          display: inline;
+        }
+
+        #chain [data-interval-compact] {
+          display: none;
+        }
+      }
+
+      @keyframes projected-cube-pulse {
+        0%,
+        100% {
+          filter: brightness(1);
+        }
+
+        50% {
+          filter: brightness(2.5);
+        }
+      }
+
+      /* Block details ----------------------------------------------------- */
+
+      #block-details {
+        min-width: 0;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 1.75rem var(--page-x) 3rem;
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-sm);
+        scrollbar-width: none;
+
+        [data-dim] {
+          opacity: 0.5;
+        }
+
+        > [data-block-content] {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 2rem;
+        }
+
+        [data-block-column] {
+          display: grid;
+          align-content: start;
+          gap: 2rem;
+          min-width: 0;
+
+          > section {
+            display: grid;
+            align-content: start;
+            gap: 0.75rem;
+            min-width: 0;
+          }
+        }
+
+        [data-block-missing] {
+          grid-column: 1 / -1;
+          color: var(--gray);
+          text-transform: uppercase;
+        }
+      }
+
+      @media (max-width: 48rem) {
+        #block-details > [data-block-content] {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      [data-block-title] {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35em;
+        align-items: baseline;
+        justify-content: var(--block-title-justify, flex-start);
+        min-width: 0;
+        overflow-wrap: anywhere;
+        color: var(--block-title-color, inherit);
+        font-family: var(--font-mono);
+        line-height: 1;
+
+        > span:first-child {
+          font-family: var(--font-serif);
+          font-size: var(--block-title-label-size);
+          font-style: italic;
+          line-height: 0.9;
+          text-transform: lowercase;
+        }
+
+        > span:last-child {
+          color: var(--block-title-height-color);
+          font-size: var(--block-title-height-size);
+          line-height: var(--block-title-height-line-height);
+
+          [data-dim] {
+            opacity: 0.5;
+          }
+        }
+      }
+
+      [data-block-header] {
+        --block-title-height-color: var(--gray);
+        --block-title-height-line-height: var(--line-height-lg);
+        --block-title-height-size: var(--font-size-lg);
+        --block-title-label-size: 2.5rem;
+
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.15rem 1rem;
+        align-items: baseline;
+        padding-bottom: 1.25rem;
+
+        > output {
+          justify-self: end;
+          white-space: nowrap;
+        }
+
+        > p,
+        > time {
+          color: var(--gray);
+        }
+
+        > p {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        > time {
+          white-space: nowrap;
+        }
+
+        > div {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.375rem;
+          align-items: center;
+          justify-content: flex-end;
+          min-width: 0;
+
+          > * {
+            padding: 0.25rem 0.375rem;
+            font-size: var(--font-size-xs);
+            line-height: 1;
+          }
+        }
+      }
+
+      [data-amount] {
+        font-variant-numeric: tabular-nums;
+
+        &[data-tone="positive"] {
+          color: var(--green);
+        }
+
+        &[data-size="title"] {
+          font-size: var(--font-size-lg);
+          line-height: var(--line-height-lg);
+        }
+
+        [data-muted] {
+          color: color-mix(in oklch, currentColor 45%, transparent);
+        }
+      }
+
+      [data-block-meta] {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) repeat(3, max-content);
+        gap: 1.5rem;
+        min-width: 0;
+
+        > div {
+          display: flex;
+          gap: 0.5rem;
+          align-items: baseline;
+          justify-content: space-between;
+          min-width: 0;
+
+          > span {
+            flex: 0 0 auto;
+            color: var(--gray);
+            text-transform: uppercase;
+          }
+
+          strong {
+            min-width: 0;
+            font-weight: var(--font-weight-strong);
+            text-align: right;
+            white-space: nowrap;
+          }
+        }
+      }
+
+      @media (max-width: 48rem) {
+        [data-block-meta] {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      [data-miner-pane] {
+        display: grid;
+        gap: 1rem;
+        min-width: 0;
+
+        > div {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 1rem;
+          align-items: center;
+          min-width: 0;
+
+          > div {
+            display: grid;
+            gap: 0.125rem;
+            min-width: 0;
+
+            > div {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 0.5rem;
+              align-items: baseline;
+            }
+          }
+
+          strong {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            font-weight: var(--font-weight-strong);
+          }
+
+          span {
+            color: var(--gray);
+          }
+
+          img {
+            width: 1.25rem;
+            height: 1.25rem;
+            object-fit: contain;
+          }
+        }
+
+        > p {
+          min-width: 0;
+          overflow: hidden;
+          font-style: italic;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      [data-metric-list] {
+        display: grid;
+        gap: 0.5rem;
+        min-width: 0;
+
+        [data-metric-stat],
+        [data-epoch-head] {
+          display: grid;
+          grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr);
+          gap: 0.75rem;
+          align-items: center;
+          min-width: 0;
+
+          > span {
+            color: var(--epoch-color, var(--orange));
+            font-size: var(--font-size-xs);
+            line-height: var(--line-height-xs);
+            text-transform: uppercase;
+          }
+
+          strong {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            font-weight: var(--font-weight-strong);
+            text-align: right;
+          }
+        }
+
+        [data-epoch] {
+          display: grid;
+          gap: 0.25rem;
+          min-width: 0;
+        }
+      }
+
+      [data-bar] {
+        display: flex;
+        gap: 0.125rem;
+        height: 0.5rem;
+        min-width: 0;
+
+        > span {
+          width: var(--share);
+          border-radius: 0.125rem;
+          background: var(--segment-color);
+          transition: opacity var(--transition-duration) ease;
+
+          &[data-muted] {
+            opacity: 0.25;
+          }
+        }
+      }
+
+      [data-rewards-pane] {
+        display: grid;
+        gap: 0.5rem;
+        min-width: 0;
+
+        [data-reward-total] {
+          display: grid;
+          gap: 0.125rem;
+          justify-items: start;
+          color: var(--gray);
+          font-size: var(--font-size-xs);
+          line-height: var(--line-height-xs);
+
+          strong {
+            color: var(--white);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-strong);
+            line-height: var(--line-height-sm);
+          }
+
+          > span:first-child {
+            color: var(--orange);
+            text-transform: uppercase;
+          }
+        }
+      }
+
+      /* Legend items ------------------------------------------------------ */
+
+      [data-legend-list] {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+
+        &[data-legend-fill] {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(8.5ch, 1fr));
+
+          [data-legend-item] {
+            width: 100%;
+
+            > [data-legend-value] {
+              width: auto;
+              overflow-wrap: anywhere;
+            }
+          }
+        }
+
+        > li {
+          min-width: 0;
+        }
+      }
+
+      [data-legend-item] {
+        display: block;
+        min-width: 8.5ch;
+        padding: 0.25rem 0.375rem;
+        border-radius: 0.25rem;
+        color: inherit;
+        background: none;
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-strong);
+        line-height: var(--line-height-xs);
+        text-align: left;
+
+        @media (hover: hover) and (pointer: fine) {
+          &:hover {
+            color: var(--black);
+            background: var(--color);
+          }
+        }
+
+        &[data-press],
+        &[data-active],
+        &[data-preview] {
+          color: var(--black);
+          background: var(--color);
+        }
+
+        &:focus-visible {
+          outline: 1px solid var(--orange);
+          outline-offset: 0.125rem;
+        }
+
+        &[data-muted] {
+          opacity: 0.35;
+        }
+
+        &[aria-busy="true"] {
+          cursor: progress;
+        }
+
+        > [data-legend-label] {
+          display: block;
+          color: var(--color);
+          white-space: nowrap;
+
+          &::before {
+            content: "";
+            display: inline-block;
+            width: 0.5em;
+            height: 0.5em;
+            margin-right: 0.35em;
+            margin-bottom: 0.1rem;
+            border-radius: 50%;
+            background: currentColor;
+          }
+        }
+
+        &:is(:hover, [data-press], [data-active], [data-preview]) > * {
+          color: inherit !important;
+        }
+
+        > [data-legend-value],
+        > [data-legend-detail] {
+          display: block;
+          margin-top: 0.25rem;
+          margin-left: auto;
+          color: var(--white);
+          font-variant-numeric: tabular-nums;
+          text-align: right;
+        }
+
+        > [data-legend-value] {
+          width: 7ch;
+          min-height: 1em;
+        }
+
+        > [data-legend-detail] {
+          color: var(--gray);
+        }
+      }
+
+      /* Fee chart --------------------------------------------------------- */
+
+      [data-fee-chart] {
+        display: grid;
+        gap: 0.5rem;
+        min-width: 0;
+        margin: 0;
+
+        > figcaption {
+          color: var(--white);
+          font-size: var(--font-size-xs);
+          line-height: var(--line-height-xs);
+          text-transform: uppercase;
+
+          span {
+            color: var(--gray);
+          }
+        }
+
+        svg {
+          display: block;
+          width: 100%;
+          height: 7.5rem;
+          overflow: visible;
+          touch-action: pan-y;
+        }
+
+        path {
+          fill: none;
+          stroke: var(--gray);
+          stroke-width: 1.75;
+          stroke-linejoin: round;
+        }
+
+        circle {
+          fill: var(--color);
+          stroke: var(--black);
+          stroke-width: 1.75;
+          transition:
+            r 120ms ease,
+            opacity 120ms ease;
+
+          &[data-active] {
+            r: 7;
+          }
+        }
+
+        svg[data-hover] circle:not([data-active]) {
+          opacity: 0.35;
+        }
+      }
+
+      /* Block preview ----------------------------------------------------- */
+
+      [data-block-preview] {
+        display: grid;
+        min-width: 0;
+
+        > figure {
+          position: relative;
+          display: grid;
+          gap: 0.75rem;
+          min-width: 0;
+          margin: 0;
+        }
+
+        canvas {
+          --block-preview-heatmap-gap: 2px;
+
+          display: block;
+          width: 100%;
+          aspect-ratio: 1;
+          min-width: 0;
+          touch-action: none;
+        }
+
+        [data-block-preview-status] {
+          display: grid;
+          aspect-ratio: 1;
+          place-items: center;
+          color: var(--gray);
+          text-transform: uppercase;
+        }
+
+        dl {
+          position: absolute;
+          top: var(--tx-y, 50%);
+          left: var(--tx-x, 50%);
+          z-index: 2;
+          display: grid;
+          grid-template-columns: max-content minmax(0, 1fr);
+          column-gap: 0.5rem;
+          width: min(24rem, calc(100% - 1rem));
+          padding: 0.375rem 0.5rem;
+          border-radius: var(--control-radius);
+          color: var(--gray);
+          background: color-mix(in oklch, var(--black) 88%, transparent);
+          backdrop-filter: blur(0.25rem);
+          font-size: var(--font-size-xs);
+          line-height: var(--line-height-xs);
+          pointer-events: none;
+          transform: translate(-50%, calc(-100% - 0.5rem));
+
+          &[data-below] {
+            transform: translate(-50%, 0.5rem);
+          }
+
+          > div {
+            display: contents;
+          }
+
+          dt {
+            text-transform: uppercase;
+          }
+
+          dd {
+            min-width: 0;
+            overflow: hidden;
+            margin: 0;
+            color: var(--white);
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            &[aria-busy="true"] {
+              color: var(--gray);
+              font-style: italic;
+            }
+          }
+        }
+      }
+
+      [data-block-preview-filters] {
+        display: grid;
+        gap: 0.75rem;
+        min-width: 0;
+
+        > summary {
+          display: flex;
+          max-width: 100%;
+          font-size: var(--font-size-xs);
+          font-weight: var(--font-weight-strong);
+          line-height: var(--line-height-xs);
+          list-style: none;
+          text-transform: uppercase;
+          cursor: pointer;
+
+          &::-webkit-details-marker {
+            display: none;
+          }
+
+          > span {
+            white-space: nowrap;
+          }
+
+          > span:first-child {
+            flex: 0 0 auto;
+            padding-right: 0.5rem;
+            color: var(--gray);
+          }
+
+          > span:last-child {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+
+        > div {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          min-width: 0;
+
+          > span {
+            flex: 0 0 auto;
+            padding-right: 0.5rem;
+            color: var(--gray);
+            font-size: var(--font-size-xs);
+            line-height: var(--line-height-xs);
+            text-transform: uppercase;
+            white-space: nowrap;
+          }
+
+          > [data-legend-item] {
+            display: flex;
+            gap: 0.5rem;
+            align-items: baseline;
+            min-width: max-content;
+
+            > [data-legend-value] {
+              width: auto;
+              min-height: 0;
+              margin: 0;
+            }
+          }
+        }
+      }
+
+      /* X-ray ------------------------------------------------------------- */
+
+      [data-block-xray] {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 0.75rem;
+        min-width: 0;
+        min-height: min(80dvh, 52rem);
+        padding-top: 2rem;
+
+        > h2 {
+          color: var(--gray);
+          font-family: var(--font-mono);
+          font-size: var(--font-size-sm);
+          line-height: 1;
+          text-transform: uppercase;
+        }
+
+        > div {
+          position: relative;
+          display: grid;
+          min-height: 0;
+          place-items: center;
+        }
+
+        p {
+          position: absolute;
+          color: var(--gray);
+          text-transform: uppercase;
+        }
+
+        svg {
+          width: min(100%, 42rem);
+          aspect-ratio: 173.205 / 200;
+          overflow: visible;
+          opacity: 0;
+          transform: scale(0.96);
+          transition:
+            opacity 300ms ease,
+            transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        &[data-ready] svg {
+          opacity: 1;
+          transform: scale(1);
+        }
+
+        polygon {
+          fill: var(--xray-fee-color);
+          stroke: var(--black);
+          stroke-linejoin: bevel;
+          stroke-width: 1;
+          paint-order: stroke fill;
+          vector-effect: non-scaling-stroke;
+        }
+      }
+
+      /* Receipt ----------------------------------------------------------- */
+
+      dialog[data-block-receipt] {
+        --receipt-page-width: 80mm;
+        --receipt-paper-width: 72mm;
+        --receipt-top-teeth: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2 1' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M0 1 1 0 2 1z'/%3E%3C/svg%3E");
+        --receipt-bottom-teeth: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2 1' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M0 0 2 0 1 1z'/%3E%3C/svg%3E");
+        --receipt-tooth-count: 36;
+        --receipt-tooth-size: 0.16rem;
+        --line: 1px dashed color-mix(in oklch, var(--black) 35%, transparent);
+
+        color-scheme: light;
+        position: fixed;
+        inset: 0 0 auto;
+        outline: none;
+        width: min(100% - 2rem, 28rem);
+        height: 100dvh;
+        max-width: none;
+        max-height: 100dvh;
+        margin: 0 auto;
+        border: 0;
+        overflow: hidden;
+        padding: 0;
+        color: var(--black);
+        background: transparent;
+        opacity: 0;
+        transition:
+          opacity var(--transition-duration) ease,
+          display var(--transition-duration) allow-discrete,
+          overlay var(--transition-duration) allow-discrete;
+
+        &[open] {
+          opacity: 1;
+        }
+
+        &::backdrop {
+          background: color-mix(in oklch, var(--black) 72%, transparent);
+          opacity: 0;
+          transition:
+            opacity var(--transition-duration) ease,
+            display var(--transition-duration) allow-discrete,
+            overlay var(--transition-duration) allow-discrete;
+        }
+
+        &[open]::backdrop {
+          opacity: 1;
+        }
+
+        @starting-style {
+          &[open],
+          &[open]::backdrop {
+            opacity: 0;
+          }
+        }
+
+        > div {
+          height: 100%;
+          overflow-y: auto;
+          padding-block: var(--page-x);
+          overscroll-behavior: contain;
+          scrollbar-width: none;
+        }
+
+        article {
+          display: grid;
+          gap: 0.375rem;
+          width: min(100%, var(--receipt-paper-width));
+          margin-inline: auto;
+          padding: calc(var(--receipt-tooth-size) + 0.5rem) 1rem
+            calc(var(--receipt-tooth-size) + 0.75rem);
+          background: var(--white);
+          font-size: var(--font-size-xs);
+          line-height: var(--line-height-xs);
+          mask:
+            var(--receipt-top-teeth) top left /
+              calc(100% / var(--receipt-tooth-count)) var(--receipt-tooth-size)
+              repeat-x,
+            linear-gradient(#000 0 0) 0 var(--receipt-tooth-size) / 100%
+              calc(100% - 2 * var(--receipt-tooth-size)) no-repeat,
+            var(--receipt-bottom-teeth) bottom left /
+              calc(100% / var(--receipt-tooth-count)) var(--receipt-tooth-size)
+              repeat-x;
+        }
+
+        header {
+          --block-title-color: var(--black);
+          --block-title-height-color: color-mix(in oklch, var(--black) 62%, transparent);
+          --block-title-height-line-height: var(--line-height-base);
+          --block-title-height-size: var(--font-size-base);
+          --block-title-justify: center;
+          --block-title-label-size: 1.375rem;
+
+          margin-block-start: 0.5rem;
+        }
+
+        section {
+          display: grid;
+          gap: 0.25rem;
+          min-width: 0;
+          border-top: var(--line);
+          padding-top: 0.75rem;
+
+          > h3 {
+            font-family: var(--font-mono);
+            font-size: inherit;
+            font-weight: var(--font-weight-strong);
+            text-transform: uppercase;
+          }
+        }
+
+        [data-row] {
+          display: grid;
+          grid-template-columns: minmax(5rem, auto) minmax(0, 1fr);
+          gap: 0.75rem;
+          align-items: baseline;
+          min-width: 0;
+
+          > span {
+            color: color-mix(in oklch, var(--black) 58%, transparent);
+            text-transform: uppercase;
+          }
+
+          > strong {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            font-weight: var(--font-weight-strong);
+            text-align: right;
+
+            small {
+              display: block;
+              color: color-mix(in oklch, var(--black) 52%, transparent);
+              font-size: inherit;
+              font-weight: var(--font-weight-regular);
+            }
+          }
+
+          &[data-row="wide"] {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0.125rem;
+
+            > strong {
+              word-break: break-all;
+              text-align: left;
+            }
+          }
+
+          &[data-row="total"] {
+            border-block: var(--line);
+            padding-block: 0.375rem;
+
+            > span {
+              color: var(--black);
+            }
+          }
+        }
+
+        [data-receipt-note] {
+          overflow: hidden;
+          font-style: italic;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        [data-receipt-qr] {
+          justify-items: center;
+          gap: 0.5rem;
+          text-align: center;
+
+          > span {
+            text-transform: uppercase;
+          }
+
+          img {
+            width: min(100%, 10rem);
+            aspect-ratio: 1;
+            image-rendering: pixelated;
+          }
+
+          a {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            color: var(--black);
+            text-decoration: none;
+          }
+        }
+
+        [data-receipt-brand] {
+          justify-items: center;
+          padding-top: 0.5rem;
+
+          .site-brand {
+            --brand-color: var(--black);
+
+            color: var(--black);
+            font-size: var(--font-size-base);
+            opacity: 1;
+            mix-blend-mode: normal;
+          }
+
+          .site-brand-mark {
+            color: var(--white);
+          }
+
+          .liquid-group {
+            animation: none;
+          }
+        }
+
+        footer {
+          position: absolute;
+          bottom: 0.5rem;
+          left: 50%;
+          display: flex;
+          gap: 0.375rem;
+          translate: -50% 0;
+
+          button {
+            padding: 0.25rem 0.375rem;
+            font-size: var(--font-size-xs);
+            --button-color: var(--black);
+            --button-hover-background: var(--black);
+          }
+
+          [value="close"] {
+            --button-background: var(--red);
+          }
+
+          [data-print] {
+            --button-background: var(--green);
+          }
+
+          @media (hover: hover) and (pointer: fine) {
+            [value="close"]:hover {
+              color: var(--red);
+            }
+
+            [data-print]:hover {
+              color: var(--green);
+            }
+          }
+        }
+      }
+
+      @media print {
+        @page {
+          size: 80mm auto;
+          margin: 4mm;
+        }
+
+        html,
+        body {
+          height: auto;
+          overflow: visible;
+          background: white !important;
+        }
+
+        body > :not(dialog[data-block-receipt]) {
+          display: none !important;
+        }
+
+        dialog[data-block-receipt] {
+          position: static;
+          display: block;
+          width: var(--receipt-page-width);
+          height: auto;
+          max-height: none;
+          margin: 0;
+          overflow: visible;
+          opacity: 1;
+          color: black;
+          background: white;
+
+          &::backdrop,
+          footer {
+            display: none;
+          }
+
+          > div {
+            height: auto;
+            overflow: visible;
+            padding: 0;
+          }
+
+          article {
+            width: var(--receipt-paper-width);
+            color: black;
+            background: white;
+            font-size: 8pt;
+            line-height: 1.25;
+          }
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #chain [data-cube] {
+          transition: none;
+        }
+
+        #chain [data-cube][data-projected] [data-cube-visual],
+        .site-brand-cube .liquid-group {
+          animation: none;
+        }
+
+        #chain:not([data-loading]) [data-cube][data-enter] [data-cube-visual],
+        #chain [data-block-interval] {
+          animation-duration: 0ms;
+          animation-delay: 0ms;
+        }
+
+        [data-block-xray] svg {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-brand" href="https://bitview.space" aria-label="bitview home">
+        <span class="site-brand-mark" aria-hidden="true">
+          <svg class="site-brand-cube" viewBox="0 0 173.2 200" focusable="false">
+            <defs>
+              <clipPath id="site-brand-cube-clip">
+                <polygon points="86.6,0 173.2,50 173.2,150 86.6,200 0,150 0,50" />
+              </clipPath>
+            </defs>
+            <polygon class="glass" points="86.6,100 173.2,150 86.6,200 0,150" />
+            <polygon class="glass" points="86.6,100 0,150 0,50 86.6,0" />
+            <polygon class="glass" points="86.6,100 173.2,150 173.2,50 86.6,0" />
+            <g clip-path="url(#site-brand-cube-clip)">
+              <g class="liquid-group">
+                <polygon class="liquid" points="86.6,0 173.2,50 86.6,100 0,50" />
+                <polygon class="liquid" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+                <polygon class="liquid" points="0,50 0,150 86.6,200 86.6,100" />
+              </g>
+            </g>
+            <polygon class="glass" points="0,50 86.6,0 173.2,50 86.6,100" />
+            <polygon class="glass" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+            <polygon class="glass" points="0,50 0,150 86.6,200 86.6,100" />
+          </svg>
+        </span>
+        <span>bitview</span>
+      </a>
+      <form id="jump" role="search" autocomplete="off">
+        <input
+          name="block"
+          type="search"
+          inputmode="text"
+          placeholder="Height or hash"
+          aria-label="Open a block by height or hash"
+          enterkeyhint="go"
+          spellcheck="false"
+        />
+        <kbd>/</kbd>
+      </form>
+    </header>
+
+    <main id="explore"></main>
+
+    <noscript><p>JavaScript is required to watch the chain.</p></noscript>
+
+    <!-- Styles and code are inline; the generated client and the QR encoder load from ../modules.
+         Blocks, mempool projections and series come live from bitview.space. -->
+    <script type="module">
+      // @ts-check
+      // Config ---------------------------------------------------------------
+
+      const ORIGIN = "https://bitview.space";
+      const REQUEST_TIMEOUT_MS = 10_000;
+      const SATS_PER_BTC = 100_000_000;
+      const MAX_BLOCK_WEIGHT = 4_000_000;
+      const DIFFICULTY_EPOCH_BLOCKS = 2_016;
+      const HALVING_EPOCH_BLOCKS = 210_000;
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)");
+      /** Wide screens show the chain as a column beside the block, narrow ones as a row above it. */
+      const WIDE = matchMedia("(min-width: 48rem)");
+      const CAN_HOVER = matchMedia("(hover: hover) and (pointer: fine)");
+
+      // DOM ------------------------------------------------------------------
+
+      /**
+       * @template {keyof HTMLElementTagNameMap} K
+       * @param {K} tag
+       * @param {Record<string, string | number | boolean | null | undefined> | null} [attributes]
+       * @param {...(Node | string | number | null | undefined | false)} children
+       * @returns {HTMLElementTagNameMap[K]}
+       */
+      function el(tag, attributes, ...children) {
+        const node = document.createElement(tag);
+
+        for (const [name, value] of Object.entries(attributes ?? {})) {
+          if (value == null || value === false) continue;
+          node.setAttribute(name, value === true ? "" : String(value));
+        }
+
+        for (const child of children) {
+          if (child != null && child !== false) node.append(child instanceof Node ? child : String(child));
+        }
+
+        return node;
+      }
+
+      const dim = (text) => el("span", { "data-dim": true }, text);
+
+      /** Touch press feedback (mouse uses :hover / :active). */
+      function trackPress() {
+        const selector = "a[href], button:not(:disabled), input, summary";
+        let pressed = null;
+        const clear = () => {
+          pressed?.removeAttribute("data-press");
+          pressed = null;
+        };
+
+        document.addEventListener("pointerdown", (event) => {
+          if (event.pointerType === "mouse" || !(event.target instanceof Element)) return;
+          clear();
+          pressed = event.target.closest(selector);
+          pressed?.setAttribute("data-press", "");
+        }, { passive: true });
+        document.addEventListener("pointerup", clear, { passive: true });
+        document.addEventListener("pointercancel", clear, { passive: true });
+        addEventListener("blur", clear);
+      }
+
+      /** @param {Element} element @param {string} property */
+      function transitionMs(element, property) {
+        const style = getComputedStyle(element);
+        const properties = style.transitionProperty.split(",").map((part) => part.trim());
+        const toMs = (value) => value.split(",").map((part) => {
+          const time = part.trim();
+          return Number.parseFloat(time) * (time.endsWith("ms") ? 1 : 1_000);
+        });
+        const index = properties.findIndex((part) => part === property || part === "all");
+        if (index < 0) return 0;
+        const durations = toMs(style.transitionDuration);
+        const delays = toMs(style.transitionDelay);
+
+        return (durations[index] ?? durations.at(-1) ?? 0) + (delays[index] ?? delays.at(-1) ?? 0);
+      }
+
+      const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      // Network --------------------------------------------------------------
+
+      /** @param {string} path @param {AbortSignal} [signal] */
+      async function request(path, signal) {
+        const signals = [AbortSignal.timeout(REQUEST_TIMEOUT_MS)];
+        if (signal) signals.push(signal);
+        const response = await fetch(`${ORIGIN}${path}`, { signal: AbortSignal.any(signals) });
+
+        if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}: ${path}`), { status: response.status });
+
+        return response;
+      }
+
+      const requestJson = async (path, signal) => (await request(path, signal)).json();
+
+      /** @template T @param {() => Promise<T>} load @returns {() => Promise<T>} */
+      function lazy(load) {
+        /** @type {Promise<T> | null} */
+        let promise = null;
+
+        return () => (promise ??= load().catch((error) => {
+          promise = null;
+          throw error;
+        }));
+      }
+
+      const loadClient = lazy(async () => {
+        const { BitviewClient } = await import("../modules/bitview-client/index.js");
+        return new BitviewClient({ baseUrl: ORIGIN, timeout: REQUEST_TIMEOUT_MS, browserCache: false });
+      });
+
+      /** @typedef {Awaited<ReturnType<typeof loadClient>>} Client */
+
+      /**
+       * One request for several series over the same range.
+       * @param {Client} client
+       * @param {{ name: string }[]} series
+       * @param {Parameters<Client["getSeriesBulk"]>[1]} index
+       * @param {number} start
+       * @param {number} end
+       * @param {{ signal?: AbortSignal, memCache?: boolean }} options
+       */
+      async function fetchBulk(client, series, index, start, end, options) {
+        const response = await client.getSeriesBulk(series.map(({ name }) => name).join(","), index, start, end, undefined, undefined, options);
+        return /** @type {{ data: any[] }[]} */ (response);
+      }
+
+      /** lean-qr ships ambient module types that don't reach its bundled build: type what's used. */
+      const loadQr = lazy(async () => {
+        const { generate } = await import("../modules/lean-qr/2.7.3/index.mjs");
+        return /** @type {(text: string) => { toDataURL(options: { padX: number, padY: number, scale: number }): string } | undefined} */ (
+          /** @type {unknown} */ (generate)
+        );
+      });
+
+      const chainApi = {
+        block: (hash, signal) => requestJson(`/api/v1/block/${hash}`, signal),
+        tip: (signal) => requestJson("/api/v1/blocks", signal),
+        tipHeight: async () => Number(await (await request("/api/blocks/tip/height")).text()),
+        /** Up to 15 blocks, newest first, starting at `height` (the tip's when `height` is above it). */
+        from: (height, signal) => requestJson(`/api/v1/blocks/${height}`, signal),
+        mempool: (signal) => requestJson("/api/v1/fees/mempool-blocks", signal),
+      };
+
+      // Blocks known to this page ------------------------------------------
+
+      const REORG_SAFE_DEPTH = 6;
+      const blocksByHash = new Map();
+      /** Heights map to hashes only once buried: shallower ones may still be reorganized. */
+      const hashByHeight = new Map();
+      let knownTipHeight = -1;
+
+      function cacheBlock(block) {
+        blocksByHash.set(block.id, block);
+        if (knownTipHeight - block.height >= REORG_SAFE_DEPTH) hashByHeight.set(block.height, block.id);
+        return block;
+      }
+
+      function noteTip(height) {
+        knownTipHeight = Math.max(knownTipHeight, height);
+      }
+
+      /** @param {number | string} target height or hash */
+      async function resolveBlock(target) {
+        if (typeof target === "string") {
+          return blocksByHash.get(target) ?? cacheBlock(await chainApi.block(target));
+        }
+
+        const hash = hashByHeight.get(target);
+        if (hash) return blocksByHash.get(hash);
+
+        // Centered window: prefetches neighbors for newer/older stepping.
+        const blocks = await chainApi.from(target + 7);
+        if (blocks[0].height < target + 7) noteTip(blocks[0].height);
+        blocks.forEach(cacheBlock);
+        const block = blocks.find(({ height }) => height === target);
+        if (!block) throw Object.assign(new Error("Block not found"), { status: 404 });
+
+        return block;
+      }
+
+      // Formatting -----------------------------------------------------------
+
+      const formatNumber = (value) => value.toLocaleString();
+      const formatMegabytes = (bytes) => (bytes / 1_000_000).toFixed(2);
+      const formatBtcCompact = (sats) =>
+        (sats / SATS_PER_BTC).toLocaleString(undefined, { maximumSignificantDigits: 3 });
+      const formatBytes = (bytes) =>
+        bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(2)} MB` : `${formatNumber(bytes)} B`;
+      const formatWeight = (weight) =>
+        weight >= 1_000_000 ? `${(weight / 1_000_000).toFixed(2)} MWU` : `${formatNumber(weight)} WU`;
+      const formatBlockFill = (weight) => `${((weight / MAX_BLOCK_WEIGHT) * 100).toFixed(1)}%`;
+      const formatPoolBlock = (value) => `#${formatNumber(value ?? 0)}`;
+      const formatShortDate = (seconds) => {
+        const date = new Date(seconds * 1_000);
+        return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+      };
+      const formatYear = (seconds) => String(new Date(seconds * 1_000).getFullYear());
+      const formatDateTime = (seconds) =>
+        new Date(seconds * 1_000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" });
+
+      /** @param {number} rate */
+      function formatFeeRate(rate) {
+        if (rate >= 1_000_000) return `${(rate / 1_000_000).toFixed(1)}M`;
+        if (rate >= 100_000) return `${Math.round(rate / 1_000)}k`;
+        if (rate >= 1_000) return `${(rate / 1_000).toFixed(1)}k`;
+        if (rate >= 100) return Math.round(rate).toLocaleString();
+        if (rate >= 10) return rate.toFixed(1);
+        return rate.toFixed(2);
+      }
+
+      /** @param {number} height */
+      function splitHeight(height) {
+        const value = String(height);
+        return [`#${"0".repeat(Math.max(0, 7 - value.length))}`, value];
+      }
+
+      const heightElement = (height) => {
+        const [prefix, value] = splitHeight(height);
+        return el("span", null, dim(prefix), value);
+      };
+
+      /** @param {number} seconds */
+      function formatInterval(seconds) {
+        const total = Math.max(0, Math.round(seconds));
+        const hours = Math.floor(total / 3_600);
+        const minutes = Math.floor((total % 3_600) / 60);
+        if (hours) return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+        const remainder = total % 60;
+        if (minutes) return `${minutes}m ${String(remainder).padStart(2, "0")}s`;
+        return `${remainder}s`;
+      }
+
+      /** @param {number} seconds */
+      function formatUtcOffset(seconds) {
+        const offset = -new Date(seconds * 1_000).getTimezoneOffset();
+        if (offset === 0) return "UTC+0";
+        const absolute = Math.abs(offset);
+        const minutes = absolute % 60;
+        return `UTC${offset > 0 ? "+" : "-"}${Math.floor(absolute / 60)}${minutes ? `:${String(minutes).padStart(2, "0")}` : ""}`;
+      }
+
+      const formatClock = (seconds) => {
+        const date = new Date(seconds * 1_000);
+        return [date.getHours(), date.getMinutes(), date.getSeconds()].map((part) => String(part).padStart(2, "0"));
+      };
+
+      const RELATIVE_TIME = new Intl.RelativeTimeFormat(undefined);
+      /** @type {[Intl.RelativeTimeFormatUnit, number][]} */
+      const RELATIVE_UNITS = [["year", 31_557_600], ["month", 2_629_800], ["day", 86_400], ["hour", 3_600], ["minute", 60]];
+
+      /** @param {number} seconds */
+      function formatDateAndAge(seconds) {
+        const date = new Date(seconds * 1_000).toLocaleDateString(undefined, { dateStyle: "medium" });
+        const difference = seconds - Date.now() / 1_000;
+        if (Math.abs(difference) < 60) return `${date} · just now`;
+        const [unit, size] = RELATIVE_UNITS.find(([, duration]) => Math.abs(difference) >= duration);
+        return `${date} · ${RELATIVE_TIME.format(Math.trunc(difference / size), unit)}`;
+      }
+
+      /** @param {number} height @param {number} length */
+      function epochProgress(height, length) {
+        const blocks = (height % length) + 1;
+        return { number: Math.floor(height / length) + 1, ratio: blocks / length, remaining: length - blocks };
+      }
+
+      const formatEpoch = (height, length) => {
+        const { number, ratio } = epochProgress(height, length);
+        return `#${formatNumber(number)} · ${(ratio * 100).toFixed(1)}%`;
+      };
+
+      /** Printable runs of the coinbase script. */
+      const coinbaseMessage = (raw) =>
+        (raw.match(/[\x20-\x7e]{2,}/g) ?? [])
+          .map((value) => value.trim())
+          .filter((value) => /[A-Za-z0-9]/.test(value))
+          .join(" · ");
+
+      // Amounts: the insignificant digits are muted ---------------------------
+
+      function pushPart(parts, text, muted) {
+        const last = parts.at(-1);
+        if (last?.muted === muted) last.text += text;
+        else parts.push({ text, muted });
+      }
+
+      const groupDigits = (value, separator) => value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, separator);
+
+      /** @param {number} sats */
+      function btcParts(sats) {
+        const parts = [];
+        const absolute = Math.abs(sats);
+        const whole = Math.floor(absolute / SATS_PER_BTC);
+        const fraction = String(absolute % SATS_PER_BTC).padStart(8, "0");
+        const firstDigit = fraction.search(/[1-9]/);
+        const lastDigit = fraction.search(/0*$/) - 1;
+        const pushFraction = (isMuted, isSpaceMuted) => {
+          for (let index = 0; index < fraction.length; index += 1) {
+            pushPart(parts, fraction[index], isMuted(index));
+            if (index === 1 || index === 4) pushPart(parts, " ", isSpaceMuted(index));
+          }
+        };
+
+        if (sats < 0) pushPart(parts, "-", false);
+        pushPart(parts, "₿", true);
+
+        if (whole === 0) {
+          const mutedUntil = firstDigit === -1 ? fraction.length : firstDigit;
+          pushPart(parts, "0.", true);
+          pushFraction((index) => index < mutedUntil, (index) => index < mutedUntil);
+        } else if (lastDigit === -1) {
+          pushPart(parts, `${groupDigits(whole, " ")}`, false);
+          pushPart(parts, ".", true);
+          pushFraction(() => true, () => true);
+        } else {
+          pushPart(parts, `${groupDigits(whole, " ")}.`, false);
+          pushFraction((index) => index > lastDigit, (index) => index >= lastDigit);
+        }
+
+        return parts;
+      }
+
+      /** @param {number} dollars */
+      function usdParts(dollars) {
+        const parts = [];
+        const cents = Math.round(Math.abs(dollars) * 100);
+        const fraction = String(cents % 100).padStart(2, "0");
+
+        if (dollars < 0 && cents > 0) pushPart(parts, "-", false);
+        pushPart(parts, "$", true);
+        pushPart(parts, groupDigits(Math.floor(cents / 100), ","), false);
+        if (fraction === "00") {
+          pushPart(parts, ".00", true);
+        } else {
+          pushPart(parts, ".", false);
+          pushPart(parts, fraction[0], false);
+          pushPart(parts, fraction[1], fraction[1] === "0");
+        }
+
+        return parts;
+      }
+
+      const partsText = (parts) => parts.map(({ text }) => text).join("");
+      const satsToUsd = (sats, price) => (sats / SATS_PER_BTC) * price;
+
+      /** @param {HTMLElement} element @param {{ text: string, muted: boolean }[]} parts */
+      function renderAmount(element, parts) {
+        element.dataset.amount = "";
+        element.replaceChildren(...parts.map(({ text, muted }) => (muted ? el("span", { "data-muted": true }, text) : text)));
+        return element;
+      }
+
+      const amount = (tag, parts, attributes) => renderAmount(el(tag, attributes), parts);
+
+      // Pools ----------------------------------------------------------------
+
+      const poolDisplayName = (name) => name.replace(/\s+(Pool|USA)$/i, "").trim();
+
+      function poolLogo(pool) {
+        const slug = pool.slug || pool.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const logo = el("img", { src: `../pools/${slug}.svg`, alt: "", decoding: "async" });
+        logo.addEventListener("error", () => {
+          logo.src = "../pools/default.svg";
+        }, { once: true });
+        return logo;
+      }
+
+      // Legend items ---------------------------------------------------------
+
+      /** @param {{ label: string, color: string, detail?: Node | string }} args */
+      function legendItem({ label, color, detail }) {
+        const value = el("output", { "data-legend-value": true });
+        const button = el(
+          "button",
+          { type: "button", "data-legend-item": true, style: `--color:${color}`, "aria-label": label },
+          el("span", { "data-legend-label": true }, label),
+          value,
+          detail != null && el("output", { "data-legend-detail": true }, detail),
+        );
+
+        return { button, value };
+      }
+
+      // Fee rates ------------------------------------------------------------
+
+      const FEE_RATE_PERCENTILES = [0, 10, 25, 50, 75, 90, 100];
+      const FEE_RATE_STOPS = [
+        { label: "min", color: "var(--emerald)" },
+        { label: "10%", color: "var(--green)" },
+        { label: "25%", color: "var(--lime)" },
+        { label: "50%", color: "var(--yellow)" },
+        { label: "75%", color: "var(--amber)" },
+        { label: "90%", color: "var(--orange)" },
+        { label: "max", color: "var(--red)" },
+      ];
+
+      /** Fee-rate color between the block's own percentile stops. */
+      function feeRateColor(feeRate, ranges) {
+        if (feeRate <= ranges[0]) return FEE_RATE_STOPS[0].color;
+
+        for (let index = 1; index < ranges.length; index += 1) {
+          if (feeRate > ranges[index]) continue;
+          const span = ranges[index] - ranges[index - 1];
+          const ratio = span ? (feeRate - ranges[index - 1]) / span : 0;
+          return `color-mix(in oklch, ${FEE_RATE_STOPS[index - 1].color} ${((1 - ratio) * 100).toFixed(2)}%, ${FEE_RATE_STOPS[index].color} ${(ratio * 100).toFixed(2)}%)`;
+        }
+
+        return FEE_RATE_STOPS.at(-1).color;
+      }
+
+      /** Transactions by fee rate, then weight, highest first. */
+      function orderTransactions(weights, feeRates) {
+        const order = Uint32Array.from(feeRates, (_, index) => index);
+        return order.sort((a, b) => feeRates[b] - feeRates[a] || weights[b] - weights[a]);
+      }
+
+      function previewFeeRange(feeRates, order) {
+        return FEE_RATE_PERCENTILES.map((percentile) => feeRates[order[Math.round(((100 - percentile) / 100) * (order.length - 1))]]);
+      }
+
+      // Cubes ----------------------------------------------------------------
+
+      const CUBE_FACES = [
+        ["glass", "bottom"], ["glass", "rear-right"], ["glass", "rear-left"],
+        ["liquid", "bottom"], ["liquid", "rear-right"], ["liquid", "rear-left"],
+        ["liquid", "right"], ["liquid", "left"], ["liquid", "top"],
+        ["glass", "right"], ["glass", "left"], ["glass", "top"],
+      ];
+      const ENTER_STAGGER_MS = 60;
+
+      const face = (role, side) => el("div", { "data-face": true, "data-role": role, "data-side": side });
+
+      /** @param {HTMLElement} element @param {number} fill */
+      function buildCube(element, fill) {
+        const top = face("text", "top");
+        const right = face("text", "right");
+        const left = face("text", "left");
+
+        element.dataset.cube = "block";
+        element.style.setProperty("--fill", String(fill));
+        element.append(el("div", { "data-cube-visual": true }, ...CUBE_FACES.map(([role, side]) => face(role, side)), right, left, top));
+
+        return { element, top, right, left };
+      }
+
+      function markEntering(cube, enterIndex) {
+        cube.dataset.enter = "";
+        cube.style.setProperty("--enter-delay", `${enterIndex * ENTER_STAGGER_MS}ms`);
+        cube.addEventListener("animationend", () => cube.removeAttribute("data-enter"), { once: true });
+      }
+
+      /** Cubes are links: plain clicks route in-page, modified clicks open new tabs. */
+      function createConfirmedCube(block, enterIndex = 0) {
+        const { pool, totalFees, medianFee, feeRange, virtualSize } = block.extras;
+        const cube = buildCube(el("a", { href: `#${block.height}` }), Math.min(1, virtualSize / 1_000_000));
+        const { timestamp: time } = block;
+        const [hh, mm, ss] = formatClock(time);
+
+        cube.element.dataset.hash = block.id;
+        cube.element.dataset.height = String(block.height);
+        cube.element.dataset.timestamp = String(time);
+        cube.element.setAttribute("aria-label", `Block ${formatNumber(block.height)}`);
+        cube.top.append(el("p", null, formatShortDate(time)), dim(formatYear(time)), el("p", null, hh, dim(":"), mm, dim(":"), ss), dim(formatUtcOffset(time)));
+        cube.right.append(
+          el("p", { "data-cube-height": true }, heightElement(block.height)),
+          el("p", null, formatNumber(block.tx_count), " ", dim(block.tx_count === 1 ? "tx" : "txs")),
+          el("p", null, formatMegabytes(block.size), " ", dim("MB")),
+          el("div", { "data-cube-pool": true }, poolLogo(pool), el("span", null, poolDisplayName(pool.name))),
+        );
+        cube.left.append(
+          el("p", null, dim("₿"), formatBtcCompact(totalFees)),
+          el("p", null, dim("~"), formatFeeRate(medianFee)),
+          el("p", null, formatFeeRate(feeRange[0]), dim("-"), formatFeeRate(feeRange[6])),
+          el("p", { "data-dim": true }, "sat/vB"),
+        );
+        markEntering(cube.element, enterIndex);
+
+        return cube.element;
+      }
+
+      /** Projected cubes update in place every second: their text lives in text nodes. */
+      function createProjectedCube(enterIndex) {
+        const cube = buildCube(el("div", { "data-projected": true }), 0);
+        const text = () => document.createTextNode("");
+        const parts = Object.fromEntries(
+          ["date", "year", "hh", "mm", "ss", "utcOffset", "heightPrefix", "height", "txs", "txsUnit", "size", "totalFees", "median", "rangeLo", "rangeHi"]
+            .map((name) => [name, text()]),
+        );
+        const dimmed = (node) => el("span", { "data-dim": true }, node);
+        cube.element.append(el("div", { "data-chain-boundary": true }, el("span", null, "PROJECTED"), el("span", null, "CONFIRMED")));
+        cube.top.append(el("p", null, parts.date), dimmed(parts.year), el("p", null, parts.hh, dim(":"), parts.mm, dim(":"), parts.ss), dimmed(parts.utcOffset));
+        cube.right.append(
+          el("p", { "data-cube-height": true }, dimmed(parts.heightPrefix), parts.height),
+          el("p", null, parts.txs, " ", dimmed(parts.txsUnit)),
+          el("p", null, parts.size, " ", dim("MB")),
+          dim("UNMINED"),
+        );
+        cube.left.append(
+          el("p", null, dim("₿"), parts.totalFees),
+          el("p", null, dim("~"), parts.median),
+          el("p", null, parts.rangeLo, dim("-"), parts.rangeHi),
+          el("p", { "data-dim": true }, "sat/vB"),
+        );
+        markEntering(cube.element, enterIndex);
+
+        return { element: cube.element, parts };
+      }
+
+      function updateProjectedCube({ element, parts }, block) {
+        element.style.setProperty("--fill", String(Math.min(1, block.blockVSize / 1_000_000)));
+        parts.txs.nodeValue = formatNumber(block.nTx);
+        parts.txsUnit.nodeValue = block.nTx === 1 ? "tx" : "txs";
+        parts.size.nodeValue = formatMegabytes(block.blockSize);
+        parts.totalFees.nodeValue = formatBtcCompact(block.totalFees);
+        parts.median.nodeValue = formatFeeRate(block.medianFee);
+        parts.rangeLo.nodeValue = formatFeeRate(block.feeRange[0]);
+        parts.rangeHi.nodeValue = formatFeeRate(block.feeRange.at(-1));
+      }
+
+      function updateProjectedHeight({ parts }, height) {
+        [parts.heightPrefix.nodeValue, parts.height.nodeValue] = splitHeight(height);
+      }
+
+      function updateProjectedTime({ parts }, time) {
+        parts.date.nodeValue = formatShortDate(time);
+        parts.year.nodeValue = formatYear(time);
+        [parts.hh.nodeValue, parts.mm.nodeValue, parts.ss.nodeValue] = formatClock(time);
+        parts.utcOffset.nodeValue = formatUtcOffset(time);
+      }
+
+      /** The gap before a cube grows with the time since the previous block. */
+      function setBlockInterval(cube, seconds, label) {
+        cube.style.setProperty("--block-interval", String(seconds));
+        let interval = cube.querySelector(":scope > [data-block-interval]");
+
+        if (!interval) {
+          interval = el("div", { "data-block-interval": true, "aria-hidden": "true" }, el("span", { "data-interval-full": true }), el("span", { "data-interval-compact": true }));
+          cube.append(interval);
+        }
+
+        interval.firstChild.textContent = label;
+        interval.lastChild.textContent = `~${Math.max(1, Math.round(seconds / 60))}mn`;
+      }
+
+      function setConfirmedInterval(cube) {
+        const previous = cube.previousElementSibling;
+        if (!previous?.dataset.timestamp) return;
+        const seconds = Math.max(0, Number(cube.dataset.timestamp) - Number(previous.dataset.timestamp));
+        setBlockInterval(cube, seconds, formatInterval(seconds));
+      }
+
+      // Chain ----------------------------------------------------------------
+
+      /** @param {{ status: HTMLElement, onTip: (block: any) => void }} options */
+      function createChain({ status, onTip }) {
+        const BATCH_SIZE = 15;
+        const CLOCK_INTERVAL = 1_000;
+        const POLL_INTERVAL = 5_000;
+        const EDGE_LOAD_DISTANCE = 50;
+        const PROJECTED_LIMIT = 8;
+        const TARGET_BLOCK_SECONDS = 600;
+        const TIP_BLOCK_THRESHOLD = 10;
+        const OLDER_RESERVE_VIEWPORTS = 3;
+        const NEW_BLOCK_MS = 650;
+        const NEW_BLOCK_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+        const element = el("div", { id: "chain", "data-loading": true });
+        const scroller = el("div", { "data-chain-scroll": true });
+        const belt = el("div", { "data-chain-blocks": true });
+        const tipButton = el("button", { type: "button", "data-edge": "tip", title: "Jump to chain tip", "aria-label": "Jump to chain tip" }, "←");
+
+        scroller.append(belt);
+        element.append(tipButton, scroller);
+
+        let active = false;
+        let controller = new AbortController();
+        let newestHeight = -1;
+        let newestTimestamp = 0;
+        let reachedTip = false;
+        let loadingInitial = false;
+        let loadingNewer = false;
+        let polling = false;
+        let tipCube = null;
+        /** @type {number | null | undefined} a block to bring into view once possible (null: the tip) */
+        let pendingFocus;
+        /** @type {number | null} */
+        let selectedHeight = null;
+        let pollId = 0;
+        let clockId = 0;
+
+        const isAborted = () => controller.signal.aborted;
+        const logError = (label, error) => {
+          if (!isAborted()) console.error(label, error);
+        };
+
+        function setStatus(text) {
+          status.textContent = text;
+          status.hidden = !text;
+        }
+
+        // Geometry: a column on wide screens (newest on top), a row otherwise (newest on the left).
+
+        const axis = () => WIDE.matches
+          ? { scroll: "scrollTop", client: "clientHeight", total: "scrollHeight", start: "top", end: "bottom", size: "height", to: "top" }
+          : { scroll: "scrollLeft", client: "clientWidth", total: "scrollWidth", start: "left", end: "right", size: "width", to: "left" };
+
+        function distanceFromViewport(node) {
+          const { start, end } = axis();
+          const viewport = scroller.getBoundingClientRect();
+          const rect = node.getBoundingClientRect();
+          if (rect[start] > viewport[end]) return rect[start] - viewport[end];
+          if (rect[end] < viewport[start]) return viewport[start] - rect[end];
+          return 0;
+        }
+
+        const isVisible = (node) => distanceFromViewport(node) === 0;
+
+        function visibleConfirmedHeight() {
+          const viewport = scroller.getBoundingClientRect();
+          const x = (viewport.left + viewport.right) / 2;
+          const y = (viewport.top + viewport.bottom) / 2;
+
+          for (const node of document.elementsFromPoint(x, y)) {
+            const cube = /** @type {HTMLElement | null} */ (node.closest("[data-cube][data-height]"));
+            if (cube && belt.contains(cube)) return Number(cube.dataset.height);
+          }
+
+          return null;
+        }
+
+        function scrollToCube(cube, behavior) {
+          const { scroll, start, size, to } = axis();
+          const viewport = scroller.getBoundingClientRect();
+          const rect = cube.getBoundingClientRect();
+          scroller.scrollTo({ behavior, [to]: scroller[scroll] + rect[start] - viewport[start] - (viewport[size] - rect[size]) / 2 });
+          scheduleTip();
+        }
+
+        // Confirmed blocks
+
+        /** @returns {HTMLElement | null} */
+        const find = (target) => belt.querySelector(`[data-${typeof target === "number" ? "height" : "hash"}="${target}"]`);
+        /** @returns {HTMLElement | null} */
+        const newest = () => /** @type {HTMLElement | null} */ (projected[0] ? projected[0].element.previousElementSibling : belt.lastElementChild);
+
+        function markTip() {
+          tipCube?.removeAttribute("data-tip");
+          tipCube = newest();
+          tipCube?.setAttribute("data-tip", "");
+        }
+
+        function markSkeletons(skeleton) {
+          for (const cube of belt.children) {
+            if (!cube.hasAttribute("data-projected")) cube.toggleAttribute("data-skeleton", skeleton);
+          }
+        }
+
+        function createCube(block, enterIndex) {
+          const cube = createConfirmedCube(cacheBlock(block), enterIndex);
+          cube.toggleAttribute("data-selected", block.height === selectedHeight);
+          return cube;
+        }
+
+        /** @param {number | null} height */
+        function select(height) {
+          selectedHeight = height;
+          for (const cube of belt.querySelectorAll("[data-selected]")) cube.removeAttribute("data-selected");
+          if (height != null) find(height)?.setAttribute("data-selected", "");
+        }
+
+        function prepend(block, enterIndex) {
+          const oldFirst = belt.firstElementChild;
+          belt.insertBefore(createCube(block, enterIndex), oldFirst);
+          if (oldFirst) setConfirmedInterval(oldFirst);
+        }
+
+        function append(block) {
+          const cube = createCube(block, 0);
+          belt.insertBefore(cube, projected[0]?.element ?? null);
+          setConfirmedInterval(cube);
+          return cube;
+        }
+
+        // Older blocks: invisible placeholders reserve scroll runway, then hydrate in order.
+
+        let oldestHeight = Infinity;
+        let oldestReserved = -1;
+        let hydrating = false;
+        let generation = 0;
+        const batches = [];
+
+        function resetOlder() {
+          oldestHeight = Infinity;
+          oldestReserved = -1;
+          hydrating = false;
+          generation += 1;
+          batches.length = 0;
+        }
+
+        function reserveOlder(delta = 0) {
+          const { scroll, client, total } = axis();
+          const runway = scroller[client] * OLDER_RESERVE_VIEWPORTS + delta;
+          while (scroller[total] - scroller[client] - scroller[scroll] < runway) {
+            if (!reserveBatch()) return;
+          }
+        }
+
+        function reserveBatch() {
+          if (!active || oldestReserved <= 0) return false;
+
+          const count = Math.min(BATCH_SIZE, oldestReserved);
+          const fragment = document.createDocumentFragment();
+          const placeholders = Array.from({ length: count }, () => fragment.appendChild(el("div", { "data-cube": "block", "data-placeholder": true })));
+
+          belt.insertBefore(fragment, belt.firstElementChild);
+          batches.push({ generation, startHeight: oldestReserved - 1, placeholders });
+          oldestReserved -= count;
+          void hydrateBatches();
+
+          return true;
+        }
+
+        async function hydrateBatches() {
+          if (hydrating) return;
+
+          const current = generation;
+          hydrating = true;
+
+          try {
+            while (active && current === generation && batches.length) {
+              const batch = batches[0];
+              // An aborted batch stays queued and resumes on the next activation.
+              if (!(await hydrateBatch(batch))) break;
+              if (batches[0] === batch) batches.shift();
+            }
+          } finally {
+            if (current === generation) hydrating = false;
+          }
+        }
+
+        /** @returns {Promise<boolean>} false when aborted before completion */
+        async function hydrateBatch(batch) {
+          try {
+            const blocks = await chainApi.from(batch.startHeight, controller.signal);
+            if (batch.generation !== generation || !batch.placeholders.some((node) => node.isConnected)) return true;
+
+            const cubes = blocks.toReversed().map((block, index, ordered) => createCube(block, ordered.length - index - 1));
+            batch.placeholders.forEach((node, index) => (cubes[index] ? node.replaceWith(cubes[index]) : node.remove()));
+            for (const cube of cubes) setConfirmedInterval(cube);
+            const next = cubes.at(-1)?.nextElementSibling;
+            if (next) setConfirmedInterval(next);
+
+            if (blocks.length) oldestHeight = blocks.at(-1).height;
+            else oldestReserved = oldestHeight;
+
+            reserveOlder();
+            return true;
+          } catch (error) {
+            if (batch.generation !== generation) return true;
+            if (isAborted()) return false;
+
+            // Drop every queued batch: older ones would leave a gap; scrolling reserves them again.
+            for (const queued of batches) for (const node of queued.placeholders) node.remove();
+            batches.length = 0;
+            oldestReserved = oldestHeight;
+            logError("chain older:", error);
+            return true;
+          }
+        }
+
+        // Projected blocks: the mempool split into the next blocks, ticking every second.
+
+        const projected = [];
+        let projectedHeight = -1;
+
+        function renderProjected(blocks) {
+          const want = Math.min(blocks.length, PROJECTED_LIMIT);
+
+          if (projected.length !== want) projectedHeight = -1;
+          while (projected.length > want) projected.pop().element.remove();
+          while (projected.length < want) {
+            const cube = createProjectedCube(projected.length + 1);
+            if (projected.length) setBlockInterval(cube.element, TARGET_BLOCK_SECONDS, "~10mn");
+            projected.push(cube);
+            belt.append(cube.element);
+          }
+
+          projected.forEach((cube, index) => updateProjectedCube(cube, blocks[index]));
+          markTip();
+          refreshProjected();
+        }
+
+        function refreshProjected() {
+          if (!projected.length || newestHeight < 0 || !newestTimestamp) return;
+
+          const now = Math.floor(Date.now() / 1_000);
+          const elapsed = Math.max(0, now - newestTimestamp);
+          const heightChanged = projectedHeight !== newestHeight;
+          // While the user browses older blocks, keep the belt still.
+          const layoutFrozen = tipButton.hasAttribute("data-visible");
+
+          projected.forEach((cube, index) => {
+            if (index === 0 && !layoutFrozen) setBlockInterval(cube.element, elapsed, formatInterval(elapsed));
+            if (heightChanged) updateProjectedHeight(cube, newestHeight + index + 1);
+            updateProjectedTime(cube, now + index * TARGET_BLOCK_SECONDS);
+          });
+
+          projectedHeight = newestHeight;
+        }
+
+        async function pollProjected() {
+          try {
+            renderProjected(await chainApi.mempool(controller.signal));
+          } catch (error) {
+            logError("chain mempool:", error);
+          }
+        }
+
+        // Tip button
+
+        let tipFrame = 0;
+
+        function setTipVisible(visible) {
+          tipButton.toggleAttribute("data-visible", visible);
+          tipButton.setAttribute("aria-hidden", String(!visible));
+          tipButton.tabIndex = visible ? 0 : -1;
+        }
+
+        function syncTip() {
+          // Browsing history away from the tip: the button returns to it.
+          if (!reachedTip) {
+            setTipVisible(newestHeight >= 0);
+            return;
+          }
+          if (!tipCube || projected.some(({ element }) => isVisible(element))) {
+            setTipVisible(false);
+            return;
+          }
+
+          const visibleHeight = visibleConfirmedHeight();
+          setTipVisible(visibleHeight != null ? newestHeight - visibleHeight > TIP_BLOCK_THRESHOLD : !isVisible(tipCube));
+        }
+
+        function scheduleTip() {
+          tipFrame ||= requestAnimationFrame(() => {
+            tipFrame = 0;
+            syncTip();
+          });
+        }
+
+        let jumpTimer = 0;
+        let finishJump = null;
+
+        function cancelJump() {
+          clearTimeout(jumpTimer);
+          if (finishJump) element.removeEventListener("transitionend", finishJump);
+          finishJump = null;
+          delete element.dataset.jumping;
+        }
+
+        /** Fade out, scroll instantly to the tip, fade back in. */
+        function jumpToTip() {
+          if (!tipCube || finishJump) return;
+
+          finishJump = (event) => {
+            if (event instanceof TransitionEvent && (event.target !== element || event.propertyName !== "opacity")) return;
+            if (tipCube) scrollToCube(tipCube, "instant");
+            cancelJump();
+          };
+          element.dataset.jumping = "";
+          element.addEventListener("transitionend", finishJump);
+          jumpTimer = setTimeout(finishJump, transitionMs(element, "opacity") + 50);
+        }
+
+        tipButton.addEventListener("click", () => (reachedTip ? jumpToTip() : navigate("")));
+
+        // New block: slide the belt (FLIP) and drop the block out of the first projected cube.
+
+        function captureLayout() {
+          const viewport = scroller.getBoundingClientRect();
+          const positions = new Map();
+
+          for (const child of belt.children) {
+            const rect = child.getBoundingClientRect();
+            const near =
+              rect.right >= viewport.left - rect.width && rect.left <= viewport.right + rect.width &&
+              rect.bottom >= viewport.top - rect.height && rect.top <= viewport.bottom + rect.height;
+            if (near) positions.set(child, rect);
+          }
+
+          return { positions, source: projected[0]?.element.getBoundingClientRect() ?? null };
+        }
+
+        async function playNewBlocks(before, entering) {
+          for (const cube of entering) cube.removeAttribute("data-enter");
+          if (REDUCED_MOTION.matches) return;
+          for (const cube of entering) cube.dataset.newBlockEnter = "";
+
+          const slide = (node, x, y) => node.animate(
+            [{ transform: `translate3d(${x}px, ${y}px, 0)` }, { transform: "translate3d(0, 0, 0)" }],
+            { duration: NEW_BLOCK_MS, easing: NEW_BLOCK_EASING },
+          );
+          const animations = [];
+
+          for (const [cube, rect] of before.positions) {
+            if (!cube.isConnected) continue;
+            const next = cube.getBoundingClientRect();
+            const x = rect.left - next.left;
+            const y = rect.top - next.top;
+            if (Math.abs(x) >= 0.5 || Math.abs(y) >= 0.5) animations.push(slide(cube, x, y));
+          }
+
+          for (const cube of entering) {
+            const next = cube.getBoundingClientRect();
+            animations.push(slide(cube, (before.source?.left ?? next.left) - next.left, (before.source?.top ?? next.top) - next.top));
+            animations.push(cube.querySelector("[data-cube-visual]").animate(
+              [
+                { opacity: 0, filter: "brightness(2.5)" },
+                { offset: 0.35, opacity: 1, filter: "brightness(1.6)" },
+                { opacity: 1, filter: "brightness(1)" },
+              ],
+              { duration: NEW_BLOCK_MS, easing: NEW_BLOCK_EASING },
+            ));
+          }
+
+          await Promise.allSettled(animations.map(({ finished }) => finished));
+          for (const cube of entering) cube.removeAttribute("data-new-block-enter");
+        }
+
+        // Loading
+
+        function clear() {
+          newestHeight = -1;
+          newestTimestamp = 0;
+          loadingNewer = false;
+          reachedTip = false;
+          tipCube = null;
+          belt.textContent = "";
+          projected.length = 0;
+          projectedHeight = -1;
+          resetOlder();
+          setTipVisible(false);
+        }
+
+        /** @param {number | null} height null for the tip */
+        async function loadInitial(height) {
+          const blocks = height == null ? await chainApi.tip(controller.signal) : await chainApi.from(height, controller.signal);
+
+          clear();
+          blocks.forEach((block, index) => prepend(block, index));
+          newestHeight = blocks[0].height;
+          newestTimestamp = blocks[0].timestamp;
+          oldestHeight = oldestReserved = blocks.at(-1).height;
+          reachedTip = height == null;
+          if (reachedTip) {
+            noteTip(newestHeight);
+            onTip(blocks[0]);
+          }
+          markTip();
+          reserveOlder();
+
+          if (reachedTip) await pollProjected();
+          else await loadNewer();
+
+          return blocks[0].id;
+        }
+
+        /** @param {number | null} height null for the tip */
+        async function goTo(height) {
+          if (!active) return;
+          if (loadingInitial) {
+            pendingFocus = height;
+            return;
+          }
+
+          const existing = height == null ? (reachedTip ? tipCube : null) : find(height);
+          if (existing) {
+            scrollToCube(existing, "smooth");
+            return;
+          }
+
+          markSkeletons(true);
+          element.dataset.loading = "";
+          loadingInitial = true;
+          setStatus("Loading blocks");
+          let loaded = false;
+
+          try {
+            const cube = find(await loadInitial(height));
+            if (cube) scrollToCube(cube, "instant");
+            setStatus("");
+            loaded = true;
+          } catch (error) {
+            markSkeletons(false);
+            // Retried on the next poll or activation.
+            if (pendingFocus === undefined) pendingFocus = height;
+            if (isAborted()) return;
+            setStatus(`${new URL(ORIGIN).host} unreachable · retrying`);
+            console.error("chain load:", error);
+          } finally {
+            loadingInitial = false;
+            delete element.dataset.loading;
+          }
+
+          // A focus requested mid-load runs now.
+          if (loaded && pendingFocus !== undefined) {
+            const next = pendingFocus;
+            pendingFocus = undefined;
+            void goTo(next);
+          }
+        }
+
+        async function loadNewer() {
+          if (!active || loadingNewer || newestHeight === -1 || reachedTip) return;
+
+          loadingNewer = true;
+
+          try {
+            const requested = newestHeight + BATCH_SIZE;
+            const blocks = await chainApi.from(requested, controller.signal);
+
+            appendNewerBlocks(blocks);
+            // The API clamps to the tip: a shorter answer means there is nothing newer.
+            if (blocks[0].height < requested) {
+              reachedTip = true;
+              noteTip(newestHeight);
+              onTip(blocks[0]);
+              await pollProjected();
+            }
+          } catch (error) {
+            logError("chain newer:", error);
+          } finally {
+            loadingNewer = false;
+          }
+        }
+
+        function appendNewerBlocks(blocks) {
+          if (!blocks.length || blocks[0].height <= newestHeight) return false;
+
+          const { scroll, start } = axis();
+          const anchor = newest();
+          const anchorStart = anchor?.getBoundingClientRect()[start];
+          const layout = reachedTip ? captureLayout() : null;
+          const entering = blocks.filter(({ height }) => height > newestHeight).toReversed().map(append);
+
+          newestHeight = blocks[0].height;
+          newestTimestamp = blocks[0].timestamp;
+          markTip();
+          refreshProjected();
+
+          if (anchor) scroller[scroll] += anchor.getBoundingClientRect()[start] - anchorStart;
+          if (layout && entering.length) void playNewBlocks(layout, entering);
+          syncTip();
+          if (reachedTip) onTip(blocks[0]);
+
+          return true;
+        }
+
+        async function reloadTip() {
+          element.dataset.reorganizing = "";
+
+          try {
+            const cube = find(await loadInitial(null));
+            if (cube) scrollToCube(cube, "instant");
+          } finally {
+            delete element.dataset.reorganizing;
+          }
+        }
+
+        async function poll() {
+          if (!active || polling || loadingInitial) return;
+          if (newestHeight === -1 || pendingFocus !== undefined) {
+            const target = pendingFocus ?? null;
+            pendingFocus = undefined;
+            void goTo(target);
+            return;
+          }
+          if (!reachedTip) return;
+
+          polling = true;
+
+          try {
+            const [blocks] = await Promise.all([chainApi.tip(controller.signal), pollProjected()]);
+            const reorganized = blocks.some(({ height, id }) => {
+              const hash = find(height)?.dataset.hash;
+              return hash !== undefined && hash !== id;
+            });
+            // More than a batch behind (a long hidden tab) leaves a gap: reload from the tip instead.
+            const gap = blocks.at(-1).height > newestHeight + 1;
+
+            noteTip(blocks[0].height);
+            if (reorganized || gap) await reloadTip();
+            else appendNewerBlocks(blocks);
+          } catch (error) {
+            logError("chain poll:", error);
+          } finally {
+            polling = false;
+          }
+        }
+
+        // Input
+
+        scroller.addEventListener("wheel", (event) => {
+          // A row scrolls sideways with the wheel too.
+          if (!WIDE.matches && Math.abs(event.deltaY) > Math.abs(event.deltaX)) scroller.scrollLeft += event.deltaY;
+          if (active) reserveOlder(Math.max(0, event.deltaX, event.deltaY));
+        }, { passive: true });
+
+        scroller.addEventListener("scroll", () => {
+          scheduleTip();
+          if (active) reserveOlder();
+
+          const cube = newest();
+          if (!reachedTip && !loadingNewer && cube && distanceFromViewport(cube) <= EDGE_LOAD_DISTANCE) void loadNewer();
+        }, { passive: true });
+
+        // Switching between column and row keeps the selected block (or the tip) in view.
+        WIDE.addEventListener("change", () => {
+          const cube = (selectedHeight != null && find(selectedHeight)) || tipCube;
+          if (cube) scrollToCube(cube, "instant");
+          if (active) reserveOlder();
+        });
+
+        /** @param {boolean} next */
+        function setActive(next) {
+          if (active === next) return;
+          active = next;
+
+          if (!active) {
+            clearInterval(pollId);
+            clearInterval(clockId);
+            cancelAnimationFrame(tipFrame);
+            tipFrame = 0;
+            cancelJump();
+            controller.abort();
+            return;
+          }
+
+          controller = new AbortController();
+          const target = pendingFocus ?? null;
+          pendingFocus = undefined;
+          const focused = target == null ? null : find(target);
+
+          if (focused) scrollToCube(focused, "instant");
+          if (newestHeight === -1 || (target != null && !focused)) void goTo(target);
+          else void poll();
+
+          void hydrateBatches();
+          clockId = setInterval(refreshProjected, CLOCK_INTERVAL);
+          pollId = setInterval(() => void poll(), POLL_INTERVAL);
+        }
+
+        return {
+          element,
+          setActive,
+          select,
+          /** @param {number | null} height brought into view, its neighborhood loaded if needed (null: the tip) */
+          focus(height) {
+            if (active) void goTo(height);
+            else pendingFocus = height;
+          },
+        };
+      }
+
+      // Block preview: one cell per transaction, sized by weight, colored by fee rate --------------
+
+      async function loadPreviewData(block, signal) {
+        const client = await loadClient();
+        const tx = client.series.transactions;
+        const first = await tx.raw.firstTxIndex.by.height.get(block.height).fetch({ signal });
+        const start = first.data[0];
+        const end = start + block.tx_count;
+        const [weights, feeRates] = await fetchBulk(client, [tx.raw.weight, tx.fees.feeRate], "tx_index", start, end, { signal, memCache: false });
+
+        signal.throwIfAborted();
+
+        return { blockWeight: block.weight, range: { start, end }, weights: weights.data, feeRates: feeRates.data };
+      }
+
+      async function loadTxid(txIndex, signal) {
+        const client = await loadClient();
+        return (await client.series.transactions.raw.txid.by.tx_index.get(txIndex).fetch({ signal })).data[0];
+      }
+
+      // Filters: the series behind them --------------------------------------
+
+      const cssVar = (name) => `var(--${name})`;
+
+      const OP_RETURN_KINDS = [
+        ["runes", "runes", "runes", "orange"],
+        ["veri block", "veri_block", "veriBlock", "blue"],
+        ["omni", "omni", "omni", "violet"],
+        ["stacks", "stacks", "stacks", "purple"],
+        ["blockstack", "blockstack", "blockstack", "indigo"],
+        ["colu", "colu", "colu", "cyan"],
+        ["open assets", "open_assets", "openAssets", "sky"],
+        ["komodo", "komodo", "komodo", "amber"],
+        ["coin spark", "coin_spark", "coinSpark", "yellow"],
+        ["poet", "poet", "poet", "fuchsia"],
+        ["docproof", "docproof", "docproof", "emerald"],
+        ["open timestamps", "open_timestamps", "openTimestamps", "green"],
+        ["factom", "factom", "factom", "lime"],
+        ["eternity wall", "eternity_wall", "eternityWall", "avocado"],
+        ["memo", "memo", "memo", "pink"],
+        ["bitproof", "bitproof", "bitproof", "rose"],
+        ["ascribe", "ascribe", "ascribe", "teal"],
+        ["stampery", "stampery", "stampery", "blue"],
+        ["epobc", "epobc", "epobc", "violet"],
+        ["bare hash", "bare_hash", "bareHash", "white"],
+        ["text", "text", "text", "cyan"],
+        ["empty", "empty", "empty", "gray"],
+        ["unknown", "unknown", "unknown", "gray"],
+      ];
+
+      const OP_RETURN_POLICIES = [
+        ["standard", "standard", "preV30Standard", "green"],
+        ["oversized", "oversized", "oversized", "orange"],
+        ["multiple", "multiple", "multiple", "yellow"],
+        ["pre-v30 nonstandard", "pre_v30_nonstandard", "preV30Nonstandard", "red"],
+      ];
+
+      /** @type {[string, string][]} */
+      const FILTER_GROUPS = [
+        ["version", "version"], ["rbf", "rbf"], ["input", "input"], ["output", "output"], ["type", "type"],
+        ["behavior", "behavior"], ["data", "data"], ["sighash", "sighash"], ["policy", "policy"], ["op_return", "op return"],
+      ];
+
+      const FILTERS = [
+        ["version", "v1", "version:1", "blue"],
+        ["version", "v2", "version:2", "violet"],
+        ["version", "v3", "version:3", "fuchsia"],
+        ["version", "other", "version:other", "gray"],
+        ["rbf", "yes", "rbf:yes", "orange"],
+        ["rbf", "no", "rbf:no", "gray"],
+        ["input", "1", "input:one", "yellow"],
+        ["input", "multi", "input:multi", "amber"],
+        ["output", "1", "output:one", "emerald"],
+        ["output", "multi", "output:multi", "green"],
+        ["type", "p2pk", "type:p2pk", "yellow"],
+        ["type", "p2pkh", "type:p2pkh", "amber"],
+        ["type", "p2sh", "type:p2sh", "orange"],
+        ["type", "p2wpkh", "type:p2wpkh", "emerald"],
+        ["type", "p2wsh", "type:p2wsh", "green"],
+        ["type", "taproot", "type:taproot", "violet"],
+        ["type", "p2a", "type:p2a", "cyan"],
+        ["type", "baremult", "type:multisig", "fuchsia"],
+        ["type", "op ret", "type:op_return", "red"],
+        ["type", "empty", "type:empty", "gray"],
+        ["type", "unknown", "type:unknown", "gray"],
+        ["behavior", "paid by child", "behavior:cpfp_parent", "sky"],
+        ["behavior", "pays parent", "behavior:cpfp_child", "blue"],
+        ["behavior", "coinjoin", "behavior:coinjoin", "violet"],
+        ["behavior", "consolidation", "behavior:consolidation", "yellow"],
+        ["behavior", "batch", "behavior:batch", "green"],
+        ["data", "fake pubkey", "data:fake_pubkey", "yellow"],
+        ["data", "fake scripthash", "data:fake_scripthash", "amber"],
+        ["data", "inscription", "data:inscription", "fuchsia"],
+        ["data", "annex", "data:annex", "violet"],
+        ["data", "dust", "data:dust", "red"],
+        ["sighash", "all", "sighash:all", "blue"],
+        ["sighash", "none", "sighash:none", "red"],
+        ["sighash", "single", "sighash:single", "orange"],
+        ["sighash", "default", "sighash:default", "violet"],
+        ["sighash", "anyonecanpay", "sighash:anyone_can_pay", "fuchsia"],
+        ["policy", "nonstandard", "policy:nonstandard", "red"],
+        ...OP_RETURN_KINDS.map(([label, kind, , color]) => ["op_return", label, `op_return:${kind}`, color]),
+        ...OP_RETURN_POLICIES.map(([label, policy, , color]) => ["op_return", label, `op_return_policy:${policy}`, color]),
+      ].map(([group, label, key, color], index) => ({ group, label, key, color: cssVar(color), index }));
+
+      const FILTER_INDEX = new Map(FILTERS.map((filter) => [filter.key, filter.index]));
+      const FILTER_GROUP_LABELS = new Map(FILTER_GROUPS);
+      const GROUPED_FILTERS = FILTER_GROUPS.map(([key, label]) => ({ label, filters: FILTERS.filter(({ group }) => group === key) }));
+
+      const equals = (expected) => (value) => value === expected;
+      const differs = (expected) => (value) => value !== expected;
+      const isTrue = (value) => value === true;
+
+      /** Typed client paths; only their series names travel. */
+      const loadFilterSources = lazy(async () => {
+        const client = await loadClient();
+        const { transactions: tx, mappings, opReturn } = client.series;
+        const count = tx.features.count;
+        const has = tx.features;
+
+        const counts = [
+          { key: "version:1", series: count.v1 }, { key: "version:2", series: count.v2 }, { key: "version:3", series: count.v3 }, { key: "version:other", series: count.otherVersion },
+          { key: "rbf:yes", series: count.explicitlyRbf }, { key: "input:one", series: count.oneInput }, { key: "output:one", series: count.oneOutput },
+          { key: "type:p2pk", series: count.p2pk }, { key: "type:p2pkh", series: count.p2pkh }, { key: "type:p2sh", series: count.p2sh }, { key: "type:p2wpkh", series: count.p2wpkh },
+          { key: "type:p2wsh", series: count.p2wsh }, { key: "type:taproot", series: count.p2tr }, { key: "type:p2a", series: count.p2a }, { key: "type:multisig", series: count.p2ms },
+          { key: "type:op_return", series: count.opReturn }, { key: "type:empty", series: count.empty }, { key: "type:unknown", series: count.unknown },
+          { key: "behavior:cpfp_parent", series: tx.fees.count.cpfpParent.block }, { key: "behavior:cpfp_child", series: tx.fees.count.cpfpChild.block },
+          { key: "behavior:coinjoin", series: tx.patterns.count.coinjoin.block }, { key: "behavior:consolidation", series: tx.patterns.count.consolidation.block },
+          { key: "behavior:batch", series: tx.patterns.count.batchPayout.block },
+          { key: "data:fake_pubkey", series: count.fakePubkey }, { key: "data:fake_scripthash", series: count.fakeScripthash },
+          { key: "data:inscription", series: tx.inscription.count.block }, { key: "data:annex", series: count.annex.block }, { key: "data:dust", series: count.dustOutput.block },
+          { key: "sighash:all", series: count.sighashAll.block }, { key: "sighash:none", series: count.sighashNone.block }, { key: "sighash:single", series: count.sighashSingle.block },
+          { key: "sighash:default", series: count.sighashDefault.block }, { key: "sighash:anyone_can_pay", series: count.sighashAnyoneCanPay.block },
+          { key: "policy:nonstandard", series: tx.policy.count.nonstandard.block },
+          ...OP_RETURN_KINDS.map(([, kind, path]) => ({ key: `op_return:${kind}`, series: opReturn.byKind.txCount[path].block })),
+          ...OP_RETURN_POLICIES.map(([, policy, path]) => ({ key: `op_return_policy:${policy}`, series: opReturn.policy.txCount[path].block })),
+        ];
+
+        const memberships = new Map([
+          ["version:1", { matches: equals(1), series: tx.raw.txVersion }],
+          ["version:2", { matches: equals(2), series: tx.raw.txVersion }],
+          ["version:3", { matches: equals(3), series: tx.raw.txVersion }],
+          ["version:other", { matches: (value) => value !== 1 && value !== 2 && value !== 3, series: tx.raw.txVersion }],
+          ["rbf:yes", { matches: isTrue, series: tx.raw.isExplicitlyRbf }],
+          ["rbf:no", { matches: equals(false), series: tx.raw.isExplicitlyRbf }],
+          ["input:one", { matches: equals(1), series: mappings.txIndex.inputCount }],
+          ["input:multi", { matches: differs(1), series: mappings.txIndex.inputCount }],
+          ["output:one", { matches: equals(1), series: mappings.txIndex.outputCount }],
+          ["output:multi", { matches: differs(1), series: mappings.txIndex.outputCount }],
+          ["type:p2pk", { matches: isTrue, series: has.hasP2pk }],
+          ["type:p2pkh", { matches: isTrue, series: has.hasP2pkh }],
+          ["type:p2sh", { matches: isTrue, series: has.hasP2sh }],
+          ["type:p2wpkh", { matches: isTrue, series: has.hasP2wpkh }],
+          ["type:p2wsh", { matches: isTrue, series: has.hasP2wsh }],
+          ["type:taproot", { matches: isTrue, series: has.hasP2tr }],
+          ["type:p2a", { matches: isTrue, series: has.hasP2a }],
+          ["type:multisig", { matches: isTrue, series: has.hasP2ms }],
+          ["type:op_return", { matches: isTrue, series: has.hasOpReturn }],
+          ["type:empty", { matches: isTrue, series: has.hasEmpty }],
+          ["type:unknown", { matches: isTrue, series: has.hasUnknown }],
+          ["behavior:cpfp_parent", { matches: isTrue, series: tx.fees.isCpfpParent }],
+          ["behavior:cpfp_child", { matches: isTrue, series: tx.fees.isCpfpChild }],
+          ["behavior:coinjoin", { matches: isTrue, series: tx.patterns.isCoinjoin }],
+          ["behavior:consolidation", { matches: isTrue, series: tx.patterns.isConsolidation }],
+          ["behavior:batch", { matches: isTrue, series: tx.patterns.isBatchPayout }],
+          ["data:fake_pubkey", { matches: isTrue, series: has.hasFakePubkey }],
+          ["data:fake_scripthash", { matches: isTrue, series: has.hasFakeScripthash }],
+          ["data:inscription", { matches: isTrue, series: has.hasInscription }],
+          ["data:annex", { matches: isTrue, series: has.hasAnnex }],
+          ["data:dust", { matches: isTrue, series: has.hasDustOutput }],
+          ["sighash:all", { matches: isTrue, series: has.hasSighashAll }],
+          ["sighash:none", { matches: isTrue, series: has.hasSighashNone }],
+          ["sighash:single", { matches: isTrue, series: has.hasSighashSingle }],
+          ["sighash:default", { matches: isTrue, series: has.hasSighashDefault }],
+          ["sighash:anyone_can_pay", { matches: isTrue, series: has.hasSighashAnyoneCanPay }],
+          ["policy:nonstandard", { matches: isTrue, series: tx.policy.isNonstandard }],
+        ]);
+
+        return {
+          client,
+          counts,
+          memberships,
+          inspected: [...new Map([...memberships.values()].map(({ series }) => [series.name, series])).values()],
+          opReturn: opReturn.raw,
+        };
+      });
+
+      const MAX_STANDARD_OP_RETURN_BYTES = 82;
+
+      function matchesOpReturnPolicy(policy, count, oversized) {
+        if (policy === "standard") return count === 1 && !oversized;
+        if (policy === "oversized") return oversized;
+        if (policy === "multiple") return count > 1;
+        return oversized || count > 1;
+      }
+
+      /** Lazily loaded per-block filter data: counts, memberships and one transaction's traits. */
+      function createFilterData(height, range, signal) {
+        const size = range.end - range.start;
+        const memberships = new Map();
+        const sources = new Map();
+        let counts = null;
+        let opReturnRows = null;
+
+        async function fetchCounts() {
+          const sources = await loadFilterSources();
+          const response = await fetchBulk(sources.client, sources.counts.map(({ series }) => series), "height", height, height + 1, { signal });
+          const result = new Uint32Array(FILTERS.length);
+          const at = (key) => FILTER_INDEX.get(key);
+
+          sources.counts.forEach(({ key }, index) => {
+            result[at(key)] = Number(response[index].data[0]);
+          });
+          result[at("rbf:no")] = size - result[at("rbf:yes")];
+          result[at("input:multi")] = size - result[at("input:one")];
+          result[at("output:multi")] = size - result[at("output:one")];
+
+          return result;
+        }
+
+        async function fetchOpReturnRows() {
+          const { client, opReturn } = await loadFilterSources();
+          const indexes = await opReturn.firstIndex.by.height.skip(height).take(2).fetch({ signal });
+          const start = indexes.data[0];
+          const end = indexes.data.length === 2 ? indexes.data[1] : await opReturn.toTxIndex.by.op_return_index.len();
+
+          if (start === end) return { txIndexes: [], kinds: [], bytes: [] };
+
+          const [txIndexes, kinds, bytes] = await fetchBulk(client, [opReturn.toTxIndex, opReturn.kind, opReturn.postOpReturnBytes], "op_return_index", start, end, { signal, memCache: false });
+
+          return { txIndexes: txIndexes.data, kinds: kinds.data, bytes: bytes.data };
+        }
+
+        const loadOpReturnRows = () => (opReturnRows ??= fetchOpReturnRows());
+
+        async function fetchOpReturnMembership(key) {
+          const rows = await loadOpReturnRows();
+          const membership = new Uint8Array(size);
+          const [group, value] = key.split(":");
+
+          if (group === "op_return") {
+            rows.kinds.forEach((kind, index) => {
+              if (kind === value) membership[rows.txIndexes[index] - range.start] = 1;
+            });
+            return membership;
+          }
+
+          for (let index = 0; index < rows.txIndexes.length; ) {
+            const txIndex = rows.txIndexes[index];
+            let count = 0;
+            let oversized = false;
+
+            while (rows.txIndexes[index] === txIndex) {
+              oversized ||= rows.bytes[index] > MAX_STANDARD_OP_RETURN_BYTES;
+              count += 1;
+              index += 1;
+            }
+
+            if (matchesOpReturnPolicy(value, count, oversized)) membership[txIndex - range.start] = 1;
+          }
+
+          return membership;
+        }
+
+        async function fetchMembership(filter) {
+          if (filter.group === "op_return") return fetchOpReturnMembership(filter.key);
+
+          const { matches, series } = (await loadFilterSources()).memberships.get(filter.key);
+          // Several filters share a series (version 1/2/3/other, input one/multi…): fetch it once.
+          let source = sources.get(series.name);
+          if (!source) {
+            source = series.by.tx_index.skip(range.start).take(size).fetch({ signal, memCache: false }).then(({ data }) => data);
+            source.catch(() => sources.delete(series.name));
+            sources.set(series.name, source);
+          }
+
+          return Uint8Array.from(await source, (value) => Number(matches(value)));
+        }
+
+        async function loadTransactionKeys(txIndex, requestSignal) {
+          const sources = await loadFilterSources();
+          const response = await fetchBulk(sources.client, sources.inspected, "tx_index", txIndex, txIndex + 1, { signal: requestSignal, memCache: false });
+          const values = new Map(sources.inspected.map(({ name }, index) => [name, response[index].data[0]]));
+          const keys = [...sources.memberships]
+            .filter(([, { matches, series }]) => matches(values.get(series.name)))
+            .map(([key]) => key);
+
+          if (keys.includes("type:op_return")) {
+            const rows = await loadOpReturnRows();
+            const kinds = new Set();
+            let count = 0;
+            let oversized = false;
+
+            rows.txIndexes.forEach((rowTxIndex, index) => {
+              if (rowTxIndex !== txIndex) return;
+              kinds.add(rows.kinds[index]);
+              oversized ||= rows.bytes[index] > MAX_STANDARD_OP_RETURN_BYTES;
+              count += 1;
+            });
+
+            for (const kind of kinds) keys.push(`op_return:${kind}`);
+            for (const [, policy] of OP_RETURN_POLICIES) {
+              if (matchesOpReturnPolicy(policy, count, oversized)) keys.push(`op_return_policy:${policy}`);
+            }
+          }
+
+          requestSignal.throwIfAborted();
+          return keys;
+        }
+
+        return {
+          loadCounts: () => (counts ??= fetchCounts()),
+          loadMembership(filter) {
+            let promise = memberships.get(filter.key);
+            if (!promise) {
+              promise = fetchMembership(filter);
+              promise.catch(() => memberships.delete(filter.key));
+              memberships.set(filter.key, promise);
+            }
+            return promise;
+          },
+          loadTransactionKeys,
+        };
+      }
+
+      // Heatmap colors: the canvas needs rgb, the palette is oklch -------------
+
+      let feeStops = null;
+
+      function cssColor(color) {
+        const name = color.match(/var\((--[^)]+)\)/)?.[1];
+        return name ? getComputedStyle(document.documentElement).getPropertyValue(name) : color;
+      }
+
+      function parseOklch(css) {
+        const [, lightness, percent, chroma, hue] = css.match(/oklch\(\s*([\d.]+)(%)?\s+([\d.]+)\s+([\d.]+)/);
+        const radians = (Number(hue) * Math.PI) / 180;
+        return { l: percent ? Number(lightness) / 100 : Number(lightness), a: Number(chroma) * Math.cos(radians), b: Number(chroma) * Math.sin(radians) };
+      }
+
+      function toRgb({ l: L, a, b }) {
+        const encode = (linear) => {
+          const value = linear <= 0.0031308 ? 12.92 * linear : 1.055 * linear ** (1 / 2.4) - 0.055;
+          return Math.round(Math.min(1, Math.max(0, value)) * 255);
+        };
+        const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+        const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+        const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+
+        return `rgb(${encode(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s)} ${encode(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s)} ${encode(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s)})`;
+      }
+
+      const canvasColor = (color) => toRgb(parseOklch(cssColor(color)));
+
+      function canvasFeeRateColor(feeRate, ranges) {
+        feeStops ??= FEE_RATE_STOPS.map(({ color }) => parseOklch(cssColor(color)));
+        if (feeRate <= ranges[0]) return toRgb(feeStops[0]);
+
+        for (let index = 1; index < ranges.length; index += 1) {
+          if (feeRate > ranges[index]) continue;
+          const span = ranges[index] - ranges[index - 1];
+          const ratio = span ? (feeRate - ranges[index - 1]) / span : 0;
+          const [from, to] = [feeStops[index - 1], feeStops[index]];
+          return toRgb({ l: from.l + (to.l - from.l) * ratio, a: from.a + (to.a - from.a) * ratio, b: from.b + (to.b - from.b) * ratio });
+        }
+
+        return toRgb(feeStops.at(-1));
+      }
+
+      // Heatmap layout: square cells packed into the block's share of a square -----------------
+
+      const HEATMAP_COLUMNS = 86;
+      const CALIBRATION_STEPS = 24;
+
+      /** Scales cell spans so their total area matches the block's fill of the grid. */
+      function resolveCapacityCells(cells, blockWeight, columns) {
+        const gridArea = columns * columns;
+        const targetArea = Math.max(cells.length, Math.floor((gridArea * blockWeight) / MAX_BLOCK_WEIGHT));
+        const ideal = Float64Array.from(cells, ({ weight }) => Math.sqrt((weight * gridArea) / MAX_BLOCK_WEIGHT));
+        const area = (scale) => ideal.reduce((sum, span) => sum + Math.max(1, Math.round(span * scale)) ** 2, 0);
+        let lower = 0;
+        let upper = 1;
+
+        while (area(upper) <= targetArea) upper *= 2;
+        for (let step = 0; step < CALIBRATION_STEPS; step += 1) {
+          const scale = (lower + upper) / 2;
+          if (area(scale) <= targetArea) lower = scale;
+          else upper = scale;
+        }
+
+        let total = 0;
+        let largest = 1;
+        const shortfall = new Float64Array(cells.length);
+
+        cells.forEach((cell, index) => {
+          cell.span = Math.max(1, Math.round(ideal[index] * lower));
+          shortfall[index] = (cell.span + 0.5) / ideal[index];
+          largest = Math.max(largest, cell.span);
+          total += cell.span ** 2;
+        });
+
+        const candidates = Uint32Array.from(cells, (_, index) => index).sort((a, b) => shortfall[a] - shortfall[b] || a - b);
+
+        for (const index of candidates) {
+          const cell = cells[index];
+          const growth = 2 * cell.span + 1;
+          if (total + growth > targetArea) continue;
+          cell.span += 1;
+          largest = Math.max(largest, cell.span);
+          total += growth;
+          if (targetArea - total < 3) break;
+        }
+
+        return Math.max(largest, Math.ceil(targetArea / columns));
+      }
+
+      /** First-fit square packing, bottom-up, with one search cursor per span. */
+      function packCells(cells, columns, rows) {
+        const occupied = new Uint8Array(columns * rows);
+        const cursors = new Uint32Array(columns + 1);
+        const fits = (x, y, span) => {
+          for (let row = y; row < y + span; row += 1) {
+            for (let column = x; column < x + span; column += 1) if (occupied[row * columns + column]) return false;
+          }
+          return true;
+        };
+        const findPosition = (span, start) => {
+          const startRow = Math.floor(start / columns);
+          for (let y = startRow; y <= rows - span; y += 1) {
+            for (let x = y === startRow ? start % columns : 0; x <= columns - span; x += 1) {
+              if (fits(x, y, span)) return { index: y * columns + x, x, y };
+            }
+          }
+          return null;
+        };
+
+        return cells.map((cell) => {
+          let span = Math.min(cell.span, columns);
+          let position = findPosition(span, cursors[span]);
+
+          while (position === null) {
+            span -= 1;
+            position = findPosition(span, cursors[span]);
+          }
+
+          for (let row = position.y; row < position.y + span; row += 1) {
+            occupied.fill(1, row * columns + position.x, row * columns + position.x + span);
+          }
+          cursors[span] = position.index + span;
+
+          return { x: position.x, y: position.y, span };
+        });
+      }
+
+      function createHeatmapGeometry(cells, layouts, canvas, width) {
+        const maxGap = Number.parseFloat(getComputedStyle(canvas).getPropertyValue("--block-preview-heatmap-gap")) || 0;
+        const gap = Math.max(1, maxGap * Math.min(1, width / 640));
+        const cell = Math.max(1, (width - gap * (HEATMAP_COLUMNS - 1)) / HEATMAP_COLUMNS);
+        const unit = cell + gap;
+        const lookup = new Uint16Array(HEATMAP_COLUMNS * HEATMAP_COLUMNS);
+        const rects = layouts.map((layout, index) => {
+          const size = layout.span * cell + (layout.span - 1) * gap;
+
+          for (let row = layout.y; row < layout.y + layout.span; row += 1) {
+            lookup.fill(index + 1, row * HEATMAP_COLUMNS + layout.x, row * HEATMAP_COLUMNS + layout.x + layout.span);
+          }
+
+          return { color: cells[index].color, transaction: cells[index].transaction, size, x: layout.x * unit, y: width - layout.y * unit - size };
+        });
+
+        return { lookup, rects, unit, width };
+      }
+
+      function hitTest(geometry, x, y) {
+        if (x < 0 || y < 0 || x > geometry.width || y > geometry.width) return null;
+        const column = Math.min(HEATMAP_COLUMNS - 1, Math.floor(x / geometry.unit));
+        const row = HEATMAP_COLUMNS - Math.min(HEATMAP_COLUMNS - 1, Math.floor(y / geometry.unit)) - 1;
+        const rect = geometry.rects[geometry.lookup[row * HEATMAP_COLUMNS + column] - 1];
+
+        return rect && x >= rect.x && x <= rect.x + rect.size && y >= rect.y && y <= rect.y + rect.size ? rect.transaction : null;
+      }
+
+      function createHeatmap(data, onInspect) {
+        const MUTED_ALPHA = 0.12;
+        const canvas = el("canvas", { role: "img", "aria-label": "Transactions sized by weight and colored by fee rate" });
+        const context = canvas.getContext("2d");
+        const order = orderTransactions(data.weights, data.feeRates);
+        const ranges = previewFeeRange(data.feeRates, order);
+        const colors = new Map();
+        const cells = Array.from(order.subarray(0, HEATMAP_COLUMNS * HEATMAP_COLUMNS), (offset) => {
+          const feeRate = data.feeRates[offset];
+          const weight = data.weights[offset];
+          let color = colors.get(feeRate);
+          if (color === undefined) colors.set(feeRate, (color = canvasFeeRateColor(feeRate, ranges)));
+          return { color, weight, transaction: { feeRate, weight, txIndex: data.range.start + offset } };
+        });
+        const layouts = packCells(cells, HEATMAP_COLUMNS, resolveCapacityCells(cells, data.blockWeight, HEATMAP_COLUMNS));
+        const hiddenCounts = new Uint8Array(data.range.end - data.range.start);
+        const white = canvasColor("var(--white)");
+        const black = canvasColor("var(--black)");
+        let hiddenFilters = 0;
+        let preview = null;
+        let inspected = null;
+        let geometry = null;
+        let bounds = null;
+        let frame = 0;
+        let inspectFrame = 0;
+        let inspectPoint = null;
+        let captured = null;
+
+        const measure = () => (bounds = canvas.getBoundingClientRect());
+
+        function draw() {
+          const width = measure().width;
+          if (width <= 0) return;
+
+          const dpr = devicePixelRatio || 1;
+          const size = Math.round(width * dpr);
+          if (canvas.width !== size) canvas.width = canvas.height = size;
+          if (geometry?.width !== width) geometry = createHeatmapGeometry(cells, layouts, canvas, width);
+
+          context.setTransform(dpr, 0, 0, dpr, 0, 0);
+          context.clearRect(0, 0, width, width);
+          let inspectedRect = null;
+
+          for (const rect of geometry.rects) {
+            const index = rect.transaction.txIndex - data.range.start;
+            context.globalAlpha = preview ? (preview[index] ? 1 : MUTED_ALPHA) : hiddenFilters && hiddenCounts[index] ? MUTED_ALPHA : 1;
+            context.fillStyle = rect.color;
+            context.fillRect(rect.x, rect.y, rect.size, rect.size);
+            if (rect.transaction === inspected) inspectedRect = rect;
+          }
+
+          if (inspectedRect) {
+            const size = Math.max(inspectedRect.size, 10);
+            const x = inspectedRect.x + inspectedRect.size / 2 - size / 2;
+            const y = inspectedRect.y + inspectedRect.size / 2 - size / 2;
+            const line = Math.max(1, Math.min(3, size / 5));
+            context.fillStyle = white;
+            context.globalAlpha = 0.18;
+            context.fillRect(x, y, size, size);
+            context.globalAlpha = 1;
+            context.lineWidth = line + 2;
+            context.strokeStyle = black;
+            context.strokeRect(x, y, size, size);
+            context.lineWidth = line;
+            context.strokeStyle = white;
+            context.strokeRect(x, y, size, size);
+          }
+
+          context.globalAlpha = 1;
+        }
+
+        function scheduleDraw() {
+          cancelAnimationFrame(frame);
+          frame = requestAnimationFrame(draw);
+        }
+
+        function inspectAt(point, eager) {
+          const box = bounds ?? measure();
+          if (!geometry) draw();
+          if (!geometry) return;
+
+          const transaction = hitTest(geometry, point.clientX - box.left, point.clientY - box.top);
+          // Gaps between cells keep the last transaction: no flicker while sweeping.
+          if (transaction === null && inspected !== null) {
+            onInspect(inspected, point, eager);
+            return;
+          }
+          if (transaction !== inspected) {
+            inspected = transaction;
+            scheduleDraw();
+          }
+          onInspect(transaction, point, eager);
+        }
+
+        function clearInspect() {
+          cancelAnimationFrame(inspectFrame);
+          inspectFrame = 0;
+          inspectPoint = null;
+          if (inspected) {
+            inspected = null;
+            scheduleDraw();
+          }
+          onInspect(null, null, false);
+        }
+
+        const pointOf = (event) => ({ clientX: event.clientX, clientY: event.clientY });
+        const clearOnOutside = (event) => {
+          if (!(event.target instanceof Node && canvas.contains(event.target))) clearInspect();
+        };
+        const observer = new ResizeObserver(scheduleDraw);
+
+        canvas.addEventListener("pointerenter", measure);
+        canvas.addEventListener("pointerdown", (event) => {
+          captured = event.pointerId;
+          canvas.setPointerCapture(event.pointerId);
+          measure();
+          inspectAt(pointOf(event), true);
+          if (event.pointerType !== "mouse") event.preventDefault();
+        });
+        canvas.addEventListener("pointermove", (event) => {
+          if (captured === null && event.pointerType !== "mouse") return;
+          inspectPoint = pointOf(event);
+          inspectFrame ||= requestAnimationFrame(() => {
+            inspectFrame = 0;
+            if (inspectPoint) inspectAt(inspectPoint, false);
+          });
+          if (captured !== null && event.pointerType !== "mouse") event.preventDefault();
+        });
+        canvas.addEventListener("pointerup", (event) => {
+          if (captured !== event.pointerId) return;
+          captured = null;
+          canvas.releasePointerCapture(event.pointerId);
+        });
+        canvas.addEventListener("pointercancel", () => {
+          captured = null;
+          clearInspect();
+        });
+        canvas.addEventListener("pointerleave", (event) => {
+          if (captured === null && event.pointerType === "mouse") clearInspect();
+        });
+        document.addEventListener("pointerdown", clearOnOutside);
+        addEventListener("blur", clearInspect);
+        observer.observe(canvas);
+        scheduleDraw();
+
+        return {
+          element: canvas,
+          setPreview(membership) {
+            if (preview === membership) return;
+            preview = membership;
+            scheduleDraw();
+          },
+          setHidden(membership, hidden) {
+            const change = hidden ? 1 : -1;
+            hiddenFilters += change;
+            membership.forEach((member, index) => {
+              if (member) hiddenCounts[index] += change;
+            });
+            scheduleDraw();
+          },
+          destroy() {
+            cancelAnimationFrame(frame);
+            cancelAnimationFrame(inspectFrame);
+            document.removeEventListener("pointerdown", clearOnOutside);
+            removeEventListener("blur", clearInspect);
+            observer.disconnect();
+          },
+        };
+      }
+
+      // Inspector: the readout over the heatmap -------------------------------
+
+      function createInspector(parentSignal, filterData) {
+        const TRAITS_DWELL_MS = 180;
+        const TXID_DWELL_MS = 120;
+        const TXID_CACHE_LIMIT = 64;
+        const MARGIN = 8;
+        const element = el("dl", { hidden: true });
+        const field = (label) => {
+          const value = el("dd");
+          element.append(el("div", null, el("dt", null, label), value));
+          return value;
+        };
+        const set = (node, text, busy = false) => {
+          node.textContent = text;
+          if (busy) node.setAttribute("aria-busy", "true");
+          else node.removeAttribute("aria-busy");
+        };
+        const txid = field("txid");
+        const tx = field("tx");
+        const fee = field("fee");
+        const weight = field("weight");
+        const traits = GROUPED_FILTERS.map(({ label, filters }) => ({ filters, value: field(label) }));
+        const txids = new Map();
+        let inspected = null;
+        let point = null;
+        let size = null;
+        let traitsTimer = 0;
+        let txidTimer = 0;
+        let pending = null;
+
+        function abortPending() {
+          clearTimeout(traitsTimer);
+          clearTimeout(txidTimer);
+          pending?.abort();
+          pending = null;
+        }
+
+        function place() {
+          size ??= { width: element.offsetWidth, height: element.offsetHeight };
+          const bounds = element.parentElement.getBoundingClientRect();
+          const minX = Math.min(bounds.width / 2, size.width / 2 + MARGIN);
+          const rawX = point.clientX - bounds.left;
+          const rawY = point.clientY - bounds.top;
+          const below = rawY < size.height + MARGIN * 2;
+          const minY = below ? MARGIN : size.height + MARGIN;
+          const maxY = Math.max(minY, below ? bounds.height - size.height - MARGIN : bounds.height - MARGIN);
+
+          element.style.setProperty("--tx-x", `${Math.min(Math.max(minX, bounds.width - minX), Math.max(minX, rawX))}px`);
+          element.style.setProperty("--tx-y", `${Math.min(maxY, Math.max(minY, rawY))}px`);
+          element.toggleAttribute("data-below", below);
+        }
+
+        function refresh(transaction, mutate) {
+          if (inspected !== transaction) return;
+          size = null;
+          mutate();
+          if (point) place();
+        }
+
+        function inspect(transaction, nextPoint, eager) {
+          if (!transaction || !nextPoint) {
+            abortPending();
+            inspected = point = null;
+            element.hidden = true;
+            return;
+          }
+
+          element.hidden = false;
+          point = nextPoint;
+          if (transaction === inspected) {
+            place();
+            return;
+          }
+
+          abortPending();
+          inspected = transaction;
+          size = null;
+          const controller = new AbortController();
+          const signal = AbortSignal.any([parentSignal, controller.signal]);
+          pending = controller;
+
+          set(tx, `#${formatNumber(transaction.txIndex)}`);
+          set(fee, `${formatFeeRate(transaction.feeRate)} sat/vB`);
+          set(weight, formatWeight(transaction.weight));
+          for (const { value } of traits) {
+            value.removeAttribute("title");
+            set(value, "loading", true);
+          }
+
+          const known = txids.get(transaction.txIndex);
+          if (known) {
+            set(txid, known);
+            txid.title = known;
+          } else {
+            txid.removeAttribute("title");
+            set(txid, "loading", true);
+            txidTimer = setTimeout(() => {
+              void loadTxid(transaction.txIndex, signal).then((id) => {
+                if (txids.size >= TXID_CACHE_LIMIT) txids.delete(txids.keys().next().value);
+                txids.set(transaction.txIndex, id);
+                refresh(transaction, () => {
+                  set(txid, id);
+                  txid.title = id;
+                });
+              }, (error) => {
+                if (!signal.aborted) console.error(error);
+              });
+            }, eager ? 0 : TXID_DWELL_MS);
+          }
+
+          traitsTimer = setTimeout(() => {
+            void filterData.loadTransactionKeys(transaction.txIndex, signal).then((keys) => {
+              const active = new Set(keys);
+              refresh(transaction, () => {
+                for (const { filters, value } of traits) {
+                  const text = filters.filter(({ key }) => active.has(key)).map(({ label }) => label).join(" · ") || "none";
+                  set(value, text);
+                  value.title = text;
+                }
+              });
+            }, (error) => {
+              if (signal.aborted || inspected !== transaction) return;
+              for (const { value } of traits) set(value, "unavailable");
+              console.error(error);
+            });
+          }, eager ? 0 : TRAITS_DWELL_MS);
+
+          place();
+        }
+
+        return { element, inspect, destroy: abortPending };
+      }
+
+      // Filters panel ------------------------------------------------------------
+
+      function createFilterPanel() {
+        const value = el("span");
+        const summary = el("summary", null, el("span", null, "filters:"), value);
+        const panel = el("details", { "data-block-preview-filters": true }, summary);
+        return { panel, summary, value };
+      }
+
+      function createFilters(data, heatmap) {
+        const { panel, summary, value } = createFilterPanel();
+        const hidden = new Set();
+        const applied = new Set();
+        let live = true;
+        let loaded = false;
+        let previewing = null;
+
+        const summarize = () => {
+          const labels = FILTERS.filter(({ key }) => hidden.has(key)).map(({ group, label }) => `${FILTER_GROUP_LABELS.get(group)} ${label}`);
+          value.textContent = labels.length ? `hidden ${labels.slice(0, 3).join(", ")}${labels.length > 3 ? ` ... +${labels.length - 3}` : ""}` : "none";
+        };
+
+        function resetPreview() {
+          previewing?.removeAttribute("data-preview");
+          previewing = null;
+          heatmap.setPreview(null);
+        }
+
+        function preview(button, filter) {
+          resetPreview();
+          previewing = button;
+          button.setAttribute("aria-busy", "true");
+          void data.loadMembership(filter).then((membership) => {
+            button.removeAttribute("aria-busy");
+            if (!live || previewing !== button) return;
+            button.dataset.preview = "";
+            heatmap.setPreview(membership);
+          }, (error) => {
+            button.removeAttribute("aria-busy");
+            if (live) resetPreview();
+            console.error(error);
+          });
+        }
+
+        function render(counts) {
+          panel.replaceChildren(summary);
+
+          for (const { label, filters } of GROUPED_FILTERS) {
+            const present = filters.filter(({ index }) => counts[index] > 0);
+            if (!present.length) continue;
+
+            const group = el("div", null, el("span", null, label));
+
+            for (const filter of present) {
+              const { button, value: count } = legendItem({ label: filter.label, color: filter.color });
+              const sync = () => {
+                button.setAttribute("aria-pressed", String(!hidden.has(filter.key)));
+                button.toggleAttribute("data-muted", hidden.has(filter.key));
+              };
+
+              count.textContent = formatNumber(counts[filter.index]);
+              button.addEventListener("click", () => {
+                resetPreview();
+                if (hidden.has(filter.key)) hidden.delete(filter.key);
+                else hidden.add(filter.key);
+                sync();
+                summarize();
+                void data.loadMembership(filter).then((membership) => {
+                  const hide = hidden.has(filter.key);
+                  if (!live || hide === applied.has(filter.key)) return;
+                  heatmap.setHidden(membership, hide);
+                  if (hide) applied.add(filter.key);
+                  else applied.delete(filter.key);
+                }, console.error);
+              });
+              if (CAN_HOVER.matches) {
+                button.addEventListener("pointerenter", () => preview(button, filter));
+                button.addEventListener("pointerleave", resetPreview);
+              }
+              button.addEventListener("focus", () => preview(button, filter));
+              button.addEventListener("blur", resetPreview);
+              sync();
+              group.append(button);
+            }
+
+            panel.append(group);
+          }
+        }
+
+        panel.addEventListener("toggle", () => {
+          if (!panel.open) {
+            resetPreview();
+            return;
+          }
+          if (loaded) return;
+
+          loaded = true;
+          value.textContent = "loading";
+          void data.loadCounts().then((counts) => {
+            if (!live) return;
+            summarize();
+            render(counts);
+          }, (error) => {
+            if (!live) return;
+            loaded = false;
+            value.textContent = "unavailable";
+            console.error(error);
+          });
+        });
+        summarize();
+
+        return {
+          element: panel,
+          destroy() {
+            live = false;
+            resetPreview();
+          },
+        };
+      }
+
+      function createPreviewPane(block) {
+        const element = el("div", { "data-block-preview": true });
+        const controller = new AbortController();
+        let data = null;
+        let destroyPreview = () => {};
+
+        const figure = (body, filters, inspector) => el("figure", null, el("figcaption", null, filters), body, inspector);
+        const renderStatus = (text) => {
+          const pending = createFilterPanel();
+          pending.value.textContent = text === "Loading" ? "loading" : "unavailable";
+          element.replaceChildren(figure(el("p", { "data-block-preview-status": true }, text), pending.panel));
+        };
+
+        renderStatus("Loading");
+
+        function load() {
+          data ??= loadPreviewData(block, controller.signal);
+          void data.then((preview) => {
+            if (controller.signal.aborted) return;
+            const filterData = createFilterData(block.height, preview.range, controller.signal);
+            const inspector = createInspector(controller.signal, filterData);
+            const heatmap = createHeatmap(preview, inspector.inspect);
+            const filters = createFilters(filterData, heatmap);
+
+            destroyPreview = () => {
+              inspector.destroy();
+              filters.destroy();
+              heatmap.destroy();
+            };
+            element.replaceChildren(figure(heatmap.element, filters.element, inspector.element));
+          }, (error) => {
+            if (controller.signal.aborted) return;
+            console.error("block preview:", error);
+            renderStatus("Unavailable");
+          });
+          return data;
+        }
+
+        return {
+          element,
+          load,
+          destroy() {
+            controller.abort();
+            destroyPreview();
+          },
+        };
+      }
+
+      // X-ray: the block as one isometric cube of transaction cubes ---------------
+
+      const XRAY_GRID = 48;
+      const XRAY_LOOKAHEAD = 4;
+      const XRAY_WIDTH = 173.205;
+      const XRAY_HEIGHT = 200;
+
+      function createXrayVolume(data) {
+        const GRID = XRAY_GRID;
+        const fill = Math.min(1, data.blockWeight / MAX_BLOCK_WEIGHT);
+        const layers = Math.max(1, Math.round(fill * GRID));
+        const capacity = GRID * GRID * layers;
+        const order = orderTransactions(data.weights, data.feeRates);
+        const ranges = previewFeeRange(data.feeRates, order);
+        const transactions = Array.from(order, (offset) => ({ color: feeRateColor(data.feeRates[offset], ranges), weight: data.weights[offset] }));
+        const indexOf = (east, north, up) => up * GRID * GRID + north * GRID + east;
+        const occupied = new Uint8Array(capacity);
+        const cursors = new Uint32Array(layers + 1);
+
+        // Spans: cube roots of weight shares, calibrated to fill the volume.
+        const totalWeight = transactions.reduce((sum, { weight }) => sum + weight, 0);
+        const ideal = Float64Array.from(transactions, ({ weight }) => Math.cbrt((weight * capacity) / totalWeight));
+        const spanOf = (value, scale) => Math.max(1, Math.min(layers, Math.round(value * scale)));
+        const volume = (scale) => ideal.reduce((sum, value) => sum + spanOf(value, scale) ** 3, 0);
+        let lower = 0;
+        let upper = 1;
+
+        // Spans cap at `layers`: a tiny block may never fill the volume, so stop once they saturate.
+        while (volume(upper) <= capacity && ideal.some((value) => spanOf(value, upper) < layers)) upper *= 2;
+        for (let step = 0; step < CALIBRATION_STEPS; step += 1) {
+          const scale = (lower + upper) / 2;
+          if (volume(scale) <= capacity) lower = scale;
+          else upper = scale;
+        }
+
+        const spans = Uint8Array.from(ideal, (value) => spanOf(value, lower));
+        let used = spans.reduce((sum, span) => sum + span ** 3, 0);
+        const candidates = Uint32Array.from(spans, (_, index) => index)
+          .sort((a, b) => (spans[a] + 0.5) / ideal[a] - (spans[b] + 0.5) / ideal[b] || a - b);
+
+        for (const index of candidates) {
+          if (spans[index] === layers) continue;
+          const growth = (spans[index] + 1) ** 3 - spans[index] ** 3;
+          if (used + growth > capacity) continue;
+          spans[index] += 1;
+          used += growth;
+        }
+
+        function canPlace(east, north, up, span) {
+          for (let z = up; z < up + span; z += 1) {
+            for (let y = north; y < north + span; y += 1) {
+              const offset = indexOf(east, y, z);
+              for (let x = 0; x < span; x += 1) if (occupied[offset + x]) return false;
+            }
+          }
+          return true;
+        }
+
+        function supportBelow(east, north, up, span) {
+          if (up === 0) return span ** 2;
+          let support = 0;
+          for (let y = north; y < north + span; y += 1) {
+            for (let x = east; x < east + span; x += 1) support += occupied[indexOf(x, y, up - 1)];
+          }
+          return support;
+        }
+
+        /** First position from the cursor, preferring the best-supported spot among a few candidates. */
+        function findPosition(span, start) {
+          const layerArea = GRID * GRID;
+          const startUp = Math.floor(start / layerArea);
+          const startNorth = Math.floor((start % layerArea) / GRID);
+          const startEast = start % GRID;
+
+          for (let up = startUp; up <= layers - span; up += 1) {
+            let best = null;
+            let remaining = XRAY_LOOKAHEAD;
+
+            for (let north = up === startUp ? startNorth : 0; north <= GRID - span; north += 1) {
+              for (let east = up === startUp && north === startNorth ? startEast : 0; east <= GRID - span; east += 1) {
+                if (canPlace(east, north, up, span)) {
+                  const support = supportBelow(east, north, up, span);
+                  const placement = { east, north, up, index: up * layerArea + north * GRID + east };
+                  if (support === span ** 2) return placement;
+                  if (best === null || support > best.support) best = { ...placement, support };
+                }
+                if (best !== null && --remaining === 0) return best;
+              }
+            }
+
+            if (best !== null) return best;
+          }
+
+          return null;
+        }
+
+        const placed = transactions.map((transaction, index) => {
+          let span = spans[index];
+          let position = findPosition(span, cursors[span]);
+
+          while (position === null) {
+            span -= 1;
+            position = findPosition(span, cursors[span]);
+          }
+
+          for (let z = position.up; z < position.up + span; z += 1) {
+            for (let y = position.north; y < position.north + span; y += 1) {
+              const offset = indexOf(position.east, y, z);
+              occupied.fill(1, offset, offset + span);
+            }
+          }
+          cursors[span] = position.index + span;
+
+          return { ...transaction, east: position.east, north: position.north, up: position.up, span };
+        });
+
+        const open = (cube, side) => {
+          const { east, north, up, span } = cube;
+          if (side === "left" && east === 0) return true;
+          if (side === "right" && north === 0) return true;
+          if (side === "top" && up + span === layers) return true;
+
+          for (let a = 0; a < span; a += 1) {
+            for (let b = 0; b < span; b += 1) {
+              const cell = side === "left" ? indexOf(east - 1, north + b, up + a)
+                : side === "right" ? indexOf(east + b, north - 1, up + a)
+                : indexOf(east + b, north + a, up + span);
+              if (!occupied[cell]) return true;
+            }
+          }
+
+          return false;
+        };
+
+        const cubes = placed
+          .map((cube) => ({ ...cube, faces: { left: open(cube, "left"), right: open(cube, "right"), top: open(cube, "top") } }))
+          .filter(({ faces }) => faces.left || faces.right || faces.top)
+          .sort((a, b) => a.up - a.east - a.north - (b.up - b.east - b.north));
+
+        return { cubes, fill: layers / GRID };
+      }
+
+      function renderXray(svg, data) {
+        const project = (east, north, up) =>
+          `${XRAY_WIDTH / 2 + (XRAY_WIDTH / 2) * (east - north)},${XRAY_HEIGHT * (1 - 0.25 * east - 0.25 * north - 0.5 * up)}`;
+        const polygon = (points, color) => `<polygon points="${points.join(" ")}" style="--xray-fee-color:${color}"></polygon>`;
+        let markup = "";
+
+        for (const cube of createXrayVolume(data).cubes) {
+          const [e0, n0, u0] = [cube.east / XRAY_GRID, cube.north / XRAY_GRID, cube.up / XRAY_GRID];
+          const [e1, n1, u1] = [(cube.east + cube.span) / XRAY_GRID, (cube.north + cube.span) / XRAY_GRID, (cube.up + cube.span) / XRAY_GRID];
+
+          if (cube.faces.left) markup += polygon([project(e0, n1, u0), project(e0, n0, u0), project(e0, n0, u1), project(e0, n1, u1)], `color-mix(in oklch, ${cube.color} 72%, var(--black))`);
+          if (cube.faces.right) markup += polygon([project(e0, n0, u0), project(e1, n0, u0), project(e1, n0, u1), project(e0, n0, u1)], `color-mix(in oklch, ${cube.color} 58%, var(--black))`);
+          if (cube.faces.top) markup += polygon([project(e0, n0, u1), project(e1, n0, u1), project(e1, n1, u1), project(e0, n1, u1)], cube.color);
+        }
+
+        svg.innerHTML = markup;
+      }
+
+      /** Rendered once the pane nears the viewport. */
+      function createXrayPane(dataPromise, scrollRoot) {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const status = el("p", null, "Loading");
+        const element = el("section", { "data-block-xray": true }, el("h2", null, "X-ray"), el("div", null, status, svg));
+        let live = true;
+
+        svg.setAttribute("viewBox", `0 0 ${XRAY_WIDTH} ${XRAY_HEIGHT}`);
+        svg.setAttribute("preserveAspectRatio", "none");
+        svg.setAttribute("aria-hidden", "true");
+
+        const observer = new IntersectionObserver((entries) => {
+          if (!entries.some(({ isIntersecting }) => isIntersecting)) return;
+          observer.disconnect();
+          void dataPromise.then((data) => {
+            if (!live) return;
+            renderXray(svg, data);
+            status.remove();
+            element.dataset.ready = "";
+          }, () => {
+            if (live) status.textContent = "Unavailable";
+          });
+        }, { root: scrollRoot, rootMargin: "75% 0px" });
+
+        observer.observe(element);
+
+        return {
+          element,
+          destroy() {
+            live = false;
+            observer.disconnect();
+          },
+        };
+      }
+
+      // Fee chart: the block's fee-rate percentiles, log-scaled -------------------
+
+      function createFeeChart(range, average) {
+        const PAD = 8;
+        const scale = (value) => Math.log10(value + 1);
+        const samples = range.map((y, index) => ({ x: FEE_RATE_PERCENTILES[index], y }));
+        const averageX = (() => {
+          const target = scale(average);
+          const scaled = samples.map(({ y }) => scale(y));
+          if (target <= scaled[0]) return 0;
+          for (let index = 1; index < scaled.length; index += 1) {
+            if (target > scaled[index]) continue;
+            const span = scaled[index] - scaled[index - 1];
+            const ratio = span ? (target - scaled[index - 1]) / span : 0;
+            return samples[index - 1].x + (samples[index].x - samples[index - 1].x) * ratio;
+          }
+          return 100;
+        })();
+        const entries = [
+          ...samples.map((sample, index) => ({ ...FEE_RATE_STOPS[index], sample, priority: 0 })),
+          { label: "avg", color: "var(--white)", sample: { x: averageX, y: average }, priority: 1 },
+        ].sort((a, b) => a.sample.y - b.sample.y || a.priority - b.priority);
+
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const legend = el("menu", { "data-legend-list": true });
+        const figure = el(
+          "figure",
+          { "data-fee-chart": true },
+          el("figcaption", null, "Fees ", el("span", null, "| sat/vB")),
+          legend,
+          svg,
+        );
+        const items = entries.map((entry) => {
+          const { button, value } = legendItem({ label: entry.label, color: entry.color });
+          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          value.textContent = formatFeeRate(entry.sample.y);
+          circle.style.setProperty("--color", entry.color);
+          legend.append(el("li", null, button));
+          return { ...entry, button, circle };
+        });
+        let points = [];
+
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", `Fee rate percentiles from ${formatFeeRate(range[0])} to ${formatFeeRate(range.at(-1))} sat/vB`);
+        svg.append(path, ...items.map(({ circle }) => circle));
+
+        const highlight = (active) => {
+          svg.toggleAttribute("data-hover", active != null);
+          for (const item of items) {
+            item.button.toggleAttribute("data-active", item === active);
+            item.circle.toggleAttribute("data-active", item === active);
+          }
+        };
+
+        function render() {
+          const { width, height } = svg.getBoundingClientRect();
+          if (!width) return;
+
+          const values = entries.map(({ sample }) => scale(sample.y));
+          const min = Math.min(...values);
+          const span = Math.max(...values) - min;
+          const x = (value) => PAD + (value / 100) * (width - 2 * PAD);
+          const y = (value) => (span ? PAD + (1 - (scale(value) - min) / span) * (height - 2 * PAD) : height / 2);
+
+          svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+          path.setAttribute("d", samples.map((sample, index) => `${index ? "L" : "M"}${x(sample.x).toFixed(1)} ${y(sample.y).toFixed(1)}`).join(""));
+          points = items.map((item) => {
+            const point = { item, x: x(item.sample.x), y: y(item.sample.y) };
+            item.circle.setAttribute("cx", point.x.toFixed(1));
+            item.circle.setAttribute("cy", point.y.toFixed(1));
+            item.circle.setAttribute("r", "4.5");
+            return point;
+          });
+        }
+
+        svg.addEventListener("pointermove", (event) => {
+          const box = svg.getBoundingClientRect();
+          const px = event.clientX - box.left;
+          const py = event.clientY - box.top;
+          let closest = null;
+          let distance = Infinity;
+          for (const point of points) {
+            const next = Math.hypot(point.x - px, point.y - py);
+            if (next < distance) [closest, distance] = [point, next];
+          }
+          highlight(closest?.item);
+        });
+        svg.addEventListener("pointerleave", () => highlight(null));
+        for (const item of items) {
+          item.button.addEventListener("pointerenter", () => highlight(item));
+          item.button.addEventListener("pointerleave", () => highlight(null));
+          item.button.addEventListener("focus", () => highlight(item));
+          item.button.addEventListener("blur", () => highlight(null));
+        }
+
+        const observer = new ResizeObserver(render);
+        observer.observe(svg);
+
+        return { element: figure, destroy: () => observer.disconnect() };
+      }
+
+      // Side panes ---------------------------------------------------------------
+
+      function createMinerPane(block) {
+        const { pool, coinbaseSignatureAscii } = block.extras;
+        const message = coinbaseMessage(coinbaseSignatureAscii ?? "");
+
+        return el(
+          "div",
+          { "data-miner-pane": true },
+          el(
+            "div",
+            null,
+            el("div", null, el("div", null, el("strong", null, pool.name), el("span", null, formatPoolBlock(pool.blockNumber))), el("span", null, pool.slug)),
+            poolLogo(pool),
+          ),
+          message && el("p", { title: message }, message),
+        );
+      }
+
+      function createRewardsPane(extras) {
+        const subsidy = extras.reward - extras.totalFees;
+        const share = (sats) => `${((sats / extras.reward) * 100).toFixed(2)}%`;
+        const usd = (sats) => amount("span", usdParts(satsToUsd(sats, extras.price)));
+        const parts = [
+          ["subsidy", "Subsidy", subsidy, "var(--orange)"],
+          ["fees", "Fees", extras.totalFees, "var(--green)"],
+        ];
+        const bar = el("div", { "data-bar": true });
+        const list = el("menu", { "data-legend-list": true, "data-legend-fill": true });
+        const linked = [];
+
+        for (const [key, label, sats, color] of parts) {
+          const detail = document.createDocumentFragment();
+          detail.append(usd(sats), ` · ${share(sats)}`);
+          const { button, value } = legendItem({ label, color, detail });
+          const segment = el("span", { style: `--share:${(sats / extras.reward) * 100}%;--segment-color:${color}` });
+
+          value.replaceChildren(amount("span", btcParts(sats)));
+          button.dataset.key = segment.dataset.key = key;
+          bar.append(segment);
+          list.append(el("li", null, button));
+          linked.push(button, segment);
+        }
+
+        const pane = el(
+          "div",
+          { "data-rewards-pane": true },
+          el("div", { "data-reward-total": true }, el("span", null, "Rewards"), amount("strong", btcParts(extras.reward)), usd(extras.reward)),
+          bar,
+          list,
+        );
+        const preview = (key) => {
+          for (const node of linked) {
+            node.toggleAttribute("data-preview", key != null && node.dataset.key === key && node.tagName === "BUTTON");
+            node.toggleAttribute("data-muted", key != null && node.dataset.key !== key);
+          }
+        };
+        const keyOf = (event) => event.target.closest?.("[data-key]")?.dataset.key ?? null;
+
+        pane.addEventListener("pointerover", (event) => preview(keyOf(event)));
+        pane.addEventListener("pointerleave", () => preview(null));
+        pane.addEventListener("pointerup", () => preview(null));
+        pane.addEventListener("pointercancel", () => preview(null));
+
+        return pane;
+      }
+
+      function createDifficultyPane(block) {
+        const epoch = (label, length, color) => {
+          const { ratio, remaining } = epochProgress(block.height, length);
+          return el(
+            "div",
+            { "data-epoch": true, style: `--epoch-color:${color}` },
+            el("div", { "data-epoch-head": true }, el("span", null, label), el("strong", null, formatEpoch(block.height, length))),
+            el(
+              "div",
+              { "data-bar": true },
+              el("span", { style: `--share:${ratio * 100}%;--segment-color:${color}` }),
+              el("span", { style: `--share:${(remaining / length) * 100}%;--segment-color:color-mix(in oklch, var(--gray) 35%, transparent)` }),
+            ),
+          );
+        };
+
+        return el(
+          "div",
+          { "data-metric-list": true },
+          el("div", { "data-metric-stat": true }, el("span", null, "Difficulty"), el("strong", null, formatNumber(block.difficulty))),
+          epoch("Difficulty epoch", DIFFICULTY_EPOCH_BLOCKS, "var(--orange)"),
+          epoch("Halving epoch", HALVING_EPOCH_BLOCKS, "var(--red)"),
+        );
+      }
+
+      function createMeta(block) {
+        const item = (label, value) => el("div", null, el("span", null, label), el("strong", null, value));
+        return el(
+          "div",
+          { "data-block-meta": true },
+          item("Block", `${formatBytes(block.size)} · ${formatBlockFill(block.weight)}`),
+          item("Tx", formatNumber(block.tx_count)),
+          item("Input", formatNumber(block.extras.totalInputs)),
+          item("Output", formatNumber(block.extras.totalOutputs)),
+        );
+      }
+
+      const blockTitle = (height) => [el("span", null, "Block"), el("span", null, heightElement(height))];
+
+      // Receipt -------------------------------------------------------------------
+
+      function blockUrl(block) {
+        return location.protocol.startsWith("http")
+          ? `${location.origin}${location.pathname}#${block.id}`
+          : `${ORIGIN}/api/block/${block.id}`;
+      }
+
+      /** @returns {[string, { label: string, value: string, detail?: string, variant?: string }[]][]} */
+      function receiptSections(block) {
+        const { extras } = block;
+        const subsidy = extras.reward - extras.totalFees;
+        const btc = (sats) => partsText(btcParts(sats));
+        const usd = (sats) => partsText(usdParts(satsToUsd(sats, extras.price)));
+        const row = (label, value, variant) => ({ label, value, variant });
+        const money = (label, sats, variant) => ({ label, value: btc(sats), detail: usd(sats), variant });
+
+        return [
+          ["Summary", [
+            row("Time", formatDateTime(block.timestamp), "wide"),
+            row("Price", partsText(usdParts(extras.price))),
+            row("Miner", extras.pool.name),
+            money("Reward", extras.reward, "total"),
+            money("Fees", extras.totalFees),
+            row("Tx", formatNumber(block.tx_count)),
+            row("Size", `${formatBytes(block.size)} · ${formatBlockFill(block.weight)}`),
+          ]],
+          ["Reward split", [money("Subsidy", subsidy), money("Fees", extras.totalFees)]],
+          ["Block", [
+            row("Weight", formatWeight(block.weight)),
+            row("Virtual", `${formatNumber(extras.virtualSize)} vB`),
+            row("Avg tx", formatBytes(extras.avgTxSize)),
+            row("Input", formatNumber(extras.totalInputs)),
+            row("Output", formatNumber(extras.totalOutputs)),
+          ]],
+          ["Fees", [
+            row("Median", `${formatFeeRate(extras.medianFee)} sat/vB`),
+            row("Average", `${formatFeeRate(extras.avgFeeRate)} sat/vB`),
+            row("Range", `${formatFeeRate(extras.feeRange[0])} - ${formatFeeRate(extras.feeRange.at(-1))} sat/vB`),
+            row("Avg fee", `${formatNumber(extras.avgFee)} sat`),
+            row("Median fee", `${formatNumber(extras.medianFeeAmt)} sat`),
+          ]],
+          ["Mining", [
+            row("Pool slug", extras.pool.slug),
+            row("Pool block", formatPoolBlock(extras.pool.blockNumber)),
+            row("Difficulty", formatNumber(block.difficulty), "wide"),
+            row("Diff epoch", formatEpoch(block.height, DIFFICULTY_EPOCH_BLOCKS)),
+            row("Halving", formatEpoch(block.height, HALVING_EPOCH_BLOCKS)),
+          ]],
+          ["Verify", [
+            row("Height", `#${formatNumber(block.height)}`),
+            row("Hash", block.id, "wide"),
+            row("Previous", block.previousblockhash, "wide"),
+          ]],
+        ];
+      }
+
+      function openReceipt(block) {
+        const url = blockUrl(block);
+        const note = coinbaseMessage(block.extras.coinbaseSignatureAscii ?? "");
+        const qr = el("img", { alt: `QR code for block ${block.height}` });
+        const brand = /** @type {HTMLElement} */ (document.querySelector(".site-brand").cloneNode(true));
+        const print = el("button", { type: "button", "data-print": true }, "Print");
+        const dialog = el(
+          "dialog",
+          { "data-block-receipt": true, "aria-label": `Receipt for block ${block.height}`, tabindex: -1 },
+          el(
+            "div",
+            null,
+            el(
+              "article",
+              null,
+              el("header", null, el("h2", { "data-block-title": true }, ...blockTitle(block.height))),
+              ...receiptSections(block).map(([title, rows]) => el(
+                "section",
+                null,
+                el("h3", null, title),
+                ...rows.map(({ label, value, detail, variant }) => el(
+                  "div",
+                  { "data-row": variant ?? (detail ? "amount" : "") },
+                  el("span", null, label),
+                  el("strong", null, value, detail && el("small", null, detail)),
+                )),
+              )),
+              note && el("p", { "data-receipt-note": true }, note),
+              el("section", { "data-receipt-qr": true }, el("span", null, "Scan to verify"), qr, el("a", { href: url }, url.replace(/^https?:\/\//, ""))),
+              el("section", { "data-receipt-brand": true }, brand),
+            ),
+          ),
+          el("footer", null, el("form", { method: "dialog" }, el("button", { value: "close" }, "Close")), print),
+        );
+
+        brand.removeAttribute("href");
+        brand.removeAttribute("aria-label");
+        print.addEventListener("click", () => window.print());
+        dialog.addEventListener("click", (event) => {
+          if (event.target === dialog) dialog.close();
+        });
+        dialog.addEventListener("close", async () => {
+          await wait(200);
+          dialog.remove();
+        }, { once: true });
+        document.body.append(dialog);
+        dialog.showModal();
+        dialog.focus({ preventScroll: true });
+
+        void loadQr().then((generate) => {
+          qr.src = generate(url)?.toDataURL({ padX: 0, padY: 0, scale: 8 }) ?? "";
+        }, (error) => {
+          qr.remove();
+          console.error("qr:", error);
+        });
+      }
+
+      // Block details ---------------------------------------------------------------
+
+      function createBlockDetails() {
+        const element = el("section", { id: "block-details", "aria-label": "Block", inert: true });
+        const title = el("h1", { "data-block-title": true });
+        const price = el("output", { "data-size": "title", "data-tone": "positive" });
+        const hash = el("p");
+        const newer = el("a", { "data-button": true, "data-step": "newer", title: "Newer block (←)" }, "← Newer");
+        const older = el("a", { "data-button": true, "data-step": "older", title: "Older block (→)" }, "Older →");
+        const receipt = el("button", { type: "button" }, "Receipt");
+        const date = el("time");
+        const header = el("header", { "data-block-header": true }, title, price, hash, el("div", null, newer, older, receipt), date);
+        const content = el("div", { "data-block-content": true });
+        let current = null;
+        let destroyers = [];
+        let activatePending = null;
+        let dateTimer = 0;
+
+        element.append(header, content);
+        receipt.addEventListener("click", () => {
+          if (current) openReceipt(current);
+        });
+
+        function setStep(link, height, disabled) {
+          if (disabled) {
+            link.removeAttribute("href");
+            link.setAttribute("aria-disabled", "true");
+          } else {
+            link.href = `#${height}`;
+            link.removeAttribute("aria-disabled");
+          }
+        }
+
+        function clear() {
+          for (const destroy of destroyers) destroy();
+          destroyers = [];
+          activatePending = null;
+          clearTimeout(dateTimer);
+          content.textContent = "";
+        }
+
+        const atTip = (block) => knownTipHeight >= 0 && block.height >= knownTipHeight;
+
+        function refreshDate() {
+          date.textContent = formatDateAndAge(current.timestamp);
+          dateTimer = setTimeout(refreshDate, 60_000);
+        }
+
+        /** @param {any} block */
+        function update(block) {
+          clear();
+          current = block;
+          header.hidden = false;
+          title.replaceChildren(...blockTitle(block.height));
+          renderAmount(price, usdParts(block.extras.price));
+          const firstDigit = block.id.search(/[^0]/);
+          hash.replaceChildren(dim(block.id.slice(0, firstDigit)), block.id.slice(firstDigit));
+          hash.title = block.id;
+          date.dateTime = new Date(block.timestamp * 1_000).toISOString();
+          refreshDate();
+          setStep(newer, block.height + 1, atTip(block));
+          setStep(older, block.height - 1, block.height === 0);
+
+          const preview = createPreviewPane(block);
+          const fees = createFeeChart(block.extras.feeRange, block.extras.avgFeeRate);
+          const section = (group, ...children) => el("section", { "data-group": group }, ...children);
+
+          destroyers.push(preview.destroy, fees.destroy);
+          content.append(
+            el("div", { "data-block-column": "main" }, section("preview", createMeta(block), preview.element)),
+            el(
+              "div",
+              { "data-block-column": "side" },
+              section("mining", createMinerPane(block)),
+              section("rewards", createRewardsPane(block.extras)),
+              section("difficulty", createDifficultyPane(block)),
+              section("fees", fees.element),
+            ),
+          );
+          activatePending = () => {
+            const xray = createXrayPane(preview.load(), element);
+            destroyers.push(xray.destroy);
+            content.append(xray.element);
+          };
+        }
+
+        /** @param {string} message */
+        function showMissing(message) {
+          clear();
+          current = null;
+          header.hidden = true;
+          content.append(el("p", { "data-block-missing": true }, message));
+        }
+
+        return {
+          element,
+          update,
+          showMissing,
+          isShowing: (block) => current?.id === block.id,
+          /** A newer tip enables "newer". */
+          refreshSteps() {
+            if (current) setStep(newer, current.height + 1, atTip(current));
+          },
+          /** Heavy parts (heatmap, x-ray) start once the details are in place. */
+          activate() {
+            activatePending?.();
+            activatePending = null;
+          },
+          step(direction) {
+            const link = direction === "newer" ? newer : older;
+            if (link.hasAttribute("href")) navigate(link.getAttribute("href").slice(1));
+          },
+        };
+      }
+
+      // Page: the chain beside (or above) the selected block, driven by the URL hash ----------
+
+      const main = /** @type {HTMLElement} */ (document.querySelector("#explore"));
+      const status = el("p", { "data-chain-status": true, role: "status", hidden: true });
+      const details = createBlockDetails();
+      /** Without a block in the URL, the details follow the chain tip. */
+      let following = false;
+      let routeId = 0;
+      const chain = createChain({
+        status,
+        onTip(block) {
+          if (following) showBlock(block);
+          else details.refreshSteps();
+        },
+      });
+
+      chain.element.append(status);
+      main.append(chain.element, details.element);
+
+      function syncChain() {
+        chain.setActive(!document.hidden);
+      }
+
+      /** @param {string} hash "" to follow the tip, else a height or block hash */
+      function navigate(hash) {
+        const url = hash ? `#${hash}` : `${location.pathname}${location.search}`;
+        if (url === `${location.pathname}${location.search}${location.hash}` || url === location.hash) return;
+        history.pushState(null, "", url);
+        void route();
+      }
+
+      /** @returns {number | string | null} */
+      function parseTarget(text) {
+        let value;
+        try {
+          value = decodeURIComponent(text).trim().toLowerCase();
+        } catch {
+          return null;
+        }
+        if (/^\d+$/.test(value)) return Number(value);
+        if (/^[0-9a-f]{64}$/.test(value)) return value;
+        return null;
+      }
+
+      async function latestBlock() {
+        const [block] = await chainApi.tip();
+        noteTip(block.height);
+        return cacheBlock(block);
+      }
+
+      function showBlock(block) {
+        chain.select(block.height);
+        document.title = `Block ${formatNumber(block.height)} · bitview`;
+        if (details.isShowing(block)) return;
+        details.update(block);
+        details.element.scrollTop = 0;
+        details.activate();
+      }
+
+      async function route() {
+        const id = ++routeId;
+        const hash = location.hash.slice(1);
+        const target = hash ? parseTarget(hash) : null;
+
+        if (target === null && hash) history.replaceState(null, "", `${location.pathname}${location.search}`);
+        following = target === null;
+
+        try {
+          const block = following ? await latestBlock() : await resolveBlock(target);
+          if (id !== routeId) return;
+          chain.focus(following ? null : block.height);
+          showBlock(block);
+        } catch (error) {
+          if (id !== routeId) return;
+          console.error("block:", error);
+          chain.select(null);
+          details.showMissing(error.status === 404 || error.status === 400 ? `No block at ${hash}` : `Couldn't load ${hash ? `block ${hash}` : "the latest block"}`);
+          document.title = "Chain · bitview";
+        }
+      }
+
+      addEventListener("popstate", () => void route());
+      addEventListener("hashchange", () => void route());
+      document.addEventListener("visibilitychange", syncChain);
+
+      // Jump box and keys ---------------------------------------------------------------
+
+      const jump = /** @type {HTMLFormElement} */ (document.querySelector("#jump"));
+      const jumpInput = /** @type {HTMLInputElement} */ (jump.elements.namedItem("block"));
+
+      jump.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const target = parseTarget(jumpInput.value);
+        if (target === null) {
+          jumpInput.setAttribute("aria-invalid", "true");
+          return;
+        }
+        jumpInput.value = "";
+        jumpInput.blur();
+        navigate(String(target));
+      });
+      jumpInput.addEventListener("input", () => jumpInput.removeAttribute("aria-invalid"));
+
+      document.addEventListener("keydown", (event) => {
+        if (event.metaKey || event.ctrlKey || event.altKey || document.querySelector("dialog[open]")) return;
+
+        const typing = event.target instanceof HTMLInputElement;
+        if (event.key === "Escape") {
+          if (typing) jumpInput.blur();
+          else if (!following) navigate("");
+          return;
+        }
+        if (typing) return;
+
+        if (event.key === "/") {
+          event.preventDefault();
+          jumpInput.focus();
+        } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+          event.preventDefault();
+          details.step(event.key === "ArrowLeft" ? "newer" : "older");
+        }
+      });
+
+      trackPress();
+      syncChain();
+      void route();
+      // The client powers the block details: fetch it while the chain settles.
+      setTimeout(() => void loadClient().catch(() => {}), 1_500);
+    </script>
+  </body>
+</html>

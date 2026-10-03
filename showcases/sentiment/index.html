@@ -9,13 +9,11 @@
       content="Bitcoin capital sentiment and long or short position history."
     />
     <link rel="preconnect" href="https://bitview.space" crossorigin />
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-    <link rel="preconnect" href="https://unpkg.com" crossorigin />
     <title>Bitcoin Capital Sentiment</title>
     <style>
       @font-face {
         font-family: "Lilex";
-        src: url("https://cdn.jsdelivr.net/fontsource/fonts/lilex:vf@5.3.0/latin-wght-normal.woff2")
+        src: url("../fonts/Lilex.woff2")
           format("woff2-variations");
         font-style: normal;
         font-weight: 100 700;
@@ -24,7 +22,7 @@
 
       @font-face {
         font-family: "Instrument";
-        src: url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+        src: url("../fonts/InstrumentSerif-Regular.woff2")
           format("woff2");
         font-style: normal;
         font-weight: 400;
@@ -134,6 +132,33 @@
 
       #sentiment {
         color: var(--sentiment-color, var(--muted));
+      }
+
+      #legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 14px;
+        margin: 14px 0 0;
+        padding: 0;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 550;
+        letter-spacing: 0.08em;
+        list-style: none;
+        text-transform: uppercase;
+
+        li::before {
+          content: "";
+          display: inline-block;
+          width: 14px;
+          margin-right: 6px;
+          border-top: 2px dashed var(--line-color);
+          vertical-align: 0.3em;
+        }
+
+        li[data-style="dotted"]::before {
+          border-top-style: dotted;
+        }
       }
 
       #sentiment-position {
@@ -318,6 +343,7 @@
           <span id="sentiment">--</span>
           <small id="sentiment-position"></small>
         </div>
+        <ul id="legend" aria-label="Reference lines"></ul>
       </header>
 
       <div id="status">Loading sentiment</div>
@@ -335,13 +361,14 @@
     </main>
 
     <script type="module">
+      // @ts-check
       const reducedWorkViewport = window.matchMedia(
         "(max-width: 320px), (max-height: 260px)",
       );
       const chartLibrary = reducedWorkViewport.matches
         ? {}
         : await import(
-            "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs"
+            "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs"
           );
       const {
         AreaSeries,
@@ -355,22 +382,9 @@
       } = chartLibrary;
 
       const ORIGIN = "https://bitview.space";
-      // The deployed client, imported from a blob URL: direct remote module
-      // imports fail on some hosts.
-      const clientReady = (async () => {
-        const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
-          cache: "no-cache",
-          signal: AbortSignal.timeout(30_000),
-        });
-        if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
-        const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
-        try {
-          const { BitviewClient } = await import(url);
-          return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 });
-        } finally {
-          URL.revokeObjectURL(url);
-        }
-      })();
+      const clientReady = import("../modules/bitview-client/index.js").then(
+        ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 }),
+      );
       const DAY_ZERO = Date.UTC(2009, 0, 1);
       const DAY_SECONDS = 24 * 60 * 60;
       const LIVE_PRICE_POLL_MS = 1000;
@@ -415,11 +429,20 @@
       });
 
       const REFERENCES = Object.freeze([
-        { key: "all", color: COLORS.orange, style: LineStyle.Dashed },
-        { key: "sth", color: COLORS.yellow, style: LineStyle.Dashed },
-        { key: "lth", color: COLORS.fuchsia, style: LineStyle.Dashed },
-        { key: "sma", color: COLORS.cyan, style: LineStyle.Dotted },
+        { key: "all", label: "Capitalized price", color: COLORS.orange, style: LineStyle.Dashed },
+        { key: "sth", label: "Short-term holders", color: COLORS.yellow, style: LineStyle.Dashed },
+        { key: "lth", label: "Long-term holders", color: COLORS.fuchsia, style: LineStyle.Dashed },
+        { key: "sma", label: "1y average", color: COLORS.cyan, style: LineStyle.Dotted },
       ]);
+
+      // What the reference lines are: the capitalized prices sentiment is scored against.
+      document.getElementById("legend").replaceChildren(...REFERENCES.map(({ label, color, style }) => {
+        const item = document.createElement("li");
+        item.style.setProperty("--line-color", color);
+        item.dataset.style = style === LineStyle.Dotted ? "dotted" : "dashed";
+        item.textContent = label;
+        return item;
+      }));
 
       const chartElement = document.getElementById("chart");
       const statusElement = document.getElementById("status");
@@ -428,6 +451,7 @@
         "sentiment-position",
       );
       const rowsByTime = new Map();
+      /** @type {any} */
       const seriesCache = {};
       const NOT_MODIFIED = Symbol("not-modified");
 
@@ -439,6 +463,8 @@
       let seriesRefreshInFlight = false;
       let livePriceTimer = 0;
       let seriesTimer = 0;
+
+      const compactTick = new Intl.NumberFormat("en-US", { notation: "compact", maximumSignificantDigits: 3 });
 
       function rgba(hex, alpha) {
         const value = Number.parseInt(hex.slice(1), 16);
@@ -562,7 +588,7 @@
 
       async function fetchSeries(name, seriesName, conditional = false) {
         const client = await clientReady;
-        const series = await client.seriesEndpoint(seriesName, "day").fetch();
+        const series = await client.seriesEndpoint(seriesName, "day1").fetch();
         // The client's memory cache returns the same object for an unchanged ETag.
         if (conditional && series === seriesCache[name]) return NOT_MODIFIED;
         if (!Number.isFinite(series.start) || !Array.isArray(series.data)) {
@@ -580,7 +606,7 @@
         );
 
         let changed = false;
-        for (const [name, series] of entries) {
+        for (const [name, series] of /** @type {[string, any][]} */ (entries)) {
           if (series === NOT_MODIFIED) continue;
           seriesCache[name] = series;
           changed = true;
@@ -646,7 +672,7 @@
       async function loadTiny() {
         try {
           const client = await clientReady;
-          const latest = (name) => client.getSeriesLatest(name, "day");
+          const latest = (name) => client.getSeriesLatest(name, "day1");
           const [score, phase, isLong] = await Promise.all([
             latest("capital_sentiment_score"),
             latest("capital_sentiment_phase"),
@@ -815,6 +841,7 @@
             borderVisible: true,
             enableConflation: true,
             lockVisibleTimeRangeOnResize: true,
+            minBarSpacing: 0.05,
             secondsVisible: false,
             shiftVisibleRangeOnNewBar: false,
             timeVisible: false,
@@ -830,7 +857,7 @@
             type: "custom",
             minMove: 0.01,
             formatter: formatPrice,
-            tickmarksFormatter: (values) => values.map(formatPrice),
+            tickmarksFormatter: (values) => values.map((value) => compactTick.format(value)),
           },
           priceLineVisible: false,
           lastValueVisible: false,
@@ -844,7 +871,7 @@
             type: "custom",
             minMove: 0.01,
             formatter: formatPrice,
-            tickmarksFormatter: (values) => values.map(formatPrice),
+            tickmarksFormatter: (values) => values.map((value) => compactTick.format(value)),
           },
           priceLineVisible: false,
           priceLineColor: COLORS.foreground,
@@ -865,7 +892,7 @@
             type: "custom",
             minMove: 0.01,
             formatter: formatPrice,
-            tickmarksFormatter: (values) => values.map(formatPrice),
+            tickmarksFormatter: (values) => values.map((value) => compactTick.format(value)),
           },
           priceLineVisible: false,
           priceLineColor: COLORS.foreground,
@@ -881,7 +908,7 @@
               type: "custom",
               minMove: 0.01,
               formatter: formatPrice,
-              tickmarksFormatter: (values) => values.map(formatPrice),
+              tickmarksFormatter: (values) => values.map((value) => compactTick.format(value)),
             },
             priceLineVisible: false,
             priceLineColor: rgba(definition.color, 0.75),

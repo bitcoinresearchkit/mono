@@ -27,7 +27,7 @@ use tracing::{Span, error, info};
 async fn main() -> Result<()> {
     let _ = init(None);
 
-    // cargo run -p bitview_website --example website -- website_next_next
+    // cargo run -p bitview_website --example website -- showcases
     let website = match env::args_os().nth(1) {
         Some(path) => {
             let path = PathBuf::from(path);

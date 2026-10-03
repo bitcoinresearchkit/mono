@@ -1,6 +1,0 @@
-*/**/*.md
-!scripts/**/_*.js
-*_old.js
-*dump*
-TODO.md
-_explorer.js

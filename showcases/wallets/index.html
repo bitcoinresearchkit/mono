@@ -1,0 +1,3088 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Watch-only Bitcoin wallets: xpubs and descriptors derived on your device, looked up through anonymity sets."
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#0b0b0b" />
+    <title>Wallets · bitview</title>
+    <link rel="preconnect" href="https://bitview.space" crossorigin />
+    <style>
+      @font-face {
+        font-family: Lilex;
+        src: url("../fonts/Lilex.woff2") format("woff2");
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Instrument;
+        src: url("../fonts/InstrumentSerif-Regular.woff2") format("woff2");
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: dark;
+
+        /* A vault: green-black ink, cream paper, brass fittings. */
+        --white: oklch(93% 0.025 85);
+        --gray: oklch(64% 0.025 160);
+        --black: oklch(17% 0.02 165);
+        --panel: oklch(21% 0.022 165);
+        --line: oklch(31% 0.025 165);
+        --red: oklch(70% 0.13 40);
+        --orange: oklch(76% 0.11 80);
+        --green: oklch(76% 0.11 155);
+
+        --font-mono:
+          Lilex, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        --font-serif:
+          Instrument, Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
+        --font-size-xs: 0.75rem;
+        --line-height-xs: calc(1 / 0.75);
+        --font-size-sm: 0.875rem;
+        --line-height-sm: calc(1.25 / 0.875);
+        --font-size-base: 1rem;
+        --line-height-base: 1.5;
+        --font-size-lg: 1.25rem;
+        --line-height-lg: calc(1.5 / 1.25);
+        --font-weight-regular: 400;
+        --font-weight-strong: 450;
+
+        --control-radius: 999rem;
+        --control-padding: 0.7rem 1.1rem;
+        --button-color: var(--white);
+        --button-background: transparent;
+        --button-hover-background: color-mix(in oklch, var(--white) 8%, transparent);
+        --button-active-background: color-mix(in oklch, var(--orange) 25%, transparent);
+        --field-color: light-dark(var(--black), var(--white));
+
+        --page-x: 2rem;
+        --transition-duration: 150ms;
+      }
+
+      @media (max-width: 34rem) {
+        :root {
+          --page-x: 1rem;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      *:not(dialog) {
+        margin: 0;
+      }
+
+      html {
+        background: var(--black);
+        font-family: var(--font-mono);
+      }
+
+      body {
+        min-height: 100dvh;
+        color: var(--white);
+        background: var(--black);
+        line-height: 1.5;
+      }
+
+      input,
+      button,
+      textarea {
+        font: inherit;
+      }
+
+      p,
+      h1,
+      h2,
+      h3 {
+        overflow-wrap: break-word;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        text-wrap: balance;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      a,
+      button,
+      input,
+      label,
+      summary,
+      textarea {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+      }
+
+      button,
+      input,
+      textarea {
+        appearance: none;
+        min-width: 0;
+        border-radius: var(--control-radius);
+        padding: var(--control-padding);
+        font-size: var(--font-size-sm);
+        line-height: 1;
+
+        &:focus-visible {
+          outline: 2px solid var(--orange);
+          outline-offset: 2px;
+        }
+      }
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        color: var(--button-color);
+        background: var(--button-background);
+        font-size: var(--font-size-xs);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        transition:
+          background var(--transition-duration) ease,
+          border-color var(--transition-duration) ease;
+        -webkit-user-select: none;
+        user-select: none;
+        cursor: pointer;
+
+        @media (hover: hover) and (pointer: fine) {
+          &:hover {
+            background: var(--button-hover-background);
+          }
+        }
+
+        &:active {
+          background: var(--button-active-background);
+        }
+
+        &[data-press] {
+          background: var(--button-hover-background);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: progress;
+        }
+      }
+
+      button[type="submit"],
+      [data-summary] > button,
+      [data-empty] menu > button:first-child {
+        --button-color: var(--black);
+        --button-background: var(--orange);
+        --button-hover-background: oklch(from var(--orange) calc(l + 0.06) c h);
+        --button-active-background: oklch(from var(--orange) calc(l - 0.06) c h);
+
+        border-color: transparent;
+      }
+
+      input,
+      textarea {
+        border: 1px solid var(--line);
+        color: var(--field-color);
+        background: transparent;
+
+        @media (hover: hover) and (pointer: fine) {
+          &:hover {
+            border-color: var(--field-color);
+          }
+        }
+
+        &:active {
+          border-color: var(--orange);
+        }
+
+        &[aria-invalid="true"] {
+          border-color: var(--red);
+          color: var(--red);
+
+          &::placeholder {
+            color: var(--red);
+          }
+        }
+
+        &::placeholder {
+          color: color-mix(in oklch, var(--field-color) 70%, transparent);
+        }
+      }
+
+      input {
+        height: 2.5rem;
+      }
+
+      textarea {
+        min-height: 7rem;
+        border-radius: 0.75rem;
+        line-height: var(--line-height-sm);
+        resize: vertical;
+      }
+
+      ::selection {
+        color: var(--black);
+        background-color: var(--orange);
+      }
+
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--gray) transparent;
+      }
+
+      /* Header ------------------------------------------------------------ */
+
+      .site-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        width: min(100%, 72rem);
+        margin-inline: auto;
+        padding: 1.25rem var(--page-x);
+        line-height: 1;
+
+        > [data-server] {
+          margin-left: auto;
+        }
+
+        @media (max-width: 34rem) {
+          flex-wrap: wrap;
+          row-gap: 0.75rem;
+
+          > [data-server] {
+            order: 3;
+            width: 100%;
+            margin-left: 0;
+          }
+
+          > footer {
+            margin-left: auto;
+          }
+        }
+
+        > footer {
+          display: flex;
+          gap: 0.5rem;
+
+          > button {
+            padding: 0.5rem 0.8rem;
+          }
+        }
+      }
+
+      .site-brand {
+        --brand-color: var(--white);
+
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--brand-color);
+        font-size: var(--font-size-base);
+        text-decoration: none;
+        text-transform: lowercase;
+        opacity: 0.82;
+        transition: opacity 150ms ease;
+
+        &:hover,
+        &:focus-visible {
+          opacity: 1;
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--white);
+          outline-offset: 0.35rem;
+        }
+
+        &:active {
+          --brand-color: var(--orange);
+        }
+      }
+
+      .site-brand-mark {
+        display: inline-grid;
+        padding: 0.2rem 0.3rem;
+        border-radius: 0.25rem;
+        place-items: center;
+        color: var(--black);
+        background: var(--brand-color);
+      }
+
+      .site-brand-cube {
+        display: block;
+        width: 1.299rem;
+        height: 1.5rem;
+        overflow: hidden;
+
+        .glass {
+          fill: currentColor;
+          fill-opacity: 0.4;
+        }
+
+        .liquid {
+          fill: currentColor;
+        }
+
+        .liquid-group {
+          transform-box: view-box;
+          animation: brand-fill 5s linear infinite alternate;
+        }
+      }
+
+      @keyframes brand-fill {
+        from {
+          transform: translateY(49.5%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      [data-server] {
+        color: var(--gray);
+        font-size: var(--font-size-xs);
+
+        &::before {
+          content: "";
+          display: inline-block;
+          width: 0.4rem;
+          height: 0.4rem;
+          margin-right: 0.4rem;
+          border-radius: 50%;
+          background: var(--gray);
+          vertical-align: 0.1em;
+        }
+
+        &[data-local]::before {
+          background: var(--green);
+        }
+      }
+
+      /* Dialogs ----------------------------------------------------------- */
+
+      dialog[data-dialog] {
+        --dialog-space: 1.5rem;
+
+        color-scheme: light;
+        width: min(100% - 2rem, 30rem);
+        border: 0;
+        border-radius: var(--dialog-space);
+        padding: var(--dialog-space);
+        --line: oklch(80% 0.03 85);
+        --button-color: var(--black);
+        --button-hover-background: color-mix(in oklch, var(--black) 7%, transparent);
+        --field-color: var(--black);
+
+        color: var(--black);
+        background: var(--white);
+        opacity: 0;
+        translate: 0 0.5rem;
+        transition:
+          opacity var(--transition-duration) ease,
+          translate var(--transition-duration) ease,
+          display var(--transition-duration) allow-discrete,
+          overlay var(--transition-duration) allow-discrete;
+
+        &[open] {
+          opacity: 1;
+          translate: 0;
+        }
+
+        &::backdrop {
+          background: color-mix(in oklch, var(--black) 72%, transparent);
+          opacity: 0;
+          transition:
+            opacity var(--transition-duration) ease,
+            display var(--transition-duration) allow-discrete,
+            overlay var(--transition-duration) allow-discrete;
+        }
+
+        &[open]::backdrop {
+          opacity: 1;
+        }
+
+        @starting-style {
+          &[open] {
+            opacity: 0;
+            translate: 0 0.5rem;
+          }
+
+          &[open]::backdrop {
+            opacity: 0;
+          }
+        }
+      }
+
+      /* Page -------------------------------------------------------------- */
+
+      main {
+        --offset: 4rem;
+
+        display: grid;
+        gap: 2rem;
+        align-content: start;
+        width: min(100%, 72rem);
+        margin-inline: auto;
+        padding: 0.5rem var(--page-x) 5rem;
+
+        output {
+          display: block;
+          min-height: var(--line-height-sm);
+          color: var(--gray);
+          font-size: var(--font-size-sm);
+          line-height: var(--line-height-sm);
+        }
+
+        > article {
+          display: grid;
+          gap: 1.75rem;
+          align-content: start;
+          min-width: 0;
+        }
+
+        label {
+          display: grid;
+          gap: 0.375rem;
+          min-width: 0;
+
+          > span {
+            color: var(--gray);
+            font-size: var(--font-size-xs);
+            line-height: var(--line-height-xs);
+            text-transform: uppercase;
+          }
+        }
+      }
+
+      [data-amount] [data-muted] {
+        color: color-mix(in oklch, currentColor 45%, transparent);
+      }
+
+      /* Hold-to-confirm buttons */
+
+      [data-hold] {
+        --hold-progress: 0;
+        --hold-progress-width: 0%;
+
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        color: color-mix(in oklch, var(--gray) 76%, transparent);
+        background: transparent;
+
+        &::before,
+        &::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+        }
+
+        &::before {
+          z-index: -1;
+          background: var(--red);
+          transform: scaleX(var(--hold-progress));
+          transform-origin: left;
+        }
+
+        &::after {
+          content: attr(data-label);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: inherit;
+          color: var(--black);
+          white-space: nowrap;
+          clip-path: inset(0 calc(100% - var(--hold-progress-width)) 0 0);
+          pointer-events: none;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+          &:hover:not([data-holding]) {
+            color: var(--red);
+            background: transparent;
+          }
+        }
+
+        &:is(:focus-visible, :active, [data-press]):not([data-holding]),
+        &[data-active] {
+          color: var(--red);
+          background: transparent;
+        }
+
+        &[data-active]::before,
+        &[data-active]::after {
+          opacity: 1;
+        }
+      }
+
+      /* Start */
+
+      [data-start] {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(19rem, 26rem);
+        gap: 4rem;
+        align-items: center;
+        width: min(100%, 68rem);
+        min-height: calc(100dvh - 2 * var(--offset));
+        margin-inline: auto;
+
+        @media (max-width: 56rem) {
+          grid-template-columns: 1fr;
+          gap: 2rem;
+          align-content: center;
+          width: min(100%, 39rem);
+          margin-inline: 0 auto;
+        }
+
+        > article {
+          display: grid;
+          gap: 0.875rem;
+
+          > p,
+          li {
+            max-width: 35rem;
+            font-size: var(--font-size-base);
+            line-height: var(--line-height-base);
+          }
+
+          > ul {
+            display: grid;
+            gap: 0.75rem;
+            margin: 0.5rem 0 0;
+            padding: 0;
+            list-style: none;
+          }
+
+          li {
+            display: grid;
+            grid-template-columns: 1rem minmax(0, 1fr);
+            gap: 0.75rem;
+
+            &::before {
+              content: "";
+              width: 0.5rem;
+              height: 0.5rem;
+              margin-top: 0.5rem;
+              border: 1px solid var(--orange);
+              border-radius: 50%;
+            }
+          }
+
+          > hr {
+            width: min(100%, 34rem);
+            height: 0.5px;
+            margin: 0.125rem 0 0;
+            border: 0;
+            background: var(--gray);
+          }
+
+          > small {
+            max-width: 34rem;
+            color: var(--gray);
+            font-size: var(--font-size-sm);
+            line-height: var(--line-height-sm);
+
+            a {
+              color: inherit;
+            }
+          }
+        }
+
+        h1 {
+          font-size: 4.5rem;
+          line-height: 0.95;
+
+          span {
+            color: var(--orange);
+          }
+
+          @media (max-width: 34rem) {
+            font-size: 3.5rem;
+          }
+        }
+
+        > div {
+          display: grid;
+          gap: 0.875rem;
+          width: 100%;
+
+          > section {
+            display: grid;
+            gap: 0.5rem;
+          }
+
+          > p {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 0.625rem;
+            align-items: center;
+            color: var(--gray);
+            font-size: var(--font-size-xs);
+            line-height: 1;
+
+            &::before,
+            &::after {
+              content: "";
+              height: 0.5px;
+              background: var(--gray);
+            }
+          }
+
+          h2 {
+            font-family: var(--font-mono);
+            font-size: var(--font-size-sm);
+            line-height: var(--line-height-sm);
+          }
+
+          section > p {
+            color: var(--gray);
+            font-size: var(--font-size-sm);
+            line-height: var(--line-height-sm);
+          }
+
+          form {
+            display: flex;
+            width: 100%;
+
+            input {
+              flex: 1 1 auto;
+              border-top-right-radius: 0;
+              border-bottom-right-radius: 0;
+            }
+
+            button {
+              border-top-left-radius: 0;
+              border-bottom-left-radius: 0;
+            }
+
+            @media (max-width: 34rem) {
+              flex-direction: column;
+
+              input {
+                border-top-right-radius: var(--control-radius);
+                border-bottom-left-radius: 0;
+              }
+
+              button {
+                border-top-right-radius: 0;
+                border-bottom-left-radius: var(--control-radius);
+              }
+            }
+          }
+
+          section > button {
+            width: 100%;
+          }
+        }
+      }
+
+      /* Empty */
+
+      [data-empty] {
+        display: grid;
+        gap: 1rem;
+        place-content: center;
+        min-height: calc(100dvh - 2 * var(--offset));
+        text-align: center;
+
+        h1 {
+          font-size: 4rem;
+          line-height: 1;
+        }
+
+        p {
+          max-width: 31rem;
+          color: var(--gray);
+          font-size: var(--font-size-base);
+          line-height: var(--line-height-base);
+        }
+
+        > menu {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+          justify-content: center;
+          padding: 0;
+        }
+      }
+
+      /* Add */
+
+      [data-add] {
+        display: grid;
+        gap: 1.25rem;
+
+        > h2 {
+          font-size: 2.5rem;
+          line-height: 1;
+        }
+
+        > p {
+          color: var(--gray);
+          font-size: var(--font-size-sm);
+          line-height: var(--line-height-sm);
+        }
+
+        > footer {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.5rem;
+        }
+      }
+
+      /* Selector */
+
+      [data-selector] {
+        min-width: 0;
+
+        > nav {
+          display: flex;
+          gap: 0.5rem;
+          min-width: 0;
+          overflow-x: auto;
+          padding-bottom: 0.25rem;
+          overscroll-behavior-inline: contain;
+          scroll-padding-inline: var(--page-x);
+          scroll-snap-type: x proximity;
+
+          > button {
+            flex: 0 0 auto;
+            scroll-snap-align: center;
+            line-height: 1;
+          }
+
+          /* Wallet names read as names, not commands. */
+          > button[aria-pressed] {
+            font-size: var(--font-size-sm);
+            letter-spacing: 0;
+            text-transform: none;
+
+            &[aria-pressed="true"] {
+              --button-color: var(--black);
+              --button-background: var(--white);
+              --button-hover-background: var(--white);
+
+              border-color: var(--white);
+            }
+          }
+
+          > button:not([aria-pressed], [data-hold]) {
+            border-style: dashed;
+          }
+
+          > [data-hold] {
+            border-color: transparent;
+          }
+        }
+      }
+
+      /* Wallet */
+
+      [data-summary] {
+        display: flex;
+        gap: 1rem;
+        align-items: end;
+        justify-content: space-between;
+        min-height: 5rem;
+
+        @media (max-width: 34rem) {
+          display: grid;
+          justify-items: start;
+        }
+
+        > p {
+          display: grid;
+          gap: 0.75rem;
+
+          &::before {
+            content: "Balance";
+            color: var(--gray);
+            font-size: var(--font-size-xs);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+          }
+
+          strong {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            font-family: var(--font-serif);
+            font-size: clamp(3.25rem, 11vw, 6rem);
+            font-weight: var(--font-weight-regular);
+            letter-spacing: -0.01em;
+            line-height: 0.9;
+          }
+
+          > span {
+            color: var(--gray);
+            font-size: var(--font-size-base);
+            line-height: var(--line-height-base);
+          }
+        }
+
+        > button {
+          flex: 0 0 auto;
+        }
+      }
+
+      [data-tabs] {
+        display: grid;
+        gap: 1rem;
+        min-width: 0;
+
+        > nav {
+          display: flex;
+          gap: 1.75rem;
+          overflow-x: auto;
+          border-bottom: 1px solid var(--line);
+
+          > button {
+            border: 0;
+            border-radius: 0;
+            padding: 0.9rem 0;
+            color: var(--gray);
+            background: none;
+
+            &[aria-selected="true"] {
+              color: var(--white);
+              box-shadow: inset 0 -2px var(--orange);
+            }
+
+            @media (hover: hover) and (pointer: fine) {
+              &:hover {
+                color: var(--white);
+                background: none;
+              }
+            }
+          }
+        }
+
+        /* The tabs already name each panel. */
+        [role="tabpanel"] h2 {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
+        }
+
+        h3 {
+          color: var(--gray);
+          font-family: var(--font-mono);
+          font-size: var(--font-size-xs);
+          line-height: var(--line-height-xs);
+          text-transform: uppercase;
+        }
+
+        section > p,
+        [data-note] {
+          color: var(--gray);
+          font-size: var(--font-size-sm);
+          line-height: var(--line-height-sm);
+        }
+
+        [role="tabpanel"] > section {
+          display: grid;
+          gap: 1rem;
+        }
+
+        ol,
+        ul {
+          display: grid;
+          gap: 0.25rem;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+
+        code {
+          color: inherit;
+          font-family: inherit;
+        }
+      }
+
+      [data-row] {
+        border-bottom: 1px solid var(--line);
+      }
+
+      /* Balance over time, rebuilt from the wallet's own history. */
+      [data-balance-chart] {
+        display: grid;
+        gap: 0.5rem;
+        margin: 0;
+
+        svg {
+          display: block;
+          width: 100%;
+          height: clamp(7rem, 18vw, 11rem);
+          overflow: visible;
+        }
+
+        [data-area] {
+          fill: url(#balance-fill);
+        }
+
+        [data-line] {
+          fill: none;
+          stroke: var(--orange);
+          stroke-width: 1.5;
+          vector-effect: non-scaling-stroke;
+        }
+
+        [data-baseline] {
+          stroke: var(--line);
+          vector-effect: non-scaling-stroke;
+        }
+
+        figcaption {
+          display: flex;
+          justify-content: space-between;
+          gap: 1rem;
+          color: var(--gray);
+          font-size: var(--font-size-xs);
+          line-height: var(--line-height-xs);
+        }
+      }
+
+      [data-activity] > section {
+        display: grid;
+        gap: 0.5rem;
+
+        details[open] {
+          display: grid;
+          gap: 0.75rem;
+          padding-bottom: 0.875rem;
+        }
+
+        summary {
+          display: grid;
+          gap: 0.25rem;
+          padding: 0.875rem 0;
+          list-style: none;
+          cursor: pointer;
+
+          &::-webkit-details-marker {
+            display: none;
+          }
+
+          > p {
+            min-width: 0;
+            color: var(--gray);
+            font-size: var(--font-size-sm);
+            line-height: var(--line-height-sm);
+          }
+        }
+
+        details > section {
+          display: grid;
+          gap: 1rem;
+
+          > code {
+            overflow-wrap: anywhere;
+          }
+
+          > p {
+            color: var(--gray);
+            font-size: var(--font-size-sm);
+          }
+
+          > ul {
+            gap: 0.75rem;
+          }
+        }
+      }
+
+      [data-row-head] {
+        display: flex;
+        gap: 1rem;
+        align-items: baseline;
+        justify-content: space-between;
+        min-width: 0;
+
+        strong {
+          font-weight: var(--font-weight-strong);
+        }
+
+        > span {
+          white-space: nowrap;
+
+          &[data-tone="positive"] {
+            color: var(--green);
+          }
+
+          &[data-tone="negative"] {
+            color: var(--red);
+          }
+        }
+      }
+
+      [data-holdings] li,
+      [data-addresses] li {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.25rem 1rem;
+        align-items: center;
+        padding: 0.875rem 0;
+
+        @media (max-width: 34rem) {
+          grid-template-columns: 1fr;
+        }
+
+        > p {
+          min-width: 0;
+          color: var(--gray);
+          font-size: var(--font-size-sm);
+          line-height: var(--line-height-sm);
+        }
+      }
+
+      [data-holdings] li > [data-address-cell] {
+        grid-column: 1 / -1;
+      }
+
+      [data-addresses] li > p {
+        white-space: nowrap;
+      }
+
+      [data-address-cell] {
+        display: grid;
+        gap: 0.25rem;
+
+        > b {
+          display: inline-flex;
+          align-items: center;
+          justify-self: start;
+          min-height: 1rem;
+          border: 1px solid color-mix(in oklch, var(--gray) 28%, transparent);
+          border-radius: 0.25rem;
+          padding: 0 0.25rem;
+          color: color-mix(in oklch, var(--white) 76%, var(--gray));
+          font-weight: var(--font-weight-regular);
+          line-height: 1;
+        }
+
+        > small {
+          color: var(--gray);
+          font-size: var(--font-size-xs);
+          line-height: var(--line-height-xs);
+        }
+      }
+
+      [data-grouped] {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 0.375rem;
+        max-width: 40rem;
+
+        > span {
+          white-space: nowrap;
+
+          > var {
+            color: color-mix(in oklch, currentColor 50%, var(--gray));
+            font-style: normal;
+          }
+        }
+      }
+
+      dialog[data-receive] {
+        --dialog-space: 1rem;
+
+        width: min(100% - 2rem, 10rem);
+        border-radius: 0.125rem;
+
+        > article {
+          position: relative;
+          display: grid;
+          gap: 0.375rem;
+          cursor: pointer;
+
+          &:focus-visible {
+            outline: 2px solid var(--orange);
+            outline-offset: 0.25rem;
+          }
+
+          &::after {
+            content: "Copied";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            font-size: var(--font-size-sm);
+            text-transform: uppercase;
+            opacity: 0;
+            translate: -50% calc(-50% + 0.25rem);
+            transition:
+              opacity 150ms ease,
+              translate 150ms ease;
+            pointer-events: none;
+          }
+
+          &[data-copied]::after {
+            opacity: 1;
+            translate: -50% -50%;
+          }
+
+          > * {
+            transition: opacity 150ms ease;
+          }
+
+          &[data-copied] > * {
+            opacity: 0.1;
+          }
+
+          > img {
+            width: 100%;
+            aspect-ratio: 1;
+            image-rendering: pixelated;
+          }
+
+          > p {
+            font-size: var(--font-size-xs);
+            font-style: italic;
+            line-height: var(--line-height-xs);
+          }
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .site-brand-cube .liquid-group {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-brand" href="https://bitview.space" aria-label="bitview home">
+        <span class="site-brand-mark" aria-hidden="true">
+          <svg class="site-brand-cube" viewBox="0 0 173.2 200" focusable="false">
+            <defs>
+              <clipPath id="site-brand-cube-clip">
+                <polygon points="86.6,0 173.2,50 173.2,150 86.6,200 0,150 0,50" />
+              </clipPath>
+            </defs>
+            <polygon class="glass" points="86.6,100 173.2,150 86.6,200 0,150" />
+            <polygon class="glass" points="86.6,100 0,150 0,50 86.6,0" />
+            <polygon class="glass" points="86.6,100 173.2,150 173.2,50 86.6,0" />
+            <g clip-path="url(#site-brand-cube-clip)">
+              <g class="liquid-group">
+                <polygon class="liquid" points="86.6,0 173.2,50 86.6,100 0,50" />
+                <polygon class="liquid" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+                <polygon class="liquid" points="0,50 0,150 86.6,200 86.6,100" />
+              </g>
+            </g>
+            <polygon class="glass" points="0,50 86.6,0 173.2,50 86.6,100" />
+            <polygon class="glass" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+            <polygon class="glass" points="0,50 0,150 86.6,200 86.6,100" />
+          </svg>
+        </span>
+        <span>bitview</span>
+      </a>
+      <span data-server></span>
+    </header>
+
+    <main></main>
+
+    <noscript><p>JavaScript is required: addresses are derived on your device.</p></noscript>
+
+    <!-- Styles and code are inline, keys never leave the page. The generated client and the QR
+         encoder load from ../modules; everything else is derived here. -->
+    <script type="module">
+      // @ts-check
+      // Config ---------------------------------------------------------------
+
+      const DEFAULT_SERVER = "https://bitview.space";
+
+      /** Local and private-network hosts: your own node, which sees every address anyway. */
+      function isPrivateHost(hostname) {
+        const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+        const octets = host.split(".").map(Number);
+        const ipv4 = octets.length === 4 && octets.every((part) => Number.isInteger(part) && part >= 0 && part <= 255);
+        const [a, b] = octets;
+
+        return (
+          ["localhost", "127.0.0.1", "0.0.0.0", "::1"].includes(host) ||
+          host.endsWith(".local") ||
+          (ipv4 && (a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)))
+        );
+      }
+
+      /**
+       * `?server=http://localhost:3110` sends lookups to your own node instead. Only private hosts are
+       * honored: a link could otherwise route every address to a server that unmasks them. Code
+       * comes from ../modules, never from the data server.
+       */
+      const SERVER = (() => {
+        try {
+          const url = new URL(new URLSearchParams(location.search).get("server") ?? "");
+          if ((url.protocol === "http:" || url.protocol === "https:") && isPrivateHost(url.hostname)) {
+            return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
+          }
+        } catch {}
+        return DEFAULT_SERVER;
+      })();
+      const isLocalServer = SERVER !== DEFAULT_SERVER;
+      const REQUEST_TIMEOUT_MS = 15_000;
+      const SATS_PER_BTC = 100_000_000;
+      const STORAGE_KEY = "bitview.wallets.v3";
+
+      const GAP_LIMIT = 10;
+      const MAX_SCANNED_ADDRESSES = 1_000;
+      const LOOKUP_CONCURRENCY = 8;
+      const BRANCH_SCAN_CONCURRENCY = 2;
+      const SCRIPT_SCAN_CONCURRENCY = 2;
+      const MIN_PREFIX_NIBBLES = 4;
+      const MAX_PREFIX_NIBBLES = 16;
+      const BUCKET_CONCURRENCY = 2;
+      const MEMBER_CONCURRENCY = 4;
+
+      // DOM ------------------------------------------------------------------
+
+      /**
+       * @template {keyof HTMLElementTagNameMap} K
+       * @param {K} tag
+       * @param {Record<string, string | number | boolean | null | undefined> | null} [attributes]
+       * @param {...(Node | string | number | null | undefined | false)} children
+       * @returns {HTMLElementTagNameMap[K]}
+       */
+      function el(tag, attributes, ...children) {
+        const node = document.createElement(tag);
+
+        for (const [name, value] of Object.entries(attributes ?? {})) {
+          if (value == null || value === false) continue;
+          node.setAttribute(name, value === true ? "" : String(value));
+        }
+
+        for (const child of children) {
+          if (child != null && child !== false) node.append(child instanceof Node ? child : String(child));
+        }
+
+        return node;
+      }
+
+      function trackPress() {
+        const selector = "a[href], button:not(:disabled), input, label, summary, textarea";
+        let pressed = null;
+        const clear = () => {
+          pressed?.removeAttribute("data-press");
+          pressed = null;
+        };
+
+        document.addEventListener("pointerdown", (event) => {
+          if (event.pointerType === "mouse" || !(event.target instanceof Element)) return;
+          clear();
+          pressed = event.target.closest(selector);
+          pressed?.setAttribute("data-press", "");
+        }, { passive: true });
+        document.addEventListener("pointerup", clear, { passive: true });
+        document.addEventListener("pointercancel", clear, { passive: true });
+        addEventListener("blur", clear);
+      }
+
+      const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const errorMessage = (error) =>
+        error instanceof TypeError && /fetch|network|load failed/i.test(error.message)
+          ? `${new URL(SERVER).host} unreachable`
+          : error instanceof Error ? error.message : "Request failed";
+
+      async function withBusy(button, busyLabel, task) {
+        const idleLabel = button.textContent;
+        button.disabled = true;
+        button.ariaBusy = "true";
+        button.textContent = busyLabel;
+
+        try {
+          return await task();
+        } finally {
+          button.disabled = false;
+          button.ariaBusy = "false";
+          button.textContent = idleLabel;
+        }
+      }
+
+      function openDialog(dialog) {
+        dialog.dataset.dialog = "";
+        document.body.append(dialog);
+        dialog.addEventListener("click", (event) => {
+          if (event.target === dialog) dialog.close();
+        });
+        dialog.addEventListener("close", async () => {
+          await wait(200);
+          dialog.remove();
+        }, { once: true });
+        dialog.showModal();
+      }
+
+      /** Runs `fn` over `items` with at most `limit` in flight, keeping order. */
+      async function mapConcurrent(items, limit, fn) {
+        const results = [];
+        let next = 0;
+
+        await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+          while (next < items.length) {
+            const index = next++;
+            results[index] = await fn(items[index]);
+          }
+        }));
+
+        return results;
+      }
+
+      // Network --------------------------------------------------------------
+
+      /** @template T @param {() => Promise<T>} load @returns {() => Promise<T>} */
+      function lazy(load) {
+        /** @type {Promise<T> | null} */
+        let promise = null;
+
+        return () => (promise ??= load().catch((error) => {
+          promise = null;
+          throw error;
+        }));
+      }
+
+      /** Nothing is cached on disk or in memory: address lookups stay ephemeral. */
+      const loadClient = lazy(async () => {
+        const { BitviewClient } = await import("../modules/bitview-client/index.js");
+        return new BitviewClient({ baseUrl: SERVER, timeout: REQUEST_TIMEOUT_MS, browserCache: false, memCache: false });
+      });
+
+      /** lean-qr ships ambient module types that don't reach its bundled build: type what's used. */
+      const loadQr = lazy(async () => {
+        const { generate } = await import("../modules/lean-qr/2.7.3/index.mjs");
+        return /** @type {(text: string) => { toDataURL(options: { padX: number, padY: number, scale: number }): string } | undefined} */ (
+          /** @type {unknown} */ (generate)
+        );
+      });
+
+      const isNotFound = (error) => error?.status === 404;
+
+      // Amounts --------------------------------------------------------------
+
+      const MASK = "*****";
+
+      function pushPart(parts, text, muted) {
+        const last = parts.at(-1);
+        if (last?.muted === muted) last.text += text;
+        else parts.push({ text, muted });
+      }
+
+      /** ₿ amounts with insignificant digits muted, grouped 2·3·3 after the point. */
+      function btcParts(sats, signed = false) {
+        const parts = [];
+        const absolute = Math.abs(sats);
+        const whole = Math.floor(absolute / SATS_PER_BTC);
+        const fraction = String(absolute % SATS_PER_BTC).padStart(8, "0");
+        const firstDigit = fraction.search(/[1-9]/);
+        const lastDigit = fraction.search(/0*$/) - 1;
+        const pushFraction = (isMuted, isSpaceMuted) => {
+          for (let index = 0; index < fraction.length; index += 1) {
+            pushPart(parts, fraction[index], isMuted(index));
+            if (index === 1 || index === 4) pushPart(parts, " ", isSpaceMuted(index));
+          }
+        };
+
+        if (signed && sats > 0) pushPart(parts, "+", false);
+        if (sats < 0) pushPart(parts, "-", false);
+        pushPart(parts, "₿", true);
+
+        if (whole === 0) {
+          const mutedUntil = firstDigit === -1 ? fraction.length : firstDigit;
+          pushPart(parts, "0.", true);
+          pushFraction((index) => index < mutedUntil, (index) => index < mutedUntil);
+        } else if (lastDigit === -1) {
+          pushPart(parts, String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, " "), false);
+          pushPart(parts, ".", true);
+          pushFraction(() => true, () => true);
+        } else {
+          pushPart(parts, `${String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}.`, false);
+          pushFraction((index) => index > lastDigit, (index) => index >= lastDigit);
+        }
+
+        return parts;
+      }
+
+      const formatNumber = (value) => new Intl.NumberFormat("en-US").format(value);
+      const formatUsd = (dollars) =>
+        new Intl.NumberFormat("en-US", { currency: "USD", maximumFractionDigits: 0, style: "currency" }).format(dollars);
+      const plural = (count, one, many) => `${formatNumber(count)} ${count === 1 ? one : many}`;
+      const shortTxid = (txid) => (txid.length > 16 ? `${txid.slice(0, 8)}...${txid.slice(-8)}` : txid);
+
+      // Privacy mode: every sensitive value re-renders when toggled ----------------------
+
+      const redaction = (() => {
+        let hidden = false;
+        const effects = [];
+        const mask = (value) => value.replace(/\S/g, "*");
+        const addEffect = (element, sync) => {
+          effects.push({ element, sync });
+          sync();
+          return element;
+        };
+
+        return {
+          isHidden: () => hidden,
+          mask,
+          addEffect,
+          value: (element, value, fixed = false) =>
+            addEffect(element, () => {
+              element.textContent = hidden ? (fixed ? MASK : mask(value)) : value;
+            }),
+          title: (element, value) =>
+            addEffect(element, () => {
+              element.title = hidden ? mask(value) : value;
+            }),
+          textarea: (input) =>
+            addEffect(input, () => {
+              input.style.setProperty("-webkit-text-security", hidden ? "disc" : "");
+            }),
+          toggle() {
+            hidden = !hidden;
+            for (let index = effects.length - 1; index >= 0; index -= 1) {
+              if (effects[index].element.isConnected) effects[index].sync();
+              else effects.splice(index, 1);
+            }
+          },
+        };
+      })();
+
+      function btcAmount(tag, sats, signed = false) {
+        const element = el(tag, { "data-amount": true });
+
+        return redaction.addEffect(element, () => {
+          if (redaction.isHidden()) {
+            element.textContent = MASK;
+            return;
+          }
+          element.replaceChildren(...btcParts(sats, signed).map(({ text, muted }) => (muted ? el("span", { "data-muted": true }, text) : text)));
+        });
+      }
+
+      /** Groups of four, digits dimmed: easier to compare by eye. */
+      function groupedAddress(text) {
+        const element = el("code", { "data-grouped": true });
+        const groups = text.match(/.{1,4}/g) ?? [];
+
+        groups.forEach((group, index) => {
+          element.append(el("span", null, ...[...group].map((character) => (/\d/.test(character) ? el("var", null, character) : character))));
+          if (index < groups.length - 1) element.append(" ");
+        });
+
+        return element;
+      }
+
+      function privateAddress(address) {
+        const element = el("code", { "data-grouped": true });
+        return redaction.addEffect(element, () => {
+          element.replaceChildren(...groupedAddress(redaction.isHidden() ? redaction.mask(address) : address).childNodes);
+        });
+      }
+
+      // Bytes and hashes -----------------------------------------------------
+
+      function concatBytes(parts) {
+        const bytes = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
+        let offset = 0;
+        for (const part of parts) {
+          bytes.set(part, offset);
+          offset += part.length;
+        }
+        return bytes;
+      }
+
+      const readUint32 = (bytes, start) => bytes[start] * 0x1000000 + bytes[start + 1] * 0x10000 + bytes[start + 2] * 0x100 + bytes[start + 3];
+      const writeUint32 = (value) => Uint8Array.of(value >>> 24, value >>> 16, value >>> 8, value);
+      /** @param {Uint8Array} bytes */
+      function bytesToBigInt(bytes) {
+        let value = 0n;
+        for (const byte of bytes) value = (value << 8n) + BigInt(byte);
+        return value;
+      }
+
+      function bigIntToBytes(value, length) {
+        const bytes = new Uint8Array(length);
+        for (let index = length - 1; index >= 0; index -= 1) {
+          bytes[index] = Number(value & 0xffn);
+          value >>= 8n;
+        }
+        return bytes;
+      }
+
+      const sha256 = async (bytes) => new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+
+      async function hmacSha512(key, bytes) {
+        const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-512" }, false, ["sign"]);
+        return new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, bytes));
+      }
+
+      /** RIPEMD-160: absent from Web Crypto. */
+      const ripemd160 = (() => {
+        const LEFT_INDEXES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8, 3, 10, 14, 4, 9, 15, 8, 1, 2, 7, 0, 6, 13, 11, 5, 12, 1, 9, 11, 10, 0, 8, 12, 4, 13, 3, 7, 15, 14, 5, 6, 2, 4, 0, 5, 9, 7, 12, 2, 10, 14, 1, 3, 8, 11, 6, 15, 13];
+        const RIGHT_INDEXES = [5, 14, 7, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12, 6, 11, 3, 7, 0, 13, 5, 10, 14, 15, 8, 12, 4, 9, 1, 2, 15, 5, 1, 3, 7, 14, 6, 9, 11, 8, 12, 2, 10, 0, 4, 13, 8, 6, 4, 1, 3, 11, 15, 0, 5, 12, 2, 13, 9, 7, 10, 14, 12, 15, 10, 4, 1, 5, 8, 7, 6, 2, 13, 14, 0, 3, 9, 11];
+        const LEFT_SHIFTS = [11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8, 7, 6, 8, 13, 11, 9, 7, 15, 7, 12, 15, 9, 11, 7, 13, 12, 11, 13, 6, 7, 14, 9, 13, 15, 14, 8, 13, 6, 5, 12, 7, 5, 11, 12, 14, 15, 14, 15, 9, 8, 9, 14, 5, 6, 8, 6, 5, 12, 9, 15, 5, 11, 6, 8, 13, 12, 5, 12, 13, 14, 11, 8, 5, 6];
+        const RIGHT_SHIFTS = [8, 9, 9, 11, 13, 15, 15, 5, 7, 7, 8, 11, 14, 14, 12, 6, 9, 13, 15, 7, 12, 8, 9, 11, 7, 7, 12, 7, 6, 15, 13, 11, 9, 7, 15, 11, 8, 6, 6, 14, 12, 13, 5, 14, 13, 13, 7, 5, 15, 5, 8, 11, 14, 14, 6, 14, 6, 9, 12, 9, 12, 5, 15, 8, 8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11];
+        const LEFT_CONSTANTS = [0x00000000, 0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xa953fd4e];
+        const RIGHT_CONSTANTS = [0x50a28be6, 0x5c4dd124, 0x6d703ef3, 0x7a6d76e9, 0x00000000];
+        const rotate = (value, bits) => (value << bits) | (value >>> (32 - bits));
+        const f = (round, x, y, z) =>
+          round < 16 ? x ^ y ^ z : round < 32 ? (x & y) | (~x & z) : round < 48 ? (x | ~y) ^ z : round < 64 ? (x & z) | (y & ~z) : x ^ (y | ~z);
+
+        return (bytes) => {
+          const padded = new Uint8Array(Math.ceil((bytes.length + 9) / 64) * 64);
+          const view = new DataView(padded.buffer);
+          let h = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0];
+
+          padded.set(bytes);
+          padded[bytes.length] = 0x80;
+          view.setUint32(padded.length - 8, (bytes.length * 8) >>> 0, true);
+          view.setUint32(padded.length - 4, Math.floor((bytes.length * 8) / 2 ** 32), true);
+
+          for (let offset = 0; offset < padded.length; offset += 64) {
+            const words = Array.from({ length: 16 }, (_, index) => view.getInt32(offset + index * 4, true));
+            let [al, bl, cl, dl, el_] = h;
+            let [ar, br, cr, dr, er] = h;
+
+            for (let round = 0; round < 80; round += 1) {
+              const group = Math.floor(round / 16);
+              const left = (rotate((al + f(round, bl, cl, dl) + words[LEFT_INDEXES[round]] + LEFT_CONSTANTS[group]) | 0, LEFT_SHIFTS[round]) + el_) | 0;
+              const right = (rotate((ar + f(79 - round, br, cr, dr) + words[RIGHT_INDEXES[round]] + RIGHT_CONSTANTS[group]) | 0, RIGHT_SHIFTS[round]) + er) | 0;
+
+              [al, el_, dl, cl, bl] = [el_, dl, rotate(cl, 10), bl, left];
+              [ar, er, dr, cr, br] = [er, dr, rotate(cr, 10), br, right];
+            }
+
+            h = [(h[1] + cl + dr) | 0, (h[2] + dl + er) | 0, (h[3] + el_ + ar) | 0, (h[4] + al + br) | 0, (h[0] + bl + cr) | 0];
+          }
+
+          const digest = new Uint8Array(20);
+          const out = new DataView(digest.buffer);
+          h.forEach((word, index) => out.setInt32(index * 4, word, true));
+          return digest;
+        };
+      })();
+
+      const hash160 = async (bytes) => ripemd160(await sha256(bytes));
+      const checksum = async (bytes) => (await sha256(await sha256(bytes))).slice(0, 4);
+
+      async function taggedHash(tag, bytes) {
+        const tagHash = await sha256(new TextEncoder().encode(tag));
+        return sha256(concatBytes([tagHash, tagHash, bytes]));
+      }
+
+      // Base58Check ------------------------------------------------------------
+
+      const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+      async function decodeBase58Check(text) {
+        let value = 0n;
+        for (const character of text) {
+          const index = BASE58.indexOf(character);
+          if (index === -1) throw new Error(`Invalid Base58 character: ${character}`);
+          value = value * 58n + BigInt(index);
+        }
+
+        const decoded = [];
+        for (; value > 0n; value >>= 8n) decoded.unshift(Number(value & 0xffn));
+        const bytes = Uint8Array.from([...Array(text.match(/^1*/)[0].length).fill(0), ...decoded]);
+        if (bytes.length < 4) throw new Error("Invalid Base58Check payload");
+
+        const payload = bytes.slice(0, -4);
+        const expected = await checksum(payload);
+        if (bytes.slice(-4).some((byte, index) => byte !== expected[index])) throw new Error("Invalid Base58Check checksum");
+
+        return payload;
+      }
+
+      async function encodeBase58Check(payload) {
+        const bytes = concatBytes([payload, await checksum(payload)]);
+        let value = bytesToBigInt(bytes);
+        let text = "";
+        for (; value > 0n; value /= 58n) text = BASE58[Number(value % 58n)] + text;
+        return "1".repeat(bytes.findIndex((byte) => byte !== 0) === -1 ? bytes.length : bytes.findIndex((byte) => byte !== 0)) + text;
+      }
+
+      // Bech32 / Bech32m -------------------------------------------------------
+
+      const BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+      const BECH32_GENERATOR = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+
+      function encodeSegwit(prefix, version, program) {
+        const values = [version];
+        let accumulator = 0;
+        let bits = 0;
+
+        for (const byte of program) {
+          accumulator = (accumulator << 8) | byte;
+          bits += 8;
+          while (bits >= 5) {
+            bits -= 5;
+            values.push((accumulator >>> bits) & 31);
+          }
+        }
+        if (bits > 0) values.push((accumulator << (5 - bits)) & 31);
+
+        const expanded = [...prefix].map((c) => c.charCodeAt(0) >> 5).concat(0, [...prefix].map((c) => c.charCodeAt(0) & 31));
+        let polymod = 1;
+        for (const value of [...expanded, ...values, 0, 0, 0, 0, 0, 0]) {
+          const top = polymod >>> 25;
+          polymod = ((polymod & 0x1ffffff) << 5) ^ value;
+          BECH32_GENERATOR.forEach((generator, index) => {
+            if ((top >>> index) & 1) polymod ^= generator;
+          });
+        }
+        polymod ^= version === 0 ? 1 : 0x2bc830a3;
+        const checksumValues = Array.from({ length: 6 }, (_, index) => (polymod >>> (5 * (5 - index))) & 31);
+
+        return `${prefix}1${[...values, ...checksumValues].map((value) => BECH32[value]).join("")}`;
+      }
+
+      // secp256k1: Jacobian coordinates, one inversion per point ---------------------------
+
+      const secp256k1 = (() => {
+        const P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
+        const N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
+        const G = {
+          x: 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798n,
+          y: 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8n,
+          z: 1n,
+        };
+        const mod = (value) => {
+          const result = value % P;
+          return result >= 0n ? result : result + P;
+        };
+
+        function invert(value) {
+          let [low, high, lowCoefficient, highCoefficient] = [mod(value), P, 1n, 0n];
+          while (low > 1n) {
+            const ratio = high / low;
+            [low, high] = [high - low * ratio, low];
+            [lowCoefficient, highCoefficient] = [highCoefficient - lowCoefficient * ratio, lowCoefficient];
+          }
+          return mod(lowCoefficient);
+        }
+
+        function power(base, exponent) {
+          let result = 1n;
+          for (base = mod(base); exponent > 0n; exponent >>= 1n) {
+            if (exponent & 1n) result = mod(result * base);
+            base = mod(base * base);
+          }
+          return result;
+        }
+
+        /** @typedef {{ x: bigint, y: bigint, z: bigint }} Point Jacobian; null is the point at infinity */
+
+        // dbl-2009-l and add-2007-bl (a = 0).
+        /** @param {Point | null} point @returns {Point | null} */
+        function double(point) {
+          if (!point || point.y === 0n) return null;
+          const a = mod(point.x * point.x);
+          const b = mod(point.y * point.y);
+          const c = mod(b * b);
+          const d = mod(2n * (mod((point.x + b) ** 2n) - a - c));
+          const e = mod(3n * a);
+          const x = mod(e * e - 2n * d);
+          return { x, y: mod(e * (d - x) - 8n * c), z: mod(2n * point.y * point.z) };
+        }
+
+        /** @param {Point | null} p @param {Point | null} q @returns {Point | null} */
+        function add(p, q) {
+          if (!p) return q;
+          if (!q) return p;
+          const z1z1 = mod(p.z * p.z);
+          const z2z2 = mod(q.z * q.z);
+          const u1 = mod(p.x * z2z2);
+          const u2 = mod(q.x * z1z1);
+          const s1 = mod(p.y * q.z * z2z2);
+          const s2 = mod(q.y * p.z * z1z1);
+          const h = mod(u2 - u1);
+          const r = mod(2n * (s2 - s1));
+          if (h === 0n) return r === 0n ? double(p) : null;
+          const i = mod(4n * h * h);
+          const j = mod(h * i);
+          const v = mod(u1 * i);
+          const x = mod(r * r - j - 2n * v);
+          return { x, y: mod(r * (v - x) - 2n * s1 * j), z: mod((mod((p.z + q.z) ** 2n) - z1z1 - z2z2) * h) };
+        }
+
+        function toAffine(point) {
+          if (!point) return null;
+          const inverse = invert(point.z);
+          const inverse2 = mod(inverse * inverse);
+          return { x: mod(point.x * inverse2), y: mod(point.y * inverse2 * inverse), z: 1n };
+        }
+
+        /** 2^i·G, built once: scalar multiplication becomes additions only. */
+        let table = null;
+        function multiplyG(scalar) {
+          if (!table) {
+            table = [];
+            for (let index = 0, point = G; index < 256; index += 1, point = double(point)) table.push(point);
+          }
+          let result = null;
+          for (let index = 0; scalar > 0n; index += 1, scalar >>= 1n) {
+            if (scalar & 1n) result = add(result, table[index]);
+          }
+          return result;
+        }
+
+        function parse(publicKey) {
+          if (publicKey.length !== 33 || (publicKey[0] !== 2 && publicKey[0] !== 3)) throw new Error("Expected a compressed public key");
+          const x = bytesToBigInt(publicKey.slice(1));
+          if (x >= P) throw new Error("Invalid secp256k1 x coordinate");
+          let y = power(x * x * x + 7n, (P + 1n) / 4n);
+          if (Boolean(y & 1n) !== (publicKey[0] === 3)) y = P - y;
+          if (mod(y * y) !== mod(x * x * x + 7n)) throw new Error("Invalid secp256k1 point");
+          return { x, y, z: 1n };
+        }
+
+        const evenY = (point) => (point.y & 1n ? { x: point.x, y: P - point.y, z: 1n } : point);
+
+        function scalarOf(tweak, allowZero) {
+          const scalar = bytesToBigInt(tweak);
+          if ((!allowZero && scalar === 0n) || scalar >= N) throw new Error("Invalid secp256k1 tweak");
+          return scalar;
+        }
+
+        return {
+          xOnly: (publicKey) => bigIntToBytes(evenY(parse(publicKey)).x, 32),
+          /** BIP32 child: parent + tweak·G, compressed. */
+          addTweak(publicKey, tweak) {
+            const child = toAffine(add(parse(publicKey), multiplyG(scalarOf(tweak, false))));
+            if (!child) throw new Error("Invalid secp256k1 child public key");
+            const out = new Uint8Array(33);
+            out[0] = child.y & 1n ? 3 : 2;
+            out.set(bigIntToBytes(child.x, 32), 1);
+            return out;
+          },
+          /** BIP341 output key: even-y internal key + tweak·G, x-only. */
+          addXOnlyTweak(publicKey, tweak) {
+            const scalar = scalarOf(tweak, true);
+            const output = toAffine(add(evenY(parse(publicKey)), scalar === 0n ? null : multiplyG(scalar)));
+            if (!output) throw new Error("Invalid secp256k1 x-only child public key");
+            return bigIntToBytes(output.x, 32);
+          },
+        };
+      })();
+
+      // Extended public keys (BIP32) -------------------------------------------------------
+
+      const KEY_VERSIONS = [
+        { version: 0x0488b21e, network: "mainnet", script: "p2pkh" },
+        { version: 0x049d7cb2, network: "mainnet", script: "p2sh_p2wpkh" },
+        { version: 0x04b24746, network: "mainnet", script: "v0_p2wpkh" },
+        { version: 0x043587cf, network: "testnet", script: "p2pkh" },
+        { version: 0x044a5262, network: "testnet", script: "p2sh_p2wpkh" },
+        { version: 0x045f1cf6, network: "testnet", script: "v0_p2wpkh" },
+      ];
+
+      async function parseXpub(text) {
+        const bytes = await decodeBase58Check(text.trim());
+        if (bytes.length !== 78) throw new Error("Invalid extended public key length");
+
+        const version = KEY_VERSIONS.find(({ version }) => version === readUint32(bytes, 0));
+        if (!version) throw new Error(`Unsupported extended public key version: ${readUint32(bytes, 0)}`);
+        const publicKey = bytes.slice(45);
+        if (publicKey[0] !== 2 && publicKey[0] !== 3) throw new Error("Expected a compressed public key");
+
+        return { version, chainCode: bytes.slice(13, 45), publicKey };
+      }
+
+      async function deriveChild(key, index) {
+        if (!Number.isSafeInteger(index) || index < 0 || index >= 0x80000000) throw new Error("Expected a non-hardened child index");
+        const digest = await hmacSha512(key.chainCode, concatBytes([key.publicKey, writeUint32(index)]));
+        return { version: key.version, chainCode: digest.slice(32), publicKey: secp256k1.addTweak(key.publicKey, digest.slice(0, 32)) };
+      }
+
+      async function derivePublicKeys(key, start, count, path = []) {
+        let parent = key;
+        for (const index of path) parent = await deriveChild(parent, index);
+
+        const children = [];
+        for (let index = start; index < start + count; index += 1) {
+          children.push({ index, publicKey: (await deriveChild(parent, index)).publicKey });
+        }
+        return children;
+      }
+
+      // Addresses ----------------------------------------------------------------
+
+      const ADDRESS_SCRIPTS = [
+        { id: "v0_p2wpkh", label: "P2WPKH" },
+        { id: "v1_p2tr", label: "P2TR" },
+        { id: "p2sh_p2wpkh", label: "Nested P2WPKH" },
+        { id: "p2pkh", label: "P2PKH" },
+      ];
+      const ADDR_TYPE = { p2pkh: "p2pkh", p2sh_p2wpkh: "p2sh", v0_p2wpkh: "p2wpkh", v1_p2tr: "p2tr", v0_p2wsh_sortedmulti: "p2wsh" };
+      const NETWORK = {
+        mainnet: { p2pkh: 0x00, p2sh: 0x05, hrp: "bc" },
+        testnet: { p2pkh: 0x6f, p2sh: 0xc4, hrp: "tb" },
+      };
+
+      /** @returns {Promise<{ address: string, payload: Uint8Array }>} payload: what the server hashes for prefix lookups */
+      async function encodeAddress(publicKey, script, network) {
+        const params = NETWORK[network];
+
+        if (script === "p2pkh") {
+          const payload = await hash160(publicKey);
+          return { address: await encodeBase58Check(concatBytes([Uint8Array.of(params.p2pkh), payload])), payload };
+        }
+        if (script === "p2sh_p2wpkh") {
+          const payload = await hash160(concatBytes([Uint8Array.of(0x00, 0x14), await hash160(publicKey)]));
+          return { address: await encodeBase58Check(concatBytes([Uint8Array.of(params.p2sh), payload])), payload };
+        }
+        if (script === "v0_p2wpkh") {
+          const payload = await hash160(publicKey);
+          return { address: encodeSegwit(params.hrp, 0, payload), payload };
+        }
+        if (script === "v1_p2tr") {
+          const payload = secp256k1.addXOnlyTweak(publicKey, await taggedHash("TapTweak", secp256k1.xOnly(publicKey)));
+          return { address: encodeSegwit(params.hrp, 1, payload), payload };
+        }
+
+        throw new Error("Expected a single-key address script");
+      }
+
+      // Descriptors: wsh(sortedmulti(k, [origin]xpub/…/*, …)) ---------------------------------
+
+      const DESCRIPTOR_PREFIX = "wsh(sortedmulti(";
+      const MAX_MULTISIG_KEYS = 20;
+
+      /** Every supported descriptor in the text (checksums and whitespace ignored). */
+      function extractDescriptors(text) {
+        const value = text.trim().replace(/\s+/g, "");
+        const descriptors = [];
+
+        for (let offset = value.indexOf(DESCRIPTOR_PREFIX); offset !== -1; offset = value.indexOf(DESCRIPTOR_PREFIX, offset)) {
+          let depth = 0;
+          let end = -1;
+
+          for (let index = offset; index < value.length; index += 1) {
+            if (value[index] === "(") depth += 1;
+            if (value[index] === ")" && --depth === 0) {
+              end = index + 1;
+              break;
+            }
+          }
+          if (end === -1) break;
+
+          descriptors.push(value.slice(offset, end));
+          offset = end;
+        }
+
+        return descriptors;
+      }
+
+      const isDescriptor = (text) => extractDescriptors(text).length > 0;
+
+      function splitArguments(text) {
+        const values = [];
+        let depth = 0;
+        let start = 0;
+
+        for (let index = 0; index < text.length; index += 1) {
+          const character = text[index];
+          if (character === "[" || character === "(") depth += 1;
+          if (character === "]" || character === ")") depth -= 1;
+          if (character === "," && depth === 0) {
+            values.push(text.slice(start, index));
+            start = index + 1;
+          }
+        }
+
+        return [...values, text.slice(start)];
+      }
+
+      function parseDescriptorKey(text) {
+        const value = text.startsWith("[") ? text.slice(text.indexOf("]") + 1) : text;
+        if (text.startsWith("[") && !text.includes("]")) throw new Error("Invalid descriptor key origin");
+        const pathIndex = value.indexOf("/");
+        if (pathIndex === -1) throw new Error("Expected descriptor key derivation");
+
+        const segments = value.slice(pathIndex + 1).split("/");
+        if (segments.at(-1) !== "*") throw new Error("Expected a descriptor wildcard path");
+
+        return {
+          xpub: value.slice(0, pathIndex),
+          path: segments.slice(0, -1).map((segment) => {
+            if (/[h']$/.test(segment)) throw new Error("Descriptor xpub derivation cannot be hardened");
+            const index = Number(segment);
+            if (!Number.isSafeInteger(index) || index < 0) throw new Error("Invalid descriptor derivation path");
+            return index;
+          }),
+        };
+      }
+
+      function parseDescriptor(descriptor) {
+        const [thresholdText, ...keyTexts] = splitArguments(descriptor.slice(DESCRIPTOR_PREFIX.length, -2));
+        const threshold = Number(thresholdText);
+        const keys = keyTexts.map(parseDescriptorKey);
+
+        if (!Number.isSafeInteger(threshold) || threshold < 1) throw new Error("Invalid multisig threshold");
+        if (threshold > keys.length || keys.length > MAX_MULTISIG_KEYS) throw new Error("Invalid multisig key count");
+
+        return { script: "v0_p2wsh_sortedmulti", threshold, keys };
+      }
+
+      /** receive (…/0/*) or change (…/1/*), when every key agrees. */
+      function descriptorBranch(descriptor) {
+        const branches = new Set(parseDescriptor(descriptor).keys.map(({ path }) => path.at(-1)));
+        if (branches.size !== 1) return undefined;
+        return ["receive", "change"][[...branches][0]];
+      }
+
+      function selectDescriptor(source, branchId = "receive") {
+        const descriptors = extractDescriptors(source);
+        if (!descriptors.length) throw new Error("Unsupported output descriptor");
+        return descriptors.find((descriptor) => descriptorBranch(descriptor) === branchId) ?? descriptors[0];
+      }
+
+      function sortedMultisigScript(publicKeys, threshold) {
+        // OP_1…OP_16, else a one-byte push (up to 20 keys).
+        const number = (value) => (value <= 16 ? Uint8Array.of(0x50 + value) : Uint8Array.of(0x01, value));
+        const sorted = [...publicKeys].sort((left, right) => {
+          const index = left.findIndex((byte, position) => byte !== right[position]);
+          return index === -1 ? 0 : left[index] - right[index];
+        });
+
+        return concatBytes([number(threshold), ...sorted.map((key) => concatBytes([Uint8Array.of(33), key])), number(sorted.length), Uint8Array.of(0xae)]);
+      }
+
+      async function generateDescriptorAddresses(source, branchId, start, count) {
+        const descriptor = parseDescriptor(selectDescriptor(source, branchId));
+        const keys = await Promise.all(descriptor.keys.map(({ xpub }) => parseXpub(xpub)));
+        const network = keys[0].version.network;
+        if (keys.some(({ version }) => version.network !== network)) throw new Error("Descriptor xpub networks must match");
+
+        const children = await Promise.all(keys.map((key, index) => derivePublicKeys(key, start, count, descriptor.keys[index].path)));
+
+        return Promise.all(Array.from({ length: count }, async (_, offset) => {
+          const payload = await sha256(sortedMultisigScript(children.map((set) => set[offset].publicKey), descriptor.threshold));
+          return {
+            index: start + offset,
+            address: encodeSegwit(NETWORK[network].hrp, 0, payload),
+            payload,
+            script: descriptor.script,
+            addrType: "p2wsh",
+          };
+        }));
+      }
+
+      /**
+       * @param {string} source
+       * @param {{ start?: number, count: number, script?: string, path?: number[], branchId?: string }} options
+       */
+      async function generateAddresses(source, options) {
+        const { start = 0, count, script, path, branchId } = options;
+        if (isDescriptor(source)) return generateDescriptorAddresses(source, branchId, start, count);
+
+        const key = await parseXpub(source);
+        const resolved = script ?? key.version.script;
+        const children = await derivePublicKeys(key, start, count, path);
+
+        return Promise.all(children.map(async ({ index, publicKey }) => ({
+          index,
+          ...(await encodeAddress(publicKey, resolved, key.version.network)),
+          script: resolved,
+          addrType: ADDR_TYPE[resolved],
+        })));
+      }
+
+      const XPUB_PATTERN = /\b(?:xpub|ypub|zpub|tpub|upub|vpub)[1-9A-HJ-NP-Za-km-z]{20,}\b/;
+
+      /** Accepts a descriptor or anything containing an xpub (e.g. a wallet export). */
+      function readWalletSource(text) {
+        const value = text.trim();
+        // Other multisig forms would otherwise match as wsh(sortedmulti) or as their first xpub.
+        if (/\bsh\(wsh\(|\b(?:multi|multi_a|sortedmulti_a)\(/.test(value)) {
+          throw new Error("Only wsh(sortedmulti(...)) multisig descriptors are supported");
+        }
+        if (isDescriptor(value)) return value;
+        const match = value.match(XPUB_PATTERN);
+        if (match) return match[0];
+        throw new Error("Expected an xpub or descriptor");
+      }
+
+      // Lookups: anonymity sets -------------------------------------------------------------
+      // A public server only learns a short hash prefix of each derived address and answers
+      // with every address sharing it. Metadata, history and UTXOs are then fetched for the
+      // whole set, so the server can't tell which member is ours.
+
+      const statsReceived = (stats) => stats.chainStats.fundedTxoSum + stats.mempoolStats.fundedTxoSum;
+      const statsSent = (stats) => stats.chainStats.spentTxoSum + stats.mempoolStats.spentTxoSum;
+      const statsTxCount = (stats) => stats.chainStats.txCount + stats.mempoolStats.txCount;
+      const isUsed = (address) => address.received > 0 || address.sent > 0 || address.txCount > 0;
+
+      function walletAddress(generated, stats, historyAddresses, bucketSize) {
+        const received = stats ? statsReceived(stats) : 0;
+        const sent = stats ? statsSent(stats) : 0;
+
+        return {
+          index: generated.index,
+          address: generated.address,
+          script: generated.script,
+          addrType: generated.addrType,
+          balance: received - sent,
+          received,
+          sent,
+          txCount: stats ? statsTxCount(stats) : 0,
+          typeIndex: stats?.chainStats.typeIndex,
+          historyAddresses,
+          historyBucketSize: bucketSize,
+        };
+      }
+
+      async function findPrefixBucket(client, generated, signal) {
+        for (let nibbles = MIN_PREFIX_NIBBLES; nibbles <= MAX_PREFIX_NIBBLES; nibbles += 1) {
+          const matches = await client.getAddressPayloadHashPrefixMatches(generated.addrType, generated.payload, nibbles, { cache: false, signal });
+          if (!matches.truncated) return matches.addresses;
+        }
+        throw new Error("Address prefix bucket is too large");
+      }
+
+      /** Address stats, deduplicated across a scan. */
+      function createMetadata(client, signal) {
+        const cache = new Map();
+        return (address) => {
+          let stats = cache.get(address);
+          if (!stats) cache.set(address, (stats = client.getAddress(address, { cache: false, signal })));
+          return stats;
+        };
+      }
+
+      async function lookupAddress(client, metadata, generated) {
+        if (isLocalServer) {
+          try {
+            const stats = await metadata(generated.address);
+            return walletAddress(generated, stats, statsTxCount(stats) > 0 ? [generated.address] : [], 1);
+          } catch (error) {
+            if (isNotFound(error)) return walletAddress(generated, null, [], 1);
+            throw error;
+          }
+        }
+
+        const bucket = await findPrefixBucket(client, generated, metadata.signal);
+        if (!bucket.includes(generated.address)) return walletAddress(generated, null, [], bucket.length);
+
+        const stats = await Promise.all(bucket.map(metadata));
+        const historyAddresses = bucket.filter((_, index) => statsTxCount(stats[index]) > 0);
+
+        return walletAddress(generated, stats[bucket.indexOf(generated.address)], historyAddresses, bucket.length);
+      }
+
+      // Scanning: each script type × branch until GAP_LIMIT unused addresses in a row -----------
+
+      const KEY_BRANCHES = [
+        { id: "receive", label: "Receive", path: [0] },
+        { id: "change", label: "Change", path: [1] },
+        { id: "direct", label: "Direct", path: [] },
+      ];
+      const DESCRIPTOR_BRANCHES = [
+        { id: "receive", label: "Receive", path: [] },
+        { id: "change", label: "Change", path: [] },
+      ];
+
+      function walletBranches(source) {
+        if (!isDescriptor(source)) return KEY_BRANCHES;
+        const present = new Set(extractDescriptors(source).map(descriptorBranch).filter(Boolean));
+        const branches = DESCRIPTOR_BRANCHES.filter(({ id }) => present.has(id));
+        return branches.length ? branches : [DESCRIPTOR_BRANCHES[0]];
+      }
+
+      async function scanBranch(context, script, branch) {
+        const addresses = [];
+        let unusedInRow = 0;
+
+        while (unusedInRow < GAP_LIMIT && addresses.length < MAX_SCANNED_ADDRESSES) {
+          const count = Math.min(GAP_LIMIT - unusedInRow, MAX_SCANNED_ADDRESSES - addresses.length);
+          const generated = await generateAddresses(context.source, { start: addresses.length, count, script: script.id, path: branch.path, branchId: branch.id });
+          const batch = await mapConcurrent(generated, LOOKUP_CONCURRENCY, (address) => lookupAddress(context.client, context.metadata, address));
+
+          for (const address of batch) {
+            addresses.push({ ...address, branchId: branch.id, branchLabel: branch.label });
+            unusedInRow = isUsed(address) ? 0 : unusedInRow + 1;
+            if (unusedInRow >= GAP_LIMIT) break;
+          }
+
+          context.onProgress(`${script.label} ${branch.label}: scanned ${formatNumber(addresses.length)} addresses, ${unusedInRow}/${GAP_LIMIT} unused`);
+        }
+
+        return addresses;
+      }
+
+      async function scanScript(context, script) {
+        const branches = walletBranches(context.source);
+        const receiveBranch = branches.find(({ id }) => id === "receive") ?? branches[0];
+        const scanned = (await mapConcurrent(branches, BRANCH_SCAN_CONCURRENCY, (branch) => scanBranch(context, script, branch))).flat();
+        const used = scanned.filter(isUsed);
+
+        return {
+          script: script.id,
+          addresses: used,
+          receiveAddress: scanned.find((address) => !isUsed(address) && address.branchId === receiveBranch.id),
+        };
+      }
+
+      /** ypub/zpub-style keys declare their script; plain xpubs receive where the wallet is most used. */
+      async function receiveScan(source, scans) {
+        if (!isDescriptor(source)) {
+          const { version } = await parseXpub(source);
+          const declared = version.script !== "p2pkh" && scans.find(({ script }) => script === version.script);
+          if (declared?.receiveAddress) return declared;
+        }
+        const usable = scans.filter(({ receiveAddress }) => receiveAddress);
+        return usable.reduce((best, scan) => (scan.addresses.length > best.addresses.length ? scan : best), usable[0]);
+      }
+
+      async function scanWallet(source, onProgress) {
+        const { signal } = session;
+        const client = await loadClient();
+        signal.throwIfAborted();
+        const metadata = Object.assign(createMetadata(client, signal), { signal });
+        const context = { client, source, metadata, onProgress };
+        const scripts = isDescriptor(source) ? [{ id: "v0_p2wsh_sortedmulti", label: "P2WSH" }] : ADDRESS_SCRIPTS;
+        const scans = await mapConcurrent(scripts, SCRIPT_SCAN_CONCURRENCY, (script) => scanScript(context, script));
+        const receive = await receiveScan(source, scans);
+        const price = await client.getLivePrice({ cache: false, signal }).catch(() => Number.NaN);
+        signal.throwIfAborted();
+
+        return {
+          addresses: scans.flatMap(({ addresses }) => addresses).sort((a, b) =>
+            (b.typeIndex ?? -1) - (a.typeIndex ?? -1) || a.script.localeCompare(b.script) || a.branchLabel.localeCompare(b.branchLabel) || a.index - b.index),
+          receiveAddress: receive?.receiveAddress,
+          price,
+        };
+      }
+
+      // History and holdings: fetched for whole anonymity sets ------------------------------
+
+      const bucketKey = (addresses) => [...addresses].sort().join("\n");
+
+      /** Session state: aborted and dropped on lock or clear, so nothing outlives the vault. */
+      function createSession() {
+        const controller = new AbortController();
+        return { controller, signal: controller.signal, history: new Map(), utxos: new Map() };
+      }
+      let session = createSession();
+
+      function endSession() {
+        session.controller.abort();
+        session = createSession();
+      }
+
+      /**
+       * Fetches `fetchMember` for every member of every bucket holding a used wallet address, at most
+       * once per session. Which buckets get fetched never depends on our own address (its balance or
+       * activity): that choice would tell the server which member is ours.
+       */
+      async function loadBuckets(current, addresses, cache, fetchMember) {
+        const { signal } = current;
+        signal.throwIfAborted();
+        const buckets = new Map();
+        for (const { historyAddresses } of addresses) {
+          if (historyAddresses.length) buckets.set(bucketKey(historyAddresses), historyAddresses);
+        }
+
+        const loaded = await mapConcurrent([...buckets], BUCKET_CONCURRENCY, async ([key, members]) => {
+          let bucket = cache.get(key);
+          if (!bucket) {
+            bucket = mapConcurrent(members, MEMBER_CONCURRENCY, async (member) => [member, await fetchMember(member, signal)])
+              .then((entries) => new Map(entries));
+            bucket.catch(() => cache.delete(key));
+            cache.set(key, bucket);
+          }
+          return [key, await bucket];
+        });
+        signal.throwIfAborted();
+
+        const byKey = new Map(loaded);
+        return (address) => byKey.get(bucketKey(address.historyAddresses))?.get(address.address) ?? [];
+      }
+
+      function readTransaction(transaction, walletAddresses) {
+        const ours = new Set(walletAddresses.map(({ address }) => address));
+        const valueTo = (outputs, address) => outputs.reduce((total, output) => total + (output?.scriptpubkeyAddress === address ? output.value : 0), 0);
+        const touched = walletAddresses
+          .map((walletAddress) => {
+            const received = valueTo(transaction.vout, walletAddress.address);
+            const sent = valueTo(transaction.vin.map(({ prevout }) => prevout), walletAddress.address);
+            return { walletAddress, received, sent };
+          })
+          .filter(({ received, sent }) => received > 0 || sent > 0);
+        const received = touched.reduce((total, { received }) => total + received, 0);
+        const sent = touched.reduce((total, { sent }) => total + sent, 0);
+        const external = transaction.vout.reduce((total, output) =>
+          total + ((output.scriptpubkeyAddress === undefined ? output.value > 0 : !ours.has(output.scriptpubkeyAddress)) ? output.value : 0), 0);
+        const time = transaction.status?.blockTime;
+        const type = sent === 0 ? "receive" : external > 0 ? "send" : received > 0 ? "consolidation" : "fees";
+
+        return {
+          txid: transaction.txid,
+          time,
+          date: time === undefined ? "Mempool" : new Date(time * 1_000).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+          status: transaction.status?.confirmed ? "confirmed" : "mempool",
+          type,
+          amount: received - sent,
+          fee: transaction.fee ?? 0,
+          addresses: touched,
+        };
+      }
+
+      /** The API returns each address's latest transactions (up to 50). */
+      async function loadHistory(addresses) {
+        const current = session;
+        const client = await loadClient();
+        const used = addresses.filter(({ txCount }) => txCount > 0);
+        const historyOf = await loadBuckets(current, used, current.history, (member, signal) => client.getAddressTxs(member, { cache: false, signal }));
+        const byId = new Map();
+        let incomplete = 0;
+
+        for (const address of used) {
+          const transactions = historyOf(address);
+          if (transactions.length < address.txCount) incomplete += 1;
+          for (const transaction of transactions) byId.set(transaction.txid, readTransaction(transaction, used));
+        }
+
+        const transactions = [...byId.values()].sort((a, b) =>
+          a.time === undefined && b.time === undefined ? a.txid.localeCompare(b.txid) : a.time === undefined ? -1 : b.time === undefined ? 1 : b.time - a.time);
+
+        return { transactions, incomplete };
+      }
+
+      async function loadUtxos(addresses) {
+        const current = session;
+        const client = await loadClient();
+        const utxosOf = await loadBuckets(current, addresses, current.utxos, (member, signal) =>
+          client.getAddressUtxos(member, { cache: false, signal }).catch((error) => {
+            if (isNotFound(error)) return [];
+            throw error;
+          }));
+
+        return addresses
+          .flatMap((address) => utxosOf(address).map((utxo) => ({ address, txid: utxo.txid, vout: utxo.vout, value: utxo.value, confirmed: utxo.status?.confirmed === true })))
+          .sort((a, b) => b.value - a.value || a.txid.localeCompare(b.txid) || a.vout - b.vout);
+      }
+
+      // Vault: AES-GCM with a PBKDF2 key, in localStorage --------------------------------------
+
+      const vaultCrypto = (() => {
+        const ITERATIONS = 250_000;
+        const encoder = new TextEncoder();
+        const toBase64 = (bytes) => btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(""));
+        const fromBase64 = (text) => Uint8Array.from(atob(text), (character) => character.charCodeAt(0));
+        const random = (length) => crypto.getRandomValues(new Uint8Array(length));
+
+        async function deriveKey(password, salt, iterations) {
+          const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]);
+          return crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+        }
+
+        return {
+          async encrypt(secret, password) {
+            const salt = random(16);
+            const iv = random(12);
+            const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await deriveKey(password, salt, ITERATIONS), encoder.encode(secret));
+            return { version: 1, kdf: "PBKDF2-SHA256", iterations: ITERATIONS, cipher: "AES-GCM", salt: toBase64(salt), iv: toBase64(iv), ciphertext: toBase64(new Uint8Array(ciphertext)) };
+          },
+          async decrypt(encrypted, password) {
+            if (encrypted.version !== 1) throw new Error("Unsupported wallet encryption version");
+            const key = await deriveKey(password, fromBase64(encrypted.salt), encrypted.iterations);
+            return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromBase64(encrypted.iv) }, key, fromBase64(encrypted.ciphertext)));
+          },
+        };
+      })();
+
+      const storage = {
+        read() {
+          try {
+            return localStorage.getItem(STORAGE_KEY);
+          } catch {
+            return null;
+          }
+        },
+        has() {
+          return Boolean(this.read());
+        },
+        async write(wallets, password) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(await vaultCrypto.encrypt(JSON.stringify({ wallets }), password)));
+        },
+        async load(password) {
+          const value = this.read();
+          if (!value) return [];
+          const vault = JSON.parse(await vaultCrypto.decrypt(JSON.parse(value), password));
+          return Array.isArray(vault?.wallets) ? vault.wallets : [];
+        },
+        reset() {
+          localStorage.removeItem(STORAGE_KEY);
+        },
+      };
+
+      /** One scan per wallet, kept for the session. */
+      function createRuntime(source) {
+        let scan = null;
+        let pending = null;
+
+        return {
+          get scan() {
+            return scan;
+          },
+          load(onProgress) {
+            if (scan) return Promise.resolve(scan);
+            pending ??= scanWallet(source, onProgress).then((result) => {
+              scan = result;
+              return result;
+            }).finally(() => {
+              pending = null;
+            });
+            return pending;
+          },
+        };
+      }
+
+      function createVault() {
+        let wallets = [];
+        let selectedId = "";
+        let password = "";
+        let ephemeral = false;
+        let locked = storage.has();
+        const runtimes = new Map();
+
+        function forget() {
+          wallets = [];
+          selectedId = "";
+          runtimes.clear();
+          endSession();
+        }
+
+        function syncSelected() {
+          if (!wallets.some(({ id }) => id === selectedId)) selectedId = wallets[0]?.id ?? "";
+        }
+
+        function enter(nextWallets, nextPassword, nextEphemeral) {
+          forget();
+          wallets = nextWallets;
+          password = nextPassword;
+          ephemeral = nextEphemeral;
+          locked = false;
+          for (const wallet of wallets) runtimes.set(wallet.id, createRuntime(wallet.source));
+          syncSelected();
+        }
+
+        function leave() {
+          forget();
+          password = "";
+          ephemeral = false;
+          locked = storage.has();
+        }
+
+        return {
+          get wallets() {
+            return wallets;
+          },
+          get selectedId() {
+            return selectedId;
+          },
+          get ephemeral() {
+            return ephemeral;
+          },
+          get hasPassword() {
+            return password !== "";
+          },
+          needsSetup: () => !storage.has() && !password && !ephemeral,
+          isLocked: () => !ephemeral && locked && storage.has(),
+          current() {
+            const wallet = wallets.find(({ id }) => id === selectedId);
+            return wallet && { wallet, runtime: runtimes.get(wallet.id) };
+          },
+          isCurrent: (wallet, runtime) => runtimes.get(wallet.id) === runtime && selectedId === wallet.id,
+          select(id) {
+            selectedId = id;
+            syncSelected();
+          },
+          lock: leave,
+          clearEphemeral: leave,
+          startEphemeral: () => enter([], "", true),
+          reset() {
+            storage.reset();
+            leave();
+          },
+          async setup(nextPassword) {
+            await storage.write([], nextPassword);
+            enter([], nextPassword, false);
+          },
+          async unlock(nextPassword) {
+            enter(await storage.load(nextPassword), nextPassword, false);
+          },
+          async add(name, source) {
+            const time = Date.now();
+            const wallet = { id: crypto.randomUUID(), name: name.trim(), source, createdAt: time, updatedAt: time };
+            const next = [...wallets, wallet];
+            if (!ephemeral) await storage.write(next, password);
+            wallets = next;
+            selectedId = wallet.id;
+            runtimes.set(wallet.id, createRuntime(source));
+          },
+          async remove(id) {
+            const next = wallets.filter((wallet) => wallet.id !== id);
+            if (!ephemeral) await storage.write(next, password);
+            wallets = next;
+            runtimes.delete(id);
+            syncSelected();
+          },
+        };
+      }
+
+      // Hold-to-confirm ----------------------------------------------------------------
+
+      function holdButton(label, title, onHold) {
+        const FILL_MS = 2_000;
+        const DRAIN_MS = 600;
+        const button = el("button", { type: "button", "data-hold": true, "data-label": label, title }, el("span", null, label));
+        let frame = 0;
+        let holding = false;
+        let progress = 0;
+        let previous = 0;
+
+        function render() {
+          button.style.setProperty("--hold-progress", String(progress));
+          button.style.setProperty("--hold-progress-width", `${progress * 100}%`);
+          button.toggleAttribute("data-active", progress > 0);
+        }
+
+        function tick(now) {
+          progress = Math.min(1, Math.max(0, progress + ((now - previous) / (holding ? FILL_MS : DRAIN_MS)) * (holding ? 1 : -1)));
+          previous = now;
+          render();
+          frame = 0;
+
+          if (holding && progress === 1) {
+            holding = false;
+            progress = 0;
+            button.removeAttribute("data-holding");
+            render();
+            onHold();
+          } else if (holding || progress > 0) {
+            frame = requestAnimationFrame(tick);
+          }
+        }
+
+        function run() {
+          if (frame) return;
+          previous = performance.now();
+          frame = requestAnimationFrame(tick);
+        }
+
+        const hold = () => {
+          holding = true;
+          button.dataset.holding = "";
+          run();
+        };
+        const release = () => {
+          if (!holding) return;
+          holding = false;
+          button.removeAttribute("data-holding");
+          run();
+        };
+
+        button.addEventListener("pointerdown", (event) => {
+          if (event.button !== 0) return;
+          button.setPointerCapture(event.pointerId);
+          hold();
+        });
+        button.addEventListener("pointerup", release);
+        button.addEventListener("pointercancel", release);
+        button.addEventListener("lostpointercapture", release);
+        button.addEventListener("keydown", (event) => {
+          if (event.repeat || (event.key !== " " && event.key !== "Enter")) return;
+          event.preventDefault();
+          hold();
+        });
+        button.addEventListener("keyup", (event) => {
+          if (event.key === " " || event.key === "Enter") release();
+        });
+        button.addEventListener("blur", release);
+        render();
+
+        return button;
+      }
+
+      // Views ---------------------------------------------------------------------------
+
+      function startView({ mode, onPassword, onEphemeral, onReset }) {
+        const unlock = mode === "unlock";
+        const password = el("input", {
+          name: "password",
+          type: "password",
+          autocomplete: unlock ? "current-password" : "new-password",
+          placeholder: unlock ? "Password" : "Set password",
+          "aria-label": unlock ? "Vault password" : "New vault password",
+          required: true,
+        });
+        const submit = el("button", { type: "submit" }, unlock ? "Unlock" : "Create");
+        const status = el("output");
+        const form = el("form", null, password, submit);
+        const temporary = el("button", { type: "button" }, "Start temporary");
+        const localExample = `?server=${encodeURIComponent("http://localhost:3110")}`;
+
+        password.addEventListener("input", () => password.removeAttribute("aria-invalid"));
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if ((await onPassword(password.value, submit, status)) === false) {
+            password.setAttribute("aria-invalid", "true");
+            password.focus();
+          }
+        });
+        temporary.addEventListener("click", onEphemeral);
+        // Embedded previews (the gallery) must not steal focus.
+        if (window.top === window) queueMicrotask(() => password.focus({ preventScroll: true }));
+
+        return el(
+          "section",
+          { "data-start": true },
+          el(
+            "article",
+            null,
+            el("h1", null, "Watch-only", el("br"), el("span", null, "wallets")),
+            el("p", null, "View a Bitcoin wallet privately, without spending access."),
+            el(
+              "ul",
+              null,
+              el("li", null, "Open xpubs and watch-only descriptors."),
+              el("li", null, "Addresses are derived on your device."),
+              el("li", null, "Public lookups use anonymity sets."),
+              el("li", null, "Local servers fetch directly and are best."),
+              el("li", null, "Save encrypted wallets, or use a temporary session."),
+            ),
+            el("hr"),
+            el(
+              "small",
+              null,
+              "Use a VPN for extra network privacy.",
+              el("br"),
+              "On-chain address links will reduce anonymity.",
+              el("br"),
+              "Own node on this machine or network: open ",
+              el("a", { href: localExample }, "?server=http://localhost:3110"),
+              ".",
+            ),
+          ),
+          el(
+            "div",
+            null,
+            el(
+              "section",
+              null,
+              el("h2", null, "Persistent vault"),
+              el("p", null, unlock ? "Unlock the encrypted vault saved in this browser." : "Create an encrypted vault saved in this browser."),
+              form,
+              onReset && holdButton("Reset vault", "Hold to erase the saved vault", onReset),
+              status,
+            ),
+            el("p", null, "OR"),
+            el("section", null, el("h2", null, "Temporary vault"), el("p", null, "Wallets are never saved to this browser."), temporary),
+          ),
+        );
+      }
+
+      function emptyView({ onAdd, onClear }) {
+        const add = el("button", { type: "button" }, "Add wallet");
+        const clear = onClear && el("button", { type: "button" }, "Clear");
+
+        add.addEventListener("click", onAdd);
+        clear?.addEventListener("click", onClear);
+
+        return el(
+          "section",
+          { "data-empty": true },
+          el("h1", null, "No wallet yet"),
+          el("p", null, "Import an xpub or watch-only descriptor to start watching activity."),
+          el("menu", null, add, clear),
+        );
+      }
+
+      function addForm({ onCancel, onSubmit }) {
+        const name = el("input", { name: "name", autocomplete: "off", placeholder: "Wallet 1", required: true });
+        const source = el("textarea", { name: "source", autocomplete: "off", placeholder: "xpub... or wsh(sortedmulti(...))", required: true, spellcheck: "false", rows: 4 });
+        const cancel = el("button", { type: "button" }, "Cancel");
+        const submit = el("button", { type: "submit" }, "Add");
+        const form = el(
+          "form",
+          { "data-add": true },
+          el("h2", null, "Add wallet"),
+          el("p", null, "Import an xpub or watch-only descriptor. Spending keys are never needed."),
+          el("label", null, el("span", null, "name"), name),
+          el("label", null, el("span", null, "xpub or descriptor"), source),
+          el("footer", null, cancel, submit),
+        );
+
+        redaction.textarea(source);
+        cancel.addEventListener("click", onCancel);
+        source.addEventListener("input", () => source.removeAttribute("aria-invalid"));
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          void withBusy(submit, "Adding", async () => {
+            try {
+              const value = readWalletSource(source.value);
+              await generateAddresses(value, { count: 1 });
+              await onSubmit(name.value, value);
+            } catch {
+              source.setAttribute("aria-invalid", "true");
+              source.focus();
+            }
+          });
+        });
+
+        return form;
+      }
+
+      function addressCell(address) {
+        return el(
+          "div",
+          { "data-address-cell": true },
+          el("b", null, `${address.branchLabel.toLowerCase()} #${formatNumber(address.index)}`),
+          privateAddress(address.address),
+          el("small", null, `anon set: ${formatNumber(address.historyBucketSize)}`),
+        );
+      }
+
+      function openReceive(address) {
+        const uri = `bitcoin:${address.address}`;
+        const qr = el("img", { alt: `QR code for ${address.address}` });
+        const content = el("article", { role: "button", tabindex: 0, title: "Copy address" }, qr, el("p", null, groupedAddress(address.address)));
+        const dialog = el("dialog", { "data-receive": true, "aria-label": "Receive address" }, content);
+        let copiedTimer = 0;
+
+        async function copy() {
+          try {
+            await navigator.clipboard.writeText(address.address);
+            content.dataset.copied = "";
+            clearTimeout(copiedTimer);
+            copiedTimer = setTimeout(() => delete content.dataset.copied, 1_000);
+          } catch {}
+        }
+
+        content.addEventListener("click", copy);
+        content.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          void copy();
+        });
+        openDialog(dialog);
+        void loadQr().then((generate) => {
+          qr.src = generate(uri)?.toDataURL({ padX: 0, padY: 0, scale: 6 }) ?? "";
+        }, () => qr.remove());
+      }
+
+      function summaryView(scan) {
+        const balance = scan.addresses.reduce((total, { balance }) => total + balance, 0);
+        const receive = el("button", { type: "button", disabled: !scan.receiveAddress }, "Receive");
+
+        receive.addEventListener("click", () => openReceive(scan.receiveAddress));
+
+        return [
+          el(
+            "p",
+            null,
+            btcAmount("strong", balance),
+            Number.isFinite(scan.price) && redaction.value(el("span"), formatUsd((balance / SATS_PER_BTC) * scan.price), true),
+          ),
+          receive,
+        ];
+      }
+
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      const chartDate = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric" });
+
+      /** Balance over time: walked back from the confirmed balance through the confirmed history. */
+      function balanceChart(transactions, balance, incomplete) {
+        const confirmed = transactions.filter(({ time }) => time !== undefined).toSorted((a, b) => a.time - b.time);
+        if (!confirmed.length) return null;
+
+        const steps = [];
+        let before = balance;
+        for (const { time, amount } of confirmed.toReversed()) {
+          steps.push([time, before]);
+          before -= amount;
+        }
+        steps.reverse();
+
+        const first = steps[0][0];
+        const now = Math.max(Date.now() / 1_000, steps.at(-1)[0] + 1);
+        const peak = Math.max(before, ...steps.map(([, value]) => value));
+        const x = (time) => (((time - first) / (now - first)) * 1_000).toFixed(1);
+        const y = (value) => (196 - (Math.max(0, value) / Math.max(1, peak)) * 188).toFixed(1);
+        let line = `M0,${y(before)}`;
+        for (const [time, value] of steps) line += `H${x(time)}V${y(value)}`;
+        line += "H1000";
+
+        const svg = document.createElementNS(SVG_NS, "svg");
+        svg.setAttribute("viewBox", "0 0 1000 200");
+        svg.setAttribute("preserveAspectRatio", "none");
+        svg.setAttribute("aria-hidden", "true");
+        svg.innerHTML = `<defs><linearGradient id="balance-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: var(--orange); stop-opacity: 0.3" /><stop offset="1" style="stop-color: var(--orange); stop-opacity: 0" /></linearGradient></defs><line data-baseline x1="0" x2="1000" y1="196" y2="196" /><path data-area d="${line}V196H0Z" /><path data-line d="${line}" />`;
+
+        return el(
+          "figure",
+          { "data-balance-chart": true, "aria-label": "Balance over time" },
+          svg,
+          el(
+            "figcaption",
+            null,
+            redaction.value(el("span"), chartDate.format(first * 1_000), true),
+            el("span", null, incomplete ? "partial history · peak " : "peak ", btcAmount("span", peak)),
+            el("span", null, "today"),
+          ),
+        );
+      }
+
+      const TRANSACTION_LABELS = { receive: "Received", send: "Sent", consolidation: "Consolidated", fees: "Spent to fees" };
+
+      function transactionRow(transaction) {
+        const amount = btcAmount("span", transaction.amount, true);
+        const txid = redaction.title(redaction.value(el("code"), shortTxid(transaction.txid)), transaction.txid);
+        const detail = el("p");
+
+        if (transaction.amount > 0) amount.dataset.tone = "positive";
+        if (transaction.amount < 0) amount.dataset.tone = "negative";
+        if (transaction.type === "consolidation") detail.append(`${plural(transaction.addresses.length, "wallet address", "wallet addresses")} · fee only`);
+        else if (transaction.type === "send") detail.append("to external wallet · fee ", btcAmount("span", transaction.fee));
+        else if (transaction.type === "fees") detail.append("all to miners · fee ", btcAmount("span", transaction.fee));
+        else detail.append(transaction.status);
+        detail.append(" · ", txid);
+
+        return el(
+          "li",
+          { "data-row": true },
+          el(
+            "details",
+            null,
+            el("summary", null, el("header", { "data-row-head": true }, el("strong", null, TRANSACTION_LABELS[transaction.type]), amount), detail),
+            el(
+              "section",
+              null,
+              redaction.title(redaction.value(el("code"), transaction.txid), transaction.txid),
+              el("p", null, transaction.status, " · ", btcAmount("span", transaction.amount, true), " · fee ", btcAmount("span", transaction.fee)),
+              el("ul", null, ...transaction.addresses.map(({ walletAddress }) => el("li", null, addressCell(walletAddress)))),
+            ),
+          ),
+        );
+      }
+
+      function historyTab(scan) {
+        const panel = el("section");
+
+        return {
+          id: "history",
+          label: "History",
+          panel,
+          mount() {
+            panel.replaceChildren("Loading history");
+            void loadHistory(scan.addresses).then(({ transactions, incomplete }) => {
+              const activity = el("section", { "data-activity": true }, el("h2", null, "History"));
+              const groups = Map.groupBy(transactions, ({ date }) => date);
+
+              if (!transactions.length) activity.append(el("p", null, "No activity yet"));
+              for (const [date, group] of groups) {
+                activity.append(el("section", null, el("h3", null, redaction.value(el("span"), date, true)), el("ol", null, ...group.map(transactionRow))));
+              }
+              if (incomplete) activity.append(el("p", { "data-note": true }, `Older activity of ${plural(incomplete, "busy address", "busy addresses")} is not shown.`));
+              panel.replaceChildren(activity);
+            }, () => panel.replaceChildren("History unavailable"));
+          },
+        };
+      }
+
+      function holdingsTab(scan) {
+        const panel = el("section");
+
+        return {
+          id: "holdings",
+          label: "Holdings",
+          panel,
+          mount() {
+            panel.replaceChildren("Loading holdings");
+            void loadUtxos(scan.addresses).then((utxos) => {
+              panel.replaceChildren(el(
+                "section",
+                { "data-holdings": true },
+                el("h2", null, "Holdings"),
+                utxos.length
+                  ? el("ol", null, ...utxos.map((utxo) => el(
+                    "li",
+                    { "data-row": true },
+                    el("header", { "data-row-head": true }, el("strong", null, utxo.confirmed ? "Confirmed" : "Mempool"), btcAmount("span", utxo.value)),
+                    el("p", null, redaction.title(redaction.value(el("code"), `${shortTxid(utxo.txid)}:${utxo.vout}`), `${utxo.txid}:${utxo.vout}`)),
+                    addressCell(utxo.address),
+                  )))
+                  : el("p", null, "No UTXOs"),
+              ));
+            }, () => panel.replaceChildren("Holdings unavailable"));
+          },
+        };
+      }
+
+      function addressesTab(scan) {
+        const panel = el("section");
+
+        return {
+          id: "addresses",
+          label: "Addresses",
+          panel,
+          mount() {
+            panel.replaceChildren(el(
+              "section",
+              { "data-addresses": true },
+              el("h2", null, "Addresses"),
+              el("ol", null, ...scan.addresses.map((address) => el(
+                "li",
+                { "data-row": true },
+                addressCell(address),
+                el("p", null, btcAmount("span", address.balance), ` · ${formatNumber(address.txCount)} ${address.txCount === 1 ? "tx" : "txs"}`),
+              ))),
+            ));
+          },
+        };
+      }
+
+      /** Tabs mount on first selection only. */
+      function tabsView(tabs) {
+        const nav = el("nav", { role: "tablist", "aria-label": "Wallet sections" });
+        const mounted = new Set();
+        const buttons = tabs.map((tab) => {
+          const button = el("button", { type: "button", role: "tab", id: `wallet-tab-${tab.id}`, "aria-controls": `wallet-panel-${tab.id}` }, tab.label);
+          tab.panel.id = `wallet-panel-${tab.id}`;
+          tab.panel.role = "tabpanel";
+          tab.panel.setAttribute("aria-labelledby", button.id);
+          nav.append(button);
+          return button;
+        });
+
+        function select(selected) {
+          tabs.forEach((tab, index) => {
+            buttons[index].setAttribute("aria-selected", String(index === selected));
+            buttons[index].tabIndex = index === selected ? 0 : -1;
+            tab.panel.hidden = index !== selected;
+          });
+          if (!mounted.has(selected)) {
+            mounted.add(selected);
+            tabs[selected].mount();
+          }
+        }
+
+        buttons.forEach((button, index) => button.addEventListener("click", () => select(index)));
+        nav.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+          const current = buttons.indexOf(document.activeElement);
+          const next = (current + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
+          select(next);
+          buttons[next].focus();
+        });
+        select(0);
+
+        return el("section", { "data-tabs": true }, nav, el("div", null, ...tabs.map(({ panel }) => panel)));
+      }
+
+      // Page ------------------------------------------------------------------------------
+
+      function createWalletsPage(main) {
+        const vault = createVault();
+        const nav = el("nav", { "aria-label": "Wallets", tabindex: 0 });
+        const selector = el("section", { "data-selector": true }, nav);
+        const content = el("article", { "aria-live": "polite" });
+        const privacy = el("button", { type: "button", "aria-pressed": "false" }, "Privacy");
+        const session = el("button", { type: "button" }, "Lock");
+        const utilities = el("footer", null, privacy, session);
+        const addDialog = el("dialog", { "data-dialog": true, "aria-label": "Add wallet" });
+        let selectorButtons = [];
+
+        main.append(selector, content, addDialog);
+        /** @type {HTMLElement} */ (document.querySelector(".site-header")).append(utilities);
+        addDialog.addEventListener("click", (event) => {
+          if (event.target === addDialog) addDialog.close();
+        });
+
+        function openAdd() {
+          addDialog.replaceChildren(addForm({
+            onCancel: () => addDialog.close(),
+            async onSubmit(name, source) {
+              await vault.add(name, source);
+              addDialog.close();
+              render();
+            },
+          }));
+          addDialog.showModal();
+        }
+
+        function renderSelector() {
+          nav.replaceChildren();
+          selectorButtons = [];
+          if (vault.isLocked() || vault.needsSetup()) return;
+
+          for (const wallet of vault.wallets) {
+            const button = el("button", { type: "button", "aria-pressed": String(wallet.id === vault.selectedId) }, wallet.name);
+            button.addEventListener("click", () => {
+              vault.select(wallet.id);
+              render();
+            });
+            selectorButtons.push({ button, id: wallet.id });
+            nav.append(button);
+          }
+
+          const add = el("button", { type: "button" }, "Add");
+          add.addEventListener("click", openAdd);
+          nav.append(add);
+          if (vault.wallets.length) {
+            nav.append(holdButton("Delete", "Hold to delete this wallet", () => {
+              void vault.remove(vault.selectedId).then(render, console.error);
+            }));
+          }
+        }
+
+        function renderWallet(wallet, runtime) {
+          const summary = el("section", { "data-summary": true, "aria-label": "Balance" });
+          const chart = el("div");
+          const status = el("output", { role: "status" });
+          const results = el("section", { "aria-label": "Wallet activity" });
+          const show = (scan) => {
+            summary.replaceChildren(...summaryView(scan));
+            results.replaceChildren(tabsView([historyTab(scan), holdingsTab(scan), addressesTab(scan)]));
+            status.textContent = Number.isFinite(scan.price) ? "Ready" : "Ready · price unavailable";
+            const balance = scan.addresses.reduce((total, address) => total + address.balance, 0);
+            void loadHistory(scan.addresses).then(({ transactions, incomplete }) => {
+              chart.replaceChildren(balanceChart(transactions, balance, incomplete) ?? "");
+            }, () => {});
+          };
+
+          content.replaceChildren(summary, chart, status, results);
+          if (runtime.scan) {
+            show(runtime.scan);
+            return;
+          }
+
+          status.textContent = `Scanning until ${GAP_LIMIT} unused addresses`;
+          void runtime.load((progress) => {
+            if (vault.isCurrent(wallet, runtime)) status.textContent = progress;
+          }).then((scan) => {
+            if (vault.isCurrent(wallet, runtime) && results.isConnected) show(scan);
+          }, (error) => {
+            if (vault.isCurrent(wallet, runtime)) status.textContent = errorMessage(error);
+          });
+        }
+
+        function render() {
+          const needsSetup = vault.needsSetup();
+          const locked = vault.isLocked();
+          const current = vault.current();
+
+          renderSelector();
+          utilities.hidden = selector.hidden = locked || needsSetup || !current;
+          session.hidden = locked || needsSetup || (!vault.hasPassword && !vault.ephemeral);
+          session.textContent = vault.ephemeral ? "Clear" : "Lock";
+
+          if (needsSetup || locked) {
+            content.replaceChildren(startView({
+              mode: locked ? "unlock" : "create",
+              async onPassword(password, button, status) {
+                status.textContent = "";
+                return withBusy(button, locked ? "Unlocking" : "Creating", async () => {
+                  try {
+                    if (locked) await vault.unlock(password);
+                    else await vault.setup(password);
+                    render();
+                    return true;
+                  } catch (error) {
+                    if (!locked) status.textContent = errorMessage(error);
+                    return false;
+                  }
+                });
+              },
+              onEphemeral() {
+                vault.startEphemeral();
+                render();
+              },
+              onReset: locked
+                ? () => {
+                  vault.reset();
+                  render();
+                }
+                : undefined,
+            }));
+            return;
+          }
+
+          if (!current) {
+            content.replaceChildren(emptyView({
+              onAdd: openAdd,
+              onClear: vault.ephemeral
+                ? () => {
+                  vault.clearEphemeral();
+                  render();
+                }
+                : undefined,
+            }));
+            return;
+          }
+
+          renderWallet(current.wallet, current.runtime);
+        }
+
+        privacy.addEventListener("click", () => {
+          redaction.toggle();
+          privacy.textContent = redaction.isHidden() ? "Reveal" : "Privacy";
+          privacy.setAttribute("aria-pressed", String(redaction.isHidden()));
+        });
+        session.addEventListener("click", () => {
+          if (vault.ephemeral) vault.clearEphemeral();
+          else vault.lock();
+          render();
+        });
+
+        // The wallet centered after a swipe becomes the selected one.
+        nav.addEventListener("scrollend", () => {
+          if (!selectorButtons.length) return;
+          const box = nav.getBoundingClientRect();
+          const center = box.left + box.width / 2;
+          const closest = selectorButtons.reduce((best, item) => {
+            const rect = item.button.getBoundingClientRect();
+            const distance = Math.abs(rect.left + rect.width / 2 - center);
+            return distance < best.distance ? { item, distance } : best;
+          }, { item: selectorButtons[0], distance: Infinity }).item;
+          if (closest.id !== vault.selectedId) {
+            vault.select(closest.id);
+            render();
+          }
+        });
+        nav.addEventListener("wheel", (event) => {
+          const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+          const next = Math.max(0, Math.min(nav.scrollWidth - nav.clientWidth, nav.scrollLeft + delta));
+          if (!delta || next === nav.scrollLeft) return;
+          event.preventDefault();
+          nav.scrollLeft = next;
+        }, { passive: false });
+
+        render();
+      }
+
+      const server = /** @type {HTMLElement} */ (document.querySelector("[data-server]"));
+      server.textContent = new URL(SERVER).host;
+      server.title = isLocalServer ? "Local server: direct lookups" : "Public server: lookups through anonymity sets";
+      server.toggleAttribute("data-local", isLocalServer);
+
+      trackPress();
+      createWalletsPage(document.querySelector("main"));
+    </script>
+  </body>
+</html>

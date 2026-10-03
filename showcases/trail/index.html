@@ -8,12 +8,11 @@
       content="A moving 2.5D terrain view of Bitcoin's UTXO realized price distribution."
     />
     <link rel="preconnect" href="https://bitview.space" crossorigin />
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <title>The Satoshi Trail</title>
     <style>
       @font-face {
         font-family: "Lilex";
-        src: url("https://cdn.jsdelivr.net/fontsource/fonts/lilex:vf@5.3.0/latin-wght-normal.woff2")
+        src: url("../fonts/Lilex.woff2")
           format("woff2-variations");
         font-style: normal;
         font-weight: 100 700;
@@ -22,7 +21,7 @@
 
       @font-face {
         font-family: "Instrument";
-        src: url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+        src: url("../fonts/InstrumentSerif-Regular.woff2")
           format("woff2");
         font-style: normal;
         font-weight: 400;
@@ -66,7 +65,8 @@
       .app {
         --stage-scale: 1;
         --stage-rotation: 0deg;
-        position: absolute;
+        /* Fixed: the unscaled 1920×1080 stage must not widen a mobile layout viewport. */
+        position: fixed;
         top: 50%;
         left: 50%;
         width: 1920px;
@@ -588,26 +588,14 @@
     </main>
 
     <script>
+      // @ts-check
       (() => {
         "use strict";
 
         const ORIGIN = "https://bitview.space";
-        // The deployed client, imported from a blob URL: direct remote module
-        // imports fail on some hosts.
-        const clientReady = (async () => {
-          const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
-            cache: "no-cache",
-            signal: AbortSignal.timeout(30_000),
-          });
-          if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
-          const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
-          try {
-            const { BitviewClient } = await import(url);
-            return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000, browserCache: false, memCache: false });
-          } finally {
-            URL.revokeObjectURL(url);
-          }
-        })();
+        const clientReady = import("../modules/bitview-client/index.js").then(
+          ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000, browserCache: false, memCache: false }),
+        );
         const PRICE_TRAIL_LIFT = 6;
         const PRICE_TRAIL_CORNER_RADIUS = 6;
         const CACHE_LIMIT = 4_500;
@@ -648,6 +636,7 @@
           "2y": 728,
           "4y": 1_456,
         };
+        /** @type {[number, string][]} */
         const AXIS_UNITS = [
           [1_000_000_000_000, "T"],
           [1_000_000_000, "B"],
@@ -765,6 +754,7 @@
           [1, 9, 47, 62],
         ];
         const colorCache = new Map();
+        /** @type {(id: string) => any} */
         const byId = (id) => document.getElementById(id);
         const app = byId("app");
         const canvas = byId("terrain");
@@ -826,7 +816,7 @@
           cohort: "all",
           metric: "supply",
           mode: "value",
-          weight: "raw",
+          weight: /** @type {import("../modules/bitview-client/index.js").UrpdWeight} */ ("raw"),
           dates: [],
           weeklyDates: [],
           availableDates: [],
@@ -1903,9 +1893,9 @@
 
         function requestConcurrency() {
           const connection =
-            navigator.connection ??
-            navigator.mozConnection ??
-            navigator.webkitConnection;
+            /** @type {any} */ (navigator).connection ??
+            /** @type {any} */ (navigator).mozConnection ??
+            /** @type {any} */ (navigator).webkitConnection;
           if (
             connection?.saveData ||
             /(^|-)2g$/.test(connection?.effectiveType ?? "")
@@ -5320,24 +5310,12 @@
               bucketIndex < buckets.length;
               bucketIndex++
             ) {
-              prices[bucketIndex] = Number(
-                buckets[bucketIndex].price_floor ??
-                  buckets[bucketIndex].priceFloor ??
-                  0,
-              );
+              prices[bucketIndex] = Number(buckets[bucketIndex].priceFloor ?? 0);
               supplies[bucketIndex] = Number(
                 buckets[bucketIndex].supply ?? 0,
               );
-              realizedCaps[bucketIndex] = Number(
-                buckets[bucketIndex].realized_cap ??
-                  buckets[bucketIndex].realizedCap ??
-                  0,
-              );
-              unrealizedPnls[bucketIndex] = Number(
-                buckets[bucketIndex].unrealized_pnl ??
-                  buckets[bucketIndex].unrealizedPnl ??
-                  0,
-              );
+              realizedCaps[bucketIndex] = Number(buckets[bucketIndex].realizedCap ?? 0);
+              unrealizedPnls[bucketIndex] = Number(buckets[bucketIndex].unrealizedPnl ?? 0);
               if (
                 supplies[bucketIndex] > 0 &&
                 prices[bucketIndex] > maxPrice

@@ -9,13 +9,12 @@
       content="Bitcoin HODL Waves viewed through supply, capital, Cointime, and Coinflow weighting."
     />
     <link rel="preconnect" href="https://bitview.space" crossorigin />
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <title>Bitcoin HODL Wave</title>
     <style>
       @font-face {
         font-family: "Lilex";
         src:
-          url("https://cdn.jsdelivr.net/fontsource/fonts/lilex:vf@5.3.0/latin-wght-normal.woff2")
+          url("../fonts/Lilex.woff2")
           format("woff2-variations");
         font-style: normal;
         font-weight: 100 700;
@@ -25,7 +24,7 @@
       @font-face {
         font-family: "Instrument";
         src:
-          url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+          url("../fonts/InstrumentSerif-Regular.woff2")
           format("woff2");
         font-style: normal;
         font-weight: 400;
@@ -767,40 +766,23 @@
     </main>
 
     <script type="module">
+      // @ts-check
       const tinyViewport = window.matchMedia(
         "(max-width: 320px), (max-height: 260px)",
       );
+      /** @type {typeof import("../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs")} */
       const LightweightCharts = tinyViewport.matches
-        ? {}
-        : await new Promise((resolve, reject) => {
-            const script = document.createElement("script");
-            script.src = "https://bitview.space/scripts/modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.js";
-            script.onload = () => resolve(window.LightweightCharts);
-            script.onerror = () => reject(new Error("Could not load the chart library."));
-            document.head.append(script);
-          });
+        ? /** @type {any} */ ({})
+        : await import("../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs");
       tinyViewport.addEventListener("change", () => window.location.reload());
 
       function start() {
         "use strict";
 
         const ORIGIN = "https://bitview.space";
-        // The deployed client, imported from a blob URL: direct remote module
-        // imports fail on some hosts.
-        const clientReady = (async () => {
-          const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
-            cache: "no-cache",
-            signal: AbortSignal.timeout(30_000),
-          });
-          if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
-          const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
-          try {
-            const { BitviewClient } = await import(url);
-            return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 });
-          } finally {
-            URL.revokeObjectURL(url);
-          }
-        })();
+        const clientReady = import("../modules/bitview-client/index.js").then(
+          ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 }),
+        );
         const DAY_ZERO = Date.UTC(2009, 0, 1);
         const DAY_MS = 86_400_000;
         const PREFERENCE_KEY = "brk-wave:mode";
@@ -907,16 +889,20 @@
           "#863dff", // violet
           "#a232ff", // purple
           "#d50ced", // fuchsia
-          "#ee1988", // pink
-          "#f6004b", // rose
         ];
-        const colors = ranges.map(
-          (_, index) => PALETTE[(index + PALETTE.length - 2) % PALETTE.length],
-        );
+        // One continuous spectrum, youngest (red) to oldest (fuchsia): no cohort shares a hue.
+        const hexToRgb = (hex) => [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
+        const colors = ranges.map((_, index) => {
+          const position = (index / (ranges.length - 1)) * (PALETTE.length - 1);
+          const low = Math.floor(position);
+          const high = Math.min(PALETTE.length - 1, low + 1);
+          const [from, to] = [hexToRgb(PALETTE[low]), hexToRgb(PALETTE[high])];
+          return `#${from.map((value, channel) => Math.round(value + (to[channel] - value) * (position - low)).toString(16).padStart(2, "0")).join("")}`;
+        });
         const COMPLEMENT_COLOR = "#737373";
 
         const chartElement = document.getElementById("chart");
-        const dateElement = document.getElementById("date");
+        const dateElement = /** @type {HTMLTimeElement} */ (document.getElementById("date"));
         const totalElement = document.getElementById("total");
         const totalLabelElement = document.getElementById("total-label");
         const dominantWaveValueElement = document.getElementById(
@@ -1677,7 +1663,8 @@
         });
 
         function toggleBand(event) {
-          const item = event.target.closest("[data-band]");
+          /** @type {HTMLElement | null} */
+          const item = /** @type {Element} */ (event.target).closest("[data-band]");
           if (!item || !legendElement.contains(item)) return;
           const key = item.dataset.band;
           if (hiddenBands.has(key)) hiddenBands.delete(key);
@@ -1706,19 +1693,22 @@
         }
 
         basisControlsElement.addEventListener("click", (event) => {
-          const button = event.target.closest("button[data-basis]");
+          /** @type {HTMLButtonElement | null} */
+          const button = /** @type {Element} */ (event.target).closest("button[data-basis]");
           if (!button || button.disabled) return;
           activateMode(modeKeyFor(button.dataset.basis, modes[activeMode].weighting));
         });
 
         modeControlsElement.addEventListener("click", (event) => {
-          const button = event.target.closest("button[data-mode]");
+          /** @type {HTMLButtonElement | null} */
+          const button = /** @type {Element} */ (event.target).closest("button[data-mode]");
           if (!button || button.disabled) return;
           activateMode(modeKeyFor(modes[activeMode].basis, button.dataset.mode));
         });
 
         viewControlsElement.addEventListener("click", (event) => {
-          const button = event.target.closest("button[data-view]");
+          /** @type {HTMLButtonElement | null} */
+          const button = /** @type {Element} */ (event.target).closest("button[data-view]");
           if (!button || button.disabled) return;
           activateView(button.dataset.view);
         });

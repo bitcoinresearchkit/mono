@@ -165,12 +165,18 @@ impl Website {
     }
 
     fn get_filesystem(&self, base: &Path, path: &str) -> Result<Vec<u8>, Error> {
-        // Index.html
-        if path.is_empty() {
+        // Root index.html (importmap, SPA)
+        if path.is_empty() || path == "index.html" {
             return self.get_index();
         }
 
         let mut file_path = base.join(path);
+
+        // A folder with its own index.html is a standalone page
+        let page = file_path.join("index.html");
+        if page.is_file() {
+            file_path = page;
+        }
 
         // Try with hash stripped
         if !file_path.exists()
@@ -188,11 +194,6 @@ impl Website {
             return self.get_index();
         }
 
-        // Explicit index.html request
-        if file_path.file_name().is_some_and(|n| n == "index.html") {
-            return self.get_index();
-        }
-
         fs::read(&file_path).map_err(|e| {
             error!("{e}");
             Error::not_found("File not found")
@@ -206,6 +207,7 @@ pub(crate) fn content_etag(content: &[u8]) -> String {
     format!("\"{}\"", hasher.finish())
 }
 
+/// A file, its unhashed name, or a folder's own index.html (standalone page).
 fn embedded_file(path: &str) -> Option<&'static [u8]> {
     EMBEDDED_WEBSITE
         .get_file(path)
@@ -213,6 +215,7 @@ fn embedded_file(path: &str) -> Option<&'static [u8]> {
             ImportMap::strip_hash(Path::new(path))
                 .and_then(|unhashed| EMBEDDED_WEBSITE.get_file(unhashed.to_str()?))
         })
+        .or_else(|| EMBEDDED_WEBSITE.get_file(Path::new(path).join("index.html")))
         .map(|file| file.contents())
 }
 

@@ -1,6 +1,0 @@
-figure[data-chart="series"] {
-  path[data-chart="dots"] {
-    fill: var(--color, var(--orange));
-    stroke: none;
-  }
-}

@@ -64,6 +64,16 @@
       .inspect-title { color: var(--ink); }
       .inspect-detail { color: var(--muted); }
       #calendar { min-height: 150px; }
+      .leaders { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px 24px; margin: 0 0 30px; padding: 0; list-style: none; }
+      .leaders li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0 8px; align-items: center; padding: 6px 4px; border-radius: 6px; cursor: default; }
+      .leaders li:is(:hover, :focus-visible) { background: #f3f4f6; }
+      .leaders .pool-mark { --mark: 16px; grid-row: span 2; }
+      .leaders b { overflow: hidden; color: var(--ink); font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+      .leaders small { grid-column: 2 / -1; color: var(--muted); font-size: inherit; }
+      .leaders span { color: var(--secondary); font-variant-numeric: tabular-nums; }
+      .leaders i { grid-column: 2 / -1; height: 2px; border-radius: 1px; background: linear-gradient(90deg, var(--ink) var(--share), #eceef1 0); }
+      #calendar[data-focus] .day:not(.lead) .pool-mark { opacity: .12; }
+      #calendar[data-focus] .day.lead .pool-mark { transform: scale(1.12); }
       .year-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px 32px; }
       .month-header { display: flex; align-items: center; gap: 8px; height: 32px; margin: 0 0 8px 5px; }
       .month-title { flex-shrink: 0; margin: 0; font: inherit; letter-spacing: .1em; text-transform: uppercase; color: var(--secondary); }
@@ -100,6 +110,7 @@
         .context { height: auto; min-height: 66px; }
         .context .inspection > span { white-space: normal; text-wrap: balance; }
         .year-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 24px; }
+        .leaders { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 16px; }
         .day-grid { --mark: 24px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
       }
       @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -148,29 +159,18 @@
           <div id="inspection" class="inspection" aria-hidden="true"></div>
         </div>
       </header>
+      <ol id="leaders" class="leaders" aria-label="Pools by days led" hidden></ol>
       <p id="period-note" class="sr-only"></p>
       <div id="calendar" aria-label="Mining calendar" aria-describedby="period-note" aria-busy="true"></div>
       <p id="status" class="sr-only" role="status" aria-live="polite"></p>
       <noscript><p>This calendar needs JavaScript to load block data from Bitview.</p></noscript>
     </main>
     <script id="calendar-data">
+      // @ts-check
       const ORIGIN = "https://bitview.space";
-      // The deployed client, imported from a blob URL: direct remote module
-      // imports fail on some hosts.
-      const clientReady = (async () => {
-        const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
-          cache: "no-cache",
-          signal: AbortSignal.timeout(30_000),
-        });
-        if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
-        const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
-        try {
-          const { BitviewClient } = await import(url);
-          return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 });
-        } finally {
-          URL.revokeObjectURL(url);
-        }
-      })();
+      const clientReady = import("../modules/bitview-client/index.js").then(
+        ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 }),
+      );
       const DAY = 86400000;
       const GENESIS = "2009-01-03";
       const isoDay = value => new Date(value).toISOString().slice(0, 10);
@@ -265,6 +265,8 @@
       }
     </script>
     <script>
+      // @ts-check
+      /** @type {(id: string) => any} */
       const $ = id => document.getElementById(id);
       const monthNames = Array.from({ length: 12 }, (_, i) => new Date(Date.UTC(2024, i)).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" }));
       const lightLogos = new Set(["foundryusa", "unknown", "ultimuspool", "whitepool"]);
@@ -313,8 +315,8 @@
         const img = element("img");
         img.alt = "";
         img.loading = "lazy";
-        img.src = `https://bitview.space/assets/pools/${slug}${lightLogos.has(slug) ? ".light" : ""}.svg`;
-        img.addEventListener("error", () => { img.src = "https://bitview.space/assets/pools/default.light.svg"; }, { once: true });
+        img.src = `../pools/${slug}${lightLogos.has(slug) ? ".light" : ""}.svg`;
+        img.addEventListener("error", () => { img.src = "../pools/default.light.svg"; }, { once: true });
         node.append(img);
         return node;
       }
@@ -364,7 +366,7 @@
         const previousYear = Number(state.date.slice(0, 4));
         state = { ...state, ...changes };
         const url = new URL(location.href);
-        url.search = new URLSearchParams({ view: state.view, date: state.date });
+        url.search = new URLSearchParams({ view: state.view, date: state.date }).toString();
         history[replace ? "replaceState" : "pushState"](null, "", url);
         load(false, Math.sign(Number(state.date.slice(0, 4)) - previousYear));
       }
@@ -462,7 +464,39 @@
         inspect();
       }
 
+      /** The year's pools, ranked by days led; hovering one lights up its days. */
+      function renderLeaders(days, blocks) {
+        const led = new Map();
+        for (const dayBlocks of days.values()) {
+          const [leader] = rankPools(dayBlocks);
+          if (leader) led.set(leader.pool, (led.get(leader.pool) || 0) + 1);
+        }
+        const mined = new Map(rankPools(blocks).map(({ pool, count }) => [pool, count]));
+        const ranked = [...led].sort((a, b) => b[1] - a[1] || (mined.get(b[0]) || 0) - (mined.get(a[0]) || 0)).slice(0, 8);
+        const most = ranked[0]?.[1] || 1;
+        $("leaders").replaceChildren(...ranked.map(([pool, count]) => {
+          const item = element("li");
+          item.tabIndex = 0;
+          item.style.setProperty("--share", `${(count / most) * 100}%`);
+          const share = blocks.length ? Math.round(((mined.get(pool) || 0) / blocks.length) * 100) : 0;
+          item.append(mark(pool), element("b", "", poolName(pool)), element("span", "", `${count}d`), element("i"), element("small", "", `${share}% of blocks`));
+          item.setAttribute("aria-label", `${poolName(pool)}: led ${count} days, mined ${share}% of blocks`);
+          const focus = on => {
+            if (on) $("calendar").dataset.focus = pool;
+            else delete $("calendar").dataset.focus;
+            for (const cell of $("calendar").querySelectorAll(".day")) cell.classList.toggle("lead", on && cell.dataset.pool === pool);
+          };
+          item.addEventListener("pointerenter", () => focus(true));
+          item.addEventListener("pointerleave", () => focus(false));
+          item.addEventListener("focus", () => focus(true));
+          item.addEventListener("blur", () => focus(false));
+          return item;
+        }));
+        $("leaders").hidden = !ranked.length;
+      }
+
       function renderDay(blocks) {
+        $("leaders").hidden = true;
         const grid = element("div", "calendar-grid day-grid");
         const dayLabel = state.date === todayUTC() ? "today" : "that day";
         for (const block of blocks) {
@@ -522,6 +556,7 @@
           cell.disabled = future;
           const [leader, runnerUp] = rankPools(blocks);
           const tied = !!runnerUp && runnerUp.count === leader.count;
+          if (leader) cell.dataset.pool = leader.pool;
           describe(cell, future ? "" : leader ? `${leader.count} · ${poolName(leader.pool)}` : "0 · No blocks");
           const description = leader ? `${poolName(leader.pool)} · ${leader.count} of ${blocks.length} blocks${tied ? " · Tied for first" : ""}` : "No indexed blocks";
           cell.setAttribute("aria-label", `${monthNames[month]} ${day}${date === today ? " · So far" : ""}. ${future ? "Outside available dates" : description}`);
@@ -530,20 +565,21 @@
           return cell;
         });
         $("calendar").replaceChildren(grid);
+        renderLeaders(days, loaded.blocks);
       }
 
       $("year-home").addEventListener("click", () => { navigate({ view: "year" }); window.scrollTo({ top: 0 }); });
-      for (const [name, direction] of [["previous", -1], ["next", 1]]) {
+      for (const [name, direction] of /** @type {[string, number][]} */ ([["previous", -1], ["next", 1]])) {
         $(`${name}-year`).addEventListener("click", () => navigate({ view: "year", date: `${Number(state.date.slice(0, 4)) + direction}-01-03` }));
         $(`${name}-day`).addEventListener("click", () => navigate({ view: "day", date: addDays(state.date, direction) }));
       }
       $("calendar").addEventListener("pointerover", event => {
-        const cell = event.target.closest(".cell");
+        const cell = /** @type {Element} */ (event.target).closest(".cell");
         inspect(cell);
       });
       $("calendar").addEventListener("pointerleave", () => inspect(document.activeElement.closest(".cell")));
-      $("calendar").addEventListener("focusin", event => inspect(event.target.closest(".cell")));
-      $("calendar").addEventListener("focusout", event => inspect(event.relatedTarget?.closest(".cell")));
+      $("calendar").addEventListener("focusin", event => inspect(/** @type {Element} */ (event.target).closest(".cell")));
+      $("calendar").addEventListener("focusout", event => inspect(/** @type {Element | null} */ (event.relatedTarget)?.closest(".cell")));
       window.addEventListener("keydown", event => { if (event.key === "Escape") inspect(); });
       window.addEventListener("popstate", () => { state = readLocation(); load(); });
       setInterval(() => {

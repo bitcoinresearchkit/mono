@@ -1,9 +1,0 @@
-figure[data-chart="series"] {
-  path[data-chart="stacked"] {
-    fill: var(--color, var(--orange));
-    stroke: var(--black);
-    stroke-linejoin: round;
-    stroke-width: 1.5;
-    vector-effect: non-scaling-stroke;
-  }
-}

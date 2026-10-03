@@ -9,13 +9,11 @@
       content="Bitcoin price with precomputed extreme on-chain event markers from the Bitcoin Research Kit."
     />
     <link rel="preconnect" href="https://bitview.space" crossorigin />
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-    <link rel="preconnect" href="https://unpkg.com" crossorigin />
     <title>Bitcoin Extreme Events</title>
     <style>
       @font-face {
         font-family: "Lilex";
-        src: url("https://cdn.jsdelivr.net/fontsource/fonts/lilex:vf@5.3.0/latin-wght-normal.woff2")
+        src: url("../fonts/Lilex.woff2")
           format("woff2-variations");
         font-style: normal;
         font-weight: 100 700;
@@ -24,7 +22,7 @@
 
       @font-face {
         font-family: "Instrument";
-        src: url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+        src: url("../fonts/InstrumentSerif-Regular.woff2")
           format("woff2");
         font-style: normal;
         font-weight: 400;
@@ -584,39 +582,28 @@
     </main>
 
     <script type="module">
+      // @ts-check
       const reducedWorkViewport = window.matchMedia(
         "(max-width: 320px), (max-height: 260px)",
       );
       const chartLibrary = reducedWorkViewport.matches
         ? {}
         : await import(
-            "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs"
+            "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs"
           );
       const {
         CandlestickSeries,
         CrosshairMode,
+        HistogramSeries,
         LineSeries,
         PriceScaleMode,
         createChart,
       } = chartLibrary;
 
       const ORIGIN = "https://bitview.space";
-      // The deployed client, imported from a blob URL: direct remote module
-      // imports fail on some hosts.
-      const clientReady = (async () => {
-        const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
-          cache: "no-cache",
-          signal: AbortSignal.timeout(30_000),
-        });
-        if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
-        const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
-        try {
-          const { BitviewClient } = await import(url);
-          return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 });
-        } finally {
-          URL.revokeObjectURL(url);
-        }
-      })();
+      const clientReady = import("../modules/bitview-client/index.js").then(
+        ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 }),
+      );
       const DAY_ZERO = Date.UTC(2009, 0, 1);
       const DAY_SECONDS = 24 * 60 * 60;
       const LIVE_PRICE_POLL_MS = 1000;
@@ -625,7 +612,7 @@
       const PRICE_CANDLE_ENTER_BARS = 500;
       const PRICE_CANDLE_EXIT_BARS = 600;
       const PRICE_SCALE_MIN_WIDTH = 64;
-      const PRICE_SCALE_MARGINS = { top: 0.25, bottom: 0.08 };
+      const PRICE_SCALE_MARGINS = { top: 0.18, bottom: 0.06 };
       const LEVEL_STORAGE_KEY = "bitcoin-extreme-events.level";
       const LEVEL_TAIL = Object.freeze({
         1: 1,
@@ -707,15 +694,15 @@
       const chartElement = document.getElementById("chart");
       const markerLayerElement = document.getElementById("event-markers");
       const statusElement = document.getElementById("status");
-      const levelElement = document.getElementById("level");
+      const levelElement = /** @type {HTMLSelectElement} */ (document.getElementById("level"));
       const todayEventsValue = document.getElementById("today-events-value");
       const todayEventsMeta = document.getElementById("today-events-meta");
       const todayEventDots = document.getElementById("today-event-dots");
       const eventKeyElements = [
-        ...document.querySelectorAll("[data-event]"),
+        .../** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-event]")),
       ];
       const tailElements = Object.fromEntries(
-        [...document.querySelectorAll("[data-tail]")].map((element) => [
+        [.../** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-tail]"))].map((element) => [
           element.dataset.tail,
           element,
         ]),
@@ -782,6 +769,8 @@
 
         return `${numberToUSNumber(value / divisor, suffixDigits)}${suffix}`;
       }
+
+      const compactTick = new Intl.NumberFormat("en-US", { notation: "compact", maximumSignificantDigits: 3 });
 
       function formatTail(value) {
         if (value <= 0) return "0%";
@@ -894,7 +883,7 @@
           const values = await Promise.all(
             EVENTS.map(async (event) => [
               event.key,
-              Number(await client.getSeriesLatest(event.endpoint, "day")),
+              Number(await client.getSeriesLatest(event.endpoint, "day1")),
             ]),
           );
           rows = [{ tails: Object.fromEntries(values) }];
@@ -1024,7 +1013,7 @@
           const markerSize =
             Math.round(
               Math.max(
-                3,
+                6,
                 Math.min(
                   10,
                   18 -
@@ -1070,7 +1059,7 @@
 
       async function fetchSeries(name, seriesName, conditional = false) {
         const client = await clientReady;
-        const series = await client.seriesEndpoint(seriesName, "day").fetch();
+        const series = await client.seriesEndpoint(seriesName, "day1").fetch();
         // The client's memory cache returns the same object for an unchanged ETag.
         if (conditional && series === seriesCache[name]) return NOT_MODIFIED;
         if (!Number.isFinite(series.start) || !Array.isArray(series.data)) {
@@ -1194,13 +1183,6 @@
       function createEventsChart() {
         const chart = createChart(chartElement, {
           autoSize: true,
-          layout: {
-            attributionLogo: false,
-            background: { color: "transparent" },
-            textColor: COLORS.muted,
-            fontFamily: getComputedStyle(document.body).fontFamily,
-            fontSize: 11,
-          },
           grid: {
             horzLines: { color: COLORS.faint },
             vertLines: { color: COLORS.faint },
@@ -1219,6 +1201,14 @@
           localization: {
             locale: "en-US",
           },
+          layout: {
+            attributionLogo: false,
+            background: { color: "transparent" },
+            textColor: COLORS.muted,
+            fontFamily: getComputedStyle(document.body).fontFamily,
+            fontSize: 11,
+            panes: { separatorColor: COLORS.faint, separatorHoverColor: COLORS.faint, enableResize: false },
+          },
           rightPriceScale: {
             mode: PriceScaleMode.Logarithmic,
             borderColor: COLORS.faint,
@@ -1231,6 +1221,7 @@
             borderVisible: true,
             enableConflation: true,
             lockVisibleTimeRangeOnResize: true,
+            minBarSpacing: 0.05,
             secondsVisible: false,
             shiftVisibleRangeOnNewBar: false,
             timeVisible: false,
@@ -1244,7 +1235,7 @@
             type: "custom",
             minMove: 0.01,
             formatter: formatPrice,
-            tickmarksFormatter: (values) => values.map(formatPrice),
+            tickmarksFormatter: (values) => values.map((value) => compactTick.format(value)),
           },
           priceLineVisible: false,
           priceLineColor: COLORS.foreground,
@@ -1265,7 +1256,7 @@
             type: "custom",
             minMove: 0.01,
             formatter: formatPrice,
-            tickmarksFormatter: (values) => values.map(formatPrice),
+            tickmarksFormatter: (values) => values.map((value) => compactTick.format(value)),
           },
           priceLineVisible: false,
           priceLineColor: COLORS.foreground,
@@ -1280,9 +1271,35 @@
           crosshairMarkerVisible: false,
         });
 
+        // The strip: a row per event type under the price, so clusters read at any zoom.
+        const strip = EVENTS.map((event, index) => ({
+          event,
+          base: EVENTS.length - 1 - index,
+          series: chart.addSeries(HistogramSeries, {
+            base: EVENTS.length - 1 - index,
+            color: event.shape === "ring" ? `${event.color}88` : event.color,
+            priceScaleId: "strip",
+            priceLineVisible: false,
+            lastValueVisible: false,
+            autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: EVENTS.length } }),
+          }, 1),
+        }));
+        chart.priceScale("strip", 1).applyOptions({ visible: false, scaleMargins: { top: 0.1, bottom: 0.1 } });
+        chart.panes()[1].setStretchFactor(0.2);
+
+        function setStrip() {
+          const maxTail = maximumTail();
+          for (const { event, base, series } of strip) {
+            const on = activeEvents.has(event.key);
+            series.setData(rows.map(({ time, tails }) =>
+              on && Number.isFinite(tails[event.key]) && tails[event.key] <= maxTail ? { time, value: base + 0.7 } : { time }));
+          }
+        }
+
         price.setData(rows.map(pricePoint));
         candles.setData(rows.map(candlePoint));
         markerAnchor.setData(rows.map(pricePoint));
+        setStrip();
         price.setSeriesOrder(1);
         candles.setSeriesOrder(1);
         markerAnchor.setSeriesOrder(2);
@@ -1298,6 +1315,7 @@
 
         function setMarkers(markers) {
           eventMarkers.setMarkers(markers);
+          setStrip();
         }
 
         function updatePriceVisibility(range) {

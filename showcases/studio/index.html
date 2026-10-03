@@ -54,14 +54,14 @@
       }
       @font-face {
         font-family: Instrument;
-        src: url("https://bitview.space/assets/fonts/InstrumentSerif-Regular.woff2") format("woff2");
+        src: url("../fonts/InstrumentSerif-Regular.woff2") format("woff2");
         font-style: normal;
         font-weight: 400;
         font-display: swap;
       }
       @font-face {
         font-family: "Lilex";
-        src: url("https://bitview.space/assets/fonts/Lilex[wght]-v2_620.woff2")
+        src: url("../fonts/Lilex.woff2")
           format("woff2");
         font-weight: 100 700;
         font-style: normal;
@@ -70,7 +70,7 @@
 
       @font-face {
         font-family: "Lilex";
-        src: url("https://bitview.space/assets/fonts/Lilex-Italic[wght]-v2_620.woff2.woff2")
+        src: url("../fonts/Lilex-Italic.woff2")
           format("woff2");
         font-weight: 100 700;
         font-style: italic;
@@ -420,7 +420,8 @@
       </footer>
     </div>
     <script type="module">
-      const base = "http://localhost:3110";
+      // @ts-check
+      const base = "https://bitview.space";
       const status = document.getElementById("status");
       let chart;
       const storageKey = "bitview-studio-library-v1";
@@ -473,8 +474,9 @@
           ? (a.state.title || "Untitled chart").localeCompare(b.state.title || "Untitled chart", undefined, { numeric: true, sensitivity: "base" })
           : (b[library.sort] || 0) - (a[library.sort] || 0)) || a.id.localeCompare(b.id));
       }
+      /** @type {(changed?: boolean) => void} */
       let saveState = () => {};
-      const chartTitle = document.getElementById("chart-title");
+      const chartTitle = /** @type {HTMLInputElement} */ (document.getElementById("chart-title"));
       chartTitle.value = typeof savedState?.title === "string" ? savedState.title : "Untitled chart";
       chartTitle.addEventListener("input", () => saveState());
       chartTitle.addEventListener("keydown", event => {
@@ -492,7 +494,7 @@
 
         async function initialize({ clientUrl, baseUrl, priceSources: sources }) {
           priceSources = sources;
-          const { BitviewClient } = await import(clientUrl);
+          const { BitviewClient } = /** @type {typeof import("../modules/bitview-client/index.js")} */ (await import(clientUrl));
           client = new BitviewClient({ baseUrl });
           catalog = client.series;
           documents = new Map();
@@ -739,47 +741,26 @@
         }));
       }
 
-      function loadCharts() {
-        return new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = `${base}/scripts/modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.js`;
-          script.crossOrigin = "anonymous";
-          script.onload = () => resolve(window.LightweightCharts);
-          script.onerror = () => reject(new Error("Could not load charts."));
-          document.head.append(script);
-        });
-      }
-
-      async function loadModuleUrl(path) {
-        // Fetch self-contained modules explicitly: direct remote imports
-        // failed in the browser used for this prototype.
-        const response = await fetch(`${base}/scripts/${path}`, {
-          cache: "no-cache", signal: AbortSignal.timeout(30000),
-        });
-        if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
-        if (!/javascript/i.test(response.headers.get("content-type") || "")) {
-          throw new Error(`${path} did not return JavaScript.`);
-        }
-        return URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
+      const compactNumber = new Intl.NumberFormat("en-US", { notation: "compact", maximumSignificantDigits: 4 });
+      /** @param {number} value */
+      function formatAxis(value) {
+        if (!Number.isFinite(value)) return "";
+        const magnitude = Math.abs(value);
+        if (magnitude >= 1_000_000) return compactNumber.format(value);
+        return value.toLocaleString("en-US", { maximumFractionDigits: magnitude < 10 ? 3 : magnitude < 1_000 ? 2 : magnitude < 10_000 ? 1 : 0 });
       }
 
       async function loadClient() {
-        // The catalog worker reuses this module URL throughout the page lifetime.
-        clientUrl = await loadModuleUrl("modules/bitview-client/index.js");
-        return import(clientUrl);
+        // Absolute: the catalog worker imports the same module and can't resolve relative URLs.
+        clientUrl = new URL("../modules/bitview-client/index.js", location.href).href;
+        return /** @type {typeof import("../modules/bitview-client/index.js")} */ (await import(clientUrl));
       }
 
-      async function loadFormat() {
-        const url = await loadModuleUrl("utils/format.js");
-        try { return await import(url); }
-        finally { URL.revokeObjectURL(url); }
-      }
 
       try {
-        const [LC, { BitviewClient }, { numberToShortUSFormat }] = await Promise.all([
-          loadCharts(),
+        const [LC, { BitviewClient }] = await Promise.all([
+          import("../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs"),
           loadClient(),
-          loadFormat(),
         ]);
         const client = new BitviewClient({ baseUrl: base, timeout: 30000 });
         // Price is the explicit exception: prefer the client's OHLC endpoint,
@@ -804,7 +785,7 @@
         ));
         chart = LC.createChart(document.getElementById("chart"), {
           autoSize: true,
-          localization: { priceFormatter: numberToShortUSFormat, locale: "en-us" },
+          localization: { priceFormatter: formatAxis, locale: "en-us" },
           layout: {
             attributionLogo: false,
             background: { color: theme["chart-surface"] },
@@ -828,7 +809,7 @@
           rightPriceScale: { borderVisible: false, entireTextOnly: true },
           timeScale: { borderVisible: true, borderColor: theme.seam },
         });
-        const timeframePicker = document.getElementById("timeframe");
+        const timeframePicker = /** @type {HTMLSelectElement} */ (document.getElementById("timeframe"));
         const timeframes = Object.values(client.series.mappings.timestamp).flatMap(pattern =>
           pattern.indexes().map(index => ({ index, series: pattern.name })),
         );
@@ -840,7 +821,7 @@
           week1: "1w", month1: "1m", month3: "3m", month6: "6m",
           year1: "1y", year10: "10y", halving: "halv", epoch: "epch",
         };
-        for (const [label, block] of [["Time", false], ["Block", true]]) {
+        for (const [label, block] of /** @type {[string, boolean][]} */ ([["Time", false], ["Block", true]])) {
           const group = document.createElement("optgroup");
           group.label = label;
           timeframes.filter(frame => ["height", "epoch", "halving"].includes(frame.index) === block)
@@ -852,6 +833,7 @@
         const timestampCache = new Map();
         let activeRequests = 0;
         const waitingRequests = [];
+        /** @param {Parameters<typeof client.getSeries>} args @returns {Promise<any>} */
         async function requestPage(...args) {
           if (activeRequests >= 4) await new Promise(resolve => waitingRequests.push(resolve));
           else activeRequests++;
@@ -879,8 +861,8 @@
           chart.applyOptions({ timeScale: { timeVisible: !/^(day|week|month|year)/.test(timeframe) } });
         }
         applyTimeframe();
-        const picker = document.getElementById("series-picker");
-        const search = document.getElementById("series-search");
+        const picker = /** @type {HTMLDialogElement} */ (document.getElementById("series-picker"));
+        const search = /** @type {HTMLInputElement} */ (document.getElementById("series-search"));
         const results = document.getElementById("series-results");
         const pickerError = document.getElementById("series-error");
         let targetPane, searchTimer, searchVersion = 0;
@@ -1008,11 +990,11 @@
         }
         async function configureSeries(pane, entry) {
           const request = ++configRequest;
-          const dataLink = document.getElementById("series-config-data");
+          const dataLink = /** @type {HTMLAnchorElement} */ (document.getElementById("series-config-data"));
           const dataSeries = priceSources[entry.name]?.[timeframe] || entry.name;
           dataLink.href = `${base}/api/series/${encodeURIComponent(dataSeries)}/${encodeURIComponent(timeframe)}`;
           dataLink.title = `Open ${dataSeries} · ${timeframe} data in a new tab`;
-          const name = document.getElementById("series-config-name");
+          const name = /** @type {HTMLInputElement} */ (document.getElementById("series-config-name"));
           name.value = seriesTitle(entry);
           name.oninput = () => {
             entry.title = name.value.trim() || entry.name;
@@ -1049,7 +1031,7 @@
                 try {
                   setChartType(pane, entry, type);
                   styleError.textContent = "";
-                  typeChoices.querySelector('[aria-pressed="true"]')?.focus();
+                  /** @type {HTMLElement | null} */ (typeChoices.querySelector('[aria-pressed=\"true\"]'))?.focus();
                 } catch (error) { styleError.textContent = error.message; }
               });
               button.disabled = unavailable;
@@ -1103,13 +1085,13 @@
           const visible = document.getElementById("series-config-visible");
           function updateVisible() {
             visible.replaceChildren();
-            for (const [value, label] of [[true, "ON"], [false, "OFF"]]) {
+            for (const [value, label] of /** @type {[boolean, string][]} */ ([[true, "ON"], [false, "OFF"]])) {
               visible.append(choice(label, entry.visible === value, `Visibility ${label.toLowerCase()}`, () => {
                 entry.visible = value;
                 updateVisibility(pane);
                 renderLegend(pane);
                 saveState();
-                visible.querySelector('[aria-pressed="true"]')?.focus();
+                /** @type {HTMLElement | null} */ (visible.querySelector('[aria-pressed=\"true\"]'))?.focus();
               }));
             }
           }
@@ -1134,7 +1116,7 @@
                   if (moveSeriesToPane(pane, entry, candidate)) pane = candidate;
                   updatePanels();
                   updatePosition();
-                  panel.querySelector('[aria-pressed="true"]')?.focus();
+                  /** @type {HTMLElement | null} */ (panel.querySelector('[aria-pressed=\"true\"]'))?.focus();
                 });
               button.disabled = duplicate;
               panel.append(button);
@@ -1146,7 +1128,7 @@
               position.append(choice(index + 1, item === entry, `Position ${index + 1}`, () => {
                 reorderSeries(pane, entry, index);
                 updatePosition();
-                position.querySelector('[aria-pressed="true"]')?.focus();
+                /** @type {HTMLElement | null} */ (position.querySelector('[aria-pressed=\"true\"]'))?.focus();
               }));
             });
           }
@@ -1274,7 +1256,7 @@
           legend.append(seriesList);
           pane.controls.replaceChildren();
           if (panes.length > 1) {
-            for (const [direction, symbol, name] of [[-1, "↑", "up"], [1, "↓", "down"]]) {
+            for (const [direction, symbol, name] of /** @type {[number, string, string][]} */ ([[-1, "↑", "up"], [1, "↓", "down"]])) {
               if (direction === 1 && pane.index === panes.length - 1) continue;
               const move = document.createElement("button");
               move.textContent = symbol;
@@ -1638,7 +1620,7 @@
             if (version === searchVersion) {
               renderCatalogResponse(response, offset > 0);
               if (!offset) {
-                const rows = [...results.querySelectorAll("button:not(:disabled)")];
+                const rows = /** @type {HTMLElement[]} */ ([...results.querySelectorAll("button:not(:disabled)")]);
                 const focus = focusPath
                   ? rows.find(row => row.dataset.path === JSON.stringify(focusPath)) || rows[0] || search
                   : search;
@@ -1675,7 +1657,7 @@
           }, 80);
         });
         results.addEventListener("focusin", event => {
-          event.target.closest("button")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+          /** @type {Element} */ (event.target).closest("button")?.scrollIntoView({ block: "nearest", inline: "nearest" });
         });
         let escapeHeld = false;
         window.addEventListener("keydown", event => {
@@ -1702,20 +1684,20 @@
         });
         picker.addEventListener("keydown", event => {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-            const rows = [...results.querySelectorAll("button:not(:disabled)")];
+            const rows = /** @type {HTMLElement[]} */ ([...results.querySelectorAll("button:not(:disabled)")]);
             if (!rows.length) return;
             event.preventDefault();
-            const current = rows.indexOf(document.activeElement);
+            const current = rows.indexOf(/** @type {HTMLElement} */ (document.activeElement));
             const next = current < 0 ? (event.key === "ArrowDown" ? 0 : rows.length - 1)
               : (current + (event.key === "ArrowDown" ? 1 : -1) + rows.length) % rows.length;
             rows[next].focus({ preventScroll: true });
           } else if (event.key === "Enter" && document.activeElement === search) {
             event.preventDefault();
-            results.querySelector("button:not(:disabled)")?.click();
+            /** @type {HTMLElement | null} */ (results.querySelector("button:not(:disabled)"))?.click();
           } else if (event.key === "ArrowRight" && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
             const focused = document.activeElement;
             const row = focused === search && !search.value
-              ? results.querySelector("button:not(:disabled)") : focused;
+              ? /** @type {HTMLElement | null} */ (results.querySelector("button:not(:disabled)")) : /** @type {HTMLElement | null} */ (focused);
             if (!results.contains(row) || row?.dataset.branch !== "true") return;
             event.preventDefault();
             row.click();
@@ -1740,14 +1722,14 @@
           clearTimeout(historyTimer);
           timeframePicker.disabled = true;
           document.getElementById("chart").dataset.loading = "true";
-          document.querySelectorAll(":is(.pane-legend, .pane-controls) button").forEach(control => { control.disabled = true; });
+          /** @type {NodeListOf<HTMLButtonElement>} */ (document.querySelectorAll(":is(.pane-legend, .pane-controls) button")).forEach(control => { control.disabled = true; });
           if (seriesConfig.matches(":popover-open")) seriesConfig.hidePopover();
           const visibleRange = chart.timeScale().getVisibleRange();
           const snapshots = panes.map(pane => ({ pane, entries: [...pane.entries, ...pane.unloaded].map(({ name, title, color, visible, chartType, chartOptions }) => ({ name, title, color, visible, chartType, chartOptions })) }));
           status.textContent = `Loading ${next}…`;
           const loaded = await Promise.all(snapshots.map(snapshot => Promise.allSettled(snapshot.entries.map(entry => fetchSeries(entry.name, next)))));
           if (loaded.flat().length && loaded.flat().every(result => result.status === "rejected")) {
-            status.textContent = `Could not load ${next}: ${loaded.flat()[0].reason.message}`;
+            status.textContent = `Could not load ${next}: ${/** @type {PromiseRejectedResult} */ (loaded.flat()[0]).reason.message}`;
             timeframePicker.value = timeframe;
             timeframePicker.disabled = false;
             delete document.getElementById("chart").dataset.loading;
@@ -1786,10 +1768,10 @@
         const chartLibrary = document.getElementById("chart-library");
         const libraryList = document.getElementById("library-list");
         const sortChoices = document.getElementById("library-sort");
-        const newChartButton = document.getElementById("new-chart");
+        const newChartButton = /** @type {HTMLButtonElement} */ (document.getElementById("new-chart"));
         let switchingChart = false;
         renderLibrary = () => {
-          for (const button of sortChoices.children) button.setAttribute("aria-pressed", String(button.dataset.sort === library.sort));
+          for (const button of /** @type {HTMLCollectionOf<HTMLElement>} */ (sortChoices.children)) button.setAttribute("aria-pressed", String(button.dataset.sort === library.sort));
           libraryList.replaceChildren(...sortedCharts().map(entry => {
             const button = document.createElement("button");
             button.className = "library-chart";
@@ -1925,8 +1907,8 @@
           historyArmed = true;
           restoreTimeRange = null;
         }, { passive: true });
-        document.getElementById("chart").addEventListener("pointerup", () => requestAnimationFrame(saveState));
-        window.addEventListener("pagehide", saveState);
+        document.getElementById("chart").addEventListener("pointerup", () => requestAnimationFrame(() => saveState()));
+        window.addEventListener("pagehide", () => saveState());
         document.addEventListener("visibilitychange", () => { if (document.hidden) saveState(); });
 
       } catch (error) {

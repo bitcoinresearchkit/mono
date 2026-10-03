@@ -7,6 +7,7 @@ Embedded and filesystem-backed website serving for Bitview.
 - **Embedded assets**: Website files compiled into binary
 - **Filesystem mode**: Serve from custom path for development
 - **SPA support**: Routes without extensions fallback to index.html
+- **Standalone pages**: A folder with its own `index.html` is served at `/folder/`
 - **ImportMap**: Auto-generates import maps for hashed assets
 
 ## Usage
@@ -40,11 +41,10 @@ cargo run -p bitview_website --example website
 Pass a folder to serve it instead of the default website:
 
 ```sh
-cargo run -p bitview_website --example website -- website_next_next
+cargo run -p bitview_website --example website -- showcases
 ```
 
-Open `http://localhost:3110/studio.html` (or port 3111 if 3110 is occupied).
-Studio loads QuickMatch locally through `website_next_next/modules`.
+Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for the showcases gallery.
 
 ## Dependencies
 

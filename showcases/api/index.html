@@ -1,162 +1,758 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <title>Bitview API — Bitcoin Research Kit</title>
-    <meta
-      name="description"
-      content="Free Bitcoin on-chain analytics API. Thousands of time-series, block explorer, address index, mempool, mining stats. No auth required."
-    />
-
-    <!-- Open Graph -->
-    <meta property="og:title" content="Bitview API — Bitcoin Research Kit" />
-    <meta
-      property="og:description"
-      content="Free Bitcoin on-chain analytics API. Thousands of time-series, block explorer, address index, mempool, mining stats. No auth required."
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://bitview.space/api" />
-    <meta
-      property="og:image"
-      content="https://bitview.space/assets/favicon/web-app-manifest-512x512.png"
-    />
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Bitview API — Bitcoin Research Kit" />
-    <meta
-      name="twitter:description"
-      content="Free Bitcoin on-chain analytics API. Thousands of time-series, block explorer, address index. No auth required."
-    />
-    <meta
-      name="twitter:image"
-      content="https://bitview.space/assets/favicon/web-app-manifest-512x512.png"
-    />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b1713" />
+    <title>API · bitview</title>
+    <meta
+      name="description"
+      content="The Bitview API: blocks, transactions, addresses, mempool, mining and thousands of on-chain series. No key, JSON and CSV. Try every endpoint live."
+    />
     <style>
-      html,
-      body,
-      #app {
-        width: 100%;
-        min-width: 0;
-        min-height: 100%;
-        margin: 0;
+      @font-face {
+        font-family: Lilex;
+        src: url("../fonts/Lilex.woff2") format("woff2");
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Instrument;
+        src: url("../fonts/InstrumentSerif-Regular.woff2") format("woff2");
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: dark;
+        --ink: #0b1713;
+        --panel: #102019;
+        --line: #1f3a2f;
+        --text: #e3f2e9;
+        --muted: #82a593;
+        --mint: #5fe0a4;
+        --amber: #f2c46d;
+        --sky: #7cc4f5;
+        --rose: #f28b82;
+        --mono: Lilex, ui-monospace, SFMono-Regular, Menlo, monospace;
+        --serif: Instrument, Georgia, serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 1.5rem;
       }
 
       body {
-        color: #edf8f1;
-        background: #0b1713;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          monospace;
+        margin: 0;
+        color: var(--text);
+        background: var(--ink);
+        font: 14px/1.6 var(--mono);
       }
 
-      #tiny-api {
-        display: none;
+      a {
+        color: var(--mint);
+        text-decoration: none;
       }
 
-      @media (max-width: 320px), (max-height: 260px) {
-        #app {
-          display: none;
+      a:hover {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      code {
+        font-family: var(--mono);
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--mint);
+        outline-offset: 2px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .hero {
+        width: min(100% - 3rem, 72rem);
+        margin: 0 auto;
+        padding: 2rem 0 3rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .hero h1 {
+        margin: 2.5rem 0 1rem;
+        font: 400 clamp(3rem, 8vw, 6rem) / 0.9 var(--serif);
+        letter-spacing: -0.02em;
+      }
+
+      .hero h1 span {
+        color: var(--mint);
+      }
+
+      .lede {
+        max-width: 46rem;
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+        gap: 1rem 2rem;
+        margin: 2.25rem 0 0;
+
+        div {
+          border-top: 1px solid var(--line);
+          padding-top: 0.75rem;
         }
 
-        #tiny-api {
-          position: relative;
-          display: grid;
-          width: 100vw;
-          height: 100dvh;
-          overflow: hidden;
-          place-content: center;
-          text-align: center;
-          isolation: isolate;
-        }
-
-        #tiny-api::before,
-        #tiny-api::after {
-          position: absolute;
-          z-index: -1;
-          top: 50%;
-          color: #244c3b;
-          font-size: clamp(6rem, 62vw, 13rem);
-          font-weight: 300;
-          line-height: 1;
-          transform: translateY(-54%);
-        }
-
-        #tiny-api::before {
-          right: 56%;
-          content: "{";
-        }
-
-        #tiny-api::after {
-          left: 56%;
-          content: "}";
-        }
-
-        #tiny-api span,
-        #tiny-api small {
-          color: #8bb39a;
-          font-size: 8px;
-          font-weight: 650;
-          letter-spacing: 0.09em;
-          line-height: 12px;
+        dt {
+          color: var(--muted);
+          font-size: 11px;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
         }
 
-        #tiny-api strong {
-          margin: 2px 0;
-          color: #edf8f1;
-          font-size: clamp(1.7rem, 15vw, 3rem);
-          font-weight: 520;
-          letter-spacing: -0.08em;
-          line-height: 0.9;
+        dd {
+          margin: 0.25rem 0 0;
         }
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 14rem minmax(0, 1fr);
+        gap: 3rem;
+        width: min(100% - 3rem, 72rem);
+        margin: 0 auto;
+      }
+
+      #toc {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        max-height: 100dvh;
+        overflow-y: auto;
+        padding: 2rem 0;
+        scrollbar-width: none;
+
+        a {
+          display: flex;
+          justify-content: space-between;
+          padding: 0.35rem 0;
+          color: var(--muted);
+          font-size: 13px;
+        }
+
+        a:hover,
+        a[aria-current="true"] {
+          color: var(--text);
+          text-decoration: none;
+        }
+
+        small {
+          color: var(--line);
+          filter: brightness(1.8);
+        }
+      }
+
+      #endpoints {
+        min-width: 0;
+        padding: 1.5rem 0 4rem;
+      }
+
+      .group > h2 {
+        margin: 2.5rem 0 0.5rem;
+        font: 400 2.25rem/1 var(--serif);
+      }
+
+      .endpoint {
+        border-bottom: 1px solid var(--line);
+        padding: 1.25rem 0;
+
+        > summary {
+          display: flex;
+          align-items: baseline;
+          gap: 0.75rem;
+          list-style: none;
+          cursor: pointer;
+        }
+
+        > summary::-webkit-details-marker {
+          display: none;
+        }
+
+        > summary:hover .path {
+          color: var(--mint);
+        }
+
+        &[open] > summary .path {
+          color: var(--mint);
+        }
+      }
+
+      .method {
+        flex: 0 0 auto;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 0 0.4rem;
+        color: var(--sky);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+      }
+
+      .method[data-post] {
+        color: var(--amber);
+      }
+
+      .path {
+        overflow-wrap: anywhere;
+        transition: color 120ms;
+
+        b {
+          color: var(--amber);
+          font-weight: 400;
+        }
+      }
+
+      .title {
+        display: grid;
+        gap: 0.2rem;
+        min-width: 0;
+      }
+
+      .summary {
+        color: var(--muted);
+        font-size: 12.5px;
+      }
+
+      .detail {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+        margin: 1rem 0 0;
+
+        > p {
+          margin: 0;
+          color: var(--muted);
+        }
+
+        code {
+          color: var(--text);
+          overflow-wrap: anywhere;
+        }
+      }
+
+      .params {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+        gap: 0.75rem 1rem;
+
+        label {
+          display: grid;
+          gap: 0.3rem;
+          font-size: 12px;
+        }
+
+        label span {
+          display: flex;
+          justify-content: space-between;
+          gap: 0.5rem;
+          color: var(--muted);
+        }
+
+        label i {
+          color: var(--line);
+          filter: brightness(2);
+          font-style: normal;
+        }
+
+        input,
+        select {
+          width: 100%;
+          min-width: 0;
+          border: 1px solid var(--line);
+          border-radius: 6px;
+          padding: 0.5rem 0.6rem;
+          color: var(--text);
+          background: var(--panel);
+          font: 13px var(--mono);
+        }
+      }
+
+      .run {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+
+        button {
+          border: 0;
+          border-radius: 6px;
+          padding: 0.55rem 1rem;
+          color: var(--ink);
+          background: var(--mint);
+          font: 600 12px var(--mono);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          cursor: pointer;
+        }
+
+        button:disabled {
+          opacity: 0.5;
+          cursor: progress;
+        }
+
+        code {
+          flex: 1 1 20rem;
+          min-width: 0;
+          overflow-x: auto;
+          color: var(--muted);
+          font-size: 12px;
+          white-space: nowrap;
+          scrollbar-width: thin;
+        }
+      }
+
+      .response {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+        background: #08110e;
+
+        header {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.25rem 1rem;
+          border-bottom: 1px solid var(--line);
+          padding: 0.5rem 0.75rem;
+          color: var(--muted);
+          font-size: 12px;
+        }
+
+        header b {
+          color: var(--mint);
+          font-weight: 400;
+        }
+
+        header b[data-error] {
+          color: var(--rose);
+        }
+
+        pre {
+          max-height: 28rem;
+          margin: 0;
+          overflow: auto;
+          padding: 0.75rem;
+          font-size: 12px;
+          line-height: 1.55;
+        }
+
+        .k {
+          color: var(--sky);
+        }
+
+        .s {
+          color: var(--amber);
+        }
+
+        .n {
+          color: var(--mint);
+        }
+
+        .l {
+          color: var(--rose);
+        }
+      }
+
+      #types {
+        width: min(100% - 3rem, 72rem);
+        margin: 0 auto;
+        padding: 0 0 5rem 17rem;
+
+        > h2 {
+          margin: 0 0 1rem;
+          font: 400 2.25rem/1 var(--serif);
+        }
+
+        details {
+          border-bottom: 1px solid var(--line);
+          padding: 0.6rem 0;
+        }
+
+        summary {
+          cursor: pointer;
+          color: var(--text);
+        }
+
+        p {
+          margin: 0.4rem 0;
+          color: var(--muted);
+          white-space: pre-line;
+        }
+
+        dl {
+          display: grid;
+          grid-template-columns: max-content minmax(0, 1fr);
+          gap: 0.2rem 1.5rem;
+          margin: 0.5rem 0 0;
+          font-size: 13px;
+        }
+
+        dt {
+          color: var(--muted);
+        }
+
+        dd {
+          margin: 0;
+          overflow-wrap: anywhere;
+        }
+      }
+
+      #status {
+        padding: 3rem 0;
+        color: var(--muted);
+      }
+
+      @media (max-width: 60rem) {
+        .layout {
+          display: block;
+        }
+
+        #toc {
+          position: static;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+          max-height: none;
+          padding: 1.5rem 0 0;
+
+          a {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.25rem 0.7rem;
+          }
+
+          small {
+            display: none;
+          }
+        }
+
+        #types {
+          padding-left: 0;
+        }
+
       }
     </style>
   </head>
-
   <body>
-    <div id="app"></div>
-    <section id="tiny-api" aria-label="Bitview API summary">
-      <span>Bitview API</span>
-      <strong>REST</strong>
-      <small>No auth · JSON</small>
-    </section>
+    <header class="hero">
+      <a class="brand" href="https://bitview.space">bitview</a>
+      <h1>The Bitview <span>API</span></h1>
+      <p class="lede">
+        Everything on bitview.space is served by these endpoints: blocks, transactions, addresses, the mempool,
+        mining, and tens of thousands of on-chain series. No key, no account. Open any endpoint and run it live.
+      </p>
+      <dl class="facts">
+        <div><dt>Endpoints</dt><dd id="count">—</dd></div>
+        <div><dt>Version</dt><dd id="version">—</dd></div>
+        <div><dt>Base URL</dt><dd><code>https://bitview.space</code></dd></div>
+        <div>
+          <dt>Specs</dt>
+          <dd>
+            <a href="https://bitview.space/openapi.json">OpenAPI</a> ·
+            <a href="https://bitview.space/api.json">compact</a> ·
+            <a href="https://bitview.space/llms.txt">llms.txt</a>
+          </dd>
+        </div>
+      </dl>
+    </header>
 
-    <script>
-      const tinyApi = window.matchMedia(
-        "(max-width: 320px), (max-height: 260px)",
-      );
-      const compactApi = window.matchMedia(
-        "(max-width: 480px), (max-height: 360px)",
-      );
-      if (!tinyApi.matches) {
-        const scalarScript = document.createElement("script");
-        scalarScript.src = "https://bitview.space/scalar.js";
-        scalarScript.addEventListener("load", () => {
-          Scalar.createApiReference("#app", {
-            url: "https://bitview.space/openapi.json",
-            hideClientButton: true,
-            hideDarkModeToggle: compactApi.matches,
-            hideModels: compactApi.matches,
-            hideSearch: compactApi.matches,
-            hideTestRequestButton: compactApi.matches,
-            showSidebar: !compactApi.matches,
-            documentDownloadType: compactApi.matches ? "none" : "both",
-            telemetry: false,
-            withDefaultFonts: false,
-            showDeveloperTools: "never",
-            mcp: {
-              name: "mcp",
-              url: "https://mcp.example.com",
-              disabled: true,
-            },
-            agent: { disabled: true },
-          });
-        });
-        document.head.append(scalarScript);
+    <div class="layout">
+      <nav id="toc" aria-label="Endpoint groups"></nav>
+      <main id="endpoints"><p id="status">Loading the specification…</p></main>
+    </div>
+    <section id="types" aria-labelledby="types-title" hidden><h2 id="types-title">Types</h2></section>
+
+    <!-- Everything below is built from the server's own compact spec (/api.json). -->
+    <script type="module">
+      // @ts-check
+      const ORIGIN = "https://bitview.space";
+      const TRUNCATE_LINES = 400;
+
+      /** Paths in spec order fall into these groups, by prefix. @type {[string, RegExp][]} */
+      const GROUPS = [
+        ["Server", /^\/(health|version|api\/server)/],
+        ["Series", /^\/api\/series/],
+        ["URPD", /^\/api\/urpd/],
+        ["Prices", /^\/api\/(v1\/prices|v1\/historical-price|mempool\/price|oracle\/price)/],
+        ["Oracle", /^\/api\/oracle/],
+        ["Addresses", /^\/api\/(address|v1\/validate-address)/],
+        ["Blocks", /^\/api\/(block|blocks|v1\/block|v1\/blocks|v1\/mining\/blocks\/timestamp)/],
+        ["Mining", /^\/api\/v1\/(mining|difficulty-adjustment)/],
+        ["Fees", /^\/api\/v1\/fees/],
+        ["Mempool", /^\/api\/(mempool|v1\/replacements|v1\/fullrbf|v1\/mempool)/],
+        ["Transactions", /^\/api\/(tx|v1\/tx|v1\/cpfp|v1\/transaction-times)/],
+        ["Specs", /^\/(openapi\.json|api\.json)/],
+      ];
+
+      /** Real values, so every endpoint runs as-is: the 2024 halving block, the pizza transaction, the genesis address. */
+      const EXAMPLES_BY_NAME = {
+        q: "realized price",
+        start: "-5",
+        limit: "5",
+        block_count: "144",
+        page: "0",
+        per_page: "10",
+        prefix: "a3",
+        "txId[]": "a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d",
+      };
+      const EXAMPLES_BY_TYPE = {
+        BlockHash: "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5",
+        Height: "840000",
+        Txid: "a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d",
+        Addr: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+        SeriesName: "price",
+        Cohort: "all",
+        PoolSlug: "foundryusa",
+        Timestamp: "1713571767",
+        Vout: "0",
+        TxIndex: "1000000",
+        BlockTxIndex: "0",
+      };
+      /** Path parameters without a type-level default, by endpoint. */
+      const EXAMPLES_BY_PATH = {
+        "/api/urpd/{cohort}/{point}": { point: "2024-04-20" },
+        "/api/oracle/histogram/payments/{point}": { point: "840000" },
+        "/api/oracle/histogram/outputs/{point}": { point: "840000" },
+        "/api/v1/validate-address/{address}": { address: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa" },
+        "/api/series/bulk": { series: "price,market_cap" },
+        // Laszlo's address (the pizza's buyer): a handful of unspent outputs.
+        "/api/address/{address}/utxo": { address: "1XPTgDRhN8RFnzniWCddobD9iKZatrvH4" },
+      };
+
+      /** @type {(id: string) => any} */
+      const $ = (id) => document.getElementById(id);
+      const number = new Intl.NumberFormat("en-US");
+      const escape = (text) => String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      /** Spec descriptions use backticks for code. */
+      const prose = (text = "") => escape(text).replace(/`([^`]+)`/g, "<code>$1</code>");
+      const slug = (method, path) => `${method}${path}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-$/, "");
+      const typeLink = (type = "") => {
+        const name = type.replace(/^array\[(.+)\]$/, "$1");
+        const link = schemas[name] ? `<a href="#type-${name}">${escape(name)}</a>` : escape(name);
+        return type.startsWith("array[") ? `array[${link}]` : link;
+      };
+      let schemas = {};
+
+      /** JSON with syntax colors; long answers are cut, not the request. */
+      function highlight(value) {
+        const lines = JSON.stringify(value, null, 2).split("\n");
+        const shown = lines.slice(0, TRUNCATE_LINES).join("\n");
+        const html = escape(shown).replace(
+          /(&quot;(?:\\.|[^&]|&(?!quot;))*?&quot;)(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/g,
+          (match, string, colon, literal) =>
+            string ? `<span class="${colon ? "k" : "s"}">${string}</span>${colon ?? ""}` : literal ? `<span class="l">${literal}</span>` : `<span class="n">${match}</span>`,
+        );
+        return lines.length > TRUNCATE_LINES ? `${html}\n<span class="l">… ${number.format(lines.length - TRUNCATE_LINES)} more lines</span>` : html;
       }
-      tinyApi.addEventListener("change", () => window.location.reload());
-      compactApi.addEventListener("change", () => window.location.reload());
+
+      function exampleFor(path, parameter) {
+        return EXAMPLES_BY_PATH[path]?.[parameter.name] ?? EXAMPLES_BY_NAME[parameter.name] ?? EXAMPLES_BY_TYPE[parameter.type] ?? "";
+      }
+
+      function field(path, parameter) {
+        const label = document.createElement("label");
+        const enumeration = schemas[parameter.type]?.enum;
+        const control = /** @type {any} */ (document.createElement(enumeration ? "select" : "input"));
+        control.name = parameter.name;
+        control.dataset.in = parameter.in;
+        if (enumeration) {
+          const options = [...(parameter.required ? [] : [""]), ...enumeration];
+          control.replaceChildren(...options.map((value) => Object.assign(document.createElement("option"), { value, textContent: value || "—" })));
+          control.value = { Index: "day1", Format: "json", TimePeriod: "1w", OutputType: "p2tr", UrpdAggregation: "lin1000", UrpdWeight: "raw" }[parameter.type] ?? options[0];
+        } else {
+          control.value = exampleFor(path, parameter);
+          control.placeholder = parameter.required ? "required" : "optional";
+          // The projected-block hash changes every few seconds: fetch a current one.
+          if (parameter.type === "NextBlockHash") {
+            void fetch(`${ORIGIN}/api/mempool/hash`).then((response) => response.text()).then((hash) => {
+              if (!control.value) control.value = hash.trim();
+              control.form?.dispatchEvent(new Event("input"));
+            }, () => {});
+          }
+          control.spellcheck = false;
+          control.autocomplete = "off";
+        }
+        label.innerHTML = `<span>${escape(parameter.name)}<i>${escape(parameter.type ?? "")}${parameter.in === "query" ? " · query" : ""}</i></span>`;
+        label.append(control);
+        return label;
+      }
+
+      function requestUrl(path, form) {
+        const query = new URLSearchParams();
+        let url = path;
+        for (const control of form.querySelectorAll("input, select")) {
+          const value = control.value.trim();
+          if (control.dataset.in === "path") url = url.replace(`{${control.name}}`, encodeURIComponent(value));
+          else if (value) query.append(control.name, value);
+        }
+        const search = query.toString();
+        return `${ORIGIN}${url}${search ? `?${search}` : ""}`;
+      }
+
+      async function run(path, form, output) {
+        const button = form.querySelector("button");
+        const url = requestUrl(path, form);
+        button.disabled = true;
+        const started = performance.now();
+        try {
+          const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+          const text = await response.text();
+          const elapsed = Math.round(performance.now() - started);
+          let body;
+          try {
+            body = highlight(JSON.parse(text));
+          } catch {
+            body = escape(text.length > 200_000 ? `${text.slice(0, 200_000)}…` : text);
+          }
+          output.innerHTML = `<header><b ${response.ok ? "" : "data-error"}>${response.status} ${escape(response.statusText)}</b><span>${elapsed} ms</span><span>${number.format(new TextEncoder().encode(text).length)} bytes</span><span>${escape(response.headers.get("content-type") ?? "")}</span></header><pre>${body}</pre>`;
+        } catch (error) {
+          output.innerHTML = `<header><b data-error>Request failed</b><span>${escape(error.message)}</span></header>`;
+        } finally {
+          output.hidden = false;
+          button.disabled = false;
+        }
+      }
+
+      function endpoint(path, method, operation) {
+        const details = document.createElement("details");
+        details.className = "endpoint";
+        details.id = slug(method, path);
+        // The first sentence stays visible for scanning; the rest opens with the form.
+        const [summary = "", ...rest] = (operation.description ?? "").split(/(?<=\.)\s/);
+        details.innerHTML = `<summary><span class="method" ${method === "post" ? "data-post" : ""}>${method.toUpperCase()}</span><span class="title"><code class="path">${escape(path).replace(/\{([^}]+)\}/g, "<b>{$1}</b>")}</code><small class="summary">${prose(summary)}</small></span></summary>`;
+
+        // The form is built on first open: 97 forms up front would be wasted work.
+        details.addEventListener("toggle", () => {
+          if (!details.open || details.querySelector(".detail")) return;
+          const detail = document.createElement("div");
+          detail.className = "detail";
+          detail.innerHTML = `${rest.length ? `<p>${prose(rest.join(" "))}</p>` : ""}${operation.returns ? `<p>Returns ${typeLink(operation.returns)}</p>` : ""}`;
+          if (method === "get") {
+            const form = document.createElement("form");
+            const params = document.createElement("div");
+            params.className = "params";
+            params.append(...(operation.parameters ?? []).map((parameter) => field(path, parameter)));
+            const curl = document.createElement("code");
+            const button = Object.assign(document.createElement("button"), { type: "submit", textContent: "Run" });
+            const runRow = document.createElement("div");
+            runRow.className = "run";
+            runRow.append(button, curl);
+            const output = document.createElement("div");
+            output.className = "response";
+            output.hidden = true;
+            const syncCurl = () => (curl.textContent = `curl -s "${requestUrl(path, form)}"`);
+            form.append(...(operation.parameters?.length ? [params] : []), runRow);
+            form.addEventListener("input", syncCurl);
+            form.addEventListener("submit", (event) => {
+              event.preventDefault();
+              void run(path, form, output);
+            });
+            syncCurl();
+            detail.append(form, output);
+          } else {
+            detail.insertAdjacentHTML("beforeend", `<p>Send the raw transaction hex as the request body: <code>curl -s -X POST --data-binary @tx.hex ${ORIGIN}${escape(path)}</code></p>`);
+          }
+          details.append(detail);
+        });
+        return details;
+      }
+
+      function renderTypes() {
+        const section = $("types");
+        section.append(
+          ...Object.entries(schemas)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([name, schema]) => {
+              const details = document.createElement("details");
+              details.id = `type-${name}`;
+              const properties = schema.properties
+                ? `<dl>${Object.entries(schema.properties).map(([key, type]) => `<dt>${escape(key)}</dt><dd>${typeLink(String(type))}</dd>`).join("")}</dl>`
+                : "";
+              const shape = schema.enum ? `<p>One of ${schema.enum.map((value) => `<code>${escape(value)}</code>`).join(", ")}</p>` : schema.type ? `<p>${escape([schema.type].flat().join(" | "))}</p>` : "";
+              details.innerHTML = `<summary>${escape(name)}</summary>${schema.description ? `<p>${prose(schema.description)}</p>` : ""}${shape}${properties}`;
+              return details;
+            }),
+        );
+        section.hidden = false;
+      }
+
+      // Opening a type from a link expands it.
+      addEventListener("hashchange", () => {
+        const target = document.getElementById(location.hash.slice(1));
+        if (target instanceof HTMLDetailsElement) target.open = true;
+      });
+
+      try {
+        const response = await fetch(`${ORIGIN}/api.json`, { signal: AbortSignal.timeout(30_000) });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const spec = await response.json();
+        schemas = spec.components?.schemas ?? {};
+        const operations = Object.entries(spec.paths).flatMap(([path, methods]) => Object.entries(methods).map(([method, operation]) => ({ path, method, operation })));
+        $("count").textContent = number.format(operations.length);
+        $("version").textContent = spec.info?.version ?? "—";
+
+        const groups = GROUPS.map(([name, pattern]) => ({ name, items: operations.filter(({ path }) => pattern.test(path)) }));
+        const grouped = new Set(groups.flatMap(({ items }) => items));
+        groups.push({ name: "Other", items: operations.filter((operation) => !grouped.has(operation)) });
+
+        const sections = [];
+        const toc = [];
+        const seen = new Set();
+        for (const { name, items } of groups) {
+          const fresh = items.filter((item) => !seen.has(item) && seen.add(item));
+          if (!fresh.length) continue;
+          const section = document.createElement("section");
+          section.className = "group";
+          section.id = name.toLowerCase();
+          section.innerHTML = `<h2>${escape(name)}</h2>`;
+          section.append(...fresh.map(({ path, method, operation }) => endpoint(path, method, operation)));
+          sections.push(section);
+          toc.push(Object.assign(document.createElement("a"), { href: `#${section.id}`, innerHTML: `${escape(name)}<small>${fresh.length}</small>` }));
+        }
+        $("endpoints").replaceChildren(...sections);
+        $("toc").replaceChildren(...toc);
+        renderTypes();
+
+        // The table of contents follows the reader.
+        const spy = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            for (const link of $("toc").children) link.setAttribute("aria-current", String(link.getAttribute("href") === `#${entry.target.id}`));
+          }
+        }, { rootMargin: "-20% 0px -70% 0px" });
+        for (const section of sections) spy.observe(section);
+
+        const target = location.hash ? document.getElementById(location.hash.slice(1)) : null;
+        if (target instanceof HTMLDetailsElement) target.open = true;
+        target?.scrollIntoView();
+      } catch (error) {
+        $("status").textContent = `The specification could not load (${error.message}).`;
+      }
     </script>
   </body>
 </html>

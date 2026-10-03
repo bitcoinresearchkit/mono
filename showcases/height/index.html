@@ -103,7 +103,8 @@
 
       output {
         display: block;
-        margin-block: 1rem;
+        /* Room below for the comma's descender (in ems of the number itself). */
+        margin-block: 1rem 0.22em;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           monospace;
         font-size: clamp(4.2rem, 20vw, 18rem);
@@ -166,7 +167,7 @@
   <body>
     <main>
       <header>
-        <a href="../">← Bitview</a>
+        <a href="https://bitview.space">← Bitview</a>
         <span class="status" id="status">Connecting</span>
       </header>
 
@@ -183,25 +184,13 @@
     </main>
 
     <script>
+      // @ts-check
       const ORIGIN = "https://bitview.space";
-      // The deployed client, imported from a blob URL: direct remote module
-      // imports fail on some hosts.
-      const clientReady = (async () => {
-        const response = await fetch(`${ORIGIN}/scripts/modules/bitview-client/index.js`, {
-          cache: "no-cache",
-          signal: AbortSignal.timeout(30_000),
-        });
-        if (!response.ok) throw new Error(`Client download failed (HTTP ${response.status}).`);
-        const url = URL.createObjectURL(new Blob([await response.text()], { type: "text/javascript" }));
-        try {
-          const { BitviewClient } = await import(url);
-          return new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 });
-        } finally {
-          URL.revokeObjectURL(url);
-        }
-      })();
+      const clientReady = import("../modules/bitview-client/index.js").then(
+        ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 }),
+      );
       const height = document.querySelector("#height");
-      const status = document.querySelector("#status");
+      const status = /** @type {HTMLElement} */ (document.querySelector("#status"));
       const updated = document.querySelector("#updated");
 
       async function loadHeight() {
@@ -209,14 +198,14 @@
           const client = await clientReady;
           const data = await client.getSyncStatus({ cache: false });
           height.textContent = new Intl.NumberFormat("en-US").format(
-            data.indexed_height,
+            data.indexedHeight,
           );
-          status.textContent = data.blocks_behind ? "Syncing" : "Live";
+          status.textContent = data.blocksBehind ? "Syncing" : "Live";
           status.dataset.live = "";
           updated.textContent = `updated ${new Intl.DateTimeFormat("en", {
             dateStyle: "medium",
             timeStyle: "short",
-          }).format(new Date(data.last_indexed_at))}`;
+          }).format(new Date(data.lastIndexedAt))}`;
         } catch {
           status.textContent = "Offline";
           updated.textContent = "Connect through a running Bitview server";
