@@ -12,40 +12,10 @@ keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
 [features]
 default = []
 full-api = ["chain", "series", "urpd"]
-bedrock = ["bitview_server/bedrock"]
-blocks = ["bitview_server/blocks"]
-coinflow = ["bitview_server/coinflow"]
-cointime = ["bitview_server/cointime"]
-distribution_age = ["bitview_server/distribution_age"]
-distribution_addresses = ["bitview_server/distribution_addresses"]
-mappings = ["bitview_server/mappings"]
-inputs = ["bitview_server/inputs"]
-mining = ["bitview_server/mining"]
-outputs = ["bitview_server/outputs"]
-pools = ["bitview_server/pools"]
-price = ["mappings", "bitview_server/price"]
-transactions = ["bitview_server/transactions"]
-chain = [
-    "blocks",
-    "distribution_addresses",
-    "mappings",
-    "inputs",
-    "mining",
-    "outputs",
-    "pools",
-    "price",
-    "transactions",
-    "bitview_server/chain",
-]
-series = ["mappings", "bitview_server/series"]
-urpd = [
-    "bedrock",
-    "coinflow",
-    "cointime",
-    "distribution_age",
-    "price",
-    "bitview_server/urpd",
-]
+chain = ["price", "bitview_server/chain"]
+series = ["bitview_server/series"]
+urpd = ["price", "bitview_server/urpd"]
+price = ["bitview_server/price"]
 
 [dependencies]
 brk_exit = { workspace = true }

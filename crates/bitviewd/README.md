@@ -133,8 +133,9 @@ composition:
 bitviewd = { version = "0.12", default-features = false, features = ["series"] }
 ```
 
-Plugin features flow through `bitview` and `bitview_server` to `bitview_query`,
-so only the selected typed API surface and its plugin crates are compiled. The
+Route-family features (`chain`, `series`, `urpd`, `price`) flow through `bitview`
+and `bitview_server` to `bitview_query`, so only the selected typed API surface
+and its plugin crates are compiled. The
 indexer is the mandatory runner baseline.
 
 Use `features = ["full-api"]` to enable the complete chain, series, and URPD API

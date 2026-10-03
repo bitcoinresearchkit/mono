@@ -12,10 +12,10 @@ HTTP API server for Bitcoin on-chain analytics.
 - **Compression**: Brotli, gzip, zstd; small responses skip compression
 - **Static files**: Optional web interface hosting
 
-Plugin features mirror `bitview_query` and gate the routes that can use them.
-`chain`, `series`, `urpd`, and `full-api` are convenience aggregators; the
-default is `full-api`. Custom compositions can disable default features and
-enable only the plugins and route families they provide. This crate does not
+Route-family features (`chain`, `series`, `urpd`, and `price`, which `chain` and
+`urpd` imply) gate the routes; `full-api` enables all of them and is the default.
+Custom compositions can disable default features and enable only the route
+families they provide; per-plugin selection lives in `bitview_query`. This crate does not
 depend on the official Bitview composition.
 
 ## Usage

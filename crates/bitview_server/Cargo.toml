@@ -11,39 +11,10 @@ exclude = ["examples/", "src/api/scalar.js"]
 [features]
 default = ["full-api"]
 full-api = ["chain", "series", "urpd"]
-bedrock = ["bitview_query/bedrock"]
-blocks = ["bitview_query/blocks"]
-coinflow = ["bitview_query/coinflow"]
-cointime = ["bitview_query/cointime"]
-distribution_age = ["bitview_query/distribution_age"]
-distribution_addresses = ["bitview_query/distribution_addresses"]
-mappings = ["bitview_query/mappings"]
-inputs = ["bitview_query/inputs"]
-mining = ["bitview_query/mining"]
-outputs = ["bitview_query/outputs"]
-pools = ["bitview_query/pools"]
-price = ["mappings", "bitview_query/price"]
-transactions = ["bitview_query/transactions"]
-chain = [
-    "blocks",
-    "distribution_addresses",
-    "mappings",
-    "inputs",
-    "mining",
-    "outputs",
-    "pools",
-    "price",
-    "transactions",
-    "bitview_query/chain",
-]
-series = ["mappings", "bitview_query/series"]
-urpd = [
-    "coinflow",
-    "cointime",
-    "distribution_age",
-    "price",
-    "bitview_query/urpd",
-]
+chain = ["price", "bitview_query/chain"]
+series = ["bitview_query/series"]
+urpd = ["price", "bitview_query/urpd"]
+price = ["bitview_query/price"]
 
 [dependencies]
 bitcoin = { workspace = true }

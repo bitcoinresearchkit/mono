@@ -12,7 +12,6 @@ exclude = ["examples/"]
 default = ["full-api"]
 full-api = ["chain", "series", "urpd"]
 indexer = ["dep:bitview_plugin_indexer"]
-bedrock = ["indexer", "dep:bitview_plugin_bedrock"]
 blocks = ["indexer", "dep:bitview_plugin_blocks"]
 coinflow = ["indexer", "dep:bitview_plugin_coinflow"]
 cointime = ["indexer", "dep:bitview_plugin_cointime"]
@@ -52,7 +51,6 @@ tokio = ["indexer", "dep:tokio", "brk_error/tokio"]
 [dependencies]
 bitcoin = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }
-bitview_plugin_bedrock = { workspace = true, optional = true }
 bitview_plugin_blocks = { workspace = true, optional = true }
 bitview_plugin_coinflow = { workspace = true, optional = true }
 bitview_plugin_cointime = { workspace = true, optional = true }

@@ -119,8 +119,10 @@ operation rather than by callers. Ordinary storage/compute reads remain unbounde
 
 ## Features
 
-Plugin features (`indexer`, `blocks`, `distribution_age`, `mappings`, `price`, and
-the other built-in plugin IDs) are the source of truth. Enabling one adds its
+Per-plugin features (`indexer`, `blocks`, `coinflow`, `cointime`, `distribution_age`,
+`distribution_addresses`, `inputs`, `mappings`, `mining`, `outputs`, `pools`, `price`,
+`transactions`, `utxo_history`) are the source of truth; `chain`, `series`, `urpd` and
+`full-api` aggregate them. Enabling one adds its
 typed `HasX` requirement to `QueryPluginSet` and exposes its typed accessor.
 The `tokio` feature adds `AsyncQuery` and also enables the indexer capability.
 

@@ -1,5 +1,3 @@
-#[cfg(feature = "bedrock")]
-use bitview_plugin_bedrock::HasBedrock;
 #[cfg(feature = "blocks")]
 use bitview_plugin_blocks::HasBlocks;
 #[cfg(feature = "coinflow")]
@@ -47,7 +45,6 @@ macro_rules! plugin_capability {
     };
 }
 
-plugin_capability!("bedrock", SupportsBedrock, HasBedrock);
 plugin_capability!("blocks", SupportsBlocks, HasBlocks);
 plugin_capability!("coinflow", SupportsCoinflow, HasCoinflow);
 plugin_capability!("cointime", SupportsCointime, HasCointime);
@@ -76,7 +73,6 @@ plugin_capability!("utxo_history", SupportsUtxoHistory, HasUtxoHistory);
 /// return that set from [`query_capabilities`](Self::query_capabilities).
 pub trait QueryPluginSet: PluginSet + Traversable {
     type Capabilities: HasIndexer<Ro>
-        + SupportsBedrock
         + SupportsBlocks
         + SupportsCoinflow
         + SupportsCointime
@@ -100,7 +96,6 @@ where
     T: PluginSet
         + Traversable
         + HasIndexer<Ro>
-        + SupportsBedrock
         + SupportsBlocks
         + SupportsCoinflow
         + SupportsCointime

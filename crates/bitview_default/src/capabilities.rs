@@ -1,4 +1,3 @@
-use bitview_plugin_bedrock::{HasBedrock, Vecs as Bedrock};
 use bitview_plugin_blocks::{HasBlocks, Vecs as Blocks};
 use bitview_plugin_coinflow::{HasCoinflow, Vecs as Coinflow};
 use bitview_plugin_cointime::{HasCointime, Vecs as Cointime};
@@ -57,12 +56,6 @@ impl<M: StorageMode> HasCointime<M> for DefaultPlugins<M> {
 impl<M: StorageMode> HasCoinflow<M> for DefaultPlugins<M> {
     fn coinflow(&self) -> &Coinflow<M> {
         self.coinflow.as_ref()
-    }
-}
-
-impl<M: StorageMode> HasBedrock<M> for DefaultPlugins<M> {
-    fn bedrock(&self) -> &Bedrock<M> {
-        self.bedrock.as_ref()
     }
 }
 
