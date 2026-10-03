@@ -44,9 +44,7 @@ impl Catalog {
             ));
         }
         if manifest.operations.is_empty() {
-            return Err(
-                "generated LLM manifest is empty; run `cargo bindgen` first".to_string(),
-            );
+            return Err("generated LLM manifest is empty; run `cargo bindgen` first".to_string());
         }
 
         let mut tools = Vec::with_capacity(manifest.operations.len());
