@@ -8,6 +8,7 @@
 //! not included, so a changed version formula must be reviewed by hand.
 
 mod api;
+mod errors;
 mod import;
 mod snapshot;
 mod surface;

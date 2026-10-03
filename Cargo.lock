@@ -544,6 +544,7 @@ name = "bitview_devtools"
 version = "0.12.2"
 dependencies = [
  "aide",
+ "axum",
  "bitview_bindgen",
  "bitview_catalog",
  "bitview_default",
@@ -565,6 +566,8 @@ dependencies = [
  "color-eyre",
  "serde_json",
  "tempfile",
+ "tokio",
+ "tower",
  "vecdb",
 ]
 

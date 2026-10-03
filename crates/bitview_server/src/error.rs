@@ -66,7 +66,7 @@ pub struct Error {
 }
 
 impl Error {
-    pub fn new(status: StatusCode, code: ErrorCode, msg: impl Into<String>) -> Self {
+    pub(crate) fn new(status: StatusCode, code: ErrorCode, msg: impl Into<String>) -> Self {
         Self {
             status,
             code,
@@ -86,11 +86,11 @@ impl Error {
         )
     }
 
-    pub fn bad_request(msg: impl Into<String>) -> Self {
+    pub(crate) fn bad_request(msg: impl Into<String>) -> Self {
         Self::new(StatusCode::BAD_REQUEST, ErrorCode::BadRequest, msg)
     }
 
-    pub fn not_found(msg: impl Into<String>) -> Self {
+    pub(crate) fn not_found(msg: impl Into<String>) -> Self {
         Self::new(StatusCode::NOT_FOUND, ErrorCode::NotFound, msg)
     }
 

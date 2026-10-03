@@ -22,7 +22,6 @@ use bitview_query::AsyncQuery;
 use bitview_website::router as WebsiteRouter;
 use brk_error::Result;
 use cache::{CacheParams, CacheStrategy};
-use error::Error;
 use jiff::Timestamp;
 use response_size_above::ResponseSizeAbove;
 use state::*;
@@ -34,7 +33,7 @@ use tower_http::{
         predicate::{NotForContentType, Predicate},
     },
     cors::CorsLayer,
-    normalize_path::NormalizePathLayer,
+    normalize_path::{NormalizePath, NormalizePathLayer},
 };
 use tower_layer::Layer;
 use tracing::info;
@@ -72,6 +71,7 @@ pub use api::ApiRoutes;
 
 pub use bitview_website::Website;
 pub use cache::CdnCacheMode;
+pub use error::Error;
 pub use port::Port;
 
 pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig};
@@ -104,8 +104,11 @@ fn compression_layer() -> CompressionLayer<impl Predicate> {
         )
 }
 
+/// The complete HTTP application as served: every route plus the response middleware.
+pub type App = NormalizePath<Router>;
+
 pub struct Server {
-    state: AppState,
+    app: App,
     listener: TcpListener,
 }
 
@@ -118,90 +121,15 @@ impl Server {
 
         config.website.log();
 
-        #[cfg(feature = "series")]
-        let series_bodies = query
-            .run(|query| Ok(Arc::new(SeriesBodies::new(query))))
-            .await?;
-        #[cfg(feature = "chain")]
-        let mining_pools_body = Arc::new(prepared_json::PreparedJson::new(
-            query.sync(|query| query.all_pools()),
-        ));
-
         Ok(Self {
-            state: AppState {
-                query: query.clone(),
-                sync_query: Arc::new(Semaphore::new(1)),
-                disk_query: Arc::new(Semaphore::new(1)),
-                #[cfg(feature = "chain")]
-                raw_block_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
-                #[cfg(feature = "chain")]
-                historical_price_bodies: Arc::new(Semaphore::new(2)),
-                #[cfg(feature = "chain")]
-                historical_price_cache: Arc::default(),
-                #[cfg(feature = "chain")]
-                mempool_txid_bodies: Arc::new(Semaphore::new(2)),
-                #[cfg(feature = "chain")]
-                broadcast_requests: Arc::new(Semaphore::new(
-                    api::broadcast::BroadcastPermit::CAPACITY,
-                )),
-                node: query.run(|query| query.client().asynchronous()).await?,
-                #[cfg(feature = "series")]
-                series_bodies,
-                #[cfg(feature = "urpd")]
-                urpd_query: Arc::new(Semaphore::new(2)),
-                #[cfg(feature = "urpd")]
-                urpd_bodies: Arc::new(Semaphore::new(2)),
-                #[cfg(feature = "chain")]
-                mining_pools_body,
-                data_path: config.data_path,
-                website: config.website,
-                started_at: Timestamp::now(),
-                started_instant: Instant::now(),
-                max_weight: config.max_weight,
-                max_utxos: config.max_utxos,
-                cdn_cache_mode: config.cdn_cache_mode,
-            },
+            app: app(query, config).await?,
             listener,
         })
     }
 
     pub async fn serve(self) -> Result<()> {
-        let Self { state, listener } = self;
-        let address = listener.local_addr()?;
-
-        let website_router = WebsiteRouter(state.website.clone());
-        let mut router = ApiRouter::new()
-            .add_api_routes()
-            .layer(from_fn(request_deadline::apply));
-        if !state.website.is_enabled() {
-            router = router.route("/", get(Redirect::temporary("/api")));
-        }
-        let router = router
-            .with_state(state)
-            .merge(website_router)
-            .layer(from_fn(json_error::respond))
-            .layer(compression_layer())
-            .layer(CorsLayer::permissive())
-            .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
-                let msg = panic
-                    .downcast_ref::<String>()
-                    .map(|s| s.as_str())
-                    .or_else(|| panic.downcast_ref::<&str>().copied())
-                    .unwrap_or("Unknown panic");
-                Error::internal(msg).into_response()
-            }))
-            .layer(from_fn(response_time::respond));
-
-        info!("Server listening on http://{address}");
-
-        let (router, openapi) = finish_openapi(router);
-
-        let router = router
-            .layer(Extension(OpenApiJson::new(&openapi)))
-            .layer(Extension(ApiJson::new(&openapi)));
-
-        // NormalizePath must wrap the router (not be a layer) to run before route matching
-        let app = NormalizePathLayer::trim_trailing_slash().layer(router);
+        let Self { app, listener } = self;
+        info!("Server listening on http://{}", listener.local_addr()?);
 
         serve(
             listener,
@@ -211,6 +139,82 @@ impl Server {
 
         Ok(())
     }
+}
+
+/// Builds the HTTP application for `query` without binding a socket.
+pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
+    #[cfg(feature = "series")]
+    let series_bodies = query
+        .run(|query| Ok(Arc::new(SeriesBodies::new(query))))
+        .await?;
+    #[cfg(feature = "chain")]
+    let mining_pools_body = Arc::new(prepared_json::PreparedJson::new(
+        query.sync(|query| query.all_pools()),
+    ));
+
+    let state = AppState {
+        query: query.clone(),
+        sync_query: Arc::new(Semaphore::new(1)),
+        disk_query: Arc::new(Semaphore::new(1)),
+        #[cfg(feature = "chain")]
+        raw_block_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
+        #[cfg(feature = "chain")]
+        historical_price_bodies: Arc::new(Semaphore::new(2)),
+        #[cfg(feature = "chain")]
+        historical_price_cache: Arc::default(),
+        #[cfg(feature = "chain")]
+        mempool_txid_bodies: Arc::new(Semaphore::new(2)),
+        #[cfg(feature = "chain")]
+        broadcast_requests: Arc::new(Semaphore::new(api::broadcast::BroadcastPermit::CAPACITY)),
+        node: query.run(|query| query.client().asynchronous()).await?,
+        #[cfg(feature = "series")]
+        series_bodies,
+        #[cfg(feature = "urpd")]
+        urpd_query: Arc::new(Semaphore::new(2)),
+        #[cfg(feature = "urpd")]
+        urpd_bodies: Arc::new(Semaphore::new(2)),
+        #[cfg(feature = "chain")]
+        mining_pools_body,
+        data_path: config.data_path,
+        website: config.website,
+        started_at: Timestamp::now(),
+        started_instant: Instant::now(),
+        max_weight: config.max_weight,
+        max_utxos: config.max_utxos,
+        cdn_cache_mode: config.cdn_cache_mode,
+    };
+
+    let website_router = WebsiteRouter(state.website.clone());
+    let mut router = ApiRouter::new()
+        .add_api_routes()
+        .layer(from_fn(request_deadline::apply));
+    if !state.website.is_enabled() {
+        router = router.route("/", get(Redirect::temporary("/api")));
+    }
+    let router = router
+        .with_state(state)
+        .merge(website_router)
+        .layer(from_fn(json_error::respond))
+        .layer(compression_layer())
+        .layer(CorsLayer::permissive())
+        .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
+            let msg = panic
+                .downcast_ref::<String>()
+                .map(|s| s.as_str())
+                .or_else(|| panic.downcast_ref::<&str>().copied())
+                .unwrap_or("Unknown panic");
+            Error::internal(msg).into_response()
+        }))
+        .layer(from_fn(response_time::respond));
+
+    let (router, openapi) = finish_openapi(router);
+
+    let router = router
+        .layer(Extension(OpenApiJson::new(&openapi)))
+        .layer(Extension(ApiJson::new(&openapi)));
+
+    // NormalizePath must wrap the router (not be a layer) to run before route matching
+    Ok(NormalizePathLayer::trim_trailing_slash().layer(router))
 }
 
 /// Finalize a router and extract the OpenAPI spec.

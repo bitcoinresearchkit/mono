@@ -7,10 +7,11 @@ use bitview_query::Vecs;
 use bitview_server::{ApiRoutes, finish_openapi};
 use brk_error::Result;
 
-use crate::{AllPlugins, Snapshot};
+use crate::{AllPlugins, Snapshot, errors::render_errors};
 
 /// The series tree as clients see it: one line per leaf (with a schema id), descriptions and
-/// value schemas; the typed path of every leaf in each generated client; the OpenAPI document.
+/// value schemas; the typed path of every leaf in each generated client; the OpenAPI document;
+/// the HTTP response of every error scenario (G8).
 pub fn render_api(plugins: &AllPlugins) -> Result<Vec<Snapshot>> {
     let defaults = Vecs::build(&plugins.defaults);
     let all = Vecs::build(plugins);
@@ -91,6 +92,7 @@ pub fn render_api(plugins: &AllPlugins) -> Result<Vec<Snapshot>> {
             file: "openapi.json",
             contents: openapi,
         },
+        render_errors(plugins)?,
     ])
 }
 
