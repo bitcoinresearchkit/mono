@@ -1,7 +1,7 @@
 use bitview_cohort::AgeRange;
 use bitview_traversable::Traversable;
 use brk_types::{BoundedRatio, Height, StoredF64};
-use vecdb::{Rw, StorageMode};
+use vecdb::{ReadableVec, Rw, StorageMode};
 
 use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, PerBlockCumulativeRolling};
 
@@ -27,4 +27,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub activity_sources: AgeRange<CachedSeries<Height, BoundedRatio, M>>,
     pub supply: SupplyVecs<AgeRange<LazySpotValuePerBlock>>,
+}
+
+impl<M: StorageMode> Vecs<M> {
+    /// Wakefulness by height for each age range: the cointime URPD weight source.
+    pub fn urpd_weight_sources(&self) -> AgeRange<&impl ReadableVec<Height, StoredF64>> {
+        AgeRange::from_fn(|id| &id.select(&self.activity.wakefulness).height)
+    }
 }

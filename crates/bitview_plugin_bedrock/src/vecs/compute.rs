@@ -40,13 +40,9 @@ impl ComputePlugin for Vecs {
             coinflow,
         } = dependencies;
 
-        let cointime_wakefulness =
-            AgeRange::from_fn(|id| &id.select(&cointime.age_range.activity.wakefulness).height);
+        let cointime_wakefulness = cointime.age_range.urpd_weight_sources();
         let age_supplies = distribution_age.cohorts.supply.total.age_supplies();
-        let coinflow_mobility = AgeRange::from_fn(|id| {
-            &id.select(&coinflow.age_range.spending_exposure.mobility)
-                .height
-        });
+        let coinflow_mobility = coinflow.age_range.urpd_weight_sources();
         let raw_loss_share = dependencies.raw_loss_share();
         let weighted_loss_shares = dependencies.weighted_loss_shares();
         let source_version = Version::combine_all(

@@ -1,7 +1,7 @@
 use bitview_cohort::AgeRange;
 use bitview_traversable::Traversable;
 use brk_types::{BoundedRatio, Height, StoredF64};
-use vecdb::{AnyStoredVec, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, ReadableVec, Rw, StorageMode, WritableVec};
 
 use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, PerBlock};
 
@@ -66,5 +66,12 @@ impl AgeRangeVecs {
                     .iter_mut()
                     .map(|v| v as &mut dyn AnyStoredVec),
             )
+    }
+}
+
+impl<M: StorageMode> AgeRangeVecs<M> {
+    /// Lifetime mobility by height for each age range: the coinflow URPD weight source.
+    pub fn urpd_weight_sources(&self) -> AgeRange<&impl ReadableVec<Height, StoredF64>> {
+        AgeRange::from_fn(|id| &id.select(&self.spending_exposure.mobility).height)
     }
 }

@@ -32,8 +32,7 @@ impl ComputePlugin for Vecs {
             .supply
             .total
             .age_supplies();
-        let weights =
-            AgeRange::from_fn(|id| &id.select(&self.age_range.spending_exposure.mobility).height);
+        let weights = self.age_range.urpd_weight_sources();
         self.urpd.compute(
             dependencies.distribution_age.cohorts.all_supply().version()
                 + dependencies.urpd.timestamps.version(),
