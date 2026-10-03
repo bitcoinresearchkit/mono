@@ -11,7 +11,8 @@ empty for an in-memory plugin. Component versions remain local and additive
 when they describe a narrower stored or computed dependency.
 
 Plugin import constructors receive a copyable `ImportContext`, which provides
-the composition data root to `PluginStorage`. Application startup initializes
+the composition data root to `PluginStorage` and the shutdown coordinator
+(`exit()`) for import-time writes that must not be interrupted. Application startup initializes
 vecdb's shared cache budget once; import contexts do not carry it. Source writes
 own cache invalidation and preserve unchanged prefixes.
 Computing plugins declare their
@@ -71,6 +72,18 @@ Plugins do not own individual locks. `ComputePluginSet::publication` exposes one
 and reopens it only after the complete composition commits. Failures leave it
 closed so partially updated mutable data cannot escape. Each successful update
 advances a process-local revision, even when the chain tip is unchanged.
+
+`bitview::run` refuses to serve when a composition's `publication()` is not its
+indexer's gate (`Query::reads_under`), the one queries wait on.
+
+Lock order: Publication write (the whole update), then `exit.lock()` (held
+around rollback and each save), then the indexer's `reorg` write (only while
+lowering safe bounds before a rollback). The Publication write lock spans
+lower-before, rollback, compute and commit. The indexer's startup rollback and
+reset hold `exit.lock()` too (`ImportContext::exit`); no readers exist yet. Mutable
+reads take the Publication read lock, then pin (`reorg` read); a reader already
+holding a pin may only `try_read` the Publication, never wait on it, because the
+writer may need that pin released.
 
 `PublicationReadGuard` retains one owned read lock without allocating a guard
 vector. Timed acquisition is synchronous and intended for blocking workers. The

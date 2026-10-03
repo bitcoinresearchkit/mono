@@ -273,7 +273,11 @@ impl Indexer {
             Err(err) if can_retry && err.is_data_error() => {
                 // The failed attempt has returned, so all of its local database
                 // handles have been dropped before the directory is removed.
-                let removed = recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
+                // A soft quit must not leave a half-deleted directory that validation could accept.
+                let removed = {
+                    let _lock = context.exit().lock();
+                    recreate_plugin_dir(&plugin_path, reader.xor_bytes())?
+                };
                 if removed {
                     warn!(
                         "Removed invalid indexer data at {} after an import failure: {err}",
@@ -287,13 +291,20 @@ impl Indexer {
 
         match indexer.validate_import(&plugin_path)? {
             ImportValidation::Valid(lengths) => {
+                // A soft quit must not interrupt a startup rollback halfway.
+                let lock = context.exit().lock();
                 indexer.rollback_to(&lengths)?;
+                drop(lock);
                 indexer.state.finish_update(lengths);
                 Ok(indexer)
             }
             ImportValidation::Reset(reason) if can_retry => {
                 drop(indexer);
-                let removed = recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
+                // A soft quit must not leave a half-deleted directory that validation could accept.
+                let removed = {
+                    let _lock = context.exit().lock();
+                    recreate_plugin_dir(&plugin_path, reader.xor_bytes())?
+                };
                 if removed {
                     warn!(
                         "Removed incompatible indexer data at {}: {reason}",

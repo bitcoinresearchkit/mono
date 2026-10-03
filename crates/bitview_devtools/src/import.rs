@@ -9,6 +9,7 @@ use bitview_plugin_price::HasPrice;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use brk_error::Result;
+use brk_exit::Exit;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use tempfile::{TempDir, tempdir};
@@ -37,7 +38,8 @@ pub fn import() -> Result<Imported> {
     let dir = tempdir()?;
     let client = Client::new("http://127.0.0.1:1", Auth::None)?;
     let reader = Reader::new_without_rlimit(dir.path().join("blocks"), &client);
-    let context = ImportContext::new(dir.path());
+    let exit = Exit::new();
+    let context = ImportContext::new(dir.path(), &exit);
 
     let defaults = DefaultPlugins::import(context, &reader)?;
     let window_starts = defaults.blocks().lookback.window_starts();

@@ -555,6 +555,7 @@ dependencies = [
  "bitview_server",
  "bitview_traversable",
  "brk_error",
+ "brk_exit",
  "brk_reader",
  "brk_rpc",
  "serde_json",

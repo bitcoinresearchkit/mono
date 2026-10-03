@@ -10,6 +10,7 @@ use bitview_bindgen::{ClientOutputPaths, generate_clients};
 use bitview_default::DefaultPlugins;
 use bitview_query::Vecs;
 use bitview_server::{ApiRoutes, finish_openapi};
+use brk_exit::Exit;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use color_eyre::{
@@ -114,7 +115,8 @@ fn generate(check: bool, scope: OutputScope) -> Result<()> {
 
     let client = Client::new("http://127.0.0.1:1", Auth::None)?;
     let reader = Reader::new_without_rlimit(tmp.join("blocks"), &client);
-    let context = ImportContext::new(tmp);
+    let exit = Exit::new();
+    let context = ImportContext::new(tmp, &exit);
     let plugins = DefaultPlugins::import(context, &reader)?;
     let vecs = Vecs::build(&plugins);
 

@@ -25,6 +25,7 @@ bitview_runtime = { workspace = true }
 bitview_server = { workspace = true, features = ["full-api"] }
 bitview_traversable = { workspace = true }
 brk_error = { workspace = true, features = ["serde_json", "vecdb"] }
+brk_exit = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 serde_json = { workspace = true }

@@ -12,6 +12,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[cfg(feature = "indexer")]
+use bitview_plugin::Publication;
 #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
 use bitview_plugin::PublicationReadGuard;
 
@@ -326,6 +328,12 @@ impl Query {
     #[inline]
     fn indexer(&self) -> &Indexer<Ro> {
         self.0.plugins.indexer
+    }
+
+    /// Whether this query's mutable reads wait on `publication` (the indexer's gate).
+    #[inline]
+    pub fn reads_under(&self, publication: &Publication) -> bool {
+        self.indexer().publication().ptr_eq(publication)
     }
 
     /// The shared read-only plugin composition backing this query view.

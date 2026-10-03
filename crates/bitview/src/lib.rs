@@ -58,7 +58,7 @@ where
     let reader = Reader::new(blocks_path, &client);
     let outputs_path = server.data_path.clone();
     Budgeted::init_global(cache_budget)?;
-    let import_context = ImportContext::new(&outputs_path);
+    let import_context = ImportContext::new(&outputs_path, &exit);
     let update_context = UpdateContext::new(&exit);
 
     client.wait_for_synced_node()?;
@@ -72,6 +72,14 @@ where
     let mut mempool = Mempool::new(&client);
 
     let query = AsyncQuery::build(&plugins, Some(mempool.read_only_clone()));
+
+    // Updates close the plugin set's gate and reads wait on the indexer's: they must be one gate,
+    // or queries would read state while it is being rewritten.
+    if !query.sync(|q| q.reads_under(plugins.publication())) {
+        return Err(Error::Internal(
+            "the plugin set's publication is not its indexer's; queries would read unpublished state",
+        ));
+    }
 
     let runtime = Builder::new_multi_thread().enable_all().build()?;
     let server = runtime.block_on(Server::bind(&query, server))?;

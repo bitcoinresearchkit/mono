@@ -51,7 +51,7 @@ fn run() -> Result<()> {
 
     benchmark.measure(|| {
         bootstrap(
-            ImportContext::new(&data_path),
+            ImportContext::new(&data_path, &exit),
             |context| DefaultPlugins::import(context, &reader),
             UpdateContext::new(&exit),
         )

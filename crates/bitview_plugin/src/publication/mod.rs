@@ -58,4 +58,9 @@ impl Publication {
     pub fn revision(&self) -> u64 {
         self.0.revision.load(Ordering::Acquire)
     }
+
+    /// Whether both handles are the same gate (clones of one publication).
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
 }
