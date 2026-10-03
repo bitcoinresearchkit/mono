@@ -5,7 +5,9 @@ use brk_types::{
 };
 use vecdb::{IndexVec, LazyVec, ReadableBoxedVec, ReadableVec, VecValue};
 
-use bitview_vecs::{LazyPreviousDeltaVec, RangeMapLookupVec};
+use bitview_vecs::LazyPreviousDeltaVec;
+
+use crate::RangeMapLookupVec;
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {

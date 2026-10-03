@@ -30,7 +30,7 @@ where
     I: VecIndex,
     S: VecIndex,
 {
-    pub fn new<TI, TT>(
+    pub(crate) fn new<TI, TT>(
         name: &str,
         version: Version,
         first_indexes: &(impl ReadableCloneableVec<I, S> + ?Sized),

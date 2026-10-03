@@ -3,7 +3,7 @@ use bitview_traversable::Traversable;
 use brk_types::{TxInIndex, TxIndex, TxOutIndex, Txid, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
 
-use bitview_vecs::LazyIndexCountVec;
+use crate::LazyIndexCountVec;
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {

@@ -2,7 +2,7 @@ use bitview_plugin_indexer::Indexer;
 use brk_types::{Height, StoredU64, TxInIndex, TxIndex, TxOutIndex, Version};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
-use bitview_vecs::LazyCumulativeIndexVec;
+use crate::LazyCumulativeIndexVec;
 
 /// Canonical cumulative counts over the indexer's cached stored boundaries.
 #[derive(Clone)]

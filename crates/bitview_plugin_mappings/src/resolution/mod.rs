@@ -1,7 +1,9 @@
 mod dated;
 
 use bitview_traversable::Traversable;
-use bitview_vecs::{RangeMapLookupVec, RangeMapVec};
+use bitview_vecs::RangeMapVec;
+
+use crate::RangeMapLookupVec;
 use brk_types::Height;
 use rangeindex::SharedRangeMap;
 use vecdb::{AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, VecIndex, VecValue};

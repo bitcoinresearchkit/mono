@@ -11,6 +11,7 @@ mod timestamp;
 mod tx_index;
 mod txin_index;
 mod txout_index;
+mod views;
 
 use std::ops::Deref;
 
@@ -21,7 +22,7 @@ use bitview_plugin::{
 };
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use bitview_vecs::{IndexSources, LazyCumulativeIndexVec, LazyPreviousDeltaVec};
+use bitview_vecs::{IndexSources, LazyPreviousDeltaVec};
 use brk_error::Result;
 use brk_types::{
     Day1, Day3, Epoch, Halving, Height, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
@@ -40,6 +41,7 @@ use vecdb::{Database, IndexVec, ReadableBoxedVec, ReadableCloneableVec, Rw, Stor
 pub use dependencies::Dependencies;
 pub use has::HasMappings;
 pub use height_lookup::HeightMap;
+pub use views::{LazyCumulativeIndexVec, LazyIndexCountVec, RangeMapLookupVec};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("mappings"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();

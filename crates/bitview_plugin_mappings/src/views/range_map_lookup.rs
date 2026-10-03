@@ -19,7 +19,7 @@ pub struct RangeMapLookupVec<I: VecIndex, T: VecIndex + VecValue> {
 }
 
 impl<I: VecIndex, T: VecIndex + VecValue> RangeMapLookupVec<I, T> {
-    pub fn new(
+    pub(crate) fn new(
         mapping: &SharedRangeMap<I, T>,
         source: &(impl ReadableCloneableVec<I, T> + ?Sized),
     ) -> Self {
