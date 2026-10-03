@@ -527,10 +527,85 @@
         }
       }
 
-      .chart-list {
+      .template-list {
         display: flex;
+        flex: 0 100 auto;
         flex-direction: column;
         gap: 1px;
+        min-height: 0;
+        overflow: hidden auto;
+        scrollbar-width: none;
+
+        .template-item {
+          color: var(--soft);
+
+          .sketch {
+            flex-shrink: 0;
+            width: 14px;
+            height: 10px;
+          }
+
+          &:hover {
+            color: var(--ink);
+          }
+        }
+      }
+
+      .chart-list {
+        display: flex;
+        flex: 0 1 auto;
+        flex-direction: column;
+        gap: 1px;
+        min-height: 64px;
+        margin: 0 -8px;
+        overflow: hidden auto;
+        padding: 0 8px 8px;
+        scrollbar-width: thin;
+      }
+
+      .chart-row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        border-radius: 7px;
+
+        .chart-item {
+          padding-right: 34px;
+        }
+
+        .when {
+          flex-shrink: 0;
+          color: var(--muted);
+          font-size: 11.5px;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .chart-more {
+          position: absolute;
+          right: 3px;
+          opacity: 0;
+        }
+
+        &:hover,
+        &:focus-within {
+          .when {
+            opacity: 0;
+          }
+
+          .chart-more {
+            opacity: 1;
+          }
+        }
+
+        &:hover .chart-item {
+          color: var(--ink);
+          background: var(--hover);
+        }
+
+        &.active .chart-item {
+          color: var(--ink);
+          background: var(--press);
+        }
       }
 
       .chart-item {
@@ -540,45 +615,10 @@
           height: 14px;
         }
 
-        &.active {
-          color: var(--ink);
-          background: var(--press);
-        }
-      }
-
-      .more-charts {
-        color: var(--muted);
-
-        .chart-mark {
-          display: grid;
-          flex-shrink: 0;
-          width: 14px;
-          color: var(--muted);
-
-          svg {
-            width: 14px;
-            height: 14px;
-          }
-        }
       }
 
       .side-section .cap {
         margin-right: -4px;
-      }
-
-      .section-link {
-        margin-left: -6px;
-        border: 0;
-        border-radius: 5px;
-        padding: 1px 6px;
-        color: inherit;
-        background: none;
-        font: inherit;
-
-        &:hover {
-          color: var(--text);
-          background: var(--hover);
-        }
       }
 
       .side-section {
@@ -601,10 +641,9 @@
       .layer-list {
         flex: 1;
         min-height: 0;
-        margin: 0 -8px;
         overflow: hidden auto;
-        padding: 2px 8px 8px;
-        scrollbar-width: none;
+        padding: 0 8px 12px;
+        scrollbar-width: thin;
       }
 
       .pane-group {
@@ -633,20 +672,12 @@
         font-weight: 510;
         white-space: nowrap;
 
-        .tabs {
-          opacity: 0.55;
-          transition: opacity 120ms ease;
-        }
-
         .cap {
           opacity: 0;
         }
 
-        &:hover {
-          .tabs,
-          .cap {
-            opacity: 1;
-          }
+        &:hover .cap {
+          opacity: 1;
         }
 
         .cap:focus-visible {
@@ -834,8 +865,7 @@
       }
 
       .empty-layers {
-        width: 222px;
-        margin: 4px 13px;
+        margin: 4px 8px 10px;
         color: var(--muted);
         font-size: 12.5px;
         line-height: 1.55;
@@ -846,6 +876,7 @@
         display: flex;
         flex-direction: column;
         gap: 1px;
+        margin-top: auto;
         padding-top: 8px;
       }
 
@@ -895,14 +926,9 @@
 
           .brand > :not(.logo),
           .search > :not([data-icon]),
-          .nav-item > :not([data-icon], .chart-mark),
+          .nav-item > :not([data-icon], .chart-mark, .sketch),
           .side-section > *,
-          .live > :not(i),
-          .pane-head,
-          .row-main > :not(.letter),
-          .layer-row > .cap,
-          .drop-new,
-          .empty-layers {
+          .live > :not(i) {
             opacity: 0;
             pointer-events: none;
           }
@@ -915,42 +941,18 @@
             border-top: 1px solid var(--line);
           }
 
-          .pane-head,
           .side-section .cap,
-          .drop-new,
+          .chart-more,
           .nav-item kbd {
             visibility: hidden;
-          }
-
-          .layer-row > .cap {
-            display: none;
-          }
-
-          /* Panes keep their height (letters stay put); a rule marks where one ends. */
-          .pane-group + .pane-group::before {
-            content: "";
-            position: absolute;
-            top: 13px;
-            right: 10px;
-            left: 10px;
-            border-top: 1px solid var(--line);
-          }
-
-          .layer-row.selected::before {
-            top: 7px;
-            bottom: 7px;
           }
         }
 
         .brand > :not(.logo),
         .search > :not([data-icon]),
-        .nav-item > :not([data-icon], .chart-mark),
+        .nav-item > :not([data-icon], .chart-mark, .sketch),
         .side-section > *,
-        .live > :not(i),
-        .pane-head,
-        .row-main > :not(.letter),
-        .drop-new,
-        .empty-layers {
+        .live > :not(i) {
           transition: opacity 160ms ease;
         }
       }
@@ -997,30 +999,6 @@
         grid-area: title;
         align-items: center;
         min-width: 0;
-      }
-
-      .crumb {
-        flex-shrink: 0;
-        border: 0;
-        border-radius: 7px;
-        padding: 2px 6px;
-        color: var(--muted);
-        background: none;
-        font-size: 17px;
-        font-weight: 510;
-        letter-spacing: -0.012em;
-        white-space: nowrap;
-
-        &:hover {
-          color: var(--text);
-          background: var(--hover);
-        }
-      }
-
-      .crumb-sep {
-        margin: 0 2px;
-        color: var(--faint);
-        font-size: 17px;
       }
 
       .title {
@@ -1149,8 +1127,6 @@
       }
 
       @container card (max-width: 640px) {
-        .crumb,
-        .crumb-sep,
         .meta-line,
         .card-head .btn .label {
           display: none;
@@ -1740,19 +1716,97 @@
 
       /* ── Inspector: a column of the card, sections ruled by hairlines ────── */
 
-      .inspector {
-        display: none;
+      .panel {
+        display: flex;
         flex: none;
         flex-direction: column;
         width: 300px;
-        overflow-y: auto;
+        min-height: 0;
         border-left: 1px solid var(--line);
+      }
+
+      /* Hidden by choice on wide screens; on phones the panel is a sheet and follows its own rule. */
+      @media (min-width: 761px) and (min-height: 501px) {
+        body[data-panel="closed"]:not([data-peek]) .panel {
+          display: none;
+        }
+      }
+
+      .panel-view {
+        display: none;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+        overflow-y: auto;
         scrollbar-width: thin;
       }
 
-      body[data-inspect] .inspector {
+      body:not([data-inspect]) #layers-view,
+      body[data-inspect] #inspector {
         display: flex;
-        animation: slide 240ms var(--ease) both;
+        animation: slide 220ms var(--ease) both;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+        height: 44px;
+        padding: 0 8px 0 16px;
+
+        h2 {
+          margin: 0 4px 0 0;
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 590;
+        }
+
+        .count {
+          color: var(--muted);
+          font-size: 12px;
+          font-variant-numeric: tabular-nums;
+        }
+      }
+
+      .layer-adds {
+        margin-top: 6px;
+        border-top: 1px solid var(--line);
+        padding-top: 6px;
+
+        .nav-item {
+          height: 32px;
+          color: var(--soft);
+
+          svg {
+            width: 14px;
+            height: 14px;
+            color: var(--muted);
+          }
+
+          &:hover {
+            color: var(--ink);
+
+            svg {
+              color: var(--ink);
+            }
+          }
+        }
+      }
+
+      .empty-layers + .layer-adds {
+        border-top: 0;
+      }
+
+      .pane-scale {
+        margin-left: 6px;
+        border-radius: 4px;
+        padding: 0 5px;
+        color: var(--soft);
+        background: rgb(255 255 255 / 0.06);
+        font-size: 10.5px;
+        font-weight: 510;
+        line-height: 1.6;
       }
 
       @keyframes slide {
@@ -1768,7 +1822,7 @@
         gap: 6px;
         flex-shrink: 0;
         height: 44px;
-        padding: 0 8px 0 14px;
+        padding: 0 10px 0 8px;
       }
 
       .inspector section {
@@ -2366,6 +2420,10 @@
             color: var(--muted);
           }
 
+          kbd {
+            flex-shrink: 0;
+          }
+
           .item-name {
             flex: 1;
             min-width: 0;
@@ -2413,8 +2471,22 @@
         h4 {
           margin: 0;
           color: var(--ink);
-          font: 600 13px/1.45 var(--mono);
+          font: 590 13px/1.45 var(--mono);
           overflow-wrap: anywhere;
+
+          &.plain {
+            font: 590 15px/1.35 var(--sans);
+            letter-spacing: -0.01em;
+          }
+        }
+
+        .dot {
+          display: inline-block;
+          width: 7px;
+          height: 7px;
+          margin-right: 8px;
+          border-radius: 50%;
+          background: var(--c);
         }
 
         .spark {
@@ -2487,114 +2559,11 @@
         .sep {
           width: 1px;
           height: 14px;
+          margin-right: 8px;
           background: var(--line-strong);
         }
-      }
 
-      .library {
-        width: min(640px, calc(100vw - 32px));
-        max-height: min(700px, calc(100dvh - 64px));
-
-        &[open] {
-          display: flex;
-          flex-direction: column;
-        }
-      }
-
-      .library-list {
-        flex-shrink: 0;
-        min-height: min(240px, 40dvh);
-        overflow-y: auto;
-        margin: 0;
-        padding: 0 8px 8px;
-        list-style: none;
-
-        li {
-          display: flex;
-          align-items: center;
-          gap: 2px;
-          border-radius: 8px;
-          padding-right: 6px;
-
-          &:hover,
-          &[aria-current="true"] {
-            background: var(--hover);
-          }
-
-          .cap {
-            opacity: 0;
-          }
-
-          &:hover .cap,
-          .cap:focus-visible {
-            opacity: 1;
-          }
-        }
-      }
-
-      .library-open {
-        display: flex;
-        flex: 1;
-        align-items: center;
-        gap: 12px;
-        min-width: 0;
-        border: 0;
-        padding: 10px 12px;
-        background: none;
-        text-align: left;
-
-        > svg {
-          flex-shrink: 0;
-          width: 15px;
-          height: 15px;
-          color: var(--soft);
-        }
-
-        .library-text {
-          flex: 1;
-          min-width: 0;
-        }
-
-        b {
-          display: block;
-          overflow: hidden;
-          color: var(--ink);
-          font-weight: 510;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .strip {
-          display: inline-flex;
-          gap: 2px;
-          margin-top: 5px;
-
-          i {
-            width: 12px;
-            height: 3px;
-            border-radius: 1px;
-            background: var(--c);
-          }
-        }
-
-        .when {
-          color: var(--muted);
-          font-size: 12px;
-          white-space: nowrap;
-        }
-      }
-
-      .library-section {
-        min-height: 0;
-        overflow-y: auto;
-        border-top: 1px solid var(--line);
-        padding: 2px 18px 18px;
-
-        .templates {
-          grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
-        }
-
-        .template span {
+        [hidden] {
           display: none;
         }
       }
@@ -2717,6 +2686,46 @@
           color: var(--muted);
           font-size: 11.5px;
         }
+
+        .menu-rule {
+          height: 1px;
+          margin: 4px 6px;
+          background: var(--line);
+        }
+
+        > button.danger:hover,
+        > button.danger:focus-visible {
+          color: var(--danger);
+
+          svg {
+            color: var(--danger);
+          }
+        }
+
+        > button:disabled {
+          opacity: 0.35;
+          cursor: default;
+        }
+
+        > button[aria-pressed="true"] svg {
+          color: var(--accent);
+        }
+
+        .menu-space {
+          width: 14px;
+          flex-shrink: 0;
+        }
+
+        > button svg {
+          flex-shrink: 0;
+          width: 14px;
+          height: 14px;
+        }
+
+        > button .sketch {
+          width: 22px;
+          height: 12px;
+        }
       }
 
       .toast {
@@ -2817,9 +2826,14 @@
         display: none;
       }
 
-      /* Tablets: the inspector floats over the chart. */
+      /* Tablets: the panel floats over the chart (closed at first; P, the toggle or a selection opens it). */
       @media (max-width: 1100px) {
-        body[data-inspect] .inspector {
+        .panel .sheet-close {
+          display: inline-grid;
+          margin-left: auto;
+        }
+
+        .panel {
           position: absolute;
           top: 8px;
           right: 8px;
@@ -2832,7 +2846,7 @@
         }
       }
 
-      /* Phones: the chart is the page; the sidebar and the inspector are sheets over it. */
+      /* Phones: the chart is the page; the charts and the panel are sheets over it. */
       @media (max-width: 760px), (max-height: 500px) {
         .app {
           grid-template-columns: minmax(0, 1fr);
@@ -2846,8 +2860,6 @@
           box-shadow: none;
         }
 
-        .crumb,
-        .crumb-sep,
         .meta-line,
         #measure-toggle,
         #redo,
@@ -2875,7 +2887,7 @@
         }
 
         .sidebar,
-        body[data-inspect] .inspector {
+        .panel {
           position: fixed;
           top: auto;
           right: 0;
@@ -2891,9 +2903,22 @@
           box-shadow: var(--pop);
         }
 
-        body[data-sheet="layers"] .sidebar,
-        body[data-sheet="inspector"][data-inspect] .inspector {
+        body[data-sheet="charts"] .sidebar,
+        body[data-sheet="panel"] .panel {
           display: flex;
+        }
+
+        .sidebar {
+          overflow-y: auto;
+        }
+
+        .chart-list {
+          flex: none;
+          overflow: visible;
+        }
+
+        #panel-toggle {
+          display: none;
         }
 
         .sheet-close {
@@ -2947,10 +2972,18 @@
       }
 
       @media (hover: none) {
+        .chart-row {
+          .chart-more {
+            opacity: 1;
+          }
+
+          .when {
+            opacity: 0;
+          }
+        }
+
         .layer-row > .cap,
-        .pane-head .cap,
-        .pane-head .tabs,
-        .library-list li .cap {
+        .pane-head .cap {
           opacity: 1;
         }
       }
@@ -2967,7 +3000,7 @@
   </head>
   <body class="boot">
     <div class="app">
-      <aside class="sidebar" id="sidebar" aria-label="Studio">
+      <aside class="sidebar" id="sidebar" aria-label="Charts">
         <div class="brand-row" style="--i: 0">
           <a class="brand" href="../" data-tip="All showcases">
             <span class="logo"><svg viewBox="0 0 173.2 200" aria-hidden="true"><polygon points="86.6,100 173.2,150 86.6,200 0,150" fill="currentColor" opacity=".45" /><polygon points="86.6,100 0,150 0,50 86.6,0" fill="currentColor" opacity=".45" /><polygon points="86.6,100 173.2,150 173.2,50 86.6,0" fill="currentColor" opacity=".45" /><polygon points="173.2,100 173.2,150 86.6,200 86.6,150" fill="currentColor" /><polygon points="0,100 0,150 86.6,200 86.6,150" fill="currentColor" /></svg></span>
@@ -2975,16 +3008,12 @@
           </a>
           <button class="cap small sheet-close" type="button" data-action="close-sheet" aria-label="Close" data-icon="close"></button>
         </div>
-        <button class="search" type="button" data-action="palette" data-tip="Add a series" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Add a series…</span><kbd>⌘K</kbd></button>
-        <nav style="--i: 2">
-          <button class="nav-item" type="button" data-action="formula" data-tip="Add a formula" data-kbd="F"><span data-icon="formula"></span><span class="label">Add a formula</span><kbd>F</kbd></button>
-          <button class="nav-item" type="button" data-action="templates" data-tip="Templates"><span data-icon="templates"></span><span class="label">Templates</span></button>
-          <button class="nav-item" type="button" data-action="browse" data-tip="Browse the catalog"><span data-icon="folder"></span><span class="label">Browse the catalog</span></button>
-        </nav>
-        <div class="side-section" style="--i: 3"><button type="button" class="section-link" data-action="library" data-tip="All charts">Charts</button><span class="spacer"></span><button class="cap small" type="button" data-action="new-chart" aria-label="New chart" data-tip="New chart" data-icon="plus"></button></div>
+        <button class="search" type="button" data-action="palette" data-tip="Search or run a command" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search or run a command…</span><kbd>⌘K</kbd></button>
+        <div class="side-section" style="--i: 2"><span>Charts</span><span id="chart-total" class="count"></span><span class="spacer"></span><button id="new-chart" class="cap small" type="button" aria-label="New chart" aria-haspopup="menu" data-tip="New chart" data-icon="plus"></button></div>
         <div id="chart-list" class="chart-list" style="--i: 3"></div>
-        <div class="side-section" style="--i: 4"><span>Layers</span><span id="layer-count" class="count"></span></div>
-        <div id="layer-list" class="layer-list" style="--i: 5"></div>
+        <div class="side-section" style="--i: 4"><span>Templates</span></div>
+        <div id="template-list" class="template-list" style="--i: 5"></div>
+        <input id="import-file" type="file" accept="application/json,.json" hidden />
         <div class="side-foot" style="--i: 6">
           <div id="live" class="live" data-tip="Live"><i></i><span id="stamp">Live</span></div>
           <button class="nav-item" type="button" data-action="shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span><span class="label">Shortcuts</span><kbd>?</kbd></button>
@@ -2995,8 +3024,6 @@
       <main class="card" style="--i: 2">
         <header class="card-head">
           <div class="head-title">
-            <button type="button" class="crumb" data-action="library" data-tip="All charts">My charts</button>
-            <span class="crumb-sep">/</span>
             <input id="title" class="title" aria-label="Chart title" placeholder="Untitled chart" maxlength="120" spellcheck="false" autocomplete="off" />
           </div>
           <div class="head-actions">
@@ -3006,6 +3033,8 @@
             <span class="divider"></span>
             <button id="export" class="btn" type="button" aria-haspopup="menu" aria-label="Export" data-tip="Export as an image, data or a chart file"><span data-icon="download"></span><span class="label">Export</span></button>
             <button id="share" class="btn primary" type="button" aria-label="Share" data-tip="Copy a link that opens this chart"><span data-icon="share"></span><span class="label">Share</span></button>
+            <span class="divider"></span>
+            <button id="panel-toggle" class="cap" type="button" aria-pressed="true" aria-label="Layers panel" data-tip="Layers panel" data-kbd="P" data-action="toggle-panel" data-icon="panel"></button>
           </div>
           <button type="button" id="hero" class="hero" hidden>
             <span id="hero-value" class="hero-value"></span>
@@ -3060,28 +3089,39 @@
             </footer>
           </section>
 
-          <aside id="inspector" class="inspector" aria-label="Layer settings"></aside>
+          <aside id="panel" class="panel" aria-label="This chart">
+            <section id="layers-view" class="panel-view" aria-label="Layers">
+              <div class="panel-head">
+                <h2>Layers</h2>
+                <span id="layer-count" class="count"></span>
+                <span class="spacer"></span>
+                <button class="cap small sheet-close" type="button" data-action="close-sheet" aria-label="Close" data-icon="close"></button>
+              </div>
+              <div id="layer-list" class="layer-list"></div>
+            </section>
+            <section id="inspector" class="panel-view inspector" aria-label="Layer settings"></section>
+          </aside>
         </div>
       </main>
 
       <nav class="mobile-bar" aria-label="Studio">
-        <button class="btn" type="button" data-sheet="layers">Layers</button>
+        <button class="btn" type="button" data-sheet="charts">Charts</button>
         <button class="btn primary" type="button" data-action="palette">Add</button>
         <button class="btn" type="button" data-action="formula">Formula</button>
-        <button class="btn" type="button" data-sheet="inspector">Edit</button>
+        <button class="btn" type="button" data-sheet="panel">Layers</button>
       </nav>
     </div>
 
-    <dialog id="palette" class="palette" aria-label="Add a series">
+    <dialog id="palette" class="palette" aria-label="Search">
       <div class="palette-search">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
-        <input id="palette-input" type="text" role="combobox" aria-label="Search series" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" />
+        <input id="palette-input" type="text" role="combobox" aria-label="Search series, charts and commands" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" />
         <button class="cap small" type="button" data-action="close-palette" aria-label="Close" data-icon="close"></button>
       </div>
       <div class="palette-body">
         <div class="palette-left">
           <nav id="crumbs" class="crumbs" aria-label="Catalog path"></nav>
-          <ul id="palette-list" class="palette-list" role="listbox" aria-label="Series"></ul>
+          <ul id="palette-list" class="palette-list" role="listbox" aria-label="Results"></ul>
           <div id="palette-glow" class="glow" hidden></div>
         </div>
         <div id="palette-preview" class="palette-preview" aria-live="polite"></div>
@@ -3089,28 +3129,11 @@
       <div class="palette-foot">
         <span id="palette-count" class="count">Bitview</span>
         <span class="spacer"></span>
-        <span>Add to chart <kbd>↵</kbd></span>
-        <span class="sep"></span>
-        <span>New pane <kbd>⇧</kbd><kbd>↵</kbd></span>
+        <span><span id="palette-primary">Add to chart</span> <kbd>↵</kbd></span>
+        <span id="palette-new-pane"><span class="sep"></span>New pane <kbd>⇧</kbd><kbd>↵</kbd></span>
         <span class="sep"></span>
         <span>Close <kbd>esc</kbd></span>
       </div>
-    </dialog>
-
-    <dialog id="library" class="library" aria-label="Charts">
-      <div class="dialog-head">
-        <h2>My charts</h2>
-        <span class="spacer"></span>
-        <button class="btn ghost" type="button" data-action="import">Import file</button>
-        <button class="btn" type="button" data-action="new-chart"><span data-icon="plus"></span>Blank chart</button>
-        <button class="cap small" type="button" data-action="close-library" aria-label="Close" data-icon="close"></button>
-      </div>
-      <ul id="library-list" class="library-list"></ul>
-      <div class="library-section" id="library-templates-section">
-        <div class="section-label">New from a template</div>
-        <div id="library-templates" class="templates"></div>
-      </div>
-      <input id="import-file" type="file" accept="application/json,.json" hidden />
     </dialog>
 
     <dialog id="shortcuts" class="shortcuts" aria-label="Keyboard shortcuts">
@@ -3120,7 +3143,7 @@
         <button class="cap small" type="button" data-action="close-shortcuts" aria-label="Close" data-icon="close"></button>
       </div>
       <dl>
-        <dt><kbd>⌘</kbd><kbd>K</kbd> or <kbd>/</kbd></dt><dd>Search and add a series</dd>
+        <dt><kbd>⌘</kbd><kbd>K</kbd> or <kbd>/</kbd></dt><dd>Search series, your charts and commands</dd>
         <dt><kbd>F</kbd></dt><dd>Add a formula</dd>
         <dt><kbd>↑</kbd><kbd>↓</kbd></dt><dd>Select the previous or next layer</dd>
         <dt><kbd>H</kbd></dt><dd>Hide or show the selected layer</dd>
@@ -3132,6 +3155,7 @@
         <dt><kbd>−</kbd><kbd>+</kbd></dt><dd>Zoom out or in</dd>
         <dt><kbd>M</kbd> or shift-drag</dt><dd>Measure the change between two points</dd>
         <dt><kbd>\</kbd></dt><dd>Collapse or expand the sidebar</dd>
+        <dt><kbd>P</kbd></dt><dd>Show or hide the layers panel</dd>
         <dt><kbd>⌘</kbd><kbd>Z</kbd> · <kbd>⇧</kbd><kbd>⌘</kbd><kbd>Z</kbd></dt><dd>Undo · redo</dd>
         <dt>Double-click</dt><dd>Fit everything</dd>
         <dt><kbd>esc</kbd></dt><dd>Close, clear a measure, deselect</dd>
@@ -3164,6 +3188,7 @@
       const isSeriesName = (name) => typeof name === "string" && /^[a-z0-9_]{1,200}$/.test(name);
       const reduced = matchMedia("(prefers-reduced-motion: reduce)");
       const phone = matchMedia("(max-width: 760px), (max-height: 500px)");
+      const tablet = matchMedia("(max-width: 1100px)");
 
       const svg = (body, size = 16) => `<svg viewBox="0 0 16 16" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
       const ICONS = {
@@ -3175,6 +3200,12 @@
         browse: svg('<circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/>'),
         keyboard: svg('<rect x="1.5" y="3.5" width="13" height="9" rx="1.8"/><path d="M4.5 6.5h.01M7 6.5h.01M9.5 6.5h.01M12 6.5h.01M5 9.5h6"/>'),
         sidebar: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11"/>'),
+        arrowUp: svg('<path d="M8 13V3M4 7l4-4 4 4"/>', 14),
+        arrowDown: svg('<path d="M8 3v10M4 9l4 4 4-4"/>', 14),
+        panel: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M10 2.5v11"/>'),
+        more: svg('<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>', 14),
+        back: svg('<path d="M10 3.5 5.5 8l4.5 4.5"/>', 14),
+        pencil: svg('<path d="m10.5 2.5 3 3-8 8H2.5v-3z"/>', 14),
         undo: svg('<path d="M5.5 3.5 2.5 6.5l3 3"/><path d="M2.5 6.5h7a4 4 0 0 1 0 8h-2"/>', 14),
         redo: svg('<path d="m10.5 3.5 3 3-3 3"/><path d="M13.5 6.5h-7a4 4 0 0 0 0 8h2"/>', 14),
         eye: svg('<path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/>', 14),
@@ -3187,6 +3218,7 @@
         series: svg('<path d="M1.5 12.5 6 7l3 3 5.5-6.5"/>', 15),
         recent: svg('<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>', 15),
         share: svg('<path d="M8 10V2.5M5 5.5l3-3 3 3"/><path d="M3 9v3.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9"/>', 15),
+        upload: svg('<path d="M8 10V2.5M5 5.5l3-3 3 3"/><path d="M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11"/>', 15),
         download: svg('<path d="M8 2.5V10M5 7l3 3 3-3"/><path d="M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11"/>', 15),
         image: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><circle cx="6" cy="6.5" r="1.2"/><path d="m2.5 12 3.5-3.5 2.5 2.5 2-2 3 3"/>', 14),
         table: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M2 6.5h12M2 10h12M6.5 6.5v7"/>', 14),
@@ -3733,7 +3765,7 @@
           sketch: [["ink", rise], ["#22c55e", (t) => Math.max(...Array.from({ length: 20 }, (_, i) => rise((t * i) / 19))), true], ["#f43f5e", (t) => 0.32 - 0.22 * Math.abs(Math.sin(t * 9))]],
         },
       ];
-      const sketchOf = (template) => `<svg viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">${template.sketch.map(([color, shape, dashed]) => `<polyline points="${Array.from({ length: 41 }, (_, i) => `${(2 + i * 2.9).toFixed(1)},${(36 - clamp(shape(i / 40), 0, 1) * 32).toFixed(1)}`).join(" ")}" fill="none" stroke="${escape(ink(color))}" stroke-width="1.4" ${dashed ? 'stroke-dasharray="3 2"' : ""} vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`).join("")}</svg>`;
+      const sketchOf = (template) => `<svg class="sketch" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">${template.sketch.map(([color, shape, dashed]) => `<polyline points="${Array.from({ length: 41 }, (_, i) => `${(2 + i * 2.9).toFixed(1)},${(36 - clamp(shape(i / 40), 0, 1) * 32).toFixed(1)}`).join(" ")}" fill="none" stroke="${escape(ink(color))}" stroke-width="1.4" ${dashed ? 'stroke-dasharray="3 2"' : ""} vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`).join("")}</svg>`;
 
       /** @returns {Chart} */
       function fromTemplate(template) {
@@ -3790,7 +3822,7 @@
       const edits = { past: /** @type {string[]} */ ([]), future: /** @type {string[]} */ ([]), key: "", at: 0 };
       /** Bumped by every change of state: edits, undo, redo, opening a chart. */
       let revision = 0;
-      /** Per-browser view preferences: whether the sidebar is collapsed. */
+      /** Per-browser view preferences: whether the sidebar is collapsed, whether the panel shows. */
       const prefs = { sidebar: "expanded", ...storage.get(PREFS, {}) };
       const savePrefs = () => storage.set(PREFS, prefs);
 
@@ -3839,7 +3871,7 @@
         for (const doc of library.charts) if (!merged.some((item) => item.id === doc.id) && (doc === chart || !removed.has(doc.id))) merged.push(doc);
         const current = merged.find((doc) => doc.id === chart.id);
         library.charts = merged;
-        if ($("library").open) renderLibrary();
+        if ($("palette").open) showPalette();
         if (current === chart) return renderCharts();
         chart = current;
         edits.past = [];
@@ -3872,6 +3904,7 @@
         edits.at = now;
         chart.updated = now;
         revision++;
+        hideMenu();
         if (!chart.layers.some((layer) => layer.id === selected)) selected = "";
         save(true);
         refresh(redraw);
@@ -3881,6 +3914,7 @@
         if (!state) return;
         to.push(JSON.stringify(chart));
         revision++;
+        hideMenu();
         Object.assign(chart, JSON.parse(state));
         chart.updated = Date.now();
         edits.key = "";
@@ -3900,6 +3934,7 @@
         edits.future = [];
         edits.key = "";
         revision++;
+        hideMenu();
         clearMeasure();
         save();
         refresh(true, true);
@@ -3928,6 +3963,24 @@
         toggle.dataset.tip = collapsed ? "Expand" : "Collapse";
         toggle.querySelector(".label").textContent = collapsed ? "Expand" : "Collapse";
       }
+      if (prefs.panel !== "closed" && prefs.panel !== "open") prefs.panel = matchMedia("(max-width: 1100px)").matches ? "closed" : "open";
+      function applyPanel() {
+        document.body.dataset.panel = prefs.panel;
+        $("panel-toggle").setAttribute("aria-pressed", String(prefs.panel === "open"));
+      }
+      const panelShown = () => (phone.matches ? document.body.dataset.sheet === "panel" : prefs.panel === "open" || document.body.hasAttribute("data-peek"));
+      function togglePanel(open = !panelShown()) {
+        if (phone.matches) {
+          if (open) document.body.dataset.sheet = "panel";
+          else if (document.body.dataset.sheet === "panel") delete document.body.dataset.sheet;
+          return;
+        }
+        document.body.removeAttribute("data-peek");
+        prefs.panel = open ? "open" : "closed";
+        savePrefs();
+        applyPanel();
+      }
+      applyPanel();
       function toggleSidebar() {
         prefs.sidebar = prefs.sidebar === "collapsed" ? "expanded" : "collapsed";
         savePrefs();
@@ -4242,10 +4295,11 @@
           drawn.set(layer.id, series);
         }
         const panes = view.panes();
+        const sides = new Set(doc.layers.map((layer) => layer.side));
         doc.panes.forEach((pane, i) => {
           if (!panes[i]) return;
           panes[i].setStretchFactor(pane.size ?? defaultSize(i));
-          const sides = new Set(doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => layer.side));
+          // A side shows in every pane once any layer uses it: the plots line up, and the chart library needs it so.
           view.priceScale("right", i).applyOptions({ mode: pane.mode, visible: sides.has("right") });
           view.priceScale("left", i).applyOptions({ mode: pane.mode, visible: sides.has("left") });
         });
@@ -4445,11 +4499,13 @@
         return { up: relative ? relative.up : delta >= 0, text: relative ? relative.text : amount(delta, unit), from: resolved.times[relative ? base : a], to: resolved.times[b] };
       }
 
-      /** The headline: the chart's first layer, large; at the crosshair while hovering, with its change to there. */
+      /** The headline: the selected layer, else the chart's first, large; at the crosshair while hovering, with its change to there. */
       const PERIODS = { "3m": "past 3 months", "1y": "past year", "4y": "past 4 years", all: "all time" };
       function heroLayer() {
         if (!resolved || drawnChart !== chart.id) return null;
         const usable = (layer) => !layer.hidden && resolved.results.get(layer.id)?.shown;
+        const chosen = layerById(selected);
+        if (chosen && usable(chosen)) return chosen;
         return chart.layers.find((layer) => layer.pane === chart.panes[0]?.id && usable(layer)) ?? chart.layers.find(usable) ?? null;
       }
       function updateHero() {
@@ -4829,13 +4885,127 @@
         while (colors.length < 3) colors.push(css("--faint"));
         return `<svg class="chart-mark" viewBox="0 0 14 14" aria-hidden="true">${[[2, 7], [6, 4], [10, 1]].map(([x, y], i) => `<rect x="${x}" y="${y + 1}" width="2.6" height="${12 - y}" rx="1" fill="${escape(colors[i])}"/>`).join("")}</svg>`;
       };
-      const CHARTS_SHOWN = 4;
+      /** How long ago, in a few characters. */
+      function since(time) {
+        const minutes = Math.round((Date.now() - time) / 60000);
+        if (minutes < 1) return "now";
+        if (minutes < 60) return `${minutes}m`;
+        if (minutes < 60 * 24) return `${Math.round(minutes / 60)}h`;
+        if (minutes < 60 * 24 * 30) return `${Math.round(minutes / 60 / 24)}d`;
+        if (!time) return "";
+        const date = new Date(time);
+        return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", ...(date.getFullYear() === new Date().getFullYear() ? {} : { year: "2-digit" }) });
+      }
+      const titleOf = (doc) => doc.title || "Untitled chart";
       function renderCharts() {
         const ordered = [...library.charts].sort((a, b) => b.updated - a.updated);
-        const shown = ordered.slice(0, CHARTS_SHOWN);
-        if (!shown.includes(chart)) shown[shown.length - 1] = chart;
-        $("chart-list").innerHTML = shown.map((doc) => `<button type="button" class="nav-item chart-item ${doc === chart ? "active" : ""}" data-open-chart="${doc.id}" data-tip="${escape(doc.title || "Untitled chart")}" ${doc === chart ? 'aria-current="true"' : ""}>${chartMark(doc)}<span class="label">${escape(doc.title || "Untitled chart")}</span></button>`).join("")
-          + (ordered.length > CHARTS_SHOWN ? `<button type="button" class="nav-item more-charts" data-action="library" data-tip="All ${ordered.length} charts"><span class="chart-mark">${ICONS.charts}</span><span class="label">All ${ordered.length} charts</span></button>` : "");
+        $("chart-total").textContent = String(ordered.length);
+        $("chart-list").innerHTML = ordered.map((doc) => `<div class="chart-row ${doc === chart ? "active" : ""}">
+            <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${doc === chart ? 'aria-current="page"' : ""}>${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span><span class="when">${escape(since(doc.updated))}</span></button>
+            <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
+          </div>`).join("");
+      }
+      function chartMenu(anchor, id) {
+        showMenu(anchor, `
+          <button type="button" data-pick="rename">${ICONS.pencil}Rename</button>
+          <button type="button" data-pick="duplicate">${ICONS.copy}Duplicate</button>
+          <button type="button" data-pick="download">${ICONS.file}Download the chart file</button>
+          <div class="menu-rule"></div>
+          <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete</button>`, ({ pick }) => {
+          const doc = library.charts.find((item) => item.id === id);
+          if (!doc) return renderCharts();
+          if (pick === "duplicate" || pick === "download") refocus(`[data-chart-menu="${id}"]`);
+          if (pick === "rename") {
+            if (doc !== chart) open(doc);
+            requestAnimationFrame(() => {
+              $("title").focus();
+              $("title").select();
+            });
+          } else if (pick === "duplicate") adopt({ ...structuredClone(doc), id: uid(), title: `${titleOf(doc)} copy`, updated: Date.now() });
+          else if (pick === "download") download(fileName("json", doc), new Blob([JSON.stringify(portable(doc), null, 2)], { type: "application/json" }));
+          else if (pick === "delete") deleteChart(doc);
+        });
+      }
+      /** Deletes a chart, with an Undo; the most recent other chart opens if it was the open one. @param {Chart} doc */
+      function deleteChart(doc) {
+        const index = library.charts.indexOf(doc);
+        if (index < 0) return;
+        const wasOpen = doc === chart;
+        library.charts.splice(index, 1);
+        deletedHere.add(doc.id);
+        // The last chart gone, a blank one stands in; Undo takes it away again if it's still untouched.
+        const standIn = library.charts.length ? null : blankChart();
+        if (standIn) library.charts.push(standIn);
+        if (doc === chart) open(standIn ?? [...library.charts].sort((a, b) => b.updated - a.updated)[0]);
+        save();
+        renderCharts();
+        toast(`Deleted ${titleOf(doc)}`, {
+          label: "Undo",
+          run: () => {
+            if (library.charts.includes(doc)) return;
+            deletedHere.delete(doc.id);
+            if (standIn && !standIn.layers.length && !standIn.title) library.charts.splice(library.charts.indexOf(standIn), 1);
+            library.charts.splice(Math.min(index, library.charts.length), 0, doc);
+            save();
+            if (wasOpen) open(doc);
+            else renderCharts();
+          },
+        });
+      }
+      $("template-list").innerHTML = TEMPLATES.map((template, i) => `<button type="button" class="nav-item template-item" data-new-template="${i}" data-tip="${escape(template.title)}">${sketchOf(template)}<span class="label">${escape(template.title)}</span></button>`).join("");
+      $("template-list").addEventListener("click", (event) => {
+        const item = closest(event, "[data-new-template]");
+        if (!item) return;
+        adopt(fromTemplate(TEMPLATES[Number(item.dataset.newTemplate)]));
+        delete document.body.dataset.sheet;
+      });
+      /** New: a blank chart, any template, or a chart file. */
+      $("new-chart").addEventListener("click", (event) => showMenu(event.currentTarget, `
+        <button type="button" data-pick="blank">${ICONS.plus}Blank chart</button>
+        <div class="menu-group">From a template</div>
+        ${TEMPLATES.map((template, i) => `<button type="button" data-pick="template" data-index="${i}">${sketchOf(template)}${escape(template.title)}</button>`).join("")}
+        <div class="menu-rule"></div>
+        <button type="button" data-pick="import">${ICONS.upload}Import a chart file…</button>`, ({ pick, index }) => {
+        delete document.body.dataset.sheet;
+        if (pick === "blank") adopt(blankChart());
+        else if (pick === "template") adopt(fromTemplate(TEMPLATES[Number(index)]));
+        else if (pick === "import") $("import-file").click();
+      }));
+
+      /** Pane scales by mode: the badge's word, and the menu's name. */
+      const SCALE_NAMES = ["Linear", "Log", "Percent", "Indexed"];
+      const SCALE_TITLES = ["Linear", "Logarithmic", "Percent change", "Indexed to 100"];
+      /** A pane's menu: its scale, its place among the panes, its removal. */
+      /** After a menu pick re-renders the list, focus goes back to the same menu button. */
+      const refocus = (selector) => requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector(selector))?.focus());
+      function paneMenu(anchor, id) {
+        const at = chart.panes.findIndex((pane) => pane.id === id);
+        if (at < 0) return;
+        const pane = chart.panes[at];
+        showMenu(anchor, `
+          <div class="menu-group">Scale</div>
+          ${MODES.map(([mode]) => `<button type="button" data-pick="mode" data-mode="${mode}" aria-pressed="${pane.mode === mode}">${pane.mode === mode ? ICONS.check : '<i class="menu-space"></i>'}${SCALE_TITLES[mode]}</button>`).join("")}
+          <div class="menu-rule"></div>
+          <button type="button" data-pick="up" ${at === 0 ? "disabled" : ""}>${ICONS.arrowUp}Move up</button>
+          <button type="button" data-pick="down" ${at === chart.panes.length - 1 ? "disabled" : ""}>${ICONS.arrowDown}Move down</button>
+          ${chart.panes.length > 1 ? `<div class="menu-rule"></div><button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove the pane and its layers</button>` : ""}`, ({ pick, mode }) => {
+          if (!chart.panes.some((item) => item.id === id)) return;
+          refocus(`[data-pane-menu="${id}"]`);
+          if (pick === "mode") commit((doc) => {
+            const target = doc.panes.find((item) => item.id === id);
+            if (target) target.mode = Number(mode);
+          }, { redraw: false });
+          else if (pick === "up" || pick === "down") commit((doc) => {
+            const from = doc.panes.findIndex((item) => item.id === id), to = from + (pick === "up" ? -1 : 1);
+            if (from < 0 || to < 0 || to >= doc.panes.length) return;
+            [doc.panes[from], doc.panes[to]] = [doc.panes[to], doc.panes[from]];
+          }, { redraw: false });
+          else if (pick === "remove") {
+            const count = chart.layers.filter((layer) => layer.pane === id).length;
+            commit((doc) => (doc.layers = doc.layers.filter((layer) => layer.pane !== id)));
+            undoToast(`Removed a pane and its ${count} layer${count === 1 ? "" : "s"}`);
+          }
+        });
       }
 
       function renderLayers() {
@@ -4843,16 +5013,15 @@
         const focus = focusKey(list);
         $("layer-count").textContent = String(chart.layers.length);
         if (!chart.layers.length) {
-          list.innerHTML = `<p class="empty-layers">No layers yet. Add a series, or start from a template.</p>`;
+          list.innerHTML = `<p class="empty-layers">No layers yet: add a series from the catalog, or a formula.</p><div class="layer-adds"><button type="button" class="nav-item" data-action="palette">${ICONS.plus}<span class="label">Add a series</span><kbd>⌘K</kbd></button><button type="button" class="nav-item" data-action="formula">${ICONS.formula}<span class="label">Add a formula</span><kbd>F</kbd></button></div>`;
           return;
         }
         list.innerHTML = chart.panes.map((pane, i) => {
           const layers = chart.layers.filter((layer) => layer.pane === pane.id);
           return `<section class="pane-group" data-pane="${pane.id}">
             <div class="pane-head">
-              <span>Pane ${i + 1}</span><span class="spacer"></span>
-              <div class="tabs mini" role="group" aria-label="Pane ${i + 1} scale">${MODES.map(([mode, text, title]) => `<button type="button" data-pane-mode="${pane.id}" data-mode="${mode}" aria-pressed="${pane.mode === mode}" data-tip="${title} scale">${text}</button>`).join("")}</div>
-              ${chart.panes.length > 1 ? `<button type="button" class="cap small" data-remove-pane="${pane.id}" aria-label="Remove pane ${i + 1} and its layers" data-tip="Remove this pane and its layers">${ICONS.close}</button>` : ""}
+              <span>Pane ${i + 1}</span>${pane.mode ? `<span class="pane-scale">${SCALE_NAMES[pane.mode]}</span>` : ""}<span class="spacer"></span>
+              <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} options" data-tip="Scale, order">${ICONS.more}</button>
             </div>
             ${layers.map((layer) => {
               const result = resolved?.results.get(layer.id);
@@ -4868,7 +5037,7 @@
               </div>`;
             }).join("")}
           </section>`;
-        }).join("") + `<div class="drop-new" data-drop-new>Drop here for a new pane</div>`;
+        }).join("") + `<div class="drop-new" data-drop-new>Drop here for a new pane</div><div class="layer-adds"><button type="button" class="nav-item" data-action="palette">${ICONS.plus}<span class="label">Add a series</span><kbd>⌘K</kbd></button><button type="button" class="nav-item" data-action="formula">${ICONS.formula}<span class="label">Add a formula</span><kbd>F</kbd></button></div>`;
         restoreFocus(list, focus);
         updateChanges();
       }
@@ -4924,17 +5093,22 @@
       // ── Inspector ─────────────────────────────────────────────────────────────
 
       function select(id) {
+        const fromList = $("layer-list").contains(document.activeElement);
         selected = id;
         document.body.toggleAttribute("data-inspect", Boolean(selected));
-        if (selected && phone.matches) document.body.dataset.sheet = "inspector";
+        if (selected && phone.matches) document.body.dataset.sheet = "panel";
+        else if (selected && prefs.panel === "closed") document.body.toggleAttribute("data-peek", true);
         renderLayers();
         renderInspector();
         updateLegends();
+        if (fromList && selected) /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="deselect"]'))?.focus();
       }
       function deselect() {
+        const was = selected, fromSettings = $("inspector").contains(document.activeElement);
         selected = "";
-        delete document.body.dataset.sheet;
+        document.body.removeAttribute("data-peek");
         refresh("none");
+        if (fromSettings) /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`[data-select="${was}"]`))?.focus();
       }
 
       let inspected = "";
@@ -4989,9 +5163,10 @@
             </section>`;
         panel.innerHTML = `
           <div class="inspector-head">
+            <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Layers" data-kbd="esc">${ICONS.back}</button>
             <span class="letter" style="--c:${escape(ink(layer.color))}">${layer.letter}</span>
             <input id="label" class="label-input" maxlength="120" value="${escape(layer.label ?? "")}" placeholder="${escape(labelOf({ ...layer, label: "" }))}" aria-label="Layer name" spellcheck="false" />
-            <button type="button" class="cap small" data-action="deselect" aria-label="Close settings" data-tip="Close" data-kbd="esc">${ICONS.close}</button>
+            <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
           </div>
           ${sourceSection}
           <section>
@@ -5265,7 +5440,7 @@
 
       const palette = {
         path: /** @type {string[]} */ ([]),
-        items: /** @type {{ kind: string, key: string, name?: string, path?: string[], group?: string }[]} */ ([]),
+        items: /** @type {{ kind: string, key: string, name?: string, path?: string[], group?: string, command?: { title: string, text: string, words?: string, icon: string, kbd?: string, run: () => void, suggested?: boolean, keepOpen?: boolean } }[]} */ ([]),
         active: 0,
         query: "",
         controller: /** @type {AbortController | null} */ (null),
@@ -5288,10 +5463,34 @@
         const dialog = $("palette");
         if (!dialog.open) dialog.showModal();
         const input = $("palette-input");
-        input.placeholder = total ? `Search ${grouped.format(total)} series by name or meaning` : "Search every series by name or meaning";
+        input.placeholder = total ? `Search ${grouped.format(total)} series, your charts and commands` : "Search series, your charts and commands";
         input.value = palette.query;
         input.select();
         showPalette();
+      }
+
+      /** Everything ⌘K can do besides adding a series; `suggested` ones show before anything is typed. */
+      function commands() {
+        const supported = supportedIntervals();
+        const collapsed = document.body.dataset.sidebar === "collapsed";
+        return [
+          { title: "New chart", text: "Start from a blank chart.", words: "create blank empty", icon: "plus", run: () => adopt(blankChart()), suggested: true },
+          { title: "Add a formula", text: "A layer computed from the others, like A / B or sma(A, 200).", icon: "formula", kbd: "F", run: addFormula, suggested: true },
+          { title: "Copy a share link", text: "A link that opens this chart for anyone.", words: "share url send", icon: "share", run: () => $("share").click(), suggested: true },
+          { title: "Export as an image", text: "A PNG of the chart, with its title and headline.", words: "png picture screenshot download save", icon: "image", run: () => exportAs("png"), suggested: true },
+          { title: "Export the data", text: "A CSV of every layer as drawn, one row per date.", words: "csv spreadsheet download save", icon: "table", run: () => exportAs("csv") },
+          { title: "Download the chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
+          { title: "Import a chart file", text: "Open a chart from a JSON file.", words: "open load json upload", icon: "upload", run: () => $("import-file").click() },
+          ...TEMPLATES.map((template) => ({ title: `New chart from a template: ${template.title}`, text: template.text, words: "template example start", icon: "templates", run: () => adopt(fromTemplate(template)) })),
+          ...RANGES.map(([id], i) => ({ title: `Show ${PERIODS[id]}`, text: "Change the visible range.", words: `range period zoom time ${PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) })),
+          { title: "Fit everything", text: "All of history, with the price scales back on auto.", words: "zoom reset all history autoscale", icon: "charts", run: fit },
+          ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => commit((doc) => (doc.index = id)) })),
+          { title: "Measure", text: "Drag across the chart to measure a change.", words: "ruler distance difference percent", icon: "ruler", kbd: "M", run: () => setMeasureMode(true) },
+          { title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() },
+          ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar }]),
+          { title: "Browse the catalog", text: "Every series, by topic.", words: "series explore folders tree", icon: "folder", run: () => openPalette({ browse: true }), keepOpen: true },
+          { title: "Keyboard shortcuts", text: "Every key the studio answers to.", words: "keys help hotkeys", icon: "keyboard", kbd: "?", run: () => $("shortcuts").showModal() },
+        ];
       }
 
       function showPalette() {
@@ -5305,29 +5504,45 @@
             const child = node[key];
             return isLeaf(child) ? { kind: "series", key, name: child.name, group: palette.path.length ? humanizeKey(palette.path.at(-1)) : "Browse the catalog" } : { kind: "folder", key, path: [...palette.path, key], group: palette.path.length ? humanizeKey(palette.path.at(-1)) : "Browse the catalog" };
           }).filter((item) => item.kind === "series" || (node[item.key] && typeof node[item.key] === "object"));
-          const recents = palette.path.length ? [] : recent().map((name) => ({ kind: "series", key: name, name, group: "Recent" }));
-          palette.items = [...recents, ...folder];
+          const root = !palette.path.length;
+          const recents = root ? recent().map((name) => ({ kind: "series", key: name, name, group: "Recent series" })) : [];
+          const suggested = root ? commands().filter((command) => command.suggested).map((command) => ({ kind: "command", key: command.title, command, group: "Commands" })) : [];
+          palette.items = [...recents, ...folder, ...suggested];
           palette.active = 0;
           renderPalette();
           return;
         }
-        palette.items = [];
-        $("palette-preview").innerHTML = "";
-        $("palette-list").innerHTML = `<li class="note"><span class="shimmer">Searching ${total ? grouped.format(total) : "every"} series…</span></li>`;
+        // Charts and commands match at once, locally; series come from the server after a pause in typing.
+        const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+        const matches = (text) => words.every((word) => text.toLowerCase().includes(word));
+        // A command leads only when the first word typed starts its name or one of its keywords ("export", "share");
+        // otherwise ("hash rate" in a template's name) it follows the series, which is what people search for.
+        const leads = (command) => `${command.title.split(/[\s:]/)[0]} ${command.words ?? ""}`.toLowerCase().split(/\s+/).some((word) => word.startsWith(words[0]));
+        const found = commands().filter((command) => matches(`${command.title} ${command.words ?? ""}`)).map((command) => ({ kind: "command", key: command.title, command, group: "Commands" }));
+        const strong = found.filter((item) => leads(item.command)).slice(0, 6), weak = found.filter((item) => !leads(item.command)).slice(0, 6);
+        const local = [
+          ...strong,
+          ...library.charts.filter((doc) => doc !== chart && matches(titleOf(doc))).slice(0, 4).map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })),
+        ];
+        palette.items = local;
+        palette.active = 0;
+        renderPalette(true);
         $("palette-glow").hidden = false;
         palette.timer = setTimeout(async () => {
           const controller = (palette.controller = new AbortController());
           try {
             const names = await client.searchSeries(/** @type {any} */ (query), /** @type {any} */ (80), { signal: controller.signal });
             if (controller.signal.aborted) return;
-            palette.items = names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name }));
-            palette.active = 0;
+            const active = palette.items[palette.active];
+            palette.items = [...local, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...weak.map((item) => ({ ...item, group: "More commands" }))];
+            palette.active = Math.max(0, palette.items.indexOf(active));
             $("palette-glow").hidden = true;
             renderPalette();
           } catch {
             if (controller.signal.aborted) return;
             $("palette-glow").hidden = true;
-            $("palette-list").innerHTML = `<li class="note">Search is unavailable right now.</li>`;
+            palette.items = [...local, ...weak.map((item) => ({ ...item, group: "More commands" }))];
+            renderPalette(false, "Series search is unavailable right now.");
           }
         }, 140);
       }
@@ -5337,27 +5552,38 @@
         return escape(text).replace(new RegExp(words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") || "$^", "gi"), (match) => `<mark>${match}</mark>`);
       }
 
-      function renderPalette() {
+      /** The palette's list, grouped; `pending` adds a searching row, `note` a closing remark. */
+      function renderPalette(pending = false, note = "") {
         const searching = Boolean(palette.query.trim());
         $("crumbs").innerHTML = searching || !palette.path.length ? "" : ["Catalog", ...palette.path].map((key, i) => `<button type="button" data-crumb="${i}">${escape(i ? humanizeKey(key) : key)}</button>`).join("<span>›</span>");
         const list = $("palette-list");
+        const tail = pending ? `<li class="note"><span class="shimmer">Searching ${total ? grouped.format(total) : "every"} series…</span></li>` : note ? `<li class="note">${escape(note)}</li>` : "";
         if (!palette.items.length) {
-          list.innerHTML = `<li class="note">${searching ? "No series match. Try other words, or describe what it measures." : "Nothing here."}</li>`;
+          list.innerHTML = tail || `<li class="note">${searching ? "Nothing matches. Try other words, or describe what a series measures." : "Nothing here."}</li>`;
           $("palette-preview").innerHTML = "";
+          updatePaletteKeys();
           return;
         }
+        palette.items = palette.items.filter((item) => item.kind !== "chart" || library.charts.some((doc) => doc.id === item.key));
+        palette.active = Math.min(palette.active, Math.max(0, palette.items.length - 1));
         let group = "";
         list.innerHTML = palette.items.map((item, i) => {
-          const header = !searching && item.group !== group ? `<li class="group" role="presentation">${escape((group = item.group ?? ""))}</li>` : "";
+          const header = item.group && item.group !== group ? `<li class="group" role="presentation">${escape((group = item.group))}</li>` : "";
+          const doc = item.kind === "chart" ? library.charts.find((other) => other.id === item.key) : null;
           const known = item.name && units.get(item.name);
-          return `${header}<li role="option" id="option-${i}" data-option="${i}" aria-selected="${i === palette.active}">
-            ${item.kind === "folder" ? ICONS.folder : item.group === "Recent" ? ICONS.recent : ICONS.series}
-            <span class="item-name">${item.kind === "folder" ? escape(humanizeKey(item.key)) : searching ? highlightMatch(item.name, palette.query) : escape(item.name)}</span>
-            ${item.kind === "folder" ? `<span class="item-meta">›</span>` : known && known !== "number" ? `<span class="item-meta">${escape(UNIT_NAMES[known])}</span>` : ""}
-          </li>`;
-        }).join("");
+          const icon = item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? ICONS.series : doc ? chartMark(doc) : item.group === "Recent series" ? ICONS.recent : ICONS.series;
+          const name = item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : searching ? highlightMatch(item.name, palette.query) : escape(item.name);
+          const meta = item.kind === "folder" ? `<span class="item-meta">›</span>` : item.kind === "command" ? (item.command.kbd ? `<kbd>${escape(item.command.kbd)}</kbd>` : "") : doc ? `<span class="item-meta">${doc.layers.length} layer${doc.layers.length === 1 ? "" : "s"}</span>` : known && known !== "number" ? `<span class="item-meta">${escape(UNIT_NAMES[known])}</span>` : "";
+          return `${header}<li role="option" id="option-${i}" class="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${icon}<span class="item-name">${name}</span>${meta}</li>`;
+        }).join("") + tail;
         $("palette-input").setAttribute("aria-activedescendant", `option-${palette.active}`);
         preview();
+      }
+      /** The footer names what Enter does to the highlighted row. */
+      function updatePaletteKeys() {
+        const item = palette.items[palette.active];
+        $("palette-primary").textContent = !item ? "Add to chart" : item.kind === "command" ? "Run" : item.kind === "chart" ? "Open chart" : item.kind === "folder" ? "Open folder" : "Add to chart";
+        $("palette-new-pane").hidden = item?.kind !== "series";
       }
 
       function move(delta) {
@@ -5373,10 +5599,22 @@
       const sparks = new Map();
       function preview() {
         clearTimeout(previewTimer);
+        updatePaletteKeys();
         const item = palette.items[palette.active];
         const panel = $("palette-preview");
         if (!item || item.kind === "folder") {
-          panel.innerHTML = item ? `<h4>${escape(humanizeKey(item.key))}</h4><p class="description">A group in the catalog. Press <kbd>→</kbd> or click to open it.</p>` : "";
+          panel.innerHTML = item ? `<h4 class="plain">${escape(humanizeKey(item.key))}</h4><p class="description">A group in the catalog. Press <kbd>→</kbd> or click to open it.</p>` : "";
+          return;
+        }
+        if (item.kind === "command") {
+          panel.innerHTML = `<h4 class="plain">${escape(item.command.title)}</h4><p class="description">${escape(item.command.text)}</p>${item.command.kbd ? `<div class="info"><dl><div><dt>Shortcut</dt><dd><kbd>${escape(item.command.kbd)}</kbd></dd></div></dl></div>` : ""}`;
+          return;
+        }
+        if (item.kind === "chart") {
+          const doc = library.charts.find((other) => other.id === item.key);
+          if (!doc) return void (panel.innerHTML = "");
+          panel.innerHTML = `<h4 class="plain">${escape(titleOf(doc))}</h4><p class="description">${doc.layers.length} layer${doc.layers.length === 1 ? "" : "s"} · ${escape(CADENCE[doc.index] ?? "")} · edited ${escape(ago(doc.updated))}</p>
+            <div class="info"><h5>Layers</h5><dl>${doc.layers.slice(0, 10).map((layer) => `<div><dt><i class="dot" style="--c:${escape(ink(/^#[0-9a-f]{6}$/i.test(layer.color) ? layer.color : "ink"))}"></i>${escape(labelOf(layer))}</dt><dd>${layer.letter}</dd></div>`).join("")}</dl></div>`;
           return;
         }
         panel.innerHTML = `<h4>${escape(item.name)}</h4><p class="description"><span class="shimmer">Loading description…</span></p>`;
@@ -5428,6 +5666,17 @@
         if (item.kind === "folder") {
           palette.path = item.path;
           showPalette();
+          return;
+        }
+        if (item.kind === "command") {
+          if (!item.command.keepOpen) $("palette").close();
+          item.command.run();
+          return;
+        }
+        if (item.kind === "chart") {
+          $("palette").close();
+          const doc = library.charts.find((other) => other.id === item.key);
+          if (doc) open(doc);
           return;
         }
         $("palette").close();
@@ -5559,68 +5808,19 @@
         toast("Link copied: it opens this chart for anyone", { label: "Open", run: () => window.open(url, "_blank", "noopener") });
       });
 
-      // ── Charts dialog ─────────────────────────────────────────────────────────
+      // ── Templates ─────────────────────────────────────────────────────────────
 
       function templateCards(target) {
         return TEMPLATES.map((template, i) => `<button type="button" class="template" data-template="${i}" data-target="${target}">
           ${sketchOf(template)}<b>${escape(template.title)}</b><span>${escape(template.text)}</span>
         </button>`).join("");
       }
-      function renderLibrary() {
-        $("library-list").innerHTML = [...library.charts].sort((a, b) => b.updated - a.updated).map((doc) => `<li aria-current="${doc.id === chart.id}">
-          <button type="button" class="library-open" data-open="${doc.id}">${ICONS.charts}
-            <span class="library-text"><b>${escape(doc.title || "Untitled chart")}</b><span class="strip">${doc.layers.slice(0, 10).map((layer) => `<i style="--c:${escape(ink(/^#[0-9a-f]{6}$/i.test(layer.color) ? layer.color : "ink"))}"></i>`).join("")}</span></span>
-            <span class="when">${doc.id === chart.id ? "Open · " : ""}${doc.layers.length} layer${doc.layers.length === 1 ? "" : "s"} · ${escape(INTERVAL_LABEL[doc.index] ?? "1D")} · ${ago(doc.updated)}</span>
-          </button>
-          <button type="button" class="cap small" data-duplicate-chart="${doc.id}" aria-label="Duplicate ${escape(doc.title || "Untitled chart")}" data-tip="Duplicate">${ICONS.copy}</button>
-          <button type="button" class="cap small" data-delete-chart="${doc.id}" aria-label="Delete ${escape(doc.title || "Untitled chart")}" data-tip="Delete">${ICONS.trash}</button>
-        </li>`).join("");
-        $("library-templates").innerHTML = templateCards("library");
-      }
-      function openLibrary(templates = false) {
-        renderLibrary();
-        $("library").showModal();
-        $("library").querySelector('[aria-current="true"] .library-open')?.focus();
-        if (templates) $("library-templates-section").scrollIntoView({ block: "start" });
-      }
-      $("library").addEventListener("click", (event) => {
-        const button = closest(event, "button");
-        if (!button) return;
-        const { open: openId, duplicateChart, deleteChart, action } = button.dataset;
-        const target = library.charts.find((doc) => doc.id === (openId ?? duplicateChart ?? deleteChart));
-        if ((openId || duplicateChart || deleteChart) && !target) return renderLibrary();
-        if (openId) {
-          open(target);
-          $("library").close();
-        } else if (duplicateChart) {
-          const source = target;
-          adopt({ ...structuredClone(source), id: uid(), title: `${source.title || "Untitled chart"} copy`, updated: Date.now() });
-          renderLibrary();
-        } else if (deleteChart) {
-          const index = library.charts.findIndex((item) => item.id === deleteChart);
-          const [doc] = library.charts.splice(index, 1);
-          deletedHere.add(doc.id);
-          if (chart.id === deleteChart) open(library.charts[0] ?? (library.charts.push(blankChart()), library.charts[0]));
-          save();
-          renderLibrary();
-          toast(`Deleted ${doc.title || "Untitled chart"}`, {
-            label: "Undo",
-            run: () => {
-              deletedHere.delete(doc.id);
-              library.charts.splice(index, 0, doc);
-              save();
-              if ($("library").open) renderLibrary();
-            },
-          });
-        } else if (action === "import") $("import-file").click();
-      });
       $("import-file").addEventListener("change", async (event) => {
         const file = event.target.files?.[0];
         event.target.value = "";
         if (!file) return;
         try {
           adopt(validate(JSON.parse(await file.text())));
-          $("library").close();
           toast(`Imported ${chart.title || "a chart"}`);
         } catch {
           toast("That file isn't a studio chart");
@@ -5695,7 +5895,7 @@
         link.click();
         setTimeout(() => URL.revokeObjectURL(link.href), 1000);
       }
-      const fileName = (extension) => `${(chart.title || "chart").trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "chart"}.${extension}`;
+      const fileName = (extension, doc = chart) => `${(doc.title || "chart").trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "chart"}.${extension}`;
 
       function exportAs(kind) {
         if (kind === "json") return download(fileName("json"), new Blob([JSON.stringify(portable(chart), null, 2)], { type: "application/json" }));
@@ -5905,45 +6105,39 @@
             drawnChart = "";
             commit((current) => Object.assign(current, { ...doc, id: current.id }));
           } else adopt(doc);
-          $("library").close();
           return;
         }
-        const target = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-remove-pane], [data-action], [data-sheet], [data-open-chart]");
+        const menuFor = closest(event, "[data-chart-menu], [data-pane-menu]");
+        if (menuFor) return menuFor.dataset.chartMenu ? chartMenu(menuFor, menuFor.dataset.chartMenu) : paneMenu(menuFor, menuFor.dataset.paneMenu);
+        const target = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
         if (!target || (target.closest("#inspector") && !target.dataset.paneMode)) return;
-        const { select: id, toggle, paneMode, mode, removePane, action, sheet, openChart } = target.dataset;
+        const { select: id, toggle, paneMode, mode, action, sheet, openChart } = target.dataset;
         if (openChart) {
           if (openChart !== chart.id) open(library.charts.find((doc) => doc.id === openChart));
           delete document.body.dataset.sheet;
-        } else if (action === "new-chart") {
-          adopt(blankChart());
-          $("library").close();
         } else if (id) select(id);
         else if (toggle) commit((doc) => {
           const layer = doc.layers.find((item) => item.id === toggle);
           layer.hidden = !layer.hidden || undefined;
         }, { redraw: false });
         else if (paneMode) commit((doc) => (doc.panes.find((pane) => pane.id === paneMode).mode = Number(mode)), { redraw: false });
-        else if (removePane) {
-          const count = chart.layers.filter((layer) => layer.pane === removePane).length;
-          commit((doc) => (doc.layers = doc.layers.filter((layer) => layer.pane !== removePane)));
-          undoToast(`Removed a pane and its ${count} layer${count === 1 ? "" : "s"}`);
-        } else if (action === "palette") openPalette();
-        else if (action === "browse") openPalette({ browse: true });
+        else if (action === "palette") openPalette();
         else if (action === "formula") addFormula();
-        else if (action === "library") openLibrary();
-        else if (action === "templates") openLibrary(true);
         else if (action === "toggle-sidebar") toggleSidebar();
+        else if (action === "toggle-panel") togglePanel();
         else if (action === "shortcuts") $("shortcuts").showModal();
         else if (action === "zoom-in") zoom(1 / 1.6);
         else if (action === "zoom-out") zoom(1.6);
         else if (action === "fit") fit();
         else if (action === "measure") setMeasureMode(!measureMode);
         else if (action === "close-palette") $("palette").close();
-        else if (action === "close-library") $("library").close();
         else if (action === "close-shortcuts") $("shortcuts").close();
-        else if (action === "close-sheet") delete document.body.dataset.sheet;
+        else if (action === "close-sheet") {
+          delete document.body.dataset.sheet;
+          document.body.removeAttribute("data-peek");
+          if (!phone.matches && prefs.panel === "open") togglePanel(false);
+        }
         else if (sheet) {
-          if (sheet === "inspector" && !selected && chart.layers.length) return select(chart.layers[0].id);
           if (document.body.dataset.sheet === sheet) delete document.body.dataset.sheet;
           else document.body.dataset.sheet = sheet;
         }
@@ -5986,6 +6180,7 @@
         else if (key === "f") addFormula();
         else if (event.key === "?") $("shortcuts").showModal();
         else if (event.key === "\\") toggleSidebar();
+        else if (key === "p") togglePanel();
         else if (event.key === "Escape") {
           if (!$("menu").hidden) {
             const owner = menuOwner;
@@ -5993,7 +6188,10 @@
             owner?.focus();
           } else if (!$("measure").hidden) clearMeasure();
           else if (measureMode) setMeasureMode(false);
-          else deselect();
+          else if (selected) deselect();
+          else if (document.body.hasAttribute("data-peek")) document.body.removeAttribute("data-peek");
+          else if (document.body.dataset.sheet) delete document.body.dataset.sheet;
+          else if (tablet.matches && prefs.panel === "open") togglePanel(false);
         } else if (event.key === "ArrowDown" || event.key === "ArrowUp") selectBy(event.key === "ArrowDown" ? 1 : -1);
         else if ((event.key === "Backspace" || event.key === "Delete") && selected) removeLayer(selected);
         else if (key === "h" && selected) commit((doc) => {
