@@ -2,7 +2,6 @@ use bitcoin::{ScriptBuf, Transaction as BitcoinTransaction};
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{StoredU32, TxInIndex, TypeIndex};
 use bitview_types::BlockTxIndex;
-use brk_error::{Error, OptionData, Result};
 use brk_types::{
     BlkPosition, Height, OutPoint, OutputType, RawLockTime, Sats, SigOps, Transaction, TxIn,
     TxIndex, TxOut, TxStatus, Txid, Vout, Weight,
@@ -10,7 +9,7 @@ use brk_types::{
 use rustc_hash::FxHashMap;
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Query, r#impl::indexed_transaction};
+use crate::{Error, OptionData, Query, Result, r#impl::indexed_transaction};
 
 impl Query {
     // === Helper methods ===

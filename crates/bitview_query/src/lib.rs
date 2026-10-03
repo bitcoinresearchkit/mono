@@ -26,8 +26,6 @@ use bitview_primitives::{Epoch, Halving, Index};
 #[cfg(feature = "indexer")]
 use bitview_types::SyncStatus;
 #[cfg(feature = "indexer")]
-use brk_error::{Error, OptionData, Result};
-#[cfg(feature = "indexer")]
 use brk_mempool::ReadOnlyMempool;
 #[cfg(any(feature = "chain", feature = "price"))]
 use brk_mempool::ReadOnlyState;
@@ -44,6 +42,7 @@ use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
 #[cfg(feature = "tokio")]
 mod r#async;
+mod error;
 #[cfg(feature = "price")]
 mod live_oracle;
 mod output;
@@ -60,6 +59,9 @@ mod r#impl;
 
 #[cfg(feature = "tokio")]
 pub use r#async::*;
+#[cfg(feature = "indexer")]
+pub(crate) use error::OptionData;
+pub use error::{Error, Result, SeriesNotFound};
 #[cfg(feature = "urpd")]
 pub use r#impl::ResolvedUrpd;
 #[cfg(feature = "price")]

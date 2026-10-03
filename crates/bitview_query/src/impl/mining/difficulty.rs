@@ -2,11 +2,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use bitview_primitives::Epoch;
 use bitview_types::DifficultyAdjustment;
-use brk_error::{Error, OptionData, Result};
 use brk_types::{BLOCKS_PER_DIFF_EPOCHS as BLOCKS_PER_EPOCH, Height};
 use vecdb::ReadableVec;
 
-use crate::Query;
+use crate::{Error, OptionData, Query, Result};
 
 /// Target block time in seconds (10 minutes)
 const TARGET_BLOCK_TIME: u64 = 600;

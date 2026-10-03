@@ -6,7 +6,6 @@ use bitview_types::{
     DetailedSeriesCount, Format, IndexInfo, Limit, PaginatedSeries, Pagination, RangeIndex,
     SearchQuery, SeriesInfo, SeriesName, SeriesSelection,
 };
-use brk_error::{Error, Result, SeriesNotFound, truncate_series_name};
 use brk_types::{Height, Timestamp, Version};
 use itoa::Buffer;
 use jiff::civil::Date as CivilDate;
@@ -14,7 +13,8 @@ use serde_json::{Value, from_slice, to_writer};
 use vecdb::{BoundedVec, ReadableVec, ValueWriter, i64_to_usize};
 
 use crate::{
-    Output, Query, ResolvedSeriesInfo,
+    Error, Output, Query, ResolvedSeriesInfo, Result, SeriesNotFound,
+    error::truncate_series_name,
     vecs::{SeriesEntry, SeriesEntryLookup},
 };
 
@@ -451,7 +451,7 @@ impl Query {
         }
         let days = CivilDate::constant(1970, 1, 1).until(calendar)?.get_days();
         let seconds = u32::try_from(i64::from(days) * 86_400)
-            .map_err(|_| Error::Parse(format!("date out of timestamp range: {date}")))?;
+            .map_err(|_| Error::InvalidParam(format!("date out of timestamp range: {date}")))?;
         self.timestamp_to_i64(Timestamp::new(seconds), index, read)
     }
 
@@ -464,7 +464,7 @@ impl Query {
             Index::Height => Ok(usize::from(height()?) as i64),
             Index::Epoch => Ok(usize::from(Epoch::from(height()?)) as i64),
             Index::Halving => Ok(usize::from(Halving::from(height()?)) as i64),
-            _ => Err(Error::Parse(format!(
+            _ => Err(Error::InvalidParam(format!(
                 "date/timestamp ranges not supported for index '{index}'"
             ))),
         }

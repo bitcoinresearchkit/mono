@@ -6,9 +6,10 @@ use axum::{
     response::Response,
 };
 use bitcoin::hashes::{Hash, HashEngine, sha256};
-use bitview_query::{Query, ResolvedBlocks, ResolvedBlocksV1};
+use bitview_query::{
+    Error as QueryError, Query, ResolvedBlocks, ResolvedBlocksV1, Result as QueryResult,
+};
 use bitview_types::{BlockInfo, BlockInfoV1, BlockStatus, BlockTimestamp, BlockTxIndex, Hex};
-use brk_error::{Error as QueryError, Result as QueryResult};
 use brk_types::{BlockHash, Dollars, Height, Timestamp, Transaction, Txid};
 use serde::Serialize;
 use serde_json::to_vec;

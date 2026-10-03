@@ -1,9 +1,8 @@
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::TypeIndex;
-use brk_error::Result;
 use brk_types::{Addr, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
 
-use crate::Query;
+use crate::{Query, Result};
 
 /// A confirmed address transaction page resolved against one best-chain view.
 #[derive(Debug)]

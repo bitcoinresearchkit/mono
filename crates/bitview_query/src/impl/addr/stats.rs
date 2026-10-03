@@ -1,16 +1,14 @@
-use std::str::FromStr;
-
 use bitview_primitives::{DecodedAddrState, TypeIndex};
 use bitview_types::{AddrChainStats, AddrStats};
-use brk_error::{Error, OptionData, Result};
 use brk_types::{Addr, AddrBytes, Dollars, OutputType, Sats};
 use vecdb::ReadableVec;
 
-use crate::Query;
+use super::parse_addr;
+use crate::{Error, OptionData, Query, Result};
 
 impl Query {
     pub fn addr(&self, addr: Addr) -> Result<AddrStats> {
-        let bytes = AddrBytes::from_str(&addr)?;
+        let bytes = parse_addr(&addr)?;
         let _guard = self.read_publication()?;
         let (output_type, type_index) = self.resolve_addr_bytes(&bytes)?;
         self.addr_stats(addr, bytes, output_type, type_index)

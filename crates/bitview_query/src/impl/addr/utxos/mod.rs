@@ -1,13 +1,10 @@
-use std::str::FromStr;
-
 use bitview_plugin::PublicationReadGuard;
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::TxOutIndex;
 use bitview_types::Utxo;
-use brk_error::{Error, OptionData, Result};
 use brk_types::{Addr, AddrBytes, BlockHash, Height, TxIndex, TxStatus, Vout};
 
-use crate::Query;
+use crate::{Error, OptionData, Query, Result, r#impl::addr::parse_addr};
 
 /// An owned UTXO selection retaining only rollback protection until consumed.
 pub struct ResolvedAddrUtxos {
@@ -24,7 +21,7 @@ impl ResolvedAddrUtxos {
 
 impl Query {
     pub fn resolve_addr_utxos(&self, addr: &Addr, max_utxos: usize) -> Result<ResolvedAddrUtxos> {
-        let addr = AddrBytes::from_str(addr)?;
+        let addr = parse_addr(addr)?;
         let guard = self.read_publication()?;
         self.resolve_addr_utxos_guarded(&addr, guard, max_utxos)
     }

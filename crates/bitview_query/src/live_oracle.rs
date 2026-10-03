@@ -1,7 +1,8 @@
-use brk_error::Result;
 use brk_oracle::Oracle;
 use brk_types::BlockHash;
 use parking_lot::Mutex;
+
+use crate::Result;
 
 /// One warmed confirmed window. No response bodies or mempool-derived state.
 #[derive(Default)]

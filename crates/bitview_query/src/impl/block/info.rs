@@ -11,11 +11,10 @@ use bitcoin::{
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Lengths, PoolSlug, pools};
 use bitview_types::{BlockExtras, BlockHeader, BlockInfo, BlockInfoV1, BlockPool};
-use brk_error::{Error, OptionData, Result};
 use brk_types::{BlockHash, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, VSize};
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::Query;
+use crate::{Error, OptionData, Query, Result};
 
 const HEADER_SIZE: usize = 80;
 

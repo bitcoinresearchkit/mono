@@ -8,7 +8,6 @@ use std::{
 
 use bitview_query::AsyncQuery;
 use bitview_server::{Server, ServerConfig};
-use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_logger::init;
 use brk_mempool::Mempool;
@@ -24,7 +23,7 @@ use vecdb::{Budgeted, ReadOnlyClone};
 mod config;
 mod paths;
 
-pub use bitview_query::QueryPluginSet;
+pub use bitview_query::{Error, QueryPluginSet, Result};
 pub use bitview_runtime::{
     BootstrapAction, ComputePluginSet, DEFAULT_CACHE_BUDGET, ImportContext, PluginSet,
     UpdateContext, bootstrap, update,
@@ -46,7 +45,7 @@ pub struct RunConfig {
 /// Runs the Bitview daemon process with the supplied composition: reads the
 /// configuration file and arguments, initializes logging and the shutdown handler,
 /// then serves until exit.
-pub fn run<P>(import: impl FnMut(ImportContext<'_>, &Reader) -> Result<P>) -> Result<()>
+pub fn run<P>(import: impl FnMut(ImportContext<'_>, &Reader) -> brk_error::Result<P>) -> Result<()>
 where
     P: ComputePluginSet + ReadOnlyClone,
     P::ReadOnly: QueryPluginSet + 'static,
@@ -66,7 +65,7 @@ where
 fn run_with<P>(
     config: RunConfig,
     exit: Exit,
-    mut import: impl FnMut(ImportContext<'_>, &Reader) -> Result<P>,
+    mut import: impl FnMut(ImportContext<'_>, &Reader) -> brk_error::Result<P>,
 ) -> Result<()>
 where
     P: ComputePluginSet + ReadOnlyClone,

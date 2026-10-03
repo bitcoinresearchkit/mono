@@ -103,6 +103,11 @@ immediately. The HTTP handler itself is never replayed. Exhaustion returns a non
 504 with code `timeout`. Invalid input, genuine missing resources, disabled
 services, and storage failures retain their own errors. Actions are never replayed.
 
+Every `bitview_query::Error` maps to a status in one exhaustive match (`error.rs`), so a new variant must
+choose one. Failures from below the query (storage, RPC, IO) are internal errors (500, `no-store`), never a
+404 or 400, except the conditions `bitview_query` translates (invalid address or network input, an
+unindexable date, an updating state) and a transaction the node rejects (400).
+
 Response-capacity waits release snapshots first, then resolve and validate again
 before building the body. Matching validators still return 304 before reserving
 body capacity or serializing data, after required validity and consistency checks.

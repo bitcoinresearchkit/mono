@@ -5,8 +5,7 @@ use axum::{
     http::{HeaderMap, HeaderValue, Response, header},
     response::IntoResponse,
 };
-use bitview_query::{AsyncQuery, Query, RepresentationId};
-use brk_error::{Error as BrkError, Result};
+use bitview_query::{AsyncQuery, Error as QueryError, Query, RepresentationId, Result};
 use brk_rpc::AsyncClient;
 #[cfg(feature = "chain")]
 use brk_types::Version;
@@ -61,7 +60,7 @@ impl AppState {
     /// never turn temporary publication loss into an HTTP error.
     pub fn preflight<T>(&self, f: impl FnOnce(&Query) -> Result<Option<T>>) -> Result<Option<T>> {
         match self.sync(f) {
-            Err(BrkError::StateUpdating) => Ok(None),
+            Err(QueryError::StateUpdating) => Ok(None),
             result => result,
         }
     }
@@ -128,7 +127,7 @@ impl AppState {
             .clone()
             .acquire_owned()
             .await
-            .map_err(|_| BrkError::Internal("query admission closed"))?;
+            .map_err(|_| QueryError::Internal("query admission closed"))?;
         self.run(move |q| {
             let _permit = permit;
             f(q)
@@ -275,7 +274,7 @@ impl AppState {
                 let (bytes, identity) = f(query)?;
                 let current_tip = query.tip_hash_prefix();
                 if matches!(identity, RepresentationId::Block(_)) && initial_tip != current_tip {
-                    return Err(BrkError::StateUpdating);
+                    return Err(QueryError::StateUpdating);
                 }
                 Ok((bytes, identity))
             })

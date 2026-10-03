@@ -1,9 +1,8 @@
 use bitview_types::{DifficultyAdjustmentEntry, TimePeriod};
-use brk_error::Result;
 use vecdb::VecIndex;
 
 use super::{epochs::iter_difficulty_epochs, start_height};
-use crate::Query;
+use crate::{Query, Result};
 
 impl Query {
     /// All difficulty adjustments (one entry per retarget) whose first block

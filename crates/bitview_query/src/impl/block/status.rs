@@ -1,10 +1,9 @@
 use bitview_plugin_indexer::SafeLengths;
 use bitview_types::BlockStatus;
-use brk_error::{OptionData, Result};
 use brk_types::{BlockHash, Height};
 use vecdb::ReadableVec;
 
-use crate::Query;
+use crate::{OptionData, Query, Result};
 
 impl Query {
     pub fn block_status(&self, hash: &BlockHash) -> Result<BlockStatus> {

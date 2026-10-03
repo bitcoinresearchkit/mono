@@ -1,10 +1,9 @@
 use bitview_types::BlockTimestamp;
-use brk_error::{Error, OptionData, Result};
 use brk_types::{BlockHash, Height, Timestamp};
 use jiff::Timestamp as JiffTimestamp;
 use vecdb::ReadableVec;
 
-use crate::Query;
+use crate::{Error, OptionData, Query, Result};
 
 /// An owned timestamp selection from one published chain view.
 pub struct ResolvedBlockTimestamp {

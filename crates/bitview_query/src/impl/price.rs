@@ -1,11 +1,10 @@
 use bitview_plugin::PublicationReadGuard;
 use bitview_primitives::{HOUR4_INTERVAL, INDEX_EPOCH, Index};
 use bitview_types::{ExchangeRates, HistoricalPrice, HistoricalPriceEntry};
-use brk_error::{Error, OptionData, Result};
 use brk_types::{Cents, Dollars, Height, Timestamp};
 use vecdb::{AnyVec, ReadBounds, ReadableVec};
 
-use crate::Query;
+use crate::{Error, OptionData, Query, Result};
 
 // A timestamp is u32 seconds. Reject corrupt lengths before reading the mapping.
 const MAX_BUCKETS: usize = ((u32::MAX - INDEX_EPOCH) / HOUR4_INTERVAL) as usize + 1;

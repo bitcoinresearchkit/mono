@@ -1,8 +1,7 @@
 use bitview_primitives::{Lengths, TypeIndex};
-use brk_error::Result;
 use brk_types::{Height, OutputType, Txid};
 
-use crate::Query;
+use crate::{Query, Result};
 
 impl Query {
     pub(crate) fn addr_last_activity_height_bounded(

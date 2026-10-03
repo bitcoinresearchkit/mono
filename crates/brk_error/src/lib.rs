@@ -20,7 +20,7 @@ use jiff::Error as JiffError;
 use pco::errors::PcoError;
 #[cfg(feature = "serde_json")]
 use serde_json::Error as SerdeJsonError;
-use std::{borrow::Cow, fmt, io, path::PathBuf, result::Result as StdResult, time};
+use std::{borrow::Cow, io, path::PathBuf, result::Result as StdResult, time};
 
 use thiserror::Error;
 
@@ -130,17 +130,8 @@ pub enum Error {
     #[error("Invalid network")]
     InvalidNetwork,
 
-    #[error("Mempool data is not available")]
-    MempoolNotAvailable,
-
     #[error("State is updating")]
     StateUpdating,
-
-    #[error("Read timed out waiting for published data")]
-    ReadTimeout,
-
-    #[error("Address not found in the blockchain (no transaction history)")]
-    UnknownAddr,
 
     #[error("Failed to find the TXID in the blockchain")]
     UnknownTxid,
@@ -166,30 +157,9 @@ pub enum Error {
     )]
     NoRpcCredentials { cookie: PathBuf },
 
-    // Series-specific errors
+    /// The node refused a submitted transaction (policy or consensus); the reason is the node's.
     #[error("{0}")]
-    SeriesNotFound(SeriesNotFound),
-
-    #[error("'{series}' doesn't support the requested index. Try: {supported}")]
-    SeriesUnsupportedIndex { series: String, supported: String },
-
-    #[error("No series specified")]
-    NoSeries,
-
-    #[error("No data available")]
-    NoData,
-
-    #[error("Request weight {requested} exceeds maximum {max}")]
-    WeightExceeded { requested: usize, max: usize },
-
-    #[error("Too many unspent transaction outputs (>1000).")]
-    TooManyUtxos,
-
-    #[error("Fetch failed after retries: {0}")]
-    FetchFailed(String),
-
-    #[error("HTTP {status}: {url}")]
-    HttpStatus { status: u16, url: String },
+    TxRejected(String),
 
     #[error("Version mismatch at {path:?}: expected {expected}, found {found}")]
     VersionMismatch {
@@ -230,68 +200,5 @@ impl Error {
         {
             is_vecdb_data
         }
-    }
-}
-
-/// Maximum length of a user-supplied series name in error messages before
-/// truncating with an ellipsis.
-const SERIES_NAME_MAX_DISPLAY_LEN: usize = 100;
-
-/// Truncate a user-supplied series name for inclusion in an error message,
-/// appending an ellipsis if it exceeds the display cap. Used for both
-/// `SeriesNotFound` and `SeriesUnsupportedIndex` so far-too-long names don't
-/// blow up the response body.
-pub fn truncate_series_name(mut series: String) -> String {
-    if series.len() > SERIES_NAME_MAX_DISPLAY_LEN {
-        series.truncate(series.floor_char_boundary(SERIES_NAME_MAX_DISPLAY_LEN));
-        series.push_str("...");
-    }
-    series
-}
-
-#[derive(Debug)]
-pub struct SeriesNotFound {
-    series: String,
-    suggestions: Vec<&'static str>,
-    total_matches: usize,
-}
-
-impl SeriesNotFound {
-    pub fn new(series: String, suggestions: Vec<&'static str>, total_matches: usize) -> Self {
-        Self {
-            series: truncate_series_name(series),
-            suggestions,
-            total_matches,
-        }
-    }
-}
-
-impl fmt::Display for SeriesNotFound {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "'{}' not found", self.series)?;
-
-        if self.suggestions.is_empty() {
-            return Ok(());
-        }
-
-        f.write_str(", did you mean ")?;
-        for (index, suggestion) in self.suggestions.iter().enumerate() {
-            if index != 0 {
-                f.write_str(", ")?;
-            }
-            write!(f, "'{suggestion}'")?;
-        }
-        f.write_str("?")?;
-
-        let remaining = self.total_matches.saturating_sub(self.suggestions.len());
-        if remaining > 0 {
-            write!(
-                f,
-                " ({remaining} more — /api/series/search?q={} for all)",
-                self.series
-            )?;
-        }
-
-        Ok(())
     }
 }

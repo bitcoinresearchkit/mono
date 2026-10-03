@@ -112,6 +112,6 @@ impl ComputePluginSet for Plugins {
     }
 }
 
-fn main() -> Result<()> {
+fn main() -> bitview::Result<()> {
     run(Plugins::import)
 }

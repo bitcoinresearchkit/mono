@@ -1,6 +1,5 @@
 use std::{sync::Arc, time::Instant};
 
-use brk_error::{Error, Result};
 use brk_mempool::ReadOnlyMempool;
 use tokio::{
     sync::Semaphore,
@@ -9,7 +8,7 @@ use tokio::{
 };
 use vecdb::ReadOnlyClone;
 
-use crate::{Query, QueryPluginSet};
+use crate::{Error, Query, QueryPluginSet, Result};
 
 #[derive(Clone)]
 pub struct AsyncQuery(Query);

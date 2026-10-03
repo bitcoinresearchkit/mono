@@ -1,10 +1,9 @@
 use bitview_primitives::{TxInIndex, TxOutIndex};
-use brk_error::{Error, OptionData, Result};
 use brk_types::{BlockHash, Height, Timestamp, TxIndex, TxOutspend, TxStatus, Txid, Vin, Vout};
 use serde_json::to_vec;
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Query, RepresentationId};
+use crate::{Error, OptionData, Query, RepresentationId, Result};
 
 impl Query {
     fn outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
@@ -243,7 +242,7 @@ fn outspends_identity(outspends: &[TxOutspend], bytes: &[u8]) -> RepresentationI
 impl Query {
     fn mempool_outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
         self.mempool().map_or(Ok(TxOutspend::UNSPENT), |mempool| {
-            mempool.outspend(txid, vout, &self.tip_blockhash())
+            Ok(mempool.outspend(txid, vout, &self.tip_blockhash())?)
         })
     }
 }

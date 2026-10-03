@@ -1,9 +1,8 @@
 use bitview_primitives::AddrHash;
 use bitview_types::AddrHashPrefixMatches;
-use brk_error::{Error, Result};
 use brk_types::{Addr, OutputType};
 
-use crate::Query;
+use crate::{Error, Query, Result};
 
 const ADDR_HASH_PREFIX_MATCH_LIMIT: usize = 100;
 
@@ -32,7 +31,10 @@ impl Query {
             }
 
             let script = addr_readers.script_pubkey(addr_type, type_index);
-            addresses.push(Addr::try_from((&script, addr_type))?);
+            addresses.push(
+                Addr::try_from((&script, addr_type))
+                    .map_err(|_| Error::Internal("stored script is not an address"))?,
+            );
 
             if addresses.len() > ADDR_HASH_PREFIX_MATCH_LIMIT {
                 break;
@@ -45,7 +47,10 @@ impl Query {
             && type_index < safe_type_index
         {
             let script = addr_readers.script_pubkey(addr_type, type_index);
-            addresses.push(Addr::try_from((&script, addr_type))?);
+            addresses.push(
+                Addr::try_from((&script, addr_type))
+                    .map_err(|_| Error::Internal("stored script is not an address"))?,
+            );
         }
 
         let truncated = addresses.len() > ADDR_HASH_PREFIX_MATCH_LIMIT;
@@ -94,7 +99,7 @@ impl AddrHashPrefix {
     }
 
     fn parse_error() -> Error {
-        Error::Parse(format!(
+        Error::InvalidParam(format!(
             "hash prefix must be 1 to {} hexadecimal characters",
             Self::MAX_NIBBLES
         ))

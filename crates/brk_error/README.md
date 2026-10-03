@@ -1,14 +1,18 @@
 # brk_error
 
-Unified error types for the Bitcoin Research Kit.
+Foundation error type shared by the Bitcoin Research Kit crates.
 
 ## Core API
 
-- `Error` - Comprehensive enum covering all error cases across the stack
+- `Error` - failures from storage, RPC, encoding, IO and parsing of stored data
 - `Result<T>` - Convenience alias for `Result<T, Error>`
 
 ## Error Categories
 
 **External integrations**: Bitcoin RPC, consensus encoding, address parsing, JSON serialization, database (fjall, vecdb), HTTP requests (ureq), async runtime (tokio)
 
-**Domain-specific**: Invalid addresses, unknown TXIDs, unsupported types, series lookup failures with fuzzy suggestions, request weight limits
+**Named conditions**: a few variants carry meaning their callers act on: invalid address or network input,
+an unindexable date, an updating mempool state, and a transaction the node rejected.
+
+API answers (not found, invalid parameter, unavailable, series suggestions, request limits) belong to
+`bitview_query::Error`; everything else from here reaches API clients as an internal error.

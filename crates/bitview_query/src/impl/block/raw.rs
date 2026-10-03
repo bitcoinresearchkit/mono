@@ -2,12 +2,11 @@ use std::io::Read;
 
 use bitcoin::{Block as BitcoinBlock, Weight, consensus::deserialize, p2p::Magic};
 use bitview_plugin_indexer::SafeLengths;
-use brk_error::{Error, OptionData, Result};
 use brk_reader::BlkRead;
 use brk_types::{BlkPosition, BlockHash, Height};
 use vecdb::ReadableVec;
 
-use crate::Query;
+use crate::{Error, OptionData, Query, Result};
 
 // Serialized bytes cannot exceed weight: each byte contributes at least one WU.
 const MAX_BLOCK_BYTES: u64 = Weight::MAX_BLOCK.to_wu();

@@ -1,10 +1,9 @@
 use bitview_primitives::{Epoch, StoredF64};
 use bitview_types::DifficultyAdjustmentEntry;
-use brk_error::{Error, Result};
 use brk_types::{Height, Timestamp};
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::query_plugins::QueryPlugins;
+use crate::{Error, Result, query_plugins::QueryPlugins};
 
 /// Walk every difficulty epoch overlapping `[start_height, end_height]` and
 /// return one `DifficultyAdjustmentEntry` per retarget whose first block

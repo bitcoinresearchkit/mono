@@ -29,7 +29,7 @@ pub fn transaction_error(error: Error) -> Error {
     if let Error::CorepcRPC(ErrorError::Rpc(rpc)) = &error
         && matches!(rpc.code, -22 | -25 | -26 | -27)
     {
-        return Error::Parse(rpc.message.clone());
+        return Error::TxRejected(rpc.message.clone());
     }
     error
 }

@@ -1,11 +1,10 @@
 use bitview_types::TimePeriod;
-use brk_error::{Error, Result};
 use brk_types::{Height, Timestamp};
 use rustc_hash::FxHashMap;
 use vecdb::{ReadableVec, VecIndex, VecValue};
 
 use super::{block_bucket::BlockBucket, period_start::start_height_at};
-use crate::Query;
+use crate::{Error, Query, Result};
 
 /// Time-bucket divisor in seconds: blocks are grouped by `timestamp / div`.
 /// `div = 1` puts each block in its own bucket; coarser values down-sample

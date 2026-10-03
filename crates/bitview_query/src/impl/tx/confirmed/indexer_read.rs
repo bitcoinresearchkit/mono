@@ -1,10 +1,9 @@
 use bitview_plugin_indexer::SafeLengths;
-use brk_error::{Error, Result};
 use brk_types::{BlockHash, Height, TxIndex, Txid};
 use vecdb::ReadableVec;
 
 use super::ResolvedConfirmedTx;
-use crate::Query;
+use crate::{Error, Query, Result};
 
 /// One logical read of this query's published indexer state.
 ///

@@ -5,6 +5,7 @@ use axum::{
     http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
+use bitview_query::Error as QueryError;
 use brk_error::Error as BrkError;
 use serde_json::to_vec;
 
@@ -29,32 +30,35 @@ fn error_type(status: StatusCode) -> &'static str {
     }
 }
 
-fn error_details(error: &BrkError) -> (StatusCode, ErrorCode) {
+/// Every query error has a deliberate status: a new variant does not compile until it gets one.
+fn error_details(error: &QueryError) -> (StatusCode, ErrorCode) {
     match error {
-        BrkError::InvalidAddr => (StatusCode::BAD_REQUEST, ErrorCode::InvalidAddr),
-        BrkError::InvalidNetwork => (StatusCode::BAD_REQUEST, ErrorCode::InvalidNetwork),
-        BrkError::UnsupportedType(_) => (StatusCode::BAD_REQUEST, ErrorCode::UnsupportedType),
-        BrkError::Parse(_) => (StatusCode::BAD_REQUEST, ErrorCode::ParseError),
-        BrkError::NoSeries => (StatusCode::BAD_REQUEST, ErrorCode::NoSeries),
-        BrkError::SeriesUnsupportedIndex { .. } => {
+        QueryError::InvalidAddr => (StatusCode::BAD_REQUEST, ErrorCode::InvalidAddr),
+        QueryError::InvalidNetwork => (StatusCode::BAD_REQUEST, ErrorCode::InvalidNetwork),
+        QueryError::InvalidParam(_) => (StatusCode::BAD_REQUEST, ErrorCode::ParseError),
+        QueryError::UnsupportedType(_) => (StatusCode::BAD_REQUEST, ErrorCode::UnsupportedType),
+        QueryError::NoSeries => (StatusCode::BAD_REQUEST, ErrorCode::NoSeries),
+        QueryError::SeriesUnsupportedIndex { .. } => {
             (StatusCode::BAD_REQUEST, ErrorCode::SeriesUnsupportedIndex)
         }
-        BrkError::WeightExceeded { .. } => (StatusCode::BAD_REQUEST, ErrorCode::WeightExceeded),
-        BrkError::TooManyUtxos => (StatusCode::BAD_REQUEST, ErrorCode::TooManyUtxos),
-        BrkError::UnknownAddr => (StatusCode::NOT_FOUND, ErrorCode::UnknownAddr),
-        BrkError::UnknownTxid => (StatusCode::NOT_FOUND, ErrorCode::UnknownTxid),
-        BrkError::NotFound(_) => (StatusCode::NOT_FOUND, ErrorCode::NotFound),
-        BrkError::OutOfRange(_) => (StatusCode::NOT_FOUND, ErrorCode::OutOfRange),
-        BrkError::UnindexableDate => (StatusCode::NOT_FOUND, ErrorCode::UnindexableDate),
-        BrkError::NoData => (StatusCode::NOT_FOUND, ErrorCode::NoData),
-        BrkError::SeriesNotFound(_) => (StatusCode::NOT_FOUND, ErrorCode::SeriesNotFound),
-        BrkError::MempoolNotAvailable => (
+        QueryError::WeightExceeded { .. } => (StatusCode::BAD_REQUEST, ErrorCode::WeightExceeded),
+        QueryError::TooManyUtxos => (StatusCode::BAD_REQUEST, ErrorCode::TooManyUtxos),
+        QueryError::UnknownAddr => (StatusCode::NOT_FOUND, ErrorCode::UnknownAddr),
+        QueryError::UnknownTxid => (StatusCode::NOT_FOUND, ErrorCode::UnknownTxid),
+        QueryError::NotFound(_) => (StatusCode::NOT_FOUND, ErrorCode::NotFound),
+        QueryError::OutOfRange(_) => (StatusCode::NOT_FOUND, ErrorCode::OutOfRange),
+        QueryError::UnindexableDate => (StatusCode::NOT_FOUND, ErrorCode::UnindexableDate),
+        QueryError::NoData => (StatusCode::NOT_FOUND, ErrorCode::NoData),
+        QueryError::SeriesNotFound(_) => (StatusCode::NOT_FOUND, ErrorCode::SeriesNotFound),
+        QueryError::MempoolNotAvailable => (
             StatusCode::SERVICE_UNAVAILABLE,
             ErrorCode::MempoolNotAvailable,
         ),
-        BrkError::ReadTimeout => (StatusCode::GATEWAY_TIMEOUT, ErrorCode::Timeout),
-        BrkError::StateUpdating => (StatusCode::SERVICE_UNAVAILABLE, ErrorCode::StateUpdating),
-        _ => (StatusCode::INTERNAL_SERVER_ERROR, ErrorCode::InternalError),
+        QueryError::StateUpdating => (StatusCode::SERVICE_UNAVAILABLE, ErrorCode::StateUpdating),
+        QueryError::ReadTimeout => (StatusCode::GATEWAY_TIMEOUT, ErrorCode::Timeout),
+        QueryError::Internal(_) | QueryError::Lower(_) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, ErrorCode::InternalError)
+        }
     }
 }
 
@@ -118,13 +122,26 @@ impl Error {
     }
 }
 
-impl From<BrkError> for Error {
-    fn from(e: BrkError) -> Self {
-        let (status, code) = error_details(&e);
+impl From<QueryError> for Error {
+    fn from(error: QueryError) -> Self {
+        let (status, code) = error_details(&error);
         Self {
             status,
             code,
-            message: e.to_string(),
+            message: error.to_string(),
+        }
+    }
+}
+
+/// Errors from below the query (node calls, IO) take the query's translation, except a
+/// transaction the node refused, which is the client's input.
+impl From<BrkError> for Error {
+    fn from(error: BrkError) -> Self {
+        match error {
+            BrkError::TxRejected(reason) => {
+                Self::new(StatusCode::BAD_REQUEST, ErrorCode::ParseError, reason)
+            }
+            error => QueryError::from(error).into(),
         }
     }
 }

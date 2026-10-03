@@ -89,4 +89,5 @@ serde = { workspace = true }
 smallvec = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["sync", "time", "rt"] }
 serde_json = { workspace = true }
+thiserror = "2.0"
 vecdb = { workspace = true }

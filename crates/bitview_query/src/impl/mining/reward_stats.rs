@@ -1,18 +1,17 @@
 use bitview_types::RewardStats;
-use brk_error::{Error, OptionData, Result};
 use brk_types::Height;
 use vecdb::{AnyVec, CheckedSub, ReadableVec, VecIndex, VecValue};
 
-use crate::Query;
+use crate::{Error, OptionData, Query, Result};
 
 impl Query {
     /// Reads coinbase rewards, fees, and tx counts over the last `block_count`
-    /// blocks from their cumulative sources. Errors `OutOfRange` if
+    /// blocks from their cumulative sources. Errors `InvalidParam` if
     /// `block_count` is zero, and `Internal` if any source is stamped short of
     /// the tip.
     pub fn reward_stats(&self, block_count: usize) -> Result<RewardStats> {
         if block_count == 0 {
-            return Err(Error::OutOfRange("block_count must be >= 1".into()));
+            return Err(Error::InvalidParam("block_count must be >= 1".into()));
         }
 
         let _guard = self.read_publication()?;

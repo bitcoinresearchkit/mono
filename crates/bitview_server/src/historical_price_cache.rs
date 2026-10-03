@@ -1,7 +1,6 @@
 use axum::body::Bytes;
-use bitview_query::RepresentationId;
+use bitview_query::{RepresentationId, Result};
 use bitview_types::HistoricalPrice;
-use brk_error::Result;
 use parking_lot::Mutex;
 use serde_json::to_vec;
 

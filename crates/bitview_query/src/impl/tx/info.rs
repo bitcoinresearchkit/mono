@@ -1,9 +1,8 @@
-use brk_error::Result;
 use brk_types::Txid;
 use serde_json::to_vec;
 
 use super::{TransactionSource, body::ResolvedTxBody};
-use crate::{Query, RepresentationId};
+use crate::{Query, RepresentationId, Result};
 
 /// Transaction JSON resolved to one exact in-memory or indexed source.
 pub struct ResolvedTransaction {

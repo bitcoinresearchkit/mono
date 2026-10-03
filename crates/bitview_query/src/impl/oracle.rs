@@ -3,14 +3,13 @@ use std::ops::Range;
 use bitview_plugin_indexer::Lengths;
 use bitview_plugin_price::{feed_blocks_for_warmup, feed_blocks_with};
 use bitview_primitives::{Day1, TxOutIndex};
-use brk_error::{Error, OptionData, Result};
 use brk_oracle::{
     Config, HistogramEma, HistogramEmaCompact, HistogramRaw, Oracle, cents_to_bin, sats_to_bin,
 };
 use brk_types::Dollars;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
-use crate::Query;
+use crate::{Error, OptionData, Query, Result};
 
 impl Query {
     pub fn live_price(&self) -> Result<Dollars> {

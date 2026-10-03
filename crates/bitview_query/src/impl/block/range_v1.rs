@@ -1,11 +1,10 @@
 use bitview_plugin::PublicationReadGuard;
 use bitview_types::BlockInfoV1;
-use brk_error::{Error, Result};
 use brk_types::{BlockHash, Dollars, Height};
 use vecdb::{ReadableVec, VecIndex};
 
 use super::ResolvedBlocks;
-use crate::Query;
+use crate::{Error, Query, Result};
 
 /// Blocks and their published prices held in one stable chain view.
 pub struct ResolvedBlocksV1 {

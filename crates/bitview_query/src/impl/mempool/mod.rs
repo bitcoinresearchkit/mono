@@ -1,17 +1,16 @@
 use std::sync::Arc;
 
-use brk_error::{Error, Result};
 use brk_mempool::ReadOnlyState;
 pub use brk_mempool::{BlockTemplateSource, ResolvedBlockTemplateDiff};
 use brk_types::{MempoolBlock, MempoolInfo, MempoolRecentTx, NextBlockHash, RecommendedFees, Txid};
 use serde::Serialize;
 use serde_json::to_vec;
 
+use crate::{Error, Query, RepresentationId, Result};
+
 pub mod rbf;
 
 pub use rbf::ResolvedRbf;
-
-use crate::{Query, RepresentationId};
 
 fn serialize_json<T: Serialize>(value: &T) -> (Vec<u8>, RepresentationId) {
     let bytes = to_vec(value).unwrap();
@@ -25,7 +24,7 @@ impl Query {
     }
 
     fn mempool_info(&self) -> Result<MempoolInfo> {
-        self.require_mempool()?.info()
+        Ok(self.require_mempool()?.info()?)
     }
 
     /// Serialize mempool statistics with their exact content identity.
@@ -35,15 +34,15 @@ impl Query {
     }
 
     pub fn mempool_txids_hash(&self) -> Result<u64> {
-        self.require_mempool()?.txids_hash()
+        Ok(self.require_mempool()?.txids_hash()?)
     }
 
     pub fn mempool_txids_with_hash(&self) -> Result<(Vec<Txid>, u64)> {
-        self.require_mempool()?.txids_with_hash()
+        Ok(self.require_mempool()?.txids_with_hash()?)
     }
 
     pub fn recommended_fees(&self) -> Result<RecommendedFees> {
-        self.require_mempool()?.fees()
+        Ok(self.require_mempool()?.fees()?)
     }
 
     pub fn mempool_blocks(&self) -> Result<Vec<MempoolBlock>> {
@@ -56,7 +55,7 @@ impl Query {
     }
 
     fn mempool_recent(&self) -> Result<Vec<MempoolRecentTx>> {
-        self.require_mempool()?.recent_txs()
+        Ok(self.require_mempool()?.recent_txs()?)
     }
 
     /// Serialize recent transactions with their exact content identity.
@@ -68,12 +67,12 @@ impl Query {
     /// Transaction times and an exact, order-sensitive result hash from one
     /// mempool state snapshot.
     pub fn transaction_times_with_hash(&self, txids: &[Txid]) -> Result<(Vec<u64>, u64)> {
-        self.require_mempool()?.transaction_times_with_hash(txids)
+        Ok(self.require_mempool()?.transaction_times_with_hash(txids)?)
     }
 
     /// Content identity of the published projected next block, not a liveness clock.
     pub fn mempool_hash(&self) -> Result<NextBlockHash> {
-        self.require_mempool()?.next_block_hash()
+        Ok(self.require_mempool()?.next_block_hash()?)
     }
 
     /// Capture a published template for cheap validation and deferred construction.

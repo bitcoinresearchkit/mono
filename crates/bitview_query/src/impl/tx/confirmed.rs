@@ -1,7 +1,6 @@
-use brk_error::Result;
 use brk_types::{BlockHash, Height, TxIndex, Txid};
 
-use crate::{Query, RepresentationId};
+use crate::{Query, RepresentationId, Result};
 
 mod indexer_read;
 

@@ -14,12 +14,11 @@ use axum::{
 };
 use bitview_catalog::TreeNode;
 use bitview_primitives::Index;
-use bitview_query::{Output, Query as BrkQuery, ResolvedQuery};
+use bitview_query::{Error as QueryError, Output, Query as BrkQuery, ResolvedQuery};
 use bitview_types::{
     DataRangeFormat, DetailedSeriesCount, Format, IndexInfo, PaginatedSeries, Pagination,
     SearchQuery, SeriesData, SeriesInfo, SeriesName, SeriesNameWithIndex, SeriesSelection,
 };
-use brk_error::Error as BrkError;
 use brk_types::Version;
 use serde_json::{Value, to_vec};
 
@@ -174,7 +173,7 @@ pub async fn serve(
     state: AppState,
     headers: HeaderMap,
     params: SeriesSelection,
-    to_bytes: impl FnOnce(&BrkQuery, ResolvedQuery) -> StdResult<Bytes, BrkError>
+    to_bytes: impl FnOnce(&BrkQuery, ResolvedQuery) -> StdResult<Bytes, QueryError>
     + Clone
     + Send
     + 'static,

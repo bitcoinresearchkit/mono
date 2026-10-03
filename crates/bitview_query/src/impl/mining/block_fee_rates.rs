@@ -1,8 +1,7 @@
 use bitview_types::{BlockFeeRatesEntry, FeeRatePercentiles, TimePeriod};
-use brk_error::Result;
 
 use super::block_window::BlockWindow;
-use crate::Query;
+use crate::{Query, Result};
 
 impl Query {
     /// Time-bucketed fee-rate percentiles over `time_period`. One entry per

@@ -1,11 +1,12 @@
 use bitview_types::{RbfResponse, RbfTx, ReplacementNode};
-use brk_error::{Error, OptionData, Result};
 use brk_mempool::{RbfForTx, RbfNode};
 use brk_types::{BlockHash, CheckedSub, FeeRate, Timestamp, Txid};
 use vecdb::ReadableVec;
 
 use super::serialize_json;
-use crate::{Query, RepresentationId, r#impl::tx::confirmed::IndexerRead};
+use crate::{
+    Error, OptionData, Query, RepresentationId, Result, r#impl::tx::confirmed::IndexerRead,
+};
 
 const RECENT_REPLACEMENTS_LIMIT: usize = 25;
 

@@ -1,11 +1,10 @@
-use std::{str::FromStr, sync::Arc};
+use std::sync::Arc;
 
 use bitview_plugin_indexer::SafeLengths;
-use brk_error::Result;
-use brk_types::{Addr, AddrBytes, BlockHash, Transaction};
+use brk_types::{Addr, BlockHash, Transaction};
 
 use super::ResolvedAddrChainTxs;
-use crate::Query;
+use crate::{Query, Result, r#impl::addr::parse_addr};
 
 /// One address page with frozen mempool bodies and a guarded confirmed selection.
 pub struct ResolvedAddrTxs {
@@ -37,7 +36,7 @@ impl Query {
         chain_floor: usize,
         total_target: usize,
     ) -> Result<ResolvedAddrTxs> {
-        let addr = AddrBytes::from_str(addr)?;
+        let addr = parse_addr(addr)?;
         let guard = self.pin_safe_lengths()?;
         let chain_addr = self.find_addr_bytes(&addr)?;
         let tip = self.tip_blockhash_at(&guard)?;

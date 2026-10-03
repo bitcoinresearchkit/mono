@@ -1,10 +1,10 @@
 use bitcoin::Amount;
 use bitview_primitives::CentsCompact;
 use bitview_types::{Urpd, UrpdBucket};
-use brk_error::{Error, Result};
 use brk_types::{Bitcoin, Cents, CentsSats, CentsSigned, Dollars, Sats};
 
 use super::ResolvedUrpd;
+use crate::{Error, Result};
 
 impl ResolvedUrpd {
     pub fn entries(&self) -> &[(CentsCompact, Sats)] {

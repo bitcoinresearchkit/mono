@@ -1,9 +1,8 @@
-use super::CpfpSource;
-use brk_error::Result;
 use brk_types::Txid;
 use serde_json::to_vec;
 
-use crate::{Query, RepresentationId, r#impl::tx::body::ResolvedTxBody};
+use super::CpfpSource;
+use crate::{Query, RepresentationId, Result, r#impl::tx::body::ResolvedTxBody};
 
 /// CPFP JSON resolved to one exact live or confirmed transaction source.
 pub struct ResolvedCpfp {

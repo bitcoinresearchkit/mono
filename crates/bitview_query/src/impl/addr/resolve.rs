@@ -1,10 +1,8 @@
-use std::str::FromStr;
-
 use bitview_primitives::{AddrHash, TypeIndex};
-use brk_error::{Error, Result};
 use brk_types::{Addr, AddrBytes, OutputType};
 
-use crate::Query;
+use super::parse_addr;
+use crate::{Error, Query, Result};
 
 impl Query {
     pub(crate) fn missing_addr(&self) -> Error {
@@ -16,7 +14,7 @@ impl Query {
     }
 
     pub(crate) fn resolve_addr(&self, addr: &Addr) -> Result<(OutputType, TypeIndex)> {
-        let bytes = AddrBytes::from_str(addr)?;
+        let bytes = parse_addr(addr)?;
         self.resolve_addr_bytes(&bytes)
     }
     pub(crate) fn resolve_addr_bytes(&self, bytes: &AddrBytes) -> Result<(OutputType, TypeIndex)> {

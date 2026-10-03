@@ -1,9 +1,8 @@
 use bitview_types::TimePeriod;
-use brk_error::{Error as QueryError, OptionData, Result};
 use brk_types::Height;
 use vecdb::ReadableVec;
 
-use crate::Query;
+use crate::{Error as QueryError, OptionData, Query, Result};
 
 /// First block height inside `period` looking back from the tip;
 /// genesis (`Height(0)`) for `All`. Errors `Internal` if the chosen

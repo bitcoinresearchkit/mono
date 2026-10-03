@@ -1,10 +1,9 @@
 use bitview_plugin::{Plugin, PublicationReadGuard};
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::Lengths;
-use brk_error::{Error, Result};
 use vecdb::{AnyExportableVec, BoundedVec, ReadBounds};
 
-use crate::{Query, vecs::SeriesEntry};
+use crate::{Error, Query, Result, vecs::SeriesEntry};
 
 /// Selected series and their published read protection.
 ///

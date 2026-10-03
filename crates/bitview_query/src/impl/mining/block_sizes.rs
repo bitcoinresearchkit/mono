@@ -1,10 +1,9 @@
 use bitview_primitives::StoredU64;
 use bitview_types::{BlockSizeEntry, BlockSizesWeights, BlockWeightEntry, TimePeriod};
-use brk_error::{Error, Result};
 use brk_types::Weight;
 
 use super::block_window::BlockWindow;
-use crate::Query;
+use crate::{Error, Query, Result};
 
 impl Query {
     /// Time-bucketed average block size and weight over `time_period`. Returns

@@ -1,11 +1,10 @@
 use bitcoin::{Transaction, Weight as BitcoinWeight, consensus::deserialize};
 use bitview_primitives::Lengths;
-use brk_error::{Error, OptionData, Result};
 use brk_reader::Reader;
 use brk_types::{BlkPosition, TxIndex, Txid};
 use vecdb::ReadableVec;
 
-use crate::Query;
+use crate::{Error, OptionData, Query, Result};
 
 /// Caller retains publication exclusion across metadata selection and reading.
 pub fn read_at(query: &Query, index: TxIndex, safe: Lengths) -> Result<(Vec<u8>, Transaction)> {

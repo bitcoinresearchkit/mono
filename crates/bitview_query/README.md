@@ -111,6 +111,14 @@ without a limit for its index fails closed. Nested lazy inputs still receive
 bounds through vecdb's internal thread-local scope, installed by every bounded
 operation rather than by callers. Ordinary storage/compute reads remain unbounded.
 
+## Errors
+
+Queries return `bitview_query::Result`. `Error` is the API's vocabulary: invalid
+requests, missing data, temporary unavailability and internal failures. Errors
+from lower layers arrive as `Error::Lower` and are always internal; the conditions
+those layers name on purpose (an updating mempool, invalid address input, an
+unindexable date) keep their meaning through `From<brk_error::Error>`.
+
 ## Built On
 
 - `bitview_runtime::PluginSet` for generic plugin discovery

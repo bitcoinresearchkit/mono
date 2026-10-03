@@ -1,10 +1,8 @@
 use bitcoin::hex::DisplayHex;
-use brk_error::Result;
 use brk_types::Txid;
 
-use crate::{Query, RepresentationId};
-
 use super::{TransactionSource, body::ResolvedTxBody};
+use crate::{Query, RepresentationId, Result};
 
 /// Raw transaction data resolved to one exact in-memory or indexed source.
 pub struct ResolvedRawTransaction {

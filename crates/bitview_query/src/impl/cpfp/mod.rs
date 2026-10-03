@@ -5,10 +5,9 @@ pub mod resolved;
 
 pub use resolved::ResolvedCpfp;
 
-use brk_error::{Error, Result};
 use brk_types::{CpfpInfo, Txid};
 
-use crate::{Query, r#impl::tx::ResolvedConfirmedTx};
+use crate::{Error, Query, Result, r#impl::tx::ResolvedConfirmedTx};
 
 enum CpfpSource {
     Memory(CpfpInfo),

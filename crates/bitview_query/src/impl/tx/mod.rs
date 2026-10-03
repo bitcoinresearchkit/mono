@@ -9,12 +9,11 @@ use bitcoin::{
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Lengths, TxOutIndex};
 use bitview_types::MerkleProof;
-use brk_error::{Error, OptionData, Result};
 use brk_types::{BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix};
 use vecdb::{ReadableVec, VecIndex};
 
 use super::indexed_transaction;
-use crate::Query;
+use crate::{Error, OptionData, Query, Result};
 
 pub(crate) mod body;
 pub mod confirmed;

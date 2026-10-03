@@ -8,7 +8,6 @@ use std::{
 };
 
 use aide::{axum::ApiRouter, openapi::OpenApi};
-use api::*;
 use axum::{
     Extension, Router, ServiceExt,
     body::Body,
@@ -18,13 +17,9 @@ use axum::{
     routing::get,
     serve,
 };
-use bitview_query::AsyncQuery;
+use bitview_query::{AsyncQuery, Result};
 use bitview_website::router as WebsiteRouter;
-use brk_error::Result;
-use cache::{CacheParams, CacheStrategy};
 use jiff::Timestamp;
-use response_size_above::ResponseSizeAbove;
-use state::*;
 use tokio::{net::TcpListener, sync::Semaphore};
 use tower_http::{
     catch_panic::CatchPanicLayer,
@@ -37,6 +32,11 @@ use tower_http::{
 };
 use tower_layer::Layer;
 use tracing::info;
+
+use api::*;
+use cache::{CacheParams, CacheStrategy};
+use response_size_above::ResponseSizeAbove;
+use state::*;
 
 mod api;
 #[cfg(any(feature = "chain", feature = "urpd"))]
@@ -166,7 +166,9 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
         mempool_txid_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "chain")]
         broadcast_requests: Arc::new(Semaphore::new(api::broadcast::BroadcastPermit::CAPACITY)),
-        node: query.run(|query| query.client().asynchronous()).await?,
+        node: query
+            .run(|query| Ok(query.client().asynchronous()?))
+            .await?,
         #[cfg(feature = "series")]
         series_bodies,
         #[cfg(feature = "urpd")]

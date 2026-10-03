@@ -5,12 +5,11 @@ use bitview_types::{
     PoolBlockCounts, PoolBlockShares, PoolDetail, PoolDetailInfo, PoolHashrateEntry, PoolInfo,
     PoolStats, PoolsSummary, TimePeriod,
 };
-use brk_error::{Error, OptionData, Result};
 use brk_types::Height;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use super::start_height;
-use crate::Query;
+use crate::{Error, OptionData, Query, Result};
 
 /// 7-day lookback for share computation.
 const LOOKBACK_DAYS: usize = 7;

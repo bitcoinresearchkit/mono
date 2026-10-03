@@ -1,6 +1,5 @@
 use bitcoin::hashes::{Hash, HashEngine, sha256};
-use bitview_query::ResolvedUrpd;
-use brk_error::Result;
+use bitview_query::{ResolvedUrpd, Result};
 
 /// Validate captured inputs before deriving their representation identity.
 pub fn identity(input: &ResolvedUrpd) -> Result<sha256::Hash> {

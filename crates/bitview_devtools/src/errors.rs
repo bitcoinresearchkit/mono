@@ -9,7 +9,7 @@ use axum::{
     http::{Method, Request, Response},
     response::IntoResponse,
 };
-use bitview_query::AsyncQuery;
+use bitview_query::{AsyncQuery, Error as QueryError};
 use bitview_server::{
     CdnCacheMode, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Error as ServerError, Port, ServerConfig,
     Website, app,
@@ -51,7 +51,8 @@ pub(crate) fn render_errors(plugins: &AllPlugins) -> Result<Snapshot> {
                 max_utxos: DEFAULT_MAX_UTXOS,
             },
         )
-        .await?;
+        .await
+        .map_err(|error| Error::from(io::Error::other(error.to_string())))?;
         for (name, method, uri, body) in requests() {
             let request = Request::builder()
                 .method(method)
@@ -151,6 +152,10 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
         post("broadcast body not hex", "/api/tx", b"zz".to_vec()),
         get("invalid address", "/api/address/notanaddress".into()),
         get(
+            "address of an unindexed kind",
+            "/api/address/bc1zw508d6qejxtdg4y5r3zarvaryvaxxpcs".into(),
+        ),
+        get(
             "invalid network",
             "/api/address/tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx".into(),
         ),
@@ -244,6 +249,7 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
 fn errors() -> Vec<(&'static str, ServerError)> {
     let json = serde_json::from_str::<u8>("x").unwrap_err();
     let brk = |name: &'static str, error: Error| (name, ServerError::from(error));
+    let query = |name: &'static str, error: QueryError| (name, ServerError::from(error));
     vec![
         // Failures below the API layer.
         brk("lower: io", Error::IO(io::Error::other("disk"))),
@@ -271,17 +277,17 @@ fn errors() -> Vec<(&'static str, ServerError)> {
         // Node and API conditions.
         brk(
             "broadcast rejected by node",
-            Error::Parse("bad-txns-inputs-missingorspent".into()),
+            Error::TxRejected("bad-txns-inputs-missingorspent".into()),
         ),
-        brk(
+        query(
             "weight exceeded",
-            Error::WeightExceeded {
+            QueryError::WeightExceeded {
                 requested: 10,
                 max: 5,
             },
         ),
-        brk("too many utxos", Error::TooManyUtxos),
-        brk("query read timeout", Error::ReadTimeout),
+        query("too many utxos", QueryError::TooManyUtxos),
+        query("query read timeout", QueryError::ReadTimeout),
         // Built by the server itself.
         ("request deadline (POST)", ServerError::timeout(true)),
         ("request deadline (GET)", ServerError::timeout(false)),
