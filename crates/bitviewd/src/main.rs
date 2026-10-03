@@ -5,6 +5,9 @@ use std::process::ExitCode;
 use bitview_default::DefaultPlugins;
 use bitviewd::run;
 
+#[global_allocator]
+static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;
+
 fn main() -> ExitCode {
     match run(DefaultPlugins::import) {
         Ok(()) => ExitCode::SUCCESS,

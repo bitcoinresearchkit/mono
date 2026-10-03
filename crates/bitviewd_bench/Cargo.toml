@@ -8,6 +8,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+brk_alloc = { workspace = true }
 vecdb = { workspace = true }
 brk_exit = { workspace = true }
 bitview = { workspace = true }

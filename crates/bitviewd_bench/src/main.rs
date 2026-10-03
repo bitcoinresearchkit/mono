@@ -12,6 +12,9 @@ use vecdb::Budgeted;
 
 mod benchmark;
 
+#[global_allocator]
+static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;
+
 fn main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::SUCCESS,

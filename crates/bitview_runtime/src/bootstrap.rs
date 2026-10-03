@@ -1,7 +1,6 @@
 use std::{collections::HashSet, fs, path::Path};
 
 use bitview_plugin::{ImportContext, PluginId, PluginStorage, UpdateContext};
-use brk_alloc::Mimalloc;
 use brk_error::{Error, Result};
 use tracing::{info, warn};
 
@@ -73,6 +72,6 @@ where
 
         info!("Reloading plugins to release temporary startup memory...");
         drop(plugins);
-        Mimalloc::collect();
+        brk_alloc::collect();
     }
 }

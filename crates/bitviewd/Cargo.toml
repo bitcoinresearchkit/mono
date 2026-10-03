@@ -40,6 +40,7 @@ bindgen = [
 
 [dependencies]
 aide = { workspace = true, optional = true }
+brk_alloc = { workspace = true }
 brk_exit = { workspace = true }
 bitview = { workspace = true }
 bitview_bindgen = { workspace = true, optional = true }

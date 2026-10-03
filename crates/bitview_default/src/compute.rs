@@ -36,7 +36,6 @@ use bitview_plugin_transactions::{
 use bitview_plugin_utxo_history::{Dependencies as UtxoHistoryDependencies, ID as UTXO_HISTORY_ID};
 use bitview_runtime::{BootstrapAction, ComputePluginSet};
 use bitview_urpd::ReplayInputs;
-use brk_alloc::Mimalloc;
 use brk_error::Result;
 use rayon::join;
 use tracing::info;
@@ -52,7 +51,7 @@ impl DefaultPlugins {
     /// Updates every plugin, enabling indexer collision checks in debug builds.
     fn compute_inner(&mut self, context: UpdateContext<'_>) -> Result<()> {
         self.compute_indexer(context)?;
-        Mimalloc::collect();
+        brk_alloc::collect();
         self.compute_dependents(context)
     }
 

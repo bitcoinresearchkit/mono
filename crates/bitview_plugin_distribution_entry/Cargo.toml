@@ -35,4 +35,5 @@ bitview_plugin_utxo_history = { workspace = true }
 bitview_runtime = { workspace = true }
 bitviewd = { workspace = true, default-features = false, features = ["full-api"] }
 bitview_plugin_indexer = { workspace = true }
+brk_alloc = { workspace = true }
 brk_reader = { workspace = true }

@@ -24,7 +24,9 @@ http://localhost:3110/api/series/near_full_block_streak/height
 - `src/near_full_blocks/` is the plugin.
 - `src/composition.rs` adds the plugin to Bitview's default composition and chooses
   when it computes.
-- `src/main.rs` hands that composition to `bitviewd::run`.
+- `src/main.rs` hands that composition to `bitviewd::run` and declares mimalloc
+  (`brk_alloc::MiMalloc`) as the binary's global allocator; libraries never pick
+  one, so a custom binary chooses its own.
 
 Change the plugin storage ID and schema version, stored vectors, dependency
 struct, and compute method for your metric. Bump the root schema version when a

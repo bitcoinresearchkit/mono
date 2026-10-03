@@ -18,6 +18,9 @@ use brk_error::Result;
 use brk_reader::Reader;
 use vecdb::{ReadableCloneableVec, Ro, Rw, StorageMode};
 
+#[global_allocator]
+static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;
+
 #[derive(PluginSet, Traversable)]
 struct Plugins<M: StorageMode = Rw> {
     #[traversable(flatten)]

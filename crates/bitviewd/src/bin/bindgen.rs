@@ -25,6 +25,9 @@ use std::os::unix::process::CommandExt;
 #[cfg(not(unix))]
 use std::process::exit;
 
+#[global_allocator]
+static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;
+
 const GENERATED_OUTPUTS: &[(&str, &str)] = &[
     (
         "crates/bitview_mcp/server.json",
