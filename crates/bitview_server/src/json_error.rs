@@ -7,8 +7,9 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
+use bitview_types::ErrorCode;
 
-use crate::{error::Error, error_code::ErrorCode};
+use crate::error::Error;
 
 /// Maximum upstream error body buffered when constructing a JSON error.
 const MAX_ERROR_BODY_BYTES: usize = 4096;

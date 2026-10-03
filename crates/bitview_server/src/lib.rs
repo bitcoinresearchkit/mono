@@ -44,8 +44,6 @@ mod body_response;
 mod cache;
 mod config;
 mod error;
-mod error_body;
-mod error_code;
 mod etag;
 mod extended;
 #[cfg(feature = "chain")]

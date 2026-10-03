@@ -2,9 +2,9 @@
 use aide::openapi::{MediaType, ReferenceOr, StatusCode};
 use aide::transform::{TransformOperation, TransformResponse};
 use axum::Json;
+use bitview_types::ErrorBody;
 use schemars::JsonSchema;
 
-use crate::error_body::ErrorBody;
 #[cfg(feature = "chain")]
 use crate::extended::TypedText;
 

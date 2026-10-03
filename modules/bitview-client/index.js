@@ -553,15 +553,29 @@ ancestors and no descendants (matches mempool.space).
 /** @typedef {TypeIndex} EmptyOutputIndex */
 /** @typedef {number} Epoch */
 /**
+ * The JSON body of every API error (`application/problem+json`).
+ *
  * @typedef {Object} ErrorBody
  * @property {ErrorDetail} error
  */
 /**
+ * Machine-readable error code.
+ *
+ * @typedef {("not_found"|"invalid_addr"|"invalid_network"|"unsupported_type"|"parse_error"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_addr"|"unknown_txid"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode
+ */
+/**
  * @typedef {Object} ErrorDetail
- * @property {string} type - Error category: "invalid_request", "forbidden", "not_found", "unavailable", or "internal"
- * @property {string} code - Machine-readable error code (e.g. "invalid_addr", "series_not_found")
+ * @property {ErrorType} type - Error category, following the HTTP status
+ * @property {ErrorCode} code - Machine-readable error code
  * @property {string} message - Human-readable description
  * @property {string} docUrl - Link to API documentation
+ */
+/**
+ * Error category, following the HTTP status: `invalid_request` (4xx other than 404),
+ * `not_found` (404), `unavailable` (503; `Retry-After` when transient), `timeout` (504), `internal`
+ * (other 5xx).
+ *
+ * @typedef {("invalid_request"|"not_found"|"unavailable"|"timeout"|"internal")} ErrorType
  */
 /**
  * Exchange rates (USD base, on-chain only — no fiat pairs available)

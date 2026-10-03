@@ -6,27 +6,23 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bitview_query::Error as QueryError;
+use bitview_types::{ErrorBody, ErrorCode, ErrorType};
 use brk_error::Error as BrkError;
 use serde_json::to_vec;
 
-use crate::{
-    cache::{CacheParams, ErrorCachePolicy},
-    error_body::ErrorBody,
-    error_code::ErrorCode,
-};
+use crate::cache::{CacheParams, ErrorCachePolicy};
 
 const DOC_URL: &str = "/api";
 
 pub type Result<T> = StdResult<T, Error>;
 
-fn error_type(status: StatusCode) -> &'static str {
+fn error_type(status: StatusCode) -> ErrorType {
     match status {
-        StatusCode::BAD_REQUEST => "invalid_request",
-        StatusCode::FORBIDDEN => "forbidden",
-        StatusCode::NOT_FOUND => "not_found",
-        StatusCode::SERVICE_UNAVAILABLE => "unavailable",
-        StatusCode::GATEWAY_TIMEOUT => "timeout",
-        _ => "internal",
+        StatusCode::NOT_FOUND => ErrorType::NotFound,
+        StatusCode::SERVICE_UNAVAILABLE => ErrorType::Unavailable,
+        StatusCode::GATEWAY_TIMEOUT => ErrorType::Timeout,
+        status if status.is_client_error() => ErrorType::InvalidRequest,
+        _ => ErrorType::Internal,
     }
 }
 
@@ -155,7 +151,7 @@ impl IntoResponse for Error {
         let policy = self.cache_policy();
         let body = to_vec(&ErrorBody::new(
             error_type(self.status),
-            self.code.as_str(),
+            self.code,
             self.message,
             DOC_URL,
         ))

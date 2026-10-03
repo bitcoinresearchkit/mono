@@ -166,6 +166,12 @@ Day3 = int
 DifficultyAdjustmentEntry = List[float]
 EmptyOutputIndex = TypeIndex
 Epoch = int
+# Machine-readable error code.
+ErrorCode = Literal["not_found", "invalid_addr", "invalid_network", "unsupported_type", "parse_error", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_addr", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
+# Error category, following the HTTP status: `invalid_request` (4xx other than 404),
+# `not_found` (404), `unavailable` (503; `Retry-After` when transient), `timeout` (504), `internal`
+# (other 5xx).
+ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "internal"]
 # Exchange rates (USD base, on-chain only — no fiat pairs available)
 ExchangeRates = dict
 Halving = int
@@ -1082,17 +1088,20 @@ class EmptyAddrData(TypedDict):
 class ErrorDetail(TypedDict):
     """
     Attributes:
-        type: Error category: "invalid_request", "forbidden", "not_found", "unavailable", or "internal"
-        code: Machine-readable error code (e.g. "invalid_addr", "series_not_found")
+        type: Error category, following the HTTP status
+        code: Machine-readable error code
         message: Human-readable description
         doc_url: Link to API documentation
     """
-    type: str
-    code: str
+    type: ErrorType
+    code: ErrorCode
     message: str
     doc_url: str
 
 class ErrorBody(TypedDict):
+    """
+    The JSON body of every API error (`application/problem+json`).
+    """
     error: ErrorDetail
 
 class FundedAddrData(TypedDict):
