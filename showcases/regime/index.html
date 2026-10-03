@@ -95,17 +95,30 @@
     const DAY_ZERO = Date.UTC(2009, 0, 1);
     const DAY_MS = 86_400_000;
     const MODES = { cointime: "Cointime weighted", coinflow: "Coinflow weighted" };
+    /** @typedef {keyof typeof MODES} Mode */
+    // Every series by its typed client path (dot access only, which tsc checks), so a renamed
+    // series fails type-checking instead of 404ing.
+    /** @type {Awaited<typeof clientReady>["series"]} */
+    let series;
+    /** @typedef {Awaited<typeof clientReady>["series"]["cointime"]["urpd"]["all"]["costBasis"]} CostBasis */
+    const priceSource = () => series.price.split.close.usd;
+    /** P100 is the all-supply maximum cost basis in both modes; the rest are weighted percentiles. @type {{ basis: string, percentile: number, color: string, pick: (costBasis: CostBasis) => ReturnType<typeof priceSource> }[]} */
     const LEVELS = [
-      ...[100, 90, 80, 70, 60, 50].map((percentile, index) => ({
-        basis: "dollar", percentile, color: ["#fb7185", "#f38763", "#f5a45c", "#f8bd66", "#efd081", "#e9dfaa"][index],
-      })),
-      ...[50, 40, 30, 20].map((percentile, index) => ({
-        basis: "coin", percentile, color: ["#8bdcc3", "#5bbacb", "#658fdf", "#9b80e0"][index],
-      })),
+      { basis: "dollar", percentile: 100, color: "#fb7185", pick: () => series.distributionAggregated.cohorts.all.costBasis.max.usd },
+      { basis: "dollar", percentile: 90, color: "#f38763", pick: c => c.perDollar.pct90.usd },
+      { basis: "dollar", percentile: 80, color: "#f5a45c", pick: c => c.perDollar.pct80.usd },
+      { basis: "dollar", percentile: 70, color: "#f8bd66", pick: c => c.perDollar.pct70.usd },
+      { basis: "dollar", percentile: 60, color: "#efd081", pick: c => c.perDollar.pct60.usd },
+      { basis: "dollar", percentile: 50, color: "#e9dfaa", pick: c => c.perDollar.pct50.usd },
+      { basis: "coin", percentile: 50, color: "#8bdcc3", pick: c => c.perCoin.pct50.usd },
+      { basis: "coin", percentile: 40, color: "#5bbacb", pick: c => c.perCoin.pct40.usd },
+      { basis: "coin", percentile: 30, color: "#658fdf", pick: c => c.perCoin.pct30.usd },
+      { basis: "coin", percentile: 20, color: "#9b80e0", pick: c => c.perCoin.pct20.usd },
     ];
-    function metricName(mode, level) {
-      return level.percentile === 100 ? "cost_basis_max" : `${mode}_cost_basis_per_${level.basis}_pct${level.percentile}`;
-    }
+    /** @param {Mode} mode @param {(typeof LEVELS)[number]} level */
+    const levelSource = (mode, level) => level.pick((mode === "cointime" ? series.cointime : series.coinflow).urpd.all.costBasis);
+    /** @param {Mode} mode @param {(typeof LEVELS)[number]} level */
+    const metricName = (mode, level) => levelSource(mode, level).name;
     function points(response) {
       if (!Number.isInteger(response?.start) || !Array.isArray(response.data)) throw new Error("Invalid series data");
       return response.data.map((value, offset) => {
@@ -113,12 +126,12 @@
         return typeof value === "number" && Number.isFinite(value) && value > 0 ? { time, value } : { time };
       });
     }
-    async function fetchSeries(names) {
-      const client = await clientReady;
-      const entries = await Promise.all(names.map(async (name) => {
-        const dataPoints = points(await client.seriesEndpoint(name, "day1").slice(START).fetch());
-        if (!dataPoints.some(point => point.value !== undefined)) throw new Error(`No data for ${name}`);
-        return [name, dataPoints];
+    /** @param {ReturnType<typeof priceSource>[]} sources */
+    async function fetchSeries(sources) {
+      const entries = await Promise.all(sources.map(async (source) => {
+        const dataPoints = points(await source.by.day1.slice(START).fetch());
+        if (!dataPoints.some(point => point.value !== undefined)) throw new Error(`No data for ${source.name}`);
+        return [source.name, dataPoints];
       }));
       return Object.fromEntries(entries);
     }
@@ -126,14 +139,15 @@
     const status = document.getElementById("status");
     const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
     const cache = new Map();
-    function load(key, names) {
-      if (!cache.has(key)) cache.set(key, fetchSeries(names).catch(error => { cache.delete(key); throw error; }));
+    function load(key, sources) {
+      if (!cache.has(key)) cache.set(key, fetchSeries(sources).catch(error => { cache.delete(key); throw error; }));
       return cache.get(key);
     }
+    /** @type {Mode} */
     let activeMode = "cointime";
     try {
       const saved = new URLSearchParams(location.search).get("weight") || localStorage.getItem("brk-regime:weight");
-      if (Object.hasOwn(MODES, saved)) activeMode = saved;
+      if (Object.hasOwn(MODES, saved)) activeMode = /** @type {Mode} */ (saved);
     } catch {}
     let chart, priceSeries, activeData, latestTime, requestVersion = 0;
     const levelSeries = [];
@@ -155,7 +169,7 @@
         const value = activeData[name].get(time);
         return value === undefined ? "—" : money.format(value);
       };
-      document.getElementById("price").textContent = `BTC ${format("price_close")}`;
+      document.getElementById("price").textContent = `BTC ${format(priceSource().name)}`;
       document.getElementById("date").textContent = time;
       /** @type {HTMLTimeElement} */ (document.getElementById("date")).dateTime = time;
       LEVELS.forEach((level, i) => { levelValues[i].textContent = format(metricName(activeMode, level)); });
@@ -209,7 +223,7 @@
 
     /** The zone the price sits in: between which neighboring levels. */
     function zoneAt(time) {
-      const price = activeData.price_close.get(time);
+      const price = activeData[priceSource().name].get(time);
       if (price === undefined) return null;
       const values = LEVELS.map(level => activeData[metricName(activeMode, level)].get(time));
       if (values[0] !== undefined && price >= values[0]) return { text: "above every level", color: LEVELS[0].color };
@@ -221,6 +235,7 @@
       return { text: `below ${label(LEVELS.at(-1))}`, color: LEVELS.at(-1).color };
     }
     const label = level => `P${level.percentile} per ${level.basis}`;
+    /** @param {Mode} mode */
     async function activate(mode) {
       const version = ++requestVersion;
       chartElement.setAttribute("aria-busy", "true");
@@ -228,9 +243,10 @@
       status.textContent = `Loading ${MODES[mode].toLowerCase()} regime…`;
       try {
         const library = await libraryReady;
+        series ??= (await clientReady).series;
         const [market, weighted] = await Promise.all([
-          load("market", ["price_close", "cost_basis_max"]),
-          load(mode, LEVELS.filter(level => level.percentile !== 100).map(level => metricName(mode, level))),
+          load("market", [priceSource(), levelSource(mode, LEVELS[0])]),
+          load(mode, LEVELS.filter(level => level.percentile !== 100).map(level => levelSource(mode, level))),
         ]);
         if (version !== requestVersion) return;
         if (!chart) {
@@ -264,10 +280,10 @@
             return value === undefined || top === undefined ? { time } : { time, upper: top, lower: value };
           }));
         });
-        priceSeries.setData(data.price_close);
+        priceSeries.setData(data[priceSource().name]);
         activeMode = mode;
         activeData = Object.fromEntries(Object.entries(data).map(([name, values]) => [name, new Map(values.map(point => [point.time, point.value]))]));
-        latestTime = data.price_close.findLast(point => point.value !== undefined).time;
+        latestTime = data[priceSource().name].findLast(point => point.value !== undefined).time;
         document.getElementById("mode-label").textContent = MODES[mode];
         showReadout(latestTime);
         updateButtons();
@@ -295,7 +311,7 @@
     }
     document.getElementById("weighting").addEventListener("click", event => {
       const mode = /** @type {Element} */ (event.target).closest("button")?.dataset.mode;
-      if (Object.hasOwn(MODES, mode)) activate(mode);
+      if (Object.hasOwn(MODES, mode)) activate(/** @type {Mode} */ (mode));
     });
     updateButtons();
     activate(activeMode);

@@ -74,13 +74,65 @@
     const rarity={cycle:{title:"Cycle",p1:"cycle_rarity_meter_pct01",p5:"cycle_rarity_meter_pct05",count:9,color:C.red,heading:"Cycle Rarity<br><em>9 floor references</em>",meaning:"Cycle uses six slower cost-basis references plus the lower extremes of the raw, cointime, and coinflow Bedrock models.",foot:"If Rarity is useful as a cycle-floor model, this is the context expected to become extreme."},local:{title:"Local",p1:"local_rarity_meter_pct01",p5:"local_rarity_meter_pct05",count:4,color:C.lime,heading:"Local Rarity<br><em>4 references</em>",meaning:"Local uses STH realized and capitalized prices, plus realized prices for coins younger than four and six months. These references move down quickly as recent-holder cost basis resets.",foot:"A cycle bottom does not need to cross Local. It is more useful for corrections and shorter resets."},full:{title:"Full",p1:"rarity_meter_pct01",p5:"rarity_meter_pct05",count:13,color:C.violet,heading:"Full Rarity<br><em>takes the maximum</em>",meaning:"Full combines Local and Cycle, taking the highest lower band at each percentile. It asks whether either context is extreme; it does not require both.",foot:"The maximum is an OR, not consensus. One context sets the line; the other does not have to be crossed."}};
     const DAY_MS=86400000,BASE_DAY_TIME=Date.parse("2009-01-01T00:00:00Z"),CHART_START_INDEX=Math.round((Date.parse("2017-12-16T00:00:00Z")-BASE_DAY_TIME)/DAY_MS),CHART_LINE_WIDTH=1.6;
     const BEDROCK_PERCENTILES=[{key:"pct95",label:"P95",threshold:"bedrock_raw_supply_in_loss_threshold_pct95_ratio",thresholdPct:"bedrock_raw_supply_in_loss_threshold_pct95_percent",opacity:.28,dash:[2,6]},{key:"pct98",label:"P98",threshold:"bedrock_raw_supply_in_loss_threshold_pct98_ratio",thresholdPct:"bedrock_raw_supply_in_loss_threshold_pct98_percent",opacity:.42,dash:[6,5]},{key:"pct99",label:"P99",threshold:"bedrock_raw_supply_in_loss_threshold_pct99_ratio",thresholdPct:"bedrock_raw_supply_in_loss_threshold_pct99_percent",opacity:.58,dash:[3,4]},{key:"pct99_5",label:"P99.5",threshold:"bedrock_raw_supply_in_loss_threshold_pct99_5_ratio",thresholdPct:"bedrock_raw_supply_in_loss_threshold_pct99_5_percent",opacity:.75,dash:[12,5]},{key:"pct99_9",label:"P99.9",threshold:"bedrock_raw_supply_in_loss_threshold_pct99_9_ratio",thresholdPct:"bedrock_raw_supply_in_loss_threshold_pct99_9_percent",opacity:.92,dash:[]}];
+    // Every series by its typed client path (dot access only, which tsc checks): a renamed series fails
+    // type-checking instead of 404ing. Keys are the local names the story reads them by.
+    const sourcesOf=(/** @type {Awaited<typeof clientReady>["series"]} */ s)=>{
+      const cohorts=s.distributionAggregated.cohorts,all=cohorts.all,rarity=s.rarityMeter,bedrock=s.bedrock;
+      return {
+        price_close:s.price.split.close.usd,
+        cost_basis_per_coin_pct40:all.costBasis.perCoin.pct40.usd,
+        cost_basis_per_coin_pct45:all.costBasis.perCoin.pct45.usd,
+        cost_basis_per_coin_pct50:all.costBasis.perCoin.pct50.usd,
+        cost_basis_per_coin_pct55:all.costBasis.perCoin.pct55.usd,
+        realized_price:all.realized.price.usd,
+        capitalized_price:all.realized.capitalizedPrice.usd,
+        sth_capitalized_price:cohorts.sth.realized.capitalizedPrice.usd,
+        lth_capitalized_price:cohorts.lth.realized.capitalizedPrice.usd,
+        realized_price_pct1:rarity.components.realizedPrice.pct1.price.usd,
+        cointime_price:s.cointime.prices.cointime.usd,
+        price_sma_200w:s.market.movingAverage.sma._200w.usd,
+        rarity_meter_pct01:rarity.full.pct1.usd,
+        rarity_meter_pct05:rarity.full.pct5.usd,
+        local_rarity_meter_pct01:rarity.local.pct1.usd,
+        local_rarity_meter_pct05:rarity.local.pct5.usd,
+        cycle_rarity_meter_pct01:rarity.cycle.pct1.usd,
+        cycle_rarity_meter_pct05:rarity.cycle.pct5.usd,
+        supply_in_loss_share:all.relative.supplyInLossShare.percent,
+        bedrock_raw_supply_in_loss_threshold_pct95_ratio:bedrock.raw.supplyInLossThreshold.pct95,
+        bedrock_raw_supply_in_loss_threshold_pct98_ratio:bedrock.raw.supplyInLossThreshold.pct98,
+        bedrock_raw_supply_in_loss_threshold_pct99_ratio:bedrock.raw.supplyInLossThreshold.pct99,
+        bedrock_raw_supply_in_loss_threshold_pct99_5_ratio:bedrock.raw.supplyInLossThreshold.pct995,
+        bedrock_raw_supply_in_loss_threshold_pct99_9_ratio:bedrock.raw.supplyInLossThreshold.pct999,
+        bedrock_raw_floor_pct95:bedrock.raw.floor.pct95.usd,
+        bedrock_raw_floor_pct98:bedrock.raw.floor.pct98.usd,
+        bedrock_raw_floor_pct99:bedrock.raw.floor.pct99.usd,
+        bedrock_raw_floor_pct99_5:bedrock.raw.floor.pct995.usd,
+        bedrock_raw_floor_pct99_9:bedrock.raw.floor.pct999.usd,
+        bedrock_coinflow_floor_pct95:bedrock.coinflow.floor.pct95.usd,
+        bedrock_coinflow_floor_pct98:bedrock.coinflow.floor.pct98.usd,
+        bedrock_coinflow_floor_pct99:bedrock.coinflow.floor.pct99.usd,
+        bedrock_coinflow_floor_pct99_5:bedrock.coinflow.floor.pct995.usd,
+        bedrock_coinflow_floor_pct99_9:bedrock.coinflow.floor.pct999.usd,
+        bedrock_cointime_floor_pct95:bedrock.cointime.floor.pct95.usd,
+        bedrock_cointime_floor_pct98:bedrock.cointime.floor.pct98.usd,
+        bedrock_cointime_floor_pct99:bedrock.cointime.floor.pct99.usd,
+        bedrock_cointime_floor_pct99_5:bedrock.cointime.floor.pct995.usd,
+        bedrock_cointime_floor_pct99_9:bedrock.cointime.floor.pct999.usd,
+        market_cap:s.supply.marketCap.usd,
+        realized_cap:all.realized.cap.usd,
+        supply:all.supply.total.btc,
+        cointime_value_destroyed_cumulative:s.cointime.value.destroyed.cumulative,
+        investor_cap:s.cointime.cap.investor.usd
+      };
+    };
+    /** @type {{ key: keyof ReturnType<typeof sourcesOf>, label: string, opacity: number, dash: number[] }[]} */
     const EXTREME_FLOOR_SOURCES=[{key:"rarity_meter_pct01",label:"Full Rarity P1",opacity:.5,dash:[3,5]},{key:"bedrock_raw_floor_pct99",label:"Raw Bedrock P99",opacity:.28,dash:[2,6]},{key:"bedrock_coinflow_floor_pct99",label:"Coinflow Bedrock P99",opacity:.42,dash:[10,6]},{key:"bedrock_cointime_floor_pct99",label:"Cointime Bedrock P99",opacity:.34,dash:[14,6]}];
     const tinyViewport=matchMedia("(max-width:320px),(max-height:260px)");
     tinyViewport.addEventListener("change",()=>location.reload());
     if(tinyViewport.matches){
       const value=document.querySelector("[data-tiny-floor]"),source=document.querySelector("[data-tiny-floor-source]");
       const format=v=>Number.isFinite(v)?`$${Math.round(v).toLocaleString("en-US")}`:"—";
-      Promise.all(EXTREME_FLOOR_SOURCES.map(async item=>({...item,value:Number(await (await clientReady).getSeriesLatest(item.key,"day1"))}))).then(items=>{const current=items.filter(item=>Number.isFinite(item.value)).sort((a,b)=>b.value-a.value)[0];value.textContent=format(current?.value);source.textContent=current?.label??"Unavailable"}).catch(error=>{value.textContent="Unavailable";source.textContent="Could not load current floor";console.error(error)});
+      clientReady.then(client=>Promise.all(EXTREME_FLOOR_SOURCES.map(async item=>({...item,value:Number((await sourcesOf(client.series)[item.key].by.day1.last(1).fetch()).data.at(-1))})))).then(items=>{const current=items.filter(item=>Number.isFinite(item.value)).sort((a,b)=>b.value-a.value)[0];value.textContent=format(current?.value);source.textContent=current?.label??"Unavailable"}).catch(error=>{value.textContent="Unavailable";source.textContent="Could not load current floor";console.error(error)});
       return;
     }
     const bedrockFloorKey=(mode,level)=>`bedrock_${mode}_floor_${level.key}`;
@@ -129,8 +181,7 @@
       document.querySelector("#story").innerHTML=html;
     }
 
-    const SERIES_KEYS=["price_close","cost_basis_per_coin_pct40","cost_basis_per_coin_pct45","cost_basis_per_coin_pct50","cost_basis_per_coin_pct55","realized_price","capitalized_price","sth_capitalized_price","lth_capitalized_price","realized_price_pct1","cointime_price","price_sma_200w","rarity_meter_pct01","rarity_meter_pct05","local_rarity_meter_pct01","local_rarity_meter_pct05","cycle_rarity_meter_pct01","cycle_rarity_meter_pct05","supply_in_loss_share","bedrock_raw_supply_in_loss_threshold_pct95_ratio","bedrock_raw_supply_in_loss_threshold_pct98_ratio","bedrock_raw_supply_in_loss_threshold_pct99_ratio","bedrock_raw_supply_in_loss_threshold_pct99_5_ratio","bedrock_raw_supply_in_loss_threshold_pct99_9_ratio","bedrock_raw_floor_pct95","bedrock_raw_floor_pct98","bedrock_raw_floor_pct99","bedrock_raw_floor_pct99_5","bedrock_raw_floor_pct99_9","bedrock_coinflow_floor_pct95","bedrock_coinflow_floor_pct98","bedrock_coinflow_floor_pct99","bedrock_coinflow_floor_pct99_5","bedrock_coinflow_floor_pct99_9","bedrock_cointime_floor_pct95","bedrock_cointime_floor_pct98","bedrock_cointime_floor_pct99","bedrock_cointime_floor_pct99_5","bedrock_cointime_floor_pct99_9"];
-    const fetchDaily=async key=>(await clientReady).seriesEndpoint(key,"day1").slice(0).fetch();
+    const fetchAll=async()=>Object.fromEntries(await Promise.all(Object.entries(sourcesOf((await clientReady).series)).map(async([key,source])=>[key,await source.by.day1.slice(0).fetch()])));
     const fetchUrpdRaw=async(cohort,weight)=>(await clientReady).getUrpd(cohort,"lin1000",weight);
     const state={series:null,urpd:{},slides:[],active:0};
     const latest=s=>{if(!s)return null;for(let i=s.data.length-1;i>=0;i--){const v=s.data[i];if(Number.isFinite(v))return v}return null};
@@ -213,9 +264,10 @@
     async function loadData(){
       const status=document.querySelector("[data-status]");status.classList.remove("error");status.querySelector("span").textContent="Loading live Bitview data";
       try{
-        const [base,caps,[destroyed,investor],urpds]=await Promise.all([Promise.all(SERIES_KEYS.map(fetchDaily)),Promise.all(["market_cap","realized_cap","supply"].map(fetchDaily)),Promise.all(["cointime_value_destroyed_cumulative","investor_cap"].map(fetchDaily)),Promise.all(['raw','coinflow','cointime'].map(w=>fetchUrpdRaw("all",w)))]);
-        const series=/** @type {Record<string, any>} */ (Object.fromEntries(SERIES_KEYS.map((k,i)=>[k,base[i]])));
-        Object.assign(series,computeMissing(series.price_close,caps[0],caps[1],caps[2],investor,destroyed));
+        const [fetched,urpds]=await Promise.all([fetchAll(),Promise.all(['raw','coinflow','cointime'].map(w=>fetchUrpdRaw("all",w)))]);
+        const {market_cap,realized_cap,supply,cointime_value_destroyed_cumulative:destroyed,investor_cap:investor,...base}=fetched;
+        const series=/** @type {Record<string, any>} */ (base);
+        Object.assign(series,computeMissing(series.price_close,market_cap,realized_cap,supply,investor,destroyed));
         BEDROCK_PERCENTILES.forEach(level=>{series[level.thresholdPct]=percentDerived(series[level.threshold])});
         series.bedrock_first_extreme=maxDerived(series.price_close,series.bedrock_raw_floor_pct99,series.bedrock_coinflow_floor_pct99,series.bedrock_cointime_floor_pct99);
         series.first_extreme=maxDerived(series.price_close,series.rarity_meter_pct01,series.bedrock_first_extreme);
