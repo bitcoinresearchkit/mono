@@ -1,3 +1,4 @@
+use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::{Error, Result};
 use brk_exit::Exit;
@@ -31,31 +32,17 @@ impl ComputePlugin for Vecs {
             + Version::from(creations as u32)
             + deps.price.spot.cents.height.version()
             + deps.mappings.timestamp.monotonic.version();
-        {
-            let _lock = exit.lock();
-            for v in self.coindays_created.iter_mut() {
-                v.validate_computed_version_or_reset(base_version)?;
-            }
-            self.coinblocks_destroyed
-                .validate_computed_version_or_reset(base_version)?;
-        }
         let end = deps
             .history
             .len()
             .min(deps.price.spot.cents.height.len())
             .min(deps.mappings.timestamp.monotonic.len());
-        let start = usize::from(deps.from)
-            .min(end)
-            .min(usize::from(self.cohorts.min_resume_len()))
-            .min(self.age_bounds.min_len())
-            .min(self.coinblocks_destroyed.block.len())
-            .min(
-                self.coindays_created
-                    .iter()
-                    .map(|v| v.cumulative.height.len())
-                    .min()
-                    .unwrap_or_default(),
-            );
+        let start = prepare_computed(
+            self.outputs_mut(),
+            base_version,
+            usize::from(deps.from).min(end),
+            exit,
+        )?;
         let Dependencies {
             history,
             mappings,
@@ -120,14 +107,6 @@ impl ComputePlugin for Vecs {
             states.restore_origins(origins.amounts(), &ctx)?;
         }
         let mut cursor = history.cursor(&mut origins)?;
-        {
-            let _lock = exit.lock();
-            self.par_iter_state_vecs_mut()
-                .try_for_each(|v| v.any_truncate_if_needed_at(start))?;
-            for v in self.age_bounds.stored_vecs_mut() {
-                v.any_truncate_if_needed_at(start)?;
-            }
-        }
         let mut from = start;
         while from < end {
             let next = (from + 10_000).min(end);
@@ -160,25 +139,21 @@ impl ComputePlugin for Vecs {
 }
 
 impl Vecs {
-    fn par_iter_state_vecs_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        self.cohorts
-            .par_iter_vecs_mut()
-            .chain(
-                self.coindays_created
-                    .iter_mut()
-                    .map(|v| v.stored_mut())
-                    .collect::<Vec<_>>()
-                    .into_par_iter(),
-            )
-            .chain([self.coinblocks_destroyed.stored_mut()].into_par_iter())
+    /// Every output the replay writes: one dependency version, one resume height.
+    fn outputs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+        let mut vecs = self.cohorts.collect_vecs_mut();
+        vecs.extend(self.coindays_created.iter_mut().map(|v| v.stored_mut()));
+        vecs.push(self.coinblocks_destroyed.stored_mut());
+        vecs.extend(self.age_bounds.stored_vecs_mut());
+        vecs
     }
 
     fn save(&mut self, end: usize, final_chunk: bool, exit: &Exit) -> Result<()> {
         let _lock = exit.lock();
         let stamp = Stamp::from(Height::from(end - 1));
-        self.par_iter_state_vecs_mut()
+        self.outputs_mut()
+            .into_par_iter()
             .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, final_chunk))?;
-        self.age_bounds.write()?;
         self.db.flush()?;
         Ok(())
     }

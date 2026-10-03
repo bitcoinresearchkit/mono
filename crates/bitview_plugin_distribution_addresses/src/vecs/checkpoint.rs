@@ -1,7 +1,7 @@
-use brk_error::{Error, Result};
+use brk_error::Result;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
-use vecdb::Stamp;
+use vecdb::{AnyStoredVec, Stamp};
 
 use crate::{
     Vecs,
@@ -9,18 +9,23 @@ use crate::{
 };
 
 impl Vecs {
+    /// Every vec the block loop writes and checkpoints.
+    pub(crate) fn par_iter_stateful_mut(
+        &mut self,
+    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+        self.addr_state
+            .par_iter_mut()
+            .chain(self.addrs.par_iter_stateful_height_mut())
+            .chain(self.balances.par_iter_vecs_mut())
+    }
+
     pub(crate) fn validate_state(&mut self, version: Version) -> Result<bool> {
         let caps_changed = self.caps.validate(version)?;
-        let state_changed = self
-            .addr_state
-            .par_iter_mut()
-            .map(|v| {
-                let changed = v.header().computed_version() != v.header().vec_version() + version;
-                v.any_validate_computed_version_or_reset(version)?;
-                Ok::<_, Error>(changed)
-            })
+        let vecs_changed = self
+            .par_iter_stateful_mut()
+            .map(|v| v.any_validate_computed_version_or_reset(version))
             .try_reduce(|| false, |a, b| Ok(a || b))?;
-        Ok(caps_changed || state_changed)
+        Ok(caps_changed || vecs_changed)
     }
 
     pub(crate) fn rollback_state(&mut self, start: usize) -> Result<usize> {

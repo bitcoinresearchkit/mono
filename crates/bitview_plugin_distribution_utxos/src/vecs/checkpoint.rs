@@ -4,10 +4,17 @@ use crate::{
 };
 use brk_error::Result;
 use brk_types::{Height, Version};
+use rayon::prelude::*;
 use vecdb::Stamp;
 impl Vecs {
     pub(crate) fn validate_state(&mut self, version: Version) -> Result<bool> {
-        self.caps.validate(version)
+        let caps_changed = self.caps.validate(version)?;
+        let vecs_changed = self
+            .cohorts
+            .par_iter_vecs_mut()
+            .map(|v| v.any_validate_computed_version_or_reset(version))
+            .try_reduce(|| false, |a, b| Ok(a || b))?;
+        Ok(caps_changed || vecs_changed)
     }
     pub(crate) fn rollback_state(&mut self, start: usize) -> Result<usize> {
         let stamp = self

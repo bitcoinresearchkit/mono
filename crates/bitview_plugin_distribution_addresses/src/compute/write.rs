@@ -24,10 +24,7 @@ pub fn write(
 
     let stamp = Stamp::from(height);
 
-    vecs.addr_state
-        .par_iter_mut()
-        .chain(vecs.addrs.par_iter_stateful_height_mut())
-        .chain(vecs.balances.par_iter_vecs_mut())
+    vecs.par_iter_stateful_mut()
         .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, with_changes))?;
 
     vecs.save_caps(addr_states, stamp, with_changes)?;

@@ -29,10 +29,9 @@ impl<const N: usize> RealizedCaps<N> {
     }
 
     pub fn validate(&mut self, version: Version) -> Result<bool> {
-        let changed =
-            self.values.header().computed_version() != self.values.header().vec_version() + version;
-        self.values.validate_computed_version_or_reset(version)?;
-        Ok(changed)
+        Ok(self
+            .values
+            .any_validate_computed_version_or_reset(version)?)
     }
 
     pub fn rollback_before(&mut self, stamp: Stamp) -> Result<Stamp> {

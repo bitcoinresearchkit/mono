@@ -7,7 +7,6 @@ use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
 use brk_types::{Cents, CentsSats, Height, Sats, Version};
-use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
 
 use crate::{
@@ -187,24 +186,14 @@ impl CohortMetrics<Rw> {
         realized.push(&cohort_values);
     }
 
-    /// Returns a parallel iterator over all vecs for parallel writing.
-    pub fn par_iter_vecs_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    /// Every vec the block loop writes.
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs: Vec<&mut dyn AnyStoredVec> = Vec::with_capacity(128);
         vecs.extend(self.supply.collect_vecs_mut());
         vecs.extend(self.outputs.collect_vecs_mut());
         vecs.extend(self.activity.collect_vecs_mut());
         vecs.extend(self.realized.collect_vecs_mut());
         vecs.extend(self.unrealized.collect_vecs_mut());
-        vecs.into_par_iter()
-    }
-
-    /// Minimum complete length across values produced by the block loop.
-    /// Post-processing outputs must not participate in recovery.
-    pub fn min_resume_len(&self) -> Height {
-        Height::from(self.supply.min_resume_len())
-            .min(Height::from(self.outputs.min_resume_len()))
-            .min(Height::from(self.activity.min_resume_len()))
-            .min(Height::from(self.realized.min_resume_len()))
-            .min(Height::from(self.unrealized.min_resume_len()))
+        vecs
     }
 }

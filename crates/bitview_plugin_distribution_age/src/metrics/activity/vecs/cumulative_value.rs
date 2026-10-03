@@ -55,10 +55,6 @@ impl CumulativeValueByCohort {
         self.stored.push_block(sats, cents);
     }
 
-    pub fn min_len(&self) -> usize {
-        self.stored.min_len()
-    }
-
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.stored.collect_vecs_mut()
     }

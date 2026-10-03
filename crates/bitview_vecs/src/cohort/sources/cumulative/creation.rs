@@ -41,10 +41,6 @@ where
         self.stored.push(cumulative);
     }
 
-    pub fn min_len(&self) -> usize {
-        self.stored.min_len()
-    }
-
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.last = Default::default();
         self.stored.collect_vecs_mut()

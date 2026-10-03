@@ -11,9 +11,7 @@ use brk_error::Result;
 use brk_types::{
     Cents, Height, PartsPerMillion32, PartsPerMillionSigned64, Sats, SatsSigned, StoredU64, Version,
 };
-use vecdb::{
-    AnyStoredVec, AnyVec, BinaryTransform, Database, LazyVec, ReadableBoxedVec, Rw, StorageMode,
-};
+use vecdb::{AnyStoredVec, BinaryTransform, Database, LazyVec, ReadableBoxedVec, Rw, StorageMode};
 
 use super::{SupplyBase, SupplyByCohort, SupplyTotal};
 use crate::state::UnrealizedState;
@@ -131,25 +129,6 @@ impl SupplyVecs {
             delta,
             dominance,
         }))
-    }
-
-    pub fn min_resume_len(&self) -> usize {
-        self.total
-            .min_len()
-            .min(
-                self.matured_sources
-                    .iter()
-                    .flat_map(|v| {
-                        [
-                            v.sats.cumulative.height.len(),
-                            v.cents.cumulative.height.len(),
-                        ]
-                    })
-                    .min()
-                    .unwrap_or_default(),
-            )
-            .min(self.in_profit.min_len())
-            .min(self.in_loss.min_len())
     }
 
     #[inline(always)]

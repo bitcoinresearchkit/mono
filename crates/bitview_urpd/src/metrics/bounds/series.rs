@@ -52,7 +52,7 @@ impl AgeBoundsMetrics {
         Ok(Self { series, stored })
     }
 
-    pub fn min_len(&self) -> usize {
+    fn min_len(&self) -> usize {
         self.stored
             .iter()
             .flat_map(|v| [v.min.len(), v.max.len()])
@@ -81,13 +81,6 @@ impl AgeBoundsMetrics {
             self.push(&AgeAggregate::default());
         }
         self.push(&PriceBounds::from_age_entries(entries));
-        Ok(())
-    }
-
-    pub fn write(&mut self) -> Result<()> {
-        for vec in self.stored_vecs_mut() {
-            vec.write()?;
-        }
         Ok(())
     }
 

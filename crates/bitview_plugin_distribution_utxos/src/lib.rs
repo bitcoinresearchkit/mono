@@ -15,17 +15,14 @@ mod vecs;
 
 use bitview_cohort::{AmountRangeId, SpendableTypeId};
 use bitview_plugin::{PluginId, PluginStorage};
-use brk_oracle::VERSION as ORACLE_VERSION;
 use brk_types::Version;
 
 pub use dependencies::Dependencies;
 pub use has::HasDistributionUtxos;
 pub use vecs::Vecs;
 
-const STORAGE: PluginStorage = PluginStorage::new(
-    PluginId::new("distribution_utxos"),
-    Version::new(42 + ORACLE_VERSION),
-);
+const STORAGE: PluginStorage =
+    PluginStorage::new(PluginId::new("distribution_utxos"), Version::new(47));
 pub const ID: PluginId = STORAGE.id();
 const SAVED_CHECKPOINTS: u16 = 10;
 const CAP_COUNT: usize = AmountRangeId::ALL.len() + SpendableTypeId::ALL.len();

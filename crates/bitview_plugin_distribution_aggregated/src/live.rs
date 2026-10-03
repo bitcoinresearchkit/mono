@@ -1,13 +1,5 @@
-use bitview_plugin_distribution_common::state::cost_basis::PriceIndex;
-use brk_types::{CentsCompact, Timestamp, Version};
-use statedb::State;
+use bitview_plugin_distribution_common::state::cost_basis::age_index::AgeIndexLive;
+use brk_types::Version;
 
 /// One compact derived index; canonical origins remain owned by History.
-pub(crate) struct LiveState {
-    pub origins: State,
-    pub index: PriceIndex<4>,
-    pub prices: Vec<CentsCompact>,
-    pub timestamps: Vec<Timestamp>,
-    pub crossings: [usize; 3],
-    pub version: (Version, Version, (u64, u64), Version),
-}
+pub(crate) type LiveState = AgeIndexLive<(Version, Version, (u64, u64), Version)>;

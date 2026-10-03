@@ -1,14 +1,14 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use bitview_plugin_distribution_common::state::cost_basis::PriceIndex;
-use brk_error::{Error, Result};
+use bitview_plugin_distribution_common::state::cost_basis::age_index::advance;
+use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{CentsCompact, Height, Version};
-use vecdb::{AnyVec, Database, ReadableVec, Stamp};
+use brk_types::{Height, Version};
+use vecdb::{AnyVec, Database, Stamp};
 
 use crate::{
     Dependencies, Vecs,
-    live::{LiveState, advance, ranges},
+    live::{LiveState, ranges},
 };
 
 impl ComputePlugin for Vecs {
@@ -44,48 +44,17 @@ impl ComputePlugin for Vecs {
         if end == 0 {
             return Ok(());
         }
-        let (mut live, reuse) = match live {
-            Some(live)
-                if live.origins.len() == start
-                    && live.version == version
-                    && deps.history.matches(&live.origins)? =>
-            {
-                (live, true)
-            }
-            _ => (
-                LiveState {
-                    origins: deps.history.state_at(start)?,
-                    index: PriceIndex::default(),
-                    prices: Vec::new(),
-                    timestamps: Vec::new(),
-                    crossings: [0; 3],
-                    version,
-                },
-                false,
-            ),
-        };
-        let prices = deps.prices.collect_range_at(live.prices.len(), end);
-        if prices.iter().any(|p| p.is_nan()) {
-            return Err(Error::NotFound(
-                "invalid profitability price history".into(),
-            ));
-        }
-        live.prices
-            .extend(prices.iter().copied().map(CentsCompact::from));
-        live.timestamps
-            .extend(deps.timestamps.collect_range_at(live.timestamps.len(), end));
-        if live.prices.len() != end || live.timestamps.len() != end {
-            return Err(Error::NotFound(
-                "incomplete profitability price or timestamp history".into(),
-            ));
-        }
-        if !reuse {
-            live.restore();
-        }
-        let price_start = if reuse { start } else { 0 };
+        let (mut live, spots) = LiveState::resume(
+            live,
+            version,
+            deps.history,
+            start,
+            end,
+            deps.prices,
+            deps.timestamps,
+        )?;
         let mut cursor = deps.history.cursor(&mut live.origins)?;
-        for h in start..end {
-            let spot = prices[h - price_start];
+        for (h, &spot) in (start..end).zip(&spots) {
             advance(
                 &mut live.index,
                 &mut cursor,

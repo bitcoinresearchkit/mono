@@ -54,10 +54,6 @@ impl CumulativeCreationValueSources {
             .push_block(cents.into().map(|value| StoredU64::from(u64::from(*value))));
     }
 
-    pub fn min_len(&self) -> usize {
-        self.sats.min_len().min(self.cents.min_len())
-    }
-
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.sats.collect_vecs_mut();
         vecs.extend(self.cents.collect_vecs_mut());

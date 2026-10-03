@@ -34,7 +34,7 @@ impl<T: PcoVecValue> CreationSources<T> {
         self.cohorts.get(cohort_id)
     }
 
-    pub fn min_len(&self) -> usize {
+    pub(crate) fn min_len(&self) -> usize {
         self.cohorts.iter().map(AnyVec::len).min().unwrap_or(0)
     }
 

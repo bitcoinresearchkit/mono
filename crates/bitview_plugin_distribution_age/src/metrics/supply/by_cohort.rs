@@ -38,10 +38,6 @@ impl SupplyByCohort {
         self.cohorts.get(cohort_id)
     }
 
-    pub fn min_len(&self) -> usize {
-        self.stored.min_len()
-    }
-
     #[inline(always)]
     pub fn push(&mut self, cohort_values: UTXOCoreValues<Sats>) {
         self.stored.push(cohort_values);

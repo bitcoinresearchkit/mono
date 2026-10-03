@@ -100,17 +100,19 @@ pub trait AnyStoredVec: AnyVec {
     fn any_reset(&mut self) -> Result<()>;
 
     /// Includes this vector's version and clears data when dependencies change.
+    /// Returns whether the computed version changed.
     fn any_validate_computed_version_or_reset(
         &mut self,
         dependency_version: Version,
-    ) -> Result<()> {
+    ) -> Result<bool> {
         let version = self.header().vec_version() + dependency_version;
-        if version != self.header().computed_version() {
-            self.mut_header().update_computed_version(version);
-            if !self.is_empty() {
-                self.any_reset()?;
-            }
+        if version == self.header().computed_version() {
+            return Ok(false);
         }
-        Ok(())
+        self.mut_header().update_computed_version(version);
+        if !self.is_empty() {
+            self.any_reset()?;
+        }
+        Ok(true)
     }
 }

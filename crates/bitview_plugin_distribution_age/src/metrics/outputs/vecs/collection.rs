@@ -40,13 +40,6 @@ impl OutputsVecs {
         self.spent_count.stored.push_block(spent_count);
     }
 
-    pub fn min_resume_len(&self) -> usize {
-        self.unspent_count
-            .stored
-            .min_len()
-            .min(self.spent_count.stored.min_len())
-    }
-
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.unspent_count.stored.collect_vecs_mut();
         vecs.extend(self.spent_count.stored.collect_vecs_mut());

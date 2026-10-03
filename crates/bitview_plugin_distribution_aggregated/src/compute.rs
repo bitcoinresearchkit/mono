@@ -5,11 +5,11 @@ use crate::{
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use bitview_plugin_distribution_common::state::cost_basis::{PriceIndex, age_index};
-use brk_error::{Error, Result};
+use bitview_plugin_distribution_common::state::cost_basis::age_index;
+use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{CentsCompact, Height, PartsPerMillion32, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Stamp};
+use brk_types::{Height, PartsPerMillion32, Version};
+use vecdb::{AnyStoredVec, AnyVec, Database, Stamp};
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
@@ -47,64 +47,22 @@ impl ComputePlugin for Vecs {
         if end == 0 {
             return Ok(());
         }
-        let (mut live, reuse) = match live {
-            Some(live)
-                if live.origins.len() == start
-                    && live.version == version
-                    && deps.history.matches(&live.origins)? =>
-            {
-                (live, true)
-            }
-            _ => (
-                LiveState {
-                    origins: deps.history.state_at(start)?,
-                    index: PriceIndex::default(),
-                    prices: Vec::new(),
-                    timestamps: Vec::new(),
-                    crossings: [0; 3],
-                    version,
-                },
-                false,
-            ),
-        };
-        let new_prices = deps
-            .price
-            .spot
-            .cents
-            .height
-            .collect_range_at(live.prices.len(), end);
-        if new_prices.iter().any(|v| v.is_nan()) {
-            return Err(Error::NotFound("invalid aggregate price history".into()));
-        }
-        let price_start = live.prices.len();
-        live.prices
-            .extend(new_prices.iter().copied().map(CentsCompact::from));
-        live.timestamps.extend(
-            deps.mappings
-                .timestamp
-                .monotonic
-                .collect_range_at(live.timestamps.len(), end),
-        );
-        if live.prices.len() != end || live.timestamps.len() != end {
-            return Err(Error::NotFound(
-                "incomplete aggregate price or timestamp history".into(),
-            ));
-        }
-        if !reuse {
-            age_index::restore(
-                &mut live.index,
-                &live.origins,
-                &live.prices,
-                &live.timestamps,
-            );
-        }
+        let (mut live, spots) = LiveState::resume(
+            live,
+            version,
+            deps.history,
+            start,
+            end,
+            &deps.price.spot.cents.height,
+            &deps.mappings.timestamp.monotonic,
+        )?;
         let mut cursor = deps.history.cursor(&mut live.origins)?;
         for from in (start..end).step_by(10_000) {
             let next = (from + 10_000).min(end);
             let rows = sources.collect(from, next)?;
             for (offset, row) in rows.iter().enumerate() {
                 let h = from + offset;
-                let spot = new_prices[h - price_start];
+                let spot = spots[h - start];
                 age_index::advance(
                     &mut live.index,
                     &mut cursor,

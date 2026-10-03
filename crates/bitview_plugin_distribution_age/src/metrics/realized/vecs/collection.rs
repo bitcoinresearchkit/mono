@@ -115,20 +115,6 @@ impl RealizedVecs {
             .push_block(cohort_values.map(|values| values.value_destroyed));
     }
 
-    /// Minimum complete length across the block loop's accounting sources.
-    pub fn min_resume_len(&self) -> usize {
-        self.cap
-            .stored
-            .min_len()
-            .min(self.profit.stored.min_len())
-            .min(self.loss.stored.min_len())
-            .min(self.net_pnl.stored.min_len())
-            .min(self.value_destroyed.stored.min_len())
-            .min(self.cap_raw.min_len())
-            .min(self.capitalized_cap_raw.min_len())
-            .min(self.peak_regret_raw.min_len())
-    }
-
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.cap.stored.collect_vecs_mut();
         vecs.extend(self.profit.stored.collect_vecs_mut());

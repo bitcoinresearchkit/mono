@@ -47,10 +47,6 @@ impl SupplyTotal {
         AgeRange::from_fn(|id| &id.select(&self.cohorts.age).sats.height)
     }
 
-    pub fn min_len(&self) -> usize {
-        self.stored.min_len()
-    }
-
     pub fn get(&self, cohort_id: CohortId) -> Option<&LazySpotValuePerBlock> {
         self.cohorts.get(cohort_id)
     }

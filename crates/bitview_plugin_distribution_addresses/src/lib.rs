@@ -10,15 +10,12 @@ mod state;
 mod vecs;
 use bitview_cohort::AmountRangeId;
 use bitview_plugin::{PluginId, PluginStorage};
-use brk_oracle::VERSION as ORACLE_VERSION;
 use brk_types::Version;
 pub use dependencies::Dependencies;
 pub use has::HasDistributionAddresses;
 pub use vecs::Vecs;
-const STORAGE: PluginStorage = PluginStorage::new(
-    PluginId::new("distribution_addresses"),
-    Version::new(41 + ORACLE_VERSION),
-);
+const STORAGE: PluginStorage =
+    PluginStorage::new(PluginId::new("distribution_addresses"), Version::new(46));
 pub const ID: PluginId = STORAGE.id();
 const SAVED_CHECKPOINTS: u16 = 10;
 const CAP_COUNT: usize = AmountRangeId::ALL.len();

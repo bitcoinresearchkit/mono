@@ -2,9 +2,81 @@ use super::{PriceIndex, PriceTotals};
 use bitview_cohort::{
     AgeAggregateId, AgeRangeId, HOURS_4M, HOURS_5M, HOURS_6M, for_each_age_cutoff,
 };
-use brk_error::Result;
-use brk_types::{Age, CentsCompact, Timestamp};
-use statedb::{Cursor, State};
+use brk_error::{Error, Result};
+use brk_types::{Age, Cents, CentsCompact, Height, Timestamp};
+use statedb::{Cursor, Reader, State};
+use vecdb::ReadableVec;
+
+/// Writer-owned age-filtered price index, retained only after a complete update
+/// succeeds. Canonical origins remain owned by the history.
+pub struct AgeIndexLive<V> {
+    pub origins: State,
+    pub index: PriceIndex<4>,
+    pub prices: Vec<CentsCompact>,
+    pub timestamps: Vec<Timestamp>,
+    pub crossings: [usize; 3],
+    version: V,
+}
+
+impl<V: PartialEq> AgeIndexLive<V> {
+    /// Reuses `live` if it ends at `start` under `version` and the same history,
+    /// else rebuilds it from the history state at `start`. Then extends the price
+    /// and timestamp history through `end` and returns the spot prices of
+    /// `start..end`.
+    pub fn resume(
+        live: Option<Self>,
+        version: V,
+        history: &Reader<'_>,
+        start: usize,
+        end: usize,
+        prices: &impl ReadableVec<Height, Cents>,
+        timestamps: &impl ReadableVec<Height, Timestamp>,
+    ) -> Result<(Self, Vec<Cents>)> {
+        let (mut live, reuse) = match live {
+            Some(live)
+                if live.origins.len() == start
+                    && live.version == version
+                    && history.matches(&live.origins)? =>
+            {
+                (live, true)
+            }
+            _ => (
+                Self {
+                    origins: history.state_at(start)?,
+                    index: PriceIndex::default(),
+                    prices: Vec::new(),
+                    timestamps: Vec::new(),
+                    crossings: [0; 3],
+                    version,
+                },
+                false,
+            ),
+        };
+        let price_start = live.prices.len();
+        let mut spot = prices.collect_range_at(price_start, end);
+        if spot.iter().any(|p| p.is_nan()) {
+            return Err(Error::NotFound("invalid age-index price history".into()));
+        }
+        live.prices
+            .extend(spot.iter().copied().map(CentsCompact::from));
+        live.timestamps
+            .extend(timestamps.collect_range_at(live.timestamps.len(), end));
+        if live.prices.len() != end || live.timestamps.len() != end {
+            return Err(Error::NotFound(
+                "incomplete age-index price or timestamp history".into(),
+            ));
+        }
+        if !reuse {
+            restore(
+                &mut live.index,
+                &live.origins,
+                &live.prices,
+                &live.timestamps,
+            );
+        }
+        Ok((live, spot.split_off(start - price_start)))
+    }
+}
 
 fn filters(current: Timestamp, origin: Timestamp) -> [bool; 4] {
     let age = AgeRangeId::from(Age::new(current, origin));
@@ -16,7 +88,7 @@ fn filters(current: Timestamp, origin: Timestamp) -> [bool; 4] {
     ]
 }
 
-pub fn restore(
+fn restore(
     index: &mut PriceIndex<4>,
     origins: &State,
     prices: &[CentsCompact],

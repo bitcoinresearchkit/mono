@@ -9,14 +9,11 @@ mod state;
 mod vecs;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
-use brk_oracle::VERSION as ORACLE_VERSION;
 use brk_types::Version;
 use vecdb::StorageMode;
 pub use vecs::Vecs;
-const STORAGE: PluginStorage = PluginStorage::new(
-    PluginId::new("distribution_age"),
-    Version::new(42 + ORACLE_VERSION),
-);
+const STORAGE: PluginStorage =
+    PluginStorage::new(PluginId::new("distribution_age"), Version::new(47));
 pub const ID: PluginId = STORAGE.id();
 
 impl<M: StorageMode> Plugin for Vecs<M>

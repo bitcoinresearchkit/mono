@@ -4,8 +4,7 @@ use brk_error::Result;
 use brk_types::{Height, Version};
 
 use vecdb::{
-    AnyStoredVec, AnyVec, BytesVec, BytesVecValue, Database, ImportableVec, Rw, StorageMode,
-    WritableVec,
+    AnyStoredVec, BytesVec, BytesVecValue, Database, ImportableVec, Rw, StorageMode, WritableVec,
 };
 
 /// Exact raw inputs for disjoint age bands.
@@ -31,10 +30,6 @@ impl<T: BytesVecValue + Copy> DisjointAgeSources<T> {
         for (target, &value) in self.age.iter_mut().zip(values.iter()) {
             target.push(value);
         }
-    }
-
-    pub fn min_len(&self) -> usize {
-        self.age.iter().map(AnyVec::len).min().unwrap_or_default()
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
