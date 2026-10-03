@@ -5,9 +5,9 @@ use std::{
 };
 
 use aide::axum::ApiRouter;
-use bitview::ImportContext;
 use bitview_bindgen::{ClientOutputPaths, generate_clients};
 use bitview_default::DefaultPlugins;
+use bitview_plugin::ImportContext;
 use bitview_query::Vecs;
 use bitview_server::{ApiRoutes, finish_openapi};
 use brk_exit::Exit;
@@ -25,9 +25,6 @@ use vecdb::Budgeted;
 use std::os::unix::process::CommandExt;
 #[cfg(not(unix))]
 use std::process::exit;
-
-#[global_allocator]
-static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;
 
 const GENERATED_OUTPUTS: &[(&str, &str)] = &[
     (
@@ -71,7 +68,7 @@ impl OutputScope {
 }
 
 fn main() -> Result<()> {
-    Budgeted::init_global(bitview::DEFAULT_CACHE_BUDGET)?;
+    Budgeted::init_global(bitview_plugin::DEFAULT_CACHE_BUDGET)?;
     install()?;
 
     let args = env::args().skip(1).collect::<Vec<_>>();
@@ -233,7 +230,7 @@ fn verify_output_pairs(
     }
     if !stale.is_empty() {
         bail!(
-            "generated outputs are stale:\n{}\nrun `cargo run -p bitviewd --bin bitview-bindgen --features bindgen`",
+            "generated outputs are stale:\n{}\nrun `cargo bindgen`",
             stale.join("\n")
         );
     }

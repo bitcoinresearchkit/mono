@@ -7,7 +7,7 @@ ROOT_DIR="$SCRIPT_DIR/.."
 cd "$ROOT_DIR"
 
 echo "Verifying generated bindings..."
-cargo run -p bitviewd --bin bitview-bindgen --features bindgen -- --check
+cargo bindgen -- --check
 
 wait_for_crates_io_rate_limit() {
     local publish_log="$1"

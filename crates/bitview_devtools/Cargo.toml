@@ -28,6 +28,7 @@ brk_error = { workspace = true, features = ["serde_json", "vecdb"] }
 brk_exit = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
+color-eyre = { workspace = true }
 serde_json = { workspace = true }
 tempfile = { workspace = true }
 vecdb = { workspace = true }
@@ -39,3 +40,7 @@ path = "src/bin/api.rs"
 [[bin]]
 name = "bitview-surface"
 path = "src/bin/surface.rs"
+
+[[bin]]
+name = "bitview-bindgen"
+path = "src/bin/bindgen.rs"

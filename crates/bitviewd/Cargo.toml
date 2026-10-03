@@ -1,7 +1,6 @@
 [package]
 name = "bitviewd"
 description = "The self-hostable Bitview Bitcoin data daemon"
-default-run = "bitviewd"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,53 +10,9 @@ readme = "README.md"
 keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
 
 [package.metadata.release]
-pre-release-hook = [
-    "cargo",
-    "run",
-    "-p",
-    "bitviewd",
-    "--bin",
-    "bitview-bindgen",
-    "--features",
-    "bindgen",
-]
-
-[features]
-bindgen = [
-    "dep:aide",
-    "dep:bitview_bindgen",
-    "dep:bitview_query",
-    "dep:bitview_server",
-    "dep:brk_exit",
-    "dep:brk_reader",
-    "dep:brk_rpc",
-    "dep:color-eyre",
-    "dep:serde_json",
-    "dep:tempfile",
-    "dep:vecdb",
-]
+pre-release-hook = ["cargo", "run", "-p", "bitview_devtools", "--bin", "bitview-bindgen"]
 
 [dependencies]
-aide = { workspace = true, optional = true }
 bitview = { workspace = true, features = ["full-api"] }
-bitview_bindgen = { workspace = true, optional = true }
 bitview_default = { workspace = true }
-bitview_query = { workspace = true, optional = true }
-bitview_server = { workspace = true, optional = true }
 brk_alloc = { workspace = true }
-brk_exit = { workspace = true, optional = true }
-brk_reader = { workspace = true, optional = true }
-brk_rpc = { workspace = true, optional = true }
-color-eyre = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
-tempfile = { workspace = true, optional = true }
-vecdb = { workspace = true, optional = true }
-
-[[bin]]
-name = "bitview-bindgen"
-path = "src/bin/bindgen.rs"
-required-features = ["bindgen"]
-
-[[bin]]
-name = "bitviewd"
-path = "src/main.rs"

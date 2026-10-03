@@ -23,7 +23,7 @@ bin = "bitview-surface"
 reason = "workspace binary"
 
 [[production]]
-package = "bitviewd"
+package = "bitview_devtools"
 bin = "bitview-bindgen"
 reason = "workspace binary"
 

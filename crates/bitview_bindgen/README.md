@@ -79,5 +79,5 @@ cargo bindgen -- --rust --check
 - `bitview_types`, `bitview_primitives` and `brk_types` for type schemas
 
 The generator consumes metadata only; it does not depend on the query runtime.
-The `bitviewd` generation command still imports plugins into temporary databases
+The `bitview-bindgen` command (in `bitview_devtools`) still imports plugins into temporary databases
 to obtain that catalog. Removing this initialization is a separate change.

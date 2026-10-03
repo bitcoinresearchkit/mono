@@ -11,7 +11,7 @@ keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
 
 [features]
 default = []
-full-api = ["chain", "series", "urpd"]
+full-api = ["chain", "series", "urpd", "bitview_server/full-api"]
 chain = ["price", "bitview_server/chain"]
 series = ["bitview_server/series"]
 urpd = ["price", "bitview_server/urpd"]

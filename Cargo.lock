@@ -562,6 +562,7 @@ dependencies = [
  "brk_exit",
  "brk_reader",
  "brk_rpc",
+ "color-eyre",
  "serde_json",
  "tempfile",
  "vecdb",
@@ -1461,20 +1462,9 @@ dependencies = [
 name = "bitviewd"
 version = "0.12.2"
 dependencies = [
- "aide",
  "bitview",
- "bitview_bindgen",
  "bitview_default",
- "bitview_query",
- "bitview_server",
  "brk_alloc",
- "brk_exit",
- "brk_reader",
- "brk_rpc",
- "color-eyre",
- "serde_json",
- "tempfile",
- "vecdb",
 ]
 
 [[package]]

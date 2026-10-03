@@ -10,7 +10,7 @@ exclude = ["examples/", "src/api/scalar.js"]
 
 [features]
 default = ["full-api"]
-full-api = ["chain", "series", "urpd"]
+full-api = ["chain", "series", "urpd", "bitview_query/full-api"]
 chain = ["price", "bitview_query/chain"]
 series = ["bitview_query/series"]
 urpd = ["price", "bitview_query/urpd"]
