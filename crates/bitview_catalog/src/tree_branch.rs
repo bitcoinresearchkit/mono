@@ -1,7 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use indexmap::{IndexMap, map};
 use schemars::JsonSchema;
@@ -9,19 +6,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::TreeNode;
 
-// Catalog children and their internal source and naming metadata.
+// Catalog children and their internal naming metadata.
 // Keep the schema transparent too: schema documentation belongs to TreeNode,
 // not this wrapper, so its schema identity stays identical to the original map.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(transparent)]
 pub struct TreeBranch {
     pub children: IndexMap<String, TreeNode>,
-    /// Rust declaration that produced this projected branch.
-    #[serde(skip)]
-    pub source: Option<&'static str>,
-    /// Scoped field-type declarations, retained through flattening and merging.
-    #[serde(skip)]
-    pub field_types: BTreeMap<String, &'static str>,
     /// Each child's base is the parent base followed by `_` and its catalog key.
     #[serde(skip)]
     pub field_suffixes: bool,
@@ -40,37 +31,20 @@ impl From<IndexMap<String, TreeNode>> for TreeBranch {
     fn from(children: IndexMap<String, TreeNode>) -> Self {
         Self {
             children,
-            source: None,
-            field_types: BTreeMap::new(),
             field_suffixes: false,
         }
     }
 }
 
 impl TreeBranch {
-    pub fn merge_field(
-        &mut self,
-        key: String,
-        node: TreeNode,
-        declaration: Option<&'static str>,
-    ) -> Option<()> {
-        let existed = self.children.contains_key(&key);
-        TreeNode::merge_node(&mut self.children, key.clone(), node)?;
-        if existed {
-            if self.field_types.get(&key).copied() != declaration {
-                self.field_types.remove(&key);
-            }
-        } else if let Some(declaration) = declaration {
-            self.field_types.insert(key, declaration);
-        }
-        Some(())
+    pub fn merge_field(&mut self, key: String, node: TreeNode) -> Option<()> {
+        TreeNode::merge_node(&mut self.children, key, node)
     }
 
-    /// Lift children without pretending that the enclosing source type survived.
+    /// Lift another branch's children into this one.
     pub fn merge_fields(&mut self, other: Self) -> Option<()> {
         for (key, child) in other.children {
-            let declaration = other.field_types.get(&key).copied();
-            self.merge_field(key, child, declaration)?;
+            self.merge_field(key, child)?;
         }
         Some(())
     }

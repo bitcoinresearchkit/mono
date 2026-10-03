@@ -375,17 +375,10 @@ impl<T: Traversable> Traversable for Option<T> {
 
 impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
     fn to_tree_node(&self) -> TreeNode {
-        let mut branch = TreeBranch {
-            source: Some("std::collections::BTreeMap"),
-            ..Default::default()
-        };
+        let mut branch = TreeBranch::default();
         for (key, value) in self {
             branch
-                .merge_field(
-                    key.to_string(),
-                    value.to_tree_node(),
-                    Some("std::collections::BTreeMap::V"),
-                )
+                .merge_field(key.to_string(), value.to_tree_node())
                 .expect("Conflicting displayed map keys");
         }
         TreeNode::Branch(branch)

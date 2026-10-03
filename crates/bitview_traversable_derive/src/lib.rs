@@ -60,7 +60,6 @@ enum FieldAttr {
 
 struct FieldInfo<'a> {
     name: &'a Ident,
-    ty: &'a Type,
     is_option: bool,
     attr: FieldAttr,
     rename: Option<String>,
@@ -323,7 +322,7 @@ fn gen_traversable(input: &DeriveInput) -> ProcMacro2TokenStream {
         return quote! {
             impl #impl_generics Traversable for #name #ty_generics #where_clause {
                 fn to_tree_node(&self) -> bitview_traversable::TreeNode {
-                    { #to_tree_node_body }.with_source(concat!(module_path!(), "::", stringify!(#name)))
+                    { #to_tree_node_body }
                 }
 
                 fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
@@ -388,7 +387,7 @@ fn gen_traversable(input: &DeriveInput) -> ProcMacro2TokenStream {
         return quote! {
             impl #impl_generics Traversable for #name #ty_generics #where_clause {
                 fn to_tree_node(&self) -> bitview_traversable::TreeNode {
-                    self.#field_name.to_tree_node().with_source(concat!(module_path!(), "::", stringify!(#name)))
+                    self.#field_name.to_tree_node()
                 }
 
                 fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
@@ -415,7 +414,7 @@ fn gen_traversable(input: &DeriveInput) -> ProcMacro2TokenStream {
     let (field_infos, generics_needing_traversable, field_traversable_types) =
         analyze_fields(named_fields, &generic_params);
 
-    let field_traversals = generate_field_traversals(&field_infos, struct_attr.merge, name);
+    let field_traversals = generate_field_traversals(&field_infos, struct_attr.merge);
     let iterator_impl = generate_iterator_impl(&field_infos, struct_attr.hidden);
     let description_impl = generate_description_impl(&field_infos, struct_attr.hidden);
     let where_clause = build_where_clause(
@@ -439,7 +438,7 @@ fn gen_traversable(input: &DeriveInput) -> ProcMacro2TokenStream {
     quote! {
         impl #impl_generics Traversable for #name #ty_generics #where_clause {
             fn to_tree_node(&self) -> bitview_traversable::TreeNode {
-                { #to_tree_node_body }.with_source(concat!(module_path!(), "::", stringify!(#name)))
+                { #to_tree_node_body }
             }
 
             #iterator_impl
@@ -485,7 +484,6 @@ fn analyze_fields<'a>(
 
         field_infos.push(FieldInfo {
             name: field_name,
-            ty: &field.ty,
             is_option,
             attr: parsed.attr,
             rename: parsed.rename,
@@ -527,19 +525,13 @@ fn build_where_clause(
     }
 }
 
-fn generate_field_traversals(
-    infos: &[FieldInfo],
-    merge: bool,
-    owner: &Ident,
-) -> ProcMacro2TokenStream {
+fn generate_field_traversals(infos: &[FieldInfo], merge: bool) -> ProcMacro2TokenStream {
     // Process all fields in declaration order (interleaving normal and flatten)
     // so that struct field order determines tree key order.
     let field_operations: Vec<_> = infos
         .iter()
         .filter(|i| !i.hidden)
         .map(|info| {
-            let ty = info.ty;
-            let declaration = quote! { Some(concat!(module_path!(), "::", stringify!(#owner), "::", stringify!(#ty))) };
             match info.attr {
                 FieldAttr::Normal => {
                     let field_name = info.name;
@@ -575,14 +567,14 @@ fn generate_field_traversals(
                         let node_expr = build_wrapped(quote! { nested.to_tree_node() });
                         quote! {
                             if let Some(entry) = self.#field_name.as_ref().map(|nested| (String::from(#outer_key), #node_expr)) {
-                                collected.merge_field(entry.0, entry.1, #declaration)
+                                collected.merge_field(entry.0, entry.1)
                                     .expect("Conflicting values for same key");
                             }
                         }
                     } else {
                         let node_expr_self = build_wrapped(quote! { self.#field_name.to_tree_node() });
                         quote! {
-                            collected.merge_field(String::from(#outer_key), #node_expr_self, #declaration)
+                            collected.merge_field(String::from(#outer_key), #node_expr_self)
                                 .expect("Conflicting values for same key");
                         }
                     }
@@ -595,7 +587,7 @@ fn generate_field_traversals(
                                 .expect("Conflicting values for same key during flatten");
                         }
                         leaf @ bitview_traversable::TreeNode::Leaf(_) => {
-                            collected.merge_field(String::from(stringify!(#field_name)), leaf, #declaration)
+                            collected.merge_field(String::from(stringify!(#field_name)), leaf)
                                 .expect("Conflicting values for same key during flatten");
                         }
                     };

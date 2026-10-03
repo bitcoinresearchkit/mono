@@ -1,6 +1,7 @@
 //! The typed series paths each generated client exposes.
 
 use bitview_catalog::TreeNode;
+use brk_types::Index;
 
 use crate::{JavaScriptSyntax, LanguageSyntax, PythonSyntax, rust_field_name};
 
@@ -9,6 +10,7 @@ use crate::{JavaScriptSyntax, LanguageSyntax, PythonSyntax, rust_field_name};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientPath {
     pub series: String,
+    pub indexes: Vec<Index>,
     pub rust: String,
     pub javascript: String,
     pub python: String,
@@ -39,6 +41,7 @@ fn collect<'a>(node: &'a TreeNode, keys: &mut Vec<&'a str>, paths: &mut Vec<Clie
             };
             paths.push(ClientPath {
                 series: leaf.name().to_owned(),
+                indexes: leaf.indexes().iter().copied().collect(),
                 rust: join(&rust_field_name),
                 javascript: join(&|key| JavaScriptSyntax.field_name(key)),
                 python: join(&|key| PythonSyntax.field_name(key)),

@@ -26,14 +26,20 @@ pub(crate) fn to_snake_case(s: &str) -> String {
     sanitized
 }
 
-/// Escape Rust reserved keywords with `_` suffix (consistent with Python).
+/// Escape Rust strict and reserved keywords (edition 2024) with a `_` suffix (consistent with Python).
 pub(crate) fn escape_rust_keyword(name: &str) -> String {
-    match name {
-        "type" | "const" | "static" | "match" | "if" | "else" | "loop" | "while" | "for"
-        | "break" | "continue" | "return" | "fn" | "let" | "mut" | "ref" | "self" | "super"
-        | "mod" | "use" | "pub" | "crate" | "extern" | "impl" | "trait" | "struct" | "enum"
-        | "where" | "async" | "await" | "dyn" | "move" => format!("{}_", name),
-        _ => name.to_string(),
+    const RUST_KEYWORDS: &[&str] = &[
+        "_", "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum",
+        "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move",
+        "mut", "pub", "ref", "return", "self", "Self", "static", "struct", "super", "trait",
+        "true", "type", "unsafe", "use", "where", "while", "abstract", "become", "box", "do",
+        "final", "gen", "macro", "override", "priv", "try", "typeof", "unsized", "virtual",
+        "yield",
+    ];
+    if RUST_KEYWORDS.contains(&name) {
+        format!("{name}_")
+    } else {
+        name.to_string()
     }
 }
 

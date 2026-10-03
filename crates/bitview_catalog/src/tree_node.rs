@@ -23,14 +23,6 @@ impl TreeNode {
         Self::Branch(children.into())
     }
 
-    /// Preserve an inner declaration when a transparent projection already has one.
-    pub fn with_source(mut self, source: &'static str) -> Self {
-        if let Self::Branch(branch) = &mut self {
-            branch.source.get_or_insert(source);
-        }
-        self
-    }
-
     /// Declare naming before wrapping or combining this family with other nodes.
     pub fn with_field_suffixes(mut self) -> Self {
         if let Self::Branch(branch) = &mut self {
@@ -122,14 +114,6 @@ impl TreeNode {
         };
 
         let mut merged = TreeBranch::default();
-        if let Some(Self::Branch(first)) = tree.values().next()
-            && first.source.is_some()
-            && tree
-                .values()
-                .all(|node| matches!(node, Self::Branch(branch) if branch.source == first.source))
-        {
-            merged.source = first.source;
-        }
 
         // Lifting only field-suffixed branches preserves their naming contract.
         // Undeclared branches or direct leaves do not supply that guarantee.
@@ -142,8 +126,7 @@ impl TreeNode {
             match node {
                 Self::Leaf(leaf) => {
                     // Direct leaves use their key (which may be renamed via attribute)
-                    let declaration = tree.field_types.get(&key).copied();
-                    merged.merge_field(key, Self::Leaf(leaf), declaration)?;
+                    merged.merge_field(key, Self::Leaf(leaf))?;
                 }
                 Self::Branch(inner) => {
                     // Lift children from branches with their keys
@@ -231,16 +214,12 @@ impl TreeNode {
                     }
                     (Self::Branch(existing_branch), Self::Leaf(leaf)) => {
                         existing_branch.field_suffixes = false;
-                        existing_branch.source = None;
                         Self::merge_node(existing_branch, BASE.to_string(), Self::Leaf(leaf))?;
                         Some(())
                     }
                     // Both branches: merge recursively
                     (Self::Branch(existing_branch), Self::Branch(new_inner)) => {
                         existing_branch.field_suffixes &= new_inner.field_suffixes;
-                        if existing_branch.source != new_inner.source {
-                            existing_branch.source = None;
-                        }
                         existing_branch.merge_fields(new_inner)?;
                         Some(())
                     }

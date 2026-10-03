@@ -9,8 +9,8 @@ use brk_error::Result;
 
 use crate::{AllPlugins, Snapshot};
 
-/// The series tree as clients see it: one line per leaf (with a schema id), the typed path of
-/// every leaf in each generated client, descriptions, value schemas, and the OpenAPI document.
+/// The series tree as clients see it: one line per leaf (with a schema id), descriptions and
+/// value schemas; the typed path of every leaf in each generated client; the OpenAPI document.
 pub fn render_api(plugins: &AllPlugins) -> Result<Vec<Snapshot>> {
     let defaults = Vecs::build(&plugins.defaults);
     let all = Vecs::build(plugins);
@@ -40,16 +40,6 @@ pub fn render_api(plugins: &AllPlugins) -> Result<Vec<Snapshot>> {
     );
     section(
         &mut out,
-        "Typed client paths (default composition): series, Rust, JavaScript, Python",
-        client_paths(defaults.catalog()).into_iter().map(|path| {
-            format!(
-                "{}\t{}\t{}\t{}",
-                path.series, path.rust, path.javascript, path.python
-            )
-        }),
-    );
-    section(
-        &mut out,
         "Descriptions",
         leaves
             .descriptions
@@ -69,10 +59,33 @@ pub fn render_api(plugins: &AllPlugins) -> Result<Vec<Snapshot>> {
     let mut openapi = serde_json::to_string_pretty(&openapi)?;
     openapi.push('\n');
 
+    // Read by scripts/check_client_paths.{mjs,py}, which walk each path in the generated clients.
+    let mut paths =
+        String::from("# series\trust\tjavascript\tpython\tindexes (default composition)\n");
+    for path in client_paths(defaults.catalog()) {
+        let indexes = path
+            .indexes
+            .iter()
+            .map(|index| {
+                serde_json::to_value(index)
+                    .map(|value| value.as_str().unwrap_or_default().to_owned())
+            })
+            .collect::<serde_json::Result<Vec<_>>>()?
+            .join(",");
+        paths.push_str(&format!(
+            "{}\t{}\t{}\t{}\t{indexes}\n",
+            path.series, path.rust, path.javascript, path.python
+        ));
+    }
+
     Ok(vec![
         Snapshot {
             file: "api.txt",
             contents: out,
+        },
+        Snapshot {
+            file: "client-paths.tsv",
+            contents: paths,
         },
         Snapshot {
             file: "openapi.json",

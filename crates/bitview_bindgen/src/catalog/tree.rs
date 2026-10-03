@@ -1,11 +1,11 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use bitview_catalog::TreeNode;
 
 use super::{CatalogFamily, CatalogNode, CatalogType, CatalogValue};
 use crate::{IndexSetPattern, to_pascal_case};
 
-/// Compiled, lossless catalog bindings and source-defined record families.
+/// Compiled, lossless catalog bindings and their structural record families.
 #[derive(Debug, Clone, Default)]
 pub struct CatalogTree {
     pub families: Vec<CatalogFamily>,
@@ -17,7 +17,8 @@ pub struct CatalogTree {
 #[derive(Default)]
 struct Compiler {
     tree: CatalogTree,
-    families: BTreeMap<(String, Vec<(String, usize)>), usize>,
+    /// A family is its ordered fields and their type-parameter slots, nothing else.
+    families: BTreeMap<Vec<(String, usize)>, usize>,
     types: BTreeMap<CatalogType, usize>,
     nodes: BTreeMap<CatalogNode, usize>,
 }
@@ -25,14 +26,19 @@ struct Compiler {
 impl CatalogTree {
     pub fn from_catalog(catalog: &TreeNode, indexes: &[IndexSetPattern]) -> Self {
         let mut compiler = Compiler::default();
-        compiler.tree.root = compiler.compile(catalog, "Root", indexes);
+        compiler.tree.root = compiler.compile(catalog, &mut Vec::new(), indexes);
         compiler.name_families();
         compiler.tree
     }
 }
 
 impl Compiler {
-    fn compile(&mut self, node: &TreeNode, path: &str, indexes: &[IndexSetPattern]) -> usize {
+    fn compile(
+        &mut self,
+        node: &TreeNode,
+        path: &mut Vec<String>,
+        indexes: &[IndexSetPattern],
+    ) -> usize {
         let (ty, value) = match node {
             TreeNode::Leaf(leaf) => (
                 CatalogType::Leaf {
@@ -50,36 +56,19 @@ impl Compiler {
                 let mut arguments = Vec::new();
                 let mut slots = BTreeMap::new();
                 for (key, child) in branch {
-                    let child_id = self.compile(child, &format!("{path}::{key}"), indexes);
+                    path.push(key.clone());
+                    let child_id = self.compile(child, path, indexes);
+                    path.pop();
                     let child_type = self.tree.nodes[child_id].type_id;
-                    // A repeated declared field type shares a parameter only when its
-                    // public projection is also identical (optional fields may differ).
-                    let declaration = branch.field_types.get(key).copied().unwrap_or(key);
-                    let parameter = *slots.entry((declaration, child_type)).or_insert_with(|| {
-                        let slot = arguments.len();
+                    // Fields with the same projected type share one type parameter.
+                    let parameter = *slots.entry(child_type).or_insert_with(|| {
                         arguments.push(child_type);
-                        slot
+                        arguments.len() - 1
                     });
                     fields.push((key.clone(), parameter));
                     children.push(child_id);
                 }
-                let source = branch
-                    .source
-                    .map(str::to_owned)
-                    .unwrap_or_else(|| format!("catalog::{path}"));
-                let family = *self
-                    .families
-                    .entry((source.clone(), fields.clone()))
-                    .or_insert_with(|| {
-                        let id = self.tree.families.len();
-                        self.tree.families.push(CatalogFamily {
-                            name: String::new(),
-                            source,
-                            fields,
-                            parameters: arguments.len(),
-                        });
-                        id
-                    });
+                let family = self.family(fields, path);
                 (
                     CatalogType::Branch { family, arguments },
                     CatalogValue::Branch(children),
@@ -99,41 +88,75 @@ impl Compiler {
         })
     }
 
-    fn name_families(&mut self) {
-        let mut origins: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
-        for family in &self.tree.families {
-            origins
-                .entry(family.source.rsplit("::").next().unwrap())
-                .or_default()
-                .insert(&family.source);
+    fn family(&mut self, fields: Vec<(String, usize)>, path: &[String]) -> usize {
+        if let Some(&id) = self.families.get(&fields) {
+            // Keep the canonical path: shallowest, then smallest.
+            let canonical = &mut self.tree.families[id].path;
+            if (path.len(), path) < (canonical.len(), canonical.as_slice()) {
+                *canonical = path.to_vec();
+            }
+            return id;
         }
-        let bases: Vec<_> = self
-            .tree
-            .families
-            .iter()
-            .map(|family| {
-                let short = family.source.rsplit("::").next().unwrap();
-                let source = if origins[short].len() == 1 {
-                    short
+        let id = self.tree.families.len();
+        self.tree.families.push(CatalogFamily {
+            name: String::new(),
+            path: path.to_vec(),
+            fields: fields.clone(),
+        });
+        self.families.insert(fields, id);
+        id
+    }
+
+    /// Names each family after the tail of its canonical path, using as many trailing
+    /// segments as needed to be unique. Distinct paths whose names normalize the same
+    /// (e.g. `a_b.c` and `a.b_c`) get a numeric suffix, ordered by path.
+    fn name_families(&mut self) {
+        let families = &mut self.tree.families;
+        let mut depths = vec![1; families.len()];
+        let owners = loop {
+            let mut owners = BTreeMap::<String, Vec<usize>>::new();
+            for (id, (family, &depth)) in families.iter().zip(&depths).enumerate() {
+                owners
+                    .entry(family_name(&family.path, depth))
+                    .or_default()
+                    .push(id);
+            }
+            let mut deepened = false;
+            for ids in owners.values().filter(|ids| ids.len() > 1) {
+                for &id in ids {
+                    if depths[id] < families[id].path.len() {
+                        depths[id] += 1;
+                        deepened = true;
+                    }
+                }
+            }
+            if !deepened {
+                break owners;
+            }
+        };
+
+        for (name, mut ids) in owners {
+            ids.sort_by(|&a, &b| families[a].path.cmp(&families[b].path));
+            for (rank, id) in ids.into_iter().enumerate() {
+                families[id].name = if rank == 0 {
+                    name.clone()
                 } else {
-                    &family.source
+                    format!("{name}_{}", rank + 1)
                 };
-                let words: String = source
-                    .chars()
-                    .map(|c| if c.is_alphanumeric() { c } else { '_' })
-                    .collect();
-                format!("Catalog{}", to_pascal_case(&words))
-            })
-            .collect();
-        let mut counts = BTreeMap::new();
-        for (family, base) in self.tree.families.iter_mut().zip(bases) {
-            let count = counts.entry(base.clone()).or_insert(0);
-            *count += 1;
-            family.name = if *count == 1 {
-                base
-            } else {
-                format!("{base}_{count}")
-            };
+            }
         }
     }
+}
+
+fn family_name(path: &[String], depth: usize) -> String {
+    let tail = &path[path.len() - depth.min(path.len())..];
+    if tail.is_empty() {
+        return "CatalogRoot".to_owned();
+    }
+    let words = tail
+        .join("_")
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        .collect::<String>();
+    format!("Catalog{}", to_pascal_case(&words))
 }

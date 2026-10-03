@@ -56,12 +56,18 @@ endpoint at [mcp.bitview.space](https://mcp.bitview.space/).
 
 ## Built On
 
-The Rust client is generated directly from source-declared catalog families,
-field-type relationships, and exact series names. It does not infer record
-families or reconstruct series names from prefixes and suffixes. Structured
-leaf types such as `ByTerm<Sats>` are preserved. Generated record names use
-`Catalog` plus their Rust source type; these replace the old inferred helper
-types. JavaScript and Python still use the existing inference pipeline.
+The Rust client is generated directly from the catalog tree and exact series
+names; it never reconstructs series names from prefixes and suffixes. A record
+family is structural: its ordered fields, with fields of the same projected type
+sharing one generic parameter. Each family is named `Catalog` plus the tail of
+its shallowest catalog path, using as many trailing segments as needed to be
+unique, so names never depend on Rust module paths. JavaScript and Python use
+the pattern-inference pipeline.
+
+Whatever the generator, every client exposes the same typed paths
+(`series.a.b.c`): `client_paths` lists them, and
+`crates/bitview_devtools/scripts/check_client_paths.{mjs,py}` verify that each
+one resolves to the right series in the generated JavaScript and Python clients.
 
 Regenerate or verify only Rust outputs (client and CLI):
 

@@ -7,7 +7,7 @@ use crate::{CatalogTree, CatalogType, CatalogValue, IndexSetPattern, rust_field_
 pub(crate) fn generate_tree(output: &mut String, tree: &CatalogTree, indexes: &[IndexSetPattern]) {
     output.push_str(
         r#"
-enum CatalogBinding {
+enum _CatalogBinding {
     Leaf(&'static str),
     Branch(&'static [usize]),
 }
@@ -19,7 +19,7 @@ trait FromCatalog: Sized + Send + Sync + 'static {
     );
 
     for family in &tree.families {
-        let parameters = (0..family.parameters)
+        let parameters = (0..family.parameters())
             .map(|i| format!("T{i}"))
             .collect::<Vec<_>>();
         let generic = if parameters.is_empty() {
@@ -27,7 +27,17 @@ trait FromCatalog: Sized + Send + Sync + 'static {
         } else {
             format!("<{}>", parameters.join(", "))
         };
-        writeln!(output, "/// Catalog projection of {}.", family.source).unwrap();
+        if family.path.is_empty() {
+            writeln!(output, "/// Catalog family of the series root.").unwrap();
+        } else {
+            let path = family
+                .path
+                .iter()
+                .map(|key| rust_field_name(key))
+                .collect::<Vec<_>>()
+                .join(".");
+            writeln!(output, "/// Catalog family, e.g. at `{path}`.").unwrap();
+        }
         writeln!(output, "pub struct {}{generic} {{", family.name).unwrap();
         for (field, slot) in &family.fields {
             let field = rust_field_name(field);
@@ -52,7 +62,7 @@ trait FromCatalog: Sized + Send + Sync + 'static {
             family.name
         )
         .unwrap();
-        output.push_str("    fn from_catalog(client: Arc<BitviewClientBase>, binding: usize) -> Self {\n        let CatalogBinding::Branch(children) = &CATALOG_BINDINGS[binding] else { unreachable!(\"expected catalog branch\") };\n        Self {\n");
+        output.push_str("    fn from_catalog(client: Arc<BitviewClientBase>, binding: usize) -> Self {\n        let _CatalogBinding::Branch(children) = &CATALOG_BINDINGS[binding] else { unreachable!(\"expected catalog branch\") };\n        Self {\n");
         for (i, (field, slot)) in family.fields.iter().enumerate() {
             let field = rust_field_name(field);
             writeln!(output, "            {field}: lazy_node((client.clone(), children[{i}]), |(client, binding)| T{slot}::from_catalog(client, binding)),").unwrap();
@@ -67,7 +77,7 @@ trait FromCatalog: Sized + Send + Sync + 'static {
             accessor.name
         )
         .unwrap();
-        output.push_str("    fn from_catalog(client: Arc<BitviewClientBase>, binding: usize) -> Self {\n        let CatalogBinding::Leaf(name) = &CATALOG_BINDINGS[binding] else { unreachable!(\"expected catalog leaf\") };\n        Self::new(client, (*name).to_string())\n    }\n}\n\n");
+        output.push_str("    fn from_catalog(client: Arc<BitviewClientBase>, binding: usize) -> Self {\n        let _CatalogBinding::Leaf(name) = &CATALOG_BINDINGS[binding] else { unreachable!(\"expected catalog leaf\") };\n        Self::new(client, (*name).to_string())\n    }\n}\n\n");
     }
 
     // Child type IDs precede their parents. Aliases keep deeply nested
@@ -103,14 +113,14 @@ trait FromCatalog: Sized + Send + Sync + 'static {
     .unwrap();
     writeln!(output, "fn create_series_tree(client: Arc<BitviewClientBase>) -> SeriesTree {{ FromCatalog::from_catalog(client, {}) }}", tree.root).unwrap();
 
-    output.push_str("static CATALOG_BINDINGS: &[CatalogBinding] = &[\n");
+    output.push_str("static CATALOG_BINDINGS: &[_CatalogBinding] = &[\n");
     for node in &tree.nodes {
         match &node.value {
             CatalogValue::Leaf(name) => {
-                writeln!(output, "    CatalogBinding::Leaf({name:?}),").unwrap()
+                writeln!(output, "    _CatalogBinding::Leaf({name:?}),").unwrap()
             }
             CatalogValue::Branch(children) => {
-                writeln!(output, "    CatalogBinding::Branch(&{children:?}),").unwrap()
+                writeln!(output, "    _CatalogBinding::Branch(&{children:?}),").unwrap()
             }
         }
     }
