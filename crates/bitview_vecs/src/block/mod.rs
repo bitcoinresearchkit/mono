@@ -36,4 +36,4 @@ pub use rolling::PerBlockRolling;
 pub use rolling_average::PerBlockRollingAverage;
 pub use std_dev::StdDevPerBlock;
 pub use stored::PerBlock;
-pub use type_counts::compute_type_counts;
+pub use type_counts::{CoinbasePolicy, compute_type_counts};

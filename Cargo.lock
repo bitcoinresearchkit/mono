@@ -945,7 +945,6 @@ version = "0.12.2"
 dependencies = [
  "bitview_cohort",
  "bitview_collections",
- "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_blocks",
  "bitview_plugin_indexer",

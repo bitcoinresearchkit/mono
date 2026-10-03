@@ -5,7 +5,7 @@ use brk_exit::Exit;
 use rayon::join;
 use vecdb::{AnyVec, Database};
 
-use super::{Vecs, by_type, count, spent, value};
+use super::{Vecs, count, spent, value};
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
@@ -50,7 +50,7 @@ impl ComputePlugin for Vecs {
                     exit,
                 )
             },
-            || by_type::compute(by_type, indexer, exit),
+            || by_type.compute(indexer, exit),
         );
         fiat?;
         types?;
