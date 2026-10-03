@@ -1,10 +1,12 @@
+#[cfg(feature = "schemars")]
+use std::borrow::Cow;
 use std::{
-    borrow::Cow,
     fmt,
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
 
+#[cfg(feature = "schemars")]
 use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
@@ -120,6 +122,7 @@ impl<'de, T: Deserialize<'de> + Copy + Default, const N: usize> Deserialize<'de>
     }
 }
 
+#[cfg(feature = "schemars")]
 impl<T: JsonSchema, const N: usize> JsonSchema for Histogram<T, N> {
     fn schema_name() -> Cow<'static, str> {
         format!("Histogram_{}", T::schema_name()).into()

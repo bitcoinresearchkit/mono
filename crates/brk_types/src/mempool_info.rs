@@ -1,15 +1,17 @@
 use std::collections::BTreeMap;
 
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{FeeRate, Sats, Transaction, VSize};
 
 /// Mempool statistics with incrementally maintained fee histogram.
-#[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct MempoolInfo {
     /// Number of transactions in the mempool
-    #[schemars(example = 5000)]
+    #[cfg_attr(feature = "schemars", schemars(example = 5000))]
     pub count: usize,
     /// Total virtual size of all transactions in the mempool (vbytes)
     pub vsize: VSize,
@@ -20,7 +22,7 @@ pub struct MempoolInfo {
         serialize_with = "serialize_fee_histogram",
         deserialize_with = "deserialize_fee_histogram"
     )]
-    #[schemars(with = "Vec<[f64; 2]>")]
+    #[cfg_attr(feature = "schemars", schemars(with = "Vec<[f64; 2]>"))]
     fee_histogram: BTreeMap<FeeRate, VSize>,
 }
 

@@ -1,3 +1,4 @@
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +15,8 @@ use crate::Transaction;
 ///
 /// Reconstruction is a single pass: for each entry, either copy
 /// `prior[idx]` or append the inline body.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(untagged)]
 pub enum BlockTemplateDiffEntry {
     Retained(u32),

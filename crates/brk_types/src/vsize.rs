@@ -6,6 +6,7 @@ use std::{
 
 use derive_more::Deref;
 use itoa::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -19,27 +20,17 @@ use vecdb::{Formattable, Pco};
 
 /// Virtual size in vbytes (weight / 4, rounded up). Max block vsize is ~1,000,000 vB.
 #[derive(
-    Debug,
-    Default,
-    Deref,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Serialize,
-    Deserialize,
-    JsonSchema,
+    Debug, Default, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
-#[schemars(
+#[cfg_attr(feature = "schemars", schemars(
     example = &110,
     example = &140,
     example = &225,
     example = &500_000,
     example = &998_368
-)]
+))]
 pub struct VSize(u64);
 
 impl VSize {

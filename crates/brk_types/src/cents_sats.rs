@@ -5,6 +5,7 @@ use std::{
     ops::{Add, AddAssign, Div, Sub, SubAssign},
 };
 
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -18,9 +19,8 @@ use vecdb::{Bytes, Formattable};
 
 /// Cents × Sats (u128) - price in cents multiplied by amount in sats.
 /// Uses u128 because large amounts at any price can overflow u64.
-#[derive(
-    Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
-)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct CentsSats(u128);
 
 impl CentsSats {

@@ -1,4 +1,5 @@
 use crate::{Sats, SatsSigned, TxOut};
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -7,29 +8,30 @@ use serde::{Deserialize, Serialize};
 ///
 /// Based on mempool.space's format.
 ///
-#[derive(Debug, Default, Clone, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Clone, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct AddrMempoolStats {
     /// Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
     pub balance_delta: SatsSigned,
 
     /// Number of unconfirmed transaction outputs funding this address
-    #[schemars(example = 0)]
+    #[cfg_attr(feature = "schemars", schemars(example = 0))]
     pub funded_txo_count: u32,
 
     /// Total amount in satoshis being received in unconfirmed transactions
-    #[schemars(example = Sats::new(0))]
+    #[cfg_attr(feature = "schemars", schemars(example = Sats::new(0)))]
     pub funded_txo_sum: Sats,
 
     /// Number of unconfirmed transaction inputs spending from this address
-    #[schemars(example = 0)]
+    #[cfg_attr(feature = "schemars", schemars(example = 0))]
     spent_txo_count: u32,
 
     /// Total amount in satoshis being spent in unconfirmed transactions
-    #[schemars(example = Sats::new(0))]
+    #[cfg_attr(feature = "schemars", schemars(example = Sats::new(0)))]
     pub spent_txo_sum: Sats,
 
     /// Number of unconfirmed transactions involving this address
-    #[schemars(example = 0)]
+    #[cfg_attr(feature = "schemars", schemars(example = 0))]
     pub tx_count: u32,
 }
 

@@ -1,3 +1,4 @@
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +17,8 @@ use crate::{BlockTemplateDiffEntry, NextBlockHash, Txid};
 /// `removed` lists txids no longer present. A changed body can be emitted as
 /// `New` without removing its txid; absence of a retained index alone does not
 /// imply removal.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct BlockTemplateDiff {
     /// Current next-block hash. Use as `since` on the next diff call.

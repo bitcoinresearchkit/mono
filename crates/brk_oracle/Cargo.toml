@@ -7,8 +7,11 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 
+[features]
+schemars = ["dep:schemars", "brk_types/schemars"]
+
 [dependencies]
 brk_types = { workspace = true }
 derive_more = { workspace = true }
-schemars = { workspace = true }
+schemars = { workspace = true, optional = true }
 serde = { workspace = true }

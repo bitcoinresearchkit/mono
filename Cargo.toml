@@ -135,7 +135,7 @@ tower-http = { version = "0.7.1", features = ["catch-panic", "compression-br", "
 tower-layer = "0.3"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 ureq = { version = "3.4.2", features = ["json"] }
-vecdb = { path = "crates/vecdb", version = "0.12.2", features = ["derive", "serde", "pco", "schemars"] }
+vecdb = { path = "crates/vecdb", version = "0.12.2", features = ["derive", "serde", "pco"] }
 vecdb_derive = { path = "crates/vecdb_derive", version = "0.12.2" }
 
 

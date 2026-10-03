@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -8,19 +9,9 @@ use serde::{Deserialize, Serialize};
 /// Opaque token, distinct from HTTP ETag formatting: pass back
 /// to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
 #[derive(
-    Debug,
-    Default,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord,
-    Serialize,
-    Deserialize,
-    JsonSchema,
+    Debug, Default, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(transparent)]
 pub struct NextBlockHash(u64);
 

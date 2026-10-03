@@ -6,6 +6,7 @@ use std::{
 };
 
 use ryu::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -21,10 +22,11 @@ use vecdb::{Formattable, Pco};
 const MILLIS_PER_SAT_VBYTE: u64 = 1_000;
 
 /// Fee rate stored in milli-sat/vB and exposed as sat/vB.
-#[derive(Debug, Default, Clone, Copy, JsonSchema)]
+#[derive(Debug, Default, Clone, Copy)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
 #[repr(transparent)]
-#[schemars(
+#[cfg_attr(feature = "schemars", schemars(
     with = "f64",
     example = &0.1,
     example = &1.0,
@@ -32,7 +34,7 @@ const MILLIS_PER_SAT_VBYTE: u64 = 1_000;
     example = &10.14,
     example = &25.0,
     example = &302.11
-)]
+))]
 pub struct FeeRate(u64);
 
 impl FeeRate {

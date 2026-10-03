@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 
 use bitcoin::absolute::LockTime;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -8,9 +9,10 @@ use serde::{Deserialize, Serialize};
 use vecdb::{Formattable, Pco};
 
 /// Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
-#[schemars(example = &0, example = &840000, example = &840001, example = &1713571200)]
+#[cfg_attr(feature = "schemars", schemars(example = &0, example = &840000, example = &840001, example = &1713571200))]
 pub struct RawLockTime(u32);
 
 impl From<LockTime> for RawLockTime {

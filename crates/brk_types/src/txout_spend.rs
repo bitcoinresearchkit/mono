@@ -1,13 +1,15 @@
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{TxStatus, Txid, Vin};
 
 /// Status of an output indicating whether it has been spent
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct TxOutspend {
     /// Whether the output has been spent
-    #[schemars(example = true)]
+    #[cfg_attr(feature = "schemars", schemars(example = true))]
     pub spent: bool,
 
     /// Transaction ID of the spending transaction (only present if spent)

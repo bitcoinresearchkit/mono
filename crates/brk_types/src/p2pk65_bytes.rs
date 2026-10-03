@@ -4,6 +4,7 @@ use std::fmt::Result;
 use std::fmt;
 
 use derive_more::Deref;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -12,9 +13,8 @@ use crate::U8x65;
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable};
 
-#[derive(
-    Debug, Clone, Deref, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash, JsonSchema,
-)]
+#[derive(Debug, Clone, Deref, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Bytes))]
 pub struct P2PK65Bytes(U8x65);
 

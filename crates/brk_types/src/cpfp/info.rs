@@ -1,3 +1,4 @@
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -6,7 +7,8 @@ use crate::{FeeRate, Sats, SigOps, VSize};
 use super::{CpfpCluster, CpfpEntry};
 
 /// CPFP (Child Pays For Parent) information for a transaction.
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct CpfpInfo {
     /// Ancestor transactions in the CPFP chain.

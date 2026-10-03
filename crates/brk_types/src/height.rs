@@ -6,6 +6,7 @@ use std::{
 use bitcoin::locktime::absolute::Height as AbsoluteHeight;
 use derive_more::Deref;
 use itoa::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -32,23 +33,15 @@ pub const BLOCKS_PER_HALVING: u32 = 210_000;
 
 /// Block height
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Deref,
-    Eq,
-    PartialOrd,
-    Ord,
-    Default,
-    Serialize,
-    Deserialize,
-    JsonSchema,
-    Hash,
+    Debug, Clone, Copy, PartialEq, Deref, Eq, PartialOrd, Ord, Default, Serialize, Deserialize, Hash,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
 #[allow(clippy::duplicated_attributes)]
-#[schemars(example = 0, example = 210_000, example = 420_000, example = 840_000)]
+#[cfg_attr(
+    feature = "schemars",
+    schemars(example = 0, example = 210_000, example = 420_000, example = 840_000)
+)]
 pub struct Height(u32);
 
 impl Height {

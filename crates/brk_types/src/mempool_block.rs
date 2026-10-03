@@ -1,37 +1,40 @@
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{FeeRate, Sats, VSize};
 
 /// Block info in a mempool.space like format for fee estimation.
-#[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct MempoolBlock {
     /// Total serialized block size in bytes (witness + non-witness).
-    #[schemars(example = 1604417)]
+    #[cfg_attr(feature = "schemars", schemars(example = 1604417))]
     block_size: u64,
 
     /// Total block virtual size in vbytes
-    #[schemars(example = 998368.0)]
+    #[cfg_attr(feature = "schemars", schemars(example = 998368.0))]
     block_v_size: f64,
 
     /// Number of transactions in the projected block
-    #[schemars(example = 863)]
+    #[cfg_attr(feature = "schemars", schemars(example = 863))]
     n_tx: u32,
 
     /// Total fees in satoshis
-    #[schemars(example = 8875608)]
+    #[cfg_attr(feature = "schemars", schemars(example = 8875608))]
     total_fees: Sats,
 
     /// Median fee rate in sat/vB
-    #[schemars(example = 10.5)]
+    #[cfg_attr(feature = "schemars", schemars(example = 10.5))]
     median_fee: FeeRate,
 
     /// Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
-    #[schemars(example = example_fee_range())]
+    #[cfg_attr(feature = "schemars", schemars(example = example_fee_range()))]
     fee_range: [FeeRate; 7],
 }
 
+#[cfg(feature = "schemars")]
 fn example_fee_range() -> [FeeRate; 7] {
     [
         FeeRate::new(1.0),

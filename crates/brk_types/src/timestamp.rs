@@ -11,6 +11,7 @@ use jiff::{
     civil::{DateTime, date},
     tz::TimeZone,
 };
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -24,27 +25,17 @@ use vecdb::{Formattable, Pco};
 
 /// UNIX timestamp in seconds
 #[derive(
-    Debug,
-    Default,
-    Deref,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Serialize,
-    Deserialize,
-    JsonSchema,
+    Debug, Default, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
-#[schemars(
+#[cfg_attr(feature = "schemars", schemars(
     example = &1231006505,
     example = &1672531200,
     example = &1713571200,
     example = &1743631892,
     example = &1759000868
-)]
+))]
 pub struct Timestamp(u32);
 
 pub const ONE_HOUR_IN_SEC: u32 = 60 * 60;

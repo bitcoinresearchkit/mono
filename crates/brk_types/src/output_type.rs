@@ -14,6 +14,7 @@ use bitcoin::{
     },
 };
 use brk_error::Error;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::Display;
@@ -24,19 +25,9 @@ use crate::AddrBytes;
 use vecdb::{Bytes, Formattable, Pco};
 
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    Display,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Serialize,
-    Deserialize,
-    JsonSchema,
-    Hash,
+    Debug, Clone, Copy, Display, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 #[repr(u8)]
@@ -56,7 +47,8 @@ pub enum OutputType {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, Display, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Hash)]
+#[derive(Debug, Clone, Copy, Display, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 /// Output type names used by Esplora and mempool.space.

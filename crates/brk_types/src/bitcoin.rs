@@ -5,6 +5,7 @@ use std::{
 };
 
 use ryu::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +19,8 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 use vecdb::{Formattable, Pco};
 
 /// Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
-#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct Bitcoin(f64);
 

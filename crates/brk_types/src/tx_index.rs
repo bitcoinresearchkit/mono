@@ -5,6 +5,7 @@ use std::{
 
 use derive_more::{Deref, DerefMut};
 use itoa::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -31,11 +32,11 @@ use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
     Default,
     Serialize,
     Deserialize,
-    JsonSchema,
     Hash,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
-#[schemars(example = 0)]
+#[cfg_attr(feature = "schemars", schemars(example = 0))]
 pub struct TxIndex(u32);
 
 impl TxIndex {

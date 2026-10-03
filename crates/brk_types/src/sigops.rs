@@ -1,6 +1,7 @@
 #[cfg(feature = "storage")]
 use itoa::Buffer;
 
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -16,19 +17,9 @@ use vecdb::{Formattable, Pco};
 /// Five vbytes per sigop is the policy adjustment Core applies in
 /// `nSigOpCost` to discourage sigop-heavy txs (`max(weight/4, sigops*5)`).
 #[derive(
-    Debug,
-    Default,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Serialize,
-    Deserialize,
-    JsonSchema,
+    Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
 #[serde(transparent)]
 pub struct SigOps(u32);

@@ -1,11 +1,16 @@
+#[cfg(feature = "schemars")]
 use std::borrow::Cow;
 
 use bitcoin::{ScriptBuf, TxOut as BitcoinTxOut};
+#[cfg(feature = "schemars")]
 use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
+#[cfg(feature = "schemars")]
 use serde_json::json;
 
-use crate::{Addr, AddrBytes, OutputType, OutputTypeNormalized, Sats};
+#[cfg(feature = "schemars")]
+use crate::OutputTypeNormalized;
+use crate::{Addr, AddrBytes, OutputType, Sats};
 
 /// Transaction output
 #[derive(Debug, Clone, Deserialize)]
@@ -18,6 +23,7 @@ pub struct TxOut {
     pub value: Sats,
 }
 
+#[cfg(feature = "schemars")]
 #[allow(dead_code)]
 #[derive(JsonSchema)]
 struct TxOutSchema {
@@ -38,6 +44,7 @@ struct TxOutSchema {
     value: Sats,
 }
 
+#[cfg(feature = "schemars")]
 impl JsonSchema for TxOut {
     fn schema_name() -> Cow<'static, str> {
         "TxOut".into()

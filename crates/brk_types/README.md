@@ -22,29 +22,38 @@ linearization lives in `brk_cpfp`.
 | Values | `Sats`, `Bitcoin`, `Dollars`, `Cents`, `FeeRate` |
 | Mempool | `MempoolInfo`, `MempoolBlock`, `BlockTemplate`, `RecommendedFees`, `CpfpInfo` |
 
-The types implement the serialization, JSON Schema, arithmetic, formatting,
-and optional vecdb traits needed by their domains rather than exposing a parallel
-set of API wrapper types.
+The types implement the serialization, arithmetic, formatting, and optional JSON
+Schema (`schemars`) and vecdb (`storage`) traits needed by their domains rather
+than exposing a parallel set of API wrapper types.
+
+## Features
+
+The default build has no `vecdb`, `rawdb` or `schemars` dependency, so BRK
+libraries such as `brk_mempool` and `brk_rpc` stay lean.
+
+- `schemars` adds the JSON Schema derives (and `Version`'s schema with
+  `storage`) that Bitview's API needs; `bitview_primitives` enables it.
+- `storage`: see below.
 
 ## Storage support
 
-The default build has no `vecdb` or `rawdb` dependency. Enable `storage` in crates
-that persist domain values; this adds byte/compression derives, vector traits,
-storage versions, and storage error conversions. Catalog and API-only consumers
-leave it disabled.
+Enable `storage` in crates that persist domain values; this adds
+byte/compression derives, vector traits, storage versions, and storage error
+conversions. Catalog and API-only consumers leave it disabled.
 
-Index names and aliases (`Height`, `TxIndex`), arithmetic (including `CheckedSub`),
-Serde, and JSON Schema remain available without storage. Optional vecdb implementations delegate
-to those domain definitions. `bitview_types::SeriesData::version` and Rust client
-version endpoints expose the wire value as `u32`, not the storage engine's
-`Version` type.
+Index names and aliases (`Height`, `TxIndex`), arithmetic (including
+`CheckedSub`), Serde, and JSON Schema (with `schemars`) remain available without
+storage. Optional vecdb implementations delegate to those domain definitions.
+`bitview_types::SeriesData::version` and Rust client version endpoints expose
+the wire value as `u32`, not the storage engine's `Version` type.
 
-Verify both modes separately to avoid workspace feature unification hiding an
-accidental storage dependency:
+Verify the modes separately to avoid workspace feature unification hiding an
+accidental storage or schemars dependency:
 
 ```sh
 cargo test -p brk_types --no-default-features
 cargo test -p brk_types --features storage
+cargo test -p brk_types --features schemars,storage
 cargo tree -p bitview_catalog
 ```
 

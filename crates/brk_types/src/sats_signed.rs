@@ -6,6 +6,7 @@ use std::{
 
 use derive_more::Deref;
 use itoa::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -21,20 +22,9 @@ use vecdb::{Formattable, Pco};
 /// Signed satoshis (i64) - for values that can be negative.
 /// Used for changes, deltas, profit/loss calculations, etc.
 #[derive(
-    Debug,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord,
-    Clone,
-    Copy,
-    Deref,
-    Default,
-    Serialize,
-    Deserialize,
-    JsonSchema,
+    Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy, Deref, Default, Serialize, Deserialize,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct SatsSigned(i64);
 

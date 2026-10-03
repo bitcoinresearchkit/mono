@@ -1,4 +1,5 @@
 use derive_more::Deref;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -21,8 +22,9 @@ use vecdb::{Bytes, Formattable};
 /// the serialized `Bytes::Array` size (vecdb requires this for alignment).
 ///
 /// Bitcoin consensus limits coinbase scriptSig to 2-100 bytes.
-#[derive(Debug, Deref, Clone, JsonSchema)]
-pub struct CoinbaseTag(#[schemars(with = "String")] [u8; 101]);
+#[derive(Debug, Deref, Clone)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct CoinbaseTag(#[cfg_attr(feature = "schemars", schemars(with = "String"))] [u8; 101]);
 
 #[cfg(feature = "storage")]
 impl Bytes for CoinbaseTag {

@@ -4,6 +4,7 @@ use std::{
 };
 
 use itoa::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +12,8 @@ use serde::{Deserialize, Serialize};
 use vecdb::{Formattable, Pco};
 
 /// Position within a .blk file, encoding file index and byte offset
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct BlkPosition(u64);
 

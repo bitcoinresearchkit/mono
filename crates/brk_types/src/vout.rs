@@ -3,6 +3,7 @@ use itoa::Buffer;
 use std::fmt::{Display, Formatter, Result};
 
 use derive_more::Deref;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -11,22 +12,11 @@ use vecdb::{Bytes, Formattable};
 
 /// Index of the output being spent in the previous transaction
 #[derive(
-    Debug,
-    Default,
-    Deref,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Serialize,
-    Deserialize,
-    JsonSchema,
-    Hash,
+    Debug, Default, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Bytes))]
-#[schemars(example = &0, example = &1, example = &2, example = &5, example = &10)]
+#[cfg_attr(feature = "schemars", schemars(example = &0, example = &1, example = &2, example = &5, example = &10))]
 pub struct Vout(u16);
 
 impl Vout {

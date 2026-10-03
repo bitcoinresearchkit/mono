@@ -9,7 +9,7 @@ repository.workspace = true
 
 [dependencies]
 bitcoin = { workspace = true }
-brk_error = { workspace = true }
+brk_error = { workspace = true, features = ["serde_json"] }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 brk_types = { workspace = true }

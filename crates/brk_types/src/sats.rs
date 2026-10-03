@@ -7,6 +7,7 @@ use std::{
 use bitcoin::Amount;
 use derive_more::Deref;
 use itoa::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -21,28 +22,17 @@ use vecdb::{Formattable, OverflowVecValue, Pco, SaturatingAdd, Version};
 
 /// Amount in satoshis (1 BTC = 100,000,000 sats)
 #[derive(
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Clone,
-    Copy,
-    Deref,
-    Default,
-    Serialize,
-    Deserialize,
-    Hash,
-    JsonSchema,
+    Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Deref, Default, Serialize, Deserialize, Hash,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
-#[schemars(
+#[cfg_attr(feature = "schemars", schemars(
     example = &0,
     example = &546,
     example = &10000,
     example = &100_000_000,
     example = &2_100_000_000_000_000_u64
-)]
+))]
 pub struct Sats(u64);
 
 #[cfg(feature = "storage")]

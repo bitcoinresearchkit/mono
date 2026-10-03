@@ -4,6 +4,7 @@ use std::{
 };
 
 use itoa::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -18,9 +19,8 @@ use vecdb::{Formattable, Pco};
 
 /// Signed cents (i64) - for values that can be negative.
 /// Used for profit/loss calculations, deltas, etc.
-#[derive(
-    Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
-)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct CentsSigned(i64);
 

@@ -1,53 +1,69 @@
 use bitcoin::{Script, ScriptBuf, Sequence, TxIn as BitcoinTxIn, transaction::OutPoint};
+#[cfg(feature = "schemars")]
 use schemars::{JsonSchema, Schema};
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
+#[cfg(feature = "schemars")]
 use serde_json::{Value, json};
 
 use crate::{TxOut, Txid, Vout, Witness};
 
 /// Transaction input
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
-#[schemars(transform = txin_wire_schema)]
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", schemars(transform = txin_wire_schema))]
 pub struct TxIn {
     /// Transaction ID of the output being spent
-    #[schemars(example = "0000000000000000000000000000000000000000000000000000000000000000")]
+    #[cfg_attr(
+        feature = "schemars",
+        schemars(example = "0000000000000000000000000000000000000000000000000000000000000000")
+    )]
     pub txid: Txid,
 
     /// Output index being spent (u16: coinbase is 65535, mempool.space uses u32: 4294967295)
-    #[schemars(example = 0)]
+    #[cfg_attr(feature = "schemars", schemars(example = 0))]
     pub vout: Vout,
 
     /// Information about the previous output being spent
     pub prevout: Option<TxOut>,
 
     /// Signature script (hex, for non-SegWit inputs)
-    #[schemars(rename = "scriptsig", with = "String")]
+    #[cfg_attr(feature = "schemars", schemars(rename = "scriptsig", with = "String"))]
     pub script_sig: ScriptBuf,
 
     /// Signature script in assembly format
-    #[schemars(rename = "scriptsig_asm", with = "String")]
+    #[cfg_attr(
+        feature = "schemars",
+        schemars(rename = "scriptsig_asm", with = "String")
+    )]
     pub script_sig_asm: (),
 
     /// Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
     pub witness: Witness,
 
     /// Whether this input is a coinbase (block reward) input
-    #[schemars(example = false)]
+    #[cfg_attr(feature = "schemars", schemars(example = false))]
     pub is_coinbase: bool,
 
     /// Input sequence number
-    #[schemars(example = 4294967293_u32)]
+    #[cfg_attr(feature = "schemars", schemars(example = 4294967293_u32))]
     pub sequence: u32,
 
     /// Inner redeemscript in assembly (for P2SH-wrapped SegWit: scriptsig + witness both present)
-    #[schemars(rename = "inner_redeemscript_asm", with = "String")]
+    #[cfg_attr(
+        feature = "schemars",
+        schemars(rename = "inner_redeemscript_asm", with = "String")
+    )]
     pub inner_redeem_script_asm: (),
 
     /// Inner witnessscript in assembly (for P2WSH: last witness item decoded as script)
-    #[schemars(rename = "inner_witnessscript_asm", with = "String")]
+    #[cfg_attr(
+        feature = "schemars",
+        schemars(rename = "inner_witnessscript_asm", with = "String")
+    )]
     pub inner_witness_script_asm: (),
 }
 
+#[cfg(feature = "schemars")]
 fn txin_wire_schema(schema: &mut Schema) {
     let Some(required) = schema.get_mut("required").and_then(Value::as_array_mut) else {
         return;

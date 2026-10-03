@@ -1,3 +1,4 @@
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -5,7 +6,8 @@ use super::{CpfpClusterChunk, CpfpClusterTx};
 
 /// CPFP cluster: the connected component the seed belongs to, plus its
 /// SFL linearization.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct CpfpCluster {
     /// All txs in the cluster, in topological order (parents before children).

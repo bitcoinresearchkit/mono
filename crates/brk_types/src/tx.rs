@@ -2,6 +2,7 @@ use bitcoin::{
     Script, Transaction as BitcoinTransaction, TxIn as BitcoinTxIn, TxOut as BitcoinTxOut,
     consensus::Encodable, constants::WITNESS_SCALE_FACTOR,
 };
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -11,22 +12,26 @@ use crate::{
 };
 
 /// Transaction information compatible with mempool.space API format
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct Transaction {
     /// Internal transaction index (brk-specific, not in mempool.space)
-    #[schemars(example = TxIndex::new(0))]
+    #[cfg_attr(feature = "schemars", schemars(example = TxIndex::new(0)))]
     pub index: Option<TxIndex>,
 
     /// Transaction ID
-    #[schemars(example = "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b")]
+    #[cfg_attr(
+        feature = "schemars",
+        schemars(example = "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b")
+    )]
     pub txid: Txid,
 
     /// Transaction version (raw i32 from Bitcoin protocol, may contain non-standard values in coinbase txs)
-    #[schemars(example = 2)]
+    #[cfg_attr(feature = "schemars", schemars(example = 2))]
     pub version: TxVersionRaw,
 
     /// Transaction lock time
-    #[schemars(example = 0)]
+    #[cfg_attr(feature = "schemars", schemars(example = 0))]
     #[serde(rename = "locktime")]
     pub lock_time: RawLockTime,
 
@@ -39,21 +44,21 @@ pub struct Transaction {
     pub output: Vec<TxOut>,
 
     /// Transaction size in bytes
-    #[schemars(example = 222)]
+    #[cfg_attr(feature = "schemars", schemars(example = 222))]
     #[serde(rename = "size")]
     pub total_size: usize,
 
     /// Transaction weight
-    #[schemars(example = 558)]
+    #[cfg_attr(feature = "schemars", schemars(example = 558))]
     pub weight: Weight,
 
     /// Number of signature operations
-    #[schemars(example = SigOps::new(1))]
+    #[cfg_attr(feature = "schemars", schemars(example = SigOps::new(1)))]
     #[serde(rename = "sigops")]
     pub total_sigop_cost: SigOps,
 
     /// Transaction fee in satoshis
-    #[schemars(example = Sats::new(31))]
+    #[cfg_attr(feature = "schemars", schemars(example = Sats::new(31)))]
     pub fee: Sats,
 
     /// Confirmation status (confirmed, block height/hash/time)

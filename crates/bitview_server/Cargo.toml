@@ -24,7 +24,7 @@ aide = { workspace = true }
 axum = { workspace = true }
 http-body = { workspace = true }
 brk_error = { workspace = true, features = ["jiff", "serde_json", "tokio", "vecdb"] }
-brk_oracle = { workspace = true }
+brk_oracle = { workspace = true, features = ["schemars"] }
 bitview_query = { workspace = true, default-features = false, features = ["tokio"] }
 bitview_types = { workspace = true }
 bitview_catalog = { workspace = true }

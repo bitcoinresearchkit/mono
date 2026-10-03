@@ -3,6 +3,7 @@ use std::{fmt, str::FromStr};
 use bitcoin::{Address, Network, ScriptBuf};
 use brk_error::Error;
 use derive_more::Deref;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -13,13 +14,14 @@ use crate::AddrBytes;
 use vecdb::Formattable;
 
 /// Bitcoin address string
-#[derive(Debug, Clone, Deref, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Deref, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(transparent)]
-#[schemars(
+#[cfg_attr(feature = "schemars", schemars(
     example = &"04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
     example = &"1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
     example = &"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
-)]
+))]
 pub struct Addr(String);
 
 impl From<String> for Addr {

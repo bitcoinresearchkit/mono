@@ -9,6 +9,7 @@ use std::{
 
 use derive_more::Deref;
 use ryu::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -22,15 +23,16 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 use vecdb::{Formattable, Pco};
 
 /// US Dollar amount
-#[derive(Debug, Default, Clone, Copy, Deref, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Clone, Copy, Deref, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
-#[schemars(
+#[cfg_attr(feature = "schemars", schemars(
     example = &0.0,
     example = &100.50,
     example = &30_000.0,
     example = &69_000.0,
     example = &84_342.12
-)]
+))]
 pub struct Dollars(f64);
 
 impl Hash for Dollars {

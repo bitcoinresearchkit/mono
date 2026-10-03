@@ -1,4 +1,5 @@
 use bitcoin::Witness as BitcoinWitness;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -9,9 +10,10 @@ use serde::{Deserialize, Serialize};
 /// hex strings - the format used by Bitcoin Core REST and mempool.space
 /// and matching brk's `script_sig: ScriptBuf` (bytes internally, hex
 /// on the wire).
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(transparent)]
-#[schemars(with = "Vec<String>")]
+#[cfg_attr(feature = "schemars", schemars(with = "Vec<String>"))]
 pub struct Witness(BitcoinWitness);
 
 impl Witness {

@@ -7,6 +7,7 @@ use std::{
 use bitcoin::Weight as BitcoinWeight;
 use derive_more::Deref;
 use itoa::Buffer;
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -20,27 +21,17 @@ use vecdb::{Formattable, Pco};
 
 /// Weight in weight units (WU). Max block weight is 4,000,000 WU.
 #[derive(
-    Debug,
-    Default,
-    Deref,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Serialize,
-    Deserialize,
-    JsonSchema,
+    Debug, Default, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
 )]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
-#[schemars(
+#[cfg_attr(feature = "schemars", schemars(
     example = &396,
     example = &561,
     example = &900,
     example = &2_000_000,
     example = &3_993_472
-)]
+))]
 pub struct Weight(u32);
 
 impl Weight {
