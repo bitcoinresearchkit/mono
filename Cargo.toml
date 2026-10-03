@@ -10,9 +10,11 @@ package.repository = "https://github.com/bitcoinresearchkit/mono"
 package.readme = "README.md"
 
 [profile.dev]
-lto = "thin"
-codegen-units = 16
+# No cross-crate LTO, default codegen units: on macOS, cross-crate ThinLTO with unpacked debuginfo keeps per-binary
+# copies of the LTO-generated dependency objects and relinks every test/example slowly. Thin-local LTO still applies.
 opt-level = 2
+# Qualified function names and file:line in backtraces, no variable/type info; smaller and faster than full.
+debug = "limited"
 split-debuginfo = "unpacked"
 
 [profile.release]
