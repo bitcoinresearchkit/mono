@@ -37,16 +37,16 @@ impl From<IndexMap<String, TreeNode>> for TreeBranch {
 }
 
 impl TreeBranch {
-    pub fn merge_field(&mut self, key: String, node: TreeNode) -> Option<()> {
-        TreeNode::merge_node(&mut self.children, key, node)
+    /// Panics on a conflicting key (see [`TreeNode::merge_branches`]).
+    pub fn merge_field(&mut self, key: String, node: TreeNode) {
+        TreeNode::merge_node(&mut self.children, key, node);
     }
 
     /// Lift another branch's children into this one.
-    pub fn merge_fields(&mut self, other: Self) -> Option<()> {
+    pub fn merge_fields(&mut self, other: Self) {
         for (key, child) in other.children {
-            self.merge_field(key, child)?;
+            self.merge_field(key, child);
         }
-        Some(())
     }
 }
 

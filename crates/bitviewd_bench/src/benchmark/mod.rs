@@ -66,7 +66,12 @@ enum State {
 }
 
 impl Benchmark {
-    pub fn new(data_path: &Path, blocks_path: &Path, chain_height: Height) -> Result<Self> {
+    pub fn new(
+        data_path: &Path,
+        blocks_path: &Path,
+        chain_height: Height,
+        cache_budget: usize,
+    ) -> Result<Self> {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
         let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -77,7 +82,14 @@ impl Benchmark {
         let path = runs.join(format!("run-{timestamp}"));
         fs::create_dir(&path)?;
 
-        metadata::write(&path, workspace, data_path, blocks_path, chain_height)?;
+        metadata::write(
+            &path,
+            workspace,
+            data_path,
+            blocks_path,
+            chain_height,
+            cache_budget,
+        )?;
 
         let trace = Arc::new(TraceMonitor::new(&path)?);
         let trace_hook = Arc::clone(&trace);

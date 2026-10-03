@@ -27,7 +27,9 @@ use std::{
 use bitcoin::{
     Block, Network, ScriptBuf, blockdata::constants::genesis_block, consensus::serialize,
 };
-use bitview::{ComputePluginSet, Config, ImportContext, PluginSet, UpdateContext, run};
+use bitview::{
+    ComputePluginSet, Config, DEFAULT_CACHE_BUDGET, ImportContext, PluginSet, UpdateContext, run,
+};
 use bitview_plugin::{ComputePlugin, Publication};
 use bitview_plugin_indexer::{HasIndexer, Indexer};
 use bitview_server::ServerConfig;
@@ -258,6 +260,7 @@ fn runner_publishes_same_height_reorgs() {
                 data_path: directory,
                 ..ServerConfig::default()
             },
+            cache_budget: DEFAULT_CACHE_BUDGET,
         },
         Exit::default(),
         |context: ImportContext<'_>, reader| {

@@ -130,7 +130,7 @@ Custom compositions can reuse the daemon shell without compiling the official
 composition:
 
 ```toml
-bitviewd = { version = "0.11.2", default-features = false, features = ["series"] }
+bitviewd = { version = "0.12", default-features = false, features = ["series"] }
 ```
 
 Plugin features flow through `bitview` and `bitview_server` to `bitview_query`,

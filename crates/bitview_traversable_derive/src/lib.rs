@@ -566,16 +566,15 @@ fn generate_field_traversals(infos: &[FieldInfo], merge: bool) -> ProcMacro2Toke
                     if info.is_option {
                         let node_expr = build_wrapped(quote! { nested.to_tree_node() });
                         quote! {
-                            if let Some(entry) = self.#field_name.as_ref().map(|nested| (String::from(#outer_key), #node_expr)) {
-                                collected.merge_field(entry.0, entry.1)
-                                    .expect("Conflicting values for same key");
+                            if let Some(nested) = self.#field_name.as_ref() {
+                                collected.merge_field(String::from(#outer_key), #node_expr);
                             }
                         }
                     } else {
-                        let node_expr_self = build_wrapped(quote! { self.#field_name.to_tree_node() });
+                        let node_expr_self =
+                            build_wrapped(quote! { self.#field_name.to_tree_node() });
                         quote! {
-                            collected.merge_field(String::from(#outer_key), #node_expr_self)
-                                .expect("Conflicting values for same key");
+                            collected.merge_field(String::from(#outer_key), #node_expr_self);
                         }
                     }
                 }
@@ -583,12 +582,10 @@ fn generate_field_traversals(infos: &[FieldInfo], merge: bool) -> ProcMacro2Toke
                     let field_name = info.name;
                     let merge_branch = quote! {
                         bitview_traversable::TreeNode::Branch(map) => {
-                            collected.merge_fields(map)
-                                .expect("Conflicting values for same key during flatten");
+                            collected.merge_fields(map);
                         }
                         leaf @ bitview_traversable::TreeNode::Leaf(_) => {
-                            collected.merge_field(String::from(stringify!(#field_name)), leaf)
-                                .expect("Conflicting values for same key during flatten");
+                            collected.merge_field(String::from(stringify!(#field_name)), leaf);
                         }
                     };
 
@@ -609,7 +606,7 @@ fn generate_field_traversals(infos: &[FieldInfo], merge: bool) -> ProcMacro2Toke
         .collect();
 
     let final_expr = if merge {
-        quote! { bitview_traversable::TreeNode::Branch(collected).merge_branches().unwrap() }
+        quote! { bitview_traversable::TreeNode::Branch(collected).merge_branches() }
     } else {
         quote! { bitview_traversable::TreeNode::Branch(collected) }
     };

@@ -1,9 +1,7 @@
 mod dependencies;
-mod has;
 mod vecs;
 
 pub use dependencies::Dependencies;
-pub use has::HasCapitalSentiment;
 pub use vecs::Vecs;
 
 use bitview_plugin::{PluginId, PluginStorage};

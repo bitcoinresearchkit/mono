@@ -9,24 +9,21 @@ use brk_exit::Exit;
 use brk_logger::init;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 use tokio::{runtime::Builder, spawn};
 use tracing::{error, info};
 use vecdb::Budgeted;
 
 pub fn main() -> Result<()> {
-    Budgeted::init_global(2 * 1024 * 1024 * 1024)?;
+    Budgeted::init_global(bitview::DEFAULT_CACHE_BUDGET)?;
     init(Some(Path::new(".log")))?;
 
-    let bitcoin_dir = Client::default_bitcoin_path();
+    let node = ConnectArgs::default();
     let outputs_dir = Path::new(&env::var("HOME").unwrap()).join(".bitview");
 
-    let client = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(bitcoin_dir.join(".cookie")),
-    )?;
+    let client = node.client()?;
 
-    let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
+    let reader = Reader::new(node.blocks_dir(), &client);
     let context = ImportContext::new(&outputs_dir);
     let plugins = DefaultPlugins::import(context, &reader)?;
 

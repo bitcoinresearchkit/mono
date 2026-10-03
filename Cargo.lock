@@ -1757,7 +1757,6 @@ name = "brk_types"
 version = "0.12.2"
 dependencies = [
  "bitcoin",
- "brk_byteview",
  "brk_error",
  "brk_pco",
  "derive_more",

@@ -14,7 +14,6 @@ storage = ["dep:vecdb", "brk_error/vecdb"]
 [dependencies]
 bitcoin = { workspace = true }
 brk_error = { workspace = true, features = ["bitcoin", "jiff", "serde_json"] }
-byteview = { workspace = true }
 derive_more = { workspace = true }
 itoa = "1.0.18"
 jiff = { workspace = true }

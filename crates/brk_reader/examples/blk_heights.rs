@@ -1,15 +1,12 @@
 use brk_error::Result;
 use brk_reader::{BlkIndexToBlkPath, Reader};
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 
 fn main() -> Result<()> {
-    let bitcoin_dir = Client::default_bitcoin_path();
-    let client = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(bitcoin_dir.join(".cookie")),
-    )?;
+    let node = ConnectArgs::default();
+    let client = node.client()?;
 
-    let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
+    let reader = Reader::new(node.blocks_dir(), &client);
     let xor_bytes = reader.xor_bytes();
     let blk_map = BlkIndexToBlkPath::scan(reader.blocks_dir())?;
 

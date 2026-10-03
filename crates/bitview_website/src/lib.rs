@@ -1,4 +1,4 @@
-//! Standalone website serving for BRK.
+//! Website router for Bitview: embedded assets or a filesystem directory.
 //!
 //! This crate provides website serving without any BRK data layer dependencies.
 //! It can serve the embedded website or from a filesystem path.

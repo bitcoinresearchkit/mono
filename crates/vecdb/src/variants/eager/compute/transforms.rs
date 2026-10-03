@@ -91,24 +91,6 @@ where
         max_from: V::I,
         other1: &impl ReadableVec<V::I, A>,
         other2: &impl ReadableVec<V::I, B>,
-        t: F,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        A: VecValue,
-        B: VecValue,
-        F: FnMut((V::I, A, B, &Self)) -> (V::I, V::T),
-    {
-        let batch_size = self.batch_capacity();
-        self.compute_transform2_batched(max_from, other1, other2, batch_size, t, exit)
-    }
-
-    pub fn compute_transform2_batched<A, B, F>(
-        &mut self,
-        max_from: V::I,
-        other1: &impl ReadableVec<V::I, A>,
-        other2: &impl ReadableVec<V::I, B>,
-        batch_size: usize,
         mut t: F,
         exit: &Exit,
     ) -> Result<()>
@@ -118,6 +100,7 @@ where
         F: FnMut((V::I, A, B, &Self)) -> (V::I, V::T),
     {
         let source_end = other1.len().min(other2.len());
+        let batch_size = self.batch_capacity();
         self.compute_batched_to(
             max_from,
             source_end,

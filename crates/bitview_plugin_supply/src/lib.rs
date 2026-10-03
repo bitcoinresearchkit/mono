@@ -1,12 +1,10 @@
 mod burned;
 mod dependencies;
-mod has;
 mod velocity;
 
 mod vecs;
 
 pub use dependencies::Dependencies;
-pub use has::HasSupply;
 pub use vecs::Vecs;
 
 use bitview_plugin::{PluginId, PluginStorage};

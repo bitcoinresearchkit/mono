@@ -3,7 +3,6 @@
 pub enum ErrorCode {
     NotFound,
     InvalidAddr,
-    InvalidTxid,
     InvalidNetwork,
     UnsupportedType,
     ParseError,
@@ -19,7 +18,6 @@ pub enum ErrorCode {
     SeriesNotFound,
     MempoolNotAvailable,
     StateUpdating,
-    AuthFailed,
     InternalError,
     BadRequest,
     #[cfg(any(feature = "chain", test))]
@@ -33,7 +31,6 @@ impl ErrorCode {
         match self {
             Self::NotFound => "not_found",
             Self::InvalidAddr => "invalid_addr",
-            Self::InvalidTxid => "invalid_txid",
             Self::InvalidNetwork => "invalid_network",
             Self::UnsupportedType => "unsupported_type",
             Self::ParseError => "parse_error",
@@ -49,7 +46,6 @@ impl ErrorCode {
             Self::SeriesNotFound => "series_not_found",
             Self::MempoolNotAvailable => "mempool_not_available",
             Self::StateUpdating => "state_updating",
-            Self::AuthFailed => "auth_failed",
             Self::InternalError => "internal_error",
             Self::BadRequest => "bad_request",
             #[cfg(any(feature = "chain", test))]

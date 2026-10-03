@@ -1,9 +1,4 @@
-use std::{
-    env,
-    path::{Path, PathBuf},
-    sync::Arc,
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 #[cfg(feature = "async")]
 use brk_error::Error;
@@ -64,28 +59,5 @@ impl Client {
             max_retries,
             retry_delay,
         )?)))
-    }
-
-    pub fn default_url() -> &'static str {
-        "http://localhost:8332"
-    }
-
-    pub fn default_bitcoin_path() -> PathBuf {
-        if env::consts::OS == "macos" {
-            Self::default_mac_bitcoin_path()
-        } else {
-            Self::default_linux_bitcoin_path()
-        }
-    }
-
-    fn default_linux_bitcoin_path() -> PathBuf {
-        Path::new(&env::var("HOME").unwrap()).join(".bitcoin")
-    }
-
-    fn default_mac_bitcoin_path() -> PathBuf {
-        Path::new(&env::var("HOME").unwrap())
-            .join("Library")
-            .join("Application Support")
-            .join("Bitcoin")
     }
 }

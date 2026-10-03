@@ -377,9 +377,7 @@ impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
     fn to_tree_node(&self) -> TreeNode {
         let mut branch = TreeBranch::default();
         for (key, value) in self {
-            branch
-                .merge_field(key.to_string(), value.to_tree_node())
-                .expect("Conflicting displayed map keys");
+            branch.merge_field(key.to_string(), value.to_tree_node());
         }
         TreeNode::Branch(branch)
     }

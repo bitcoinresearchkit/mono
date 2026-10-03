@@ -122,9 +122,6 @@ pub enum Error {
     #[error(transparent)]
     TokioJoin(#[from] JoinError),
 
-    #[error("ZeroCopy error")]
-    ZeroCopyError,
-
     #[error("Wrong length, expected: {expected}, received: {received}")]
     WrongLength { expected: usize, received: usize },
 
@@ -134,17 +131,11 @@ pub enum Error {
     #[error("Date is outside the supported index range")]
     UnindexableDate,
 
-    #[error("Quick cache error")]
-    QuickCacheError,
-
     #[error("The provided address appears to be invalid")]
     InvalidAddr,
 
     #[error("Invalid network")]
     InvalidNetwork,
-
-    #[error("The provided TXID appears to be invalid")]
-    InvalidTxid,
 
     #[error("Mempool data is not available")]
     MempoolNotAvailable,
@@ -177,8 +168,10 @@ pub enum Error {
     #[error("Internal error: {0}")]
     Internal(&'static str),
 
-    #[error("Authentication failed")]
-    AuthFailed,
+    #[error(
+        "No RPC credentials: no rpcpassword is set and there's no cookie file at {cookie:?} (is bitcoind running?)"
+    )]
+    NoRpcCredentials { cookie: PathBuf },
 
     // Series-specific errors
     #[error("{0}")]
@@ -198,9 +191,6 @@ pub enum Error {
 
     #[error("Too many unspent transaction outputs (>1000).")]
     TooManyUtxos,
-
-    #[error("Deserialization error: {0}")]
-    Deserialization(String),
 
     #[error("Fetch failed after retries: {0}")]
     FetchFailed(String),

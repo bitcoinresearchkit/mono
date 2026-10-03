@@ -1,7 +1,3 @@
-mod has;
-
-pub use has::HasConstants;
-
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_transforms::{ReturnF32Tenths, ReturnI8, ReturnU16};
 use bitview_traversable::Traversable;

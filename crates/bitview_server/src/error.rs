@@ -32,7 +32,6 @@ fn error_type(status: StatusCode) -> &'static str {
 fn error_details(error: &BrkError) -> (StatusCode, ErrorCode) {
     match error {
         BrkError::InvalidAddr => (StatusCode::BAD_REQUEST, ErrorCode::InvalidAddr),
-        BrkError::InvalidTxid => (StatusCode::BAD_REQUEST, ErrorCode::InvalidTxid),
         BrkError::InvalidNetwork => (StatusCode::BAD_REQUEST, ErrorCode::InvalidNetwork),
         BrkError::UnsupportedType(_) => (StatusCode::BAD_REQUEST, ErrorCode::UnsupportedType),
         BrkError::Parse(_) => (StatusCode::BAD_REQUEST, ErrorCode::ParseError),
@@ -55,7 +54,6 @@ fn error_details(error: &BrkError) -> (StatusCode, ErrorCode) {
         ),
         BrkError::ReadTimeout => (StatusCode::GATEWAY_TIMEOUT, ErrorCode::Timeout),
         BrkError::StateUpdating => (StatusCode::SERVICE_UNAVAILABLE, ErrorCode::StateUpdating),
-        BrkError::AuthFailed => (StatusCode::FORBIDDEN, ErrorCode::AuthFailed),
         _ => (StatusCode::INTERNAL_SERVER_ERROR, ErrorCode::InternalError),
     }
 }
@@ -111,9 +109,7 @@ impl Error {
 
     fn cache_policy(&self) -> ErrorCachePolicy {
         match self.code {
-            ErrorCode::InvalidAddr | ErrorCode::InvalidNetwork | ErrorCode::InvalidTxid => {
-                ErrorCachePolicy::Immutable
-            }
+            ErrorCode::InvalidAddr | ErrorCode::InvalidNetwork => ErrorCachePolicy::Immutable,
             _ => match self.status {
                 StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND => ErrorCachePolicy::Revalidate,
                 _ => ErrorCachePolicy::NoStore,

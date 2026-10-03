@@ -35,7 +35,7 @@ fn run() -> Result<()> {
         return Ok(());
     }
     let args = Args::parse(raw)?;
-    let client = args.rpc()?;
+    let client = args.connect.client()?;
     let mut mempool = Mempool::new(&client);
 
     let stdout = io::stdout();

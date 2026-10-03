@@ -16,6 +16,7 @@ pub fn write(
     data_path: &Path,
     blocks_path: &Path,
     chain_height: Height,
+    cache_budget: usize,
 ) -> io::Result<()> {
     let mut writer = BufWriter::new(File::create(run_path.join("metadata.txt"))?);
     let revision = git(workspace, &["rev-parse", "HEAD"]);
@@ -48,6 +49,7 @@ pub fn write(
     writeln!(writer, "dirty={dirty}")?;
     writeln!(writer, "blocks_path={}", blocks_path.display())?;
     writeln!(writer, "data_path={}", data_path.display())?;
+    writeln!(writer, "cache_budget={cache_budget}")?;
     writer.flush()
 }
 

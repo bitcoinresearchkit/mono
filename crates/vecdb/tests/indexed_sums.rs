@@ -39,10 +39,6 @@ fn check_indexed_sums<V: StoredVec<I = usize, T = u64>>() {
     source.write().unwrap();
     let exit = Exit::new();
 
-    let expected: Vec<_> = groups
-        .iter()
-        .map(|group| group.iter().copied().fold(0u64, u64::saturating_add))
-        .collect();
     let expected_cumulative: Vec<_> = groups
         .iter()
         .scan(0, |total, group| {
@@ -50,28 +46,19 @@ fn check_indexed_sums<V: StoredVec<I = usize, T = u64>>() {
             Some(*total)
         })
         .collect();
-    let mut output: EagerVec<V> = EagerVec::forced_import(&db, "all", Version::ONE).unwrap();
     let mut cumulative: EagerVec<V> =
         EagerVec::forced_import(&db, "grouped_cumulative", Version::ONE).unwrap();
     for phase in 0..5 {
         if phase == 2 {
-            drop(output);
-            output = EagerVec::forced_import(&db, "all", Version::ONE).unwrap();
             drop(cumulative);
             cumulative = EagerVec::forced_import(&db, "grouped_cumulative", Version::ONE).unwrap();
         }
         if phase == 4 {
-            output
-                .validate_computed_version_or_reset(Version::ZERO)
-                .unwrap();
             cumulative
                 .validate_computed_version_or_reset(Version::ZERO)
                 .unwrap();
         }
         let from = if phase == 3 { 7 } else { groups.len() };
-        output
-            .compute_sum_from_indexes(from, &first, &counts, &source, &exit)
-            .unwrap();
         cumulative
             .compute_cumulative_sum_from_indexes(
                 from,
@@ -82,7 +69,6 @@ fn check_indexed_sums<V: StoredVec<I = usize, T = u64>>() {
                 &exit,
             )
             .unwrap();
-        assert_eq!(output.collect(), expected, "phase={phase}");
         assert_eq!(cumulative.collect(), expected_cumulative, "phase={phase}");
     }
 
@@ -90,7 +76,14 @@ fn check_indexed_sums<V: StoredVec<I = usize, T = u64>>() {
         BytesVec::forced_import(&db, "empty_first", Version::ONE).unwrap();
     let mut output: EagerVec<V> = EagerVec::forced_import(&db, "missing", Version::ONE).unwrap();
     output
-        .compute_sum_from_indexes(0, &empty_first, &counts, &source, &exit)
+        .compute_cumulative_sum_from_indexes(
+            0,
+            &empty_first,
+            &counts,
+            &source,
+            |value| value,
+            &exit,
+        )
         .unwrap();
     assert!(output.collect().is_empty());
 }

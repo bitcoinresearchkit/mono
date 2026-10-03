@@ -18,7 +18,7 @@ FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y ca-certificates procps && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m -s /bin/bash bitview
+RUN useradd -m -u 1000 -s /bin/bash bitview
 
 COPY --from=builder /app/target/release/bitviewd /usr/local/bin/bitviewd
 

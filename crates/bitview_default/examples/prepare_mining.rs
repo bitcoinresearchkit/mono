@@ -9,18 +9,15 @@ use brk_alloc as _;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_reader::Reader;
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 use std::{env, path::Path, thread, time::Instant};
 use vecdb::{AnyVec, Budgeted};
 fn work() -> Result<()> {
     let args: Vec<_> = env::args().collect();
-    Budgeted::init_global(2 * 1024 * 1024 * 1024)?;
-    let bitcoin = Client::default_bitcoin_path();
-    let client = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(bitcoin.join(".cookie")),
-    )?;
-    let reader = Reader::new(bitcoin.join("blocks"), &client);
+    Budgeted::init_global(bitview_plugin::DEFAULT_CACHE_BUDGET)?;
+    let node = ConnectArgs::default();
+    let client = node.client()?;
+    let reader = Reader::new(node.blocks_dir(), &client);
     let context = ImportContext::new(Path::new(&args[1]));
     let indexer = Indexer::import(context, &reader)?;
     let mappings = Mappings::import(context, &indexer)?;

@@ -22,16 +22,13 @@ use bitcoin::{Amount, OutPoint, ScriptBuf, Transaction, TxOut};
 use brk_error::Result;
 use brk_iterator::Blocks;
 use brk_reader::Reader;
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 use brk_types::Height;
 
 fn main() -> Result<()> {
-    let bitcoin_dir = Client::default_bitcoin_path();
-    let client = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(bitcoin_dir.join(".cookie")),
-    )?;
-    let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
+    let node = ConnectArgs::default();
+    let client = node.client()?;
+    let reader = Reader::new(node.blocks_dir(), &client);
     let blocks = Blocks::new(&client, &reader);
 
     let tip: u32 = client.get_block_count()? as u32;

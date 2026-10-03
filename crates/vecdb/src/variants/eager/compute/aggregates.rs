@@ -3,40 +3,12 @@ use std::ops::{Add, AddAssign};
 use brk_exit::Exit;
 
 use super::super::EagerVec;
-use crate::{
-    AnyVec, ReadableVec, Result, SaturatingAdd, StoredVec, VecIndex, VecValue, WritableVec,
-};
+use crate::{AnyVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, WritableVec};
 
 impl<V> EagerVec<V>
 where
     V: StoredVec,
 {
-    /// Sum each contiguous group, saturating on overflow.
-    pub fn compute_sum_from_indexes<A, B>(
-        &mut self,
-        max_from: V::I,
-        first_indexes: &impl ReadableVec<V::I, A>,
-        indexes_count: &impl ReadableVec<V::I, B>,
-        source: &impl ReadableVec<A, V::T>,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        V::T: Default + SaturatingAdd,
-        A: VecIndex + VecValue,
-        B: VecValue,
-        usize: From<B>,
-    {
-        self.compute_grouped_from_indexes(
-            max_from,
-            first_indexes,
-            indexes_count,
-            source,
-            SaturatingAdd::saturating_add,
-            |this, sum| this.push(sum.unwrap_or_default()),
-            exit,
-        )
-    }
-
     /// Transform and sum each contiguous group, appending running totals.
     pub fn compute_cumulative_sum_from_indexes<A, B, S>(
         &mut self,

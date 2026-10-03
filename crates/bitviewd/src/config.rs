@@ -3,14 +3,15 @@ use std::{
     net::IpAddr,
     path::{Path, PathBuf},
     process::exit,
+    str::FromStr,
 };
 
-use bitview::Config as RunnerConfig;
+use bitview::{Config as RunnerConfig, DEFAULT_CACHE_BUDGET};
 use bitview_server::{
     CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig, Website,
 };
 use brk_error::{Error, Result};
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 use brk_types::Port;
 use lexopt::{
     Arg::{Long, Short},
@@ -47,6 +48,9 @@ pub struct Config {
     maxutxos: Option<usize>,
 
     #[serde(default)]
+    cachebudget: Option<usize>,
+
+    #[serde(default)]
     bitcoindir: Option<String>,
 
     #[serde(default)]
@@ -76,20 +80,17 @@ impl Config {
     }
 
     pub fn import() -> Result<RunnerConfig> {
-        let config_args = Self::parse_args();
-
-        let config_dir = default_bitview_dir();
-
-        fs::create_dir_all(&config_dir)?;
+        let config_args = Self::parse_args()?;
 
         let config = Self::load()?.with_overrides(config_args);
 
         let data_path = config.bitviewdir();
 
         config.check();
+        let runner = config.runner()?;
         fs::create_dir_all(&data_path)?;
 
-        config.runner()
+        Ok(runner)
     }
 
     fn with_overrides(self, overrides: Self) -> Self {
@@ -101,6 +102,7 @@ impl Config {
             cdn: overrides.cdn.or(self.cdn),
             maxweight: overrides.maxweight.or(self.maxweight),
             maxutxos: overrides.maxutxos.or(self.maxutxos),
+            cachebudget: overrides.cachebudget.or(self.cachebudget),
             bitcoindir: overrides.bitcoindir.or(self.bitcoindir),
             blocksdir: overrides.blocksdir.or(self.blocksdir),
             rpcconnect: overrides.rpcconnect.or(self.rpcconnect),
@@ -111,12 +113,16 @@ impl Config {
         }
     }
 
-    fn parse_args() -> Self {
+    fn parse_args() -> Result<Self> {
         let mut config = Self::default();
         let mut parser = Parser::from_env();
         let command = Self::command_name();
 
-        while let Some(arg) = parser.next().unwrap() {
+        while let Some(arg) = parser.next().map_err(parse_error)? {
+            let flag = match &arg {
+                Long(name) => format!("--{name}"),
+                _ => String::new(),
+            };
             match arg {
                 Short('h') | Long("help") => {
                     Self::print_help(&command);
@@ -126,48 +132,26 @@ impl Config {
                     println!("{command} {}", env!("CARGO_PKG_VERSION"));
                     exit(0);
                 }
-                Long("bitviewdir") => {
-                    config.bitviewdir = Some(parser.value().unwrap().parse().unwrap())
-                }
-                Long("serverbind") => {
-                    config.serverbind = Some(parser.value().unwrap().parse().unwrap())
-                }
-                Long("serverport") => {
-                    config.serverport = Some(parser.value().unwrap().parse().unwrap())
-                }
-                Long("website") => config.website = Some(parser.value().unwrap().parse().unwrap()),
-                Long("cdn") => config.cdn = Some(parser.value().unwrap().parse().unwrap()),
-                Long("maxweight") => {
-                    config.maxweight = Some(parser.value().unwrap().parse().unwrap())
-                }
-                Long("maxutxos") => {
-                    config.maxutxos = Some(parser.value().unwrap().parse().unwrap())
-                }
-                Long("bitcoindir") => {
-                    config.bitcoindir = Some(parser.value().unwrap().parse().unwrap())
-                }
-                Long("blocksdir") => {
-                    config.blocksdir = Some(parser.value().unwrap().parse().unwrap())
-                }
-                Long("rpcconnect") => {
-                    config.rpcconnect = Some(parser.value().unwrap().parse().unwrap())
-                }
-                Long("rpcport") => config.rpcport = Some(parser.value().unwrap().parse().unwrap()),
-                Long("rpccookiefile") => {
-                    config.rpccookiefile = Some(parser.value().unwrap().parse().unwrap())
-                }
-                Long("rpcuser") => config.rpcuser = Some(parser.value().unwrap().parse().unwrap()),
-                Long("rpcpassword") => {
-                    config.rpcpassword = Some(parser.value().unwrap().parse().unwrap())
-                }
-                _ => {
-                    eprintln!("{}", arg.unexpected());
-                    exit(1);
-                }
+                Long("bitviewdir") => config.bitviewdir = Some(value(&mut parser, &flag)?),
+                Long("serverbind") => config.serverbind = Some(value(&mut parser, &flag)?),
+                Long("serverport") => config.serverport = Some(value(&mut parser, &flag)?),
+                Long("website") => config.website = Some(value(&mut parser, &flag)?),
+                Long("cdn") => config.cdn = Some(value(&mut parser, &flag)?),
+                Long("maxweight") => config.maxweight = Some(value(&mut parser, &flag)?),
+                Long("maxutxos") => config.maxutxos = Some(value(&mut parser, &flag)?),
+                Long("cachebudget") => config.cachebudget = Some(value(&mut parser, &flag)?),
+                Long("bitcoindir") => config.bitcoindir = Some(value(&mut parser, &flag)?),
+                Long("blocksdir") => config.blocksdir = Some(value(&mut parser, &flag)?),
+                Long("rpcconnect") => config.rpcconnect = Some(value(&mut parser, &flag)?),
+                Long("rpcport") => config.rpcport = Some(value(&mut parser, &flag)?),
+                Long("rpccookiefile") => config.rpccookiefile = Some(value(&mut parser, &flag)?),
+                Long("rpcuser") => config.rpcuser = Some(value(&mut parser, &flag)?),
+                Long("rpcpassword") => config.rpcpassword = Some(value(&mut parser, &flag)?),
+                _ => return Err(parse_error(arg.unexpected())),
             }
         }
 
-        config
+        Ok(config)
     }
 
     fn command_name() -> String {
@@ -234,6 +218,11 @@ impl Config {
             "<COUNT>".bright_black(),
             format!("[{}]", DEFAULT_MAX_UTXOS).bright_black()
         );
+        println!(
+            "    --cachebudget {}     Shared vector cache size in bytes {}",
+            "<BYTES>".bright_black(),
+            format!("[{DEFAULT_CACHE_BUDGET}]").bright_black()
+        );
         println!();
         println!(
             "    --bitcoindir {}       Bitcoin directory {}",
@@ -294,26 +283,18 @@ impl Config {
     }
 
     fn check(&self) {
-        if !self.bitcoindir().is_dir() {
-            println!("{:?} isn't a valid directory", self.bitcoindir());
+        let connect = self.connect();
+        if !connect.bitcoin_dir().is_dir() {
+            println!("{:?} isn't a valid directory", connect.bitcoin_dir());
             println!("Please use the --bitcoindir parameter to set a valid path.");
             println!("Run the program with '-h' for help.");
             exit(1);
         }
 
-        if !self.blocksdir().is_dir() {
-            println!("{:?} isn't a valid directory", self.blocksdir());
+        if !connect.blocks_dir().is_dir() {
+            println!("{:?} isn't a valid directory", connect.blocks_dir());
             println!("Please use the --blocksdir parameter to set a valid path.");
             println!("Run the program with '-h' for help.");
-            exit(1);
-        }
-
-        if self.rpc_auth().is_err() {
-            println!(
-                "Unsuccessful authentication with the RPC client.
-First make sure that `bitcoind` is running. If it is then please either set --rpccookiefile or --rpcuser and --rpcpassword as the default values seemed to have failed.
-Finally, you can run the program with '-h' for help."
-            );
             exit(1);
         }
     }
@@ -337,53 +318,24 @@ Finally, you can run the program with '-h' for help."
         })
     }
 
-    fn rpc(&self) -> Result<Client> {
-        Client::new(
-            &format!(
-                "http://{}:{}",
-                self.rpcconnect.as_deref().unwrap_or("localhost"),
-                self.rpcport.unwrap_or(8332)
-            ),
-            self.rpc_auth()?,
-        )
-    }
-
-    fn rpc_auth(&self) -> Result<Auth> {
-        let cookie = self.path_cookiefile();
-
-        if cookie.is_file() {
-            Ok(Auth::CookieFile(cookie))
-        } else if let (Some(user), Some(password)) = (&self.rpcuser, &self.rpcpassword) {
-            Ok(Auth::UserPass(user.clone(), password.clone()))
-        } else {
-            Err(Error::AuthFailed)
+    /// Node connection settings, with `~` expanded.
+    fn connect(&self) -> ConnectArgs {
+        let path = |value: &Option<String>| value.as_deref().map(fix_user_path);
+        ConnectArgs {
+            bitcoindir: path(&self.bitcoindir),
+            blocksdir: path(&self.blocksdir),
+            rpcconnect: self.rpcconnect.clone(),
+            rpcport: self.rpcport,
+            rpccookiefile: path(&self.rpccookiefile),
+            rpcuser: self.rpcuser.clone(),
+            rpcpassword: self.rpcpassword.clone(),
         }
-    }
-
-    fn bitcoindir(&self) -> PathBuf {
-        self.bitcoindir
-            .as_ref()
-            .map_or_else(Client::default_bitcoin_path, |s| fix_user_path(s.as_ref()))
-    }
-
-    fn blocksdir(&self) -> PathBuf {
-        self.blocksdir.as_ref().map_or_else(
-            || self.bitcoindir().join("blocks"),
-            |blocksdir| fix_user_path(blocksdir.as_str()),
-        )
     }
 
     fn bitviewdir(&self) -> PathBuf {
         self.bitviewdir
             .as_ref()
             .map_or_else(default_bitview_dir, |s| fix_user_path(s.as_ref()))
-    }
-
-    fn path_cookiefile(&self) -> PathBuf {
-        self.rpccookiefile.as_ref().map_or_else(
-            || self.bitcoindir().join(".cookie"),
-            |p| fix_user_path(p.as_str()),
-        )
     }
 
     fn website(&self) -> Website {
@@ -429,11 +381,29 @@ Finally, you can run the program with '-h' for help."
 
     fn runner(&self) -> Result<RunnerConfig> {
         Ok(RunnerConfig {
-            client: self.rpc()?,
-            blocks_path: self.blocksdir(),
+            client: self.connect().client()?,
+            blocks_path: self.connect().blocks_dir(),
             server: self.server_config(),
+            cache_budget: self.cachebudget.unwrap_or(DEFAULT_CACHE_BUDGET),
         })
     }
+}
+
+/// The next value of `flag`, parsed into the field's type.
+fn value<T>(parser: &mut Parser, flag: &str) -> Result<T>
+where
+    T: FromStr,
+    T::Err: Into<Box<dyn std::error::Error + Send + Sync>>,
+{
+    parser
+        .value()
+        .map_err(parse_error)?
+        .parse()
+        .map_err(|error| Error::Parse(format!("{flag}: {error}")))
+}
+
+fn parse_error(error: lexopt::Error) -> Error {
+    Error::Parse(error.to_string())
 }
 
 #[cfg(test)]

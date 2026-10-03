@@ -5,16 +5,12 @@ use std::{
     time::Instant,
 };
 
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 use brk_types::BlockHashPrefix;
 
 fn main() {
-    let bitcoin_dir = Client::default_bitcoin_path();
-    let client = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(bitcoin_dir.join(".cookie")),
-    )
-    .unwrap();
+    let node = ConnectArgs::default();
+    let client = node.client().unwrap();
 
     let tip = u32::from(client.get_last_height().unwrap());
     let num_threads = thread::available_parallelism().unwrap().get();

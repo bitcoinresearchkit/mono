@@ -13,12 +13,10 @@ A running Bitcoin Core node with RPC access. The reader needs:
 ## Quick Start
 
 ```rust,ignore
-let bitcoin_dir = Client::default_bitcoin_path();
-let client = Client::new(
-    Client::default_url(),
-    Auth::CookieFile(bitcoin_dir.join(".cookie")),
-)?;
-let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
+// Bitcoin Core's default data directory, cookie file and RPC port
+let node = ConnectArgs::default();
+let client = node.client()?;
+let reader = Reader::new(node.blocks_dir(), &client);
 
 // Everything from genesis to the current tip
 for block in reader.after(None)? {

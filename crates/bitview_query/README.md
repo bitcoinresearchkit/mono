@@ -124,7 +124,7 @@ operation rather than by callers. Ordinary storage/compute reads remain unbounde
 
 ## Features
 
-Plugin features (`indexer`, `blocks`, `distribution`, `mappings`, `price`, and
+Plugin features (`indexer`, `blocks`, `distribution_age`, `mappings`, `price`, and
 the other built-in plugin IDs) are the source of truth. Enabling one adds its
 typed `HasX` requirement to `QueryPluginSet` and exposes its typed accessor.
 The `tokio` feature adds `AsyncQuery` and also enables the indexer capability.

@@ -107,10 +107,10 @@ impl TreeNode {
     /// Direct leaves use their key (use #[traversable(rename = "...")] to control).
     /// Branch children are lifted with their keys.
     /// If all resulting children are leaves with the same series name, collapses to a single leaf.
-    /// Returns None if conflicts are found (same key with incompatible values).
-    pub fn merge_branches(self) -> Option<Self> {
+    /// Panics on a conflict (same key with incompatible values): a programming error.
+    pub fn merge_branches(self) -> Self {
         let Self::Branch(tree) = self else {
-            return Some(self);
+            return self;
         };
 
         let mut merged = TreeBranch::default();
@@ -126,22 +126,22 @@ impl TreeNode {
             match node {
                 Self::Leaf(leaf) => {
                     // Direct leaves use their key (which may be renamed via attribute)
-                    merged.merge_field(key, Self::Leaf(leaf))?;
+                    merged.merge_field(key, Self::Leaf(leaf));
                 }
                 Self::Branch(inner) => {
                     // Lift children from branches with their keys
-                    merged.merge_fields(inner)?;
+                    merged.merge_fields(inner);
                 }
             }
         }
 
         // If all children are leaves with the same series name, collapse into single leaf
         let node = Self::try_collapse_same_name_leaves(merged);
-        Some(if field_suffixes {
+        if field_suffixes {
             node.with_field_suffixes()
         } else {
             node
-        })
+        }
     }
 
     /// If all entries in the map are leaves with the same series name,
@@ -178,52 +178,42 @@ impl TreeNode {
     }
 
     /// Merges a node into the target map at the given key (consuming version).
-    /// Returns None if there's a conflict.
-    pub(crate) fn merge_node(
-        target: &mut IndexMap<String, TreeNode>,
-        key: String,
-        node: TreeNode,
-    ) -> Option<()> {
-        match target.get_mut(&key) {
-            None => {
-                target.insert(key, node);
-                Some(())
-            }
-            Some(existing) => {
-                match (existing, node) {
-                    (Self::Leaf(a), Self::Leaf(b)) if a.is_same_series(&b) => a.merge(&b),
-                    (Self::Leaf(a), Self::Leaf(b)) => {
-                        eprintln!("Conflict: Different leaf values for key '{key}'");
-                        eprintln!("  Existing: {a:?}");
-                        eprintln!("  New: {b:?}");
-                        None
-                    }
-                    (existing @ Self::Leaf(_), Self::Branch(branch)) => {
-                        let Self::Leaf(leaf) =
-                            mem::replace(existing, Self::branch(IndexMap::new()))
-                        else {
-                            unreachable!()
-                        };
-                        let Self::Branch(new_branch) = existing else {
-                            unreachable!()
-                        };
-                        new_branch.insert(BASE.to_string(), Self::Leaf(leaf));
-
-                        new_branch.merge_fields(branch)?;
-                        Some(())
-                    }
-                    (Self::Branch(existing_branch), Self::Leaf(leaf)) => {
-                        existing_branch.field_suffixes = false;
-                        Self::merge_node(existing_branch, BASE.to_string(), Self::Leaf(leaf))?;
-                        Some(())
-                    }
-                    // Both branches: merge recursively
-                    (Self::Branch(existing_branch), Self::Branch(new_inner)) => {
-                        existing_branch.field_suffixes &= new_inner.field_suffixes;
-                        existing_branch.merge_fields(new_inner)?;
-                        Some(())
-                    }
+    /// Panics on a conflict: two different series, or one series with two descriptions.
+    pub(crate) fn merge_node(target: &mut IndexMap<String, TreeNode>, key: String, node: TreeNode) {
+        let Some(existing) = target.get_mut(&key) else {
+            target.insert(key, node);
+            return;
+        };
+        match (existing, node) {
+            (Self::Leaf(a), Self::Leaf(b)) if a.is_same_series(&b) => {
+                if a.merge(&b).is_none() {
+                    panic!(
+                        "Conflicting descriptions for series '{}' at key '{key}'",
+                        a.name()
+                    );
                 }
+            }
+            (Self::Leaf(a), Self::Leaf(b)) => {
+                panic!("Conflicting leaves for key '{key}':\n  existing: {a:?}\n  new: {b:?}")
+            }
+            (existing @ Self::Leaf(_), Self::Branch(branch)) => {
+                let Self::Leaf(leaf) = mem::replace(existing, Self::branch(IndexMap::new())) else {
+                    unreachable!()
+                };
+                let Self::Branch(new_branch) = existing else {
+                    unreachable!()
+                };
+                new_branch.insert(BASE.to_string(), Self::Leaf(leaf));
+                new_branch.merge_fields(branch);
+            }
+            (Self::Branch(existing_branch), Self::Leaf(leaf)) => {
+                existing_branch.field_suffixes = false;
+                Self::merge_node(existing_branch, BASE.to_string(), Self::Leaf(leaf));
+            }
+            // Both branches: merge recursively
+            (Self::Branch(existing_branch), Self::Branch(new_inner)) => {
+                existing_branch.field_suffixes &= new_inner.field_suffixes;
+                existing_branch.merge_fields(new_inner);
             }
         }
     }
@@ -282,7 +272,7 @@ mod tests {
                 )
             }),
         );
-        let TreeNode::Branch(map) = branch(children).merge_branches().unwrap() else {
+        let TreeNode::Branch(map) = branch(children).merge_branches() else {
             panic!("expected branch");
         };
         assert_eq!(map.len(), 6);

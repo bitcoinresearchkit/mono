@@ -57,12 +57,7 @@ where
         let keyspace = checked_open(
             &path.join(format!("meta/{name}")),
             Version::new(u32::from(FORMAT_VERSION)) + version,
-            || {
-                Self::open_keyspace(db, name, kind).inspect_err(|e| {
-                    eprintln!("{e}");
-                    eprintln!("Delete {path:?} and try again");
-                })
-            },
+            || Self::open_keyspace(db, name, kind),
         )?;
         Ok(Self {
             keyspace,

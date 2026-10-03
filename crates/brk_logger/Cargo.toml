@@ -1,6 +1,6 @@
 [package]
 name = "brk_logger"
-description = "A thin wrapper around tracing with size-based log rotation"
+description = "A thin wrapper around tracing with daily, per-level log files"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

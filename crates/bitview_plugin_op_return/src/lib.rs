@@ -1,13 +1,11 @@
 mod breakdown;
 mod by_kind;
 mod dependencies;
-mod has;
 mod policy;
 mod total;
 mod vecs;
 
 pub use dependencies::Dependencies;
-pub use has::HasOpReturn;
 pub use vecs::Vecs;
 
 use bitview_plugin::{PluginId, PluginStorage};

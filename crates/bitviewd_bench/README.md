@@ -25,7 +25,7 @@ printed before bootstrap starts and again after completion. For example,
 
 ```text
 disk.csv       # physical data-directory size, excluding benchmark reports
-metadata.txt   # build, host, chain, revision, and path context
+metadata.txt   # build, host, chain, revision, path, and cache budget context
 memory.csv     # current and peak physical memory sampled every five seconds
 io.csv         # process disk I/O sampled from the same OS call
 progress.csv   # indexed heights observed through production log events

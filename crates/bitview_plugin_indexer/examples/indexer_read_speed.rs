@@ -9,7 +9,7 @@ use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_logger::init;
 use brk_reader::Reader;
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 use brk_types::Sats;
 use vecdb::{Budgeted, ReadableVec};
 
@@ -28,7 +28,7 @@ fn run_benchmark(indexer: &Indexer) -> (Sats, Duration, usize) {
 }
 
 fn main() -> Result<()> {
-    Budgeted::init_global(2 * 1024 * 1024 * 1024)?;
+    Budgeted::init_global(bitview_plugin::DEFAULT_CACHE_BUDGET)?;
     init(Some(Path::new(".log")))?;
 
     let outputs_dir = Path::new(&env::var("HOME").unwrap()).join(".bitview");
@@ -39,12 +39,9 @@ fn main() -> Result<()> {
     println!("╚════════════════════════════════════════════════════════╝\n");
 
     println!("Loading indexer from: {}", outputs_dir.display());
-    let bitcoin_dir = Client::default_bitcoin_path();
-    let client = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(bitcoin_dir.join(".cookie")),
-    )?;
-    let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
+    let node = ConnectArgs::default();
+    let client = node.client()?;
+    let reader = Reader::new(node.blocks_dir(), &client);
     let context = ImportContext::new(&outputs_dir);
     let indexer = Indexer::import(context, &reader)?;
     println!("Indexer loaded.\n");

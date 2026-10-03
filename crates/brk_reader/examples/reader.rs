@@ -2,17 +2,14 @@ use std::time::Instant;
 
 use brk_error::Result;
 use brk_reader::Reader;
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 
 fn main() -> Result<()> {
-    let bitcoin_dir = Client::default_bitcoin_path();
+    let node = ConnectArgs::default();
 
-    let client = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(bitcoin_dir.join(".cookie")),
-    )?;
+    let client = node.client()?;
 
-    let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
+    let reader = Reader::new(node.blocks_dir(), &client);
 
     // Stream all blocks from genesis to the current tip.
     let i = Instant::now();

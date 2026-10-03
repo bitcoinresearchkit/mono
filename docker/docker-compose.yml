@@ -24,13 +24,14 @@ services:
       - /home/bitview/.bitview
       - --rpcconnect
       - "${BTC_RPC_HOST:-localhost}"
+      # Without BTC_RPC_PASSWORD, bitviewd uses the cookie at /bitcoin/.cookie.
       - --rpcuser
-      - "${BTC_RPC_USER:-bitcoin}"
+      - "${BTC_RPC_USER:-}"
       - --rpcpassword
-      - "${BTC_RPC_PASSWORD:-bitcoin}"
-      # Cookie file alternative (uncomment and remove rpcuser/rpcpassword above):
-      # - --rpccookiefile
-      # - /bitcoin/.cookie
+      - "${BTC_RPC_PASSWORD:-}"
+      # Shared vector cache size in bytes (default 2 GiB):
+      # - --cachebudget
+      # - "4294967296"
     healthcheck:
       test: ["CMD", "pgrep", "-x", "bitviewd"]
       interval: 30s

@@ -1,6 +1,6 @@
 [package]
 name = "bitview_website"
-description = "Standalone website server for Bitview"
+description = "Embedded or filesystem website router for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

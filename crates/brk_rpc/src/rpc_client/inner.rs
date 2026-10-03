@@ -60,10 +60,17 @@ impl ClientInner {
         Ok(())
     }
 
-    fn is_retriable(error: &JsonRpcError) -> bool {
+    fn is_retriable(&self, error: &JsonRpcError) -> bool {
         match error {
             JsonRpcError::Rpc(e) => e.code == -32600 || e.code == 401 || e.code == -28,
-            JsonRpcError::Transport(_) => true,
+            // A rejected password stays rejected; a cookie is re-read on every retry.
+            JsonRpcError::Transport(e) => {
+                !matches!(self.auth, Auth::UserPass(..))
+                    || !matches!(
+                        e.downcast_ref(),
+                        Some(simple_http::Error::HttpErrorCode(401))
+                    )
+            }
             _ => false,
         }
     }
@@ -95,7 +102,7 @@ impl ClientInner {
                     }
                     return Ok(value);
                 }
-                Err(e) if Self::is_retriable(&e) => {
+                Err(e) if self.is_retriable(&e) => {
                     if attempt == 0 {
                         warn!("Lost connection to Bitcoin Core; reconnecting...");
                     }

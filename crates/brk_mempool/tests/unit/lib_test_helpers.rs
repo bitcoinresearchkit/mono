@@ -5,7 +5,7 @@ use super::*;
 
 impl Mempool {
     pub(crate) fn for_test() -> Self {
-        let client = Client::new(Client::default_url(), Auth::None).unwrap();
+        let client = Client::new("http://127.0.0.1:1", Auth::None).unwrap();
         Self::new(&client)
     }
 

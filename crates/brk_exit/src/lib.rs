@@ -21,6 +21,7 @@ mod guard;
 
 pub use guard::ExitGuard;
 
+static HANDLER_INSTALLED: AtomicBool = AtomicBool::new(false);
 static SIGNAL_RECEIVED: AtomicBool = AtomicBool::new(false);
 static SIGNAL_PIPE: AtomicI32 = AtomicI32::new(-1);
 
@@ -67,8 +68,13 @@ impl Exit {
     /// Registers signal handlers and spawns a background shutdown thread.
     ///
     /// # Panics
-    /// Panics if pipe creation or `sigaction` fails.
+    /// Panics if called more than once per process, or if pipe creation or `sigaction` fails.
     pub fn set_ctrlc_handler(&self) {
+        assert!(
+            !HANDLER_INSTALLED.swap(true, Ordering::Relaxed),
+            "the ctrl-c handler is already installed"
+        );
+
         let mut fds = [0i32; 2];
         assert!(
             unsafe { pipe(fds.as_mut_ptr()) } == 0,

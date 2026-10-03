@@ -15,7 +15,7 @@ and `Pagination` live in `bitview_types`; `TreeNode` lives in `bitview_catalog`.
 |----------|----------|
 | Block metadata | `Height`, `BlockHash`, `BlockTimestamp`, `BlkPosition` |
 | Transactions | `Txid`, `TxIndex`, `TxIn`, `TxOut`, `VSize`, `Weight` |
-| Addresses | `Addr`, `OutputType`, `P2PKHAddrIndex`, `AnyAddrIndex`, `AddrStats` |
+| Addresses | `Addr`, `OutputType`, `P2PKHAddrIndex`, `AddrStats` |
 | Values | `Sats`, `Bitcoin`, `Dollars`, `Cents`, `OHLCCents` |
 | Time indexes | `Day1`, `Day3`, `Week1`, `Month1`, `Month3`, `Month6`, `Year1`, `Year10` |
 | Protocol | `Epoch`, `Halving`, `TxVersion`, `RawLockTime` |

@@ -26,7 +26,7 @@ use std::{
 
 use brk_error::Result;
 use brk_reader::{BlockReceiver, Reader};
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 use brk_types::Height;
 
 const SCENARIOS: &[usize] = &[5, 10, 100, 1_000, 10_000];
@@ -35,12 +35,9 @@ const PARTIAL_LIMIT: usize = 400_000;
 const PARSER_COUNTS: &[usize] = &[1, 4, 16];
 
 fn main() -> Result<()> {
-    let bitcoin_dir = Client::default_bitcoin_path();
-    let client = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(bitcoin_dir.join(".cookie")),
-    )?;
-    let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
+    let node = ConnectArgs::default();
+    let client = node.client()?;
+    let reader = Reader::new(node.blocks_dir(), &client);
 
     let tip = client.get_last_height()?;
     println!("Tip: {tip}");

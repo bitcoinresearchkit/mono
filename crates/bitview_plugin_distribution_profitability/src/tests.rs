@@ -38,7 +38,7 @@ impl Fixture {
     fn new() -> Self {
         static INIT: Once = Once::new();
         INIT.call_once(|| {
-            Budgeted::init_global(2 * 1024 * 1024 * 1024).unwrap();
+            Budgeted::init_global(bitview_plugin::DEFAULT_CACHE_BUDGET).unwrap();
         });
         let directory = tempdir().unwrap();
         let context = ImportContext::new(directory.path());

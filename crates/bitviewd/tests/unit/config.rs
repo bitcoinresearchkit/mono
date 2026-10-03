@@ -12,6 +12,7 @@ fn only_present_command_line_fields_override_persisted_settings() {
         cdn = true
         maxweight = 123
         maxutxos = 456
+        cachebudget = 789
         bitcoindir = "/fixture/bitcoin"
         blocksdir = "/fixture/blocks"
         rpcconnect = "localhost"

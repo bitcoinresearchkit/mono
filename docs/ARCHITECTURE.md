@@ -71,8 +71,9 @@ chain-order indexes, and dependent plugins compute their datasets in dependency
 order. When the node is near tip, the server is published and the runner follows
 new blocks through RPC while maintaining mempool state.
 
-The runtime tracks a pipeline-safe length shared with the query layer. Readers
-therefore see data only after the relevant plugin updates have completed. On a
+The indexer tracks a pipeline-safe length shared with the query layer, and the
+runtime sequences each update's publication, so readers see data only after
+every plugin update has completed. On a
 reorganization, owned plugin state rolls back to the last valid chain state and
 is recomputed forward.
 

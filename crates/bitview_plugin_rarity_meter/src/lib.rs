@@ -28,7 +28,6 @@ mod components;
 mod dependencies;
 mod extreme;
 mod extremes;
-mod has;
 mod inner;
 mod median_component;
 #[cfg(test)]
@@ -40,8 +39,6 @@ mod test_common;
 mod threshold_vecs;
 
 pub use dependencies::Dependencies;
-
-pub use has::HasRarityMeter;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("rarity_meter"), Version::new(17));
 pub const ID: PluginId = STORAGE.id();

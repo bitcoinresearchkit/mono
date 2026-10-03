@@ -18,7 +18,10 @@ Query a Bitcoin Core node for blocks, transactions, mempool data, and chain stat
 ## Core API
 
 ```rust,ignore
+// Explicit endpoint and credentials
 let client = Client::new("http://localhost:8332", Auth::CookieFile(cookie_path))?;
+// Or resolve them like bitcoin-cli does (user/password when a password is set, else the cookie)
+let client = ConnectArgs::default().client()?;
 
 let height = client.get_last_height()?;
 let hash = client.get_block_hash(height)?;

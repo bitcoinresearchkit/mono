@@ -701,15 +701,12 @@
           </div>
           <div class="code-stack">
             <pre class="command">cargo add brk_rpc</pre>
-            <pre class="code-block"><span class="syntax-key">use</span> brk_rpc::{Auth, Client};
+            <pre class="code-block"><span class="syntax-key">use</span> brk_rpc::ConnectArgs;
 
 <span class="syntax-key">fn</span> main() {
-    <span class="syntax-key">let</span> datadir = Client::default_bitcoin_path();
-    <span class="syntax-key">let</span> rpc = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(datadir.join(".cookie")),
-    )
-    .expect("connect to Bitcoin Core");
+    <span class="syntax-key">let</span> rpc = ConnectArgs::default()
+        .client()
+        .expect("connect to Bitcoin Core");
 
     <span class="syntax-key">let</span> height = rpc.get_last_height().expect("read chain tip");
     println!("{height}");

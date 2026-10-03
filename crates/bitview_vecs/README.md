@@ -12,14 +12,14 @@ and reader primitives; `bitview_compute` supplies stateful/range algorithms;
 - `views`: single-source readers with aligned metadata and no retained result cache.
 - `sources`: shared index and window-start readers.
 - `resolutions`: composition of a height source into time and chain resolutions.
-- `block`, `daily`, `tx`: metric families organized by their source index.
+- `block`, `tx`: metric families organized by their source index.
 - `rolling`: rolling and delta compositions.
 - `value`, `fiat`, `percent`, `ratio`: unit-specific compositions.
 - `cohort`: cohort sources, aggregates, and typed count breakdowns.
 
 Modules are private; the crate root exposes the supported types. Files are
-named relative to their parent module (for example, `daily/metric.rs`, not
-`daily/daily_metric.rs`) and define at most one public struct.
+named relative to their parent module (for example, `block/rolling.rs`, not
+`block/block_rolling.rs`) and define at most one public struct.
 Small implementation-only helpers stay private to their owner or family.
 
 ## Composition

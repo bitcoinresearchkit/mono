@@ -7,23 +7,20 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 use brk_types::Addr;
 use vecdb::Budgeted;
 
 pub fn main() -> Result<()> {
-    Budgeted::init_global(2 * 1024 * 1024 * 1024)?;
-    let bitcoin_dir = Client::default_bitcoin_path();
+    Budgeted::init_global(bitview::DEFAULT_CACHE_BUDGET)?;
+    let node = ConnectArgs::default();
 
-    let blocks_dir = bitcoin_dir.join("blocks");
+    let blocks_dir = node.blocks_dir();
 
     let outputs_dir = Path::new(&env::var("HOME").unwrap()).join(".bitview");
     fs::create_dir_all(&outputs_dir)?;
 
-    let client = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(bitcoin_dir.join(".cookie")),
-    )?;
+    let client = node.client()?;
 
     let exit = Exit::new();
     exit.set_ctrlc_handler();

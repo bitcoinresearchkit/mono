@@ -34,12 +34,12 @@ fn run() -> Result<()> {
     }
     let args = Args::parse(raw)?;
 
-    let client = args.rpc()?;
+    let client = args.connect.client()?;
     let (start, end) = selector::parse(&args.selector, &client)?;
     let network = client.get_network()?;
 
     let mode = Mode::pick(args.pretty, args.compact, args.paths.len())?;
-    let reader = Reader::new(args.blocks_dir(), &client);
+    let reader = Reader::new(args.connect.blocks_dir(), &client);
     let formatter = Formatter::new(mode, args.paths);
     let parser_threads = (thread::available_parallelism()
         .map(|n| n.get())

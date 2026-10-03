@@ -3,16 +3,13 @@ use std::{thread, time::Duration};
 use brk_error::Result;
 use brk_logger::init;
 use brk_mempool::Mempool;
-use brk_rpc::{Auth, Client};
+use brk_rpc::ConnectArgs;
 
 fn main() -> Result<()> {
     init(None)?;
 
-    let bitcoin_dir = Client::default_bitcoin_path();
-    let client = Client::new(
-        Client::default_url(),
-        Auth::CookieFile(bitcoin_dir.join(".cookie")),
-    )?;
+    let node = ConnectArgs::default();
+    let client = node.client()?;
 
     let mut mempool = Mempool::new(&client);
 
