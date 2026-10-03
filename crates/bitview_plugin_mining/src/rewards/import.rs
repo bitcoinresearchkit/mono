@@ -1,12 +1,13 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillion32, PartsPerMillion64};
 use bitview_transforms::{OneMinusPpm, RatioSats};
 use bitview_vecs::{
     LazyPercentCumulativeRolling, LazyPercentRollingWindows, LazyWindowStartVec,
     ValuePerBlockCumulative, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
 };
 use brk_error::Result;
-use brk_types::{PartsPerMillion32, PartsPerMillion64, Sats, Version};
+use brk_types::{Sats, Version};
 use vecdb::{Database, EagerVec, ImportableVec};
 
 use super::Vecs;

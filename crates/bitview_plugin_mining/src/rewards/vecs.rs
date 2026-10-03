@@ -1,11 +1,11 @@
+use bitview_primitives::{PartsPerMillion32, PartsPerMillion64};
 use bitview_traversable::Traversable;
-use brk_types::{Height, PartsPerMillion32, PartsPerMillion64, Sats};
-use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
-
 use bitview_vecs::{
     LazyPercentCumulativeRolling, LazyPercentRollingWindows, ValuePerBlockCumulative,
     ValuePerBlockCumulativeRolling, ValuePerBlockFull,
 };
+use brk_types::{Height, Sats};
+use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

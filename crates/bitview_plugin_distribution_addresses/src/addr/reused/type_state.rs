@@ -1,4 +1,5 @@
-use brk_types::{FundedAddrData, OutputType, Sats};
+use bitview_primitives::FundedAddrData;
+use brk_types::{OutputType, Sats};
 
 use crate::addr::{AddrReceivePreState, AddrSendPreState, AddrTypeToSupply, ReusedAddrState};
 

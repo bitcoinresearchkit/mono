@@ -8,10 +8,10 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+bitview_primitives = { workspace = true }
 derive_more = { workspace = true }
 bitview_cohort = { workspace = true }
 bitview_catalog = { workspace = true }
-brk_types = { workspace = true }
 indexmap = { workspace = true }
 oas3 = "0.22"
 serde = { workspace = true }

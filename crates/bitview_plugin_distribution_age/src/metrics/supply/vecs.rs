@@ -1,6 +1,7 @@
 use bitview_cohort::{AgeRange, AgeRangeId, CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64, StoredU64};
 use bitview_transforms::{SatsToCents, StoredU64ToCents, StoredU64ToSats};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -8,10 +9,11 @@ use bitview_vecs::{
     LazyWindowStartVec, PerBlockCumulativeRolling, SatsCents,
 };
 use brk_error::Result;
-use brk_types::{
-    Cents, Height, PartsPerMillion32, PartsPerMillionSigned64, Sats, SatsSigned, StoredU64, Version,
+use brk_types::{Cents, Height, Sats, SatsSigned, Version};
+use vecdb::{
+    AnyStoredVec, BinaryTransform, Database, LazyVec, ReadableBoxedVec, ReadableCloneableVec, Rw,
+    StorageMode,
 };
-use vecdb::{AnyStoredVec, BinaryTransform, Database, LazyVec, ReadableBoxedVec, Rw, StorageMode};
 
 use super::{SupplyBase, SupplyByCohort, SupplyTotal};
 use crate::state::UnrealizedState;
@@ -168,4 +170,3 @@ impl SupplyVecs {
         vecs
     }
 }
-use vecdb::ReadableCloneableVec;

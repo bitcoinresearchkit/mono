@@ -1,7 +1,8 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use brk_types::{Sats, TxInIndex, Version};
+use bitview_primitives::TxInIndex;
+use brk_types::{Sats, Version};
 use vecdb::{AnyVec, PcoVec};
 
 pub struct Dependencies<'a> {

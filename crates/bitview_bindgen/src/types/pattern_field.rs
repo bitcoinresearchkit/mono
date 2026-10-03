@@ -3,7 +3,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use brk_types::Index;
+use bitview_primitives::Index;
 
 /// A field in a structural pattern.
 #[derive(Debug, Clone, PartialOrd, Ord)]

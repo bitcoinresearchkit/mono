@@ -6,10 +6,11 @@ use std::time::{Duration, Instant};
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::{HeightMap, Vecs as MappingsVecs};
+use bitview_primitives::{Lengths, StoredBool, StoredU64, TxInIndex};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Lengths, Sats, StoredBool, StoredU64, TxInIndex, TxIndex};
+use brk_types::{Height, Sats, TxIndex};
 use rayon::{join, prelude::*};
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, Error as VecError, PcoVec, ReadableVec, VecIndex, WritableVec};

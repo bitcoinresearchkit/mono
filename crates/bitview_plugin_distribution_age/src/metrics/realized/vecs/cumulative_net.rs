@@ -1,10 +1,11 @@
 use bitview_cohort::{CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyFiatPerBlockCumulativeWithSumsAndDeltas, LazyWindowStartVec};
 use brk_error::Result;
-use brk_types::{CentsSigned, PartsPerMillionSigned64, Version};
+use brk_types::{CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 use crate::metrics::CumulativeCreationSources;

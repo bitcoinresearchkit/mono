@@ -1,7 +1,7 @@
+use bitview_primitives::PoolSlug;
+use brk_types::Height;
 use schemars::JsonSchema;
 use serde::Deserialize;
-
-use brk_types::{Height, PoolSlug};
 
 /// Mining pool slug path parameter
 #[derive(Deserialize, JsonSchema)]

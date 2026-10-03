@@ -1,5 +1,6 @@
+use bitview_primitives::StoredF32;
 use bitview_transforms::AvgCentsToUsd;
-use brk_types::{Dollars, Height, StoredF32, Version};
+use brk_types::{Dollars, Height, Version};
 use vecdb::ReadableCloneableVec;
 
 use crate::{Fiat, FiatType, IndexSources, LazyPerBlock, LazyRollingAvgFromHeight};

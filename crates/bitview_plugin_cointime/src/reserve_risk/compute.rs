@@ -2,9 +2,9 @@ use bitview_compute::ComputeRollingMedianFromStarts;
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_primitives::StoredF64;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::StoredF64;
 
 use super::{super::value, Vecs};
 

@@ -1,4 +1,5 @@
-use brk_types::{Dollars, Sats, TypeIndex};
+use bitview_primitives::TypeIndex;
+use brk_types::{Dollars, Sats};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

@@ -1,9 +1,10 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::PartsPerMillion32;
 use bitview_transforms::RatioSats;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPercentCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling};
-use brk_types::{Height, PartsPerMillion32, Sats, Version};
+use brk_types::{Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{ReadableCloneableVec, Rw, StorageMode};
 

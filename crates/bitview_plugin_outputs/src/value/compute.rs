@@ -1,15 +1,17 @@
 use std::ops::Range;
 
-use crate::overwritten_output;
 use bitview_compute::prepare_computed;
+use bitview_primitives::{SupplyState, TxOutIndex};
 use bitview_vecs::CachedSeries;
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
-use brk_types::{BlockHash, Height, OutputType, Sats, SupplyState, TxOutIndex};
+use brk_types::{BlockHash, Height, OutputType, Sats};
 use statedb::{Amount, Creations};
 use vecdb::{
     AnyStoredVec, AnyVec, Bytes, BytesVec, OverflowVec, ReadableVec, VecIndex, WritableVec,
 };
+
+use crate::overwritten_output;
 
 pub(crate) fn compute_sats(
     target: &mut CachedSeries<Height, Sats>,

@@ -1,4 +1,4 @@
-use brk_types::{PartsPerMillionSigned32, PriceRatio};
+use bitview_primitives::{PartsPerMillionSigned32, PriceRatio};
 use vecdb::UnaryTransform;
 
 pub struct MvrvToNupl;

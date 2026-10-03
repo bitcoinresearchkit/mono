@@ -1,5 +1,6 @@
+use bitview_primitives::TxOutIndex;
 use brk_error::{Error, Result};
-use brk_types::{TxOutIndex, Vout};
+use brk_types::Vout;
 
 /// Validate stored boundaries before allocating or converting offsets to Vout.
 /// This is the indexer's representable range, not a Bitcoin consensus limit.

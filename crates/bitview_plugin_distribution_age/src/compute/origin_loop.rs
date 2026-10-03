@@ -1,8 +1,10 @@
+use bitview_primitives::StoredF64;
+use brk_error::Result;
+use brk_types::{Height, Sats};
+use statedb::Cursor;
+
 use super::{ComputeContext, origin_targets::OriginTargets};
 use crate::state::{UTXOStates, supply, tick_tock_next_block};
-use brk_error::Result;
-use brk_types::{Height, Sats, StoredF64};
-use statedb::Cursor;
 
 pub fn replay_origins(
     vecs: &mut OriginTargets<'_>,

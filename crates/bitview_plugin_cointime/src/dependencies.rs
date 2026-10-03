@@ -3,9 +3,9 @@ use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_primitives::{PartsPerMillionSigned64, StoredF64};
 use bitview_urpd::ReplayInputs;
 use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock};
-use brk_types::{PartsPerMillionSigned64, StoredF64};
 
 #[derive(Clone, Copy)]
 pub struct Dependencies<'a> {

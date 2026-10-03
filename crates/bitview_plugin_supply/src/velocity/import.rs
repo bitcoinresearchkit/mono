@@ -1,9 +1,10 @@
 use bitview_plugin_distribution_common::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
+use bitview_primitives::StoredF64;
 use bitview_vecs::LazyPerBlock;
 use brk_error::Result;
-use brk_types::{Cents, StoredF64, Version};
+use brk_types::{Cents, Version};
 use vecdb::Ident;
 
 use super::Vecs;

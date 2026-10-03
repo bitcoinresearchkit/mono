@@ -1,4 +1,5 @@
-use brk_types::{Bitcoin, Cents, Dollars, Sats, StoredF32};
+use bitview_primitives::StoredF32;
+use brk_types::{Bitcoin, Cents, Dollars, Sats};
 
 use crate::{LazyPerBlock, LazyRollingAvgFromHeight, Value};
 

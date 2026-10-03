@@ -8,7 +8,7 @@ use std::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Cents, CentsSquaredSats, Sats};
+use super::{Cents, Sats};
 
 #[cfg(feature = "storage")]
 use vecdb::Result;
@@ -67,12 +67,6 @@ impl CentsSats {
         }
         let result = self.0 / sats.as_u128();
         Cents::new(result.min(u32::MAX as u128) as u64)
-    }
-
-    /// Compute capitalized cap (price² × sats) = price × (price × sats)
-    #[inline(always)]
-    pub fn to_capitalized_cap(self, price: Cents) -> CentsSquaredSats {
-        CentsSquaredSats::new(price.inner() as u128 * self.0)
     }
 }
 

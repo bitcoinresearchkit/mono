@@ -1,8 +1,7 @@
+use bitview_primitives::StoredF32;
 use bitview_traversable::Traversable;
-use brk_types::StoredF32;
-use vecdb::{Rw, StorageMode};
-
 use bitview_vecs::PerBlock;
+use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct MacdChain<M: StorageMode = Rw> {

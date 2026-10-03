@@ -1,4 +1,5 @@
-use brk_types::{Sats, StoredU64};
+use bitview_primitives::StoredU64;
+use brk_types::Sats;
 use vecdb::UnaryTransform;
 
 pub struct StoredU64ToSats;

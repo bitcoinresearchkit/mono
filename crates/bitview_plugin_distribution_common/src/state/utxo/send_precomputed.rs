@@ -1,4 +1,5 @@
-use brk_types::{Age, Cents, CentsSats, CentsSquaredSats, Sats, SupplyState};
+use bitview_primitives::{CentsSquaredSats, SupplyState};
+use brk_types::{Age, Cents, CentsSats, Sats};
 
 pub struct SendPrecomputed {
     pub(crate) sats: Sats,
@@ -38,7 +39,7 @@ impl SendPrecomputed {
             current_ps,
             prev_ps,
             ath_ps,
-            prev_capitalized_cap: prev_ps.to_capitalized_cap(prev_price),
+            prev_capitalized_cap: CentsSquaredSats::from_price_cents_sats(prev_price, prev_ps),
         })
     }
 }

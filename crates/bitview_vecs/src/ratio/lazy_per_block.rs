@@ -1,7 +1,8 @@
 use bitview_compute::{ComputedVecValue, FixedRatio, NumericValue};
+use bitview_primitives::{PriceRatio, StoredF32};
 use bitview_transforms::price_ratio;
 use bitview_traversable::Traversable;
-use brk_types::{Cents, Height, PriceRatio, StoredF32, Version};
+use brk_types::{Cents, Height, Version};
 use schemars::JsonSchema;
 use vecdb::{Ident, ReadableCloneableVec, UnaryTransform};
 

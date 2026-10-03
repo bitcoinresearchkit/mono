@@ -1,5 +1,5 @@
+use bitview_primitives::PriceRatio;
 use bitview_traversable::Traversable;
-use brk_types::PriceRatio;
 use derive_more::{Deref, DerefMut};
 
 use crate::LazyRatioPerBlock;

@@ -9,7 +9,7 @@ use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{CentsSats, Dollars, Sats, StoredF64};
+use super::{CentsSats, Dollars, Sats};
 use crate::{CheckedSub, unlikely};
 
 #[cfg(feature = "storage")]
@@ -304,14 +304,6 @@ impl Mul<usize> for Cents {
             let rhs = u64::try_from(rhs).expect("usize overflow to Cents multiplier");
             Self::checked_finite(self.0.checked_mul(rhs)).expect("Cents overflow")
         }
-    }
-}
-
-impl Mul<StoredF64> for Cents {
-    type Output = Self;
-    #[inline]
-    fn mul(self, rhs: StoredF64) -> Self::Output {
-        Self::from(f64::from(self) * f64::from(rhs))
     }
 }
 

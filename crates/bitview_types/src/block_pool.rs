@@ -1,4 +1,4 @@
-use brk_types::PoolSlug;
+use bitview_primitives::PoolSlug;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

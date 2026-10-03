@@ -4,10 +4,11 @@ use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_transactions::FeesVecs;
-use brk_types::{
-    Bytes, OP_RETURN_KIND_COUNT, OpReturnIndex, OpReturnKind, OpReturnPolicyId, Sats, StoredU32,
-    TxIndex, VSize, Weight,
+use bitview_primitives::Bytes;
+use bitview_primitives::{
+    OP_RETURN_KIND_COUNT, OpReturnIndex, OpReturnKind, OpReturnPolicyId, StoredU32,
 };
+use brk_types::{Sats, TxIndex, VSize, Weight};
 use rayon::join;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 

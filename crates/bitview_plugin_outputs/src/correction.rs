@@ -1,4 +1,5 @@
-use brk_types::{Height, Sats, SupplyState};
+use bitview_primitives::SupplyState;
+use brk_types::{Height, Sats};
 
 /// Outputs replaced by the two historical duplicate coinbase transactions.
 pub fn overwritten_output(height: Height) -> Option<(Height, SupplyState)> {

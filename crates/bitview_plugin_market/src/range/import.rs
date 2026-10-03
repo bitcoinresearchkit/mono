@@ -1,7 +1,8 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredF32;
 use bitview_vecs::{LazyLookbackVec, LazyPerBlock, PerBlock, PercentPerBlock, Price};
 use brk_error::Result;
-use brk_types::{Cents, Height, StoredF32, Version};
+use brk_types::{Cents, Height, Version};
 use vecdb::{Database, Ident, ReadableCloneableVec};
 
 use super::{Vecs, price_min_max_vecs::PriceMinMaxVecs};

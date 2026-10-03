@@ -1,6 +1,7 @@
 use bitcoin::{VarInt, Weight, block::Header};
+use bitview_primitives::BlockHashPrefix;
 use brk_error::{Error, Result};
-use brk_types::{BlockHashPrefix, Timestamp};
+use brk_types::Timestamp;
 use tracing::error;
 use vecdb::{WritableVec, unlikely};
 

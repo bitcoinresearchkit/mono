@@ -1,7 +1,8 @@
 use bitview_cohort::{ByTerm, UTXOAggregate};
+use bitview_primitives::BoundedRatio;
 use bitview_traversable::Traversable;
 use bitview_vecs::CachedSeries;
-use brk_types::{BoundedRatio, Cents, Height, Sats};
+use brk_types::{Cents, Height, Sats};
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]

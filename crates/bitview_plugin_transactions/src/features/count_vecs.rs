@@ -1,6 +1,6 @@
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
 use bitview_vecs::PerBlockCumulativeRolling;
-use brk_types::StoredU64;
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]

@@ -2,11 +2,12 @@ use std::ops::Range;
 
 use bitview_collections::RarityPercentiles;
 use bitview_compute::prepare_computed;
+use bitview_primitives::{RARITY_PERCENTILES_LEN, RarityPercentileId, StoredI8};
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PerBlock, Price};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, RARITY_PERCENTILES_LEN, RarityPercentileId, StoredI8, Version};
+use brk_types::{Cents, Height, Version};
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
 use super::{COMPUTE_BATCH_SIZE, Component, component};

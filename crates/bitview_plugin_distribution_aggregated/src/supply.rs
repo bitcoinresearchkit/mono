@@ -1,11 +1,13 @@
-use crate::columns::Columns;
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock, LazyWindowStartVec};
-use brk_types::{Cents, Height, PartsPerMillionSigned64, Sats, SatsSigned, Version};
+use brk_types::{Cents, Height, Sats, SatsSigned, Version};
 use vecdb::ReadableBoxedVec;
+
+use crate::columns::Columns;
 
 #[derive(Clone, Traversable)]
 pub struct Supply {

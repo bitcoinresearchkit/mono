@@ -1,4 +1,6 @@
-use brk_types::{Bytes, OP_RETURN_KIND_COUNT, OpReturnKind, Sats, VSize};
+use bitview_primitives::Bytes;
+use bitview_primitives::{OP_RETURN_KIND_COUNT, OpReturnKind};
+use brk_types::{Sats, VSize};
 
 use crate::{breakdown::BlockMetrics, policy::Policy};
 

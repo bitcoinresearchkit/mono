@@ -1,9 +1,10 @@
 use bitview_cohort::{AgeRange, CreationCohorts};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::CentsSquaredSats;
 use bitview_traversable::Traversable;
 use bitview_vecs::DisjointAgeSources;
 use brk_error::Result;
-use brk_types::{Cents, CentsSigned, CentsSquaredSats, Version};
+use brk_types::{Cents, CentsSigned, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use super::{NetUnrealizedByCohort, UnrealizedByCohort};

@@ -1,5 +1,5 @@
+use bitview_primitives::{TxInIndex, TxOutIndex};
 use bitview_traversable::Traversable;
-use brk_types::{TxInIndex, TxOutIndex};
 use vecdb::{BytesVec, MutableVec, Rw, StorageMode};
 
 #[derive(Traversable)]

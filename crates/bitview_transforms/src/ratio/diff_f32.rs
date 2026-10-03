@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use brk_types::StoredF32;
+use bitview_primitives::StoredF32;
 use vecdb::BinaryTransform;
 
 pub struct RatioDiffF32<P>(PhantomData<P>);

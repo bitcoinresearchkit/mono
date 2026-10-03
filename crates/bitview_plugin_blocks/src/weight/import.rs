@@ -1,9 +1,10 @@
 use bitview_collections::Windows;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::PartsPerMillion32;
 use bitview_transforms::VBytesToWeight;
 use bitview_vecs::{LazyPerBlockRolling, LazyPercentVec, LazyWindowStartVec};
-use brk_types::{Height, PartsPerMillion32, Version, Weight};
+use brk_types::{Height, Version, Weight};
 
 use super::Vecs;
 use crate::UtxosVecs;

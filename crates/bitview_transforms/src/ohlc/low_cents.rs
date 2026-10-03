@@ -1,4 +1,5 @@
-use brk_types::{Cents, OHLCCents};
+use bitview_primitives::OHLCCents;
+use brk_types::Cents;
 use vecdb::UnaryTransform;
 
 pub struct OhlcCentsToLowCents;

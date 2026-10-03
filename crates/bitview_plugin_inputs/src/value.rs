@@ -1,13 +1,14 @@
-use brk_error::{Error, Result};
-
-use crate::OriginSpends;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::{HeightMap, Vecs as Mappings};
+use bitview_primitives::{TxInIndex, TxOutIndex};
+use brk_error::{Error, Result};
 use brk_exit::Exit;
-use brk_types::{Height, Sats, TxInIndex, TxOutIndex};
+use brk_types::{Height, Sats};
 use rayon::prelude::*;
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, PcoVec, ReadableVec, VecIndex, WritableVec};
+
+use crate::OriginSpends;
 
 const SORT_MEMORY_BUDGET: usize = 2 * 1024 * 1024 * 1024;
 const BATCH_SIZE: usize =

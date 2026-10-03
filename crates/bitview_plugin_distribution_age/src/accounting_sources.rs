@@ -1,6 +1,7 @@
 use bitview_cohort::AgeRange;
 use bitview_compute::{CohortAccounting, collect_age_range};
-use brk_types::{CentsSats, CentsSquaredSats, Height, Sats, Version};
+use bitview_primitives::CentsSquaredSats;
+use brk_types::{CentsSats, Height, Sats, Version};
 use rayon::join;
 use vecdb::ReadableVec;
 

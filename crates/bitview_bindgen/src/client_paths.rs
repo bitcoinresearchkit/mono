@@ -1,7 +1,7 @@
 //! The typed series paths each generated client exposes.
 
 use bitview_catalog::TreeNode;
-use brk_types::Index;
+use bitview_primitives::Index;
 
 use crate::{JavaScriptSyntax, LanguageSyntax, PythonSyntax, rust_field_name};
 

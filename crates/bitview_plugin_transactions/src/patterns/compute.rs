@@ -1,8 +1,9 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{StoredBool, StoredU64, TxInIndex};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Sats, StoredBool, StoredU64, TxInIndex};
+use brk_types::Sats;
 use vecdb::{AnyStoredVec, AnyVec, PcoVec, ReadableVec, VecIndex, WritableVec};
 
 use super::{Vecs, coinjoin::Candidate};

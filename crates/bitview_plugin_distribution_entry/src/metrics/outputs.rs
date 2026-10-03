@@ -1,9 +1,10 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::{PartsPerMillionSigned64, StoredI64, StoredU64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyPerBlockWithDeltas, LazyWindowStartVec};
-use brk_types::{PartsPerMillionSigned64, StoredI64, StoredU64, Version};
+use brk_types::Version;
 
 use super::Sources;
 

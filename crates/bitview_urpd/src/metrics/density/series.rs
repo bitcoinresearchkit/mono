@@ -1,9 +1,10 @@
 use bitview_collections::Percent;
+use bitview_primitives::{PartsPerMillion32, StoredF32};
 use bitview_transforms::{FixedToPercent, FixedToRatio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, IndexSources, LazyPerBlock, import_cached};
 use brk_error::Result;
-use brk_types::{Height, PartsPerMillion32, StoredF32, Version};
+use brk_types::{Height, Version};
 use vecdb::{AnyStoredVec, Database, Ident, Rw, StorageMode, WritableVec};
 
 use super::SupplyDensity;

@@ -1,8 +1,7 @@
 use bitview_cohort::ByAddrType;
+use bitview_primitives::{AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, TypeIndex};
 use brk_store::Store;
-use brk_types::{
-    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, TxIndex, TxidPrefix, TypeIndex, Unit,
-};
+use brk_types::{TxIndex, TxidPrefix, Unit};
 
 pub struct TransactionStoresMut<'a> {
     pub addr_hashes: &'a mut ByAddrType<Store<AddrHash, TypeIndex>>,

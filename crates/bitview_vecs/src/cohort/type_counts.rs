@@ -1,7 +1,8 @@
 use bitview_cohort::{ByAddrType, ByType, SpendableType};
 use bitview_collections::Windows;
+use bitview_primitives::{PartsPerMillion32, StoredU64};
 use bitview_traversable::Traversable;
-use brk_types::{Height, PartsPerMillion32, StoredU64, Version};
+use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{LazyVec, ReadableCloneableVec};
 

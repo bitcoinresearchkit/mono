@@ -1,13 +1,14 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId, ProfitabilityRange, ProfitabilityRangeId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::PartsPerMillionSigned32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     CachedSeries, LazyFiatPerBlock, LazyRatioPerBlock, LazySpotValuePerBlockWithDeltas,
     LazyWindowStartVec, import_cached,
 };
 use brk_error::Result;
-use brk_types::{Cents, CentsSats, Height, PartsPerMillionSigned32, Sats, Version};
+use brk_types::{Cents, CentsSats, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, PcoVecValue, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
 use crate::bucket::Bucket;

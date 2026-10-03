@@ -1,7 +1,8 @@
 use bitview_cohort::AgeRange;
+use bitview_primitives::{BoundedRatio, StoredF64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, PerBlock};
-use brk_types::{BoundedRatio, Height, StoredF64};
+use brk_types::Height;
 use vecdb::{AnyStoredVec, ReadableVec, Rw, StorageMode, WritableVec};
 
 use crate::{Mobility, SpendingExposureSeries};

@@ -1,10 +1,9 @@
+use bitview_primitives::{FundedAddrData, SupplyState};
 use brk_error::Result;
-
-use brk_types::{Cents, FundedAddrData, Sats, SupplyState};
+use brk_types::{Cents, Sats};
 use vecdb::unlikely;
 
-use super::super::CohortState;
-use super::super::MinimalRealizedState;
+use super::{super::CohortState, super::MinimalRealizedState};
 
 /// Mutable state for one address balance cohort.
 pub struct AddrCohortState {

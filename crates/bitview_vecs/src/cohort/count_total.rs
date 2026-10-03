@@ -1,7 +1,8 @@
 use bitview_collections::Windows;
+use bitview_primitives::{PartsPerMillion32, StoredU64};
 use bitview_transforms::RatioU64;
 use bitview_traversable::Traversable;
-use brk_types::{Height, PartsPerMillion32, StoredU64, Version};
+use brk_types::{Height, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
 
 use crate::{IndexSources, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling};

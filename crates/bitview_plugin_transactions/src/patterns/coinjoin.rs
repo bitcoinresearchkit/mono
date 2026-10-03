@@ -1,4 +1,5 @@
-use brk_types::{OutputType, Sats, TypeIndex};
+use bitview_primitives::TypeIndex;
+use brk_types::{OutputType, Sats};
 use rustc_hash::FxHashSet;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]

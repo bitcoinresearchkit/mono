@@ -1,6 +1,7 @@
+use bitview_primitives::{PartsPerMillion32, StoredU64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{PerBlockCumulativeRolling, PercentPerBlock};
-use brk_types::{PartsPerMillion32, Sats, StoredU64};
+use brk_types::Sats;
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]

@@ -1,7 +1,8 @@
 use bitview_plugin::PublicationReadGuard;
+use bitview_primitives::PoolSlug;
 use bitview_types::BlockInfoV1;
 use brk_error::{Error, OptionData, Result};
-use brk_types::{BlockHash, Dollars, Height, PoolSlug};
+use brk_types::{BlockHash, Dollars, Height};
 use vecdb::ReadableVec;
 
 use crate::{Query, ResolvedBlocks};

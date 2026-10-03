@@ -1,6 +1,7 @@
 use std::{convert::Infallible, sync::Arc};
 
-use brk_types::{Height, PoolSlug, StoredU64};
+use bitview_primitives::{PoolSlug, StoredU64};
+use brk_types::Height;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use vecdb::{

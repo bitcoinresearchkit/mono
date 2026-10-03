@@ -1,16 +1,17 @@
 mod tx_in;
 mod tx_out;
-use tx_in::{InputColumns, TxInReaders};
-use tx_out::{OutputColumns, TxOutReaders};
-
 use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::HeightMap;
+use bitview_primitives::{TxInIndex, TxOutIndex};
 use brk_error::Result;
-use brk_types::{Height, Sats, TxInIndex, TxOutIndex};
+use brk_types::{Height, Sats};
 use rayon::join;
 use vecdb::{AnyVec, PcoVec, ReadableVec, VecIndex};
+
+use tx_in::{InputColumns, TxInReaders};
+use tx_out::{OutputColumns, TxOutReaders};
 
 /// Blocks read together, bounding source buffers while amortizing reads.
 const BATCH_BLOCKS: usize = 16;

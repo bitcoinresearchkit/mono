@@ -1,4 +1,5 @@
-use brk_types::{Cents, StoredF32};
+use bitview_primitives::StoredF32;
+use brk_types::Cents;
 use vecdb::{BinaryTransform, unlikely};
 
 pub struct RatioCentsF32;

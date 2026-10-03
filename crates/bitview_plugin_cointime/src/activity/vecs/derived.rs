@@ -1,8 +1,7 @@
+use bitview_primitives::{BoundedRatio, StoredF64};
 use bitview_traversable::Traversable;
-use brk_types::{BoundedRatio, StoredF64};
-use vecdb::{Rw, StorageMode};
-
 use bitview_vecs::{LazyPerBlock, PerBlock};
+use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct DerivedVecs<M: StorageMode = Rw> {

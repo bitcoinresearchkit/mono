@@ -8,12 +8,13 @@ pub use dependencies::Dependencies;
 
 use bitview_collections::Windows;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
     LazySpotValuePerBlock, LazyValuePerBlock,
 };
-use brk_types::{Cents, CentsSigned, PartsPerMillionSigned64, Version};
+use brk_types::{Cents, CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("supply"), Version::new(10));

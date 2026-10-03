@@ -1,9 +1,10 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredF32;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Bitcoin, Dollars, Height, StoredF32, Version};
+use brk_types::{Bitcoin, Dollars, Height, Version};
 use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
 use super::extreme::Extreme;

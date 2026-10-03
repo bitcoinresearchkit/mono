@@ -2,7 +2,8 @@ use bitview_cohort::ByAddrType;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use brk_types::{Height, Sats, TxInIndex, Version};
+use bitview_primitives::TxInIndex;
+use brk_types::{Height, Sats, Version};
 use vecdb::{AnyVec, PcoVec, ReadableBoxedVec};
 
 pub struct Dependencies<'a> {

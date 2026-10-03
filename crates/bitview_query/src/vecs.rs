@@ -6,13 +6,13 @@ use std::{
 
 use bitview_catalog::TreeNode;
 use bitview_plugin::Plugin;
+use bitview_primitives::{CacheClass, Index};
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use bitview_types::{
     DetailedSeriesCount, IndexInfo, PaginatedSeries, Pagination, SeriesCount, SeriesInfo,
     SeriesName,
 };
-use brk_types::{CacheClass, Index};
 use quickmatch::QuickMatch;
 use rustc_hash::{FxHashMap, FxHashSet};
 use vecdb::AnyExportableVec;

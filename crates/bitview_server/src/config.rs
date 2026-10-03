@@ -3,8 +3,8 @@ use std::{
     path::PathBuf,
 };
 
+use bitview_primitives::OHLCCents;
 use bitview_website::Website;
-use brk_types::OHLCCents;
 
 use crate::{Port, cache::CdnCacheMode};
 

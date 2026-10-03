@@ -7,12 +7,13 @@ mod import;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::{PartsPerMillion32, PartsPerMillion64, StoredF32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     BasisPointsPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock, PercentPerBlock,
     RatioPerBlock,
 };
-use brk_types::{PartsPerMillion32, PartsPerMillion64, StoredF32, Version};
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use dormancy_vecs::DormancyVecs;

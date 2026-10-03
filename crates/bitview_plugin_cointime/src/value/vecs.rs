@@ -1,8 +1,7 @@
+use bitview_primitives::StoredF64;
 use bitview_traversable::Traversable;
-use brk_types::StoredF64;
-use vecdb::{Rw, StorageMode};
-
 use bitview_vecs::PerBlockCumulativeRolling;
+use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

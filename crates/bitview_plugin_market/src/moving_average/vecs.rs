@@ -1,6 +1,7 @@
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPriceWithRatioPerBlock};
-use brk_types::{Cents, Height, StoredU64};
+use brk_types::{Cents, Height};
 use vecdb::{Rw, StorageMode};
 
 use super::{ema_vecs::EmaVecs, sma::SmaVecs};

@@ -1,6 +1,7 @@
 use std::ops::Range;
 
-use brk_types::{Date, Index, Timestamp};
+use bitview_primitives::{Date, Index};
+use brk_types::Timestamp;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::Value;

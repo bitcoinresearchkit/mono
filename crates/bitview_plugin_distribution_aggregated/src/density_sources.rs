@@ -1,9 +1,10 @@
 use bitview_cohort::AgeAggregate;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPercentPerBlock, import_cached};
 use brk_error::Result;
-use brk_types::{Height, PartsPerMillion32, Version};
+use brk_types::{Height, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 #[derive(Traversable)]
 pub(crate) struct DensitySources<M: StorageMode = Rw> {

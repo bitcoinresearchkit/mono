@@ -1,4 +1,5 @@
-use brk_types::{ONE_DAY_IN_SEC_F64, StoredF32, StoredU32};
+use bitview_primitives::{StoredF32, StoredU32};
+use brk_types::ONE_DAY_IN_SEC_F64;
 use vecdb::UnaryTransform;
 
 pub(super) struct SecondsToDays;

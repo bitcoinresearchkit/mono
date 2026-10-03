@@ -1,8 +1,9 @@
 use bitview_collections::Percent;
 use bitview_compute::{FixedRatio, NumericValue};
+use bitview_primitives::{PartsPerMillionSigned64, StoredF32};
 use bitview_transforms::Cagr;
 use bitview_traversable::Traversable;
-use brk_types::{Height, PartsPerMillionSigned64, StoredF32, Version};
+use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{BinaryTransform, Ident, ReadableCloneableVec, UnaryTransform, VecValue};
 

@@ -134,7 +134,7 @@ pub fn generate_clients(
         }
     }
 
-    // Generate Rust client (uses real brk_types, no schema conversion needed)
+    // Generate Rust client (uses the real types, no schema conversion needed)
     if let Some(rust_path) = &output_paths.rust {
         if let Some(parent) = rust_path.parent() {
             create_dir_all(parent)?;

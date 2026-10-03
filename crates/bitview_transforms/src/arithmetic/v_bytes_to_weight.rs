@@ -1,4 +1,5 @@
-use brk_types::{StoredU64, VSize, Weight64};
+use bitview_primitives::{StoredU64, Weight64};
+use brk_types::VSize;
 use vecdb::UnaryTransform;
 
 pub struct VBytesToWeight;

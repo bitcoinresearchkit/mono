@@ -1,13 +1,13 @@
 use bitview_collections::RarityPercentiles;
 use bitview_plugin_indexer::Lengths;
+use bitview_primitives::{
+    PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN, StoredF32,
+};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, IndexSources, LazyRatioPerBlock, import_cached};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{
-    Cents, Height, PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN, StoredF32,
-    Version,
-};
+use brk_types::{Cents, Height, Version};
 use vecdb::{
     AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
 };

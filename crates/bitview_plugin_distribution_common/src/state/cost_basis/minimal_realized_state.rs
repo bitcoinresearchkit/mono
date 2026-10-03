@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 
-use brk_types::{Cents, CentsSats, CentsSquaredSats, Sats};
+use bitview_primitives::CentsSquaredSats;
+use brk_types::{Cents, CentsSats, Sats};
 
 use super::RealizedOps;
 

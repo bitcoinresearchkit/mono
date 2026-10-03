@@ -1,9 +1,10 @@
 use bitview_collections::Windows;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredU64;
 use bitview_vecs::{LazyWindowStartVec, PerBlockFull, PerBlockRolling};
 use brk_error::Result;
-use brk_types::{Height, StoredU64, Version, Weight};
+use brk_types::{Height, Version, Weight};
 use vecdb::Database;
 
 use super::Vecs;

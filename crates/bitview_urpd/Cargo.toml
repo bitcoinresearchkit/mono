@@ -8,6 +8,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+bitview_primitives = { workspace = true, features = ["storage"] }
 statedb = { workspace = true }
 bitview_compute = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }

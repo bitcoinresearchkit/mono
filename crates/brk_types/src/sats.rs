@@ -11,7 +11,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{Bitcoin, Cents, Dollars, Height};
-use crate::{CheckedSub, StoredF64, StoredU64};
+use crate::CheckedSub;
 
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
@@ -218,13 +218,6 @@ impl Mul<f64> for Sats {
     }
 }
 
-impl Mul<StoredF64> for Sats {
-    type Output = Self;
-    fn mul(self, rhs: StoredF64) -> Self::Output {
-        self * f64::from(rhs)
-    }
-}
-
 impl Sum for Sats {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         let sats: u64 = iter.map(|sats| sats.0).sum();
@@ -258,13 +251,6 @@ impl Div<usize> for Sats {
     type Output = Self;
     fn div(self, rhs: usize) -> Self::Output {
         Self(self.0.checked_div(rhs as u64).unwrap_or(0))
-    }
-}
-
-impl Div<StoredU64> for Sats {
-    type Output = Self;
-    fn div(self, rhs: StoredU64) -> Self::Output {
-        Self(self.0.checked_div(u64::from(rhs)).unwrap_or(0))
     }
 }
 

@@ -1,12 +1,13 @@
 use bitview_cohort::{ByTerm, Term, UTXOAggregate, UTXOAggregateId};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::BoundedRatio;
 use bitview_transforms::BoundedToF64;
 use bitview_vecs::{
     CachedSeries, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
     LazySpotValuePerBlock, PerBlock, import_cached,
 };
 use brk_error::Result;
-use brk_types::{BoundedRatio, Cents, Height, Version};
+use brk_types::{Cents, Height, Version};
 use vecdb::{Database, PcoVecValue, ReadableBoxedVec, ReadableCloneableVec};
 
 use super::{AwakeVecs, CohortVecs, DormantVecs, Sources, Vecs};

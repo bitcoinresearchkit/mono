@@ -1,8 +1,9 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillion32, PoolSlug, StoredU64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPercentPerBlock, LazyWindowStartVec};
-use brk_types::{Height, PartsPerMillion32, PoolSlug, StoredU64};
+use brk_types::Height;
 use vecdb::{LazyVec, ReadableCloneableVec, Version};
 
 use super::{PoolHeights, pool_heights::BlocksMined};

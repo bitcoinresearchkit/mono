@@ -1,10 +1,11 @@
 use bitview_cohort::{AmountRange, CohortContext, CohortId};
+use bitview_primitives::StoredU64;
 use bitview_transforms::{StoredU64ToCents, StoredU64ToSats};
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{Cents, Height, Sats, StoredU64, Version};
+use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{AnyStoredVec, Database, LazyVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Database, LazyVec, ReadableCloneableVec, Rw, StorageMode};
 
 use super::AmountSources;
 use crate::SatsCents;
@@ -89,4 +90,3 @@ impl<S: Clone> AmountValueSources<S> {
             .chain(self.stored.cents.stored_vecs_mut())
     }
 }
-use vecdb::ReadableCloneableVec;

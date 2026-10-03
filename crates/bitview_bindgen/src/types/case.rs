@@ -1,4 +1,4 @@
-use brk_types::Index;
+use bitview_primitives::Index;
 
 /// Convert a string to PascalCase (e.g., "fee_rate" -> "FeeRate").
 pub(crate) fn to_pascal_case(s: &str) -> String {

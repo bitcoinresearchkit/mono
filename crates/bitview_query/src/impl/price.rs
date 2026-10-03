@@ -1,7 +1,8 @@
 use bitview_plugin::PublicationReadGuard;
+use bitview_primitives::{HOUR4_INTERVAL, INDEX_EPOCH, Index};
 use bitview_types::{ExchangeRates, HistoricalPrice, HistoricalPriceEntry};
 use brk_error::{Error, OptionData, Result};
-use brk_types::{Cents, Dollars, HOUR4_INTERVAL, Height, INDEX_EPOCH, Index, Timestamp};
+use brk_types::{Cents, Dollars, Height, Timestamp};
 use vecdb::{AnyVec, ReadBounds, ReadableVec};
 
 use crate::Query;

@@ -14,9 +14,10 @@ pub use has::HasInputs;
 pub use origins::OriginSpends;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::TxInIndex;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPerSecondWindows;
-use brk_types::{Sats, TxInIndex, Version};
+use brk_types::{Sats, Version};
 use vecdb::{Database, PcoVec, Rw, StorageMode};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("inputs"), Version::new(9));

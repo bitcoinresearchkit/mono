@@ -1,14 +1,13 @@
-use brk_error::Result;
-
 use bitview_cohort::{AmountRangeId, ByAddrType};
-use brk_types::{Cents, Sats, TypeIndex};
+use bitview_primitives::TypeIndex;
+use brk_error::Result;
+use brk_types::{Cents, Sats};
 
+use super::{super::cache::AddrLookup, transfer_address_cache::TransferAddressCache};
 use crate::{
     addr::{AddrMetricsState, AddrSendPreState},
     state::AddrStates,
 };
-
-use super::{super::cache::AddrLookup, transfer_address_cache::TransferAddressCache};
 
 pub fn process_typed_sent(
     typed: ByAddrType<Vec<(TypeIndex, Sats, Cents)>>,

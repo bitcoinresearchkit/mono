@@ -1,4 +1,5 @@
-use brk_types::{StoredU64, TARGET_BLOCKS_PER_DAY};
+use bitview_primitives::StoredU64;
+use brk_types::TARGET_BLOCKS_PER_DAY;
 use vecdb::UnaryTransform;
 
 /// Expected block count over a fixed number of days.

@@ -1,7 +1,7 @@
 use bitview_collections::Windows;
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{ConstantVecs, LazyPerBlockCumulativeRolling};
-use brk_types::StoredU64;
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {

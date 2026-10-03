@@ -1,5 +1,7 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::Bytes;
+use bitview_primitives::{PartsPerMillion32, StoredU64};
 use bitview_transforms::{RatioBytes, RatioSats};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -7,7 +9,7 @@ use bitview_vecs::{
     PerBlockCumulativeRolling,
 };
 use brk_error::Result;
-use brk_types::{Bytes, Height, PartsPerMillion32, Sats, StoredU64, VSize, Version};
+use brk_types::{Height, Sats, VSize, Version};
 use vecdb::{AnyVec, Database, ReadOnlyClone, ReadableCloneableVec, Rw, StorageMode};
 
 use super::breakdown::BlockMetrics;

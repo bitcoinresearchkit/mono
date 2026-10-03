@@ -1,4 +1,5 @@
-use brk_types::{Cents, Height, StoredU64};
+use bitview_primitives::StoredU64;
+use brk_types::{Cents, Height};
 use vecdb::LazyDeltaVec;
 
 use super::sma_average::SmaAverage;

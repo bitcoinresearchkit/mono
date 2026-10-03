@@ -1,6 +1,7 @@
+use bitview_primitives::{TxInIndex, TxOutIndex, TypeIndex};
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{Height, OutPoint, OutputType, TxInIndex, TxIndex, TxOutIndex, TypeIndex, Version};
+use brk_types::{Height, OutPoint, OutputType, TxIndex, Version};
 use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, Budgeted, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec,

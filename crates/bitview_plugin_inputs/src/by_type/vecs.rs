@@ -1,10 +1,11 @@
 use bitview_cohort::SpendableType;
+use bitview_primitives::{PartsPerMillion32, StoredU64};
 use bitview_traversable::Traversable;
-use brk_types::{Height, PartsPerMillion32, StoredU64};
+use bitview_vecs::{CachedSeries, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling};
+use brk_types::Height;
 use vecdb::{Rw, StorageMode};
 
 use super::WithInputTypes;
-use bitview_vecs::{CachedSeries, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

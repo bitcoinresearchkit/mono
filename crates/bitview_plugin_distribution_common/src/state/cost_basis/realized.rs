@@ -1,4 +1,5 @@
-use brk_types::{Cents, CentsSats, CentsSquaredSats, Sats};
+use bitview_primitives::CentsSquaredSats;
+use brk_types::{Cents, CentsSats, Sats};
 
 /// Trait for realized state operations, implemented by Minimal, Core, and Full variants.
 pub trait RealizedOps: Default + Clone + Send + Sync + 'static {

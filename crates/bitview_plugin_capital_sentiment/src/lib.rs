@@ -5,9 +5,10 @@ mod import;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::{CapitalSentimentPhase, StoredBool, StoredI8, StoredU8};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock};
-use brk_types::{CapitalSentimentPhase, StoredBool, StoredI8, StoredU8, Version};
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 const STORAGE: PluginStorage =

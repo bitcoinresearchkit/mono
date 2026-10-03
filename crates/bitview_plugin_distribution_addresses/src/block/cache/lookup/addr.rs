@@ -1,4 +1,4 @@
-use brk_types::{EmptyAddrData, FundedAddrData};
+use bitview_primitives::{EmptyAddrData, FundedAddrData};
 
 use crate::addr::{AddrTypeToTypeIndexMap, SourcedAddrData};
 

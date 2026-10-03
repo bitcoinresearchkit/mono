@@ -1,14 +1,15 @@
-use crate::request_state::RequestState;
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap, response::Response};
+use bitview_primitives::Day1;
 use brk_oracle::{HistogramEmaCompact, HistogramRaw};
-use brk_types::{Day1, Dollars};
+use brk_types::Dollars;
 
 use crate::{
     AppState,
     error::Result,
     extended::TransformResponseExtended,
     params::{Empty, HeightOrDate, HeightOrDateParam},
+    request_state::RequestState,
 };
 
 pub async fn serve_live_price(

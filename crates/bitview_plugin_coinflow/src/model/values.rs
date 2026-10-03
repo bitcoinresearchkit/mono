@@ -1,6 +1,6 @@
 use bitview_cohort::{AgeRange, ByTerm};
 use bitview_compute::WeightedCohortState;
-use brk_types::{BoundedRatio, StoredF64};
+use bitview_primitives::{BoundedRatio, StoredF64};
 
 pub(crate) struct PrimaryValues {
     pub(crate) spending_rate: AgeRange<StoredF64>,

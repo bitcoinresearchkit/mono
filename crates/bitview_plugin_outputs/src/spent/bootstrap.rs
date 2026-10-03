@@ -3,9 +3,9 @@ use std::{
     iter::repeat_n,
 };
 
+use bitview_primitives::{TxInIndex, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{TxInIndex, TxOutIndex};
 use tempfile::tempfile_in;
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, Stamp, VecIndex, WritableVec};

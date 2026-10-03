@@ -1,6 +1,7 @@
+use bitview_primitives::AddrHash;
 use bitview_types::AddrHashPrefixMatches;
 use brk_error::{Error, Result};
-use brk_types::{Addr, AddrHash, OutputType};
+use brk_types::{Addr, OutputType};
 
 use crate::Query;
 

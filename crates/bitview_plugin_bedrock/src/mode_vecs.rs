@@ -1,10 +1,11 @@
+use bitview_primitives::{BoundedRatio, StoredF64};
 use bitview_traversable::Traversable;
-use brk_types::{BoundedRatio, Cents, Height, StoredF64};
+use bitview_vecs::{CachedSeries, LazyPerBlock, Price};
+use brk_types::{Cents, Height};
 use derive_more::{Deref, DerefMut};
 use vecdb::{AnyStoredVec, Rw, StorageMode, WritableVec};
 
 use super::{LossPercentileId, ModeResult, Percentiles, PriceBandId, PriceBands};
-use bitview_vecs::{CachedSeries, LazyPerBlock, Price};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct ModeVecs<M: StorageMode = Rw> {

@@ -37,7 +37,7 @@ generate_clients(&catalog, &openapi_json, &paths)?;
 
 | Language | Contents |
 |----------|----------|
-| Rust | Typed API client using `brk_types` and `bitview_types`, series catalog |
+| Rust | Typed API client using `brk_types`, `bitview_primitives` and `bitview_types`, series catalog |
 | CLI | Command catalog for every non-deprecated OpenAPI operation |
 | JavaScript | ES module with JSDoc types, series catalog, fetch helpers |
 | Python | Typed client with dataclasses, series catalog |
@@ -76,7 +76,7 @@ cargo bindgen -- --rust --check
 ```
 
 - `bitview_catalog::TreeNode` for the series catalog
-- `bitview_types` and `brk_types` for type schemas
+- `bitview_types`, `bitview_primitives` and `brk_types` for type schemas
 
 The generator consumes metadata only; it does not depend on the query runtime.
 The `bitviewd` generation command still imports plugins into temporary databases

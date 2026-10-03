@@ -1,4 +1,5 @@
-use brk_types::{Bytes, Sats, VSize};
+use bitview_primitives::Bytes;
+use brk_types::{Sats, VSize};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct BlockMetrics {

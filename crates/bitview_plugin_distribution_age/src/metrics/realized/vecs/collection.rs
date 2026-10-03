@@ -1,10 +1,11 @@
 use bitview_cohort::CreationCohorts;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::CentsSquaredSats;
 use bitview_traversable::Traversable;
 use bitview_vecs::{DisjointAgeSources, LazyWindowStartVec};
 use brk_error::Result;
-use brk_types::{CentsSats, CentsSquaredSats, Version};
+use brk_types::{CentsSats, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use super::{

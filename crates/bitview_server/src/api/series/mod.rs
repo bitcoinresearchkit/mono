@@ -3,7 +3,6 @@
 //! Holds the shared `serve` helper used by every series endpoint that returns
 //! a formatted body (single, raw, and bulk).
 
-use crate::request_state::RequestState;
 use std::result::Result as StdResult;
 
 use aide::axum::{ApiRouter, routing::get_with};
@@ -14,13 +13,14 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bitview_catalog::TreeNode;
+use bitview_primitives::Index;
 use bitview_query::{Output, Query as BrkQuery, ResolvedQuery};
 use bitview_types::{
     DataRangeFormat, DetailedSeriesCount, Format, IndexInfo, PaginatedSeries, Pagination,
     SearchQuery, SeriesData, SeriesInfo, SeriesName, SeriesNameWithIndex, SeriesSelection,
 };
 use brk_error::Error as BrkError;
-use brk_types::{Index, Version};
+use brk_types::Version;
 use serde_json::{Value, to_vec};
 
 use crate::{
@@ -28,6 +28,7 @@ use crate::{
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
     params::{Empty, SeriesParam},
+    request_state::RequestState,
 };
 
 pub fn serve_catalog(state: AppState, headers: HeaderMap) -> Response {

@@ -2,11 +2,12 @@ use std::{collections::VecDeque, iter::repeat_n};
 
 use bitview_compute::{ExactOrderStats, FenwickTree, NumericValue, prepare_computed};
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::{PartsPerMillion32, StoredU8};
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PerBlock, PercentPerBlock};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, PartsPerMillion32, StoredU8, Version};
+use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, VecIndex, WritableVec};

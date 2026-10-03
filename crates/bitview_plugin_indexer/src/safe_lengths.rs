@@ -1,4 +1,4 @@
-use brk_types::Lengths;
+use bitview_primitives::Lengths;
 use parking_lot::{ArcRwLockReadGuard, RawRwLock};
 
 /// Pins a published immutable index prefix without waiting for append/compute.

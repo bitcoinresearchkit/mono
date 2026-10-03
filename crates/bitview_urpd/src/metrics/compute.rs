@@ -2,9 +2,10 @@ use std::{array, iter, mem};
 
 use bitview_cohort::{AgeAggregateId, AgeRange};
 use bitview_compute::{collect_cohort_weights, prepare_computed};
+use bitview_primitives::StoredF64;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Sats, StoredF64, Version};
+use brk_types::{Height, Sats, Version};
 use vecdb::ReadableVec;
 
 use super::{

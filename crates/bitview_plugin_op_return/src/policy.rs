@@ -1,5 +1,5 @@
+use bitview_primitives::OpReturnPolicyId;
 use bitview_traversable::Traversable;
-use brk_types::OpReturnPolicyId;
 
 #[derive(Clone, Copy, Default, Traversable)]
 pub struct Policy<T> {

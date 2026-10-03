@@ -1,6 +1,5 @@
+use bitview_primitives::StoredF64;
 use bitview_traversable::Traversable;
-use brk_types::StoredF64;
-
 use bitview_vecs::LazyPerBlock;
 
 #[derive(Clone, Traversable)]

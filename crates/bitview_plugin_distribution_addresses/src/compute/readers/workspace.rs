@@ -1,12 +1,12 @@
 use bitview_plugin_distribution_common::readers::Columns;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::HeightMap;
-use brk_types::{Sats, TxInIndex, TxOutIndex};
+use bitview_primitives::{TxInIndex, TxOutIndex};
+use brk_types::Sats;
 use vecdb::PcoVec;
 
-use crate::block::AddrCache;
-
 use super::TxRanges;
+use crate::block::AddrCache;
 
 /// Update-local source readers and scratch storage; address-state readers stay
 /// chunk-local because the chunk writes that state.

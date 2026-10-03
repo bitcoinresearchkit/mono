@@ -1,7 +1,9 @@
-use super::UTXOStates;
 use bitview_cohort::AgeRangeId;
+use bitview_primitives::CentsCompact;
 use bitview_urpd::COST_BASIS_PRICE_DIGITS;
-use brk_types::{CentsCompact, Sats};
+use brk_types::Sats;
+
+use super::UTXOStates;
 impl UTXOStates {
     /// Bounds need only each age range's first and last occupied price.
     pub fn bounds_entries(&self) -> impl Iterator<Item = (AgeRangeId, CentsCompact, Sats)> + '_ {

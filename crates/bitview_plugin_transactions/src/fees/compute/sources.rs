@@ -1,5 +1,6 @@
 use bitview_plugin_indexer::Indexer;
-use brk_types::{Height, OutPoint, Sats, TxInIndex, TxIndex, TxOutIndex, Weight};
+use bitview_primitives::{TxInIndex, TxOutIndex};
+use brk_types::{Height, OutPoint, Sats, TxIndex, Weight};
 use vecdb::{Budgeted, BytesVec, OverflowVec, PcoVec};
 
 /// Only the raw columns needed by the fee pass; no indexer lifecycle state.

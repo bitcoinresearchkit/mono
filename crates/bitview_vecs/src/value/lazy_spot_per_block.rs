@@ -1,6 +1,7 @@
 use bitview_compute::WeightedCohortState;
+use bitview_primitives::BoundedRatio;
 use bitview_transforms::{CentsUnsignedToDollars, SatsToBitcoin, SatsToCents};
-use brk_types::{Bitcoin, BoundedRatio, Cents, Dollars, Height, Sats, Version};
+use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
 use vecdb::{BinaryTransform, Ident, ReadableBoxedVec, ReadableCloneableVec};
 
 use crate::{

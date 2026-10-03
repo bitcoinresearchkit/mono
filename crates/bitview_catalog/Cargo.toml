@@ -8,7 +8,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-brk_types = { workspace = true }
+bitview_primitives = { workspace = true }
 indexmap = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true, features = ["rc"] }

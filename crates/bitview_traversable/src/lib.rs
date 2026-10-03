@@ -32,7 +32,7 @@ use vecdb::ZstdVec;
 use vecdb::ZstdVecValue;
 
 pub use bitview_catalog::{SeriesLeaf, SeriesLeafWithSchema, TreeBranch, TreeNode};
-pub use brk_types::Index;
+pub use bitview_primitives::Index;
 pub use indexmap::IndexMap;
 pub use vecdb::{AnyExportableVec, ReadOnlyClone, Ro, Rw, StorageMode};
 

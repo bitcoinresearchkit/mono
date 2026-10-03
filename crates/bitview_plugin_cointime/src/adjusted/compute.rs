@@ -1,7 +1,8 @@
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::{PartsPerMillionSigned32, PartsPerMillionSigned64, StoredF64};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, PartsPerMillionSigned32, PartsPerMillionSigned64, StoredF64};
+use brk_types::Height;
 use vecdb::ReadableVec;
 
 use super::{super::activity, Vecs};

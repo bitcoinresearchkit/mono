@@ -1,4 +1,5 @@
-use brk_types::{BoundedRatio, Cents};
+use bitview_primitives::BoundedRatio;
+use brk_types::Cents;
 
 use super::{Percentiles, PriceBands};
 

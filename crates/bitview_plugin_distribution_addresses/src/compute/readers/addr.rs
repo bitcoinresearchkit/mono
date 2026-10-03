@@ -1,8 +1,9 @@
-use brk_types::{
-    AddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex, OutputType,
+use bitview_primitives::{
+    AddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex,
     P2AAddrIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex,
     P2WPKHAddrIndex, P2WSHAddrIndex, TypeIndex,
 };
+use brk_types::OutputType;
 use vecdb::{BytesVecReader, OverflowVecReader};
 
 use crate::addr::AddrStateVecs;

@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
-use brk_types::{Pool, PoolSlug, Sats};
+use bitview_primitives::{Pool, PoolSlug};
+use brk_types::Sats;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

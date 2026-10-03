@@ -1,8 +1,7 @@
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
-use brk_types::StoredU64;
-use vecdb::{Rw, StorageMode};
-
 use bitview_vecs::PerBlockCumulativeRolling;
+use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct CountVecs<M: StorageMode = Rw> {

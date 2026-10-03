@@ -1,11 +1,12 @@
 use bitview_cohort::{AddrTypeId, ByAddrType, WithAddrTypes};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{StoredU32, StoredU64};
 use bitview_transforms::StoredU64ToStoredU32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlockCumulativeAverage, LazyWindowStartVec, PerBlockCumulativeRolling};
 use brk_error::Result;
-use brk_types::{StoredU32, StoredU64, Version};
+use brk_types::Version;
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 

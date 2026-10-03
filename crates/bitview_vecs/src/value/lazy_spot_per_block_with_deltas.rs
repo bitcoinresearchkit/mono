@@ -1,6 +1,7 @@
 use bitview_collections::Windows;
+use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
-use brk_types::{Cents, Height, PartsPerMillionSigned64, Sats, SatsSigned, Version};
+use brk_types::{Cents, Height, Sats, SatsSigned, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::ReadableCloneableVec;
 

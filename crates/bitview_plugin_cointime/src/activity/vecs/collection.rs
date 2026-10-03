@@ -1,9 +1,8 @@
+use bitview_primitives::StoredF64;
 use bitview_traversable::Traversable;
-use brk_types::StoredF64;
+use bitview_vecs::PerBlockCumulativeRolling;
 use derive_more::{Deref, DerefMut};
 use vecdb::{Rw, StorageMode};
-
-use bitview_vecs::PerBlockCumulativeRolling;
 
 use super::DerivedVecs;
 

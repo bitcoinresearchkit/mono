@@ -1,10 +1,8 @@
-use derive_more::{Deref, DerefMut};
-
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
-use brk_types::StoredU64;
-use vecdb::{Rw, StorageMode};
-
 use bitview_vecs::PerBlockAggregated;
+use derive_more::{Deref, DerefMut};
+use vecdb::{Rw, StorageMode};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Vecs<M: StorageMode = Rw>(

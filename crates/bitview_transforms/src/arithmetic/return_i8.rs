@@ -1,4 +1,4 @@
-use brk_types::StoredI8;
+use bitview_primitives::StoredI8;
 use vecdb::UnaryTransform;
 
 pub struct ReturnI8<const V: i8>;

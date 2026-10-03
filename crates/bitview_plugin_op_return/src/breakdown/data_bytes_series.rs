@@ -1,8 +1,10 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::Bytes;
+use bitview_primitives::{PartsPerMillion32, StoredU64};
 use bitview_transforms::RatioBytes;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPercentPerBlock, PerBlockCumulativeRolling};
-use brk_types::{Bytes, Height, PartsPerMillion32, StoredU64, Version};
+use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{ReadableCloneableVec, Rw, StorageMode};
 

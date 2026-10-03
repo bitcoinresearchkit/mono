@@ -11,6 +11,7 @@ bitviewd = { version = "0.12.2", path = "../../crates/bitviewd", default-feature
 bitview_default = { version = "0.12.2", path = "../../crates/bitview_default" }
 bitview_plugin = { version = "0.12.2", path = "../../crates/bitview_plugin" }
 bitview_plugin_indexer = { version = "0.12.2", path = "../../crates/bitview_plugin_indexer" }
+bitview_primitives = { version = "0.12.2", path = "../../crates/bitview_primitives", features = ["storage"] }
 bitview_runtime = { version = "0.12.2", path = "../../crates/bitview_runtime" }
 bitview_traversable = { version = "0.12.2", path = "../../crates/bitview_traversable", features = ["derive", "pco"] }
 brk_error = { version = "0.12.2", path = "../../crates/brk_error" }

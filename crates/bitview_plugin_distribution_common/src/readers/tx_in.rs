@@ -1,7 +1,8 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::HeightMap;
+use bitview_primitives::{TxInIndex, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{Height, OutputType, Sats, TxInIndex, TxOutIndex, TypeIndex};
+use brk_types::{Height, OutputType, Sats};
 use vecdb::{Cursor, PcoVec, ReadableVec};
 
 pub(super) type InputColumns<'a> = (&'a [Sats], &'a [Height], &'a [OutputType], &'a [TypeIndex]);

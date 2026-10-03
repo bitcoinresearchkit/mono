@@ -1,11 +1,12 @@
 use bitview_cohort::CreationCohorts;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredF64;
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
-use brk_types::{Cents, Sats, StoredF64, Version};
+use brk_types::{Cents, Sats, Version};
 use vecdb::{AnyStoredVec, BinaryTransform, Database, Rw, StorageMode};
 
 use super::{CoindaysDestroyedByCohort, CoreCumulativeValueByCohort, CumulativeValueByCohort};

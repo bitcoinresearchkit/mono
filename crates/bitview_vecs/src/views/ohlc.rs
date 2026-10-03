@@ -1,7 +1,8 @@
 use std::{convert::Infallible, iter, sync::Arc};
 
+use bitview_primitives::{Close, High, Low, OHLCCents};
 use bitview_traversable::{Traversable, TreeNode, make_leaf};
-use brk_types::{Cents, Close, Height, High, Low, OHLCCents, Version};
+use brk_types::{Cents, Height, Version};
 use rangeindex::SharedRangeMap;
 use vecdb::{
     AnyExportableVec, AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec,

@@ -1,4 +1,5 @@
-use brk_types::{FundedAddrData, OutputType, Sats};
+use bitview_primitives::FundedAddrData;
+use brk_types::{OutputType, Sats};
 
 /// Snapshot of [`FundedAddrData`] taken before a receive mutates it.
 #[derive(Debug)]

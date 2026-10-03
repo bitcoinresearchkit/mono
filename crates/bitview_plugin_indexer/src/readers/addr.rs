@@ -1,8 +1,11 @@
 use bitcoin::ScriptBuf;
+use bitview_primitives::{
+    P2AAddrIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex,
+    P2WPKHAddrIndex, P2WSHAddrIndex, TypeIndex,
+};
 use brk_types::{
-    AddrBytes, OutputType, P2AAddrIndex, P2ABytes, P2PK33AddrIndex, P2PK33Bytes, P2PK65AddrIndex,
-    P2PK65Bytes, P2PKHAddrIndex, P2PKHBytes, P2SHAddrIndex, P2SHBytes, P2TRAddrIndex, P2TRBytes,
-    P2WPKHAddrIndex, P2WPKHBytes, P2WSHAddrIndex, P2WSHBytes, TypeIndex,
+    AddrBytes, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes,
+    P2WPKHBytes, P2WSHBytes,
 };
 use vecdb::BytesVecReader;
 

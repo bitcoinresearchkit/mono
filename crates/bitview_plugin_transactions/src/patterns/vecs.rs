@@ -1,5 +1,6 @@
+use bitview_primitives::StoredBool;
 use bitview_traversable::Traversable;
-use brk_types::{StoredBool, TxIndex};
+use brk_types::TxIndex;
 use derive_more::{Deref, DerefMut};
 use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
 

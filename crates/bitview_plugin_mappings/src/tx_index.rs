@@ -1,6 +1,7 @@
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::{TxInIndex, TxOutIndex};
 use bitview_traversable::Traversable;
-use brk_types::{TxInIndex, TxIndex, TxOutIndex, Txid, Version};
+use brk_types::{TxIndex, Txid, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
 
 use crate::LazyIndexCountVec;

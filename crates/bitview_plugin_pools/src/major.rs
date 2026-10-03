@@ -3,12 +3,12 @@ use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_primitives::{PartsPerMillion32, PoolSlug};
 use bitview_transforms::MaskSats;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPercentRollingWindows, LazyWindowStartVec, ValuePerBlockCumulativeRolling};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{PartsPerMillion32, PoolSlug};
 use derive_more::{Deref, DerefMut};
 use vecdb::{BinaryTransform, Database, Rw, StorageMode, Version};
 

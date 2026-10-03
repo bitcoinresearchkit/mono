@@ -8,5 +8,6 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
+bitview_primitives = { workspace = true }
 brk_types = { workspace = true }
 vecdb = { workspace = true }

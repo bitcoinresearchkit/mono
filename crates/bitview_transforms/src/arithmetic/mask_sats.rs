@@ -1,4 +1,5 @@
-use brk_types::{Sats, StoredU32, StoredU64};
+use bitview_primitives::{StoredU32, StoredU64};
+use brk_types::Sats;
 use vecdb::BinaryTransform;
 
 pub struct MaskSats;

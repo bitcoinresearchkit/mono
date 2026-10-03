@@ -1,0 +1,28 @@
+[package]
+name = "bitview_primitives"
+description = "Bitview's index, value and state types: the vocabulary of its series"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[features]
+default = []
+storage = ["dep:vecdb", "brk_types/storage"]
+
+[dependencies]
+bitcoin = { workspace = true }
+brk_error = { workspace = true, features = ["bitcoin", "jiff", "serde_json"] }
+brk_types = { workspace = true }
+derive_more = { workspace = true }
+itoa = "1.0.18"
+jiff = { workspace = true }
+rapidhash = { workspace = true }
+rustc-hash = { workspace = true }
+ryu = "1.0.23"
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+strum = { version = "0.28", features = ["derive"] }
+vecdb = { workspace = true, optional = true }

@@ -1,7 +1,8 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_primitives::StoredU64;
 use brk_error::Result;
-use brk_types::{Sats, StoredU64, Version};
+use brk_types::{Sats, Version};
 use vecdb::{AnyStoredVec, Database, WritableVec};
 
 use crate::{Dependencies, Vecs};

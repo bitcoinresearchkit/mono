@@ -1,5 +1,6 @@
 use bitview_cohort::{AmountRange, AmountRangeId};
-use brk_types::{Cents, Height, StoredU64};
+use bitview_primitives::StoredU64;
+use brk_types::{Cents, Height};
 
 use super::AddrCohortState;
 use crate::{addr::FundedAddrCountsVecs, metrics::BalanceMetrics};

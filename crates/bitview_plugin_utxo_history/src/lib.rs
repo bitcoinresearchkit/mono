@@ -9,10 +9,11 @@ pub use has::HasUtxoHistory;
 use std::path::PathBuf;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, PerBlock};
 use brk_error::Result;
-use brk_types::{Height, Sats, StoredU64, Version};
+use brk_types::{Height, Sats, Version};
 use statedb::{Creations, History, Reader, Spends, View};
 use vecdb::{Database, Rw, StorageMode};
 

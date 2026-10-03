@@ -1,8 +1,9 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{body::Bytes, extract::Path, http::HeaderMap, response::Response};
+use bitview_primitives::BlockHashPrefix;
 use bitview_query::RepresentationId;
 use bitview_types::{AddrHashPrefixMatches, AddrStats, AddrValidation, Utxo};
-use brk_types::{Addr, BlockHashPrefix, Transaction, Txid, Version};
+use brk_types::{Addr, Transaction, Txid, Version};
 use serde_json::to_vec;
 
 use crate::{

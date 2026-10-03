@@ -1,14 +1,14 @@
 use std::collections::hash_map::Entry;
 
-use brk_types::{EmptyAddrData, FundedAddrData, OutputType, TypeIndex};
+use bitview_primitives::{EmptyAddrData, FundedAddrData, TypeIndex};
+use brk_types::OutputType;
 use rustc_hash::FxHashMap;
 
+use super::AddrLookup;
 use crate::{
     addr::{AddrReceiveStatus, SourcedAddrData},
     block::{Received, TxIndexes},
 };
-
-use super::AddrLookup;
 
 /// Cached address data selected for one output type.
 pub struct AddrTypeLookup<'a> {

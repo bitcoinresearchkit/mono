@@ -2,10 +2,11 @@ use bitview_compute::ComputeRollingStats;
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_primitives::StoredU64;
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, StoredU64};
+use brk_types::{Cents, Height};
 use vecdb::ReadableVec;
 
 use super::{Vecs, vecs::EmaPeriodId};

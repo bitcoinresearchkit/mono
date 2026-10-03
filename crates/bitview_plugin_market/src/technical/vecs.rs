@@ -1,7 +1,7 @@
 use bitview_collections::WindowsTo1m;
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::RatioPerBlock;
-use brk_types::PartsPerMillion32;
 use vecdb::{Rw, StorageMode};
 
 use super::{MacdChain, RsiChain};

@@ -1,5 +1,5 @@
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
-use brk_types::PartsPerMillion32;
 
 #[derive(Clone, Copy, Debug, PartialEq, Traversable)]
 pub struct SupplyDensity<T> {

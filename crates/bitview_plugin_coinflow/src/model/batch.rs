@@ -3,7 +3,8 @@ use bitview_compute::{
     AgeBand, CohortAccounting, MINIMUM_DURATION_DAYS, WeightedCohortAggregates, collect_age_range,
 };
 use bitview_plugin_distribution_age::AccountingSources;
-use brk_types::{Bitcoin, BoundedRatio, Height, Sats, StoredF64, Timestamp};
+use bitview_primitives::{BoundedRatio, StoredF64};
+use brk_types::{Bitcoin, Height, Sats, Timestamp};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use vecdb::ReadableVec;
 

@@ -1,10 +1,11 @@
 use bitview_cohort::{CohortContext, CohortGroup};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillionSigned64, StoredI64, StoredU64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CohortSources, LazyPerBlockWithDeltas, LazyWindowStartVec};
 use brk_error::Result;
-use brk_types::{PartsPerMillionSigned64, StoredI64, StoredU64, Version};
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 #[derive(Traversable)]

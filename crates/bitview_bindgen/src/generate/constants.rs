@@ -9,7 +9,7 @@ use bitview_cohort::{
     AGE_RANGE_NAMES, AMOUNT_RANGE_NAMES, CLASS_NAMES, ENTRY_NAMES, EPOCH_NAMES,
     PROFITABILITY_RANGE_NAMES, SPENDABLE_TYPE_NAMES, TERM_NAMES,
 };
-use brk_types::{Index, pools};
+use bitview_primitives::{Index, pools};
 use serde::Serialize;
 use serde_json::{Map, Value, to_string_pretty, to_value as SerdeJsonToValue};
 

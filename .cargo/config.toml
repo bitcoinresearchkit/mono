@@ -9,4 +9,4 @@ dev = "run -p bitviewd --bin bitview-bindgen --features bindgen -- --run"
 prod = "run --release -p bitviewd"
 # Dead or unnecessary `pub` (cargo-hawk). The client, the crates it re-exports wholesale, and vendored forks are
 # external API boundaries.
-visibility = "hawk check --exclude-crate bitview_client --exclude-crate bitview_types --exclude-crate bitview_catalog --exclude-crate bitview_cohort --exclude-crate brk_types --exclude-crate pco --exclude-crate fjall --exclude-crate lsm_tree --exclude-crate byteview"
+visibility = "hawk check --exclude-crate bitview_client --exclude-crate bitview_types --exclude-crate bitview_catalog --exclude-crate bitview_cohort --exclude-crate bitview_primitives --exclude-crate brk_types --exclude-crate pco --exclude-crate fjall --exclude-crate lsm_tree --exclude-crate byteview"

@@ -1,4 +1,4 @@
-use brk_types::TxVersion;
+use bitview_primitives::TxVersion;
 
 macro_rules! define_transaction_counts {
     ($($(#[$attribute:meta])* $vector:ident: $flag:ident = $bit:literal $(, count: $count:ident $(, count_attr: $count_attr:meta)?)?;)+) => {

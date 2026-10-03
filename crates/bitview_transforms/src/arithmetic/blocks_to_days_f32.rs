@@ -1,7 +1,6 @@
-use brk_types::{StoredF32, StoredU32};
-use vecdb::UnaryTransform;
-
+use bitview_primitives::{StoredF32, StoredU32};
 use brk_types::TARGET_BLOCKS_PER_DAY_F32;
+use vecdb::UnaryTransform;
 
 pub struct BlocksToDaysF32;
 

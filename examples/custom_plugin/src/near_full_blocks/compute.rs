@@ -1,6 +1,7 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_primitives::StoredU64;
 use brk_error::Result;
-use brk_types::{StoredU64, Weight};
+use brk_types::Weight;
 use vecdb::{Database, ReadableVec, VecIndex};
 
 use super::{Dependencies, Vecs};

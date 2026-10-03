@@ -1,5 +1,6 @@
 use bitview_cohort::AgeRange;
-use brk_types::{Height, Sats, StoredF64};
+use bitview_primitives::StoredF64;
+use brk_types::{Height, Sats};
 use vecdb::ReadableVec;
 
 /// Empty cohorts may have no observation; populated cohorts require a finite one.

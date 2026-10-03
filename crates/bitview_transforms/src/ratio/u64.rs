@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use brk_types::StoredU64;
+use bitview_primitives::StoredU64;
 use vecdb::BinaryTransform;
 
 pub struct RatioU64<P>(PhantomData<P>);

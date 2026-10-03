@@ -1,6 +1,7 @@
 use std::mem;
 
-use brk_types::{AddrHash, OutputType, TypeIndex};
+use bitview_primitives::{AddrHash, TypeIndex};
+use brk_types::OutputType;
 
 const ASSOCIATIVITY: usize = 4;
 const SET_COUNT: usize = 1 << 19;

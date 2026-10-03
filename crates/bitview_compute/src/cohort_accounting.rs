@@ -1,6 +1,6 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
-use brk_types::{BoundedRatio, Cents, CentsSats, CentsSquaredSats, Height, Sats};
-
+use bitview_primitives::{BoundedRatio, CentsSquaredSats};
+use brk_types::{Cents, CentsSats, Height, Sats};
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use vecdb::{ReadableVec, VecValue};
 

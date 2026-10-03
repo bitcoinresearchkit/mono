@@ -1,11 +1,12 @@
 use std::{borrow::Cow, cmp::Reverse};
 
+use bitview_primitives::{Day1, Pool, PoolSlug, StoredF64, StoredU64, pools};
 use bitview_types::{
     PoolBlockCounts, PoolBlockShares, PoolDetail, PoolDetailInfo, PoolHashrateEntry, PoolInfo,
     PoolStats, PoolsSummary, TimePeriod,
 };
 use brk_error::{Error, OptionData, Result};
-use brk_types::{Day1, Height, Pool, PoolSlug, StoredF64, StoredU64, pools};
+use brk_types::Height;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use super::start_height;

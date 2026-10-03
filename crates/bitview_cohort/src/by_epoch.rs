@@ -1,6 +1,7 @@
+use bitview_primitives::Halving;
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
-use brk_types::{Halving, Height};
+use brk_types::Height;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

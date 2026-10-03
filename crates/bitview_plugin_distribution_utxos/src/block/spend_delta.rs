@@ -1,5 +1,7 @@
-use brk_types::{Cents, CentsSats, Sats, SupplyState};
 use std::ops::AddAssign;
+
+use bitview_primitives::SupplyState;
+use brk_types::{Cents, CentsSats, Sats};
 
 #[derive(Default, Clone, Copy)]
 pub struct SpendDelta {

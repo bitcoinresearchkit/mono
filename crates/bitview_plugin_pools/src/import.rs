@@ -3,9 +3,9 @@ use std::collections::BTreeMap;
 use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{POOL_ATTRIBUTION_VERSION, pools};
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
-use brk_types::{POOL_ATTRIBUTION_VERSION, pools};
 use vecdb::{BytesVec, ImportableVec, Version};
 
 use crate::{STORAGE, Vecs, major, minor, pool_heights::PoolHeights};

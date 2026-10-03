@@ -1,7 +1,8 @@
 use bitview_collections::{ByLookbackPeriod, LOOKBACK_PERIOD_DAYS, LOOKBACK_PERIOD_NAMES};
+use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPercentPerBlock;
-use brk_types::{PartsPerMillionSigned64, Version};
+use brk_types::Version;
 
 /// Annualized spot-price returns over trailing periods of at least two years.
 #[derive(Clone, Traversable)]

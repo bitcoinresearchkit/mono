@@ -1,5 +1,6 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
-use brk_types::{Cents, PartsPerMillion32};
+use bitview_primitives::PartsPerMillion32;
+use brk_types::Cents;
 
 use super::{density::SupplyDensity, price_distribution::PriceDistribution};
 use crate::ProjectedBucket;

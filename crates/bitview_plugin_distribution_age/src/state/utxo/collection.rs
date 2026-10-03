@@ -1,12 +1,15 @@
-use crate::compute::ComputeContext;
 use bitview_cohort::{AgeRange, ByEpoch, Class};
+use bitview_primitives::CostBasisSnapshot;
 use brk_error::Result;
-use brk_types::{Age, CostBasisSnapshot, Height};
+use brk_types::{Age, Height};
 use rayon::scope as RayonScope;
 use statedb::Amount;
 
 use super::{UTXOCohortState, UTXOTransientState};
-use crate::state::{CoreRealizedState, RealizedState, WithCapital, WithoutCapital, supply};
+use crate::{
+    compute::ComputeContext,
+    state::{CoreRealizedState, RealizedState, WithCapital, WithoutCapital, supply},
+};
 
 pub struct UTXOStates {
     pub age_range: AgeRange<UTXOCohortState<RealizedState, WithCapital>>,

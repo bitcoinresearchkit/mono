@@ -1,6 +1,7 @@
 use bitview_plugin_indexer::SafeLengths;
+use bitview_primitives::TypeIndex;
 use brk_error::Result;
-use brk_types::{Addr, BlockHash, Height, OutputType, Transaction, TxIndex, Txid, TypeIndex};
+use brk_types::{Addr, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
 
 use crate::Query;
 

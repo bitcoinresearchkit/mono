@@ -1,7 +1,8 @@
 use bitview_cohort::ByAddrType;
-use brk_types::{
-    AddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrIndex, OutputType, TypeIndex,
+use bitview_primitives::{
+    AddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrIndex, TypeIndex,
 };
+use brk_types::OutputType;
 use vecdb::likely;
 
 use crate::addr::{AddrTypeToTypeIndexMap, AddrTypeToVec, SourcedAddrData};

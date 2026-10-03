@@ -4,8 +4,9 @@ use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillion32, StoredF64};
 use bitview_urpd::ReplayInputs;
-use brk_types::{Height, PartsPerMillion32, StoredF64};
+use brk_types::Height;
 use vecdb::ReadableVec;
 
 use crate::{WeightedModeId, WeightedModes};

@@ -1,15 +1,15 @@
 use bitview_cohort::{AmountRange, CohortContext};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillionSigned64, StoredI64, StoredU64};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlockWithDeltas, LazyWindowStartVec};
+use bitview_vecs::{AmountSources, LazyPerBlockWithDeltas, LazyWindowStartVec};
 use brk_error::Result;
-use brk_types::{PartsPerMillionSigned64, StoredI64, StoredU64, Version};
+use brk_types::Version;
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use super::{AddrCountsVecs, AddrTypeToAddrCount};
-use bitview_vecs::AmountSources;
 
 #[derive(Traversable)]
 pub struct FundedAddrCountsVecs<M: StorageMode = Rw> {

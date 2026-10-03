@@ -1,6 +1,7 @@
 use std::iter;
 
-use brk_types::{StoredU64, TxIndex};
+use bitview_primitives::StoredU64;
+use brk_types::TxIndex;
 use vecdb::{ReadableVec, VecIndex};
 
 /// Reuse transaction counts and walk their entries without expanding a mapping.

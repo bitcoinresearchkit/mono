@@ -1,5 +1,6 @@
 use bitview_cohort::{AmountRange, SpendableType};
-use brk_types::{OutputType, Sats, SupplyState};
+use bitview_primitives::SupplyState;
+use brk_types::{OutputType, Sats};
 use vecdb::unlikely;
 
 #[derive(Default, Debug)]

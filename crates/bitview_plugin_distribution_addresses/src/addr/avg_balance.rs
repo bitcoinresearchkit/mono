@@ -1,10 +1,11 @@
 use bitview_cohort::{AddrTypeId, ByAddrType, WithAddrTypes};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyIndexedVec, LazySpotValuePerBlock, import_cached};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, Sats, StoredU64, Version};
+use brk_types::{Cents, Height, Sats, Version};
 use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, Database, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode,

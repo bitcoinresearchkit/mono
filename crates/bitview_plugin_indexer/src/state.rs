@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use arc_swap::ArcSwap;
 use bitview_plugin::Publication;
-use brk_types::Lengths;
+use bitview_primitives::Lengths;
 use parking_lot::RwLock;
 
 use crate::SafeLengths;

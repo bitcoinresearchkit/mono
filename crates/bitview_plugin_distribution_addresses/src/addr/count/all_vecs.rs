@@ -1,9 +1,10 @@
 use bitview_cohort::{AddrTypeId, ByAddrType, WithAddrTypes};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, import_cached};
 use brk_error::Result;
-use brk_types::{Height, StoredU64, Version};
+use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, Ident, Rw, StorageMode, WritableVec};

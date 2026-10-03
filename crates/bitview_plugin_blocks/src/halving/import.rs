@@ -1,7 +1,8 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{Halving, StoredU32};
 use bitview_transforms::BlocksToDaysF32;
 use bitview_vecs::LazyPerBlock;
-use brk_types::{Halving, Height, StoredU32, Version};
+use brk_types::{Height, Version};
 use vecdb::{Ident, IndexVec, ReadOnlyClone};
 
 use super::Vecs;

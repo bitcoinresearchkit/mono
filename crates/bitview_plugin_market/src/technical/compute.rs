@@ -1,10 +1,11 @@
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_primitives::PartsPerMillion32;
 use bitview_transforms::RatioDollars;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Dollars, PartsPerMillion32};
+use brk_types::Dollars;
 use rayon::{
     join,
     prelude::{IntoParallelIterator, ParallelIterator},

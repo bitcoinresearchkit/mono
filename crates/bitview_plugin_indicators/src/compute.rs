@@ -1,7 +1,8 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_primitives::{BasisPoints32, PartsPerMillion64, StoredF32};
 use bitview_transforms::RatioDollars;
 use brk_error::Result;
-use brk_types::{BasisPoints32, Dollars, PartsPerMillion64, StoredF32};
+use brk_types::Dollars;
 use rayon::join;
 use vecdb::Database;
 

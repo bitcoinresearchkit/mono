@@ -1,9 +1,10 @@
 use bitview_collections::Percent;
 use bitview_compute::{ComputeDrawdown, FixedRatio};
+use bitview_primitives::StoredF32;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, StoredF32, Version};
+use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{
     BinaryTransform, Budgeted, Database, EagerVec, PcoVec, ReadableVec, Rw, StorageMode, VecValue,

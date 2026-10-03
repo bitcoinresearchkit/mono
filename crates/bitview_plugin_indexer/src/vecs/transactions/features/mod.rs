@@ -8,10 +8,10 @@ pub use counts::TransactionCountVecs;
 pub use flags::TxFeatureFlags;
 pub use transaction_counts::TransactionCounts;
 
-use brk_error::Result;
-
+use bitview_primitives::StoredBool;
 use bitview_traversable::Traversable;
-use brk_types::{Height, StoredBool, TxIndex, Version};
+use brk_error::Result;
+use brk_types::{Height, TxIndex, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec};
 

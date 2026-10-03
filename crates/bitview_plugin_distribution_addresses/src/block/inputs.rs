@@ -1,6 +1,7 @@
 use std::collections::hash_map::Entry;
 
-use brk_types::{Height, OutputType, Sats, TxIndex, TypeIndex};
+use bitview_primitives::TypeIndex;
+use brk_types::{Height, OutputType, Sats, TxIndex};
 
 use crate::{addr::AddrTypeToTypeIndexMap, block::TxIndexes, block::address_spends::AddressSpends};
 

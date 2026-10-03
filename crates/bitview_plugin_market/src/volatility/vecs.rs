@@ -1,7 +1,7 @@
 use bitview_collections::Windows;
+use bitview_primitives::StoredF32;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPerBlock;
-use brk_types::StoredF32;
 use derive_more::Deref;
 
 #[derive(Clone, Deref, Traversable)]

@@ -1,6 +1,5 @@
-use brk_types::{
-    ChunkInput, CpfpClusterTxIndex, FeeRate, OutPoint, Sats, TxInIndex, VSize, linearize,
-};
+use bitview_primitives::TxInIndex;
+use brk_types::{ChunkInput, CpfpClusterTxIndex, FeeRate, OutPoint, Sats, VSize, linearize};
 use smallvec::SmallVec;
 use vecdb::{VecIndex, unlikely};
 

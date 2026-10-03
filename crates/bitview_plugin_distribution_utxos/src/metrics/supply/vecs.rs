@@ -1,15 +1,14 @@
-use super::{SupplyBase, SupplyTotal};
-use bitview_cohort::CohortContext;
-use bitview_cohort::UtxoGroups;
+use bitview_cohort::{CohortContext, UtxoGroups};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight, LazyWindowStartVec};
 use brk_error::Result;
-use brk_types::{
-    Cents, Height, PartsPerMillion32, PartsPerMillionSigned64, Sats, SatsSigned, Version,
-};
+use brk_types::{Cents, Height, Sats, SatsSigned, Version};
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
+
+use super::{SupplyBase, SupplyTotal};
 #[derive(Traversable)]
 pub struct SupplyVecs<M: StorageMode = Rw> {
     pub total: SupplyTotal<M>,

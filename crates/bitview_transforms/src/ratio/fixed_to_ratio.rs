@@ -1,4 +1,4 @@
-use brk_types::StoredF32;
+use bitview_primitives::StoredF32;
 use vecdb::UnaryTransform;
 
 pub struct FixedToRatio;

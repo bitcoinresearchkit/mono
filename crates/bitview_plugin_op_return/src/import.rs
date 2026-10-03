@@ -1,9 +1,10 @@
 use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredU64;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
-use brk_types::{Height, Sats, StoredU64, Version};
+use brk_types::{Height, Sats, Version};
 use vecdb::ReadableCloneableVec;
 
 use crate::{

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use brk_types::Bytes;
+use bitview_primitives::Bytes;
 use vecdb::BinaryTransform;
 
 pub struct RatioBytes<P>(PhantomData<P>);

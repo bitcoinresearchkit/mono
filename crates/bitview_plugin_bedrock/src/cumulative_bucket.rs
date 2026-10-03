@@ -1,4 +1,4 @@
-use brk_types::CentsCompact;
+use bitview_primitives::CentsCompact;
 
 use crate::MODE_COUNT;
 

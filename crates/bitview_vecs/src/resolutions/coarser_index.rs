@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use brk_types::FromCoarserIndex;
+use bitview_primitives::FromCoarserIndex;
 use rangeindex::RangeMap;
 use vecdb::{ReadableVec, VecIndex, VecValue};
 

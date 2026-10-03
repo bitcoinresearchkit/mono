@@ -1,11 +1,12 @@
 use bitview_cohort::{AddrTypeId, ByAddrType};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::PartsPerMillion32;
 use bitview_transforms::RatioSats;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPercentPerBlock, import_cached};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, PartsPerMillion32, Sats, Version};
+use brk_types::{Height, Sats, Version};
 use vecdb::{
     AnyStoredVec, BinaryTransform, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
     WritableVec,

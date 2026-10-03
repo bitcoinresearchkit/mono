@@ -7,8 +7,9 @@ pub use readers::{AddrReaders, Workspace};
 use bitview_cohort::AddrTypeId;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_distribution_common::replay::{LiveState, tip_hash};
+use bitview_primitives::Lengths;
 use brk_error::Result;
-use brk_types::{Height, Lengths};
+use brk_types::Height;
 use vecdb::{AnyVec, Database, ReadableVec};
 
 use crate::{Dependencies, Vecs, state::AddrStates};

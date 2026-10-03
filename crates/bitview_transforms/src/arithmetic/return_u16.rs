@@ -1,4 +1,4 @@
-use brk_types::StoredU16;
+use bitview_primitives::StoredU16;
 use vecdb::UnaryTransform;
 
 pub struct ReturnU16<const V: u16>;

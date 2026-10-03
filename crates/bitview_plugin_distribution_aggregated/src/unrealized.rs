@@ -1,9 +1,11 @@
-use crate::columns::Columns;
 use bitview_cohort::AgeAggregateId;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::PartsPerMillionSigned32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyFiatPerBlock, LazyRatioPerBlock};
-use brk_types::{Cents, CentsSigned, PartsPerMillionSigned32, Version};
+use brk_types::{Cents, CentsSigned, Version};
+
+use crate::columns::Columns;
 
 #[derive(Clone, Traversable)]
 pub struct Unrealized {

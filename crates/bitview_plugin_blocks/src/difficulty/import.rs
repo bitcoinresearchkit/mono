@@ -1,10 +1,9 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{Epoch, PartsPerMillionSigned32, StoredF64, StoredU32};
 use bitview_transforms::{BlocksToDaysF32, DifficultyToHashF64};
 use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Resolutions};
-use brk_types::{
-    BLOCKS_PER_DIFF_EPOCHS, Epoch, Height, PartsPerMillionSigned32, StoredF64, StoredU32, Version,
-};
+use brk_types::{BLOCKS_PER_DIFF_EPOCHS, Height, Version};
 use vecdb::{Ident, IndexVec, ReadOnlyClone};
 
 use super::Vecs;

@@ -8,7 +8,7 @@ use ryu::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Sats, StoredF64};
+use super::Sats;
 use crate::CheckedSub;
 
 #[cfg(feature = "storage")]
@@ -49,14 +49,6 @@ impl Mul<usize> for Bitcoin {
     }
 }
 
-impl Div<Bitcoin> for Bitcoin {
-    type Output = StoredF64;
-    fn div(self, rhs: Bitcoin) -> Self::Output {
-        StoredF64::from(self.0 / rhs.0)
-        // Self::from(Sats::from(self) / Sats::from(rhs))
-    }
-}
-
 impl Div<usize> for Bitcoin {
     type Output = Self;
     fn div(self, rhs: usize) -> Self::Output {
@@ -75,13 +67,6 @@ impl From<f64> for Bitcoin {
     #[inline]
     fn from(value: f64) -> Self {
         Self(value)
-    }
-}
-
-impl From<StoredF64> for Bitcoin {
-    #[inline]
-    fn from(value: StoredF64) -> Self {
-        Self(*value)
     }
 }
 

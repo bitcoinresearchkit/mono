@@ -1,7 +1,6 @@
 use bitview_cohort::AgeRange;
+use bitview_primitives::{BoundedRatio, StoredF64};
 use bitview_traversable::Traversable;
-use brk_types::{BoundedRatio, StoredF64};
-
 use bitview_vecs::LazyPerBlock;
 
 #[derive(Clone, Traversable)]

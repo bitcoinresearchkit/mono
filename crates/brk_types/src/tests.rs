@@ -1,10 +1,10 @@
 use crate::{
-    AddrBytes, AddrHash, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes,
-    P2TRBytes, P2WPKHBytes, P2WSHBytes,
+    AddrBytes, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes,
+    P2WPKHBytes, P2WSHBytes,
 };
 
 #[test]
-fn hashes_borrowed_script_payloads_like_owned_addresses() {
+fn script_pubkeys_round_trip_to_addresses() {
     let addresses = [
         AddrBytes::from(P2PK65Bytes::from(&[0x04; 65][..])),
         AddrBytes::from(P2PK33Bytes::from(&[0x02; 33][..])),
@@ -20,10 +20,6 @@ fn hashes_borrowed_script_payloads_like_owned_addresses() {
         let script = address.to_script_pubkey();
         let output_type = OutputType::from(&script);
 
-        assert_eq!(
-            AddrHash::from_script(&script, output_type).unwrap(),
-            AddrHash::from(&address)
-        );
         assert_eq!(
             AddrBytes::try_from((&script, output_type)).unwrap(),
             address

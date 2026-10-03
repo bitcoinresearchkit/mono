@@ -1,7 +1,9 @@
-use crate::data::Data;
+use bitview_primitives::PartsPerMillionSigned32;
 use bitview_transforms::{RatioCentsSignedCents, SatsToCents};
-use brk_types::{Cents, CentsSigned, PartsPerMillionSigned32, Sats};
+use brk_types::{Cents, CentsSigned, Sats};
 use vecdb::BinaryTransform;
+
+use crate::data::Data;
 
 /// The side prices and sentiment metrics share one invested-capital calculation.
 #[derive(Clone, Copy)]

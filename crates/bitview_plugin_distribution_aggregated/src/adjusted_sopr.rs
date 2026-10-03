@@ -1,12 +1,13 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::StoredF32;
 use bitview_transforms::{SoprRatio, StoredU64ToCents};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyFiatPerBlockCumulativeRolling, LazyWindowStartVec, RollingWindows};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, StoredF32, Version};
+use brk_types::{Cents, Height, Version};
 use vecdb::{AnyStoredVec, Database, LazyVec, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::columns::Columns;

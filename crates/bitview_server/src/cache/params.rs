@@ -1,9 +1,9 @@
 use axum::http::HeaderMap;
-use brk_types::{BlockHashPrefix, Version};
-
-use crate::{VERSION, etag::Etag, extended::HeaderMapExtended};
+use bitview_primitives::BlockHashPrefix;
+use brk_types::Version;
 
 use super::{mode::CdnCacheMode, strategy::CacheStrategy};
+use crate::{VERSION, etag::Etag, extended::HeaderMapExtended};
 
 // Browser-facing: always revalidate via ETag. `no-cache` means "cache it but
 // check before use" (not "don't cache"); ETag makes the check cheap.

@@ -1,6 +1,5 @@
+use bitview_primitives::{Epoch, PartsPerMillionSigned32, StoredF32, StoredF64, StoredU32};
 use bitview_traversable::Traversable;
-use brk_types::{Epoch, PartsPerMillionSigned32, StoredF32, StoredF64, StoredU32};
-
 use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Resolutions};
 
 #[derive(Clone, Traversable)]

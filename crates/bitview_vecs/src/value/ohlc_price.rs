@@ -1,5 +1,6 @@
+use bitview_primitives::{OHLCCents, OHLCDollars, OHLCSats};
 use bitview_transforms::{OhlcCentsToDollars, OhlcCentsToSats};
-use brk_types::{OHLCCents, OHLCDollars, OHLCSats, Version};
+use brk_types::Version;
 
 use crate::{IndexSources, LazyIndexes, LazyOhlcCentsVecs, Price, SpotPrice};
 

@@ -1,6 +1,5 @@
+use bitview_primitives::{Halving, StoredF32, StoredU32};
 use bitview_traversable::Traversable;
-use brk_types::{Halving, StoredF32, StoredU32};
-
 use bitview_vecs::LazyPerBlock;
 
 #[derive(Clone, Traversable)]

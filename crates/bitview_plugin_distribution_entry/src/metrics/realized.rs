@@ -1,6 +1,7 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::{PartsPerMillionSigned64, PriceRatio, StoredF32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlockCumulativeRolling, LazyFiatPerBlockCumulativeWithSums,
@@ -8,9 +9,7 @@ use bitview_vecs::{
     LazyPriceWithRatioPerBlock, LazyWindowStartVec, PerBlock,
 };
 use brk_error::Result;
-use brk_types::{
-    Cents, CentsSigned, Height, PartsPerMillionSigned64, PriceRatio, StoredF32, Version,
-};
+use brk_types::{Cents, CentsSigned, Height, Version};
 use vecdb::{Database, Ident, ReadableBoxedVec, Rw, StorageMode};
 
 use super::Sources;

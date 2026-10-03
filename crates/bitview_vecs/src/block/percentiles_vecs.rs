@@ -1,7 +1,8 @@
 use bitview_collections::ByPercentile;
+use bitview_primitives::PERCENTILES_LEN;
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{Cents, Height, PERCENTILES_LEN, Version};
+use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 

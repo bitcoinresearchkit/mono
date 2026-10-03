@@ -6,15 +6,12 @@ pub use address::BlockAddresses;
 pub use processed::ProcessedOutput;
 pub use processed::ProcessedOutputData;
 
-use brk_error::Result;
-
 use bitcoin::{Script, Transaction, constants::WITNESS_SCALE_FACTOR};
 use bitview_cohort::ByAddrType;
+use bitview_primitives::{AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, TxOutIndex, TypeIndex};
+use brk_error::Result;
 use brk_store::Store;
-use brk_types::{
-    AddrBytes, AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, OutPoint, OutputType, Sats, SigOps,
-    TxIndex, TxOutIndex, TypeIndex, Unit, Vout,
-};
+use brk_types::{AddrBytes, OutPoint, OutputType, Sats, SigOps, TxIndex, Unit, Vout};
 use vecdb::{BytesVec, WritableVec, likely};
 
 use super::BlockProcessor;

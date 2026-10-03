@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use brk_types::{EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex};
+use bitview_primitives::{EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex};
 
 /// Address data and the persistent representation it came from.
 #[derive(Debug, Clone)]

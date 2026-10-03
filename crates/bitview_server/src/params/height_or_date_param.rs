@@ -1,4 +1,5 @@
-use brk_types::{Date, Height};
+use bitview_primitives::Date;
+use brk_types::Height;
 use schemars::JsonSchema;
 use serde::Deserialize;
 

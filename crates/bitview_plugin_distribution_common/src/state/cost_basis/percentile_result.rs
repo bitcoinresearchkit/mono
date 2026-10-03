@@ -1,4 +1,5 @@
-use brk_types::{Cents, PERCENTILES_LEN};
+use bitview_primitives::PERCENTILES_LEN;
+use brk_types::Cents;
 
 #[derive(Default)]
 pub struct PercentileResult {

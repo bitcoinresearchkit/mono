@@ -1,13 +1,14 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
 use bitview_transforms::RatioSats;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyIndexedVec, LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock,
     LazyWindowStartVec,
 };
-use brk_types::{Height, PartsPerMillion32, PartsPerMillionSigned64, Sats, SatsSigned, Version};
+use brk_types::{Height, Sats, SatsSigned, Version};
 use vecdb::{BinaryTransform, ReadableCloneableVec};
 
 #[derive(Clone, Traversable)]

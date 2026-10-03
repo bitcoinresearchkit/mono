@@ -1,4 +1,4 @@
-use brk_types::PartsPerMillion32;
+use bitview_primitives::PartsPerMillion32;
 use vecdb::UnaryTransform;
 
 pub struct OneMinusPpm;

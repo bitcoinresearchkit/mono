@@ -7,10 +7,11 @@ use bitview_compute::{
 };
 use bitview_plugin_distribution_age::{AccountingSources, Vecs as AgeVecs};
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::BoundedRatio;
 use bitview_vecs::PerBlock;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{BoundedRatio, Height, Version};
+use brk_types::{Height, Version};
 use vecdb::{AnyStoredVec, CachePolicy, EagerVec, PcoVec, ReadableVec, WritableVec};
 
 use super::{super::AgeRangeVecs, Sources, Vecs};

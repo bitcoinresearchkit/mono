@@ -1,4 +1,5 @@
-use brk_types::{Dollars, StoredF32};
+use bitview_primitives::StoredF32;
+use brk_types::Dollars;
 use vecdb::UnaryTransform;
 
 pub struct AvgCentsToUsd;

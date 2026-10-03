@@ -1,7 +1,8 @@
-use crate::metrics::CohortMetrics;
 use bitview_cohort::AgeRange;
+use bitview_primitives::StoredF64;
 use bitview_vecs::PerBlockCumulativeRolling;
-use brk_types::StoredF64;
+
+use crate::metrics::CohortMetrics;
 
 /// The replay loop can write origin metrics but cannot access address state.
 pub struct OriginTargets<'a> {

@@ -1,7 +1,8 @@
 use bitcoin::{Transaction, Weight as BitcoinWeight, consensus::deserialize};
+use bitview_primitives::Lengths;
 use brk_error::{Error, OptionData, Result};
 use brk_reader::Reader;
-use brk_types::{BlkPosition, Lengths, TxIndex, Txid};
+use brk_types::{BlkPosition, TxIndex, Txid};
 use vecdb::ReadableVec;
 
 use crate::Query;

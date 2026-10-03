@@ -2,9 +2,9 @@ use bitview_compute::{ComputeRollingStats, compute_rolling_extrema_from_starts};
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_primitives::PartsPerMillion32;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::PartsPerMillion32;
 use vecdb::VecIndex;
 
 use super::Vecs;

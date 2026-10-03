@@ -1,8 +1,8 @@
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
-use brk_types::{StoredU64, Weight};
-use vecdb::{Rw, StorageMode};
-
 use bitview_vecs::{PerBlockFull, PerBlockRolling};
+use brk_types::Weight;
+use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

@@ -1,9 +1,10 @@
 use bitview_cohort::SpendableType;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredU64;
 use bitview_vecs::{CountTotal, LazyWindowStartVec, import_cached};
 use brk_error::Result;
-use brk_types::{Height, StoredU64, Version};
+use brk_types::{Height, Version};
 use vecdb::Database;
 
 use super::{Vecs, WithInputTypes};

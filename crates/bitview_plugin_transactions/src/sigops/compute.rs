@@ -1,8 +1,8 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredU64;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::StoredU64;
 
 use super::Vecs;
 

@@ -1,4 +1,5 @@
-use brk_types::{Bitcoin, Sats, StoredF32};
+use bitview_primitives::StoredF32;
+use brk_types::{Bitcoin, Sats};
 use vecdb::UnaryTransform;
 
 pub struct AvgSatsToBtc;

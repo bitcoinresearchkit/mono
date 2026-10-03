@@ -1,15 +1,17 @@
-use crate::columns::Columns;
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::{PartsPerMillionSigned64, PriceRatio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlockCumulativeRolling, LazyFiatPerBlockCumulativeWithSums,
     LazyFiatPerBlockCumulativeWithSumsAndDeltas, LazyFiatPerBlockWithDeltas, LazyPerBlock,
     LazyPriceWithRatioPerBlock, LazyRatioPerBlock, LazyWindowStartVec, Price,
 };
-use brk_types::{Cents, CentsSigned, Height, PartsPerMillionSigned64, PriceRatio, Version};
+use brk_types::{Cents, CentsSigned, Height, Version};
 use vecdb::ReadableBoxedVec;
+
+use crate::columns::Columns;
 
 #[derive(Clone, Traversable)]
 pub struct Realized {

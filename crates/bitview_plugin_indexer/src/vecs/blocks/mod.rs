@@ -1,10 +1,7 @@
-use brk_error::Result;
-
+use bitview_primitives::{StoredF64, StoredU32, StoredU64};
 use bitview_traversable::Traversable;
-use brk_types::{
-    BlkPosition, BlockHash, CoinbaseTag, Height, StoredF64, StoredU32, StoredU64, Timestamp,
-    Version, Weight,
-};
+use brk_error::Result;
+use brk_types::{BlkPosition, BlockHash, CoinbaseTag, Height, Timestamp, Version, Weight};
 use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp,

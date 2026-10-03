@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use bitview_catalog::{SeriesLeafWithSchema, TreeNode};
-use brk_types::Index;
+use bitview_primitives::Index;
 
 use super::{GenericSyntax, IndexSetPattern, PatternField, StructuralPattern, inner_type};
 use crate::{PatternBaseResult, analysis};

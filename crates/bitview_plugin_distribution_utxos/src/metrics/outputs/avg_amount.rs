@@ -1,9 +1,10 @@
 use bitview_cohort::SpendableType;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, import_cached};
 use brk_error::Result;
-use brk_types::{Cents, Height, Sats, StoredU64, Version};
+use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
 /// Mean unspent output value, calculated from the same block's supply and counts.

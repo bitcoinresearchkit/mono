@@ -1,15 +1,15 @@
 use bitview_cohort::ByAddrType;
+use bitview_primitives::{DecodedAddrState, EmptyAddrData, FundedAddrData, TypeIndex};
 use brk_error::Result;
-use brk_types::{DecodedAddrState, EmptyAddrData, FundedAddrData, OutputType, TypeIndex};
+use brk_types::OutputType;
 use rayon::prelude::*;
 
+use super::lookup::AddrLookup;
 use crate::{
     addr::{AddrStateVecs, AddrTypeToTypeIndexMap, SourcedAddrData},
     block::{Received, TxIndexes},
     compute::AddrReaders,
 };
-
-use super::lookup::AddrLookup;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]

@@ -1,7 +1,7 @@
 use std::{convert::Infallible, iter, sync::Arc};
 
+use bitview_primitives::StoredU64;
 use bitview_traversable::{Traversable, TreeNode, make_leaf};
-use brk_types::StoredU64;
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{

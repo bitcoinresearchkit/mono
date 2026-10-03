@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use brk_types::Index;
+use bitview_primitives::Index;
 
 /// A pattern of indexes that appear together on multiple series.
 #[derive(Debug, Clone)]

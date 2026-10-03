@@ -4,6 +4,7 @@ use bitview_plugin_indexer::Lengths;
 use bitview_plugin_inputs::ByTypeVecs as InputsByTypeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_outputs::ByTypeVecs;
+use bitview_primitives::{PartsPerMillion32, StoredF32, StoredU32, StoredU64};
 use bitview_transforms::RatioU64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -12,7 +13,7 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, PartsPerMillion32, StoredF32, StoredU32, StoredU64, Version};
+use brk_types::{Height, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, Rw, StorageMode, WritableVec};
 

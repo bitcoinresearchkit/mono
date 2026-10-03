@@ -1,4 +1,5 @@
-use brk_types::{Dollars, SatsFract};
+use bitview_primitives::SatsFract;
+use brk_types::Dollars;
 use vecdb::UnaryTransform;
 
 pub struct DollarsToSatsFract;

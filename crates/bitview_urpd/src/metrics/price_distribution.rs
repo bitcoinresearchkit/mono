@@ -1,4 +1,5 @@
-use brk_types::{Cents, CentsCompact, CostBasisByPercentile, PERCENTILES, PERCENTILES_LEN, Sats};
+use bitview_primitives::{CentsCompact, CostBasisByPercentile, PERCENTILES, PERCENTILES_LEN};
+use brk_types::{Cents, Sats};
 
 use super::price_stats::PriceStats;
 

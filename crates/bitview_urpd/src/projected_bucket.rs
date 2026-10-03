@@ -1,4 +1,5 @@
-use brk_types::{CentsCompact, Sats};
+use bitview_primitives::CentsCompact;
+use brk_types::Sats;
 
 /// One price projected into the same age filters for raw and weighted supply.
 pub struct ProjectedBucket<const N: usize, const C: usize> {

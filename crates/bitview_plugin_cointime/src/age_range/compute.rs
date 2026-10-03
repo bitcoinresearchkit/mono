@@ -2,9 +2,10 @@ use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_compute::prepare_computed;
 use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::{BoundedRatio, StoredF64};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Bitcoin, BoundedRatio, Height, Sats, StoredF64, Version};
+use brk_types::{Bitcoin, Height, Sats, Version};
 use vecdb::{AnyStoredVec, AnyVec, CheckedSub, ReadableVec, WritableVec};
 
 use super::Vecs;

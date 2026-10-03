@@ -1,7 +1,8 @@
 use bitview_collections::Percent;
 use bitview_compute::FixedRatio;
+use bitview_primitives::StoredF32;
 use bitview_traversable::Traversable;
-use brk_types::{Height, StoredF32, Version};
+use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{LazyVec, ReadableCloneableVec, VecValue};
 

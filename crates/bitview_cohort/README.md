@@ -97,5 +97,6 @@ assert_eq!(CohortContext::Utxo.full_name(age.cohort()), "utxos_9m_to_1y_old");
 ## Built On
 
 - `brk_error` for error handling
-- `brk_types` for `Sats`, `Halving`, `OutputType`
+- `brk_types` for `Sats`, `OutputType`
+- `bitview_primitives` for `Halving`, `Year`
 - `bitview_traversable` for data structure traversal

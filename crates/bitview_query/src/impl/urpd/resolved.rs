@@ -1,7 +1,8 @@
 use bitcoin::Amount;
+use bitview_primitives::CentsCompact;
 use bitview_types::{Urpd, UrpdBucket};
 use brk_error::{Error, Result};
-use brk_types::{Bitcoin, Cents, CentsCompact, CentsSats, CentsSigned, Dollars, Sats};
+use brk_types::{Bitcoin, Cents, CentsSats, CentsSigned, Dollars, Sats};
 
 use super::ResolvedUrpd;
 
@@ -10,7 +11,8 @@ impl ResolvedUrpd {
         &self.entries
     }
 
-    /// Aggregates the validated, sorted entries into response buckets.
+    /// Aggregates the validated entries into response buckets in one pass: they arrive unique and
+    /// sorted from their source map, so nothing is rehashed or re-sorted.
     pub fn build(self) -> Result<Urpd> {
         self.validate()?;
         let close = self.close;

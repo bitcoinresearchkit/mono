@@ -1,9 +1,9 @@
+use bitview_primitives::{BoundedRatio, StoredF64};
 use bitview_traversable::Traversable;
-use brk_types::{BoundedRatio, Cents, StoredF64};
-
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazySpotValuePerBlock,
 };
+use brk_types::Cents;
 
 #[derive(Clone, Traversable)]
 pub struct AwakeVecs {

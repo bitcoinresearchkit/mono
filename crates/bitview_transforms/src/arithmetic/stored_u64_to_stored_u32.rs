@@ -1,4 +1,4 @@
-use brk_types::{StoredU32, StoredU64};
+use bitview_primitives::{StoredU32, StoredU64};
 use vecdb::UnaryTransform;
 
 pub struct StoredU64ToStoredU32;

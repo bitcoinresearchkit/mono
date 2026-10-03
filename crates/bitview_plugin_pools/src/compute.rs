@@ -1,8 +1,8 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::TxOutIndex;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::TxOutIndex;
 use rayon::prelude::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
 };

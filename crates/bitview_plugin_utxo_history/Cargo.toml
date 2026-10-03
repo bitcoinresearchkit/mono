@@ -9,6 +9,7 @@ license.workspace = true
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
+bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_traversable = { workspace = true }
 statedb = { workspace = true }
 bitview_vecs = { workspace = true }

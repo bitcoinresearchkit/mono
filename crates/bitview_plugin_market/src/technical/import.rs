@@ -1,8 +1,9 @@
 use bitview_collections::WindowsTo1m;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillionSigned64, StoredF32};
 use bitview_vecs::{LazyPerBlock, PerBlock, RatioPerBlock};
 use brk_error::Result;
-use brk_types::{PartsPerMillionSigned64, StoredF32, Version};
+use brk_types::Version;
 use vecdb::Database;
 
 use super::{MacdChain, Vecs, rsi_chain};

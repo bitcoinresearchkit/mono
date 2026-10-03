@@ -1,6 +1,7 @@
 use bitview_cohort::{AgeAggregate, AgeRangeId};
+use bitview_primitives::CentsCompact;
 use bitview_traversable::Traversable;
-use brk_types::{Cents, CentsCompact, Sats};
+use brk_types::{Cents, Sats};
 
 #[derive(Clone, Copy, Traversable)]
 pub struct PriceBounds<T> {

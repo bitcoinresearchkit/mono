@@ -1,6 +1,7 @@
 use bitview_collections::{PerResolution, with_resolution_fields};
+use bitview_primitives::OHLCCents;
 use bitview_traversable::Traversable;
-use brk_types::{Cents, Height, OHLCCents, Version};
+use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use serde::Serialize;
@@ -14,7 +15,7 @@ macro_rules! define_lazy_indexes {
         periods { $($field:ident: $index:ident => $param:ident,)* }
         epochs { $($epoch:ident: $epoch_index:ident => $epoch_param:ident,)* }
     ) => {
-        use brk_types::{$($index,)* $($epoch_index,)*};
+        use bitview_primitives::{$($index,)* $($epoch_index,)*};
 
         #[derive(Clone, Deref, DerefMut, Traversable)]
         #[traversable(transparent)]

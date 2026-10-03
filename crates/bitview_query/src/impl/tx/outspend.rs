@@ -1,8 +1,6 @@
+use bitview_primitives::{TxInIndex, TxOutIndex};
 use brk_error::{Error, OptionData, Result};
-use brk_types::{
-    BlockHash, Height, Timestamp, TxInIndex, TxIndex, TxOutIndex, TxOutspend, TxStatus, Txid, Vin,
-    Vout,
-};
+use brk_types::{BlockHash, Height, Timestamp, TxIndex, TxOutspend, TxStatus, Txid, Vin, Vout};
 use serde_json::to_vec;
 use vecdb::{ReadableVec, VecIndex};
 

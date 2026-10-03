@@ -1,4 +1,4 @@
-use brk_types::{Close, High, Low, OHLCCents, OHLCSats, Open};
+use bitview_primitives::{Close, High, Low, OHLCCents, OHLCSats, Open};
 use vecdb::UnaryTransform;
 
 use crate::CentsUnsignedToSats;

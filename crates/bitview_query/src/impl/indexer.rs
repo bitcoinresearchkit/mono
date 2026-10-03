@@ -1,7 +1,8 @@
 use std::cell::OnceCell;
 
 use bitcoin::ScriptBuf;
-use brk_types::{OutputType, Sats, TxOut, TxOutIndex, Txid, TxidPrefix, TypeIndex, Vout};
+use bitview_primitives::{TxOutIndex, TypeIndex};
+use brk_types::{OutputType, Sats, TxOut, Txid, TxidPrefix, Vout};
 use rustc_hash::FxHashMap;
 
 use super::indexed_transaction;

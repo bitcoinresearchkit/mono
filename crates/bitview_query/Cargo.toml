@@ -64,6 +64,7 @@ bitview_plugin_pools = { workspace = true, optional = true }
 bitview_plugin_price = { workspace = true, optional = true }
 bitview_plugin_transactions = { workspace = true, optional = true }
 bitview_plugin_utxo_history = { workspace = true, optional = true }
+bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_runtime = { workspace = true }
 bitview_types = { workspace = true }
 bitview_urpd = { workspace = true, optional = true }

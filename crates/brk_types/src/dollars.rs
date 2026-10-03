@@ -12,8 +12,8 @@ use ryu::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Bitcoin, CentsSigned, Close, High, Sats, StoredF32, StoredF64};
-use crate::{Cents, CheckedSub, Low, Open};
+use super::{Bitcoin, CentsSigned, Sats};
+use crate::{Cents, CheckedSub};
 
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
@@ -76,34 +76,6 @@ impl From<Dollars> for f64 {
     }
 }
 
-impl From<Open<Dollars>> for Dollars {
-    #[inline]
-    fn from(value: Open<Dollars>) -> Self {
-        *value
-    }
-}
-
-impl From<High<Dollars>> for Dollars {
-    #[inline]
-    fn from(value: High<Dollars>) -> Self {
-        *value
-    }
-}
-
-impl From<Low<Dollars>> for Dollars {
-    #[inline]
-    fn from(value: Low<Dollars>) -> Self {
-        *value
-    }
-}
-
-impl From<Close<Dollars>> for Dollars {
-    #[inline]
-    fn from(value: Close<Dollars>) -> Self {
-        *value
-    }
-}
-
 impl From<usize> for Dollars {
     #[inline]
     fn from(value: usize) -> Self {
@@ -125,39 +97,6 @@ impl Sub for Dollars {
     }
 }
 
-impl Div<Dollars> for Dollars {
-    type Output = StoredF64;
-    fn div(self, rhs: Dollars) -> Self::Output {
-        if self.is_nan() || rhs == Dollars::ZERO {
-            StoredF64::NAN
-        } else {
-            StoredF64::from(f64::from(self) / f64::from(rhs))
-        }
-    }
-}
-
-impl Div<Close<Dollars>> for Dollars {
-    type Output = StoredF64;
-    fn div(self, rhs: Close<Dollars>) -> Self::Output {
-        if self.is_nan() || *rhs == Dollars::ZERO {
-            StoredF64::NAN
-        } else {
-            StoredF64::from(f64::from(self) / f64::from(*rhs))
-        }
-    }
-}
-
-impl Div<Dollars> for Close<Dollars> {
-    type Output = StoredF64;
-    fn div(self, rhs: Dollars) -> Self::Output {
-        if self.is_nan() || rhs == Dollars::ZERO {
-            StoredF64::NAN
-        } else {
-            StoredF64::from(f64::from(*self) / f64::from(rhs))
-        }
-    }
-}
-
 impl Div<usize> for Dollars {
     type Output = Self;
     fn div(self, rhs: usize) -> Self::Output {
@@ -166,13 +105,6 @@ impl Div<usize> for Dollars {
         } else {
             Self::from(CentsSigned::from(self) / rhs)
         }
-    }
-}
-
-impl Div<StoredF64> for Dollars {
-    type Output = Self;
-    fn div(self, rhs: StoredF64) -> Self::Output {
-        self / f64::from(rhs)
     }
 }
 
@@ -206,34 +138,6 @@ impl Mul<Dollars> for Dollars {
     }
 }
 
-impl Mul<Close<Dollars>> for Dollars {
-    type Output = Self;
-    fn mul(self, rhs: Close<Dollars>) -> Self::Output {
-        Self::from(CentsSigned::from(self) * CentsSigned::from(*rhs))
-    }
-}
-
-impl Mul<Dollars> for Close<Dollars> {
-    type Output = Dollars;
-    fn mul(self, rhs: Dollars) -> Self::Output {
-        Dollars::from(CentsSigned::from(*self) * CentsSigned::from(rhs))
-    }
-}
-
-impl Mul<usize> for Close<Dollars> {
-    type Output = Dollars;
-    fn mul(self, rhs: usize) -> Self::Output {
-        Dollars::from(CentsSigned::from(*self) * rhs)
-    }
-}
-
-impl Mul<StoredF64> for Close<Dollars> {
-    type Output = Dollars;
-    fn mul(self, rhs: StoredF64) -> Self::Output {
-        *self * rhs
-    }
-}
-
 impl Mul<f64> for Dollars {
     type Output = Dollars;
     fn mul(self, rhs: f64) -> Self::Output {
@@ -252,13 +156,6 @@ impl Mul<Bitcoin> for Dollars {
     }
 }
 
-impl Mul<Bitcoin> for Close<Dollars> {
-    type Output = Dollars;
-    fn mul(self, rhs: Bitcoin) -> Self::Output {
-        *self * Sats::from(rhs)
-    }
-}
-
 impl Mul<Sats> for Dollars {
     type Output = Self;
     fn mul(self, rhs: Sats) -> Self::Output {
@@ -269,20 +166,6 @@ impl Mul<Sats> for Dollars {
             let sats = rhs.as_u128() as i128;
             Self::from(CentsSigned::from(sats * cents / Sats::ONE_BTC_U128 as i128))
         }
-    }
-}
-
-impl Mul<StoredF32> for Dollars {
-    type Output = Self;
-    fn mul(self, rhs: StoredF32) -> Self::Output {
-        self * *rhs as f64
-    }
-}
-
-impl Mul<StoredF64> for Dollars {
-    type Output = Self;
-    fn mul(self, rhs: StoredF64) -> Self::Output {
-        self * *rhs
     }
 }
 
@@ -315,20 +198,6 @@ impl From<u128> for Dollars {
     #[inline]
     fn from(value: u128) -> Self {
         Self::from(CentsSigned::from(value))
-    }
-}
-
-impl From<StoredF64> for Dollars {
-    #[inline]
-    fn from(value: StoredF64) -> Self {
-        Self(*value)
-    }
-}
-
-impl From<Close<Dollars>> for u128 {
-    #[inline]
-    fn from(value: Close<Dollars>) -> Self {
-        u128::from(*value)
     }
 }
 

@@ -1,6 +1,7 @@
+use bitview_primitives::{StoredBool, TxVersion};
 use brk_error::{Error, Result};
 use brk_store::Store;
-use brk_types::{Height, StoredBool, TxIndex, TxVersion, Txid, TxidPrefix};
+use brk_types::{Height, TxIndex, Txid, TxidPrefix};
 use rayon::{join, prelude::*};
 use tracing::error;
 use vecdb::{AnyVec, WritableVec, likely, unlikely};

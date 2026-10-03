@@ -1,4 +1,5 @@
-use brk_types::{BoundedRatio, Cents, CentsSats, CentsSquaredSats};
+use bitview_primitives::{BoundedRatio, CentsSquaredSats};
+use brk_types::{Cents, CentsSats};
 
 /// Capitalized price using the same encoded weight for both raw cost-basis
 /// moments. Fractional raw units are retained; only the final cents are floored.

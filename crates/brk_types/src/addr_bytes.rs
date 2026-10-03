@@ -2,11 +2,10 @@ use std::str::FromStr;
 
 use bitcoin::{Address, Network, PublicKey, ScriptBuf, opcodes, script::Builder};
 use brk_error::Error;
-use rapidhash::v3;
 
 use super::{
-    AddrHash, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes,
-    P2WPKHBytes, P2WSHBytes,
+    OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes, P2WPKHBytes,
+    P2WSHBytes,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -19,16 +18,6 @@ pub enum AddrBytes {
     P2WSH(P2WSHBytes),   // 32
     P2TR(P2TRBytes),     // 32
     P2A(P2ABytes),       // 2
-}
-
-impl AddrHash {
-    #[inline]
-    pub fn from_script(script: &ScriptBuf, output_type: OutputType) -> Result<Self, Error> {
-        Ok(Self::new(v3::rapidhash_v3(AddrBytes::script_payload(
-            script,
-            output_type,
-        )?)))
-    }
 }
 
 impl AddrBytes {
@@ -45,11 +34,8 @@ impl AddrBytes {
         }
     }
 
-    pub(crate) fn hash(&self) -> u64 {
-        v3::rapidhash_v3(self.as_slice())
-    }
-
-    fn script_payload(script: &ScriptBuf, output_type: OutputType) -> Result<&[u8], Error> {
+    /// The address payload inside `script` (what `AddrBytes` and address hashes cover).
+    pub fn script_payload(script: &ScriptBuf, output_type: OutputType) -> Result<&[u8], Error> {
         let bytes = script.as_bytes();
         match output_type {
             OutputType::P2PK65 => match bytes.len() {

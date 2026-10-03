@@ -1,6 +1,7 @@
+use bitview_primitives::{Epoch, StoredF64};
 use bitview_types::DifficultyAdjustmentEntry;
 use brk_error::{Error, Result};
-use brk_types::{Epoch, Height, StoredF64, Timestamp};
+use brk_types::{Height, Timestamp};
 use vecdb::{ReadableVec, VecIndex};
 
 use crate::query_plugins::QueryPlugins;

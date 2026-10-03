@@ -1,7 +1,8 @@
 use bitview_cohort::{CohortGroup, CohortId};
+use bitview_primitives::StoredU64;
 use bitview_transforms::{StoredU64ToCents, StoredU64ToSats};
 use brk_error::Result;
-use brk_types::{Cents, Height, Sats, StoredU64, Version};
+use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, LazyVec, ReadableCloneableVec, Rw};
 
 use super::CumulativeCohortSources;

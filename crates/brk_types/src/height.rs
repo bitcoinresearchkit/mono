@@ -9,8 +9,7 @@ use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Epoch, Halving, StoredU64};
-use crate::{BLOCKS_PER_DIFF_EPOCHS, BLOCKS_PER_HALVING, CheckedSub, FromCoarserIndex, StoreValue};
+use crate::{CheckedSub, StoreValue};
 
 #[cfg(feature = "storage")]
 use brk_error::Error as ErrorError;
@@ -27,6 +26,9 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 use std::fs;
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable, Pco, PrintableIndex, Stamp, VecIndex};
+
+pub const BLOCKS_PER_DIFF_EPOCHS: u32 = 2016;
+pub const BLOCKS_PER_HALVING: u32 = 210_000;
 
 /// Block height
 #[derive(
@@ -207,12 +209,6 @@ impl From<u64> for Height {
     }
 }
 
-impl From<StoredU64> for Height {
-    #[inline]
-    fn from(value: StoredU64) -> Self {
-        Self(*value as u32)
-    }
-}
 impl From<usize> for Height {
     #[inline]
     fn from(value: usize) -> Self {
@@ -288,10 +284,10 @@ impl From<Height> for Stamp {
 }
 
 impl Height {
-    pub(crate) fn index_name() -> &'static str {
+    pub fn index_name() -> &'static str {
         "height"
     }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
+    pub fn index_aliases() -> &'static [&'static str] {
         &["h", "height", "blk", "block"]
     }
 }
@@ -324,17 +320,5 @@ impl Formattable for Height {
     fn write_to(&self, buf: &mut Vec<u8>) {
         let mut b = Buffer::new();
         buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
-
-impl FromCoarserIndex<Epoch> for Height {
-    fn max_from_(coarser: Epoch) -> usize {
-        (usize::from(coarser) + 1) * BLOCKS_PER_DIFF_EPOCHS as usize - 1
-    }
-}
-
-impl FromCoarserIndex<Halving> for Height {
-    fn max_from_(coarser: Halving) -> usize {
-        (usize::from(coarser) + 1) * BLOCKS_PER_HALVING as usize - 1
     }
 }

@@ -8,6 +8,7 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
+bitview_primitives = { workspace = true, features = ["storage"] }
 statedb = { workspace = true }
 bitview_plugin_distribution_common = { workspace = true }
 bitview_urpd = { workspace = true }

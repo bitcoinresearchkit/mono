@@ -5,8 +5,9 @@ mod import;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
-use brk_types::{Height, StoredU64, Version};
+use brk_types::{Height, Version};
 use vecdb::{Database, EagerVec, PcoVec, Rw, StorageMode};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("near_full_blocks"), Version::ONE);

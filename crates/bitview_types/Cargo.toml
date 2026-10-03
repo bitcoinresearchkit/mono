@@ -9,6 +9,7 @@ repository.workspace = true
 
 [dependencies]
 bitcoin = { workspace = true }
+bitview_primitives = { workspace = true }
 brk_types = { workspace = true }
 derive_more = { workspace = true }
 itoa = "1.0.18"

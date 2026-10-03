@@ -1,8 +1,9 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64, StoredF32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock, PercentPerBlock};
 use brk_error::Result;
-use brk_types::{PartsPerMillion32, PartsPerMillionSigned64, StoredF32, Version};
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode, UnaryTransform};
 
 mod compute;

@@ -1,4 +1,4 @@
-use brk_types::{StoredF32, StoredF64};
+use bitview_primitives::{StoredF32, StoredF64};
 use vecdb::UnaryTransform;
 
 pub struct DaysToYears;

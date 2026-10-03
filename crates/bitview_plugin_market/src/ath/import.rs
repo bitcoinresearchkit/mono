@@ -1,8 +1,9 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::PartsPerMillionSigned32;
 use bitview_transforms::{DaysToYears, RatioDiffCents};
 use bitview_vecs::{LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock, PerBlock, Price};
 use brk_error::Result;
-use brk_types::{Cents, Height, PartsPerMillionSigned32, Version};
+use brk_types::{Cents, Height, Version};
 use vecdb::{BinaryTransform, Database, ReadableCloneableVec};
 
 use super::{Vecs, seconds_to_days::SecondsToDays};

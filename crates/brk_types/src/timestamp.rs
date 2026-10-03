@@ -8,13 +8,12 @@ use derive_more::Deref;
 use itoa::Buffer;
 use jiff::{
     Timestamp as JiffTimestamp,
-    civil::{Date as CivilDate, DateTime, date},
+    civil::{DateTime, date},
     tz::TimeZone,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::Date;
 use crate::CheckedSub;
 
 #[cfg(feature = "storage")]
@@ -51,9 +50,6 @@ pub struct Timestamp(u32);
 pub const ONE_HOUR_IN_SEC: u32 = 60 * 60;
 pub const ONE_DAY_IN_SEC: u32 = 24 * 60 * 60;
 pub const ONE_DAY_IN_SEC_F64: f64 = ONE_DAY_IN_SEC as f64;
-
-/// 2009-01-01 00:00:00 UTC — epoch for fixed-interval time indexes.
-pub const INDEX_EPOCH: u32 = 1230768000;
 
 impl Timestamp {
     pub const ZERO: Self = Self(0);
@@ -149,18 +145,6 @@ impl From<Timestamp> for u64 {
     #[inline]
     fn from(value: Timestamp) -> Self {
         u64::from(value.0)
-    }
-}
-
-impl From<Date> for Timestamp {
-    #[inline]
-    fn from(value: Date) -> Self {
-        Self::from(
-            CivilDate::from(value)
-                .to_zoned(TimeZone::UTC)
-                .unwrap()
-                .timestamp(),
-        )
     }
 }
 

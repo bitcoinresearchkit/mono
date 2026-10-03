@@ -1,4 +1,4 @@
-use brk_types::BoundedRatio;
+use bitview_primitives::BoundedRatio;
 
 #[derive(Clone, Copy, Default)]
 pub struct WeightedRatio {

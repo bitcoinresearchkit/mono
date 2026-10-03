@@ -19,6 +19,12 @@ use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_reader::{Reader, XOR_LEN, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
+use tracing::{debug, error, info, warn};
+use vecdb::{
+    AnyExportableVec, AnyVec, Database, RawDBError, ReadOnlyClone, ReadableVec, Ro, Rw,
+    StorageMode, WritableVec, unlikely,
+};
+
 use constants::*;
 use lengths::IndexerLengths as _;
 use processor::{BlockBuffers, BlockProcessor};
@@ -26,11 +32,6 @@ use read_pool::join as join_reads;
 use readers::Readers;
 use state::State;
 use stores::Stores;
-use tracing::{debug, error, info, warn};
-use vecdb::{
-    AnyExportableVec, AnyVec, Database, RawDBError, ReadOnlyClone, ReadableVec, Ro, Rw,
-    StorageMode, WritableVec, unlikely,
-};
 use vecs::{
     AddrsVecs, InputsVecs, OpReturnVecs, OutputsVecs, ScriptsVecs, TransactionCounts,
     TransactionFeaturesVecs, TxFeatureFlags, TxMetadataVecs, Vecs,
@@ -47,7 +48,7 @@ mod state;
 mod stores;
 mod vecs;
 
-pub use brk_types::Lengths;
+pub use bitview_primitives::Lengths;
 
 pub use has::HasIndexer;
 

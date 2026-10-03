@@ -1,7 +1,8 @@
 use bitview_collections::Windows;
+use bitview_primitives::{StoredF32, StoredU64};
 use bitview_transforms::PerSecond;
 use bitview_traversable::Traversable;
-use brk_types::{StoredF32, StoredU64, Version};
+use brk_types::Version;
 use derive_more::{Deref, DerefMut};
 
 use crate::{LazyPerBlock, LazyRollingSumFromHeight, LazyRollingSumsFromHeight};

@@ -1,5 +1,5 @@
+use bitview_primitives::OpReturnKind;
 use bitview_traversable::Traversable;
-use brk_types::OpReturnKind;
 
 macro_rules! define_by_kind {
     ($($field:ident => $kind:ident, $description:literal),+ $(,)?) => {

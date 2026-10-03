@@ -1,8 +1,8 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{CapitalSentimentPhase, StoredBool, StoredI8, StoredU8};
 use bitview_vecs::{LazyPerBlock, PerBlock};
 use brk_error::Result;
-use brk_types::{CapitalSentimentPhase, StoredBool, StoredI8, StoredU8};
 use vecdb::UnaryTransform;
 
 use crate::{STORAGE, Vecs};

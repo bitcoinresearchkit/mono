@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
+use bitview_primitives::{AddrHash, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{Addr, AddrBytes, AddrHash, OutputType, TypeIndex};
+use brk_types::{Addr, AddrBytes, OutputType};
 
 use crate::Query;
 

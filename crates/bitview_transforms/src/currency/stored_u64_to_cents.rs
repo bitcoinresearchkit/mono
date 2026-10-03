@@ -1,4 +1,5 @@
-use brk_types::{Cents, StoredU64};
+use bitview_primitives::StoredU64;
+use brk_types::Cents;
 use vecdb::UnaryTransform;
 
 pub struct StoredU64ToCents;

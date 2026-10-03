@@ -1,4 +1,4 @@
-use brk_types::PartsPerMillionSigned64;
+use bitview_primitives::PartsPerMillionSigned64;
 use vecdb::UnaryTransform;
 
 pub struct Cagr<const YEARS: u8>;

@@ -1,5 +1,6 @@
+use bitview_primitives::Lengths;
 use brk_error::Result;
-use brk_types::{Height, Lengths};
+use brk_types::Height;
 use tracing::{debug, warn};
 use vecdb::{
     AnyStoredVec, CachePolicy, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, WritableVec,

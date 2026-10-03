@@ -1,9 +1,10 @@
+use bitview_primitives::{Lengths, PriceRatio};
 use bitview_transforms::price_ratio;
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, LazyPerBlock, Price, RatioPerBlock};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, Lengths, PriceRatio, Version};
+use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
 use crate::Component;

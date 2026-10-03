@@ -1,5 +1,6 @@
+use bitview_primitives::{BoundedRatio, StoredF64};
 use bitview_traversable::Traversable;
-use brk_types::{BoundedRatio, Cents, StoredF64};
+use brk_types::Cents;
 
 mod sources;
 

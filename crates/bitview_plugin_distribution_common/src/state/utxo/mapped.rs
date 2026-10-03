@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
 
-use crate::state::{Accumulate, CostBasisData, RealizedOps, UnrealizedState};
-use brk_types::{Cents, CentsCompact, Sats};
+use bitview_primitives::CentsCompact;
+use brk_types::{Cents, Sats};
 use derive_more::{Deref, DerefMut};
 
 use super::UTXOCohortState as CommonCohort;
+use crate::state::{Accumulate, CostBasisData, RealizedOps, UnrealizedState};
 
 #[derive(Deref, DerefMut)]
 pub struct MappedUTXOCohortState<R: RealizedOps, S: Accumulate>(

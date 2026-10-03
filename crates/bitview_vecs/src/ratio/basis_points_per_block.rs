@@ -1,7 +1,8 @@
+use bitview_primitives::{BasisPoints32, StoredF32};
 use bitview_transforms::FixedToRatio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{BasisPoints32, StoredF32, Version};
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use crate::{IndexSources, LazyPerBlock, PerBlock};

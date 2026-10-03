@@ -1,5 +1,5 @@
 use bitview_plugin::Plugin;
-use brk_types::Index;
+use bitview_primitives::Index;
 use vecdb::AnyExportableVec;
 
 /// A queryable vector together with the plugin that owns it.

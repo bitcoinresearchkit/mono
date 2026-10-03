@@ -1,9 +1,10 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_primitives::{CapitalSentimentPhase as Phase, StoredBool, StoredU8};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{CapitalSentimentPhase as Phase, Cents, Height, StoredBool, StoredU8, Version};
+use brk_types::{Cents, Height, Version};
 use vecdb::{AnyStoredVec, Cursor, Database, ReadableVec, WritableVec};
 
 use crate::{Dependencies, Vecs};

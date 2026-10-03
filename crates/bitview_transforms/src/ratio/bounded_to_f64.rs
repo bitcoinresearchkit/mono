@@ -1,4 +1,4 @@
-use brk_types::{BoundedRatio, StoredF64};
+use bitview_primitives::{BoundedRatio, StoredF64};
 use vecdb::UnaryTransform;
 
 /// Decode a bounded ratio, optionally after its exact encoded complement.

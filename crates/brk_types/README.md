@@ -1,26 +1,25 @@
 # brk_types
 
-Bitcoin domain and storage-index types shared across BRK and Bitview.
+Bitcoin primitives shared across BRK and Bitview.
 
 ## What it provides
 
-Purpose-built types for heights, amounts, hashes, addresses, transactions,
-calendar indexes, protocol epochs, and values that are intrinsically tied to
-Bitcoin, including responses shared with `brk_mempool` such as `MempoolInfo`.
-Query-protocol types such as `SeriesSelection`, `SeriesData` and `Pagination`,
-and Bitview-only REST response DTOs, live in `bitview_types`; `TreeNode` lives
-in `bitview_catalog`.
+Purpose-built types for heights, amounts, hashes, addresses, transactions, block
+templates and mempool state: values that are intrinsically tied to Bitcoin,
+including responses shared with `brk_mempool` such as `MempoolInfo`. Bitview's
+index, value and state types (calendar indexes, protocol epochs, per-type address
+indexes, `Stored*` scalars) live in `bitview_primitives`; query-protocol types and
+REST response DTOs live in `bitview_types`; `TreeNode` lives in `bitview_catalog`.
 
 ## Type categories
 
 | Category | Examples |
 |----------|----------|
-| Block metadata | `Height`, `BlockHash`, `BlkPosition`, `ReadBlock` |
-| Transactions | `Txid`, `TxIndex`, `TxIn`, `TxOut`, `VSize`, `Weight` |
-| Addresses | `Addr`, `AddrBytes`, `OutputType`, `P2PKHAddrIndex` |
-| Values | `Sats`, `Bitcoin`, `Dollars`, `Cents`, `OHLCCents` |
-| Time indexes | `Day1`, `Day3`, `Week1`, `Month1`, `Month3`, `Month6`, `Year1`, `Year10` |
-| Protocol | `Epoch`, `Halving`, `TxVersion`, `RawLockTime` |
+| Block metadata | `Height`, `BlockHash`, `BlkPosition`, `ReadBlock`, `Timestamp` |
+| Transactions | `Txid`, `TxIndex`, `TxIn`, `TxOut`, `VSize`, `Weight`, `RawLockTime` |
+| Addresses | `Addr`, `AddrBytes`, `OutputType`, `P2PKHBytes` |
+| Values | `Sats`, `Bitcoin`, `Dollars`, `Cents`, `FeeRate` |
+| Mempool | `MempoolInfo`, `MempoolBlock`, `BlockTemplate`, `RecommendedFees`, `CpfpInfo` |
 
 The types implement the serialization, JSON Schema, arithmetic, formatting,
 and optional vecdb traits needed by their domains rather than exposing a parallel
@@ -33,8 +32,8 @@ that persist domain values; this adds byte/compression derives, vector traits,
 storage versions, and storage error conversions. Catalog and API-only consumers
 leave it disabled.
 
-Index names and aliases, arithmetic (including `CheckedSub`), Serde, and JSON
-Schema remain available without storage. Optional vecdb implementations delegate
+Index names and aliases (`Height`, `TxIndex`), arithmetic (including `CheckedSub`),
+Serde, and JSON Schema remain available without storage. Optional vecdb implementations delegate
 to those domain definitions. `bitview_types::SeriesData::version` and Rust client
 version endpoints expose the wire value as `u32`, not the storage engine's
 `Version` type.
@@ -51,11 +50,11 @@ cargo tree -p bitview_catalog
 ## Example
 
 ```rust,ignore
-use brk_types::{Date, Day1, Height, Sats};
+use brk_types::{Height, Sats};
 
 let height = Height::new(840_000);
 let reward = Sats::FIFTY_BTC / 16;
-let day = Day1::try_from(Date::new(2024, 4, 20))?;
+let blocks_left = height.left_before_next_halving();
 ```
 
 ## Built on

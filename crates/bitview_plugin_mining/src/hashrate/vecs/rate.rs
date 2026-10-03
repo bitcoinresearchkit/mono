@@ -1,9 +1,9 @@
+use bitview_primitives::{PartsPerMillionSigned32, StoredF64};
 use bitview_traversable::Traversable;
-use brk_types::{PartsPerMillionSigned32, StoredF64};
+use bitview_vecs::{PerBlock, PercentPerBlock};
 use vecdb::{Rw, StorageMode};
 
 use super::HashRateSmaVecs;
-use bitview_vecs::{PerBlock, PercentPerBlock};
 
 #[derive(Traversable)]
 pub struct RateVecs<M: StorageMode = Rw> {

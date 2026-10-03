@@ -1,6 +1,7 @@
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::TypeIndex;
 use brk_error::{Error, Result};
-use brk_types::{OutputType, Sats, TypeIndex};
+use brk_types::{OutputType, Sats};
 use vecdb::ReadableVec;
 
 pub(super) type OutputColumns<'a> = (&'a [Sats], &'a [OutputType], &'a [TypeIndex]);

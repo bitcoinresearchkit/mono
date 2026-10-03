@@ -1,5 +1,6 @@
 use bitview_cohort::ByAddrType;
-use brk_types::{OutputType, TypeIndex};
+use bitview_primitives::TypeIndex;
+use brk_types::OutputType;
 use rustc_hash::FxHashMap;
 
 const RECEIVED: u8 = 1;

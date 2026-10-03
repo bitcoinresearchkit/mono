@@ -1,9 +1,7 @@
+use bitview_primitives::{EmptyOutputIndex, P2MSOutputIndex, TypeIndex, UnknownOutputIndex};
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{
-    EmptyOutputIndex, Height, OutputType, P2MSOutputIndex, SigOps, TypeIndex, UnknownOutputIndex,
-    Version,
-};
+use brk_types::{Height, OutputType, SigOps, Version};
 use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec,

@@ -1,4 +1,5 @@
-use brk_types::{RawLockTime, SigOps, StoredBool, StoredU32, TxIndex, TxVersion, Txid, Weight};
+use bitview_primitives::{StoredBool, StoredU32, TxVersion};
+use brk_types::{RawLockTime, SigOps, TxIndex, Txid, Weight};
 use vecdb::{BytesVec, PcoVec};
 
 pub struct TxMetadataVecs<'a> {

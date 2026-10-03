@@ -8,11 +8,9 @@ pub use source::InputSource;
 
 use bitcoin::Transaction;
 use bitview_cohort::ByAddrType;
+use bitview_primitives::{AddrIndexOutPoint, AddrIndexTxIndex, TxInIndex, TxOutIndex, TypeIndex};
 use brk_store::Store;
-use brk_types::{
-    AddrIndexOutPoint, AddrIndexTxIndex, OutPoint, OutputType, TxInIndex, TxIndex, TxOutIndex,
-    TypeIndex, Unit, Vin,
-};
+use brk_types::{OutPoint, OutputType, TxIndex, Unit, Vin};
 use vecdb::{PcoVec, WritableVec, unlikely};
 
 use super::txout::ProcessedOutput;

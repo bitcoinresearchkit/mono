@@ -3,8 +3,9 @@ pub mod cache;
 use std::collections::hash_map::Entry;
 
 use bitview_cohort::ByAddrType;
+use bitview_primitives::{AddrHash, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{AddrBytes, AddrHash, OutputType, TxIndex, TypeIndex, Vout};
+use brk_types::{AddrBytes, OutputType, TxIndex, Vout};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use tracing::error;

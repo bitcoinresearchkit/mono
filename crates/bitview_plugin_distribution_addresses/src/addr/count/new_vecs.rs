@@ -1,9 +1,10 @@
 use bitview_cohort::WithAddrTypes;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyWindowStartVec};
-use brk_types::{StoredU64, Version};
+use brk_types::Version;
 use derive_more::{Deref, DerefMut};
 
 use super::TotalAddrCountVecs;

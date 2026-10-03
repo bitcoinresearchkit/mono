@@ -12,8 +12,9 @@ pub use has::HasPools;
 use std::collections::BTreeMap;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::{PoolSlug, Pools};
 use bitview_traversable::Traversable;
-use brk_types::{Height, PoolSlug, Pools};
+use brk_types::Height;
 use vecdb::{BytesVec, Database, Rw, StorageMode, Version};
 
 use pool_heights::PoolHeights;

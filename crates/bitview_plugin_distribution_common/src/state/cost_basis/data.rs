@@ -3,7 +3,8 @@ use std::{
     mem,
 };
 
-use brk_types::{Cents, CentsCompact, Sats};
+use bitview_primitives::CentsCompact;
+use brk_types::{Cents, Sats};
 use rustc_hash::FxHashMap;
 use vecdb::unlikely;
 

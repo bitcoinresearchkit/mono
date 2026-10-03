@@ -12,7 +12,7 @@ macro_rules! define_resolutions {
         periods { $($field:ident: $index:ident => $param:ident,)* }
         epochs { $($epoch:ident: $epoch_index:ident => $epoch_param:ident,)* }
     ) => {
-        use brk_types::{$($index,)* $($epoch_index,)*};
+        use bitview_primitives::{$($index,)* $($epoch_index,)*};
 
         #[derive(Clone, Deref, DerefMut, Traversable)]
         #[traversable(transparent)]

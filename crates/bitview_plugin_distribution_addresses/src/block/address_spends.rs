@@ -1,7 +1,8 @@
 use std::collections::hash_map::Entry;
 
 use bitview_cohort::ByAddrType;
-use brk_types::{Cents, Height, OutputType, Sats, TypeIndex};
+use bitview_primitives::TypeIndex;
+use brk_types::{Cents, Height, OutputType, Sats};
 use rustc_hash::FxHashMap;
 
 /// Origin groups in the established hash order, with input order within each group.

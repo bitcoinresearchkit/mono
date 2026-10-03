@@ -1,9 +1,10 @@
 use std::iter::repeat_n;
 
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::{TxInIndex, TxOutIndex};
 use brk_error::Result;
 use brk_exit::{Exit, ExitGuard};
-use brk_types::{Height, TxInIndex, TxOutIndex};
+use brk_types::Height;
 use tracing::{info, warn};
 use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, Stamp, VecIndex, WritableVec};
 

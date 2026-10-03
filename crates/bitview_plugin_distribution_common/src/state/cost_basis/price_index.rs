@@ -1,8 +1,9 @@
 use std::array;
 
 use bitview_compute::{FenwickNode, FenwickTree};
+use bitview_primitives::{CentsCompact, PERCENTILES, PERCENTILES_LEN};
 use bitview_urpd::COST_BASIS_PRICE_DIGITS;
-use brk_types::{Cents, CentsCompact, PERCENTILES, PERCENTILES_LEN};
+use brk_types::Cents;
 
 use super::{PercentileResult, PriceTotals};
 

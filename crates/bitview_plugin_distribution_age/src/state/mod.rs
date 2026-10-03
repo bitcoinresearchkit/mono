@@ -1,7 +1,8 @@
 mod cost_basis;
 mod utxo;
 
-use brk_types::{Sats, SupplyState};
+use bitview_primitives::SupplyState;
+use brk_types::Sats;
 use statedb::Amount;
 
 pub use bitview_plugin_distribution_common::state::{

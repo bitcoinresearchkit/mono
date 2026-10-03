@@ -1,4 +1,5 @@
-use brk_types::{BlockHashPrefix, Version};
+use bitview_primitives::BlockHashPrefix;
+use brk_types::Version;
 
 use crate::etag::Etag;
 

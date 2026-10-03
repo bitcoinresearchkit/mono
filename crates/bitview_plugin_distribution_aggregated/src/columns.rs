@@ -1,10 +1,9 @@
 use bitview_cohort::AgeAggregateId;
+use bitview_primitives::{PartsPerMillionSigned32, StoredF64, StoredU64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, CumulativeState, import_cached};
 use brk_error::Result;
-use brk_types::{
-    Cents, CentsSigned, Height, PartsPerMillionSigned32, Sats, StoredF64, StoredU64, Version,
-};
+use brk_types::{Cents, CentsSigned, Height, Sats, Version};
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
 use crate::{data::Data, unrealized_data::UnrealizedData};

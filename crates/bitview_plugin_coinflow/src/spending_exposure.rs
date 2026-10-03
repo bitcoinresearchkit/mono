@@ -1,7 +1,7 @@
 use bitview_cohort::AgeRange;
+use bitview_primitives::{BoundedRatio, StoredF64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock};
-use brk_types::{BoundedRatio, StoredF64};
 use derive_more::{Deref, DerefMut};
 use vecdb::{Rw, StorageMode};
 

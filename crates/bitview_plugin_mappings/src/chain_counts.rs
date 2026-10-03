@@ -1,5 +1,6 @@
 use bitview_plugin_indexer::Indexer;
-use brk_types::{Height, StoredU64, TxInIndex, TxIndex, TxOutIndex, Version};
+use bitview_primitives::{StoredU64, TxInIndex, TxOutIndex};
+use brk_types::{Height, TxIndex, Version};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
 use crate::LazyCumulativeIndexVec;

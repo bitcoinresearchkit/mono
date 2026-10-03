@@ -1,5 +1,6 @@
+use bitview_primitives::{Lengths, TypeIndex};
 use brk_error::Result;
-use brk_types::{Height, Lengths, OutputType, Txid, TypeIndex};
+use brk_types::{Height, OutputType, Txid};
 
 use crate::Query;
 

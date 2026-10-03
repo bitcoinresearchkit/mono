@@ -1,7 +1,8 @@
+use bitview_primitives::{BoundedRatio, StoredF64};
 use bitview_transforms::BoundedToF64;
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{BoundedRatio, StoredF64, Version};
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use crate::{IndexSources, LazyPerBlock, PerBlock};

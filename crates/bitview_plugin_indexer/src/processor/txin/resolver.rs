@@ -1,5 +1,6 @@
+use bitview_primitives::TxOutIndex;
 use brk_error::{Error, Result};
-use brk_types::{OutPoint, SigOps, TxIndex, TxOutIndex, Txid, TxidPrefix, Vout};
+use brk_types::{OutPoint, SigOps, TxIndex, Txid, TxidPrefix, Vout};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use tracing::error;

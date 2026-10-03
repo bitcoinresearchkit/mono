@@ -1,8 +1,9 @@
 use std::{path::Path, result::Result as StdResult};
 
+use bitview_primitives::AddrHash;
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{AddrHash, Height, OutputType, Version};
+use brk_types::{Height, OutputType, Version};
 use rayon::prelude::*;
 use tracing::debug;
 use vecdb::{AnyStoredVec, AnyVec, Database, RawDBError, Rw, Stamp, StorageMode};

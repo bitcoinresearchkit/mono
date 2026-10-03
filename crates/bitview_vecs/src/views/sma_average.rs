@@ -1,4 +1,5 @@
-use brk_types::{Cents, StoredU64};
+use bitview_primitives::StoredU64;
+use brk_types::Cents;
 use vecdb::DeltaOp;
 
 /// Exact integer-cent average over a cumulative price source.

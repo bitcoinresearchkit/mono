@@ -2,9 +2,10 @@ use bitview_plugin_blocks::LookbackVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
+use bitview_primitives::Halving;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{CheckedSub, Halving, Height, Sats};
+use brk_types::{CheckedSub, Height, Sats};
 use rayon::join;
 use vecdb::VecIndex;
 

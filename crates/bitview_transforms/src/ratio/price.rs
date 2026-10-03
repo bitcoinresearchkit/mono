@@ -1,4 +1,5 @@
-use brk_types::{Cents, PriceRatio};
+use bitview_primitives::PriceRatio;
+use brk_types::Cents;
 use vecdb::unlikely;
 
 #[inline]

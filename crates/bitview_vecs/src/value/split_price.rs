@@ -1,9 +1,10 @@
 use bitview_collections::Ohlc;
+use bitview_primitives::OHLCCents;
 use bitview_transforms::{
     CentsUnsignedToDollars, CentsUnsignedToSats, OhlcCentsToHighCents, OhlcCentsToLowCents,
 };
 use bitview_traversable::Traversable;
-use brk_types::{Cents, Dollars, OHLCCents, Sats, Version};
+use brk_types::{Cents, Dollars, Sats, Version};
 use derive_more::{Deref, DerefMut};
 
 use crate::{IndexSources, LazyIndexes, OhlcPrice, Price, Resolutions, SpotPrice};

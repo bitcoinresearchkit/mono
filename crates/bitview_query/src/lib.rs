@@ -18,6 +18,10 @@ use bitview_plugin::PublicationReadGuard;
 #[cfg(feature = "indexer")]
 use bitview_plugin_indexer::{Indexer, Lengths};
 #[cfg(feature = "indexer")]
+use bitview_primitives::BlockHashPrefix;
+#[cfg(feature = "series")]
+use bitview_primitives::{Epoch, Halving, Index};
+#[cfg(feature = "indexer")]
 use bitview_types::SyncStatus;
 #[cfg(feature = "indexer")]
 use brk_error::{Error, OptionData, Result};
@@ -30,9 +34,7 @@ use brk_reader::Reader;
 #[cfg(feature = "indexer")]
 use brk_rpc::Client;
 #[cfg(feature = "indexer")]
-use brk_types::{BlockHash, BlockHashPrefix, Height};
-#[cfg(feature = "series")]
-use brk_types::{Epoch, Halving, Index};
+use brk_types::{BlockHash, Height};
 #[cfg(feature = "series")]
 use vecdb::ReadBounds;
 #[cfg(feature = "indexer")]

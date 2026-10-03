@@ -1,4 +1,5 @@
-use brk_types::{P2MSOutputIndex, SigOps, UnknownOutputIndex};
+use bitview_primitives::{P2MSOutputIndex, UnknownOutputIndex};
+use brk_types::SigOps;
 use vecdb::BytesVecReader;
 
 pub struct ScriptReaders {

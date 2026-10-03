@@ -23,12 +23,13 @@ pub use views::{LazyCumulativeIndexVec, LazyIndexCountVec, RangeMapLookupVec};
 use std::ops::Deref;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::{
+    Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3, Month6,
+    StoredU64, TxInIndex, TxOutIndex, Week1, Year1, Year10,
+};
 use bitview_traversable::Traversable;
 use bitview_vecs::IndexSources;
-use brk_types::{
-    Day1, Day3, Epoch, Halving, Height, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
-    Month6, StoredU64, TxInIndex, TxIndex, TxOutIndex, Version, Week1, Year1, Year10,
-};
+use brk_types::{Height, TxIndex, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
 use addr::Vecs as AddrVecs;

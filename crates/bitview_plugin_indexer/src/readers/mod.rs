@@ -4,7 +4,8 @@ pub mod script;
 pub use addr::AddrReaders;
 pub use script::ScriptReaders;
 
-use brk_types::{OutputType, TxIndex, TxOutIndex, Txid, TypeIndex};
+use bitview_primitives::{TxOutIndex, TypeIndex};
+use brk_types::{OutputType, TxIndex, Txid};
 use vecdb::BytesVecReader;
 
 use crate::Vecs;

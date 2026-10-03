@@ -1,4 +1,5 @@
-use brk_types::{Cents, CostBasisByPercentile};
+use bitview_primitives::CostBasisByPercentile;
+use brk_types::Cents;
 
 /// Coin- and capital-weighted prices from sorted, rounded URPD buckets.
 pub(super) struct PriceStats {

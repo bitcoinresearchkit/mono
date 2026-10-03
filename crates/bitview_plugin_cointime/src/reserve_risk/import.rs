@@ -1,7 +1,8 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::StoredF64;
 use bitview_vecs::{LazyIndexedVec, LazyPerBlock};
 use brk_error::Result;
-use brk_types::{Cents, Dollars, Height, StoredF64, Version};
+use brk_types::{Cents, Dollars, Height, Version};
 use vecdb::{Database, EagerVec, Ident, ImportableVec, ReadableBoxedVec};
 
 use super::Vecs;

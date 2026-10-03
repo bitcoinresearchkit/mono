@@ -1,14 +1,12 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned32, PartsPerMillionSigned64};
 use bitview_transforms::{RatioCents, RatioCentsSignedCents, RatioDollars, RatioSats};
 use bitview_traversable::Traversable;
 use bitview_vecs::PercentPerBlock;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{
-    Cents, Height, PartsPerMillion32, PartsPerMillionSigned32, PartsPerMillionSigned64, Sats,
-    Version,
-};
+use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
 
 use crate::metrics::Metrics;

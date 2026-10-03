@@ -1,9 +1,10 @@
 use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::{BoundedRatio, StoredF64};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Bitcoin, BoundedRatio, StoredF64};
+use brk_types::Bitcoin;
 
 use super::Vecs;
 

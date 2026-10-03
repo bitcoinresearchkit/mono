@@ -2,7 +2,7 @@ use bitview_collections::DistributionStats;
 use bitview_compute::{ComputedVecValue, NumericValue};
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{Height, VSize, get_percentile, get_weighted_percentiles};
+use brk_types::{Height, VSize, get_weighted_percentiles};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{Budgeted, Database, EagerVec, PcoVec, Rw, StorageMode, Version, WritableVec};
@@ -77,4 +77,15 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
             }
         }
     }
+}
+
+/// Get a percentile value from a sorted slice using nearest-rank method.
+///
+/// # Panics
+/// Panics if the slice is empty.
+fn get_percentile<T: Clone>(sorted: &[T], percentile: f64) -> T {
+    let len = sorted.len();
+    assert!(len > 0, "Cannot get percentile from empty slice");
+    let index = ((len - 1) as f64 * percentile).round() as usize;
+    sorted[index].clone()
 }

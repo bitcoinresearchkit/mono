@@ -1,15 +1,12 @@
 use std::{fs, ops::Range, path::Path, time::Instant};
 
 use bitview_cohort::{AddrTypeId, ByAddrType};
+use bitview_primitives::{
+    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, BlockHashPrefix, TxOutIndex, TypeIndex,
+};
 use brk_error::{Error, OptionData, Result};
 use brk_store::{AnyStore, Kind, PendingIngest, Store, open_database};
-use brk_types::{
-    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, BlockHashPrefix, Height, OutPoint, OutputType,
-    TxIndex, TxOutIndex, TxidPrefix, TypeIndex, Unit, Version, Vout,
-};
-use checkpoint::{
-    DeferredStoresCommit, PendingStoresCheckpoint, PersistedStoresCheckpoint, StoresCheckpoint,
-};
+use brk_types::{Height, OutPoint, OutputType, TxIndex, TxidPrefix, Unit, Version, Vout};
 use fjall::Database;
 use rayon::{join, prelude::*};
 use rustc_hash::FxHashSet;
@@ -18,6 +15,9 @@ use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use super::Vecs;
 use crate::{Lengths, constants::DUPLICATE_TXID_PREFIXES};
+use checkpoint::{
+    DeferredStoresCommit, PendingStoresCheckpoint, PersistedStoresCheckpoint, StoresCheckpoint,
+};
 
 pub mod checkpoint;
 pub mod transaction;

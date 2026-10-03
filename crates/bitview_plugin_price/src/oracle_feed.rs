@@ -1,9 +1,10 @@
 use std::ops::Range;
 
 use bitview_plugin_indexer::{Indexer, Lengths};
+use bitview_primitives::TxOutIndex;
 use brk_error::{Error, Result};
 use brk_oracle::{Oracle, PaymentFilter};
-use brk_types::{OutputType, Sats, TxIndex, TxOutIndex, Weight};
+use brk_types::{OutputType, Sats, TxIndex, Weight};
 use vecdb::{AnyVec, ReadableVec, StorageMode, VecIndex};
 
 /// Feed blocks into an Oracle when callers only need the warmed EMA/window state.

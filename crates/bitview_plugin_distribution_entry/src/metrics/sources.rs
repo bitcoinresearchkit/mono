@@ -1,8 +1,9 @@
 use bitview_cohort::{CohortContext, CohortId};
+use bitview_primitives::{StoredF64, StoredU64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, import_cached};
 use brk_error::Result;
-use brk_types::{Cents, CentsSigned, Height, Sats, StoredF64, StoredU64, Version};
+use brk_types::{Cents, CentsSigned, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use super::CumulativeSource;

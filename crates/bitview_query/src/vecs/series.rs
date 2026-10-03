@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use brk_types::Index;
+use bitview_primitives::Index;
 
 use super::SeriesEntry;
 

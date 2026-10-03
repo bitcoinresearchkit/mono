@@ -1,4 +1,5 @@
-use brk_types::{Cents, CentsSats, CentsSquaredSats, Sats};
+use bitview_primitives::CentsSquaredSats;
+use brk_types::{Cents, CentsSats, Sats};
 
 use crate::state::{CoreRealizedState, RealizedOps};
 
@@ -60,8 +61,10 @@ impl RealizedOps for RealizedState {
     fn increment(&mut self, price: Cents, sats: Sats) {
         self.core.increment(price, sats);
         if sats.is_not_zero() {
-            self.capitalized_cap_raw +=
-                CentsSats::from_price_sats(price, sats).to_capitalized_cap(price);
+            self.capitalized_cap_raw += CentsSquaredSats::from_price_cents_sats(
+                price,
+                CentsSats::from_price_sats(price, sats),
+            );
         }
     }
 

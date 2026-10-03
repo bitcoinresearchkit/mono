@@ -1,6 +1,7 @@
+use bitview_primitives::Date;
 use bitview_traversable::Traversable;
 use bitview_vecs::RangeMapVec;
-use brk_types::{Date, Height, Timestamp};
+use brk_types::{Height, Timestamp};
 use derive_more::{Deref, DerefMut};
 use rangeindex::SharedRangeMap;
 use vecdb::{AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, VecIndex};

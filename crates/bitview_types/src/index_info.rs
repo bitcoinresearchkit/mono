@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use brk_types::Index;
+use bitview_primitives::Index;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

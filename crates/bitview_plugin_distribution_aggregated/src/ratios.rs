@@ -1,6 +1,7 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::{PartsPerMillion32, StoredF32};
 use bitview_transforms::{RatioCents, RatioCentsF32, SoprRatio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -8,7 +9,7 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, PartsPerMillion32, StoredF32, Version};
+use brk_types::{Height, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use crate::{

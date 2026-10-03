@@ -4,12 +4,13 @@ use bitview_plugin_distribution_common::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
+use bitview_primitives::{BasisPoints32, StoredF32};
 use bitview_vecs::{
     BasisPointsPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock, PercentPerBlock,
     RatioPerBlock,
 };
 use brk_error::Result;
-use brk_types::{BasisPoints32, Bitcoin, Cents, Sats, StoredF32, Version};
+use brk_types::{Bitcoin, Cents, Sats, Version};
 use vecdb::{Ident, unlikely};
 
 use crate::{STORAGE, Vecs, dormancy_vecs::DormancyVecs};

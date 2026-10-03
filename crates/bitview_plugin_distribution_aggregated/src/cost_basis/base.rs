@@ -1,7 +1,8 @@
 use bitview_collections::ByPercentile;
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Price};
-use brk_types::{Cents, PartsPerMillion32};
+use brk_types::Cents;
 
 use super::CostBasisSide;
 

@@ -13,10 +13,11 @@ pub use has::HasDistributionAge;
 
 use bitview_cohort::AgeRange;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::StoredF64;
 use bitview_traversable::Traversable;
 use bitview_urpd::AgeBoundsMetrics;
 use bitview_vecs::PerBlockCumulativeRolling;
-use brk_types::{StoredF64, Version};
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use live::LiveState;

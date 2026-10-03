@@ -1,13 +1,14 @@
 use std::{thread, time::Instant};
 
 use bitview_cohort::ByAddrType;
+use bitview_primitives::{
+    AddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex,
+    P2AAddrIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex,
+    P2WPKHAddrIndex, P2WSHAddrIndex, TypeIndex,
+};
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
-use brk_types::{
-    AddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex, Height,
-    OutputType, P2AAddrIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex,
-    P2TRAddrIndex, P2WPKHAddrIndex, P2WSHAddrIndex, TypeIndex, Version,
-};
+use brk_types::{Height, OutputType, Version};
 use rayon::{join, prelude::*};
 use tracing::info;
 use vecdb::{

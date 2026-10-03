@@ -5,12 +5,13 @@ use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
 use bitview_plugin_distribution_common::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
+use bitview_primitives::PartsPerMillionSigned64;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
     LazySpotValuePerBlock, LazyValuePerBlock, LazyWindowStartVec, LazyWindowVec,
 };
 use brk_error::Result;
-use brk_types::{Cents, Height, PartsPerMillionSigned64, Sats, Version};
+use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Ident, ReadableCloneableVec, ReadableVec};
 
 use crate::{STORAGE, Vecs, burned, velocity};

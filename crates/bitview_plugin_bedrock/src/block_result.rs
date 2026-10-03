@@ -1,6 +1,7 @@
 use bitview_cohort::{AgeAggregateId, AgeRange};
+use bitview_primitives::BoundedRatio;
 use bitview_urpd::OriginUrpd;
-use brk_types::{BoundedRatio, Cents};
+use brk_types::Cents;
 
 use super::{
     CumulativeBucket, Levels, LossPercentileId, MODE_COUNT, ModeId, ModeResult, Modes, Percentiles,

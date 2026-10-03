@@ -1,5 +1,6 @@
 use bitview_cohort::{AGE_RANGE_COUNT, AGE_RANGE_IDS, AgeRange, AgeRangeId};
-use brk_types::{CentsCompact, Sats};
+use bitview_primitives::CentsCompact;
+use brk_types::Sats;
 
 use crate::ProjectedBucket;
 

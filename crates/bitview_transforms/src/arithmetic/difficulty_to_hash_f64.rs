@@ -1,4 +1,4 @@
-use brk_types::StoredF64;
+use bitview_primitives::StoredF64;
 use vecdb::UnaryTransform;
 
 pub struct DifficultyToHashF64;

@@ -1,15 +1,17 @@
-use crate::columns::Columns;
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::{StoredF64, StoredU64};
 use bitview_transforms::{DaysToYears, StoredU64ToCents, StoredU64ToSats};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     CachedSeries, LazyPerBlock, LazyPerBlockCumulativeRolling, LazyValuePerBlockCumulativeRolling,
     LazyWindowStartVec,
 };
-use brk_types::{Height, StoredF64, StoredU64, Version};
+use brk_types::{Height, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
+
+use crate::columns::Columns;
 
 #[derive(Clone, Traversable)]
 pub struct Activity {

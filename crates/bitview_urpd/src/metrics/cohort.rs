@@ -1,8 +1,9 @@
 use bitview_cohort::AgeAggregateId;
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, IndexSources, LazyPriceWithRatioPerBlock, import_cached};
 use brk_error::Result;
-use brk_types::{Cents, Height, PartsPerMillion32, Version};
+use brk_types::{Cents, Height, Version};
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
 use super::{

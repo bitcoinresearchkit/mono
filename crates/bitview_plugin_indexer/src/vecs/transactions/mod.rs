@@ -1,9 +1,7 @@
+use bitview_primitives::{StoredBool, StoredU32, TxInIndex, TxOutIndex, TxVersion};
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{
-    BlkPosition, Height, RawLockTime, SigOps, StoredBool, StoredU32, TxInIndex, TxIndex,
-    TxOutIndex, TxVersion, Txid, Version, Weight,
-};
+use brk_types::{BlkPosition, Height, RawLockTime, SigOps, TxIndex, Txid, Version, Weight};
 use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode,

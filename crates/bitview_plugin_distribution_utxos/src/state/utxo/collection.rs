@@ -1,6 +1,7 @@
 use bitview_cohort::{AmountRange, SpendableType};
 use bitview_plugin_distribution_common::state::UTXOCohortState;
-use brk_types::{Height, Sats, StoredU64};
+use bitview_primitives::StoredU64;
+use brk_types::{Height, Sats};
 use vecdb::ReadableVec;
 
 use crate::{metrics::CohortMetrics, state::MinimalRealizedState};

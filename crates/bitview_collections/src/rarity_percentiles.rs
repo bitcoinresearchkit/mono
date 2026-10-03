@@ -1,7 +1,6 @@
+use bitview_primitives::{RarityPercentileId, RarityPercentileId::*};
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
-use brk_types::RarityPercentileId;
-use brk_types::RarityPercentileId::*;
 
 #[derive(Clone)]
 #[cfg_attr(feature = "storage", derive(Traversable))]

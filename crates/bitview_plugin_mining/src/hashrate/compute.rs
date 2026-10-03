@@ -1,12 +1,11 @@
 use bitview_compute::ComputeRollingStats;
 use bitview_plugin_blocks::{CountVecs, DifficultyVecs, LookbackVecs, ONE_TERA_HASH};
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::{PartsPerMillionSigned32, StoredF32, StoredF64};
 use bitview_transforms::RatioDiffF32;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{
-    Dollars, Height, PartsPerMillionSigned32, Sats, StoredF32, StoredF64, TARGET_BLOCKS_PER_DAY_F64,
-};
+use brk_types::{Dollars, Height, Sats, TARGET_BLOCKS_PER_DAY_F64};
 use vecdb::ReadableVec;
 
 use super::Vecs;

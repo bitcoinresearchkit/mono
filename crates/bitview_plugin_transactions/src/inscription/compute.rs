@@ -1,10 +1,11 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PartsPerMillion32, StoredBool, StoredU64};
 use bitview_transforms::RatioSats;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, PartsPerMillion32, Sats, StoredBool, StoredU64, TxIndex};
+use brk_types::{Height, Sats, TxIndex};
 use vecdb::{AnyStoredVec, BinaryTransform, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;

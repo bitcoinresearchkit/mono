@@ -1,9 +1,10 @@
 use std::ops::Range;
 
 use bitview_compute::prepare_computed;
+use bitview_primitives::StoredU64;
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
-use brk_types::{Height, OutputType, StoredU64, TxIndex, Version};
+use brk_types::{Height, OutputType, TxIndex, Version};
 use vecdb::{AnyStoredVec, ReadableVec, VecIndex, WritableVec};
 
 use crate::CachedSeries;

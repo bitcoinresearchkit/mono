@@ -1,6 +1,7 @@
 use std::{borrow::Cow, fmt};
 
-use brk_types::{Date, Timestamp};
+use bitview_primitives::Date;
+use brk_types::Timestamp;
 use jiff::Timestamp as JiffTimestamp;
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, de::Error};

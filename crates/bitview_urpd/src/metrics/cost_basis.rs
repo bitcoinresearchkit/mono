@@ -1,7 +1,8 @@
+use bitview_primitives::CostBasisByPercentile;
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PercentilesVecs};
 use brk_error::Result;
-use brk_types::{CostBasisByPercentile, Version};
+use brk_types::Version;
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 #[derive(Traversable)]

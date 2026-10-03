@@ -1,6 +1,7 @@
+use bitview_primitives::Year;
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
-use brk_types::{Timestamp, Year};
+use brk_types::Timestamp;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

@@ -8,7 +8,6 @@ use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::StoredU32;
 use crate::{CheckedSub, StoreValue};
 
 #[cfg(feature = "storage")]
@@ -136,18 +135,11 @@ impl StoreValue for TxIndex {
     }
 }
 
-impl From<TxIndex> for StoredU32 {
-    #[inline]
-    fn from(value: TxIndex) -> Self {
-        Self::from(value.0)
-    }
-}
-
 impl TxIndex {
-    pub(crate) fn index_name() -> &'static str {
+    pub fn index_name() -> &'static str {
         "tx_index"
     }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
+    pub fn index_aliases() -> &'static [&'static str] {
         &["tx", "tx_index"]
     }
 }

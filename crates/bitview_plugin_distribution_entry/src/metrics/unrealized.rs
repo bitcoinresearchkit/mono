@@ -1,9 +1,10 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::{PartsPerMillionSigned32, PriceRatio};
 use bitview_transforms::MvrvToNupl;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyFiatPerBlock, LazyPriceWithRatioPerBlock, LazyRatioPerBlock};
-use brk_types::{Cents, CentsSigned, PartsPerMillionSigned32, PriceRatio, Version};
+use brk_types::{Cents, CentsSigned, Version};
 
 use super::Sources;
 

@@ -1,4 +1,4 @@
-use brk_types::{StoredF32, StoredU64};
+use bitview_primitives::{StoredF32, StoredU64};
 use vecdb::UnaryTransform;
 
 pub struct PerSecond<const SECONDS: u32>;

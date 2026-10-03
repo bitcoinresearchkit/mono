@@ -2,10 +2,11 @@ use bitview_compute::ComputeRollingStats;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_primitives::{StoredF32, StoredU32};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, StoredF32, StoredU32, Timestamp};
+use brk_types::{Cents, Height, Timestamp};
 use vecdb::{ReadableVec, UnaryTransform, VecIndex};
 
 use super::{Vecs, seconds_to_days::SecondsToDays};

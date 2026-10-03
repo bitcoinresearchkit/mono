@@ -1,7 +1,6 @@
-use brk_types::{Cents, PartsPerMillion32};
-
 use bitview_plugin_distribution_common::state::cost_basis::PercentileResult;
-use brk_types::PERCENTILES_LEN;
+use bitview_primitives::{PERCENTILES_LEN, PartsPerMillion32};
+use brk_types::Cents;
 
 #[derive(Clone)]
 pub struct CostBasisBlockData {

@@ -10,6 +10,7 @@ pub(crate) fn generate_imports(output: &mut String) {
         output,
         r#"pub use bitview_catalog::*;
 pub use bitview_cohort::*;
+pub use bitview_primitives::*;
 pub use bitview_types::*;
 pub use brk_types::*;
 use crate::{{DateSeriesData, FormatResponse}};

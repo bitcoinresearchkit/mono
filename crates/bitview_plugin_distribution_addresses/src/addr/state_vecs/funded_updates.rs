@@ -1,4 +1,5 @@
-use brk_types::{ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex, OutputType, TypeIndex};
+use bitview_primitives::{ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex, TypeIndex};
+use brk_types::OutputType;
 
 use crate::addr::{AddrTypeToTypeIndexMap, SourcedAddrData};
 

@@ -18,6 +18,7 @@ price = ["bitview_query/price"]
 
 [dependencies]
 bitcoin = { workspace = true }
+bitview_primitives = { workspace = true, features = ["storage"] }
 brk_rpc = { workspace = true, features = ["async"] }
 aide = { workspace = true }
 axum = { workspace = true }

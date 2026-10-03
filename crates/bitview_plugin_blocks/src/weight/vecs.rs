@@ -1,7 +1,7 @@
+use bitview_primitives::{PartsPerMillion32, StoredU64, Weight64};
 use bitview_traversable::Traversable;
-use brk_types::{PartsPerMillion32, StoredU64, Weight, Weight64};
-
 use bitview_vecs::{LazyPerBlockRolling, LazyPercentVec};
+use brk_types::Weight;
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {

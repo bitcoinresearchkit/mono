@@ -6,10 +6,11 @@ use std::{
 };
 
 use bitview_compute::{ComputedVecValue, NumericValue, prepare_computed};
+use bitview_primitives::{Lengths, StoredU64};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Lengths, StoredU64, TxIndex, VSize};
+use brk_types::{Height, TxIndex, VSize};
 use schemars::JsonSchema;
 use tracing::info;
 use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, VecIndex, Version};

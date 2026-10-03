@@ -5,7 +5,7 @@ use bitcoin::{
     },
     script::Instruction,
 };
-use brk_types::{OpReturnKind, StoredU32};
+use bitview_primitives::{OpReturnKind, StoredU32};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Facts {

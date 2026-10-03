@@ -1,7 +1,7 @@
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
-use brk_types::{Cents, PartsPerMillion32};
-
 use bitview_vecs::{LazyPerBlock, LazyRatioPerBlock, Price};
+use brk_types::Cents;
 
 #[derive(Clone, Traversable)]
 pub struct Band {

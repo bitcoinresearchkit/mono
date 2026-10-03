@@ -1,7 +1,8 @@
 use std::path::Path;
 
+use bitview_primitives::SupplyState;
 use brk_error::Result;
-use brk_types::{BlockHash, Height, SupplyState, Version};
+use brk_types::{BlockHash, Height, Version};
 use rustc_hash::FxHashMap;
 use statedb::{Amount, Spends};
 use vecdb::Bytes;

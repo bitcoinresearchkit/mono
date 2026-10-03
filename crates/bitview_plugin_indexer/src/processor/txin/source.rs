@@ -1,4 +1,5 @@
-use brk_types::{OutPoint, OutputType, SigOps, TxOutIndex, TypeIndex};
+use bitview_primitives::{TxOutIndex, TypeIndex};
+use brk_types::{OutPoint, OutputType, SigOps};
 
 #[derive(Debug, Clone, Copy)]
 pub enum InputSource {

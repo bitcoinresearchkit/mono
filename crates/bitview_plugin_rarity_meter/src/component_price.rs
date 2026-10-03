@@ -1,6 +1,7 @@
+use bitview_primitives::{CentsCompact, PartsPerMillion32};
 use bitview_transforms::PriceTimesRatio;
 use bitview_vecs::{IndexSources, LazyIndexedVec, LazyPerBlock, Price};
-use brk_types::{Cents, CentsCompact, Height, PartsPerMillion32, Version};
+use brk_types::{Cents, Height, Version};
 use vecdb::{BinaryTransform, LazyVec, ReadableCloneableVec, ReadableVec};
 
 #[derive(Clone)]

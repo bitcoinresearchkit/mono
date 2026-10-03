@@ -1,4 +1,5 @@
-use brk_types::{AddrHash, OutputType, SigOps, TypeIndex};
+use bitview_primitives::{AddrHash, TypeIndex};
+use brk_types::{OutputType, SigOps};
 
 use super::op_return;
 

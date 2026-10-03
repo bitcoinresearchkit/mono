@@ -6,7 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use bitview_catalog::{TreeNode, extract_json_type};
-use brk_types::Index;
+use bitview_primitives::Index;
 use indexmap::IndexMap;
 
 use crate::{IndexSetPattern, PatternField, child_type_name};

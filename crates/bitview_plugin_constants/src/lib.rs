@@ -1,8 +1,9 @@
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::{StoredF32, StoredI8, StoredU16};
 use bitview_transforms::{ReturnF32Tenths, ReturnI8, ReturnU16};
 use bitview_traversable::Traversable;
 use bitview_vecs::{ConstantVecs, IndexSources};
-use brk_types::{StoredF32, StoredI8, StoredU16, Version};
+use brk_types::Version;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("constants"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();

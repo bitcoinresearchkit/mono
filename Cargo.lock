@@ -397,6 +397,7 @@ dependencies = [
  "bitview_default",
  "bitview_plugin",
  "bitview_plugin_indexer",
+ "bitview_primitives",
  "bitview_runtime",
  "bitview_traversable",
  "bitviewd",
@@ -412,7 +413,7 @@ version = "0.12.2"
 dependencies = [
  "bitview_catalog",
  "bitview_cohort",
- "brk_types",
+ "bitview_primitives",
  "derive_more",
  "indexmap",
  "oas3",
@@ -425,7 +426,7 @@ dependencies = [
 name = "bitview_catalog"
 version = "0.12.2"
 dependencies = [
- "brk_types",
+ "bitview_primitives",
  "indexmap",
  "schemars",
  "serde",
@@ -446,6 +447,7 @@ version = "0.12.2"
 dependencies = [
  "bitview_catalog",
  "bitview_cohort",
+ "bitview_primitives",
  "bitview_types",
  "brk_types",
  "rapidhash",
@@ -458,6 +460,7 @@ dependencies = [
 name = "bitview_cohort"
 version = "0.12.2"
 dependencies = [
+ "bitview_primitives",
  "bitview_traversable",
  "brk_types",
  "rayon",
@@ -470,8 +473,8 @@ dependencies = [
 name = "bitview_collections"
 version = "0.12.2"
 dependencies = [
+ "bitview_primitives",
  "bitview_traversable",
- "brk_types",
 ]
 
 [[package]]
@@ -480,6 +483,7 @@ version = "0.12.2"
 dependencies = [
  "bitview_cohort",
  "bitview_collections",
+ "bitview_primitives",
  "bitview_transforms",
  "brk_error",
  "brk_exit",
@@ -597,6 +601,7 @@ dependencies = [
  "bitview_plugin_distribution_aggregated",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_urpd",
@@ -618,6 +623,7 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -640,6 +646,7 @@ dependencies = [
  "bitview_plugin_mappings",
  "bitview_plugin_market",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
@@ -659,6 +666,7 @@ dependencies = [
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_urpd",
@@ -686,6 +694,7 @@ dependencies = [
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_urpd",
@@ -703,6 +712,7 @@ name = "bitview_plugin_constants"
 version = "0.12.2"
 dependencies = [
  "bitview_plugin",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -722,6 +732,7 @@ dependencies = [
  "bitview_plugin_mappings",
  "bitview_plugin_outputs",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -747,6 +758,7 @@ dependencies = [
  "bitview_plugin_distribution_common",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_urpd",
@@ -772,6 +784,7 @@ dependencies = [
  "bitview_plugin_distribution_common",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -791,6 +804,7 @@ dependencies = [
  "bitview_compute",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_urpd",
@@ -822,6 +836,7 @@ dependencies = [
  "bitview_plugin_outputs",
  "bitview_plugin_price",
  "bitview_plugin_utxo_history",
+ "bitview_primitives",
  "bitview_runtime",
  "bitview_transforms",
  "bitview_traversable",
@@ -853,6 +868,7 @@ dependencies = [
  "bitview_plugin_outputs",
  "bitview_plugin_price",
  "bitview_plugin_utxo_history",
+ "bitview_primitives",
  "bitview_runtime",
  "bitview_traversable",
  "bitview_vecs",
@@ -877,6 +893,7 @@ dependencies = [
  "bitview_plugin_mappings",
  "bitview_plugin_outputs",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -896,6 +913,7 @@ dependencies = [
  "bitcoin",
  "bitview_cohort",
  "bitview_plugin",
+ "bitview_primitives",
  "bitview_traversable",
  "brk_error",
  "brk_exit",
@@ -927,6 +945,7 @@ dependencies = [
  "bitview_plugin_market",
  "bitview_plugin_mining",
  "bitview_plugin_transactions",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -947,6 +966,7 @@ dependencies = [
  "bitview_plugin_blocks",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
+ "bitview_primitives",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
@@ -967,6 +987,7 @@ dependencies = [
  "bitview_collections",
  "bitview_plugin",
  "bitview_plugin_indexer",
+ "bitview_primitives",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
@@ -991,6 +1012,7 @@ dependencies = [
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -1014,6 +1036,7 @@ dependencies = [
  "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_plugin_transactions",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -1033,6 +1056,7 @@ dependencies = [
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_transactions",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -1055,6 +1079,7 @@ dependencies = [
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
@@ -1078,6 +1103,7 @@ dependencies = [
  "bitview_plugin_mappings",
  "bitview_plugin_mining",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -1099,6 +1125,7 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
+ "bitview_primitives",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
@@ -1123,6 +1150,7 @@ dependencies = [
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -1150,6 +1178,7 @@ dependencies = [
  "bitview_plugin_outputs",
  "bitview_plugin_price",
  "bitview_plugin_transactions",
+ "bitview_primitives",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
@@ -1170,6 +1199,7 @@ dependencies = [
  "bitview_plugin_inputs",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -1191,11 +1221,32 @@ dependencies = [
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_mappings",
+ "bitview_primitives",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
  "brk_types",
  "statedb",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_primitives"
+version = "0.12.2"
+dependencies = [
+ "bitcoin",
+ "brk_error",
+ "brk_types",
+ "derive_more",
+ "itoa",
+ "jiff",
+ "rapidhash",
+ "rustc-hash",
+ "ryu",
+ "schemars",
+ "serde",
+ "serde_json",
+ "strum",
  "vecdb",
 ]
 
@@ -1221,6 +1272,7 @@ dependencies = [
  "bitview_plugin_price",
  "bitview_plugin_transactions",
  "bitview_plugin_utxo_history",
+ "bitview_primitives",
  "bitview_runtime",
  "bitview_traversable",
  "bitview_types",
@@ -1271,6 +1323,7 @@ dependencies = [
  "axum",
  "bitcoin",
  "bitview_catalog",
+ "bitview_primitives",
  "bitview_query",
  "bitview_types",
  "bitview_website",
@@ -1296,6 +1349,7 @@ dependencies = [
 name = "bitview_transforms"
 version = "0.12.2"
 dependencies = [
+ "bitview_primitives",
  "brk_types",
  "vecdb",
 ]
@@ -1305,8 +1359,8 @@ name = "bitview_traversable"
 version = "0.12.2"
 dependencies = [
  "bitview_catalog",
+ "bitview_primitives",
  "bitview_traversable_derive",
- "brk_types",
  "indexmap",
  "schemars",
  "serde",
@@ -1328,6 +1382,7 @@ name = "bitview_types"
 version = "0.12.2"
 dependencies = [
  "bitcoin",
+ "bitview_primitives",
  "brk_types",
  "derive_more",
  "itoa",
@@ -1345,6 +1400,7 @@ dependencies = [
  "bitview_cohort",
  "bitview_collections",
  "bitview_compute",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
@@ -1363,6 +1419,7 @@ dependencies = [
  "bitview_cohort",
  "bitview_collections",
  "bitview_compute",
+ "bitview_primitives",
  "bitview_transforms",
  "bitview_traversable",
  "brk_error",
@@ -1642,8 +1699,6 @@ dependencies = [
  "derive_more",
  "itoa",
  "jiff",
- "rapidhash",
- "rustc-hash",
  "ryu",
  "schemars",
  "serde",

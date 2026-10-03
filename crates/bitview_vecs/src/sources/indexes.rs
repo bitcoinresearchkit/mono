@@ -1,5 +1,6 @@
 use bitview_collections::{PerResolution, with_resolution_fields};
-use brk_types::{Date, Height, StoredU64, Timestamp};
+use bitview_primitives::{Date, StoredU64};
+use brk_types::{Height, Timestamp};
 use vecdb::ReadableBoxedVec;
 
 use crate::{LazyPreviousDeltaVec, RangeMapVec};
@@ -9,7 +10,7 @@ macro_rules! define_index_sources {
         periods { $($field:ident: $index:ident => $param:ident,)* }
         epochs { $($epoch:ident: $epoch_index:ident => $epoch_param:ident,)* }
     ) => {
-        use brk_types::{$($index,)* $($epoch_index,)*};
+        use bitview_primitives::{$($index,)* $($epoch_index,)*};
 
         #[derive(Clone)]
         pub struct IndexSources {

@@ -1,7 +1,7 @@
 use bitview_collections::{ByLookbackPeriod, Windows};
+use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPercentPerBlock, StdDevPerBlock};
-use brk_types::PartsPerMillionSigned64;
 use vecdb::{Rw, StorageMode};
 
 use super::Cagr;

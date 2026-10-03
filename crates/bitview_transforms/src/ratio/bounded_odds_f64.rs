@@ -1,4 +1,4 @@
-use brk_types::{BoundedRatio, StoredF64};
+use bitview_primitives::{BoundedRatio, StoredF64};
 use vecdb::{UnaryTransform, unlikely};
 
 /// Odds of a bounded probability; the shared fixed-point scale cancels.

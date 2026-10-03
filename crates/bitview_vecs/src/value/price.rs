@@ -5,10 +5,11 @@
 //! their integer-sats conversion directly from cents.
 
 use bitview_compute::ComputedVecValue;
+use bitview_primitives::SatsFract;
 use bitview_transforms::{CentsUnsignedToDollars, DollarsToSatsFract};
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{Cents, Dollars, Height, SatsFract, Version};
+use brk_types::{Cents, Dollars, Height, Version};
 use schemars::JsonSchema;
 use vecdb::{Database, Ident, ReadableCloneableVec, UnaryTransform};
 

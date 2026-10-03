@@ -1,9 +1,11 @@
-use super::OriginSpends;
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::{SupplyState, TxInIndex};
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, Height, Sats, SupplyState, TxInIndex};
+use brk_types::{BlockHash, Height, Sats};
 use rustc_hash::FxHashMap;
 use vecdb::{AnyVec, PcoVec, ReadableVec, VecIndex};
+
+use super::OriginSpends;
 
 impl OriginSpends {
     pub(crate) fn prepare(

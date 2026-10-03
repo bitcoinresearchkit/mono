@@ -2,9 +2,10 @@ use std::str::FromStr;
 
 use bitview_plugin::PublicationReadGuard;
 use bitview_plugin_indexer::SafeLengths;
+use bitview_primitives::TxOutIndex;
 use bitview_types::Utxo;
 use brk_error::{Error, OptionData, Result};
-use brk_types::{Addr, AddrBytes, BlockHash, Height, TxIndex, TxOutIndex, TxStatus, Vout};
+use brk_types::{Addr, AddrBytes, BlockHash, Height, TxIndex, TxStatus, Vout};
 
 use crate::Query;
 

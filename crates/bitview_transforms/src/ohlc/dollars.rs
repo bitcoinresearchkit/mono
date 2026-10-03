@@ -1,4 +1,4 @@
-use brk_types::{OHLCCents, OHLCDollars};
+use bitview_primitives::{OHLCCents, OHLCDollars};
 use vecdb::UnaryTransform;
 
 pub struct OhlcCentsToDollars;
