@@ -4,7 +4,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, StoredU64, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
 /// Mean unspent output value, calculated from the same block's supply and counts.
 #[derive(Traversable)]
@@ -70,15 +70,6 @@ impl AvgAmount {
             count += u64::from(unspent);
         }
         self.all_source.push(total / StoredU64::from(count));
-    }
-
-    pub fn min_len(&self) -> usize {
-        self.type_sources
-            .iter()
-            .map(AnyVec::len)
-            .chain([self.all_source.len()])
-            .min()
-            .unwrap_or(0)
     }
 
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {

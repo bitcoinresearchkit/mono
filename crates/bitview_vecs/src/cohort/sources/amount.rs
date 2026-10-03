@@ -78,7 +78,7 @@ impl<T: PcoVecValue + AddAssign, S: Clone> AmountSources<T, S> {
         self.push(values);
     }
 
-    pub fn min_len(&self) -> usize {
+    fn min_len(&self) -> usize {
         self.stored.iter().map(AnyVec::len).min().unwrap_or(0)
     }
     pub fn checkpoint(&self, height: Height) -> Option<AmountRange<T>> {

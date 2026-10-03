@@ -1,12 +1,13 @@
+use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::HeightMap;
 use brk_error::{Error, Result};
 use brk_types::{Height, OutputType, Sats, TxInIndex, TxOutIndex, TypeIndex};
 use vecdb::{Cursor, PcoVec, ReadableVec};
 
-type InputColumns<'a> = (&'a [Sats], &'a [Height], &'a [OutputType], &'a [TypeIndex]);
+pub(super) type InputColumns<'a> = (&'a [Sats], &'a [Height], &'a [OutputType], &'a [TypeIndex]);
 
 /// Bulk txin reader with reusable buffers.
-pub struct TxInReaders<'a, const WITH_INDEXES: bool = true> {
+pub(super) struct TxInReaders<'a, const WITH_INDEXES: bool> {
     input_values: Cursor<'a, TxInIndex, Sats, PcoVec<TxInIndex, Sats>>,
     references: Cursor<'a, TxInIndex, TxOutIndex, PcoVec<TxInIndex, TxOutIndex>>,
     output_types: Cursor<'a, TxInIndex, OutputType, PcoVec<TxInIndex, OutputType>>,
@@ -19,18 +20,17 @@ pub struct TxInReaders<'a, const WITH_INDEXES: bool = true> {
 }
 
 impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
-    pub fn new(
+    pub(super) fn new(
+        indexer: &'a Indexer,
         input_values: &'a PcoVec<TxInIndex, Sats>,
-        references: &'a PcoVec<TxInIndex, TxOutIndex>,
-        output_types: &'a PcoVec<TxInIndex, OutputType>,
-        type_indexes: &'a PcoVec<TxInIndex, TypeIndex>,
         output_heights: &'a HeightMap<TxOutIndex>,
     ) -> Self {
+        let inputs = &indexer.vecs().inputs;
         Self {
             input_values: input_values.cursor(),
-            references: references.cursor(),
-            output_types: output_types.cursor(),
-            type_indexes: type_indexes.cursor(),
+            references: inputs.txout_index.cursor(),
+            output_types: inputs.output_type.cursor(),
+            type_indexes: inputs.type_index.cursor(),
             output_heights,
             values_buf: Vec::new(),
             prev_heights_buf: Vec::new(),
@@ -39,7 +39,7 @@ impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
         }
     }
 
-    pub fn collect_inputs(
+    pub(super) fn collect_inputs(
         &mut self,
         first_txin_index: usize,
         input_count: usize,

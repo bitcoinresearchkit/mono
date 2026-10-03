@@ -21,5 +21,6 @@ brk_types = { workspace = true, features = ["storage"] }
 derive_more = { workspace = true }
 vecdb = { workspace = true }
 rustc-hash = { workspace = true }
+rayon = { workspace = true }
 bitview_plugin_indexer = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }

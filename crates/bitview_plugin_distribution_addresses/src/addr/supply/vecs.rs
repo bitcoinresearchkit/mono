@@ -6,7 +6,7 @@ use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
 use super::AddrTypeToSupply;
 
@@ -51,13 +51,6 @@ impl AddrSupplyVecs {
         Ok(Self { series, stored })
     }
 
-    pub fn min_resume_len(&self) -> usize {
-        self.stored
-            .iter()
-            .map(AnyVec::len)
-            .min()
-            .unwrap_or_default()
-    }
     pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.stored
             .iter_mut()

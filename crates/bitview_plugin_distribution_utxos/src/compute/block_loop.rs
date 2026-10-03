@@ -1,80 +1,44 @@
-use super::{ComputeContext, Workspace, write::write};
+use std::ops::Range;
+
+use super::write::write;
 use crate::{
     Vecs,
     block::{DetailedSpends, normalize_supply},
     state::{Transacted, UTXOStates},
 };
-use bitview_plugin_distribution_common::readers::index_range;
+use bitview_plugin_distribution_common::readers::{BlockBounds, Columns};
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Height;
-use rayon::{join, prelude::*};
-use vecdb::{AnyVec, ReadableVec, VecIndex};
-const BATCH_BLOCKS: usize = 16;
+use brk_types::{Cents, Height};
+use rayon::prelude::*;
 
+#[allow(clippy::too_many_arguments)]
 pub fn process_chunk(
     vecs: &mut Vecs,
     states: &mut UTXOStates,
     indexer: &Indexer,
-    workspace: &mut Workspace<'_>,
-    ctx: &ComputeContext<'_>,
+    columns: &mut Columns<'_, false>,
+    blocks: Range<usize>,
+    prices: &[Cents],
     final_chunk: bool,
     exit: &Exit,
 ) -> Result<()> {
-    let start = ctx.starting_height.to_usize();
-    let end = ctx.last_height.to_usize() + 1;
-    let outputs = &indexer.vecs().outputs;
-    let inputs = &indexer.vecs().inputs;
-    let first_outputs = outputs
-        .first_txout_index
-        .collect_range_at(start, (end + 1).min(outputs.first_txout_index.len()));
-    let first_inputs = inputs
-        .first_txin_index
-        .collect_range_at(start, (end + 1).min(inputs.first_txin_index.len()));
     {
         let _lock = exit.lock();
         vecs.cohorts
             .par_iter_vecs_mut()
-            .try_for_each(|v| v.any_truncate_if_needed_at(start))?;
+            .try_for_each(|v| v.any_truncate_if_needed_at(blocks.start))?;
     }
-    for batch_start in (start..end).step_by(BATCH_BLOCKS) {
-        let batch_end = (batch_start + BATCH_BLOCKS).min(end);
-        let batch_outputs = index_range(
-            &first_outputs,
-            batch_start - start,
-            batch_end - start,
-            outputs.value.len(),
-        );
-        let batch_inputs = index_range(
-            &first_inputs,
-            batch_start - start,
-            batch_end - start,
-            inputs.outpoint.len(),
-        );
-        let (received, spent) = join(
-            || {
-                workspace
-                    .outputs
-                    .collect_outputs(batch_outputs.start, batch_outputs.len())
-            },
-            || {
-                workspace.inputs.collect_inputs(
-                    batch_inputs.start,
-                    batch_inputs.len(),
-                    Height::from(batch_start),
-                )
-            },
-        );
-        let (values, types, _) = received?;
-        let (spent_values, origins, spent_types, _) = spent?;
-        for height in batch_start..batch_end {
-            let offset = height - start;
-            let received = index_range(&first_outputs, offset, offset + 1, outputs.value.len());
-            let spent = index_range(&first_inputs, offset, offset + 1, inputs.outpoint.len());
-            let received = received.start - batch_outputs.start..received.end - batch_outputs.start;
-            let spent = spent.start + 1 - batch_inputs.start..spent.end - batch_inputs.start;
-            let price = ctx.price_at(Height::from(height));
+    let last_height = Height::from(blocks.end - 1);
+    let bounds = BlockBounds::new(indexer, blocks);
+    for batch in bounds.batches() {
+        let ((values, types, _), (spent_values, origins, spent_types, _)) =
+            columns.collect(&batch)?;
+        for height in batch.blocks.clone() {
+            let received = batch.block_outputs(height);
+            let spent = batch.block_spends(height);
+            let price = prices[height];
             let mut transacted = Transacted::default();
             for (&value, &ty) in values[received.clone()].iter().zip(&types[received]) {
                 transacted.iterate(value, ty);
@@ -85,14 +49,9 @@ pub fn process_chunk(
                 .zip(&spent_types[spent.clone()])
                 .zip(&origins[spent])
             {
-                detailed.add(value, ty, ctx.price_at(origin), price);
+                detailed.add(value, ty, prices[usize::from(origin)], price);
             }
-            normalize_supply(
-                Height::from(height),
-                &mut transacted,
-                &mut detailed,
-                ctx.height_to_price,
-            );
+            normalize_supply(Height::from(height), &mut transacted, &mut detailed, prices);
             states.receive_details(&transacted, price);
             detailed.apply(states);
             vecs.cohorts.push(states, price);
@@ -104,7 +63,7 @@ pub fn process_chunk(
         }
     }
     let _lock = exit.lock();
-    write(vecs, states, ctx.last_height, final_chunk)?;
+    write(vecs, states, last_height, final_chunk)?;
     if !final_chunk {
         vecs.flush()?;
     }

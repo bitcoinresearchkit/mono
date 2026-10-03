@@ -1,17 +1,19 @@
+use std::ops::Range;
+
 use bitview_cohort::ByAddrType;
-use bitview_plugin_distribution_common::readers::index_range;
+use bitview_plugin_distribution_common::readers::{BlockBounds, index_range};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, TxIndex, TypeIndex};
+use brk_types::{Cents, Height, TxIndex, TypeIndex};
 use rayon::{join, prelude::*};
 use tracing::{debug, info};
 use vecdb::{AnyVec, ReadableVec, VecIndex, unlikely};
 
 use super::{
     super::{state::AddrStates, vecs::Vecs},
-    AddrReaders, ComputeContext, Workspace,
+    AddrReaders, Workspace,
 };
 use crate::{
     addr::AddrMetricsState,
@@ -21,9 +23,7 @@ use crate::{
     compute::write::write,
 };
 
-const BATCH_BLOCKS: usize = 16;
-
-/// Process all blocks from starting_height to last_height.
+/// Process every block of `blocks`.
 #[allow(clippy::too_many_arguments)]
 pub fn process_chunk(
     vecs: &mut Vecs,
@@ -31,48 +31,31 @@ pub fn process_chunk(
     indexer: &Indexer,
     mappings: &MappingsVecs,
     workspace: &mut Workspace<'_>,
-    ctx: &ComputeContext<'_>,
+    blocks: Range<usize>,
+    prices: &[Cents],
     final_chunk: bool,
     exit: &Exit,
 ) -> Result<()> {
-    if ctx.starting_height > ctx.last_height {
-        return Ok(());
-    }
-    let starting_height = ctx.starting_height;
-    let last_height = ctx.last_height;
+    let starting_height = Height::from(blocks.start);
+    let last_height = Height::from(blocks.end - 1);
+    let start_usize = blocks.start;
+    let end_usize = blocks.end;
 
     let height_to_first_tx_index = &indexer.vecs().transactions.first_tx_index;
-    let height_to_first_txout_index = &indexer.vecs().outputs.first_txout_index;
-    let height_to_first_txin_index = &indexer.vecs().inputs.first_txin_index;
     let tx_index_to_output_count = &mappings.tx_index.output_count;
     let tx_index_to_input_count = &mappings.tx_index.input_count;
-
-    let height_to_price_vec = ctx.height_to_price;
-
-    let start_usize = starting_height.to_usize();
-    let end_usize = last_height.to_usize() + 1;
 
     let height_to_first_tx_index_vec: Vec<TxIndex> = height_to_first_tx_index.collect_range_at(
         start_usize,
         (end_usize + 1).min(height_to_first_tx_index.len()),
     );
-    let height_to_first_txout_index_vec: Vec<_> = height_to_first_txout_index.collect_range_at(
-        start_usize,
-        (end_usize + 1).min(height_to_first_txout_index.len()),
-    );
-    let height_to_first_txin_index_vec: Vec<_> = height_to_first_txin_index.collect_range_at(
-        start_usize,
-        (end_usize + 1).min(height_to_first_txin_index.len()),
-    );
-    let height_to_price_collected = &ctx.height_to_price[start_usize..end_usize];
 
     debug!("creating AddrReaders");
     let vr = AddrReaders::new(&vecs.addr_state);
     debug!("AddrReaders created");
 
     let Workspace {
-        outputs,
-        inputs,
+        columns,
         output_txs,
         input_txs,
         addresses: cache,
@@ -148,35 +131,14 @@ pub fn process_chunk(
 
     let mut transfer_addresses = TransferAddressCache::default();
 
-    // Bound source buffers while loading cold address state once for several blocks.
-    for batch_start in (start_usize..end_usize).step_by(BATCH_BLOCKS) {
-        let batch_end = (batch_start + BATCH_BLOCKS).min(end_usize);
-        let offset = batch_start - start_usize;
-        let end_offset = batch_end - start_usize;
-        let batch_outputs = index_range(
-            &height_to_first_txout_index_vec,
-            offset,
-            end_offset,
-            indexer.vecs().outputs.value.len(),
-        );
-        let batch_inputs = index_range(
-            &height_to_first_txin_index_vec,
-            offset,
-            end_offset,
-            indexer.vecs().inputs.outpoint.len(),
-        );
-        let (output_columns, input_columns) = join(
-            || outputs.collect_outputs(batch_outputs.start, batch_outputs.len()),
-            || {
-                inputs.collect_inputs(
-                    batch_inputs.start,
-                    batch_inputs.len(),
-                    Height::from(batch_start),
-                )
-            },
-        );
-        let (output_values, output_types, output_indexes) = output_columns?;
-        let (input_values, input_heights, input_types, input_indexes) = input_columns?;
+    // Load cold address state once for each batch of blocks.
+    let bounds = BlockBounds::new(indexer, blocks);
+    for batch in bounds.batches() {
+        let offset = batch.blocks.start - start_usize;
+        let (
+            (output_values, output_types, output_indexes),
+            (input_values, input_heights, input_types, input_indexes),
+        ) = columns.collect(&batch)?;
 
         // Addresses created within this batch start at these per-type indexes.
         let first_addr_indexes = ByAddrType {
@@ -206,7 +168,7 @@ pub fn process_chunk(
             &vecs.addr_state,
         );
 
-        for height in batch_start..batch_end {
+        for height in batch.blocks.clone() {
             let height = Height::from(height);
             if unlikely(height.is_multiple_of(100)) {
                 info!("Computing metrics at block {height}...");
@@ -220,28 +182,11 @@ pub fn process_chunk(
                 offset + 1,
                 indexer.vecs().transactions.txid.len(),
             );
-            let outputs = index_range(
-                &height_to_first_txout_index_vec,
-                offset,
-                offset + 1,
-                indexer.vecs().outputs.value.len(),
-            );
-            let inputs = index_range(
-                &height_to_first_txin_index_vec,
-                offset,
-                offset + 1,
-                indexer.vecs().inputs.outpoint.len(),
-            );
-            let block_price = height_to_price_collected[offset];
-            debug_assert_eq!(ctx.price_at(height), block_price);
-            let output_range =
-                outputs.start - batch_outputs.start..outputs.end - batch_outputs.start;
+            let block_price = prices[height.to_usize()];
+            let output_range = batch.block_outputs(height.to_usize());
             // Omit this block's coinbase, including coinbase-only blocks.
-            let input_range =
-                inputs.start + 1 - batch_inputs.start..inputs.end - batch_inputs.start;
+            let input_range = batch.block_spends(height.to_usize());
             state.reset_per_block();
-
-            debug_assert!(!inputs.is_empty());
 
             let (outputs_result, inputs_result) = join(
                 || {
@@ -291,7 +236,7 @@ pub fn process_chunk(
                 &mut state,
             );
             process_typed_sent(
-                inputs_result.sent_data.into_typed(height_to_price_vec),
+                inputs_result.sent_data.into_typed(prices),
                 addr_states,
                 &mut lookup,
                 block_price,

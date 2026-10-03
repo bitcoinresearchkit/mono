@@ -41,10 +41,6 @@ where
         self.stored.push(cumulative);
     }
 
-    pub fn min_len(&self) -> usize {
-        self.stored.min_len()
-    }
-
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.last = Default::default();
         self.stored.stored_vecs_mut()

@@ -1,14 +1,13 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin_distribution_common::{
+    readers::Columns,
+    replay::{LiveState, tip_hash},
+};
 use brk_error::Result;
 use brk_types::Height;
 use vecdb::{AnyVec, Database, ReadableVec};
 
-use crate::{
-    Dependencies,
-    compute::{ComputeContext, Workspace, process_chunk},
-    live::LiveState,
-    state::UTXOStates,
-};
+use crate::{Dependencies, compute::process_chunk, state::UTXOStates};
 
 use super::Vecs;
 
@@ -23,7 +22,7 @@ impl ComputePlugin for Vecs {
         let live = self.live.take();
         let version = deps.version();
         let exit = context.exit();
-        let changed = {
+        let resume = {
             let _lock = exit.lock();
             self.validate_state(version)?
         };
@@ -35,37 +34,25 @@ impl ComputePlugin for Vecs {
             .blockhash
             .len()
             .min(deps.price.spot.cents.height.len());
-        let mut start = if changed {
-            0
-        } else {
+        let mut start = resume.map_or(0, |len| {
             usize::from(deps.indexer.safe_lengths().height)
                 .min(end)
-                .min(usize::from(self.cohorts.min_resume_len()))
+                .min(len)
                 .min(caps_end)
-        };
+        });
         let Dependencies {
             indexer,
             mappings,
             input_values,
             price,
         } = deps;
-        let hash = start
-            .checked_sub(1)
-            .and_then(|h| indexer.vecs().blocks.blockhash.collect_one(Height::from(h)));
-        let live =
-            live.filter(|s| !changed && s.end == start && s.hash == hash && s.version == version);
-        let reuse = live.is_some();
-        let LiveState {
-            mut utxos,
-            mut prices,
-            ..
-        } = live.unwrap_or_else(|| LiveState {
-            end: 0,
-            hash: None,
-            version,
-            utxos: UTXOStates::new(),
-            prices: Vec::new(),
+        let hash = tip_hash(indexer, start);
+        let live = live.filter(|s| {
+            resume.is_some() && s.end == start && s.hash == hash && s.version == version
         });
+        let reuse = live.is_some();
+        let (mut utxos, mut prices) =
+            live.map_or_else(|| (UTXOStates::new(), Vec::new()), |s| (s.state, s.prices));
         if !reuse && start > 0 {
             let current = caps_end;
             if start < current {
@@ -87,33 +74,25 @@ impl ComputePlugin for Vecs {
         prices.truncate(start);
         prices.extend(price.spot.cents.height.collect_range_at(prices.len(), end));
         let output_heights = mappings.output_heights.read();
-        let mut workspace = Workspace::new(indexer, input_values, &output_heights);
-        let mut from = start;
-        while from < end {
+        let mut columns = Columns::new(indexer, input_values, &output_heights);
+        for from in (start..end).step_by(10_000) {
             let next = (from + 10_000).min(end);
-            let ctx = ComputeContext {
-                starting_height: Height::from(from),
-                last_height: Height::from(next - 1),
-                height_to_price: &prices,
-            };
             process_chunk(
                 self,
                 &mut utxos,
                 indexer,
-                &mut workspace,
-                &ctx,
+                &mut columns,
+                from..next,
+                &prices,
                 next == end,
                 exit,
             )?;
-            from = next;
         }
         self.live = Some(LiveState {
             end,
-            hash: end
-                .checked_sub(1)
-                .and_then(|h| indexer.vecs().blocks.blockhash.collect_one(Height::from(h))),
+            hash: tip_hash(indexer, end),
             version,
-            utxos,
+            state: utxos,
             prices,
         });
         Ok(())

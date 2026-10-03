@@ -28,9 +28,6 @@ impl ActivityVecs {
         }))
     }
 
-    pub fn min_resume_len(&self) -> usize {
-        self.transfer_volume.min_len()
-    }
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.transfer_volume.stored_vecs_mut()
     }

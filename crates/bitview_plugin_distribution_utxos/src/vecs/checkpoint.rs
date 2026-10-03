@@ -2,19 +2,16 @@ use crate::{
     Vecs,
     state::{MinimalRealizedState, RealizedOps, UTXOStates},
 };
+use bitview_plugin_distribution_common::replay::validate_outputs;
 use brk_error::Result;
 use brk_types::{Height, Version};
-use rayon::prelude::*;
 use vecdb::Stamp;
 impl Vecs {
-    pub(crate) fn validate_state(&mut self, version: Version) -> Result<bool> {
+    /// `None` after a version change, else the height every cohort output reaches.
+    pub(crate) fn validate_state(&mut self, version: Version) -> Result<Option<usize>> {
         let caps_changed = self.caps.validate(version)?;
-        let vecs_changed = self
-            .cohorts
-            .par_iter_vecs_mut()
-            .map(|v| v.any_validate_computed_version_or_reset(version))
-            .try_reduce(|| false, |a, b| Ok(a || b))?;
-        Ok(caps_changed || vecs_changed)
+        let outputs = validate_outputs(self.cohorts.par_iter_vecs_mut(), version)?;
+        Ok(outputs.filter(|_| !caps_changed))
     }
     pub(crate) fn rollback_state(&mut self, start: usize) -> Result<usize> {
         let stamp = self

@@ -24,7 +24,7 @@ where
 {
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
-    pub block: LazyPreviousDeltaVec<Height, C, T, F>,
+    block: LazyPreviousDeltaVec<Height, C, T, F>,
     #[traversable(hidden)]
     cumulative: CachedSeries<Height, C, M>,
     #[traversable(flatten)]

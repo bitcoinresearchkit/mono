@@ -82,9 +82,6 @@ impl<S: Clone> AmountValueSources<S> {
             }));
     }
 
-    pub fn min_len(&self) -> usize {
-        self.stored.sats.min_len().min(self.stored.cents.min_len())
-    }
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.stored
             .sats

@@ -44,14 +44,6 @@ impl OutputsVecs {
         self.spent_count.stored.push_block(spent_count);
     }
 
-    pub fn min_resume_len(&self) -> usize {
-        self.unspent_count
-            .stored
-            .min_len()
-            .min(self.spent_count.stored.min_len())
-            .min(self.avg_amount.min_len())
-    }
-
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.unspent_count
             .stored

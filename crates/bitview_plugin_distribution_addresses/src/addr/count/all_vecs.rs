@@ -6,7 +6,7 @@ use brk_error::Result;
 use brk_types::{Height, StoredU64, Version};
 use derive_more::{Deref, DerefMut};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, Database, Ident, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, Ident, Rw, StorageMode, WritableVec};
 
 use super::AddrTypeToAddrCount;
 
@@ -49,13 +49,6 @@ impl AddrCountsVecs {
         Ok(Self { series, stored })
     }
 
-    pub fn min_resume_len(&self) -> usize {
-        self.stored
-            .iter()
-            .map(AnyVec::len)
-            .min()
-            .unwrap_or_default()
-    }
     pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.stored
             .iter_mut()

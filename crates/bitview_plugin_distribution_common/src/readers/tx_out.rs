@@ -3,8 +3,10 @@ use brk_error::{Error, Result};
 use brk_types::{OutputType, Sats, TypeIndex};
 use vecdb::ReadableVec;
 
+pub(super) type OutputColumns<'a> = (&'a [Sats], &'a [OutputType], &'a [TypeIndex]);
+
 /// Bulk txout reader with reusable buffers.
-pub struct TxOutReaders<'a, const WITH_INDEXES: bool = true> {
+pub(super) struct TxOutReaders<'a, const WITH_INDEXES: bool> {
     indexer: &'a Indexer,
     values_buf: Vec<Sats>,
     output_types_buf: Vec<OutputType>,
@@ -12,7 +14,7 @@ pub struct TxOutReaders<'a, const WITH_INDEXES: bool = true> {
 }
 
 impl<'a, const WITH_INDEXES: bool> TxOutReaders<'a, WITH_INDEXES> {
-    pub fn new(indexer: &'a Indexer) -> Self {
+    pub(super) fn new(indexer: &'a Indexer) -> Self {
         Self {
             indexer,
             values_buf: Vec::new(),
@@ -21,11 +23,11 @@ impl<'a, const WITH_INDEXES: bool> TxOutReaders<'a, WITH_INDEXES> {
         }
     }
 
-    pub fn collect_outputs(
+    pub(super) fn collect_outputs(
         &mut self,
         first_txout_index: usize,
         output_count: usize,
-    ) -> Result<(&[Sats], &[OutputType], &[TypeIndex])> {
+    ) -> Result<OutputColumns<'_>> {
         let end = first_txout_index + output_count;
         self.indexer.vecs().outputs.value.collect_range_into_at(
             first_txout_index,

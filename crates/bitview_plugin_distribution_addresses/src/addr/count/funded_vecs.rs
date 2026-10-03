@@ -52,10 +52,6 @@ impl FundedAddrCountsVecs {
         })
     }
 
-    pub fn min_resume_len(&self) -> usize {
-        self.counts.min_resume_len().min(self.balance.min_len())
-    }
-
     pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.counts.par_iter_height_mut().chain(
             self.balance

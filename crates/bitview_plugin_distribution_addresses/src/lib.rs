@@ -4,7 +4,6 @@ mod block;
 mod compute;
 mod dependencies;
 mod has;
-mod live;
 mod metrics;
 mod state;
 mod vecs;

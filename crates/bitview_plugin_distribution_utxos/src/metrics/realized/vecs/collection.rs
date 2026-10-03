@@ -44,14 +44,6 @@ impl RealizedVecs {
         }))
     }
 
-    pub fn min_resume_len(&self) -> usize {
-        self.cap
-            .stored
-            .min_len()
-            .min(self.price.stored.min_len())
-            .min(self.profit.stored.min_len())
-            .min(self.loss.stored.min_len())
-    }
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.cap
             .stored

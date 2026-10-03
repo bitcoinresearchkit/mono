@@ -14,7 +14,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, PartsPerMillion32, StoredF32, StoredU32, StoredU64, Version};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableCloneableVec, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, Rw, StorageMode, WritableVec};
 
 use super::state::AddrTypeToAddrEventCount;
 
@@ -223,17 +223,6 @@ impl AddrEventsVecs {
             active_reused_addr_count,
             active_reused_addr_share,
         })
-    }
-
-    pub fn min_resume_len(&self) -> usize {
-        self.output_to_reused_addr_count
-            .iter()
-            .chain(self.input_from_reused_addr_count.iter())
-            .map(|value| value.cumulative.height.len())
-            .min()
-            .unwrap_or_default()
-            .min(self.active_reused_addr_count.block.len())
-            .min(self.active_reused_addr_share.block.len())
     }
 
     pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {

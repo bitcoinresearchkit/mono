@@ -75,15 +75,6 @@ impl CohortMetrics {
             .push_block(realized.map(|v| v.loss));
     }
 
-    pub fn min_resume_len(&self) -> Height {
-        Height::from(
-            self.supply
-                .min_resume_len()
-                .min(self.outputs.min_resume_len())
-                .min(self.activity.min_resume_len())
-                .min(self.realized.min_resume_len()),
-        )
-    }
     pub fn par_iter_vecs_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.supply
             .stored_vecs_mut()

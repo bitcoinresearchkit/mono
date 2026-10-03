@@ -3,18 +3,18 @@ mod compute;
 mod import;
 
 use bitview_plugin::{Plugin, PluginStorage};
-use bitview_plugin_distribution_common::RealizedCaps;
+use bitview_plugin_distribution_common::{RealizedCaps, replay::LiveState};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::{CAP_COUNT, STORAGE, live::LiveState, metrics::CohortMetrics};
+use crate::{CAP_COUNT, STORAGE, metrics::CohortMetrics, state::UTXOStates};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
-    live: M::WriteOnly<Option<LiveState>>,
+    live: M::WriteOnly<Option<LiveState<UTXOStates>>>,
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
     pub cohorts: CohortMetrics<M>,
 }

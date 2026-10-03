@@ -44,12 +44,6 @@ impl AddrCountFundedTotalVecs {
         })
     }
 
-    pub fn min_resume_len(&self) -> usize {
-        self.funded
-            .min_resume_len()
-            .min(self.total.min_resume_len())
-    }
-
     pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.funded
             .par_iter_height_mut()

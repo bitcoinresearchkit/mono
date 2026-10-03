@@ -91,12 +91,6 @@ impl ExposedAddrVecs {
         })
     }
 
-    pub fn min_resume_len(&self) -> usize {
-        self.count
-            .min_resume_len()
-            .min(self.supply.min_resume_len())
-    }
-
     pub fn par_iter_stateful_height_mut(
         &mut self,
     ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {

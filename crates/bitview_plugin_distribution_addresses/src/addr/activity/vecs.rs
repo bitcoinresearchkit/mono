@@ -7,7 +7,7 @@ use bitview_vecs::{LazyPerBlockCumulativeAverage, LazyWindowStartVec, PerBlockCu
 use brk_error::Result;
 use brk_types::{StoredU32, StoredU64, Version};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, Database, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 
 use super::{AddrTypeToActivityCounts, BlockActivityCounts};
 
@@ -113,21 +113,6 @@ impl AddrActivityVecs {
             cumulative_bidirectional,
             cumulative_active,
         })
-    }
-
-    pub fn min_resume_len(&self) -> usize {
-        [
-            &self.cumulative_reactivated,
-            &self.cumulative_sending,
-            &self.cumulative_receiving,
-            &self.cumulative_bidirectional,
-            &self.cumulative_active,
-        ]
-        .into_iter()
-        .flat_map(|family| family.iter())
-        .map(|v| v.cumulative.height.len())
-        .min()
-        .unwrap_or_default()
     }
 
     pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {

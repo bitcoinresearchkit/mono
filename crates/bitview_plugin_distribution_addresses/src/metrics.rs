@@ -165,22 +165,6 @@ impl BalanceMetrics {
             }));
     }
 
-    pub fn min_resume_len(&self) -> Height {
-        Height::from(
-            [
-                self.supply_source.min_len(),
-                self.utxo_count.min_len(),
-                self.transfer_volume.min_len(),
-                self.realized_cap.min_len(),
-                self.realized_profit.min_len(),
-                self.realized_loss.min_len(),
-            ]
-            .into_iter()
-            .min()
-            .unwrap_or(0),
-        )
-    }
-
     pub fn par_iter_vecs_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.supply_source
             .stored_vecs_mut()

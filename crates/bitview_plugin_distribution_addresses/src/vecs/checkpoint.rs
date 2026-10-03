@@ -1,3 +1,4 @@
+use bitview_plugin_distribution_common::replay::validate_outputs;
 use brk_error::Result;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
@@ -19,13 +20,22 @@ impl Vecs {
             .chain(self.balances.par_iter_vecs_mut())
     }
 
-    pub(crate) fn validate_state(&mut self, version: Version) -> Result<bool> {
+    /// `None` after a version change, else the height every height-indexed
+    /// output reaches; address state resumes by stamp instead.
+    pub(crate) fn validate_state(&mut self, version: Version) -> Result<Option<usize>> {
         let caps_changed = self.caps.validate(version)?;
-        let vecs_changed = self
-            .par_iter_stateful_mut()
+        let state_changed = self
+            .addr_state
+            .par_iter_mut()
             .map(|v| v.any_validate_computed_version_or_reset(version))
             .try_reduce(|| false, |a, b| Ok(a || b))?;
-        Ok(caps_changed || vecs_changed)
+        let outputs = validate_outputs(
+            self.addrs
+                .par_iter_stateful_height_mut()
+                .chain(self.balances.par_iter_vecs_mut()),
+            version,
+        )?;
+        Ok(outputs.filter(|_| !caps_changed && !state_changed))
     }
 
     pub(crate) fn rollback_state(&mut self, start: usize) -> Result<usize> {

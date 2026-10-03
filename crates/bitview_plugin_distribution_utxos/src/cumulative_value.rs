@@ -58,10 +58,6 @@ impl CumulativeSizeValueSources {
             .push_block(cents.into().map(|value| StoredU64::from(u64::from(*value))));
     }
 
-    pub fn min_len(&self) -> usize {
-        self.sats.min_len().min(self.cents.min_len())
-    }
-
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.sats
             .stored_vecs_mut()
