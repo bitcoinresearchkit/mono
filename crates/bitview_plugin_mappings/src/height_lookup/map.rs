@@ -118,6 +118,3 @@ fn extend_bounds<I: VecIndex>(bounds: &mut Vec<u32>, position: usize, index: I, 
         *bounds.last_mut().unwrap() = end;
     }
 }
-
-#[cfg(test)]
-mod tests;

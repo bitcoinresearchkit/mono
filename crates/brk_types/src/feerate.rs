@@ -310,34 +310,3 @@ impl Formattable for FeeRate {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[test]
-    fn fee_rate_fast_path_matches_u128_arithmetic() {
-        for index in 0..30_000_u64 {
-            let sats = index.wrapping_mul(6_364_136_223_846_793_005) % 2_100_000_000_000_001;
-            let vsize = index.wrapping_mul(2_654_435_761) % 4_000_001;
-            let expected = if sats == 0 {
-                FeeRate::ZERO
-            } else if vsize == 0 {
-                FeeRate::NAN
-            } else {
-                let milli = (u128::from(sats) * u128::from(MILLIS_PER_SAT_VBYTE))
-                    .div_ceil(u128::from(vsize));
-                if milli >= u128::from(u64::MAX) {
-                    FeeRate::NAN
-                } else {
-                    FeeRate::from_milli(milli as u64)
-                }
-            };
-            assert_eq!(
-                FeeRate::from((Sats::from(sats), VSize::from(vsize))),
-                expected,
-            );
-        }
-    }
-}

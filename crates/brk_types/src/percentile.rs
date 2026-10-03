@@ -251,7 +251,3 @@ pub fn get_weighted_percentiles<T: Clone, const N: usize>(
         current.0.clone()
     })
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/weighted_percentiles.rs"]
-mod weighted_tests;

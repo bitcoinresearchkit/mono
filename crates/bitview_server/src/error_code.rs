@@ -20,7 +20,7 @@ pub enum ErrorCode {
     StateUpdating,
     InternalError,
     BadRequest,
-    #[cfg(any(feature = "chain", test))]
+    #[cfg(feature = "chain")]
     Overloaded,
     Timeout,
     MethodNotAllowed,
@@ -48,7 +48,7 @@ impl ErrorCode {
             Self::StateUpdating => "state_updating",
             Self::InternalError => "internal_error",
             Self::BadRequest => "bad_request",
-            #[cfg(any(feature = "chain", test))]
+            #[cfg(feature = "chain")]
             Self::Overloaded => "overloaded",
             Self::Timeout => "timeout",
             Self::MethodNotAllowed => "method_not_allowed",
@@ -58,7 +58,7 @@ impl ErrorCode {
     pub const fn is_transient(self) -> bool {
         match self {
             Self::StateUpdating => true,
-            #[cfg(any(feature = "chain", test))]
+            #[cfg(feature = "chain")]
             Self::Overloaded => true,
             _ => false,
         }

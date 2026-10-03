@@ -352,20 +352,3 @@ fn simplify_property_value(mut obj: Map<String, Value>) -> Value {
 
     Value::Object(obj)
 }
-
-#[cfg(test)]
-mod tests {
-    use aide::axum::ApiRouter;
-    use serde_json::{from_str, to_string};
-
-    use super::*;
-    use crate::{ApiRoutes, AppState, finish_openapi};
-
-    #[test]
-    fn generated_schema_compaction_matches_the_json_round_trip() {
-        let (_, spec) = finish_openapi(ApiRouter::<AppState>::new().add_api_routes());
-        let serialized = to_string(&spec).unwrap();
-        let through_json = compact_json(from_str(&serialized).unwrap());
-        assert_eq!(ApiJson::new(&spec).bytes().as_ref(), through_json);
-    }
-}

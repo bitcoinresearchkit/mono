@@ -64,16 +64,5 @@ retains `Cache-Control: no-store`, `Retry-After: 1`, and no ETag; the outer requ
 deadline can instead return 504. These are genuine bounded failures, not promises
 of eventual success or guarantees under sustained overload.
 
-## Regression coverage
-
-Middleware tests cover recovery, GET/HEAD validators, bounded persistent failure,
-cancellation, non-replay of actions/payloads and unrelated errors. Real server
-fixtures hold mempool prevout resolution open, verify that requests remain
-pending, then publish and require successful conditional responses. Existing
-incomplete/reorg fixtures continue to require safe errors after the wait budget.
-Series fixtures retain both body permits, require a third read to wait, release
-one response and require success without increasing the memory budget. The
-full HTTP series publication tests no longer retry failures from the client.
-
 The running daemon must be rebuilt/restarted to use this policy. Earlier live
 measurements in `performance-check.md` describe the pre-policy behavior.

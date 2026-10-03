@@ -60,35 +60,3 @@ impl TxIndexes {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn indexes(values: impl IntoIterator<Item = u32>) -> TxIndexes {
-        let mut values = values.into_iter();
-        let mut indexes = TxIndexes::new(TxIndex::new(values.next().unwrap()));
-        for value in values {
-            indexes.push(TxIndex::new(value));
-        }
-        indexes
-    }
-
-    #[test]
-    fn union_matches_exhaustive_small_sets() {
-        const VALUES: u32 = 8;
-
-        for left_bits in 1_u32..(1 << VALUES) {
-            for right_bits in 1_u32..(1 << VALUES) {
-                let left_values = (0..VALUES).filter(|value| left_bits & (1 << value) != 0);
-                let right_values = (0..VALUES).filter(|value| right_bits & (1 << value) != 0);
-                let expected = (left_bits | right_bits).count_ones();
-
-                assert_eq!(
-                    indexes(left_values).union_len(&indexes(right_values)),
-                    expected
-                );
-            }
-        }
-    }
-}

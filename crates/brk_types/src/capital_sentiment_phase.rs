@@ -142,6 +142,3 @@ unsafe impl Pco for CapitalSentimentPhase {
         Self::from_code(value).ok_or(Error::InvalidArgument("invalid CapitalSentimentPhase"))
     }
 }
-
-#[cfg(all(test, feature = "storage"))]
-mod tests {}

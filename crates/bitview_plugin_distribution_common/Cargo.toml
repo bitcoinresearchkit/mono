@@ -23,6 +23,3 @@ vecdb = { workspace = true }
 rustc-hash = { workspace = true }
 bitview_plugin_indexer = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
-
-[dev-dependencies]
-tempfile = { workspace = true }

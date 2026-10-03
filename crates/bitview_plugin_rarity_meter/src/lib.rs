@@ -30,12 +30,7 @@ mod extreme;
 mod extremes;
 mod inner;
 mod median_component;
-#[cfg(test)]
-mod recovery_tests;
 
-#[cfg(test)]
-#[path = "../../bitview_vecs/tests/common/mod.rs"]
-mod test_common;
 mod threshold_vecs;
 
 pub use dependencies::Dependencies;

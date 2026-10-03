@@ -82,7 +82,3 @@ impl UTXOStates {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "origin_tests.rs"]
-mod tests;

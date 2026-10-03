@@ -9,5 +9,5 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext", "WebWorker"],
     "skipLibCheck": true
   },
-  "exclude": ["dist", "tests"]
+  "exclude": ["dist"]
 }

@@ -30,8 +30,3 @@ pub use sources::*;
 pub use tx::*;
 pub use value::*;
 pub use views::*;
-
-#[cfg(test)]
-#[allow(dead_code)]
-#[path = "../tests/common/cache.rs"]
-mod test_cache;

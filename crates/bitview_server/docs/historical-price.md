@@ -14,5 +14,4 @@ consume this body budget.
 
 This corrects the former start-labeled, partial-tail behavior. Deployments that
 previously used Aggressive immutable caching must purge affected price URLs;
-new origin headers cannot revoke fresh CDN objects. See the real HTTP fixture
-in `tests/unit/historical_price.rs` and the native query price tests.
+new origin headers cannot revoke fresh CDN objects.

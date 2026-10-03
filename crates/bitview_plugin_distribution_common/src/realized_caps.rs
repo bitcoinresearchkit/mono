@@ -65,7 +65,3 @@ impl<const N: usize> RealizedCaps<N> {
         Ok(())
     }
 }
-
-#[cfg(test)]
-#[path = "realized_caps_tests.rs"]
-mod tests;

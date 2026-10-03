@@ -13,6 +13,3 @@ brk_error = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 brk_types = { workspace = true }
-
-[dev-dependencies]
-bitcoin = { workspace = true }

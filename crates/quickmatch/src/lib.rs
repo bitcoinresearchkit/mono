@@ -634,7 +634,3 @@ fn trigram_position(len: usize, round: usize) -> Option<usize> {
         Some(pos)
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/lib.rs"]
-mod tests;

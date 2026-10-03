@@ -10,7 +10,6 @@ exclude = ["examples/"]
 
 [dependencies]
 brk_error = { workspace = true, features = ["ureq", "serde_json"] }
-brk_logger = { workspace = true }
 brk_types = { workspace = true }
 tracing = { workspace = true }
 ureq = { workspace = true }

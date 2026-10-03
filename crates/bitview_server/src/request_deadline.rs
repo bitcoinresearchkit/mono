@@ -27,7 +27,3 @@ async fn apply_for(mut request: Request<Body>, next: Next, budget: Duration) -> 
         Err(_) => Error::timeout(action).into_response(),
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/request_deadline.rs"]
-mod tests;

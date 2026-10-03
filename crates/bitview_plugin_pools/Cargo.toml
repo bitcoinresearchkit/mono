@@ -26,6 +26,3 @@ rayon = { workspace = true }
 rustc-hash = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-tempfile = { workspace = true }

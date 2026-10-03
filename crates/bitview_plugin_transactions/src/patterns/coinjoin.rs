@@ -50,7 +50,3 @@ fn has_script_address(output_type: OutputType) -> bool {
             | OutputType::P2A
     )
 }
-
-#[cfg(test)]
-#[path = "coinjoin_tests.rs"]
-mod tests;

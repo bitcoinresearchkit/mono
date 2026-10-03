@@ -117,6 +117,3 @@ fn range_bits(input_end: usize, max_range_len: usize) -> u32 {
         .ilog2()
         .min((input_end.saturating_sub(1) as u64).leading_zeros())
 }
-
-#[cfg(test)]
-mod tests;

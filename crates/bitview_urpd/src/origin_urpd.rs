@@ -167,11 +167,6 @@ impl OriginUrpd {
     fn price_slots(&self) -> impl Iterator<Item = (CentsCompact, u32)> {
         self.prices.iter().copied()
     }
-    #[cfg(test)]
-    pub(crate) fn buckets(&self) -> impl Iterator<Item = (CentsCompact, &[u64; AGE_RANGE_COUNT])> {
-        self.price_slots()
-            .map(|(price, slot)| (price, &self.amounts[slot as usize]))
-    }
     /// Project all requested weights together, visiting each bucket's ages once.
     /// The caller can consume this view directly or retain its rows for repeated reads.
     /// Weighted entries retain input order; missing weights produce zero. Rounding

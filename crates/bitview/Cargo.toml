@@ -59,12 +59,3 @@ brk_rpc = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-bitcoin = { workspace = true }
-bitview_plugin = { workspace = true }
-bitview_plugin_indexer = { workspace = true }
-bitview_traversable = { workspace = true }
-serde_json = { workspace = true }
-tempfile = { workspace = true }
-tokio = { workspace = true, features = ["io-util"] }

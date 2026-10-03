@@ -11,7 +11,6 @@ repository.workspace = true
 readme = "README.md"
 
 [features]
-diagnostics = []
 derive = ["vecdb_derive"]
 lz4 = ["dep:lz4_flex"]
 pco = ["dep:pco"]
@@ -42,10 +41,6 @@ zstd = { version = "0.14.0", optional = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
-
-[[example]]
-name = "bench"
-required-features = ["pco", "lz4", "zstd", "zerocopy"]
 
 [package.metadata.docs.rs]
 all-features = true

@@ -1,8 +1,5 @@
 mod dated;
 
-#[cfg(test)]
-mod tests;
-
 use bitview_traversable::Traversable;
 use bitview_vecs::{RangeMapLookupVec, RangeMapVec};
 use brk_types::Height;

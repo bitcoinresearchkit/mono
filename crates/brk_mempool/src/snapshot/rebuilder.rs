@@ -77,7 +77,3 @@ impl Rebuilder {
         self.snapshot.clone()
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/snapshot/rebuilder.rs"]
-mod tests;

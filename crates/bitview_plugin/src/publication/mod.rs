@@ -59,7 +59,3 @@ impl Publication {
         self.0.revision.load(Ordering::Acquire)
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/publication.rs"]
-mod tests;

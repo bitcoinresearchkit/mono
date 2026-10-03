@@ -72,36 +72,10 @@ toml = "1.1.6"
 tempfile = { workspace = true, optional = true }
 vecdb = { workspace = true }
 
-[dev-dependencies]
-aide = { workspace = true }
-bitview_query = { workspace = true }
-brk_mempool = { workspace = true }
-color-eyre = { workspace = true }
-serde_json = { workspace = true }
-tempfile = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
-
 [[bin]]
 name = "bitview-bindgen"
 path = "src/bin/bindgen.rs"
 required-features = ["bindgen", "default"]
-
-[[example]]
-name = "plugin_set"
-required-features = ["default"]
-
-[[example]]
-name = "query"
-required-features = ["default"]
-
-[[example]]
-name = "server"
-required-features = ["default"]
-
-[[test]]
-name = "series"
-required-features = ["default"]
 
 [[bin]]
 name = "bitviewd"

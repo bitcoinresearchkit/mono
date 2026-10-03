@@ -3,9 +3,6 @@ use brk_error::{Error, Result};
 use brk_types::{Height, OutputType, Sats, TxInIndex, TxOutIndex, TypeIndex};
 use vecdb::{Cursor, PcoVec, ReadableVec};
 
-#[cfg(test)]
-mod tests;
-
 type InputColumns<'a> = (&'a [Sats], &'a [Height], &'a [OutputType], &'a [TypeIndex]);
 
 /// Bulk txin reader with reusable buffers.

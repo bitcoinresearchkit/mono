@@ -28,6 +28,3 @@ log = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-tempfile = { workspace = true }

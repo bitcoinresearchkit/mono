@@ -27,9 +27,3 @@ brk_types = { workspace = true, features = ["storage"] }
 rayon = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-bitview_plugin_indexer = { workspace = true }
-brk_reader = { workspace = true }
-brk_rpc = { workspace = true }
-tempfile = { workspace = true }

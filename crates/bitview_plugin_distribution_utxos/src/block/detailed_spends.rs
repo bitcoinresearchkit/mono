@@ -25,7 +25,3 @@ impl DetailedSpends {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "detailed_spends_tests.rs"]
-mod tests;

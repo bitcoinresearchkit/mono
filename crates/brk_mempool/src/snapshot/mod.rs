@@ -134,7 +134,3 @@ impl Snapshot {
         Ok(())
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/snapshot.rs"]
-mod tests;

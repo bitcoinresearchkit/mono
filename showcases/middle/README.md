@@ -9,8 +9,7 @@ The default starts at the first available Bitcoin price. The start is adjustable
 Refresh from the repository root with the local API running:
 
 ```sh
-node website_next_next/middle/generate.mjs
-node --test website_next_next/middle/generate.test.mjs
+node generate.mjs
 ```
 
 Optional generator arguments: `--api http://localhost:3110/api` and `--start 2011-01-01` (optional later history cutoff). The generator is self-contained beside its HTML and validates the full input before replacing the snapshot atomically. Share only the HTML when you want a single file.

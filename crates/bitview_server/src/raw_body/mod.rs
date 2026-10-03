@@ -72,7 +72,3 @@ impl RawBodyPermit {
         response.map(|body| Body::new(RetainedBody { body, permit }))
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/raw_body.rs"]
-mod tests;

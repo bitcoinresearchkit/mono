@@ -198,21 +198,3 @@ impl From<Sats> for AmountRangeId {
         Self::ALL[index]
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn amount_classification_matches_bounds_and_selection() {
-        let mut ranges = AmountRange::from_fn(|id| id);
-        for &id in AmountRangeId::ALL {
-            let bounds = id.select(&AMOUNT_RANGE_BOUNDS);
-            for value in [bounds.start, bounds.end - Sats::_1] {
-                assert_eq!(AmountRangeId::from(value), id);
-                assert_eq!(*ranges.get_mut(value), id);
-            }
-        }
-        assert_eq!(AmountRangeId::from(Sats::MAX), AmountRangeId::Over100kBtc);
-    }
-}

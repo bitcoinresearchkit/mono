@@ -86,7 +86,3 @@ where
         .checked_sub(previous)
         .ok_or(Error::Internal("Decreasing cumulative rewards"))
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/mining/reward_stats.rs"]
-mod tests;

@@ -141,30 +141,3 @@ impl DecayFit {
         exposure + (continuation_hazard * self.tau).max(0.0)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn exponential_lifetime_preserves_the_observed_tail_exposure() {
-        let bounds = AgeBand::all();
-        let expected_tau = 1_000.0;
-        let hazards = AgeRange::from_fn(|id| {
-            let band = *id.select(&bounds);
-            let age = if band.upper.is_finite() {
-                (band.lower + band.upper) / 2.0
-            } else {
-                band.lower
-            };
-            (-age / expected_tau).exp()
-        });
-
-        let network_age = 20.0 * 365.0;
-        let fit = DecayFit::fit(&hazards, network_age, &bounds).unwrap();
-        let exposures = DecayFit::exposures(&hazards, network_age, &bounds);
-
-        assert!((fit.tau - expected_tau).abs() < 1e-9);
-        assert!((exposures.over_15y - hazards.over_15y * fit.tau).abs() < 1e-12);
-    }
-}

@@ -3,9 +3,6 @@ use std::marker::PhantomData;
 use super::{CompressionStrategy, Page};
 use crate::{Result, VecValue};
 
-#[cfg(feature = "diagnostics")]
-use crate::diagnostics;
-
 pub struct PageDecoder<T, S>
 where
     T: VecValue,
@@ -51,8 +48,6 @@ where
         expected_len: usize,
         dst: &mut Vec<T>,
     ) -> Result<()> {
-        #[cfg(feature = "diagnostics")]
-        diagnostics::page();
         if page.is_raw() {
             S::bytes_to_values_into(body, expected_len, dst)
         } else {
@@ -68,8 +63,6 @@ where
         expected_len: usize,
         dst: &mut Vec<T>,
     ) -> Result<()> {
-        #[cfg(feature = "diagnostics")]
-        diagnostics::page();
         if page.is_raw() {
             let mut values = Vec::with_capacity(expected_len);
             S::bytes_to_values_into(body, expected_len, &mut values)?;

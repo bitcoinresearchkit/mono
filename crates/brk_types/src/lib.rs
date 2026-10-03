@@ -389,3 +389,6 @@ pub use witness::*;
 pub use year::*;
 pub use year1::*;
 pub use year10::*;
+
+#[cfg(test)]
+mod tests;

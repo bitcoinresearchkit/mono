@@ -2,9 +2,6 @@
   "bugs": {
     "url": "https://github.com/bitcoinresearchkit/brk/issues"
   },
-  "scripts": {
-    "test": "node --test tests/hash_prefix.js tests/broadcast.js tests/cache.js"
-  },
   "description": "Bitcoin on-chain analytics client — thousands of metrics, block explorer, and address index",
   "engines": {
     "node": ">=18"

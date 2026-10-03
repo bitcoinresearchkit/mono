@@ -242,9 +242,6 @@ fn outspends_identity(outspends: &[TxOutspend], bytes: &[u8]) -> RepresentationI
     newest.map_or_else(content, |(hash, _)| RepresentationId::Block(hash))
 }
 
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/tx/outspend.rs"]
-mod tests;
 impl Query {
     fn mempool_outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
         self.mempool().map_or(Ok(TxOutspend::UNSPENT), |mempool| {

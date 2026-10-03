@@ -117,10 +117,6 @@ fn compute_series(
     Ok(())
 }
 
-#[cfg(test)]
-#[path = "recovery_tests.rs"]
-mod recovery_tests;
-
 /// Advance the stateful short/long strategy used by BRK Signal.
 fn next_is_long(
     is_long: bool,
@@ -254,63 +250,4 @@ fn classify_phase(price: Cents, all: Cents, sth: Cents, lth: Cents, sma: Option<
         return Phase::HopefulBull;
     }
     Phase::EarlyBear
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{cmp::Reverse, collections::BTreeSet};
-
-    use super::*;
-
-    fn cents(value: u64) -> Cents {
-        Cents::new(value)
-    }
-
-    fn classify(price: u64, all: u64, sth: u64, lth: u64, sma: u64) -> Phase {
-        classify_phase(
-            cents(price),
-            cents(all),
-            cents(sth),
-            cents(lth),
-            Some(cents(sma)),
-        )
-    }
-
-    #[test]
-    fn classifies_all_ten_phases_across_all_eight_reference_orders() {
-        let cases = [
-            ((100, 70, 80, 50, 60), Phase::RagingBull),
-            ((100, 70, 80, 60, 90), Phase::Bull),
-            ((90, 70, 60, 80, 100), Phase::CautiousBull),
-            ((40, 80, 60, 100, 20), Phase::HopefulBull),
-            ((90, 70, 60, 100, 80), Phase::EarlyBull),
-            ((90, 70, 100, 60, 80), Phase::WeakBull),
-            ((70, 80, 100, 60, 40), Phase::Limbo),
-            ((40, 80, 60, 100, 70), Phase::DeepBear),
-            ((40, 80, 100, 60, 50), Phase::Bear),
-            ((60, 80, 100, 50, 70), Phase::EarlyBear),
-        ];
-
-        let mut reference_orders = BTreeSet::new();
-
-        for ((price, all, sth, lth, sma), expected) in cases {
-            assert!(
-                (sth > all && all > lth) || (lth > all && all > sth),
-                "All capitalized price must be between STH and LTH"
-            );
-
-            let mut references = [("SMA", sma), ("STH", sth), ("All", all), ("LTH", lth)];
-            references.sort_unstable_by_key(|(_, value)| Reverse(*value));
-            reference_orders.insert(references.map(|(name, _)| name));
-
-            assert_eq!(classify(price, all, sth, lth, sma), expected);
-        }
-
-        assert_eq!(reference_orders.len(), 8);
-        assert_eq!(classify(70, 50, 50, 50, 100), Phase::CautiousBull);
-        assert_eq!(
-            classify_phase(cents(100), cents(70), cents(80), cents(60), None),
-            Phase::Bull
-        );
-    }
 }

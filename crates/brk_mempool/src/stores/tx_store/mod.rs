@@ -164,7 +164,3 @@ impl TxStore {
         applied
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/stores/tx_store.rs"]
-mod tests;

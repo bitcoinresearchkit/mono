@@ -30,6 +30,3 @@ rustc-hash = { workspace = true }
 smallvec = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-tempfile = { workspace = true }

@@ -73,7 +73,3 @@ impl Replay {
         Ok(())
     }
 }
-
-#[cfg(test)]
-#[path = "replay_tests.rs"]
-mod tests;

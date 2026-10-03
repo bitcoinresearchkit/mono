@@ -62,7 +62,3 @@ impl From<String> for Etag {
         Self(HeaderValue::try_from(header).unwrap())
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/etag.rs"]
-mod tests;

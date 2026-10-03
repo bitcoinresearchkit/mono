@@ -40,7 +40,3 @@ impl LiveOracle {
         Ok(oracle)
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/live_oracle.rs"]
-mod tests;

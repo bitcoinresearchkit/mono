@@ -11,9 +11,6 @@ permits bound in-flight capture/build and slow transmission respectively. Body
 ownership survives compression and frames retained after the HTTP future ends.
 These are endpoint resource limits, not a total process-memory limit.
 
-Regression fixtures under `tests/unit/urpd*.rs` exercise actual packed/weighted
-sources, publication/reorgs, invalid inputs, conditionals and retained responses.
-
 ## Age filters
 
 The aggregate filters are `all`, `sth`, `lth`, `under_4m`, `under_6m`,

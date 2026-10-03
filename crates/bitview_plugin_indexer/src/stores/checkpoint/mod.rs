@@ -7,6 +7,3 @@ pub use deferred::DeferredStoresCommit;
 pub use pending::PendingStoresCheckpoint;
 pub use persisted::PersistedStoresCheckpoint;
 pub use stores_checkpoint::StoresCheckpoint;
-
-#[cfg(test)]
-mod tests;

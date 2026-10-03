@@ -3,10 +3,6 @@ use bitview_vecs::{IndexSources, LazyIndexedVec, LazyPerBlock, Price};
 use brk_types::{Cents, CentsCompact, Height, PartsPerMillion32, Version};
 use vecdb::{BinaryTransform, LazyVec, ReadableCloneableVec, ReadableVec};
 
-#[cfg(test)]
-#[path = "component_price_tests.rs"]
-mod tests;
-
 #[derive(Clone)]
 pub struct ComponentPrice {
     price: LazyVec<Height, CentsCompact, Height, Cents>,

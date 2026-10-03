@@ -9,9 +9,6 @@ use inner::Inner;
 
 mod connection;
 mod inner;
-#[cfg(test)]
-#[path = "../../tests/unit/async_client/mod.rs"]
-mod tests;
 
 /// Async RPC transport. Clones share its connection and credentials.
 /// Callers apply their request deadline.

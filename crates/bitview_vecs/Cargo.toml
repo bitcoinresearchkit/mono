@@ -7,9 +7,6 @@ license.workspace = true
 homepage = "https://bitview.dev"
 repository.workspace = true
 
-[features]
-diagnostics = ["vecdb/diagnostics"]
-
 [dependencies]
 bitview_transforms = { workspace = true }
 bitview_collections = { workspace = true, features = ["storage"] }
@@ -26,7 +23,3 @@ schemars = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-parking_lot = { workspace = true }
-tempfile = { workspace = true }

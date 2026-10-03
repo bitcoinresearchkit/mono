@@ -119,7 +119,3 @@ fn historical_prices(
         exchange_rates: ExchangeRates {},
     })
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/impl/price.rs"]
-mod tests;

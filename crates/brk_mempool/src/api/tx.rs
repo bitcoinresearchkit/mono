@@ -228,7 +228,3 @@ fn check_output_count(count: usize) -> Result<()> {
     }
     Ok(())
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/api/tx.rs"]
-mod tests;

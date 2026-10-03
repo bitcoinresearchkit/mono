@@ -23,7 +23,3 @@ tempfile = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true
-
-[[bench]]
-name = "storage"
-harness = false

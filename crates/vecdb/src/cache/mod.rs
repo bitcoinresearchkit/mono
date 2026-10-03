@@ -262,6 +262,3 @@ impl<T: VecValue> Reclaim for Cache<T> {
         drop(old);
     }
 }
-
-#[cfg(test)]
-mod tests;

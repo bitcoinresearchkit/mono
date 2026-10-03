@@ -26,6 +26,5 @@ The persisted state follows plugin ownership: Inputs writes `plugins/inputs/spen
 Outputs writes `plugins/outputs/creations/`, and this stage writes
 `plugins/utxo_history/snapshots/` alongside its fixed-width totals. There is no
 shared `data/origins/` directory. Existing datasets can be moved into these
-three owner directories and reopened without replaying the chain. Benchmark
-fixtures explicitly seed their metric prefix and history; new datasets compute
-from genesis.
+three owner directories and reopened without replaying the chain. New datasets
+compute from genesis.

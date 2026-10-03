@@ -89,6 +89,3 @@ smallvec = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["sync", "time", "rt"] }
 serde_json = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-tempfile = { workspace = true }

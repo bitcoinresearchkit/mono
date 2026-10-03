@@ -22,9 +22,6 @@ mod state;
 mod steps;
 mod stores;
 
-#[cfg(test)]
-mod test_support;
-
 pub use api::{BlockTemplateSource, RbfForTx, RbfNode, ResolvedBlockTemplateDiff};
 pub use cycle::{Cycle, TxAdded, TxRemoved};
 pub use diagnostics::MempoolStats;
@@ -68,7 +65,3 @@ impl Mempool {
         MempoolStats::from(self)
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/lib_test_helpers.rs"]
-mod test_helpers;

@@ -107,6 +107,3 @@ impl WeightedSum {
         })
     }
 }
-
-#[cfg(test)]
-mod tests;

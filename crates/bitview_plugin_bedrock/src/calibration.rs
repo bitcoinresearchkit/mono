@@ -98,6 +98,3 @@ impl Calibration {
             .filter(|v| v.is_finite())
     }
 }
-#[cfg(test)]
-#[path = "calibration_tests.rs"]
-mod tests;

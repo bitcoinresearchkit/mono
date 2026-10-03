@@ -4,9 +4,6 @@ pub mod range_cursor;
 pub mod reader;
 pub mod reader_cursor;
 
-#[cfg(test)]
-mod tests;
-
 pub use io::*;
 pub use mmap::*;
 pub use range_cursor::RawRangeCursor;

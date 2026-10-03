@@ -43,7 +43,3 @@ impl Read for BlkRead {
         Ok(n)
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/blk_read.rs"]
-mod tests;

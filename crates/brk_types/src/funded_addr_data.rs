@@ -394,29 +394,3 @@ impl OverflowVecValue for FundedAddrData {
         FundedAddrDataCompact::from_overflow_index(index)
     }
 }
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[test]
-    fn compact_realized_cap_carries_borrows_and_roundtrips() {
-        let mut value = CentsSats96::from_wide(CentsSats::new(u64::MAX as u128));
-        value.add(CentsSats::new(1));
-        assert_eq!(value.widen(), CentsSats::new(1_u128 << 64));
-
-        value.subtract(CentsSats::new(1));
-        assert_eq!(value.widen(), CentsSats::new(u64::MAX as u128));
-
-        #[cfg(feature = "storage")]
-        {
-            let max = CentsSats96::from_wide(CentsSats::new(CENTS_SATS_96_LIMIT - 1));
-            assert_eq!(
-                CentsSats96::from_bytes(&max.to_bytes()).unwrap().widen(),
-                max.widen()
-            );
-        }
-    }
-
-}

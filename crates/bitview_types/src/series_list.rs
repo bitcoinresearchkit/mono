@@ -128,7 +128,3 @@ fn sanitize<'a, S: Into<Cow<'a, str>>>(
     }
     Ok(clean)
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/series_list.rs"]
-mod tests;

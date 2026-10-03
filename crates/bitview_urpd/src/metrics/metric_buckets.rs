@@ -70,7 +70,3 @@ impl MetricBuckets {
         });
     }
 }
-
-#[cfg(test)]
-#[path = "metric_buckets_tests.rs"]
-mod tests;

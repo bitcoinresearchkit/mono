@@ -163,7 +163,3 @@ impl Mempool {
             .unwrap_or("<non-string panic payload>")
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/driver.rs"]
-mod tests;

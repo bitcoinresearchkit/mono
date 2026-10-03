@@ -10,10 +10,6 @@ use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, Writab
 
 use super::{COMPUTE_BATCH_SIZE, Component, component};
 
-#[cfg(test)]
-#[path = "score_tests.rs"]
-mod score_tests;
-
 #[derive(Traversable)]
 pub struct RarityMeterInner<M: StorageMode = Rw> {
     #[traversable(flatten)]

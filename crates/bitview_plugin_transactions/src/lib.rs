@@ -71,7 +71,3 @@ where
         STORAGE
     }
 }
-
-#[cfg(test)]
-#[path = "../../bitview_vecs/tests/common/cache.rs"]
-mod test_cache;

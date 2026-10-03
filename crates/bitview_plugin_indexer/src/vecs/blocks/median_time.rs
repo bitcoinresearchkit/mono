@@ -4,10 +4,6 @@ use vecdb::{AnyVec, ReadableVec, WritableVec};
 
 use super::BlocksVecs;
 
-#[cfg(test)]
-#[path = "../../../tests/unit/vecs/blocks/median_time.rs"]
-mod tests;
-
 impl BlocksVecs {
     /// Extend once per export batch, seeding the rolling window from at most
     /// ten preceding timestamps. The source cursor decodes each page once;

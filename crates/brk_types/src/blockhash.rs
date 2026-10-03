@@ -122,7 +122,3 @@ impl Formattable for BlockHash {
         buf.push(b'"');
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/blockhash.rs"]
-mod tests;

@@ -121,7 +121,3 @@ fn insert_one(
     state.outpoint_spends.insert_spends(&tx, prefix);
     state.txs.insert(tx, entry);
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/steps/applier.rs"]
-mod tests;

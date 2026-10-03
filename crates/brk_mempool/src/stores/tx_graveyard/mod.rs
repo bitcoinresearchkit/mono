@@ -179,23 +179,4 @@ impl TxGraveyard {
             }
         }
     }
-
-    /// Test-only: force the oldest `order` entries to look older than
-    /// `RETENTION`. Splits `Instant::now()` arithmetic out of the test
-    /// bodies and avoids real-time sleeps.
-    #[cfg(test)]
-    fn shift_oldest_back(&mut self, count: usize) {
-        let bumped = Instant::now() - (RETENTION + Duration::from_secs(1));
-        for entry in self.order.iter_mut().take(count) {
-            let txid = entry.1;
-            entry.0 = bumped;
-            if let Some(ts) = self.tombstones.get_mut(&txid) {
-                ts.removed_at = bumped;
-            }
-        }
-    }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/stores/tx_graveyard.rs"]
-mod tests;

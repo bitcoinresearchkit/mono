@@ -159,7 +159,3 @@ impl<const N: usize> PriceIndex<N> {
         })
     }
 }
-
-#[cfg(test)]
-#[path = "price_index_tests.rs"]
-mod tests;

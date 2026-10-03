@@ -18,10 +18,6 @@ use crate::{
 const VERSION: Version = Version::new(0);
 const IMPORT_STACK_SIZE: usize = 8 * 1024 * 1024;
 
-#[cfg(test)]
-#[path = "cohorts_tests.rs"]
-mod tests;
-
 /// Distribution metrics organized by metric, with cohorts at the leaves.
 #[derive(Traversable)]
 pub struct CohortMetrics<M: StorageMode = Rw> {

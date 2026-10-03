@@ -104,7 +104,3 @@ fn read_epoch_window(
 
     Ok(results)
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/mining/epochs.rs"]
-mod tests;

@@ -405,7 +405,3 @@ where
 fn parse_error(error: lexopt::Error) -> Error {
     Error::Parse(error.to_string())
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/config.rs"]
-mod tests;

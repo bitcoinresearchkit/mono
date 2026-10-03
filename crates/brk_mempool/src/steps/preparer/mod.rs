@@ -118,7 +118,3 @@ fn build_spent_by(added: &[TxAddition]) -> FxHashMap<(Txid, Vout), Txid> {
     }
     spent_by
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/steps/preparer.rs"]
-mod tests;

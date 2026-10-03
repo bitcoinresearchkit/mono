@@ -128,7 +128,3 @@ fn select_timestamp(
     }
     Ok((height, best))
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/block/timestamp.rs"]
-mod tests;

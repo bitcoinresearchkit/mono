@@ -35,5 +35,3 @@ bitview_runtime = { workspace = true }
 bitviewd = { workspace = true, default-features = false, features = ["full-api"] }
 bitview_plugin_indexer = { workspace = true }
 brk_reader = { workspace = true }
-brk_rpc = { workspace = true }
-tempfile = { workspace = true }

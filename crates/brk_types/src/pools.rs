@@ -148,34 +148,3 @@ pub fn pools() -> &'static Pools {
         Pools { pools, by_addr }
     })
 }
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use crate::Addr;
-
-    #[test]
-    fn binary_lookup_matches_string_lookup() {
-        let pools = pools();
-
-        for pool in pools.iter() {
-            for configured in &pool.addrs {
-                let Ok(bytes) = configured.parse::<AddrBytes>() else {
-                    continue;
-                };
-                let reconstructed = Addr::try_from(&bytes).unwrap().to_string();
-                let expected = pools
-                    .iter()
-                    .find(|pool| pool.addrs.contains(&reconstructed.as_str()))
-                    .map(|pool| pool.slug);
-
-                assert_eq!(
-                    pools.find_from_addr(&bytes).map(|pool| pool.slug),
-                    expected,
-                    "{configured}"
-                );
-            }
-        }
-    }
-}

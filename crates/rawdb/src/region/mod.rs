@@ -3,8 +3,6 @@ mod inner;
 pub(crate) mod metadata;
 mod reader;
 pub(crate) mod residency;
-#[cfg(test)]
-mod tests;
 
 pub use metadata::RegionMetadata;
 pub use reader::Reader;

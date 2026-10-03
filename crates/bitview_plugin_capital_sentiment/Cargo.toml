@@ -21,6 +21,3 @@ bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-tempfile = { workspace = true }

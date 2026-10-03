@@ -152,8 +152,7 @@
     <noscript><p class="noscript">JavaScript is required to browse the live series catalog.</p></noscript>
     <!-- Self-contained UI: styles, fonts, icons, chart library and application code are embedded.
          Only the latest generated client and live data are fetched from bitview.space.
-         Catalog traversal and requests run in the inline worker; previews use the latest 10,000 values.
-         Checks: node --test website_next_next/tests/explorer.test.mjs -->
+         Catalog traversal and requests run in the inline worker; previews use the latest 10,000 values. -->
     <script id="catalog-worker" type="text/plain">
       const isSeries = node => typeof node?.name === 'string' && typeof node.indexes === 'function';
       const normalize = value => value.replace(/([a-z\d])([A-Z])/g, '$1 $2').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();

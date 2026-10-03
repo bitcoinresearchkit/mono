@@ -32,11 +32,7 @@ subject to the same limit. Union fallback defaults to `true`, as in Rust.
 
 ## Development and releases
 
-Run `npm test` from this directory inside the monorepo (Node and Rust required).
-The suite queries the real Rust implementation through its `js_parity` example
-and compares ordered IDs, counts, text results, and best-tier results.
-
-`scripts/js-publish.sh <workspace-version>` tests parity, updates both package
+`scripts/js-publish.sh <workspace-version>` updates both package
 versions to the workspace release, then publishes missing versions of Bitview
 Client and QuickMatch. Published versions are skipped; registry and
 authentication errors stop the release. The versioned `0.5.0` directory is a

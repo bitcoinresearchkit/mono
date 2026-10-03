@@ -102,7 +102,3 @@ impl ClientInner {
         Ok(result)
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/rpc_client/block_template.rs"]
-mod tests;

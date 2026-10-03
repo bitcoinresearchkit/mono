@@ -82,13 +82,3 @@ Writer-only cumulative checkpoints use `StorageMode::WriteOnly`, so read-only
 handles contain no unused checkpoint payload. Exposing mutable storage invalidates
 their writer checkpoint. Count-total and transformed-denominator views read
 their sources directly and need no separate invalidation after rewrites.
-
-## Verification
-
-```sh
-cargo test -p bitview_collections -p bitview_transforms -p bitview_compute -p bitview_vecs --features bitview_vecs/diagnostics
-cargo check -p bitviewd -p bitview_vecs --all-targets --features bitview_vecs/diagnostics
-```
-
-Tests cover calculation boundaries, storage resume/rewind, cache invalidation,
-and exported values.

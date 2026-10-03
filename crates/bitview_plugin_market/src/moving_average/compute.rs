@@ -67,7 +67,3 @@ fn compute_sma_prefix(
     )?;
     Ok(())
 }
-
-#[cfg(test)]
-#[path = "sma_tests.rs"]
-mod tests;

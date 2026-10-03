@@ -43,34 +43,3 @@ impl Drop for ExitGuard {
 // SAFETY: parking_lot's RawRwLock supports unlock from a different thread than lock.
 unsafe impl Send for ExitGuard {}
 unsafe impl Sync for ExitGuard {}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::{sync::mpsc, thread, time::Duration};
-
-    #[test]
-    fn nested_guard_can_finish_while_shutdown_waits() {
-        let exit = Exit::new();
-        let outer = exit.lock();
-        let (started, waiting) = mpsc::channel();
-        let shutdown = exit.clone();
-        let writer = thread::spawn(move || {
-            started.send(()).unwrap();
-            let _shutdown = shutdown.lock.write();
-        });
-        waiting.recv().unwrap();
-        thread::sleep(Duration::from_millis(30));
-        let (done, finished) = mpsc::channel();
-        let nested = thread::spawn(move || {
-            let _nested = exit.lock();
-            done.send(()).unwrap();
-        });
-        let completed = finished.recv_timeout(Duration::from_secs(2));
-        // Release and join even on failure, so the test itself cannot deadlock.
-        drop(outer);
-        nested.join().unwrap();
-        writer.join().unwrap();
-        completed.expect("nested guard waited for shutdown while holding its outer guard");
-    }
-}

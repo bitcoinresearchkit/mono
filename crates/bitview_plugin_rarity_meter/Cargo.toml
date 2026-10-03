@@ -28,7 +28,3 @@ derive_more = { workspace = true }
 rayon = { workspace = true }
 schemars = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-rangeindex = { workspace = true }
-tempfile = { workspace = true }

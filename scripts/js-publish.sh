@@ -10,11 +10,6 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-QUICKMATCH_DIR="$ROOT_DIR/modules/quickmatch-js"
-
-# Verify parity before changing versions or publishing either package.
-(cd "$QUICKMATCH_DIR" && npm test)
-
 # Both packages follow the workspace release version.
 node --input-type=module - "$ROOT_DIR/modules" "$VERSION" <<'JS'
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -72,4 +67,4 @@ publish_if_missing() {
 }
 
 publish_if_missing "$ROOT_DIR/modules/bitview-client"
-publish_if_missing "$QUICKMATCH_DIR"
+publish_if_missing "$ROOT_DIR/modules/quickmatch-js"

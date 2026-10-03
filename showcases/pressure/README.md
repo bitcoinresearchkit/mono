@@ -12,7 +12,6 @@ Refresh from this folder with the backend running:
 
 ```sh
 node generate.mjs
-node --test generate.test.mjs
 ```
 
 Optional arguments: `--api http://localhost:3110/api` and `--start 2011-01-01`. Today's partial day is included. All four histories are fetched in one request and validated before atomically replacing the embedded snapshot; missing or inconsistent inputs leave the previous page intact. The generator needs only Node.js built-in modules and works when the folder is copied elsewhere.

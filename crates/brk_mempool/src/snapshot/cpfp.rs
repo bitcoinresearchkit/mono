@@ -152,7 +152,3 @@ impl Snapshot {
             .collect()
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/snapshot/cpfp.rs"]
-mod tests;

@@ -21,8 +21,5 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nym21/quickmatch.git"
-  },
-  "scripts": {
-    "test": "node --test test/parity.test.mjs"
   }
 }

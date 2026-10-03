@@ -28,6 +28,3 @@ where
         STORAGE
     }
 }
-
-#[cfg(test)]
-mod tests;

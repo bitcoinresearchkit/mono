@@ -167,7 +167,3 @@ impl ReadOnlyState {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/api/rbf.rs"]
-mod tests;

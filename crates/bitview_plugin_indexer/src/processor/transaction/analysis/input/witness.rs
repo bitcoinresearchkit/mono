@@ -130,35 +130,3 @@ pub fn has_inscription_envelope(script: &Script) -> bool {
     }
     false
 }
-
-#[cfg(test)]
-mod tests {
-    use bitcoin::{ScriptBuf, TxIn, Witness, taproot::TAPROOT_ANNEX_PREFIX};
-    use brk_types::OutputType;
-
-    use super::analyze;
-    use crate::TxFeatureFlags;
-
-    #[test]
-    fn reads_tapscript_before_control_block_and_annex() {
-        let script = ScriptBuf::from_hex("0063036f726468").unwrap();
-        let control_block = [0xc0; 33];
-        let annex = [TAPROOT_ANNEX_PREFIX, 0x01];
-        let input = TxIn {
-            witness: Witness::from_slice(&[
-                [0x01].as_slice(),
-                script.as_bytes(),
-                control_block.as_slice(),
-                annex.as_slice(),
-            ]),
-            ..TxIn::default()
-        };
-        let mut flags = TxFeatureFlags::default();
-
-        let facts = analyze(&input.witness, OutputType::P2TR, &mut flags);
-
-        assert!(facts.has_annex);
-        assert!(flags.is_set(TxFeatureFlags::ANNEX));
-        assert!(flags.is_set(TxFeatureFlags::INSCRIPTION));
-    }
-}

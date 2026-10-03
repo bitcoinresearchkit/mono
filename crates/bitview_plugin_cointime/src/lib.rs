@@ -94,8 +94,3 @@ where
         STORAGE
     }
 }
-
-#[cfg(test)]
-#[allow(dead_code)]
-#[path = "../tests/common/cache.rs"]
-mod test_cache;

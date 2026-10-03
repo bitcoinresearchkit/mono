@@ -279,7 +279,3 @@ impl Formattable for Date {
         buf.push(b'"');
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/date.rs"]
-mod tests;

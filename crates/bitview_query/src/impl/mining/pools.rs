@@ -386,7 +386,3 @@ impl Query {
             })
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/mining/pools.rs"]
-mod tests;

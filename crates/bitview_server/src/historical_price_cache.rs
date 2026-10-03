@@ -31,7 +31,3 @@ impl HistoricalPriceCache {
         Ok((bytes, identity))
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/historical_price_cache.rs"]
-mod tests;

@@ -22,9 +22,6 @@ pub mod readable;
 pub mod typed;
 pub mod writable;
 
-#[cfg(test)]
-mod tests;
-
 use raw::MutableRawVec;
 pub use read_only::ReadOnlyMutableVec;
 

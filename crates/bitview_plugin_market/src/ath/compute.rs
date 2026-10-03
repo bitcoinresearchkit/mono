@@ -93,7 +93,3 @@ fn compute_seconds_since(
 
     Ok(())
 }
-
-#[cfg(test)]
-#[path = "compute_tests.rs"]
-mod tests;

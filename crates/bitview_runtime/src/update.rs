@@ -39,7 +39,3 @@ where
     info!("Update completed in {:.2?}", start.elapsed());
     Ok(output)
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/update.rs"]
-mod tests;

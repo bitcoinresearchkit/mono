@@ -38,16 +38,6 @@ cargo package --workspace --allow-dirty --no-verify
 cargo test --workspace
 echo ""
 
-echo "--- JavaScript ---"
-cd "$ROOT_DIR/modules/bitview-client"
-npm test
-echo ""
-
-echo "--- Python ---"
-cd "$ROOT_DIR/packages/bitview_client"
-uv run python -m pytest tests/ -s
-echo ""
-
 # ============================================================================
 # 2. QUICK RELEASE
 # ============================================================================

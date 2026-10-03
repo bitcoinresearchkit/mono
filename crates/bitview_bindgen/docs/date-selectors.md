@@ -8,5 +8,4 @@ Call `endpoint.get_date(date)?.fetch()` instead of
 `endpoint.get_date(date).fetch()`. The same change applies to date ranges and
 timestamp selectors. Numeric builders and fetch methods are unchanged.
 
-The generator owns the checked-in client implementation. Tests verify generated
-parity and accepted/rejected bounds without making HTTP requests.
+The generator owns the checked-in client implementation.

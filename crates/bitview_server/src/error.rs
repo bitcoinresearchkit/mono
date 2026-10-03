@@ -102,7 +102,7 @@ impl Error {
         )
     }
 
-    #[cfg(any(feature = "chain", test))]
+    #[cfg(feature = "chain")]
     pub fn overloaded(msg: impl Into<String>) -> Self {
         Self::new(StatusCode::SERVICE_UNAVAILABLE, ErrorCode::Overloaded, msg)
     }

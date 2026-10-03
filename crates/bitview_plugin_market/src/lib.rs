@@ -10,9 +10,6 @@ mod returns;
 mod technical;
 mod volatility;
 
-#[cfg(test)]
-mod test_cache;
-
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::Version;

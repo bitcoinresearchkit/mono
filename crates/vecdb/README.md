@@ -135,12 +135,3 @@ Indexes implement `VecIndex`. Using domain-specific newtypes instead of
 | `zstd` | `ZstdVec` |
 | `serde` | Serialization support for public metadata types |
 | `schemars` | JSON Schema support for public metadata types |
-
-## Examples and benchmarks
-
-- [`examples/bench.rs`](examples/bench.rs) compares the available storage
-  representations on a chosen workload.
-
-```bash
-cargo run --release -p vecdb --example bench --features pco,lz4,zstd,zerocopy
-```

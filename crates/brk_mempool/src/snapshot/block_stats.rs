@@ -104,7 +104,3 @@ impl From<&BlockStats> for MempoolBlock {
         )
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/snapshot/block_stats.rs"]
-mod tests;

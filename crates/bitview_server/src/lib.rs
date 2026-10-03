@@ -220,12 +220,3 @@ pub fn finish_openapi<S: Clone + Send + Sync + 'static>(
     let router = router.finish_api(&mut openapi);
     (router, openapi)
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/mod.rs"]
-mod tests;
-
-#[cfg(test)]
-#[allow(dead_code)]
-#[path = "../tests/common/cache.rs"]
-mod test_cache;

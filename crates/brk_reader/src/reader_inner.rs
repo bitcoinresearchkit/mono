@@ -55,7 +55,3 @@ impl ReaderInner {
         Ok(file)
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/reader_inner.rs"]
-mod tests;

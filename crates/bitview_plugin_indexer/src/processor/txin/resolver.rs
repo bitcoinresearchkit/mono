@@ -229,7 +229,3 @@ enum UnresolvedInput {
         txout_index: TxOutIndex,
     },
 }
-
-#[cfg(test)]
-#[path = "resolver_tests.rs"]
-mod tests;

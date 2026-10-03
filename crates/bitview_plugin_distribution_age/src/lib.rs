@@ -28,9 +28,6 @@ where
     }
 }
 
-#[cfg(test)]
-mod test_cache;
-
 mod accounting_sources;
 
 pub use accounting_sources::AccountingSources;

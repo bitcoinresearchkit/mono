@@ -43,7 +43,3 @@ brk_reader = { workspace = true }
 rayon = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-brk_exit = { workspace = true }
-brk_rpc = { workspace = true }

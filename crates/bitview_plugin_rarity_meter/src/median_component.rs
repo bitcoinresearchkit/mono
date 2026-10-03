@@ -56,7 +56,3 @@ impl MedianComponent {
         )
     }
 }
-
-#[cfg(test)]
-#[path = "median_component_tests.rs"]
-mod tests;

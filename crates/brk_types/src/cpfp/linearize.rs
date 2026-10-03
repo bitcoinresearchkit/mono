@@ -123,7 +123,3 @@ pub fn linearize(items: &[ChunkInput<'_>]) -> Vec<CpfpClusterChunk> {
     }
     chunks
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/cpfp/linearize.rs"]
-mod tests;

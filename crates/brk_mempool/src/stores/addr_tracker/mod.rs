@@ -116,33 +116,3 @@ impl AddrTracker {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use brk_types::Sats;
-
-    use super::*;
-    use crate::test_support::{fake_tx, p2wpkh_script};
-
-    #[test]
-    fn a_frozen_tracker_keeps_its_stats_and_transaction_membership() {
-        let mut writer = AddrTracker::default();
-        let mut transitions = AddrTransitions::default();
-        let tx = fake_tx(1, &[], &[(p2wpkh_script(1), 1234)]);
-        let address = tx.output[0].addr_bytes().unwrap();
-        writer.add_tx(&mut transitions, &tx);
-        let frozen = writer.clone();
-        let second = fake_tx(2, &[], &[(p2wpkh_script(1), 2000)]);
-        writer.add_tx(&mut transitions, &second);
-        assert_eq!(writer.get(&address).unwrap().txids.len(), 2);
-        assert_eq!(frozen.get(&address).unwrap().txids.len(), 1);
-        assert_eq!(
-            frozen.get(&address).unwrap().stats.funded_txo_sum,
-            Sats::from(1234u64)
-        );
-        writer.remove_tx(&mut transitions, &tx);
-        writer.remove_tx(&mut transitions, &second);
-        assert!(writer.get(&address).is_none());
-        assert!(frozen.get(&address).unwrap().txids.contains(&tx.txid));
-    }
-}

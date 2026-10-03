@@ -281,6 +281,3 @@ where
         Ok(accum)
     }
 }
-
-#[cfg(all(test, feature = "pco"))]
-mod tests {}

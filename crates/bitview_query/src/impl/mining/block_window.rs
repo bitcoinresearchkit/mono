@@ -124,7 +124,3 @@ impl BlockWindow {
         Ok(values)
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/mining/block_window.rs"]
-mod tests;

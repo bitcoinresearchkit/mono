@@ -22,5 +22,3 @@ const STORAGE: PluginStorage = PluginStorage::new(
 pub const ID: PluginId = STORAGE.id();
 const SAVED_CHECKPOINTS: u16 = 10;
 const CAP_COUNT: usize = AmountRangeId::ALL.len();
-#[cfg(test)]
-mod test_cache;

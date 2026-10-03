@@ -13,10 +13,6 @@ use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, VecIndex, Writ
 
 use crate::threshold_vecs::ThresholdVecs;
 
-#[cfg(test)]
-#[path = "extreme_recovery_tests.rs"]
-mod recovery_tests;
-
 const MIN_HISTORY_BLOCKS: usize = 210_000;
 const WRITE_INTERVAL: usize = 10_000;
 /// Above this many missing outputs, coordinate compression is faster than

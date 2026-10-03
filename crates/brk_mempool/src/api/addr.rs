@@ -61,7 +61,3 @@ impl ReadOnlyState {
         Ok(transactions)
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/api/addr.rs"]
-mod tests;
