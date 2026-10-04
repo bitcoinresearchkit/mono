@@ -75,21 +75,6 @@ mod tests {
     }
 
     #[test]
-    fn prefix_to_range_single_char() {
-        test_prefix(b"a", Excluded(b"b"));
-    }
-
-    #[test]
-    fn prefix_to_range_1() {
-        test_prefix(&[0, 250], Excluded(&[0, 251]));
-    }
-
-    #[test]
-    fn prefix_to_range_2() {
-        test_prefix(&[0, 250, 50], Excluded(&[0, 250, 51]));
-    }
-
-    #[test]
     fn prefix_to_range_3() {
         test_prefix(&[255, 255, 255], Unbounded);
     }

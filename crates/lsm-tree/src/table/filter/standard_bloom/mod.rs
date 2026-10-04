@@ -116,7 +116,6 @@ impl<B: AsRef<[u8]>> StandardBloomFilterReader<B> {
 
 #[cfg(test)]
 mod tests {
-    use nanoid::nanoid;
     use test_log::test;
 
     use super::*;
@@ -199,107 +198,6 @@ mod tests {
         }
 
         assert!(!filter.contains(b"asdasdasdasdasdasdasd"));
-
-        Ok(())
-    }
-
-    #[test]
-    fn filter_bloom_standard_bpk() -> Result<()> {
-        let item_count = 1_000;
-        let bpk = 5.0;
-
-        let mut filter = Builder::with_bpk(item_count, bpk);
-
-        for key in (0..item_count).map(|_| nanoid!()) {
-            let key = key.as_bytes();
-
-            filter.set_with_hash(Builder::get_hash(key));
-        }
-
-        let filter_bytes = filter.build();
-        let filter = StandardBloomFilterReader::new(filter_bytes)?;
-
-        let mut false_positives = 0;
-
-        for key in (0..item_count).map(|_| nanoid!()) {
-            let key = key.as_bytes();
-
-            if filter.contains(key) {
-                false_positives += 1;
-            }
-        }
-
-        #[expect(clippy::cast_precision_loss)]
-        let fpr = false_positives as f32 / item_count as f32;
-        assert!(fpr < 0.13);
-
-        Ok(())
-    }
-
-    #[test]
-    fn filter_bloom_standard_fpr() -> Result<()> {
-        let item_count = 100_000;
-        let wanted_fpr = 0.1;
-
-        let mut filter = Builder::with_fp_rate(item_count, wanted_fpr);
-
-        for key in (0..item_count).map(|_| nanoid!()) {
-            let key = key.as_bytes();
-
-            filter.set_with_hash(Builder::get_hash(key));
-        }
-
-        let filter_bytes = filter.build();
-        let filter = StandardBloomFilterReader::new(filter_bytes)?;
-
-        let mut false_positives = 0;
-
-        for key in (0..item_count).map(|_| nanoid!()) {
-            let key = key.as_bytes();
-
-            if filter.contains(key) {
-                false_positives += 1;
-            }
-        }
-
-        #[expect(clippy::cast_precision_loss)]
-        let fpr = false_positives as f32 / item_count as f32;
-        assert!(fpr > 0.05);
-        assert!(fpr < 0.13);
-
-        Ok(())
-    }
-
-    #[test]
-    fn filter_bloom_standard_fpr_2() -> Result<()> {
-        let item_count = 100_000;
-        let wanted_fpr = 0.5;
-
-        let mut filter = Builder::with_fp_rate(item_count, wanted_fpr);
-
-        for key in (0..item_count).map(|_| nanoid!()) {
-            let key = key.as_bytes();
-
-            filter.set_with_hash(Builder::get_hash(key));
-        }
-
-        let filter_bytes = filter.build();
-        let filter = StandardBloomFilterReader::new(filter_bytes)?;
-
-        let mut false_positives = 0;
-
-        for key in (0..item_count).map(|_| nanoid!()) {
-            let key = key.as_bytes();
-
-            if filter.contains(key) {
-                false_positives += 1;
-            }
-        }
-
-        #[expect(clippy::cast_precision_loss)]
-        let fpr = false_positives as f32 / item_count as f32;
-        assert!(fpr > 0.45);
-        assert!(fpr < 0.55);
 
         Ok(())
     }

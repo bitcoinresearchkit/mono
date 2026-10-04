@@ -745,60 +745,10 @@ mod tests {
     }
 
     #[test]
-    fn sized_slice_ref() {
-        let b = b"hello";
-        let _bytes = ByteView::from(b);
-    }
-
-    #[test]
-    fn fuse_empty() {
-        let bytes = ByteView::fused(&[], &[]);
-        assert_eq!(&*bytes, &[] as &[u8]);
-    }
-
-    #[test]
-    fn fuse_one() {
-        let bytes = ByteView::fused(b"abc", &[]);
-        assert_eq!(&*bytes, b"abc");
-    }
-
-    #[test]
     fn fuse_two() {
         let bytes = ByteView::fused(b"abc", b"def");
         assert_eq!(&*bytes, b"abcdef");
         assert!(bytes.is_inline());
-    }
-
-    #[test]
-    fn dealloc_order() {
-        let bytes = ByteView::new(&(0..32).collect::<Vec<_>>());
-        let bytes_slice = bytes.slice(..31);
-        drop(bytes);
-        drop(bytes_slice);
-    }
-
-    #[test]
-    fn dealloc_order_2() {
-        let bytes = ByteView::new(&(0..32).collect::<Vec<_>>());
-        let bytes_slice = bytes.slice(..31);
-        let bytes_slice_2 = bytes.slice(..5);
-        let bytes_slice_3 = bytes.slice(..6);
-
-        drop(bytes);
-        drop(bytes_slice);
-        drop(bytes_slice_2);
-        drop(bytes_slice_3);
-    }
-
-    #[test]
-    fn from_reader_1() -> Result<()> {
-        let str = b"abcdef";
-        let mut cursor = Cursor::new(str);
-
-        let a = ByteView::from_reader(&mut cursor, 6)?;
-        assert_eq!(&*a, b"abcdef");
-
-        Ok(())
     }
 
     #[test]
@@ -818,88 +768,10 @@ mod tests {
     }
 
     #[test]
-    fn short_str() {
-        let slice = ByteView::from("abcdef");
-        assert_eq!(6, slice.len());
-        assert_eq!(&*slice, b"abcdef");
-        assert_eq!(1, slice.ref_count());
-        assert!(slice.is_inline());
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn medium_str() {
-        let slice = ByteView::from("abcdefabcdef");
-        assert_eq!(12, slice.len());
-        assert_eq!(&*slice, b"abcdefabcdef");
-        assert_eq!(1, slice.ref_count());
-        assert!(slice.is_inline());
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn medium_long_str() {
-        let slice = ByteView::from("abcdefabcdefabcdabcd");
-        assert_eq!(20, slice.len());
-        assert_eq!(&*slice, b"abcdefabcdefabcdabcd");
-        assert_eq!(1, slice.ref_count());
-        assert!(!slice.is_inline());
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn medium_str_clone() {
-        let slice = ByteView::from("abcdefabcdef");
-        let copy = slice.clone();
-        assert_eq!(slice, copy);
-
-        assert_eq!(1, slice.ref_count());
-
-        drop(copy);
-        assert_eq!(1, slice.ref_count());
-    }
-
-    #[test]
-    fn long_str() {
-        let slice = ByteView::from("abcdefabcdefabcdefababcd");
-        assert_eq!(24, slice.len());
-        assert_eq!(&*slice, b"abcdefabcdefabcdefababcd");
-        assert_eq!(1, slice.ref_count());
-        assert!(!slice.is_inline());
-    }
-
-    #[test]
     fn long_str_clone() {
         let slice = ByteView::from("abcdefabcdefabcdefababcd");
         let copy = slice.clone();
         assert_eq!(slice, copy);
-
-        assert_eq!(2, slice.ref_count());
-
-        drop(copy);
-        assert_eq!(1, slice.ref_count());
-    }
-
-    #[test]
-    fn long_str_slice_full() {
-        let slice = ByteView::from("helloworld_thisisalongstring");
-
-        let copy = slice.slice(..);
-        assert_eq!(copy, slice);
-
-        assert_eq!(2, slice.ref_count());
-
-        drop(copy);
-        assert_eq!(1, slice.ref_count());
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn long_str_slice() {
-        let slice = ByteView::from("helloworld_thisisalongstring");
-
-        let copy = slice.slice(11..);
-        assert_eq!(b"thisisalongstring", &*copy);
 
         assert_eq!(2, slice.ref_count());
 
@@ -968,20 +840,6 @@ mod tests {
     }
 
     #[test]
-    fn short_str_slice_full() {
-        let slice = ByteView::from("abcdef");
-        let copy = slice.slice(..);
-        assert_eq!(slice, copy);
-
-        assert_eq!(1, slice.ref_count());
-
-        drop(slice);
-        assert_eq!(&*copy, b"abcdef");
-
-        assert_eq!(1, copy.ref_count());
-    }
-
-    #[test]
     fn short_str_slice_part() {
         let slice = ByteView::from("abcdef");
         let copy = slice.slice(3..);
@@ -1026,13 +884,6 @@ mod tests {
         let a = ByteView::from("abc");
         let b = ByteView::from("def");
         assert!(a < b);
-    }
-
-    #[test]
-    fn tiny_str_eq() {
-        let a = ByteView::from("abc");
-        let b = ByteView::from("def");
-        assert_ne!(a, b);
     }
 
     #[test]

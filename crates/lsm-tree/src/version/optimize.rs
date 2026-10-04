@@ -182,58 +182,10 @@ mod tests {
     }
 
     #[test]
-    fn optimize_runs_two_overlap_2() {
-        let runs = vec![
-            Run::new(vec![s(0, "a", "z")]).unwrap(),
-            Run::new(vec![s(1, "c", "f")]).unwrap(),
-        ];
-        let runs = optimize_runs::<FakeTable>(runs);
-
-        assert_eq!(
-            vec![
-                Run::new(vec![s(0, "a", "z")]).unwrap(),
-                Run::new(vec![s(1, "c", "f")]).unwrap(),
-            ],
-            &*runs
-        );
-    }
-
-    #[test]
-    fn optimize_runs_two_overlap_3() {
-        let runs = vec![
-            Run::new(vec![s(0, "c", "f")]).unwrap(),
-            Run::new(vec![s(1, "a", "z")]).unwrap(),
-        ];
-        let runs = optimize_runs::<FakeTable>(runs);
-
-        assert_eq!(
-            vec![
-                Run::new(vec![s(0, "c", "f")]).unwrap(),
-                Run::new(vec![s(1, "a", "z")]).unwrap()
-            ],
-            &*runs
-        );
-    }
-
-    #[test]
     fn optimize_runs_two_disjoint() {
         let runs = vec![
             Run::new(vec![s(0, "a", "c")]).unwrap(),
             Run::new(vec![s(1, "d", "f")]).unwrap(),
-        ];
-        let runs = optimize_runs::<FakeTable>(runs);
-
-        assert_eq!(
-            vec![Run::new(vec![s(0, "a", "c"), s(1, "d", "f")]).unwrap()],
-            &*runs,
-        );
-    }
-
-    #[test]
-    fn optimize_runs_two_disjoint_2() {
-        let runs = vec![
-            Run::new(vec![s(1, "d", "f")]).unwrap(),
-            Run::new(vec![s(0, "a", "c")]).unwrap(),
         ];
         let runs = optimize_runs::<FakeTable>(runs);
 

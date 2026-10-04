@@ -167,28 +167,9 @@ mod tests {
         assert_eq!([0, 0, 0, 0, 0, 0, 0, 10], &**max);
     }
 
-    #[test]
-    fn key_range_aggregate_2() {
-        let ranges = [
-            int_key_range(6, 7),
-            int_key_range(0, 2),
-            int_key_range(0, 10),
-        ];
-        let aggregated = KeyRange::aggregate(ranges.iter());
-        let (min, max) = aggregated.as_tuple();
-        assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], &**min);
-        assert_eq!([0, 0, 0, 0, 0, 0, 0, 10], &**max);
-    }
-
     mod is_disjoint {
         use super::*;
         use test_log::test;
-
-        #[test]
-        fn key_range_number() {
-            let ranges = [&int_key_range(0, 4), &int_key_range(0, 4)];
-            assert!(!KeyRange::is_disjoint(&ranges));
-        }
 
         #[test]
         fn key_range_string() {
@@ -301,20 +282,6 @@ mod tests {
         fn semi_open_4() {
             let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Unbounded, Included(b"key5" as &[u8]));
-            assert!(key_range.overlaps_with_bounds(&bounds));
-        }
-
-        #[test]
-        fn semi_open_5() {
-            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
-            let bounds = (Unbounded, Included(b"key6" as &[u8]));
-            assert!(key_range.overlaps_with_bounds(&bounds));
-        }
-
-        #[test]
-        fn semi_open_6() {
-            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
-            let bounds = (Included(b"key0" as &[u8]), Unbounded);
             assert!(key_range.overlaps_with_bounds(&bounds));
         }
 

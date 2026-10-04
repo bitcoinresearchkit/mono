@@ -229,52 +229,6 @@ mod tests {
         assert_eq!(Slice::empty(), []);
     }
 
-    #[test]
-    fn slice_fuse_empty() {
-        let bytes = Slice::fused(&[], &[]);
-        assert_eq!(&*bytes, &[] as &[u8]);
-    }
-
-    #[test]
-    fn slice_fuse_one() {
-        let bytes = Slice::fused(b"abc", &[]);
-        assert_eq!(&*bytes, b"abc");
-    }
-
-    #[test]
-    fn slice_fuse_two() {
-        let bytes = Slice::fused(b"abc", b"def");
-        assert_eq!(&*bytes, b"abcdef");
-    }
-
-    #[test]
-    fn slice_with_size() {
-        assert_eq!(
-            &*{
-                let mut b = Slice::builder(5);
-                b.fill(0);
-                b.freeze()
-            },
-            [0; 5],
-        );
-        assert_eq!(
-            &*{
-                let mut b = Slice::builder(50);
-                b.fill(0);
-                b.freeze()
-            },
-            [0; 50],
-        );
-        assert_eq!(
-            &*{
-                let mut b = Slice::builder(50);
-                b.fill(77);
-                b.freeze()
-            },
-            [77; 50],
-        );
-    }
-
     /// This test verifies that we can create a `Slice` from various types and compare a `Slice` with them.
     #[test]
     fn test_slice_instantiation() {

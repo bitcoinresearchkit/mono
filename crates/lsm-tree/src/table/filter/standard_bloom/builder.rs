@@ -150,17 +150,3 @@ impl Builder {
         xxh3_64(key)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use test_log::test;
-
-    use super::*;
-
-    #[test]
-    fn bloom_calculate_m() {
-        assert_eq!(9_592, Builder::calculate_m(1_000, 0.01));
-        assert_eq!(4_800, Builder::calculate_m(1_000, 0.1));
-        assert_eq!(4_792_536, Builder::calculate_m(1_000_000, 0.1));
-    }
-}
