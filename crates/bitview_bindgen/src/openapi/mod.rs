@@ -325,7 +325,8 @@ fn is_numeric_schema(spec: &Spec, name: &str) -> bool {
 
 fn schema_type_from_schema(schema: &Schema) -> Option<String> {
     match schema {
-        Schema::Boolean(_) => Some("boolean".to_string()),
+        // A boolean schema is `true` (any value; `false` never occurs here), not the boolean type.
+        Schema::Boolean(_) => Some("*".to_string()),
         Schema::Object(obj_or_ref) => match obj_or_ref.as_ref() {
             ObjectOrReference::Object(obj_schema) => schema_to_type_name(obj_schema),
             ObjectOrReference::Ref { ref_path, .. } => {

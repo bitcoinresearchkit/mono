@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use brk_types::Sats;
-use schemars::JsonSchema;
 use serde::{Serialize, Serializer, ser::SerializeTuple};
 
 use super::{Close, High, Low, Open};
@@ -13,7 +12,7 @@ use vecdb::Result as VecdbResult;
 use vecdb::{Bytes, Formattable};
 
 /// OHLC (Open, High, Low, Close) data in satoshis
-#[derive(Debug, Default, Clone, Copy, JsonSchema)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct OHLCSats {
     pub open: Open<Sats>,
@@ -72,15 +71,16 @@ impl Display for OHLCSats {
 
 #[cfg(feature = "storage")]
 impl Formattable for OHLCSats {
+    /// `[open, high, low, close]`, each price in its JSON form.
     fn write_to(&self, buf: &mut Vec<u8>) {
         buf.push(b'[');
-        self.open.write_to(buf);
+        (*self.open).fmt_json(buf);
         buf.push(b',');
-        self.high.write_to(buf);
+        (*self.high).fmt_json(buf);
         buf.push(b',');
-        self.low.write_to(buf);
+        (*self.low).fmt_json(buf);
         buf.push(b',');
-        self.close.write_to(buf);
+        (*self.close).fmt_json(buf);
         buf.push(b']');
     }
 

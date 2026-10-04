@@ -48,6 +48,13 @@ fn main() -> bitview_client::Result<()> {
 }
 ```
 
+## Missing and undefined values
+
+A value is `None` where it is missing (mostly a date period without blocks) or
+undefined (a NaN, or a ratio over zero). The types say exactly where:
+`Option<T>` at the indexes where a value can be missing, and everywhere for value
+types that can be undefined (floats, `Cents`, ratios, parts per million).
+
 ## Date and timestamp selectors
 
 Date and timestamp selectors return `Result`: use

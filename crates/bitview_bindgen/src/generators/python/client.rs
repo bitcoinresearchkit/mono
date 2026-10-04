@@ -344,7 +344,8 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
 
 @dataclass
 class SeriesData(Generic[T]):
-    """Series data with range information. Always int-indexed."""
+    """Series data with range information. Always int-indexed; a value is None where it is
+    missing or undefined."""
     version: int
     index: Index
     type: str
@@ -448,6 +449,11 @@ class DateSeriesData(SeriesData[T]):
 # Type aliases for non-generic usage
 AnySeriesData = SeriesData[Any]
 AnyDateSeriesData = DateSeriesData[Any]
+
+
+def _series_data(raw: Dict[str, Any]) -> AnySeriesData:
+    """Series data with its helpers (and dates, for a date-based index)."""
+    return (DateSeriesData if raw['index'] in _DATE_INDEXES else SeriesData)(**raw)
 
 
 class _EndpointConfig:
@@ -758,6 +764,10 @@ pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSet
 
 def _dep(c: BitviewClient, n: str, i: Index) -> DateSeriesEndpoint[Any]:
     return DateSeriesEndpoint(c, n, i)
+
+def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:
+    """The endpoint for any index: with date helpers for a date-based one."""
+    return _dep(c, n, i) if i in _DATE_INDEXES else _ep(c, n, i)
 "#
     )
     .unwrap();
@@ -783,10 +793,11 @@ def _dep(c: BitviewClient, n: str, i: Index) -> DateSeriesEndpoint[Any]:
             } else {
                 ("SeriesEndpoint", "_ep")
             };
+            let value = if pattern.missing.contains(index) { "Optional[T]" } else { "T" };
             writeln!(
                 output,
-                "    def {}(self) -> {}[T]: return {}(self._c, self._n, '{}')",
-                method_name, builder_type, helper, index_name
+                "    def {}(self) -> {}[{}]: return {}(self._c, self._n, '{}')",
+                method_name, builder_type, value, helper, index_name
             )
             .unwrap();
         }
@@ -809,10 +820,12 @@ def _dep(c: BitviewClient, n: str, i: Index) -> DateSeriesEndpoint[Any]:
             idx_var
         )
         .unwrap();
+        // A dynamic index may be any of them: the weakest type.
+        let any = if pattern.missing.is_empty() { "T" } else { "Optional[T]" };
         writeln!(
             output,
-            "    def get(self, index: Index) -> Optional[SeriesEndpoint[T]]: return _ep(self.by._c, self._n, index) if index in {} else None",
-            idx_var
+            "    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[{0}], DateSeriesEndpoint[{0}]]]: return _endpoint(self.by._c, self._n, index) if index in {1} else None",
+            any, idx_var
         )
         .unwrap();
         writeln!(output).unwrap();

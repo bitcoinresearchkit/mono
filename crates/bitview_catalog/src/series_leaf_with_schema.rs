@@ -19,6 +19,12 @@ pub struct SeriesLeafWithSchema {
     /// JSON Schema for the value type.
     #[serde(skip)]
     pub schema: Value,
+    /// Indexes whose values can be missing (e.g. a period without blocks), written as `null`.
+    #[serde(skip)]
+    pub missing: BTreeSet<Index>,
+    /// The value type has an undefined value of its own (NaN, or a sentinel), written as `null`.
+    #[serde(skip)]
+    pub undefined: bool,
 }
 
 impl SeriesLeafWithSchema {
@@ -28,6 +34,8 @@ impl SeriesLeafWithSchema {
             leaf,
             openapi_type,
             schema,
+            missing: BTreeSet::new(),
+            undefined: false,
         }
     }
 
@@ -46,6 +54,11 @@ impl SeriesLeafWithSchema {
         &self.leaf.indexes
     }
 
+    /// Indexes whose values can be null: missing or undefined.
+    pub fn nullable(&self) -> &BTreeSet<Index> {
+        &self.leaf.nullable
+    }
+
     /// Check if this leaf refers to the same series as another.
     pub(crate) fn is_same_series(&self, other: &Self) -> bool {
         self.leaf.name == other.leaf.name
@@ -53,6 +66,8 @@ impl SeriesLeafWithSchema {
 
     /// Merge compatible metadata for another occurrence of the same series.
     pub(crate) fn merge(&mut self, other: &Self) -> Option<()> {
+        self.missing.extend(other.missing.iter().copied());
+        self.undefined |= other.undefined;
         self.leaf.merge(&other.leaf)
     }
 }

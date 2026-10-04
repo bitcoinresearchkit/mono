@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, btree_map::Entry},
+    collections::{BTreeMap, BTreeSet, btree_map::Entry},
     fmt::Display,
     iter,
 };
@@ -8,8 +8,8 @@ use schemars::{JsonSchema, SchemaGenerator};
 use serde::Serialize;
 use serde_json::to_value;
 use vecdb::{
-    AnyVec, BytesVec, BytesVecValue, CachePolicy, CompressionStrategy, DeltaOp, EagerVec,
-    Formattable, IndexVec, LazyDeltaVec, LazyVec, MutableVec, OverflowVec, OverflowVecValue,
+    BytesVec, BytesVecValue, CachePolicy, CompressionStrategy, DeltaOp, EagerVec, Formattable,
+    IndexVec, LazyDeltaVec, LazyVec, MutableVec, OverflowVec, OverflowVecValue, PrintableIndex,
     RawStrategy, ReadOnlyCompressedVec, ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec,
     ReadableVec, StoredVec, TypedVec, VecIndex, VecValue,
 };
@@ -76,22 +76,34 @@ pub trait Traversable {
     }
 }
 
-/// Creates a series leaf, including its value schema, from a vector.
-pub fn make_leaf<I: VecIndex, T: JsonSchema, V: AnyVec>(vec: &V) -> TreeNode {
-    let index_str = I::to_string();
+/// Creates a series leaf, including its value schema and nullability, from a vector.
+pub fn make_leaf<V>(vec: &V) -> TreeNode
+where
+    V: TypedVec,
+    V::T: JsonSchema + Formattable,
+{
+    let index_str = <V::I as PrintableIndex>::to_string();
     let index = Index::try_from(index_str).ok();
-    let indexes = index.into_iter().collect();
+    let indexes: BTreeSet<Index> = index.into_iter().collect();
 
-    let leaf = SeriesLeaf::new(
+    let mut leaf = SeriesLeaf::new(
         vec.name().to_string(),
         vec.value_type_to_string().to_string(),
-        indexes,
+        indexes.clone(),
     );
+    if vecdb::nullable::<V::T>() {
+        leaf.nullable = indexes.clone();
+    }
 
-    let schema = SchemaGenerator::default().into_root_schema_for::<T>();
+    let schema = SchemaGenerator::default().into_root_schema_for::<V::T>();
     let schema_json = to_value(schema).unwrap_or_default();
 
-    TreeNode::Leaf(SeriesLeafWithSchema::new(leaf, schema_json))
+    let mut leaf = SeriesLeafWithSchema::new(leaf, schema_json);
+    if V::T::MISSING {
+        leaf.missing = indexes;
+    }
+    leaf.undefined = V::T::UNDEFINED;
+    TreeNode::Leaf(leaf)
 }
 
 // BytesVec implementation
@@ -105,7 +117,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -121,7 +133,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -137,7 +149,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -153,7 +165,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -169,7 +181,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -184,7 +196,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<V::I, V::T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -199,7 +211,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<V::I, V::T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -213,7 +225,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<V::I, V::T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -227,7 +239,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -241,7 +253,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -257,7 +269,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -273,7 +285,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -288,7 +300,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -304,7 +316,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 
@@ -320,7 +332,7 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }
 

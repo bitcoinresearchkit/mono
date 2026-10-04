@@ -1,6 +1,6 @@
 //! JavaScript series tree: a JSDoc typedef and a builder per model shape, and the main client.
 
-use std::fmt::Write;
+use std::{collections::BTreeSet, fmt::Write};
 
 use super::{api::generate_api_methods, client::generate_static_constants};
 use crate::{
@@ -53,10 +53,11 @@ pub(crate) fn generate_tree(
     model: &Model,
     names: &[String],
     accessors: &[IndexSetPattern],
+    undefined_types: &BTreeSet<String>,
 ) {
     writeln!(output, "// Series tree\n").unwrap();
     output.push_str(RUNTIME);
-    let tree = Tree { model, names, accessors };
+    let tree = Tree { model, names, accessors, undefined_types };
     for shape in model.shape_order() {
         tree.typedef(output, shape);
         tree.builder(output, shape);
@@ -67,6 +68,7 @@ struct Tree<'a> {
     model: &'a Model,
     names: &'a [String],
     accessors: &'a [IndexSetPattern],
+    undefined_types: &'a BTreeSet<String>,
 }
 
 impl Tree<'_> {
@@ -81,8 +83,8 @@ impl Tree<'_> {
         let signature = &self.model.shapes[shape].signature.0;
         for ((key, kind), expr) in signature.iter().zip(&self.model.child_types[shape]) {
             let ty = match kind {
-                ChildKind::Leaf(indexes) => {
-                    format!("{}<{}>", self.accessors[accessor_of(self.accessors, indexes)].name, self.ty(expr))
+                ChildKind::Leaf(access) => {
+                    format!("{}<{}>", self.accessors[accessor_of(self.accessors, access)].name, self.ty(expr))
                 }
                 ChildKind::Branch => self.ty(expr),
             };
@@ -110,7 +112,7 @@ impl Tree<'_> {
             .zip(&self.model.child_types[shape])
         {
             let make = match kind {
-                ChildKind::Leaf(indexes) => format!("_i{}", accessor_of(self.accessors, indexes) + 1),
+                ChildKind::Leaf(access) => format!("_i{}", accessor_of(self.accessors, access) + 1),
                 ChildKind::Branch => self.make(shape, expr),
             };
             writeln!(output, "  {}: [{make}, '{}'],", js_field_name(key), rule.template())
@@ -119,9 +121,11 @@ impl Tree<'_> {
         writeln!(output, "}});\n").unwrap();
     }
 
+    /// A value type with an undefined value of its own (NaN, a sentinel) is nullable: `?Kind`.
     fn ty(&self, expr: &TyExpr) -> String {
         expr.render(self.names, ["<", ">"], &|kind| {
-            client_value_type(kind, |element| format!("{element}[]"))
+            let value = client_value_type(kind, |element| format!("{element}[]"));
+            if self.undefined_types.contains(kind) { format!("?{value}") } else { value }
         })
     }
 

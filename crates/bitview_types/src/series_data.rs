@@ -15,7 +15,7 @@ pub struct SeriesData<T = Value> {
     pub version: u32,
     /// The index type used for this query
     pub index: Index,
-    /// Value type (e.g. "f32", "u64", "Sats")
+    /// Value type (e.g. "StoredF32", "Sats", "Cents")
     #[serde(rename = "type", default)]
     pub value_type: String,
     /// Start index (inclusive) of the returned range
@@ -24,7 +24,8 @@ pub struct SeriesData<T = Value> {
     end: usize,
     /// ISO 8601 timestamp of when the response was generated
     pub stamp: String,
-    /// The series data
+    /// The series data. A value is `null` where it is missing (a period without blocks) or
+    /// undefined (e.g. NaN, a ratio over zero); CSV leaves such a cell empty.
     pub data: Vec<T>,
 }
 

@@ -200,11 +200,11 @@ function _wrapSeriesData(raw) {{
  * @typedef {{Object}} SeriesDataBase
  * @property {{number}} version - Version of the series data
  * @property {{Index}} index - The index type used for this query
- * @property {{string}} type - Value type (e.g. "f32", "u64", "Sats")
+ * @property {{string}} type - Value type (e.g. "StoredF32", "Sats", "Cents")
  * @property {{number}} start - Start index (inclusive)
  * @property {{number}} end - End index (exclusive)
  * @property {{string}} stamp - ISO 8601 timestamp of when the response was generated
- * @property {{T[]}} data - The series data
+ * @property {{T[]}} data - The series data (`null` where a value is missing or undefined)
  * @property {{boolean}} isDateBased - Whether this series uses a date-based index
  * @property {{() => number[]}} indexes - Get index numbers
  * @property {{() => number[]}} keys - Get keys as index numbers (alias for indexes)
@@ -1000,15 +1000,18 @@ function _mp(client, name, indexes) {{
                 } else {
                     "SeriesEndpoint"
                 };
-                format!("readonly {}: {}<T>", idx.name(), builder)
+                let value = if pattern.missing.contains(idx) { "T | null" } else { "T" };
+                format!("readonly {}: {}<{}>", idx.name(), builder, value)
             })
             .collect();
         let by_type = format!("{{ {} }}", by_fields.join(", "));
+        // A dynamic index may be any of them: the weakest type.
+        let any = if pattern.missing.is_empty() { "T" } else { "T | null" };
 
         writeln!(
             output,
-            "/** @template T @typedef {{{{ name: string, by: {}, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }}}} {} */",
-            by_type, pattern.name
+            "/** @template T @typedef {{{{ name: string, by: {}, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<{}>|undefined }}}} {} */",
+            by_type, any, pattern.name
         )
         .unwrap();
     }

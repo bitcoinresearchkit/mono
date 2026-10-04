@@ -1,6 +1,6 @@
 //! Python series tree: a generic class per model shape whose children are lazy attributes.
 
-use std::fmt::Write;
+use std::{collections::BTreeSet, fmt::Write};
 
 use crate::{
     IndexSetPattern, accessor_of, client_value_type, python_field_name,
@@ -61,6 +61,7 @@ pub(crate) fn generate_tree(
     model: &Model,
     names: &[String],
     accessors: &[IndexSetPattern],
+    undefined_types: &BTreeSet<String>,
 ) {
     writeln!(output, "# Series tree\n").unwrap();
     output.push_str(RUNTIME);
@@ -71,7 +72,11 @@ pub(crate) fn generate_tree(
     }
     writeln!(output).unwrap();
 
-    let value = |kind: &str| client_value_type(kind, |element| format!("List[{element}]"));
+    // A value type with an undefined value of its own (NaN, a sentinel) is `Optional`.
+    let value = |kind: &str| {
+        let value = client_value_type(kind, |element| format!("List[{element}]"));
+        if undefined_types.contains(kind) { format!("Optional[{value}]") } else { value }
+    };
     let ty = |expr: &TyExpr| expr.render(names, ["[", "]"], &value);
     for shape in model.shape_order() {
         let params = model.params[shape];
@@ -91,8 +96,8 @@ pub(crate) fn generate_tree(
             .zip(&model.child_types[shape])
         {
             let (annotation, make) = match kind {
-                ChildKind::Leaf(indexes) => {
-                    let accessor = &accessors[accessor_of(accessors, indexes)].name;
+                ChildKind::Leaf(access) => {
+                    let accessor = &accessors[accessor_of(accessors, access)].name;
                     (format!("{accessor}[{}]", ty(expr)), accessor.clone())
                 }
                 ChildKind::Branch => (ty(expr), builder(model, names, shape, expr)),

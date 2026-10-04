@@ -20,6 +20,6 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, O, _>(self)
+        make_leaf(self)
     }
 }

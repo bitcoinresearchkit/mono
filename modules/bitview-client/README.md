@@ -47,6 +47,11 @@ Series endpoints support `first(n)`, `last(n)`, `slice(start, end)`, `get(i)`,
 `skip(n).take(m)`, `fetchCsv()`, `len()`, and `version()`. They are also
 thenable, so `await endpoint.last(30)` is equivalent to calling `.fetch()`.
 
+A value is `null` where it is missing (mostly a date period without blocks) or
+undefined (a NaN, or a ratio over zero). The types say exactly where:
+`T | null` at the indexes where a value can be missing, and everywhere for value
+types that can be undefined (floats, `Cents`, ratios, parts per million).
+
 Pass an options object to configure request behavior:
 
 ```javascript

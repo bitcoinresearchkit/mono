@@ -12,7 +12,10 @@ pub struct SeriesInfo {
     pub description: Option<Arc<str>>,
     /// Available indexes
     pub indexes: Vec<Index>,
-    /// Value type (e.g. "f32", "u64", "Sats")
+    /// Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
+    /// undefined one (e.g. NaN)
+    pub nullable: Vec<Index>,
+    /// Value type (e.g. "StoredF32", "Sats", "Cents")
     #[serde(rename = "type")]
     pub value_type: Cow<'static, str>,
 }

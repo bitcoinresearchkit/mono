@@ -68,8 +68,13 @@ fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
 
     let path = build_path_template(&endpoint.path, &endpoint.path_params);
 
+    // Series data gets the same helpers however it is fetched.
     let fetch_call: String = if endpoint.returns_binary() {
         "this.getBytes(path, { signal, onValue, cache, memCache })".to_string()
+    } else if endpoint.schema_name() == Some("SeriesData") {
+        "_wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }))".to_string()
+    } else if endpoint.schema_name() == Some("SeriesData[]") {
+        "(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData)".to_string()
     } else if endpoint.returns_json() {
         "this.getJson(path, { signal, onValue, cache, memCache })".to_string()
     } else if endpoint.response_kind.text_is_numeric() {

@@ -39,6 +39,14 @@ impl<'a> Series<'a> {
         self.entries.iter().map(|entry| entry.index())
     }
 
+    /// The indexes whose values can be null.
+    pub(super) fn nullable(&self) -> impl Iterator<Item = Index> + '_ {
+        self.entries
+            .iter()
+            .filter(|entry| entry.vec().nullable())
+            .map(|entry| entry.index())
+    }
+
     pub(super) fn first(&self) -> Option<&SeriesEntry<'a>> {
         self.entries.first()
     }

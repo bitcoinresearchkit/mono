@@ -11409,6 +11409,7 @@
             "SeriesInfo": {
               "required": [
                 "indexes",
+                "nullable",
                 "type"
               ],
               "type": "object",
@@ -11420,6 +11421,12 @@
                   ]
                 },
                 "indexes": {
+                  "items": {
+                    "$ref": "#/$defs/Index"
+                  },
+                  "type": "array"
+                },
+                "nullable": {
                   "items": {
                     "$ref": "#/$defs/Index"
                   },

@@ -122,6 +122,7 @@ const RUNTIME_TYPE_NAMES: &[&str] = &[
     "SeriesEndpoint",
     "SeriesFetchArg",
     "SeriesPattern",
+    "SeriesValue",
     "SingleItemBuilder",
     "SkippedBuilder",
     "Thenable",
@@ -221,12 +222,20 @@ pub fn generate_clients(
         .chain(accessors.iter().map(|pattern| pattern.name.clone()))
         .collect();
     let shape_names = model.shape_names(&reserved);
+    let value_types = value_types(catalog);
 
     if let Some(rust_path) = &output_paths.rust {
         if let Some(parent) = rust_path.parent() {
             create_dir_all(parent)?;
         }
-        generate_rust_client(&model, &shape_names, &accessors, &endpoints, rust_path)?;
+        generate_rust_client(
+            &model,
+            &shape_names,
+            &accessors,
+            &value_types,
+            &endpoints,
+            rust_path,
+        )?;
     }
 
     if let Some(cli_path) = &output_paths.cli {
@@ -244,6 +253,7 @@ pub fn generate_clients(
             &model,
             &shape_names,
             &accessors,
+            &value_types.undefined,
             &endpoints,
             &schemas,
             js_path,
@@ -258,6 +268,7 @@ pub fn generate_clients(
             &model,
             &shape_names,
             &accessors,
+            &value_types.undefined,
             &endpoints,
             &schemas,
             python_path,

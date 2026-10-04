@@ -5,9 +5,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use bitview_catalog::TreeNode;
-use bitview_primitives::Index;
 
-use crate::to_pascal_case;
+use crate::{Access, to_pascal_case};
 
 /// How a child's name derives from its parent's base. Names are `_`-separated token lists.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -51,7 +50,7 @@ pub(crate) struct Signature(pub(crate) Vec<(String, ChildKind)>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub(crate) enum ChildKind {
-    Leaf(BTreeSet<Index>),
+    Leaf(Access),
     Branch,
 }
 
@@ -576,7 +575,7 @@ fn flatten(
                 );
                 let id = flatten(child, names, kinds, flats);
                 let kind = match child {
-                    TreeNode::Leaf(leaf) => ChildKind::Leaf(leaf.indexes().clone()),
+                    TreeNode::Leaf(leaf) => ChildKind::Leaf(Access::of(leaf)),
                     TreeNode::Branch(_) => {
                         height = height.max(flats[id].as_ref().unwrap().height);
                         ChildKind::Branch

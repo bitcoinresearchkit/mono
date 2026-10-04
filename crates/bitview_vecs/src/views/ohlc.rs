@@ -212,6 +212,6 @@ impl<I: VecIndex> Traversable for LazyOhlcVec<I> {
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, OHLCCents, _>(self)
+        make_leaf(self)
     }
 }

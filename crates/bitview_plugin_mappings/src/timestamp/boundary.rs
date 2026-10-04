@@ -138,6 +138,6 @@ impl<I: VecIndex> Traversable for BoundaryTimestampVec<I> {
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, Timestamp, _>(self)
+        make_leaf(self)
     }
 }

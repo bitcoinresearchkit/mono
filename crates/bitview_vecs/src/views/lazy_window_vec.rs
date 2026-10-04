@@ -394,6 +394,6 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, T, _>(self)
+        make_leaf(self)
     }
 }

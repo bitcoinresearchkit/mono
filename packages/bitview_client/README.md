@@ -49,3 +49,8 @@ same_prices = client.series_endpoint("price_close", "day1").tail(30).fetch()
 
 Series endpoints support integer and date slices, `head(n)`, `tail(n)`,
 `skip(n).take(m)`, `fetch_csv()`, `len()`, and `version()`.
+
+A value is `None` where it is missing (mostly a date period without blocks) or
+undefined (a NaN, or a ratio over zero). The type hints say exactly where:
+`Optional` at the indexes where a value can be missing, and everywhere for value
+types that can be undefined (floats, `Cents`, ratios, parts per million).

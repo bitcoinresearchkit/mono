@@ -12,7 +12,7 @@ use super::Close;
 use crate::StoredF64;
 
 #[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// Lowest price value for a time period
 #[derive(
@@ -132,25 +132,6 @@ where
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         self.0.fmt(f)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl<T> Formattable for Low<T>
-where
-    T: Display,
-{
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        use std::fmt::Write;
-        let mut s = String::new();
-        write!(s, "{}", self).unwrap();
-        buf.extend_from_slice(s.as_bytes());
-    }
-
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        buf.push(b'"');
-        self.write_to(buf);
-        buf.push(b'"');
     }
 }
 

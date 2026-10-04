@@ -3,11 +3,22 @@
 use std::fmt::Write;
 
 use crate::{
-    IndexSetPattern, accessor_of, rust_field_name,
+    IndexSetPattern, ValueTypes, accessor_of, rust_field_name,
     model::{ChildKind, Model, TyExpr, param_name},
 };
 
 const RUNTIME: &str = r#"
+/// A series value type, as a type parameter of the leaf accessors.
+pub trait SeriesValue {
+    /// The value where it can be missing (e.g. a period without blocks): `Option<Self>`, or the
+    /// value itself when it is already optional.
+    type Nullable;
+}
+
+impl<T> SeriesValue for Option<T> {
+    type Nullable = Option<T>;
+}
+
 /// A series-tree node or leaf, built from its series name or base.
 pub(crate) trait Node: Sized + Send + Sync + 'static {
     fn build(client: Arc<BitviewClientBase>, name: String) -> Self;
@@ -55,14 +66,27 @@ pub(crate) fn generate_tree(
     model: &Model,
     names: &[String],
     accessors: &[IndexSetPattern],
+    value_types: &ValueTypes,
 ) {
     output.push_str(RUNTIME);
+    // Values that can be undefined are already optional; the others become optional where missing.
+    for kind in &value_types.defined {
+        writeln!(output, "impl SeriesValue for {kind} {{ type Nullable = Option<{kind}>; }}").unwrap();
+    }
     // Shapes live in their own module: their names must not hide the types the crate re-exports.
     writeln!(output, "/// The series tree's node types, one generic struct per shape.").unwrap();
     writeln!(output, "pub mod tree {{
 use super::*;
 ").unwrap();
-    let ty = |expr: &TyExpr| expr.render(names, ["<", ">"], &|kind| kind.to_owned());
+    let ty = |expr: &TyExpr| {
+        expr.render(names, ["<", ">"], &|kind| {
+            if value_types.undefined.contains(kind) {
+                format!("Option<{kind}>")
+            } else {
+                kind.to_owned()
+            }
+        })
+    };
     let paths = model.shape_paths();
     for shape in model.shape_order() {
         let params = model.params[shape];
@@ -84,8 +108,8 @@ use super::*;
             .zip(&model.child_types[shape])
         {
             let child = match kind {
-                ChildKind::Leaf(indexes) => {
-                    format!("{}<{}>", accessors[accessor_of(accessors, indexes)].name, ty(expr))
+                ChildKind::Leaf(access) => {
+                    format!("{}<{}>", accessors[accessor_of(accessors, access)].name, ty(expr))
                 }
                 ChildKind::Branch => ty(expr),
             };

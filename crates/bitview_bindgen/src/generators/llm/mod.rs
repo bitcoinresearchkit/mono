@@ -91,7 +91,7 @@ Use the compact OpenAPI document for tool construction. Use `llms-full.txt` only
 ## Series workflow\n\n\
 Never invent a series identifier.\n\n\
 1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.\n\
-2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, and value type.\n\
+2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, value type, and the indexes whose values can be null (missing or undefined).\n\
 3. Fetch data: `GET /api/series/<series>/<index>?start=<inclusive>&end=<exclusive>`.\n\
 4. Fetch one current value with `GET /api/series/<series>/<index>/latest`. For several series, use `GET /api/series/bulk?series=<comma-separated names>&index=<index>`.\n\n\
 ## MCP\n\n\
@@ -407,6 +407,10 @@ fn render_schema(output: &mut String, name: &str, schema: &Value) {
 }
 
 fn schema_type(schema: &Value) -> String {
+    // A boolean schema: `true` accepts any value.
+    if schema.is_boolean() {
+        return "value".to_owned();
+    }
     if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
         return reference.rsplit('/').next().unwrap_or(reference).to_owned();
     }
@@ -418,6 +422,14 @@ fn schema_type(schema: &Value) -> String {
                     .as_str()
                     .map_or_else(|| value.to_string(), str::to_owned)
             })
+            .collect::<Vec<_>>()
+            .join(" | ");
+    }
+    // `["integer", "null"]`: each type, joined.
+    if let Some(kinds) = schema.get("type").and_then(Value::as_array) {
+        return kinds
+            .iter()
+            .filter_map(Value::as_str)
             .collect::<Vec<_>>()
             .join(" | ");
     }

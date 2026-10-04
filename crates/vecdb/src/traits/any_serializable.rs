@@ -5,10 +5,13 @@ use super::AnyReadableVec;
 use crate::Result;
 
 #[cfg(feature = "serde")]
-use crate::{Formattable, ReadableVec, TypedVec};
+use crate::{Formattable, ReadableVec, TypedVec, nullable};
 
 /// Type-erased trait for serializable vectors.
 pub trait AnySerializableVec: AnyReadableVec {
+    /// Whether JSON values can be `null`: missing or undefined (see [`Formattable`]).
+    fn nullable(&self) -> bool;
+
     /// Write JSON array to output buffer
     #[cfg(feature = "serde")]
     fn write_json(&self, from: Option<usize>, to: Option<usize>, buf: &mut Vec<u8>) -> Result<()>;
@@ -33,6 +36,10 @@ where
     V: ReadableVec<V::I, V::T>,
     V::T: Serialize + Formattable,
 {
+    fn nullable(&self) -> bool {
+        nullable::<V::T>()
+    }
+
     fn write_json(&self, from: Option<usize>, to: Option<usize>, buf: &mut Vec<u8>) -> Result<()> {
         let len = self.len();
         let from_idx = from.unwrap_or(0);
@@ -44,6 +51,11 @@ where
         buf.push(b'[');
         self.for_each_range_at(from_idx, to_idx, |value: V::T| {
             value.fmt_json(buf);
+            // Clients type `null` only where a type declares it.
+            debug_assert!(
+                nullable::<V::T>() || !buf.ends_with(b"null"),
+                "a JSON `null` from a type that declares neither `MISSING` nor `UNDEFINED`"
+            );
             buf.push(b',');
         });
         if buf.last() == Some(&b',') {

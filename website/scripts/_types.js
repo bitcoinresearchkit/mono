@@ -154,8 +154,9 @@
  * @typedef {Bitview.SeriesTree["inputs"]["count"]} AggregatedPattern
  */
 /**
- * Count pattern: height, cumulative, and rolling sum windows
- * @typedef {Bitview.SeriesTree["blocks"]["count"]["total"]} CountPattern
+ * Count pattern: height, cumulative, and rolling sum windows. Typed from a nullable instance of
+ * the shared shape (`?StoredF64` values), which every count series is assignable to.
+ * @typedef {Bitview.SeriesTree["cointime"]["value"]["destroyed"]} CountPattern
  */
 /**
  * Full per-block pattern: height, cumulative, sum, and distribution stats (all flat)

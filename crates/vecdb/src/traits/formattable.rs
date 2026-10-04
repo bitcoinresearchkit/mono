@@ -3,6 +3,13 @@ use std::{fmt, str};
 /// Fast formatting trait that writes UTF-8 bytes directly into a buffer,
 /// avoiding the `std::fmt` machinery for number types.
 pub trait Formattable {
+    /// Whether this type has an undefined value of its own (NaN, or a sentinel such as
+    /// `u64::MAX`), written as JSON `null`.
+    const UNDEFINED: bool = false;
+
+    /// Whether a value can be missing (`Option`), written as JSON `null`.
+    const MISSING: bool = false;
+
     /// Write formatted UTF-8 bytes. Primary method — all others derive from it.
     fn write_to(&self, buf: &mut Vec<u8>);
 
@@ -27,6 +34,11 @@ pub trait Formattable {
     fn fmt_json(&self, buf: &mut Vec<u8>) {
         self.write_to(buf);
     }
+}
+
+/// Whether `T`'s JSON values can be `null`: missing or undefined.
+pub const fn nullable<T: Formattable>() -> bool {
+    T::MISSING || T::UNDEFINED
 }
 
 macro_rules! impl_formattable_int {
@@ -100,6 +112,9 @@ impl<T: Formattable, const N: usize> Formattable for [T; N] {
 }
 
 impl<T: Formattable> Formattable for Option<T> {
+    const UNDEFINED: bool = T::UNDEFINED;
+    const MISSING: bool = true;
+
     #[inline]
     fn write_to(&self, buf: &mut Vec<u8>) {
         if let Some(v) = self {

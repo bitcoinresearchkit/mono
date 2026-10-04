@@ -25,6 +25,7 @@ impl ResolvedSeriesInfo<'_> {
         SeriesInfo {
             description: self.series.description.clone(),
             indexes: self.series.indexes().collect(),
+            nullable: self.series.nullable().collect(),
             value_type: self.value_type.into(),
         }
     }

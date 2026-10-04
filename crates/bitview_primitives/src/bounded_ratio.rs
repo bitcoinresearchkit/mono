@@ -113,6 +113,8 @@ impl Display for BoundedRatio {
 
 #[cfg(feature = "storage")]
 impl Formattable for BoundedRatio {
+    const UNDEFINED: bool = true;
+
     #[inline]
     fn write_to(&self, buf: &mut Vec<u8>) {
         let mut value = Buffer::new();
@@ -126,5 +128,14 @@ impl Formattable for BoundedRatio {
         } else {
             self.write_to(buf);
         }
+    }
+
+    /// Undefined: an empty CSV cell (JSON writes `null`).
+    #[inline(always)]
+    fn fmt_csv(&self, f: &mut String) -> std::fmt::Result {
+        if !unlikely(self.is_nan()) {
+            self.fmt_into(f);
+        }
+        Ok(())
     }
 }

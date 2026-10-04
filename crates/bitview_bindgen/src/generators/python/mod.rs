@@ -7,7 +7,7 @@ pub(crate) mod client;
 mod tree;
 pub(crate) mod types;
 
-use std::{fmt::Write, io, path::Path};
+use std::{collections::BTreeSet, fmt::Write, io, path::Path};
 
 use super::write_if_changed;
 use crate::{Endpoint, IndexSetPattern, TypeSchemas, model::Model};
@@ -19,6 +19,7 @@ pub(crate) fn generate_python_client(
     model: &Model,
     shape_names: &[String],
     accessors: &[IndexSetPattern],
+    undefined_types: &BTreeSet<String>,
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,
     output_path: &Path,
@@ -65,7 +66,7 @@ pub(crate) fn generate_python_client(
     client::generate_base_client(&mut output);
     client::generate_endpoint_class(&mut output);
     client::generate_index_accessors(&mut output, accessors);
-    tree::generate_tree(&mut output, model, shape_names, accessors);
+    tree::generate_tree(&mut output, model, shape_names, accessors, undefined_types);
     api::generate_main_client(&mut output, endpoints);
 
     output.truncate(output.trim_end().len());

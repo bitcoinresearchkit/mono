@@ -217,6 +217,8 @@ impl Display for PartsPerMillion32 {
 
 #[cfg(feature = "storage")]
 impl Formattable for PartsPerMillion32 {
+    const UNDEFINED: bool = true;
+
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         let mut value = Buffer::new();
@@ -230,5 +232,14 @@ impl Formattable for PartsPerMillion32 {
         } else {
             self.write_to(buf);
         }
+    }
+
+    /// Undefined: an empty CSV cell (JSON writes `null`).
+    #[inline(always)]
+    fn fmt_csv(&self, f: &mut String) -> std::fmt::Result {
+        if !unlikely(self.0 == u32::MAX) {
+            self.fmt_into(f);
+        }
+        Ok(())
     }
 }

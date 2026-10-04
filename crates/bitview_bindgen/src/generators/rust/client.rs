@@ -669,16 +669,17 @@ fn _dep<T: DeserializeOwned>(
 
     output.push_str(
         r#"
-/// A leaf accessor: the series name plus one endpoint method per index (`date` for date indexes).
+/// A leaf accessor: the series name plus one endpoint method per index (`date` for date indexes),
+/// each with its value type (`T::Nullable` where values can be missing); `get` takes the weakest.
 macro_rules! accessor {
-    ($name:ident, $by:ident, $indexes:ident { $($kind:ident $method:ident: $index:ident,)* }) => {
+    ($name:ident, $by:ident, $indexes:ident, $any:ty { $($kind:ident $method:ident: $index:ident -> $value:ty,)* }) => {
         pub struct $by<T> {
             client: Arc<BitviewClientBase>,
             name: Arc<str>,
             _marker: std::marker::PhantomData<T>,
         }
-        impl<T: DeserializeOwned> $by<T> {
-            $(accessor!(@method $kind $method $index);)*
+        impl<T: DeserializeOwned + SeriesValue<Nullable: DeserializeOwned>> $by<T> {
+            $(accessor!(@method $kind $method $index $value);)*
         }
         pub struct $name<T> {
             name: Arc<str>,
@@ -701,12 +702,12 @@ macro_rules! accessor {
                 $indexes
             }
         }
-        impl<T: DeserializeOwned> SeriesPattern<T> for $name<T> {
-            fn get(&self, index: Index) -> Option<SeriesEndpoint<T>> {
+        impl<T: DeserializeOwned + SeriesValue<Nullable: DeserializeOwned>> SeriesPattern<$any> for $name<T> {
+            fn get(&self, index: Index) -> Option<SeriesEndpoint<$any>> {
                 $indexes.contains(&index).then(|| _ep(&self.by.client, &self.by.name, index))
             }
         }
-        impl<T: DeserializeOwned + Send + Sync + 'static> Node for $name<T> {
+        impl<T: DeserializeOwned + SeriesValue<Nullable: DeserializeOwned> + Send + Sync + 'static> Node for $name<T> {
             fn build(client: Arc<BitviewClientBase>, name: String) -> Self {
                 Self::new(client, name)
             }
@@ -716,13 +717,13 @@ macro_rules! accessor {
             }
         }
     };
-    (@method date $method:ident $index:ident) => {
-        pub fn $method(&self) -> DateSeriesEndpoint<T> {
+    (@method date $method:ident $index:ident $value:ty) => {
+        pub fn $method(&self) -> DateSeriesEndpoint<$value> {
             _dep(&self.client, &self.name, Index::$index)
         }
     };
-    (@method plain $method:ident $index:ident) => {
-        pub fn $method(&self) -> SeriesEndpoint<T> {
+    (@method plain $method:ident $index:ident $value:ty) => {
+        pub fn $method(&self) -> SeriesEndpoint<$value> {
             _ep(&self.client, &self.name, Index::$index)
         }
     };
@@ -730,10 +731,12 @@ macro_rules! accessor {
 "#,
     );
     for (i, pattern) in patterns.iter().enumerate() {
-        writeln!(output, "accessor! {{ {0}, {0}By, _I{1} {{", pattern.name, i + 1).unwrap();
+        let any = if pattern.missing.is_empty() { "T" } else { "T::Nullable" };
+        writeln!(output, "accessor! {{ {0}, {0}By, _I{1}, {any} {{", pattern.name, i + 1).unwrap();
         for index in &pattern.indexes {
             let kind = if index.is_date_based() { "date" } else { "plain" };
-            writeln!(output, "    {kind} {}: {index},", index_to_field_name(index)).unwrap();
+            let value = if pattern.missing.contains(index) { "T::Nullable" } else { "T" };
+            writeln!(output, "    {kind} {}: {index} -> {value},", index_to_field_name(index)).unwrap();
         }
         writeln!(output, "}} }}").unwrap();
     }

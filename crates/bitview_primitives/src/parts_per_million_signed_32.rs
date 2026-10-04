@@ -220,6 +220,8 @@ impl Display for PartsPerMillionSigned32 {
 
 #[cfg(feature = "storage")]
 impl Formattable for PartsPerMillionSigned32 {
+    const UNDEFINED: bool = true;
+
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         let mut value = Buffer::new();
@@ -233,5 +235,14 @@ impl Formattable for PartsPerMillionSigned32 {
         } else {
             self.write_to(buf);
         }
+    }
+
+    /// Undefined: an empty CSV cell (JSON writes `null`).
+    #[inline(always)]
+    fn fmt_csv(&self, f: &mut String) -> std::fmt::Result {
+        if !unlikely(self.0 == i32::MIN) {
+            self.fmt_into(f);
+        }
+        Ok(())
     }
 }

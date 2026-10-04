@@ -285,6 +285,6 @@ impl Traversable for LazyWindowStartVec {
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<Height, Height, _>(self)
+        make_leaf(self)
     }
 }

@@ -363,6 +363,8 @@ impl Display for Cents {
 
 #[cfg(feature = "storage")]
 impl Formattable for Cents {
+    const UNDEFINED: bool = true;
+
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         let mut b = Buffer::new();
@@ -376,5 +378,14 @@ impl Formattable for Cents {
         } else {
             self.write_to(buf);
         }
+    }
+
+    /// Undefined: an empty CSV cell (JSON writes `null`).
+    #[inline(always)]
+    fn fmt_csv(&self, f: &mut String) -> std::fmt::Result {
+        if !unlikely(self.is_nan()) {
+            self.fmt_into(f);
+        }
+        Ok(())
     }
 }

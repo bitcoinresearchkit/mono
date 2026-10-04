@@ -2,7 +2,7 @@
 //!
 //! This module generates a JavaScript + JSDoc client for the Bitview API.
 
-use std::{fmt::Write, fs, io, path::Path};
+use std::{collections::BTreeSet, fmt::Write, fs, io, path::Path};
 
 use serde_json::{Value, from_str, json, to_string_pretty};
 
@@ -21,6 +21,7 @@ pub(crate) fn generate_javascript_client(
     model: &Model,
     shape_names: &[String],
     accessors: &[IndexSetPattern],
+    undefined_types: &BTreeSet<String>,
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,
     output_path: &Path,
@@ -33,7 +34,7 @@ pub(crate) fn generate_javascript_client(
     types::generate_type_definitions(&mut output, schemas);
     client::generate_base_client(&mut output);
     client::generate_index_accessors(&mut output, accessors);
-    tree::generate_tree(&mut output, model, shape_names, accessors);
+    tree::generate_tree(&mut output, model, shape_names, accessors, undefined_types);
     tree::generate_main_client(&mut output, endpoints);
 
     write_if_changed(output_path, &output)?;

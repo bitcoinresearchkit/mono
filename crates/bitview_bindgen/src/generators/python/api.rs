@@ -40,7 +40,7 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     // Generate series_endpoint() method for dynamic series access
     writeln!(
         output,
-        "    def series_endpoint(self, series: str, index: Index) -> SeriesEndpoint[Any]:"
+        "    def series_endpoint(self, series: str, index: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:"
     )
     .unwrap();
     writeln!(
@@ -60,7 +60,7 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     )
     .unwrap();
     writeln!(output, "        \"\"\"").unwrap();
-    writeln!(output, "        return SeriesEndpoint(self, series, index)").unwrap();
+    writeln!(output, "        return _endpoint(self, series, index)").unwrap();
     writeln!(output).unwrap();
 
     // Generate helper methods
@@ -199,8 +199,13 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
             ""
         };
 
+        // Series data gets the same helpers however it is fetched.
         let (wrap_prefix, wrap_suffix) = if endpoint.response_kind.text_is_numeric() {
             ("int(", ")")
+        } else if endpoint.schema_name() == Some("SeriesData") {
+            ("_series_data(", ")")
+        } else if endpoint.schema_name() == Some("SeriesData[]") {
+            ("[_series_data(raw) for raw in ", "]")
         } else {
             ("", "")
         };

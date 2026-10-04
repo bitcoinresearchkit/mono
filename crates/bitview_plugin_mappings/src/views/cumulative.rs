@@ -224,6 +224,6 @@ where
     }
 
     fn to_tree_node(&self) -> TreeNode {
-        make_leaf::<I, StoredU64, _>(self)
+        make_leaf(self)
     }
 }

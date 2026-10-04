@@ -10,10 +10,11 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex};
 
-/// Fixed-size boolean value optimized for on-disk storage (stored as u8)
+/// Fixed-size boolean value optimized for on-disk storage (stored as u8); JSON `true`/`false`
 #[derive(
     Debug, Deref, Clone, Default, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
 )]
+#[serde(from = "bool", into = "bool")]
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct StoredBool(u8);
 
@@ -44,6 +45,13 @@ impl From<bool> for StoredBool {
     #[inline]
     fn from(value: bool) -> Self {
         if value { Self(1) } else { Self(0) }
+    }
+}
+
+impl From<StoredBool> for bool {
+    #[inline]
+    fn from(value: StoredBool) -> Self {
+        value.is_true()
     }
 }
 

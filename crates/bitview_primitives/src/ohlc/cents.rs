@@ -1,10 +1,11 @@
 use std::{
+    borrow::Cow,
     fmt::{Display, Formatter, Result as FmtResult},
     ops::Add,
 };
 
 use brk_types::{Cents, Dollars, Sats};
-use schemars::JsonSchema;
+use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
     de::{SeqAccess, Visitor},
@@ -20,7 +21,7 @@ use vecdb::Result as VecdbResult;
 use vecdb::{Bytes, Formattable};
 
 /// OHLC (Open, High, Low, Close) data in cents
-#[derive(Debug, Default, Clone, JsonSchema)]
+#[derive(Debug, Default, Clone)]
 #[repr(C)]
 pub struct OHLCCents {
     pub open: Open<Cents>,
@@ -119,6 +120,27 @@ impl_ohlc_deserialize!(OHLCCents, Cents);
 impl_ohlc_deserialize!(OHLCDollars, Dollars);
 impl_ohlc_deserialize!(OHLCSats, Sats);
 
+/// The schema of the serialized form: `[open, high, low, close]`.
+macro_rules! impl_ohlc_schema {
+    ($ohlc_type:ident, $inner_type:ty) => {
+        impl JsonSchema for $ohlc_type {
+            fn schema_name() -> Cow<'static, str> {
+                stringify!($ohlc_type).into()
+            }
+
+            fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+                let mut schema = <[$inner_type; 4]>::json_schema(generator);
+                schema.insert("description".into(), "[open, high, low, close]".into());
+                schema
+            }
+        }
+    };
+}
+
+impl_ohlc_schema!(OHLCCents, Cents);
+impl_ohlc_schema!(OHLCDollars, Dollars);
+impl_ohlc_schema!(OHLCSats, Sats);
+
 impl Display for OHLCCents {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
@@ -131,15 +153,21 @@ impl Display for OHLCCents {
 
 #[cfg(feature = "storage")]
 impl Formattable for OHLCCents {
+    /// `[open, high, low, close]`, each price in its JSON form.
     fn write_to(&self, buf: &mut Vec<u8>) {
+        // Prices are always defined: a period without blocks carries the previous close.
+        debug_assert!(
+            !(self.open.is_nan() || self.high.is_nan() || self.low.is_nan() || self.close.is_nan()),
+            "undefined OHLC price"
+        );
         buf.push(b'[');
-        self.open.write_to(buf);
+        (*self.open).fmt_json(buf);
         buf.push(b',');
-        self.high.write_to(buf);
+        (*self.high).fmt_json(buf);
         buf.push(b',');
-        self.low.write_to(buf);
+        (*self.low).fmt_json(buf);
         buf.push(b',');
-        self.close.write_to(buf);
+        (*self.close).fmt_json(buf);
         buf.push(b']');
     }
 

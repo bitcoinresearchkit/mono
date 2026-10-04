@@ -18,7 +18,7 @@ use std::{
 use tempfile::Builder;
 
 use super::write_if_changed;
-use crate::{Endpoint, IndexSetPattern, model::Model};
+use crate::{Endpoint, IndexSetPattern, ValueTypes, model::Model};
 
 /// Generate a Rust client from the series-tree model and OpenAPI endpoints.
 ///
@@ -27,6 +27,7 @@ pub(crate) fn generate_rust_client(
     model: &Model,
     shape_names: &[String],
     accessors: &[IndexSetPattern],
+    value_types: &ValueTypes,
     endpoints: &[Endpoint],
     output_path: &Path,
 ) -> io::Result<()> {
@@ -46,7 +47,7 @@ pub(crate) fn generate_rust_client(
     client::generate_series_pattern_trait(&mut output);
     client::generate_endpoint(&mut output);
     client::generate_index_accessors(&mut output, accessors);
-    tree::generate_tree(&mut output, model, shape_names, accessors);
+    tree::generate_tree(&mut output, model, shape_names, accessors, value_types);
     api::generate_main_client(&mut output, endpoints);
 
     let output = format_rust(output)?;

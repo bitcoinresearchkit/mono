@@ -1084,7 +1084,7 @@ Parameters:
 - `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
 - `format` (query, Format, optional): Format of the output
 
-Returns: JSON `boolean[]`
+Returns: JSON `*[]`
 
 ```bash
 curl -s "https://bitview.space/api/series/<series>/<index>/data?start=<start>&end=<end>&limit=<limit>&format=<format>"
@@ -1490,14 +1490,14 @@ curl -s "https://bitview.space/version"
 ### `AddrValidation`
 
 - `isvalid`: `boolean` (required) — Whether the address is valid
-- `address`: `object` — The validated address
-- `scriptPubKey`: `object` — The scriptPubKey in hex
-- `isscript`: `object` — Whether this is a script address (P2SH)
-- `iswitness`: `object` — Whether this is a witness address
-- `witness_version`: `object` — Witness version (0 for P2WPKH/P2WSH, 1 for P2TR)
-- `witness_program`: `object` — Witness program in hex
-- `error_locations`: `object` — Error locations (empty array for most errors)
-- `error`: `object` — Error message for invalid addresses
+- `address`: `string | null` — The validated address
+- `scriptPubKey`: `string | null` — The scriptPubKey in hex
+- `isscript`: `boolean | null` — Whether this is a script address (P2SH)
+- `iswitness`: `boolean | null` — Whether this is a witness address
+- `witness_version`: `integer | null` — Witness version (0 for P2WPKH/P2WSH, 1 for P2TR)
+- `witness_program`: `string | null` — Witness program in hex
+- `error_locations`: `array | null` — Error locations (empty array for most errors)
+- `error`: `string | null` — Error message for invalid addresses
 
 ### `Bitcoin`
 
@@ -1513,7 +1513,7 @@ curl -s "https://bitview.space/version"
 - `avgFee`: `Sats` (required) — Average fee per transaction in satoshis
 - `avgFeeRate`: `FeeRate` (required) — Average fee rate in sat/vB
 - `coinbaseRaw`: `string` (required) — Raw coinbase transaction scriptsig as hex
-- `coinbaseAddress`: `object` — Primary coinbase output address
+- `coinbaseAddress`: `string | null` — Primary coinbase output address
 - `coinbaseAddresses`: `string[]` (required) — All coinbase output addresses
 - `coinbaseSignature`: `string` (required) — Coinbase output script in ASM format
 - `coinbaseSignatureAscii`: `string` (required) — Coinbase scriptsig decoded as ASCII
@@ -1531,7 +1531,7 @@ curl -s "https://bitview.space/version"
 - `utxoSetSize`: `integer` (required) — Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
 - `totalInputAmt`: `Sats` (required) — Total input amount in satoshis
 - `virtualSize`: `number` (required) — Virtual size in vbytes
-- `firstSeen`: `object` — Timestamp when the block was first seen (always null, not yet supported)
+- `firstSeen`: `integer | null` — Timestamp when the block was first seen (always null, not yet supported)
 - `orphans`: `string[]` (required) — Orphaned blocks (always empty)
 - `price`: `Dollars` (required) — USD price at block height
 
@@ -1579,7 +1579,7 @@ curl -s "https://bitview.space/version"
 - `name`: `string` (required) — Pool name
 - `slug`: `PoolSlug` (required) — URL-friendly pool identifier
 - `blockNumber`: `integer` (required) — This block's ordinal among blocks attributed to this pool
-- `minerNames`: `object` — Miner name tags found in coinbase scriptsig
+- `minerNames`: `array | null` — Miner name tags found in coinbase scriptsig
 
 ### `BlockSizeEntry`
 
@@ -1835,7 +1835,7 @@ curl -s "https://bitview.space/version"
 - `blockCount`: `PoolBlockCounts` (required) — Block counts for different time periods
 - `blockShare`: `PoolBlockShares` (required) — Pool's share of total blocks for different time periods
 - `estimatedHashrate`: `integer` (required) — Estimated hashrate based on blocks mined (H/s)
-- `reportedHashrate`: `object` — Self-reported hashrate (if available, H/s)
+- `reportedHashrate`: `integer | null` — Self-reported hashrate (if available, H/s)
 - `totalReward`: `Sats | null` — Total reward earned by this pool (sats, all time; None for minor pools)
 
 ### `PoolDetailInfo`
@@ -1884,7 +1884,7 @@ curl -s "https://bitview.space/version"
 ### `RbfResponse`
 
 - `replacements`: `ReplacementNode | null`
-- `replaces`: `object`
+- `replaces`: `array | null`
 
 ### `RbfTx`
 
@@ -1895,7 +1895,7 @@ curl -s "https://bitview.space/version"
 - `rate`: `FeeRate` (required)
 - `time`: `Timestamp` (required)
 - `rbf`: `boolean` (required) — BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
-- `fullRbf`: `object` — Only populated on the root `tx` of an RBF response. `true` iff this tx displaced at least one non-signaling predecessor.
+- `fullRbf`: `boolean | null` — Only populated on the root `tx` of an RBF response. `true` iff this tx displaced at least one non-signaling predecessor.
 
 ### `RecommendedFees`
 
@@ -1910,8 +1910,8 @@ curl -s "https://bitview.space/version"
 - `tx`: `RbfTx` (required)
 - `time`: `Timestamp` (required) — First-seen timestamp, duplicated here to match mempool.space's on-the-wire shape.
 - `fullRbf`: `boolean` (required) — Any predecessor in this subtree was non-signaling.
-- `interval`: `object` — Seconds between this node's `time` and the successor that replaced it. Omitted on the root of an RBF response.
-- `mined`: `object` — `Some(true)` iff this node's tx is currently confirmed. Absent on serialization otherwise.
+- `interval`: `integer | null` — Seconds between this node's `time` and the successor that replaced it. Omitted on the root of an RBF response.
+- `mined`: `boolean | null` — `Some(true)` iff this node's tx is currently confirmed. Absent on serialization otherwise.
 - `replaces`: `ReplacementNode[]` (required)
 
 ### `RewardStats`
@@ -1941,24 +1941,26 @@ curl -s "https://bitview.space/version"
 
 - `version`: `integer` (required) — Version of the series data
 - `index`: `Index` (required) — The index type used for this query
-- `type`: `string` — Value type (e.g. "f32", "u64", "Sats")
+- `type`: `string` — Value type (e.g. "StoredF32", "Sats", "Cents")
 - `start`: `integer` (required) — Start index (inclusive) of the returned range
 - `end`: `integer` (required) — End index (exclusive) of the returned range
 - `stamp`: `string` (required) — ISO 8601 timestamp of when the response was generated
-- `data`: `object[]` (required) — The series data
+- `data`: `value[]` (required) — The series data. A value is `null` where it is missing (a period without blocks) or undefined (e.g. NaN, a ratio over zero); CSV leaves such a cell empty.
 
 ### `SeriesInfo`
 
-- `description`: `object` — Human-readable metric definition, when documented
+- `description`: `string | null` — Human-readable metric definition, when documented
 - `indexes`: `Index[]` (required) — Available indexes
-- `type`: `string` (required) — Value type (e.g. "f32", "u64", "Sats")
+- `nullable`: `Index[]` (required) — Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
+- `type`: `string` (required) — Value type (e.g. "StoredF32", "Sats", "Cents")
 
 ### `SeriesLeafWithSchema`
 
 - `name`: `string` (required) — The series name/identifier.
 - `kind`: `string` (required) — The Rust type (e.g., "Sats", "StoredF64").
 - `indexes`: `Index[]` (required) — Available indexes for this series.
-- `description`: `object` — Human-readable metric definition, when documented.
+- `nullable`: `Index[]` (required) — Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
+- `description`: `string | null` — Human-readable metric definition, when documented.
 - `type`: `string` (required) — JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
 
 ### `SigOps`

@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use brk_types::Dollars;
-use schemars::JsonSchema;
 use serde::{Serialize, Serializer, ser::SerializeTuple};
 
 use super::{Close, High, Low, OHLCCents, Open};
@@ -13,7 +12,7 @@ use vecdb::Result as VecdbResult;
 use vecdb::{Bytes, Formattable};
 
 /// OHLC (Open, High, Low, Close) data in dollars
-#[derive(Debug, Default, Clone, Copy, JsonSchema)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct OHLCDollars {
     pub open: Open<Dollars>,
@@ -91,15 +90,21 @@ impl Display for OHLCDollars {
 
 #[cfg(feature = "storage")]
 impl Formattable for OHLCDollars {
+    /// `[open, high, low, close]`, each price in its JSON form.
     fn write_to(&self, buf: &mut Vec<u8>) {
+        // Prices are always defined: a period without blocks carries the previous close.
+        debug_assert!(
+            !(self.open.is_nan() || self.high.is_nan() || self.low.is_nan() || self.close.is_nan()),
+            "undefined OHLC price"
+        );
         buf.push(b'[');
-        self.open.write_to(buf);
+        (*self.open).fmt_json(buf);
         buf.push(b',');
-        self.high.write_to(buf);
+        (*self.high).fmt_json(buf);
         buf.push(b',');
-        self.low.write_to(buf);
+        (*self.low).fmt_json(buf);
         buf.push(b',');
-        self.close.write_to(buf);
+        (*self.close).fmt_json(buf);
         buf.push(b']');
     }
 

@@ -199,6 +199,8 @@ impl Display for SatsFract {
 
 #[cfg(feature = "storage")]
 impl Formattable for SatsFract {
+    const UNDEFINED: bool = true;
+
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         if self.0.is_finite() {
