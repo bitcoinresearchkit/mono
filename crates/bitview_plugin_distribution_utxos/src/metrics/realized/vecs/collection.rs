@@ -20,7 +20,7 @@ impl RealizedVecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Box<Self>> {
-        let cap = RealizedCapByCohort::import(db, version, mappings)?;
+        let cap = RealizedCapByCohort::import(db, "realized_cap", version, mappings)?;
         let price = RealizedPriceByCohort::import(db, version, mappings)?;
         let profit = CumulativeRealizedByCohort::import(
             db,

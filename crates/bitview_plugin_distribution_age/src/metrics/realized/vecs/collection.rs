@@ -61,7 +61,7 @@ impl RealizedVecs {
     ) -> Result<Box<Self>> {
         let cap_raw = DisjointAgeSources::import(db, "cap_raw", version)?;
         let capitalized_cap_raw = DisjointAgeSources::import(db, "capitalized_cap_raw", version)?;
-        let cap = RealizedCapByCohort::import(db, version, mappings)?;
+        let cap = RealizedCapByCohort::import(db, "realized_cap", version, mappings)?;
         let profit = CumulativeRealizedByCohort::import(
             db,
             "realized_profit",

@@ -10,12 +10,10 @@ mod unrealized;
 
 pub use activity::ActivityVecs;
 use bitview_cohort::cohort_group::Creation;
-use bitview_vecs::{CohortSources, CumulativeCohortSources, CumulativeCohortValueSources};
+use bitview_vecs::CumulativeCohortSources;
 use vecdb::Rw;
 
-pub type CreationSources<T, M = Rw> = CohortSources<Creation, T, M>;
 pub type CumulativeCreationSources<T, M = Rw> = CumulativeCohortSources<Creation, T, M>;
-pub type CumulativeCreationValueSources<M = Rw> = CumulativeCohortValueSources<Creation, M>;
 pub use cohorts::CohortMetrics;
 
 pub use outputs::OutputsVecs;

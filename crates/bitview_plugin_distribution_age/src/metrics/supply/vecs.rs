@@ -154,8 +154,8 @@ impl SupplyVecs {
         let in_loss = profitability.map(|state| state.supply_in_loss);
 
         self.total.push(&total);
-        self.in_profit.push(in_profit);
-        self.in_loss.push(in_loss);
+        self.in_profit.push(&in_profit);
+        self.in_loss.push(&in_loss);
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
@@ -165,8 +165,8 @@ impl SupplyVecs {
                 .iter_mut()
                 .flat_map(|v| [v.sats.stored_mut(), v.cents.stored_mut()]),
         );
-        vecs.extend(self.in_profit.collect_vecs_mut());
-        vecs.extend(self.in_loss.collect_vecs_mut());
+        vecs.extend(self.in_profit.stored_vecs_mut());
+        vecs.extend(self.in_loss.stored_vecs_mut());
         vecs
     }
 }

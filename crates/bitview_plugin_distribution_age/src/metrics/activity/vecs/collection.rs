@@ -9,7 +9,7 @@ use brk_error::Result;
 use brk_types::{Cents, Sats, Version};
 use vecdb::{AnyStoredVec, BinaryTransform, Database, Rw, StorageMode};
 
-use super::{CoindaysDestroyedByCohort, CoreCumulativeValueByCohort, CumulativeValueByCohort};
+use super::{CoindaysDestroyedByCohort, CumulativeValueByCohort};
 
 #[derive(Traversable)]
 pub struct ActivityVecs<M: StorageMode = Rw> {
@@ -23,11 +23,11 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
     #[traversable(wrap = "transfer_volume", rename = "in_profit")]
     /// Transfer volume whose spending price is greater than or equal to the
     /// spent outputs' creation price.
-    pub transfer_volume_in_profit: Box<CoreCumulativeValueByCohort<M>>,
+    pub transfer_volume_in_profit: Box<CumulativeValueByCohort<M>>,
     #[traversable(wrap = "transfer_volume", rename = "in_loss")]
     /// Transfer volume whose spending price is below the spent outputs'
     /// creation price.
-    pub transfer_volume_in_loss: Box<CoreCumulativeValueByCohort<M>>,
+    pub transfer_volume_in_loss: Box<CumulativeValueByCohort<M>>,
 }
 
 impl ActivityVecs {
@@ -47,14 +47,14 @@ impl ActivityVecs {
         )?);
         let coindays_destroyed =
             CoindaysDestroyedByCohort::import(db, version, mappings, window_starts)?;
-        let transfer_volume_in_profit = Box::new(CoreCumulativeValueByCohort::import(
+        let transfer_volume_in_profit = Box::new(CumulativeValueByCohort::import(
             db,
             "transfer_volume_in_profit",
             version,
             mappings,
             window_starts,
         )?);
-        let transfer_volume_in_loss = Box::new(CoreCumulativeValueByCohort::import(
+        let transfer_volume_in_loss = Box::new(CumulativeValueByCohort::import(
             db,
             "transfer_volume_in_loss",
             version,
@@ -90,16 +90,16 @@ impl ActivityVecs {
             .stored
             .push_block(coindays_destroyed);
         self.transfer_volume_in_profit
-            .push_block(transfer_volume_in_profit, profit_value);
+            .push_block(&transfer_volume_in_profit, &profit_value);
         self.transfer_volume_in_loss
-            .push_block(transfer_volume_in_loss, loss_value);
+            .push_block(&transfer_volume_in_loss, &loss_value);
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs: Vec<_> = self.transfer_volume.stored_vecs_mut().collect();
         vecs.extend(self.coindays_destroyed.stored.stored_vecs_mut());
-        vecs.extend(self.transfer_volume_in_profit.collect_vecs_mut());
-        vecs.extend(self.transfer_volume_in_loss.collect_vecs_mut());
+        vecs.extend(self.transfer_volume_in_profit.stored_vecs_mut());
+        vecs.extend(self.transfer_volume_in_loss.stored_vecs_mut());
         vecs
     }
 }

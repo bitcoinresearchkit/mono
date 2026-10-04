@@ -1,4 +1,5 @@
-use bitview_cohort::{AgeRange, CreationCohorts};
+use bitview_cohort::{AgeRange, CreationCohorts, cohort_group::Creation};
+use bitview_plugin_distribution_common::families::FiatByCohort;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::CentsSquaredSats;
 use bitview_traversable::Traversable;
@@ -7,7 +8,6 @@ use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
-use super::{NetUnrealizedByCohort, UnrealizedByCohort};
 use crate::state::UnrealizedState;
 
 #[derive(Traversable)]
@@ -15,14 +15,14 @@ pub struct UnrealizedVecs<M: StorageMode = Rw> {
     /// Unrealized profit of a UTXO cohort's unspent outputs: market value at
     /// the represented block minus creation-date value, summed where spot is
     /// above creation price.
-    pub profit: UnrealizedByCohort<Cents, M>,
+    pub profit: FiatByCohort<Creation, Cents, M>,
     /// Unrealized loss of a UTXO cohort's unspent outputs: creation-date value
     /// minus market value at the represented block, summed where spot is below
     /// creation price.
-    pub loss: UnrealizedByCohort<Cents, M>,
+    pub loss: FiatByCohort<Creation, Cents, M>,
     /// Net unrealized profit and loss of a UTXO cohort: unrealized profit
     /// minus unrealized loss.
-    pub net_pnl: NetUnrealizedByCohort<M>,
+    pub net_pnl: FiatByCohort<Creation, CentsSigned, M>,
     /// Exact squared-price products retained as disjoint accounting inputs.
     #[traversable(hidden)]
     pub capitalized_cap_in_profit_raw: DisjointAgeSources<CentsSquaredSats, M>,
@@ -33,10 +33,9 @@ pub struct UnrealizedVecs<M: StorageMode = Rw> {
 impl UnrealizedVecs {
     pub fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Box<Self>> {
         let profit =
-            UnrealizedByCohort::import(db, "unrealized_profit", version + Version::ONE, mappings)?;
-        let loss =
-            UnrealizedByCohort::import(db, "unrealized_loss", version + Version::ONE, mappings)?;
-        let net_pnl = NetUnrealizedByCohort::import(db, version, mappings)?;
+            FiatByCohort::import(db, "unrealized_profit", version + Version::ONE, mappings)?;
+        let loss = FiatByCohort::import(db, "unrealized_loss", version + Version::ONE, mappings)?;
+        let net_pnl = FiatByCohort::import(db, "net_unrealized_pnl", version, mappings)?;
         let capitalized_cap_in_profit_raw =
             DisjointAgeSources::import(db, "capitalized_cap_in_profit_raw", version)?;
         let capitalized_cap_in_loss_raw =

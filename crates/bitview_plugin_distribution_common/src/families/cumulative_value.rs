@@ -13,8 +13,6 @@ use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 #[derive(Traversable)]
 pub struct CumulativeValueByCohort<G: CohortGroup, M: StorageMode = Rw> {
     #[traversable(flatten)]
-    /// UTXO groups and spent output value grouped by the spending address's
-    /// balance immediately before the spend.
     pub cohorts: G::Of<LazyValuePerBlockCumulativeRolling>,
     #[traversable(hidden)]
     pub stored: CumulativeCohortValueSources<G, M>,

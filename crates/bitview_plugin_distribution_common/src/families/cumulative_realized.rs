@@ -14,7 +14,6 @@ use vecdb::{Database, Rw, StorageMode};
 #[derive(Traversable)]
 pub struct CumulativeRealizedByCohort<G: CohortGroup, M: StorageMode = Rw> {
     #[traversable(flatten)]
-    /// Includes spends grouped by the address's pre-spend balance.
     cohorts: G::Of<LazyFiatPerBlockCumulativeWithSums<Cents>>,
     #[traversable(hidden)]
     pub stored: CumulativeCohortSources<G, Cents, M>,

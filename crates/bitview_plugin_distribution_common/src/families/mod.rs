@@ -2,14 +2,14 @@
 
 mod cumulative_realized;
 mod cumulative_value;
-mod realized_cap;
+mod fiat;
 mod spent_output_count;
-mod supply_total;
+mod supply;
 mod unspent_output_count;
 
 pub use cumulative_realized::CumulativeRealizedByCohort;
 pub use cumulative_value::CumulativeValueByCohort;
-pub use realized_cap::RealizedCapByCohort;
+pub use fiat::FiatByCohort;
 pub use spent_output_count::SpentOutputCount;
-pub use supply_total::SupplyTotal;
+pub use supply::{SupplyByCohort, SupplyTotal};
 pub use unspent_output_count::UnspentOutputCount;
