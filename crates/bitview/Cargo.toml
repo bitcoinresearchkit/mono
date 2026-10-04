@@ -19,7 +19,7 @@ price = ["bitview_server/price"]
 
 [dependencies]
 brk_exit = { workspace = true }
-bitview_query = { workspace = true, features = ["tokio"] }
+bitview_query = { workspace = true, features = ["indexer"] }
 bitview_runtime = { workspace = true }
 bitview_server = { workspace = true }
 brk_error = { workspace = true, features = ["tokio", "vecdb"] }

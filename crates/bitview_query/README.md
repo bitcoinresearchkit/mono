@@ -128,14 +128,12 @@ unindexable date) keep their meaning through `From<brk_error::Error>`.
 
 ## Features
 
-Per-plugin features (`indexer`, `blocks`, `coinflow`, `cointime`, `distribution_age`,
-`distribution_addresses`, `inputs`, `mappings`, `mining`, `outputs`, `pools`, `price`,
-`transactions`, `utxo_history`) are the source of truth; `chain`, `series`, `urpd` and
-`full-api` aggregate them. Enabling one adds its
-typed `HasX` requirement to `QueryPluginSet` and exposes its typed accessor.
-The `tokio` feature adds `AsyncQuery` and also enables the indexer capability.
+`indexer` brings `Query`, `AsyncQuery` and tokio. The API features select endpoints and the
+plugins those endpoints read: `chain` (blocks, transactions, addresses, mining, mempool; implies
+`price`), `series`, `price` (oracle prices) and `urpd` (implies `price`); `full-api` enables all of
+them. Each plugin an enabled API feature reads adds its typed `HasX` requirement to
+`QueryPluginSet` and exposes its typed accessor.
 
-`chain`, `series`, `urpd`, and `full-api` are convenience aggregators.
 `full-api` is the default for standalone users; composition and adapter crates
 should disable default features and select only what they expose. Generic
 `Vecs` discovery works with any `Traversable` plugin without a feature or

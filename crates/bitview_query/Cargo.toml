@@ -11,43 +11,29 @@ exclude = ["examples/"]
 [features]
 default = ["full-api"]
 full-api = ["chain", "series", "urpd"]
-indexer = ["dep:bitview_plugin_indexer"]
-blocks = ["indexer", "dep:bitview_plugin_blocks"]
-coinflow = ["indexer", "dep:bitview_plugin_coinflow"]
-cointime = ["indexer", "dep:bitview_plugin_cointime"]
-distribution_age = ["indexer", "dep:bitview_plugin_distribution_age"]
-distribution_addresses = ["indexer", "dep:bitview_plugin_distribution_addresses"]
-mappings = ["indexer", "dep:bitview_plugin_mappings"]
-inputs = ["indexer", "dep:bitview_plugin_inputs"]
-mining = ["indexer", "dep:bitview_plugin_mining"]
-outputs = ["indexer", "dep:bitview_plugin_outputs"]
-pools = ["indexer", "dep:bitview_plugin_pools"]
-price = ["mappings", "dep:bitview_plugin_price"]
-transactions = ["indexer", "dep:bitview_plugin_transactions"]
-utxo_history = ["indexer", "dep:bitview_plugin_utxo_history"]
+indexer = ["dep:bitview_plugin_indexer", "dep:tokio", "brk_error/tokio"]
 chain = [
+    "price",
     "dep:brk_cpfp",
-    "blocks",
-    "distribution_addresses",
-    "mappings",
-    "inputs",
-    "mining",
-    "outputs",
-    "pools",
-    "price",
-    "transactions",
-    "utxo_history",
+    "dep:bitview_plugin_blocks",
+    "dep:bitview_plugin_distribution_addresses",
+    "dep:bitview_plugin_inputs",
+    "dep:bitview_plugin_mining",
+    "dep:bitview_plugin_outputs",
+    "dep:bitview_plugin_pools",
+    "dep:bitview_plugin_transactions",
+    "dep:bitview_plugin_utxo_history",
 ]
-series = ["mappings"]
+series = ["indexer", "dep:bitview_plugin_mappings"]
 urpd = [
-    "utxo_history",
-    "dep:bitview_urpd",
-    "coinflow",
-    "cointime",
-    "distribution_age",
     "price",
+    "dep:bitview_urpd",
+    "dep:bitview_plugin_utxo_history",
+    "dep:bitview_plugin_coinflow",
+    "dep:bitview_plugin_cointime",
+    "dep:bitview_plugin_distribution_age",
 ]
-tokio = ["indexer", "dep:tokio", "brk_error/tokio"]
+price = ["indexer", "dep:bitview_plugin_mappings", "dep:bitview_plugin_price"]
 
 [dependencies]
 bitcoin = { workspace = true }

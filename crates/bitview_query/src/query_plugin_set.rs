@@ -1,73 +1,118 @@
-#[cfg(feature = "blocks")]
+#[cfg(feature = "chain")]
 use bitview_plugin_blocks::HasBlocks;
-#[cfg(feature = "coinflow")]
+#[cfg(feature = "urpd")]
 use bitview_plugin_coinflow::HasCoinflow;
-#[cfg(feature = "cointime")]
+#[cfg(feature = "urpd")]
 use bitview_plugin_cointime::HasCointime;
-#[cfg(feature = "distribution_addresses")]
+#[cfg(feature = "chain")]
 use bitview_plugin_distribution_addresses::HasDistributionAddresses;
-#[cfg(feature = "distribution_age")]
+#[cfg(feature = "urpd")]
 use bitview_plugin_distribution_age::HasDistributionAge;
 use bitview_plugin_indexer::HasIndexer;
-#[cfg(feature = "inputs")]
+#[cfg(feature = "chain")]
 use bitview_plugin_inputs::HasInputs;
-#[cfg(feature = "mappings")]
+#[cfg(any(feature = "series", feature = "price"))]
 use bitview_plugin_mappings::HasMappings;
-#[cfg(feature = "mining")]
+#[cfg(feature = "chain")]
 use bitview_plugin_mining::HasMining;
-#[cfg(feature = "outputs")]
+#[cfg(feature = "chain")]
 use bitview_plugin_outputs::HasOutputs;
-#[cfg(feature = "pools")]
+#[cfg(feature = "chain")]
 use bitview_plugin_pools::HasPools;
 #[cfg(feature = "price")]
 use bitview_plugin_price::HasPrice;
-#[cfg(feature = "transactions")]
+#[cfg(feature = "chain")]
 use bitview_plugin_transactions::HasTransactions;
-#[cfg(feature = "utxo_history")]
+#[cfg(any(feature = "chain", feature = "urpd"))]
 use bitview_plugin_utxo_history::HasUtxoHistory;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use vecdb::Ro;
 
+/// A plugin is read by the API features in `$cfg`; without them the capability is empty.
 macro_rules! plugin_capability {
-    ($feature:literal, $supports:ident, $has:ident) => {
-        #[cfg(feature = $feature)]
+    (#[cfg($($cfg:tt)*)] $supports:ident, $has:ident) => {
+        #[cfg($($cfg)*)]
         pub trait $supports: $has<Ro> {}
 
-        #[cfg(feature = $feature)]
+        #[cfg($($cfg)*)]
         impl<T> $supports for T where T: $has<Ro> {}
 
-        #[cfg(not(feature = $feature))]
+        #[cfg(not($($cfg)*))]
         pub trait $supports {}
 
-        #[cfg(not(feature = $feature))]
+        #[cfg(not($($cfg)*))]
         impl<T> $supports for T {}
     };
 }
 
-plugin_capability!("blocks", SupportsBlocks, HasBlocks);
-plugin_capability!("coinflow", SupportsCoinflow, HasCoinflow);
-plugin_capability!("cointime", SupportsCointime, HasCointime);
 plugin_capability!(
-    "distribution_addresses",
+    #[cfg(feature = "chain")]
+    SupportsBlocks,
+    HasBlocks
+);
+plugin_capability!(
+    #[cfg(feature = "urpd")]
+    SupportsCoinflow,
+    HasCoinflow
+);
+plugin_capability!(
+    #[cfg(feature = "urpd")]
+    SupportsCointime,
+    HasCointime
+);
+plugin_capability!(
+    #[cfg(feature = "chain")]
     SupportsDistributionAddresses,
     HasDistributionAddresses
 );
 plugin_capability!(
-    "distribution_age",
+    #[cfg(feature = "urpd")]
     SupportsDistributionAge,
     HasDistributionAge
 );
-plugin_capability!("inputs", SupportsInputs, HasInputs);
-plugin_capability!("mappings", SupportsMappings, HasMappings);
-plugin_capability!("mining", SupportsMining, HasMining);
-plugin_capability!("outputs", SupportsOutputs, HasOutputs);
-plugin_capability!("pools", SupportsPools, HasPools);
-plugin_capability!("price", SupportsPrice, HasPrice);
-plugin_capability!("transactions", SupportsTransactions, HasTransactions);
-plugin_capability!("utxo_history", SupportsUtxoHistory, HasUtxoHistory);
+plugin_capability!(
+    #[cfg(feature = "chain")]
+    SupportsInputs,
+    HasInputs
+);
+plugin_capability!(
+    #[cfg(any(feature = "series", feature = "price"))]
+    SupportsMappings,
+    HasMappings
+);
+plugin_capability!(
+    #[cfg(feature = "chain")]
+    SupportsMining,
+    HasMining
+);
+plugin_capability!(
+    #[cfg(feature = "chain")]
+    SupportsOutputs,
+    HasOutputs
+);
+plugin_capability!(
+    #[cfg(feature = "chain")]
+    SupportsPools,
+    HasPools
+);
+plugin_capability!(
+    #[cfg(feature = "price")]
+    SupportsPrice,
+    HasPrice
+);
+plugin_capability!(
+    #[cfg(feature = "chain")]
+    SupportsTransactions,
+    HasTransactions
+);
+plugin_capability!(
+    #[cfg(any(feature = "chain", feature = "urpd"))]
+    SupportsUtxoHistory,
+    HasUtxoHistory
+);
 
-/// Composition contract for the individually enabled query plugins.
+/// Composition contract for the plugins the enabled API features read.
 ///
 /// A composition whose query capabilities live on a nested plugin set can
 /// return that set from [`query_capabilities`](Self::query_capabilities).

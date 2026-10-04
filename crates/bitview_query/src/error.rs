@@ -114,7 +114,7 @@ lower!(
     jiff::Error,
     serde_json::Error,
 );
-#[cfg(feature = "tokio")]
+#[cfg(feature = "indexer")]
 lower!(tokio::task::JoinError);
 
 /// Maximum length of a user-supplied series name in error messages before

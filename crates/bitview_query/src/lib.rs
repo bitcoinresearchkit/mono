@@ -18,7 +18,9 @@ use bitview_plugin::Publication;
 use bitview_plugin::PublicationReadGuard;
 
 #[cfg(feature = "indexer")]
-use bitview_plugin_indexer::{Indexer, Lengths};
+use bitview_plugin_indexer::Indexer;
+#[cfg(any(feature = "chain", feature = "series", feature = "price"))]
+use bitview_plugin_indexer::Lengths;
 #[cfg(feature = "indexer")]
 use bitview_primitives::BlockHashPrefix;
 #[cfg(feature = "series")]
@@ -40,7 +42,7 @@ use vecdb::ReadBounds;
 #[cfg(feature = "indexer")]
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
-#[cfg(feature = "tokio")]
+#[cfg(feature = "indexer")]
 mod r#async;
 mod error;
 #[cfg(feature = "price")]
@@ -57,7 +59,7 @@ mod vecs;
 #[cfg(feature = "indexer")]
 mod r#impl;
 
-#[cfg(feature = "tokio")]
+#[cfg(feature = "indexer")]
 pub use r#async::*;
 #[cfg(feature = "indexer")]
 pub(crate) use error::OptionData;
@@ -192,12 +194,14 @@ impl Query {
     /// committed, so the highest is `N-1`. Pre-genesis (`N == 0`) falls
     /// back to `Height::default()` and clients treat it as "nothing
     /// indexed yet".
+    #[cfg(feature = "chain")]
     fn height(&self) -> Height {
         self.safe_lengths().last_height().unwrap_or_default()
     }
 
     /// Snapshot of the pipeline-safe `Lengths`. Hot paths that need
     /// multiple bound fields should call this once at entry and reuse.
+    #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
     fn safe_lengths(&self) -> Lengths {
         self.indexer().safe_lengths()
     }
@@ -339,6 +343,7 @@ impl Query {
     }
 
     /// The shared read-only plugin composition backing this query view.
+    #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
     #[inline]
     fn plugins(&self) -> &QueryPlugins<'static> {
         &self.0.plugins
