@@ -1,5 +1,5 @@
 use bitview_compute::ComputeRollingStats;
-use bitview_primitives::{Lengths, StoredF32};
+use bitview_primitives::{Lengths, Ratio};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -12,10 +12,10 @@ use crate::{IndexSources, Lookback, PerBlock};
 pub struct StdDevPerBlock<M: StorageMode = Rw> {
     #[traversable(skip)]
     days: usize,
-    /// Arithmetic mean of the source values in a trailing window.
-    sma: PerBlock<StoredF32, M>,
-    /// Population standard deviation of the source values in a trailing window.
-    pub sd: PerBlock<StoredF32, M>,
+    /// Arithmetic mean of the source ratios in a trailing window.
+    sma: PerBlock<Ratio, M>,
+    /// Population standard deviation of the source ratios in a trailing window.
+    pub sd: PerBlock<Ratio, M>,
 }
 
 impl StdDevPerBlock {
@@ -45,7 +45,7 @@ impl StdDevPerBlock {
         lookback: &impl Lookback,
         starting_lengths: &Lengths,
         exit: &Exit,
-        source: &impl ReadableVec<Height, StoredF32>,
+        source: &impl ReadableVec<Height, Ratio>,
     ) -> Result<()> {
         if self.days == usize::MAX {
             self.sma

@@ -1,6 +1,6 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::{BoundedOddsF64, BoundedToF64};
+use bitview_transforms::{BoundedOdds, BoundedToRatio};
 use bitview_vecs::{LazyPerBlock, LazyWindowStartVec, PerBlock, PerBlockCumulativeRolling};
 use brk_error::Result;
 use brk_types::Version;
@@ -26,17 +26,17 @@ impl DerivedVecs {
         let version = version + Version::ONE;
         let liveliness_source =
             PerBlock::import(db, &name("liveliness_bounded_source"), version, mappings)?;
-        let liveliness = LazyPerBlock::from_resolutions::<BoundedToF64>(
+        let liveliness = LazyPerBlock::from_resolutions::<BoundedToRatio>(
             &liveliness_name,
             version,
             &liveliness_source,
         );
-        let vaultedness = LazyPerBlock::from_resolutions::<BoundedToF64<true>>(
+        let vaultedness = LazyPerBlock::from_resolutions::<BoundedToRatio<true>>(
             &name("vaultedness"),
             version,
             &liveliness_source,
         );
-        let ratio = LazyPerBlock::from_resolutions::<BoundedOddsF64>(
+        let ratio = LazyPerBlock::from_resolutions::<BoundedOdds>(
             &name("activity_to_vaultedness"),
             version + Version::ONE,
             &liveliness_source,

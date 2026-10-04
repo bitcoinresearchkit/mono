@@ -4,7 +4,7 @@ use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillion32, StoredF64};
+use bitview_primitives::{PartsPerMillion32, Ratio64};
 use bitview_urpd::ReplayInputs;
 use brk_types::Height;
 use vecdb::ReadableVec;
@@ -33,10 +33,8 @@ impl Dependencies<'_> {
             .ppm
             .height
     }
-    pub(crate) fn weighted_loss_shares(
-        &self,
-    ) -> WeightedModes<&dyn ReadableVec<Height, StoredF64>> {
-        WeightedModes::from_fn(|mode| -> &dyn ReadableVec<Height, StoredF64> {
+    pub(crate) fn weighted_loss_shares(&self) -> WeightedModes<&dyn ReadableVec<Height, Ratio64>> {
+        WeightedModes::from_fn(|mode| -> &dyn ReadableVec<Height, Ratio64> {
             match mode {
                 WeightedModeId::Cointime => {
                     &self

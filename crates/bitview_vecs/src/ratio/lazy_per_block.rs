@@ -1,5 +1,5 @@
 use bitview_compute::{ComputedVecValue, FixedRatio, NumericValue};
-use bitview_primitives::{PriceRatio, StoredF32};
+use bitview_primitives::{PriceRatio, Ratio};
 use bitview_transforms::price_ratio;
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Version};
@@ -20,7 +20,7 @@ where
     /// Unitless ratio in parts per million; 1,000,000 represents 1.0.
     pub ppm: LazyPerBlock<R, S>,
     /// Unitless decimal ratio derived as parts per million divided by 1,000,000.
-    pub ratio: LazyPerBlock<StoredF32, R>,
+    pub ratio: LazyPerBlock<Ratio, R>,
 }
 
 impl LazyRatioPerBlock<PriceRatio> {

@@ -1,4 +1,4 @@
-use bitview_primitives::StoredF32;
+use bitview_primitives::Ratio;
 use vecdb::UnaryTransform;
 
 pub struct TimesSqrt<const DAYS: u16>;
@@ -13,9 +13,9 @@ impl<const DAYS: u16> TimesSqrt<DAYS> {
     };
 }
 
-impl<const DAYS: u16> UnaryTransform<StoredF32, StoredF32> for TimesSqrt<DAYS> {
+impl<const DAYS: u16> UnaryTransform<Ratio, Ratio> for TimesSqrt<DAYS> {
     #[inline(always)]
-    fn apply(value: StoredF32) -> StoredF32 {
-        (*value * Self::FACTOR).into()
+    fn apply(value: Ratio) -> Ratio {
+        Ratio::new(*value * Self::FACTOR)
     }
 }

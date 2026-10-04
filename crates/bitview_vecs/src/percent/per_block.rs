@@ -1,6 +1,6 @@
-use bitview_collections::Percent;
+use bitview_collections::FixedRatioViews;
 use bitview_compute::{ComputeDrawdown, FixedRatio};
-use bitview_primitives::StoredF32;
+use bitview_primitives::{Percent, Ratio};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -16,7 +16,7 @@ use crate::{IndexSources, LazyPerBlock, PerBlock};
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct PercentPerBlock<B: FixedRatio, M: StorageMode = Rw>(
-    pub Percent<PerBlock<B, M>, LazyPerBlock<StoredF32, B>>,
+    pub FixedRatioViews<PerBlock<B, M>, LazyPerBlock<Ratio, B>, LazyPerBlock<Percent, B>>,
 );
 
 impl<B: FixedRatio> PercentPerBlock<B> {
@@ -33,7 +33,7 @@ impl<B: FixedRatio> PercentPerBlock<B> {
 
         let percent = LazyPerBlock::from_resolutions::<B::ToPercent>(name, version, &ppm);
 
-        Ok(Self(Percent {
+        Ok(Self(FixedRatioViews {
             ppm,
             ratio,
             percent,

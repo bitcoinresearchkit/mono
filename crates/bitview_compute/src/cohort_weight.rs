@@ -1,5 +1,5 @@
 use bitview_cohort::AgeRange;
-use bitview_primitives::StoredF64;
+use bitview_primitives::Ratio64;
 use brk_types::{Height, Sats};
 use vecdb::ReadableVec;
 
@@ -24,7 +24,7 @@ where
 
 pub fn collect_cohort_weights(
     height: Height,
-    weights: &AgeRange<&impl ReadableVec<Height, StoredF64>>,
+    weights: &AgeRange<&impl ReadableVec<Height, Ratio64>>,
     supplies: &AgeRange<Sats>,
 ) -> Option<AgeRange<f64>> {
     AgeRange::try_from_fn(|age| {

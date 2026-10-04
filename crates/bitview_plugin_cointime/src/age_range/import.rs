@@ -2,7 +2,7 @@ use bitview_cohort::{AgeRange, AgeRangeId, CohortContext};
 use bitview_collections::Windows;
 use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::{BoundedOddsF64, BoundedToF64};
+use bitview_transforms::{BoundedOdds, BoundedToRatio};
 use bitview_vecs::{
     LazyPerBlock, LazySpotValuePerBlock, LazyWindowStartVec, PerBlockCumulativeRolling,
     import_cached,
@@ -42,7 +42,7 @@ impl Vecs {
         })?;
         let activity = ActivitySeries {
             wakefulness: AgeRangeId::series(CohortContext::Utxo, |id, name| {
-                LazyPerBlock::from_height_source::<BoundedToF64>(
+                LazyPerBlock::from_height_source::<BoundedToRatio>(
                     &format!("{name}_wakefulness"),
                     version,
                     id.select(&activity_sources),
@@ -50,7 +50,7 @@ impl Vecs {
                 )
             }),
             dormancy: AgeRangeId::series(CohortContext::Utxo, |id, name| {
-                LazyPerBlock::from_height_source::<BoundedToF64<true>>(
+                LazyPerBlock::from_height_source::<BoundedToRatio<true>>(
                     &format!("{name}_dormancy"),
                     version,
                     id.select(&activity_sources),
@@ -58,7 +58,7 @@ impl Vecs {
                 )
             }),
             wakefulness_to_dormancy: AgeRangeId::series(CohortContext::Utxo, |id, name| {
-                LazyPerBlock::from_height_source::<BoundedOddsF64>(
+                LazyPerBlock::from_height_source::<BoundedOdds>(
                     &format!("{name}_wakefulness_to_dormancy"),
                     version,
                     id.select(&activity_sources),

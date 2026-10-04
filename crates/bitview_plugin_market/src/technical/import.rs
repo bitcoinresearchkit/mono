@@ -1,6 +1,6 @@
 use bitview_collections::WindowsTo1m;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillionSigned64, StoredF32};
+use bitview_primitives::{PartsPerMillionSigned64, Ratio};
 use bitview_vecs::{LazyPerBlock, PerBlock, RatioPerBlock};
 use brk_error::Result;
 use brk_types::Version;
@@ -35,7 +35,7 @@ impl Vecs {
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
-        returns: &LazyPerBlock<StoredF32, PartsPerMillionSigned64>,
+        returns: &LazyPerBlock<Ratio, PartsPerMillionSigned64>,
     ) -> Result<Self> {
         let v = version + VERSION;
 

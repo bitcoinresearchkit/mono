@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64, StoredF32};
+use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64, Ratio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock, PercentPerBlock};
 use brk_error::Result;
@@ -10,30 +10,30 @@ mod compute;
 
 struct Gain;
 
-impl UnaryTransform<StoredF32, StoredF32> for Gain {
-    fn apply(value: StoredF32) -> StoredF32 {
-        StoredF32::from((*value).max(0.0))
+impl UnaryTransform<Ratio, Ratio> for Gain {
+    fn apply(value: Ratio) -> Ratio {
+        Ratio::new((*value).max(0.0))
     }
 }
 
 struct Loss;
 
-impl UnaryTransform<StoredF32, StoredF32> for Loss {
-    fn apply(value: StoredF32) -> StoredF32 {
-        StoredF32::from((-*value).max(0.0))
+impl UnaryTransform<Ratio, Ratio> for Loss {
+    fn apply(value: Ratio) -> Ratio {
+        Ratio::new((-*value).max(0.0))
     }
 }
 
 #[derive(Traversable)]
 pub struct RsiChain<M: StorageMode = Rw> {
     #[traversable(hidden)]
-    gains: LazyPerBlock<StoredF32>,
+    gains: LazyPerBlock<Ratio>,
     #[traversable(hidden)]
-    losses: LazyPerBlock<StoredF32>,
+    losses: LazyPerBlock<Ratio>,
     #[traversable(hidden)]
-    average_gain: PerBlock<StoredF32, M>,
+    average_gain: PerBlock<Ratio, M>,
     #[traversable(hidden)]
-    average_loss: PerBlock<StoredF32, M>,
+    average_loss: PerBlock<Ratio, M>,
     /// Wilder-smoothed average gain divided by the sum of Wilder-smoothed
     /// average gain and loss. The result ranges from 0% to 100%; values above
     /// 50% mean smoothed gains exceed losses, and values below 50% mean losses
@@ -63,7 +63,7 @@ impl RsiChain {
         tf: &str,
         version: Version,
         mappings: &MappingsVecs,
-        returns: &LazyPerBlock<StoredF32, PartsPerMillionSigned64>,
+        returns: &LazyPerBlock<Ratio, PartsPerMillionSigned64>,
     ) -> Result<Self> {
         macro_rules! import {
             ($name:expr) => {

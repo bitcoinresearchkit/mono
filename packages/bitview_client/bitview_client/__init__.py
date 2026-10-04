@@ -253,6 +253,8 @@ PartsPerMillionSigned32 = int
 # Use for precise wide-range signed ratios and percentages.
 # `i64::MIN` is reserved as a NaN sentinel.
 PartsPerMillionSigned64 = int
+# A percentage: a ratio times 100.
+Percent = float
 # Spot price divided by a reference price, encoded in parts per million.
 # Finite values saturate at 4,294.967294; u32::MAX represents undefined.
 # Saturation is deliberately specific to price ratios, across all cohorts.
@@ -263,6 +265,10 @@ PartsPerMillionSigned64 = int
 PriceRatio = int
 # A discrete rank.
 Rank = int
+# A dimensionless ratio: a quotient, share or multiple.
+Ratio = float
+# A dimensionless ratio at double precision.
+Ratio64 = float
 # Fractional satoshis (f64) - for representing USD prices in sats
 #
 # Formula: `sats_fract = usd_value * 100_000_000 / btc_price`
@@ -3135,14 +3141,14 @@ class UtxoHistory(_Node):
 
 
 class Velocity(_Node):
-    native: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_btc')
-    fiat: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_usd')
+    native: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*_btc')
+    fiat: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*_usd')
 
 
 class SoprRatioExtended(_Node):
-    _1w: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_1w')
-    _1m: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_1m')
-    _1y: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_1y')
+    _1w: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_1w')
+    _1m: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_1m')
+    _1y: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_1y')
 
 
 class Close(_Node):
@@ -3173,8 +3179,8 @@ class Macd1m(_Node):
 
 
 class Sd24h1m(_Node):
-    sma: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'price_return_24h_sma_*')
-    sd: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'price_return_24h_sd_*')
+    sma: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, 'price_return_24h_sma_*')
+    sd: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, 'price_return_24h_sd_*')
 
 
 class Dormancy(_Node):
@@ -3184,7 +3190,7 @@ class Dormancy(_Node):
 
 class Nvt(_Node):
     bps: SeriesPattern2[Optional[BasisPoints32]] = _at(SeriesPattern2, '*_bps')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*')
 
 
 class MappingsTimestamp(_Node):
@@ -3417,11 +3423,11 @@ class CapitalSentiment(_Node):
 
 
 class SupplyInLossThreshold(_Node):
-    pct95: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_pct95_ratio')
-    pct98: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_pct98_ratio')
-    pct99: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_pct99_ratio')
-    pct99_5: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_pct99_5_ratio')
-    pct99_9: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_pct99_9_ratio')
+    pct95: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*_pct95_ratio')
+    pct98: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*_pct98_ratio')
+    pct99: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*_pct99_ratio')
+    pct99_5: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*_pct99_5_ratio')
+    pct99_9: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*_pct99_9_ratio')
 
 
 class ReserveRisk(_Node):
@@ -3432,12 +3438,12 @@ class ReserveRisk(_Node):
 
 class RhodlRatio(_Node, Generic[A]):
     ppm: SeriesPattern2[A] = _at(SeriesPattern2, '*_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*')
 
 
 class Share(_Node):
     bounded: SeriesPattern2[Optional[BoundedRatio]] = _at(SeriesPattern2, '*_bounded')
-    ratio: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*')
+    ratio: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*')
 
 
 class ActiveInLoss(_Node):
@@ -3453,7 +3459,7 @@ class Active(_Node):
 
 
 class MobileInLoss(_Node):
-    share: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*')
+    share: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*')
 
 
 class Mobile(_Node):
@@ -3477,7 +3483,7 @@ class CapitalizedPrice(_Node):
     cents: SeriesPattern2[Optional[Cents]] = _at(SeriesPattern2, '*_cents')
     sats: SeriesPattern2[Optional[SatsFract]] = _at(SeriesPattern2, '*_sats')
     ppm: SeriesPattern2[Optional[PriceRatio]] = _at(SeriesPattern2, '*_ratio_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio')
 
 
 class Ema(_Node):
@@ -3542,7 +3548,7 @@ class Sma350d(_Node):
     cents: SeriesPattern2[Optional[Cents]] = _at(SeriesPattern2, '*_cents')
     sats: SeriesPattern2[Optional[SatsFract]] = _at(SeriesPattern2, '*_sats')
     ppm: SeriesPattern2[Optional[PriceRatio]] = _at(SeriesPattern2, '*_ratio_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio')
     x2: Spot[Optional[SatsFract]] = _at(Spot, '*_x2')
 
 
@@ -3551,7 +3557,7 @@ class Sma200d(_Node):
     cents: SeriesPattern2[Optional[Cents]] = _at(SeriesPattern2, '*_cents')
     sats: SeriesPattern2[Optional[SatsFract]] = _at(SeriesPattern2, '*_sats')
     ppm: SeriesPattern2[Optional[PriceRatio]] = _at(SeriesPattern2, '*_ratio_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio')
     x2_4: Spot[Optional[SatsFract]] = _at(Spot, '*_x2_4')
     x0_8: Spot[Optional[SatsFract]] = _at(Spot, '*_x0_8')
 
@@ -3614,115 +3620,115 @@ class Cycle(_Node):
 
 class Pct999(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct99_9_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct99_9')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct99_9')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct99_9')
 
 
 class Pct995(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct99_5_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct99_5')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct99_5')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct99_5')
 
 
 class Pct99(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct99_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct99')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct99')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct99')
 
 
 class Pct98(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct98_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct98')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct98')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct98')
 
 
 class Pct95(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct95_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct95')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct95')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct95')
 
 
 class Pct90(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct90_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct90')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct90')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct90')
 
 
 class Pct80(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct80_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct80')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct80')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct80')
 
 
 class Pct70(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct70_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct70')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct70')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct70')
 
 
 class Pct60(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct60_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct60')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct60')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct60')
 
 
 class Pct50(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct50_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct50')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct50')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct50')
 
 
 class Pct40(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct40_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct40')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct40')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct40')
 
 
 class Pct30(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct30_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct30')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct30')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct30')
 
 
 class Pct20(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct20_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct20')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct20')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct20')
 
 
 class Pct10(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct10_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct10')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct10')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct10')
 
 
 class Pct5(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct5_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct5')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct5')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct5')
 
 
 class Pct2(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct2_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct2')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct2')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct2')
 
 
 class Pct1(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct1_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct1')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct1')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct1')
 
 
 class Pct05(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct0_5_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct0_5')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct0_5')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct0_5')
 
 
 class Pct01(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ratio_pct0_1_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio_pct0_1')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio_pct0_1')
     price: Spot[Optional[SatsFract]] = _at(Spot, '*_pct0_1')
 
 
@@ -3731,7 +3737,7 @@ class CoinflowMedianPriceBtcWeighted(_Node):
     cents: SeriesPattern2[Optional[Cents]] = _at(SeriesPattern2, '*_cents')
     sats: SeriesPattern2[Optional[SatsFract]] = _at(SeriesPattern2, '*_sats')
     ppm: SeriesPattern2[Optional[PriceRatio]] = _at(SeriesPattern2, '*_ratio_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio')
     pct0_1: Pct01 = _at(Pct01, '*')
     pct0_5: Pct05 = _at(Pct05, '*')
     pct1: Pct1 = _at(Pct1, '*')
@@ -3873,30 +3879,30 @@ class UrpdAllCostBasis(_Node, Generic[A]):
     per_dollar: A = _at(0, '*_dollar')
 
 
-class SpendingRate(_Node):
-    under_1h: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_under_1h_*')
-    _1h_to_1d: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_1h_to_1d_*')
-    _1d_to_1w: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_1d_to_1w_*')
-    _1w_to_1m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_1w_to_1m_*')
-    _1m_to_2m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_1m_to_2m_*')
-    _2m_to_3m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_2m_to_3m_*')
-    _3m_to_4m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_3m_to_4m_*')
-    _4m_to_5m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_4m_to_5m_*')
-    _5m_to_6m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_5m_to_6m_*')
-    _6m_to_9m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_6m_to_9m_*')
-    _9m_to_1y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_9m_to_1y_*')
-    _1y_to_18m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_1y_to_18m_*')
-    _18m_to_2y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_18m_to_2y_*')
-    _2y_to_3y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_2y_to_3y_*')
-    _3y_to_4y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_3y_to_4y_*')
-    _4y_to_5y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_4y_to_5y_*')
-    _5y_to_6y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_5y_to_6y_*')
-    _6y_to_7y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_6y_to_7y_*')
-    _7y_to_8y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_7y_to_8y_*')
-    _8y_to_10y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_8y_to_10y_*')
-    _10y_to_12y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_10y_to_12y_*')
-    _12y_to_15y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_12y_to_15y_*')
-    over_15y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_over_15y_*')
+class SpendingRate(_Node, Generic[A]):
+    under_1h: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_under_1h_*')
+    _1h_to_1d: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_1h_to_1d_*')
+    _1d_to_1w: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_1d_to_1w_*')
+    _1w_to_1m: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_1w_to_1m_*')
+    _1m_to_2m: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_1m_to_2m_*')
+    _2m_to_3m: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_2m_to_3m_*')
+    _3m_to_4m: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_3m_to_4m_*')
+    _4m_to_5m: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_4m_to_5m_*')
+    _5m_to_6m: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_5m_to_6m_*')
+    _6m_to_9m: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_6m_to_9m_*')
+    _9m_to_1y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_9m_to_1y_*')
+    _1y_to_18m: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_1y_to_18m_*')
+    _18m_to_2y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_18m_to_2y_*')
+    _2y_to_3y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_2y_to_3y_*')
+    _3y_to_4y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_3y_to_4y_*')
+    _4y_to_5y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_4y_to_5y_*')
+    _5y_to_6y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_5y_to_6y_*')
+    _6y_to_7y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_6y_to_7y_*')
+    _7y_to_8y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_7y_to_8y_*')
+    _8y_to_10y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_8y_to_10y_*')
+    _10y_to_12y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_10y_to_12y_*')
+    _12y_to_15y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_12y_to_15y_*')
+    over_15y: SeriesPattern2[A] = _at(SeriesPattern2, 'utxos_over_15y_*')
 
 
 class SpendingExposure(_Node):
@@ -3923,13 +3929,13 @@ class SpendingExposure(_Node):
     _10y_to_12y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_10y_to_12y_*_spending_exposure')
     _12y_to_15y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_12y_to_15y_*_spending_exposure')
     over_15y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_over_15y_*_spending_exposure')
-    mobility: SpendingRate = _at(SpendingRate, '*_mobility')
+    mobility: SpendingRate[Optional[Ratio64]] = _at(SpendingRate, '*_mobility')
 
 
 class AgeRangeActivity(_Node):
-    wakefulness: SpendingRate = _at(SpendingRate, '*_wakefulness')
-    dormancy: SpendingRate = _at(SpendingRate, '*_dormancy')
-    wakefulness_to_dormancy: SpendingRate = _at(SpendingRate, '*_wakefulness_to_dormancy')
+    wakefulness: SpendingRate[Optional[Ratio64]] = _at(SpendingRate, '*_wakefulness')
+    dormancy: SpendingRate[Optional[Ratio64]] = _at(SpendingRate, '*_dormancy')
+    wakefulness_to_dormancy: SpendingRate[Optional[Ratio64]] = _at(SpendingRate, '*_wakefulness_to_dormancy')
 
 
 class RateSma(_Node):
@@ -4224,8 +4230,8 @@ class BlocksHalving(_Node):
 
 class Fullness(_Node):
     ppm: SeriesPattern21[Optional[PartsPerMillion32]] = _at(SeriesPattern21, '*_ppm')
-    ratio: SeriesPattern21[Optional[StoredF32]] = _at(SeriesPattern21, '*_ratio')
-    percent: SeriesPattern21[Optional[StoredF32]] = _at(SeriesPattern21, '*')
+    ratio: SeriesPattern21[Optional[Ratio]] = _at(SeriesPattern21, '*_ratio')
+    percent: SeriesPattern21[Optional[Percent]] = _at(SeriesPattern21, '*')
 
 
 class Interval(_Node, Generic[A]):
@@ -4352,9 +4358,9 @@ class CointimeValue(_Node):
 class CointimeActivity(_Node):
     coinblocks_created: NewAll[Optional[StoredF64]] = _at(NewAll, '*_created')
     coinblocks_stored: NewAll[Optional[StoredF64]] = _at(NewAll, '*_stored')
-    liveliness: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'liveliness')
-    vaultedness: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'vaultedness')
-    ratio: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'activity_to_vaultedness')
+    liveliness: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'liveliness')
+    vaultedness: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'vaultedness')
+    ratio: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'activity_to_vaultedness')
     coinblocks_destroyed: NewAll[Optional[StoredF64]] = _at(NewAll, '*_destroyed')
 
 
@@ -4561,8 +4567,8 @@ class Time(_Node):
 
 class Gini(_Node, Generic[A]):
     ppm: SeriesPattern2[A] = _at(SeriesPattern2, '*_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio')
-    percent: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio')
+    percent: SeriesPattern2[Optional[Percent]] = _at(SeriesPattern2, '*')
 
 
 class Relative(_Node):
@@ -4816,7 +4822,7 @@ class Indicators(_Node):
     coinyears_destroyed_supply_adj: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'coinyears_*')
     dormancy: Dormancy = _at(Dormancy, 'dormancy')
     stock_to_flow: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'stock_to_flow')
-    seller_exhaustion: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'seller_exhaustion')
+    seller_exhaustion: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, 'seller_exhaustion')
 
 
 class Capitulation(_Node, Generic[A]):
@@ -4832,7 +4838,7 @@ class Extremes(_Node):
     profit_taking: Capitulation[Optional[Dollars]] = _at(Capitulation, '*_profit_taking')
     capitulation: Capitulation[Optional[Dollars]] = _at(Capitulation, '*_capitulation')
     peak_regret: Capitulation[Optional[Dollars]] = _at(Capitulation, '*_peak_regret')
-    seller_exhaustion: Capitulation[Optional[StoredF32]] = _at(Capitulation, '*_seller_exhaustion')
+    seller_exhaustion: Capitulation[Optional[Percent]] = _at(Capitulation, '*_seller_exhaustion')
 
 
 class RarityMeter(_Node):
@@ -4848,8 +4854,8 @@ class RarityMeter(_Node):
 
 class Adjusted(_Node):
     inflation_rate: Gini[Optional[PartsPerMillionSigned32]] = _at(Gini, '*_inflation_rate')
-    tx_velocity_native: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_tx_velocity_btc')
-    tx_velocity_fiat: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_tx_velocity_usd')
+    tx_velocity_native: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*_tx_velocity_btc')
+    tx_velocity_fiat: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*_tx_velocity_usd')
 
 
 class SupplyDensity(_Node):
@@ -4958,8 +4964,8 @@ class AllRate(_Node):
 
 class FeeShare(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ppm')
-    ratio: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ratio')
-    percent: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*')
+    ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio')
+    percent: SeriesPattern2[Optional[Percent]] = _at(SeriesPattern2, '*')
     _24h: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_24h')
     _1w: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_1w')
     _1m: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_1m')
@@ -5109,7 +5115,7 @@ class Market(_Node):
     ath: Ath = _at(Ath, '*')
     lookback: MarketLookback[Spot[Optional[SatsFract]]] = _at((MarketLookback, Spot), '*_past')
     returns: Returns = _at(Returns, '*')
-    volatility: PerSec[Optional[StoredF32]] = _at(PerSec, '*_volatility')
+    volatility: PerSec[Optional[Ratio]] = _at(PerSec, '*_volatility')
     range: Range = _at(Range, '*')
     moving_average: MovingAverage = _at(MovingAverage, '*')
     technical: Technical = _at(Technical, '24h')
@@ -5217,7 +5223,7 @@ class Events(_Node):
     input_from_reused_addr_count: AvgBalance[NewAll[Count]] = _at((AvgBalance, NewAll), 'input_from_*_count')
     input_from_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'input_from_*_share')
     active_reused_addr_count: Interval[Count] = _at(Interval, 'active_*_count')
-    active_reused_addr_share: Interval[Optional[StoredF32]] = _at(Interval, 'active_*_share')
+    active_reused_addr_share: Interval[Optional[Percent]] = _at(Interval, 'active_*_share')
 
 
 class Respent(_Node):
@@ -5258,7 +5264,7 @@ class Coinbase(_Node, Generic[A, B, C]):
 
 
 class AdjustedSopr(_Node):
-    ratio: PerSec[Optional[StoredF32]] = _at(PerSec, '*_adjusted_sopr')
+    ratio: PerSec[Optional[Ratio]] = _at(PerSec, '*_adjusted_sopr')
     transfer_volume: Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[StoredF32]]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_adj_value_created')
     value_destroyed: Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[StoredF32]]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_adj_value_destroyed')
 
@@ -5266,10 +5272,10 @@ class AdjustedSopr(_Node):
 class Ratios(_Node):
     adjusted_sopr: AdjustedSopr = _at(AdjustedSopr, '*')
     dormancy: PerSec[Optional[StoredF32]] = _at(PerSec, '*_dormancy')
-    sopr: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_sopr_24h')
+    sopr: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_sopr_24h')
     sopr_ratio_extended: SoprRatioExtended = _at(SoprRatioExtended, '*_sopr')
     sell_side_risk_ratio: Sd24h[Gini[Optional[PartsPerMillion32]]] = _at((Sd24h, Gini), '*_sell_side_risk_ratio')
-    profit_to_loss_ratio: PerSec[Optional[StoredF32]] = _at(PerSec, '*_realized_profit_to_loss_ratio')
+    profit_to_loss_ratio: PerSec[Optional[Ratio]] = _at(PerSec, '*_realized_profit_to_loss_ratio')
 
 
 class AllRealized(_Node):
@@ -5446,7 +5452,7 @@ class CoinflowAgeRangeSupply(_Node):
 
 
 class CoinflowAgeRange(_Node):
-    spending_rate: SpendingRate = _at(SpendingRate, '*_spending_rate')
+    spending_rate: SpendingRate[Optional[StoredF64]] = _at(SpendingRate, '*_spending_rate')
     spending_exposure: SpendingExposure = _at(SpendingExposure, '*')
     supply: CoinflowAgeRangeSupply = _at(CoinflowAgeRangeSupply, '*')
 

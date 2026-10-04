@@ -14,7 +14,7 @@ pub use currency::{
 };
 pub use ohlc::{OhlcCentsToDollars, OhlcCentsToHighCents, OhlcCentsToLowCents, OhlcCentsToSats};
 pub use ratio::{
-    BoundedOddsF64, BoundedToF64, Cagr, FixedToPercent, FixedToRatio, MvrvToNupl, PriceTimesRatio,
-    RatioBytes, RatioCents, RatioCentsF32, RatioCentsSignedCents, RatioCount, RatioDiffCents,
-    RatioDiffDollars, RatioDiffF32, RatioDollars, RatioSats, SoprRatio, price_ratio,
+    BoundedOdds, BoundedToRatio, Cagr, FixedToPercent, FixedToRatio, MvrvToNupl, PriceTimesRatio,
+    RatioBytes, RatioCents, RatioCentsOrOne, RatioCentsSignedCents, RatioCount, RatioDiffCents,
+    RatioDiffDollars, RatioDiffF32, RatioDollars, RatioSats, price_ratio,
 };

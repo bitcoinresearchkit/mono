@@ -1,7 +1,7 @@
 use bitview_cohort::CohortId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_transforms::{SatsToCents, SoprRatio};
+use bitview_transforms::{RatioCentsOrOne, SatsToCents};
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
@@ -96,7 +96,7 @@ impl CohortMetrics {
     }
 
     pub(crate) fn compute_rest(&mut self, from: Height, exit: &Exit) -> Result<()> {
-        self.realized.sopr.compute_binary::<_, _, SoprRatio>(
+        self.realized.sopr.compute_binary::<_, _, RatioCentsOrOne>(
             from,
             &self.activity.transfer_volume.sum._24h.cents.height,
             &self.realized.value_destroyed.sum._24h.cents.height,

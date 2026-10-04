@@ -1,4 +1,4 @@
-use bitview_primitives::{PartsPerMillionSigned32, StoredF64};
+use bitview_primitives::{PartsPerMillionSigned32, Ratio64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{PerBlock, PercentPerBlock};
 use vecdb::{Rw, StorageMode};
@@ -13,12 +13,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// coinblocks destroyed divided by cumulative coinblocks created. Higher
     /// values mean more native-unit turnover after emphasizing consumed over
     /// still-stored holding time.
-    pub tx_velocity_native: PerBlock<StoredF64, M>,
+    pub tx_velocity_native: PerBlock<Ratio64, M>,
     /// Cointime-adjusted fiat transaction velocity: trailing 365-day transfer
     /// volume in cents divided by all-chain market capitalization at the
     /// represented block, multiplied by `liveliness / (1 - liveliness)`.
     /// Liveliness is cumulative coinblocks destroyed divided by cumulative
     /// coinblocks created. Higher values mean more USD-value turnover after
     /// emphasizing consumed over still-stored holding time.
-    pub tx_velocity_fiat: PerBlock<StoredF64, M>,
+    pub tx_velocity_fiat: PerBlock<Ratio64, M>,
 }

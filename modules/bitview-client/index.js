@@ -888,6 +888,11 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {number} PartsPerMillionSigned64
  */
 /**
+ * A percentage: a ratio times 100.
+ *
+ * @typedef {number} Percent
+ */
+/**
  * Block counts for different time periods
  *
  * @typedef {Object} PoolBlockCounts
@@ -1012,6 +1017,16 @@ ancestors and no descendants (matches mempool.space).
  * A discrete rank.
  *
  * @typedef {number} Rank
+ */
+/**
+ * A dimensionless ratio: a quotient, share or multiple.
+ *
+ * @typedef {number} Ratio
+ */
+/**
+ * A dimensionless ratio at double precision.
+ *
+ * @typedef {number} Ratio64
  */
 /**
  * Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
@@ -2502,8 +2517,8 @@ const _UtxoHistory = _s({
 
 /**
  * @typedef {{
- *   native: SeriesPattern2<?StoredF64>,
- *   fiat: SeriesPattern2<?StoredF64>,
+ *   native: SeriesPattern2<?Ratio64>,
+ *   fiat: SeriesPattern2<?Ratio64>,
  * }} Velocity
  */
 const _Velocity = _s({
@@ -2513,9 +2528,9 @@ const _Velocity = _s({
 
 /**
  * @typedef {{
- *   _1w: SeriesPattern2<?StoredF32>,
- *   _1m: SeriesPattern2<?StoredF32>,
- *   _1y: SeriesPattern2<?StoredF32>,
+ *   _1w: SeriesPattern2<?Ratio>,
+ *   _1m: SeriesPattern2<?Ratio>,
+ *   _1y: SeriesPattern2<?Ratio>,
  * }} SoprRatioExtended
  */
 const _SoprRatioExtended = _s({
@@ -2585,8 +2600,8 @@ const _Macd1m = _s({
 
 /**
  * @typedef {{
- *   sma: SeriesPattern2<?StoredF32>,
- *   sd: SeriesPattern2<?StoredF32>,
+ *   sma: SeriesPattern2<?Ratio>,
+ *   sd: SeriesPattern2<?Ratio>,
  * }} Sd24h1m
  */
 const _Sd24h1m = _s({
@@ -2608,7 +2623,7 @@ const _Dormancy = _s({
 /**
  * @typedef {{
  *   bps: SeriesPattern2<?BasisPoints32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  * }} Nvt
  */
 const _Nvt = _s({
@@ -3112,11 +3127,11 @@ const _CapitalSentiment = _s({
 
 /**
  * @typedef {{
- *   pct95: SeriesPattern2<?StoredF64>,
- *   pct98: SeriesPattern2<?StoredF64>,
- *   pct99: SeriesPattern2<?StoredF64>,
- *   pct995: SeriesPattern2<?StoredF64>,
- *   pct999: SeriesPattern2<?StoredF64>,
+ *   pct95: SeriesPattern2<?Ratio64>,
+ *   pct98: SeriesPattern2<?Ratio64>,
+ *   pct99: SeriesPattern2<?Ratio64>,
+ *   pct995: SeriesPattern2<?Ratio64>,
+ *   pct999: SeriesPattern2<?Ratio64>,
  * }} SupplyInLossThreshold
  */
 const _SupplyInLossThreshold = _s({
@@ -3144,7 +3159,7 @@ const _ReserveRisk = _s({
  * @template A
  * @typedef {{
  *   ppm: SeriesPattern2<A>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  * }} RhodlRatio
  */
 const _RhodlRatio = _s({
@@ -3155,7 +3170,7 @@ const _RhodlRatio = _s({
 /**
  * @typedef {{
  *   bounded: SeriesPattern2<?BoundedRatio>,
- *   ratio: SeriesPattern2<?StoredF64>,
+ *   ratio: SeriesPattern2<?Ratio64>,
  * }} Share
  */
 const _Share = _s({
@@ -3191,7 +3206,7 @@ const _Active = _s({
 
 /**
  * @typedef {{
- *   share: SeriesPattern2<?StoredF64>,
+ *   share: SeriesPattern2<?Ratio64>,
  * }} MobileInLoss
  */
 const _MobileInLoss = _s({
@@ -3238,7 +3253,7 @@ const _AwakeSupply = _s({
  *   cents: SeriesPattern2<?Cents>,
  *   sats: SeriesPattern2<?SatsFract>,
  *   ppm: SeriesPattern2<?PriceRatio>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  * }} CapitalizedPrice
  */
 const _CapitalizedPrice = _s({
@@ -3377,7 +3392,7 @@ const _Price = _s({
  *   cents: SeriesPattern2<?Cents>,
  *   sats: SeriesPattern2<?SatsFract>,
  *   ppm: SeriesPattern2<?PriceRatio>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   x2: Spot<?SatsFract>,
  * }} Sma350d
  */
@@ -3396,7 +3411,7 @@ const _Sma350d = _s({
  *   cents: SeriesPattern2<?Cents>,
  *   sats: SeriesPattern2<?SatsFract>,
  *   ppm: SeriesPattern2<?PriceRatio>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   x24: Spot<?SatsFract>,
  *   x08: Spot<?SatsFract>,
  * }} Sma200d
@@ -3530,7 +3545,7 @@ const _Cycle = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct999
  */
@@ -3543,7 +3558,7 @@ const _Pct999 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct995
  */
@@ -3556,7 +3571,7 @@ const _Pct995 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct99
  */
@@ -3569,7 +3584,7 @@ const _Pct99 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct98
  */
@@ -3582,7 +3597,7 @@ const _Pct98 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct95
  */
@@ -3595,7 +3610,7 @@ const _Pct95 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct90
  */
@@ -3608,7 +3623,7 @@ const _Pct90 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct80
  */
@@ -3621,7 +3636,7 @@ const _Pct80 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct70
  */
@@ -3634,7 +3649,7 @@ const _Pct70 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct60
  */
@@ -3647,7 +3662,7 @@ const _Pct60 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct50
  */
@@ -3660,7 +3675,7 @@ const _Pct50 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct40
  */
@@ -3673,7 +3688,7 @@ const _Pct40 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct30
  */
@@ -3686,7 +3701,7 @@ const _Pct30 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct20
  */
@@ -3699,7 +3714,7 @@ const _Pct20 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct10
  */
@@ -3712,7 +3727,7 @@ const _Pct10 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct5
  */
@@ -3725,7 +3740,7 @@ const _Pct5 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct2
  */
@@ -3738,7 +3753,7 @@ const _Pct2 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct1
  */
@@ -3751,7 +3766,7 @@ const _Pct1 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct05
  */
@@ -3764,7 +3779,7 @@ const _Pct05 = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   price: Spot<?SatsFract>,
  * }} Pct01
  */
@@ -3780,7 +3795,7 @@ const _Pct01 = _s({
  *   cents: SeriesPattern2<?Cents>,
  *   sats: SeriesPattern2<?SatsFract>,
  *   ppm: SeriesPattern2<?PriceRatio>,
- *   ratio: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
  *   pct01: Pct01,
  *   pct05: Pct05,
  *   pct1: Pct1,
@@ -4080,30 +4095,31 @@ const _UrpdAllCostBasis = (c, b, f0) => _n(c, b, {
 });
 
 /**
+ * @template A
  * @typedef {{
- *   under1h: SeriesPattern2<?StoredF64>,
- *   _1hTo1d: SeriesPattern2<?StoredF64>,
- *   _1dTo1w: SeriesPattern2<?StoredF64>,
- *   _1wTo1m: SeriesPattern2<?StoredF64>,
- *   _1mTo2m: SeriesPattern2<?StoredF64>,
- *   _2mTo3m: SeriesPattern2<?StoredF64>,
- *   _3mTo4m: SeriesPattern2<?StoredF64>,
- *   _4mTo5m: SeriesPattern2<?StoredF64>,
- *   _5mTo6m: SeriesPattern2<?StoredF64>,
- *   _6mTo9m: SeriesPattern2<?StoredF64>,
- *   _9mTo1y: SeriesPattern2<?StoredF64>,
- *   _1yTo18m: SeriesPattern2<?StoredF64>,
- *   _18mTo2y: SeriesPattern2<?StoredF64>,
- *   _2yTo3y: SeriesPattern2<?StoredF64>,
- *   _3yTo4y: SeriesPattern2<?StoredF64>,
- *   _4yTo5y: SeriesPattern2<?StoredF64>,
- *   _5yTo6y: SeriesPattern2<?StoredF64>,
- *   _6yTo7y: SeriesPattern2<?StoredF64>,
- *   _7yTo8y: SeriesPattern2<?StoredF64>,
- *   _8yTo10y: SeriesPattern2<?StoredF64>,
- *   _10yTo12y: SeriesPattern2<?StoredF64>,
- *   _12yTo15y: SeriesPattern2<?StoredF64>,
- *   over15y: SeriesPattern2<?StoredF64>,
+ *   under1h: SeriesPattern2<A>,
+ *   _1hTo1d: SeriesPattern2<A>,
+ *   _1dTo1w: SeriesPattern2<A>,
+ *   _1wTo1m: SeriesPattern2<A>,
+ *   _1mTo2m: SeriesPattern2<A>,
+ *   _2mTo3m: SeriesPattern2<A>,
+ *   _3mTo4m: SeriesPattern2<A>,
+ *   _4mTo5m: SeriesPattern2<A>,
+ *   _5mTo6m: SeriesPattern2<A>,
+ *   _6mTo9m: SeriesPattern2<A>,
+ *   _9mTo1y: SeriesPattern2<A>,
+ *   _1yTo18m: SeriesPattern2<A>,
+ *   _18mTo2y: SeriesPattern2<A>,
+ *   _2yTo3y: SeriesPattern2<A>,
+ *   _3yTo4y: SeriesPattern2<A>,
+ *   _4yTo5y: SeriesPattern2<A>,
+ *   _5yTo6y: SeriesPattern2<A>,
+ *   _6yTo7y: SeriesPattern2<A>,
+ *   _7yTo8y: SeriesPattern2<A>,
+ *   _8yTo10y: SeriesPattern2<A>,
+ *   _10yTo12y: SeriesPattern2<A>,
+ *   _12yTo15y: SeriesPattern2<A>,
+ *   over15y: SeriesPattern2<A>,
  * }} SpendingRate
  */
 const _SpendingRate = _s({
@@ -4157,7 +4173,7 @@ const _SpendingRate = _s({
  *   _10yTo12y: SeriesPattern2<?StoredF64>,
  *   _12yTo15y: SeriesPattern2<?StoredF64>,
  *   over15y: SeriesPattern2<?StoredF64>,
- *   mobility: SpendingRate,
+ *   mobility: SpendingRate<?Ratio64>,
  * }} SpendingExposure
  */
 const _SpendingExposure = _s({
@@ -4189,9 +4205,9 @@ const _SpendingExposure = _s({
 
 /**
  * @typedef {{
- *   wakefulness: SpendingRate,
- *   dormancy: SpendingRate,
- *   wakefulnessToDormancy: SpendingRate,
+ *   wakefulness: SpendingRate<?Ratio64>,
+ *   dormancy: SpendingRate<?Ratio64>,
+ *   wakefulnessToDormancy: SpendingRate<?Ratio64>,
  * }} AgeRangeActivity
  */
 const _AgeRangeActivity = _s({
@@ -4833,8 +4849,8 @@ const _BlocksHalving = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern21<?PartsPerMillion32>,
- *   ratio: SeriesPattern21<?StoredF32>,
- *   percent: SeriesPattern21<?StoredF32>,
+ *   ratio: SeriesPattern21<?Ratio>,
+ *   percent: SeriesPattern21<?Percent>,
  * }} Fullness
  */
 const _Fullness = _s({
@@ -5103,9 +5119,9 @@ const _CointimeValue = _s({
  * @typedef {{
  *   coinblocksCreated: NewAll<?StoredF64>,
  *   coinblocksStored: NewAll<?StoredF64>,
- *   liveliness: SeriesPattern2<?StoredF64>,
- *   vaultedness: SeriesPattern2<?StoredF64>,
- *   ratio: SeriesPattern2<?StoredF64>,
+ *   liveliness: SeriesPattern2<?Ratio64>,
+ *   vaultedness: SeriesPattern2<?Ratio64>,
+ *   ratio: SeriesPattern2<?Ratio64>,
  *   coinblocksDestroyed: NewAll<?StoredF64>,
  * }} CointimeActivity
  */
@@ -5544,8 +5560,8 @@ const _Time = _s({
  * @template A
  * @typedef {{
  *   ppm: SeriesPattern2<A>,
- *   ratio: SeriesPattern2<?StoredF32>,
- *   percent: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
+ *   percent: SeriesPattern2<?Percent>,
  * }} Gini
  */
 const _Gini = _s({
@@ -6062,7 +6078,7 @@ const _Ath = _s({
  *   coinyearsDestroyedSupplyAdj: SeriesPattern2<?StoredF32>,
  *   dormancy: Dormancy,
  *   stockToFlow: SeriesPattern2<?StoredF32>,
- *   sellerExhaustion: SeriesPattern2<?StoredF32>,
+ *   sellerExhaustion: SeriesPattern2<?Ratio>,
  * }} Indicators
  */
 const _Indicators = _s({
@@ -6102,7 +6118,7 @@ const _Capitulation = _s({
  *   profitTaking: Capitulation<?Dollars>,
  *   capitulation: Capitulation<?Dollars>,
  *   peakRegret: Capitulation<?Dollars>,
- *   sellerExhaustion: Capitulation<?StoredF32>,
+ *   sellerExhaustion: Capitulation<?Percent>,
  * }} Extremes
  */
 const _Extremes = _s({
@@ -6139,8 +6155,8 @@ const _RarityMeter = _s({
 /**
  * @typedef {{
  *   inflationRate: Gini<?PartsPerMillionSigned32>,
- *   txVelocityNative: SeriesPattern2<?StoredF64>,
- *   txVelocityFiat: SeriesPattern2<?StoredF64>,
+ *   txVelocityNative: SeriesPattern2<?Ratio64>,
+ *   txVelocityFiat: SeriesPattern2<?Ratio64>,
  * }} Adjusted
  */
 const _Adjusted = _s({
@@ -6378,8 +6394,8 @@ const _AllRate = _s({
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
- *   ratio: SeriesPattern2<?StoredF32>,
- *   percent: SeriesPattern2<?StoredF32>,
+ *   ratio: SeriesPattern2<?Ratio>,
+ *   percent: SeriesPattern2<?Percent>,
  *   _24h: Gini<?PartsPerMillion32>,
  *   _1w: Gini<?PartsPerMillion32>,
  *   _1m: Gini<?PartsPerMillion32>,
@@ -6696,7 +6712,7 @@ const _Returns = _s({
  *   ath: Ath,
  *   lookback: MarketLookback<Spot<?SatsFract>>,
  *   returns: Returns,
- *   volatility: PerSec<?StoredF32>,
+ *   volatility: PerSec<?Ratio>,
  *   range: Range,
  *   movingAverage: MovingAverage,
  *   technical: Technical,
@@ -6925,7 +6941,7 @@ const _Exposed = _s({
  *   inputFromReusedAddrCount: AvgBalance<NewAll<Count>>,
  *   inputFromReusedAddrShare: AvgBalance<FeeShare>,
  *   activeReusedAddrCount: Interval<Count>,
- *   activeReusedAddrShare: Interval<?StoredF32>,
+ *   activeReusedAddrShare: Interval<?Percent>,
  * }} Events
  */
 const _Events = _s({
@@ -7022,7 +7038,7 @@ const _Coinbase = (c, b, f0, f1, f2) => _n(c, b, {
 
 /**
  * @typedef {{
- *   ratio: PerSec<?StoredF32>,
+ *   ratio: PerSec<?Ratio>,
  *   transferVolume: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?StoredF32>>,
  *   valueDestroyed: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?StoredF32>>,
  * }} AdjustedSopr
@@ -7037,10 +7053,10 @@ const _AdjustedSopr = _s({
  * @typedef {{
  *   adjustedSopr: AdjustedSopr,
  *   dormancy: PerSec<?StoredF32>,
- *   sopr: SeriesPattern2<?StoredF32>,
+ *   sopr: SeriesPattern2<?Ratio>,
  *   soprRatioExtended: SoprRatioExtended,
  *   sellSideRiskRatio: Sd24h<Gini<?PartsPerMillion32>>,
- *   profitToLossRatio: PerSec<?StoredF32>,
+ *   profitToLossRatio: PerSec<?Ratio>,
  * }} Ratios
  */
 const _Ratios = _s({
@@ -7425,7 +7441,7 @@ const _CoinflowAgeRangeSupply = _s({
 
 /**
  * @typedef {{
- *   spendingRate: SpendingRate,
+ *   spendingRate: SpendingRate<?StoredF64>,
  *   spendingExposure: SpendingExposure,
  *   supply: CoinflowAgeRangeSupply,
  * }} CoinflowAgeRange

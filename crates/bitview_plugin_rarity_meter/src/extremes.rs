@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredF32;
+use bitview_primitives::Percent;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -44,7 +44,7 @@ pub struct Extremes<M: StorageMode = Rw> {
     /// observation.
     pub peak_regret: Extreme<Dollars, M>,
     /// Measures how unusually low the trailing-24-hour all-chain sell-side risk
-    /// ratio is. That ratio is gross realized profit and loss divided by
+    /// ratio is, in percent. That ratio is gross realized profit and loss divided by
     /// realized capitalization; unusually low values indicate little realized
     /// profit or loss relative to invested value. The lower-tail share is the
     /// fraction of accepted history at or below the source value, so a smaller
@@ -52,7 +52,7 @@ pub struct Extremes<M: StorageMode = Rw> {
     /// finite positive observations and requires a full window. Thresholds
     /// exclude the represented block; the reported tail share includes it as
     /// one observation.
-    pub seller_exhaustion: Extreme<StoredF32, M>,
+    pub seller_exhaustion: Extreme<Percent, M>,
 }
 
 impl Extremes {
@@ -84,7 +84,7 @@ impl Extremes {
         realized_profit: &impl ReadableVec<Height, Dollars>,
         realized_loss: &impl ReadableVec<Height, Dollars>,
         peak_regret: &impl ReadableVec<Height, Dollars>,
-        seller_exhaustion: &impl ReadableVec<Height, StoredF32>,
+        seller_exhaustion: &impl ReadableVec<Height, Percent>,
         exit: &Exit,
     ) -> Result<()> {
         self.coins_in_loss

@@ -1,4 +1,4 @@
-use bitview_primitives::{BoundedRatio, StoredF64};
+use bitview_primitives::{BoundedRatio, Ratio64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, Price};
 use brk_types::{Cents, Height};
@@ -15,7 +15,7 @@ pub struct ModeVecs<M: StorageMode = Rw> {
     /// and the value is unavailable until its loss share exists and at least
     /// 52,560 prior block observations are available. Stored as a bounded share and
     /// exposed as a unitless decimal. Calibration remains full precision.
-    pub supply_in_loss_threshold: Percentiles<LazyPerBlock<StoredF64, BoundedRatio>>,
+    pub supply_in_loss_threshold: Percentiles<LazyPerBlock<Ratio64, BoundedRatio>>,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]

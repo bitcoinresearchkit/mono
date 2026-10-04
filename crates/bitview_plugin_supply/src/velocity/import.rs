@@ -1,7 +1,7 @@
 use bitview_plugin_distribution_common::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
-use bitview_primitives::StoredF64;
+use bitview_primitives::Ratio64;
 use bitview_vecs::LazyPerBlock;
 use brk_error::Result;
 use brk_types::{Cents, Version};
@@ -46,11 +46,11 @@ impl Vecs {
         })
     }
 
-    fn ratio(numerator: f64, denominator: f64) -> StoredF64 {
+    fn ratio(numerator: f64, denominator: f64) -> Ratio64 {
         if denominator != 0.0 {
-            StoredF64::from(numerator / denominator)
+            Ratio64::from(numerator / denominator)
         } else {
-            StoredF64::from(0.0)
+            Ratio64::ZERO
         }
     }
 }

@@ -1,4 +1,4 @@
-use bitview_primitives::{BasisPoints32, StoredF32};
+use bitview_primitives::{BasisPoints32, Ratio};
 use bitview_transforms::FixedToRatio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -14,7 +14,7 @@ pub struct BasisPointsPerBlock<M: StorageMode = Rw> {
     /// basis points, with u32::MAX reserved for undefined values.
     pub bps: PerBlock<BasisPoints32, M>,
     /// Unitless decimal ratio derived as basis points divided by 10,000.
-    ratio: LazyPerBlock<StoredF32, BasisPoints32>,
+    ratio: LazyPerBlock<Ratio, BasisPoints32>,
 }
 
 impl BasisPointsPerBlock {

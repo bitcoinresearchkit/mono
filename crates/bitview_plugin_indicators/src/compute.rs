@@ -1,5 +1,5 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use bitview_primitives::{BasisPoints32, PartsPerMillion64, StoredF32};
+use bitview_primitives::{BasisPoints32, PartsPerMillion64, Ratio};
 use bitview_transforms::RatioDollars;
 use brk_error::Result;
 use brk_types::Dollars;
@@ -84,12 +84,12 @@ impl ComputePlugin for Vecs {
                 |(height, profit_sats, volatility, total_sats, ..)| {
                     let total = total_sats.as_u128() as f64;
                     if total == 0.0 {
-                        (height, StoredF32::from(0.0f32))
+                        (height, Ratio::new(0.0))
                     } else {
                         let pct_in_profit = profit_sats.as_u128() as f64 / total;
                         (
                             height,
-                            StoredF32::from((pct_in_profit * f64::from(volatility)) as f32),
+                            Ratio::new((pct_in_profit * f64::from(volatility)) as f32),
                         )
                     }
                 },

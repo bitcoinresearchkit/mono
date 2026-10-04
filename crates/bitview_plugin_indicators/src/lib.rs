@@ -7,7 +7,7 @@ mod import;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::{PartsPerMillion32, PartsPerMillion64, StoredF32};
+use bitview_primitives::{PartsPerMillion32, PartsPerMillion64, Ratio, StoredF32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     BasisPointsPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock, PercentPerBlock,
@@ -73,7 +73,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// when little supply is in profit, recent volatility is low, or both;
     /// high values require both a profitable supply and volatile price. Returns
     /// zero when total supply is zero.
-    seller_exhaustion: PerBlock<StoredF32, M>,
+    seller_exhaustion: PerBlock<Ratio, M>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

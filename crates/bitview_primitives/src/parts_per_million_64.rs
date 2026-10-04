@@ -9,7 +9,7 @@ use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{StoredF32, unlikely};
+use crate::unlikely;
 
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
@@ -104,13 +104,6 @@ impl From<f32> for PartsPerMillion64 {
     }
 }
 
-impl From<StoredF32> for PartsPerMillion64 {
-    #[inline]
-    fn from(value: StoredF32) -> Self {
-        Self::from(*value)
-    }
-}
-
 impl From<f64> for PartsPerMillion64 {
     #[inline]
     fn from(value: f64) -> Self {
@@ -143,13 +136,6 @@ impl From<PartsPerMillion64> for f32 {
     #[inline]
     fn from(value: PartsPerMillion64) -> Self {
         value.to_f32()
-    }
-}
-
-impl From<PartsPerMillion64> for StoredF32 {
-    #[inline]
-    fn from(value: PartsPerMillion64) -> Self {
-        StoredF32::from(value.to_f32())
     }
 }
 

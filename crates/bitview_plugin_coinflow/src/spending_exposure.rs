@@ -1,5 +1,5 @@
 use bitview_cohort::AgeRange;
-use bitview_primitives::{BoundedRatio, StoredF64};
+use bitview_primitives::{BoundedRatio, Ratio64, StoredF64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock};
 use derive_more::{Deref, DerefMut};
@@ -17,5 +17,5 @@ pub struct SpendingExposureSeries<M: StorageMode = Rw> {
     /// value near zero identifies supply unlikely to move, while a value near
     /// one identifies supply likely to move eventually. Floored at bounded
     /// scale 4,294,967,294 and shared with weighted supply/cap calculations.
-    pub mobility: AgeRange<LazyPerBlock<StoredF64, BoundedRatio>>,
+    pub mobility: AgeRange<LazyPerBlock<Ratio64, BoundedRatio>>,
 }

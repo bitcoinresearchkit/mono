@@ -1,6 +1,6 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::BoundedToF64;
+use bitview_transforms::BoundedToRatio;
 use bitview_vecs::{IndexSources, LazyPerBlock, Price, import_cached};
 use brk_error::Result;
 use brk_types::Version;
@@ -24,7 +24,7 @@ impl ModeVecs {
             )
         })?;
         let supply_in_loss_threshold = Percentiles::from_fn(|id| {
-            LazyPerBlock::from_height_source::<BoundedToF64>(
+            LazyPerBlock::from_height_source::<BoundedToRatio>(
                 &format!("{name}_supply_in_loss_threshold_{}_ratio", id.suffix()),
                 version,
                 id.select(&supply_in_loss_threshold_stored),

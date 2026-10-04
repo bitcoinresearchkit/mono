@@ -1,8 +1,8 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::StoredF32;
-use bitview_transforms::SoprRatio;
+use bitview_primitives::Ratio;
+use bitview_transforms::RatioCentsOrOne;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyFiatPerBlockCumulativeRolling, LazyWindowStartVec, RollingWindows};
 use brk_error::Result;
@@ -14,7 +14,7 @@ use crate::columns::Columns;
 
 #[derive(Traversable)]
 pub struct AdjustedSopr<M: StorageMode = Rw> {
-    pub ratio: RollingWindows<StoredF32, M>,
+    pub ratio: RollingWindows<Ratio, M>,
     pub transfer_volume: LazyFiatPerBlockCumulativeRolling<Cents>,
     pub value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
 }
@@ -53,7 +53,7 @@ impl AdjustedSopr {
             .zip(self.transfer_volume.sum.as_array())
             .zip(self.value_destroyed.sum.as_array())
         {
-            target.compute_binary::<_, _, SoprRatio>(
+            target.compute_binary::<_, _, RatioCentsOrOne>(
                 from,
                 &created.cents.height,
                 &destroyed.cents.height,

@@ -4,7 +4,7 @@ use bitview_plugin_indexer::Lengths;
 use bitview_plugin_inputs::ByTypeVecs as InputsByTypeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_outputs::ByTypeVecs;
-use bitview_primitives::{Count, PartsPerMillion32, StoredF32};
+use bitview_primitives::{Count, PartsPerMillion32, Percent, Percent64};
 use bitview_transforms::RatioCount;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -92,7 +92,7 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
     pub active_reused_addr_count: PerBlockCumulativeAverage<Count, Count, M>,
     /// Share of distinct active addresses in the represented block that
     /// satisfy an address predicate after that block's events.
-    pub active_reused_addr_share: PerBlockRollingAverage<StoredF32, StoredF32, M>,
+    pub active_reused_addr_share: PerBlockRollingAverage<Percent, Percent64, M>,
 }
 
 impl AddrEventsVecs {
@@ -283,7 +283,7 @@ impl AddrEventsVecs {
         };
         self.active_reused_addr_share
             .block
-            .push(StoredF32::from(share));
+            .push(Percent::new(share));
     }
 
     pub fn compute_rest(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {

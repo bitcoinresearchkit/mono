@@ -38,10 +38,11 @@ where
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
         let block = import_cached(db, name, version)?;
-        let cumulative = import_cached(db, &format!("{name}_cumulative"), version + Version::TWO)?;
+        let cumulative =
+            import_cached(db, &format!("{name}_cumulative"), version + Version::new(3))?;
         let average = LazyRollingAvgsFromHeight::new(
             &format!("{name}_average"),
-            version + Version::TWO,
+            version + Version::new(3),
             &cumulative.read_only_boxed_clone(),
             window_starts,
             indexes,

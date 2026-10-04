@@ -1,5 +1,5 @@
 use bitview_compute::FixedRatio;
-use bitview_primitives::{Lengths, StoredF32};
+use bitview_primitives::{Lengths, Ratio};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -13,7 +13,7 @@ pub struct RatioPerBlock<R: FixedRatio, M: StorageMode = Rw> {
     /// Unitless ratio in parts per million; 1,000,000 represents 1.0.
     pub ppm: PerBlock<R, M>,
     /// Unitless decimal ratio derived as parts per million divided by 1,000,000.
-    pub ratio: LazyPerBlock<StoredF32, R>,
+    pub ratio: LazyPerBlock<Ratio, R>,
 }
 
 const VERSION: Version = Version::new(3);

@@ -2,7 +2,7 @@ use std::{array, iter, mem};
 
 use bitview_cohort::{AgeAggregateId, AgeRange};
 use bitview_compute::{collect_cohort_weights, prepare_computed};
-use bitview_primitives::StoredF64;
+use bitview_primitives::Ratio64;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, Version};
@@ -20,7 +20,7 @@ impl Metrics {
         version: Version,
         recompute_from: usize,
         inputs: ReplayInputs<'_>,
-        weights: &AgeRange<&impl ReadableVec<Height, StoredF64>>,
+        weights: &AgeRange<&impl ReadableVec<Height, Ratio64>>,
         supplies: &AgeRange<&impl ReadableVec<Height, Sats>>,
         exit: &Exit,
     ) -> Result<()> {

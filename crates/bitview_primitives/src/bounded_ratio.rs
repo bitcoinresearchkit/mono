@@ -5,7 +5,7 @@ use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{StoredF32, unlikely};
+use crate::unlikely;
 
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
@@ -94,13 +94,6 @@ impl From<BoundedRatio> for f32 {
     #[inline]
     fn from(value: BoundedRatio) -> Self {
         f64::from(value) as f32
-    }
-}
-
-impl From<BoundedRatio> for StoredF32 {
-    #[inline]
-    fn from(value: BoundedRatio) -> Self {
-        Self::from(f32::from(value))
     }
 }
 

@@ -1,5 +1,5 @@
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{PartsPerMillionSigned32, PartsPerMillionSigned64, StoredF64};
+use bitview_primitives::{PartsPerMillionSigned32, PartsPerMillionSigned64, Ratio64};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Height;
@@ -9,7 +9,7 @@ use super::{super::activity, Vecs};
 
 #[inline]
 fn adjusted_inflation(
-    active_to_vaulted: StoredF64,
+    active_to_vaulted: Ratio64,
     inflation: PartsPerMillionSigned64,
 ) -> PartsPerMillionSigned32 {
     PartsPerMillionSigned32::from(f64::from(active_to_vaulted) * f64::from(inflation))
@@ -20,8 +20,8 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         inflation_rate: &impl ReadableVec<Height, PartsPerMillionSigned64>,
-        velocity_native: &impl ReadableVec<Height, StoredF64>,
-        velocity_fiat: &impl ReadableVec<Height, StoredF64>,
+        velocity_native: &impl ReadableVec<Height, Ratio64>,
+        velocity_fiat: &impl ReadableVec<Height, Ratio64>,
         activity: &activity::Vecs,
         exit: &Exit,
     ) -> Result<()> {

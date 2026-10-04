@@ -1409,10 +1409,8 @@ name = "bitview_urpd"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
- "bitview_collections",
  "bitview_compute",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",

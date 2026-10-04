@@ -1,8 +1,6 @@
 use bitview_collections::RarityPercentiles;
 use bitview_plugin_indexer::Lengths;
-use bitview_primitives::{
-    PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN, StoredF32,
-};
+use bitview_primitives::{PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN, Ratio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, IndexSources, LazyRatioPerBlock, import_cached};
 use brk_error::Result;
@@ -87,7 +85,7 @@ impl Component {
     pub(crate) fn compute(
         &mut self,
         starting_lengths: &Lengths,
-        ratio_source: &impl ReadableVec<Height, StoredF32>,
+        ratio_source: &impl ReadableVec<Height, Ratio>,
         exit: &Exit,
     ) -> Result<()> {
         let block_decay_pct = &mut self.block_decay_pct;
@@ -148,7 +146,7 @@ impl Component {
     pub fn needs_compute(
         &self,
         starting_height: Height,
-        ratio_source: &impl ReadableVec<Height, StoredF32>,
+        ratio_source: &impl ReadableVec<Height, Ratio>,
     ) -> bool {
         self.ratios.iter().any(|v| {
             v.len() != ratio_source.len()

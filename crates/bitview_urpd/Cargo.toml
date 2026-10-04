@@ -12,8 +12,6 @@ bitview_primitives = { workspace = true, features = ["storage"] }
 statedb = { workspace = true }
 bitview_compute = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }
-bitview_collections = { workspace = true, features = ["storage"] }
-bitview_transforms = { workspace = true }
 bitview_traversable = { workspace = true }
 bitview_vecs = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }

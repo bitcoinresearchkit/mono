@@ -1,8 +1,8 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::{PartsPerMillion32, StoredF32};
-use bitview_transforms::{RatioCents, RatioCentsF32, SoprRatio};
+use bitview_primitives::{PartsPerMillion32, Ratio, StoredF32};
+use bitview_transforms::{RatioCents, RatioCentsOrOne};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyWindowStartVec, PerBlock, PercentRollingWindows, RollingWindows, RollingWindowsFrom1w,
@@ -19,10 +19,10 @@ use crate::{
 pub struct Ratios<M: StorageMode = Rw> {
     pub adjusted_sopr: AdjustedSopr<M>,
     pub dormancy: RollingWindows<StoredF32, M>,
-    pub sopr: PerBlock<StoredF32, M>,
-    pub sopr_ratio_extended: RollingWindowsFrom1w<StoredF32, M>,
+    pub sopr: PerBlock<Ratio, M>,
+    pub sopr_ratio_extended: RollingWindowsFrom1w<Ratio, M>,
     pub sell_side_risk_ratio: PercentRollingWindows<PartsPerMillion32, M>,
-    pub profit_to_loss_ratio: RollingWindows<StoredF32, M>,
+    pub profit_to_loss_ratio: RollingWindows<Ratio, M>,
 }
 impl Ratios {
     pub(crate) fn import(
@@ -65,7 +65,7 @@ impl Ratios {
         exit: &Exit,
     ) -> Result<()> {
         self.adjusted_sopr.compute(from, exit)?;
-        self.sopr.compute_binary::<_, _, SoprRatio>(
+        self.sopr.compute_binary::<_, _, RatioCentsOrOne>(
             from,
             &activity.transfer_volume.sum._24h.cents.height,
             &realized.value_destroyed.sum._24h.cents.height,
@@ -110,7 +110,7 @@ impl Ratios {
             )
             .zip(realized.value_destroyed.sum.as_array().into_iter().skip(1))
         {
-            target.compute_binary::<_, _, SoprRatio>(
+            target.compute_binary::<_, _, RatioCentsOrOne>(
                 from,
                 &created.cents.height,
                 &destroyed.cents.height,
@@ -137,7 +137,7 @@ impl Ratios {
             .zip(realized.profit.sum.as_array())
             .zip(realized.loss.sum.as_array())
         {
-            target.compute_binary::<_, _, RatioCentsF32>(
+            target.compute_binary::<_, _, RatioCentsOrOne>(
                 from,
                 &profit.cents.height,
                 &loss.cents.height,

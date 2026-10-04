@@ -1,7 +1,7 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::{PartsPerMillionSigned64, PriceRatio, StoredF32};
+use bitview_primitives::{PartsPerMillionSigned64, PriceRatio, Ratio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlockCumulativeRolling, LazyFiatPerBlockCumulativeWithSums,
@@ -31,12 +31,12 @@ pub struct RealizedMetrics<M: StorageMode = Rw> {
         PartsPerMillionSigned64,
     >,
     /// Spending value divided by creation-date value over the trailing 24 hours.
-    pub(crate) sopr: PerBlock<StoredF32, M>,
+    pub(crate) sopr: PerBlock<Ratio, M>,
     #[traversable(wrap = "sopr")]
     /// Creation-date value of outputs spent from this cohort.
     pub(crate) value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
     /// Spot price divided by this cohort's realized price.
-    mvrv: LazyPerBlock<StoredF32>,
+    mvrv: LazyPerBlock<Ratio>,
 }
 
 impl RealizedMetrics {

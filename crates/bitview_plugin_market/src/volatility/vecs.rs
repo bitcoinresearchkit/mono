@@ -1,5 +1,5 @@
 use bitview_collections::Windows;
-use bitview_primitives::StoredF32;
+use bitview_primitives::Ratio;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPerBlock;
 use derive_more::Deref;
@@ -8,5 +8,5 @@ use derive_more::Deref;
 pub struct Vecs(
     #[deref]
     #[traversable(flatten)]
-    pub(super) Windows<LazyPerBlock<StoredF32>>,
+    pub(super) Windows<LazyPerBlock<Ratio>>,
 );

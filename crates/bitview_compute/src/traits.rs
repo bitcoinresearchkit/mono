@@ -2,7 +2,7 @@ use std::ops::{Add, AddAssign, Div};
 
 use bitview_primitives::{
     BasisPoints32, PartsPerMillion32, PartsPerMillion64, PartsPerMillionSigned32,
-    PartsPerMillionSigned64, PriceRatio, StoredF32,
+    PartsPerMillionSigned64, Percent, PriceRatio, Ratio,
 };
 use bitview_transforms::{FixedToPercent, FixedToRatio};
 use schemars::JsonSchema;
@@ -41,8 +41,8 @@ impl<T> NumericValue for T where T: ComputedVecValue + CheckedSub + Default + Fr
 pub trait FixedRatio: NumericValue + JsonSchema {
     const SUFFIX: &'static str;
 
-    type ToRatio: UnaryTransform<Self, StoredF32>;
-    type ToPercent: UnaryTransform<Self, StoredF32>;
+    type ToRatio: UnaryTransform<Self, Ratio>;
+    type ToPercent: UnaryTransform<Self, Percent>;
 }
 
 impl FixedRatio for PartsPerMillion32 {

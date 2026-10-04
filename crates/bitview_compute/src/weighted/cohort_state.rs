@@ -1,4 +1,4 @@
-use bitview_primitives::{BoundedRatio, StoredF64};
+use bitview_primitives::{BoundedRatio, Ratio64};
 use brk_types::{Cents, Sats};
 use vecdb::unlikely;
 
@@ -17,8 +17,8 @@ impl WeightedCohortState {
     #[inline]
     pub fn split_supply(total: Sats, weight: BoundedRatio) -> (Sats, Sats) {
         (
-            StoredF64::from(f64::from(weight)) * total,
-            StoredF64::from(f64::from(weight.complement())) * total,
+            Ratio64::from(f64::from(weight)) * total,
+            Ratio64::from(f64::from(weight.complement())) * total,
         )
     }
 
@@ -31,7 +31,7 @@ impl WeightedCohortState {
         weight: BoundedRatio,
     ) -> WeightedCohortContribution {
         let (weighted_supply, complement_supply) = Self::split_supply(total_supply, weight);
-        let weight = StoredF64::from(f64::from(weight));
+        let weight = Ratio64::from(f64::from(weight));
         let contribution = WeightedCohortContribution {
             weighted_supply,
             complement_supply,

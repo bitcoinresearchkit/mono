@@ -1,6 +1,6 @@
-use bitview_collections::Percent;
+use bitview_collections::FixedRatioViews;
 use bitview_compute::FixedRatio;
-use bitview_primitives::StoredF32;
+use bitview_primitives::{Percent, Ratio};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -11,7 +11,11 @@ use crate::{IndexSources, LazyDeltaFromHeight, LazyPerBlock};
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct LazyDeltaPercentFromHeight<S, B>(
-    pub Percent<LazyDeltaFromHeight<S, B, DeltaRate>, LazyPerBlock<StoredF32, B>>,
+    pub  FixedRatioViews<
+        LazyDeltaFromHeight<S, B, DeltaRate>,
+        LazyPerBlock<Ratio, B>,
+        LazyPerBlock<Percent, B>,
+    >,
 )
 where
     S: VecValue,
@@ -44,7 +48,7 @@ where
             &ppm.resolutions,
         );
 
-        Self(Percent {
+        Self(FixedRatioViews {
             ppm,
             ratio,
             percent,

@@ -1,6 +1,6 @@
-use bitview_collections::Percent;
+use bitview_collections::FixedRatioViews;
 use bitview_compute::{FixedRatio, NumericValue};
-use bitview_primitives::{PartsPerMillionSigned64, StoredF32};
+use bitview_primitives::{PartsPerMillionSigned64, Percent, Ratio};
 use bitview_transforms::Cagr;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
@@ -16,7 +16,7 @@ use crate::{IndexSources, LazyIndexedVec, LazyLookbackVec, LazyPerBlock};
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct LazyPercentPerBlock<B: FixedRatio>(
-    pub Percent<LazyPerBlock<B, B>, LazyPerBlock<StoredF32, B>>,
+    pub FixedRatioViews<LazyPerBlock<B, B>, LazyPerBlock<Ratio, B>, LazyPerBlock<Percent, B>>,
 );
 
 impl<B: FixedRatio> LazyPercentPerBlock<B> {
@@ -118,7 +118,7 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
         let ratio =
             LazyPerBlock::from_lazy::<B::ToRatio, B>(&format!("{name}_ratio"), version, &ppm);
         let percent = LazyPerBlock::from_lazy::<B::ToPercent, B>(name, version, &ppm);
-        Self(Percent {
+        Self(FixedRatioViews {
             ppm,
             ratio,
             percent,

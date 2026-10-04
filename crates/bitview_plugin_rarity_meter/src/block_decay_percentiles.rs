@@ -1,5 +1,5 @@
 use bitview_compute::FenwickTree;
-use bitview_primitives::StoredF32;
+use bitview_primitives::Ratio;
 
 pub const START_HEIGHT: usize = 210_000;
 const HALF_LIFE_BLOCKS: usize = 210_000;
@@ -47,7 +47,7 @@ impl BlockDecayPercentiles {
         2.0_f64.powf(height.saturating_sub(START_HEIGHT) as f64 / HALF_LIFE_BLOCKS as f64)
     }
 
-    pub fn add_bulk(&mut self, start_height: usize, values: &[StoredF32]) {
+    pub fn add_bulk(&mut self, start_height: usize, values: &[Ratio]) {
         for (offset, &value) in values.iter().enumerate() {
             self.len += 1;
             let value = *value;

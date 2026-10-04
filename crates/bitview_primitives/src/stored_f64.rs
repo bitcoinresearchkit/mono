@@ -6,7 +6,7 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
 };
 
-use brk_types::{Bitcoin, Cents, CheckedSub, Dollars, Sats};
+use brk_types::{Bitcoin, CheckedSub, Dollars};
 use derive_more::Deref;
 use ryu::Buffer;
 use schemars::JsonSchema;
@@ -81,33 +81,10 @@ impl Sub for StoredF64 {
     }
 }
 
-impl Mul for StoredF64 {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self(self.0 * rhs.0)
-    }
-}
-
 impl Mul<Dollars> for StoredF64 {
     type Output = Self;
     fn mul(self, rhs: Dollars) -> Self::Output {
         Self(self.0 * *rhs)
-    }
-}
-
-impl Mul<Sats> for StoredF64 {
-    type Output = Sats;
-    #[inline]
-    fn mul(self, rhs: Sats) -> Self::Output {
-        rhs * self
-    }
-}
-
-impl Mul<Cents> for StoredF64 {
-    type Output = Cents;
-    #[inline]
-    fn mul(self, rhs: Cents) -> Self::Output {
-        rhs * self
     }
 }
 
@@ -315,24 +292,9 @@ impl From<StoredF64> for Dollars {
     }
 }
 
-impl Mul<StoredF64> for Sats {
-    type Output = Self;
-    fn mul(self, rhs: StoredF64) -> Self::Output {
-        self * f64::from(rhs)
-    }
-}
-
 impl From<StoredF64> for Bitcoin {
     #[inline]
     fn from(value: StoredF64) -> Self {
         Self::from(*value)
-    }
-}
-
-impl Mul<StoredF64> for Cents {
-    type Output = Self;
-    #[inline]
-    fn mul(self, rhs: StoredF64) -> Self::Output {
-        Self::from(f64::from(self) * f64::from(rhs))
     }
 }
