@@ -3,6 +3,8 @@ const DEFAULT_TRIGRAM_BUDGET = 6;
 const DEFAULT_LIMIT = 100;
 const DEFAULT_MIN_SCORE = 2;
 
+/** Item IDs, ascending. @typedef {number[] | Uint32Array} Ids */
+
 /**
  * Search configuration.
  *
@@ -72,62 +74,200 @@ export class QuickMatch {
   constructor(items, config = new QuickMatchConfig()) {
     this.config = Object.assign(new QuickMatchConfig(), config);
     this.items = items = items.slice();
-    /** @type {Map<string, number[]>} */
-    this.wordIndex = new Map();
-    /** @type {Map<string, number[]>} */
-    this.trigramIndex = new Map();
     this._indexSeparators = config.separators;
     this._sepLookup = sepLookup(config.separators);
     this._scores = new Uint32Array(items.length);
     /** @type {number[]} */
     this._dirty = [];
+    // Merging lists marks each item once per merge.
+    this._seen = new Uint32Array(items.length);
+    this._stamp = 0;
+    /** @type {Map<string, Uint32Array | null>} */
+    this._prefixCache = new Map();
+    /** @type {Map<string, Uint32Array | null>} */
+    this._trigramCache = new Map();
 
     let maxWordLen = 0;
     let maxQueryLen = 0;
     let maxWords = 0;
     const sep = this._sepLookup;
+    // The items of each distinct word, and of each distinct joined pair of
+    // adjacent words (keyed by the first word's length, then the text), in
+    // ascending order. Prefixes and trigrams resolve against these at query
+    // time, matching the Rust crate's per-prefix and per-trigram lists
+    // exactly while keeping memory to one entry per word occurrence. Each
+    // item keeps its words too, as numbers, for ranking to read.
+    /** @type {Map<string, number>} */
+    const wordIds = new Map();
+    /** @type {string[]} */
+    const wordTexts = [];
+    /** @type {number[][]} */
+    const wordLists = [];
+    /** @type {number[]} */
+    const itemWords = [];
+    this._itemOffsets = new Uint32Array(items.length + 1);
+    /** @type {Map<string, number[]>} */
+    const compoundItems = new Map();
 
     for (let idx = 0; idx < items.length; idx++) {
       const item = items[idx];
       if (item.length > maxQueryLen) maxQueryLen = item.length;
 
+      /** @type {string[]} */
       const words = [];
       let start = 0;
-
       for (let i = 0; i <= item.length; i++) {
         if (i < item.length && !sep[item.charCodeAt(i)]) continue;
-        if (i > start) {
-          const word = item.slice(start, i);
-          words.push(word);
-          if (word.length > maxWordLen) maxWordLen = word.length;
-          for (let len = 1; len <= word.length; len++) {
-            addToIndex(this.wordIndex, word.slice(0, len), idx);
-          }
-          for (let k = 0; k <= word.length - 3; k++) {
-            addToIndex(this.trigramIndex, word[k] + word[k + 1] + word[k + 2], idx);
-          }
-        }
+        if (i > start) words.push(item.slice(start, i));
         start = i + 1;
       }
 
-      for (let i = 0; i < words.length - 1; i++) {
-        const compound = words[i] + words[i + 1];
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        if (word.length > maxWordLen) maxWordLen = word.length;
+        let id = wordIds.get(word);
+        if (id === undefined) {
+          wordIds.set(word, (id = wordTexts.length));
+          wordTexts.push(word);
+          wordLists.push([idx]);
+        } else if (wordLists[id][wordLists[id].length - 1] !== idx) {
+          wordLists[id].push(idx);
+        }
+        itemWords.push(id);
+        if (i === 0) continue;
+        const previous = words[i - 1];
         // A joined-word query ("hashrate") can be longer than any single
         // word. Capping at the longest index key keeps the DDoS guard
         // data-bounded while still letting it match.
-        if (compound.length > maxWordLen) maxWordLen = compound.length;
-        const from = words[i].length + 1;
-        for (let len = from; len <= compound.length; len++) {
-          addToIndex(this.wordIndex, compound.slice(0, len), idx);
-        }
+        if (previous.length + word.length > maxWordLen) maxWordLen = previous.length + word.length;
+        addToIndex(compoundItems, `${previous.length}|${previous}${word}`, idx);
       }
+      this._itemOffsets[idx + 1] = itemWords.length;
 
       if (words.length > maxWords) maxWords = words.length;
     }
 
+    // Distinct words, sorted, so the words sharing a prefix sit together; items' words renumbered to match.
+    const order = wordTexts.map((_, id) => id).sort((a, b) => (wordTexts[a] < wordTexts[b] ? -1 : wordTexts[a] > wordTexts[b] ? 1 : 0));
+    const renumbered = new Uint32Array(order.length);
+    order.forEach((id, sorted) => (renumbered[id] = sorted));
+    this._words = order.map(id => wordTexts[id]);
+    this._wordItems = order.map(id => Uint32Array.from(wordLists[id]));
+    this._itemWords = new (order.length <= 0x10000 ? Uint16Array : Uint32Array)(itemWords.length);
+    for (let k = 0; k < itemWords.length; k++) this._itemWords[k] = renumbered[itemWords[k]];
+    const compounds = [...compoundItems.keys()]
+      .map(key => {
+        const bar = key.indexOf("|");
+        return /** @type {[string, number, string]} */ ([key.slice(bar + 1), Number(key.slice(0, bar)) + 1, key]);
+      })
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    /** Distinct joined pairs, sorted; each matches keys at least `from` long. */
+    this._compounds = compounds.map(([text]) => text);
+    this._compoundFrom = Uint32Array.from(compounds, ([, from]) => from);
+    this._compoundItems = compounds.map(([, , key]) => Uint32Array.from(/** @type {number[]} */ (compoundItems.get(key))));
+    /** @type {Map<string, number[]>} */
+    const trigramWords = new Map();
+    this._words.forEach((word, w) => {
+      for (let k = 0; k <= word.length - 3; k++) {
+        addToIndex(trigramWords, word[k] + word[k + 1] + word[k + 2], w);
+      }
+    });
+    /** The words holding each trigram. @type {Map<string, Uint32Array>} */
+    this._trigramWords = new Map([...trigramWords].map(([tri, words]) => [tri, Uint32Array.from(words)]));
+
     this.maxWordLen = maxWordLen + 4;
     this.maxQueryLen = maxQueryLen + 6;
     this.maxWords = maxWords + 2;
+  }
+
+  /**
+   * The items with a word, or a joined pair of adjacent words, starting with
+   * `key`: ascending and distinct, or null when there are none.
+   * @private @param {string} key @returns {Uint32Array | null}
+   */
+  _postings(key) {
+    const cached = this._prefixCache.get(key);
+    if (cached !== undefined) return cached;
+    /** @type {Uint32Array[]} */
+    const lists = [];
+    const words = this._words;
+    for (let i = lowerBound(words, key); i < words.length && words[i].startsWith(key); i++) {
+      lists.push(this._wordItems[i]);
+    }
+    const compounds = this._compounds;
+    for (let i = lowerBound(compounds, key); i < compounds.length && compounds[i].startsWith(key); i++) {
+      if (key.length >= this._compoundFrom[i]) lists.push(this._compoundItems[i]);
+    }
+    return remember(this._prefixCache, key, this._merge(lists));
+  }
+
+  /**
+   * The items with a word holding the trigram `tri`: ascending and distinct,
+   * or null when there are none.
+   * @private @param {string} tri @returns {Uint32Array | null}
+   */
+  _trigramPostings(tri) {
+    const cached = this._trigramCache.get(tri);
+    if (cached !== undefined) return cached;
+    const words = this._trigramWords.get(tri);
+    return remember(this._trigramCache, tri, words ? this._merge(Array.from(words, w => this._wordItems[w])) : null);
+  }
+
+  /**
+   * `wordMatch` for item `idx`, read from its indexed words; a query that
+   * splits words differently from the index reads the item itself.
+   * @private @param {number} idx @param {string[]} qwords @param {Uint8Array} sep @param {boolean} exact
+   * @returns {[number, number]}
+   */
+  _wordMatch(idx, qwords, sep, exact) {
+    if (sep !== this._sepLookup) return wordMatch(this.items[idx], qwords, sep, exact);
+    const words = this._words, ids = this._itemWords;
+    const from = this._itemOffsets[idx], to = this._itemOffsets[idx + 1];
+    let matched = 0;
+    let position = to - from;
+    for (const qw of qwords) {
+      for (let k = from; k < to; k++) {
+        const word = words[ids[k]];
+        let joined = false;
+        if (k > from) {
+          const previous = words[ids[k - 1]], rest = qw.length - previous.length;
+          joined = rest > 0 && qw.startsWith(previous)
+            && (exact ? word.length === rest : word.length >= rest) && word.startsWith(qw.slice(previous.length));
+        }
+        if ((exact ? word === qw : word.startsWith(qw)) || joined) {
+          matched++;
+          position = Math.min(position, joined ? k - from - 1 : k - from);
+          break;
+        }
+      }
+    }
+    return [matched, position];
+  }
+
+  /**
+   * The distinct items of ascending lists, ascending; null for no lists.
+   * @private @param {Uint32Array[]} lists @returns {Uint32Array | null}
+   */
+  _merge(lists) {
+    if (lists.length <= 1) return lists[0] ?? null;
+    if (this._stamp === 0xffffffff) {
+      this._seen.fill(0);
+      this._stamp = 0;
+    }
+    const stamp = ++this._stamp;
+    const seen = this._seen;
+    /** @type {number[]} */
+    const merged = [];
+    for (const list of lists) {
+      for (let j = 0; j < list.length; j++) {
+        const id = list[j];
+        if (seen[id] !== stamp) {
+          seen[id] = stamp;
+          merged.push(id);
+        }
+      }
+    }
+    return Uint32Array.from(merged).sort();
   }
 
   /** @param {string} query */
@@ -196,7 +336,7 @@ export class QuickMatch {
     const unknown = [];
 
     for (const w of qwords) {
-      const hits = this.wordIndex.get(w);
+      const hits = this._postings(w);
       if (hits) {
         known.push(hits);
       } else if (w.length >= 3 && unknown.length < trigramBudget) {
@@ -207,7 +347,7 @@ export class QuickMatch {
     if (exactWords) {
       if (!config.unionFallback && known.length !== qwords.length) return [];
       const candidates = (config.unionFallback ? union(known) : intersect(known) || []).filter(id => {
-        const [matched] = wordMatch(this.items[id], qwords, sep, true);
+        const [matched] = this._wordMatch(id, qwords, sep, true);
         return matched > 0 && (config.unionFallback || matched === qwords.length);
       });
       return this._rank(candidates, null, qwords, sep, limit, bestOnly, true);
@@ -218,7 +358,7 @@ export class QuickMatch {
     // A swapped pair often shares no trigrams ("prcie" → "price").
     // Probe indexed corrections before the broader trigram fallback.
     if (unknown.length && trigramBudget) {
-      /** @type {number[][][]} */
+      /** @type {Ids[][]} */
       const corrections = unknown.map(() => []);
       let budget = trigramBudget;
       for (let round = 0; round < trigramBudget && budget > 0; round++) {
@@ -229,9 +369,9 @@ export class QuickMatch {
           if (word[at] === word[at + 1]) continue;
           budget--;
           const corrected = word.slice(0, at) + word[at + 1] + word[at] + word.slice(at + 2);
-          const hits = this.wordIndex.get(corrected);
+          const hits = this._postings(corrected);
           if (hits) {
-            const exact = hits.filter(id => wordMatch(this.items[id], [corrected], sep, true)[0]);
+            const exact = hits.filter(id => this._wordMatch(id, [corrected], sep, true)[0]);
             if (exact.length) corrections[i].push(exact);
           }
         }
@@ -294,7 +434,7 @@ export class QuickMatch {
         visited.add(tri);
         budget--;
 
-        const matched = this.trigramIndex.get(tri);
+        const matched = this._trigramPostings(tri);
         if (!matched) continue;
         hits++;
 
@@ -320,7 +460,7 @@ export class QuickMatch {
 
   /**
    * @private
-   * @param {number[]} indices
+   * @param {Ids} indices
    * @param {number|null} minScore
    * @param {string[]} qwords
    * @param {Uint8Array} sep
@@ -337,7 +477,7 @@ export class QuickMatch {
     for (let i = 0; i < indices.length; i++) {
       const idx = indices[i];
       if (minScore !== null && scores[idx] < minScore) continue;
-      const [matched, position] = wordMatch(items[idx], qwords, sep, exactWords);
+      const [matched, position] = this._wordMatch(idx, qwords, sep, exactWords);
       buckets[matched].push([idx, position]);
     }
 
@@ -423,7 +563,30 @@ function addToIndex(index, key, value) {
   }
 }
 
-/** @param {number[][]} arrays */
+/** The first position in sorted `list` whose value is not below `key`. @param {string[]} list @param {string} key */
+function lowerBound(list, key) {
+  let lo = 0,
+    hi = list.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (list[mid] < key) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/**
+ * Keeps a resolved list for the next lookups of the same key (a query looks
+ * its words up more than once); a bounded few, so memory stays flat.
+ * @template T @param {Map<string, T>} cache @param {string} key @param {T} value
+ */
+function remember(cache, key, value) {
+  if (cache.size >= 64) cache.clear();
+  cache.set(key, value);
+  return value;
+}
+
+/** @param {Ids[]} arrays @returns {Ids} */
 function union(arrays) {
   if (arrays.length <= 1) return arrays[0] || [];
   const seen = new Set();
@@ -439,7 +602,7 @@ function union(arrays) {
   return result;
 }
 
-/** @param {number[][]} arrays @returns {number[]|null} */
+/** @param {Ids[]} arrays @returns {Ids|null} */
 function intersect(arrays) {
   if (arrays.length <= 1) return arrays[0] || null;
 
@@ -448,7 +611,7 @@ function intersect(arrays) {
     if (arrays[i].length < arrays[si].length) si = i;
   }
 
-  const result = arrays[si].slice();
+  const result = Array.from(arrays[si]);
   for (let i = 0; i < arrays.length; i++) {
     if (i === si) continue;
     let w = 0;
@@ -462,7 +625,7 @@ function intersect(arrays) {
 }
 
 /**
- * @param {number[]} arr
+ * @param {Ids} arr
  * @param {number} val
  */
 function bsearch(arr, val) {
