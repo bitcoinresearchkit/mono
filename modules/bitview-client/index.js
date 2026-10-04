@@ -350,6 +350,11 @@ prior template's transactions or a full transaction body.
  * @property {Weight} avgWeight - Rolling 24h median block weight (weight units)
  */
 /**
+ * Yes or no
+ *
+ * @typedef {boolean} Boolean
+ */
+/**
  * A ratio in [0, 1], floored at scale u32::MAX - 1.
  * Zero and one are exact; finite quantization error is less than 1 / SCALE
  * apart from floating-point arithmetic error. u32::MAX represents undefined.
@@ -581,6 +586,11 @@ ancestors and no descendants (matches mempool.space).
  * Fee rate stored in milli-sat/vB and exposed as sat/vB.
  *
  * @typedef {number} FeeRate
+ */
+/**
+ * A 32-bit floating-point value without a specific unit.
+ *
+ * @typedef {number} Float32
  */
 /**
  * Output format for API responses
@@ -975,6 +985,11 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {(number|string|string)} RangeIndex
  */
 /**
+ * A discrete rank.
+ *
+ * @typedef {number} Rank
+ */
+/**
  * Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
  *
  * @typedef {number} RawLockTime
@@ -1063,6 +1078,11 @@ on serialization otherwise.
  * @typedef {number} SatsSigned
  */
 /**
+ * A signed model score.
+ *
+ * @typedef {number} Score
+ */
+/**
  * @typedef {Object} SearchQuery
  * @property {SeriesName} q - Search query string
  * @property {Limit=} limit - Maximum number of results
@@ -1141,7 +1161,6 @@ undefined one (e.g. NaN).
  *
  * @typedef {number} SigOps
  */
-/** @typedef {boolean} StoredBool */
 /**
  * Stored 32-bit floating point value
  *
@@ -1157,8 +1176,6 @@ undefined one (e.g. NaN).
  *
  * @typedef {number} StoredI64
  */
-/** @typedef {number} StoredI8 */
-/** @typedef {number} StoredU16 */
 /**
  * Fixed-size 32-bit unsigned integer optimized for on-disk storage
  *
@@ -1169,7 +1186,6 @@ undefined one (e.g. NaN).
  *
  * @typedef {number} StoredU64
  */
-/** @typedef {number} StoredU8 */
 /**
  * Sync status of the indexer
  *
@@ -3024,24 +3040,24 @@ const _Mappings = _s({
 
 /**
  * @typedef {{
- *   _0: SeriesPattern1<StoredU16>,
- *   _1: SeriesPattern1<StoredU16>,
- *   _2: SeriesPattern1<StoredU16>,
- *   _3: SeriesPattern1<StoredU16>,
- *   _4: SeriesPattern1<StoredU16>,
- *   _20: SeriesPattern1<StoredU16>,
- *   _30: SeriesPattern1<StoredU16>,
- *   _382: SeriesPattern1<?StoredF32>,
- *   _50: SeriesPattern1<StoredU16>,
- *   _618: SeriesPattern1<?StoredF32>,
- *   _70: SeriesPattern1<StoredU16>,
- *   _80: SeriesPattern1<StoredU16>,
- *   _100: SeriesPattern1<StoredU16>,
- *   _600: SeriesPattern1<StoredU16>,
- *   minus1: SeriesPattern1<StoredI8>,
- *   minus2: SeriesPattern1<StoredI8>,
- *   minus3: SeriesPattern1<StoredI8>,
- *   minus4: SeriesPattern1<StoredI8>,
+ *   _0: SeriesPattern1<?Float32>,
+ *   _1: SeriesPattern1<?Float32>,
+ *   _2: SeriesPattern1<?Float32>,
+ *   _3: SeriesPattern1<?Float32>,
+ *   _4: SeriesPattern1<?Float32>,
+ *   _20: SeriesPattern1<?Float32>,
+ *   _30: SeriesPattern1<?Float32>,
+ *   _382: SeriesPattern1<?Float32>,
+ *   _50: SeriesPattern1<?Float32>,
+ *   _618: SeriesPattern1<?Float32>,
+ *   _70: SeriesPattern1<?Float32>,
+ *   _80: SeriesPattern1<?Float32>,
+ *   _100: SeriesPattern1<?Float32>,
+ *   _600: SeriesPattern1<?Float32>,
+ *   minus1: SeriesPattern1<?Float32>,
+ *   minus2: SeriesPattern1<?Float32>,
+ *   minus3: SeriesPattern1<?Float32>,
+ *   minus4: SeriesPattern1<?Float32>,
  * }} Constants
  */
 const _Constants = _s({
@@ -3067,10 +3083,10 @@ const _Constants = _s({
 
 /**
  * @typedef {{
- *   isLong: SeriesPattern2<StoredBool>,
- *   isShort: SeriesPattern2<StoredBool>,
+ *   isLong: SeriesPattern2<Boolean>,
+ *   isShort: SeriesPattern2<Boolean>,
  *   phase: SeriesPattern3<CapitalSentimentPhase>,
- *   score: SeriesPattern3<StoredI8>,
+ *   score: SeriesPattern3<Score>,
  * }} CapitalSentiment
  */
 const _CapitalSentiment = _s({
@@ -3469,8 +3485,8 @@ const _Max = _s({
  *   pct99: Spot<?SatsFract>,
  *   pct995: Spot<?SatsFract>,
  *   pct999: Spot<?SatsFract>,
- *   index: SeriesPattern2<StoredI8>,
- *   score: SeriesPattern2<StoredI8>,
+ *   index: SeriesPattern2<Score>,
+ *   score: SeriesPattern2<Score>,
  * }} Cycle
  */
 const _Cycle = _s({
@@ -4769,7 +4785,7 @@ const _TransactionsSize = _s({
  *   weight: SeriesPattern22<Weight>,
  *   totalSize: SeriesPattern22<StoredU32>,
  *   totalSigopCost: SeriesPattern22<SigOps>,
- *   isExplicitlyRbf: SeriesPattern22<StoredBool>,
+ *   isExplicitlyRbf: SeriesPattern22<Boolean>,
  *   firstTxinIndex: SeriesPattern22<TxInIndex>,
  *   firstTxoutIndex: SeriesPattern22<TxOutIndex>,
  * }} TransactionsRaw
@@ -5242,7 +5258,7 @@ const _PolicyCount = _s({
 /**
  * @typedef {{
  *   count: PolicyCount,
- *   isNonstandard: SeriesPattern22<StoredBool>,
+ *   isNonstandard: SeriesPattern22<Boolean>,
  * }} Policy
  */
 const _Policy = _s({
@@ -5266,9 +5282,9 @@ const _PatternsCount = _s({
 /**
  * @typedef {{
  *   count: PatternsCount,
- *   isCoinjoin: SeriesPattern22<StoredBool>,
- *   isConsolidation: SeriesPattern22<StoredBool>,
- *   isBatchPayout: SeriesPattern22<StoredBool>,
+ *   isCoinjoin: SeriesPattern22<Boolean>,
+ *   isConsolidation: SeriesPattern22<Boolean>,
+ *   isBatchPayout: SeriesPattern22<Boolean>,
  * }} Patterns
  */
 const _Patterns = _s({
@@ -5295,8 +5311,8 @@ const _FeesCount = _s({
  *   fee: EffectiveFeeRate<Sats, EffectiveFeeRate6b<Sats>>,
  *   feeRate: SeriesPattern22<?FeeRate>,
  *   effectiveFeeRate: EffectiveFeeRate<?FeeRate, EffectiveFeeRate6b<?FeeRate>>,
- *   isCpfpParent: SeriesPattern22<StoredBool>,
- *   isCpfpChild: SeriesPattern22<StoredBool>,
+ *   isCpfpParent: SeriesPattern22<Boolean>,
+ *   isCpfpChild: SeriesPattern22<Boolean>,
  * }} TransactionsFees
  */
 const _TransactionsFees = _s({
@@ -5383,27 +5399,27 @@ const _FeaturesCount = _s({
 /**
  * @typedef {{
  *   count: FeaturesCount,
- *   hasP2pk: SeriesPattern22<StoredBool>,
- *   hasP2ms: SeriesPattern22<StoredBool>,
- *   hasP2pkh: SeriesPattern22<StoredBool>,
- *   hasP2sh: SeriesPattern22<StoredBool>,
- *   hasP2wpkh: SeriesPattern22<StoredBool>,
- *   hasP2wsh: SeriesPattern22<StoredBool>,
- *   hasP2tr: SeriesPattern22<StoredBool>,
- *   hasP2a: SeriesPattern22<StoredBool>,
- *   hasOpReturn: SeriesPattern22<StoredBool>,
- *   hasEmpty: SeriesPattern22<StoredBool>,
- *   hasUnknown: SeriesPattern22<StoredBool>,
- *   hasFakePubkey: SeriesPattern22<StoredBool>,
- *   hasFakeScripthash: SeriesPattern22<StoredBool>,
- *   hasInscription: SeriesPattern22<StoredBool>,
- *   hasAnnex: SeriesPattern22<StoredBool>,
- *   hasSighashAll: SeriesPattern22<StoredBool>,
- *   hasSighashNone: SeriesPattern22<StoredBool>,
- *   hasSighashSingle: SeriesPattern22<StoredBool>,
- *   hasSighashDefault: SeriesPattern22<StoredBool>,
- *   hasSighashAnyoneCanPay: SeriesPattern22<StoredBool>,
- *   hasDustOutput: SeriesPattern22<StoredBool>,
+ *   hasP2pk: SeriesPattern22<Boolean>,
+ *   hasP2ms: SeriesPattern22<Boolean>,
+ *   hasP2pkh: SeriesPattern22<Boolean>,
+ *   hasP2sh: SeriesPattern22<Boolean>,
+ *   hasP2wpkh: SeriesPattern22<Boolean>,
+ *   hasP2wsh: SeriesPattern22<Boolean>,
+ *   hasP2tr: SeriesPattern22<Boolean>,
+ *   hasP2a: SeriesPattern22<Boolean>,
+ *   hasOpReturn: SeriesPattern22<Boolean>,
+ *   hasEmpty: SeriesPattern22<Boolean>,
+ *   hasUnknown: SeriesPattern22<Boolean>,
+ *   hasFakePubkey: SeriesPattern22<Boolean>,
+ *   hasFakeScripthash: SeriesPattern22<Boolean>,
+ *   hasInscription: SeriesPattern22<Boolean>,
+ *   hasAnnex: SeriesPattern22<Boolean>,
+ *   hasSighashAll: SeriesPattern22<Boolean>,
+ *   hasSighashNone: SeriesPattern22<Boolean>,
+ *   hasSighashSingle: SeriesPattern22<Boolean>,
+ *   hasSighashDefault: SeriesPattern22<Boolean>,
+ *   hasSighashAnyoneCanPay: SeriesPattern22<Boolean>,
+ *   hasDustOutput: SeriesPattern22<Boolean>,
  * }} Features
  */
 const _Features = _s({
@@ -6054,7 +6070,7 @@ const _Indicators = _s({
  *   thresholdPct005: SeriesPattern2<A>,
  *   thresholdPct0025: SeriesPattern2<A>,
  *   tail: Gini<?PartsPerMillion32>,
- *   rank: SeriesPattern2<StoredU8>,
+ *   rank: SeriesPattern2<Rank>,
  * }} Capitulation
  */
 const _Capitulation = _s({

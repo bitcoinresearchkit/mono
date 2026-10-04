@@ -1,4 +1,4 @@
-use bitview_primitives::StoredBool;
+use bitview_primitives::Boolean;
 use bitview_traversable::Traversable;
 use bitview_vecs::PerTxDistribution;
 use brk_types::{FeeRate, Height, Sats, TxIndex};
@@ -44,5 +44,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub(crate) cpfp_flags: CpfpFlags<M::Stored<EagerVec<PcoVec<TxIndex, StoredBool>>>>,
+    pub(crate) cpfp_flags: CpfpFlags<M::Stored<EagerVec<PcoVec<TxIndex, Boolean>>>>,
 }

@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{StoredBool, StoredU64};
+use bitview_primitives::{Boolean, StoredU64};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Sats;
@@ -85,7 +85,7 @@ impl Vecs {
                 let nonstandard =
                     raw || (dust && dust_is_nonstandard(height, || fee.get(tx_index).unwrap()));
                 count += nonstandard as u64;
-                self.is_nonstandard.push(StoredBool::from(nonstandard));
+                self.is_nonstandard.push(Boolean::from(nonstandard));
             }
             self.count.nonstandard.push_block(StoredU64::from(count));
 

@@ -1,4 +1,4 @@
-use bitview_primitives::StoredBool;
+use bitview_primitives::Boolean;
 use bitview_traversable::Traversable;
 use brk_types::TxIndex;
 use derive_more::{Deref, DerefMut};
@@ -12,5 +12,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub flags: Flags<M::Stored<EagerVec<PcoVec<TxIndex, StoredBool>>>>,
+    pub flags: Flags<M::Stored<EagerVec<PcoVec<TxIndex, Boolean>>>>,
 }

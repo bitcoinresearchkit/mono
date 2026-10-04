@@ -1,4 +1,4 @@
-use bitview_primitives::{StoredBool, TxVersion};
+use bitview_primitives::{Boolean, TxVersion};
 use brk_error::{Error, Result};
 use brk_store::Store;
 use brk_types::{Height, TxIndex, Txid, TxidPrefix};
@@ -199,7 +199,7 @@ pub fn store_tx_metadata(
         md.total_sigop_cost
             .debug_checked_push(ct.tx_index, analysis.total_sigop_cost);
         md.is_explicitly_rbf
-            .debug_checked_push(ct.tx_index, StoredBool::from(analysis.explicitly_rbf));
+            .debug_checked_push(ct.tx_index, Boolean::from(analysis.explicitly_rbf));
         counts.add_base(
             ct.tx.input.len(),
             ct.tx.output.len(),

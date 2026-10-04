@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use bitview_collections::RarityPercentiles;
 use bitview_compute::prepare_computed;
-use bitview_primitives::{RARITY_PERCENTILES_LEN, RarityPercentileId, StoredI8};
+use bitview_primitives::{RARITY_PERCENTILES_LEN, RarityPercentileId, Score};
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PerBlock, Price};
 use brk_error::Result;
@@ -29,14 +29,14 @@ pub struct RarityMeterInner<M: StorageMode = Rw> {
     /// low; positive values mean it is above upper bands and unusually high;
     /// zero means neither side is crossed. It equals upper boundaries exceeded
     /// minus lower boundaries not reached and ranges from -5 through 5.
-    pub index: PerBlock<StoredI8, M>,
+    pub index: PerBlock<Score, M>,
     /// Agreement score across the meter's component models. More negative
     /// values mean more models identify a rare low valuation; more positive
     /// values mean more models identify a rare high valuation. It sums each
     /// component's rarity index: two-tailed ratio components contribute from -5
     /// through 5 and lower-only direct components from -5 through 0. The total
     /// is capped to the storage range of -128 through 127.
-    pub score: PerBlock<StoredI8, M>,
+    pub score: PerBlock<Score, M>,
 }
 
 const VERSION: Version = Version::TWO;
@@ -151,7 +151,7 @@ impl RarityMeterInner {
                             .iter()
                             .filter(|&&id| close > values[id as usize])
                             .count() as i8;
-                        self.index.height.push(StoredI8::new(upper - lower));
+                        self.index.height.push(Score::new(upper - lower));
                     }
                     if height >= score_start {
                         let score = component_prices
@@ -321,7 +321,7 @@ impl RarityMeterInner {
                     .each_ref()
                     .map(|band| band.collect_range_at(range.start, range.end));
                 for (offset, price) in spot.into_iter().enumerate() {
-                    index.push(StoredI8::new(Self::score_at(price, &bands, offset)));
+                    index.push(Score::new(Self::score_at(price, &bands, offset)));
                 }
 
                 Ok(())
@@ -375,8 +375,8 @@ impl RarityMeterInner {
         Ok(())
     }
 
-    fn capped_score(value: i16) -> StoredI8 {
-        StoredI8::new(value.clamp(i16::from(i8::MIN), i16::from(i8::MAX)) as i8)
+    fn capped_score(value: i16) -> Score {
+        Score::new(value.clamp(i16::from(i8::MIN), i16::from(i8::MAX)) as i8)
     }
 
     fn combine_percentiles(

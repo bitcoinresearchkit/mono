@@ -1,7 +1,7 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillion32, StoredBool, StoredU64};
+use bitview_primitives::{Boolean, PartsPerMillion32, StoredU64};
 use bitview_transforms::RatioSats;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -48,7 +48,7 @@ impl Vecs {
         first_tx: &impl ReadableVec<Height, TxIndex>,
         tx_counts: &impl ReadableVec<Height, StoredU64>,
         inscription_counts: &impl ReadableVec<Height, StoredU64>,
-        inscriptions: &impl ReadableVec<TxIndex, StoredBool>,
+        inscriptions: &impl ReadableVec<TxIndex, Boolean>,
         fees: &impl ReadableVec<TxIndex, Sats>,
         total_fees: &impl ReadableVec<Height, Sats>,
         exit: &Exit,

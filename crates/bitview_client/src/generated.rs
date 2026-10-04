@@ -1108,6 +1108,9 @@ impl SeriesValue for AddrState {
 impl SeriesValue for BlockHash {
     type Nullable = Option<BlockHash>;
 }
+impl SeriesValue for Boolean {
+    type Nullable = Option<Boolean>;
+}
 impl SeriesValue for Bytes {
     type Nullable = Option<Bytes>;
 }
@@ -1246,6 +1249,9 @@ impl SeriesValue for P2WSHBytes {
 impl SeriesValue for PoolSlug {
     type Nullable = Option<PoolSlug>;
 }
+impl SeriesValue for Rank {
+    type Nullable = Option<Rank>;
+}
 impl SeriesValue for RawLockTime {
     type Nullable = Option<RawLockTime>;
 }
@@ -1255,29 +1261,20 @@ impl SeriesValue for Sats {
 impl SeriesValue for SatsSigned {
     type Nullable = Option<SatsSigned>;
 }
+impl SeriesValue for Score {
+    type Nullable = Option<Score>;
+}
 impl SeriesValue for SigOps {
     type Nullable = Option<SigOps>;
 }
-impl SeriesValue for StoredBool {
-    type Nullable = Option<StoredBool>;
-}
 impl SeriesValue for StoredI64 {
     type Nullable = Option<StoredI64>;
-}
-impl SeriesValue for StoredI8 {
-    type Nullable = Option<StoredI8>;
-}
-impl SeriesValue for StoredU16 {
-    type Nullable = Option<StoredU16>;
 }
 impl SeriesValue for StoredU32 {
     type Nullable = Option<StoredU32>;
 }
 impl SeriesValue for StoredU64 {
     type Nullable = Option<StoredU64>;
-}
-impl SeriesValue for StoredU8 {
-    type Nullable = Option<StoredU8>;
 }
 impl SeriesValue for Timestamp {
     type Nullable = Option<Timestamp>;
@@ -1541,30 +1538,30 @@ pub mod tree {
         timestamp: MappingsTimestamp = "timestamp",
     } }
     shape! { Constants at "series().constants" {
-        _0: SeriesPattern1<StoredU16> = "*_0",
-        _1: SeriesPattern1<StoredU16> = "*_1",
-        _2: SeriesPattern1<StoredU16> = "*_2",
-        _3: SeriesPattern1<StoredU16> = "*_3",
-        _4: SeriesPattern1<StoredU16> = "*_4",
-        _20: SeriesPattern1<StoredU16> = "*_20",
-        _30: SeriesPattern1<StoredU16> = "*_30",
-        _38_2: SeriesPattern1<Option<StoredF32>> = "*_38_2",
-        _50: SeriesPattern1<StoredU16> = "*_50",
-        _61_8: SeriesPattern1<Option<StoredF32>> = "*_61_8",
-        _70: SeriesPattern1<StoredU16> = "*_70",
-        _80: SeriesPattern1<StoredU16> = "*_80",
-        _100: SeriesPattern1<StoredU16> = "*_100",
-        _600: SeriesPattern1<StoredU16> = "*_600",
-        minus_1: SeriesPattern1<StoredI8> = "*_minus_1",
-        minus_2: SeriesPattern1<StoredI8> = "*_minus_2",
-        minus_3: SeriesPattern1<StoredI8> = "*_minus_3",
-        minus_4: SeriesPattern1<StoredI8> = "*_minus_4",
+        _0: SeriesPattern1<Option<Float32>> = "*_0",
+        _1: SeriesPattern1<Option<Float32>> = "*_1",
+        _2: SeriesPattern1<Option<Float32>> = "*_2",
+        _3: SeriesPattern1<Option<Float32>> = "*_3",
+        _4: SeriesPattern1<Option<Float32>> = "*_4",
+        _20: SeriesPattern1<Option<Float32>> = "*_20",
+        _30: SeriesPattern1<Option<Float32>> = "*_30",
+        _38_2: SeriesPattern1<Option<Float32>> = "*_38_2",
+        _50: SeriesPattern1<Option<Float32>> = "*_50",
+        _61_8: SeriesPattern1<Option<Float32>> = "*_61_8",
+        _70: SeriesPattern1<Option<Float32>> = "*_70",
+        _80: SeriesPattern1<Option<Float32>> = "*_80",
+        _100: SeriesPattern1<Option<Float32>> = "*_100",
+        _600: SeriesPattern1<Option<Float32>> = "*_600",
+        minus_1: SeriesPattern1<Option<Float32>> = "*_minus_1",
+        minus_2: SeriesPattern1<Option<Float32>> = "*_minus_2",
+        minus_3: SeriesPattern1<Option<Float32>> = "*_minus_3",
+        minus_4: SeriesPattern1<Option<Float32>> = "*_minus_4",
     } }
     shape! { CapitalSentiment at "series().capital_sentiment" {
-        is_long: SeriesPattern2<StoredBool> = "*_is_long",
-        is_short: SeriesPattern2<StoredBool> = "*_is_short",
+        is_long: SeriesPattern2<Boolean> = "*_is_long",
+        is_short: SeriesPattern2<Boolean> = "*_is_short",
         phase: SeriesPattern3<CapitalSentimentPhase> = "*_phase",
-        score: SeriesPattern3<StoredI8> = "*_score",
+        score: SeriesPattern3<Score> = "*_score",
     } }
     shape! { SupplyInLossThreshold at "series().bedrock.coinflow.supply_in_loss_threshold" {
         pct95: SeriesPattern2<Option<StoredF64>> = "*_pct95_ratio",
@@ -1736,8 +1733,8 @@ pub mod tree {
         pct99: Spot<Option<SatsFract>> = "*_pct99",
         pct99_5: Spot<Option<SatsFract>> = "*_pct99_5",
         pct99_9: Spot<Option<SatsFract>> = "*_pct99_9",
-        index: SeriesPattern2<StoredI8> = "*_index",
-        score: SeriesPattern2<StoredI8> = "*_score",
+        index: SeriesPattern2<Score> = "*_index",
+        score: SeriesPattern2<Score> = "*_score",
     } }
     shape! { Pct999 at "series().rarity_meter.components.active_price.pct99_9" {
         ppm: SeriesPattern2<Option<PartsPerMillion32>> = "*_ratio_pct99_9_ppm",
@@ -2265,7 +2262,7 @@ pub mod tree {
         weight: SeriesPattern22<Weight> = "*_weight",
         total_size: SeriesPattern22<StoredU32> = "total_size",
         total_sigop_cost: SeriesPattern22<SigOps> = "total_sigop_cost",
-        is_explicitly_rbf: SeriesPattern22<StoredBool> = "is_explicitly_rbf",
+        is_explicitly_rbf: SeriesPattern22<Boolean> = "is_explicitly_rbf",
         first_txin_index: SeriesPattern22<TxInIndex> = "first_txin_index",
         first_txout_index: SeriesPattern22<TxOutIndex> = "first_txout_index",
     } }
@@ -2467,7 +2464,7 @@ pub mod tree {
     } }
     shape! { Policy at "series().transactions.policy" {
         count: PolicyCount = "*_count",
-        is_nonstandard: SeriesPattern22<StoredBool> = "is_*",
+        is_nonstandard: SeriesPattern22<Boolean> = "is_*",
     } }
     shape! { PatternsCount at "series().transactions.patterns.count" {
         coinjoin: NewAll<StoredU64> = "coinjoin_*",
@@ -2476,9 +2473,9 @@ pub mod tree {
     } }
     shape! { Patterns at "series().transactions.patterns" {
         count: PatternsCount = "count",
-        is_coinjoin: SeriesPattern22<StoredBool> = "*_coinjoin",
-        is_consolidation: SeriesPattern22<StoredBool> = "*_consolidation",
-        is_batch_payout: SeriesPattern22<StoredBool> = "*_batch_payout",
+        is_coinjoin: SeriesPattern22<Boolean> = "*_coinjoin",
+        is_consolidation: SeriesPattern22<Boolean> = "*_consolidation",
+        is_batch_payout: SeriesPattern22<Boolean> = "*_batch_payout",
     } }
     shape! { FeesCount at "series().transactions.fees.count" {
         cpfp_parent: NewAll<StoredU64> = "*_parent_count",
@@ -2489,8 +2486,8 @@ pub mod tree {
         fee: EffectiveFeeRate<Sats, EffectiveFeeRate6b<Sats>> = "*",
         fee_rate: SeriesPattern22<Option<FeeRate>> = "*_rate",
         effective_fee_rate: EffectiveFeeRate<Option<FeeRate>, EffectiveFeeRate6b<Option<FeeRate>>> = "effective_*_rate",
-        is_cpfp_parent: SeriesPattern22<StoredBool> = "is_cpfp_parent",
-        is_cpfp_child: SeriesPattern22<StoredBool> = "is_cpfp_child",
+        is_cpfp_parent: SeriesPattern22<Boolean> = "is_cpfp_parent",
+        is_cpfp_child: SeriesPattern22<Boolean> = "is_cpfp_child",
     } }
     shape! { OutputsCount<A> at "series().outputs.count" {
         total: A = "*",
@@ -2526,27 +2523,27 @@ pub mod tree {
     } }
     shape! { Features at "series().transactions.features" {
         count: FeaturesCount = "tx_count",
-        has_p2pk: SeriesPattern22<StoredBool> = "*_p2pk",
-        has_p2ms: SeriesPattern22<StoredBool> = "*_p2ms",
-        has_p2pkh: SeriesPattern22<StoredBool> = "*_p2pkh",
-        has_p2sh: SeriesPattern22<StoredBool> = "*_p2sh",
-        has_p2wpkh: SeriesPattern22<StoredBool> = "*_p2wpkh",
-        has_p2wsh: SeriesPattern22<StoredBool> = "*_p2wsh",
-        has_p2tr: SeriesPattern22<StoredBool> = "*_p2tr",
-        has_p2a: SeriesPattern22<StoredBool> = "*_p2a",
-        has_op_return: SeriesPattern22<StoredBool> = "*_op_return",
-        has_empty: SeriesPattern22<StoredBool> = "*_empty",
-        has_unknown: SeriesPattern22<StoredBool> = "*_unknown",
-        has_fake_pubkey: SeriesPattern22<StoredBool> = "*_fake_pubkey",
-        has_fake_scripthash: SeriesPattern22<StoredBool> = "*_fake_scripthash",
-        has_inscription: SeriesPattern22<StoredBool> = "*_inscription",
-        has_annex: SeriesPattern22<StoredBool> = "*_annex",
-        has_sighash_all: SeriesPattern22<StoredBool> = "*_sighash_all",
-        has_sighash_none: SeriesPattern22<StoredBool> = "*_sighash_none",
-        has_sighash_single: SeriesPattern22<StoredBool> = "*_sighash_single",
-        has_sighash_default: SeriesPattern22<StoredBool> = "*_sighash_default",
-        has_sighash_anyone_can_pay: SeriesPattern22<StoredBool> = "*_sighash_anyone_can_pay",
-        has_dust_output: SeriesPattern22<StoredBool> = "*_dust_output",
+        has_p2pk: SeriesPattern22<Boolean> = "*_p2pk",
+        has_p2ms: SeriesPattern22<Boolean> = "*_p2ms",
+        has_p2pkh: SeriesPattern22<Boolean> = "*_p2pkh",
+        has_p2sh: SeriesPattern22<Boolean> = "*_p2sh",
+        has_p2wpkh: SeriesPattern22<Boolean> = "*_p2wpkh",
+        has_p2wsh: SeriesPattern22<Boolean> = "*_p2wsh",
+        has_p2tr: SeriesPattern22<Boolean> = "*_p2tr",
+        has_p2a: SeriesPattern22<Boolean> = "*_p2a",
+        has_op_return: SeriesPattern22<Boolean> = "*_op_return",
+        has_empty: SeriesPattern22<Boolean> = "*_empty",
+        has_unknown: SeriesPattern22<Boolean> = "*_unknown",
+        has_fake_pubkey: SeriesPattern22<Boolean> = "*_fake_pubkey",
+        has_fake_scripthash: SeriesPattern22<Boolean> = "*_fake_scripthash",
+        has_inscription: SeriesPattern22<Boolean> = "*_inscription",
+        has_annex: SeriesPattern22<Boolean> = "*_annex",
+        has_sighash_all: SeriesPattern22<Boolean> = "*_sighash_all",
+        has_sighash_none: SeriesPattern22<Boolean> = "*_sighash_none",
+        has_sighash_single: SeriesPattern22<Boolean> = "*_sighash_single",
+        has_sighash_default: SeriesPattern22<Boolean> = "*_sighash_default",
+        has_sighash_anyone_can_pay: SeriesPattern22<Boolean> = "*_sighash_anyone_can_pay",
+        has_dust_output: SeriesPattern22<Boolean> = "*_dust_output",
     } }
     shape! { BlocksCount at "series().blocks.count" {
         target: Target = "*_target",
@@ -2833,7 +2830,7 @@ pub mod tree {
         threshold_pct0_05: SeriesPattern2<A> = "*_threshold_pct0_05",
         threshold_pct0_025: SeriesPattern2<A> = "*_threshold",
         tail: Gini<Option<PartsPerMillion32>> = "*_tail",
-        rank: SeriesPattern2<StoredU8> = "*_rank",
+        rank: SeriesPattern2<Rank> = "*_rank",
     } }
     shape! { Extremes at "series().rarity_meter.extremes" {
         coins_in_loss: Capitulation<Option<Bitcoin>> = "*_coins_in_loss",

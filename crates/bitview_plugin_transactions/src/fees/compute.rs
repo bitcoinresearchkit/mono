@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::{HeightMap, Vecs as MappingsVecs};
-use bitview_primitives::{Lengths, StoredBool, StoredU64, TxInIndex};
+use bitview_primitives::{Boolean, Lengths, StoredU64, TxInIndex};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -337,10 +337,8 @@ impl Vecs {
                         self.effective_fee_rate.tx_index.push(effective);
                         self.cpfp_flags
                             .is_cpfp_parent
-                            .push(StoredBool::from(is_parent));
-                        self.cpfp_flags
-                            .is_cpfp_child
-                            .push(StoredBool::from(is_child));
+                            .push(Boolean::from(is_parent));
+                        self.cpfp_flags.is_cpfp_child.push(Boolean::from(is_child));
                     }
                 }
                 if height + offset >= cpfp_start {

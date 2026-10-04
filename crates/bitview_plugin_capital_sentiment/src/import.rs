@@ -1,6 +1,6 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{CapitalSentimentPhase, StoredBool, StoredI8, StoredU8};
+use bitview_primitives::{Boolean, CapitalSentimentPhase, Score, StoredU8};
 use bitview_vecs::{LazyPerBlock, PerBlock};
 use brk_error::Result;
 use vecdb::UnaryTransform;
@@ -25,19 +25,19 @@ impl UnaryTransform<StoredU8, Option<CapitalSentimentPhase>> for CodeToPhase {
 
 struct PhaseToScore;
 
-impl UnaryTransform<Option<CapitalSentimentPhase>, Option<StoredI8>> for PhaseToScore {
+impl UnaryTransform<Option<CapitalSentimentPhase>, Option<Score>> for PhaseToScore {
     #[inline]
-    fn apply(phase: Option<CapitalSentimentPhase>) -> Option<StoredI8> {
-        phase.map(|phase| StoredI8::new(phase.score()))
+    fn apply(phase: Option<CapitalSentimentPhase>) -> Option<Score> {
+        phase.map(|phase| Score::new(phase.score()))
     }
 }
 
 struct IsLongToIsShort;
 
-impl UnaryTransform<StoredBool, StoredBool> for IsLongToIsShort {
+impl UnaryTransform<Boolean, Boolean> for IsLongToIsShort {
     #[inline]
-    fn apply(is_long: StoredBool) -> StoredBool {
-        StoredBool::from(is_long.is_false())
+    fn apply(is_long: Boolean) -> Boolean {
+        Boolean::from(is_long.is_false())
     }
 }
 
@@ -48,7 +48,7 @@ impl Vecs {
 
         let phase_code = PerBlock::import(&db, "capital_sentiment_phase_code", version, mappings)?;
         let is_long =
-            PerBlock::<StoredBool>::import(&db, "capital_sentiment_is_long", version, mappings)?;
+            PerBlock::<Boolean>::import(&db, "capital_sentiment_is_long", version, mappings)?;
         let is_short = LazyPerBlock::from_height_source::<IsLongToIsShort>(
             "capital_sentiment_is_short",
             version,

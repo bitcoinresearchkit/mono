@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{StoredBool, StoredU64, TxInIndex};
+use bitview_primitives::{Boolean, StoredU64, TxInIndex};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Sats;
@@ -159,13 +159,11 @@ impl Vecs {
                 coinjoin_count += coinjoin as u64;
                 consolidation_count += consolidation as u64;
                 batch_payout_count += batch_payout as u64;
-                self.flags.is_coinjoin.push(StoredBool::from(coinjoin));
+                self.flags.is_coinjoin.push(Boolean::from(coinjoin));
                 self.flags
                     .is_consolidation
-                    .push(StoredBool::from(consolidation));
-                self.flags
-                    .is_batch_payout
-                    .push(StoredBool::from(batch_payout));
+                    .push(Boolean::from(consolidation));
+                self.flags.is_batch_payout.push(Boolean::from(batch_payout));
             }
 
             self.count

@@ -5,7 +5,7 @@ mod import;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::{CapitalSentimentPhase, StoredBool, StoredI8, StoredU8};
+use bitview_primitives::{Boolean, CapitalSentimentPhase, Score, StoredU8};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock};
 use brk_types::Version;
@@ -30,11 +30,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// `deep_bear`, `bear`, or `early_bear`; otherwise it keeps the prior block's
     /// position. It starts short, and a missing phase does not itself cause an
     /// exit.
-    is_long: PerBlock<StoredBool, M>,
+    is_long: PerBlock<Boolean, M>,
     /// Whether the stateful Capital Sentiment strategy holds its short position
     /// rather than bitcoin on the indexed block; exactly the complement of the
     /// long flag.
-    is_short: LazyPerBlock<StoredBool, StoredBool>,
+    is_short: LazyPerBlock<Boolean, Boolean>,
     /// Per-block Capital Sentiment phase describing whether spot is above or below
     /// the value-weighted mean acquisition prices of all, short-term-holder
     /// (STH), and long-term-holder (LTH) unspent supply. Being above more of
@@ -71,7 +71,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// `hopeful_bull`, and `weak_bull` map to 1; `limbo` maps to -1; and
     /// `deep_bear`, `bear`, and `early_bear` map to -2. Missing when the phase
     /// is missing.
-    score: LazyPerBlock<Option<StoredI8>, Option<CapitalSentimentPhase>>,
+    score: LazyPerBlock<Option<Score>, Option<CapitalSentimentPhase>>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

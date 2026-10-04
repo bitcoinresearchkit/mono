@@ -1,6 +1,6 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use bitview_primitives::{CapitalSentimentPhase as Phase, StoredBool, StoredU8};
+use bitview_primitives::{Boolean, CapitalSentimentPhase as Phase, StoredU8};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -69,7 +69,7 @@ impl ComputePlugin for Vecs {
 
 fn compute_series(
     phase: &mut CachedSeries<Height, StoredU8>,
-    position: &mut CachedSeries<Height, StoredBool>,
+    position: &mut CachedSeries<Height, Boolean>,
     sources: [&dyn ReadableVec<Height, Cents>; 5],
     recompute_from: usize,
     exit: &Exit,
@@ -103,7 +103,7 @@ fn compute_series(
         is_long = next_is_long(is_long, previous_over_sth, over_sth, code);
 
         phase.push(code);
-        position.push(StoredBool::from(is_long));
+        position.push(Boolean::from(is_long));
         previous_over_sth = Some(over_sth);
 
         if (block_index + 1).is_multiple_of(WRITE_INTERVAL_BLOCKS) || block_index + 1 == source_end

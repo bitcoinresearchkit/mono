@@ -6,8 +6,8 @@ mod ratio;
 
 pub use arithmetic::{
     BlockCountTarget, BlocksToDaysF32, DaysToYears, DifficultyToHashF64, MaskSats, OneMinusPpm,
-    PerSecond, ReturnF32Tenths, ReturnI8, ReturnU16, StoredU64ToStoredU32, ThsToPhsF32, TimesSqrt,
-    VBytesToWeight, WeightToVSize,
+    PerSecond, ReturnTenths, StoredU64ToStoredU32, ThsToPhsF32, TimesSqrt, VBytesToWeight,
+    WeightToVSize,
 };
 pub use currency::{
     AvgCentsToUsd, AvgSatsToBtc, CentsSignedToDollars, CentsTimesTenths, CentsUnsignedToDollars,

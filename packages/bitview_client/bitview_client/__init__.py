@@ -108,6 +108,8 @@ TxVersionRaw = int
 # Reconstruction is a single pass: for each entry, either copy
 # `prior[idx]` or append the inline body.
 BlockTemplateDiffEntry = Union[int, "Transaction"]
+# Yes or no
+Boolean = bool
 # A ratio in [0, 1], floored at scale u32::MAX - 1.
 # Zero and one are exact; finite quantization error is less than 1 / SCALE
 # apart from floating-point arithmetic error. u32::MAX represents undefined.
@@ -173,6 +175,8 @@ ErrorCode = Literal["not_found", "invalid_addr", "invalid_network", "unsupported
 ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "internal"]
 # Exchange rates (USD base, on-chain only — no fiat pairs available)
 ExchangeRates = dict
+# A 32-bit floating-point value without a specific unit.
+Float32 = float
 Halving = int
 # Hex-encoded string. Transparent wrapper over `String`: serializes
 # as a plain JSON string and derefs to `str`, so anywhere `&str` or
@@ -248,6 +252,8 @@ PartsPerMillionSigned64 = int
 # the existing price ratios.
 # Serde preserves raw encoded bits; vector JSON emits null for undefined.
 PriceRatio = int
+# A discrete rank.
+Rank = int
 # Fractional satoshis (f64) - for representing USD prices in sats
 #
 # Formula: `sats_fract = usd_value * 100_000_000 / btc_price`
@@ -257,6 +263,8 @@ PriceRatio = int
 # - $0.001 = 1 sat
 # - $0.0001 = 0.1 sats (fractional)
 SatsFract = float
+# A signed model score.
+Score = int
 # Series name
 SeriesName = str
 # Comma-separated list of series names
@@ -264,20 +272,16 @@ SeriesName = str
 # Deserialization permits at most 32 normalized names and 2,048 decoded input
 # string bytes. For arrays, the byte budget is shared by their string values.
 SeriesList = str
-StoredBool = bool
 # Stored 32-bit floating point value
 StoredF32 = float
 # Fixed-size 64-bit floating point value optimized for on-disk storage
 StoredF64 = float
 # Fixed-size 64-bit signed integer optimized for on-disk storage
 StoredI64 = int
-StoredI8 = int
-StoredU16 = int
 # Fixed-size 32-bit unsigned integer optimized for on-disk storage
 StoredU32 = int
 # Fixed-size 64-bit unsigned integer optimized for on-disk storage
 StoredU64 = int
-StoredU8 = int
 # Time period for mining statistics.
 #
 # Used to specify the lookback window for pool statistics, hashrate calculations,
@@ -3380,31 +3384,31 @@ class Mappings(_Node):
 
 
 class Constants(_Node):
-    _0: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_0')
-    _1: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_1')
-    _2: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_2')
-    _3: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_3')
-    _4: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_4')
-    _20: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_20')
-    _30: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_30')
-    _38_2: SeriesPattern1[Optional[StoredF32]] = _at(SeriesPattern1, '*_38_2')
-    _50: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_50')
-    _61_8: SeriesPattern1[Optional[StoredF32]] = _at(SeriesPattern1, '*_61_8')
-    _70: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_70')
-    _80: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_80')
-    _100: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_100')
-    _600: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_600')
-    minus_1: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_minus_1')
-    minus_2: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_minus_2')
-    minus_3: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_minus_3')
-    minus_4: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_minus_4')
+    _0: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_0')
+    _1: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_1')
+    _2: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_2')
+    _3: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_3')
+    _4: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_4')
+    _20: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_20')
+    _30: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_30')
+    _38_2: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_38_2')
+    _50: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_50')
+    _61_8: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_61_8')
+    _70: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_70')
+    _80: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_80')
+    _100: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_100')
+    _600: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_600')
+    minus_1: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_minus_1')
+    minus_2: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_minus_2')
+    minus_3: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_minus_3')
+    minus_4: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_minus_4')
 
 
 class CapitalSentiment(_Node):
-    is_long: SeriesPattern2[StoredBool] = _at(SeriesPattern2, '*_is_long')
-    is_short: SeriesPattern2[StoredBool] = _at(SeriesPattern2, '*_is_short')
+    is_long: SeriesPattern2[Boolean] = _at(SeriesPattern2, '*_is_long')
+    is_short: SeriesPattern2[Boolean] = _at(SeriesPattern2, '*_is_short')
     phase: SeriesPattern3[CapitalSentimentPhase] = _at(SeriesPattern3, '*_phase')
-    score: SeriesPattern3[StoredI8] = _at(SeriesPattern3, '*_score')
+    score: SeriesPattern3[Score] = _at(SeriesPattern3, '*_score')
 
 
 class SupplyInLossThreshold(_Node):
@@ -3599,8 +3603,8 @@ class Cycle(_Node):
     pct99: Spot[Optional[SatsFract]] = _at(Spot, '*_pct99')
     pct99_5: Spot[Optional[SatsFract]] = _at(Spot, '*_pct99_5')
     pct99_9: Spot[Optional[SatsFract]] = _at(Spot, '*_pct99_9')
-    index: SeriesPattern2[StoredI8] = _at(SeriesPattern2, '*_index')
-    score: SeriesPattern2[StoredI8] = _at(SeriesPattern2, '*_score')
+    index: SeriesPattern2[Score] = _at(SeriesPattern2, '*_index')
+    score: SeriesPattern2[Score] = _at(SeriesPattern2, '*_score')
 
 
 class Pct999(_Node):
@@ -4202,7 +4206,7 @@ class TransactionsRaw(_Node):
     weight: SeriesPattern22[Weight] = _at(SeriesPattern22, '*_weight')
     total_size: SeriesPattern22[StoredU32] = _at(SeriesPattern22, 'total_size')
     total_sigop_cost: SeriesPattern22[SigOps] = _at(SeriesPattern22, 'total_sigop_cost')
-    is_explicitly_rbf: SeriesPattern22[StoredBool] = _at(SeriesPattern22, 'is_explicitly_rbf')
+    is_explicitly_rbf: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_explicitly_rbf')
     first_txin_index: SeriesPattern22[TxInIndex] = _at(SeriesPattern22, 'first_txin_index')
     first_txout_index: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, 'first_txout_index')
 
@@ -4424,7 +4428,7 @@ class PolicyCount(_Node):
 
 class Policy(_Node):
     count: PolicyCount = _at(PolicyCount, '*_count')
-    is_nonstandard: SeriesPattern22[StoredBool] = _at(SeriesPattern22, 'is_*')
+    is_nonstandard: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_*')
 
 
 class PatternsCount(_Node):
@@ -4435,9 +4439,9 @@ class PatternsCount(_Node):
 
 class Patterns(_Node):
     count: PatternsCount = _at(PatternsCount, 'count')
-    is_coinjoin: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_coinjoin')
-    is_consolidation: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_consolidation')
-    is_batch_payout: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_batch_payout')
+    is_coinjoin: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_coinjoin')
+    is_consolidation: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_consolidation')
+    is_batch_payout: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_batch_payout')
 
 
 class FeesCount(_Node):
@@ -4450,8 +4454,8 @@ class TransactionsFees(_Node):
     fee: EffectiveFeeRate[Sats, EffectiveFeeRate6b[Sats]] = _at((EffectiveFeeRate, EffectiveFeeRate6b), '*')
     fee_rate: SeriesPattern22[Optional[FeeRate]] = _at(SeriesPattern22, '*_rate')
     effective_fee_rate: EffectiveFeeRate[Optional[FeeRate], EffectiveFeeRate6b[Optional[FeeRate]]] = _at((EffectiveFeeRate, EffectiveFeeRate6b), 'effective_*_rate')
-    is_cpfp_parent: SeriesPattern22[StoredBool] = _at(SeriesPattern22, 'is_cpfp_parent')
-    is_cpfp_child: SeriesPattern22[StoredBool] = _at(SeriesPattern22, 'is_cpfp_child')
+    is_cpfp_parent: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_cpfp_parent')
+    is_cpfp_child: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_cpfp_child')
 
 
 class OutputsCount(_Node, Generic[A]):
@@ -4490,27 +4494,27 @@ class FeaturesCount(_Node):
 
 class Features(_Node):
     count: FeaturesCount = _at(FeaturesCount, 'tx_count')
-    has_p2pk: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_p2pk')
-    has_p2ms: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_p2ms')
-    has_p2pkh: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_p2pkh')
-    has_p2sh: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_p2sh')
-    has_p2wpkh: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_p2wpkh')
-    has_p2wsh: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_p2wsh')
-    has_p2tr: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_p2tr')
-    has_p2a: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_p2a')
-    has_op_return: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_op_return')
-    has_empty: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_empty')
-    has_unknown: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_unknown')
-    has_fake_pubkey: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_fake_pubkey')
-    has_fake_scripthash: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_fake_scripthash')
-    has_inscription: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_inscription')
-    has_annex: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_annex')
-    has_sighash_all: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_sighash_all')
-    has_sighash_none: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_sighash_none')
-    has_sighash_single: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_sighash_single')
-    has_sighash_default: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_sighash_default')
-    has_sighash_anyone_can_pay: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_sighash_anyone_can_pay')
-    has_dust_output: SeriesPattern22[StoredBool] = _at(SeriesPattern22, '*_dust_output')
+    has_p2pk: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2pk')
+    has_p2ms: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2ms')
+    has_p2pkh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2pkh')
+    has_p2sh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2sh')
+    has_p2wpkh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2wpkh')
+    has_p2wsh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2wsh')
+    has_p2tr: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2tr')
+    has_p2a: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2a')
+    has_op_return: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_op_return')
+    has_empty: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_empty')
+    has_unknown: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_unknown')
+    has_fake_pubkey: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_fake_pubkey')
+    has_fake_scripthash: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_fake_scripthash')
+    has_inscription: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_inscription')
+    has_annex: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_annex')
+    has_sighash_all: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_all')
+    has_sighash_none: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_none')
+    has_sighash_single: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_single')
+    has_sighash_default: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_default')
+    has_sighash_anyone_can_pay: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_anyone_can_pay')
+    has_dust_output: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_dust_output')
 
 
 class BlocksCount(_Node):
@@ -4815,7 +4819,7 @@ class Capitulation(_Node, Generic[A]):
     threshold_pct0_05: SeriesPattern2[A] = _at(SeriesPattern2, '*_threshold_pct0_05')
     threshold_pct0_025: SeriesPattern2[A] = _at(SeriesPattern2, '*_threshold')
     tail: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_tail')
-    rank: SeriesPattern2[StoredU8] = _at(SeriesPattern2, '*_rank')
+    rank: SeriesPattern2[Rank] = _at(SeriesPattern2, '*_rank')
 
 
 class Extremes(_Node):

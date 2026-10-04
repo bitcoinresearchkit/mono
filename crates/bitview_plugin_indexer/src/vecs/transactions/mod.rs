@@ -1,4 +1,4 @@
-use bitview_primitives::{StoredBool, StoredU32, TxInIndex, TxOutIndex, TxVersion};
+use bitview_primitives::{Boolean, StoredU32, TxInIndex, TxOutIndex, TxVersion};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{BlkPosition, Height, RawLockTime, SigOps, TxIndex, Txid, Version, Weight};
@@ -61,7 +61,7 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     /// replaced, does not include inherited signaling, and does not account for
     /// full-RBF policy. Coinbase transactions are evaluated by the same sequence
     /// rule.
-    pub is_explicitly_rbf: M::Stored<PcoVec<TxIndex, StoredBool>>,
+    pub is_explicitly_rbf: M::Stored<PcoVec<TxIndex, Boolean>>,
     /// Global zero-based transaction-input index in canonical blockchain order.
     /// At `height`, this is where the block begins and equals the number of
     /// inputs in preceding blocks; at `tx_index`, it identifies the

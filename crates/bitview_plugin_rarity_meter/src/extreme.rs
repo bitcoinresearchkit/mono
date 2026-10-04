@@ -2,7 +2,7 @@ use std::{collections::VecDeque, iter::repeat_n};
 
 use bitview_compute::{ExactOrderStats, FenwickTree, NumericValue, prepare_computed};
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{PartsPerMillion32, StoredU8};
+use bitview_primitives::{PartsPerMillion32, Rank};
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PerBlock, PercentPerBlock};
 use brk_error::Result;
@@ -84,7 +84,7 @@ where
     /// or beyond the 0.025% tail boundary, 2 at or beyond 0.05%, 1 at or beyond
     /// 0.1%, and 0 otherwise or while unavailable. The series' model determines
     /// whether boundaries are crossed upward or downward.
-    pub rank: PerBlock<StoredU8, M>,
+    pub rank: PerBlock<Rank, M>,
 
     history: M::WriteOnly<LiveHistory>,
 }
@@ -301,7 +301,7 @@ where
             .ppm
             .height
             .push(PartsPerMillion32::from(state.tail));
-        self.rank.height.push(StoredU8::new(state.rank));
+        self.rank.height.push(Rank::new(state.rank));
     }
 
     fn write_if_needed(

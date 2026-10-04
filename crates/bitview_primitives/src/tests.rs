@@ -28,3 +28,28 @@ fn hashes_borrowed_script_payloads_like_owned_addresses() {
         );
     }
 }
+
+/// The `scalar!` values: division by any count, NaN-first float order, undefined floats in JSON/CSV.
+#[test]
+fn scalar_values() {
+    use crate::{Float32, Score};
+
+    assert_eq!(Score::new(-128) / 128usize, Score::new(-1));
+    assert_eq!(Float32::new(f32::NAN), Float32::new(f32::NAN));
+    assert!(Float32::new(f32::NAN) < Float32::new(f32::MIN));
+
+    #[cfg(feature = "storage")]
+    {
+        use vecdb::Formattable;
+        let json = |value: Float32| {
+            let mut buf = Vec::new();
+            value.fmt_json(&mut buf);
+            String::from_utf8(buf).unwrap()
+        };
+        assert_eq!(json(Float32::new(38.2)), "38.2");
+        assert_eq!(json(Float32::new(f32::INFINITY)), "null");
+        let mut csv = String::new();
+        Float32::new(f32::NAN).fmt_csv(&mut csv).unwrap();
+        assert!(csv.is_empty());
+    }
+}

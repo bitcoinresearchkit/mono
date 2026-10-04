@@ -8,7 +8,7 @@ pub use counts::TransactionCountVecs;
 pub use flags::TxFeatureFlags;
 pub use transaction_counts::TransactionCounts;
 
-use bitview_primitives::StoredBool;
+use bitview_primitives::Boolean;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, TxIndex, Version};
@@ -20,7 +20,7 @@ macro_rules! define_vecs {
         #[derive(Traversable)]
         pub struct TransactionFeaturesVecs<M: StorageMode = Rw> {
             pub count: TransactionCountVecs<M>,
-            $($(#[$attribute])* pub $vector: M::Stored<PcoVec<TxIndex, StoredBool>>,) +
+            $($(#[$attribute])* pub $vector: M::Stored<PcoVec<TxIndex, Boolean>>,) +
         }
 
         impl TransactionFeaturesVecs {
@@ -39,7 +39,7 @@ macro_rules! define_vecs {
             ) {
                 $(
                     let is_set = flags.is_set(TxFeatureFlags::$flag);
-                    self.$vector.push(StoredBool::from(is_set));
+                    self.$vector.push(Boolean::from(is_set));
                     $(counts.$count += is_set as u64;)?
                 ) +
             }
