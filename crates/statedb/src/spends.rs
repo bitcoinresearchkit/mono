@@ -18,9 +18,6 @@ impl Spends {
             buffer: Vec::new(),
         })
     }
-    pub fn start(&self) -> usize {
-        self.journal.base
-    }
     pub fn end(&self) -> usize {
         self.journal.len()
     }

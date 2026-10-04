@@ -11,11 +11,6 @@ pub struct Reader<'a> {
 }
 
 impl Reader<'_> {
-    /// Earliest reconstructible state length; zero means genesis is available.
-    pub fn start(&self) -> usize {
-        self.spends.start().max(self.creations.start())
-    }
-
     pub fn versions(&self) -> (u64, u64) {
         (self.spends.version(), self.creations.version())
     }
@@ -23,10 +18,10 @@ impl Reader<'_> {
     /// Checks the prefix identity before reusing resident analytical state.
     pub fn matches(&self, state: &State) -> Result<bool> {
         let len = state.len();
-        if len < self.start() || len > self.end {
+        if len > self.end {
             return Ok(false);
         }
-        Ok(len == self.start()
+        Ok(len == 0
             || (state.hash() == self.spends.hash(len - 1)?
                 && state.hash() == self.creations.hash(len - 1)?))
     }

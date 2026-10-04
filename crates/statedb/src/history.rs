@@ -47,9 +47,7 @@ impl History {
         if end > spends.end().min(creations.end()) {
             return Err(invalid("published history exceeds producer prefix"));
         }
-        if end > spends.start().max(creations.start())
-            && (spends.hash(end - 1)? != hash || creations.hash(end - 1)? != hash)
-        {
+        if end > 0 && (spends.hash(end - 1)? != hash || creations.hash(end - 1)? != hash) {
             return Err(invalid("published history does not match producer chain"));
         }
         Ok(Reader {
@@ -61,7 +59,7 @@ impl History {
         })
     }
     fn matches(snapshot: &Snapshot, spends: &Spends, created: &Creations) -> Result<bool> {
-        if snapshot.len <= spends.start().max(created.start()) {
+        if snapshot.len == 0 {
             return Ok(true);
         }
         let h = snapshot.len - 1;
@@ -98,9 +96,6 @@ impl History {
             }
         }
         let mut state = state.unwrap_or_default();
-        if state.len() < spends.start().max(created.start()) {
-            return Err(invalid("no snapshot covers the available diff prefix"));
-        }
         if state.len() < end {
             Self::replay(&mut state, end, spends, created, |_, _| Ok(()))?;
         }
@@ -160,11 +155,8 @@ impl History {
         }
         if start == end || !end.is_multiple_of(self.interval) {
             self.snapshots.begin(saved, start < end)?;
-            self.snapshots.push(
-                &state,
-                versions,
-                end.is_multiple_of(self.interval) || end == spends.start().max(created.start()),
-            )?;
+            self.snapshots
+                .push(&state, versions, end.is_multiple_of(self.interval))?;
             self.snapshots.finish()?;
         }
         self.live = Some((state, versions));

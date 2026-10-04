@@ -51,7 +51,6 @@ impl Query {
         for index in 0..self.plugins().mappings.day1.date.len() {
             let date = Date::from(Day1::from(index));
             if let Ok(height) = self.urpd_date_height(date, end)
-                && usize::from(height) + 1 >= reader.start()
                 && self.urpd_weights(ages, height, weight).is_ok()
             {
                 dates.push(date);
@@ -163,7 +162,7 @@ impl Query {
         let weights = self.urpd_weights(ages, height, weight)?;
         let view = plugins.utxo_history.view()?;
         let reader = view.reader()?;
-        if end < reader.start() || end > reader.len() {
+        if end > reader.len() {
             return Err(Error::NotFound(
                 "Block is outside published UTXO history".into(),
             ));

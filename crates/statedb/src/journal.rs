@@ -20,7 +20,6 @@ pub(crate) struct Journal {
     index: Vec<u64>,
     committed: usize,
     poisoned: bool,
-    pub base: usize,
     pub version: u64,
 }
 impl Journal {
@@ -62,13 +61,17 @@ impl Journal {
             .write(writable)
             .open(path.join("index"))?;
         let manifest = path.join("commit");
-        let (version, base, count, end) = if manifest.try_exists()? {
+        // Manifest words: version, start height (always 0, kept for the format), count, data end.
+        let (version, count, end) = if manifest.try_exists()? {
             let bytes = fs::read(&manifest)?;
             if bytes.len() != 40 || &bytes[..8] != MAGIC {
                 return Err(invalid("invalid origin journal manifest"));
             }
             let get = |i| u64::from_le_bytes(bytes[i..i + 8].try_into().unwrap());
-            (get(8), get(16) as usize, get(24) as usize, get(32))
+            if get(16) != 0 {
+                return Err(invalid("origin journal starts above genesis"));
+            }
+            (get(8), get(24) as usize, get(32))
         } else {
             if !writable {
                 return Err(invalid("missing published journal"));
@@ -76,14 +79,12 @@ impl Journal {
             if data.metadata()?.len() != 0 || index_file.metadata()?.len() != 0 {
                 return Err(invalid("missing commit for nonempty origin journal"));
             }
-            (0, 0, 0, 0)
+            (0, 0, 0)
         };
         let index_len = count
             .checked_mul(INDEX_BYTES)
             .ok_or_else(|| invalid("index overflow"))?;
-        if base
-            .checked_add(count)
-            .is_none_or(|end| end > u32::MAX as usize)
+        if count > u32::MAX as usize
             || index_file.metadata()?.len() < index_len as u64
             || data.metadata()?.len() < end
         {
@@ -128,7 +129,6 @@ impl Journal {
             index,
             committed: count,
             poisoned: false,
-            base,
             version,
         };
         if !manifest.try_exists()? {
@@ -137,12 +137,11 @@ impl Journal {
         Ok(this)
     }
     pub fn len(&self) -> usize {
-        self.base
-            + if self._lock.is_some() {
-                self.index.len()
-            } else {
-                self.committed
-            }
+        if self._lock.is_some() {
+            self.index.len()
+        } else {
+            self.committed
+        }
     }
     fn healthy(&self) -> Result<()> {
         if self.poisoned {
@@ -169,20 +168,30 @@ impl Journal {
     }
     fn bounds(&self, height: usize) -> Result<(u64, u64)> {
         self.healthy()?;
-        let i = height
-            .checked_sub(self.base)
-            .filter(|&i| i < self.committed)
-            .ok_or_else(|| invalid("height outside published origin history"))?;
+        if height >= self.committed {
+            return Err(invalid("height outside published origin history"));
+        }
         let (start, end) = if self._lock.is_some() {
-            (if i == 0 { 0 } else { self.index[i - 1] }, self.index[i])
+            (
+                if height == 0 {
+                    0
+                } else {
+                    self.index[height - 1]
+                },
+                self.index[height],
+            )
         } else {
             let mut offsets = [0; 2 * INDEX_BYTES];
-            let first = i.saturating_sub(1);
-            let n = if i == 0 { INDEX_BYTES } else { 2 * INDEX_BYTES };
+            let first = height.saturating_sub(1);
+            let n = if height == 0 {
+                INDEX_BYTES
+            } else {
+                2 * INDEX_BYTES
+            };
             self.index_file
                 .read_exact_at(&mut offsets[..n], (first * INDEX_BYTES) as u64)?;
             (
-                if i == 0 {
+                if height == 0 {
                     0
                 } else {
                     u64::from_le_bytes(offsets[..8].try_into().unwrap())
@@ -214,14 +223,13 @@ impl Journal {
         bytes: &mut Vec<u8>,
     ) -> Result<()> {
         self.healthy()?;
-        let i = height
-            .checked_sub(self.base)
-            .filter(|&i| i < self.committed && height < end && end <= self.base + self.committed)
-            .ok_or_else(|| invalid("range outside published origin history"))?;
+        if height >= end || end > self.committed {
+            return Err(invalid("range outside published origin history"));
+        }
         let n = end - height;
-        let first = i.saturating_sub(1);
+        let first = height.saturating_sub(1);
         if self._lock.is_none() {
-            index_bytes.resize((n + usize::from(i > 0)) * INDEX_BYTES, 0);
+            index_bytes.resize((n + usize::from(height > 0)) * INDEX_BYTES, 0);
             self.index_file
                 .read_exact_at(index_bytes, (first * INDEX_BYTES) as u64)?;
         }
@@ -234,7 +242,7 @@ impl Journal {
                 u64::from_le_bytes(v.try_into().unwrap())
             }
         };
-        let start = if i == 0 { 0 } else { offset(i - 1) };
+        let start = if height == 0 { 0 } else { offset(height - 1) };
         let published_end = if self._lock.is_some() {
             self.index[self.committed - 1]
         } else {
@@ -242,7 +250,7 @@ impl Journal {
         };
         let mut previous = start;
         records.clear();
-        for entry in i..i + n {
+        for entry in height..end {
             let next = offset(entry);
             if next < previous || next > published_end || next - previous > MAX_RECORD as u64 {
                 return Err(invalid("invalid published journal offset"));
@@ -293,7 +301,7 @@ impl Journal {
         let mut bytes = MAGIC.to_vec();
         for n in [
             self.version,
-            self.base as u64,
+            0,
             count as u64,
             if count == 0 { 0 } else { self.index[count - 1] },
         ] {
@@ -306,10 +314,10 @@ impl Journal {
             return Err(invalid("read-only journal"));
         }
         self.healthy()?;
-        let n = height
-            .checked_sub(self.base)
-            .filter(|&n| n <= self.index.len())
-            .ok_or_else(|| invalid("invalid origin truncate"))?;
+        if height > self.index.len() {
+            return Err(invalid("invalid origin truncate"));
+        }
+        let n = height;
         if n > self.committed {
             self.commit()?;
         }
@@ -337,11 +345,7 @@ impl Journal {
         }
         self.healthy()?;
         if version != self.version {
-            let was_empty = self.index.is_empty();
-            self.truncate(self.base)?;
-            if !was_empty {
-                self.base = 0;
-            }
+            self.truncate(0)?;
             self.version = version;
             self.commit_inner(true)?;
         }

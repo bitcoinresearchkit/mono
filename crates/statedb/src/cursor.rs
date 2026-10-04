@@ -20,11 +20,10 @@ impl<'a> Cursor<'a> {
         spends: &'a Spends,
         creations: &'a Creations,
     ) -> Result<Self> {
-        let start = spends.start().max(creations.start());
-        if state.len() < start || state.len() > end || end > spends.end().min(creations.end()) {
+        if state.len() > end || end > spends.end().min(creations.end()) {
             return Err(invalid("invalid replay range"));
         }
-        if state.len() > start
+        if !state.is_empty()
             && (state.hash() != spends.hash(state.len() - 1)?
                 || state.hash() != creations.hash(state.len() - 1)?)
         {

@@ -25,9 +25,6 @@ impl OriginSpends {
         self.store.validate_version(u32::from(version).into())?;
         Ok(())
     }
-    pub(crate) fn start(&self) -> usize {
-        self.store.start()
-    }
     pub(crate) fn len(&self) -> usize {
         self.store.end()
     }

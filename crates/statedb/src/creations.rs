@@ -21,9 +21,6 @@ impl Creations {
     pub fn end(&self) -> usize {
         self.journal.len()
     }
-    pub(crate) fn start(&self) -> usize {
-        self.journal.base
-    }
     pub fn version(&self) -> u64 {
         self.journal.version
     }

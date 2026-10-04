@@ -11,7 +11,7 @@ these two contributions, checks their block hashes, updates the canonical `State
 and publishes snapshots plus global supply/count. Neither producer rescans outputs.
 
 Height arguments are exclusive prefixes: `reader.state_at(700_001)` returns the
-state after block 700,000. Seeded histories cannot reconstruct before their seed.
+state after block 700,000. Every history starts at genesis.
 
 ## Read and update paths
 
@@ -50,7 +50,7 @@ require a shared `data/origins/` directory. Existing stores can be moved into
 the corresponding owner directories and reopened without replaying the chain.
 
 Each producer owns `data`, `index`, `commit`, and a writer-lock file. The manifest
-publishes its version, base, record count and data end. Unpublished tails are
+publishes its version, record count and data end. Unpublished tails are
 excluded from reads and discarded by a writer on reopen. A failed modifying
 write invalidates that writer until reopen.
 
@@ -76,7 +76,7 @@ remain validated.
 | Spend | Block hash (32 bytes), total sats/count (two u64), then 16-byte rows: origin u32, count u32, sats u64 |
 | Creation | Block hash (32 bytes), new sats/count (two u64), optional overwrite: origin u32, sats/count u64 |
 | Producer index | Exclusive payload end u64: 8 bytes per block |
-| Commit | `ORIGIN03`, version, base, record count, data end: 40 bytes |
+| Commit | `ORIGIN03`, version, start height (always 0), record count, data end: 40 bytes |
 | Snapshot page index | `STAPAGE4`, one latest-retention byte, then height u32 and exclusive payload end u64 per page |
 | Snapshot page | `STATER04` for raw or `STATEP04` for PCO; exclusive height, block hash, two producer versions, compressed sats length; payload |
 

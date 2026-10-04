@@ -24,7 +24,7 @@ impl OriginSpends {
         if usize::from(from) < self.len() {
             self.truncate(usize::from(from))?;
         }
-        if self.len() > self.start()
+        if self.len() > 0
             && Some(self.hash(self.len() - 1)?)
                 != vecs
                     .blocks
