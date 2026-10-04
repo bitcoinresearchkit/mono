@@ -1,4 +1,4 @@
-use bitview_primitives::{Count, StoredF64, SupplyState};
+use bitview_primitives::{CoinDays, Count, SupplyState};
 use brk_types::{Bitcoin, CentsSigned, Sats};
 use derive_more::{Deref, DerefMut};
 
@@ -44,9 +44,9 @@ impl<R: RealizedOps, C: CostBasisOps> UTXOCohortState<R, C> {
     }
 
     #[inline(always)]
-    pub fn core_activity(&self) -> (StoredF64, Sats, Sats) {
+    pub fn core_activity(&self) -> (CoinDays, Sats, Sats) {
         (
-            StoredF64::from(Bitcoin::from(self.satdays_destroyed)),
+            CoinDays::new(f64::from(Bitcoin::from(self.satdays_destroyed))),
             self.realized.sent_in_profit(),
             self.realized.sent_in_loss(),
         )

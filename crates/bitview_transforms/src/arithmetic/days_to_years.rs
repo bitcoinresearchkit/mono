@@ -1,18 +1,18 @@
-use bitview_primitives::{StoredF32, StoredF64};
+use bitview_primitives::{CoinDays, CoinYears, Days, Years};
 use vecdb::UnaryTransform;
 
 pub struct DaysToYears;
 
-impl UnaryTransform<StoredF32, StoredF32> for DaysToYears {
+impl UnaryTransform<Days, Years> for DaysToYears {
     #[inline(always)]
-    fn apply(value: StoredF32) -> StoredF32 {
-        StoredF32::from(*value / 365.0)
+    fn apply(value: Days) -> Years {
+        Years::new(*value / 365.0)
     }
 }
 
-impl UnaryTransform<StoredF64, StoredF64> for DaysToYears {
+impl UnaryTransform<CoinDays, CoinYears> for DaysToYears {
     #[inline(always)]
-    fn apply(value: StoredF64) -> StoredF64 {
-        StoredF64::from(*value / 365.0)
+    fn apply(value: CoinDays) -> CoinYears {
+        CoinYears::new(*value / 365.0)
     }
 }

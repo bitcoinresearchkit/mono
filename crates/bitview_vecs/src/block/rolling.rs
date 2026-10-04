@@ -1,7 +1,7 @@
 //! Stored cumulative source and rolling statistics for externally supplied block values.
 
 use bitview_collections::Windows;
-use bitview_compute::NumericValue;
+use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -16,7 +16,7 @@ use crate::{IndexSources, PerBlock, RollingComplete, WindowStarts};
 #[derive(Traversable)]
 pub struct PerBlockRolling<T, M: StorageMode = Rw>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
@@ -27,7 +27,7 @@ where
 
 impl<T> PerBlockRolling<T>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     pub fn import(
         db: &Database,

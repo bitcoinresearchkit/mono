@@ -23,6 +23,96 @@ scalar! {
 }
 
 scalar! {
+    /// A 64-bit floating-point value without a specific unit.
+    float Float64(f64)
+}
+
+scalar! {
+    /// Bitcoin multiplied by the days it was held.
+    float CoinDays(f64)
+}
+
+scalar! {
+    /// Bitcoin multiplied by the blocks it was held.
+    float CoinBlocks(f64)
+}
+
+scalar! {
+    /// Bitcoin multiplied by the years it was held.
+    float CoinYears(f64)
+}
+
+scalar! {
+    /// A duration in days.
+    float Days(f32)
+}
+
+scalar! {
+    /// A duration in years.
+    float Years(f32)
+}
+
+scalar! {
+    /// Hashes per second.
+    float Hashrate(f64)
+}
+
+scalar! {
+    /// Proof-of-work difficulty.
+    float Difficulty(f64)
+}
+
+scalar! {
+    /// A fraction per day.
+    float PerDay(f64)
+}
+
+scalar! {
+    /// A USD amount (32-bit stored form).
+    float Dollars32(f32)
+}
+
+scalar! {
+    /// Events per second.
+    float PerSecond(f32)
+}
+
+scalar! {
+    /// A mean number of things.
+    float CountFract(f32)
+}
+
+scalar! {
+    /// A mean size in bytes.
+    float BytesFract(f32)
+}
+
+scalar! {
+    /// A mean virtual size in vbytes.
+    float VSizeFract(f32)
+}
+
+scalar! {
+    /// A mean weight in weight units.
+    float WeightFract(f32)
+}
+
+scalar! {
+    /// A mean BIP-141 signature-operation cost.
+    float SigOpsFract(f32)
+}
+
+scalar! {
+    /// A mean duration in seconds.
+    float SecondsFract(f32)
+}
+
+scalar! {
+    /// A mean amount in cents.
+    float CentsFract(f64)
+}
+
+scalar! {
     /// A dimensionless ratio: a quotient, share or multiple.
     float Ratio(f32)
 }

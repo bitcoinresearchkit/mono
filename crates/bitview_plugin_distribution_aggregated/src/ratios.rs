@@ -1,7 +1,7 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::{PartsPerMillion32, Ratio, StoredF32};
+use bitview_primitives::{Days, PartsPerMillion32, Ratio};
 use bitview_transforms::{RatioCents, RatioCentsOrOne};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -18,7 +18,7 @@ use crate::{
 #[derive(Traversable)]
 pub struct Ratios<M: StorageMode = Rw> {
     pub adjusted_sopr: AdjustedSopr<M>,
-    pub dormancy: RollingWindows<StoredF32, M>,
+    pub dormancy: RollingWindows<Days, M>,
     pub sopr: PerBlock<Ratio, M>,
     pub sopr_ratio_extended: RollingWindowsFrom1w<Ratio, M>,
     pub sell_side_risk_ratio: PercentRollingWindows<PartsPerMillion32, M>,
@@ -85,7 +85,7 @@ impl Ratios {
                 |(h, cdd, btc, _)| {
                     (
                         h,
-                        StoredF32::from(if f64::from(btc) == 0.0 {
+                        Days::new(if f64::from(btc) == 0.0 {
                             0.0
                         } else {
                             (f64::from(cdd) / f64::from(btc)) as f32

@@ -121,6 +121,8 @@ BoundedRatio = int
 Bytes = int
 # A size in bytes that fits 32 bits (under 4 GiB), such as a block or transaction size.
 Bytes32 = int
+# A mean size in bytes.
+BytesFract = float
 # Investor phase from the Capital Sentiment model.
 #
 # Codes are explicit because phase values are persisted. Code `0` represents
@@ -130,6 +132,8 @@ CapitalSentimentPhase = Literal["raging_bull", "bull", "cautious_bull", "hopeful
 # Used for invested capital, realized cap, etc.
 # `u64::MAX` is reserved as a NaN sentinel.
 Cents = int
+# A mean amount in cents.
+CentsFract = float
 # Signed cents (i64) - for values that can be negative.
 # Used for profit/loss calculations, deltas, etc.
 CentsSigned = int
@@ -138,6 +142,12 @@ CentsSigned = int
 # Names are non-empty ASCII `[a-z0-9_]+`. Availability is determined by
 # supported age filters and published UTXO history.
 Cohort = str
+# Bitcoin multiplied by the blocks it was held.
+CoinBlocks = float
+# Bitcoin multiplied by the days it was held.
+CoinDays = float
+# Bitcoin multiplied by the years it was held.
+CoinYears = float
 # Up to the first 100 bytes of a coinbase transaction's first-input
 # `scriptSig`. Bytes are preserved for storage and exposed as a string by
 # mapping each byte to the same-valued Unicode code point. Pool attribution
@@ -154,6 +164,8 @@ CoinbaseTag = str
 Count = int
 # A number of things that fits 16 bits (at most 65,535), such as transactions per block.
 Count16 = int
+# A mean number of things.
+CountFract = float
 # A change in a number of things.
 CountSigned = int
 # Position of a transaction inside a `CpfpCluster.txs` array. Cluster-local,
@@ -171,9 +183,15 @@ RangeIndex = Union[int, str, str]
 Date = str
 Day1 = int
 Day3 = int
+# A duration in days.
+Days = float
+# Proof-of-work difficulty.
+Difficulty = float
 # A single difficulty adjustment entry.
 # Serializes as array: [timestamp, height, difficulty, change_percent]
 DifficultyAdjustmentEntry = List[float]
+# A USD amount (32-bit stored form).
+Dollars32 = float
 EmptyOutputIndex = TypeIndex
 Epoch = int
 # Machine-readable error code.
@@ -186,7 +204,11 @@ ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "i
 ExchangeRates = dict
 # A 32-bit floating-point value without a specific unit.
 Float32 = float
+# A 64-bit floating-point value without a specific unit.
+Float64 = float
 Halving = int
+# Hashes per second.
+Hashrate = float
 # Hex-encoded string. Transparent wrapper over `String`: serializes
 # as a plain JSON string and derefs to `str`, so anywhere `&str` or
 # `AsRef<[u8]>` is expected the `Hex` "just works".
@@ -253,6 +275,10 @@ PartsPerMillionSigned32 = int
 # Use for precise wide-range signed ratios and percentages.
 # `i64::MIN` is reserved as a NaN sentinel.
 PartsPerMillionSigned64 = int
+# A fraction per day.
+PerDay = float
+# Events per second.
+PerSecond = float
 # A percentage: a ratio times 100.
 Percent = float
 # Spot price divided by a reference price, encoded in parts per million.
@@ -269,9 +295,9 @@ Rank = int
 Ratio = float
 # A dimensionless ratio at double precision.
 Ratio64 = float
-# Fractional satoshis (f64) - for representing USD prices in sats
+# Fractional satoshis (f64): mean amounts in sats, and USD prices expressed in sats.
 #
-# Formula: `sats_fract = usd_value * 100_000_000 / btc_price`
+# A USD price in sats is `usd_value * 100_000_000 / btc_price`
 #
 # When BTC is $100,000:
 # - $1 = 1,000 sats
@@ -282,6 +308,10 @@ SatsFract = float
 Score = int
 # Series name
 SeriesName = str
+# A duration in seconds (at most about 136 years).
+Seconds = int
+# A mean duration in seconds.
+SecondsFract = float
 # Comma-separated list of series names
 #
 # Deserialization permits at most 32 normalized names and 2,048 decoded input
@@ -289,10 +319,8 @@ SeriesName = str
 SeriesList = str
 # BIP-141 signature-operation cost with enough range for cumulative and rolling totals.
 SigOps64 = int
-# Stored 32-bit floating point value
-StoredF32 = float
-# Fixed-size 64-bit floating point value optimized for on-disk storage
-StoredF64 = float
+# A mean BIP-141 signature-operation cost.
+SigOpsFract = float
 # Time period for mining statistics.
 #
 # Used to specify the lookback window for pool statistics, hashrate calculations,
@@ -315,6 +343,8 @@ UnknownOutputIndex = TypeIndex
 UrpdAggregation = Literal["raw", "lin200", "lin500", "lin1000", "log10", "log50", "log100", "log200", "log500", "log1000", "log2000"]
 # Weighting applied to a URPD: raw (unweighted), cointime, or coinflow.
 UrpdWeight = Literal["raw", "cointime", "coinflow"]
+# A mean virtual size in vbytes.
+VSizeFract = float
 # Version tracking for data schema and computed values.
 #
 # Used to detect when stored data needs to be recomputed due to changes
@@ -324,8 +354,12 @@ Version = int
 Week1 = int
 # Weight in weight units with enough range for cumulative and rolling totals.
 Weight64 = int
+# A mean weight in weight units.
+WeightFract = float
 Year1 = int
 Year10 = int
+# A duration in years.
+Years = float
 class AddrAfterTxidParam(TypedDict):
     """
     Bitcoin address + last-seen txid path parameters (Esplora-style pagination)
@@ -1592,7 +1626,7 @@ class SeriesInfo(_SeriesInfoRequired, total=False):
         description: Human-readable metric definition, when documented
         indexes: Available indexes
         nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
-        type: Value type (e.g. "StoredF32", "Sats", "Cents")
+        type: Value type (e.g. "Ratio", "Sats", "Cents")
     """
     description: Optional[str]
 
@@ -1609,7 +1643,7 @@ class SeriesLeafWithSchema(_SeriesLeafWithSchemaRequired, total=False):
 
     Attributes:
         name: The series name/identifier.
-        kind: The Rust type (e.g., "Sats", "StoredF64").
+        kind: The Rust type (e.g., "Sats", "Ratio").
         indexes: Available indexes for this series.
         nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
         description: Human-readable metric definition, when documented.
@@ -3171,11 +3205,11 @@ class Split(_Node):
 
 
 class Macd1m(_Node):
-    ema_fast: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'macd_ema_fast_*')
-    ema_slow: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'macd_ema_slow_*')
-    line: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'macd_line_*')
-    signal: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'macd_signal_*')
-    histogram: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'macd_histogram_*')
+    ema_fast: SeriesPattern2[Optional[Dollars32]] = _at(SeriesPattern2, 'macd_ema_fast_*')
+    ema_slow: SeriesPattern2[Optional[Dollars32]] = _at(SeriesPattern2, 'macd_ema_slow_*')
+    line: SeriesPattern2[Optional[Dollars32]] = _at(SeriesPattern2, 'macd_line_*')
+    signal: SeriesPattern2[Optional[Dollars32]] = _at(SeriesPattern2, 'macd_signal_*')
+    histogram: SeriesPattern2[Optional[Dollars32]] = _at(SeriesPattern2, 'macd_histogram_*')
 
 
 class Sd24h1m(_Node):
@@ -3184,8 +3218,8 @@ class Sd24h1m(_Node):
 
 
 class Dormancy(_Node):
-    supply_adj: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_supply_adj')
-    flow: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_flow')
+    supply_adj: SeriesPattern2[Optional[Float32]] = _at(SeriesPattern2, '*_supply_adj')
+    flow: SeriesPattern2[Optional[Float32]] = _at(SeriesPattern2, '*_flow')
 
 
 class Nvt(_Node):
@@ -3431,9 +3465,9 @@ class SupplyInLossThreshold(_Node):
 
 
 class ReserveRisk(_Node):
-    value: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*')
-    vocdd_median_1y: SeriesPattern21[Optional[StoredF64]] = _at(SeriesPattern21, 'vocdd_median_1y')
-    hodl_bank: SeriesPattern21[Optional[StoredF64]] = _at(SeriesPattern21, 'hodl_bank')
+    value: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, '*')
+    vocdd_median_1y: SeriesPattern21[Optional[Float64]] = _at(SeriesPattern21, 'vocdd_median_1y')
+    hodl_bank: SeriesPattern21[Optional[Float64]] = _at(SeriesPattern21, 'hodl_bank')
 
 
 class RhodlRatio(_Node, Generic[A]):
@@ -3906,29 +3940,29 @@ class SpendingRate(_Node, Generic[A]):
 
 
 class SpendingExposure(_Node):
-    under_1h: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_under_1h_*_spending_exposure')
-    _1h_to_1d: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_1h_to_1d_*_spending_exposure')
-    _1d_to_1w: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_1d_to_1w_*_spending_exposure')
-    _1w_to_1m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_1w_to_1m_*_spending_exposure')
-    _1m_to_2m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_1m_to_2m_*_spending_exposure')
-    _2m_to_3m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_2m_to_3m_*_spending_exposure')
-    _3m_to_4m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_3m_to_4m_*_spending_exposure')
-    _4m_to_5m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_4m_to_5m_*_spending_exposure')
-    _5m_to_6m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_5m_to_6m_*_spending_exposure')
-    _6m_to_9m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_6m_to_9m_*_spending_exposure')
-    _9m_to_1y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_9m_to_1y_*_spending_exposure')
-    _1y_to_18m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_1y_to_18m_*_spending_exposure')
-    _18m_to_2y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_18m_to_2y_*_spending_exposure')
-    _2y_to_3y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_2y_to_3y_*_spending_exposure')
-    _3y_to_4y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_3y_to_4y_*_spending_exposure')
-    _4y_to_5y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_4y_to_5y_*_spending_exposure')
-    _5y_to_6y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_5y_to_6y_*_spending_exposure')
-    _6y_to_7y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_6y_to_7y_*_spending_exposure')
-    _7y_to_8y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_7y_to_8y_*_spending_exposure')
-    _8y_to_10y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_8y_to_10y_*_spending_exposure')
-    _10y_to_12y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_10y_to_12y_*_spending_exposure')
-    _12y_to_15y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_12y_to_15y_*_spending_exposure')
-    over_15y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, 'utxos_over_15y_*_spending_exposure')
+    under_1h: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_under_1h_*_spending_exposure')
+    _1h_to_1d: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_1h_to_1d_*_spending_exposure')
+    _1d_to_1w: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_1d_to_1w_*_spending_exposure')
+    _1w_to_1m: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_1w_to_1m_*_spending_exposure')
+    _1m_to_2m: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_1m_to_2m_*_spending_exposure')
+    _2m_to_3m: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_2m_to_3m_*_spending_exposure')
+    _3m_to_4m: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_3m_to_4m_*_spending_exposure')
+    _4m_to_5m: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_4m_to_5m_*_spending_exposure')
+    _5m_to_6m: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_5m_to_6m_*_spending_exposure')
+    _6m_to_9m: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_6m_to_9m_*_spending_exposure')
+    _9m_to_1y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_9m_to_1y_*_spending_exposure')
+    _1y_to_18m: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_1y_to_18m_*_spending_exposure')
+    _18m_to_2y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_18m_to_2y_*_spending_exposure')
+    _2y_to_3y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_2y_to_3y_*_spending_exposure')
+    _3y_to_4y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_3y_to_4y_*_spending_exposure')
+    _4y_to_5y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_4y_to_5y_*_spending_exposure')
+    _5y_to_6y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_5y_to_6y_*_spending_exposure')
+    _6y_to_7y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_6y_to_7y_*_spending_exposure')
+    _7y_to_8y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_7y_to_8y_*_spending_exposure')
+    _8y_to_10y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_8y_to_10y_*_spending_exposure')
+    _10y_to_12y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_10y_to_12y_*_spending_exposure')
+    _12y_to_15y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_12y_to_15y_*_spending_exposure')
+    over_15y: SeriesPattern2[Optional[Float64]] = _at(SeriesPattern2, 'utxos_over_15y_*_spending_exposure')
     mobility: SpendingRate[Optional[Ratio64]] = _at(SpendingRate, '*_mobility')
 
 
@@ -3939,10 +3973,10 @@ class AgeRangeActivity(_Node):
 
 
 class RateSma(_Node):
-    _1w: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_1w')
-    _1m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_1m')
-    _2m: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_2m')
-    _1y: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_1y')
+    _1w: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_1w')
+    _1m: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_1m')
+    _2m: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_2m')
+    _1y: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_1y')
 
 
 class OpReturnRaw(_Node):
@@ -4225,7 +4259,7 @@ class TransactionsRaw(_Node):
 class BlocksHalving(_Node):
     epoch: SeriesPattern2[Halving] = _at(SeriesPattern2, '*_epoch')
     blocks_to_halving: SeriesPattern2[Count] = _at(SeriesPattern2, 'blocks_to_*')
-    days_to_halving: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'days_to_*')
+    days_to_halving: SeriesPattern2[Optional[Days]] = _at(SeriesPattern2, 'days_to_*')
 
 
 class Fullness(_Node):
@@ -4234,12 +4268,12 @@ class Fullness(_Node):
     percent: SeriesPattern21[Optional[Percent]] = _at(SeriesPattern21, '*')
 
 
-class Interval(_Node, Generic[A]):
+class Interval(_Node, Generic[A, B]):
     block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
-    _24h: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_average_24h')
-    _1w: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_average_1w')
-    _1m: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_average_1m')
-    _1y: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_average_1y')
+    _24h: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_24h')
+    _1w: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_1w')
+    _1m: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_1m')
+    _1y: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_1y')
 
 
 class BlocksLookback(_Node):
@@ -4311,7 +4345,7 @@ class BlocksMined(_Node):
 
 class Rolling(_Node):
     sum: PerSec[Count] = _at(PerSec, '*_sum')
-    average: PerSec[Optional[StoredF32]] = _at(PerSec, '*_average')
+    average: PerSec[Optional[CountFract]] = _at(PerSec, '*_average')
     min: PerSec[Count] = _at(PerSec, '*_min')
     max: PerSec[Count] = _at(PerSec, '*_max')
     pct10: PerSec[Count] = _at(PerSec, '*_pct10')
@@ -4327,11 +4361,11 @@ class InputsCount(_Node):
     rolling: Rolling = _at(Rolling, '*')
 
 
-class Vbytes(_Node, Generic[A]):
+class Vbytes(_Node, Generic[A, B]):
     block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
     cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
     sum: PerSec[A] = _at(PerSec, '*_sum')
-    average: PerSec[Optional[StoredF32]] = _at(PerSec, '*_average')
+    average: PerSec[B] = _at(PerSec, '*_average')
     min: PerSec[A] = _at(PerSec, '*_min')
     max: PerSec[A] = _at(PerSec, '*_max')
     pct10: PerSec[A] = _at(PerSec, '*_pct10')
@@ -4341,100 +4375,100 @@ class Vbytes(_Node, Generic[A]):
     pct90: PerSec[A] = _at(PerSec, '*_pct90')
 
 
-class NewAll(_Node, Generic[A]):
+class NewAll(_Node, Generic[A, B]):
     block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
     cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
     sum: PerSec[A] = _at(PerSec, '*_sum')
-    average: PerSec[Optional[StoredF32]] = _at(PerSec, '*_average')
+    average: PerSec[B] = _at(PerSec, '*_average')
 
 
 class CointimeValue(_Node):
-    destroyed: NewAll[Optional[StoredF64]] = _at(NewAll, '*_destroyed')
-    created: NewAll[Optional[StoredF64]] = _at(NewAll, '*_created')
-    stored: NewAll[Optional[StoredF64]] = _at(NewAll, '*_stored')
-    vocdd: NewAll[Optional[StoredF64]] = _at(NewAll, 'vocdd')
+    destroyed: NewAll[Optional[Float64], Optional[Float64]] = _at(NewAll, '*_destroyed')
+    created: NewAll[Optional[Float64], Optional[Float64]] = _at(NewAll, '*_created')
+    stored: NewAll[Optional[Float64], Optional[Float64]] = _at(NewAll, '*_stored')
+    vocdd: NewAll[Optional[Float64], Optional[Float64]] = _at(NewAll, 'vocdd')
 
 
 class CointimeActivity(_Node):
-    coinblocks_created: NewAll[Optional[StoredF64]] = _at(NewAll, '*_created')
-    coinblocks_stored: NewAll[Optional[StoredF64]] = _at(NewAll, '*_stored')
+    coinblocks_created: NewAll[Optional[CoinBlocks], Optional[CoinBlocks]] = _at(NewAll, '*_created')
+    coinblocks_stored: NewAll[Optional[CoinBlocks], Optional[CoinBlocks]] = _at(NewAll, '*_stored')
     liveliness: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'liveliness')
     vaultedness: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'vaultedness')
     ratio: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'activity_to_vaultedness')
-    coinblocks_destroyed: NewAll[Optional[StoredF64]] = _at(NewAll, '*_destroyed')
+    coinblocks_destroyed: NewAll[Optional[CoinBlocks], Optional[CoinBlocks]] = _at(NewAll, '*_destroyed')
 
 
 class OutputsByTypeTxCount(_Node):
-    all: NewAll[Count] = _at(NewAll, '*_bis')
-    p2pk65: NewAll[Count] = _at(NewAll, '*_with_p2pk65_output')
-    p2pk33: NewAll[Count] = _at(NewAll, '*_with_p2pk33_output')
-    p2pkh: NewAll[Count] = _at(NewAll, '*_with_p2pkh_output')
-    p2ms: NewAll[Count] = _at(NewAll, '*_with_p2ms_output')
-    p2sh: NewAll[Count] = _at(NewAll, '*_with_p2sh_output')
-    p2wpkh: NewAll[Count] = _at(NewAll, '*_with_p2wpkh_output')
-    p2wsh: NewAll[Count] = _at(NewAll, '*_with_p2wsh_output')
-    p2tr: NewAll[Count] = _at(NewAll, '*_with_p2tr_output')
-    p2a: NewAll[Count] = _at(NewAll, '*_with_p2a_output')
-    unknown: NewAll[Count] = _at(NewAll, '*_with_unknown_outputs_output')
-    empty: NewAll[Count] = _at(NewAll, '*_with_empty_outputs_output')
-    op_return: NewAll[Count] = _at(NewAll, '*_with_op_return_output')
+    all: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_bis')
+    p2pk65: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pk65_output')
+    p2pk33: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pk33_output')
+    p2pkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pkh_output')
+    p2ms: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2ms_output')
+    p2sh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2sh_output')
+    p2wpkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2wpkh_output')
+    p2wsh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2wsh_output')
+    p2tr: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2tr_output')
+    p2a: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2a_output')
+    unknown: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_unknown_outputs_output')
+    empty: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_empty_outputs_output')
+    op_return: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_op_return_output')
 
 
 class OutputCount(_Node):
-    all: NewAll[Count] = _at(NewAll, '*_bis')
-    p2pk65: NewAll[Count] = _at(NewAll, 'p2pk65_*')
-    p2pk33: NewAll[Count] = _at(NewAll, 'p2pk33_*')
-    p2pkh: NewAll[Count] = _at(NewAll, 'p2pkh_*')
-    p2ms: NewAll[Count] = _at(NewAll, 'p2ms_*')
-    p2sh: NewAll[Count] = _at(NewAll, 'p2sh_*')
-    p2wpkh: NewAll[Count] = _at(NewAll, 'p2wpkh_*')
-    p2wsh: NewAll[Count] = _at(NewAll, 'p2wsh_*')
-    p2tr: NewAll[Count] = _at(NewAll, 'p2tr_*')
-    p2a: NewAll[Count] = _at(NewAll, 'p2a_*')
-    unknown: NewAll[Count] = _at(NewAll, 'unknown_outputs_*')
-    empty: NewAll[Count] = _at(NewAll, 'empty_outputs_*')
-    op_return: NewAll[Count] = _at(NewAll, 'op_return_*')
+    all: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_bis')
+    p2pk65: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pk65_*')
+    p2pk33: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pk33_*')
+    p2pkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pkh_*')
+    p2ms: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2ms_*')
+    p2sh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2sh_*')
+    p2wpkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2wpkh_*')
+    p2wsh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2wsh_*')
+    p2tr: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2tr_*')
+    p2a: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2a_*')
+    unknown: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'unknown_outputs_*')
+    empty: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'empty_outputs_*')
+    op_return: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'op_return_*')
 
 
 class InputsByTypeTxCount(_Node):
-    all: NewAll[Count] = _at(NewAll, 'non_coinbase_*')
-    p2pk65: NewAll[Count] = _at(NewAll, '*_with_p2pk65_prevout')
-    p2pk33: NewAll[Count] = _at(NewAll, '*_with_p2pk33_prevout')
-    p2pkh: NewAll[Count] = _at(NewAll, '*_with_p2pkh_prevout')
-    p2ms: NewAll[Count] = _at(NewAll, '*_with_p2ms_prevout')
-    p2sh: NewAll[Count] = _at(NewAll, '*_with_p2sh_prevout')
-    p2wpkh: NewAll[Count] = _at(NewAll, '*_with_p2wpkh_prevout')
-    p2wsh: NewAll[Count] = _at(NewAll, '*_with_p2wsh_prevout')
-    p2tr: NewAll[Count] = _at(NewAll, '*_with_p2tr_prevout')
-    p2a: NewAll[Count] = _at(NewAll, '*_with_p2a_prevout')
-    unknown: NewAll[Count] = _at(NewAll, '*_with_unknown_outputs_prevout')
-    empty: NewAll[Count] = _at(NewAll, '*_with_empty_outputs_prevout')
+    all: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'non_coinbase_*')
+    p2pk65: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pk65_prevout')
+    p2pk33: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pk33_prevout')
+    p2pkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pkh_prevout')
+    p2ms: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2ms_prevout')
+    p2sh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2sh_prevout')
+    p2wpkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2wpkh_prevout')
+    p2wsh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2wsh_prevout')
+    p2tr: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2tr_prevout')
+    p2a: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2a_prevout')
+    unknown: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_unknown_outputs_prevout')
+    empty: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_empty_outputs_prevout')
 
 
 class InputCount(_Node):
-    all: NewAll[Count] = _at(NewAll, 'input_*_bis')
-    p2pk65: NewAll[Count] = _at(NewAll, 'p2pk65_prevout_*')
-    p2pk33: NewAll[Count] = _at(NewAll, 'p2pk33_prevout_*')
-    p2pkh: NewAll[Count] = _at(NewAll, 'p2pkh_prevout_*')
-    p2ms: NewAll[Count] = _at(NewAll, 'p2ms_prevout_*')
-    p2sh: NewAll[Count] = _at(NewAll, 'p2sh_prevout_*')
-    p2wpkh: NewAll[Count] = _at(NewAll, 'p2wpkh_prevout_*')
-    p2wsh: NewAll[Count] = _at(NewAll, 'p2wsh_prevout_*')
-    p2tr: NewAll[Count] = _at(NewAll, 'p2tr_prevout_*')
-    p2a: NewAll[Count] = _at(NewAll, 'p2a_prevout_*')
-    unknown: NewAll[Count] = _at(NewAll, 'unknown_outputs_prevout_*')
-    empty: NewAll[Count] = _at(NewAll, 'empty_outputs_prevout_*')
+    all: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'input_*_bis')
+    p2pk65: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pk65_prevout_*')
+    p2pk33: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pk33_prevout_*')
+    p2pkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pkh_prevout_*')
+    p2ms: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2ms_prevout_*')
+    p2sh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2sh_prevout_*')
+    p2wpkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2wpkh_prevout_*')
+    p2wsh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2wsh_prevout_*')
+    p2tr: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2tr_prevout_*')
+    p2a: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2a_prevout_*')
+    unknown: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'unknown_outputs_prevout_*')
+    empty: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'empty_outputs_prevout_*')
 
 
 class Versions(_Node):
-    v1: NewAll[Count] = _at(NewAll, '*_v1')
-    v2: NewAll[Count] = _at(NewAll, '*_v2')
-    v3: NewAll[Count] = _at(NewAll, '*_v3')
-    other: NewAll[Count] = _at(NewAll, '*_other_version')
+    v1: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_v1')
+    v2: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_v2')
+    v3: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_v3')
+    other: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_other_version')
 
 
 class PolicyCount(_Node):
-    nonstandard: NewAll[Count] = _at(NewAll, '*')
+    nonstandard: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*')
 
 
 class Policy(_Node):
@@ -4443,9 +4477,9 @@ class Policy(_Node):
 
 
 class PatternsCount(_Node):
-    coinjoin: NewAll[Count] = _at(NewAll, 'coinjoin_*')
-    consolidation: NewAll[Count] = _at(NewAll, 'consolidation_*')
-    batch_payout: NewAll[Count] = _at(NewAll, 'batch_payout_*')
+    coinjoin: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'coinjoin_*')
+    consolidation: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'consolidation_*')
+    batch_payout: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'batch_payout_*')
 
 
 class Patterns(_Node):
@@ -4456,8 +4490,8 @@ class Patterns(_Node):
 
 
 class FeesCount(_Node):
-    cpfp_parent: NewAll[Count] = _at(NewAll, '*_parent_count')
-    cpfp_child: NewAll[Count] = _at(NewAll, '*_child_count')
+    cpfp_parent: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_parent_count')
+    cpfp_child: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_child_count')
 
 
 class TransactionsFees(_Node):
@@ -4494,13 +4528,13 @@ class FeaturesCount(_Node):
     unknown: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_unknown')
     fake_pubkey: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_fake_pubkey')
     fake_scripthash: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_fake_scripthash')
-    annex: NewAll[Count] = _at(NewAll, '*_annex')
-    sighash_all: NewAll[Count] = _at(NewAll, '*_sighash_all')
-    sighash_none: NewAll[Count] = _at(NewAll, '*_sighash_none')
-    sighash_single: NewAll[Count] = _at(NewAll, '*_sighash_single')
-    sighash_default: NewAll[Count] = _at(NewAll, '*_sighash_default')
-    sighash_anyone_can_pay: NewAll[Count] = _at(NewAll, '*_sighash_anyone_can_pay')
-    dust_output: NewAll[Count] = _at(NewAll, '*_dust_output')
+    annex: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_annex')
+    sighash_all: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_sighash_all')
+    sighash_none: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_sighash_none')
+    sighash_single: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_sighash_single')
+    sighash_default: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_sighash_default')
+    sighash_anyone_can_pay: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_sighash_anyone_can_pay')
+    dust_output: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_dust_output')
 
 
 class Features(_Node):
@@ -4530,14 +4564,14 @@ class Features(_Node):
 
 class BlocksCount(_Node):
     target: Target = _at(Target, '*_target')
-    total: NewAll[Count] = _at(NewAll, '*')
+    total: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*')
 
 
 class BlocksWeight(_Node):
     base: SeriesPattern21[Weight] = _at(SeriesPattern21, '*')
     cumulative: SeriesPattern2[Weight64] = _at(SeriesPattern2, '*_cumulative')
     sum: PerSec[Weight64] = _at(PerSec, '*_sum')
-    average: PerSec[Optional[StoredF32]] = _at(PerSec, '*_average')
+    average: PerSec[Optional[WeightFract]] = _at(PerSec, '*_average')
     min: PerSec[Weight64] = _at(PerSec, '*_min')
     max: PerSec[Weight64] = _at(PerSec, '*_max')
     pct10: PerSec[Weight64] = _at(PerSec, '*_pct10')
@@ -4551,7 +4585,7 @@ class BlocksSize(_Node):
     base: SeriesPattern21[Bytes32] = _at(SeriesPattern21, 'total_*')
     cumulative: SeriesPattern2[Bytes] = _at(SeriesPattern2, 'block_*_cumulative')
     sum: PerSec[Bytes] = _at(PerSec, 'block_*_sum')
-    average: PerSec[Optional[StoredF32]] = _at(PerSec, 'block_*_average')
+    average: PerSec[Optional[BytesFract]] = _at(PerSec, 'block_*_average')
     min: PerSec[Bytes] = _at(PerSec, 'block_*_min')
     max: PerSec[Bytes] = _at(PerSec, 'block_*_max')
     pct10: PerSec[Bytes] = _at(PerSec, 'block_*_pct10')
@@ -4772,8 +4806,8 @@ class Technical(_Node):
 class Range(_Node):
     min: Max = _at(Max, '*_min')
     max: Max = _at(Max, '*_max')
-    true_range: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_true_range')
-    true_range_sum_2w: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_true_range_sum_2w')
+    true_range: SeriesPattern2[Optional[Cents]] = _at(SeriesPattern2, '*_true_range')
+    true_range_sum_2w: SeriesPattern2[Optional[Cents]] = _at(SeriesPattern2, '*_true_range_sum_2w')
     choppiness_index_2w: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_choppiness_index_2w')
 
 
@@ -4806,10 +4840,10 @@ class MarketLookback(_Node, Generic[A]):
 class Ath(_Node):
     high: Spot[Optional[SatsFract]] = _at(Spot, '*_ath')
     drawdown: Gini[Optional[PartsPerMillionSigned32]] = _at(Gini, '*_drawdown')
-    days_since: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'days_since_*_ath')
-    years_since: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'years_since_*_ath')
-    max_days_between: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'max_days_between_*_ath')
-    max_years_between: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'max_years_between_*_ath')
+    days_since: SeriesPattern2[Optional[Days]] = _at(SeriesPattern2, 'days_since_*_ath')
+    years_since: SeriesPattern2[Optional[Years]] = _at(SeriesPattern2, 'years_since_*_ath')
+    max_days_between: SeriesPattern2[Optional[Days]] = _at(SeriesPattern2, 'max_days_between_*_ath')
+    max_years_between: SeriesPattern2[Optional[Years]] = _at(SeriesPattern2, 'max_years_between_*_ath')
 
 
 class Indicators(_Node):
@@ -4818,10 +4852,10 @@ class Indicators(_Node):
     gini: Gini[Optional[PartsPerMillion32]] = _at(Gini, 'gini')
     rhodl_ratio: RhodlRatio[Optional[PartsPerMillion64]] = _at(RhodlRatio, 'rhodl_ratio')
     thermo_cap_multiple: Nvt = _at(Nvt, 'thermo_cap_multiple')
-    coindays_destroyed_supply_adj: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'coindays_*')
-    coinyears_destroyed_supply_adj: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'coinyears_*')
+    coindays_destroyed_supply_adj: SeriesPattern2[Optional[Days]] = _at(SeriesPattern2, 'coindays_*')
+    coinyears_destroyed_supply_adj: SeriesPattern2[Optional[Years]] = _at(SeriesPattern2, 'coinyears_*')
     dormancy: Dormancy = _at(Dormancy, 'dormancy')
-    stock_to_flow: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'stock_to_flow')
+    stock_to_flow: SeriesPattern2[Optional[Years]] = _at(SeriesPattern2, 'stock_to_flow')
     seller_exhaustion: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, 'seller_exhaustion')
 
 
@@ -4893,21 +4927,21 @@ class CoinflowUrpd(_Node, Generic[A]):
 
 
 class HashratePrice(_Node):
-    ths: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ths')
-    ths_min: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_ths_min')
-    phs: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_phs')
-    phs_min: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, '*_phs_min')
+    ths: SeriesPattern2[Optional[Float32]] = _at(SeriesPattern2, '*_ths')
+    ths_min: SeriesPattern2[Optional[Float32]] = _at(SeriesPattern2, '*_ths_min')
+    phs: SeriesPattern2[Optional[Float32]] = _at(SeriesPattern2, '*_phs')
+    phs_min: SeriesPattern2[Optional[Float32]] = _at(SeriesPattern2, '*_phs_min')
     rebound: Gini[Optional[PartsPerMillionSigned32]] = _at(Gini, '*_rebound')
 
 
 class HashrateRate(_Node):
-    base: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*')
+    base: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*')
     sma: RateSma = _at(RateSma, '*_sma')
-    ath: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_ath')
+    ath: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_ath')
     drawdown: Gini[Optional[PartsPerMillionSigned32]] = _at(Gini, '*_drawdown')
 
 
-class Hashrate(_Node):
+class MiningHashrate(_Node):
     rate: HashrateRate = _at(HashrateRate, '*_rate')
     price: HashratePrice = _at(HashratePrice, '*_price')
     value: HashratePrice = _at(HashratePrice, '*_value')
@@ -4917,7 +4951,7 @@ class DataBytesAscribe(_Node):
     block: SeriesPattern21[Bytes] = _at(SeriesPattern21, '*_data_bytes')
     cumulative: SeriesPattern2[Bytes] = _at(SeriesPattern2, '*_data_bytes_cumulative')
     sum: PerSec[Bytes] = _at(PerSec, '*_data_bytes_sum')
-    average: PerSec[Optional[StoredF32]] = _at(PerSec, '*_data_bytes_average')
+    average: PerSec[Optional[BytesFract]] = _at(PerSec, '*_data_bytes_average')
     data_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_data_share')
     chain_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_chain_share')
 
@@ -4976,7 +5010,7 @@ class FeesAscribe(_Node):
     block: SeriesPattern21[Sats] = _at(SeriesPattern21, '*_fees')
     cumulative: SeriesPattern2[Sats] = _at(SeriesPattern2, '*_fees_cumulative')
     sum: PerSec[Sats] = _at(PerSec, '*_fees_sum')
-    average: PerSec[Optional[StoredF32]] = _at(PerSec, '*_fees_average')
+    average: PerSec[Optional[SatsFract]] = _at(PerSec, '*_fees_average')
     fee_share: FeeShare = _at(FeeShare, '*_fee_share')
 
 
@@ -5022,10 +5056,10 @@ class ByKind(_Node, Generic[A, B, C, D]):
 
 
 class Total(_Node):
-    data_bytes: NewAll[Bytes] = _at(NewAll, '*_data_bytes')
-    tx_count: NewAll[Count] = _at(NewAll, '*_tx_count')
-    tx_vsize: NewAll[VSize] = _at(NewAll, '*_tx_vsize')
-    fees: NewAll[Sats] = _at(NewAll, '*_fees')
+    data_bytes: NewAll[Bytes, Optional[BytesFract]] = _at(NewAll, '*_data_bytes')
+    tx_count: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_tx_count')
+    tx_vsize: NewAll[VSize, Optional[VSizeFract]] = _at(NewAll, '*_tx_vsize')
+    fees: NewAll[Sats, Optional[SatsFract]] = _at(NewAll, '*_fees')
     chain_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_chain_share')
     fee_share: FeeShare = _at(FeeShare, '*_fee_share')
 
@@ -5033,8 +5067,8 @@ class Total(_Node):
 class OpReturn(_Node):
     raw: OpReturnRaw = _at(OpReturnRaw, 'index')
     total: Total = _at(Total, '*')
-    by_kind: ByKind[ByKindDataBytes[NewAll[Count]], ByKindDataBytes[DataBytesAscribe], ByKindDataBytes[NewAll[VSize]], ByKindFees] = _at((ByKind, (ByKindDataBytes, NewAll), (ByKindDataBytes, DataBytesAscribe), (ByKindDataBytes, NewAll), ByKindFees), '*')
-    policy: ByKind[PolicyDataBytes[NewAll[Count]], PolicyDataBytes[DataBytesAscribe], PolicyDataBytes[NewAll[VSize]], PolicyFees] = _at((ByKind, (PolicyDataBytes, NewAll), (PolicyDataBytes, DataBytesAscribe), (PolicyDataBytes, NewAll), PolicyFees), '*_policy')
+    by_kind: ByKind[ByKindDataBytes[NewAll[Count, Optional[CountFract]]], ByKindDataBytes[DataBytesAscribe], ByKindDataBytes[NewAll[VSize, Optional[VSizeFract]]], ByKindFees] = _at((ByKind, (ByKindDataBytes, NewAll), (ByKindDataBytes, DataBytesAscribe), (ByKindDataBytes, NewAll), ByKindFees), '*')
+    policy: ByKind[PolicyDataBytes[NewAll[Count, Optional[CountFract]]], PolicyDataBytes[DataBytesAscribe], PolicyDataBytes[NewAll[VSize, Optional[VSizeFract]]], PolicyFees] = _at((ByKind, (PolicyDataBytes, NewAll), (PolicyDataBytes, DataBytesAscribe), (PolicyDataBytes, NewAll), PolicyFees), '*_policy')
 
 
 class OutputsByTypeTxShare(_Node):
@@ -5069,7 +5103,7 @@ class OutputShare(_Node):
 
 class OutputsByType(_Node):
     output_count: OutputCount = _at(OutputCount, '*_count')
-    spendable_output_count: NewAll[Count] = _at(NewAll, 'spendable_*_count')
+    spendable_output_count: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'spendable_*_count')
     output_share: OutputShare = _at(OutputShare, '*_share')
     tx_count: OutputsByTypeTxCount = _at(OutputsByTypeTxCount, 'tx_count')
     tx_share: OutputsByTypeTxShare = _at(OutputsByTypeTxShare, 'tx_share_with')
@@ -5079,7 +5113,7 @@ class Outputs(_Node):
     raw: OutputsRaw = _at(OutputsRaw, 'type')
     spent: Spent = _at(Spent, 'txin_index')
     count: OutputsCount[InputsCount] = _at((OutputsCount, InputsCount), '*_count')
-    per_sec: PerSec[Optional[StoredF32]] = _at(PerSec, 'outputs_per_sec')
+    per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'outputs_per_sec')
     by_type: OutputsByType = _at(OutputsByType, '*')
     value: OutputsValue = _at(OutputsValue, 'op_return_value')
 
@@ -5125,7 +5159,7 @@ class RewardsFees(_Node):
     block: BurnedBlock = _at(BurnedBlock, '*')
     cumulative: Circulating[Sats, Optional[Cents]] = _at(Circulating, '*_cumulative')
     sum: Sd24h[Circulating[Sats, Optional[Cents]]] = _at((Sd24h, Circulating), '*_sum')
-    average: Sd24h[Circulating[Optional[StoredF32], Optional[StoredF32]]] = _at((Sd24h, Circulating), '*_average')
+    average: Sd24h[Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Sd24h, Circulating), '*_average')
     min: Sd24h[Circulating[Sats, Optional[Cents]]] = _at((Sd24h, Circulating), '*_min')
     max: Sd24h[Circulating[Sats, Optional[Cents]]] = _at((Sd24h, Circulating), '*_max')
     pct10: Sd24h[Circulating[Sats, Optional[Cents]]] = _at((Sd24h, Circulating), '*_pct10')
@@ -5141,7 +5175,7 @@ class Subsidy(_Node):
     block: BurnedBlock = _at(BurnedBlock, '*')
     cumulative: Circulating[Sats, Optional[Cents]] = _at(Circulating, '*_cumulative')
     sum: Sd24h[Circulating[Sats, Optional[Cents]]] = _at((Sd24h, Circulating), '*_sum')
-    average: Sd24h[Circulating[Optional[StoredF32], Optional[StoredF32]]] = _at((Sd24h, Circulating), '*_average')
+    average: Sd24h[Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Sd24h, Circulating), '*_average')
     dominance: FeeShare = _at(FeeShare, '*_dominance')
 
 
@@ -5217,13 +5251,13 @@ class Exposed(_Node):
 
 
 class Events(_Node):
-    output_to_reused_addr_count: AvgBalance[NewAll[Count]] = _at((AvgBalance, NewAll), 'output_to_*_count')
+    output_to_reused_addr_count: AvgBalance[NewAll[Count, Optional[CountFract]]] = _at((AvgBalance, NewAll), 'output_to_*_count')
     output_to_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'output_to_*_share')
     spendable_output_to_reused_addr_share: FeeShare = _at(FeeShare, 'spendable_output_to_*_share')
-    input_from_reused_addr_count: AvgBalance[NewAll[Count]] = _at((AvgBalance, NewAll), 'input_from_*_count')
+    input_from_reused_addr_count: AvgBalance[NewAll[Count, Optional[CountFract]]] = _at((AvgBalance, NewAll), 'input_from_*_count')
     input_from_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'input_from_*_share')
-    active_reused_addr_count: Interval[Count] = _at(Interval, 'active_*_count')
-    active_reused_addr_share: Interval[Optional[Percent]] = _at(Interval, 'active_*_share')
+    active_reused_addr_count: Interval[Count, Optional[CountFract]] = _at(Interval, 'active_*_count')
+    active_reused_addr_share: Interval[Optional[Percent], Optional[Percent]] = _at(Interval, 'active_*_share')
 
 
 class Respent(_Node):
@@ -5233,11 +5267,11 @@ class Respent(_Node):
 
 
 class AddrsActivity(_Node):
-    reactivated: AvgBalance[Interval[Count]] = _at((AvgBalance, Interval), 'reactivated_*')
-    sending: AvgBalance[Interval[Count]] = _at((AvgBalance, Interval), 'sending_*')
-    receiving: AvgBalance[Interval[Count]] = _at((AvgBalance, Interval), 'receiving_*')
-    bidirectional: AvgBalance[Interval[Count]] = _at((AvgBalance, Interval), 'bidirectional_*')
-    active: AvgBalance[Interval[Count]] = _at((AvgBalance, Interval), 'active_*')
+    reactivated: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'reactivated_*')
+    sending: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'sending_*')
+    receiving: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'receiving_*')
+    bidirectional: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'bidirectional_*')
+    active: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'active_*')
 
 
 class UtxoCount0sats(_Node):
@@ -5247,7 +5281,7 @@ class UtxoCount0sats(_Node):
 
 class AllOutputs(_Node):
     unspent_count: UtxoCount0sats = _at(UtxoCount0sats, '*_utxo_count')
-    spent_count: NewAll[Count] = _at(NewAll, '*_spent_utxo_count')
+    spent_count: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_spent_utxo_count')
 
 
 class Supply0sats(_Node):
@@ -5265,13 +5299,13 @@ class Coinbase(_Node, Generic[A, B, C]):
 
 class AdjustedSopr(_Node):
     ratio: PerSec[Optional[Ratio]] = _at(PerSec, '*_adjusted_sopr')
-    transfer_volume: Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[StoredF32]]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_adj_value_created')
-    value_destroyed: Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[StoredF32]]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_adj_value_destroyed')
+    transfer_volume: Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[CentsFract]]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_adj_value_created')
+    value_destroyed: Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[CentsFract]]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_adj_value_destroyed')
 
 
 class Ratios(_Node):
     adjusted_sopr: AdjustedSopr = _at(AdjustedSopr, '*')
-    dormancy: PerSec[Optional[StoredF32]] = _at(PerSec, '*_dormancy')
+    dormancy: PerSec[Optional[Days]] = _at(PerSec, '*_dormancy')
     sopr: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_sopr_24h')
     sopr_ratio_extended: SoprRatioExtended = _at(SoprRatioExtended, '*_sopr')
     sell_side_risk_ratio: Sd24h[Gini[Optional[PartsPerMillion32]]] = _at((Sd24h, Gini), '*_sell_side_risk_ratio')
@@ -5285,18 +5319,18 @@ class AllRealized(_Node):
     profit: RealizedLoss0sats = _at(RealizedLoss0sats, '*_realized_profit')
     loss: RealizedLoss0sats = _at(RealizedLoss0sats, '*_realized_loss')
     net_pnl: Age10yTo12y = _at(Age10yTo12y, '*_net_realized_pnl')
-    value_destroyed: Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[StoredF32]]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_value_destroyed')
+    value_destroyed: Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[CentsFract]]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_value_destroyed')
     gross_pnl: RealizedLoss0sats = _at(RealizedLoss0sats, '*_realized_gross_pnl')
     peak_regret: RealizedLoss0sats = _at(RealizedLoss0sats, '*_realized_peak_regret')
     mvrv: RhodlRatio[Optional[PriceRatio]] = _at(RhodlRatio, '*_mvrv')
 
 
 class AllActivity(_Node):
-    transfer_volume: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_transfer_volume')
-    transfer_volume_in_profit: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_transfer_volume_in_profit')
-    transfer_volume_in_loss: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_transfer_volume_in_loss')
-    coindays_destroyed: NewAll[Optional[StoredF64]] = _at(NewAll, '*_coindays_destroyed')
-    coinyears_destroyed: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_coinyears_destroyed')
+    transfer_volume: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_transfer_volume')
+    transfer_volume_in_profit: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_transfer_volume_in_profit')
+    transfer_volume_in_loss: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_transfer_volume_in_loss')
+    coindays_destroyed: NewAll[Optional[CoinDays], Optional[CoinDays]] = _at(NewAll, '*_coindays_destroyed')
+    coinyears_destroyed: SeriesPattern2[Optional[CoinYears]] = _at(SeriesPattern2, '*_coinyears_destroyed')
 
 
 class CohortsAll(_Node):
@@ -5374,7 +5408,7 @@ class CoindaysDestroyedEpoch(_Node, Generic[A]):
 class Antpool(_Node):
     blocks_mined: BlocksMined = _at(BlocksMined, '*_blocks_mined')
     dominance: FeeShare = _at(FeeShare, '*_dominance')
-    rewards: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_rewards')
+    rewards: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_rewards')
 
 
 class Major(_Node):
@@ -5452,7 +5486,7 @@ class CoinflowAgeRangeSupply(_Node):
 
 
 class CoinflowAgeRange(_Node):
-    spending_rate: SpendingRate[Optional[StoredF64]] = _at(SpendingRate, '*_spending_rate')
+    spending_rate: SpendingRate[Optional[PerDay]] = _at(SpendingRate, '*_spending_rate')
     spending_exposure: SpendingExposure = _at(SpendingExposure, '*')
     supply: CoinflowAgeRangeSupply = _at(CoinflowAgeRangeSupply, '*')
 
@@ -5482,11 +5516,11 @@ class CointimeAgeRangeSupply(_Node):
 
 
 class CointimeAgeRange(_Node):
-    coindays_consumed: Matured[NewAll[Optional[StoredF64]]] = _at((Matured, NewAll), '*_coindays_consumed')
-    coindays_stored: Matured[NewAll[Optional[StoredF64]]] = _at((Matured, NewAll), '*_coindays_stored')
+    coindays_consumed: Matured[NewAll[Optional[CoinDays], Optional[CoinDays]]] = _at((Matured, NewAll), '*_coindays_consumed')
+    coindays_stored: Matured[NewAll[Optional[CoinDays], Optional[CoinDays]]] = _at((Matured, NewAll), '*_coindays_stored')
     activity: AgeRangeActivity = _at(AgeRangeActivity, '*')
     supply: CointimeAgeRangeSupply = _at(CointimeAgeRangeSupply, '*')
-    coindays_created: Matured[NewAll[Optional[StoredF64]]] = _at((Matured, NewAll), '*_coindays_created')
+    coindays_created: Matured[NewAll[Optional[CoinDays], Optional[CoinDays]]] = _at((Matured, NewAll), '*_coindays_created')
 
 
 class Cointime(_Node):
@@ -5514,7 +5548,7 @@ class Cointime(_Node):
 
 
 class Rewards(_Node):
-    coinbase: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*')
+    coinbase: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*')
     subsidy: Subsidy = _at(Subsidy, 'subsidy')
     fees: RewardsFees = _at(RewardsFees, 'fees')
     output_volume: SeriesPattern21[Sats] = _at(SeriesPattern21, 'output_volume')
@@ -5523,7 +5557,7 @@ class Rewards(_Node):
 
 class Mining(_Node):
     rewards: Rewards = _at(Rewards, '*')
-    hashrate: Hashrate = _at(Hashrate, 'hash')
+    hashrate: MiningHashrate = _at(MiningHashrate, 'hash')
 
 
 class RealizedCap(_Node, Generic[A]):
@@ -5560,7 +5594,7 @@ class Funded(_Node):
 class ByBalance(_Node):
     supply: RealizedCap[Supply0sats] = _at((RealizedCap, Supply0sats), 'supply')
     utxo_count: RealizedCap[UtxoCount0sats] = _at((RealizedCap, UtxoCount0sats), 'utxo_count')
-    transfer_volume: RealizedCap[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]]] = _at((RealizedCap, (Coinbase, BurnedBlock, Circulating, Circulating)), 'transfer_volume')
+    transfer_volume: RealizedCap[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((RealizedCap, (Coinbase, BurnedBlock, Circulating, Circulating)), 'transfer_volume')
     realized_cap: RealizedCap[CoinflowCap[Optional[Cents]]] = _at((RealizedCap, CoinflowCap), '*_cap')
     realized_profit: RealizedCap[RealizedLoss0sats] = _at((RealizedCap, RealizedLoss0sats), '*_profit')
     realized_loss: RealizedCap[RealizedLoss0sats] = _at((RealizedCap, RealizedLoss0sats), '*_loss')
@@ -5574,7 +5608,7 @@ class Addrs(_Node):
     empty: AddrsEmpty = _at(AddrsEmpty, 'empty_*_count')
     activity: AddrsActivity = _at(AddrsActivity, 'addrs')
     total: AddrsEmpty = _at(AddrsEmpty, 'total_*_count')
-    new: AvgBalance[NewAll[Count]] = _at((AvgBalance, NewAll), 'new_*_count')
+    new: AvgBalance[NewAll[Count, Optional[CountFract]]] = _at((AvgBalance, NewAll), 'new_*_count')
     reused: Respent = _at(Respent, 'reused_*')
     respent: Respent = _at(Respent, 'respent_*')
     exposed: Exposed = _at(Exposed, 'exposed_*')
@@ -5602,18 +5636,18 @@ class RealizedPrice(_Node):
 
 
 class TransferVolume(_Node):
-    age: Matured[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]]] = _at((Matured, (Coinbase, BurnedBlock, Circulating, Circulating)), 'old_*')
-    epoch: CoindaysDestroyedEpoch[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]]] = _at((CoindaysDestroyedEpoch, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
-    class_: Class[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]]] = _at((Class, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
-    in_profit: CoindaysDestroyed[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]]] = _at((CoindaysDestroyed, (Coinbase, BurnedBlock, Circulating, Circulating)), '*_in_profit')
-    in_loss: CoindaysDestroyed[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]]] = _at((CoindaysDestroyed, (Coinbase, BurnedBlock, Circulating, Circulating)), '*_in_loss')
-    utxo_amount: UtxoAmount[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]]] = _at((UtxoAmount, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
-    type_: InputShare[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]]] = _at((InputShare, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
+    age: Matured[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((Matured, (Coinbase, BurnedBlock, Circulating, Circulating)), 'old_*')
+    epoch: CoindaysDestroyedEpoch[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((CoindaysDestroyedEpoch, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
+    class_: Class[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((Class, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
+    in_profit: CoindaysDestroyed[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((CoindaysDestroyed, (Coinbase, BurnedBlock, Circulating, Circulating)), '*_in_profit')
+    in_loss: CoindaysDestroyed[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((CoindaysDestroyed, (Coinbase, BurnedBlock, Circulating, Circulating)), '*_in_loss')
+    utxo_amount: UtxoAmount[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((UtxoAmount, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
+    type_: InputShare[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((InputShare, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
 
 
 class CohortsActivity(_Node):
     transfer_volume: TransferVolume = _at(TransferVolume, '*')
-    coindays_destroyed: CoindaysDestroyed[NewAll[Optional[StoredF64]]] = _at((CoindaysDestroyed, NewAll), 'coindays_destroyed')
+    coindays_destroyed: CoindaysDestroyed[NewAll[Optional[CoinDays], Optional[CoinDays]]] = _at((CoindaysDestroyed, NewAll), 'coindays_destroyed')
 
 
 class AvgAmount(_Node):
@@ -5634,19 +5668,19 @@ class CohortsRealized(_Node):
     profit: SpentCount[RealizedLoss0sats] = _at((SpentCount, RealizedLoss0sats), '*_profit')
     loss: SpentCount[RealizedLoss0sats] = _at((SpentCount, RealizedLoss0sats), '*_loss')
     net_pnl: CoindaysDestroyed[Age10yTo12y] = _at((CoindaysDestroyed, Age10yTo12y), 'net_*_pnl')
-    value_destroyed: CoindaysDestroyed[Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[StoredF32]]]] = _at((CoindaysDestroyed, (Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap)), 'value_destroyed')
+    value_destroyed: CoindaysDestroyed[Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[CentsFract]]]] = _at((CoindaysDestroyed, (Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap)), 'value_destroyed')
     price: RealizedPrice = _at(RealizedPrice, '*_price')
 
 
 class CohortsOutputs(_Node):
     unspent_count: SpentCount[UtxoCount0sats] = _at((SpentCount, UtxoCount0sats), '*_count')
-    spent_count: SpentCount[NewAll[Count]] = _at((SpentCount, NewAll), 'spent_*_count')
+    spent_count: SpentCount[NewAll[Count, Optional[CountFract]]] = _at((SpentCount, NewAll), 'spent_*_count')
     avg_amount: AvgAmount = _at(AvgAmount, 'avg_*_amount')
 
 
 class CohortsSupply(_Node):
     total: SpentCount[Circulating[Sats, Optional[Cents]]] = _at((SpentCount, Circulating), '*')
-    matured: Matured[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]]] = _at((Matured, (Coinbase, BurnedBlock, Circulating, Circulating)), 'old_matured_*')
+    matured: Matured[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((Matured, (Coinbase, BurnedBlock, Circulating, Circulating)), 'old_matured_*')
     in_profit: CoindaysDestroyed[Circulating[Sats, Optional[Cents]]] = _at((CoindaysDestroyed, Circulating), '*_in_profit')
     in_loss: CoindaysDestroyed[Circulating[Sats, Optional[Cents]]] = _at((CoindaysDestroyed, Circulating), '*_in_loss')
     delta: SpentCount[DeltaAll[Sd24h[Absolute1m]]] = _at((SpentCount, (DeltaAll, (Sd24h, Absolute1m))), '*_delta')
@@ -5673,48 +5707,48 @@ class Inputs(_Node):
     raw: InputsRaw = _at(InputsRaw, 'index')
     value: SeriesPattern23[Sats] = _at(SeriesPattern23, 'value')
     count: InputsCount = _at(InputsCount, 'input_*')
-    per_sec: PerSec[Optional[StoredF32]] = _at(PerSec, 'inputs_per_sec')
+    per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'inputs_per_sec')
     by_type: InputsByType = _at(InputsByType, '*')
 
 
 class Volume(_Node):
-    transfer_volume: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[StoredF32], Optional[StoredF32]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*')
-    tx_per_sec: PerSec[Optional[StoredF32]] = _at(PerSec, 'tx_per_sec')
+    transfer_volume: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*')
+    tx_per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'tx_per_sec')
 
 
 class Inscription(_Node):
-    count: NewAll[Count] = _at(NewAll, 'tx_count_*')
-    fees: NewAll[Sats] = _at(NewAll, '*_fees')
+    count: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'tx_count_*')
+    fees: NewAll[Sats, Optional[SatsFract]] = _at(NewAll, '*_fees')
     fee_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_fee_share')
 
 
 class Transactions(_Node):
     raw: TransactionsRaw = _at(TransactionsRaw, '*')
     features: Features = _at(Features, 'has')
-    count: OutputsCount[Vbytes[Count]] = _at((OutputsCount, Vbytes), '*_count')
+    count: OutputsCount[Vbytes[Count, Optional[CountFract]]] = _at((OutputsCount, Vbytes), '*_count')
     size: TransactionsSize = _at(TransactionsSize, '*')
     fees: TransactionsFees = _at(TransactionsFees, 'fee')
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'is')
     policy: Policy = _at(Policy, 'nonstandard')
-    sigops: OutputsCount[NewAll[SigOps64]] = _at((OutputsCount, NewAll), 'total_sigop_cost')
+    sigops: OutputsCount[NewAll[SigOps64, Optional[SigOpsFract]]] = _at((OutputsCount, NewAll), 'total_sigop_cost')
     versions: Versions = _at(Versions, '*')
     volume: Volume = _at(Volume, 'transfer_volume_bis')
 
 
-class Difficulty(_Node):
-    value: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*')
-    hashrate: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_hashrate')
+class BlocksDifficulty(_Node):
+    value: SeriesPattern2[Optional[Difficulty]] = _at(SeriesPattern2, '*')
+    hashrate: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_hashrate')
     adjustment: Gini[Optional[PartsPerMillionSigned32]] = _at(Gini, '*_adjustment')
     epoch: SeriesPattern2[Epoch] = _at(SeriesPattern2, '*_epoch')
     blocks_to_retarget: SeriesPattern2[Count] = _at(SeriesPattern2, 'blocks_to_retarget')
-    days_to_retarget: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'days_to_retarget')
+    days_to_retarget: SeriesPattern2[Optional[Days]] = _at(SeriesPattern2, 'days_to_retarget')
 
 
 class Blocks(_Node):
     blockhash: SeriesPattern21[BlockHash] = _at(SeriesPattern21, 'blockhash')
     coinbase_tag: SeriesPattern21[CoinbaseTag] = _at(SeriesPattern21, 'coinbase_tag')
-    difficulty: Difficulty = _at(Difficulty, 'difficulty')
+    difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
     time: Time = _at(Time, 'timestamp')
     size: BlocksSize = _at(BlocksSize, 'size')
     weight: BlocksWeight = _at(BlocksWeight, '*_weight')
@@ -5723,8 +5757,8 @@ class Blocks(_Node):
     segwit_weight: SeriesPattern21[Weight] = _at(SeriesPattern21, 'segwit_weight')
     count: BlocksCount = _at(BlocksCount, '*_count')
     lookback: BlocksLookback = _at(BlocksLookback, 'height')
-    interval: Interval[Timestamp] = _at(Interval, '*_interval')
-    vbytes: Vbytes[VSize] = _at(Vbytes, '*_vbytes')
+    interval: Interval[Seconds, Optional[SecondsFract]] = _at(Interval, '*_interval')
+    vbytes: Vbytes[VSize, Optional[VSizeFract]] = _at(Vbytes, '*_vbytes')
     fullness: Fullness = _at(Fullness, '*_fullness')
     halving: BlocksHalving = _at(BlocksHalving, 'halving')
 

@@ -2,7 +2,7 @@
 
 use crate::RollingTotals;
 use bitview_collections::Windows;
-use bitview_compute::NumericValue;
+use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -14,7 +14,7 @@ use crate::{IndexSources, LazyPerBlock, LazyPreviousDeltaVec};
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyPerBlockCumulativeRolling<T>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
@@ -30,7 +30,7 @@ where
 
 impl<T> LazyPerBlockCumulativeRolling<T>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     fn from_cumulative(
         name: &str,

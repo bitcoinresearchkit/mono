@@ -19,7 +19,7 @@ pub use statistics::{
     ComputeRollingMedianFromStarts, ComputeRollingStats, ExactOrderStats, FenwickNode, FenwickTree,
     compute_rolling_distribution_from_starts, compute_rolling_extrema_from_starts,
 };
-pub use traits::{ComputedVecValue, FixedRatio, NumericValue};
+pub use traits::{ComputedVecValue, FixedRatio, NumericValue, Quantity};
 pub use weighted::{
     WeightedCapitalizedPrice, WeightedCohortAggregates, WeightedCohortState, WeightedRatio,
 };

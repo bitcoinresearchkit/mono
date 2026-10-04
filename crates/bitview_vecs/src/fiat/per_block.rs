@@ -1,4 +1,5 @@
-use bitview_compute::NumericValue;
+use bitview_compute::{NumericValue, Quantity};
+use bitview_primitives::CentsFract;
 use bitview_transforms::{CentsSignedToDollars, CentsUnsignedToDollars};
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Dollars, Version};
@@ -8,7 +9,7 @@ use vecdb::{Database, Rw, UnaryTransform};
 use crate::{Fiat, IndexSources, LazyPerBlock, PerBlock};
 
 /// Trait that associates a cents type with its transform to Dollars.
-pub trait FiatType: NumericValue + JsonSchema {
+pub trait FiatType: NumericValue + JsonSchema + Quantity<Fract = CentsFract> {
     type ToDollars: UnaryTransform<Self, Dollars>;
 }
 

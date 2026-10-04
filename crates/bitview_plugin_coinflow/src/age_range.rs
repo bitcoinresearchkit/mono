@@ -1,5 +1,5 @@
 use bitview_cohort::AgeRange;
-use bitview_primitives::{BoundedRatio, Ratio64, StoredF64};
+use bitview_primitives::{BoundedRatio, Float64, PerDay, Ratio64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, PerBlock};
 use brk_types::Height;
@@ -14,7 +14,7 @@ pub struct AgeRangeVecs<M: StorageMode = Rw> {
     /// range. It estimates the fraction of the range's supply spent per day;
     /// higher values indicate faster turnover. Returns zero when cumulative
     /// coin days created is zero.
-    pub spending_rate: AgeRange<PerBlock<StoredF64, M>>,
+    pub spending_rate: AgeRange<PerBlock<PerDay, M>>,
     /// Estimated remaining-lifetime spending exposure for each UTXO age range.
     /// It integrates observed positive spending hazards from the range midpoint
     /// through subsequent complete ranges, then integrates an exponential tail
@@ -31,8 +31,8 @@ pub struct AgeRangeVecs<M: StorageMode = Rw> {
 impl AgeRangeVecs {
     pub(crate) fn push(
         &mut self,
-        spending_rate: &AgeRange<StoredF64>,
-        spending_exposure: &AgeRange<StoredF64>,
+        spending_rate: &AgeRange<PerDay>,
+        spending_exposure: &AgeRange<Float64>,
         mobility: &AgeRange<BoundedRatio>,
     ) {
         for (target, value) in self.spending_rate.iter_mut().zip(spending_rate.iter()) {

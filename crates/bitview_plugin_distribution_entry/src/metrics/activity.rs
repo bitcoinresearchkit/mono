@@ -1,7 +1,7 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::StoredF64;
+use bitview_primitives::CoinDays;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyPerBlockCumulativeRolling, LazyValuePerBlockCumulativeRolling, LazyWindowStartVec,
@@ -21,7 +21,7 @@ pub struct ActivityMetrics {
     /// Spent value whose spending price is below its creation price.
     transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling,
     /// Spent BTC multiplied by its age in days.
-    coindays_destroyed: LazyPerBlockCumulativeRolling<StoredF64>,
+    coindays_destroyed: LazyPerBlockCumulativeRolling<CoinDays>,
 }
 
 impl ActivityMetrics {

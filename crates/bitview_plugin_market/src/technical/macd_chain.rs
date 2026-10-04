@@ -1,4 +1,4 @@
-use bitview_primitives::StoredF32;
+use bitview_primitives::Dollars32;
 use bitview_traversable::Traversable;
 use bitview_vecs::PerBlock;
 use vecdb::{Rw, StorageMode};
@@ -9,21 +9,21 @@ pub struct MacdChain<M: StorageMode = Rw> {
     /// chain's fast span. It
     /// recursively applies `alpha = 2 / (span + 1)`, where `span` is the number
     /// of blocks in the corresponding trailing monotonic-time duration.
-    pub ema_fast: PerBlock<StoredF32, M>,
+    pub ema_fast: PerBlock<Dollars32, M>,
     /// Exponential moving average (EMA) of spot price in USD per BTC using the
     /// chain's slow span. It
     /// recursively applies `alpha = 2 / (span + 1)`, where `span` is the number
     /// of blocks in the corresponding trailing monotonic-time duration.
-    pub ema_slow: PerBlock<StoredF32, M>,
+    pub ema_slow: PerBlock<Dollars32, M>,
     /// Moving average convergence/divergence (MACD) line: fast EMA minus slow
     /// EMA, in USD per BTC. Positive values mean the faster price trend is
     /// above the slower trend; negative values mean it is below.
-    pub line: PerBlock<StoredF32, M>,
+    pub line: PerBlock<Dollars32, M>,
     /// EMA of the MACD line using the chain's signal span, in USD per BTC. It
     /// recursively applies `alpha = 2 / (span + 1)`, where `span` is the number
     /// of blocks in the corresponding trailing monotonic-time duration.
-    pub signal: PerBlock<StoredF32, M>,
+    pub signal: PerBlock<Dollars32, M>,
     /// MACD histogram: MACD line minus signal line, in USD per BTC. Positive
     /// values place MACD above its signal; negative values place it below.
-    pub histogram: PerBlock<StoredF32, M>,
+    pub histogram: PerBlock<Dollars32, M>,
 }

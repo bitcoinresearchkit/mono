@@ -1,5 +1,4 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredF32;
 use bitview_vecs::{LazyLookbackVec, LazyPerBlock, PerBlock, PercentPerBlock, Price};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
@@ -23,7 +22,7 @@ impl Vecs {
             1,
             |current, previous| {
                 let previous = previous.unwrap_or(current);
-                StoredF32::from((f64::from(current) - f64::from(previous)).abs())
+                Cents::from(u64::from(current).abs_diff(u64::from(previous)))
             },
         );
 
@@ -49,7 +48,7 @@ impl Vecs {
             true_range_sum_2w: PerBlock::import(
                 db,
                 "price_true_range_sum_2w",
-                version + v1,
+                version + Version::TWO,
                 mappings,
             )?,
             choppiness_index_2w: PercentPerBlock::import(

@@ -1,7 +1,7 @@
 use bitview_cohort::{CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredF64;
+use bitview_primitives::CoinDays;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyWindowStartVec};
 use brk_error::Result;
@@ -13,9 +13,9 @@ use crate::metrics::CumulativeCreationSources;
 #[derive(Traversable)]
 pub struct CoindaysDestroyedByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: CreationCohorts<LazyPerBlockCumulativeRolling<StoredF64>>,
+    pub cohorts: CreationCohorts<LazyPerBlockCumulativeRolling<CoinDays>>,
     #[traversable(hidden)]
-    pub stored: CumulativeCreationSources<StoredF64, M>,
+    pub stored: CumulativeCreationSources<CoinDays, M>,
 }
 
 impl CoindaysDestroyedByCohort {

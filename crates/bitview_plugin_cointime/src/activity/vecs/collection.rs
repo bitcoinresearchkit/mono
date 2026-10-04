@@ -1,4 +1,4 @@
-use bitview_primitives::StoredF64;
+use bitview_primitives::CoinBlocks;
 use bitview_traversable::Traversable;
 use bitview_vecs::PerBlockCumulativeRolling;
 use derive_more::{Deref, DerefMut};
@@ -10,11 +10,11 @@ use super::DerivedVecs;
 pub struct Vecs<M: StorageMode = Rw> {
     /// Coinblocks created by each block, equal to the circulating supply in BTC
     /// at that height. One coinblock is one BTC held for one block interval.
-    pub coinblocks_created: PerBlockCumulativeRolling<StoredF64, M>,
+    pub coinblocks_created: PerBlockCumulativeRolling<CoinBlocks, M>,
     /// Net coinblocks stored. Its cumulative value is cumulative coinblocks
     /// created minus cumulative coinblocks destroyed; its per-block value is
     /// the change in that cumulative stock.
-    pub coinblocks_stored: PerBlockCumulativeRolling<StoredF64, M>,
+    pub coinblocks_stored: PerBlockCumulativeRolling<CoinBlocks, M>,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]

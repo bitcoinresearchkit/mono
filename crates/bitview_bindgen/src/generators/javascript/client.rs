@@ -200,7 +200,7 @@ function _wrapSeriesData(raw) {{
  * @typedef {{Object}} SeriesDataBase
  * @property {{number}} version - Version of the series data
  * @property {{Index}} index - The index type used for this query
- * @property {{string}} type - Value type (e.g. "StoredF32", "Sats", "Cents")
+ * @property {{string}} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {{number}} start - Start index (inclusive)
  * @property {{number}} end - End index (exclusive)
  * @property {{string}} stamp - ISO 8601 timestamp of when the response was generated

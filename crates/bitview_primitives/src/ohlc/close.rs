@@ -9,8 +9,6 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use serde::Serialize;
 
-use crate::StoredF64;
-
 #[cfg(feature = "storage")]
 use vecdb::Pco;
 
@@ -90,16 +88,6 @@ where
     }
 }
 
-impl<T> From<Close<T>> for StoredF64
-where
-    StoredF64: From<T>,
-{
-    #[inline]
-    fn from(value: Close<T>) -> Self {
-        Self::from(value.0)
-    }
-}
-
 impl From<Close<Cents>> for Close<Dollars> {
     #[inline]
     fn from(value: Close<Cents>) -> Self {
@@ -158,28 +146,6 @@ impl From<Close<Dollars>> for Dollars {
     }
 }
 
-impl Div<Close<Dollars>> for Dollars {
-    type Output = StoredF64;
-    fn div(self, rhs: Close<Dollars>) -> Self::Output {
-        if self.is_nan() || *rhs == Dollars::ZERO {
-            StoredF64::NAN
-        } else {
-            StoredF64::from(f64::from(self) / f64::from(*rhs))
-        }
-    }
-}
-
-impl Div<Dollars> for Close<Dollars> {
-    type Output = StoredF64;
-    fn div(self, rhs: Dollars) -> Self::Output {
-        if self.is_nan() || rhs == Dollars::ZERO {
-            StoredF64::NAN
-        } else {
-            StoredF64::from(f64::from(*self) / f64::from(rhs))
-        }
-    }
-}
-
 impl Mul<Close<Dollars>> for Dollars {
     type Output = Self;
     fn mul(self, rhs: Close<Dollars>) -> Self::Output {
@@ -198,13 +164,6 @@ impl Mul<usize> for Close<Dollars> {
     type Output = Dollars;
     fn mul(self, rhs: usize) -> Self::Output {
         Dollars::from(CentsSigned::from(*self) * rhs)
-    }
-}
-
-impl Mul<StoredF64> for Close<Dollars> {
-    type Output = Dollars;
-    fn mul(self, rhs: StoredF64) -> Self::Output {
-        *self * rhs
     }
 }
 

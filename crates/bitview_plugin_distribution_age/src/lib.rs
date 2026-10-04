@@ -13,7 +13,7 @@ pub use has::HasDistributionAge;
 
 use bitview_cohort::AgeRange;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::StoredF64;
+use bitview_primitives::{CoinBlocks, CoinDays};
 use bitview_traversable::Traversable;
 use bitview_urpd::AgeBoundsMetrics;
 use bitview_vecs::PerBlockCumulativeRolling;
@@ -37,9 +37,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(wrap = "cohorts/urpd")]
     age_bounds: AgeBoundsMetrics<M>,
     #[traversable(wrap = "cointime/age_range")]
-    pub coindays_created: AgeRange<PerBlockCumulativeRolling<StoredF64, M>>,
+    pub coindays_created: AgeRange<PerBlockCumulativeRolling<CoinDays, M>>,
     #[traversable(wrap = "cointime/activity")]
-    pub coinblocks_destroyed: PerBlockCumulativeRolling<StoredF64, M>,
+    pub coinblocks_destroyed: PerBlockCumulativeRolling<CoinBlocks, M>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

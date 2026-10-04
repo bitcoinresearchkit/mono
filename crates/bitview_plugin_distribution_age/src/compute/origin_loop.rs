@@ -1,4 +1,4 @@
-use bitview_primitives::StoredF64;
+use bitview_primitives::CoinBlocks;
 use brk_error::Result;
 use brk_types::{Height, Sats};
 use statedb::Cursor;
@@ -33,7 +33,7 @@ pub fn replay_origins(
         states.receive_origins(created, height, timestamp, price);
         let satblocks =
             states.send_origins(spent.map(|(h, v)| (Height::new(h), supply(v))), height, ctx);
-        vecs.coinblocks_destroyed.push_block(StoredF64::from(
+        vecs.coinblocks_destroyed.push_block(CoinBlocks::from(
             satblocks as f64 / Sats::ONE_BTC_U128 as f64,
         ));
 

@@ -1,5 +1,5 @@
 use bitview_cohort::AgeRange;
-use bitview_primitives::{BoundedRatio, Ratio64, StoredF64};
+use bitview_primitives::{BoundedRatio, CoinDays, Ratio64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, PerBlockCumulativeRolling};
 use brk_types::Height;
@@ -14,10 +14,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// lower bound remains in that range; each fully traversed younger range
     /// receives spent BTC multiplied by that range's duration. The allocation
     /// preserves total coin days destroyed.
-    pub coindays_consumed: AgeRange<PerBlockCumulativeRolling<StoredF64, M>>,
+    pub coindays_consumed: AgeRange<PerBlockCumulativeRolling<CoinDays, M>>,
     /// Cumulative coin days created in each age range minus cumulative coin
     /// days consumed from that range.
-    pub coindays_stored: AgeRange<PerBlockCumulativeRolling<StoredF64, M>>,
+    pub coindays_stored: AgeRange<PerBlockCumulativeRolling<CoinDays, M>>,
     /// Wakefulness for each UTXO age range: cumulative coin days consumed from
     /// the range divided by cumulative coin days created in the range. Higher
     /// values mean more of the holding time accumulated in that range has been

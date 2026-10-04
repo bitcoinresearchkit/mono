@@ -1,4 +1,4 @@
-use bitview_primitives::{Bytes32, Count16, StoredF64};
+use bitview_primitives::{Bytes32, Count16, Difficulty};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{BlkPosition, BlockHash, CoinbaseTag, Height, Timestamp, Version, Weight};
@@ -22,7 +22,7 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// Mining difficulty encoded by the block header, calculated as Bitcoin's
     /// maximum target divided by this block's proof-of-work target.
     #[traversable(wrap = "difficulty", rename = "value")]
-    pub difficulty: M::Stored<PcoVec<Height, StoredF64, Budgeted>>,
+    pub difficulty: M::Stored<PcoVec<Height, Difficulty, Budgeted>>,
     /// Unix timestamp in seconds associated with the indexed block or time
     /// period. Block-header timestamps are not guaranteed to increase between
     /// consecutive heights.

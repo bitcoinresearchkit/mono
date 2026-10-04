@@ -43,7 +43,7 @@ pub trait AnyVec: Send + Sync {
     fn region_names(&self) -> Vec<String>;
     /// Returns the size in bytes of the value type.
     fn value_type_to_size_of(&self) -> usize;
-    /// Returns the short type name of the value type (e.g., "Sats", "StoredF64").
+    /// Returns the short type name of the value type (e.g., "Sats", "Ratio").
     fn value_type_to_string(&self) -> &'static str;
     /// Generates an ETag for this vector based on stamp and optional end index.
     fn etag(&self, stamp: Stamp, to: Option<i64>) -> String {

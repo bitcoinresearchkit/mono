@@ -15,7 +15,7 @@ pub struct SeriesData<T = Value> {
     pub version: u32,
     /// The index type used for this query
     pub index: Index,
-    /// Value type (e.g. "StoredF32", "Sats", "Cents")
+    /// Value type (e.g. "Ratio", "Sats", "Cents")
     #[serde(rename = "type", default)]
     pub value_type: String,
     /// Start index (inclusive) of the returned range

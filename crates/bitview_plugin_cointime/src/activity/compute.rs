@@ -1,7 +1,7 @@
 use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{BoundedRatio, StoredF64};
+use bitview_primitives::{BoundedRatio, CoinBlocks};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Bitcoin;
@@ -22,7 +22,7 @@ impl Vecs {
         self.coinblocks_created.compute_cumulative_transformed(
             starting_height,
             circulating_supply,
-            |value| StoredF64::from(Bitcoin::from(value)),
+            |value| CoinBlocks::new(f64::from(Bitcoin::from(value))),
             exit,
         )?;
 

@@ -1,7 +1,7 @@
 use bitview_cohort::CreationCohorts;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredF64;
+use bitview_primitives::CoinDays;
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
@@ -74,7 +74,7 @@ impl ActivityVecs {
         &mut self,
         height_price: Cents,
         transfer_volume: CreationCohorts<Sats>,
-        coindays_destroyed: CreationCohorts<StoredF64>,
+        coindays_destroyed: CreationCohorts<CoinDays>,
         transfer_volume_in_profit: CreationCohorts<Sats>,
         transfer_volume_in_loss: CreationCohorts<Sats>,
     ) {

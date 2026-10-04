@@ -1,5 +1,5 @@
 use bitview_cohort::{AgeRange, AgeRangeId, for_each_age_crossing};
-use bitview_primitives::{CostBasisSnapshot, StoredF64};
+use bitview_primitives::{CoinDays, CostBasisSnapshot};
 use brk_types::{ONE_DAY_IN_SEC_F64, Sats, Timestamp};
 use statedb::Amount;
 
@@ -9,7 +9,7 @@ use crate::{compute::ComputeContext, state::supply};
 #[derive(Default)]
 pub struct TickTockResult {
     pub matured: AgeRange<Sats>,
-    pub coindays_created: AgeRange<StoredF64>,
+    pub coindays_created: AgeRange<CoinDays>,
 }
 
 /// Handle age transitions when processing a new block.
@@ -109,6 +109,6 @@ fn move_created_tail(
 }
 
 #[inline(always)]
-fn sat_seconds_to_coindays(sat_seconds: u128) -> StoredF64 {
-    StoredF64::from(sat_seconds as f64 / Sats::ONE_BTC_U128 as f64 / ONE_DAY_IN_SEC_F64)
+fn sat_seconds_to_coindays(sat_seconds: u128) -> CoinDays {
+    CoinDays::from(sat_seconds as f64 / Sats::ONE_BTC_U128 as f64 / ONE_DAY_IN_SEC_F64)
 }

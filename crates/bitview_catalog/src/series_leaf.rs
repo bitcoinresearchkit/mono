@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub struct SeriesLeaf {
     /// The series name/identifier.
     pub name: String,
-    /// The Rust type (e.g., "Sats", "StoredF64").
+    /// The Rust type (e.g., "Sats", "Ratio").
     pub kind: String,
     /// Available indexes for this series.
     pub indexes: BTreeSet<Index>,

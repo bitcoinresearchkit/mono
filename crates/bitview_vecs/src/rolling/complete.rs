@@ -2,7 +2,7 @@
 
 use crate::RollingTotals;
 use bitview_collections::Windows;
-use bitview_compute::NumericValue;
+use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -17,7 +17,7 @@ use crate::{IndexSources, RollingDistribution, WindowStarts};
 #[derive(Deref, DerefMut, Traversable)]
 pub struct RollingComplete<T, M: StorageMode = Rw>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     #[deref]
     #[deref_mut]
@@ -29,7 +29,7 @@ where
 
 impl<T> RollingComplete<T>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     pub(crate) fn import(
         db: &Database,

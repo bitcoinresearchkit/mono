@@ -1,5 +1,5 @@
 use bitview_collections::Windows;
-use bitview_compute::NumericValue;
+use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -12,7 +12,7 @@ use crate::{IndexSources, LazyRollingAvgFromHeight};
 /// derived from a cumulative vec + cached window starts.
 ///
 /// Nothing is stored on disk — all values are computed on-the-fly via
-/// `LazyDeltaVec<Height, T, f64, DeltaAvg>`: `(cum[h] - cum[start-1]) / (h - start + 1)`.
+/// `LazyDeltaVec<Height, T, T::Fract, DeltaAvg>`: `(cum[h] - cum[start-1]) / (h - start + 1)`.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct LazyRollingAvgsFromHeight<T>(
@@ -22,11 +22,11 @@ pub struct LazyRollingAvgsFromHeight<T>(
     pub Windows<LazyRollingAvgFromHeight<T>>,
 )
 where
-    T: NumericValue + JsonSchema;
+    T: NumericValue + JsonSchema + Quantity;
 
 impl<T> LazyRollingAvgsFromHeight<T>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     pub(crate) fn new(
         name: &str,

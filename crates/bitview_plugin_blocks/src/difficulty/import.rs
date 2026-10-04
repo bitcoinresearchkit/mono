@@ -1,7 +1,7 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Count, Epoch, PartsPerMillionSigned32, StoredF64};
-use bitview_transforms::{BlocksToDaysF32, DifficultyToHashF64};
+use bitview_primitives::{Count, Difficulty, Epoch, PartsPerMillionSigned32};
+use bitview_transforms::{BlocksToDays, DifficultyToHashrate};
 use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Resolutions};
 use brk_types::{BLOCKS_PER_DIFF_EPOCHS, Height, Version};
 use vecdb::{Ident, IndexVec, ReadOnlyClone};
@@ -13,13 +13,11 @@ fn blocks_left_to_retarget(height: Height) -> Count {
 }
 
 fn difficulty_adjustment(
-    current: StoredF64,
-    previous: Option<StoredF64>,
+    current: Difficulty,
+    previous: Option<Difficulty>,
 ) -> PartsPerMillionSigned32 {
     match previous {
-        Some(previous) => {
-            PartsPerMillionSigned32::from((f32::from(current) / f32::from(previous)) - 1.0)
-        }
+        Some(previous) => PartsPerMillionSigned32::from(*current / *previous - 1.0),
         None => PartsPerMillionSigned32::from(f32::NAN),
     }
 }
@@ -29,7 +27,7 @@ impl Vecs {
         let v2 = Version::TWO;
 
         let difficulty_source = indexer.vecs().blocks.difficulty.read_only_clone();
-        let hashrate = LazyPerBlock::from_height_source::<DifficultyToHashF64>(
+        let hashrate = LazyPerBlock::from_height_source::<DifficultyToHashrate>(
             "difficulty_hashrate",
             version,
             &difficulty_source,
@@ -61,7 +59,7 @@ impl Vecs {
             mappings,
         );
 
-        let days_to_retarget = LazyPerBlock::from_lazy::<BlocksToDaysF32, Count>(
+        let days_to_retarget = LazyPerBlock::from_lazy::<BlocksToDays, Count>(
             "days_to_retarget",
             version + v2,
             &blocks_to_retarget,

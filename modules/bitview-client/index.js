@@ -375,6 +375,11 @@ prior template's transactions or a full transaction body.
  * @typedef {number} Bytes32
  */
 /**
+ * A mean size in bytes.
+ *
+ * @typedef {number} BytesFract
+ */
+/**
  * Investor phase from the Capital Sentiment model.
  *
  * Codes are explicit because phase values are persisted. Code `0` represents
@@ -390,6 +395,11 @@ prior template's transactions or a full transaction body.
  * @typedef {number} Cents
  */
 /**
+ * A mean amount in cents.
+ *
+ * @typedef {number} CentsFract
+ */
+/**
  * Signed cents (i64) - for values that can be negative.
  * Used for profit/loss calculations, deltas, etc.
  *
@@ -402,6 +412,21 @@ prior template's transactions or a full transaction body.
  * supported age filters and published UTXO history.
  *
  * @typedef {string} Cohort
+ */
+/**
+ * Bitcoin multiplied by the blocks it was held.
+ *
+ * @typedef {number} CoinBlocks
+ */
+/**
+ * Bitcoin multiplied by the days it was held.
+ *
+ * @typedef {number} CoinDays
+ */
+/**
+ * Bitcoin multiplied by the years it was held.
+ *
+ * @typedef {number} CoinYears
  */
 /**
  * Up to the first 100 bytes of a coinbase transaction's first-input
@@ -427,6 +452,11 @@ prior template's transactions or a full transaction body.
  * A number of things that fits 16 bits (at most 65,535), such as transactions per block.
  *
  * @typedef {number} Count16
+ */
+/**
+ * A mean number of things.
+ *
+ * @typedef {number} CountFract
  */
 /**
  * A change in a number of things.
@@ -510,6 +540,11 @@ ancestors and no descendants (matches mempool.space).
 /** @typedef {number} Day1 */
 /** @typedef {number} Day3 */
 /**
+ * A duration in days.
+ *
+ * @typedef {number} Days
+ */
+/**
  * Detailed series count with per-database breakdown.
  *
  * @typedef {Object} DetailedSeriesCount
@@ -518,6 +553,11 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} lazy - Number of lazy (computed on-the-fly) series-index combinations
  * @property {number} stored - Number of eager (stored on disk) series-index combinations
  * @property {{ [key: string]: SeriesCount }} byDb - Per-database breakdown of counts.
+ */
+/**
+ * Proof-of-work difficulty.
+ *
+ * @typedef {number} Difficulty
  */
 /**
  * Difficulty adjustment information.
@@ -565,6 +605,11 @@ ancestors and no descendants (matches mempool.space).
  * US Dollar amount
  *
  * @typedef {number} Dollars
+ */
+/**
+ * A USD amount (32-bit stored form).
+ *
+ * @typedef {number} Dollars32
  */
 /**
  * Data of an empty address
@@ -617,6 +662,11 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {number} Float32
  */
 /**
+ * A 64-bit floating-point value without a specific unit.
+ *
+ * @typedef {number} Float64
+ */
+/**
  * Output format for API responses
  *
  * @typedef {("json"|"csv")} Format
@@ -635,6 +685,11 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} spentTxoCount - Number of transaction outputs spent by this address
  */
 /** @typedef {number} Halving */
+/**
+ * Hashes per second.
+ *
+ * @typedef {number} Hashrate
+ */
 /**
  * A single hashrate data point.
  *
@@ -888,6 +943,16 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {number} PartsPerMillionSigned64
  */
 /**
+ * A fraction per day.
+ *
+ * @typedef {number} PerDay
+ */
+/**
+ * Events per second.
+ *
+ * @typedef {number} PerSecond
+ */
+/**
  * A percentage: a ratio times 100.
  *
  * @typedef {number} Percent
@@ -1099,9 +1164,9 @@ on serialization otherwise.
  * @typedef {number} Sats
  */
 /**
- * Fractional satoshis (f64) - for representing USD prices in sats
+ * Fractional satoshis (f64): mean amounts in sats, and USD prices expressed in sats.
  *
- * Formula: `sats_fract = usd_value * 100_000_000 / btc_price`
+ * A USD price in sats is `usd_value * 100_000_000 / btc_price`
  *
  * When BTC is $100,000:
  * - $1 = 1,000 sats
@@ -1127,6 +1192,16 @@ on serialization otherwise.
  * @property {Limit=} limit - Maximum number of results
  */
 /**
+ * A duration in seconds (at most about 136 years).
+ *
+ * @typedef {number} Seconds
+ */
+/**
+ * A mean duration in seconds.
+ *
+ * @typedef {number} SecondsFract
+ */
+/**
  * Series count statistics
  *
  * @typedef {Object} SeriesCount
@@ -1143,14 +1218,14 @@ on serialization otherwise.
  * @property {Index[]} indexes - Available indexes
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
 undefined one (e.g. NaN)
- * @property {string} type - Value type (e.g. "StoredF32", "Sats", "Cents")
+ * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  */
 /**
  * Series leaf with JSON Schema for client generation.
  *
  * @typedef {Object} SeriesLeafWithSchema
  * @property {string} name - The series name/identifier.
- * @property {string} kind - The Rust type (e.g., "Sats", "StoredF64").
+ * @property {string} kind - The Rust type (e.g., "Sats", "Ratio").
  * @property {Index[]} indexes - Available indexes for this series.
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
 undefined one (e.g. NaN).
@@ -1206,14 +1281,9 @@ undefined one (e.g. NaN).
  * @typedef {number} SigOps64
  */
 /**
- * Stored 32-bit floating point value
+ * A mean BIP-141 signature-operation cost.
  *
- * @typedef {number} StoredF32
- */
-/**
- * Fixed-size 64-bit floating point value optimized for on-disk storage
- *
- * @typedef {number} StoredF64
+ * @typedef {number} SigOpsFract
  */
 /**
  * Sync status of the indexer
@@ -1461,6 +1531,11 @@ undefined one (e.g. NaN).
  * @typedef {number} VSize
  */
 /**
+ * A mean virtual size in vbytes.
+ *
+ * @typedef {number} VSizeFract
+ */
+/**
  * @typedef {Object} ValidateAddrParam
  * @property {string} address - Bitcoin address to validate (can be any string)
  */
@@ -1495,6 +1570,11 @@ undefined one (e.g. NaN).
  * @typedef {number} Weight64
  */
 /**
+ * A mean weight in weight units.
+ *
+ * @typedef {number} WeightFract
+ */
+/**
  * Transaction witness: a stack of byte arrays, one per witness item.
  *
  * Wraps `bitcoin::Witness` (single-buffer layout with offsets, much
@@ -1507,6 +1587,11 @@ undefined one (e.g. NaN).
  */
 /** @typedef {number} Year1 */
 /** @typedef {number} Year10 */
+/**
+ * A duration in years.
+ *
+ * @typedef {number} Years
+ */
 
 /**
  * @typedef {Object} BitviewClientOptions
@@ -1700,7 +1785,7 @@ function _wrapSeriesData(raw) {
  * @typedef {Object} SeriesDataBase
  * @property {number} version - Version of the series data
  * @property {Index} index - The index type used for this query
- * @property {string} type - Value type (e.g. "StoredF32", "Sats", "Cents")
+ * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {number} start - Start index (inclusive)
  * @property {number} end - End index (exclusive)
  * @property {string} stamp - ISO 8601 timestamp of when the response was generated
@@ -2583,11 +2668,11 @@ const _Split = _s({
 
 /**
  * @typedef {{
- *   emaFast: SeriesPattern2<?StoredF32>,
- *   emaSlow: SeriesPattern2<?StoredF32>,
- *   line: SeriesPattern2<?StoredF32>,
- *   signal: SeriesPattern2<?StoredF32>,
- *   histogram: SeriesPattern2<?StoredF32>,
+ *   emaFast: SeriesPattern2<?Dollars32>,
+ *   emaSlow: SeriesPattern2<?Dollars32>,
+ *   line: SeriesPattern2<?Dollars32>,
+ *   signal: SeriesPattern2<?Dollars32>,
+ *   histogram: SeriesPattern2<?Dollars32>,
  * }} Macd1m
  */
 const _Macd1m = _s({
@@ -2611,8 +2696,8 @@ const _Sd24h1m = _s({
 
 /**
  * @typedef {{
- *   supplyAdj: SeriesPattern2<?StoredF32>,
- *   flow: SeriesPattern2<?StoredF32>,
+ *   supplyAdj: SeriesPattern2<?Float32>,
+ *   flow: SeriesPattern2<?Float32>,
  * }} Dormancy
  */
 const _Dormancy = _s({
@@ -3144,9 +3229,9 @@ const _SupplyInLossThreshold = _s({
 
 /**
  * @typedef {{
- *   value: SeriesPattern2<?StoredF64>,
- *   vocddMedian1y: SeriesPattern21<?StoredF64>,
- *   hodlBank: SeriesPattern21<?StoredF64>,
+ *   value: SeriesPattern2<?Float64>,
+ *   vocddMedian1y: SeriesPattern21<?Float64>,
+ *   hodlBank: SeriesPattern21<?Float64>,
  * }} ReserveRisk
  */
 const _ReserveRisk = _s({
@@ -4150,29 +4235,29 @@ const _SpendingRate = _s({
 
 /**
  * @typedef {{
- *   under1h: SeriesPattern2<?StoredF64>,
- *   _1hTo1d: SeriesPattern2<?StoredF64>,
- *   _1dTo1w: SeriesPattern2<?StoredF64>,
- *   _1wTo1m: SeriesPattern2<?StoredF64>,
- *   _1mTo2m: SeriesPattern2<?StoredF64>,
- *   _2mTo3m: SeriesPattern2<?StoredF64>,
- *   _3mTo4m: SeriesPattern2<?StoredF64>,
- *   _4mTo5m: SeriesPattern2<?StoredF64>,
- *   _5mTo6m: SeriesPattern2<?StoredF64>,
- *   _6mTo9m: SeriesPattern2<?StoredF64>,
- *   _9mTo1y: SeriesPattern2<?StoredF64>,
- *   _1yTo18m: SeriesPattern2<?StoredF64>,
- *   _18mTo2y: SeriesPattern2<?StoredF64>,
- *   _2yTo3y: SeriesPattern2<?StoredF64>,
- *   _3yTo4y: SeriesPattern2<?StoredF64>,
- *   _4yTo5y: SeriesPattern2<?StoredF64>,
- *   _5yTo6y: SeriesPattern2<?StoredF64>,
- *   _6yTo7y: SeriesPattern2<?StoredF64>,
- *   _7yTo8y: SeriesPattern2<?StoredF64>,
- *   _8yTo10y: SeriesPattern2<?StoredF64>,
- *   _10yTo12y: SeriesPattern2<?StoredF64>,
- *   _12yTo15y: SeriesPattern2<?StoredF64>,
- *   over15y: SeriesPattern2<?StoredF64>,
+ *   under1h: SeriesPattern2<?Float64>,
+ *   _1hTo1d: SeriesPattern2<?Float64>,
+ *   _1dTo1w: SeriesPattern2<?Float64>,
+ *   _1wTo1m: SeriesPattern2<?Float64>,
+ *   _1mTo2m: SeriesPattern2<?Float64>,
+ *   _2mTo3m: SeriesPattern2<?Float64>,
+ *   _3mTo4m: SeriesPattern2<?Float64>,
+ *   _4mTo5m: SeriesPattern2<?Float64>,
+ *   _5mTo6m: SeriesPattern2<?Float64>,
+ *   _6mTo9m: SeriesPattern2<?Float64>,
+ *   _9mTo1y: SeriesPattern2<?Float64>,
+ *   _1yTo18m: SeriesPattern2<?Float64>,
+ *   _18mTo2y: SeriesPattern2<?Float64>,
+ *   _2yTo3y: SeriesPattern2<?Float64>,
+ *   _3yTo4y: SeriesPattern2<?Float64>,
+ *   _4yTo5y: SeriesPattern2<?Float64>,
+ *   _5yTo6y: SeriesPattern2<?Float64>,
+ *   _6yTo7y: SeriesPattern2<?Float64>,
+ *   _7yTo8y: SeriesPattern2<?Float64>,
+ *   _8yTo10y: SeriesPattern2<?Float64>,
+ *   _10yTo12y: SeriesPattern2<?Float64>,
+ *   _12yTo15y: SeriesPattern2<?Float64>,
+ *   over15y: SeriesPattern2<?Float64>,
  *   mobility: SpendingRate<?Ratio64>,
  * }} SpendingExposure
  */
@@ -4218,10 +4303,10 @@ const _AgeRangeActivity = _s({
 
 /**
  * @typedef {{
- *   _1w: SeriesPattern2<?StoredF64>,
- *   _1m: SeriesPattern2<?StoredF64>,
- *   _2m: SeriesPattern2<?StoredF64>,
- *   _1y: SeriesPattern2<?StoredF64>,
+ *   _1w: SeriesPattern2<?Hashrate>,
+ *   _1m: SeriesPattern2<?Hashrate>,
+ *   _2m: SeriesPattern2<?Hashrate>,
+ *   _1y: SeriesPattern2<?Hashrate>,
  * }} RateSma
  */
 const _RateSma = _s({
@@ -4837,7 +4922,7 @@ const _TransactionsRaw = _s({
  * @typedef {{
  *   epoch: SeriesPattern2<Halving>,
  *   blocksToHalving: SeriesPattern2<Count>,
- *   daysToHalving: SeriesPattern2<?StoredF32>,
+ *   daysToHalving: SeriesPattern2<?Days>,
  * }} BlocksHalving
  */
 const _BlocksHalving = _s({
@@ -4860,13 +4945,13 @@ const _Fullness = _s({
 });
 
 /**
- * @template A
+ * @template A, B
  * @typedef {{
  *   block: SeriesPattern21<A>,
- *   _24h: SeriesPattern2<?StoredF32>,
- *   _1w: SeriesPattern2<?StoredF32>,
- *   _1m: SeriesPattern2<?StoredF32>,
- *   _1y: SeriesPattern2<?StoredF32>,
+ *   _24h: SeriesPattern2<B>,
+ *   _1w: SeriesPattern2<B>,
+ *   _1m: SeriesPattern2<B>,
+ *   _1y: SeriesPattern2<B>,
  * }} Interval
  */
 const _Interval = _s({
@@ -5019,7 +5104,7 @@ const _BlocksMined = _s({
 /**
  * @typedef {{
  *   sum: PerSec<Count>,
- *   average: PerSec<?StoredF32>,
+ *   average: PerSec<?CountFract>,
  *   min: PerSec<Count>,
  *   max: PerSec<Count>,
  *   pct10: PerSec<Count>,
@@ -5055,12 +5140,12 @@ const _InputsCount = _s({
 });
 
 /**
- * @template A
+ * @template A, B
  * @typedef {{
  *   block: SeriesPattern21<A>,
  *   cumulative: SeriesPattern2<A>,
  *   sum: PerSec<A>,
- *   average: PerSec<?StoredF32>,
+ *   average: PerSec<B>,
  *   min: PerSec<A>,
  *   max: PerSec<A>,
  *   pct10: PerSec<A>,
@@ -5085,12 +5170,12 @@ const _Vbytes = _s({
 });
 
 /**
- * @template A
+ * @template A, B
  * @typedef {{
  *   block: SeriesPattern21<A>,
  *   cumulative: SeriesPattern2<A>,
  *   sum: PerSec<A>,
- *   average: PerSec<?StoredF32>,
+ *   average: PerSec<B>,
  * }} NewAll
  */
 const _NewAll = _s({
@@ -5102,10 +5187,10 @@ const _NewAll = _s({
 
 /**
  * @typedef {{
- *   destroyed: NewAll<?StoredF64>,
- *   created: NewAll<?StoredF64>,
- *   stored: NewAll<?StoredF64>,
- *   vocdd: NewAll<?StoredF64>,
+ *   destroyed: NewAll<?Float64, ?Float64>,
+ *   created: NewAll<?Float64, ?Float64>,
+ *   stored: NewAll<?Float64, ?Float64>,
+ *   vocdd: NewAll<?Float64, ?Float64>,
  * }} CointimeValue
  */
 const _CointimeValue = _s({
@@ -5117,12 +5202,12 @@ const _CointimeValue = _s({
 
 /**
  * @typedef {{
- *   coinblocksCreated: NewAll<?StoredF64>,
- *   coinblocksStored: NewAll<?StoredF64>,
+ *   coinblocksCreated: NewAll<?CoinBlocks, ?CoinBlocks>,
+ *   coinblocksStored: NewAll<?CoinBlocks, ?CoinBlocks>,
  *   liveliness: SeriesPattern2<?Ratio64>,
  *   vaultedness: SeriesPattern2<?Ratio64>,
  *   ratio: SeriesPattern2<?Ratio64>,
- *   coinblocksDestroyed: NewAll<?StoredF64>,
+ *   coinblocksDestroyed: NewAll<?CoinBlocks, ?CoinBlocks>,
  * }} CointimeActivity
  */
 const _CointimeActivity = _s({
@@ -5136,19 +5221,19 @@ const _CointimeActivity = _s({
 
 /**
  * @typedef {{
- *   all: NewAll<Count>,
- *   p2pk65: NewAll<Count>,
- *   p2pk33: NewAll<Count>,
- *   p2pkh: NewAll<Count>,
- *   p2ms: NewAll<Count>,
- *   p2sh: NewAll<Count>,
- *   p2wpkh: NewAll<Count>,
- *   p2wsh: NewAll<Count>,
- *   p2tr: NewAll<Count>,
- *   p2a: NewAll<Count>,
- *   unknown: NewAll<Count>,
- *   empty: NewAll<Count>,
- *   opReturn: NewAll<Count>,
+ *   all: NewAll<Count, ?CountFract>,
+ *   p2pk65: NewAll<Count, ?CountFract>,
+ *   p2pk33: NewAll<Count, ?CountFract>,
+ *   p2pkh: NewAll<Count, ?CountFract>,
+ *   p2ms: NewAll<Count, ?CountFract>,
+ *   p2sh: NewAll<Count, ?CountFract>,
+ *   p2wpkh: NewAll<Count, ?CountFract>,
+ *   p2wsh: NewAll<Count, ?CountFract>,
+ *   p2tr: NewAll<Count, ?CountFract>,
+ *   p2a: NewAll<Count, ?CountFract>,
+ *   unknown: NewAll<Count, ?CountFract>,
+ *   empty: NewAll<Count, ?CountFract>,
+ *   opReturn: NewAll<Count, ?CountFract>,
  * }} OutputsByTypeTxCount
  */
 const _OutputsByTypeTxCount = _s({
@@ -5169,19 +5254,19 @@ const _OutputsByTypeTxCount = _s({
 
 /**
  * @typedef {{
- *   all: NewAll<Count>,
- *   p2pk65: NewAll<Count>,
- *   p2pk33: NewAll<Count>,
- *   p2pkh: NewAll<Count>,
- *   p2ms: NewAll<Count>,
- *   p2sh: NewAll<Count>,
- *   p2wpkh: NewAll<Count>,
- *   p2wsh: NewAll<Count>,
- *   p2tr: NewAll<Count>,
- *   p2a: NewAll<Count>,
- *   unknown: NewAll<Count>,
- *   empty: NewAll<Count>,
- *   opReturn: NewAll<Count>,
+ *   all: NewAll<Count, ?CountFract>,
+ *   p2pk65: NewAll<Count, ?CountFract>,
+ *   p2pk33: NewAll<Count, ?CountFract>,
+ *   p2pkh: NewAll<Count, ?CountFract>,
+ *   p2ms: NewAll<Count, ?CountFract>,
+ *   p2sh: NewAll<Count, ?CountFract>,
+ *   p2wpkh: NewAll<Count, ?CountFract>,
+ *   p2wsh: NewAll<Count, ?CountFract>,
+ *   p2tr: NewAll<Count, ?CountFract>,
+ *   p2a: NewAll<Count, ?CountFract>,
+ *   unknown: NewAll<Count, ?CountFract>,
+ *   empty: NewAll<Count, ?CountFract>,
+ *   opReturn: NewAll<Count, ?CountFract>,
  * }} OutputCount
  */
 const _OutputCount = _s({
@@ -5202,18 +5287,18 @@ const _OutputCount = _s({
 
 /**
  * @typedef {{
- *   all: NewAll<Count>,
- *   p2pk65: NewAll<Count>,
- *   p2pk33: NewAll<Count>,
- *   p2pkh: NewAll<Count>,
- *   p2ms: NewAll<Count>,
- *   p2sh: NewAll<Count>,
- *   p2wpkh: NewAll<Count>,
- *   p2wsh: NewAll<Count>,
- *   p2tr: NewAll<Count>,
- *   p2a: NewAll<Count>,
- *   unknown: NewAll<Count>,
- *   empty: NewAll<Count>,
+ *   all: NewAll<Count, ?CountFract>,
+ *   p2pk65: NewAll<Count, ?CountFract>,
+ *   p2pk33: NewAll<Count, ?CountFract>,
+ *   p2pkh: NewAll<Count, ?CountFract>,
+ *   p2ms: NewAll<Count, ?CountFract>,
+ *   p2sh: NewAll<Count, ?CountFract>,
+ *   p2wpkh: NewAll<Count, ?CountFract>,
+ *   p2wsh: NewAll<Count, ?CountFract>,
+ *   p2tr: NewAll<Count, ?CountFract>,
+ *   p2a: NewAll<Count, ?CountFract>,
+ *   unknown: NewAll<Count, ?CountFract>,
+ *   empty: NewAll<Count, ?CountFract>,
  * }} InputsByTypeTxCount
  */
 const _InputsByTypeTxCount = _s({
@@ -5233,18 +5318,18 @@ const _InputsByTypeTxCount = _s({
 
 /**
  * @typedef {{
- *   all: NewAll<Count>,
- *   p2pk65: NewAll<Count>,
- *   p2pk33: NewAll<Count>,
- *   p2pkh: NewAll<Count>,
- *   p2ms: NewAll<Count>,
- *   p2sh: NewAll<Count>,
- *   p2wpkh: NewAll<Count>,
- *   p2wsh: NewAll<Count>,
- *   p2tr: NewAll<Count>,
- *   p2a: NewAll<Count>,
- *   unknown: NewAll<Count>,
- *   empty: NewAll<Count>,
+ *   all: NewAll<Count, ?CountFract>,
+ *   p2pk65: NewAll<Count, ?CountFract>,
+ *   p2pk33: NewAll<Count, ?CountFract>,
+ *   p2pkh: NewAll<Count, ?CountFract>,
+ *   p2ms: NewAll<Count, ?CountFract>,
+ *   p2sh: NewAll<Count, ?CountFract>,
+ *   p2wpkh: NewAll<Count, ?CountFract>,
+ *   p2wsh: NewAll<Count, ?CountFract>,
+ *   p2tr: NewAll<Count, ?CountFract>,
+ *   p2a: NewAll<Count, ?CountFract>,
+ *   unknown: NewAll<Count, ?CountFract>,
+ *   empty: NewAll<Count, ?CountFract>,
  * }} InputCount
  */
 const _InputCount = _s({
@@ -5264,10 +5349,10 @@ const _InputCount = _s({
 
 /**
  * @typedef {{
- *   v1: NewAll<Count>,
- *   v2: NewAll<Count>,
- *   v3: NewAll<Count>,
- *   other: NewAll<Count>,
+ *   v1: NewAll<Count, ?CountFract>,
+ *   v2: NewAll<Count, ?CountFract>,
+ *   v3: NewAll<Count, ?CountFract>,
+ *   other: NewAll<Count, ?CountFract>,
  * }} Versions
  */
 const _Versions = _s({
@@ -5279,7 +5364,7 @@ const _Versions = _s({
 
 /**
  * @typedef {{
- *   nonstandard: NewAll<Count>,
+ *   nonstandard: NewAll<Count, ?CountFract>,
  * }} PolicyCount
  */
 const _PolicyCount = _s({
@@ -5299,9 +5384,9 @@ const _Policy = _s({
 
 /**
  * @typedef {{
- *   coinjoin: NewAll<Count>,
- *   consolidation: NewAll<Count>,
- *   batchPayout: NewAll<Count>,
+ *   coinjoin: NewAll<Count, ?CountFract>,
+ *   consolidation: NewAll<Count, ?CountFract>,
+ *   batchPayout: NewAll<Count, ?CountFract>,
  * }} PatternsCount
  */
 const _PatternsCount = _s({
@@ -5327,8 +5412,8 @@ const _Patterns = _s({
 
 /**
  * @typedef {{
- *   cpfpParent: NewAll<Count>,
- *   cpfpChild: NewAll<Count>,
+ *   cpfpParent: NewAll<Count, ?CountFract>,
+ *   cpfpChild: NewAll<Count, ?CountFract>,
  * }} FeesCount
  */
 const _FeesCount = _s({
@@ -5388,13 +5473,13 @@ const _OutputsCount = (c, b, f0) => _n(c, b, {
  *   unknown: SeriesPattern21<Count16>,
  *   fakePubkey: SeriesPattern21<Count16>,
  *   fakeScripthash: SeriesPattern21<Count16>,
- *   annex: NewAll<Count>,
- *   sighashAll: NewAll<Count>,
- *   sighashNone: NewAll<Count>,
- *   sighashSingle: NewAll<Count>,
- *   sighashDefault: NewAll<Count>,
- *   sighashAnyoneCanPay: NewAll<Count>,
- *   dustOutput: NewAll<Count>,
+ *   annex: NewAll<Count, ?CountFract>,
+ *   sighashAll: NewAll<Count, ?CountFract>,
+ *   sighashNone: NewAll<Count, ?CountFract>,
+ *   sighashSingle: NewAll<Count, ?CountFract>,
+ *   sighashDefault: NewAll<Count, ?CountFract>,
+ *   sighashAnyoneCanPay: NewAll<Count, ?CountFract>,
+ *   dustOutput: NewAll<Count, ?CountFract>,
  * }} FeaturesCount
  */
 const _FeaturesCount = _s({
@@ -5481,7 +5566,7 @@ const _Features = _s({
 /**
  * @typedef {{
  *   target: Target,
- *   total: NewAll<Count>,
+ *   total: NewAll<Count, ?CountFract>,
  * }} BlocksCount
  */
 const _BlocksCount = _s({
@@ -5494,7 +5579,7 @@ const _BlocksCount = _s({
  *   base: SeriesPattern21<Weight>,
  *   cumulative: SeriesPattern2<Weight64>,
  *   sum: PerSec<Weight64>,
- *   average: PerSec<?StoredF32>,
+ *   average: PerSec<?WeightFract>,
  *   min: PerSec<Weight64>,
  *   max: PerSec<Weight64>,
  *   pct10: PerSec<Weight64>,
@@ -5523,7 +5608,7 @@ const _BlocksWeight = _s({
  *   base: SeriesPattern21<Bytes32>,
  *   cumulative: SeriesPattern2<Bytes>,
  *   sum: PerSec<Bytes>,
- *   average: PerSec<?StoredF32>,
+ *   average: PerSec<?BytesFract>,
  *   min: PerSec<Bytes>,
  *   max: PerSec<Bytes>,
  *   pct10: PerSec<Bytes>,
@@ -5979,8 +6064,8 @@ const _Technical = _s({
  * @typedef {{
  *   min: Max,
  *   max: Max,
- *   trueRange: SeriesPattern2<?StoredF32>,
- *   trueRangeSum2w: SeriesPattern2<?StoredF32>,
+ *   trueRange: SeriesPattern2<?Cents>,
+ *   trueRangeSum2w: SeriesPattern2<?Cents>,
  *   choppinessIndex2w: Gini<?PartsPerMillion32>,
  * }} Range
  */
@@ -6052,10 +6137,10 @@ const _MarketLookback = (c, b, f0) => _n(c, b, {
  * @typedef {{
  *   high: Spot<?SatsFract>,
  *   drawdown: Gini<?PartsPerMillionSigned32>,
- *   daysSince: SeriesPattern2<?StoredF32>,
- *   yearsSince: SeriesPattern2<?StoredF32>,
- *   maxDaysBetween: SeriesPattern2<?StoredF32>,
- *   maxYearsBetween: SeriesPattern2<?StoredF32>,
+ *   daysSince: SeriesPattern2<?Days>,
+ *   yearsSince: SeriesPattern2<?Years>,
+ *   maxDaysBetween: SeriesPattern2<?Days>,
+ *   maxYearsBetween: SeriesPattern2<?Years>,
  * }} Ath
  */
 const _Ath = _s({
@@ -6074,10 +6159,10 @@ const _Ath = _s({
  *   gini: Gini<?PartsPerMillion32>,
  *   rhodlRatio: RhodlRatio<?PartsPerMillion64>,
  *   thermoCapMultiple: Nvt,
- *   coindaysDestroyedSupplyAdj: SeriesPattern2<?StoredF32>,
- *   coinyearsDestroyedSupplyAdj: SeriesPattern2<?StoredF32>,
+ *   coindaysDestroyedSupplyAdj: SeriesPattern2<?Days>,
+ *   coinyearsDestroyedSupplyAdj: SeriesPattern2<?Years>,
  *   dormancy: Dormancy,
- *   stockToFlow: SeriesPattern2<?StoredF32>,
+ *   stockToFlow: SeriesPattern2<?Years>,
  *   sellerExhaustion: SeriesPattern2<?Ratio>,
  * }} Indicators
  */
@@ -6242,10 +6327,10 @@ const _CoinflowUrpd = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   ths: SeriesPattern2<?StoredF32>,
- *   thsMin: SeriesPattern2<?StoredF32>,
- *   phs: SeriesPattern2<?StoredF32>,
- *   phsMin: SeriesPattern2<?StoredF32>,
+ *   ths: SeriesPattern2<?Float32>,
+ *   thsMin: SeriesPattern2<?Float32>,
+ *   phs: SeriesPattern2<?Float32>,
+ *   phsMin: SeriesPattern2<?Float32>,
  *   rebound: Gini<?PartsPerMillionSigned32>,
  * }} HashratePrice
  */
@@ -6259,9 +6344,9 @@ const _HashratePrice = _s({
 
 /**
  * @typedef {{
- *   base: SeriesPattern2<?StoredF64>,
+ *   base: SeriesPattern2<?Hashrate>,
  *   sma: RateSma,
- *   ath: SeriesPattern2<?StoredF64>,
+ *   ath: SeriesPattern2<?Hashrate>,
  *   drawdown: Gini<?PartsPerMillionSigned32>,
  * }} HashrateRate
  */
@@ -6277,9 +6362,9 @@ const _HashrateRate = _s({
  *   rate: HashrateRate,
  *   price: HashratePrice,
  *   value: HashratePrice,
- * }} Hashrate
+ * }} MiningHashrate
  */
-const _Hashrate = _s({
+const _MiningHashrate = _s({
   rate: [_HashrateRate, '*_rate'],
   price: [_HashratePrice, '*_price'],
   value: [_HashratePrice, '*_value'],
@@ -6290,7 +6375,7 @@ const _Hashrate = _s({
  *   block: SeriesPattern21<Bytes>,
  *   cumulative: SeriesPattern2<Bytes>,
  *   sum: PerSec<Bytes>,
- *   average: PerSec<?StoredF32>,
+ *   average: PerSec<?BytesFract>,
  *   dataShare: Gini<?PartsPerMillion32>,
  *   chainShare: Gini<?PartsPerMillion32>,
  * }} DataBytesAscribe
@@ -6417,7 +6502,7 @@ const _FeeShare = _s({
  *   block: SeriesPattern21<Sats>,
  *   cumulative: SeriesPattern2<Sats>,
  *   sum: PerSec<Sats>,
- *   average: PerSec<?StoredF32>,
+ *   average: PerSec<?SatsFract>,
  *   feeShare: FeeShare,
  * }} FeesAscribe
  */
@@ -6518,10 +6603,10 @@ const _ByKind = (c, b, f0, f1, f2, f3) => _n(c, b, {
 
 /**
  * @typedef {{
- *   dataBytes: NewAll<Bytes>,
- *   txCount: NewAll<Count>,
- *   txVsize: NewAll<VSize>,
- *   fees: NewAll<Sats>,
+ *   dataBytes: NewAll<Bytes, ?BytesFract>,
+ *   txCount: NewAll<Count, ?CountFract>,
+ *   txVsize: NewAll<VSize, ?VSizeFract>,
+ *   fees: NewAll<Sats, ?SatsFract>,
  *   chainShare: Gini<?PartsPerMillion32>,
  *   feeShare: FeeShare,
  * }} Total
@@ -6539,8 +6624,8 @@ const _Total = _s({
  * @typedef {{
  *   raw: OpReturnRaw,
  *   total: Total,
- *   byKind: ByKind<ByKindDataBytes<NewAll<Count>>, ByKindDataBytes<DataBytesAscribe>, ByKindDataBytes<NewAll<VSize>>, ByKindFees>,
- *   policy: ByKind<PolicyDataBytes<NewAll<Count>>, PolicyDataBytes<DataBytesAscribe>, PolicyDataBytes<NewAll<VSize>>, PolicyFees>,
+ *   byKind: ByKind<ByKindDataBytes<NewAll<Count, ?CountFract>>, ByKindDataBytes<DataBytesAscribe>, ByKindDataBytes<NewAll<VSize, ?VSizeFract>>, ByKindFees>,
+ *   policy: ByKind<PolicyDataBytes<NewAll<Count, ?CountFract>>, PolicyDataBytes<DataBytesAscribe>, PolicyDataBytes<NewAll<VSize, ?VSizeFract>>, PolicyFees>,
  * }} OpReturn
  */
 const _OpReturn = _s({
@@ -6615,7 +6700,7 @@ const _OutputShare = _s({
 /**
  * @typedef {{
  *   outputCount: OutputCount,
- *   spendableOutputCount: NewAll<Count>,
+ *   spendableOutputCount: NewAll<Count, ?CountFract>,
  *   outputShare: OutputShare,
  *   txCount: OutputsByTypeTxCount,
  *   txShare: OutputsByTypeTxShare,
@@ -6634,7 +6719,7 @@ const _OutputsByType = _s({
  *   raw: OutputsRaw,
  *   spent: Spent,
  *   count: OutputsCount<InputsCount>,
- *   perSec: PerSec<?StoredF32>,
+ *   perSec: PerSec<?PerSecond>,
  *   byType: OutputsByType,
  *   value: OutputsValue,
  * }} Outputs
@@ -6733,7 +6818,7 @@ const _Market = _s({
  *   block: BurnedBlock,
  *   cumulative: Circulating<Sats, ?Cents>,
  *   sum: Sd24h<Circulating<Sats, ?Cents>>,
- *   average: Sd24h<Circulating<?StoredF32, ?StoredF32>>,
+ *   average: Sd24h<Circulating<?SatsFract, ?CentsFract>>,
  *   min: Sd24h<Circulating<Sats, ?Cents>>,
  *   max: Sd24h<Circulating<Sats, ?Cents>>,
  *   pct10: Sd24h<Circulating<Sats, ?Cents>>,
@@ -6766,7 +6851,7 @@ const _RewardsFees = _s({
  *   block: BurnedBlock,
  *   cumulative: Circulating<Sats, ?Cents>,
  *   sum: Sd24h<Circulating<Sats, ?Cents>>,
- *   average: Sd24h<Circulating<?StoredF32, ?StoredF32>>,
+ *   average: Sd24h<Circulating<?SatsFract, ?CentsFract>>,
  *   dominance: FeeShare,
  * }} Subsidy
  */
@@ -6935,13 +7020,13 @@ const _Exposed = _s({
 
 /**
  * @typedef {{
- *   outputToReusedAddrCount: AvgBalance<NewAll<Count>>,
+ *   outputToReusedAddrCount: AvgBalance<NewAll<Count, ?CountFract>>,
  *   outputToReusedAddrShare: AvgBalance<FeeShare>,
  *   spendableOutputToReusedAddrShare: FeeShare,
- *   inputFromReusedAddrCount: AvgBalance<NewAll<Count>>,
+ *   inputFromReusedAddrCount: AvgBalance<NewAll<Count, ?CountFract>>,
  *   inputFromReusedAddrShare: AvgBalance<FeeShare>,
- *   activeReusedAddrCount: Interval<Count>,
- *   activeReusedAddrShare: Interval<?Percent>,
+ *   activeReusedAddrCount: Interval<Count, ?CountFract>,
+ *   activeReusedAddrShare: Interval<?Percent, ?Percent>,
  * }} Events
  */
 const _Events = _s({
@@ -6969,11 +7054,11 @@ const _Respent = _s({
 
 /**
  * @typedef {{
- *   reactivated: AvgBalance<Interval<Count>>,
- *   sending: AvgBalance<Interval<Count>>,
- *   receiving: AvgBalance<Interval<Count>>,
- *   bidirectional: AvgBalance<Interval<Count>>,
- *   active: AvgBalance<Interval<Count>>,
+ *   reactivated: AvgBalance<Interval<Count, ?CountFract>>,
+ *   sending: AvgBalance<Interval<Count, ?CountFract>>,
+ *   receiving: AvgBalance<Interval<Count, ?CountFract>>,
+ *   bidirectional: AvgBalance<Interval<Count, ?CountFract>>,
+ *   active: AvgBalance<Interval<Count, ?CountFract>>,
  * }} AddrsActivity
  */
 const _AddrsActivity = _s({
@@ -6998,7 +7083,7 @@ const _UtxoCount0sats = _s({
 /**
  * @typedef {{
  *   unspentCount: UtxoCount0sats,
- *   spentCount: NewAll<Count>,
+ *   spentCount: NewAll<Count, ?CountFract>,
  * }} AllOutputs
  */
 const _AllOutputs = _s({
@@ -7039,8 +7124,8 @@ const _Coinbase = (c, b, f0, f1, f2) => _n(c, b, {
 /**
  * @typedef {{
  *   ratio: PerSec<?Ratio>,
- *   transferVolume: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?StoredF32>>,
- *   valueDestroyed: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?StoredF32>>,
+ *   transferVolume: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>,
+ *   valueDestroyed: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>,
  * }} AdjustedSopr
  */
 const _AdjustedSopr = _s({
@@ -7052,7 +7137,7 @@ const _AdjustedSopr = _s({
 /**
  * @typedef {{
  *   adjustedSopr: AdjustedSopr,
- *   dormancy: PerSec<?StoredF32>,
+ *   dormancy: PerSec<?Days>,
  *   sopr: SeriesPattern2<?Ratio>,
  *   soprRatioExtended: SoprRatioExtended,
  *   sellSideRiskRatio: Sd24h<Gini<?PartsPerMillion32>>,
@@ -7076,7 +7161,7 @@ const _Ratios = _s({
  *   profit: RealizedLoss0sats,
  *   loss: RealizedLoss0sats,
  *   netPnl: Age10yTo12y,
- *   valueDestroyed: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?StoredF32>>,
+ *   valueDestroyed: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>,
  *   grossPnl: RealizedLoss0sats,
  *   peakRegret: RealizedLoss0sats,
  *   mvrv: RhodlRatio<?PriceRatio>,
@@ -7097,11 +7182,11 @@ const _AllRealized = _s({
 
 /**
  * @typedef {{
- *   transferVolume: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>,
- *   transferVolumeInProfit: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>,
- *   transferVolumeInLoss: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>,
- *   coindaysDestroyed: NewAll<?StoredF64>,
- *   coinyearsDestroyed: SeriesPattern2<?StoredF64>,
+ *   transferVolume: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
+ *   transferVolumeInProfit: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
+ *   transferVolumeInLoss: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
+ *   coindaysDestroyed: NewAll<?CoinDays, ?CoinDays>,
+ *   coinyearsDestroyed: SeriesPattern2<?CoinYears>,
  * }} AllActivity
  */
 const _AllActivity = _s({
@@ -7272,7 +7357,7 @@ const _CoindaysDestroyedEpoch = (c, b, f0) => _n(c, b, {
  * @typedef {{
  *   blocksMined: BlocksMined,
  *   dominance: FeeShare,
- *   rewards: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>,
+ *   rewards: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
  * }} Antpool
  */
 const _Antpool = _s({
@@ -7441,7 +7526,7 @@ const _CoinflowAgeRangeSupply = _s({
 
 /**
  * @typedef {{
- *   spendingRate: SpendingRate<?StoredF64>,
+ *   spendingRate: SpendingRate<?PerDay>,
  *   spendingExposure: SpendingExposure,
  *   supply: CoinflowAgeRangeSupply,
  * }} CoinflowAgeRange
@@ -7504,11 +7589,11 @@ const _CointimeAgeRangeSupply = _s({
 
 /**
  * @typedef {{
- *   coindaysConsumed: Matured<NewAll<?StoredF64>>,
- *   coindaysStored: Matured<NewAll<?StoredF64>>,
+ *   coindaysConsumed: Matured<NewAll<?CoinDays, ?CoinDays>>,
+ *   coindaysStored: Matured<NewAll<?CoinDays, ?CoinDays>>,
  *   activity: AgeRangeActivity,
  *   supply: CointimeAgeRangeSupply,
- *   coindaysCreated: Matured<NewAll<?StoredF64>>,
+ *   coindaysCreated: Matured<NewAll<?CoinDays, ?CoinDays>>,
  * }} CointimeAgeRange
  */
 const _CointimeAgeRange = _s({
@@ -7570,7 +7655,7 @@ const _Cointime = _s({
 
 /**
  * @typedef {{
- *   coinbase: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>,
+ *   coinbase: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
  *   subsidy: Subsidy,
  *   fees: RewardsFees,
  *   outputVolume: SeriesPattern21<Sats>,
@@ -7588,12 +7673,12 @@ const _Rewards = _s({
 /**
  * @typedef {{
  *   rewards: Rewards,
- *   hashrate: Hashrate,
+ *   hashrate: MiningHashrate,
  * }} Mining
  */
 const _Mining = _s({
   rewards: [_Rewards, '*'],
-  hashrate: [_Hashrate, 'hash'],
+  hashrate: [_MiningHashrate, 'hash'],
 });
 
 /**
@@ -7666,7 +7751,7 @@ const _Funded = _s({
  * @typedef {{
  *   supply: RealizedCap<Supply0sats>,
  *   utxoCount: RealizedCap<UtxoCount0sats>,
- *   transferVolume: RealizedCap<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>>,
+ *   transferVolume: RealizedCap<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
  *   realizedCap: RealizedCap<CoinflowCap<?Cents>>,
  *   realizedProfit: RealizedCap<RealizedLoss0sats>,
  *   realizedLoss: RealizedCap<RealizedLoss0sats>,
@@ -7690,7 +7775,7 @@ const _ByBalance = _s({
  *   empty: AddrsEmpty,
  *   activity: AddrsActivity,
  *   total: AddrsEmpty,
- *   new: AvgBalance<NewAll<Count>>,
+ *   new: AvgBalance<NewAll<Count, ?CountFract>>,
  *   reused: Respent,
  *   respent: Respent,
  *   exposed: Exposed,
@@ -7758,13 +7843,13 @@ const _RealizedPrice = _s({
 
 /**
  * @typedef {{
- *   age: Matured<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>>,
- *   epoch: CoindaysDestroyedEpoch<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>>,
- *   class: Class<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>>,
- *   inProfit: CoindaysDestroyed<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>>,
- *   inLoss: CoindaysDestroyed<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>>,
- *   utxoAmount: UtxoAmount<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>>,
- *   type: InputShare<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>>,
+ *   age: Matured<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
+ *   epoch: CoindaysDestroyedEpoch<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
+ *   class: Class<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
+ *   inProfit: CoindaysDestroyed<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
+ *   inLoss: CoindaysDestroyed<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
+ *   utxoAmount: UtxoAmount<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
+ *   type: InputShare<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
  * }} TransferVolume
  */
 const _TransferVolume = _s({
@@ -7780,7 +7865,7 @@ const _TransferVolume = _s({
 /**
  * @typedef {{
  *   transferVolume: TransferVolume,
- *   coindaysDestroyed: CoindaysDestroyed<NewAll<?StoredF64>>,
+ *   coindaysDestroyed: CoindaysDestroyed<NewAll<?CoinDays, ?CoinDays>>,
  * }} CohortsActivity
  */
 const _CohortsActivity = _s({
@@ -7824,7 +7909,7 @@ const _SpentCount = (c, b, f0) => _n(c, b, {
  *   profit: SpentCount<RealizedLoss0sats>,
  *   loss: SpentCount<RealizedLoss0sats>,
  *   netPnl: CoindaysDestroyed<Age10yTo12y>,
- *   valueDestroyed: CoindaysDestroyed<Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?StoredF32>>>,
+ *   valueDestroyed: CoindaysDestroyed<Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>>,
  *   price: RealizedPrice,
  * }} CohortsRealized
  */
@@ -7840,7 +7925,7 @@ const _CohortsRealized = _s({
 /**
  * @typedef {{
  *   unspentCount: SpentCount<UtxoCount0sats>,
- *   spentCount: SpentCount<NewAll<Count>>,
+ *   spentCount: SpentCount<NewAll<Count, ?CountFract>>,
  *   avgAmount: AvgAmount,
  * }} CohortsOutputs
  */
@@ -7853,7 +7938,7 @@ const _CohortsOutputs = _s({
 /**
  * @typedef {{
  *   total: SpentCount<Circulating<Sats, ?Cents>>,
- *   matured: Matured<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>>,
+ *   matured: Matured<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
  *   inProfit: CoindaysDestroyed<Circulating<Sats, ?Cents>>,
  *   inLoss: CoindaysDestroyed<Circulating<Sats, ?Cents>>,
  *   delta: SpentCount<DeltaAll<Sd24h<Absolute1m>>>,
@@ -7908,7 +7993,7 @@ const _InputsByType = _s({
  *   raw: InputsRaw,
  *   value: SeriesPattern23<Sats>,
  *   count: InputsCount,
- *   perSec: PerSec<?StoredF32>,
+ *   perSec: PerSec<?PerSecond>,
  *   byType: InputsByType,
  * }} Inputs
  */
@@ -7922,8 +8007,8 @@ const _Inputs = _s({
 
 /**
  * @typedef {{
- *   transferVolume: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?StoredF32, ?StoredF32>>,
- *   txPerSec: PerSec<?StoredF32>,
+ *   transferVolume: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
+ *   txPerSec: PerSec<?PerSecond>,
  * }} Volume
  */
 const _Volume = _s({
@@ -7933,8 +8018,8 @@ const _Volume = _s({
 
 /**
  * @typedef {{
- *   count: NewAll<Count>,
- *   fees: NewAll<Sats>,
+ *   count: NewAll<Count, ?CountFract>,
+ *   fees: NewAll<Sats, ?SatsFract>,
  *   feeShare: Gini<?PartsPerMillion32>,
  * }} Inscription
  */
@@ -7948,13 +8033,13 @@ const _Inscription = _s({
  * @typedef {{
  *   raw: TransactionsRaw,
  *   features: Features,
- *   count: OutputsCount<Vbytes<Count>>,
+ *   count: OutputsCount<Vbytes<Count, ?CountFract>>,
  *   size: TransactionsSize,
  *   fees: TransactionsFees,
  *   inscription: Inscription,
  *   patterns: Patterns,
  *   policy: Policy,
- *   sigops: OutputsCount<NewAll<SigOps64>>,
+ *   sigops: OutputsCount<NewAll<SigOps64, ?SigOpsFract>>,
  *   versions: Versions,
  *   volume: Volume,
  * }} Transactions
@@ -7975,15 +8060,15 @@ const _Transactions = _s({
 
 /**
  * @typedef {{
- *   value: SeriesPattern2<?StoredF64>,
- *   hashrate: SeriesPattern2<?StoredF64>,
+ *   value: SeriesPattern2<?Difficulty>,
+ *   hashrate: SeriesPattern2<?Hashrate>,
  *   adjustment: Gini<?PartsPerMillionSigned32>,
  *   epoch: SeriesPattern2<Epoch>,
  *   blocksToRetarget: SeriesPattern2<Count>,
- *   daysToRetarget: SeriesPattern2<?StoredF32>,
- * }} Difficulty
+ *   daysToRetarget: SeriesPattern2<?Days>,
+ * }} BlocksDifficulty
  */
-const _Difficulty = _s({
+const _BlocksDifficulty = _s({
   value: [_i2, '*'],
   hashrate: [_i2, '*_hashrate'],
   adjustment: [_Gini, '*_adjustment'],
@@ -7996,7 +8081,7 @@ const _Difficulty = _s({
  * @typedef {{
  *   blockhash: SeriesPattern21<BlockHash>,
  *   coinbaseTag: SeriesPattern21<CoinbaseTag>,
- *   difficulty: Difficulty,
+ *   difficulty: BlocksDifficulty,
  *   time: Time,
  *   size: BlocksSize,
  *   weight: BlocksWeight,
@@ -8005,8 +8090,8 @@ const _Difficulty = _s({
  *   segwitWeight: SeriesPattern21<Weight>,
  *   count: BlocksCount,
  *   lookback: BlocksLookback,
- *   interval: Interval<Timestamp>,
- *   vbytes: Vbytes<VSize>,
+ *   interval: Interval<Seconds, ?SecondsFract>,
+ *   vbytes: Vbytes<VSize, ?VSizeFract>,
  *   fullness: Fullness,
  *   halving: BlocksHalving,
  * }} Blocks
@@ -8014,7 +8099,7 @@ const _Difficulty = _s({
 const _Blocks = _s({
   blockhash: [_i21, 'blockhash'],
   coinbaseTag: [_i21, 'coinbase_tag'],
-  difficulty: [_Difficulty, 'difficulty'],
+  difficulty: [_BlocksDifficulty, 'difficulty'],
   time: [_Time, 'timestamp'],
   size: [_BlocksSize, 'size'],
   weight: [_BlocksWeight, '*_weight'],

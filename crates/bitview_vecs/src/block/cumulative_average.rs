@@ -1,5 +1,5 @@
 use bitview_collections::Windows;
-use bitview_compute::NumericValue;
+use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -19,7 +19,7 @@ use crate::{
 pub struct PerBlockCumulativeAverage<T, C = T, M: StorageMode = Rw, F = Ident>
 where
     T: NumericValue + JsonSchema,
-    C: NumericValue + JsonSchema,
+    C: NumericValue + JsonSchema + Quantity,
     F: UnaryTransform<C, T>,
 {
     /// Value for the represented block. At time-period indexes, the value is
@@ -35,7 +35,7 @@ where
 impl<T, C, F> PerBlockCumulativeAverage<T, C, Rw, F>
 where
     T: NumericValue + JsonSchema + Into<C>,
-    C: NumericValue + JsonSchema,
+    C: NumericValue + JsonSchema + Quantity,
     F: UnaryTransform<C, T>,
 {
     pub fn import(

@@ -2,7 +2,7 @@ use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_compute::prepare_computed;
 use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{BoundedRatio, StoredF64};
+use bitview_primitives::{BoundedRatio, CoinDays};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, Height, Sats, Version};
@@ -63,7 +63,7 @@ impl Vecs {
         &mut self,
         starting_height: Height,
         transfer_volumes: &AgeRange<&impl ReadableVec<Height, Sats>>,
-        source_coindays_destroyed: &AgeRange<&impl ReadableVec<Height, StoredF64>>,
+        source_coindays_destroyed: &AgeRange<&impl ReadableVec<Height, CoinDays>>,
         exit: &Exit,
     ) -> Result<()> {
         let version = Version::combine_all(
@@ -106,7 +106,7 @@ impl Vecs {
                     AgeRange::from_fn(|id| f64::from(id.select(&destroyed_batches)[offset]));
                 let consumed = allocate_consumed_coindays(volumes_btc, destroyed, &bounds);
                 for (target, value) in self.coindays_consumed.iter_mut().zip(consumed.iter()) {
-                    target.push_block(StoredF64::from(*value));
+                    target.push_block(CoinDays::from(*value));
                 }
             }
             let _lock = exit.lock();
@@ -121,7 +121,7 @@ impl Vecs {
     fn compute_rest(
         &mut self,
         starting_height: Height,
-        created: &AgeRange<&impl ReadableVec<Height, StoredF64>>,
+        created: &AgeRange<&impl ReadableVec<Height, CoinDays>>,
         exit: &Exit,
     ) -> Result<()> {
         for id in AgeRangeId::ALL {

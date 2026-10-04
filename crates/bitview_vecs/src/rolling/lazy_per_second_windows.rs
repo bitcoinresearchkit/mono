@@ -1,6 +1,6 @@
 use bitview_collections::Windows;
-use bitview_primitives::{Count, StoredF32};
-use bitview_transforms::PerSecond;
+use bitview_primitives::{Count, PerSecond};
+use bitview_transforms::CountPerSecond;
 use bitview_traversable::Traversable;
 use brk_types::Version;
 use derive_more::{Deref, DerefMut};
@@ -14,7 +14,7 @@ pub struct LazyPerSecondWindows(
     /// count divided by its fixed duration in seconds. The divisor remains the
     /// full duration before enough history exists. At time-period indexes, the
     /// value is taken from the period's final block.
-    pub Windows<LazyPerBlock<StoredF32, Count>>,
+    pub Windows<LazyPerBlock<PerSecond, Count>>,
 );
 
 impl LazyPerSecondWindows {
@@ -23,8 +23,12 @@ impl LazyPerSecondWindows {
             name: &str,
             version: Version,
             source: &LazyRollingSumFromHeight<Count>,
-        ) -> LazyPerBlock<StoredF32, Count> {
-            LazyPerBlock::from_resolutions::<PerSecond<SECONDS>>(name, version, &source.resolutions)
+        ) -> LazyPerBlock<PerSecond, Count> {
+            LazyPerBlock::from_resolutions::<CountPerSecond<SECONDS>>(
+                name,
+                version,
+                &source.resolutions,
+            )
         }
 
         Self(Windows {

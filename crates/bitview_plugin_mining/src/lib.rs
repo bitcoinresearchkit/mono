@@ -16,7 +16,7 @@ use vecdb::{Database, Rw, StorageMode};
 use hashrate::Vecs as HashrateVecs;
 use rewards::Vecs as RewardsVecs;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("mining"), Version::new(9));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("mining"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]

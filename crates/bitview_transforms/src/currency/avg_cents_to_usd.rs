@@ -1,12 +1,12 @@
-use bitview_primitives::StoredF32;
+use bitview_primitives::CentsFract;
 use brk_types::Dollars;
 use vecdb::UnaryTransform;
 
 pub struct AvgCentsToUsd;
 
-impl UnaryTransform<StoredF32, Dollars> for AvgCentsToUsd {
+impl UnaryTransform<CentsFract, Dollars> for AvgCentsToUsd {
     #[inline(always)]
-    fn apply(cents: StoredF32) -> Dollars {
+    fn apply(cents: CentsFract) -> Dollars {
         Dollars::from(f64::from(cents) / 100.0)
     }
 }

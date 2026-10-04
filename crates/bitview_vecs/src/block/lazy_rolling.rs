@@ -1,5 +1,5 @@
 use bitview_collections::Windows;
-use bitview_compute::{ComputedVecValue, NumericValue};
+use bitview_compute::{ComputedVecValue, NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
@@ -13,7 +13,7 @@ use crate::{IndexSources, LazyPerBlock, LazyRollingComplete, PerBlockRolling};
 #[derive(Clone, Traversable)]
 pub struct LazyPerBlockRolling<T, S1T>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
     S1T: ComputedVecValue + JsonSchema,
 {
     /// Cumulative value through the represented block. At time-period indexes,
@@ -25,8 +25,8 @@ where
 
 impl<T, S1T> LazyPerBlockRolling<T, S1T>
 where
-    T: NumericValue + JsonSchema + 'static,
-    S1T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity + 'static,
+    S1T: NumericValue + JsonSchema + Quantity,
 {
     pub fn from_rolling<F: UnaryTransform<S1T, T>>(
         name: &str,

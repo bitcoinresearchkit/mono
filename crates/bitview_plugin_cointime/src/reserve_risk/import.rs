@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredF64;
+use bitview_primitives::Float64;
 use bitview_vecs::{LazyIndexedVec, LazyPerBlock};
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Height, Version};
@@ -21,7 +21,7 @@ impl Vecs {
             v1,
             &hodl_bank,
             spot_price,
-            |_, hodl_bank, spot| StoredF64::from(Dollars::from(spot)) / hodl_bank,
+            |_, hodl_bank: Float64, spot| Float64::new(f64::from(Dollars::from(spot)) / *hodl_bank),
         );
         Ok(Vecs {
             vocdd_median_1y: EagerVec::import(db, "vocdd_median_1y", v1)?,

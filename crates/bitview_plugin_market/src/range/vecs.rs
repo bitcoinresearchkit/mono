@@ -1,6 +1,7 @@
-use bitview_primitives::{PartsPerMillion32, StoredF32};
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock, PercentPerBlock};
+use brk_types::Cents;
 use vecdb::{Rw, StorageMode};
 
 use super::price_min_max_vecs::PriceMinMaxVecs;
@@ -16,11 +17,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Absolute difference in cents per BTC between the represented and
     /// previous blocks' spot prices. The genesis block is zero; this is not an
     /// open-high-low-close price range.
-    pub true_range: LazyPerBlock<StoredF32>,
+    pub true_range: LazyPerBlock<Cents>,
     /// Sum of per-block spot-price true range over the trailing 14-day
     /// monotonic-time window, in cents per BTC. This measures the spot-price
     /// path length over the window, not its high-low range.
-    pub true_range_sum_2w: PerBlock<StoredF32, M>,
+    pub true_range_sum_2w: PerBlock<Cents, M>,
     /// Two-week Choppiness Index: base-10 logarithm of the trailing true-range
     /// sum divided by the two-week high-low range, divided by the base-10
     /// logarithm of the number of blocks in the window. Returns zero when the

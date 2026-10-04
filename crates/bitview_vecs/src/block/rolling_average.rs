@@ -1,5 +1,5 @@
 use bitview_collections::Windows;
-use bitview_compute::NumericValue;
+use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -14,7 +14,7 @@ use crate::{CachedSeries, IndexSources, LazyRollingAvgsFromHeight, import_cached
 pub struct PerBlockRollingAverage<T, C = T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema,
-    C: NumericValue + JsonSchema,
+    C: NumericValue + JsonSchema + Quantity,
 {
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
@@ -28,7 +28,7 @@ where
 impl<T, C> PerBlockRollingAverage<T, C>
 where
     T: NumericValue + JsonSchema + Into<C>,
-    C: NumericValue + JsonSchema,
+    C: NumericValue + JsonSchema + Quantity,
 {
     pub fn import(
         db: &Database,

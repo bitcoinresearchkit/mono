@@ -1,7 +1,7 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::StoredF64;
+use bitview_primitives::{CoinDays, CoinYears};
 use bitview_transforms::DaysToYears;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -18,8 +18,8 @@ pub struct Activity {
     pub transfer_volume_in_profit: LazyValuePerBlockCumulativeRolling,
     pub transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling,
     /// Coin days destroyed (CDD): spent coin amounts multiplied by their age in days.
-    pub coindays_destroyed: LazyPerBlockCumulativeRolling<StoredF64>,
-    pub coinyears_destroyed: LazyPerBlock<StoredF64, StoredF64>,
+    pub coindays_destroyed: LazyPerBlockCumulativeRolling<CoinDays>,
+    pub coinyears_destroyed: LazyPerBlock<CoinYears, CoinDays>,
 }
 impl Activity {
     pub(crate) fn new(

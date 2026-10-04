@@ -1,6 +1,6 @@
 use std::{borrow::Cow, cmp::Reverse};
 
-use bitview_primitives::{Count, Day1, Pool, PoolSlug, StoredF64, pools};
+use bitview_primitives::{Count, Day1, Hashrate, Pool, PoolSlug, pools};
 use bitview_types::{
     PoolBlockCounts, PoolBlockShares, PoolDetail, PoolDetailInfo, PoolHashrateEntry, PoolInfo,
     PoolStats, PoolsSummary, TimePeriod,
@@ -20,7 +20,7 @@ const SAMPLE_WEEKLY: usize = 7;
 struct HashrateSharedData {
     start_day: usize,
     end_day: usize,
-    daily_hashrate: Vec<Option<StoredF64>>,
+    daily_hashrate: Vec<Option<Hashrate>>,
     first_heights: Vec<Height>,
 }
 
@@ -379,7 +379,7 @@ impl Query {
                 let share = pool_blocks as f64 / total_blocks as f64;
                 Some(PoolHashrateEntry {
                     timestamp: Day1::from(shared.start_day + i).to_timestamp(),
-                    avg_hashrate: (*hr * share) as u128,
+                    avg_hashrate: (f64::from(hr) * share) as u128,
                     share,
                     pool_name: Cow::Borrowed(pool_name),
                 })

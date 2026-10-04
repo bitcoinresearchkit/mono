@@ -1941,7 +1941,7 @@ curl -s "https://bitview.space/version"
 
 - `version`: `integer` (required) — Version of the series data
 - `index`: `Index` (required) — The index type used for this query
-- `type`: `string` — Value type (e.g. "StoredF32", "Sats", "Cents")
+- `type`: `string` — Value type (e.g. "Ratio", "Sats", "Cents")
 - `start`: `integer` (required) — Start index (inclusive) of the returned range
 - `end`: `integer` (required) — End index (exclusive) of the returned range
 - `stamp`: `string` (required) — ISO 8601 timestamp of when the response was generated
@@ -1952,12 +1952,12 @@ curl -s "https://bitview.space/version"
 - `description`: `string | null` — Human-readable metric definition, when documented
 - `indexes`: `Index[]` (required) — Available indexes
 - `nullable`: `Index[]` (required) — Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
-- `type`: `string` (required) — Value type (e.g. "StoredF32", "Sats", "Cents")
+- `type`: `string` (required) — Value type (e.g. "Ratio", "Sats", "Cents")
 
 ### `SeriesLeafWithSchema`
 
 - `name`: `string` (required) — The series name/identifier.
-- `kind`: `string` (required) — The Rust type (e.g., "Sats", "StoredF64").
+- `kind`: `string` (required) — The Rust type (e.g., "Sats", "Ratio").
 - `indexes`: `Index[]` (required) — Available indexes for this series.
 - `nullable`: `Index[]` (required) — Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
 - `description`: `string | null` — Human-readable metric definition, when documented.

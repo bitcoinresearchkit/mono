@@ -1,6 +1,6 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, Halving};
-use bitview_transforms::BlocksToDaysF32;
+use bitview_transforms::BlocksToDays;
 use bitview_vecs::LazyPerBlock;
 use brk_types::{Height, Version};
 use vecdb::{Ident, IndexVec, ReadOnlyClone};
@@ -40,7 +40,7 @@ impl Vecs {
             mappings,
         );
 
-        let days_to_halving = LazyPerBlock::from_lazy::<BlocksToDaysF32, Count>(
+        let days_to_halving = LazyPerBlock::from_lazy::<BlocksToDays, Count>(
             "days_to_halving",
             version + v2,
             &blocks_to_halving,

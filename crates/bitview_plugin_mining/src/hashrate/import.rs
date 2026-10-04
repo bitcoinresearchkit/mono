@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::ThsToPhsF32;
+use bitview_transforms::ThsToPhs;
 use bitview_vecs::{LazyPerBlock, PerBlock, PercentPerBlock};
 use brk_error::Result;
 use brk_types::Version;
@@ -19,12 +19,9 @@ impl Vecs {
 
         let price_ths = PerBlock::import(db, "hash_price_ths", version + v4, mappings)?;
         let price_ths_min = PerBlock::import(db, "hash_price_ths_min", version + v6, mappings)?;
-        let price_phs = LazyPerBlock::from_resolutions::<ThsToPhsF32>(
-            "hash_price_phs",
-            version + v4,
-            &price_ths,
-        );
-        let price_phs_min = LazyPerBlock::from_resolutions::<ThsToPhsF32>(
+        let price_phs =
+            LazyPerBlock::from_resolutions::<ThsToPhs>("hash_price_phs", version + v4, &price_ths);
+        let price_phs_min = LazyPerBlock::from_resolutions::<ThsToPhs>(
             "hash_price_phs_min",
             version + v6,
             &price_ths_min,
@@ -32,12 +29,9 @@ impl Vecs {
 
         let value_ths = PerBlock::import(db, "hash_value_ths", version + v4, mappings)?;
         let value_ths_min = PerBlock::import(db, "hash_value_ths_min", version + v6, mappings)?;
-        let value_phs = LazyPerBlock::from_resolutions::<ThsToPhsF32>(
-            "hash_value_phs",
-            version + v4,
-            &value_ths,
-        );
-        let value_phs_min = LazyPerBlock::from_resolutions::<ThsToPhsF32>(
+        let value_phs =
+            LazyPerBlock::from_resolutions::<ThsToPhs>("hash_value_phs", version + v4, &value_ths);
+        let value_phs_min = LazyPerBlock::from_resolutions::<ThsToPhs>(
             "hash_value_phs_min",
             version + v6,
             &value_ths_min,

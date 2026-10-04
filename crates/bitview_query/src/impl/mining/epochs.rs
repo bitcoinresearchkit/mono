@@ -1,4 +1,4 @@
-use bitview_primitives::{Epoch, StoredF64};
+use bitview_primitives::{Difficulty, Epoch};
 use bitview_types::DifficultyAdjustmentEntry;
 use brk_types::{Height, Timestamp};
 use vecdb::{ReadableVec, VecIndex};
@@ -52,7 +52,7 @@ fn read_epoch_window(
     end_epoch: usize,
     heights: &impl ReadableVec<Epoch, Height>,
     timestamps: &impl ReadableVec<Epoch, Timestamp>,
-    difficulties: &impl ReadableVec<Epoch, StoredF64>,
+    difficulties: &impl ReadableVec<Epoch, Difficulty>,
 ) -> Result<Vec<DifficultyAdjustmentEntry>> {
     let mut height_cursor = heights.cursor();
     let mut timestamp_cursor = timestamps.cursor();

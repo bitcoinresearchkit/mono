@@ -1,4 +1,4 @@
-use bitview_primitives::{PartsPerMillionSigned32, Seconds, StoredF32};
+use bitview_primitives::{Days, PartsPerMillionSigned32, Seconds, Years};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, PerBlock, Price};
 use brk_types::Cents;
@@ -17,15 +17,15 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(super) seconds_since: PerBlock<Seconds, M>,
     /// Fractional days, using monotonic block time, since the latest block whose
     /// spot price equaled the running all-time high. Resets to zero at equality.
-    pub days_since: LazyPerBlock<StoredF32, Seconds>,
+    pub days_since: LazyPerBlock<Days, Seconds>,
     /// Fractional years since the latest Bitcoin spot-price all-time high,
     /// equal to fractional days since that high divided by 365.
-    pub years_since: LazyPerBlock<StoredF32>,
+    pub years_since: LazyPerBlock<Years, Days>,
     /// Longest fractional-day interval since a Bitcoin spot-price all-time high
     /// observed through the represented block, including the ongoing interval.
-    pub max_days_between: PerBlock<StoredF32, M>,
+    pub max_days_between: PerBlock<Days, M>,
     /// Longest fractional-year interval since a Bitcoin spot-price all-time
     /// high observed through the represented block, equal to the longest
     /// fractional-day interval divided by 365.
-    pub max_years_between: LazyPerBlock<StoredF32>,
+    pub max_years_between: LazyPerBlock<Years, Days>,
 }

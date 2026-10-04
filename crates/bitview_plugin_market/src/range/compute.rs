@@ -68,11 +68,9 @@ impl Vecs {
             blocks.lookback.start_vec(14),
             |(h, tr_sum, max, min, window_start, ..)| {
                 let range = f64::from(max) - f64::from(min);
-                let n = (h.to_usize() - window_start.to_usize() + 1) as f32;
+                let n = (h.to_usize() - window_start.to_usize() + 1) as f64;
                 let ci = if range > 0.0 && n > 1.0 {
-                    PartsPerMillion32::from(
-                        (*tr_sum / range as f32).log10() as f64 / n.log10() as f64,
-                    )
+                    PartsPerMillion32::from((f64::from(tr_sum) / range).log10() / n.log10())
                 } else {
                     PartsPerMillion32::ZERO
                 };

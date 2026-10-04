@@ -4,7 +4,7 @@ use bitview_plugin_distribution_common::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
-use bitview_primitives::{BasisPoints32, StoredF32};
+use bitview_primitives::{BasisPoints32, Days, Float32, Years};
 use bitview_vecs::{
     BasisPointsPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock, PercentPerBlock,
     RatioPerBlock,
@@ -73,7 +73,7 @@ impl Vecs {
             "coindays_destroyed_supply_adj_source",
             v,
             &activity.coindays_destroyed.sum._24h.height,
-            |_, cdd, supply| Self::supply_adjusted(f64::from(cdd), supply),
+            |_, cdd, supply| Days::new(Self::supply_adjusted(f64::from(cdd), supply)),
         );
         let coindays_destroyed_supply_adj = LazyPerBlock::from_height_source::<Ident>(
             "coindays_destroyed_supply_adj",
@@ -86,7 +86,7 @@ impl Vecs {
             "coinyears_destroyed_supply_adj_source",
             cyd_version,
             &activity.coinyears_destroyed.height,
-            |_, cyd, supply| Self::supply_adjusted(f64::from(cyd), supply),
+            |_, cyd, supply| Years::new(Self::supply_adjusted(f64::from(cyd), supply)),
         );
         let coinyears_destroyed_supply_adj = LazyPerBlock::from_height_source::<Ident>(
             "coinyears_destroyed_supply_adj",
@@ -106,7 +106,7 @@ impl Vecs {
             "dormancy_supply_adj_source",
             v,
             dormancy_24h,
-            |_, dormancy, supply| Self::supply_adjusted(f64::from(dormancy), supply),
+            |_, dormancy, supply| Float32::new(Self::supply_adjusted(f64::from(dormancy), supply)),
         );
         let dormancy_flow_source = all_chain.with_supply(
             "dormancy_flow_source",
@@ -164,30 +164,31 @@ impl Vecs {
         }
     }
 
-    fn supply_adjusted(value: f64, supply: Sats) -> StoredF32 {
+    /// The value per bitcoin of supply; zero without supply.
+    fn supply_adjusted(value: f64, supply: Sats) -> f32 {
         let supply = f64::from(Bitcoin::from(supply));
         if supply == 0.0 {
-            StoredF32::from(0.0f32)
+            0.0
         } else {
-            StoredF32::from((value / supply) as f32)
+            (value / supply) as f32
         }
     }
 
-    fn stock_to_flow(supply: Sats, subsidy: Sats) -> StoredF32 {
+    fn stock_to_flow(supply: Sats, subsidy: Sats) -> Years {
         let annual_flow = subsidy.as_u128() as f64 * 52_560.0;
         if annual_flow == 0.0 {
-            StoredF32::from(0.0f32)
+            Years::ZERO
         } else {
-            StoredF32::from((supply.as_u128() as f64 / annual_flow) as f32)
+            Years::new((supply.as_u128() as f64 / annual_flow) as f32)
         }
     }
 
-    fn dormancy_flow(dormancy: StoredF32, supply: Sats) -> StoredF32 {
+    fn dormancy_flow(dormancy: Days, supply: Sats) -> Float32 {
         let dormancy = f64::from(dormancy);
         if dormancy == 0.0 {
-            StoredF32::from(0.0f32)
+            Float32::ZERO
         } else {
-            StoredF32::from((f64::from(Bitcoin::from(supply)) / dormancy) as f32)
+            Float32::new((f64::from(Bitcoin::from(supply)) / dormancy) as f32)
         }
     }
 }

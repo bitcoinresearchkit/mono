@@ -2,7 +2,7 @@ use bitview_compute::ComputeRollingStats;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_primitives::{Seconds, StoredF32};
+use bitview_primitives::{Days, Seconds};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -46,7 +46,7 @@ impl Vecs {
                     prev.replace(if i > 0 {
                         slf.collect_one_at(i - 1).unwrap()
                     } else {
-                        StoredF32::default()
+                        Days::default()
                     });
                 }
                 let max = prev.unwrap().max(SecondsToDays::apply(seconds));

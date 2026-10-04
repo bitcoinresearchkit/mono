@@ -65,8 +65,6 @@ mod pools;
 mod price_ratio;
 mod sats_fract;
 mod scalar;
-mod stored_f32;
-mod stored_f64;
 mod supply_state;
 #[cfg(test)]
 mod tests;
@@ -145,8 +143,6 @@ pub use pool_slug::*;
 pub use pools::*;
 pub use price_ratio::*;
 pub use sats_fract::*;
-pub use stored_f32::*;
-pub use stored_f64::*;
 pub use supply_state::*;
 pub use tx_version::*;
 pub use txin_index::*;

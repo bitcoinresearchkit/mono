@@ -15,7 +15,7 @@ pub struct SeriesInfo {
     /// Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
     /// undefined one (e.g. NaN)
     pub nullable: Vec<Index>,
-    /// Value type (e.g. "StoredF32", "Sats", "Cents")
+    /// Value type (e.g. "Ratio", "Sats", "Cents")
     #[serde(rename = "type")]
     pub value_type: Cow<'static, str>,
 }

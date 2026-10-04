@@ -2,7 +2,7 @@ use bitview_compute::ComputeRollingMedianFromStarts;
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_primitives::StoredF64;
+use bitview_primitives::Float64;
 use brk_error::Result;
 use brk_exit::Exit;
 
@@ -30,7 +30,7 @@ impl Vecs {
             starting_height,
             &prices.spot.usd.height,
             &self.vocdd_median_1y,
-            |price, median| StoredF64::from(f64::from(price) - f64::from(median)),
+            |price, median| Float64::from(f64::from(price) - f64::from(median)),
             exit,
         )?;
 

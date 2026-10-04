@@ -7,7 +7,7 @@ use vecdb::ReadableCloneableVec;
 
 use crate::{IndexSources, LazyPerBlock, LazyRollingAvgAmountFromHeight, LazyRollingAvgFromHeight};
 
-/// Lazy rolling averages for all 4 windows, with StoredF32 sats/cents and BTC/USD views.
+/// Lazy rolling averages for all 4 windows, as mean sats/cents with BTC/USD views.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct LazyRollingAvgsAmountFromHeight(

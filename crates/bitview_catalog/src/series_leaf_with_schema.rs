@@ -44,7 +44,7 @@ impl SeriesLeafWithSchema {
         &self.leaf.name
     }
 
-    /// The Rust type (e.g., "Sats", "StoredF64").
+    /// The Rust type (e.g., "Sats", "Ratio").
     pub fn kind(&self) -> &str {
         &self.leaf.kind
     }

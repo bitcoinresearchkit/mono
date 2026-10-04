@@ -1,8 +1,8 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::Seconds;
 use brk_exit::Exit;
-use brk_types::{CheckedSub, Timestamp};
 use vecdb::ReadableVec;
 
 use super::Vecs;
@@ -24,9 +24,9 @@ impl Vecs {
                             .collect_one(previous_height)
                             .unwrap()
                     });
-                    timestamp.checked_sub(previous).unwrap_or(Timestamp::ZERO)
+                    Seconds::new((*timestamp).saturating_sub(*previous))
                 } else {
-                    Timestamp::ZERO
+                    Seconds::ZERO
                 };
                 prev_timestamp = Some(timestamp);
                 interval

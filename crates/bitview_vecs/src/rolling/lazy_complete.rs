@@ -1,6 +1,6 @@
 use crate::RollingTotals;
 use bitview_collections::Windows;
-use bitview_compute::{ComputedVecValue, NumericValue};
+use bitview_compute::{ComputedVecValue, NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -14,7 +14,7 @@ use crate::{IndexSources, LazyRollingDistribution, RollingComplete};
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyRollingComplete<T, S1T>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
     S1T: ComputedVecValue + JsonSchema,
 {
     #[deref]
@@ -27,8 +27,8 @@ where
 
 impl<T, S1T> LazyRollingComplete<T, S1T>
 where
-    T: NumericValue + JsonSchema + 'static,
-    S1T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity + 'static,
+    S1T: NumericValue + JsonSchema + Quantity,
 {
     pub(crate) fn from_rolling_complete<F: UnaryTransform<S1T, T>>(
         name: &str,

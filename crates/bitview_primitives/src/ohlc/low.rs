@@ -9,7 +9,6 @@ use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::Close;
-use crate::StoredF64;
 
 #[cfg(feature = "storage")]
 use vecdb::Pco;
@@ -63,16 +62,6 @@ where
 impl<T> From<Low<T>> for f64
 where
     f64: From<T>,
-{
-    #[inline]
-    fn from(value: Low<T>) -> Self {
-        Self::from(value.0)
-    }
-}
-
-impl<T> From<Low<T>> for StoredF64
-where
-    StoredF64: From<T>,
 {
     #[inline]
     fn from(value: Low<T>) -> Self {

@@ -3,7 +3,7 @@ use bitview_compute::{
     AgeBand, CohortAccounting, MINIMUM_DURATION_DAYS, WeightedCohortAggregates, collect_age_range,
 };
 use bitview_plugin_distribution_age::AccountingSources;
-use bitview_primitives::{BoundedRatio, StoredF64};
+use bitview_primitives::{BoundedRatio, CoinDays, Float64, PerDay};
 use brk_types::{Bitcoin, Height, Sats, Timestamp};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use vecdb::ReadableVec;
@@ -14,7 +14,7 @@ use super::{PrimaryValues, decay::DecayFit};
 pub(crate) struct PrimaryBatch {
     timestamps: Vec<Timestamp>,
     transfer_volumes: AgeRange<Vec<Sats>>,
-    coindays_created: AgeRange<Vec<StoredF64>>,
+    coindays_created: AgeRange<Vec<CoinDays>>,
     accounting: CohortAccounting,
 }
 
@@ -23,7 +23,7 @@ impl PrimaryBatch {
         &mut self,
         timestamps: &impl ReadableVec<Height, Timestamp>,
         transfer_volumes: &AgeRange<&impl ReadableVec<Height, Sats>>,
-        coindays_created: &AgeRange<&impl ReadableVec<Height, StoredF64>>,
+        coindays_created: &AgeRange<&impl ReadableVec<Height, CoinDays>>,
         accounting: &AccountingSources<'_>,
         start: usize,
         end: usize,
@@ -74,8 +74,8 @@ impl PrimaryBatch {
         });
 
         PrimaryValues {
-            spending_rate: AgeRange::from_fn(|id| StoredF64::from(*id.select(&hazards))),
-            spending_exposure: AgeRange::from_fn(|id| StoredF64::from(*id.select(&exposures))),
+            spending_rate: AgeRange::from_fn(|id| PerDay::from(*id.select(&hazards))),
+            spending_exposure: AgeRange::from_fn(|id| Float64::from(*id.select(&exposures))),
             mobility: mobilities,
             under_4m: aggregates.under_4m,
             under_6m: aggregates.under_6m,
@@ -86,7 +86,7 @@ impl PrimaryBatch {
     }
 
     #[inline]
-    fn spending_rate(transfer_volume: Sats, coindays_created: StoredF64) -> f64 {
+    fn spending_rate(transfer_volume: Sats, coindays_created: CoinDays) -> f64 {
         let exposure = f64::from(coindays_created);
         if exposure > 0.0 {
             (f64::from(Bitcoin::from(transfer_volume)) / exposure).max(0.0)

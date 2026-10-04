@@ -1,5 +1,5 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_primitives::{Count, StoredF64};
+use bitview_primitives::{CoinDays, Count};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, import_cached};
 use brk_error::Result;
@@ -26,7 +26,7 @@ pub(crate) struct Sources<M: StorageMode = Rw> {
     pub(crate) profit_cents: CumulativeSource<Cents, M>,
     pub(crate) loss_sats: CumulativeSource<Sats, M>,
     pub(crate) loss_cents: CumulativeSource<Cents, M>,
-    pub(crate) coindays: CumulativeSource<StoredF64, M>,
+    pub(crate) coindays: CumulativeSource<CoinDays, M>,
     pub(crate) realized_profit: CumulativeSource<Cents, M>,
     pub(crate) realized_loss: CumulativeSource<Cents, M>,
     pub(crate) realized_net_pnl: CumulativeSource<CentsSigned, M>,

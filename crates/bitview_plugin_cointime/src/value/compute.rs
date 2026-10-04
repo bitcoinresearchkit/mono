@@ -2,7 +2,7 @@ use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_primitives::StoredF64;
+use bitview_primitives::{CoinDays, Float64};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, Dollars};
@@ -47,7 +47,7 @@ impl Vecs {
                 starting_height,
                 &prices.spot.usd.height,
                 source,
-                |price, value| StoredF64::from(f64::from(price) * f64::from(value)),
+                |price, value| Float64::from(f64::from(price) * f64::from(value)),
                 exit,
             )?;
         }
@@ -61,7 +61,7 @@ impl Vecs {
             &prices.spot.usd.height,
             &coindays_destroyed.block,
             circulating_supply,
-            |(i, price, cdd, supply, this): (_, Dollars, StoredF64, Bitcoin, _)| {
+            |(i, price, cdd, supply, this): (_, Dollars, CoinDays, Bitcoin, _)| {
                 let cumulative = cumulative.get_or_insert_with(|| {
                     i.decremented()
                         .and_then(|height| this.collect_one(height))
@@ -69,10 +69,10 @@ impl Vecs {
                 });
                 let supply_f64 = f64::from(supply);
                 let value = if supply_f64 == 0.0 {
-                    StoredF64::from(0.0)
+                    Float64::ZERO
                 } else {
                     // VOCDD = price × (CDD / supply)
-                    StoredF64::from(f64::from(price) * f64::from(cdd) / supply_f64)
+                    Float64::from(f64::from(price) * f64::from(cdd) / supply_f64)
                 };
                 *cumulative += value;
                 (i, *cumulative)

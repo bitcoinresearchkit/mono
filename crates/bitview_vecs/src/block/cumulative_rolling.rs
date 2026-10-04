@@ -4,7 +4,7 @@
 //! and rolling sums/averages are all derived lazily from it.
 
 use bitview_collections::Windows;
-use bitview_compute::NumericValue;
+use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -21,7 +21,7 @@ use crate::{IndexSources, LazyPreviousDeltaVec, PerBlock, RollingTotals};
 #[derive(Deref, DerefMut, Traversable)]
 pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     pub block: LazyPreviousDeltaVec<Height, T>,
     /// Cumulative value through the represented block. At time-period indexes,
@@ -36,7 +36,7 @@ where
 
 impl<T> PerBlockCumulativeRolling<T>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     pub fn import(
         db: &Database,

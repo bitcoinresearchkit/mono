@@ -20,9 +20,9 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
-/// Fractional satoshis (f64) - for representing USD prices in sats
+/// Fractional satoshis (f64): mean amounts in sats, and USD prices expressed in sats.
 ///
-/// Formula: `sats_fract = usd_value * 100_000_000 / btc_price`
+/// A USD price in sats is `usd_value * 100_000_000 / btc_price`
 ///
 /// When BTC is $100,000:
 /// - $1 = 1,000 sats

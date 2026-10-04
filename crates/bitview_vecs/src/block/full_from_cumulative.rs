@@ -1,5 +1,5 @@
 use bitview_collections::Windows;
-use bitview_compute::NumericValue;
+use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -13,7 +13,7 @@ use crate::{IndexSources, LazyPerBlock, LazyPreviousDeltaVec, RollingComplete, W
 #[derive(Traversable)]
 pub struct PerBlockFullFromCumulative<T, M: StorageMode = Rw>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
@@ -27,7 +27,7 @@ where
 
 impl<T> PerBlockFullFromCumulative<T>
 where
-    T: NumericValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity,
 {
     pub fn import<V>(
         db: &Database,

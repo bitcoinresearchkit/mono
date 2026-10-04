@@ -7,7 +7,7 @@ mod import;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::{PartsPerMillion32, PartsPerMillion64, Ratio, StoredF32};
+use bitview_primitives::{Days, PartsPerMillion32, PartsPerMillion64, Ratio, Years};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     BasisPointsPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock, PercentPerBlock,
@@ -53,19 +53,19 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// at the represented block. Larger values mean more accumulated holding
     /// time was consumed by spending relative to the supply. Returns zero when
     /// supply is zero.
-    coindays_destroyed_supply_adj: LazyPerBlock<StoredF32>,
+    coindays_destroyed_supply_adj: LazyPerBlock<Days>,
     /// Trailing 365-day coin years destroyed divided by all-chain supply in BTC
     /// at the represented block. Larger values mean more accumulated holding
     /// time was consumed by spending relative to the supply. Returns zero when
     /// supply is zero.
-    coinyears_destroyed_supply_adj: LazyPerBlock<StoredF32>,
+    coinyears_destroyed_supply_adj: LazyPerBlock<Years>,
     dormancy: DormancyVecs,
     /// All-chain supply in satoshis at the represented block divided by that
     /// block's derived subsidy component annualized at 52,560 blocks. Returns
     /// zero when the annualized flow is zero. The value approximates how many
     /// years of subsidy issuance at the represented block's rate would equal
     /// the current supply.
-    stock_to_flow: LazyPerBlock<StoredF32>,
+    stock_to_flow: LazyPerBlock<Years>,
     /// Seller Exhaustion Constant: all-chain supply-in-profit share at the
     /// represented block multiplied by the population standard deviation of
     /// per-block trailing-24-hour spot-price returns over the trailing 30-day

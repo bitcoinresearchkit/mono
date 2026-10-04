@@ -155,7 +155,7 @@
  */
 /**
  * Count pattern: height, cumulative, and rolling sum windows. Typed from a nullable instance of
- * the shared shape (`?StoredF64` values), which every count series is assignable to.
+ * the shared shape (`?Float64` values), which every count series is assignable to.
  * @typedef {Bitview.SeriesTree["cointime"]["value"]["destroyed"]} CountPattern
  */
 /**
