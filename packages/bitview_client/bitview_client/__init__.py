@@ -355,8 +355,7 @@ class AddrHashPrefixMatches(TypedDict):
 class AddrHashPrefixParam(TypedDict):
     """
     Attributes:
-        prefix: First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
-address payload bytes.
+        prefix: First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
     """
     addr_type: OutputType
     prefix: str
@@ -405,7 +404,10 @@ class AddrStats(TypedDict):
     mempool_stats: AddrMempoolStats
     balance: Sats
 
-class AddrValidation(TypedDict):
+class _AddrValidationRequired(TypedDict):
+    isvalid: bool
+
+class AddrValidation(_AddrValidationRequired, total=False):
     """
     Address validation result
 
@@ -420,7 +422,6 @@ class AddrValidation(TypedDict):
         error_locations: Error locations (empty array for most errors)
         error: Error message for invalid addresses
     """
-    isvalid: bool
     address: Optional[str]
     scriptPubKey: Optional[str]
     isscript: Optional[bool]
@@ -439,7 +440,13 @@ class BlockCountParam(TypedDict):
     """
     block_count: int
 
-class BlockPool(TypedDict):
+class _BlockPoolRequired(TypedDict):
+    id: int
+    name: str
+    slug: PoolSlug
+    blockNumber: int
+
+class BlockPool(_BlockPoolRequired, total=False):
     """
     Mining pool identification for a block
 
@@ -450,13 +457,38 @@ class BlockPool(TypedDict):
         blockNumber: This block's ordinal among blocks attributed to this pool
         minerNames: Miner name tags found in coinbase scriptsig
     """
-    id: int
-    name: str
-    slug: PoolSlug
-    blockNumber: int
     minerNames: Optional[List[str]]
 
-class BlockExtras(TypedDict):
+class _BlockExtrasRequired(TypedDict):
+    totalFees: Sats
+    medianFee: FeeRate
+    feeRange: List[FeeRate]
+    reward: Sats
+    pool: BlockPool
+    avgFee: Sats
+    avgFeeRate: FeeRate
+    coinbaseRaw: str
+    coinbaseAddresses: List[str]
+    coinbaseSignature: str
+    coinbaseSignatureAscii: str
+    avgTxSize: float
+    totalInputs: int
+    totalOutputs: int
+    totalOutputAmt: Sats
+    medianFeeAmt: Sats
+    feePercentiles: List[Sats]
+    segwitTotalTxs: int
+    segwitTotalSize: int
+    segwitTotalWeight: Weight
+    header: str
+    utxoSetChange: int
+    utxoSetSize: int
+    totalInputAmt: Sats
+    virtualSize: float
+    orphans: List[str]
+    price: Dollars
+
+class BlockExtras(_BlockExtrasRequired, total=False):
     """
     Extended block data matching mempool.space /api/v1/blocks extras
 
@@ -483,9 +515,7 @@ class BlockExtras(TypedDict):
         segwitTotalSize: Total size of segwit transactions in bytes
         segwitTotalWeight: Total weight of segwit transactions
         header: Raw 80-byte block header as hex
-        utxoSetChange: UTXO set change (total outputs - total inputs, includes unspendable like OP_RETURN).
-Note: intentionally differs from utxo_set_size diff which excludes unspendable outputs.
-Matches mempool.space/bitcoin-cli behavior.
+        utxoSetChange: UTXO set change (total outputs - total inputs, includes unspendable like OP_RETURN). Note: intentionally differs from utxo_set_size diff which excludes unspendable outputs. Matches mempool.space/bitcoin-cli behavior.
         utxoSetSize: Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
         totalInputAmt: Total input amount in satoshis
         virtualSize: Virtual size in vbytes
@@ -493,35 +523,8 @@ Matches mempool.space/bitcoin-cli behavior.
         orphans: Orphaned blocks (always empty)
         price: USD price at block height
     """
-    totalFees: Sats
-    medianFee: FeeRate
-    feeRange: List[FeeRate]
-    reward: Sats
-    pool: BlockPool
-    avgFee: Sats
-    avgFeeRate: FeeRate
-    coinbaseRaw: str
     coinbaseAddress: Optional[str]
-    coinbaseAddresses: List[str]
-    coinbaseSignature: str
-    coinbaseSignatureAscii: str
-    avgTxSize: float
-    totalInputs: int
-    totalOutputs: int
-    totalOutputAmt: Sats
-    medianFeeAmt: Sats
-    feePercentiles: List[Sats]
-    segwitTotalTxs: int
-    segwitTotalSize: int
-    segwitTotalWeight: Weight
-    header: str
-    utxoSetChange: int
-    utxoSetSize: int
-    totalInputAmt: Sats
-    virtualSize: float
     firstSeen: Optional[int]
-    orphans: List[str]
-    price: Dollars
 
 class BlockFeeRatesEntry(TypedDict):
     """
@@ -624,7 +627,23 @@ class BlockInfo(TypedDict):
     previousblockhash: BlockHash
     mediantime: Timestamp
 
-class BlockInfoV1(TypedDict):
+class _BlockInfoV1Required(TypedDict):
+    id: BlockHash
+    height: Height
+    version: int
+    timestamp: Timestamp
+    bits: int
+    nonce: int
+    difficulty: float
+    merkle_root: str
+    tx_count: int
+    size: int
+    weight: Weight
+    previousblockhash: BlockHash
+    mediantime: Timestamp
+    extras: BlockExtras
+
+class BlockInfoV1(_BlockInfoV1Required, total=False):
     """
     Block information with extras, matching mempool.space /api/v1/blocks
 
@@ -645,21 +664,7 @@ class BlockInfoV1(TypedDict):
         stale: Whether this block has been replaced by a longer chain
         extras: Extended block data
     """
-    id: BlockHash
-    height: Height
-    version: int
-    timestamp: Timestamp
-    bits: int
-    nonce: int
-    difficulty: float
-    merkle_root: str
-    tx_count: int
-    size: int
-    weight: Weight
-    previousblockhash: BlockHash
-    mediantime: Timestamp
     stale: bool
-    extras: BlockExtras
 
 class BlockRewardsEntry(TypedDict):
     """
@@ -713,7 +718,10 @@ class BlockSizesWeights(TypedDict):
     sizes: List[BlockSizeEntry]
     weights: List[BlockWeightEntry]
 
-class BlockStatus(TypedDict):
+class _BlockStatusRequired(TypedDict):
+    in_best_chain: bool
+
+class BlockStatus(_BlockStatusRequired, total=False):
     """
     Block status indicating whether block is in the best chain
 
@@ -722,7 +730,6 @@ class BlockStatus(TypedDict):
         height: Block height (only if in best chain)
         next_best: Hash of the next block in the best chain (null if tip)
     """
-    in_best_chain: bool
     height: Union[Height, None]
     next_best: Union[BlockHash, None]
 
@@ -745,7 +752,13 @@ class MempoolBlock(TypedDict):
     medianFee: FeeRate
     feeRange: List[FeeRate]
 
-class TxOut(TypedDict):
+class _TxOutRequired(TypedDict):
+    scriptpubkey: str
+    scriptpubkey_asm: str
+    scriptpubkey_type: OutputTypeNormalized
+    value: Sats
+
+class TxOut(_TxOutRequired, total=False):
     """
     Attributes:
         scriptpubkey: Script pubkey (locking script), encoded as hexadecimal.
@@ -754,13 +767,18 @@ class TxOut(TypedDict):
         scriptpubkey_address: Bitcoin address, omitted for scripts without an address.
         value: Value of the output in satoshis.
     """
-    scriptpubkey: str
-    scriptpubkey_asm: str
-    scriptpubkey_type: OutputTypeNormalized
     scriptpubkey_address: Addr
-    value: Sats
 
-class TxIn(TypedDict):
+class _TxInRequired(TypedDict):
+    txid: Txid
+    vout: Vout
+    prevout: Union[TxOut, None]
+    scriptsig: str
+    scriptsig_asm: str
+    is_coinbase: bool
+    sequence: int
+
+class TxIn(_TxInRequired, total=False):
     """
     Transaction input
 
@@ -776,18 +794,14 @@ class TxIn(TypedDict):
         inner_redeemscript_asm: Inner redeemscript in assembly (for P2SH-wrapped SegWit: scriptsig + witness both present)
         inner_witnessscript_asm: Inner witnessscript in assembly (for P2WSH: last witness item decoded as script)
     """
-    txid: Txid
-    vout: Vout
-    prevout: Union[TxOut, None]
-    scriptsig: str
-    scriptsig_asm: str
     witness: Witness
-    is_coinbase: bool
-    sequence: int
     inner_redeemscript_asm: str
     inner_witnessscript_asm: str
 
-class TxStatus(TypedDict):
+class _TxStatusRequired(TypedDict):
+    confirmed: bool
+
+class TxStatus(_TxStatusRequired, total=False):
     """
     Transaction confirmation status
 
@@ -797,12 +811,23 @@ class TxStatus(TypedDict):
         block_hash: Block hash (only present if confirmed)
         block_time: Block timestamp (only present if confirmed)
     """
-    confirmed: bool
     block_height: Union[Height, None]
     block_hash: Union[BlockHash, None]
     block_time: Union[Timestamp, None]
 
-class Transaction(TypedDict):
+class _TransactionRequired(TypedDict):
+    txid: Txid
+    version: TxVersionRaw
+    locktime: RawLockTime
+    vin: List[TxIn]
+    vout: List[TxOut]
+    size: int
+    weight: Weight
+    sigops: SigOps
+    fee: Sats
+    status: TxStatus
+
+class Transaction(_TransactionRequired, total=False):
     """
     Transaction information compatible with mempool.space API format
 
@@ -820,16 +845,6 @@ class Transaction(TypedDict):
         status: Confirmation status (confirmed, block height/hash/time)
     """
     index: Union[TxIndex, None]
-    txid: Txid
-    version: TxVersionRaw
-    locktime: RawLockTime
-    vin: List[TxIn]
-    vout: List[TxOut]
-    size: int
-    weight: Weight
-    sigops: SigOps
-    fee: Sats
-    status: TxStatus
 
 class BlockTemplate(TypedDict):
     """
@@ -865,10 +880,8 @@ class BlockTemplateDiff(TypedDict):
     Attributes:
         hash: Current next-block hash. Use as `since` on the next diff call.
         since: Echoed prior hash the diff was computed against.
-        order: New template in order. Each entry is either an index into the
-prior template's transactions or a full transaction body.
-        removed: Txids that left the projected next block since `since`
-(confirmed, evicted, replaced, or pushed past block 0).
+        order: New template in order. Each entry is either an index into the prior template's transactions or a full transaction body.
+        removed: Txids that left the projected next block since `since` (confirmed, evicted, replaced, or pushed past block 0).
     """
     hash: NextBlockHash
     since: NextBlockHash
@@ -931,7 +944,16 @@ class CpfpEntry(TypedDict):
     weight: Weight
     fee: Sats
 
-class CpfpInfo(TypedDict):
+class _CpfpInfoRequired(TypedDict):
+    ancestors: List[CpfpEntry]
+    descendants: List[CpfpEntry]
+    effectiveFeePerVsize: FeeRate
+    sigops: SigOps
+    fee: Sats
+    vsize: VSize
+    adjustedVsize: VSize
+
+class CpfpInfo(_CpfpInfoRequired, total=False):
     """
     CPFP (Child Pays For Parent) information for a transaction.
 
@@ -939,29 +961,17 @@ class CpfpInfo(TypedDict):
         ancestors: Ancestor transactions in the CPFP chain.
         bestDescendant: Best (highest fee rate) descendant, if any.
         descendants: Descendant transactions in the CPFP chain.
-        effectiveFeePerVsize: Effective fee rate considering CPFP relationships (sat/vB).
-This is the seed's chunk feerate after lift-merging, i.e. the
-rate Core/mempool.space would surface for this tx.
-        sigops: BIP-141 sigop cost for the seed tx (witness sigops count as 1,
-legacy and P2SH-redeem sigops count as 4).
+        effectiveFeePerVsize: Effective fee rate considering CPFP relationships (sat/vB). This is the seed's chunk feerate after lift-merging, i.e. the rate Core/mempool.space would surface for this tx.
+        sigops: BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4).
         fee: Transaction fee (sats).
         vsize: Virtual size of the seed tx (vbytes).
         adjustedVsize: Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
-        cluster: Cluster the seed belongs to: full tx list, SFL-linearized chunks,
-and the seed's chunk index. Omitted when the seed has no
-ancestors and no descendants (matches mempool.space).
+        cluster: Cluster the seed belongs to: full tx list, SFL-linearized chunks, and the seed's chunk index. Omitted when the seed has no ancestors and no descendants (matches mempool.space).
     """
-    ancestors: List[CpfpEntry]
     bestDescendant: Union[CpfpEntry, None]
-    descendants: List[CpfpEntry]
-    effectiveFeePerVsize: FeeRate
-    sigops: SigOps
-    fee: Sats
-    vsize: VSize
-    adjustedVsize: VSize
     cluster: Union[CpfpCluster, None]
 
-class DataRangeFormat(TypedDict):
+class DataRangeFormat(TypedDict, total=False):
     """
     Range parameters with output format for API query parameters.
 
@@ -1188,8 +1198,7 @@ class HeightOrDateParam(TypedDict):
     per-day variant, choosing the matching cache strategy.
 
     Attributes:
-        point: Confirmed block height as decimal digits (`840000`) or calendar date in
-`YYYY-MM-DD` format.
+        point: Confirmed block height as decimal digits (`840000`) or calendar date in `YYYY-MM-DD` format.
     """
     point: str
 
@@ -1281,7 +1290,7 @@ class NextBlockHashParam(TypedDict):
     """
     hash: NextBlockHash
 
-class OptionalTimestampParam(TypedDict):
+class OptionalTimestampParam(TypedDict, total=False):
     """
     Optional UNIX timestamp query parameter
     """
@@ -1306,7 +1315,7 @@ class PaginatedSeries(TypedDict):
     has_more: bool
     series: List[str]
 
-class Pagination(TypedDict):
+class Pagination(TypedDict, total=False):
     """
     Pagination parameters for paginated API endpoints
 
@@ -1317,31 +1326,11 @@ class Pagination(TypedDict):
     page: Optional[int]
     per_page: Optional[int]
 
-class PoolBlockCounts(TypedDict):
-    """
-    Block counts for different time periods
+# Block counts for different time periods
+PoolBlockCounts = TypedDict("PoolBlockCounts", {"all": int, "24h": int, "1w": int})
 
-    Attributes:
-        all: Total blocks mined (all time)
-        _24h: Blocks mined in last 24 hours
-        _1w: Blocks mined in last week
-    """
-    all: int
-    _24h: int
-    _1w: int
-
-class PoolBlockShares(TypedDict):
-    """
-    Pool's share of total blocks for different time periods
-
-    Attributes:
-        all: Share of all blocks (0.0 - 1.0)
-        _24h: Share of blocks in last 24 hours (0.0 - 1.0)
-        _1w: Share of blocks in last week (0.0 - 1.0)
-    """
-    all: float
-    _24h: float
-    _1w: float
+# Pool's share of total blocks for different time periods
+PoolBlockShares = TypedDict("PoolBlockShares", {"all": float, "24h": float, "1w": float})
 
 class PoolDetailInfo(TypedDict):
     """
@@ -1364,7 +1353,13 @@ class PoolDetailInfo(TypedDict):
     slug: PoolSlug
     unique_id: int
 
-class PoolDetail(TypedDict):
+class _PoolDetailRequired(TypedDict):
+    pool: PoolDetailInfo
+    blockCount: PoolBlockCounts
+    blockShare: PoolBlockShares
+    estimatedHashrate: int
+
+class PoolDetail(_PoolDetailRequired, total=False):
     """
     Detailed pool information with statistics across time periods
 
@@ -1376,10 +1371,6 @@ class PoolDetail(TypedDict):
         reportedHashrate: Self-reported hashrate (if available, H/s)
         totalReward: Total reward earned by this pool (sats, all time; None for minor pools)
     """
-    pool: PoolDetailInfo
-    blockCount: PoolBlockCounts
-    blockShare: PoolBlockShares
-    estimatedHashrate: int
     reportedHashrate: Optional[int]
     totalReward: Union[Sats, None]
 
@@ -1477,7 +1468,16 @@ class Prices(TypedDict):
     time: Timestamp
     USD: Dollars
 
-class RbfTx(TypedDict):
+class _RbfTxRequired(TypedDict):
+    txid: Txid
+    fee: Sats
+    vsize: VSize
+    value: Sats
+    rate: FeeRate
+    time: Timestamp
+    rbf: bool
+
+class RbfTx(_RbfTxRequired, total=False):
     """
     Transaction summary carried inside an RBF replacement node. Shape
     matches mempool.space's `/api/v1/tx/:txid/rbf` and
@@ -1486,40 +1486,31 @@ class RbfTx(TypedDict):
     Attributes:
         value: Sum of output amounts.
         rbf: BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
-        fullRbf: Only populated on the root `tx` of an RBF response. `true` iff
-this tx displaced at least one non-signaling predecessor.
+        fullRbf: Only populated on the root `tx` of an RBF response. `true` iff this tx displaced at least one non-signaling predecessor.
     """
-    txid: Txid
-    fee: Sats
-    vsize: VSize
-    value: Sats
-    rate: FeeRate
-    time: Timestamp
-    rbf: bool
     fullRbf: Optional[bool]
 
-class ReplacementNode(TypedDict):
+class _ReplacementNodeRequired(TypedDict):
+    tx: RbfTx
+    time: Timestamp
+    fullRbf: bool
+    replaces: List["ReplacementNode"]
+
+class ReplacementNode(_ReplacementNodeRequired, total=False):
     """
     One node in an RBF replacement tree. The node's `tx` replaced each
     entry in `replaces`, recursively.
 
     Attributes:
-        time: First-seen timestamp, duplicated here to match mempool.space's
-on-the-wire shape.
+        time: First-seen timestamp, duplicated here to match mempool.space's on-the-wire shape.
         fullRbf: Any predecessor in this subtree was non-signaling.
-        interval: Seconds between this node's `time` and the successor that
-replaced it. Omitted on the root of an RBF response.
-        mined: `Some(true)` iff this node's tx is currently confirmed. Absent
-on serialization otherwise.
+        interval: Seconds between this node's `time` and the successor that replaced it. Omitted on the root of an RBF response.
+        mined: `Some(true)` iff this node's tx is currently confirmed. Absent on serialization otherwise.
     """
-    tx: RbfTx
-    time: Timestamp
-    fullRbf: bool
     interval: Optional[int]
     mined: Optional[bool]
-    replaces: List["ReplacementNode"]
 
-class RbfResponse(TypedDict):
+class RbfResponse(TypedDict, total=False):
     """
     Response body for `GET /api/v1/tx/:txid/rbf`. Both fields are null
     when the tx has no known RBF history within the mempool monitor's
@@ -1562,32 +1553,42 @@ class RewardStats(TypedDict):
     totalFee: str
     totalTx: str
 
-class SearchQuery(TypedDict):
+class _SearchQueryRequired(TypedDict):
+    q: SeriesName
+
+class SearchQuery(_SearchQueryRequired, total=False):
     """
     Attributes:
         q: Search query string
         limit: Maximum number of results
     """
-    q: SeriesName
     limit: Limit
 
-class SeriesInfo(TypedDict):
+class _SeriesInfoRequired(TypedDict):
+    indexes: List[Index]
+    nullable: List[Index]
+    type: str
+
+class SeriesInfo(_SeriesInfoRequired, total=False):
     """
     Metadata about a series
 
     Attributes:
         description: Human-readable metric definition, when documented
         indexes: Available indexes
-        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
-undefined one (e.g. NaN)
+        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
         type: Value type (e.g. "StoredF32", "Sats", "Cents")
     """
     description: Optional[str]
+
+class _SeriesLeafWithSchemaRequired(TypedDict):
+    name: str
+    kind: str
     indexes: List[Index]
     nullable: List[Index]
     type: str
 
-class SeriesLeafWithSchema(TypedDict):
+class SeriesLeafWithSchema(_SeriesLeafWithSchemaRequired, total=False):
     """
     Series leaf with JSON Schema for client generation.
 
@@ -1595,17 +1596,11 @@ class SeriesLeafWithSchema(TypedDict):
         name: The series name/identifier.
         kind: The Rust type (e.g., "Sats", "StoredF64").
         indexes: Available indexes for this series.
-        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
-undefined one (e.g. NaN).
+        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
         description: Human-readable metric definition, when documented.
         type: JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
     """
-    name: str
-    kind: str
-    indexes: List[Index]
-    nullable: List[Index]
     description: Optional[str]
-    type: str
 
 class SeriesNameWithIndex(TypedDict):
     """
@@ -1619,7 +1614,11 @@ class SeriesNameWithIndex(TypedDict):
 class SeriesParam(TypedDict):
     series: SeriesName
 
-class SeriesSelection(TypedDict):
+class _SeriesSelectionRequired(TypedDict):
+    series: SeriesList
+    index: Index
+
+class SeriesSelection(_SeriesSelectionRequired, total=False):
     """
     Selection of series to query
 
@@ -1631,8 +1630,6 @@ class SeriesSelection(TypedDict):
         limit: Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
         format: Format of the output
     """
-    series: SeriesList
-    index: Index
     start: Union[RangeIndex, None]
     end: Union[RangeIndex, None]
     limit: Union[Limit, None]
@@ -1675,7 +1672,10 @@ class TxIndexParam(TypedDict):
     """
     index: TxIndex
 
-class TxOutspend(TypedDict):
+class _TxOutspendRequired(TypedDict):
+    spent: bool
+
+class TxOutspend(_TxOutspendRequired, total=False):
     """
     Status of an output indicating whether it has been spent
 
@@ -1685,7 +1685,6 @@ class TxOutspend(TypedDict):
         vin: Input index in the spending transaction (only present if spent)
         status: Status of the spending transaction (only present if spent)
     """
-    spent: bool
     txid: Union[Txid, None]
     vin: Union[Vin, None]
     status: Union[TxStatus, None]
@@ -1707,19 +1706,13 @@ class TxidVout(TypedDict):
     txid: Txid
     vout: Vout
 
-class TxidsParam(TypedDict):
-    """
-    Query parameter for transaction-times endpoint.
-    
-    Extracted manually because `serde_urlencoded` (and serde derive in general)
-    doesn't support repeated keys like `txId[]=a&txId[]=b`. The schema is still
-    declared via `JsonSchema` so the OpenAPI spec lists the parameter and the
-    generated client SDKs see `txids: List[Txid]`.
-
-    Attributes:
-        txId: Transaction IDs to look up (max 250 per request).
-    """
-    txId: List[Txid]
+# Query parameter for transaction-times endpoint.
+#
+# Extracted manually because `serde_urlencoded` (and serde derive in general)
+# doesn't support repeated keys like `txId[]=a&txId[]=b`. The schema is still
+# declared via `JsonSchema` so the OpenAPI spec lists the parameter and the
+# generated client SDKs see `txids: List[Txid]`.
+TxidsParam = TypedDict("TxidsParam", {"txId[]": List[Txid]})
 
 class UrpdBucket(TypedDict):
     """
@@ -1775,7 +1768,7 @@ class UrpdParams(TypedDict):
     cohort: Cohort
     point: str
 
-class UrpdQuery(TypedDict):
+class UrpdQuery(TypedDict, total=False):
     """
     Query parameters for URPD endpoints.
 
@@ -1786,7 +1779,7 @@ class UrpdQuery(TypedDict):
     agg: UrpdAggregation
     weight: UrpdWeight
 
-class UrpdWeightQuery(TypedDict):
+class UrpdWeightQuery(TypedDict, total=False):
     """
     Query parameters for URPD date discovery.
 

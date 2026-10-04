@@ -58,7 +58,59 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
             .and_then(|p| p.as_object())
             .unwrap();
 
-        writeln!(output, "class {}(TypedDict):", name).unwrap();
+        // A property outside `required` can be absent from the JSON: required keys go in a base
+        // class, optional ones in a `total=False` class (correct at runtime and for every checker).
+        let required: BTreeSet<&str> = schema
+            .get("required")
+            .and_then(|r| r.as_array())
+            .map(|r| r.iter().filter_map(|v| v.as_str()).collect())
+            .unwrap_or_default();
+        let (required_props, optional_props): (Vec<_>, Vec<_>) =
+            props.iter().partition(|(prop_name, _)| required.contains(prop_name.as_str()));
+        let field = |output: &mut String, (prop_name, prop_schema): (&String, &Value)| {
+            let prop_type = schema_to_python_type(prop_schema, Some(&name), None);
+            writeln!(output, "    {}: {}", escape_python_keyword(prop_name), prop_type).unwrap();
+        };
+
+        // Keys that aren't Python identifiers (`24h`, `txId[]`) need the functional form, which
+        // can't mix required and optional keys on Python 3.9.
+        let identifier = |key: &str| {
+            escape_python_keyword(key) == key
+                && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+        };
+        if !props.keys().all(|key| identifier(key)) {
+            assert!(
+                required_props.is_empty() || optional_props.is_empty(),
+                "{name} mixes optional keys with keys that aren't Python identifiers"
+            );
+            if let Some(desc) = type_desc {
+                write_description(output, desc, "# ", "#");
+            }
+            let entries: Vec<String> = props
+                .iter()
+                .map(|(key, prop_schema)| {
+                    format!("{key:?}: {}", schema_to_python_type(prop_schema, Some(&name), None))
+                })
+                .collect();
+            let total = if required_props.is_empty() { ", total=False" } else { "" };
+            writeln!(output, "{name} = TypedDict({name:?}, {{{}}}{total})\n", entries.join(", "))
+                .unwrap();
+            continue;
+        }
+
+        let header = match (required_props.is_empty(), optional_props.is_empty()) {
+            (_, true) => format!("class {name}(TypedDict):"),
+            (true, false) => format!("class {name}(TypedDict, total=False):"),
+            (false, false) => {
+                writeln!(output, "class _{name}Required(TypedDict):").unwrap();
+                for &prop in &required_props {
+                    field(output, prop);
+                }
+                writeln!(output).unwrap();
+                format!("class {name}(_{name}Required, total=False):")
+            }
+        };
+        writeln!(output, "{header}").unwrap();
 
         // Collect field descriptions for Attributes section
         let field_docs: Vec<(String, Option<&str>)> = props
@@ -86,17 +138,16 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
                 writeln!(output, "    Attributes:").unwrap();
                 for (field_name, desc) in &field_docs {
                     if let Some(d) = desc {
-                        writeln!(output, "        {}: {}", field_name, d).unwrap();
+                        writeln!(output, "        {}: {}", field_name, d.split_whitespace().collect::<Vec<_>>().join(" ")).unwrap();
                     }
                 }
             }
             writeln!(output, "    \"\"\"").unwrap();
         }
 
-        for (prop_name, prop_schema) in props {
-            let prop_type = schema_to_python_type(prop_schema, Some(&name), None);
-            let safe_name = escape_python_keyword(prop_name);
-            writeln!(output, "    {}: {}", safe_name, prop_type).unwrap();
+        let own = if optional_props.is_empty() { &required_props } else { &optional_props };
+        for &prop in own {
+            field(output, prop);
         }
         writeln!(output).unwrap();
     }
