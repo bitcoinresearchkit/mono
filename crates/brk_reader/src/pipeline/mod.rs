@@ -21,22 +21,12 @@ pub const CHANNEL_CAPACITY: usize = 50;
 /// tail wins for any catchup within this many files of the tip.
 const TAIL_DISTANCE_FILES: usize = 8;
 
-/// The indexer is CPU-bound on the consumer side, so 1 reader + 1
-/// parser leaves the rest of the cores for it.
-pub const DEFAULT_PARSER_THREADS: usize = 1;
-
 enum Strategy {
     Tail,
     Forward { first_blk_index: u16 },
 }
 
-pub fn spawn(
-    reader: Arc<ReaderInner>,
-    canonical: CanonicalRange,
-    parser_threads: usize,
-) -> Result<BlockReceiver> {
-    let parser_threads = parser_threads.clamp(1, CHANNEL_CAPACITY);
-
+pub fn spawn(reader: Arc<ReaderInner>, canonical: CanonicalRange) -> Result<BlockReceiver> {
     if canonical.is_empty() {
         return Ok(block_receiver::new(bounded(0).1));
     }
@@ -52,14 +42,9 @@ pub fn spawn(
             Strategy::Tail => {
                 tail::pipeline_tail(&reader.client, &paths, xor_bytes, &canonical, &send)
             }
-            Strategy::Forward { first_blk_index } => forward::pipeline_forward(
-                &paths,
-                first_blk_index,
-                xor_bytes,
-                &canonical,
-                &send,
-                parser_threads,
-            ),
+            Strategy::Forward { first_blk_index } => {
+                forward::pipeline_forward(&paths, first_blk_index, xor_bytes, &canonical, &send)
+            }
         };
         if let Err(e) = result {
             let _ = send.send(Err(e));

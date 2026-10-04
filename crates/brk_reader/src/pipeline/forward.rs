@@ -28,20 +28,26 @@ enum Stop {
     Failed(Error),
 }
 
+/// A third of the cores, at most four: on 12 cores, four parsers stream recent blocks to a light
+/// consumer ~1.5x faster than one and cost a CPU-bound consumer (the indexer) nothing, while
+/// eight cost it ~10%. Small machines keep one parser and leave their cores to the consumer.
+fn parser_threads() -> usize {
+    thread::available_parallelism().map_or(1, |cores| (cores.get() / 3).clamp(1, 4))
+}
+
 pub fn pipeline_forward(
     paths: &BlkIndexToBlkPath,
     first_blk_index: u16,
     xor_bytes: XORBytes,
     canonical: &CanonicalRange,
     send: &Sender<Result<ReadBlock>>,
-    parser_threads: usize,
 ) -> Result<()> {
     let (parser_send, parser_recv) = bounded::<ScannedBlock>(CHANNEL_CAPACITY);
     let reorder = Mutex::new(ReorderState::new(send.clone()));
     let stop: OnceLock<Stop> = OnceLock::new();
 
     thread::scope(|scope| {
-        for _ in 0..parser_threads {
+        for _ in 0..parser_threads() {
             let parser_recv = parser_recv.clone();
             scope.spawn(|| parser_loop(parser_recv, &reorder, &stop, canonical, xor_bytes));
         }

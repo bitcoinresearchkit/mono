@@ -96,7 +96,7 @@ impl Reader {
     pub fn after(&self, hash: Option<BlockHash>) -> Result<BlockReceiver> {
         let tip = self.0.client.get_last_height()?;
         let canonical = CanonicalRange::walk(&self.0.client, hash.as_ref(), tip)?;
-        pipeline::spawn(self.0.clone(), canonical, pipeline::DEFAULT_PARSER_THREADS)
+        pipeline::spawn(self.0.clone(), canonical)
     }
 
     /// Inclusive height range `start..=end` in canonical order.
@@ -108,6 +108,6 @@ impl Reader {
             ));
         }
         let canonical = CanonicalRange::between(&self.0.client, start, end)?;
-        pipeline::spawn(self.0.clone(), canonical, pipeline::DEFAULT_PARSER_THREADS)
+        pipeline::spawn(self.0.clone(), canonical)
     }
 }

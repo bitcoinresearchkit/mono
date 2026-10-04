@@ -61,8 +61,9 @@ Each `ReadBlock` gives you access to:
 Two strategies, picked per call:
 
 * **forward** — one reader thread walks blk files in order from a
-  bisection lower bound and ships canonical hits to a parser thread,
-  which decodes bodies and emits them in order.
+  bisection lower bound and ships canonical hits to a pool of parser
+  threads (a third of the cores, at most four), which decode bodies
+  and emit them in order.
 * **tail** — single-threaded reverse scan of the newest blk files,
   used when the requested range sits within ~8 files of the chain
   tip. Avoids the forward pipeline's bisection + 21-file backoff
@@ -84,9 +85,9 @@ canonical chain ──► Reader thread ──► Parser pool ──► Receiver
    bytes are cloned.
 3. **Parser pool** (scoped threads, forward pipeline only) fully
    decodes canonical bodies in parallel and serialises output through
-   an in-order reorder buffer that also verifies `prev_blockhash`
-   against the previously-emitted block — and against the user-
-   supplied anchor for the very first block.
+   an in-order reorder buffer. The reader thread has already checked
+   each block's `prev_blockhash` against the canonical chain — and
+   against the user-supplied anchor for the very first block.
 
 Orphans can never be mistaken for canonical blocks, and a missing
 canonical block produces a final `Err` to the consumer instead of a
