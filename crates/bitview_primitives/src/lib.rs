@@ -77,7 +77,6 @@ mod unknown_output_index;
 #[cfg(feature = "storage")]
 mod vec_index;
 mod week1;
-mod weight64;
 mod year;
 mod year1;
 mod year10;
@@ -151,7 +150,6 @@ pub use type_index::*;
 pub use units::*;
 pub use unknown_output_index::*;
 pub use week1::*;
-pub use weight64::*;
 pub use year::*;
 pub use year1::*;
 pub use year10::*;

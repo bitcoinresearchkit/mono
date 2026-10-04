@@ -75,8 +75,8 @@ export function createRarityMeterSection() {
                 top: priceBands(percentileBands(meter)),
                 bottom: [
                   histogram({
-                    series: meter.index,
-                    name: "Index",
+                    series: meter.level,
+                    name: "Level",
                     unit: Unit.count,
                     colorFn: (value) =>
                       /** @type {const} */ ([

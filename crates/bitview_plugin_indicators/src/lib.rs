@@ -10,7 +10,7 @@ use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::{Days, PartsPerMillion32, PartsPerMillion64, Ratio, Years};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    BasisPointsPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock, PercentPerBlock,
+    BasisPointsPerBlock, FixedRatioPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock,
     RatioPerBlock,
 };
 use brk_types::Version;
@@ -38,7 +38,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Approximate Gini coefficient of UTXO-held supply, derived from the
     /// Lorenz curve across ordered UTXO-amount cohorts. Zero means equal
     /// distribution; larger values mean greater concentration.
-    gini: PercentPerBlock<PartsPerMillion32, M>,
+    gini: FixedRatioPerBlock<PartsPerMillion32, M>,
     /// Realized HODL ratio: realized capitalization of 1-day-to-1-week-old
     /// UTXOs divided by that of 1-to-2-year-old UTXOs. Returns zero when the
     /// ratio is not finite. Larger values mean more creation-date capital sits

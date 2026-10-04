@@ -11,7 +11,7 @@ use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
+    LazyFiatPerBlock, LazyFixedRatioPerBlock, LazyPerBlock, LazyRollingDeltasFiatFromHeight,
     LazySpotValuePerBlock, LazyValuePerBlock,
 };
 use brk_types::{Cents, CentsSigned, Version};
@@ -34,7 +34,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// 365-day monotonic-time window through the represented block, divided by
     /// the starting supply. Returns NaN while the starting supply is at most 50
     /// BTC.
-    pub inflation_rate: LazyPercentPerBlock<PartsPerMillionSigned64>,
+    pub inflation_rate: LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
     pub velocity: velocity::Vecs,
     /// Circulating supply valued at the represented block's Bitcoin spot price.
     market_cap: LazyFiatPerBlock<Cents>,

@@ -2,7 +2,7 @@ use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, PartsPerMillion32, PoolSlug};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPercentPerBlock, LazyWindowStartVec};
+use bitview_vecs::{LazyFixedRatioPerBlock, LazyWindowStartVec};
 use brk_types::Height;
 use vecdb::{LazyVec, ReadableCloneableVec, Version};
 
@@ -20,7 +20,7 @@ pub struct Vecs {
     /// Share of all blocks from genesis through the represented height
     /// attributed to a mining pool: cumulative pool block count divided by
     /// block height plus one.
-    pub dominance: LazyPercentPerBlock<PartsPerMillion32>,
+    pub dominance: LazyFixedRatioPerBlock<PartsPerMillion32>,
 }
 
 impl Vecs {
@@ -49,7 +49,7 @@ impl Vecs {
             blocks_mined.cumulative.height.read_only_boxed_clone(),
             pool_dominance,
         );
-        let dominance = LazyPercentPerBlock::from_height_source(
+        let dominance = LazyFixedRatioPerBlock::from_height_source(
             &dominance_name,
             version,
             &dominance_source,

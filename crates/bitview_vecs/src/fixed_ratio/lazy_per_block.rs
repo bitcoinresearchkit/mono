@@ -9,17 +9,17 @@ use vecdb::{BinaryTransform, Ident, ReadableCloneableVec, UnaryTransform, VecVal
 
 use crate::{IndexSources, LazyIndexedVec, LazyLookbackVec, LazyPerBlock};
 
-/// Fully lazy variant of `PercentPerBlock` — no stored vecs.
+/// Fully lazy variant of `FixedRatioPerBlock` — no stored vecs.
 ///
 /// PPM values are lazily derived from one source, and ratio/percent float views
 /// are chained from them.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyPercentPerBlock<B: FixedRatio>(
+pub struct LazyFixedRatioPerBlock<B: FixedRatio>(
     pub FixedRatioViews<LazyPerBlock<B, B>, LazyPerBlock<Ratio, B>, LazyPerBlock<Percent, B>>,
 );
 
-impl<B: FixedRatio> LazyPercentPerBlock<B> {
+impl<B: FixedRatio> LazyFixedRatioPerBlock<B> {
     /// Inputs own their caches; the ratio and converted views retain no history.
     pub fn from_ratio<S, D, F>(
         name: &str,
@@ -104,7 +104,7 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
         Self::from_ppm(name, version, ppm)
     }
 
-    pub(crate) fn from_lazy_percent<F: UnaryTransform<B, B>>(
+    pub(crate) fn from_lazy_fixed_ratio<F: UnaryTransform<B, B>>(
         name: &str,
         version: Version,
         source: &Self,
@@ -126,16 +126,16 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
     }
 }
 
-impl LazyPercentPerBlock<PartsPerMillionSigned64> {
+impl LazyFixedRatioPerBlock<PartsPerMillionSigned64> {
     pub fn from_lazy_cagr(name: &str, version: Version, years: u8, source: &Self) -> Self {
         match years {
-            2 => Self::from_lazy_percent::<Cagr<2>>(name, version, source),
-            3 => Self::from_lazy_percent::<Cagr<3>>(name, version, source),
-            4 => Self::from_lazy_percent::<Cagr<4>>(name, version, source),
-            5 => Self::from_lazy_percent::<Cagr<5>>(name, version, source),
-            6 => Self::from_lazy_percent::<Cagr<6>>(name, version, source),
-            8 => Self::from_lazy_percent::<Cagr<8>>(name, version, source),
-            10 => Self::from_lazy_percent::<Cagr<10>>(name, version, source),
+            2 => Self::from_lazy_fixed_ratio::<Cagr<2>>(name, version, source),
+            3 => Self::from_lazy_fixed_ratio::<Cagr<3>>(name, version, source),
+            4 => Self::from_lazy_fixed_ratio::<Cagr<4>>(name, version, source),
+            5 => Self::from_lazy_fixed_ratio::<Cagr<5>>(name, version, source),
+            6 => Self::from_lazy_fixed_ratio::<Cagr<6>>(name, version, source),
+            8 => Self::from_lazy_fixed_ratio::<Cagr<8>>(name, version, source),
+            10 => Self::from_lazy_fixed_ratio::<Cagr<10>>(name, version, source),
             _ => unreachable!("unsupported DCA CAGR period: {years} years"),
         }
     }

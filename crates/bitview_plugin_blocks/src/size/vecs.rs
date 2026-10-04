@@ -1,4 +1,4 @@
-use bitview_primitives::{Bytes, Weight64};
+use bitview_primitives::Bytes32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlockRolling, PerBlockRolling};
 use brk_types::{Height, VSize, Weight};
@@ -13,7 +13,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(super) vbytes: VBytes,
     /// Total serialized block size in bytes, including the header,
     /// transaction-count CompactSize, and witness data.
-    pub size: PerBlockRolling<Bytes, M>,
+    pub size: PerBlockRolling<Bytes32, M>,
 }
 
 #[derive(Clone, Traversable)]
@@ -22,5 +22,5 @@ pub(super) struct VBytes {
     /// taken from the period's final block.
     pub(super) block: LazyVec<Height, VSize, Height, Weight>,
     #[traversable(flatten)]
-    pub(super) rolling: LazyPerBlockRolling<VSize, Weight64>,
+    pub(super) rolling: LazyPerBlockRolling<VSize, Weight>,
 }

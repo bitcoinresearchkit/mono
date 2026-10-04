@@ -13,7 +13,7 @@ use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecVal
 
 use crate::{IndexSources, RollingDistribution, WindowStarts};
 
-/// Lazy rolling sums + lazy rolling averages + stored rolling distribution (7 stats × 4 windows).
+/// Lazy rolling sums and averages (in `T::Sum`) + stored rolling distribution of `T` (7 stats × 4 windows).
 #[derive(Deref, DerefMut, Traversable)]
 pub struct RollingComplete<T, M: StorageMode = Rw>
 where
@@ -22,7 +22,7 @@ where
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    rolling: RollingTotals<T>,
+    rolling: RollingTotals<T::Sum>,
     #[traversable(flatten)]
     pub(crate) distribution: RollingDistribution<T, M>,
 }
@@ -36,7 +36,7 @@ where
         name: &str,
         version: Version,
         indexes: &IndexSources,
-        cumulative: &impl ReadableCloneableVec<Height, T>,
+        cumulative: &impl ReadableCloneableVec<Height, T::Sum>,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
         let rolling = RollingTotals::new(name, version, cumulative, window_starts, indexes);

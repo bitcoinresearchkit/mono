@@ -12,5 +12,5 @@ pub struct Vecs<M: StorageMode = Rw>(
     /// and the previous block's. Genesis is zero, and a timestamp earlier than
     /// its predecessor is clamped to zero.
     #[traversable(flatten)]
-    pub PerBlockCumulativeAverage<Seconds, Seconds, M>,
+    pub PerBlockCumulativeAverage<Seconds, M>,
 );

@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{PerBlock, PercentPerBlock};
+use bitview_vecs::{FixedRatioPerBlock, PerBlock};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
@@ -9,7 +9,7 @@ use super::Vecs;
 impl Vecs {
     pub(crate) fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
         Ok(Vecs {
-            inflation_rate: PercentPerBlock::import(
+            inflation_rate: FixedRatioPerBlock::import(
                 db,
                 "cointime_adj_inflation_rate",
                 version + Version::new(3),

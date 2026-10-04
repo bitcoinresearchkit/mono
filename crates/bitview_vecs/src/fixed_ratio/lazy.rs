@@ -9,7 +9,7 @@ use vecdb::{LazyVec, ReadableCloneableVec, VecValue};
 /// Fully lazy lightweight percent container with no derived resolutions.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyPercentVec<B: FixedRatio, S: VecValue>(
+pub struct LazyFixedRatioVec<B: FixedRatio, S: VecValue>(
     pub  FixedRatioViews<
         LazyVec<Height, B, Height, S>,
         LazyVec<Height, Ratio, Height, B>,
@@ -17,7 +17,7 @@ pub struct LazyPercentVec<B: FixedRatio, S: VecValue>(
     >,
 );
 
-impl<B: FixedRatio, S: VecValue> LazyPercentVec<B, S> {
+impl<B: FixedRatio, S: VecValue> LazyFixedRatioVec<B, S> {
     pub fn from_indexed_source(
         name: &str,
         version: Version,

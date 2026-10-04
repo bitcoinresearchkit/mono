@@ -20,7 +20,7 @@ where
 {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
-    pub(crate) cumulative: PerBlock<T, M>,
+    pub(crate) cumulative: PerBlock<T::Sum, M>,
     #[traversable(flatten)]
     pub(crate) rolling: RollingComplete<T, M>,
 }
@@ -53,11 +53,11 @@ where
         })
     }
 
-    pub fn cumulative_source(&self) -> &(impl ReadableCloneableVec<Height, T> + use<T>) {
+    pub fn cumulative_source(&self) -> &(impl ReadableCloneableVec<Height, T::Sum> + use<T>) {
         self.cumulative.resolutions.height_source()
     }
 
-    /// Computes from per-block values of `S`, widened into `T` (e.g. `Bytes32` into `Bytes`).
+    /// Computes from per-block values of `S`: the distribution in `T`, the cumulative widened into `T::Sum`.
     pub fn compute<S>(
         &mut self,
         max_from: Height,
@@ -67,7 +67,7 @@ where
     ) -> Result<()>
     where
         T: From<f64> + Default + Copy + Ord,
-        S: VecValue + Copy + Into<T>,
+        S: VecValue + Copy + Into<T::Sum>,
         f64: From<S>,
     {
         self.cumulative

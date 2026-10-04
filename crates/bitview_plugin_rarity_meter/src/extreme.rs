@@ -4,7 +4,7 @@ use bitview_compute::{ExactOrderStats, FenwickTree, NumericValue, prepare_comput
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{PartsPerMillion32, Rank};
 use bitview_traversable::Traversable;
-use bitview_vecs::{IndexSources, PerBlock, PercentPerBlock};
+use bitview_vecs::{FixedRatioPerBlock, IndexSources, PerBlock};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
@@ -79,7 +79,7 @@ where
     /// extreme as the represented source value in the configured upper or lower
     /// tail. A smaller percentage means a rarer observation. The represented
     /// observation is included in both numerator and denominator.
-    pub tail: PercentPerBlock<PartsPerMillion32, M>,
+    pub tail: FixedRatioPerBlock<PartsPerMillion32, M>,
     /// Discrete extremeness rank, where a higher value means a rarer event: 3 at
     /// or beyond the 0.025% tail boundary, 2 at or beyond 0.05%, 1 at or beyond
     /// 0.1%, and 0 otherwise or while unavailable. The series' model determines
@@ -123,7 +123,7 @@ where
 
         Ok(Self {
             thresholds,
-            tail: PercentPerBlock::import(db, &format!("{name}_tail"), version, mappings)?,
+            tail: FixedRatioPerBlock::import(db, &format!("{name}_tail"), version, mappings)?,
             rank: PerBlock::import(db, &format!("{name}_rank"), version, mappings)?,
             history: LiveHistory::new(),
         })

@@ -1,14 +1,14 @@
 use bitview_cohort::AmountRange;
 use bitview_plugin_distribution_utxos::Vecs as UtxosVecs;
 use bitview_primitives::{Count, PartsPerMillion32};
-use bitview_vecs::PercentPerBlock;
+use bitview_vecs::FixedRatioPerBlock;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, Version};
 use vecdb::{AnyVec, ReadableVec, WritableVec};
 
 pub fn compute(
-    gini: &mut PercentPerBlock<PartsPerMillion32>,
+    gini: &mut FixedRatioPerBlock<PartsPerMillion32>,
     distribution_utxos: &UtxosVecs,
     starting_height: Height,
     exit: &Exit,

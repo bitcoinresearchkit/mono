@@ -5,8 +5,8 @@ use brk_types::{Height, Version};
 use vecdb::{ReadableCloneableVec, VecValue};
 
 use crate::{
-    FiatType, IndexSources, LazyDeltaFiatFromHeight, LazyDeltaFromHeight,
-    LazyDeltaPercentFromHeight, LazyPerBlock,
+    FiatType, IndexSources, LazyDeltaFiatFromHeight, LazyDeltaFixedRatioFromHeight,
+    LazyDeltaFromHeight, LazyPerBlock,
 };
 
 #[derive(Clone, Traversable)]
@@ -22,7 +22,7 @@ where
     /// Relative change from the start of a trailing window through the
     /// represented block, divided by the starting value. Returns zero when the
     /// starting value is zero.
-    rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
+    rate: Windows<LazyDeltaFixedRatioFromHeight<S, B>>,
 }
 
 impl<S, C, B> LazyRollingDeltasFiatFromHeight<S, C, B>
@@ -56,7 +56,7 @@ where
                 );
                 let absolute = LazyDeltaFiatFromHeight { usd, cents };
 
-                let rate = LazyDeltaPercentFromHeight::from_source(
+                let rate = LazyDeltaFixedRatioFromHeight::from_source(
                     &name,
                     version,
                     source,

@@ -1,7 +1,7 @@
 use bitview_collections::{ByLookbackPeriod, Windows};
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPercentPerBlock, StdDevPerBlock};
+use bitview_vecs::{LazyFixedRatioPerBlock, StdDevPerBlock};
 use vecdb::{Rw, StorageMode};
 
 use super::Cagr;
@@ -12,7 +12,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// monotonic-time window through the represented block: represented-block
     /// price divided by the window's starting price, minus one. Positive values
     /// mean price increased and negative values mean it decreased.
-    pub periods: ByLookbackPeriod<LazyPercentPerBlock<PartsPerMillionSigned64>>,
+    pub periods: ByLookbackPeriod<LazyFixedRatioPerBlock<PartsPerMillionSigned64>>,
     /// Compound annual growth rate of the Bitcoin spot-price return over the
     /// corresponding whole-year trailing period: `(1 + return)^(1 / years) -
     /// 1`. Positive values are annualized gains and negative values are

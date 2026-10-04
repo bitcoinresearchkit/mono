@@ -3,7 +3,9 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillion32;
 use bitview_transforms::RatioSats;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPercentCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling};
+use bitview_vecs::{
+    LazyFixedRatioCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling,
+};
 use brk_types::{Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{ReadableCloneableVec, Rw, StorageMode};
@@ -16,7 +18,7 @@ pub struct FeesSeries<M: StorageMode = Rw> {
     pub fees: PerBlockCumulativeRolling<Sats, M>,
     /// Fees of transactions in a breakdown bucket divided by all transaction
     /// fees over the same cumulative or trailing window.
-    pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
+    pub fee_share: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
 }
 
 impl FeesSeries {
@@ -28,7 +30,7 @@ impl FeesSeries {
         window_starts: &Windows<&LazyWindowStartVec>,
         mappings: &MappingsVecs,
     ) -> Self {
-        let fee_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
+        let fee_share = LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
             Sats,
             Sats,
             RatioSats<PartsPerMillion32>,

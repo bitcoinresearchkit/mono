@@ -457,6 +457,11 @@ prior template's transactions or a full transaction body.
  * @typedef {number} Count16
  */
 /**
+ * A number of things that fits 32 bits, such as outputs per block.
+ *
+ * @typedef {number} Count32
+ */
+/**
  * A mean number of things.
  *
  * @typedef {number} CountFract
@@ -929,9 +934,11 @@ ancestors and no descendants (matches mempool.space).
  */
 /**
  * The output a transaction input spends: its transaction index and output position, written as
- * `tx_index: N, vout: M` (coinbase inputs: `tx_index: 4294967295, vout: 65535`).
+ * `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 65535}`).
  *
- * @typedef {number} OutPoint
+ * @typedef {Object} OutPoint
+ * @property {TxIndex} txIndex
+ * @property {Vout} vout
  */
 /**
  * Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
@@ -951,7 +958,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * The 2-byte witness program of a P2A (pay-to-anchor) output.
  *
- * @typedef {U8x2} P2ABytes
+ * @typedef {string} P2ABytes
  */
 /**
  * Index of a P2MS (bare multisig) output.
@@ -966,7 +973,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * A compressed (33-byte) public key.
  *
- * @typedef {U8x33} P2PK33Bytes
+ * @typedef {string} P2PK33Bytes
  */
 /**
  * Index of a P2PK address with an uncompressed (65-byte) public key.
@@ -976,7 +983,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * An uncompressed (65-byte) public key.
  *
- * @typedef {U8x65} P2PK65Bytes
+ * @typedef {string} P2PK65Bytes
  */
 /**
  * Index of a P2PKH address.
@@ -986,7 +993,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * The 20-byte public key hash of a P2PKH output.
  *
- * @typedef {U8x20} P2PKHBytes
+ * @typedef {string} P2PKHBytes
  */
 /**
  * Index of a P2SH address.
@@ -996,7 +1003,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * The 20-byte script hash of a P2SH output.
  *
- * @typedef {U8x20} P2SHBytes
+ * @typedef {string} P2SHBytes
  */
 /**
  * Index of a P2TR (taproot) address.
@@ -1006,7 +1013,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * The 32-byte output key of a P2TR output.
  *
- * @typedef {U8x32} P2TRBytes
+ * @typedef {string} P2TRBytes
  */
 /**
  * Index of a P2WPKH address.
@@ -1016,7 +1023,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * The 20-byte public key hash of a P2WPKH output.
  *
- * @typedef {U8x20} P2WPKHBytes
+ * @typedef {string} P2WPKHBytes
  */
 /**
  * Index of a P2WSH address.
@@ -1026,7 +1033,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * The 32-byte script hash of a P2WSH output.
  *
- * @typedef {U8x32} P2WSHBytes
+ * @typedef {string} P2WSHBytes
  */
 /**
  * A paginated list of available series names (1000 per page)
@@ -1591,11 +1598,6 @@ undefined one (e.g. NaN).
  *
  * @typedef {number} TypeIndex
  */
-/** @typedef {number[]} U8x2 */
-/** @typedef {number[]} U8x20 */
-/** @typedef {number[]} U8x32 */
-/** @typedef {number[]} U8x33 */
-/** @typedef {number[]} U8x65 */
 /**
  * Index of an output with an unrecognized script.
  *
@@ -3761,7 +3763,7 @@ const _Max = _s({
  *   pct99: Spot<?SatsFract>,
  *   pct995: Spot<?SatsFract>,
  *   pct999: Spot<?SatsFract>,
- *   index: SeriesPattern2<Score>,
+ *   level: SeriesPattern2<Score>,
  *   score: SeriesPattern2<Score>,
  * }} Cycle
  */
@@ -3785,7 +3787,7 @@ const _Cycle = _s({
   pct99: [_Spot, '*_pct99'],
   pct995: [_Spot, '*_pct99_5'],
   pct999: [_Spot, '*_pct99_9'],
-  index: [_i2, '*_index'],
+  level: [_i2, '*_level'],
   score: [_i2, '*_score'],
 });
 
@@ -5264,16 +5266,17 @@ const _BlocksMined = _s({
 });
 
 /**
+ * @template A
  * @typedef {{
  *   sum: PerSec<Count>,
  *   average: PerSec<?CountFract>,
- *   min: PerSec<Count>,
- *   max: PerSec<Count>,
- *   pct10: PerSec<Count>,
- *   pct25: PerSec<Count>,
- *   median: PerSec<Count>,
- *   pct75: PerSec<Count>,
- *   pct90: PerSec<Count>,
+ *   min: PerSec<A>,
+ *   max: PerSec<A>,
+ *   pct10: PerSec<A>,
+ *   pct25: PerSec<A>,
+ *   median: PerSec<A>,
+ *   pct75: PerSec<A>,
+ *   pct90: PerSec<A>,
  * }} Rolling
  */
 const _Rolling = _s({
@@ -5289,10 +5292,11 @@ const _Rolling = _s({
 });
 
 /**
+ * @template A
  * @typedef {{
  *   sum: SeriesPattern21<Count>,
  *   cumulative: SeriesPattern2<Count>,
- *   rolling: Rolling,
+ *   rolling: Rolling<A>,
  * }} InputsCount
  */
 const _InputsCount = _s({
@@ -5302,19 +5306,19 @@ const _InputsCount = _s({
 });
 
 /**
- * @template A, B
+ * @template A, B, C
  * @typedef {{
  *   block: SeriesPattern21<A>,
  *   cumulative: SeriesPattern2<A>,
  *   sum: PerSec<A>,
  *   average: PerSec<B>,
- *   min: PerSec<A>,
- *   max: PerSec<A>,
- *   pct10: PerSec<A>,
- *   pct25: PerSec<A>,
- *   median: PerSec<A>,
- *   pct75: PerSec<A>,
- *   pct90: PerSec<A>,
+ *   min: PerSec<C>,
+ *   max: PerSec<C>,
+ *   pct10: PerSec<C>,
+ *   pct25: PerSec<C>,
+ *   median: PerSec<C>,
+ *   pct75: PerSec<C>,
+ *   pct90: PerSec<C>,
  * }} Vbytes
  */
 const _Vbytes = _s({
@@ -5742,13 +5746,13 @@ const _BlocksCount = _s({
  *   cumulative: SeriesPattern2<Weight64>,
  *   sum: PerSec<Weight64>,
  *   average: PerSec<?WeightFract>,
- *   min: PerSec<Weight64>,
- *   max: PerSec<Weight64>,
- *   pct10: PerSec<Weight64>,
- *   pct25: PerSec<Weight64>,
- *   median: PerSec<Weight64>,
- *   pct75: PerSec<Weight64>,
- *   pct90: PerSec<Weight64>,
+ *   min: PerSec<Weight>,
+ *   max: PerSec<Weight>,
+ *   pct10: PerSec<Weight>,
+ *   pct25: PerSec<Weight>,
+ *   median: PerSec<Weight>,
+ *   pct75: PerSec<Weight>,
+ *   pct90: PerSec<Weight>,
  * }} BlocksWeight
  */
 const _BlocksWeight = _s({
@@ -5771,13 +5775,13 @@ const _BlocksWeight = _s({
  *   cumulative: SeriesPattern2<Bytes>,
  *   sum: PerSec<Bytes>,
  *   average: PerSec<?BytesFract>,
- *   min: PerSec<Bytes>,
- *   max: PerSec<Bytes>,
- *   pct10: PerSec<Bytes>,
- *   pct25: PerSec<Bytes>,
- *   median: PerSec<Bytes>,
- *   pct75: PerSec<Bytes>,
- *   pct90: PerSec<Bytes>,
+ *   min: PerSec<Bytes32>,
+ *   max: PerSec<Bytes32>,
+ *   pct10: PerSec<Bytes32>,
+ *   pct25: PerSec<Bytes32>,
+ *   median: PerSec<Bytes32>,
+ *   pct75: PerSec<Bytes32>,
+ *   pct90: PerSec<Bytes32>,
  * }} BlocksSize
  */
 const _BlocksSize = _s({
@@ -6880,7 +6884,7 @@ const _OutputsByType = _s({
  * @typedef {{
  *   raw: OutputsRaw,
  *   spent: Spent,
- *   count: OutputsCount<InputsCount>,
+ *   count: OutputsCount<InputsCount<Count32>>,
  *   perSec: PerSec<?PerSecond>,
  *   byType: OutputsByType,
  *   value: OutputsValue,
@@ -8154,7 +8158,7 @@ const _InputsByType = _s({
  * @typedef {{
  *   raw: InputsRaw,
  *   value: SeriesPattern23<Sats>,
- *   count: InputsCount,
+ *   count: InputsCount<Count16>,
  *   perSec: PerSec<?PerSecond>,
  *   byType: InputsByType,
  * }} Inputs
@@ -8195,7 +8199,7 @@ const _Inscription = _s({
  * @typedef {{
  *   raw: TransactionsRaw,
  *   features: Features,
- *   count: OutputsCount<Vbytes<Count, ?CountFract>>,
+ *   count: OutputsCount<Vbytes<Count, ?CountFract, Count16>>,
  *   size: TransactionsSize,
  *   fees: TransactionsFees,
  *   inscription: Inscription,
@@ -8253,7 +8257,7 @@ const _BlocksDifficulty = _s({
  *   count: BlocksCount,
  *   lookback: BlocksLookback,
  *   interval: Interval<Seconds, ?SecondsFract>,
- *   vbytes: Vbytes<VSize, ?VSizeFract>,
+ *   vbytes: Vbytes<VSize, ?VSizeFract, VSize>,
  *   fullness: Fullness,
  *   halving: BlocksHalving,
  * }} Blocks

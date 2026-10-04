@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyLookbackVec, LazyPerBlock, PerBlock, PercentPerBlock, Price};
+use bitview_vecs::{FixedRatioPerBlock, LazyLookbackVec, LazyPerBlock, PerBlock, Price};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, Ident, ReadableCloneableVec};
@@ -51,7 +51,7 @@ impl Vecs {
                 version + Version::TWO,
                 mappings,
             )?,
-            choppiness_index_2w: PercentPerBlock::import(
+            choppiness_index_2w: FixedRatioPerBlock::import(
                 db,
                 "price_choppiness_index_2w",
                 version + v1,

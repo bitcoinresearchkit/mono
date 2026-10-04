@@ -1,7 +1,7 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillionSigned32;
 use bitview_transforms::{DaysToYears, RatioDiffCents};
-use bitview_vecs::{LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock, PerBlock, Price};
+use bitview_vecs::{LazyFixedRatioPerBlock, LazyIndexedVec, LazyPerBlock, PerBlock, Price};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{BinaryTransform, Database, ReadableCloneableVec};
@@ -46,7 +46,7 @@ impl Vecs {
             spot_price,
             |_, high, spot| RatioDiffCents::<PartsPerMillionSigned32>::apply(spot, high),
         );
-        let drawdown = LazyPercentPerBlock::from_height_source(
+        let drawdown = LazyFixedRatioPerBlock::from_height_source(
             "price_drawdown",
             v,
             &drawdown_source,

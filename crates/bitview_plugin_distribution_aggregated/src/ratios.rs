@@ -5,7 +5,7 @@ use bitview_primitives::{Days, PartsPerMillion32, Ratio};
 use bitview_transforms::{RatioCents, RatioCentsOrOne};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyWindowStartVec, PerBlock, PercentRollingWindows, RollingWindows, RollingWindowsFrom1w,
+    FixedRatioRollingWindows, LazyWindowStartVec, PerBlock, RollingWindows, RollingWindowsFrom1w,
 };
 use brk_error::Result;
 use brk_exit::Exit;
@@ -21,7 +21,7 @@ pub struct Ratios<M: StorageMode = Rw> {
     pub dormancy: RollingWindows<Days, M>,
     pub sopr: PerBlock<Ratio, M>,
     pub sopr_ratio_extended: RollingWindowsFrom1w<Ratio, M>,
-    pub sell_side_risk_ratio: PercentRollingWindows<PartsPerMillion32, M>,
+    pub sell_side_risk_ratio: FixedRatioRollingWindows<PartsPerMillion32, M>,
     pub profit_to_loss_ratio: RollingWindows<Ratio, M>,
 }
 impl Ratios {
@@ -43,7 +43,7 @@ impl Ratios {
                 v,
                 mappings,
             )?,
-            sell_side_risk_ratio: PercentRollingWindows::import(
+            sell_side_risk_ratio: FixedRatioRollingWindows::import(
                 db,
                 &id.metric_name("sell_side_risk_ratio"),
                 v,

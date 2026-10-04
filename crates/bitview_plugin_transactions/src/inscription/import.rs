@@ -1,5 +1,5 @@
 use bitview_collections::Windows;
-use bitview_vecs::{IndexSources, PerBlockCumulativeRolling, PercentPerBlock};
+use bitview_vecs::{FixedRatioPerBlock, IndexSources, PerBlockCumulativeRolling};
 use brk_error::Result;
 use brk_types::{Height, Version};
 use vecdb::{Database, ReadableCloneableVec};
@@ -29,7 +29,7 @@ impl Vecs {
                 indexes,
                 window_starts,
             )?,
-            fee_share: PercentPerBlock::import(db, "inscription_fee_share", version, indexes)?,
+            fee_share: FixedRatioPerBlock::import(db, "inscription_fee_share", version, indexes)?,
         })
     }
 }

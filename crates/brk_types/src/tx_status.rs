@@ -14,14 +14,17 @@ pub struct TxStatus {
 
     /// Block height (only present if confirmed)
     #[cfg_attr(feature = "schemars", schemars(example = Some(916656)))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub block_height: Option<Height>,
 
     /// Block hash (only present if confirmed)
     #[cfg_attr(feature = "schemars", schemars(example = Some("000000000000000000012711f7e0d13e586752a42c66e25faf75f159b3d04911".to_string())))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub block_hash: Option<BlockHash>,
 
     /// Block timestamp (only present if confirmed)
     #[cfg_attr(feature = "schemars", schemars(example = Some(1759000868)))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     block_time: Option<Timestamp>,
 }
 

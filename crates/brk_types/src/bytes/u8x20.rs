@@ -1,14 +1,8 @@
 use derive_more::{Deref, DerefMut};
-#[cfg(feature = "schemars")]
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 #[cfg(feature = "storage")]
 use vecdb::Bytes;
 
-#[derive(
-    Debug, Clone, Deref, DerefMut, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash,
-)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[derive(Debug, Clone, Deref, DerefMut, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "storage", derive(Bytes))]
 pub struct U8x20([u8; 20]);
 impl From<&[u8]> for U8x20 {

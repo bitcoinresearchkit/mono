@@ -167,6 +167,8 @@ CoinbaseTag = str
 Count = int
 # A number of things that fits 16 bits (at most 65,535), such as transactions per block.
 Count16 = int
+# A number of things that fits 32 bits, such as outputs per block.
+Count32 = int
 # A mean number of things.
 CountFract = float
 # A change in a number of things.
@@ -250,48 +252,40 @@ OHLCSats = List[Sats]
 OpReturnIndex = TypeIndex
 # Protocol or format detected in an OP_RETURN output.
 OpReturnKind = Literal["runes", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "open_timestamps", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "epobc", "bare_hash", "text", "empty", "unknown"]
-# The output a transaction input spends: its transaction index and output position, written as
-# `tx_index: N, vout: M` (coinbase inputs: `tx_index: 4294967295, vout: 65535`).
-OutPoint = int
 # Index of a P2A (pay-to-anchor) address.
 P2AAddrIndex = TypeIndex
-U8x2 = List[int]
 # The 2-byte witness program of a P2A (pay-to-anchor) output.
-P2ABytes = U8x2
+P2ABytes = str
 # Index of a P2MS (bare multisig) output.
 P2MSOutputIndex = TypeIndex
 # Index of a P2PK address with a compressed (33-byte) public key.
 P2PK33AddrIndex = TypeIndex
-U8x33 = List[int]
 # A compressed (33-byte) public key.
-P2PK33Bytes = U8x33
+P2PK33Bytes = str
 # Index of a P2PK address with an uncompressed (65-byte) public key.
 P2PK65AddrIndex = TypeIndex
-U8x65 = List[int]
 # An uncompressed (65-byte) public key.
-P2PK65Bytes = U8x65
+P2PK65Bytes = str
 # Index of a P2PKH address.
 P2PKHAddrIndex = TypeIndex
-U8x20 = List[int]
 # The 20-byte public key hash of a P2PKH output.
-P2PKHBytes = U8x20
+P2PKHBytes = str
 # Index of a P2SH address.
 P2SHAddrIndex = TypeIndex
 # The 20-byte script hash of a P2SH output.
-P2SHBytes = U8x20
+P2SHBytes = str
 # Index of a P2TR (taproot) address.
 P2TRAddrIndex = TypeIndex
-U8x32 = List[int]
 # The 32-byte output key of a P2TR output.
-P2TRBytes = U8x32
+P2TRBytes = str
 # Index of a P2WPKH address.
 P2WPKHAddrIndex = TypeIndex
 # The 20-byte public key hash of a P2WPKH output.
-P2WPKHBytes = U8x20
+P2WPKHBytes = str
 # Index of a P2WSH address.
 P2WSHAddrIndex = TypeIndex
 # The 32-byte script hash of a P2WSH output.
-P2WSHBytes = U8x32
+P2WSHBytes = str
 # Unsigned parts per million stored as u32.
 # One unit is 0.000001. Range: 0–4,294.967294.
 # Use for precise bounded ratios and percentages.
@@ -1388,6 +1382,14 @@ class OptionalTimestampParam(TypedDict, total=False):
     Optional UNIX timestamp query parameter
     """
     timestamp: Union[Timestamp, None]
+
+class OutPoint(TypedDict):
+    """
+    The output a transaction input spends: its transaction index and output position, written as
+    `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 65535}`).
+    """
+    tx_index: TxIndex
+    vout: Vout
 
 class PaginatedSeries(TypedDict):
     """
@@ -3694,7 +3696,7 @@ class Cycle(_Node):
     pct99: Spot[Optional[SatsFract]] = _at(Spot, '*_pct99')
     pct99_5: Spot[Optional[SatsFract]] = _at(Spot, '*_pct99_5')
     pct99_9: Spot[Optional[SatsFract]] = _at(Spot, '*_pct99_9')
-    index: SeriesPattern2[Score] = _at(SeriesPattern2, '*_index')
+    level: SeriesPattern2[Score] = _at(SeriesPattern2, '*_level')
     score: SeriesPattern2[Score] = _at(SeriesPattern2, '*_score')
 
 
@@ -4389,29 +4391,9 @@ class BlocksMined(_Node):
     sum: PerSec[Count] = _at(PerSec, '*_sum')
 
 
-class Rolling(_Node):
+class Rolling(_Node, Generic[A]):
     sum: PerSec[Count] = _at(PerSec, '*_sum')
     average: PerSec[Optional[CountFract]] = _at(PerSec, '*_average')
-    min: PerSec[Count] = _at(PerSec, '*_min')
-    max: PerSec[Count] = _at(PerSec, '*_max')
-    pct10: PerSec[Count] = _at(PerSec, '*_pct10')
-    pct25: PerSec[Count] = _at(PerSec, '*_pct25')
-    median: PerSec[Count] = _at(PerSec, '*_median')
-    pct75: PerSec[Count] = _at(PerSec, '*_pct75')
-    pct90: PerSec[Count] = _at(PerSec, '*_pct90')
-
-
-class InputsCount(_Node):
-    sum: SeriesPattern21[Count] = _at(SeriesPattern21, '*_sum')
-    cumulative: SeriesPattern2[Count] = _at(SeriesPattern2, '*_cumulative')
-    rolling: Rolling = _at(Rolling, '*')
-
-
-class Vbytes(_Node, Generic[A, B]):
-    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
-    cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
-    sum: PerSec[A] = _at(PerSec, '*_sum')
-    average: PerSec[B] = _at(PerSec, '*_average')
     min: PerSec[A] = _at(PerSec, '*_min')
     max: PerSec[A] = _at(PerSec, '*_max')
     pct10: PerSec[A] = _at(PerSec, '*_pct10')
@@ -4419,6 +4401,26 @@ class Vbytes(_Node, Generic[A, B]):
     median: PerSec[A] = _at(PerSec, '*_median')
     pct75: PerSec[A] = _at(PerSec, '*_pct75')
     pct90: PerSec[A] = _at(PerSec, '*_pct90')
+
+
+class InputsCount(_Node, Generic[A]):
+    sum: SeriesPattern21[Count] = _at(SeriesPattern21, '*_sum')
+    cumulative: SeriesPattern2[Count] = _at(SeriesPattern2, '*_cumulative')
+    rolling: Rolling[A] = _at(Rolling, '*')
+
+
+class Vbytes(_Node, Generic[A, B, C]):
+    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
+    cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
+    sum: PerSec[A] = _at(PerSec, '*_sum')
+    average: PerSec[B] = _at(PerSec, '*_average')
+    min: PerSec[C] = _at(PerSec, '*_min')
+    max: PerSec[C] = _at(PerSec, '*_max')
+    pct10: PerSec[C] = _at(PerSec, '*_pct10')
+    pct25: PerSec[C] = _at(PerSec, '*_pct25')
+    median: PerSec[C] = _at(PerSec, '*_median')
+    pct75: PerSec[C] = _at(PerSec, '*_pct75')
+    pct90: PerSec[C] = _at(PerSec, '*_pct90')
 
 
 class NewAll(_Node, Generic[A, B]):
@@ -4618,13 +4620,13 @@ class BlocksWeight(_Node):
     cumulative: SeriesPattern2[Weight64] = _at(SeriesPattern2, '*_cumulative')
     sum: PerSec[Weight64] = _at(PerSec, '*_sum')
     average: PerSec[Optional[WeightFract]] = _at(PerSec, '*_average')
-    min: PerSec[Weight64] = _at(PerSec, '*_min')
-    max: PerSec[Weight64] = _at(PerSec, '*_max')
-    pct10: PerSec[Weight64] = _at(PerSec, '*_pct10')
-    pct25: PerSec[Weight64] = _at(PerSec, '*_pct25')
-    median: PerSec[Weight64] = _at(PerSec, '*_median')
-    pct75: PerSec[Weight64] = _at(PerSec, '*_pct75')
-    pct90: PerSec[Weight64] = _at(PerSec, '*_pct90')
+    min: PerSec[Weight] = _at(PerSec, '*_min')
+    max: PerSec[Weight] = _at(PerSec, '*_max')
+    pct10: PerSec[Weight] = _at(PerSec, '*_pct10')
+    pct25: PerSec[Weight] = _at(PerSec, '*_pct25')
+    median: PerSec[Weight] = _at(PerSec, '*_median')
+    pct75: PerSec[Weight] = _at(PerSec, '*_pct75')
+    pct90: PerSec[Weight] = _at(PerSec, '*_pct90')
 
 
 class BlocksSize(_Node):
@@ -4632,13 +4634,13 @@ class BlocksSize(_Node):
     cumulative: SeriesPattern2[Bytes] = _at(SeriesPattern2, 'block_*_cumulative')
     sum: PerSec[Bytes] = _at(PerSec, 'block_*_sum')
     average: PerSec[Optional[BytesFract]] = _at(PerSec, 'block_*_average')
-    min: PerSec[Bytes] = _at(PerSec, 'block_*_min')
-    max: PerSec[Bytes] = _at(PerSec, 'block_*_max')
-    pct10: PerSec[Bytes] = _at(PerSec, 'block_*_pct10')
-    pct25: PerSec[Bytes] = _at(PerSec, 'block_*_pct25')
-    median: PerSec[Bytes] = _at(PerSec, 'block_*_median')
-    pct75: PerSec[Bytes] = _at(PerSec, 'block_*_pct75')
-    pct90: PerSec[Bytes] = _at(PerSec, 'block_*_pct90')
+    min: PerSec[Bytes32] = _at(PerSec, 'block_*_min')
+    max: PerSec[Bytes32] = _at(PerSec, 'block_*_max')
+    pct10: PerSec[Bytes32] = _at(PerSec, 'block_*_pct10')
+    pct25: PerSec[Bytes32] = _at(PerSec, 'block_*_pct25')
+    median: PerSec[Bytes32] = _at(PerSec, 'block_*_median')
+    pct75: PerSec[Bytes32] = _at(PerSec, 'block_*_pct75')
+    pct90: PerSec[Bytes32] = _at(PerSec, 'block_*_pct90')
 
 
 class Time(_Node):
@@ -5158,7 +5160,7 @@ class OutputsByType(_Node):
 class Outputs(_Node):
     raw: OutputsRaw = _at(OutputsRaw, 'type')
     spent: Spent = _at(Spent, 'txin_index')
-    count: OutputsCount[InputsCount] = _at((OutputsCount, InputsCount), '*_count')
+    count: OutputsCount[InputsCount[Count32]] = _at((OutputsCount, InputsCount), '*_count')
     per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'outputs_per_sec')
     by_type: OutputsByType = _at(OutputsByType, '*')
     value: OutputsValue = _at(OutputsValue, 'op_return_value')
@@ -5752,7 +5754,7 @@ class InputsByType(_Node):
 class Inputs(_Node):
     raw: InputsRaw = _at(InputsRaw, 'index')
     value: SeriesPattern23[Sats] = _at(SeriesPattern23, 'value')
-    count: InputsCount = _at(InputsCount, 'input_*')
+    count: InputsCount[Count16] = _at(InputsCount, 'input_*')
     per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'inputs_per_sec')
     by_type: InputsByType = _at(InputsByType, '*')
 
@@ -5771,7 +5773,7 @@ class Inscription(_Node):
 class Transactions(_Node):
     raw: TransactionsRaw = _at(TransactionsRaw, '*')
     features: Features = _at(Features, 'has')
-    count: OutputsCount[Vbytes[Count, Optional[CountFract]]] = _at((OutputsCount, Vbytes), '*_count')
+    count: OutputsCount[Vbytes[Count, Optional[CountFract], Count16]] = _at((OutputsCount, Vbytes), '*_count')
     size: TransactionsSize = _at(TransactionsSize, '*')
     fees: TransactionsFees = _at(TransactionsFees, 'fee')
     inscription: Inscription = _at(Inscription, 'inscription')
@@ -5804,7 +5806,7 @@ class Blocks(_Node):
     count: BlocksCount = _at(BlocksCount, '*_count')
     lookback: BlocksLookback = _at(BlocksLookback, 'height')
     interval: Interval[Seconds, Optional[SecondsFract]] = _at(Interval, '*_interval')
-    vbytes: Vbytes[VSize, Optional[VSizeFract]] = _at(Vbytes, '*_vbytes')
+    vbytes: Vbytes[VSize, Optional[VSizeFract], VSize] = _at(Vbytes, '*_vbytes')
     fullness: Fullness = _at(Fullness, '*_fullness')
     halving: BlocksHalving = _at(BlocksHalving, 'halving')
 

@@ -6,8 +6,8 @@ use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{
-    AnyStoredVec, AnyVec, Database, Ident, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
-    UnaryTransform, VecValue, WritableVec,
+    AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue,
+    WritableVec,
 };
 
 use crate::{
@@ -16,27 +16,23 @@ use crate::{
 
 /// Cumulative source of truth with lazy exact per-block values and rolling averages.
 #[derive(Traversable)]
-pub struct PerBlockCumulativeAverage<T, C = T, M: StorageMode = Rw, F = Ident>
+pub struct PerBlockCumulativeAverage<T, M: StorageMode = Rw>
 where
-    T: NumericValue + JsonSchema,
-    C: NumericValue + JsonSchema + Quantity,
-    F: UnaryTransform<C, T>,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
-    block: LazyPreviousDeltaVec<Height, C, T, F>,
+    block: LazyPreviousDeltaVec<Height, T>,
     #[traversable(hidden)]
-    cumulative: CachedSeries<Height, C, M>,
+    cumulative: CachedSeries<Height, T, M>,
     #[traversable(flatten)]
-    average: LazyRollingAvgsFromHeight<C>,
-    last_cumulative: M::WriteOnly<Option<(usize, C)>>,
+    average: LazyRollingAvgsFromHeight<T>,
+    last_cumulative: M::WriteOnly<Option<(usize, T)>>,
 }
 
-impl<T, C, F> PerBlockCumulativeAverage<T, C, Rw, F>
+impl<T> PerBlockCumulativeAverage<T>
 where
-    T: NumericValue + JsonSchema + Into<C>,
-    C: NumericValue + JsonSchema + Quantity,
-    F: UnaryTransform<C, T>,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     pub fn import(
         db: &Database,
@@ -50,7 +46,7 @@ where
         let last_cumulative = cumulative
             .collect_last()
             .map(|value| (cumulative.len(), value));
-        let block = LazyPreviousDeltaVec::transformed(name, version, &cumulative);
+        let block = LazyPreviousDeltaVec::new(name, version, &cumulative);
         let average = LazyRollingAvgsFromHeight::new(
             &format!("{name}_average"),
             cumulative_version,
@@ -70,14 +66,14 @@ where
     #[inline(always)]
     pub fn push_block(&mut self, value: T)
     where
-        C: Copy,
+        T: Copy,
     {
         let len = self.cumulative.len();
         let mut cumulative = match self.last_cumulative {
             Some((cached_len, value)) if cached_len == len => value,
             _ => self.cumulative.collect_last().unwrap_or_default(),
         };
-        cumulative += value.into();
+        cumulative += value;
         self.cumulative.push(cumulative);
         self.last_cumulative = Some((len + 1, cumulative));
     }
@@ -91,7 +87,7 @@ where
     ) -> Result<()>
     where
         S: VecValue,
-        C: Copy,
+        T: Copy,
     {
         let mut cumulative = None;
         self.cumulative.compute_transform(
@@ -104,7 +100,7 @@ where
                         .and_then(|height| this.collect_one(height))
                         .unwrap_or_default()
                 });
-                *cumulative += transform(height, value).into();
+                *cumulative += transform(height, value);
                 (height, *cumulative)
             },
             exit,

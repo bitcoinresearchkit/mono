@@ -6,7 +6,7 @@ use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::{BasisPoints32, Days, Float32, Years};
 use bitview_vecs::{
-    BasisPointsPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock, PercentPerBlock,
+    BasisPointsPerBlock, FixedRatioPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock,
     RatioPerBlock,
 };
 use brk_error::Result;
@@ -47,7 +47,7 @@ impl Vecs {
         );
         let nvt =
             LazyBasisPointsPerBlock::from_height_source("nvt", bps_version, &nvt_source, mappings);
-        let gini = PercentPerBlock::import(&db, "gini", v, mappings)?;
+        let gini = FixedRatioPerBlock::import(&db, "gini", v, mappings)?;
         let rhodl_ratio = RatioPerBlock::import_ppm(&db, "rhodl_ratio", v, mappings)?;
         let thermo_source = all_chain.with_market_cap(
             "thermo_cap_multiple_bps_source",

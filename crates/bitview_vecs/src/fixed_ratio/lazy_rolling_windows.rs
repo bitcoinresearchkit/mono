@@ -8,7 +8,7 @@ use vecdb::{
     BinaryTransform, DeltaAvg, LazyDeltaVec, ReadableCloneableVec, ReverseOperands, UnaryTransform,
 };
 
-use crate::{IndexSources, LazyPercentPerBlock, LazyRollingRatioVec};
+use crate::{IndexSources, LazyFixedRatioPerBlock, LazyRollingRatioVec};
 
 /// Fully lazy rolling percent windows — 4 windows (24h, 1w, 1m, 1y),
 /// each with lazy PPM + lazy ratio/percent float views.
@@ -16,9 +16,9 @@ use crate::{IndexSources, LazyPercentPerBlock, LazyRollingRatioVec};
 /// No stored vecs. All values are derived from one source.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyPercentRollingWindows<B: FixedRatio>(pub Windows<LazyPercentPerBlock<B>>);
+pub struct LazyFixedRatioRollingWindows<B: FixedRatio>(pub Windows<LazyFixedRatioPerBlock<B>>);
 
-impl<B: FixedRatio> LazyPercentRollingWindows<B> {
+impl<B: FixedRatio> LazyFixedRatioRollingWindows<B> {
     pub(crate) fn from_cumulative_ratio<S, D, F>(
         name: &str,
         version: Version,
@@ -87,7 +87,7 @@ impl<B: FixedRatio> LazyPercentRollingWindows<B> {
                 operand,
                 *window_start,
             );
-            LazyPercentPerBlock::from_height_source(&full_name, version, &ratio, indexes)
+            LazyFixedRatioPerBlock::from_height_source(&full_name, version, &ratio, indexes)
         }))
     }
 
@@ -114,7 +114,7 @@ impl<B: FixedRatio> LazyPercentRollingWindows<B> {
                 operand,
             );
 
-            LazyPercentPerBlock::from_height_source(&full_name, version, &average, indexes)
+            LazyFixedRatioPerBlock::from_height_source(&full_name, version, &average, indexes)
         }))
     }
 
@@ -124,7 +124,7 @@ impl<B: FixedRatio> LazyPercentRollingWindows<B> {
         source: &Self,
     ) -> Self {
         Self(source.0.map_with_suffix(|suffix, source_window| {
-            LazyPercentPerBlock::from_lazy_percent::<F>(
+            LazyFixedRatioPerBlock::from_lazy_fixed_ratio::<F>(
                 &format!("{name}_{suffix}"),
                 version,
                 source_window,

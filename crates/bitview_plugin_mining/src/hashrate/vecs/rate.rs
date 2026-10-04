@@ -1,6 +1,6 @@
 use bitview_primitives::{Hashrate, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{PerBlock, PercentPerBlock};
+use bitview_vecs::{FixedRatioPerBlock, PerBlock};
 use vecdb::{Rw, StorageMode};
 
 use super::HashRateSmaVecs;
@@ -19,5 +19,5 @@ pub struct RateVecs<M: StorageMode = Rw> {
     /// Estimated network hash rate divided by its running all-time high, minus
     /// one. Zero marks an all-time high; negative values measure the drawdown
     /// below it.
-    pub drawdown: PercentPerBlock<PartsPerMillionSigned32, M>,
+    pub drawdown: FixedRatioPerBlock<PartsPerMillionSigned32, M>,
 }

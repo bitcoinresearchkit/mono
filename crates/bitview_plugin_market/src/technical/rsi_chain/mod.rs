@@ -1,7 +1,7 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64, Ratio};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlock, PerBlock, PercentPerBlock};
+use bitview_vecs::{FixedRatioPerBlock, LazyPerBlock, PerBlock};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode, UnaryTransform};
@@ -38,23 +38,23 @@ pub struct RsiChain<M: StorageMode = Rw> {
     /// average gain and loss. The result ranges from 0% to 100%; values above
     /// 50% mean smoothed gains exceed losses, and values below 50% mean losses
     /// exceed gains. Returns 50% when both averages are zero.
-    pub rsi: PercentPerBlock<PartsPerMillion32, M>,
+    pub rsi: FixedRatioPerBlock<PartsPerMillion32, M>,
     #[traversable(hidden)]
-    rsi_min: PercentPerBlock<PartsPerMillion32, M>,
+    rsi_min: FixedRatioPerBlock<PartsPerMillion32, M>,
     #[traversable(hidden)]
-    rsi_max: PercentPerBlock<PartsPerMillion32, M>,
+    rsi_max: FixedRatioPerBlock<PartsPerMillion32, M>,
     #[traversable(hidden)]
-    stoch_rsi: PercentPerBlock<PartsPerMillion32, M>,
+    stoch_rsi: FixedRatioPerBlock<PartsPerMillion32, M>,
     /// Simple moving average of Stochastic RSI over three times the chain's
     /// base interval. Stochastic RSI locates RSI within its trailing RSI range,
     /// from 0% at the range minimum to 100% at the range maximum; this K line
     /// smooths that position.
-    pub stoch_rsi_k: PercentPerBlock<PartsPerMillion32, M>,
+    pub stoch_rsi_k: FixedRatioPerBlock<PartsPerMillion32, M>,
     /// Signal line for Stochastic RSI: the simple moving average of its K line
     /// over three times the chain's base interval. K above D means the smoothed
     /// position of RSI within its recent range is rising relative to this
     /// slower signal; K below D means it is falling.
-    pub stoch_rsi_d: PercentPerBlock<PartsPerMillion32, M>,
+    pub stoch_rsi_d: FixedRatioPerBlock<PartsPerMillion32, M>,
 }
 
 impl RsiChain {
@@ -73,13 +73,13 @@ impl RsiChain {
 
         macro_rules! percent_import {
             ($name:expr) => {
-                PercentPerBlock::import(db, &format!("rsi_{}_{}", $name, tf), version, mappings)?
+                FixedRatioPerBlock::import(db, &format!("rsi_{}_{}", $name, tf), version, mappings)?
             };
         }
 
         let average_gain = import!("average_gain");
         let average_loss = import!("average_loss");
-        let rsi = PercentPerBlock::import(db, &format!("rsi_{tf}"), version, mappings)?;
+        let rsi = FixedRatioPerBlock::import(db, &format!("rsi_{tf}"), version, mappings)?;
 
         Ok(RsiChain {
             gains: LazyPerBlock::from_lazy::<Gain, PartsPerMillionSigned64>(

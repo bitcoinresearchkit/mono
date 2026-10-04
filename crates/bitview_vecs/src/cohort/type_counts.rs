@@ -7,7 +7,7 @@ use derive_more::{Deref, DerefMut};
 use vecdb::{LazyVec, ReadableCloneableVec};
 
 use crate::{
-    CountTotal, IndexSources, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling,
+    CountTotal, IndexSources, LazyFixedRatioCumulativeRolling, LazyPerBlockCumulativeRolling,
 };
 
 /// A shared total plus a typed count breakdown. The group determines membership;
@@ -62,7 +62,7 @@ macro_rules! impl_type_counts {
                 name: impl Fn(&str) -> String,
                 windows: &Windows<&impl ReadableCloneableVec<Height, Height>>,
                 indexes: &IndexSources,
-            ) -> $group<LazyPercentCumulativeRolling<PartsPerMillion32>> {
+            ) -> $group<LazyFixedRatioCumulativeRolling<PartsPerMillion32>> {
                 self.by_type.map_with_id(|id, source| {
                     self.total.lazy_share(
                         &name(id.name()),

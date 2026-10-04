@@ -7,7 +7,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_vecs::{
-    LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
+    LazyFiatPerBlock, LazyFixedRatioPerBlock, LazyPerBlock, LazyRollingDeltasFiatFromHeight,
     LazySpotValuePerBlock, LazyValuePerBlock, LazyWindowStartVec, LazyWindowVec,
 };
 use brk_error::Result;
@@ -50,7 +50,7 @@ impl Vecs {
                 }
             },
         );
-        let inflation_rate = LazyPercentPerBlock::from_height_source(
+        let inflation_rate = LazyFixedRatioPerBlock::from_height_source(
             "inflation_rate",
             inflation_version,
             &inflation_source,

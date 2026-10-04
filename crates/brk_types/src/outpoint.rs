@@ -10,11 +10,11 @@ use crate::{TxIndex, Vout};
 use vecdb::{Formattable, Pco};
 
 /// The output a transaction input spends: its transaction index and output position, written as
-/// `tx_index: N, vout: M` (coinbase inputs: `tx_index: 4294967295, vout: 65535`).
+/// `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 65535}`).
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
-pub struct OutPoint(u64);
+pub struct OutPoint(#[cfg_attr(feature = "schemars", schemars(with = "OutPointParts"))] u64);
 
 impl OutPoint {
     pub const COINBASE: Self = Self(u64::MAX);
@@ -73,9 +73,11 @@ impl Formattable for OutPoint {
     }
 
     fn fmt_json(&self, buf: &mut Vec<u8>) {
-        buf.push(b'"');
-        self.write_to(buf);
-        buf.push(b'"');
+        buf.extend_from_slice(b"{\"tx_index\":");
+        self.tx_index().write_to(buf);
+        buf.extend_from_slice(b",\"vout\":");
+        self.vout().write_to(buf);
+        buf.push(b'}');
     }
 }
 
@@ -97,12 +99,19 @@ impl<'de> Deserialize<'de> for OutPoint {
     where
         D: Deserializer<'de>,
     {
-        #[derive(Deserialize)]
-        struct Helper {
-            tx_index: TxIndex,
-            vout: Vout,
+        let parts = OutPointParts::deserialize(deserializer)?;
+        if u32::from(parts.tx_index) == u32::MAX && parts.vout == Vout::MAX {
+            return Ok(Self::COINBASE);
         }
-        let h = Helper::deserialize(deserializer)?;
-        Ok(Self::new(h.tx_index, h.vout))
+        Ok(Self::new(parts.tx_index, parts.vout))
     }
+}
+
+/// The serialized form of an `OutPoint`.
+#[derive(Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", schemars(inline))]
+struct OutPointParts {
+    tx_index: TxIndex,
+    vout: Vout,
 }

@@ -1132,6 +1132,9 @@ impl SeriesValue for Count {
 impl SeriesValue for Count16 {
     type Nullable = Option<Count16>;
 }
+impl SeriesValue for Count32 {
+    type Nullable = Option<Count32>;
+}
 impl SeriesValue for CountSigned {
     type Nullable = Option<CountSigned>;
 }
@@ -1742,7 +1745,7 @@ pub mod tree {
         pct99: Spot<Option<SatsFract>> = "*_pct99",
         pct99_5: Spot<Option<SatsFract>> = "*_pct99_5",
         pct99_9: Spot<Option<SatsFract>> = "*_pct99_9",
-        index: SeriesPattern2<Score> = "*_index",
+        level: SeriesPattern2<Score> = "*_level",
         score: SeriesPattern2<Score> = "*_score",
     } }
     shape! { Pct999 at "series().rarity_meter.components.active_price.pct99_9" {
@@ -2355,27 +2358,9 @@ pub mod tree {
         cumulative: SeriesPattern2<Count> = "*_cumulative",
         sum: PerSec<Count> = "*_sum",
     } }
-    shape! { Rolling at "series().inputs.count.rolling" {
+    shape! { Rolling<A> at "series().inputs.count.rolling" {
         sum: PerSec<Count> = "*_sum",
         average: PerSec<Option<CountFract>> = "*_average",
-        min: PerSec<Count> = "*_min",
-        max: PerSec<Count> = "*_max",
-        pct10: PerSec<Count> = "*_pct10",
-        pct25: PerSec<Count> = "*_pct25",
-        median: PerSec<Count> = "*_median",
-        pct75: PerSec<Count> = "*_pct75",
-        pct90: PerSec<Count> = "*_pct90",
-    } }
-    shape! { InputsCount at "series().inputs.count" {
-        sum: SeriesPattern21<Count> = "*_sum",
-        cumulative: SeriesPattern2<Count> = "*_cumulative",
-        rolling: Rolling = "*",
-    } }
-    shape! { Vbytes<A, B> at "series().blocks.vbytes" {
-        block: SeriesPattern21<A> = "*",
-        cumulative: SeriesPattern2<A> = "*_cumulative",
-        sum: PerSec<A> = "*_sum",
-        average: PerSec<B> = "*_average",
         min: PerSec<A> = "*_min",
         max: PerSec<A> = "*_max",
         pct10: PerSec<A> = "*_pct10",
@@ -2383,6 +2368,24 @@ pub mod tree {
         median: PerSec<A> = "*_median",
         pct75: PerSec<A> = "*_pct75",
         pct90: PerSec<A> = "*_pct90",
+    } }
+    shape! { InputsCount<A> at "series().inputs.count" {
+        sum: SeriesPattern21<Count> = "*_sum",
+        cumulative: SeriesPattern2<Count> = "*_cumulative",
+        rolling: Rolling<A> = "*",
+    } }
+    shape! { Vbytes<A, B, C> at "series().blocks.vbytes" {
+        block: SeriesPattern21<A> = "*",
+        cumulative: SeriesPattern2<A> = "*_cumulative",
+        sum: PerSec<A> = "*_sum",
+        average: PerSec<B> = "*_average",
+        min: PerSec<C> = "*_min",
+        max: PerSec<C> = "*_max",
+        pct10: PerSec<C> = "*_pct10",
+        pct25: PerSec<C> = "*_pct25",
+        median: PerSec<C> = "*_median",
+        pct75: PerSec<C> = "*_pct75",
+        pct90: PerSec<C> = "*_pct90",
     } }
     shape! { NewAll<A, B> at "series().addrs.new.all" {
         block: SeriesPattern21<A> = "*",
@@ -2563,26 +2566,26 @@ pub mod tree {
         cumulative: SeriesPattern2<Weight64> = "*_cumulative",
         sum: PerSec<Weight64> = "*_sum",
         average: PerSec<Option<WeightFract>> = "*_average",
-        min: PerSec<Weight64> = "*_min",
-        max: PerSec<Weight64> = "*_max",
-        pct10: PerSec<Weight64> = "*_pct10",
-        pct25: PerSec<Weight64> = "*_pct25",
-        median: PerSec<Weight64> = "*_median",
-        pct75: PerSec<Weight64> = "*_pct75",
-        pct90: PerSec<Weight64> = "*_pct90",
+        min: PerSec<Weight> = "*_min",
+        max: PerSec<Weight> = "*_max",
+        pct10: PerSec<Weight> = "*_pct10",
+        pct25: PerSec<Weight> = "*_pct25",
+        median: PerSec<Weight> = "*_median",
+        pct75: PerSec<Weight> = "*_pct75",
+        pct90: PerSec<Weight> = "*_pct90",
     } }
     shape! { BlocksSize at "series().blocks.size" {
         base: SeriesPattern21<Bytes32> = "total_*",
         cumulative: SeriesPattern2<Bytes> = "block_*_cumulative",
         sum: PerSec<Bytes> = "block_*_sum",
         average: PerSec<Option<BytesFract>> = "block_*_average",
-        min: PerSec<Bytes> = "block_*_min",
-        max: PerSec<Bytes> = "block_*_max",
-        pct10: PerSec<Bytes> = "block_*_pct10",
-        pct25: PerSec<Bytes> = "block_*_pct25",
-        median: PerSec<Bytes> = "block_*_median",
-        pct75: PerSec<Bytes> = "block_*_pct75",
-        pct90: PerSec<Bytes> = "block_*_pct90",
+        min: PerSec<Bytes32> = "block_*_min",
+        max: PerSec<Bytes32> = "block_*_max",
+        pct10: PerSec<Bytes32> = "block_*_pct10",
+        pct25: PerSec<Bytes32> = "block_*_pct25",
+        median: PerSec<Bytes32> = "block_*_median",
+        pct75: PerSec<Bytes32> = "block_*_pct75",
+        pct90: PerSec<Bytes32> = "block_*_pct90",
     } }
     shape! { Time at "series().blocks.time" {
         timestamp: SeriesPattern21<Timestamp> = "*",
@@ -3061,7 +3064,7 @@ pub mod tree {
     shape! { Outputs at "series().outputs" {
         raw: OutputsRaw = "type",
         spent: Spent = "txin_index",
-        count: OutputsCount<InputsCount> = "*_count",
+        count: OutputsCount<InputsCount<Count32>> = "*_count",
         per_sec: PerSec<Option<PerSecond>> = "outputs_per_sec",
         by_type: OutputsByType = "*",
         value: OutputsValue = "op_return_value",
@@ -3593,7 +3596,7 @@ pub mod tree {
     shape! { Inputs at "series().inputs" {
         raw: InputsRaw = "index",
         value: SeriesPattern23<Sats> = "value",
-        count: InputsCount = "input_*",
+        count: InputsCount<Count16> = "input_*",
         per_sec: PerSec<Option<PerSecond>> = "inputs_per_sec",
         by_type: InputsByType = "*",
     } }
@@ -3609,7 +3612,7 @@ pub mod tree {
     shape! { Transactions at "series().transactions" {
         raw: TransactionsRaw = "*",
         features: Features = "has",
-        count: OutputsCount<Vbytes<Count, Option<CountFract>>> = "*_count",
+        count: OutputsCount<Vbytes<Count, Option<CountFract>, Count16>> = "*_count",
         size: TransactionsSize = "*",
         fees: TransactionsFees = "fee",
         inscription: Inscription = "inscription",
@@ -3640,7 +3643,7 @@ pub mod tree {
         count: BlocksCount = "*_count",
         lookback: BlocksLookback = "height",
         interval: Interval<Seconds, Option<SecondsFract>> = "*_interval",
-        vbytes: Vbytes<VSize, Option<VSizeFract>> = "*_vbytes",
+        vbytes: Vbytes<VSize, Option<VSizeFract>, VSize> = "*_vbytes",
         fullness: Fullness = "*_fullness",
         halving: BlocksHalving = "halving",
     } }

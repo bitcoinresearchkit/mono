@@ -8,7 +8,7 @@ use bitview_primitives::{Count, PartsPerMillion32, Percent, Percent64};
 use bitview_transforms::RatioCount;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyPercentCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeAverage,
+    LazyFixedRatioCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeAverage,
     PerBlockCumulativeRolling, PerBlockRollingAverage,
 };
 use brk_error::Result;
@@ -74,10 +74,11 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
     pub output_to_reused_addr_count: WithAddrTypes<PerBlockCumulativeRolling<Count, M>>,
     /// Share of outputs classified by an address-event rule, using
     /// the matching output type as denominator.
-    pub output_to_reused_addr_share: WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>>,
+    pub output_to_reused_addr_share:
+        WithAddrTypes<LazyFixedRatioCumulativeRolling<PartsPerMillion32>>,
     /// Share of spendable outputs classified by an address-event
     /// rule; `OP_RETURN` outputs are excluded from the denominator.
-    pub spendable_output_to_reused_addr_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
+    pub spendable_output_to_reused_addr_share: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
     /// Inputs spending from addresses that satisfied an address predicate
     /// before that input: more than one prior lifetime receive for reuse, or
     /// more than one prior lifetime spend for respending. Multiple qualifying
@@ -86,10 +87,10 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
     /// Share of inputs spending from addresses that satisfy an address
     /// predicate, using the matching input type as denominator.
     pub input_from_reused_addr_share:
-        WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>>,
+        WithAddrTypes<LazyFixedRatioCumulativeRolling<PartsPerMillion32>>,
     /// Distinct active addresses in the represented block that satisfy the
     /// address predicate after that block's events.
-    pub active_reused_addr_count: PerBlockCumulativeAverage<Count, Count, M>,
+    pub active_reused_addr_count: PerBlockCumulativeAverage<Count, M>,
     /// Share of distinct active addresses in the represented block that
     /// satisfy an address predicate after that block's events.
     pub active_reused_addr_share: PerBlockRollingAverage<Percent, Percent64, M>,
@@ -101,12 +102,12 @@ impl AddrEventsVecs {
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        all: LazyPercentCumulativeRolling<PartsPerMillion32>,
+        all: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
         numerators: &ByAddrType<PerBlockCumulativeRolling<Count>>,
         denominators: &ByAddrType<impl ReadableCloneableVec<Height, Count>>,
-    ) -> WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>> {
+    ) -> WithAddrTypes<LazyFixedRatioCumulativeRolling<PartsPerMillion32>> {
         let by_addr_type = AddrTypeId::series(|id, type_name| {
-            LazyPercentCumulativeRolling::from_cumulative_ratio_with_numerator::<
+            LazyFixedRatioCumulativeRolling::from_cumulative_ratio_with_numerator::<
                 Count,
                 Count,
                 RatioCount<PartsPerMillion32>,
@@ -169,7 +170,7 @@ impl AddrEventsVecs {
         );
         let spendable_share_name = format!("spendable_output_to_{name}_addr_share");
         let spendable_output_to_reused_addr_share =
-            LazyPercentCumulativeRolling::from_cumulative_ratio::<
+            LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
                 Count,
                 Count,
                 RatioCount<PartsPerMillion32>,

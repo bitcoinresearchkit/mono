@@ -3,7 +3,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillion64};
 use bitview_transforms::{OneMinusPpm, RatioSats};
 use bitview_vecs::{
-    LazyPercentCumulativeRolling, LazyPercentRollingWindows, LazyWindowStartVec,
+    LazyFixedRatioCumulativeRolling, LazyFixedRatioRollingWindows, LazyWindowStartVec,
     ValuePerBlockCumulative, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
 };
 use brk_error::Result;
@@ -36,7 +36,7 @@ impl Vecs {
         let fees = ValuePerBlockFull::import(db, "fees", version, mappings, window_starts)?;
         let fees_source = fees.cumulative_sats_source();
 
-        let fee_dominance = LazyPercentCumulativeRolling::from_cumulative_ratio_with_numerator::<
+        let fee_dominance = LazyFixedRatioCumulativeRolling::from_cumulative_ratio_with_numerator::<
             Sats,
             Sats,
             RatioSats<PartsPerMillion32>,
@@ -48,12 +48,12 @@ impl Vecs {
             window_starts,
             mappings,
         );
-        let subsidy_dominance = LazyPercentCumulativeRolling::from_lazy_source::<OneMinusPpm>(
+        let subsidy_dominance = LazyFixedRatioCumulativeRolling::from_lazy_source::<OneMinusPpm>(
             "subsidy_dominance",
             version,
             &fee_dominance,
         );
-        let fee_to_subsidy = LazyPercentRollingWindows::from_cumulative_ratio_with_numerator::<
+        let fee_to_subsidy = LazyFixedRatioRollingWindows::from_cumulative_ratio_with_numerator::<
             Sats,
             Sats,
             RatioSats<PartsPerMillion64>,

@@ -3,7 +3,7 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned32, PartsPerMillionSigned64};
 use bitview_transforms::{RatioCents, RatioCentsSignedCents, RatioDollars, RatioSats};
 use bitview_traversable::Traversable;
-use bitview_vecs::PercentPerBlock;
+use bitview_vecs::FixedRatioPerBlock;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
@@ -12,21 +12,21 @@ use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
 use crate::metrics::Metrics;
 #[derive(Traversable)]
 pub struct Relative<M: StorageMode = Rw> {
-    pub supply_dominance: PercentPerBlock<PartsPerMillion32, M>,
-    pub supply_in_profit_share: PercentPerBlock<PartsPerMillion32, M>,
-    pub supply_in_loss_share: PercentPerBlock<PartsPerMillion32, M>,
-    pub unrealized_profit_to_mcap: PercentPerBlock<PartsPerMillion32, M>,
-    pub unrealized_loss_to_mcap: PercentPerBlock<PartsPerMillion32, M>,
-    pub unrealized_profit_to_own_mcap: PercentPerBlock<PartsPerMillion32, M>,
-    pub unrealized_loss_to_own_mcap: PercentPerBlock<PartsPerMillion32, M>,
-    pub unrealized_profit_to_own_gross_pnl: PercentPerBlock<PartsPerMillion32, M>,
-    pub unrealized_loss_to_own_gross_pnl: PercentPerBlock<PartsPerMillion32, M>,
-    pub net_unrealized_pnl_to_own_gross_pnl: PercentPerBlock<PartsPerMillionSigned32, M>,
-    pub invested_capital_in_profit_share: PercentPerBlock<PartsPerMillion32, M>,
-    pub invested_capital_in_loss_share: PercentPerBlock<PartsPerMillion32, M>,
-    pub realized_cap_to_own_mcap: PercentPerBlock<PartsPerMillion32, M>,
-    pub net_pnl_change_1m_to_mcap: PercentPerBlock<PartsPerMillionSigned64, M>,
-    pub net_pnl_change_1m_to_rcap: PercentPerBlock<PartsPerMillionSigned64, M>,
+    pub supply_dominance: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub supply_in_profit_share: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub supply_in_loss_share: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub unrealized_profit_to_mcap: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub unrealized_loss_to_mcap: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub unrealized_profit_to_own_mcap: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub unrealized_loss_to_own_mcap: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub unrealized_profit_to_own_gross_pnl: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub unrealized_loss_to_own_gross_pnl: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub net_unrealized_pnl_to_own_gross_pnl: FixedRatioPerBlock<PartsPerMillionSigned32, M>,
+    pub invested_capital_in_profit_share: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub invested_capital_in_loss_share: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub realized_cap_to_own_mcap: FixedRatioPerBlock<PartsPerMillion32, M>,
+    pub net_pnl_change_1m_to_mcap: FixedRatioPerBlock<PartsPerMillionSigned64, M>,
+    pub net_pnl_change_1m_to_rcap: FixedRatioPerBlock<PartsPerMillionSigned64, M>,
 }
 impl Relative {
     pub(crate) fn import(
@@ -36,91 +36,91 @@ impl Relative {
         mappings: &Mappings,
     ) -> Result<Self> {
         Ok(Self {
-            supply_dominance: PercentPerBlock::import(
+            supply_dominance: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("supply_dominance"),
                 v,
                 mappings,
             )?,
-            supply_in_profit_share: PercentPerBlock::import(
+            supply_in_profit_share: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("supply_in_profit_share"),
                 v,
                 mappings,
             )?,
-            supply_in_loss_share: PercentPerBlock::import(
+            supply_in_loss_share: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("supply_in_loss_share"),
                 v,
                 mappings,
             )?,
-            unrealized_profit_to_mcap: PercentPerBlock::import(
+            unrealized_profit_to_mcap: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("unrealized_profit_to_mcap"),
                 v,
                 mappings,
             )?,
-            unrealized_loss_to_mcap: PercentPerBlock::import(
+            unrealized_loss_to_mcap: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("unrealized_loss_to_mcap"),
                 v,
                 mappings,
             )?,
-            unrealized_profit_to_own_mcap: PercentPerBlock::import(
+            unrealized_profit_to_own_mcap: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("unrealized_profit_to_own_mcap"),
                 v,
                 mappings,
             )?,
-            unrealized_loss_to_own_mcap: PercentPerBlock::import(
+            unrealized_loss_to_own_mcap: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("unrealized_loss_to_own_mcap"),
                 v,
                 mappings,
             )?,
-            unrealized_profit_to_own_gross_pnl: PercentPerBlock::import(
+            unrealized_profit_to_own_gross_pnl: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("unrealized_profit_to_own_gross_pnl"),
                 v,
                 mappings,
             )?,
-            unrealized_loss_to_own_gross_pnl: PercentPerBlock::import(
+            unrealized_loss_to_own_gross_pnl: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("unrealized_loss_to_own_gross_pnl"),
                 v,
                 mappings,
             )?,
-            net_unrealized_pnl_to_own_gross_pnl: PercentPerBlock::import(
+            net_unrealized_pnl_to_own_gross_pnl: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("net_unrealized_pnl_to_own_gross_pnl"),
                 v,
                 mappings,
             )?,
-            invested_capital_in_profit_share: PercentPerBlock::import(
+            invested_capital_in_profit_share: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("invested_capital_in_profit_share"),
                 v,
                 mappings,
             )?,
-            invested_capital_in_loss_share: PercentPerBlock::import(
+            invested_capital_in_loss_share: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("invested_capital_in_loss_share"),
                 v,
                 mappings,
             )?,
-            realized_cap_to_own_mcap: PercentPerBlock::import(
+            realized_cap_to_own_mcap: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("realized_cap_to_own_mcap"),
                 v,
                 mappings,
             )?,
-            net_pnl_change_1m_to_mcap: PercentPerBlock::import(
+            net_pnl_change_1m_to_mcap: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("net_pnl_change_1m_to_mcap"),
                 v,
                 mappings,
             )?,
-            net_pnl_change_1m_to_rcap: PercentPerBlock::import(
+            net_pnl_change_1m_to_rcap: FixedRatioPerBlock::import(
                 db,
                 &id.metric_name("net_pnl_change_1m_to_rcap"),
                 v,

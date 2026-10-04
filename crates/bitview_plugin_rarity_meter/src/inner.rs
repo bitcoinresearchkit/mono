@@ -29,11 +29,11 @@ pub struct RarityMeterInner<M: StorageMode = Rw> {
     /// low; positive values mean it is above upper bands and unusually high;
     /// zero means neither side is crossed. It equals upper boundaries exceeded
     /// minus lower boundaries not reached and ranges from -5 through 5.
-    pub index: PerBlock<Score, M>,
+    pub level: PerBlock<Score, M>,
     /// Agreement score across the meter's component models. More negative
     /// values mean more models identify a rare low valuation; more positive
     /// values mean more models identify a rare high valuation. It sums each
-    /// component's rarity index: two-tailed ratio components contribute from -5
+    /// component's rarity level: two-tailed ratio components contribute from -5
     /// through 5 and lower-only direct components from -5 through 0. The total
     /// is capped to the storage range of -128 through 127.
     pub score: PerBlock<Score, M>,
@@ -60,7 +60,7 @@ impl RarityMeterInner {
 
         Ok(RarityMeterInner {
             prices,
-            index: PerBlock::import(db, &format!("{prefix}_index"), version, mappings)?,
+            level: PerBlock::import(db, &format!("{prefix}_level"), version, mappings)?,
             // Rebuild scores using capped totals instead of overflowing i8 sums.
             score: PerBlock::import(
                 db,
@@ -97,10 +97,10 @@ impl RarityMeterInner {
             exit,
         )?;
         let score_end = source_end.min(spot.len());
-        let index_version = self.prices_version() + spot.version();
-        let index_start = prepare_computed(
-            [&mut self.index.height],
-            index_version,
+        let level_version = self.prices_version() + spot.version();
+        let level_start = prepare_computed(
+            [&mut self.level.height],
+            level_version,
             usize::from(starting_height).min(score_end),
             exit,
         )?;
@@ -111,8 +111,8 @@ impl RarityMeterInner {
             exit,
         )?;
         let mut start = prices_start;
-        if index_start < score_end {
-            start = start.min(index_start);
+        if level_start < score_end {
+            start = start.min(level_start);
         }
         if score_start < score_end {
             start = start.min(score_start);
@@ -142,7 +142,7 @@ impl RarityMeterInner {
                     }
                 }
                 if let Some(&close) = spot.get(offset) {
-                    if height >= index_start {
+                    if height >= level_start {
                         let lower = RarityPercentileId::BOUNDARIES[..5]
                             .iter()
                             .filter(|&&id| close < values[id as usize])
@@ -151,7 +151,7 @@ impl RarityMeterInner {
                             .iter()
                             .filter(|&&id| close > values[id as usize])
                             .count() as i8;
-                        self.index.height.push(Score::new(upper - lower));
+                        self.level.height.push(Score::new(upper - lower));
                     }
                     if height >= score_start {
                         let score = component_prices
@@ -173,7 +173,7 @@ impl RarityMeterInner {
             for price in self.prices.iter_mut() {
                 price.cents.height.write()?;
             }
-            self.index.height.write()?;
+            self.level.height.write()?;
             self.score.height.write()?;
             start = end;
         }
@@ -215,7 +215,7 @@ impl RarityMeterInner {
             exit,
         )?;
 
-        self.compute_index(spot, starting_height, exit)?;
+        self.compute_level(spot, starting_height, exit)?;
         self.compute_combined_score(meters, starting_height, exit)
     }
 
@@ -283,19 +283,19 @@ impl RarityMeterInner {
         self.prices.iter().any(|price| {
             let target = &price.cents.height;
             target.header().computed_version() != target.header().vec_version() + version
-        }) || self.index.height.header().computed_version()
-            != self.index.height.header().vec_version() + self.prices_version() + spot.version()
+        }) || self.level.height.header().computed_version()
+            != self.level.height.header().vec_version() + self.prices_version() + spot.version()
             || self.score.height.header().computed_version()
                 != self.score.height.header().vec_version() + version + spot.version()
             || self.prices_len() != prices_end
-            || self.index.height.len() != score_end
+            || self.level.height.len() != score_end
             || self.score.height.len() != score_end
             || self.prices_len() > starting_height
-            || self.index.height.len() > starting_height
+            || self.level.height.len() > starting_height
             || self.score.height.len() > starting_height
     }
 
-    fn compute_index(
+    fn compute_level(
         &mut self,
         spot: &impl ReadableVec<Height, Cents>,
         starting_height: Height,
@@ -310,18 +310,18 @@ impl RarityMeterInner {
             .min(spot.len());
 
         let version = self.prices_version() + spot.version();
-        self.index.height.compute_batched_to(
+        self.level.height.compute_batched_to(
             starting_height,
             source_end,
             version,
             COMPUTE_BATCH_SIZE,
-            |index, range| {
+            |level, range| {
                 let spot = spot.collect_range_at(range.start, range.end);
                 let bands = bands
                     .each_ref()
                     .map(|band| band.collect_range_at(range.start, range.end));
                 for (offset, price) in spot.into_iter().enumerate() {
-                    index.push(Score::new(Self::score_at(price, &bands, offset)));
+                    level.push(Score::new(Self::score_at(price, &bands, offset)));
                 }
 
                 Ok(())

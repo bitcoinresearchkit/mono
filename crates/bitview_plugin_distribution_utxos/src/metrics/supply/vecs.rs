@@ -3,7 +3,7 @@ use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight, LazyWindowStartVec};
+use bitview_vecs::{LazyFixedRatioPerBlock, LazyRollingDeltasAmountFromHeight, LazyWindowStartVec};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, SatsSigned, Version};
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
@@ -14,7 +14,7 @@ pub struct SupplyVecs<M: StorageMode = Rw> {
     pub total: SupplyTotal<M>,
     pub delta:
         UtxoGroups<LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>>,
-    pub dominance: UtxoGroups<LazyPercentPerBlock<PartsPerMillion32>>,
+    pub dominance: UtxoGroups<LazyFixedRatioPerBlock<PartsPerMillion32>>,
 }
 impl SupplyVecs {
     pub fn import(

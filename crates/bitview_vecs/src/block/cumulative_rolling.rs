@@ -21,7 +21,7 @@ use crate::{IndexSources, LazyPreviousDeltaVec, PerBlock, RollingTotals};
 #[derive(Deref, DerefMut, Traversable)]
 pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw>
 where
-    T: NumericValue + JsonSchema + Quantity,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     pub block: LazyPreviousDeltaVec<Height, T>,
     /// Cumulative value through the represented block. At time-period indexes,
@@ -36,7 +36,7 @@ where
 
 impl<T> PerBlockCumulativeRolling<T>
 where
-    T: NumericValue + JsonSchema + Quantity,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     pub fn import(
         db: &Database,

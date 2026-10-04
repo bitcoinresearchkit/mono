@@ -2,7 +2,7 @@ use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, Difficulty, Epoch, PartsPerMillionSigned32};
 use bitview_transforms::{BlocksToDays, DifficultyToHashrate};
-use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Resolutions};
+use bitview_vecs::{LazyFixedRatioPerBlock, LazyPerBlock, Resolutions};
 use brk_types::{BLOCKS_PER_DIFF_EPOCHS, Height, Version};
 use vecdb::{Ident, IndexVec, ReadOnlyClone};
 
@@ -68,7 +68,7 @@ impl Vecs {
         Self {
             value: Resolutions::from_source("difficulty", &difficulty_source, version, mappings),
             hashrate,
-            adjustment: LazyPercentPerBlock::from_lookback_source(
+            adjustment: LazyFixedRatioPerBlock::from_lookback_source(
                 "difficulty_adjustment",
                 version + Version::ONE,
                 &difficulty_source,

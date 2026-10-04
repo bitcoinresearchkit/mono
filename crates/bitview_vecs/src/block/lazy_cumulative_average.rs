@@ -3,30 +3,26 @@ use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
-use vecdb::{Ident, ReadableCloneableVec, UnaryTransform};
+use vecdb::ReadableCloneableVec;
 
 use crate::{IndexSources, LazyPreviousDeltaVec, LazyRollingAvgsFromHeight};
 
 /// Lazy exact per-block values and rolling averages backed by one cumulative source.
 #[derive(Traversable)]
-pub struct LazyPerBlockCumulativeAverage<T, C = T, F = Ident>
+pub struct LazyPerBlockCumulativeAverage<T>
 where
-    T: NumericValue + JsonSchema,
-    C: NumericValue + JsonSchema + Quantity,
-    F: UnaryTransform<C, T>,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
-    block: LazyPreviousDeltaVec<Height, C, T, F>,
+    block: LazyPreviousDeltaVec<Height, T>,
     #[traversable(flatten)]
-    average: LazyRollingAvgsFromHeight<C>,
+    average: LazyRollingAvgsFromHeight<T>,
 }
 
-impl<T, C, F> Clone for LazyPerBlockCumulativeAverage<T, C, F>
+impl<T> Clone for LazyPerBlockCumulativeAverage<T>
 where
-    T: NumericValue + JsonSchema,
-    C: NumericValue + JsonSchema + Quantity,
-    F: UnaryTransform<C, T>,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -36,21 +32,19 @@ where
     }
 }
 
-impl<T, C, F> LazyPerBlockCumulativeAverage<T, C, F>
+impl<T> LazyPerBlockCumulativeAverage<T>
 where
-    T: NumericValue + JsonSchema,
-    C: NumericValue + JsonSchema + Quantity,
-    F: UnaryTransform<C, T>,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     pub fn new(
         name: &str,
         version: Version,
-        cumulative: &impl ReadableCloneableVec<Height, C>,
+        cumulative: &impl ReadableCloneableVec<Height, T>,
         indexes: &IndexSources,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Self {
         Self {
-            block: LazyPreviousDeltaVec::transformed(name, version, cumulative),
+            block: LazyPreviousDeltaVec::new(name, version, cumulative),
             average: LazyRollingAvgsFromHeight::new(
                 &format!("{name}_average"),
                 version + Version::TWO,

@@ -1,6 +1,6 @@
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlock, PerBlock, PercentPerBlock};
+use bitview_vecs::{FixedRatioPerBlock, LazyPerBlock, PerBlock};
 use brk_types::Cents;
 use vecdb::{Rw, StorageMode};
 
@@ -29,5 +29,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Higher values mean price traveled a longer path relative to its net
     /// range and was therefore choppier; lower nonzero values mean a more
     /// direct trend.
-    pub choppiness_index_2w: PercentPerBlock<PartsPerMillion32, M>,
+    pub choppiness_index_2w: FixedRatioPerBlock<PartsPerMillion32, M>,
 }

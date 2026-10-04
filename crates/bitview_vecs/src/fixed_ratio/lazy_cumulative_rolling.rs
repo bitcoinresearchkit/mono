@@ -4,22 +4,21 @@ use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use vecdb::{BinaryTransform, ReadableCloneableVec, UnaryTransform};
 
-use crate::{IndexSources, LazyPercentPerBlock, LazyPercentRollingWindows};
+use crate::{IndexSources, LazyFixedRatioPerBlock, LazyFixedRatioRollingWindows};
 
-/// Fully lazy variant of `PercentCumulativeRolling` — no stored vecs.
+/// Lazy fixed-ratio views of a cumulative and its rolling windows — no stored vecs.
 ///
-/// Mirrors the flat shape of `PercentCumulativeRolling`: cumulative and
-/// rolling window fields are both flattened to the same tree level, so
-/// consumers see `{ ppm, percent, ratio, _24h, _1w, _1m, _1y }`.
+/// Cumulative and rolling window fields are both flattened to the same tree
+/// level, so consumers see `{ ppm, percent, ratio, _24h, _1w, _1m, _1y }`.
 #[derive(Clone, Traversable)]
-pub struct LazyPercentCumulativeRolling<B: FixedRatio> {
+pub struct LazyFixedRatioCumulativeRolling<B: FixedRatio> {
     #[traversable(flatten)]
-    cumulative: LazyPercentPerBlock<B>,
+    cumulative: LazyFixedRatioPerBlock<B>,
     #[traversable(flatten)]
-    rolling: LazyPercentRollingWindows<B>,
+    rolling: LazyFixedRatioRollingWindows<B>,
 }
 
-impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {
+impl<B: FixedRatio> LazyFixedRatioCumulativeRolling<B> {
     /// Derive cumulative and rolling ratios from one potentially disk-backed
     /// cumulative numerator and aligned denominator/window metadata.
     /// Pass the readers shared with their owners; views request only the
@@ -37,14 +36,14 @@ impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {
         D: NumericValue,
         F: BinaryTransform<S, D, B> + Send + Sync + 'static,
     {
-        let cumulative = LazyPercentPerBlock::from_ratio::<S, D, F>(
+        let cumulative = LazyFixedRatioPerBlock::from_ratio::<S, D, F>(
             name,
             version,
             numerator,
             denominator,
             indexes,
         );
-        let rolling = LazyPercentRollingWindows::from_cumulative_ratio::<S, D, F>(
+        let rolling = LazyFixedRatioRollingWindows::from_cumulative_ratio::<S, D, F>(
             name,
             version,
             numerator,
@@ -73,14 +72,14 @@ impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {
         D: NumericValue,
         F: BinaryTransform<S, D, B> + Send + Sync + 'static,
     {
-        let cumulative = LazyPercentPerBlock::from_ratio_with_numerator::<S, D, F>(
+        let cumulative = LazyFixedRatioPerBlock::from_ratio_with_numerator::<S, D, F>(
             name,
             version,
             numerator,
             denominator,
             indexes,
         );
-        let rolling = LazyPercentRollingWindows::from_cumulative_ratio_with_numerator::<S, D, F>(
+        let rolling = LazyFixedRatioRollingWindows::from_cumulative_ratio_with_numerator::<S, D, F>(
             name,
             version,
             numerator,
@@ -100,9 +99,9 @@ impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {
         source: &Self,
     ) -> Self {
         let cumulative =
-            LazyPercentPerBlock::from_lazy_percent::<F>(name, version, &source.cumulative);
+            LazyFixedRatioPerBlock::from_lazy_fixed_ratio::<F>(name, version, &source.cumulative);
         let rolling =
-            LazyPercentRollingWindows::from_lazy_rolling::<F>(name, version, &source.rolling);
+            LazyFixedRatioRollingWindows::from_lazy_rolling::<F>(name, version, &source.rolling);
         Self {
             cumulative,
             rolling,

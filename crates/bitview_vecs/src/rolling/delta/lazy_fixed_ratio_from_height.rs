@@ -10,7 +10,7 @@ use crate::{IndexSources, LazyDeltaFromHeight, LazyPerBlock};
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyDeltaPercentFromHeight<S, B>(
+pub struct LazyDeltaFixedRatioFromHeight<S, B>(
     pub  FixedRatioViews<
         LazyDeltaFromHeight<S, B, DeltaRate>,
         LazyPerBlock<Ratio, B>,
@@ -21,7 +21,7 @@ where
     S: VecValue,
     B: FixedRatio;
 
-impl<S, B> LazyDeltaPercentFromHeight<S, B>
+impl<S, B> LazyDeltaFixedRatioFromHeight<S, B>
 where
     S: VecValue + Into<f64>,
     B: FixedRatio + From<f64>,

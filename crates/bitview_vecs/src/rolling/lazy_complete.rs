@@ -14,7 +14,7 @@ use crate::{IndexSources, LazyRollingDistribution, RollingComplete};
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyRollingComplete<T, S1T>
 where
-    T: NumericValue + JsonSchema + Quantity,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
     S1T: ComputedVecValue + JsonSchema,
 {
     #[deref]
@@ -27,7 +27,7 @@ where
 
 impl<T, S1T> LazyRollingComplete<T, S1T>
 where
-    T: NumericValue + JsonSchema + Quantity + 'static,
+    T: NumericValue + JsonSchema + Quantity<Sum = T> + 'static,
     S1T: NumericValue + JsonSchema + Quantity,
 {
     pub(crate) fn from_rolling_complete<F: UnaryTransform<S1T, T>>(

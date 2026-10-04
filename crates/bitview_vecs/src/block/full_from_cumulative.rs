@@ -17,10 +17,10 @@ where
 {
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
-    block: LazyPreviousDeltaVec<Height, T>,
+    block: LazyPreviousDeltaVec<Height, T::Sum>,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
-    pub cumulative: LazyPerBlock<T>,
+    pub cumulative: LazyPerBlock<T::Sum>,
     #[traversable(flatten)]
     pub rolling: RollingComplete<T, M>,
 }
@@ -38,7 +38,7 @@ where
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self>
     where
-        V: ReadableCloneableVec<Height, T> + ?Sized,
+        V: ReadableCloneableVec<Height, T::Sum> + ?Sized,
     {
         let block = LazyPreviousDeltaVec::new(name, version, cumulative_source);
         let cumulative = LazyPerBlock::from_height_source::<Ident>(
@@ -71,7 +71,7 @@ where
     ) -> Result<()>
     where
         T: From<f64> + Default + Copy + Ord,
-        f64: From<T>,
+        f64: From<T::Sum>,
     {
         self.rolling.compute(max_from, windows, &self.block, exit)
     }

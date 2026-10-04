@@ -15,11 +15,11 @@ use crate::{IndexSources, LazyPerBlock, PerBlock};
 /// Fixed-point storage with lazy ratio and percentage float views.
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct PercentPerBlock<B: FixedRatio, M: StorageMode = Rw>(
+pub struct FixedRatioPerBlock<B: FixedRatio, M: StorageMode = Rw>(
     pub FixedRatioViews<PerBlock<B, M>, LazyPerBlock<Ratio, B>, LazyPerBlock<Percent, B>>,
 );
 
-impl<B: FixedRatio> PercentPerBlock<B> {
+impl<B: FixedRatio> FixedRatioPerBlock<B> {
     pub fn import(
         db: &Database,
         name: &str,

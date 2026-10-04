@@ -5,7 +5,7 @@ use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::{PartsPerMillionSigned64, Ratio64};
 use bitview_urpd::ReplayInputs;
-use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock};
+use bitview_vecs::{LazyFixedRatioPerBlock, LazyPerBlock};
 
 #[derive(Clone, Copy)]
 pub struct Dependencies<'a> {
@@ -13,7 +13,7 @@ pub struct Dependencies<'a> {
     pub indexer: &'a Indexer,
     pub price: &'a PriceVecs,
     pub blocks: &'a BlocksVecs,
-    pub inflation_rate: &'a LazyPercentPerBlock<PartsPerMillionSigned64>,
+    pub inflation_rate: &'a LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
     pub velocity_native: &'a LazyPerBlock<Ratio64>,
     pub velocity_fiat: &'a LazyPerBlock<Ratio64>,
     pub distribution_aggregated: &'a AggregatedVecs,

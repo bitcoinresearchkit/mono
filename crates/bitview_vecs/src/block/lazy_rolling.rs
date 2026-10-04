@@ -8,27 +8,27 @@ use vecdb::{ReadableCloneableVec, UnaryTransform};
 use crate::{IndexSources, LazyPerBlock, LazyRollingComplete, PerBlockRolling};
 
 /// Lazy analog of `PerBlockRolling<T>`: lazy cumulative + lazy rolling complete.
-/// Derived by transforming a stored `PerBlockRolling<S1T>`.
+/// Derived by transforming a stored `PerBlockRolling<S1T>` (its cumulative and its distribution).
 /// Zero stored vecs.
 #[derive(Clone, Traversable)]
 pub struct LazyPerBlockRolling<T, S1T>
 where
-    T: NumericValue + JsonSchema + Quantity,
-    S1T: ComputedVecValue + JsonSchema,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
+    S1T: ComputedVecValue + JsonSchema + Quantity,
 {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
-    cumulative: LazyPerBlock<T, S1T>,
+    cumulative: LazyPerBlock<T, S1T::Sum>,
     #[traversable(flatten)]
     rolling: LazyRollingComplete<T, S1T>,
 }
 
 impl<T, S1T> LazyPerBlockRolling<T, S1T>
 where
-    T: NumericValue + JsonSchema + Quantity + 'static,
+    T: NumericValue + JsonSchema + Quantity<Sum = T> + 'static,
     S1T: NumericValue + JsonSchema + Quantity,
 {
-    pub fn from_rolling<F: UnaryTransform<S1T, T>>(
+    pub fn from_rolling<F: UnaryTransform<S1T, T> + UnaryTransform<S1T::Sum, T>>(
         name: &str,
         version: Version,
         source: &PerBlockRolling<S1T>,

@@ -1,6 +1,6 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::ThsToPhs;
-use bitview_vecs::{LazyPerBlock, PerBlock, PercentPerBlock};
+use bitview_vecs::{FixedRatioPerBlock, LazyPerBlock, PerBlock};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
@@ -47,21 +47,31 @@ impl Vecs {
                     _1y: PerBlock::import(db, "hash_rate_sma_1y", version, mappings)?,
                 },
                 ath: PerBlock::import(db, "hash_rate_ath", version, mappings)?,
-                drawdown: PercentPerBlock::import(db, "hash_rate_drawdown", version, mappings)?,
+                drawdown: FixedRatioPerBlock::import(db, "hash_rate_drawdown", version, mappings)?,
             },
             price: HashPriceValueVecs {
                 ths: price_ths,
                 ths_min: price_ths_min,
                 phs: price_phs,
                 phs_min: price_phs_min,
-                rebound: PercentPerBlock::import(db, "hash_price_rebound", version + v7, mappings)?,
+                rebound: FixedRatioPerBlock::import(
+                    db,
+                    "hash_price_rebound",
+                    version + v7,
+                    mappings,
+                )?,
             },
             value: HashPriceValueVecs {
                 ths: value_ths,
                 ths_min: value_ths_min,
                 phs: value_phs,
                 phs_min: value_phs_min,
-                rebound: PercentPerBlock::import(db, "hash_value_rebound", version + v7, mappings)?,
+                rebound: FixedRatioPerBlock::import(
+                    db,
+                    "hash_value_rebound",
+                    version + v7,
+                    mappings,
+                )?,
             },
         })
     }
