@@ -26,33 +26,16 @@ use std::os::unix::process::CommandExt;
 #[cfg(not(unix))]
 use std::process::exit;
 
-const GENERATED_OUTPUTS: &[(&str, &str)] = &[
-    (
-        "crates/bitview_mcp/server.json",
-        "crates/bitview_mcp/server.json",
-    ),
-    (
-        "crates/bitview_client/src/generated.rs",
-        "crates/bitview_client/src/generated.rs",
-    ),
-    (
-        "crates/bitview_cli/src/generated.rs",
-        "crates/bitview_cli/src/generated.rs",
-    ),
-    (
-        "modules/bitview-client/index.js",
-        "modules/bitview-client/index.js",
-    ),
-    (
-        "packages/bitview_client/bitview_client/__init__.py",
-        "packages/bitview_client/bitview_client/__init__.py",
-    ),
-    ("website/llms.txt", "website/llms.txt"),
-    ("website/llms-full.txt", "website/llms-full.txt"),
-    (
-        "crates/bitview_mcp/generated/manifest.json",
-        "crates/bitview_mcp/generated/manifest.json",
-    ),
+/// Every generated file, relative to the workspace root (and to the check's output root).
+const GENERATED_OUTPUTS: &[&str] = &[
+    "crates/bitview_mcp/server.json",
+    "crates/bitview_client/src/generated.rs",
+    "crates/bitview_cli/src/generated.rs",
+    "modules/bitview-client/index.js",
+    "packages/bitview_client/bitview_client/__init__.py",
+    "website/llms.txt",
+    "website/llms-full.txt",
+    "crates/bitview_mcp/generated/manifest.json",
 ];
 
 #[derive(Clone, Copy)]
@@ -207,27 +190,16 @@ fn generate_registry_manifest(root: &Path) -> Result<()> {
 }
 
 fn verify_outputs(generated_root: &Path, workspace_root: &Path, scope: OutputScope) -> Result<()> {
-    let outputs: Vec<_> = GENERATED_OUTPUTS
+    let stale: Vec<&str> = GENERATED_OUTPUTS
         .iter()
         .copied()
-        .filter(|(path, _)| scope.includes(path))
+        .filter(|path| scope.includes(path))
+        .filter(|path| {
+            let generated = fs::read(generated_root.join(path));
+            let committed = fs::read(workspace_root.join(path));
+            !matches!((generated, committed), (Ok(left), Ok(right)) if left == right)
+        })
         .collect();
-    verify_output_pairs(generated_root, workspace_root, &outputs)
-}
-
-fn verify_output_pairs(
-    generated_root: &Path,
-    workspace_root: &Path,
-    outputs: &[(&str, &str)],
-) -> Result<()> {
-    let mut stale = Vec::new();
-    for (generated, committed) in outputs {
-        let generated = fs::read(generated_root.join(generated));
-        let committed_bytes = fs::read(workspace_root.join(committed));
-        if !matches!((generated, committed_bytes), (Ok(left), Ok(right)) if left == right) {
-            stale.push(*committed);
-        }
-    }
     if !stale.is_empty() {
         bail!(
             "generated outputs are stale:\n{}\nrun `cargo bindgen`",

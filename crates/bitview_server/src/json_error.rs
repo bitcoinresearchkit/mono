@@ -1,7 +1,7 @@
 use axum::{
     body::{Body, to_bytes},
     http::{
-        Method, Request, Response, StatusCode,
+        Request, Response, StatusCode,
         header::{ALLOW, CONTENT_TYPE},
     },
     middleware::Next,
@@ -22,7 +22,6 @@ fn is_json_content_type(s: &str) -> bool {
 }
 
 pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body> {
-    let action = request.method() == Method::POST;
     let response = next.run(request).await;
     let status = response.status();
     if status.is_success()
@@ -54,11 +53,6 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
             ErrorCode::MethodNotAllowed,
             "Method not allowed for this endpoint".into(),
         ),
-        StatusCode::GATEWAY_TIMEOUT if action => (
-            ErrorCode::Timeout,
-            "Request timed out; submission outcome may be unknown".into(),
-        ),
-        StatusCode::GATEWAY_TIMEOUT => (ErrorCode::Timeout, "Request timed out".into()),
         s if s.is_client_error() => (
             ErrorCode::BadRequest,
             if msg.is_empty() {

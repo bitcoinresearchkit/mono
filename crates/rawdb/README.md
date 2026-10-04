@@ -26,6 +26,14 @@ cargo add rawdb
 
 ## Usage
 
+```rust,ignore
+let db = Database::open(Path::new("data"))?;
+let region = db.create_region_if_needed("blocks")?;
+region.write_at(b"hello", 0)?;
+let reader = region.create_reader();
+assert_eq!(reader.read(0, 5), b"hello");
+db.flush()?;
+```
 
 ## Sparse files
 

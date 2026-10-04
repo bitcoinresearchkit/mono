@@ -46,10 +46,9 @@ impl Header {
             .map(Self::from_inner)
     }
 
-    /// Reads a region's leading bytes as a vector header, without checking its
-    /// versions or format. For inspection tools: on a region that doesn't hold a
-    /// vector the fields are meaningless. [`Self::is_current`] tells whether the
-    /// bytes look like a current-format header; it can't prove the region holds one.
+    /// Reads a region's leading bytes as a current-version vector header, without checking
+    /// the vector's version, format or value size. For inspection tools: on a region that
+    /// doesn't hold a vector the fields are meaningless.
     pub fn read_unverified(region: &Region) -> Result<Self> {
         HeaderInner::read(region).map(Self::from_inner)
     }
@@ -100,15 +99,15 @@ impl Header {
         self.inner.read().header_version
     }
 
-    /// Whether the decoded header version is the current one.
-    #[inline(always)]
-    pub fn is_current(&self) -> bool {
-        self.header_version() == HEADER_VERSION
-    }
-
     #[inline(always)]
     pub fn format(&self) -> Format {
         self.inner.read().format
+    }
+
+    /// `size_of` the stored value.
+    #[inline(always)]
+    pub fn value_size(&self) -> u16 {
+        self.inner.read().value_size
     }
 
     /// Computed sources carry their provenance; raw sources carry their schema.

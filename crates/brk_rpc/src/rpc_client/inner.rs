@@ -237,7 +237,8 @@ impl ClientInner {
 /// proxy's timeout and rate limit (408, 429).
 fn is_retriable(error: &JsonRpcError) -> bool {
     match error {
-        JsonRpcError::Rpc(e) => e.code == -32600 || e.code == 401 || e.code == -28,
+        // RPC_IN_WARMUP: the node is still loading.
+        JsonRpcError::Rpc(e) => e.code == -28,
         JsonRpcError::Transport(_) => match http_status(error) {
             Some(408 | 429) | None => true,
             Some(code) => !(400..500).contains(&code),

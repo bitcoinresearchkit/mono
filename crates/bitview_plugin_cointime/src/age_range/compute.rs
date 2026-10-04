@@ -84,7 +84,7 @@ impl Vecs {
                 .as_array_mut()
                 .map(|vec| vec.stored_mut()),
             version,
-            usize::from(starting_height),
+            usize::from(starting_height).min(source_end),
             exit,
         )?;
         let mut chunk_start = start;

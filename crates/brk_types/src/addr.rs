@@ -65,12 +65,9 @@ impl TryFrom<&AddrBytes> for Addr {
 }
 
 fn bytes_to_hex(bytes: &[u8]) -> String {
-    let mut hex_string = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        use std::fmt::Write;
-        write!(&mut hex_string, "{:02x}", byte).unwrap();
-    }
-    hex_string
+    let mut hex = Vec::new();
+    crate::bytes::push_hex(bytes, &mut hex);
+    String::from_utf8(hex).expect("hex is ASCII")
 }
 
 impl FromStr for Addr {

@@ -6,15 +6,14 @@ edition.workspace = true
 version.workspace = true
 homepage.workspace = true
 repository.workspace = true
-exclude = ["examples/"]
 
 [features]
 default = ["full-api"]
 full-api = ["chain", "series", "urpd"]
-indexer = ["dep:bitview_plugin_indexer", "dep:tokio", "brk_error/tokio"]
 chain = [
     "price",
     "dep:brk_cpfp",
+    "dep:smallvec",
     "dep:bitview_plugin_blocks",
     "dep:bitview_plugin_distribution_addresses",
     "dep:bitview_plugin_inputs",
@@ -24,20 +23,26 @@ chain = [
     "dep:bitview_plugin_transactions",
     "dep:bitview_plugin_utxo_history",
 ]
-series = ["indexer", "dep:bitview_plugin_mappings"]
+series = ["dep:bitview_catalog", "dep:bitview_plugin_mappings", "dep:itoa", "dep:quickmatch"]
 urpd = [
     "price",
+    "dep:bitview_cohort",
     "dep:bitview_urpd",
     "dep:bitview_plugin_utxo_history",
     "dep:bitview_plugin_coinflow",
     "dep:bitview_plugin_cointime",
     "dep:bitview_plugin_distribution_age",
 ]
-price = ["indexer", "dep:bitview_plugin_mappings", "dep:bitview_plugin_price"]
+price = [
+    "dep:bitview_plugin_mappings",
+    "dep:bitview_plugin_price",
+    "dep:brk_oracle",
+    "dep:parking_lot",
+]
 
 [dependencies]
 bitcoin = { workspace = true }
-bitview_cohort = { workspace = true, features = ["storage"] }
+bitview_cohort = { workspace = true, features = ["storage"], optional = true }
 bitview_plugin_blocks = { workspace = true, optional = true }
 bitview_plugin_coinflow = { workspace = true, optional = true }
 bitview_plugin_cointime = { workspace = true, optional = true }
@@ -55,25 +60,25 @@ bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_runtime = { workspace = true }
 bitview_types = { workspace = true }
 bitview_urpd = { workspace = true, optional = true }
-bitview_catalog = { workspace = true }
+bitview_catalog = { workspace = true, optional = true }
 brk_cpfp = { workspace = true, optional = true }
-brk_error = { workspace = true, features = ["jiff", "vecdb"] }
-bitview_plugin_indexer = { workspace = true, optional = true }
+brk_error = { workspace = true, features = ["jiff", "tokio", "vecdb"] }
+bitview_plugin_indexer = { workspace = true }
 brk_mempool = { workspace = true }
-brk_oracle = { workspace = true }
+brk_oracle = { workspace = true, optional = true }
 bitview_plugin = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
-itoa = "1.0.18"
+itoa = { workspace = true, optional = true }
 jiff = { workspace = true }
-parking_lot = { workspace = true }
-quickmatch = { workspace = true }
+parking_lot = { workspace = true, optional = true }
+quickmatch = { workspace = true, optional = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-smallvec = { workspace = true }
-tokio = { workspace = true, optional = true, features = ["sync", "time", "rt"] }
+smallvec = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["sync", "time", "rt"] }
 serde_json = { workspace = true }
-thiserror = "2.0"
+thiserror = { workspace = true }
 vecdb = { workspace = true }

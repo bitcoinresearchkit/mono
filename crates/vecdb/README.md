@@ -42,10 +42,17 @@ cargo add vecdb --features pco,derive
 
 ## Basic use
 
+```rust,ignore
+let db = Database::open(Path::new("data"))?;
+let mut values: BytesVec<usize, u64> = BytesVec::import(&db, "values", Version::ONE)?;
+values.push(42);
+values.write()?;
+assert_eq!(values.collect_one(0), Some(42));
+```
 
 The tuple `(database, name, version)` identifies stored data. `import` opens it,
-creating it if needed, and deletes it (with any sidecar regions) when the stored
-version or format differs, so the caller rebuilds it: bump the version whenever
+creating it if needed, and deletes it (with any sidecar regions and rollback history) when the
+stored version, format or value size differs, so the caller rebuilds it: bump the version whenever
 stored values change meaning. Compressed vectors also reset a corrupt layout;
 other corruption is an error.
 

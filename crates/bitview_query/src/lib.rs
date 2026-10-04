@@ -2,66 +2,49 @@
 #![allow(clippy::module_inception)]
 #![allow(clippy::type_complexity)]
 
-#[cfg(feature = "indexer")]
 use bitview_plugin_indexer::SafeLengths;
 
-#[cfg(feature = "indexer")]
 use std::{
     path::Path,
     sync::Arc,
     time::{Duration, Instant},
 };
 
-#[cfg(feature = "indexer")]
 use bitview_plugin::Publication;
 #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
 use bitview_plugin::PublicationReadGuard;
 
-#[cfg(feature = "indexer")]
 use bitview_plugin_indexer::Indexer;
-#[cfg(any(feature = "chain", feature = "series", feature = "price"))]
-use bitview_plugin_indexer::Lengths;
-#[cfg(feature = "indexer")]
 use bitview_primitives::BlockHashPrefix;
+#[cfg(any(feature = "chain", feature = "series", feature = "price"))]
+use bitview_primitives::Lengths;
 #[cfg(feature = "series")]
 use bitview_primitives::{Epoch, Halving, Index};
-#[cfg(feature = "indexer")]
 use bitview_types::SyncStatus;
-#[cfg(feature = "indexer")]
 use brk_mempool::ReadOnlyMempool;
 #[cfg(any(feature = "chain", feature = "price"))]
 use brk_mempool::ReadOnlyState;
-#[cfg(feature = "indexer")]
 use brk_reader::Reader;
-#[cfg(feature = "indexer")]
 use brk_rpc::Client;
-#[cfg(feature = "indexer")]
 use brk_types::{BlockHash, Height};
 #[cfg(feature = "series")]
 use vecdb::ReadBounds;
-#[cfg(feature = "indexer")]
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
-#[cfg(feature = "indexer")]
 mod r#async;
 mod error;
 #[cfg(feature = "price")]
 mod live_oracle;
 mod output;
-#[cfg(feature = "indexer")]
 mod query_plugin_set;
-#[cfg(feature = "indexer")]
 mod query_plugins;
 mod representation_id;
 #[cfg(feature = "series")]
 mod vecs;
 
-#[cfg(feature = "indexer")]
 mod r#impl;
 
-#[cfg(feature = "indexer")]
 pub use r#async::*;
-#[cfg(feature = "indexer")]
 pub(crate) use error::OptionData;
 pub use error::{Error, Result, SeriesNotFound};
 #[cfg(feature = "urpd")]
@@ -78,20 +61,17 @@ pub use r#impl::{
 #[cfg(feature = "series")]
 pub use r#impl::{ResolvedQuery, SeriesRead};
 pub use output::*;
-#[cfg(feature = "indexer")]
 pub use query_plugin_set::{
     QueryPluginSet, SupportsBlocks, SupportsCoinflow, SupportsCointime,
     SupportsDistributionAddresses, SupportsDistributionAge, SupportsInputs, SupportsMappings,
     SupportsMining, SupportsOutputs, SupportsPools, SupportsPrice, SupportsTransactions,
     SupportsUtxoHistory,
 };
-#[cfg(feature = "indexer")]
 pub use query_plugins::QueryPlugins;
 pub use representation_id::RepresentationId;
 #[cfg(feature = "series")]
 pub use vecs::{ResolvedSeriesInfo, SeriesEntry, Vecs};
 
-#[cfg(feature = "indexer")]
 /// Read-only queries whose resolved chain views pin the published prefix.
 /// Bare lengths and unguarded internal helpers cannot authorize chain reads.
 ///
@@ -101,7 +81,6 @@ pub use vecs::{ResolvedSeriesInfo, SeriesEntry, Vecs};
 ///
 #[derive(Clone)]
 pub struct Query(Arc<QueryInner<'static>>, Option<Instant>);
-#[cfg(feature = "indexer")]
 struct QueryInner<'a> {
     #[cfg(feature = "series")]
     vecs: &'a Vecs<'a>,
@@ -112,7 +91,6 @@ struct QueryInner<'a> {
     live_oracle: live_oracle::LiveOracle,
 }
 
-#[cfg(feature = "indexer")]
 impl Query {
     const UPDATE_WAIT_TIMEOUT: Duration = Duration::from_secs(4);
 

@@ -1,5 +1,5 @@
 use bitview_collections::RarityPercentiles;
-use bitview_plugin_indexer::Lengths;
+use bitview_primitives::Lengths;
 use bitview_primitives::{PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN, Ratio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, IndexSources, LazyRatioPerBlock, import_cached};

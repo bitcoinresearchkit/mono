@@ -63,12 +63,6 @@ impl HeaderInner {
     ) -> Result<Self> {
         let header = Self::read(region)?;
 
-        if header.header_version != HEADER_VERSION {
-            return Err(Error::DifferentVersion {
-                received: header.header_version,
-                expected: HEADER_VERSION,
-            });
-        }
         if header.vec_version != vec_version {
             return Err(Error::DifferentVersion {
                 received: header.vec_version,
@@ -123,7 +117,14 @@ impl HeaderInner {
                 received: len,
             });
         }
+        // Another header version may lay out the remaining bytes differently: check it first.
         let header_version = Version::from_bytes(&bytes[0..4])?;
+        if header_version != HEADER_VERSION {
+            return Err(Error::DifferentVersion {
+                received: header_version,
+                expected: HEADER_VERSION,
+            });
+        }
         let vec_version = Version::from_bytes(&bytes[4..8])?;
         let computed_version = Version::from_bytes(&bytes[8..12])?;
         let stamp = Stamp::from_bytes(&bytes[12..20])?;

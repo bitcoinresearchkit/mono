@@ -47,7 +47,7 @@ impl Query {
             .take(max_utxos.saturating_add(1))
             .collect();
         if outpoints.len() > max_utxos {
-            return Err(Error::TooManyUtxos);
+            return Err(Error::TooManyUtxos { max: max_utxos });
         }
         drop(guard);
         Ok(ResolvedAddrUtxos {
@@ -72,7 +72,7 @@ impl Query {
         let indexer = self.indexer();
         let vecs = indexer.vecs();
         if outpoints.len() > max_utxos {
-            return Err(Error::TooManyUtxos);
+            return Err(Error::TooManyUtxos { max: max_utxos });
         }
 
         let txid_reader = vecs.transactions.txid.reader();

@@ -114,14 +114,6 @@ impl From<usize> for CentsSquaredSats {
     }
 }
 
-impl Div<usize> for CentsSquaredSats {
-    type Output = Self;
-    #[inline(always)]
-    fn div(self, rhs: usize) -> Self {
-        Self(self.0 / rhs as u128)
-    }
-}
-
 #[cfg(feature = "storage")]
 impl Formattable for CentsSquaredSats {
     #[inline(always)]

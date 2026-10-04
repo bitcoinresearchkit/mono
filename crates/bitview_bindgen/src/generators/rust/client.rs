@@ -731,12 +731,35 @@ macro_rules! accessor {
 "#,
     );
     for (i, pattern) in patterns.iter().enumerate() {
-        let any = if pattern.missing.is_empty() { "T" } else { "T::Nullable" };
-        writeln!(output, "accessor! {{ {0}, {0}By, _I{1}, {any} {{", pattern.name, i + 1).unwrap();
+        let any = if pattern.missing.is_empty() {
+            "T"
+        } else {
+            "T::Nullable"
+        };
+        writeln!(
+            output,
+            "accessor! {{ {0}, {0}By, _I{1}, {any} {{",
+            pattern.name,
+            i + 1
+        )
+        .unwrap();
         for index in &pattern.indexes {
-            let kind = if index.is_date_based() { "date" } else { "plain" };
-            let value = if pattern.missing.contains(index) { "T::Nullable" } else { "T" };
-            writeln!(output, "    {kind} {}: {index} -> {value},", index_to_field_name(index)).unwrap();
+            let kind = if index.is_date_based() {
+                "date"
+            } else {
+                "plain"
+            };
+            let value = if pattern.missing.contains(index) {
+                "T::Nullable"
+            } else {
+                "T"
+            };
+            writeln!(
+                output,
+                "    {kind} {}: {index} -> {value},",
+                index_to_field_name(index)
+            )
+            .unwrap();
         }
         writeln!(output, "}} }}").unwrap();
     }

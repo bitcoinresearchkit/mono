@@ -243,7 +243,7 @@ impl Query {
                 }
                 output.script_pubkey.clone()
             } else {
-                return Err(Error::NoData);
+                return Err(Error::Internal("Indexed prevout address missing"));
             };
             prevout_map.insert(op, TxOut::from((script_pubkey, value)));
         }

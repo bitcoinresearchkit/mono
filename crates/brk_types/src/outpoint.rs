@@ -57,27 +57,23 @@ impl Display for OutPoint {
 
 #[cfg(feature = "storage")]
 impl Formattable for OutPoint {
+    /// The JSON object.
     fn write_to(&self, buf: &mut Vec<u8>) {
-        use std::io::Write;
-        write!(buf, "{self}").unwrap();
-    }
-
-    fn fmt_csv(&self, f: &mut String) -> FmtResult {
-        let start = f.len();
-        self.fmt_into(f);
-        if f.as_bytes()[start..].contains(&b',') {
-            f.insert(start, '"');
-            f.push('"');
-        }
-        Ok(())
-    }
-
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
         buf.extend_from_slice(b"{\"tx_index\":");
         self.tx_index().write_to(buf);
         buf.extend_from_slice(b",\"vout\":");
         self.vout().write_to(buf);
         buf.push(b'}');
+    }
+
+    /// The JSON object as one quoted cell.
+    fn fmt_csv(&self, f: &mut String) -> FmtResult {
+        f.push_str("\"{\"\"tx_index\"\":");
+        self.tx_index().fmt_into(f);
+        f.push_str(",\"\"vout\"\":");
+        self.vout().fmt_into(f);
+        f.push_str("}\"");
+        Ok(())
     }
 }
 

@@ -57,7 +57,12 @@ pub(crate) fn generate_tree(
 ) {
     writeln!(output, "// Series tree\n").unwrap();
     output.push_str(RUNTIME);
-    let tree = Tree { model, names, accessors, undefined_types };
+    let tree = Tree {
+        model,
+        names,
+        accessors,
+        undefined_types,
+    };
     for shape in model.shape_order() {
         tree.typedef(output, shape);
         tree.builder(output, shape);
@@ -84,7 +89,11 @@ impl Tree<'_> {
         for ((key, kind), expr) in signature.iter().zip(&self.model.child_types[shape]) {
             let ty = match kind {
                 ChildKind::Leaf(access) => {
-                    format!("{}<{}>", self.accessors[accessor_of(self.accessors, access)].name, self.ty(expr))
+                    format!(
+                        "{}<{}>",
+                        self.accessors[accessor_of(self.accessors, access)].name,
+                        self.ty(expr)
+                    )
                 }
                 ChildKind::Branch => self.ty(expr),
             };
@@ -101,7 +110,12 @@ impl Tree<'_> {
         } else {
             let makers: Vec<String> = (0..shape_params).map(|i| format!("f{i}")).collect();
             writeln!(output, "/** @type {{_Make}} */").unwrap();
-            writeln!(output, "const _{name} = (c, b, {}) => _n(c, b, {{", makers.join(", ")).unwrap();
+            writeln!(
+                output,
+                "const _{name} = (c, b, {}) => _n(c, b, {{",
+                makers.join(", ")
+            )
+            .unwrap();
         }
         let shape_def = &self.model.shapes[shape];
         for (((key, kind), rule), expr) in shape_def
@@ -115,8 +129,13 @@ impl Tree<'_> {
                 ChildKind::Leaf(access) => format!("_i{}", accessor_of(self.accessors, access) + 1),
                 ChildKind::Branch => self.make(shape, expr),
             };
-            writeln!(output, "  {}: [{make}, '{}'],", js_field_name(key), rule.template())
-                .unwrap();
+            writeln!(
+                output,
+                "  {}: [{make}, '{}'],",
+                js_field_name(key),
+                rule.template()
+            )
+            .unwrap();
         }
         writeln!(output, "}});\n").unwrap();
     }
@@ -125,7 +144,11 @@ impl Tree<'_> {
     fn ty(&self, expr: &TyExpr) -> String {
         expr.render(self.names, ["<", ">"], &|kind| {
             let value = client_value_type(kind, |element| format!("{element}[]"));
-            if self.undefined_types.contains(kind) { format!("?{value}") } else { value }
+            if self.undefined_types.contains(kind) {
+                format!("?{value}")
+            } else {
+                value
+            }
         })
     }
 
@@ -135,7 +158,10 @@ impl Tree<'_> {
         match expr {
             TyExpr::Param(p) => {
                 let at = self.model.shape_params[shape].iter().position(|q| q == p);
-                format!("f{}", at.expect("a branch child's parameter stands for a shape"))
+                format!(
+                    "f{}",
+                    at.expect("a branch child's parameter stands for a shape")
+                )
             }
             TyExpr::Shape(child, args) => {
                 let name = &self.names[*child];
@@ -143,8 +169,10 @@ impl Tree<'_> {
                 if child_params.is_empty() {
                     return format!("_{name}");
                 }
-                let makers: Vec<String> =
-                    child_params.iter().map(|&p| self.make(shape, &args[p])).collect();
+                let makers: Vec<String> = child_params
+                    .iter()
+                    .map(|&p| self.make(shape, &args[p]))
+                    .collect();
                 format!("(c, b) => _{name}(c, b, {})", makers.join(", "))
             }
             TyExpr::Value(_) => unreachable!("a branch child is typed by a shape"),
@@ -232,7 +260,11 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     writeln!(output, "   *").unwrap();
     writeln!(output, "   * @template {{Index}} I").unwrap();
     writeln!(output, "   * @param {{string}} series - The series name").unwrap();
-    writeln!(output, "   * @param {{I}} index - The index name; date indexes also slice by Date").unwrap();
+    writeln!(
+        output,
+        "   * @param {{I}} index - The index name; date indexes also slice by Date"
+    )
+    .unwrap();
     writeln!(
         output,
         "   * @returns {{I extends DateIndex ? DateSeriesEndpoint<unknown> : SeriesEndpoint<unknown>}}"
@@ -240,7 +272,11 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     .unwrap();
     writeln!(output, "   */").unwrap();
     writeln!(output, "  seriesEndpoint(series, index) {{").unwrap();
-    writeln!(output, "    return /** @type {{any}} */ (_endpoint(this, series, index));").unwrap();
+    writeln!(
+        output,
+        "    return /** @type {{any}} */ (_endpoint(this, series, index));"
+    )
+    .unwrap();
     writeln!(output, "  }}\n").unwrap();
 
     generate_api_methods(output, endpoints);
@@ -253,4 +289,3 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     )
     .unwrap();
 }
-

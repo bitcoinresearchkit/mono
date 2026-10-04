@@ -197,14 +197,12 @@ Difficulty = float
 # A single difficulty adjustment entry.
 # Serializes as array: [timestamp, height, difficulty, change_percent]
 DifficultyAdjustmentEntry = List[float]
-# A USD amount (32-bit stored form).
-Dollars32 = float
 # Index of an output with an empty script.
 EmptyOutputIndex = TypeIndex
 # Index of a difficulty epoch (2,016 blocks).
 Epoch = int
 # Machine-readable error code.
-ErrorCode = Literal["not_found", "invalid_addr", "invalid_network", "unsupported_type", "parse_error", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_addr", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
+ErrorCode = Literal["not_found", "invalid_addr", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_addr", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
 # Error category, following the HTTP status: `invalid_request` (4xx other than 404),
 # `not_found` (404), `unavailable` (503; `Retry-After` when transient), `timeout` (504), `internal`
 # (other 5xx).
@@ -1909,11 +1907,29 @@ class ValidateAddrParam(TypedDict):
 
 
 class BitviewError(Exception):
-    """Custom error class for Bitview client errors."""
+    """A failed request: the HTTP status and the server's error code and message, when it sent them."""
 
-    def __init__(self, message: str, status: Optional[int] = None):
+    def __init__(self, message: str, status: Optional[int] = None, code: Optional[ErrorCode] = None):
         super().__init__(message)
         self.status = status
+        self.code = code
+
+
+def _response_error(status: int, data: bytes) -> BitviewError:
+    """The server's error body as a BitviewError; a body this client can't read keeps its text."""
+    text = data.decode(errors="replace")
+    try:
+        detail = json.loads(text).get("error")
+    except (ValueError, AttributeError):
+        detail = None
+    if not isinstance(detail, dict):
+        detail = {}
+    message = detail.get("message")
+    return BitviewError(
+        message if isinstance(message, str) else (text or f"HTTP {status}"),
+        status,
+        detail.get("code"),
+    )
 
 
 class BitviewClientBase:
@@ -1943,7 +1959,7 @@ class BitviewClientBase:
             res = conn.getresponse()
             data = res.read()
             if res.status >= 400:
-                raise BitviewError(f"HTTP error: {res.status}", res.status)
+                raise _response_error(res.status, data)
             return data
         except (ConnectionError, OSError, TimeoutError) as e:
             self._conn = None
@@ -1965,7 +1981,7 @@ class BitviewClientBase:
             res = conn.getresponse()
             data = res.read()
             if res.status >= 400:
-                raise BitviewError(f"HTTP error: {res.status}", res.status)
+                raise _response_error(res.status, data)
             return data
         except (ConnectionError, OSError, TimeoutError) as e:
             self._conn = None
@@ -2165,12 +2181,15 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
 
     Returns the floor index (latest index whose date is <= the given date).
     For sub-day indexes (minute*, hour*), a plain date is treated as midnight UTC.
+    Raises ValueError for dates before the first index (2009-01-01).
     """
     if index in ('minute10', 'minute30', 'hour1', 'hour4', 'hour12'):
         if isinstance(d, datetime):
             dt = d if d.tzinfo else d.replace(tzinfo=timezone.utc)
         else:
             dt = datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
+        if dt < _EPOCH:
+            raise ValueError("date is before the first index (2009-01-01)")
         secs = int((dt - _EPOCH).total_seconds())
         div = {'minute10': 600, 'minute30': 1800,
                'hour1': 3600, 'hour4': 14400, 'hour12': 43200}
@@ -2178,12 +2197,14 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
     if isinstance(d, datetime):
         d = (d.astimezone(timezone.utc) if d.tzinfo else d).date()
     dd = d
+    if dd < _EPOCH_DATE:
+        raise ValueError("date is before the first index (2009-01-01)")
     if index == 'day1':
-        return max(0, (dd - _EPOCH_DATE).days)
+        return (dd - _EPOCH_DATE).days
     elif index == 'day3':
         return (dd - date(2008, 12, 31)).days // 3
     elif index == 'week1':
-        return max(0, ((dd - _EPOCH_DATE).days + 3) // 7)
+        return ((dd - _EPOCH_DATE).days + 3) // 7
     elif index == 'month1':
         return (dd.year - 2009) * 12 + (dd.month - 1)
     elif index == 'month3':
@@ -2193,7 +2214,7 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
     elif index == 'year1':
         return dd.year - 2009
     elif index == 'year10':
-        return max(0, (dd.year - 2000) // 10)
+        return (dd.year - 2000) // 10
     else:
         raise ValueError(f"{index} is not a date-based index")
 
@@ -2319,14 +2340,17 @@ class _EndpointConfig:
     index: Index
     start: Optional[int]
     end: Optional[int]
+    limit: Optional[int]
 
     def __init__(self, client: BitviewClient, name: str, index: Index,
-                 start: Optional[int] = None, end: Optional[int] = None):
+                 start: Optional[int] = None, end: Optional[int] = None,
+                 limit: Optional[int] = None):
         self.client = client
         self.name = name
         self.index = index
         self.start = start
         self.end = end
+        self.limit = limit
 
     def path(self) -> str:
         return f"/api/series/{self.name}/{self.index}"
@@ -2337,14 +2361,18 @@ class _EndpointConfig:
             params.append(f"start={self.start}")
         if self.end is not None:
             params.append(f"end={self.end}")
+        if self.limit is not None:
+            params.append(f"limit={self.limit}")
         if format is not None:
             params.append(f"format={format}")
         query = "&".join(params)
         p = self.path()
         return f"{p}?{query}" if query else p
 
-    def _new(self, start: Optional[int] = None, end: Optional[int] = None) -> _EndpointConfig:
-        return _EndpointConfig(self.client, self.name, self.index, start, end)
+    def _new(self, start: Optional[int] = None, end: Optional[int] = None,
+             limit: Optional[int] = None) -> _EndpointConfig:
+        """Counted selections pass `limit`: the server ends them after resolving a negative start."""
+        return _EndpointConfig(self.client, self.name, self.index, start, end, limit)
 
     def get_series(self) -> SeriesData[Any]:
         return SeriesData(**self.client.get_json(self._build_path()))
@@ -2400,8 +2428,7 @@ class SkippedBuilder(Generic[T]):
 
     def take(self, n: int) -> RangeBuilder[T]:
         """Take n items after the skipped position."""
-        start = self._config.start or 0
-        return RangeBuilder(self._config._new(start, start + n))
+        return RangeBuilder(self._config._new(self._config.start, limit=n))
 
     def fetch(self) -> SeriesData[T]:
         """Fetch from skipped position to end."""
@@ -2427,8 +2454,7 @@ class DateSingleItemBuilder(SingleItemBuilder[T]):
 class DateSkippedBuilder(SkippedBuilder[T]):
     """Skipped builder that returns DateSeriesData."""
     def take(self, n: int) -> DateRangeBuilder[T]:
-        start = self._config.start or 0
-        return DateRangeBuilder(self._config._new(start, start + n))
+        return DateRangeBuilder(self._config._new(self._config.start, limit=n))
     def fetch(self) -> DateSeriesData[T]:
         return self._config.get_date_series()
 
@@ -2455,7 +2481,7 @@ class SeriesEndpoint(Generic[T]):
     def __getitem__(self, key: Union[int, slice]) -> Union[SingleItemBuilder[T], RangeBuilder[T]]:
         """Access single item or slice by integer index."""
         if isinstance(key, int):
-            return SingleItemBuilder(self._config._new(key, key + 1))
+            return SingleItemBuilder(self._config._new(key, limit=1))
         return RangeBuilder(self._config._new(key.start, key.stop))
 
     def head(self, n: int = 10) -> RangeBuilder[T]:
@@ -2519,9 +2545,9 @@ class DateSeriesEndpoint(Generic[T]):
         """Access single item or slice. Accepts int, date, or datetime."""
         if isinstance(key, (date, datetime)):
             idx = _date_to_index(self._config.index, key)
-            return DateSingleItemBuilder(self._config._new(idx, idx + 1))
+            return DateSingleItemBuilder(self._config._new(idx, limit=1))
         if isinstance(key, int):
-            return DateSingleItemBuilder(self._config._new(key, key + 1))
+            return DateSingleItemBuilder(self._config._new(key, limit=1))
         start, stop = key.start, key.stop
         if isinstance(start, (date, datetime)):
             start = _date_to_index(self._config.index, start)
@@ -3253,11 +3279,11 @@ class Split(_Node):
 
 
 class Macd1m(_Node):
-    ema_fast: SeriesPattern2[Optional[Dollars32]] = _at(SeriesPattern2, 'macd_ema_fast_*')
-    ema_slow: SeriesPattern2[Optional[Dollars32]] = _at(SeriesPattern2, 'macd_ema_slow_*')
-    line: SeriesPattern2[Optional[Dollars32]] = _at(SeriesPattern2, 'macd_line_*')
-    signal: SeriesPattern2[Optional[Dollars32]] = _at(SeriesPattern2, 'macd_signal_*')
-    histogram: SeriesPattern2[Optional[Dollars32]] = _at(SeriesPattern2, 'macd_histogram_*')
+    ema_fast: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'macd_ema_fast_*')
+    ema_slow: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'macd_ema_slow_*')
+    line: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'macd_line_*')
+    signal: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'macd_signal_*')
+    histogram: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'macd_histogram_*')
 
 
 class Sd24h1m(_Node):

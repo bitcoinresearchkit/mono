@@ -5,10 +5,10 @@ pub struct FixedToRatio;
 
 impl<T> UnaryTransform<T, Ratio> for FixedToRatio
 where
-    f32: From<T>,
+    T: Into<f32>,
 {
     #[inline(always)]
     fn apply(value: T) -> Ratio {
-        Ratio::new(f32::from(value))
+        Ratio::new(value.into())
     }
 }

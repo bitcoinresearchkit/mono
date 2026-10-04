@@ -1,6 +1,6 @@
 use std::{
     fmt::{Display, Formatter, Result},
-    ops::{Add, AddAssign, Div},
+    ops::{Add, AddAssign},
 };
 
 use brk_types::{Cents, Dollars};
@@ -102,16 +102,6 @@ where
 {
     fn add_assign(&mut self, rhs: Self) {
         **self = self.0.clone() + rhs.0
-    }
-}
-
-impl<T> Div<usize> for Low<T>
-where
-    T: Div<usize, Output = T>,
-{
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        Self(self.0 / rhs)
     }
 }
 

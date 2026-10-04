@@ -11,9 +11,9 @@ pub trait ImportableVec: Sized {
     ///
     /// # Warning
     ///
-    /// Deletes the existing data, sidecar regions included, when its version or
-    /// format differs (compressed vectors also reset a corrupt layout); other
-    /// corruption is an error.
+    /// Deletes the existing data, sidecar regions and rollback history included, when its
+    /// version, format or value size differs (compressed vectors also reset a corrupt
+    /// layout); other corruption is an error.
     fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Self::import_with((db, name, version).into())
     }

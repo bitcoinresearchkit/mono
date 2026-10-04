@@ -1,4 +1,4 @@
-use bitview::{BootstrapAction, QueryPluginSet, run};
+use bitview::{QueryPluginSet, run};
 use bitview_default::DefaultPlugins;
 use bitview_plugin::{ComputePlugin, ImportContext, Publication, UpdateContext};
 use bitview_plugin_blocks::HasBlocks;
@@ -11,7 +11,7 @@ use bitview_plugin_mappings::HasMappings;
 use bitview_plugin_outputs::HasOutputs;
 use bitview_plugin_price::HasPrice;
 use bitview_plugin_utxo_history::HasUtxoHistory;
-use bitview_runtime::{ComputePluginSet, PluginSet};
+use bitview_runtime::{BootstrapAction, ComputePluginSet, PluginSet};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_reader::Reader;

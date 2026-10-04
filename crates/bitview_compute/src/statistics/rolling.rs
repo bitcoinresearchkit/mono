@@ -228,7 +228,10 @@ where
 
                 for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
                     let i = skip + j;
-                    running_sum += f64::from(value);
+                    let value = f64::from(value);
+                    // A non-finite value would poison the running sum for good, unlike a resume.
+                    debug_assert!(value.is_finite(), "rolling average input must be finite");
+                    running_sum += value;
 
                     if prev_start < start {
                         let n = start.to_usize() - prev_start.to_usize();
@@ -305,6 +308,8 @@ where
                 {
                     let i = skip + j;
                     let val = f64::from(value);
+                    // A non-finite value would poison the running sum for good, unlike a resume.
+                    debug_assert!(val.is_finite(), "rolling SD input must be finite");
                     running_sum_sq += val * val;
 
                     if prev_start < start {
@@ -410,8 +415,10 @@ where
     V::T: From<f64> + Default,
     F: Fn(f64) -> f64,
 {
+    // The stored output is the whole state: it must hold `prev` exactly (an f64-backed type), so a
+    // resume continues bit for bit where an uninterrupted run would be.
     vec.compute_init(
-        Version::new(2) + window_starts.version() + values.version(),
+        Version::new(3) + window_starts.version() + values.version(),
         max_from,
         exit,
         |this| {
@@ -437,7 +444,12 @@ where
                 let alpha = alpha_fn(span);
                 let value = f64::from(value);
                 prev = alpha * value + (1.0 - alpha) * prev;
-                this.push(V::T::from(prev));
+                let out = V::T::from(prev);
+                debug_assert!(
+                    f64::from(out.clone()) == prev || prev.is_nan(),
+                    "exponential average state must be stored exactly"
+                );
+                this.push(out);
             }
 
             Ok(())

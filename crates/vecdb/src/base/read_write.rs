@@ -230,19 +230,35 @@ where
         self.read_only.stored_len.set(0);
         self.previous_stored_len = 0;
         self.read_only.header.update_stamp(Stamp::default());
-
-        let changes_path = self.changes_path();
-        if changes_path.exists() {
-            fs::remove_dir_all(&changes_path)?;
-        }
-
-        Ok(())
+        remove_changes_with::<I>(&self.db(), &self.name)
     }
 
     pub fn reset_unsaved_base(&mut self) {
         self.header.assert_writable();
         self.pushed.current_mut().clear();
     }
+}
+
+/// Removes a vec's region and its rollback history (an import-time reset), so a later rollback
+/// never walks into change files of the vec's previous life.
+pub(crate) fn remove_vec_with<I: VecIndex>(db: &Database, name: &str) -> CrateResult<()> {
+    db.remove_region_if_exists(&vec_region_name_with::<I>(name))?;
+    remove_changes_with::<I>(db, name)
+}
+
+fn remove_changes_with<I: VecIndex>(db: &Database, name: &str) -> CrateResult<()> {
+    let changes_path = changes_path_with::<I>(db, name);
+    if changes_path.exists() {
+        fs::remove_dir_all(changes_path)?;
+    }
+    Ok(())
+}
+
+/// Rollback history directory of a vec of type `I`.
+pub(crate) fn changes_path_with<I: VecIndex>(db: &Database, name: &str) -> PathBuf {
+    db.path()
+        .join("changes")
+        .join(vec_region_name_with::<I>(name))
 }
 
 /// Region name for a vec of type `I`, e.g. `"height/Height"`.

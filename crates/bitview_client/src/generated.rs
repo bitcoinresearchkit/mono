@@ -1364,11 +1364,11 @@ pub mod tree {
         close: Close = "*_close",
     } }
     shape! { Macd1m at "series().market.technical.macd._1m" {
-        ema_fast: SeriesPattern2<Option<Dollars32>> = "macd_ema_fast_*",
-        ema_slow: SeriesPattern2<Option<Dollars32>> = "macd_ema_slow_*",
-        line: SeriesPattern2<Option<Dollars32>> = "macd_line_*",
-        signal: SeriesPattern2<Option<Dollars32>> = "macd_signal_*",
-        histogram: SeriesPattern2<Option<Dollars32>> = "macd_histogram_*",
+        ema_fast: SeriesPattern2<Option<Dollars>> = "macd_ema_fast_*",
+        ema_slow: SeriesPattern2<Option<Dollars>> = "macd_ema_slow_*",
+        line: SeriesPattern2<Option<Dollars>> = "macd_line_*",
+        signal: SeriesPattern2<Option<Dollars>> = "macd_signal_*",
+        histogram: SeriesPattern2<Option<Dollars>> = "macd_histogram_*",
     } }
     shape! { Sd24h1m at "series().market.returns.sd_24h._1m" {
         sma: SeriesPattern2<Option<Ratio>> = "price_return_24h_sma_*",

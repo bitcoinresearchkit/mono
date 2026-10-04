@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64, Ratio};
+use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64, Ratio, Ratio64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{FixedRatioPerBlock, LazyPerBlock, PerBlock};
 use brk_error::Result;
@@ -31,9 +31,9 @@ pub struct RsiChain<M: StorageMode = Rw> {
     #[traversable(hidden)]
     losses: LazyPerBlock<Ratio>,
     #[traversable(hidden)]
-    average_gain: PerBlock<Ratio, M>,
+    average_gain: PerBlock<Ratio64, M>,
     #[traversable(hidden)]
-    average_loss: PerBlock<Ratio, M>,
+    average_loss: PerBlock<Ratio64, M>,
     /// Wilder-smoothed average gain divided by the sum of Wilder-smoothed
     /// average gain and loss. The result ranges from 0% to 100%; values above
     /// 50% mean smoothed gains exceed losses, and values below 50% mean losses

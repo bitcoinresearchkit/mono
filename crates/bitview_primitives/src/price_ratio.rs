@@ -1,6 +1,6 @@
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
-    ops::{Add, AddAssign, Div},
+    ops::{Add, AddAssign},
 };
 
 use brk_types::CheckedSub;
@@ -79,19 +79,6 @@ impl AddAssign for PriceRatio {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
-    }
-}
-
-impl Div<usize> for PriceRatio {
-    type Output = Self;
-
-    #[inline]
-    fn div(self, rhs: usize) -> Self {
-        if unlikely(self.is_nan() || rhs == 0) {
-            Self::NAN
-        } else {
-            Self((self.0 as usize / rhs) as u32)
-        }
     }
 }
 

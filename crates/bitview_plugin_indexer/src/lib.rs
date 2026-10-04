@@ -14,6 +14,7 @@ use bitcoin::{block::Header, consensus};
 use bitview_plugin::{
     ComputePlugin, ImportContext, Plugin, PluginId, PluginStorage, Publication, UpdateContext,
 };
+use bitview_primitives::Lengths;
 use bitview_traversable::{Traversable, TreeNode};
 use brk_error::{Error, Result};
 use brk_exit::Exit;
@@ -49,8 +50,6 @@ mod safe_lengths;
 mod state;
 mod stores;
 mod vecs;
-
-pub use bitview_primitives::Lengths;
 
 pub use has::HasIndexer;
 
@@ -247,11 +246,10 @@ impl Indexer {
     /// node: the first index run reconciles the local tip with the active chain.
     ///
     /// Any reset happens before this function returns, after all handles from
-    /// the failed import attempt have been dropped. A soft quit waits for the import, so a
-    /// reset never leaves a half-deleted directory that validation could accept.
+    /// the failed import attempt have been dropped. The bootstrap holds the shutdown lock around
+    /// the import, so a reset never leaves a half-deleted directory that validation could accept.
     pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         validate_reader_source(reader)?;
-        let _lock = context.exit().lock();
         Self::import_inner(context, reader, true)
     }
 

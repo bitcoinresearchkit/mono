@@ -155,14 +155,6 @@ impl Div<CentsSigned> for CentsSigned {
     }
 }
 
-impl Div<usize> for CentsSigned {
-    type Output = Self;
-    #[inline]
-    fn div(self, rhs: usize) -> Self::Output {
-        Self(self.0 / rhs as i64)
-    }
-}
-
 impl From<CentsSigned> for i128 {
     #[inline]
     fn from(value: CentsSigned) -> Self {

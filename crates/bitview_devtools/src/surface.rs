@@ -90,16 +90,14 @@ fn walk_disk(root: &Path, dir: &Path, out: &mut String) -> Result<()> {
                 continue;
             };
             let mut line = format!("{} bytes", region.meta().byte_len());
-            if let Some(header) = Header::read_unverified(&region)
-                .ok()
-                .filter(Header::is_current)
-            {
+            if let Ok(header) = Header::read_unverified(&region) {
                 line.push_str(&format!(
-                    ", header h{} v{} c{} {:?}",
+                    ", header h{} v{} c{} {:?} s{}",
                     header.header_version(),
                     header.vec_version(),
                     header.computed_version(),
-                    header.format()
+                    header.format(),
+                    header.value_size()
                 ));
             }
             out.push_str(&format!("{}/{id}\t{line}\n", relative(dir)));

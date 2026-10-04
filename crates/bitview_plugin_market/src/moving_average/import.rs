@@ -1,13 +1,15 @@
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::CentsFract;
+use bitview_transforms::Convert;
 use bitview_vecs::{LazyPriceWithRatioPerBlock, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, ReadableCloneableVec};
+use vecdb::{Database, LazyVec, ReadableCloneableVec};
 
 use super::{Vecs, sma::SmaVecs, vecs::EmaPeriodId};
 
-const EMA_VERSION: Version = Version::TWO;
+const EMA_VERSION: Version = Version::new(3);
 
 impl Vecs {
     pub(crate) fn import(
@@ -29,15 +31,22 @@ impl Vecs {
         let ema_stored = EmaPeriodId::try_series(|period| {
             import_cached(
                 db,
-                &format!("price_ema_{}_cents", period.suffix()),
+                &format!("price_ema_{}_state", period.suffix()),
                 ema_version,
             )
         })?;
         let ema = EmaPeriodId::series(|period| {
-            LazyPriceWithRatioPerBlock::from_height_source(
-                &format!("price_ema_{}", period.suffix()),
+            let name = format!("price_ema_{}", period.suffix());
+            // Whole cents for the price family; the stored state keeps the exact average.
+            let cents = LazyVec::<Height, Cents, Height, CentsFract>::transformed::<Convert>(
+                &format!("{name}_cents"),
                 ema_version,
-                period.select(&ema_stored),
+                period.select(&ema_stored).read_only_boxed_clone(),
+            );
+            LazyPriceWithRatioPerBlock::from_height_source(
+                &name,
+                ema_version,
+                &cents,
                 mappings,
                 spot_price,
             )

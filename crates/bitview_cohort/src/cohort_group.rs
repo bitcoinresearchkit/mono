@@ -11,7 +11,6 @@ pub trait CohortGroup {
     fn get<T>(cohorts: &Self::Of<T>, id: CohortId) -> Option<&T>;
     fn iter<'a, T: 'a>(cohorts: &'a Self::Of<T>) -> impl Iterator<Item = &'a T>;
     fn iter_mut<'a, T: 'a>(cohorts: &'a mut Self::Of<T>) -> impl Iterator<Item = &'a mut T>;
-    fn map<T, U>(cohorts: &Self::Of<T>, map: impl FnMut(&T) -> U) -> Self::Of<U>;
 }
 
 /// Age, creation-epoch and creation-year cohorts.
@@ -35,9 +34,6 @@ impl CohortGroup for Creation {
     fn iter_mut<'a, T: 'a>(cohorts: &'a mut Self::Of<T>) -> impl Iterator<Item = &'a mut T> {
         cohorts.iter_mut()
     }
-    fn map<T, U>(cohorts: &Self::Of<T>, map: impl FnMut(&T) -> U) -> Self::Of<U> {
-        cohorts.map(map)
-    }
 }
 
 /// Amount-range and spendable-type cohorts.
@@ -60,8 +56,5 @@ impl CohortGroup for Utxo {
     }
     fn iter_mut<'a, T: 'a>(cohorts: &'a mut Self::Of<T>) -> impl Iterator<Item = &'a mut T> {
         cohorts.iter_mut()
-    }
-    fn map<T, U>(cohorts: &Self::Of<T>, map: impl FnMut(&T) -> U) -> Self::Of<U> {
-        cohorts.map(map)
     }
 }

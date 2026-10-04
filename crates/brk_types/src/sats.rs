@@ -237,13 +237,6 @@ impl Div<Sats> for Sats {
     }
 }
 
-impl Div<usize> for Sats {
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        Self(self.0.checked_div(rhs as u64).unwrap_or(0))
-    }
-}
-
 impl From<u8> for Sats {
     #[inline]
     fn from(value: u8) -> Self {

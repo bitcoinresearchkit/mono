@@ -15,7 +15,7 @@ HTTP API server for Bitcoin on-chain analytics.
 Route-family features (`chain`, `series`, `urpd`, and `price`, which `chain` and
 `urpd` imply) gate the routes; `full-api` enables all of them and is the default.
 Custom compositions can disable default features and enable only the route
-families they provide; per-plugin selection lives in `bitview_query`. This crate does not
+families they provide; each family pulls the plugins its endpoints read. This crate does not
 depend on the official Bitview composition.
 
 ## Usage
@@ -81,9 +81,9 @@ their short freshness under either mode.
 
 Errors deliberately have no ETag: a conditional request must receive the error
 status again rather than `304`. Unknown-resource and other recoverable client
-errors use a one-second, must-revalidate policy; permanently invalid address,
-network, and transaction-ID inputs are immutable; authorization,
-service-unavailable, and server errors use `no-store`.
+errors use a one-second, must-revalidate policy; permanently invalid address and
+network inputs are immutable; service-unavailable and server errors use
+`no-store`. Server errors carry a generic message; the detail goes to the log.
 
 `POST /api/tx` is an action: every response is `no-store`, with no validator.
 It accepts at most 8,000,000 bytes of hexadecimal text including surrounding

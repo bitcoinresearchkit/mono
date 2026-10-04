@@ -34,9 +34,9 @@ discovered through that API rather than duplicated here.
 
 The indexer implements the [`bitview_plugin`](../bitview_plugin) lifecycle. It
 validates the Bitcoin Core block source, resumes from its persisted checkpoint,
-processes blocks sequentially, and periodically publishes a pipeline-safe
-snapshot. Store and vector commits are coordinated so a restart cannot expose
-half-committed state.
+processes blocks sequentially, saving periodically and publishing the
+pipeline-safe lengths when each update commits. Store and vector commits are
+coordinated so a restart cannot expose half-committed state.
 
 On a chain reorganization, the plugin rolls back its vectors and lookup stores
 to their last valid checkpoint before processing the replacement chain. If the

@@ -4,7 +4,7 @@
 use std::mem;
 
 use base::{
-    ChangeCursor, ChangeData, ReadOnlyBaseVec, ReadWriteBaseVec, vec_region_name,
+    ChangeCursor, ChangeData, ReadOnlyBaseVec, ReadWriteBaseVec, remove_vec_with, vec_region_name,
     vec_region_name_with,
 };
 use variants::*;

@@ -6,7 +6,7 @@ edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
-exclude = ["examples/", "src/api/scalar.js"]
+exclude = ["src/api/scalar.js"]
 
 [features]
 default = ["full-api"]
@@ -25,7 +25,7 @@ axum = { workspace = true }
 http-body = { workspace = true }
 brk_error = { workspace = true, features = ["jiff", "serde_json", "tokio", "vecdb"] }
 brk_oracle = { workspace = true, features = ["schemars"] }
-bitview_query = { workspace = true, default-features = false, features = ["indexer"] }
+bitview_query = { workspace = true, default-features = false }
 bitview_types = { workspace = true }
 bitview_catalog = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }

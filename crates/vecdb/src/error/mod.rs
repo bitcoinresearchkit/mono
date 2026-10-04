@@ -2,7 +2,7 @@
 use lz4_flex::block::DecompressError;
 #[cfg(feature = "pco")]
 use pco::errors::PcoError;
-use std::{fmt, fs, io, result::Result as StdResult, time};
+use std::{fmt, io, result::Result as StdResult};
 
 use rawdb::Error as RawdbError;
 use thiserror::Error;
@@ -24,13 +24,9 @@ pub enum Error {
     IO(#[from] io::Error),
     #[error(transparent)]
     Format(#[from] fmt::Error),
-    #[error("Couldn't lock file. It must be already opened by another process.")]
-    TryLockError(#[from] fs::TryLockError),
     #[cfg(feature = "zerocopy")]
     #[error("ZeroCopy error")]
     ZeroCopyError,
-    #[error(transparent)]
-    SystemTimeError(#[from] time::SystemTimeError),
     #[cfg(feature = "pco")]
     #[error(transparent)]
     PCO(#[from] PcoError),
@@ -62,14 +58,10 @@ pub enum Error {
     },
     #[error("Expect vec to have index")]
     ExpectVecToHaveIndex,
-    #[error("Failed to convert key to usize")]
-    FailedKeyTryIntoUsize,
     #[error("Different format received: {received:?}, expected: {expected:?}")]
     DifferentFormat { received: Format, expected: Format },
     #[error("Different value size received: {received} bytes, expected: {expected} bytes")]
     DifferentValueSize { received: u16, expected: u16 },
-    #[error("Version cannot be zero, can't verify endianness otherwise")]
-    VersionCannotBeZero,
     #[error("Stamp mismatch: file stamp {file:?} != vec stamp {vec:?}")]
     StampMismatch { file: Stamp, vec: Stamp },
     #[error("Corrupted region: invalid length {region_len}")]
@@ -95,10 +87,7 @@ impl Error {
     /// Returns true if this error is due to a file lock (another process has the database open).
     /// Lock errors are transient and should not trigger data deletion.
     pub fn is_lock_error(&self) -> bool {
-        matches!(
-            self,
-            Error::TryLockError(_) | Error::RawDB(RawdbError::TryLock(_))
-        )
+        matches!(self, Error::RawDB(RawdbError::TryLock(_)))
     }
 
     /// Returns true if this error indicates data corruption or version incompatibility.

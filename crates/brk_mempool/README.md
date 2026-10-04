@@ -38,16 +38,16 @@ Readers access the latest published state without driving a rebuild:
   updates or failed polls.
 - `fees` and `block_stats` expose recommendations and projected-block
   statistics.
-- `block_template` returns the projected next block in Bitcoin Core
-  `getblocktemplate` order.
-- `block_template_diff` returns retained, new, and removed transactions since a
-  recent template hash.
+- `block_template_source` captures the projected next block, built in Bitcoin
+  Core `getblocktemplate` order.
+- `resolve_block_template_diff` returns retained, new, and removed transactions
+  since a recent template hash.
 - `contains_txid`, `transaction`, and the outspend/spender reads take the
   caller's full chain-tip hash and require a completed matching publication.
   `transaction` shares an immutable live or recently vanished body; replaced
   tombstones are excluded. `recent_txs` exposes the completed recent live list.
-- `cpfp_info` and `effective_fee_rate` additionally verify that the graph and
-  live transaction fields share a revision. Stale graphs are not combined with
+- `cpfp_info` additionally verifies that the graph and live transaction fields
+  share a revision. Stale graphs are not combined with
   newer live state.
 - `addr_stats` and `addr_txs` take the caller's full chain-tip hash and return
   address activity only from a completed publication at that tip. `addr_txs`

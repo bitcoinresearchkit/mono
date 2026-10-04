@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-use super::{ChangeCursor, ChangeData, ReadWriteBaseVec, vec_region_name};
+use super::{ChangeCursor, ChangeData, ReadWriteBaseVec, changes_path_with};
 use crate::{Bytes, Error, Result, SIZE_OF_U64, Stamp, ValueStrategy, VecIndex, VecValue};
 
 impl<I, T> ReadWriteBaseVec<I, T>
@@ -14,9 +14,7 @@ where
     T: VecValue,
 {
     pub fn changes_path(&self) -> PathBuf {
-        self.db_path()
-            .join("changes")
-            .join(vec_region_name(&self.name, I::to_string()))
+        changes_path_with::<I>(&self.db(), &self.name)
     }
 
     pub fn serialize_changes<S: ValueStrategy<T>>(

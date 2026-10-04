@@ -18,10 +18,10 @@
 
 use bitview_cohort::ByAddrType;
 use bitview_collections::Windows;
-use bitview_plugin_indexer::Lengths;
 use bitview_plugin_inputs::ByTypeVecs as InputsByTypeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_outputs::ByTypeVecs;
+use bitview_primitives::Lengths;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;

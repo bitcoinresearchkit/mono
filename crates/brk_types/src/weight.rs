@@ -175,13 +175,6 @@ impl SubAssign for Weight {
     }
 }
 
-impl Div<usize> for Weight {
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        Self((u64::from(self.0) / rhs as u64) as u32)
-    }
-}
-
 impl Div<Weight> for Weight {
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {

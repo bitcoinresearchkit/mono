@@ -1,6 +1,6 @@
 use bitview_compute::{ComputedVecValue, FixedRatio, NumericValue};
 use bitview_primitives::{PriceRatio, Ratio};
-use bitview_transforms::price_ratio;
+use bitview_transforms::{FixedToRatio, price_ratio};
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Version};
 use schemars::JsonSchema;
@@ -60,7 +60,7 @@ where
     {
         let ppm =
             LazyPerBlock::from_lazy::<F, S2T>(&format!("{name}_{}", R::SUFFIX), version, source);
-        let ratio = LazyPerBlock::from_lazy::<R::ToRatio, S>(name, version, &ppm);
+        let ratio = LazyPerBlock::from_lazy::<FixedToRatio, S>(name, version, &ppm);
 
         Self { ppm, ratio }
     }
@@ -85,7 +85,7 @@ where
             source,
             indexes,
         );
-        let ratio = LazyPerBlock::from_lazy::<R::ToRatio, R>(name, version, &ppm);
+        let ratio = LazyPerBlock::from_lazy::<FixedToRatio, R>(name, version, &ppm);
 
         Self { ppm, ratio }
     }

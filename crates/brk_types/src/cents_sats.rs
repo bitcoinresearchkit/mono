@@ -2,7 +2,7 @@
 use itoa::Buffer;
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
-    ops::{Add, AddAssign, Div, Sub, SubAssign},
+    ops::{Add, AddAssign, Sub, SubAssign},
 };
 
 #[cfg(feature = "schemars")]
@@ -111,14 +111,6 @@ impl From<CentsSats> for u128 {
     #[inline(always)]
     fn from(value: CentsSats) -> Self {
         value.0
-    }
-}
-
-impl Div<usize> for CentsSats {
-    type Output = Self;
-    #[inline(always)]
-    fn div(self, rhs: usize) -> Self {
-        Self(self.0 / rhs as u128)
     }
 }
 

@@ -1,4 +1,5 @@
 use bitview_cohort::{Age, ByEntry, EntryPrice};
+use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
 use brk_error::{Error, Result};
@@ -44,25 +45,18 @@ impl ComputePlugin for Vecs {
             + version.2
             + Version::from(version.3.0 as u32)
             + Version::from(version.3.1 as u32);
-        {
-            let _lock = context.exit().lock();
-            for vec in self.state_vecs_mut() {
-                vec.any_validate_computed_version_or_reset(base_version)?;
-            }
-        }
         let end = deps
             .history
             .len()
             .min(deps.prices.len())
             .min(deps.timestamps.len())
             .min(deps.capitalized_price.len());
-        let start = usize::from(deps.from).min(end).min(
-            self.cohorts
-                .iter()
-                .map(|c| c.min_len())
-                .min()
-                .unwrap_or_default(),
-        );
+        let start = prepare_computed(
+            self.state_vecs_mut(),
+            base_version,
+            usize::from(deps.from).min(end),
+            context.exit(),
+        )?;
         if end == 0 {
             return Ok(());
         }
@@ -118,12 +112,6 @@ impl ComputePlugin for Vecs {
             }
             for state in live.cohorts.iter_mut() {
                 state.finish_restore();
-            }
-        }
-        {
-            let _lock = context.exit().lock();
-            for vec in self.state_vecs_mut() {
-                vec.any_truncate_if_needed_at(start)?;
             }
         }
         let mut cursor = deps.history.cursor(&mut live.origins)?;

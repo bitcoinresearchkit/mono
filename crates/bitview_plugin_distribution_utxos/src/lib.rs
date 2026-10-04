@@ -2,7 +2,6 @@ mod block;
 mod checkpoint;
 mod compute;
 mod dependencies;
-mod has;
 mod import;
 mod metrics;
 mod sources;
@@ -10,7 +9,6 @@ mod state;
 mod type_sources;
 
 pub use dependencies::Dependencies;
-pub use has::HasDistributionUtxos;
 
 use bitview_cohort::{AmountRangeId, SpendableTypeId};
 use bitview_plugin::{Plugin, PluginId, PluginStorage};

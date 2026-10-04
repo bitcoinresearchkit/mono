@@ -3,8 +3,9 @@
 use std::{collections::BTreeSet, fmt::Write};
 
 use crate::{
-    IndexSetPattern, accessor_of, client_value_type, python_field_name,
+    IndexSetPattern, accessor_of, client_value_type,
     model::{ChildKind, Model, TyExpr, param_name},
+    python_field_name,
 };
 
 const RUNTIME: &str = r#"class _Child:
@@ -75,7 +76,11 @@ pub(crate) fn generate_tree(
     // A value type with an undefined value of its own (NaN, a sentinel) is `Optional`.
     let value = |kind: &str| {
         let value = client_value_type(kind, |element| format!("List[{element}]"));
-        if undefined_types.contains(kind) { format!("Optional[{value}]") } else { value }
+        if undefined_types.contains(kind) {
+            format!("Optional[{value}]")
+        } else {
+            value
+        }
     };
     let ty = |expr: &TyExpr| expr.render(names, ["[", "]"], &value);
     for shape in model.shape_order() {
@@ -84,8 +89,13 @@ pub(crate) fn generate_tree(
             writeln!(output, "class {}(_Node):", names[shape]).unwrap();
         } else {
             let letters: Vec<String> = (0..params).map(param_name).collect();
-            writeln!(output, "class {}(_Node, Generic[{}]):", names[shape], letters.join(", "))
-                .unwrap();
+            writeln!(
+                output,
+                "class {}(_Node, Generic[{}]):",
+                names[shape],
+                letters.join(", ")
+            )
+            .unwrap();
         }
         let shape_def = &model.shapes[shape];
         for (((key, kind), rule), expr) in shape_def
@@ -123,15 +133,18 @@ fn builder(model: &Model, names: &[String], shape: usize, expr: &TyExpr) -> Stri
     match expr {
         TyExpr::Param(p) => {
             let at = model.shape_params[shape].iter().position(|q| q == p);
-            at.expect("a branch child's parameter stands for a shape").to_string()
+            at.expect("a branch child's parameter stands for a shape")
+                .to_string()
         }
         TyExpr::Shape(child, args) => {
             let child_params = &model.shape_params[*child];
             if child_params.is_empty() {
                 return names[*child].clone();
             }
-            let builders: Vec<String> =
-                child_params.iter().map(|&p| builder(model, names, shape, &args[p])).collect();
+            let builders: Vec<String> = child_params
+                .iter()
+                .map(|&p| builder(model, names, shape, &args[p]))
+                .collect();
             format!("({}, {})", names[*child], builders.join(", "))
         }
         TyExpr::Value(_) => unreachable!("a branch child is typed by a shape"),

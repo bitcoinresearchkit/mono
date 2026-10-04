@@ -1,6 +1,6 @@
 use std::{
     fmt::{Debug, Display, Formatter, Result as FmtResult},
-    ops::{Add, AddAssign, Div},
+    ops::{Add, AddAssign},
 };
 
 use brk_error::{Error, Result};
@@ -77,13 +77,6 @@ impl Add<Month6> for Month6 {
 impl AddAssign for Month6 {
     fn add_assign(&mut self, rhs: Self) {
         *self = Self(self.0 + rhs.0)
-    }
-}
-
-impl Div<usize> for Month6 {
-    type Output = Self;
-    fn div(self, _: usize) -> Self::Output {
-        unreachable!()
     }
 }
 

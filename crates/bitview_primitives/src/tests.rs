@@ -29,12 +29,11 @@ fn hashes_borrowed_script_payloads_like_owned_addresses() {
     }
 }
 
-/// The `scalar!` values: division by any count, NaN-first float order, undefined floats in JSON/CSV.
+/// The `scalar!` values: NaN-first float order, undefined floats in JSON/CSV.
 #[test]
 fn scalar_values() {
-    use crate::{Float32, Score};
+    use crate::Float32;
 
-    assert_eq!(Score::new(-128) / 128usize, Score::new(-1));
     assert_eq!(Float32::new(f32::NAN), Float32::new(f32::NAN));
     assert!(Float32::new(f32::NAN) < Float32::new(f32::MIN));
 

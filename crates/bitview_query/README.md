@@ -19,7 +19,7 @@ API. Supports pagination, range queries, and multiple output formats.
 ## Core API
 
 ```rust,ignore
-let query = Query::build(&plugins, Some(mempool));
+// `query` is the `&Query` an `AsyncQuery::run` closure receives (see Async Usage).
 
 // Series queries use a cheap resolve phase before formatting.
 let selection = SeriesSelection::from((
@@ -128,15 +128,14 @@ unindexable date) keep their meaning through `From<brk_error::Error>`.
 
 ## Features
 
-`indexer` brings `Query`, `AsyncQuery` and tokio. The API features select endpoints and the
-plugins those endpoints read: `chain` (blocks, transactions, addresses, mining, mempool; implies
+The API features select endpoints and the plugins those endpoints read: `chain` (blocks, transactions, addresses, mining, mempool; implies
 `price`), `series`, `price` (oracle prices) and `urpd` (implies `price`); `full-api` enables all of
 them. Each plugin an enabled API feature reads adds its typed `HasX` requirement to
 `QueryPluginSet` and exposes its typed accessor.
 
 `full-api` is the default for standalone users; composition and adapter crates
 should disable default features and select only what they expose. Generic
-`Vecs` discovery works with any `Traversable` plugin without a feature or
-dependency on that plugin crate. Query construction validates the enabled
+`Vecs` discovery (the `series` feature) works with any `Traversable` plugin
+without a dependency on that plugin crate. Query construction validates the enabled
 capabilities once and then keeps direct typed references, so hot paths perform
 no dynamic lookup.

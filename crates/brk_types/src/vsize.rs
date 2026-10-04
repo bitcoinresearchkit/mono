@@ -1,7 +1,7 @@
 use std::{
     fmt::{Display, Formatter, Result},
     iter::Sum,
-    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, Sub, SubAssign},
 };
 
 use derive_more::Deref;
@@ -122,13 +122,6 @@ impl Sub for VSize {
 impl SubAssign for VSize {
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs
-    }
-}
-
-impl Div<usize> for VSize {
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        Self(self.0 / rhs as u64)
     }
 }
 

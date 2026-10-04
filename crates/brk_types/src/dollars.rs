@@ -99,17 +99,6 @@ impl Sub for Dollars {
     }
 }
 
-impl Div<usize> for Dollars {
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        if self.is_nan() || rhs == 0 {
-            Dollars::NAN
-        } else {
-            Self::from(CentsSigned::from(self) / rhs)
-        }
-    }
-}
-
 impl Div<f64> for Dollars {
     type Output = Self;
     fn div(self, rhs: f64) -> Self::Output {

@@ -43,6 +43,10 @@ application.
   downstream plugins.
 - `bitview_plugin_*` crates own focused datasets such as mappings, blocks,
   transactions, mining, price, supply, distribution, and market analytics.
+- [`bitview_primitives`](../crates/bitview_primitives) holds Bitview's index and
+  unit-typed value types, [`bitview_types`](../crates/bitview_types) the REST
+  response and error types, and [`bitview_catalog`](../crates/bitview_catalog) the
+  series catalog that queries and generated clients read.
 - [`bitview_default`](../crates/bitview_default) declares the official typed
   plugin graph and compute order. Custom applications may supply a different
   composition.

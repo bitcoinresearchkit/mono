@@ -11,6 +11,4 @@ metadata; other platforms use canonical paths. Noncyclic aliases count twice.
 
 Dropping the HTTP future signals cooperative cancellation between filesystem
 operations. Work retains admission until both scans stop; an active OS call
-cannot be interrupted. Tests cover these bounds and the actual HTTP deadline.
-The retained disk benchmarks are warm temporary-tree comparisons, not cold
-storage or universal platform-speed claims.
+cannot be interrupted.

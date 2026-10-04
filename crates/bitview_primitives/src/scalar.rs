@@ -133,20 +133,6 @@ macro_rules! scalar {
             }
         }
 
-        /// Division by a count (in `i128`, so any count works); zero when dividing by zero.
-        impl ::std::ops::Div<usize> for $name {
-            type Output = Self;
-            #[inline]
-            fn div(self, rhs: usize) -> Self {
-                debug_assert!(rhs != 0, "{} divided by zero", stringify!($name));
-                if rhs == 0 {
-                    Self::ZERO
-                } else {
-                    Self((i128::from(self.0) / rhs as i128) as $repr)
-                }
-            }
-        }
-
         impl ::std::fmt::Display for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 f.write_str(::itoa::Buffer::new().format(self.0))
@@ -297,15 +283,6 @@ macro_rules! scalar {
         impl ::std::iter::Sum for $name {
             fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
                 Self(iter.map(|value| value.0).sum())
-            }
-        }
-
-        /// Division by a count; NaN when dividing by zero.
-        impl ::std::ops::Div<usize> for $name {
-            type Output = Self;
-            #[inline]
-            fn div(self, rhs: usize) -> Self {
-                if rhs == 0 { Self::NAN } else { Self(self.0 / rhs as $repr) }
             }
         }
 

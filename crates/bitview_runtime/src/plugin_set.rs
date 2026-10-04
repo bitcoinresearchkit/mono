@@ -42,8 +42,7 @@ pub trait ComputePluginSet: PluginSet {
 
     /// Commits the pipeline-wide publication cursor after a computation. `complete` is false
     /// after a bootstrap pass that computed only part of the composition
-    /// ([`BootstrapAction::Reimport`]).
-    fn commit(&mut self, _complete: bool) -> Result<()> {
-        Ok(())
-    }
+    /// ([`BootstrapAction::Reimport`]). Compositions delegate it to the default composition: it
+    /// is what advances the published lengths.
+    fn commit(&mut self, complete: bool) -> Result<()>;
 }

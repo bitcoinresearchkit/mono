@@ -9,7 +9,7 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
-arc-swap = "1.9.2"
+arc-swap = { workspace = true }
 bitcoin = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }

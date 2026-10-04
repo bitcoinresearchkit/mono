@@ -28,8 +28,8 @@ pub enum Error {
     SeriesUnsupportedIndex { series: String, supported: String },
     #[error("Request weight {requested} exceeds maximum {max}")]
     WeightExceeded { requested: usize, max: usize },
-    #[error("Too many unspent transaction outputs (>1000).")]
-    TooManyUtxos,
+    #[error("Too many unspent transaction outputs (more than {max})")]
+    TooManyUtxos { max: usize },
 
     // Nothing to answer with.
     #[error("Address not found in the blockchain (no transaction history)")]
@@ -83,12 +83,10 @@ impl From<brk_error::Error> for Error {
 }
 
 /// Turns a missing value into an internal error instead of a panic.
-#[cfg(feature = "indexer")]
 pub trait OptionData<T> {
     fn data(self) -> Result<T>;
 }
 
-#[cfg(feature = "indexer")]
 impl<T> OptionData<T> for Option<T> {
     #[inline]
     fn data(self) -> Result<T> {
@@ -114,7 +112,6 @@ lower!(
     jiff::Error,
     serde_json::Error,
 );
-#[cfg(feature = "indexer")]
 lower!(tokio::task::JoinError);
 
 /// Maximum length of a user-supplied series name in error messages before

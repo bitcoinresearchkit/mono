@@ -9,11 +9,11 @@ pub use u8x33::*;
 mod u8x65;
 pub use u8x65::*;
 
-#[cfg(feature = "storage")]
+use std::fmt;
+
 const HEX: &[u8; 16] = b"0123456789abcdef";
 
 /// Appends `bytes` as lowercase hex.
-#[cfg(feature = "storage")]
 #[inline]
 pub(crate) fn push_hex(bytes: &[u8], buf: &mut Vec<u8>) {
     buf.reserve(bytes.len() * 2);
@@ -21,6 +21,15 @@ pub(crate) fn push_hex(bytes: &[u8], buf: &mut Vec<u8>) {
         buf.push(HEX[usize::from(byte >> 4)]);
         buf.push(HEX[usize::from(byte & 0x0f)]);
     }
+}
+
+/// Writes `bytes` as lowercase hex.
+pub(crate) fn fmt_hex(bytes: &[u8], f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    use fmt::Write;
+    bytes.iter().try_for_each(|&byte| {
+        f.write_char(char::from(HEX[usize::from(byte >> 4)]))?;
+        f.write_char(char::from(HEX[usize::from(byte & 0x0f)]))
+    })
 }
 
 /// Parses exactly `N` bytes of hex (either case).

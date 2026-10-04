@@ -55,7 +55,6 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     #[plugin_set(has = bitview_plugin_mappings::HasMappings<M>)]
     mappings: Box<Mappings<M>>,
     indicators: Box<Indicators<M>>,
-    #[plugin_set(has = bitview_plugin_market::HasMarket<M>)]
     market: Box<Market<M>>,
     #[plugin_set(has = bitview_plugin_pools::HasPools<M>)]
     pools: Box<Pools<M>>,
@@ -66,7 +65,6 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     distribution_age: Box<DistributionAge<M>>,
     #[plugin_set(has = bitview_plugin_distribution_aggregated::HasDistributionAggregated<M>)]
     distribution_aggregated: Box<DistributionAggregated<M>>,
-    #[plugin_set(has = bitview_plugin_distribution_utxos::HasDistributionUtxos<M>)]
     #[traversable(flatten)]
     distribution_utxos: Box<DistributionUtxos<M>>,
     #[plugin_set(has = bitview_plugin_distribution_addresses::HasDistributionAddresses<M>)]

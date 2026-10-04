@@ -280,7 +280,7 @@ fn errors() -> Vec<(&'static str, ServerError)> {
                 max: 5,
             },
         ),
-        query("too many utxos", QueryError::TooManyUtxos),
+        query("too many utxos", QueryError::TooManyUtxos { max: 1000 }),
         query("query read timeout", QueryError::ReadTimeout),
         // Built by the server itself.
         ("request deadline (POST)", ServerError::timeout(true)),

@@ -11,7 +11,7 @@ pub fn replay_origins(
     states: &mut UTXOStates,
     ctx: &ComputeContext<'_>,
     cursor: &mut Cursor<'_>,
-    mut on_block: impl FnMut(Height, &UTXOStates) -> Result<()>,
+    mut on_block: impl FnMut(Height, &UTXOStates),
 ) -> Result<()> {
     for h in usize::from(ctx.starting_height)..=usize::from(ctx.last_height) {
         let height = Height::from(h);
@@ -46,7 +46,7 @@ pub fn replay_origins(
 
         states.reset_block();
 
-        on_block(height, states)?;
+        on_block(height, states);
     }
 
     Ok(())

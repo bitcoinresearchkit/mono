@@ -1,6 +1,7 @@
 use bitview_collections::FixedRatioViews;
 use bitview_compute::FixedRatio;
 use bitview_primitives::{Percent, Ratio};
+use bitview_transforms::{FixedToPercent, FixedToRatio};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -39,10 +40,10 @@ where
 
         let ratio_name = format!("{name}_rate_ratio");
         let ratio =
-            LazyPerBlock::from_resolutions::<B::ToRatio>(&ratio_name, version, &ppm.resolutions);
+            LazyPerBlock::from_resolutions::<FixedToRatio>(&ratio_name, version, &ppm.resolutions);
 
         let percent_name = format!("{name}_rate");
-        let percent = LazyPerBlock::from_resolutions::<B::ToPercent>(
+        let percent = LazyPerBlock::from_resolutions::<FixedToPercent>(
             &percent_name,
             version,
             &ppm.resolutions,

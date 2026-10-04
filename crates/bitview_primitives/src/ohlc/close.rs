@@ -1,7 +1,7 @@
 use std::{
     fmt::{Display, Formatter, Result},
     iter::Sum,
-    ops::{Add, AddAssign, Div, Mul},
+    ops::{Add, AddAssign, Mul},
 };
 
 use brk_types::{Bitcoin, Cents, CentsSigned, Dollars, Sats};
@@ -111,16 +111,6 @@ where
 {
     fn add_assign(&mut self, rhs: Self) {
         **self = self.0.clone() + rhs.0
-    }
-}
-
-impl<T> Div<usize> for Close<T>
-where
-    T: Div<usize, Output = T>,
-{
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        Self(self.0 / rhs)
     }
 }
 

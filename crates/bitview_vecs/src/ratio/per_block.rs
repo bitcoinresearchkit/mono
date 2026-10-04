@@ -1,5 +1,6 @@
 use bitview_compute::FixedRatio;
 use bitview_primitives::{Lengths, Ratio};
+use bitview_transforms::FixedToRatio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -38,7 +39,7 @@ impl<R: FixedRatio> RatioPerBlock<R> {
 
         let ppm = PerBlock::import(db, &format!("{name}_{}", R::SUFFIX), v, indexes)?;
 
-        let ratio = LazyPerBlock::from_resolutions::<R::ToRatio>(name, v, &ppm);
+        let ratio = LazyPerBlock::from_resolutions::<FixedToRatio>(name, v, &ppm);
 
         Ok(Self { ppm, ratio })
     }

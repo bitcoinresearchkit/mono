@@ -1,6 +1,6 @@
 use std::{
     fmt::{Debug, Display, Formatter, Result},
-    ops::{Add, AddAssign, Div},
+    ops::{Add, AddAssign},
 };
 
 use brk_types::{CheckedSub, Timestamp};
@@ -95,13 +95,6 @@ impl CheckedSub for Year {
 impl VecdbCheckedSub for Year {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         CheckedSub::checked_sub(self, rhs)
-    }
-}
-
-impl Div<usize> for Year {
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        Self::from(self.0 as usize / rhs)
     }
 }
 

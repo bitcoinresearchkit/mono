@@ -109,13 +109,6 @@ impl Sources {
         })
     }
 
-    pub(crate) fn min_len(&self) -> usize {
-        self.iter_any_exportable()
-            .map(|vec| vec.len())
-            .min()
-            .unwrap_or_default()
-    }
-
     pub(crate) fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         vec![
             &mut self.supply,

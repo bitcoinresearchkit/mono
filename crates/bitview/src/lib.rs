@@ -24,10 +24,9 @@ mod config;
 mod paths;
 
 pub use bitview_query::{Error, QueryPluginSet, Result};
-pub use bitview_runtime::{
-    BootstrapAction, ComputePluginSet, DEFAULT_CACHE_BUDGET, ImportContext, PluginSet,
-    UpdateContext, bootstrap, update,
-};
+use bitview_runtime::{ComputePluginSet, update};
+
+pub use bitview_runtime::{ImportContext, UpdateContext, bootstrap};
 pub use config::Config;
 
 /// Fully resolved settings for one Bitview runner.
@@ -38,7 +37,7 @@ pub struct RunConfig {
     pub blocks_path: PathBuf,
     /// HTTP server and data-directory settings.
     pub server: ServerConfig,
-    /// Bytes of the shared vector cache ([`DEFAULT_CACHE_BUDGET`] unless configured).
+    /// Bytes of the shared vector cache ([`bitview_runtime::DEFAULT_CACHE_BUDGET`] unless configured).
     pub cache_budget: usize,
 }
 

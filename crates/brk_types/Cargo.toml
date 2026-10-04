@@ -16,11 +16,11 @@ storage = ["dep:vecdb", "brk_error/vecdb"]
 bitcoin = { workspace = true }
 brk_error = { workspace = true, features = ["bitcoin", "jiff"] }
 derive_more = { workspace = true }
-itoa = "1.0.18"
+itoa = { workspace = true }
 jiff = { workspace = true }
-ryu = "1.0.23"
+ryu = { workspace = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
-strum = { version = "0.28", features = ["derive"] }
+strum = { workspace = true }
 vecdb = { workspace = true, optional = true }

@@ -17,9 +17,14 @@ fn derived_subsidy(height: Height, coinbase: Sats, fees: Sats) -> Sats {
         .unwrap_or_else(|| panic!("coinbase {coinbase:?} < fees {fees:?} at {height:?}"))
 }
 
+/// Bitcoin Core's `GetBlockSubsidy`: 50 BTC shifted right once per halving.
 fn scheduled_subsidy(height: Height) -> Sats {
-    let halving = Halving::from(height);
-    Sats::FIFTY_BTC / 2_usize.pow(halving.to_usize() as u32)
+    let halvings = Halving::from(height).to_usize() as u32;
+    Sats::from(
+        u64::from(Sats::FIFTY_BTC)
+            .checked_shr(halvings)
+            .unwrap_or(0),
+    )
 }
 
 fn unclaimed_rewards(height: Height, subsidy: Sats) -> Sats {

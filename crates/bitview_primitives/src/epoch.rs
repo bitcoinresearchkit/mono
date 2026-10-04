@@ -1,6 +1,6 @@
 use std::{
     fmt::{Debug, Display, Formatter, Result},
-    ops::{Add, AddAssign, Div},
+    ops::{Add, AddAssign},
 };
 
 use brk_types::{BLOCKS_PER_DIFF_EPOCHS, CheckedSub, Height};
@@ -63,13 +63,6 @@ impl Add<usize> for Epoch {
 
     fn add(self, rhs: usize) -> Self::Output {
         Self::from(self.0 + rhs as u16)
-    }
-}
-
-impl Div<usize> for Epoch {
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        Self::from(self.0 as usize / rhs)
     }
 }
 

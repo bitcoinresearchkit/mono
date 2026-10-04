@@ -19,7 +19,7 @@ Writes use the project exit guard. Crash recovery is outside the project contrac
 This crate is absent from `DefaultPlugins`. Compose it explicitly as in
 `examples/with_profitability.rs`. Its series are registered under this plugin's
 identity and are absent when the plugin is omitted. Basic profit/loss, cost-basis
-percentiles, and density remain with Distribution Age. Age no longer creates or maintains detailed profitability-band series.
+percentiles, and density live in Distribution Aggregated. Age no longer creates or maintains detailed profitability-band series.
 
 The existing price-grid precision and all/STH/LTH band rounding are preserved.
 The additional filters use the same grid, cutoff definitions, and complementary

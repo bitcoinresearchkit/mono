@@ -9,7 +9,7 @@ use crate::{
     RawRangeCursor, ReadWriteBaseVec, Result as CrateResult, VecIndex, VecReader, VecValue,
     Version,
     cache::{CachePolicy, NoCache},
-    vec_region_name_with,
+    remove_vec_with,
 };
 
 pub mod any_stored_vec;
@@ -63,9 +63,7 @@ where
             | Err(Error::DifferentValueSize { .. })
             | Err(Error::DifferentVersion { .. }) => {
                 debug!("Resetting {}...", options.name);
-                options
-                    .db
-                    .remove_region_if_exists(&vec_region_name_with::<I>(options.name))?;
+                remove_vec_with::<I>(options.db, options.name)?;
                 Self::import_strict_with(options, format)
             }
             _ => res,

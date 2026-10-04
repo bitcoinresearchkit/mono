@@ -623,11 +623,6 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {number} Dollars
  */
 /**
- * A USD amount (32-bit stored form).
- *
- * @typedef {number} Dollars32
- */
-/**
  * Data of an empty address
  *
  * @typedef {Object} EmptyAddrData
@@ -654,7 +649,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Machine-readable error code.
  *
- * @typedef {("not_found"|"invalid_addr"|"invalid_network"|"unsupported_type"|"parse_error"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_addr"|"unknown_txid"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode
+ * @typedef {("not_found"|"invalid_addr"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_addr"|"unknown_txid"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode
  */
 /**
  * @typedef {Object} ErrorDetail
@@ -1803,19 +1798,37 @@ const _openBrowserCache = (option) => {
 const _parseBaseUrl = (url) => new URL(url, typeof location === 'undefined' ? undefined : location.href);
 
 /**
- * Custom error class for Bitview client errors
+ * A failed request: the HTTP status and the server's error code and message, when it sent them.
  */
 class BitviewError extends Error {
   /**
    * @param {string} message
    * @param {number} [status]
+   * @param {ErrorCode} [code]
    */
-  constructor(message, status) {
+  constructor(message, status, code) {
     super(message);
     this.name = 'BitviewError';
     this.status = status;
+    this.code = code;
   }
 }
+
+/**
+ * The server's error body as a `BitviewError`; a body this client can't read keeps its text.
+ * @param {Response} res
+ * @returns {Promise<BitviewError>}
+ */
+const _responseError = async (res) => {
+  const text = await res.text().catch(() => '');
+  /** @type {Partial<ErrorDetail> | undefined} */
+  let detail;
+  try {
+    detail = JSON.parse(text)?.error;
+  } catch {}
+  const message = typeof detail?.message === 'string' ? detail.message : text || `HTTP ${res.status}`;
+  return new BitviewError(message, res.status, detail?.code);
+};
 
 // Date conversion constants and helpers, mirroring the server's indexes: UTC, from 2009-01-01
 // (week1 buckets ISO weeks, which start three days earlier; year10 buckets calendar decades, 2009 alone in the first).
@@ -1862,26 +1875,28 @@ function indexToDate(index, i) {
 /**
  * Convert a Date to an index value for date-based indexes.
  * Returns the floor index (latest index whose date is <= the given date).
+ * Throws for dates before the first index (2009-01-01).
  * @param {Index} index - The index type
  * @param {globalThis.Date} d - The date to convert
  * @returns {number}
  */
 function dateToIndex(index, d) {
   const ms = d.getTime();
+  if (!(ms >= _EPOCH_MS)) throw new RangeError('Date is before the first index (2009-01-01)');
   switch (index) {
     case 'minute10': return Math.floor((ms - _EPOCH_MS) / 600000);
     case 'minute30': return Math.floor((ms - _EPOCH_MS) / 1800000);
     case 'hour1': return Math.floor((ms - _EPOCH_MS) / 3600000);
     case 'hour4': return Math.floor((ms - _EPOCH_MS) / 14400000);
     case 'hour12': return Math.floor((ms - _EPOCH_MS) / 43200000);
-    case 'day1': return Math.max(0, Math.floor((ms - _EPOCH_MS) / _MS_PER_DAY));
+    case 'day1': return Math.floor((ms - _EPOCH_MS) / _MS_PER_DAY);
     case 'day3': return Math.floor((ms - _EPOCH_MS + 86400000) / 259200000);
-    case 'week1': return Math.max(0, Math.floor((ms - _EPOCH_MS + 3 * _MS_PER_DAY) / _MS_PER_WEEK));
+    case 'week1': return Math.floor((ms - _EPOCH_MS + 3 * _MS_PER_DAY) / _MS_PER_WEEK);
     case 'month1': return (d.getUTCFullYear() - 2009) * 12 + d.getUTCMonth();
     case 'month3': return (d.getUTCFullYear() - 2009) * 4 + Math.floor(d.getUTCMonth() / 3);
     case 'month6': return (d.getUTCFullYear() - 2009) * 2 + Math.floor(d.getUTCMonth() / 6);
     case 'year1': return d.getUTCFullYear() - 2009;
-    case 'year10': return Math.max(0, Math.floor((d.getUTCFullYear() - 2000) / 10));
+    case 'year10': return Math.floor((d.getUTCFullYear() - 2000) / 10);
     default: throw new Error(`${index} is not a date-based index`);
   }
 }
@@ -2084,38 +2099,28 @@ function _endpoint(client, name, index) {
   const p = `/api/series/${name}/${index}`;
 
   /**
-   * @param {number} [start]
-   * @param {number} [end]
+   * Counted selections send `limit`: the server ends them after resolving a negative start.
+   * @param {{ start?: number, end?: number, limit?: number }} range
    * @param {string} [format]
    * @returns {string}
    */
-  const buildPath = (start, end, format) => {
+  const buildPath = ({ start, end, limit }, format) => {
     const params = new URLSearchParams();
     if (start !== undefined) params.set('start', String(start));
     if (end !== undefined) params.set('end', String(end));
+    if (limit !== undefined) params.set('limit', String(limit));
     if (format) params.set('format', format);
     const query = params.toString();
     return query ? `${p}?${query}` : p;
   };
 
   /**
-   * @param {number} [start]
-   * @param {number} [end]
+   * @param {{ start?: number, end?: number, limit?: number }} range
    * @returns {DateRangeBuilder<T>}
    */
-  const rangeBuilder = (start, end) => ({
-    fetch(arg, options) { return client._fetchSeriesData(buildPath(start, end), arg, options); },
-    fetchCsv(options) { return client.getText(buildPath(start, end, 'csv'), options); },
-    then(resolve, reject) { return this.fetch().then(resolve, reject); },
-  });
-
-  /**
-   * @param {number} idx
-   * @returns {DateSingleItemBuilder<T>}
-   */
-  const singleItemBuilder = (idx) => ({
-    fetch(arg, options) { return client._fetchSeriesData(buildPath(idx, idx + 1), arg, options); },
-    fetchCsv(options) { return client.getText(buildPath(idx, idx + 1, 'csv'), options); },
+  const rangeBuilder = (range) => ({
+    fetch(arg, options) { return client._fetchSeriesData(buildPath(range), arg, options); },
+    fetchCsv(options) { return client.getText(buildPath(range, 'csv'), options); },
     then(resolve, reject) { return this.fetch().then(resolve, reject); },
   });
 
@@ -2124,25 +2129,28 @@ function _endpoint(client, name, index) {
    * @returns {DateSkippedBuilder<T>}
    */
   const skippedBuilder = (start) => ({
-    take(n) { return rangeBuilder(start, start + n); },
-    fetch(arg, options) { return client._fetchSeriesData(buildPath(start, undefined), arg, options); },
-    fetchCsv(options) { return client.getText(buildPath(start, undefined, 'csv'), options); },
+    take(n) { return rangeBuilder({ start, limit: n }); },
+    fetch(arg, options) { return client._fetchSeriesData(buildPath({ start }), arg, options); },
+    fetchCsv(options) { return client.getText(buildPath({ start }, 'csv'), options); },
     then(resolve, reject) { return this.fetch().then(resolve, reject); },
   });
 
   /** @type {DateSeriesEndpoint<T>} */
   const endpoint = {
-    get(idx) { if (idx instanceof Date) idx = dateToIndex(index, idx); return singleItemBuilder(idx); },
+    get(idx) {
+      if (idx instanceof Date) idx = dateToIndex(index, idx);
+      return rangeBuilder({ start: idx, limit: 1 });
+    },
     slice(start, end) {
       if (start instanceof Date) start = dateToIndex(index, start);
       if (end instanceof Date) end = dateToIndex(index, end);
-      return rangeBuilder(start, end);
+      return rangeBuilder({ start, end });
     },
-    first(n) { return rangeBuilder(undefined, n); },
-    last(n) { return n === 0 ? rangeBuilder(undefined, 0) : rangeBuilder(-n, undefined); },
+    first(n) { return rangeBuilder({ end: n }); },
+    last(n) { return rangeBuilder(n === 0 ? { end: 0 } : { start: -n }); },
     skip(n) { return skippedBuilder(n); },
-    fetch(arg, options) { return client._fetchSeriesData(buildPath(), arg, options); },
-    fetchCsv(options) { return client.getText(buildPath(undefined, undefined, 'csv'), options); },
+    fetch(arg, options) { return client._fetchSeriesData(buildPath({}), arg, options); },
+    fetchCsv(options) { return client.getText(buildPath({}, 'csv'), options); },
     len() { return client.getSeriesLen(name, index); },
     version() { return client.getSeriesVersion(name, index); },
     then(resolve, reject) { return this.fetch().then(resolve, reject); },
@@ -2225,9 +2233,7 @@ class BitviewClientBase {
     if (revalidate) init.headers = { 'If-None-Match': etag };
     if (!cache) init.cache = 'no-store';
     const res = await fetch(url, init);
-    if (!res.ok && !(revalidate && res.status === 304)) {
-      throw new BitviewError(`HTTP ${res.status}: ${url}`, res.status);
-    }
+    if (!res.ok && !(revalidate && res.status === 304)) throw await _responseError(res);
     return res;
   }
 
@@ -2380,7 +2386,7 @@ class BitviewClientBase {
       body,
       signal: AbortSignal.any(signals),
     });
-    if (!res.ok) throw new BitviewError(`HTTP ${res.status}: ${url}`, res.status);
+    if (!res.ok) throw await _responseError(res);
     return res;
   }
 
@@ -2832,11 +2838,11 @@ const _Split = _s({
 
 /**
  * @typedef {{
- *   emaFast: SeriesPattern2<?Dollars32>,
- *   emaSlow: SeriesPattern2<?Dollars32>,
- *   line: SeriesPattern2<?Dollars32>,
- *   signal: SeriesPattern2<?Dollars32>,
- *   histogram: SeriesPattern2<?Dollars32>,
+ *   emaFast: SeriesPattern2<?Dollars>,
+ *   emaSlow: SeriesPattern2<?Dollars>,
+ *   line: SeriesPattern2<?Dollars>,
+ *   signal: SeriesPattern2<?Dollars>,
+ *   histogram: SeriesPattern2<?Dollars>,
  * }} Macd1m
  */
 const _Macd1m = _s({

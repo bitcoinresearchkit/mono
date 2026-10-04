@@ -21,14 +21,14 @@ zstd = ["dep:zstd"]
 
 [dependencies]
 brk_exit = { workspace = true }
-itoa = "1.0.18"
+itoa = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 parking_lot = { workspace = true }
 rawdb = { workspace = true }
 rayon = { workspace = true }
-ryu = "1.0.23"
-thiserror = "2"
+ryu = { workspace = true }
+thiserror = { workspace = true }
 
 # [optional-dependencies]
 lz4_flex = { workspace = true, optional = true }

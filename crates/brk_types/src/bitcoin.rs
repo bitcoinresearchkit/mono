@@ -1,7 +1,7 @@
 use std::{
     cmp::Ordering,
     fmt::{Display, Formatter, Result},
-    ops::{Add, AddAssign, Div, Mul},
+    ops::{Add, AddAssign, Mul},
 };
 
 use ryu::Buffer;
@@ -48,13 +48,6 @@ impl Mul<usize> for Bitcoin {
     type Output = Self;
     fn mul(self, rhs: usize) -> Self::Output {
         Self::from(Sats::from(self) * rhs)
-    }
-}
-
-impl Div<usize> for Bitcoin {
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        Self::from(Sats::from(self) / rhs)
     }
 }
 

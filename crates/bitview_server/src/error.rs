@@ -9,6 +9,7 @@ use bitview_query::Error as QueryError;
 use bitview_types::{ErrorBody, ErrorCode, ErrorType};
 use brk_error::Error as BrkError;
 use serde_json::to_vec;
+use tracing::error;
 
 use crate::cache::{CacheParams, ErrorCachePolicy};
 
@@ -31,14 +32,14 @@ fn error_details(error: &QueryError) -> (StatusCode, ErrorCode) {
     match error {
         QueryError::InvalidAddr => (StatusCode::BAD_REQUEST, ErrorCode::InvalidAddr),
         QueryError::InvalidNetwork => (StatusCode::BAD_REQUEST, ErrorCode::InvalidNetwork),
-        QueryError::InvalidParam(_) => (StatusCode::BAD_REQUEST, ErrorCode::ParseError),
+        QueryError::InvalidParam(_) => (StatusCode::BAD_REQUEST, ErrorCode::BadRequest),
         QueryError::UnsupportedType(_) => (StatusCode::BAD_REQUEST, ErrorCode::UnsupportedType),
         QueryError::NoSeries => (StatusCode::BAD_REQUEST, ErrorCode::NoSeries),
         QueryError::SeriesUnsupportedIndex { .. } => {
             (StatusCode::BAD_REQUEST, ErrorCode::SeriesUnsupportedIndex)
         }
         QueryError::WeightExceeded { .. } => (StatusCode::BAD_REQUEST, ErrorCode::WeightExceeded),
-        QueryError::TooManyUtxos => (StatusCode::BAD_REQUEST, ErrorCode::TooManyUtxos),
+        QueryError::TooManyUtxos { .. } => (StatusCode::BAD_REQUEST, ErrorCode::TooManyUtxos),
         QueryError::UnknownAddr => (StatusCode::NOT_FOUND, ErrorCode::UnknownAddr),
         QueryError::UnknownTxid => (StatusCode::NOT_FOUND, ErrorCode::UnknownTxid),
         QueryError::NotFound(_) => (StatusCode::NOT_FOUND, ErrorCode::NotFound),
@@ -134,9 +135,7 @@ impl From<QueryError> for Error {
 impl From<BrkError> for Error {
     fn from(error: BrkError) -> Self {
         match error {
-            BrkError::TxRejected(reason) => {
-                Self::new(StatusCode::BAD_REQUEST, ErrorCode::ParseError, reason)
-            }
+            BrkError::TxRejected(reason) => Self::bad_request(reason),
             error => QueryError::from(error).into(),
         }
     }
@@ -146,13 +145,21 @@ impl OperationOutput for Error {
     type Inner = ();
 }
 
+/// Internal failures are logged, and their details (paths, node advice, panic payloads) stay out
+/// of the body.
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let policy = self.cache_policy();
+        let message = if self.status == StatusCode::INTERNAL_SERVER_ERROR {
+            error!("{}", self.message);
+            "Internal server error".to_owned()
+        } else {
+            self.message
+        };
         let body = to_vec(&ErrorBody::new(
             error_type(self.status),
             self.code,
-            self.message,
+            message,
             DOC_URL,
         ))
         .unwrap();

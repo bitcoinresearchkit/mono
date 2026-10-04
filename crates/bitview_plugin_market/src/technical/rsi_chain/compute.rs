@@ -41,7 +41,7 @@ impl RsiChain {
             |(h, g, l, ..)| {
                 let sum = *g + *l;
                 let rsi = if sum == 0.0 { 0.5 } else { *g / sum };
-                (h, PartsPerMillion32::from(rsi as f64))
+                (h, PartsPerMillion32::from(rsi))
             },
             exit,
         )?;

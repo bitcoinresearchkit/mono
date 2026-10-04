@@ -68,11 +68,6 @@ scalar! {
 }
 
 scalar! {
-    /// A USD amount (32-bit stored form).
-    float Dollars32(f32)
-}
-
-scalar! {
     /// Events per second.
     float PerSecond(f32)
 }
@@ -110,6 +105,14 @@ scalar! {
 scalar! {
     /// A mean amount in cents.
     float CentsFract(f64)
+}
+
+impl From<CentsFract> for Cents {
+    /// To the nearest whole cent.
+    #[inline]
+    fn from(value: CentsFract) -> Self {
+        Self::from(value.0.round())
+    }
 }
 
 scalar! {

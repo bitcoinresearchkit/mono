@@ -53,14 +53,6 @@ impl AgeBoundsMetrics {
         Ok(Self { series, stored })
     }
 
-    fn min_len(&self) -> usize {
-        self.stored
-            .iter()
-            .flat_map(|v| [v.min.len(), v.max.len()])
-            .min()
-            .unwrap_or_default()
-    }
-
     fn push(&mut self, values: &AgeAggregate<PriceBounds<Cents>>) {
         for (target, value) in self.stored.iter_mut().zip(values.iter()) {
             target.min.push(value.min);
@@ -68,21 +60,14 @@ impl AgeBoundsMetrics {
         }
     }
 
-    /// Replace the current block's scalar bounds and discard any reorged suffix.
+    /// Append the block's scalar bounds; the replay truncated every output to its start.
     pub fn push_block(
         &mut self,
         height: Height,
         entries: impl IntoIterator<Item = (AgeRangeId, CentsCompact, Sats)>,
-    ) -> Result<()> {
-        let start = self.min_len().min(usize::from(height));
-        for vec in self.stored_vecs_mut() {
-            vec.any_truncate_if_needed_at(start)?;
-        }
-        while self.stored.under_4m.min.len() < usize::from(height) {
-            self.push(&AgeAggregate::default());
-        }
+    ) {
+        debug_assert_eq!(self.stored.under_4m.min.len(), usize::from(height));
         self.push(&PriceBounds::from_age_entries(entries));
-        Ok(())
     }
 
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {

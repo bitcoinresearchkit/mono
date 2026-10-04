@@ -330,18 +330,6 @@ impl Div<u64> for Cents {
     }
 }
 
-impl Div<usize> for Cents {
-    type Output = Self;
-    #[inline]
-    fn div(self, rhs: usize) -> Self::Output {
-        if unlikely(self.is_nan()) {
-            Self::NAN
-        } else {
-            Self(self.0 / rhs as u64)
-        }
-    }
-}
-
 impl CheckedSub for Cents {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         Cents::checked_sub(self, rhs)

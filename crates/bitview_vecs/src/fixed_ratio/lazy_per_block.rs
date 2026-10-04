@@ -1,7 +1,7 @@
 use bitview_collections::FixedRatioViews;
 use bitview_compute::{FixedRatio, NumericValue};
 use bitview_primitives::{PartsPerMillionSigned64, Percent, Ratio};
-use bitview_transforms::Cagr;
+use bitview_transforms::{Cagr, FixedToPercent, FixedToRatio};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -116,8 +116,8 @@ impl<B: FixedRatio> LazyFixedRatioPerBlock<B> {
 
     fn from_ppm(name: &str, version: Version, ppm: LazyPerBlock<B, B>) -> Self {
         let ratio =
-            LazyPerBlock::from_lazy::<B::ToRatio, B>(&format!("{name}_ratio"), version, &ppm);
-        let percent = LazyPerBlock::from_lazy::<B::ToPercent, B>(name, version, &ppm);
+            LazyPerBlock::from_lazy::<FixedToRatio, B>(&format!("{name}_ratio"), version, &ppm);
+        let percent = LazyPerBlock::from_lazy::<FixedToPercent, B>(name, version, &ppm);
         Self(FixedRatioViews {
             ppm,
             ratio,

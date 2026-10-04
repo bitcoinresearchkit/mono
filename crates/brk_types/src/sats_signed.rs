@@ -1,7 +1,7 @@
 use std::{
     fmt::{Display, Formatter, Result},
     iter::Sum,
-    ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
 };
 
 use derive_more::Deref;
@@ -29,8 +29,6 @@ use vecdb::{Formattable, Pco};
 pub struct SatsSigned(i64);
 
 impl SatsSigned {
-    const ZERO: Self = Self(0);
-
     #[inline]
     pub const fn new(value: i64) -> Self {
         Self(value)
@@ -98,17 +96,6 @@ impl Mul<usize> for SatsSigned {
     type Output = Self;
     fn mul(self, rhs: usize) -> Self::Output {
         Self(self.0.checked_mul(rhs as i64).expect("SatsSigned overflow"))
-    }
-}
-
-impl Div<usize> for SatsSigned {
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        if rhs == 0 {
-            Self::ZERO
-        } else {
-            Self(self.0 / rhs as i64)
-        }
     }
 }
 

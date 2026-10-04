@@ -48,8 +48,9 @@ The author contract is deliberately small:
    such as `Exit`.
 4. Put the plugin in a derived `PluginSet`, call it in the composition's typed
    compute schedule, and expose a read-only accessor for consumers that need
-   it. Delegate `ComputePluginSet::publication` to the default composition so
-   the built-in and custom stages publish together.
+   it. Delegate `ComputePluginSet::publication` and `ComputePluginSet::commit`
+   to the default composition so the built-in and custom stages publish
+   together.
 
 `ImportContext` and `UpdateContext` are copyable borrowed handles. They do not
 contain plugin dependencies, so adding a metric cannot silently change its

@@ -65,11 +65,18 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
             .and_then(|r| r.as_array())
             .map(|r| r.iter().filter_map(|v| v.as_str()).collect())
             .unwrap_or_default();
-        let (required_props, optional_props): (Vec<_>, Vec<_>) =
-            props.iter().partition(|(prop_name, _)| required.contains(prop_name.as_str()));
+        let (required_props, optional_props): (Vec<_>, Vec<_>) = props
+            .iter()
+            .partition(|(prop_name, _)| required.contains(prop_name.as_str()));
         let field = |output: &mut String, (prop_name, prop_schema): (&String, &Value)| {
             let prop_type = schema_to_python_type(prop_schema, Some(&name), None);
-            writeln!(output, "    {}: {}", escape_python_keyword(prop_name), prop_type).unwrap();
+            writeln!(
+                output,
+                "    {}: {}",
+                escape_python_keyword(prop_name),
+                prop_type
+            )
+            .unwrap();
         };
 
         // Keys that aren't Python identifiers (`24h`, `txId[]`) need the functional form, which
@@ -89,12 +96,23 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
             let entries: Vec<String> = props
                 .iter()
                 .map(|(key, prop_schema)| {
-                    format!("{key:?}: {}", schema_to_python_type(prop_schema, Some(&name), None))
+                    format!(
+                        "{key:?}: {}",
+                        schema_to_python_type(prop_schema, Some(&name), None)
+                    )
                 })
                 .collect();
-            let total = if required_props.is_empty() { ", total=False" } else { "" };
-            writeln!(output, "{name} = TypedDict({name:?}, {{{}}}{total})\n", entries.join(", "))
-                .unwrap();
+            let total = if required_props.is_empty() {
+                ", total=False"
+            } else {
+                ""
+            };
+            writeln!(
+                output,
+                "{name} = TypedDict({name:?}, {{{}}}{total})\n",
+                entries.join(", ")
+            )
+            .unwrap();
             continue;
         }
 
@@ -138,14 +156,24 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
                 writeln!(output, "    Attributes:").unwrap();
                 for (field_name, desc) in &field_docs {
                     if let Some(d) = desc {
-                        writeln!(output, "        {}: {}", field_name, d.split_whitespace().collect::<Vec<_>>().join(" ")).unwrap();
+                        writeln!(
+                            output,
+                            "        {}: {}",
+                            field_name,
+                            d.split_whitespace().collect::<Vec<_>>().join(" ")
+                        )
+                        .unwrap();
                     }
                 }
             }
             writeln!(output, "    \"\"\"").unwrap();
         }
 
-        let own = if optional_props.is_empty() { &required_props } else { &optional_props };
+        let own = if optional_props.is_empty() {
+            &required_props
+        } else {
+            &optional_props
+        };
         for &prop in own {
             field(output, prop);
         }

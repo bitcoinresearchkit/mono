@@ -2,10 +2,11 @@ use bitview_plugin_distribution_common::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::Ratio64;
+use bitview_transforms::Quotient;
 use bitview_vecs::LazyPerBlock;
 use brk_error::Result;
 use brk_types::{Cents, Version};
-use vecdb::Ident;
+use vecdb::{BinaryTransform, Ident};
 
 use super::Vecs;
 
@@ -21,13 +22,13 @@ impl Vecs {
             "velocity_btc_source",
             version,
             &volume.sats.height,
-            |_, volume, supply| Self::ratio(f64::from(volume), f64::from(supply)),
+            |_, volume, supply| Quotient::<Ratio64>::apply(volume, supply),
         );
         let fiat_source = all_chain.with_market_cap(
             "velocity_usd_source",
             version,
             &volume.cents.height,
-            |_, volume: Cents, market_cap| Self::ratio(f64::from(volume), f64::from(market_cap)),
+            |_, volume: Cents, market_cap| Quotient::<Ratio64>::apply(volume, market_cap),
         );
 
         Ok(Self {
@@ -44,13 +45,5 @@ impl Vecs {
                 mappings,
             ),
         })
-    }
-
-    fn ratio(numerator: f64, denominator: f64) -> Ratio64 {
-        if denominator != 0.0 {
-            Ratio64::from(numerator / denominator)
-        } else {
-            Ratio64::ZERO
-        }
     }
 }

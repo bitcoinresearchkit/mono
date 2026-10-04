@@ -488,7 +488,6 @@ dependencies = [
  "bitview_cohort",
  "bitview_collections",
  "bitview_primitives",
- "bitview_transforms",
  "brk_error",
  "brk_exit",
  "brk_types",
@@ -833,6 +832,7 @@ dependencies = [
  "bitview",
  "bitview_cohort",
  "bitview_collections",
+ "bitview_compute",
  "bitview_default",
  "bitview_plugin",
  "bitview_plugin_blocks",
@@ -1187,6 +1187,7 @@ dependencies = [
  "bitview_plugin_price",
  "bitview_plugin_transactions",
  "bitview_primitives",
+ "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
@@ -1540,13 +1541,11 @@ version = "0.12.2"
 dependencies = [
  "bitcoin",
  "brk_fjall",
- "brk_pco",
  "jiff",
  "jsonrpc",
  "serde_json",
  "thiserror",
  "tokio",
- "ureq",
  "vecdb",
 ]
 

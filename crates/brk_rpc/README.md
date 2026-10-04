@@ -49,5 +49,5 @@ JSON-RPC answer (a wrong URL path); lost connections, server errors, a proxy's t
 ## Built On
 
 - `brk_error` for error handling
-- `brk_logger` for debug logging
+- `tracing` for debug logging
 - `brk_types` for `Height`, `BlockHash`, `Txid`, `MempoolEntryInfo`

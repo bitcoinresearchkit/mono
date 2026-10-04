@@ -1,6 +1,6 @@
 use std::{
     fmt::{Display, Formatter, Result},
-    ops::{Add, AddAssign, Div},
+    ops::{Add, AddAssign},
 };
 
 use bitcoin::locktime::absolute::Time;
@@ -148,13 +148,6 @@ impl CheckedSub<Timestamp> for Timestamp {
 impl VecdbCheckedSub<Timestamp> for Timestamp {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         CheckedSub::checked_sub(self, rhs)
-    }
-}
-
-impl Div<usize> for Timestamp {
-    type Output = Self;
-    fn div(self, rhs: usize) -> Self::Output {
-        Self(self.0 / rhs as u32)
     }
 }
 

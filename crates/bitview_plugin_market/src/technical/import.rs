@@ -8,7 +8,7 @@ use vecdb::Database;
 
 use super::{MacdChain, Vecs, rsi_chain};
 
-const VERSION: Version = Version::new(4);
+const VERSION: Version = Version::new(5);
 
 fn import_macd(
     db: &Database,

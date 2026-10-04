@@ -10,6 +10,7 @@ repository.workspace = true
 [dependencies]
 bitview_cohort = { workspace = true, features = ["storage"] }
 bitview_collections = { workspace = true }
+bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_distribution_common = { workspace = true }
 bitview_plugin_mappings = { workspace = true }

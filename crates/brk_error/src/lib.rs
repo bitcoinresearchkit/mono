@@ -16,8 +16,6 @@ use corepc_jsonrpc::error::Error as ErrorError;
 use fjall::Error as FjallError;
 #[cfg(feature = "jiff")]
 use jiff::Error as JiffError;
-#[cfg(feature = "pco")]
-use pco::errors::PcoError;
 #[cfg(feature = "serde_json")]
 use serde_json::Error as SerdeJsonError;
 use std::{borrow::Cow, io, path::PathBuf, result::Result as StdResult, time};
@@ -26,8 +24,6 @@ use thiserror::Error;
 
 #[cfg(feature = "tokio")]
 use tokio::task::JoinError;
-#[cfg(feature = "ureq")]
-use ureq::Error as UreqError;
 #[cfg(feature = "vecdb")]
 use vecdb::Error as VecdbError;
 #[cfg(feature = "vecdb")]
@@ -38,8 +34,8 @@ pub type Result<T> = StdResult<T, Error>;
 
 /// Convert `Option<T>` into a result without panicking.
 ///
-/// Replaces `.unwrap()` in query paths so a missing value returns
-/// HTTP 500 instead of crashing the server (`panic = "abort"`).
+/// Replaces `.unwrap()` in plugin code so a missing value fails the computation with an
+/// error instead of aborting the process (`panic = "abort"`).
 pub trait OptionData<T> {
     fn data(self) -> Result<T>;
 }
@@ -76,10 +72,6 @@ pub enum Error {
     #[error(transparent)]
     RawDB(#[from] RawDBError),
 
-    #[cfg(feature = "ureq")]
-    #[error(transparent)]
-    Ureq(#[from] UreqError),
-
     #[error(transparent)]
     SystemTimeError(#[from] time::SystemTimeError),
 
@@ -102,10 +94,6 @@ pub enum Error {
     #[cfg(feature = "bitcoin")]
     #[error(transparent)]
     BitcoinHexToArrayError(#[from] HexToArrayError),
-
-    #[cfg(feature = "pco")]
-    #[error(transparent)]
-    Pco(#[from] PcoError),
 
     #[cfg(feature = "serde_json")]
     #[error(transparent)]

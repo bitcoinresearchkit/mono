@@ -16,13 +16,13 @@ bitcoin = { workspace = true }
 brk_error = { workspace = true, features = ["bitcoin", "jiff", "serde_json"] }
 brk_types = { workspace = true, features = ["schemars"] }
 derive_more = { workspace = true }
-itoa = "1.0.18"
+itoa = { workspace = true }
 jiff = { workspace = true }
 rapidhash = { workspace = true }
 rustc-hash = { workspace = true }
-ryu = "1.0.23"
+ryu = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-strum = { version = "0.28", features = ["derive"] }
+strum = { workspace = true }
 vecdb = { workspace = true, optional = true }

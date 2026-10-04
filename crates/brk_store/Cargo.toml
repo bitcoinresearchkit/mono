@@ -8,7 +8,6 @@ edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
-exclude = ["examples/"]
 
 [dependencies]
 brk_error = { workspace = true, features = ["fjall"] }
@@ -17,4 +16,4 @@ fjall = { workspace = true }
 rustc-hash = { workspace = true }
 
 [dev-dependencies]
-tempfile = "3"
+tempfile = { workspace = true }

@@ -1,6 +1,7 @@
 use bitview_collections::FixedRatioViews;
 use bitview_compute::FixedRatio;
 use bitview_primitives::{Percent, Ratio};
+use bitview_transforms::{FixedToPercent, FixedToRatio};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -31,12 +32,12 @@ impl<B: FixedRatio, S: VecValue> LazyFixedRatioVec<B, S> {
             compute,
         );
         let ppm_source = ppm.read_only_boxed_clone();
-        let ratio = LazyVec::transformed::<B::ToRatio>(
+        let ratio = LazyVec::transformed::<FixedToRatio>(
             &format!("{name}_ratio"),
             version,
             ppm_source.clone(),
         );
-        let percent = LazyVec::transformed::<B::ToPercent>(name, version, ppm_source);
+        let percent = LazyVec::transformed::<FixedToPercent>(name, version, ppm_source);
 
         Self(FixedRatioViews {
             ppm,

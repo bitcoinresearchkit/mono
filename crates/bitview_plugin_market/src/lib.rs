@@ -1,7 +1,6 @@
 mod ath;
 mod compute;
 mod dependencies;
-mod has;
 mod import;
 mod lookback;
 mod moving_average;
@@ -11,7 +10,6 @@ mod technical;
 mod volatility;
 
 pub use dependencies::Dependencies;
-pub use has::HasMarket;
 pub use moving_average::Vecs as MovingAverageVecs;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};

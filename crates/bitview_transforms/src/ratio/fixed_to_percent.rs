@@ -5,10 +5,10 @@ pub struct FixedToPercent;
 
 impl<T> UnaryTransform<T, Percent> for FixedToPercent
 where
-    f32: From<T>,
+    T: Into<f32>,
 {
     #[inline(always)]
     fn apply(value: T) -> Percent {
-        Percent::new(f32::from(value) * 100.0)
+        Percent::new(value.into() * 100.0)
     }
 }

@@ -10,7 +10,7 @@ use crate::{
     Format, ImportOptions, ReadWriteBaseVec, Result as CrateResult, VecIndex, VecValue, Version,
     WritableVec,
     cache::{CachePolicy, NoCache},
-    likely, unlikely, vec_region_name_with,
+    likely, remove_vec_with, unlikely, vec_region_name_with,
 };
 
 pub mod any_stored_vec;
@@ -69,9 +69,7 @@ where
             | Err(Error::DifferentVersion { .. })
             | Err(Error::CorruptedRegion { .. }) => {
                 debug!("Resetting {}...", options.name);
-                options
-                    .db
-                    .remove_region_if_exists(&vec_region_name_with::<I>(options.name))?;
+                remove_vec_with::<I>(options.db, options.name)?;
                 options
                     .db
                     .remove_region_if_exists(&Self::pages_region_name_with(options.name))?;

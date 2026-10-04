@@ -1,7 +1,5 @@
 #![doc = include_str!("../README.md")]
 
-extern crate self as bitview_runtime;
-
 mod bootstrap;
 mod plugin_set;
 mod update;

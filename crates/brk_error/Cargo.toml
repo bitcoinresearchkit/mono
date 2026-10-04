@@ -12,8 +12,6 @@ bitcoin = ["dep:bitcoin"]
 corepc = ["dep:corepc-jsonrpc"]
 fjall = ["dep:fjall"]
 jiff = ["dep:jiff"]
-ureq = ["dep:ureq"]
-pco = ["dep:pco"]
 serde_json = ["dep:serde_json"]
 tokio = ["dep:tokio"]
 vecdb = ["dep:vecdb"]
@@ -23,9 +21,7 @@ bitcoin = { workspace = true, optional = true }
 corepc-jsonrpc = { workspace = true, optional = true }
 fjall = { workspace = true, optional = true }
 jiff = { workspace = true, optional = true }
-ureq = { workspace = true, optional = true }
-pco = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-thiserror = "2.0"
+thiserror = { workspace = true }
 tokio = { workspace = true, optional = true }
 vecdb = { workspace = true, optional = true }

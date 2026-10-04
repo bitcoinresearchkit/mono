@@ -34,8 +34,8 @@
 //! `process_received` and `process_sent`.
 
 use bitview_cohort::ByAddrType;
-use bitview_plugin_indexer::Lengths;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::Lengths;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;

@@ -28,7 +28,7 @@ all cohorts.
 `Replay` retains a consumer's state and histogram between successful updates. It
 adds new prices, moves supply across age boundaries, and applies removals and
 creations for each block. It rebuilds after a reorg, a source version change, or
-a failed update. Each plugin owns its complete `compute()` call and supplies its
+a failed update. Each plugin owns its complete `compute_state()` call and supplies its
 read-only dependencies and model weights; replay owns reconstruction details.
 
 An isolated query constructs this view once. A backfill constructs it once and

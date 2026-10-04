@@ -19,8 +19,7 @@ impl<'a> ImportContext<'a> {
     }
 
     /// Shutdown coordinator. The runtime's bootstrap holds its lock around every import, so an
-    /// import must not block on outside services; code importing on its own holds it around
-    /// writes that are not safe to interrupt.
+    /// import must not block on outside services.
     pub const fn exit(self) -> &'a Exit {
         self.exit
     }

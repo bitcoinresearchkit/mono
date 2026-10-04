@@ -54,7 +54,6 @@ pub enum ErrorCode {
     InvalidAddr,
     InvalidNetwork,
     UnsupportedType,
-    ParseError,
     NoSeries,
     SeriesUnsupportedIndex,
     WeightExceeded,

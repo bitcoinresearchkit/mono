@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::{DEFAULT_CACHE_BUDGET, RunConfig};
+use bitview_runtime::DEFAULT_CACHE_BUDGET;
 use bitview_server::{
     CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, ServerConfig, Website,
 };
@@ -20,7 +20,10 @@ use owo_colors::OwoColorize;
 use serde::{Deserialize, Serialize};
 use toml::from_str;
 
-use crate::paths::{default_bitview_dir, fix_user_path};
+use crate::{
+    RunConfig,
+    paths::{default_bitview_dir, fix_user_path},
+};
 
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]

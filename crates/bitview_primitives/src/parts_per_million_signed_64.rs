@@ -1,6 +1,6 @@
 use std::{
     fmt::{Display, Formatter, Result},
-    ops::{Add, AddAssign, Div, Sub, SubAssign},
+    ops::{Add, AddAssign, Sub, SubAssign},
 };
 
 use brk_types::CheckedSub;
@@ -167,20 +167,6 @@ impl SubAssign for PartsPerMillionSigned64 {
     #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
-    }
-}
-
-impl Div<usize> for PartsPerMillionSigned64 {
-    type Output = Self;
-
-    #[inline]
-    fn div(self, rhs: usize) -> Self::Output {
-        if unlikely(self.0 == i64::MIN) {
-            Self::NAN
-        } else {
-            debug_assert!(rhs <= i64::MAX as usize, "divisor out of i64 range: {rhs}");
-            Self(self.0 / rhs as i64)
-        }
     }
 }
 

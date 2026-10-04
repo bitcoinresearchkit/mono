@@ -15,7 +15,7 @@ libc = { workspace = true }
 log = { workspace = true }
 memmap2 = "0.9.11"
 parking_lot = { workspace = true }
-thiserror = "2.0.21"
+thiserror = { workspace = true }
 rustc-hash = { workspace = true }
 
 [dev-dependencies]

@@ -53,10 +53,6 @@ impl CohortMetrics {
         })
     }
 
-    pub(crate) fn min_len(&self) -> usize {
-        self.sources.min_len()
-    }
-
     pub(crate) fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.sources.stored_vecs_mut()
     }
