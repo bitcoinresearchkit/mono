@@ -162,6 +162,11 @@ pub enum Error {
     )]
     RpcAuthFailed,
 
+    #[error(
+        "Bitcoin Core refused this RPC request (check rpcallowip, or rpcwhitelist for this user)"
+    )]
+    RpcForbidden,
+
     /// The node refused a submitted transaction (policy or consensus); the reason is the node's.
     #[error("{0}")]
     TxRejected(String),

@@ -121,7 +121,7 @@ impl ClientInner {
                         warn!("Lost connection to Bitcoin Core; reconnecting...");
                     }
                 }
-                Err(e) => return Err(e.into()),
+                Err(e) => return Err(refusal(&e).unwrap_or_else(|| e.into())),
             }
         }
 
@@ -156,12 +156,10 @@ impl ClientInner {
             .map(|params| client.build_request(method, Some(params)))
             .collect();
 
-        client
-            .send_batch(&requests)
-            .map_err(|error| match is_auth_rejection(&error) {
-                true => Error::RpcAuthFailed,
-                false => Error::Parse(format!("batch {method} failed: {error}")),
-            })
+        client.send_batch(&requests).map_err(|error| {
+            refusal(&error)
+                .unwrap_or_else(|| Error::Parse(format!("batch {method} failed: {error}")))
+        })
     }
 
     /// Send a batch of calls sharing `method`, one set of args per request.
@@ -220,12 +218,9 @@ impl ClientInner {
             .map(|call| client.build_request(call.method, Some(&call.params)))
             .collect();
 
-        let responses = client
-            .send_batch(&requests)
-            .map_err(|e| match is_auth_rejection(&e) {
-                true => Error::RpcAuthFailed,
-                false => Error::Parse(format!("mixed batch failed: {e}")),
-            })?;
+        let responses = client.send_batch(&requests).map_err(|e| {
+            refusal(&e).unwrap_or_else(|| Error::Parse(format!("mixed batch failed: {e}")))
+        })?;
 
         Ok(responses
             .into_iter()
@@ -237,17 +232,41 @@ impl ClientInner {
     }
 }
 
-/// Lost connections and the node's warm-up or overload answers.
+/// Lost connections, server errors and the node's warm-up answers. Client errors (401, 403 from
+/// `rpcallowip` or `rpcwhitelist`, 404 for a wrong path) don't change on their own, except a
+/// proxy's timeout and rate limit (408, 429).
 fn is_retriable(error: &JsonRpcError) -> bool {
     match error {
         JsonRpcError::Rpc(e) => e.code == -32600 || e.code == 401 || e.code == -28,
-        JsonRpcError::Transport(_) => true,
+        JsonRpcError::Transport(_) => match http_status(error) {
+            Some(408 | 429) | None => true,
+            Some(code) => !(400..500).contains(&code),
+        },
         _ => false,
     }
 }
 
 /// The node answered 401: it rejected the credentials.
 fn is_auth_rejection(error: &JsonRpcError) -> bool {
-    matches!(error, JsonRpcError::Transport(e)
-        if matches!(e.downcast_ref(), Some(simple_http::Error::HttpErrorCode(401))))
+    http_status(error) == Some(401)
+}
+
+/// The node refused the request itself, whatever its content.
+fn refusal(error: &JsonRpcError) -> Option<Error> {
+    match http_status(error)? {
+        401 => Some(Error::RpcAuthFailed),
+        403 => Some(Error::RpcForbidden),
+        _ => None,
+    }
+}
+
+/// The HTTP status of an answer without a JSON-RPC body.
+fn http_status(error: &JsonRpcError) -> Option<u16> {
+    match error {
+        JsonRpcError::Transport(e) => match e.downcast_ref() {
+            Some(simple_http::Error::HttpErrorCode(code)) => Some(*code),
+            _ => None,
+        },
+        _ => None,
+    }
 }

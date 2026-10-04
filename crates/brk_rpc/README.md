@@ -35,7 +35,10 @@ let state = client.fetch_mempool_state()?;
 Rejected credentials fail with `Error::RpcAuthFailed` from both the blocking and the async client.
 For single calls with cookie auth, both re-read the cookie first and retry only when it changed (a
 restarting node writes a new one before serving RPC); blocking batches report a rejection at once.
-An unreadable cookie fails at once and names its path.
+An unreadable cookie fails at once and names its path. A request refused by `rpcallowip` or
+`rpcwhitelist` fails at once with `Error::RpcForbidden`, and so do other HTTP client errors without a
+JSON-RPC answer (a wrong URL path); lost connections, server errors, a proxy's timeout or rate limit
+(408, 429) and the node's warm-up answers are retried.
 
 ## Key Methods
 

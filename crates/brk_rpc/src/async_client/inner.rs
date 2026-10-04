@@ -137,6 +137,9 @@ impl Inner {
                 }
                 return Err(Error::RpcAuthFailed);
             }
+            if status == StatusCode::FORBIDDEN {
+                return Err(Error::RpcForbidden);
+            }
             return rpc_response::decode(status.is_success(), &bytes);
         }
     }
