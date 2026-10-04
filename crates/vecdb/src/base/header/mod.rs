@@ -14,8 +14,10 @@ use write_guard::WriteGuard;
 pub mod inner;
 mod write_guard;
 
-const HEADER_VERSION: Version = Version::TWO;
+const HEADER_VERSION: Version = Version::new(3);
 pub const HEADER_OFFSET: usize = size_of::<HeaderInner>();
+// The serialized header writes `value_size` at bytes 22..24.
+const _: () = assert!(HEADER_OFFSET >= 24);
 
 #[derive(Debug, Clone)]
 pub struct Header {
@@ -29,16 +31,19 @@ impl Header {
         region: &Region,
         vec_version: Version,
         format: Format,
+        value_size: u16,
     ) -> Result<Self> {
-        HeaderInner::create_and_write(region, vec_version, format).map(Self::from_inner)
+        HeaderInner::create_and_write(region, vec_version, format, value_size).map(Self::from_inner)
     }
 
     pub(crate) fn import_and_verify(
         region: &Region,
         vec_version: Version,
         format: Format,
+        value_size: u16,
     ) -> Result<Self> {
-        HeaderInner::import_and_verify(region, vec_version, format).map(Self::from_inner)
+        HeaderInner::import_and_verify(region, vec_version, format, value_size)
+            .map(Self::from_inner)
     }
 
     /// Reads a region's leading bytes as a vector header, without checking its

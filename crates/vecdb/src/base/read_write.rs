@@ -53,10 +53,12 @@ where
             region.reserve_capacity(capacity)?;
         }
 
+        const { assert!(size_of::<T>() <= u16::MAX as usize) };
+        let value_size = size_of::<T>() as u16;
         let header = if region_len == 0 {
-            Header::create_and_write(&region, options.version, format)?
+            Header::create_and_write(&region, options.version, format, value_size)?
         } else {
-            Header::import_and_verify(&region, options.version, format)?
+            Header::import_and_verify(&region, options.version, format, value_size)?
         };
 
         Ok(Self {

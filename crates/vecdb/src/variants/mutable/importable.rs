@@ -37,6 +37,7 @@ where
         match Self::import_inner(options) {
             Err(Error::WrongLength { .. })
             | Err(Error::DifferentFormat { .. })
+            | Err(Error::DifferentValueSize { .. })
             | Err(Error::DifferentVersion { .. }) => {
                 options
                     .db

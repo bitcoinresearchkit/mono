@@ -66,6 +66,8 @@ pub enum Error {
     FailedKeyTryIntoUsize,
     #[error("Different format received: {received:?}, expected: {expected:?}")]
     DifferentFormat { received: Format, expected: Format },
+    #[error("Different value size received: {received} bytes, expected: {expected} bytes")]
+    DifferentValueSize { received: u16, expected: u16 },
     #[error("Version cannot be zero, can't verify endianness otherwise")]
     VersionCannotBeZero,
     #[error("Stamp mismatch: file stamp {file:?} != vec stamp {vec:?}")]
@@ -108,6 +110,7 @@ impl Error {
             Error::RawDB(RawdbError::CorruptedMetadata(_)) => true,
             Error::DifferentVersion { .. }
             | Error::DifferentFormat { .. }
+            | Error::DifferentValueSize { .. }
             | Error::StampMismatch { .. }
             | Error::CorruptedRegion { .. }
             | Error::DecompressionMismatch { .. }

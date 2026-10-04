@@ -568,6 +568,37 @@ mod recovery {
     }
 
     #[test]
+    fn value_size_change_resets_the_vec() -> Result<()> {
+        let _serial = crate::tests::serial();
+        let directory = tempdir()?;
+        let database = Database::open(directory.path())?;
+        {
+            let mut narrow = BytesVec::<usize, u32>::import(&database, "raw", Version::ONE)?;
+            narrow.push(1);
+            narrow.push(2);
+            narrow.write()?;
+            #[cfg(feature = "pco")]
+            {
+                let mut narrow = PcoVec::<usize, u32>::import(&database, "pco", Version::ONE)?;
+                narrow.push(1);
+                narrow.push(2);
+                narrow.write()?;
+            }
+        }
+
+        // Same version, wider value: reset instead of reading u32 bytes as u64.
+        let wide = BytesVec::<usize, u64>::import(&database, "raw", Version::ONE)?;
+        assert_eq!(wide.len(), 0);
+        #[cfg(feature = "pco")]
+        {
+            let wide = PcoVec::<usize, u64>::import(&database, "pco", Version::ONE)?;
+            assert_eq!(wide.len(), 0);
+        }
+
+        Ok(())
+    }
+
+    #[test]
     fn version_change_resets_mutable_holes() -> Result<()> {
         let _serial = crate::tests::serial();
         let directory = tempdir()?;

@@ -11,16 +11,24 @@ pub struct HeaderInner {
     pub computed_version: Version,
     pub stamp: Stamp,
     pub format: Format,
+    /// `size_of` the stored value: a width change without a version bump is caught, not misread.
+    pub value_size: u16,
 }
 
 impl HeaderInner {
-    pub fn create_and_write(region: &Region, vec_version: Version, format: Format) -> Result<Self> {
+    pub fn create_and_write(
+        region: &Region,
+        vec_version: Version,
+        format: Format,
+        value_size: u16,
+    ) -> Result<Self> {
         let header = Self {
             header_version: HEADER_VERSION,
             vec_version,
             computed_version: Version::default(),
             stamp: Stamp::default(),
             format,
+            value_size,
         };
         header.write(region)?;
         Ok(header)
@@ -51,6 +59,7 @@ impl HeaderInner {
         region: &Region,
         vec_version: Version,
         format: Format,
+        value_size: u16,
     ) -> Result<Self> {
         let header = Self::read(region)?;
 
@@ -74,6 +83,13 @@ impl HeaderInner {
             });
         }
 
+        if header.value_size != value_size {
+            return Err(Error::DifferentValueSize {
+                received: header.value_size,
+                expected: value_size,
+            });
+        }
+
         Ok(header)
     }
 
@@ -94,6 +110,7 @@ impl HeaderInner {
         pos += s.len();
         let f = self.format.to_bytes();
         buf[pos..pos + f.len()].copy_from_slice(&f);
+        buf[22..24].copy_from_slice(&self.value_size.to_le_bytes());
         // remaining bytes are already zero (padding)
         buf
     }
@@ -111,12 +128,14 @@ impl HeaderInner {
         let computed_version = Version::from_bytes(&bytes[8..12])?;
         let stamp = Stamp::from_bytes(&bytes[12..20])?;
         let format = Format::from_bytes(&bytes[20..21])?;
+        let value_size = u16::from_le_bytes([bytes[22], bytes[23]]);
         Ok(Self {
             header_version,
             vec_version,
             computed_version,
             stamp,
             format,
+            value_size,
         })
     }
 }

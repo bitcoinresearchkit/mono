@@ -60,6 +60,7 @@ where
         match res {
             Err(Error::WrongLength { .. })
             | Err(Error::DifferentFormat { .. })
+            | Err(Error::DifferentValueSize { .. })
             | Err(Error::DifferentVersion { .. }) => {
                 debug!("Resetting {}...", options.name);
                 options
