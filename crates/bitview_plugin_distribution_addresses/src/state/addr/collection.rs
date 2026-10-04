@@ -1,5 +1,5 @@
 use bitview_cohort::{AmountRange, AmountRangeId};
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use brk_types::{Cents, Height};
 
 use super::AddrCohortState;
@@ -46,7 +46,7 @@ impl AddrStates {
     ) {
         metrics.push(&self.amount_range, height_price);
         funded.push_balance(AmountRange::from_fn(|amount| {
-            StoredU64::from(amount.select(&self.amount_range).addr_count)
+            Count::from(amount.select(&self.amount_range).addr_count)
         }));
     }
 

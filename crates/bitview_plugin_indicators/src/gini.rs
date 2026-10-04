@@ -1,6 +1,6 @@
 use bitview_cohort::AmountRange;
 use bitview_plugin_distribution_utxos::Vecs as UtxosVecs;
-use bitview_primitives::{PartsPerMillion32, StoredU64};
+use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_vecs::PercentPerBlock;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -65,7 +65,7 @@ pub fn compute(
 }
 
 fn gini_from_lorenz(
-    counts: &AmountRange<StoredU64>,
+    counts: &AmountRange<Count>,
     supplies: &AmountRange<Sats>,
 ) -> PartsPerMillion32 {
     let total_count: u64 = counts.iter().copied().map(u64::from).sum();

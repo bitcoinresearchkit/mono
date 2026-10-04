@@ -1,7 +1,7 @@
 use bitview_cohort::UtxoGroups;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
@@ -36,11 +36,7 @@ impl OutputsVecs {
     }
 
     #[inline(always)]
-    pub fn push(
-        &mut self,
-        unspent_count: UtxoGroups<StoredU64>,
-        spent_count: UtxoGroups<StoredU64>,
-    ) {
+    pub fn push(&mut self, unspent_count: UtxoGroups<Count>, spent_count: UtxoGroups<Count>) {
         self.unspent_count.stored.push(&unspent_count);
         self.spent_count.stored.push_block(spent_count);
     }

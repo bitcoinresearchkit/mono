@@ -1114,6 +1114,9 @@ impl SeriesValue for Boolean {
 impl SeriesValue for Bytes {
     type Nullable = Option<Bytes>;
 }
+impl SeriesValue for Bytes32 {
+    type Nullable = Option<Bytes32>;
+}
 impl SeriesValue for CapitalSentimentPhase {
     type Nullable = Option<CapitalSentimentPhase>;
 }
@@ -1122,6 +1125,15 @@ impl SeriesValue for CentsSigned {
 }
 impl SeriesValue for CoinbaseTag {
     type Nullable = Option<CoinbaseTag>;
+}
+impl SeriesValue for Count {
+    type Nullable = Option<Count>;
+}
+impl SeriesValue for Count16 {
+    type Nullable = Option<Count16>;
+}
+impl SeriesValue for CountSigned {
+    type Nullable = Option<CountSigned>;
 }
 impl SeriesValue for Date {
     type Nullable = Option<Date>;
@@ -1267,14 +1279,8 @@ impl SeriesValue for Score {
 impl SeriesValue for SigOps {
     type Nullable = Option<SigOps>;
 }
-impl SeriesValue for StoredI64 {
-    type Nullable = Option<StoredI64>;
-}
-impl SeriesValue for StoredU32 {
-    type Nullable = Option<StoredU32>;
-}
-impl SeriesValue for StoredU64 {
-    type Nullable = Option<StoredU64>;
+impl SeriesValue for SigOps64 {
+    type Nullable = Option<SigOps64>;
 }
 impl SeriesValue for Timestamp {
     type Nullable = Option<Timestamp>;
@@ -1324,7 +1330,7 @@ pub mod tree {
 
     shape! { UtxoHistory at "series().utxo_history" {
         supply: SeriesPattern21<Sats> = "*",
-        count: SeriesPattern2<StoredU64> = "utxo_count_bis",
+        count: SeriesPattern2<Count> = "utxo_count_bis",
     } }
     shape! { Velocity at "series().supply.velocity" {
         native: SeriesPattern2<Option<StoredF64>> = "*_btc",
@@ -1382,8 +1388,8 @@ pub mod tree {
     } }
     shape! { MappingsTxIndex at "series().mappings.tx_index" {
         identity: SeriesPattern22<TxIndex> = "tx_index",
-        input_count: SeriesPattern22<StoredU64> = "input_*",
-        output_count: SeriesPattern22<StoredU64> = "output_*",
+        input_count: SeriesPattern22<Count> = "input_*",
+        output_count: SeriesPattern22<Count> = "output_*",
     } }
     shape! { MappingsYear10 at "series().mappings.year10" {
         date: SeriesPattern18<Date> = "*",
@@ -1454,7 +1460,7 @@ pub mod tree {
         month6: SeriesPattern21<Month6> = "month6",
         year1: SeriesPattern21<Year1> = "year1",
         year10: SeriesPattern21<Year10> = "year10",
-        tx_index_count: SeriesPattern21<StoredU64> = "tx_index_count",
+        tx_index_count: SeriesPattern21<Count> = "tx_index_count",
     } }
     shape! { AddrOpReturn at "series().mappings.addr.op_return" {
         identity: SeriesPattern26<OpReturnIndex> = "*",
@@ -2035,7 +2041,7 @@ pub mod tree {
         first_index: SeriesPattern21<OpReturnIndex> = "first_op_return_*",
         to_tx_index: SeriesPattern26<TxIndex> = "tx_*",
         kind: SeriesPattern26<OpReturnKind> = "kind",
-        post_op_return_bytes: SeriesPattern26<StoredU32> = "op_return_post_op_return_bytes",
+        post_op_return_bytes: SeriesPattern26<Bytes32> = "op_return_post_op_return_bytes",
     } }
     shape! { RawUnknown at "series().scripts.raw.unknown" {
         first_index: SeriesPattern21<UnknownOutputIndex> = "first_unknown_output_*",
@@ -2060,15 +2066,15 @@ pub mod tree {
         raw: ScriptsRaw = "*",
     } }
     shape! { AddrsEmpty at "series().addrs.empty" {
-        all: SeriesPattern2<StoredU64> = "*",
-        p2pk65: SeriesPattern2<StoredU64> = "p2pk65_*",
-        p2pk33: SeriesPattern2<StoredU64> = "p2pk33_*",
-        p2pkh: SeriesPattern2<StoredU64> = "p2pkh_*",
-        p2sh: SeriesPattern2<StoredU64> = "p2sh_*",
-        p2wpkh: SeriesPattern2<StoredU64> = "p2wpkh_*",
-        p2wsh: SeriesPattern2<StoredU64> = "p2wsh_*",
-        p2tr: SeriesPattern2<StoredU64> = "p2tr_*",
-        p2a: SeriesPattern2<StoredU64> = "p2a_*",
+        all: SeriesPattern2<Count> = "*",
+        p2pk65: SeriesPattern2<Count> = "p2pk65_*",
+        p2pk33: SeriesPattern2<Count> = "p2pk33_*",
+        p2pkh: SeriesPattern2<Count> = "p2pkh_*",
+        p2sh: SeriesPattern2<Count> = "p2sh_*",
+        p2wpkh: SeriesPattern2<Count> = "p2wpkh_*",
+        p2wsh: SeriesPattern2<Count> = "p2wsh_*",
+        p2tr: SeriesPattern2<Count> = "p2tr_*",
+        p2a: SeriesPattern2<Count> = "p2a_*",
     } }
     shape! { ExposedCount at "series().addrs.exposed.count" {
         funded: AddrsEmpty = "*",
@@ -2260,7 +2266,7 @@ pub mod tree {
         tx_version: SeriesPattern22<TxVersion> = "*_version",
         raw_locktime: SeriesPattern22<RawLockTime> = "raw_locktime",
         weight: SeriesPattern22<Weight> = "*_weight",
-        total_size: SeriesPattern22<StoredU32> = "total_size",
+        total_size: SeriesPattern22<Bytes32> = "total_size",
         total_sigop_cost: SeriesPattern22<SigOps> = "total_sigop_cost",
         is_explicitly_rbf: SeriesPattern22<Boolean> = "is_explicitly_rbf",
         first_txin_index: SeriesPattern22<TxInIndex> = "first_txin_index",
@@ -2268,7 +2274,7 @@ pub mod tree {
     } }
     shape! { BlocksHalving at "series().blocks.halving" {
         epoch: SeriesPattern2<Halving> = "*_epoch",
-        blocks_to_halving: SeriesPattern2<StoredU32> = "blocks_to_*",
+        blocks_to_halving: SeriesPattern2<Count> = "blocks_to_*",
         days_to_halving: SeriesPattern2<Option<StoredF32>> = "days_to_*",
     } }
     shape! { Fullness at "series().blocks.fullness" {
@@ -2330,10 +2336,10 @@ pub mod tree {
         _26y: SeriesPattern21<Height> = "*_26y_ago",
     } }
     shape! { Target at "series().blocks.count.target" {
-        _24h: SeriesPattern1<StoredU64> = "*_24h",
-        _1w: SeriesPattern1<StoredU64> = "*_1w",
-        _1m: SeriesPattern1<StoredU64> = "*_1m",
-        _1y: SeriesPattern1<StoredU64> = "*_1y",
+        _24h: SeriesPattern1<Count> = "*_24h",
+        _1w: SeriesPattern1<Count> = "*_1w",
+        _1m: SeriesPattern1<Count> = "*_1m",
+        _1y: SeriesPattern1<Count> = "*_1y",
     } }
     shape! { PerSec<A> at "series().inputs.per_sec" {
         _24h: SeriesPattern2<A> = "*_24h",
@@ -2342,38 +2348,38 @@ pub mod tree {
         _1y: SeriesPattern2<A> = "*_1y",
     } }
     shape! { BlocksMined at "series().pools.major.antpool.blocks_mined" {
-        block: SeriesPattern21<StoredU64> = "*",
-        cumulative: SeriesPattern2<StoredU64> = "*_cumulative",
-        sum: PerSec<StoredU64> = "*_sum",
+        block: SeriesPattern21<Count> = "*",
+        cumulative: SeriesPattern2<Count> = "*_cumulative",
+        sum: PerSec<Count> = "*_sum",
     } }
     shape! { Rolling at "series().inputs.count.rolling" {
-        sum: PerSec<StoredU64> = "*_sum",
+        sum: PerSec<Count> = "*_sum",
         average: PerSec<Option<StoredF32>> = "*_average",
-        min: PerSec<StoredU64> = "*_min",
-        max: PerSec<StoredU64> = "*_max",
-        pct10: PerSec<StoredU64> = "*_pct10",
-        pct25: PerSec<StoredU64> = "*_pct25",
-        median: PerSec<StoredU64> = "*_median",
-        pct75: PerSec<StoredU64> = "*_pct75",
-        pct90: PerSec<StoredU64> = "*_pct90",
+        min: PerSec<Count> = "*_min",
+        max: PerSec<Count> = "*_max",
+        pct10: PerSec<Count> = "*_pct10",
+        pct25: PerSec<Count> = "*_pct25",
+        median: PerSec<Count> = "*_median",
+        pct75: PerSec<Count> = "*_pct75",
+        pct90: PerSec<Count> = "*_pct90",
     } }
     shape! { InputsCount at "series().inputs.count" {
-        sum: SeriesPattern21<StoredU64> = "*_sum",
-        cumulative: SeriesPattern2<StoredU64> = "*_cumulative",
+        sum: SeriesPattern21<Count> = "*_sum",
+        cumulative: SeriesPattern2<Count> = "*_cumulative",
         rolling: Rolling = "*",
     } }
-    shape! { Vbytes at "series().blocks.vbytes" {
-        block: SeriesPattern21<StoredU64> = "*",
-        cumulative: SeriesPattern2<StoredU64> = "*_cumulative",
-        sum: PerSec<StoredU64> = "*_sum",
+    shape! { Vbytes<A> at "series().blocks.vbytes" {
+        block: SeriesPattern21<A> = "*",
+        cumulative: SeriesPattern2<A> = "*_cumulative",
+        sum: PerSec<A> = "*_sum",
         average: PerSec<Option<StoredF32>> = "*_average",
-        min: PerSec<StoredU64> = "*_min",
-        max: PerSec<StoredU64> = "*_max",
-        pct10: PerSec<StoredU64> = "*_pct10",
-        pct25: PerSec<StoredU64> = "*_pct25",
-        median: PerSec<StoredU64> = "*_median",
-        pct75: PerSec<StoredU64> = "*_pct75",
-        pct90: PerSec<StoredU64> = "*_pct90",
+        min: PerSec<A> = "*_min",
+        max: PerSec<A> = "*_max",
+        pct10: PerSec<A> = "*_pct10",
+        pct25: PerSec<A> = "*_pct25",
+        median: PerSec<A> = "*_median",
+        pct75: PerSec<A> = "*_pct75",
+        pct90: PerSec<A> = "*_pct90",
     } }
     shape! { NewAll<A> at "series().addrs.new.all" {
         block: SeriesPattern21<A> = "*",
@@ -2396,80 +2402,80 @@ pub mod tree {
         coinblocks_destroyed: NewAll<Option<StoredF64>> = "*_destroyed",
     } }
     shape! { OutputsByTypeTxCount at "series().outputs.by_type.tx_count" {
-        all: NewAll<StoredU64> = "*_bis",
-        p2pk65: NewAll<StoredU64> = "*_with_p2pk65_output",
-        p2pk33: NewAll<StoredU64> = "*_with_p2pk33_output",
-        p2pkh: NewAll<StoredU64> = "*_with_p2pkh_output",
-        p2ms: NewAll<StoredU64> = "*_with_p2ms_output",
-        p2sh: NewAll<StoredU64> = "*_with_p2sh_output",
-        p2wpkh: NewAll<StoredU64> = "*_with_p2wpkh_output",
-        p2wsh: NewAll<StoredU64> = "*_with_p2wsh_output",
-        p2tr: NewAll<StoredU64> = "*_with_p2tr_output",
-        p2a: NewAll<StoredU64> = "*_with_p2a_output",
-        unknown: NewAll<StoredU64> = "*_with_unknown_outputs_output",
-        empty: NewAll<StoredU64> = "*_with_empty_outputs_output",
-        op_return: NewAll<StoredU64> = "*_with_op_return_output",
+        all: NewAll<Count> = "*_bis",
+        p2pk65: NewAll<Count> = "*_with_p2pk65_output",
+        p2pk33: NewAll<Count> = "*_with_p2pk33_output",
+        p2pkh: NewAll<Count> = "*_with_p2pkh_output",
+        p2ms: NewAll<Count> = "*_with_p2ms_output",
+        p2sh: NewAll<Count> = "*_with_p2sh_output",
+        p2wpkh: NewAll<Count> = "*_with_p2wpkh_output",
+        p2wsh: NewAll<Count> = "*_with_p2wsh_output",
+        p2tr: NewAll<Count> = "*_with_p2tr_output",
+        p2a: NewAll<Count> = "*_with_p2a_output",
+        unknown: NewAll<Count> = "*_with_unknown_outputs_output",
+        empty: NewAll<Count> = "*_with_empty_outputs_output",
+        op_return: NewAll<Count> = "*_with_op_return_output",
     } }
     shape! { OutputCount at "series().outputs.by_type.output_count" {
-        all: NewAll<StoredU64> = "*_bis",
-        p2pk65: NewAll<StoredU64> = "p2pk65_*",
-        p2pk33: NewAll<StoredU64> = "p2pk33_*",
-        p2pkh: NewAll<StoredU64> = "p2pkh_*",
-        p2ms: NewAll<StoredU64> = "p2ms_*",
-        p2sh: NewAll<StoredU64> = "p2sh_*",
-        p2wpkh: NewAll<StoredU64> = "p2wpkh_*",
-        p2wsh: NewAll<StoredU64> = "p2wsh_*",
-        p2tr: NewAll<StoredU64> = "p2tr_*",
-        p2a: NewAll<StoredU64> = "p2a_*",
-        unknown: NewAll<StoredU64> = "unknown_outputs_*",
-        empty: NewAll<StoredU64> = "empty_outputs_*",
-        op_return: NewAll<StoredU64> = "op_return_*",
+        all: NewAll<Count> = "*_bis",
+        p2pk65: NewAll<Count> = "p2pk65_*",
+        p2pk33: NewAll<Count> = "p2pk33_*",
+        p2pkh: NewAll<Count> = "p2pkh_*",
+        p2ms: NewAll<Count> = "p2ms_*",
+        p2sh: NewAll<Count> = "p2sh_*",
+        p2wpkh: NewAll<Count> = "p2wpkh_*",
+        p2wsh: NewAll<Count> = "p2wsh_*",
+        p2tr: NewAll<Count> = "p2tr_*",
+        p2a: NewAll<Count> = "p2a_*",
+        unknown: NewAll<Count> = "unknown_outputs_*",
+        empty: NewAll<Count> = "empty_outputs_*",
+        op_return: NewAll<Count> = "op_return_*",
     } }
     shape! { InputsByTypeTxCount at "series().inputs.by_type.tx_count" {
-        all: NewAll<StoredU64> = "non_coinbase_*",
-        p2pk65: NewAll<StoredU64> = "*_with_p2pk65_prevout",
-        p2pk33: NewAll<StoredU64> = "*_with_p2pk33_prevout",
-        p2pkh: NewAll<StoredU64> = "*_with_p2pkh_prevout",
-        p2ms: NewAll<StoredU64> = "*_with_p2ms_prevout",
-        p2sh: NewAll<StoredU64> = "*_with_p2sh_prevout",
-        p2wpkh: NewAll<StoredU64> = "*_with_p2wpkh_prevout",
-        p2wsh: NewAll<StoredU64> = "*_with_p2wsh_prevout",
-        p2tr: NewAll<StoredU64> = "*_with_p2tr_prevout",
-        p2a: NewAll<StoredU64> = "*_with_p2a_prevout",
-        unknown: NewAll<StoredU64> = "*_with_unknown_outputs_prevout",
-        empty: NewAll<StoredU64> = "*_with_empty_outputs_prevout",
+        all: NewAll<Count> = "non_coinbase_*",
+        p2pk65: NewAll<Count> = "*_with_p2pk65_prevout",
+        p2pk33: NewAll<Count> = "*_with_p2pk33_prevout",
+        p2pkh: NewAll<Count> = "*_with_p2pkh_prevout",
+        p2ms: NewAll<Count> = "*_with_p2ms_prevout",
+        p2sh: NewAll<Count> = "*_with_p2sh_prevout",
+        p2wpkh: NewAll<Count> = "*_with_p2wpkh_prevout",
+        p2wsh: NewAll<Count> = "*_with_p2wsh_prevout",
+        p2tr: NewAll<Count> = "*_with_p2tr_prevout",
+        p2a: NewAll<Count> = "*_with_p2a_prevout",
+        unknown: NewAll<Count> = "*_with_unknown_outputs_prevout",
+        empty: NewAll<Count> = "*_with_empty_outputs_prevout",
     } }
     shape! { InputCount at "series().inputs.by_type.input_count" {
-        all: NewAll<StoredU64> = "input_*_bis",
-        p2pk65: NewAll<StoredU64> = "p2pk65_prevout_*",
-        p2pk33: NewAll<StoredU64> = "p2pk33_prevout_*",
-        p2pkh: NewAll<StoredU64> = "p2pkh_prevout_*",
-        p2ms: NewAll<StoredU64> = "p2ms_prevout_*",
-        p2sh: NewAll<StoredU64> = "p2sh_prevout_*",
-        p2wpkh: NewAll<StoredU64> = "p2wpkh_prevout_*",
-        p2wsh: NewAll<StoredU64> = "p2wsh_prevout_*",
-        p2tr: NewAll<StoredU64> = "p2tr_prevout_*",
-        p2a: NewAll<StoredU64> = "p2a_prevout_*",
-        unknown: NewAll<StoredU64> = "unknown_outputs_prevout_*",
-        empty: NewAll<StoredU64> = "empty_outputs_prevout_*",
+        all: NewAll<Count> = "input_*_bis",
+        p2pk65: NewAll<Count> = "p2pk65_prevout_*",
+        p2pk33: NewAll<Count> = "p2pk33_prevout_*",
+        p2pkh: NewAll<Count> = "p2pkh_prevout_*",
+        p2ms: NewAll<Count> = "p2ms_prevout_*",
+        p2sh: NewAll<Count> = "p2sh_prevout_*",
+        p2wpkh: NewAll<Count> = "p2wpkh_prevout_*",
+        p2wsh: NewAll<Count> = "p2wsh_prevout_*",
+        p2tr: NewAll<Count> = "p2tr_prevout_*",
+        p2a: NewAll<Count> = "p2a_prevout_*",
+        unknown: NewAll<Count> = "unknown_outputs_prevout_*",
+        empty: NewAll<Count> = "empty_outputs_prevout_*",
     } }
     shape! { Versions at "series().transactions.versions" {
-        v1: NewAll<StoredU64> = "*_v1",
-        v2: NewAll<StoredU64> = "*_v2",
-        v3: NewAll<StoredU64> = "*_v3",
-        other: NewAll<StoredU64> = "*_other_version",
+        v1: NewAll<Count> = "*_v1",
+        v2: NewAll<Count> = "*_v2",
+        v3: NewAll<Count> = "*_v3",
+        other: NewAll<Count> = "*_other_version",
     } }
     shape! { PolicyCount at "series().transactions.policy.count" {
-        nonstandard: NewAll<StoredU64> = "*",
+        nonstandard: NewAll<Count> = "*",
     } }
     shape! { Policy at "series().transactions.policy" {
         count: PolicyCount = "*_count",
         is_nonstandard: SeriesPattern22<Boolean> = "is_*",
     } }
     shape! { PatternsCount at "series().transactions.patterns.count" {
-        coinjoin: NewAll<StoredU64> = "coinjoin_*",
-        consolidation: NewAll<StoredU64> = "consolidation_*",
-        batch_payout: NewAll<StoredU64> = "batch_payout_*",
+        coinjoin: NewAll<Count> = "coinjoin_*",
+        consolidation: NewAll<Count> = "consolidation_*",
+        batch_payout: NewAll<Count> = "batch_payout_*",
     } }
     shape! { Patterns at "series().transactions.patterns" {
         count: PatternsCount = "count",
@@ -2478,8 +2484,8 @@ pub mod tree {
         is_batch_payout: SeriesPattern22<Boolean> = "*_batch_payout",
     } }
     shape! { FeesCount at "series().transactions.fees.count" {
-        cpfp_parent: NewAll<StoredU64> = "*_parent_count",
-        cpfp_child: NewAll<StoredU64> = "*_child_count",
+        cpfp_parent: NewAll<Count> = "*_parent_count",
+        cpfp_child: NewAll<Count> = "*_child_count",
     } }
     shape! { TransactionsFees at "series().transactions.fees" {
         count: FeesCount = "cpfp",
@@ -2493,33 +2499,33 @@ pub mod tree {
         total: A = "*",
     } }
     shape! { FeaturesCount at "series().transactions.features.count" {
-        v1: SeriesPattern21<StoredU64> = "*_v1",
-        v2: SeriesPattern21<StoredU64> = "*_v2",
-        v3: SeriesPattern21<StoredU64> = "*_v3",
-        other_version: SeriesPattern21<StoredU64> = "*_other_version",
-        explicitly_rbf: SeriesPattern21<StoredU64> = "*_explicitly_rbf",
-        one_input: SeriesPattern21<StoredU64> = "*_one_input",
-        one_output: SeriesPattern21<StoredU64> = "*_one_output",
-        p2pk: SeriesPattern21<StoredU64> = "*_p2pk",
-        p2ms: SeriesPattern21<StoredU64> = "*_p2ms",
-        p2pkh: SeriesPattern21<StoredU64> = "*_p2pkh",
-        p2sh: SeriesPattern21<StoredU64> = "*_p2sh",
-        p2wpkh: SeriesPattern21<StoredU64> = "*_p2wpkh",
-        p2wsh: SeriesPattern21<StoredU64> = "*_p2wsh",
-        p2tr: SeriesPattern21<StoredU64> = "*_p2tr",
-        p2a: SeriesPattern21<StoredU64> = "*_p2a",
-        op_return: SeriesPattern21<StoredU64> = "*_op_return",
-        empty: SeriesPattern21<StoredU64> = "*_empty",
-        unknown: SeriesPattern21<StoredU64> = "*_unknown",
-        fake_pubkey: SeriesPattern21<StoredU64> = "*_fake_pubkey",
-        fake_scripthash: SeriesPattern21<StoredU64> = "*_fake_scripthash",
-        annex: NewAll<StoredU64> = "*_annex",
-        sighash_all: NewAll<StoredU64> = "*_sighash_all",
-        sighash_none: NewAll<StoredU64> = "*_sighash_none",
-        sighash_single: NewAll<StoredU64> = "*_sighash_single",
-        sighash_default: NewAll<StoredU64> = "*_sighash_default",
-        sighash_anyone_can_pay: NewAll<StoredU64> = "*_sighash_anyone_can_pay",
-        dust_output: NewAll<StoredU64> = "*_dust_output",
+        v1: SeriesPattern21<Count16> = "*_v1",
+        v2: SeriesPattern21<Count16> = "*_v2",
+        v3: SeriesPattern21<Count16> = "*_v3",
+        other_version: SeriesPattern21<Count16> = "*_other_version",
+        explicitly_rbf: SeriesPattern21<Count16> = "*_explicitly_rbf",
+        one_input: SeriesPattern21<Count16> = "*_one_input",
+        one_output: SeriesPattern21<Count16> = "*_one_output",
+        p2pk: SeriesPattern21<Count16> = "*_p2pk",
+        p2ms: SeriesPattern21<Count16> = "*_p2ms",
+        p2pkh: SeriesPattern21<Count16> = "*_p2pkh",
+        p2sh: SeriesPattern21<Count16> = "*_p2sh",
+        p2wpkh: SeriesPattern21<Count16> = "*_p2wpkh",
+        p2wsh: SeriesPattern21<Count16> = "*_p2wsh",
+        p2tr: SeriesPattern21<Count16> = "*_p2tr",
+        p2a: SeriesPattern21<Count16> = "*_p2a",
+        op_return: SeriesPattern21<Count16> = "*_op_return",
+        empty: SeriesPattern21<Count16> = "*_empty",
+        unknown: SeriesPattern21<Count16> = "*_unknown",
+        fake_pubkey: SeriesPattern21<Count16> = "*_fake_pubkey",
+        fake_scripthash: SeriesPattern21<Count16> = "*_fake_scripthash",
+        annex: NewAll<Count> = "*_annex",
+        sighash_all: NewAll<Count> = "*_sighash_all",
+        sighash_none: NewAll<Count> = "*_sighash_none",
+        sighash_single: NewAll<Count> = "*_sighash_single",
+        sighash_default: NewAll<Count> = "*_sighash_default",
+        sighash_anyone_can_pay: NewAll<Count> = "*_sighash_anyone_can_pay",
+        dust_output: NewAll<Count> = "*_dust_output",
     } }
     shape! { Features at "series().transactions.features" {
         count: FeaturesCount = "tx_count",
@@ -2547,7 +2553,7 @@ pub mod tree {
     } }
     shape! { BlocksCount at "series().blocks.count" {
         target: Target = "*_target",
-        total: NewAll<StoredU64> = "*",
+        total: NewAll<Count> = "*",
     } }
     shape! { BlocksWeight at "series().blocks.weight" {
         base: SeriesPattern21<Weight> = "*",
@@ -2563,17 +2569,17 @@ pub mod tree {
         pct90: PerSec<Weight64> = "*_pct90",
     } }
     shape! { BlocksSize at "series().blocks.size" {
-        base: SeriesPattern21<StoredU64> = "total_*",
-        cumulative: SeriesPattern2<StoredU64> = "block_*_cumulative",
-        sum: PerSec<StoredU64> = "block_*_sum",
+        base: SeriesPattern21<Bytes32> = "total_*",
+        cumulative: SeriesPattern2<Bytes> = "block_*_cumulative",
+        sum: PerSec<Bytes> = "block_*_sum",
         average: PerSec<Option<StoredF32>> = "block_*_average",
-        min: PerSec<StoredU64> = "block_*_min",
-        max: PerSec<StoredU64> = "block_*_max",
-        pct10: PerSec<StoredU64> = "block_*_pct10",
-        pct25: PerSec<StoredU64> = "block_*_pct25",
-        median: PerSec<StoredU64> = "block_*_median",
-        pct75: PerSec<StoredU64> = "block_*_pct75",
-        pct90: PerSec<StoredU64> = "block_*_pct90",
+        min: PerSec<Bytes> = "block_*_min",
+        max: PerSec<Bytes> = "block_*_max",
+        pct10: PerSec<Bytes> = "block_*_pct10",
+        pct25: PerSec<Bytes> = "block_*_pct25",
+        median: PerSec<Bytes> = "block_*_median",
+        pct75: PerSec<Bytes> = "block_*_pct75",
+        pct90: PerSec<Bytes> = "block_*_pct90",
     } }
     shape! { Time at "series().blocks.time" {
         timestamp: SeriesPattern21<Timestamp> = "*",
@@ -3002,7 +3008,7 @@ pub mod tree {
     } }
     shape! { Total at "series().op_return.total" {
         data_bytes: NewAll<Bytes> = "*_data_bytes",
-        tx_count: NewAll<StoredU64> = "*_tx_count",
+        tx_count: NewAll<Count> = "*_tx_count",
         tx_vsize: NewAll<VSize> = "*_tx_vsize",
         fees: NewAll<Sats> = "*_fees",
         chain_share: Gini<Option<PartsPerMillion32>> = "*_chain_share",
@@ -3011,8 +3017,8 @@ pub mod tree {
     shape! { OpReturn at "series().op_return" {
         raw: OpReturnRaw = "index",
         total: Total = "*",
-        by_kind: ByKind<ByKindDataBytes<NewAll<StoredU64>>, ByKindDataBytes<DataBytesAscribe>, ByKindDataBytes<NewAll<VSize>>, ByKindFees> = "*",
-        policy: ByKind<PolicyDataBytes<NewAll<StoredU64>>, PolicyDataBytes<DataBytesAscribe>, PolicyDataBytes<NewAll<VSize>>, PolicyFees> = "*_policy",
+        by_kind: ByKind<ByKindDataBytes<NewAll<Count>>, ByKindDataBytes<DataBytesAscribe>, ByKindDataBytes<NewAll<VSize>>, ByKindFees> = "*",
+        policy: ByKind<PolicyDataBytes<NewAll<Count>>, PolicyDataBytes<DataBytesAscribe>, PolicyDataBytes<NewAll<VSize>>, PolicyFees> = "*_policy",
     } }
     shape! { OutputsByTypeTxShare at "series().outputs.by_type.tx_share" {
         p2pk65: FeeShare = "*_p2pk65_output",
@@ -3044,7 +3050,7 @@ pub mod tree {
     } }
     shape! { OutputsByType at "series().outputs.by_type" {
         output_count: OutputCount = "*_count",
-        spendable_output_count: NewAll<StoredU64> = "spendable_*_count",
+        spendable_output_count: NewAll<Count> = "spendable_*_count",
         output_share: OutputShare = "*_share",
         tx_count: OutputsByTypeTxCount = "tx_count",
         tx_share: OutputsByTypeTxShare = "tx_share_with",
@@ -3175,12 +3181,12 @@ pub mod tree {
         supply: ExposedSupply = "*_supply",
     } }
     shape! { Events at "series().addrs.respent.events" {
-        output_to_reused_addr_count: AvgBalance<NewAll<StoredU64>> = "output_to_*_count",
+        output_to_reused_addr_count: AvgBalance<NewAll<Count>> = "output_to_*_count",
         output_to_reused_addr_share: AvgBalance<FeeShare> = "output_to_*_share",
         spendable_output_to_reused_addr_share: FeeShare = "spendable_output_to_*_share",
-        input_from_reused_addr_count: AvgBalance<NewAll<StoredU64>> = "input_from_*_count",
+        input_from_reused_addr_count: AvgBalance<NewAll<Count>> = "input_from_*_count",
         input_from_reused_addr_share: AvgBalance<FeeShare> = "input_from_*_share",
-        active_reused_addr_count: Interval<StoredU32> = "active_*_count",
+        active_reused_addr_count: Interval<Count> = "active_*_count",
         active_reused_addr_share: Interval<Option<StoredF32>> = "active_*_share",
     } }
     shape! { Respent at "series().addrs.respent" {
@@ -3189,19 +3195,19 @@ pub mod tree {
         supply: ExposedSupply = "*_supply",
     } }
     shape! { AddrsActivity at "series().addrs.activity" {
-        reactivated: AvgBalance<Interval<StoredU32>> = "reactivated_*",
-        sending: AvgBalance<Interval<StoredU32>> = "sending_*",
-        receiving: AvgBalance<Interval<StoredU32>> = "receiving_*",
-        bidirectional: AvgBalance<Interval<StoredU32>> = "bidirectional_*",
-        active: AvgBalance<Interval<StoredU32>> = "active_*",
+        reactivated: AvgBalance<Interval<Count>> = "reactivated_*",
+        sending: AvgBalance<Interval<Count>> = "sending_*",
+        receiving: AvgBalance<Interval<Count>> = "receiving_*",
+        bidirectional: AvgBalance<Interval<Count>> = "bidirectional_*",
+        active: AvgBalance<Interval<Count>> = "active_*",
     } }
     shape! { UtxoCount0sats at "series().addrs.by_balance.utxo_count._0sats" {
-        base: SeriesPattern2<StoredU64> = "*",
-        delta: DeltaAll<PerSec<StoredI64>> = "*_delta",
+        base: SeriesPattern2<Count> = "*",
+        delta: DeltaAll<PerSec<CountSigned>> = "*_delta",
     } }
     shape! { AllOutputs at "series().distribution_aggregated.cohorts.all.outputs" {
         unspent_count: UtxoCount0sats = "*_utxo_count",
-        spent_count: NewAll<StoredU64> = "*_spent_utxo_count",
+        spent_count: NewAll<Count> = "*_spent_utxo_count",
     } }
     shape! { Supply0sats at "series().addrs.by_balance.supply._0sats" {
         total: Circulating<Sats, Option<Cents>> = "*",
@@ -3471,15 +3477,15 @@ pub mod tree {
         over_100k_btc: A = "addrs_over_100k_btc_*",
     } }
     shape! { Funded at "series().addrs.funded" {
-        all: SeriesPattern2<StoredU64> = "*",
-        p2pk65: SeriesPattern2<StoredU64> = "p2pk65_*",
-        p2pk33: SeriesPattern2<StoredU64> = "p2pk33_*",
-        p2pkh: SeriesPattern2<StoredU64> = "p2pkh_*",
-        p2sh: SeriesPattern2<StoredU64> = "p2sh_*",
-        p2wpkh: SeriesPattern2<StoredU64> = "p2wpkh_*",
-        p2wsh: SeriesPattern2<StoredU64> = "p2wsh_*",
-        p2tr: SeriesPattern2<StoredU64> = "p2tr_*",
-        p2a: SeriesPattern2<StoredU64> = "p2a_*",
+        all: SeriesPattern2<Count> = "*",
+        p2pk65: SeriesPattern2<Count> = "p2pk65_*",
+        p2pk33: SeriesPattern2<Count> = "p2pk33_*",
+        p2pkh: SeriesPattern2<Count> = "p2pkh_*",
+        p2sh: SeriesPattern2<Count> = "p2sh_*",
+        p2wpkh: SeriesPattern2<Count> = "p2wpkh_*",
+        p2wsh: SeriesPattern2<Count> = "p2wsh_*",
+        p2tr: SeriesPattern2<Count> = "p2tr_*",
+        p2a: SeriesPattern2<Count> = "p2a_*",
         balance: RealizedCap<UtxoCount0sats> = "*",
     } }
     shape! { ByBalance at "series().addrs.by_balance" {
@@ -3498,11 +3504,11 @@ pub mod tree {
         empty: AddrsEmpty = "empty_*_count",
         activity: AddrsActivity = "addrs",
         total: AddrsEmpty = "total_*_count",
-        new: AvgBalance<NewAll<StoredU64>> = "new_*_count",
+        new: AvgBalance<NewAll<Count>> = "new_*_count",
         reused: Respent = "reused_*",
         respent: Respent = "respent_*",
         exposed: Exposed = "exposed_*",
-        delta: AvgBalance<DeltaAll<PerSec<StoredI64>>> = "*_count",
+        delta: AvgBalance<DeltaAll<PerSec<CountSigned>>> = "*_count",
         avg_balance: AvgBalance<Circulating<Sats, Option<Cents>>> = "avg_*_amount",
     } }
     shape! { InputShare<A> at "series().inputs.by_type.input_share" {
@@ -3556,7 +3562,7 @@ pub mod tree {
     } }
     shape! { CohortsOutputs at "series().cohorts.outputs" {
         unspent_count: SpentCount<UtxoCount0sats> = "*_count",
-        spent_count: SpentCount<NewAll<StoredU64>> = "spent_*_count",
+        spent_count: SpentCount<NewAll<Count>> = "spent_*_count",
         avg_amount: AvgAmount = "avg_*_amount",
     } }
     shape! { CohortsSupply at "series().cohorts.supply" {
@@ -3593,20 +3599,20 @@ pub mod tree {
         tx_per_sec: PerSec<Option<StoredF32>> = "tx_per_sec",
     } }
     shape! { Inscription at "series().transactions.inscription" {
-        count: NewAll<StoredU64> = "tx_count_*",
+        count: NewAll<Count> = "tx_count_*",
         fees: NewAll<Sats> = "*_fees",
         fee_share: Gini<Option<PartsPerMillion32>> = "*_fee_share",
     } }
     shape! { Transactions at "series().transactions" {
         raw: TransactionsRaw = "*",
         features: Features = "has",
-        count: OutputsCount<Vbytes> = "*_count",
+        count: OutputsCount<Vbytes<Count>> = "*_count",
         size: TransactionsSize = "*",
         fees: TransactionsFees = "fee",
         inscription: Inscription = "inscription",
         patterns: Patterns = "is",
         policy: Policy = "nonstandard",
-        sigops: OutputsCount<NewAll<StoredU64>> = "total_sigop_cost",
+        sigops: OutputsCount<NewAll<SigOps64>> = "total_sigop_cost",
         versions: Versions = "*",
         volume: Volume = "transfer_volume_bis",
     } }
@@ -3615,7 +3621,7 @@ pub mod tree {
         hashrate: SeriesPattern2<Option<StoredF64>> = "*_hashrate",
         adjustment: Gini<Option<PartsPerMillionSigned32>> = "*_adjustment",
         epoch: SeriesPattern2<Epoch> = "*_epoch",
-        blocks_to_retarget: SeriesPattern2<StoredU32> = "blocks_to_retarget",
+        blocks_to_retarget: SeriesPattern2<Count> = "blocks_to_retarget",
         days_to_retarget: SeriesPattern2<Option<StoredF32>> = "days_to_retarget",
     } }
     shape! { Blocks at "series().blocks" {
@@ -3625,13 +3631,13 @@ pub mod tree {
         time: Time = "timestamp",
         size: BlocksSize = "size",
         weight: BlocksWeight = "*_weight",
-        segwit_txs: SeriesPattern21<StoredU32> = "segwit_txs",
-        segwit_size: SeriesPattern21<StoredU64> = "segwit_size",
+        segwit_txs: SeriesPattern21<Count16> = "segwit_txs",
+        segwit_size: SeriesPattern21<Bytes32> = "segwit_size",
         segwit_weight: SeriesPattern21<Weight> = "segwit_weight",
         count: BlocksCount = "*_count",
         lookback: BlocksLookback = "height",
         interval: Interval<Timestamp> = "*_interval",
-        vbytes: Vbytes = "*_vbytes",
+        vbytes: Vbytes<VSize> = "*_vbytes",
         fullness: Fullness = "*_fullness",
         halving: BlocksHalving = "halving",
     } }

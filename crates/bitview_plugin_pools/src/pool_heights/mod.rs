@@ -1,6 +1,6 @@
 use std::{convert::Infallible, sync::Arc};
 
-use bitview_primitives::{PoolSlug, StoredU64};
+use bitview_primitives::{Count, PoolSlug};
 use brk_types::Height;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
@@ -120,7 +120,7 @@ impl PoolCumulativeVec {
         }
     }
 
-    fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(StoredU64)) {
+    fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(Count)) {
         let result = self.try_for_each_value(from, to, |value| {
             each(value);
             Ok::<_, Infallible>(())
@@ -135,7 +135,7 @@ impl PoolCumulativeVec {
         &self,
         from: usize,
         to: usize,
-        mut each: impl FnMut(StoredU64) -> Result<(), E>,
+        mut each: impl FnMut(Count) -> Result<(), E>,
     ) -> Result<(), E> {
         let to = to.min(self.len());
         if from >= to {
@@ -155,7 +155,7 @@ impl PoolCumulativeVec {
                 position += 1;
                 cumulative += 1;
             }
-            each(StoredU64::from(cumulative))?;
+            each(Count::from(cumulative))?;
         }
         Ok(())
     }
@@ -183,30 +183,30 @@ impl AnyVec for PoolCumulativeVec {
     }
 
     fn value_type_to_size_of(&self) -> usize {
-        size_of::<StoredU64>()
+        size_of::<Count>()
     }
 
     fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<StoredU64>()
+        short_type_name::<Count>()
     }
 }
 
 impl TypedVec for PoolCumulativeVec {
     type I = Height;
-    type T = StoredU64;
+    type T = Count;
 }
 
-impl ReadableVec<Height, StoredU64> for PoolCumulativeVec {
-    fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<StoredU64>) {
+impl ReadableVec<Height, Count> for PoolCumulativeVec {
+    fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<Count>) {
         buf.reserve(to.min(self.len()).saturating_sub(from));
         self.for_each_value(from, to, |value| buf.push(value));
     }
 
-    fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(StoredU64)) {
+    fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(Count)) {
         self.for_each_value(from, to, each);
     }
 
-    fn fold_range_at<B, F: FnMut(B, StoredU64) -> B>(
+    fn fold_range_at<B, F: FnMut(B, Count) -> B>(
         &self,
         from: usize,
         to: usize,
@@ -220,7 +220,7 @@ impl ReadableVec<Height, StoredU64> for PoolCumulativeVec {
         acc.unwrap()
     }
 
-    fn try_fold_range_at<B, E, F: FnMut(B, StoredU64) -> Result<B, E>>(
+    fn try_fold_range_at<B, E, F: FnMut(B, Count) -> Result<B, E>>(
         &self,
         from: usize,
         to: usize,
@@ -235,18 +235,18 @@ impl ReadableVec<Height, StoredU64> for PoolCumulativeVec {
         Ok(acc.unwrap())
     }
 
-    fn collect_one_at(&self, index: usize) -> Option<StoredU64> {
+    fn collect_one_at(&self, index: usize) -> Option<Count> {
         if index >= self.len() {
             return None;
         }
         let state = self.pool_heights.0.read();
         let heights = state.by_pool.get(&self.slug).map_or(&[][..], Vec::as_slice);
-        Some(StoredU64::from(
-            PoolHeights::cumulative_count(heights, index) as u64,
+        Some(Count::from(
+            PoolHeights::cumulative_count(heights, index) as u64
         ))
     }
 
-    fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<StoredU64>) {
+    fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<Count>) {
         let Some(&first) = indices.first() else {
             return;
         };
@@ -260,7 +260,7 @@ impl ReadableVec<Height, StoredU64> for PoolCumulativeVec {
         let mut position = PoolHeights::cumulative_count(heights, first);
 
         out.reserve(indices.len());
-        out.push(StoredU64::from(position as u64));
+        out.push(Count::from(position as u64));
         for &index in &indices[1..] {
             if index >= len {
                 break;
@@ -271,7 +271,7 @@ impl ReadableVec<Height, StoredU64> for PoolCumulativeVec {
             {
                 position += 1;
             }
-            out.push(StoredU64::from(position as u64));
+            out.push(Count::from(position as u64));
         }
     }
 }

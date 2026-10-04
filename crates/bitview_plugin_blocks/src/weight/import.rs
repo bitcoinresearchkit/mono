@@ -2,33 +2,26 @@ use bitview_collections::Windows;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillion32;
-use bitview_transforms::VBytesToWeight;
-use bitview_vecs::{LazyPerBlockRolling, LazyPercentVec, LazyWindowStartVec};
+use bitview_vecs::{LazyPercentVec, LazyWindowStartVec, PerBlockRolling};
+use brk_error::Result;
 use brk_types::{Height, Version, Weight};
+use vecdb::Database;
 
 use super::Vecs;
-use crate::UtxosVecs;
 
 fn block_fullness(_: Height, weight: Weight) -> PartsPerMillion32 {
     PartsPerMillion32::from(weight.fullness())
 }
 
 impl Vecs {
-    pub fn new(
+    pub fn import(
+        db: &Database,
         version: Version,
         indexer: &Indexer,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        size: &UtxosVecs,
-    ) -> Self {
-        let weight = LazyPerBlockRolling::from_full_parts::<VBytesToWeight>(
-            "block_weight",
-            version,
-            &size.vbytes.cumulative,
-            &size.vbytes.rolling,
-            window_starts,
-            mappings,
-        );
+    ) -> Result<Self> {
+        let weight = PerBlockRolling::import(db, "block_weight", version, mappings, window_starts)?;
 
         let fullness = LazyPercentVec::from_indexed_source(
             "block_fullness",
@@ -37,6 +30,6 @@ impl Vecs {
             block_fullness,
         );
 
-        Self { weight, fullness }
+        Ok(Self { weight, fullness })
     }
 }

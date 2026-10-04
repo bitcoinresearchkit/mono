@@ -23,17 +23,20 @@ impl ComputePlugin for Vecs {
         let Dependencies { indexer } = dependencies;
         let exit = context.exit();
 
-        // Interval and size are independent.
+        // Interval, size and weight are independent.
         let Vecs {
             lookback,
             interval,
             size,
+            weight,
             ..
         } = self;
         thread::scope(|s| -> Result<()> {
-            let r1 = s.spawn(|| interval.compute(indexer, exit));
-            size.compute(indexer, &*lookback, exit)?;
-            r1.join().unwrap()?;
+            let interval = s.spawn(|| interval.compute(indexer, exit));
+            let size = s.spawn(|| size.compute(indexer, &*lookback, exit));
+            weight.compute(indexer, &*lookback, exit)?;
+            interval.join().unwrap()?;
+            size.join().unwrap()?;
             Ok(())
         })?;
 

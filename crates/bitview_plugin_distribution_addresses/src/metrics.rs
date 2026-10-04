@@ -2,7 +2,7 @@ use bitview_cohort::{AmountRange, CohortContext};
 use bitview_collections::Windows;
 use bitview_plugin_distribution_common::metrics::SupplyBase;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillionSigned64, StoredI64, StoredU64};
+use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -23,8 +23,8 @@ pub struct BalanceMetrics<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub supply_source: AmountSources<Sats, LazySpotValuePerBlock, M>,
     pub utxo_count: AmountSources<
-        StoredU64,
-        LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>,
+        Count,
+        LazyPerBlockWithDeltas<Count, CountSigned, PartsPerMillionSigned64>,
         M,
     >,
     pub transfer_volume: AmountValueSources<LazyValuePerBlockCumulativeRolling, M>,
@@ -149,7 +149,7 @@ impl BalanceMetrics {
             id.select(states).inner.supply.value
         }));
         self.utxo_count.push(AmountRange::from_fn(|id| {
-            StoredU64::from(id.select(states).inner.supply.utxo_count)
+            Count::from(id.select(states).inner.supply.utxo_count)
         }));
         let sats = AmountRange::from_fn(|id| id.select(states).inner.sent);
         let cents = AmountRange::from_fn(|id| SatsToCents::apply(*id.select(&sats), price));

@@ -1,7 +1,7 @@
 use bitview_cohort::WithAddrTypes;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillionSigned64, StoredI64, StoredU64};
+use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyRollingDeltasFromHeight, LazyWindowStartVec};
 use brk_types::Version;
@@ -12,7 +12,7 @@ use super::AddrCountsVecs;
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct DeltaVecs(
     #[traversable(flatten)]
-    pub  WithAddrTypes<LazyRollingDeltasFromHeight<StoredU64, StoredI64, PartsPerMillionSigned64>>,
+    pub  WithAddrTypes<LazyRollingDeltasFromHeight<Count, CountSigned, PartsPerMillionSigned64>>,
 );
 
 impl DeltaVecs {

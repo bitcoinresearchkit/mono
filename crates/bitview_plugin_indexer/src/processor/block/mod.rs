@@ -54,7 +54,7 @@ impl BlockProcessor<'_> {
         let overhead = Header::SIZE + VarInt::from(txs.len()).size();
         let mut total_size = overhead;
         let mut weight = Weight::from_non_witness_data_size(overhead as u64);
-        let mut sw_txs = 0u32;
+        let mut sw_txs = 0u16;
         let mut sw_size = 0usize;
         let mut sw_weight = Weight::ZERO;
 

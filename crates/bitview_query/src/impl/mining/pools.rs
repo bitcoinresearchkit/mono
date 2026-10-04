@@ -1,6 +1,6 @@
 use std::{borrow::Cow, cmp::Reverse};
 
-use bitview_primitives::{Day1, Pool, PoolSlug, StoredF64, StoredU64, pools};
+use bitview_primitives::{Count, Day1, Pool, PoolSlug, StoredF64, pools};
 use bitview_types::{
     PoolBlockCounts, PoolBlockShares, PoolDetail, PoolDetailInfo, PoolHashrateEntry, PoolInfo,
     PoolStats, PoolsSummary, TimePeriod,
@@ -316,7 +316,7 @@ impl Query {
         slug: PoolSlug,
         start_day: usize,
         end_day: usize,
-    ) -> Result<Vec<Option<StoredU64>>> {
+    ) -> Result<Vec<Option<Count>>> {
         let plugins = self.plugins();
         let cumulative = plugins
             .pools
@@ -355,7 +355,7 @@ impl Query {
     /// matching windows before this computation.
     fn hashrate_entries<'a>(
         shared: &'a HashrateSharedData,
-        pool_cum: &'a [Option<StoredU64>],
+        pool_cum: &'a [Option<Count>],
         pool_name: &'static str,
     ) -> impl Iterator<Item = PoolHashrateEntry> + 'a {
         let total = pool_cum

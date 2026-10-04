@@ -3,7 +3,7 @@ use std::ops::AddAssign;
 use bitview_cohort::{CohortContext, CohortGroup};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CumulativeCohortSources, LazyPerBlockCumulativeRolling, LazyWindowStartVec};
 use brk_error::Result;
@@ -13,14 +13,14 @@ use vecdb::{Database, Rw, StorageMode};
 #[derive(Traversable)]
 pub struct SpentOutputCount<G: CohortGroup, M: StorageMode = Rw> {
     #[traversable(flatten)]
-    cohorts: G::Of<LazyPerBlockCumulativeRolling<StoredU64>>,
+    cohorts: G::Of<LazyPerBlockCumulativeRolling<Count>>,
     #[traversable(hidden)]
-    pub stored: CumulativeCohortSources<G, StoredU64, M>,
+    pub stored: CumulativeCohortSources<G, Count, M>,
 }
 
 impl<G: CohortGroup> SpentOutputCount<G>
 where
-    G::Of<StoredU64>: AddAssign + Clone + Default,
+    G::Of<Count>: AddAssign + Clone + Default,
 {
     pub fn import(
         db: &Database,

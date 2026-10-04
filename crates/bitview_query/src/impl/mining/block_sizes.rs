@@ -1,4 +1,4 @@
-use bitview_primitives::StoredU64;
+use bitview_primitives::Bytes;
 use bitview_types::{BlockSizeEntry, BlockSizesWeights, BlockWeightEntry, TimePeriod};
 use brk_types::Weight;
 
@@ -18,7 +18,11 @@ impl Query {
         let tip = pin.lengths().last_height().ok_or(Error::StateUpdating)?;
         let bw = BlockWindow::new_at(self, time_period, tip)?;
 
-        let block_sizes: Vec<StoredU64> = bw.read(&blocks.total)?;
+        let block_sizes: Vec<Bytes> = bw
+            .read(&blocks.total)?
+            .into_iter()
+            .map(Bytes::from)
+            .collect();
         let block_weights: Vec<Weight> = bw.read(&blocks.weight)?;
         drop(pin);
 

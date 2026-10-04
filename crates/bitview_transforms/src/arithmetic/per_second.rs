@@ -1,11 +1,11 @@
-use bitview_primitives::{StoredF32, StoredU64};
+use bitview_primitives::{Count, StoredF32};
 use vecdb::UnaryTransform;
 
 pub struct PerSecond<const SECONDS: u32>;
 
-impl<const SECONDS: u32> UnaryTransform<StoredU64, StoredF32> for PerSecond<SECONDS> {
+impl<const SECONDS: u32> UnaryTransform<Count, StoredF32> for PerSecond<SECONDS> {
     #[inline(always)]
-    fn apply(value: StoredU64) -> StoredF32 {
+    fn apply(value: Count) -> StoredF32 {
         StoredF32::from(u64::from(value) as f64 / SECONDS as f64)
     }
 }

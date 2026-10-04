@@ -6,7 +6,7 @@ use std::{
 };
 
 use bitview_compute::{ComputedVecValue, NumericValue, prepare_computed};
-use bitview_primitives::{Lengths, StoredU64};
+use bitview_primitives::{Count, Lengths};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -138,7 +138,7 @@ where
         &mut self,
         max_from: Height,
         first_tx_index: &impl ReadableVec<Height, TxIndex>,
-        counts: &impl ReadableVec<Height, StoredU64>,
+        counts: &impl ReadableVec<Height, Count>,
         source_name: &str,
         source_version: Version,
         skip_count: usize,

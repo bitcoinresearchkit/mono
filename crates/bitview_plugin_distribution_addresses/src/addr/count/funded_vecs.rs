@@ -1,7 +1,7 @@
 use bitview_cohort::{AmountRange, CohortContext};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillionSigned64, StoredI64, StoredU64};
+use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{AmountSources, LazyPerBlockWithDeltas, LazyWindowStartVec};
 use brk_error::Result;
@@ -17,8 +17,8 @@ pub struct FundedAddrCountsVecs<M: StorageMode = Rw> {
     pub counts: AddrCountsVecs<M>,
     /// Number of funded addresses grouped by balance at the represented block.
     pub balance: AmountSources<
-        StoredU64,
-        LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>,
+        Count,
+        LazyPerBlockWithDeltas<Count, CountSigned, PartsPerMillionSigned64>,
         M,
     >,
 }
@@ -73,7 +73,7 @@ impl FundedAddrCountsVecs {
     }
 
     #[inline(always)]
-    pub fn push_balance(&mut self, counts: AmountRange<StoredU64>) {
+    pub fn push_balance(&mut self, counts: AmountRange<Count>) {
         self.balance.push(counts);
     }
 }

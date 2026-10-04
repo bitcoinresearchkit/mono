@@ -1,5 +1,5 @@
 use bitview_collections::Windows;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{ConstantVecs, LazyPerBlockCumulativeRolling};
 
@@ -7,9 +7,9 @@ use bitview_vecs::{ConstantVecs, LazyPerBlockCumulativeRolling};
 pub struct Vecs {
     /// Expected number of blocks in a trailing window at Bitcoin's target
     /// interval of ten minutes per block.
-    pub(crate) target: Windows<ConstantVecs<StoredU64>>,
+    pub(crate) target: Windows<ConstantVecs<Count>>,
     /// Number of indexed blocks. The per-block value is one, the cumulative
     /// count is height plus one because genesis is included, and rolling sums
     /// count the blocks in each supported trailing window.
-    pub total: LazyPerBlockCumulativeRolling<StoredU64>,
+    pub total: LazyPerBlockCumulativeRolling<Count>,
 }

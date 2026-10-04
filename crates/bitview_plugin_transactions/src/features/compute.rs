@@ -1,5 +1,5 @@
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use brk_error::Result;
 use brk_exit::Exit;
 
@@ -21,12 +21,7 @@ impl Vecs {
             ),
             (&mut self.count.dust_output, &source.dust_output),
         ] {
-            target.compute_cumulative_transformed(
-                starting_height,
-                source,
-                StoredU64::from,
-                exit,
-            )?;
+            target.compute_cumulative_transformed(starting_height, source, Count::from, exit)?;
         }
         Ok(())
     }

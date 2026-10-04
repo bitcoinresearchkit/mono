@@ -1,7 +1,6 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::Bytes;
-use bitview_primitives::{PartsPerMillion32, StoredU64};
+use bitview_primitives::{Bytes, Count, PartsPerMillion32};
 use bitview_transforms::{RatioBytes, RatioSats};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -21,7 +20,7 @@ pub struct Total<M: StorageMode = Rw> {
     pub data_bytes: PerBlockCumulativeRolling<Bytes, M>,
     /// Number of transactions containing at least one `OP_RETURN` output; each
     /// transaction is counted once regardless of how many such outputs it has.
-    pub tx_count: PerBlockCumulativeRolling<StoredU64, M>,
+    pub tx_count: PerBlockCumulativeRolling<Count, M>,
     /// Sum of the full virtual sizes of transactions containing at least one
     /// `OP_RETURN` output; each transaction is included once.
     pub tx_vsize: PerBlockCumulativeRolling<VSize, M>,
@@ -44,7 +43,7 @@ impl Total {
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        block_size: &impl ReadableCloneableVec<Height, StoredU64>,
+        block_size: &impl ReadableCloneableVec<Height, Bytes>,
         chain_fees: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
         let data_bytes = PerBlockCumulativeRolling::import(
@@ -97,11 +96,11 @@ impl Total {
         prefix: &str,
         version: Version,
         data_bytes: &PerBlockCumulativeRolling<Bytes>,
-        block_size: &impl ReadableCloneableVec<Height, StoredU64>,
+        block_size: &impl ReadableCloneableVec<Height, Bytes>,
         mappings: &MappingsVecs,
     ) -> LazyPercentPerBlock<PartsPerMillion32> {
         let data_bytes = data_bytes.cumulative.height.read_only_clone();
-        LazyPercentPerBlock::from_ratio::<Bytes, StoredU64, RatioBytes<PartsPerMillion32>>(
+        LazyPercentPerBlock::from_ratio::<Bytes, Bytes, RatioBytes<PartsPerMillion32>>(
             &format!("{prefix}_chain_share"),
             version,
             &data_bytes,

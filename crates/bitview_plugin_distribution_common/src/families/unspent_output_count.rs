@@ -1,7 +1,7 @@
 use bitview_cohort::{CohortContext, CohortGroup};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillionSigned64, StoredI64, StoredU64};
+use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CohortSources, LazyPerBlockWithDeltas, LazyWindowStartVec};
 use brk_error::Result;
@@ -11,9 +11,9 @@ use vecdb::{Database, Rw, StorageMode};
 #[derive(Traversable)]
 pub struct UnspentOutputCount<G: CohortGroup, M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: G::Of<LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>>,
+    pub cohorts: G::Of<LazyPerBlockWithDeltas<Count, CountSigned, PartsPerMillionSigned64>>,
     #[traversable(hidden)]
-    pub stored: CohortSources<G, StoredU64, M>,
+    pub stored: CohortSources<G, Count, M>,
 }
 
 impl<G: CohortGroup> UnspentOutputCount<G> {

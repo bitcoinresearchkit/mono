@@ -40,7 +40,7 @@ macro_rules! define_vecs {
                 $(
                     let is_set = flags.is_set(TxFeatureFlags::$flag);
                     self.$vector.push(Boolean::from(is_set));
-                    $(counts.$count += is_set as u64;)?
+                    $(counts.$count += u16::from(is_set);)?
                 ) +
             }
 

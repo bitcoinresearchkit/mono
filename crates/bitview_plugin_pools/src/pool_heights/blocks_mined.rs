@@ -1,6 +1,6 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PoolSlug, StoredU64};
+use bitview_primitives::{Count, PoolSlug};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyPerBlock, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, LazyWindowStartVec,
@@ -14,11 +14,11 @@ use super::{PoolCumulativeVec, PoolHeights};
 pub struct BlocksMined {
     /// One when the represented block is attributed to a mining pool;
     /// otherwise zero.
-    pub block: LazyPreviousDeltaVec<Height, StoredU64>,
+    pub block: LazyPreviousDeltaVec<Height, Count>,
     /// Number of blocks attributed to a mining pool from genesis through
     /// the represented height, inclusive.
-    pub cumulative: LazyPerBlock<StoredU64>,
-    pub sum: LazyRollingSumsFromHeight<StoredU64>,
+    pub cumulative: LazyPerBlock<Count>,
+    pub sum: LazyRollingSumsFromHeight<Count>,
 }
 
 impl BlocksMined {

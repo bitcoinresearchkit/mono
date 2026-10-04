@@ -1,4 +1,4 @@
-use bitview_primitives::{StoredF64, StoredU32, StoredU64};
+use bitview_primitives::{Bytes32, Count16, StoredF64};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{BlkPosition, BlockHash, CoinbaseTag, Height, Timestamp, Version, Weight};
@@ -38,7 +38,7 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// `height`, this is the entire block: its 80-byte header, transaction-count
     /// CompactSize, and every serialized transaction.
     #[traversable(wrap = "size", rename = "base")]
-    pub total: M::Stored<PcoVec<Height, StoredU64>>,
+    pub total: M::Stored<PcoVec<Height, Bytes32>>,
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one.
     #[traversable(wrap = "weight", rename = "base")]
@@ -46,10 +46,10 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<Height, BlkPosition>>,
     /// Number of non-coinbase transactions using SegWit serialization.
-    pub segwit_txs: M::Stored<PcoVec<Height, StoredU32>>,
+    pub segwit_txs: M::Stored<PcoVec<Height, Count16>>,
     /// Combined total serialized size in bytes of the block's non-coinbase
     /// SegWit transactions; excludes block overhead and all other transactions.
-    pub segwit_size: M::Stored<PcoVec<Height, StoredU64>>,
+    pub segwit_size: M::Stored<PcoVec<Height, Bytes32>>,
     /// Combined BIP-141 weight in weight units of the block's non-coinbase
     /// SegWit transactions; excludes block overhead and all other transactions.
     pub segwit_weight: M::Stored<PcoVec<Height, Weight>>,

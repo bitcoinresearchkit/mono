@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use bitview_compute::prepare_computed;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Height, OutputType, TxIndex, Version};
@@ -13,8 +13,8 @@ const WRITE_INTERVAL: usize = 10_000;
 
 type TypeCountTarget<'a> = (
     OutputType,
-    &'a mut CachedSeries<Height, StoredU64>,
-    &'a mut CachedSeries<Height, StoredU64>,
+    &'a mut CachedSeries<Height, Count>,
+    &'a mut CachedSeries<Height, Count>,
 );
 
 /// Compute cumulative entry and transaction counts for the selected output
@@ -60,8 +60,8 @@ where
     if skip >= end || targets.is_empty() {
         return Ok(());
     }
-    let mut entry_totals = [StoredU64::ZERO; OutputType::COUNT];
-    let mut tx_totals = [StoredU64::ZERO; OutputType::COUNT];
+    let mut entry_totals = [Count::ZERO; OutputType::COUNT];
+    let mut tx_totals = [Count::ZERO; OutputType::COUNT];
     for (kind, entries, txs) in &mut targets {
         entry_totals[*kind as usize] = entries.collect_last().unwrap_or_default();
         tx_totals[*kind as usize] = txs.collect_last().unwrap_or_default();
@@ -93,8 +93,8 @@ where
         |aggregate| {
             for (kind, entries, txs) in &mut targets {
                 let kind = *kind as usize;
-                entry_totals[kind] += StoredU64::from(aggregate.entries_per_type[kind]);
-                tx_totals[kind] += StoredU64::from(aggregate.txs_per_type[kind]);
+                entry_totals[kind] += Count::from(aggregate.entries_per_type[kind]);
+                tx_totals[kind] += Count::from(aggregate.txs_per_type[kind]);
                 entries.push(entry_totals[kind]);
                 txs.push(tx_totals[kind]);
             }

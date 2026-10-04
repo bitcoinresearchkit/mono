@@ -4,14 +4,14 @@ macro_rules! define_transaction_counts {
     ($($(#[$attribute:meta])* $vector:ident: $flag:ident = $bit:literal $(, count: $count:ident $(, count_attr: $count_attr:meta)?)?;)+) => {
         #[derive(Default)]
         pub struct TransactionCounts {
-            pub v1: u64,
-            pub v2: u64,
-            pub v3: u64,
-            pub other_version: u64,
-            pub explicitly_rbf: u64,
-            pub one_input: u64,
-            pub one_output: u64,
-            $($(pub $count: u64,)?) +
+            pub v1: u16,
+            pub v2: u16,
+            pub v3: u16,
+            pub other_version: u16,
+            pub explicitly_rbf: u16,
+            pub one_input: u16,
+            pub one_output: u16,
+            $($(pub $count: u16,)?) +
         }
 
         impl TransactionCounts {
@@ -28,9 +28,9 @@ macro_rules! define_transaction_counts {
                     TxVersion::THREE => self.v3 += 1,
                     _ => self.other_version += 1,
                 }
-                self.explicitly_rbf += explicitly_rbf as u64;
-                self.one_input += (input_count == 1) as u64;
-                self.one_output += (output_count == 1) as u64;
+                self.explicitly_rbf += u16::from(explicitly_rbf);
+                self.one_input += u16::from(input_count == 1);
+                self.one_output += u16::from(output_count == 1);
             }
         }
     };

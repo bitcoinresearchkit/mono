@@ -1,5 +1,5 @@
 use bitview_collections::{PerResolution, with_resolution_fields};
-use bitview_primitives::{Date, StoredU64};
+use bitview_primitives::{Count, Date};
 use brk_types::{Height, Timestamp};
 use vecdb::ReadableBoxedVec;
 
@@ -24,7 +24,7 @@ macro_rules! define_index_sources {
             >,
             pub height_minute10: ReadableBoxedVec<Height, Minute10>,
             pub height_day1: ReadableBoxedVec<Height, Day1>,
-            pub height_tx_index_count: LazyPreviousDeltaVec<Height, StoredU64>,
+            pub height_tx_index_count: LazyPreviousDeltaVec<Height, Count>,
             pub day3_date: ReadableBoxedVec<Day3, Date>,
             pub week1_date: ReadableBoxedVec<Week1, Date>,
             pub month1_date: ReadableBoxedVec<Month1, Date>,

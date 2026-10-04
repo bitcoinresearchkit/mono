@@ -12,7 +12,7 @@ use ryu::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{Close, StoredF64, StoredU32};
+use crate::{Close, StoredF64};
 
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
@@ -72,13 +72,6 @@ impl From<u8> for StoredF32 {
     }
 }
 
-impl From<StoredU32> for StoredF32 {
-    #[inline]
-    fn from(value: StoredU32) -> Self {
-        Self(f32::from(value))
-    }
-}
-
 impl CheckedSub<StoredF32> for StoredF32 {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         Some(Self(self.0 - rhs.0))
@@ -110,18 +103,6 @@ impl Div<usize> for StoredF32 {
             Self::NAN
         } else {
             Self(self.0 / rhs as f32)
-        }
-    }
-}
-
-impl Div<StoredU32> for StoredF32 {
-    type Output = Self;
-    fn div(self, rhs: StoredU32) -> Self::Output {
-        let rhs = f32::from(rhs);
-        if rhs == 0.0 {
-            Self::NAN
-        } else {
-            Self(self.0 / rhs)
         }
     }
 }

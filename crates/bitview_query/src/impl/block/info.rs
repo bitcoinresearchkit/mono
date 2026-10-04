@@ -332,7 +332,7 @@ impl Query {
                 difficulty: *difficulties[i],
                 merkle_root: header.merkle_root,
                 tx_count,
-                size: *sizes[i],
+                size: u64::from(*sizes[i]),
                 weight: weights[i],
                 previous_block_hash: header.previous_block_hash,
                 median_time: median_times[i],
@@ -551,7 +551,7 @@ impl Query {
                 } = Self::parse_coinbase_from_read(blk)?;
 
                 let weight = weights[i];
-                let size = *sizes[i];
+                let size = u64::from(*sizes[i]);
                 let total_fees = fee_sats[i];
                 let subsidy = subsidy_sats[i];
                 let total_inputs = (*input_counts[i]).saturating_sub(1);
@@ -638,8 +638,8 @@ impl Query {
                         fa_pct90[i],
                         fa_max[i],
                     ],
-                    segwit_total_txs: *segwit_txs[i],
-                    segwit_total_size: *segwit_sizes[i],
+                    segwit_total_txs: u32::from(*segwit_txs[i]),
+                    segwit_total_size: u64::from(*segwit_sizes[i]),
                     segwit_total_weight: segwit_weights[i],
                     header: raw_header.to_lower_hex_string(),
                     utxo_set_change: total_outputs as i64 - total_inputs as i64,

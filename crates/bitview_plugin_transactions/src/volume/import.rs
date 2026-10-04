@@ -1,6 +1,6 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_vecs::{
     LazyPerSecondWindows, LazyRollingSumsFromHeight, LazyWindowStartVec,
     ValuePerBlockCumulativeRolling,
@@ -17,7 +17,7 @@ impl Vecs {
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        tx_count_sums: &LazyRollingSumsFromHeight<StoredU64>,
+        tx_count_sums: &LazyRollingSumsFromHeight<Count>,
     ) -> Result<Self> {
         let v = version + Version::TWO;
         Ok(Vecs {

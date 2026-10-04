@@ -1,5 +1,5 @@
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{StoredU64, TxInIndex, TxOutIndex};
+use bitview_primitives::{Count, TxInIndex, TxOutIndex};
 use brk_types::{Height, TxIndex, Version};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
@@ -49,7 +49,7 @@ impl ChainCounts {
         self.output.clone()
     }
 
-    pub fn output(&self) -> ReadableBoxedVec<Height, StoredU64> {
+    pub fn output(&self) -> ReadableBoxedVec<Height, Count> {
         self.output.read_only_boxed_clone()
     }
 }

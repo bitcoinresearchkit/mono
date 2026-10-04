@@ -1,6 +1,6 @@
 use bitview_cohort::{AddrTypeId, ByAddrType, WithAddrTypes};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, import_cached};
 use brk_error::Result;
@@ -16,9 +16,9 @@ pub struct AddrCountsVecs<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub series: WithAddrTypes<LazyPerBlock<StoredU64>>,
+    pub series: WithAddrTypes<LazyPerBlock<Count>>,
     #[traversable(hidden)]
-    pub stored: WithAddrTypes<CachedSeries<Height, StoredU64, M>>,
+    pub stored: WithAddrTypes<CachedSeries<Height, Count, M>>,
 }
 
 impl AddrCountsVecs {
@@ -35,7 +35,7 @@ impl AddrCountsVecs {
                 import_cached(db, &format!("{}_{name}", id.name()), version)
             })?,
         };
-        let build = |name: &str, source: &CachedSeries<Height, StoredU64>| {
+        let build = |name: &str, source: &CachedSeries<Height, Count>| {
             LazyPerBlock::from_height_source::<Ident>(name, version, source, mappings)
         };
         let series = WithAddrTypes {
@@ -64,9 +64,9 @@ impl AddrCountsVecs {
         Ok(())
     }
     pub fn push_counts(&mut self, values: &AddrTypeToAddrCount) {
-        let mut total = StoredU64::default();
+        let mut total = Count::default();
         for (target, &value) in self.stored.by_addr_type.values_mut().zip(values.values()) {
-            let value = StoredU64::from(value);
+            let value = Count::from(value);
             total += value;
             target.push(value);
         }

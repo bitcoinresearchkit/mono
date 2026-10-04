@@ -1,4 +1,4 @@
-use bitview_primitives::{OpReturnIndex, OpReturnKind, StoredU32};
+use bitview_primitives::{Bytes32, OpReturnIndex, OpReturnKind};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, TxIndex, Version};
@@ -22,7 +22,7 @@ pub struct OpReturnVecs<M: StorageMode = Rw> {
     pub kind: M::Stored<PcoVec<OpReturnIndex, OpReturnKind>>,
     /// Number of serialized locking-script bytes after the initial
     /// `OP_RETURN` opcode, including push opcodes and push-length prefixes.
-    pub post_op_return_bytes: M::Stored<PcoVec<OpReturnIndex, StoredU32>>,
+    pub post_op_return_bytes: M::Stored<PcoVec<OpReturnIndex, Bytes32>>,
 }
 
 impl OpReturnVecs {

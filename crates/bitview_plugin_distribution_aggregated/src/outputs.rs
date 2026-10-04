@@ -1,7 +1,7 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::{PartsPerMillionSigned64, StoredI64, StoredU64};
+use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyPerBlockWithDeltas, LazyWindowStartVec};
 use brk_types::Version;
@@ -10,8 +10,8 @@ use crate::columns::Columns;
 
 #[derive(Clone, Traversable)]
 pub struct Outputs {
-    pub unspent_count: LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>,
-    pub spent_count: LazyPerBlockCumulativeRolling<StoredU64>,
+    pub unspent_count: LazyPerBlockWithDeltas<Count, CountSigned, PartsPerMillionSigned64>,
+    pub spent_count: LazyPerBlockCumulativeRolling<Count>,
 }
 impl Outputs {
     pub(crate) fn new(

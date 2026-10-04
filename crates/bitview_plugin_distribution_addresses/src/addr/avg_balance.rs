@@ -1,6 +1,6 @@
 use bitview_cohort::{AddrTypeId, ByAddrType, WithAddrTypes};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyIndexedVec, LazySpotValuePerBlock, import_cached};
 use brk_error::Result;
@@ -29,7 +29,7 @@ impl AvgBalanceVecs {
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
-        funded_addr_count: &impl ReadableCloneableVec<Height, StoredU64>,
+        funded_addr_count: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
         let avg_addr = LazyIndexedVec::new(
             "avg_addr_amount_sats_source",
@@ -88,7 +88,7 @@ impl AvgBalanceVecs {
     pub fn compute(
         &mut self,
         supply_sats: &ByAddrType<&impl ReadableVec<Height, Sats>>,
-        funded_addr_count: &ByAddrType<&impl ReadableVec<Height, StoredU64>>,
+        funded_addr_count: &ByAddrType<&impl ReadableVec<Height, Count>>,
         max_from: Height,
         exit: &Exit,
     ) -> Result<()> {

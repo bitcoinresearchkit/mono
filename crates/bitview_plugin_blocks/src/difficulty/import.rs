@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Epoch, PartsPerMillionSigned32, StoredF64, StoredU32};
+use bitview_primitives::{Count, Epoch, PartsPerMillionSigned32, StoredF64};
 use bitview_transforms::{BlocksToDaysF32, DifficultyToHashF64};
 use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Resolutions};
 use brk_types::{BLOCKS_PER_DIFF_EPOCHS, Height, Version};
@@ -8,8 +8,8 @@ use vecdb::{Ident, IndexVec, ReadOnlyClone};
 
 use super::Vecs;
 
-fn blocks_left_to_retarget(height: Height) -> StoredU32 {
-    StoredU32::from(height.left_before_next_diff_adj())
+fn blocks_left_to_retarget(height: Height) -> Count {
+    Count::from(u64::from(height.left_before_next_diff_adj()))
 }
 
 fn difficulty_adjustment(
@@ -61,7 +61,7 @@ impl Vecs {
             mappings,
         );
 
-        let days_to_retarget = LazyPerBlock::from_lazy::<BlocksToDaysF32, StoredU32>(
+        let days_to_retarget = LazyPerBlock::from_lazy::<BlocksToDaysF32, Count>(
             "days_to_retarget",
             version + v2,
             &blocks_to_retarget,

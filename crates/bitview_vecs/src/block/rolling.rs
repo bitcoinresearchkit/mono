@@ -7,7 +7,9 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
-use vecdb::{Database, ReadOnlyClone, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
+use vecdb::{
+    Database, ReadOnlyClone, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue,
+};
 
 use crate::{IndexSources, PerBlock, RollingComplete, WindowStarts};
 
@@ -18,9 +20,9 @@ where
 {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
-    cumulative: PerBlock<T, M>,
+    pub(crate) cumulative: PerBlock<T, M>,
     #[traversable(flatten)]
-    rolling: RollingComplete<T, M>,
+    pub(crate) rolling: RollingComplete<T, M>,
 }
 
 impl<T> PerBlockRolling<T>
@@ -55,16 +57,18 @@ where
         self.cumulative.resolutions.height_source()
     }
 
-    pub fn compute(
+    /// Computes from per-block values of `S`, widened into `T` (e.g. `Bytes32` into `Bytes`).
+    pub fn compute<S>(
         &mut self,
         max_from: Height,
         windows: &WindowStarts<'_>,
-        height_source: &impl ReadableVec<Height, T>,
+        height_source: &impl ReadableVec<Height, S>,
         exit: &Exit,
     ) -> Result<()>
     where
         T: From<f64> + Default + Copy + Ord,
-        f64: From<T>,
+        S: VecValue + Copy + Into<T>,
+        f64: From<S>,
     {
         self.cumulative
             .height

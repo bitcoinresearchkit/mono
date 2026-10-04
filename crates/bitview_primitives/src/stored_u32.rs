@@ -1,25 +1,19 @@
 use std::{
     fmt::{Display, Formatter, Result},
-    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, Sub, SubAssign},
 };
 
-use brk_types::{CheckedSub, TxIndex};
+use brk_types::CheckedSub;
 use derive_more::Deref;
 use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    EmptyOutputIndex, OpReturnIndex, P2AAddrIndex, P2MSOutputIndex, P2PK33AddrIndex,
-    P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex, P2WPKHAddrIndex, P2WSHAddrIndex,
-    UnknownOutputIndex,
-};
-
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
 
 #[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco, PrintableIndex};
+use vecdb::{Formattable, Pco};
 
 /// Fixed-size 32-bit unsigned integer optimized for on-disk storage
 #[derive(
@@ -62,21 +56,6 @@ impl From<StoredU32> for u32 {
     }
 }
 
-impl From<StoredU32> for f32 {
-    #[inline]
-    fn from(value: StoredU32) -> Self {
-        value.0 as f32
-    }
-}
-
-impl From<u64> for StoredU32 {
-    #[inline]
-    fn from(value: u64) -> Self {
-        debug_assert!(value <= u32::MAX as u64);
-        Self(value as u32)
-    }
-}
-
 impl From<usize> for StoredU32 {
     #[inline]
     fn from(value: usize) -> Self {
@@ -93,19 +72,6 @@ impl CheckedSub<StoredU32> for StoredU32 {
 #[cfg(feature = "storage")]
 impl VecdbCheckedSub<StoredU32> for StoredU32 {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
-
-impl CheckedSub<usize> for StoredU32 {
-    fn checked_sub(self, rhs: usize) -> Option<Self> {
-        debug_assert!(rhs <= u32::MAX as usize);
-        self.0.checked_sub(rhs as u32).map(Self)
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub<usize> for StoredU32 {
-    fn checked_sub(self, rhs: usize) -> Option<Self> {
         CheckedSub::checked_sub(self, rhs)
     }
 }
@@ -143,15 +109,6 @@ impl SubAssign for StoredU32 {
     }
 }
 
-impl Mul<usize> for StoredU32 {
-    type Output = Self;
-    fn mul(self, rhs: usize) -> Self::Output {
-        let res = self.0 as usize * rhs;
-        debug_assert!(res <= u32::MAX as usize);
-        Self::from(res)
-    }
-}
-
 impl From<f64> for StoredU32 {
     #[inline]
     fn from(value: f64) -> Self {
@@ -175,100 +132,6 @@ impl From<StoredU32> for usize {
     }
 }
 
-impl From<P2PK65AddrIndex> for StoredU32 {
-    #[inline]
-    fn from(value: P2PK65AddrIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<P2PK33AddrIndex> for StoredU32 {
-    #[inline]
-    fn from(value: P2PK33AddrIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<P2PKHAddrIndex> for StoredU32 {
-    #[inline]
-    fn from(value: P2PKHAddrIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<OpReturnIndex> for StoredU32 {
-    #[inline]
-    fn from(value: OpReturnIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<P2MSOutputIndex> for StoredU32 {
-    #[inline]
-    fn from(value: P2MSOutputIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<P2SHAddrIndex> for StoredU32 {
-    #[inline]
-    fn from(value: P2SHAddrIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<P2WSHAddrIndex> for StoredU32 {
-    #[inline]
-    fn from(value: P2WSHAddrIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<P2WPKHAddrIndex> for StoredU32 {
-    #[inline]
-    fn from(value: P2WPKHAddrIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<P2TRAddrIndex> for StoredU32 {
-    #[inline]
-    fn from(value: P2TRAddrIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<P2AAddrIndex> for StoredU32 {
-    #[inline]
-    fn from(value: P2AAddrIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<UnknownOutputIndex> for StoredU32 {
-    #[inline]
-    fn from(value: UnknownOutputIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-impl From<EmptyOutputIndex> for StoredU32 {
-    #[inline]
-    fn from(value: EmptyOutputIndex) -> Self {
-        Self::from(usize::from(value))
-    }
-}
-
-#[cfg(feature = "storage")]
-impl PrintableIndex for StoredU32 {
-    fn to_string() -> &'static str {
-        "u32"
-    }
-    fn to_possible_strings() -> &'static [&'static str] {
-        &["u32"]
-    }
-}
-
 impl Display for StoredU32 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut buf = Buffer::new();
@@ -283,12 +146,5 @@ impl Formattable for StoredU32 {
     fn write_to(&self, buf: &mut Vec<u8>) {
         let mut b = Buffer::new();
         buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
-
-impl From<TxIndex> for StoredU32 {
-    #[inline]
-    fn from(value: TxIndex) -> Self {
-        Self::from(u32::from(value))
     }
 }

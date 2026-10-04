@@ -12,10 +12,10 @@ impl Vecs {
         lookback: &LookbackVecs,
         exit: &Exit,
     ) -> Result<()> {
-        self.size.compute(
+        self.weight.compute(
             indexer.safe_lengths().height,
             &lookback.window_starts(),
-            &indexer.vecs().blocks.total,
+            &indexer.vecs().blocks.weight,
             exit,
         )
     }

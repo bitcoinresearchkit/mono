@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
+use bitview_primitives::SigOps64;
 use brk_error::Result;
 use brk_exit::Exit;
 
@@ -18,7 +18,7 @@ impl Vecs {
             &indexer.vecs().transactions.first_tx_index,
             &mappings.height.tx_index_count,
             &indexer.vecs().transactions.total_sigop_cost,
-            |value| StoredU64::from(u64::from(u32::from(value))),
+            SigOps64::from,
             exit,
         )
     }

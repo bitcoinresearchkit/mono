@@ -10,9 +10,7 @@ mod mask_sats;
 mod one_minus_ppm;
 mod per_second;
 mod return_tenths;
-mod stored_u64_to_stored_u32;
 mod ths_to_phs_f32;
-mod v_bytes_to_weight;
 mod weight_to_v_size;
 
 pub use blocks_to_days_f32::BlocksToDaysF32;
@@ -21,7 +19,5 @@ pub use mask_sats::MaskSats;
 pub use one_minus_ppm::OneMinusPpm;
 pub use per_second::PerSecond;
 pub use return_tenths::ReturnTenths;
-pub use stored_u64_to_stored_u32::StoredU64ToStoredU32;
 pub use ths_to_phs_f32::ThsToPhsF32;
-pub use v_bytes_to_weight::VBytesToWeight;
 pub use weight_to_v_size::WeightToVSize;

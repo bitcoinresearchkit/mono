@@ -4,7 +4,7 @@ use std::{
     ops::{Add, AddAssign, Div, Sub, SubAssign},
 };
 
-use brk_types::{CheckedSub, VSize, Weight};
+use brk_types::{CheckedSub, Weight};
 use derive_more::Deref;
 use itoa::Buffer;
 use schemars::JsonSchema;
@@ -38,14 +38,6 @@ impl From<Weight> for Weight64 {
     #[inline]
     fn from(value: Weight) -> Self {
         Self(u64::from(value))
-    }
-}
-
-impl From<VSize> for Weight64 {
-    #[inline]
-    fn from(value: VSize) -> Self {
-        debug_assert!(*value <= u64::MAX / 4);
-        Self(*value * 4)
     }
 }
 

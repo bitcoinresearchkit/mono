@@ -1,13 +1,14 @@
-use bitview_primitives::{PartsPerMillion32, StoredU64, Weight64};
+use bitview_primitives::{PartsPerMillion32, Weight64};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlockRolling, LazyPercentVec};
+use bitview_vecs::{LazyPercentVec, PerBlockRolling};
 use brk_types::Weight;
+use vecdb::{Rw, StorageMode};
 
-#[derive(Clone, Traversable)]
-pub struct Vecs {
+#[derive(Traversable)]
+pub struct Vecs<M: StorageMode = Rw> {
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one.
-    pub weight: LazyPerBlockRolling<Weight64, StoredU64>,
+    pub weight: PerBlockRolling<Weight64, M>,
     /// Block weight divided by the 4,000,000-weight-unit consensus limit. A
     /// value of one means the block reached the limit; lower values indicate
     /// unused weight capacity.

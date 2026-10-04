@@ -1,7 +1,7 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::{PartsPerMillionSigned64, StoredI64, StoredU64};
+use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyPerBlockWithDeltas, LazyWindowStartVec};
 use brk_types::Version;
@@ -11,9 +11,9 @@ use super::Sources;
 #[derive(Clone, Traversable)]
 pub struct OutputMetrics {
     /// Number of unspent outputs in this cohort.
-    unspent_count: LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>,
+    unspent_count: LazyPerBlockWithDeltas<Count, CountSigned, PartsPerMillionSigned64>,
     /// Number of outputs spent from this cohort.
-    spent_count: LazyPerBlockCumulativeRolling<StoredU64>,
+    spent_count: LazyPerBlockCumulativeRolling<Count>,
 }
 
 impl OutputMetrics {

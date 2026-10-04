@@ -1,7 +1,7 @@
 use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Bytes;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
 use brk_types::{Height, Sats, Version};
@@ -18,7 +18,7 @@ impl Vecs {
         context: ImportContext<'_>,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        block_size: &impl ReadableCloneableVec<Height, StoredU64>,
+        block_size: &impl ReadableCloneableVec<Height, Bytes>,
         chain_fees: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 1_000_000)?;

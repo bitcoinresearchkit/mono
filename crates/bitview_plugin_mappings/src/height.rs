@@ -1,6 +1,6 @@
 use bitview_primitives::{
-    Date, Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
-    Month6, StoredU64, Week1, Year1, Year10,
+    Count, Date, Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1,
+    Month3, Month6, Week1, Year1, Year10,
 };
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPreviousDeltaVec;
@@ -57,7 +57,7 @@ pub struct Vecs {
     /// with 2009 through 2018 equal to 0.
     pub year10: RangeMapLookupVec<Height, Year10>,
     /// Number of transactions in the indexed block, including coinbase.
-    pub tx_index_count: LazyPreviousDeltaVec<Height, StoredU64>,
+    pub tx_index_count: LazyPreviousDeltaVec<Height, Count>,
 }
 
 impl Vecs {

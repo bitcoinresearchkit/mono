@@ -1,5 +1,5 @@
 use bitview_cohort::ByType;
-use bitview_primitives::{PartsPerMillion32, StoredU64};
+use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling};
 use brk_types::Height;
@@ -11,7 +11,7 @@ use super::{SpendableOutputCount, WithOutputTypes};
 pub struct Vecs<M: StorageMode = Rw> {
     /// Counts of transaction outputs, including coinbase. Per-type series
     /// classify outputs by BRK locking-script type.
-    pub output_count: WithOutputTypes<LazyPerBlockCumulativeRolling<StoredU64>>,
+    pub output_count: WithOutputTypes<LazyPerBlockCumulativeRolling<Count>>,
     /// Number of transaction outputs excluding `OP_RETURN` outputs, which are
     /// provably unspendable.
     pub spendable_output_count: SpendableOutputCount,
@@ -21,13 +21,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Number of transactions containing at least one output of a
     /// BRK locking-script type. Each transaction is counted once per type; the
     /// `all` aggregate counts every transaction, including coinbase.
-    pub(crate) tx_count: WithOutputTypes<LazyPerBlockCumulativeRolling<StoredU64>>,
+    pub(crate) tx_count: WithOutputTypes<LazyPerBlockCumulativeRolling<Count>>,
     /// Transactions containing an output type divided by all
     /// transactions over the same cumulative or trailing window, including
     /// coinbase transactions.
     pub(crate) tx_share: ByType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     #[traversable(hidden)]
-    pub(crate) output_count_stored: ByType<CachedSeries<Height, StoredU64, M>>,
+    pub(crate) output_count_stored: ByType<CachedSeries<Height, Count, M>>,
     #[traversable(hidden)]
-    pub(crate) tx_count_stored: ByType<CachedSeries<Height, StoredU64, M>>,
+    pub(crate) tx_count_stored: ByType<CachedSeries<Height, Count, M>>,
 }

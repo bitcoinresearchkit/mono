@@ -4,9 +4,8 @@ use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_transactions::FeesVecs;
-use bitview_primitives::Bytes;
 use bitview_primitives::{
-    OP_RETURN_KIND_COUNT, OpReturnIndex, OpReturnKind, OpReturnPolicyId, StoredU32,
+    Bytes, Bytes32, OP_RETURN_KIND_COUNT, OpReturnIndex, OpReturnKind, OpReturnPolicyId,
 };
 use brk_types::{Sats, TxIndex, VSize, Weight};
 use rayon::join;
@@ -19,7 +18,7 @@ pub struct Batch {
     block_offsets: Vec<usize>,
     tx_indexes: Vec<TxIndex>,
     kinds: Vec<OpReturnKind>,
-    post_op_return_bytes: Vec<StoredU32>,
+    post_op_return_bytes: Vec<Bytes32>,
     weights: Vec<Weight>,
     fees: Vec<Sats>,
 }
@@ -104,7 +103,7 @@ impl Batch {
             for record_index in offsets[0]..offsets[1] {
                 let tx_index = tx_indexes[record_index];
                 let kind = kinds[record_index];
-                let bytes = Bytes::from(u32::from(post_op_return_bytes[record_index]));
+                let bytes = Bytes::from(post_op_return_bytes[record_index]);
                 let kind_index = kind.index();
 
                 if current_tx != Some(tx_index) {

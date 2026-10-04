@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Boolean, StoredU64};
+use bitview_primitives::{Boolean, Count};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Sats;
@@ -87,7 +87,7 @@ impl Vecs {
                 count += nonstandard as u64;
                 self.is_nonstandard.push(Boolean::from(nonstandard));
             }
-            self.count.nonstandard.push_block(StoredU64::from(count));
+            self.count.nonstandard.push_block(Count::from(count));
 
             if (height + 1).is_multiple_of(WRITE_INTERVAL) {
                 let _lock = exit.lock();

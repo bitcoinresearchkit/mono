@@ -4,23 +4,17 @@ use std::{
     ops::{Add, AddAssign, Div, Sub, SubAssign},
 };
 
-use brk_types::{CheckedSub, Height, Sats, TxIndex};
+use brk_types::CheckedSub;
 use derive_more::Deref;
 use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Day1, EmptyOutputIndex, Month1, OpReturnIndex, P2AAddrIndex, P2MSOutputIndex, P2PK33AddrIndex,
-    P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex, P2WPKHAddrIndex, P2WSHAddrIndex,
-    StoredU32, TxInIndex, TxOutIndex, UnknownOutputIndex, Year1,
-};
-
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
 
 #[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco, PrintableIndex};
+use vecdb::{Formattable, Pco};
 
 /// Fixed-size 64-bit unsigned integer optimized for on-disk storage
 #[derive(
@@ -45,13 +39,6 @@ impl StoredU64 {
 
     pub fn new(counter: u64) -> Self {
         Self(counter)
-    }
-}
-
-impl From<StoredU32> for StoredU64 {
-    #[inline]
-    fn from(value: StoredU32) -> Self {
-        Self(u32::from(value) as u64)
     }
 }
 
@@ -149,149 +136,6 @@ impl From<StoredU64> for f64 {
     }
 }
 
-impl From<TxIndex> for StoredU64 {
-    #[inline]
-    fn from(value: TxIndex) -> Self {
-        Self(*value as u64)
-    }
-}
-
-impl From<TxInIndex> for StoredU64 {
-    #[inline]
-    fn from(value: TxInIndex) -> Self {
-        Self(*value)
-    }
-}
-
-impl From<Height> for StoredU64 {
-    #[inline]
-    fn from(value: Height) -> Self {
-        Self(*value as u64)
-    }
-}
-
-impl From<TxOutIndex> for StoredU64 {
-    #[inline]
-    fn from(value: TxOutIndex) -> Self {
-        Self(*value)
-    }
-}
-
-impl From<Day1> for StoredU64 {
-    #[inline]
-    fn from(value: Day1) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<Month1> for StoredU64 {
-    #[inline]
-    fn from(value: Month1) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<Year1> for StoredU64 {
-    #[inline]
-    fn from(value: Year1) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<P2PK65AddrIndex> for StoredU64 {
-    #[inline]
-    fn from(value: P2PK65AddrIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<P2PK33AddrIndex> for StoredU64 {
-    #[inline]
-    fn from(value: P2PK33AddrIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<P2PKHAddrIndex> for StoredU64 {
-    #[inline]
-    fn from(value: P2PKHAddrIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<OpReturnIndex> for StoredU64 {
-    #[inline]
-    fn from(value: OpReturnIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<P2MSOutputIndex> for StoredU64 {
-    #[inline]
-    fn from(value: P2MSOutputIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<P2SHAddrIndex> for StoredU64 {
-    #[inline]
-    fn from(value: P2SHAddrIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<P2WSHAddrIndex> for StoredU64 {
-    #[inline]
-    fn from(value: P2WSHAddrIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<P2WPKHAddrIndex> for StoredU64 {
-    #[inline]
-    fn from(value: P2WPKHAddrIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<P2TRAddrIndex> for StoredU64 {
-    #[inline]
-    fn from(value: P2TRAddrIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<P2AAddrIndex> for StoredU64 {
-    #[inline]
-    fn from(value: P2AAddrIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<UnknownOutputIndex> for StoredU64 {
-    #[inline]
-    fn from(value: UnknownOutputIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-impl From<EmptyOutputIndex> for StoredU64 {
-    #[inline]
-    fn from(value: EmptyOutputIndex) -> Self {
-        Self::from(u64::from(value))
-    }
-}
-
-#[cfg(feature = "storage")]
-impl PrintableIndex for StoredU64 {
-    fn to_string() -> &'static str {
-        "u64"
-    }
-    fn to_possible_strings() -> &'static [&'static str] {
-        &["u64"]
-    }
-}
-
 impl Display for StoredU64 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut buf = Buffer::new();
@@ -306,19 +150,5 @@ impl Formattable for StoredU64 {
     fn write_to(&self, buf: &mut Vec<u8>) {
         let mut b = Buffer::new();
         buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
-
-impl From<StoredU64> for Height {
-    #[inline]
-    fn from(value: StoredU64) -> Self {
-        Self::from(*value)
-    }
-}
-
-impl Div<StoredU64> for Sats {
-    type Output = Self;
-    fn div(self, rhs: StoredU64) -> Self::Output {
-        Self::from(u64::from(self).checked_div(u64::from(rhs)).unwrap_or(0))
     }
 }

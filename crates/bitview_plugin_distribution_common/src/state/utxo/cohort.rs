@@ -1,4 +1,4 @@
-use bitview_primitives::{StoredF64, StoredU64, SupplyState};
+use bitview_primitives::{Count, StoredF64, SupplyState};
 use brk_types::{Bitcoin, CentsSigned, Sats};
 use derive_more::{Deref, DerefMut};
 
@@ -31,10 +31,10 @@ impl<R: RealizedOps, C: CostBasisOps> UTXOCohortState<R, C> {
     }
 
     #[inline(always)]
-    pub fn output_counts(&self) -> (StoredU64, StoredU64) {
+    pub fn output_counts(&self) -> (Count, Count) {
         (
-            StoredU64::from(self.supply.utxo_count),
-            StoredU64::from(self.spent_utxo_count),
+            Count::from(self.supply.utxo_count),
+            Count::from(self.spent_utxo_count),
         )
     }
 

@@ -5,7 +5,7 @@ mod import;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use vecdb::{Database, EagerVec, PcoVec, Rw, StorageMode};
@@ -19,7 +19,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
     /// Consecutive blocks whose weight is at least 90% of Bitcoin's consensus
     /// maximum. Resets to zero whenever a block falls below that threshold.
-    streak: M::Stored<EagerVec<PcoVec<Height, StoredU64>>>,
+    streak: M::Stored<EagerVec<PcoVec<Height, Count>>>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

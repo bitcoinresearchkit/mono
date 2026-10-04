@@ -1,7 +1,7 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Boolean, PartsPerMillion32, StoredU64};
+use bitview_primitives::{Boolean, Count, Count16, PartsPerMillion32};
 use bitview_transforms::RatioSats;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -26,7 +26,7 @@ impl Vecs {
         self.count.compute_cumulative_transformed(
             starting_height,
             &features.count.inscription,
-            StoredU64::from,
+            Count::from,
             exit,
         )?;
         self.compute_fees(
@@ -46,8 +46,8 @@ impl Vecs {
         &mut self,
         starting_height: Height,
         first_tx: &impl ReadableVec<Height, TxIndex>,
-        tx_counts: &impl ReadableVec<Height, StoredU64>,
-        inscription_counts: &impl ReadableVec<Height, StoredU64>,
+        tx_counts: &impl ReadableVec<Height, Count>,
+        inscription_counts: &impl ReadableVec<Height, Count16>,
         inscriptions: &impl ReadableVec<TxIndex, Boolean>,
         fees: &impl ReadableVec<TxIndex, Sats>,
         total_fees: &impl ReadableVec<Height, Sats>,
@@ -92,7 +92,7 @@ impl Vecs {
             let total = total_fees.collect_one_at(height).unwrap();
             let mut inscribed = Sats::ZERO;
             // With no inscriptions, avoid reading transaction fees or flags.
-            if u64::from(inscription_counts.next().unwrap()) > 0 {
+            if *inscription_counts.next().unwrap() > 0 {
                 fees.advance(block_start - fees.position());
                 inscriptions.advance(block_start - inscriptions.position());
                 fees.for_each(block_end - block_start, |fee| {

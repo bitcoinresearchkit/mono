@@ -1,5 +1,5 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_primitives::{StoredF64, StoredU64};
+use bitview_primitives::{Count, StoredF64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, import_cached};
 use brk_error::Result;
@@ -13,13 +13,13 @@ pub(crate) struct Sources<M: StorageMode = Rw> {
     pub(crate) supply: CachedSeries<Height, Sats, M>,
     pub(crate) supply_in_profit: CachedSeries<Height, Sats, M>,
     pub(crate) supply_in_loss: CachedSeries<Height, Sats, M>,
-    pub(crate) unspent_count: CachedSeries<Height, StoredU64, M>,
+    pub(crate) unspent_count: CachedSeries<Height, Count, M>,
     pub(crate) realized_cap: CachedSeries<Height, Cents, M>,
     pub(crate) realized_price: CachedSeries<Height, Cents, M>,
     pub(crate) unrealized_profit: CachedSeries<Height, Cents, M>,
     pub(crate) unrealized_loss: CachedSeries<Height, Cents, M>,
     pub(crate) unrealized_net_pnl: CachedSeries<Height, CentsSigned, M>,
-    pub(crate) spent_count: CumulativeSource<StoredU64, M>,
+    pub(crate) spent_count: CumulativeSource<Count, M>,
     pub(crate) transfer_sats: CumulativeSource<Sats, M>,
     pub(crate) transfer_cents: CumulativeSource<Cents, M>,
     pub(crate) profit_sats: CumulativeSource<Sats, M>,

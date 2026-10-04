@@ -1,6 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::Bytes;
-use bitview_primitives::{PartsPerMillion32, StoredU64};
+use bitview_primitives::{Bytes, PartsPerMillion32};
 use bitview_transforms::RatioBytes;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPercentPerBlock, PerBlockCumulativeRolling};
@@ -28,7 +27,7 @@ impl DataBytesSeries {
         version: Version,
         data_bytes: PerBlockCumulativeRolling<Bytes>,
         total_data: &impl ReadableCloneableVec<Height, Bytes>,
-        block_size: &impl ReadableCloneableVec<Height, StoredU64>,
+        block_size: &impl ReadableCloneableVec<Height, Bytes>,
         mappings: &MappingsVecs,
     ) -> Self {
         let data_share = LazyPercentPerBlock::from_ratio::<Bytes, _, RatioBytes<PartsPerMillion32>>(

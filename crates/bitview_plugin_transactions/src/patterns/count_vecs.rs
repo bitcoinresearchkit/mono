@@ -1,4 +1,4 @@
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::PerBlockCumulativeRolling;
 use vecdb::{Rw, StorageMode};
@@ -12,16 +12,16 @@ pub struct CountVecs<M: StorageMode = Rw> {
     /// at least five inputs and outputs, neither count five times the other,
     /// sufficiently repeated input/output values, no recognized address reuse,
     /// and no detected `OP_RETURN` or inscription.
-    pub coinjoin: PerBlockCumulativeRolling<StoredU64, M>,
+    pub coinjoin: PerBlockCumulativeRolling<Count, M>,
     /// Counts transactions with at least five times as many inputs as outputs.
-    pub consolidation: PerBlockCumulativeRolling<StoredU64, M>,
+    pub consolidation: PerBlockCumulativeRolling<Count, M>,
     /// Counts non-coinbase transactions with at least five times as many outputs
     /// as inputs.
-    pub batch_payout: PerBlockCumulativeRolling<StoredU64, M>,
+    pub batch_payout: PerBlockCumulativeRolling<Count, M>,
 }
 
 impl CountVecs {
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut PerBlockCumulativeRolling<StoredU64>> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut PerBlockCumulativeRolling<Count>> {
         [
             &mut self.coinjoin,
             &mut self.consolidation,

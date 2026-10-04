@@ -1,7 +1,7 @@
 use bitview_cohort::WithAddrTypes;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyWindowStartVec};
 use brk_types::Version;
@@ -12,7 +12,7 @@ use super::TotalAddrCountVecs;
 /// New address count per block (global + per-type).
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct NewAddrCountVecs(
-    #[traversable(flatten)] pub WithAddrTypes<LazyPerBlockCumulativeRolling<StoredU64>>,
+    #[traversable(flatten)] pub WithAddrTypes<LazyPerBlockCumulativeRolling<Count>>,
 );
 
 impl NewAddrCountVecs {

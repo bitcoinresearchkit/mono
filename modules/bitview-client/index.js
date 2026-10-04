@@ -364,7 +364,16 @@ prior template's transactions or a full transaction body.
  *
  * @typedef {number} BoundedRatio
  */
-/** @typedef {number} Bytes */
+/**
+ * A size in bytes.
+ *
+ * @typedef {number} Bytes
+ */
+/**
+ * A size in bytes that fits 32 bits (under 4 GiB), such as a block or transaction size.
+ *
+ * @typedef {number} Bytes32
+ */
 /**
  * Investor phase from the Capital Sentiment model.
  *
@@ -408,6 +417,21 @@ prior template's transactions or a full transaction body.
  * Bitcoin consensus limits coinbase scriptSig to 2-100 bytes.
  *
  * @typedef {string} CoinbaseTag
+ */
+/**
+ * A number of things.
+ *
+ * @typedef {number} Count
+ */
+/**
+ * A number of things that fits 16 bits (at most 65,535), such as transactions per block.
+ *
+ * @typedef {number} Count16
+ */
+/**
+ * A change in a number of things.
+ *
+ * @typedef {number} CountSigned
  */
 /**
  * CPFP cluster: the connected component the seed belongs to, plus its
@@ -1162,6 +1186,11 @@ undefined one (e.g. NaN).
  * @typedef {number} SigOps
  */
 /**
+ * BIP-141 signature-operation cost with enough range for cumulative and rolling totals.
+ *
+ * @typedef {number} SigOps64
+ */
+/**
  * Stored 32-bit floating point value
  *
  * @typedef {number} StoredF32
@@ -1170,21 +1199,6 @@ undefined one (e.g. NaN).
  * Fixed-size 64-bit floating point value optimized for on-disk storage
  *
  * @typedef {number} StoredF64
- */
-/**
- * Fixed-size 64-bit signed integer optimized for on-disk storage
- *
- * @typedef {number} StoredI64
- */
-/**
- * Fixed-size 32-bit unsigned integer optimized for on-disk storage
- *
- * @typedef {number} StoredU32
- */
-/**
- * Fixed-size 64-bit unsigned integer optimized for on-disk storage
- *
- * @typedef {number} StoredU64
  */
 /**
  * Sync status of the indexer
@@ -2478,7 +2492,7 @@ const _s = (children) => (c, b) => _n(c, b, children);
 /**
  * @typedef {{
  *   supply: SeriesPattern21<Sats>,
- *   count: SeriesPattern2<StoredU64>,
+ *   count: SeriesPattern2<Count>,
  * }} UtxoHistory
  */
 const _UtxoHistory = _s({
@@ -2634,8 +2648,8 @@ const _TxinIndex = _s({
 /**
  * @typedef {{
  *   identity: SeriesPattern22<TxIndex>,
- *   inputCount: SeriesPattern22<StoredU64>,
- *   outputCount: SeriesPattern22<StoredU64>,
+ *   inputCount: SeriesPattern22<Count>,
+ *   outputCount: SeriesPattern22<Count>,
  * }} MappingsTxIndex
  */
 const _MappingsTxIndex = _s({
@@ -2812,7 +2826,7 @@ const _MappingsEpoch = _s({
  *   month6: SeriesPattern21<Month6>,
  *   year1: SeriesPattern21<Year1>,
  *   year10: SeriesPattern21<Year10>,
- *   txIndexCount: SeriesPattern21<StoredU64>,
+ *   txIndexCount: SeriesPattern21<Count>,
  * }} MappingsHeight
  */
 const _MappingsHeight = _s({
@@ -4206,7 +4220,7 @@ const _RateSma = _s({
  *   firstIndex: SeriesPattern21<OpReturnIndex>,
  *   toTxIndex: SeriesPattern26<TxIndex>,
  *   kind: SeriesPattern26<OpReturnKind>,
- *   postOpReturnBytes: SeriesPattern26<StoredU32>,
+ *   postOpReturnBytes: SeriesPattern26<Bytes32>,
  * }} OpReturnRaw
  */
 const _OpReturnRaw = _s({
@@ -4277,15 +4291,15 @@ const _Scripts = _s({
 
 /**
  * @typedef {{
- *   all: SeriesPattern2<StoredU64>,
- *   p2pk65: SeriesPattern2<StoredU64>,
- *   p2pk33: SeriesPattern2<StoredU64>,
- *   p2pkh: SeriesPattern2<StoredU64>,
- *   p2sh: SeriesPattern2<StoredU64>,
- *   p2wpkh: SeriesPattern2<StoredU64>,
- *   p2wsh: SeriesPattern2<StoredU64>,
- *   p2tr: SeriesPattern2<StoredU64>,
- *   p2a: SeriesPattern2<StoredU64>,
+ *   all: SeriesPattern2<Count>,
+ *   p2pk65: SeriesPattern2<Count>,
+ *   p2pk33: SeriesPattern2<Count>,
+ *   p2pkh: SeriesPattern2<Count>,
+ *   p2sh: SeriesPattern2<Count>,
+ *   p2wpkh: SeriesPattern2<Count>,
+ *   p2wsh: SeriesPattern2<Count>,
+ *   p2tr: SeriesPattern2<Count>,
+ *   p2a: SeriesPattern2<Count>,
  * }} AddrsEmpty
  */
 const _AddrsEmpty = _s({
@@ -4783,7 +4797,7 @@ const _TransactionsSize = _s({
  *   txVersion: SeriesPattern22<TxVersion>,
  *   rawLocktime: SeriesPattern22<RawLockTime>,
  *   weight: SeriesPattern22<Weight>,
- *   totalSize: SeriesPattern22<StoredU32>,
+ *   totalSize: SeriesPattern22<Bytes32>,
  *   totalSigopCost: SeriesPattern22<SigOps>,
  *   isExplicitlyRbf: SeriesPattern22<Boolean>,
  *   firstTxinIndex: SeriesPattern22<TxInIndex>,
@@ -4806,7 +4820,7 @@ const _TransactionsRaw = _s({
 /**
  * @typedef {{
  *   epoch: SeriesPattern2<Halving>,
- *   blocksToHalving: SeriesPattern2<StoredU32>,
+ *   blocksToHalving: SeriesPattern2<Count>,
  *   daysToHalving: SeriesPattern2<?StoredF32>,
  * }} BlocksHalving
  */
@@ -4944,10 +4958,10 @@ const _BlocksLookback = _s({
 
 /**
  * @typedef {{
- *   _24h: SeriesPattern1<StoredU64>,
- *   _1w: SeriesPattern1<StoredU64>,
- *   _1m: SeriesPattern1<StoredU64>,
- *   _1y: SeriesPattern1<StoredU64>,
+ *   _24h: SeriesPattern1<Count>,
+ *   _1w: SeriesPattern1<Count>,
+ *   _1m: SeriesPattern1<Count>,
+ *   _1y: SeriesPattern1<Count>,
  * }} Target
  */
 const _Target = _s({
@@ -4975,9 +4989,9 @@ const _PerSec = _s({
 
 /**
  * @typedef {{
- *   block: SeriesPattern21<StoredU64>,
- *   cumulative: SeriesPattern2<StoredU64>,
- *   sum: PerSec<StoredU64>,
+ *   block: SeriesPattern21<Count>,
+ *   cumulative: SeriesPattern2<Count>,
+ *   sum: PerSec<Count>,
  * }} BlocksMined
  */
 const _BlocksMined = _s({
@@ -4988,15 +5002,15 @@ const _BlocksMined = _s({
 
 /**
  * @typedef {{
- *   sum: PerSec<StoredU64>,
+ *   sum: PerSec<Count>,
  *   average: PerSec<?StoredF32>,
- *   min: PerSec<StoredU64>,
- *   max: PerSec<StoredU64>,
- *   pct10: PerSec<StoredU64>,
- *   pct25: PerSec<StoredU64>,
- *   median: PerSec<StoredU64>,
- *   pct75: PerSec<StoredU64>,
- *   pct90: PerSec<StoredU64>,
+ *   min: PerSec<Count>,
+ *   max: PerSec<Count>,
+ *   pct10: PerSec<Count>,
+ *   pct25: PerSec<Count>,
+ *   median: PerSec<Count>,
+ *   pct75: PerSec<Count>,
+ *   pct90: PerSec<Count>,
  * }} Rolling
  */
 const _Rolling = _s({
@@ -5013,8 +5027,8 @@ const _Rolling = _s({
 
 /**
  * @typedef {{
- *   sum: SeriesPattern21<StoredU64>,
- *   cumulative: SeriesPattern2<StoredU64>,
+ *   sum: SeriesPattern21<Count>,
+ *   cumulative: SeriesPattern2<Count>,
  *   rolling: Rolling,
  * }} InputsCount
  */
@@ -5025,18 +5039,19 @@ const _InputsCount = _s({
 });
 
 /**
+ * @template A
  * @typedef {{
- *   block: SeriesPattern21<StoredU64>,
- *   cumulative: SeriesPattern2<StoredU64>,
- *   sum: PerSec<StoredU64>,
+ *   block: SeriesPattern21<A>,
+ *   cumulative: SeriesPattern2<A>,
+ *   sum: PerSec<A>,
  *   average: PerSec<?StoredF32>,
- *   min: PerSec<StoredU64>,
- *   max: PerSec<StoredU64>,
- *   pct10: PerSec<StoredU64>,
- *   pct25: PerSec<StoredU64>,
- *   median: PerSec<StoredU64>,
- *   pct75: PerSec<StoredU64>,
- *   pct90: PerSec<StoredU64>,
+ *   min: PerSec<A>,
+ *   max: PerSec<A>,
+ *   pct10: PerSec<A>,
+ *   pct25: PerSec<A>,
+ *   median: PerSec<A>,
+ *   pct75: PerSec<A>,
+ *   pct90: PerSec<A>,
  * }} Vbytes
  */
 const _Vbytes = _s({
@@ -5105,19 +5120,19 @@ const _CointimeActivity = _s({
 
 /**
  * @typedef {{
- *   all: NewAll<StoredU64>,
- *   p2pk65: NewAll<StoredU64>,
- *   p2pk33: NewAll<StoredU64>,
- *   p2pkh: NewAll<StoredU64>,
- *   p2ms: NewAll<StoredU64>,
- *   p2sh: NewAll<StoredU64>,
- *   p2wpkh: NewAll<StoredU64>,
- *   p2wsh: NewAll<StoredU64>,
- *   p2tr: NewAll<StoredU64>,
- *   p2a: NewAll<StoredU64>,
- *   unknown: NewAll<StoredU64>,
- *   empty: NewAll<StoredU64>,
- *   opReturn: NewAll<StoredU64>,
+ *   all: NewAll<Count>,
+ *   p2pk65: NewAll<Count>,
+ *   p2pk33: NewAll<Count>,
+ *   p2pkh: NewAll<Count>,
+ *   p2ms: NewAll<Count>,
+ *   p2sh: NewAll<Count>,
+ *   p2wpkh: NewAll<Count>,
+ *   p2wsh: NewAll<Count>,
+ *   p2tr: NewAll<Count>,
+ *   p2a: NewAll<Count>,
+ *   unknown: NewAll<Count>,
+ *   empty: NewAll<Count>,
+ *   opReturn: NewAll<Count>,
  * }} OutputsByTypeTxCount
  */
 const _OutputsByTypeTxCount = _s({
@@ -5138,19 +5153,19 @@ const _OutputsByTypeTxCount = _s({
 
 /**
  * @typedef {{
- *   all: NewAll<StoredU64>,
- *   p2pk65: NewAll<StoredU64>,
- *   p2pk33: NewAll<StoredU64>,
- *   p2pkh: NewAll<StoredU64>,
- *   p2ms: NewAll<StoredU64>,
- *   p2sh: NewAll<StoredU64>,
- *   p2wpkh: NewAll<StoredU64>,
- *   p2wsh: NewAll<StoredU64>,
- *   p2tr: NewAll<StoredU64>,
- *   p2a: NewAll<StoredU64>,
- *   unknown: NewAll<StoredU64>,
- *   empty: NewAll<StoredU64>,
- *   opReturn: NewAll<StoredU64>,
+ *   all: NewAll<Count>,
+ *   p2pk65: NewAll<Count>,
+ *   p2pk33: NewAll<Count>,
+ *   p2pkh: NewAll<Count>,
+ *   p2ms: NewAll<Count>,
+ *   p2sh: NewAll<Count>,
+ *   p2wpkh: NewAll<Count>,
+ *   p2wsh: NewAll<Count>,
+ *   p2tr: NewAll<Count>,
+ *   p2a: NewAll<Count>,
+ *   unknown: NewAll<Count>,
+ *   empty: NewAll<Count>,
+ *   opReturn: NewAll<Count>,
  * }} OutputCount
  */
 const _OutputCount = _s({
@@ -5171,18 +5186,18 @@ const _OutputCount = _s({
 
 /**
  * @typedef {{
- *   all: NewAll<StoredU64>,
- *   p2pk65: NewAll<StoredU64>,
- *   p2pk33: NewAll<StoredU64>,
- *   p2pkh: NewAll<StoredU64>,
- *   p2ms: NewAll<StoredU64>,
- *   p2sh: NewAll<StoredU64>,
- *   p2wpkh: NewAll<StoredU64>,
- *   p2wsh: NewAll<StoredU64>,
- *   p2tr: NewAll<StoredU64>,
- *   p2a: NewAll<StoredU64>,
- *   unknown: NewAll<StoredU64>,
- *   empty: NewAll<StoredU64>,
+ *   all: NewAll<Count>,
+ *   p2pk65: NewAll<Count>,
+ *   p2pk33: NewAll<Count>,
+ *   p2pkh: NewAll<Count>,
+ *   p2ms: NewAll<Count>,
+ *   p2sh: NewAll<Count>,
+ *   p2wpkh: NewAll<Count>,
+ *   p2wsh: NewAll<Count>,
+ *   p2tr: NewAll<Count>,
+ *   p2a: NewAll<Count>,
+ *   unknown: NewAll<Count>,
+ *   empty: NewAll<Count>,
  * }} InputsByTypeTxCount
  */
 const _InputsByTypeTxCount = _s({
@@ -5202,18 +5217,18 @@ const _InputsByTypeTxCount = _s({
 
 /**
  * @typedef {{
- *   all: NewAll<StoredU64>,
- *   p2pk65: NewAll<StoredU64>,
- *   p2pk33: NewAll<StoredU64>,
- *   p2pkh: NewAll<StoredU64>,
- *   p2ms: NewAll<StoredU64>,
- *   p2sh: NewAll<StoredU64>,
- *   p2wpkh: NewAll<StoredU64>,
- *   p2wsh: NewAll<StoredU64>,
- *   p2tr: NewAll<StoredU64>,
- *   p2a: NewAll<StoredU64>,
- *   unknown: NewAll<StoredU64>,
- *   empty: NewAll<StoredU64>,
+ *   all: NewAll<Count>,
+ *   p2pk65: NewAll<Count>,
+ *   p2pk33: NewAll<Count>,
+ *   p2pkh: NewAll<Count>,
+ *   p2ms: NewAll<Count>,
+ *   p2sh: NewAll<Count>,
+ *   p2wpkh: NewAll<Count>,
+ *   p2wsh: NewAll<Count>,
+ *   p2tr: NewAll<Count>,
+ *   p2a: NewAll<Count>,
+ *   unknown: NewAll<Count>,
+ *   empty: NewAll<Count>,
  * }} InputCount
  */
 const _InputCount = _s({
@@ -5233,10 +5248,10 @@ const _InputCount = _s({
 
 /**
  * @typedef {{
- *   v1: NewAll<StoredU64>,
- *   v2: NewAll<StoredU64>,
- *   v3: NewAll<StoredU64>,
- *   other: NewAll<StoredU64>,
+ *   v1: NewAll<Count>,
+ *   v2: NewAll<Count>,
+ *   v3: NewAll<Count>,
+ *   other: NewAll<Count>,
  * }} Versions
  */
 const _Versions = _s({
@@ -5248,7 +5263,7 @@ const _Versions = _s({
 
 /**
  * @typedef {{
- *   nonstandard: NewAll<StoredU64>,
+ *   nonstandard: NewAll<Count>,
  * }} PolicyCount
  */
 const _PolicyCount = _s({
@@ -5268,9 +5283,9 @@ const _Policy = _s({
 
 /**
  * @typedef {{
- *   coinjoin: NewAll<StoredU64>,
- *   consolidation: NewAll<StoredU64>,
- *   batchPayout: NewAll<StoredU64>,
+ *   coinjoin: NewAll<Count>,
+ *   consolidation: NewAll<Count>,
+ *   batchPayout: NewAll<Count>,
  * }} PatternsCount
  */
 const _PatternsCount = _s({
@@ -5296,8 +5311,8 @@ const _Patterns = _s({
 
 /**
  * @typedef {{
- *   cpfpParent: NewAll<StoredU64>,
- *   cpfpChild: NewAll<StoredU64>,
+ *   cpfpParent: NewAll<Count>,
+ *   cpfpChild: NewAll<Count>,
  * }} FeesCount
  */
 const _FeesCount = _s({
@@ -5337,33 +5352,33 @@ const _OutputsCount = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   v1: SeriesPattern21<StoredU64>,
- *   v2: SeriesPattern21<StoredU64>,
- *   v3: SeriesPattern21<StoredU64>,
- *   otherVersion: SeriesPattern21<StoredU64>,
- *   explicitlyRbf: SeriesPattern21<StoredU64>,
- *   oneInput: SeriesPattern21<StoredU64>,
- *   oneOutput: SeriesPattern21<StoredU64>,
- *   p2pk: SeriesPattern21<StoredU64>,
- *   p2ms: SeriesPattern21<StoredU64>,
- *   p2pkh: SeriesPattern21<StoredU64>,
- *   p2sh: SeriesPattern21<StoredU64>,
- *   p2wpkh: SeriesPattern21<StoredU64>,
- *   p2wsh: SeriesPattern21<StoredU64>,
- *   p2tr: SeriesPattern21<StoredU64>,
- *   p2a: SeriesPattern21<StoredU64>,
- *   opReturn: SeriesPattern21<StoredU64>,
- *   empty: SeriesPattern21<StoredU64>,
- *   unknown: SeriesPattern21<StoredU64>,
- *   fakePubkey: SeriesPattern21<StoredU64>,
- *   fakeScripthash: SeriesPattern21<StoredU64>,
- *   annex: NewAll<StoredU64>,
- *   sighashAll: NewAll<StoredU64>,
- *   sighashNone: NewAll<StoredU64>,
- *   sighashSingle: NewAll<StoredU64>,
- *   sighashDefault: NewAll<StoredU64>,
- *   sighashAnyoneCanPay: NewAll<StoredU64>,
- *   dustOutput: NewAll<StoredU64>,
+ *   v1: SeriesPattern21<Count16>,
+ *   v2: SeriesPattern21<Count16>,
+ *   v3: SeriesPattern21<Count16>,
+ *   otherVersion: SeriesPattern21<Count16>,
+ *   explicitlyRbf: SeriesPattern21<Count16>,
+ *   oneInput: SeriesPattern21<Count16>,
+ *   oneOutput: SeriesPattern21<Count16>,
+ *   p2pk: SeriesPattern21<Count16>,
+ *   p2ms: SeriesPattern21<Count16>,
+ *   p2pkh: SeriesPattern21<Count16>,
+ *   p2sh: SeriesPattern21<Count16>,
+ *   p2wpkh: SeriesPattern21<Count16>,
+ *   p2wsh: SeriesPattern21<Count16>,
+ *   p2tr: SeriesPattern21<Count16>,
+ *   p2a: SeriesPattern21<Count16>,
+ *   opReturn: SeriesPattern21<Count16>,
+ *   empty: SeriesPattern21<Count16>,
+ *   unknown: SeriesPattern21<Count16>,
+ *   fakePubkey: SeriesPattern21<Count16>,
+ *   fakeScripthash: SeriesPattern21<Count16>,
+ *   annex: NewAll<Count>,
+ *   sighashAll: NewAll<Count>,
+ *   sighashNone: NewAll<Count>,
+ *   sighashSingle: NewAll<Count>,
+ *   sighashDefault: NewAll<Count>,
+ *   sighashAnyoneCanPay: NewAll<Count>,
+ *   dustOutput: NewAll<Count>,
  * }} FeaturesCount
  */
 const _FeaturesCount = _s({
@@ -5450,7 +5465,7 @@ const _Features = _s({
 /**
  * @typedef {{
  *   target: Target,
- *   total: NewAll<StoredU64>,
+ *   total: NewAll<Count>,
  * }} BlocksCount
  */
 const _BlocksCount = _s({
@@ -5489,17 +5504,17 @@ const _BlocksWeight = _s({
 
 /**
  * @typedef {{
- *   base: SeriesPattern21<StoredU64>,
- *   cumulative: SeriesPattern2<StoredU64>,
- *   sum: PerSec<StoredU64>,
+ *   base: SeriesPattern21<Bytes32>,
+ *   cumulative: SeriesPattern2<Bytes>,
+ *   sum: PerSec<Bytes>,
  *   average: PerSec<?StoredF32>,
- *   min: PerSec<StoredU64>,
- *   max: PerSec<StoredU64>,
- *   pct10: PerSec<StoredU64>,
- *   pct25: PerSec<StoredU64>,
- *   median: PerSec<StoredU64>,
- *   pct75: PerSec<StoredU64>,
- *   pct90: PerSec<StoredU64>,
+ *   min: PerSec<Bytes>,
+ *   max: PerSec<Bytes>,
+ *   pct10: PerSec<Bytes>,
+ *   pct25: PerSec<Bytes>,
+ *   median: PerSec<Bytes>,
+ *   pct75: PerSec<Bytes>,
+ *   pct90: PerSec<Bytes>,
  * }} BlocksSize
  */
 const _BlocksSize = _s({
@@ -6488,7 +6503,7 @@ const _ByKind = (c, b, f0, f1, f2, f3) => _n(c, b, {
 /**
  * @typedef {{
  *   dataBytes: NewAll<Bytes>,
- *   txCount: NewAll<StoredU64>,
+ *   txCount: NewAll<Count>,
  *   txVsize: NewAll<VSize>,
  *   fees: NewAll<Sats>,
  *   chainShare: Gini<?PartsPerMillion32>,
@@ -6508,8 +6523,8 @@ const _Total = _s({
  * @typedef {{
  *   raw: OpReturnRaw,
  *   total: Total,
- *   byKind: ByKind<ByKindDataBytes<NewAll<StoredU64>>, ByKindDataBytes<DataBytesAscribe>, ByKindDataBytes<NewAll<VSize>>, ByKindFees>,
- *   policy: ByKind<PolicyDataBytes<NewAll<StoredU64>>, PolicyDataBytes<DataBytesAscribe>, PolicyDataBytes<NewAll<VSize>>, PolicyFees>,
+ *   byKind: ByKind<ByKindDataBytes<NewAll<Count>>, ByKindDataBytes<DataBytesAscribe>, ByKindDataBytes<NewAll<VSize>>, ByKindFees>,
+ *   policy: ByKind<PolicyDataBytes<NewAll<Count>>, PolicyDataBytes<DataBytesAscribe>, PolicyDataBytes<NewAll<VSize>>, PolicyFees>,
  * }} OpReturn
  */
 const _OpReturn = _s({
@@ -6584,7 +6599,7 @@ const _OutputShare = _s({
 /**
  * @typedef {{
  *   outputCount: OutputCount,
- *   spendableOutputCount: NewAll<StoredU64>,
+ *   spendableOutputCount: NewAll<Count>,
  *   outputShare: OutputShare,
  *   txCount: OutputsByTypeTxCount,
  *   txShare: OutputsByTypeTxShare,
@@ -6904,12 +6919,12 @@ const _Exposed = _s({
 
 /**
  * @typedef {{
- *   outputToReusedAddrCount: AvgBalance<NewAll<StoredU64>>,
+ *   outputToReusedAddrCount: AvgBalance<NewAll<Count>>,
  *   outputToReusedAddrShare: AvgBalance<FeeShare>,
  *   spendableOutputToReusedAddrShare: FeeShare,
- *   inputFromReusedAddrCount: AvgBalance<NewAll<StoredU64>>,
+ *   inputFromReusedAddrCount: AvgBalance<NewAll<Count>>,
  *   inputFromReusedAddrShare: AvgBalance<FeeShare>,
- *   activeReusedAddrCount: Interval<StoredU32>,
+ *   activeReusedAddrCount: Interval<Count>,
  *   activeReusedAddrShare: Interval<?StoredF32>,
  * }} Events
  */
@@ -6938,11 +6953,11 @@ const _Respent = _s({
 
 /**
  * @typedef {{
- *   reactivated: AvgBalance<Interval<StoredU32>>,
- *   sending: AvgBalance<Interval<StoredU32>>,
- *   receiving: AvgBalance<Interval<StoredU32>>,
- *   bidirectional: AvgBalance<Interval<StoredU32>>,
- *   active: AvgBalance<Interval<StoredU32>>,
+ *   reactivated: AvgBalance<Interval<Count>>,
+ *   sending: AvgBalance<Interval<Count>>,
+ *   receiving: AvgBalance<Interval<Count>>,
+ *   bidirectional: AvgBalance<Interval<Count>>,
+ *   active: AvgBalance<Interval<Count>>,
  * }} AddrsActivity
  */
 const _AddrsActivity = _s({
@@ -6955,8 +6970,8 @@ const _AddrsActivity = _s({
 
 /**
  * @typedef {{
- *   base: SeriesPattern2<StoredU64>,
- *   delta: DeltaAll<PerSec<StoredI64>>,
+ *   base: SeriesPattern2<Count>,
+ *   delta: DeltaAll<PerSec<CountSigned>>,
  * }} UtxoCount0sats
  */
 const _UtxoCount0sats = _s({
@@ -6967,7 +6982,7 @@ const _UtxoCount0sats = _s({
 /**
  * @typedef {{
  *   unspentCount: UtxoCount0sats,
- *   spentCount: NewAll<StoredU64>,
+ *   spentCount: NewAll<Count>,
  * }} AllOutputs
  */
 const _AllOutputs = _s({
@@ -7606,15 +7621,15 @@ const _RealizedCap = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   all: SeriesPattern2<StoredU64>,
- *   p2pk65: SeriesPattern2<StoredU64>,
- *   p2pk33: SeriesPattern2<StoredU64>,
- *   p2pkh: SeriesPattern2<StoredU64>,
- *   p2sh: SeriesPattern2<StoredU64>,
- *   p2wpkh: SeriesPattern2<StoredU64>,
- *   p2wsh: SeriesPattern2<StoredU64>,
- *   p2tr: SeriesPattern2<StoredU64>,
- *   p2a: SeriesPattern2<StoredU64>,
+ *   all: SeriesPattern2<Count>,
+ *   p2pk65: SeriesPattern2<Count>,
+ *   p2pk33: SeriesPattern2<Count>,
+ *   p2pkh: SeriesPattern2<Count>,
+ *   p2sh: SeriesPattern2<Count>,
+ *   p2wpkh: SeriesPattern2<Count>,
+ *   p2wsh: SeriesPattern2<Count>,
+ *   p2tr: SeriesPattern2<Count>,
+ *   p2a: SeriesPattern2<Count>,
  *   balance: RealizedCap<UtxoCount0sats>,
  * }} Funded
  */
@@ -7659,11 +7674,11 @@ const _ByBalance = _s({
  *   empty: AddrsEmpty,
  *   activity: AddrsActivity,
  *   total: AddrsEmpty,
- *   new: AvgBalance<NewAll<StoredU64>>,
+ *   new: AvgBalance<NewAll<Count>>,
  *   reused: Respent,
  *   respent: Respent,
  *   exposed: Exposed,
- *   delta: AvgBalance<DeltaAll<PerSec<StoredI64>>>,
+ *   delta: AvgBalance<DeltaAll<PerSec<CountSigned>>>,
  *   avgBalance: AvgBalance<Circulating<Sats, ?Cents>>,
  * }} Addrs
  */
@@ -7809,7 +7824,7 @@ const _CohortsRealized = _s({
 /**
  * @typedef {{
  *   unspentCount: SpentCount<UtxoCount0sats>,
- *   spentCount: SpentCount<NewAll<StoredU64>>,
+ *   spentCount: SpentCount<NewAll<Count>>,
  *   avgAmount: AvgAmount,
  * }} CohortsOutputs
  */
@@ -7902,7 +7917,7 @@ const _Volume = _s({
 
 /**
  * @typedef {{
- *   count: NewAll<StoredU64>,
+ *   count: NewAll<Count>,
  *   fees: NewAll<Sats>,
  *   feeShare: Gini<?PartsPerMillion32>,
  * }} Inscription
@@ -7917,13 +7932,13 @@ const _Inscription = _s({
  * @typedef {{
  *   raw: TransactionsRaw,
  *   features: Features,
- *   count: OutputsCount<Vbytes>,
+ *   count: OutputsCount<Vbytes<Count>>,
  *   size: TransactionsSize,
  *   fees: TransactionsFees,
  *   inscription: Inscription,
  *   patterns: Patterns,
  *   policy: Policy,
- *   sigops: OutputsCount<NewAll<StoredU64>>,
+ *   sigops: OutputsCount<NewAll<SigOps64>>,
  *   versions: Versions,
  *   volume: Volume,
  * }} Transactions
@@ -7948,7 +7963,7 @@ const _Transactions = _s({
  *   hashrate: SeriesPattern2<?StoredF64>,
  *   adjustment: Gini<?PartsPerMillionSigned32>,
  *   epoch: SeriesPattern2<Epoch>,
- *   blocksToRetarget: SeriesPattern2<StoredU32>,
+ *   blocksToRetarget: SeriesPattern2<Count>,
  *   daysToRetarget: SeriesPattern2<?StoredF32>,
  * }} Difficulty
  */
@@ -7969,13 +7984,13 @@ const _Difficulty = _s({
  *   time: Time,
  *   size: BlocksSize,
  *   weight: BlocksWeight,
- *   segwitTxs: SeriesPattern21<StoredU32>,
- *   segwitSize: SeriesPattern21<StoredU64>,
+ *   segwitTxs: SeriesPattern21<Count16>,
+ *   segwitSize: SeriesPattern21<Bytes32>,
  *   segwitWeight: SeriesPattern21<Weight>,
  *   count: BlocksCount,
  *   lookback: BlocksLookback,
  *   interval: Interval<Timestamp>,
- *   vbytes: Vbytes,
+ *   vbytes: Vbytes<VSize>,
  *   fullness: Fullness,
  *   halving: BlocksHalving,
  * }} Blocks

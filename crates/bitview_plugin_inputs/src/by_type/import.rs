@@ -1,7 +1,7 @@
 use bitview_cohort::SpendableType;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_vecs::{CountTotal, LazyWindowStartVec, import_cached};
 use brk_error::Result;
 use brk_types::{Height, Version};
@@ -9,8 +9,8 @@ use vecdb::Database;
 
 use super::{Vecs, WithInputTypes};
 
-fn without_coinbase(height: Height, total: StoredU64) -> StoredU64 {
-    total - StoredU64::from(height.incremented())
+fn without_coinbase(height: Height, total: Count) -> Count {
+    total - Count::from(height.incremented())
 }
 
 impl Vecs {

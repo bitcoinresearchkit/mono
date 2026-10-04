@@ -1,8 +1,7 @@
 use bitview_cohort::{AddrTypeId, ByAddrType, WithAddrTypes};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{StoredU32, StoredU64};
-use bitview_transforms::StoredU64ToStoredU32;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlockCumulativeAverage, LazyWindowStartVec, PerBlockCumulativeRolling};
 use brk_error::Result;
@@ -17,33 +16,28 @@ pub struct AddrActivityVecs<M: StorageMode = Rw> {
     /// Distinct previously seen addresses that received bitcoin in the
     /// represented block while holding no unspent balance immediately before
     /// that receive was applied.
-    pub reactivated:
-        WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
+    pub reactivated: WithAddrTypes<LazyPerBlockCumulativeAverage<Count>>,
     /// Distinct addresses that sent bitcoin in the represented block.
-    pub sending:
-        WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
+    pub sending: WithAddrTypes<LazyPerBlockCumulativeAverage<Count>>,
     /// Distinct addresses that received bitcoin in the represented block.
-    pub receiving:
-        WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
+    pub receiving: WithAddrTypes<LazyPerBlockCumulativeAverage<Count>>,
     /// Distinct addresses that both sent and received bitcoin in the
     /// represented block.
-    pub bidirectional:
-        WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
+    pub bidirectional: WithAddrTypes<LazyPerBlockCumulativeAverage<Count>>,
     /// Distinct addresses active in the represented block: sending plus
     /// receiving minus bidirectional addresses.
-    pub active:
-        WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
+    pub active: WithAddrTypes<LazyPerBlockCumulativeAverage<Count>>,
 
     #[traversable(hidden)]
-    cumulative_reactivated: WithAddrTypes<PerBlockCumulativeRolling<StoredU64, M>>,
+    cumulative_reactivated: WithAddrTypes<PerBlockCumulativeRolling<Count, M>>,
     #[traversable(hidden)]
-    cumulative_sending: WithAddrTypes<PerBlockCumulativeRolling<StoredU64, M>>,
+    cumulative_sending: WithAddrTypes<PerBlockCumulativeRolling<Count, M>>,
     #[traversable(hidden)]
-    cumulative_receiving: WithAddrTypes<PerBlockCumulativeRolling<StoredU64, M>>,
+    cumulative_receiving: WithAddrTypes<PerBlockCumulativeRolling<Count, M>>,
     #[traversable(hidden)]
-    cumulative_bidirectional: WithAddrTypes<PerBlockCumulativeRolling<StoredU64, M>>,
+    cumulative_bidirectional: WithAddrTypes<PerBlockCumulativeRolling<Count, M>>,
     #[traversable(hidden)]
-    cumulative_active: WithAddrTypes<PerBlockCumulativeRolling<StoredU64, M>>,
+    cumulative_active: WithAddrTypes<PerBlockCumulativeRolling<Count, M>>,
 }
 
 impl AddrActivityVecs {
@@ -71,8 +65,8 @@ impl AddrActivityVecs {
                 })?,
             })
         };
-        let views = |name: &str, source: &WithAddrTypes<PerBlockCumulativeRolling<StoredU64>>| {
-            WithAddrTypes {
+        let views =
+            |name: &str, source: &WithAddrTypes<PerBlockCumulativeRolling<Count>>| WithAddrTypes {
                 all: LazyPerBlockCumulativeAverage::new(
                     name,
                     version,
@@ -89,8 +83,7 @@ impl AddrActivityVecs {
                         window_starts,
                     )
                 }),
-            }
-        };
+            };
         let cumulative_reactivated = import("reactivated_addrs")?;
         let reactivated = views("reactivated_addrs", &cumulative_reactivated);
         let cumulative_sending = import("sending_addrs")?;
@@ -125,7 +118,7 @@ impl AddrActivityVecs {
 
     fn cumulative_sources_mut(
         &mut self,
-    ) -> impl Iterator<Item = &mut PerBlockCumulativeRolling<StoredU64>> {
+    ) -> impl Iterator<Item = &mut PerBlockCumulativeRolling<Count>> {
         [
             &mut self.cumulative_reactivated,
             &mut self.cumulative_sending,
@@ -146,11 +139,11 @@ impl AddrActivityVecs {
 
     #[inline(always)]
     pub fn push_height(&mut self, counts: &AddrTypeToActivityCounts) {
-        let push = |targets: &mut WithAddrTypes<PerBlockCumulativeRolling<StoredU64>>,
+        let push = |targets: &mut WithAddrTypes<PerBlockCumulativeRolling<Count>>,
                     value: fn(&BlockActivityCounts) -> u32| {
-            let mut total = StoredU64::default();
+            let mut total = Count::default();
             for (target, counts) in targets.by_addr_type.values_mut().zip(counts.values()) {
-                let value = StoredU64::from(u64::from(value(counts)));
+                let value = Count::from(u64::from(value(counts)));
                 total += value;
                 target.push_block(value);
             }

@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Boolean, StoredU64, TxInIndex};
+use bitview_primitives::{Boolean, Count, TxInIndex};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Sats;
@@ -166,15 +166,13 @@ impl Vecs {
                 self.flags.is_batch_payout.push(Boolean::from(batch_payout));
             }
 
-            self.count
-                .coinjoin
-                .push_block(StoredU64::from(coinjoin_count));
+            self.count.coinjoin.push_block(Count::from(coinjoin_count));
             self.count
                 .consolidation
-                .push_block(StoredU64::from(consolidation_count));
+                .push_block(Count::from(consolidation_count));
             self.count
                 .batch_payout
-                .push_block(StoredU64::from(batch_payout_count));
+                .push_block(Count::from(batch_payout_count));
 
             if (height + 1).is_multiple_of(WRITE_INTERVAL) {
                 let _lock = exit.lock();

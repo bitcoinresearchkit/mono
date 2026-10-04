@@ -1,6 +1,6 @@
 use bitview_cohort::{AmountRange, SpendableType};
 use bitview_plugin_distribution_common::state::UTXOCohortState;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use brk_types::{Height, Sats};
 use vecdb::ReadableVec;
 
@@ -40,7 +40,7 @@ impl UTXOStates {
     fn restore_one(
         state: &mut UTXOCohortState<MinimalRealizedState, ()>,
         supply: &impl ReadableVec<Height, Sats>,
-        count: &impl ReadableVec<Height, StoredU64>,
+        count: &impl ReadableVec<Height, Count>,
         height: Height,
     ) -> Option<()> {
         state.supply.value = supply.collect_one(height)?;

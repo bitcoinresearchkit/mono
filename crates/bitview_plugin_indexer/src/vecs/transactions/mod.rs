@@ -1,4 +1,4 @@
-use bitview_primitives::{Boolean, StoredU32, TxInIndex, TxOutIndex, TxVersion};
+use bitview_primitives::{Boolean, Bytes32, TxInIndex, TxOutIndex, TxVersion};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{BlkPosition, Height, RawLockTime, SigOps, TxIndex, Txid, Version, Weight};
@@ -46,7 +46,7 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     /// this is the byte length of the transaction's consensus serialization. At
     /// `height`, this is the entire block: its 80-byte header, transaction-count
     /// CompactSize, and every serialized transaction.
-    pub total_size: M::Stored<PcoVec<TxIndex, StoredU32>>,
+    pub total_size: M::Stored<PcoVec<TxIndex, Bytes32>>,
     /// BIP-141 signature-operation cost. At `tx_index`, this is the indexed
     /// transaction's cost; at `height`, it is the block total including
     /// coinbase. Legacy scriptPubKey, scriptSig, and P2SH redeem-script sigops

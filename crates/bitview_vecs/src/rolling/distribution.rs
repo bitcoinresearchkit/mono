@@ -7,7 +7,7 @@ use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use schemars::JsonSchema;
-use vecdb::{Budgeted, Database, EagerVec, PcoVec, ReadableVec, Rw, StorageMode};
+use vecdb::{Budgeted, Database, EagerVec, PcoVec, ReadableVec, Rw, StorageMode, VecValue};
 
 use crate::{IndexSources, RollingWindows, WindowStarts};
 
@@ -32,16 +32,17 @@ where
         })?))
     }
 
-    pub(crate) fn compute_distribution(
+    pub(crate) fn compute_distribution<S>(
         &mut self,
         max_from: Height,
         windows: &WindowStarts<'_>,
-        source: &impl ReadableVec<Height, T>,
+        source: &impl ReadableVec<Height, S>,
         exit: &Exit,
     ) -> Result<()>
     where
         T: Copy + Ord + From<f64> + Default,
-        f64: From<T>,
+        S: VecValue + Copy,
+        f64: From<S>,
     {
         let DistributionStats {
             min,

@@ -26,7 +26,7 @@ impl Query {
         }
         let vecs = self.indexer().vecs();
         let position = vecs.blocks.position.collect_one(height).data()?;
-        let size = *vecs.blocks.total.collect_one(height).data()?;
+        let size = u64::from(*vecs.blocks.total.collect_one(height).data()?);
         let weight = u64::from(*vecs.blocks.weight.collect_one(height).data()?);
         if weight > Weight::MAX_BLOCK.to_wu() || size > weight {
             return Err(Error::Internal("Invalid indexed block weight"));

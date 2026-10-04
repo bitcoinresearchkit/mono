@@ -1,6 +1,6 @@
 use std::{convert::Infallible, iter, sync::Arc};
 
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
 use serde::Serialize;
@@ -30,7 +30,7 @@ impl<I, S> LazyIndexCountVec<I, S>
 where
     I: VecIndex,
     S: VecIndex + CheckedSub + Default,
-    StoredU64: From<S>,
+    Count: From<S>,
 {
     pub(crate) fn new<TI, TT>(
         name: &str,
@@ -51,16 +51,11 @@ where
     }
 
     #[inline(always)]
-    fn count(current: S, next: S) -> StoredU64 {
-        StoredU64::from(next.checked_sub(current).unwrap_or_default())
+    fn count(current: S, next: S) -> Count {
+        Count::from(next.checked_sub(current).unwrap_or_default())
     }
 
-    fn for_each_input(
-        &self,
-        from: usize,
-        to: usize,
-        mut each: impl FnMut(Option<StoredU64>, &[S]),
-    ) {
+    fn for_each_input(&self, from: usize, to: usize, mut each: impl FnMut(Option<Count>, &[S])) {
         let len = self.len();
         let to = to.min(len);
         if from >= to {
@@ -88,7 +83,7 @@ where
         from: usize,
         to: usize,
         init: B,
-        mut fold: impl FnMut(B, StoredU64) -> Result<B, E>,
+        mut fold: impl FnMut(B, Count) -> Result<B, E>,
     ) -> Result<B, E> {
         let mut accumulator = Some(Ok(init));
         self.for_each_input(from, to, |first, boundaries| {
@@ -135,11 +130,11 @@ where
     }
 
     fn value_type_to_size_of(&self) -> usize {
-        size_of::<StoredU64>()
+        size_of::<Count>()
     }
 
     fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<StoredU64>()
+        short_type_name::<Count>()
     }
 }
 
@@ -149,20 +144,20 @@ where
     S: VecIndex,
 {
     type I = I;
-    type T = StoredU64;
+    type T = Count;
 }
 
-impl<I, S> ReadableVec<I, StoredU64> for LazyIndexCountVec<I, S>
+impl<I, S> ReadableVec<I, Count> for LazyIndexCountVec<I, S>
 where
     I: VecIndex,
     S: VecIndex + CheckedSub + Default,
-    StoredU64: From<S>,
+    Count: From<S>,
 {
     fn cursor_chunk_size(&self) -> usize {
         self.first_indexes.cursor_chunk_size()
     }
 
-    fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<StoredU64>) {
+    fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<Count>) {
         buf.reserve(to.min(self.len()).saturating_sub(from));
         self.for_each_input(from, to, |first, boundaries| {
             buf.extend(first);
@@ -174,11 +169,11 @@ where
         });
     }
 
-    fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(StoredU64)) {
+    fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(Count)) {
         self.fold_range_at(from, to, (), |(), value| each(value));
     }
 
-    fn fold_range_at<B, F: FnMut(B, StoredU64) -> B>(
+    fn fold_range_at<B, F: FnMut(B, Count) -> B>(
         &self,
         from: usize,
         to: usize,
@@ -191,7 +186,7 @@ where
         .unwrap()
     }
 
-    fn try_fold_range_at<B, E, F: FnMut(B, StoredU64) -> Result<B, E>>(
+    fn try_fold_range_at<B, E, F: FnMut(B, Count) -> Result<B, E>>(
         &self,
         from: usize,
         to: usize,
@@ -201,11 +196,11 @@ where
         self.try_fold_values(from, to, init, fold)
     }
 
-    fn collect_one_at(&self, index: usize) -> Option<StoredU64> {
+    fn collect_one_at(&self, index: usize) -> Option<Count> {
         self.fold_range_at(index, index.saturating_add(1), None, |_, value| Some(value))
     }
 
-    fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<StoredU64>) {
+    fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<Count>) {
         let len = self.len();
         let terminal = S::from(self.terminal_len.get());
         let indices = &indices[..indices.partition_point(|&i| i < len)];
@@ -268,7 +263,7 @@ impl<I, S> Traversable for LazyIndexCountVec<I, S>
 where
     I: VecIndex,
     S: VecIndex + CheckedSub + Default,
-    StoredU64: From<S> + Formattable + Serialize + JsonSchema,
+    Count: From<S> + Formattable + Serialize + JsonSchema,
 {
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         iter::once(self as &dyn AnyExportableVec)

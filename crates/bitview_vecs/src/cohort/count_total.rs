@@ -1,6 +1,6 @@
 use bitview_collections::Windows;
-use bitview_primitives::{PartsPerMillion32, StoredU64};
-use bitview_transforms::RatioU64;
+use bitview_primitives::{Count, PartsPerMillion32};
+use bitview_transforms::RatioCount;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
@@ -10,7 +10,7 @@ use crate::{IndexSources, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRo
 /// Total-count views used by their breakdowns, without a separate retained cache.
 #[derive(Clone, Traversable)]
 pub struct CountTotal {
-    all: LazyPerBlockCumulativeRolling<StoredU64>,
+    all: LazyPerBlockCumulativeRolling<Count>,
 }
 
 impl CountTotal {
@@ -18,7 +18,7 @@ impl CountTotal {
     pub fn from_source(
         name: &str,
         version: Version,
-        source: &impl ReadableCloneableVec<Height, StoredU64>,
+        source: &impl ReadableCloneableVec<Height, Count>,
         indexes: &IndexSources,
         windows: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Self {
@@ -30,8 +30,8 @@ impl CountTotal {
     pub fn from_transformed_source(
         name: &str,
         version: Version,
-        source: &impl ReadableCloneableVec<Height, StoredU64>,
-        transform: fn(Height, StoredU64) -> StoredU64,
+        source: &impl ReadableCloneableVec<Height, Count>,
+        transform: fn(Height, Count) -> Count,
         indexes: &IndexSources,
         windows: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Self {
@@ -52,14 +52,14 @@ impl CountTotal {
         &self,
         name: &str,
         version: Version,
-        numerator: &impl ReadableCloneableVec<Height, StoredU64>,
+        numerator: &impl ReadableCloneableVec<Height, Count>,
         windows: &Windows<&impl ReadableCloneableVec<Height, Height>>,
         indexes: &IndexSources,
     ) -> LazyPercentCumulativeRolling<PartsPerMillion32> {
         LazyPercentCumulativeRolling::from_cumulative_ratio::<
-            StoredU64,
-            StoredU64,
-            RatioU64<PartsPerMillion32>,
+            Count,
+            Count,
+            RatioCount<PartsPerMillion32>,
         >(
             name,
             version,

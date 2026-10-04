@@ -1,6 +1,6 @@
 use bitview_cohort::{ByAddrType, ByType, SpendableType};
 use bitview_collections::Windows;
-use bitview_primitives::{PartsPerMillion32, StoredU64};
+use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -29,10 +29,8 @@ pub type OutputTypeCounts<V> = TypeCounts<ByType<V>>;
 // group's concrete fields or changing its iteration order.
 macro_rules! impl_type_counts {
     ($group:ident) => {
-        impl TypeCounts<$group<LazyPerBlockCumulativeRolling<StoredU64>>> {
-            pub fn addr_type_counts(
-                &self,
-            ) -> ByAddrType<LazyVec<Height, StoredU64, Height, StoredU64>> {
+        impl TypeCounts<$group<LazyPerBlockCumulativeRolling<Count>>> {
+            pub fn addr_type_counts(&self) -> ByAddrType<LazyVec<Height, Count, Height, Count>> {
                 ByAddrType::from_fn(|id| {
                     self.by_type.get(id.output_type()).cumulative.height.clone()
                 })
@@ -42,7 +40,7 @@ macro_rules! impl_type_counts {
                 total: CountTotal,
                 per_type_name: impl Fn(&str) -> String,
                 version: Version,
-                sources: &$group<impl ReadableCloneableVec<Height, StoredU64>>,
+                sources: &$group<impl ReadableCloneableVec<Height, Count>>,
                 indexes: &IndexSources,
                 windows: &Windows<&impl ReadableCloneableVec<Height, Height>>,
             ) -> Self {

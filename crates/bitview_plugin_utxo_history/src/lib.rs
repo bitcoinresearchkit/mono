@@ -9,7 +9,7 @@ pub use has::HasUtxoHistory;
 use std::path::PathBuf;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, PerBlock};
 use brk_error::Result;
@@ -34,7 +34,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Remaining satoshis after each block.
     pub supply: M::Stored<CachedSeries<Height, Sats>>,
     /// Remaining UTXO count after each block, including zero-value outputs.
-    pub count: PerBlock<StoredU64, M>,
+    pub count: PerBlock<Count, M>,
 }
 
 impl Vecs {

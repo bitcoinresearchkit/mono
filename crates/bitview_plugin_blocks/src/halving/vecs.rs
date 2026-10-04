@@ -1,4 +1,4 @@
-use bitview_primitives::{Halving, StoredF32, StoredU32};
+use bitview_primitives::{Count, Halving, StoredF32};
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPerBlock;
 
@@ -9,8 +9,8 @@ pub struct Vecs {
     pub epoch: LazyPerBlock<Halving>,
     /// Number of blocks from the represented height to the first block of the
     /// next subsidy era: 210,000 minus height modulo 210,000.
-    pub blocks_to_halving: LazyPerBlock<StoredU32>,
+    pub blocks_to_halving: LazyPerBlock<Count>,
     /// Nominal days to the next subsidy halving, calculated as
     /// `blocks_to_halving / 144`; this does not use observed mining pace.
-    pub days_to_halving: LazyPerBlock<StoredF32, StoredU32>,
+    pub days_to_halving: LazyPerBlock<StoredF32, Count>,
 }

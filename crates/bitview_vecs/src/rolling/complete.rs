@@ -9,7 +9,7 @@ use brk_exit::Exit;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
-use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
+use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue};
 
 use crate::{IndexSources, RollingDistribution, WindowStarts};
 
@@ -49,16 +49,17 @@ where
     }
 
     /// Compute rolling distribution stats across all 4 windows.
-    pub(crate) fn compute(
+    pub(crate) fn compute<S>(
         &mut self,
         max_from: Height,
         windows: &WindowStarts<'_>,
-        source: &impl ReadableVec<Height, T>,
+        source: &impl ReadableVec<Height, S>,
         exit: &Exit,
     ) -> Result<()>
     where
         T: From<f64> + Default + Copy + Ord,
-        f64: From<T>,
+        S: VecValue + Copy,
+        f64: From<S>,
     {
         self.distribution
             .compute_distribution(max_from, windows, source, exit)

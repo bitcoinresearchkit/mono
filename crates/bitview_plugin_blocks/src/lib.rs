@@ -23,10 +23,10 @@ use vecdb::{Database, Rw, StorageMode};
 
 use halving::Vecs as HalvingVecs;
 use interval::Vecs as IntervalVecs;
-use size::Vecs as UtxosVecs;
+use size::Vecs as SizeVecs;
 use weight::Vecs as WeightVecs;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("blocks"), Version::new(9));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("blocks"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
 pub const ONE_TERA_HASH: f64 = 1_000_000_000_000.0;
 
@@ -44,9 +44,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub lookback: LookbackVecs,
     interval: IntervalVecs<M>,
     #[traversable(flatten)]
-    pub size: UtxosVecs<M>,
+    pub size: SizeVecs<M>,
     #[traversable(flatten)]
-    weight: WeightVecs,
+    weight: WeightVecs<M>,
     pub difficulty: DifficultyVecs,
     halving: HalvingVecs,
 }

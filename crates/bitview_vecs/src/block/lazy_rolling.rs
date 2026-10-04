@@ -5,10 +5,10 @@ use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{ReadableCloneableVec, UnaryTransform};
 
-use crate::{IndexSources, LazyPerBlock, LazyRollingComplete, PerBlock, RollingComplete};
+use crate::{IndexSources, LazyPerBlock, LazyRollingComplete, PerBlockRolling};
 
 /// Lazy analog of `PerBlockRolling<T>`: lazy cumulative + lazy rolling complete.
-/// Derived by transforming another metric's cumulative and rolling parts.
+/// Derived by transforming a stored `PerBlockRolling<S1T>`.
 /// Zero stored vecs.
 #[derive(Clone, Traversable)]
 pub struct LazyPerBlockRolling<T, S1T>
@@ -28,25 +28,24 @@ where
     T: NumericValue + JsonSchema + 'static,
     S1T: NumericValue + JsonSchema,
 {
-    pub fn from_full_parts<F: UnaryTransform<S1T, T>>(
+    pub fn from_rolling<F: UnaryTransform<S1T, T>>(
         name: &str,
         version: Version,
-        source_cumulative: &PerBlock<S1T>,
-        source_rolling: &RollingComplete<S1T>,
+        source: &PerBlockRolling<S1T>,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
         indexes: &IndexSources,
     ) -> Self {
         let cumulative = LazyPerBlock::from_resolutions::<F>(
             &format!("{name}_cumulative"),
             version,
-            source_cumulative,
+            &source.cumulative,
         );
 
         let rolling = LazyRollingComplete::from_rolling_complete::<F>(
             name,
             version,
             &cumulative.height,
-            source_rolling,
+            &source.rolling,
             window_starts,
             indexes,
         );

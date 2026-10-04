@@ -1,4 +1,4 @@
-use bitview_primitives::StoredU64;
+use bitview_primitives::SigOps64;
 use bitview_traversable::Traversable;
 use bitview_vecs::PerBlockCumulativeRolling;
 use vecdb::{Rw, StorageMode};
@@ -12,5 +12,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// not the number of signatures executed. Tapscript sigops are excluded
     /// because BIP-342 uses a separate per-input budget. The post-SegWit block
     /// limit is 80,000 cost units.
-    pub total: PerBlockCumulativeRolling<StoredU64, M>,
+    pub total: PerBlockCumulativeRolling<SigOps64, M>,
 }

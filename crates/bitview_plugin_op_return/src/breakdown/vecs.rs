@@ -1,7 +1,6 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::Bytes;
-use bitview_primitives::{OpReturnKind, OpReturnPolicyId, StoredU64};
+use bitview_primitives::{Bytes, Count, OpReturnKind, OpReturnPolicyId};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling};
 use brk_error::{Error, Result};
@@ -28,7 +27,7 @@ pub struct BreakdownVecs<C, D, V, F> {
 macro_rules! impl_breakdown {
     ($name:ident, $group:ident, $id:ident) => {
         pub type $name<M = Rw> = BreakdownVecs<
-            $group<PerBlockCumulativeRolling<StoredU64, M>>,
+            $group<PerBlockCumulativeRolling<Count, M>>,
             $group<DataBytesSeries<M>>,
             $group<PerBlockCumulativeRolling<VSize, M>>,
             $group<FeesSeries<M>>,
@@ -42,7 +41,7 @@ macro_rules! impl_breakdown {
                 mappings: &MappingsVecs,
                 window_starts: &Windows<&LazyWindowStartVec>,
                 total_data: &impl ReadableCloneableVec<Height, Bytes>,
-                block_size: &impl ReadableCloneableVec<Height, StoredU64>,
+                block_size: &impl ReadableCloneableVec<Height, Bytes>,
                 chain_fees: &impl ReadableCloneableVec<Height, Sats>,
             ) -> Result<Self> {
                 let version = version + Version::ONE;
@@ -127,13 +126,13 @@ macro_rules! impl_breakdown {
 
             pub fn push(&mut self, values: [BlockMetrics; $id::ALL.len()]) {
                 for (id, target) in $id::ALL.iter().zip(self.output_count.iter_mut()) {
-                    target.push_block(StoredU64::from(id.get(&values).output_count));
+                    target.push_block(Count::from(id.get(&values).output_count));
                 }
                 for (id, target) in $id::ALL.iter().zip(self.data_bytes.iter_mut()) {
                     target.data_bytes.push_block(id.get(&values).data_bytes);
                 }
                 for (id, target) in $id::ALL.iter().zip(self.tx_count.iter_mut()) {
-                    target.push_block(StoredU64::from(id.get(&values).tx_count));
+                    target.push_block(Count::from(id.get(&values).tx_count));
                 }
                 for (id, target) in $id::ALL.iter().zip(self.tx_vsize.iter_mut()) {
                     target.push_block(id.get(&values).tx_vsize);

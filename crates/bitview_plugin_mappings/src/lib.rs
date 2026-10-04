@@ -24,8 +24,8 @@ use std::ops::Deref;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::{
-    Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3, Month6,
-    StoredU64, TxInIndex, TxOutIndex, Week1, Year1, Year10,
+    Count, Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
+    Month6, TxInIndex, TxOutIndex, Week1, Year1, Year10,
 };
 use bitview_traversable::Traversable;
 use bitview_vecs::IndexSources;
@@ -105,7 +105,7 @@ impl Vecs {
         self.chain_counts.input_source()
     }
 
-    pub fn output_count(&self) -> ReadableBoxedVec<Height, StoredU64> {
+    pub fn output_count(&self) -> ReadableBoxedVec<Height, Count> {
         self.chain_counts.output()
     }
 

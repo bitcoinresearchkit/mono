@@ -55,10 +55,6 @@ impl Weight {
         BitcoinWeight::from(*self).to_vbytes_ceil()
     }
 
-    pub fn to_vbytes_floor(&self) -> u64 {
-        BitcoinWeight::from(*self).to_vbytes_floor()
-    }
-
     /// Returns block fullness as a ratio (0–1+) relative to MAX_BLOCK.
     #[inline]
     pub fn fullness(&self) -> f32 {

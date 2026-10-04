@@ -1,9 +1,7 @@
 mod aggregated;
-mod count_rolling_average;
 mod cumulative_average;
 mod cumulative_rolling;
 mod distribution;
-mod full;
 mod full_from_cumulative;
 mod lazy;
 mod lazy_cumulative_average;
@@ -19,11 +17,9 @@ mod stored;
 mod type_counts;
 
 pub use aggregated::PerBlockAggregated;
-pub use count_rolling_average::CountPerBlockRollingAverage;
 pub use cumulative_average::PerBlockCumulativeAverage;
 pub use cumulative_rolling::PerBlockCumulativeRolling;
 pub use distribution::PerBlockDistribution;
-pub use full::PerBlockFull;
 pub use full_from_cumulative::PerBlockFullFromCumulative;
 pub use lazy::LazyPerBlock;
 pub use lazy_cumulative_average::LazyPerBlockCumulativeAverage;

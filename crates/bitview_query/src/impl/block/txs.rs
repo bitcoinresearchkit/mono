@@ -1,6 +1,6 @@
 use bitcoin::{ScriptBuf, Transaction as BitcoinTransaction};
 use bitview_plugin_indexer::SafeLengths;
-use bitview_primitives::{StoredU32, TxInIndex, TypeIndex};
+use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use bitview_types::BlockTxIndex;
 use brk_types::{
     BlkPosition, Height, OutPoint, OutputType, RawLockTime, Sats, SigOps, Transaction, TxIn,
@@ -114,7 +114,7 @@ impl Query {
             pos: usize,
             tx_index: TxIndex,
             txid: Txid,
-            total_size: StoredU32,
+            total_size: Bytes32,
             total_sigop_cost: SigOps,
             status: TxStatus,
             decoded: BitcoinTransaction,
@@ -132,7 +132,7 @@ impl Query {
             let idx = tx_index.to_usize();
 
             let txid: Txid = txids.try_get_at(idx).data()?;
-            let total_size: StoredU32 = total_size_cursor.get(idx).data()?;
+            let total_size: Bytes32 = total_size_cursor.get(idx).data()?;
             let total_sigop_cost: SigOps = sigops_cursor.get(idx).data()?;
             let first_txin_index: TxInIndex = first_txin_cursor.get(idx).data()?;
             let position: BlkPosition = position_cursor.get(idx).data()?;

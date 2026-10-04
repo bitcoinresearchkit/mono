@@ -6,8 +6,7 @@ mod ratio;
 
 pub use arithmetic::{
     BlockCountTarget, BlocksToDaysF32, DaysToYears, DifficultyToHashF64, MaskSats, OneMinusPpm,
-    PerSecond, ReturnTenths, StoredU64ToStoredU32, ThsToPhsF32, TimesSqrt, VBytesToWeight,
-    WeightToVSize,
+    PerSecond, ReturnTenths, ThsToPhsF32, TimesSqrt, WeightToVSize,
 };
 pub use currency::{
     AvgCentsToUsd, AvgSatsToBtc, CentsSignedToDollars, CentsTimesTenths, CentsUnsignedToDollars,
@@ -17,6 +16,6 @@ pub use currency::{
 pub use ohlc::{OhlcCentsToDollars, OhlcCentsToHighCents, OhlcCentsToLowCents, OhlcCentsToSats};
 pub use ratio::{
     BoundedOddsF64, BoundedToF64, Cagr, FixedToPercent, FixedToRatio, MvrvToNupl, PriceTimesRatio,
-    RatioBytes, RatioCents, RatioCentsF32, RatioCentsSignedCents, RatioDiffCents, RatioDiffDollars,
-    RatioDiffF32, RatioDollars, RatioSats, RatioU64, SoprRatio, price_ratio,
+    RatioBytes, RatioCents, RatioCentsF32, RatioCentsSignedCents, RatioCount, RatioDiffCents,
+    RatioDiffDollars, RatioDiffF32, RatioDollars, RatioSats, SoprRatio, price_ratio,
 };

@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::{HeightMap, Vecs as MappingsVecs};
-use bitview_primitives::{Boolean, Lengths, StoredU64, TxInIndex};
+use bitview_primitives::{Boolean, Count, Lengths, TxInIndex};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -78,7 +78,7 @@ impl Vecs {
         starting_lengths: Lengths,
         input_values: &PcoVec<TxInIndex, Sats>,
         tx_heights: &HeightMap<TxIndex>,
-        tx_counts: &impl ReadableVec<Height, StoredU64>,
+        tx_counts: &impl ReadableVec<Height, Count>,
         transfer_volume: &mut CachedSeries<Height, Sats>,
         exit: &Exit,
     ) -> Result<()> {
@@ -342,12 +342,8 @@ impl Vecs {
                     }
                 }
                 if height + offset >= cpfp_start {
-                    self.count
-                        .cpfp_parent
-                        .push_block(StoredU64::from(parent_count));
-                    self.count
-                        .cpfp_child
-                        .push_block(StoredU64::from(child_count));
+                    self.count.cpfp_parent.push_block(Count::from(parent_count));
+                    self.count.cpfp_child.push_block(Count::from(child_count));
                 }
                 if height + offset >= monetary_start {
                     self.coinbase_value.push(block.output_values[0]);

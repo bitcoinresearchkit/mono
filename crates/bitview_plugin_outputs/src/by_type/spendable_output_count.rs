@@ -1,6 +1,6 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyIndexedVec, LazyPerBlockCumulativeRolling, LazyWindowStartVec};
 use brk_types::{Height, Version};
@@ -11,13 +11,13 @@ use vecdb::{ReadableCloneableVec, ReadableVec};
 pub struct SpendableOutputCount {
     #[deref]
     #[traversable(flatten)]
-    pub views: LazyPerBlockCumulativeRolling<StoredU64>,
+    pub views: LazyPerBlockCumulativeRolling<Count>,
 }
 
 impl SpendableOutputCount {
     pub fn new(
         version: Version,
-        op_return_count: &impl ReadableCloneableVec<Height, StoredU64>,
+        op_return_count: &impl ReadableCloneableVec<Height, Count>,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Self {
@@ -41,7 +41,7 @@ impl SpendableOutputCount {
 
     pub fn cumulative_source(
         &self,
-    ) -> &(impl ReadableVec<Height, StoredU64> + Clone + 'static + use<>) {
+    ) -> &(impl ReadableVec<Height, Count> + Clone + 'static + use<>) {
         &self.views.cumulative.height
     }
 }

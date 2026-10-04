@@ -1,4 +1,4 @@
-use bitview_primitives::{PartsPerMillion32, StoredU64};
+use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{PerBlockCumulativeRolling, PercentPerBlock};
 use brk_types::Sats;
@@ -9,7 +9,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Counts transactions containing at least one Taproot script-path input
     /// whose tapscript contains the Ordinals envelope prefix
     /// `OP_0 OP_IF PUSH 'ord'`.
-    pub count: PerBlockCumulativeRolling<StoredU64, M>,
+    pub count: PerBlockCumulativeRolling<Count, M>,
     /// Sum of the full transaction fees, in satoshis, for transactions whose
     /// Taproot scripts contain a detected Ordinals envelope. Each transaction
     /// contributes once, regardless of its number of inscriptions. Fees of

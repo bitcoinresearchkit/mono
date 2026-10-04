@@ -5,13 +5,14 @@ use bitcoin::{
     },
     script::Instruction,
 };
-use bitview_primitives::{OpReturnKind, StoredU32};
+use bitview_primitives::{Bytes32, OpReturnKind};
+use brk_types::SigOps;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Facts {
     pub kind: OpReturnKind,
-    pub legacy_sigops: StoredU32,
-    pub post_op_return_bytes: StoredU32,
+    pub legacy_sigops: SigOps,
+    pub post_op_return_bytes: Bytes32,
 }
 
 pub fn analyze(script: &Script) -> Facts {
@@ -24,8 +25,8 @@ pub fn analyze(script: &Script) -> Facts {
     };
     Facts {
         kind,
-        legacy_sigops: StoredU32::from(legacy_sigops),
-        post_op_return_bytes: StoredU32::from(data.len()),
+        legacy_sigops: SigOps::from(legacy_sigops),
+        post_op_return_bytes: Bytes32::from(data.len()),
     }
 }
 

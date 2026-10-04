@@ -1,5 +1,5 @@
 use bitview_cohort::AgeAggregateId;
-use bitview_primitives::{PartsPerMillionSigned32, StoredF64, StoredU64};
+use bitview_primitives::{Count, PartsPerMillionSigned32, StoredF64, StoredU64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, CumulativeState, import_cached};
 use brk_error::Result;
@@ -11,8 +11,8 @@ use crate::{data::Data, unrealized_data::UnrealizedData};
 #[derive(Traversable)]
 pub(crate) struct Columns<M: StorageMode = Rw> {
     pub supply: CachedSeries<Height, Sats, M>,
-    pub count: CachedSeries<Height, StoredU64, M>,
-    pub spent_count: CachedSeries<Height, StoredU64, M>,
+    pub count: CachedSeries<Height, Count, M>,
+    pub spent_count: CachedSeries<Height, Count, M>,
     pub volume_sats: CachedSeries<Height, StoredU64, M>,
     pub volume_cents: CachedSeries<Height, StoredU64, M>,
     pub volume_profit_sats: CachedSeries<Height, StoredU64, M>,

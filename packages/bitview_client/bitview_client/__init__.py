@@ -117,7 +117,10 @@ Boolean = bool
 # precondition is checked only in debug builds. Keep cumulative state unrounded.
 # Serde preserves raw encoded bits; vector JSON emits null for undefined.
 BoundedRatio = int
+# A size in bytes.
 Bytes = int
+# A size in bytes that fits 32 bits (under 4 GiB), such as a block or transaction size.
+Bytes32 = int
 # Investor phase from the Capital Sentiment model.
 #
 # Codes are explicit because phase values are persisted. Code `0` represents
@@ -147,6 +150,12 @@ Cohort = str
 #
 # Bitcoin consensus limits coinbase scriptSig to 2-100 bytes.
 CoinbaseTag = str
+# A number of things.
+Count = int
+# A number of things that fits 16 bits (at most 65,535), such as transactions per block.
+Count16 = int
+# A change in a number of things.
+CountSigned = int
 # Position of a transaction inside a `CpfpCluster.txs` array. Cluster-local,
 # has no meaning outside the enclosing cluster.
 CpfpClusterTxIndex = int
@@ -272,16 +281,12 @@ SeriesName = str
 # Deserialization permits at most 32 normalized names and 2,048 decoded input
 # string bytes. For arrays, the byte budget is shared by their string values.
 SeriesList = str
+# BIP-141 signature-operation cost with enough range for cumulative and rolling totals.
+SigOps64 = int
 # Stored 32-bit floating point value
 StoredF32 = float
 # Fixed-size 64-bit floating point value optimized for on-disk storage
 StoredF64 = float
-# Fixed-size 64-bit signed integer optimized for on-disk storage
-StoredI64 = int
-# Fixed-size 32-bit unsigned integer optimized for on-disk storage
-StoredU32 = int
-# Fixed-size 64-bit unsigned integer optimized for on-disk storage
-StoredU64 = int
 # Time period for mining statistics.
 #
 # Used to specify the lookback window for pool statistics, hashrate calculations,
@@ -3126,7 +3131,7 @@ D = TypeVar('D')
 
 class UtxoHistory(_Node):
     supply: SeriesPattern21[Sats] = _at(SeriesPattern21, '*')
-    count: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'utxo_count_bis')
+    count: SeriesPattern2[Count] = _at(SeriesPattern2, 'utxo_count_bis')
 
 
 class Velocity(_Node):
@@ -3197,8 +3202,8 @@ class TxinIndex(_Node):
 
 class MappingsTxIndex(_Node):
     identity: SeriesPattern22[TxIndex] = _at(SeriesPattern22, 'tx_index')
-    input_count: SeriesPattern22[StoredU64] = _at(SeriesPattern22, 'input_*')
-    output_count: SeriesPattern22[StoredU64] = _at(SeriesPattern22, 'output_*')
+    input_count: SeriesPattern22[Count] = _at(SeriesPattern22, 'input_*')
+    output_count: SeriesPattern22[Count] = _at(SeriesPattern22, 'output_*')
 
 
 class MappingsYear10(_Node):
@@ -3285,7 +3290,7 @@ class MappingsHeight(_Node):
     month6: SeriesPattern21[Month6] = _at(SeriesPattern21, 'month6')
     year1: SeriesPattern21[Year1] = _at(SeriesPattern21, 'year1')
     year10: SeriesPattern21[Year10] = _at(SeriesPattern21, 'year10')
-    tx_index_count: SeriesPattern21[StoredU64] = _at(SeriesPattern21, 'tx_index_count')
+    tx_index_count: SeriesPattern21[Count] = _at(SeriesPattern21, 'tx_index_count')
 
 
 class AddrOpReturn(_Node):
@@ -3938,7 +3943,7 @@ class OpReturnRaw(_Node):
     first_index: SeriesPattern21[OpReturnIndex] = _at(SeriesPattern21, 'first_op_return_*')
     to_tx_index: SeriesPattern26[TxIndex] = _at(SeriesPattern26, 'tx_*')
     kind: SeriesPattern26[OpReturnKind] = _at(SeriesPattern26, 'kind')
-    post_op_return_bytes: SeriesPattern26[StoredU32] = _at(SeriesPattern26, 'op_return_post_op_return_bytes')
+    post_op_return_bytes: SeriesPattern26[Bytes32] = _at(SeriesPattern26, 'op_return_post_op_return_bytes')
 
 
 class RawUnknown(_Node):
@@ -3969,15 +3974,15 @@ class Scripts(_Node):
 
 
 class AddrsEmpty(_Node):
-    all: SeriesPattern2[StoredU64] = _at(SeriesPattern2, '*')
-    p2pk65: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2pk65_*')
-    p2pk33: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2pk33_*')
-    p2pkh: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2pkh_*')
-    p2sh: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2sh_*')
-    p2wpkh: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2wpkh_*')
-    p2wsh: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2wsh_*')
-    p2tr: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2tr_*')
-    p2a: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2a_*')
+    all: SeriesPattern2[Count] = _at(SeriesPattern2, '*')
+    p2pk65: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pk65_*')
+    p2pk33: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pk33_*')
+    p2pkh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pkh_*')
+    p2sh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2sh_*')
+    p2wpkh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2wpkh_*')
+    p2wsh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2wsh_*')
+    p2tr: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2tr_*')
+    p2a: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2a_*')
 
 
 class ExposedCount(_Node):
@@ -4204,7 +4209,7 @@ class TransactionsRaw(_Node):
     tx_version: SeriesPattern22[TxVersion] = _at(SeriesPattern22, '*_version')
     raw_locktime: SeriesPattern22[RawLockTime] = _at(SeriesPattern22, 'raw_locktime')
     weight: SeriesPattern22[Weight] = _at(SeriesPattern22, '*_weight')
-    total_size: SeriesPattern22[StoredU32] = _at(SeriesPattern22, 'total_size')
+    total_size: SeriesPattern22[Bytes32] = _at(SeriesPattern22, 'total_size')
     total_sigop_cost: SeriesPattern22[SigOps] = _at(SeriesPattern22, 'total_sigop_cost')
     is_explicitly_rbf: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_explicitly_rbf')
     first_txin_index: SeriesPattern22[TxInIndex] = _at(SeriesPattern22, 'first_txin_index')
@@ -4213,7 +4218,7 @@ class TransactionsRaw(_Node):
 
 class BlocksHalving(_Node):
     epoch: SeriesPattern2[Halving] = _at(SeriesPattern2, '*_epoch')
-    blocks_to_halving: SeriesPattern2[StoredU32] = _at(SeriesPattern2, 'blocks_to_*')
+    blocks_to_halving: SeriesPattern2[Count] = _at(SeriesPattern2, 'blocks_to_*')
     days_to_halving: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'days_to_*')
 
 
@@ -4279,10 +4284,10 @@ class BlocksLookback(_Node):
 
 
 class Target(_Node):
-    _24h: SeriesPattern1[StoredU64] = _at(SeriesPattern1, '*_24h')
-    _1w: SeriesPattern1[StoredU64] = _at(SeriesPattern1, '*_1w')
-    _1m: SeriesPattern1[StoredU64] = _at(SeriesPattern1, '*_1m')
-    _1y: SeriesPattern1[StoredU64] = _at(SeriesPattern1, '*_1y')
+    _24h: SeriesPattern1[Count] = _at(SeriesPattern1, '*_24h')
+    _1w: SeriesPattern1[Count] = _at(SeriesPattern1, '*_1w')
+    _1m: SeriesPattern1[Count] = _at(SeriesPattern1, '*_1m')
+    _1y: SeriesPattern1[Count] = _at(SeriesPattern1, '*_1y')
 
 
 class PerSec(_Node, Generic[A]):
@@ -4293,41 +4298,41 @@ class PerSec(_Node, Generic[A]):
 
 
 class BlocksMined(_Node):
-    block: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*')
-    cumulative: SeriesPattern2[StoredU64] = _at(SeriesPattern2, '*_cumulative')
-    sum: PerSec[StoredU64] = _at(PerSec, '*_sum')
+    block: SeriesPattern21[Count] = _at(SeriesPattern21, '*')
+    cumulative: SeriesPattern2[Count] = _at(SeriesPattern2, '*_cumulative')
+    sum: PerSec[Count] = _at(PerSec, '*_sum')
 
 
 class Rolling(_Node):
-    sum: PerSec[StoredU64] = _at(PerSec, '*_sum')
+    sum: PerSec[Count] = _at(PerSec, '*_sum')
     average: PerSec[Optional[StoredF32]] = _at(PerSec, '*_average')
-    min: PerSec[StoredU64] = _at(PerSec, '*_min')
-    max: PerSec[StoredU64] = _at(PerSec, '*_max')
-    pct10: PerSec[StoredU64] = _at(PerSec, '*_pct10')
-    pct25: PerSec[StoredU64] = _at(PerSec, '*_pct25')
-    median: PerSec[StoredU64] = _at(PerSec, '*_median')
-    pct75: PerSec[StoredU64] = _at(PerSec, '*_pct75')
-    pct90: PerSec[StoredU64] = _at(PerSec, '*_pct90')
+    min: PerSec[Count] = _at(PerSec, '*_min')
+    max: PerSec[Count] = _at(PerSec, '*_max')
+    pct10: PerSec[Count] = _at(PerSec, '*_pct10')
+    pct25: PerSec[Count] = _at(PerSec, '*_pct25')
+    median: PerSec[Count] = _at(PerSec, '*_median')
+    pct75: PerSec[Count] = _at(PerSec, '*_pct75')
+    pct90: PerSec[Count] = _at(PerSec, '*_pct90')
 
 
 class InputsCount(_Node):
-    sum: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_sum')
-    cumulative: SeriesPattern2[StoredU64] = _at(SeriesPattern2, '*_cumulative')
+    sum: SeriesPattern21[Count] = _at(SeriesPattern21, '*_sum')
+    cumulative: SeriesPattern2[Count] = _at(SeriesPattern2, '*_cumulative')
     rolling: Rolling = _at(Rolling, '*')
 
 
-class Vbytes(_Node):
-    block: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*')
-    cumulative: SeriesPattern2[StoredU64] = _at(SeriesPattern2, '*_cumulative')
-    sum: PerSec[StoredU64] = _at(PerSec, '*_sum')
+class Vbytes(_Node, Generic[A]):
+    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
+    cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
+    sum: PerSec[A] = _at(PerSec, '*_sum')
     average: PerSec[Optional[StoredF32]] = _at(PerSec, '*_average')
-    min: PerSec[StoredU64] = _at(PerSec, '*_min')
-    max: PerSec[StoredU64] = _at(PerSec, '*_max')
-    pct10: PerSec[StoredU64] = _at(PerSec, '*_pct10')
-    pct25: PerSec[StoredU64] = _at(PerSec, '*_pct25')
-    median: PerSec[StoredU64] = _at(PerSec, '*_median')
-    pct75: PerSec[StoredU64] = _at(PerSec, '*_pct75')
-    pct90: PerSec[StoredU64] = _at(PerSec, '*_pct90')
+    min: PerSec[A] = _at(PerSec, '*_min')
+    max: PerSec[A] = _at(PerSec, '*_max')
+    pct10: PerSec[A] = _at(PerSec, '*_pct10')
+    pct25: PerSec[A] = _at(PerSec, '*_pct25')
+    median: PerSec[A] = _at(PerSec, '*_median')
+    pct75: PerSec[A] = _at(PerSec, '*_pct75')
+    pct90: PerSec[A] = _at(PerSec, '*_pct90')
 
 
 class NewAll(_Node, Generic[A]):
@@ -4354,76 +4359,76 @@ class CointimeActivity(_Node):
 
 
 class OutputsByTypeTxCount(_Node):
-    all: NewAll[StoredU64] = _at(NewAll, '*_bis')
-    p2pk65: NewAll[StoredU64] = _at(NewAll, '*_with_p2pk65_output')
-    p2pk33: NewAll[StoredU64] = _at(NewAll, '*_with_p2pk33_output')
-    p2pkh: NewAll[StoredU64] = _at(NewAll, '*_with_p2pkh_output')
-    p2ms: NewAll[StoredU64] = _at(NewAll, '*_with_p2ms_output')
-    p2sh: NewAll[StoredU64] = _at(NewAll, '*_with_p2sh_output')
-    p2wpkh: NewAll[StoredU64] = _at(NewAll, '*_with_p2wpkh_output')
-    p2wsh: NewAll[StoredU64] = _at(NewAll, '*_with_p2wsh_output')
-    p2tr: NewAll[StoredU64] = _at(NewAll, '*_with_p2tr_output')
-    p2a: NewAll[StoredU64] = _at(NewAll, '*_with_p2a_output')
-    unknown: NewAll[StoredU64] = _at(NewAll, '*_with_unknown_outputs_output')
-    empty: NewAll[StoredU64] = _at(NewAll, '*_with_empty_outputs_output')
-    op_return: NewAll[StoredU64] = _at(NewAll, '*_with_op_return_output')
+    all: NewAll[Count] = _at(NewAll, '*_bis')
+    p2pk65: NewAll[Count] = _at(NewAll, '*_with_p2pk65_output')
+    p2pk33: NewAll[Count] = _at(NewAll, '*_with_p2pk33_output')
+    p2pkh: NewAll[Count] = _at(NewAll, '*_with_p2pkh_output')
+    p2ms: NewAll[Count] = _at(NewAll, '*_with_p2ms_output')
+    p2sh: NewAll[Count] = _at(NewAll, '*_with_p2sh_output')
+    p2wpkh: NewAll[Count] = _at(NewAll, '*_with_p2wpkh_output')
+    p2wsh: NewAll[Count] = _at(NewAll, '*_with_p2wsh_output')
+    p2tr: NewAll[Count] = _at(NewAll, '*_with_p2tr_output')
+    p2a: NewAll[Count] = _at(NewAll, '*_with_p2a_output')
+    unknown: NewAll[Count] = _at(NewAll, '*_with_unknown_outputs_output')
+    empty: NewAll[Count] = _at(NewAll, '*_with_empty_outputs_output')
+    op_return: NewAll[Count] = _at(NewAll, '*_with_op_return_output')
 
 
 class OutputCount(_Node):
-    all: NewAll[StoredU64] = _at(NewAll, '*_bis')
-    p2pk65: NewAll[StoredU64] = _at(NewAll, 'p2pk65_*')
-    p2pk33: NewAll[StoredU64] = _at(NewAll, 'p2pk33_*')
-    p2pkh: NewAll[StoredU64] = _at(NewAll, 'p2pkh_*')
-    p2ms: NewAll[StoredU64] = _at(NewAll, 'p2ms_*')
-    p2sh: NewAll[StoredU64] = _at(NewAll, 'p2sh_*')
-    p2wpkh: NewAll[StoredU64] = _at(NewAll, 'p2wpkh_*')
-    p2wsh: NewAll[StoredU64] = _at(NewAll, 'p2wsh_*')
-    p2tr: NewAll[StoredU64] = _at(NewAll, 'p2tr_*')
-    p2a: NewAll[StoredU64] = _at(NewAll, 'p2a_*')
-    unknown: NewAll[StoredU64] = _at(NewAll, 'unknown_outputs_*')
-    empty: NewAll[StoredU64] = _at(NewAll, 'empty_outputs_*')
-    op_return: NewAll[StoredU64] = _at(NewAll, 'op_return_*')
+    all: NewAll[Count] = _at(NewAll, '*_bis')
+    p2pk65: NewAll[Count] = _at(NewAll, 'p2pk65_*')
+    p2pk33: NewAll[Count] = _at(NewAll, 'p2pk33_*')
+    p2pkh: NewAll[Count] = _at(NewAll, 'p2pkh_*')
+    p2ms: NewAll[Count] = _at(NewAll, 'p2ms_*')
+    p2sh: NewAll[Count] = _at(NewAll, 'p2sh_*')
+    p2wpkh: NewAll[Count] = _at(NewAll, 'p2wpkh_*')
+    p2wsh: NewAll[Count] = _at(NewAll, 'p2wsh_*')
+    p2tr: NewAll[Count] = _at(NewAll, 'p2tr_*')
+    p2a: NewAll[Count] = _at(NewAll, 'p2a_*')
+    unknown: NewAll[Count] = _at(NewAll, 'unknown_outputs_*')
+    empty: NewAll[Count] = _at(NewAll, 'empty_outputs_*')
+    op_return: NewAll[Count] = _at(NewAll, 'op_return_*')
 
 
 class InputsByTypeTxCount(_Node):
-    all: NewAll[StoredU64] = _at(NewAll, 'non_coinbase_*')
-    p2pk65: NewAll[StoredU64] = _at(NewAll, '*_with_p2pk65_prevout')
-    p2pk33: NewAll[StoredU64] = _at(NewAll, '*_with_p2pk33_prevout')
-    p2pkh: NewAll[StoredU64] = _at(NewAll, '*_with_p2pkh_prevout')
-    p2ms: NewAll[StoredU64] = _at(NewAll, '*_with_p2ms_prevout')
-    p2sh: NewAll[StoredU64] = _at(NewAll, '*_with_p2sh_prevout')
-    p2wpkh: NewAll[StoredU64] = _at(NewAll, '*_with_p2wpkh_prevout')
-    p2wsh: NewAll[StoredU64] = _at(NewAll, '*_with_p2wsh_prevout')
-    p2tr: NewAll[StoredU64] = _at(NewAll, '*_with_p2tr_prevout')
-    p2a: NewAll[StoredU64] = _at(NewAll, '*_with_p2a_prevout')
-    unknown: NewAll[StoredU64] = _at(NewAll, '*_with_unknown_outputs_prevout')
-    empty: NewAll[StoredU64] = _at(NewAll, '*_with_empty_outputs_prevout')
+    all: NewAll[Count] = _at(NewAll, 'non_coinbase_*')
+    p2pk65: NewAll[Count] = _at(NewAll, '*_with_p2pk65_prevout')
+    p2pk33: NewAll[Count] = _at(NewAll, '*_with_p2pk33_prevout')
+    p2pkh: NewAll[Count] = _at(NewAll, '*_with_p2pkh_prevout')
+    p2ms: NewAll[Count] = _at(NewAll, '*_with_p2ms_prevout')
+    p2sh: NewAll[Count] = _at(NewAll, '*_with_p2sh_prevout')
+    p2wpkh: NewAll[Count] = _at(NewAll, '*_with_p2wpkh_prevout')
+    p2wsh: NewAll[Count] = _at(NewAll, '*_with_p2wsh_prevout')
+    p2tr: NewAll[Count] = _at(NewAll, '*_with_p2tr_prevout')
+    p2a: NewAll[Count] = _at(NewAll, '*_with_p2a_prevout')
+    unknown: NewAll[Count] = _at(NewAll, '*_with_unknown_outputs_prevout')
+    empty: NewAll[Count] = _at(NewAll, '*_with_empty_outputs_prevout')
 
 
 class InputCount(_Node):
-    all: NewAll[StoredU64] = _at(NewAll, 'input_*_bis')
-    p2pk65: NewAll[StoredU64] = _at(NewAll, 'p2pk65_prevout_*')
-    p2pk33: NewAll[StoredU64] = _at(NewAll, 'p2pk33_prevout_*')
-    p2pkh: NewAll[StoredU64] = _at(NewAll, 'p2pkh_prevout_*')
-    p2ms: NewAll[StoredU64] = _at(NewAll, 'p2ms_prevout_*')
-    p2sh: NewAll[StoredU64] = _at(NewAll, 'p2sh_prevout_*')
-    p2wpkh: NewAll[StoredU64] = _at(NewAll, 'p2wpkh_prevout_*')
-    p2wsh: NewAll[StoredU64] = _at(NewAll, 'p2wsh_prevout_*')
-    p2tr: NewAll[StoredU64] = _at(NewAll, 'p2tr_prevout_*')
-    p2a: NewAll[StoredU64] = _at(NewAll, 'p2a_prevout_*')
-    unknown: NewAll[StoredU64] = _at(NewAll, 'unknown_outputs_prevout_*')
-    empty: NewAll[StoredU64] = _at(NewAll, 'empty_outputs_prevout_*')
+    all: NewAll[Count] = _at(NewAll, 'input_*_bis')
+    p2pk65: NewAll[Count] = _at(NewAll, 'p2pk65_prevout_*')
+    p2pk33: NewAll[Count] = _at(NewAll, 'p2pk33_prevout_*')
+    p2pkh: NewAll[Count] = _at(NewAll, 'p2pkh_prevout_*')
+    p2ms: NewAll[Count] = _at(NewAll, 'p2ms_prevout_*')
+    p2sh: NewAll[Count] = _at(NewAll, 'p2sh_prevout_*')
+    p2wpkh: NewAll[Count] = _at(NewAll, 'p2wpkh_prevout_*')
+    p2wsh: NewAll[Count] = _at(NewAll, 'p2wsh_prevout_*')
+    p2tr: NewAll[Count] = _at(NewAll, 'p2tr_prevout_*')
+    p2a: NewAll[Count] = _at(NewAll, 'p2a_prevout_*')
+    unknown: NewAll[Count] = _at(NewAll, 'unknown_outputs_prevout_*')
+    empty: NewAll[Count] = _at(NewAll, 'empty_outputs_prevout_*')
 
 
 class Versions(_Node):
-    v1: NewAll[StoredU64] = _at(NewAll, '*_v1')
-    v2: NewAll[StoredU64] = _at(NewAll, '*_v2')
-    v3: NewAll[StoredU64] = _at(NewAll, '*_v3')
-    other: NewAll[StoredU64] = _at(NewAll, '*_other_version')
+    v1: NewAll[Count] = _at(NewAll, '*_v1')
+    v2: NewAll[Count] = _at(NewAll, '*_v2')
+    v3: NewAll[Count] = _at(NewAll, '*_v3')
+    other: NewAll[Count] = _at(NewAll, '*_other_version')
 
 
 class PolicyCount(_Node):
-    nonstandard: NewAll[StoredU64] = _at(NewAll, '*')
+    nonstandard: NewAll[Count] = _at(NewAll, '*')
 
 
 class Policy(_Node):
@@ -4432,9 +4437,9 @@ class Policy(_Node):
 
 
 class PatternsCount(_Node):
-    coinjoin: NewAll[StoredU64] = _at(NewAll, 'coinjoin_*')
-    consolidation: NewAll[StoredU64] = _at(NewAll, 'consolidation_*')
-    batch_payout: NewAll[StoredU64] = _at(NewAll, 'batch_payout_*')
+    coinjoin: NewAll[Count] = _at(NewAll, 'coinjoin_*')
+    consolidation: NewAll[Count] = _at(NewAll, 'consolidation_*')
+    batch_payout: NewAll[Count] = _at(NewAll, 'batch_payout_*')
 
 
 class Patterns(_Node):
@@ -4445,8 +4450,8 @@ class Patterns(_Node):
 
 
 class FeesCount(_Node):
-    cpfp_parent: NewAll[StoredU64] = _at(NewAll, '*_parent_count')
-    cpfp_child: NewAll[StoredU64] = _at(NewAll, '*_child_count')
+    cpfp_parent: NewAll[Count] = _at(NewAll, '*_parent_count')
+    cpfp_child: NewAll[Count] = _at(NewAll, '*_child_count')
 
 
 class TransactionsFees(_Node):
@@ -4463,33 +4468,33 @@ class OutputsCount(_Node, Generic[A]):
 
 
 class FeaturesCount(_Node):
-    v1: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_v1')
-    v2: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_v2')
-    v3: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_v3')
-    other_version: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_other_version')
-    explicitly_rbf: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_explicitly_rbf')
-    one_input: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_one_input')
-    one_output: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_one_output')
-    p2pk: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_p2pk')
-    p2ms: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_p2ms')
-    p2pkh: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_p2pkh')
-    p2sh: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_p2sh')
-    p2wpkh: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_p2wpkh')
-    p2wsh: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_p2wsh')
-    p2tr: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_p2tr')
-    p2a: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_p2a')
-    op_return: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_op_return')
-    empty: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_empty')
-    unknown: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_unknown')
-    fake_pubkey: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_fake_pubkey')
-    fake_scripthash: SeriesPattern21[StoredU64] = _at(SeriesPattern21, '*_fake_scripthash')
-    annex: NewAll[StoredU64] = _at(NewAll, '*_annex')
-    sighash_all: NewAll[StoredU64] = _at(NewAll, '*_sighash_all')
-    sighash_none: NewAll[StoredU64] = _at(NewAll, '*_sighash_none')
-    sighash_single: NewAll[StoredU64] = _at(NewAll, '*_sighash_single')
-    sighash_default: NewAll[StoredU64] = _at(NewAll, '*_sighash_default')
-    sighash_anyone_can_pay: NewAll[StoredU64] = _at(NewAll, '*_sighash_anyone_can_pay')
-    dust_output: NewAll[StoredU64] = _at(NewAll, '*_dust_output')
+    v1: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_v1')
+    v2: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_v2')
+    v3: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_v3')
+    other_version: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_other_version')
+    explicitly_rbf: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_explicitly_rbf')
+    one_input: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_one_input')
+    one_output: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_one_output')
+    p2pk: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2pk')
+    p2ms: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2ms')
+    p2pkh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2pkh')
+    p2sh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2sh')
+    p2wpkh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2wpkh')
+    p2wsh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2wsh')
+    p2tr: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2tr')
+    p2a: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2a')
+    op_return: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_op_return')
+    empty: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_empty')
+    unknown: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_unknown')
+    fake_pubkey: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_fake_pubkey')
+    fake_scripthash: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_fake_scripthash')
+    annex: NewAll[Count] = _at(NewAll, '*_annex')
+    sighash_all: NewAll[Count] = _at(NewAll, '*_sighash_all')
+    sighash_none: NewAll[Count] = _at(NewAll, '*_sighash_none')
+    sighash_single: NewAll[Count] = _at(NewAll, '*_sighash_single')
+    sighash_default: NewAll[Count] = _at(NewAll, '*_sighash_default')
+    sighash_anyone_can_pay: NewAll[Count] = _at(NewAll, '*_sighash_anyone_can_pay')
+    dust_output: NewAll[Count] = _at(NewAll, '*_dust_output')
 
 
 class Features(_Node):
@@ -4519,7 +4524,7 @@ class Features(_Node):
 
 class BlocksCount(_Node):
     target: Target = _at(Target, '*_target')
-    total: NewAll[StoredU64] = _at(NewAll, '*')
+    total: NewAll[Count] = _at(NewAll, '*')
 
 
 class BlocksWeight(_Node):
@@ -4537,17 +4542,17 @@ class BlocksWeight(_Node):
 
 
 class BlocksSize(_Node):
-    base: SeriesPattern21[StoredU64] = _at(SeriesPattern21, 'total_*')
-    cumulative: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'block_*_cumulative')
-    sum: PerSec[StoredU64] = _at(PerSec, 'block_*_sum')
+    base: SeriesPattern21[Bytes32] = _at(SeriesPattern21, 'total_*')
+    cumulative: SeriesPattern2[Bytes] = _at(SeriesPattern2, 'block_*_cumulative')
+    sum: PerSec[Bytes] = _at(PerSec, 'block_*_sum')
     average: PerSec[Optional[StoredF32]] = _at(PerSec, 'block_*_average')
-    min: PerSec[StoredU64] = _at(PerSec, 'block_*_min')
-    max: PerSec[StoredU64] = _at(PerSec, 'block_*_max')
-    pct10: PerSec[StoredU64] = _at(PerSec, 'block_*_pct10')
-    pct25: PerSec[StoredU64] = _at(PerSec, 'block_*_pct25')
-    median: PerSec[StoredU64] = _at(PerSec, 'block_*_median')
-    pct75: PerSec[StoredU64] = _at(PerSec, 'block_*_pct75')
-    pct90: PerSec[StoredU64] = _at(PerSec, 'block_*_pct90')
+    min: PerSec[Bytes] = _at(PerSec, 'block_*_min')
+    max: PerSec[Bytes] = _at(PerSec, 'block_*_max')
+    pct10: PerSec[Bytes] = _at(PerSec, 'block_*_pct10')
+    pct25: PerSec[Bytes] = _at(PerSec, 'block_*_pct25')
+    median: PerSec[Bytes] = _at(PerSec, 'block_*_median')
+    pct75: PerSec[Bytes] = _at(PerSec, 'block_*_pct75')
+    pct90: PerSec[Bytes] = _at(PerSec, 'block_*_pct90')
 
 
 class Time(_Node):
@@ -5012,7 +5017,7 @@ class ByKind(_Node, Generic[A, B, C, D]):
 
 class Total(_Node):
     data_bytes: NewAll[Bytes] = _at(NewAll, '*_data_bytes')
-    tx_count: NewAll[StoredU64] = _at(NewAll, '*_tx_count')
+    tx_count: NewAll[Count] = _at(NewAll, '*_tx_count')
     tx_vsize: NewAll[VSize] = _at(NewAll, '*_tx_vsize')
     fees: NewAll[Sats] = _at(NewAll, '*_fees')
     chain_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_chain_share')
@@ -5022,8 +5027,8 @@ class Total(_Node):
 class OpReturn(_Node):
     raw: OpReturnRaw = _at(OpReturnRaw, 'index')
     total: Total = _at(Total, '*')
-    by_kind: ByKind[ByKindDataBytes[NewAll[StoredU64]], ByKindDataBytes[DataBytesAscribe], ByKindDataBytes[NewAll[VSize]], ByKindFees] = _at((ByKind, (ByKindDataBytes, NewAll), (ByKindDataBytes, DataBytesAscribe), (ByKindDataBytes, NewAll), ByKindFees), '*')
-    policy: ByKind[PolicyDataBytes[NewAll[StoredU64]], PolicyDataBytes[DataBytesAscribe], PolicyDataBytes[NewAll[VSize]], PolicyFees] = _at((ByKind, (PolicyDataBytes, NewAll), (PolicyDataBytes, DataBytesAscribe), (PolicyDataBytes, NewAll), PolicyFees), '*_policy')
+    by_kind: ByKind[ByKindDataBytes[NewAll[Count]], ByKindDataBytes[DataBytesAscribe], ByKindDataBytes[NewAll[VSize]], ByKindFees] = _at((ByKind, (ByKindDataBytes, NewAll), (ByKindDataBytes, DataBytesAscribe), (ByKindDataBytes, NewAll), ByKindFees), '*')
+    policy: ByKind[PolicyDataBytes[NewAll[Count]], PolicyDataBytes[DataBytesAscribe], PolicyDataBytes[NewAll[VSize]], PolicyFees] = _at((ByKind, (PolicyDataBytes, NewAll), (PolicyDataBytes, DataBytesAscribe), (PolicyDataBytes, NewAll), PolicyFees), '*_policy')
 
 
 class OutputsByTypeTxShare(_Node):
@@ -5058,7 +5063,7 @@ class OutputShare(_Node):
 
 class OutputsByType(_Node):
     output_count: OutputCount = _at(OutputCount, '*_count')
-    spendable_output_count: NewAll[StoredU64] = _at(NewAll, 'spendable_*_count')
+    spendable_output_count: NewAll[Count] = _at(NewAll, 'spendable_*_count')
     output_share: OutputShare = _at(OutputShare, '*_share')
     tx_count: OutputsByTypeTxCount = _at(OutputsByTypeTxCount, 'tx_count')
     tx_share: OutputsByTypeTxShare = _at(OutputsByTypeTxShare, 'tx_share_with')
@@ -5206,12 +5211,12 @@ class Exposed(_Node):
 
 
 class Events(_Node):
-    output_to_reused_addr_count: AvgBalance[NewAll[StoredU64]] = _at((AvgBalance, NewAll), 'output_to_*_count')
+    output_to_reused_addr_count: AvgBalance[NewAll[Count]] = _at((AvgBalance, NewAll), 'output_to_*_count')
     output_to_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'output_to_*_share')
     spendable_output_to_reused_addr_share: FeeShare = _at(FeeShare, 'spendable_output_to_*_share')
-    input_from_reused_addr_count: AvgBalance[NewAll[StoredU64]] = _at((AvgBalance, NewAll), 'input_from_*_count')
+    input_from_reused_addr_count: AvgBalance[NewAll[Count]] = _at((AvgBalance, NewAll), 'input_from_*_count')
     input_from_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'input_from_*_share')
-    active_reused_addr_count: Interval[StoredU32] = _at(Interval, 'active_*_count')
+    active_reused_addr_count: Interval[Count] = _at(Interval, 'active_*_count')
     active_reused_addr_share: Interval[Optional[StoredF32]] = _at(Interval, 'active_*_share')
 
 
@@ -5222,21 +5227,21 @@ class Respent(_Node):
 
 
 class AddrsActivity(_Node):
-    reactivated: AvgBalance[Interval[StoredU32]] = _at((AvgBalance, Interval), 'reactivated_*')
-    sending: AvgBalance[Interval[StoredU32]] = _at((AvgBalance, Interval), 'sending_*')
-    receiving: AvgBalance[Interval[StoredU32]] = _at((AvgBalance, Interval), 'receiving_*')
-    bidirectional: AvgBalance[Interval[StoredU32]] = _at((AvgBalance, Interval), 'bidirectional_*')
-    active: AvgBalance[Interval[StoredU32]] = _at((AvgBalance, Interval), 'active_*')
+    reactivated: AvgBalance[Interval[Count]] = _at((AvgBalance, Interval), 'reactivated_*')
+    sending: AvgBalance[Interval[Count]] = _at((AvgBalance, Interval), 'sending_*')
+    receiving: AvgBalance[Interval[Count]] = _at((AvgBalance, Interval), 'receiving_*')
+    bidirectional: AvgBalance[Interval[Count]] = _at((AvgBalance, Interval), 'bidirectional_*')
+    active: AvgBalance[Interval[Count]] = _at((AvgBalance, Interval), 'active_*')
 
 
 class UtxoCount0sats(_Node):
-    base: SeriesPattern2[StoredU64] = _at(SeriesPattern2, '*')
-    delta: DeltaAll[PerSec[StoredI64]] = _at((DeltaAll, PerSec), '*_delta')
+    base: SeriesPattern2[Count] = _at(SeriesPattern2, '*')
+    delta: DeltaAll[PerSec[CountSigned]] = _at((DeltaAll, PerSec), '*_delta')
 
 
 class AllOutputs(_Node):
     unspent_count: UtxoCount0sats = _at(UtxoCount0sats, '*_utxo_count')
-    spent_count: NewAll[StoredU64] = _at(NewAll, '*_spent_utxo_count')
+    spent_count: NewAll[Count] = _at(NewAll, '*_spent_utxo_count')
 
 
 class Supply0sats(_Node):
@@ -5534,15 +5539,15 @@ class RealizedCap(_Node, Generic[A]):
 
 
 class Funded(_Node):
-    all: SeriesPattern2[StoredU64] = _at(SeriesPattern2, '*')
-    p2pk65: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2pk65_*')
-    p2pk33: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2pk33_*')
-    p2pkh: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2pkh_*')
-    p2sh: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2sh_*')
-    p2wpkh: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2wpkh_*')
-    p2wsh: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2wsh_*')
-    p2tr: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2tr_*')
-    p2a: SeriesPattern2[StoredU64] = _at(SeriesPattern2, 'p2a_*')
+    all: SeriesPattern2[Count] = _at(SeriesPattern2, '*')
+    p2pk65: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pk65_*')
+    p2pk33: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pk33_*')
+    p2pkh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pkh_*')
+    p2sh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2sh_*')
+    p2wpkh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2wpkh_*')
+    p2wsh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2wsh_*')
+    p2tr: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2tr_*')
+    p2a: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2a_*')
     balance: RealizedCap[UtxoCount0sats] = _at((RealizedCap, UtxoCount0sats), '*')
 
 
@@ -5563,11 +5568,11 @@ class Addrs(_Node):
     empty: AddrsEmpty = _at(AddrsEmpty, 'empty_*_count')
     activity: AddrsActivity = _at(AddrsActivity, 'addrs')
     total: AddrsEmpty = _at(AddrsEmpty, 'total_*_count')
-    new: AvgBalance[NewAll[StoredU64]] = _at((AvgBalance, NewAll), 'new_*_count')
+    new: AvgBalance[NewAll[Count]] = _at((AvgBalance, NewAll), 'new_*_count')
     reused: Respent = _at(Respent, 'reused_*')
     respent: Respent = _at(Respent, 'respent_*')
     exposed: Exposed = _at(Exposed, 'exposed_*')
-    delta: AvgBalance[DeltaAll[PerSec[StoredI64]]] = _at((AvgBalance, (DeltaAll, PerSec)), '*_count')
+    delta: AvgBalance[DeltaAll[PerSec[CountSigned]]] = _at((AvgBalance, (DeltaAll, PerSec)), '*_count')
     avg_balance: AvgBalance[Circulating[Sats, Optional[Cents]]] = _at((AvgBalance, Circulating), 'avg_*_amount')
 
 
@@ -5629,7 +5634,7 @@ class CohortsRealized(_Node):
 
 class CohortsOutputs(_Node):
     unspent_count: SpentCount[UtxoCount0sats] = _at((SpentCount, UtxoCount0sats), '*_count')
-    spent_count: SpentCount[NewAll[StoredU64]] = _at((SpentCount, NewAll), 'spent_*_count')
+    spent_count: SpentCount[NewAll[Count]] = _at((SpentCount, NewAll), 'spent_*_count')
     avg_amount: AvgAmount = _at(AvgAmount, 'avg_*_amount')
 
 
@@ -5672,7 +5677,7 @@ class Volume(_Node):
 
 
 class Inscription(_Node):
-    count: NewAll[StoredU64] = _at(NewAll, 'tx_count_*')
+    count: NewAll[Count] = _at(NewAll, 'tx_count_*')
     fees: NewAll[Sats] = _at(NewAll, '*_fees')
     fee_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_fee_share')
 
@@ -5680,13 +5685,13 @@ class Inscription(_Node):
 class Transactions(_Node):
     raw: TransactionsRaw = _at(TransactionsRaw, '*')
     features: Features = _at(Features, 'has')
-    count: OutputsCount[Vbytes] = _at((OutputsCount, Vbytes), '*_count')
+    count: OutputsCount[Vbytes[Count]] = _at((OutputsCount, Vbytes), '*_count')
     size: TransactionsSize = _at(TransactionsSize, '*')
     fees: TransactionsFees = _at(TransactionsFees, 'fee')
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'is')
     policy: Policy = _at(Policy, 'nonstandard')
-    sigops: OutputsCount[NewAll[StoredU64]] = _at((OutputsCount, NewAll), 'total_sigop_cost')
+    sigops: OutputsCount[NewAll[SigOps64]] = _at((OutputsCount, NewAll), 'total_sigop_cost')
     versions: Versions = _at(Versions, '*')
     volume: Volume = _at(Volume, 'transfer_volume_bis')
 
@@ -5696,7 +5701,7 @@ class Difficulty(_Node):
     hashrate: SeriesPattern2[Optional[StoredF64]] = _at(SeriesPattern2, '*_hashrate')
     adjustment: Gini[Optional[PartsPerMillionSigned32]] = _at(Gini, '*_adjustment')
     epoch: SeriesPattern2[Epoch] = _at(SeriesPattern2, '*_epoch')
-    blocks_to_retarget: SeriesPattern2[StoredU32] = _at(SeriesPattern2, 'blocks_to_retarget')
+    blocks_to_retarget: SeriesPattern2[Count] = _at(SeriesPattern2, 'blocks_to_retarget')
     days_to_retarget: SeriesPattern2[Optional[StoredF32]] = _at(SeriesPattern2, 'days_to_retarget')
 
 
@@ -5707,13 +5712,13 @@ class Blocks(_Node):
     time: Time = _at(Time, 'timestamp')
     size: BlocksSize = _at(BlocksSize, 'size')
     weight: BlocksWeight = _at(BlocksWeight, '*_weight')
-    segwit_txs: SeriesPattern21[StoredU32] = _at(SeriesPattern21, 'segwit_txs')
-    segwit_size: SeriesPattern21[StoredU64] = _at(SeriesPattern21, 'segwit_size')
+    segwit_txs: SeriesPattern21[Count16] = _at(SeriesPattern21, 'segwit_txs')
+    segwit_size: SeriesPattern21[Bytes32] = _at(SeriesPattern21, 'segwit_size')
     segwit_weight: SeriesPattern21[Weight] = _at(SeriesPattern21, 'segwit_weight')
     count: BlocksCount = _at(BlocksCount, '*_count')
     lookback: BlocksLookback = _at(BlocksLookback, 'height')
     interval: Interval[Timestamp] = _at(Interval, '*_interval')
-    vbytes: Vbytes = _at(Vbytes, '*_vbytes')
+    vbytes: Vbytes[VSize] = _at(Vbytes, '*_vbytes')
     fullness: Fullness = _at(Fullness, '*_fullness')
     halving: BlocksHalving = _at(BlocksHalving, 'halving')
 

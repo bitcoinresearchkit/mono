@@ -1,6 +1,6 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use brk_error::Result;
 use brk_types::{Sats, Version};
 use vecdb::{AnyStoredVec, Database, WritableVec};
@@ -42,7 +42,7 @@ impl ComputePlugin for Vecs {
         self.history
             .advance(start, end, spends, creations, |_, amount| {
                 self.supply.push(Sats::new(amount.sats));
-                self.count.height.push(StoredU64::from(amount.count));
+                self.count.height.push(Count::from(amount.count));
                 Ok(())
             })?;
         self.supply.write()?;

@@ -1,6 +1,6 @@
 use bitview_cohort::SpendableType;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, import_cached};
 use brk_error::Result;
@@ -53,11 +53,7 @@ impl AvgAmount {
         })
     }
 
-    pub fn push(
-        &mut self,
-        supplies: &SpendableType<Sats>,
-        counts: &SpendableType<(StoredU64, StoredU64)>,
-    ) {
+    pub fn push(&mut self, supplies: &SpendableType<Sats>, counts: &SpendableType<(Count, Count)>) {
         let mut total = Sats::ZERO;
         let mut count = 0u64;
         for ((target, &sats), &(unspent, _)) in self
@@ -70,7 +66,7 @@ impl AvgAmount {
             total += sats;
             count += u64::from(unspent);
         }
-        self.all_source.push(total / StoredU64::from(count));
+        self.all_source.push(total / Count::from(count));
     }
 
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {

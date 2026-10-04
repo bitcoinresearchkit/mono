@@ -1,4 +1,4 @@
-use bitview_primitives::StoredU64;
+use bitview_primitives::Count16;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
@@ -13,32 +13,32 @@ macro_rules! define_counts {
         pub struct TransactionCountVecs<M: StorageMode = Rw> {
             /// Number of transactions in the block whose signed 32-bit Bitcoin
             /// transaction version is exactly 1, including coinbase.
-            pub v1: M::Stored<PcoVec<Height, StoredU64>>,
+            pub v1: M::Stored<PcoVec<Height, Count16>>,
             /// Number of transactions in the block whose signed 32-bit Bitcoin
             /// transaction version is exactly 2, including coinbase.
-            pub v2: M::Stored<PcoVec<Height, StoredU64>>,
+            pub v2: M::Stored<PcoVec<Height, Count16>>,
             /// Number of transactions in the block whose signed 32-bit Bitcoin
             /// transaction version is exactly 3, including coinbase.
-            pub v3: M::Stored<PcoVec<Height, StoredU64>>,
+            pub v3: M::Stored<PcoVec<Height, Count16>>,
             /// Number of transactions in the block whose signed 32-bit Bitcoin
             /// transaction version is not 1, 2, or 3, including coinbase. This
             /// category combines every other value; use individual raw
             /// transaction data to inspect the original version.
-            pub other_version: M::Stored<PcoVec<Height, StoredU64>>,
+            pub other_version: M::Stored<PcoVec<Height, Count16>>,
             /// Number of transactions in the block with at least one input
             /// sequence number below `0xfffffffe`, the explicit opt-in RBF
             /// signal defined by BIP 125. This counts the mechanical sequence
             /// signal, not whether a transaction was replaceable or replaced,
             /// inherited signaling, or full-RBF policy. Coinbase transactions
             /// are evaluated by the same sequence rule.
-            pub explicitly_rbf: M::Stored<PcoVec<Height, StoredU64>>,
+            pub explicitly_rbf: M::Stored<PcoVec<Height, Count16>>,
             /// Number of transactions in the block with exactly one input,
             /// including the coinbase transaction.
-            pub one_input: M::Stored<PcoVec<Height, StoredU64>>,
+            pub one_input: M::Stored<PcoVec<Height, Count16>>,
             /// Number of transactions in the block with exactly one output,
             /// including the coinbase transaction.
-            pub one_output: M::Stored<PcoVec<Height, StoredU64>>,
-            $($($(#[$count_attr])* pub $count: M::Stored<PcoVec<Height, StoredU64>>,)?) +
+            pub one_output: M::Stored<PcoVec<Height, Count16>>,
+            $($($(#[$count_attr])* pub $count: M::Stored<PcoVec<Height, Count16>>,)?) +
         }
 
         impl TransactionCountVecs {

@@ -1,4 +1,4 @@
-use bitview_primitives::{Epoch, PartsPerMillionSigned32, StoredF32, StoredF64, StoredU32};
+use bitview_primitives::{Count, Epoch, PartsPerMillionSigned32, StoredF32, StoredF64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Resolutions};
 
@@ -20,8 +20,8 @@ pub struct Vecs {
     pub(crate) epoch: LazyPerBlock<Epoch>,
     /// Number of blocks from the represented height to the first block of the
     /// next difficulty epoch: 2,016 minus height modulo 2,016.
-    pub(crate) blocks_to_retarget: LazyPerBlock<StoredU32>,
+    pub(crate) blocks_to_retarget: LazyPerBlock<Count>,
     /// Nominal days to the next difficulty epoch, calculated as
     /// `blocks_to_retarget / 144`; this does not use observed mining pace.
-    pub(crate) days_to_retarget: LazyPerBlock<StoredF32, StoredU32>,
+    pub(crate) days_to_retarget: LazyPerBlock<StoredF32, Count>,
 }
