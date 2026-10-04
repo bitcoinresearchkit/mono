@@ -16,7 +16,7 @@ use serde_json::{json, to_vec};
 use tokio::{fs as TokioFs, sync::Mutex};
 
 use super::connection::{Connection, Exchange};
-use crate::{Auth, rpc_client, rpc_response};
+use crate::{Auth, auth::cookie_error, rpc_client, rpc_response};
 
 pub struct Inner {
     connection: Mutex<Option<Connection>>,
@@ -39,7 +39,9 @@ impl Inner {
                 (None, Some(authorization(&format!("{user}:{password}"))?))
             }
             Auth::CookieFile(path) => {
-                let header = authorization(fs::read_to_string(&path)?.trim())?;
+                let cookie =
+                    fs::read_to_string(&path).map_err(|error| cookie_error(&path, error))?;
+                let header = authorization(cookie.trim())?;
                 (Some(path), Some(header))
             }
         };
@@ -123,14 +125,17 @@ impl Inner {
             };
             if status == StatusCode::UNAUTHORIZED {
                 if refresh && let Some(path) = &self.cookie {
-                    let updated = authorization(TokioFs::read_to_string(path).await?.trim())?;
+                    let cookie = TokioFs::read_to_string(path)
+                        .await
+                        .map_err(|error| cookie_error(path, error))?;
+                    let updated = authorization(cookie.trim())?;
                     if header.as_ref() != Some(&updated) {
                         *self.authorization.write() = Some(updated);
                         refresh = false;
                         continue;
                     }
                 }
-                return Err(Error::Internal("node RPC authentication failed"));
+                return Err(Error::RpcAuthFailed);
             }
             return rpc_response::decode(status.is_success(), &bytes);
         }

@@ -13,7 +13,7 @@ Options:
   --bitcoindir <path>      Bitcoin data dir (default: platform-specific)
   --rpcconnect <host>      RPC host (default: localhost)
   --rpcport <port>         RPC port (default: 8332)
-  --rpccookiefile <path>   Cookie file (default: <bitcoindir>/.cookie)
+  --rpccookiefile <path>   Cookie file; relative paths resolve inside <bitcoindir> (default: <bitcoindir>/.cookie)
   --rpcuser <user>         RPC username (used with --rpcpassword)
   --rpcpassword <pass>     RPC password (when set, used instead of the cookie)
   -h, --help               Show this help

@@ -157,6 +157,11 @@ pub enum Error {
     )]
     NoRpcCredentials { cookie: PathBuf },
 
+    #[error(
+        "Bitcoin Core rejected the RPC credentials (check rpcuser and rpcpassword, or the cookie file)"
+    )]
+    RpcAuthFailed,
+
     /// The node refused a submitted transaction (policy or consensus); the reason is the node's.
     #[error("{0}")]
     TxRejected(String),

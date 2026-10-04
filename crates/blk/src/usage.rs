@@ -94,7 +94,7 @@ pub fn print() {
     opt(
         "--rpccookiefile",
         "<PATH>",
-        "RPC cookie file",
+        "RPC cookie file; relative paths resolve inside <bitcoindir>",
         Some("[<bitcoindir>/.cookie]"),
     );
     opt("--rpcuser", "<USERNAME>", "RPC username", None);

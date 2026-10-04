@@ -1,7 +1,6 @@
 use std::{
     io,
     net::{IpAddr, Ipv4Addr},
-    path::PathBuf,
 };
 
 use axum::{
@@ -268,12 +267,7 @@ fn errors() -> Vec<(&'static str, ServerError)> {
             Error::UnsupportedType("op_return".into()),
         ),
         brk("lower: json", Error::SerdeJSON(json)),
-        brk(
-            "lower: no rpc credentials",
-            Error::NoRpcCredentials {
-                cookie: PathBuf::from("/btc/.cookie"),
-            },
-        ),
+        brk("lower: rpc credentials rejected", Error::RpcAuthFailed),
         // Node and API conditions.
         brk(
             "broadcast rejected by node",

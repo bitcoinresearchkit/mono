@@ -20,7 +20,8 @@ Query a Bitcoin Core node for blocks, transactions, mempool data, and chain stat
 ```rust,ignore
 // Explicit endpoint and credentials
 let client = Client::new("http://localhost:8332", Auth::CookieFile(cookie_path))?;
-// Or resolve them like bitcoin-cli does (user/password when a password is set, else the cookie)
+// Or resolve them like bitcoin-cli does (user/password when a password is set, else the cookie;
+// a relative cookie path is inside the data directory)
 let client = ConnectArgs::default().client()?;
 
 let height = client.get_last_height()?;
@@ -30,6 +31,11 @@ let header = client.get_block_header_info(&tip)?;
 // Mempool
 let state = client.fetch_mempool_state()?;
 ```
+
+Rejected credentials fail with `Error::RpcAuthFailed` from both the blocking and the async client.
+For single calls with cookie auth, both re-read the cookie first and retry only when it changed (a
+restarting node writes a new one before serving RPC); blocking batches report a rejection at once.
+An unreadable cookie fails at once and names its path.
 
 ## Key Methods
 

@@ -245,7 +245,7 @@ impl Config {
             "[8332]".bright_black()
         );
         println!(
-            "    --rpccookiefile {}    RPC cookie file {}",
+            "    --rpccookiefile {}    RPC cookie file; relative paths resolve inside <bitcoindir> {}",
             "<PATH>".bright_black(),
             "[<bitcoindir>/.cookie]".bright_black()
         );

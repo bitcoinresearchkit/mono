@@ -36,10 +36,13 @@ impl ConnectArgs {
         )
     }
 
+    /// Relative cookie paths are inside the data directory, like `bitcoin-cli`'s.
     fn cookie_path(&self) -> PathBuf {
-        self.rpccookiefile
-            .clone()
-            .unwrap_or_else(|| self.bitcoin_dir().join(".cookie"))
+        match &self.rpccookiefile {
+            Some(path) if path.is_relative() => self.bitcoin_dir().join(path),
+            Some(path) => path.clone(),
+            None => self.bitcoin_dir().join(".cookie"),
+        }
     }
 
     /// User and password when a password is set, else the cookie file when there is one
