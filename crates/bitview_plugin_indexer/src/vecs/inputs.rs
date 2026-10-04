@@ -16,7 +16,7 @@ pub struct InputsVecs<M: StorageMode = Rw> {
     pub first_txin_index: M::Stored<PcoVec<Height, TxInIndex, Budgeted>>,
     /// Previous-output reference encoded as the global transaction index and
     /// zero-based output position within that transaction. Coinbase inputs use
-    /// `u32::MAX` for both components.
+    /// the maximum of each component (`tx_index: 4294967295, vout: 65535`).
     pub outpoint: M::Stored<PcoVec<TxInIndex, OutPoint>>,
     /// Global zero-based transaction-output index in canonical blockchain order.
     /// At `txout_index`, this is the identity value; at `txin_index`, it

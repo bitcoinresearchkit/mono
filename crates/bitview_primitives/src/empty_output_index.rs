@@ -10,6 +10,7 @@ use crate::TypeIndex;
 #[cfg(feature = "storage")]
 use vecdb::{CheckedSub as VecdbCheckedSub, Formattable, Pco, PrintableIndex};
 
+/// Index of an output with an empty script.
 #[derive(
     Debug,
     PartialEq,

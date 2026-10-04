@@ -16,6 +16,7 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
 
+/// Index of a P2A (pay-to-anchor) address.
 #[derive(
     Debug,
     PartialEq,

@@ -14,6 +14,7 @@ use vecdb::{Bytes, Formattable, Pco};
 
 pub const OP_RETURN_KIND_COUNT: usize = OpReturnKind::Unknown as usize + 1;
 
+/// Protocol or format detected in an OP_RETURN output.
 #[derive(
     Debug,
     Clone,

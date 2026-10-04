@@ -87,6 +87,47 @@ impl TreeNode {
         }
     }
 
+    /// Collect each value type's unit: the description of its schema.
+    pub fn units(&self) -> BTreeMap<&str, Arc<str>> {
+        let mut units = BTreeMap::new();
+        self.collect_units(&mut units);
+        units
+    }
+
+    fn collect_units<'a>(&'a self, units: &mut BTreeMap<&'a str, Arc<str>>) {
+        match self {
+            Self::Branch(children) => {
+                for child in children.values() {
+                    child.collect_units(units);
+                }
+            }
+            Self::Leaf(leaf) => {
+                // `Option<T>` keeps `T`'s schema under `$defs`.
+                let schema = leaf
+                    .schema
+                    .get("$defs")
+                    .and_then(|defs| defs.get(leaf.kind()))
+                    .unwrap_or(&leaf.schema);
+                let Some(description) = schema.get("description").and_then(|d| d.as_str()) else {
+                    return;
+                };
+                // The first paragraph, unwrapped: later paragraphs are implementation notes.
+                let first = description.split("\n\n").next().unwrap_or_default();
+                let description = first.split_whitespace().collect::<Vec<_>>().join(" ");
+                if let Some(existing) = units.get(leaf.kind()) {
+                    debug_assert_eq!(
+                        existing.as_ref(),
+                        description.as_str(),
+                        "two value types share the name {}",
+                        leaf.kind()
+                    );
+                    return;
+                }
+                units.insert(leaf.kind(), Arc::from(description));
+            }
+        }
+    }
+
     /// Wraps a node in a Branch with the given key.
     /// Used by #[traversable(wrap = "...")] to produce Branch { key: inner }.
     pub fn wrap(key: &str, inner: Self) -> Self {

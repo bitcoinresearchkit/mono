@@ -13,6 +13,7 @@ use crate::U8x20;
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable};
 
+/// The 20-byte script hash of a P2SH output.
 #[derive(Debug, Clone, Deref, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Bytes))]

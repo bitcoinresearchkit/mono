@@ -10,8 +10,9 @@ use crate::unlikely;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
-/// A ratio in [0, 1], floored at scale u32::MAX - 1.
-/// Zero and one are exact; finite quantization error is less than 1 / SCALE
+/// A ratio between 0 and 1.
+///
+/// Floored at scale u32::MAX - 1. Zero and one are exact; finite quantization error is less than 1 / SCALE
 /// apart from floating-point arithmetic error. u32::MAX represents undefined.
 /// Non-finite inputs become undefined. Finite inputs must lie in [0, 1]; this
 /// precondition is checked only in debug builds. Keep cumulative state unrounded.

@@ -16,6 +16,7 @@ use vecdb::{Formattable, Pco, PrintableIndex};
 
 const DAY3_INTERVAL: u32 = 259200;
 
+/// Index of a 3-day period.
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
 )]

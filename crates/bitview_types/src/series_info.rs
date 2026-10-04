@@ -18,4 +18,7 @@ pub struct SeriesInfo {
     /// Value type (e.g. "Ratio", "Sats", "Cents")
     #[serde(rename = "type")]
     pub value_type: Cow<'static, str>,
+    /// What the value type measures, when documented (e.g. "A duration in days.")
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<Arc<str>>,
 }

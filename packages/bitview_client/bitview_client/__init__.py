@@ -40,7 +40,8 @@ SatsSigned = int
 # bits select an inline layout or a sidecar, whose index occupies the lower 30
 # bits.
 AddrState = int
-# Unsigned basis points: 10,000 represents the ratio 1.
+# A ratio in basis points: 10,000 represents 1.
+#
 # Maximum finite ratio: 429,496.7294. u32::MAX represents undefined.
 # Finite input range is a debug-checked precondition, not a saturation policy.
 # Serde preserves raw encoded bits; vector JSON emits null for undefined.
@@ -108,10 +109,11 @@ TxVersionRaw = int
 # Reconstruction is a single pass: for each entry, either copy
 # `prior[idx]` or append the inline body.
 BlockTemplateDiffEntry = Union[int, "Transaction"]
-# Yes or no
+# Yes or no.
 Boolean = bool
-# A ratio in [0, 1], floored at scale u32::MAX - 1.
-# Zero and one are exact; finite quantization error is less than 1 / SCALE
+# A ratio between 0 and 1.
+#
+# Floored at scale u32::MAX - 1. Zero and one are exact; finite quantization error is less than 1 / SCALE
 # apart from floating-point arithmetic error. u32::MAX represents undefined.
 # Non-finite inputs become undefined. Finite inputs must lie in [0, 1]; this
 # precondition is checked only in debug builds. Keep cumulative state unrounded.
@@ -128,9 +130,10 @@ BytesFract = float
 # Codes are explicit because phase values are persisted. Code `0` represents
 # unavailable model inputs and is therefore not a phase.
 CapitalSentimentPhase = Literal["raging_bull", "bull", "cautious_bull", "hopeful_bull", "early_bull", "weak_bull", "limbo", "deep_bear", "bear", "early_bear"]
-# Unsigned cents (u64) - for values that should never be negative.
-# Used for invested capital, realized cap, etc.
-# `u64::MAX` is reserved as a NaN sentinel.
+# An amount in US cents (100 cents = 1 USD).
+#
+# Unsigned, for values that are never negative (invested capital, realized cap, ...). `u64::MAX` is
+# reserved as a NaN sentinel.
 Cents = int
 # A mean amount in cents.
 CentsFract = float
@@ -181,7 +184,9 @@ Limit = int
 RangeIndex = Union[int, str, str]
 # Calendar date in YYYY-MM-DD format.
 Date = str
+# Index of a day.
 Day1 = int
+# Index of a 3-day period.
 Day3 = int
 # A duration in days.
 Days = float
@@ -192,7 +197,9 @@ Difficulty = float
 DifficultyAdjustmentEntry = List[float]
 # A USD amount (32-bit stored form).
 Dollars32 = float
+# Index of an output with an empty script.
 EmptyOutputIndex = TypeIndex
+# Index of a difficulty epoch (2,016 blocks).
 Epoch = int
 # Machine-readable error code.
 ErrorCode = Literal["not_found", "invalid_addr", "invalid_network", "unsupported_type", "parse_error", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_addr", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
@@ -206,6 +213,7 @@ ExchangeRates = dict
 Float32 = float
 # A 64-bit floating-point value without a specific unit.
 Float64 = float
+# Index of a halving epoch (210,000 blocks).
 Halving = int
 # Hashes per second.
 Hashrate = float
@@ -213,47 +221,76 @@ Hashrate = float
 # as a plain JSON string and derefs to `str`, so anywhere `&str` or
 # `AsRef<[u8]>` is expected the `Hex` "just works".
 Hex = str
+# Index of an hour.
 Hour1 = int
+# Index of a 12-hour period.
 Hour12 = int
+# Index of a 4-hour period.
 Hour4 = int
 # Aggregation dimension for querying series. Includes time-based (date, week, month, year),
 # block-based (height, tx_index), and address/output type indexes.
 Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_addr_index", "p2ms_output_index", "p2pk33_addr_index", "p2pk65_addr_index", "p2pkh_addr_index", "p2sh_addr_index", "p2tr_addr_index", "p2wpkh_addr_index", "p2wsh_addr_index", "unknown_output_index", "funded_addr_index", "empty_addr_index", "extended_empty_addr_index"]
+# Index of a 10-minute period.
 Minute10 = int
+# Index of a 30-minute period.
 Minute30 = int
+# Index of a month.
 Month1 = int
+# Index of a quarter (3 months).
 Month3 = int
+# Index of a half-year (6 months).
 Month6 = int
-# [open, high, low, close]
+# Open, high, low and close prices in cents: [open, high, low, close].
 OHLCCents = List[Cents]
-# [open, high, low, close]
+# Open, high, low and close prices in US dollars: [open, high, low, close].
 OHLCDollars = List[Dollars]
-# [open, high, low, close]
+# Open, high, low and close prices in sats: [open, high, low, close].
 OHLCSats = List[Sats]
+# Index of an OP_RETURN output.
 OpReturnIndex = TypeIndex
+# Protocol or format detected in an OP_RETURN output.
 OpReturnKind = Literal["runes", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "open_timestamps", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "epobc", "bare_hash", "text", "empty", "unknown"]
+# The output a transaction input spends: its transaction index and output position, written as
+# `tx_index: N, vout: M` (coinbase inputs: `tx_index: 4294967295, vout: 65535`).
 OutPoint = int
+# Index of a P2A (pay-to-anchor) address.
 P2AAddrIndex = TypeIndex
 U8x2 = List[int]
+# The 2-byte witness program of a P2A (pay-to-anchor) output.
 P2ABytes = U8x2
+# Index of a P2MS (bare multisig) output.
 P2MSOutputIndex = TypeIndex
+# Index of a P2PK address with a compressed (33-byte) public key.
 P2PK33AddrIndex = TypeIndex
 U8x33 = List[int]
+# A compressed (33-byte) public key.
 P2PK33Bytes = U8x33
+# Index of a P2PK address with an uncompressed (65-byte) public key.
 P2PK65AddrIndex = TypeIndex
 U8x65 = List[int]
+# An uncompressed (65-byte) public key.
 P2PK65Bytes = U8x65
+# Index of a P2PKH address.
 P2PKHAddrIndex = TypeIndex
 U8x20 = List[int]
+# The 20-byte public key hash of a P2PKH output.
 P2PKHBytes = U8x20
+# Index of a P2SH address.
 P2SHAddrIndex = TypeIndex
+# The 20-byte script hash of a P2SH output.
 P2SHBytes = U8x20
+# Index of a P2TR (taproot) address.
 P2TRAddrIndex = TypeIndex
 U8x32 = List[int]
+# The 32-byte output key of a P2TR output.
 P2TRBytes = U8x32
+# Index of a P2WPKH address.
 P2WPKHAddrIndex = TypeIndex
+# The 20-byte public key hash of a P2WPKH output.
 P2WPKHBytes = U8x20
+# Index of a P2WSH address.
 P2WSHAddrIndex = TypeIndex
+# The 32-byte script hash of a P2WSH output.
 P2WSHBytes = U8x32
 # Unsigned parts per million stored as u32.
 # One unit is 0.000001. Range: 0–4,294.967294.
@@ -281,7 +318,8 @@ PerDay = float
 PerSecond = float
 # A percentage: a ratio times 100.
 Percent = float
-# Spot price divided by a reference price, encoded in parts per million.
+# A price divided by a reference price, in parts per million (1,000,000 represents 1).
+#
 # Finite values saturate at 4,294.967294; u32::MAX represents undefined.
 # Saturation is deliberately specific to price ratios, across all cohorts.
 # Non-finite inputs become undefined; finite inputs must be nonnegative
@@ -328,7 +366,9 @@ SigOpsFract = float
 TimePeriod = Literal["24h", "3d", "1w", "1m", "3m", "6m", "1y", "2y", "3y", "all"]
 # Hierarchical tree node for organizing series into categories
 TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
+# Index of a transaction input.
 TxInIndex = int
+# Index of a transaction output.
 TxOutIndex = int
 # Input index in the spending transaction
 Vin = int
@@ -336,6 +376,7 @@ Vin = int
 # those exact signed 32-bit Bitcoin transaction versions; 255 represents every
 # other version.
 TxVersion = int
+# Index of an output with an unrecognized script.
 UnknownOutputIndex = TypeIndex
 # Aggregation strategy for URPD buckets.
 # Options: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),
@@ -351,12 +392,15 @@ VSizeFract = float
 # in computation logic or source data versions. Supports validation
 # against persisted versions to ensure compatibility.
 Version = int
+# Index of a week.
 Week1 = int
 # Weight in weight units with enough range for cumulative and rolling totals.
 Weight64 = int
 # A mean weight in weight units.
 WeightFract = float
+# Index of a year.
 Year1 = int
+# Index of a decade.
 Year10 = int
 # A duration in years.
 Years = float
@@ -1627,8 +1671,10 @@ class SeriesInfo(_SeriesInfoRequired, total=False):
         indexes: Available indexes
         nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
         type: Value type (e.g. "Ratio", "Sats", "Cents")
+        unit: What the value type measures, when documented (e.g. "A duration in days.")
     """
     description: Optional[str]
+    unit: Optional[str]
 
 class _SeriesLeafWithSchemaRequired(TypedDict):
     name: str
@@ -6652,7 +6698,7 @@ class BitviewClient(BitviewClientBase):
     def get_series_info(self, series: SeriesName) -> SeriesInfo:
         """Get series info.
 
-        Returns the optional description, supported indexes, and value type for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
+        Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
 
         Endpoint: `GET /api/series/{series}`"""
         return self.get_json(f'/api/series/{series}')

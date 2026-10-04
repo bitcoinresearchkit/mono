@@ -122,7 +122,7 @@ impl_ohlc_deserialize!(OHLCSats, Sats);
 
 /// The schema of the serialized form: `[open, high, low, close]`.
 macro_rules! impl_ohlc_schema {
-    ($ohlc_type:ident, $inner_type:ty) => {
+    ($ohlc_type:ident, $inner_type:ty, $description:literal) => {
         impl JsonSchema for $ohlc_type {
             fn schema_name() -> Cow<'static, str> {
                 stringify!($ohlc_type).into()
@@ -130,16 +130,28 @@ macro_rules! impl_ohlc_schema {
 
             fn json_schema(generator: &mut SchemaGenerator) -> Schema {
                 let mut schema = <[$inner_type; 4]>::json_schema(generator);
-                schema.insert("description".into(), "[open, high, low, close]".into());
+                schema.insert("description".into(), $description.into());
                 schema
             }
         }
     };
 }
 
-impl_ohlc_schema!(OHLCCents, Cents);
-impl_ohlc_schema!(OHLCDollars, Dollars);
-impl_ohlc_schema!(OHLCSats, Sats);
+impl_ohlc_schema!(
+    OHLCCents,
+    Cents,
+    "Open, high, low and close prices in cents: [open, high, low, close]."
+);
+impl_ohlc_schema!(
+    OHLCDollars,
+    Dollars,
+    "Open, high, low and close prices in US dollars: [open, high, low, close]."
+);
+impl_ohlc_schema!(
+    OHLCSats,
+    Sats,
+    "Open, high, low and close prices in sats: [open, high, low, close]."
+);
 
 impl Display for OHLCCents {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {

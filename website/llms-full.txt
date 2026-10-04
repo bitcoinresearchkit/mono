@@ -1039,7 +1039,7 @@ curl -s "https://bitview.space/api/series/search?q=<q>&limit=<limit>"
 
 Get series info
 
-Returns the optional description, supported indexes, and value type for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
+Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
 
 Parameters:
 - `series` (path, SeriesName, required)
@@ -1953,6 +1953,7 @@ curl -s "https://bitview.space/version"
 - `indexes`: `Index[]` (required) — Available indexes
 - `nullable`: `Index[]` (required) — Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
 - `type`: `string` (required) — Value type (e.g. "Ratio", "Sats", "Cents")
+- `unit`: `string | null` — What the value type measures, when documented (e.g. "A duration in days.")
 
 ### `SeriesLeafWithSchema`
 

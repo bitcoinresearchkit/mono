@@ -18,6 +18,7 @@ use vecdb::{Formattable, Pco, PrintableIndex};
 
 pub(crate) const HOUR12_INTERVAL: u32 = 43200;
 
+/// Index of a 12-hour period.
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
 )]

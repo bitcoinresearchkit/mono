@@ -922,7 +922,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/{series}",
         summary: "Get series info",
-        description: "Returns the optional description, supported indexes, and value type for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.",
+        description: "Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.",
         path_parameters: &[
             Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
         ],

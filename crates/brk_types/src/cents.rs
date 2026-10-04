@@ -19,9 +19,10 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
-/// Unsigned cents (u64) - for values that should never be negative.
-/// Used for invested capital, realized cap, etc.
-/// `u64::MAX` is reserved as a NaN sentinel.
+/// An amount in US cents (100 cents = 1 USD).
+///
+/// Unsigned, for values that are never negative (invested capital, realized cap, ...). `u64::MAX` is
+/// reserved as a NaN sentinel.
 #[derive(
     Debug, Default, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
 )]

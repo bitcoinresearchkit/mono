@@ -17,7 +17,8 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
-/// Unsigned basis points: 10,000 represents the ratio 1.
+/// A ratio in basis points: 10,000 represents 1.
+///
 /// Maximum finite ratio: 429,496.7294. u32::MAX represents undefined.
 /// Finite input range is a debug-checked precondition, not a saturation policy.
 /// Serde preserves raw encoded bits; vector JSON emits null for undefined.

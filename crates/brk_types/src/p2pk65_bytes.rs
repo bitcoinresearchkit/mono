@@ -13,6 +13,7 @@ use crate::U8x65;
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable};
 
+/// An uncompressed (65-byte) public key.
 #[derive(Debug, Clone, Deref, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Bytes))]

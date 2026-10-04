@@ -91,7 +91,7 @@ Use the compact OpenAPI document for tool construction. Use `llms-full.txt` only
 ## Series workflow\n\n\
 Never invent a series identifier.\n\n\
 1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.\n\
-2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, value type, and the indexes whose values can be null (missing or undefined).\n\
+2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined).\n\
 3. Fetch data: `GET /api/series/<series>/<index>?start=<inclusive>&end=<exclusive>`.\n\
 4. Fetch one current value with `GET /api/series/<series>/<index>/latest`. For several series, use `GET /api/series/bulk?series=<comma-separated names>&index=<index>`.\n\n\
 ## MCP\n\n\

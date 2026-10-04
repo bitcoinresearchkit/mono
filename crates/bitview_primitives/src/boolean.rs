@@ -25,7 +25,7 @@ impl JsonSchema for Boolean {
 
     fn json_schema(generator: &mut SchemaGenerator) -> Schema {
         let mut schema = bool::json_schema(generator);
-        schema.insert("description".into(), "Yes or no".into());
+        schema.insert("description".into(), "Yes or no.".into());
         schema
     }
 }

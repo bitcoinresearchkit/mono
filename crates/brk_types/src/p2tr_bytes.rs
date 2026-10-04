@@ -13,6 +13,7 @@ use crate::U8x32;
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable};
 
+/// The 32-byte output key of a P2TR output.
 #[derive(Debug, Clone, Deref, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Bytes))]

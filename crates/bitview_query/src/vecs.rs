@@ -38,6 +38,8 @@ pub struct Vecs<'a> {
     catalog: TreeNode,
     matcher: QuickMatch<'a>,
     description_search: DescriptionSearch,
+    /// Each value type's unit description, by type name.
+    units: BTreeMap<String, Arc<str>>,
 }
 
 struct DescriptionSearch {
@@ -128,6 +130,17 @@ impl<'a> Vecs<'a> {
             series.description = catalog_descriptions.get(*name).cloned();
         }
         let description_search = DescriptionSearch::new(&series_names, &catalog_descriptions);
+        let units: BTreeMap<String, Arc<str>> = catalog
+            .units()
+            .into_iter()
+            .map(|(kind, unit)| (kind.to_string(), unit))
+            .collect();
+        debug_assert!(
+            by_series.values().all(|series| series
+                .first()
+                .is_none_or(|entry| units.contains_key(entry.vec().value_type_to_string()))),
+            "every series value type has a unit"
+        );
 
         let indexes = by_series
             .values()
@@ -155,6 +168,7 @@ impl<'a> Vecs<'a> {
             catalog,
             matcher,
             description_search,
+            units,
         }
     }
 

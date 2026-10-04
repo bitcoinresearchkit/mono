@@ -9,6 +9,8 @@ use crate::{TxIndex, Vout};
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
+/// The output a transaction input spends: its transaction index and output position, written as
+/// `tx_index: N, vout: M` (coinbase inputs: `tx_index: 4294967295, vout: 65535`).
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]

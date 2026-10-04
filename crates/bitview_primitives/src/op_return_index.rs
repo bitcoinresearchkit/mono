@@ -16,6 +16,7 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex};
 
+/// Index of an OP_RETURN output.
 #[derive(
     Debug,
     PartialEq,

@@ -17,7 +17,8 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
-/// Spot price divided by a reference price, encoded in parts per million.
+/// A price divided by a reference price, in parts per million (1,000,000 represents 1).
+///
 /// Finite values saturate at 4,294.967294; u32::MAX represents undefined.
 /// Saturation is deliberately specific to price ratios, across all cohorts.
 /// Non-finite inputs become undefined; finite inputs must be nonnegative

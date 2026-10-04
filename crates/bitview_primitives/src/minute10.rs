@@ -18,6 +18,7 @@ use vecdb::{Formattable, Pco, PrintableIndex};
 
 pub(crate) const MINUTE10_INTERVAL: u32 = 600;
 
+/// Index of a 10-minute period.
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
 )]

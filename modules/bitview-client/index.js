@@ -96,7 +96,8 @@ address payload bytes.
  * @property {?string=} error - Error message for invalid addresses
  */
 /**
- * Unsigned basis points: 10,000 represents the ratio 1.
+ * A ratio in basis points: 10,000 represents 1.
+ *
  * Maximum finite ratio: 429,496.7294. u32::MAX represents undefined.
  * Finite input range is a debug-checked precondition, not a saturation policy.
  * Serde preserves raw encoded bits; vector JSON emits null for undefined.
@@ -350,13 +351,14 @@ prior template's transactions or a full transaction body.
  * @property {Weight} avgWeight - Rolling 24h median block weight (weight units)
  */
 /**
- * Yes or no
+ * Yes or no.
  *
  * @typedef {boolean} Boolean
  */
 /**
- * A ratio in [0, 1], floored at scale u32::MAX - 1.
- * Zero and one are exact; finite quantization error is less than 1 / SCALE
+ * A ratio between 0 and 1.
+ *
+ * Floored at scale u32::MAX - 1. Zero and one are exact; finite quantization error is less than 1 / SCALE
  * apart from floating-point arithmetic error. u32::MAX represents undefined.
  * Non-finite inputs become undefined. Finite inputs must lie in [0, 1]; this
  * precondition is checked only in debug builds. Keep cumulative state unrounded.
@@ -388,9 +390,10 @@ prior template's transactions or a full transaction body.
  * @typedef {("raging_bull"|"bull"|"cautious_bull"|"hopeful_bull"|"early_bull"|"weak_bull"|"limbo"|"deep_bear"|"bear"|"early_bear")} CapitalSentimentPhase
  */
 /**
- * Unsigned cents (u64) - for values that should never be negative.
- * Used for invested capital, realized cap, etc.
- * `u64::MAX` is reserved as a NaN sentinel.
+ * An amount in US cents (100 cents = 1 USD).
+ *
+ * Unsigned, for values that are never negative (invested capital, realized cap, ...). `u64::MAX` is
+ * reserved as a NaN sentinel.
  *
  * @typedef {number} Cents
  */
@@ -537,8 +540,16 @@ ancestors and no descendants (matches mempool.space).
  *
  * @typedef {string} Date
  */
-/** @typedef {number} Day1 */
-/** @typedef {number} Day3 */
+/**
+ * Index of a day.
+ *
+ * @typedef {number} Day1
+ */
+/**
+ * Index of a 3-day period.
+ *
+ * @typedef {number} Day3
+ */
 /**
  * A duration in days.
  *
@@ -619,8 +630,16 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} fundedTxoCount - Total funded/spent transaction output count (equal since address is empty)
  * @property {Sats} transfered - Total satoshis transferred
  */
-/** @typedef {TypeIndex} EmptyOutputIndex */
-/** @typedef {number} Epoch */
+/**
+ * Index of an output with an empty script.
+ *
+ * @typedef {TypeIndex} EmptyOutputIndex
+ */
+/**
+ * Index of a difficulty epoch (2,016 blocks).
+ *
+ * @typedef {number} Epoch
+ */
 /**
  * The JSON body of every API error (`application/problem+json`).
  *
@@ -684,7 +703,11 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} fundedTxoCount - Number of transaction outputs funded to this address
  * @property {number} spentTxoCount - Number of transaction outputs spent by this address
  */
-/** @typedef {number} Halving */
+/**
+ * Index of a halving epoch (210,000 blocks).
+ *
+ * @typedef {number} Halving
+ */
 /**
  * Hashes per second.
  *
@@ -764,9 +787,21 @@ ancestors and no descendants (matches mempool.space).
  * @property {Timestamp} time - Unix timestamp
  * @property {Dollars} uSD - BTC/USD price
  */
-/** @typedef {number} Hour1 */
-/** @typedef {number} Hour12 */
-/** @typedef {number} Hour4 */
+/**
+ * Index of an hour.
+ *
+ * @typedef {number} Hour1
+ */
+/**
+ * Index of a 12-hour period.
+ *
+ * @typedef {number} Hour12
+ */
+/**
+ * Index of a 4-hour period.
+ *
+ * @typedef {number} Hour4
+ */
 /**
  * Aggregation dimension for querying series. Includes time-based (date, week, month, year),
  * block-based (height, tx_index), and address/output type indexes.
@@ -822,11 +857,31 @@ ancestors and no descendants (matches mempool.space).
  * @property {string[]} merkle - Merkle proof path (hex-encoded hashes)
  * @property {number} pos - Transaction position in the block (0-indexed)
  */
-/** @typedef {number} Minute10 */
-/** @typedef {number} Minute30 */
-/** @typedef {number} Month1 */
-/** @typedef {number} Month3 */
-/** @typedef {number} Month6 */
+/**
+ * Index of a 10-minute period.
+ *
+ * @typedef {number} Minute10
+ */
+/**
+ * Index of a 30-minute period.
+ *
+ * @typedef {number} Minute30
+ */
+/**
+ * Index of a month.
+ *
+ * @typedef {number} Month1
+ */
+/**
+ * Index of a quarter (3 months).
+ *
+ * @typedef {number} Month3
+ */
+/**
+ * Index of a half-year (6 months).
+ *
+ * @typedef {number} Month6
+ */
 /**
  * Content hash of the projected next block (block 0 of the mempool
  * snapshot), including its statistics and complete transaction bodies.
@@ -842,29 +897,42 @@ ancestors and no descendants (matches mempool.space).
  * @property {NextBlockHash} hash
  */
 /**
- * [open, high, low, close]
+ * Open, high, low and close prices in cents: [open, high, low, close].
  *
  * @typedef {Cents[]} OHLCCents
  */
 /**
- * [open, high, low, close]
+ * Open, high, low and close prices in US dollars: [open, high, low, close].
  *
  * @typedef {Dollars[]} OHLCDollars
  */
 /**
- * [open, high, low, close]
+ * Open, high, low and close prices in sats: [open, high, low, close].
  *
  * @typedef {Sats[]} OHLCSats
  */
-/** @typedef {TypeIndex} OpReturnIndex */
-/** @typedef {("runes"|"veri_block"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coin_spark"|"poet"|"docproof"|"open_timestamps"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"epobc"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind */
+/**
+ * Index of an OP_RETURN output.
+ *
+ * @typedef {TypeIndex} OpReturnIndex
+ */
+/**
+ * Protocol or format detected in an OP_RETURN output.
+ *
+ * @typedef {("runes"|"veri_block"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coin_spark"|"poet"|"docproof"|"open_timestamps"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"epobc"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
+ */
 /**
  * Optional UNIX timestamp query parameter
  *
  * @typedef {Object} OptionalTimestampParam
  * @property {(Timestamp|null)=} timestamp
  */
-/** @typedef {number} OutPoint */
+/**
+ * The output a transaction input spends: its transaction index and output position, written as
+ * `tx_index: N, vout: M` (coinbase inputs: `tx_index: 4294967295, vout: 65535`).
+ *
+ * @typedef {number} OutPoint
+ */
 /**
  * Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
  *
@@ -875,23 +943,91 @@ ancestors and no descendants (matches mempool.space).
  *
  * @typedef {("p2pk"|"p2pkh"|"multisig"|"p2sh"|"op_return"|"v0_p2wpkh"|"v0_p2wsh"|"v1_p2tr"|"anchor"|"empty"|"unknown")} OutputTypeNormalized
  */
-/** @typedef {TypeIndex} P2AAddrIndex */
-/** @typedef {U8x2} P2ABytes */
-/** @typedef {TypeIndex} P2MSOutputIndex */
-/** @typedef {TypeIndex} P2PK33AddrIndex */
-/** @typedef {U8x33} P2PK33Bytes */
-/** @typedef {TypeIndex} P2PK65AddrIndex */
-/** @typedef {U8x65} P2PK65Bytes */
-/** @typedef {TypeIndex} P2PKHAddrIndex */
-/** @typedef {U8x20} P2PKHBytes */
-/** @typedef {TypeIndex} P2SHAddrIndex */
-/** @typedef {U8x20} P2SHBytes */
-/** @typedef {TypeIndex} P2TRAddrIndex */
-/** @typedef {U8x32} P2TRBytes */
-/** @typedef {TypeIndex} P2WPKHAddrIndex */
-/** @typedef {U8x20} P2WPKHBytes */
-/** @typedef {TypeIndex} P2WSHAddrIndex */
-/** @typedef {U8x32} P2WSHBytes */
+/**
+ * Index of a P2A (pay-to-anchor) address.
+ *
+ * @typedef {TypeIndex} P2AAddrIndex
+ */
+/**
+ * The 2-byte witness program of a P2A (pay-to-anchor) output.
+ *
+ * @typedef {U8x2} P2ABytes
+ */
+/**
+ * Index of a P2MS (bare multisig) output.
+ *
+ * @typedef {TypeIndex} P2MSOutputIndex
+ */
+/**
+ * Index of a P2PK address with a compressed (33-byte) public key.
+ *
+ * @typedef {TypeIndex} P2PK33AddrIndex
+ */
+/**
+ * A compressed (33-byte) public key.
+ *
+ * @typedef {U8x33} P2PK33Bytes
+ */
+/**
+ * Index of a P2PK address with an uncompressed (65-byte) public key.
+ *
+ * @typedef {TypeIndex} P2PK65AddrIndex
+ */
+/**
+ * An uncompressed (65-byte) public key.
+ *
+ * @typedef {U8x65} P2PK65Bytes
+ */
+/**
+ * Index of a P2PKH address.
+ *
+ * @typedef {TypeIndex} P2PKHAddrIndex
+ */
+/**
+ * The 20-byte public key hash of a P2PKH output.
+ *
+ * @typedef {U8x20} P2PKHBytes
+ */
+/**
+ * Index of a P2SH address.
+ *
+ * @typedef {TypeIndex} P2SHAddrIndex
+ */
+/**
+ * The 20-byte script hash of a P2SH output.
+ *
+ * @typedef {U8x20} P2SHBytes
+ */
+/**
+ * Index of a P2TR (taproot) address.
+ *
+ * @typedef {TypeIndex} P2TRAddrIndex
+ */
+/**
+ * The 32-byte output key of a P2TR output.
+ *
+ * @typedef {U8x32} P2TRBytes
+ */
+/**
+ * Index of a P2WPKH address.
+ *
+ * @typedef {TypeIndex} P2WPKHAddrIndex
+ */
+/**
+ * The 20-byte public key hash of a P2WPKH output.
+ *
+ * @typedef {U8x20} P2WPKHBytes
+ */
+/**
+ * Index of a P2WSH address.
+ *
+ * @typedef {TypeIndex} P2WSHAddrIndex
+ */
+/**
+ * The 32-byte script hash of a P2WSH output.
+ *
+ * @typedef {U8x32} P2WSHBytes
+ */
 /**
  * A paginated list of available series names (1000 per page)
  *
@@ -1056,7 +1192,8 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} lastEstimatedHashrate1w - Estimated network hashrate over last 1 week (H/s)
  */
 /**
- * Spot price divided by a reference price, encoded in parts per million.
+ * A price divided by a reference price, in parts per million (1,000,000 represents 1).
+ *
  * Finite values saturate at 4,294.967294; u32::MAX represents undefined.
  * Saturation is deliberately specific to price ratios, across all cohorts.
  * Non-finite inputs become undefined; finite inputs must be nonnegative
@@ -1219,6 +1356,7 @@ on serialization otherwise.
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
 undefined one (e.g. NaN)
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
+ * @property {?string=} unit - What the value type measures, when documented (e.g. "A duration in days.")
  */
 /**
  * Series leaf with JSON Schema for client generation.
@@ -1357,7 +1495,11 @@ undefined one (e.g. NaN).
  * @property {string=} innerRedeemscriptAsm - Inner redeemscript in assembly (for P2SH-wrapped SegWit: scriptsig + witness both present)
  * @property {string=} innerWitnessscriptAsm - Inner witnessscript in assembly (for P2WSH: last witness item decoded as script)
  */
-/** @typedef {number} TxInIndex */
+/**
+ * Index of a transaction input.
+ *
+ * @typedef {number} TxInIndex
+ */
 /**
  * Chain-wide transaction index (0 = the genesis coinbase). For an
  * in-block position, use `BlockTxIndex` instead.
@@ -1378,7 +1520,11 @@ undefined one (e.g. NaN).
  * @property {Addr=} scriptpubkeyAddress - Bitcoin address, omitted for scripts without an address.
  * @property {Sats} value - Value of the output in satoshis.
  */
-/** @typedef {number} TxOutIndex */
+/**
+ * Index of a transaction output.
+ *
+ * @typedef {number} TxOutIndex
+ */
 /**
  * Status of an output indicating whether it has been spent
  *
@@ -1450,7 +1596,11 @@ undefined one (e.g. NaN).
 /** @typedef {number[]} U8x32 */
 /** @typedef {number[]} U8x33 */
 /** @typedef {number[]} U8x65 */
-/** @typedef {TypeIndex} UnknownOutputIndex */
+/**
+ * Index of an output with an unrecognized script.
+ *
+ * @typedef {TypeIndex} UnknownOutputIndex
+ */
 /**
  * UTXO Realized Price Distribution for a cohort at a specific block.
  *
@@ -1558,7 +1708,11 @@ undefined one (e.g. NaN).
  *
  * @typedef {number} Vout
  */
-/** @typedef {number} Week1 */
+/**
+ * Index of a week.
+ *
+ * @typedef {number} Week1
+ */
 /**
  * Weight in weight units (WU). Max block weight is 4,000,000 WU.
  *
@@ -1585,8 +1739,16 @@ undefined one (e.g. NaN).
  *
  * @typedef {string[]} Witness
  */
-/** @typedef {number} Year1 */
-/** @typedef {number} Year10 */
+/**
+ * Index of a year.
+ *
+ * @typedef {number} Year1
+ */
+/**
+ * Index of a decade.
+ *
+ * @typedef {number} Year10
+ */
 /**
  * A duration in years.
  *
@@ -9124,7 +9286,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Get series info
    *
-   * Returns the optional description, supported indexes, and value type for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
+   * Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
    *
    * Endpoint: `GET /api/series/{series}`
    *

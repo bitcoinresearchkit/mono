@@ -16,6 +16,7 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
 
+/// Index of a P2PK address with an uncompressed (65-byte) public key.
 #[derive(
     Debug,
     PartialEq,

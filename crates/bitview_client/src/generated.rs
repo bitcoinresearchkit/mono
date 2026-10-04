@@ -3877,7 +3877,7 @@ impl BitviewClient {
 
     /// Get series info
     ///
-    /// Returns the optional description, supported indexes, and value type for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
+    /// Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
     ///
     /// Endpoint: `GET /api/series/{series}`
     pub fn get_series_info(&self, series: SeriesName) -> Result<SeriesInfo> {

@@ -385,7 +385,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .series_tag()
                     .summary("Get series info")
                     .gateway_timeout()
-                    .description(&format!("Returns the optional description, supported indexes, and value type for the specified series. The decoded series name is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
+                    .description(&format!("Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
                     .json_response::<SeriesInfo>()
                     .bad_request()
                     .gateway_timeout()
