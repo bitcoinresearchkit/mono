@@ -48,6 +48,11 @@ scalar! {
 }
 
 scalar! {
+    /// A duration in seconds (at most about 136 years).
+    int Seconds(u32)
+}
+
+scalar! {
     /// BIP-141 signature-operation cost with enough range for cumulative and rolling totals.
     int SigOps64(u64)
 }

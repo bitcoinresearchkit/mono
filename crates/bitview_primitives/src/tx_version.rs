@@ -6,8 +6,6 @@ use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::StoredU8;
-
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
@@ -43,13 +41,6 @@ impl From<TxVersion> for Version {
     #[inline]
     fn from(value: TxVersion) -> Self {
         Self(value.0 as i32)
-    }
-}
-
-impl From<TxVersion> for StoredU8 {
-    #[inline]
-    fn from(value: TxVersion) -> Self {
-        Self::from(value.0)
     }
 }
 

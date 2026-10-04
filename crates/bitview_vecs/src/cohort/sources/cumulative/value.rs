@@ -1,19 +1,20 @@
+use std::ops::AddAssign;
+
 use bitview_cohort::{CohortGroup, CohortId};
-use bitview_primitives::StoredU64;
-use bitview_transforms::{StoredU64ToCents, StoredU64ToSats};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{AnyStoredVec, Database, LazyVec, ReadableCloneableVec, Rw};
+use vecdb::{AnyStoredVec, Database, Rw};
 
 use super::CumulativeCohortSources;
-use crate::SatsCents;
+use crate::{CachedSeries, SatsCents};
 
 pub type CumulativeCohortValueSources<G, M = Rw> =
-    SatsCents<CumulativeCohortSources<G, StoredU64, M>>;
+    SatsCents<CumulativeCohortSources<G, Sats, M>, CumulativeCohortSources<G, Cents, M>>;
 
 impl<G: CohortGroup> CumulativeCohortValueSources<G>
 where
-    G::Of<StoredU64>: std::ops::AddAssign + Clone + Default,
+    G::Of<Sats>: AddAssign + Clone + Default,
+    G::Of<Cents>: AddAssign + Clone + Default,
 {
     pub fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Ok(Self {
@@ -25,33 +26,20 @@ where
     pub fn sources(
         &self,
         cohort_id: CohortId,
-        name: &str,
-        version: Version,
-    ) -> Option<
-        SatsCents<
-            LazyVec<Height, Sats, Height, StoredU64>,
-            LazyVec<Height, Cents, Height, StoredU64>,
-        >,
-    > {
+    ) -> Option<SatsCents<&CachedSeries<Height, Sats>, &CachedSeries<Height, Cents>>> {
         Some(SatsCents {
-            sats: LazyVec::transformed::<StoredU64ToSats>(
-                &format!("{name}_cumulative_sats"),
-                version,
-                self.sats.stored.get(cohort_id)?.read_only_boxed_clone(),
-            ),
-            cents: LazyVec::transformed::<StoredU64ToCents>(
-                &format!("{name}_cumulative_cents"),
-                version,
-                self.cents.stored.get(cohort_id)?.read_only_boxed_clone(),
-            ),
+            sats: self.sats.stored.get(cohort_id)?,
+            cents: self.cents.stored.get(cohort_id)?,
         })
     }
 
     pub fn push_block(&mut self, sats: &G::Of<Sats>, cents: &G::Of<Cents>) {
-        self.sats
-            .push_block(G::map(sats, |value| StoredU64::from(u64::from(*value))));
-        self.cents
-            .push_block(G::map(cents, |value| StoredU64::from(u64::from(*value))));
+        debug_assert!(
+            G::iter(cents).all(|cents| !cents.is_nan()),
+            "NaN cohort value"
+        );
+        self.sats.push_block(sats.clone());
+        self.cents.push_block(cents.clone());
     }
 
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {

@@ -2,7 +2,7 @@ use bitview_compute::ComputeRollingStats;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_primitives::{StoredF32, StoredU32};
+use bitview_primitives::{Seconds, StoredF32};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -61,7 +61,7 @@ impl Vecs {
 }
 
 fn compute_seconds_since(
-    seconds_since: &mut CachedSeries<Height, StoredU32>,
+    seconds_since: &mut CachedSeries<Height, Seconds>,
     starting_height: Height,
     high: &impl ReadableVec<Height, Cents>,
     prices: &impl ReadableVec<Height, Cents>,
@@ -87,9 +87,9 @@ fn compute_seconds_since(
             }
             if price == ath {
                 ath_ts = Some(ts);
-                (i, StoredU32::ZERO)
+                (i, Seconds::ZERO)
             } else {
-                (i, StoredU32::from(*ts - *ath_ts.unwrap()))
+                (i, Seconds::from(*ts - *ath_ts.unwrap()))
             }
         },
         exit,

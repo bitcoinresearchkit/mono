@@ -1,6 +1,6 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Boolean, CapitalSentimentPhase, Score, StoredU8};
+use bitview_primitives::{Boolean, CapitalSentimentPhase, CapitalSentimentPhaseCode, Score};
 use bitview_vecs::{LazyPerBlock, PerBlock};
 use brk_error::Result;
 use vecdb::UnaryTransform;
@@ -9,17 +9,10 @@ use crate::{STORAGE, Vecs};
 
 struct CodeToPhase;
 
-impl UnaryTransform<StoredU8, Option<CapitalSentimentPhase>> for CodeToPhase {
+impl UnaryTransform<CapitalSentimentPhaseCode, Option<CapitalSentimentPhase>> for CodeToPhase {
     #[inline]
-    fn apply(code: StoredU8) -> Option<CapitalSentimentPhase> {
-        if *code == 0 {
-            None
-        } else {
-            Some(
-                CapitalSentimentPhase::from_code(*code)
-                    .expect("persisted Capital Sentiment phase code must be valid"),
-            )
-        }
+    fn apply(code: CapitalSentimentPhaseCode) -> Option<CapitalSentimentPhase> {
+        code.into()
     }
 }
 

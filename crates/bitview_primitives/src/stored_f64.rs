@@ -12,8 +12,6 @@ use ryu::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::StoredU64;
-
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
 
@@ -54,13 +52,6 @@ impl From<usize> for StoredF64 {
     #[inline]
     fn from(value: usize) -> Self {
         Self(value as f64)
-    }
-}
-
-impl From<StoredU64> for StoredF64 {
-    #[inline]
-    fn from(value: StoredU64) -> Self {
-        Self(*value as f64)
     }
 }
 

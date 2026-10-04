@@ -5,12 +5,7 @@ use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display};
 
 #[cfg(feature = "storage")]
-use vecdb::Error;
-#[cfg(feature = "storage")]
-use vecdb::Result;
-
-#[cfg(feature = "storage")]
-use vecdb::{Bytes, Formattable, Pco};
+use vecdb::{Formattable, Pco};
 
 /// Investor phase from the Capital Sentiment model.
 ///
@@ -106,39 +101,37 @@ impl Formattable for CapitalSentimentPhase {
     }
 }
 
-#[cfg(feature = "storage")]
-impl Bytes for CapitalSentimentPhase {
-    type Array = [u8; size_of::<Self>()];
+/// A stored per-block phase: the phase's code, or `0` when there is no phase.
+#[derive(
+    Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+)]
+#[cfg_attr(feature = "storage", derive(Pco))]
+pub struct CapitalSentimentPhaseCode(u8);
 
+impl From<Option<CapitalSentimentPhase>> for CapitalSentimentPhaseCode {
     #[inline]
-    fn to_bytes(&self) -> Self::Array {
-        [self.code()]
-    }
-
-    #[inline]
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        if bytes.len() != size_of::<Self>() {
-            return Err(Error::WrongLength {
-                expected: size_of::<Self>(),
-                received: bytes.len(),
-            });
-        }
-        Self::from_code(bytes[0]).ok_or(Error::InvalidArgument("invalid CapitalSentimentPhase"))
+    fn from(phase: Option<CapitalSentimentPhase>) -> Self {
+        Self(phase.map_or(0, CapitalSentimentPhase::code))
     }
 }
 
-// SAFETY: The non-transparent conversion validates every decoded code.
-#[cfg(feature = "storage")]
-unsafe impl Pco for CapitalSentimentPhase {
-    type NumberType = u8;
-
-    #[inline(always)]
-    fn to_number(self) -> Self::NumberType {
-        self.code()
+impl From<CapitalSentimentPhaseCode> for Option<CapitalSentimentPhase> {
+    #[inline]
+    fn from(code: CapitalSentimentPhaseCode) -> Self {
+        let phase = CapitalSentimentPhase::from_code(code.0);
+        debug_assert!(
+            code.0 == 0 || phase.is_some(),
+            "invalid phase code {}",
+            code.0
+        );
+        phase
     }
+}
 
+#[cfg(feature = "storage")]
+impl Formattable for CapitalSentimentPhaseCode {
     #[inline(always)]
-    fn from_number(value: Self::NumberType) -> Result<Self> {
-        Self::from_code(value).ok_or(Error::InvalidArgument("invalid CapitalSentimentPhase"))
+    fn write_to(&self, buf: &mut Vec<u8>) {
+        buf.extend_from_slice(itoa::Buffer::new().format(self.0).as_bytes());
     }
 }

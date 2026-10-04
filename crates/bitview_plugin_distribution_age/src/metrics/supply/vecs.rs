@@ -1,8 +1,8 @@
 use bitview_cohort::{AgeRange, AgeRangeId, CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64, StoredU64};
-use bitview_transforms::{SatsToCents, StoredU64ToCents, StoredU64ToSats};
+use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
+use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight, LazyValuePerBlockCumulativeRolling,
@@ -10,10 +10,7 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, SatsSigned, Version};
-use vecdb::{
-    AnyStoredVec, BinaryTransform, Database, LazyVec, ReadableBoxedVec, ReadableCloneableVec, Rw,
-    StorageMode,
-};
+use vecdb::{AnyStoredVec, BinaryTransform, Database, ReadableBoxedVec, Rw, StorageMode};
 
 use super::{SupplyBase, SupplyByCohort, SupplyTotal};
 use crate::state::UnrealizedState;
@@ -28,7 +25,9 @@ pub struct SupplyVecs<M: StorageMode = Rw> {
     /// during the represented block interval.
     pub matured: AgeRange<LazyValuePerBlockCumulativeRolling>,
     #[traversable(hidden)]
-    matured_sources: AgeRange<SatsCents<PerBlockCumulativeRolling<StoredU64, M>>>,
+    matured_sources: AgeRange<
+        SatsCents<PerBlockCumulativeRolling<Sats, M>, PerBlockCumulativeRolling<Cents, M>>,
+    >,
     /// Unspent supply in profit: UTXO cohort outputs whose creation price is
     /// less than or equal to the represented block's spot price.
     pub in_profit: SupplyByCohort<M>,
@@ -101,21 +100,11 @@ impl SupplyVecs {
                 CohortContext::Utxo.full_name(id.cohort())
             );
             let source = id.select(&matured_sources);
-            let sats = LazyVec::transformed::<StoredU64ToSats>(
-                &format!("{name}_cumulative_sats"),
-                matured_version,
-                source.sats.cumulative.height.read_only_boxed_clone(),
-            );
-            let cents = LazyVec::transformed::<StoredU64ToCents>(
-                &format!("{name}_cumulative_cents"),
-                matured_version,
-                source.cents.cumulative.height.read_only_boxed_clone(),
-            );
             LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
                 &name,
                 matured_version,
-                &sats,
-                &cents,
+                &source.sats.cumulative.height,
+                &source.cents.cumulative.height,
                 mappings,
                 window_starts,
             )
@@ -134,13 +123,12 @@ impl SupplyVecs {
 
     #[inline(always)]
     pub fn push_maturation(&mut self, matured: &AgeRange<Sats>, price: Cents) {
+        debug_assert!(!price.is_nan(), "NaN spot price");
         for id in AgeRangeId::ALL {
             let sats = *id.select(matured);
             let source = id.select_mut(&mut self.matured_sources);
-            source.sats.push_block(StoredU64::from(u64::from(sats)));
-            source
-                .cents
-                .push_block(StoredU64::from(u64::from(SatsToCents::apply(sats, price))));
+            source.sats.push_block(sats);
+            source.cents.push_block(SatsToCents::apply(sats, price));
         }
     }
 

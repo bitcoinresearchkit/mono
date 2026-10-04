@@ -8,8 +8,6 @@ mod dollars_to_sats_fract;
 mod sats_signed_to_bitcoin;
 mod sats_to_bitcoin;
 mod sats_to_cents;
-mod stored_u64_to_cents;
-mod stored_u64_to_sats;
 
 pub use avg_cents_to_usd::AvgCentsToUsd;
 pub use avg_sats_to_btc::AvgSatsToBtc;
@@ -21,5 +19,3 @@ pub use dollars_to_sats_fract::DollarsToSatsFract;
 pub use sats_signed_to_bitcoin::SatsSignedToBitcoin;
 pub use sats_to_bitcoin::SatsToBitcoin;
 pub use sats_to_cents::SatsToCents;
-pub use stored_u64_to_cents::StoredU64ToCents;
-pub use stored_u64_to_sats::StoredU64ToSats;

@@ -1,6 +1,5 @@
 use bitview_plugin_blocks::LookbackVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
 use bitview_transforms::CentsTimesTenths;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, LazyPriceWithRatioPerBlock, LazySmaVec, Price};
@@ -62,7 +61,7 @@ impl SmaVecs {
         mappings: &MappingsVecs,
         lookback: &LookbackVecs,
         spot_price: &impl ReadableCloneableVec<Height, Cents>,
-        prefix_sum: &impl ReadableCloneableVec<Height, StoredU64>,
+        prefix_sum: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Self {
         let version = version + VERSION;
 

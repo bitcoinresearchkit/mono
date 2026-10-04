@@ -1,7 +1,6 @@
 use bitview_cohort::{CohortContext, CohortGroup};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::StoredU64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     CumulativeCohortValueSources, LazyValuePerBlockCumulativeRolling, LazyWindowStartVec, SatsCents,
@@ -20,7 +19,8 @@ pub struct CumulativeValueByCohort<G: CohortGroup, M: StorageMode = Rw> {
 
 impl<G: CohortGroup> CumulativeValueByCohort<G>
 where
-    G::Of<StoredU64>: std::ops::AddAssign + Clone + Default,
+    G::Of<Sats>: std::ops::AddAssign + Clone + Default,
+    G::Of<Cents>: std::ops::AddAssign + Clone + Default,
 {
     pub fn import(
         db: &Database,
@@ -34,13 +34,13 @@ where
         let cohorts = G::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let SatsCents { sats, cents } = stored
-                .sources(cohort_id, &name, version)
+                .sources(cohort_id)
                 .expect("supported stored value cohort");
             LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
                 &name,
                 version,
-                &sats,
-                &cents,
+                sats,
+                cents,
                 mappings,
                 window_starts,
             )

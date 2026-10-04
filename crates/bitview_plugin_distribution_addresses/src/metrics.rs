@@ -98,8 +98,8 @@ impl BalanceMetrics {
                 LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
                     name,
                     cumulative_version,
-                    &sats,
-                    &cents,
+                    sats,
+                    cents,
                     mappings,
                     windows,
                 )

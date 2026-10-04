@@ -1,5 +1,5 @@
 use bitview_cohort::AgeAggregateId;
-use bitview_primitives::{Count, PartsPerMillionSigned32, StoredF64, StoredU64};
+use bitview_primitives::{Count, PartsPerMillionSigned32, StoredF64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, CumulativeState, import_cached};
 use brk_error::Result;
@@ -13,13 +13,13 @@ pub(crate) struct Columns<M: StorageMode = Rw> {
     pub supply: CachedSeries<Height, Sats, M>,
     pub count: CachedSeries<Height, Count, M>,
     pub spent_count: CachedSeries<Height, Count, M>,
-    pub volume_sats: CachedSeries<Height, StoredU64, M>,
-    pub volume_cents: CachedSeries<Height, StoredU64, M>,
-    pub volume_profit_sats: CachedSeries<Height, StoredU64, M>,
-    pub volume_profit_cents: CachedSeries<Height, StoredU64, M>,
-    pub volume_loss_sats: CachedSeries<Height, StoredU64, M>,
-    pub volume_loss_cents: CachedSeries<Height, StoredU64, M>,
-    pub adjusted_volume: CachedSeries<Height, StoredU64, M>,
+    pub volume_sats: CachedSeries<Height, Sats, M>,
+    pub volume_cents: CachedSeries<Height, Cents, M>,
+    pub volume_profit_sats: CachedSeries<Height, Sats, M>,
+    pub volume_profit_cents: CachedSeries<Height, Cents, M>,
+    pub volume_loss_sats: CachedSeries<Height, Sats, M>,
+    pub volume_loss_cents: CachedSeries<Height, Cents, M>,
+    pub adjusted_volume: CachedSeries<Height, Cents, M>,
     pub adjusted_value_destroyed: CachedSeries<Height, Cents, M>,
     pub cdd: CachedSeries<Height, StoredF64, M>,
     pub cap: CachedSeries<Height, Cents, M>,

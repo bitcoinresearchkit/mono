@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use bitview_primitives::{CentsSquaredSats, Count, StoredF64, StoredU64};
+use bitview_primitives::{CentsSquaredSats, Count, StoredF64};
 use brk_types::{Cents, CentsSats, CentsSigned, Sats};
 
 /// Additive accounting inputs from disjoint age bands at one height.
@@ -9,13 +9,13 @@ pub(crate) struct Data {
     pub supply: Sats,
     pub count: Count,
     pub spent_count: Count,
-    pub volume_sats: StoredU64,
-    pub volume_cents: StoredU64,
-    pub volume_profit_sats: StoredU64,
-    pub volume_profit_cents: StoredU64,
-    pub volume_loss_sats: StoredU64,
-    pub volume_loss_cents: StoredU64,
-    pub adjusted_volume: StoredU64,
+    pub volume_sats: Sats,
+    pub volume_cents: Cents,
+    pub volume_profit_sats: Sats,
+    pub volume_profit_cents: Cents,
+    pub volume_loss_sats: Sats,
+    pub volume_loss_cents: Cents,
+    pub adjusted_volume: Cents,
     pub adjusted_value_destroyed: Cents,
     pub cdd: StoredF64,
     pub cap: Cents,

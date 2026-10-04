@@ -2,7 +2,6 @@ use bitview_compute::ComputeRollingStats;
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_primitives::StoredU64;
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -45,7 +44,7 @@ impl Vecs {
 }
 
 fn compute_sma_prefix(
-    target: &mut CachedSeries<Height, StoredU64>,
+    target: &mut CachedSeries<Height, Cents>,
     from: Height,
     prices: &impl ReadableVec<Height, Cents>,
     exit: &Exit,
@@ -65,7 +64,7 @@ fn compute_sma_prefix(
             *sum = sum
                 .checked_add(price.inner())
                 .expect("price SMA prefix sum overflow");
-            (height, StoredU64::from(*sum))
+            (height, Cents::new(*sum))
         },
         exit,
     )?;

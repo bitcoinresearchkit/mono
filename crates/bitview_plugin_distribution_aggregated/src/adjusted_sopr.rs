@@ -2,13 +2,13 @@ use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::StoredF32;
-use bitview_transforms::{SoprRatio, StoredU64ToCents};
+use bitview_transforms::SoprRatio;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyFiatPerBlockCumulativeRolling, LazyWindowStartVec, RollingWindows};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyStoredVec, Database, LazyVec, ReadableCloneableVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use crate::columns::Columns;
 
@@ -27,17 +27,12 @@ impl AdjustedSopr {
         mappings: &Mappings,
         windows: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let created = LazyVec::transformed::<StoredU64ToCents>(
-            &id.metric_name("adj_value_created_cents_source"),
-            v,
-            c.adjusted_volume.read_only_boxed_clone(),
-        );
         Ok(Self {
             ratio: RollingWindows::import(db, &id.metric_name("adjusted_sopr"), v, mappings)?,
             transfer_volume: LazyFiatPerBlockCumulativeRolling::from_cumulative_cents_source(
                 &id.metric_name("adj_value_created"),
                 v,
-                &created,
+                &c.adjusted_volume,
                 mappings,
                 windows,
             ),

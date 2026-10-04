@@ -1,6 +1,6 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use bitview_primitives::{Boolean, CapitalSentimentPhase as Phase, StoredU8};
+use bitview_primitives::{Boolean, CapitalSentimentPhase as Phase, CapitalSentimentPhaseCode};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -68,7 +68,7 @@ impl ComputePlugin for Vecs {
 }
 
 fn compute_series(
-    phase: &mut CachedSeries<Height, StoredU8>,
+    phase: &mut CachedSeries<Height, CapitalSentimentPhaseCode>,
     position: &mut CachedSeries<Height, Boolean>,
     sources: [&dyn ReadableVec<Height, Cents>; 5],
     recompute_from: usize,
@@ -122,14 +122,14 @@ fn next_is_long(
     is_long: bool,
     previous_over_sth: Option<bool>,
     over_sth: bool,
-    phase_code: StoredU8,
+    phase_code: CapitalSentimentPhaseCode,
 ) -> bool {
     let crossed_above_sth = previous_over_sth.is_some_and(|previous| !previous && over_sth);
 
     if !is_long && crossed_above_sth {
         return true;
     }
-    if is_long && Phase::from_code(*phase_code).is_some_and(|phase| phase.is_sell()) {
+    if is_long && Option::<Phase>::from(phase_code).is_some_and(|phase| phase.is_sell()) {
         return false;
     }
     is_long
@@ -147,22 +147,22 @@ fn is_over_sth(price: Option<Cents>, sth: Option<Cents>) -> bool {
     })
 }
 
-/// Code `0` means the capitalized-price references are not all available yet.
+/// No phase while the capitalized-price references are not all available.
 fn classify_phase_code(
     price: Option<Cents>,
     all: Option<Cents>,
     sth: Option<Cents>,
     lth: Option<Cents>,
     sma: Option<Cents>,
-) -> StoredU8 {
+) -> CapitalSentimentPhaseCode {
     let (Some(price), Some(all), Some(sth), Some(lth)) = (price, all, sth, lth) else {
-        return StoredU8::ZERO;
+        return CapitalSentimentPhaseCode::from(None);
     };
     if ![price, all, sth, lth].into_iter().all(is_finite_positive) {
-        return StoredU8::ZERO;
+        return CapitalSentimentPhaseCode::from(None);
     }
 
-    StoredU8::new(classify_phase(price, all, sth, lth, sma).code())
+    CapitalSentimentPhaseCode::from(Some(classify_phase(price, all, sth, lth, sma)))
 }
 
 /// Classify investor sentiment from the three capitalized-price references,

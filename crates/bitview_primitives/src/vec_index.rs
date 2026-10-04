@@ -3,7 +3,7 @@ use vecdb::VecIndex;
 
 use crate::{
     Day1, Day3, EmptyOutputIndex, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1,
-    Month3, Month6, OpReturnIndex, StoredU8, Week1, Year, Year1, Year10,
+    Month3, Month6, OpReturnIndex, Week1, Year, Year1, Year10,
 };
 
 #[cfg(feature = "storage")]
@@ -34,8 +34,6 @@ impl VecIndex for Month3 {}
 impl VecIndex for Month6 {}
 #[cfg(feature = "storage")]
 impl VecIndex for OpReturnIndex {}
-#[cfg(feature = "storage")]
-impl VecIndex for StoredU8 {}
 #[cfg(feature = "storage")]
 impl VecIndex for Week1 {}
 #[cfg(feature = "storage")]

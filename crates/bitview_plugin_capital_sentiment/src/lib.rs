@@ -5,7 +5,7 @@ mod import;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::{Boolean, CapitalSentimentPhase, Score, StoredU8};
+use bitview_primitives::{Boolean, CapitalSentimentPhase, CapitalSentimentPhaseCode, Score};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock};
 use brk_types::Version;
@@ -22,7 +22,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
     /// Compact per-block source of truth.
     #[traversable(hidden)]
-    phase_code: PerBlock<StoredU8, M>,
+    phase_code: PerBlock<CapitalSentimentPhaseCode, M>,
 
     /// Whether the stateful Capital Sentiment strategy holds bitcoin rather than
     /// its short position on the indexed block. Using each block, it enters when spot crosses from below to at or above the
@@ -64,7 +64,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// `early_bull`, `weak_bull`, `limbo`, `deep_bear`, `bear`, or
     /// `early_bear`. Missing when spot or any capitalized-price input is absent,
     /// nonpositive, or non-finite; the moving average itself may be unavailable.
-    phase: LazyPerBlock<Option<CapitalSentimentPhase>, StoredU8>,
+    phase: LazyPerBlock<Option<CapitalSentimentPhase>, CapitalSentimentPhaseCode>,
     /// Coarse Capital Sentiment direction, where positive values are bullish and
     /// negative values bearish. It is derived from the per-block phase:
     /// `raging_bull`, `bull`, and `early_bull` map to 2; `cautious_bull`,

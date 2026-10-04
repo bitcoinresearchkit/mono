@@ -11,7 +11,6 @@ pub use arithmetic::{
 pub use currency::{
     AvgCentsToUsd, AvgSatsToBtc, CentsSignedToDollars, CentsTimesTenths, CentsUnsignedToDollars,
     CentsUnsignedToSats, DollarsToSatsFract, SatsSignedToBitcoin, SatsToBitcoin, SatsToCents,
-    StoredU64ToCents, StoredU64ToSats,
 };
 pub use ohlc::{OhlcCentsToDollars, OhlcCentsToHighCents, OhlcCentsToLowCents, OhlcCentsToSats};
 pub use ratio::{

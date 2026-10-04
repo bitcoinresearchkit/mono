@@ -1,15 +1,14 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::{StoredF64, StoredU64};
-use bitview_transforms::{DaysToYears, StoredU64ToCents, StoredU64ToSats};
+use bitview_primitives::StoredF64;
+use bitview_transforms::DaysToYears;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     CachedSeries, LazyPerBlock, LazyPerBlockCumulativeRolling, LazyValuePerBlockCumulativeRolling,
     LazyWindowStartVec,
 };
-use brk_types::{Height, Version};
-use vecdb::{LazyVec, ReadableCloneableVec};
+use brk_types::{Cents, Height, Sats, Version};
 
 use crate::columns::Columns;
 
@@ -31,21 +30,15 @@ impl Activity {
         windows: &Windows<&LazyWindowStartVec>,
     ) -> Self {
         let value = |metric: &str,
-                     sats: &CachedSeries<Height, StoredU64>,
-                     cents: &CachedSeries<Height, StoredU64>| {
-            let name = id.metric_name(metric);
-            let sats = LazyVec::transformed::<StoredU64ToSats>(
-                &format!("{name}_cumulative_sats"),
-                v,
-                sats.read_only_boxed_clone(),
-            );
-            let cents = LazyVec::transformed::<StoredU64ToCents>(
-                &format!("{name}_cumulative_cents"),
-                v,
-                cents.read_only_boxed_clone(),
-            );
+                     sats: &CachedSeries<Height, Sats>,
+                     cents: &CachedSeries<Height, Cents>| {
             LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
-                &name, v, &sats, &cents, mappings, windows,
+                &id.metric_name(metric),
+                v,
+                sats,
+                cents,
+                mappings,
+                windows,
             )
         };
         let transfer_volume = value("transfer_volume", &c.volume_sats, &c.volume_cents);
