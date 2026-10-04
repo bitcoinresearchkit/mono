@@ -7,3 +7,6 @@ mod generated;
 pub use date_series_data::*;
 pub use format_response::*;
 pub use generated::*;
+
+#[cfg(test)]
+mod tests;

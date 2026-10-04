@@ -376,17 +376,8 @@ impl Model {
         }
     }
 
-    /// Each shape's type name: `SeriesTree` for the root, otherwise the PascalCase tail of the
-    /// shape's shallowest (then smallest) path, with as many trailing keys as it takes to be unique,
-    /// stay clear of `reserved` and the type-parameter letters, and start with a letter. Names are
-    /// unique and never reserved.
-    pub(crate) fn shape_names(&self, reserved: &BTreeSet<String>) -> Vec<String> {
-        let max_params = self.params.iter().copied().max().unwrap_or(0);
-        let reserved: BTreeSet<String> = reserved
-            .iter()
-            .cloned()
-            .chain((0..max_params).map(param_name))
-            .collect();
+    /// Each shape's canonical path: the keys to its shallowest (then smallest) instance.
+    pub(crate) fn shape_paths(&self) -> Vec<Vec<String>> {
         let mut paths: Vec<Option<Vec<String>>> = vec![None; self.shapes.len()];
         let mut stack = vec![(self.root, Vec::new())];
         while let Some((id, path)) = stack.pop() {
@@ -406,7 +397,21 @@ impl Model {
                 stack.push((child, path));
             }
         }
-        let paths: Vec<Vec<String>> = paths.into_iter().map(Option::unwrap).collect();
+        paths.into_iter().map(Option::unwrap).collect()
+    }
+
+    /// Each shape's type name: `SeriesTree` for the root, otherwise the PascalCase tail of the
+    /// shape's shallowest (then smallest) path, with as many trailing keys as it takes to be unique,
+    /// stay clear of `reserved` and the type-parameter letters, and start with a letter. Names are
+    /// unique and never reserved.
+    pub(crate) fn shape_names(&self, reserved: &BTreeSet<String>) -> Vec<String> {
+        let max_params = self.params.iter().copied().max().unwrap_or(0);
+        let reserved: BTreeSet<String> = reserved
+            .iter()
+            .cloned()
+            .chain((0..max_params).map(param_name))
+            .collect();
+        let paths = self.shape_paths();
         let root = match &self.nodes[self.root].body {
             Body::Branch { shape, .. } => *shape,
             Body::Leaf => unreachable!("the catalog root is a branch"),

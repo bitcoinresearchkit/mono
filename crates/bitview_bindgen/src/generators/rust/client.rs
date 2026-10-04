@@ -1,4 +1,4 @@
-//! Rust base client and pattern factory generation.
+//! Rust base client, endpoints and leaf accessors.
 
 use std::fmt::Write;
 
@@ -30,13 +30,6 @@ pub(crate) fn generate_base_client(output: &mut String) {
         output,
         r#"/// Lazily initialized typed series-tree node.
 pub type LazyNode<T> = LazyLock<Box<T>, Box<dyn FnOnce() -> Box<T> + Send + Sync>>;
-
-fn lazy_node<T: 'static, A: Send + Sync + 'static>(
-    arg: A,
-    create: impl FnOnce(A) -> T + Send + Sync + 'static,
-) -> LazyNode<T> {{
-    LazyLock::new(Box::new(move || Box::new(create(arg))))
-}}
 
 /// Error type for Bitview client operations.
 #[derive(Debug)]
@@ -674,67 +667,74 @@ fn _dep<T: DeserializeOwned>(
     )
     .unwrap();
 
-    // Generate index accessor structs
-    writeln!(output, "// Index accessor structs\n").unwrap();
-
-    for (i, pattern) in patterns.iter().enumerate() {
-        let by_name = format!("{}By", pattern.name);
-        let idx_const = format!("_I{}", i + 1);
-
-        // Generate the "By" struct
-        writeln!(output, "pub struct {}<T> {{ client: Arc<BitviewClientBase>, name: Arc<str>, _marker: std::marker::PhantomData<T> }}", by_name).unwrap();
-        writeln!(output, "impl<T: DeserializeOwned> {}<T> {{", by_name).unwrap();
-        for index in &pattern.indexes {
-            let method_name = index_to_field_name(index);
-            if index.is_date_based() {
-                writeln!(
-                    output,
-                    "    pub fn {}(&self) -> DateSeriesEndpoint<T> {{ _dep(&self.client, &self.name, Index::{}) }}",
-                    method_name, index
-                )
-                .unwrap();
-            } else {
-                writeln!(
-                    output,
-                    "    pub fn {}(&self) -> SeriesEndpoint<T> {{ _ep(&self.client, &self.name, Index::{}) }}",
-                    method_name, index
-                )
-                .unwrap();
+    output.push_str(
+        r#"
+/// A leaf accessor: the series name plus one endpoint method per index (`date` for date indexes).
+macro_rules! accessor {
+    ($name:ident, $by:ident, $indexes:ident { $($kind:ident $method:ident: $index:ident,)* }) => {
+        pub struct $by<T> {
+            client: Arc<BitviewClientBase>,
+            name: Arc<str>,
+            _marker: std::marker::PhantomData<T>,
+        }
+        impl<T: DeserializeOwned> $by<T> {
+            $(accessor!(@method $kind $method $index);)*
+        }
+        pub struct $name<T> {
+            name: Arc<str>,
+            pub by: $by<T>,
+        }
+        impl<T: DeserializeOwned> $name<T> {
+            pub fn new(client: Arc<BitviewClientBase>, name: String) -> Self {
+                let name: Arc<str> = name.into();
+                Self { name: name.clone(), by: $by { client, name, _marker: std::marker::PhantomData } }
+            }
+            pub fn name(&self) -> &str {
+                &self.name
             }
         }
-        writeln!(output, "}}\n").unwrap();
-
-        // Generate the main accessor struct
-        writeln!(
-            output,
-            "pub struct {}<T> {{ name: Arc<str>, pub by: {}<T> }}",
-            pattern.name, by_name
-        )
-        .unwrap();
-        writeln!(output, "impl<T: DeserializeOwned> {}<T> {{", pattern.name).unwrap();
-        writeln!(
-            output,
-            "    pub fn new(client: Arc<BitviewClientBase>, name: String) -> Self {{ let name: Arc<str> = name.into(); Self {{ name: name.clone(), by: {} {{ client, name, _marker: std::marker::PhantomData }} }} }}",
-            by_name
-        )
-        .unwrap();
-        writeln!(output, "    pub fn name(&self) -> &str {{ &self.name }}").unwrap();
-        writeln!(output, "}}\n").unwrap();
-
-        // Implement AnySeriesPattern trait
-        writeln!(
-            output,
-            "impl<T> AnySeriesPattern for {}<T> {{ fn name(&self) -> &str {{ &self.name }} fn indexes(&self) -> &'static [Index] {{ {} }} }}",
-            pattern.name, idx_const
-        )
-        .unwrap();
-
-        // Implement SeriesPattern<T> trait
-        writeln!(
-            output,
-            "impl<T: DeserializeOwned> SeriesPattern<T> for {}<T> {{ fn get(&self, index: Index) -> Option<SeriesEndpoint<T>> {{ {}.contains(&index).then(|| _ep(&self.by.client, &self.by.name, index)) }} }}\n",
-            pattern.name, idx_const
-        )
-        .unwrap();
+        impl<T> AnySeriesPattern for $name<T> {
+            fn name(&self) -> &str {
+                &self.name
+            }
+            fn indexes(&self) -> &'static [Index] {
+                $indexes
+            }
+        }
+        impl<T: DeserializeOwned> SeriesPattern<T> for $name<T> {
+            fn get(&self, index: Index) -> Option<SeriesEndpoint<T>> {
+                $indexes.contains(&index).then(|| _ep(&self.by.client, &self.by.name, index))
+            }
+        }
+        impl<T: DeserializeOwned + Send + Sync + 'static> Node for $name<T> {
+            fn build(client: Arc<BitviewClientBase>, name: String) -> Self {
+                Self::new(client, name)
+            }
+            #[cfg(test)]
+            fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn AnySeriesPattern)) {
+                f(path, self)
+            }
+        }
+    };
+    (@method date $method:ident $index:ident) => {
+        pub fn $method(&self) -> DateSeriesEndpoint<T> {
+            _dep(&self.client, &self.name, Index::$index)
+        }
+    };
+    (@method plain $method:ident $index:ident) => {
+        pub fn $method(&self) -> SeriesEndpoint<T> {
+            _ep(&self.client, &self.name, Index::$index)
+        }
+    };
+}
+"#,
+    );
+    for (i, pattern) in patterns.iter().enumerate() {
+        writeln!(output, "accessor! {{ {0}, {0}By, _I{1} {{", pattern.name, i + 1).unwrap();
+        for index in &pattern.indexes {
+            let kind = if index.is_date_based() { "date" } else { "plain" };
+            writeln!(output, "    {kind} {}: {index},", index_to_field_name(index)).unwrap();
+        }
+        writeln!(output, "}} }}").unwrap();
     }
 }

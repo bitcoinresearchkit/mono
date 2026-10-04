@@ -1,128 +1,102 @@
-//! Typed Rust records and exact catalog bindings; no name-pattern inference.
+//! Rust series tree: one generic struct per model shape, declared through a local `shape!` macro.
 
 use std::fmt::Write;
 
-use crate::{CatalogTree, CatalogType, CatalogValue, IndexSetPattern, rust_field_name};
+use crate::{
+    IndexSetPattern, accessor_of, rust_field_name,
+    model::{ChildKind, Model, TyExpr, param_name},
+};
 
-pub(crate) fn generate_tree(output: &mut String, tree: &CatalogTree, indexes: &[IndexSetPattern]) {
-    output.push_str(
-        r#"
-enum _CatalogBinding {
-    Leaf(&'static str),
-    Branch(&'static [usize]),
+const RUNTIME: &str = r#"
+/// A series-tree node or leaf, built from its series name or base.
+pub(crate) trait Node: Sized + Send + Sync + 'static {
+    fn build(client: Arc<BitviewClientBase>, name: String) -> Self;
+    #[cfg(test)]
+    fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn AnySeriesPattern));
 }
 
-trait FromCatalog: Sized + Send + Sync + 'static {
-    fn from_catalog(client: Arc<BitviewClientBase>, binding: usize) -> Self;
+/// A child named by `template`: `*` stands for the parent's base, and with an empty base the `_`
+/// joining it goes too.
+fn child<T: Node>(client: &Arc<BitviewClientBase>, base: &Arc<str>, template: &'static str) -> LazyNode<T> {
+    let (client, base) = (client.clone(), base.clone());
+    LazyLock::new(Box::new(move || {
+        let name = if !base.is_empty() {
+            template.replacen('*', &base, 1)
+        } else if let Some(rest) = template.strip_prefix("*_") {
+            rest.to_owned()
+        } else {
+            template.replacen("_*", "", 1).replacen('*', "", 1)
+        };
+        Box::new(T::build(client, name))
+    }))
 }
-"#,
-    );
 
-    for family in &tree.families {
-        let parameters = (0..family.parameters())
-            .map(|i| format!("T{i}"))
-            .collect::<Vec<_>>();
-        let generic = if parameters.is_empty() {
-            String::new()
-        } else {
-            format!("<{}>", parameters.join(", "))
-        };
-        if family.path.is_empty() {
-            writeln!(output, "/// Catalog family of the series root.").unwrap();
-        } else {
-            let path = family
-                .path
-                .iter()
-                .map(|key| rust_field_name(key))
-                .collect::<Vec<_>>()
-                .join(".");
-            writeln!(output, "/// Catalog family, e.g. at `{path}`.").unwrap();
-        }
-        writeln!(output, "pub struct {}{generic} {{", family.name).unwrap();
-        for (field, slot) in &family.fields {
-            let field = rust_field_name(field);
-            writeln!(output, "    pub {field}: LazyNode<T{slot}>,").unwrap();
-        }
-        writeln!(output, "}}\n").unwrap();
-        let bounds = if parameters.is_empty() {
-            String::new()
-        } else {
-            format!(
-                "<{}>",
-                parameters
-                    .iter()
-                    .map(|p| format!("{p}: FromCatalog"))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        };
-        writeln!(
-            output,
-            "impl{bounds} FromCatalog for {}{generic} {{",
-            family.name
-        )
-        .unwrap();
-        output.push_str("    fn from_catalog(client: Arc<BitviewClientBase>, binding: usize) -> Self {\n        let _CatalogBinding::Branch(children) = &CATALOG_BINDINGS[binding] else { unreachable!(\"expected catalog branch\") };\n        Self {\n");
-        for (i, (field, slot)) in family.fields.iter().enumerate() {
-            let field = rust_field_name(field);
-            writeln!(output, "            {field}: lazy_node((client.clone(), children[{i}]), |(client, binding)| T{slot}::from_catalog(client, binding)),").unwrap();
-        }
-        output.push_str("        }\n    }\n}\n\n");
-    }
-
-    for accessor in indexes {
-        writeln!(
-            output,
-            "impl<T: DeserializeOwned + Send + Sync + 'static> FromCatalog for {}<T> {{",
-            accessor.name
-        )
-        .unwrap();
-        output.push_str("    fn from_catalog(client: Arc<BitviewClientBase>, binding: usize) -> Self {\n        let _CatalogBinding::Leaf(name) = &CATALOG_BINDINGS[binding] else { unreachable!(\"expected catalog leaf\") };\n        Self::new(client, (*name).to_string())\n    }\n}\n\n");
-    }
-
-    // Child type IDs precede their parents. Aliases keep deeply nested
-    // instantiations compact without guessing generic relationships.
-    for (id, ty) in tree.types.iter().enumerate() {
-        let ty = match ty {
-            CatalogType::Leaf { accessor, value } => {
-                format!("{}<{value}>", indexes[*accessor].name)
+/// A series-tree shape: a struct with one lazy field per child, documented with its canonical path.
+macro_rules! shape {
+    ($name:ident $(<$($p:ident),+>)? at $at:literal { $($field:ident: $ty:ty = $template:literal,)* }) => {
+        #[doc = concat!("Series-tree node, e.g. at `", $at, "`.")]
+        pub struct $name $(<$($p),+>)? { $(pub $field: LazyNode<$ty>,)* }
+        impl $(<$($p: Send + Sync + 'static),+>)? Node for $name $(<$($p),+>)? where $($ty: Node,)* {
+            fn build(client: Arc<BitviewClientBase>, base: String) -> Self {
+                let base: Arc<str> = base.into();
+                Self { $($field: child(&client, &base, $template),)* }
             }
-            CatalogType::Branch { family, arguments } => {
-                let name = &tree.families[*family].name;
-                if arguments.is_empty() {
-                    name.clone()
-                } else {
-                    format!(
-                        "{name}<{}>",
-                        arguments
-                            .iter()
-                            .map(|id| format!("_CatalogType{id}"))
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
+            #[cfg(test)]
+            fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn AnySeriesPattern)) {
+                $(self.$field.visit(&format!("{path}{}{}", if path.is_empty() { "" } else { "." }, stringify!($field)), f);)*
+            }
+        }
+    };
+}
+"#;
+
+pub(crate) fn generate_tree(
+    output: &mut String,
+    model: &Model,
+    names: &[String],
+    accessors: &[IndexSetPattern],
+) {
+    output.push_str(RUNTIME);
+    // Shapes live in their own module: their names must not hide the types the crate re-exports.
+    writeln!(output, "/// The series tree's node types, one generic struct per shape.").unwrap();
+    writeln!(output, "pub mod tree {{
+use super::*;
+").unwrap();
+    let ty = |expr: &TyExpr| expr.render(names, ["<", ">"], &|kind| kind.to_owned());
+    let paths = model.shape_paths();
+    for shape in model.shape_order() {
+        let params = model.params[shape];
+        let generic = if params == 0 {
+            String::new()
+        } else {
+            let letters: Vec<String> = (0..params).map(param_name).collect();
+            format!("<{}>", letters.join(", "))
+        };
+        let at: Vec<String> = paths[shape].iter().map(|key| rust_field_name(key)).collect();
+        let at = ["series()".to_owned()].into_iter().chain(at).collect::<Vec<_>>().join(".");
+        writeln!(output, "shape! {{ {}{generic} at {at:?} {{", names[shape]).unwrap();
+        let shape_def = &model.shapes[shape];
+        for (((key, kind), rule), expr) in shape_def
+            .signature
+            .0
+            .iter()
+            .zip(&shape_def.rules)
+            .zip(&model.child_types[shape])
+        {
+            let child = match kind {
+                ChildKind::Leaf(indexes) => {
+                    format!("{}<{}>", accessors[accessor_of(accessors, indexes)].name, ty(expr))
                 }
-            }
-        };
-        writeln!(output, "type _CatalogType{id} = {ty};").unwrap();
+                ChildKind::Branch => ty(expr),
+            };
+            writeln!(output, "    {}: {child} = {:?},", rust_field_name(key), rule.template()).unwrap();
+        }
+        writeln!(output, "}} }}").unwrap();
     }
+    writeln!(output, "}}\npub use tree::SeriesTree;").unwrap();
     writeln!(
         output,
-        "pub type SeriesTree = _CatalogType{};",
-        tree.nodes[tree.root].type_id
+        "fn create_series_tree(client: Arc<BitviewClientBase>) -> SeriesTree {{ SeriesTree::build(client, String::new()) }}"
     )
     .unwrap();
-    writeln!(output, "fn create_series_tree(client: Arc<BitviewClientBase>) -> SeriesTree {{ FromCatalog::from_catalog(client, {}) }}", tree.root).unwrap();
-
-    output.push_str("static CATALOG_BINDINGS: &[_CatalogBinding] = &[\n");
-    for node in &tree.nodes {
-        match &node.value {
-            CatalogValue::Leaf(name) => {
-                writeln!(output, "    _CatalogBinding::Leaf({name:?}),").unwrap()
-            }
-            CatalogValue::Branch(children) => {
-                writeln!(output, "    _CatalogBinding::Branch(&{children:?}),").unwrap()
-            }
-        }
-    }
-    output.push_str("];\n");
 }

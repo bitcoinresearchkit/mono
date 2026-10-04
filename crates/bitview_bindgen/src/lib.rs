@@ -72,7 +72,6 @@ impl ClientOutputPaths {
     }
 }
 
-mod catalog;
 mod client_paths;
 mod generate;
 mod generators;
@@ -83,7 +82,6 @@ mod types;
 #[cfg(test)]
 mod tests;
 
-pub use catalog::*;
 pub use client_paths::*;
 pub(crate) use generators::*;
 pub use openapi::*;
@@ -165,6 +163,7 @@ const RUNTIME_TYPE_NAMES: &[&str] = &[
     "Box",
     "DeserializeOwned",
     "Err",
+    "FnMut",
     "FromStr",
     "LazyLock",
     "Ok",
@@ -173,8 +172,10 @@ const RUNTIME_TYPE_NAMES: &[&str] = &[
     "RangeBounds",
     "Result",
     "Self",
+    "Send",
     "Some",
     "String",
+    "Sync",
     "Vec",
 ];
 
@@ -203,26 +204,29 @@ pub fn generate_clients(
     // Parse OpenAPI spec
     let spec = parse_openapi_json(openapi_json)?;
     let endpoints = extract_endpoints(&spec);
-    let mut schemas = TypeSchemas::default();
-    if output_paths.javascript.is_some()
-        || output_paths.python.is_some()
-        || !output_paths.llm.is_empty()
-        || output_paths.llm_manifest.is_some()
-    {
-        schemas = extract_schemas(openapi_json);
-        collect_leaf_type_schemas(catalog, &mut schemas);
-        let schema_values: Vec<_> = schemas.values().cloned().collect();
-        for schema in &schema_values {
-            collect_schema_definitions(schema, &mut schemas);
-        }
+    let mut schemas = extract_schemas(openapi_json);
+    collect_leaf_type_schemas(catalog, &mut schemas);
+    let schema_values: Vec<_> = schemas.values().cloned().collect();
+    for schema in &schema_values {
+        collect_schema_definitions(schema, &mut schemas);
     }
 
-    // Generate Rust client (uses the real types, no schema conversion needed)
+    // Every client renders the series tree from one model, with the same shape names.
+    let accessors = detect_index_patterns(catalog);
+    let model = model::Model::build(catalog);
+    let reserved = schemas
+        .keys()
+        .cloned()
+        .chain(RUNTIME_TYPE_NAMES.iter().map(|&name| name.to_owned()))
+        .chain(accessors.iter().map(|pattern| pattern.name.clone()))
+        .collect();
+    let shape_names = model.shape_names(&reserved);
+
     if let Some(rust_path) = &output_paths.rust {
         if let Some(parent) = rust_path.parent() {
             create_dir_all(parent)?;
         }
-        generate_rust_client(catalog, &endpoints, rust_path)?;
+        generate_rust_client(&model, &shape_names, &accessors, &endpoints, rust_path)?;
     }
 
     if let Some(cli_path) = &output_paths.cli {
@@ -232,43 +236,32 @@ pub fn generate_clients(
         generate_cli(&endpoints, cli_path)?;
     }
 
-    // JavaScript and Python share the series-tree model and its shape names.
-    if output_paths.javascript.is_some() || output_paths.python.is_some() {
-        let accessors = detect_index_patterns(catalog);
-        let model = model::Model::build(catalog);
-        let reserved = schemas
-            .keys()
-            .cloned()
-            .chain(RUNTIME_TYPE_NAMES.iter().map(|&name| name.to_owned()))
-            .chain(accessors.iter().map(|pattern| pattern.name.clone()))
-            .collect();
-        let shape_names = model.shape_names(&reserved);
-        if let Some(js_path) = &output_paths.javascript {
-            if let Some(parent) = js_path.parent() {
-                create_dir_all(parent)?;
-            }
-            generate_javascript_client(
-                &model,
-                &shape_names,
-                &accessors,
-                &endpoints,
-                &schemas,
-                js_path,
-            )?;
+    if let Some(js_path) = &output_paths.javascript {
+        if let Some(parent) = js_path.parent() {
+            create_dir_all(parent)?;
         }
-        if let Some(python_path) = &output_paths.python {
-            if let Some(parent) = python_path.parent() {
-                create_dir_all(parent)?;
-            }
-            generate_python_client(
-                &model,
-                &shape_names,
-                &accessors,
-                &endpoints,
-                &schemas,
-                python_path,
-            )?;
+        generate_javascript_client(
+            &model,
+            &shape_names,
+            &accessors,
+            &endpoints,
+            &schemas,
+            js_path,
+        )?;
+    }
+
+    if let Some(python_path) = &output_paths.python {
+        if let Some(parent) = python_path.parent() {
+            create_dir_all(parent)?;
         }
+        generate_python_client(
+            &model,
+            &shape_names,
+            &accessors,
+            &endpoints,
+            &schemas,
+            python_path,
+        )?;
     }
 
     generate_llm_clients(

@@ -55,7 +55,7 @@ endpoint at [mcp.bitview.space](https://mcp.bitview.space/).
 
 ## Built On
 
-JavaScript and Python render the series tree from one composition model
+Every client renders the series tree from one composition model
 (`model`). Every branch is an instance of a *shape*: its ordered child keys,
 leaf index sets and one naming rule per child. A rule derives the child's series
 name (a leaf) or base (a branch) from the parent's base, as a template such as
@@ -65,13 +65,16 @@ types come from anti-unification over all instances. Shapes are named after the
 PascalCase tail of their shallowest path. Generation asserts that composing
 every name from the root, exactly as the clients do, reproduces the catalog.
 
-The Rust client is still generated from the catalog tree with exact series
-names (a record family per structure, plus a table of names).
+In Rust a shape is a generic struct in `bitview_client::tree`, declared through
+a local `shape!` macro;
+its type parameters stand for whole child types where needed, so the types
+alone select each child's builder (the crate-private `Node` trait).
 
 Whatever the generator, every client exposes the same typed paths
 (`series.a.b.c`): `client_paths` lists them, and
-`crates/bitview_devtools/scripts/check_client_paths.{mjs,py}` verify that each
-one resolves to the right series in the generated JavaScript and Python clients.
+`crates/bitview_devtools/scripts/check_client_paths.{mjs,py}` and the
+`bitview_client` test verify that each one resolves to the right series in the
+generated JavaScript, Python and Rust clients, and that nothing else is there.
 
 Regenerate or verify only Rust outputs (client and CLI):
 
