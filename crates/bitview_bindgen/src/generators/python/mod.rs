@@ -10,13 +10,15 @@ pub(crate) mod types;
 use std::{fmt::Write, io, path::Path};
 
 use super::write_if_changed;
-use crate::{ClientMetadata, Endpoint, TypeSchemas};
+use crate::{Endpoint, IndexSetPattern, TypeSchemas, model::Model};
 
-/// Generate Python client from metadata and OpenAPI endpoints.
+/// Generate Python client from the series-tree model and OpenAPI endpoints.
 ///
 /// `output_path` is the full path to the output file (e.g., "packages/bitview_client/__init__.py").
 pub(crate) fn generate_python_client(
-    metadata: &ClientMetadata,
+    model: &Model,
+    shape_names: &[String],
+    accessors: &[IndexSetPattern],
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,
     output_path: &Path,
@@ -30,7 +32,7 @@ pub(crate) fn generate_python_client(
     writeln!(output, "from functools import cached_property").unwrap();
     writeln!(
         output,
-        "from typing import TypeVar, Generic, Any, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, overload, Tuple, TYPE_CHECKING"
+        "from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, overload, Tuple, TYPE_CHECKING"
     )
     .unwrap();
     writeln!(
@@ -44,7 +46,8 @@ pub(crate) fn generate_python_client(
         "from datetime import date, datetime, timedelta, timezone"
     )
     .unwrap();
-    writeln!(output, "import json\n").unwrap();
+    writeln!(output, "import json").unwrap();
+    writeln!(output, "import re\n").unwrap();
     writeln!(output, "if TYPE_CHECKING:").unwrap();
     writeln!(
         output,
@@ -61,9 +64,8 @@ pub(crate) fn generate_python_client(
     types::generate_type_definitions(&mut output, schemas);
     client::generate_base_client(&mut output);
     client::generate_endpoint_class(&mut output);
-    client::generate_index_accessors(&mut output, &metadata.index_set_patterns);
-    client::generate_structural_patterns(&mut output, &metadata.structural_patterns, metadata);
-    tree::generate_tree_classes(&mut output, &metadata.catalog, metadata);
+    client::generate_index_accessors(&mut output, accessors);
+    tree::generate_tree(&mut output, model, shape_names, accessors);
     api::generate_main_client(&mut output, endpoints);
 
     output.truncate(output.trim_end().len());

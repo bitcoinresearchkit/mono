@@ -1,154 +1,134 @@
-//! Python tree structure generation.
+//! Python series tree: a generic class per model shape whose children are lazy attributes.
 
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    fmt::Write,
-};
-
-use bitview_catalog::TreeNode;
+use std::fmt::Write;
 
 use crate::{
-    ClientMetadata, FieldParts, LanguageSyntax, PatternField, PythonSyntax, build_child_path,
-    generate_leaf_field, generate_tree_node_field, leaf_field_parts, prepare_tree_node,
-    tree_node_field_parts,
+    IndexSetPattern, accessor_of, client_value_type, python_field_name,
+    model::{ChildKind, Model, TyExpr, param_name},
 };
 
-const MAX_EAGER_LEAVES: usize = 4_096;
+const RUNTIME: &str = r#"class _Child:
+    """A series-tree child, materialized on first access. Its series name (a leaf) or base (a node)
+    is the template with `*` replaced by the parent's base, dropping the joining `_` when the base
+    is empty. It is made from (client, name) by an accessor or node class, by the index of one of
+    the parent's builders, or by a tuple applying a node class to builders."""
 
-/// Generate tree classes
-pub(crate) fn generate_tree_classes(
+    def __init__(self, make: Any, template: str):
+        self._make, self._template = make, template
+
+    def __set_name__(self, owner: type, key: str) -> None:
+        self._key = key
+
+    def __get__(self, node: Any, owner: Any = None) -> Any:
+        if node is None:
+            return self
+        base = node._b
+        if base:
+            name = self._template.replace('*', base)
+        else:
+            name = re.sub(r'^\*_|_?\*', '', self._template, count=1)
+        value = _builder(node, self._make)(node._c, name)
+        node.__dict__[self._key] = value
+        return value
+
+
+def _builder(node: _Node, make: Any) -> Callable[[BitviewClient, str], Any]:
+    if isinstance(make, int):
+        return node._f[make]
+    if isinstance(make, tuple):
+        cls, *args = make
+        builders = [_builder(node, arg) for arg in args]
+        return lambda c, b: cls(c, b, *builders)
+    return make
+
+
+def _at(make: Any, template: str) -> Any:
+    return _Child(make, template)
+
+
+class _Node:
+    """A series-tree node over base `_b`, built with one builder per shape parameter."""
+
+    def __init__(self, c: BitviewClient, b: str, *f: Callable[[BitviewClient, str], Any]):
+        self._c, self._b, self._f = c, b, f
+
+"#;
+
+/// One class per shape, children's shapes first: a class refers to its children's classes when
+/// it is defined.
+pub(crate) fn generate_tree(
     output: &mut String,
-    catalog: &TreeNode,
-    metadata: &ClientMetadata,
+    model: &Model,
+    names: &[String],
+    accessors: &[IndexSetPattern],
 ) {
-    writeln!(output, "# Series tree classes\n").unwrap();
+    writeln!(output, "# Series tree\n").unwrap();
+    output.push_str(RUNTIME);
+    let max_params = model.params.iter().copied().max().unwrap_or(0);
+    for p in 0..max_params {
+        let letter = param_name(p);
+        writeln!(output, "{letter} = TypeVar('{letter}')").unwrap();
+    }
+    writeln!(output).unwrap();
 
-    let pattern_lookup = metadata.pattern_lookup();
-    let mut generated = BTreeSet::new();
-    generate_tree_class(
-        output,
-        "SeriesTree",
-        "",
-        catalog,
-        pattern_lookup,
-        metadata,
-        &mut generated,
-    );
+    let value = |kind: &str| client_value_type(kind, |element| format!("List[{element}]"));
+    let ty = |expr: &TyExpr| expr.render(names, ["[", "]"], &value);
+    for shape in model.shape_order() {
+        let params = model.params[shape];
+        if params == 0 {
+            writeln!(output, "class {}(_Node):", names[shape]).unwrap();
+        } else {
+            let letters: Vec<String> = (0..params).map(param_name).collect();
+            writeln!(output, "class {}(_Node, Generic[{}]):", names[shape], letters.join(", "))
+                .unwrap();
+        }
+        let shape_def = &model.shapes[shape];
+        for (((key, kind), rule), expr) in shape_def
+            .signature
+            .0
+            .iter()
+            .zip(&shape_def.rules)
+            .zip(&model.child_types[shape])
+        {
+            let (annotation, make) = match kind {
+                ChildKind::Leaf(indexes) => {
+                    let accessor = &accessors[accessor_of(accessors, indexes)].name;
+                    (format!("{accessor}[{}]", ty(expr)), accessor.clone())
+                }
+                ChildKind::Branch => (ty(expr), builder(model, names, shape, expr)),
+            };
+            writeln!(
+                output,
+                "    {}: {annotation} = _at({make}, '{}')",
+                python_field_name(key),
+                rule.template()
+            )
+            .unwrap();
+        }
+        if shape_def.rules.is_empty() {
+            writeln!(output, "    pass").unwrap();
+        }
+        writeln!(output, "\n").unwrap();
+    }
 }
 
-/// Recursively generate tree classes
-fn generate_tree_class(
-    output: &mut String,
-    name: &str,
-    path: &str,
-    node: &TreeNode,
-    pattern_lookup: &BTreeMap<Vec<PatternField>, String>,
-    metadata: &ClientMetadata,
-    generated: &mut BTreeSet<String>,
-) {
-    let Some(ctx) = prepare_tree_node(node, name, path, pattern_lookup, metadata, generated) else {
-        return;
-    };
-
-    // Generate child classes FIRST (post-order traversal)
-    // This ensures children are defined before parent references them
-    for child in &ctx.children {
-        if child.should_inline {
-            let child_path = build_child_path(path, child.name);
-            generate_tree_class(
-                output,
-                &child.inline_type_name,
-                &child_path,
-                child.node,
-                pattern_lookup,
-                metadata,
-                generated,
-            );
+/// How a node builds its branch child typed `expr`: a class, the index of one of its own builders,
+/// or a tuple applying a class to the builders of that class's shape parameters.
+fn builder(model: &Model, names: &[String], shape: usize, expr: &TyExpr) -> String {
+    match expr {
+        TyExpr::Param(p) => {
+            let at = model.shape_params[shape].iter().position(|q| q == p);
+            at.expect("a branch child's parameter stands for a shape").to_string()
         }
-    }
-
-    // THEN generate the current class (after all children are defined)
-    writeln!(output, "class {}:", name).unwrap();
-    writeln!(output, "    \"\"\"Series tree node.\"\"\"").unwrap();
-    writeln!(output).unwrap();
-    writeln!(
-        output,
-        "    def __init__(self, client: BitviewClient, base_path: str = ''):"
-    )
-    .unwrap();
-
-    let lazy = node.leaf_count() > MAX_EAGER_LEAVES;
-    if ctx.children.is_empty() {
-        writeln!(output, "        pass").unwrap();
-    } else if lazy {
-        writeln!(output, "        self._client = client").unwrap();
-    } else {
-        let syntax = PythonSyntax;
-        for child in &ctx.children {
-            if child.is_leaf {
-                if let TreeNode::Leaf(leaf) = child.node {
-                    generate_leaf_field(
-                        output, &syntax, "client", child.name, leaf, metadata, "        ",
-                    );
-                }
-            } else if child.should_inline {
-                let field_name = syntax.field_name(child.name);
-                writeln!(
-                    output,
-                    "        self.{}: {} = {}(client)",
-                    field_name, child.inline_type_name, child.inline_type_name
-                )
-                .unwrap();
-            } else {
-                generate_tree_node_field(
-                    output,
-                    &syntax,
-                    &child.field,
-                    metadata,
-                    "        ",
-                    "client",
-                    &child.base_result,
-                );
+        TyExpr::Shape(child, args) => {
+            let child_params = &model.shape_params[*child];
+            if child_params.is_empty() {
+                return names[*child].clone();
             }
+            let builders: Vec<String> =
+                child_params.iter().map(|&p| builder(model, names, shape, &args[p])).collect();
+            format!("({}, {})", names[*child], builders.join(", "))
         }
+        TyExpr::Value(_) => unreachable!("a branch child is typed by a shape"),
     }
-
-    if lazy {
-        let syntax = PythonSyntax;
-        for child in &ctx.children {
-            let FieldParts {
-                name,
-                type_annotation,
-                value,
-            } = if child.is_leaf {
-                if let TreeNode::Leaf(leaf) = child.node {
-                    leaf_field_parts(&syntax, "self._client", child.name, leaf, metadata)
-                } else {
-                    unreachable!()
-                }
-            } else if child.should_inline {
-                let field_name = syntax.field_name(child.name);
-                FieldParts {
-                    name: field_name,
-                    type_annotation: child.inline_type_name.clone(),
-                    value: format!("{}(self._client)", child.inline_type_name),
-                }
-            } else {
-                tree_node_field_parts(
-                    &syntax,
-                    &child.field,
-                    metadata,
-                    "self._client",
-                    &child.base_result,
-                )
-            };
-
-            writeln!(output).unwrap();
-            writeln!(output, "    @cached_property").unwrap();
-            writeln!(output, "    def {}(self) -> {}:", name, type_annotation).unwrap();
-            writeln!(output, "        return {}", value).unwrap();
-        }
-    }
-
-    writeln!(output).unwrap();
 }

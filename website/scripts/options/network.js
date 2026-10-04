@@ -798,8 +798,8 @@ export function createNetworkSection() {
    * @template {string} K
    * @param {Object} args
    * @param {string} args.label - Singular noun for count/tree labels ("Output" / "Prev-Out")
-   * @param {Readonly<Record<K | "all", CountPattern<number>>>} args.count
-   * @param {Readonly<Record<K | "all", CountPattern<number>>>} args.txCount
+   * @param {Readonly<Record<K | "all", CountPattern>>} args.count
+   * @param {Readonly<Record<K | "all", CountPattern>>} args.txCount
    * @param {Readonly<Record<K, PercentRatioCumulativePattern>>} args.share
    * @param {Readonly<Record<K, PercentRatioCumulativePattern>>} args.txShare
    * @param {ReadonlyArray<{key: K, name: string, color: Color, defaultActive: boolean}>} args.types
@@ -826,7 +826,7 @@ export function createNetworkSection() {
 
     /**
      * @param {Object} args
-     * @param {Readonly<Record<string, CountPattern<number>>>} args.patterns
+     * @param {Readonly<Record<string, CountPattern>>} args.patterns
      * @param {(window: (typeof ROLLING_WINDOWS)[number], average: boolean) => string} args.windowTitle
      * @param {string} args.cumulativeTitle
      * @returns {PartialOptionsTree}

@@ -1,5 +1,6 @@
 """Walks every typed path of client-paths.tsv through the generated Python client and checks that
-the leaf it reaches names the expected series and exposes the expected indexes.
+the leaf it reaches names the expected series and exposes the expected indexes, and that
+enumerating the tree finds exactly those leaves.
 Reads the recorded baseline: run `cargo api` (or a passing `cargo api -- --check`) first.
 Usage: python3 crates/bitview_devtools/scripts/check_client_paths.py
 """
@@ -9,7 +10,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(root / "packages" / "bitview_client"))
-from bitview_client import BitviewClient  # noqa: E402
+from bitview_client import BitviewClient, _Child  # noqa: E402
 
 rows = [
     line.split("\t")
@@ -30,7 +31,25 @@ for name, _rust, _javascript, python, indexes in rows:
         failures.append(
             f"{python}: expected {name} {expected_indexes}, got {actual_name} {actual_indexes}"
         )
-for failure in failures[:20]:
+
+
+def count_leaves(node):
+    """Leaves reachable through the tree's lazy attributes."""
+    keys = [key for key, value in vars(type(node)).items() if isinstance(value, _Child)]
+    return sum(
+        1 if hasattr(child, "indexes") else count_leaves(child)
+        for child in (getattr(node, key) for key in keys)
+    )
+
+
+leaves = count_leaves(series)
+paths = len({python for _name, _rust, _javascript, python, _indexes in rows})
+problems = []
+if paths != len(rows):
+    problems.append(f"client-paths.tsv lists {len(rows) - paths} paths twice")
+if leaves != len(rows):
+    problems.append(f"the series tree enumerates {leaves} leaves, expected {len(rows)}")
+for failure in (problems + failures)[:20]:
     print(failure, file=sys.stderr)
 print(f"python: {len(rows) - len(failures)}/{len(rows)} typed paths resolve", file=sys.stderr)
-sys.exit(1 if failures else 0)
+sys.exit(1 if failures or problems else 0)

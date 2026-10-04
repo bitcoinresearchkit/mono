@@ -59,7 +59,7 @@ function singleWeightFolder({ avgPrice, avgName, inProfit, inLoss, percentiles, 
 }
 
 /**
- * @param {{ cohort: CohortAll | CohortFull | CohortLongTerm, title: (name: string) => string, ageBounds?: Bitview.SeriesTree_Cohorts_Urpd_AgeBounds }} args
+ * @param {{ cohort: CohortAll | CohortFull | CohortLongTerm, title: (name: string) => string, ageBounds?: Bitview.SeriesTree["cohorts"]["urpd"]["ageBounds"] }} args
  * @returns {PartialOptionsGroup}
  */
 export function createCostBasisSectionWithPercentiles({ cohort, title, ageBounds }) {

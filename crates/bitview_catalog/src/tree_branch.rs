@@ -6,33 +6,18 @@ use serde::{Deserialize, Serialize};
 
 use crate::TreeNode;
 
-// Catalog children and their internal naming metadata.
+// Catalog children, merged by key.
 // Keep the schema transparent too: schema documentation belongs to TreeNode,
 // not this wrapper, so its schema identity stays identical to the original map.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(transparent)]
 pub struct TreeBranch {
     pub children: IndexMap<String, TreeNode>,
-    /// Each child's base is the parent base followed by `_` and its catalog key.
-    #[serde(skip)]
-    pub field_suffixes: bool,
 }
-
-// As with leaf schemas, internal metadata does not change catalog equality.
-impl PartialEq for TreeBranch {
-    fn eq(&self, other: &Self) -> bool {
-        self.children == other.children
-    }
-}
-
-impl Eq for TreeBranch {}
 
 impl From<IndexMap<String, TreeNode>> for TreeBranch {
     fn from(children: IndexMap<String, TreeNode>) -> Self {
-        Self {
-            children,
-            field_suffixes: false,
-        }
+        Self { children }
     }
 }
 

@@ -3,7 +3,7 @@
 use bitview_catalog::TreeNode;
 use bitview_primitives::Index;
 
-use crate::{JavaScriptSyntax, LanguageSyntax, PythonSyntax, rust_field_name};
+use crate::{js_field_name, python_field_name, rust_field_name};
 
 /// One series leaf as reached through the typed tree of each client, e.g.
 /// `market.ath.days_since` (Rust, Python) and `market.ath.daysSince` (JavaScript).
@@ -43,8 +43,8 @@ fn collect<'a>(node: &'a TreeNode, keys: &mut Vec<&'a str>, paths: &mut Vec<Clie
                 series: leaf.name().to_owned(),
                 indexes: leaf.indexes().iter().copied().collect(),
                 rust: join(&rust_field_name),
-                javascript: join(&|key| JavaScriptSyntax.field_name(key)),
-                python: join(&|key| PythonSyntax.field_name(key)),
+                javascript: join(&js_field_name),
+                python: join(&python_field_name),
             });
         }
     }

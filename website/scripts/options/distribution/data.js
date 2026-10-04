@@ -204,7 +204,7 @@ export function buildCohortData() {
   };
 }
 
-/** @param {keyof Bitview.SeriesTree_Addrs_ByBalance["supply"]} key */
+/** @param {keyof Bitview.SeriesTree["addrs"]["byBalance"]["supply"]} key */
 export function addressBalanceTree(key) {
   const { byBalance } = bitview.series.addrs;
   return {

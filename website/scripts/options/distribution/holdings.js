@@ -2,11 +2,11 @@
  * Holdings section builders
  *
  * Supply pattern capabilities by cohort type:
- * - DeltaHalfInRelTotalPattern2 (STH/LTH): inProfit + inLoss + dominance + share
- * - SeriesTree_Cohorts_Utxo_All_Supply (All): inProfit + inLoss + share (no dominance)
+ * - STH/LTH: inProfit + inLoss + dominance + share
+ * - All: inProfit + inLoss + share (no dominance)
  * - Core/AgeRange: inProfit + inLoss + dominance (no share)
- * - DeltaHalfInTotalPattern2 (Type.*): inProfit + inLoss (no rel)
- * - DeltaHalfTotalPattern (Empty/UtxoAmount/AddrAmount): total
+ * - Type.*: inProfit + inLoss (no rel)
+ * - Empty/UtxoAmount/AddrAmount: total
  */
 
 import { Unit } from "../../utils/units.js";

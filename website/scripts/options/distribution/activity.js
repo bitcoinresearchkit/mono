@@ -151,7 +151,7 @@ function soprWindows(ratios) {
 }
 
 /**
- * @param {RollingWindowPattern<number>} ratio
+ * @param {RollingWindowPattern} ratio
  * @param {(name: string) => string} title
  * @param {string} [prefix]
  * @returns {PartialOptionsTree}

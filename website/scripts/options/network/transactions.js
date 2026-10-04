@@ -17,7 +17,7 @@ import { satsBtcUsdFullTree } from "../shared.js";
  * @param {Object} args
  * @param {string} args.name
  * @param {string} args.metric
- * @param {CountPattern<number>} args.pattern
+ * @param {CountPattern} args.pattern
  * @param {Unit} [args.unit]
  * @returns {PartialOptionsGroup}
  */

@@ -4,11 +4,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TypeVar, Generic, Any, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, overload, Tuple, TYPE_CHECKING
+from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, overload, Tuple, TYPE_CHECKING
 from http.client import HTTPSConnection, HTTPConnection
 from urllib.parse import urlparse
 from datetime import date, datetime, timedelta, timezone
 import json
+import re
 
 if TYPE_CHECKING:
     import pandas as pd  # type: ignore[import-not-found]
@@ -1924,16 +1925,6 @@ class BitviewClientBase:
         self.close()
 
 
-def _m(acc: str, s: str) -> str:
-    """Build series name with suffix."""
-    if not s: return acc
-    return f"{acc}_{s}" if acc else s
-
-
-def _p(prefix: str, acc: str) -> str:
-    """Build series name with prefix."""
-    return f"{prefix}_{acc}" if acc else prefix
-
 
 
 _MASK_64 = (1 << 64) - 1
@@ -3014,6231 +3005,2664 @@ class SeriesPattern35(Generic[T]):
     def indexes(self) -> List[str]: return list(_i35)
     def get(self, index: Index) -> Optional[SeriesEndpoint[T]]: return _ep(self.by._c, self._n, index) if index in _i35 else None
 
-# Reusable structural pattern classes
-
-class CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, _m(acc, 'cents'))
-        self.pct0_1: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct0_1')
-        self.pct0_5: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct0_5')
-        self.pct1: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct1')
-        self.pct10: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct10')
-        self.pct2: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct2')
-        self.pct20: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct20')
-        self.pct30: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct30')
-        self.pct40: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct40')
-        self.pct5: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct5')
-        self.pct50: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct50')
-        self.pct60: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct60')
-        self.pct70: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct70')
-        self.pct80: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct80')
-        self.pct90: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct90')
-        self.pct95: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct95')
-        self.pct98: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct98')
-        self.pct99: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct99')
-        self.pct99_5: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct99_5')
-        self.pct99_9: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct99_9')
-        self.ppm: SeriesPattern1[PriceRatio] = SeriesPattern1(client, _m(acc, 'ratio_ppm'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'ratio'))
-        self.sats: SeriesPattern1[SatsFract] = SeriesPattern1(client, _m(acc, 'sats'))
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
-
-class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern2:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern5:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern10:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern4:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern12:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class AscribeBareBitproofBlockstackCoinColuDocproofEmptyEpobcEternityFactomKomodoMemoOmniOpenPoetRunesStacksStamperyTextUnknownVeriPattern3:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.index: SeriesPattern1[StoredI8] = SeriesPattern1(client, _m(acc, 'index'))
-        self.pct0_1: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct0_1'))
-        self.pct0_5: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct0_5'))
-        self.pct1: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct01'))
-        self.pct10: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct10'))
-        self.pct2: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct02'))
-        self.pct20: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct20'))
-        self.pct30: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct30'))
-        self.pct40: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct40'))
-        self.pct5: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct05'))
-        self.pct50: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct50'))
-        self.pct60: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct60'))
-        self.pct70: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct70'))
-        self.pct80: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct80'))
-        self.pct90: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct90'))
-        self.pct95: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct95'))
-        self.pct98: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct98'))
-        self.pct99: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct99'))
-        self.pct99_5: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct99_5'))
-        self.pct99_9: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct99_9'))
-        self.score: SeriesPattern1[StoredI8] = SeriesPattern1(client, _m(acc, 'score'))
-
-class Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.pct05: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct05'))
-        self.pct10: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct10'))
-        self.pct15: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct15'))
-        self.pct20: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct20'))
-        self.pct25: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct25'))
-        self.pct30: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct30'))
-        self.pct35: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct35'))
-        self.pct40: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct40'))
-        self.pct45: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct45'))
-        self.pct50: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct50'))
-        self.pct55: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct55'))
-        self.pct60: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct60'))
-        self.pct65: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct65'))
-        self.pct70: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct70'))
-        self.pct75: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct75'))
-        self.pct80: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct80'))
-        self.pct85: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct85'))
-        self.pct90: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct90'))
-        self.pct95: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct95'))
-
-class Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.pct0_1: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct0_1')
-        self.pct0_5: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct0_5')
-        self.pct1: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct1')
-        self.pct10: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct10')
-        self.pct2: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct2')
-        self.pct20: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct20')
-        self.pct30: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct30')
-        self.pct40: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct40')
-        self.pct5: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct5')
-        self.pct50: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct50')
-        self.pct60: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct60')
-        self.pct70: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct70')
-        self.pct80: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct80')
-        self.pct90: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct90')
-        self.pct95: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct95')
-        self.pct98: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct98')
-        self.pct99: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct99')
-        self.pct99_5: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct99_5')
-        self.pct99_9: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct99_9')
-
-class _200920102011201220132014201520162017201820192020202120222023202420252026Pattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str, disc: str):
-        """Create pattern node with accumulated series name."""
-        self._2009: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2009_transfer_volume'), disc))
-        self._2010: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2010_transfer_volume'), disc))
-        self._2011: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2011_transfer_volume'), disc))
-        self._2012: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2012_transfer_volume'), disc))
-        self._2013: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2013_transfer_volume'), disc))
-        self._2014: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2014_transfer_volume'), disc))
-        self._2015: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2015_transfer_volume'), disc))
-        self._2016: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2016_transfer_volume'), disc))
-        self._2017: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2017_transfer_volume'), disc))
-        self._2018: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2018_transfer_volume'), disc))
-        self._2019: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2019_transfer_volume'), disc))
-        self._2020: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2020_transfer_volume'), disc))
-        self._2021: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2021_transfer_volume'), disc))
-        self._2022: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2022_transfer_volume'), disc))
-        self._2023: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2023_transfer_volume'), disc))
-        self._2024: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2024_transfer_volume'), disc))
-        self._2025: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2025_transfer_volume'), disc))
-        self._2026: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2026_transfer_volume'), disc))
-
-class _200920102011201220132014201520162017201820192020202120222023202420252026Pattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _200920102011201220132014201520162017201820192020202120222023202420252026Pattern5:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _200920102011201220132014201520162017201820192020202120222023202420252026Pattern10:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _200920102011201220132014201520162017201820192020202120222023202420252026Pattern4:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._0sats: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '0sats_transfer_volume'))
-        self._100btc_to_1k_btc: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '100btc_to_1k_btc_transfer_volume'))
-        self._100k_sats_to_1m_sats: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '100k_sats_to_1m_sats_transfer_volume'))
-        self._100sats_to_1k_sats: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '100sats_to_1k_sats_transfer_volume'))
-        self._10btc_to_100btc: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '10btc_to_100btc_transfer_volume'))
-        self._10k_btc_to_100k_btc: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '10k_btc_to_100k_btc_transfer_volume'))
-        self._10k_sats_to_100k_sats: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '10k_sats_to_100k_sats_transfer_volume'))
-        self._10m_sats_to_1btc: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '10m_sats_to_1btc_transfer_volume'))
-        self._10sats_to_100sats: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '10sats_to_100sats_transfer_volume'))
-        self._1btc_to_10btc: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '1btc_to_10btc_transfer_volume'))
-        self._1k_btc_to_10k_btc: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '1k_btc_to_10k_btc_transfer_volume'))
-        self._1k_sats_to_10k_sats: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '1k_sats_to_10k_sats_transfer_volume'))
-        self._1m_sats_to_10m_sats: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '1m_sats_to_10m_sats_transfer_volume'))
-        self._1sat_to_10sats: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, '1sat_to_10sats_transfer_volume'))
-        self.over_100k_btc: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, 'over_100k_btc_transfer_volume'))
-
-class _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern5:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern2:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._0sats: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '0sats_realized_cap'))
-        self._100btc_to_1k_btc: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '100btc_to_1k_btc_realized_cap'))
-        self._100k_sats_to_1m_sats: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '100k_sats_to_1m_sats_realized_cap'))
-        self._100sats_to_1k_sats: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '100sats_to_1k_sats_realized_cap'))
-        self._10btc_to_100btc: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '10btc_to_100btc_realized_cap'))
-        self._10k_btc_to_100k_btc: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '10k_btc_to_100k_btc_realized_cap'))
-        self._10k_sats_to_100k_sats: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '10k_sats_to_100k_sats_realized_cap'))
-        self._10m_sats_to_1btc: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '10m_sats_to_1btc_realized_cap'))
-        self._10sats_to_100sats: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '10sats_to_100sats_realized_cap'))
-        self._1btc_to_10btc: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '1btc_to_10btc_realized_cap'))
-        self._1k_btc_to_10k_btc: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '1k_btc_to_10k_btc_realized_cap'))
-        self._1k_sats_to_10k_sats: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '1k_sats_to_10k_sats_realized_cap'))
-        self._1m_sats_to_10m_sats: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '1m_sats_to_10m_sats_realized_cap'))
-        self._1sat_to_10sats: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '1sat_to_10sats_realized_cap'))
-        self.over_100k_btc: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'over_100k_btc_realized_cap'))
-
-class InvestedNetRealizedSupplyUnrealizedPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.invested_capital_in_loss_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'invested_capital_in_loss_share'))
-        self.invested_capital_in_profit_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'invested_capital_in_profit_share'))
-        self.net_pnl_change_1m_to_mcap: PercentPpmRatioPattern = PercentPpmRatioPattern(client, _m(acc, 'net_pnl_change_1m_to_mcap'))
-        self.net_pnl_change_1m_to_rcap: PercentPpmRatioPattern = PercentPpmRatioPattern(client, _m(acc, 'net_pnl_change_1m_to_rcap'))
-        self.net_unrealized_pnl_to_own_gross_pnl: PercentPpmRatioPattern3 = PercentPpmRatioPattern3(client, _m(acc, 'net_unrealized_pnl_to_own_gross_pnl'))
-        self.realized_cap_to_own_mcap: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'realized_cap_to_own_mcap'))
-        self.supply_dominance: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'supply_dominance'))
-        self.supply_in_loss_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'supply_in_loss_share'))
-        self.supply_in_profit_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'supply_in_profit_share'))
-        self.unrealized_loss_to_mcap: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'unrealized_loss_to_mcap'))
-        self.unrealized_loss_to_own_gross_pnl: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'unrealized_loss_to_own_gross_pnl'))
-        self.unrealized_loss_to_own_mcap: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'unrealized_loss_to_own_mcap'))
-        self.unrealized_profit_to_mcap: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'unrealized_profit_to_mcap'))
-        self.unrealized_profit_to_own_gross_pnl: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'unrealized_profit_to_own_gross_pnl'))
-        self.unrealized_profit_to_own_mcap: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'unrealized_profit_to_own_mcap'))
-
-class AllEmptyOpP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.all: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'bis'))
-        self.empty: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_empty_outputs_output'))
-        self.op_return: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_op_return_output'))
-        self.p2a: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_p2a_output'))
-        self.p2ms: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_p2ms_output'))
-        self.p2pk33: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_p2pk33_output'))
-        self.p2pk65: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_p2pk65_output'))
-        self.p2pkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_p2pkh_output'))
-        self.p2sh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_p2sh_output'))
-        self.p2tr: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_p2tr_output'))
-        self.p2wpkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_p2wpkh_output'))
-        self.p2wsh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_p2wsh_output'))
-        self.unknown: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'with_unknown_outputs_output'))
-
-class AllEmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class EmptyOpP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.empty: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'empty_outputs_output'))
-        self.op_return: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'op_return_output'))
-        self.p2a: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2a_output'))
-        self.p2ms: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2ms_output'))
-        self.p2pk33: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2pk33_output'))
-        self.p2pk65: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2pk65_output'))
-        self.p2pkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2pkh_output'))
-        self.p2sh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2sh_output'))
-        self.p2tr: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2tr_output'))
-        self.p2wpkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2wpkh_output'))
-        self.p2wsh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2wsh_output'))
-        self.unknown: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'unknown_outputs_output'))
-
-class AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.average: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, _m(acc, 'average'))
-        self.block: SeriesPattern18[StoredU64] = SeriesPattern18(client, acc)
-        self.cumulative: SeriesPattern1[StoredU64] = SeriesPattern1(client, _m(acc, 'cumulative'))
-        self.max: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'max'))
-        self.median: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'median'))
-        self.min: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'min'))
-        self.pct10: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'pct10'))
-        self.pct25: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'pct25'))
-        self.pct75: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'pct75'))
-        self.pct90: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'pct90'))
-        self.sum: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'sum'))
-
-class EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.empty: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('empty_outputs', acc))
-        self.p2a: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('p2a', acc))
-        self.p2ms: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('p2ms', acc))
-        self.p2pk33: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('p2pk33', acc))
-        self.p2pk65: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('p2pk65', acc))
-        self.p2pkh: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('p2pkh', acc))
-        self.p2sh: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('p2sh', acc))
-        self.p2tr: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('p2tr', acc))
-        self.p2wpkh: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('p2wpkh', acc))
-        self.p2wsh: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('p2wsh', acc))
-        self.unknown: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _p('unknown_outputs', acc))
-
-class EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.empty: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('empty_outputs', acc))
-        self.p2a: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('p2a', acc))
-        self.p2ms: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('p2ms', acc))
-        self.p2pk33: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('p2pk33', acc))
-        self.p2pk65: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('p2pk65', acc))
-        self.p2pkh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('p2pkh', acc))
-        self.p2sh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('p2sh', acc))
-        self.p2tr: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('p2tr', acc))
-        self.p2wpkh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('p2wpkh', acc))
-        self.p2wsh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('p2wsh', acc))
-        self.unknown: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _p('unknown_outputs', acc))
-
-class EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.empty: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'empty_outputs_prevout'))
-        self.p2a: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2a_prevout'))
-        self.p2ms: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2ms_prevout'))
-        self.p2pk33: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2pk33_prevout'))
-        self.p2pk65: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2pk65_prevout'))
-        self.p2pkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2pkh_prevout'))
-        self.p2sh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2sh_prevout'))
-        self.p2tr: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2tr_prevout'))
-        self.p2wpkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2wpkh_prevout'))
-        self.p2wsh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2wsh_prevout'))
-        self.unknown: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'unknown_outputs_prevout'))
-
-class AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshSharePattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class CapCapitalizedGrossLossMvrvNetPeakPriceProfitValuePattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cap: CentsDeltaUsdPattern = CentsDeltaUsdPattern(client, _m(acc, 'realized_cap'))
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, _m(acc, 'capitalized_price'))
-        self.gross_pnl: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _m(acc, 'realized_gross_pnl'))
-        self.loss: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _m(acc, 'realized_loss'))
-        self.mvrv: PpmRatioPattern2 = PpmRatioPattern2(client, _m(acc, 'mvrv'))
-        self.net_pnl: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, _m(acc, 'net_realized_pnl'))
-        self.peak_regret: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _m(acc, 'realized_peak_regret'))
-        self.price: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'realized_price'))
-        self.profit: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, _m(acc, 'realized_profit'))
-        self.value_destroyed: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, _m(acc, 'value_destroyed'))
-
-class GreedGrossInvestedLossNetNuplPainProfitPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.greed_index: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'greed_index'))
-        self.gross_pnl: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'unrealized_gross_pnl'))
-        self.invested_capital_in_loss: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'invested_capital_in_loss'))
-        self.invested_capital_in_profit: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'invested_capital_in_profit'))
-        self.loss: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'unrealized_loss'))
-        self.net_pnl: CentsUsdPattern4 = CentsUsdPattern4(client, _m(acc, 'net_unrealized_pnl'))
-        self.net_sentiment: CentsUsdPattern4 = CentsUsdPattern4(client, _m(acc, 'net_sentiment'))
-        self.nupl: PpmRatioPattern3 = PpmRatioPattern3(client, _m(acc, 'nupl'))
-        self.pain_index: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'pain_index'))
-        self.profit: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'unrealized_profit'))
-
-class AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.all: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, acc)
-        self.p2a: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _p('p2a', acc))
-        self.p2pk33: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _p('p2pk33', acc))
-        self.p2pk65: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _p('p2pk65', acc))
-        self.p2pkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _p('p2pkh', acc))
-        self.p2sh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _p('p2sh', acc))
-        self.p2tr: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _p('p2tr', acc))
-        self.p2wpkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _p('p2wpkh', acc))
-        self.p2wsh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _p('p2wsh', acc))
-
-class AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern5:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.all: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, acc)
-        self.p2a: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _p('p2a', acc))
-        self.p2pk33: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _p('p2pk33', acc))
-        self.p2pk65: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _p('p2pk65', acc))
-        self.p2pkh: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _p('p2pkh', acc))
-        self.p2sh: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _p('p2sh', acc))
-        self.p2tr: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _p('p2tr', acc))
-        self.p2wpkh: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _p('p2wpkh', acc))
-        self.p2wsh: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _p('p2wsh', acc))
-
-class AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.all: SeriesPattern1[StoredU64] = SeriesPattern1(client, acc)
-        self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, _p('p2a', acc))
-        self.p2pk33: SeriesPattern1[StoredU64] = SeriesPattern1(client, _p('p2pk33', acc))
-        self.p2pk65: SeriesPattern1[StoredU64] = SeriesPattern1(client, _p('p2pk65', acc))
-        self.p2pkh: SeriesPattern1[StoredU64] = SeriesPattern1(client, _p('p2pkh', acc))
-        self.p2sh: SeriesPattern1[StoredU64] = SeriesPattern1(client, _p('p2sh', acc))
-        self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, _p('p2tr', acc))
-        self.p2wpkh: SeriesPattern1[StoredU64] = SeriesPattern1(client, _p('p2wpkh', acc))
-        self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, _p('p2wsh', acc))
-
-class AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.all: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, acc)
-        self.p2a: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, _p('p2a', acc))
-        self.p2pk33: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, _p('p2pk33', acc))
-        self.p2pk65: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, _p('p2pk65', acc))
-        self.p2pkh: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, _p('p2pkh', acc))
-        self.p2sh: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, _p('p2sh', acc))
-        self.p2tr: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, _p('p2tr', acc))
-        self.p2wpkh: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, _p('p2wpkh', acc))
-        self.p2wsh: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, _p('p2wsh', acc))
-
-class AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.all: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, acc)
-        self.p2a: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _p('p2a', acc))
-        self.p2pk33: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _p('p2pk33', acc))
-        self.p2pk65: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _p('p2pk65', acc))
-        self.p2pkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _p('p2pkh', acc))
-        self.p2sh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _p('p2sh', acc))
-        self.p2tr: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _p('p2tr', acc))
-        self.p2wpkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _p('p2wpkh', acc))
-        self.p2wsh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _p('p2wsh', acc))
-
-class AverageMaxMedianMinPct10Pct25Pct75Pct90SumPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.average: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, _m(acc, 'average'))
-        self.max: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'max'))
-        self.median: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'median'))
-        self.min: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'min'))
-        self.pct10: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'pct10'))
-        self.pct25: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'pct25'))
-        self.pct75: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'pct75'))
-        self.pct90: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'pct90'))
-        self.sum: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'sum'))
-
-class Pct10Pct20Pct30Pct40Pct50Pct60Pct70Pct80Pct90Pattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.pct10: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct10'))
-        self.pct20: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct20'))
-        self.pct30: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct30'))
-        self.pct40: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct40'))
-        self.pct50: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct50'))
-        self.pct60: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct60'))
-        self.pct70: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct70'))
-        self.pct80: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct80'))
-        self.pct90: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct90'))
-
-class ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.activity: CoindaysCoinyearsTransferPattern = CoindaysCoinyearsTransferPattern(client, acc)
-        self.cost_basis: InMaxMinPerSupplyPattern = InMaxMinPerSupplyPattern(client, acc)
-        self.outputs: SpentUnspentPattern = SpentUnspentPattern(client, acc)
-        self.ratios: AdjustedDormancyProfitSellSoprPattern = AdjustedDormancyProfitSellSoprPattern(client, acc)
-        self.realized: CapCapitalizedGrossLossMvrvNetPeakPriceProfitValuePattern = CapCapitalizedGrossLossMvrvNetPeakPriceProfitValuePattern(client, acc)
-        self.relative: InvestedNetRealizedSupplyUnrealizedPattern = InvestedNetRealizedSupplyUnrealizedPattern(client, acc)
-        self.supply: DeltaInTotalPattern = DeltaInTotalPattern(client, _m(acc, 'supply'))
-        self.unrealized: GreedGrossInvestedLossNetNuplPainProfitPattern = GreedGrossInvestedLossNetNuplPainProfitPattern(client, acc)
-
-class _1m1w1y24hPercentPpmRatioPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '1m'))
-        self._1w: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '1w'))
-        self._1y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '1y'))
-        self._24h: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '24h'))
-        self.percent: SeriesPattern1[StoredF32] = SeriesPattern1(client, acc)
-        self.ppm: SeriesPattern1[PartsPerMillion32] = SeriesPattern1(client, _m(acc, 'ppm'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'ratio'))
-
-class ActiveInputOutputSpendablePattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class AllLthOverSthUnderPattern2:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class InMaxMinPerSupplyPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.in_loss: PerPattern2 = PerPattern2(client, _m(acc, 'cost_basis_in_loss_per'))
-        self.in_profit: PerPattern2 = PerPattern2(client, _m(acc, 'cost_basis_in_profit_per'))
-        self.max: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'cost_basis_max'))
-        self.min: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'cost_basis_min'))
-        self.per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'cost_basis_per_coin'))
-        self.per_dollar: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'cost_basis_per_dollar'))
-        self.supply_density: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'supply_density'))
-
-class MaxMedianMinPct10Pct25Pct75Pct90Pattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.max: SeriesPattern18[VSize] = SeriesPattern18(client, _m(acc, 'max'))
-        self.median: SeriesPattern18[VSize] = SeriesPattern18(client, _m(acc, 'median'))
-        self.min: SeriesPattern18[VSize] = SeriesPattern18(client, _m(acc, 'min'))
-        self.pct10: SeriesPattern18[VSize] = SeriesPattern18(client, _m(acc, 'pct10'))
-        self.pct25: SeriesPattern18[VSize] = SeriesPattern18(client, _m(acc, 'pct25'))
-        self.pct75: SeriesPattern18[VSize] = SeriesPattern18(client, _m(acc, 'pct75'))
-        self.pct90: SeriesPattern18[VSize] = SeriesPattern18(client, _m(acc, 'pct90'))
-
-class MaxMedianMinPct10Pct25Pct75Pct90Pattern(Generic[T]):
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.max: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, 'max'))
-        self.median: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, 'median'))
-        self.min: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, 'min'))
-        self.pct10: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, 'pct10'))
-        self.pct25: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, 'pct25'))
-        self.pct75: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, 'pct75'))
-        self.pct90: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, 'pct90'))
-
-class AdjustedDormancyProfitSellSoprPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.adjusted_sopr: RatioTransferValuePattern = RatioTransferValuePattern(client, acc)
-        self.dormancy: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, _m(acc, 'dormancy'))
-        self.profit_to_loss_ratio: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, _m(acc, 'realized_profit_to_loss_ratio'))
-        self.sell_side_risk_ratio: _1m1w1y24hPattern9 = _1m1w1y24hPattern9(client, _m(acc, 'sell_side_risk_ratio'))
-        self.sopr: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'sopr_24h'))
-        self.sopr_ratio_extended: _1m1w1yPattern = _1m1w1yPattern(client, _m(acc, 'sopr'))
-
-class AverageBlockChainCumulativeDataSumPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.average: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, _m(acc, 'data_bytes_average'))
-        self.block: SeriesPattern18[Bytes] = SeriesPattern18(client, _m(acc, 'data_bytes'))
-        self.chain_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'chain_share'))
-        self.cumulative: SeriesPattern1[Bytes] = SeriesPattern1(client, _m(acc, 'data_bytes_cumulative'))
-        self.data_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'data_share'))
-        self.sum: _1m1w1y24hPattern6[Bytes] = _1m1w1y24hPattern6(client, _m(acc, 'data_bytes_sum'))
-
-class _01234Pattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str, disc: str):
-        """Create pattern node with accumulated series name."""
-        self._0: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '0_transfer_volume'), disc))
-        self._1: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '1_transfer_volume'), disc))
-        self._2: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '2_transfer_volume'), disc))
-        self._3: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '3_transfer_volume'), disc))
-        self._4: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(_m(acc, '4_transfer_volume'), disc))
-
-class _01234Pattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _01234Pattern5:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _01234Pattern10:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _01234Pattern4:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _1m1w1y24hBlockPattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'average_1m'))
-        self._1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'average_1w'))
-        self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'average_1y'))
-        self._24h: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'average_24h'))
-        self.block: SeriesPattern18[StoredF32] = SeriesPattern18(client, acc)
-
-class _1m1w1y24hBlockPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'average_1m'))
-        self._1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'average_1w'))
-        self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'average_1y'))
-        self._24h: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'average_24h'))
-        self.block: SeriesPattern18[StoredU32] = SeriesPattern18(client, acc)
-
-class AgeClassEpochTypeUtxoPattern4:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class AverageBlockCumulativeFeeSumPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.average: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, _m(acc, 'fees_average'))
-        self.block: SeriesPattern18[Sats] = SeriesPattern18(client, _m(acc, 'fees'))
-        self.cumulative: SeriesPattern1[Sats] = SeriesPattern1(client, _m(acc, 'fees_cumulative'))
-        self.fee_share: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'fee_share'))
-        self.sum: _1m1w1y24hPattern6[Sats] = _1m1w1y24hPattern6(client, _m(acc, 'fees_sum'))
-
-class BtcCentsInSatsUsdPattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class CentsPpmRatioSatsUsdPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, _m(acc, 'cents'))
-        self.ppm: SeriesPattern1[PriceRatio] = SeriesPattern1(client, _m(acc, 'ratio_ppm'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'ratio'))
-        self.sats: SeriesPattern1[SatsFract] = SeriesPattern1(client, _m(acc, 'sats'))
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
-
-class CoindaysCoinyearsTransferPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.coindays_destroyed: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'coindays_destroyed'))
-        self.coinyears_destroyed: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, 'coinyears_destroyed'))
-        self.transfer_volume: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, 'transfer_volume'))
-        self.transfer_volume_in_loss: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, 'transfer_volume_in_loss'))
-        self.transfer_volume_in_profit: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, 'transfer_volume_in_profit'))
-
-class EmaHistogramLineSignalPattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class Pct95Pct98Pct99Pattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.pct95: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct95'))
-        self.pct98: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct98'))
-        self.pct99: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct99'))
-        self.pct99_5: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct99_5'))
-        self.pct99_9: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct99_9'))
-
-class Pct95Pct98Pct99Pattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.pct95: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, 'pct95_ratio'))
-        self.pct98: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, 'pct98_ratio'))
-        self.pct99: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, 'pct99_ratio'))
-        self.pct99_5: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, 'pct99_5_ratio'))
-        self.pct99_9: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, 'pct99_9_ratio'))
-
-class PhsReboundThsPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.phs: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'phs'))
-        self.phs_min: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'phs_min'))
-        self.rebound: PercentPpmRatioPattern3 = PercentPpmRatioPattern3(client, _m(acc, 'rebound'))
-        self.ths: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'ths'))
-        self.ths_min: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'ths_min'))
-
-class RankTailThresholdPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.rank: SeriesPattern1[StoredU8] = SeriesPattern1(client, _m(acc, 'rank'))
-        self.tail: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'tail'))
-        self.threshold_pct0_025: SeriesPattern1[Dollars] = SeriesPattern1(client, _m(acc, 'threshold'))
-        self.threshold_pct0_05: SeriesPattern1[Dollars] = SeriesPattern1(client, _m(acc, 'threshold_pct0_05'))
-        self.threshold_pct0_1: SeriesPattern1[Dollars] = SeriesPattern1(client, _m(acc, 'threshold_pct0_1'))
-
-class _1m1w1y24hPattern5:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _m(acc, '1m'))
-        self._1w: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _m(acc, '1w'))
-        self._1y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _m(acc, '1y'))
-        self._24h: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _m(acc, '24h'))
-
-class _1m1w1y24hPattern4:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: BtcCentsSatsUsdPattern2 = BtcCentsSatsUsdPattern2(client, _m(acc, '1m'))
-        self._1w: BtcCentsSatsUsdPattern2 = BtcCentsSatsUsdPattern2(client, _m(acc, '1w'))
-        self._1y: BtcCentsSatsUsdPattern2 = BtcCentsSatsUsdPattern2(client, _m(acc, '1y'))
-        self._24h: BtcCentsSatsUsdPattern2 = BtcCentsSatsUsdPattern2(client, _m(acc, '24h'))
-
-class _1m1w1y24hPattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: BtcSatsPattern = BtcSatsPattern(client, _m(acc, '1m'))
-        self._1w: BtcSatsPattern = BtcSatsPattern(client, _m(acc, '1w'))
-        self._1y: BtcSatsPattern = BtcSatsPattern(client, _m(acc, '1y'))
-        self._24h: BtcSatsPattern = BtcSatsPattern(client, _m(acc, '24h'))
-
-class _1m1w1y2wPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, '1m'))
-        self._1w: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, '1w'))
-        self._1y: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, '1y'))
-        self._2w: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, '2w'))
-
-class _1m1w1y24hPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '1m'))
-        self._1w: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '1w'))
-        self._1y: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '1y'))
-        self._24h: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '24h'))
-
-class _1m1w1y24hPattern7:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: CentsUsdPattern4 = CentsUsdPattern4(client, _m(acc, '1m'))
-        self._1w: CentsUsdPattern4 = CentsUsdPattern4(client, _m(acc, '1w'))
-        self._1y: CentsUsdPattern4 = CentsUsdPattern4(client, _m(acc, '1y'))
-        self._24h: CentsUsdPattern4 = CentsUsdPattern4(client, _m(acc, '24h'))
-
-class _1m1w1y24hPattern8:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: CentsUsdPattern5 = CentsUsdPattern5(client, _m(acc, '1m'))
-        self._1w: CentsUsdPattern5 = CentsUsdPattern5(client, _m(acc, '1w'))
-        self._1y: CentsUsdPattern5 = CentsUsdPattern5(client, _m(acc, '1y'))
-        self._24h: CentsUsdPattern5 = CentsUsdPattern5(client, _m(acc, '24h'))
-
-class _1m1w1y24hPattern3:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: PercentPpmRatioPattern = PercentPpmRatioPattern(client, _m(acc, '1m_rate'))
-        self._1w: PercentPpmRatioPattern = PercentPpmRatioPattern(client, _m(acc, '1w_rate'))
-        self._1y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, _m(acc, '1y_rate'))
-        self._24h: PercentPpmRatioPattern = PercentPpmRatioPattern(client, _m(acc, '24h_rate'))
-
-class _1m1w1y24hPattern9:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '1m'))
-        self._1w: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '1w'))
-        self._1y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '1y'))
-        self._24h: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '24h'))
-
-class AverageBlockCumulativeSumPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.average: _1m1w1y24hPattern4 = _1m1w1y24hPattern4(client, _m(acc, 'average'))
-        self.block: BtcCentsSatsUsdPattern3 = BtcCentsSatsUsdPattern3(client, acc)
-        self.cumulative: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _m(acc, 'cumulative'))
-        self.sum: _1m1w1y24hPattern5 = _1m1w1y24hPattern5(client, _m(acc, 'sum'))
-
-class AverageBlockCumulativeSumPattern3:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.average: _1m1w1y24hPattern8 = _1m1w1y24hPattern8(client, _m(acc, 'average'))
-        self.block: CentsUsdPattern2 = CentsUsdPattern2(client, acc)
-        self.cumulative: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'cumulative'))
-        self.sum: _1m1w1y24hPattern = _1m1w1y24hPattern(client, _m(acc, 'sum'))
-
-class BlockCumulativeDeltaSumPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.block: CentsUsdPattern3 = CentsUsdPattern3(client, acc)
-        self.cumulative: CentsUsdPattern4 = CentsUsdPattern4(client, _m(acc, 'cumulative'))
-        self.delta: AbsoluteRatePattern3 = AbsoluteRatePattern3(client, _m(acc, 'delta'))
-        self.sum: _1m1w1y24hPattern7 = _1m1w1y24hPattern7(client, _m(acc, 'sum'))
-
-class BtcCentsSatsUsdPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, acc)
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, _m(acc, 'cents'))
-        self.sats: SeriesPattern1[Sats] = SeriesPattern1(client, _m(acc, 'sats'))
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, _m(acc, 'usd'))
-
-class BtcCentsSatsUsdPattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, acc)
-        self.cents: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'cents'))
-        self.sats: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'sats'))
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, _m(acc, 'usd'))
-
-class BtcCentsSatsUsdPattern3:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.btc: SeriesPattern18[Bitcoin] = SeriesPattern18(client, acc)
-        self.cents: SeriesPattern18[Cents] = SeriesPattern18(client, _m(acc, 'cents'))
-        self.sats: SeriesPattern18[Sats] = SeriesPattern18(client, _m(acc, 'sats'))
-        self.usd: SeriesPattern18[Dollars] = SeriesPattern18(client, _m(acc, 'usd'))
-
-class CapCapitalizedPriceSupplyPattern2:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class CapCapitalizedPriceSupplyPattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class DeltaInTotalPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.delta: AbsoluteRatePattern = AbsoluteRatePattern(client, _m(acc, 'delta'))
-        self.in_loss: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _m(acc, 'in_loss'))
-        self.in_profit: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _m(acc, 'in_profit'))
-        self.total: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, acc)
-
-class MultipleOversizedPrePattern3:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class _1m1w1y24hPattern6(Generic[T]):
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, '1m'))
-        self._1w: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, '1w'))
-        self._1y: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, '1y'))
-        self._24h: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, '24h'))
-
-class AverageBlockCumulativeSumPattern2(Generic[T]):
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.average: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, _m(acc, 'average'))
-        self.block: SeriesPattern18[T] = SeriesPattern18(client, acc)
-        self.cumulative: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, 'cumulative'))
-        self.sum: _1m1w1y24hPattern6[T] = _1m1w1y24hPattern6(client, _m(acc, 'sum'))
-
-class _1m1w1yPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '1m'))
-        self._1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '1w'))
-        self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '1y'))
-
-class AgeClassEpochPattern5:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class AgeClassEpochPattern2:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class AgeClassEpochPattern6:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class BlockCumulativeSumPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.block: CentsUsdPattern2 = CentsUsdPattern2(client, acc)
-        self.cumulative: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'cumulative'))
-        self.sum: _1m1w1y24hPattern = _1m1w1y24hPattern(client, _m(acc, 'sum'))
-
-class BlockCumulativeSumPattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.block: SeriesPattern18[StoredU64] = SeriesPattern18(client, acc)
-        self.cumulative: SeriesPattern1[StoredU64] = SeriesPattern1(client, _m(acc, 'cumulative'))
-        self.sum: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, _m(acc, 'sum'))
-
-class BlocksDominanceRewardsPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.blocks_mined: BlockCumulativeSumPattern2 = BlockCumulativeSumPattern2(client, _m(acc, 'blocks_mined'))
-        self.dominance: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'dominance'))
-        self.rewards: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, _m(acc, 'rewards'))
-
-class CapitalizedCostSupplyPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, _m(acc, 'urpd_all_capitalized_price'))
-        self.cost_basis: PerPattern = PerPattern(client, _m(acc, 'cost_basis_per'))
-        self.supply_density: InTotalPattern = InTotalPattern(client, _m(acc, 'urpd_all_supply_density'))
-
-class CentsSatsUsdPattern3:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cents: SeriesPattern2[Cents] = SeriesPattern2(client, _m(acc, 'cents'))
-        self.sats: SeriesPattern2[Sats] = SeriesPattern2(client, _m(acc, 'sats'))
-        self.usd: SeriesPattern2[Dollars] = SeriesPattern2(client, acc)
-
-class CentsDeltaUsdPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, _m(acc, 'cents'))
-        self.delta: AbsoluteRatePattern3 = AbsoluteRatePattern3(client, _m(acc, 'delta'))
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
-
-class CentsSatsUsdPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, _m(acc, 'cents'))
-        self.sats: SeriesPattern1[SatsFract] = SeriesPattern1(client, _m(acc, 'sats'))
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
-
-class CountEventsSupplyPattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class CumulativeRollingSumPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cumulative: SeriesPattern1[StoredU64] = SeriesPattern1(client, _m(acc, 'cumulative'))
-        self.rolling: AverageMaxMedianMinPct10Pct25Pct75Pct90SumPattern = AverageMaxMedianMinPct10Pct25Pct75Pct90SumPattern(client, acc)
-        self.sum: SeriesPattern18[StoredU64] = SeriesPattern18(client, _m(acc, 'sum'))
-
-class DeltaDominanceTotalPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.delta: AbsoluteRatePattern = AbsoluteRatePattern(client, _m(acc, 'delta'))
-        self.dominance: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'dominance'))
-        self.total: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, acc)
-
-class FloorLevelSupplyPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.floor: Pct95Pct98Pct99Pattern = Pct95Pct98Pct99Pattern(client, _m(acc, 'floor'))
-        self.level: Pct10Pct20Pct30Pct40Pct50Pct60Pct70Pct80Pct90Pattern = Pct10Pct20Pct30Pct40Pct50Pct60Pct70Pct80Pct90Pattern(client, _m(acc, 'level'))
-        self.supply_in_loss_threshold: Pct95Pct98Pct99Pattern2 = Pct95Pct98Pct99Pattern2(client, _m(acc, 'supply_in_loss_threshold'))
-
-class InTotalPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.in_loss: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'in_loss'))
-        self.in_profit: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'in_profit'))
-        self.total: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'total'))
-
-class PercentPpmRatioPattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.percent: SeriesPattern1[StoredF32] = SeriesPattern1(client, acc)
-        self.ppm: SeriesPattern1[PartsPerMillion32] = SeriesPattern1(client, _m(acc, 'ppm'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'ratio'))
-
-class PercentPpmRatioPattern5:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.percent: SeriesPattern1[StoredF32] = SeriesPattern1(client, acc)
-        self.ppm: SeriesPattern1[PartsPerMillion64] = SeriesPattern1(client, _m(acc, 'ppm'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'ratio'))
-
-class PercentPpmRatioPattern3:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.percent: SeriesPattern1[StoredF32] = SeriesPattern1(client, acc)
-        self.ppm: SeriesPattern1[PartsPerMillionSigned32] = SeriesPattern1(client, _m(acc, 'ppm'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'ratio'))
-
-class PercentPpmRatioPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.percent: SeriesPattern1[StoredF32] = SeriesPattern1(client, acc)
-        self.ppm: SeriesPattern1[PartsPerMillionSigned64] = SeriesPattern1(client, _m(acc, 'ppm'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'ratio'))
-
-class PpmPriceRatioPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str, disc: str):
-        """Create pattern node with accumulated series name."""
-        self.ppm: SeriesPattern1[PartsPerMillion32] = SeriesPattern1(client, _m(acc, f'ratio_{disc}_ppm'))
-        self.price: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, disc))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(_m(acc, 'ratio'), disc))
-
-class RatioTransferValuePattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.ratio: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, _m(acc, 'adjusted_sopr'))
-        self.transfer_volume: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, _m(acc, 'adj_value_created'))
-        self.value_destroyed: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, _m(acc, 'adj_value_destroyed'))
-
-class RsiStochPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str, disc: str):
-        """Create pattern node with accumulated series name."""
-        self.rsi: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, disc))
-        self.stoch_rsi_d: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(_m(acc, 'stoch_d'), disc))
-        self.stoch_rsi_k: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(_m(acc, 'stoch_k'), disc))
-
-class _6bBlockTxPattern(Generic[T]):
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._6b: MaxMedianMinPct10Pct25Pct75Pct90Pattern[T] = MaxMedianMinPct10Pct25Pct75Pct90Pattern(client, _m(acc, '6b'))
-        self.block: MaxMedianMinPct10Pct25Pct75Pct90Pattern[T] = MaxMedianMinPct10Pct25Pct75Pct90Pattern(client, acc)
-        self.tx_index: SeriesPattern19[T] = SeriesPattern19(client, acc)
-
-class AbsoluteRatePattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.absolute: _1m1w1y24hPattern2 = _1m1w1y24hPattern2(client, acc)
-        self.rate: _1m1w1y24hPattern3 = _1m1w1y24hPattern3(client, acc)
-
-class AbsoluteRatePattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.absolute: _1m1w1y24hPattern6[StoredI64] = _1m1w1y24hPattern6(client, acc)
-        self.rate: _1m1w1y24hPattern3 = _1m1w1y24hPattern3(client, acc)
-
-class AbsoluteRatePattern3:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.absolute: _1m1w1y24hPattern7 = _1m1w1y24hPattern7(client, acc)
-        self.rate: _1m1w1y24hPattern3 = _1m1w1y24hPattern3(client, acc)
-
-class AwakeDormantPattern2:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class BaseDeltaPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.base: SeriesPattern1[StoredU64] = SeriesPattern1(client, acc)
-        self.delta: AbsoluteRatePattern2 = AbsoluteRatePattern2(client, _m(acc, 'delta'))
-
-class BlockCumulativePattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.block: BtcCentsSatsUsdPattern3 = BtcCentsSatsUsdPattern3(client, acc)
-        self.cumulative: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, _m(acc, 'cumulative'))
-
-class BlocksDominancePattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.blocks_mined: BlockCumulativeSumPattern2 = BlockCumulativeSumPattern2(client, _m(acc, 'blocks_mined'))
-        self.dominance: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'dominance'))
-
-class BpsRatioPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.bps: SeriesPattern1[BasisPoints32] = SeriesPattern1(client, _m(acc, 'bps'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, acc)
-
-class BtcSatsPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, acc)
-        self.sats: SeriesPattern1[SatsSigned] = SeriesPattern1(client, _m(acc, 'sats'))
-
-class CentsUsdPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, _m(acc, 'cents'))
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
-
-class CentsUsdPattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cents: SeriesPattern18[Cents] = SeriesPattern18(client, _m(acc, 'cents'))
-        self.usd: SeriesPattern18[Dollars] = SeriesPattern18(client, acc)
-
-class CentsUsdPattern4:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cents: SeriesPattern1[CentsSigned] = SeriesPattern1(client, _m(acc, 'cents'))
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
-
-class CentsUsdPattern3:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cents: SeriesPattern18[CentsSigned] = SeriesPattern18(client, _m(acc, 'cents'))
-        self.usd: SeriesPattern18[Dollars] = SeriesPattern18(client, acc)
-
-class CentsUsdPattern5:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.cents: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'cents'))
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
-
-class FundedTotalPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.funded: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4(client, acc)
-        self.total: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4(client, _p('total', acc))
-
-class ImmobileMobilePattern2:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class MaxMinPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.max: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'max'))
-        self.min: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'min'))
-
-class PerPattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.per_coin: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'coin'))
-        self.per_dollar: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'dollar'))
-
-class PerPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'coin'))
-        self.per_dollar: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'dollar'))
-
-class PpmRatioPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.ppm: SeriesPattern1[PartsPerMillion32] = SeriesPattern1(client, _m(acc, 'ppm'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, acc)
-
-class PpmRatioPattern3:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.ppm: SeriesPattern1[PartsPerMillionSigned32] = SeriesPattern1(client, _m(acc, 'ppm'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, acc)
-
-class PpmRatioPattern2:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.ppm: SeriesPattern1[PriceRatio] = SeriesPattern1(client, _m(acc, 'ppm'))
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, acc)
-
-class SdSmaPattern:
-    """Pattern struct for repeated tree structure."""
-    pass
-
-class SpentUnspentPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.spent_count: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, _m(acc, 'spent_utxo_count'))
-        self.unspent_count: BaseDeltaPattern = BaseDeltaPattern(client, _m(acc, 'utxo_count'))
-
-class SharePattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.share: SeriesPattern1[StoredF64] = SeriesPattern1(client, acc)
-
-class SupplyPattern:
-    """Pattern struct for repeated tree structure."""
-
-    def __init__(self, client: BitviewClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.supply: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, acc)
-
-# Series tree classes
-
-class SeriesTree_Blocks_Difficulty:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.value: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'difficulty')
-        self.hashrate: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'difficulty_hashrate')
-        self.adjustment: PercentPpmRatioPattern3 = PercentPpmRatioPattern3(client, 'difficulty_adjustment')
-        self.epoch: SeriesPattern1[Epoch] = SeriesPattern1(client, 'difficulty_epoch')
-        self.blocks_to_retarget: SeriesPattern1[StoredU32] = SeriesPattern1(client, 'blocks_to_retarget')
-        self.days_to_retarget: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'days_to_retarget')
-
-class SeriesTree_Blocks_Time:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.timestamp: SeriesPattern18[Timestamp] = SeriesPattern18(client, 'timestamp')
-
-class SeriesTree_Blocks_Size:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.base: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'total_size')
-        self.cumulative: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'block_size_cumulative')
-        self.sum: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, 'block_size_sum')
-        self.average: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, 'block_size_average')
-        self.min: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, 'block_size_min')
-        self.max: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, 'block_size_max')
-        self.pct10: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, 'block_size_pct10')
-        self.pct25: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, 'block_size_pct25')
-        self.median: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, 'block_size_median')
-        self.pct75: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, 'block_size_pct75')
-        self.pct90: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, 'block_size_pct90')
-
-class SeriesTree_Blocks_Weight:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.base: SeriesPattern18[Weight] = SeriesPattern18(client, 'block_weight')
-        self.cumulative: SeriesPattern1[Weight64] = SeriesPattern1(client, 'block_weight_cumulative')
-        self.sum: _1m1w1y24hPattern6[Weight64] = _1m1w1y24hPattern6(client, 'block_weight_sum')
-        self.average: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, 'block_weight_average')
-        self.min: _1m1w1y24hPattern6[Weight64] = _1m1w1y24hPattern6(client, 'block_weight_min')
-        self.max: _1m1w1y24hPattern6[Weight64] = _1m1w1y24hPattern6(client, 'block_weight_max')
-        self.pct10: _1m1w1y24hPattern6[Weight64] = _1m1w1y24hPattern6(client, 'block_weight_pct10')
-        self.pct25: _1m1w1y24hPattern6[Weight64] = _1m1w1y24hPattern6(client, 'block_weight_pct25')
-        self.median: _1m1w1y24hPattern6[Weight64] = _1m1w1y24hPattern6(client, 'block_weight_median')
-        self.pct75: _1m1w1y24hPattern6[Weight64] = _1m1w1y24hPattern6(client, 'block_weight_pct75')
-        self.pct90: _1m1w1y24hPattern6[Weight64] = _1m1w1y24hPattern6(client, 'block_weight_pct90')
-
-class SeriesTree_Blocks_Count:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.target: _1m1w1y24hPattern6[StoredU64] = _1m1w1y24hPattern6(client, 'block_count_target')
-        self.total: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'block_count')
-
-class SeriesTree_Blocks_Lookback:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._1h: SeriesPattern18[Height] = SeriesPattern18(client, 'height_1h_ago')
-        self._24h: SeriesPattern18[Height] = SeriesPattern18(client, 'height_24h_ago')
-        self._3d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_3d_ago')
-        self._1w: SeriesPattern18[Height] = SeriesPattern18(client, 'height_1w_ago')
-        self._8d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_8d_ago')
-        self._9d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_9d_ago')
-        self._12d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_12d_ago')
-        self._13d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_13d_ago')
-        self._2w: SeriesPattern18[Height] = SeriesPattern18(client, 'height_2w_ago')
-        self._21d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_21d_ago')
-        self._26d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_26d_ago')
-        self._1m: SeriesPattern18[Height] = SeriesPattern18(client, 'height_1m_ago')
-        self._34d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_34d_ago')
-        self._50d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_50d_ago')
-        self._55d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_55d_ago')
-        self._2m: SeriesPattern18[Height] = SeriesPattern18(client, 'height_2m_ago')
-        self._9w: SeriesPattern18[Height] = SeriesPattern18(client, 'height_9w_ago')
-        self._12w: SeriesPattern18[Height] = SeriesPattern18(client, 'height_12w_ago')
-        self._89d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_89d_ago')
-        self._3m: SeriesPattern18[Height] = SeriesPattern18(client, 'height_3m_ago')
-        self._14w: SeriesPattern18[Height] = SeriesPattern18(client, 'height_14w_ago')
-        self._111d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_111d_ago')
-        self._144d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_144d_ago')
-        self._6m: SeriesPattern18[Height] = SeriesPattern18(client, 'height_6m_ago')
-        self._26w: SeriesPattern18[Height] = SeriesPattern18(client, 'height_26w_ago')
-        self._200d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_200d_ago')
-        self._9m: SeriesPattern18[Height] = SeriesPattern18(client, 'height_9m_ago')
-        self._350d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_350d_ago')
-        self._12m: SeriesPattern18[Height] = SeriesPattern18(client, 'height_12m_ago')
-        self._1y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_1y_ago')
-        self._14m: SeriesPattern18[Height] = SeriesPattern18(client, 'height_14m_ago')
-        self._2y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_2y_ago')
-        self._26m: SeriesPattern18[Height] = SeriesPattern18(client, 'height_26m_ago')
-        self._3y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_3y_ago')
-        self._200w: SeriesPattern18[Height] = SeriesPattern18(client, 'height_200w_ago')
-        self._4y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_4y_ago')
-        self._5y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_5y_ago')
-        self._6y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_6y_ago')
-        self._8y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_8y_ago')
-        self._9y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_9y_ago')
-        self._10y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_10y_ago')
-        self._12y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_12y_ago')
-        self._14y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_14y_ago')
-        self._26y: SeriesPattern18[Height] = SeriesPattern18(client, 'height_26y_ago')
-
-class SeriesTree_Blocks_Interval:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.block: SeriesPattern18[Timestamp] = SeriesPattern18(client, 'block_interval')
-        self._24h: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'block_interval_average_24h')
-        self._1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'block_interval_average_1w')
-        self._1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'block_interval_average_1m')
-        self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'block_interval_average_1y')
-
-class SeriesTree_Blocks_Fullness:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.ppm: SeriesPattern18[PartsPerMillion32] = SeriesPattern18(client, 'block_fullness_ppm')
-        self.ratio: SeriesPattern18[StoredF32] = SeriesPattern18(client, 'block_fullness_ratio')
-        self.percent: SeriesPattern18[StoredF32] = SeriesPattern18(client, 'block_fullness')
-
-class SeriesTree_Blocks_Halving:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.epoch: SeriesPattern1[Halving] = SeriesPattern1(client, 'halving_epoch')
-        self.blocks_to_halving: SeriesPattern1[StoredU32] = SeriesPattern1(client, 'blocks_to_halving')
-        self.days_to_halving: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'days_to_halving')
-
-class SeriesTree_Blocks:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.blockhash: SeriesPattern18[BlockHash] = SeriesPattern18(client, 'blockhash')
-        self.coinbase_tag: SeriesPattern18[CoinbaseTag] = SeriesPattern18(client, 'coinbase_tag')
-        self.difficulty: SeriesTree_Blocks_Difficulty = SeriesTree_Blocks_Difficulty(client)
-        self.time: SeriesTree_Blocks_Time = SeriesTree_Blocks_Time(client)
-        self.size: SeriesTree_Blocks_Size = SeriesTree_Blocks_Size(client)
-        self.weight: SeriesTree_Blocks_Weight = SeriesTree_Blocks_Weight(client)
-        self.segwit_txs: SeriesPattern18[StoredU32] = SeriesPattern18(client, 'segwit_txs')
-        self.segwit_size: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'segwit_size')
-        self.segwit_weight: SeriesPattern18[Weight] = SeriesPattern18(client, 'segwit_weight')
-        self.count: SeriesTree_Blocks_Count = SeriesTree_Blocks_Count(client)
-        self.lookback: SeriesTree_Blocks_Lookback = SeriesTree_Blocks_Lookback(client)
-        self.interval: SeriesTree_Blocks_Interval = SeriesTree_Blocks_Interval(client)
-        self.vbytes: AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern = AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern(client, 'block_vbytes')
-        self.fullness: SeriesTree_Blocks_Fullness = SeriesTree_Blocks_Fullness(client)
-        self.halving: SeriesTree_Blocks_Halving = SeriesTree_Blocks_Halving(client)
-
-class SeriesTree_Transactions_Raw:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_tx_index: SeriesPattern18[TxIndex] = SeriesPattern18(client, 'first_tx_index')
-        self.txid: SeriesPattern19[Txid] = SeriesPattern19(client, 'txid')
-        self.tx_version: SeriesPattern19[TxVersion] = SeriesPattern19(client, 'tx_version')
-        self.raw_locktime: SeriesPattern19[RawLockTime] = SeriesPattern19(client, 'raw_locktime')
-        self.weight: SeriesPattern19[Weight] = SeriesPattern19(client, 'tx_weight')
-        self.total_size: SeriesPattern19[StoredU32] = SeriesPattern19(client, 'total_size')
-        self.total_sigop_cost: SeriesPattern19[SigOps] = SeriesPattern19(client, 'total_sigop_cost')
-        self.is_explicitly_rbf: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'is_explicitly_rbf')
-        self.first_txin_index: SeriesPattern19[TxInIndex] = SeriesPattern19(client, 'first_txin_index')
-        self.first_txout_index: SeriesPattern19[TxOutIndex] = SeriesPattern19(client, 'first_txout_index')
-
-class SeriesTree_Transactions_Features_Count:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.v1: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_v1')
-        self.v2: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_v2')
-        self.v3: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_v3')
-        self.other_version: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_other_version')
-        self.explicitly_rbf: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_explicitly_rbf')
-        self.one_input: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_one_input')
-        self.one_output: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_one_output')
-        self.p2pk: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_p2pk')
-        self.p2ms: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_p2ms')
-        self.p2pkh: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_p2pkh')
-        self.p2sh: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_p2sh')
-        self.p2wpkh: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_p2wpkh')
-        self.p2wsh: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_p2wsh')
-        self.p2tr: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_p2tr')
-        self.p2a: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_p2a')
-        self.op_return: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_op_return')
-        self.empty: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_empty')
-        self.unknown: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_unknown')
-        self.fake_pubkey: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_fake_pubkey')
-        self.fake_scripthash: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_fake_scripthash')
-        self.annex: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_annex')
-        self.sighash_all: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_sighash_all')
-        self.sighash_none: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_sighash_none')
-        self.sighash_single: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_sighash_single')
-        self.sighash_default: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_sighash_default')
-        self.sighash_anyone_can_pay: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_sighash_anyone_can_pay')
-        self.dust_output: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_dust_output')
-
-class SeriesTree_Transactions_Features:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.count: SeriesTree_Transactions_Features_Count = SeriesTree_Transactions_Features_Count(client)
-        self.has_p2pk: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_p2pk')
-        self.has_p2ms: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_p2ms')
-        self.has_p2pkh: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_p2pkh')
-        self.has_p2sh: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_p2sh')
-        self.has_p2wpkh: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_p2wpkh')
-        self.has_p2wsh: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_p2wsh')
-        self.has_p2tr: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_p2tr')
-        self.has_p2a: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_p2a')
-        self.has_op_return: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_op_return')
-        self.has_empty: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_empty')
-        self.has_unknown: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_unknown')
-        self.has_fake_pubkey: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_fake_pubkey')
-        self.has_fake_scripthash: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_fake_scripthash')
-        self.has_inscription: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_inscription')
-        self.has_annex: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_annex')
-        self.has_sighash_all: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_sighash_all')
-        self.has_sighash_none: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_sighash_none')
-        self.has_sighash_single: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_sighash_single')
-        self.has_sighash_default: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_sighash_default')
-        self.has_sighash_anyone_can_pay: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_sighash_anyone_can_pay')
-        self.has_dust_output: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'has_dust_output')
-
-class SeriesTree_Transactions_Count:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.total: AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern = AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern(client, 'tx_count')
-
-class SeriesTree_Transactions_Size_Vsize:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.tx_index: SeriesPattern19[VSize] = SeriesPattern19(client, 'tx_vsize')
-        self.block: MaxMedianMinPct10Pct25Pct75Pct90Pattern2 = MaxMedianMinPct10Pct25Pct75Pct90Pattern2(client, 'tx_vsize')
-        self._6b: MaxMedianMinPct10Pct25Pct75Pct90Pattern2 = MaxMedianMinPct10Pct25Pct75Pct90Pattern2(client, 'tx_vsize_6b')
-
-class SeriesTree_Transactions_Size_Weight:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.block: MaxMedianMinPct10Pct25Pct75Pct90Pattern[Weight] = MaxMedianMinPct10Pct25Pct75Pct90Pattern(client, 'tx_weight')
-        self._6b: MaxMedianMinPct10Pct25Pct75Pct90Pattern[Weight] = MaxMedianMinPct10Pct25Pct75Pct90Pattern(client, 'tx_weight_6b')
-
-class SeriesTree_Transactions_Size:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.vsize: SeriesTree_Transactions_Size_Vsize = SeriesTree_Transactions_Size_Vsize(client)
-        self.weight: SeriesTree_Transactions_Size_Weight = SeriesTree_Transactions_Size_Weight(client)
-
-class SeriesTree_Transactions_Fees_Count:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cpfp_parent: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'cpfp_parent_count')
-        self.cpfp_child: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'cpfp_child_count')
-
-class SeriesTree_Transactions_Fees:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.count: SeriesTree_Transactions_Fees_Count = SeriesTree_Transactions_Fees_Count(client)
-        self.fee: _6bBlockTxPattern[Sats] = _6bBlockTxPattern(client, 'fee')
-        self.fee_rate: SeriesPattern19[FeeRate] = SeriesPattern19(client, 'fee_rate')
-        self.effective_fee_rate: _6bBlockTxPattern[FeeRate] = _6bBlockTxPattern(client, 'effective_fee_rate')
-        self.is_cpfp_parent: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'is_cpfp_parent')
-        self.is_cpfp_child: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'is_cpfp_child')
-
-class SeriesTree_Transactions_Inscription:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.count: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_inscription')
-        self.fees: AverageBlockCumulativeSumPattern2[Sats] = AverageBlockCumulativeSumPattern2(client, 'inscription_fees')
-        self.fee_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'inscription_fee_share')
-
-class SeriesTree_Transactions_Patterns_Count:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.coinjoin: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'coinjoin_count')
-        self.consolidation: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'consolidation_count')
-        self.batch_payout: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'batch_payout_count')
-
-class SeriesTree_Transactions_Patterns:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.count: SeriesTree_Transactions_Patterns_Count = SeriesTree_Transactions_Patterns_Count(client)
-        self.is_coinjoin: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'is_coinjoin')
-        self.is_consolidation: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'is_consolidation')
-        self.is_batch_payout: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'is_batch_payout')
-
-class SeriesTree_Transactions_Policy_Count:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.nonstandard: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'nonstandard_count')
-
-class SeriesTree_Transactions_Policy:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.count: SeriesTree_Transactions_Policy_Count = SeriesTree_Transactions_Policy_Count(client)
-        self.is_nonstandard: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'is_nonstandard')
-
-class SeriesTree_Transactions_Sigops:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.total: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'total_sigop_cost')
-
-class SeriesTree_Transactions_Versions:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.v1: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_v1')
-        self.v2: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_v2')
-        self.v3: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_v3')
-        self.other: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_other_version')
-
-class SeriesTree_Transactions_Volume:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.transfer_volume: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'transfer_volume_bis')
-        self.tx_per_sec: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, 'tx_per_sec')
-
-class SeriesTree_Transactions:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.raw: SeriesTree_Transactions_Raw = SeriesTree_Transactions_Raw(client)
-        self.features: SeriesTree_Transactions_Features = SeriesTree_Transactions_Features(client)
-        self.count: SeriesTree_Transactions_Count = SeriesTree_Transactions_Count(client)
-        self.size: SeriesTree_Transactions_Size = SeriesTree_Transactions_Size(client)
-        self.fees: SeriesTree_Transactions_Fees = SeriesTree_Transactions_Fees(client)
-        self.inscription: SeriesTree_Transactions_Inscription = SeriesTree_Transactions_Inscription(client)
-        self.patterns: SeriesTree_Transactions_Patterns = SeriesTree_Transactions_Patterns(client)
-        self.policy: SeriesTree_Transactions_Policy = SeriesTree_Transactions_Policy(client)
-        self.sigops: SeriesTree_Transactions_Sigops = SeriesTree_Transactions_Sigops(client)
-        self.versions: SeriesTree_Transactions_Versions = SeriesTree_Transactions_Versions(client)
-        self.volume: SeriesTree_Transactions_Volume = SeriesTree_Transactions_Volume(client)
-
-class SeriesTree_Inputs_Raw:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_txin_index: SeriesPattern18[TxInIndex] = SeriesPattern18(client, 'first_txin_index')
-        self.outpoint: SeriesPattern20[OutPoint] = SeriesPattern20(client, 'outpoint')
-        self.txout_index: SeriesPattern20[TxOutIndex] = SeriesPattern20(client, 'txout_index')
-        self.tx_index: SeriesPattern20[TxIndex] = SeriesPattern20(client, 'tx_index')
-        self.output_type: SeriesPattern20[OutputType] = SeriesPattern20(client, 'output_type')
-        self.type_index: SeriesPattern20[TypeIndex] = SeriesPattern20(client, 'type_index')
-
-class SeriesTree_Inputs_ByType_InputCount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'input_count_bis')
-        self.p2pk65: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2pk65_prevout_count')
-        self.p2pk33: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2pk33_prevout_count')
-        self.p2pkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2pkh_prevout_count')
-        self.p2ms: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2ms_prevout_count')
-        self.p2sh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2sh_prevout_count')
-        self.p2wpkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2wpkh_prevout_count')
-        self.p2wsh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2wsh_prevout_count')
-        self.p2tr: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2tr_prevout_count')
-        self.p2a: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2a_prevout_count')
-        self.unknown: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'unknown_outputs_prevout_count')
-        self.empty: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'empty_outputs_prevout_count')
-
-class SeriesTree_Inputs_ByType_InputShare:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk65: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2pk65_prevout_share')
-        self.p2pk33: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2pk33_prevout_share')
-        self.p2pkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2pkh_prevout_share')
-        self.p2ms: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2ms_prevout_share')
-        self.p2sh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2sh_prevout_share')
-        self.p2wpkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2wpkh_prevout_share')
-        self.p2wsh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2wsh_prevout_share')
-        self.p2tr: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2tr_prevout_share')
-        self.p2a: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2a_prevout_share')
-        self.unknown: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'unknown_outputs_prevout_share')
-        self.empty: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'empty_outputs_prevout_share')
-
-class SeriesTree_Inputs_ByType_TxCount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'non_coinbase_tx_count')
-        self.p2pk65: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_p2pk65_prevout')
-        self.p2pk33: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_p2pk33_prevout')
-        self.p2pkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_p2pkh_prevout')
-        self.p2ms: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_p2ms_prevout')
-        self.p2sh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_p2sh_prevout')
-        self.p2wpkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_p2wpkh_prevout')
-        self.p2wsh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_p2wsh_prevout')
-        self.p2tr: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_p2tr_prevout')
-        self.p2a: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_p2a_prevout')
-        self.unknown: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_unknown_outputs_prevout')
-        self.empty: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'tx_count_with_empty_outputs_prevout')
-
-class SeriesTree_Inputs_ByType:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.input_count: SeriesTree_Inputs_ByType_InputCount = SeriesTree_Inputs_ByType_InputCount(client)
-        self.input_share: SeriesTree_Inputs_ByType_InputShare = SeriesTree_Inputs_ByType_InputShare(client)
-        self.tx_count: SeriesTree_Inputs_ByType_TxCount = SeriesTree_Inputs_ByType_TxCount(client)
-        self.tx_share: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10 = EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10(client, 'tx_share_with')
-
-class SeriesTree_Inputs:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.raw: SeriesTree_Inputs_Raw = SeriesTree_Inputs_Raw(client)
-        self.value: SeriesPattern20[Sats] = SeriesPattern20(client, 'value')
-        self.count: CumulativeRollingSumPattern = CumulativeRollingSumPattern(client, 'input_count')
-        self.per_sec: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, 'inputs_per_sec')
-        self.by_type: SeriesTree_Inputs_ByType = SeriesTree_Inputs_ByType(client)
-
-class SeriesTree_Outputs_Raw:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_txout_index: SeriesPattern18[TxOutIndex] = SeriesPattern18(client, 'first_txout_index')
-        self.value: SeriesPattern21[Sats] = SeriesPattern21(client, 'value')
-        self.output_type: SeriesPattern21[OutputType] = SeriesPattern21(client, 'output_type')
-        self.type_index: SeriesPattern21[TypeIndex] = SeriesPattern21(client, 'type_index')
-
-class SeriesTree_Outputs_Spent:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.txin_index: SeriesPattern21[TxInIndex] = SeriesPattern21(client, 'txin_index')
-
-class SeriesTree_Outputs_Count:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.total: CumulativeRollingSumPattern = CumulativeRollingSumPattern(client, 'output_count')
-
-class SeriesTree_Outputs_ByType_OutputCount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'output_count_bis')
-        self.p2pk65: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2pk65_output_count')
-        self.p2pk33: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2pk33_output_count')
-        self.p2pkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2pkh_output_count')
-        self.p2ms: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2ms_output_count')
-        self.p2sh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2sh_output_count')
-        self.p2wpkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2wpkh_output_count')
-        self.p2wsh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2wsh_output_count')
-        self.p2tr: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2tr_output_count')
-        self.p2a: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2a_output_count')
-        self.unknown: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'unknown_outputs_output_count')
-        self.empty: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'empty_outputs_output_count')
-        self.op_return: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_output_count')
-
-class SeriesTree_Outputs_ByType_OutputShare:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk65: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2pk65_output_share')
-        self.p2pk33: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2pk33_output_share')
-        self.p2pkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2pkh_output_share')
-        self.p2ms: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2ms_output_share')
-        self.p2sh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2sh_output_share')
-        self.p2wpkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2wpkh_output_share')
-        self.p2wsh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2wsh_output_share')
-        self.p2tr: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2tr_output_share')
-        self.p2a: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'p2a_output_share')
-        self.unknown: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'unknown_outputs_output_share')
-        self.empty: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'empty_outputs_output_share')
-        self.op_return: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'op_return_output_share')
-
-class SeriesTree_Outputs_ByType:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.output_count: SeriesTree_Outputs_ByType_OutputCount = SeriesTree_Outputs_ByType_OutputCount(client)
-        self.spendable_output_count: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'spendable_output_count')
-        self.output_share: SeriesTree_Outputs_ByType_OutputShare = SeriesTree_Outputs_ByType_OutputShare(client)
-        self.tx_count: AllEmptyOpP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern = AllEmptyOpP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern(client, 'tx_count')
-        self.tx_share: EmptyOpP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2 = EmptyOpP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2(client, 'tx_share_with')
-
-class SeriesTree_Outputs_Value:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.op_return: BlockCumulativePattern = BlockCumulativePattern(client, 'op_return_value')
-
-class SeriesTree_Outputs:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.raw: SeriesTree_Outputs_Raw = SeriesTree_Outputs_Raw(client)
-        self.spent: SeriesTree_Outputs_Spent = SeriesTree_Outputs_Spent(client)
-        self.count: SeriesTree_Outputs_Count = SeriesTree_Outputs_Count(client)
-        self.per_sec: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, 'outputs_per_sec')
-        self.by_type: SeriesTree_Outputs_ByType = SeriesTree_Outputs_ByType(client)
-        self.value: SeriesTree_Outputs_Value = SeriesTree_Outputs_Value(client)
-
-class SeriesTree_Addrs_Raw_P2pk65:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[P2PK65AddrIndex] = SeriesPattern18(client, 'first_p2pk65_addr_index')
-        self.bytes: SeriesPattern27[P2PK65Bytes] = SeriesPattern27(client, 'p2pk65_bytes')
-
-class SeriesTree_Addrs_Raw_P2pk33:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[P2PK33AddrIndex] = SeriesPattern18(client, 'first_p2pk33_addr_index')
-        self.bytes: SeriesPattern26[P2PK33Bytes] = SeriesPattern26(client, 'p2pk33_bytes')
-
-class SeriesTree_Addrs_Raw_P2pkh:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[P2PKHAddrIndex] = SeriesPattern18(client, 'first_p2pkh_addr_index')
-        self.bytes: SeriesPattern28[P2PKHBytes] = SeriesPattern28(client, 'p2pkh_bytes')
-
-class SeriesTree_Addrs_Raw_P2sh:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[P2SHAddrIndex] = SeriesPattern18(client, 'first_p2sh_addr_index')
-        self.bytes: SeriesPattern29[P2SHBytes] = SeriesPattern29(client, 'p2sh_bytes')
-
-class SeriesTree_Addrs_Raw_P2wpkh:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[P2WPKHAddrIndex] = SeriesPattern18(client, 'first_p2wpkh_addr_index')
-        self.bytes: SeriesPattern31[P2WPKHBytes] = SeriesPattern31(client, 'p2wpkh_bytes')
-
-class SeriesTree_Addrs_Raw_P2wsh:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[P2WSHAddrIndex] = SeriesPattern18(client, 'first_p2wsh_addr_index')
-        self.bytes: SeriesPattern32[P2WSHBytes] = SeriesPattern32(client, 'p2wsh_bytes')
-
-class SeriesTree_Addrs_Raw_P2tr:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[P2TRAddrIndex] = SeriesPattern18(client, 'first_p2tr_addr_index')
-        self.bytes: SeriesPattern30[P2TRBytes] = SeriesPattern30(client, 'p2tr_bytes')
-
-class SeriesTree_Addrs_Raw_P2a:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[P2AAddrIndex] = SeriesPattern18(client, 'first_p2a_addr_index')
-        self.bytes: SeriesPattern24[P2ABytes] = SeriesPattern24(client, 'p2a_bytes')
-
-class SeriesTree_Addrs_Raw:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk65: SeriesTree_Addrs_Raw_P2pk65 = SeriesTree_Addrs_Raw_P2pk65(client)
-        self.p2pk33: SeriesTree_Addrs_Raw_P2pk33 = SeriesTree_Addrs_Raw_P2pk33(client)
-        self.p2pkh: SeriesTree_Addrs_Raw_P2pkh = SeriesTree_Addrs_Raw_P2pkh(client)
-        self.p2sh: SeriesTree_Addrs_Raw_P2sh = SeriesTree_Addrs_Raw_P2sh(client)
-        self.p2wpkh: SeriesTree_Addrs_Raw_P2wpkh = SeriesTree_Addrs_Raw_P2wpkh(client)
-        self.p2wsh: SeriesTree_Addrs_Raw_P2wsh = SeriesTree_Addrs_Raw_P2wsh(client)
-        self.p2tr: SeriesTree_Addrs_Raw_P2tr = SeriesTree_Addrs_Raw_P2tr(client)
-        self.p2a: SeriesTree_Addrs_Raw_P2a = SeriesTree_Addrs_Raw_P2a(client)
-
-class SeriesTree_Addrs_State:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2a: SeriesPattern24[AddrState] = SeriesPattern24(client, 'addr_state')
-        self.p2pk33: SeriesPattern26[AddrState] = SeriesPattern26(client, 'addr_state')
-        self.p2pk65: SeriesPattern27[AddrState] = SeriesPattern27(client, 'addr_state')
-        self.p2pkh: SeriesPattern28[AddrState] = SeriesPattern28(client, 'addr_state')
-        self.p2sh: SeriesPattern29[AddrState] = SeriesPattern29(client, 'addr_state')
-        self.p2tr: SeriesPattern30[AddrState] = SeriesPattern30(client, 'addr_state')
-        self.p2wpkh: SeriesPattern31[AddrState] = SeriesPattern31(client, 'addr_state')
-        self.p2wsh: SeriesPattern32[AddrState] = SeriesPattern32(client, 'addr_state')
-        self.funded: SeriesPattern34[FundedAddrData] = SeriesPattern34(client, 'funded_addr_data')
-        self.extended_empty: SeriesPattern35[EmptyAddrData] = SeriesPattern35(client, 'extended_empty_addr_data')
-
-class SeriesTree_Addrs_ByBalance_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_0sats_supply')
-        self._1sat_to_10sats: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_1sat_to_10sats_supply')
-        self._10sats_to_100sats: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_10sats_to_100sats_supply')
-        self._100sats_to_1k_sats: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_100sats_to_1k_sats_supply')
-        self._1k_sats_to_10k_sats: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_1k_sats_to_10k_sats_supply')
-        self._10k_sats_to_100k_sats: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_10k_sats_to_100k_sats_supply')
-        self._100k_sats_to_1m_sats: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_100k_sats_to_1m_sats_supply')
-        self._1m_sats_to_10m_sats: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_1m_sats_to_10m_sats_supply')
-        self._10m_sats_to_1btc: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_10m_sats_to_1btc_supply')
-        self._1btc_to_10btc: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_1btc_to_10btc_supply')
-        self._10btc_to_100btc: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_10btc_to_100btc_supply')
-        self._100btc_to_1k_btc: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_100btc_to_1k_btc_supply')
-        self._1k_btc_to_10k_btc: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_1k_btc_to_10k_btc_supply')
-        self._10k_btc_to_100k_btc: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_10k_btc_to_100k_btc_supply')
-        self.over_100k_btc: DeltaDominanceTotalPattern = DeltaDominanceTotalPattern(client, 'addrs_over_100k_btc_supply')
-
-class SeriesTree_Addrs_ByBalance_UtxoCount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_0sats_utxo_count')
-        self._1sat_to_10sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_1sat_to_10sats_utxo_count')
-        self._10sats_to_100sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_10sats_to_100sats_utxo_count')
-        self._100sats_to_1k_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_100sats_to_1k_sats_utxo_count')
-        self._1k_sats_to_10k_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_1k_sats_to_10k_sats_utxo_count')
-        self._10k_sats_to_100k_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_10k_sats_to_100k_sats_utxo_count')
-        self._100k_sats_to_1m_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_100k_sats_to_1m_sats_utxo_count')
-        self._1m_sats_to_10m_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_1m_sats_to_10m_sats_utxo_count')
-        self._10m_sats_to_1btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_10m_sats_to_1btc_utxo_count')
-        self._1btc_to_10btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_1btc_to_10btc_utxo_count')
-        self._10btc_to_100btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_10btc_to_100btc_utxo_count')
-        self._100btc_to_1k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_100btc_to_1k_btc_utxo_count')
-        self._1k_btc_to_10k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_1k_btc_to_10k_btc_utxo_count')
-        self._10k_btc_to_100k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_10k_btc_to_100k_btc_utxo_count')
-        self.over_100k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_over_100k_btc_utxo_count')
-
-class SeriesTree_Addrs_ByBalance_RealizedProfit:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_0sats_realized_profit')
-        self._1sat_to_10sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_1sat_to_10sats_realized_profit')
-        self._10sats_to_100sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_10sats_to_100sats_realized_profit')
-        self._100sats_to_1k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_100sats_to_1k_sats_realized_profit')
-        self._1k_sats_to_10k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_1k_sats_to_10k_sats_realized_profit')
-        self._10k_sats_to_100k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_10k_sats_to_100k_sats_realized_profit')
-        self._100k_sats_to_1m_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_100k_sats_to_1m_sats_realized_profit')
-        self._1m_sats_to_10m_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_1m_sats_to_10m_sats_realized_profit')
-        self._10m_sats_to_1btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_10m_sats_to_1btc_realized_profit')
-        self._1btc_to_10btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_1btc_to_10btc_realized_profit')
-        self._10btc_to_100btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_10btc_to_100btc_realized_profit')
-        self._100btc_to_1k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_100btc_to_1k_btc_realized_profit')
-        self._1k_btc_to_10k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_1k_btc_to_10k_btc_realized_profit')
-        self._10k_btc_to_100k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_10k_btc_to_100k_btc_realized_profit')
-        self.over_100k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_over_100k_btc_realized_profit')
-
-class SeriesTree_Addrs_ByBalance_RealizedLoss:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_0sats_realized_loss')
-        self._1sat_to_10sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_1sat_to_10sats_realized_loss')
-        self._10sats_to_100sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_10sats_to_100sats_realized_loss')
-        self._100sats_to_1k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_100sats_to_1k_sats_realized_loss')
-        self._1k_sats_to_10k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_1k_sats_to_10k_sats_realized_loss')
-        self._10k_sats_to_100k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_10k_sats_to_100k_sats_realized_loss')
-        self._100k_sats_to_1m_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_100k_sats_to_1m_sats_realized_loss')
-        self._1m_sats_to_10m_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_1m_sats_to_10m_sats_realized_loss')
-        self._10m_sats_to_1btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_10m_sats_to_1btc_realized_loss')
-        self._1btc_to_10btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_1btc_to_10btc_realized_loss')
-        self._10btc_to_100btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_10btc_to_100btc_realized_loss')
-        self._100btc_to_1k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_100btc_to_1k_btc_realized_loss')
-        self._1k_btc_to_10k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_1k_btc_to_10k_btc_realized_loss')
-        self._10k_btc_to_100k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_10k_btc_to_100k_btc_realized_loss')
-        self.over_100k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'addrs_over_100k_btc_realized_loss')
-
-class SeriesTree_Addrs_ByBalance:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.supply: SeriesTree_Addrs_ByBalance_Supply = SeriesTree_Addrs_ByBalance_Supply(client)
-        self.utxo_count: SeriesTree_Addrs_ByBalance_UtxoCount = SeriesTree_Addrs_ByBalance_UtxoCount(client)
-        self.transfer_volume: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4 = _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4(client, 'addrs')
-        self.realized_cap: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern = _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern(client, 'addrs')
-        self.realized_profit: SeriesTree_Addrs_ByBalance_RealizedProfit = SeriesTree_Addrs_ByBalance_RealizedProfit(client)
-        self.realized_loss: SeriesTree_Addrs_ByBalance_RealizedLoss = SeriesTree_Addrs_ByBalance_RealizedLoss(client)
-
-class SeriesTree_Addrs_Funded_Balance:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_0sats_addr_count')
-        self._1sat_to_10sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_1sat_to_10sats_addr_count')
-        self._10sats_to_100sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_10sats_to_100sats_addr_count')
-        self._100sats_to_1k_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_100sats_to_1k_sats_addr_count')
-        self._1k_sats_to_10k_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_1k_sats_to_10k_sats_addr_count')
-        self._10k_sats_to_100k_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_10k_sats_to_100k_sats_addr_count')
-        self._100k_sats_to_1m_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_100k_sats_to_1m_sats_addr_count')
-        self._1m_sats_to_10m_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_1m_sats_to_10m_sats_addr_count')
-        self._10m_sats_to_1btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_10m_sats_to_1btc_addr_count')
-        self._1btc_to_10btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_1btc_to_10btc_addr_count')
-        self._10btc_to_100btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_10btc_to_100btc_addr_count')
-        self._100btc_to_1k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_100btc_to_1k_btc_addr_count')
-        self._1k_btc_to_10k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_1k_btc_to_10k_btc_addr_count')
-        self._10k_btc_to_100k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_10k_btc_to_100k_btc_addr_count')
-        self.over_100k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'addrs_over_100k_btc_addr_count')
-
-class SeriesTree_Addrs_Funded:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'addr_count')
-        self.p2pk65: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2pk65_addr_count')
-        self.p2pk33: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2pk33_addr_count')
-        self.p2pkh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2pkh_addr_count')
-        self.p2sh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2sh_addr_count')
-        self.p2wpkh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wpkh_addr_count')
-        self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wsh_addr_count')
-        self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2tr_addr_count')
-        self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2a_addr_count')
-        self.balance: SeriesTree_Addrs_Funded_Balance = SeriesTree_Addrs_Funded_Balance(client)
-
-class SeriesTree_Addrs_Activity:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.reactivated: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern(client, 'reactivated_addrs')
-        self.sending: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern(client, 'sending_addrs')
-        self.receiving: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern(client, 'receiving_addrs')
-        self.bidirectional: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern(client, 'bidirectional_addrs')
-        self.active: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern(client, 'active_addrs')
-
-class SeriesTree_Addrs_Reused_Events:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.output_to_reused_addr_count: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6(client, 'output_to_reused_addr_count')
-        self.output_to_reused_addr_share: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7(client, 'output_to_reused_addr_share')
-        self.spendable_output_to_reused_addr_share: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'spendable_output_to_reused_addr_share')
-        self.input_from_reused_addr_count: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6(client, 'input_from_reused_addr_count')
-        self.input_from_reused_addr_share: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7(client, 'input_from_reused_addr_share')
-        self.active_reused_addr_count: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, 'active_reused_addr_count')
-        self.active_reused_addr_share: _1m1w1y24hBlockPattern2 = _1m1w1y24hBlockPattern2(client, 'active_reused_addr_share')
-
-class SeriesTree_Addrs_Reused_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'reused_addr_supply')
-        self.p2pk65: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pk65_reused_addr_supply')
-        self.p2pk33: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pk33_reused_addr_supply')
-        self.p2pkh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pkh_reused_addr_supply')
-        self.p2sh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2sh_reused_addr_supply')
-        self.p2wpkh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wpkh_reused_addr_supply')
-        self.p2wsh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wsh_reused_addr_supply')
-        self.p2tr: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2tr_reused_addr_supply')
-        self.p2a: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2a_reused_addr_supply')
-        self.share: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern5 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern5(client, 'reused_addr_supply_share')
-
-class SeriesTree_Addrs_Reused:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.count: FundedTotalPattern = FundedTotalPattern(client, 'reused_addr_count')
-        self.events: SeriesTree_Addrs_Reused_Events = SeriesTree_Addrs_Reused_Events(client)
-        self.supply: SeriesTree_Addrs_Reused_Supply = SeriesTree_Addrs_Reused_Supply(client)
-
-class SeriesTree_Addrs_Respent_Events:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.output_to_reused_addr_count: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6(client, 'output_to_respent_addr_count')
-        self.output_to_reused_addr_share: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7(client, 'output_to_respent_addr_share')
-        self.spendable_output_to_reused_addr_share: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'spendable_output_to_respent_addr_share')
-        self.input_from_reused_addr_count: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6(client, 'input_from_respent_addr_count')
-        self.input_from_reused_addr_share: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7(client, 'input_from_respent_addr_share')
-        self.active_reused_addr_count: _1m1w1y24hBlockPattern = _1m1w1y24hBlockPattern(client, 'active_respent_addr_count')
-        self.active_reused_addr_share: _1m1w1y24hBlockPattern2 = _1m1w1y24hBlockPattern2(client, 'active_respent_addr_share')
-
-class SeriesTree_Addrs_Respent_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'respent_addr_supply')
-        self.p2pk65: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pk65_respent_addr_supply')
-        self.p2pk33: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pk33_respent_addr_supply')
-        self.p2pkh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pkh_respent_addr_supply')
-        self.p2sh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2sh_respent_addr_supply')
-        self.p2wpkh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wpkh_respent_addr_supply')
-        self.p2wsh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wsh_respent_addr_supply')
-        self.p2tr: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2tr_respent_addr_supply')
-        self.p2a: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2a_respent_addr_supply')
-        self.share: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern5 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern5(client, 'respent_addr_supply_share')
-
-class SeriesTree_Addrs_Respent:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.count: FundedTotalPattern = FundedTotalPattern(client, 'respent_addr_count')
-        self.events: SeriesTree_Addrs_Respent_Events = SeriesTree_Addrs_Respent_Events(client)
-        self.supply: SeriesTree_Addrs_Respent_Supply = SeriesTree_Addrs_Respent_Supply(client)
-
-class SeriesTree_Addrs_Exposed_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'exposed_addr_supply')
-        self.p2pk65: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pk65_exposed_addr_supply')
-        self.p2pk33: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pk33_exposed_addr_supply')
-        self.p2pkh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pkh_exposed_addr_supply')
-        self.p2sh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2sh_exposed_addr_supply')
-        self.p2wpkh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wpkh_exposed_addr_supply')
-        self.p2wsh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wsh_exposed_addr_supply')
-        self.p2tr: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2tr_exposed_addr_supply')
-        self.p2a: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2a_exposed_addr_supply')
-        self.share: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern5 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern5(client, 'exposed_addr_supply_share')
-
-class SeriesTree_Addrs_Exposed:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.count: FundedTotalPattern = FundedTotalPattern(client, 'exposed_addr_count')
-        self.supply: SeriesTree_Addrs_Exposed_Supply = SeriesTree_Addrs_Exposed_Supply(client)
-
-class SeriesTree_Addrs_Delta:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: AbsoluteRatePattern2 = AbsoluteRatePattern2(client, 'addr_count')
-        self.p2pk65: AbsoluteRatePattern2 = AbsoluteRatePattern2(client, 'p2pk65_addr_count')
-        self.p2pk33: AbsoluteRatePattern2 = AbsoluteRatePattern2(client, 'p2pk33_addr_count')
-        self.p2pkh: AbsoluteRatePattern2 = AbsoluteRatePattern2(client, 'p2pkh_addr_count')
-        self.p2sh: AbsoluteRatePattern2 = AbsoluteRatePattern2(client, 'p2sh_addr_count')
-        self.p2wpkh: AbsoluteRatePattern2 = AbsoluteRatePattern2(client, 'p2wpkh_addr_count')
-        self.p2wsh: AbsoluteRatePattern2 = AbsoluteRatePattern2(client, 'p2wsh_addr_count')
-        self.p2tr: AbsoluteRatePattern2 = AbsoluteRatePattern2(client, 'p2tr_addr_count')
-        self.p2a: AbsoluteRatePattern2 = AbsoluteRatePattern2(client, 'p2a_addr_count')
-
-class SeriesTree_Addrs_AvgBalance:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'avg_addr_amount')
-        self.p2pk65: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pk65_avg_addr_amount')
-        self.p2pk33: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pk33_avg_addr_amount')
-        self.p2pkh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2pkh_avg_addr_amount')
-        self.p2sh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2sh_avg_addr_amount')
-        self.p2wpkh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wpkh_avg_addr_amount')
-        self.p2wsh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wsh_avg_addr_amount')
-        self.p2tr: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2tr_avg_addr_amount')
-        self.p2a: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2a_avg_addr_amount')
-
-class SeriesTree_Addrs:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.raw: SeriesTree_Addrs_Raw = SeriesTree_Addrs_Raw(client)
-        self.state: SeriesTree_Addrs_State = SeriesTree_Addrs_State(client)
-        self.by_balance: SeriesTree_Addrs_ByBalance = SeriesTree_Addrs_ByBalance(client)
-        self.funded: SeriesTree_Addrs_Funded = SeriesTree_Addrs_Funded(client)
-        self.empty: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4(client, 'empty_addr_count')
-        self.activity: SeriesTree_Addrs_Activity = SeriesTree_Addrs_Activity(client)
-        self.total: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4(client, 'total_addr_count')
-        self.new: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6(client, 'new_addr_count')
-        self.reused: SeriesTree_Addrs_Reused = SeriesTree_Addrs_Reused(client)
-        self.respent: SeriesTree_Addrs_Respent = SeriesTree_Addrs_Respent(client)
-        self.exposed: SeriesTree_Addrs_Exposed = SeriesTree_Addrs_Exposed(client)
-        self.delta: SeriesTree_Addrs_Delta = SeriesTree_Addrs_Delta(client)
-        self.avg_balance: SeriesTree_Addrs_AvgBalance = SeriesTree_Addrs_AvgBalance(client)
-
-class SeriesTree_Scripts_Raw_Empty:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[EmptyOutputIndex] = SeriesPattern18(client, 'first_empty_output_index')
-        self.to_tx_index: SeriesPattern22[TxIndex] = SeriesPattern22(client, 'tx_index')
-
-class SeriesTree_Scripts_Raw_P2ms:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[P2MSOutputIndex] = SeriesPattern18(client, 'first_p2ms_output_index')
-        self.to_tx_index: SeriesPattern25[TxIndex] = SeriesPattern25(client, 'tx_index')
-        self.legacy_sigops: SeriesPattern25[SigOps] = SeriesPattern25(client, 'p2ms_legacy_sigops')
-
-class SeriesTree_Scripts_Raw_Unknown:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[UnknownOutputIndex] = SeriesPattern18(client, 'first_unknown_output_index')
-        self.to_tx_index: SeriesPattern33[TxIndex] = SeriesPattern33(client, 'tx_index')
-        self.legacy_sigops: SeriesPattern33[SigOps] = SeriesPattern33(client, 'unknown_legacy_sigops')
-
-class SeriesTree_Scripts_Raw:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.empty: SeriesTree_Scripts_Raw_Empty = SeriesTree_Scripts_Raw_Empty(client)
-        self.p2ms: SeriesTree_Scripts_Raw_P2ms = SeriesTree_Scripts_Raw_P2ms(client)
-        self.unknown: SeriesTree_Scripts_Raw_Unknown = SeriesTree_Scripts_Raw_Unknown(client)
-
-class SeriesTree_Scripts:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.raw: SeriesTree_Scripts_Raw = SeriesTree_Scripts_Raw(client)
-
-class SeriesTree_OpReturn_Raw:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_index: SeriesPattern18[OpReturnIndex] = SeriesPattern18(client, 'first_op_return_index')
-        self.to_tx_index: SeriesPattern23[TxIndex] = SeriesPattern23(client, 'tx_index')
-        self.kind: SeriesPattern23[OpReturnKind] = SeriesPattern23(client, 'kind')
-        self.post_op_return_bytes: SeriesPattern23[StoredU32] = SeriesPattern23(client, 'op_return_post_op_return_bytes')
-
-class SeriesTree_OpReturn_Total:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.data_bytes: AverageBlockCumulativeSumPattern2[Bytes] = AverageBlockCumulativeSumPattern2(client, 'op_return_data_bytes')
-        self.tx_count: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_tx_count')
-        self.tx_vsize: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_tx_vsize')
-        self.fees: AverageBlockCumulativeSumPattern2[Sats] = AverageBlockCumulativeSumPattern2(client, 'op_return_fees')
-        self.chain_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'op_return_chain_share')
-        self.fee_share: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'op_return_fee_share')
-
-class SeriesTree_OpReturn_ByKind_OutputCount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.runes: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_runes_output_count')
-        self.veri_block: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_veri_block_output_count')
-        self.omni: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_omni_output_count')
-        self.stacks: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_stacks_output_count')
-        self.blockstack: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_blockstack_output_count')
-        self.colu: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_colu_output_count')
-        self.open_assets: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_open_assets_output_count')
-        self.komodo: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_komodo_output_count')
-        self.coin_spark: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_coin_spark_output_count')
-        self.poet: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_poet_output_count')
-        self.docproof: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_docproof_output_count')
-        self.open_timestamps: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_open_timestamps_output_count')
-        self.factom: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_factom_output_count')
-        self.eternity_wall: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_eternity_wall_output_count')
-        self.memo: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_memo_output_count')
-        self.bitproof: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_bitproof_output_count')
-        self.ascribe: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_ascribe_output_count')
-        self.stampery: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_stampery_output_count')
-        self.epobc: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_epobc_output_count')
-        self.bare_hash: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_bare_hash_output_count')
-        self.text: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_text_output_count')
-        self.empty: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_empty_output_count')
-        self.unknown: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_unknown_output_count')
-
-class SeriesTree_OpReturn_ByKind_DataBytes:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.runes: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_runes')
-        self.veri_block: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_veri_block')
-        self.omni: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_omni')
-        self.stacks: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_stacks')
-        self.blockstack: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_blockstack')
-        self.colu: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_colu')
-        self.open_assets: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_open_assets')
-        self.komodo: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_komodo')
-        self.coin_spark: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_coin_spark')
-        self.poet: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_poet')
-        self.docproof: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_docproof')
-        self.open_timestamps: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_open_timestamps')
-        self.factom: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_factom')
-        self.eternity_wall: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_eternity_wall')
-        self.memo: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_memo')
-        self.bitproof: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_bitproof')
-        self.ascribe: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_ascribe')
-        self.stampery: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_stampery')
-        self.epobc: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_epobc')
-        self.bare_hash: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_bare_hash')
-        self.text: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_text')
-        self.empty: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_empty')
-        self.unknown: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_unknown')
-
-class SeriesTree_OpReturn_ByKind_TxCount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.runes: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_runes_tx_count')
-        self.veri_block: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_veri_block_tx_count')
-        self.omni: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_omni_tx_count')
-        self.stacks: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_stacks_tx_count')
-        self.blockstack: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_blockstack_tx_count')
-        self.colu: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_colu_tx_count')
-        self.open_assets: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_open_assets_tx_count')
-        self.komodo: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_komodo_tx_count')
-        self.coin_spark: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_coin_spark_tx_count')
-        self.poet: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_poet_tx_count')
-        self.docproof: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_docproof_tx_count')
-        self.open_timestamps: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_open_timestamps_tx_count')
-        self.factom: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_factom_tx_count')
-        self.eternity_wall: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_eternity_wall_tx_count')
-        self.memo: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_memo_tx_count')
-        self.bitproof: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_bitproof_tx_count')
-        self.ascribe: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_ascribe_tx_count')
-        self.stampery: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_stampery_tx_count')
-        self.epobc: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_epobc_tx_count')
-        self.bare_hash: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_bare_hash_tx_count')
-        self.text: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_text_tx_count')
-        self.empty: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_empty_tx_count')
-        self.unknown: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_unknown_tx_count')
-
-class SeriesTree_OpReturn_ByKind_TxVsize:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.runes: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_runes_tx_vsize')
-        self.veri_block: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_veri_block_tx_vsize')
-        self.omni: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_omni_tx_vsize')
-        self.stacks: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_stacks_tx_vsize')
-        self.blockstack: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_blockstack_tx_vsize')
-        self.colu: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_colu_tx_vsize')
-        self.open_assets: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_open_assets_tx_vsize')
-        self.komodo: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_komodo_tx_vsize')
-        self.coin_spark: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_coin_spark_tx_vsize')
-        self.poet: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_poet_tx_vsize')
-        self.docproof: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_docproof_tx_vsize')
-        self.open_timestamps: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_open_timestamps_tx_vsize')
-        self.factom: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_factom_tx_vsize')
-        self.eternity_wall: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_eternity_wall_tx_vsize')
-        self.memo: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_memo_tx_vsize')
-        self.bitproof: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_bitproof_tx_vsize')
-        self.ascribe: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_ascribe_tx_vsize')
-        self.stampery: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_stampery_tx_vsize')
-        self.epobc: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_epobc_tx_vsize')
-        self.bare_hash: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_bare_hash_tx_vsize')
-        self.text: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_text_tx_vsize')
-        self.empty: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_empty_tx_vsize')
-        self.unknown: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_unknown_tx_vsize')
-
-class SeriesTree_OpReturn_ByKind_Fees:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.runes: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_runes')
-        self.veri_block: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_veri_block')
-        self.omni: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_omni')
-        self.stacks: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_stacks')
-        self.blockstack: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_blockstack')
-        self.colu: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_colu')
-        self.open_assets: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_open_assets')
-        self.komodo: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_komodo')
-        self.coin_spark: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_coin_spark')
-        self.poet: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_poet')
-        self.docproof: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_docproof')
-        self.open_timestamps: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_open_timestamps')
-        self.factom: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_factom')
-        self.eternity_wall: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_eternity_wall')
-        self.memo: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_memo')
-        self.bitproof: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_bitproof')
-        self.ascribe: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_ascribe')
-        self.stampery: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_stampery')
-        self.epobc: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_epobc')
-        self.bare_hash: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_bare_hash')
-        self.text: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_text')
-        self.empty: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_empty')
-        self.unknown: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_unknown')
-
-class SeriesTree_OpReturn_ByKind:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.output_count: SeriesTree_OpReturn_ByKind_OutputCount = SeriesTree_OpReturn_ByKind_OutputCount(client)
-        self.data_bytes: SeriesTree_OpReturn_ByKind_DataBytes = SeriesTree_OpReturn_ByKind_DataBytes(client)
-        self.tx_count: SeriesTree_OpReturn_ByKind_TxCount = SeriesTree_OpReturn_ByKind_TxCount(client)
-        self.tx_vsize: SeriesTree_OpReturn_ByKind_TxVsize = SeriesTree_OpReturn_ByKind_TxVsize(client)
-        self.fees: SeriesTree_OpReturn_ByKind_Fees = SeriesTree_OpReturn_ByKind_Fees(client)
-
-class SeriesTree_OpReturn_Policy_OutputCount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.pre_v30_standard: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_pre_v30_standard_output_count')
-        self.pre_v30_nonstandard: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_pre_v30_nonstandard_output_count')
-        self.oversized: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_oversized_output_count')
-        self.multiple: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_multiple_output_count')
-
-class SeriesTree_OpReturn_Policy_DataBytes:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.pre_v30_standard: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_policy_pre_v30_standard')
-        self.pre_v30_nonstandard: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_policy_pre_v30_nonstandard')
-        self.oversized: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_policy_oversized')
-        self.multiple: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_policy_multiple')
-
-class SeriesTree_OpReturn_Policy_TxCount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.pre_v30_standard: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_pre_v30_standard_tx_count')
-        self.pre_v30_nonstandard: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_pre_v30_nonstandard_tx_count')
-        self.oversized: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_oversized_tx_count')
-        self.multiple: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_multiple_tx_count')
-
-class SeriesTree_OpReturn_Policy_TxVsize:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.pre_v30_standard: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_pre_v30_standard_tx_vsize')
-        self.pre_v30_nonstandard: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_pre_v30_nonstandard_tx_vsize')
-        self.oversized: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_oversized_tx_vsize')
-        self.multiple: AverageBlockCumulativeSumPattern2[VSize] = AverageBlockCumulativeSumPattern2(client, 'op_return_policy_multiple_tx_vsize')
-
-class SeriesTree_OpReturn_Policy_Fees:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.pre_v30_standard: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_policy_pre_v30_standard')
-        self.pre_v30_nonstandard: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_policy_pre_v30_nonstandard')
-        self.oversized: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_policy_oversized')
-        self.multiple: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_policy_multiple')
-
-class SeriesTree_OpReturn_Policy:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.output_count: SeriesTree_OpReturn_Policy_OutputCount = SeriesTree_OpReturn_Policy_OutputCount(client)
-        self.data_bytes: SeriesTree_OpReturn_Policy_DataBytes = SeriesTree_OpReturn_Policy_DataBytes(client)
-        self.tx_count: SeriesTree_OpReturn_Policy_TxCount = SeriesTree_OpReturn_Policy_TxCount(client)
-        self.tx_vsize: SeriesTree_OpReturn_Policy_TxVsize = SeriesTree_OpReturn_Policy_TxVsize(client)
-        self.fees: SeriesTree_OpReturn_Policy_Fees = SeriesTree_OpReturn_Policy_Fees(client)
-
-class SeriesTree_OpReturn:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.raw: SeriesTree_OpReturn_Raw = SeriesTree_OpReturn_Raw(client)
-        self.total: SeriesTree_OpReturn_Total = SeriesTree_OpReturn_Total(client)
-        self.by_kind: SeriesTree_OpReturn_ByKind = SeriesTree_OpReturn_ByKind(client)
-        self.policy: SeriesTree_OpReturn_Policy = SeriesTree_OpReturn_Policy(client)
-
-class SeriesTree_Mining_Rewards_Subsidy:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.block: BtcCentsSatsUsdPattern3 = BtcCentsSatsUsdPattern3(client, 'subsidy')
-        self.cumulative: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'subsidy_cumulative')
-        self.sum: _1m1w1y24hPattern5 = _1m1w1y24hPattern5(client, 'subsidy_sum')
-        self.average: _1m1w1y24hPattern4 = _1m1w1y24hPattern4(client, 'subsidy_average')
-        self.dominance: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'subsidy_dominance')
-
-class SeriesTree_Mining_Rewards_Fees_ToSubsidy:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._24h: PercentPpmRatioPattern5 = PercentPpmRatioPattern5(client, 'fee_to_subsidy_24h')
-        self._1w: PercentPpmRatioPattern5 = PercentPpmRatioPattern5(client, 'fee_to_subsidy_1w')
-        self._1m: PercentPpmRatioPattern5 = PercentPpmRatioPattern5(client, 'fee_to_subsidy_1m')
-        self._1y: PercentPpmRatioPattern5 = PercentPpmRatioPattern5(client, 'fee_to_subsidy_1y')
-
-class SeriesTree_Mining_Rewards_Fees:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.block: BtcCentsSatsUsdPattern3 = BtcCentsSatsUsdPattern3(client, 'fees')
-        self.cumulative: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'fees_cumulative')
-        self.sum: _1m1w1y24hPattern5 = _1m1w1y24hPattern5(client, 'fees_sum')
-        self.average: _1m1w1y24hPattern4 = _1m1w1y24hPattern4(client, 'fees_average')
-        self.min: _1m1w1y24hPattern5 = _1m1w1y24hPattern5(client, 'fees_min')
-        self.max: _1m1w1y24hPattern5 = _1m1w1y24hPattern5(client, 'fees_max')
-        self.pct10: _1m1w1y24hPattern5 = _1m1w1y24hPattern5(client, 'fees_pct10')
-        self.pct25: _1m1w1y24hPattern5 = _1m1w1y24hPattern5(client, 'fees_pct25')
-        self.median: _1m1w1y24hPattern5 = _1m1w1y24hPattern5(client, 'fees_median')
-        self.pct75: _1m1w1y24hPattern5 = _1m1w1y24hPattern5(client, 'fees_pct75')
-        self.pct90: _1m1w1y24hPattern5 = _1m1w1y24hPattern5(client, 'fees_pct90')
-        self.dominance: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, 'fee_dominance')
-        self.to_subsidy: SeriesTree_Mining_Rewards_Fees_ToSubsidy = SeriesTree_Mining_Rewards_Fees_ToSubsidy(client)
-
-class SeriesTree_Mining_Rewards:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.coinbase: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'coinbase')
-        self.subsidy: SeriesTree_Mining_Rewards_Subsidy = SeriesTree_Mining_Rewards_Subsidy(client)
-        self.fees: SeriesTree_Mining_Rewards_Fees = SeriesTree_Mining_Rewards_Fees(client)
-        self.output_volume: SeriesPattern18[Sats] = SeriesPattern18(client, 'output_volume')
-        self.unclaimed: BlockCumulativePattern = BlockCumulativePattern(client, 'unclaimed_rewards')
-
-class SeriesTree_Mining_Hashrate_Rate_Sma:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'hash_rate_sma_1w')
-        self._1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'hash_rate_sma_1m')
-        self._2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'hash_rate_sma_2m')
-        self._1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'hash_rate_sma_1y')
-
-class SeriesTree_Mining_Hashrate_Rate:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.base: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'hash_rate')
-        self.sma: SeriesTree_Mining_Hashrate_Rate_Sma = SeriesTree_Mining_Hashrate_Rate_Sma(client)
-        self.ath: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'hash_rate_ath')
-        self.drawdown: PercentPpmRatioPattern3 = PercentPpmRatioPattern3(client, 'hash_rate_drawdown')
-
-class SeriesTree_Mining_Hashrate:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.rate: SeriesTree_Mining_Hashrate_Rate = SeriesTree_Mining_Hashrate_Rate(client)
-        self.price: PhsReboundThsPattern = PhsReboundThsPattern(client, 'hash_price')
-        self.value: PhsReboundThsPattern = PhsReboundThsPattern(client, 'hash_value')
-
-class SeriesTree_Mining:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.rewards: SeriesTree_Mining_Rewards = SeriesTree_Mining_Rewards(client)
-        self.hashrate: SeriesTree_Mining_Hashrate = SeriesTree_Mining_Hashrate(client)
-
-class SeriesTree_Cointime_Activity:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.coinblocks_created: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'coinblocks_created')
-        self.coinblocks_stored: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'coinblocks_stored')
-        self.liveliness: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'liveliness')
-        self.vaultedness: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'vaultedness')
-        self.ratio: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'activity_to_vaultedness')
-        self.coinblocks_destroyed: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'coinblocks_destroyed')
-
-class SeriesTree_Cointime_AgeRange_CoindaysConsumed:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_under_1h_old_coindays_consumed')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1h_to_1d_old_coindays_consumed')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1d_to_1w_old_coindays_consumed')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1w_to_1m_old_coindays_consumed')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1m_to_2m_old_coindays_consumed')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_2m_to_3m_old_coindays_consumed')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_3m_to_4m_old_coindays_consumed')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_4m_to_5m_old_coindays_consumed')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_5m_to_6m_old_coindays_consumed')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_6m_to_9m_old_coindays_consumed')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_9m_to_1y_old_coindays_consumed')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1y_to_18m_old_coindays_consumed')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_18m_to_2y_old_coindays_consumed')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_2y_to_3y_old_coindays_consumed')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_3y_to_4y_old_coindays_consumed')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_4y_to_5y_old_coindays_consumed')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_5y_to_6y_old_coindays_consumed')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_6y_to_7y_old_coindays_consumed')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_7y_to_8y_old_coindays_consumed')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_8y_to_10y_old_coindays_consumed')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_10y_to_12y_old_coindays_consumed')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_12y_to_15y_old_coindays_consumed')
-        self.over_15y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_over_15y_old_coindays_consumed')
-
-class SeriesTree_Cointime_AgeRange_CoindaysStored:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_under_1h_old_coindays_stored')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1h_to_1d_old_coindays_stored')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1d_to_1w_old_coindays_stored')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1w_to_1m_old_coindays_stored')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1m_to_2m_old_coindays_stored')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_2m_to_3m_old_coindays_stored')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_3m_to_4m_old_coindays_stored')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_4m_to_5m_old_coindays_stored')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_5m_to_6m_old_coindays_stored')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_6m_to_9m_old_coindays_stored')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_9m_to_1y_old_coindays_stored')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1y_to_18m_old_coindays_stored')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_18m_to_2y_old_coindays_stored')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_2y_to_3y_old_coindays_stored')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_3y_to_4y_old_coindays_stored')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_4y_to_5y_old_coindays_stored')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_5y_to_6y_old_coindays_stored')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_6y_to_7y_old_coindays_stored')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_7y_to_8y_old_coindays_stored')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_8y_to_10y_old_coindays_stored')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_10y_to_12y_old_coindays_stored')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_12y_to_15y_old_coindays_stored')
-        self.over_15y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_over_15y_old_coindays_stored')
-
-class SeriesTree_Cointime_AgeRange_Activity_Wakefulness:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_1h_old_wakefulness')
-        self._1h_to_1d: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1h_to_1d_old_wakefulness')
-        self._1d_to_1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1d_to_1w_old_wakefulness')
-        self._1w_to_1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1w_to_1m_old_wakefulness')
-        self._1m_to_2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1m_to_2m_old_wakefulness')
-        self._2m_to_3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2m_to_3m_old_wakefulness')
-        self._3m_to_4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3m_to_4m_old_wakefulness')
-        self._4m_to_5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4m_to_5m_old_wakefulness')
-        self._5m_to_6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5m_to_6m_old_wakefulness')
-        self._6m_to_9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6m_to_9m_old_wakefulness')
-        self._9m_to_1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_9m_to_1y_old_wakefulness')
-        self._1y_to_18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1y_to_18m_old_wakefulness')
-        self._18m_to_2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_18m_to_2y_old_wakefulness')
-        self._2y_to_3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2y_to_3y_old_wakefulness')
-        self._3y_to_4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3y_to_4y_old_wakefulness')
-        self._4y_to_5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4y_to_5y_old_wakefulness')
-        self._5y_to_6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5y_to_6y_old_wakefulness')
-        self._6y_to_7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6y_to_7y_old_wakefulness')
-        self._7y_to_8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_7y_to_8y_old_wakefulness')
-        self._8y_to_10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_8y_to_10y_old_wakefulness')
-        self._10y_to_12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_10y_to_12y_old_wakefulness')
-        self._12y_to_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_12y_to_15y_old_wakefulness')
-        self.over_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_15y_old_wakefulness')
-
-class SeriesTree_Cointime_AgeRange_Activity_Dormancy:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_1h_old_dormancy')
-        self._1h_to_1d: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1h_to_1d_old_dormancy')
-        self._1d_to_1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1d_to_1w_old_dormancy')
-        self._1w_to_1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1w_to_1m_old_dormancy')
-        self._1m_to_2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1m_to_2m_old_dormancy')
-        self._2m_to_3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2m_to_3m_old_dormancy')
-        self._3m_to_4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3m_to_4m_old_dormancy')
-        self._4m_to_5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4m_to_5m_old_dormancy')
-        self._5m_to_6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5m_to_6m_old_dormancy')
-        self._6m_to_9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6m_to_9m_old_dormancy')
-        self._9m_to_1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_9m_to_1y_old_dormancy')
-        self._1y_to_18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1y_to_18m_old_dormancy')
-        self._18m_to_2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_18m_to_2y_old_dormancy')
-        self._2y_to_3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2y_to_3y_old_dormancy')
-        self._3y_to_4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3y_to_4y_old_dormancy')
-        self._4y_to_5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4y_to_5y_old_dormancy')
-        self._5y_to_6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5y_to_6y_old_dormancy')
-        self._6y_to_7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6y_to_7y_old_dormancy')
-        self._7y_to_8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_7y_to_8y_old_dormancy')
-        self._8y_to_10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_8y_to_10y_old_dormancy')
-        self._10y_to_12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_10y_to_12y_old_dormancy')
-        self._12y_to_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_12y_to_15y_old_dormancy')
-        self.over_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_15y_old_dormancy')
-
-class SeriesTree_Cointime_AgeRange_Activity_WakefulnessToDormancy:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_1h_old_wakefulness_to_dormancy')
-        self._1h_to_1d: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1h_to_1d_old_wakefulness_to_dormancy')
-        self._1d_to_1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1d_to_1w_old_wakefulness_to_dormancy')
-        self._1w_to_1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1w_to_1m_old_wakefulness_to_dormancy')
-        self._1m_to_2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1m_to_2m_old_wakefulness_to_dormancy')
-        self._2m_to_3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2m_to_3m_old_wakefulness_to_dormancy')
-        self._3m_to_4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3m_to_4m_old_wakefulness_to_dormancy')
-        self._4m_to_5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4m_to_5m_old_wakefulness_to_dormancy')
-        self._5m_to_6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5m_to_6m_old_wakefulness_to_dormancy')
-        self._6m_to_9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6m_to_9m_old_wakefulness_to_dormancy')
-        self._9m_to_1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_9m_to_1y_old_wakefulness_to_dormancy')
-        self._1y_to_18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1y_to_18m_old_wakefulness_to_dormancy')
-        self._18m_to_2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_18m_to_2y_old_wakefulness_to_dormancy')
-        self._2y_to_3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2y_to_3y_old_wakefulness_to_dormancy')
-        self._3y_to_4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3y_to_4y_old_wakefulness_to_dormancy')
-        self._4y_to_5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4y_to_5y_old_wakefulness_to_dormancy')
-        self._5y_to_6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5y_to_6y_old_wakefulness_to_dormancy')
-        self._6y_to_7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6y_to_7y_old_wakefulness_to_dormancy')
-        self._7y_to_8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_7y_to_8y_old_wakefulness_to_dormancy')
-        self._8y_to_10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_8y_to_10y_old_wakefulness_to_dormancy')
-        self._10y_to_12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_10y_to_12y_old_wakefulness_to_dormancy')
-        self._12y_to_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_12y_to_15y_old_wakefulness_to_dormancy')
-        self.over_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_15y_old_wakefulness_to_dormancy')
-
-class SeriesTree_Cointime_AgeRange_Activity:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.wakefulness: SeriesTree_Cointime_AgeRange_Activity_Wakefulness = SeriesTree_Cointime_AgeRange_Activity_Wakefulness(client)
-        self.dormancy: SeriesTree_Cointime_AgeRange_Activity_Dormancy = SeriesTree_Cointime_AgeRange_Activity_Dormancy(client)
-        self.wakefulness_to_dormancy: SeriesTree_Cointime_AgeRange_Activity_WakefulnessToDormancy = SeriesTree_Cointime_AgeRange_Activity_WakefulnessToDormancy(client)
-
-class SeriesTree_Cointime_AgeRange_Supply_Awake:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_under_1h_old_awake_supply')
-        self._1h_to_1d: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1h_to_1d_old_awake_supply')
-        self._1d_to_1w: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1d_to_1w_old_awake_supply')
-        self._1w_to_1m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1w_to_1m_old_awake_supply')
-        self._1m_to_2m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1m_to_2m_old_awake_supply')
-        self._2m_to_3m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2m_to_3m_old_awake_supply')
-        self._3m_to_4m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3m_to_4m_old_awake_supply')
-        self._4m_to_5m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4m_to_5m_old_awake_supply')
-        self._5m_to_6m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5m_to_6m_old_awake_supply')
-        self._6m_to_9m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6m_to_9m_old_awake_supply')
-        self._9m_to_1y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_9m_to_1y_old_awake_supply')
-        self._1y_to_18m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1y_to_18m_old_awake_supply')
-        self._18m_to_2y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_18m_to_2y_old_awake_supply')
-        self._2y_to_3y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2y_to_3y_old_awake_supply')
-        self._3y_to_4y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3y_to_4y_old_awake_supply')
-        self._4y_to_5y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4y_to_5y_old_awake_supply')
-        self._5y_to_6y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5y_to_6y_old_awake_supply')
-        self._6y_to_7y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6y_to_7y_old_awake_supply')
-        self._7y_to_8y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_7y_to_8y_old_awake_supply')
-        self._8y_to_10y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_8y_to_10y_old_awake_supply')
-        self._10y_to_12y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10y_to_12y_old_awake_supply')
-        self._12y_to_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_12y_to_15y_old_awake_supply')
-        self.over_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_over_15y_old_awake_supply')
-
-class SeriesTree_Cointime_AgeRange_Supply_Dormant:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_under_1h_old_dormant_supply')
-        self._1h_to_1d: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1h_to_1d_old_dormant_supply')
-        self._1d_to_1w: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1d_to_1w_old_dormant_supply')
-        self._1w_to_1m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1w_to_1m_old_dormant_supply')
-        self._1m_to_2m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1m_to_2m_old_dormant_supply')
-        self._2m_to_3m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2m_to_3m_old_dormant_supply')
-        self._3m_to_4m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3m_to_4m_old_dormant_supply')
-        self._4m_to_5m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4m_to_5m_old_dormant_supply')
-        self._5m_to_6m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5m_to_6m_old_dormant_supply')
-        self._6m_to_9m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6m_to_9m_old_dormant_supply')
-        self._9m_to_1y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_9m_to_1y_old_dormant_supply')
-        self._1y_to_18m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1y_to_18m_old_dormant_supply')
-        self._18m_to_2y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_18m_to_2y_old_dormant_supply')
-        self._2y_to_3y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2y_to_3y_old_dormant_supply')
-        self._3y_to_4y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3y_to_4y_old_dormant_supply')
-        self._4y_to_5y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4y_to_5y_old_dormant_supply')
-        self._5y_to_6y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5y_to_6y_old_dormant_supply')
-        self._6y_to_7y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6y_to_7y_old_dormant_supply')
-        self._7y_to_8y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_7y_to_8y_old_dormant_supply')
-        self._8y_to_10y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_8y_to_10y_old_dormant_supply')
-        self._10y_to_12y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10y_to_12y_old_dormant_supply')
-        self._12y_to_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_12y_to_15y_old_dormant_supply')
-        self.over_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_over_15y_old_dormant_supply')
-
-class SeriesTree_Cointime_AgeRange_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.awake: SeriesTree_Cointime_AgeRange_Supply_Awake = SeriesTree_Cointime_AgeRange_Supply_Awake(client)
-        self.dormant: SeriesTree_Cointime_AgeRange_Supply_Dormant = SeriesTree_Cointime_AgeRange_Supply_Dormant(client)
-
-class SeriesTree_Cointime_AgeRange_CoindaysCreated:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_under_1h_old_coindays_created')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1h_to_1d_old_coindays_created')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1d_to_1w_old_coindays_created')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1w_to_1m_old_coindays_created')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1m_to_2m_old_coindays_created')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_2m_to_3m_old_coindays_created')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_3m_to_4m_old_coindays_created')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_4m_to_5m_old_coindays_created')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_5m_to_6m_old_coindays_created')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_6m_to_9m_old_coindays_created')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_9m_to_1y_old_coindays_created')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1y_to_18m_old_coindays_created')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_18m_to_2y_old_coindays_created')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_2y_to_3y_old_coindays_created')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_3y_to_4y_old_coindays_created')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_4y_to_5y_old_coindays_created')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_5y_to_6y_old_coindays_created')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_6y_to_7y_old_coindays_created')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_7y_to_8y_old_coindays_created')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_8y_to_10y_old_coindays_created')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_10y_to_12y_old_coindays_created')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_12y_to_15y_old_coindays_created')
-        self.over_15y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_over_15y_old_coindays_created')
-
-class SeriesTree_Cointime_AgeRange:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.coindays_consumed: SeriesTree_Cointime_AgeRange_CoindaysConsumed = SeriesTree_Cointime_AgeRange_CoindaysConsumed(client)
-        self.coindays_stored: SeriesTree_Cointime_AgeRange_CoindaysStored = SeriesTree_Cointime_AgeRange_CoindaysStored(client)
-        self.activity: SeriesTree_Cointime_AgeRange_Activity = SeriesTree_Cointime_AgeRange_Activity(client)
-        self.supply: SeriesTree_Cointime_AgeRange_Supply = SeriesTree_Cointime_AgeRange_Supply(client)
-        self.coindays_created: SeriesTree_Cointime_AgeRange_CoindaysCreated = SeriesTree_Cointime_AgeRange_CoindaysCreated(client)
-
-class SeriesTree_Cointime_Urpd_Sth:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'sth_cointime_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'cointime_urpd_sth_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'cointime_urpd_sth_supply_density')
-
-class SeriesTree_Cointime_Urpd_Lth:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'lth_cointime_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'cointime_urpd_lth_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'cointime_urpd_lth_supply_density')
-
-class SeriesTree_Cointime_Urpd_Under4m:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'under_4m_cointime_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'cointime_urpd_under_4m_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'cointime_urpd_under_4m_supply_density')
-
-class SeriesTree_Cointime_Urpd_Under6m:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'under_6m_cointime_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'cointime_urpd_under_6m_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'cointime_urpd_under_6m_supply_density')
-
-class SeriesTree_Cointime_Urpd_Over4m:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'over_4m_cointime_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'cointime_urpd_over_4m_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'cointime_urpd_over_4m_supply_density')
-
-class SeriesTree_Cointime_Urpd_Over6m:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'over_6m_cointime_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'cointime_urpd_over_6m_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'cointime_urpd_over_6m_supply_density')
-
-class SeriesTree_Cointime_Urpd:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: CapitalizedCostSupplyPattern = CapitalizedCostSupplyPattern(client, 'cointime')
-        self.sth: SeriesTree_Cointime_Urpd_Sth = SeriesTree_Cointime_Urpd_Sth(client)
-        self.lth: SeriesTree_Cointime_Urpd_Lth = SeriesTree_Cointime_Urpd_Lth(client)
-        self.under_4m: SeriesTree_Cointime_Urpd_Under4m = SeriesTree_Cointime_Urpd_Under4m(client)
-        self.under_6m: SeriesTree_Cointime_Urpd_Under6m = SeriesTree_Cointime_Urpd_Under6m(client)
-        self.over_4m: SeriesTree_Cointime_Urpd_Over4m = SeriesTree_Cointime_Urpd_Over4m(client)
-        self.over_6m: SeriesTree_Cointime_Urpd_Over6m = SeriesTree_Cointime_Urpd_Over6m(client)
-
-class SeriesTree_Cointime_Awake_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'awake_supply')
-        self.sats: SeriesPattern1[Sats] = SeriesPattern1(client, 'awake_supply_sats')
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, 'awake_supply_usd')
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, 'awake_supply_cents')
-        self.in_loss: SharePattern = SharePattern(client, 'awake_supply_in_loss_share')
-
-class SeriesTree_Cointime_Awake:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.supply: SeriesTree_Cointime_Awake_Supply = SeriesTree_Cointime_Awake_Supply(client)
-        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'awake_cap')
-        self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'awake_price')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'awake_capitalized_price')
-
-class SeriesTree_Cointime_Sth_Awake_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'sth_awake_supply')
-        self.sats: SeriesPattern1[Sats] = SeriesPattern1(client, 'sth_awake_supply_sats')
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, 'sth_awake_supply_usd')
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, 'sth_awake_supply_cents')
-        self.in_loss: SharePattern = SharePattern(client, 'sth_awake_supply_in_loss_share')
-
-class SeriesTree_Cointime_Sth_Awake:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.supply: SeriesTree_Cointime_Sth_Awake_Supply = SeriesTree_Cointime_Sth_Awake_Supply(client)
-        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'sth_awake_cap')
-        self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'sth_awake_price')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'sth_awake_capitalized_price')
-
-class SeriesTree_Cointime_Sth:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.awake: SeriesTree_Cointime_Sth_Awake = SeriesTree_Cointime_Sth_Awake(client)
-        self.dormant: SupplyPattern = SupplyPattern(client, 'sth_dormant_supply')
-
-class SeriesTree_Cointime_Lth_Awake_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'lth_awake_supply')
-        self.sats: SeriesPattern1[Sats] = SeriesPattern1(client, 'lth_awake_supply_sats')
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, 'lth_awake_supply_usd')
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, 'lth_awake_supply_cents')
-        self.in_loss: SharePattern = SharePattern(client, 'lth_awake_supply_in_loss_share')
-
-class SeriesTree_Cointime_Lth_Awake:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.supply: SeriesTree_Cointime_Lth_Awake_Supply = SeriesTree_Cointime_Lth_Awake_Supply(client)
-        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'lth_awake_cap')
-        self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'lth_awake_price')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'lth_awake_capitalized_price')
-
-class SeriesTree_Cointime_Lth:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.awake: SeriesTree_Cointime_Lth_Awake = SeriesTree_Cointime_Lth_Awake(client)
-        self.dormant: SupplyPattern = SupplyPattern(client, 'lth_dormant_supply')
-
-class SeriesTree_Cointime_Supply_Active_InLoss_Share:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.bounded: SeriesPattern1[BoundedRatio] = SeriesPattern1(client, 'cointime_supply_in_loss_share_bounded')
-        self.ratio: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'cointime_supply_in_loss_share')
-
-class SeriesTree_Cointime_Supply_Active_InLoss:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.share: SeriesTree_Cointime_Supply_Active_InLoss_Share = SeriesTree_Cointime_Supply_Active_InLoss_Share(client)
-
-class SeriesTree_Cointime_Supply_Active:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'active_supply')
-        self.sats: SeriesPattern1[Sats] = SeriesPattern1(client, 'active_supply_sats')
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, 'active_supply_usd')
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, 'active_supply_cents')
-        self.in_loss: SeriesTree_Cointime_Supply_Active_InLoss = SeriesTree_Cointime_Supply_Active_InLoss(client)
-
-class SeriesTree_Cointime_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.vaulted: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'vaulted_supply')
-        self.active: SeriesTree_Cointime_Supply_Active = SeriesTree_Cointime_Supply_Active(client)
-
-class SeriesTree_Cointime_Value:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.destroyed: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'cointime_value_destroyed')
-        self.created: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'cointime_value_created')
-        self.stored: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'cointime_value_stored')
-        self.vocdd: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'vocdd')
-
-class SeriesTree_Cointime_Cap:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.thermo: CentsUsdPattern = CentsUsdPattern(client, 'thermo_cap')
-        self.investor: CentsUsdPattern = CentsUsdPattern(client, 'investor_cap')
-        self.vaulted: CentsUsdPattern = CentsUsdPattern(client, 'vaulted_cap')
-        self.active: CentsUsdPattern = CentsUsdPattern(client, 'active_cap')
-        self.cointime: CentsUsdPattern = CentsUsdPattern(client, 'cointime_cap')
-        self.aviv: PpmRatioPattern = PpmRatioPattern(client, 'aviv_ratio')
-
-class SeriesTree_Cointime_Prices:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.vaulted: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'vaulted_price')
-        self.active: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'active_price')
-        self.true_market_mean: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'true_market_mean')
-        self.cointime: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'cointime_price')
-
-class SeriesTree_Cointime_Adjusted:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.inflation_rate: PercentPpmRatioPattern3 = PercentPpmRatioPattern3(client, 'cointime_adj_inflation_rate')
-        self.tx_velocity_native: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'cointime_adj_tx_velocity_btc')
-        self.tx_velocity_fiat: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'cointime_adj_tx_velocity_usd')
-
-class SeriesTree_Cointime_ReserveRisk:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.value: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'reserve_risk')
-        self.vocdd_median_1y: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'vocdd_median_1y')
-        self.hodl_bank: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'hodl_bank')
-
-class SeriesTree_Cointime:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.activity: SeriesTree_Cointime_Activity = SeriesTree_Cointime_Activity(client)
-        self.age_range: SeriesTree_Cointime_AgeRange = SeriesTree_Cointime_AgeRange(client)
-        self.urpd: SeriesTree_Cointime_Urpd = SeriesTree_Cointime_Urpd(client)
-        self.awake: SeriesTree_Cointime_Awake = SeriesTree_Cointime_Awake(client)
-        self.dormant: SupplyPattern = SupplyPattern(client, 'dormant_supply')
-        self.sth: SeriesTree_Cointime_Sth = SeriesTree_Cointime_Sth(client)
-        self.lth: SeriesTree_Cointime_Lth = SeriesTree_Cointime_Lth(client)
-        self.under_4m_awake_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'under_4m_awake_price')
-        self.under_4m_awake_capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'under_4m_awake_capitalized_price')
-        self.under_6m_awake_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'under_6m_awake_price')
-        self.under_6m_awake_capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'under_6m_awake_capitalized_price')
-        self.over_4m_awake_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'over_4m_awake_price')
-        self.over_4m_awake_capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'over_4m_awake_capitalized_price')
-        self.over_6m_awake_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'over_6m_awake_price')
-        self.over_6m_awake_capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'over_6m_awake_capitalized_price')
-        self.supply: SeriesTree_Cointime_Supply = SeriesTree_Cointime_Supply(client)
-        self.value: SeriesTree_Cointime_Value = SeriesTree_Cointime_Value(client)
-        self.cap: SeriesTree_Cointime_Cap = SeriesTree_Cointime_Cap(client)
-        self.prices: SeriesTree_Cointime_Prices = SeriesTree_Cointime_Prices(client)
-        self.adjusted: SeriesTree_Cointime_Adjusted = SeriesTree_Cointime_Adjusted(client)
-        self.reserve_risk: SeriesTree_Cointime_ReserveRisk = SeriesTree_Cointime_ReserveRisk(client)
-
-class SeriesTree_Coinflow_AgeRange_SpendingRate:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_1h_old_spending_rate')
-        self._1h_to_1d: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1h_to_1d_old_spending_rate')
-        self._1d_to_1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1d_to_1w_old_spending_rate')
-        self._1w_to_1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1w_to_1m_old_spending_rate')
-        self._1m_to_2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1m_to_2m_old_spending_rate')
-        self._2m_to_3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2m_to_3m_old_spending_rate')
-        self._3m_to_4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3m_to_4m_old_spending_rate')
-        self._4m_to_5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4m_to_5m_old_spending_rate')
-        self._5m_to_6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5m_to_6m_old_spending_rate')
-        self._6m_to_9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6m_to_9m_old_spending_rate')
-        self._9m_to_1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_9m_to_1y_old_spending_rate')
-        self._1y_to_18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1y_to_18m_old_spending_rate')
-        self._18m_to_2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_18m_to_2y_old_spending_rate')
-        self._2y_to_3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2y_to_3y_old_spending_rate')
-        self._3y_to_4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3y_to_4y_old_spending_rate')
-        self._4y_to_5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4y_to_5y_old_spending_rate')
-        self._5y_to_6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5y_to_6y_old_spending_rate')
-        self._6y_to_7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6y_to_7y_old_spending_rate')
-        self._7y_to_8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_7y_to_8y_old_spending_rate')
-        self._8y_to_10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_8y_to_10y_old_spending_rate')
-        self._10y_to_12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_10y_to_12y_old_spending_rate')
-        self._12y_to_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_12y_to_15y_old_spending_rate')
-        self.over_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_15y_old_spending_rate')
-
-class SeriesTree_Coinflow_AgeRange_SpendingExposure_Mobility:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_1h_old_mobility')
-        self._1h_to_1d: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1h_to_1d_old_mobility')
-        self._1d_to_1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1d_to_1w_old_mobility')
-        self._1w_to_1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1w_to_1m_old_mobility')
-        self._1m_to_2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1m_to_2m_old_mobility')
-        self._2m_to_3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2m_to_3m_old_mobility')
-        self._3m_to_4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3m_to_4m_old_mobility')
-        self._4m_to_5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4m_to_5m_old_mobility')
-        self._5m_to_6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5m_to_6m_old_mobility')
-        self._6m_to_9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6m_to_9m_old_mobility')
-        self._9m_to_1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_9m_to_1y_old_mobility')
-        self._1y_to_18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1y_to_18m_old_mobility')
-        self._18m_to_2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_18m_to_2y_old_mobility')
-        self._2y_to_3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2y_to_3y_old_mobility')
-        self._3y_to_4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3y_to_4y_old_mobility')
-        self._4y_to_5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4y_to_5y_old_mobility')
-        self._5y_to_6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5y_to_6y_old_mobility')
-        self._6y_to_7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6y_to_7y_old_mobility')
-        self._7y_to_8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_7y_to_8y_old_mobility')
-        self._8y_to_10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_8y_to_10y_old_mobility')
-        self._10y_to_12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_10y_to_12y_old_mobility')
-        self._12y_to_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_12y_to_15y_old_mobility')
-        self.over_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_15y_old_mobility')
-
-class SeriesTree_Coinflow_AgeRange_SpendingExposure:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_1h_old_spending_exposure')
-        self._1h_to_1d: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1h_to_1d_old_spending_exposure')
-        self._1d_to_1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1d_to_1w_old_spending_exposure')
-        self._1w_to_1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1w_to_1m_old_spending_exposure')
-        self._1m_to_2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1m_to_2m_old_spending_exposure')
-        self._2m_to_3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2m_to_3m_old_spending_exposure')
-        self._3m_to_4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3m_to_4m_old_spending_exposure')
-        self._4m_to_5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4m_to_5m_old_spending_exposure')
-        self._5m_to_6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5m_to_6m_old_spending_exposure')
-        self._6m_to_9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6m_to_9m_old_spending_exposure')
-        self._9m_to_1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_9m_to_1y_old_spending_exposure')
-        self._1y_to_18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1y_to_18m_old_spending_exposure')
-        self._18m_to_2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_18m_to_2y_old_spending_exposure')
-        self._2y_to_3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2y_to_3y_old_spending_exposure')
-        self._3y_to_4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3y_to_4y_old_spending_exposure')
-        self._4y_to_5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4y_to_5y_old_spending_exposure')
-        self._5y_to_6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5y_to_6y_old_spending_exposure')
-        self._6y_to_7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6y_to_7y_old_spending_exposure')
-        self._7y_to_8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_7y_to_8y_old_spending_exposure')
-        self._8y_to_10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_8y_to_10y_old_spending_exposure')
-        self._10y_to_12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_10y_to_12y_old_spending_exposure')
-        self._12y_to_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_12y_to_15y_old_spending_exposure')
-        self.over_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_15y_old_spending_exposure')
-        self.mobility: SeriesTree_Coinflow_AgeRange_SpendingExposure_Mobility = SeriesTree_Coinflow_AgeRange_SpendingExposure_Mobility(client)
-
-class SeriesTree_Coinflow_AgeRange_Supply_Mobile:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_under_1h_old_mobile_supply')
-        self._1h_to_1d: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1h_to_1d_old_mobile_supply')
-        self._1d_to_1w: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1d_to_1w_old_mobile_supply')
-        self._1w_to_1m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1w_to_1m_old_mobile_supply')
-        self._1m_to_2m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1m_to_2m_old_mobile_supply')
-        self._2m_to_3m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2m_to_3m_old_mobile_supply')
-        self._3m_to_4m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3m_to_4m_old_mobile_supply')
-        self._4m_to_5m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4m_to_5m_old_mobile_supply')
-        self._5m_to_6m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5m_to_6m_old_mobile_supply')
-        self._6m_to_9m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6m_to_9m_old_mobile_supply')
-        self._9m_to_1y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_9m_to_1y_old_mobile_supply')
-        self._1y_to_18m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1y_to_18m_old_mobile_supply')
-        self._18m_to_2y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_18m_to_2y_old_mobile_supply')
-        self._2y_to_3y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2y_to_3y_old_mobile_supply')
-        self._3y_to_4y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3y_to_4y_old_mobile_supply')
-        self._4y_to_5y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4y_to_5y_old_mobile_supply')
-        self._5y_to_6y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5y_to_6y_old_mobile_supply')
-        self._6y_to_7y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6y_to_7y_old_mobile_supply')
-        self._7y_to_8y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_7y_to_8y_old_mobile_supply')
-        self._8y_to_10y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_8y_to_10y_old_mobile_supply')
-        self._10y_to_12y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10y_to_12y_old_mobile_supply')
-        self._12y_to_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_12y_to_15y_old_mobile_supply')
-        self.over_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_over_15y_old_mobile_supply')
-
-class SeriesTree_Coinflow_AgeRange_Supply_Immobile:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_under_1h_old_immobile_supply')
-        self._1h_to_1d: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1h_to_1d_old_immobile_supply')
-        self._1d_to_1w: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1d_to_1w_old_immobile_supply')
-        self._1w_to_1m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1w_to_1m_old_immobile_supply')
-        self._1m_to_2m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1m_to_2m_old_immobile_supply')
-        self._2m_to_3m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2m_to_3m_old_immobile_supply')
-        self._3m_to_4m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3m_to_4m_old_immobile_supply')
-        self._4m_to_5m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4m_to_5m_old_immobile_supply')
-        self._5m_to_6m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5m_to_6m_old_immobile_supply')
-        self._6m_to_9m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6m_to_9m_old_immobile_supply')
-        self._9m_to_1y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_9m_to_1y_old_immobile_supply')
-        self._1y_to_18m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1y_to_18m_old_immobile_supply')
-        self._18m_to_2y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_18m_to_2y_old_immobile_supply')
-        self._2y_to_3y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2y_to_3y_old_immobile_supply')
-        self._3y_to_4y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3y_to_4y_old_immobile_supply')
-        self._4y_to_5y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4y_to_5y_old_immobile_supply')
-        self._5y_to_6y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5y_to_6y_old_immobile_supply')
-        self._6y_to_7y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6y_to_7y_old_immobile_supply')
-        self._7y_to_8y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_7y_to_8y_old_immobile_supply')
-        self._8y_to_10y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_8y_to_10y_old_immobile_supply')
-        self._10y_to_12y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10y_to_12y_old_immobile_supply')
-        self._12y_to_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_12y_to_15y_old_immobile_supply')
-        self.over_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_over_15y_old_immobile_supply')
-
-class SeriesTree_Coinflow_AgeRange_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.mobile: SeriesTree_Coinflow_AgeRange_Supply_Mobile = SeriesTree_Coinflow_AgeRange_Supply_Mobile(client)
-        self.immobile: SeriesTree_Coinflow_AgeRange_Supply_Immobile = SeriesTree_Coinflow_AgeRange_Supply_Immobile(client)
-
-class SeriesTree_Coinflow_AgeRange:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.spending_rate: SeriesTree_Coinflow_AgeRange_SpendingRate = SeriesTree_Coinflow_AgeRange_SpendingRate(client)
-        self.spending_exposure: SeriesTree_Coinflow_AgeRange_SpendingExposure = SeriesTree_Coinflow_AgeRange_SpendingExposure(client)
-        self.supply: SeriesTree_Coinflow_AgeRange_Supply = SeriesTree_Coinflow_AgeRange_Supply(client)
-
-class SeriesTree_Coinflow_Urpd_Sth:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'sth_coinflow_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'coinflow_urpd_sth_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'coinflow_urpd_sth_supply_density')
-
-class SeriesTree_Coinflow_Urpd_Lth:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'lth_coinflow_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'coinflow_urpd_lth_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'coinflow_urpd_lth_supply_density')
-
-class SeriesTree_Coinflow_Urpd_Under4m:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'under_4m_coinflow_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'coinflow_urpd_under_4m_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'coinflow_urpd_under_4m_supply_density')
-
-class SeriesTree_Coinflow_Urpd_Under6m:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'under_6m_coinflow_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'coinflow_urpd_under_6m_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'coinflow_urpd_under_6m_supply_density')
-
-class SeriesTree_Coinflow_Urpd_Over4m:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'over_4m_coinflow_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'coinflow_urpd_over_4m_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'coinflow_urpd_over_4m_supply_density')
-
-class SeriesTree_Coinflow_Urpd_Over6m:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cost_basis: PerPattern = PerPattern(client, 'over_6m_coinflow_cost_basis_per')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'coinflow_urpd_over_6m_capitalized_price')
-        self.supply_density: InTotalPattern = InTotalPattern(client, 'coinflow_urpd_over_6m_supply_density')
-
-class SeriesTree_Coinflow_Urpd:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: CapitalizedCostSupplyPattern = CapitalizedCostSupplyPattern(client, 'coinflow')
-        self.sth: SeriesTree_Coinflow_Urpd_Sth = SeriesTree_Coinflow_Urpd_Sth(client)
-        self.lth: SeriesTree_Coinflow_Urpd_Lth = SeriesTree_Coinflow_Urpd_Lth(client)
-        self.under_4m: SeriesTree_Coinflow_Urpd_Under4m = SeriesTree_Coinflow_Urpd_Under4m(client)
-        self.under_6m: SeriesTree_Coinflow_Urpd_Under6m = SeriesTree_Coinflow_Urpd_Under6m(client)
-        self.over_4m: SeriesTree_Coinflow_Urpd_Over4m = SeriesTree_Coinflow_Urpd_Over4m(client)
-        self.over_6m: SeriesTree_Coinflow_Urpd_Over6m = SeriesTree_Coinflow_Urpd_Over6m(client)
-
-class SeriesTree_Coinflow_Supply_Mobile:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'mobile_supply')
-        self.sats: SeriesPattern1[Sats] = SeriesPattern1(client, 'mobile_supply_sats')
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, 'mobile_supply_usd')
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, 'mobile_supply_cents')
-        self.in_loss: SharePattern = SharePattern(client, 'coinflow_supply_in_loss_share')
-
-class SeriesTree_Coinflow_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.mobile: SeriesTree_Coinflow_Supply_Mobile = SeriesTree_Coinflow_Supply_Mobile(client)
-        self.immobile: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'immobile_supply')
-
-class SeriesTree_Coinflow_Sth_Supply_Mobile:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'sth_mobile_supply')
-        self.sats: SeriesPattern1[Sats] = SeriesPattern1(client, 'sth_mobile_supply_sats')
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, 'sth_mobile_supply_usd')
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, 'sth_mobile_supply_cents')
-        self.in_loss: SharePattern = SharePattern(client, 'sth_coinflow_supply_in_loss_share')
-
-class SeriesTree_Coinflow_Sth_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.mobile: SeriesTree_Coinflow_Sth_Supply_Mobile = SeriesTree_Coinflow_Sth_Supply_Mobile(client)
-        self.immobile: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'sth_immobile_supply')
-
-class SeriesTree_Coinflow_Sth:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.supply: SeriesTree_Coinflow_Sth_Supply = SeriesTree_Coinflow_Sth_Supply(client)
-        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'sth_coinflow_cap')
-        self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'sth_coinflow_price')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'sth_coinflow_capitalized_price')
-
-class SeriesTree_Coinflow_Lth_Supply_Mobile:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'lth_mobile_supply')
-        self.sats: SeriesPattern1[Sats] = SeriesPattern1(client, 'lth_mobile_supply_sats')
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, 'lth_mobile_supply_usd')
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, 'lth_mobile_supply_cents')
-        self.in_loss: SharePattern = SharePattern(client, 'lth_coinflow_supply_in_loss_share')
-
-class SeriesTree_Coinflow_Lth_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.mobile: SeriesTree_Coinflow_Lth_Supply_Mobile = SeriesTree_Coinflow_Lth_Supply_Mobile(client)
-        self.immobile: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'lth_immobile_supply')
-
-class SeriesTree_Coinflow_Lth:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.supply: SeriesTree_Coinflow_Lth_Supply = SeriesTree_Coinflow_Lth_Supply(client)
-        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'lth_coinflow_cap')
-        self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'lth_coinflow_price')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'lth_coinflow_capitalized_price')
-
-class SeriesTree_Coinflow:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age_range: SeriesTree_Coinflow_AgeRange = SeriesTree_Coinflow_AgeRange(client)
-        self.urpd: SeriesTree_Coinflow_Urpd = SeriesTree_Coinflow_Urpd(client)
-        self.supply: SeriesTree_Coinflow_Supply = SeriesTree_Coinflow_Supply(client)
-        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'coinflow_cap')
-        self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'coinflow_price')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'coinflow_capitalized_price')
-        self.sth: SeriesTree_Coinflow_Sth = SeriesTree_Coinflow_Sth(client)
-        self.lth: SeriesTree_Coinflow_Lth = SeriesTree_Coinflow_Lth(client)
-        self.under_4m_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'under_4m_coinflow_price')
-        self.under_4m_capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'under_4m_coinflow_capitalized_price')
-        self.under_6m_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'under_6m_coinflow_price')
-        self.under_6m_capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'under_6m_coinflow_capitalized_price')
-        self.over_4m_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'over_4m_coinflow_price')
-        self.over_4m_capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'over_4m_coinflow_capitalized_price')
-        self.over_6m_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'over_6m_coinflow_price')
-        self.over_6m_capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'over_6m_coinflow_capitalized_price')
-
-class SeriesTree_Bedrock:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.raw: FloorLevelSupplyPattern = FloorLevelSupplyPattern(client, 'bedrock_raw')
-        self.cointime: FloorLevelSupplyPattern = FloorLevelSupplyPattern(client, 'bedrock_cointime')
-        self.coinflow: FloorLevelSupplyPattern = FloorLevelSupplyPattern(client, 'bedrock_coinflow')
-
-class SeriesTree_CapitalSentiment:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.is_long: SeriesPattern1[StoredBool] = SeriesPattern1(client, 'capital_sentiment_is_long')
-        self.is_short: SeriesPattern1[StoredBool] = SeriesPattern1(client, 'capital_sentiment_is_short')
-        self.phase: SeriesPattern1[CapitalSentimentPhase] = SeriesPattern1(client, 'capital_sentiment_phase')
-        self.score: SeriesPattern1[StoredI8] = SeriesPattern1(client, 'capital_sentiment_score')
-
-class SeriesTree_RarityMeter_Components:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.realized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'realized_price')
-        self.capitalized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'capitalized_price')
-        self.median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'median_price_btc_weighted')
-        self.median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'median_price_usd_weighted')
-        self.sth_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_median_price_btc_weighted')
-        self.sth_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_median_price_usd_weighted')
-        self.lth_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_median_price_btc_weighted')
-        self.lth_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_median_price_usd_weighted')
-        self.cointime_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'cointime_median_price_btc_weighted')
-        self.cointime_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'cointime_median_price_usd_weighted')
-        self.coinflow_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'coinflow_median_price_btc_weighted')
-        self.coinflow_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'coinflow_median_price_usd_weighted')
-        self.sth_cointime_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_cointime_median_price_btc_weighted')
-        self.sth_cointime_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_cointime_median_price_usd_weighted')
-        self.lth_cointime_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_cointime_median_price_btc_weighted')
-        self.lth_cointime_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_cointime_median_price_usd_weighted')
-        self.sth_coinflow_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_coinflow_median_price_btc_weighted')
-        self.sth_coinflow_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_coinflow_median_price_usd_weighted')
-        self.lth_coinflow_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_coinflow_median_price_btc_weighted')
-        self.lth_coinflow_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_coinflow_median_price_usd_weighted')
-        self.sth_realized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'sth_realized_price')
-        self.sth_capitalized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'sth_capitalized_price')
-        self.lth_realized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'lth_realized_price')
-        self.lth_capitalized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'lth_capitalized_price')
-        self.over_6m_realized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'over_6m_realized_price')
-        self.over_4m_realized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'over_4m_realized_price')
-        self.under_4m_realized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'under_4m_realized_price')
-        self.under_6m_realized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'under_6m_realized_price')
-        self.under_4m_capitalized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'under_4m_capitalized_price')
-        self.under_6m_capitalized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'under_6m_capitalized_price')
-        self.vaulted_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'vaulted_price')
-        self.active_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'active_price')
-        self.true_market_mean_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'true_market_mean_price')
-        self.cointime_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'cointime_price')
-        self.awake_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'awake_price')
-        self.coinflow_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'coinflow_price')
-
-class SeriesTree_RarityMeter_Extremes_CoinsInLoss:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.threshold_pct0_1: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'rarity_meter_coins_in_loss_threshold_pct0_1')
-        self.threshold_pct0_05: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'rarity_meter_coins_in_loss_threshold_pct0_05')
-        self.threshold_pct0_025: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'rarity_meter_coins_in_loss_threshold')
-        self.tail: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'rarity_meter_coins_in_loss_tail')
-        self.rank: SeriesPattern1[StoredU8] = SeriesPattern1(client, 'rarity_meter_coins_in_loss_rank')
-
-class SeriesTree_RarityMeter_Extremes_SellerExhaustion:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.threshold_pct0_1: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'rarity_meter_seller_exhaustion_threshold_pct0_1')
-        self.threshold_pct0_05: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'rarity_meter_seller_exhaustion_threshold_pct0_05')
-        self.threshold_pct0_025: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'rarity_meter_seller_exhaustion_threshold')
-        self.tail: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'rarity_meter_seller_exhaustion_tail')
-        self.rank: SeriesPattern1[StoredU8] = SeriesPattern1(client, 'rarity_meter_seller_exhaustion_rank')
-
-class SeriesTree_RarityMeter_Extremes:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.coins_in_loss: SeriesTree_RarityMeter_Extremes_CoinsInLoss = SeriesTree_RarityMeter_Extremes_CoinsInLoss(client)
-        self.profit_taking: RankTailThresholdPattern = RankTailThresholdPattern(client, 'rarity_meter_profit_taking')
-        self.capitulation: RankTailThresholdPattern = RankTailThresholdPattern(client, 'rarity_meter_capitulation')
-        self.peak_regret: RankTailThresholdPattern = RankTailThresholdPattern(client, 'rarity_meter_peak_regret')
-        self.seller_exhaustion: SeriesTree_RarityMeter_Extremes_SellerExhaustion = SeriesTree_RarityMeter_Extremes_SellerExhaustion(client)
-
-class SeriesTree_RarityMeter:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.components: SeriesTree_RarityMeter_Components = SeriesTree_RarityMeter_Components(client)
-        self.extremes: SeriesTree_RarityMeter_Extremes = SeriesTree_RarityMeter_Extremes(client)
-        self.full: IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern = IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(client, 'rarity_meter')
-        self.full_v2: IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern = IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(client, 'rarity_meter_v2')
-        self.local: IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern = IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(client, 'local_rarity_meter')
-        self.local_v2: IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern = IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(client, 'local_rarity_meter_v2')
-        self.cycle: IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern = IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(client, 'cycle_rarity_meter')
-        self.cycle_v2: IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern = IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(client, 'cycle_rarity_meter_v2')
-
-class SeriesTree_Constants:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_0')
-        self._1: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_1')
-        self._2: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_2')
-        self._3: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_3')
-        self._4: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_4')
-        self._20: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_20')
-        self._30: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_30')
-        self._38_2: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'constant_38_2')
-        self._50: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_50')
-        self._61_8: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'constant_61_8')
-        self._70: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_70')
-        self._80: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_80')
-        self._100: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_100')
-        self._600: SeriesPattern1[StoredU16] = SeriesPattern1(client, 'constant_600')
-        self.minus_1: SeriesPattern1[StoredI8] = SeriesPattern1(client, 'constant_minus_1')
-        self.minus_2: SeriesPattern1[StoredI8] = SeriesPattern1(client, 'constant_minus_2')
-        self.minus_3: SeriesPattern1[StoredI8] = SeriesPattern1(client, 'constant_minus_3')
-        self.minus_4: SeriesPattern1[StoredI8] = SeriesPattern1(client, 'constant_minus_4')
-
-class SeriesTree_Mappings_Addr_P2pk33:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern26[P2PK33AddrIndex] = SeriesPattern26(client, 'p2pk33_addr_index')
-        self.addr: SeriesPattern26[Addr] = SeriesPattern26(client, 'p2pk33_addr')
-
-class SeriesTree_Mappings_Addr_P2pk65:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern27[P2PK65AddrIndex] = SeriesPattern27(client, 'p2pk65_addr_index')
-        self.addr: SeriesPattern27[Addr] = SeriesPattern27(client, 'p2pk65_addr')
-
-class SeriesTree_Mappings_Addr_P2pkh:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern28[P2PKHAddrIndex] = SeriesPattern28(client, 'p2pkh_addr_index')
-        self.addr: SeriesPattern28[Addr] = SeriesPattern28(client, 'p2pkh_addr')
-
-class SeriesTree_Mappings_Addr_P2sh:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern29[P2SHAddrIndex] = SeriesPattern29(client, 'p2sh_addr_index')
-        self.addr: SeriesPattern29[Addr] = SeriesPattern29(client, 'p2sh_addr')
-
-class SeriesTree_Mappings_Addr_P2tr:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern30[P2TRAddrIndex] = SeriesPattern30(client, 'p2tr_addr_index')
-        self.addr: SeriesPattern30[Addr] = SeriesPattern30(client, 'p2tr_addr')
-
-class SeriesTree_Mappings_Addr_P2wpkh:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern31[P2WPKHAddrIndex] = SeriesPattern31(client, 'p2wpkh_addr_index')
-        self.addr: SeriesPattern31[Addr] = SeriesPattern31(client, 'p2wpkh_addr')
-
-class SeriesTree_Mappings_Addr_P2wsh:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern32[P2WSHAddrIndex] = SeriesPattern32(client, 'p2wsh_addr_index')
-        self.addr: SeriesPattern32[Addr] = SeriesPattern32(client, 'p2wsh_addr')
-
-class SeriesTree_Mappings_Addr_P2a:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern24[P2AAddrIndex] = SeriesPattern24(client, 'p2a_addr_index')
-        self.addr: SeriesPattern24[Addr] = SeriesPattern24(client, 'p2a_addr')
-
-class SeriesTree_Mappings_Addr_P2ms:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern25[P2MSOutputIndex] = SeriesPattern25(client, 'p2ms_output_index')
-
-class SeriesTree_Mappings_Addr_Empty:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern22[EmptyOutputIndex] = SeriesPattern22(client, 'empty_output_index')
-
-class SeriesTree_Mappings_Addr_Unknown:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern33[UnknownOutputIndex] = SeriesPattern33(client, 'unknown_output_index')
-
-class SeriesTree_Mappings_Addr_OpReturn:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern23[OpReturnIndex] = SeriesPattern23(client, 'op_return_index')
-
-class SeriesTree_Mappings_Addr:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk33: SeriesTree_Mappings_Addr_P2pk33 = SeriesTree_Mappings_Addr_P2pk33(client)
-        self.p2pk65: SeriesTree_Mappings_Addr_P2pk65 = SeriesTree_Mappings_Addr_P2pk65(client)
-        self.p2pkh: SeriesTree_Mappings_Addr_P2pkh = SeriesTree_Mappings_Addr_P2pkh(client)
-        self.p2sh: SeriesTree_Mappings_Addr_P2sh = SeriesTree_Mappings_Addr_P2sh(client)
-        self.p2tr: SeriesTree_Mappings_Addr_P2tr = SeriesTree_Mappings_Addr_P2tr(client)
-        self.p2wpkh: SeriesTree_Mappings_Addr_P2wpkh = SeriesTree_Mappings_Addr_P2wpkh(client)
-        self.p2wsh: SeriesTree_Mappings_Addr_P2wsh = SeriesTree_Mappings_Addr_P2wsh(client)
-        self.p2a: SeriesTree_Mappings_Addr_P2a = SeriesTree_Mappings_Addr_P2a(client)
-        self.p2ms: SeriesTree_Mappings_Addr_P2ms = SeriesTree_Mappings_Addr_P2ms(client)
-        self.empty: SeriesTree_Mappings_Addr_Empty = SeriesTree_Mappings_Addr_Empty(client)
-        self.unknown: SeriesTree_Mappings_Addr_Unknown = SeriesTree_Mappings_Addr_Unknown(client)
-        self.op_return: SeriesTree_Mappings_Addr_OpReturn = SeriesTree_Mappings_Addr_OpReturn(client)
-
-class SeriesTree_Mappings_Height:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.minute10: SeriesPattern18[Minute10] = SeriesPattern18(client, 'minute10')
-        self.minute30: SeriesPattern18[Minute30] = SeriesPattern18(client, 'minute30')
-        self.hour1: SeriesPattern18[Hour1] = SeriesPattern18(client, 'hour1')
-        self.hour4: SeriesPattern18[Hour4] = SeriesPattern18(client, 'hour4')
-        self.hour12: SeriesPattern18[Hour12] = SeriesPattern18(client, 'hour12')
-        self.day1: SeriesPattern18[Day1] = SeriesPattern18(client, 'day1')
-        self.day3: SeriesPattern18[Day3] = SeriesPattern18(client, 'day3')
-        self.epoch: SeriesPattern18[Epoch] = SeriesPattern18(client, 'epoch')
-        self.halving: SeriesPattern18[Halving] = SeriesPattern18(client, 'halving')
-        self.week1: SeriesPattern18[Week1] = SeriesPattern18(client, 'week1')
-        self.month1: SeriesPattern18[Month1] = SeriesPattern18(client, 'month1')
-        self.month3: SeriesPattern18[Month3] = SeriesPattern18(client, 'month3')
-        self.month6: SeriesPattern18[Month6] = SeriesPattern18(client, 'month6')
-        self.year1: SeriesPattern18[Year1] = SeriesPattern18(client, 'year1')
-        self.year10: SeriesPattern18[Year10] = SeriesPattern18(client, 'year10')
-        self.tx_index_count: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_index_count')
-
-class SeriesTree_Mappings_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_height: SeriesPattern17[Height] = SeriesPattern17(client, 'first_height')
-
-class SeriesTree_Mappings_Halving:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_height: SeriesPattern16[Height] = SeriesPattern16(client, 'first_height')
-
-class SeriesTree_Mappings_Minute10:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_height: SeriesPattern3[Height] = SeriesPattern3(client, 'first_height')
-
-class SeriesTree_Mappings_Minute30:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_height: SeriesPattern4[Height] = SeriesPattern4(client, 'first_height')
-
-class SeriesTree_Mappings_Hour1:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_height: SeriesPattern5[Height] = SeriesPattern5(client, 'first_height')
-
-class SeriesTree_Mappings_Hour4:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_height: SeriesPattern6[Height] = SeriesPattern6(client, 'first_height')
-
-class SeriesTree_Mappings_Hour12:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.first_height: SeriesPattern7[Height] = SeriesPattern7(client, 'first_height')
-
-class SeriesTree_Mappings_Day1:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.date: SeriesPattern8[Date] = SeriesPattern8(client, 'date')
-        self.first_height: SeriesPattern8[Height] = SeriesPattern8(client, 'first_height')
-
-class SeriesTree_Mappings_Day3:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.date: SeriesPattern9[Date] = SeriesPattern9(client, 'date')
-        self.first_height: SeriesPattern9[Height] = SeriesPattern9(client, 'first_height')
-
-class SeriesTree_Mappings_Week1:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.date: SeriesPattern10[Date] = SeriesPattern10(client, 'date')
-        self.first_height: SeriesPattern10[Height] = SeriesPattern10(client, 'first_height')
-
-class SeriesTree_Mappings_Month1:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.date: SeriesPattern11[Date] = SeriesPattern11(client, 'date')
-        self.first_height: SeriesPattern11[Height] = SeriesPattern11(client, 'first_height')
-
-class SeriesTree_Mappings_Month3:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.date: SeriesPattern12[Date] = SeriesPattern12(client, 'date')
-        self.first_height: SeriesPattern12[Height] = SeriesPattern12(client, 'first_height')
-
-class SeriesTree_Mappings_Month6:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.date: SeriesPattern13[Date] = SeriesPattern13(client, 'date')
-        self.first_height: SeriesPattern13[Height] = SeriesPattern13(client, 'first_height')
-
-class SeriesTree_Mappings_Year1:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.date: SeriesPattern14[Date] = SeriesPattern14(client, 'date')
-        self.first_height: SeriesPattern14[Height] = SeriesPattern14(client, 'first_height')
-
-class SeriesTree_Mappings_Year10:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.date: SeriesPattern15[Date] = SeriesPattern15(client, 'date')
-        self.first_height: SeriesPattern15[Height] = SeriesPattern15(client, 'first_height')
-
-class SeriesTree_Mappings_TxIndex:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern19[TxIndex] = SeriesPattern19(client, 'tx_index')
-        self.input_count: SeriesPattern19[StoredU64] = SeriesPattern19(client, 'input_count')
-        self.output_count: SeriesPattern19[StoredU64] = SeriesPattern19(client, 'output_count')
-
-class SeriesTree_Mappings_TxinIndex:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern20[TxInIndex] = SeriesPattern20(client, 'txin_index')
-
-class SeriesTree_Mappings_TxoutIndex:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.identity: SeriesPattern21[TxOutIndex] = SeriesPattern21(client, 'txout_index')
-
-class SeriesTree_Mappings_Timestamp:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.monotonic: SeriesPattern18[Timestamp] = SeriesPattern18(client, 'timestamp_monotonic')
-        self.resolutions: SeriesPattern2[Timestamp] = SeriesPattern2(client, 'timestamp')
-
-class SeriesTree_Mappings:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.addr: SeriesTree_Mappings_Addr = SeriesTree_Mappings_Addr(client)
-        self.height: SeriesTree_Mappings_Height = SeriesTree_Mappings_Height(client)
-        self.epoch: SeriesTree_Mappings_Epoch = SeriesTree_Mappings_Epoch(client)
-        self.halving: SeriesTree_Mappings_Halving = SeriesTree_Mappings_Halving(client)
-        self.minute10: SeriesTree_Mappings_Minute10 = SeriesTree_Mappings_Minute10(client)
-        self.minute30: SeriesTree_Mappings_Minute30 = SeriesTree_Mappings_Minute30(client)
-        self.hour1: SeriesTree_Mappings_Hour1 = SeriesTree_Mappings_Hour1(client)
-        self.hour4: SeriesTree_Mappings_Hour4 = SeriesTree_Mappings_Hour4(client)
-        self.hour12: SeriesTree_Mappings_Hour12 = SeriesTree_Mappings_Hour12(client)
-        self.day1: SeriesTree_Mappings_Day1 = SeriesTree_Mappings_Day1(client)
-        self.day3: SeriesTree_Mappings_Day3 = SeriesTree_Mappings_Day3(client)
-        self.week1: SeriesTree_Mappings_Week1 = SeriesTree_Mappings_Week1(client)
-        self.month1: SeriesTree_Mappings_Month1 = SeriesTree_Mappings_Month1(client)
-        self.month3: SeriesTree_Mappings_Month3 = SeriesTree_Mappings_Month3(client)
-        self.month6: SeriesTree_Mappings_Month6 = SeriesTree_Mappings_Month6(client)
-        self.year1: SeriesTree_Mappings_Year1 = SeriesTree_Mappings_Year1(client)
-        self.year10: SeriesTree_Mappings_Year10 = SeriesTree_Mappings_Year10(client)
-        self.tx_index: SeriesTree_Mappings_TxIndex = SeriesTree_Mappings_TxIndex(client)
-        self.txin_index: SeriesTree_Mappings_TxinIndex = SeriesTree_Mappings_TxinIndex(client)
-        self.txout_index: SeriesTree_Mappings_TxoutIndex = SeriesTree_Mappings_TxoutIndex(client)
-        self.timestamp: SeriesTree_Mappings_Timestamp = SeriesTree_Mappings_Timestamp(client)
-
-class SeriesTree_Indicators_RhodlRatio:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.ppm: SeriesPattern1[PartsPerMillion64] = SeriesPattern1(client, 'rhodl_ratio_ppm')
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'rhodl_ratio')
-
-class SeriesTree_Indicators_Dormancy:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.supply_adj: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'dormancy_supply_adj')
-        self.flow: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'dormancy_flow')
-
-class SeriesTree_Indicators:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.puell_multiple: BpsRatioPattern = BpsRatioPattern(client, 'puell_multiple')
-        self.nvt: BpsRatioPattern = BpsRatioPattern(client, 'nvt')
-        self.gini: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'gini')
-        self.rhodl_ratio: SeriesTree_Indicators_RhodlRatio = SeriesTree_Indicators_RhodlRatio(client)
-        self.thermo_cap_multiple: BpsRatioPattern = BpsRatioPattern(client, 'thermo_cap_multiple')
-        self.coindays_destroyed_supply_adj: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'coindays_destroyed_supply_adj')
-        self.coinyears_destroyed_supply_adj: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'coinyears_destroyed_supply_adj')
-        self.dormancy: SeriesTree_Indicators_Dormancy = SeriesTree_Indicators_Dormancy(client)
-        self.stock_to_flow: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'stock_to_flow')
-        self.seller_exhaustion: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'seller_exhaustion')
-
-class SeriesTree_Market_Ath:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.high: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_ath')
-        self.drawdown: PercentPpmRatioPattern3 = PercentPpmRatioPattern3(client, 'price_drawdown')
-        self.days_since: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'days_since_price_ath')
-        self.years_since: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'years_since_price_ath')
-        self.max_days_between: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'max_days_between_price_ath')
-        self.max_years_between: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'max_years_between_price_ath')
-
-class SeriesTree_Market_Lookback:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._24h: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_24h')
-        self._1w: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_1w')
-        self._1m: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_1m')
-        self._3m: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_3m')
-        self._6m: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_6m')
-        self._1y: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_1y')
-        self._2y: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_2y')
-        self._3y: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_3y')
-        self._4y: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_4y')
-        self._5y: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_5y')
-        self._6y: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_6y')
-        self._8y: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_8y')
-        self._10y: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_past_10y')
-
-class SeriesTree_Market_Returns_Periods:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._24h: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_24h')
-        self._1w: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_1w')
-        self._1m: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_1m')
-        self._3m: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_3m')
-        self._6m: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_6m')
-        self._1y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_1y')
-        self._2y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_2y')
-        self._3y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_3y')
-        self._4y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_4y')
-        self._5y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_5y')
-        self._6y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_6y')
-        self._8y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_8y')
-        self._10y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_return_10y')
-
-class SeriesTree_Market_Returns_Cagr:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_cagr_2y')
-        self._3y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_cagr_3y')
-        self._4y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_cagr_4y')
-        self._5y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_cagr_5y')
-        self._6y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_cagr_6y')
-        self._8y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_cagr_8y')
-        self._10y: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'price_cagr_10y')
-
-class SeriesTree_Market_Returns_Sd24h_24h:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.sma: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_return_24h_sma_24h')
-        self.sd: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_return_24h_sd_24h')
-
-class SeriesTree_Market_Returns_Sd24h_1w:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.sma: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_return_24h_sma_1w')
-        self.sd: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_return_24h_sd_1w')
-
-class SeriesTree_Market_Returns_Sd24h_1m:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.sma: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_return_24h_sma_1m')
-        self.sd: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_return_24h_sd_1m')
-
-class SeriesTree_Market_Returns_Sd24h_1y:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.sma: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_return_24h_sma_1y')
-        self.sd: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_return_24h_sd_1y')
-
-class SeriesTree_Market_Returns_Sd24h:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._24h: SeriesTree_Market_Returns_Sd24h_24h = SeriesTree_Market_Returns_Sd24h_24h(client)
-        self._1w: SeriesTree_Market_Returns_Sd24h_1w = SeriesTree_Market_Returns_Sd24h_1w(client)
-        self._1m: SeriesTree_Market_Returns_Sd24h_1m = SeriesTree_Market_Returns_Sd24h_1m(client)
-        self._1y: SeriesTree_Market_Returns_Sd24h_1y = SeriesTree_Market_Returns_Sd24h_1y(client)
-
-class SeriesTree_Market_Returns:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.periods: SeriesTree_Market_Returns_Periods = SeriesTree_Market_Returns_Periods(client)
-        self.cagr: SeriesTree_Market_Returns_Cagr = SeriesTree_Market_Returns_Cagr(client)
-        self.sd_24h: SeriesTree_Market_Returns_Sd24h = SeriesTree_Market_Returns_Sd24h(client)
-
-class SeriesTree_Market_Range:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.min: _1m1w1y2wPattern = _1m1w1y2wPattern(client, 'price_min')
-        self.max: _1m1w1y2wPattern = _1m1w1y2wPattern(client, 'price_max')
-        self.true_range: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_true_range')
-        self.true_range_sum_2w: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_true_range_sum_2w')
-        self.choppiness_index_2w: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'price_choppiness_index_2w')
-
-class SeriesTree_Market_MovingAverage_Sma_200d:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, 'price_sma_200d')
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, 'price_sma_200d_cents')
-        self.sats: SeriesPattern1[SatsFract] = SeriesPattern1(client, 'price_sma_200d_sats')
-        self.ppm: SeriesPattern1[PriceRatio] = SeriesPattern1(client, 'price_sma_200d_ratio_ppm')
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_sma_200d_ratio')
-        self.x2_4: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_sma_200d_x2_4')
-        self.x0_8: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_sma_200d_x0_8')
-
-class SeriesTree_Market_MovingAverage_Sma_350d:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, 'price_sma_350d')
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, 'price_sma_350d_cents')
-        self.sats: SeriesPattern1[SatsFract] = SeriesPattern1(client, 'price_sma_350d_sats')
-        self.ppm: SeriesPattern1[PriceRatio] = SeriesPattern1(client, 'price_sma_350d_ratio_ppm')
-        self.ratio: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'price_sma_350d_ratio')
-        self.x2: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'price_sma_350d_x2')
-
-class SeriesTree_Market_MovingAverage_Sma:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._1w: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_1w')
-        self._8d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_8d')
-        self._13d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_13d')
-        self._21d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_21d')
-        self._1m: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_1m')
-        self._34d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_34d')
-        self._50d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_50d')
-        self._55d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_55d')
-        self._89d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_89d')
-        self._111d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_111d')
-        self._144d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_144d')
-        self._200d: SeriesTree_Market_MovingAverage_Sma_200d = SeriesTree_Market_MovingAverage_Sma_200d(client)
-        self._350d: SeriesTree_Market_MovingAverage_Sma_350d = SeriesTree_Market_MovingAverage_Sma_350d(client)
-        self._1y: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_1y')
-        self._2y: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_2y')
-        self._200w: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_200w')
-        self._4y: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_4y')
-
-class SeriesTree_Market_MovingAverage_Ema:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._1w: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_1w')
-        self._8d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_8d')
-        self._12d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_12d')
-        self._13d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_13d')
-        self._21d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_21d')
-        self._26d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_26d')
-        self._1m: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_1m')
-        self._34d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_34d')
-        self._55d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_55d')
-        self._89d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_89d')
-        self._144d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_144d')
-        self._200d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_200d')
-        self._1y: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_1y')
-        self._2y: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_2y')
-        self._200w: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_200w')
-        self._4y: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_4y')
-
-class SeriesTree_Market_MovingAverage:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.sma: SeriesTree_Market_MovingAverage_Sma = SeriesTree_Market_MovingAverage_Sma(client)
-        self.ema: SeriesTree_Market_MovingAverage_Ema = SeriesTree_Market_MovingAverage_Ema(client)
-
-class SeriesTree_Market_Technical_Rsi:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._24h: RsiStochPattern = RsiStochPattern(client, 'rsi', '24h')
-        self._1w: RsiStochPattern = RsiStochPattern(client, 'rsi', '1w')
-        self._1m: RsiStochPattern = RsiStochPattern(client, 'rsi', '1m')
-
-class SeriesTree_Market_Technical_Macd_24h:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.ema_fast: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_ema_fast_24h')
-        self.ema_slow: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_ema_slow_24h')
-        self.line: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_line_24h')
-        self.signal: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_signal_24h')
-        self.histogram: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_histogram_24h')
-
-class SeriesTree_Market_Technical_Macd_1w:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.ema_fast: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_ema_fast_1w')
-        self.ema_slow: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_ema_slow_1w')
-        self.line: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_line_1w')
-        self.signal: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_signal_1w')
-        self.histogram: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_histogram_1w')
-
-class SeriesTree_Market_Technical_Macd_1m:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.ema_fast: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_ema_fast_1m')
-        self.ema_slow: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_ema_slow_1m')
-        self.line: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_line_1m')
-        self.signal: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_signal_1m')
-        self.histogram: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'macd_histogram_1m')
-
-class SeriesTree_Market_Technical_Macd:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._24h: SeriesTree_Market_Technical_Macd_24h = SeriesTree_Market_Technical_Macd_24h(client)
-        self._1w: SeriesTree_Market_Technical_Macd_1w = SeriesTree_Market_Technical_Macd_1w(client)
-        self._1m: SeriesTree_Market_Technical_Macd_1m = SeriesTree_Market_Technical_Macd_1m(client)
-
-class SeriesTree_Market_Technical:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.rsi: SeriesTree_Market_Technical_Rsi = SeriesTree_Market_Technical_Rsi(client)
-        self.pi_cycle: PpmRatioPattern = PpmRatioPattern(client, 'pi_cycle')
-        self.macd: SeriesTree_Market_Technical_Macd = SeriesTree_Market_Technical_Macd(client)
-
-class SeriesTree_Market:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.ath: SeriesTree_Market_Ath = SeriesTree_Market_Ath(client)
-        self.lookback: SeriesTree_Market_Lookback = SeriesTree_Market_Lookback(client)
-        self.returns: SeriesTree_Market_Returns = SeriesTree_Market_Returns(client)
-        self.volatility: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, 'price_volatility')
-        self.range: SeriesTree_Market_Range = SeriesTree_Market_Range(client)
-        self.moving_average: SeriesTree_Market_MovingAverage = SeriesTree_Market_MovingAverage(client)
-        self.technical: SeriesTree_Market_Technical = SeriesTree_Market_Technical(client)
-
-class SeriesTree_Pools_Major:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.unknown: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'unknown')
-        self.luxor: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'luxor')
-        self.btccom: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'btccom')
-        self.btctop: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'btctop')
-        self.btcguild: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'btcguild')
-        self.eligius: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'eligius')
-        self.f2pool: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'f2pool')
-        self.braiinspool: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'braiinspool')
-        self.antpool: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'antpool')
-        self.btcc: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'btcc')
-        self.bwpool: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'bwpool')
-        self.bitfury: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'bitfury')
-        self.viabtc: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'viabtc')
-        self.poolin: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'poolin')
-        self.spiderpool: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'spiderpool')
-        self.binancepool: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'binancepool')
-        self.foundryusa: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'foundryusa')
-        self.sbicrypto: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'sbicrypto')
-        self.marapool: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'marapool')
-        self.secpool: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'secpool')
-        self.ocean: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'ocean')
-        self.whitepool: BlocksDominanceRewardsPattern = BlocksDominanceRewardsPattern(client, 'whitepool')
-
-class SeriesTree_Pools_Minor:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.blockfills: BlocksDominancePattern = BlocksDominancePattern(client, 'blockfills')
-        self.ultimuspool: BlocksDominancePattern = BlocksDominancePattern(client, 'ultimuspool')
-        self.terrapool: BlocksDominancePattern = BlocksDominancePattern(client, 'terrapool')
-        self.onethash: BlocksDominancePattern = BlocksDominancePattern(client, 'onethash')
-        self.bitfarms: BlocksDominancePattern = BlocksDominancePattern(client, 'bitfarms')
-        self.huobipool: BlocksDominancePattern = BlocksDominancePattern(client, 'huobipool')
-        self.wayicn: BlocksDominancePattern = BlocksDominancePattern(client, 'wayicn')
-        self.canoepool: BlocksDominancePattern = BlocksDominancePattern(client, 'canoepool')
-        self.bitcoincom: BlocksDominancePattern = BlocksDominancePattern(client, 'bitcoincom')
-        self.pool175btc: BlocksDominancePattern = BlocksDominancePattern(client, 'pool175btc')
-        self.gbminers: BlocksDominancePattern = BlocksDominancePattern(client, 'gbminers')
-        self.axbt: BlocksDominancePattern = BlocksDominancePattern(client, 'axbt')
-        self.asicminer: BlocksDominancePattern = BlocksDominancePattern(client, 'asicminer')
-        self.bitminter: BlocksDominancePattern = BlocksDominancePattern(client, 'bitminter')
-        self.bitcoinrussia: BlocksDominancePattern = BlocksDominancePattern(client, 'bitcoinrussia')
-        self.btcserv: BlocksDominancePattern = BlocksDominancePattern(client, 'btcserv')
-        self.simplecoinus: BlocksDominancePattern = BlocksDominancePattern(client, 'simplecoinus')
-        self.ozcoin: BlocksDominancePattern = BlocksDominancePattern(client, 'ozcoin')
-        self.eclipsemc: BlocksDominancePattern = BlocksDominancePattern(client, 'eclipsemc')
-        self.maxbtc: BlocksDominancePattern = BlocksDominancePattern(client, 'maxbtc')
-        self.triplemining: BlocksDominancePattern = BlocksDominancePattern(client, 'triplemining')
-        self.coinlab: BlocksDominancePattern = BlocksDominancePattern(client, 'coinlab')
-        self.pool50btc: BlocksDominancePattern = BlocksDominancePattern(client, 'pool50btc')
-        self.ghashio: BlocksDominancePattern = BlocksDominancePattern(client, 'ghashio')
-        self.stminingcorp: BlocksDominancePattern = BlocksDominancePattern(client, 'stminingcorp')
-        self.bitparking: BlocksDominancePattern = BlocksDominancePattern(client, 'bitparking')
-        self.mmpool: BlocksDominancePattern = BlocksDominancePattern(client, 'mmpool')
-        self.polmine: BlocksDominancePattern = BlocksDominancePattern(client, 'polmine')
-        self.kncminer: BlocksDominancePattern = BlocksDominancePattern(client, 'kncminer')
-        self.bitalo: BlocksDominancePattern = BlocksDominancePattern(client, 'bitalo')
-        self.hhtt: BlocksDominancePattern = BlocksDominancePattern(client, 'hhtt')
-        self.megabigpower: BlocksDominancePattern = BlocksDominancePattern(client, 'megabigpower')
-        self.mtred: BlocksDominancePattern = BlocksDominancePattern(client, 'mtred')
-        self.nmcbit: BlocksDominancePattern = BlocksDominancePattern(client, 'nmcbit')
-        self.yourbtcnet: BlocksDominancePattern = BlocksDominancePattern(client, 'yourbtcnet')
-        self.givemecoins: BlocksDominancePattern = BlocksDominancePattern(client, 'givemecoins')
-        self.multicoinco: BlocksDominancePattern = BlocksDominancePattern(client, 'multicoinco')
-        self.bcpoolio: BlocksDominancePattern = BlocksDominancePattern(client, 'bcpoolio')
-        self.cointerra: BlocksDominancePattern = BlocksDominancePattern(client, 'cointerra')
-        self.kanopool: BlocksDominancePattern = BlocksDominancePattern(client, 'kanopool')
-        self.solock: BlocksDominancePattern = BlocksDominancePattern(client, 'solock')
-        self.ckpool: BlocksDominancePattern = BlocksDominancePattern(client, 'ckpool')
-        self.nicehash: BlocksDominancePattern = BlocksDominancePattern(client, 'nicehash')
-        self.bitclub: BlocksDominancePattern = BlocksDominancePattern(client, 'bitclub')
-        self.bitcoinaffiliatenetwork: BlocksDominancePattern = BlocksDominancePattern(client, 'bitcoinaffiliatenetwork')
-        self.exxbw: BlocksDominancePattern = BlocksDominancePattern(client, 'exxbw')
-        self.bitsolo: BlocksDominancePattern = BlocksDominancePattern(client, 'bitsolo')
-        self.twentyoneinc: BlocksDominancePattern = BlocksDominancePattern(client, 'twentyoneinc')
-        self.digitalbtc: BlocksDominancePattern = BlocksDominancePattern(client, 'digitalbtc')
-        self.eightbaochi: BlocksDominancePattern = BlocksDominancePattern(client, 'eightbaochi')
-        self.mybtccoinpool: BlocksDominancePattern = BlocksDominancePattern(client, 'mybtccoinpool')
-        self.tbdice: BlocksDominancePattern = BlocksDominancePattern(client, 'tbdice')
-        self.hashpool: BlocksDominancePattern = BlocksDominancePattern(client, 'hashpool')
-        self.nexious: BlocksDominancePattern = BlocksDominancePattern(client, 'nexious')
-        self.bravomining: BlocksDominancePattern = BlocksDominancePattern(client, 'bravomining')
-        self.hotpool: BlocksDominancePattern = BlocksDominancePattern(client, 'hotpool')
-        self.okexpool: BlocksDominancePattern = BlocksDominancePattern(client, 'okexpool')
-        self.bcmonster: BlocksDominancePattern = BlocksDominancePattern(client, 'bcmonster')
-        self.onehash: BlocksDominancePattern = BlocksDominancePattern(client, 'onehash')
-        self.bixin: BlocksDominancePattern = BlocksDominancePattern(client, 'bixin')
-        self.tatmaspool: BlocksDominancePattern = BlocksDominancePattern(client, 'tatmaspool')
-        self.connectbtc: BlocksDominancePattern = BlocksDominancePattern(client, 'connectbtc')
-        self.batpool: BlocksDominancePattern = BlocksDominancePattern(client, 'batpool')
-        self.waterhole: BlocksDominancePattern = BlocksDominancePattern(client, 'waterhole')
-        self.dcexploration: BlocksDominancePattern = BlocksDominancePattern(client, 'dcexploration')
-        self.dcex: BlocksDominancePattern = BlocksDominancePattern(client, 'dcex')
-        self.btpool: BlocksDominancePattern = BlocksDominancePattern(client, 'btpool')
-        self.fiftyeightcoin: BlocksDominancePattern = BlocksDominancePattern(client, 'fiftyeightcoin')
-        self.bitcoinindia: BlocksDominancePattern = BlocksDominancePattern(client, 'bitcoinindia')
-        self.shawnp0wers: BlocksDominancePattern = BlocksDominancePattern(client, 'shawnp0wers')
-        self.phashio: BlocksDominancePattern = BlocksDominancePattern(client, 'phashio')
-        self.rigpool: BlocksDominancePattern = BlocksDominancePattern(client, 'rigpool')
-        self.haozhuzhu: BlocksDominancePattern = BlocksDominancePattern(client, 'haozhuzhu')
-        self.sevenpool: BlocksDominancePattern = BlocksDominancePattern(client, 'sevenpool')
-        self.miningkings: BlocksDominancePattern = BlocksDominancePattern(client, 'miningkings')
-        self.hashbx: BlocksDominancePattern = BlocksDominancePattern(client, 'hashbx')
-        self.dpool: BlocksDominancePattern = BlocksDominancePattern(client, 'dpool')
-        self.rawpool: BlocksDominancePattern = BlocksDominancePattern(client, 'rawpool')
-        self.haominer: BlocksDominancePattern = BlocksDominancePattern(client, 'haominer')
-        self.helix: BlocksDominancePattern = BlocksDominancePattern(client, 'helix')
-        self.bitcoinukraine: BlocksDominancePattern = BlocksDominancePattern(client, 'bitcoinukraine')
-        self.secretsuperstar: BlocksDominancePattern = BlocksDominancePattern(client, 'secretsuperstar')
-        self.tigerpoolnet: BlocksDominancePattern = BlocksDominancePattern(client, 'tigerpoolnet')
-        self.sigmapoolcom: BlocksDominancePattern = BlocksDominancePattern(client, 'sigmapoolcom')
-        self.okpooltop: BlocksDominancePattern = BlocksDominancePattern(client, 'okpooltop')
-        self.hummerpool: BlocksDominancePattern = BlocksDominancePattern(client, 'hummerpool')
-        self.tangpool: BlocksDominancePattern = BlocksDominancePattern(client, 'tangpool')
-        self.bytepool: BlocksDominancePattern = BlocksDominancePattern(client, 'bytepool')
-        self.novablock: BlocksDominancePattern = BlocksDominancePattern(client, 'novablock')
-        self.miningcity: BlocksDominancePattern = BlocksDominancePattern(client, 'miningcity')
-        self.minerium: BlocksDominancePattern = BlocksDominancePattern(client, 'minerium')
-        self.lubiancom: BlocksDominancePattern = BlocksDominancePattern(client, 'lubiancom')
-        self.okkong: BlocksDominancePattern = BlocksDominancePattern(client, 'okkong')
-        self.aaopool: BlocksDominancePattern = BlocksDominancePattern(client, 'aaopool')
-        self.emcdpool: BlocksDominancePattern = BlocksDominancePattern(client, 'emcdpool')
-        self.arkpool: BlocksDominancePattern = BlocksDominancePattern(client, 'arkpool')
-        self.purebtccom: BlocksDominancePattern = BlocksDominancePattern(client, 'purebtccom')
-        self.kucoinpool: BlocksDominancePattern = BlocksDominancePattern(client, 'kucoinpool')
-        self.entrustcharitypool: BlocksDominancePattern = BlocksDominancePattern(client, 'entrustcharitypool')
-        self.okminer: BlocksDominancePattern = BlocksDominancePattern(client, 'okminer')
-        self.titan: BlocksDominancePattern = BlocksDominancePattern(client, 'titan')
-        self.pegapool: BlocksDominancePattern = BlocksDominancePattern(client, 'pegapool')
-        self.btcnuggets: BlocksDominancePattern = BlocksDominancePattern(client, 'btcnuggets')
-        self.cloudhashing: BlocksDominancePattern = BlocksDominancePattern(client, 'cloudhashing')
-        self.digitalxmintsy: BlocksDominancePattern = BlocksDominancePattern(client, 'digitalxmintsy')
-        self.telco214: BlocksDominancePattern = BlocksDominancePattern(client, 'telco214')
-        self.btcpoolparty: BlocksDominancePattern = BlocksDominancePattern(client, 'btcpoolparty')
-        self.multipool: BlocksDominancePattern = BlocksDominancePattern(client, 'multipool')
-        self.transactioncoinmining: BlocksDominancePattern = BlocksDominancePattern(client, 'transactioncoinmining')
-        self.btcdig: BlocksDominancePattern = BlocksDominancePattern(client, 'btcdig')
-        self.trickysbtcpool: BlocksDominancePattern = BlocksDominancePattern(client, 'trickysbtcpool')
-        self.btcmp: BlocksDominancePattern = BlocksDominancePattern(client, 'btcmp')
-        self.eobot: BlocksDominancePattern = BlocksDominancePattern(client, 'eobot')
-        self.unomp: BlocksDominancePattern = BlocksDominancePattern(client, 'unomp')
-        self.patels: BlocksDominancePattern = BlocksDominancePattern(client, 'patels')
-        self.gogreenlight: BlocksDominancePattern = BlocksDominancePattern(client, 'gogreenlight')
-        self.bitcoinindiapool: BlocksDominancePattern = BlocksDominancePattern(client, 'bitcoinindiapool')
-        self.ekanembtc: BlocksDominancePattern = BlocksDominancePattern(client, 'ekanembtc')
-        self.canoe: BlocksDominancePattern = BlocksDominancePattern(client, 'canoe')
-        self.tiger: BlocksDominancePattern = BlocksDominancePattern(client, 'tiger')
-        self.onem1x: BlocksDominancePattern = BlocksDominancePattern(client, 'onem1x')
-        self.zulupool: BlocksDominancePattern = BlocksDominancePattern(client, 'zulupool')
-        self.wiz: BlocksDominancePattern = BlocksDominancePattern(client, 'wiz')
-        self.wk057: BlocksDominancePattern = BlocksDominancePattern(client, 'wk057')
-        self.futurebitapollosolo: BlocksDominancePattern = BlocksDominancePattern(client, 'futurebitapollosolo')
-        self.carbonnegative: BlocksDominancePattern = BlocksDominancePattern(client, 'carbonnegative')
-        self.portlandhodl: BlocksDominancePattern = BlocksDominancePattern(client, 'portlandhodl')
-        self.phoenix: BlocksDominancePattern = BlocksDominancePattern(client, 'phoenix')
-        self.neopool: BlocksDominancePattern = BlocksDominancePattern(client, 'neopool')
-        self.maxipool: BlocksDominancePattern = BlocksDominancePattern(client, 'maxipool')
-        self.bitfufupool: BlocksDominancePattern = BlocksDominancePattern(client, 'bitfufupool')
-        self.gdpool: BlocksDominancePattern = BlocksDominancePattern(client, 'gdpool')
-        self.miningdutch: BlocksDominancePattern = BlocksDominancePattern(client, 'miningdutch')
-        self.publicpool: BlocksDominancePattern = BlocksDominancePattern(client, 'publicpool')
-        self.miningsquared: BlocksDominancePattern = BlocksDominancePattern(client, 'miningsquared')
-        self.innopolistech: BlocksDominancePattern = BlocksDominancePattern(client, 'innopolistech')
-        self.btclab: BlocksDominancePattern = BlocksDominancePattern(client, 'btclab')
-        self.parasite: BlocksDominancePattern = BlocksDominancePattern(client, 'parasite')
-        self.redrockpool: BlocksDominancePattern = BlocksDominancePattern(client, 'redrockpool')
-        self.est3lar: BlocksDominancePattern = BlocksDominancePattern(client, 'est3lar')
-        self.braiinssolo: BlocksDominancePattern = BlocksDominancePattern(client, 'braiinssolo')
-        self.solopool: BlocksDominancePattern = BlocksDominancePattern(client, 'solopool')
-        self.noderunners: BlocksDominancePattern = BlocksDominancePattern(client, 'noderunners')
-        self.dmnd: BlocksDominancePattern = BlocksDominancePattern(client, 'dmnd')
-
-class SeriesTree_Pools:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.pool: SeriesPattern18[PoolSlug] = SeriesPattern18(client, 'pool')
-        self.major: SeriesTree_Pools_Major = SeriesTree_Pools_Major(client)
-        self.minor: SeriesTree_Pools_Minor = SeriesTree_Pools_Minor(client)
-
-class SeriesTree_Price_Split:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.open: CentsSatsUsdPattern3 = CentsSatsUsdPattern3(client, 'price_open')
-        self.high: CentsSatsUsdPattern3 = CentsSatsUsdPattern3(client, 'price_high')
-        self.low: CentsSatsUsdPattern3 = CentsSatsUsdPattern3(client, 'price_low')
-        self.close: CentsSatsUsdPattern3 = CentsSatsUsdPattern3(client, 'price_close')
-
-class SeriesTree_Price_Ohlc:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.usd: SeriesPattern2[OHLCDollars] = SeriesPattern2(client, 'price_ohlc')
-        self.cents: SeriesPattern2[OHLCCents] = SeriesPattern2(client, 'price_ohlc_cents')
-        self.sats: SeriesPattern2[OHLCSats] = SeriesPattern2(client, 'price_ohlc_sats')
-
-class SeriesTree_Price_Spot:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, 'price')
-        self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, 'price_cents')
-        self.sats: SeriesPattern1[Sats] = SeriesPattern1(client, 'price_sats')
-
-class SeriesTree_Price:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.split: SeriesTree_Price_Split = SeriesTree_Price_Split(client)
-        self.ohlc: SeriesTree_Price_Ohlc = SeriesTree_Price_Ohlc(client)
-        self.spot: SeriesTree_Price_Spot = SeriesTree_Price_Spot(client)
-
-class SeriesTree_Cohorts_Supply_Total_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_under_1h_old_supply')
-        self._1h_to_1d: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1h_to_1d_old_supply')
-        self._1d_to_1w: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1d_to_1w_old_supply')
-        self._1w_to_1m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1w_to_1m_old_supply')
-        self._1m_to_2m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1m_to_2m_old_supply')
-        self._2m_to_3m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2m_to_3m_old_supply')
-        self._3m_to_4m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3m_to_4m_old_supply')
-        self._4m_to_5m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4m_to_5m_old_supply')
-        self._5m_to_6m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5m_to_6m_old_supply')
-        self._6m_to_9m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6m_to_9m_old_supply')
-        self._9m_to_1y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_9m_to_1y_old_supply')
-        self._1y_to_18m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1y_to_18m_old_supply')
-        self._18m_to_2y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_18m_to_2y_old_supply')
-        self._2y_to_3y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2y_to_3y_old_supply')
-        self._3y_to_4y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3y_to_4y_old_supply')
-        self._4y_to_5y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4y_to_5y_old_supply')
-        self._5y_to_6y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5y_to_6y_old_supply')
-        self._6y_to_7y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6y_to_7y_old_supply')
-        self._7y_to_8y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_7y_to_8y_old_supply')
-        self._8y_to_10y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_8y_to_10y_old_supply')
-        self._10y_to_12y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10y_to_12y_old_supply')
-        self._12y_to_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_12y_to_15y_old_supply')
-        self.over_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_over_15y_old_supply')
-
-class SeriesTree_Cohorts_Supply_Total_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_0_supply')
-        self._1: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_1_supply')
-        self._2: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_2_supply')
-        self._3: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_3_supply')
-        self._4: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_4_supply')
-
-class SeriesTree_Cohorts_Supply_Total_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2009_supply')
-        self._2010: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2010_supply')
-        self._2011: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2011_supply')
-        self._2012: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2012_supply')
-        self._2013: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2013_supply')
-        self._2014: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2014_supply')
-        self._2015: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2015_supply')
-        self._2016: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2016_supply')
-        self._2017: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2017_supply')
-        self._2018: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2018_supply')
-        self._2019: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2019_supply')
-        self._2020: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2020_supply')
-        self._2021: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2021_supply')
-        self._2022: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2022_supply')
-        self._2023: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2023_supply')
-        self._2024: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2024_supply')
-        self._2025: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2025_supply')
-        self._2026: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2026_supply')
-
-class SeriesTree_Cohorts_Supply_Total_UtxoAmount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_0sats_supply')
-        self._1sat_to_10sats: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1sat_to_10sats_supply')
-        self._10sats_to_100sats: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10sats_to_100sats_supply')
-        self._100sats_to_1k_sats: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_100sats_to_1k_sats_supply')
-        self._1k_sats_to_10k_sats: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1k_sats_to_10k_sats_supply')
-        self._10k_sats_to_100k_sats: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10k_sats_to_100k_sats_supply')
-        self._100k_sats_to_1m_sats: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_100k_sats_to_1m_sats_supply')
-        self._1m_sats_to_10m_sats: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1m_sats_to_10m_sats_supply')
-        self._10m_sats_to_1btc: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10m_sats_to_1btc_supply')
-        self._1btc_to_10btc: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1btc_to_10btc_supply')
-        self._10btc_to_100btc: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10btc_to_100btc_supply')
-        self._100btc_to_1k_btc: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_100btc_to_1k_btc_supply')
-        self._1k_btc_to_10k_btc: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1k_btc_to_10k_btc_supply')
-        self._10k_btc_to_100k_btc: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10k_btc_to_100k_btc_supply')
-        self.over_100k_btc: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_over_100k_btc_supply')
-
-class SeriesTree_Cohorts_Supply_Total:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Supply_Total_Age = SeriesTree_Cohorts_Supply_Total_Age(client)
-        self.epoch: SeriesTree_Cohorts_Supply_Total_Epoch = SeriesTree_Cohorts_Supply_Total_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Supply_Total_Class = SeriesTree_Cohorts_Supply_Total_Class(client)
-        self.utxo_amount: SeriesTree_Cohorts_Supply_Total_UtxoAmount = SeriesTree_Cohorts_Supply_Total_UtxoAmount(client)
-        self.type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2 = EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2(client, 'supply')
-
-class SeriesTree_Cohorts_Supply_Matured:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_under_1h_old_matured_supply')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1h_to_1d_old_matured_supply')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1d_to_1w_old_matured_supply')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1w_to_1m_old_matured_supply')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1m_to_2m_old_matured_supply')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_2m_to_3m_old_matured_supply')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_3m_to_4m_old_matured_supply')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_4m_to_5m_old_matured_supply')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_5m_to_6m_old_matured_supply')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_6m_to_9m_old_matured_supply')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_9m_to_1y_old_matured_supply')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1y_to_18m_old_matured_supply')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_18m_to_2y_old_matured_supply')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_2y_to_3y_old_matured_supply')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_3y_to_4y_old_matured_supply')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_4y_to_5y_old_matured_supply')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_5y_to_6y_old_matured_supply')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_6y_to_7y_old_matured_supply')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_7y_to_8y_old_matured_supply')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_8y_to_10y_old_matured_supply')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_10y_to_12y_old_matured_supply')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_12y_to_15y_old_matured_supply')
-        self.over_15y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_over_15y_old_matured_supply')
-
-class SeriesTree_Cohorts_Supply_InProfit_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_under_1h_old_supply_in_profit')
-        self._1h_to_1d: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1h_to_1d_old_supply_in_profit')
-        self._1d_to_1w: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1d_to_1w_old_supply_in_profit')
-        self._1w_to_1m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1w_to_1m_old_supply_in_profit')
-        self._1m_to_2m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1m_to_2m_old_supply_in_profit')
-        self._2m_to_3m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2m_to_3m_old_supply_in_profit')
-        self._3m_to_4m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3m_to_4m_old_supply_in_profit')
-        self._4m_to_5m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4m_to_5m_old_supply_in_profit')
-        self._5m_to_6m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5m_to_6m_old_supply_in_profit')
-        self._6m_to_9m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6m_to_9m_old_supply_in_profit')
-        self._9m_to_1y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_9m_to_1y_old_supply_in_profit')
-        self._1y_to_18m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1y_to_18m_old_supply_in_profit')
-        self._18m_to_2y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_18m_to_2y_old_supply_in_profit')
-        self._2y_to_3y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2y_to_3y_old_supply_in_profit')
-        self._3y_to_4y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3y_to_4y_old_supply_in_profit')
-        self._4y_to_5y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4y_to_5y_old_supply_in_profit')
-        self._5y_to_6y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5y_to_6y_old_supply_in_profit')
-        self._6y_to_7y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6y_to_7y_old_supply_in_profit')
-        self._7y_to_8y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_7y_to_8y_old_supply_in_profit')
-        self._8y_to_10y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_8y_to_10y_old_supply_in_profit')
-        self._10y_to_12y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10y_to_12y_old_supply_in_profit')
-        self._12y_to_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_12y_to_15y_old_supply_in_profit')
-        self.over_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_over_15y_old_supply_in_profit')
-
-class SeriesTree_Cohorts_Supply_InProfit_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_0_supply_in_profit')
-        self._1: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_1_supply_in_profit')
-        self._2: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_2_supply_in_profit')
-        self._3: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_3_supply_in_profit')
-        self._4: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_4_supply_in_profit')
-
-class SeriesTree_Cohorts_Supply_InProfit_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2009_supply_in_profit')
-        self._2010: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2010_supply_in_profit')
-        self._2011: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2011_supply_in_profit')
-        self._2012: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2012_supply_in_profit')
-        self._2013: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2013_supply_in_profit')
-        self._2014: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2014_supply_in_profit')
-        self._2015: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2015_supply_in_profit')
-        self._2016: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2016_supply_in_profit')
-        self._2017: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2017_supply_in_profit')
-        self._2018: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2018_supply_in_profit')
-        self._2019: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2019_supply_in_profit')
-        self._2020: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2020_supply_in_profit')
-        self._2021: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2021_supply_in_profit')
-        self._2022: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2022_supply_in_profit')
-        self._2023: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2023_supply_in_profit')
-        self._2024: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2024_supply_in_profit')
-        self._2025: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2025_supply_in_profit')
-        self._2026: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2026_supply_in_profit')
-
-class SeriesTree_Cohorts_Supply_InProfit:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Supply_InProfit_Age = SeriesTree_Cohorts_Supply_InProfit_Age(client)
-        self.epoch: SeriesTree_Cohorts_Supply_InProfit_Epoch = SeriesTree_Cohorts_Supply_InProfit_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Supply_InProfit_Class = SeriesTree_Cohorts_Supply_InProfit_Class(client)
-
-class SeriesTree_Cohorts_Supply_InLoss_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_under_1h_old_supply_in_loss')
-        self._1h_to_1d: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1h_to_1d_old_supply_in_loss')
-        self._1d_to_1w: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1d_to_1w_old_supply_in_loss')
-        self._1w_to_1m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1w_to_1m_old_supply_in_loss')
-        self._1m_to_2m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1m_to_2m_old_supply_in_loss')
-        self._2m_to_3m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2m_to_3m_old_supply_in_loss')
-        self._3m_to_4m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3m_to_4m_old_supply_in_loss')
-        self._4m_to_5m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4m_to_5m_old_supply_in_loss')
-        self._5m_to_6m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5m_to_6m_old_supply_in_loss')
-        self._6m_to_9m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6m_to_9m_old_supply_in_loss')
-        self._9m_to_1y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_9m_to_1y_old_supply_in_loss')
-        self._1y_to_18m: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_1y_to_18m_old_supply_in_loss')
-        self._18m_to_2y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_18m_to_2y_old_supply_in_loss')
-        self._2y_to_3y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_2y_to_3y_old_supply_in_loss')
-        self._3y_to_4y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_3y_to_4y_old_supply_in_loss')
-        self._4y_to_5y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_4y_to_5y_old_supply_in_loss')
-        self._5y_to_6y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_5y_to_6y_old_supply_in_loss')
-        self._6y_to_7y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_6y_to_7y_old_supply_in_loss')
-        self._7y_to_8y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_7y_to_8y_old_supply_in_loss')
-        self._8y_to_10y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_8y_to_10y_old_supply_in_loss')
-        self._10y_to_12y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_10y_to_12y_old_supply_in_loss')
-        self._12y_to_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_12y_to_15y_old_supply_in_loss')
-        self.over_15y: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'utxos_over_15y_old_supply_in_loss')
-
-class SeriesTree_Cohorts_Supply_InLoss_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_0_supply_in_loss')
-        self._1: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_1_supply_in_loss')
-        self._2: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_2_supply_in_loss')
-        self._3: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_3_supply_in_loss')
-        self._4: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'epoch_4_supply_in_loss')
-
-class SeriesTree_Cohorts_Supply_InLoss_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2009_supply_in_loss')
-        self._2010: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2010_supply_in_loss')
-        self._2011: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2011_supply_in_loss')
-        self._2012: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2012_supply_in_loss')
-        self._2013: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2013_supply_in_loss')
-        self._2014: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2014_supply_in_loss')
-        self._2015: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2015_supply_in_loss')
-        self._2016: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2016_supply_in_loss')
-        self._2017: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2017_supply_in_loss')
-        self._2018: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2018_supply_in_loss')
-        self._2019: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2019_supply_in_loss')
-        self._2020: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2020_supply_in_loss')
-        self._2021: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2021_supply_in_loss')
-        self._2022: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2022_supply_in_loss')
-        self._2023: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2023_supply_in_loss')
-        self._2024: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2024_supply_in_loss')
-        self._2025: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2025_supply_in_loss')
-        self._2026: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'class_2026_supply_in_loss')
-
-class SeriesTree_Cohorts_Supply_InLoss:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Supply_InLoss_Age = SeriesTree_Cohorts_Supply_InLoss_Age(client)
-        self.epoch: SeriesTree_Cohorts_Supply_InLoss_Epoch = SeriesTree_Cohorts_Supply_InLoss_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Supply_InLoss_Class = SeriesTree_Cohorts_Supply_InLoss_Class(client)
-
-class SeriesTree_Cohorts_Supply_Delta_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_under_1h_old_supply_delta')
-        self._1h_to_1d: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_1h_to_1d_old_supply_delta')
-        self._1d_to_1w: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_1d_to_1w_old_supply_delta')
-        self._1w_to_1m: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_1w_to_1m_old_supply_delta')
-        self._1m_to_2m: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_1m_to_2m_old_supply_delta')
-        self._2m_to_3m: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_2m_to_3m_old_supply_delta')
-        self._3m_to_4m: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_3m_to_4m_old_supply_delta')
-        self._4m_to_5m: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_4m_to_5m_old_supply_delta')
-        self._5m_to_6m: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_5m_to_6m_old_supply_delta')
-        self._6m_to_9m: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_6m_to_9m_old_supply_delta')
-        self._9m_to_1y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_9m_to_1y_old_supply_delta')
-        self._1y_to_18m: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_1y_to_18m_old_supply_delta')
-        self._18m_to_2y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_18m_to_2y_old_supply_delta')
-        self._2y_to_3y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_2y_to_3y_old_supply_delta')
-        self._3y_to_4y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_3y_to_4y_old_supply_delta')
-        self._4y_to_5y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_4y_to_5y_old_supply_delta')
-        self._5y_to_6y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_5y_to_6y_old_supply_delta')
-        self._6y_to_7y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_6y_to_7y_old_supply_delta')
-        self._7y_to_8y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_7y_to_8y_old_supply_delta')
-        self._8y_to_10y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_8y_to_10y_old_supply_delta')
-        self._10y_to_12y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_10y_to_12y_old_supply_delta')
-        self._12y_to_15y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_12y_to_15y_old_supply_delta')
-        self.over_15y: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_over_15y_old_supply_delta')
-
-class SeriesTree_Cohorts_Supply_Delta_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: AbsoluteRatePattern = AbsoluteRatePattern(client, 'epoch_0_supply_delta')
-        self._1: AbsoluteRatePattern = AbsoluteRatePattern(client, 'epoch_1_supply_delta')
-        self._2: AbsoluteRatePattern = AbsoluteRatePattern(client, 'epoch_2_supply_delta')
-        self._3: AbsoluteRatePattern = AbsoluteRatePattern(client, 'epoch_3_supply_delta')
-        self._4: AbsoluteRatePattern = AbsoluteRatePattern(client, 'epoch_4_supply_delta')
-
-class SeriesTree_Cohorts_Supply_Delta_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2009_supply_delta')
-        self._2010: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2010_supply_delta')
-        self._2011: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2011_supply_delta')
-        self._2012: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2012_supply_delta')
-        self._2013: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2013_supply_delta')
-        self._2014: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2014_supply_delta')
-        self._2015: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2015_supply_delta')
-        self._2016: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2016_supply_delta')
-        self._2017: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2017_supply_delta')
-        self._2018: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2018_supply_delta')
-        self._2019: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2019_supply_delta')
-        self._2020: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2020_supply_delta')
-        self._2021: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2021_supply_delta')
-        self._2022: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2022_supply_delta')
-        self._2023: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2023_supply_delta')
-        self._2024: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2024_supply_delta')
-        self._2025: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2025_supply_delta')
-        self._2026: AbsoluteRatePattern = AbsoluteRatePattern(client, 'class_2026_supply_delta')
-
-class SeriesTree_Cohorts_Supply_Delta_UtxoAmount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_0sats_supply_delta')
-        self._1sat_to_10sats: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_1sat_to_10sats_supply_delta')
-        self._10sats_to_100sats: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_10sats_to_100sats_supply_delta')
-        self._100sats_to_1k_sats: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_100sats_to_1k_sats_supply_delta')
-        self._1k_sats_to_10k_sats: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_1k_sats_to_10k_sats_supply_delta')
-        self._10k_sats_to_100k_sats: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_10k_sats_to_100k_sats_supply_delta')
-        self._100k_sats_to_1m_sats: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_100k_sats_to_1m_sats_supply_delta')
-        self._1m_sats_to_10m_sats: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_1m_sats_to_10m_sats_supply_delta')
-        self._10m_sats_to_1btc: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_10m_sats_to_1btc_supply_delta')
-        self._1btc_to_10btc: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_1btc_to_10btc_supply_delta')
-        self._10btc_to_100btc: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_10btc_to_100btc_supply_delta')
-        self._100btc_to_1k_btc: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_100btc_to_1k_btc_supply_delta')
-        self._1k_btc_to_10k_btc: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_1k_btc_to_10k_btc_supply_delta')
-        self._10k_btc_to_100k_btc: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_10k_btc_to_100k_btc_supply_delta')
-        self.over_100k_btc: AbsoluteRatePattern = AbsoluteRatePattern(client, 'utxos_over_100k_btc_supply_delta')
-
-class SeriesTree_Cohorts_Supply_Delta_Type:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk65: AbsoluteRatePattern = AbsoluteRatePattern(client, 'p2pk65_supply_delta')
-        self.p2pk33: AbsoluteRatePattern = AbsoluteRatePattern(client, 'p2pk33_supply_delta')
-        self.p2pkh: AbsoluteRatePattern = AbsoluteRatePattern(client, 'p2pkh_supply_delta')
-        self.p2ms: AbsoluteRatePattern = AbsoluteRatePattern(client, 'p2ms_supply_delta')
-        self.p2sh: AbsoluteRatePattern = AbsoluteRatePattern(client, 'p2sh_supply_delta')
-        self.p2wpkh: AbsoluteRatePattern = AbsoluteRatePattern(client, 'p2wpkh_supply_delta')
-        self.p2wsh: AbsoluteRatePattern = AbsoluteRatePattern(client, 'p2wsh_supply_delta')
-        self.p2tr: AbsoluteRatePattern = AbsoluteRatePattern(client, 'p2tr_supply_delta')
-        self.p2a: AbsoluteRatePattern = AbsoluteRatePattern(client, 'p2a_supply_delta')
-        self.unknown: AbsoluteRatePattern = AbsoluteRatePattern(client, 'unknown_outputs_supply_delta')
-        self.empty: AbsoluteRatePattern = AbsoluteRatePattern(client, 'empty_outputs_supply_delta')
-
-class SeriesTree_Cohorts_Supply_Delta:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Supply_Delta_Age = SeriesTree_Cohorts_Supply_Delta_Age(client)
-        self.epoch: SeriesTree_Cohorts_Supply_Delta_Epoch = SeriesTree_Cohorts_Supply_Delta_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Supply_Delta_Class = SeriesTree_Cohorts_Supply_Delta_Class(client)
-        self.utxo_amount: SeriesTree_Cohorts_Supply_Delta_UtxoAmount = SeriesTree_Cohorts_Supply_Delta_UtxoAmount(client)
-        self.type_: SeriesTree_Cohorts_Supply_Delta_Type = SeriesTree_Cohorts_Supply_Delta_Type(client)
-
-class SeriesTree_Cohorts_Supply_Dominance_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_under_1h_old_supply_dominance')
-        self._1h_to_1d: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_1h_to_1d_old_supply_dominance')
-        self._1d_to_1w: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_1d_to_1w_old_supply_dominance')
-        self._1w_to_1m: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_1w_to_1m_old_supply_dominance')
-        self._1m_to_2m: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_1m_to_2m_old_supply_dominance')
-        self._2m_to_3m: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_2m_to_3m_old_supply_dominance')
-        self._3m_to_4m: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_3m_to_4m_old_supply_dominance')
-        self._4m_to_5m: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_4m_to_5m_old_supply_dominance')
-        self._5m_to_6m: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_5m_to_6m_old_supply_dominance')
-        self._6m_to_9m: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_6m_to_9m_old_supply_dominance')
-        self._9m_to_1y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_9m_to_1y_old_supply_dominance')
-        self._1y_to_18m: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_1y_to_18m_old_supply_dominance')
-        self._18m_to_2y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_18m_to_2y_old_supply_dominance')
-        self._2y_to_3y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_2y_to_3y_old_supply_dominance')
-        self._3y_to_4y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_3y_to_4y_old_supply_dominance')
-        self._4y_to_5y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_4y_to_5y_old_supply_dominance')
-        self._5y_to_6y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_5y_to_6y_old_supply_dominance')
-        self._6y_to_7y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_6y_to_7y_old_supply_dominance')
-        self._7y_to_8y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_7y_to_8y_old_supply_dominance')
-        self._8y_to_10y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_8y_to_10y_old_supply_dominance')
-        self._10y_to_12y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_10y_to_12y_old_supply_dominance')
-        self._12y_to_15y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_12y_to_15y_old_supply_dominance')
-        self.over_15y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_over_15y_old_supply_dominance')
-
-class SeriesTree_Cohorts_Supply_Dominance_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'epoch_0_supply_dominance')
-        self._1: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'epoch_1_supply_dominance')
-        self._2: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'epoch_2_supply_dominance')
-        self._3: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'epoch_3_supply_dominance')
-        self._4: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'epoch_4_supply_dominance')
-
-class SeriesTree_Cohorts_Supply_Dominance_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2009_supply_dominance')
-        self._2010: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2010_supply_dominance')
-        self._2011: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2011_supply_dominance')
-        self._2012: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2012_supply_dominance')
-        self._2013: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2013_supply_dominance')
-        self._2014: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2014_supply_dominance')
-        self._2015: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2015_supply_dominance')
-        self._2016: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2016_supply_dominance')
-        self._2017: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2017_supply_dominance')
-        self._2018: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2018_supply_dominance')
-        self._2019: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2019_supply_dominance')
-        self._2020: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2020_supply_dominance')
-        self._2021: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2021_supply_dominance')
-        self._2022: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2022_supply_dominance')
-        self._2023: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2023_supply_dominance')
-        self._2024: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2024_supply_dominance')
-        self._2025: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2025_supply_dominance')
-        self._2026: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'class_2026_supply_dominance')
-
-class SeriesTree_Cohorts_Supply_Dominance_UtxoAmount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_0sats_supply_dominance')
-        self._1sat_to_10sats: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_1sat_to_10sats_supply_dominance')
-        self._10sats_to_100sats: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_10sats_to_100sats_supply_dominance')
-        self._100sats_to_1k_sats: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_100sats_to_1k_sats_supply_dominance')
-        self._1k_sats_to_10k_sats: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_1k_sats_to_10k_sats_supply_dominance')
-        self._10k_sats_to_100k_sats: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_10k_sats_to_100k_sats_supply_dominance')
-        self._100k_sats_to_1m_sats: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_100k_sats_to_1m_sats_supply_dominance')
-        self._1m_sats_to_10m_sats: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_1m_sats_to_10m_sats_supply_dominance')
-        self._10m_sats_to_1btc: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_10m_sats_to_1btc_supply_dominance')
-        self._1btc_to_10btc: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_1btc_to_10btc_supply_dominance')
-        self._10btc_to_100btc: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_10btc_to_100btc_supply_dominance')
-        self._100btc_to_1k_btc: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_100btc_to_1k_btc_supply_dominance')
-        self._1k_btc_to_10k_btc: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_1k_btc_to_10k_btc_supply_dominance')
-        self._10k_btc_to_100k_btc: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_10k_btc_to_100k_btc_supply_dominance')
-        self.over_100k_btc: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'utxos_over_100k_btc_supply_dominance')
-
-class SeriesTree_Cohorts_Supply_Dominance_Type:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk65: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'p2pk65_supply_dominance')
-        self.p2pk33: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'p2pk33_supply_dominance')
-        self.p2pkh: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'p2pkh_supply_dominance')
-        self.p2ms: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'p2ms_supply_dominance')
-        self.p2sh: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'p2sh_supply_dominance')
-        self.p2wpkh: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'p2wpkh_supply_dominance')
-        self.p2wsh: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'p2wsh_supply_dominance')
-        self.p2tr: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'p2tr_supply_dominance')
-        self.p2a: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'p2a_supply_dominance')
-        self.unknown: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'unknown_outputs_supply_dominance')
-        self.empty: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'empty_outputs_supply_dominance')
-
-class SeriesTree_Cohorts_Supply_Dominance:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Supply_Dominance_Age = SeriesTree_Cohorts_Supply_Dominance_Age(client)
-        self.epoch: SeriesTree_Cohorts_Supply_Dominance_Epoch = SeriesTree_Cohorts_Supply_Dominance_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Supply_Dominance_Class = SeriesTree_Cohorts_Supply_Dominance_Class(client)
-        self.utxo_amount: SeriesTree_Cohorts_Supply_Dominance_UtxoAmount = SeriesTree_Cohorts_Supply_Dominance_UtxoAmount(client)
-        self.type_: SeriesTree_Cohorts_Supply_Dominance_Type = SeriesTree_Cohorts_Supply_Dominance_Type(client)
-
-class SeriesTree_Cohorts_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.total: SeriesTree_Cohorts_Supply_Total = SeriesTree_Cohorts_Supply_Total(client)
-        self.matured: SeriesTree_Cohorts_Supply_Matured = SeriesTree_Cohorts_Supply_Matured(client)
-        self.in_profit: SeriesTree_Cohorts_Supply_InProfit = SeriesTree_Cohorts_Supply_InProfit(client)
-        self.in_loss: SeriesTree_Cohorts_Supply_InLoss = SeriesTree_Cohorts_Supply_InLoss(client)
-        self.delta: SeriesTree_Cohorts_Supply_Delta = SeriesTree_Cohorts_Supply_Delta(client)
-        self.dominance: SeriesTree_Cohorts_Supply_Dominance = SeriesTree_Cohorts_Supply_Dominance(client)
-
-class SeriesTree_Cohorts_Outputs_UnspentCount_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_under_1h_old_utxo_count')
-        self._1h_to_1d: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_1h_to_1d_old_utxo_count')
-        self._1d_to_1w: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_1d_to_1w_old_utxo_count')
-        self._1w_to_1m: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_1w_to_1m_old_utxo_count')
-        self._1m_to_2m: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_1m_to_2m_old_utxo_count')
-        self._2m_to_3m: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_2m_to_3m_old_utxo_count')
-        self._3m_to_4m: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_3m_to_4m_old_utxo_count')
-        self._4m_to_5m: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_4m_to_5m_old_utxo_count')
-        self._5m_to_6m: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_5m_to_6m_old_utxo_count')
-        self._6m_to_9m: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_6m_to_9m_old_utxo_count')
-        self._9m_to_1y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_9m_to_1y_old_utxo_count')
-        self._1y_to_18m: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_1y_to_18m_old_utxo_count')
-        self._18m_to_2y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_18m_to_2y_old_utxo_count')
-        self._2y_to_3y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_2y_to_3y_old_utxo_count')
-        self._3y_to_4y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_3y_to_4y_old_utxo_count')
-        self._4y_to_5y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_4y_to_5y_old_utxo_count')
-        self._5y_to_6y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_5y_to_6y_old_utxo_count')
-        self._6y_to_7y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_6y_to_7y_old_utxo_count')
-        self._7y_to_8y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_7y_to_8y_old_utxo_count')
-        self._8y_to_10y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_8y_to_10y_old_utxo_count')
-        self._10y_to_12y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_10y_to_12y_old_utxo_count')
-        self._12y_to_15y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_12y_to_15y_old_utxo_count')
-        self.over_15y: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_over_15y_old_utxo_count')
-
-class SeriesTree_Cohorts_Outputs_UnspentCount_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: BaseDeltaPattern = BaseDeltaPattern(client, 'epoch_0_utxo_count')
-        self._1: BaseDeltaPattern = BaseDeltaPattern(client, 'epoch_1_utxo_count')
-        self._2: BaseDeltaPattern = BaseDeltaPattern(client, 'epoch_2_utxo_count')
-        self._3: BaseDeltaPattern = BaseDeltaPattern(client, 'epoch_3_utxo_count')
-        self._4: BaseDeltaPattern = BaseDeltaPattern(client, 'epoch_4_utxo_count')
-
-class SeriesTree_Cohorts_Outputs_UnspentCount_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2009_utxo_count')
-        self._2010: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2010_utxo_count')
-        self._2011: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2011_utxo_count')
-        self._2012: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2012_utxo_count')
-        self._2013: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2013_utxo_count')
-        self._2014: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2014_utxo_count')
-        self._2015: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2015_utxo_count')
-        self._2016: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2016_utxo_count')
-        self._2017: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2017_utxo_count')
-        self._2018: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2018_utxo_count')
-        self._2019: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2019_utxo_count')
-        self._2020: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2020_utxo_count')
-        self._2021: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2021_utxo_count')
-        self._2022: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2022_utxo_count')
-        self._2023: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2023_utxo_count')
-        self._2024: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2024_utxo_count')
-        self._2025: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2025_utxo_count')
-        self._2026: BaseDeltaPattern = BaseDeltaPattern(client, 'class_2026_utxo_count')
-
-class SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_0sats_utxo_count')
-        self._1sat_to_10sats: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_1sat_to_10sats_utxo_count')
-        self._10sats_to_100sats: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_10sats_to_100sats_utxo_count')
-        self._100sats_to_1k_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_100sats_to_1k_sats_utxo_count')
-        self._1k_sats_to_10k_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_1k_sats_to_10k_sats_utxo_count')
-        self._10k_sats_to_100k_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_10k_sats_to_100k_sats_utxo_count')
-        self._100k_sats_to_1m_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_100k_sats_to_1m_sats_utxo_count')
-        self._1m_sats_to_10m_sats: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_1m_sats_to_10m_sats_utxo_count')
-        self._10m_sats_to_1btc: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_10m_sats_to_1btc_utxo_count')
-        self._1btc_to_10btc: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_1btc_to_10btc_utxo_count')
-        self._10btc_to_100btc: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_10btc_to_100btc_utxo_count')
-        self._100btc_to_1k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_100btc_to_1k_btc_utxo_count')
-        self._1k_btc_to_10k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_1k_btc_to_10k_btc_utxo_count')
-        self._10k_btc_to_100k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_10k_btc_to_100k_btc_utxo_count')
-        self.over_100k_btc: BaseDeltaPattern = BaseDeltaPattern(client, 'utxos_over_100k_btc_utxo_count')
-
-class SeriesTree_Cohorts_Outputs_UnspentCount_Type:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk65: BaseDeltaPattern = BaseDeltaPattern(client, 'p2pk65_utxo_count')
-        self.p2pk33: BaseDeltaPattern = BaseDeltaPattern(client, 'p2pk33_utxo_count')
-        self.p2pkh: BaseDeltaPattern = BaseDeltaPattern(client, 'p2pkh_utxo_count')
-        self.p2ms: BaseDeltaPattern = BaseDeltaPattern(client, 'p2ms_utxo_count')
-        self.p2sh: BaseDeltaPattern = BaseDeltaPattern(client, 'p2sh_utxo_count')
-        self.p2wpkh: BaseDeltaPattern = BaseDeltaPattern(client, 'p2wpkh_utxo_count')
-        self.p2wsh: BaseDeltaPattern = BaseDeltaPattern(client, 'p2wsh_utxo_count')
-        self.p2tr: BaseDeltaPattern = BaseDeltaPattern(client, 'p2tr_utxo_count')
-        self.p2a: BaseDeltaPattern = BaseDeltaPattern(client, 'p2a_utxo_count')
-        self.unknown: BaseDeltaPattern = BaseDeltaPattern(client, 'unknown_outputs_utxo_count')
-        self.empty: BaseDeltaPattern = BaseDeltaPattern(client, 'empty_outputs_utxo_count')
-
-class SeriesTree_Cohorts_Outputs_UnspentCount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Outputs_UnspentCount_Age = SeriesTree_Cohorts_Outputs_UnspentCount_Age(client)
-        self.epoch: SeriesTree_Cohorts_Outputs_UnspentCount_Epoch = SeriesTree_Cohorts_Outputs_UnspentCount_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Outputs_UnspentCount_Class = SeriesTree_Cohorts_Outputs_UnspentCount_Class(client)
-        self.utxo_amount: SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount = SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount(client)
-        self.type_: SeriesTree_Cohorts_Outputs_UnspentCount_Type = SeriesTree_Cohorts_Outputs_UnspentCount_Type(client)
-
-class SeriesTree_Cohorts_Outputs_SpentCount_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_under_1h_old_spent_utxo_count')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1h_to_1d_old_spent_utxo_count')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1d_to_1w_old_spent_utxo_count')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1w_to_1m_old_spent_utxo_count')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1m_to_2m_old_spent_utxo_count')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_2m_to_3m_old_spent_utxo_count')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_3m_to_4m_old_spent_utxo_count')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_4m_to_5m_old_spent_utxo_count')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_5m_to_6m_old_spent_utxo_count')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_6m_to_9m_old_spent_utxo_count')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_9m_to_1y_old_spent_utxo_count')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1y_to_18m_old_spent_utxo_count')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_18m_to_2y_old_spent_utxo_count')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_2y_to_3y_old_spent_utxo_count')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_3y_to_4y_old_spent_utxo_count')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_4y_to_5y_old_spent_utxo_count')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_5y_to_6y_old_spent_utxo_count')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_6y_to_7y_old_spent_utxo_count')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_7y_to_8y_old_spent_utxo_count')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_8y_to_10y_old_spent_utxo_count')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_10y_to_12y_old_spent_utxo_count')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_12y_to_15y_old_spent_utxo_count')
-        self.over_15y: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_over_15y_old_spent_utxo_count')
-
-class SeriesTree_Cohorts_Outputs_SpentCount_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'epoch_0_spent_utxo_count')
-        self._1: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'epoch_1_spent_utxo_count')
-        self._2: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'epoch_2_spent_utxo_count')
-        self._3: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'epoch_3_spent_utxo_count')
-        self._4: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'epoch_4_spent_utxo_count')
-
-class SeriesTree_Cohorts_Outputs_SpentCount_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2009_spent_utxo_count')
-        self._2010: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2010_spent_utxo_count')
-        self._2011: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2011_spent_utxo_count')
-        self._2012: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2012_spent_utxo_count')
-        self._2013: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2013_spent_utxo_count')
-        self._2014: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2014_spent_utxo_count')
-        self._2015: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2015_spent_utxo_count')
-        self._2016: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2016_spent_utxo_count')
-        self._2017: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2017_spent_utxo_count')
-        self._2018: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2018_spent_utxo_count')
-        self._2019: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2019_spent_utxo_count')
-        self._2020: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2020_spent_utxo_count')
-        self._2021: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2021_spent_utxo_count')
-        self._2022: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2022_spent_utxo_count')
-        self._2023: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2023_spent_utxo_count')
-        self._2024: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2024_spent_utxo_count')
-        self._2025: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2025_spent_utxo_count')
-        self._2026: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'class_2026_spent_utxo_count')
-
-class SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_0sats_spent_utxo_count')
-        self._1sat_to_10sats: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1sat_to_10sats_spent_utxo_count')
-        self._10sats_to_100sats: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_10sats_to_100sats_spent_utxo_count')
-        self._100sats_to_1k_sats: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_100sats_to_1k_sats_spent_utxo_count')
-        self._1k_sats_to_10k_sats: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1k_sats_to_10k_sats_spent_utxo_count')
-        self._10k_sats_to_100k_sats: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_10k_sats_to_100k_sats_spent_utxo_count')
-        self._100k_sats_to_1m_sats: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_100k_sats_to_1m_sats_spent_utxo_count')
-        self._1m_sats_to_10m_sats: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1m_sats_to_10m_sats_spent_utxo_count')
-        self._10m_sats_to_1btc: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_10m_sats_to_1btc_spent_utxo_count')
-        self._1btc_to_10btc: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1btc_to_10btc_spent_utxo_count')
-        self._10btc_to_100btc: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_10btc_to_100btc_spent_utxo_count')
-        self._100btc_to_1k_btc: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_100btc_to_1k_btc_spent_utxo_count')
-        self._1k_btc_to_10k_btc: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1k_btc_to_10k_btc_spent_utxo_count')
-        self._10k_btc_to_100k_btc: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_10k_btc_to_100k_btc_spent_utxo_count')
-        self.over_100k_btc: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'utxos_over_100k_btc_spent_utxo_count')
-
-class SeriesTree_Cohorts_Outputs_SpentCount_Type:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk65: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2pk65_spent_utxo_count')
-        self.p2pk33: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2pk33_spent_utxo_count')
-        self.p2pkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2pkh_spent_utxo_count')
-        self.p2ms: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2ms_spent_utxo_count')
-        self.p2sh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2sh_spent_utxo_count')
-        self.p2wpkh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2wpkh_spent_utxo_count')
-        self.p2wsh: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2wsh_spent_utxo_count')
-        self.p2tr: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2tr_spent_utxo_count')
-        self.p2a: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'p2a_spent_utxo_count')
-        self.unknown: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'unknown_outputs_spent_utxo_count')
-        self.empty: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'empty_outputs_spent_utxo_count')
-
-class SeriesTree_Cohorts_Outputs_SpentCount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Outputs_SpentCount_Age = SeriesTree_Cohorts_Outputs_SpentCount_Age(client)
-        self.epoch: SeriesTree_Cohorts_Outputs_SpentCount_Epoch = SeriesTree_Cohorts_Outputs_SpentCount_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Outputs_SpentCount_Class = SeriesTree_Cohorts_Outputs_SpentCount_Class(client)
-        self.utxo_amount: SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount = SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount(client)
-        self.type_: SeriesTree_Cohorts_Outputs_SpentCount_Type = SeriesTree_Cohorts_Outputs_SpentCount_Type(client)
-
-class SeriesTree_Cohorts_Outputs_AvgAmount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'avg_utxo_amount')
-        self.by_type: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2 = EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2(client, 'avg_utxo_amount')
-
-class SeriesTree_Cohorts_Outputs:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.unspent_count: SeriesTree_Cohorts_Outputs_UnspentCount = SeriesTree_Cohorts_Outputs_UnspentCount(client)
-        self.spent_count: SeriesTree_Cohorts_Outputs_SpentCount = SeriesTree_Cohorts_Outputs_SpentCount(client)
-        self.avg_amount: SeriesTree_Cohorts_Outputs_AvgAmount = SeriesTree_Cohorts_Outputs_AvgAmount(client)
-
-class SeriesTree_Cohorts_Activity_TransferVolume_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_under_1h_old_transfer_volume')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1h_to_1d_old_transfer_volume')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1d_to_1w_old_transfer_volume')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1w_to_1m_old_transfer_volume')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1m_to_2m_old_transfer_volume')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_2m_to_3m_old_transfer_volume')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_3m_to_4m_old_transfer_volume')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_4m_to_5m_old_transfer_volume')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_5m_to_6m_old_transfer_volume')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_6m_to_9m_old_transfer_volume')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_9m_to_1y_old_transfer_volume')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1y_to_18m_old_transfer_volume')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_18m_to_2y_old_transfer_volume')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_2y_to_3y_old_transfer_volume')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_3y_to_4y_old_transfer_volume')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_4y_to_5y_old_transfer_volume')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_5y_to_6y_old_transfer_volume')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_6y_to_7y_old_transfer_volume')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_7y_to_8y_old_transfer_volume')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_8y_to_10y_old_transfer_volume')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_10y_to_12y_old_transfer_volume')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_12y_to_15y_old_transfer_volume')
-        self.over_15y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_over_15y_old_transfer_volume')
-
-class SeriesTree_Cohorts_Activity_TransferVolume_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'epoch_0_transfer_volume')
-        self._1: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'epoch_1_transfer_volume')
-        self._2: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'epoch_2_transfer_volume')
-        self._3: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'epoch_3_transfer_volume')
-        self._4: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'epoch_4_transfer_volume')
-
-class SeriesTree_Cohorts_Activity_TransferVolume_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2009_transfer_volume')
-        self._2010: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2010_transfer_volume')
-        self._2011: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2011_transfer_volume')
-        self._2012: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2012_transfer_volume')
-        self._2013: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2013_transfer_volume')
-        self._2014: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2014_transfer_volume')
-        self._2015: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2015_transfer_volume')
-        self._2016: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2016_transfer_volume')
-        self._2017: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2017_transfer_volume')
-        self._2018: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2018_transfer_volume')
-        self._2019: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2019_transfer_volume')
-        self._2020: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2020_transfer_volume')
-        self._2021: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2021_transfer_volume')
-        self._2022: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2022_transfer_volume')
-        self._2023: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2023_transfer_volume')
-        self._2024: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2024_transfer_volume')
-        self._2025: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2025_transfer_volume')
-        self._2026: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'class_2026_transfer_volume')
-
-class SeriesTree_Cohorts_Activity_TransferVolume_InProfit_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_under_1h_old_transfer_volume_in_profit')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1h_to_1d_old_transfer_volume_in_profit')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1d_to_1w_old_transfer_volume_in_profit')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1w_to_1m_old_transfer_volume_in_profit')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1m_to_2m_old_transfer_volume_in_profit')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_2m_to_3m_old_transfer_volume_in_profit')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_3m_to_4m_old_transfer_volume_in_profit')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_4m_to_5m_old_transfer_volume_in_profit')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_5m_to_6m_old_transfer_volume_in_profit')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_6m_to_9m_old_transfer_volume_in_profit')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_9m_to_1y_old_transfer_volume_in_profit')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1y_to_18m_old_transfer_volume_in_profit')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_18m_to_2y_old_transfer_volume_in_profit')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_2y_to_3y_old_transfer_volume_in_profit')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_3y_to_4y_old_transfer_volume_in_profit')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_4y_to_5y_old_transfer_volume_in_profit')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_5y_to_6y_old_transfer_volume_in_profit')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_6y_to_7y_old_transfer_volume_in_profit')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_7y_to_8y_old_transfer_volume_in_profit')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_8y_to_10y_old_transfer_volume_in_profit')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_10y_to_12y_old_transfer_volume_in_profit')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_12y_to_15y_old_transfer_volume_in_profit')
-        self.over_15y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_over_15y_old_transfer_volume_in_profit')
-
-class SeriesTree_Cohorts_Activity_TransferVolume_InProfit:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Activity_TransferVolume_InProfit_Age = SeriesTree_Cohorts_Activity_TransferVolume_InProfit_Age(client)
-        self.epoch: _01234Pattern2 = _01234Pattern2(client, 'epoch', 'in_profit')
-        self.class_: _200920102011201220132014201520162017201820192020202120222023202420252026Pattern2 = _200920102011201220132014201520162017201820192020202120222023202420252026Pattern2(client, 'class', 'in_profit')
-
-class SeriesTree_Cohorts_Activity_TransferVolume_InLoss_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_under_1h_old_transfer_volume_in_loss')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1h_to_1d_old_transfer_volume_in_loss')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1d_to_1w_old_transfer_volume_in_loss')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1w_to_1m_old_transfer_volume_in_loss')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1m_to_2m_old_transfer_volume_in_loss')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_2m_to_3m_old_transfer_volume_in_loss')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_3m_to_4m_old_transfer_volume_in_loss')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_4m_to_5m_old_transfer_volume_in_loss')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_5m_to_6m_old_transfer_volume_in_loss')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_6m_to_9m_old_transfer_volume_in_loss')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_9m_to_1y_old_transfer_volume_in_loss')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_1y_to_18m_old_transfer_volume_in_loss')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_18m_to_2y_old_transfer_volume_in_loss')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_2y_to_3y_old_transfer_volume_in_loss')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_3y_to_4y_old_transfer_volume_in_loss')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_4y_to_5y_old_transfer_volume_in_loss')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_5y_to_6y_old_transfer_volume_in_loss')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_6y_to_7y_old_transfer_volume_in_loss')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_7y_to_8y_old_transfer_volume_in_loss')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_8y_to_10y_old_transfer_volume_in_loss')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_10y_to_12y_old_transfer_volume_in_loss')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_12y_to_15y_old_transfer_volume_in_loss')
-        self.over_15y: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'utxos_over_15y_old_transfer_volume_in_loss')
-
-class SeriesTree_Cohorts_Activity_TransferVolume_InLoss:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Activity_TransferVolume_InLoss_Age = SeriesTree_Cohorts_Activity_TransferVolume_InLoss_Age(client)
-        self.epoch: _01234Pattern2 = _01234Pattern2(client, 'epoch', 'in_loss')
-        self.class_: _200920102011201220132014201520162017201820192020202120222023202420252026Pattern2 = _200920102011201220132014201520162017201820192020202120222023202420252026Pattern2(client, 'class', 'in_loss')
-
-class SeriesTree_Cohorts_Activity_TransferVolume_Type:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk65: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'p2pk65_transfer_volume')
-        self.p2pk33: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'p2pk33_transfer_volume')
-        self.p2pkh: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'p2pkh_transfer_volume')
-        self.p2ms: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'p2ms_transfer_volume')
-        self.p2sh: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'p2sh_transfer_volume')
-        self.p2wpkh: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'p2wpkh_transfer_volume')
-        self.p2wsh: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'p2wsh_transfer_volume')
-        self.p2tr: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'p2tr_transfer_volume')
-        self.p2a: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'p2a_transfer_volume')
-        self.unknown: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'unknown_outputs_transfer_volume')
-        self.empty: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'empty_outputs_transfer_volume')
-
-class SeriesTree_Cohorts_Activity_TransferVolume:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._client = client
-
-    @cached_property
-    def age(self) -> SeriesTree_Cohorts_Activity_TransferVolume_Age:
-        return SeriesTree_Cohorts_Activity_TransferVolume_Age(self._client)
-
-    @cached_property
-    def epoch(self) -> SeriesTree_Cohorts_Activity_TransferVolume_Epoch:
-        return SeriesTree_Cohorts_Activity_TransferVolume_Epoch(self._client)
-
-    @cached_property
-    def class_(self) -> SeriesTree_Cohorts_Activity_TransferVolume_Class:
-        return SeriesTree_Cohorts_Activity_TransferVolume_Class(self._client)
-
-    @cached_property
-    def in_profit(self) -> SeriesTree_Cohorts_Activity_TransferVolume_InProfit:
-        return SeriesTree_Cohorts_Activity_TransferVolume_InProfit(self._client)
-
-    @cached_property
-    def in_loss(self) -> SeriesTree_Cohorts_Activity_TransferVolume_InLoss:
-        return SeriesTree_Cohorts_Activity_TransferVolume_InLoss(self._client)
-
-    @cached_property
-    def utxo_amount(self) -> _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4:
-        return _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4(self._client, 'utxos')
-
-    @cached_property
-    def type_(self) -> SeriesTree_Cohorts_Activity_TransferVolume_Type:
-        return SeriesTree_Cohorts_Activity_TransferVolume_Type(self._client)
-
-class SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_under_1h_old_coindays_destroyed')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1h_to_1d_old_coindays_destroyed')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1d_to_1w_old_coindays_destroyed')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1w_to_1m_old_coindays_destroyed')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1m_to_2m_old_coindays_destroyed')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_2m_to_3m_old_coindays_destroyed')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_3m_to_4m_old_coindays_destroyed')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_4m_to_5m_old_coindays_destroyed')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_5m_to_6m_old_coindays_destroyed')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_6m_to_9m_old_coindays_destroyed')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_9m_to_1y_old_coindays_destroyed')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_1y_to_18m_old_coindays_destroyed')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_18m_to_2y_old_coindays_destroyed')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_2y_to_3y_old_coindays_destroyed')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_3y_to_4y_old_coindays_destroyed')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_4y_to_5y_old_coindays_destroyed')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_5y_to_6y_old_coindays_destroyed')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_6y_to_7y_old_coindays_destroyed')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_7y_to_8y_old_coindays_destroyed')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_8y_to_10y_old_coindays_destroyed')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_10y_to_12y_old_coindays_destroyed')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_12y_to_15y_old_coindays_destroyed')
-        self.over_15y: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'utxos_over_15y_old_coindays_destroyed')
-
-class SeriesTree_Cohorts_Activity_CoindaysDestroyed_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'epoch_0_coindays_destroyed')
-        self._1: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'epoch_1_coindays_destroyed')
-        self._2: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'epoch_2_coindays_destroyed')
-        self._3: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'epoch_3_coindays_destroyed')
-        self._4: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'epoch_4_coindays_destroyed')
-
-class SeriesTree_Cohorts_Activity_CoindaysDestroyed_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2009_coindays_destroyed')
-        self._2010: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2010_coindays_destroyed')
-        self._2011: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2011_coindays_destroyed')
-        self._2012: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2012_coindays_destroyed')
-        self._2013: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2013_coindays_destroyed')
-        self._2014: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2014_coindays_destroyed')
-        self._2015: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2015_coindays_destroyed')
-        self._2016: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2016_coindays_destroyed')
-        self._2017: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2017_coindays_destroyed')
-        self._2018: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2018_coindays_destroyed')
-        self._2019: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2019_coindays_destroyed')
-        self._2020: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2020_coindays_destroyed')
-        self._2021: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2021_coindays_destroyed')
-        self._2022: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2022_coindays_destroyed')
-        self._2023: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2023_coindays_destroyed')
-        self._2024: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2024_coindays_destroyed')
-        self._2025: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2025_coindays_destroyed')
-        self._2026: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'class_2026_coindays_destroyed')
-
-class SeriesTree_Cohorts_Activity_CoindaysDestroyed:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age = SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age(client)
-        self.epoch: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Epoch = SeriesTree_Cohorts_Activity_CoindaysDestroyed_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Class = SeriesTree_Cohorts_Activity_CoindaysDestroyed_Class(client)
-
-class SeriesTree_Cohorts_Activity:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._client = client
-
-    @cached_property
-    def transfer_volume(self) -> SeriesTree_Cohorts_Activity_TransferVolume:
-        return SeriesTree_Cohorts_Activity_TransferVolume(self._client)
-
-    @cached_property
-    def coindays_destroyed(self) -> SeriesTree_Cohorts_Activity_CoindaysDestroyed:
-        return SeriesTree_Cohorts_Activity_CoindaysDestroyed(self._client)
-
-class SeriesTree_Cohorts_Realized_Cap_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1h_old_realized_cap')
-        self._1h_to_1d: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1h_to_1d_old_realized_cap')
-        self._1d_to_1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1d_to_1w_old_realized_cap')
-        self._1w_to_1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1w_to_1m_old_realized_cap')
-        self._1m_to_2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1m_to_2m_old_realized_cap')
-        self._2m_to_3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2m_to_3m_old_realized_cap')
-        self._3m_to_4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3m_to_4m_old_realized_cap')
-        self._4m_to_5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4m_to_5m_old_realized_cap')
-        self._5m_to_6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5m_to_6m_old_realized_cap')
-        self._6m_to_9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6m_to_9m_old_realized_cap')
-        self._9m_to_1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_9m_to_1y_old_realized_cap')
-        self._1y_to_18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1y_to_18m_old_realized_cap')
-        self._18m_to_2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_18m_to_2y_old_realized_cap')
-        self._2y_to_3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2y_to_3y_old_realized_cap')
-        self._3y_to_4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3y_to_4y_old_realized_cap')
-        self._4y_to_5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4y_to_5y_old_realized_cap')
-        self._5y_to_6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5y_to_6y_old_realized_cap')
-        self._6y_to_7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6y_to_7y_old_realized_cap')
-        self._7y_to_8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_7y_to_8y_old_realized_cap')
-        self._8y_to_10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_8y_to_10y_old_realized_cap')
-        self._10y_to_12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10y_to_12y_old_realized_cap')
-        self._12y_to_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_12y_to_15y_old_realized_cap')
-        self.over_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_15y_old_realized_cap')
-
-class SeriesTree_Cohorts_Realized_Cap_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: CentsUsdPattern = CentsUsdPattern(client, 'epoch_0_realized_cap')
-        self._1: CentsUsdPattern = CentsUsdPattern(client, 'epoch_1_realized_cap')
-        self._2: CentsUsdPattern = CentsUsdPattern(client, 'epoch_2_realized_cap')
-        self._3: CentsUsdPattern = CentsUsdPattern(client, 'epoch_3_realized_cap')
-        self._4: CentsUsdPattern = CentsUsdPattern(client, 'epoch_4_realized_cap')
-
-class SeriesTree_Cohorts_Realized_Cap_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: CentsUsdPattern = CentsUsdPattern(client, 'class_2009_realized_cap')
-        self._2010: CentsUsdPattern = CentsUsdPattern(client, 'class_2010_realized_cap')
-        self._2011: CentsUsdPattern = CentsUsdPattern(client, 'class_2011_realized_cap')
-        self._2012: CentsUsdPattern = CentsUsdPattern(client, 'class_2012_realized_cap')
-        self._2013: CentsUsdPattern = CentsUsdPattern(client, 'class_2013_realized_cap')
-        self._2014: CentsUsdPattern = CentsUsdPattern(client, 'class_2014_realized_cap')
-        self._2015: CentsUsdPattern = CentsUsdPattern(client, 'class_2015_realized_cap')
-        self._2016: CentsUsdPattern = CentsUsdPattern(client, 'class_2016_realized_cap')
-        self._2017: CentsUsdPattern = CentsUsdPattern(client, 'class_2017_realized_cap')
-        self._2018: CentsUsdPattern = CentsUsdPattern(client, 'class_2018_realized_cap')
-        self._2019: CentsUsdPattern = CentsUsdPattern(client, 'class_2019_realized_cap')
-        self._2020: CentsUsdPattern = CentsUsdPattern(client, 'class_2020_realized_cap')
-        self._2021: CentsUsdPattern = CentsUsdPattern(client, 'class_2021_realized_cap')
-        self._2022: CentsUsdPattern = CentsUsdPattern(client, 'class_2022_realized_cap')
-        self._2023: CentsUsdPattern = CentsUsdPattern(client, 'class_2023_realized_cap')
-        self._2024: CentsUsdPattern = CentsUsdPattern(client, 'class_2024_realized_cap')
-        self._2025: CentsUsdPattern = CentsUsdPattern(client, 'class_2025_realized_cap')
-        self._2026: CentsUsdPattern = CentsUsdPattern(client, 'class_2026_realized_cap')
-
-class SeriesTree_Cohorts_Realized_Cap_Type:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk65: CentsUsdPattern = CentsUsdPattern(client, 'p2pk65_realized_cap')
-        self.p2pk33: CentsUsdPattern = CentsUsdPattern(client, 'p2pk33_realized_cap')
-        self.p2pkh: CentsUsdPattern = CentsUsdPattern(client, 'p2pkh_realized_cap')
-        self.p2ms: CentsUsdPattern = CentsUsdPattern(client, 'p2ms_realized_cap')
-        self.p2sh: CentsUsdPattern = CentsUsdPattern(client, 'p2sh_realized_cap')
-        self.p2wpkh: CentsUsdPattern = CentsUsdPattern(client, 'p2wpkh_realized_cap')
-        self.p2wsh: CentsUsdPattern = CentsUsdPattern(client, 'p2wsh_realized_cap')
-        self.p2tr: CentsUsdPattern = CentsUsdPattern(client, 'p2tr_realized_cap')
-        self.p2a: CentsUsdPattern = CentsUsdPattern(client, 'p2a_realized_cap')
-        self.unknown: CentsUsdPattern = CentsUsdPattern(client, 'unknown_outputs_realized_cap')
-        self.empty: CentsUsdPattern = CentsUsdPattern(client, 'empty_outputs_realized_cap')
-
-class SeriesTree_Cohorts_Realized_Cap:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Realized_Cap_Age = SeriesTree_Cohorts_Realized_Cap_Age(client)
-        self.epoch: SeriesTree_Cohorts_Realized_Cap_Epoch = SeriesTree_Cohorts_Realized_Cap_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Realized_Cap_Class = SeriesTree_Cohorts_Realized_Cap_Class(client)
-        self.utxo_amount: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern = _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern(client, 'utxos')
-        self.type_: SeriesTree_Cohorts_Realized_Cap_Type = SeriesTree_Cohorts_Realized_Cap_Type(client)
-
-class SeriesTree_Cohorts_Realized_Profit_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_under_1h_old_realized_profit')
-        self._1h_to_1d: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1h_to_1d_old_realized_profit')
-        self._1d_to_1w: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1d_to_1w_old_realized_profit')
-        self._1w_to_1m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1w_to_1m_old_realized_profit')
-        self._1m_to_2m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1m_to_2m_old_realized_profit')
-        self._2m_to_3m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_2m_to_3m_old_realized_profit')
-        self._3m_to_4m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_3m_to_4m_old_realized_profit')
-        self._4m_to_5m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_4m_to_5m_old_realized_profit')
-        self._5m_to_6m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_5m_to_6m_old_realized_profit')
-        self._6m_to_9m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_6m_to_9m_old_realized_profit')
-        self._9m_to_1y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_9m_to_1y_old_realized_profit')
-        self._1y_to_18m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1y_to_18m_old_realized_profit')
-        self._18m_to_2y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_18m_to_2y_old_realized_profit')
-        self._2y_to_3y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_2y_to_3y_old_realized_profit')
-        self._3y_to_4y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_3y_to_4y_old_realized_profit')
-        self._4y_to_5y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_4y_to_5y_old_realized_profit')
-        self._5y_to_6y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_5y_to_6y_old_realized_profit')
-        self._6y_to_7y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_6y_to_7y_old_realized_profit')
-        self._7y_to_8y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_7y_to_8y_old_realized_profit')
-        self._8y_to_10y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_8y_to_10y_old_realized_profit')
-        self._10y_to_12y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10y_to_12y_old_realized_profit')
-        self._12y_to_15y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_12y_to_15y_old_realized_profit')
-        self.over_15y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_over_15y_old_realized_profit')
-
-class SeriesTree_Cohorts_Realized_Profit_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'epoch_0_realized_profit')
-        self._1: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'epoch_1_realized_profit')
-        self._2: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'epoch_2_realized_profit')
-        self._3: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'epoch_3_realized_profit')
-        self._4: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'epoch_4_realized_profit')
-
-class SeriesTree_Cohorts_Realized_Profit_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2009_realized_profit')
-        self._2010: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2010_realized_profit')
-        self._2011: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2011_realized_profit')
-        self._2012: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2012_realized_profit')
-        self._2013: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2013_realized_profit')
-        self._2014: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2014_realized_profit')
-        self._2015: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2015_realized_profit')
-        self._2016: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2016_realized_profit')
-        self._2017: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2017_realized_profit')
-        self._2018: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2018_realized_profit')
-        self._2019: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2019_realized_profit')
-        self._2020: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2020_realized_profit')
-        self._2021: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2021_realized_profit')
-        self._2022: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2022_realized_profit')
-        self._2023: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2023_realized_profit')
-        self._2024: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2024_realized_profit')
-        self._2025: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2025_realized_profit')
-        self._2026: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2026_realized_profit')
-
-class SeriesTree_Cohorts_Realized_Profit_UtxoAmount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_0sats_realized_profit')
-        self._1sat_to_10sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1sat_to_10sats_realized_profit')
-        self._10sats_to_100sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10sats_to_100sats_realized_profit')
-        self._100sats_to_1k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_100sats_to_1k_sats_realized_profit')
-        self._1k_sats_to_10k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1k_sats_to_10k_sats_realized_profit')
-        self._10k_sats_to_100k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10k_sats_to_100k_sats_realized_profit')
-        self._100k_sats_to_1m_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_100k_sats_to_1m_sats_realized_profit')
-        self._1m_sats_to_10m_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1m_sats_to_10m_sats_realized_profit')
-        self._10m_sats_to_1btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10m_sats_to_1btc_realized_profit')
-        self._1btc_to_10btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1btc_to_10btc_realized_profit')
-        self._10btc_to_100btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10btc_to_100btc_realized_profit')
-        self._100btc_to_1k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_100btc_to_1k_btc_realized_profit')
-        self._1k_btc_to_10k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1k_btc_to_10k_btc_realized_profit')
-        self._10k_btc_to_100k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10k_btc_to_100k_btc_realized_profit')
-        self.over_100k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_over_100k_btc_realized_profit')
-
-class SeriesTree_Cohorts_Realized_Profit:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Realized_Profit_Age = SeriesTree_Cohorts_Realized_Profit_Age(client)
-        self.epoch: SeriesTree_Cohorts_Realized_Profit_Epoch = SeriesTree_Cohorts_Realized_Profit_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Realized_Profit_Class = SeriesTree_Cohorts_Realized_Profit_Class(client)
-        self.utxo_amount: SeriesTree_Cohorts_Realized_Profit_UtxoAmount = SeriesTree_Cohorts_Realized_Profit_UtxoAmount(client)
-        self.type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6 = EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6(client, 'realized_profit')
-
-class SeriesTree_Cohorts_Realized_Loss_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_under_1h_old_realized_loss')
-        self._1h_to_1d: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1h_to_1d_old_realized_loss')
-        self._1d_to_1w: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1d_to_1w_old_realized_loss')
-        self._1w_to_1m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1w_to_1m_old_realized_loss')
-        self._1m_to_2m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1m_to_2m_old_realized_loss')
-        self._2m_to_3m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_2m_to_3m_old_realized_loss')
-        self._3m_to_4m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_3m_to_4m_old_realized_loss')
-        self._4m_to_5m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_4m_to_5m_old_realized_loss')
-        self._5m_to_6m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_5m_to_6m_old_realized_loss')
-        self._6m_to_9m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_6m_to_9m_old_realized_loss')
-        self._9m_to_1y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_9m_to_1y_old_realized_loss')
-        self._1y_to_18m: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1y_to_18m_old_realized_loss')
-        self._18m_to_2y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_18m_to_2y_old_realized_loss')
-        self._2y_to_3y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_2y_to_3y_old_realized_loss')
-        self._3y_to_4y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_3y_to_4y_old_realized_loss')
-        self._4y_to_5y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_4y_to_5y_old_realized_loss')
-        self._5y_to_6y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_5y_to_6y_old_realized_loss')
-        self._6y_to_7y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_6y_to_7y_old_realized_loss')
-        self._7y_to_8y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_7y_to_8y_old_realized_loss')
-        self._8y_to_10y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_8y_to_10y_old_realized_loss')
-        self._10y_to_12y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10y_to_12y_old_realized_loss')
-        self._12y_to_15y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_12y_to_15y_old_realized_loss')
-        self.over_15y: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_over_15y_old_realized_loss')
-
-class SeriesTree_Cohorts_Realized_Loss_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'epoch_0_realized_loss')
-        self._1: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'epoch_1_realized_loss')
-        self._2: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'epoch_2_realized_loss')
-        self._3: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'epoch_3_realized_loss')
-        self._4: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'epoch_4_realized_loss')
-
-class SeriesTree_Cohorts_Realized_Loss_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2009_realized_loss')
-        self._2010: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2010_realized_loss')
-        self._2011: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2011_realized_loss')
-        self._2012: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2012_realized_loss')
-        self._2013: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2013_realized_loss')
-        self._2014: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2014_realized_loss')
-        self._2015: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2015_realized_loss')
-        self._2016: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2016_realized_loss')
-        self._2017: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2017_realized_loss')
-        self._2018: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2018_realized_loss')
-        self._2019: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2019_realized_loss')
-        self._2020: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2020_realized_loss')
-        self._2021: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2021_realized_loss')
-        self._2022: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2022_realized_loss')
-        self._2023: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2023_realized_loss')
-        self._2024: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2024_realized_loss')
-        self._2025: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2025_realized_loss')
-        self._2026: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'class_2026_realized_loss')
-
-class SeriesTree_Cohorts_Realized_Loss_UtxoAmount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_0sats_realized_loss')
-        self._1sat_to_10sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1sat_to_10sats_realized_loss')
-        self._10sats_to_100sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10sats_to_100sats_realized_loss')
-        self._100sats_to_1k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_100sats_to_1k_sats_realized_loss')
-        self._1k_sats_to_10k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1k_sats_to_10k_sats_realized_loss')
-        self._10k_sats_to_100k_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10k_sats_to_100k_sats_realized_loss')
-        self._100k_sats_to_1m_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_100k_sats_to_1m_sats_realized_loss')
-        self._1m_sats_to_10m_sats: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1m_sats_to_10m_sats_realized_loss')
-        self._10m_sats_to_1btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10m_sats_to_1btc_realized_loss')
-        self._1btc_to_10btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1btc_to_10btc_realized_loss')
-        self._10btc_to_100btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10btc_to_100btc_realized_loss')
-        self._100btc_to_1k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_100btc_to_1k_btc_realized_loss')
-        self._1k_btc_to_10k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_1k_btc_to_10k_btc_realized_loss')
-        self._10k_btc_to_100k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_10k_btc_to_100k_btc_realized_loss')
-        self.over_100k_btc: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'utxos_over_100k_btc_realized_loss')
-
-class SeriesTree_Cohorts_Realized_Loss:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Realized_Loss_Age = SeriesTree_Cohorts_Realized_Loss_Age(client)
-        self.epoch: SeriesTree_Cohorts_Realized_Loss_Epoch = SeriesTree_Cohorts_Realized_Loss_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Realized_Loss_Class = SeriesTree_Cohorts_Realized_Loss_Class(client)
-        self.utxo_amount: SeriesTree_Cohorts_Realized_Loss_UtxoAmount = SeriesTree_Cohorts_Realized_Loss_UtxoAmount(client)
-        self.type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6 = EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6(client, 'realized_loss')
-
-class SeriesTree_Cohorts_Realized_NetPnl_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_under_1h_old_net_realized_pnl')
-        self._1h_to_1d: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_1h_to_1d_old_net_realized_pnl')
-        self._1d_to_1w: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_1d_to_1w_old_net_realized_pnl')
-        self._1w_to_1m: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_1w_to_1m_old_net_realized_pnl')
-        self._1m_to_2m: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_1m_to_2m_old_net_realized_pnl')
-        self._2m_to_3m: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_2m_to_3m_old_net_realized_pnl')
-        self._3m_to_4m: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_3m_to_4m_old_net_realized_pnl')
-        self._4m_to_5m: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_4m_to_5m_old_net_realized_pnl')
-        self._5m_to_6m: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_5m_to_6m_old_net_realized_pnl')
-        self._6m_to_9m: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_6m_to_9m_old_net_realized_pnl')
-        self._9m_to_1y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_9m_to_1y_old_net_realized_pnl')
-        self._1y_to_18m: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_1y_to_18m_old_net_realized_pnl')
-        self._18m_to_2y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_18m_to_2y_old_net_realized_pnl')
-        self._2y_to_3y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_2y_to_3y_old_net_realized_pnl')
-        self._3y_to_4y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_3y_to_4y_old_net_realized_pnl')
-        self._4y_to_5y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_4y_to_5y_old_net_realized_pnl')
-        self._5y_to_6y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_5y_to_6y_old_net_realized_pnl')
-        self._6y_to_7y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_6y_to_7y_old_net_realized_pnl')
-        self._7y_to_8y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_7y_to_8y_old_net_realized_pnl')
-        self._8y_to_10y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_8y_to_10y_old_net_realized_pnl')
-        self._10y_to_12y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_10y_to_12y_old_net_realized_pnl')
-        self._12y_to_15y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_12y_to_15y_old_net_realized_pnl')
-        self.over_15y: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'utxos_over_15y_old_net_realized_pnl')
-
-class SeriesTree_Cohorts_Realized_NetPnl_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'epoch_0_net_realized_pnl')
-        self._1: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'epoch_1_net_realized_pnl')
-        self._2: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'epoch_2_net_realized_pnl')
-        self._3: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'epoch_3_net_realized_pnl')
-        self._4: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'epoch_4_net_realized_pnl')
-
-class SeriesTree_Cohorts_Realized_NetPnl_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2009_net_realized_pnl')
-        self._2010: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2010_net_realized_pnl')
-        self._2011: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2011_net_realized_pnl')
-        self._2012: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2012_net_realized_pnl')
-        self._2013: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2013_net_realized_pnl')
-        self._2014: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2014_net_realized_pnl')
-        self._2015: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2015_net_realized_pnl')
-        self._2016: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2016_net_realized_pnl')
-        self._2017: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2017_net_realized_pnl')
-        self._2018: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2018_net_realized_pnl')
-        self._2019: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2019_net_realized_pnl')
-        self._2020: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2020_net_realized_pnl')
-        self._2021: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2021_net_realized_pnl')
-        self._2022: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2022_net_realized_pnl')
-        self._2023: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2023_net_realized_pnl')
-        self._2024: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2024_net_realized_pnl')
-        self._2025: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2025_net_realized_pnl')
-        self._2026: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'class_2026_net_realized_pnl')
-
-class SeriesTree_Cohorts_Realized_NetPnl:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Realized_NetPnl_Age = SeriesTree_Cohorts_Realized_NetPnl_Age(client)
-        self.epoch: SeriesTree_Cohorts_Realized_NetPnl_Epoch = SeriesTree_Cohorts_Realized_NetPnl_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Realized_NetPnl_Class = SeriesTree_Cohorts_Realized_NetPnl_Class(client)
-
-class SeriesTree_Cohorts_Realized_ValueDestroyed_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_under_1h_old_value_destroyed')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_1h_to_1d_old_value_destroyed')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_1d_to_1w_old_value_destroyed')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_1w_to_1m_old_value_destroyed')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_1m_to_2m_old_value_destroyed')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_2m_to_3m_old_value_destroyed')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_3m_to_4m_old_value_destroyed')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_4m_to_5m_old_value_destroyed')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_5m_to_6m_old_value_destroyed')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_6m_to_9m_old_value_destroyed')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_9m_to_1y_old_value_destroyed')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_1y_to_18m_old_value_destroyed')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_18m_to_2y_old_value_destroyed')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_2y_to_3y_old_value_destroyed')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_3y_to_4y_old_value_destroyed')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_4y_to_5y_old_value_destroyed')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_5y_to_6y_old_value_destroyed')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_6y_to_7y_old_value_destroyed')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_7y_to_8y_old_value_destroyed')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_8y_to_10y_old_value_destroyed')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_10y_to_12y_old_value_destroyed')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_12y_to_15y_old_value_destroyed')
-        self.over_15y: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'utxos_over_15y_old_value_destroyed')
-
-class SeriesTree_Cohorts_Realized_ValueDestroyed_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'epoch_0_value_destroyed')
-        self._1: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'epoch_1_value_destroyed')
-        self._2: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'epoch_2_value_destroyed')
-        self._3: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'epoch_3_value_destroyed')
-        self._4: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'epoch_4_value_destroyed')
-
-class SeriesTree_Cohorts_Realized_ValueDestroyed_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2009_value_destroyed')
-        self._2010: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2010_value_destroyed')
-        self._2011: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2011_value_destroyed')
-        self._2012: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2012_value_destroyed')
-        self._2013: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2013_value_destroyed')
-        self._2014: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2014_value_destroyed')
-        self._2015: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2015_value_destroyed')
-        self._2016: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2016_value_destroyed')
-        self._2017: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2017_value_destroyed')
-        self._2018: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2018_value_destroyed')
-        self._2019: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2019_value_destroyed')
-        self._2020: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2020_value_destroyed')
-        self._2021: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2021_value_destroyed')
-        self._2022: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2022_value_destroyed')
-        self._2023: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2023_value_destroyed')
-        self._2024: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2024_value_destroyed')
-        self._2025: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2025_value_destroyed')
-        self._2026: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'class_2026_value_destroyed')
-
-class SeriesTree_Cohorts_Realized_ValueDestroyed:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Realized_ValueDestroyed_Age = SeriesTree_Cohorts_Realized_ValueDestroyed_Age(client)
-        self.epoch: SeriesTree_Cohorts_Realized_ValueDestroyed_Epoch = SeriesTree_Cohorts_Realized_ValueDestroyed_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Realized_ValueDestroyed_Class = SeriesTree_Cohorts_Realized_ValueDestroyed_Class(client)
-
-class SeriesTree_Cohorts_Realized_Price_UtxoAmount:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0sats: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_0sats_realized_price')
-        self._1sat_to_10sats: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_1sat_to_10sats_realized_price')
-        self._10sats_to_100sats: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_10sats_to_100sats_realized_price')
-        self._100sats_to_1k_sats: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_100sats_to_1k_sats_realized_price')
-        self._1k_sats_to_10k_sats: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_1k_sats_to_10k_sats_realized_price')
-        self._10k_sats_to_100k_sats: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_10k_sats_to_100k_sats_realized_price')
-        self._100k_sats_to_1m_sats: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_100k_sats_to_1m_sats_realized_price')
-        self._1m_sats_to_10m_sats: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_1m_sats_to_10m_sats_realized_price')
-        self._10m_sats_to_1btc: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_10m_sats_to_1btc_realized_price')
-        self._1btc_to_10btc: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_1btc_to_10btc_realized_price')
-        self._10btc_to_100btc: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_10btc_to_100btc_realized_price')
-        self._100btc_to_1k_btc: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_100btc_to_1k_btc_realized_price')
-        self._1k_btc_to_10k_btc: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_1k_btc_to_10k_btc_realized_price')
-        self._10k_btc_to_100k_btc: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_10k_btc_to_100k_btc_realized_price')
-        self.over_100k_btc: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'utxos_over_100k_btc_realized_price')
-
-class SeriesTree_Cohorts_Realized_Price_Type:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2pk65: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'p2pk65_realized_price')
-        self.p2pk33: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'p2pk33_realized_price')
-        self.p2pkh: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'p2pkh_realized_price')
-        self.p2ms: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'p2ms_realized_price')
-        self.p2sh: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'p2sh_realized_price')
-        self.p2wpkh: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'p2wpkh_realized_price')
-        self.p2wsh: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'p2wsh_realized_price')
-        self.p2tr: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'p2tr_realized_price')
-        self.p2a: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'p2a_realized_price')
-        self.unknown: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'unknown_outputs_realized_price')
-        self.empty: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'empty_outputs_realized_price')
-
-class SeriesTree_Cohorts_Realized_Price:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.utxo_amount: SeriesTree_Cohorts_Realized_Price_UtxoAmount = SeriesTree_Cohorts_Realized_Price_UtxoAmount(client)
-        self.type_: SeriesTree_Cohorts_Realized_Price_Type = SeriesTree_Cohorts_Realized_Price_Type(client)
-
-class SeriesTree_Cohorts_Realized:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._client = client
-
-    @cached_property
-    def cap(self) -> SeriesTree_Cohorts_Realized_Cap:
-        return SeriesTree_Cohorts_Realized_Cap(self._client)
-
-    @cached_property
-    def profit(self) -> SeriesTree_Cohorts_Realized_Profit:
-        return SeriesTree_Cohorts_Realized_Profit(self._client)
-
-    @cached_property
-    def loss(self) -> SeriesTree_Cohorts_Realized_Loss:
-        return SeriesTree_Cohorts_Realized_Loss(self._client)
-
-    @cached_property
-    def net_pnl(self) -> SeriesTree_Cohorts_Realized_NetPnl:
-        return SeriesTree_Cohorts_Realized_NetPnl(self._client)
-
-    @cached_property
-    def value_destroyed(self) -> SeriesTree_Cohorts_Realized_ValueDestroyed:
-        return SeriesTree_Cohorts_Realized_ValueDestroyed(self._client)
-
-    @cached_property
-    def price(self) -> SeriesTree_Cohorts_Realized_Price:
-        return SeriesTree_Cohorts_Realized_Price(self._client)
-
-class SeriesTree_Cohorts_Unrealized_Profit_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1h_old_unrealized_profit')
-        self._1h_to_1d: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1h_to_1d_old_unrealized_profit')
-        self._1d_to_1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1d_to_1w_old_unrealized_profit')
-        self._1w_to_1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1w_to_1m_old_unrealized_profit')
-        self._1m_to_2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1m_to_2m_old_unrealized_profit')
-        self._2m_to_3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2m_to_3m_old_unrealized_profit')
-        self._3m_to_4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3m_to_4m_old_unrealized_profit')
-        self._4m_to_5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4m_to_5m_old_unrealized_profit')
-        self._5m_to_6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5m_to_6m_old_unrealized_profit')
-        self._6m_to_9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6m_to_9m_old_unrealized_profit')
-        self._9m_to_1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_9m_to_1y_old_unrealized_profit')
-        self._1y_to_18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1y_to_18m_old_unrealized_profit')
-        self._18m_to_2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_18m_to_2y_old_unrealized_profit')
-        self._2y_to_3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2y_to_3y_old_unrealized_profit')
-        self._3y_to_4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3y_to_4y_old_unrealized_profit')
-        self._4y_to_5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4y_to_5y_old_unrealized_profit')
-        self._5y_to_6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5y_to_6y_old_unrealized_profit')
-        self._6y_to_7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6y_to_7y_old_unrealized_profit')
-        self._7y_to_8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_7y_to_8y_old_unrealized_profit')
-        self._8y_to_10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_8y_to_10y_old_unrealized_profit')
-        self._10y_to_12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10y_to_12y_old_unrealized_profit')
-        self._12y_to_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_12y_to_15y_old_unrealized_profit')
-        self.over_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_15y_old_unrealized_profit')
-
-class SeriesTree_Cohorts_Unrealized_Profit_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: CentsUsdPattern = CentsUsdPattern(client, 'epoch_0_unrealized_profit')
-        self._1: CentsUsdPattern = CentsUsdPattern(client, 'epoch_1_unrealized_profit')
-        self._2: CentsUsdPattern = CentsUsdPattern(client, 'epoch_2_unrealized_profit')
-        self._3: CentsUsdPattern = CentsUsdPattern(client, 'epoch_3_unrealized_profit')
-        self._4: CentsUsdPattern = CentsUsdPattern(client, 'epoch_4_unrealized_profit')
-
-class SeriesTree_Cohorts_Unrealized_Profit_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: CentsUsdPattern = CentsUsdPattern(client, 'class_2009_unrealized_profit')
-        self._2010: CentsUsdPattern = CentsUsdPattern(client, 'class_2010_unrealized_profit')
-        self._2011: CentsUsdPattern = CentsUsdPattern(client, 'class_2011_unrealized_profit')
-        self._2012: CentsUsdPattern = CentsUsdPattern(client, 'class_2012_unrealized_profit')
-        self._2013: CentsUsdPattern = CentsUsdPattern(client, 'class_2013_unrealized_profit')
-        self._2014: CentsUsdPattern = CentsUsdPattern(client, 'class_2014_unrealized_profit')
-        self._2015: CentsUsdPattern = CentsUsdPattern(client, 'class_2015_unrealized_profit')
-        self._2016: CentsUsdPattern = CentsUsdPattern(client, 'class_2016_unrealized_profit')
-        self._2017: CentsUsdPattern = CentsUsdPattern(client, 'class_2017_unrealized_profit')
-        self._2018: CentsUsdPattern = CentsUsdPattern(client, 'class_2018_unrealized_profit')
-        self._2019: CentsUsdPattern = CentsUsdPattern(client, 'class_2019_unrealized_profit')
-        self._2020: CentsUsdPattern = CentsUsdPattern(client, 'class_2020_unrealized_profit')
-        self._2021: CentsUsdPattern = CentsUsdPattern(client, 'class_2021_unrealized_profit')
-        self._2022: CentsUsdPattern = CentsUsdPattern(client, 'class_2022_unrealized_profit')
-        self._2023: CentsUsdPattern = CentsUsdPattern(client, 'class_2023_unrealized_profit')
-        self._2024: CentsUsdPattern = CentsUsdPattern(client, 'class_2024_unrealized_profit')
-        self._2025: CentsUsdPattern = CentsUsdPattern(client, 'class_2025_unrealized_profit')
-        self._2026: CentsUsdPattern = CentsUsdPattern(client, 'class_2026_unrealized_profit')
-
-class SeriesTree_Cohorts_Unrealized_Profit:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Unrealized_Profit_Age = SeriesTree_Cohorts_Unrealized_Profit_Age(client)
-        self.epoch: SeriesTree_Cohorts_Unrealized_Profit_Epoch = SeriesTree_Cohorts_Unrealized_Profit_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Unrealized_Profit_Class = SeriesTree_Cohorts_Unrealized_Profit_Class(client)
-
-class SeriesTree_Cohorts_Unrealized_Loss_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1h_old_unrealized_loss')
-        self._1h_to_1d: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1h_to_1d_old_unrealized_loss')
-        self._1d_to_1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1d_to_1w_old_unrealized_loss')
-        self._1w_to_1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1w_to_1m_old_unrealized_loss')
-        self._1m_to_2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1m_to_2m_old_unrealized_loss')
-        self._2m_to_3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2m_to_3m_old_unrealized_loss')
-        self._3m_to_4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3m_to_4m_old_unrealized_loss')
-        self._4m_to_5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4m_to_5m_old_unrealized_loss')
-        self._5m_to_6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5m_to_6m_old_unrealized_loss')
-        self._6m_to_9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6m_to_9m_old_unrealized_loss')
-        self._9m_to_1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_9m_to_1y_old_unrealized_loss')
-        self._1y_to_18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1y_to_18m_old_unrealized_loss')
-        self._18m_to_2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_18m_to_2y_old_unrealized_loss')
-        self._2y_to_3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2y_to_3y_old_unrealized_loss')
-        self._3y_to_4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3y_to_4y_old_unrealized_loss')
-        self._4y_to_5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4y_to_5y_old_unrealized_loss')
-        self._5y_to_6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5y_to_6y_old_unrealized_loss')
-        self._6y_to_7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6y_to_7y_old_unrealized_loss')
-        self._7y_to_8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_7y_to_8y_old_unrealized_loss')
-        self._8y_to_10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_8y_to_10y_old_unrealized_loss')
-        self._10y_to_12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10y_to_12y_old_unrealized_loss')
-        self._12y_to_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_12y_to_15y_old_unrealized_loss')
-        self.over_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_15y_old_unrealized_loss')
-
-class SeriesTree_Cohorts_Unrealized_Loss_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: CentsUsdPattern = CentsUsdPattern(client, 'epoch_0_unrealized_loss')
-        self._1: CentsUsdPattern = CentsUsdPattern(client, 'epoch_1_unrealized_loss')
-        self._2: CentsUsdPattern = CentsUsdPattern(client, 'epoch_2_unrealized_loss')
-        self._3: CentsUsdPattern = CentsUsdPattern(client, 'epoch_3_unrealized_loss')
-        self._4: CentsUsdPattern = CentsUsdPattern(client, 'epoch_4_unrealized_loss')
-
-class SeriesTree_Cohorts_Unrealized_Loss_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: CentsUsdPattern = CentsUsdPattern(client, 'class_2009_unrealized_loss')
-        self._2010: CentsUsdPattern = CentsUsdPattern(client, 'class_2010_unrealized_loss')
-        self._2011: CentsUsdPattern = CentsUsdPattern(client, 'class_2011_unrealized_loss')
-        self._2012: CentsUsdPattern = CentsUsdPattern(client, 'class_2012_unrealized_loss')
-        self._2013: CentsUsdPattern = CentsUsdPattern(client, 'class_2013_unrealized_loss')
-        self._2014: CentsUsdPattern = CentsUsdPattern(client, 'class_2014_unrealized_loss')
-        self._2015: CentsUsdPattern = CentsUsdPattern(client, 'class_2015_unrealized_loss')
-        self._2016: CentsUsdPattern = CentsUsdPattern(client, 'class_2016_unrealized_loss')
-        self._2017: CentsUsdPattern = CentsUsdPattern(client, 'class_2017_unrealized_loss')
-        self._2018: CentsUsdPattern = CentsUsdPattern(client, 'class_2018_unrealized_loss')
-        self._2019: CentsUsdPattern = CentsUsdPattern(client, 'class_2019_unrealized_loss')
-        self._2020: CentsUsdPattern = CentsUsdPattern(client, 'class_2020_unrealized_loss')
-        self._2021: CentsUsdPattern = CentsUsdPattern(client, 'class_2021_unrealized_loss')
-        self._2022: CentsUsdPattern = CentsUsdPattern(client, 'class_2022_unrealized_loss')
-        self._2023: CentsUsdPattern = CentsUsdPattern(client, 'class_2023_unrealized_loss')
-        self._2024: CentsUsdPattern = CentsUsdPattern(client, 'class_2024_unrealized_loss')
-        self._2025: CentsUsdPattern = CentsUsdPattern(client, 'class_2025_unrealized_loss')
-        self._2026: CentsUsdPattern = CentsUsdPattern(client, 'class_2026_unrealized_loss')
-
-class SeriesTree_Cohorts_Unrealized_Loss:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Unrealized_Loss_Age = SeriesTree_Cohorts_Unrealized_Loss_Age(client)
-        self.epoch: SeriesTree_Cohorts_Unrealized_Loss_Epoch = SeriesTree_Cohorts_Unrealized_Loss_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Unrealized_Loss_Class = SeriesTree_Cohorts_Unrealized_Loss_Class(client)
-
-class SeriesTree_Cohorts_Unrealized_NetPnl_Age:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.under_1h: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_under_1h_old_net_unrealized_pnl')
-        self._1h_to_1d: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_1h_to_1d_old_net_unrealized_pnl')
-        self._1d_to_1w: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_1d_to_1w_old_net_unrealized_pnl')
-        self._1w_to_1m: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_1w_to_1m_old_net_unrealized_pnl')
-        self._1m_to_2m: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_1m_to_2m_old_net_unrealized_pnl')
-        self._2m_to_3m: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_2m_to_3m_old_net_unrealized_pnl')
-        self._3m_to_4m: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_3m_to_4m_old_net_unrealized_pnl')
-        self._4m_to_5m: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_4m_to_5m_old_net_unrealized_pnl')
-        self._5m_to_6m: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_5m_to_6m_old_net_unrealized_pnl')
-        self._6m_to_9m: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_6m_to_9m_old_net_unrealized_pnl')
-        self._9m_to_1y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_9m_to_1y_old_net_unrealized_pnl')
-        self._1y_to_18m: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_1y_to_18m_old_net_unrealized_pnl')
-        self._18m_to_2y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_18m_to_2y_old_net_unrealized_pnl')
-        self._2y_to_3y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_2y_to_3y_old_net_unrealized_pnl')
-        self._3y_to_4y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_3y_to_4y_old_net_unrealized_pnl')
-        self._4y_to_5y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_4y_to_5y_old_net_unrealized_pnl')
-        self._5y_to_6y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_5y_to_6y_old_net_unrealized_pnl')
-        self._6y_to_7y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_6y_to_7y_old_net_unrealized_pnl')
-        self._7y_to_8y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_7y_to_8y_old_net_unrealized_pnl')
-        self._8y_to_10y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_8y_to_10y_old_net_unrealized_pnl')
-        self._10y_to_12y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_10y_to_12y_old_net_unrealized_pnl')
-        self._12y_to_15y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_12y_to_15y_old_net_unrealized_pnl')
-        self.over_15y: CentsUsdPattern4 = CentsUsdPattern4(client, 'utxos_over_15y_old_net_unrealized_pnl')
-
-class SeriesTree_Cohorts_Unrealized_NetPnl_Epoch:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._0: CentsUsdPattern4 = CentsUsdPattern4(client, 'epoch_0_net_unrealized_pnl')
-        self._1: CentsUsdPattern4 = CentsUsdPattern4(client, 'epoch_1_net_unrealized_pnl')
-        self._2: CentsUsdPattern4 = CentsUsdPattern4(client, 'epoch_2_net_unrealized_pnl')
-        self._3: CentsUsdPattern4 = CentsUsdPattern4(client, 'epoch_3_net_unrealized_pnl')
-        self._4: CentsUsdPattern4 = CentsUsdPattern4(client, 'epoch_4_net_unrealized_pnl')
-
-class SeriesTree_Cohorts_Unrealized_NetPnl_Class:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._2009: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2009_net_unrealized_pnl')
-        self._2010: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2010_net_unrealized_pnl')
-        self._2011: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2011_net_unrealized_pnl')
-        self._2012: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2012_net_unrealized_pnl')
-        self._2013: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2013_net_unrealized_pnl')
-        self._2014: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2014_net_unrealized_pnl')
-        self._2015: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2015_net_unrealized_pnl')
-        self._2016: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2016_net_unrealized_pnl')
-        self._2017: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2017_net_unrealized_pnl')
-        self._2018: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2018_net_unrealized_pnl')
-        self._2019: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2019_net_unrealized_pnl')
-        self._2020: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2020_net_unrealized_pnl')
-        self._2021: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2021_net_unrealized_pnl')
-        self._2022: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2022_net_unrealized_pnl')
-        self._2023: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2023_net_unrealized_pnl')
-        self._2024: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2024_net_unrealized_pnl')
-        self._2025: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2025_net_unrealized_pnl')
-        self._2026: CentsUsdPattern4 = CentsUsdPattern4(client, 'class_2026_net_unrealized_pnl')
-
-class SeriesTree_Cohorts_Unrealized_NetPnl:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age: SeriesTree_Cohorts_Unrealized_NetPnl_Age = SeriesTree_Cohorts_Unrealized_NetPnl_Age(client)
-        self.epoch: SeriesTree_Cohorts_Unrealized_NetPnl_Epoch = SeriesTree_Cohorts_Unrealized_NetPnl_Epoch(client)
-        self.class_: SeriesTree_Cohorts_Unrealized_NetPnl_Class = SeriesTree_Cohorts_Unrealized_NetPnl_Class(client)
-
-class SeriesTree_Cohorts_Unrealized:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.profit: SeriesTree_Cohorts_Unrealized_Profit = SeriesTree_Cohorts_Unrealized_Profit(client)
-        self.loss: SeriesTree_Cohorts_Unrealized_Loss = SeriesTree_Cohorts_Unrealized_Loss(client)
-        self.net_pnl: SeriesTree_Cohorts_Unrealized_NetPnl = SeriesTree_Cohorts_Unrealized_NetPnl(client)
-
-class SeriesTree_Cohorts_Urpd_AgeBounds:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.all: MaxMinPattern = MaxMinPattern(client, 'utxos_urpd_all_cost_basis')
-        self.sth: MaxMinPattern = MaxMinPattern(client, 'utxos_urpd_sth_cost_basis')
-        self.lth: MaxMinPattern = MaxMinPattern(client, 'utxos_urpd_lth_cost_basis')
-        self.under_4m: MaxMinPattern = MaxMinPattern(client, 'utxos_urpd_under_4m_cost_basis')
-        self.under_6m: MaxMinPattern = MaxMinPattern(client, 'utxos_urpd_under_6m_cost_basis')
-        self.over_4m: MaxMinPattern = MaxMinPattern(client, 'utxos_urpd_over_4m_cost_basis')
-        self.over_6m: MaxMinPattern = MaxMinPattern(client, 'utxos_urpd_over_6m_cost_basis')
-
-class SeriesTree_Cohorts_Urpd:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.age_bounds: SeriesTree_Cohorts_Urpd_AgeBounds = SeriesTree_Cohorts_Urpd_AgeBounds(client)
-
-class SeriesTree_Cohorts:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._client = client
-
-    @cached_property
-    def supply(self) -> SeriesTree_Cohorts_Supply:
-        return SeriesTree_Cohorts_Supply(self._client)
-
-    @cached_property
-    def outputs(self) -> SeriesTree_Cohorts_Outputs:
-        return SeriesTree_Cohorts_Outputs(self._client)
-
-    @cached_property
-    def activity(self) -> SeriesTree_Cohorts_Activity:
-        return SeriesTree_Cohorts_Activity(self._client)
-
-    @cached_property
-    def realized(self) -> SeriesTree_Cohorts_Realized:
-        return SeriesTree_Cohorts_Realized(self._client)
-
-    @cached_property
-    def unrealized(self) -> SeriesTree_Cohorts_Unrealized:
-        return SeriesTree_Cohorts_Unrealized(self._client)
-
-    @cached_property
-    def urpd(self) -> SeriesTree_Cohorts_Urpd:
-        return SeriesTree_Cohorts_Urpd(self._client)
-
-class SeriesTree_DistributionAggregated_Cohorts_All_Outputs:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.unspent_count: BaseDeltaPattern = BaseDeltaPattern(client, 'utxo_count')
-        self.spent_count: AverageBlockCumulativeSumPattern2[StoredU64] = AverageBlockCumulativeSumPattern2(client, 'spent_utxo_count')
-
-class SeriesTree_DistributionAggregated_Cohorts_All_Activity:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.transfer_volume: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'transfer_volume')
-        self.transfer_volume_in_profit: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'transfer_volume_in_profit')
-        self.transfer_volume_in_loss: AverageBlockCumulativeSumPattern = AverageBlockCumulativeSumPattern(client, 'transfer_volume_in_loss')
-        self.coindays_destroyed: AverageBlockCumulativeSumPattern2[StoredF64] = AverageBlockCumulativeSumPattern2(client, 'coindays_destroyed')
-        self.coinyears_destroyed: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'coinyears_destroyed')
-
-class SeriesTree_DistributionAggregated_Cohorts_All_Realized:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.cap: CentsDeltaUsdPattern = CentsDeltaUsdPattern(client, 'realized_cap')
-        self.price: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'realized_price')
-        self.capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'capitalized_price')
-        self.profit: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'realized_profit')
-        self.loss: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'realized_loss')
-        self.net_pnl: BlockCumulativeDeltaSumPattern = BlockCumulativeDeltaSumPattern(client, 'net_realized_pnl')
-        self.value_destroyed: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'value_destroyed')
-        self.gross_pnl: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'realized_gross_pnl')
-        self.peak_regret: BlockCumulativeSumPattern = BlockCumulativeSumPattern(client, 'realized_peak_regret')
-        self.mvrv: PpmRatioPattern2 = PpmRatioPattern2(client, 'mvrv')
-
-class SeriesTree_DistributionAggregated_Cohorts_All_Unrealized:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.profit: CentsUsdPattern = CentsUsdPattern(client, 'unrealized_profit')
-        self.loss: CentsUsdPattern = CentsUsdPattern(client, 'unrealized_loss')
-        self.net_pnl: CentsUsdPattern4 = CentsUsdPattern4(client, 'net_unrealized_pnl')
-        self.gross_pnl: CentsUsdPattern = CentsUsdPattern(client, 'unrealized_gross_pnl')
-        self.invested_capital_in_profit: CentsUsdPattern = CentsUsdPattern(client, 'invested_capital_in_profit')
-        self.invested_capital_in_loss: CentsUsdPattern = CentsUsdPattern(client, 'invested_capital_in_loss')
-        self.pain_index: CentsUsdPattern = CentsUsdPattern(client, 'pain_index')
-        self.greed_index: CentsUsdPattern = CentsUsdPattern(client, 'greed_index')
-        self.net_sentiment: CentsUsdPattern4 = CentsUsdPattern4(client, 'net_sentiment')
-        self.nupl: PpmRatioPattern3 = PpmRatioPattern3(client, 'nupl')
-
-class SeriesTree_DistributionAggregated_Cohorts_All_CostBasis:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.in_profit: PerPattern2 = PerPattern2(client, 'cost_basis_in_profit_per')
-        self.in_loss: PerPattern2 = PerPattern2(client, 'cost_basis_in_loss_per')
-        self.min: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'cost_basis_min')
-        self.max: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'cost_basis_max')
-        self.per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'cost_basis_per_coin')
-        self.per_dollar: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'cost_basis_per_dollar')
-        self.supply_density: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'supply_density')
-
-class SeriesTree_DistributionAggregated_Cohorts_All_Ratios_AdjustedSopr:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.ratio: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, 'adjusted_sopr')
-        self.transfer_volume: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'adj_value_created')
-        self.value_destroyed: AverageBlockCumulativeSumPattern3 = AverageBlockCumulativeSumPattern3(client, 'adj_value_destroyed')
-
-class SeriesTree_DistributionAggregated_Cohorts_All_Ratios:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.adjusted_sopr: SeriesTree_DistributionAggregated_Cohorts_All_Ratios_AdjustedSopr = SeriesTree_DistributionAggregated_Cohorts_All_Ratios_AdjustedSopr(client)
-        self.dormancy: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, 'dormancy')
-        self.sopr: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h')
-        self.sopr_ratio_extended: _1m1w1yPattern = _1m1w1yPattern(client, 'sopr')
-        self.sell_side_risk_ratio: _1m1w1y24hPattern9 = _1m1w1y24hPattern9(client, 'sell_side_risk_ratio')
-        self.profit_to_loss_ratio: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, 'realized_profit_to_loss_ratio')
-
-class SeriesTree_DistributionAggregated_Cohorts_All_Relative:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.supply_dominance: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'supply_dominance')
-        self.supply_in_profit_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'supply_in_profit_share')
-        self.supply_in_loss_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'supply_in_loss_share')
-        self.unrealized_profit_to_mcap: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'unrealized_profit_to_mcap')
-        self.unrealized_loss_to_mcap: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'unrealized_loss_to_mcap')
-        self.unrealized_profit_to_own_mcap: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'unrealized_profit_to_own_mcap')
-        self.unrealized_loss_to_own_mcap: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'unrealized_loss_to_own_mcap')
-        self.unrealized_profit_to_own_gross_pnl: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'unrealized_profit_to_own_gross_pnl')
-        self.unrealized_loss_to_own_gross_pnl: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'unrealized_loss_to_own_gross_pnl')
-        self.net_unrealized_pnl_to_own_gross_pnl: PercentPpmRatioPattern3 = PercentPpmRatioPattern3(client, 'net_unrealized_pnl_to_own_gross_pnl')
-        self.invested_capital_in_profit_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'invested_capital_in_profit_share')
-        self.invested_capital_in_loss_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'invested_capital_in_loss_share')
-        self.realized_cap_to_own_mcap: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'realized_cap_to_own_mcap')
-        self.net_pnl_change_1m_to_mcap: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'net_pnl_change_1m_to_mcap')
-        self.net_pnl_change_1m_to_rcap: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'net_pnl_change_1m_to_rcap')
-
-class SeriesTree_DistributionAggregated_Cohorts_All:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.supply: DeltaInTotalPattern = DeltaInTotalPattern(client, 'supply')
-        self.outputs: SeriesTree_DistributionAggregated_Cohorts_All_Outputs = SeriesTree_DistributionAggregated_Cohorts_All_Outputs(client)
-        self.activity: SeriesTree_DistributionAggregated_Cohorts_All_Activity = SeriesTree_DistributionAggregated_Cohorts_All_Activity(client)
-        self.realized: SeriesTree_DistributionAggregated_Cohorts_All_Realized = SeriesTree_DistributionAggregated_Cohorts_All_Realized(client)
-        self.unrealized: SeriesTree_DistributionAggregated_Cohorts_All_Unrealized = SeriesTree_DistributionAggregated_Cohorts_All_Unrealized(client)
-        self.cost_basis: SeriesTree_DistributionAggregated_Cohorts_All_CostBasis = SeriesTree_DistributionAggregated_Cohorts_All_CostBasis(client)
-        self.ratios: SeriesTree_DistributionAggregated_Cohorts_All_Ratios = SeriesTree_DistributionAggregated_Cohorts_All_Ratios(client)
-        self.relative: SeriesTree_DistributionAggregated_Cohorts_All_Relative = SeriesTree_DistributionAggregated_Cohorts_All_Relative(client)
-
-class SeriesTree_DistributionAggregated_Cohorts:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._client = client
-
-    @cached_property
-    def all(self) -> SeriesTree_DistributionAggregated_Cohorts_All:
-        return SeriesTree_DistributionAggregated_Cohorts_All(self._client)
-
-    @cached_property
-    def sth(self) -> ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern:
-        return ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern(self._client, 'sth')
-
-    @cached_property
-    def lth(self) -> ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern:
-        return ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern(self._client, 'lth')
-
-    @cached_property
-    def under_4m(self) -> ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern:
-        return ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern(self._client, 'under_4m')
-
-    @cached_property
-    def under_6m(self) -> ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern:
-        return ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern(self._client, 'under_6m')
-
-    @cached_property
-    def over_4m(self) -> ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern:
-        return ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern(self._client, 'over_4m')
-
-    @cached_property
-    def over_6m(self) -> ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern:
-        return ActivityCostOutputsRatiosRealizedRelativeSupplyUnrealizedPattern(self._client, 'over_6m')
-
-class SeriesTree_DistributionAggregated:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._client = client
-
-    @cached_property
-    def cohorts(self) -> SeriesTree_DistributionAggregated_Cohorts:
-        return SeriesTree_DistributionAggregated_Cohorts(self._client)
-
-class SeriesTree_Supply_Velocity:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.native: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'velocity_btc')
-        self.fiat: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'velocity_usd')
-
-class SeriesTree_Supply:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.circulating: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'circulating_supply')
-        self.burned: BlockCumulativePattern = BlockCumulativePattern(client, 'unspendable_supply')
-        self.inflation_rate: PercentPpmRatioPattern = PercentPpmRatioPattern(client, 'inflation_rate')
-        self.velocity: SeriesTree_Supply_Velocity = SeriesTree_Supply_Velocity(client)
-        self.market_cap: CentsDeltaUsdPattern = CentsDeltaUsdPattern(client, 'market_cap')
-        self.market_minus_realized_cap_growth_rate: _1m1w1y24hPattern6[PartsPerMillionSigned64] = _1m1w1y24hPattern6(client, 'market_minus_realized_cap_growth_rate')
-        self.hodled_or_lost: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'hodled_or_lost_supply')
-
-class SeriesTree_UtxoHistory:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.supply: SeriesPattern18[Sats] = SeriesPattern18(client, 'unspent_sats')
-        self.count: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'utxo_count_bis')
-
-class SeriesTree:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
-        self._client = client
-
-    @cached_property
-    def blocks(self) -> SeriesTree_Blocks:
-        return SeriesTree_Blocks(self._client)
-
-    @cached_property
-    def transactions(self) -> SeriesTree_Transactions:
-        return SeriesTree_Transactions(self._client)
-
-    @cached_property
-    def inputs(self) -> SeriesTree_Inputs:
-        return SeriesTree_Inputs(self._client)
-
-    @cached_property
-    def outputs(self) -> SeriesTree_Outputs:
-        return SeriesTree_Outputs(self._client)
-
-    @cached_property
-    def addrs(self) -> SeriesTree_Addrs:
-        return SeriesTree_Addrs(self._client)
-
-    @cached_property
-    def scripts(self) -> SeriesTree_Scripts:
-        return SeriesTree_Scripts(self._client)
-
-    @cached_property
-    def op_return(self) -> SeriesTree_OpReturn:
-        return SeriesTree_OpReturn(self._client)
-
-    @cached_property
-    def mining(self) -> SeriesTree_Mining:
-        return SeriesTree_Mining(self._client)
-
-    @cached_property
-    def cointime(self) -> SeriesTree_Cointime:
-        return SeriesTree_Cointime(self._client)
-
-    @cached_property
-    def coinflow(self) -> SeriesTree_Coinflow:
-        return SeriesTree_Coinflow(self._client)
-
-    @cached_property
-    def bedrock(self) -> SeriesTree_Bedrock:
-        return SeriesTree_Bedrock(self._client)
-
-    @cached_property
-    def capital_sentiment(self) -> SeriesTree_CapitalSentiment:
-        return SeriesTree_CapitalSentiment(self._client)
-
-    @cached_property
-    def rarity_meter(self) -> SeriesTree_RarityMeter:
-        return SeriesTree_RarityMeter(self._client)
-
-    @cached_property
-    def constants(self) -> SeriesTree_Constants:
-        return SeriesTree_Constants(self._client)
-
-    @cached_property
-    def mappings(self) -> SeriesTree_Mappings:
-        return SeriesTree_Mappings(self._client)
-
-    @cached_property
-    def indicators(self) -> SeriesTree_Indicators:
-        return SeriesTree_Indicators(self._client)
-
-    @cached_property
-    def market(self) -> SeriesTree_Market:
-        return SeriesTree_Market(self._client)
-
-    @cached_property
-    def pools(self) -> SeriesTree_Pools:
-        return SeriesTree_Pools(self._client)
-
-    @cached_property
-    def price(self) -> SeriesTree_Price:
-        return SeriesTree_Price(self._client)
-
-    @cached_property
-    def cohorts(self) -> SeriesTree_Cohorts:
-        return SeriesTree_Cohorts(self._client)
-
-    @cached_property
-    def distribution_aggregated(self) -> SeriesTree_DistributionAggregated:
-        return SeriesTree_DistributionAggregated(self._client)
-
-    @cached_property
-    def supply(self) -> SeriesTree_Supply:
-        return SeriesTree_Supply(self._client)
-
-    @cached_property
-    def utxo_history(self) -> SeriesTree_UtxoHistory:
-        return SeriesTree_UtxoHistory(self._client)
+# Series tree
+
+class _Child:
+    """A series-tree child, materialized on first access. Its series name (a leaf) or base (a node)
+    is the template with `*` replaced by the parent's base, dropping the joining `_` when the base
+    is empty. It is made from (client, name) by an accessor or node class, by the index of one of
+    the parent's builders, or by a tuple applying a node class to builders."""
+
+    def __init__(self, make: Any, template: str):
+        self._make, self._template = make, template
+
+    def __set_name__(self, owner: type, key: str) -> None:
+        self._key = key
+
+    def __get__(self, node: Any, owner: Any = None) -> Any:
+        if node is None:
+            return self
+        base = node._b
+        if base:
+            name = self._template.replace('*', base)
+        else:
+            name = re.sub(r'^\*_|_?\*', '', self._template, count=1)
+        value = _builder(node, self._make)(node._c, name)
+        node.__dict__[self._key] = value
+        return value
+
+
+def _builder(node: _Node, make: Any) -> Callable[[BitviewClient, str], Any]:
+    if isinstance(make, int):
+        return node._f[make]
+    if isinstance(make, tuple):
+        cls, *args = make
+        builders = [_builder(node, arg) for arg in args]
+        return lambda c, b: cls(c, b, *builders)
+    return make
+
+
+def _at(make: Any, template: str) -> Any:
+    return _Child(make, template)
+
+
+class _Node:
+    """A series-tree node over base `_b`, built with one builder per shape parameter."""
+
+    def __init__(self, c: BitviewClient, b: str, *f: Callable[[BitviewClient, str], Any]):
+        self._c, self._b, self._f = c, b, f
+
+A = TypeVar('A')
+B = TypeVar('B')
+C = TypeVar('C')
+D = TypeVar('D')
+
+class UtxoHistory(_Node):
+    supply: SeriesPattern18[Sats] = _at(SeriesPattern18, '*')
+    count: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'utxo_count_bis')
+
+
+class Velocity(_Node):
+    native: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_btc')
+    fiat: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_usd')
+
+
+class SoprRatioExtended(_Node):
+    _1w: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_1w')
+    _1m: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_1m')
+    _1y: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_1y')
+
+
+class Ohlc(_Node, Generic[A, B, C]):
+    usd: SeriesPattern2[A] = _at(SeriesPattern2, '*')
+    cents: SeriesPattern2[B] = _at(SeriesPattern2, '*_cents')
+    sats: SeriesPattern2[C] = _at(SeriesPattern2, '*_sats')
+
+
+class Split(_Node):
+    open: Ohlc[Dollars, Cents, Sats] = _at(Ohlc, '*_open')
+    high: Ohlc[Dollars, Cents, Sats] = _at(Ohlc, '*_high')
+    low: Ohlc[Dollars, Cents, Sats] = _at(Ohlc, '*_low')
+    close: Ohlc[Dollars, Cents, Sats] = _at(Ohlc, '*_close')
+
+
+class Macd1m(_Node):
+    ema_fast: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'macd_ema_fast_*')
+    ema_slow: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'macd_ema_slow_*')
+    line: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'macd_line_*')
+    signal: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'macd_signal_*')
+    histogram: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'macd_histogram_*')
+
+
+class Sd24h1m(_Node):
+    sma: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'price_return_24h_sma_*')
+    sd: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'price_return_24h_sd_*')
+
+
+class Dormancy(_Node):
+    supply_adj: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_supply_adj')
+    flow: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_flow')
+
+
+class Nvt(_Node):
+    bps: SeriesPattern1[BasisPoints32] = _at(SeriesPattern1, '*_bps')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*')
+
+
+class MappingsTimestamp(_Node):
+    monotonic: SeriesPattern18[Timestamp] = _at(SeriesPattern18, '*_monotonic')
+    resolutions: SeriesPattern2[Timestamp] = _at(SeriesPattern2, '*')
+
+
+class TxoutIndex(_Node):
+    identity: SeriesPattern21[TxOutIndex] = _at(SeriesPattern21, '*')
+
+
+class TxinIndex(_Node):
+    identity: SeriesPattern20[TxInIndex] = _at(SeriesPattern20, '*')
+
+
+class MappingsTxIndex(_Node):
+    identity: SeriesPattern19[TxIndex] = _at(SeriesPattern19, 'tx_index')
+    input_count: SeriesPattern19[StoredU64] = _at(SeriesPattern19, 'input_*')
+    output_count: SeriesPattern19[StoredU64] = _at(SeriesPattern19, 'output_*')
+
+
+class MappingsYear10(_Node):
+    date: SeriesPattern15[Date] = _at(SeriesPattern15, '*')
+    first_height: SeriesPattern15[Height] = _at(SeriesPattern15, 'first_height')
+
+
+class MappingsYear1(_Node):
+    date: SeriesPattern14[Date] = _at(SeriesPattern14, '*')
+    first_height: SeriesPattern14[Height] = _at(SeriesPattern14, 'first_height')
+
+
+class MappingsMonth6(_Node):
+    date: SeriesPattern13[Date] = _at(SeriesPattern13, '*')
+    first_height: SeriesPattern13[Height] = _at(SeriesPattern13, 'first_height')
+
+
+class MappingsMonth3(_Node):
+    date: SeriesPattern12[Date] = _at(SeriesPattern12, '*')
+    first_height: SeriesPattern12[Height] = _at(SeriesPattern12, 'first_height')
+
+
+class MappingsMonth1(_Node):
+    date: SeriesPattern11[Date] = _at(SeriesPattern11, '*')
+    first_height: SeriesPattern11[Height] = _at(SeriesPattern11, 'first_height')
+
+
+class MappingsWeek1(_Node):
+    date: SeriesPattern10[Date] = _at(SeriesPattern10, '*')
+    first_height: SeriesPattern10[Height] = _at(SeriesPattern10, 'first_height')
+
+
+class MappingsDay3(_Node):
+    date: SeriesPattern9[Date] = _at(SeriesPattern9, '*')
+    first_height: SeriesPattern9[Height] = _at(SeriesPattern9, 'first_height')
+
+
+class MappingsDay1(_Node):
+    date: SeriesPattern8[Date] = _at(SeriesPattern8, '*')
+    first_height: SeriesPattern8[Height] = _at(SeriesPattern8, 'first_height')
+
+
+class MappingsHour12(_Node):
+    first_height: SeriesPattern7[Height] = _at(SeriesPattern7, '*')
+
+
+class MappingsHour4(_Node):
+    first_height: SeriesPattern6[Height] = _at(SeriesPattern6, '*')
+
+
+class MappingsHour1(_Node):
+    first_height: SeriesPattern5[Height] = _at(SeriesPattern5, '*')
+
+
+class MappingsMinute30(_Node):
+    first_height: SeriesPattern4[Height] = _at(SeriesPattern4, '*')
+
+
+class MappingsMinute10(_Node):
+    first_height: SeriesPattern3[Height] = _at(SeriesPattern3, '*')
+
+
+class MappingsHalving(_Node):
+    first_height: SeriesPattern16[Height] = _at(SeriesPattern16, '*')
+
+
+class MappingsEpoch(_Node):
+    first_height: SeriesPattern17[Height] = _at(SeriesPattern17, '*')
+
+
+class MappingsHeight(_Node):
+    minute10: SeriesPattern18[Minute10] = _at(SeriesPattern18, '*')
+    minute30: SeriesPattern18[Minute30] = _at(SeriesPattern18, 'minute30')
+    hour1: SeriesPattern18[Hour1] = _at(SeriesPattern18, 'hour1')
+    hour4: SeriesPattern18[Hour4] = _at(SeriesPattern18, 'hour4')
+    hour12: SeriesPattern18[Hour12] = _at(SeriesPattern18, 'hour12')
+    day1: SeriesPattern18[Day1] = _at(SeriesPattern18, 'day1')
+    day3: SeriesPattern18[Day3] = _at(SeriesPattern18, 'day3')
+    epoch: SeriesPattern18[Epoch] = _at(SeriesPattern18, 'epoch')
+    halving: SeriesPattern18[Halving] = _at(SeriesPattern18, 'halving')
+    week1: SeriesPattern18[Week1] = _at(SeriesPattern18, 'week1')
+    month1: SeriesPattern18[Month1] = _at(SeriesPattern18, 'month1')
+    month3: SeriesPattern18[Month3] = _at(SeriesPattern18, 'month3')
+    month6: SeriesPattern18[Month6] = _at(SeriesPattern18, 'month6')
+    year1: SeriesPattern18[Year1] = _at(SeriesPattern18, 'year1')
+    year10: SeriesPattern18[Year10] = _at(SeriesPattern18, 'year10')
+    tx_index_count: SeriesPattern18[StoredU64] = _at(SeriesPattern18, 'tx_index_count')
+
+
+class AddrOpReturn(_Node):
+    identity: SeriesPattern23[OpReturnIndex] = _at(SeriesPattern23, '*')
+
+
+class AddrUnknown(_Node):
+    identity: SeriesPattern33[UnknownOutputIndex] = _at(SeriesPattern33, '*')
+
+
+class AddrEmpty(_Node):
+    identity: SeriesPattern22[EmptyOutputIndex] = _at(SeriesPattern22, '*')
+
+
+class AddrP2ms(_Node):
+    identity: SeriesPattern25[P2MSOutputIndex] = _at(SeriesPattern25, '*')
+
+
+class AddrP2a(_Node):
+    identity: SeriesPattern24[P2AAddrIndex] = _at(SeriesPattern24, '*_index')
+    addr: SeriesPattern24[Addr] = _at(SeriesPattern24, '*')
+
+
+class AddrP2wsh(_Node):
+    identity: SeriesPattern32[P2WSHAddrIndex] = _at(SeriesPattern32, '*_index')
+    addr: SeriesPattern32[Addr] = _at(SeriesPattern32, '*')
+
+
+class AddrP2wpkh(_Node):
+    identity: SeriesPattern31[P2WPKHAddrIndex] = _at(SeriesPattern31, '*_index')
+    addr: SeriesPattern31[Addr] = _at(SeriesPattern31, '*')
+
+
+class AddrP2tr(_Node):
+    identity: SeriesPattern30[P2TRAddrIndex] = _at(SeriesPattern30, '*_index')
+    addr: SeriesPattern30[Addr] = _at(SeriesPattern30, '*')
+
+
+class AddrP2sh(_Node):
+    identity: SeriesPattern29[P2SHAddrIndex] = _at(SeriesPattern29, '*_index')
+    addr: SeriesPattern29[Addr] = _at(SeriesPattern29, '*')
+
+
+class AddrP2pkh(_Node):
+    identity: SeriesPattern28[P2PKHAddrIndex] = _at(SeriesPattern28, '*_index')
+    addr: SeriesPattern28[Addr] = _at(SeriesPattern28, '*')
+
+
+class AddrP2pk65(_Node):
+    identity: SeriesPattern27[P2PK65AddrIndex] = _at(SeriesPattern27, '*_index')
+    addr: SeriesPattern27[Addr] = _at(SeriesPattern27, '*')
+
+
+class AddrP2pk33(_Node):
+    identity: SeriesPattern26[P2PK33AddrIndex] = _at(SeriesPattern26, '*_index')
+    addr: SeriesPattern26[Addr] = _at(SeriesPattern26, '*')
+
+
+class MappingsAddr(_Node):
+    p2pk33: AddrP2pk33 = _at(AddrP2pk33, 'p2pk33_*')
+    p2pk65: AddrP2pk65 = _at(AddrP2pk65, 'p2pk65_*')
+    p2pkh: AddrP2pkh = _at(AddrP2pkh, 'p2pkh_*')
+    p2sh: AddrP2sh = _at(AddrP2sh, 'p2sh_*')
+    p2tr: AddrP2tr = _at(AddrP2tr, 'p2tr_*')
+    p2wpkh: AddrP2wpkh = _at(AddrP2wpkh, 'p2wpkh_*')
+    p2wsh: AddrP2wsh = _at(AddrP2wsh, 'p2wsh_*')
+    p2a: AddrP2a = _at(AddrP2a, 'p2a_*')
+    p2ms: AddrP2ms = _at(AddrP2ms, 'p2ms_output_index')
+    empty: AddrEmpty = _at(AddrEmpty, 'empty_output_index')
+    unknown: AddrUnknown = _at(AddrUnknown, 'unknown_output_index')
+    op_return: AddrOpReturn = _at(AddrOpReturn, 'op_return_index')
+
+
+class Mappings(_Node):
+    addr: MappingsAddr = _at(MappingsAddr, 'addr')
+    height: MappingsHeight = _at(MappingsHeight, 'minute10')
+    epoch: MappingsEpoch = _at(MappingsEpoch, 'first_height')
+    halving: MappingsHalving = _at(MappingsHalving, 'first_height')
+    minute10: MappingsMinute10 = _at(MappingsMinute10, 'first_height')
+    minute30: MappingsMinute30 = _at(MappingsMinute30, 'first_height')
+    hour1: MappingsHour1 = _at(MappingsHour1, 'first_height')
+    hour4: MappingsHour4 = _at(MappingsHour4, 'first_height')
+    hour12: MappingsHour12 = _at(MappingsHour12, 'first_height')
+    day1: MappingsDay1 = _at(MappingsDay1, '*')
+    day3: MappingsDay3 = _at(MappingsDay3, '*')
+    week1: MappingsWeek1 = _at(MappingsWeek1, '*')
+    month1: MappingsMonth1 = _at(MappingsMonth1, '*')
+    month3: MappingsMonth3 = _at(MappingsMonth3, '*')
+    month6: MappingsMonth6 = _at(MappingsMonth6, '*')
+    year1: MappingsYear1 = _at(MappingsYear1, '*')
+    year10: MappingsYear10 = _at(MappingsYear10, '*')
+    tx_index: MappingsTxIndex = _at(MappingsTxIndex, 'count')
+    txin_index: TxinIndex = _at(TxinIndex, 'txin_index')
+    txout_index: TxoutIndex = _at(TxoutIndex, 'txout_index')
+    timestamp: MappingsTimestamp = _at(MappingsTimestamp, 'timestamp')
+
+
+class Constants(_Node):
+    _0: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_0')
+    _1: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_1')
+    _2: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_2')
+    _3: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_3')
+    _4: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_4')
+    _20: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_20')
+    _30: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_30')
+    _38_2: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_38_2')
+    _50: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_50')
+    _61_8: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_61_8')
+    _70: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_70')
+    _80: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_80')
+    _100: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_100')
+    _600: SeriesPattern1[StoredU16] = _at(SeriesPattern1, '*_600')
+    minus_1: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_minus_1')
+    minus_2: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_minus_2')
+    minus_3: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_minus_3')
+    minus_4: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_minus_4')
+
+
+class CapitalSentiment(_Node):
+    is_long: SeriesPattern1[StoredBool] = _at(SeriesPattern1, '*_is_long')
+    is_short: SeriesPattern1[StoredBool] = _at(SeriesPattern1, '*_is_short')
+    phase: SeriesPattern1[CapitalSentimentPhase] = _at(SeriesPattern1, '*_phase')
+    score: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_score')
+
+
+class SupplyInLossThreshold(_Node):
+    pct95: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_pct95_ratio')
+    pct98: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_pct98_ratio')
+    pct99: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_pct99_ratio')
+    pct99_5: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_pct99_5_ratio')
+    pct99_9: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_pct99_9_ratio')
+
+
+class ReserveRisk(_Node):
+    value: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*')
+    vocdd_median_1y: SeriesPattern18[StoredF64] = _at(SeriesPattern18, 'vocdd_median_1y')
+    hodl_bank: SeriesPattern18[StoredF64] = _at(SeriesPattern18, 'hodl_bank')
+
+
+class RhodlRatio(_Node, Generic[A]):
+    ppm: SeriesPattern1[A] = _at(SeriesPattern1, '*_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*')
+
+
+class Share(_Node):
+    bounded: SeriesPattern1[BoundedRatio] = _at(SeriesPattern1, '*_bounded')
+    ratio: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*')
+
+
+class ActiveInLoss(_Node):
+    share: Share = _at(Share, '*')
+
+
+class Active(_Node):
+    btc: SeriesPattern1[Bitcoin] = _at(SeriesPattern1, 'active_*')
+    sats: SeriesPattern1[Sats] = _at(SeriesPattern1, 'active_*_sats')
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, 'active_*_usd')
+    cents: SeriesPattern1[Cents] = _at(SeriesPattern1, 'active_*_cents')
+    in_loss: ActiveInLoss = _at(ActiveInLoss, 'cointime_*_in_loss_share')
+
+
+class MobileInLoss(_Node):
+    share: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*')
+
+
+class Mobile(_Node):
+    btc: SeriesPattern1[Bitcoin] = _at(SeriesPattern1, '*_mobile_supply')
+    sats: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_mobile_supply_sats')
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, '*_mobile_supply_usd')
+    cents: SeriesPattern1[Cents] = _at(SeriesPattern1, '*_mobile_supply_cents')
+    in_loss: MobileInLoss = _at(MobileInLoss, '*_coinflow_supply_in_loss_share')
+
+
+class AwakeSupply(_Node):
+    btc: SeriesPattern1[Bitcoin] = _at(SeriesPattern1, '*')
+    sats: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_sats')
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, '*_usd')
+    cents: SeriesPattern1[Cents] = _at(SeriesPattern1, '*_cents')
+    in_loss: MobileInLoss = _at(MobileInLoss, '*_in_loss_share')
+
+
+class CapitalizedPrice(_Node):
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, '*')
+    cents: SeriesPattern1[Cents] = _at(SeriesPattern1, '*_cents')
+    sats: SeriesPattern1[SatsFract] = _at(SeriesPattern1, '*_sats')
+    ppm: SeriesPattern1[PriceRatio] = _at(SeriesPattern1, '*_ratio_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio')
+
+
+class Ema(_Node):
+    _1w: CapitalizedPrice = _at(CapitalizedPrice, '*_1w')
+    _8d: CapitalizedPrice = _at(CapitalizedPrice, '*_8d')
+    _12d: CapitalizedPrice = _at(CapitalizedPrice, '*_12d')
+    _13d: CapitalizedPrice = _at(CapitalizedPrice, '*_13d')
+    _21d: CapitalizedPrice = _at(CapitalizedPrice, '*_21d')
+    _26d: CapitalizedPrice = _at(CapitalizedPrice, '*_26d')
+    _1m: CapitalizedPrice = _at(CapitalizedPrice, '*_1m')
+    _34d: CapitalizedPrice = _at(CapitalizedPrice, '*_34d')
+    _55d: CapitalizedPrice = _at(CapitalizedPrice, '*_55d')
+    _89d: CapitalizedPrice = _at(CapitalizedPrice, '*_89d')
+    _144d: CapitalizedPrice = _at(CapitalizedPrice, '*_144d')
+    _200d: CapitalizedPrice = _at(CapitalizedPrice, '*_200d')
+    _1y: CapitalizedPrice = _at(CapitalizedPrice, '*_1y')
+    _2y: CapitalizedPrice = _at(CapitalizedPrice, '*_2y')
+    _200w: CapitalizedPrice = _at(CapitalizedPrice, '*_200w')
+    _4y: CapitalizedPrice = _at(CapitalizedPrice, '*_4y')
+
+
+class CointimePrices(_Node):
+    vaulted: CapitalizedPrice = _at(CapitalizedPrice, 'vaulted_*')
+    active: CapitalizedPrice = _at(CapitalizedPrice, 'active_*')
+    true_market_mean: CapitalizedPrice = _at(CapitalizedPrice, 'true_market_mean')
+    cointime: CapitalizedPrice = _at(CapitalizedPrice, 'cointime_*')
+
+
+class Spot(_Node, Generic[A]):
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, '*')
+    cents: SeriesPattern1[Cents] = _at(SeriesPattern1, '*_cents')
+    sats: SeriesPattern1[A] = _at(SeriesPattern1, '*_sats')
+
+
+class AgeBoundsAll(_Node):
+    min: Spot[SatsFract] = _at(Spot, '*_min')
+    max: Spot[SatsFract] = _at(Spot, '*_max')
+
+
+class AgeBounds(_Node):
+    all: AgeBoundsAll = _at(AgeBoundsAll, '*_all_cost_basis')
+    sth: AgeBoundsAll = _at(AgeBoundsAll, '*_sth_cost_basis')
+    lth: AgeBoundsAll = _at(AgeBoundsAll, '*_lth_cost_basis')
+    under_4m: AgeBoundsAll = _at(AgeBoundsAll, '*_under_4m_cost_basis')
+    under_6m: AgeBoundsAll = _at(AgeBoundsAll, '*_under_6m_cost_basis')
+    over_4m: AgeBoundsAll = _at(AgeBoundsAll, '*_over_4m_cost_basis')
+    over_6m: AgeBoundsAll = _at(AgeBoundsAll, '*_over_6m_cost_basis')
+
+
+class CohortsUrpd(_Node):
+    age_bounds: AgeBounds = _at(AgeBounds, '*')
+
+
+class Price(_Node):
+    split: Split = _at(Split, '*')
+    ohlc: Ohlc[OHLCDollars, OHLCCents, OHLCSats] = _at(Ohlc, '*_ohlc')
+    spot: Spot[Sats] = _at(Spot, '*')
+
+
+class Sma350d(_Node):
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, '*')
+    cents: SeriesPattern1[Cents] = _at(SeriesPattern1, '*_cents')
+    sats: SeriesPattern1[SatsFract] = _at(SeriesPattern1, '*_sats')
+    ppm: SeriesPattern1[PriceRatio] = _at(SeriesPattern1, '*_ratio_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio')
+    x2: Spot[SatsFract] = _at(Spot, '*_x2')
+
+
+class Sma200d(_Node):
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, '*')
+    cents: SeriesPattern1[Cents] = _at(SeriesPattern1, '*_cents')
+    sats: SeriesPattern1[SatsFract] = _at(SeriesPattern1, '*_sats')
+    ppm: SeriesPattern1[PriceRatio] = _at(SeriesPattern1, '*_ratio_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio')
+    x2_4: Spot[SatsFract] = _at(Spot, '*_x2_4')
+    x0_8: Spot[SatsFract] = _at(Spot, '*_x0_8')
+
+
+class MovingAverageSma(_Node):
+    _1w: CapitalizedPrice = _at(CapitalizedPrice, '*_1w')
+    _8d: CapitalizedPrice = _at(CapitalizedPrice, '*_8d')
+    _13d: CapitalizedPrice = _at(CapitalizedPrice, '*_13d')
+    _21d: CapitalizedPrice = _at(CapitalizedPrice, '*_21d')
+    _1m: CapitalizedPrice = _at(CapitalizedPrice, '*_1m')
+    _34d: CapitalizedPrice = _at(CapitalizedPrice, '*_34d')
+    _50d: CapitalizedPrice = _at(CapitalizedPrice, '*_50d')
+    _55d: CapitalizedPrice = _at(CapitalizedPrice, '*_55d')
+    _89d: CapitalizedPrice = _at(CapitalizedPrice, '*_89d')
+    _111d: CapitalizedPrice = _at(CapitalizedPrice, '*_111d')
+    _144d: CapitalizedPrice = _at(CapitalizedPrice, '*_144d')
+    _200d: Sma200d = _at(Sma200d, '*_200d')
+    _350d: Sma350d = _at(Sma350d, '*_350d')
+    _1y: CapitalizedPrice = _at(CapitalizedPrice, '*_1y')
+    _2y: CapitalizedPrice = _at(CapitalizedPrice, '*_2y')
+    _200w: CapitalizedPrice = _at(CapitalizedPrice, '*_200w')
+    _4y: CapitalizedPrice = _at(CapitalizedPrice, '*_4y')
+
+
+class MovingAverage(_Node):
+    sma: MovingAverageSma = _at(MovingAverageSma, '*_sma')
+    ema: Ema = _at(Ema, '*_ema')
+
+
+class Max(_Node):
+    _1w: Spot[SatsFract] = _at(Spot, '*_1w')
+    _2w: Spot[SatsFract] = _at(Spot, '*_2w')
+    _1m: Spot[SatsFract] = _at(Spot, '*_1m')
+    _1y: Spot[SatsFract] = _at(Spot, '*_1y')
+
+
+class Cycle(_Node):
+    pct0_1: Spot[SatsFract] = _at(Spot, '*_pct0_1')
+    pct0_5: Spot[SatsFract] = _at(Spot, '*_pct0_5')
+    pct1: Spot[SatsFract] = _at(Spot, '*_pct01')
+    pct2: Spot[SatsFract] = _at(Spot, '*_pct02')
+    pct5: Spot[SatsFract] = _at(Spot, '*_pct05')
+    pct10: Spot[SatsFract] = _at(Spot, '*_pct10')
+    pct20: Spot[SatsFract] = _at(Spot, '*_pct20')
+    pct30: Spot[SatsFract] = _at(Spot, '*_pct30')
+    pct40: Spot[SatsFract] = _at(Spot, '*_pct40')
+    pct50: Spot[SatsFract] = _at(Spot, '*_pct50')
+    pct60: Spot[SatsFract] = _at(Spot, '*_pct60')
+    pct70: Spot[SatsFract] = _at(Spot, '*_pct70')
+    pct80: Spot[SatsFract] = _at(Spot, '*_pct80')
+    pct90: Spot[SatsFract] = _at(Spot, '*_pct90')
+    pct95: Spot[SatsFract] = _at(Spot, '*_pct95')
+    pct98: Spot[SatsFract] = _at(Spot, '*_pct98')
+    pct99: Spot[SatsFract] = _at(Spot, '*_pct99')
+    pct99_5: Spot[SatsFract] = _at(Spot, '*_pct99_5')
+    pct99_9: Spot[SatsFract] = _at(Spot, '*_pct99_9')
+    index: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_index')
+    score: SeriesPattern1[StoredI8] = _at(SeriesPattern1, '*_score')
+
+
+class Pct999(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct99_9_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct99_9')
+    price: Spot[SatsFract] = _at(Spot, '*_pct99_9')
+
+
+class Pct995(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct99_5_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct99_5')
+    price: Spot[SatsFract] = _at(Spot, '*_pct99_5')
+
+
+class Pct99(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct99_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct99')
+    price: Spot[SatsFract] = _at(Spot, '*_pct99')
+
+
+class Pct98(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct98_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct98')
+    price: Spot[SatsFract] = _at(Spot, '*_pct98')
+
+
+class Pct95(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct95_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct95')
+    price: Spot[SatsFract] = _at(Spot, '*_pct95')
+
+
+class Pct90(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct90_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct90')
+    price: Spot[SatsFract] = _at(Spot, '*_pct90')
+
+
+class Pct80(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct80_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct80')
+    price: Spot[SatsFract] = _at(Spot, '*_pct80')
+
+
+class Pct70(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct70_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct70')
+    price: Spot[SatsFract] = _at(Spot, '*_pct70')
+
+
+class Pct60(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct60_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct60')
+    price: Spot[SatsFract] = _at(Spot, '*_pct60')
+
+
+class Pct50(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct50_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct50')
+    price: Spot[SatsFract] = _at(Spot, '*_pct50')
+
+
+class Pct40(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct40_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct40')
+    price: Spot[SatsFract] = _at(Spot, '*_pct40')
+
+
+class Pct30(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct30_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct30')
+    price: Spot[SatsFract] = _at(Spot, '*_pct30')
+
+
+class Pct20(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct20_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct20')
+    price: Spot[SatsFract] = _at(Spot, '*_pct20')
+
+
+class Pct10(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct10_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct10')
+    price: Spot[SatsFract] = _at(Spot, '*_pct10')
+
+
+class Pct5(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct5_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct5')
+    price: Spot[SatsFract] = _at(Spot, '*_pct5')
+
+
+class Pct2(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct2_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct2')
+    price: Spot[SatsFract] = _at(Spot, '*_pct2')
+
+
+class Pct1(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct1_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct1')
+    price: Spot[SatsFract] = _at(Spot, '*_pct1')
+
+
+class Pct05(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct0_5_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct0_5')
+    price: Spot[SatsFract] = _at(Spot, '*_pct0_5')
+
+
+class Pct01(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ratio_pct0_1_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio_pct0_1')
+    price: Spot[SatsFract] = _at(Spot, '*_pct0_1')
+
+
+class CoinflowMedianPriceBtcWeighted(_Node):
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, '*')
+    cents: SeriesPattern1[Cents] = _at(SeriesPattern1, '*_cents')
+    sats: SeriesPattern1[SatsFract] = _at(SeriesPattern1, '*_sats')
+    ppm: SeriesPattern1[PriceRatio] = _at(SeriesPattern1, '*_ratio_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio')
+    pct0_1: Pct01 = _at(Pct01, '*')
+    pct0_5: Pct05 = _at(Pct05, '*')
+    pct1: Pct1 = _at(Pct1, '*')
+    pct2: Pct2 = _at(Pct2, '*')
+    pct5: Pct5 = _at(Pct5, '*')
+    pct10: Pct10 = _at(Pct10, '*')
+    pct20: Pct20 = _at(Pct20, '*')
+    pct30: Pct30 = _at(Pct30, '*')
+    pct40: Pct40 = _at(Pct40, '*')
+    pct50: Pct50 = _at(Pct50, '*')
+    pct60: Pct60 = _at(Pct60, '*')
+    pct70: Pct70 = _at(Pct70, '*')
+    pct80: Pct80 = _at(Pct80, '*')
+    pct90: Pct90 = _at(Pct90, '*')
+    pct95: Pct95 = _at(Pct95, '*')
+    pct98: Pct98 = _at(Pct98, '*')
+    pct99: Pct99 = _at(Pct99, '*')
+    pct99_5: Pct995 = _at(Pct995, '*')
+    pct99_9: Pct999 = _at(Pct999, '*')
+
+
+class ActivePrice(_Node):
+    pct0_1: Pct01 = _at(Pct01, '*')
+    pct0_5: Pct05 = _at(Pct05, '*')
+    pct1: Pct1 = _at(Pct1, '*')
+    pct2: Pct2 = _at(Pct2, '*')
+    pct5: Pct5 = _at(Pct5, '*')
+    pct10: Pct10 = _at(Pct10, '*')
+    pct20: Pct20 = _at(Pct20, '*')
+    pct30: Pct30 = _at(Pct30, '*')
+    pct40: Pct40 = _at(Pct40, '*')
+    pct50: Pct50 = _at(Pct50, '*')
+    pct60: Pct60 = _at(Pct60, '*')
+    pct70: Pct70 = _at(Pct70, '*')
+    pct80: Pct80 = _at(Pct80, '*')
+    pct90: Pct90 = _at(Pct90, '*')
+    pct95: Pct95 = _at(Pct95, '*')
+    pct98: Pct98 = _at(Pct98, '*')
+    pct99: Pct99 = _at(Pct99, '*')
+    pct99_5: Pct995 = _at(Pct995, '*')
+    pct99_9: Pct999 = _at(Pct999, '*')
+
+
+class Components(_Node):
+    realized_price: ActivePrice = _at(ActivePrice, 'realized_*')
+    capitalized_price: ActivePrice = _at(ActivePrice, 'capitalized_*')
+    median_price_btc_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'median_*_btc_weighted')
+    median_price_usd_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'median_*_usd_weighted')
+    sth_median_price_btc_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'sth_median_*_btc_weighted')
+    sth_median_price_usd_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'sth_median_*_usd_weighted')
+    lth_median_price_btc_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'lth_median_*_btc_weighted')
+    lth_median_price_usd_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'lth_median_*_usd_weighted')
+    cointime_median_price_btc_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'cointime_median_*_btc_weighted')
+    cointime_median_price_usd_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'cointime_median_*_usd_weighted')
+    coinflow_median_price_btc_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'coinflow_median_*_btc_weighted')
+    coinflow_median_price_usd_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'coinflow_median_*_usd_weighted')
+    sth_cointime_median_price_btc_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'sth_cointime_median_*_btc_weighted')
+    sth_cointime_median_price_usd_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'sth_cointime_median_*_usd_weighted')
+    lth_cointime_median_price_btc_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'lth_cointime_median_*_btc_weighted')
+    lth_cointime_median_price_usd_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'lth_cointime_median_*_usd_weighted')
+    sth_coinflow_median_price_btc_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'sth_coinflow_median_*_btc_weighted')
+    sth_coinflow_median_price_usd_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'sth_coinflow_median_*_usd_weighted')
+    lth_coinflow_median_price_btc_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'lth_coinflow_median_*_btc_weighted')
+    lth_coinflow_median_price_usd_weighted: CoinflowMedianPriceBtcWeighted = _at(CoinflowMedianPriceBtcWeighted, 'lth_coinflow_median_*_usd_weighted')
+    sth_realized_price: ActivePrice = _at(ActivePrice, 'sth_realized_*')
+    sth_capitalized_price: ActivePrice = _at(ActivePrice, 'sth_capitalized_*')
+    lth_realized_price: ActivePrice = _at(ActivePrice, 'lth_realized_*')
+    lth_capitalized_price: ActivePrice = _at(ActivePrice, 'lth_capitalized_*')
+    over_6m_realized_price: ActivePrice = _at(ActivePrice, 'over_6m_realized_*')
+    over_4m_realized_price: ActivePrice = _at(ActivePrice, 'over_4m_realized_*')
+    under_4m_realized_price: ActivePrice = _at(ActivePrice, 'under_4m_realized_*')
+    under_6m_realized_price: ActivePrice = _at(ActivePrice, 'under_6m_realized_*')
+    under_4m_capitalized_price: ActivePrice = _at(ActivePrice, 'under_4m_capitalized_*')
+    under_6m_capitalized_price: ActivePrice = _at(ActivePrice, 'under_6m_capitalized_*')
+    vaulted_price: ActivePrice = _at(ActivePrice, 'vaulted_*')
+    active_price: ActivePrice = _at(ActivePrice, 'active_*')
+    true_market_mean_price: ActivePrice = _at(ActivePrice, 'true_market_mean_*')
+    cointime_price: ActivePrice = _at(ActivePrice, 'cointime_*')
+    awake_price: ActivePrice = _at(ActivePrice, 'awake_*')
+    coinflow_price: ActivePrice = _at(ActivePrice, 'coinflow_*')
+
+
+class Level(_Node):
+    pct10: Spot[SatsFract] = _at(Spot, '*_pct10')
+    pct20: Spot[SatsFract] = _at(Spot, '*_pct20')
+    pct30: Spot[SatsFract] = _at(Spot, '*_pct30')
+    pct40: Spot[SatsFract] = _at(Spot, '*_pct40')
+    pct50: Spot[SatsFract] = _at(Spot, '*_pct50')
+    pct60: Spot[SatsFract] = _at(Spot, '*_pct60')
+    pct70: Spot[SatsFract] = _at(Spot, '*_pct70')
+    pct80: Spot[SatsFract] = _at(Spot, '*_pct80')
+    pct90: Spot[SatsFract] = _at(Spot, '*_pct90')
+
+
+class Floor(_Node):
+    pct95: Spot[SatsFract] = _at(Spot, '*_pct95')
+    pct98: Spot[SatsFract] = _at(Spot, '*_pct98')
+    pct99: Spot[SatsFract] = _at(Spot, '*_pct99')
+    pct99_5: Spot[SatsFract] = _at(Spot, '*_pct99_5')
+    pct99_9: Spot[SatsFract] = _at(Spot, '*_pct99_9')
+
+
+class BedrockCoinflow(_Node):
+    supply_in_loss_threshold: SupplyInLossThreshold = _at(SupplyInLossThreshold, '*_supply_in_loss_threshold')
+    floor: Floor = _at(Floor, '*_floor')
+    level: Level = _at(Level, '*_level')
+
+
+class Bedrock(_Node):
+    raw: BedrockCoinflow = _at(BedrockCoinflow, '*_raw')
+    cointime: BedrockCoinflow = _at(BedrockCoinflow, '*_cointime')
+    coinflow: BedrockCoinflow = _at(BedrockCoinflow, '*_coinflow')
+
+
+class PerCoin(_Node):
+    pct05: Spot[SatsFract] = _at(Spot, '*_pct05')
+    pct10: Spot[SatsFract] = _at(Spot, '*_pct10')
+    pct15: Spot[SatsFract] = _at(Spot, '*_pct15')
+    pct20: Spot[SatsFract] = _at(Spot, '*_pct20')
+    pct25: Spot[SatsFract] = _at(Spot, '*_pct25')
+    pct30: Spot[SatsFract] = _at(Spot, '*_pct30')
+    pct35: Spot[SatsFract] = _at(Spot, '*_pct35')
+    pct40: Spot[SatsFract] = _at(Spot, '*_pct40')
+    pct45: Spot[SatsFract] = _at(Spot, '*_pct45')
+    pct50: Spot[SatsFract] = _at(Spot, '*_pct50')
+    pct55: Spot[SatsFract] = _at(Spot, '*_pct55')
+    pct60: Spot[SatsFract] = _at(Spot, '*_pct60')
+    pct65: Spot[SatsFract] = _at(Spot, '*_pct65')
+    pct70: Spot[SatsFract] = _at(Spot, '*_pct70')
+    pct75: Spot[SatsFract] = _at(Spot, '*_pct75')
+    pct80: Spot[SatsFract] = _at(Spot, '*_pct80')
+    pct85: Spot[SatsFract] = _at(Spot, '*_pct85')
+    pct90: Spot[SatsFract] = _at(Spot, '*_pct90')
+    pct95: Spot[SatsFract] = _at(Spot, '*_pct95')
+
+
+class UrpdAllCostBasis(_Node, Generic[A]):
+    per_coin: A = _at(0, '*_coin')
+    per_dollar: A = _at(0, '*_dollar')
+
+
+class SpendingRate(_Node):
+    under_1h: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_under_1h_*')
+    _1h_to_1d: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_1h_to_1d_*')
+    _1d_to_1w: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_1d_to_1w_*')
+    _1w_to_1m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_1w_to_1m_*')
+    _1m_to_2m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_1m_to_2m_*')
+    _2m_to_3m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_2m_to_3m_*')
+    _3m_to_4m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_3m_to_4m_*')
+    _4m_to_5m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_4m_to_5m_*')
+    _5m_to_6m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_5m_to_6m_*')
+    _6m_to_9m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_6m_to_9m_*')
+    _9m_to_1y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_9m_to_1y_*')
+    _1y_to_18m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_1y_to_18m_*')
+    _18m_to_2y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_18m_to_2y_*')
+    _2y_to_3y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_2y_to_3y_*')
+    _3y_to_4y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_3y_to_4y_*')
+    _4y_to_5y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_4y_to_5y_*')
+    _5y_to_6y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_5y_to_6y_*')
+    _6y_to_7y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_6y_to_7y_*')
+    _7y_to_8y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_7y_to_8y_*')
+    _8y_to_10y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_8y_to_10y_*')
+    _10y_to_12y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_10y_to_12y_*')
+    _12y_to_15y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_12y_to_15y_*')
+    over_15y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_over_15y_*')
+
+
+class SpendingExposure(_Node):
+    under_1h: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_under_1h_*_spending_exposure')
+    _1h_to_1d: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_1h_to_1d_*_spending_exposure')
+    _1d_to_1w: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_1d_to_1w_*_spending_exposure')
+    _1w_to_1m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_1w_to_1m_*_spending_exposure')
+    _1m_to_2m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_1m_to_2m_*_spending_exposure')
+    _2m_to_3m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_2m_to_3m_*_spending_exposure')
+    _3m_to_4m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_3m_to_4m_*_spending_exposure')
+    _4m_to_5m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_4m_to_5m_*_spending_exposure')
+    _5m_to_6m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_5m_to_6m_*_spending_exposure')
+    _6m_to_9m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_6m_to_9m_*_spending_exposure')
+    _9m_to_1y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_9m_to_1y_*_spending_exposure')
+    _1y_to_18m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_1y_to_18m_*_spending_exposure')
+    _18m_to_2y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_18m_to_2y_*_spending_exposure')
+    _2y_to_3y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_2y_to_3y_*_spending_exposure')
+    _3y_to_4y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_3y_to_4y_*_spending_exposure')
+    _4y_to_5y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_4y_to_5y_*_spending_exposure')
+    _5y_to_6y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_5y_to_6y_*_spending_exposure')
+    _6y_to_7y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_6y_to_7y_*_spending_exposure')
+    _7y_to_8y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_7y_to_8y_*_spending_exposure')
+    _8y_to_10y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_8y_to_10y_*_spending_exposure')
+    _10y_to_12y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_10y_to_12y_*_spending_exposure')
+    _12y_to_15y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_12y_to_15y_*_spending_exposure')
+    over_15y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'utxos_over_15y_*_spending_exposure')
+    mobility: SpendingRate = _at(SpendingRate, '*_mobility')
+
+
+class AgeRangeActivity(_Node):
+    wakefulness: SpendingRate = _at(SpendingRate, '*_wakefulness')
+    dormancy: SpendingRate = _at(SpendingRate, '*_dormancy')
+    wakefulness_to_dormancy: SpendingRate = _at(SpendingRate, '*_wakefulness_to_dormancy')
+
+
+class RateSma(_Node):
+    _1w: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_1w')
+    _1m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_1m')
+    _2m: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_2m')
+    _1y: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_1y')
+
+
+class OpReturnRaw(_Node):
+    first_index: SeriesPattern18[OpReturnIndex] = _at(SeriesPattern18, 'first_op_return_*')
+    to_tx_index: SeriesPattern23[TxIndex] = _at(SeriesPattern23, 'tx_*')
+    kind: SeriesPattern23[OpReturnKind] = _at(SeriesPattern23, 'kind')
+    post_op_return_bytes: SeriesPattern23[StoredU32] = _at(SeriesPattern23, 'op_return_post_op_return_bytes')
+
+
+class RawUnknown(_Node):
+    first_index: SeriesPattern18[UnknownOutputIndex] = _at(SeriesPattern18, 'first_unknown_output_*')
+    to_tx_index: SeriesPattern33[TxIndex] = _at(SeriesPattern33, 'tx_*')
+    legacy_sigops: SeriesPattern33[SigOps] = _at(SeriesPattern33, 'unknown_legacy_sigops')
+
+
+class RawP2ms(_Node):
+    first_index: SeriesPattern18[P2MSOutputIndex] = _at(SeriesPattern18, 'first_p2ms_output_*')
+    to_tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, 'tx_*')
+    legacy_sigops: SeriesPattern25[SigOps] = _at(SeriesPattern25, 'p2ms_legacy_sigops')
+
+
+class RawEmpty(_Node):
+    first_index: SeriesPattern18[EmptyOutputIndex] = _at(SeriesPattern18, 'first_empty_output_*')
+    to_tx_index: SeriesPattern22[TxIndex] = _at(SeriesPattern22, 'tx_*')
+
+
+class ScriptsRaw(_Node):
+    empty: RawEmpty = _at(RawEmpty, '*')
+    p2ms: RawP2ms = _at(RawP2ms, '*')
+    unknown: RawUnknown = _at(RawUnknown, '*')
+
+
+class Scripts(_Node):
+    raw: ScriptsRaw = _at(ScriptsRaw, '*')
+
+
+class AddrsEmpty(_Node):
+    all: SeriesPattern1[StoredU64] = _at(SeriesPattern1, '*')
+    p2pk65: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2pk65_*')
+    p2pk33: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2pk33_*')
+    p2pkh: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2pkh_*')
+    p2sh: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2sh_*')
+    p2wpkh: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2wpkh_*')
+    p2wsh: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2wsh_*')
+    p2tr: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2tr_*')
+    p2a: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2a_*')
+
+
+class ExposedCount(_Node):
+    funded: AddrsEmpty = _at(AddrsEmpty, '*')
+    total: AddrsEmpty = _at(AddrsEmpty, 'total_*')
+
+
+class RealizedLoss0satsBlock(_Node, Generic[A]):
+    usd: SeriesPattern18[Dollars] = _at(SeriesPattern18, '*')
+    cents: SeriesPattern18[A] = _at(SeriesPattern18, '*_cents')
+
+
+class CoinflowCap(_Node, Generic[A]):
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, '*')
+    cents: SeriesPattern1[A] = _at(SeriesPattern1, '*_cents')
+
+
+class AllUnrealized(_Node):
+    profit: CoinflowCap[Cents] = _at(CoinflowCap, '*_unrealized_profit')
+    loss: CoinflowCap[Cents] = _at(CoinflowCap, '*_unrealized_loss')
+    net_pnl: CoinflowCap[CentsSigned] = _at(CoinflowCap, '*_net_unrealized_pnl')
+    gross_pnl: CoinflowCap[Cents] = _at(CoinflowCap, '*_unrealized_gross_pnl')
+    invested_capital_in_profit: CoinflowCap[Cents] = _at(CoinflowCap, '*_invested_capital_in_profit')
+    invested_capital_in_loss: CoinflowCap[Cents] = _at(CoinflowCap, '*_invested_capital_in_loss')
+    pain_index: CoinflowCap[Cents] = _at(CoinflowCap, '*_pain_index')
+    greed_index: CoinflowCap[Cents] = _at(CoinflowCap, '*_greed_index')
+    net_sentiment: CoinflowCap[CentsSigned] = _at(CoinflowCap, '*_net_sentiment')
+    nupl: RhodlRatio[PartsPerMillionSigned32] = _at(RhodlRatio, '*_nupl')
+
+
+class CointimeCap(_Node):
+    thermo: CoinflowCap[Cents] = _at(CoinflowCap, 'thermo_*')
+    investor: CoinflowCap[Cents] = _at(CoinflowCap, 'investor_*')
+    vaulted: CoinflowCap[Cents] = _at(CoinflowCap, 'vaulted_*')
+    active: CoinflowCap[Cents] = _at(CoinflowCap, 'active_*')
+    cointime: CoinflowCap[Cents] = _at(CoinflowCap, 'cointime_*')
+    aviv: RhodlRatio[PartsPerMillion32] = _at(RhodlRatio, 'aviv_ratio')
+
+
+class Awake(_Node):
+    supply: AwakeSupply = _at(AwakeSupply, '*_supply')
+    cap: CoinflowCap[Cents] = _at(CoinflowCap, '*_cap')
+    price: CapitalizedPrice = _at(CapitalizedPrice, '*_price')
+    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, '*_capitalized_price')
+
+
+class Absolute1m(_Node):
+    btc: SeriesPattern1[Bitcoin] = _at(SeriesPattern1, '*')
+    sats: SeriesPattern1[SatsSigned] = _at(SeriesPattern1, '*_sats')
+
+
+class State(_Node):
+    p2a: SeriesPattern24[AddrState] = _at(SeriesPattern24, '*_state')
+    p2pk33: SeriesPattern26[AddrState] = _at(SeriesPattern26, '*_state')
+    p2pk65: SeriesPattern27[AddrState] = _at(SeriesPattern27, '*_state')
+    p2pkh: SeriesPattern28[AddrState] = _at(SeriesPattern28, '*_state')
+    p2sh: SeriesPattern29[AddrState] = _at(SeriesPattern29, '*_state')
+    p2tr: SeriesPattern30[AddrState] = _at(SeriesPattern30, '*_state')
+    p2wpkh: SeriesPattern31[AddrState] = _at(SeriesPattern31, '*_state')
+    p2wsh: SeriesPattern32[AddrState] = _at(SeriesPattern32, '*_state')
+    funded: SeriesPattern34[FundedAddrData] = _at(SeriesPattern34, 'funded_*_data')
+    extended_empty: SeriesPattern35[EmptyAddrData] = _at(SeriesPattern35, 'extended_empty_*_data')
+
+
+class RawP2a(_Node):
+    first_index: SeriesPattern18[P2AAddrIndex] = _at(SeriesPattern18, 'first_*_addr_index')
+    bytes: SeriesPattern24[P2ABytes] = _at(SeriesPattern24, '*_bytes')
+
+
+class RawP2tr(_Node):
+    first_index: SeriesPattern18[P2TRAddrIndex] = _at(SeriesPattern18, 'first_*_addr_index')
+    bytes: SeriesPattern30[P2TRBytes] = _at(SeriesPattern30, '*_bytes')
+
+
+class RawP2wsh(_Node):
+    first_index: SeriesPattern18[P2WSHAddrIndex] = _at(SeriesPattern18, 'first_*_addr_index')
+    bytes: SeriesPattern32[P2WSHBytes] = _at(SeriesPattern32, '*_bytes')
+
+
+class RawP2wpkh(_Node):
+    first_index: SeriesPattern18[P2WPKHAddrIndex] = _at(SeriesPattern18, 'first_*_addr_index')
+    bytes: SeriesPattern31[P2WPKHBytes] = _at(SeriesPattern31, '*_bytes')
+
+
+class RawP2sh(_Node):
+    first_index: SeriesPattern18[P2SHAddrIndex] = _at(SeriesPattern18, 'first_*_addr_index')
+    bytes: SeriesPattern29[P2SHBytes] = _at(SeriesPattern29, '*_bytes')
+
+
+class RawP2pkh(_Node):
+    first_index: SeriesPattern18[P2PKHAddrIndex] = _at(SeriesPattern18, 'first_*_addr_index')
+    bytes: SeriesPattern28[P2PKHBytes] = _at(SeriesPattern28, '*_bytes')
+
+
+class RawP2pk33(_Node):
+    first_index: SeriesPattern18[P2PK33AddrIndex] = _at(SeriesPattern18, 'first_*_addr_index')
+    bytes: SeriesPattern26[P2PK33Bytes] = _at(SeriesPattern26, '*_bytes')
+
+
+class RawP2pk65(_Node):
+    first_index: SeriesPattern18[P2PK65AddrIndex] = _at(SeriesPattern18, 'first_*_addr_index')
+    bytes: SeriesPattern27[P2PK65Bytes] = _at(SeriesPattern27, '*_bytes')
+
+
+class AddrsRaw(_Node):
+    p2pk65: RawP2pk65 = _at(RawP2pk65, '*')
+    p2pk33: RawP2pk33 = _at(RawP2pk33, 'p2pk33')
+    p2pkh: RawP2pkh = _at(RawP2pkh, 'p2pkh')
+    p2sh: RawP2sh = _at(RawP2sh, 'p2sh')
+    p2wpkh: RawP2wpkh = _at(RawP2wpkh, 'p2wpkh')
+    p2wsh: RawP2wsh = _at(RawP2wsh, 'p2wsh')
+    p2tr: RawP2tr = _at(RawP2tr, 'p2tr')
+    p2a: RawP2a = _at(RawP2a, 'p2a')
+
+
+class Spent(_Node):
+    txin_index: SeriesPattern21[TxInIndex] = _at(SeriesPattern21, '*')
+
+
+class OutputsRaw(_Node):
+    first_txout_index: SeriesPattern18[TxOutIndex] = _at(SeriesPattern18, 'first_txout_index')
+    value: SeriesPattern21[Sats] = _at(SeriesPattern21, 'value')
+    output_type: SeriesPattern21[OutputType] = _at(SeriesPattern21, 'output_*')
+    type_index: SeriesPattern21[TypeIndex] = _at(SeriesPattern21, '*_index')
+
+
+class InputsRaw(_Node):
+    first_txin_index: SeriesPattern18[TxInIndex] = _at(SeriesPattern18, 'first_txin_*')
+    outpoint: SeriesPattern20[OutPoint] = _at(SeriesPattern20, 'outpoint')
+    txout_index: SeriesPattern20[TxOutIndex] = _at(SeriesPattern20, 'txout_*')
+    tx_index: SeriesPattern20[TxIndex] = _at(SeriesPattern20, 'tx_*')
+    output_type: SeriesPattern20[OutputType] = _at(SeriesPattern20, 'output_type')
+    type_index: SeriesPattern20[TypeIndex] = _at(SeriesPattern20, 'type_*')
+
+
+class Circulating(_Node, Generic[A, B]):
+    btc: SeriesPattern1[Bitcoin] = _at(SeriesPattern1, '*')
+    sats: SeriesPattern1[A] = _at(SeriesPattern1, '*_sats')
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, '*_usd')
+    cents: SeriesPattern1[B] = _at(SeriesPattern1, '*_cents')
+
+
+class CoinflowSupply(_Node):
+    mobile: Mobile = _at(Mobile, '*')
+    immobile: Circulating[Sats, Cents] = _at(Circulating, '*_immobile_supply')
+
+
+class CoinflowLth(_Node):
+    supply: CoinflowSupply = _at(CoinflowSupply, '*')
+    cap: CoinflowCap[Cents] = _at(CoinflowCap, '*_coinflow_cap')
+    price: CapitalizedPrice = _at(CapitalizedPrice, '*_coinflow_price')
+    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, '*_coinflow_capitalized_price')
+
+
+class CointimeSupply(_Node):
+    vaulted: Circulating[Sats, Cents] = _at(Circulating, 'vaulted_*')
+    active: Active = _at(Active, '*')
+
+
+class Dormant(_Node):
+    supply: Circulating[Sats, Cents] = _at(Circulating, '*')
+
+
+class CointimeLth(_Node):
+    awake: Awake = _at(Awake, '*_awake')
+    dormant: Dormant = _at(Dormant, '*_dormant_supply')
+
+
+class BurnedBlock(_Node):
+    btc: SeriesPattern18[Bitcoin] = _at(SeriesPattern18, '*')
+    sats: SeriesPattern18[Sats] = _at(SeriesPattern18, '*_sats')
+    usd: SeriesPattern18[Dollars] = _at(SeriesPattern18, '*_usd')
+    cents: SeriesPattern18[Cents] = _at(SeriesPattern18, '*_cents')
+
+
+class Burned(_Node):
+    block: BurnedBlock = _at(BurnedBlock, '*')
+    cumulative: Circulating[Sats, Cents] = _at(Circulating, '*_cumulative')
+
+
+class OutputsValue(_Node):
+    op_return: Burned = _at(Burned, '*')
+
+
+class EffectiveFeeRate6b(_Node, Generic[A]):
+    min: SeriesPattern1[A] = _at(SeriesPattern1, '*_min')
+    max: SeriesPattern1[A] = _at(SeriesPattern1, '*_max')
+    pct10: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct10')
+    pct25: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct25')
+    median: SeriesPattern1[A] = _at(SeriesPattern1, '*_median')
+    pct75: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct75')
+    pct90: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct90')
+
+
+class SizeWeight(_Node):
+    block: EffectiveFeeRate6b[Weight] = _at(EffectiveFeeRate6b, '*')
+    _6b: EffectiveFeeRate6b[Weight] = _at(EffectiveFeeRate6b, '*_6b')
+
+
+class Vsize6b(_Node):
+    min: SeriesPattern18[VSize] = _at(SeriesPattern18, '*_min')
+    max: SeriesPattern18[VSize] = _at(SeriesPattern18, '*_max')
+    pct10: SeriesPattern18[VSize] = _at(SeriesPattern18, '*_pct10')
+    pct25: SeriesPattern18[VSize] = _at(SeriesPattern18, '*_pct25')
+    median: SeriesPattern18[VSize] = _at(SeriesPattern18, '*_median')
+    pct75: SeriesPattern18[VSize] = _at(SeriesPattern18, '*_pct75')
+    pct90: SeriesPattern18[VSize] = _at(SeriesPattern18, '*_pct90')
+
+
+class EffectiveFeeRate(_Node, Generic[A, B]):
+    tx_index: SeriesPattern19[A] = _at(SeriesPattern19, '*')
+    block: B = _at(0, '*')
+    _6b: B = _at(0, '*_6b')
+
+
+class TransactionsSize(_Node):
+    vsize: EffectiveFeeRate[VSize, Vsize6b] = _at((EffectiveFeeRate, Vsize6b), '*_vsize')
+    weight: SizeWeight = _at(SizeWeight, '*_weight')
+
+
+class TransactionsRaw(_Node):
+    first_tx_index: SeriesPattern18[TxIndex] = _at(SeriesPattern18, 'first_*_index')
+    txid: SeriesPattern19[Txid] = _at(SeriesPattern19, 'txid')
+    tx_version: SeriesPattern19[TxVersion] = _at(SeriesPattern19, '*_version')
+    raw_locktime: SeriesPattern19[RawLockTime] = _at(SeriesPattern19, 'raw_locktime')
+    weight: SeriesPattern19[Weight] = _at(SeriesPattern19, '*_weight')
+    total_size: SeriesPattern19[StoredU32] = _at(SeriesPattern19, 'total_size')
+    total_sigop_cost: SeriesPattern19[SigOps] = _at(SeriesPattern19, 'total_sigop_cost')
+    is_explicitly_rbf: SeriesPattern19[StoredBool] = _at(SeriesPattern19, 'is_explicitly_rbf')
+    first_txin_index: SeriesPattern19[TxInIndex] = _at(SeriesPattern19, 'first_txin_index')
+    first_txout_index: SeriesPattern19[TxOutIndex] = _at(SeriesPattern19, 'first_txout_index')
+
+
+class BlocksHalving(_Node):
+    epoch: SeriesPattern1[Halving] = _at(SeriesPattern1, '*_epoch')
+    blocks_to_halving: SeriesPattern1[StoredU32] = _at(SeriesPattern1, 'blocks_to_*')
+    days_to_halving: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'days_to_*')
+
+
+class Fullness(_Node):
+    ppm: SeriesPattern18[PartsPerMillion32] = _at(SeriesPattern18, '*_ppm')
+    ratio: SeriesPattern18[StoredF32] = _at(SeriesPattern18, '*_ratio')
+    percent: SeriesPattern18[StoredF32] = _at(SeriesPattern18, '*')
+
+
+class Interval(_Node, Generic[A]):
+    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    _24h: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_average_24h')
+    _1w: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_average_1w')
+    _1m: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_average_1m')
+    _1y: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_average_1y')
+
+
+class BlocksLookback(_Node):
+    _1h: SeriesPattern18[Height] = _at(SeriesPattern18, '*_1h_ago')
+    _24h: SeriesPattern18[Height] = _at(SeriesPattern18, '*_24h_ago')
+    _3d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_3d_ago')
+    _1w: SeriesPattern18[Height] = _at(SeriesPattern18, '*_1w_ago')
+    _8d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_8d_ago')
+    _9d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_9d_ago')
+    _12d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_12d_ago')
+    _13d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_13d_ago')
+    _2w: SeriesPattern18[Height] = _at(SeriesPattern18, '*_2w_ago')
+    _21d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_21d_ago')
+    _26d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_26d_ago')
+    _1m: SeriesPattern18[Height] = _at(SeriesPattern18, '*_1m_ago')
+    _34d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_34d_ago')
+    _50d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_50d_ago')
+    _55d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_55d_ago')
+    _2m: SeriesPattern18[Height] = _at(SeriesPattern18, '*_2m_ago')
+    _9w: SeriesPattern18[Height] = _at(SeriesPattern18, '*_9w_ago')
+    _12w: SeriesPattern18[Height] = _at(SeriesPattern18, '*_12w_ago')
+    _89d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_89d_ago')
+    _3m: SeriesPattern18[Height] = _at(SeriesPattern18, '*_3m_ago')
+    _14w: SeriesPattern18[Height] = _at(SeriesPattern18, '*_14w_ago')
+    _111d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_111d_ago')
+    _144d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_144d_ago')
+    _6m: SeriesPattern18[Height] = _at(SeriesPattern18, '*_6m_ago')
+    _26w: SeriesPattern18[Height] = _at(SeriesPattern18, '*_26w_ago')
+    _200d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_200d_ago')
+    _9m: SeriesPattern18[Height] = _at(SeriesPattern18, '*_9m_ago')
+    _350d: SeriesPattern18[Height] = _at(SeriesPattern18, '*_350d_ago')
+    _12m: SeriesPattern18[Height] = _at(SeriesPattern18, '*_12m_ago')
+    _1y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_1y_ago')
+    _14m: SeriesPattern18[Height] = _at(SeriesPattern18, '*_14m_ago')
+    _2y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_2y_ago')
+    _26m: SeriesPattern18[Height] = _at(SeriesPattern18, '*_26m_ago')
+    _3y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_3y_ago')
+    _200w: SeriesPattern18[Height] = _at(SeriesPattern18, '*_200w_ago')
+    _4y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_4y_ago')
+    _5y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_5y_ago')
+    _6y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_6y_ago')
+    _8y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_8y_ago')
+    _9y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_9y_ago')
+    _10y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_10y_ago')
+    _12y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_12y_ago')
+    _14y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_14y_ago')
+    _26y: SeriesPattern18[Height] = _at(SeriesPattern18, '*_26y_ago')
+
+
+class PerSec(_Node, Generic[A]):
+    _24h: SeriesPattern1[A] = _at(SeriesPattern1, '*_24h')
+    _1w: SeriesPattern1[A] = _at(SeriesPattern1, '*_1w')
+    _1m: SeriesPattern1[A] = _at(SeriesPattern1, '*_1m')
+    _1y: SeriesPattern1[A] = _at(SeriesPattern1, '*_1y')
+
+
+class BlocksMined(_Node):
+    block: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*')
+    cumulative: SeriesPattern1[StoredU64] = _at(SeriesPattern1, '*_cumulative')
+    sum: PerSec[StoredU64] = _at(PerSec, '*_sum')
+
+
+class Rolling(_Node):
+    sum: PerSec[StoredU64] = _at(PerSec, '*_sum')
+    average: PerSec[StoredF32] = _at(PerSec, '*_average')
+    min: PerSec[StoredU64] = _at(PerSec, '*_min')
+    max: PerSec[StoredU64] = _at(PerSec, '*_max')
+    pct10: PerSec[StoredU64] = _at(PerSec, '*_pct10')
+    pct25: PerSec[StoredU64] = _at(PerSec, '*_pct25')
+    median: PerSec[StoredU64] = _at(PerSec, '*_median')
+    pct75: PerSec[StoredU64] = _at(PerSec, '*_pct75')
+    pct90: PerSec[StoredU64] = _at(PerSec, '*_pct90')
+
+
+class InputsCount(_Node):
+    sum: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_sum')
+    cumulative: SeriesPattern1[StoredU64] = _at(SeriesPattern1, '*_cumulative')
+    rolling: Rolling = _at(Rolling, '*')
+
+
+class Vbytes(_Node):
+    block: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*')
+    cumulative: SeriesPattern1[StoredU64] = _at(SeriesPattern1, '*_cumulative')
+    sum: PerSec[StoredU64] = _at(PerSec, '*_sum')
+    average: PerSec[StoredF32] = _at(PerSec, '*_average')
+    min: PerSec[StoredU64] = _at(PerSec, '*_min')
+    max: PerSec[StoredU64] = _at(PerSec, '*_max')
+    pct10: PerSec[StoredU64] = _at(PerSec, '*_pct10')
+    pct25: PerSec[StoredU64] = _at(PerSec, '*_pct25')
+    median: PerSec[StoredU64] = _at(PerSec, '*_median')
+    pct75: PerSec[StoredU64] = _at(PerSec, '*_pct75')
+    pct90: PerSec[StoredU64] = _at(PerSec, '*_pct90')
+
+
+class NewAll(_Node, Generic[A]):
+    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
+    sum: PerSec[A] = _at(PerSec, '*_sum')
+    average: PerSec[StoredF32] = _at(PerSec, '*_average')
+
+
+class CointimeValue(_Node):
+    destroyed: NewAll[StoredF64] = _at(NewAll, '*_destroyed')
+    created: NewAll[StoredF64] = _at(NewAll, '*_created')
+    stored: NewAll[StoredF64] = _at(NewAll, '*_stored')
+    vocdd: NewAll[StoredF64] = _at(NewAll, 'vocdd')
+
+
+class CointimeActivity(_Node):
+    coinblocks_created: NewAll[StoredF64] = _at(NewAll, '*_created')
+    coinblocks_stored: NewAll[StoredF64] = _at(NewAll, '*_stored')
+    liveliness: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'liveliness')
+    vaultedness: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'vaultedness')
+    ratio: SeriesPattern1[StoredF64] = _at(SeriesPattern1, 'activity_to_vaultedness')
+    coinblocks_destroyed: NewAll[StoredF64] = _at(NewAll, '*_destroyed')
+
+
+class OutputsByTypeTxCount(_Node):
+    all: NewAll[StoredU64] = _at(NewAll, '*_bis')
+    p2pk65: NewAll[StoredU64] = _at(NewAll, '*_with_p2pk65_output')
+    p2pk33: NewAll[StoredU64] = _at(NewAll, '*_with_p2pk33_output')
+    p2pkh: NewAll[StoredU64] = _at(NewAll, '*_with_p2pkh_output')
+    p2ms: NewAll[StoredU64] = _at(NewAll, '*_with_p2ms_output')
+    p2sh: NewAll[StoredU64] = _at(NewAll, '*_with_p2sh_output')
+    p2wpkh: NewAll[StoredU64] = _at(NewAll, '*_with_p2wpkh_output')
+    p2wsh: NewAll[StoredU64] = _at(NewAll, '*_with_p2wsh_output')
+    p2tr: NewAll[StoredU64] = _at(NewAll, '*_with_p2tr_output')
+    p2a: NewAll[StoredU64] = _at(NewAll, '*_with_p2a_output')
+    unknown: NewAll[StoredU64] = _at(NewAll, '*_with_unknown_outputs_output')
+    empty: NewAll[StoredU64] = _at(NewAll, '*_with_empty_outputs_output')
+    op_return: NewAll[StoredU64] = _at(NewAll, '*_with_op_return_output')
+
+
+class OutputCount(_Node):
+    all: NewAll[StoredU64] = _at(NewAll, '*_bis')
+    p2pk65: NewAll[StoredU64] = _at(NewAll, 'p2pk65_*')
+    p2pk33: NewAll[StoredU64] = _at(NewAll, 'p2pk33_*')
+    p2pkh: NewAll[StoredU64] = _at(NewAll, 'p2pkh_*')
+    p2ms: NewAll[StoredU64] = _at(NewAll, 'p2ms_*')
+    p2sh: NewAll[StoredU64] = _at(NewAll, 'p2sh_*')
+    p2wpkh: NewAll[StoredU64] = _at(NewAll, 'p2wpkh_*')
+    p2wsh: NewAll[StoredU64] = _at(NewAll, 'p2wsh_*')
+    p2tr: NewAll[StoredU64] = _at(NewAll, 'p2tr_*')
+    p2a: NewAll[StoredU64] = _at(NewAll, 'p2a_*')
+    unknown: NewAll[StoredU64] = _at(NewAll, 'unknown_outputs_*')
+    empty: NewAll[StoredU64] = _at(NewAll, 'empty_outputs_*')
+    op_return: NewAll[StoredU64] = _at(NewAll, 'op_return_*')
+
+
+class InputsByTypeTxCount(_Node):
+    all: NewAll[StoredU64] = _at(NewAll, 'non_coinbase_*')
+    p2pk65: NewAll[StoredU64] = _at(NewAll, '*_with_p2pk65_prevout')
+    p2pk33: NewAll[StoredU64] = _at(NewAll, '*_with_p2pk33_prevout')
+    p2pkh: NewAll[StoredU64] = _at(NewAll, '*_with_p2pkh_prevout')
+    p2ms: NewAll[StoredU64] = _at(NewAll, '*_with_p2ms_prevout')
+    p2sh: NewAll[StoredU64] = _at(NewAll, '*_with_p2sh_prevout')
+    p2wpkh: NewAll[StoredU64] = _at(NewAll, '*_with_p2wpkh_prevout')
+    p2wsh: NewAll[StoredU64] = _at(NewAll, '*_with_p2wsh_prevout')
+    p2tr: NewAll[StoredU64] = _at(NewAll, '*_with_p2tr_prevout')
+    p2a: NewAll[StoredU64] = _at(NewAll, '*_with_p2a_prevout')
+    unknown: NewAll[StoredU64] = _at(NewAll, '*_with_unknown_outputs_prevout')
+    empty: NewAll[StoredU64] = _at(NewAll, '*_with_empty_outputs_prevout')
+
+
+class InputCount(_Node):
+    all: NewAll[StoredU64] = _at(NewAll, 'input_*_bis')
+    p2pk65: NewAll[StoredU64] = _at(NewAll, 'p2pk65_prevout_*')
+    p2pk33: NewAll[StoredU64] = _at(NewAll, 'p2pk33_prevout_*')
+    p2pkh: NewAll[StoredU64] = _at(NewAll, 'p2pkh_prevout_*')
+    p2ms: NewAll[StoredU64] = _at(NewAll, 'p2ms_prevout_*')
+    p2sh: NewAll[StoredU64] = _at(NewAll, 'p2sh_prevout_*')
+    p2wpkh: NewAll[StoredU64] = _at(NewAll, 'p2wpkh_prevout_*')
+    p2wsh: NewAll[StoredU64] = _at(NewAll, 'p2wsh_prevout_*')
+    p2tr: NewAll[StoredU64] = _at(NewAll, 'p2tr_prevout_*')
+    p2a: NewAll[StoredU64] = _at(NewAll, 'p2a_prevout_*')
+    unknown: NewAll[StoredU64] = _at(NewAll, 'unknown_outputs_prevout_*')
+    empty: NewAll[StoredU64] = _at(NewAll, 'empty_outputs_prevout_*')
+
+
+class Versions(_Node):
+    v1: NewAll[StoredU64] = _at(NewAll, '*_v1')
+    v2: NewAll[StoredU64] = _at(NewAll, '*_v2')
+    v3: NewAll[StoredU64] = _at(NewAll, '*_v3')
+    other: NewAll[StoredU64] = _at(NewAll, '*_other_version')
+
+
+class PolicyCount(_Node):
+    nonstandard: NewAll[StoredU64] = _at(NewAll, '*')
+
+
+class Policy(_Node):
+    count: PolicyCount = _at(PolicyCount, '*_count')
+    is_nonstandard: SeriesPattern19[StoredBool] = _at(SeriesPattern19, 'is_*')
+
+
+class PatternsCount(_Node):
+    coinjoin: NewAll[StoredU64] = _at(NewAll, 'coinjoin_*')
+    consolidation: NewAll[StoredU64] = _at(NewAll, 'consolidation_*')
+    batch_payout: NewAll[StoredU64] = _at(NewAll, 'batch_payout_*')
+
+
+class Patterns(_Node):
+    count: PatternsCount = _at(PatternsCount, 'count')
+    is_coinjoin: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_coinjoin')
+    is_consolidation: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_consolidation')
+    is_batch_payout: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_batch_payout')
+
+
+class FeesCount(_Node):
+    cpfp_parent: NewAll[StoredU64] = _at(NewAll, '*_parent_count')
+    cpfp_child: NewAll[StoredU64] = _at(NewAll, '*_child_count')
+
+
+class TransactionsFees(_Node):
+    count: FeesCount = _at(FeesCount, 'cpfp')
+    fee: EffectiveFeeRate[Sats, EffectiveFeeRate6b[Sats]] = _at((EffectiveFeeRate, EffectiveFeeRate6b), '*')
+    fee_rate: SeriesPattern19[FeeRate] = _at(SeriesPattern19, '*_rate')
+    effective_fee_rate: EffectiveFeeRate[FeeRate, EffectiveFeeRate6b[FeeRate]] = _at((EffectiveFeeRate, EffectiveFeeRate6b), 'effective_*_rate')
+    is_cpfp_parent: SeriesPattern19[StoredBool] = _at(SeriesPattern19, 'is_cpfp_parent')
+    is_cpfp_child: SeriesPattern19[StoredBool] = _at(SeriesPattern19, 'is_cpfp_child')
+
+
+class OutputsCount(_Node, Generic[A]):
+    total: A = _at(0, '*')
+
+
+class FeaturesCount(_Node):
+    v1: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_v1')
+    v2: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_v2')
+    v3: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_v3')
+    other_version: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_other_version')
+    explicitly_rbf: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_explicitly_rbf')
+    one_input: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_one_input')
+    one_output: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_one_output')
+    p2pk: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_p2pk')
+    p2ms: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_p2ms')
+    p2pkh: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_p2pkh')
+    p2sh: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_p2sh')
+    p2wpkh: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_p2wpkh')
+    p2wsh: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_p2wsh')
+    p2tr: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_p2tr')
+    p2a: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_p2a')
+    op_return: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_op_return')
+    empty: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_empty')
+    unknown: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_unknown')
+    fake_pubkey: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_fake_pubkey')
+    fake_scripthash: SeriesPattern18[StoredU64] = _at(SeriesPattern18, '*_fake_scripthash')
+    annex: NewAll[StoredU64] = _at(NewAll, '*_annex')
+    sighash_all: NewAll[StoredU64] = _at(NewAll, '*_sighash_all')
+    sighash_none: NewAll[StoredU64] = _at(NewAll, '*_sighash_none')
+    sighash_single: NewAll[StoredU64] = _at(NewAll, '*_sighash_single')
+    sighash_default: NewAll[StoredU64] = _at(NewAll, '*_sighash_default')
+    sighash_anyone_can_pay: NewAll[StoredU64] = _at(NewAll, '*_sighash_anyone_can_pay')
+    dust_output: NewAll[StoredU64] = _at(NewAll, '*_dust_output')
+
+
+class Features(_Node):
+    count: FeaturesCount = _at(FeaturesCount, 'tx_count')
+    has_p2pk: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_p2pk')
+    has_p2ms: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_p2ms')
+    has_p2pkh: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_p2pkh')
+    has_p2sh: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_p2sh')
+    has_p2wpkh: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_p2wpkh')
+    has_p2wsh: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_p2wsh')
+    has_p2tr: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_p2tr')
+    has_p2a: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_p2a')
+    has_op_return: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_op_return')
+    has_empty: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_empty')
+    has_unknown: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_unknown')
+    has_fake_pubkey: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_fake_pubkey')
+    has_fake_scripthash: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_fake_scripthash')
+    has_inscription: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_inscription')
+    has_annex: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_annex')
+    has_sighash_all: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_sighash_all')
+    has_sighash_none: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_sighash_none')
+    has_sighash_single: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_sighash_single')
+    has_sighash_default: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_sighash_default')
+    has_sighash_anyone_can_pay: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_sighash_anyone_can_pay')
+    has_dust_output: SeriesPattern19[StoredBool] = _at(SeriesPattern19, '*_dust_output')
+
+
+class BlocksCount(_Node):
+    target: PerSec[StoredU64] = _at(PerSec, '*_target')
+    total: NewAll[StoredU64] = _at(NewAll, '*')
+
+
+class BlocksWeight(_Node):
+    base: SeriesPattern18[Weight] = _at(SeriesPattern18, '*')
+    cumulative: SeriesPattern1[Weight64] = _at(SeriesPattern1, '*_cumulative')
+    sum: PerSec[Weight64] = _at(PerSec, '*_sum')
+    average: PerSec[StoredF32] = _at(PerSec, '*_average')
+    min: PerSec[Weight64] = _at(PerSec, '*_min')
+    max: PerSec[Weight64] = _at(PerSec, '*_max')
+    pct10: PerSec[Weight64] = _at(PerSec, '*_pct10')
+    pct25: PerSec[Weight64] = _at(PerSec, '*_pct25')
+    median: PerSec[Weight64] = _at(PerSec, '*_median')
+    pct75: PerSec[Weight64] = _at(PerSec, '*_pct75')
+    pct90: PerSec[Weight64] = _at(PerSec, '*_pct90')
+
+
+class BlocksSize(_Node):
+    base: SeriesPattern18[StoredU64] = _at(SeriesPattern18, 'total_*')
+    cumulative: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'block_*_cumulative')
+    sum: PerSec[StoredU64] = _at(PerSec, 'block_*_sum')
+    average: PerSec[StoredF32] = _at(PerSec, 'block_*_average')
+    min: PerSec[StoredU64] = _at(PerSec, 'block_*_min')
+    max: PerSec[StoredU64] = _at(PerSec, 'block_*_max')
+    pct10: PerSec[StoredU64] = _at(PerSec, 'block_*_pct10')
+    pct25: PerSec[StoredU64] = _at(PerSec, 'block_*_pct25')
+    median: PerSec[StoredU64] = _at(PerSec, 'block_*_median')
+    pct75: PerSec[StoredU64] = _at(PerSec, 'block_*_pct75')
+    pct90: PerSec[StoredU64] = _at(PerSec, 'block_*_pct90')
+
+
+class Time(_Node):
+    timestamp: SeriesPattern18[Timestamp] = _at(SeriesPattern18, '*')
+
+
+class Gini(_Node, Generic[A]):
+    ppm: SeriesPattern1[A] = _at(SeriesPattern1, '*_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio')
+    percent: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*')
+
+
+class Relative(_Node):
+    supply_dominance: Gini[PartsPerMillion32] = _at(Gini, '*_supply_dominance')
+    supply_in_profit_share: Gini[PartsPerMillion32] = _at(Gini, '*_supply_in_profit_share')
+    supply_in_loss_share: Gini[PartsPerMillion32] = _at(Gini, '*_supply_in_loss_share')
+    unrealized_profit_to_mcap: Gini[PartsPerMillion32] = _at(Gini, '*_unrealized_profit_to_mcap')
+    unrealized_loss_to_mcap: Gini[PartsPerMillion32] = _at(Gini, '*_unrealized_loss_to_mcap')
+    unrealized_profit_to_own_mcap: Gini[PartsPerMillion32] = _at(Gini, '*_unrealized_profit_to_own_mcap')
+    unrealized_loss_to_own_mcap: Gini[PartsPerMillion32] = _at(Gini, '*_unrealized_loss_to_own_mcap')
+    unrealized_profit_to_own_gross_pnl: Gini[PartsPerMillion32] = _at(Gini, '*_unrealized_profit_to_own_gross_pnl')
+    unrealized_loss_to_own_gross_pnl: Gini[PartsPerMillion32] = _at(Gini, '*_unrealized_loss_to_own_gross_pnl')
+    net_unrealized_pnl_to_own_gross_pnl: Gini[PartsPerMillionSigned32] = _at(Gini, '*_net_unrealized_pnl_to_own_gross_pnl')
+    invested_capital_in_profit_share: Gini[PartsPerMillion32] = _at(Gini, '*_invested_capital_in_profit_share')
+    invested_capital_in_loss_share: Gini[PartsPerMillion32] = _at(Gini, '*_invested_capital_in_loss_share')
+    realized_cap_to_own_mcap: Gini[PartsPerMillion32] = _at(Gini, '*_realized_cap_to_own_mcap')
+    net_pnl_change_1m_to_mcap: Gini[PartsPerMillionSigned64] = _at(Gini, '*_net_pnl_change_1m_to_mcap')
+    net_pnl_change_1m_to_rcap: Gini[PartsPerMillionSigned64] = _at(Gini, '*_net_pnl_change_1m_to_rcap')
+
+
+class CohortsAllCostBasis(_Node):
+    in_profit: UrpdAllCostBasis[Spot[SatsFract]] = _at((UrpdAllCostBasis, Spot), '*_cost_basis_in_profit_per')
+    in_loss: UrpdAllCostBasis[Spot[SatsFract]] = _at((UrpdAllCostBasis, Spot), '*_cost_basis_in_loss_per')
+    min: Spot[SatsFract] = _at(Spot, '*_cost_basis_min')
+    max: Spot[SatsFract] = _at(Spot, '*_cost_basis_max')
+    per_coin: PerCoin = _at(PerCoin, '*_cost_basis_per_coin')
+    per_dollar: PerCoin = _at(PerCoin, '*_cost_basis_per_dollar')
+    supply_density: Gini[PartsPerMillion32] = _at(Gini, '*_supply_density')
+
+
+class Aaopool(_Node):
+    blocks_mined: BlocksMined = _at(BlocksMined, '*_blocks_mined')
+    dominance: Gini[PartsPerMillion32] = _at(Gini, '*_dominance')
+
+
+class Minor(_Node):
+    blockfills: Aaopool = _at(Aaopool, '*')
+    ultimuspool: Aaopool = _at(Aaopool, 'ultimuspool')
+    terrapool: Aaopool = _at(Aaopool, 'terrapool')
+    onethash: Aaopool = _at(Aaopool, 'onethash')
+    bitfarms: Aaopool = _at(Aaopool, 'bitfarms')
+    huobipool: Aaopool = _at(Aaopool, 'huobipool')
+    wayicn: Aaopool = _at(Aaopool, 'wayicn')
+    canoepool: Aaopool = _at(Aaopool, 'canoepool')
+    bitcoincom: Aaopool = _at(Aaopool, 'bitcoincom')
+    pool175btc: Aaopool = _at(Aaopool, 'pool175btc')
+    gbminers: Aaopool = _at(Aaopool, 'gbminers')
+    axbt: Aaopool = _at(Aaopool, 'axbt')
+    asicminer: Aaopool = _at(Aaopool, 'asicminer')
+    bitminter: Aaopool = _at(Aaopool, 'bitminter')
+    bitcoinrussia: Aaopool = _at(Aaopool, 'bitcoinrussia')
+    btcserv: Aaopool = _at(Aaopool, 'btcserv')
+    simplecoinus: Aaopool = _at(Aaopool, 'simplecoinus')
+    ozcoin: Aaopool = _at(Aaopool, 'ozcoin')
+    eclipsemc: Aaopool = _at(Aaopool, 'eclipsemc')
+    maxbtc: Aaopool = _at(Aaopool, 'maxbtc')
+    triplemining: Aaopool = _at(Aaopool, 'triplemining')
+    coinlab: Aaopool = _at(Aaopool, 'coinlab')
+    pool50btc: Aaopool = _at(Aaopool, 'pool50btc')
+    ghashio: Aaopool = _at(Aaopool, 'ghashio')
+    stminingcorp: Aaopool = _at(Aaopool, 'stminingcorp')
+    bitparking: Aaopool = _at(Aaopool, 'bitparking')
+    mmpool: Aaopool = _at(Aaopool, 'mmpool')
+    polmine: Aaopool = _at(Aaopool, 'polmine')
+    kncminer: Aaopool = _at(Aaopool, 'kncminer')
+    bitalo: Aaopool = _at(Aaopool, 'bitalo')
+    hhtt: Aaopool = _at(Aaopool, 'hhtt')
+    megabigpower: Aaopool = _at(Aaopool, 'megabigpower')
+    mtred: Aaopool = _at(Aaopool, 'mtred')
+    nmcbit: Aaopool = _at(Aaopool, 'nmcbit')
+    yourbtcnet: Aaopool = _at(Aaopool, 'yourbtcnet')
+    givemecoins: Aaopool = _at(Aaopool, 'givemecoins')
+    multicoinco: Aaopool = _at(Aaopool, 'multicoinco')
+    bcpoolio: Aaopool = _at(Aaopool, 'bcpoolio')
+    cointerra: Aaopool = _at(Aaopool, 'cointerra')
+    kanopool: Aaopool = _at(Aaopool, 'kanopool')
+    solock: Aaopool = _at(Aaopool, 'solock')
+    ckpool: Aaopool = _at(Aaopool, 'ckpool')
+    nicehash: Aaopool = _at(Aaopool, 'nicehash')
+    bitclub: Aaopool = _at(Aaopool, 'bitclub')
+    bitcoinaffiliatenetwork: Aaopool = _at(Aaopool, 'bitcoinaffiliatenetwork')
+    exxbw: Aaopool = _at(Aaopool, 'exxbw')
+    bitsolo: Aaopool = _at(Aaopool, 'bitsolo')
+    twentyoneinc: Aaopool = _at(Aaopool, 'twentyoneinc')
+    digitalbtc: Aaopool = _at(Aaopool, 'digitalbtc')
+    eightbaochi: Aaopool = _at(Aaopool, 'eightbaochi')
+    mybtccoinpool: Aaopool = _at(Aaopool, 'mybtccoinpool')
+    tbdice: Aaopool = _at(Aaopool, 'tbdice')
+    hashpool: Aaopool = _at(Aaopool, 'hashpool')
+    nexious: Aaopool = _at(Aaopool, 'nexious')
+    bravomining: Aaopool = _at(Aaopool, 'bravomining')
+    hotpool: Aaopool = _at(Aaopool, 'hotpool')
+    okexpool: Aaopool = _at(Aaopool, 'okexpool')
+    bcmonster: Aaopool = _at(Aaopool, 'bcmonster')
+    onehash: Aaopool = _at(Aaopool, 'onehash')
+    bixin: Aaopool = _at(Aaopool, 'bixin')
+    tatmaspool: Aaopool = _at(Aaopool, 'tatmaspool')
+    connectbtc: Aaopool = _at(Aaopool, 'connectbtc')
+    batpool: Aaopool = _at(Aaopool, 'batpool')
+    waterhole: Aaopool = _at(Aaopool, 'waterhole')
+    dcexploration: Aaopool = _at(Aaopool, 'dcexploration')
+    dcex: Aaopool = _at(Aaopool, 'dcex')
+    btpool: Aaopool = _at(Aaopool, 'btpool')
+    fiftyeightcoin: Aaopool = _at(Aaopool, 'fiftyeightcoin')
+    bitcoinindia: Aaopool = _at(Aaopool, 'bitcoinindia')
+    shawnp0wers: Aaopool = _at(Aaopool, 'shawnp0wers')
+    phashio: Aaopool = _at(Aaopool, 'phashio')
+    rigpool: Aaopool = _at(Aaopool, 'rigpool')
+    haozhuzhu: Aaopool = _at(Aaopool, 'haozhuzhu')
+    sevenpool: Aaopool = _at(Aaopool, 'sevenpool')
+    miningkings: Aaopool = _at(Aaopool, 'miningkings')
+    hashbx: Aaopool = _at(Aaopool, 'hashbx')
+    dpool: Aaopool = _at(Aaopool, 'dpool')
+    rawpool: Aaopool = _at(Aaopool, 'rawpool')
+    haominer: Aaopool = _at(Aaopool, 'haominer')
+    helix: Aaopool = _at(Aaopool, 'helix')
+    bitcoinukraine: Aaopool = _at(Aaopool, 'bitcoinukraine')
+    secretsuperstar: Aaopool = _at(Aaopool, 'secretsuperstar')
+    tigerpoolnet: Aaopool = _at(Aaopool, 'tigerpoolnet')
+    sigmapoolcom: Aaopool = _at(Aaopool, 'sigmapoolcom')
+    okpooltop: Aaopool = _at(Aaopool, 'okpooltop')
+    hummerpool: Aaopool = _at(Aaopool, 'hummerpool')
+    tangpool: Aaopool = _at(Aaopool, 'tangpool')
+    bytepool: Aaopool = _at(Aaopool, 'bytepool')
+    novablock: Aaopool = _at(Aaopool, 'novablock')
+    miningcity: Aaopool = _at(Aaopool, 'miningcity')
+    minerium: Aaopool = _at(Aaopool, 'minerium')
+    lubiancom: Aaopool = _at(Aaopool, 'lubiancom')
+    okkong: Aaopool = _at(Aaopool, 'okkong')
+    aaopool: Aaopool = _at(Aaopool, 'aaopool')
+    emcdpool: Aaopool = _at(Aaopool, 'emcdpool')
+    arkpool: Aaopool = _at(Aaopool, 'arkpool')
+    purebtccom: Aaopool = _at(Aaopool, 'purebtccom')
+    kucoinpool: Aaopool = _at(Aaopool, 'kucoinpool')
+    entrustcharitypool: Aaopool = _at(Aaopool, 'entrustcharitypool')
+    okminer: Aaopool = _at(Aaopool, 'okminer')
+    titan: Aaopool = _at(Aaopool, 'titan')
+    pegapool: Aaopool = _at(Aaopool, 'pegapool')
+    btcnuggets: Aaopool = _at(Aaopool, 'btcnuggets')
+    cloudhashing: Aaopool = _at(Aaopool, 'cloudhashing')
+    digitalxmintsy: Aaopool = _at(Aaopool, 'digitalxmintsy')
+    telco214: Aaopool = _at(Aaopool, 'telco214')
+    btcpoolparty: Aaopool = _at(Aaopool, 'btcpoolparty')
+    multipool: Aaopool = _at(Aaopool, 'multipool')
+    transactioncoinmining: Aaopool = _at(Aaopool, 'transactioncoinmining')
+    btcdig: Aaopool = _at(Aaopool, 'btcdig')
+    trickysbtcpool: Aaopool = _at(Aaopool, 'trickysbtcpool')
+    btcmp: Aaopool = _at(Aaopool, 'btcmp')
+    eobot: Aaopool = _at(Aaopool, 'eobot')
+    unomp: Aaopool = _at(Aaopool, 'unomp')
+    patels: Aaopool = _at(Aaopool, 'patels')
+    gogreenlight: Aaopool = _at(Aaopool, 'gogreenlight')
+    bitcoinindiapool: Aaopool = _at(Aaopool, 'bitcoinindiapool')
+    ekanembtc: Aaopool = _at(Aaopool, 'ekanembtc')
+    canoe: Aaopool = _at(Aaopool, 'canoe')
+    tiger: Aaopool = _at(Aaopool, 'tiger')
+    onem1x: Aaopool = _at(Aaopool, 'onem1x')
+    zulupool: Aaopool = _at(Aaopool, 'zulupool')
+    wiz: Aaopool = _at(Aaopool, 'wiz')
+    wk057: Aaopool = _at(Aaopool, 'wk057')
+    futurebitapollosolo: Aaopool = _at(Aaopool, 'futurebitapollosolo')
+    carbonnegative: Aaopool = _at(Aaopool, 'carbonnegative')
+    portlandhodl: Aaopool = _at(Aaopool, 'portlandhodl')
+    phoenix: Aaopool = _at(Aaopool, 'phoenix')
+    neopool: Aaopool = _at(Aaopool, 'neopool')
+    maxipool: Aaopool = _at(Aaopool, 'maxipool')
+    bitfufupool: Aaopool = _at(Aaopool, 'bitfufupool')
+    gdpool: Aaopool = _at(Aaopool, 'gdpool')
+    miningdutch: Aaopool = _at(Aaopool, 'miningdutch')
+    publicpool: Aaopool = _at(Aaopool, 'publicpool')
+    miningsquared: Aaopool = _at(Aaopool, 'miningsquared')
+    innopolistech: Aaopool = _at(Aaopool, 'innopolistech')
+    btclab: Aaopool = _at(Aaopool, 'btclab')
+    parasite: Aaopool = _at(Aaopool, 'parasite')
+    redrockpool: Aaopool = _at(Aaopool, 'redrockpool')
+    est3lar: Aaopool = _at(Aaopool, 'est3lar')
+    braiinssolo: Aaopool = _at(Aaopool, 'braiinssolo')
+    solopool: Aaopool = _at(Aaopool, 'solopool')
+    noderunners: Aaopool = _at(Aaopool, 'noderunners')
+    dmnd: Aaopool = _at(Aaopool, 'dmnd')
+
+
+class Rsi1m(_Node):
+    rsi: Gini[PartsPerMillion32] = _at(Gini, 'rsi_*')
+    stoch_rsi_k: Gini[PartsPerMillion32] = _at(Gini, 'rsi_stoch_k_*')
+    stoch_rsi_d: Gini[PartsPerMillion32] = _at(Gini, 'rsi_stoch_d_*')
+
+
+class Macd(_Node, Generic[A]):
+    _24h: A = _at(0, '*')
+    _1w: A = _at(0, '1w')
+    _1m: A = _at(0, '1m')
+
+
+class Technical(_Node):
+    rsi: Macd[Rsi1m] = _at((Macd, Rsi1m), '*')
+    pi_cycle: RhodlRatio[PartsPerMillion32] = _at(RhodlRatio, 'pi_cycle')
+    macd: Macd[Macd1m] = _at((Macd, Macd1m), '*')
+
+
+class Range(_Node):
+    min: Max = _at(Max, '*_min')
+    max: Max = _at(Max, '*_max')
+    true_range: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_true_range')
+    true_range_sum_2w: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_true_range_sum_2w')
+    choppiness_index_2w: Gini[PartsPerMillion32] = _at(Gini, '*_choppiness_index_2w')
+
+
+class Cagr(_Node):
+    _2y: Gini[PartsPerMillionSigned64] = _at(Gini, '*_2y')
+    _3y: Gini[PartsPerMillionSigned64] = _at(Gini, '*_3y')
+    _4y: Gini[PartsPerMillionSigned64] = _at(Gini, '*_4y')
+    _5y: Gini[PartsPerMillionSigned64] = _at(Gini, '*_5y')
+    _6y: Gini[PartsPerMillionSigned64] = _at(Gini, '*_6y')
+    _8y: Gini[PartsPerMillionSigned64] = _at(Gini, '*_8y')
+    _10y: Gini[PartsPerMillionSigned64] = _at(Gini, '*_10y')
+
+
+class MarketLookback(_Node, Generic[A]):
+    _24h: A = _at(0, '*_24h')
+    _1w: A = _at(0, '*_1w')
+    _1m: A = _at(0, '*_1m')
+    _3m: A = _at(0, '*_3m')
+    _6m: A = _at(0, '*_6m')
+    _1y: A = _at(0, '*_1y')
+    _2y: A = _at(0, '*_2y')
+    _3y: A = _at(0, '*_3y')
+    _4y: A = _at(0, '*_4y')
+    _5y: A = _at(0, '*_5y')
+    _6y: A = _at(0, '*_6y')
+    _8y: A = _at(0, '*_8y')
+    _10y: A = _at(0, '*_10y')
+
+
+class Ath(_Node):
+    high: Spot[SatsFract] = _at(Spot, '*_ath')
+    drawdown: Gini[PartsPerMillionSigned32] = _at(Gini, '*_drawdown')
+    days_since: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'days_since_*_ath')
+    years_since: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'years_since_*_ath')
+    max_days_between: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'max_days_between_*_ath')
+    max_years_between: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'max_years_between_*_ath')
+
+
+class Indicators(_Node):
+    puell_multiple: Nvt = _at(Nvt, 'puell_multiple')
+    nvt: Nvt = _at(Nvt, 'nvt')
+    gini: Gini[PartsPerMillion32] = _at(Gini, 'gini')
+    rhodl_ratio: RhodlRatio[PartsPerMillion64] = _at(RhodlRatio, 'rhodl_ratio')
+    thermo_cap_multiple: Nvt = _at(Nvt, 'thermo_cap_multiple')
+    coindays_destroyed_supply_adj: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'coindays_*')
+    coinyears_destroyed_supply_adj: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'coinyears_*')
+    dormancy: Dormancy = _at(Dormancy, 'dormancy')
+    stock_to_flow: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'stock_to_flow')
+    seller_exhaustion: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'seller_exhaustion')
+
+
+class Capitulation(_Node, Generic[A]):
+    threshold_pct0_1: SeriesPattern1[A] = _at(SeriesPattern1, '*_threshold_pct0_1')
+    threshold_pct0_05: SeriesPattern1[A] = _at(SeriesPattern1, '*_threshold_pct0_05')
+    threshold_pct0_025: SeriesPattern1[A] = _at(SeriesPattern1, '*_threshold')
+    tail: Gini[PartsPerMillion32] = _at(Gini, '*_tail')
+    rank: SeriesPattern1[StoredU8] = _at(SeriesPattern1, '*_rank')
+
+
+class Extremes(_Node):
+    coins_in_loss: Capitulation[Bitcoin] = _at(Capitulation, '*_coins_in_loss')
+    profit_taking: Capitulation[Dollars] = _at(Capitulation, '*_profit_taking')
+    capitulation: Capitulation[Dollars] = _at(Capitulation, '*_capitulation')
+    peak_regret: Capitulation[Dollars] = _at(Capitulation, '*_peak_regret')
+    seller_exhaustion: Capitulation[StoredF32] = _at(Capitulation, '*_seller_exhaustion')
+
+
+class RarityMeter(_Node):
+    components: Components = _at(Components, 'price')
+    extremes: Extremes = _at(Extremes, '*')
+    full: Cycle = _at(Cycle, '*')
+    full_v2: Cycle = _at(Cycle, '*_v2')
+    local: Cycle = _at(Cycle, 'local_*')
+    local_v2: Cycle = _at(Cycle, 'local_*_v2')
+    cycle: Cycle = _at(Cycle, 'cycle_*')
+    cycle_v2: Cycle = _at(Cycle, 'cycle_*_v2')
+
+
+class Adjusted(_Node):
+    inflation_rate: Gini[PartsPerMillionSigned32] = _at(Gini, '*_inflation_rate')
+    tx_velocity_native: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_tx_velocity_btc')
+    tx_velocity_fiat: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_tx_velocity_usd')
+
+
+class SupplyDensity(_Node):
+    total: Gini[PartsPerMillion32] = _at(Gini, '*_total')
+    in_profit: Gini[PartsPerMillion32] = _at(Gini, '*_in_profit')
+    in_loss: Gini[PartsPerMillion32] = _at(Gini, '*_in_loss')
+
+
+class CoinflowUrpdLth(_Node):
+    cost_basis: UrpdAllCostBasis[PerCoin] = _at((UrpdAllCostBasis, PerCoin), '*_coinflow_cost_basis_per')
+    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'coinflow_urpd_*_capitalized_price')
+    supply_density: SupplyDensity = _at(SupplyDensity, 'coinflow_urpd_*_supply_density')
+
+
+class CointimeUrpdLth(_Node):
+    cost_basis: UrpdAllCostBasis[PerCoin] = _at((UrpdAllCostBasis, PerCoin), '*_cointime_cost_basis_per')
+    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'cointime_urpd_*_capitalized_price')
+    supply_density: SupplyDensity = _at(SupplyDensity, 'cointime_urpd_*_supply_density')
+
+
+class UrpdAll(_Node):
+    cost_basis: UrpdAllCostBasis[PerCoin] = _at((UrpdAllCostBasis, PerCoin), '*_cost_basis_per')
+    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, '*_urpd_all_capitalized_price')
+    supply_density: SupplyDensity = _at(SupplyDensity, '*_urpd_all_supply_density')
+
+
+class CoinflowUrpd(_Node, Generic[A]):
+    all: UrpdAll = _at(UrpdAll, '*')
+    sth: A = _at(0, 'sth')
+    lth: A = _at(0, 'lth')
+    under_4m: A = _at(0, 'under_4m')
+    under_6m: A = _at(0, 'under_6m')
+    over_4m: A = _at(0, 'over_4m')
+    over_6m: A = _at(0, 'over_6m')
+
+
+class HashratePrice(_Node):
+    ths: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ths')
+    ths_min: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ths_min')
+    phs: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_phs')
+    phs_min: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_phs_min')
+    rebound: Gini[PartsPerMillionSigned32] = _at(Gini, '*_rebound')
+
+
+class HashrateRate(_Node):
+    base: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*')
+    sma: RateSma = _at(RateSma, '*_sma')
+    ath: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_ath')
+    drawdown: Gini[PartsPerMillionSigned32] = _at(Gini, '*_drawdown')
+
+
+class Hashrate(_Node):
+    rate: HashrateRate = _at(HashrateRate, '*_rate')
+    price: HashratePrice = _at(HashratePrice, '*_price')
+    value: HashratePrice = _at(HashratePrice, '*_value')
+
+
+class DataBytesAscribe(_Node):
+    block: SeriesPattern18[Bytes] = _at(SeriesPattern18, '*_data_bytes')
+    cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_data_bytes_cumulative')
+    sum: PerSec[Bytes] = _at(PerSec, '*_data_bytes_sum')
+    average: PerSec[StoredF32] = _at(PerSec, '*_data_bytes_average')
+    data_share: Gini[PartsPerMillion32] = _at(Gini, '*_data_share')
+    chain_share: Gini[PartsPerMillion32] = _at(Gini, '*_chain_share')
+
+
+class PolicyDataBytes(_Node, Generic[A]):
+    pre_v30_standard: A = _at(0, 'op_return_policy_pre_v30_standard_*')
+    pre_v30_nonstandard: A = _at(0, 'op_return_policy_pre_v30_nonstandard_*')
+    oversized: A = _at(0, 'op_return_policy_oversized_*')
+    multiple: A = _at(0, 'op_return_policy_multiple_*')
+
+
+class ByKindDataBytes(_Node, Generic[A]):
+    runes: A = _at(0, 'op_return_runes_*')
+    veri_block: A = _at(0, 'op_return_veri_block_*')
+    omni: A = _at(0, 'op_return_omni_*')
+    stacks: A = _at(0, 'op_return_stacks_*')
+    blockstack: A = _at(0, 'op_return_blockstack_*')
+    colu: A = _at(0, 'op_return_colu_*')
+    open_assets: A = _at(0, 'op_return_open_assets_*')
+    komodo: A = _at(0, 'op_return_komodo_*')
+    coin_spark: A = _at(0, 'op_return_coin_spark_*')
+    poet: A = _at(0, 'op_return_poet_*')
+    docproof: A = _at(0, 'op_return_docproof_*')
+    open_timestamps: A = _at(0, 'op_return_open_timestamps_*')
+    factom: A = _at(0, 'op_return_factom_*')
+    eternity_wall: A = _at(0, 'op_return_eternity_wall_*')
+    memo: A = _at(0, 'op_return_memo_*')
+    bitproof: A = _at(0, 'op_return_bitproof_*')
+    ascribe: A = _at(0, 'op_return_ascribe_*')
+    stampery: A = _at(0, 'op_return_stampery_*')
+    epobc: A = _at(0, 'op_return_epobc_*')
+    bare_hash: A = _at(0, 'op_return_bare_hash_*')
+    text: A = _at(0, 'op_return_text_*')
+    empty: A = _at(0, 'op_return_empty_*')
+    unknown: A = _at(0, 'op_return_unknown_*')
+
+
+class AllRate(_Node):
+    _24h: Gini[PartsPerMillionSigned64] = _at(Gini, '*_24h_rate')
+    _1w: Gini[PartsPerMillionSigned64] = _at(Gini, '*_1w_rate')
+    _1m: Gini[PartsPerMillionSigned64] = _at(Gini, '*_1m_rate')
+    _1y: Gini[PartsPerMillionSigned64] = _at(Gini, '*_1y_rate')
+
+
+class FeeShare(_Node):
+    ppm: SeriesPattern1[PartsPerMillion32] = _at(SeriesPattern1, '*_ppm')
+    ratio: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_ratio')
+    percent: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*')
+    _24h: Gini[PartsPerMillion32] = _at(Gini, '*_24h')
+    _1w: Gini[PartsPerMillion32] = _at(Gini, '*_1w')
+    _1m: Gini[PartsPerMillion32] = _at(Gini, '*_1m')
+    _1y: Gini[PartsPerMillion32] = _at(Gini, '*_1y')
+
+
+class FeesAscribe(_Node):
+    block: SeriesPattern18[Sats] = _at(SeriesPattern18, '*_fees')
+    cumulative: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_fees_cumulative')
+    sum: PerSec[Sats] = _at(PerSec, '*_fees_sum')
+    average: PerSec[StoredF32] = _at(PerSec, '*_fees_average')
+    fee_share: FeeShare = _at(FeeShare, '*_fee_share')
+
+
+class PolicyFees(_Node):
+    pre_v30_standard: FeesAscribe = _at(FeesAscribe, '*_pre_v30_standard')
+    pre_v30_nonstandard: FeesAscribe = _at(FeesAscribe, '*_pre_v30_nonstandard')
+    oversized: FeesAscribe = _at(FeesAscribe, '*_oversized')
+    multiple: FeesAscribe = _at(FeesAscribe, '*_multiple')
+
+
+class ByKindFees(_Node):
+    runes: FeesAscribe = _at(FeesAscribe, '*_runes')
+    veri_block: FeesAscribe = _at(FeesAscribe, '*_veri_block')
+    omni: FeesAscribe = _at(FeesAscribe, '*_omni')
+    stacks: FeesAscribe = _at(FeesAscribe, '*_stacks')
+    blockstack: FeesAscribe = _at(FeesAscribe, '*_blockstack')
+    colu: FeesAscribe = _at(FeesAscribe, '*_colu')
+    open_assets: FeesAscribe = _at(FeesAscribe, '*_open_assets')
+    komodo: FeesAscribe = _at(FeesAscribe, '*_komodo')
+    coin_spark: FeesAscribe = _at(FeesAscribe, '*_coin_spark')
+    poet: FeesAscribe = _at(FeesAscribe, '*_poet')
+    docproof: FeesAscribe = _at(FeesAscribe, '*_docproof')
+    open_timestamps: FeesAscribe = _at(FeesAscribe, '*_open_timestamps')
+    factom: FeesAscribe = _at(FeesAscribe, '*_factom')
+    eternity_wall: FeesAscribe = _at(FeesAscribe, '*_eternity_wall')
+    memo: FeesAscribe = _at(FeesAscribe, '*_memo')
+    bitproof: FeesAscribe = _at(FeesAscribe, '*_bitproof')
+    ascribe: FeesAscribe = _at(FeesAscribe, '*_ascribe')
+    stampery: FeesAscribe = _at(FeesAscribe, '*_stampery')
+    epobc: FeesAscribe = _at(FeesAscribe, '*_epobc')
+    bare_hash: FeesAscribe = _at(FeesAscribe, '*_bare_hash')
+    text: FeesAscribe = _at(FeesAscribe, '*_text')
+    empty: FeesAscribe = _at(FeesAscribe, '*_empty')
+    unknown: FeesAscribe = _at(FeesAscribe, '*_unknown')
+
+
+class ByKind(_Node, Generic[A, B, C, D]):
+    output_count: A = _at(0, 'output_count')
+    data_bytes: B = _at(1, '')
+    tx_count: A = _at(0, 'tx_count')
+    tx_vsize: C = _at(2, 'tx_vsize')
+    fees: D = _at(3, '*')
+
+
+class Total(_Node):
+    data_bytes: NewAll[Bytes] = _at(NewAll, '*_data_bytes')
+    tx_count: NewAll[StoredU64] = _at(NewAll, '*_tx_count')
+    tx_vsize: NewAll[VSize] = _at(NewAll, '*_tx_vsize')
+    fees: NewAll[Sats] = _at(NewAll, '*_fees')
+    chain_share: Gini[PartsPerMillion32] = _at(Gini, '*_chain_share')
+    fee_share: FeeShare = _at(FeeShare, '*_fee_share')
+
+
+class OpReturn(_Node):
+    raw: OpReturnRaw = _at(OpReturnRaw, 'index')
+    total: Total = _at(Total, '*')
+    by_kind: ByKind[ByKindDataBytes[NewAll[StoredU64]], ByKindDataBytes[DataBytesAscribe], ByKindDataBytes[NewAll[VSize]], ByKindFees] = _at((ByKind, (ByKindDataBytes, NewAll), (ByKindDataBytes, DataBytesAscribe), (ByKindDataBytes, NewAll), ByKindFees), '*')
+    policy: ByKind[PolicyDataBytes[NewAll[StoredU64]], PolicyDataBytes[DataBytesAscribe], PolicyDataBytes[NewAll[VSize]], PolicyFees] = _at((ByKind, (PolicyDataBytes, NewAll), (PolicyDataBytes, DataBytesAscribe), (PolicyDataBytes, NewAll), PolicyFees), '*_policy')
+
+
+class OutputsByTypeTxShare(_Node):
+    p2pk65: FeeShare = _at(FeeShare, '*_p2pk65_output')
+    p2pk33: FeeShare = _at(FeeShare, '*_p2pk33_output')
+    p2pkh: FeeShare = _at(FeeShare, '*_p2pkh_output')
+    p2ms: FeeShare = _at(FeeShare, '*_p2ms_output')
+    p2sh: FeeShare = _at(FeeShare, '*_p2sh_output')
+    p2wpkh: FeeShare = _at(FeeShare, '*_p2wpkh_output')
+    p2wsh: FeeShare = _at(FeeShare, '*_p2wsh_output')
+    p2tr: FeeShare = _at(FeeShare, '*_p2tr_output')
+    p2a: FeeShare = _at(FeeShare, '*_p2a_output')
+    unknown: FeeShare = _at(FeeShare, '*_unknown_outputs_output')
+    empty: FeeShare = _at(FeeShare, '*_empty_outputs_output')
+    op_return: FeeShare = _at(FeeShare, '*_op_return_output')
+
+
+class OutputShare(_Node):
+    p2pk65: FeeShare = _at(FeeShare, 'p2pk65_*')
+    p2pk33: FeeShare = _at(FeeShare, 'p2pk33_*')
+    p2pkh: FeeShare = _at(FeeShare, 'p2pkh_*')
+    p2ms: FeeShare = _at(FeeShare, 'p2ms_*')
+    p2sh: FeeShare = _at(FeeShare, 'p2sh_*')
+    p2wpkh: FeeShare = _at(FeeShare, 'p2wpkh_*')
+    p2wsh: FeeShare = _at(FeeShare, 'p2wsh_*')
+    p2tr: FeeShare = _at(FeeShare, 'p2tr_*')
+    p2a: FeeShare = _at(FeeShare, 'p2a_*')
+    unknown: FeeShare = _at(FeeShare, 'unknown_outputs_*')
+    empty: FeeShare = _at(FeeShare, 'empty_outputs_*')
+    op_return: FeeShare = _at(FeeShare, 'op_return_*')
+
+
+class OutputsByType(_Node):
+    output_count: OutputCount = _at(OutputCount, '*_count')
+    spendable_output_count: NewAll[StoredU64] = _at(NewAll, 'spendable_*_count')
+    output_share: OutputShare = _at(OutputShare, '*_share')
+    tx_count: OutputsByTypeTxCount = _at(OutputsByTypeTxCount, 'tx_count')
+    tx_share: OutputsByTypeTxShare = _at(OutputsByTypeTxShare, 'tx_share_with')
+
+
+class Outputs(_Node):
+    raw: OutputsRaw = _at(OutputsRaw, 'type')
+    spent: Spent = _at(Spent, 'txin_index')
+    count: OutputsCount[InputsCount] = _at((OutputsCount, InputsCount), '*_count')
+    per_sec: PerSec[StoredF32] = _at(PerSec, 'outputs_per_sec')
+    by_type: OutputsByType = _at(OutputsByType, '*')
+    value: OutputsValue = _at(OutputsValue, 'op_return_value')
+
+
+class InputsByTypeTxShare(_Node):
+    p2pk65: FeeShare = _at(FeeShare, '*_p2pk65_prevout')
+    p2pk33: FeeShare = _at(FeeShare, '*_p2pk33_prevout')
+    p2pkh: FeeShare = _at(FeeShare, '*_p2pkh_prevout')
+    p2ms: FeeShare = _at(FeeShare, '*_p2ms_prevout')
+    p2sh: FeeShare = _at(FeeShare, '*_p2sh_prevout')
+    p2wpkh: FeeShare = _at(FeeShare, '*_p2wpkh_prevout')
+    p2wsh: FeeShare = _at(FeeShare, '*_p2wsh_prevout')
+    p2tr: FeeShare = _at(FeeShare, '*_p2tr_prevout')
+    p2a: FeeShare = _at(FeeShare, '*_p2a_prevout')
+    unknown: FeeShare = _at(FeeShare, '*_unknown_outputs_prevout')
+    empty: FeeShare = _at(FeeShare, '*_empty_outputs_prevout')
+
+
+class Sd24h(_Node, Generic[A]):
+    _24h: A = _at(0, '*_24h')
+    _1w: A = _at(0, '*_1w')
+    _1m: A = _at(0, '*_1m')
+    _1y: A = _at(0, '*_1y')
+
+
+class Returns(_Node):
+    periods: MarketLookback[Gini[PartsPerMillionSigned64]] = _at((MarketLookback, Gini), '*_return')
+    cagr: Cagr = _at(Cagr, '*_cagr')
+    sd_24h: Sd24h[Sd24h1m] = _at((Sd24h, Sd24h1m), '')
+
+
+class Market(_Node):
+    ath: Ath = _at(Ath, '*')
+    lookback: MarketLookback[Spot[SatsFract]] = _at((MarketLookback, Spot), '*_past')
+    returns: Returns = _at(Returns, '*')
+    volatility: PerSec[StoredF32] = _at(PerSec, '*_volatility')
+    range: Range = _at(Range, '*')
+    moving_average: MovingAverage = _at(MovingAverage, '*')
+    technical: Technical = _at(Technical, '24h')
+
+
+class RewardsFees(_Node):
+    block: BurnedBlock = _at(BurnedBlock, '*')
+    cumulative: Circulating[Sats, Cents] = _at(Circulating, '*_cumulative')
+    sum: Sd24h[Circulating[Sats, Cents]] = _at((Sd24h, Circulating), '*_sum')
+    average: Sd24h[Circulating[StoredF32, StoredF32]] = _at((Sd24h, Circulating), '*_average')
+    min: Sd24h[Circulating[Sats, Cents]] = _at((Sd24h, Circulating), '*_min')
+    max: Sd24h[Circulating[Sats, Cents]] = _at((Sd24h, Circulating), '*_max')
+    pct10: Sd24h[Circulating[Sats, Cents]] = _at((Sd24h, Circulating), '*_pct10')
+    pct25: Sd24h[Circulating[Sats, Cents]] = _at((Sd24h, Circulating), '*_pct25')
+    median: Sd24h[Circulating[Sats, Cents]] = _at((Sd24h, Circulating), '*_median')
+    pct75: Sd24h[Circulating[Sats, Cents]] = _at((Sd24h, Circulating), '*_pct75')
+    pct90: Sd24h[Circulating[Sats, Cents]] = _at((Sd24h, Circulating), '*_pct90')
+    dominance: FeeShare = _at(FeeShare, 'fee_dominance')
+    to_subsidy: Sd24h[Gini[PartsPerMillion64]] = _at((Sd24h, Gini), 'fee_to_subsidy')
+
+
+class Subsidy(_Node):
+    block: BurnedBlock = _at(BurnedBlock, '*')
+    cumulative: Circulating[Sats, Cents] = _at(Circulating, '*_cumulative')
+    sum: Sd24h[Circulating[Sats, Cents]] = _at((Sd24h, Circulating), '*_sum')
+    average: Sd24h[Circulating[StoredF32, StoredF32]] = _at((Sd24h, Circulating), '*_average')
+    dominance: FeeShare = _at(FeeShare, '*_dominance')
+
+
+class RealizedLoss0sats(_Node):
+    block: RealizedLoss0satsBlock[Cents] = _at(RealizedLoss0satsBlock, '*')
+    cumulative: CoinflowCap[Cents] = _at(CoinflowCap, '*_cumulative')
+    sum: Sd24h[CoinflowCap[Cents]] = _at((Sd24h, CoinflowCap), '*_sum')
+
+
+class DeltaAll(_Node, Generic[A]):
+    absolute: A = _at(0, '*')
+    rate: AllRate = _at(AllRate, '*')
+
+
+class MarketCap(_Node):
+    usd: SeriesPattern1[Dollars] = _at(SeriesPattern1, '*')
+    cents: SeriesPattern1[Cents] = _at(SeriesPattern1, '*_cents')
+    delta: DeltaAll[Sd24h[CoinflowCap[CentsSigned]]] = _at((DeltaAll, (Sd24h, CoinflowCap)), '*_delta')
+
+
+class Supply(_Node):
+    circulating: Circulating[Sats, Cents] = _at(Circulating, 'circulating_*')
+    burned: Burned = _at(Burned, 'unspendable_*')
+    inflation_rate: Gini[PartsPerMillionSigned64] = _at(Gini, 'inflation_rate')
+    velocity: Velocity = _at(Velocity, 'velocity')
+    market_cap: MarketCap = _at(MarketCap, 'market_cap')
+    market_minus_realized_cap_growth_rate: PerSec[PartsPerMillionSigned64] = _at(PerSec, 'market_minus_realized_cap_growth_rate')
+    hodled_or_lost: Circulating[Sats, Cents] = _at(Circulating, 'hodled_or_lost_*')
+
+
+class AllSupply(_Node):
+    total: Circulating[Sats, Cents] = _at(Circulating, '*')
+    in_profit: Circulating[Sats, Cents] = _at(Circulating, '*_in_profit')
+    in_loss: Circulating[Sats, Cents] = _at(Circulating, '*_in_loss')
+    delta: DeltaAll[Sd24h[Absolute1m]] = _at((DeltaAll, (Sd24h, Absolute1m)), '*_delta')
+
+
+class Age10yTo12y(_Node):
+    block: RealizedLoss0satsBlock[CentsSigned] = _at(RealizedLoss0satsBlock, '*')
+    cumulative: CoinflowCap[CentsSigned] = _at(CoinflowCap, '*_cumulative')
+    sum: Sd24h[CoinflowCap[CentsSigned]] = _at((Sd24h, CoinflowCap), '*_sum')
+    delta: DeltaAll[Sd24h[CoinflowCap[CentsSigned]]] = _at((DeltaAll, (Sd24h, CoinflowCap)), '*_delta')
+
+
+class AvgBalance(_Node, Generic[A]):
+    all: A = _at(0, '*')
+    p2pk65: A = _at(0, 'p2pk65_*')
+    p2pk33: A = _at(0, 'p2pk33_*')
+    p2pkh: A = _at(0, 'p2pkh_*')
+    p2sh: A = _at(0, 'p2sh_*')
+    p2wpkh: A = _at(0, 'p2wpkh_*')
+    p2wsh: A = _at(0, 'p2wsh_*')
+    p2tr: A = _at(0, 'p2tr_*')
+    p2a: A = _at(0, 'p2a_*')
+
+
+class ExposedSupply(_Node):
+    all: Circulating[Sats, Cents] = _at(Circulating, '*')
+    p2pk65: Circulating[Sats, Cents] = _at(Circulating, 'p2pk65_*')
+    p2pk33: Circulating[Sats, Cents] = _at(Circulating, 'p2pk33_*')
+    p2pkh: Circulating[Sats, Cents] = _at(Circulating, 'p2pkh_*')
+    p2sh: Circulating[Sats, Cents] = _at(Circulating, 'p2sh_*')
+    p2wpkh: Circulating[Sats, Cents] = _at(Circulating, 'p2wpkh_*')
+    p2wsh: Circulating[Sats, Cents] = _at(Circulating, 'p2wsh_*')
+    p2tr: Circulating[Sats, Cents] = _at(Circulating, 'p2tr_*')
+    p2a: Circulating[Sats, Cents] = _at(Circulating, 'p2a_*')
+    share: AvgBalance[Gini[PartsPerMillion32]] = _at((AvgBalance, Gini), '*_share')
+
+
+class Exposed(_Node):
+    count: ExposedCount = _at(ExposedCount, '*_count')
+    supply: ExposedSupply = _at(ExposedSupply, '*_supply')
+
+
+class Events(_Node):
+    output_to_reused_addr_count: AvgBalance[NewAll[StoredU64]] = _at((AvgBalance, NewAll), 'output_to_*_count')
+    output_to_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'output_to_*_share')
+    spendable_output_to_reused_addr_share: FeeShare = _at(FeeShare, 'spendable_output_to_*_share')
+    input_from_reused_addr_count: AvgBalance[NewAll[StoredU64]] = _at((AvgBalance, NewAll), 'input_from_*_count')
+    input_from_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'input_from_*_share')
+    active_reused_addr_count: Interval[StoredU32] = _at(Interval, 'active_*_count')
+    active_reused_addr_share: Interval[StoredF32] = _at(Interval, 'active_*_share')
+
+
+class Respent(_Node):
+    count: ExposedCount = _at(ExposedCount, '*_count')
+    events: Events = _at(Events, '*')
+    supply: ExposedSupply = _at(ExposedSupply, '*_supply')
+
+
+class AddrsActivity(_Node):
+    reactivated: AvgBalance[Interval[StoredU32]] = _at((AvgBalance, Interval), 'reactivated_*')
+    sending: AvgBalance[Interval[StoredU32]] = _at((AvgBalance, Interval), 'sending_*')
+    receiving: AvgBalance[Interval[StoredU32]] = _at((AvgBalance, Interval), 'receiving_*')
+    bidirectional: AvgBalance[Interval[StoredU32]] = _at((AvgBalance, Interval), 'bidirectional_*')
+    active: AvgBalance[Interval[StoredU32]] = _at((AvgBalance, Interval), 'active_*')
+
+
+class UtxoCount0sats(_Node):
+    base: SeriesPattern1[StoredU64] = _at(SeriesPattern1, '*')
+    delta: DeltaAll[PerSec[StoredI64]] = _at((DeltaAll, PerSec), '*_delta')
+
+
+class AllOutputs(_Node):
+    unspent_count: UtxoCount0sats = _at(UtxoCount0sats, '*_utxo_count')
+    spent_count: NewAll[StoredU64] = _at(NewAll, '*_spent_utxo_count')
+
+
+class Supply0sats(_Node):
+    total: Circulating[Sats, Cents] = _at(Circulating, '*')
+    delta: DeltaAll[Sd24h[Absolute1m]] = _at((DeltaAll, (Sd24h, Absolute1m)), '*_delta')
+    dominance: Gini[PartsPerMillion32] = _at(Gini, '*_dominance')
+
+
+class Coinbase(_Node, Generic[A, B, C]):
+    block: A = _at(0, '*')
+    cumulative: B = _at(1, '*_cumulative')
+    sum: Sd24h[B] = _at((Sd24h, 1), '*_sum')
+    average: Sd24h[C] = _at((Sd24h, 2), '*_average')
+
+
+class AdjustedSopr(_Node):
+    ratio: PerSec[StoredF32] = _at(PerSec, '*_adjusted_sopr')
+    transfer_volume: Coinbase[RealizedLoss0satsBlock[Cents], CoinflowCap[Cents], CoinflowCap[StoredF32]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_adj_value_created')
+    value_destroyed: Coinbase[RealizedLoss0satsBlock[Cents], CoinflowCap[Cents], CoinflowCap[StoredF32]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_adj_value_destroyed')
+
+
+class Ratios(_Node):
+    adjusted_sopr: AdjustedSopr = _at(AdjustedSopr, '*')
+    dormancy: PerSec[StoredF32] = _at(PerSec, '*_dormancy')
+    sopr: SeriesPattern1[StoredF32] = _at(SeriesPattern1, '*_sopr_24h')
+    sopr_ratio_extended: SoprRatioExtended = _at(SoprRatioExtended, '*_sopr')
+    sell_side_risk_ratio: Sd24h[Gini[PartsPerMillion32]] = _at((Sd24h, Gini), '*_sell_side_risk_ratio')
+    profit_to_loss_ratio: PerSec[StoredF32] = _at(PerSec, '*_realized_profit_to_loss_ratio')
+
+
+class AllRealized(_Node):
+    cap: MarketCap = _at(MarketCap, '*_realized_cap')
+    price: Spot[SatsFract] = _at(Spot, '*_realized_price')
+    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, '*_capitalized_price')
+    profit: RealizedLoss0sats = _at(RealizedLoss0sats, '*_realized_profit')
+    loss: RealizedLoss0sats = _at(RealizedLoss0sats, '*_realized_loss')
+    net_pnl: Age10yTo12y = _at(Age10yTo12y, '*_net_realized_pnl')
+    value_destroyed: Coinbase[RealizedLoss0satsBlock[Cents], CoinflowCap[Cents], CoinflowCap[StoredF32]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_value_destroyed')
+    gross_pnl: RealizedLoss0sats = _at(RealizedLoss0sats, '*_realized_gross_pnl')
+    peak_regret: RealizedLoss0sats = _at(RealizedLoss0sats, '*_realized_peak_regret')
+    mvrv: RhodlRatio[PriceRatio] = _at(RhodlRatio, '*_mvrv')
+
+
+class AllActivity(_Node):
+    transfer_volume: Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_transfer_volume')
+    transfer_volume_in_profit: Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_transfer_volume_in_profit')
+    transfer_volume_in_loss: Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_transfer_volume_in_loss')
+    coindays_destroyed: NewAll[StoredF64] = _at(NewAll, '*_coindays_destroyed')
+    coinyears_destroyed: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_coinyears_destroyed')
+
+
+class CohortsAll(_Node):
+    supply: AllSupply = _at(AllSupply, '*_supply')
+    outputs: AllOutputs = _at(AllOutputs, '*')
+    activity: AllActivity = _at(AllActivity, '*')
+    realized: AllRealized = _at(AllRealized, '*')
+    unrealized: AllUnrealized = _at(AllUnrealized, '*')
+    cost_basis: CohortsAllCostBasis = _at(CohortsAllCostBasis, '*')
+    ratios: Ratios = _at(Ratios, '*')
+    relative: Relative = _at(Relative, '*')
+
+
+class DistributionAggregatedCohorts(_Node):
+    all: CohortsAll = _at(CohortsAll, '')
+    sth: CohortsAll = _at(CohortsAll, 'sth')
+    lth: CohortsAll = _at(CohortsAll, 'lth')
+    under_4m: CohortsAll = _at(CohortsAll, '*_4m')
+    under_6m: CohortsAll = _at(CohortsAll, '*_6m')
+    over_4m: CohortsAll = _at(CohortsAll, 'over_4m')
+    over_6m: CohortsAll = _at(CohortsAll, 'over_6m')
+
+
+class DistributionAggregated(_Node):
+    cohorts: DistributionAggregatedCohorts = _at(DistributionAggregatedCohorts, '*')
+
+
+class UtxoAmount(_Node, Generic[A]):
+    _0sats: A = _at(0, 'utxos_0sats_*')
+    _1sat_to_10sats: A = _at(0, 'utxos_1sat_to_10sats_*')
+    _10sats_to_100sats: A = _at(0, 'utxos_10sats_to_100sats_*')
+    _100sats_to_1k_sats: A = _at(0, 'utxos_100sats_to_1k_sats_*')
+    _1k_sats_to_10k_sats: A = _at(0, 'utxos_1k_sats_to_10k_sats_*')
+    _10k_sats_to_100k_sats: A = _at(0, 'utxos_10k_sats_to_100k_sats_*')
+    _100k_sats_to_1m_sats: A = _at(0, 'utxos_100k_sats_to_1m_sats_*')
+    _1m_sats_to_10m_sats: A = _at(0, 'utxos_1m_sats_to_10m_sats_*')
+    _10m_sats_to_1btc: A = _at(0, 'utxos_10m_sats_to_1btc_*')
+    _1btc_to_10btc: A = _at(0, 'utxos_1btc_to_10btc_*')
+    _10btc_to_100btc: A = _at(0, 'utxos_10btc_to_100btc_*')
+    _100btc_to_1k_btc: A = _at(0, 'utxos_100btc_to_1k_btc_*')
+    _1k_btc_to_10k_btc: A = _at(0, 'utxos_1k_btc_to_10k_btc_*')
+    _10k_btc_to_100k_btc: A = _at(0, 'utxos_10k_btc_to_100k_btc_*')
+    over_100k_btc: A = _at(0, 'utxos_over_100k_btc_*')
+
+
+class Class(_Node, Generic[A]):
+    _2009: A = _at(0, 'class_2009_*')
+    _2010: A = _at(0, 'class_2010_*')
+    _2011: A = _at(0, 'class_2011_*')
+    _2012: A = _at(0, 'class_2012_*')
+    _2013: A = _at(0, 'class_2013_*')
+    _2014: A = _at(0, 'class_2014_*')
+    _2015: A = _at(0, 'class_2015_*')
+    _2016: A = _at(0, 'class_2016_*')
+    _2017: A = _at(0, 'class_2017_*')
+    _2018: A = _at(0, 'class_2018_*')
+    _2019: A = _at(0, 'class_2019_*')
+    _2020: A = _at(0, 'class_2020_*')
+    _2021: A = _at(0, 'class_2021_*')
+    _2022: A = _at(0, 'class_2022_*')
+    _2023: A = _at(0, 'class_2023_*')
+    _2024: A = _at(0, 'class_2024_*')
+    _2025: A = _at(0, 'class_2025_*')
+    _2026: A = _at(0, 'class_2026_*')
+
+
+class CoindaysDestroyedEpoch(_Node, Generic[A]):
+    _0: A = _at(0, 'epoch_0_*')
+    _1: A = _at(0, 'epoch_1_*')
+    _2: A = _at(0, 'epoch_2_*')
+    _3: A = _at(0, 'epoch_3_*')
+    _4: A = _at(0, 'epoch_4_*')
+
+
+class Antpool(_Node):
+    blocks_mined: BlocksMined = _at(BlocksMined, '*_blocks_mined')
+    dominance: FeeShare = _at(FeeShare, '*_dominance')
+    rewards: Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_rewards')
+
+
+class Major(_Node):
+    unknown: Antpool = _at(Antpool, '*')
+    luxor: Antpool = _at(Antpool, 'luxor')
+    btccom: Antpool = _at(Antpool, 'btccom')
+    btctop: Antpool = _at(Antpool, 'btctop')
+    btcguild: Antpool = _at(Antpool, 'btcguild')
+    eligius: Antpool = _at(Antpool, 'eligius')
+    f2pool: Antpool = _at(Antpool, 'f2pool')
+    braiinspool: Antpool = _at(Antpool, 'braiinspool')
+    antpool: Antpool = _at(Antpool, 'antpool')
+    btcc: Antpool = _at(Antpool, 'btcc')
+    bwpool: Antpool = _at(Antpool, 'bwpool')
+    bitfury: Antpool = _at(Antpool, 'bitfury')
+    viabtc: Antpool = _at(Antpool, 'viabtc')
+    poolin: Antpool = _at(Antpool, 'poolin')
+    spiderpool: Antpool = _at(Antpool, 'spiderpool')
+    binancepool: Antpool = _at(Antpool, 'binancepool')
+    foundryusa: Antpool = _at(Antpool, 'foundryusa')
+    sbicrypto: Antpool = _at(Antpool, 'sbicrypto')
+    marapool: Antpool = _at(Antpool, 'marapool')
+    secpool: Antpool = _at(Antpool, 'secpool')
+    ocean: Antpool = _at(Antpool, 'ocean')
+    whitepool: Antpool = _at(Antpool, 'whitepool')
+
+
+class Pools(_Node):
+    pool: SeriesPattern18[PoolSlug] = _at(SeriesPattern18, '*')
+    major: Major = _at(Major, 'unknown')
+    minor: Minor = _at(Minor, 'blockfills')
+
+
+class Matured(_Node, Generic[A]):
+    under_1h: A = _at(0, 'utxos_under_1h_*')
+    _1h_to_1d: A = _at(0, 'utxos_1h_to_1d_*')
+    _1d_to_1w: A = _at(0, 'utxos_1d_to_1w_*')
+    _1w_to_1m: A = _at(0, 'utxos_1w_to_1m_*')
+    _1m_to_2m: A = _at(0, 'utxos_1m_to_2m_*')
+    _2m_to_3m: A = _at(0, 'utxos_2m_to_3m_*')
+    _3m_to_4m: A = _at(0, 'utxos_3m_to_4m_*')
+    _4m_to_5m: A = _at(0, 'utxos_4m_to_5m_*')
+    _5m_to_6m: A = _at(0, 'utxos_5m_to_6m_*')
+    _6m_to_9m: A = _at(0, 'utxos_6m_to_9m_*')
+    _9m_to_1y: A = _at(0, 'utxos_9m_to_1y_*')
+    _1y_to_18m: A = _at(0, 'utxos_1y_to_18m_*')
+    _18m_to_2y: A = _at(0, 'utxos_18m_to_2y_*')
+    _2y_to_3y: A = _at(0, 'utxos_2y_to_3y_*')
+    _3y_to_4y: A = _at(0, 'utxos_3y_to_4y_*')
+    _4y_to_5y: A = _at(0, 'utxos_4y_to_5y_*')
+    _5y_to_6y: A = _at(0, 'utxos_5y_to_6y_*')
+    _6y_to_7y: A = _at(0, 'utxos_6y_to_7y_*')
+    _7y_to_8y: A = _at(0, 'utxos_7y_to_8y_*')
+    _8y_to_10y: A = _at(0, 'utxos_8y_to_10y_*')
+    _10y_to_12y: A = _at(0, 'utxos_10y_to_12y_*')
+    _12y_to_15y: A = _at(0, 'utxos_12y_to_15y_*')
+    over_15y: A = _at(0, 'utxos_over_15y_*')
+
+
+class CoindaysDestroyed(_Node, Generic[A]):
+    age: Matured[A] = _at((Matured, 0), 'old_*')
+    epoch: CoindaysDestroyedEpoch[A] = _at((CoindaysDestroyedEpoch, 0), '*')
+    class_: Class[A] = _at((Class, 0), '*')
+
+
+class CohortsUnrealized(_Node):
+    profit: CoindaysDestroyed[CoinflowCap[Cents]] = _at((CoindaysDestroyed, CoinflowCap), '*_profit')
+    loss: CoindaysDestroyed[CoinflowCap[Cents]] = _at((CoindaysDestroyed, CoinflowCap), '*_loss')
+    net_pnl: CoindaysDestroyed[CoinflowCap[CentsSigned]] = _at((CoindaysDestroyed, CoinflowCap), 'net_*_pnl')
+
+
+class CoinflowAgeRangeSupply(_Node):
+    mobile: Matured[Circulating[Sats, Cents]] = _at((Matured, Circulating), '*_mobile_supply')
+    immobile: Matured[Circulating[Sats, Cents]] = _at((Matured, Circulating), '*_immobile_supply')
+
+
+class CoinflowAgeRange(_Node):
+    spending_rate: SpendingRate = _at(SpendingRate, '*_spending_rate')
+    spending_exposure: SpendingExposure = _at(SpendingExposure, '*')
+    supply: CoinflowAgeRangeSupply = _at(CoinflowAgeRangeSupply, '*')
+
+
+class Coinflow(_Node):
+    age_range: CoinflowAgeRange = _at(CoinflowAgeRange, 'old')
+    urpd: CoinflowUrpd[CoinflowUrpdLth] = _at((CoinflowUrpd, CoinflowUrpdLth), '*')
+    supply: CoinflowSupply = _at(CoinflowSupply, '')
+    cap: CoinflowCap[Cents] = _at(CoinflowCap, '*_cap')
+    price: CapitalizedPrice = _at(CapitalizedPrice, '*_price')
+    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, '*_capitalized_price')
+    sth: CoinflowLth = _at(CoinflowLth, 'sth')
+    lth: CoinflowLth = _at(CoinflowLth, 'lth')
+    under_4m_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_price')
+    under_4m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_capitalized_price')
+    under_6m_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_price')
+    under_6m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_capitalized_price')
+    over_4m_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_price')
+    over_4m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_capitalized_price')
+    over_6m_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_price')
+    over_6m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_capitalized_price')
+
+
+class CointimeAgeRangeSupply(_Node):
+    awake: Matured[Circulating[Sats, Cents]] = _at((Matured, Circulating), '*_awake_supply')
+    dormant: Matured[Circulating[Sats, Cents]] = _at((Matured, Circulating), '*_dormant_supply')
+
+
+class CointimeAgeRange(_Node):
+    coindays_consumed: Matured[NewAll[StoredF64]] = _at((Matured, NewAll), '*_coindays_consumed')
+    coindays_stored: Matured[NewAll[StoredF64]] = _at((Matured, NewAll), '*_coindays_stored')
+    activity: AgeRangeActivity = _at(AgeRangeActivity, '*')
+    supply: CointimeAgeRangeSupply = _at(CointimeAgeRangeSupply, '*')
+    coindays_created: Matured[NewAll[StoredF64]] = _at((Matured, NewAll), '*_coindays_created')
+
+
+class Cointime(_Node):
+    activity: CointimeActivity = _at(CointimeActivity, 'coinblocks')
+    age_range: CointimeAgeRange = _at(CointimeAgeRange, 'old')
+    urpd: CoinflowUrpd[CointimeUrpdLth] = _at((CoinflowUrpd, CointimeUrpdLth), 'cointime')
+    awake: Awake = _at(Awake, '*')
+    dormant: Dormant = _at(Dormant, 'dormant_supply')
+    sth: CointimeLth = _at(CointimeLth, 'sth')
+    lth: CointimeLth = _at(CointimeLth, 'lth')
+    under_4m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_price')
+    under_4m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_capitalized_price')
+    under_6m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_price')
+    under_6m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_capitalized_price')
+    over_4m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_price')
+    over_4m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_capitalized_price')
+    over_6m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_price')
+    over_6m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_capitalized_price')
+    supply: CointimeSupply = _at(CointimeSupply, 'supply')
+    value: CointimeValue = _at(CointimeValue, 'cointime_value')
+    cap: CointimeCap = _at(CointimeCap, 'cap')
+    prices: CointimePrices = _at(CointimePrices, 'price')
+    adjusted: Adjusted = _at(Adjusted, 'cointime_adj')
+    reserve_risk: ReserveRisk = _at(ReserveRisk, 'reserve_risk')
+
+
+class Rewards(_Node):
+    coinbase: Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*')
+    subsidy: Subsidy = _at(Subsidy, 'subsidy')
+    fees: RewardsFees = _at(RewardsFees, 'fees')
+    output_volume: SeriesPattern18[Sats] = _at(SeriesPattern18, 'output_volume')
+    unclaimed: Burned = _at(Burned, 'unclaimed_rewards')
+
+
+class Mining(_Node):
+    rewards: Rewards = _at(Rewards, '*')
+    hashrate: Hashrate = _at(Hashrate, 'hash')
+
+
+class RealizedCap(_Node, Generic[A]):
+    _0sats: A = _at(0, 'addrs_0sats_*')
+    _1sat_to_10sats: A = _at(0, 'addrs_1sat_to_10sats_*')
+    _10sats_to_100sats: A = _at(0, 'addrs_10sats_to_100sats_*')
+    _100sats_to_1k_sats: A = _at(0, 'addrs_100sats_to_1k_sats_*')
+    _1k_sats_to_10k_sats: A = _at(0, 'addrs_1k_sats_to_10k_sats_*')
+    _10k_sats_to_100k_sats: A = _at(0, 'addrs_10k_sats_to_100k_sats_*')
+    _100k_sats_to_1m_sats: A = _at(0, 'addrs_100k_sats_to_1m_sats_*')
+    _1m_sats_to_10m_sats: A = _at(0, 'addrs_1m_sats_to_10m_sats_*')
+    _10m_sats_to_1btc: A = _at(0, 'addrs_10m_sats_to_1btc_*')
+    _1btc_to_10btc: A = _at(0, 'addrs_1btc_to_10btc_*')
+    _10btc_to_100btc: A = _at(0, 'addrs_10btc_to_100btc_*')
+    _100btc_to_1k_btc: A = _at(0, 'addrs_100btc_to_1k_btc_*')
+    _1k_btc_to_10k_btc: A = _at(0, 'addrs_1k_btc_to_10k_btc_*')
+    _10k_btc_to_100k_btc: A = _at(0, 'addrs_10k_btc_to_100k_btc_*')
+    over_100k_btc: A = _at(0, 'addrs_over_100k_btc_*')
+
+
+class Funded(_Node):
+    all: SeriesPattern1[StoredU64] = _at(SeriesPattern1, '*')
+    p2pk65: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2pk65_*')
+    p2pk33: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2pk33_*')
+    p2pkh: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2pkh_*')
+    p2sh: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2sh_*')
+    p2wpkh: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2wpkh_*')
+    p2wsh: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2wsh_*')
+    p2tr: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2tr_*')
+    p2a: SeriesPattern1[StoredU64] = _at(SeriesPattern1, 'p2a_*')
+    balance: RealizedCap[UtxoCount0sats] = _at((RealizedCap, UtxoCount0sats), '*')
+
+
+class ByBalance(_Node):
+    supply: RealizedCap[Supply0sats] = _at((RealizedCap, Supply0sats), 'supply')
+    utxo_count: RealizedCap[UtxoCount0sats] = _at((RealizedCap, UtxoCount0sats), 'utxo_count')
+    transfer_volume: RealizedCap[Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]]] = _at((RealizedCap, (Coinbase, BurnedBlock, Circulating, Circulating)), 'transfer_volume')
+    realized_cap: RealizedCap[CoinflowCap[Cents]] = _at((RealizedCap, CoinflowCap), '*_cap')
+    realized_profit: RealizedCap[RealizedLoss0sats] = _at((RealizedCap, RealizedLoss0sats), '*_profit')
+    realized_loss: RealizedCap[RealizedLoss0sats] = _at((RealizedCap, RealizedLoss0sats), '*_loss')
+
+
+class Addrs(_Node):
+    raw: AddrsRaw = _at(AddrsRaw, 'p2pk65')
+    state: State = _at(State, '*')
+    by_balance: ByBalance = _at(ByBalance, 'realized')
+    funded: Funded = _at(Funded, '*_count')
+    empty: AddrsEmpty = _at(AddrsEmpty, 'empty_*_count')
+    activity: AddrsActivity = _at(AddrsActivity, 'addrs')
+    total: AddrsEmpty = _at(AddrsEmpty, 'total_*_count')
+    new: AvgBalance[NewAll[StoredU64]] = _at((AvgBalance, NewAll), 'new_*_count')
+    reused: Respent = _at(Respent, 'reused_*')
+    respent: Respent = _at(Respent, 'respent_*')
+    exposed: Exposed = _at(Exposed, 'exposed_*')
+    delta: AvgBalance[DeltaAll[PerSec[StoredI64]]] = _at((AvgBalance, (DeltaAll, PerSec)), '*_count')
+    avg_balance: AvgBalance[Circulating[Sats, Cents]] = _at((AvgBalance, Circulating), 'avg_*_amount')
+
+
+class InputShare(_Node, Generic[A]):
+    p2pk65: A = _at(0, 'p2pk65_*')
+    p2pk33: A = _at(0, 'p2pk33_*')
+    p2pkh: A = _at(0, 'p2pkh_*')
+    p2ms: A = _at(0, 'p2ms_*')
+    p2sh: A = _at(0, 'p2sh_*')
+    p2wpkh: A = _at(0, 'p2wpkh_*')
+    p2wsh: A = _at(0, 'p2wsh_*')
+    p2tr: A = _at(0, 'p2tr_*')
+    p2a: A = _at(0, 'p2a_*')
+    unknown: A = _at(0, 'unknown_outputs_*')
+    empty: A = _at(0, 'empty_outputs_*')
+
+
+class RealizedPrice(_Node):
+    utxo_amount: UtxoAmount[Spot[SatsFract]] = _at((UtxoAmount, Spot), '*')
+    type_: InputShare[Spot[SatsFract]] = _at((InputShare, Spot), '*')
+
+
+class TransferVolume(_Node):
+    age: Matured[Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]]] = _at((Matured, (Coinbase, BurnedBlock, Circulating, Circulating)), 'old_*')
+    epoch: CoindaysDestroyedEpoch[Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]]] = _at((CoindaysDestroyedEpoch, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
+    class_: Class[Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]]] = _at((Class, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
+    in_profit: CoindaysDestroyed[Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]]] = _at((CoindaysDestroyed, (Coinbase, BurnedBlock, Circulating, Circulating)), '*_in_profit')
+    in_loss: CoindaysDestroyed[Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]]] = _at((CoindaysDestroyed, (Coinbase, BurnedBlock, Circulating, Circulating)), '*_in_loss')
+    utxo_amount: UtxoAmount[Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]]] = _at((UtxoAmount, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
+    type_: InputShare[Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]]] = _at((InputShare, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
+
+
+class CohortsActivity(_Node):
+    transfer_volume: TransferVolume = _at(TransferVolume, '*')
+    coindays_destroyed: CoindaysDestroyed[NewAll[StoredF64]] = _at((CoindaysDestroyed, NewAll), 'coindays_destroyed')
+
+
+class AvgAmount(_Node):
+    all: Circulating[Sats, Cents] = _at(Circulating, '*')
+    by_type: InputShare[Circulating[Sats, Cents]] = _at((InputShare, Circulating), '*')
+
+
+class SpentCount(_Node, Generic[A]):
+    age: Matured[A] = _at((Matured, 0), 'old_*')
+    epoch: CoindaysDestroyedEpoch[A] = _at((CoindaysDestroyedEpoch, 0), '*')
+    class_: Class[A] = _at((Class, 0), '*')
+    utxo_amount: UtxoAmount[A] = _at((UtxoAmount, 0), '*')
+    type_: InputShare[A] = _at((InputShare, 0), '*')
+
+
+class CohortsRealized(_Node):
+    cap: SpentCount[CoinflowCap[Cents]] = _at((SpentCount, CoinflowCap), '*_cap')
+    profit: SpentCount[RealizedLoss0sats] = _at((SpentCount, RealizedLoss0sats), '*_profit')
+    loss: SpentCount[RealizedLoss0sats] = _at((SpentCount, RealizedLoss0sats), '*_loss')
+    net_pnl: CoindaysDestroyed[Age10yTo12y] = _at((CoindaysDestroyed, Age10yTo12y), 'net_*_pnl')
+    value_destroyed: CoindaysDestroyed[Coinbase[RealizedLoss0satsBlock[Cents], CoinflowCap[Cents], CoinflowCap[StoredF32]]] = _at((CoindaysDestroyed, (Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap)), 'value_destroyed')
+    price: RealizedPrice = _at(RealizedPrice, '*_price')
+
+
+class CohortsOutputs(_Node):
+    unspent_count: SpentCount[UtxoCount0sats] = _at((SpentCount, UtxoCount0sats), '*_count')
+    spent_count: SpentCount[NewAll[StoredU64]] = _at((SpentCount, NewAll), 'spent_*_count')
+    avg_amount: AvgAmount = _at(AvgAmount, 'avg_*_amount')
+
+
+class CohortsSupply(_Node):
+    total: SpentCount[Circulating[Sats, Cents]] = _at((SpentCount, Circulating), '*')
+    matured: Matured[Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]]] = _at((Matured, (Coinbase, BurnedBlock, Circulating, Circulating)), 'old_matured_*')
+    in_profit: CoindaysDestroyed[Circulating[Sats, Cents]] = _at((CoindaysDestroyed, Circulating), '*_in_profit')
+    in_loss: CoindaysDestroyed[Circulating[Sats, Cents]] = _at((CoindaysDestroyed, Circulating), '*_in_loss')
+    delta: SpentCount[DeltaAll[Sd24h[Absolute1m]]] = _at((SpentCount, (DeltaAll, (Sd24h, Absolute1m))), '*_delta')
+    dominance: SpentCount[Gini[PartsPerMillion32]] = _at((SpentCount, Gini), '*_dominance')
+
+
+class Cohorts(_Node):
+    supply: CohortsSupply = _at(CohortsSupply, '*')
+    outputs: CohortsOutputs = _at(CohortsOutputs, 'utxo')
+    activity: CohortsActivity = _at(CohortsActivity, 'transfer_volume')
+    realized: CohortsRealized = _at(CohortsRealized, 'realized')
+    unrealized: CohortsUnrealized = _at(CohortsUnrealized, 'unrealized')
+    urpd: CohortsUrpd = _at(CohortsUrpd, 'utxos_urpd')
+
+
+class InputsByType(_Node):
+    input_count: InputCount = _at(InputCount, '*')
+    input_share: InputShare[FeeShare] = _at((InputShare, FeeShare), 'prevout_share')
+    tx_count: InputsByTypeTxCount = _at(InputsByTypeTxCount, 'tx_*')
+    tx_share: InputsByTypeTxShare = _at(InputsByTypeTxShare, 'tx_share_with')
+
+
+class Inputs(_Node):
+    raw: InputsRaw = _at(InputsRaw, 'index')
+    value: SeriesPattern20[Sats] = _at(SeriesPattern20, 'value')
+    count: InputsCount = _at(InputsCount, 'input_*')
+    per_sec: PerSec[StoredF32] = _at(PerSec, 'inputs_per_sec')
+    by_type: InputsByType = _at(InputsByType, '*')
+
+
+class Volume(_Node):
+    transfer_volume: Coinbase[BurnedBlock, Circulating[Sats, Cents], Circulating[StoredF32, StoredF32]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*')
+    tx_per_sec: PerSec[StoredF32] = _at(PerSec, 'tx_per_sec')
+
+
+class Inscription(_Node):
+    count: NewAll[StoredU64] = _at(NewAll, 'tx_count_*')
+    fees: NewAll[Sats] = _at(NewAll, '*_fees')
+    fee_share: Gini[PartsPerMillion32] = _at(Gini, '*_fee_share')
+
+
+class Transactions(_Node):
+    raw: TransactionsRaw = _at(TransactionsRaw, '*')
+    features: Features = _at(Features, 'has')
+    count: OutputsCount[Vbytes] = _at((OutputsCount, Vbytes), '*_count')
+    size: TransactionsSize = _at(TransactionsSize, '*')
+    fees: TransactionsFees = _at(TransactionsFees, 'fee')
+    inscription: Inscription = _at(Inscription, 'inscription')
+    patterns: Patterns = _at(Patterns, 'is')
+    policy: Policy = _at(Policy, 'nonstandard')
+    sigops: OutputsCount[NewAll[StoredU64]] = _at((OutputsCount, NewAll), 'total_sigop_cost')
+    versions: Versions = _at(Versions, '*')
+    volume: Volume = _at(Volume, 'transfer_volume_bis')
+
+
+class Difficulty(_Node):
+    value: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*')
+    hashrate: SeriesPattern1[StoredF64] = _at(SeriesPattern1, '*_hashrate')
+    adjustment: Gini[PartsPerMillionSigned32] = _at(Gini, '*_adjustment')
+    epoch: SeriesPattern1[Epoch] = _at(SeriesPattern1, '*_epoch')
+    blocks_to_retarget: SeriesPattern1[StoredU32] = _at(SeriesPattern1, 'blocks_to_retarget')
+    days_to_retarget: SeriesPattern1[StoredF32] = _at(SeriesPattern1, 'days_to_retarget')
+
+
+class Blocks(_Node):
+    blockhash: SeriesPattern18[BlockHash] = _at(SeriesPattern18, 'blockhash')
+    coinbase_tag: SeriesPattern18[CoinbaseTag] = _at(SeriesPattern18, 'coinbase_tag')
+    difficulty: Difficulty = _at(Difficulty, 'difficulty')
+    time: Time = _at(Time, 'timestamp')
+    size: BlocksSize = _at(BlocksSize, 'size')
+    weight: BlocksWeight = _at(BlocksWeight, '*_weight')
+    segwit_txs: SeriesPattern18[StoredU32] = _at(SeriesPattern18, 'segwit_txs')
+    segwit_size: SeriesPattern18[StoredU64] = _at(SeriesPattern18, 'segwit_size')
+    segwit_weight: SeriesPattern18[Weight] = _at(SeriesPattern18, 'segwit_weight')
+    count: BlocksCount = _at(BlocksCount, '*_count')
+    lookback: BlocksLookback = _at(BlocksLookback, 'height')
+    interval: Interval[Timestamp] = _at(Interval, '*_interval')
+    vbytes: Vbytes = _at(Vbytes, '*_vbytes')
+    fullness: Fullness = _at(Fullness, '*_fullness')
+    halving: BlocksHalving = _at(BlocksHalving, 'halving')
+
+
+class SeriesTree(_Node):
+    blocks: Blocks = _at(Blocks, 'block')
+    transactions: Transactions = _at(Transactions, 'tx')
+    inputs: Inputs = _at(Inputs, 'count')
+    outputs: Outputs = _at(Outputs, 'output')
+    addrs: Addrs = _at(Addrs, 'addr')
+    scripts: Scripts = _at(Scripts, 'index')
+    op_return: OpReturn = _at(OpReturn, 'op_return')
+    mining: Mining = _at(Mining, 'coinbase')
+    cointime: Cointime = _at(Cointime, 'awake')
+    coinflow: Coinflow = _at(Coinflow, 'coinflow')
+    bedrock: Bedrock = _at(Bedrock, 'bedrock')
+    capital_sentiment: CapitalSentiment = _at(CapitalSentiment, 'capital_sentiment')
+    rarity_meter: RarityMeter = _at(RarityMeter, 'rarity_meter')
+    constants: Constants = _at(Constants, 'constant')
+    mappings: Mappings = _at(Mappings, 'date')
+    indicators: Indicators = _at(Indicators, 'destroyed_supply_adj')
+    market: Market = _at(Market, 'price')
+    pools: Pools = _at(Pools, 'pool')
+    price: Price = _at(Price, 'price')
+    cohorts: Cohorts = _at(Cohorts, 'supply')
+    distribution_aggregated: DistributionAggregated = _at(DistributionAggregated, 'under')
+    supply: Supply = _at(Supply, 'supply')
+    utxo_history: UtxoHistory = _at(UtxoHistory, 'unspent_sats')
+
 
 class BitviewClient(BitviewClientBase):
     """Main Bitview client with series tree and API methods."""
@@ -9985,7 +6409,7 @@ class BitviewClient(BitviewClientBase):
 
     @cached_property
     def series(self) -> SeriesTree:
-        return SeriesTree(self)
+        return SeriesTree(self, '')
 
     def series_endpoint(self, series: str, index: Index) -> SeriesEndpoint[Any]:
         """Create a dynamic series endpoint builder for any series/index combination.

@@ -18,7 +18,6 @@ struct StructAttr {
     merge: bool,
     transparent: bool,
     hidden: bool,
-    field_suffixes: bool,
     wrap: Option<String>,
 }
 
@@ -34,7 +33,6 @@ fn get_struct_attr(attrs: &[Attribute]) -> StructAttr {
                 "merge" => result.merge = true,
                 "transparent" => result.transparent = true,
                 "hidden" => result.hidden = true,
-                "field_suffixes" => result.field_suffixes = true,
                 _ => {}
             }
             continue;
@@ -504,12 +502,6 @@ fn gen_traversable(input: &DeriveInput) -> ProcMacro2TokenStream {
         quote! { bitview_traversable::TreeNode::branch(bitview_traversable::IndexMap::new()) }
     } else {
         field_traversals
-    };
-
-    let to_tree_node_body = if struct_attr.field_suffixes {
-        quote! { { #to_tree_node_body }.with_field_suffixes() }
-    } else {
-        to_tree_node_body
     };
 
     quote! {

@@ -23,14 +23,6 @@ impl TreeNode {
         Self::Branch(children.into())
     }
 
-    /// Declare naming before wrapping or combining this family with other nodes.
-    pub fn with_field_suffixes(mut self) -> Self {
-        if let Self::Branch(branch) = &mut self {
-            branch.field_suffixes = true;
-        }
-        self
-    }
-
     /// Count all series leaves in this subtree.
     pub fn leaf_count(&self) -> usize {
         match self {
@@ -115,13 +107,6 @@ impl TreeNode {
 
         let mut merged = TreeBranch::default();
 
-        // Lifting only field-suffixed branches preserves their naming contract.
-        // Undeclared branches or direct leaves do not supply that guarantee.
-        let field_suffixes = !tree.is_empty()
-            && tree
-                .values()
-                .all(|node| matches!(node, Self::Branch(branch) if branch.field_suffixes));
-
         for (key, node) in tree.children {
             match node {
                 Self::Leaf(leaf) => {
@@ -136,12 +121,7 @@ impl TreeNode {
         }
 
         // If all children are leaves with the same series name, collapse into single leaf
-        let node = Self::try_collapse_same_name_leaves(merged);
-        if field_suffixes {
-            node.with_field_suffixes()
-        } else {
-            node
-        }
+        Self::try_collapse_same_name_leaves(merged)
     }
 
     /// If all entries in the map are leaves with the same series name,
@@ -207,12 +187,10 @@ impl TreeNode {
                 new_branch.merge_fields(branch);
             }
             (Self::Branch(existing_branch), Self::Leaf(leaf)) => {
-                existing_branch.field_suffixes = false;
                 Self::merge_node(existing_branch, BASE.to_string(), Self::Leaf(leaf));
             }
             // Both branches: merge recursively
             (Self::Branch(existing_branch), Self::Branch(new_inner)) => {
-                existing_branch.field_suffixes &= new_inner.field_suffixes;
                 existing_branch.merge_fields(new_inner);
             }
         }

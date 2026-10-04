@@ -303,8 +303,8 @@ export function exposedSubtree(exposed, key, title) {
 
 /**
  * Windowed reused/respent counts with sums and optional averages.
- * @param {CountPattern<number>} reused
- * @param {CountPattern<number>} respent
+ * @param {CountPattern} reused
+ * @param {CountPattern} respent
  * @param {(name: string) => string} title
  * @param {string} metric
  * @returns {PartialOptionsTree}

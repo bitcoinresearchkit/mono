@@ -55,13 +55,18 @@ endpoint at [mcp.bitview.space](https://mcp.bitview.space/).
 
 ## Built On
 
-The Rust client is generated directly from the catalog tree and exact series
-names; it never reconstructs series names from prefixes and suffixes. A record
-family is structural: its ordered fields, with fields of the same projected type
-sharing one generic parameter. Each family is named `Catalog` plus the tail of
-its shallowest catalog path, using as many trailing segments as needed to be
-unique, so names never depend on Rust module paths. JavaScript and Python use
-the pattern-inference pipeline.
+JavaScript and Python render the series tree from one composition model
+(`model`). Every branch is an instance of a *shape*: its ordered child keys,
+leaf index sets and one naming rule per child. A rule derives the child's series
+name (a leaf) or base (a branch) from the parent's base, as a template such as
+`*_sum` or a literal name. Each shape is emitted once, as a generic type with
+one builder, and clients compose names when a child is first accessed. Child
+types come from anti-unification over all instances. Shapes are named after the
+PascalCase tail of their shallowest path. Generation asserts that composing
+every name from the root, exactly as the clients do, reproduces the catalog.
+
+The Rust client is still generated from the catalog tree with exact series
+names (a record family per structure, plus a table of names).
 
 Whatever the generator, every client exposes the same typed paths
 (`series.a.b.c`): `client_paths` lists them, and

@@ -72,28 +72,111 @@ impl ClientOutputPaths {
     }
 }
 
-mod analysis;
-mod backends;
 mod catalog;
 mod client_paths;
 mod generate;
 mod generators;
+mod model;
 mod openapi;
-mod syntax;
 mod types;
 
-pub(crate) use analysis::*;
-pub(crate) use backends::*;
+#[cfg(test)]
+mod tests;
+
 pub use catalog::*;
 pub use client_paths::*;
 pub(crate) use generators::*;
 pub use openapi::*;
-pub(crate) use syntax::*;
 pub use types::*;
 
 use generate::*;
 
 pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Names the clients and their languages define, which series-tree shapes must not take (schema
+/// type names and type-parameter letters are reserved as well).
+const RUNTIME_TYPE_NAMES: &[&str] = &[
+    // Client runtimes.
+    "AnyDateSeriesData",
+    "AnyDateSeriesEndpoint",
+    "AnySeriesData",
+    "AnySeriesEndpoint",
+    "AnySeriesPattern",
+    "BitviewClient",
+    "BitviewClientBase",
+    "BitviewClientOptions",
+    "BitviewError",
+    "ClientFetchOptions",
+    "DateIndex",
+    "DateRangeBuilder",
+    "DateSeriesData",
+    "DateSeriesDataExtras",
+    "DateSeriesEndpoint",
+    "DateSeriesFetchArg",
+    "DateSingleItemBuilder",
+    "DateSkippedBuilder",
+    "DateThenable",
+    "LazyNode",
+    "Node",
+    "RangeBuilder",
+    "SeriesData",
+    "SeriesDataBase",
+    "SeriesEndpoint",
+    "SeriesFetchArg",
+    "SeriesPattern",
+    "SingleItemBuilder",
+    "SkippedBuilder",
+    "Thenable",
+    // JavaScript globals.
+    "Array",
+    "ArrayBuffer",
+    "BigInt",
+    "Date",
+    "Error",
+    "Map",
+    "Object",
+    "Promise",
+    "Record",
+    "Set",
+    "Uint8Array",
+    // Python keywords and imports.
+    "Any",
+    "Callable",
+    "Dict",
+    "False",
+    "Generic",
+    "HTTPConnection",
+    "HTTPSConnection",
+    "Iterator",
+    "List",
+    "Literal",
+    "None",
+    "Optional",
+    "Protocol",
+    "T",
+    "True",
+    "Tuple",
+    "TypeVar",
+    "TypedDict",
+    "Union",
+    // Rust keywords, prelude and imports.
+    "Arc",
+    "Bound",
+    "Box",
+    "DeserializeOwned",
+    "Err",
+    "FromStr",
+    "LazyLock",
+    "Ok",
+    "OnceLock",
+    "Option",
+    "RangeBounds",
+    "Result",
+    "Self",
+    "Some",
+    "String",
+    "Vec",
+];
 
 /// Generate all client libraries from a series catalog and OpenAPI JSON.
 ///
@@ -149,22 +232,42 @@ pub fn generate_clients(
         generate_cli(&endpoints, cli_path)?;
     }
 
-    // Generate JavaScript client (needs schemas for type definitions)
+    // JavaScript and Python share the series-tree model and its shape names.
     if output_paths.javascript.is_some() || output_paths.python.is_some() {
-        let metadata = ClientMetadata::from_catalog(catalog.clone());
+        let accessors = detect_index_patterns(catalog);
+        let model = model::Model::build(catalog);
+        let reserved = schemas
+            .keys()
+            .cloned()
+            .chain(RUNTIME_TYPE_NAMES.iter().map(|&name| name.to_owned()))
+            .chain(accessors.iter().map(|pattern| pattern.name.clone()))
+            .collect();
+        let shape_names = model.shape_names(&reserved);
         if let Some(js_path) = &output_paths.javascript {
             if let Some(parent) = js_path.parent() {
                 create_dir_all(parent)?;
             }
-            generate_javascript_client(&metadata, &endpoints, &schemas, js_path)?;
+            generate_javascript_client(
+                &model,
+                &shape_names,
+                &accessors,
+                &endpoints,
+                &schemas,
+                js_path,
+            )?;
         }
-
-        // Generate Python client (needs schemas for type definitions)
         if let Some(python_path) = &output_paths.python {
             if let Some(parent) = python_path.parent() {
                 create_dir_all(parent)?;
             }
-            generate_python_client(&metadata, &endpoints, &schemas, python_path)?;
+            generate_python_client(
+                &model,
+                &shape_names,
+                &accessors,
+                &endpoints,
+                &schemas,
+                python_path,
+            )?;
         }
     }
 

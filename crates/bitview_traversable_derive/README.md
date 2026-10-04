@@ -18,14 +18,6 @@ Struct attributes support `merge`, `transparent`, `hidden`, and `wrap =
 "path"`. Single-field tuple structs delegate transparently. Named fields may
 be optional, and doc comments are collected as series-description fragments.
 
-Named structs can declare `#[traversable(field_suffixes)]` when each child's
-series base is `<parent base>_<catalog field key>`. `DistributionStats` is the
-first family using this contract. It stays in the internal catalog through
-wrapping and merges of declared branches, but is discarded when a merge mixes
-in undeclared branches or direct leaves. It does not change catalog JSON or its
-schema. Client generation uses the declared field keys directly and rejects
-inconsistent names instead of inferring another naming convention.
-
 ```rust,ignore
 #[derive(Traversable)]
 struct Metrics<M: StorageMode = Rw> {

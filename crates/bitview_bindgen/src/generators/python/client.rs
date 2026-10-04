@@ -1,11 +1,8 @@
-//! Python base client and pattern factory generation.
+//! Python base client and leaf accessors.
 
 use std::fmt::Write;
 
-use crate::{
-    ClientConstants, ClientMetadata, IndexSetPattern, PythonSyntax, StructuralPattern,
-    cohort_constants, format_json, generate_parameterized_field, index_to_field_name,
-};
+use crate::{ClientConstants, IndexSetPattern, cohort_constants, format_json, index_to_field_name};
 
 /// Generate class-level constants for the BitviewClient class.
 pub(crate) fn generate_class_constants(output: &mut String) {
@@ -129,16 +126,6 @@ class BitviewClientBase:
     def __exit__(self, exc_type: Optional[type], exc_val: Optional[BaseException], exc_tb: Optional[Any]) -> None:
         self.close()
 
-
-def _m(acc: str, s: str) -> str:
-    """Build series name with suffix."""
-    if not s: return acc
-    return f"{{acc}}_{{s}}" if acc else s
-
-
-def _p(prefix: str, acc: str) -> str:
-    """Build series name with prefix."""
-    return f"{{prefix}}_{{acc}}" if acc else prefix
 
 "#
     )
@@ -828,66 +815,6 @@ def _dep(c: BitviewClient, n: str, i: Index) -> DateSeriesEndpoint[Any]:
             idx_var
         )
         .unwrap();
-        writeln!(output).unwrap();
-    }
-}
-
-/// Generate structural pattern classes
-pub(crate) fn generate_structural_patterns(
-    output: &mut String,
-    patterns: &[StructuralPattern],
-    metadata: &ClientMetadata,
-) {
-    if patterns.is_empty() {
-        return;
-    }
-
-    writeln!(output, "# Reusable structural pattern classes\n").unwrap();
-
-    for pattern in patterns {
-        // Generate class
-        if pattern.is_generic {
-            writeln!(output, "class {}(Generic[T]):", pattern.name).unwrap();
-        } else {
-            writeln!(output, "class {}:", pattern.name).unwrap();
-        }
-        writeln!(
-            output,
-            "    \"\"\"Pattern struct for repeated tree structure.\"\"\""
-        )
-        .unwrap();
-
-        // Skip constructor for non-parameterizable patterns (inlined at tree level)
-        if !metadata.is_parameterizable(&pattern.name) {
-            writeln!(output, "    pass\n").unwrap();
-            continue;
-        }
-
-        writeln!(output).unwrap();
-        if pattern.is_templated() {
-            writeln!(
-                output,
-                "    def __init__(self, client: BitviewClient, acc: str, disc: str):"
-            )
-            .unwrap();
-        } else {
-            writeln!(
-                output,
-                "    def __init__(self, client: BitviewClient, acc: str):"
-            )
-            .unwrap();
-        }
-        writeln!(
-            output,
-            "        \"\"\"Create pattern node with accumulated series name.\"\"\""
-        )
-        .unwrap();
-
-        let syntax = PythonSyntax;
-        for field in &pattern.fields {
-            generate_parameterized_field(output, &syntax, field, pattern, metadata, "        ");
-        }
-
         writeln!(output).unwrap();
     }
 }

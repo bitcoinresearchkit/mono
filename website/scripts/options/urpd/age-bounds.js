@@ -3,7 +3,7 @@ import { price } from "../series.js";
 import { URPD_COHORTS } from "./cohorts.js";
 
 /**
- * @param {Bitview.SeriesTree_Cohorts_Urpd_AgeBounds} bounds
+ * @param {Bitview.SeriesTree["cohorts"]["urpd"]["ageBounds"]} bounds
  * @returns {PartialOptionsGroup}
  */
 export function createAgeBoundsSection(bounds) {

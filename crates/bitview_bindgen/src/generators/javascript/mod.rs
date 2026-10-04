@@ -7,18 +7,20 @@ use std::{fmt::Write, fs, io, path::Path};
 use serde_json::{Value, from_str, json, to_string_pretty};
 
 use super::write_if_changed;
-use crate::{ClientMetadata, Endpoint, TypeSchemas, VERSION};
+use crate::{Endpoint, IndexSetPattern, TypeSchemas, VERSION, model::Model};
 
 mod api;
 pub(crate) mod client;
 mod tree;
 pub(crate) mod types;
 
-/// Generate JavaScript + JSDoc client from metadata and OpenAPI endpoints.
+/// Generate JavaScript + JSDoc client from the series-tree model and OpenAPI endpoints.
 ///
 /// `output_path` is the full path to the output file (e.g., "modules/bitview-client/index.js").
 pub(crate) fn generate_javascript_client(
-    metadata: &ClientMetadata,
+    model: &Model,
+    shape_names: &[String],
+    accessors: &[IndexSetPattern],
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,
     output_path: &Path,
@@ -30,10 +32,9 @@ pub(crate) fn generate_javascript_client(
 
     types::generate_type_definitions(&mut output, schemas);
     client::generate_base_client(&mut output);
-    client::generate_index_accessors(&mut output, &metadata.index_set_patterns);
-    client::generate_structural_patterns(&mut output, &metadata.structural_patterns, metadata);
-    tree::generate_tree_typedefs(&mut output, &metadata.catalog, metadata);
-    tree::generate_main_client(&mut output, &metadata.catalog, metadata, endpoints);
+    client::generate_index_accessors(&mut output, accessors);
+    tree::generate_tree(&mut output, model, shape_names, accessors);
+    tree::generate_main_client(&mut output, endpoints);
 
     write_if_changed(output_path, &output)?;
 

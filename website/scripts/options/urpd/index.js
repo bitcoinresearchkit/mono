@@ -3,7 +3,7 @@ import { createSupplyDensitySection } from "./supply-density.js";
 
 /**
  * @param {string} label
- * @param {Bitview.SeriesTree_Cointime_Urpd | Bitview.SeriesTree_Coinflow_Urpd} urpd
+ * @param {Bitview.SeriesTree["cointime"]["urpd"] | Bitview.SeriesTree["coinflow"]["urpd"]} urpd
  * @returns {PartialOptionsGroup}
  */
 export function createWeightedUrpdSection(label, urpd) {

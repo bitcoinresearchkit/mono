@@ -18,7 +18,7 @@ pub(crate) fn extract_inner_type(type_str: &str) -> String {
 }
 
 /// Borrow the same normalized inner type when the caller does not need ownership.
-pub(crate) fn inner_type(type_str: &str) -> &str {
+fn inner_type(type_str: &str) -> &str {
     // Handle proper generic wrappers like `Close<Dollars>` -> `Dollars`
     if let Some(start) = type_str.find('<')
         && let Some(end) = type_str.rfind('>')
@@ -31,6 +31,18 @@ pub(crate) fn inner_type(type_str: &str) -> &str {
         return type_str.trim_end_matches('>');
     }
     type_str
+}
+
+/// A leaf's value type in a JavaScript or Python client: wrappers flattened to their innermost
+/// type (`Close<Cents>` -> `Cents`), and Rust arrays through `list` (`[Cents; 19]` -> `Cents[]`).
+pub(crate) fn client_value_type(kind: &str, list: fn(&str) -> String) -> String {
+    if let Some(element) = rust_array_element_type(kind) {
+        list(&client_value_type(element, list))
+    } else if inner_type(kind) != kind {
+        client_value_type(inner_type(kind), list)
+    } else {
+        kind.to_owned()
+    }
 }
 
 /// Extract type name from a JSON Schema $ref path.

@@ -1,12 +1,8 @@
-//! JavaScript base client and pattern factory generation.
+//! JavaScript base client and leaf accessors.
 
 use std::fmt::Write;
 
-use crate::{
-    ClientConstants, ClientMetadata, GenericSyntax, IndexSetPattern, JavaScriptSyntax,
-    LanguageSyntax, StructuralPattern, camel_case_keys, cohort_constants, format_json,
-    generate_parameterized_field,
-};
+use crate::{ClientConstants, IndexSetPattern, camel_case_keys, cohort_constants, format_json};
 
 /// Generate the base BitviewClient class with HTTP functionality.
 pub(crate) fn generate_base_client(output: &mut String) {
@@ -696,22 +692,6 @@ class BitviewClientBase {{
 }}
 
 /**
- * Build series name with suffix.
- * @param {{string}} acc - Accumulated prefix
- * @param {{string}} s - Series suffix
- * @returns {{string}}
- */
-const _m = (acc, s) => s ? (acc ? `${{acc}}_${{s}}` : s) : acc;
-
-/**
- * Build series name with prefix.
- * @param {{string}} prefix - Prefix to prepend
- * @param {{string}} acc - Accumulated name
- * @returns {{string}}
- */
-const _p = (prefix, acc) => acc ? `${{prefix}}_${{acc}}` : prefix;
-
-/**
  * Materialize and replace a lazy object property.
  * @template T
  * @param {{object}} owner
@@ -1008,8 +988,8 @@ function _mp(client, name, indexes) {{
     )
     .unwrap();
 
-    // Generate typedefs and thin wrapper functions
-    for (i, pattern) in patterns.iter().enumerate() {
+    // Typedefs of the leaf accessors
+    for pattern in patterns {
         // Generate typedef for type safety
         let by_fields: Vec<String> = pattern
             .indexes
@@ -1031,103 +1011,6 @@ function _mp(client, name, indexes) {{
             by_type, pattern.name
         )
         .unwrap();
-
-        // Generate thin wrapper that calls the generic factory
-        writeln!(
-            output,
-            "/** @template T @param {{BitviewClient}} client @param {{string}} name @returns {{{}<T>}} */",
-            pattern.name
-        )
-        .unwrap();
-        writeln!(
-            output,
-            "function create{}(client, name) {{ return /** @type {{{}<T>}} */ (_mp(client, name, _i{})); }}",
-            pattern.name,
-            pattern.name,
-            i + 1
-        )
-        .unwrap();
     }
     writeln!(output).unwrap();
-}
-
-/// Generate structural pattern factory functions.
-pub(crate) fn generate_structural_patterns(
-    output: &mut String,
-    patterns: &[StructuralPattern],
-    metadata: &ClientMetadata,
-) {
-    if patterns.is_empty() {
-        return;
-    }
-
-    writeln!(output, "// Reusable structural pattern factories\n").unwrap();
-
-    for pattern in patterns {
-        // Generate typedef
-        writeln!(output, "/**").unwrap();
-        if pattern.is_generic {
-            writeln!(output, " * @template T").unwrap();
-        }
-        writeln!(output, " * @typedef {{Object}} {}", pattern.name).unwrap();
-        for field in &pattern.fields {
-            let js_type = metadata.field_type_annotation(
-                field,
-                pattern.is_generic,
-                None,
-                GenericSyntax::JAVASCRIPT,
-            );
-            writeln!(
-                output,
-                " * @property {{{}}} {}",
-                js_type,
-                JavaScriptSyntax.field_name(&field.name)
-            )
-            .unwrap();
-        }
-        writeln!(output, " */\n").unwrap();
-
-        // Skip factory for non-parameterizable patterns (inlined at tree level)
-        if !metadata.is_parameterizable(&pattern.name) {
-            continue;
-        }
-
-        writeln!(output, "/**").unwrap();
-        writeln!(output, " * Create a {} pattern node", pattern.name).unwrap();
-        if pattern.is_generic {
-            writeln!(output, " * @template T").unwrap();
-        }
-        writeln!(output, " * @param {{BitviewClient}} client").unwrap();
-        writeln!(output, " * @param {{string}} acc - Accumulated series name").unwrap();
-        if pattern.is_templated() {
-            writeln!(output, " * @param {{string}} disc - Discriminator suffix").unwrap();
-        }
-        let return_type = if pattern.is_generic {
-            format!("{}<T>", pattern.name)
-        } else {
-            pattern.name.clone()
-        };
-        writeln!(output, " * @returns {{{}}}", return_type).unwrap();
-        writeln!(output, " */").unwrap();
-
-        if pattern.is_templated() {
-            writeln!(
-                output,
-                "function create{}(client, acc, disc) {{",
-                pattern.name
-            )
-            .unwrap();
-        } else {
-            writeln!(output, "function create{}(client, acc) {{", pattern.name).unwrap();
-        }
-        writeln!(output, "  return {{").unwrap();
-
-        let syntax = JavaScriptSyntax;
-        for field in &pattern.fields {
-            generate_parameterized_field(output, &syntax, field, pattern, metadata, "    ");
-        }
-
-        writeln!(output, "  }};").unwrap();
-        writeln!(output, "}}\n").unwrap();
-    }
 }

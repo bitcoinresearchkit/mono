@@ -5,7 +5,6 @@ use bitview_traversable::Traversable;
 
 #[derive(Clone)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
-#[cfg_attr(feature = "storage", traversable(field_suffixes))]
 pub struct DistributionStats<A> {
     /// Minimum value in the represented distribution.
     pub min: A,

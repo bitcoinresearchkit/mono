@@ -2,8 +2,8 @@
 //!
 //! Each client has its own submodule. Language clients use focused files:
 //! - `types.rs` - Type definitions
-//! - `client.rs` - Base client and pattern factories
-//! - `tree.rs` - Tree structure generation
+//! - `client.rs` - Base client and leaf accessors
+//! - `tree.rs` - Series tree, rendered from the shared model
 //! - `api.rs` - API method generation
 //! - `mod.rs` - Entry point
 

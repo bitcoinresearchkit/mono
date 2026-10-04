@@ -420,7 +420,6 @@ dependencies = [
  "bitview_cohort",
  "bitview_primitives",
  "derive_more",
- "indexmap",
  "oas3",
  "serde",
  "serde_json",

@@ -48,6 +48,16 @@ pub(crate) fn rust_field_name(key: &str) -> String {
     escape_rust_keyword(&to_snake_case(key))
 }
 
+/// JavaScript client field name for a catalog key: camelCase.
+pub(crate) fn js_field_name(key: &str) -> String {
+    to_camel_case(key)
+}
+
+/// Python client field name for a catalog key: snake_case, keyword-escaped.
+pub(crate) fn python_field_name(key: &str) -> String {
+    escape_python_keyword(&to_snake_case(key))
+}
+
 /// Convert a string to camelCase (e.g., "fee_rate" -> "feeRate").
 pub(crate) fn to_camel_case(s: &str) -> String {
     let mut result = to_pascal_case(s);
@@ -72,11 +82,6 @@ pub(crate) fn to_camel_case(s: &str) -> String {
 /// Convert an Index to a snake_case field name (e.g., Day1 -> day1).
 pub(crate) fn index_to_field_name(index: &Index) -> String {
     to_snake_case(index.name())
-}
-
-/// Generate a child type/struct/class name (e.g., ParentName + child_name -> ParentName_ChildName).
-pub(crate) fn child_type_name(parent: &str, child: &str) -> String {
-    format!("{}_{}", parent, to_pascal_case(child))
 }
 
 /// Escape Python reserved keywords by appending an underscore.

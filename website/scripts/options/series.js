@@ -1021,7 +1021,7 @@ export function chartsFromBlockAnd6b({ pattern, title = (s) => s, metric, unit }
 /**
  * Averages + Sums + Cumulative charts
  * @param {Object} args
- * @param {Omit<CountPattern<number>, "block">} args.pattern
+ * @param {Omit<CountPattern, "block">} args.pattern
  * @param {(metric: string) => string} [args.title]
  * @param {string} args.metric
  * @param {Unit} args.unit
@@ -1223,7 +1223,7 @@ export function chartsFromPercentCumulativeEntries({
 /**
  * Windowed sums + optional averages + cumulative for multiple named entries.
  * @param {Object} args
- * @param {Array<[string, CountPattern<number>]>} args.entries
+ * @param {Array<[string, CountPattern]>} args.entries
  * @param {(metric: string) => string} [args.title]
  * @param {string} args.metric
  * @param {Unit} args.unit

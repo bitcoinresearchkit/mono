@@ -1,5 +1,6 @@
 // Walks every typed path of client-paths.tsv through the generated JavaScript client and checks
-// that the leaf it reaches names the expected series and exposes the expected indexes.
+// that the leaf it reaches names the expected series and exposes the expected indexes, and that
+// enumerating the tree finds exactly those leaves.
 // Reads the recorded baseline: run `cargo api` (or a passing `cargo api -- --check`) first.
 // Usage: node crates/bitview_devtools/scripts/check_client_paths.mjs
 import { readFileSync } from "node:fs";
@@ -26,6 +27,19 @@ for (const [name, , javascript, , indexes] of rows) {
     failures.push(`${javascript}: expected ${name} [${expected}], got ${leaf?.name} [${actual}]`);
   }
 }
-for (const failure of failures.slice(0, 20)) console.error(failure);
+// The website walks trees with `Object.entries`: they must enumerate exactly these leaves.
+const countLeaves = (node) =>
+  Object.values(node).reduce(
+    (count, child) => count + (typeof child.indexes === "function" ? 1 : countLeaves(child)),
+    0,
+  );
+const leaves = countLeaves(series);
+const paths = new Set(rows.map(([, , javascript]) => javascript)).size;
+const problems = [];
+if (paths !== rows.length) problems.push(`client-paths.tsv lists ${rows.length - paths} paths twice`);
+if (leaves !== rows.length) {
+  problems.push(`the series tree enumerates ${leaves} leaves, expected ${rows.length}`);
+}
+for (const failure of [...problems, ...failures].slice(0, 20)) console.error(failure);
 console.error(`javascript: ${rows.length - failures.length}/${rows.length} typed paths resolve`);
-process.exit(failures.length ? 1 : 0);
+process.exit(failures.length || problems.length ? 1 : 0);

@@ -34,7 +34,7 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
 
     writeln!(output, "    @cached_property").unwrap();
     writeln!(output, "    def series(self) -> SeriesTree:").unwrap();
-    writeln!(output, "        return SeriesTree(self)").unwrap();
+    writeln!(output, "        return SeriesTree(self, '')").unwrap();
     writeln!(output).unwrap();
 
     // Generate series_endpoint() method for dynamic series access
