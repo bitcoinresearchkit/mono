@@ -8,7 +8,9 @@ non-plugin runtime state, and `#[plugin_set(has = path::HasX<M>)]` to implement
 a plugin's capability trait, whose accessor is named after the field.
 `ComputePluginSet::publication` exposes the single barrier shared with readers. The update lifecycle closes that barrier,
 computes the complete composition, commits its pipeline-wide publication
-cursor, and only then reopens reads. Bootstrap uses each plugin's storage
+cursor, and only then reopens reads; a bootstrap pass that computed only part of
+the composition commits with `complete = false`. Each import runs under the
+shutdown lock. Bootstrap uses each plugin's storage
 identity to create active roots, reject duplicate IDs, and remove roots that no
 active plugin owns.
 

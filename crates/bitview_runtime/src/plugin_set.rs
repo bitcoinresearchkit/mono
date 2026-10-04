@@ -40,8 +40,10 @@ pub trait ComputePluginSet: PluginSet {
     /// Performs the composition's typed compute schedule.
     fn compute(&mut self, context: UpdateContext<'_>) -> Result<()>;
 
-    /// Commits the pipeline-wide publication cursor after every plugin is ready.
-    fn commit(&mut self) -> Result<()> {
+    /// Commits the pipeline-wide publication cursor after a computation. `complete` is false
+    /// after a bootstrap pass that computed only part of the composition
+    /// ([`BootstrapAction::Reimport`]).
+    fn commit(&mut self, _complete: bool) -> Result<()> {
         Ok(())
     }
 }

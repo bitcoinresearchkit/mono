@@ -96,8 +96,8 @@ impl ComputePluginSet for Plugins {
         self.compute_profitability(context)
     }
 
-    fn commit(&mut self) -> Result<()> {
-        self.defaults.commit()
+    fn commit(&mut self, complete: bool) -> Result<()> {
+        self.defaults.commit(complete)
     }
 }
 

@@ -41,6 +41,9 @@ half-committed state.
 On a chain reorganization, the plugin rolls back its vectors and lookup stores
 to their last valid checkpoint before processing the replacement chain. If the
 source or on-disk schema is incompatible, its owned plugin directory is rebuilt.
+A rollback (or a rebuild beside other plugins' data) persists a rollback floor
+that the next import publishes, so dependents recompute from it even after a soft
+quit; a complete update's commit clears it.
 
 ## Use in a composition
 

@@ -375,7 +375,8 @@ impl ComputePluginSet for DefaultPlugins {
             0
         } else {
             let chain_height = self.indexer.reader().client().get_last_height()?;
-            chain_height.saturating_sub(*self.indexer.indexed_height())
+            // Local progress: the published height can sit at a rollback floor.
+            chain_height.saturating_sub(*self.indexer.vecs().next_height())
         };
 
         if blocks_behind > REIMPORT_THRESHOLD {
@@ -397,7 +398,7 @@ impl ComputePluginSet for DefaultPlugins {
         self.compute_inner(context)
     }
 
-    fn commit(&mut self) -> Result<()> {
-        self.indexer.commit()
+    fn commit(&mut self, complete: bool) -> Result<()> {
+        self.indexer.commit(complete)
     }
 }

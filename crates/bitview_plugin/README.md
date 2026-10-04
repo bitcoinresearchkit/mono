@@ -79,8 +79,11 @@ indexer's gate (`Query::reads_under`), the one queries wait on.
 Lock order: Publication write (the whole update), then `exit.lock()` (held
 around rollback and each save), then the indexer's `reorg` write (only while
 lowering safe bounds before a rollback). The Publication write lock spans
-lower-before, rollback, compute and commit. The indexer's startup rollback and
-reset hold `exit.lock()` too (`ImportContext::exit`); no readers exist yet. Mutable
+lower-before, rollback, compute and commit. Bootstrap holds `exit.lock()` around
+every import (`ImportContext::exit`), so imports never wait on the node; no
+readers exist yet. A rollback's height persists as the indexer's rollback floor
+until a complete update commits (`ComputePluginSet::commit(complete)`), so
+dependents recompute from it after a soft quit. Mutable
 reads take the Publication read lock, then pin (`reorg` read); a reader already
 holding a pin may only `try_read` the Publication, never wait on it, because the
 writer may need that pin released.

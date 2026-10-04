@@ -187,6 +187,17 @@ impl Vecs {
         next_height_from_min_stamp(min_stamp, !self.blocks.blockhash.is_empty())
     }
 
+    pub fn all_empty(&self) -> bool {
+        self.iter_any_stored_vec().all(|vec| vec.len() == 0)
+    }
+
+    /// Whether every vector was flushed at the same checkpoint.
+    pub fn checkpoints_match(&self) -> bool {
+        let mut stamps = self.iter_any_stored_vec().map(|vec| vec.stamp());
+        let first = stamps.next();
+        stamps.all(|stamp| Some(stamp) == first)
+    }
+
     fn par_iter_mut_any_stored_vec(
         &mut self,
     ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {

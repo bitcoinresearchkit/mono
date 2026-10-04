@@ -43,6 +43,9 @@ fn sync_plugin_dirs(plugins_path: &Path, plugin_ids: impl Iterator<Item = Plugin
 /// reclaim transient memory accumulated during its initial computation.
 /// Every entry under the shared plugin-data directory that is not claimed by
 /// the imported composition is removed before computation begins.
+///
+/// Each import runs under the shutdown lock, since imports write (resets, compaction, data
+/// removal): a soft quit waits for it, so an import must not block on outside services.
 pub fn bootstrap<P>(
     import_context: ImportContext<'_>,
     mut import: impl FnMut(ImportContext<'_>) -> Result<P>,
@@ -55,10 +58,12 @@ where
     let mut needs_final_reimport = false;
 
     loop {
+        let lock = import_context.exit().lock();
         let mut plugins = import(import_context)?;
         let mut plugin_ids = Vec::new();
         plugins.for_each_plugin(&mut |plugin| plugin_ids.push(plugin.id()));
         sync_plugin_dirs(&plugins_path, plugin_ids.into_iter())?;
+        drop(lock);
 
         match bootstrap_update(&mut plugins, update_context)? {
             BootstrapAction::Ready if needs_final_reimport => {

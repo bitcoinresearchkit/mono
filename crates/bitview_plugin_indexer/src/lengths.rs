@@ -12,6 +12,8 @@ pub trait IndexerLengths: Sized {
     fn push(&self, vecs: &mut Vecs);
     fn from_local(vecs: &Vecs, stores: &Stores) -> Result<Option<Self>>;
     fn resume_at(required_height: Height, vecs: &Vecs, stores: &Stores) -> Result<Option<Self>>;
+    /// Lengths at a local `height`. `None` pre-genesis.
+    fn at(height: Height, vecs: &Vecs) -> Option<Self>;
 }
 
 impl IndexerLengths for Lengths {
@@ -101,6 +103,10 @@ impl IndexerLengths for Lengths {
             );
         }
         Ok(collect_at(required_height, vecs))
+    }
+
+    fn at(height: Height, vecs: &Vecs) -> Option<Self> {
+        collect_at(height, vecs)
     }
 }
 

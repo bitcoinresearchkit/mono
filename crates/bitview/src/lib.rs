@@ -83,6 +83,7 @@ where
     let import_context = ImportContext::new(&outputs_path, &exit);
     let update_context = UpdateContext::new(&exit);
 
+    // Outside the import lock; bootstrap measures its backlog against the synced tip.
     client.wait_for_synced_node()?;
 
     let mut plugins = bootstrap(
@@ -124,6 +125,7 @@ where
             sleep(Duration::from_secs(1));
         }
 
+        // Wait with the publication gate open: queries keep reading the last published state.
         client.wait_for_synced_node()?;
 
         info!("Chain tip changed; updating...");

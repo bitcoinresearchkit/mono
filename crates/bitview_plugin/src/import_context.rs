@@ -18,8 +18,9 @@ impl<'a> ImportContext<'a> {
         self.data_path
     }
 
-    /// Shutdown coordinator; hold its lock around import-time writes that are not safe to
-    /// interrupt (e.g. the indexer's startup rollback or reset).
+    /// Shutdown coordinator. The runtime's bootstrap holds its lock around every import, so an
+    /// import must not block on outside services; code importing on its own holds it around
+    /// writes that are not safe to interrupt.
     pub const fn exit(self) -> &'a Exit {
         self.exit
     }

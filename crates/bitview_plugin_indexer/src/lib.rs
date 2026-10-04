@@ -30,6 +30,7 @@ use lengths::IndexerLengths as _;
 use processor::{BlockBuffers, BlockProcessor};
 use read_pool::join as join_reads;
 use readers::Readers;
+use rollback_floor::RollbackFloor;
 use state::State;
 use stores::Stores;
 use vecs::{
@@ -43,6 +44,7 @@ mod lengths;
 mod processor;
 mod read_pool;
 mod readers;
+mod rollback_floor;
 mod safe_lengths;
 mod state;
 mod stores;
@@ -64,6 +66,7 @@ pub struct Indexer<M: StorageMode = Rw> {
     vecs: Vecs<M>,
     stores: Stores,
     buffers: M::WriteOnly<BlockBuffers>,
+    floor: M::WriteOnly<RollbackFloor>,
     state: Arc<State>,
 }
 
@@ -115,6 +118,20 @@ fn validate_reader_source(reader: &Reader) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+/// Whether the plugin-data directory holds anything besides the indexer's own.
+fn has_other_plugin_data(context: ImportContext<'_>) -> Result<bool> {
+    let path = PluginStorage::plugins_path(context);
+    if !path.try_exists()? {
+        return Ok(false);
+    }
+    for entry in fs::read_dir(path)? {
+        if entry?.file_name() != ID.as_str() {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn write_xor_marker(path: &Path, source_xor: XORBytes) -> Result<()> {
@@ -184,11 +201,6 @@ impl<M: StorageMode> Indexer<M> {
         self.state.pin_for(timeout)
     }
 
-    /// Latest safely published indexed height.
-    pub fn indexed_height(&self) -> Height {
-        self.safe_lengths().last_height().unwrap_or_default()
-    }
-
     pub fn reader(&self) -> &Reader {
         &self.reader
     }
@@ -231,12 +243,15 @@ where
 }
 
 impl Indexer {
-    /// Imports and validates an indexer for writing against `reader`.
+    /// Imports and validates an indexer for writing against `reader`, without contacting the
+    /// node: the first index run reconciles the local tip with the active chain.
     ///
     /// Any reset happens before this function returns, after all handles from
-    /// the failed import attempt have been dropped.
+    /// the failed import attempt have been dropped. A soft quit waits for the import, so a
+    /// reset never leaves a half-deleted directory that validation could accept.
     pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         validate_reader_source(reader)?;
+        let _lock = context.exit().lock();
         Self::import_inner(context, reader, true)
     }
 
@@ -259,6 +274,7 @@ impl Indexer {
                 vecs,
                 stores,
                 buffers: BlockBuffers::default(),
+                floor: RollbackFloor::load(&plugin_path)?,
                 state: Arc::new(State::new()),
             })
         };
@@ -273,11 +289,7 @@ impl Indexer {
             Err(err) if can_retry && err.is_data_error() => {
                 // The failed attempt has returned, so all of its local database
                 // handles have been dropped before the directory is removed.
-                // A soft quit must not leave a half-deleted directory that validation could accept.
-                let removed = {
-                    let _lock = context.exit().lock();
-                    recreate_plugin_dir(&plugin_path, reader.xor_bytes())?
-                };
+                let removed = recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
                 if removed {
                     warn!(
                         "Removed invalid indexer data at {} after an import failure: {err}",
@@ -291,20 +303,24 @@ impl Indexer {
 
         match indexer.validate_import(&plugin_path)? {
             ImportValidation::Valid(lengths) => {
-                // A soft quit must not interrupt a startup rollback halfway.
-                let lock = context.exit().lock();
-                indexer.rollback_to(&lengths)?;
-                drop(lock);
-                indexer.state.finish_update(lengths);
+                // Dependents' rows beside an empty (deleted or reset) indexer can't be vouched for;
+                // a fresh install has none, so its first full pass stays resumable.
+                if lengths.height.is_zero() && has_other_plugin_data(context)? {
+                    indexer.floor.lower_to(Height::ZERO)?;
+                }
+                // Publish the floor a previous run left, so dependents recompute from it.
+                let published = match indexer.floor.height() {
+                    Some(floor) if floor < lengths.height => {
+                        Lengths::at(floor, &indexer.vecs).unwrap_or_default()
+                    }
+                    _ => lengths,
+                };
+                indexer.state.finish_update(published);
                 Ok(indexer)
             }
             ImportValidation::Reset(reason) if can_retry => {
                 drop(indexer);
-                // A soft quit must not leave a half-deleted directory that validation could accept.
-                let removed = {
-                    let _lock = context.exit().lock();
-                    recreate_plugin_dir(&plugin_path, reader.xor_bytes())?
-                };
+                let removed = recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
                 if removed {
                     warn!(
                         "Removed incompatible indexer data at {}: {reason}",
@@ -331,6 +347,17 @@ impl Indexer {
                 "Indexer checkpoints are missing, inconsistent, or incomplete",
             ));
         };
+        // An interrupted parallel write can leave vectors at different checkpoints, or written
+        // vectors beside an empty tip.
+        let blockhash = &self.vecs.blocks.blockhash;
+        if !self.vecs.checkpoints_match()
+            || blockhash.len() != usize::from(vec_height)
+            || (blockhash.is_empty() && !self.vecs.all_empty())
+        {
+            return Ok(ImportValidation::Reset(
+                "Indexer vectors stopped at different heights",
+            ));
+        }
 
         match read_xor_marker(plugin_path)? {
             XorMarker::Missing if is_empty => write_xor_marker(plugin_path, reader.xor_bytes())?,
@@ -342,7 +369,7 @@ impl Indexer {
             }
         }
 
-        let Some(hash) = self.vecs.blocks.blockhash.collect_last() else {
+        let Some(hash) = blockhash.collect_last() else {
             return Ok(ImportValidation::Valid(local_lengths));
         };
 
@@ -358,14 +385,7 @@ impl Indexer {
             ));
         }
 
-        reader.client().wait_for_synced_node()?;
-        let (height, _) = reader.client().get_closest_valid_height(hash)?;
-        match Lengths::resume_at(height.incremented(), &self.vecs, &self.stores)? {
-            Some(lengths) => Ok(ImportValidation::Valid(lengths)),
-            None => Ok(ImportValidation::Reset(
-                "Indexer state cannot resume from the active chain",
-            )),
-        }
+        Ok(ImportValidation::Valid(local_lengths))
     }
 
     fn rollback_to(&mut self, starting_lengths: &Lengths) -> Result<()> {
@@ -408,16 +428,12 @@ impl Indexer {
         //     .collect_one_at(self.vecs.blocks.blockhash.len() - 2);
         debug!("Last block hash found.");
 
+        // A node behind our tip (restarting, reindexing) would look like a reorg to its height.
+        client.wait_for_synced_node()?;
         let (starting_lengths, prev_hash) = if let Some(hash) = last_blockhash {
             let (height, hash) = client.get_closest_valid_height(hash)?;
             match Lengths::resume_at(height.incremented(), &self.vecs, &self.stores)? {
-                Some(starting_lengths) => {
-                    if starting_lengths.height > client.get_last_height()? {
-                        info!("Up to date, nothing to index.");
-                        return Ok(());
-                    }
-                    (starting_lengths, Some(hash))
-                }
+                Some(starting_lengths) => (starting_lengths, Some(hash)),
                 None => {
                     return Err(Error::Internal(
                         "Indexer became inconsistent after import; drop and re-import it",
@@ -430,10 +446,19 @@ impl Indexer {
         debug!("Starting lengths set.");
 
         let lock = exit.lock();
+        if starting_lengths.height < self.vecs.next_height() {
+            self.floor.lower_to(starting_lengths.height)?;
+        }
         self.state.lower_before(&starting_lengths);
         self.rollback_to(&starting_lengths)?;
         debug!("Rollback done.");
         drop(lock);
+
+        // Checked after the rollback: an orphaned tip above a shorter active chain must go.
+        if starting_lengths.height > client.get_last_height()? {
+            info!("Up to date, nothing to index.");
+            return Ok(());
+        }
 
         self.buffers.continue_from(prev_hash);
 
@@ -588,8 +613,9 @@ impl Indexer {
         Ok(())
     }
 
-    /// Commits indexed disk state as the pipeline-wide safe-lengths snapshot.
-    pub fn commit(&mut self) -> Result<()> {
+    /// Commits indexed disk state as the pipeline-wide safe-lengths snapshot. A `complete` update
+    /// (every plugin computed) also clears the rollback floor.
+    pub fn commit(&mut self, complete: bool) -> Result<()> {
         self.vecs.sync_bg_tasks()?;
         let lengths = match Lengths::from_local(&self.vecs, &self.stores)? {
             Some(lengths) => lengths,
@@ -605,6 +631,9 @@ impl Indexer {
             }
         };
         self.state.finish_update(lengths);
+        if complete {
+            self.floor.clear()?;
+        }
         Ok(())
     }
 }
@@ -618,6 +647,7 @@ impl ReadOnlyClone for Indexer {
             vecs: self.vecs.read_only_clone(),
             stores: self.stores.clone(),
             buffers: (),
+            floor: (),
             state: self.state.clone(),
         }
     }
