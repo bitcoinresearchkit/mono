@@ -59,7 +59,7 @@ pub(crate) fn detect_structural_patterns(
     resolve_branch_patterns(tree, &mut ctx);
 
     let (generic_patterns, generic_mappings, type_mappings) =
-        detect_generic_patterns(&ctx.signature_to_pattern);
+        detect_generic_patterns(&ctx.signature_to_pattern, &ctx.signature_to_child_fields);
 
     // Only include patterns that appear 2+ times for the patterns list
     let mut patterns: Vec<StructuralPattern> = ctx
@@ -120,8 +120,13 @@ pub(crate) fn detect_structural_patterns(
 }
 
 /// Detect generic patterns by grouping signatures by their normalized form.
+///
+/// A branch child that is itself generic keeps its own type argument: `T` when it carries the
+/// parent's value type, otherwise its concrete type (e.g. an `average` child of `Bytes` leaves
+/// whose values are fractional). Signatures whose children differ in that argument don't unify.
 fn detect_generic_patterns(
     signature_to_pattern: &BTreeMap<Vec<PatternField>, String>,
+    signature_to_child_fields: &BTreeMap<Vec<PatternField>, Vec<Vec<PatternField>>>,
 ) -> (
     Vec<StructuralPattern>,
     BTreeMap<Vec<PatternField>, String>,
@@ -133,7 +138,20 @@ fn detect_generic_patterns(
     > = BTreeMap::new();
 
     for (fields, name) in signature_to_pattern {
-        if let Some((normalized, extracted_type)) = normalize_fields_for_generic(fields) {
+        if let Some((mut normalized, extracted_type)) = normalize_fields_for_generic(fields) {
+            if let Some(child_fields) = signature_to_child_fields.get(fields) {
+                for (field, child) in normalized.iter_mut().zip(child_fields) {
+                    if field.is_branch()
+                        && let Some((_, child_type)) = normalize_fields_for_generic(child)
+                    {
+                        field.type_param = Some(if child_type == extracted_type {
+                            "T".to_string()
+                        } else {
+                            child_type
+                        });
+                    }
+                }
+            }
             normalized_groups
                 .entry(normalized)
                 .or_default()

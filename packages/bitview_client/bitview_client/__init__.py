@@ -3935,7 +3935,7 @@ class AverageBlockCumulativeSumPattern2(Generic[T]):
 
     def __init__(self, client: BitviewClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self.average: _1m1w1y24hPattern6[T] = _1m1w1y24hPattern6(client, _m(acc, 'average'))
+        self.average: _1m1w1y24hPattern6[StoredF32] = _1m1w1y24hPattern6(client, _m(acc, 'average'))
         self.block: SeriesPattern18[T] = SeriesPattern18(client, acc)
         self.cumulative: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, 'cumulative'))
         self.sum: _1m1w1y24hPattern6[T] = _1m1w1y24hPattern6(client, _m(acc, 'sum'))

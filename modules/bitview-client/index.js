@@ -4777,7 +4777,7 @@ function create_1m1w1y24hPattern6(client, acc) {
 /**
  * @template T
  * @typedef {Object} AverageBlockCumulativeSumPattern2
- * @property {_1m1w1y24hPattern6<T>} average
+ * @property {_1m1w1y24hPattern6<StoredF32>} average
  * @property {SeriesPattern18<T>} block
  * @property {SeriesPattern1<T>} cumulative
  * @property {_1m1w1y24hPattern6<T>} sum
