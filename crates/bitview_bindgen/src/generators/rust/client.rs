@@ -41,7 +41,18 @@ fn lazy_node<T: 'static, A: Send + Sync + 'static>(
 /// Error type for Bitview client operations.
 #[derive(Debug)]
 pub struct BitviewError {{
+    /// HTTP status of the server's error answer.
+    pub status: Option<u16>,
+    /// The server's machine-readable code, from its error body.
+    pub code: Option<ErrorCode>,
     pub message: String,
+}}
+
+impl BitviewError {{
+    /// A client-side error, not an answer from the server.
+    pub fn new(message: impl Into<String>) -> Self {{
+        Self {{ status: None, code: None, message: message.into() }}
+    }}
 }}
 
 impl std::fmt::Display for BitviewError {{
@@ -72,13 +83,13 @@ pub struct AddressHashPrefix {{
 /// Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{{addr_type}}/{{prefix}}`.
 pub fn address_payload_hash_prefix(payload: &[u8], nibbles: usize) -> Result<String> {{
     if payload.is_empty() {{
-        return Err(BitviewError {{ message: "Expected a non-empty address payload".to_string() }});
+        return Err(BitviewError::new("Expected a non-empty address payload"));
     }}
     if payload.len() > 65 {{
-        return Err(BitviewError {{ message: "Expected at most 65 address payload bytes".to_string() }});
+        return Err(BitviewError::new("Expected at most 65 address payload bytes"));
     }}
     if !(1..=16).contains(&nibbles) {{
-        return Err(BitviewError {{ message: "Expected hash-prefix length from 1 to 16 hex nibbles".to_string() }});
+        return Err(BitviewError::new("Expected hash-prefix length from 1 to 16 hex nibbles"));
     }}
     Ok(format!("{{:016x}}", rapidhash::v3::rapidhash_v3(payload))[..nibbles].to_string())
 }}
@@ -91,7 +102,7 @@ fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> R
         OutputType::P2PKH | OutputType::P2SH | OutputType::P2WPKH => &[20],
         OutputType::P2WSH | OutputType::P2TR => &[32],
         OutputType::P2MS | OutputType::OpReturn | OutputType::Empty | OutputType::Unknown => {{
-            return Err(BitviewError {{ message: format!("Unsupported address type for address payload hash-prefix: {{addr_type:?}}") }});
+            return Err(BitviewError::new(format!("Unsupported address type for address payload hash-prefix: {{addr_type:?}}")));
         }},
     }};
 
@@ -101,7 +112,7 @@ fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> R
             .map(ToString::to_string)
             .collect::<Vec<_>>()
             .join(" or ");
-        return Err(BitviewError {{ message: format!("Expected {{addr_type}} address payload length {{joined}} bytes") }});
+        return Err(BitviewError::new(format!("Expected {{addr_type}} address payload length {{joined}} bytes")));
     }}
 
     Ok(())
@@ -112,9 +123,9 @@ fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> R
 /// Decode a mainnet Bitcoin address into the BRK address type and raw payload bytes.
 pub fn decode_address_payload(address: &str) -> Result<AddressPayload> {{
     if address.is_empty() {{
-        return Err(BitviewError {{ message: "Expected an address string".to_string() }});
+        return Err(BitviewError::new("Expected an address string"));
     }}
-    let addr_bytes = AddrBytes::from_str(address).map_err(|e| BitviewError {{ message: e.to_string() }})?;
+    let addr_bytes = AddrBytes::from_str(address).map_err(|e| BitviewError::new(e.to_string()))?;
     let addr_type = OutputType::from(&addr_bytes);
 
     Ok(AddressPayload {{
@@ -165,6 +176,7 @@ impl BitviewClientBase {{
     pub fn with_options(options: BitviewClientOptions) -> Self {{
         let agent = ureq::Agent::config_builder()
             .timeout_global(Some(std::time::Duration::from_secs(options.timeout_secs)))
+            .http_status_as_error(false)
             .build()
             .into();
         Self {{
@@ -177,52 +189,77 @@ impl BitviewClientBase {{
         format!("{{}}{{}}", self.base_url, path)
     }}
 
+    /// Passes a successful answer through; an error status becomes a `BitviewError` with the
+    /// server's code and message when it sent an error body.
+    fn check(
+        response: std::result::Result<ureq::http::Response<ureq::Body>, ureq::Error>,
+    ) -> Result<ureq::http::Response<ureq::Body>> {{
+        let mut response = response.map_err(|e| BitviewError::new(e.to_string()))?;
+        let status = response.status();
+        if status.is_success() {{
+            return Ok(response);
+        }}
+        let text = response.body_mut().read_to_string().unwrap_or_default();
+        // Fields read one by one: a code this client doesn't know keeps the server's message.
+        let detail = serde_json::from_str::<serde_json::Value>(&text)
+            .ok()
+            .and_then(|mut body| body.get_mut("error").map(serde_json::Value::take));
+        let field = |name: &str| detail.as_ref().and_then(|detail| detail.get(name)).cloned();
+        let code = field("code").and_then(|code| serde_json::from_value::<ErrorCode>(code).ok());
+        let message = match field("message") {{
+            Some(serde_json::Value::String(message)) => message,
+            _ if text.is_empty() => status.to_string(),
+            _ => text,
+        }};
+        Err(BitviewError {{ status: Some(status.as_u16()), code, message }})
+    }}
+
     /// Make a GET request and deserialize JSON response.
     pub fn get_json<T: DeserializeOwned>(&self, path: &str) -> Result<T> {{
-        self.agent.get(&self.url(path))
-            .call()
-            .and_then(|mut r| r.body_mut().read_json())
-            .map_err(|e| BitviewError {{ message: e.to_string() }})
+        Self::check(self.agent.get(&self.url(path)).call())?
+            .body_mut()
+            .read_json()
+            .map_err(|e| BitviewError::new(e.to_string()))
     }}
 
     /// Make a GET request and return raw text response.
     pub fn get_text(&self, path: &str) -> Result<String> {{
-        self.agent.get(&self.url(path))
-            .call()
-            .and_then(|mut r| r.body_mut().read_to_string())
-            .map_err(|e| BitviewError {{ message: e.to_string() }})
+        Self::check(self.agent.get(&self.url(path)).call())?
+            .body_mut()
+            .read_to_string()
+            .map_err(|e| BitviewError::new(e.to_string()))
     }}
 
     /// Make a GET request and return raw bytes response.
     pub fn get_bytes(&self, path: &str) -> Result<Vec<u8>> {{
-        self.agent.get(&self.url(path))
-            .call()
-            .and_then(|mut r| r.body_mut().read_to_vec())
-            .map_err(|e| BitviewError {{ message: e.to_string() }})
+        Self::check(self.agent.get(&self.url(path)).call())?
+            .body_mut()
+            .read_to_vec()
+            .map_err(|e| BitviewError::new(e.to_string()))
     }}
 
     /// Make a POST request and deserialize JSON response.
     pub fn post_json<T: DeserializeOwned>(&self, path: &str, body: &str) -> Result<T> {{
-        self.agent.post(&self.url(path))
-            .send(body)
-            .and_then(|mut r| r.body_mut().read_json())
-            .map_err(|e| BitviewError {{ message: e.to_string() }})
+        Self::check(self.agent.post(&self.url(path)).send(body))?
+            .body_mut()
+            .read_json()
+            .map_err(|e| BitviewError::new(e.to_string()))
     }}
 
     /// Make a POST request and return raw text response.
     pub fn post_text(&self, path: &str, body: &str) -> Result<String> {{
-        self.agent.post(&self.url(path))
-            .send(body)
-            .and_then(|mut r| r.body_mut().read_to_string())
-            .map_err(|e| BitviewError {{ message: e.to_string() }})
+        Self::check(self.agent.post(&self.url(path)).send(body))?
+            .body_mut()
+            .read_to_string()
+            .map_err(|e| BitviewError::new(e.to_string()))
     }}
 
     /// Make a POST request and return raw bytes response.
     pub fn post_bytes(&self, path: &str, body: &str) -> Result<Vec<u8>> {{
-        self.agent.post(&self.url(path))
-            .send(body)
-            .and_then(|mut r| r.body_mut().read_to_vec())
-            .map_err(|e| BitviewError {{ message: e.to_string() }})
+        Self::check(self.agent.post(&self.url(path)).send(body))?
+            .body_mut()
+            .read_to_vec()
+            .map_err(|e| BitviewError::new(e.to_string()))
     }}
 }}
 
@@ -426,9 +463,7 @@ impl<T: DeserializeOwned, D: DeserializeOwned> SeriesEndpoint<T, D> {{
 }}
 
 fn required_date_index(position: Option<usize>) -> Result<usize> {{
-    position.ok_or_else(|| BitviewError {{
-        message: "Date or timestamp is not representable for this index".to_owned(),
-    }})
+    position.ok_or_else(|| BitviewError::new("Date or timestamp is not representable for this index"))
 }}
 
 /// Date-specific methods available only on `DateSeriesEndpoint`.

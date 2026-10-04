@@ -62,7 +62,7 @@ impl BitviewClient {{
     /// Returns `Err` if the index is not date-based.
     pub fn date_series_endpoint(&self, series: impl Into<SeriesName>, index: Index) -> Result<DateSeriesEndpoint<serde_json::Value>> {{
         if !index.is_date_based() {{
-            return Err(BitviewError {{ message: format!("{{}} is not a date-based index", index.name()) }});
+            return Err(BitviewError::new(format!("{{}} is not a date-based index", index.name())));
         }}
         Ok(DateSeriesEndpoint::new(
             self.base.clone(),
@@ -179,7 +179,7 @@ fn generate_post_method(output: &mut String, endpoint: &Endpoint) {
     };
     let decode = if endpoint.returns_text() && return_type != "String" {
         format!(
-            "?.parse::<{return_type}>().map_err(|error| BitviewError {{ message: format!(\"Invalid submission response; outcome may be unknown: {{error}}\") }})"
+            "?.parse::<{return_type}>().map_err(|error| BitviewError::new(format!(\"Invalid submission response; outcome may be unknown: {{error}}\")))"
         )
     } else {
         String::new()

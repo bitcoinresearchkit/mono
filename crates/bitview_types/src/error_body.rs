@@ -1,5 +1,5 @@
 use schemars::JsonSchema;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// The JSON body of every API error (`application/problem+json`).
 #[derive(Debug, Serialize, JsonSchema)]
@@ -47,7 +47,7 @@ pub enum ErrorType {
 }
 
 /// Machine-readable error code.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, JsonSchema)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
     NotFound,

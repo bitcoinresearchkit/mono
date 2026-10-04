@@ -55,6 +55,12 @@ Date and timestamp selectors return `Result`: use
 `get_timestamp`, and `timestamp_range`). Invalid or unsupported selectors fail
 locally instead of silently selecting index zero. Numeric selectors are unchanged.
 
+## Errors
+
+An error answer from the server keeps its HTTP `status` and machine-readable `code` (an
+`ErrorCode`) on `BitviewError`, next to the server's message; client-side failures (connection,
+decoding, invalid selectors) have neither.
+
 ## Configuration
 
 ```rust,ignore
