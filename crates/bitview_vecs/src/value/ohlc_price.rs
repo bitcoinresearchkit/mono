@@ -1,5 +1,5 @@
 use bitview_primitives::{OHLCCents, OHLCDollars, OHLCSats};
-use bitview_transforms::{OhlcCentsToDollars, OhlcCentsToSats};
+use bitview_transforms::{Convert, OhlcCentsToSats};
 use brk_types::Version;
 
 use crate::{IndexSources, LazyIndexes, LazyOhlcCentsVecs, Price, SpotPrice};
@@ -20,7 +20,7 @@ impl OhlcPrice {
             indexes,
             spot.cents.height.read_only_boxed_clone(),
         );
-        let usd = LazyIndexes::from_ohlc_indexes::<OhlcCentsToDollars>(name, version, &cents);
+        let usd = LazyIndexes::from_ohlc_indexes::<Convert>(name, version, &cents);
         // The reciprocal candle transform swaps high and low internally.
         let sats = LazyIndexes::from_ohlc_indexes::<OhlcCentsToSats>(
             &format!("{name}_sats"),

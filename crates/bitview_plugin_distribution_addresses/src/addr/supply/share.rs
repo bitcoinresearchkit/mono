@@ -1,7 +1,7 @@
 use bitview_cohort::{AddrTypeId, ByAddrType};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillion32;
-use bitview_transforms::RatioSats;
+use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyFixedRatioPerBlock, import_cached};
 use brk_error::Result;
@@ -37,7 +37,7 @@ impl AddrSupplyShareVecs {
         all_supply: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
         let name = format!("{name}_addr_supply_share");
-        let all = LazyFixedRatioPerBlock::from_ratio::<Sats, Sats, RatioSats<PartsPerMillion32>>(
+        let all = LazyFixedRatioPerBlock::from_ratio::<Sats, Sats, Quotient<PartsPerMillion32>>(
             &name,
             version,
             &supply.all.sats.height,
@@ -93,7 +93,7 @@ impl AddrSupplyShareVecs {
                 |(height, category, total, _)| {
                     (
                         height,
-                        RatioSats::<PartsPerMillion32>::apply(category, total),
+                        Quotient::<PartsPerMillion32>::apply(category, total),
                     )
                 },
                 exit,

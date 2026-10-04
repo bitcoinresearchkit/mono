@@ -1,6 +1,6 @@
 use bitview_collections::Windows;
 use bitview_primitives::{Count, PartsPerMillion32};
-use bitview_transforms::RatioCount;
+use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
@@ -59,7 +59,7 @@ impl CountTotal {
         LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
             Count,
             Count,
-            RatioCount<PartsPerMillion32>,
+            Quotient<PartsPerMillion32>,
         >(
             name,
             version,

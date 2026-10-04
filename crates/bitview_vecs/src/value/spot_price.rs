@@ -1,4 +1,4 @@
-use bitview_transforms::{CentsUnsignedToDollars, CentsUnsignedToSats};
+use bitview_transforms::{CentsUnsignedToSats, Convert};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Sats, Version};
@@ -22,7 +22,7 @@ impl SpotPrice {
         indexes: &IndexSources,
     ) -> Result<Self> {
         let cents = PerBlock::import(db, &format!("{name}_cents"), version, indexes)?;
-        let usd = LazyPerBlock::from_resolutions::<CentsUnsignedToDollars>(name, version, &cents);
+        let usd = LazyPerBlock::from_resolutions::<Convert>(name, version, &cents);
         let sats = LazyPerBlock::from_resolutions::<CentsUnsignedToSats>(
             &format!("{name}_sats"),
             version,

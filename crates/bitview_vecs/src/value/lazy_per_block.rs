@@ -1,6 +1,6 @@
 //! Lazy value wrapper for point-in-time value sources.
 
-use bitview_transforms::SatsToBitcoin;
+use bitview_transforms::Convert;
 use bitview_traversable::Traversable;
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
@@ -22,7 +22,7 @@ pub struct LazyValuePerBlock {
 
 impl LazyValuePerBlock {
     pub fn spot_identity(name: &str, source: &impl SpotValueSource, version: Version) -> Self {
-        Self::from_spot_block_source::<Ident, SatsToBitcoin, Ident, Ident>(name, source, version)
+        Self::from_spot_block_source::<Ident, Convert, Ident, Ident>(name, source, version)
     }
 
     fn from_spot_block_source<SatsTransform, BitcoinTransform, CentsTransform, DollarsTransform>(

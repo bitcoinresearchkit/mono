@@ -2,7 +2,7 @@ use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
-use bitview_transforms::RatioSats;
+use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFixedRatioPerBlock, LazyIndexedVec, LazyRollingDeltasAmountFromHeight,
@@ -35,7 +35,7 @@ impl SupplyBase {
             version,
             &total.sats.height,
             all_supply,
-            |_, supply, all_supply| RatioSats::<PartsPerMillion32>::apply(supply, all_supply),
+            |_, supply, all_supply| Quotient::<PartsPerMillion32>::apply(supply, all_supply),
         );
         let dominance =
             LazyFixedRatioPerBlock::from_height_source(&dominance_name, version, &source, mappings);

@@ -2,7 +2,7 @@ use bitview_collections::{ByLookbackPeriod, Windows};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::PartsPerMillionSigned64;
-use bitview_transforms::RatioDiffDollars;
+use bitview_transforms::RelativeChange;
 use bitview_vecs::{LazyFixedRatioPerBlock, LazyWindowVec, StdDevPerBlock};
 use brk_error::{Error, Result};
 use brk_types::{Dollars, Height, Version};
@@ -28,7 +28,7 @@ impl Vecs {
                     *window_starts,
                     false,
                     |current, past, _| {
-                        RatioDiffDollars::<PartsPerMillionSigned64>::apply(current, past)
+                        RelativeChange::<PartsPerMillionSigned64>::apply(current, past)
                     },
                 );
                 Ok::<_, Error>(LazyFixedRatioPerBlock::from_height_source(

@@ -1,8 +1,6 @@
 use bitview_collections::Ohlc;
 use bitview_primitives::OHLCCents;
-use bitview_transforms::{
-    CentsUnsignedToDollars, CentsUnsignedToSats, OhlcCentsToHighCents, OhlcCentsToLowCents,
-};
+use bitview_transforms::{CentsUnsignedToSats, Convert, OhlcCentsToHighCents, OhlcCentsToLowCents};
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Dollars, Sats, Version};
 use derive_more::{Deref, DerefMut};
@@ -41,17 +39,17 @@ impl SplitPrice {
             version,
             &ohlc.cents,
         );
-        let open_usd = LazyIndexes::from_lazy_indexes::<CentsUnsignedToDollars, _>(
+        let open_usd = LazyIndexes::from_lazy_indexes::<Convert, _>(
             &format!("{name}_open"),
             version,
             &open_cents,
         );
-        let high_usd = LazyIndexes::from_lazy_indexes::<CentsUnsignedToDollars, _>(
+        let high_usd = LazyIndexes::from_lazy_indexes::<Convert, _>(
             &format!("{name}_high"),
             version,
             &high_cents,
         );
-        let low_usd = LazyIndexes::from_lazy_indexes::<CentsUnsignedToDollars, _>(
+        let low_usd = LazyIndexes::from_lazy_indexes::<Convert, _>(
             &format!("{name}_low"),
             version,
             &low_cents,

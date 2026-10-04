@@ -1,4 +1,4 @@
-use bitview_transforms::{CentsUnsignedToDollars, SatsToBitcoin};
+use bitview_transforms::Convert;
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
 use vecdb::{Ident, ReadableCloneableVec};
 
@@ -25,18 +25,15 @@ impl LazyCumulativeValuePerBlock {
             cumulative_sats,
             indexes,
         );
-        let btc = LazyPerBlock::from_lazy::<SatsToBitcoin, Sats>(name, version, &sats);
+        let btc = LazyPerBlock::from_lazy::<Convert, Sats>(name, version, &sats);
         let cents = LazyPerBlock::from_height_source::<Ident>(
             &format!("{name}_cents"),
             version,
             cumulative_cents,
             indexes,
         );
-        let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(
-            &format!("{name}_usd"),
-            version,
-            &cents,
-        );
+        let usd =
+            LazyPerBlock::from_lazy::<Convert, Cents>(&format!("{name}_usd"), version, &cents);
         Self {
             btc,
             sats,

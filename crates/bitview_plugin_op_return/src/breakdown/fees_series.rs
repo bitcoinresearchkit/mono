@@ -1,7 +1,7 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillion32;
-use bitview_transforms::RatioSats;
+use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFixedRatioCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling,
@@ -33,7 +33,7 @@ impl FeesSeries {
         let fee_share = LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
             Sats,
             Sats,
-            RatioSats<PartsPerMillion32>,
+            Quotient<PartsPerMillion32>,
         >(
             &format!("{prefix}_fee_share"),
             version,

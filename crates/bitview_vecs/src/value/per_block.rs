@@ -1,24 +1,18 @@
 use bitview_compute::NumericValue;
-use bitview_transforms::{CentsUnsignedToDollars, SatsSignedToBitcoin, SatsToBitcoin};
+use bitview_transforms::Convert;
 use brk_error::Result;
 use brk_types::{Bitcoin, Cents, Dollars, Sats, SatsSigned, Version};
 use schemars::JsonSchema;
-use vecdb::{Database, Rw, UnaryTransform};
+use vecdb::{Database, Rw};
 
 use crate::{IndexSources, LazyPerBlock, PerBlock, Value};
 
-/// Trait that associates a sats type with its transform to Bitcoin.
-pub trait AmountType: NumericValue + JsonSchema {
-    type ToBitcoin: UnaryTransform<Self, Bitcoin>;
-}
+/// A sats type that converts to bitcoin.
+pub trait AmountType: NumericValue + JsonSchema + Into<Bitcoin> {}
 
-impl AmountType for Sats {
-    type ToBitcoin = SatsToBitcoin;
-}
+impl AmountType for Sats {}
 
-impl AmountType for SatsSigned {
-    type ToBitcoin = SatsSignedToBitcoin;
-}
+impl AmountType for SatsSigned {}
 
 /// Sats and cents each own one shared source cache.
 pub type ValuePerBlock<M = Rw> = Value<
@@ -37,15 +31,12 @@ impl ValuePerBlock {
     ) -> Result<Self> {
         let sats = PerBlock::import(db, &format!("{name}_sats"), version, indexes)?;
 
-        let btc = LazyPerBlock::from_resolutions::<SatsToBitcoin>(name, version, &sats);
+        let btc = LazyPerBlock::from_resolutions::<Convert>(name, version, &sats);
 
         let cents = PerBlock::import(db, &format!("{name}_cents"), version, indexes)?;
 
-        let usd = LazyPerBlock::from_resolutions::<CentsUnsignedToDollars>(
-            &format!("{name}_usd"),
-            version,
-            &cents,
-        );
+        let usd =
+            LazyPerBlock::from_resolutions::<Convert>(&format!("{name}_usd"), version, &cents);
 
         Ok(Self {
             btc,

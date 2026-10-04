@@ -6,7 +6,7 @@
 
 use bitview_compute::ComputedVecValue;
 use bitview_primitives::SatsFract;
-use bitview_transforms::{CentsUnsignedToDollars, DollarsToSatsFract};
+use bitview_transforms::{Convert, DollarsToSatsFract};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Height, Version};
@@ -35,7 +35,7 @@ impl Price<PerBlock<Cents>> {
         indexes: &IndexSources,
     ) -> Result<Self> {
         let cents = PerBlock::import(db, &format!("{name}_cents"), version, indexes)?;
-        let usd = LazyPerBlock::from_resolutions::<CentsUnsignedToDollars>(name, version, &cents);
+        let usd = LazyPerBlock::from_resolutions::<Convert>(name, version, &cents);
         Ok(Self::from_cents_and_usd(name, version, cents, usd))
     }
 }
@@ -51,7 +51,7 @@ impl Price<LazyPerBlock<Cents, Cents>> {
         S: ComputedVecValue + JsonSchema,
     {
         let cents = LazyPerBlock::from_lazy::<F, S>(&format!("{name}_cents"), version, source);
-        let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(name, version, &cents);
+        let usd = LazyPerBlock::from_lazy::<Convert, Cents>(name, version, &cents);
         Self::from_cents_and_usd(name, version, cents, usd)
     }
 }
@@ -72,7 +72,7 @@ impl Price<LazyPerBlock<Cents>> {
             source,
             indexes,
         );
-        let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(name, version, &cents);
+        let usd = LazyPerBlock::from_lazy::<Convert, Cents>(name, version, &cents);
         Self::from_cents_and_usd(name, version, cents, usd)
     }
 }

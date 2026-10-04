@@ -1,6 +1,6 @@
 use bitview_compute::WeightedCohortState;
 use bitview_primitives::BoundedRatio;
-use bitview_transforms::{CentsUnsignedToDollars, SatsToBitcoin, SatsToCents};
+use bitview_transforms::{Convert, SatsToCents};
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
 use vecdb::{BinaryTransform, Ident, ReadableBoxedVec, ReadableCloneableVec};
 
@@ -86,13 +86,13 @@ impl LazySpotValuePerBlock {
     pub fn identity(name: &str, version: Version, source: &Self) -> Self {
         let sats =
             LazyPerBlock::from_lazy::<Ident, Sats>(&format!("{name}_sats"), version, &source.sats);
-        let btc = LazyPerBlock::from_lazy::<SatsToBitcoin, Sats>(name, version, &source.sats);
+        let btc = LazyPerBlock::from_lazy::<Convert, Sats>(name, version, &source.sats);
         let cents = LazyPerBlock::from_lazy::<Ident, Cents>(
             &format!("{name}_cents"),
             version,
             &source.cents,
         );
-        let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(
+        let usd = LazyPerBlock::from_lazy::<Convert, Cents>(
             &format!("{name}_usd"),
             version,
             &source.cents,
@@ -154,12 +154,9 @@ impl LazySpotValuePerBlock {
         sats: LazyPerBlock<Sats>,
         cents: LazyPerBlock<Cents>,
     ) -> Self {
-        let btc = LazyPerBlock::from_lazy::<SatsToBitcoin, Sats>(name, version, &sats);
-        let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(
-            &format!("{name}_usd"),
-            version,
-            &cents,
-        );
+        let btc = LazyPerBlock::from_lazy::<Convert, Sats>(name, version, &sats);
+        let usd =
+            LazyPerBlock::from_lazy::<Convert, Cents>(&format!("{name}_usd"), version, &cents);
 
         Self {
             btc,

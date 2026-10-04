@@ -2,7 +2,7 @@ use bitview_compute::prepare_computed;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Boolean, Count, Count16, PartsPerMillion32};
-use bitview_transforms::RatioSats;
+use bitview_transforms::Quotient;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, TxIndex};
@@ -105,7 +105,7 @@ impl Vecs {
             self.fee_share
                 .ppm
                 .height
-                .push(RatioSats::<PartsPerMillion32>::apply(inscribed, total));
+                .push(Quotient::<PartsPerMillion32>::apply(inscribed, total));
             block_start = block_end;
 
             if (height + 1).is_multiple_of(WRITE_INTERVAL) {

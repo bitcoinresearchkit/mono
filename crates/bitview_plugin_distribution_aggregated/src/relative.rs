@@ -1,7 +1,7 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned32, PartsPerMillionSigned64};
-use bitview_transforms::{RatioCents, RatioCentsSignedCents, RatioDollars, RatioSats};
+use bitview_transforms::{Quotient, RatioDollars};
 use bitview_traversable::Traversable;
 use bitview_vecs::FixedRatioPerBlock;
 use brk_error::Result;
@@ -167,12 +167,12 @@ impl Metrics {
         } = self;
         relative
             .supply_dominance
-            .compute_binary::<_, _, RatioSats<PartsPerMillion32>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from, &c.supply, all_supply, exit,
             )?;
         relative
             .supply_in_profit_share
-            .compute_binary::<_, _, RatioSats<PartsPerMillion32>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.supply_profit,
                 &c.supply,
@@ -180,7 +180,7 @@ impl Metrics {
             )?;
         relative
             .supply_in_loss_share
-            .compute_binary::<_, _, RatioSats<PartsPerMillion32>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.supply_loss,
                 &c.supply,
@@ -188,7 +188,7 @@ impl Metrics {
             )?;
         relative
             .unrealized_profit_to_mcap
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.unrealized_profit,
                 all_market_cap,
@@ -196,7 +196,7 @@ impl Metrics {
             )?;
         relative
             .unrealized_loss_to_mcap
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.unrealized_loss,
                 all_market_cap,
@@ -220,7 +220,7 @@ impl Metrics {
             )?;
         relative
             .unrealized_profit_to_own_gross_pnl
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.unrealized_profit,
                 &c.unrealized_gross_pnl,
@@ -228,7 +228,7 @@ impl Metrics {
             )?;
         relative
             .unrealized_loss_to_own_gross_pnl
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.unrealized_loss,
                 &c.unrealized_gross_pnl,
@@ -236,7 +236,7 @@ impl Metrics {
             )?;
         relative
             .net_unrealized_pnl_to_own_gross_pnl
-            .compute_binary::<_, _, RatioCentsSignedCents<PartsPerMillionSigned32>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillionSigned32>>(
                 from,
                 &c.unrealized_net_pnl,
                 &c.unrealized_gross_pnl,
@@ -244,7 +244,7 @@ impl Metrics {
             )?;
         relative
             .invested_capital_in_profit_share
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.invested_profit,
                 &c.cap,
@@ -252,7 +252,7 @@ impl Metrics {
             )?;
         relative
             .invested_capital_in_loss_share
-            .compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.invested_loss,
                 &c.cap,
@@ -268,7 +268,7 @@ impl Metrics {
             )?;
         relative
             .net_pnl_change_1m_to_mcap
-            .compute_binary::<_, _, RatioCentsSignedCents<PartsPerMillionSigned64>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillionSigned64>>(
                 from,
                 &realized.net_pnl.delta.absolute._1m.cents.height,
                 all_market_cap,
@@ -276,7 +276,7 @@ impl Metrics {
             )?;
         relative
             .net_pnl_change_1m_to_rcap
-            .compute_binary::<_, _, RatioCentsSignedCents<PartsPerMillionSigned64>>(
+            .compute_binary::<_, _, Quotient<PartsPerMillionSigned64>>(
                 from,
                 &realized.net_pnl.delta.absolute._1m.cents.height,
                 &c.cap,

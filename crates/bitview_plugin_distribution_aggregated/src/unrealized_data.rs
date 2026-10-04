@@ -1,5 +1,5 @@
 use bitview_primitives::PartsPerMillionSigned32;
-use bitview_transforms::{RatioCentsSignedCents, SatsToCents};
+use bitview_transforms::{Quotient, SatsToCents};
 use brk_types::{Cents, CentsSigned, Sats};
 use vecdb::BinaryTransform;
 
@@ -42,7 +42,7 @@ impl UnrealizedData {
             CentsSigned::new(d.unrealized_profit.inner() as i64 - d.unrealized_loss.inner() as i64);
         Self {
             net_pnl,
-            nupl: RatioCentsSignedCents::apply(net_pnl, SatsToCents::apply(d.supply, spot)),
+            nupl: Quotient::apply(net_pnl, SatsToCents::apply(d.supply, spot)),
             invested_capital_in_profit: Cents::new(invested_profit as u64),
             invested_capital_in_loss: Cents::new(invested_loss as u64),
             pain_index,

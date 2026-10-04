@@ -1,7 +1,7 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Bytes, Count, PartsPerMillion32};
-use bitview_transforms::{RatioBytes, RatioSats};
+use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFixedRatioCumulativeRolling, LazyFixedRatioPerBlock, LazyWindowStartVec,
@@ -100,7 +100,7 @@ impl Total {
         mappings: &MappingsVecs,
     ) -> LazyFixedRatioPerBlock<PartsPerMillion32> {
         let data_bytes = data_bytes.cumulative.height.read_only_clone();
-        LazyFixedRatioPerBlock::from_ratio::<Bytes, Bytes, RatioBytes<PartsPerMillion32>>(
+        LazyFixedRatioPerBlock::from_ratio::<Bytes, Bytes, Quotient<PartsPerMillion32>>(
             &format!("{prefix}_chain_share"),
             version,
             &data_bytes,
@@ -120,7 +120,7 @@ impl Total {
         LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
             Sats,
             Sats,
-            RatioSats<PartsPerMillion32>,
+            Quotient<PartsPerMillion32>,
         >(
             &format!("{prefix}_fee_share"),
             version,

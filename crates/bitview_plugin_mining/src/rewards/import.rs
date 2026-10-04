@@ -1,7 +1,7 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillion64};
-use bitview_transforms::{OneMinusPpm, RatioSats};
+use bitview_transforms::{OneMinusPpm, Quotient};
 use bitview_vecs::{
     LazyFixedRatioCumulativeRolling, LazyFixedRatioRollingWindows, LazyWindowStartVec,
     ValuePerBlockCumulative, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
@@ -39,7 +39,7 @@ impl Vecs {
         let fee_dominance = LazyFixedRatioCumulativeRolling::from_cumulative_ratio_with_numerator::<
             Sats,
             Sats,
-            RatioSats<PartsPerMillion32>,
+            Quotient<PartsPerMillion32>,
         >(
             "fee_dominance",
             version,
@@ -56,7 +56,7 @@ impl Vecs {
         let fee_to_subsidy = LazyFixedRatioRollingWindows::from_cumulative_ratio_with_numerator::<
             Sats,
             Sats,
-            RatioSats<PartsPerMillion64>,
+            Quotient<PartsPerMillion64>,
         >(
             "fee_to_subsidy",
             version + Version::ONE,

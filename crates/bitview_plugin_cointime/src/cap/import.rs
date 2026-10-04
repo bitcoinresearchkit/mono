@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::CentsUnsignedToDollars;
+use bitview_transforms::Convert;
 use bitview_vecs::{FiatPerBlock, LazyFiatPerBlock, LazyPerBlock, PerBlock, RatioPerBlock};
 use brk_error::Result;
 use brk_types::{Cents, Version};
@@ -16,11 +16,8 @@ impl Vecs {
     ) -> Result<Self> {
         let thermo_cents =
             LazyPerBlock::from_resolutions::<Ident>("thermo_cap_cents", version, subsidy_cents);
-        let thermo_usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(
-            "thermo_cap",
-            version,
-            &thermo_cents,
-        );
+        let thermo_usd =
+            LazyPerBlock::from_lazy::<Convert, Cents>("thermo_cap", version, &thermo_cents);
         Ok(Vecs {
             thermo: LazyFiatPerBlock {
                 usd: thermo_usd,

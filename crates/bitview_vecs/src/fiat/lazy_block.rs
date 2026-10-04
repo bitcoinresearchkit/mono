@@ -1,3 +1,4 @@
+use bitview_transforms::Convert;
 use brk_types::{Dollars, Height, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
 
@@ -15,8 +16,7 @@ impl<C: FiatType> LazyFiatBlock<C> {
     ) -> Self {
         let cents =
             LazyPreviousDeltaVec::new(&format!("{name}_cents"), version, &cumulative.height);
-        let usd =
-            LazyVec::transformed::<C::ToDollars>(name, version, cents.read_only_boxed_clone());
+        let usd = LazyVec::transformed::<Convert>(name, version, cents.read_only_boxed_clone());
         Self { usd, cents }
     }
 }

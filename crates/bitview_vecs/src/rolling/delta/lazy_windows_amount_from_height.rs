@@ -1,5 +1,6 @@
 use bitview_collections::Windows;
 use bitview_compute::FixedRatio;
+use bitview_transforms::Convert;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use vecdb::{ReadableCloneableVec, VecValue};
@@ -49,11 +50,8 @@ where
                     *window_start,
                     indexes,
                 );
-                let btc = LazyPerBlock::from_resolutions::<C::ToBitcoin>(
-                    &name,
-                    version,
-                    &sats.resolutions,
-                );
+                let btc =
+                    LazyPerBlock::from_resolutions::<Convert>(&name, version, &sats.resolutions);
                 let absolute = LazyDeltaAmountFromHeight { btc, sats };
 
                 let rate = LazyDeltaFixedRatioFromHeight::from_source(

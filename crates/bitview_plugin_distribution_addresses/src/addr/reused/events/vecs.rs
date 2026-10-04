@@ -5,7 +5,7 @@ use bitview_plugin_inputs::ByTypeVecs as InputsByTypeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_outputs::ByTypeVecs;
 use bitview_primitives::{Count, PartsPerMillion32, Percent, Percent64};
-use bitview_transforms::RatioCount;
+use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFixedRatioCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeAverage,
@@ -110,7 +110,7 @@ impl AddrEventsVecs {
             LazyFixedRatioCumulativeRolling::from_cumulative_ratio_with_numerator::<
                 Count,
                 Count,
-                RatioCount<PartsPerMillion32>,
+                Quotient<PartsPerMillion32>,
             >(
                 &format!("{type_name}_{name}"),
                 version,
@@ -173,7 +173,7 @@ impl AddrEventsVecs {
             LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
                 Count,
                 Count,
-                RatioCount<PartsPerMillion32>,
+                Quotient<PartsPerMillion32>,
             >(
                 &spendable_share_name,
                 version,

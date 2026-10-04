@@ -1,5 +1,5 @@
 use bitview_collections::Windows;
-use bitview_transforms::{CentsUnsignedToDollars, SatsToBitcoin};
+use bitview_transforms::Convert;
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
@@ -39,11 +39,8 @@ impl LazyRollingSumsAmountFromHeight {
             );
 
             // Btc lazy from sats
-            let btc = LazyPerBlock::from_resolutions::<SatsToBitcoin>(
-                &full_name,
-                version,
-                &sats.resolutions,
-            );
+            let btc =
+                LazyPerBlock::from_resolutions::<Convert>(&full_name, version, &sats.resolutions);
 
             // Cents rolling sum
             let cents = LazyRollingSumFromHeight::from_source(
@@ -55,7 +52,7 @@ impl LazyRollingSumsAmountFromHeight {
             );
 
             // Usd lazy from cents
-            let usd = LazyPerBlock::from_resolutions::<CentsUnsignedToDollars>(
+            let usd = LazyPerBlock::from_resolutions::<Convert>(
                 &format!("{full_name}_usd"),
                 version,
                 &cents.resolutions,

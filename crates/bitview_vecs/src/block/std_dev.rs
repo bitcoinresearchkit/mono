@@ -27,7 +27,7 @@ impl StdDevPerBlock {
         parent_version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let version = parent_version + Version::TWO;
+        let version = parent_version + Version::new(3);
         let p = if period.is_empty() {
             String::new()
         } else {
@@ -47,19 +47,6 @@ impl StdDevPerBlock {
         exit: &Exit,
         source: &impl ReadableVec<Height, Ratio>,
     ) -> Result<()> {
-        if self.days == usize::MAX {
-            self.sma
-                .height
-                .compute_sma(starting_lengths.height, source, usize::MAX, exit, None)?;
-            self.sd.height.compute_expanding_sd(
-                starting_lengths.height,
-                source,
-                &self.sma.height,
-                exit,
-            )?;
-            return Ok(());
-        }
-
         let window_starts = lookback.start_vec(self.days);
 
         self.sma.height.compute_rolling_average(

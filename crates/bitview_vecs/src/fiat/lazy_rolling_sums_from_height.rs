@@ -1,4 +1,5 @@
 use bitview_collections::Windows;
+use bitview_transforms::Convert;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -35,8 +36,7 @@ impl<C: FiatType> LazyRollingSumsFiatFromHeight<C> {
                 indexes,
             );
 
-            let usd =
-                LazyPerBlock::from_resolutions::<C::ToDollars>(&name, version, &cents.resolutions);
+            let usd = LazyPerBlock::from_resolutions::<Convert>(&name, version, &cents.resolutions);
 
             LazyRollingSumFiatFromHeight { usd, cents }
         }))

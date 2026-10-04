@@ -2,7 +2,7 @@ use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{Days, PartsPerMillion32, Ratio};
-use bitview_transforms::{RatioCents, RatioCentsOrOne};
+use bitview_transforms::{Quotient, RatioCentsOrOne};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     FixedRatioRollingWindows, LazyWindowStartVec, PerBlock, RollingWindows, RollingWindowsFrom1w,
@@ -123,7 +123,7 @@ impl Ratios {
             .into_iter()
             .zip(realized.gross_pnl.sum.as_array())
         {
-            target.compute_binary::<_, _, RatioCents<PartsPerMillion32>>(
+            target.compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &pnl.cents.height,
                 &realized.cap.cents.height,

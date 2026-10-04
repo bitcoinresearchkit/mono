@@ -1,6 +1,6 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Bytes, PartsPerMillion32};
-use bitview_transforms::RatioBytes;
+use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyFixedRatioPerBlock, PerBlockCumulativeRolling};
 use brk_types::{Height, Version};
@@ -30,22 +30,20 @@ impl DataBytesSeries {
         block_size: &impl ReadableCloneableVec<Height, Bytes>,
         mappings: &MappingsVecs,
     ) -> Self {
-        let data_share =
-            LazyFixedRatioPerBlock::from_ratio::<Bytes, _, RatioBytes<PartsPerMillion32>>(
-                &format!("{prefix}_data_share"),
-                version,
-                data_bytes.cumulative.resolutions.height_source(),
-                total_data,
-                mappings,
-            );
-        let chain_share =
-            LazyFixedRatioPerBlock::from_ratio::<Bytes, _, RatioBytes<PartsPerMillion32>>(
-                &format!("{prefix}_chain_share"),
-                version,
-                data_bytes.cumulative.resolutions.height_source(),
-                block_size,
-                mappings,
-            );
+        let data_share = LazyFixedRatioPerBlock::from_ratio::<Bytes, _, Quotient<PartsPerMillion32>>(
+            &format!("{prefix}_data_share"),
+            version,
+            data_bytes.cumulative.resolutions.height_source(),
+            total_data,
+            mappings,
+        );
+        let chain_share = LazyFixedRatioPerBlock::from_ratio::<Bytes, _, Quotient<PartsPerMillion32>>(
+            &format!("{prefix}_chain_share"),
+            version,
+            data_bytes.cumulative.resolutions.height_source(),
+            block_size,
+            mappings,
+        );
 
         Self {
             data_bytes,

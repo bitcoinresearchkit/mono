@@ -1,4 +1,5 @@
 use bitview_compute::NumericValue;
+use bitview_transforms::Convert;
 use brk_types::{Dollars, Height, Version};
 use vecdb::{Ident, ReadableCloneableVec};
 
@@ -14,7 +15,7 @@ impl<C: FiatType> LazyFiatPerBlock<C> {
         C: NumericValue,
     {
         let cents = LazyPerBlock::from_lazy::<Ident, C>(&format!("{name}_cents"), version, source);
-        let usd = LazyPerBlock::from_lazy::<C::ToDollars, C>(name, version, source);
+        let usd = LazyPerBlock::from_lazy::<Convert, C>(name, version, source);
         Self { usd, cents }
     }
 
