@@ -257,8 +257,8 @@
         &#measure-toggle[aria-pressed="true"]::after {
           content: "";
           position: absolute;
-          top: 4px;
-          right: 4px;
+          top: 2px;
+          right: 2px;
           width: 4px;
           height: 4px;
           border-radius: 50%;
@@ -686,14 +686,34 @@
 
       /* Under search, in the same place however long the list: its + in the mini charts' column, its label on
          theirs, quieter than a chart. */
-      .new-chart {
+      /* All charts and New chart: a step apart as the charts are, a break under them before the list. */
+      .side-action {
         flex-shrink: 0;
-        margin: -2px 0 6px;
         color: var(--soft);
 
         [data-icon] {
           justify-content: center;
           width: 16px;
+        }
+      }
+
+      #all-charts {
+        margin-top: -2px;
+      }
+
+      /* A rule in the gap under them sets the charts apart (on the rail, a short one, at the same height). */
+      .new-chart {
+        position: relative;
+        margin: 1px 0 6px;
+
+        &::after {
+          content: "";
+          position: absolute;
+          right: 8px;
+          bottom: -5px;
+          left: 8px;
+          height: 1px;
+          background: var(--line);
         }
       }
 
@@ -1017,20 +1037,15 @@
             pointer-events: none;
           }
 
-          /* On the rail, a short rule sets the charts apart, in the gap under New chart: nothing moves. */
+          /* On the rail, the rule under New chart is short, at the same height: nothing moves. */
           .new-chart {
-            position: relative;
             overflow: visible;
           }
 
           .new-chart::after {
-            content: "";
-            position: absolute;
-            bottom: -5px;
+            right: auto;
             left: 5px;
             width: 20px;
-            height: 1px;
-            background: var(--line);
           }
 
           .chart-more,
@@ -1044,7 +1059,7 @@
            */
           .search,
           .chart-row .chart-item,
-          .new-chart,
+          .side-action,
           .side-foot .nav-item,
           .live {
             width: 30px;
@@ -1555,20 +1570,18 @@
       }
 
       /*
-       * One width (two of its widest end, "28 Dec ’25", about the dash), so zooming never moves the navigator; within it
-       * the dash stays put at the center, the start ending against it and the end starting from it, whatever their lengths.
+       * In mono, each end in a slot as wide as its longest form ("28 Dec ’25", with times "28 Dec 14:00"): the dash
+       * never moves, nor the range's width, however it reads; the start ends against the dash, the end starts from it.
        */
       .span {
         display: grid;
         flex: none;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        grid-template-columns: 10ch auto 10ch;
         align-items: center;
-        column-gap: 5px;
-        width: 144px;
+        column-gap: 6px;
         overflow: hidden;
         color: var(--muted);
-        font-size: 12px;
-        font-variant-numeric: tabular-nums;
+        font: 11px var(--mono);
         white-space: nowrap;
 
         > span:first-child {
@@ -1584,20 +1597,33 @@
           font-style: normal;
         }
 
+        /* One date: on the dash's place. */
         b {
           grid-column: 1 / -1;
           justify-self: center;
           font-weight: inherit;
         }
 
-        /* Minutes and hours can carry times. */
         &.fine {
-          width: 174px;
+          grid-template-columns: 12ch auto 12ch;
         }
       }
 
       @container (max-width: 560px) {
         .span {
+          display: none;
+        }
+      }
+
+      /* Where the price axis meets the time axis, under the plot: the ruler. Placed and sized by script, from the axes. */
+      .corner {
+        position: absolute;
+        bottom: 8px;
+        z-index: 2;
+        display: grid;
+        place-items: center;
+
+        &[hidden] {
           display: none;
         }
       }
@@ -4246,13 +4272,13 @@
           margin-left: auto;
         }
 
-        /* Floating over the plot, never over the foot's navigator and controls (44px tall); it slides in and out
-           whole, from the right. */
+        /* Floating over the plot, never over the time axis's corner (the ruler) nor the foot under it; it slides in and
+           out whole, from the right. */
         .panel {
           position: absolute;
           top: 8px;
           right: 8px;
-          bottom: 52px;
+          bottom: 88px;
           z-index: 6;
           border: 0;
           border-radius: 12px;
@@ -4285,7 +4311,7 @@
           box-shadow: none;
         }
 
-        #measure-toggle,
+        .corner,
         #redo,
         #add,
         .card-head .divider,
@@ -4461,15 +4487,15 @@
     <div class="app">
       <aside class="sidebar" id="sidebar" aria-label="Charts">
         <div class="brand-row" style="--i: 0">
-          <a class="brand" href="../" data-tip="All showcases">
+          <a class="brand" href="https://bitview.space" data-tip="Bitview">
             <span class="logo"><svg viewBox="0 0 173.2 200" aria-hidden="true"><defs><clipPath id="logo-hex"><polygon points="86.6,0 173.2,50 173.2,150 86.6,200 0,150 0,50"/></clipPath></defs><g fill-opacity=".4"><polygon fill="oklch(57.74% 0.191 44.41)" points="86.6,100 173.2,150 86.6,200 0,150"/><polygon fill="oklch(67.64% 0.191 44.41)" points="86.6,100 0,150 0,50 86.6,0"/><polygon fill="oklch(64.34% 0.191 44.41)" points="86.6,100 173.2,150 173.2,50 86.6,0"/></g><g clip-path="url(#logo-hex)"><g transform="translate(0 50)"><polygon fill="oklch(67.64% 0.191 44.41)" points="86.6,0 173.2,50 86.6,100 0,50"/><polygon fill="oklch(61.04% 0.191 44.41)" points="173.2,50 173.2,150 86.6,200 86.6,100"/><polygon fill="oklch(64.34% 0.191 44.41)" points="0,50 0,150 86.6,200 86.6,100"/></g></g><g fill-opacity=".4"><polygon fill="oklch(67.64% 0.191 44.41)" points="0,50 86.6,0 173.2,50 86.6,100"/><polygon fill="oklch(61.04% 0.191 44.41)" points="173.2,50 173.2,150 86.6,200 86.6,100"/><polygon fill="oklch(64.34% 0.191 44.41)" points="0,50 0,150 86.6,200 86.6,100"/></g></svg></span>
             <span class="brand-name"><b>Bitview</b> Studio</span>
           </a>
           <button class="cap small sheet-close" type="button" data-action="close-sheet" aria-label="Close" data-icon="close"></button>
         </div>
         <button class="search" type="button" data-action="palette" data-tip="Search or run a command" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search or run a command</span><kbd class="mod">⌘K</kbd></button>
-        <button id="new-chart" class="nav-item new-chart" type="button" data-tip="New chart" data-kbd="N" style="--i: 1"><span data-icon="plus"></span><span class="label">New chart</span><kbd>N</kbd></button>
-        <button id="all-charts" class="nav-item" type="button" data-action="home" data-tip="All charts" style="--i: 1"><span data-icon="grid"></span><span class="label">All charts</span></button>
+        <button id="all-charts" class="nav-item side-action" type="button" data-action="home" data-tip="All charts" style="--i: 1"><span data-icon="grid"></span><span class="label">All charts</span></button>
+        <button id="new-chart" class="nav-item side-action new-chart" type="button" data-tip="New chart" data-kbd="N" style="--i: 1"><span data-icon="plus"></span><span class="label">New chart</span><kbd>N</kbd></button>
         <div id="chart-list" class="chart-list" style="--i: 2"></div>
         <input id="import-file" type="file" accept="application/json,.json" hidden />
         <div class="side-foot" style="--i: 3">
@@ -4502,6 +4528,7 @@
             <div class="canvas" id="canvas">
               <div id="chart" class="chart"></div>
               <div id="measure" class="measure" hidden><span></span></div>
+              <div id="corner" class="corner"><button id="measure-toggle" class="cap small" type="button" aria-pressed="false" aria-label="Measure" data-tip="Measure, or shift-drag" data-kbd="M" data-action="measure" data-icon="ruler"></button></div>
               <div id="progress" class="progress" hidden></div>
               <div id="loading" class="loading-state" hidden>
                 <svg viewBox="0 0 300 80" preserveAspectRatio="none" aria-hidden="true"><path d="M2 70 C 30 66, 40 52, 62 56 S 96 30, 118 38 S 150 20, 170 26 S 205 6, 228 14 S 268 2, 298 6" /></svg>
@@ -4527,12 +4554,11 @@
             <footer id="stage-foot" class="stage-foot">
               <button id="interval" class="btn ghost interval" type="button" aria-haspopup="menu" data-tip="Interval" data-kbd="[ ]"></button>
               <div id="ranges" class="tabs" role="group" aria-label="Visible range"></div>
-              <span id="span" class="span"></span>
               <div id="navigator" class="navigator" data-tip="Drag to pan, drag an edge to zoom, click to jump">
                 <div class="navigator-clip"><canvas id="overview"></canvas></div>
                 <div id="brush" class="brush"></div>
               </div>
-              <button id="measure-toggle" class="cap" type="button" aria-pressed="false" aria-label="Measure" data-tip="Measure, or shift-drag" data-kbd="M" data-action="measure" data-icon="ruler"></button>
+              <span id="span" class="span"></span>
             </footer>
           </section>
 
@@ -5850,7 +5876,10 @@
        * with a name is deleted, with an Undo.
        */
       function leaveEmpty() {
-        if (backToHome()) return history.back();
+        if (backToHome()) {
+          cancelling = chart.id;
+          return history.back();
+        }
         const back = previousChart();
         if (chart.layers.length || !back) return;
         if (!isDraft(chart)) return deleteChart(chart, back);
@@ -6271,6 +6300,7 @@
         resolved = result;
         const reveal = first && doc.layers.length > 0 && !reduced.matches && !fromHome;
         build(structuredClone(chart), result, refit);
+        requestAnimationFrame(placeCorner);
         drawnChart = doc.id;
         drawnVersion = version;
         renderLayers();
@@ -6752,6 +6782,19 @@
         const id = layerOfSeries(param.hoveredSeries);
         if (id) select(id);
       });
+      /**
+       * The ruler's corner: where the right price axis meets the time axis (the left one's, if only it shows). The chart
+       * draws on whole even pixels, its table a pixel short of its box at odd sizes: the corner goes by the table.
+       */
+      function placeCorner() {
+        const right = view.priceScale("right", 0).width(), left = view.priceScale("left", 0).width(), corner = $("corner");
+        const box = $("chart"), table = box.querySelector("table");
+        corner.hidden = !chart?.layers.length || !(right || left) || !table;
+        if (!table) return;
+        const short = { x: box.clientWidth - table.offsetWidth, y: box.clientHeight - table.offsetHeight };
+        Object.assign(corner.style, { width: `${right || left}px`, height: `${view.timeScale().height()}px`, bottom: `${8 + short.y}px`, right: right ? `${short.x}px` : "", left: right ? "" : "0px" });
+      }
+      new ResizeObserver(() => requestAnimationFrame(placeCorner)).observe($("chart"));
       new ResizeObserver(() => requestAnimationFrame(drawOverview)).observe($("canvas"));
       new ResizeObserver(() => requestAnimationFrame(drawOverview)).observe($("navigator"));
       // Pane separators resize panes; their sizes stay with the chart.
@@ -6884,7 +6927,11 @@
         brush.style.width = `${Math.max(6, right - left)}px`;
       }
       // The price scales widen and narrow as their labels change, and the plot with them: the navigator follows.
-      view.timeScale().subscribeSizeChange(() => requestAnimationFrame(drawOverview));
+      // The plot's width changed (the window, the panel, or a price axis grown with its labels): the overview, the ruler's corner.
+      view.timeScale().subscribeSizeChange(() => requestAnimationFrame(() => {
+        drawOverview();
+        placeCorner();
+      }));
       view.timeScale().subscribeVisibleLogicalRangeChange(() => {
         const span = view.timeScale().getVisibleRange();
         const years = Boolean(span) && Number(span.to) - Number(span.from) > 3 * 365.25 * 86400;
@@ -7675,8 +7722,8 @@
         void transition.finished.finally(() => after && (after.style.viewTransitionName = ""));
       }
       /**
-       * The grid of every chart; the open one shrinks into its card. A new chart left untouched isn't kept (nothing is
-       * lost), as Cancel does. `push`: a step of the browser's history (not when going back to it).
+       * The grid of every chart; the open one shrinks into its card (a new chart Cancel sends back here is taken back).
+       * `push`: a step of the browser's history (not when going back to it).
        */
       function showHome(push = true) {
         delete document.body.dataset.sheet;
@@ -7687,7 +7734,9 @@
           previews.set(chart.id, { key: previewKey(chart), ...previewOf(chart, resolved) });
           savePreviews();
         }
-        const draft = isDraft(chart) && library.charts.length > 1 ? chart : null;
+        // Taken back only when Cancel (or esc) is the way there; another way, it stays (as a chart left for another).
+        const draft = cancelling === chart.id && library.charts.length > 1 ? chart : null;
+        cancelling = "";
         hideMenu();
         disarm();
         hideTip();
@@ -7700,17 +7749,18 @@
         prefs.home = true;
         savePrefs();
         if (push) history.pushState({ home: true }, "");
-        if (draft) {
-          library.charts.splice(library.charts.indexOf(draft), 1);
-          open(previousChart() ?? library.charts[0]);
-        }
-        const id = chart.id;
         morph(draft ? null : $("main"), () => {
+          // Once the page as it was is pictured (the new chart, empty), it's taken back and the one before it goes under
+          // the grid (else that one's foot would show, fading, as the page leaves).
+          if (draft) {
+            library.charts.splice(library.charts.indexOf(draft), 1);
+            open(previousChart() ?? library.charts[0]);
+          }
           document.body.toggleAttribute("data-home", true);
           refresh("none");
-          const card = cardOf(id);
+          const card = cardOf(chart.id);
           card?.scrollIntoView({ block: "nearest" });
-          tileOpen(id)?.focus({ preventScroll: true });
+          tileOpen(chart.id)?.focus({ preventScroll: true });
           return draft ? null : card;
         });
       }
@@ -7744,6 +7794,8 @@
         if (home) leaveHome(() => doc !== chart && open(doc), cardOf(doc.id));
         else if (doc !== chart) open(doc);
       }
+      /** A new chart being cancelled on the way back to the grid (it's taken back once there). */
+      let cancelling = "";
       /** A new chart, untouched, opened from the grid: leaving it goes back there. */
       const backToHome = () => isDraft(chart) && history.state?.fromHome === true && history.state.chart === chart.id;
       // Back and Forward, between the grid and the charts opened from it.
