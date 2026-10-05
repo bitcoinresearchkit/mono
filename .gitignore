@@ -4,6 +4,7 @@
 # Builds
 target
 websites/dist
+showcases/studio/dist
 bridge/
 /ids.txt
 rust_out

@@ -4773,7 +4773,7 @@
           </dl>
           <h3>View</h3>
           <dl>
-            <div><dt>3 months, a year, 4 years, everything</dt><dd><kbd>1</kbd>–<kbd>4</kbd></dd></div>
+            <div><dt>3 months, a year, 4 years, the most that fits</dt><dd><kbd>1</kbd>–<kbd>4</kbd></dd></div>
             <div><dt>Go to a date</dt><dd><kbd>G</kbd></dd></div>
             <div><dt>Previous or next interval</dt><dd><kbd>[</kbd><kbd>]</kbd></dd></div>
             <div><dt>Zoom out or in</dt><dd><kbd>−</kbd><kbd>+</kbd></dd></div>
@@ -4925,8 +4925,8 @@
       const MAX_CHUNKS = 3;
       /** Chunks kept in memory, every series' and interval's together. */
       const KEPT_CHUNKS = 40;
-      /** @type {[string, string, number][]} */
-      const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["all", "All", 0]];
+      /** The range presets: three spans back from the latest, and the most the chart shows (all of history, where it fits). @type {[string, string, number][]} */
+      const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["max", "Max", 0]];
       /**
        * Bitview's palette, as the website defines it: lightness, chroma, hue in OKLCH. A layer's color is one of these
        * names, "ink" (the page's own), an exact "oklch(l c h)", or a hex; the screen shows OKLCH as it is (wide-gamut where
@@ -5592,7 +5592,7 @@
 
       /** @returns {Chart} */
       function blankChart(title = "") {
-        return { id: uid(), title, index: "day1", range: "all", panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
+        return { id: uid(), title, index: "day1", range: "max", panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
       }
 
       /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
@@ -6207,7 +6207,7 @@
       }
       /** Each chart's span at each fine interval, kept as it grows. @type {Map<string, Span>} */
       const spans = new Map();
-      /** The chunks a range preset covers, from the latest (All: the latest two). @returns {Span} */
+      /** The chunks a range preset covers, from the latest (Max: the latest two). @returns {Span} */
       function presetSpan(index, range) {
         const latest = latestChunk(index), days = RANGES.find(([id]) => id === range)?.[2] ?? 0;
         return { from: clamp(days ? chunkAt(index, Date.now() / 1000 - days * 86400) : latest - 1, Math.max(0, latest - MAX_CHUNKS + 1), Math.max(0, latest - 1)), to: latest, live: true };
@@ -6798,7 +6798,7 @@
           view.timeScale().setVisibleLogicalRange(within({ from: range.from + shift, to: range.to + shift }));
         }
         else if (sameTimeline && (glidingTo ?? logical)) view.timeScale().setVisibleLogicalRange(within(/** @type {{ from: number, to: number }} */ (glidingTo ?? logical)));
-        else if (showedAll) applyRange({ ...doc, range: "all" }, data);
+        else if (showedAll) applyRange({ ...doc, range: "max" }, data);
         else view.timeScale().setVisibleRange(visible);
         drawnIndex = doc.index;
         drawnRange = doc.range;
@@ -6817,7 +6817,7 @@
         const n = data.times.length;
         const to = n - 1 + RIGHT_OFFSET;
         const days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
-        // "All" leaves room on the left for the first date's label.
+        // "Max" leaves room on the left for the first date's label (where it shows all of history).
         if (!days) return within({ from: -(to * 30) / Math.max(1, view.timeScale().width() - 30), to }, "to");
         return within({ from: lowerBound(data.times, data.times[n - 1] - days * 86400), to }, "to");
       }
@@ -6861,7 +6861,7 @@
       function showsPreset() {
         if (glidePreset !== null) return glidePreset === chart.range;
         // In bars, against the preset's own window: empty room past the data counts (a time range stops at the data,
-        // and zoomed out past both ends it would read as "All").
+        // and zoomed out past both ends it would read as "Max").
         const range = view.timeScale().getVisibleLogicalRange();
         if (!range || !resolved || resolved.times.length < 2) return true;
         const target = presetWindow(chart, resolved), slack = (target.to - target.from) * 0.015 + 1;
@@ -6877,10 +6877,10 @@
       }
       /** Every price scale back on auto, however it was dragged. */
       const autoScale = () => view.panes().forEach((_, i) => ["left", "right"].forEach((side) => view.priceScale(side, i).applyOptions({ autoScale: true })));
-      /** Everything, with every price scale back on auto: the "All" preset plus a reset. */
+      /** The most the chart shows, with every price scale back on auto: the "Max" preset plus a reset. */
       function fit() {
         autoScale();
-        if (chart.range !== "all") setRange("all");
+        if (chart.range !== "max") setRange("max");
         else if (resolved) applyRange(chart, resolved, true);
       }
 
@@ -7091,7 +7091,7 @@
       }
 
       /** The range presets, in words. */
-      const PERIODS = { "3m": "past 3 months", "1y": "past year", "4y": "past 4 years", all: "all time" };
+      const PERIODS = { "3m": "past 3 months", "1y": "past year", "4y": "past 4 years", max: "most that fits" };
 
       view.subscribeCrosshairMove((param) => {
         const time = param.time === undefined ? null : /** @type {number} */ (param.time);
@@ -10090,8 +10090,8 @@
           { title: "Download the chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
           { title: "Import a chart file", text: "A chart's file, or several charts exported together.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           ...TEMPLATES.map((template) => ({ title: `New chart from a template: ${template.title}`, text: template.text, words: "template example start", icon: "templates", run: () => useTemplate(template), anywhere: true })),
-          ...RANGES.map(([id], i) => ({ title: id === "all" ? "Show all of history" : `Show the ${PERIODS[id]}`, text: "Change the visible range.", words: `range period zoom time ${PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) })),
-          { title: "Fit everything", text: "All of history, with the price scales back on auto.", words: "zoom reset all history autoscale", icon: "charts", run: fit },
+          ...RANGES.map(([id], i) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) })),
+          { title: "Fit the view", text: "Zoomed out all the way, with the price scales back on auto.", words: "zoom reset max all history everything autoscale", icon: "charts", run: fit },
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => commit((doc) => (doc.index = id)) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "charts", kbd: "L", run: () => toggleLog(pane.id) }))),
           { title: "Measure", text: "Drag across the chart to measure a change.", words: "ruler distance difference percent", icon: "ruler", kbd: "M", run: () => setMeasureMode(true) },
@@ -11665,7 +11665,7 @@
         if (!input || !Array.isArray(input.layers) || !Array.isArray(input.panes) || !input.panes.length) throw new Error("Not a studio chart");
         const doc = blankChart(String(input.title ?? "").slice(0, 120));
         doc.index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1";
-        doc.range = RANGES.some(([id]) => id === input.range) ? input.range : "all";
+        doc.range = RANGES.some(([id]) => id === input.range) ? input.range : "max";
         const panes = input.panes.slice(0, MAX_PANES);
         doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}) }));
         const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
@@ -12291,6 +12291,82 @@
       setInterval(checkLive, 15_000);
       document.addEventListener("visibilitychange", checkLive);
       checkLive();
+
+      // ── Live price: between blocks, the price's own layers follow it ──────────
+      // bitview.space's live price (round-dollar outputs of the last blocks and the mempool), read each second while the
+      // page is seen, as its own chart does: each layer drawing the price itself (its candles, its close or its spot, in
+      // dollars, cents or sats; no transform, no stack) has its latest point moved there, a candle's high or low pushed
+      // out. A transform or a formula of it waits for the next block, whose data takes over.
+
+      /** The price's series, each with what the live price (in dollars) is in its unit. */
+      const usd = (/** @type {number} */ price) => price, cents = (/** @type {number} */ price) => price * 100, sats = (/** @type {number} */ price) => 1e8 / price;
+      const LIVE = new Map([
+        [tree.price.ohlc.usd.name, usd], [tree.price.ohlc.cents.name, cents], [tree.price.ohlc.sats.name, sats],
+        [tree.price.split.close.usd.name, usd], [tree.price.split.close.cents.name, cents], [tree.price.split.close.sats.name, sats],
+        [tree.price.spot.usd.name, usd], [tree.price.spot.cents.name, cents], [tree.price.spot.sats.name, sats],
+      ]);
+      /**
+       * The open chart's layers the live price moves: none on the grid, mid-draw, with history alone loaded, or once the
+       * latest point's interval is over (the server's last is the latest block's: the next one opens with the next block).
+       */
+      function liveLayers() {
+        if (home || !settled() || (FINE.has(chart.index) && !spans.get(`${chart.id}@${chart.index}`)?.live)) return [];
+        const times = /** @type {Resolved} */ (resolved).times, at = times.length - 1;
+        if (at < 1 || Date.now() / 1000 >= times[at] + (times[at] - times[at - 1])) return [];
+        return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.transform && layer.type !== "histogram" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack);
+      }
+      /**
+       * The live price onto those layers' latest points: on the chart, and in the legends and changes reading them. Into
+       * copies (a formula naming the layer reads the same values, and waits for the next block).
+       */
+      function movePrice(price) {
+        if (!Number.isFinite(price) || price <= 0 || !resolved) return;
+        const at = resolved.times.length - 1, time = resolved.times[at];
+        let moved = false;
+        for (const layer of liveLayers()) {
+          const result = resolved.results.get(layer.id), value = /** @type {(price: number) => number} */ (LIVE.get(layer.series ?? ""))(price);
+          if (!result?.values || !Number.isFinite(result.values[at])) continue;
+          const values = result.values.slice(), bar = result.ohlc?.[at], close = closes.get(layer.id);
+          values[at] = value;
+          // Its candles move too, drawn as candles or not (a switch to candles shows them as they are).
+          const ohlc = bar ? result.ohlc.slice() : result.ohlc;
+          if (bar) {
+            const [open, high, low] = bar.map(Number);
+            ohlc[at] = [open, Math.max(high, value), Math.min(low, value), value];
+            close?.candles.update({ time, open, high: Math.max(high, value), low: Math.min(low, value), close: value });
+          }
+          resolved.results.set(layer.id, { ...result, values, shown: values, ohlc });
+          (close?.series ?? drawn.get(layer.id))?.update({ time, value });
+          moved = true;
+        }
+        if (!moved) return;
+        // (The view's change windows were read from the old value.)
+        windows.data = null;
+        updateValues();
+      }
+      let pricePending = false, priceTimer = 0, priceDelay = 1000;
+      async function pollPrice() {
+        if (pricePending || document.visibilityState !== "visible") return;
+        clearTimeout(priceTimer);
+        pricePending = true;
+        try {
+          // An answer that comes after a draw (another chart, interval or block) is let go: the next one is for it.
+          const version = drawVersion;
+          if (liveLayers().length) {
+            const price = await client.getLivePrice();
+            if (version === drawVersion) movePrice(price);
+          }
+          priceDelay = 1000;
+        } catch {
+          // Unanswered, it asks less often (up to every half minute); answered, each second again.
+          priceDelay = Math.min(priceDelay * 2, 30_000);
+        } finally {
+          pricePending = false;
+          if (document.visibilityState === "visible") priceTimer = setTimeout(pollPrice, priceDelay);
+        }
+      }
+      document.addEventListener("visibilitychange", pollPrice);
+      pollPrice();
 
       // ── Start ─────────────────────────────────────────────────────────────────
 
