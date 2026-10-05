@@ -4937,13 +4937,21 @@
       /** A chunk's points, aligned on the indexes: the latest two load at first, then each the view reaches. */
       const CHUNK = 8000;
       /**
-       * At most this many chunks at once: the widest view (the chart shows two points a pixel at most, a few thousand)
-       * and room beyond each side to reach out from. Going further drops the far end, which loads again if the view comes
-       * back. (All of history at once is a coarser interval's.)
+       * At most this many chunks at first (a preset's): the widest view (the chart shows four points a pixel at most, a
+       * few thousand) and room beyond each side to reach out from. Reaching out adds to them: what's loaded stays while
+       * the chart stays at that interval, up to the most held at once.
        */
-      const MAX_CHUNKS = 3;
-      /** Chunks kept in memory, every series' and interval's together. */
-      const KEPT_CHUNKS = 40;
+      const FIRST_CHUNKS = 3;
+      /**
+       * The most chunks a chart holds at once (every draw, an edit or a block, redoes them all): going farther lets go of
+       * the far end, long out of view by then (a year and a half at 10m).
+       */
+      const MOST_CHUNKS = 12;
+      /**
+       * Chunks kept in memory past those the open chart holds, every series' and interval's together (a chunk is about
+       * 140 KB, 550 KB as candles): the least recently used go first.
+       */
+      const KEPT_CHUNKS = 150;
       /** The range presets: three spans back from the latest, and the most the chart shows (all of history, where it fits). @type {[string, string, number][]} */
       const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["max", "Max", 0]];
       /**
@@ -5147,7 +5155,8 @@
         if (days < INTERVAL_DAYS[index]) return "Shorter than the interval: one point";
         if (points === 1) return `One point at ${at}`;
         const counted = `${grouped.format(points)} ${POINT_WORDS[index].startsWith("×") ? "points" : POINT_WORDS[index]} at ${at}`;
-        return FINE.has(index) && points > MAX_CHUNKS * CHUNK ? `${counted}: more than it loads (${grouped.format(MAX_CHUNKS * CHUNK)})` : counted;
+        if (!FINE.has(index) || points <= FIRST_CHUNKS * CHUNK) return counted;
+        return points > MOST_CHUNKS * CHUNK ? `${counted}: more than it holds (${grouped.format(MOST_CHUNKS * CHUNK)})` : `${counted}: more than it loads at first (${grouped.format(FIRST_CHUNKS * CHUNK)})`;
       };
       /** Whether a window is longer than `x`'s values reach (from its first to its last), so none fits. */
       const outreaches = (/** @type {Vector} */ x, /** @type {number} */ points) => {
@@ -5155,7 +5164,7 @@
         return first >= 0 && last - first < points;
       };
       /** Why a window gives nothing: longer than the data (than a fine interval loads, when longer than the timeline: `beyond`). */
-      const windowTooLong = (/** @type {number} */ points, /** @type {string} */ index, /** @type {boolean} */ beyond) => `window of ${grouped.format(points)} points at ${INTERVAL_LABEL[index]} is longer than the data${beyond && FINE.has(index) ? " it loads (a coarser interval holds more)" : ""}`;
+      const windowTooLong = (/** @type {number} */ points, /** @type {string} */ index, /** @type {boolean} */ beyond) => `window of ${grouped.format(points)} points at ${INTERVAL_LABEL[index]} is longer than the data${beyond && FINE.has(index) ? " loaded (a coarser interval holds more)" : ""}`;
       /** A window as typed: an amount (a number, or arithmetic: 4 * 365) and a unit (30d, 4 weeks), else `unit`. @returns {TimeSpan | null} */
       function readWindow(/** @type {string} */ text, /** @type {string} */ unit) {
         const [, amount = "", word] = /^(.*?)\s*(hours?|h|days?|d|weeks?|w|months?|mo|years?|y)?$/i.exec(text.trim()) ?? [];
@@ -6065,7 +6074,7 @@
         const i = clamp(Math.round(logical), 0, times.length - 1);
         return [times[i], logical - i];
       }
-      /** The most bars the chart shows at once: two a pixel (its least bar spacing), however many there are. */
+      /** The most bars the chart shows at once: four a pixel (its least bar spacing), however many there are. */
       const mostBars = () => (view.timeScale().width() ? view.timeScale().width() / view.timeScale().options().minBarSpacing : Infinity);
       /**
        * A window of the view, no wider than the chart shows (wider, it would fold the view to a sliver): a wider one keeps
@@ -6225,6 +6234,40 @@
       /** Units known so far, to place new layers and label results without waiting. */
       const units = new Map();
 
+      /** An entry of a cache used again: the last to go. @template T @param {Map<string, T>} cache @param {string} key @param {T} value */
+      const lastUsed = (cache, key, value) => (cache.delete(key), cache.set(key, value), value);
+      /**
+       * Whether the open chart holds an entry (`name@index`, `#chunk` at a fine interval): one of its series at its
+       * interval, within its span. Made for a pass over a cache (its series found once).
+       */
+      function holder() {
+        const names = new Set(chart ? seriesIn(chart) : []), span = chart ? spans.get(`${chart.id}@${chart.index}`) : undefined;
+        return (/** @type {string} */ key) => {
+          const [name, rest = ""] = key.split("@"), [index, k] = rest.split("#");
+          if (!chart || index !== chart.index || !names.has(name)) return false;
+          return k === undefined || (Boolean(span) && Number(k) >= /** @type {Span} */ (span).from && Number(k) <= /** @type {Span} */ (span).to);
+        };
+      }
+      /** Past `most` entries the open chart doesn't hold, the least recently used go. @param {Map<string, unknown>} cache */
+      function prune(cache, most) {
+        const held = holder(), loose = [...cache.keys()].filter((key) => !held(key));
+        for (const key of loose.slice(0, Math.max(0, loose.length - most))) cache.delete(key);
+      }
+      /**
+       * The block a series' latest points were last asked at (`name@index`, by chunk at a fine interval): a chart drawn
+       * from memory after another block refetches their tails (asked at, not answered: a server that's down isn't asked
+       * again on each edit).
+       */
+      const askedAt = new Map();
+      /** Whether a chart's latest points in memory (of the latest two chunks, those it holds) were asked before the latest block. @param {Chart} doc */
+      function stale(doc) {
+        if (!liveHeight) return false;
+        const span = spanOf(doc), latest = latestChunk(doc.index);
+        const ends = span ? [latest - 1, latest].filter((k) => k >= span.from && k <= span.to).map((k) => `#${k}`) : [""];
+        return seriesIn(doc).some((name) => ends.some((end) => (askedAt.get(`${name}@${doc.index}${end}`) ?? liveHeight) < liveHeight));
+      }
+      /** Series kept in memory at the coarse intervals past those the open chart shows (one at 1D is about 115 KB). */
+      const KEPT_LOADS = 100;
       /** @type {Map<string, Promise<{ start: number, data: any[], times: number[], stamp: string, version: number }>>} */
       const loads = new Map();
       /**
@@ -6250,8 +6293,9 @@
       function load(name, index, fresh = false, span = /** @type {Span | null} */ (null)) {
         if (span) return loadSpan(name, index, span, fresh);
         const key = `${name}@${index}`;
-        if (loads.has(key) && !fresh) return loads.get(key);
+        if (loads.has(key) && !fresh) return lastUsed(loads, key, /** @type {Promise<any>} */ (loads.get(key)));
         const cached = loads.get(key);
+        askedAt.set(key, liveHeight);
         const times = (/** @type {number} */ start, /** @type {number} */ count) => Array.from({ length: count }, (_, k) => timeAt(index, start + k));
         const request = (async () => {
           const endpoint = client.seriesEndpoint(name, /** @type {"day1"} */ (index));
@@ -6261,10 +6305,16 @@
           const response = await endpoint.fetch();
           return { start: response.start, data: response.data, times: times(response.start, response.data.length), stamp: response.stamp, version: response.version };
         })();
-        if (cached) return request.then((data) => (loads.set(key, Promise.resolve(data)), data), () => cached);
+        if (cached) {
+          const refreshed = request.catch(() => cached);
+          lastUsed(loads, key, refreshed);
+          prune(loads, KEPT_LOADS);
+          return refreshed;
+        }
         // A failure stays cached (Retry and the live refresh fetch again), so each edit doesn't refetch it.
         request.catch(() => {});
         loads.set(key, request);
+        prune(loads, KEPT_LOADS);
         return request;
       }
       // Fine intervals, by chunk: each chart holds a span of them (`spans`), the latest two at first; the view reaching
@@ -6282,32 +6332,32 @@
       const failedChunks = new Set();
       function loadChunk(name, index, k, fresh) {
         const key = `${name}@${index}#${k}`;
-        if (chunks.has(key) && !fresh) return /** @type {Promise<{ start: number, data: any[], stamp: string, version: number }>} */ (chunks.get(key));
+        if (chunks.has(key) && !fresh) return lastUsed(chunks, key, /** @type {Promise<{ start: number, data: any[], stamp: string, version: number }>} */ (chunks.get(key)));
         const cached = chunks.get(key);
+        if (k >= latestChunk(index) - 1) askedAt.set(key, liveHeight);
         const request = (async () => {
           const endpoint = client.seriesEndpoint(name, /** @type {"minute10"} */ (index));
           const joined = await refetchTail(endpoint, index, fresh && cached ? await cached.catch(() => null) : null, (k + 1) * CHUNK);
           const response = joined ?? (await endpoint.slice(k * CHUNK, (k + 1) * CHUNK).fetch());
           return { start: response.start, data: response.data, stamp: response.stamp, version: response.version };
         })();
-        if (cached) return request.then((data) => (chunks.set(key, Promise.resolve(data)), data), () => cached);
+        if (cached) {
+          const refreshed = request.catch(() => cached);
+          lastUsed(chunks, key, refreshed);
+          prune(chunks, KEPT_CHUNKS);
+          return refreshed;
+        }
         request.catch(() => failedChunks.add(key));
         chunks.set(key, request);
-        // Kept to a few spans' worth: the first asked go first, but not those of the chart drawn.
-        const held = spans.get(`${chart?.id}@${index}`);
-        for (const old of chunks.keys()) {
-          if (chunks.size <= KEPT_CHUNKS) break;
-          const k = Number(old.slice(old.lastIndexOf("#") + 1));
-          if (!(old.includes(`@${index}#`) && held && k >= held.from && k <= held.to)) chunks.delete(old);
-        }
+        prune(chunks, KEPT_CHUNKS);
         return request;
       }
-      /** Each chart's span at each fine interval, kept as it grows. @type {Map<string, Span>} */
+      /** Each chart's span at each fine interval, kept as it grows (and once the chart is left). @type {Map<string, Span>} */
       const spans = new Map();
       /** The chunks a range preset covers, from the latest (Max: the latest two). @returns {Span} */
       function presetSpan(index, range) {
         const latest = latestChunk(index), days = RANGES.find(([id]) => id === range)?.[2] ?? 0;
-        return { from: clamp(days ? chunkAt(index, Date.now() / 1000 - days * 86400) : latest - 1, Math.max(0, latest - MAX_CHUNKS + 1), Math.max(0, latest - 1)), to: latest, live: true };
+        return { from: clamp(days ? chunkAt(index, Date.now() / 1000 - days * 86400) : latest - 1, Math.max(0, latest - FIRST_CHUNKS + 1), Math.max(0, latest - 1)), to: latest, live: true };
       }
       /**
        * A chart's span at its interval (none at a coarse one), made when it's first drawn there: the chunks its saved view
@@ -6321,15 +6371,15 @@
           const left = leftView(doc.id), step = FINE_STEP[doc.index];
           if (left && left.index === doc.index) {
             const to = clamp(chunkAt(doc.index, left.to[0] + left.to[1] * step), 0, latest);
-            const from = clamp(chunkAt(doc.index, left.from[0] + left.from[1] * step), Math.max(0, to - MAX_CHUNKS + 1), to);
+            const from = clamp(chunkAt(doc.index, left.from[0] + left.from[1] * step), Math.max(0, to - MOST_CHUNKS + 1), to);
             span = { from, to, live: to >= latest };
           } else span = presetSpan(doc.index, doc.range);
           spans.set(key, span);
         }
-        // Live, it follows the clock into the next chunk (the oldest going, past the most held at once).
+        // Live, it follows the clock into the next chunk.
         if (span.live && span.to < latest) {
           span.to = latest;
-          span.from = Math.max(span.from, latest - MAX_CHUNKS + 1);
+          span.from = Math.max(span.from, latest - MOST_CHUNKS + 1);
         }
         return span;
       }
@@ -6356,10 +6406,16 @@
             return loadSpan(name, index, { from, to, live }, false, true);
           }
           const start = loaded[0]?.start ?? (from + first) * CHUNK;
-          const data = loaded.flatMap((part) => part.data);
+          const data = [];
+          for (const part of loaded) {
+            while (data.length < part.start - start) data.push(null);
+            for (const value of part.data) data.push(value);
+          }
           return { start, data, times: data.map((_, i) => timeAt(index, start + i)), stamp: loaded.at(-1)?.stamp ?? "" };
         });
-        spanned.set(key, { parts, value });
+        const held = holder();
+        if (held(key)) spanned.set(key, { parts, value });
+        for (const other of spanned.keys()) if (!held(other)) spanned.delete(other);
         return value;
       }
       /** Whether a series' data for a chart is asked for already (on its way, or there). @param {Chart} doc */
@@ -6551,6 +6607,8 @@
       const unitFor = (layer, result) => (layer.format && layer.format !== "auto" ? layer.format : result?.unit ?? (layer.series ? units.get(layer.series) : "number") ?? "number");
 
       const RIGHT_OFFSET = 6;
+      /** The farthest the chart zooms out: four points a pixel (lightweight-charts' default, two), still smooth to pan. */
+      const MIN_BAR_SPACING = 0.25;
       /** Over several years the time axis names years only: a lone month at the edge ("Sep") reads as noise. */
       const yearsOnly = (_time, type) => (type === LC.TickMarkType.Month ? "" : null);
       let yearsAxis = false;
@@ -6580,7 +6638,7 @@
           crosshair: { mode: LC.CrosshairMode.Normal, vertLine: crosshair, horzLine: { ...crosshair, color: css("--crosshair-faint"), style: LC.LineStyle.LargeDashed } },
           rightPriceScale: scale,
           leftPriceScale: { ...scale },
-          timeScale: { borderVisible: false, rightOffset: RIGHT_OFFSET, timeVisible: false, lockVisibleTimeRangeOnResize: true },
+          timeScale: { borderVisible: false, rightOffset: RIGHT_OFFSET, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, lockVisibleTimeRangeOnResize: true },
           localization: { locale: "en-US", timeFormatter: (time) => dateLabel(Number(time), FINE.has(chart.index)), percentageFormatter: (value) => axisLabel(value, "%") },
         };
       }
@@ -6704,13 +6762,16 @@
           $("loading").hidden = false;
           $("navigator").classList.add("waiting");
         }
-        // A fine interval's span lives while the chart is drawn there: drawn anew, it's made again (from its view or preset).
-        // (The runs joined for the one left go too: made again from their chunks if it comes back.)
+        // Each chart keeps its span at each fine interval while the view it backs is the one the chart opens on (another
+        // chart opened, its view left at this interval): back at it, it's as it was left, its chunks at hand (unless the
+        // memory's budget let them go). Opening on its preset instead (an interval switch, a view left at another
+        // interval or none), the preset's span is made again. The runs joined go (made again from their chunks).
         if (drawnChart !== doc.id || drawnIndex !== doc.index) {
-          spans.delete(`${doc.id}@${doc.index}`);
+          if (drawnChart === doc.id || leftView(doc.id)?.index !== doc.index) spans.delete(`${doc.id}@${doc.index}`);
           spanned.clear();
         }
-        const result = await resolve(doc, fresh);
+        // Data from memory, asked before the latest block: its tails come again.
+        const result = await resolve(doc, fresh || stale(doc));
         if (version !== drawVersion) return false;
         $("loading").hidden = true;
         $("progress").hidden = true;
@@ -6780,8 +6841,6 @@
             priceScaleId: layer.side,
             visible: !layer.hidden,
             priceLineVisible: Boolean(layer.priceLine),
-            // The price line and its label at the view's last value, as the legend and the panel read it.
-            priceLineSource: LC.PriceLineSource.LastVisible,
             lastValueVisible: !layer.hidden,
             // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
             priceFormat: { type: /** @type {const} */ ("custom"), formatter: shares.has(layer.pane) ? (value) => (value > 100.5 || value < -0.5 ? "" : axisLabel(value, "%")) : (value) => axisLabel(value), minMove: 1e-9 },
@@ -7456,38 +7515,33 @@
       for (const type of ["pointerup", "pointercancel"]) addEventListener(type, () => (pressing && rest(), (pressing = false)));
       /**
        * At a fine interval, the view near either end of what's loaded: the next chunk out, older as it goes back, newer
-       * back to the latest. Only where the view is taken (not while a preset shows, or a glide runs).
+       * back to the latest (what's loaded stays, up to the most held). Only where the view is taken (not while a preset shows, or a glide runs).
        */
       function reachOut() {
         const span = FINE.has(chart.index) ? spans.get(`${chart.id}@${chart.index}`) : null, n = resolved?.times.length ?? 0;
         const range = view.timeScale().getVisibleLogicalRange();
         if (!span || reaching || pressing || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
-        // Holding the most at once, a chunk out means one dropped at the other end: only while that one, and the margin past
-        // it, are out of view (else the two ends would take turns); a view too wide for that reaches out only for points
-        // it lacks.
-        const margin = Math.max(100, (range.to - range.from) / 2), full = span.to - span.from + 1 >= MAX_CHUNKS, room = full ? CHUNK + margin : 0;
-        if (range.from < margin && span.from > 0 && (!full || range.to < n - 1 - room)) void grow(span, -1);
-        else if (range.to > n - 1 - margin && !span.live && (!full || range.from > room)) void grow(span, 1);
-        else if (full && range.from < 0 && span.from > 0 && range.to < n - 1 - CHUNK) void grow(span, -1);
-        else if (full && range.to > n - 1 && !span.live && range.from > CHUNK) void grow(span, 1);
+        const margin = Math.max(100, (range.to - range.from) / 2);
+        if (range.from < margin && span.from > 0) void grow(span, -1);
+        else if (range.to > n - 1 - margin && !span.live) void grow(span, 1);
       }
 
       /** @param {Span} span @param {number} by */
       async function grow(span, by) {
         reaching = true;
         const was = { ...span }, index = chart.index, reached = by < 0 ? resolved?.times[0] : resolved?.times.at(-1);
-        if (by < 0) {
-          span.from--;
-          if (span.to - span.from + 1 > MAX_CHUNKS) (span.to--, (span.live = false));
-        } else {
+        if (by < 0) span.from--;
+        else {
           span.to++;
           span.live = span.to >= latestChunk(index);
-          if (span.to - span.from + 1 > MAX_CHUNKS) span.from++;
         }
-        // Chunks that failed are asked for again (anywhere: a series can lack one the others have); one dropped is let go.
-        const dropped = by < 0 ? (span.to < was.to ? was.to : null) : (span.from > was.from ? was.from : null);
+        if (span.to - span.from + 1 > MOST_CHUNKS) {
+          if (by < 0) (span.to--, (span.live = false));
+          else span.from++;
+        }
+        // Chunks that failed are asked for again (anywhere: a series can lack one the others have).
         for (const key of [...chunks.keys()]) {
-          if ((failedChunks.has(key) && key.includes(`@${index}#`)) || (dropped !== null && key.endsWith(`@${index}#${dropped}`))) (chunks.delete(key), failedChunks.delete(key));
+          if (failedChunks.has(key) && key.includes(`@${index}#`)) (chunks.delete(key), failedChunks.delete(key));
         }
         let drew = false;
         try {
@@ -7497,10 +7551,13 @@
         }
         // Another draw took its place: nothing to judge (that one shows what is).
         if (!drew) return;
-        // Nothing more on that side (the chunk failed): back as it was, and a rest before trying that side again.
+        // Nothing more on that side (the chunk failed): back as it was (drawn again, the far end it let go back too), and a
+        // rest before trying that side again.
         const now = by < 0 ? resolved?.times[0] : resolved?.times.at(-1);
         if (reached !== undefined && now !== undefined && (by < 0 ? now >= reached : now <= reached)) {
+          const dropped = by < 0 ? span.to < was.to : span.from > was.from;
           Object.assign(span, was, { rest: Date.now() + 5000 });
+          if (dropped) void draw();
           return;
         }
         // Once the chart has moved the view onto its new points (on its next frame): judged before, the view it had would
@@ -10051,12 +10108,16 @@
           askNext();
         };
       }
+      /** Answers had already, by limit and query (the catalog stays as it is while the page is open): the oldest go past a few hundred. */
+      const searched = new Map();
       /**
-       * Series for a query, best first, as bitview.space ranks them: from this machine once its index is built, else from
-       * bitview.space after `pause` milliseconds (more typing aborts it first).
+       * Series for a query, best first, as bitview.space ranks them: one asked before at once, else from this machine
+       * once its index is built, else from bitview.space after `pause` milliseconds (more typing aborts it first).
        * @param {string} query @param {number} limit @param {AbortSignal} [signal] @returns {Promise<string[]>}
        */
       function findSeries(query, limit, signal, pause = 0) {
+        const key = `${limit}\n${query}`, kept = searched.get(key);
+        if (kept) return Promise.resolve(kept);
         const remote = () => client.searchSeries(/** @type {any} */ (query), /** @type {any} */ (limit), { signal });
         return new Promise((resolve, reject) => {
           if (finder.ready && finder.worker) {
@@ -10071,6 +10132,10 @@
           }
           const timer = setTimeout(() => remote().then(resolve, reject), pause);
           signal?.addEventListener("abort", () => (clearTimeout(timer), reject(signal.reason)), { once: true });
+        }).then((/** @type {string[]} */ names) => {
+          searched.set(key, names);
+          if (searched.size > 300) searched.delete(/** @type {string} */ (searched.keys().next().value));
+          return names;
         });
       }
 
@@ -10685,14 +10750,19 @@
               </dl></div>`;
             const index = meta.indexes.includes("week1") ? "week1" : meta.indexes.includes("day1") ? "day1" : null;
             if (!index) return void ($("spark-caption").textContent = "—");
-            const key = `${item.name}@${index}`;
-            // (Kept for the last hundred looked at.)
-            if (sparks.size > 100) sparks.delete(sparks.keys().next().value);
-            if (!sparks.has(key)) sparks.set(key, client.seriesEndpoint(item.name, /** @type {"day1"} */ (index)).last(index === "week1" ? 520 : 1500).fetch().catch((error) => {
-              sparks.delete(key);
-              throw error;
-            }));
-            const response = await sparks.get(key);
+            const key = `${item.name}@${index}`, count = index === "week1" ? 520 : 1500;
+            const tail = () => {
+              // (Kept for the last hundred looked at.)
+              if (sparks.size > 100) sparks.delete(sparks.keys().next().value);
+              if (!sparks.has(key)) sparks.set(key, client.seriesEndpoint(item.name, /** @type {"day1"} */ (index)).last(count).fetch().catch((error) => {
+                sparks.delete(key);
+                throw error;
+              }));
+              return sparks.get(key);
+            };
+            // A series a chart loaded at that interval is at hand: its tail, without asking.
+            const held = loads.get(key);
+            const response = await (held ? lastUsed(loads, key, held).then((data) => ({ data: data.data.slice(-count) }), tail) : tail());
             if (palette.items[palette.active] !== item) return;
             drawSpark(response.data.map((value) => (Array.isArray(value) ? value[3] : value)).map((value) => (value == null ? NaN : Number(value))), unit);
           } catch (error) {
@@ -11711,12 +11781,13 @@
         autoScale();
         commit((doc) => (doc.range = range), { redraw: "none", quiet: true });
         drawnRange = chart.range;
-        // At a fine interval, a preset shows the latest, over the chunks it covers (more already held, if live, stay).
+        // At a fine interval, a preset shows the latest, over the chunks it covers and those held when they join them.
         const span = spanOf(chart);
         if (span && resolved && drawnChart === chart.id) {
-          const wanted = presetSpan(chart.index, range), from = span.live ? Math.min(span.from, wanted.from) : wanted.from;
+          const wanted = presetSpan(chart.index, range);
+          const from = Math.max(span.to + 1 >= wanted.from ? Math.min(span.from, wanted.from) : wanted.from, wanted.to - MOST_CHUNKS + 1);
           if (from !== span.from || !span.live) {
-            Object.assign(span, { ...wanted, from: Math.max(from, wanted.to - MAX_CHUNKS + 1) });
+            Object.assign(span, { ...wanted, from });
             const id = chart.id, index = chart.index;
             return void draw().then(() => chart.id === id && chart.index === index && drawnChart === id && applyRange(chart, resolved, true));
           }
