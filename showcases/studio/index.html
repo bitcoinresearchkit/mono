@@ -4809,9 +4809,17 @@
       ];
       const INTERVAL_ORDER = INTERVALS.flatMap(([, items]) => items.map(([id]) => id));
       const INTERVAL_LABEL = Object.fromEntries(INTERVALS.flatMap(([, items]) => items));
-      /** Fine intervals have hundreds of thousands of points: only the latest are loaded. */
+      /** Fine intervals have hundreds of thousands of points: they load in chunks, as far back as the view goes. */
       const FINE = new Set(["minute10", "minute30", "hour1", "hour4", "hour12"]);
-      const FINE_POINTS = 8000;
+      /** A fine interval's step, in seconds; their indexes count steps from 2009-01-01, as the server's do. */
+      const FINE_STEP = { minute10: 600, minute30: 1800, hour1: 3600, hour4: 14400, hour12: 43200 };
+      const INDEX_EPOCH = 1230768000;
+      /** A chunk's points, aligned on the indexes: the latest two load at first, then each the view reaches. */
+      const CHUNK = 8000;
+      /** At most this many at once: going further drops the far end (it loads again if the view comes back). */
+      const MAX_CHUNKS = 32;
+      /** Chunks kept in memory, every series' and interval's together. */
+      const KEPT_CHUNKS = 400;
       /** @type {[string, string, number][]} */
       const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["all", "All", 0]];
       /**
@@ -5973,13 +5981,16 @@
 
       /** @type {Map<string, Promise<{ start: number, data: any[], times: number[], stamp: string }>>} */
       const loads = new Map();
-      /** A series at an interval, fetched once; `fresh` refetches but keeps the cached data if that fails. */
-      function load(name, index, fresh = false) {
+      /**
+       * A series at an interval, fetched once (at a fine interval, over a span of chunks); `fresh` refetches but keeps the
+       * cached data if that fails.
+       */
+      function load(name, index, fresh = false, span = /** @type {Span | null} */ (null)) {
+        if (span) return loadSpan(name, index, span, fresh);
         const key = `${name}@${index}`;
         if (loads.has(key) && !fresh) return loads.get(key);
         const request = (async () => {
-          const endpoint = client.seriesEndpoint(name, /** @type {"day1"} */ (index));
-          const response = await (FINE.has(index) ? endpoint.last(FINE_POINTS) : endpoint).fetch();
+          const response = await client.seriesEndpoint(name, /** @type {"day1"} */ (index)).fetch();
           return { start: response.start, data: response.data, times: response.dates().map((date) => Math.floor(date.getTime() / 1000)), stamp: response.stamp };
         })();
         const cached = loads.get(key);
@@ -5988,6 +5999,104 @@
         request.catch(() => {});
         loads.set(key, request);
         return request;
+      }
+      // Fine intervals, by chunk: each chart holds a span of them (`spans`), the latest two at first; the view reaching
+      // either end of it loads the next one out. Older chunks are final, fetched once; the latest two again as blocks
+      // come. Coming back to a view left in the past (a reload), only the chunks it covers load.
+
+      /** @typedef {{ from: number, to: number, live: boolean, rest?: number }} Span the chunks a chart holds, `live` while they reach the latest; `rest`: no reaching out before then (a chunk failed) */
+      /** The chunk a time falls in, at a fine interval. */
+      const chunkAt = (index, time) => Math.floor(Math.floor((time - INDEX_EPOCH) / FINE_STEP[index]) / CHUNK);
+      /** The chunk the latest points are in, by the clock. */
+      const latestChunk = (index) => chunkAt(index, Date.now() / 1000);
+      /** @type {Map<string, Promise<{ start: number, data: any[], stamp: string }>>} */
+      const chunks = new Map();
+      /** Chunks that failed, asked for again when the view reaches for them (not at each redraw). */
+      const failedChunks = new Set();
+      function loadChunk(name, index, k, fresh) {
+        const key = `${name}@${index}#${k}`;
+        if (chunks.has(key) && !fresh) return /** @type {Promise<{ start: number, data: any[], stamp: string }>} */ (chunks.get(key));
+        // Kept here alone (the client's memory copy would hold every chunk ever fetched; its disk copy stays).
+        const request = client.seriesEndpoint(name, /** @type {"minute10"} */ (index)).slice(k * CHUNK, (k + 1) * CHUNK).fetch({ memCache: false }).then((response) => ({ start: response.start, data: response.data, stamp: response.stamp }));
+        const cached = chunks.get(key);
+        if (cached) return request.then((data) => (chunks.set(key, Promise.resolve(data)), data), () => cached);
+        request.catch(() => failedChunks.add(key));
+        chunks.set(key, request);
+        // Kept to a few spans' worth: the first asked go first, but not those of the chart drawn.
+        const held = spans.get(`${chart?.id}@${index}`);
+        for (const old of chunks.keys()) {
+          if (chunks.size <= KEPT_CHUNKS) break;
+          const k = Number(old.slice(old.lastIndexOf("#") + 1));
+          if (!(old.includes(`@${index}#`) && held && k >= held.from && k <= held.to)) chunks.delete(old);
+        }
+        return request;
+      }
+      /** Each chart's span at each fine interval, kept as it grows. @type {Map<string, Span>} */
+      const spans = new Map();
+      /** The chunks a range preset covers, from the latest (All: the latest two). @returns {Span} */
+      function presetSpan(index, range) {
+        const latest = latestChunk(index), days = RANGES.find(([id]) => id === range)?.[2] ?? 0;
+        return { from: clamp(days ? chunkAt(index, Date.now() / 1000 - days * 86400) : latest - 1, Math.max(0, latest - MAX_CHUNKS + 1), Math.max(0, latest - 1)), to: latest, live: true };
+      }
+      /**
+       * A chart's span at its interval (none at a coarse one), made when it's first drawn there: the chunks its saved view
+       * covers, else those of its range preset. @param {Chart} doc
+       */
+      function spanOf(doc) {
+        if (!FINE.has(doc.index)) return null;
+        const key = `${doc.id}@${doc.index}`, latest = latestChunk(doc.index);
+        let span = spans.get(key);
+        if (!span) {
+          const left = leftView(doc.id), step = FINE_STEP[doc.index];
+          if (left && left.index === doc.index) {
+            const to = clamp(chunkAt(doc.index, left.to[0] + left.to[1] * step), 0, latest);
+            const from = clamp(chunkAt(doc.index, left.from[0] + left.from[1] * step), Math.max(0, to - MAX_CHUNKS + 1), to);
+            span = { from, to, live: to >= latest };
+          } else span = presetSpan(doc.index, doc.range);
+          spans.set(key, span);
+        }
+        // Live, it follows the clock into the next chunk (the oldest going, past the most held at once).
+        if (span.live && span.to < latest) {
+          span.to = latest;
+          span.from = Math.max(span.from, latest - MAX_CHUNKS + 1);
+        }
+        return span;
+      }
+      /** A series over a span: its chunks in one run (the run kept while they're the same chunks). */
+      const spanned = new Map();
+      function loadSpan(name, index, { from, to, live }, fresh) {
+        const latest = latestChunk(index);
+        const parts = Array.from({ length: to - from + 1 }, (_, i) => loadChunk(name, index, from + i, fresh && from + i >= latest - 1));
+        const key = `${name}@${index}`, kept = spanned.get(key);
+        if (kept && kept.parts.length === parts.length && kept.parts.every((part, i) => part === parts[i])) return kept.value;
+        // Chunks that failed are left out at either end (a live span's newest must load); the newest run between is kept.
+        const value = Promise.allSettled(parts).then((settled) => {
+          let end = settled.length - 1;
+          while (!live && end > 0 && settled[end].status === "rejected") end--;
+          const newest = settled[end];
+          if (newest.status === "rejected") throw newest.reason;
+          let first = end;
+          while (first > 0 && settled[first - 1].status === "fulfilled") first--;
+          const loaded = settled.slice(first, end + 1).map((part) => /** @type {PromiseFulfilledResult<{ start: number, data: any[], stamp: string }>} */ (part).value).filter((part) => part.data.length);
+          const start = loaded[0]?.start ?? (from + first) * CHUNK, step = FINE_STEP[index];
+          const data = loaded.flatMap((part) => part.data);
+          return { start, data, times: data.map((_, i) => INDEX_EPOCH + (start + i) * step), stamp: loaded.at(-1)?.stamp ?? "" };
+        });
+        spanned.set(key, { parts, value });
+        return value;
+      }
+      /** Whether a series' data for a chart is asked for already (on its way, or there). @param {Chart} doc */
+      function asked(name, doc) {
+        const span = spanOf(doc);
+        if (!span) return loads.has(`${name}@${doc.index}`);
+        for (let k = span.from; k <= span.to; k++) if (!chunks.has(`${name}@${doc.index}#${k}`)) return false;
+        return true;
+      }
+      /** A series' data at an interval, forgotten (it failed): the next ask fetches it again. */
+      function forget(name, index) {
+        loads.delete(`${name}@${index}`);
+        spanned.delete(`${name}@${index}`);
+        for (const key of [...chunks.keys()]) if (key.startsWith(`${name}@${index}#`)) chunks.delete(key);
       }
       const failure = (error, index) =>
         error?.unavailable ? `No ${INTERVAL_LABEL[index] ?? index} data`
@@ -6017,7 +6126,7 @@
         const fetchSeries = async (name) => {
           // Known to lack this interval: say so without asking for its data.
           const lacking = known.get(name) && !known.get(name).indexes.includes(doc.index);
-          const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh)]);
+          const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
           if (about.status === "rejected") return { error: about.reason };
           const meta = about.value;
           units.set(name, unitOf(name, meta.type));
@@ -6277,6 +6386,7 @@
       const settled = () => Boolean(resolved) && drawnChart === chart.id && drawnVersion === drawVersion;
 
       /** Fetches what's missing, then rebuilds every series from cached data (fast enough to do on each edit). */
+      /** @returns {Promise<boolean>} whether it drew (a newer draw can take its place) */
       async function draw(refit = false, fresh = false) {
         const version = ++drawVersion;
         // Drawn on the way out of the grid: the chart grows out of its card instead of wiping in.
@@ -6284,7 +6394,7 @@
         const doc = structuredClone(chart);
         const first = drawnChart !== doc.id;
         const wanted = new Set([...doc.layers.flatMap((layer) => (layer.series ? [layer.series] : [])), ...formulaSeries(doc)]);
-        const pending = [...wanted].filter((name) => !loads.has(`${name}@${doc.index}`) && known.get(name)?.indexes.includes(doc.index) !== false).length;
+        const pending = [...wanted].filter((name) => !asked(name, doc) && known.get(name)?.indexes.includes(doc.index) !== false).length;
         const showLoading = pending > 0 && (first || !resolved);
         $("progress").hidden = !(pending > 0 && !showLoading);
         if (showLoading) {
@@ -6292,8 +6402,10 @@
           $("loading").hidden = false;
           $("navigator").classList.add("waiting");
         }
+        // A fine interval's span lives while the chart is drawn there: drawn anew, it's made again (from its view or preset).
+        if (drawnChart !== doc.id || drawnIndex !== doc.index) spans.delete(`${doc.id}@${doc.index}`);
         const result = await resolve(doc, fresh);
-        if (version !== drawVersion) return;
+        if (version !== drawVersion) return false;
         $("loading").hidden = true;
         $("progress").hidden = true;
         $("navigator").classList.remove("waiting");
@@ -6314,6 +6426,7 @@
           chartElement.addEventListener("animationend", () => chartElement.classList.remove("reveal"), { once: true });
           countUp();
         }
+        return true;
       }
 
       /** @param {Chart} doc @param {Resolved} data */
@@ -6325,6 +6438,9 @@
         const sameTimeline = drawnSpan && data.times.length === drawnPoints && data.times[0] === drawnSpan[0] && data.times.at(-1) === drawnSpan[1];
         // Price scales stay as the person left them (a range set by hand, in any mode) while the panes and their modes
         // are the same: new data, a restyle. Otherwise they fit their data again.
+        // Points added (or dropped) at the start, at a fine interval (the view reaching out): the view holds still, its
+        // bars shifted by as many.
+        const shift = sameView && !sameTimeline && FINE.has(doc.index) && drawnSpan && data.times.length ? Math.round((drawnSpan[0] - data.times[0]) / FINE_STEP[doc.index]) : 0;
         const panesShape = doc.panes.map((pane) => `${pane.id}:${pane.mode}`).join();
         const keep = sameView && panesShape === drawnPanes;
         const glidingTo = glideTarget;
@@ -6450,6 +6566,10 @@
         const from = left ? logicalOf(left.from, data.times) : 0, to = left ? logicalOf(left.to, data.times) : 0;
         if (left && left.index === doc.index && data.times.length > 1 && to - from >= 1) view.timeScale().setVisibleLogicalRange({ from, to });
         else if (!visible || presetShown) applyRange(doc, data);
+        else if (shift && (glidingTo ?? logical)) {
+          const range = /** @type {{ from: number, to: number }} */ (glidingTo ?? logical);
+          view.timeScale().setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
+        }
         else if (sameTimeline && (glidingTo ?? logical)) view.timeScale().setVisibleLogicalRange(glidingTo ?? logical);
         else if (showedAll) fitAll(data.times.length);
         else view.timeScale().setVisibleRange(visible);
@@ -6951,7 +7071,72 @@
           renderRanges();
         }
         keepView();
+        rest();
       });
+      let reaching = false, pressing = false, restTimer = 0;
+      /**
+       * Reaching out waits for the view to rest (nothing held down, unmoved a moment): mid-gesture, the chart keeps a
+       * pan's start by its last bar, so points loaded under it would make the view leap.
+       */
+      const rest = () => {
+        clearTimeout(restTimer);
+        restTimer = setTimeout(reachOut, 200);
+      };
+      $("chart").addEventListener("pointerdown", () => (pressing = true), true);
+      for (const type of ["pointerup", "pointercancel"]) addEventListener(type, () => (pressing && rest(), (pressing = false)));
+      /**
+       * At a fine interval, the view near either end of what's loaded: the next chunk out, older as it goes back, newer
+       * back to the latest. Only where the view is taken (not while a preset shows, or a glide runs).
+       */
+      function reachOut() {
+        const span = FINE.has(chart.index) ? spans.get(`${chart.id}@${chart.index}`) : null, n = resolved?.times.length ?? 0;
+        const range = view.timeScale().getVisibleLogicalRange();
+        if (!span || reaching || pressing || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
+        // Holding the most at once, a chunk out means one dropped at the other end: only for points the view lacks, and
+        // only when the one dropped is a chunk out of view (else the two ends would take turns).
+        if (span.to - span.from + 1 >= MAX_CHUNKS) {
+          if (range.from < 0 && span.from > 0 && range.to < n - 1 - CHUNK) void grow(span, -1);
+          else if (range.to > n - 1 && !span.live && range.from > CHUNK) void grow(span, 1);
+          return;
+        }
+        const margin = Math.max(100, (range.to - range.from) / 2);
+        if (range.from < margin && span.from > 0) void grow(span, -1);
+        else if (range.to > n - 1 - margin && !span.live) void grow(span, 1);
+      }
+
+      /** @param {Span} span @param {number} by */
+      async function grow(span, by) {
+        reaching = true;
+        const was = { ...span }, index = chart.index, reached = by < 0 ? resolved?.times[0] : resolved?.times.at(-1);
+        if (by < 0) {
+          span.from--;
+          if (span.to - span.from + 1 > MAX_CHUNKS) (span.to--, (span.live = false));
+        } else {
+          span.to++;
+          span.live = span.to >= latestChunk(index);
+          if (span.to - span.from + 1 > MAX_CHUNKS) span.from++;
+        }
+        // Chunks that failed are asked for again (anywhere: a series can lack one the others have); one dropped is let go.
+        const dropped = by < 0 ? (span.to < was.to ? was.to : null) : (span.from > was.from ? was.from : null);
+        for (const key of [...chunks.keys()]) {
+          if ((failedChunks.has(key) && key.includes(`@${index}#`)) || (dropped !== null && key.endsWith(`@${index}#${dropped}`))) (chunks.delete(key), failedChunks.delete(key));
+        }
+        let drew = false;
+        try {
+          drew = await draw();
+        } finally {
+          reaching = false;
+        }
+        // Another draw took its place: nothing to judge (that one shows what is).
+        if (!drew) return;
+        // Nothing more on that side (the chunk failed): back as it was, and a rest before trying that side again.
+        const now = by < 0 ? resolved?.times[0] : resolved?.times.at(-1);
+        if (reached !== undefined && now !== undefined && (by < 0 ? now >= reached : now <= reached)) {
+          Object.assign(span, was, { rest: Date.now() + 5000 });
+          return;
+        }
+        reachOut();
+      }
 
       let brushDrag = null;
       $("navigator").addEventListener("pointerdown", (event) => {
@@ -7006,6 +7191,7 @@
         brushDrag = null;
         $("brush").style.cursor = "";
         $("brush").classList.remove("dragging");
+        rest();
       };
       $("navigator").addEventListener("pointerup", endBrush);
       $("navigator").addEventListener("pointercancel", endBrush);
@@ -7185,7 +7371,7 @@
         const failed = doc.layers.filter((layer) => layer.series && data.results.get(layer.id)?.error && !data.results.get(layer.id).unavailable && !data.results.get(layer.id).missing);
         if (failed.length) {
           for (const layer of failed) {
-            loads.delete(`${layer.series}@${index}`);
+            forget(layer.series, index);
             retryInfo(layer.series);
           }
           return null;
@@ -7669,7 +7855,7 @@
               // A failed fetch isn't drawn (nor kept): the next time the grid shows tries again.
               const failed = !data || copy.layers.some((layer) => layer.series && data.results.get(layer.id)?.error && !data.results.get(layer.id).unavailable && !data.results.get(layer.id).missing);
               if (failed) {
-                for (const layer of copy.layers) if (layer.series) loads.delete(`${layer.series}@${copy.index}`);
+                for (const layer of copy.layers) if (layer.series) forget(layer.series, copy.index);
                 continue;
               }
               if (previewKey(doc) !== key || !library.charts.includes(doc)) continue;
@@ -9066,7 +9252,7 @@
         } else if (replace) replaceSeries(selected, replace);
         else if (action === "retry") {
           const layer = layerById(selected);
-          loads.delete(`${layer?.series}@${chart.index}`);
+          forget(layer?.series, chart.index);
           retryInfo(layer?.series ?? "");
           draw();
         }
@@ -11016,7 +11202,7 @@
       }
       $("interval").addEventListener("click", (event) => {
         const supported = supportedIntervals();
-        showMenu(event.currentTarget, INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-pressed="${chart.index === id}" ${supported(id) ? "" : "disabled data-tip=\"Not every layer has this interval\""}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load the latest ${grouped.format(FINE_POINTS)} points.</div>`, ({ index }) => commit((doc) => (doc.index = index)));
+        showMenu(event.currentTarget, INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-pressed="${chart.index === id}" ${supported(id) ? "" : "disabled data-tip=\"Not every layer has this interval\""}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load as far back as you look.</div>`, ({ index }) => commit((doc) => (doc.index = index)));
       });
       function stepInterval(delta) {
         const ids = INTERVAL_ORDER.filter(supportedIntervals());
@@ -11033,6 +11219,16 @@
         autoScale();
         commit((doc) => (doc.range = range), { redraw: "none", quiet: true });
         drawnRange = chart.range;
+        // At a fine interval, a preset shows the latest, over the chunks it covers (more already held, if live, stay).
+        const span = spanOf(chart);
+        if (span && resolved && drawnChart === chart.id) {
+          const wanted = presetSpan(chart.index, range), from = span.live ? Math.min(span.from, wanted.from) : wanted.from;
+          if (from !== span.from || !span.live) {
+            Object.assign(span, { ...wanted, from: Math.max(from, wanted.to - MAX_CHUNKS + 1) });
+            const id = chart.id, index = chart.index;
+            return void draw().then(() => chart.id === id && chart.index === index && drawnChart === id && applyRange(chart, resolved, true));
+          }
+        }
         if (resolved && drawnChart === chart.id) applyRange(chart, resolved, true);
       }
       $("ranges").addEventListener("click", (event) => {
