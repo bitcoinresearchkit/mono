@@ -259,6 +259,11 @@ has to be deleted by hand.
   whichever comes first, and each type's table then keeps room only for what it just held, so the cache follows the
   chain's activity instead of its busiest past: its peak memory at 600,000 blocks is 4.9 GiB instead of 8.6, for 2.5%
   more time
+- Coinflow, cointime and bedrock replay their per-block URPD in parallel 5,000-block segments, each from its nearest
+  history snapshot, with results handed back in block order. The URPD histogram keeps one supply column per age range
+  so a block's projection reads mostly contiguous memory, and the cohort statistics come from one compact sweep. At
+  970,056 blocks coinflow takes 169 s instead of 491, cointime 188 s instead of 494 and bedrock 19 s instead of 75,
+  with identical outputs
 
 #### `brk_reader`
 

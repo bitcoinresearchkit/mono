@@ -4,6 +4,9 @@ use crate::{
 };
 use std::{fs, io::Result, path::Path};
 
+/// Blocks between full snapshots: a restore loads the nearest one and replays at most this many diffs.
+pub const SNAPSHOT_INTERVAL: usize = 5000;
+
 /// Owns full snapshots. Spends and creations remain their sole, separately produced diff columns.
 pub struct History {
     snapshots: Snapshots,
@@ -11,19 +14,18 @@ pub struct History {
     live: Option<(State, (u64, u64))>,
 }
 impl History {
-    const DEFAULT_INTERVAL: usize = 5000;
     pub fn open(path: &Path) -> Result<Self> {
         fs::create_dir_all(path)?;
         Ok(Self {
             snapshots: Snapshots::open(&path.join("snapshots"), true)?,
-            interval: Self::DEFAULT_INTERVAL,
+            interval: SNAPSHOT_INTERVAL,
             live: None,
         })
     }
     pub(crate) fn open_reader(path: &Path) -> Result<Self> {
         Ok(Self {
             snapshots: Snapshots::open(&path.join("snapshots"), false)?,
-            interval: Self::DEFAULT_INTERVAL,
+            interval: SNAPSHOT_INTERVAL,
             live: None,
         })
     }

@@ -28,7 +28,8 @@ impl<const N: usize, const C: usize> Projection<N, C> {
     pub fn bucket(
         &self,
         price: CentsCompact,
-        supplies: &[u64; AGE_RANGE_COUNT],
+        amounts: &[Vec<u64>; AGE_RANGE_COUNT],
+        slot: usize,
         occupied: u32,
     ) -> Option<ProjectedBucket<N, C>> {
         let mut occupied = occupied & self.ages;
@@ -40,7 +41,7 @@ impl<const N: usize, const C: usize> Projection<N, C> {
         while occupied != 0 {
             let age = occupied.trailing_zeros() as usize;
             occupied &= occupied - 1;
-            let sats = supplies[age];
+            let sats = amounts[age][slot];
             let weights = &self.weights[age];
             let age_bit = 1 << age;
             let contribution = weights.map(|weight| sats as f64 * weight);

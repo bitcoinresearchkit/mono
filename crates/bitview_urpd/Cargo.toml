@@ -17,5 +17,6 @@ bitview_vecs = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
 brk_exit = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
+rayon = { workspace = true }
 rustc-hash = { workspace = true }
 vecdb = { workspace = true }

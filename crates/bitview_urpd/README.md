@@ -31,12 +31,14 @@ creations for each block. It rebuilds after a reorg, a source version change, or
 a failed update. Each plugin owns its complete `compute_state()` call and supplies its
 read-only dependencies and model weights; replay owns reconstruction details.
 
-An isolated query constructs this view once. A backfill constructs it once and
-updates it with diffs. Model weights can change every block, so weighted scalar
-analytics still visit the histogram at each block they compute. There are no
-persisted URPDs or per-model copies of origin state within a plugin.
+An isolated query constructs this view once. Model weights can change every block,
+so weighted scalar analytics still visit the histogram at each block they compute.
+There are no persisted URPDs.
 
-The sequential loop is therefore: restore the nearest snapshot once, apply diffs
-to reach the first requested block, then repeat **advance state and histogram →
-project filters and weights → compute the consumer's data**. Successful updates
-retain that state for the next call. Only a discontinuity requires another restore.
+The loop is: restore the nearest snapshot, apply diffs to reach the first requested
+block, then repeat **advance state and histogram → project filters and weights →
+compute the consumer's data**. A short update runs it once, from the state retained
+by the previous successful call; only a discontinuity requires another restore. A
+long backfill (`Replay::map`) splits its range at snapshot boundaries and runs the
+loop for each segment on the thread pool, each from its own restored state, handing
+results back in block order; the last segment's state is retained.

@@ -13,8 +13,8 @@ use log::info;
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
 
 use crate::{
-    BlockResult, Calibration, Dependencies, ModeId, ModeVecs, Vecs, WRITE_INTERVAL_BLOCKS,
-    WeightedModeId, WeightedModes,
+    BlockResult, Calibration, CumulativeBucket, Dependencies, ModeId, ModeVecs, Vecs,
+    WRITE_INTERVAL_BLOCKS, WeightedModeId, WeightedModes,
 };
 
 impl ComputePlugin for Vecs {
@@ -79,9 +79,6 @@ impl ComputePlugin for Vecs {
                 end - 1
             );
         }
-        let mut last_progress = Instant::now();
-        let mut replay = mem::take(&mut self.replay);
-        let mut scratch = mem::take(&mut self.scratch);
         let mut calibration = self
             .calibration
             .take()
@@ -95,70 +92,98 @@ impl ComputePlugin for Vecs {
                     source_version,
                 )
             });
-        // Cursors: a per-block point read would decode a whole page every block.
-        let mut raw_loss_cursor = raw_loss_share.cursor();
-        let mut cointime_loss_cursor = cointime_loss_share.cursor();
-        let mut coinflow_loss_cursor = coinflow_loss_share.cursor();
-        let mut supply_cursors = AgeRange::from_fn(|age| age.select(&age_supplies).cursor());
-        let mut cointime_cursors =
-            AgeRange::from_fn(|age| age.select(&cointime_wakefulness).cursor());
-        let mut coinflow_cursors = AgeRange::from_fn(|age| age.select(&coinflow_mobility).cursor());
-        replay.for_each(start..end, urpd, |height, _, source| {
-            let index = usize::from(height);
-            let shares = Calibration::loss_shares(
-                raw_loss_cursor.get(index).map(f64::from),
-                cointime_loss_cursor.get(index).map(f64::from),
-                coinflow_loss_cursor.get(index).map(f64::from),
-            );
-            let thresholds = calibration.thresholds(&shares);
-            let mut result = BlockResult::from_thresholds(&thresholds);
-            if thresholds.iter().any(Option::is_some) {
-                let supplies = AgeRange::try_from_fn(|age| {
-                    age.select_mut(&mut supply_cursors).get(index).ok_or(())
+        // Thresholds follow the stored loss shares alone, so one sequential pass fixes them
+        // and the URPD evaluation can replay in parallel.
+        let thresholds = {
+            let mut raw = raw_loss_share.cursor();
+            let mut cointime = cointime_loss_share.cursor();
+            let mut coinflow = coinflow_loss_share.cursor();
+            (start..end)
+                .map(|index| {
+                    let shares = Calibration::loss_shares(
+                        raw.get(index).map(f64::from),
+                        cointime.get(index).map(f64::from),
+                        coinflow.get(index).map(f64::from),
+                    );
+                    let thresholds = calibration.thresholds(&shares);
+                    calibration.observe(shares);
+                    thresholds
                 })
-                .ok();
-                let ct_weights = supplies
-                    .as_ref()
-                    .and_then(|s| collect_cohort_weights(height, &mut cointime_cursors, s));
-                let cf_weights = supplies
-                    .as_ref()
-                    .and_then(|s| collect_cohort_weights(height, &mut coinflow_cursors, s));
-                let weights = WeightedModes::from_fn(|mode| match mode {
-                    WeightedModeId::Cointime => ct_weights.as_ref(),
-                    WeightedModeId::Coinflow => cf_weights.as_ref(),
-                });
-                result.evaluate(source, &weights, &mut scratch);
-            }
-            calibration.observe(shares);
-            for mode in ModeId::ALL {
-                self.modes
-                    .select_mut(mode)
-                    .push(result.by_mode.select(mode));
-            }
-            let end_block = index + 1;
-            if end_block.is_multiple_of(1_000) && last_progress.elapsed() >= Duration::from_secs(10)
-            {
-                info!(
-                    "Computing Bedrock: block {height}/{}, {}/{} blocks",
-                    end - 1,
-                    end_block - start,
-                    end - start
-                );
-                last_progress = Instant::now();
-            }
-            if end_block.is_multiple_of(WRITE_INTERVAL_BLOCKS) || end_block == end {
-                let _lock = context.exit().lock();
-                for vec in self.model_stored_vecs_mut() {
-                    vec.write()?;
+                .collect::<Vec<_>>()
+        };
+        let mut last_progress = Instant::now();
+        let mut replay = mem::take(&mut self.replay);
+        replay.map(
+            start..end,
+            urpd,
+            || Worker {
+                supplies: AgeRange::from_fn(|age| age.select(&age_supplies).cursor()),
+                cointime: AgeRange::from_fn(|age| age.select(&cointime_wakefulness).cursor()),
+                coinflow: AgeRange::from_fn(|age| age.select(&coinflow_mobility).cursor()),
+                scratch: Vec::new(),
+            },
+            |worker, height, _, source| {
+                let index = usize::from(height);
+                let thresholds = &thresholds[index - start];
+                let mut result = BlockResult::from_thresholds(thresholds);
+                if thresholds.iter().any(Option::is_some) {
+                    let supplies = AgeRange::try_from_fn(|age| {
+                        age.select_mut(&mut worker.supplies).get(index).ok_or(())
+                    })
+                    .ok();
+                    let ct_weights = supplies
+                        .as_ref()
+                        .and_then(|s| collect_cohort_weights(height, &mut worker.cointime, s));
+                    let cf_weights = supplies
+                        .as_ref()
+                        .and_then(|s| collect_cohort_weights(height, &mut worker.coinflow, s));
+                    let weights = WeightedModes::from_fn(|mode| match mode {
+                        WeightedModeId::Cointime => ct_weights.as_ref(),
+                        WeightedModeId::Coinflow => cf_weights.as_ref(),
+                    });
+                    result.evaluate(source, &weights, &mut worker.scratch);
                 }
-            }
-            Ok(())
-        })?;
+                Ok(result)
+            },
+            |height, result| {
+                for mode in ModeId::ALL {
+                    self.modes
+                        .select_mut(mode)
+                        .push(result.by_mode.select(mode));
+                }
+                let end_block = usize::from(height) + 1;
+                if end_block.is_multiple_of(1_000)
+                    && last_progress.elapsed() >= Duration::from_secs(10)
+                {
+                    info!(
+                        "Computing Bedrock: block {height}/{}, {}/{} blocks",
+                        end - 1,
+                        end_block - start,
+                        end - start
+                    );
+                    last_progress = Instant::now();
+                }
+                if end_block.is_multiple_of(WRITE_INTERVAL_BLOCKS) || end_block == end {
+                    let _lock = context.exit().lock();
+                    for vec in self.model_stored_vecs_mut() {
+                        vec.write()?;
+                    }
+                }
+                Ok(())
+            },
+        )?;
         self.calibration = Some(calibration);
         self.replay = replay;
-        self.scratch = scratch;
         Ok(())
     }
+}
+
+/// One segment's cursors and cumulative-bucket scratch.
+struct Worker<S, T, F> {
+    supplies: AgeRange<S>,
+    cointime: AgeRange<T>,
+    coinflow: AgeRange<F>,
+    scratch: Vec<CumulativeBucket>,
 }
 
 impl Vecs {

@@ -17,7 +17,6 @@ impl Metrics {
         let version = version + Version::ONE;
         Ok(Self {
             replay: Default::default(),
-            buffer: Default::default(),
             cohorts: AgeAggregate::try_from_fn(|id| {
                 CohortMetrics::import(db, owner, id, version, indexes, spot)
             })?,

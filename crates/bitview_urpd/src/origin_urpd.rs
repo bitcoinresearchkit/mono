@@ -1,3 +1,5 @@
+use std::array;
+
 use bitview_cohort::{AGE_RANGE_COUNT, Age, AgeRange, AgeRangeId, for_each_age_crossing};
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
@@ -12,7 +14,9 @@ use crate::{COST_BASIS_PRICE_DIGITS, ProjectedBucket, projection::Projection};
 /// amounts remain owned by statedb; this stores only their price/age grouping.
 pub struct OriginUrpd {
     prices: Vec<(CentsCompact, u32)>,
-    amounts: Vec<[u64; AGE_RANGE_COUNT]>,
+    /// Supply per age range, one column over the price slots: neighbouring slots share their
+    /// few occupied ages, so a projection reads mostly contiguous memory.
+    amounts: [Vec<u64>; AGE_RANGE_COUNT],
     /// Nonzero ages per stable slot; four bytes avoid scanning 23 cells per bucket.
     occupied: Vec<u32>,
     origin_buckets: Vec<u32>,
@@ -38,22 +42,21 @@ impl OriginUrpd {
             .collect();
         let mut sorted: Vec<_> = slots.into_iter().collect();
         sorted.sort_unstable_by_key(|&(price, _)| price);
-        let mut amounts = vec![[0; AGE_RANGE_COUNT]; sorted.len()];
+        let mut amounts: [Vec<u64>; AGE_RANGE_COUNT] = array::from_fn(|_| vec![0; sorted.len()]);
         if let Some(&current) = timestamps.get(state.len().wrapping_sub(1)) {
             for (h, amount) in state.amounts().iter().enumerate() {
                 if amount.sats == 0 {
                     continue;
                 }
                 let age = AgeRangeId::from(Age::new(current, timestamps[h]));
-                amounts[origin_buckets[h] as usize][age.index()] += amount.sats;
+                amounts[age.index()][origin_buckets[h] as usize] += amount.sats;
             }
         }
-        let occupied = amounts
-            .iter()
-            .map(|row| {
-                row.iter()
-                    .enumerate()
-                    .fold(0, |mask, (age, &sats)| mask | (u32::from(sats != 0) << age))
+        let occupied = (0..sorted.len())
+            .map(|slot| {
+                amounts.iter().enumerate().fold(0, |mask, (age, column)| {
+                    mask | (u32::from(column[slot] != 0) << age)
+                })
             })
             .collect();
         let mut source = Self {
@@ -80,21 +83,23 @@ impl OriginUrpd {
             {
                 Ok(position) => self.prices[position].1,
                 Err(position) => {
-                    let slot = self.amounts.len() as u32;
+                    let slot = self.occupied.len() as u32;
                     self.prices.insert(position, (price, slot));
-                    self.amounts.push([0; AGE_RANGE_COUNT]);
+                    for column in &mut self.amounts {
+                        column.push(0);
+                    }
                     self.occupied.push(0);
                     slot
                 }
             };
             self.origin_buckets.push(slot);
         }
-        if self.amounts.len() >= self.reorder_at {
+        if self.occupied.len() >= self.reorder_at {
             self.reorder_slots();
         }
         Ok(())
     }
-    /// Keep supply rows in scan order, amortizing remaps over bucket doublings.
+    /// Keep slots in scan order across every age column, amortizing remaps over bucket doublings.
     fn reorder_slots(&mut self) {
         let len = self.prices.len();
         let mut slots = vec![0; len];
@@ -105,11 +110,13 @@ impl OriginUrpd {
         for slot in &mut self.origin_buckets {
             *slot = slots[*slot as usize];
         }
-        // Origins now use the new slots; consume the map to reorder rows in place.
+        // Origins now use the new slots; consume the map to reorder every column in place.
         for index in 0..len {
             while slots[index] as usize != index {
                 let target = slots[index] as usize;
-                self.amounts.swap(index, target);
+                for column in &mut self.amounts {
+                    column.swap(index, target);
+                }
                 self.occupied.swap(index, target);
                 slots.swap(index, target);
             }
@@ -137,10 +144,9 @@ impl OriginUrpd {
                 let sats = cursor.state().amounts()[origin].sats;
                 if sats != 0 {
                     let slot = self.origin_buckets[origin] as usize;
-                    let row = &mut self.amounts[slot];
-                    row[younger.index()] -= sats;
-                    row[older.index()] += sats;
-                    if row[younger.index()] == 0 {
+                    self.amounts[younger.index()][slot] -= sats;
+                    self.amounts[older.index()][slot] += sats;
+                    if self.amounts[younger.index()][slot] == 0 {
                         self.occupied[slot] &= !(1 << younger.index());
                     }
                     self.occupied[slot] |= 1 << older.index();
@@ -151,7 +157,7 @@ impl OriginUrpd {
             .advance()?
             .ok_or(Error::Internal("incomplete origin history"))?;
         let slot = self.origin_buckets[h] as usize;
-        self.amounts[slot][AgeRangeId::Under1H.index()] += diff.created.sats;
+        self.amounts[AgeRangeId::Under1H.index()][slot] += diff.created.sats;
         if diff.created.sats != 0 {
             self.occupied[slot] |= 1 << AgeRangeId::Under1H.index();
         }
@@ -162,8 +168,8 @@ impl OriginUrpd {
             let origin = origin as usize;
             let age = AgeRangeId::from(Age::new(current, timestamps[origin]));
             let slot = self.origin_buckets[origin] as usize;
-            self.amounts[slot][age.index()] -= amount.sats;
-            if self.amounts[slot][age.index()] == 0 {
+            self.amounts[age.index()][slot] -= amount.sats;
+            if self.amounts[age.index()][slot] == 0 {
                 self.occupied[slot] &= !(1 << age.index());
             }
         }
@@ -184,7 +190,7 @@ impl OriginUrpd {
         let projection = Projection::new(weights, cohorts);
         self.price_slots().filter_map(move |(price, slot)| {
             let slot = slot as usize;
-            projection.bucket(price, &self.amounts[slot], self.occupied[slot])
+            projection.bucket(price, &self.amounts, slot, self.occupied[slot])
         })
     }
 }

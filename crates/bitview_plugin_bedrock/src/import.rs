@@ -65,7 +65,6 @@ impl Vecs {
             modes,
             calibration: None,
             replay: Default::default(),
-            scratch: Default::default(),
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

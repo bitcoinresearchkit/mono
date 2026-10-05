@@ -91,8 +91,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     calibration: M::WriteOnly<Option<Calibration>>,
     #[traversable(skip)]
     replay: M::WriteOnly<Replay>,
-    #[traversable(skip)]
-    scratch: M::WriteOnly<Vec<CumulativeBucket>>,
 
     #[deref]
     #[deref_mut]

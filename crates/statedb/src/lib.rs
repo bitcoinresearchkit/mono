@@ -20,7 +20,7 @@ pub use amount::Amount;
 pub use block_diff::BlockDiff;
 pub use creations::Creations;
 pub use cursor::Cursor;
-pub use history::History;
+pub use history::{History, SNAPSHOT_INTERVAL};
 pub use reader::Reader;
 pub use spends::Spends;
 pub use state::State;

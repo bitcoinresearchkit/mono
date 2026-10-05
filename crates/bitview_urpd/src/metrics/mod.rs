@@ -6,7 +6,6 @@ mod cost_basis;
 pub(crate) mod density;
 mod import;
 mod metric_buckets;
-mod price_distribution;
 mod price_stats;
 
 use bitview_cohort::AgeAggregate;
@@ -15,7 +14,6 @@ use vecdb::{AnyStoredVec, Rw, StorageMode};
 
 use crate::Replay;
 use cohort::CohortMetrics;
-use metric_buckets::MetricBuckets;
 
 const WRITE_INTERVAL_BLOCKS: usize = 10_000;
 
@@ -23,8 +21,6 @@ const WRITE_INTERVAL_BLOCKS: usize = 10_000;
 pub struct Metrics<M: StorageMode = Rw> {
     #[traversable(skip)]
     replay: M::WriteOnly<Replay>,
-    #[traversable(skip)]
-    buffer: M::WriteOnly<MetricBuckets>,
     #[traversable(flatten)]
     pub cohorts: AgeAggregate<CohortMetrics<M>>,
 }
