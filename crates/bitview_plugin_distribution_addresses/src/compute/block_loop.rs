@@ -1,14 +1,14 @@
 use std::ops::Range;
 
 use bitview_cohort::ByAddrType;
-use bitview_plugin_distribution_common::readers::{BlockBounds, index_range};
+use bitview_plugin_distribution_common::readers::{BatchColumns, BlockBounds, index_range};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::TypeIndex;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, TxIndex};
-use rayon::{join, prelude::*};
+use rayon::prelude::*;
 use tracing::{debug, info};
 use vecdb::{AnyVec, ReadableVec, VecIndex, unlikely};
 
@@ -133,12 +133,17 @@ pub fn process_chunk(
 
     // Load cold address state once for each batch of blocks.
     let bounds = BlockBounds::new(indexer, blocks);
-    for batch in bounds.batches() {
+    columns.for_each_batch(&bounds, |batch, columns| {
         let offset = batch.blocks.start - start_usize;
-        let (
-            (output_values, output_types, output_indexes),
-            (input_values, input_heights, input_types, input_indexes),
-        ) = columns.collect(&batch)?;
+        let BatchColumns {
+            output_values,
+            output_types,
+            output_indexes,
+            input_values,
+            input_heights,
+            input_types,
+            input_indexes,
+        } = columns;
 
         // Addresses created within this batch start at these per-type indexes.
         let first_addr_indexes = ByAddrType {
@@ -188,37 +193,33 @@ pub fn process_chunk(
             let input_range = batch.block_spends(height.to_usize());
             state.reset_per_block();
 
-            let (outputs_result, inputs_result) = join(
-                || {
-                    process_outputs(
-                        output_txs.build(
-                            TxIndex::from(transactions.start),
-                            transactions.len() as u64,
-                            tx_index_to_output_count,
-                        ),
-                        &output_values[output_range.clone()],
-                        &output_types[output_range.clone()],
-                        &output_indexes[output_range],
+            // Sequential: a thread-pool handoff per block costs what the overlap would save.
+            let outputs_result = process_outputs(
+                output_txs.build(
+                    TxIndex::from(transactions.start),
+                    transactions.len() as u64,
+                    tx_index_to_output_count,
+                ),
+                &output_values[output_range.clone()],
+                &output_types[output_range.clone()],
+                &output_indexes[output_range],
+            );
+            let inputs_result = process_inputs(
+                input_txs
+                    .build(
+                        TxIndex::from(transactions.start),
+                        transactions.len() as u64,
+                        tx_index_to_input_count,
                     )
-                },
-                || {
-                    process_inputs(
-                        input_txs
-                            .build(
-                                TxIndex::from(transactions.start),
-                                transactions.len() as u64,
-                                tx_index_to_input_count,
-                            )
-                            .skip(1),
-                        &input_values[input_range.clone()],
-                        &input_types[input_range.clone()],
-                        &input_indexes[input_range.clone()],
-                        &input_heights[input_range],
-                    )
-                },
+                    .skip(1),
+                &input_values[input_range.clone()],
+                &input_types[input_range.clone()],
+                &input_indexes[input_range.clone()],
+                &input_heights[input_range],
             );
 
-            // Update tx_count from the transaction-ordered output and input maps.
+            // A tight pass over every touched address: its cache misses overlap,
+            // leaving the entries warm for the heavier passes below.
             cache.update_tx_counts(&outputs_result, inputs_result.tx_index_vecs);
 
             transfer_addresses.prepare(
@@ -249,7 +250,8 @@ pub fn process_chunk(
             addr_states.push(&mut vecs.balances, &mut vecs.addrs.funded, block_price);
             addr_states.reset_block();
         }
-    }
+        Ok(())
+    })?;
     drop(vr);
     let _lock = exit.lock();
     cache.flush_into(&mut vecs.addr_state)?;

@@ -1,17 +1,17 @@
 mod tx_in;
 mod tx_out;
-use std::ops::Range;
+use std::{ops::Range, panic::resume_unwind, sync::mpsc, thread};
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::HeightMap;
-use bitview_primitives::{TxInIndex, TxOutIndex};
+use bitview_primitives::{TxInIndex, TxOutIndex, TypeIndex};
 use brk_error::Result;
-use brk_types::{Height, Sats};
+use brk_types::{Height, OutputType, Sats};
 use rayon::join;
 use vecdb::{AnyVec, PcoVec, ReadableVec, VecIndex};
 
-use tx_in::{InputColumns, TxInReaders};
-use tx_out::{OutputColumns, TxOutReaders};
+use tx_in::TxInReaders;
+use tx_out::TxOutReaders;
 
 /// Blocks read together, bounding source buffers while amortizing reads.
 const BATCH_BLOCKS: usize = 16;
@@ -47,7 +47,7 @@ impl BlockBounds {
         }
     }
 
-    pub fn batches(&self) -> impl Iterator<Item = Batch<'_>> {
+    fn batches(&self) -> impl Iterator<Item = Batch<'_>> {
         self.blocks.clone().step_by(BATCH_BLOCKS).map(|from| {
             let blocks = from..(from + BATCH_BLOCKS).min(self.blocks.end);
             Batch {
@@ -103,7 +103,20 @@ impl Batch<'_> {
     }
 }
 
-/// Reusable output and input column readers; type indexes only `WITH_INDEXES`.
+/// One batch's output and input columns; type indexes stay empty unless the
+/// reader reads them.
+#[derive(Default)]
+pub struct BatchColumns {
+    pub output_values: Vec<Sats>,
+    pub output_types: Vec<OutputType>,
+    pub output_indexes: Vec<TypeIndex>,
+    pub input_values: Vec<Sats>,
+    pub input_heights: Vec<Height>,
+    pub input_types: Vec<OutputType>,
+    pub input_indexes: Vec<TypeIndex>,
+}
+
+/// Output and input column readers; type indexes only `WITH_INDEXES`.
 pub struct Columns<'a, const WITH_INDEXES: bool> {
     outputs: TxOutReaders<'a, WITH_INDEXES>,
     inputs: TxInReaders<'a, WITH_INDEXES>,
@@ -121,21 +134,71 @@ impl<'a, const WITH_INDEXES: bool> Columns<'a, WITH_INDEXES> {
         }
     }
 
+    /// Runs `process` on every batch in order while a reader thread fills the
+    /// next batch's columns, so reads stay off the processing path.
+    pub fn for_each_batch(
+        &mut self,
+        bounds: &BlockBounds,
+        mut process: impl FnMut(&Batch<'_>, &BatchColumns) -> Result<()>,
+    ) -> Result<()> {
+        thread::scope(|scope| {
+            let (filled_tx, filled_rx) = mpsc::sync_channel(1);
+            let (free_tx, free_rx) = mpsc::channel();
+            let reader = scope.spawn(move || {
+                let mut columns = BatchColumns::default();
+                for batch in bounds.batches() {
+                    self.collect(&batch, &mut columns)?;
+                    if filled_tx.send((batch, columns)).is_err() {
+                        break;
+                    }
+                    // Wait for a buffer back; none means processing stopped.
+                    let Ok(free) = free_rx.recv() else { break };
+                    columns = free;
+                }
+                Ok(())
+            });
+            let _ = free_tx.send(BatchColumns::default());
+
+            let mut processed = Ok(());
+            for (batch, columns) in filled_rx {
+                processed = process(&batch, &columns);
+                if processed.is_err() {
+                    break;
+                }
+                let _ = free_tx.send(columns);
+            }
+            drop(free_tx);
+            let read = reader.join().unwrap_or_else(|panic| resume_unwind(panic));
+            processed.and(read)
+        })
+    }
+
     /// Reads `batch`'s output and input columns in parallel.
-    pub fn collect(&mut self, batch: &Batch<'_>) -> Result<(OutputColumns<'_>, InputColumns<'_>)> {
+    fn collect(&mut self, batch: &Batch<'_>, columns: &mut BatchColumns) -> Result<()> {
+        let BatchColumns {
+            output_values,
+            output_types,
+            output_indexes,
+            input_values,
+            input_heights,
+            input_types,
+            input_indexes,
+        } = columns;
         let (outputs, inputs) = join(
             || {
                 self.outputs
-                    .collect_outputs(batch.outputs.start, batch.outputs.len())
+                    .collect_outputs(batch, output_values, output_types, output_indexes)
             },
             || {
                 self.inputs.collect_inputs(
-                    batch.inputs.start,
-                    batch.inputs.len(),
-                    Height::from(batch.blocks.start),
+                    batch,
+                    input_values,
+                    input_heights,
+                    input_types,
+                    input_indexes,
                 )
             },
         );
-        Ok((outputs?, inputs?))
+        outputs.and(inputs)
     }
 }

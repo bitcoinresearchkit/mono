@@ -6,7 +6,7 @@ use crate::{
     block::{DetailedSpends, normalize_supply},
     state::{Transacted, UTXOStates},
 };
-use bitview_plugin_distribution_common::readers::{BlockBounds, Columns};
+use bitview_plugin_distribution_common::readers::{BatchColumns, BlockBounds, Columns};
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -32,9 +32,15 @@ pub fn process_chunk(
     }
     let last_height = Height::from(blocks.end - 1);
     let bounds = BlockBounds::new(indexer, blocks);
-    for batch in bounds.batches() {
-        let ((values, types, _), (spent_values, origins, spent_types, _)) =
-            columns.collect(&batch)?;
+    columns.for_each_batch(&bounds, |batch, columns| {
+        let BatchColumns {
+            output_values: values,
+            output_types: types,
+            input_values: spent_values,
+            input_heights: origins,
+            input_types: spent_types,
+            ..
+        } = columns;
         for height in batch.blocks.clone() {
             let received = batch.block_outputs(height);
             let spent = batch.block_spends(height);
@@ -61,7 +67,8 @@ pub fn process_chunk(
                 .chain(states.amount_range.iter_mut())
                 .for_each(|s| s.reset_single_iteration_values());
         }
-    }
+        Ok(())
+    })?;
     let _lock = exit.lock();
     write(vecs, states, last_height, final_chunk)?;
     if !final_chunk {

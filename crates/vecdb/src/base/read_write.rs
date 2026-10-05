@@ -87,13 +87,20 @@ where
 
     #[inline]
     pub fn mut_pushed(&mut self) -> &mut Vec<T> {
-        self.header.assert_writable();
+        // Every push lands here: a failed write already stopped the caller with an error.
+        debug_assert!(
+            self.header.check_writable().is_ok(),
+            "vector cannot continue after a failed write"
+        );
         self.pushed.current_mut()
     }
 
     #[inline]
     pub fn reserve_pushed(&mut self, additional: usize) {
-        self.header.assert_writable();
+        debug_assert!(
+            self.header.check_writable().is_ok(),
+            "vector cannot continue after a failed write"
+        );
         self.pushed.current_mut().reserve(additional);
     }
 

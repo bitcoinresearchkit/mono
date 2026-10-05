@@ -5,19 +5,15 @@ use brk_error::{Error, Result};
 use brk_types::{Height, OutputType, Sats};
 use vecdb::{Cursor, PcoVec, ReadableVec};
 
-pub(super) type InputColumns<'a> = (&'a [Sats], &'a [Height], &'a [OutputType], &'a [TypeIndex]);
+use super::Batch;
 
-/// Bulk txin reader with reusable buffers.
+/// Sequential txin reader; type indexes only `WITH_INDEXES`.
 pub(super) struct TxInReaders<'a, const WITH_INDEXES: bool> {
     input_values: Cursor<'a, TxInIndex, Sats, PcoVec<TxInIndex, Sats>>,
     references: Cursor<'a, TxInIndex, TxOutIndex, PcoVec<TxInIndex, TxOutIndex>>,
     output_types: Cursor<'a, TxInIndex, OutputType, PcoVec<TxInIndex, OutputType>>,
     type_indexes: Cursor<'a, TxInIndex, TypeIndex, PcoVec<TxInIndex, TypeIndex>>,
     output_heights: &'a HeightMap<TxOutIndex>,
-    values_buf: Vec<Sats>,
-    prev_heights_buf: Vec<Height>,
-    output_types_buf: Vec<OutputType>,
-    type_indexes_buf: Vec<TypeIndex>,
 }
 
 impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
@@ -33,37 +29,34 @@ impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
             output_types: inputs.output_type.cursor(),
             type_indexes: inputs.type_index.cursor(),
             output_heights,
-            values_buf: Vec::new(),
-            prev_heights_buf: Vec::new(),
-            output_types_buf: Vec::new(),
-            type_indexes_buf: Vec::new(),
         }
     }
 
     pub(super) fn collect_inputs(
         &mut self,
-        first_txin_index: usize,
-        input_count: usize,
-        current_height: Height,
-    ) -> Result<InputColumns<'_>> {
-        let end = first_txin_index + input_count;
+        batch: &Batch<'_>,
+        values: &mut Vec<Sats>,
+        prev_heights: &mut Vec<Height>,
+        output_types: &mut Vec<OutputType>,
+        type_indexes: &mut Vec<TypeIndex>,
+    ) -> Result<()> {
+        let (first_txin_index, end) = (batch.inputs.start, batch.inputs.end);
+        let input_count = batch.inputs.len();
+        let current_height = Height::from(batch.blocks.start);
         self.input_values
-            .collect_range_into_at(first_txin_index, end, &mut self.values_buf);
+            .collect_range_into_at(first_txin_index, end, values);
         self.output_types
-            .collect_range_into_at(first_txin_index, end, &mut self.output_types_buf);
+            .collect_range_into_at(first_txin_index, end, output_types);
         if WITH_INDEXES {
-            self.type_indexes.collect_range_into_at(
-                first_txin_index,
-                end,
-                &mut self.type_indexes_buf,
-            );
+            self.type_indexes
+                .collect_range_into_at(first_txin_index, end, type_indexes);
         }
 
-        self.prev_heights_buf.clear();
-        self.prev_heights_buf.reserve(input_count);
+        prev_heights.clear();
+        prev_heights.reserve(input_count);
         self.references
             .try_for_each_range_at(first_txin_index, end, |reference| {
-                self.prev_heights_buf.push(if reference.is_coinbase() {
+                prev_heights.push(if reference.is_coinbase() {
                     current_height
                 } else {
                     self.output_heights
@@ -72,21 +65,15 @@ impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
                 });
                 Ok::<_, Error>(())
             })?;
-        if self.values_buf.len() != input_count
-            || self.prev_heights_buf.len() != input_count
-            || self.output_types_buf.len() != input_count
-            || (WITH_INDEXES && self.type_indexes_buf.len() != input_count)
+        if values.len() != input_count
+            || prev_heights.len() != input_count
+            || output_types.len() != input_count
+            || (WITH_INDEXES && type_indexes.len() != input_count)
         {
             return Err(Error::NotFound(
                 "incomplete distribution input columns".into(),
             ));
         }
-
-        Ok((
-            &self.values_buf,
-            &self.prev_heights_buf,
-            &self.output_types_buf,
-            &self.type_indexes_buf,
-        ))
+        Ok(())
     }
 }

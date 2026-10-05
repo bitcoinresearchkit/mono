@@ -1,7 +1,7 @@
 use bitview_cohort::{AmountRangeId, ByAddrType};
 use bitview_primitives::TypeIndex;
 use brk_error::Result;
-use brk_types::{Cents, Sats};
+use brk_types::{Cents, CentsSats, Sats};
 
 use super::{super::cache::AddrLookup, transfer_address_cache::TransferAddressCache};
 use crate::{
@@ -25,9 +25,8 @@ pub fn process_typed_sent(
             let (mut is_first_encounter, also_received) =
                 addresses.observe_send(output_type, type_index);
             let addr_data = lookup.get_for_send(type_index);
-            let mut emptied = false;
             for &(_, value, prev_price) in group {
-                debug_assert!(!emptied);
+                debug_assert!(addr_data.is_funded());
                 let pre = AddrSendPreState::capture(addr_data, output_type);
                 let prev_balance = addr_data.balance();
                 let will_be_empty = addr_data.has_1_utxos();
@@ -48,15 +47,13 @@ pub fn process_typed_sent(
                     cohort_state.subtract(addr_data);
                 }
                 if will_be_empty {
-                    emptied = true;
+                    // Exact cost basis: an emptied address matches its stored empty form.
+                    debug_assert_eq!(addr_data.realized_cap_raw(), CentsSats::ZERO);
                 } else if crossing_boundary {
                     new_bucket
                         .select_mut(&mut cohorts.amount_range)
                         .add(addr_data);
                 }
-            }
-            if emptied {
-                lookup.move_to_empty(type_index);
             }
         }
     }

@@ -1,5 +1,5 @@
 use bitview_cohort::ByAddrType;
-use bitview_primitives::{DecodedAddrState, EmptyAddrData, FundedAddrData, TypeIndex};
+use bitview_primitives::{DecodedAddrState, FundedAddrData, TypeIndex};
 use brk_error::Result;
 use brk_types::OutputType;
 use rayon::prelude::*;
@@ -65,13 +65,11 @@ impl AddressKey {
     }
 }
 
-/// Cache for address data within a flush interval.
+/// Cache for address data within a flush interval. Emptied addresses stay in
+/// place: their UTXO count tells funded and empty apart at flush.
 #[derive(Default)]
 pub struct AddrCache {
-    /// Addrs with non-zero balance
-    funded: AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
-    /// Addrs that became empty (zero balance)
-    empty: AddrTypeToTypeIndexMap<SourcedAddrData<EmptyAddrData>>,
+    addrs: AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
     /// Reusable scratch space for the unique addresses touched by one batch.
     addresses: Vec<AddressKey>,
     /// Reusable scratch space for their loaded sources.
@@ -99,13 +97,11 @@ impl AddrCache {
         );
         self.addresses.sort_unstable();
         self.addresses.dedup();
-        let funded = self.funded.output_type_refs();
-        let empty = self.empty.output_type_refs();
+        let addrs = self.addrs.output_type_refs();
         self.addresses.retain(|address| {
-            let addr_type = address.addr_type() as usize;
-            let type_index = address.type_index();
-            !funded[addr_type].unwrap().contains_key(&type_index)
-                && !empty[addr_type].unwrap().contains_key(&type_index)
+            !addrs[address.addr_type() as usize]
+                .unwrap()
+                .contains_key(&address.type_index())
         });
 
         // Keep cold reads concurrent without scheduling tiny tasks.
@@ -117,7 +113,7 @@ impl AddrCache {
             .collect_into_vec(&mut self.sources);
 
         for (address, source) in self.addresses.iter().copied().zip(self.sources.drain(..)) {
-            self.funded
+            self.addrs
                 .insert_for_type(address.addr_type(), address.type_index(), source);
         }
     }
@@ -126,8 +122,7 @@ impl AddrCache {
     #[inline]
     pub fn as_lookup(&mut self) -> AddrLookup<'_> {
         AddrLookup {
-            funded: &mut self.funded,
-            empty: &mut self.empty,
+            addrs: &mut self.addrs,
         }
     }
 
@@ -147,6 +142,6 @@ impl AddrCache {
 
     /// Persist pending address states while retaining the cache allocations.
     pub fn flush_into(&mut self, state: &mut AddrStateVecs) -> Result<()> {
-        state.apply_updates(&mut self.empty, &mut self.funded)
+        state.apply_updates(&mut self.addrs)
     }
 }

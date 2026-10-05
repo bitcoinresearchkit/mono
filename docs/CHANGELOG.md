@@ -243,6 +243,12 @@ has to be deleted by hand.
   and bedrock 1.2 s instead of 5 s
 - Txids hash with `sha2`, which uses the CPU's SHA instructions (about 6x `bitcoin_hashes` on Apple silicon, where it
   has no hardware path): the indexer is about 6% faster at 300,000 blocks
+- `distribution_addresses` takes 337 s instead of 420 s at 600,000 blocks, with the same series and address data. Its
+  block cache keeps emptied addresses in place, in one map per address type instead of a funded and an empty map. Each
+  block's outputs and inputs are grouped on the processing thread instead of the thread pool. A reader thread reads
+  the next batch's columns while the current batch is processed, for `distribution_utxos` too
+- Pushes onto stored vectors check that the vector is still writable only in debug builds (6.7 ns per push instead
+  of 7.1)
 
 #### `brk_reader`
 

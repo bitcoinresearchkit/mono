@@ -34,10 +34,10 @@ impl From<FundedAddrData> for EmptyAddrData {
 impl From<&FundedAddrData> for EmptyAddrData {
     #[inline]
     fn from(value: &FundedAddrData) -> Self {
-        if value.sent != value.received {
-            dbg!(&value);
-            panic!("Trying to convert not empty wallet to empty !");
-        }
+        debug_assert_eq!(
+            value.sent, value.received,
+            "address is not empty: {value:?}"
+        );
         Self {
             tx_count: value.tx_count,
             funded_txo_count: value.funded_txo_count,

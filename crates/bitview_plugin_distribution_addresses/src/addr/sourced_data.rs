@@ -49,13 +49,6 @@ impl<T> DerefMut for SourcedAddrData<T> {
     }
 }
 
-impl From<SourcedAddrData<EmptyAddrData>> for SourcedAddrData<FundedAddrData> {
-    #[inline]
-    fn from(value: SourcedAddrData<EmptyAddrData>) -> Self {
-        value.map(Into::into)
-    }
-}
-
 impl From<SourcedAddrData<FundedAddrData>> for SourcedAddrData<EmptyAddrData> {
     #[inline]
     fn from(value: SourcedAddrData<FundedAddrData>) -> Self {

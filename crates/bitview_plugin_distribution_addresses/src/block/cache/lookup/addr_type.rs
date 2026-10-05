@@ -1,6 +1,4 @@
-use std::collections::hash_map::Entry;
-
-use bitview_primitives::{EmptyAddrData, FundedAddrData, TypeIndex};
+use bitview_primitives::{FundedAddrData, TypeIndex};
 use brk_types::OutputType;
 use rustc_hash::FxHashMap;
 
@@ -12,16 +10,14 @@ use crate::{
 
 /// Cached address data selected for one output type.
 pub struct AddrTypeLookup<'a> {
-    funded: &'a mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>,
-    empty: &'a mut FxHashMap<TypeIndex, SourcedAddrData<EmptyAddrData>>,
+    addrs: &'a mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>,
 }
 
 impl AddrLookup<'_> {
     #[inline]
     pub fn select(&mut self, output_type: OutputType) -> AddrTypeLookup<'_> {
         AddrTypeLookup {
-            funded: self.funded.get_mut_unwrap(output_type),
-            empty: self.empty.get_mut_unwrap(output_type),
+            addrs: self.addrs.get_mut_unwrap(output_type),
         }
     }
 }
@@ -45,65 +41,34 @@ impl AddrTypeLookup<'_> {
     }
 
     fn add_tx_count(&mut self, type_index: TypeIndex, tx_count: u32) {
-        if let Some(addr_data) = self.funded.get_mut(&type_index) {
-            addr_data.tx_count += tx_count;
-        } else if let Some(addr_data) = self.empty.get_mut(&type_index) {
-            addr_data.tx_count += tx_count;
-        } else {
-            let mut data = FundedAddrData::default();
-            data.tx_count = tx_count;
-            self.funded.insert(type_index, SourcedAddrData::New(data));
-        }
+        self.addrs
+            .entry(type_index)
+            .or_insert_with(|| SourcedAddrData::New(FundedAddrData::default()))
+            .tx_count += tx_count;
     }
 
     pub fn get_or_create_for_receive(
         &mut self,
         type_index: TypeIndex,
     ) -> (&mut SourcedAddrData<FundedAddrData>, AddrReceiveStatus) {
-        match self.funded.entry(type_index) {
-            Entry::Occupied(entry) => {
-                let status = match entry.get() {
-                    SourcedAddrData::New(data) => {
-                        if data.funded_txo_count == 0 {
-                            AddrReceiveStatus::New
-                        } else {
-                            AddrReceiveStatus::Tracked
-                        }
-                    }
-                    SourcedAddrData::FromFunded(..) => AddrReceiveStatus::Tracked,
-                    SourcedAddrData::FromInlineEmpty(data)
-                    | SourcedAddrData::FromExtendedEmpty(_, data) => {
-                        if data.utxo_count() == 0 {
-                            AddrReceiveStatus::WasEmpty
-                        } else {
-                            AddrReceiveStatus::Tracked
-                        }
-                    }
-                };
-                (entry.into_mut(), status)
-            }
-            Entry::Vacant(entry) => {
-                if let Some(empty_data) = self.empty.remove(&type_index) {
-                    return (entry.insert(empty_data.into()), AddrReceiveStatus::WasEmpty);
-                }
-                (
-                    entry.insert(SourcedAddrData::New(FundedAddrData::default())),
-                    AddrReceiveStatus::New,
-                )
-            }
-        }
+        let addr_data = self
+            .addrs
+            .entry(type_index)
+            .or_insert_with(|| SourcedAddrData::New(FundedAddrData::default()));
+        let status = if addr_data.funded_txo_count == 0 {
+            AddrReceiveStatus::New
+        } else if addr_data.is_funded() {
+            AddrReceiveStatus::Tracked
+        } else {
+            AddrReceiveStatus::WasEmpty
+        };
+        (addr_data, status)
     }
 
     #[inline]
     pub fn get_for_send(&mut self, type_index: TypeIndex) -> &mut SourcedAddrData<FundedAddrData> {
-        self.funded
+        self.addrs
             .get_mut(&type_index)
             .expect("Addr must exist for send")
-    }
-
-    #[inline]
-    pub fn move_to_empty(&mut self, type_index: TypeIndex) {
-        let data = self.funded.remove(&type_index).unwrap();
-        self.empty.insert(type_index, data.into());
     }
 }

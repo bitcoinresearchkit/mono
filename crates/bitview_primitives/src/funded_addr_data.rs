@@ -149,15 +149,11 @@ impl FundedAddrData {
 
     #[inline]
     pub fn utxo_count(&self) -> u32 {
-        self.funded_txo_count
-            .checked_sub(self.spent_txo_count)
-            .unwrap_or_else(|| {
-                panic!(
-                    "FundedAddrData corruption: spent_txo_count ({}) > funded_txo_count ({}). \
-                Addr data: {:?}",
-                    self.spent_txo_count, self.funded_txo_count, self
-                )
-            })
+        debug_assert!(
+            self.spent_txo_count <= self.funded_txo_count,
+            "spent more outputs than funded: {self:?}"
+        );
+        self.funded_txo_count - self.spent_txo_count
     }
 
     #[inline]

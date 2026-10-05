@@ -3,8 +3,8 @@
 pub enum AddrReceiveStatus {
     /// Brand new address (never seen before).
     New,
-    /// Already tracked in a cohort (has existing balance).
+    /// Already tracked in a cohort (holds UTXOs).
     Tracked,
-    /// Was in the empty cache and is rejoining a cohort.
+    /// Received before but holds no UTXOs; rejoins a cohort.
     WasEmpty,
 }
