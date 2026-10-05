@@ -77,6 +77,7 @@ impl Vecs {
         let end_tx = inscriptions.len().min(fees.len());
         let mut block_start = first_tx.collect_one_at(start_height).unwrap().to_usize();
         let mut inscriptions = inscriptions.cursor();
+        let mut total_fees = total_fees.cursor();
         let mut fees = fees.cursor();
         let mut counts = tx_counts.cursor();
         let mut inscription_counts = inscription_counts.cursor();
@@ -89,7 +90,7 @@ impl Vecs {
             if block_end > end_tx {
                 break;
             }
-            let total = total_fees.collect_one_at(height).unwrap();
+            let total = total_fees.get(height).unwrap();
             let mut inscribed = Sats::ZERO;
             // With no inscriptions, avoid reading transaction fees or flags.
             if *inscription_counts.next().unwrap() > 0 {

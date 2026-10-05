@@ -46,13 +46,18 @@ impl Metrics {
         let mut buffer = mem::take(&mut self.buffer);
         let cohorts: [_; AgeAggregateId::ALL.len()] =
             array::from_fn(|i| AgeAggregateId::ALL[i].age_range_ids());
+        let mut supply_cursors = AgeRange::from_fn(|age| age.select(supplies).cursor());
+        let mut weight_cursors = AgeRange::from_fn(|age| age.select(weights).cursor());
         replay.for_each(start..end, inputs, |height, close, source| {
-            let supplies =
-                AgeRange::try_from_fn(|age| age.select(supplies).collect_one(height).ok_or(()))
-                    .ok();
+            let supplies = AgeRange::try_from_fn(|age| {
+                age.select_mut(&mut supply_cursors)
+                    .get(usize::from(height))
+                    .ok_or(())
+            })
+            .ok();
             let weights = supplies
                 .as_ref()
-                .and_then(|s| collect_cohort_weights(height, weights, s));
+                .and_then(|s| collect_cohort_weights(height, &mut weight_cursors, s));
             if let Some(weights) = &weights {
                 buffer.update(source.project(&[Some(weights)], cohorts), close);
             }

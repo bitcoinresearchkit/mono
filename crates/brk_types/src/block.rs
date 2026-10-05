@@ -1,9 +1,8 @@
 use bitcoin::{
-    Block as BitcoinBlock, BlockHash as BitcoinBlockHash, Txid, VarInt,
-    block::Header,
-    hashes::{Hash, HashEngine},
+    Block as BitcoinBlock, BlockHash as BitcoinBlockHash, Txid, VarInt, block::Header, hashes::Hash,
 };
 use derive_more::Deref;
+use sha2::{Digest, Sha256};
 
 use super::{BlockHash, CoinbaseTag, Height};
 
@@ -96,17 +95,19 @@ impl Block {
     /// For segwit (`raw[4] == 0x00`): hashes version + inputs/outputs + locktime,
     /// skipping marker, flag, and witness data.
     /// For legacy: hashes entire raw bytes.
+    /// Double SHA-256 through `sha2`, which uses the CPU's SHA instructions when present (about
+    /// 6x `bitcoin_hashes` on Apple silicon, where the latter has no hardware path).
     fn hash_raw_tx(raw: &[u8], base_size: u32) -> Txid {
-        let mut engine = Txid::engine();
+        let mut engine = Sha256::new();
         if raw[4] == 0x00 {
             let io_len = base_size as usize - 8;
-            engine.input(&raw[..4]);
-            engine.input(&raw[6..6 + io_len]);
-            engine.input(&raw[raw.len() - 4..]);
+            engine.update(&raw[..4]);
+            engine.update(&raw[6..6 + io_len]);
+            engine.update(&raw[raw.len() - 4..]);
         } else {
-            engine.input(raw);
+            engine.update(raw);
         }
-        Txid::from_engine(engine)
+        Txid::from_byte_array(Sha256::digest(engine.finalize()).into())
     }
 
     pub fn coinbase_tag(&self) -> CoinbaseTag {

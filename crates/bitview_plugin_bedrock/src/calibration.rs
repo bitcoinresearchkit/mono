@@ -1,4 +1,4 @@
-use super::{ModeId, Modes, Percentiles, Thresholds, WeightedModes};
+use super::{ModeId, Modes, Percentiles, Thresholds, WeightedModeId};
 use bitview_compute::ExactOrderStats;
 use brk_types::{Height, Version};
 use vecdb::{ReadableVec, VecValue};
@@ -15,7 +15,8 @@ pub struct Calibration {
 impl Calibration {
     pub fn from_sources<T, U>(
         raw: &impl ReadableVec<Height, T>,
-        weighted: &WeightedModes<&dyn ReadableVec<Height, U>>,
+        cointime: &impl ReadableVec<Height, U>,
+        coinflow: &impl ReadableVec<Height, U>,
         end: usize,
         version: Version,
     ) -> Self
@@ -29,23 +30,24 @@ impl Calibration {
             version,
             histories: Modes::from_fn(|mode| match mode.weighted() {
                 None => Self::history(raw, end),
-                Some(id) => Self::history(*weighted.select(id), end),
+                Some(WeightedModeId::Cointime) => Self::history(cointime, end),
+                Some(WeightedModeId::Coinflow) => Self::history(coinflow, end),
             }),
         }
     }
-    pub fn loss_shares<T, U>(
-        raw: &impl ReadableVec<Height, T>,
-        weighted: &WeightedModes<&dyn ReadableVec<Height, U>>,
-        height: Height,
-    ) -> Modes<Option<f64>>
-    where
-        T: VecValue,
-        U: VecValue,
-        f64: From<T> + From<U>,
-    {
-        Modes::from_fn(|mode| match mode.weighted() {
-            None => Self::loss_share(raw, height),
-            Some(id) => Self::loss_share(*weighted.select(id), height),
+    /// One block's loss shares by mode; non-finite shares are missing.
+    pub fn loss_shares(
+        raw: Option<f64>,
+        cointime: Option<f64>,
+        coinflow: Option<f64>,
+    ) -> Modes<Option<f64>> {
+        Modes::from_fn(|mode| {
+            match mode.weighted() {
+                None => raw,
+                Some(WeightedModeId::Cointime) => cointime,
+                Some(WeightedModeId::Coinflow) => coinflow,
+            }
+            .filter(|v| v.is_finite())
         })
     }
     pub fn thresholds(&self, current: &Modes<Option<f64>>) -> Thresholds {
@@ -73,28 +75,18 @@ impl Calibration {
         }
         self.end += 1;
     }
-    fn history<T>(source: &(impl ReadableVec<Height, T> + ?Sized), end: usize) -> ExactOrderStats
+    fn history<T>(source: &impl ReadableVec<Height, T>, end: usize) -> ExactOrderStats
     where
         T: VecValue,
         f64: From<T>,
     {
         let mut values = Vec::with_capacity(end);
-        source.for_each_range_dyn_at(0, end, &mut |value| {
+        source.for_each_range_at(0, end, |value| {
             let value = f64::from(value);
             if value.is_finite() {
                 values.push(value.clamp(0.0, 1.0));
             }
         });
         ExactOrderStats::from_unsorted(values)
-    }
-    fn loss_share<T>(source: &(impl ReadableVec<Height, T> + ?Sized), height: Height) -> Option<f64>
-    where
-        T: VecValue,
-        f64: From<T>,
-    {
-        source
-            .collect_one(height)
-            .map(f64::from)
-            .filter(|v| v.is_finite())
     }
 }

@@ -9,8 +9,6 @@ use bitview_urpd::ReplayInputs;
 use brk_types::Height;
 use vecdb::ReadableVec;
 
-use crate::{WeightedModeId, WeightedModes};
-
 #[derive(Clone, Copy)]
 pub struct Dependencies<'a> {
     pub urpd: ReplayInputs<'a>,
@@ -33,19 +31,15 @@ impl Dependencies<'_> {
             .ppm
             .height
     }
-    pub(crate) fn weighted_loss_shares(&self) -> WeightedModes<&dyn ReadableVec<Height, Ratio64>> {
-        WeightedModes::from_fn(|mode| -> &dyn ReadableVec<Height, Ratio64> {
-            match mode {
-                WeightedModeId::Cointime => {
-                    &self
-                        .cointime
-                        .supply
-                        .active_supply_in_loss_share
-                        .ratio
-                        .height
-                }
-                WeightedModeId::Coinflow => &self.coinflow.all.supply_in_loss_share.height,
-            }
-        })
+    pub(crate) fn cointime_loss_share(&self) -> &impl ReadableVec<Height, Ratio64> {
+        &self
+            .cointime
+            .supply
+            .active_supply_in_loss_share
+            .ratio
+            .height
+    }
+    pub(crate) fn coinflow_loss_share(&self) -> &impl ReadableVec<Height, Ratio64> {
+        &self.coinflow.all.supply_in_loss_share.height
     }
 }

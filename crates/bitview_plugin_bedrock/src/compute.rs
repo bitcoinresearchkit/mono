@@ -43,20 +43,23 @@ impl ComputePlugin for Vecs {
         let age_supplies = distribution_age.cohorts.supply.total.age_supplies();
         let coinflow_mobility = coinflow.age_range.urpd_weight_sources();
         let raw_loss_share = dependencies.raw_loss_share();
-        let weighted_loss_shares = dependencies.weighted_loss_shares();
+        let cointime_loss_share = dependencies.cointime_loss_share();
+        let coinflow_loss_share = dependencies.coinflow_loss_share();
         let source_version = Version::combine_all(
             iter::once(mappings.timestamp.monotonic.version() + URPD_COMPUTE_VERSION)
                 .chain(iter::once(urpd.prices.version()))
                 .chain(iter::once(distribution_age.cohorts.all_supply().version()))
                 .chain(iter::once(raw_loss_share.version()))
-                .chain(weighted_loss_shares.iter().map(|vec| vec.version()))
+                .chain(iter::once(cointime_loss_share.version()))
+                .chain(iter::once(coinflow_loss_share.version()))
                 .chain(age_supplies.iter().map(|vec| vec.version()))
                 .chain(cointime_wakefulness.iter().map(|vec| vec.version()))
                 .chain(coinflow_mobility.iter().map(|vec| vec.version())),
         );
         let end = iter::once(mappings.timestamp.monotonic.len())
             .chain(iter::once(raw_loss_share.len()))
-            .chain(weighted_loss_shares.iter().map(|vec| vec.len()))
+            .chain(iter::once(cointime_loss_share.len()))
+            .chain(iter::once(coinflow_loss_share.len()))
             .chain(age_supplies.iter().map(|vec| vec.len()))
             .chain(cointime_wakefulness.iter().map(|vec| vec.len()))
             .chain(coinflow_mobility.iter().map(|vec| vec.len()))
@@ -86,26 +89,40 @@ impl ComputePlugin for Vecs {
             .unwrap_or_else(|| {
                 Calibration::from_sources(
                     raw_loss_share,
-                    &weighted_loss_shares,
+                    cointime_loss_share,
+                    coinflow_loss_share,
                     start,
                     source_version,
                 )
             });
+        // Cursors: a per-block point read would decode a whole page every block.
+        let mut raw_loss_cursor = raw_loss_share.cursor();
+        let mut cointime_loss_cursor = cointime_loss_share.cursor();
+        let mut coinflow_loss_cursor = coinflow_loss_share.cursor();
+        let mut supply_cursors = AgeRange::from_fn(|age| age.select(&age_supplies).cursor());
+        let mut cointime_cursors =
+            AgeRange::from_fn(|age| age.select(&cointime_wakefulness).cursor());
+        let mut coinflow_cursors = AgeRange::from_fn(|age| age.select(&coinflow_mobility).cursor());
         replay.for_each(start..end, urpd, |height, _, source| {
-            let shares = Calibration::loss_shares(raw_loss_share, &weighted_loss_shares, height);
+            let index = usize::from(height);
+            let shares = Calibration::loss_shares(
+                raw_loss_cursor.get(index).map(f64::from),
+                cointime_loss_cursor.get(index).map(f64::from),
+                coinflow_loss_cursor.get(index).map(f64::from),
+            );
             let thresholds = calibration.thresholds(&shares);
             let mut result = BlockResult::from_thresholds(&thresholds);
             if thresholds.iter().any(Option::is_some) {
                 let supplies = AgeRange::try_from_fn(|age| {
-                    age.select(&age_supplies).collect_one(height).ok_or(())
+                    age.select_mut(&mut supply_cursors).get(index).ok_or(())
                 })
                 .ok();
                 let ct_weights = supplies
                     .as_ref()
-                    .and_then(|s| collect_cohort_weights(height, &cointime_wakefulness, s));
+                    .and_then(|s| collect_cohort_weights(height, &mut cointime_cursors, s));
                 let cf_weights = supplies
                     .as_ref()
-                    .and_then(|s| collect_cohort_weights(height, &coinflow_mobility, s));
+                    .and_then(|s| collect_cohort_weights(height, &mut coinflow_cursors, s));
                 let weights = WeightedModes::from_fn(|mode| match mode {
                     WeightedModeId::Cointime => ct_weights.as_ref(),
                     WeightedModeId::Coinflow => cf_weights.as_ref(),
@@ -118,7 +135,7 @@ impl ComputePlugin for Vecs {
                     .select_mut(mode)
                     .push(result.by_mode.select(mode));
             }
-            let end_block = usize::from(height) + 1;
+            let end_block = index + 1;
             if end_block.is_multiple_of(1_000) && last_progress.elapsed() >= Duration::from_secs(10)
             {
                 info!(

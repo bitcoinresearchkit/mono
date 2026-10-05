@@ -126,6 +126,7 @@ ryu = "1.0.23"
 schemars = { version = "1.2.2", features = ["indexmap2"] }
 serde = "1.0.229"
 serde_json = { version = "1.0.151", features = ["float_roundtrip", "preserve_order"] }
+sha2 = "0.11"
 smallvec = "1.16.1"
 statedb = { path = "crates/statedb", version = "0.12.2" }
 strum = { version = "0.28", features = ["derive"] }

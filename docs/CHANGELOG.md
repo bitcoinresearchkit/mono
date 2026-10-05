@@ -235,6 +235,15 @@ has to be deleted by hand.
 
 ### Performance Improvements
 
+#### Compute and indexing
+
+- Per-block loops read their per-height inputs through cursors instead of point reads, each of which decoded a whole
+  compressed page: the URPD metrics behind coinflow and cointime (supplies and weights per age range), bedrock
+  (supplies, weights and loss shares) and inscription fees. At 300,000 blocks coinflow takes 4.4 s instead of 33 s
+  and bedrock 1.2 s instead of 5 s
+- Txids hash with `sha2`, which uses the CPU's SHA instructions (about 6x `bitcoin_hashes` on Apple silicon, where it
+  has no hardware path): the indexer is about 6% faster at 300,000 blocks
+
 #### `brk_reader`
 
 - The forward pipeline parses with a third of the cores (1 to 4 threads, was always 1). On 12 cores over 5,000 recent
