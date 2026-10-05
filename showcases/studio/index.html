@@ -4915,6 +4915,27 @@
       /** A fine interval's step, in seconds; their indexes count steps from 2009-01-01, as the server's do. */
       const FINE_STEP = { minute10: 600, minute30: 1800, hour1: 3600, hour4: 14400, hour12: 43200 };
       const INDEX_EPOCH = 1230768000;
+      /**
+       * An index's time (unix seconds), and the index a time falls in, by the server's rules: steps from 2009-01-01 UTC,
+       * calendar months and years. Studio's own, not the client's: the client bitview.space serves now counts days from
+       * the genesis block, in local time, a week off the server's.
+       */
+      const MONTH_SPANS = { month1: 1, month3: 3, month6: 6 }, INDEX_STEPS = { ...FINE_STEP, day1: 86400, week1: 604800 };
+      function timeAt(/** @type {string} */ index, /** @type {number} */ i) {
+        if (index in INDEX_STEPS) return INDEX_EPOCH + i * INDEX_STEPS[index];
+        if (index === "day3") return INDEX_EPOCH - 86400 + i * 259200;
+        if (index in MONTH_SPANS) return Date.UTC(2009, i * MONTH_SPANS[index], 1) / 1000;
+        return Date.UTC(index === "year10" ? (i === 0 ? 2009 : 2000 + i * 10) : 2009 + i, 0, 1) / 1000;
+      }
+      function indexAt(/** @type {string} */ index, /** @type {number} */ time) {
+        // (A week runs Monday to Sunday: 2009-01-01 was a Thursday.)
+        if (index === "week1") return Math.floor((time - INDEX_EPOCH + 3 * 86400) / 604800);
+        if (index in INDEX_STEPS) return Math.floor((time - INDEX_EPOCH) / INDEX_STEPS[index]);
+        if (index === "day3") return Math.floor((time - INDEX_EPOCH + 86400) / 259200);
+        const date = new Date(time * 1000), months = (date.getUTCFullYear() - 2009) * 12 + date.getUTCMonth();
+        if (index in MONTH_SPANS) return Math.floor(months / MONTH_SPANS[index]);
+        return index === "year10" ? Math.floor((date.getUTCFullYear() - 2000) / 10) : date.getUTCFullYear() - 2009;
+      }
       /** A chunk's points, aligned on the indexes: the latest two load at first, then each the view reaches. */
       const CHUNK = 8000;
       /**
@@ -6155,14 +6176,14 @@
         const key = `${name}@${index}`;
         if (loads.has(key) && !fresh) return loads.get(key);
         const cached = loads.get(key);
-        const seconds = (/** @type {Date[]} */ dates) => dates.map((date) => Math.floor(date.getTime() / 1000));
+        const times = (/** @type {number} */ start, /** @type {number} */ count) => Array.from({ length: count }, (_, k) => timeAt(index, start + k));
         const request = (async () => {
           const endpoint = client.seriesEndpoint(name, /** @type {"day1"} */ (index));
           const held = fresh && cached ? await cached.catch(() => null) : null;
           const joined = await refetchTail(endpoint, index, held);
-          if (joined && held) return { start: joined.start, data: joined.data, times: [...held.times.slice(0, joined.keep), ...seconds(joined.tail.dates())], stamp: joined.stamp, version: joined.version };
+          if (joined && held) return { start: joined.start, data: joined.data, times: [...held.times.slice(0, joined.keep), ...times(joined.tail.start, joined.tail.data.length)], stamp: joined.stamp, version: joined.version };
           const response = await endpoint.fetch();
-          return { start: response.start, data: response.data, times: seconds(response.dates()), stamp: response.stamp, version: response.version };
+          return { start: response.start, data: response.data, times: times(response.start, response.data.length), stamp: response.stamp, version: response.version };
         })();
         if (cached) return request.then((data) => (loads.set(key, Promise.resolve(data)), data), () => cached);
         // A failure stays cached (Retry and the live refresh fetch again), so each edit doesn't refetch it.
@@ -6260,7 +6281,7 @@
           }
           const start = loaded[0]?.start ?? (from + first) * CHUNK, step = FINE_STEP[index];
           const data = loaded.flatMap((part) => part.data);
-          return { start, data, times: data.map((_, i) => INDEX_EPOCH + (start + i) * step), stamp: loaded.at(-1)?.stamp ?? "" };
+          return { start, data, times: data.map((_, i) => timeAt(index, start + i)), stamp: loaded.at(-1)?.stamp ?? "" };
         });
         spanned.set(key, { parts, value });
         return value;
@@ -6576,6 +6597,8 @@
       /** @type {[number, number] | null} first and last time of the last build */
       let drawnSpan = null;
       let drawnPoints = 0;
+      /** @type {number[]} the last build's times, for where new data sits against them */
+      let drawnTimes = [];
       let drawnPanes = "";
       /** The range tabs light the chart's preset only while the view still shows it. */
       let presetShown = true;
@@ -6800,15 +6823,55 @@
         else if (sameTimeline && (glidingTo ?? logical)) view.timeScale().setVisibleLogicalRange(within(/** @type {{ from: number, to: number }} */ (glidingTo ?? logical)));
         else if (showedAll) applyRange({ ...doc, range: "max" }, data);
         else view.timeScale().setVisibleRange(visible);
+        // Grown or shrunk at an end (a chunk reached for, a block, the oldest let go): the overview moves there from where
+        // the data was, and the chart shows what came from the join out, at the same pace. Any other change lands both.
+        if (!sameView) {
+          morphFrom = null;
+          endReveal();
+        }
+        if (sameView && !sameTimeline && drawnTimes.length > 1 && data.times.length > 1 && !reduced.matches) {
+          // Where the old first point sits in the new data (before its start, negative: the oldest let go).
+          const offset = data.times[0] > drawnTimes[0] ? -lowerBound(drawnTimes, data.times[0]) : lowerBound(data.times, drawnTimes[0]);
+          morphFrom = { from: offset, to: offset + drawnPoints - 1, ...overviewScale, at: performance.now() };
+          if (offset > 0) reveal(offset - 0.5, -1);
+          else if (offset + drawnPoints < data.times.length) reveal(offset + drawnPoints - 0.5, 1);
+        }
         drawnIndex = doc.index;
         drawnRange = doc.range;
         drawnSpan = data.times.length ? [data.times[0], data.times.at(-1)] : null;
         drawnPoints = data.times.length;
+        drawnTimes = data.times;
         requestAnimationFrame(() => {
           placeLegends();
           updateChanges();
         });
         relayout();
+      }
+
+      /**
+       * What came at an end, shown from the join out (`outward`: -1 older, to the left; 1 newer, to the right) over the
+       * overview's move, the rest of the chart (its axes too) as it was. Nothing to show when the join is out of view.
+       * Measured on the chart's next frame, once it has moved the view onto the new points.
+       */
+      let revealing = 0;
+      /** The panes' drawings (their canvases: the legends and the axes beside them stay as they are), masked or not. */
+      const maskPlots = (/** @type {string} */ mask) => view.panes().forEach((pane) => pane.getHTMLElement()?.children[1]?.firstElementChild?.querySelectorAll("canvas").forEach((canvas) => (canvas.style.maskImage = canvas.style.webkitMaskImage = mask)));
+      const endReveal = () => (revealing++, maskPlots(""));
+      function reveal(/** @type {number} */ join, /** @type {-1 | 1} */ outward) {
+        const started = performance.now(), id = ++revealing;
+        const step = () => {
+          if (id !== revealing) return;
+          // Placed by the view's own window (the chart's coordinates lag a frame behind a new one).
+          const range = view.timeScale().getVisibleLogicalRange(), plot = view.timeScale().width();
+          const at = range ? ((join - range.from) / (range.to - range.from)) * plot : NaN;
+          const t = Math.min(1, (performance.now() - started) / MOTION.page);
+          if (!(at > 0 && at < plot) || t >= 1) return endReveal();
+          // Still hidden: from the join's front, moving out, to the plot's edge on that side.
+          const front = at + ((outward < 0 ? 0 : plot) - at) * eased(t), soft = 18;
+          maskPlots(outward < 0 ? `linear-gradient(to right, transparent ${front - soft}px, #000 ${front}px)` : `linear-gradient(to right, #000 ${front}px, transparent ${front + soft}px)`);
+          requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
       }
 
       const defaultSize = (i) => (i === 0 ? 3 : 1.4);
@@ -7204,6 +7267,22 @@
         const layer = chart.layers.find((item) => item.pane === first?.id && !item.hidden && resolved.results.get(item.id)?.shown) ?? chart.layers.find((item) => resolved.results.get(item.id)?.shown);
         return layer ? { layer, values: resolved.results.get(layer.id).shown, log: modeOf(chart, layer) === 1 } : null;
       }
+      /**
+       * Where the overview was, just after the data grew or shrank at an end (a chunk reached for, a block, the oldest let
+       * go): its span of points (in the new data's own) and its scale, which it moves from over the page's step, the brush
+       * with it; the chart shows what came at the same pace (`reveal`). Null when it shows all the data as it is.
+       */
+      let morphFrom = /** @type {{ from: number, to: number, lo: number, hi: number, at: number } | null} */ (null);
+      /** The overview's scale as last drawn, for a move to start from. */
+      let overviewScale = { lo: NaN, hi: NaN };
+      const eased = (/** @type {number} */ t) => 1 - (1 - t) ** 3;
+      /** The overview's span of points now: all of them, or on its way there. */
+      function overviewSpan(/** @type {number} */ n) {
+        const t = morphFrom ? Math.min(1, (performance.now() - morphFrom.at) / MOTION.page) : 1;
+        if (!morphFrom || t >= 1) return { from: 0, to: n - 1, t: 1 };
+        const e = eased(t);
+        return { from: morphFrom.from * (1 - e), to: morphFrom.to + (n - 1 - morphFrom.to) * e, t: e };
+      }
       function drawOverview() {
         const canvas = $("overview");
         const rect = canvas.getBoundingClientRect();
@@ -7221,8 +7300,11 @@
             hi = Math.max(hi, value);
           }
           if (Number.isFinite(lo)) {
-            const w = canvas.width, h = canvas.height, pad = 5 * ratio;
-            const x = (i) => (i / (scaled.length - 1)) * w;
+            const span = overviewSpan(scaled.length), w = canvas.width, h = canvas.height, pad = 5 * ratio;
+            overviewScale = { lo, hi };
+            // On its way: from the old scale too.
+            if (morphFrom && span.t < 1 && Number.isFinite(morphFrom.lo)) (lo = morphFrom.lo + (lo - morphFrom.lo) * span.t), (hi = morphFrom.hi + (hi - morphFrom.hi) * span.t);
+            const x = (i) => ((i - span.from) / Math.max(1, span.to - span.from)) * w;
             const y = (value) => h - pad - ((value - lo) / (hi - lo || 1)) * (h - pad * 2);
             const color = ink(source.layer.color);
             // (At most two points a pixel's column.)
@@ -7241,6 +7323,8 @@
             fade.addColorStop(1, alpha(color, 0));
             context.fillStyle = fade;
             context.fill();
+            if (span.t < 1) relayout();
+            else morphFrom = null;
           }
         }
         placeBrush();
@@ -7254,8 +7338,9 @@
           return;
         }
         brush.hidden = false;
-        // In shares of the navigator's width: placed on each move without reading the layout.
-        const left = clamp(range.from / (n - 1), 0, 1), right = clamp(range.to / (n - 1), 0, 1);
+        // In shares of the navigator's width (placed on each move without reading the layout), on the overview's span.
+        const span = overviewSpan(n), share = (/** @type {number} */ at) => clamp((at - span.from) / Math.max(1, span.to - span.from), 0, 1);
+        const left = share(range.from), right = share(range.to);
         brush.style.left = `${left * 100}%`;
         brush.style.width = `${(right - left) * 100}%`;
       }
@@ -7355,20 +7440,24 @@
         if (n < 2 || !range) return;
         const rect = $("navigator").getBoundingClientRect();
         const x = event.clientX - rect.left;
-        const perPixel = (n - 1) / rect.width;
-        const left = clamp(range.from / perPixel, 0, rect.width), right = clamp(range.to / perPixel, 0, rect.width);
+        // Hit-tested on the overview as it's painted (mid-move, too), which then lands where it was going.
+        const span = overviewSpan(n), perPixel = (span.to - span.from) / rect.width, at = (/** @type {number} */ px) => span.from + px * perPixel;
+        morphFrom = null;
+        const left = clamp((range.from - span.from) / perPixel, 0, rect.width), right = clamp((range.to - span.from) / perPixel, 0, rect.width);
         // Hit-test what's painted: the brush is never narrower than 10 px.
         const painted = Math.max(right, Math.min(rect.width, left + 10));
         const grip = Math.min(8, (painted - left) / 4);
         let mode = "pan";
         if (Math.abs(x - left) <= grip) mode = "left";
         else if (Math.abs(x - painted) <= grip) mode = "right";
-        else if (x < left || x > painted) {
-          // Jump: center the same window where the person clicked.
+        let start = range;
+        if (mode === "pan" && (x < left || x > painted)) {
+          // Jump: center the same window where the person clicked (and drag on from there).
           const half = (range.to - range.from) / 2;
-          view.timeScale().setVisibleLogicalRange(within({ from: x * perPixel - half, to: x * perPixel + half }));
+          start = within({ from: at(x) - half, to: at(x) + half });
+          view.timeScale().setVisibleLogicalRange(start);
         }
-        brushDrag = { mode, x, perPixel, range: view.timeScale().getVisibleLogicalRange() };
+        brushDrag = { mode, x, perPixel: (n - 1) / rect.width, range: start };
         $("navigator").setPointerCapture(event.pointerId);
         $("brush").classList.add("dragging");
       });
@@ -11968,23 +12057,19 @@
         $("shortcuts").focus();
       }
 
-      /** The block the server's series are computed up to, and when it was indexed (unix seconds), as last seen. */
-      let liveHeight = 0, liveAt = 0;
+      /** The block the server's series are computed up to, when it was indexed (unix seconds), and the live price, as last seen. */
+      let liveHeight = 0, liveAt = 0, livePrice = 0;
       /** Live, with the last block the server's series include and when it came. */
       function updateStatus() {
         const points = resolved?.times.length ?? 0;
         const at = liveAt ? new Date(liveAt * 1000) : null;
-        $("stamp").textContent = ["Live", liveHeight ? `#${grouped.format(liveHeight)}` : "", at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
-        $("live").dataset.tip = ["bitview.space", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${at.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}` : "", "new blocks show within seconds"].filter(Boolean).join(" · ");
+        // The price once it's known, the block; the block's time (no room for it beside a price) in the tip.
+        $("stamp").textContent = ["Live", livePrice ? format(livePrice, "usd") : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
+        $("live").dataset.tip = ["bitview.space", livePrice ? `live price ${format(livePrice, "usd")}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${at.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}` : "", "new blocks show within seconds"].filter(Boolean).join(" · ");
       }
 
       // ── Rendering the page ────────────────────────────────────────────────────
 
-      /**
-       * Repaints the page from `chart`. `redraw`: true fetches what's missing and rebuilds; false rebuilds from the data
-       * at hand (visibility, scales, ranges); "none" leaves the chart as it is (names, title, selection).
-       */
-      /** @param {Redraw} [redraw] */
       /**
        * Shows the open chart as it is now. Its chart is redrawn, from the data at hand while that's still what the chart
        * reads (a new look, a layer moved, a pane's scale; a draw of the same data on its way, a block's or a chunk's, is
@@ -12294,9 +12379,11 @@
 
       // ── Live price: between blocks, the price's own layers follow it ──────────
       // bitview.space's live price (round-dollar outputs of the last blocks and the mempool), read each second while the
-      // page is seen, as its own chart does: each layer drawing the price itself (its candles, its close or its spot, in
-      // dollars, cents or sats; no transform, no stack) has its latest point moved there, a candle's high or low pushed
-      // out. A transform or a formula of it waits for the next block, whose data takes over.
+      // page is seen, as its own chart does: the live element says it, and each layer drawing the price itself (its candles, its close or its spot, in
+      // dollars, cents or sats; no transform, no stack) has its point for the interval the clock is in moved there, a
+      // candle's high or low pushed out. Between blocks, the server's latest interval (its latest block's) can be over:
+      // a live bar then opens for the current one, from the last close. A transform or a formula of the price waits for
+      // the next block, whose data takes over.
 
       /** The price's series, each with what the live price (in dollars) is in its unit. */
       const usd = (/** @type {number} */ price) => price, cents = (/** @type {number} */ price) => price * 100, sats = (/** @type {number} */ price) => 1e8 / price;
@@ -12305,38 +12392,69 @@
         [tree.price.split.close.usd.name, usd], [tree.price.split.close.cents.name, cents], [tree.price.split.close.sats.name, sats],
         [tree.price.spot.usd.name, usd], [tree.price.spot.cents.name, cents], [tree.price.spot.sats.name, sats],
       ]);
-      /**
-       * The open chart's layers the live price moves: none on the grid, mid-draw, with history alone loaded, or once the
-       * latest point's interval is over (the server's last is the latest block's: the next one opens with the next block).
-       */
+      /** The open chart's layers the live price moves: none on the grid, mid-draw, or with history alone loaded. */
       function liveLayers() {
         if (home || !settled() || (FINE.has(chart.index) && !spans.get(`${chart.id}@${chart.index}`)?.live)) return [];
-        const times = /** @type {Resolved} */ (resolved).times, at = times.length - 1;
-        if (at < 1 || Date.now() / 1000 >= times[at] + (times[at] - times[at - 1])) return [];
-        return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.transform && layer.type !== "histogram" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack);
+        return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && !layer.transform && layer.type !== "histogram" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack);
+      }
+      /** Data with intervals added at its end, empty for now: every layer's, as copies (the data drawn stays as it was). */
+      function widened(/** @type {Resolved} */ data, /** @type {number[]} */ added) {
+        const grown = (/** @type {any} */ values) => {
+          if (!values) return values;
+          const out = new Float64Array(values.length + added.length).fill(NaN);
+          out.set(values);
+          return out;
+        };
+        const results = new Map([...data.results].map(([id, result]) => {
+          const values = grown(result.values);
+          return [id, { ...result, values, shown: result.shown === result.values ? values : grown(result.shown), ohlc: result.ohlc && [...result.ohlc, ...added.map(() => null)] }];
+        }));
+        return { ...data, times: [...data.times, ...added], results };
       }
       /**
-       * The live price onto those layers' latest points: on the chart, and in the legends and changes reading them. Into
-       * copies (a formula naming the layer reads the same values, and waits for the next block).
+       * The live price onto those layers' point for the interval the clock is in, laid on the timeline if the server
+       * hasn't it yet (the intervals between left as gaps; far behind, more than a hundred, it waits for the server): on
+       * the chart, and in the legends and changes reading it. Into copies (a formula naming the layer reads the same
+       * values, and waits for the next block).
        */
       function movePrice(price) {
-        if (!Number.isFinite(price) || price <= 0 || !resolved) return;
-        const at = resolved.times.length - 1, time = resolved.times[at];
+        const layers = liveLayers();
+        if (!Number.isFinite(price) || price <= 0 || !resolved?.times.length || !layers.length) return;
+        const index = chart.index, latest = indexAt(index, /** @type {number} */ (resolved.times.at(-1))), current = indexAt(index, Date.now() / 1000);
+        if (current - latest > 100) return;
+        /** @type {number[]} */
+        const added = [];
+        for (let i = latest + 1; i <= current; i++) added.push(timeAt(index, i));
+        if (added.length) {
+          resolved = widened(resolved, added);
+          // What's drawn now (a build from it is the same timeline, not one that grew).
+          drawnSpan = [resolved.times[0], /** @type {number} */ (resolved.times.at(-1))];
+          drawnPoints = resolved.times.length;
+          drawnTimes = resolved.times;
+        }
+        const data = /** @type {Resolved} */ (resolved), at = data.times.length - 1, time = data.times[at];
         let moved = false;
-        for (const layer of liveLayers()) {
-          const result = resolved.results.get(layer.id), value = /** @type {(price: number) => number} */ (LIVE.get(layer.series ?? ""))(price);
-          if (!result?.values || !Number.isFinite(result.values[at])) continue;
-          const values = result.values.slice(), bar = result.ohlc?.[at], close = closes.get(layer.id);
+        for (const layer of layers) {
+          const result = data.results.get(layer.id), value = /** @type {(price: number) => number} */ (LIVE.get(layer.series ?? ""))(price);
+          if (!result?.values) continue;
+          // A live bar opens at the last close; a point the server has (or one opened before) moves.
+          let last = at;
+          if (added.length) while (last > 0 && !Number.isFinite(result.values[last])) last--;
+          else if (!Number.isFinite(result.values[at])) continue;
+          const values = result.values.slice(), bar = result.ohlc?.[last], close = closes.get(layer.id), series = close?.series ?? drawn.get(layer.id);
           values[at] = value;
           // Its candles move too, drawn as candles or not (a switch to candles shows them as they are).
           const ohlc = bar ? result.ohlc.slice() : result.ohlc;
           if (bar) {
-            const [open, high, low] = bar.map(Number);
-            ohlc[at] = [open, Math.max(high, value), Math.min(low, value), value];
-            close?.candles.update({ time, open, high: Math.max(high, value), low: Math.min(low, value), close: value });
+            const [open, high, low, before] = bar.map(Number), from = added.length ? before : open;
+            const candle = added.length ? [from, Math.max(from, value), Math.min(from, value), value] : [open, Math.max(high, value), Math.min(low, value), value];
+            ohlc[at] = candle;
+            for (const gap of added.slice(0, -1)) close?.candles.update({ time: gap });
+            close?.candles.update({ time, open: candle[0], high: candle[1], low: candle[2], close: value });
           }
-          resolved.results.set(layer.id, { ...result, values, shown: values, ohlc });
-          (close?.series ?? drawn.get(layer.id))?.update({ time, value });
+          for (const gap of added.slice(0, -1)) series?.update({ time: gap });
+          data.results.set(layer.id, { ...result, values, shown: values, ohlc });
+          series?.update({ time, value });
           moved = true;
         }
         if (!moved) return;
@@ -12350,10 +12468,14 @@
         clearTimeout(priceTimer);
         pricePending = true;
         try {
-          // An answer that comes after a draw (another chart, interval or block) is let go: the next one is for it.
-          const version = drawVersion;
-          if (liveLayers().length) {
-            const price = await client.getLivePrice();
+          // On a phone the live element isn't shown: only a chart drawing the price asks. An answer that comes after a
+          // draw (another chart, interval or block) moves no point: the next one is for it.
+          if (!phone.matches || liveLayers().length) {
+            const version = drawVersion, price = await client.getLivePrice();
+            if (Number.isFinite(price) && price !== livePrice) {
+              livePrice = price;
+              updateStatus();
+            }
             if (version === drawVersion) movePrice(price);
           }
           priceDelay = 1000;
