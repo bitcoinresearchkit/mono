@@ -4918,12 +4918,13 @@
       /** A chunk's points, aligned on the indexes: the latest two load at first, then each the view reaches. */
       const CHUNK = 8000;
       /**
-       * At most this many at once (a year and a quarter at 10 minutes, seven years hourly): going further drops the far
-       * end, which loads again if the view comes back. More would be more than a screen can show, at a phone's memory.
+       * At most this many chunks at once: the widest view (the chart shows two points a pixel at most, a few thousand)
+       * and room beyond each side to reach out from. Going further drops the far end, which loads again if the view comes
+       * back. (All of history at once is a coarser interval's.)
        */
-      const MAX_CHUNKS = 8;
+      const MAX_CHUNKS = 3;
       /** Chunks kept in memory, every series' and interval's together. */
-      const KEPT_CHUNKS = 100;
+      const KEPT_CHUNKS = 40;
       /** @type {[string, string, number][]} */
       const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["all", "All", 0]];
       /**
@@ -5967,6 +5968,18 @@
         const i = clamp(Math.round(logical), 0, times.length - 1);
         return [times[i], logical - i];
       }
+      /** The most bars the chart shows at once: two a pixel (its least bar spacing), however many there are. */
+      const mostBars = () => (view.timeScale().width() ? view.timeScale().width() / view.timeScale().options().minBarSpacing : Infinity);
+      /**
+       * A window of the view, no wider than the chart shows (wider, it would fold the view to a sliver): a wider one keeps
+       * its middle, or the end `keep` names ("to", its latest; "from").
+       * @param {{ from: number, to: number }} range @param {"middle" | "from" | "to"} [keep]
+       */
+      function within({ from, to }, keep = "middle") {
+        const over = to - from - mostBars();
+        if (over <= 0) return { from, to };
+        return keep === "to" ? { from: from + over, to } : keep === "from" ? { from, to: to - over } : { from: from + over / 2, to: to - over / 2 };
+      }
       /** The first of sorted times at or after a time (their count, past the last). @param {number[]} times @param {number} time */
       function lowerBound(times, time) {
         let lo = 0, hi = times.length;
@@ -6469,7 +6482,7 @@
           crosshair: { mode: LC.CrosshairMode.Normal, vertLine: crosshair, horzLine: { ...crosshair, color: css("--crosshair-faint"), style: LC.LineStyle.LargeDashed } },
           rightPriceScale: scale,
           leftPriceScale: { ...scale },
-          timeScale: { borderVisible: false, rightOffset: RIGHT_OFFSET, minBarSpacing: 0.01, timeVisible: false, lockVisibleTimeRangeOnResize: true },
+          timeScale: { borderVisible: false, rightOffset: RIGHT_OFFSET, timeVisible: false, lockVisibleTimeRangeOnResize: true },
           localization: { locale: "en-US", timeFormatter: (time) => dateLabel(Number(time), FINE.has(chart.index)), percentageFormatter: (value) => axisLabel(value, "%") },
         };
       }
@@ -6778,13 +6791,13 @@
         // (Unless it has since fallen off the data: an old view of a fine interval, past its latest points.)
         const left = drawnChart !== doc.id ? leftView(doc.id) : null;
         const from = left ? logicalOf(left.from, data.times) : 0, to = left ? logicalOf(left.to, data.times) : 0;
-        if (left && left.index === doc.index && data.times.length > 1 && to - from >= 1) view.timeScale().setVisibleLogicalRange({ from, to });
+        if (left && left.index === doc.index && data.times.length > 1 && to - from >= 1) view.timeScale().setVisibleLogicalRange(within({ from, to }, "to"));
         else if (!visible || presetShown) applyRange(doc, data);
         else if (shift && (glidingTo ?? logical)) {
           const range = /** @type {{ from: number, to: number }} */ (glidingTo ?? logical);
-          view.timeScale().setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
+          view.timeScale().setVisibleLogicalRange(within({ from: range.from + shift, to: range.to + shift }));
         }
-        else if (sameTimeline && (glidingTo ?? logical)) view.timeScale().setVisibleLogicalRange(glidingTo ?? logical);
+        else if (sameTimeline && (glidingTo ?? logical)) view.timeScale().setVisibleLogicalRange(within(/** @type {{ from: number, to: number }} */ (glidingTo ?? logical)));
         else if (showedAll) applyRange({ ...doc, range: "all" }, data);
         else view.timeScale().setVisibleRange(visible);
         drawnIndex = doc.index;
@@ -6805,8 +6818,8 @@
         const to = n - 1 + RIGHT_OFFSET;
         const days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
         // "All" leaves room on the left for the first date's label.
-        if (!days) return { from: -(to * 30) / Math.max(1, view.timeScale().width() - 30), to };
-        return { from: lowerBound(data.times, data.times[n - 1] - days * 86400), to };
+        if (!days) return within({ from: -(to * 30) / Math.max(1, view.timeScale().width() - 30), to }, "to");
+        return within({ from: lowerBound(data.times, data.times[n - 1] - days * 86400), to }, "to");
       }
       function applyRange(doc, data, animate = false) {
         if (data.times.length < 2 || !view.timeScale().width()) return view.timeScale().fitContent();
@@ -6825,6 +6838,7 @@
       function glide(target, preset = null) {
         stopGlide();
         if (!(target.from < target.to)) return;
+        target = within(target);
         const from = view.timeScale().getVisibleLogicalRange();
         // Mid-rebuild (an interval swapping its data) the chart can report no window, or an inverted one: jump instead.
         if (!from || !(from.from < from.to) || reduced.matches) return view.timeScale().setVisibleLogicalRange(target);
@@ -6853,12 +6867,13 @@
         const target = presetWindow(chart, resolved), slack = (target.to - target.from) * 0.015 + 1;
         return Math.abs(range.from - target.from) <= slack && Math.abs(range.to - target.to) <= slack;
       }
+      /** Closer or wider around the view's middle; showing the latest, it stays at the right edge (as the chart's wheel does). */
       function zoom(factor) {
         const range = view.timeScale().getVisibleLogicalRange();
         if (!range) return;
-        const center = (range.from + range.to) / 2;
-        const half = Math.max(5, ((range.to - range.from) / 2) * factor);
-        glide({ from: center - half, to: center + half });
+        const width = Math.max(10, (range.to - range.from) * factor), center = (range.from + range.to) / 2;
+        const latest = range.to >= (resolved?.times.length ?? 0) - 1;
+        glide(within(latest ? { from: range.to - width, to: range.to } : { from: center - width / 2, to: center + width / 2 }, latest ? "to" : "middle"));
       }
       /** Every price scale back on auto, however it was dragged. */
       const autoScale = () => view.panes().forEach((_, i) => ["left", "right"].forEach((side) => view.priceScale(side, i).applyOptions({ autoScale: true })));
@@ -7102,15 +7117,21 @@
         const short = { x: box.clientWidth - table.offsetWidth, y: box.clientHeight - table.offsetHeight };
         Object.assign(corner.style, { width: `${right || left}px`, height: `${view.timeScale().height()}px`, bottom: `${8 + short.y}px`, right: right ? `${short.x}px` : "", left: right ? "" : "0px" });
       }
-      let layoutFrame = 0;
+      let layoutFrame = 0, laidWidth = 0;
       /**
-       * The overview and the ruler's corner, laid out again once a frame however many changes ask: the plot's size (the
-       * window, the panel, a price axis grown with its labels), the navigator's, a new build.
+       * The overview, the ruler's corner and a preset's window, laid out again once a frame however many changes ask: the
+       * plot's size (the window, the panel, a price axis grown with its labels), the navigator's, a new build.
        */
       function relayout() {
         if (layoutFrame) return;
         layoutFrame = requestAnimationFrame(() => {
           layoutFrame = 0;
+          // A preset showing shows as much of it as the new width fits.
+          const width = view.timeScale().width();
+          if (width !== laidWidth) {
+            laidWidth = width;
+            if (presetShown && !glideTarget && resolved && drawnChart === chart.id) applyRange(chart, resolved);
+          }
           drawOverview();
           placeCorner();
         });
@@ -7279,16 +7300,14 @@
         const span = FINE.has(chart.index) ? spans.get(`${chart.id}@${chart.index}`) : null, n = resolved?.times.length ?? 0;
         const range = view.timeScale().getVisibleLogicalRange();
         if (!span || reaching || pressing || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
-        // Holding the most at once, a chunk out means one dropped at the other end: only for points the view lacks, and
-        // only when the one dropped is a chunk out of view (else the two ends would take turns).
-        if (span.to - span.from + 1 >= MAX_CHUNKS) {
-          if (range.from < 0 && span.from > 0 && range.to < n - 1 - CHUNK) void grow(span, -1);
-          else if (range.to > n - 1 && !span.live && range.from > CHUNK) void grow(span, 1);
-          return;
-        }
-        const margin = Math.max(100, (range.to - range.from) / 2);
-        if (range.from < margin && span.from > 0) void grow(span, -1);
-        else if (range.to > n - 1 - margin && !span.live) void grow(span, 1);
+        // Holding the most at once, a chunk out means one dropped at the other end: only while that one, and the margin past
+        // it, are out of view (else the two ends would take turns); a view too wide for that reaches out only for points
+        // it lacks.
+        const margin = Math.max(100, (range.to - range.from) / 2), full = span.to - span.from + 1 >= MAX_CHUNKS, room = full ? CHUNK + margin : 0;
+        if (range.from < margin && span.from > 0 && (!full || range.to < n - 1 - room)) void grow(span, -1);
+        else if (range.to > n - 1 - margin && !span.live && (!full || range.from > room)) void grow(span, 1);
+        else if (full && range.from < 0 && span.from > 0 && range.to < n - 1 - CHUNK) void grow(span, -1);
+        else if (full && range.to > n - 1 && !span.live && range.from > CHUNK) void grow(span, 1);
       }
 
       /** @param {Span} span @param {number} by */
@@ -7322,7 +7341,9 @@
           Object.assign(span, was, { rest: Date.now() + 5000 });
           return;
         }
-        reachOut();
+        // Once the chart has moved the view onto its new points (on its next frame): judged before, the view it had would
+        // ask for the same chunk out again.
+        requestAnimationFrame(reachOut);
       }
 
       let brushDrag = null;
@@ -7345,7 +7366,7 @@
         else if (x < left || x > painted) {
           // Jump: center the same window where the person clicked.
           const half = (range.to - range.from) / 2;
-          view.timeScale().setVisibleLogicalRange({ from: x * perPixel - half, to: x * perPixel + half });
+          view.timeScale().setVisibleLogicalRange(within({ from: x * perPixel - half, to: x * perPixel + half }));
         }
         brushDrag = { mode, x, perPixel, range: view.timeScale().getVisibleLogicalRange() };
         $("navigator").setPointerCapture(event.pointerId);
@@ -7371,7 +7392,8 @@
           to += delta;
         } else if (brushDrag.mode === "left") from = Math.min(from + delta, to - 10);
         else to = Math.max(to + delta, from + 10);
-        view.timeScale().setVisibleLogicalRange({ from, to });
+        // An edge dragged out past the most the view shows: the other edge gives way.
+        view.timeScale().setVisibleLogicalRange(within({ from, to }, brushDrag.mode === "left" ? "to" : brushDrag.mode === "right" ? "from" : "middle"));
       });
       const endBrush = () => {
         brushDrag = null;
@@ -7743,8 +7765,8 @@
       /** @typedef {{ seps: number[], lines: [string, string, boolean][] }} Preview */
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
-      /** What a card depends on: what the chart's mark does, its range, its layers' types and the view it was left at. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => layer.type), doc.panes.map((pane) => pane.stack), leftView(doc.id)]);
+      /** What a card depends on: what the chart's mark does, its range, its layers' types, the view it was left at and how much the chart shows. @param {Chart} doc */
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => layer.type), doc.panes.map((pane) => pane.stack), leftView(doc.id), Math.round(mostBars() / 200)]);
       const savePreviews = () => storage.set(PREVIEWS, Object.fromEntries([...previews].filter(([id]) => chartById(id))));
       /** @param {Chart} doc @param {{ times: number[], results: Map<string, any> }} data @returns {Preview} */
       function previewOf(doc, data) {
@@ -7754,7 +7776,7 @@
         const drawn = { seps: [], lines: [] };
         if (n < 2) return drawn;
         const left = leftView(doc.id);
-        const shown = left && left.index === doc.index ? { from: logicalOf(left.from, times), to: logicalOf(left.to, times) } : presetWindow(doc, data);
+        const shown = left && left.index === doc.index ? within({ from: logicalOf(left.from, times), to: logicalOf(left.to, times) }, "to") : presetWindow(doc, data);
         const span = shown.to - shown.from;
         if (!(span >= 1)) return drawn;
         // No more points than bars in view: each one then holds a bar at least, so only missing data breaks a line.
@@ -10079,8 +10101,8 @@
           ...(edits.past.length ? [{ title: "Undo", text: "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undo }] : []),
           ...(edits.future.length ? [{ title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redo }] : []),
           ...(empty ? [] : [
-            { title: "Zoom in", text: "Closer, around the middle of the view.", words: "magnify closer", icon: "charts", kbd: "+", run: () => zoom(1 / 1.6) },
-            { title: "Zoom out", text: "Wider, around the middle of the view.", words: "wider further", icon: "charts", kbd: "−", run: () => zoom(1.6) },
+            { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", words: "magnify closer", icon: "charts", kbd: "+", run: () => zoom(1 / 1.6) },
+            { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", words: "wider further", icon: "charts", kbd: "−", run: () => zoom(1.6) },
           ]),
           ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "recent", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
@@ -11220,8 +11242,9 @@
       /** Where ↵ would take the view: the chart's overview, the span lit on it; when it starts and ends, how many points. */
       function previewDate(panel, span) {
         const why = span ? outOfData(span) : "";
+        const points = span && !why ? pointsOf(span) : null, wide = points && points.last - points.first + 1 > mostBars();
         panel.innerHTML = `<h4 class="plain">${span ? escape(span.label) : "Go to a date"}</h4>
-          <p class="description">${escape(!span ? "A year or a month is shown whole; a day, centered at the zoom the chart has." : why || (span.day ? "Centered, at the zoom the chart has." : "Shown whole, edge to edge."))}</p>
+          <p class="description">${escape(!span ? "A year or a month is shown whole; a day, centered at the zoom the chart has." : why || (span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
           <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg><span id="spark-caption" hidden></span>
           ${span && !why ? `<div class="info"><dl id="date-facts"></dl></div>` : ""}`;
         const source = overviewSource();
