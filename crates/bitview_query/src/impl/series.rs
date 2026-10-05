@@ -464,6 +464,9 @@ impl Query {
             Index::Height => Ok(usize::from(height()?) as i64),
             Index::Epoch => Ok(usize::from(Epoch::from(height()?)) as i64),
             Index::Halving => Ok(usize::from(Halving::from(height()?)) as i64),
+            _ if index.is_date_based() => Err(Error::InvalidParam(format!(
+                "date/timestamp out of range for index '{index}'"
+            ))),
             _ => Err(Error::InvalidParam(format!(
                 "date/timestamp ranges not supported for index '{index}'"
             ))),

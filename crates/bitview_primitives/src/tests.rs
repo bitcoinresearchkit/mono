@@ -52,3 +52,27 @@ fn scalar_values() {
         assert!(csv.is_empty());
     }
 }
+
+/// Date indexes label each bucket where it starts, the clients' contract: a label maps back to its index and the
+/// second before it to the previous one (none before the first).
+#[test]
+fn date_labels_start_their_buckets() {
+    use brk_types::Timestamp;
+
+    use crate::Index;
+
+    for index in Index::all().into_iter().filter(Index::is_date_based) {
+        for i in 0..=10 {
+            let label = index.index_to_timestamp(i).unwrap();
+            assert_eq!(index.timestamp_to_index(label), Some(i), "{index:?} {i}");
+            if let Some(date) = index.index_to_date(i) {
+                assert_eq!(index.date_to_index(date), Some(i), "{index:?} {i}");
+            }
+            assert_eq!(
+                index.timestamp_to_index(Timestamp::new(*label - 1)),
+                i.checked_sub(1),
+                "{index:?} {i}"
+            );
+        }
+    }
+}

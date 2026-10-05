@@ -283,9 +283,10 @@ impl Index {
 
     /// Convert a date to an index value for day-precision or coarser indexes.
     /// Returns None for sub-daily indexes (use `timestamp_to_index` instead),
-    /// non-date-based indexes, or dates before genesis.
+    /// non-date-based indexes, or dates before the index's first one (2009-01-01;
+    /// day3's is 2008-12-31, week1's 2008-12-29).
     pub fn date_to_index(&self, date: Date) -> Option<usize> {
-        if date < Date::INDEX_ZERO {
+        if date < Date::from(self.index_to_timestamp(0)?) {
             return None;
         }
         match self {
@@ -303,8 +304,11 @@ impl Index {
 
     /// Convert a timestamp to an index value for any date-based index.
     /// Works for both sub-daily (minute, hour) and daily+ indexes.
-    /// Returns None for non-date-based indexes.
+    /// Returns None for non-date-based indexes or times before the index's first one.
     pub fn timestamp_to_index(&self, ts: Timestamp) -> Option<usize> {
+        if ts < self.index_to_timestamp(0)? {
+            return None;
+        }
         let interval = match self {
             Self::Minute10 => MINUTE10_INTERVAL,
             Self::Minute30 => MINUTE30_INTERVAL,

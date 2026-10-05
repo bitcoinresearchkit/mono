@@ -2157,9 +2157,9 @@ def _index_to_date(index: str, i: int) -> Union[date, datetime]:
     elif index == 'day1':
         return _EPOCH_DATE + timedelta(days=i)
     elif index == 'day3':
-        return _EPOCH.date() - timedelta(days=1) + timedelta(days=i * 3)
+        return _EPOCH_DATE - timedelta(days=1) + timedelta(days=i * 3)
     elif index == 'week1':
-        return _EPOCH_DATE + timedelta(weeks=i)
+        return _EPOCH_DATE - timedelta(days=3) + timedelta(weeks=i)
     elif index == 'month1':
         return date(2009 + i // 12, i % 12 + 1, 1)
     elif index == 'month3':
@@ -2181,7 +2181,7 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
 
     Returns the floor index (latest index whose date is <= the given date).
     For sub-day indexes (minute*, hour*), a plain date is treated as midnight UTC.
-    Raises ValueError for dates before the first index (2009-01-01).
+    Raises ValueError for dates before the index's first date (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29).
     """
     if index in ('minute10', 'minute30', 'hour1', 'hour4', 'hour12'):
         if isinstance(d, datetime):
@@ -2197,8 +2197,9 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
     if isinstance(d, datetime):
         d = (d.astimezone(timezone.utc) if d.tzinfo else d).date()
     dd = d
-    if dd < _EPOCH_DATE:
-        raise ValueError("date is before the first index (2009-01-01)")
+    first = _index_to_date(index, 0)
+    if dd < first:
+        raise ValueError(f"date is before the first {index} date ({first})")
     if index == 'day1':
         return (dd - _EPOCH_DATE).days
     elif index == 'day3':

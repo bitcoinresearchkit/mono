@@ -37,7 +37,7 @@ impl JsonSchema for Date {
 }
 
 impl Date {
-    pub(crate) const INDEX_ZERO: Self = Self(20090101);
+    const INDEX_ZERO: Self = Self(20090101);
     pub(crate) const INDEX_ZERO_: Date_ = Date_::constant(2009, 1, 1);
 
     pub fn new(year: u16, month: u8, day: u8) -> Self {
@@ -113,10 +113,10 @@ impl From<Day1> for Date {
 impl From<Week1> for Date {
     #[inline]
     fn from(value: Week1) -> Self {
-        // Week 0 starts at 2009-01-01, add i weeks
+        // Week i starts on the Monday `Week1` buckets from: ISO 2009-W01 (2008-12-29), plus i weeks
         Self::from(
             Self::INDEX_ZERO_
-                .checked_add(Span::new().weeks(i64::from(u16::from(value))))
+                .checked_add(Span::new().days(i64::from(u16::from(value)) * 7 - 3))
                 .unwrap(),
         )
     }

@@ -118,7 +118,7 @@ function indexToDate(index, i) {{
     case 'hour12': return new Date(_EPOCH_MS + i * 43200000);
     case 'day1': return new Date(_EPOCH_MS + i * _MS_PER_DAY);
     case 'day3': return new Date(_EPOCH_MS - 86400000 + i * 259200000);
-    case 'week1': return new Date(_EPOCH_MS + i * _MS_PER_WEEK);
+    case 'week1': return new Date(_EPOCH_MS - 3 * _MS_PER_DAY + i * _MS_PER_WEEK);
     case 'month1': return _addMonths(i);
     case 'month3': return _addMonths(i * 3);
     case 'month6': return _addMonths(i * 6);
@@ -131,14 +131,14 @@ function indexToDate(index, i) {{
 /**
  * Convert a Date to an index value for date-based indexes.
  * Returns the floor index (latest index whose date is <= the given date).
- * Throws for dates before the first index (2009-01-01).
+ * Throws for dates before the index's first date (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29).
  * @param {{Index}} index - The index type
  * @param {{globalThis.Date}} d - The date to convert
  * @returns {{number}}
  */
 function dateToIndex(index, d) {{
-  const ms = d.getTime();
-  if (!(ms >= _EPOCH_MS)) throw new RangeError('Date is before the first index (2009-01-01)');
+  const ms = d.getTime(), first = indexToDate(index, 0);
+  if (!(ms >= first.getTime())) throw new RangeError(`Date is before the first ${{index}} date (${{first.toISOString().slice(0, 10)}})`);
   switch (index) {{
     case 'minute10': return Math.floor((ms - _EPOCH_MS) / 600000);
     case 'minute30': return Math.floor((ms - _EPOCH_MS) / 1800000);

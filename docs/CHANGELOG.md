@@ -57,6 +57,11 @@ has to be deleted by hand.
   `_24h`, `_1w`, ... (were `_average_24h`, ...), and the per-block value is gone
 - OHLC values are typed as the `[open, high, low, close]` arrays the server sends (were typed as objects), and
   `/data` as any value (was typed as booleans)
+- A week is labeled by the Monday it starts on, as weeks are bucketed (was its Thursday): its `timestamp`, and the date
+  the clients give a `week1` point. Week 0 starts 2008-12-29
+- A range by a date or time before its index's first date (2009-01-01; day3's 2008-12-31, week1's 2008-12-29) answers
+  400 "out of range" at every index, as in the clients (minute, hour and day3 ranges started at 0, the others said
+  "not supported")
 
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
@@ -74,7 +79,8 @@ has to be deleted by hand.
   `total=False` subclass); keys that aren't identifiers (`24h`, `txId[]`) use the functional `TypedDict` form; the
   package ships `py.typed`
 - JS and Python date selectors use UTC with the server's day1/week1/year10 mapping (they used local time and put day1
-  0 on 2009-01-03), and dates before 2009-01-01 throw (the Rust client already rejected them)
+  0 on 2009-01-03), and dates before an index's first date throw, as the Rust client and the server reject them
+  (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29)
 
 #### Crates and features
 
