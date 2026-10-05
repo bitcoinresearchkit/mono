@@ -118,6 +118,11 @@ impl AddrCache {
         }
     }
 
+    /// Cached addresses, across types.
+    pub fn len(&self) -> usize {
+        self.addrs.iter().map(|(_, addrs)| addrs.len()).sum()
+    }
+
     /// Create an AddrLookup view into this cache.
     #[inline]
     pub fn as_lookup(&mut self) -> AddrLookup<'_> {
@@ -140,8 +145,14 @@ impl AddrCache {
         }
     }
 
-    /// Persist pending address states while retaining the cache allocations.
+    /// Persist pending address states. Each type's table keeps room for as many addresses as
+    /// it just held, so a type the chain moved away from stops holding its peak.
     pub fn flush_into(&mut self, state: &mut AddrStateVecs) -> Result<()> {
-        state.apply_updates(&mut self.addrs)
+        let lengths = self.addrs.lengths();
+        state.apply_updates(&mut self.addrs)?;
+        for (addr_type, addrs) in self.addrs.iter_mut() {
+            addrs.shrink_to(*lengths.get_unwrap(addr_type));
+        }
+        Ok(())
     }
 }

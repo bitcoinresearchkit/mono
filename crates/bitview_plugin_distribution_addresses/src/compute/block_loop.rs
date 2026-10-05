@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::{ControlFlow, Range};
 
 use bitview_cohort::ByAddrType;
 use bitview_plugin_distribution_common::readers::{BatchColumns, BlockBounds, index_range};
@@ -23,7 +23,11 @@ use crate::{
     state::AddrStates,
 };
 
-/// Process every block of `blocks`.
+/// Flush the address cache early once it holds this many addresses: it bounds the cache's
+/// tables (about 57 bytes a slot) however busy the chain gets.
+const MAX_CACHED_ADDRS: usize = 16_000_000;
+
+/// Process `blocks` until the address cache is full, flush, and return the next height.
 #[allow(clippy::too_many_arguments)]
 pub fn process_chunk(
     vecs: &mut Vecs,
@@ -33,11 +37,10 @@ pub fn process_chunk(
     workspace: &mut Workspace<'_>,
     blocks: Range<usize>,
     prices: &[Cents],
-    final_chunk: bool,
+    last_chunk: bool,
     exit: &Exit,
-) -> Result<()> {
+) -> Result<usize> {
     let starting_height = Height::from(blocks.start);
-    let last_height = Height::from(blocks.end - 1);
     let start_usize = blocks.start;
     let end_usize = blocks.end;
 
@@ -133,6 +136,7 @@ pub fn process_chunk(
 
     // Load cold address state once for each batch of blocks.
     let bounds = BlockBounds::new(indexer, blocks);
+    let mut next = end_usize;
     columns.for_each_batch(&bounds, |batch, columns| {
         let offset = batch.blocks.start - start_usize;
         let BatchColumns {
@@ -250,15 +254,21 @@ pub fn process_chunk(
             addr_states.push(&mut vecs.balances, &mut vecs.addrs.funded, block_price);
             addr_states.reset_block();
         }
-        Ok(())
+        if cache.len() >= MAX_CACHED_ADDRS {
+            next = batch.blocks.end;
+            return Ok(ControlFlow::Break(()));
+        }
+        Ok(ControlFlow::Continue(()))
     })?;
     drop(vr);
+    let last_height = Height::from(next - 1);
     let _lock = exit.lock();
     cache.flush_into(&mut vecs.addr_state)?;
-    write(vecs, addr_states, last_height, final_chunk)?;
-    if !final_chunk {
+    // Every write of the range nearest the tip keeps its changes, so a reorg can roll back across early flushes.
+    write(vecs, addr_states, last_height, last_chunk)?;
+    if !(last_chunk && next == end_usize) {
         vecs.flush()?;
     }
 
-    Ok(())
+    Ok(next)
 }

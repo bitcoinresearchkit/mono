@@ -255,12 +255,19 @@ has to be deleted by hand.
   the next batch's columns while the current batch is processed, for `distribution_utxos` too
 - Pushes onto stored vectors check that the vector is still writable only in debug builds (6.7 ns per push instead
   of 7.1)
+- `distribution_addresses` flushes its address cache every 10,000 blocks or once it holds 16 million addresses,
+  whichever comes first, and each type's table then keeps room only for what it just held, so the cache follows the
+  chain's activity instead of its busiest past: its peak memory at 600,000 blocks is 4.9 GiB instead of 8.6, for 2.5%
+  more time
 
 #### `brk_reader`
 
 - The forward pipeline parses with a third of the cores (1 to 4 threads, was always 1). On 12 cores over 5,000 recent
   blocks a light consumer such as `blk` streams about 1,100 blocks/s instead of 640; the CPU-bound indexer is
   unchanged
+- The forward pipeline keeps blk files out of the OS page cache (macOS reads them uncached, Linux drops them right
+  after): each file is read once, and caching it evicted the data the indexer looks up. On macOS, indexing blocks
+  600,000 to 650,000 takes 315 s instead of 331 s
 
 #### `quickmatch-js`
 

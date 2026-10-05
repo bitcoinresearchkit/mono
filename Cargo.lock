@@ -1661,6 +1661,7 @@ dependencies = [
  "brk_types",
  "crossbeam",
  "derive_more",
+ "libc",
  "parking_lot",
  "rlimit",
  "rustc-hash",

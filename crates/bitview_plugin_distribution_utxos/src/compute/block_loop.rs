@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::{ControlFlow, Range};
 
 use super::write::write;
 use crate::{
@@ -67,7 +67,7 @@ pub fn process_chunk(
                 .chain(states.amount_range.iter_mut())
                 .for_each(|s| s.reset_single_iteration_values());
         }
-        Ok(())
+        Ok(ControlFlow::Continue(()))
     })?;
     let _lock = exit.lock();
     write(vecs, states, last_height, final_chunk)?;

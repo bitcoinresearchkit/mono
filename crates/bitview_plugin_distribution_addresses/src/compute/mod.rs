@@ -91,17 +91,18 @@ impl ComputePlugin for Vecs {
         prices.extend(price.spot.cents.height.collect_range_at(prices.len(), end));
         let output_heights = mappings.output_heights.read();
         let mut workspace = Workspace::new(indexer, input_values, &output_heights);
-        for from in (start..end).step_by(10_000) {
-            let next = (from + 10_000).min(end);
-            process_chunk(
+        let mut from = start;
+        while from < end {
+            let to = (from + 10_000).min(end);
+            from = process_chunk(
                 self,
                 &mut addrs,
                 indexer,
                 mappings,
                 &mut workspace,
-                from..next,
+                from..to,
                 &prices,
-                next == end,
+                to == end,
                 exit,
             )?;
         }

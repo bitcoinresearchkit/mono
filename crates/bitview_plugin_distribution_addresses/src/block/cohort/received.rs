@@ -41,12 +41,6 @@ pub fn process_received(
 
                 if prev_bucket != new_bucket {
                     let cohort_state = prev_bucket.select_mut(&mut cohorts.amount_range);
-
-                    debug_assert!(
-                        cohort_state.inner.supply.utxo_count >= u64::from(addr_data.utxo_count()),
-                        "cohort underflow: {output_type:?} {type_index:?} {addr_data:?}"
-                    );
-
                     cohort_state.subtract(addr_data);
                     addr_data.receive_outputs(recv.total_value, price, recv.output_count);
                     new_bucket

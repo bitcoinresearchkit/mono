@@ -16,6 +16,7 @@ brk_rpc = { workspace = true }
 brk_types = { workspace = true }
 crossbeam = { version = "0.8.5", features = ["crossbeam-channel"] }
 derive_more = { workspace = true }
+libc = { workspace = true }
 parking_lot = { workspace = true }
 rlimit = "0.11.0"
 rustc-hash = { workspace = true }

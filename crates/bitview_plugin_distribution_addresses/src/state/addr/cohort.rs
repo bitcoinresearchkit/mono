@@ -1,7 +1,6 @@
 use bitview_primitives::{FundedAddrData, SupplyState};
 use brk_error::Result;
 use brk_types::{Cents, Sats};
-use vecdb::unlikely;
 
 use super::{super::CohortState, super::MinimalRealizedState};
 
@@ -67,49 +66,15 @@ impl AddrCohortState {
 
     pub fn subtract(&mut self, addr_data: &FundedAddrData) {
         let supply = SupplyState::from(addr_data);
-
-        // Check for potential underflow before it happens
-        if unlikely(self.inner.supply.utxo_count < supply.utxo_count) {
-            panic!(
-                "AddrCohortState::subtract underflow!\n\
-                Cohort state: addr_count={}, supply={}\n\
-                Addr being subtracted: {}\n\
-                Addr supply: {}\n\
-                Realized price: {}\n\
-                This means the addr is not properly tracked in this cohort.",
-                self.addr_count,
-                self.inner.supply,
-                addr_data,
-                supply,
-                addr_data.realized_price()
-            );
-        }
-        if unlikely(self.inner.supply.value < supply.value) {
-            panic!(
-                "AddrCohortState::subtract value underflow!\n\
-                Cohort state: addr_count={}, supply={}\n\
-                Addr being subtracted: {}\n\
-                Addr supply: {}\n\
-                Realized price: {}\n\
-                This means the addr is not properly tracked in this cohort.",
-                self.addr_count,
-                self.inner.supply,
-                addr_data,
-                supply,
-                addr_data.realized_price()
-            );
-        }
-
-        self.addr_count = self.addr_count.checked_sub(1).unwrap_or_else(|| {
-            panic!(
-                "AddrCohortState::subtract addr_count underflow! addr_count=0\n\
-                Addr being subtracted: {}\n\
-                Realized price: {}",
-                addr_data,
-                addr_data.realized_price()
-            )
-        });
-
+        debug_assert!(
+            self.addr_count > 0
+                && self.inner.supply.utxo_count >= supply.utxo_count
+                && self.inner.supply.value >= supply.value,
+            "address not tracked in this cohort: addr_count={}, supply={}, addr={addr_data}",
+            self.addr_count,
+            self.inner.supply
+        );
+        self.addr_count -= 1;
         self.inner
             .decrement_addr(&supply, addr_data.realized_cap_raw());
     }

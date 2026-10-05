@@ -1,6 +1,11 @@
 mod tx_in;
 mod tx_out;
-use std::{ops::Range, panic::resume_unwind, sync::mpsc, thread};
+use std::{
+    ops::{ControlFlow, Range},
+    panic::resume_unwind,
+    sync::mpsc,
+    thread,
+};
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::HeightMap;
@@ -134,12 +139,12 @@ impl<'a, const WITH_INDEXES: bool> Columns<'a, WITH_INDEXES> {
         }
     }
 
-    /// Runs `process` on every batch in order while a reader thread fills the
-    /// next batch's columns, so reads stay off the processing path.
+    /// Runs `process` on the batches in order, until it breaks, while a reader
+    /// thread fills the next batch's columns, so reads stay off the processing path.
     pub fn for_each_batch(
         &mut self,
         bounds: &BlockBounds,
-        mut process: impl FnMut(&Batch<'_>, &BatchColumns) -> Result<()>,
+        mut process: impl FnMut(&Batch<'_>, &BatchColumns) -> Result<ControlFlow<()>>,
     ) -> Result<()> {
         thread::scope(|scope| {
             let (filled_tx, filled_rx) = mpsc::sync_channel(1);
@@ -161,9 +166,13 @@ impl<'a, const WITH_INDEXES: bool> Columns<'a, WITH_INDEXES> {
 
             let mut processed = Ok(());
             for (batch, columns) in filled_rx {
-                processed = process(&batch, &columns);
-                if processed.is_err() {
-                    break;
+                match process(&batch, &columns) {
+                    Ok(ControlFlow::Continue(())) => {}
+                    Ok(ControlFlow::Break(())) => break,
+                    Err(error) => {
+                        processed = Err(error);
+                        break;
+                    }
                 }
                 let _ = free_tx.send(columns);
             }

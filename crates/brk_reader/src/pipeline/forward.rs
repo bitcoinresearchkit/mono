@@ -1,4 +1,13 @@
-use std::{fs, ops::ControlFlow, sync::OnceLock, thread};
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+use std::os::fd::AsRawFd;
+use std::{
+    fs::File,
+    io::{self, Read},
+    ops::ControlFlow,
+    path::Path,
+    sync::OnceLock,
+    thread,
+};
 
 use bitcoin::block::Header;
 use brk_error::{Error, Result};
@@ -122,7 +131,7 @@ fn read_and_dispatch(
         if stop.get().is_some() {
             return Ok(());
         }
-        let mut bytes = fs::read(blk_path)?;
+        let mut bytes = read_uncached(blk_path)?;
         scan_bytes(
             &mut bytes,
             blk_index,
@@ -160,4 +169,24 @@ fn read_and_dispatch(
         );
     }
     Ok(())
+}
+
+/// Reads a blk file once and keeps it out of the OS page cache (macOS reads it uncached, Linux
+/// drops it right after): caching 128 MiB per file would evict the data consumers look up while
+/// indexing.
+fn read_uncached(path: &Path) -> io::Result<Vec<u8>> {
+    let mut file = File::open(path)?;
+    // SAFETY: an advisory flag on an open descriptor; a failure only leaves caching on.
+    #[cfg(target_os = "macos")]
+    unsafe {
+        libc::fcntl(file.as_raw_fd(), libc::F_NOCACHE, 1);
+    }
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes)?;
+    // SAFETY: advice on an open descriptor; a failure only leaves the pages cached.
+    #[cfg(target_os = "linux")]
+    unsafe {
+        libc::posix_fadvise(file.as_raw_fd(), 0, 0, libc::POSIX_FADV_DONTNEED);
+    }
+    Ok(bytes)
 }
