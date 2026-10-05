@@ -21,7 +21,7 @@ use bitview_collections::Windows;
 use bitview_plugin_inputs::ByTypeVecs as InputsByTypeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_outputs::ByTypeVecs;
-use bitview_primitives::Lengths;
+use bitview_primitives::{Count, Lengths};
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
@@ -74,6 +74,7 @@ impl ReusedAddrVecs {
         spot_price: &ReadableBoxedVec<Height, Cents>,
         outputs_by_type: &ByTypeVecs,
         inputs_by_type: &InputsByTypeVecs,
+        active_addr_cumulative: &impl ReadableCloneableVec<Height, Count>,
         all_supply: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
         let count = AddrCountFundedTotalVecs::import(db, name, version, mappings)?;
@@ -85,6 +86,7 @@ impl ReusedAddrVecs {
             window_starts,
             outputs_by_type,
             inputs_by_type,
+            active_addr_cumulative,
         )?;
         let supply = AddrSupplyVecs::import(db, name, version, mappings, spot_price)?;
         let supply_share =
@@ -129,17 +131,13 @@ impl ReusedAddrVecs {
     }
 
     #[inline(always)]
-    pub fn push_height(&mut self, state: &ReusedAddrState, active_addr_count: u32) {
-        let active_reused_addr_count = state.active.sum();
-        debug_assert!(u32::try_from(active_reused_addr_count).is_ok());
-
+    pub fn push_height(&mut self, state: &ReusedAddrState) {
         self.count.push_counts(&state.funded, &state.total);
         self.supply.push_supply(&state.supply);
         self.events.push_height(
             &state.output_events,
             &state.input_events,
-            active_addr_count,
-            active_reused_addr_count as u32,
+            state.active.sum(),
         );
     }
 
@@ -150,7 +148,6 @@ impl ReusedAddrVecs {
         type_supply_sats: &ByAddrType<&impl ReadableVec<Height, Sats>>,
         exit: &Exit,
     ) -> Result<()> {
-        self.events.compute_rest(starting_lengths, exit)?;
         self.supply_share.compute_rest(
             starting_lengths.height,
             &self.supply,

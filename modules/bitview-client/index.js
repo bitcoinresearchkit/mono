@@ -7198,7 +7198,7 @@ const _Exposed = _s({
  *   inputFromReusedAddrCount: AvgBalance<NewAll<Count, ?CountFract>>,
  *   inputFromReusedAddrShare: AvgBalance<FeeShare>,
  *   activeReusedAddrCount: Interval<Count, ?CountFract>,
- *   activeReusedAddrShare: Interval<?Percent, ?Percent>,
+ *   activeReusedAddrShare: FeeShare,
  * }} Events
  */
 const _Events = _s({
@@ -7208,7 +7208,7 @@ const _Events = _s({
   inputFromReusedAddrCount: [(c, b) => _AvgBalance(c, b, _NewAll), 'input_from_*_count'],
   inputFromReusedAddrShare: [(c, b) => _AvgBalance(c, b, _FeeShare), 'input_from_*_share'],
   activeReusedAddrCount: [_Interval, 'active_*_count'],
-  activeReusedAddrShare: [_Interval, 'active_*_share'],
+  activeReusedAddrShare: [_FeeShare, 'active_*_share'],
 });
 
 /**

@@ -3,9 +3,11 @@ use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlockCumulativeAverage, LazyWindowStartVec, PerBlockCumulativeRolling};
+use bitview_vecs::{
+    CachedSeries, LazyPerBlockCumulativeAverage, LazyWindowStartVec, PerBlockCumulativeRolling,
+};
 use brk_error::Result;
-use brk_types::Version;
+use brk_types::{Height, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 
@@ -128,6 +130,11 @@ impl AddrActivityVecs {
         ]
         .into_iter()
         .flat_map(|family| family.iter_mut())
+    }
+
+    /// Running total of distinct active addresses per block, all types.
+    pub(crate) fn active_cumulative(&self) -> &CachedSeries<Height, Count> {
+        &self.cumulative_active.all.cumulative.height
     }
 
     pub fn reset_height(&mut self) -> Result<()> {

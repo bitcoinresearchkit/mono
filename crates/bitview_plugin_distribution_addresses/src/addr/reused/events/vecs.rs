@@ -3,16 +3,14 @@ use bitview_collections::Windows;
 use bitview_plugin_inputs::ByTypeVecs as InputsByTypeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_outputs::ByTypeVecs;
-use bitview_primitives::Lengths;
-use bitview_primitives::{Count, PartsPerMillion32, Percent};
+use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFixedRatioCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeAverage,
-    PerBlockCumulativeRolling, PerBlockRollingAverage,
+    PerBlockCumulativeRolling,
 };
 use brk_error::Result;
-use brk_exit::Exit;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, Rw, StorageMode, WritableVec};
@@ -55,16 +53,13 @@ use super::state::AddrTypeToAddrEventCount;
 /// after the block's events, populated inline in `process_received`
 /// (each receiver, post-receive) and in `process_sent` (each
 /// first-encounter sender, deduped against `received_addrs` so
-/// addresses that did both aren't double-counted).
-/// `active_reused_addr_share` is the per-block ratio
-/// `reused / active * 100` as a percentage in `[0, 100]` (or `0.0` for
-/// empty blocks). The denominator (distinct active addrs per block)
-/// lives at `addrs.activity.active.all`,
-/// derived from `sending + receiving - bidirectional`. Both fields
-/// expose lazy 24h/1w/1m/1y rolling *averages* of the per-block values.
-/// Sums and cumulatives of distinct-address counts would be misleading
-/// because the same address can appear in multiple blocks, so the
-/// cumulative count remains an internal source for the lazy views.
+/// addresses that did both aren't double-counted). It exposes lazy
+/// rolling averages of the per-block counts: a sum of distinct-address
+/// counts would count an address once per block it appears in.
+/// `active_reused_addr_share` divides those per-block counts by the
+/// distinct active addresses per block (`addrs.activity.active.all`), over
+/// a window or all time, like the output and input shares: each block's
+/// active addresses weigh in, so a near-empty block doesn't swing it.
 #[derive(Traversable)]
 pub struct AddrEventsVecs<M: StorageMode = Rw> {
     /// Outputs classified by an address-event rule. Reuse counts
@@ -91,9 +86,10 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
     /// Distinct active addresses in the represented block that satisfy the
     /// address predicate after that block's events.
     pub active_reused_addr_count: PerBlockCumulativeAverage<Count, M>,
-    /// Share of distinct active addresses in the represented block that
-    /// satisfy an address predicate after that block's events.
-    pub active_reused_addr_share: PerBlockRollingAverage<Percent, M>,
+    /// Share of distinct active addresses that satisfy an address predicate
+    /// after their block's events, counted per block (an address active in
+    /// two blocks counts twice).
+    pub active_reused_addr_share: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
 }
 
 impl AddrEventsVecs {
@@ -131,6 +127,7 @@ impl AddrEventsVecs {
         window_starts: &Windows<&LazyWindowStartVec>,
         outputs_by_type: &ByTypeVecs,
         inputs_by_type: &InputsByTypeVecs,
+        active_addr_cumulative: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
         let import_count = |name: &str| -> Result<_> {
             let import = |name: &str| {
@@ -208,13 +205,18 @@ impl AddrEventsVecs {
             mappings,
             window_starts,
         )?;
-        let active_reused_addr_share = PerBlockRollingAverage::import(
-            db,
+        let active_reused_addr_share = LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
+            Count,
+            Count,
+            Quotient<PartsPerMillion32>,
+        >(
             &format!("active_{name}_addr_share"),
             version,
-            mappings,
+            active_reused_addr_count.cumulative_source(),
+            active_addr_cumulative,
             window_starts,
-        )?;
+            mappings,
+        );
 
         Ok(Self {
             output_to_reused_addr_count,
@@ -232,10 +234,7 @@ impl AddrEventsVecs {
             .iter_mut()
             .chain(self.input_from_reused_addr_count.iter_mut())
             .map(|value| &mut value.cumulative.height as &mut dyn AnyStoredVec)
-            .chain([
-                self.active_reused_addr_count.stored_mut(),
-                &mut self.active_reused_addr_share.block as &mut dyn AnyStoredVec,
-            ])
+            .chain([self.active_reused_addr_count.stored_mut()])
             .collect::<Vec<_>>()
             .into_par_iter()
     }
@@ -249,7 +248,6 @@ impl AddrEventsVecs {
             value.cumulative.height.reset()?;
         }
         self.active_reused_addr_count.reset()?;
-        self.active_reused_addr_share.block.reset()?;
         Ok(())
     }
 
@@ -258,8 +256,7 @@ impl AddrEventsVecs {
         &mut self,
         uses: &AddrTypeToAddrEventCount,
         spends: &AddrTypeToAddrEventCount,
-        active_addr_count: u32,
-        active_reused_addr_count: u32,
+        active_reused_addr_count: u64,
     ) {
         for (targets, values) in [
             (&mut self.output_to_reused_addr_count, uses),
@@ -271,25 +268,6 @@ impl AddrEventsVecs {
             }
         }
         self.active_reused_addr_count
-            .push_block(Count::from(u64::from(active_reused_addr_count)));
-        // Stored as a percentage in [0, 100] to match the rest of the
-        // codebase (Unit.percentage on the website expects 0..100). The
-        // `active_addr_count` denominator lives at
-        // `addrs.activity.active.all`, passed in here so we can
-        // compute the per-block ratio inline.
-        let share = if active_addr_count > 0 {
-            100.0 * (active_reused_addr_count as f32 / active_addr_count as f32)
-        } else {
-            0.0
-        };
-        self.active_reused_addr_share
-            .block
-            .push(Percent::new(share));
-    }
-
-    pub fn compute_rest(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
-        self.active_reused_addr_share
-            .compute_rest(starting_lengths.height, exit)?;
-        Ok(())
+            .push_block(Count::from(active_reused_addr_count));
     }
 }

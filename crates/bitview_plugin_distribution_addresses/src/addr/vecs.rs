@@ -76,12 +76,12 @@ impl AddrVecs {
     }
 
     #[inline(always)]
-    pub fn push_height(&mut self, state: &AddrMetricsState, active_addr_count: u32) {
+    pub fn push_height(&mut self, state: &AddrMetricsState) {
         self.funded.push_counts(&state.funded);
         self.empty.push_counts(&state.empty);
         self.activity.push_height(&state.activity);
         self.exposed.push_height(&state.exposed);
-        self.reused.push_height(&state.reused, active_addr_count);
-        self.respent.push_height(&state.respent, active_addr_count);
+        self.reused.push_height(&state.reused);
+        self.respent.push_height(&state.respent);
     }
 }

@@ -72,6 +72,7 @@ impl Vecs {
             &spot_price,
             outputs_by_type,
             inputs_by_type,
+            addr_activity.active_cumulative(),
             all_supply,
         )?;
         let respent_addr_count = ReusedAddrVecs::import(
@@ -83,6 +84,7 @@ impl Vecs {
             &spot_price,
             outputs_by_type,
             inputs_by_type,
+            addr_activity.active_cumulative(),
             all_supply,
         )?;
 

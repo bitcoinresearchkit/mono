@@ -244,8 +244,7 @@ pub fn process_chunk(
                 &mut transfer_addresses,
             )?;
 
-            let active_addr_count = state.activity.active();
-            vecs.addrs.push_height(&state, active_addr_count);
+            vecs.addrs.push_height(&state);
 
             addr_states.push(&mut vecs.balances, &mut vecs.addrs.funded, block_price);
             addr_states.reset_block();

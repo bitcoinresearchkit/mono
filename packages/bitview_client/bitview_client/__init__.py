@@ -5331,7 +5331,7 @@ class Events(_Node):
     input_from_reused_addr_count: AvgBalance[NewAll[Count, Optional[CountFract]]] = _at((AvgBalance, NewAll), 'input_from_*_count')
     input_from_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'input_from_*_share')
     active_reused_addr_count: Interval[Count, Optional[CountFract]] = _at(Interval, 'active_*_count')
-    active_reused_addr_share: Interval[Optional[Percent], Optional[Percent]] = _at(Interval, 'active_*_share')
+    active_reused_addr_share: FeeShare = _at(FeeShare, 'active_*_share')
 
 
 class Respent(_Node):

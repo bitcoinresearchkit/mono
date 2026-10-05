@@ -3193,7 +3193,7 @@ pub mod tree {
         input_from_reused_addr_count: AvgBalance<NewAll<Count, Option<CountFract>>> = "input_from_*_count",
         input_from_reused_addr_share: AvgBalance<FeeShare> = "input_from_*_share",
         active_reused_addr_count: Interval<Count, Option<CountFract>> = "active_*_count",
-        active_reused_addr_share: Interval<Option<Percent>, Option<Percent>> = "active_*_share",
+        active_reused_addr_share: FeeShare = "active_*_share",
     } }
     shape! { Respent at "series().addrs.respent" {
         count: ExposedCount = "*_count",

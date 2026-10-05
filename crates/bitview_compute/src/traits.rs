@@ -99,11 +99,6 @@ impl Quantity for CentsSigned {
     type Sum = CentsSigned;
 }
 
-impl Quantity for Percent {
-    type Fract = Percent;
-    type Sum = Percent64;
-}
-
 impl Quantity for Percent64 {
     type Fract = Percent;
     type Sum = Percent64;

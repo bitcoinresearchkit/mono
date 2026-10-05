@@ -171,23 +171,21 @@ export function createNetworkSection() {
               },
               {
                 name: "Share",
-                tree: ROLLING_WINDOWS.map((w) => ({
-                  name: w.name,
-                  title: title(`${w.title} Active Reused Address Share`),
-                  bottom: [
-                    line({
-                      series: reused.events.activeReusedAddrShare[w.key],
+                tree: chartsFromPercentCumulativeEntries({
+                  entries: [
+                    {
                       name: "2+ Funded",
-                      unit: Unit.percentage,
-                    }),
-                    line({
-                      series: respent.events.activeReusedAddrShare[w.key],
+                      pattern: reused.events.activeReusedAddrShare,
+                    },
+                    {
                       name: "2+ Spent",
+                      pattern: respent.events.activeReusedAddrShare,
                       color: colors.gray,
-                      unit: Unit.percentage,
-                    }),
+                    },
                   ],
-                })),
+                  title,
+                  metric: "Active Reused Address Share",
+                }),
               },
             ],
           },
@@ -381,12 +379,12 @@ export function createNetworkSection() {
                 }),
               ),
               line({
-                series: addrs.reused.events.activeReusedAddrShare[w.key],
+                series: addrs.reused.events.activeReusedAddrShare[w.key].percent,
                 name: "Reused Share",
                 unit: Unit.percentage,
               }),
               line({
-                series: addrs.respent.events.activeReusedAddrShare[w.key],
+                series: addrs.respent.events.activeReusedAddrShare[w.key].percent,
                 name: "Respent Share",
                 color: colors.gray,
                 unit: Unit.percentage,
