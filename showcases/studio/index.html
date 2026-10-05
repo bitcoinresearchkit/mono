@@ -4297,11 +4297,29 @@
         }
       }
 
-      /* Phones: the chart is the page; the charts and the panel are sheets over it. */
+      /* Only on phones, under their sheets (below). */
+      .scrim {
+        display: none;
+      }
+
+      /* Under a phone's menu (a sheet): the page dimmed, and the touch that closes the menu taken (none goes through). */
+      .menu-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 19;
+        background: rgb(0 0 0 / 0.5);
+        animation: fade 200ms ease;
+      }
+
+      /*
+       * Phones: the chart is the page; its layers are a sheet over it, and the charts the grid. A tab bar at the foot
+       * (the charts, ⌘K, adding, the layers), menus as sheets, everything big enough for a thumb, clear of the notch.
+       */
       @media (max-width: 760px), (max-height: 500px) {
         .app {
           grid-template-columns: minmax(0, 1fr);
           grid-template-rows: minmax(0, 1fr) auto;
+          padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
         }
 
         .card {
@@ -4311,58 +4329,81 @@
           box-shadow: none;
         }
 
+        .sidebar,
         .corner,
         #redo,
         #add,
         .card-head .divider,
-        #sidebar-toggle,
-        .live {
+        #panel-toggle {
           display: none;
         }
 
         .card-head {
-          padding: 10px 10px 12px 12px;
+          padding: calc(8px + env(safe-area-inset-top)) 8px 8px 10px;
         }
 
         .title {
           flex: 1;
           max-width: none;
-          font-size: 15px;
         }
 
-        .sidebar,
+        /* The layers (and a layer's settings): a sheet from the foot, over a dimmed page; its handle drags it away. */
         .panel {
           position: fixed;
           top: auto;
           right: 0;
-          bottom: calc(47px + env(safe-area-inset-bottom));
+          bottom: 0;
           left: 0;
           z-index: 12;
-          display: none;
           width: auto;
-          max-height: 66dvh;
+          max-height: 82dvh;
           border: 0;
           border-radius: 16px 16px 0 0;
+          padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
           background: var(--raise);
           box-shadow: var(--pop);
+          visibility: hidden;
+          transform: translateY(102%);
+          transition: transform 280ms var(--ease), visibility 0s 280ms;
+
+          &::before {
+            content: "";
+            flex: none;
+            width: 36px;
+            height: 5px;
+            margin: 7px auto 0;
+            border-radius: 3px;
+            background: var(--faint);
+          }
         }
 
-        body[data-sheet="charts"] .sidebar,
         body[data-sheet="panel"] .panel {
-          display: flex;
+          visibility: visible;
+          transform: none;
+          transition: transform 280ms var(--ease);
         }
 
-        .sidebar {
-          overflow-y: auto;
+        /* Its top drags it (the views below scroll on their own). */
+        .panel,
+        .panel-head,
+        .inspector-head {
+          touch-action: none;
         }
 
-        .chart-list {
-          flex: none;
-          overflow: visible;
+        .scrim {
+          position: fixed;
+          inset: 0;
+          z-index: 11;
+          display: block;
+          background: rgb(0 0 0 / 0.5);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 240ms ease;
         }
 
-        #panel-toggle {
-          display: none;
+        body[data-sheet] .scrim {
+          opacity: 1;
+          pointer-events: auto;
         }
 
         .sheet-close {
@@ -4370,16 +4411,93 @@
           margin-left: auto;
         }
 
+        /* Menus: sheets too, their rows a thumb's height, the page dimmed behind (by their shadow). */
+        .menu.as-sheet {
+          top: auto !important;
+          right: calc(8px + env(safe-area-inset-right)) !important;
+          bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+          left: calc(8px + env(safe-area-inset-left)) !important;
+          max-height: 70dvh;
+          border-radius: 16px;
+          padding: 6px;
+          animation: rise 220ms var(--ease);
+
+          > button {
+            height: 46px;
+            font-size: 15px;
+          }
+        }
+
+        /* The tab bar: each its icon over its name; the one where you are lit. */
         .mobile-bar {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 6px;
+          grid-template-columns: repeat(4, 1fr);
           border-top: 1px solid var(--line);
-          padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+          padding: 2px 6px env(safe-area-inset-bottom);
           background: var(--card);
 
-          .btn {
+          .tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
+            gap: 4px;
+            height: 52px;
+            border: 0;
+            border-radius: 12px;
+            color: var(--muted);
+            background: none;
+            font-size: 11px;
+            font-weight: 510;
+
+            svg {
+              width: 20px;
+              height: 20px;
+            }
+
+            &:active {
+              background: var(--press);
+            }
+          }
+
+          /* Adding (a new chart, in the grid): the one thing done most, on ink. */
+          .add span[data-icon] {
+            width: 36px;
+            height: 24px;
+            border-radius: 8px;
+            color: var(--primary-ink);
+            background: var(--primary);
+
+            svg {
+              width: 16px;
+              height: 16px;
+            }
+          }
+
+          .add {
+            color: var(--text);
+          }
+        }
+
+        body[data-home] #mobile-charts,
+        body[data-sheet="panel"] #mobile-layers {
+          color: var(--ink);
+        }
+
+        /* A phone on its side: the bar slimmer, each tab's icon beside its name (the chart keeps the height). */
+        @media (max-height: 500px) {
+          .mobile-bar .tab {
+            flex-direction: row;
+            gap: 8px;
+            height: 40px;
+          }
+        }
+
+        body[data-home] .mobile-bar {
+          grid-template-columns: repeat(3, 1fr);
+
+          #mobile-layers {
+            display: none;
           }
         }
 
@@ -4387,39 +4505,24 @@
           max-width: 7rem;
         }
 
+        /* The grid: one chart a row (two on a phone on its side), as on a wide screen, legends and all. */
         .home-grid {
-          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
           gap: 10px;
           margin-top: 18px;
         }
 
         .home-scroll {
-          padding: 28px 14px 96px;
+          padding: calc(24px + env(safe-area-inset-top)) 12px 96px;
         }
 
-        .tile-open {
-          padding: 10px;
-        }
-
-        .tile-plot {
-          margin-top: 8px;
-        }
-
-        .tile-legend {
-          display: none;
+        .home-inner > p:not(.home-none) {
+          margin-bottom: 18px;
         }
 
         /* The bar's actions, by their icons alone. */
         .home-bar .label {
           display: none;
-        }
-
-        body[data-home] .mobile-bar {
-          grid-template-columns: repeat(2, 1fr);
-
-          #mobile-layers {
-            display: none;
-          }
         }
 
         .palette {
@@ -4429,14 +4532,14 @@
           max-height: none;
           margin: 0;
           border-radius: 0;
+          padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
 
         .palette-body {
           grid-template-columns: minmax(0, 1fr);
         }
 
-        .palette-preview,
-        .palette-foot {
+        .palette-preview {
           display: none;
         }
 
@@ -4445,11 +4548,52 @@
         }
       }
 
-      @media (hover: none) {
-        .chart-row .chart-more,
+      /* A finger, not a pointer: targets a thumb can't miss, and fields a phone doesn't zoom into (16px). */
+      @media (pointer: coarse) {
+        input:not([type="checkbox"]),
+        textarea,
+        select,
+        .formula-editor :is(textarea, pre) {
+          font-size: 16px;
+        }
+
+        .card-head .cap,
+        .sheet-close {
+          width: 40px;
+          height: 40px;
+        }
+
+        .pane-head .cap,
+        .layer-row > .cap {
+          width: 36px;
+          height: 36px;
+        }
+
+        #ranges button {
+          width: 38px;
+          height: 32px;
+        }
+
+        .interval {
+          height: 36px;
+        }
+
+        .menu > button {
+          height: 42px;
+        }
+
+        .palette-list li {
+          min-height: 44px;
+        }
+
         .tile-check {
-          top: 9px;
-          right: 9px;
+          width: 22px;
+          height: 22px;
+        }
+      }
+
+      @media (hover: none) {
+        .chart-row .chart-more {
           opacity: 1;
         }
 
@@ -4459,6 +4603,12 @@
 
         .layer-row > .cap {
           opacity: 1;
+        }
+
+        /* Long-pressed for picking, not for the system's menu; the ticks show only once some are picked. */
+        .tile {
+          -webkit-touch-callout: none;
+          user-select: none;
         }
       }
 
@@ -4562,6 +4712,8 @@
             </footer>
           </section>
 
+          <!-- On a phone, under the layers' sheet (in the card's own layering, as the sheet is), over all else. -->
+          <div id="scrim" class="scrim" data-action="close-sheet"></div>
           <aside id="panel" class="panel" aria-label="This chart">
             <section id="layers-view" class="panel-view" aria-label="Layers">
               <div class="panel-head">
@@ -4602,9 +4754,10 @@
       </main>
 
       <nav class="mobile-bar" aria-label="Studio">
-        <button class="btn" type="button" data-sheet="charts">Charts</button>
-        <button id="mobile-add" class="btn primary" type="button" aria-haspopup="menu">Add</button>
-        <button id="mobile-layers" class="btn" type="button" data-sheet="panel">Layers</button>
+        <button id="mobile-charts" class="tab" type="button" data-action="home"><span data-icon="grid"></span>Charts</button>
+        <button class="tab" type="button" data-action="palette"><span data-icon="browse"></span>Search</button>
+        <button id="mobile-add" class="tab add" type="button" aria-haspopup="menu"><span data-icon="plus"></span><span class="label">Add</span></button>
+        <button id="mobile-layers" class="tab" type="button" data-sheet="panel"><span data-icon="panel"></span>Layers</button>
       </nav>
     </div>
 
@@ -4956,6 +5109,8 @@
         [LC.LineStyle.SparseDotted, "Sparse dots", 2, 4],
       ];
       /** A pane's scales, by mode: the inspector's tab, the pane's chip, the menu's name, and the tab's tip. */
+      /** A pane's stack: none, its layers one on another, or as shares of their sum. @type {[("" | "stack" | "percent"), string, string][]} */
+      const STACKS = [["", "Off", "Each layer at its own value"], ["stack", "Stacked", "Each layer on the ones under it (the panel's first on top; a negative value counts as none)"], ["percent", "100% stacked", "Each layer as its share of them all"]];
       const MODES = [
         { tab: "Lin", chip: "Linear", name: "Linear", tip: "Linear" },
         { tab: "Log", chip: "Log", name: "Logarithmic", tip: "Logarithmic" },
@@ -5419,7 +5574,7 @@
        *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number } }} Layer
        * @typedef {{ value: number, color?: string, dash?: number }} Level A line across at a value: its color (else its
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, solid).
-       * @typedef {{ id: string, mode: number, size?: number }} Pane
+       * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent" }} Pane
        * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], updated: number }} Chart
        */
 
@@ -6304,6 +6459,8 @@
       const drawn = new Map();
       /** @type {Map<string, Record<string, string>>} layer id → its series' colors */
       const paints = new Map();
+      /** Faded, a stacked layer's colors: dim but solid (see-through, the bands under it would show as its own). @type {Map<string, Record<string, string>>} */
+      const fades = new Map();
       /** The layer in the spotlight while its row or caption is hovered: the others fade back. */
       let spotlit = null;
       /** The series that carry the lines across (levels, bases): drawn under every other, drawing nothing themselves. */
@@ -6315,7 +6472,7 @@
         if (id === spotlit) return;
         spotlit = id;
         const lit = id && drawn.has(id) && drawn.size > 1 && !layerById(id)?.hidden ? id : null;
-        for (const [layerId, series] of drawn) series.applyOptions(!lit || layerId === lit ? paints.get(layerId) : faded(paints.get(layerId)));
+        for (const [layerId, series] of drawn) series.applyOptions(!lit || layerId === lit ? paints.get(layerId) : fades.get(layerId) ?? faded(paints.get(layerId)));
         for (const [layerId, close] of closes) close.series.applyOptions(!lit || layerId === lit ? close.paint : faded(close.paint));
         for (const [layerId, bars] of barsBelow) drawn.get(layerId)?.setData(bars.points.map((point) => (point.color ? { ...point, color: !lit || layerId === lit ? bars.color : bars.faint } : point)));
       }
@@ -6441,7 +6598,7 @@
         // Points added (or dropped) at the start, at a fine interval (the view reaching out): the view holds still, its
         // bars shifted by as many.
         const shift = sameView && !sameTimeline && FINE.has(doc.index) && drawnSpan && data.times.length ? Math.round((drawnSpan[0] - data.times[0]) / FINE_STEP[doc.index]) : 0;
-        const panesShape = doc.panes.map((pane) => `${pane.id}:${pane.mode}`).join();
+        const panesShape = doc.panes.map((pane) => `${pane.id}:${pane.mode}:${pane.stack ?? ""}`).join();
         const keep = sameView && panesShape === drawnPanes;
         const glidingTo = glideTarget;
         stopGlide();
@@ -6452,10 +6609,20 @@
         dotted.clear();
         barsBelow.clear();
         paints.clear();
+        fades.clear();
         spotlit = null;
         const paneIndex = new Map(doc.panes.map((pane, i) => [pane.id, i]));
+        const stacked = stackOf(doc, data), shares = new Set(doc.panes.filter((pane) => pane.stack === "percent").map((pane) => pane.id));
         /** @type {{ layer: Layer, value: number, color: string, dash: number, mode: number, pane: number, format: any }[]} */
         const across = [];
+        /** A layer's lines across, drawn once all are known: its levels, and a baseline's base (not as a band). */
+        const linesAcross = (layer, pane, format, op, base) => {
+          const values = [...(layer.levels ?? []).map((level, i) => ({ key: String(i), value: level.value })), ...(base && layer.type === "baseline" ? [{ key: "base", value: layer.base ?? 0 }] : [])];
+          for (const { key, value } of values) {
+            const { color, dash } = lineLook(layer, key);
+            across.push({ layer, mode: modeOf(doc, layer), pane, format, value, color: op < 1 ? alpha(ink(color), op) : ink(color), dash });
+          }
+        };
         for (const layer of doc.layers) {
           const result = data.results.get(layer.id);
           // Its opacity on every color it paints (fills keep their own share of it).
@@ -6468,11 +6635,15 @@
             // The price line and its label at the view's last value, as the legend and the panel read it.
             priceLineSource: LC.PriceLineSource.LastVisible,
             lastValueVisible: !layer.hidden,
-            priceFormat: { type: /** @type {const} */ ("custom"), formatter: (value) => axisLabel(value), minMove: 1e-9 },
+            // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
+            priceFormat: { type: /** @type {const} */ ("custom"), formatter: shares.has(layer.pane) ? (value) => (value > 100.5 || value < -0.5 ? "" : axisLabel(value, "%")) : (value) => axisLabel(value), minMove: 1e-9 },
           };
           const lineWidth = /** @type {any} */ (layer.width);
           const pane = paneIndex.get(layer.pane) ?? 0;
-          const candles = layer.type === "candles" && result?.ohlc;
+          // Stacked: a band of its color, solid, over the card (bars stay bars, solid too); over the ones under it. A 100%
+          // stack's scale runs from 0 to 100, whatever the margins.
+          const stack = stacked.get(layer.id);
+          const candles = !stack && layer.type === "candles" && result?.ohlc;
           // Colors are kept apart from the rest so a spotlight can fade them and give them back.
           const paint = candles ? { upColor: css("--card"), downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs high
@@ -6485,6 +6656,18 @@
           // A line's style and shape.
           const line = { lineWidth, lineStyle: layer.dash, lineType: lineTypeOf(layer) };
           let series;
+          if (stack) {
+            const band = solid(base, 0.32 * op + 0.1), bars = layer.type === "histogram";
+            // Its tag and price line would say the running total, not its value: the legend says that.
+            const own = { ...common, lastValueVisible: false, priceLineVisible: false, autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) };
+            series = bars ? view.addSeries(LC.HistogramSeries, { ...own, color: solid(base, 0.75 * op) }, pane) : view.addSeries(LC.AreaSeries, { ...own, ...marker, ...line, lineColor: color, topColor: band, bottomColor: band }, pane);
+            paints.set(layer.id, bars ? { color: solid(base, 0.75 * op) } : { lineColor: color, topColor: band, bottomColor: band });
+            fades.set(layer.id, bars ? { color: solid(base, 0.14) } : { lineColor: solid(base, 0.3), topColor: solid(base, 0.08), bottomColor: solid(base, 0.08) });
+            series.setData(data.times.map((time, i) => (Number.isFinite(stack[i]) && (modeOf(doc, layer) !== 1 || stack[i] > 0) ? { time, value: stack[i] } : { time })));
+            if (!shares.has(layer.pane)) linesAcross(layer, pane, common.priceFormat, op, false);
+            drawn.set(layer.id, series);
+            continue;
+          }
           if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
@@ -6517,12 +6700,7 @@
               ? data.times.map((time, i) => (result.ohlc[i] && (!log || result.ohlc[i][2] > 0) ? { time, open: result.ohlc[i][0], high: result.ohlc[i][1], low: result.ohlc[i][2], close: result.ohlc[i][3] } : { time }))
               : points);
             closes.get(layer.id)?.series.setData(points);
-            // Lines across, drawn once all are known: its levels, and a baseline's base.
-            const line = { layer, color, mode: modeOf(doc, layer), pane, format: common.priceFormat };
-            for (const { key, value } of [...(layer.levels ?? []).map((level, i) => ({ key: String(i), value: level.value })), ...(layer.type === "baseline" ? [{ key: "base", value: layer.base ?? 0 }] : [])]) {
-              const { color: lineColor, dash } = lineLook(layer, key);
-              across.push({ ...line, value, color: op < 1 ? alpha(ink(lineColor), op) : ink(lineColor), dash });
-            }
+            linesAcross(layer, pane, common.priceFormat, op, true);
           }
           drawn.set(layer.id, series);
         }
@@ -6556,7 +6734,8 @@
           if (!panes[i]) return;
           panes[i].setStretchFactor(pane.size ?? defaultSize(i));
           // A side shows in every pane once any layer uses it: the plots line up, and the chart library needs it so.
-          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), ...(keep ? {} : { mode: pane.mode, autoScale: true }) });
+          // A stack sits on its floor (a band's height is its value): no margin under it.
+          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), scaleMargins: { top: 0.17, bottom: pane.stack ? 0 : 0.08 }, ...(keep ? {} : { mode: paneMode(pane), autoScale: true }) });
         });
         drawnPanes = panesShape;
         view.applyOptions({ timeScale: { timeVisible: FINE.has(doc.index) } });
@@ -7297,8 +7476,61 @@
 
       // ── Layers ────────────────────────────────────────────────────────────────
 
+      /**
+       * What stacked panes draw: each layer shown on a side, its own value plus those of the layers under it (the panel's
+       * order: its first on top); in a 100% one, that as a share of them all. A missing value counts as none; where none
+       * of them has one, nothing is drawn. @param {Chart} doc @param {{ results: Map<string, any> }} data
+       * @returns {Map<string, Float64Array>} by layer
+       */
+      function stackOf(doc, data) {
+        const stacked = new Map();
+        for (const pane of doc.panes) {
+          if (!pane.stack) continue;
+          for (const side of ["left", "right"]) {
+            const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && data.results.get(layer.id)?.shown);
+            if (!layers.length) continue;
+            const n = data.results.get(layers[0].id).shown.length, any = new Uint8Array(n);
+            let under = new Float64Array(n);
+            for (const layer of [...layers].reverse()) {
+              const own = data.results.get(layer.id).shown, sum = new Float64Array(n);
+              // Bands stack up from the bottom: a negative value counts as none (the legend still says what it is).
+              for (let i = 0; i < n; i++) {
+                const value = own[i];
+                if (Number.isFinite(value)) any[i] = 1;
+                sum[i] = under[i] + (value > 0 ? value : 0);
+              }
+              stacked.set(layer.id, sum);
+              under = sum;
+            }
+            // (A copy: the top layer's sum is the total, and it's turned into shares in place.)
+            const total = Float64Array.from(under);
+            for (const layer of layers) {
+              const sum = stacked.get(layer.id);
+              for (let i = 0; i < n; i++) sum[i] = !any[i] ? NaN : pane.stack === "percent" ? (total[i] ? (sum[i] / total[i]) * 100 : NaN) : sum[i];
+            }
+          }
+        }
+        return stacked;
+      }
+      /** A stack's scale, on a linear one, takes in zero (a band's height is its value). */
+      const fromZero = (mode) => (mode === 0 ? (/** @type {() => any} */ original) => {
+        const info = original();
+        return info && { ...info, priceRange: { ...info.priceRange, minValue: Math.min(0, info.priceRange.minValue) } };
+      } : undefined);
+      /** A color laid over the card at a share, as one solid color: stacked bands meet without mixing. */
+      function solid(hex, share) {
+        const card = css("--card"), mix = (k) => Math.round(parseInt(hex.slice(k, k + 2), 16) * share + parseInt(card.slice(k, k + 2), 16) * (1 - share));
+        return `#${[1, 3, 5].map((k) => mix(k).toString(16).padStart(2, "0")).join("")}`;
+      }
       /** The scale of the pane a layer is on. @param {Chart} doc */
-      const modeOf = (doc, layer) => doc.panes.find((pane) => pane.id === layer.pane)?.mode ?? 0;
+      const modeOf = (doc, layer) => paneMode(doc.panes.find((item) => item.id === layer.pane));
+      /**
+       * A pane's scale as drawn: a stack's is linear or log (percent change and indexed would start each band from its
+       * own first value), a 100% stack's linear (shares of a whole), whatever the pane keeps for later. @param {Pane} [pane]
+       */
+      const paneMode = (pane) => (!pane ? 0 : pane.stack === "percent" || (pane.stack && pane.mode > 1) ? 0 : pane.mode);
+      /** The scales a pane can take now (a stack: linear and log; a 100% one: none to choose). @param {Pane} pane */
+      const modesFor = (pane) => (pane.stack === "percent" ? [] : pane.stack ? [0, 1] : [0, 1, 2, 3]);
       const labelOf = (layer) => layer.label || (layer.series ? humanize(layer.series) : layer.formula || "Formula");
       const layerById = (id) => chart.layers.find((layer) => layer.id === id);
 
@@ -7485,7 +7717,7 @@
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {}) ?? {}).filter(([, item]) => validPreview(item)));
       /** What a card depends on: what the chart's mark does, its range, its layers' types and the view it was left at. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => layer.type), leftView(doc.id)]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => layer.type), doc.panes.map((pane) => pane.stack), leftView(doc.id)]);
       const savePreviews = () => storage.set(PREVIEWS, Object.fromEntries([...previews].filter(([id]) => chartById(id))));
       /** @param {Chart} doc @param {{ times: number[], results: Map<string, any> }} data @returns {Preview} */
       function previewOf(doc, data) {
@@ -7502,7 +7734,7 @@
         const B = Math.min(PREVIEW.points, Math.floor(span));
         const first = clamp(Math.floor(shown.from), 0, n - 1), last = clamp(Math.ceil(shown.to), 0, n - 1);
         const round = (value) => Math.round(value * 10) / 10;
-        const total = doc.panes.reduce((sum, pane, i) => sum + (pane.size ?? defaultSize(i)), 0);
+        const total = doc.panes.reduce((sum, pane, i) => sum + (pane.size ?? defaultSize(i)), 0), stacked = stackOf(doc, data);
         let top = 0;
         doc.panes.forEach((pane, k) => {
           const height = ((pane.size ?? defaultSize(k)) / total) * H;
@@ -7512,7 +7744,7 @@
           // Each side of a pane has its own scale, as on the chart.
           for (const side of ["left", "right"]) {
             const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && data.results.get(layer.id)?.shown).map((layer) => {
-              const values = data.results.get(layer.id).shown, mode = modeOf(doc, layer);
+              const values = stacked.get(layer.id) ?? data.results.get(layer.id).shown, mode = modeOf(doc, layer);
               // Percent and indexed scales start from the first value in view.
               let base = NaN;
               for (let i = first; mode >= 2 && i <= last && !Number.isFinite(base); i++) if (Number.isFinite(values[i]) && values[i] !== 0) base = values[i];
@@ -7565,7 +7797,7 @@
       function tileHtml(doc) {
         const title = escape(titleOf(doc)), on = picked.has(doc.id);
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
-        return `<div class="tile ${on ? "picked" : ""}" data-home-card="${doc.id}" draggable="true">
+        return `<div class="tile ${on ? "picked" : ""}" data-home-card="${doc.id}" draggable="${!TOUCH}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span><span class="tile-index">${INTERVAL_LABEL[doc.index]}</span></span><span class="tile-legend">${legend || "No layers yet"}</span>${plotHtml(doc)}</button>
             <input type="checkbox" class="tile-check" aria-label="Select ${title}" ${on ? "checked" : ""} />
           </div>`;
@@ -7992,6 +8224,57 @@
         if (home) leaveHome(() => doc && doc !== chart && open(doc), cardOf((doc ?? chart).id), false);
         else if (doc && doc !== chart) open(doc);
       });
+      // A phone's sheet (the layers): dragged down by its top (the handle, the head), past a third of its height or
+      // flicked, it goes; less, it comes back.
+      {
+        let pull = /** @type {{ y: number, at: number } | null} */ (null);
+        const sheet = $("panel");
+        sheet.addEventListener("pointerdown", (event) => {
+          if (!phone.matches || document.body.dataset.sheet !== "panel" || event.clientY - sheet.getBoundingClientRect().top > 56 || closest(event, "button, input, select, textarea, a")) return;
+          pull = { y: event.clientY, at: performance.now() };
+          sheet.setPointerCapture(event.pointerId);
+          sheet.style.transition = $("scrim").style.transition = "none";
+        });
+        sheet.addEventListener("pointermove", (event) => {
+          if (!pull) return;
+          const by = Math.max(0, event.clientY - pull.y);
+          sheet.style.transform = `translateY(${by}px)`;
+          $("scrim").style.opacity = String(1 - by / sheet.offsetHeight);
+        });
+        const let_go = (/** @type {PointerEvent} */ event) => {
+          if (!pull) return;
+          const by = Math.max(0, event.clientY - pull.y), speed = by / Math.max(1, performance.now() - pull.at);
+          pull = null;
+          sheet.style.transition = sheet.style.transform = $("scrim").style.transition = $("scrim").style.opacity = "";
+          if (by > sheet.offsetHeight / 3 || (by > 24 && speed > 0.6)) /** @type {HTMLElement} */ ($("scrim")).click();
+        };
+        sheet.addEventListener("pointerup", let_go);
+        sheet.addEventListener("pointercancel", let_go);
+      }
+      // A long press on a tile (by touch) picks it, as a phone's photos do; then a tap picks more, or lets one go.
+      {
+        let press = /** @type {{ timer: number, x: number, y: number, done: boolean } | null} */ (null);
+        $("home-grid").addEventListener("pointerdown", (event) => {
+          const tile = closest(event, "[data-home-card]");
+          if (event.pointerType !== "touch" || !tile || closest(event, ".tile-check, .tile-rename")) return;
+          press = { x: event.clientX, y: event.clientY, done: false, timer: window.setTimeout(() => {
+            if (!press) return;
+            press.done = true;
+            navigator.vibrate?.(8);
+            if (!picked.has(/** @type {string} */ (tile.dataset.homeCard))) pickChart(/** @type {string} */ (tile.dataset.homeCard));
+          }, 450) };
+        });
+        $("home-grid").addEventListener("pointermove", (event) => {
+          if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) (clearTimeout(press.timer), (press = null));
+        });
+        for (const type of ["pointerup", "pointercancel"]) $("home-grid").addEventListener(type, () => press && !press.done && (clearTimeout(press.timer), (press = null)));
+        // A long press's end makes no click (it would open the tile, or land on the bar rising under the finger).
+        $("home-grid").addEventListener("touchend", (event) => {
+          if (!press?.done) return;
+          press = null;
+          event.preventDefault();
+        }, { passive: false });
+      }
       // In the grid, the arrows walk the cards as they're laid out.
       $("home-grid").addEventListener("keydown", (event) => {
         if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
@@ -8066,7 +8349,9 @@
         if (home) $("all-charts").setAttribute("aria-current", "page");
         else $("all-charts").removeAttribute("aria-current");
         // The phone bar's Add, in the grid, makes a chart (there's none open to add to).
-        $("mobile-add").textContent = home ? "New chart" : "Add";
+        /** @type {HTMLElement} */ ($("mobile-add").querySelector(".label")).textContent = home ? "New chart" : "Add";
+        if (home) $("mobile-charts").setAttribute("aria-current", "page");
+        else $("mobile-charts").removeAttribute("aria-current");
         if (home) $("mobile-add").removeAttribute("aria-haspopup");
         else $("mobile-add").setAttribute("aria-haspopup", "menu");
         renderHome();
@@ -8321,21 +8606,37 @@
       /** After a menu pick re-renders the list, focus goes back to the same menu button. */
       const refocus = (selector) => requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector(selector))?.focus());
       /** A pane's scale, set: the chart rebuilds from the data at hand. */
+      /** A pane's chip: its scale, and its stack (a 100% one's scale is its own). @param {Pane} pane */
+      const paneChip = (pane) => (pane.stack === "percent" ? "100% stacked" : pane.stack ? `${MODES[paneMode(pane)].chip} · Stacked` : MODES[pane.mode].chip);
+      /** A pane's stack ("" for none). */
+      function setPaneStack(id, stack) {
+        commit((doc) => {
+          const pane = doc.panes.find((item) => item.id === id);
+          if (!pane) return;
+          if (stack) pane.stack = stack;
+          else delete pane.stack;
+        }, { redraw: false });
+      }
       function setPaneMode(id, mode) {
         commit((doc) => {
           const pane = doc.panes.find((item) => item.id === id);
           if (pane) pane.mode = mode;
         }, { redraw: false });
       }
-      const toggleLog = (id) => setPaneMode(id, chart.panes.find((item) => item.id === id)?.mode === 1 ? 0 : 1);
+      const toggleLog = (id) => {
+        const pane = chart.panes.find((item) => item.id === id);
+        if (pane && pane.stack !== "percent") setPaneMode(id, paneMode(pane) === 1 ? 0 : 1);
+      };
       /** A pane's scale, from its chip: the scales it can take, its own checked. */
       function scaleMenu(anchor, id) {
         const pane = chart.panes.find((item) => item.id === id);
         if (!pane) return;
-        showMenu(anchor, MODES.map(({ name }, mode) => `<button type="button" data-mode="${mode}" aria-pressed="${pane.mode === mode}">${pane.mode === mode ? ICONS.check : '<i class="menu-space"></i>'}${name}</button>`).join(""), ({ mode }) => {
+        const tick = (on) => (on ? ICONS.check : '<i class="menu-space"></i>');
+        showMenu(anchor, `<div class="menu-group">Scale</div>${MODES.map(({ name }, mode) => `<button type="button" data-mode="${mode}" aria-pressed="${paneMode(pane) === mode}" ${modesFor(pane).includes(mode) ? "" : "disabled"}>${tick(paneMode(pane) === mode)}${name}</button>`).join("")}<div class="menu-rule"></div><div class="menu-group">Stack</div>${STACKS.map(([stack, name]) => `<button type="button" data-stack="${stack}" aria-pressed="${(pane.stack ?? "") === stack}">${tick((pane.stack ?? "") === stack)}${name}</button>`).join("")}`, ({ mode, stack }) => {
           if (!chart.panes.some((item) => item.id === id)) return;
           refocus(`[data-scale-menu="${id}"]`);
-          setPaneMode(id, Number(mode));
+          if (stack !== undefined) setPaneStack(id, stack);
+          else setPaneMode(id, Number(mode));
         });
       }
       /** A pane one place up or down; its arrow keeps the focus, or the other one once it reaches an end. */
@@ -8410,7 +8711,7 @@
           const layers = chart.layers.filter((layer) => layer.pane === pane.id);
           return `<section class="pane-group" data-pane="${pane.id}">
             <div class="pane-head">
-              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${MODES[pane.mode].name}" data-tip="Scale">${MODES[pane.mode].chip}${CHEVRON}</button><span class="spacer"></span>
+              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${MODES[pane.mode].name}${pane.stack ? `, ${STACKS.find(([id]) => id === pane.stack)?.[1].toLowerCase()}` : ""}" data-tip="Scale and stack">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
               ${chart.panes.length > 1 ? `<button type="button" class="cap small" data-move-pane="${pane.id}" data-by="-1" ${i === 0 ? "disabled" : ""} aria-label="Move pane ${i + 1} up" data-tip="Move up">${ICONS.arrowUp}</button>
               <button type="button" class="cap small" data-move-pane="${pane.id}" data-by="1" ${i === chart.panes.length - 1 ? "disabled" : ""} aria-label="Move pane ${i + 1} down" data-tip="Move down">${ICONS.arrowDown}</button>` : ""}
               <button type="button" class="cap small" data-remove-pane="${pane.id}" aria-label="Remove pane ${i + 1} and its ${plural(layers.length, "layer")}" data-tip="${chart.panes.length > 1 ? "Remove the pane and its layers" : "Remove every layer"}">${ICONS.trash}</button>
@@ -8557,6 +8858,7 @@
         const unit = unitFor(layer, result);
         const transform = layer.transform ?? { fn: "none", n: 0 };
         const window = TRANSFORMS.find(([fn]) => fn === transform.fn)?.[2] ?? 0;
+        const stackOfPane = chart.panes.find((pane) => pane.id === layer.pane)?.stack ?? "";
         const sourceSection = isFormula
           ? `<section>
               <h3>Formula</h3>
@@ -8615,7 +8917,8 @@
             <h3>Scale</h3>
             <div class="field"><span>Pane</span><select id="pane" class="select" aria-label="Pane">${chart.panes.map((pane, i) => `<option value="${pane.id}" ${pane.id === layer.pane ? "selected" : ""}>Pane ${i + 1}</option>`).join("")}<option value="new">New pane</option></select></div>
             <div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${layer.side === side}">${text}</button>`).join("")}</div></div>
-            <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ tab, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${tip} scale">${tab}</button>`).join("")}</div></div>
+            <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ tab, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${tip} scale" ${modesFor(/** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane))).includes(mode) ? "" : "disabled"}>${tab}</button>`).join("")}</div></div>
+            <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
             <div class="field"><span>Format${resetFor("format", layer)}</span><select id="format" class="select" aria-label="Format">${FORMATS.map(([id, text]) => `<option value="${id}" ${(layer.format ?? "auto") === id ? "selected" : ""}>${id === "auto" ? `${text} (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})` : text}</option>`).join("")}</select></div>
           </section>
           <section>
@@ -9361,6 +9664,8 @@
         const tile = closest(event, "[data-home-card]");
         if (tile && !closest(event, ".tile-rename")) {
           event.preventDefault();
+          // By touch, a long press picks the tile instead (above).
+          if (TOUCH) return;
           return tileMenu(tile.dataset.homeCard, { x: event.clientX, y: event.clientY });
         }
         const chartRow = closest(event, "[data-chart-row]");
@@ -9816,7 +10121,7 @@
           ...RANGES.map(([id], i) => ({ title: id === "all" ? "Show all of history" : `Show the ${PERIODS[id]}`, text: "Change the visible range.", words: `range period zoom time ${PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) })),
           { title: "Fit everything", text: "All of history, with the price scales back on auto.", words: "zoom reset all history autoscale", icon: "charts", run: fit },
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => commit((doc) => (doc.index = id)) })),
-          ...(empty ? [] : [scalePane()].map((pane) => ({ title: pane.mode === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "charts", kbd: "L", run: () => toggleLog(pane.id) }))),
+          ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "charts", kbd: "L", run: () => toggleLog(pane.id) }))),
           { title: "Measure", text: "Drag across the chart to measure a change.", words: "ruler distance difference percent", icon: "ruler", kbd: "M", run: () => setMeasureMode(true) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
@@ -10347,7 +10652,7 @@
         fill: "area", width: "thickness stroke", opacity: "transparency alpha", pane: "move", side: "left right", "price-line": "last value",
         base: "zero", levels: "horizontal lines threshold", hide: "visible show", remove: "delete", duplicate: "copy clone",
         interval: "timeframe resolution", range: "zoom period", export: "download png csv json image", share: "link url",
-        scale: "log linear percent indexed", height: "size resize", up: "swap reorder", down: "swap reorder", "go-to": "jump date when",
+        scale: "log linear percent indexed", stack: "stacked cumulative sum share total", height: "size resize", up: "swap reorder", down: "swap reorder", "go-to": "jump date when",
       };
       /** Edits from one word to another (a letter added, dropped, changed, two swapped), stopping past `most`. */
       function editsBetween(a, b, most) {
@@ -10856,7 +11161,7 @@
       function paneRow(id, i) {
         const pane = chart.panes[i], open = () => panePage(id);
         return {
-          kind: "row", key: `pane:${id}`, icon: ICONS.panel, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${MODES[pane.mode].chip}${chart.panes.length > 1 ? ` · ${shareOf(i)}%` : ""}`, words: "pane", verb: "Open", page: open,
+          kind: "row", key: `pane:${id}`, icon: ICONS.panel, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${paneChip(pane)}${chart.panes.length > 1 ? ` · ${shareOf(i)}%` : ""}`, words: "pane", verb: "Open", page: open,
           actions: () => [{ label: "Open", kbd: "↵", page: open }, ...open().rows().filter((row) => !row.key.startsWith("layer:"))],
           preview: (/** @type {HTMLElement} */ panel) => previewPane(panel, id),
         };
@@ -10869,7 +11174,8 @@
           if (i < 0) return [];
           const pane = chart.panes[i], layers = chart.layers.filter((layer) => layer.pane === id), many = chart.panes.length > 1;
           return [
-            { key: "scale", icon: ICONS.charts, label: "Scale", aside: MODES[pane.mode].name, group: "Pane", page: () => choicePage("Scale", () => MODES.map((mode, m) => ({ key: String(m), icon: ICONS.charts, label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: chart.panes[at()]?.mode === m, run: () => setPaneMode(id, m) })), (panel) => previewPane(panel, id)) },
+            ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.charts, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => MODES.flatMap((mode, m) => (!modesFor(pane).includes(m) ? [] : [{ key: String(m), icon: ICONS.charts, label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(chart.panes[at()]) === m, run: () => setPaneMode(id, m) }])), (panel) => previewPane(panel, id)) }]),
+            { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => STACKS.map(([stack, name, tip]) => ({ key: stack || "off", icon: ICONS.charts, label: name, aside: tip, current: (chart.panes[at()]?.stack ?? "") === stack, run: () => setPaneStack(id, stack) }))) },
             ...(many ? [{ key: "height", icon: ICONS.sliders, label: "Height", aside: `${shareOf(i)}% of the chart`, group: "Pane", page: () => choicePage("Height", () => SHARES.map((share) => ({ key: String(share), icon: ICONS.sliders, label: `${share}% of the chart`, current: shareOf(at()) === share, run: () => setShare(id, share / 100), look: (/** @type {Chart} */ doc) => shareOn(doc, id, share / 100) })), (panel, option) => previewPane(panel, id, Number(option.key) / 100)) }] : []),
             ...(i > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with pane ${i}`, verb: "Move", group: "Pane", stay: true, run: () => movePane(id, -1) }] : []),
             ...(i < chart.panes.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: `Swaps with pane ${i + 2}`, verb: "Move", group: "Pane", stay: true, run: () => movePane(id, 1) }] : []),
@@ -10888,7 +11194,7 @@
         const sizes = chart.panes.map((other, k) => other.size ?? defaultSize(k)), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
         if (share !== null) sizes[i] = (share * others) / (1 - share);
         panel.innerHTML = `<h4 class="plain">Pane ${i + 1}</h4>
-          <p class="description">${escape(MODES[pane.mode].name)} scale${chart.panes.length > 1 ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
+          <p class="description">${escape(pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`)}${chart.panes.length > 1 ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
           <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size}">${k + 1}</i>`).join("")}</div>
           <div class="info"><h5>Layers</h5><dl>${layers.map((layer) => `<div><dt><i class="dot" style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</dt><dd>${escape(layer.letter)}</dd></div>`).join("") || "<div><dt>None yet</dt><dd></dd></div>"}</dl></div>`;
       }
@@ -11112,6 +11418,9 @@
         const host = anchor.closest("dialog") ?? document.body;
         if (menu.parentElement !== host) host.append(menu);
         menu.innerHTML = html;
+        // On a phone, a sheet from the foot (placed by its style), over a backdrop of its own.
+        menu.classList.toggle("as-sheet", phone.matches);
+        if (phone.matches) host.insertBefore(menuScrim, menu);
         for (const button of all$("button", menu)) {
           button.setAttribute("role", "menuitem");
           // Its key, kept while a second press is asked for (that replaces what it says).
@@ -11156,7 +11465,15 @@
         const { left: x, top: y } = element.getBoundingClientRect();
         return { x, y };
       }
+      /** A phone's menu's backdrop: tapped, it closes the menu, and the tap ends there. */
+      const menuScrim = document.createElement("div");
+      menuScrim.className = "menu-scrim";
+      menuScrim.addEventListener("click", (event) => {
+        event.stopPropagation();
+        hideMenu();
+      });
       function hideMenu() {
+        menuScrim.remove();
         $("menu").hidden = true;
         menuOwner?.removeAttribute("aria-expanded");
         menuOwner = null;
@@ -11193,7 +11510,7 @@
         items[to]?.focus();
       });
       document.addEventListener("pointerdown", (event) => {
-        if (!$("menu").hidden && !$("menu").contains(event.target) && closest(event, "button") !== menuOwner) hideMenu();
+        if (!$("menu").hidden && event.target !== menuScrim && !$("menu").contains(event.target) && closest(event, "button") !== menuOwner) hideMenu();
       });
 
       function supportedIntervals() {
@@ -11368,7 +11685,7 @@
         doc.index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1";
         doc.range = RANGES.some(([id]) => id === input.range) ? input.range : "all";
         const panes = input.panes.slice(0, MAX_PANES);
-        doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}) }));
+        doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}) }));
         const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
         for (const layer of input.layers.slice(0, MAX_LAYERS)) {
           if (!layer || typeof layer !== "object") continue;
@@ -11732,15 +12049,16 @@
         }
         const template = closest(event, "[data-template]");
         if (template) return useTemplate(TEMPLATES[Number(template.dataset.template)]);
-        const target = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
-        if (!target || (target.closest("#inspector") && !target.dataset.paneMode)) return;
-        const { select: id, toggle, paneMode, mode, action, sheet, openChart } = target.dataset;
+        const target = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
+        if (!target || (target.closest("#inspector") && !target.dataset.paneMode && target.dataset.paneStack === undefined)) return;
+        const { select: id, toggle, paneMode, paneStack, mode, action, sheet, openChart } = target.dataset;
         if (openChart) {
           delete document.body.dataset.sheet;
           go(chartById(openChart));
         } else if (id) select(id);
         else if (toggle) toggleHidden(toggle);
         else if (paneMode) setPaneMode(paneMode, Number(mode));
+        else if (paneStack) setPaneStack(paneStack, target.dataset.stack ?? "");
         else if (action === "palette") openPalette();
         else if (action === "home") showHome();
         else if (action === "add-series") openPalette({ add: true });
