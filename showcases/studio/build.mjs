@@ -5,7 +5,8 @@
 // load: the page always speaks its server's version, and a release never leaves it on a stale or a missing build);
 // everything else is inside it: the fonts, the color names, the search (newer than bitview.space's). Series the page
 // names by typed client paths (templates, examples) are written as their names: paths move between versions, names
-// are the server's.
+// are the server's. While bitview.space's client dates points unlike this repo's (its server's rules), the page takes
+// this repo's two date helpers in their place.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -63,12 +64,19 @@ html = html.replace(/(?<![\w$.])(tree|cohorts)((?:\.[A-Za-z_$][\w$]*)+)\.name\b/
 });
 if (/(?<![\w$.])cohorts\./.test(html)) throw new Error("A path through `cohorts` is left that the build doesn't know");
 
-// Each of those names, checked against bitview.space's client (a series it lacks would show as not there).
+// bitview.space's client, to check against.
+let served;
 try {
   const page = await (await fetch(`${SERVER}/`)).text();
   const map = JSON.parse(/<script type="importmap"[^>]*>([\s\S]*?)<\/script>/.exec(page)?.[1] ?? "{}").imports ?? {};
   const source = await (await fetch(`${SERVER}${map[CLIENT] ?? CLIENT}`)).text();
-  const served = new (await import(dataUrl("text/javascript", source))).BitviewClient({ baseUrl: SERVER });
+  served = new (await import(dataUrl("text/javascript", source))).BitviewClient({ baseUrl: SERVER });
+} catch (error) {
+  console.warn(`Couldn't read ${SERVER}'s client (${error.message}): its names go unchecked, its dates replaced`);
+}
+
+// Each of those names, checked against it (a series it lacks would show as not there).
+if (served) {
   const names = new Set(), stack = [served.series];
   while (stack.length) {
     const node = stack.pop();
@@ -77,9 +85,33 @@ try {
   }
   const missing = [...named].filter((name) => !names.has(name));
   console.log(`${SERVER}'s client ${served.VERSION}: ${missing.length ? `lacks ${missing.join(", ")}` : `has all ${named.size} series the page names`}`);
-} catch (error) {
-  console.warn(`Couldn't check the names against ${SERVER}'s client: ${error.message}`);
 }
+
+// Its dates, against this repo's client's: every date index, both ways (a bucket's first and last instants), in
+// timezones on both sides of UTC (a client on local time agrees in some). Unlike (or unread), the page's client takes
+// this repo's `indexToDate` and `dateToIndex` (the page dates points through those two alone).
+const repo = new BitviewClient({ baseUrl: SERVER });
+const DATE_INDEXES = ["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10"];
+const differ = (client) => ["Pacific/Kiritimati", "Pacific/Pago_Pago"].some((zone) => {
+  process.env.TZ = zone;
+  return DATE_INDEXES.some((index) => [...Array(2000).keys(), 5000, 20000, 400000].some((i) => {
+    if (/^year/.test(index) && i > 50) return false;
+    const attempt = (run) => { try { return run(); } catch { return "throws"; } };
+    const date = repo.indexToDate(index, i), last = new Date(repo.indexToDate(index, i + 1).getTime() - 1);
+    return attempt(() => client.indexToDate(index, i).getTime()) !== date.getTime()
+      || attempt(() => client.dateToIndex(index, date)) !== i || attempt(() => client.dateToIndex(index, last)) !== i;
+  }));
+});
+if (differ(repo)) throw new Error("This repo's client disagrees with itself: the date check is wrong");
+if (!served || differ(served)) {
+  if (/\.(?:dates|dateEntries|toDateMap)\(\)/.test(html)) throw new Error("The page dates points through a response's helpers: the replaced two don't cover it");
+  const source = readFileSync(join(SHOWCASES, "modules/bitview-client/index.js"), "utf8");
+  const from = source.indexOf("// Date conversion constants and helpers"), to = source.indexOf("/**\n * Wrap raw series data");
+  if (from < 0 || to < from) throw new Error("This repo's client's date helpers moved: the build can't find them");
+  html = html.replace(/\n( *)const client = new BitviewClient\([^\n]*\);\n/, (line, indent) => `${line}${indent}// ${SERVER}'s client dates points unlike its server: this repo's helpers instead (the next release's).\n${indent}{\n${source.slice(from, to)}\nclient.indexToDate = indexToDate;\nclient.dateToIndex = dateToIndex;\n${indent}}\n`);
+  if (!html.includes("client.indexToDate = indexToDate;")) throw new Error("The page's client moved: the build can't give it the date helpers");
+  console.log(`${SERVER}'s client dates points unlike this repo's: the page takes this repo's date helpers`);
+} else console.log(`${SERVER}'s client dates points as this repo's does`);
 
 const left = html.match(/["'(]\.\.\/(?:modules|fonts)\/[^"')]*/g);
 if (left?.length) throw new Error(`Still relative: ${left.join(", ")}`);

@@ -4912,28 +4912,11 @@
       const INTERVAL_LABEL = Object.fromEntries(INTERVALS.flatMap(([, items]) => items));
       /** Fine intervals have hundreds of thousands of points: they load in chunks, as far back as the view goes. */
       const FINE = new Set(["minute10", "minute30", "hour1", "hour4", "hour12"]);
-      /** A fine interval's step, in seconds; their indexes count steps from 2009-01-01, as the server's do. */
+      /** A fine interval's step, in seconds. */
       const FINE_STEP = { minute10: 600, minute30: 1800, hour1: 3600, hour4: 14400, hour12: 43200 };
-      const INDEX_EPOCH = 1230768000;
-      /**
-       * An index's time (unix seconds, where its bucket starts), and the index a time falls in, by the server's rules:
-       * steps from 2009-01-01 UTC (three days from the day before, weeks from the Monday before: ISO weeks), calendar
-       * months and years. Studio's own, not the client's: the client bitview.space serves now counts days from the
-       * genesis block, in local time, a week off the server's.
-       */
-      const MONTH_SPANS = { month1: 1, month3: 3, month6: 6 }, INDEX_STEPS = { ...FINE_STEP, day1: 86400, day3: 259200, week1: 604800 };
-      const INDEX_LEAD = { day3: 86400, week1: 259200 };
-      function timeAt(/** @type {string} */ index, /** @type {number} */ i) {
-        if (index in INDEX_STEPS) return INDEX_EPOCH - (INDEX_LEAD[index] ?? 0) + i * INDEX_STEPS[index];
-        if (index in MONTH_SPANS) return Date.UTC(2009, i * MONTH_SPANS[index], 1) / 1000;
-        return Date.UTC(index === "year10" ? (i === 0 ? 2009 : 2000 + i * 10) : 2009 + i, 0, 1) / 1000;
-      }
-      function indexAt(/** @type {string} */ index, /** @type {number} */ time) {
-        if (index in INDEX_STEPS) return Math.floor((time - INDEX_EPOCH + (INDEX_LEAD[index] ?? 0)) / INDEX_STEPS[index]);
-        const date = new Date(time * 1000), months = (date.getUTCFullYear() - 2009) * 12 + date.getUTCMonth();
-        if (index in MONTH_SPANS) return Math.floor(months / MONTH_SPANS[index]);
-        return index === "year10" ? Math.floor((date.getUTCFullYear() - 2000) / 10) : date.getUTCFullYear() - 2009;
-      }
+      /** An index's time (unix seconds, where its bucket starts) and the index a time falls in, by the client (a time before the first is in the first). */
+      const timeAt = (/** @type {string} */ index, /** @type {number} */ i) => client.indexToDate(/** @type {"day1"} */ (index), i).getTime() / 1000;
+      const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => client.dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
       /** A chunk's points, aligned on the indexes: the latest two load at first, then each the view reaches. */
       const CHUNK = 8000;
       /**
@@ -6195,7 +6178,7 @@
 
       /** @typedef {{ from: number, to: number, live: boolean, rest?: number }} Span the chunks a chart holds, `live` while they reach the latest; `rest`: no reaching out before then (a chunk failed) */
       /** The chunk a time falls in, at a fine interval. */
-      const chunkAt = (index, time) => Math.floor(Math.floor((time - INDEX_EPOCH) / FINE_STEP[index]) / CHUNK);
+      const chunkAt = (index, time) => Math.floor(indexAt(index, time) / CHUNK);
       /** The chunk the latest points are in, by the clock. */
       const latestChunk = (index) => chunkAt(index, Date.now() / 1000);
       /** @type {Map<string, Promise<{ start: number, data: any[], stamp: string, version: number }>>} */
@@ -6277,7 +6260,7 @@
             forget(name, index);
             return loadSpan(name, index, { from, to, live }, false, true);
           }
-          const start = loaded[0]?.start ?? (from + first) * CHUNK, step = FINE_STEP[index];
+          const start = loaded[0]?.start ?? (from + first) * CHUNK;
           const data = loaded.flatMap((part) => part.data);
           return { start, data, times: data.map((_, i) => timeAt(index, start + i)), stamp: loaded.at(-1)?.stamp ?? "" };
         });
