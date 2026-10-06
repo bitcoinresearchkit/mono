@@ -1,9 +1,11 @@
+mod delta;
 mod metrics;
 mod receive;
 mod receive_status;
 mod send;
 mod type_metrics;
 
+pub use delta::add_type_delta;
 pub use metrics::AddrMetricsState;
 pub use receive::AddrReceivePreState;
 pub use receive_status::AddrReceiveStatus;

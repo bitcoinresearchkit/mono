@@ -4,7 +4,7 @@ use rustc_hash::FxHashMap;
 const RECEIVED: u8 = 1;
 const SEEN_SENDING: u8 = 2;
 
-/// One address type's receivers and senders within a block.
+/// One shard's receivers and senders within a block.
 #[derive(Default)]
 pub struct TransferAddressCache {
     addresses: FxHashMap<TypeIndex, u8>,

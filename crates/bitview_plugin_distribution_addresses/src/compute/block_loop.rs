@@ -16,7 +16,7 @@ use vecdb::{AnyVec, ReadableVec, VecIndex, unlikely};
 use super::{AddrReaders, Workspace, readers::tx_indexes};
 use crate::{
     Vecs,
-    addr::{AddrMetricsState, SourcedAddrData},
+    addr::{AddrMetricsState, SHARDS, SourcedAddrData},
     block::{
         AddrTypeLookup, Received, TransferAddressCache, TxIndexes, process_inputs, process_outputs,
         process_received, process_sent,
@@ -25,7 +25,7 @@ use crate::{
     state::{AddrStates, CohortLog},
 };
 
-/// One address type's activity in one block.
+/// One address type's activity in one block, for one shard of its addresses.
 struct TypeBlock {
     received: FxHashMap<TypeIndex, Received>,
     /// Spends in the block's established order, with their creation prices.
@@ -144,8 +144,6 @@ pub fn process_chunk(
             .try_for_each(|v| v.any_truncate_if_needed_at(start))?;
     }
 
-    let mut transfers = ByAddrType::<TransferAddressCache>::default();
-
     // Load cold address state once for each batch of blocks.
     let bounds = BlockBounds::new(indexer, blocks);
     let mut next = end_usize;
@@ -223,40 +221,43 @@ pub fn process_chunk(
                 )
             })
             .collect::<Vec<_>>();
-        let mut by_type = ByAddrType::<Vec<TypeBlock>>::default();
+        let mut by_shard: [ByAddrType<Vec<TypeBlock>>; SHARDS] = Default::default();
         for (received, spends, sent_txs) in groups {
-            for (((output_type, received), (spends_type, spends)), (sent_type, sent_txs)) in
-                received
-                    .into_iter()
-                    .zip(spends.into_iter())
-                    .zip(sent_txs.into_iter())
+            for (((by_type, received), spends), sent_txs) in
+                by_shard.iter_mut().zip(received).zip(spends).zip(sent_txs)
             {
-                debug_assert!(output_type == spends_type && output_type == sent_type);
-                by_type.get_mut_unwrap(output_type).push(TypeBlock {
-                    received,
-                    spends,
-                    sent_txs,
-                });
+                for (((output_type, received), (spends_type, spends)), (sent_type, sent_txs)) in
+                    received
+                        .into_iter()
+                        .zip(spends.into_iter())
+                        .zip(sent_txs.into_iter())
+                {
+                    debug_assert!(output_type == spends_type && output_type == sent_type);
+                    by_type.get_mut_unwrap(output_type).push(TypeBlock {
+                        received,
+                        spends,
+                        sent_txs,
+                    });
+                }
             }
         }
 
-        // Each address type touches only its own addresses and metrics, so the types run
-        // apart; their cohort changes are logged per block and applied below in type order.
+        // Each address touches only its own state, so every shard of every type runs apart from
+        // the same base metrics; cohort changes are logged per block and applied below in order.
         let block_prices = &prices[batch.blocks.clone()];
-        let base = &state;
+        let mut base = state.clone();
+        base.reset_per_block();
+        let base = &base;
         let processed = cache
-            .types_mut()
-            .zip(transfers.values_mut())
-            .zip(by_type.into_iter())
+            .shards_mut()
+            .zip(by_shard.into_iter().flat_map(ByAddrType::into_iter))
             .collect::<Vec<_>>()
             .into_par_iter()
-            .map(
-                |(((output_type, addrs), transfers), (blocks_type, blocks))| {
-                    debug_assert_eq!(output_type, blocks_type);
-                    process_type(output_type, addrs, transfers, blocks, block_prices, base)
-                        .map(|blocks| (output_type, blocks))
-                },
-            )
+            .map(|((output_type, addrs), (blocks_type, blocks))| {
+                debug_assert_eq!(output_type, blocks_type);
+                process_shard(output_type, addrs, blocks, block_prices, base)
+                    .map(|blocks| (output_type, blocks))
+            })
             .collect::<Result<Vec<_>>>()?;
 
         for (offset, height) in batch.blocks.clone().enumerate() {
@@ -266,10 +267,11 @@ pub fn process_chunk(
             } else {
                 debug!("Processing chain at {height}...");
             }
+            state.clone_from(base);
             for (output_type, blocks) in &processed {
                 let (cohorts, metrics) = &blocks[offset];
                 cohorts.apply_to(&mut addr_states.amount_range);
-                state.copy_type(metrics, *output_type);
+                state.add_type_delta(metrics, base, *output_type);
             }
             vecs.addrs.push_height(&state);
             addr_states.push(
@@ -298,19 +300,19 @@ pub fn process_chunk(
     Ok(next)
 }
 
-/// Apply one address type's blocks in order: per block its transaction counts, receives,
-/// then spends. Returns each block's cohort changes and the metrics after it, of which only
-/// this type's values are meaningful.
-fn process_type(
+/// Apply one shard of an address type's blocks in order: per block its transaction counts,
+/// receives, then spends. Returns each block's cohort changes and the metrics after it, of
+/// which only this type's values are meaningful.
+fn process_shard(
     output_type: OutputType,
     addrs: &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>,
-    transfers: &mut TransferAddressCache,
     blocks: Vec<TypeBlock>,
     prices: &[Cents],
     base: &AddrMetricsState,
 ) -> Result<Vec<(CohortLog, AddrMetricsState)>> {
     let mut metrics = base.clone();
     let mut lookup = AddrTypeLookup::new(addrs);
+    let mut transfers = TransferAddressCache::default();
     let mut processed = Vec::with_capacity(blocks.len());
     for (
         TypeBlock {
@@ -339,7 +341,7 @@ fn process_type(
             &mut lookup,
             price,
             &mut type_metrics,
-            transfers,
+            &mut transfers,
         )?;
         processed.push((cohorts, metrics.clone()));
     }

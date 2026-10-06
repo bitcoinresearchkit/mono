@@ -1,3 +1,4 @@
+use bitview_cohort::ByAddrType;
 use bitview_primitives::{
     AddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex, TypeIndex,
 };
@@ -18,9 +19,15 @@ pub struct AddrUpdates {
 }
 
 impl AddrUpdates {
-    pub fn stage(cache: &mut AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>) -> Self {
+    pub fn stage(cache: &mut [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>]) -> Self {
+        let capacities = ByAddrType::from_fn(|id| {
+            cache
+                .iter()
+                .map(|shard| shard.get_unwrap(id.output_type()).len())
+                .sum()
+        });
         let mut updates = Self {
-            primaries: AddrTypeToVec::with_capacities(cache.lengths()),
+            primaries: AddrTypeToVec::with_capacities(capacities),
             funded_updates: Vec::new(),
             funded_pushes: Vec::new(),
             funded_deletes: Vec::new(),
@@ -29,7 +36,7 @@ impl AddrUpdates {
             extended_deletes: Vec::new(),
         };
 
-        for (addr_type, entries) in cache.iter_mut() {
+        for (addr_type, entries) in cache.iter_mut().flat_map(|shard| shard.iter_mut()) {
             for (type_index, source) in entries.drain() {
                 if source.is_funded() {
                     updates.push_funded(addr_type, type_index, source);

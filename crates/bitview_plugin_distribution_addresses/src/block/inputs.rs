@@ -3,14 +3,17 @@ use std::collections::hash_map::Entry;
 use bitview_primitives::TypeIndex;
 use brk_types::{Height, OutputType, Sats, TxIndex};
 
-use crate::{addr::AddrTypeToTypeIndexMap, block::TxIndexes, block::address_spends::AddressSpends};
+use crate::{
+    addr::{AddrTypeToTypeIndexMap, SHARDS, shard_of},
+    block::{TxIndexes, address_spends::AddressSpends},
+};
 
 /// Result of processing inputs for a block.
 pub struct InputsResult {
     /// Address spends in input order within each creation height.
     pub sent_data: AddressSpends,
-    /// Transaction indexes per address for tx_count tracking.
-    pub tx_index_vecs: AddrTypeToTypeIndexMap<TxIndexes>,
+    /// Transaction indexes per address for tx_count tracking, by shard.
+    pub tx_index_vecs: [AddrTypeToTypeIndexMap<TxIndexes>; SHARDS],
 }
 
 /// Process inputs (spent UTXOs) for a block.
@@ -33,9 +36,10 @@ pub fn process_inputs(
     let txin_index_to_prev_height = &txin_index_to_prev_height[..input_count];
 
     // Addresses are spread across eight types.
-    let estimated_per_type = (input_count / 8).max(8);
+    let estimated = (input_count / 8 / SHARDS).max(8);
     let mut sent_data = AddressSpends::new(input_count);
-    let mut tx_index_vecs = AddrTypeToTypeIndexMap::<TxIndexes>::with_capacity(estimated_per_type);
+    let mut tx_index_vecs =
+        std::array::from_fn(|_| AddrTypeToTypeIndexMap::<TxIndexes>::with_capacity(estimated));
 
     let mut processed = 0;
     for (local_idx, tx_index) in txs.enumerate() {
@@ -50,7 +54,7 @@ pub fn process_inputs(
 
         let type_index = txin_index_to_type_index[local_idx];
         sent_data.push(prev_height, output_type, type_index, value);
-        match tx_index_vecs
+        match tx_index_vecs[shard_of(type_index)]
             .get_mut(output_type)
             .unwrap()
             .entry(type_index)
@@ -64,7 +68,7 @@ pub fn process_inputs(
         }
     }
 
-    assert_eq!(
+    debug_assert_eq!(
         processed, input_count,
         "incomplete input transaction ranges"
     );

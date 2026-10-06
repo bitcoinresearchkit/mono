@@ -21,9 +21,9 @@ pub use reused::{ReusedAddrState, ReusedAddrTypeState, ReusedAddrVecs};
 pub use sourced_data::SourcedAddrData;
 pub use state::{
     AddrMetricsState, AddrReceivePreState, AddrReceiveStatus, AddrSendPreState,
-    AddrTypeMetricsState,
+    AddrTypeMetricsState, add_type_delta,
 };
 pub use state_vecs::AddrStateVecs;
 pub use supply::AddrTypeToSupply;
-pub use type_map::{AddrTypeToTypeIndexMap, AddrTypeToVec};
+pub use type_map::{AddrTypeToTypeIndexMap, AddrTypeToVec, SHARDS, shard_of};
 pub use vecs::AddrVecs;

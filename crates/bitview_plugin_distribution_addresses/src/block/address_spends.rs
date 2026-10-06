@@ -5,6 +5,8 @@ use bitview_primitives::TypeIndex;
 use brk_types::{Cents, Height, OutputType, Sats};
 use rustc_hash::FxHashMap;
 
+use crate::addr::{SHARDS, shard_of};
+
 /// Origin groups in the established hash order, with input order within each group.
 /// Dense rows and links avoid allocating a separate vector for every origin.
 pub struct AddressSpends {
@@ -41,13 +43,19 @@ impl AddressSpends {
         }
     }
 
-    pub fn into_typed(self, prices: &[Cents]) -> ByAddrType<Vec<(TypeIndex, Sats, Cents)>> {
-        let mut typed = ByAddrType::<Vec<(TypeIndex, Sats, Cents)>>::default();
+    /// Each shard's spends per type, in the established order.
+    pub fn into_typed(
+        self,
+        prices: &[Cents],
+    ) -> [ByAddrType<Vec<(TypeIndex, Sats, Cents)>>; SHARDS] {
+        let mut typed: [ByAddrType<Vec<(TypeIndex, Sats, Cents)>>; SHARDS] = Default::default();
         for (height, (mut position, _)) in self.origins {
             let price = prices[usize::from(height)];
             while position != u32::MAX {
                 let (ty, index, value) = self.rows[position as usize];
-                typed.get_mut_unwrap(ty).push((index, value, price));
+                typed[shard_of(index)]
+                    .get_mut_unwrap(ty)
+                    .push((index, value, price));
                 position = self.next[position as usize];
             }
         }

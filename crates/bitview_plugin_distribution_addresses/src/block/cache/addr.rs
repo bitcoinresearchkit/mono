@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{AddrStateVecs, AddrTypeToTypeIndexMap, SourcedAddrData},
+    addr::{AddrStateVecs, AddrTypeToTypeIndexMap, SHARDS, SourcedAddrData, shard_of},
     compute::AddrReaders,
 };
 
@@ -68,7 +68,7 @@ impl AddressKey {
 /// place: their UTXO count tells funded and empty apart at flush.
 #[derive(Default)]
 pub struct AddrCache {
-    addrs: AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
+    shards: [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>; SHARDS],
     /// Reusable scratch space for the unique addresses touched by one batch.
     addresses: Vec<AddressKey>,
     /// Reusable scratch space for their loaded sources.
@@ -96,10 +96,10 @@ impl AddrCache {
         );
         self.addresses.sort_unstable();
         self.addresses.dedup();
-        let addrs = self.addrs.output_type_refs();
+        let shards = &self.shards;
         self.addresses.retain(|address| {
-            !addrs[address.addr_type() as usize]
-                .unwrap()
+            !shards[shard_of(address.type_index())]
+                .get_unwrap(address.addr_type())
                 .contains_key(&address.type_index())
         });
 
@@ -112,18 +112,25 @@ impl AddrCache {
             .collect_into_vec(&mut self.sources);
 
         for (address, source) in self.addresses.iter().copied().zip(self.sources.drain(..)) {
-            self.addrs
-                .insert_for_type(address.addr_type(), address.type_index(), source);
+            self.shards[shard_of(address.type_index())].insert_for_type(
+                address.addr_type(),
+                address.type_index(),
+                source,
+            );
         }
     }
 
     /// Cached addresses, across types.
     pub fn len(&self) -> usize {
-        self.addrs.iter().map(|(_, addrs)| addrs.len()).sum()
+        self.shards
+            .iter()
+            .flat_map(|shard| shard.iter())
+            .map(|(_, addrs)| addrs.len())
+            .sum()
     }
 
-    /// Each type's cached addresses, for processing the types apart.
-    pub fn types_mut(
+    /// Each shard's cached addresses per type, shard by shard, for processing them apart.
+    pub fn shards_mut(
         &mut self,
     ) -> impl Iterator<
         Item = (
@@ -131,16 +138,18 @@ impl AddrCache {
             &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>,
         ),
     > {
-        self.addrs.iter_mut()
+        self.shards.iter_mut().flat_map(|shard| shard.iter_mut())
     }
 
-    /// Persist pending address states. Each type's table keeps room for as many addresses as
-    /// it just held, so a type the chain moved away from stops holding its peak.
+    /// Persist pending address states. Each table keeps room for as many addresses as it just
+    /// held, so a type the chain moved away from stops holding its peak.
     pub fn flush_into(&mut self, state: &mut AddrStateVecs) -> Result<()> {
-        let lengths = self.addrs.lengths();
-        state.apply_updates(&mut self.addrs)?;
-        for (addr_type, addrs) in self.addrs.iter_mut() {
-            addrs.shrink_to(*lengths.get_unwrap(addr_type));
+        let lengths = self.shards.each_ref().map(|shard| shard.lengths());
+        state.apply_updates(&mut self.shards)?;
+        for (shard, lengths) in self.shards.iter_mut().zip(lengths) {
+            for (addr_type, addrs) in shard.iter_mut() {
+                addrs.shrink_to(*lengths.get_unwrap(addr_type));
+            }
         }
         Ok(())
     }

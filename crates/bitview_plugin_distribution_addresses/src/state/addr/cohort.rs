@@ -75,9 +75,9 @@ enum Change {
     },
 }
 
-/// One address type's cohort changes in one block, in order. Address types are processed
-/// apart and their logs applied to the shared cohorts afterwards: cohort state only sums, and
-/// each address's own changes keep their order.
+/// One shard's cohort changes in one block, in order. Shards are processed apart and their logs
+/// applied to the shared cohorts afterwards: cohort state only sums, and each address's own
+/// changes keep their order.
 #[derive(Default)]
 pub struct CohortLog(Vec<(AmountRangeId, Change)>);
 

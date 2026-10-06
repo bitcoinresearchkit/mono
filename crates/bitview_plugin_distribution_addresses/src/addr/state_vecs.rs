@@ -156,7 +156,7 @@ impl AddrStateVecs {
 
     pub fn apply_updates(
         &mut self,
-        cache: &mut AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
+        cache: &mut [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>],
     ) -> Result<()> {
         info!("Updating address state...");
         let started = Instant::now();

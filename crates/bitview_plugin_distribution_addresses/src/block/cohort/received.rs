@@ -11,7 +11,7 @@ use crate::{
 
 use super::super::cache::AddrTypeLookup;
 
-/// Apply one address type's received outputs for a block.
+/// Apply one shard's received outputs for a block.
 pub fn process_received(
     received: FxHashMap<TypeIndex, Received>,
     cohorts: &mut CohortLog,
