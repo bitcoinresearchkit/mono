@@ -2539,23 +2539,6 @@
         }
       }
 
-      /* A window: its amount and its unit, side by side, and what it is at the interval under them. */
-      .span-field {
-        display: grid;
-        grid-template-columns: 1fr 104px;
-        gap: 6px;
-
-        .number-input {
-          padding-right: 9px;
-        }
-      }
-
-      .window-note {
-        margin: 0;
-        color: var(--soft);
-        font-size: 12px;
-      }
-
       select.select {
         width: 100%;
         height: 28px;
@@ -5108,77 +5091,52 @@
       const FORMATS = [["auto", "Automatic"], ["usd", "US dollars"], ["btc", "Bitcoin"], ["sats", "Satoshis"], ["percent", "Percent"], ["ratio", "Ratio ×"], ["count", "Count"], ["number", "Number"]];
       const UNIT_SIGNS = { usd: "USD", cents: "¢", btc: "BTC", sats: "sats", percent: "%", ratio: "×", bps: "bps" };
       const UNIT_NAMES = { usd: "US dollars", cents: "Cents", btc: "Bitcoin", sats: "Satoshis", percent: "Percent", ratio: "Ratio", bps: "Basis points", count: "Count", number: "Number" };
-      /** @typedef {{ n: number, unit: string }} TimeSpan A window: a span of time, `n` hours, days, weeks, months or years. */
-      /** Each transform: its tab, its default window (none without one), and what it does. @type {[string, string, TimeSpan | null, string][]} */
-      const TRANSFORMS = [
-        ["none", "None", null, "As it is"],
-        ["sma", "SMA", { n: 30, unit: "day" }, "Simple moving average"],
-        ["ema", "EMA", { n: 30, unit: "day" }, "Exponential moving average"],
-        ["change", "Δ%", { n: 30, unit: "day" }, "Percent change over the window"],
-        ["zscore", "Z", { n: 1, unit: "year" }, "Standard deviations from the rolling mean"],
-        ["log", "Log", null, "Base-10 logarithm"],
+      /**
+       * Formulas made from a layer in one click (X its letter): those that read on its scale (`over`: an average, a
+       * band) in its pane and on its axis, the others in a pane of their own. A band is two layers. Each is a formula
+       * like any, its window to change in it.
+       * @type {{ id: string, label: string, text: string, formulas: string[], over: boolean }[]}
+       */
+      const STARTERS = [
+        { id: "sma", label: "Moving average", text: "Its mean over a span", formulas: ["sma(X, 200d)"], over: true },
+        { id: "ema", label: "Exponential average", text: "Its mean, the recent weighing more", formulas: ["ema(X, 200d)"], over: true },
+        { id: "bands", label: "Deviation bands", text: "Two standard deviations around its mean", formulas: ["sma(X, 1y) + 2 * stdev(X, 1y)", "sma(X, 1y) - 2 * stdev(X, 1y)"], over: true },
+        { id: "percentiles", label: "Percentile band", text: "Its 95th and 5th percentiles over a span", formulas: ["percentile(X, 1y, 95)", "percentile(X, 1y, 5)"], over: true },
+        { id: "median", label: "Median", text: "The middle of its values over a span", formulas: ["percentile(X, 1y, 50)"], over: true },
+        { id: "zscore", label: "Z-score", text: "Its deviations from the rolling mean", formulas: ["zscore(X, 1y)"], over: false },
+        { id: "change", label: "Change over time", text: "Its percent change over a span", formulas: ["change(X, 30d)"], over: false },
+        { id: "ath", label: "All-time high", text: "Its highest so far", formulas: ["ath(X)"], over: true },
+        { id: "log", label: "Logarithm", text: "Its base-10 logarithm", formulas: ["log(X)"], over: false },
       ];
-      /** A transform's window when none is set (none without one). */
-      const windowOf = (/** @type {string} */ fn) => TRANSFORMS.find(([id]) => id === fn)?.[2] ?? null;
-      /** A transform as stored, sound: its window a span (a number alone, from before, is days: what it was at 1D). */
-      const soundTransform = (/** @type {{ fn: string, n?: unknown, unit?: unknown }} */ transform) => {
-        const fallback = windowOf(transform.fn), n = Number(transform.n);
-        if (!fallback) return { fn: transform.fn };
-        if (!(n > 0 && n <= 100000)) return { fn: transform.fn, ...fallback };
-        return { fn: transform.fn, n, unit: typeof transform.unit === "string" && Object.hasOwn(SPAN_DAYS, transform.unit) ? transform.unit : "day" };
-      };
-      /** Transform `fn`, with the window it had (else its default; none if `fn` takes none). @returns {Layer["transform"]} */
-      const transformTo = (/** @type {string} */ fn, /** @type {Layer["transform"]} */ was) => {
-        const fallback = windowOf(fn);
-        if (fn === "none") return undefined;
-        return fallback ? { fn, ...(was?.n ? { n: was.n, unit: was.unit ?? "day" } : fallback) } : { fn };
-      };
+      /**
+       * A transform a layer had before (sma, ema, change, zscore, log over a window) as the formula of `of` it is now: a
+       * window from before in points, or without a unit, in days (what it was at 1D). Null for none.
+       */
+      function transformFormula(/** @type {any} */ transform, /** @type {string} */ of) {
+        const fn = transform?.fn;
+        if (!["sma", "ema", "change", "zscore", "log"].includes(fn)) return null;
+        if (fn === "log") return `log(${of})`;
+        const n = Number(transform.n), letters = { hour: "h", day: "d", week: "w", month: "mo", year: "y" };
+        if (!(n > 0 && n <= 100000)) return `${fn}(${of}, ${fn === "zscore" ? "1y" : "30d"})`;
+        return `${fn}(${of}, ${n}${typeof transform.unit === "string" && Object.hasOwn(letters, transform.unit) ? letters[/** @type {keyof typeof letters} */ (transform.unit)] : "d"})`;
+      }
       /** Line widths in pixels, by halves up to 5: the width slider's stops (the chart draws halves crisply on dense screens). */
       const WIDTHS = Array.from({ length: 10 }, (_, i) => (i + 1) / 2);
       /** Opacities, in tenths: the opacity slider's stops. */
       const OPACITIES = Array.from({ length: 10 }, (_, i) => (i + 1) / 10);
-      /** A window's unit at each interval, and each interval in words. */
-      const POINT_WORDS = { minute10: "× 10 minutes", minute30: "× 30 minutes", hour1: "hours", hour4: "× 4 hours", hour12: "× 12 hours", day1: "days", day3: "× 3 days", week1: "weeks", month1: "months", month3: "quarters", month6: "half-years", year1: "years", year10: "decades" };
       /** A window's units in days (a month and a year on average), the letters formulas write them with, and each interval in days. */
       const SPAN_DAYS = { hour: 1 / 24, day: 1, week: 7, month: 365.25 / 12, year: 365.25 };
       const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year" };
       const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year };
       /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
       const windowPoints = (/** @type {number} */ days, /** @type {string} */ index) => Math.max(1, Math.round(days / INTERVAL_DAYS[index]));
-      /** "30 days", "1 year". @param {TimeSpan} span */
-      const spanText = ({ n, unit }) => `${Number.isInteger(n) ? grouped.format(n) : n} ${unit}${n === 1 ? "" : "s"}`;
-      /** What a window is at an interval. @param {TimeSpan} span */
-      const windowNote = (span, /** @type {string} */ index) => {
-        const days = span.n * SPAN_DAYS[span.unit], points = windowPoints(days, index), at = INTERVAL_LABEL[index];
-        if (days < INTERVAL_DAYS[index]) return "Shorter than the interval: one point";
-        if (points === 1) return `One point at ${at}`;
-        const counted = `${grouped.format(points)} ${POINT_WORDS[index].startsWith("×") ? "points" : POINT_WORDS[index]} at ${at}`;
-        if (!FINE.has(index) || points <= loadsAtFirst(index)) return counted;
-        return points > MOST_CHUNKS * CHUNK ? `${counted}: more than it holds (${grouped.format(MOST_CHUNKS * CHUNK)})` : `${counted}: more than it loads at first (${grouped.format(loadsAtFirst(index))})`;
-      };
       /** Whether a window is longer than `x`'s values reach (from its first to its last), so none fits. */
       const outreaches = (/** @type {Vector} */ x, /** @type {number} */ points) => {
         const first = x.findIndex(Number.isFinite), last = x.findLastIndex(Number.isFinite);
         return first >= 0 && last - first < points;
       };
-      /** The points a chart loads at first at a fine interval, on its preset: from its first chunk to now. */
-      const loadsAtFirst = (/** @type {string} */ index) => indexAt(index, Date.now() / 1000) - presetSpan(index, chart.range).from * CHUNK + 1;
       /** Why a window gives nothing: longer than the data (than a fine interval loads, when longer than the timeline: `beyond`). */
       const windowTooLong = (/** @type {number} */ points, /** @type {string} */ index, /** @type {boolean} */ beyond) => `window of ${grouped.format(points)} points at ${INTERVAL_LABEL[index]} is longer than the data${beyond && FINE.has(index) ? " loaded (a coarser interval holds more)" : ""}`;
-      /** A window as typed: an amount (a number, or arithmetic: 4 * 365) and a unit (30d, 4 weeks), else `unit`. @returns {TimeSpan | null} */
-      function readWindow(/** @type {string} */ text, /** @type {string} */ unit) {
-        const [, amount = "", word] = /^(.*?)\s*(hours?|h|days?|d|weeks?|w|months?|mo|years?|y)?$/i.exec(text.trim()) ?? [];
-        try {
-          const n = evaluate(parse(amount), 1, () => {
-            throw new Error("A number");
-          }, "day1");
-          if (typeof n !== "number" || !(n > 0 && n <= 100000)) return null;
-          const key = word?.toLowerCase().replace(/s$/, "");
-          return { n, unit: key ? SPAN_LETTERS[key] ?? key : unit };
-        } catch {
-          return null;
-        }
-      }
       const CADENCE = { minute10: "Every 10 minutes", minute30: "Every 30 minutes", hour1: "Hourly", hour4: "Every 4 hours", hour12: "Every 12 hours", day1: "Daily", day3: "Every 3 days", week1: "Weekly", month1: "Monthly", month3: "Quarterly", month6: "Every 6 months", year1: "Yearly", year10: "By decade" };
 
       // ── Units and formatting ──────────────────────────────────────────────────
@@ -5719,7 +5677,7 @@
       /**
        * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, color: string,
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, colorBelow?: string, opacity?: number,
-       *   transform?: { fn: string, n?: number, unit?: string }, format?: string, base?: number, path?: string, paths?: Record<string, string>,
+       *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
        *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number } }} Layer
        * @typedef {{ value: number, color?: string, dash?: number }} Level A line across at a value: its color (else its
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, in sparse dots).
@@ -6536,7 +6494,7 @@
       const datedIntervals = (meta) => INTERVAL_ORDER.filter((id) => meta?.indexes?.includes(id));
 
       /**
-       * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], unit: string, error?: string, info?: any, unavailable?: boolean, missing?: boolean, windowDays?: number }} Result
+       * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], unit: string, error?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
        * @typedef {{ times: number[], results: Map<string, Result>, stamp: string, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
        */
 
@@ -6584,13 +6542,6 @@
         const length = times.length;
         /** @type {Map<string, Result>} */
         const results = new Map();
-        const transform = (layer, result) => {
-          const { fn = "none", n = 1, unit = "day" } = layer.transform ?? {};
-          if (fn === "none" || !result.values) return { ...result, shown: result.values };
-          const points = windowPoints(n * SPAN_DAYS[unit], doc.index), shown = FUNCTIONS[fn][3](result.values, points);
-          if (windowOf(fn) && !shown.some(Number.isFinite) && outreaches(result.values, points)) return { ...result, shown: undefined, ohlc: undefined, error: `A ${windowTooLong(points, doc.index, points > length)}`, windowDays: n * SPAN_DAYS[unit] };
-          return { ...result, shown, ohlc: undefined, unit: unitOfCall(fn, result.unit) };
-        };
         /** A series' data on the timeline: its values (a candle's close), and its candles when it has them (once a series, its layers and formulas sharing them). */
         const aligned = new Map();
         const align = (data) => {
@@ -6614,7 +6565,8 @@
             results.set(layer.id, { unit: units.get(layer.series) ?? "number", error: failure(error, doc.index), info: meta, unavailable: Boolean(error?.unavailable), missing: error?.status === 404 });
             continue;
           }
-          results.set(layer.id, transform(layer, { ...align(data), unit: unitOf(layer.series, meta.type), info: meta }));
+          const { values, ohlc } = align(data);
+          results.set(layer.id, { values, ohlc, shown: values, unit: unitOf(layer.series, meta.type), info: meta });
         }
         /** The series formulas name, as they are (no transform: a formula applies its own). @type {Map<string, Result>} */
         const bySeries = new Map();
@@ -6659,10 +6611,12 @@
               const target = byLetter.get(name);
               return (target.formula !== undefined ? compute(target) : results.get(target.id))?.unit ?? null;
             }) ?? "number";
-            const result = transform(layer, { values, unit });
+            /** @type {Result} */
+            const result = { values, shown: values, unit };
             results.set(layer.id, result);
             return result;
           } catch (error) {
+            /** @type {Result} */
             const result = { unit: "number", error: error.message };
             results.set(layer.id, result);
             return result;
@@ -6852,7 +6806,7 @@
       /** Whether what's drawn is this chart with all its data. */
       const settled = () => Boolean(resolved) && drawnChart === chart.id && drawnVersion === drawVersion;
       /** What a chart's data depends on: its interval and what each layer reads (in any order). */
-      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula, transform }) => [id, letter, series, formula, transform]).sort()]);
+      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula }) => [id, letter, series, formula]).sort()]);
 
       /**
        * Fetches what's missing, then rebuilds every series from cached data (fast enough to do on each edit).
@@ -7931,7 +7885,7 @@
       // ── Mini charts: each chart's own shape, and each layer's, from their data ───────────────────────
       // One pass per chart squeezes every layer, with its formulas and its pane's scale, to a few dozen points: up to
       // three of them make the chart's mark, each one alone makes its layer's mark in the legend. Monthly data is
-      // enough, except where windows run (sma, transforms…: a short one would be a point there): those use the chart's
+      // enough, except where windows run (sma, stdev…: a short one would be a point there): those use the chart's
       // own interval. Only the drawings are kept, by chart, with what they were drawn from and the day; a change, or a
       // new day, redraws them.
 
@@ -7946,7 +7900,7 @@
       const thumbs = new Map(Object.entries(storage.get(THUMBS, {})).filter(([, thumb]) => validThumb(thumb)));
       const WINDOWED = /\b(sma|ema|sum|stdev|zscore|percentile|change|diff|lag|highest|lowest)\s*\(/;
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size]), doc.layers.map((layer) => [layer.series, layer.formula, layer.transform, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size]), doc.layers.map((layer) => [layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter])]);
       /**
        * A layer's shape: its values as its pane scales them (log, or from the first value), averaged down to the mini
        * charts' points and lightly smoothed (at this size, the trend is what reads), with the range of the full values.
@@ -8009,7 +7963,7 @@
       /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @returns {Promise<Drawing | null>} null when a fetch failed */
       async function drawThumb(doc) {
         const coarse = INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf("month1");
-        const windowed = doc.layers.some((layer) => layer.transform?.fn && windowOf(layer.transform.fn) || WINDOWED.test(layer.formula ?? ""));
+        const windowed = doc.layers.some((layer) => WINDOWED.test(layer.formula ?? ""));
         const index = coarse || windowed ? doc.index : "month1";
         const data = await resolve({ ...doc, index });
         if (retryFailed(doc, data, index)) return null;
@@ -9194,7 +9148,7 @@
         }
         // While typing into this layer's formula or name, keep the field (and its caret) as it is.
         const active = document.activeElement;
-        if (inspected === layer.id && panel.contains(active) && (["formula", "label", "window", "base"].includes(active.id) || active.id.startsWith("level-"))) {
+        if (inspected === layer.id && panel.contains(active) && (["formula", "label", "base"].includes(active.id) || active.id.startsWith("level-"))) {
           updateFormula(layer);
           return;
         }
@@ -9206,9 +9160,6 @@
         const meta = result?.info;
         const isFormula = layer.formula !== undefined;
         const unit = unitFor(layer, result);
-        const transform = layer.transform ?? { fn: "none" };
-        const fallback = windowOf(transform.fn);
-        const span = fallback && { n: transform.n ?? fallback.n, unit: transform.unit ?? fallback.unit };
         const stackOfPane = chart.panes.find((pane) => pane.id === layer.pane)?.stack ?? "";
         const sourceSection = isFormula
           ? `<section>
@@ -9221,7 +9172,7 @@
               <p id="formula-status" class="formula-status"></p>
               <details class="help"><summary>Functions and how letters work</summary>
                 <div class="functions">${Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => `<button type="button" data-insert="${name}("><b>${escape(signature)}</b><span>${escape(what)}</span></button>`).join("")}</div>
-                <p>Capital letters are layers as drawn, transforms included; a series by its name (${escape(tree.price.split.close.usd.name)}) is the series itself. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point.</p>
+                <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.split.close.usd.name)}) is the series itself. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point.</p>
               </details>
             </section>`
           : `<section>
@@ -9243,9 +9194,11 @@
           </div>
           ${sourceSection}
           <section>
-            <h3>Transform</h3>
-            <div class="tabs" role="group" aria-label="Transform">${TRANSFORMS.map(([fn, text, , tip]) => `<button type="button" data-transform="${fn}" aria-pressed="${transform.fn === fn}" data-tip="${tip}">${text}</button>`).join("")}</div>
-            ${span ? `<div class="field"><span>Window${resetFor("window", layer)}</span><div class="span-field"><input id="window" class="number-input" aria-label="Window" spellcheck="false" autocomplete="off" value="${span.n}" data-tip="An amount, a unit with it too: 4 * 365d, 4y, 200 weeks" /><select id="window-unit" class="select" aria-label="Window unit">${Object.keys(SPAN_DAYS).map((unit) => `<option value="${unit}" ${span.unit === unit ? "selected" : ""}>${unit.charAt(0).toUpperCase()}${unit.slice(1)}s</option>`).join("")}</select></div><p id="window-note" class="window-note">${escape(windowNote(span, chart.index))}</p></div>` : ""}
+            <h3>Formulas</h3>
+            <div class="actions-row">
+              <button type="button" class="btn" data-action="derive" aria-haspopup="menu" data-tip="A moving average, bands, a percentile… as a layer of its own">${ICONS.formula}New formula from ${layer.letter}</button>
+              ${isFormula ? "" : `<button type="button" class="btn" data-action="to-formula" data-tip="This layer as a formula of its series, to write around it">Turn into a formula</button>`}
+            </div>
           </section>
           <section>
             <h3>Style</h3>
@@ -9303,15 +9256,6 @@
         width: { is: (layer) => layer.width === 1.5, set: (layer) => (layer.width = 1.5), text: "1.5px", focus: "#width" },
         base: { is: (layer) => (layer.base ?? 0) === 0, set: (layer) => (layer.base = undefined), text: "0", focus: "#base" },
         format: { is: (layer) => !layer.format, set: (layer) => (layer.format = undefined), text: "Automatic", focus: "#format" },
-        window: {
-          is: (layer) => {
-            const fallback = windowOf(layer.transform?.fn ?? "none");
-            return !fallback || (layer.transform?.n === fallback.n && layer.transform?.unit === fallback.unit);
-          },
-          set: (layer) => layer.transform && (layer.transform = transformTo(layer.transform.fn, undefined)),
-          text: "its default",
-          focus: "#window",
-        },
       };
       const resetFor = (key, layer) => (DEFAULTS[key].is(layer) ? "" : `<button type="button" class="reset" data-reset="${key}" aria-label="Reset to ${DEFAULTS[key].text}" data-tip="Reset to ${DEFAULTS[key].text}">${ICONS.undo}</button>`);
       /** The inspector's sliders, each a few values in order: what it steps through, how its value reads, what it sets. */
@@ -9620,11 +9564,6 @@
         // Renamed or removed in a newer Bitview: the closest series is offered, or another one to pick.
         if (result.missing) return `<div class="error-box gone"><p>Bitview doesn't have this series anymore: it was renamed or removed.</p>
           <div id="replacement" class="replacement"><span class="shimmer">Looking for the closest one…</span></div></div>`;
-        // A window longer than the data: nothing to fetch again; the next interval it fits in (at first), when there's one.
-        if (result.windowDays) {
-          const days = result.windowDays, fits = INTERVAL_ORDER.slice(INTERVAL_ORDER.indexOf(chart.index) + 1).find((id) => (!result.info || result.info.indexes.includes(id)) && (!FINE.has(id) || windowPoints(days, id) <= loadsAtFirst(id)));
-          return `<div class="error-box">${escape(result.error)}.${fits && FINE.has(chart.index) ? `<button type="button" class="btn" data-index="${fits}">Switch to ${escape(INTERVAL_LABEL[fits])}</button>` : ""}</div>`;
-        }
         return `<div class="error-box">${escape(result.error)}.<button type="button" class="btn" data-action="retry">Retry</button></div>`;
       }
       /** The series closest to a gone one, by its words; asked once per name. */
@@ -9800,13 +9739,11 @@
       }
       document.addEventListener("focusout", (event) => {
         const field = /** @type {HTMLInputElement} */ (event.target);
-        // A window typed as arithmetic or with its unit reads as it's kept once left (4 * 365 → 1460, 4y → 4).
-        if (field.id === "window" || field.id === "base") {
-          // Its label again, with its Reset now (only it: the panel drawn again would lose the click that left the field).
+        if (field.id === "base") {
+          // Its Reset put in or taken out (only it: the panel drawn again would lose the click that left the field).
           const layer = layerById(selected), label = field.closest(".field")?.firstElementChild, reset = label?.querySelector(".reset");
-          if (layer && label && !DEFAULTS[field.id].is(layer) && !reset) label.insertAdjacentHTML("beforeend", resetFor(field.id, layer));
-          else if (layer && DEFAULTS[field.id].is(layer)) reset?.remove();
-          if (field.id === "window" && layer?.transform?.n !== undefined) field.value = String(layer.transform.n);
+          if (layer && label && !DEFAULTS.base.is(layer) && !reset) label.insertAdjacentHTML("beforeend", resetFor("base", layer));
+          else if (layer && DEFAULTS.base.is(layer)) reset?.remove();
           return;
         }
         if (field.id !== "formula") return;
@@ -9831,14 +9768,6 @@
           const layer = layerById(selected);
           if (layer) updateFormula(layer);
           updateSuggestions();
-        } else if (target.id === "window") {
-          // (Kept as typed while typing: the unit follows one typed with the amount, and the note says what it is.)
-          const unit = /** @type {HTMLSelectElement} */ ($("window-unit")), span = readWindow(target.value, unit.value);
-          if (span) {
-            unit.value = span.unit;
-            $("window-note").textContent = windowNote(span, chart.index);
-            editLayer((layer) => layer.transform && (layer.transform = { ...layer.transform, ...span }), { coalesce: `window:${selected}` });
-          }
         } else if (target.id === "base") {
           const base = Number(target.value);
           if (target.value !== "" && Number.isFinite(base)) editLayer((layer) => (layer.base = base), { coalesce: `base:${selected}` });
@@ -9881,7 +9810,6 @@
           layer.pane = target.value === "new" ? newPaneIn(doc).id : target.value;
         });
         else if (target.id === "format") editLayer((layer) => (layer.format = target.value === "auto" ? undefined : target.value));
-        else if (target.id === "window-unit") editLayer((layer) => layer.transform && (layer.transform = { ...layer.transform, unit: target.value }));
       });
       $("inspector").addEventListener("mousedown", (event) => {
         const option = closest(event, "[data-suggest]");
@@ -9892,12 +9820,10 @@
       $("inspector").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
-        const { transform, type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorTarget: target, replace, removeLevel, lineColor, lineDash } = button.dataset;
+        const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorTarget: target, replace, removeLevel, lineColor, lineDash } = button.dataset;
         if (index) switchInterval(index);
-        else if (transform) editLayer((layer) => {
-          layer.transform = transformTo(transform, layer.transform);
-          if (layer.transform && layer.type === "candles") layer.type = "line";
-        });
+        else if (action === "derive") deriveMenu(button, selected);
+        else if (action === "to-formula") toFormula(selected);
         else if (type) editLayer((layer) => (layer.type = type));
         else if (dash) editLayer((layer) => (layer.dash = Number(dash)));
         else if (shape) editLayer((layer) => (layer.shape = shape === "straight" ? undefined : shape));
@@ -10119,6 +10045,55 @@
         if (!added) return;
         select(added.id);
         toast(`Added ${formula} as ${added.letter}`);
+      }
+
+      /** The starters of formulas from a layer, as a menu from the inspector's button. */
+      function deriveMenu(/** @type {HTMLElement} */ button, /** @type {string} */ id) {
+        const layer = layerById(id);
+        if (!layer) return;
+        const rows = STARTERS.map((starter) => `<button type="button" data-starter="${starter.id}">${ICONS.formula}${escape(starter.label)}<span>${escape(starter.formulas[0].replaceAll("X", layer.letter))}${starter.formulas.length > 1 ? " …" : ""}</span></button>`).join("");
+        showMenu(button, `${rows}<div class="menu-rule"></div><button type="button" data-starter="own">${ICONS.pencil}Write your own</button>`, ({ starter }) => derive(id, starter));
+      }
+      /**
+       * A starter's formulas from a layer, added: in its pane when they're in its unit, else in a new one (a band's two
+       * lines in one color), the first selected, its window to set in its formula. "own": ⌘K's formula page on its letter.
+       */
+      function derive(/** @type {string} */ id, /** @type {string} */ starter) {
+        const source = layerById(id);
+        if (!source) return;
+        if (starter === "own") return openPalette({ formula: true, into: source.pane, query: source.letter });
+        const formulas = (STARTERS.find((item) => item.id === starter)?.formulas ?? []).map((text) => text.replaceAll("X", source.letter));
+        if (!formulas.length) return;
+        if (chart.layers.length + formulas.length > MAX_LAYERS) return void toast(`A chart holds up to ${MAX_LAYERS} layers`);
+        // (Over a stack, it would add to it: a pane of its own then too.)
+        const over = Boolean(STARTERS.find((item) => item.id === starter)?.over) && !chart.panes.find((pane) => pane.id === source.pane)?.stack;
+        /** @type {Layer | undefined} */
+        let first;
+        commit((doc) => {
+          const here = over && doc.panes.some((item) => item.id === source.pane), pane = here ? source.pane : newPaneIn(doc).id;
+          for (const formula of formulas) {
+            const added = makeLayer({ formula, pane, ...(here ? { side: source.side } : {}), ...(first ? { color: first.color } : {}) }, doc);
+            doc.layers.push(added);
+            first ??= added;
+          }
+        });
+        if (!first) return;
+        select(first.id);
+        toast(`Added ${formulas.join(" and ")}`);
+      }
+      /** A series layer as a formula of its series (its name, color and place kept; candles a line), to write around it. */
+      function toFormula(/** @type {string} */ id) {
+        editById(id, (layer) => {
+          if (!layer.series) return;
+          layer.label ??= labelOf(layer);
+          if (layer.path) layer.paths = { [layer.series]: layer.path };
+          layer.formula = layer.series;
+          delete layer.series;
+          delete layer.path;
+          if (layer.type === "candles") layer.type = "line";
+        });
+        select(id);
+        requestAnimationFrame(() => $("formula")?.focus());
       }
 
       // ── Series search: bitview.space's, on this machine ───────────────────────
@@ -11041,9 +11016,9 @@
        * @typedef {{ title: string | (() => string), placeholder?: string, rows: () => any[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, set: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null }} Page
        */
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
-      /** What else a setting is called, for the search: "rename" finds a name, "sma" a transform, "resize" a height. */
+      /** What else a setting is called, for the search: "rename" finds a name, "sma" a formula from a layer, "resize" a height. */
       const SYNONYMS = {
-        title: "rename name", name: "rename label", transform: "moving average sma ema smooth", window: "period length", format: "format",
+        title: "rename name", name: "rename label", derive: "moving average sma ema smooth bands percentile median deviation zscore transform", "to-formula": "convert transform", format: "format",
         type: "line area bars candles dots style", color: "colour", "color-below": "colour", dash: "dashed dotted stroke", shape: "steps curved smooth",
         fill: "area", width: "thickness stroke", opacity: "transparency alpha", pane: "move", side: "left right", "price-line": "last value",
         base: "zero", levels: "horizontal lines threshold", hide: "visible show", remove: "delete", duplicate: "copy clone",
@@ -11393,7 +11368,7 @@
         };
       }
       /**
-       * Everything a layer is, each with its value, each to change: what it shows (its source, name, transform, unit);
+       * Everything a layer is, each with its value, each to change: what it shows (its source, name, formulas from it, unit);
        * its look; where it sits; its lines across (base, levels); then hiding, the panel, a copy, removing it. A choice or
        * a value typed comes back here.
        * @returns {Page}
@@ -11412,8 +11387,6 @@
           } });
           const now = () => layerById(id) ?? layer;
           const style = dashOf(layer.dash);
-          const transform = TRANSFORMS.find(([fn]) => fn === (layer.transform?.fn ?? "none")) ?? TRANSFORMS[0];
-          const span = transform[2] && { n: layer.transform?.n ?? transform[2].n, unit: layer.transform?.unit ?? transform[2].unit };
           const automatic = UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number";
           const color = (key, label, of, put) => ({ key, icon: swatchOf(of(layer)), label, aside: colorName(of(layer)), group: "Look", page: () => choicePage(label, () => SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: of(now()) === name, run: set((item) => put(item, name)), look: (doc) => {
             const item = doc.layers.find((other) => other.id === id);
@@ -11428,21 +11401,11 @@
               { key: "raw", icon: ICONS.link, label: "Open the raw data", aside: "As JSON, in a new tab", verb: "Open", group: "Shows", run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") },
             ] : []),
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: "Shows", page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
-            { key: "transform", icon: ICONS.formula, label: "Transform", aside: transform[0] === "none" ? "None" : `${transform[1]}${span ? ` · ${spanText(span)}` : ""}`, group: "Shows", page: () => choicePage("Transform", () => TRANSFORMS.map(([fn, short, , what]) => ({ key: fn, icon: ICONS.formula, label: fn === "none" ? "None" : what, aside: fn === "none" ? what : short, current: (now().transform?.fn ?? "none") === fn, run: set((item) => {
-              item.transform = transformTo(fn, item.transform);
-              if (item.transform && item.type === "candles") item.type = "line";
-            }) }))) },
-            ...(span ? [{ key: "window", icon: ICONS.sliders, label: "Window", aside: spanText(span), group: "Shows", page: () => inputPage({
-              title: "Window", value: `${span.n} ${span.unit}${span.n === 1 ? "" : "s"}`, placeholder: spanText(transform[2]), hint: "A span of time: 30 days, 4w, 4 * 365 days",
-              read: (text) => {
-                const typed = readWindow(text || spanText(transform[2]), span.unit);
-                return typed && `Set to ${spanText(typed)} · ${windowNote(typed, chart.index)}`;
-              },
-              apply: (text) => {
-                const typed = readWindow(text || spanText(transform[2]), span.unit);
-                if (typed) editById(id, (item) => item.transform && (item.transform = { ...item.transform, ...typed }));
-              },
-            }) }] : []),
+            { key: "derive", icon: ICONS.formula, label: `New formula from ${layer.letter}`, aside: "An average, bands, a percentile…", group: "Shows", page: () => ({ title: `New formula from ${layer.letter}`, rows: () => [
+              ...STARTERS.map((starter) => ({ kind: "row", key: starter.id, icon: ICONS.formula, label: starter.label, aside: starter.formulas.map((text) => text.replaceAll("X", layer.letter)).join(", "), mono: true, verb: "Add", run: () => derive(id, starter.id) })),
+              { kind: "row", key: "own", icon: ICONS.formula, label: "Write your own", aside: `From ${layer.letter}`, verb: "Write", run: () => derive(id, "own") },
+            ] }) },
+            ...(layer.series ? [{ key: "to-formula", icon: ICONS.formula, label: "Turn into a formula", aside: "Of its series, to write around it", verb: "Turn", group: "Shows", run: () => toFormula(id) }] : []),
             { key: "format", icon: ICONS.table, label: "Format", aside: layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] : `Automatic (${automatic})`, group: "Shows", page: () => choicePage("Format", () => FORMATS.map(([format, text]) => ({ key: format, icon: ICONS.table, label: format === "auto" ? `Automatic (${automatic})` : text, current: (now().format ?? "auto") === format, run: set((item) => (item.format = format === "auto" ? undefined : format)) }))) },
             { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Look", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => (item.type = type)) }))) },
             ...(pair
@@ -12012,17 +11975,14 @@
       const FIELDS = "#title, #label, .number-input";
       const typedFrom = new WeakMap();
       document.addEventListener("focusin", (event) => {
-        if (event.target instanceof HTMLInputElement && event.target.matches(FIELDS)) typedFrom.set(event.target, { value: event.target.value, unit: /** @type {HTMLSelectElement | null} */ ($("window-unit"))?.value });
+        if (event.target instanceof HTMLInputElement && event.target.matches(FIELDS)) typedFrom.set(event.target, event.target.value);
       });
       document.addEventListener("keydown", (event) => {
         const field = event.target;
         if (!(field instanceof HTMLInputElement) || !field.matches(FIELDS) || (event.key !== "Enter" && event.key !== "Escape")) return;
         event.preventDefault();
-        const from = typedFrom.get(field), unit = /** @type {HTMLSelectElement | null} */ ($("window-unit"));
-        if (event.key === "Escape" && from && (field.value !== from.value || (field.id === "window" && unit && unit.value !== from.unit))) {
-          // (A window's unit, which a typed one changes, goes back with its amount.)
-          if (field.id === "window" && unit && from.unit) unit.value = from.unit;
-          field.value = from.value;
+        if (event.key === "Escape" && typedFrom.has(field) && field.value !== typedFrom.get(field)) {
+          field.value = typedFrom.get(field);
           field.dispatchEvent(new Event("input", { bubbles: true }));
         }
         // The edit may have redrawn the field: leave whichever one has the focus now.
@@ -12165,6 +12125,7 @@
         const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
         for (const layer of input.layers.slice(0, MAX_LAYERS)) {
           if (!layer || typeof layer !== "object") continue;
+          /** @type {Record<string, any>} */
           const spec = {
             ...(typeof layer.series === "string"
               ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
@@ -12181,7 +12142,6 @@
             colorBelow: isColor(layer.colorBelow) ? layer.colorBelow : undefined,
             opacity: OPACITIES.includes(layer.opacity) && layer.opacity < 1 ? layer.opacity : undefined,
             letter: typeof layer.letter === "string" && /^[A-Z]{1,2}$/.test(layer.letter) ? layer.letter : undefined,
-            ...(TRANSFORMS.some(([fn]) => fn !== "none" && fn === layer.transform?.fn) ? { transform: soundTransform(layer.transform) } : {}),
             ...(FORMATS.some(([id]) => id === layer.format) ? { format: layer.format } : {}),
             ...(Number.isFinite(layer.base) ? { base: layer.base } : {}),
             ...(SHAPES.some(([id]) => id !== "straight" && id === layer.shape) ? { shape: layer.shape } : {}),
@@ -12189,6 +12149,18 @@
             levels: levelsOf(layer.levels),
             baseLine: Object.keys(lineStyleOf(layer.baseLine)).length ? lineStyleOf(layer.baseLine) : undefined,
           };
+          // A transform from before is the formula it was: a series layer becomes a formula of its series (named as it
+          // showed, a line: a formula has no candles).
+          const was = transformFormula(layer.transform, spec.series ?? spec.formula ?? "");
+          if (was && spec.series) {
+            const span = /, ([^)]+)\)$/.exec(was)?.[1];
+            spec.label ??= `${humanize(spec.series)} (${{ sma: "SMA", ema: "EMA", change: "Δ%", zscore: "Z", log: "Log" }[layer.transform.fn]}${span ? ` ${span}` : ""})`;
+            if (spec.path) spec.paths = { [spec.series]: spec.path };
+            spec.formula = was;
+            delete spec.series;
+            delete spec.path;
+            if (spec.type === "candles") spec.type = "line";
+          } else if (was) spec.formula = was;
           doc.layers.push(makeLayer({ ...Object.fromEntries(Object.entries(spec).filter(([, value]) => value !== undefined)), id: idOf(layer.id) }, doc));
         }
         normalize(doc);
@@ -12807,9 +12779,9 @@
       // ── Live price: between blocks, the price's own layers follow it ──────────
       // bitview.space's live price (round-dollar outputs of the last blocks and the mempool), read each second while the
       // page is seen, as its own chart does: the live element says it, and each layer drawing the price itself (its candles, its close or its spot, in
-      // dollars, cents or sats; no transform, no stack) has its point for the interval the clock is in moved there, a
+      // dollars, cents or sats; no stack) has its point for the interval the clock is in moved there, a
       // candle's high or low pushed out. Between blocks, the server's latest interval (its latest block's) can be over:
-      // a live bar then opens for the current one, from the last close. A transform or a formula of the price waits for
+      // a live bar then opens for the current one, from the last close. A formula of the price waits for
       // the next block, whose data takes over.
 
       /** The price's series, each with what the live price (in dollars) is in its unit. */
@@ -12822,7 +12794,7 @@
       /** The open chart's layers the live price moves: none on the grid, mid-draw, or with history alone loaded. */
       function liveLayers() {
         if (home || !settled() || (FINE.has(chart.index) && !spans.get(`${chart.id}@${chart.index}`)?.live)) return [];
-        return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && !layer.transform && layer.type !== "histogram" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack);
+        return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack);
       }
       /** Data with intervals added at its end, empty for now: every layer's, as copies (the data drawn stays as it was). */
       function widened(/** @type {Resolved} */ data, /** @type {number[]} */ added) {
