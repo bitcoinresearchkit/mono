@@ -52,7 +52,6 @@
         --field-focus: inset 0 0 0 1px var(--edge), 0 0 0 3px var(--line);
         /* The interface's own emphasis: the primary action, focus and indicators, in ink rather than a hue. */
         --primary: var(--ink);
-        --primary-hover: #ffffff;
         --primary-ink: var(--app);
         --live: #3ccf7c;
         --up: #3ccf7c;
@@ -197,22 +196,6 @@
           width: 14px;
           height: 14px;
           color: var(--soft);
-        }
-
-        &.primary {
-          border-color: transparent;
-          color: var(--primary-ink);
-          background: var(--primary);
-          box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), inset 0 -1px 0 rgb(0 0 0 / 0.12);
-          font-weight: 590;
-
-          &:hover:not(:disabled) {
-            background: var(--primary-hover);
-          }
-
-          svg {
-            color: currentColor;
-          }
         }
 
         &.ghost {
@@ -704,8 +687,6 @@
         color: var(--muted);
       }
 
-      /* Under search, in the same place however long the list: its + in the mini charts' column, its label on
-         theirs, quieter than a chart. */
       /* All charts and New chart: a step apart as the charts are, a break under them before the list. */
       .side-action {
         flex-shrink: 0;
@@ -995,6 +976,13 @@
             animation: breathe 2.4s ease-in-out infinite;
           }
         }
+      }
+
+      /* Offline: the dot stills and greys (the last block stays said). */
+      .live.offline i::before {
+        background: var(--faint);
+        box-shadow: none;
+        animation: none;
       }
 
       /* A new block: the dot rings once. */
@@ -3261,6 +3249,10 @@
           .item-meta {
             color: var(--muted);
             font-size: 12px;
+
+            &.error {
+              color: var(--danger);
+            }
           }
 
           mark {
@@ -4620,7 +4612,7 @@
             <input id="title" class="title" aria-label="Chart title" placeholder="Untitled chart" maxlength="120" spellcheck="false" autocomplete="off" />
           </div>
           <div class="head-actions">
-            <span id="saved" class="saved" aria-live="polite"></span>
+            <span id="saved" class="saved"></span>
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo"></button>
             <span class="divider"></span>
@@ -4756,7 +4748,6 @@
           <dl>
             <div><dt>Show the ⌘ shortcuts</dt><dd>Hold <kbd>⌘</kbd></dd></div>
             <div><dt>Search series, charts and commands</dt><dd><kbd>⌘K</kbd> or <kbd>/</kbd></dd></div>
-            <div><dt>In ⌘K, step back out of a folder or page</dt><dd><kbd>⌫</kbd></dd></div>
             <div><dt>Undo, redo</dt><dd><kbd>⌘Z</kbd><kbd>⇧⌘Z</kbd></dd></div>
             <div><dt>Show or hide the layers panel</dt><dd><kbd>P</kbd></dd></div>
             <div><dt>Collapse or expand the sidebar</dt><dd><kbd>\</kbd></dd></div>
@@ -4767,6 +4758,13 @@
             <div><dt>Open one of your first nine charts</dt><dd><kbd>⌘1</kbd>–<kbd>⌘9</kbd></dd></div>
             <div><dt>New chart</dt><dd><kbd>N</kbd></dd></div>
             <div><dt>Move a chart in your list</dt><dd><kbd>⌥↑</kbd><kbd>⌥↓</kbd> or drag</dd></div>
+          </dl>
+          <h3>All charts</h3>
+          <dl>
+            <div><dt>Pick the chart in focus</dt><dd><kbd>space</kbd> or <kbd>X</kbd></dd></div>
+            <div><dt>Pick every chart shown</dt><dd><kbd>⌘A</kbd></dd></div>
+            <div><dt>Delete the picked charts</dt><dd><kbd>⌫</kbd></dd></div>
+            <div><dt>Let the picked charts go</dt><dd><kbd>esc</kbd></dd></div>
           </dl>
           <h3>In ⌘K</h3>
           <dl>
@@ -5155,14 +5153,16 @@
         if (days < INTERVAL_DAYS[index]) return "Shorter than the interval: one point";
         if (points === 1) return `One point at ${at}`;
         const counted = `${grouped.format(points)} ${POINT_WORDS[index].startsWith("×") ? "points" : POINT_WORDS[index]} at ${at}`;
-        if (!FINE.has(index) || points <= FIRST_CHUNKS * CHUNK) return counted;
-        return points > MOST_CHUNKS * CHUNK ? `${counted}: more than it holds (${grouped.format(MOST_CHUNKS * CHUNK)})` : `${counted}: more than it loads at first (${grouped.format(FIRST_CHUNKS * CHUNK)})`;
+        if (!FINE.has(index) || points <= loadsAtFirst(index)) return counted;
+        return points > MOST_CHUNKS * CHUNK ? `${counted}: more than it holds (${grouped.format(MOST_CHUNKS * CHUNK)})` : `${counted}: more than it loads at first (${grouped.format(loadsAtFirst(index))})`;
       };
       /** Whether a window is longer than `x`'s values reach (from its first to its last), so none fits. */
       const outreaches = (/** @type {Vector} */ x, /** @type {number} */ points) => {
         const first = x.findIndex(Number.isFinite), last = x.findLastIndex(Number.isFinite);
         return first >= 0 && last - first < points;
       };
+      /** The points a chart loads at first at a fine interval, on its preset: from its first chunk to now. */
+      const loadsAtFirst = (/** @type {string} */ index) => indexAt(index, Date.now() / 1000) - presetSpan(index, chart.range).from * CHUNK + 1;
       /** Why a window gives nothing: longer than the data (than a fine interval loads, when longer than the timeline: `beyond`). */
       const windowTooLong = (/** @type {number} */ points, /** @type {string} */ index, /** @type {boolean} */ beyond) => `window of ${grouped.format(points)} points at ${INTERVAL_LABEL[index]} is longer than the data${beyond && FINE.has(index) ? " loaded (a coarser interval holds more)" : ""}`;
       /** A window as typed: an amount (a number, or arithmetic: 4 * 365) and a unit (30d, 4 weeks), else `unit`. @returns {TimeSpan | null} */
@@ -5266,7 +5266,8 @@
       }
       function duration(seconds) {
         const days = Math.abs(seconds) / 86400;
-        if (days < 2) return `${Math.max(1, Math.round(days * 24))} hours`;
+        if (days * 24 < 1) return plural(Math.max(1, Math.round(days * 1440)), "minute");
+        if (days < 2) return plural(Math.round(days * 24), "hour");
         if (days < 90) return `${Math.round(days)} days`;
         if (days < 730) return `${Math.round(days / 30.44)} months`;
         return `${(days / 365.25).toFixed(1)} years`;
@@ -5675,6 +5676,7 @@
             const windowed = arity >= 2 && run !== null;
             const args = node.args.map((arg, i) => sub(arg, windowed ? i === 1 : inWindow));
             if (!run) return lift(args[0], args[1], node.f === "min" ? Math.min : Math.max);
+            if ((node.f === "ath" || node.f === "cum") && FINE.has(index)) throw new Error(`${signature} runs from the start of history: at ${INTERVAL_LABEL[index]} only part of it loads (1D and up hold it all)`);
             if (windowed) {
               const days = args[1], p = args[2];
               if (typeof days !== "number" || !(days > 0)) throw new Error(`${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`);
@@ -6025,6 +6027,8 @@
           if (ok && !announced && !saved.classList.contains("error")) return;
           saved.textContent = ok ? "Saved" : "Not saved · storage full or blocked";
           saved.classList.toggle("error", !ok);
+          if (ok) saved.removeAttribute("role");
+          else saved.setAttribute("role", "alert");
           if (!ok && home) toast("Not saved: storage full or blocked");
           saved.classList.remove("fade");
           void saved.offsetWidth;
@@ -6194,7 +6198,7 @@
         edits.key = "";
         revision++;
         hideMenu();
-        clearMeasure();
+        setMeasureMode(false);
         save();
         refresh(true, true);
       }
@@ -6462,9 +6466,10 @@
           let first = end;
           while (first > 0 && settled[first - 1].status === "fulfilled") first--;
           const loaded = settled.slice(first, end + 1).map((part) => /** @type {PromiseFulfilledResult<{ start: number, data: any[], stamp: string, version: number }>} */ (part).value).filter((part) => part.data.length);
-          // Chunks of two computations of the series (the server's anew since the older came): all of it again, once
-          // (a cache can go on serving the older for a while; then they're joined as they come).
-          if (!again && new Set(loaded.map((part) => part.version)).size > 1) {
+          // Chunks of two computations of the series (the server's anew since the older came): all of it again, once; still
+          // two (a cache can go on serving the older for a while), an error to retry, never one series of both.
+          if (new Set(loaded.map((part) => part.version)).size > 1) {
+            if (again) throw Object.assign(new Error("Being computed anew"), { recomputing: true });
             forget(name, index);
             return loadSpan(name, index, { from, to, live }, false, true);
           }
@@ -6498,13 +6503,14 @@
         error?.unavailable ? `No ${INTERVAL_LABEL[index] ?? index} data`
         : error?.status === 404 ? "Not on Bitview"
         : error?.name === "TimeoutError" || error?.name === "AbortError" ? "Timed out"
+        : error?.recomputing ? "Bitview is computing it anew"
         : "Couldn't load";
       /** The date intervals a series has, in order. */
       const datedIntervals = (meta) => INTERVAL_ORDER.filter((id) => meta?.indexes?.includes(id));
 
       /**
-       * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], unit: string, error?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
-       * @typedef {{ times: number[], results: Map<string, Result>, stamp: string }} Resolved
+       * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], unit: string, error?: string, info?: any, unavailable?: boolean, missing?: boolean, windowDays?: number }} Result
+       * @typedef {{ times: number[], results: Map<string, Result>, stamp: string, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
        */
 
       /** The series a chart's formulas name, each once. @param {Chart} doc */
@@ -6555,7 +6561,7 @@
           const { fn = "none", n = 1, unit = "day" } = layer.transform ?? {};
           if (fn === "none" || !result.values) return { ...result, shown: result.values };
           const points = windowPoints(n * SPAN_DAYS[unit], doc.index), shown = FUNCTIONS[fn][3](result.values, points);
-          if (windowOf(fn) && !shown.some(Number.isFinite) && outreaches(result.values, points)) return { ...result, shown: undefined, ohlc: undefined, error: `A ${windowTooLong(points, doc.index, points > length)}` };
+          if (windowOf(fn) && !shown.some(Number.isFinite) && outreaches(result.values, points)) return { ...result, shown: undefined, ohlc: undefined, error: `A ${windowTooLong(points, doc.index, points > length)}`, windowDays: n * SPAN_DAYS[unit] };
           return { ...result, shown, ohlc: undefined, unit: unitOfCall(fn, result.unit) };
         };
         /** A series' data on the timeline: its values (a candle's close), and its candles when it has them (once a series, its layers and formulas sharing them). */
@@ -6646,13 +6652,14 @@
             break;
           }
         }
-        if (first === 0 || first === length) return { times, results, stamp };
+        const failed = [...fetched].filter(([, { error }]) => error && !error.unavailable && error.status !== 404).map(([name]) => name);
+        if (first === 0 || first === length) return { times, results, stamp, failed };
         for (const [id, result] of results) {
           // (Shown as they are, the values are copied once.)
           const values = result.values?.slice(first);
           results.set(id, { ...result, values, shown: result.shown === result.values ? values : result.shown?.slice(first), ohlc: result.ohlc?.slice(first) });
         }
-        return { times: times.slice(first), results, stamp };
+        return { times: times.slice(first), results, stamp, failed };
       }
 
       // ── The chart ─────────────────────────────────────────────────────────────
@@ -6737,7 +6744,12 @@
         const lit = id && drawn.has(id) && drawn.size > 1 && !layerById(id)?.hidden ? id : null;
         for (const [layerId, series] of drawn) series.applyOptions(!lit || layerId === lit ? paints.get(layerId) : fades.get(layerId) ?? faded(paints.get(layerId)));
         for (const [layerId, close] of closes) close.series.applyOptions(!lit || layerId === lit ? close.paint : faded(close.paint));
-        for (const [layerId, bars] of barsBelow) drawn.get(layerId)?.setData(bars.points.map((point) => (point.color ? { ...point, color: !lit || layerId === lit ? bars.color : bars.faint } : point)));
+        for (const [layerId, bars] of barsBelow) {
+          const faint = Boolean(lit) && layerId !== lit;
+          if (bars.faint === faint) continue;
+          bars.faint = faint;
+          drawn.get(layerId)?.setData(bars.points.map((point) => (point.color ? { ...point, color: faint ? bars.faded : bars.color } : point)));
+        }
       }
       /**
        * Candles as on Bitview: in the layer's color, hollow when the price rose, filled when it fell. Zoomed out until
@@ -6969,7 +6981,7 @@
               // Bars below their base take the second color, each its own (the rest take the series').
               const tint = alpha(under, 0.75 * op), from = layer.base ?? 0;
               const bars = points.map((point) => ("value" in point && point.value < from ? { ...point, color: tint } : point));
-              if (bars.some((point) => "color" in point)) barsBelow.set(layer.id, { points: bars, color: tint, faint: faded({ color: tint }).color });
+              if (bars.some((point) => "color" in point)) barsBelow.set(layer.id, { points: bars, color: tint, faded: faded({ color: tint }).color, faint: false });
               series.setData(bars);
             } else series.setData(candles
               ? data.times.map((time, i) => (result.ohlc[i] && (!log || result.ohlc[i][2] > 0) ? { time, open: result.ohlc[i][0], high: result.ohlc[i][1], low: result.ohlc[i][2], close: result.ohlc[i][3] } : { time }))
@@ -7144,12 +7156,10 @@
       }
       /** Every price scale back on auto, however it was dragged. */
       const autoScale = () => view.panes().forEach((_, i) => ["left", "right"].forEach((side) => view.priceScale(side, i).applyOptions({ autoScale: true })));
-      /** The most the chart shows, with every price scale back on auto: the "Max" preset plus a reset. */
-      function fit() {
-        autoScale();
-        if (chart.range !== "max") setRange("max");
-        else if (resolved) applyRange(chart, resolved, true);
-      }
+      /** Whether a preset's span fits on the chart at its interval (Max, the most that fits, always). */
+      const presetFits = (/** @type {string} */ id) => id === "max" || (RANGES.find(([range]) => range === id)?.[2] ?? 0) / INTERVAL_DAYS[chart.index] <= mostBars();
+      /** The preset the chart shows as: its own, or Max for one too long to fit (which shows the same). */
+      const shownRange = () => (presetFits(chart.range) ? chart.range : "max");
 
       // Legends at the top of each pane, and the values beside each layer, follow the crosshair.
       let hoverTime = null;
@@ -7268,11 +7278,6 @@
           element.textContent = Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
         }
       }
-      /**
-       * The width a layer's value can take: its lowest, highest, latest and a sample across its history written out,
-       * the longest of them measured at a size in semibold tabular figures, in whole pixels. The legend and the panel
-       * keep that room, so values change on hover without moving anything.
-       */
       /** Widths measured for the data on screen, forgotten with it. @type {WeakMap<object, Map<string, number>>} */
       const slots = new WeakMap();
       const slotsNow = () => {
@@ -7289,6 +7294,11 @@
         measure.font = `${weight} ${size}px ${(mono ||= css("--mono"))}`;
         return Math.ceil(Math.max(0, ...texts.map((text) => measure.measureText(text).width)));
       }
+      /**
+       * The width a layer's value can take: its lowest, highest, latest and a sample across its history written out,
+       * the longest of them measured at a size in semibold tabular figures, in whole pixels. The legend and the panel
+       * keep that room, so values change on hover without moving anything.
+       */
       function valueSlot(layer, size) {
         const result = resolved?.results.get(layer.id), values = result?.shown;
         if (!values) return 0;
@@ -7326,12 +7336,12 @@
         return { up: to === from ? null : ratio ? ratio.up : delta > 0, text: ratio ? ratio.text : amount(delta, unit), from: fromTime, to: toTime };
       }
       const chipText = (change) => `${change.up === null ? "" : change.up ? "↑ " : "↓ "}${change.text}`;
+      /** The windows of the view now, by layer and unit: read many times a move, scanned once. */
+      let windows = { data: /** @type {Resolved | null} */ (null), view: "", by: new Map() };
       /**
        * What a layer's changes in this view are measured from: its first value in view, and, when the series stays
        * positive across the view, relatively from its first non-zero one (price before 2010 starts at zero).
        */
-      /** The windows of the view now, by layer and unit: read many times a move, scanned once. */
-      let windows = { data: /** @type {Resolved | null} */ (null), view: "", by: new Map() };
       function changeWindow(layer) {
         const range = view.timeScale().getVisibleLogicalRange();
         const result = resolved?.results.get(layer.id);
@@ -7397,6 +7407,7 @@
           const width = view.timeScale().width();
           if (width !== laidWidth) {
             laidWidth = width;
+            if (chart) renderRanges();
             if (presetShown && !glideTarget && resolved && drawnChart === chart.id) applyRange(chart, resolved);
           }
           drawOverview();
@@ -7439,7 +7450,7 @@
           const change = !layer.hidden && !result.error ? changeOver(layer, point) : null;
           element.className = `row-change ${change?.up === true ? "up" : change?.up === false ? "down" : ""}`;
           element.textContent = change ? chipText(change) : "";
-          if (change) element.dataset.tip = `Change from ${dateLabel(change.from, false)} to ${dateLabel(change.to, false)}`;
+          if (change) element.dataset.tip = `Change from ${dateLabel(change.from, FINE.has(chart.index))} to ${dateLabel(change.to, FINE.has(chart.index))}`;
           else delete element.dataset.tip;
           const figures = /** @type {HTMLElement} */ (element.parentElement);
           figures.style.minWidth = layer.hidden || result.error ? "" : `${Math.max(valueSlot(layer, 12.5), chipSlot(layer))}px`;
@@ -7937,12 +7948,11 @@
        * @param {Chart} doc @param {Resolved} data
        */
       function retryFailed(doc, data, index = doc.index) {
-        const failed = doc.layers.filter((layer) => layer.series && data.results.get(layer.id)?.error && !data.results.get(layer.id)?.unavailable && !data.results.get(layer.id)?.missing);
-        for (const layer of failed) {
-          forget(/** @type {string} */ (layer.series), index);
-          retryInfo(/** @type {string} */ (layer.series));
+        for (const name of data.failed) {
+          forget(name, index);
+          retryInfo(name);
         }
-        return failed.length > 0;
+        return data.failed.length > 0;
       }
       /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @returns {Promise<Drawing | null>} null when a fetch failed */
       async function drawThumb(doc) {
@@ -9202,7 +9212,7 @@
             <h3>Scale</h3>
             <div class="field"><span>Pane</span><select id="pane" class="select" aria-label="Pane">${chart.panes.map((pane, i) => `<option value="${pane.id}" ${pane.id === layer.pane ? "selected" : ""}>Pane ${i + 1}</option>`).join("")}<option value="new">New pane</option></select></div>
             <div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${layer.side === side}">${text}</button>`).join("")}</div></div>
-            <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ tab, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${tip} scale" ${modesFor(/** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane))).includes(mode) ? "" : "disabled"}>${tab}</button>`).join("")}</div></div>
+            <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ tab, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${mode < 2 ? `${tip} scale` : tip}" ${modesFor(/** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane))).includes(mode) ? "" : "disabled"}>${tab}</button>`).join("")}</div></div>
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
             <div class="field"><span>Format${resetFor("format", layer)}</span><select id="format" class="select" aria-label="Format">${FORMATS.map(([id, text]) => `<option value="${id}" ${(layer.format ?? "auto") === id ? "selected" : ""}>${id === "auto" ? `${text} (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})` : text}</option>`).join("")}</select></div>
           </section>
@@ -9554,6 +9564,11 @@
         // Renamed or removed in a newer Bitview: the closest series is offered, or another one to pick.
         if (result.missing) return `<div class="error-box gone"><p>Bitview doesn't have this series anymore: it was renamed or removed.</p>
           <div id="replacement" class="replacement"><span class="shimmer">Looking for the closest one…</span></div></div>`;
+        // A window longer than the data: nothing to fetch again; the next interval it fits in (at first), when there's one.
+        if (result.windowDays) {
+          const days = result.windowDays, fits = INTERVAL_ORDER.slice(INTERVAL_ORDER.indexOf(chart.index) + 1).find((id) => (!result.info || result.info.indexes.includes(id)) && (!FINE.has(id) || windowPoints(days, id) <= loadsAtFirst(id)));
+          return `<div class="error-box">${escape(result.error)}.${fits && FINE.has(chart.index) ? `<button type="button" class="btn" data-index="${fits}">Switch to ${escape(INTERVAL_LABEL[fits])}</button>` : ""}</div>`;
+        }
         return `<div class="error-box">${escape(result.error)}.<button type="button" class="btn" data-action="retry">Retry</button></div>`;
       }
       /** The series closest to a gone one, by its words; asked once per name. */
@@ -9602,7 +9617,6 @@
         undoToast(`Replaced ${was} with ${humanize(name)}`);
       }
 
-      /** Mirror colors, status line, name placeholder: everything that follows the formula as it's typed. */
       /** What a formula reads, in words: this chart's layers by letter and name, and series by theirs. @param {Node} node */
       const usesOf = (node) => [
         ...[...refsOf(node)].map((letter) => {
@@ -9611,6 +9625,7 @@
         }),
         ...refsOf(node, "series"),
       ];
+      /** Mirror colors, status line, name placeholder: everything that follows the formula as it's typed. */
       function updateFormula(layer) {
         const textarea = $("formula");
         if (!textarea) return;
@@ -9820,7 +9835,10 @@
         if (!button) return;
         const { transform, type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorTarget: target, replace, removeLevel, lineColor, lineDash } = button.dataset;
         if (index) commit((doc) => (doc.index = index));
-        else if (transform) editLayer((layer) => (layer.transform = transformTo(transform, layer.transform)));
+        else if (transform) editLayer((layer) => {
+          layer.transform = transformTo(transform, layer.transform);
+          if (layer.transform && layer.type === "candles") layer.type = "line";
+        });
         else if (type) editLayer((layer) => (layer.type = type));
         else if (dash) editLayer((layer) => (layer.dash = Number(dash)));
         else if (shape) editLayer((layer) => (layer.shape = shape === "straight" ? undefined : shape));
@@ -9954,7 +9972,7 @@
           <button type="button" data-pick="edit">${ICONS.sliders}Settings</button>
           ${layer.series ? `<button type="button" data-pick="change">${ICONS.series}Change series…</button>` : ""}
           <button type="button" data-pick="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}${layer.hidden ? "Show" : "Hide"}<kbd>H</kbd></button>
-          <button type="button" data-pick="duplicate" ${roomFor(chart) ? "" : "disabled"}>${ICONS.copy}Duplicate<kbd>⌘D</kbd></button>
+          <button type="button" data-pick="duplicate" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.copy}Duplicate<kbd>⌘D</kbd></button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove<kbd>⌫</kbd></button>`, ({ pick }) => {
           if (!layerById(id)) return;
@@ -10407,13 +10425,12 @@
           { title: "Download the chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
           { title: "Import a chart file", text: "A chart's file, or several charts exported together.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           ...TEMPLATES.map((template) => ({ title: `New chart from a template: ${template.title}`, text: template.text, words: "template example start", icon: "templates", run: () => useTemplate(template), anywhere: true })),
-          ...RANGES.map(([id], i) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) })),
-          { title: "Fit the view", text: "Zoomed out all the way, with the price scales back on auto.", words: "zoom reset max all history everything autoscale", icon: "charts", run: fit },
+          ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => commit((doc) => (doc.index = id)) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "charts", kbd: "L", run: () => toggleLog(pane.id) }))),
-          { title: "Measure", text: "Drag across the chart to measure a change.", words: "ruler distance difference percent", icon: "ruler", kbd: "M", run: () => setMeasureMode(true) },
+          { title: measureMode ? "Stop measuring" : "Measure", text: measureMode ? "Dragging pans the chart again." : "Drag across the chart to measure a change.", words: "measure measuring ruler distance difference percent", icon: "ruler", kbd: "M", run: () => setMeasureMode(!measureMode) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
-          ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
+          ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           ...(TOUCH ? [] : [{ title: "Keyboard shortcuts", text: "Every key the studio answers to.", words: "keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
           ...(edits.past.length ? [{ title: "Undo", text: "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undo }] : []),
           ...(edits.future.length ? [{ title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redo }] : []),
@@ -10450,7 +10467,7 @@
             const [node, keys] = stack.pop();
             if (isLeaf(node)) {
               if (words.every((word) => `${node.name} ${keys}`.toLowerCase().includes(word))) found.add(node.name);
-            } else if (node && typeof node === "object") for (const key of Object.keys(node).reverse()) stack.push([node[key], `${keys} ${humanizeKey(key)}`]);
+            } else if (node && typeof node === "object") for (const key of Object.keys(node).reverse()) stack.push([aside(node, key), `${keys} ${humanizeKey(key)}`]);
           }
           const folder = humanizeKey(palette.path.at(-1));
           palette.items = [...[...found].map((name) => ({ kind: "series", key: name, name, group: `In ${folder}` })), { kind: "widen", key: "widen", group: found.size ? "Everywhere" : `Nothing in ${folder} matches` }];
@@ -10570,11 +10587,20 @@
           renderPalette();
         }, () => {});
       }
+      /** Why a formula doesn't read, or "" when it does. */
+      const parseError = (/** @type {string} */ text) => {
+        try {
+          parse(text);
+          return "";
+        } catch (error) {
+          return error.message;
+        }
+      };
       /** A row of the formula page: the formula to add, or a piece of one (a layer by its color). */
       function formulaRow(item) {
         if (item.kind === "formula") {
-          const editing = palette.editing ? layerById(palette.editing) : null;
-          return `${ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span><span class="item-meta">${editing ? `To ${escape(editing.letter)}` : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`;
+          const editing = palette.editing ? layerById(palette.editing) : null, problem = parseError(palette.query.trim());
+          return `${ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta error">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
         }
         const layer = item.layer ? layerById(item.layer) : null;
         const icon = layer ? `<i class="dot" style="--c:${escape(ink(layer.color))}"></i>` : item.series ? ICONS.series : ICONS.formula;
@@ -10594,12 +10620,8 @@
        * its error is in the preview.
        */
       function addFromPalette(pane = palette.into, keep = false) {
-        const text = palette.query.trim();
-        try {
-          parse(text);
-        } catch {
-          return;
-        }
+        const text = palette.query.trim(), problem = parseError(text);
+        if (problem) return toast(problem);
         if (keep && !palette.editing) {
           // Added, and the formula stays, selected, to write the next one.
           addFormulaLayer(text, pane === "new" ? null : pane);
@@ -11158,9 +11180,10 @@
        */
       function settingRows() {
         // (The chart's page adds only its settings: its actions are commands already.)
+        const shared = new Set(chart.layers.map(labelOf).filter((name, i, names) => names.indexOf(name) !== i));
         const owners = [
           { name: titleOf(chart), page: chartPage, only: ["title", "interval", "range"] },
-          ...chart.layers.map((layer) => ({ name: labelOf(layer), page: () => layerPage(layer.id), only: null })),
+          ...chart.layers.map((layer) => ({ name: shared.has(labelOf(layer)) ? `${labelOf(layer)} (${layer.letter})` : labelOf(layer), page: () => layerPage(layer.id), only: null })),
           ...chart.panes.map((pane, i) => ({ name: `Pane ${i + 1}`, page: () => panePage(pane.id), only: null })),
         ];
         return owners.flatMap(({ name, page, only }) => page().rows().filter((row) => !row.key.startsWith("layer:") && !row.key.startsWith("add-") && (!only || only.includes(row.key))).map((row) => ({
@@ -11269,7 +11292,7 @@
             ...(any ? [
               { key: "interval", icon: ICONS.recent, label: "Interval", aside: CADENCE[chart.index], group: "Chart", page: intervalPage },
               { key: "go-to", icon: ICONS.recent, label: "Go to a date", aside: "A year, a month, a day", kbd: "G", group: "Chart", page: datePage },
-              { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalize(PERIODS[chart.range]) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => RANGES.map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalize(PERIODS[id]), current: presetShown && chart.range === id, run: () => setRange(id) }))) },
+              { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalize(PERIODS[shownRange()]) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => RANGES.filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalize(PERIODS[id]), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
               { key: "layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), group: "In it", page: layersPage },
               { key: "panes", icon: ICONS.panel, label: "Panes", aside: plural(chart.panes.length, "pane"), group: "In it", page: panesPage },
             ] : []),
@@ -11340,7 +11363,10 @@
               { key: "raw", icon: ICONS.link, label: "Open the raw data", aside: "As JSON, in a new tab", verb: "Open", group: "Shows", run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") },
             ] : []),
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: "Shows", page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
-            { key: "transform", icon: ICONS.formula, label: "Transform", aside: transform[0] === "none" ? "None" : `${transform[1]}${span ? ` · ${spanText(span)}` : ""}`, group: "Shows", page: () => choicePage("Transform", () => TRANSFORMS.map(([fn, short, , what]) => ({ key: fn, icon: ICONS.formula, label: fn === "none" ? "None" : what, aside: fn === "none" ? what : short, current: (now().transform?.fn ?? "none") === fn, run: set((item) => (item.transform = transformTo(fn, item.transform))) }))) },
+            { key: "transform", icon: ICONS.formula, label: "Transform", aside: transform[0] === "none" ? "None" : `${transform[1]}${span ? ` · ${spanText(span)}` : ""}`, group: "Shows", page: () => choicePage("Transform", () => TRANSFORMS.map(([fn, short, , what]) => ({ key: fn, icon: ICONS.formula, label: fn === "none" ? "None" : what, aside: fn === "none" ? what : short, current: (now().transform?.fn ?? "none") === fn, run: set((item) => {
+              item.transform = transformTo(fn, item.transform);
+              if (item.transform && item.type === "candles") item.type = "line";
+            }) }))) },
             ...(span ? [{ key: "window", icon: ICONS.sliders, label: "Window", aside: spanText(span), group: "Shows", page: () => inputPage({
               title: "Window", value: `${span.n} ${span.unit}${span.n === 1 ? "" : "s"}`, placeholder: spanText(transform[2]), hint: "A span of time: 30 days, 4w, 4 * 365 days",
               read: (text) => {
@@ -11352,7 +11378,7 @@
                 if (typed) editById(id, (item) => item.transform && (item.transform = { ...item.transform, ...typed }));
               },
             }) }] : []),
-            { key: "format", icon: ICONS.table, label: "Unit", aside: layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] : `Automatic (${automatic})`, group: "Shows", page: () => choicePage("Unit", () => FORMATS.map(([format, text]) => ({ key: format, icon: ICONS.table, label: format === "auto" ? `Automatic (${automatic})` : text, current: (now().format ?? "auto") === format, run: set((item) => (item.format = format === "auto" ? undefined : format)) }))) },
+            { key: "format", icon: ICONS.table, label: "Format", aside: layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] : `Automatic (${automatic})`, group: "Shows", page: () => choicePage("Format", () => FORMATS.map(([format, text]) => ({ key: format, icon: ICONS.table, label: format === "auto" ? `Automatic (${automatic})` : text, current: (now().format ?? "auto") === format, run: set((item) => (item.format = format === "auto" ? undefined : format)) }))) },
             { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Look", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => (item.type = type)) }))) },
             ...(pair
               ? [color("color", `Color ${pair[0].toLowerCase()}`, (item) => item.color, (item, name) => (item.color = name)), color("color-below", `Color ${pair[1].toLowerCase()}`, belowOf, (item, name) => (item.colorBelow = name === "red" ? undefined : name))]
@@ -11585,7 +11611,7 @@
         if (!span || why) return;
         const { first, last } = pointsOf(span), x = (i) => ((i / Math.max(1, n - 1)) * 300).toFixed(1);
         $("spark").insertAdjacentHTML("afterbegin", `<rect x="${x(first)}" y="0" width="${Math.max(1.5, Number(x(last)) - Number(x(first)))}" height="100" style="fill: var(--line-strong)" />`);
-        $("date-facts").innerHTML = `<div><dt>From</dt><dd>${escape(dateLabel(resolved.times[first], false))}</dd></div><div><dt>To</dt><dd>${escape(dateLabel(resolved.times[last], false))}</dd></div><div><dt>Points</dt><dd>${grouped.format(last - first + 1)}</dd></div>`;
+        $("date-facts").innerHTML = `<div><dt>From</dt><dd>${escape(dateLabel(resolved.times[first], FINE.has(chart.index)))}</dd></div><div><dt>To</dt><dd>${escape(dateLabel(resolved.times[last], FINE.has(chart.index)))}</dd></div><div><dt>Points</dt><dd>${grouped.format(last - first + 1)}</dd></div>`;
       }
       /** Go to a date, typed in ⌘K's field: the span it names lit on the overview; ↵ takes the view there and closes ⌘K. */
       const datePage = () => inputPage({
@@ -11842,7 +11868,10 @@
         toast(`Interval: ${CADENCE[next]}`);
       }
       function renderRanges() {
-        $("ranges").innerHTML = RANGES.map(([id, text]) => `<button type="button" data-range="${id}" aria-pressed="${presetShown && chart.range === id}">${text}</button>`).join("");
+        $("ranges").innerHTML = RANGES.map(([id, text], i) => {
+          const fits = presetFits(id), tip = fits ? capitalize(PERIODS[id]) : `More than fits at ${INTERVAL_LABEL[chart.index]}`;
+          return `<button type="button" data-range="${id}" aria-pressed="${presetShown && shownRange() === id}" aria-label="${tip}" data-tip="${tip}" ${fits ? `data-kbd="${i + 1}"` : "disabled"}>${text}</button>`;
+        }).join("");
       }
       /** A preset is a view: no rebuild, the chart glides there. */
       function setRange(range) {
@@ -11876,14 +11905,17 @@
       const FIELDS = "#title, #label, .number-input";
       const typedFrom = new WeakMap();
       document.addEventListener("focusin", (event) => {
-        if (event.target instanceof HTMLInputElement && event.target.matches(FIELDS)) typedFrom.set(event.target, event.target.value);
+        if (event.target instanceof HTMLInputElement && event.target.matches(FIELDS)) typedFrom.set(event.target, { value: event.target.value, unit: /** @type {HTMLSelectElement | null} */ ($("window-unit"))?.value });
       });
       document.addEventListener("keydown", (event) => {
         const field = event.target;
         if (!(field instanceof HTMLInputElement) || !field.matches(FIELDS) || (event.key !== "Enter" && event.key !== "Escape")) return;
         event.preventDefault();
-        if (event.key === "Escape" && typedFrom.has(field) && field.value !== typedFrom.get(field)) {
-          field.value = typedFrom.get(field);
+        const from = typedFrom.get(field), unit = /** @type {HTMLSelectElement | null} */ ($("window-unit"));
+        if (event.key === "Escape" && from && (field.value !== from.value || (field.id === "window" && unit && unit.value !== from.unit))) {
+          // (A window's unit, which a typed one changes, goes back with its amount.)
+          if (field.id === "window" && unit && from.unit) unit.value = from.unit;
+          field.value = from.value;
           field.dispatchEvent(new Event("input", { bubbles: true }));
         }
         // The edit may have redrawn the field: leave whichever one has the focus now.
@@ -11927,7 +11959,7 @@
           const parsed = JSON.parse(await file.text());
           // Several, exported together from All charts: they join the top of the list, shown picked in the grid.
           if (Array.isArray(parsed?.charts)) {
-            const docs = parsed.charts.slice(0, 200).flatMap((item) => {
+            const docs = parsed.charts.flatMap((item) => {
               try {
                 return [validate(item)];
               } catch {
@@ -11943,7 +11975,8 @@
             scheduleThumbs();
             if (home) renderCharts();
             else showHome();
-            return toast(`Imported ${plural(docs.length, "chart")}`);
+            const skipped = parsed.charts.length - docs.length;
+            return toast(`Imported ${plural(docs.length, "chart")}${skipped === 1 ? "; 1 entry wasn't a chart" : skipped ? `; ${grouped.format(skipped)} entries weren't charts` : ""}`);
           }
           const doc = validate(parsed);
           // Onto an untouched new chart, the file takes its place.
@@ -12302,13 +12335,18 @@
 
       /** The block the server's series are computed up to, when it was indexed (unix seconds), and the live price, as last seen. */
       let liveHeight = 0, liveAt = 0, livePrice = 0;
+      /** When bitview.space last answered (its health): a minute without, and the live element says it's offline. */
+      let answeredAt = Date.now();
+      const offline = () => Date.now() - answeredAt > 60_000;
       /** Live, with the last block the server's series include and when it came. */
       function updateStatus() {
         const points = resolved?.times.length ?? 0;
         const at = liveAt ? new Date(liveAt * 1000) : null;
         // The price once it's known, the block; the block's time (no room for it beside a price) in the tip.
-        $("stamp").textContent = ["Live", livePrice ? format(livePrice, "usd") : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
-        $("live").dataset.tip = ["bitview.space", livePrice ? `live price ${format(livePrice, "usd")}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${at.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}` : "", "new blocks show within seconds"].filter(Boolean).join(" · ");
+        const lost = offline();
+        $("live").classList.toggle("offline", lost);
+        $("stamp").textContent = [lost ? "Offline" : "Live", !lost && livePrice ? format(livePrice, "usd") : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
+        $("live").dataset.tip = [lost ? "bitview.space isn't answering: trying again" : "bitview.space", !lost && livePrice ? `live price ${format(livePrice, "usd")}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${at.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}` : "", lost ? "" : "new blocks show within seconds"].filter(Boolean).join(" · ");
       }
 
       // ── Rendering the page ────────────────────────────────────────────────────
@@ -12504,7 +12542,11 @@
         else if (key === "g" && chart.layers.length) openPage(datePage());
         else if (event.key === "-" || event.key === "_") zoom(1.6);
         else if (event.key === "=" || event.key === "+") zoom(1 / 1.6);
-        else if (["1", "2", "3", "4"].includes(event.key)) setRange(RANGES[Number(event.key) - 1][0]);
+        else if (["1", "2", "3", "4"].includes(event.key)) {
+          const [id, text] = RANGES[Number(event.key) - 1];
+          if (presetFits(id)) setRange(id);
+          else toast(`${text} is more than fits at ${INTERVAL_LABEL[chart.index]}`);
+        }
         else if (event.key === "[" || event.key === "]") stepInterval(event.key === "]" ? 1 : -1);
         else return;
         event.preventDefault();
@@ -12601,8 +12643,10 @@
         try {
           health = await client.getHealth({ cache: false });
         } catch {
-          return;
+          return updateStatus();
         }
+        answeredAt = Date.now();
+        if ($("live").classList.contains("offline")) updateStatus();
         const height = health.computedHeight;
         if (!Number.isInteger(height) || height === liveHeight) return;
         const first = !liveHeight;
@@ -12617,6 +12661,8 @@
         if (chart && seriesIn(chart).length) draw(false, true);
       }
       setInterval(checkLive, 15_000);
+      // (Hidden, nothing is asked: back in view, the minute starts over.)
+      document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && (answeredAt = Date.now()));
       document.addEventListener("visibilitychange", checkLive);
       checkLive();
 
