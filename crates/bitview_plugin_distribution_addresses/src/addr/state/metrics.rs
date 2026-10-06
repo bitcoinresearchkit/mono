@@ -1,11 +1,11 @@
-use brk_types::Height;
+use brk_types::{Height, OutputType};
 
 use super::super::{
     AddrTypeToActivityCounts, AddrTypeToAddrCount, AddrVecs, ExposedAddrState, ReusedAddrState,
 };
 
 /// Runtime state for the address metrics pipeline.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct AddrMetricsState {
     pub funded: AddrTypeToAddrCount,
     pub empty: AddrTypeToAddrCount,
@@ -21,6 +21,24 @@ impl AddrMetricsState {
         self.activity.reset();
         self.reused.reset_per_block();
         self.respent.reset_per_block();
+    }
+
+    /// Takes `output_type`'s values from `other`, which processed that type.
+    pub fn copy_type(&mut self, other: &Self, output_type: OutputType) {
+        let Self {
+            funded,
+            empty,
+            activity,
+            reused,
+            respent,
+            exposed,
+        } = other;
+        *self.funded.get_mut_unwrap(output_type) = *funded.get_unwrap(output_type);
+        *self.empty.get_mut_unwrap(output_type) = *empty.get_unwrap(output_type);
+        *self.activity.get_mut_unwrap(output_type) = *activity.get_unwrap(output_type);
+        self.reused.copy_type(reused, output_type);
+        self.respent.copy_type(respent, output_type);
+        self.exposed.copy_type(exposed, output_type);
     }
 }
 

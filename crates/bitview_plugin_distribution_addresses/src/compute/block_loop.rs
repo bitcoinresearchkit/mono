@@ -4,24 +4,35 @@ use bitview_cohort::ByAddrType;
 use bitview_plugin_distribution_common::readers::{BatchColumns, BlockBounds, index_range};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::TypeIndex;
+use bitview_primitives::{FundedAddrData, TypeIndex};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, TxIndex};
+use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
 use rayon::prelude::*;
+use rustc_hash::FxHashMap;
 use tracing::{debug, info};
 use vecdb::{AnyVec, ReadableVec, VecIndex, unlikely};
 
-use super::{AddrReaders, Workspace};
+use super::{AddrReaders, Workspace, readers::tx_indexes};
 use crate::{
     Vecs,
-    addr::AddrMetricsState,
+    addr::{AddrMetricsState, SourcedAddrData},
     block::{
-        TransferAddressCache, process_inputs, process_outputs, process_received, process_typed_sent,
+        AddrTypeLookup, Received, TransferAddressCache, TxIndexes, process_inputs, process_outputs,
+        process_received, process_sent,
     },
     compute::write::write,
-    state::AddrStates,
+    state::{AddrStates, CohortLog},
 };
+
+/// One address type's activity in one block.
+struct TypeBlock {
+    received: FxHashMap<TypeIndex, Received>,
+    /// Spends in the block's established order, with their creation prices.
+    spends: Vec<(TypeIndex, Sats, Cents)>,
+    /// Transactions each address spent in.
+    sent_txs: FxHashMap<TypeIndex, TxIndexes>,
+}
 
 /// Flush the address cache early once it holds this many addresses (checked after each batch):
 /// it bounds the cache's tables (about 57 bytes a slot) however busy the chain gets. An
@@ -61,10 +72,9 @@ pub fn process_chunk(
 
     let Workspace {
         columns,
-        output_txs,
-        input_txs,
         addresses: cache,
     } = workspace;
+    let tx_count = indexer.vecs().transactions.txid.len();
 
     // Pre-collect first address mappings per type for the block range
     let first_p2a_vec = indexer
@@ -134,7 +144,7 @@ pub fn process_chunk(
             .try_for_each(|v| v.any_truncate_if_needed_at(start))?;
     }
 
-    let mut transfer_addresses = TransferAddressCache::default();
+    let mut transfers = ByAddrType::<TransferAddressCache>::default();
 
     // Load cold address state once for each batch of blocks.
     let bounds = BlockBounds::new(indexer, blocks);
@@ -179,81 +189,94 @@ pub fn process_chunk(
             &vecs.addr_state,
         );
 
-        for height in batch.blocks.clone() {
+        // Group each block's outputs and inputs by address, blocks in parallel.
+        let groups = batch
+            .blocks
+            .clone()
+            .into_par_iter()
+            .map(|height| {
+                let offset = height - start_usize;
+                let transactions =
+                    index_range(&height_to_first_tx_index_vec, offset, offset + 1, tx_count);
+                let first_tx = TxIndex::from(transactions.start);
+                let tx_len = transactions.len() as u64;
+                let output_range = batch.block_outputs(height);
+                // Omit this block's coinbase, including coinbase-only blocks.
+                let input_range = batch.block_spends(height);
+                let received = process_outputs(
+                    tx_indexes(first_tx, tx_len, tx_index_to_output_count),
+                    &output_values[output_range.clone()],
+                    &output_types[output_range.clone()],
+                    &output_indexes[output_range],
+                );
+                let inputs = process_inputs(
+                    tx_indexes(first_tx, tx_len, tx_index_to_input_count).skip(1),
+                    &input_values[input_range.clone()],
+                    &input_types[input_range.clone()],
+                    &input_indexes[input_range.clone()],
+                    &input_heights[input_range],
+                );
+                (
+                    received,
+                    inputs.sent_data.into_typed(prices),
+                    inputs.tx_index_vecs,
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut by_type = ByAddrType::<Vec<TypeBlock>>::default();
+        for (received, spends, sent_txs) in groups {
+            for (((output_type, received), (spends_type, spends)), (sent_type, sent_txs)) in
+                received
+                    .into_iter()
+                    .zip(spends.into_iter())
+                    .zip(sent_txs.into_iter())
+            {
+                debug_assert!(output_type == spends_type && output_type == sent_type);
+                by_type.get_mut_unwrap(output_type).push(TypeBlock {
+                    received,
+                    spends,
+                    sent_txs,
+                });
+            }
+        }
+
+        // Each address type touches only its own addresses and metrics, so the types run
+        // apart; their cohort changes are logged per block and applied below in type order.
+        let block_prices = &prices[batch.blocks.clone()];
+        let base = &state;
+        let processed = cache
+            .types_mut()
+            .zip(transfers.values_mut())
+            .zip(by_type.into_iter())
+            .collect::<Vec<_>>()
+            .into_par_iter()
+            .map(
+                |(((output_type, addrs), transfers), (blocks_type, blocks))| {
+                    debug_assert_eq!(output_type, blocks_type);
+                    process_type(output_type, addrs, transfers, blocks, block_prices, base)
+                        .map(|blocks| (output_type, blocks))
+                },
+            )
+            .collect::<Result<Vec<_>>>()?;
+
+        for (offset, height) in batch.blocks.clone().enumerate() {
             let height = Height::from(height);
             if unlikely(height.is_multiple_of(100)) {
                 info!("Computing metrics at block {height}...");
             } else {
                 debug!("Processing chain at {height}...");
             }
-            let offset = height.to_usize() - start_usize;
-            let transactions = index_range(
-                &height_to_first_tx_index_vec,
-                offset,
-                offset + 1,
-                indexer.vecs().transactions.txid.len(),
-            );
-            let block_price = prices[height.to_usize()];
-            let output_range = batch.block_outputs(height.to_usize());
-            // Omit this block's coinbase, including coinbase-only blocks.
-            let input_range = batch.block_spends(height.to_usize());
-            state.reset_per_block();
-
-            // Sequential: a thread-pool handoff per block costs what the overlap would save.
-            let outputs_result = process_outputs(
-                output_txs.build(
-                    TxIndex::from(transactions.start),
-                    transactions.len() as u64,
-                    tx_index_to_output_count,
-                ),
-                &output_values[output_range.clone()],
-                &output_types[output_range.clone()],
-                &output_indexes[output_range],
-            );
-            let inputs_result = process_inputs(
-                input_txs
-                    .build(
-                        TxIndex::from(transactions.start),
-                        transactions.len() as u64,
-                        tx_index_to_input_count,
-                    )
-                    .skip(1),
-                &input_values[input_range.clone()],
-                &input_types[input_range.clone()],
-                &input_indexes[input_range.clone()],
-                &input_heights[input_range],
-            );
-
-            // A tight pass over every touched address: its cache misses overlap,
-            // leaving the entries warm for the heavier passes below.
-            cache.update_tx_counts(&outputs_result, inputs_result.tx_index_vecs);
-
-            transfer_addresses.prepare(
-                outputs_result.iter().flat_map(|(ty, entries)| {
-                    entries.keys().copied().map(move |index| (ty, index))
-                }),
-            );
-
-            let mut lookup = cache.as_lookup();
-            process_received(
-                outputs_result,
-                addr_states,
-                &mut lookup,
-                block_price,
-                &mut state,
-            );
-            process_typed_sent(
-                inputs_result.sent_data.into_typed(prices),
-                addr_states,
-                &mut lookup,
-                block_price,
-                &mut state,
-                &mut transfer_addresses,
-            )?;
-
+            for (output_type, blocks) in &processed {
+                let (cohorts, metrics) = &blocks[offset];
+                cohorts.apply_to(&mut addr_states.amount_range);
+                state.copy_type(metrics, *output_type);
+            }
             vecs.addrs.push_height(&state);
-
-            addr_states.push(&mut vecs.balances, &mut vecs.addrs.funded, block_price);
+            addr_states.push(
+                &mut vecs.balances,
+                &mut vecs.addrs.funded,
+                block_prices[offset],
+            );
             addr_states.reset_block();
         }
         if cache.len() >= MAX_CACHED_ADDRS {
@@ -273,4 +296,52 @@ pub fn process_chunk(
     }
 
     Ok(next)
+}
+
+/// Apply one address type's blocks in order: per block its transaction counts, receives,
+/// then spends. Returns each block's cohort changes and the metrics after it, of which only
+/// this type's values are meaningful.
+fn process_type(
+    output_type: OutputType,
+    addrs: &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>,
+    transfers: &mut TransferAddressCache,
+    blocks: Vec<TypeBlock>,
+    prices: &[Cents],
+    base: &AddrMetricsState,
+) -> Result<Vec<(CohortLog, AddrMetricsState)>> {
+    let mut metrics = base.clone();
+    let mut lookup = AddrTypeLookup::new(addrs);
+    let mut processed = Vec::with_capacity(blocks.len());
+    for (
+        TypeBlock {
+            received,
+            spends,
+            sent_txs,
+        },
+        &price,
+    ) in blocks.into_iter().zip(prices)
+    {
+        metrics.reset_per_block();
+        lookup.update_tx_counts(&received, sent_txs);
+        transfers.prepare(received.keys().copied());
+        let mut cohorts = CohortLog::default();
+        let mut type_metrics = metrics.select(output_type);
+        process_received(
+            received,
+            &mut cohorts,
+            &mut lookup,
+            price,
+            &mut type_metrics,
+        );
+        process_sent(
+            &spends,
+            &mut cohorts,
+            &mut lookup,
+            price,
+            &mut type_metrics,
+            transfers,
+        )?;
+        processed.push((cohorts, metrics.clone()));
+    }
+    Ok(processed)
 }

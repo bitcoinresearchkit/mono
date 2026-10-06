@@ -269,6 +269,10 @@ has to be deleted by hand.
 - `distribution_addresses` runs its block loop alongside `distribution_utxos` instead of after it: only the per-type
   supply shares and average balances it derives afterwards wait for `distribution_utxos`. Computing every plugin over
   an indexed 970,056-block chain takes 1417 s instead of 1543 s and peaks at 9.7 GiB instead of 10.7
+- `distribution_addresses` applies each 16-block batch in three steps: blocks are grouped by address in parallel,
+  the eight address types are applied in parallel (each to its own cached addresses, logging its cohort changes per
+  block), and the logs are folded block by block. Alone at 970,133 blocks it takes 706 s instead of 989, with the same
+  series and the same stored state for every address
 
 #### `brk_reader`
 

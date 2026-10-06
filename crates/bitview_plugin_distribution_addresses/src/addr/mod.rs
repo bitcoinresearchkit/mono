@@ -19,7 +19,10 @@ pub use count::{
 pub use exposed::{ExposedAddrState, ExposedAddrTypeState, ExposedAddrVecs};
 pub use reused::{ReusedAddrState, ReusedAddrTypeState, ReusedAddrVecs};
 pub use sourced_data::SourcedAddrData;
-pub use state::{AddrMetricsState, AddrReceivePreState, AddrReceiveStatus, AddrSendPreState};
+pub use state::{
+    AddrMetricsState, AddrReceivePreState, AddrReceiveStatus, AddrSendPreState,
+    AddrTypeMetricsState,
+};
 pub use state_vecs::AddrStateVecs;
 pub use supply::AddrTypeToSupply;
 pub use type_map::{AddrTypeToTypeIndexMap, AddrTypeToVec};

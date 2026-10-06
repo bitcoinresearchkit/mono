@@ -8,7 +8,7 @@ use super::AddrCountsVecs;
 /// Per-addr-type address-count running total. Shared runtime state across
 /// funded / empty / exposed / reused / respent counters; paired with
 /// [`AddrCountsVecs`] on disk.
-#[derive(Debug, Default, Deref, DerefMut)]
+#[derive(Debug, Default, Clone, Deref, DerefMut)]
 pub struct AddrTypeToAddrCount(ByAddrType<u64>);
 
 impl From<ByAddrType<u64>> for AddrTypeToAddrCount {

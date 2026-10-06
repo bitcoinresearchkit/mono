@@ -7,7 +7,7 @@ use super::vecs::AddrSupplyVecs;
 
 /// Per-addr-type running-total of a supply category (sats). Shared across
 /// predicate-based supply categories (exposed, reused, respent).
-#[derive(Debug, Default, Deref, DerefMut)]
+#[derive(Debug, Default, Clone, Deref, DerefMut)]
 pub struct AddrTypeToSupply(ByAddrType<Sats>);
 
 impl AddrTypeToSupply {

@@ -8,3 +8,4 @@ pub use metrics::AddrMetricsState;
 pub use receive::AddrReceivePreState;
 pub use receive_status::AddrReceiveStatus;
 pub use send::AddrSendPreState;
+pub use type_metrics::AddrTypeMetricsState;

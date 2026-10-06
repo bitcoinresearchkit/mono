@@ -4,7 +4,7 @@ use derive_more::{Deref, DerefMut};
 use super::BlockActivityCounts;
 
 /// Activity counts accumulated during block processing for each address type.
-#[derive(Debug, Default, Deref, DerefMut)]
+#[derive(Debug, Default, Clone, Deref, DerefMut)]
 pub struct AddrTypeToActivityCounts(pub ByAddrType<BlockActivityCounts>);
 
 impl AddrTypeToActivityCounts {

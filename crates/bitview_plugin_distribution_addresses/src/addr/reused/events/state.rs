@@ -9,7 +9,7 @@ use derive_more::{Deref, DerefMut};
 /// Reset at the start of each block; no disk recovery needed since per-block
 /// flow is reconstructed deterministically from `process_received` /
 /// `process_sent`.
-#[derive(Debug, Default, Deref, DerefMut)]
+#[derive(Debug, Default, Clone, Deref, DerefMut)]
 pub struct AddrTypeToAddrEventCount(ByAddrType<u64>);
 
 impl AddrTypeToAddrEventCount {

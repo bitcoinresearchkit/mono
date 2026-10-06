@@ -3,11 +3,10 @@ use bitview_primitives::{DecodedAddrState, FundedAddrData, TypeIndex};
 use brk_error::Result;
 use brk_types::OutputType;
 use rayon::prelude::*;
+use rustc_hash::FxHashMap;
 
-use super::lookup::AddrLookup;
 use crate::{
     addr::{AddrStateVecs, AddrTypeToTypeIndexMap, SourcedAddrData},
-    block::{Received, TxIndexes},
     compute::AddrReaders,
 };
 
@@ -123,26 +122,16 @@ impl AddrCache {
         self.addrs.iter().map(|(_, addrs)| addrs.len()).sum()
     }
 
-    /// Create an AddrLookup view into this cache.
-    #[inline]
-    pub fn as_lookup(&mut self) -> AddrLookup<'_> {
-        AddrLookup {
-            addrs: &mut self.addrs,
-        }
-    }
-
-    /// Update transaction counts for addresses.
-    pub fn update_tx_counts(
+    /// Each type's cached addresses, for processing the types apart.
+    pub fn types_mut(
         &mut self,
-        outputs: &AddrTypeToTypeIndexMap<Received>,
-        inputs: AddrTypeToTypeIndexMap<TxIndexes>,
-    ) {
-        let mut lookup = self.as_lookup();
-        for ((output_type, outputs), (input_type, inputs)) in outputs.iter().zip(inputs.into_iter())
-        {
-            debug_assert_eq!(output_type, input_type);
-            lookup.select(output_type).update_tx_counts(outputs, inputs);
-        }
+    ) -> impl Iterator<
+        Item = (
+            OutputType,
+            &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>,
+        ),
+    > {
+        self.addrs.iter_mut()
     }
 
     /// Persist pending address states. Each type's table keeps room for as many addresses as

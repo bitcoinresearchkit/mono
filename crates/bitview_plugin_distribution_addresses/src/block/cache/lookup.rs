@@ -1,28 +1,21 @@
 use bitview_primitives::{FundedAddrData, TypeIndex};
-use brk_types::OutputType;
 use rustc_hash::FxHashMap;
 
-use super::AddrLookup;
 use crate::{
     addr::{AddrReceiveStatus, SourcedAddrData},
     block::{Received, TxIndexes},
 };
 
-/// Cached address data selected for one output type.
+/// Cached address data of one output type.
 pub struct AddrTypeLookup<'a> {
     addrs: &'a mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>,
 }
 
-impl AddrLookup<'_> {
-    #[inline]
-    pub fn select(&mut self, output_type: OutputType) -> AddrTypeLookup<'_> {
-        AddrTypeLookup {
-            addrs: self.addrs.get_mut_unwrap(output_type),
-        }
+impl<'a> AddrTypeLookup<'a> {
+    pub fn new(addrs: &'a mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>) -> Self {
+        Self { addrs }
     }
-}
 
-impl AddrTypeLookup<'_> {
     pub fn update_tx_counts(
         &mut self,
         outputs: &FxHashMap<TypeIndex, Received>,

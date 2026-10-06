@@ -1,5 +1,5 @@
 /// Per-block activity counts, reset after every block.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct BlockActivityCounts {
     pub reactivated: u32,
     pub sending: u32,

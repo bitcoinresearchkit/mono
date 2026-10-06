@@ -34,6 +34,11 @@ impl AddrMetricsState {
 
 impl AddrTypeMetricsState<'_> {
     #[inline]
+    pub fn output_type(&self) -> OutputType {
+        self.output_type
+    }
+
+    #[inline]
     pub fn on_receive_applied(
         &mut self,
         status: AddrReceiveStatus,
