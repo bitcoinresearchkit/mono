@@ -4616,7 +4616,7 @@
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo"></button>
             <span class="divider"></span>
-            <button id="export" class="cap" type="button" aria-haspopup="menu" aria-label="Export" data-tip="Export as an image, data or a chart file" data-icon="download"></button>
+            <button id="export" class="cap" type="button" aria-haspopup="menu" aria-label="Export" data-tip="Export: an image, the data, the chart file" data-icon="download"></button>
             <button id="share" class="cap" type="button" aria-label="Share" data-tip="Copy a link that opens this chart" data-icon="share"></button>
             <button id="add" class="cap" type="button" aria-haspopup="menu" aria-label="Add" data-tip="Add a series or a formula" data-icon="plus"></button>
             <span class="divider"></span>
@@ -4696,7 +4696,7 @@
             <span id="home-picked" class="home-picked" aria-live="polite"></span>
             <button class="btn ghost" type="button" data-batch="rename" aria-label="Rename"><span data-icon="pencil"></span><span class="label">Rename</span></button>
             <button class="btn ghost" type="button" data-batch="duplicate" aria-label="Duplicate"><span data-icon="copy"></span><span class="label">Duplicate</span></button>
-            <button class="btn ghost" type="button" data-batch="export" aria-label="Export" data-tip="One file, to import again"><span data-icon="download"></span><span class="label">Export</span></button>
+            <button class="btn ghost" type="button" data-batch="export" aria-label="Download" data-tip="One chart file, to import again"><span data-icon="download"></span><span class="label">Download</span></button>
             <button class="btn ghost" type="button" data-batch="delete" aria-label="Delete" data-kbd="⌫"><span data-icon="trash"></span><span class="label">Delete</span></button>
             <span class="divider"></span>
             <button class="cap small" type="button" data-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button>
@@ -6100,11 +6100,17 @@
         chart.updated = now;
         changed(!quiet, redraw);
       }
+      /** Undo, as ⌘Z and ⌘K do it: a toast's Undo while it's up (a deleted chart comes back), else the chart's last edit. */
+      function undoLast() {
+        if (toastUndo?.mark === revision) return toastUndo.press();
+        if (!home) undo();
+      }
       function travel(from, to) {
         const state = from.pop();
         if (!state) return;
         to.push(JSON.stringify(chart));
-        Object.assign(chart, JSON.parse(state));
+        // (The range is a view, as a pan is: it stays as it is.)
+        Object.assign(chart, JSON.parse(state), { range: chart.range });
         chart.updated = Date.now();
         edits.key = "";
         changed(true);
@@ -6165,6 +6171,25 @@
       }
       /** An edge back on the chart: the point at its time (or the first after it), and the bars from there. */
       const logicalOf = ([time, bars], times) => Math.min(lowerBound(times, time), times.length - 1) + bars;
+      /**
+       * A view kept for a chart, on its points at `index`: as kept, at the interval it was kept at; at another, by its
+       * edges' times (bars past them counted as time, the last bar whole), so it shows the same stretch of history.
+       */
+      function viewOn(left, index, times) {
+        if (left.index === index) return { from: logicalOf(left.from, times), to: logicalOf(left.to, times) };
+        const { start, end } = viewTimes(left), last = /** @type {number} */ (times.at(-1)), lastIndex = indexAt(index, last);
+        // The bar holding a time: on the data, the point at or before it; past it, counted by the calendar.
+        const barOf = (/** @type {number} */ time) => (time <= last ? Math.max(0, lowerBound(times, time + 1) - 1) : times.length - 1 + indexAt(index, time) - lastIndex);
+        // Its first bar to its last whole, no further past the data than the chart's own room on the right; only a few bars
+        // here (two days, at a week): thirty, ending where it did.
+        const to = Math.min(barOf(end - 1), times.length - 1 + RIGHT_OFFSET), from = Math.min(barOf(start), to - 30);
+        return { from, to };
+      }
+      /** A kept view's stretch of time: from the start of its first bar to the end of its last, at its own interval. */
+      function viewTimes(left) {
+        const bar = (/** @type {[number, number]} */ [time, bars]) => Math.floor(indexAt(left.index, time) + bars);
+        return { start: timeAt(left.index, bar(left.from)), end: timeAt(left.index, bar(left.to) + 1) };
+      }
       let viewTimer = 0;
       /** Keeps where the open chart is, a moment after it stops moving. */
       function keepView() {
@@ -6435,10 +6460,12 @@
         const key = `${doc.id}@${doc.index}`, latest = latestChunk(doc.index);
         let span = spans.get(key);
         if (!span) {
-          const left = leftView(doc.id), step = FINE_STEP[doc.index];
-          if (left && left.index === doc.index) {
-            const to = clamp(chunkAt(doc.index, left.to[0] + left.to[1] * step), 0, latest);
-            const from = clamp(chunkAt(doc.index, left.from[0] + left.from[1] * step), Math.max(0, to - MOST_CHUNKS + 1), to);
+          // (A view kept at another interval: its stretch of time, of which the chart shows the end: what that needs.)
+          const left = leftView(doc.id);
+          if (left) {
+            const { start, end } = viewTimes(left), most = left.index === doc.index ? MOST_CHUNKS : FIRST_CHUNKS;
+            const to = clamp(chunkAt(doc.index, end - 1), 0, latest);
+            const from = clamp(chunkAt(doc.index, start), Math.max(0, to - most + 1), to);
             span = { from, to, live: to >= latest };
           } else span = presetSpan(doc.index, doc.range);
           spans.set(key, span);
@@ -6727,6 +6754,10 @@
       });
       /** @type {Map<string, any>} layer id → its series on the chart */
       const drawn = new Map();
+      /** A series' options without its format and scale (a restyle keeps both, and applying them again costs a pass over every point). */
+      const lookOf = (/** @type {Record<string, any>} */ { priceFormat, priceScaleId, ...look }) => look;
+      /** What each layer was drawn as (its shape, its data), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any }>} */
+      const built = new Map();
       /** @type {Map<string, Record<string, string>>} layer id → its series' colors */
       const paints = new Map();
       /** Faded, a stacked layer's colors: dim but solid (see-through, the bands under it would show as its own). @type {Map<string, Record<string, string>>} */
@@ -6891,8 +6922,7 @@
         const keep = sameView && panesShape === drawnPanes;
         const glidingTo = glideTarget;
         stopGlide();
-        // The old series go once the new ones are in: a scale left empty is reset by the chart library.
-        const old = [...drawn.values(), ...[...closes.values()].map((close) => close.series), ...carriers.splice(0)];
+        const was = new Map(drawn), wasCloses = new Map(closes);
         drawn.clear();
         closes.clear();
         dotted.clear();
@@ -6902,6 +6932,17 @@
         spotlit = null;
         const paneIndex = new Map(doc.panes.map((pane, i) => [pane.id, i]));
         const stacked = stackOf(doc, data), shares = new Set(doc.panes.filter((pane) => pane.stack === "percent").map((pane) => pane.id));
+        // A restyle (every layer drawn as before: its kind, place, scale and data the same) keeps the series, their look
+        // applied to them, no data set again: a color or a width scrubbed stays smooth however many points there are.
+        // (A stack or a histogram, its colors in its points, is drawn anew, and with it the rest, to keep their order.)
+        const shapeOf = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc)]);
+        const restyle = doc.layers.length === built.size && was.size === built.size && doc.layers.every((layer, i) => {
+          const before = built.get(layer.id), result = data.results.get(layer.id);
+          return before && layer.type !== "histogram" && !stacked.has(layer.id) && before.shape === shapeOf(layer, i) && before.shown === result?.shown && before.ohlc === result?.ohlc && was.has(layer.id);
+        });
+        built.clear();
+        // The old series go once the new ones are in: a scale left empty is reset by the chart library.
+        const old = [...(restyle ? [] : [...was.values(), ...[...wasCloses.values()].map((close) => close.series)]), ...carriers.splice(0)];
         /** @type {{ layer: Layer, value: number, color: string, dash: number, mode: number, pane: number, format: any }[]} */
         const across = [];
         /** A layer's lines across, drawn once all are known: its levels, and a baseline's base (not as a band). */
@@ -6912,7 +6953,7 @@
             across.push({ layer, mode: modeOf(doc, layer), pane, format, value, color: op < 1 ? alpha(ink(color), op) : ink(color), dash });
           }
         };
-        for (const layer of doc.layers) {
+        for (const [i, layer] of doc.layers.entries()) {
           const result = data.results.get(layer.id);
           // Its opacity on every color it paints (fills keep their own share of it).
           const op = layer.opacity ?? 1, base = ink(layer.color), under = ink(belowOf(layer));
@@ -6955,23 +6996,33 @@
             drawn.set(layer.id, series);
             continue;
           }
+          // (On a restyle, the series as it was.)
+          const again = restyle ? was.get(layer.id) : undefined;
           if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
-            series = view.addSeries(LC.CandlestickSeries, { ...common, ...paint, borderVisible: true, lastValueVisible: false, priceLineVisible: false, visible: !layer.hidden && candlesFit }, pane);
-            const close = { color };
-            closes.set(layer.id, { candles: series, series: view.addSeries(LC.LineSeries, { ...common, ...close, ...marker, lineWidth, lineVisible: !candlesFit, crosshairMarkerVisible: !candlesFit }, pane), paint: close });
-          }
-          else if (layer.type === "dots") {
+            const options = { ...common, ...paint, borderVisible: true, lastValueVisible: false, priceLineVisible: false, visible: !layer.hidden && candlesFit };
+            const close = { color }, closeOptions = { ...common, ...close, ...marker, lineWidth, lineVisible: !candlesFit, crosshairMarkerVisible: !candlesFit };
+            const closeAgain = again && wasCloses.get(layer.id)?.series;
+            series = again ?? view.addSeries(LC.CandlestickSeries, options, pane);
+            if (again) series.applyOptions(lookOf(options));
+            if (closeAgain) closeAgain.applyOptions(lookOf(closeOptions));
+            closes.set(layer.id, { candles: series, series: closeAgain || view.addSeries(LC.LineSeries, closeOptions, pane), paint: close });
+          } else {
             const radius = dotRadius(layer.width);
-            series = view.addSeries(LC.LineSeries, { ...common, ...paint, ...marker, lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: radius }, pane);
-            dotted.set(layer.id, { series, width: layer.width, radius });
-          } else if (layer.type === "area") series = view.addSeries(LC.AreaSeries, { ...common, ...paint, ...marker, ...line, invertFilledArea: layer.fill === "above" }, pane);
-          else if (layer.type === "histogram") series = view.addSeries(LC.HistogramSeries, { ...common, ...paint, base: layer.base ?? 0 }, pane);
-          else if (layer.type === "baseline") series = view.addSeries(LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: "price", price: layer.base ?? 0 } }, pane);
-          else series = view.addSeries(LC.LineSeries, { ...common, ...paint, ...marker, ...line }, pane);
+            const [kind, options] = layer.type === "dots" ? [LC.LineSeries, { ...common, ...paint, ...marker, lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: radius }]
+              : layer.type === "area" ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, invertFilledArea: layer.fill === "above" }]
+              : layer.type === "histogram" ? [LC.HistogramSeries, { ...common, ...paint, base: layer.base ?? 0 }]
+              : layer.type === "baseline" ? [LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: "price", price: layer.base ?? 0 } }]
+              : [LC.LineSeries, { ...common, ...paint, ...marker, ...line }];
+            series = again ?? view.addSeries(/** @type {any} */ (kind), options, pane);
+            if (again) series.applyOptions(lookOf(options));
+            if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
+          }
           paints.set(layer.id, paint);
-          if (result?.shown) {
+          built.set(layer.id, { shape: shapeOf(layer, i), shown: result?.shown, ohlc: result?.ohlc });
+          if (result?.shown && again) linesAcross(layer, pane, common.priceFormat, op, true);
+          else if (result?.shown) {
             const shown = result.shown;
             // Log scales can't show zero or negative values: they become gaps.
             const log = modeOf(doc, layer) === 1;
@@ -7026,11 +7077,12 @@
         });
         drawnPanes = panesShape;
         view.applyOptions({ timeScale: { timeVisible: FINE.has(doc.index) } });
-        // A chart opening comes back where it was left.
-        // (Unless it has since fallen off the data: an old view of a fine interval, past its latest points.)
-        const left = drawnChart !== doc.id ? leftView(doc.id) : null;
-        const from = left ? logicalOf(left.from, data.times) : 0, to = left ? logicalOf(left.to, data.times) : 0;
-        if (left && left.index === doc.index && data.times.length > 1 && to - from >= 1) view.timeScale().setVisibleLogicalRange(within({ from, to }, "to"));
+        // A chart opening comes back where it was left; at another interval, on the same time (on its preset, if it
+        // showed one: it kept no view then). (Unless the view has since fallen off the data: an old one of a fine
+        // interval, past its latest points.)
+        const left = drawnChart !== doc.id || drawnIndex !== doc.index ? leftView(doc.id) : null;
+        const kept = left && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
+        if (kept && kept.to - kept.from >= 1) view.timeScale().setVisibleLogicalRange(within(kept, "to"));
         else if (!visible || presetShown) applyRange(doc, data);
         else if (shift && (glidingTo ?? logical)) {
           const range = /** @type {{ from: number, to: number }} */ (glidingTo ?? logical);
@@ -8068,7 +8120,7 @@
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on: what the chart's mark does, its range, its layers' types, the view it was left at and how much the chart shows. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => layer.type), doc.panes.map((pane) => pane.stack), leftView(doc.id), Math.round(mostBars() / 200)]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => [layer.type, layer.base]), doc.panes.map((pane) => pane.stack), leftView(doc.id), Math.round(mostBars() / 200)]);
       const savePreviews = () => storage.set(PREVIEWS, Object.fromEntries([...previews].filter(([id]) => chartById(id))));
       /** @param {Chart} doc @param {{ times: number[], results: Map<string, any> }} data @returns {Preview} */
       function previewOf(doc, data) {
@@ -8078,7 +8130,7 @@
         const drawn = { seps: [], lines: [] };
         if (n < 2) return drawn;
         const left = leftView(doc.id);
-        const shown = left && left.index === doc.index ? within({ from: logicalOf(left.from, times), to: logicalOf(left.to, times) }, "to") : presetWindow(doc, data);
+        const shown = left ? within(viewOn(left, doc.index, times), "to") : presetWindow(doc, data);
         const span = shown.to - shown.from;
         if (!(span >= 1)) return drawn;
         // No more points than bars in view: each one then holds a bar at least, so only missing data breaks a line.
@@ -8109,17 +8161,18 @@
                 counts[b]++;
               }
               const points = Array.from({ length: B }, (_, b) => (counts[b] ? [at[b] / counts[b], sums[b] / counts[b]] : null));
-              return { layer, bars: layer.type === "histogram" && mode === 0, points };
+              return { layer, bars: layer.type === "histogram" && mode === 0, base: layer.base ?? 0, points };
             });
             let lo = Infinity, hi = -Infinity;
-            for (const { bars, points } of shaped) {
-              if (bars) (lo = Math.min(lo, 0)), (hi = Math.max(hi, 0));
+            for (const { bars, base, points } of shaped) {
+              if (bars) (lo = Math.min(lo, base)), (hi = Math.max(hi, base));
               for (const point of points) if (point) (lo = Math.min(lo, point[1])), (hi = Math.max(hi, point[1]));
             }
             if (!Number.isFinite(lo)) continue;
+            if (pane.stack === "percent") (lo = 0), (hi = 100);
             const range = hi - lo;
             const y = (value) => round(band.top + band.height * (range ? 1 - (value - lo) / range : 0.5));
-            for (const { layer, bars, points } of shaped) {
+            for (const { layer, bars, base, points } of shaped) {
               let d = "", gap = true;
               for (const point of points) {
                 if (!point) {
@@ -8127,7 +8180,7 @@
                   continue;
                 }
                 const x = round(((point[0] - shown.from) / span) * W);
-                d += bars ? `M${x} ${y(0)}V${y(point[1])}` : `${gap ? "M" : "L"}${x} ${y(point[1])}`;
+                d += bars ? `M${x} ${y(base)}V${y(point[1])}` : `${gap ? "M" : "L"}${x} ${y(point[1])}`;
                 gap = false;
               }
               if (d) drawn.lines.push([layer.color, d, bars]);
@@ -8629,7 +8682,7 @@
       function renderCharts() {
         const current = home ? null : chart;
         $("chart-list").innerHTML = library.charts.map((doc, i) => `<div class="chart-row ${doc === current ? "active" : ""}" draggable="true" data-chart-row="${doc.id}">
-            <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i < 9 ? `data-kbd="⌘ ${i + 1}"` : ""} ${doc === current ? 'aria-current="page"' : ""}>${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span>${i < 9 ? `<kbd class="mod">⌘${i + 1}</kbd>` : ""}</button>
+            <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i < 9 ? `data-kbd="⌘ ${i + 1}"` : ""} ${doc === current ? 'aria-current="page"' : ""}>${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span>${i < 9 ? `<kbd class="mod">${keyText(`⌘${i + 1}`)}</kbd>` : ""}</button>
             <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
           </div>`).join("");
         fitStrip($("chart-list"), true);
@@ -8647,7 +8700,7 @@
         showMenu(anchor, `
           <button type="button" data-pick="rename">${ICONS.pencil}Rename</button>
           <button type="button" data-pick="duplicate">${ICONS.copy}Duplicate</button>
-          <button type="button" data-pick="download">${ICONS.file}Download the chart file</button>
+          <button type="button" data-pick="download">${ICONS.file}Download chart file</button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete</button>`, ({ pick }) => {
           // Back to the ⋯ it was opened from (in the grid, a copy is focused instead).
@@ -8686,6 +8739,9 @@
       function duplicateChart(doc) {
         const copy = { ...structuredClone(doc), id: uid(), title: `${titleOf(doc)} copy`, updated: Date.now() };
         library.charts.splice(library.charts.indexOf(doc) + 1, 0, copy);
+        // Where it's looked at, too.
+        if (doc === chart) saveView();
+        keepCarriedView(copy, { view: leftView(doc.id) });
         // (Its mark in the list doesn't depend on its id.)
         const drawn = previews.get(doc.id), mark = thumbs.get(doc.id);
         if (drawn) previews.set(copy.id, { ...drawn, key: "" });
@@ -9218,7 +9274,7 @@
           </section>
           <section>
             <div class="actions-row">
-              <button type="button" class="btn" data-action="duplicate" data-tip="Duplicate" data-kbd="⌘ D">Duplicate<kbd class="mod">⌘D</kbd></button>
+              <button type="button" class="btn" data-action="duplicate" data-tip="Duplicate" data-kbd="⌘ D">Duplicate<kbd class="mod">${keyText("⌘D")}</kbd></button>
               <button type="button" class="btn danger" data-action="remove" data-tip="Remove" data-kbd="⌫">Remove</button>
             </div>
           </section>`;
@@ -9745,9 +9801,12 @@
       document.addEventListener("focusout", (event) => {
         const field = /** @type {HTMLInputElement} */ (event.target);
         // A window typed as arithmetic or with its unit reads as it's kept once left (4 * 365 → 1460, 4y → 4).
-        if (field.id === "window") {
-          const n = layerById(selected)?.transform?.n;
-          if (n !== undefined) field.value = String(n);
+        if (field.id === "window" || field.id === "base") {
+          // Its label again, with its Reset now (only it: the panel drawn again would lose the click that left the field).
+          const layer = layerById(selected), label = field.closest(".field")?.firstElementChild, reset = label?.querySelector(".reset");
+          if (layer && label && !DEFAULTS[field.id].is(layer) && !reset) label.insertAdjacentHTML("beforeend", resetFor(field.id, layer));
+          else if (layer && DEFAULTS[field.id].is(layer)) reset?.remove();
+          if (field.id === "window" && layer?.transform?.n !== undefined) field.value = String(layer.transform.n);
           return;
         }
         if (field.id !== "formula") return;
@@ -9834,7 +9893,7 @@
         const button = closest(event, "button");
         if (!button) return;
         const { transform, type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorTarget: target, replace, removeLevel, lineColor, lineDash } = button.dataset;
-        if (index) commit((doc) => (doc.index = index));
+        if (index) switchInterval(index);
         else if (transform) editLayer((layer) => {
           layer.transform = transformTo(transform, layer.transform);
           if (layer.transform && layer.type === "candles") layer.type = "line";
@@ -9972,7 +10031,7 @@
           <button type="button" data-pick="edit">${ICONS.sliders}Settings</button>
           ${layer.series ? `<button type="button" data-pick="change">${ICONS.series}Change series…</button>` : ""}
           <button type="button" data-pick="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}${layer.hidden ? "Show" : "Hide"}<kbd>H</kbd></button>
-          <button type="button" data-pick="duplicate" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.copy}Duplicate<kbd>⌘D</kbd></button>
+          <button type="button" data-pick="duplicate" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.copy}Duplicate<kbd>${keyText("⌘D")}</kbd></button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove<kbd>⌫</kbd></button>`, ({ pick }) => {
           if (!layerById(id)) return;
@@ -10419,20 +10478,26 @@
           ...(home ? [] : [{ title: "All charts", text: "Every chart, side by side.", words: "grid overview gallery library home browse", icon: "grid", run: () => showHome() }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
           ...(empty ? [] : [{ title: "Copy a share link", text: "A link that opens this chart for anyone.", words: "share url send", icon: "share", run: () => $("share").click(), suggested: true }]),
-          ...(empty ? [] : [{ title: "Copy the chart as an image", text: "To paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
-          ...(empty ? [] : [{ title: "Export as an image", text: "A PNG of the chart as it shows, with its title.", words: "png picture screenshot download save", icon: "image", run: () => exportAs("png"), suggested: true }]),
-          ...(empty ? [] : [{ title: "Export the data", text: "A CSV of every layer as drawn, one row per date.", words: "csv spreadsheet download save", icon: "table", run: () => exportAs("csv") }]),
-          { title: "Download the chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
+          ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
+          ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows, with its title.", words: "png picture screenshot export save", icon: "image", run: () => exportAs("png"), suggested: true }]),
+          ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer as drawn, one row per date.", words: "csv spreadsheet export save", icon: "table", run: () => exportAs("csv") }]),
+          { title: "Download chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
           { title: "Import a chart file", text: "A chart's file, or several charts exported together.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           ...TEMPLATES.map((template) => ({ title: `New chart from a template: ${template.title}`, text: template.text, words: "template example start", icon: "templates", run: () => useTemplate(template), anywhere: true })),
           ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
-          ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => commit((doc) => (doc.index = id)) })),
+          ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "charts", kbd: "L", run: () => toggleLog(pane.id) }))),
           { title: measureMode ? "Stop measuring" : "Measure", text: measureMode ? "Dragging pans the chart again." : "Drag across the chart to measure a change.", words: "measure measuring ruler distance difference percent", icon: "ruler", kbd: "M", run: () => setMeasureMode(!measureMode) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           ...(TOUCH ? [] : [{ title: "Keyboard shortcuts", text: "Every key the studio answers to.", words: "keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
-          ...(edits.past.length ? [{ title: "Undo", text: "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undo }] : []),
+          ...(edits.past.length || toastUndo?.mark === revision ? [{ title: "Undo", text: toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: toastUndo?.mark === revision }] : []),
+          // The charts picked in the grid: what its bar does.
+          ...(home && picked.size ? [
+            { title: `Duplicate the ${picked.size === 1 ? "picked chart" : `${picked.size} picked charts`}`, text: "A copy of each, beside it.", words: "copy picked selected", icon: "copy", run: () => batch("duplicate"), anywhere: true },
+            { title: `Download the ${picked.size === 1 ? "picked chart" : `${picked.size} picked charts`}`, text: "One chart file, to import again.", words: "export save json picked selected", icon: "download", run: () => batch("export"), anywhere: true },
+            { title: `Delete the ${picked.size === 1 ? "picked chart" : `${picked.size} picked charts`}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true },
+          ] : []),
           ...(edits.future.length ? [{ title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redo }] : []),
           ...(empty ? [] : [
             { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", words: "magnify closer", icon: "charts", kbd: "+", run: () => zoom(1 / 1.6) },
@@ -10756,7 +10821,7 @@
           const doc = item.kind === "chart" ? chartById(item.key) : null;
           const icon = item.kind === "widen" ? ICONS.browse : item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? ICONS.series : doc ? chartMark(doc) : item.group === "Recent series" ? ICONS.recent : ICONS.series;
           const name = item.kind === "widen" ? `Search all series for “${escape(palette.query.trim())}”` : item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : searching ? highlightMatch(item.name, palette.query) : escape(item.name);
-          const meta = item.kind === "folder" ? `<span class="item-meta">›</span>` : item.kind === "command" ? (item.command.kbd ? `<kbd>${escape(item.command.kbd)}</kbd>` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : item.kind === "series" && palette.added.has(item.name) ? `<span class="item-meta">Added ${ICONS.check}</span>` : "";
+          const meta = item.kind === "folder" ? `<span class="item-meta">›</span>` : item.kind === "command" ? (item.command.kbd ? `<kbd>${escape(keyText(item.command.kbd))}</kbd>` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : item.kind === "series" && palette.added.has(item.name) ? `<span class="item-meta">Added ${ICONS.check}</span>` : "";
           return `${header}<li role="option" id="option-${i}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${icon}<span class="item-name">${name}</span>${meta}</li>`;
         }).join("") + tail;
         // A new list starts at its top; a row landed on (coming back up) is brought into view, with its neighbors.
@@ -10818,7 +10883,7 @@
           return;
         }
         if (item.kind === "command") {
-          panel.innerHTML = `<h4 class="plain">${escape(item.command.title)}</h4><p class="description">${escape(item.command.text)}</p>${item.command.kbd ? `<div class="info"><dl><div><dt>Shortcut</dt><dd><kbd>${escape(item.command.kbd)}</kbd></dd></div></dl></div>` : ""}`;
+          panel.innerHTML = `<h4 class="plain">${escape(item.command.title)}</h4><p class="description">${escape(item.command.text)}</p>${item.command.kbd ? `<div class="info"><dl><div><dt>Shortcut</dt><dd><kbd>${escape(keyText(item.command.kbd))}</kbd></dd></div></dl></div>` : ""}`;
           return;
         }
         if (item.kind === "chart") return previewChart(panel, chartById(item.key));
@@ -10931,7 +10996,7 @@
       function showActions() {
         const item = palette.items[palette.active], actions = actionsFor(item);
         if (actions.length < 2) return;
-        showMenu($("palette-actions"), actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${escape(action.label)}${action.kbd ? `<kbd>${action.kbd}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
+        showMenu($("palette-actions"), actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
       }
       /**
        * An action, from ⌘K's menu or a page's row: a page opens; anything else acts, closing ⌘K unless it stays (a
@@ -11095,7 +11160,7 @@
         const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : escape(item.aside)) : "";
         const end = armed ? AGAIN : [aside, item.current ? ICONS.check : "", item.page || item.leads ? "›" : ""].filter(Boolean).join(" ");
         const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
-        return `${item.icon ?? ""}<span class="item-name">${armed ? `Confirm: ${escape(item.label)}` : query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${item.kbd && !armed ? `<kbd>${escape(item.kbd)}</kbd>` : ""}`;
+        return `${item.icon ?? ""}<span class="item-name">${armed ? `Confirm: ${escape(item.label)}` : query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${item.kbd && !armed ? `<kbd>${escape(keyText(item.kbd))}</kbd>` : ""}`;
       }
       /** A chart: its title, layers, interval, when it was last edited. */
       function previewChart(panel, doc) {
@@ -11264,7 +11329,7 @@
           { label: "Duplicate", run: () => chartPick(id, "duplicate") },
           ...(at > 0 ? [{ label: "Move up", kbd: "⌥↑", stay: true, run: () => moveChart(id, at - 1) }] : []),
           ...(at < library.charts.length - 1 ? [{ label: "Move down", kbd: "⌥↓", stay: true, run: () => moveChart(id, at + 2) }] : []),
-          { label: "Download the chart file", run: () => chartPick(id, "download") },
+          { label: "Download chart file", run: () => chartPick(id, "download") },
           { label: "Delete", danger: true, run: () => chartPick(id, "delete") },
         ];
       }
@@ -11277,7 +11342,7 @@
       /** @returns {Page} */
       function intervalPage() {
         const supported = supportedIntervals();
-        return choicePage("Interval", () => INTERVAL_ORDER.filter(supported).map((id) => ({ key: id, icon: ICONS.recent, label: CADENCE[id], aside: INTERVAL_LABEL[id], current: chart.index === id, run: () => commit((doc) => (doc.index = id)) })));
+        return choicePage("Interval", () => INTERVAL_ORDER.filter(supported).map((id) => ({ key: id, icon: ICONS.recent, label: CADENCE[id], aside: INTERVAL_LABEL[id], current: chart.index === id, run: () => switchInterval(id) })));
       }
       /**
        * This chart, all it is: its title, interval and range; its layers and panes, and adding to them; sharing and
@@ -11301,7 +11366,7 @@
             ...(any ? [
               { key: "share", icon: ICONS.share, label: "Copy a share link", verb: "Copy", group: "Out of it", run: () => $("share").click() },
               { key: "copy-image", icon: ICONS.copy, label: "Copy as image", verb: "Copy", group: "Out of it", run: () => exportAs("copy") },
-              { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => ({ title: "Export", rows: () => [["copy", "Copy as image", "", ICONS.copy], ["png", "Image", "PNG", ICONS.image], ["csv", "Data", "CSV", ICONS.table], ["json", "Chart file", "JSON", ICONS.file]].map(([kind, label, aside, icon]) => ({ kind: "row", key: kind, icon, label, aside, verb: kind === "copy" ? "Copy" : "Export", run: () => exportAs(kind) })) }) },
+              { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => ({ title: "Export", rows: () => [["copy", "Copy as image", "", ICONS.copy], ["png", "Download image", "PNG", ICONS.image], ["csv", "Download data", "CSV", ICONS.table], ["json", "Download chart file", "JSON", ICONS.file]].map(([kind, label, aside, icon]) => ({ kind: "row", key: kind, icon, label, aside, verb: kind === "copy" ? "Copy" : "Download", run: () => exportAs(kind) })) }) },
             ] : []),
             { key: "duplicate", icon: ICONS.copy, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") },
             ...(isDraft(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, run: () => deleteChart(chart) }]),
@@ -11578,37 +11643,72 @@
         const last = Math.max(0, lowerBound(times, span.to + 1) - 1);
         return { first: Math.min(lowerBound(times, span.from), last), last };
       }
+      /** The stretch a date shows (its middle, as wide as the chart shows, when it's longer), and whether it's all loaded. */
+      function stretchOf(span) {
+        // (A span running past now, this month or year, ends now: its middle is of what there is.)
+        const step = INTERVAL_DAYS[chart.index] * 86400, range = view.timeScale().getVisibleLogicalRange(), end = Math.min(span.to, Date.now() / 1000), middle = (span.from + end) / 2;
+        // (A day shows at the zoom the chart has, centered: that's its stretch.)
+        const width = span.day && range ? (range.to - range.from) * step : Math.min(end - span.from, mostBars() * step);
+        const from = middle - width / 2, to = Math.min(middle + width / 2, end), times = resolved?.times ?? [];
+        // (Loaded up to the end of the last point's own interval.)
+        return { from, to, loaded: times.length > 1 && from >= times[0] && to <= /** @type {number} */ (times.at(-1)) + step };
+      }
       /** Why a span can't be gone to on this chart (none of its data there), or nothing. */
       function outOfData(span) {
         const times = resolved?.times ?? [];
         if (times.length < 2) return "This chart has no data to go to yet";
-        if (span.to >= times[0] && span.from <= times[times.length - 1]) return "";
+        // At a fine interval, all of its history (what isn't loaded loads); at a coarse one, the last point stands for its
+        // whole interval (a yearly chart's 2026 takes October).
+        const fine = FINE.has(chart.index), start = fine ? timeAt(chart.index, 0) : times[0];
+        const end = fine ? Date.now() / 1000 : timeAt(chart.index, indexAt(chart.index, /** @type {number} */ (times.at(-1))) + 1);
+        if (span.to >= start && span.from < end) return "";
         const say = (time) => new Date(time * 1000).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" });
-        return `This chart runs from ${say(times[0])} to ${say(times[times.length - 1])}`;
+        return `This chart runs from ${say(start)} to ${say(end - 1)}`;
       }
       /** The view on a date: a year or a month shown whole, a day (or a span of a few points) centered at the zoom it has. */
-      function goToDate(span) {
+      function goToDate(span, loaded = false) {
         if (!span || outOfData(span)) return;
+        // Past what a fine interval has loaded: the chunks around it load first (joined to those held when they meet,
+        // the most held at once kept on its side), then the view goes there.
+        const held = spanOf(chart), stretch = stretchOf(span);
+        if (held && !loaded && !stretch.loaded) {
+          const latest = latestChunk(chart.index), to = clamp(chunkAt(chart.index, stretch.to), 0, latest), from = clamp(chunkAt(chart.index, stretch.from), 0, to);
+          const meets = to + 1 >= held.from && from <= held.to + 1, older = to < held.from;
+          Object.assign(held, meets ? { from: Math.min(from, held.from), to: Math.max(to, held.to) } : { from, to });
+          if (held.to - held.from + 1 > MOST_CHUNKS) {
+            if (older) held.to = held.from + MOST_CHUNKS - 1;
+            else held.from = held.to - MOST_CHUNKS + 1;
+          }
+          held.live = held.to >= latest;
+          const id = chart.id;
+          return void draw().then((drew) => drew && chart.id === id && goToDate(span, true));
+        }
         const { first, last } = pointsOf(span), range = view.timeScale().getVisibleLogicalRange();
         autoScale();
         if (span.day || last - first < 8) {
           const half = range ? (range.to - range.from) / 2 : 60, center = (first + last) / 2;
           glide({ from: center - half, to: center + half });
-        } else glide({ from: first - 0.5, to: last + 0.5 });
+        } else {
+          // Its middle when it's wider than the chart shows (as loaded for it), else all of it.
+          const times = /** @type {Resolved} */ (resolved).times, middle = stretchOf(span);
+          glide({ from: Math.max(first, lowerBound(times, middle.from)) - 0.5, to: Math.min(last, lowerBound(times, middle.to) - 1) + 0.5 });
+        }
       }
       /** Where ↵ would take the view: the chart's overview, the span lit on it; when it starts and ends, how many points. */
       function previewDate(panel, span) {
         const why = span ? outOfData(span) : "";
-        const points = span && !why ? pointsOf(span) : null, wide = points && points.last - points.first + 1 > mostBars();
+        // (At a fine interval, a stretch not loaded yet loads first: nothing to light or count until then.)
+        const away = Boolean(span && !why && FINE.has(chart.index) && !stretchOf(span).loaded);
+        const points = span && !why && !away ? pointsOf(span) : null, wide = points && points.last - points.first + 1 > mostBars();
         panel.innerHTML = `<h4 class="plain">${span ? escape(span.label) : "Go to a date"}</h4>
-          <p class="description">${escape(!span ? "A year or a month is shown whole; a day, centered at the zoom the chart has." : why || (span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
+          <p class="description">${escape(!span ? "A year or a month is shown whole; a day, centered at the zoom the chart has." : why || (away ? "Loads first, then shows it." : span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
           <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg><span id="spark-caption" hidden></span>
-          ${span && !why ? `<div class="info"><dl id="date-facts"></dl></div>` : ""}`;
+          ${span && !why && !away ? `<div class="info"><dl id="date-facts"></dl></div>` : ""}`;
         const source = overviewSource();
         if (!source || !resolved) return void $("spark").remove();
         const values = Array.from(source.values), n = values.length;
         drawSpark(values, unitFor(source.layer, resolved.results.get(source.layer.id)), ink(source.layer.color));
-        if (!span || why) return;
+        if (!span || why || away) return;
         const { first, last } = pointsOf(span), x = (i) => ((i / Math.max(1, n - 1)) * 300).toFixed(1);
         $("spark").insertAdjacentHTML("afterbegin", `<rect x="${x(first)}" y="0" width="${Math.max(1.5, Number(x(last)) - Number(x(first)))}" height="100" style="fill: var(--line-strong)" />`);
         $("date-facts").innerHTML = `<div><dt>From</dt><dd>${escape(dateLabel(resolved.times[first], FINE.has(chart.index)))}</dd></div><div><dt>To</dt><dd>${escape(dateLabel(resolved.times[last], FINE.has(chart.index)))}</dd></div><div><dt>Points</dt><dd>${grouped.format(last - first + 1)}</dd></div>`;
@@ -11824,7 +11924,7 @@
           return owner?.focus();
         }
         // A key shown beside an item does it, to what the menu is of: a layer's menu acts on that layer, selected or not.
-        const key = `${event.metaKey || event.ctrlKey ? "⌘" : ""}${event.key === "Backspace" ? "⌫" : event.key.toUpperCase()}`;
+        const key = keyText(`${event.metaKey || event.ctrlKey ? "⌘" : ""}${event.key === "Backspace" ? "⌫" : event.key.toUpperCase()}`);
         const hinted = !event.altKey && !event.shiftKey && all$("button:not(:disabled)", $("menu")).find((button) => button.dataset.key === key);
         if (hinted) {
           event.preventDefault();
@@ -11858,13 +11958,13 @@
       }
       $("interval").addEventListener("click", (event) => {
         const supported = supportedIntervals();
-        showMenu(event.currentTarget, INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-checked="${chart.index === id}" ${supported(id) ? "" : "disabled data-tip=\"Not every series has this interval\""}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load as far back as you look.</div>`, ({ index }) => commit((doc) => (doc.index = index)));
+        showMenu(event.currentTarget, INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-checked="${chart.index === id}" ${supported(id) ? "" : "disabled data-tip=\"Not every series has this interval\""}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load as far back as you look.</div>`, ({ index }) => switchInterval(index));
       });
       function stepInterval(delta) {
         const ids = INTERVAL_ORDER.filter(supportedIntervals());
         const next = ids[ids.indexOf(chart.index) + delta];
         if (!next) return;
-        commit((doc) => (doc.index = next));
+        switchInterval(next);
         toast(`Interval: ${CADENCE[next]}`);
       }
       function renderRanges() {
@@ -11873,10 +11973,17 @@
           return `<button type="button" data-range="${id}" aria-pressed="${presetShown && shownRange() === id}" aria-label="${tip}" data-tip="${tip}" ${fits ? `data-kbd="${i + 1}"` : "disabled"}>${text}</button>`;
         }).join("");
       }
+      /** Another interval for the open chart: its view kept first, so the new one opens on the same time (on its preset, if it showed one). */
+      function switchInterval(/** @type {string} */ index) {
+        saveView();
+        commit((doc) => (doc.index = index));
+      }
       /** A preset is a view: no rebuild, the chart glides there. */
       function setRange(range) {
         autoScale();
-        commit((doc) => (doc.range = range), { redraw: "none", quiet: true });
+        chart.range = range;
+        save();
+        refresh("none");
         drawnRange = chart.range;
         // At a fine interval, a preset shows the latest, over the chunks it covers and those held when they join them.
         const span = spanOf(chart);
@@ -11928,8 +12035,8 @@
         <button type="button" data-export="copy">${ICONS.copy}Copy as image</button>
         <button type="button" data-export="png">${ICONS.image}Download image <span>PNG</span></button>
         <div class="menu-rule"></div>
-        <button type="button" data-export="csv">${ICONS.table}Data <span>CSV</span></button>
-        <button type="button" data-export="json">${ICONS.file}Chart file <span>JSON</span></button>`, ({ export: kind }) => exportAs(kind)));
+        <button type="button" data-export="csv">${ICONS.table}Download data <span>CSV</span></button>
+        <button type="button" data-export="json">${ICONS.file}Download chart file <span>JSON</span></button>`, ({ export: kind }) => exportAs(kind)));
       // The panel's two adds, from the header (and the phone's bar).
       for (const id of ["add", "mobile-add"]) $(id).addEventListener("click", (event) => home ? newChart() : showMenu(event.currentTarget, `
         <button type="button" data-pick="series">${ICONS.series}Series<kbd>A</kbd></button>
@@ -11961,7 +12068,9 @@
           if (Array.isArray(parsed?.charts)) {
             const docs = parsed.charts.flatMap((item) => {
               try {
-                return [validate(item)];
+                const doc = validate(item);
+                keepCarriedView(doc, item);
+                return [doc];
               } catch {
                 return [];
               }
@@ -11979,6 +12088,7 @@
             return toast(`Imported ${plural(docs.length, "chart")}${skipped === 1 ? "; 1 entry wasn't a chart" : skipped ? `; ${grouped.format(skipped)} entries weren't charts` : ""}`);
           }
           const doc = validate(parsed);
+          keepCarriedView(doc, parsed);
           // Onto an untouched new chart, the file takes its place.
           if (isDraft(chart)) library.charts.splice(library.charts.indexOf(chart), 1);
           adopt(doc);
@@ -11988,7 +12098,24 @@
         }
       });
 
-      const portable = (doc) => ({ v: 2, title: doc.title, index: doc.index, range: doc.range, panes: doc.panes, layers: doc.layers });
+      /** A chart as a file or a link carries it: its view too, where it isn't on its preset. @param {Chart} doc */
+      function portable(doc) {
+        if (doc === chart) saveView();
+        const kept = leftView(doc.id);
+        return { v: 2, title: doc.title, index: doc.index, range: doc.range, panes: doc.panes, layers: doc.layers, ...(kept ? { view: kept } : {}) };
+      }
+      /** The view a file or a link carried with a chart, kept for it (as `saveView` keeps one). @param {Chart} doc */
+      function keepCarriedView(doc, input) {
+        const carried = input?.view;
+        if (!carried || typeof carried.index !== "string" || !isEdge(carried.from) || !isEdge(carried.to)) return;
+        const all = storage.get(VIEWS, {});
+        all[doc.id] = { index: carried.index, from: carried.from, to: carried.to };
+        storage.set(VIEWS, all);
+      }
+      /** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
+      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
+      /** Two charts alike (a link opened again is the chart already here). */
+      const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf(a) === contentOf(b);
       async function shareLink(doc) {
         const stream = new Blob([JSON.stringify(portable(doc))]).stream().pipeThrough(new CompressionStream("deflate-raw"));
         const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
@@ -12011,7 +12138,9 @@
           }
           chunks.push(value);
         }
-        return validate(JSON.parse(await new Blob(chunks).text()));
+        const input = JSON.parse(await new Blob(chunks).text()), doc = validate(input);
+        keepCarriedView(doc, input);
+        return doc;
       }
       /** A line's style, read back: its color and line style where valid. */
       function lineStyleOf(line) {
@@ -12230,10 +12359,17 @@
         pieces.splice(0, pieces.length, ...pieces.filter((piece) => !piece.svg || piece.image));
       }
 
+      const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
+      /** A shortcut as this platform writes it: ⌘Z on a Mac; Ctrl+Z, Ctrl+Shift+Z, Alt+↑ elsewhere. */
+      const keyText = (/** @type {string} */ text) => MAC ? text : text.replace(/[⌘⇧⌥⌃]+/g, (mods, at) => {
+        const names = [["⌘⌃", "Ctrl"], ["⌥", "Alt"], ["⇧", "Shift"]].filter(([glyphs]) => [...glyphs].some((glyph) => mods.includes(glyph))).map(([, name]) => name);
+        const next = text[at + mods.length];
+        return `${names.join("+")}${next && next !== " " ? "+" : ""}`;
+      });
       /** "⇧ ⌘ Z" reads ⇧⌘Z; alternatives like "[ ]" keep their space. */
       const keysOf = (kbd) => {
         const keys = kbd.split(" ");
-        return keys.slice(0, -1).every((key) => "⌘⇧⌥⌃".includes(key)) ? keys.join("") : keys.join(" ");
+        return keyText(keys.slice(0, -1).every((key) => "⌘⇧⌥⌃".includes(key)) ? keys.join("") : keys.join(" "));
       };
       /** The same, as keycaps: one for a modified key, one per alternative. */
       const keycaps = (kbd) => keysOf(kbd).split(" ").map((key) => `<kbd>${escape(key)}</kbd>`).join("");
@@ -12294,7 +12430,7 @@
       /** A toast whose Undo steps back only while that change is still the latest one. */
       function undoToast(text) {
         const mark = revision;
-        toast(text, { label: "Undo", run: () => (revision === mark ? undo() : toast("Changed since: step back with ⌘Z")) });
+        toast(text, { label: "Undo", run: () => (revision === mark ? undo() : toast(`Changed since: step back with ${keyText("⌘Z")}`)) });
       }
 
       let toastTimer = 0;
@@ -12484,9 +12620,9 @@
         }
         if (mod && key === "z" && !typing(event.target)) {
           event.preventDefault();
-          if (!event.shiftKey && toastUndo?.mark === revision) return toastUndo.press();
-          if (home) return;
-          return event.shiftKey ? redo() : undo();
+          if (!event.shiftKey) return undoLast();
+          if (!home) redo();
+          return;
         }
         if (mod && key === "y" && !typing(event.target)) {
           event.preventDefault();
@@ -12554,7 +12690,9 @@
 
       // ── Keys on screen: hold ⌘ and every visible control shows the key it answers to ──
 
-      const HOLD = /Mac|iPhone|iPad/.test(navigator.platform) ? "Meta" : "Control";
+      const HOLD = MAC ? "Meta" : "Control";
+      // The page's own keys as this platform writes them (the shortcuts sheet, "Hold ⌘", the search's ⌘K).
+      if (!MAC) for (const element of all$("kbd, #shortcuts dt, #shortcuts h3")) element.textContent = keyText(element.textContent ?? "");
       /** Long enough that a quick ⌘Z or ⌘C never flashes the keys, short enough to feel instant when held. */
       const HINT_DELAY = 200;
       let hintTimer = 0;
@@ -12787,9 +12925,9 @@
         if (!shared) return null;
         history.replaceState(history.state, "", location.pathname);
         try {
-          const doc = await fromLink(shared);
-          toast("Opened a shared chart: it's now in your charts");
-          return doc;
+          const doc = await fromLink(shared), twin = library.charts.find((other) => sameChart(other, doc));
+          toast(twin ? "Opened a shared chart you have already" : "Opened a shared chart: it's now in your charts");
+          return twin ?? doc;
         } catch {
           toast("That link doesn't contain a chart");
           return null;
@@ -12800,13 +12938,14 @@
         if (!new URLSearchParams(location.hash.slice(1)).has("chart")) return;
         closeDialogs();
         const doc = await fromHash();
-        if (doc) adopt(doc);
+        if (doc && library.charts.includes(doc)) leaveHome(() => openChart(doc));
+        else if (doc) adopt(doc);
       });
 
       async function start() {
         const shared = await fromHash();
         if (shared) {
-          library.charts.unshift(shared);
+          if (!library.charts.includes(shared)) library.charts.unshift(shared);
           chart = shared;
         }
         if (!chart) {
