@@ -5587,6 +5587,8 @@
         else if (node.k === "call") node.args.forEach((arg) => refsOf(arg, kind, into));
         return into;
       }
+      /** The series a formula layer can turn into: those it names. @param {Layer} layer */
+      const turnsInto = (layer) => (layer.formula !== undefined ? seriesNamed(layer.formula).filter(isSeriesName) : []);
       /** The series a formula names, if it parses. @returns {string[]} */
       function seriesNamed(formula) {
         try {
@@ -7933,44 +7935,57 @@
 
       const THUMBS = "bitview-studio:thumbs";
       const THUMB_POINTS = 28;
-      const validYs = (ys) => Array.isArray(ys) && ys.length <= THUMB_POINTS && ys.every((y) => y === null || (typeof y === "number" && y >= 0 && y <= 1));
+      const validYs = (ys) => Array.isArray(ys) && ys.length >= 2 && ys.length <= THUMB_POINTS && ys.every((y) => y === null || (typeof y === "number" && y >= 0 && y <= 1));
+      const MARK_KINDS = new Set(["area", "baseline", "bars", "dots"]);
+      const validLevel = (y) => typeof y === "number" && y >= 0 && y <= 1;
       const validThumb = (thumb) => typeof thumb?.key === "string" && Array.isArray(thumb.lines) && thumb.lines.length <= 3
-        && thumb.lines.every((line) => Array.isArray(line) && isColor(line[0]) && validYs(line[1]))
-        && typeof thumb.marks === "object" && thumb.marks !== null && Object.values(thumb.marks).every(validYs);
-      /** @typedef {{ lines: [string, (number | null)[]][], marks: Record<string, (number | null)[]> }} Drawing */
+        && thumb.lines.every((line) => Array.isArray(line) && isColor(line[0]) && validYs(line[1]) && (line[2] === undefined || (MARK_KINDS.has(line[2]) && isColor(line[3]) && validLevel(line[4]))))
+        && typeof thumb.marks === "object" && thumb.marks !== null && Object.values(thumb.marks).every(validYs)
+        && (thumb.bases === undefined || (typeof thumb.bases === "object" && thumb.bases !== null && Object.values(thumb.bases).every(validLevel)));
+      /**
+       * A chart's mark: up to three lines, each with its kind (none: a line), its second color and its base; and each
+       * layer's own, with its base (a baseline's, bars'), in hundredths of the height.
+       * @typedef {{ lines: ([string, (number | null)[]] | [string, (number | null)[], string, string, number])[], marks: Record<string, (number | null)[]>, bases?: Record<string, number> }} Drawing
+       */
       /** @type {Map<string, Drawing & { key: string }>} */
       const thumbs = new Map(Object.entries(storage.get(THUMBS, {})).filter(([, thumb]) => validThumb(thumb)));
       const WINDOWED = /\b(sma|ema|sum|stdev|zscore|percentile|change|diff|lag|highest|lowest)\s*\(/;
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size]), doc.layers.map((layer) => [layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill])]);
       /**
        * A layer's shape: its values as its pane scales them (log, or from the first value), averaged down to the mini
-       * charts' points and lightly smoothed (at this size, the trend is what reads), with the range of the full values.
+       * charts' points and lightly smoothed (at this size, the trend is what reads), with the range of the full values;
+       * bars, each the value farthest from their base.
        */
-      function shapeOf(values, mode) {
+      function shapeOf(values, mode, bars = false, base = 0) {
         const first = values.find((value) => Number.isFinite(value) && value !== 0);
-        const scaled = Array.from(values, (value) => {
+        /** A value as the pane scales it. @param {number} value */
+        const scale = (value) => {
           if (!Number.isFinite(value)) return NaN;
           if (mode === 1) return value > 0 ? Math.log10(value) : NaN;
           if (mode >= 2) return first ? value / first : NaN;
           return value;
-        });
+        };
+        const scaled = Array.from(values, scale);
         let lo = Infinity, hi = -Infinity;
         for (const value of scaled) if (Number.isFinite(value)) (lo = Math.min(lo, value)), (hi = Math.max(hi, value));
-        const step = scaled.length / THUMB_POINTS;
+        const step = scaled.length / THUMB_POINTS, level = scale(base);
         const averaged = Array.from({ length: THUMB_POINTS }, (_, k) => {
           const bucket = scaled.slice(Math.floor(k * step), Math.max(Math.floor(k * step) + 1, Math.floor((k + 1) * step))).filter(Number.isFinite);
-          return bucket.length ? bucket.reduce((sum, value) => sum + value, 0) / bucket.length : null;
+          if (!bucket.length) return null;
+          // Bars keep the one farthest from their base (an average of them would sit on it).
+          if (bars) return bucket.reduce((far, value) => (Math.abs(value - level) > Math.abs(far - level) ? value : far));
+          return bucket.reduce((sum, value) => sum + value, 0) / bucket.length;
         });
         const points = averaged.map((value, k) => {
-          if (value === null) return null;
+          if (value === null || bars) return value;
           const near = [averaged[k - 1], value, value, averaged[k + 1]].filter((other) => other !== null && other !== undefined);
           return near.reduce((sum, other) => sum + other, 0) / near.length;
         });
-        return { points, lo, hi };
+        return { points, lo, hi, scale };
       }
       /** Points placed between a low and a high, in hundredths of the height. */
-      const place = (points, lo, hi, bottom = 0, height = 1) => points.map((value) => (value === null ? null : clamp(Math.round((bottom + ((value - lo) / (hi - lo || 1)) * height) * 100) / 100, 0, 1)));
+      const place = (points, lo, hi, bottom = 0, height = 1) => points.map((value) => (value === null || !Number.isFinite(value) ? null : clamp(Math.round((bottom + ((value - lo) / (hi - lo || 1)) * height) * 100) / 100, 0, 1)));
       /** Work done one pass at a time: asked for again while one runs, it runs once more after. @param {() => Promise<void>} pass */
       function serial(pass) {
         let running = false, again = false;
@@ -8013,7 +8028,7 @@
         const shapes = new Map();
         for (const layer of doc.layers) {
           const values = data.results.get(layer.id)?.shown;
-          if (values) shapes.set(layer.id, shapeOf(values, modeOf(doc, layer)));
+          if (values) shapes.set(layer.id, shapeOf(values, modeOf(doc, layer), layer.type === "histogram" && modeOf(doc, layer) === 0, layer.base ?? 0));
         }
         // Up to three lines, first pane first; each pane with one gets a band as tall as on the chart.
         const groups = [];
@@ -8034,18 +8049,33 @@
           // Each axis side has its own scale, as on the chart.
           for (const side of ["left", "right"]) {
             const on = layers.filter((layer) => layer.side === side).map((layer) => ({ layer, shape: shapes.get(layer.id) }));
-            const lo = Math.min(...on.map(({ shape }) => shape.lo)), hi = Math.max(...on.map(({ shape }) => shape.hi));
+            // Bars' base is in their scale, as on the chart.
+            const bases = on.filter(({ layer }) => layer.type === "histogram" && modeOf(doc, layer) === 0).map(({ layer, shape }) => shape.scale(layer.base ?? 0)).filter(Number.isFinite);
+            const lo = Math.min(...on.map(({ shape }) => shape.lo), ...bases), hi = Math.max(...on.map(({ shape }) => shape.hi), ...bases);
             if (!Number.isFinite(lo)) continue;
-            for (const { layer, shape } of on) lines.push([layer.color, place(shape.points, lo, hi, band.bottom, band.height)]);
+            for (const { layer, shape } of on) {
+              const ys = place(shape.points, lo, hi, band.bottom, band.height);
+              // Drawn as its type: a baseline's colors and bars part at its base (where the scale has none, under it all).
+              const kind = { area: "area", baseline: "baseline", histogram: modeOf(doc, layer) === 0 ? "bars" : undefined, dots: "dots" }[layer.type];
+              const level = place([shape.scale(layer.base ?? 0)], lo, hi, band.bottom, band.height)[0] ?? band.bottom;
+              // An area fills down to its band's foot, or up to its top where it's filled above.
+              const edge = layer.fill === "above" ? Math.min(1, band.bottom + band.height + gap / 2) : Math.max(0, band.bottom - gap / 2);
+              lines.push(kind ? [layer.color, ys, kind, belowOf(layer), kind === "area" ? edge : level] : [layer.color, ys]);
+            }
           }
         }
-        // Each layer alone fills its own mark.
-        const marks = {};
-        for (const [id, { points }] of shapes) {
+        // Each layer alone fills its own mark; a baseline's and bars' with their base.
+        const marks = /** @type {Record<string, (number | null)[]>} */ ({}), bases = /** @type {Record<string, number>} */ ({});
+        for (const [id, { points, scale }] of shapes) {
           const there = points.filter((value) => value !== null);
-          if (there.length > 1) marks[id] = place(points, Math.min(...there), Math.max(...there));
+          if (there.length < 2) continue;
+          const layer = doc.layers.find((item) => item.id === id), level = layer && PAIRS[layer.type] ? scale(layer.base ?? 0) : NaN;
+          // Bars' range takes in their base: each one's height is its distance from it.
+          const range = layer?.type === "histogram" && modeOf(doc, layer) === 0 && Number.isFinite(level) ? [...there, level] : there;
+          marks[id] = place(points, Math.min(...range), Math.max(...range));
+          if (layer && PAIRS[layer.type]) bases[id] = place([level], Math.min(...range), Math.max(...range))[0] ?? 0;
         }
-        return { lines, marks };
+        return { lines, marks, bases };
       }
       /** A drawing whose chart is gone (templates' stay). */
       const orphan = (id) => !id.startsWith("template:") && !library.charts.some((doc) => doc.id === id);
@@ -8178,22 +8208,45 @@
               let base = NaN;
               for (let i = first; mode >= 2 && i <= last && !Number.isFinite(base); i++) if (Number.isFinite(values[i]) && values[i] !== 0) base = values[i];
               const scaled = (value) => (!Number.isFinite(value) ? NaN : mode === 1 ? (value > 0 ? Math.log10(value) : NaN) : mode >= 2 ? value / base : value);
-              const sums = new Float64Array(B), at = new Float64Array(B), counts = new Uint32Array(B);
+              // Each bucket's low and high, in the order they came (one point where they're one), and the latest value last:
+              // at up to four bars a pixel the chart shows every bar, so its peaks and troughs show; an average would round
+              // them off.
+              const lows = new Float64Array(B).fill(Infinity), highs = new Float64Array(B).fill(-Infinity), lowAt = new Float64Array(B), highAt = new Float64Array(B);
+              let latest = -1;
               for (let i = first; i <= last; i++) {
                 const value = scaled(values[i]), b = Math.floor(((i - shown.from) / span) * B);
                 if (!Number.isFinite(value) || b < 0 || b >= B) continue;
-                sums[b] += value;
-                at[b] += i;
-                counts[b]++;
+                if (value < lows[b]) (lows[b] = value), (lowAt[b] = i);
+                if (value > highs[b]) (highs[b] = value), (highAt[b] = i);
+                latest = i;
               }
-              const points = Array.from({ length: B }, (_, b) => (counts[b] ? [at[b] / counts[b], sums[b] / counts[b]] : null));
-              return { layer, mode, scaled, bars: layer.type === "histogram" && mode === 0, base: layer.base ?? 0, level: scaled(layer.base ?? 0), points, stack: stacked.has(layer.id) };
+              /** @type {([number, number][] | null)[]} */
+              const points = Array.from({ length: B }, (_, b) => {
+                if (highs[b] === -Infinity) return null;
+                const low = /** @type {[number, number]} */ ([lowAt[b], lows[b]]), high = /** @type {[number, number]} */ ([highAt[b], highs[b]]);
+                return lowAt[b] === highAt[b] ? [low] : lowAt[b] < highAt[b] ? [low, high] : [high, low];
+              });
+              const end = points.findLast(Boolean);
+              if (end && latest > end[end.length - 1][0]) end.push([latest, scaled(values[latest])]);
+              return { layer, mode, scaled, values, bars: layer.type === "histogram" && mode === 0, base: layer.base ?? 0, level: scaled(layer.base ?? 0), points, stack: stacked.has(layer.id) };
             });
+            // A stack's layers, sampled at the same points, every one's highs and lows: each is the sum of those under it,
+            // so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
+            const stack = shaped.filter((item) => item.stack);
+            if (stack.length > 1) {
+              const shared = Array.from({ length: B }, (_, b) => [...new Set(stack.flatMap((item) => (item.points[b] ?? []).map(([i]) => i)))].sort((a, z) => a - z));
+              for (const item of stack) {
+                item.points = shared.map((indices) => {
+                  const at = indices.map((i) => /** @type {[number, number]} */ ([i, item.scaled(item.values[i])])).filter(([, value]) => Number.isFinite(value));
+                  return at.length ? at : null;
+                });
+              }
+            }
             let lo = Infinity, hi = -Infinity;
             for (const { mode, bars, base, points, stack } of shaped) {
               if (bars) (lo = Math.min(lo, base)), (hi = Math.max(hi, base));
               if (stack && mode === 0) lo = Math.min(lo, 0);
-              for (const point of points) if (point) (lo = Math.min(lo, point[1])), (hi = Math.max(hi, point[1]));
+              for (const point of points) for (const [, value] of point ?? []) (lo = Math.min(lo, value)), (hi = Math.max(hi, value));
             }
             if (!Number.isFinite(lo)) continue;
             if (pane.stack === "percent") (lo = 0), (hi = 100);
@@ -8206,14 +8259,16 @@
                 const yAt = y(scaled(value)), { color, dash } = lineLook(layer, key), [, , length, gap] = dashOf(dash);
                 if (yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...((layer.opacity ?? 1) < 1 ? { op: layer.opacity } : {}) });
               }
-              const x = (b) => round(((points[b][0] - shown.from) / span) * W), at = (b) => `${x(b)} ${y(points[b][1])}`;
+              const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), at = ([i, value]) => `${x(i)} ${y(value)}`;
               const look = { c: layer.color, ...((layer.opacity ?? 1) < 1 ? { op: layer.opacity } : {}) };
               if (bars) {
                 let d = "", d2 = "";
+                // A bar a bucket, at its middle, to the one of its extremes farthest from the base.
                 points.forEach((point, b) => {
                   if (!point) return;
-                  const bar = `M${x(b)} ${y(base)}V${y(point[1])}`;
-                  if (point[1] >= base) d += bar;
+                  const [, value] = point.reduce((far, next) => (Math.abs(next[1] - base) > Math.abs(far[1] - base) ? next : far));
+                  const bar = `M${x(shown.from + ((b + 0.5) * span) / B)} ${y(base)}V${y(value)}`;
+                  if (value >= base) d += bar;
                   else d2 += bar;
                 });
                 if (d || d2) drawn.marks.push({ ...look, k: "bars", c2: belowOf(layer), d, ...(d2 ? { d2 } : {}) });
@@ -8225,14 +8280,15 @@
               points.forEach((point, b) => (point ? run.push(b) : run.length && (runs.push(run), (run = []))));
               if (run.length) runs.push(run);
               if (!runs.length) return;
-              if (layer.type === "dots" && !stack) return void drawn.marks.push({ ...look, k: "dots", d: runs.flat().map((b) => `M${at(b)}h0`).join("") });
-              const d = runs.map((part) => `M${part.map(at).join("L")}`).join(""), end = runs.at(-1).at(-1);
+              const along = (/** @type {number[]} */ part) => part.flatMap((b) => /** @type {[number, number][]} */ (points[b]));
+              if (layer.type === "dots" && !stack) return void drawn.marks.push({ ...look, k: "dots", d: runs.flatMap(along).map((point) => `M${at(point)}h0`).join("") });
+              const d = runs.map((part) => `M${along(part).map(at).join("L")}`).join(""), [endAt, endValue] = along(runs[runs.length - 1]).at(-1) ?? [0, 0];
               const [, , length, gap] = LINED.has(layer.type) ? dashOf(layer.dash) : DASHES[0];
-              const line = { ...look, d, end: [x(end), y(points[end][1])], ...(gap ? { dash: `${length} ${gap}` } : {}) };
+              const line = { ...look, d, end: [x(endAt), y(endValue)], ...(gap ? { dash: `${length} ${gap}` } : {}) };
               if (stack) {
                 // A band from its line down to the one under it (the bottom one, to the pane's foot), as the chart stacks them.
                 const under = shaped[s + 1]?.points, floor = paneBottom;
-                const f = runs.map((part) => `M${part.map(at).join("L")}L${[...part].reverse().map((b) => `${x(b)} ${under?.[b] ? y(under[b][1]) : floor}`).join("L")}Z`).join("");
+                const f = runs.map((part) => `M${along(part).map(at).join("L")}L${[...part].reverse().flatMap((b) => (under?.[b] ? [...under[b]].reverse().map(at) : [...(points[b] ?? [])].reverse().map(([i]) => `${x(i)} ${floor}`))).join("L")}Z`).join("");
                 drawn.marks.push({ ...line, k: "band", f });
               } else if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, ...(layer.fill === "above" ? { up: true } : {}) });
               else if (layer.type === "baseline") drawn.marks.push({ ...line, k: "baseline", c2: belowOf(layer), y0: Number.isFinite(level) ? inPane(y(level)) : paneBottom, top: paneTop, bottom: paneBottom });
@@ -8756,11 +8812,59 @@
         ys.forEach((value, i) => (value === null ? parts.push([]) : parts.at(-1).push(`${x(i).toFixed(1)},${y(value).toFixed(1)}`)));
         return parts.filter((part) => part.length > 1);
       }
+      /**
+       * A run's stretches above a level (`y0`, as drawn) and below it, cut where the run crosses it: a baseline's two
+       * colors. @param {string[]} run its "x,y" points
+       */
+      function sides(run, y0) {
+        const out = /** @type {{ above: { part: string[], from: number }[], below: { part: string[], from: number }[] }} */ ({ above: [], below: [] });
+        const points = run.map((point) => point.split(",").map(Number));
+        // On the base at first, it's on the side it goes to.
+        let part = /** @type {string[]} */ ([]), side = /** @type {"above" | "below"} */ ((points.find(([, y]) => y !== y0)?.[1] ?? y0) > y0 ? "below" : "above"), along = 0, from = 0;
+        points.forEach(([x, y], i) => {
+          const now = y < y0 ? "above" : y > y0 ? "below" : side;
+          if (i) {
+            const [px, py] = points[i - 1];
+            if (now !== side) {
+              const t = (y0 - py) / (y - py), cx = px + (x - px) * t;
+              along += Math.hypot(cx - px, y0 - py);
+              part.push(`${cx.toFixed(1)},${y0.toFixed(1)}`);
+              if (part.length > 1) out[side].push({ part, from });
+              part = [`${cx.toFixed(1)},${y0.toFixed(1)}`];
+              from = along;
+              along += Math.hypot(x - cx, y - y0);
+            } else along += Math.hypot(x - px, y - py);
+          }
+          side = now;
+          part.push(`${x},${y}`);
+        });
+        if (part.length > 1) out[side].push({ part, from });
+        return out;
+      }
+      /** A few bars from a drawing's points (each its share's farthest from the base), above the base in one color, under it in the other. */
+      const barsOf = (ys, n, base, place) => Array.from({ length: n }, (_, k) => {
+        const bucket = ys.slice(Math.floor((k * ys.length) / n), Math.floor(((k + 1) * ys.length) / n)).filter((value) => value !== null);
+        return bucket.length ? place(k, bucket.reduce((far, value) => (Math.abs(value - base) > Math.abs(far - base) ? value : far)), base) : "";
+      }).join("");
       /** A chart's mark: its mini chart once drawn, a faint line until then. @param {Chart} doc */
       const chartMark = (doc) => {
         const lines = thumbs.get(doc.id)?.lines ?? [];
-        const paths = lines.map(([color, ys]) => runs(ys, (i) => 2 + (i / (ys.length - 1)) * 116, (y) => 36 - y * 32)
-          .map((part) => `<polyline points="${part.join(" ")}" fill="none" stroke="${escape(ink(color))}" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>`).join("")).join("");
+        const y = (value) => 36 - value * 32, stroke = 'fill="none" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"';
+        const polyline = (part, color) => `<polyline points="${part.join(" ")}" stroke="${color}" ${stroke}/>`;
+        // Each line as its type: an area over a light fill, a baseline in its two colors about its base, bars, dots.
+        const paths = lines.map(([raw, ys, kind, under, level = 0]) => {
+          const color = escape(ink(raw)), below = escape(ink(under ?? raw)), x = (i) => 2 + (i / (ys.length - 1)) * 116, base = y(level);
+          if (kind === "bars") return barsOf(ys, 10, level, (k, value) => `<rect x="${(4 + k * 11.6).toFixed(1)}" y="${Math.min(y(value), base).toFixed(1)}" width="7" height="${Math.max(1.5, Math.abs(y(value) - base)).toFixed(1)}" fill="${value >= level ? color : below}"/>`);
+          if (kind === "dots") return `<path d="${ys.map((value, i) => (value === null || i % 2 ? "" : `M${x(i).toFixed(1)} ${y(value).toFixed(1)}h0`)).join("")}" stroke="${color}" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+          return runs(ys, x, y).map((part) => {
+            if (kind === "baseline") {
+              const { above, below: under } = sides(part, base);
+              return [...above.map((piece) => polyline(piece.part, color)), ...under.map((piece) => polyline(piece.part, below))].join("");
+            }
+            const fill = kind === "area" ? `<polygon points="${part[0].split(",")[0]},${base} ${part.join(" ")} ${part.at(-1)?.split(",")[0]},${base}" fill="${color}" fill-opacity=".2"/>` : "";
+            return fill + polyline(part, color);
+          }).join("");
+        }).join("");
         return `<svg class="chart-mark" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">${paths || `<path d="M4 30H116" stroke="currentColor" stroke-opacity=".35" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>`}</svg>`;
       };
       /**
@@ -8769,17 +8873,14 @@
        * last drawing while a new one is made, so an edit doesn't blank it.
        */
       function seriesMark(layer) {
-        const ys = thumbs.get(chart.id)?.marks[layer.id];
-        const color = escape(ink(layer.color));
+        const thumb = thumbs.get(chart.id), ys = thumb && Object.hasOwn(thumb.marks, layer.id) ? thumb.marks[layer.id] : undefined;
+        const level = thumb?.bases && Object.hasOwn(thumb.bases, layer.id) ? thumb.bases[layer.id] : 0;
+        const color = escape(ink(layer.color)), below = escape(ink(belowOf(layer)));
         const x = (i) => 0.8 + (i / (ys.length - 1)) * 14.4, y = (value) => 11 - value * 10;
         let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4" stroke-dasharray="2 2"/>`;
-        if (ys && layer.type === "histogram") {
-          body = Array.from({ length: 6 }, (_, k) => {
-            const bucket = ys.slice(Math.floor((k * ys.length) / 6), Math.floor(((k + 1) * ys.length) / 6)).filter((value) => value !== null);
-            if (!bucket.length) return "";
-            const height = Math.max(0.12, bucket.reduce((sum, value) => sum + value, 0) / bucket.length);
-            return `<rect x="${(0.5 + k * 2.6).toFixed(1)}" y="${y(height).toFixed(1)}" width="1.8" height="${(height * 10).toFixed(1)}" rx=".4" fill="${color}"/>`;
-          }).join("");
+        if (ys && layer.type === "histogram" && modeOf(chart, layer) === 0) {
+          // Six bars from its base: above it in its color, under it in the other.
+          body = barsOf(ys, 6, level, (k, value) => `<rect x="${(0.5 + k * 2.6).toFixed(1)}" y="${Math.min(y(value), y(level)).toFixed(1)}" width="1.8" height="${Math.max(1.2, Math.abs(y(value) - y(level))).toFixed(1)}" rx=".4" fill="${value >= level ? color : below}"/>`);
         } else if (ys && layer.type === "dots") {
           body = ys.map((value, i) => (value === null || i % 4 !== 1 ? "" : `<circle cx="${x(i).toFixed(1)}" cy="${y(value).toFixed(1)}" r="1.2" fill="${color}"/>`)).join("");
         } else if (ys) {
@@ -8789,8 +8890,15 @@
           // In steps, each value held until the next.
           const stepped = (part) => (layer.shape === "steps" && LINED.has(layer.type) ? part.flatMap((point, i) => (i ? [`${point.split(",")[0]},${part[i - 1].split(",")[1]}`, point] : [point])) : part);
           const edge = layer.fill === "above" ? 0.5 : 11.5;
-          body = runs(ys, x, y).map(stepped).map((part) => (layer.type === "area" ? `<polygon points="${part[0].split(",")[0]},${edge} ${part.join(" ")} ${part.at(-1).split(",")[0]},${edge}" fill="${color}" fill-opacity=".22"/>` : "")
-            + `<polyline points="${part.join(" ")}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round" ${dashes}/>`).join("");
+          const line = (part, stroke, from = 0) => `<polyline points="${part.join(" ")}" fill="none" stroke="${stroke}" stroke-width="1.4" stroke-linejoin="round" ${dashes}${gap && from ? ` stroke-dashoffset="${from.toFixed(1)}"` : ""}/>`;
+          body = runs(ys, x, y).map(stepped).map((part) => {
+            // A baseline in its two colors, parting at its base.
+            if (layer.type === "baseline") {
+              const { above, below: under } = sides(part, y(level));
+              return [...above.map((piece) => line(piece.part, color, piece.from)), ...under.map((piece) => line(piece.part, below, piece.from))].join("");
+            }
+            return (layer.type === "area" ? `<polygon points="${part[0].split(",")[0]},${edge} ${part.join(" ")} ${part.at(-1).split(",")[0]},${edge}" fill="${color}" fill-opacity=".22"/>` : "") + line(part, color);
+          }).join("");
         }
         return `<svg class="series-mark" viewBox="0 0 16 12" aria-hidden="true">${body}</svg>`;
       }
@@ -9047,13 +9155,17 @@
       $("chart-list").addEventListener("scroll", () => fitStrip($("chart-list"), true), { passive: true });
       new ResizeObserver(() => fitStrip($("chart-list"), true)).observe($("chart-list"));
       /** Each template as the chart it makes, its drawing kept under a stable id. */
-      const templateDocs = TEMPLATES.map((template, i) => Object.assign(fromTemplate(template), { id: `template:${i}` }));
+      const templateDocs = TEMPLATES.map((template, i) => {
+        const doc = Object.assign(fromTemplate(template), { id: `template:${i}` });
+        doc.layers.forEach((layer, k) => (layer.id = `layer:${k}`));
+        return doc;
+      });
       // The empty chart offers every template, with its mini chart, name and gist, in a row that scrolls.
       strip($("templates"));
       new ResizeObserver(() => fitStrip($("templates"))).observe($("templates"));
       $("templates").innerHTML = templateDocs.map((doc, i) => `<button type="button" class="template" data-template="${i}" data-template-doc="${doc.id}"><span class="template-plot ${previews.has(doc.id) ? "" : "pending"}" data-plot="${doc.id}">${previews.has(doc.id) ? previewSvg(/** @type {Preview} */ (previews.get(doc.id)), `template-plot-${doc.id}`) : ""}</span><span class="name">${escape(TEMPLATES[i].title)}</span><span class="gist">${escape(TEMPLATES[i].text)}</span></button>`).join("");
       // A template's card shows the chart it makes, drawn as a tile is, once the card comes into view; its mark (⌘K's
-      // row) is drawn like a chart's, a chart of the library still matching it lending its own. Both are kept for the day.
+      // row) is drawn like a chart's. Both are kept for the day.
       const templateQueue = new Set();
       const drawTemplates = serial(async () => {
         let marked = false;
@@ -9061,7 +9173,7 @@
           templateQueue.delete(i);
           const doc = templateDocs[i], key = thumbKey(doc);
           if (thumbs.get(doc.id)?.key !== key) {
-            const drawing = [...thumbs.values()].find((thumb) => thumb.key === key) ?? (await drawThumb(structuredClone(doc), templateIndex(doc)).catch(() => null));
+            const drawing = await drawThumb(structuredClone(doc), templateIndex(doc)).catch(() => null);
             if (drawing) {
               thumbs.set(doc.id, { key, lines: drawing.lines, marks: {} });
               marked = true;
@@ -9300,6 +9412,15 @@
 
       let inspected = "";
       let expanded = false;
+      /** A layer's actions, at the inspector's foot: as the layers panel's adds, a row each. @param {Layer} layer */
+      let actionsShown = "";
+      const actionsOf = (layer) => `<section class="layer-actions">
+            <button type="button" id="derive" class="nav-item" data-action="derive" aria-haspopup="menu">${ICONS.formula}<span class="label">New formula from ${layer.letter}</span></button>
+            ${layer.formula !== undefined ? (turnsInto(layer).length ? `<button type="button" id="to-series" class="nav-item" data-action="to-series" ${turnsInto(layer).length > 1 ? 'aria-haspopup="menu"' : ""}>${ICONS.series}<span class="label">Turn into a series</span></button>` : "") : `<button type="button" class="nav-item" data-action="to-formula">${ICONS.formula}<span class="label">Turn into a formula</span></button>`}
+            <button type="button" class="nav-item" data-action="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}<span class="label">${layer.hidden ? "Show" : "Hide"}</span><kbd>H</kbd></button>
+            <button type="button" class="nav-item" data-action="duplicate" data-kbd="⌘ D" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.duplicate}<span class="label">Duplicate</span><kbd class="mod">${keyText("⌘D")}</kbd></button>
+            <button type="button" class="nav-item danger" data-action="remove">${ICONS.trash}<span class="label">Remove</span><kbd>⌫</kbd></button>
+          </section>`;
       function renderInspector() {
         const layer = layerById(selected);
         document.body.toggleAttribute("data-inspect", Boolean(layer));
@@ -9313,8 +9434,11 @@
         }
         // While typing into this layer's formula or name, keep the field (and its caret) as it is.
         const active = document.activeElement;
-        if (inspected === layer.id && panel.contains(active) && (["formula", "label", "base"].includes(active.id) || active.id.startsWith("level-"))) {
+        // (Turned into a series meanwhile, or into a formula, it's drawn anew.)
+        if (inspected === layer.id && Boolean($("formula")) === (layer.formula !== undefined) && panel.contains(active) && (["formula", "label", "base"].includes(active.id) || active.id.startsWith("level-"))) {
           updateFormula(layer);
+          const fresh = actionsOf(layer);
+          if (fresh !== actionsShown) /** @type {HTMLElement} */ (panel.querySelector(".layer-actions")).outerHTML = actionsShown = fresh;
           return;
         }
         const another = inspected !== layer.id;
@@ -9383,13 +9507,7 @@
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
             <div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>
           </section>
-          <section class="layer-actions">
-            <button type="button" id="derive" class="nav-item" data-action="derive" aria-haspopup="menu">${ICONS.formula}<span class="label">New formula from ${layer.letter}</span></button>
-            ${isFormula ? "" : `<button type="button" class="nav-item" data-action="to-formula">${ICONS.formula}<span class="label">Turn into a formula</span></button>`}
-            <button type="button" class="nav-item" data-action="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}<span class="label">${layer.hidden ? "Show" : "Hide"}</span><kbd>H</kbd></button>
-            <button type="button" class="nav-item" data-action="duplicate" data-kbd="⌘ D" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.duplicate}<span class="label">Duplicate</span><kbd class="mod">${keyText("⌘D")}</kbd></button>
-            <button type="button" class="nav-item danger" data-action="remove">${ICONS.trash}<span class="label">Remove</span><kbd>⌫</kbd></button>
-          </section>`;
+          ${(actionsShown = actionsOf(layer))}`;
         if (isFormula) updateFormula(layer);
         restoreFocus(panel, focus);
         drawPlane();
@@ -10003,6 +10121,7 @@
         else if (action === "pane-menu") paneMenu(button);
         else if (action === "format-menu") formatMenu(button);
         else if (action === "to-formula") toFormula(selected);
+        else if (action === "to-series") turnToSeries(button, selected);
         else if (type) editLayer((layer) => (layer.type = type));
         else if (dash) editLayer((layer) => (layer.dash = Number(dash)));
         else if (shape) editLayer((layer) => (layer.shape = shape === "straight" ? undefined : shape));
@@ -10138,7 +10257,7 @@
           ${layer.series ? `<button type="button" data-pick="change">${ICONS.swap}Change the series</button>` : ""}
           <div class="menu-rule"></div>
           <button type="button" data-pick="derive" aria-haspopup="menu">${ICONS.formula}New formula from ${layer.letter}</button>
-          ${layer.series ? `<button type="button" data-pick="to-formula">${ICONS.formula}Turn into a formula</button>` : ""}
+          ${layer.series ? `<button type="button" data-pick="to-formula">${ICONS.formula}Turn into a formula</button>` : turnsInto(layer).length ? `<button type="button" data-pick="to-series" ${turnsInto(layer).length > 1 ? 'aria-haspopup="menu"' : ""}>${ICONS.series}Turn into a series</button>` : ""}
           <button type="button" data-pick="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}${layer.hidden ? "Show" : "Hide"}<kbd>H</kbd></button>
           <button type="button" data-pick="duplicate" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.duplicate}Duplicate<kbd>${keyText("⌘D")}</kbd></button>
           <div class="menu-rule"></div>
@@ -10148,6 +10267,7 @@
           else if (pick === "change") changeSeries(id);
           else if (pick === "derive") deriveMenu(anchor, id, point);
           else if (pick === "to-formula") toFormula(id);
+          else if (pick === "to-series") turnToSeries(anchor, id, point);
           else if (pick === "hide") toggleHidden(id);
           else if (pick === "duplicate") duplicateLayer(id);
           else if (pick === "remove") removeLayer(id);
@@ -10279,6 +10399,28 @@
         });
         select(id);
         requestAnimationFrame(() => $("formula")?.focus());
+      }
+
+      /**
+       * A formula layer as one of the series it names (its color and place kept, and the name it was given; where the
+       * catalog has the series, still found there): the formula goes. One series, at once; several, a menu of them.
+       */
+      function turnToSeries(/** @type {HTMLElement} */ anchor, /** @type {string} */ id, point = null) {
+        const layer = layerById(id), named = layer ? turnsInto(layer) : [];
+        if (named.length === 1) return toSeries(id, named[0]);
+        if (named.length) showMenu(anchor, named.map((name) => `<button type="button" data-turn="${escape(name)}">${ICONS.series}${escape(name)}</button>`).join(""), ({ turn }) => turn && toSeries(id, turn), point);
+      }
+      function toSeries(/** @type {string} */ id, /** @type {string} */ name) {
+        editById(id, (layer) => {
+          if (!turnsInto(layer).includes(name)) return;
+          if (layer.label === humanize(name)) delete layer.label;
+          if (layer.paths && Object.hasOwn(layer.paths, name)) layer.path = layer.paths[name];
+          layer.series = name;
+          delete layer.formula;
+          delete layer.paths;
+        });
+        select(id);
+        refocus('[data-action="change-series"]');
       }
 
       // ── Series search: bitview.space's, on this machine ───────────────────────
@@ -11203,7 +11345,7 @@
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
       /** What else a setting is called, for the search: "rename" finds a name, "sma" a formula from a layer, "resize" a height. */
       const SYNONYMS = {
-        title: "rename name", name: "rename label", derive: "moving average sma ema smooth bands percentile median deviation zscore transform", "to-formula": "convert transform", format: "format",
+        title: "rename name", name: "rename label", derive: "moving average sma ema smooth bands percentile median deviation zscore transform", "to-formula": "convert transform", "to-series": "convert", format: "format",
         type: "line area bars candles dots style", color: "colour", "color-below": "colour", dash: "dashed dotted stroke", shape: "steps curved smooth",
         fill: "area", width: "thickness stroke", opacity: "transparency alpha", pane: "move", side: "left right", "price-line": "last value",
         base: "zero", levels: "horizontal lines threshold", hide: "visible show", remove: "delete", duplicate: "copy clone",
@@ -11628,6 +11770,10 @@
               { kind: "row", key: "own", icon: ICONS.pencil, label: "Write your own", aside: `From ${layer.letter}`, verb: "Write", run: () => derive(id, "own") },
             ] }) },
             ...(layer.series ? [{ key: "to-formula", icon: ICONS.formula, label: "Turn into a formula", aside: "Of its series, to write around it", verb: "Turn", group: "Layer", run: () => toFormula(id) }] : []),
+            ...((named) => (named.length === 1
+              ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: named[0], mono: true, verb: "Turn", group: "Layer", run: () => toSeries(id, named[0]) }]
+              : named.length ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: `${named.length} series`, group: "Layer", page: () => ({ title: "Turn into a series", rows: () => named.map((name) => ({ kind: "row", key: name, icon: ICONS.series, label: name, mono: true, verb: "Turn", run: () => toSeries(id, name) })) }) }]
+              : []))(turnsInto(layer)),
             { key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", group: "Layer", stay: true, run: () => toggleHidden(id) },
             { key: "panel", icon: ICONS.sliders, label: "Open in the panel", verb: "Open", group: "Layer", run: () => select(id) },
             { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", group: "Layer", run: () => duplicateLayer(id) },
