@@ -5332,16 +5332,21 @@
        * @typedef {{ k: "num", v: number, unit?: string, text?: string } | { k: "ref", v: string } | { k: "series", v: string } | { k: "neg", a: Node } | { k: "bin", op: string, a: Node, b: Node } | { k: "call", f: string, args: Node[] }} Node
        */
 
+      /** @typedef {{ mean: Vector, variance: Vector, count: Vector }} WindowStats */
+      /** Each vector's window stats, by window: made once, whoever asks (sma, sum, zscore and stdev of the same input). @type {WeakMap<Vector, Map<number, WindowStats>>} */
+      const statsOf = new WeakMap();
       /**
        * Each window of the last `n` points (a span of time: the values in it, points without one left out), from `n`
-       * points after the first value on, reduced by `reduce(mean, variance, current, count)`. The sums run over
+       * points after the first value on: its mean, variance and count, at the points with a value. The sums run over
        * differences from an origin in the window, made again from scratch every `n` points and once the window's spread
        * falls far below what passed through it: a small spread on a large level (a hash rate, a difficulty between
        * adjustments) keeps its digits.
-       * @param {Vector} x @param {number} n @param {(mean: number, variance: number, current: number, count: number) => number} reduce
+       * @param {Vector} x @param {number} n @returns {WindowStats}
        */
-      function rolling(x, n, reduce) {
-        const out = new Float64Array(x.length).fill(NaN);
+      function rolling(x, n) {
+        const byWindow = statsOf.get(x) ?? new Map(), kept = byWindow.get(n);
+        if (kept) return kept;
+        const mean = new Float64Array(x.length).fill(NaN), variance = new Float64Array(x.length).fill(NaN), counts = new Float64Array(x.length).fill(NaN);
         let origin = NaN, sum = 0, squares = 0, count = 0, peak = 0, first = -1;
         const add = (/** @type {number} */ value, /** @type {number} */ sign) => {
           if (Number.isNaN(origin)) origin = value;
@@ -5364,7 +5369,46 @@
           }
           if (count && i - first + 1 >= n && Number.isFinite(x[i])) {
             const shift = sum / count;
-            out[i] = reduce(origin + shift, Math.max(0, squares / count - shift * shift), x[i], count);
+            mean[i] = origin + shift;
+            variance[i] = Math.max(0, squares / count - shift * shift);
+            counts[i] = count;
+          }
+        }
+        const stats = { mean, variance, count: counts };
+        statsOf.set(x, byWindow.set(n, stats));
+        return stats;
+      }
+      /**
+       * Each window's `p`th percentile (0 to 100, between the two nearest values), from `n` points after the first value
+       * on: the window's values kept in order by a tree of counts over their ranks.
+       * @param {Vector} x @param {number} n @param {number} p
+       */
+      function rollingPercentile(x, n, p) {
+        const out = new Float64Array(x.length).fill(NaN);
+        const sorted = x.filter(Number.isFinite).sort();
+        const values = sorted.filter((value, i) => i === 0 || value !== sorted[i - 1]), rankOf = new Map(Array.from(values, (value, i) => [value, i + 1]));
+        const tree = new Int32Array(values.length + 1);
+        const add = (/** @type {number} */ rank, /** @type {number} */ by) => {
+          for (; rank < tree.length; rank += rank & -rank) tree[rank] += by;
+        };
+        let top = 1;
+        while (top * 2 < tree.length) top *= 2;
+        /** The `k`th smallest value in the window. */
+        const nth = (/** @type {number} */ k) => {
+          let at = 0;
+          for (let step = top; step; step >>= 1) if (at + step < tree.length && tree[at + step] < k) (at += step), (k -= tree[at]);
+          return values[at];
+        };
+        let count = 0, first = -1;
+        for (let i = 0; i < x.length; i++) {
+          if (Number.isFinite(x[i])) {
+            add(/** @type {number} */ (rankOf.get(x[i])), 1), count++;
+            if (first < 0) first = i;
+          }
+          if (i >= n && Number.isFinite(x[i - n])) add(/** @type {number} */ (rankOf.get(x[i - n])), -1), count--;
+          if (count && i - first + 1 >= n && Number.isFinite(x[i])) {
+            const at = ((count - 1) * p) / 100, below = Math.floor(at), t = at - below, a = nth(below + 1);
+            out[i] = t ? a * (1 - t) + nth(Math.min(count, below + 2)) * t : a;
           }
         }
         return out;
@@ -5398,10 +5442,10 @@
       /**
        * name → [arity, signature, what it does, run]; a window is a span of time (30d, 4w, 6mo, 2y, 12h; a bare number is
        * days), run as the interval's points.
-       * @type {Record<string, [number, string, string, ((x: Vector, n?: number) => Vector) | null]>}
+       * @type {Record<string, [number, string, string, ((x: Vector, n?: number, p?: number) => Vector) | null]>}
        */
       const FUNCTIONS = {
-        sma: [2, "sma(x, span)", "moving average", (x, n) => rolling(x, n, (mean) => mean)],
+        sma: [2, "sma(x, span)", "moving average", (x, n) => rolling(x, /** @type {number} */ (n)).mean],
         ema: [2, "ema(x, span)", "exponential moving average", (x, n) => {
           const out = new Float64Array(x.length).fill(NaN);
           // (Decaying by points, a point without a value counting as time passed; from `n` points after the first value.)
@@ -5416,11 +5460,19 @@
           }
           return out;
         }],
-        sum: [2, "sum(x, span)", "rolling sum", (x, n) => rolling(x, n, (mean, _variance, _value, count) => mean * count)],
-        zscore: [2, "zscore(x, span)", "deviations from the rolling mean", (x, n) => rolling(x, n, (mean, variance, value) => {
-          const sd = Math.sqrt(variance);
-          return sd ? (value - mean) / sd : 0;
-        })],
+        sum: [2, "sum(x, span)", "rolling sum", (x, n) => {
+          const { mean, count } = rolling(x, /** @type {number} */ (n));
+          return mean.map((value, i) => value * count[i]);
+        }],
+        stdev: [2, "stdev(x, span)", "rolling standard deviation", (x, n) => rolling(x, /** @type {number} */ (n)).variance.map(Math.sqrt)],
+        zscore: [2, "zscore(x, span)", "deviations from the rolling mean", (x, n) => {
+          const { mean, variance } = rolling(x, /** @type {number} */ (n));
+          return x.map((value, i) => {
+            const sd = Math.sqrt(variance[i]);
+            return Number.isFinite(mean[i]) ? (sd ? (value - mean[i]) / sd : 0) : NaN;
+          });
+        }],
+        percentile: [3, "percentile(x, span, p)", "rolling p-th percentile (p from 0 to 100; the median at 50)", (x, n, p) => rollingPercentile(x, /** @type {number} */ (n), /** @type {number} */ (p))],
         change: [2, "change(x, span)", "% change over the span", (x, n) => shifted(x, n, (a, b) => (a / b - 1) * 100)],
         diff: [2, "diff(x, span)", "difference over the span", (x, n) => shifted(x, n, (a, b) => a - b)],
         lag: [2, "lag(x, span)", "value a span earlier", (x, n) => shifted(x, n, (_a, b) => b)],
@@ -5551,7 +5603,7 @@
       /** A formula with a series renamed (as a series: a function of the same name stays). */
       const renamed = (formula, from, to) => formula.replace(new RegExp(`(?<![A-Za-z0-9_])${from}(?![A-Za-z0-9_])(?!\\s*\\()`, "g"), to);
 
-      const KEEPS_UNIT = new Set(["sma", "ema", "sum", "highest", "lowest", "lag", "ath", "diff", "abs", "cum"]);
+      const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "percentile", "highest", "lowest", "lag", "ath", "diff", "abs", "cum"]);
       /** The unit a function's result carries, from its input's. */
       const unitOfCall = (/** @type {string} */ f, /** @type {string | null} */ unit) => (KEEPS_UNIT.has(f) ? unit : f === "change" ? "percent" : "number");
       /** The unit a formula's result carries, from its parts (`unitOfRef(name, kind)`); null for plain numbers. @returns {string | null} */
@@ -5584,8 +5636,18 @@
        * Evaluates to a vector of `length` points, or a scalar; windows (spans of time, in days, where `inWindow`) run as
        * the points of `index`. @returns {Vector | number}
        */
-      function evaluate(node, length, ref, index, inWindow = false) {
-        const sub = (/** @type {Node} */ child, within = inWindow) => evaluate(child, length, ref, index, within);
+      function evaluate(node, length, ref, index, inWindow = false, memo = /** @type {Map<string, Vector | number> | undefined} */ (undefined)) {
+        // A part met before (in this formula or another of the chart's: sma(A, 4y) in three bands) is computed once.
+        const key = memo && !inWindow && (node.k === "call" || node.k === "bin" || node.k === "neg") ? JSON.stringify(node) : "";
+        const met = key ? memo?.get(key) : undefined;
+        if (met !== undefined) return met;
+        const value = evaluateAnew(node, length, ref, index, inWindow, memo);
+        if (key) memo?.set(key, value);
+        return value;
+      }
+      /** @returns {Vector | number} */
+      function evaluateAnew(node, length, ref, index, inWindow, memo) {
+        const sub = (/** @type {Node} */ child, within = inWindow) => evaluate(child, length, ref, index, within, memo);
         const vec = (value) => (typeof value === "number" ? new Float64Array(length).fill(value) : value);
         const lift = (a, b, f) => {
           if (typeof a === "number" && typeof b === "number") return f(a, b);
@@ -5610,13 +5672,14 @@
           }
           case "call": {
             const [arity, signature, , run] = FUNCTIONS[node.f];
-            const windowed = arity === 2 && run !== null;
+            const windowed = arity >= 2 && run !== null;
             const args = node.args.map((arg, i) => sub(arg, windowed ? i === 1 : inWindow));
             if (!run) return lift(args[0], args[1], node.f === "min" ? Math.min : Math.max);
             if (windowed) {
-              const days = args[1];
+              const days = args[1], p = args[2];
               if (typeof days !== "number" || !(days > 0)) throw new Error(`${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`);
-              const x = vec(args[0]), points = windowPoints(days, index), out = run(x, points);
+              if (arity === 3 && (typeof p !== "number" || !(p >= 0 && p <= 100))) throw new Error(`${signature}: p is a percent, from 0 to 100`);
+              const x = vec(args[0]), points = windowPoints(days, index), out = run(x, points, /** @type {number} */ (p));
               if (!out.some(Number.isFinite) && outreaches(x, points)) throw new Error(`${node.f}: a ${windowTooLong(points, index, points > length)}`);
               return out;
             }
@@ -6495,8 +6558,10 @@
           if (windowOf(fn) && !shown.some(Number.isFinite) && outreaches(result.values, points)) return { ...result, shown: undefined, ohlc: undefined, error: `A ${windowTooLong(points, doc.index, points > length)}` };
           return { ...result, shown, ohlc: undefined, unit: unitOfCall(fn, result.unit) };
         };
-        /** A series' data on the timeline: its values (a candle's close), and its candles when it has them. */
+        /** A series' data on the timeline: its values (a candle's close), and its candles when it has them (once a series, its layers and formulas sharing them). */
+        const aligned = new Map();
         const align = (data) => {
+          if (aligned.has(data)) return aligned.get(data);
           const values = new Float64Array(length).fill(NaN);
           /** @type {(number[] | null)[] | undefined} */
           let ohlc;
@@ -6507,6 +6572,7 @@
               values[p] = Number(value[3]);
             } else if (value !== null && value !== undefined) values[p] = Number(value);
           }
+          aligned.set(data, { values, ohlc });
           return { values, ohlc };
         };
         for (const layer of sources) {
@@ -6532,6 +6598,8 @@
         // Formulas, in dependency order; a loop is an error, not a hang.
         const byLetter = new Map(doc.layers.map((layer) => [layer.letter, layer]));
         const visiting = new Set();
+        /** The parts of the chart's formulas computed so far, shared between them. */
+        const memo = new Map();
         const compute = (layer) => {
           if (results.has(layer.id)) return results.get(layer.id);
           if (visiting.has(layer.id)) throw new Error("Formulas refer to each other in a loop");
@@ -6550,7 +6618,7 @@
               const result = target.formula !== undefined ? compute(target) : results.get(target.id);
               if (!result?.shown) throw new Error(`${name} has no data${result?.error ? ` (${quiet(result.error)})` : ""}`);
               return result.shown;
-            }, doc.index);
+            }, doc.index, false, memo);
             if (!length) throw new Error("Name a series, or add one, to give the formula a timeline");
             const values = typeof value === "number" ? new Float64Array(length).fill(value) : value;
             const unit = unitOfNode(node, (name, kind) => {
@@ -7813,7 +7881,7 @@
       /** @typedef {{ lines: [string, (number | null)[]][], marks: Record<string, (number | null)[]> }} Drawing */
       /** @type {Map<string, Drawing & { key: string }>} */
       const thumbs = new Map(Object.entries(storage.get(THUMBS, {})).filter(([, thumb]) => validThumb(thumb)));
-      const WINDOWED = /\b(sma|ema|sum|zscore|change|diff|lag|highest|lowest)\s*\(/;
+      const WINDOWED = /\b(sma|ema|sum|stdev|zscore|percentile|change|diff|lag|highest|lowest)\s*\(/;
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
       const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size]), doc.layers.map((layer) => [layer.series, layer.formula, layer.transform, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter])]);
       /**
