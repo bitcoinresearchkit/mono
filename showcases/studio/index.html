@@ -1802,11 +1802,10 @@
         scroll-snap-align: start;
         transition: background var(--fade), box-shadow var(--fade);
 
-        .chart-mark {
-          width: 100%;
-          height: 36px;
-          margin-bottom: 10px;
-          color: var(--muted);
+        .template-plot {
+          --plot-ground: color-mix(in srgb, var(--card), white 4%);
+          height: 76px;
+          margin-bottom: 12px;
         }
 
         .name {
@@ -3307,7 +3306,8 @@
           background: var(--c);
         }
 
-        .spark {
+        :is(.spark, .palette-plot) {
+          --plot-ground: var(--raise);
           display: block;
           width: 100%;
           height: 104px;
@@ -3954,19 +3954,16 @@
         }
       }
 
-      .tile-plot {
-        position: relative;
-        display: block;
-        aspect-ratio: 16 / 9;
-        margin-top: 12px;
-
-        svg {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          overflow: visible;
-        }
+      /*
+       * A chart drawn small (a tile, a template's card, ⌘K's preview), in a frame of its own: its panes parted by a
+       * hairline, each layer as its type, a dot on its latest value. Strokes and dots keep their size however it stretches.
+       */
+      svg.plot {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
 
         path {
           fill: none;
@@ -3981,11 +3978,43 @@
           stroke-width: 1;
         }
 
+        /* Dashes as on the chart: square ends, or the gaps close. */
+        [stroke-dasharray] {
+          stroke-linecap: butt;
+        }
+
+        .across {
+          stroke-width: 1;
+          opacity: 0.7;
+        }
+
+        .fill {
+          stroke: none;
+        }
+
         .bars {
           stroke-width: 2;
           stroke-linecap: butt;
           opacity: 0.8;
         }
+
+        .dots {
+          stroke-width: 2.5;
+        }
+
+        .end {
+          stroke-width: 5;
+        }
+
+        .ring {
+          stroke: var(--plot-ground, var(--card));
+          stroke-width: 8;
+        }
+      }
+
+      :is(.tile-plot, .template-plot, .palette-plot) {
+        position: relative;
+        display: block;
 
         &.pending::after {
           content: "";
@@ -3995,6 +4024,11 @@
           background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.03) 50%, transparent 70%) 0 0 / 200% 100%;
           animation: sweep 1.4s linear infinite;
         }
+      }
+
+      .tile-plot {
+        aspect-ratio: 16 / 9;
+        margin-top: 12px;
 
         &.empty {
           display: grid;
@@ -5880,6 +5914,11 @@
             return false;
           }
         },
+        drop(...keys) {
+          try {
+            for (const key of keys) localStorage.removeItem(key);
+          } catch {}
+        },
       };
       /** @type {{ charts: Chart[], active: string }} */
       let library = storage.get(STORE, null);
@@ -5983,7 +6022,8 @@
           saveTimer = 0;
           announcing = false;
           const saved = $("saved");
-          const ok = storage.set(STORE, library);
+          // Full: the drawings (a cache, drawn again) give way to the charts.
+          const ok = storage.set(STORE, library) || (storage.drop(PREVIEWS, THUMBS), storage.set(STORE, library));
           if (ok && !announced && !saved.classList.contains("error")) return;
           saved.textContent = ok ? "Saved" : "Not saved: storage full or blocked";
           saved.classList.toggle("error", !ok);
@@ -6114,8 +6154,8 @@
        * its middle, or the end `keep` names ("to", its latest; "from").
        * @param {{ from: number, to: number }} range @param {"middle" | "from" | "to"} [keep]
        */
-      function within({ from, to }, keep = "middle") {
-        const over = to - from - mostBars();
+      function within({ from, to }, keep = "middle", most = mostBars()) {
+        const over = to - from - most;
         if (over <= 0) return { from, to };
         return keep === "to" ? { from: from + over, to } : keep === "from" ? { from, to: to - over } : { from: from + over / 2, to: to - over / 2 };
       }
@@ -7100,13 +7140,13 @@
 
       const defaultSize = (i) => (i === 0 ? 3 : 1.4);
       /** The window a range preset shows, in bars: from its first day to the newest point, with the right margin. */
-      function presetWindow(doc, data) {
+      function presetWindow(doc, data, most = mostBars()) {
         const n = data.times.length;
         const to = n - 1 + RIGHT_OFFSET;
         const days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
         // "Max" leaves room on the left for the first date's label (where it shows all of history).
-        if (!days) return within({ from: -(to * 30) / Math.max(1, view.timeScale().width() - 30), to }, "to");
-        return within({ from: lowerBound(data.times, data.times[n - 1] - days * 86400), to }, "to");
+        if (!days) return within({ from: -(to * 30) / Math.max(1, view.timeScale().width() - 30), to }, "to", most);
+        return within({ from: lowerBound(data.times, data.times[n - 1] - days * 86400), to }, "to", most);
       }
       function applyRange(doc, data, animate = false) {
         if (data.times.length < 2 || !view.timeScale().width()) return view.timeScale().fitContent();
@@ -7962,11 +8002,11 @@
         }
         return data.failed.length > 0;
       }
-      /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @returns {Promise<Drawing | null>} null when a fetch failed */
-      async function drawThumb(doc) {
+      /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @param {string} [at] its data's interval, if not the usual one @returns {Promise<Drawing | null>} null when a fetch failed */
+      async function drawThumb(doc, at = "") {
         const coarse = INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf("month1");
         const windowed = doc.layers.some((layer) => WINDOWED.test(layer.formula ?? ""));
-        const index = coarse || windowed ? doc.index : "month1";
+        const index = at || (coarse || windowed ? doc.index : "month1");
         const data = await resolve({ ...doc, index });
         if (retryFailed(doc, data, index)) return null;
         /** @type {Map<string, ReturnType<typeof shapeOf>>} */
@@ -8070,23 +8110,52 @@
 
       const PREVIEWS = "bitview-studio:previews";
       const PREVIEW = { width: 320, height: 200, points: 120 };
-      const validPreview = (item) => typeof item?.key === "string" && Array.isArray(item.seps) && item.seps.every(Number.isFinite)
-        && Array.isArray(item.lines) && item.lines.every((line) => Array.isArray(line) && isColor(line[0]) && typeof line[1] === "string" && /^[MLV\d. -]*$/.test(line[1]));
-      /** @typedef {{ seps: number[], lines: [string, string, boolean][] }} Preview */
+      /**
+       * A layer drawn small, as its type draws on the chart: `k` its kind (a line, an area, a stacked band, a baseline, bars,
+       * dots, or one of its lines across), `c` its color (`c2` under its base), `d` its line (or its bars above the base, `d2` those below), `f` a
+       * stacked band's fill, `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above), `dash`
+       * its line style, `op` its opacity, `end` its latest point.
+       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, f?: string, y0?: number, top?: number, bottom?: number, up?: boolean, dash?: string, op?: number, end?: number[] }} PlotMark
+       * @typedef {{ seps: number[], marks: PlotMark[] }} Preview
+       */
+      /** Each kind, with what it can't be drawn without. */
+      const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"], band: ["f"] };
+      const isPath = (d) => typeof d === "string" && /^[MLVZh\d. -]*$/.test(d);
+      const validMark = (mark) => Object.hasOwn(PLOT_NEEDS, mark?.k) && PLOT_NEEDS[mark.k].every((field) => mark[field] !== undefined) && isColor(mark.c) && (mark.c2 === undefined || isColor(mark.c2)) && isPath(mark.d)
+        && [mark.d2, mark.f].every((d) => d === undefined || isPath(d)) && [mark.y0, mark.top, mark.bottom, mark.op].every((n) => n === undefined || Number.isFinite(n))
+        && (mark.up === undefined || typeof mark.up === "boolean") && (mark.dash === undefined || (typeof mark.dash === "string" && /^[\d. ]+$/.test(mark.dash)))
+        && (mark.end === undefined || (Array.isArray(mark.end) && mark.end.length === 2 && mark.end.every(Number.isFinite)));
+      const validPreview = (item) => typeof item?.key === "string" && Array.isArray(item.seps) && item.seps.every(Number.isFinite) && Array.isArray(item.marks) && item.marks.every(validMark);
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
-      /** What a card depends on: what the chart's mark does, its range, its layers' types, the view it was left at and how much the chart shows. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => [layer.type, layer.base]), doc.panes.map((pane) => pane.stack), leftView(doc.id), Math.round(mostBars() / 200)]);
-      const savePreviews = () => storage.set(PREVIEWS, Object.fromEntries([...previews].filter(([id]) => chartById(id))));
-      /** @param {Chart} doc @param {{ times: number[], results: Map<string, any> }} data @returns {Preview} */
-      function previewOf(doc, data) {
+      /** What a card depends on: what the chart's mark does, its range, its layers' looks, the view it was left at and how much the chart shows. @param {Chart} doc */
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => [layer.type, layer.base, layer.colorBelow, layer.dash, layer.fill, layer.opacity]), doc.panes.map((pane) => pane.stack), leftView(doc.id), Math.round(mostBars() / 200)]);
+      /**
+       * The drawings kept: the templates', then those of the charts edited last, within a budget (they're a cache: drawn
+       * again when missing, they never crowd out the charts themselves).
+       */
+      function savePreviews() {
+        const kept = {}, when = (id) => (id.startsWith("template:") ? Infinity : chartById(id)?.updated ?? -Infinity);
+        let size = 0;
+        for (const [id, item] of [...previews].filter(([id]) => when(id) > -Infinity).sort(([a], [b]) => when(b) - when(a))) {
+          size += JSON.stringify(item).length;
+          if (size > 1_000_000) break;
+          kept[id] = item;
+        }
+        storage.set(PREVIEWS, kept);
+      }
+      /**
+       * @param {Chart} doc @param {{ times: number[], results: Map<string, any> }} data
+       * @param {number} [most] the most bars the chart shows, in this data's interval @returns {Preview}
+       */
+      function previewOf(doc, data, most = mostBars()) {
         const { width: W, height: H } = PREVIEW;
         const times = data.times, n = times.length;
         /** @type {Preview} */
-        const drawn = { seps: [], lines: [] };
+        const drawn = { seps: [], marks: [] };
         if (n < 2) return drawn;
         const left = leftView(doc.id);
-        const shown = left ? within(viewOn(left, doc.index, times), "to") : presetWindow(doc, data);
+        const shown = left ? within(viewOn(left, doc.index, times), "to") : presetWindow(doc, data, most);
         const span = shown.to - shown.from;
         if (!(span >= 1)) return drawn;
         // No more points than bars in view: each one then holds a bar at least, so only missing data breaks a line.
@@ -8098,6 +8167,7 @@
         doc.panes.forEach((pane, k) => {
           const height = ((pane.size ?? defaultSize(k)) / total) * H;
           if (k) drawn.seps.push(round(top));
+          const paneTop = round(top), paneBottom = round(top + height);
           const band = { top: top + height * 0.17, height: height * 0.75 };
           top += height;
           // Each side of a pane has its own scale, as on the chart.
@@ -8117,41 +8187,149 @@
                 counts[b]++;
               }
               const points = Array.from({ length: B }, (_, b) => (counts[b] ? [at[b] / counts[b], sums[b] / counts[b]] : null));
-              return { layer, bars: layer.type === "histogram" && mode === 0, base: layer.base ?? 0, points };
+              return { layer, mode, scaled, bars: layer.type === "histogram" && mode === 0, base: layer.base ?? 0, level: scaled(layer.base ?? 0), points, stack: stacked.has(layer.id) };
             });
             let lo = Infinity, hi = -Infinity;
-            for (const { bars, base, points } of shaped) {
+            for (const { mode, bars, base, points, stack } of shaped) {
               if (bars) (lo = Math.min(lo, base)), (hi = Math.max(hi, base));
+              if (stack && mode === 0) lo = Math.min(lo, 0);
               for (const point of points) if (point) (lo = Math.min(lo, point[1])), (hi = Math.max(hi, point[1]));
             }
             if (!Number.isFinite(lo)) continue;
             if (pane.stack === "percent") (lo = 0), (hi = 100);
             const range = hi - lo;
             const y = (value) => round(band.top + band.height * (range ? 1 - (value - lo) / range : 0.5));
-            for (const { layer, bars, base, points } of shaped) {
-              let d = "", gap = true;
-              for (const point of points) {
-                if (!point) {
-                  gap = true;
-                  continue;
-                }
-                const x = round(((point[0] - shown.from) / span) * W);
-                d += bars ? `M${x} ${y(base)}V${y(point[1])}` : `${gap ? "M" : "L"}${x} ${y(point[1])}`;
-                gap = false;
+            const inPane = (value) => clamp(value, paneTop, paneBottom);
+            shaped.forEach(({ layer, scaled, bars, base, level, points, stack }, s) => {
+              const across = [...(layer.levels ?? []).map((item, i) => [String(i), item.value]), ...(layer.type === "baseline" ? [["base", layer.base ?? 0]] : [])];
+              for (const [key, value] of across) {
+                const yAt = y(scaled(value)), { color, dash } = lineLook(layer, key), [, , length, gap] = dashOf(dash);
+                if (yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...((layer.opacity ?? 1) < 1 ? { op: layer.opacity } : {}) });
               }
-              if (d) drawn.lines.push([layer.color, d, bars]);
-            }
+              const x = (b) => round(((points[b][0] - shown.from) / span) * W), at = (b) => `${x(b)} ${y(points[b][1])}`;
+              const look = { c: layer.color, ...((layer.opacity ?? 1) < 1 ? { op: layer.opacity } : {}) };
+              if (bars) {
+                let d = "", d2 = "";
+                points.forEach((point, b) => {
+                  if (!point) return;
+                  const bar = `M${x(b)} ${y(base)}V${y(point[1])}`;
+                  if (point[1] >= base) d += bar;
+                  else d2 += bar;
+                });
+                if (d || d2) drawn.marks.push({ ...look, k: "bars", c2: belowOf(layer), d, ...(d2 ? { d2 } : {}) });
+                return;
+              }
+              // Its runs: the buckets with a value, unbroken.
+              const runs = [];
+              let run = [];
+              points.forEach((point, b) => (point ? run.push(b) : run.length && (runs.push(run), (run = []))));
+              if (run.length) runs.push(run);
+              if (!runs.length) return;
+              if (layer.type === "dots" && !stack) return void drawn.marks.push({ ...look, k: "dots", d: runs.flat().map((b) => `M${at(b)}h0`).join("") });
+              const d = runs.map((part) => `M${part.map(at).join("L")}`).join(""), end = runs.at(-1).at(-1);
+              const [, , length, gap] = LINED.has(layer.type) ? dashOf(layer.dash) : DASHES[0];
+              const line = { ...look, d, end: [x(end), y(points[end][1])], ...(gap ? { dash: `${length} ${gap}` } : {}) };
+              if (stack) {
+                // A band from its line down to the one under it (the bottom one, to the pane's foot), as the chart stacks them.
+                const under = shaped[s + 1]?.points, floor = paneBottom;
+                const f = runs.map((part) => `M${part.map(at).join("L")}L${[...part].reverse().map((b) => `${x(b)} ${under?.[b] ? y(under[b][1]) : floor}`).join("L")}Z`).join("");
+                drawn.marks.push({ ...line, k: "band", f });
+              } else if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, ...(layer.fill === "above" ? { up: true } : {}) });
+              else if (layer.type === "baseline") drawn.marks.push({ ...line, k: "baseline", c2: belowOf(layer), y0: Number.isFinite(level) ? inPane(y(level)) : paneBottom, top: paneTop, bottom: paneBottom });
+              else drawn.marks.push({ ...line, k: "line" });
+            });
           }
         });
         return drawn;
       }
-      /** @param {Preview} drawn */
-      const previewSvg = (drawn) => `<svg viewBox="0 0 ${PREVIEW.width} ${PREVIEW.height}" preserveAspectRatio="none" aria-hidden="true">${drawn.seps.map((y) => `<path class="sep" d="M0 ${y}H${PREVIEW.width}"/>`).join("")}${drawn.lines.map(([color, d, bars]) => `<path${bars ? ' class="bars"' : ""} stroke="${escape(ink(color))}" d="${d}"/>`).join("")}</svg>`;
+      /** Each subpath of a line closed down (or up) to `edge`: the fill under it. */
+      const closedTo = (d, edge) => d.split("M").filter(Boolean).map((part) => `M${part.split(" ")[0]} ${edge}L${part}L${part.slice(part.lastIndexOf("L") + 1).split(" ")[0]} ${edge}Z`).join("");
+      /**
+       * A drawing as an SVG: panes parted by a hairline, each layer as its type (an area fading down from its line, a
+       * baseline in its two colors about its base, a stacked band filled to the one under it, bars, dots), dashed as it is,
+       * and a dot on its latest value. Its ids are its place's (`place`: a tile's, a card's, ⌘K's), the same each time:
+       * the same chart can show twice at once, and a tile drawn again is unchanged.
+       * @param {Preview} drawn @param {string} place
+       */
+      function previewSvg(drawn, place) {
+        const { width: W, height: H } = PREVIEW, id = place.replace(/[^\w-]/g, "-"), defs = [];
+        const body = drawn.seps.map((y) => `<path class="sep" d="M0 ${y}H${W}"/>`);
+        drawn.marks.forEach((mark, n) => {
+          const c = escape(ink(mark.c)), c2 = escape(ink(mark.c2 ?? mark.c)), g = `${id}-${n}`, dash = mark.dash ? ` stroke-dasharray="${mark.dash}"` : "";
+          const fade = (key, color, from, to, a, b) => `<linearGradient id="${g}${key}" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="${from}" y2="${to}"><stop offset="0" stop-color="${color}" stop-opacity="${a}"/><stop offset="1" stop-color="${color}" stop-opacity="${b}"/></linearGradient>`;
+          let html = "";
+          if (mark.k === "across") html = `<path class="across" stroke="${c}"${dash} d="${mark.d}"/>`;
+          else if (mark.k === "bars") html = `<path class="bars" stroke="${c}" d="${mark.d}"/>${mark.d2 ? `<path class="bars" stroke="${c2}" d="${mark.d2}"/>` : ""}`;
+          else if (mark.k === "dots") html = `<path class="dots" stroke="${c}" d="${mark.d}"/>`;
+          else if (mark.k === "baseline") {
+            const y0 = /** @type {number} */ (mark.y0), f = closedTo(mark.d, y0);
+            defs.push(`<clipPath id="${g}a"><rect width="${W}" height="${y0}"/></clipPath><clipPath id="${g}b"><rect y="${y0}" width="${W}" height="${H - y0}"/></clipPath>`, fade("u", c, mark.top, y0, 0.24, 0.01), fade("v", c2, y0, mark.bottom, 0.01, 0.24));
+            html = `<g clip-path="url(#${g}a)"><path class="fill" style="fill:url(#${g}u)" d="${f}"/><path stroke="${c}"${dash} d="${mark.d}"/></g><g clip-path="url(#${g}b)"><path class="fill" style="fill:url(#${g}v)" d="${f}"/><path stroke="${c2}"${dash} d="${mark.d}"/></g>`;
+          } else {
+            let fill = "";
+            if (mark.k === "band") fill = `<path class="fill" style="fill:color-mix(in srgb, ${c} 32%, transparent)" d="${mark.f}"/>`;
+            else if (mark.k === "area" && mark.up) fill = `<path class="fill" style="fill:color-mix(in srgb, ${c} 12%, transparent)" d="${closedTo(mark.d, mark.top)}"/>`;
+            else if (mark.k === "area") {
+              defs.push(fade("u", c, mark.top, mark.bottom, 0.2, 0));
+              fill = `<path class="fill" style="fill:url(#${g}u)" d="${closedTo(mark.d, mark.bottom)}"/>`;
+            }
+            html = `${fill}<path stroke="${c}"${dash} d="${mark.d}"/>`;
+          }
+          if (mark.end) {
+            const [x, y] = mark.end, color = mark.k === "baseline" && y > /** @type {number} */ (mark.y0) ? c2 : c;
+            html += `<path class="ring" d="M${x} ${y}h0"/><path class="end" stroke="${color}" d="M${x} ${y}h0"/>`;
+          }
+          body.push(mark.op ? `<g opacity="${mark.op}">${html}</g>` : html);
+        });
+        return `<svg class="plot" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${defs.length ? `<defs>${defs.join("")}</defs>` : ""}${body.join("")}</svg>`;
+      }
+      /** The drawings being made, by what they're made of. */
+      const drawing = new Map();
+      let previewsTimer = 0;
+      /**
+       * A chart's drawing, shown wherever it's framed (its tile, a template's card, ⌘K's preview): in the frames still
+       * waiting, or (`all`: a new drawing) in all of them; none (a failed fetch) ends their wait.
+       * @param {string} id @param {Preview | null} drawn
+       */
+      function paint(id, drawn, all = false) {
+        for (const frame of all$(`[data-plot="${CSS.escape(id)}"]`)) {
+          if (!all && !frame.classList.contains("pending")) continue;
+          frame.classList.remove("pending");
+          if (drawn) frame.innerHTML = previewSvg(drawn, `${frame.classList[0]}-${id}`);
+        }
+      }
+      /**
+       * A chart's drawing, made if it's out of date, kept (and stored, a moment later), and shown wherever it's framed:
+       * from `index`'s data (a template's weekly: enough at this size, over as much time as its chart shows). null when a
+       * fetch failed: nothing is kept, the next time tries again.
+       * @param {Chart} doc @returns {Promise<(Preview & { key: string }) | null>}
+       */
+      function drawPreview(doc, index = doc.index) {
+        const key = previewKey(doc), have = previews.get(doc.id);
+        if (have?.key === key) return Promise.resolve(have);
+        // Asked again while it's being drawn (⌘K's highlight, the grid), the same drawing answers.
+        const ask = JSON.stringify([doc.id, key, index]);
+        if (!drawing.has(ask)) drawing.set(ask, (async () => {
+          const copy = { ...structuredClone(doc), index };
+          const data = await resolve(copy).catch(() => null);
+          if (!data || retryFailed(copy, data, index) || previewKey(doc) !== key) return null;
+          // Replaced meanwhile (another tab's edit): its successor is drawn on its own.
+          if (!doc.id.startsWith("template:") && chartById(doc.id) !== doc) return null;
+          const drawn = { key, ...previewOf(copy, data, index === doc.index ? mostBars() : (mostBars() * INTERVAL_DAYS[doc.index]) / INTERVAL_DAYS[index]) };
+          previews.set(doc.id, drawn);
+          clearTimeout(previewsTimer);
+          previewsTimer = setTimeout(savePreviews, 1000);
+          return drawn;
+        })().then((drawn) => (paint(doc.id, drawn, true), drawn)).finally(() => drawing.delete(ask)));
+        return /** @type {Promise<(Preview & { key: string }) | null>} */ (drawing.get(ask));
+      }
+      /** A template's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
+      const templateIndex = (doc) => (INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf("week1") || doc.layers.some((layer) => WINDOWED.test(layer.formula ?? "")) ? doc.index : "week1");
       /** A tile's plot: the chart drawn, "Empty" for an empty one, a shimmer until it's drawn. @param {Chart} doc */
       function plotHtml(doc) {
         const drawn = previews.get(doc.id);
         if (!doc.layers.length) return `<span class="tile-plot empty">Empty</span>`;
-        return `<span class="tile-plot ${drawn ? "" : "pending"}">${drawn ? previewSvg(drawn) : ""}</span>`;
+        return `<span class="tile-plot ${drawn ? "" : "pending"}" data-plot="${doc.id}">${drawn ? previewSvg(drawn, `tile-plot-${doc.id}`) : ""}</span>`;
       }
       /** A chart in the grid, as its own card: title and interval, its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
       function tileHtml(doc) {
@@ -8382,29 +8560,12 @@
       });
       /** Draws every card that's out of date, one chart at a time, while the grid shows. */
       const schedulePreviews = serial(async () => {
-        let drew = false;
         for (const doc of [...library.charts]) {
           if (!home) break;
-          const key = previewKey(doc);
-          if (!doc.layers.length || previews.get(doc.id)?.key === key) continue;
-          const copy = structuredClone(doc);
-          const data = await resolve(copy).catch(() => null);
-          const plot = cardOf(doc.id)?.querySelector(".tile-plot");
-          // A failed fetch isn't drawn (nor kept): it shows blank, not loading, and the next time the grid shows tries again.
-          if (!data || retryFailed(copy, data)) {
-            plot?.classList.remove("pending");
-            continue;
-          }
-          if (previewKey(doc) !== key || !library.charts.includes(doc)) continue;
-          const drawn = { key, ...previewOf(copy, data) };
-          previews.set(doc.id, drawn);
-          drew = true;
-          if (plot) {
-            plot.classList.remove("pending");
-            plot.innerHTML = previewSvg(drawn);
-          }
+          // Drawn already (maybe from ⌘K), it's shown where it's still waited for. A failed fetch isn't drawn (nor
+          // kept): it shows blank, not loading, and the next time the grid shows tries again.
+          if (doc.layers.length) paint(doc.id, await drawPreview(doc));
         }
-        if (drew) savePreviews();
       });
       /**
        * Resolves once `test` holds (or `ms` have passed). On timers, not frames: while a change of place is being made
@@ -8890,23 +9051,25 @@
       // The empty chart offers every template, with its mini chart, name and gist, in a row that scrolls.
       strip($("templates"));
       new ResizeObserver(() => fitStrip($("templates"))).observe($("templates"));
-      $("templates").innerHTML = templateDocs.map((doc, i) => `<button type="button" class="template" data-template="${i}" data-template-doc="${doc.id}">${chartMark(doc)}<span class="name">${escape(TEMPLATES[i].title)}</span><span class="gist">${escape(TEMPLATES[i].text)}</span></button>`).join("");
-      // A template's mini chart is drawn like a chart's, once its card comes into view, and kept with the others for
-      // the day; a chart of the library still matching it lends its drawing instead.
+      $("templates").innerHTML = templateDocs.map((doc, i) => `<button type="button" class="template" data-template="${i}" data-template-doc="${doc.id}"><span class="template-plot ${previews.has(doc.id) ? "" : "pending"}" data-plot="${doc.id}">${previews.has(doc.id) ? previewSvg(/** @type {Preview} */ (previews.get(doc.id)), `template-plot-${doc.id}`) : ""}</span><span class="name">${escape(TEMPLATES[i].title)}</span><span class="gist">${escape(TEMPLATES[i].text)}</span></button>`).join("");
+      // A template's card shows the chart it makes, drawn as a tile is, once the card comes into view; its mark (⌘K's
+      // row) is drawn like a chart's, a chart of the library still matching it lending its own. Both are kept for the day.
       const templateQueue = new Set();
       const drawTemplates = serial(async () => {
-        let drew = false;
+        let marked = false;
         for (const i of templateQueue) {
           templateQueue.delete(i);
           const doc = templateDocs[i], key = thumbKey(doc);
-          if (thumbs.get(doc.id)?.key === key) continue;
-          const drawing = [...thumbs.values()].find((thumb) => thumb.key === key) ?? (await drawThumb(structuredClone(doc)).catch(() => null));
-          if (!drawing) continue;
-          thumbs.set(doc.id, { key, lines: drawing.lines, marks: {} });
-          updateMark(doc);
-          drew = true;
+          if (thumbs.get(doc.id)?.key !== key) {
+            const drawing = [...thumbs.values()].find((thumb) => thumb.key === key) ?? (await drawThumb(structuredClone(doc), templateIndex(doc)).catch(() => null));
+            if (drawing) {
+              thumbs.set(doc.id, { key, lines: drawing.lines, marks: {} });
+              marked = true;
+            }
+          }
+          paint(doc.id, await drawPreview(doc, templateIndex(doc)));
         }
-        if (drew) saveThumbs();
+        if (marked) saveThumbs();
       });
       const cardsSeen = new IntersectionObserver((entries) => {
         for (const entry of entries) {
@@ -11163,7 +11326,17 @@
       function previewChart(panel, doc) {
         if (!doc) return void (panel.innerHTML = "");
         panel.innerHTML = `<h4 class="plain">${escape(titleOf(doc))}</h4><p class="description">${plural(doc.layers.length, "layer")} · ${escape(CADENCE[doc.index])} · edited ${escape(ago(doc.updated))}</p>
-          ${doc.layers.length ? `<div class="info"><h5>Layers</h5><dl>${doc.layers.slice(0, 10).map((layer) => `<div><dt><i class="dot" style="--c:${escape(cssColor(layer.color))}"></i>${escape(labelOf(layer))}</dt><dd>${layer.letter}</dd></div>`).join("")}</dl></div>` : ""}`;
+          ${plotIn(doc)}${doc.layers.length ? `<div class="info"><h5>Layers</h5><dl>${doc.layers.slice(0, 10).map((layer) => `<div><dt><i class="dot" style="--c:${escape(cssColor(layer.color))}"></i>${escape(labelOf(layer))}</dt><dd>${layer.letter}</dd></div>`).join("")}</dl></div>` : ""}`;
+      }
+      /**
+       * A chart (or a template's) as ⌘K previews it: drawn as its tile is, at once if it's drawn, else once it is (if
+       * the preview still shows it then). @param {Chart} doc
+       */
+      function plotIn(doc, index = doc.index) {
+        if (!doc.layers.length) return "";
+        const drawn = previews.get(doc.id);
+        if (drawn?.key !== previewKey(doc)) void drawPreview(doc, index).then((fresh) => paint(doc.id, fresh));
+        return `<span class="palette-plot ${drawn ? "" : "pending"}" data-plot="${escape(doc.id)}">${drawn ? previewSvg(drawn, `palette-plot-${doc.id}`) : ""}</span>`;
       }
       /** A row's preview: its own; for a page, what's in it; else its name and value. */
       function previewRow(panel, item) {
@@ -11334,7 +11507,7 @@
       const templatesPage = () => ({ title: "Templates", placeholder: "Search the templates", rows: () => TEMPLATES.map((template, i) => ({
         kind: "row", key: `template:${i}`, icon: chartMark(templateDocs[i]), label: template.title, words: template.text, verb: "Use", run: () => useTemplate(template),
         preview: (/** @type {HTMLElement} */ panel) => void (panel.innerHTML = `<h4 class="plain">${escape(template.title)}</h4><p class="description">${escape(template.text)}</p>
-          <div class="info"><h5>Layers</h5><dl>${templateDocs[i].layers.map((layer) => `<div><dt><i class="dot" style="--c:${escape(cssColor(layer.color))}"></i>${escape(labelOf(layer))}</dt><dd>${escape(layer.letter)}</dd></div>`).join("")}</dl></div>`),
+          ${plotIn(templateDocs[i], templateIndex(templateDocs[i]))}<div class="info"><h5>Layers</h5><dl>${templateDocs[i].layers.map((layer) => `<div><dt><i class="dot" style="--c:${escape(cssColor(layer.color))}"></i>${escape(labelOf(layer))}</dt><dd>${escape(layer.letter)}</dd></div>`).join("")}</dl></div>`),
       })) });
       /** @returns {Page} */
       function intervalPage() {
