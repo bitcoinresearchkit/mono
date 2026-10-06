@@ -249,16 +249,18 @@ has to be deleted by hand.
   and bedrock 1.2 s instead of 5 s
 - Txids hash with `sha2`, which uses the CPU's SHA instructions (about 6x `bitcoin_hashes` on Apple silicon, where it
   has no hardware path): the indexer is about 6% faster at 300,000 blocks
+- The indexer saves its pending data at the first 100-block boundary after 20 million records are pending, instead of
+  35 million: memory climbs with the pending data between saves, and indexing blocks 600,000 to 650,000 peaks at
+  8.6 GiB instead of 9.4 at the same speed
 - `distribution_addresses` takes 337 s instead of 420 s at 600,000 blocks, with the same series and address data. Its
   block cache keeps emptied addresses in place, in one map per address type instead of a funded and an empty map. Each
   block's outputs and inputs are grouped on the processing thread instead of the thread pool. A reader thread reads
   the next batch's columns while the current batch is processed, for `distribution_utxos` too
 - Pushes onto stored vectors check that the vector is still writable only in debug builds (6.7 ns per push instead
   of 7.1)
-- `distribution_addresses` flushes its address cache every 10,000 blocks or once it holds 16 million addresses,
+- `distribution_addresses` flushes its address cache every 10,000 blocks or once it holds 32 million addresses,
   whichever comes first, and each type's table then keeps room only for what it just held, so the cache follows the
-  chain's activity instead of its busiest past: its peak memory at 600,000 blocks is 4.9 GiB instead of 8.6, for 2.5%
-  more time
+  chain's activity instead of its busiest past: an addresses-only run to 970,056 blocks peaks at 7.6 GiB
 - Coinflow, cointime and bedrock replay their per-block URPD in parallel 5,000-block segments, each from its nearest
   history snapshot, with results handed back in block order. The URPD histogram keeps one supply column per age range
   so a block's projection reads mostly contiguous memory, and the cohort statistics come from one compact sweep. At

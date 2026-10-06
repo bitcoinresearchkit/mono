@@ -57,7 +57,7 @@ pub use safe_lengths::SafeLengths;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indexer"), VERSION);
 const EXPORT_HEIGHT_INTERVAL: usize = 100;
-const MAX_PENDING_RECORDS: usize = 35_000_000;
+const MAX_PENDING_RECORDS: usize = 20_000_000;
 pub const ID: PluginId = STORAGE.id();
 
 pub struct Indexer<M: StorageMode = Rw> {
