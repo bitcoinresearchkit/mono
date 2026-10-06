@@ -8,7 +8,7 @@ use bitview_cohort::AddrTypeId;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_distribution_common::replay::{LiveState, tip_hash};
 use bitview_primitives::Lengths;
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_types::Height;
 use vecdb::{AnyVec, Database, ReadableVec};
 
@@ -36,14 +36,7 @@ impl ComputePlugin for Vecs {
             .blocks
             .blockhash
             .len()
-            .min(deps.price.spot.cents.height.len())
-            .min(
-                deps.type_supply
-                    .iter()
-                    .map(|(_, v)| v.len())
-                    .min()
-                    .unwrap_or(0),
-            );
+            .min(deps.price.spot.cents.height.len());
         let mut start = resume.map_or(0, |len| {
             usize::from(deps.indexer.safe_lengths().height)
                 .min(end)
@@ -111,6 +104,9 @@ impl ComputePlugin for Vecs {
             ..Default::default()
         };
         // Derive address metrics from completed per-type sources.
+        let type_supply = type_supply
+            .recv()
+            .map_err(|_| Error::Internal("distribution_utxos sent no type supply"))?;
         let type_supply_sats = AddrTypeId::series(|id, _| id.select(&type_supply));
         self.addrs
             .reused

@@ -266,6 +266,9 @@ has to be deleted by hand.
   so a block's projection reads mostly contiguous memory, and the cohort statistics come from one compact sweep. At
   970,056 blocks coinflow takes 169 s instead of 491, cointime 188 s instead of 494 and bedrock 19 s instead of 75,
   with identical outputs
+- `distribution_addresses` runs its block loop alongside `distribution_utxos` instead of after it: only the per-type
+  supply shares and average balances it derives afterwards wait for `distribution_utxos`. Computing every plugin over
+  an indexed 970,056-block chain takes 1417 s instead of 1543 s and peaks at 9.7 GiB instead of 10.7
 
 #### `brk_reader`
 

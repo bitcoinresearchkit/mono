@@ -1,7 +1,7 @@
 use bitview_plugin_distribution_aggregated::{
     Dependencies as AggregatedDependencies, ID as DISTRIBUTION_AGGREGATED_ID,
 };
-use std::{thread, time::Duration};
+use std::{sync::mpsc, thread, time::Duration};
 
 use bitview_plugin::{ComputePlugin, Publication, UpdateContext};
 use bitview_plugin_bedrock::{Dependencies as BedrockDependencies, ID as BEDROCK_ID};
@@ -96,8 +96,8 @@ impl DefaultPlugins {
             inputs_result?;
             prices_result?;
 
-            // Market, UTXOs → Addresses, Outputs → History → Age → Aggregated, and Transactions
-            // → Mining + OP_RETURN are independent complete-plugin branches.
+            // Market, UTXOs, Addresses, Outputs → History → Age → Aggregated, and Transactions →
+            // Mining + OP_RETURN are independent complete-plugin branches.
             let market = scope.spawn(|| -> Result<_> {
                 timed(Phase::Compute, MARKET_ID, || {
                     self.market.compute(
@@ -158,7 +158,11 @@ impl DefaultPlugins {
                 Ok(self.mining.as_ref())
             });
 
+            // Addresses' block loop runs alongside UTXOs: only the shares and average balances it
+            // derives afterwards wait for the per-type supply UTXOs sends once computed.
+            let (type_supply_tx, type_supply_rx) = mpsc::sync_channel(1);
             let utxos = scope.spawn(|| -> Result<_> {
+                let type_supply = type_supply_tx;
                 timed(Phase::Compute, DISTRIBUTION_UTXOS_ID, || {
                     self.distribution_utxos.compute(
                         UtxosDependencies {
@@ -170,6 +174,10 @@ impl DefaultPlugins {
                         context,
                     )
                 })?;
+                let _ = type_supply.send(self.distribution_utxos.type_supply());
+                Ok(self.distribution_utxos.as_ref())
+            });
+            let addresses = scope.spawn(|| {
                 timed(Phase::Compute, DISTRIBUTION_ADDRESSES_ID, || {
                     self.distribution_addresses.compute(
                         AddressesDependencies {
@@ -177,12 +185,11 @@ impl DefaultPlugins {
                             mappings: &self.mappings,
                             input_values: &self.inputs.value,
                             price: &self.price,
-                            type_supply: self.distribution_utxos.type_supply(),
+                            type_supply: type_supply_rx,
                         },
                         context,
                     )
-                })?;
-                Ok(self.distribution_utxos.as_ref())
+                })
             });
 
             timed(Phase::Compute, OUTPUTS_ID, || {
@@ -342,6 +349,7 @@ impl DefaultPlugins {
                 })?;
                 let market = capital_sentiment.join().unwrap()?;
                 let utxos = utxos.join().unwrap()?;
+                addresses.join().unwrap()?;
                 timed(Phase::Compute, INDICATORS_ID, || {
                     self.indicators.compute(
                         IndicatorsDependencies {
