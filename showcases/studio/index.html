@@ -2845,6 +2845,15 @@
           justify-content: center;
         }
 
+        /* Long names (the formulas from a layer): one a row, read from the left. */
+        &.stacked {
+          flex-direction: column;
+
+          .btn {
+            justify-content: flex-start;
+          }
+        }
+
         .danger:hover {
           color: var(--danger);
         }
@@ -9195,9 +9204,9 @@
           ${sourceSection}
           <section>
             <h3>Formulas</h3>
-            <div class="actions-row">
+            <div class="actions-row stacked">
               <button type="button" class="btn" data-action="derive" aria-haspopup="menu" data-tip="A moving average, bands, a percentile… as a layer of its own">${ICONS.formula}New formula from ${layer.letter}</button>
-              ${isFormula ? "" : `<button type="button" class="btn" data-action="to-formula" data-tip="This layer as a formula of its series, to write around it">Turn into a formula</button>`}
+              ${isFormula ? "" : `<button type="button" class="btn" data-action="to-formula" data-tip="This layer as a formula of its series, to write around it">${ICONS.swap}Turn into a formula</button>`}
             </div>
           </section>
           <section>
