@@ -53,8 +53,8 @@
         /* The interface's own emphasis: the primary action, focus and indicators, in ink rather than a hue. */
         --primary: var(--ink);
         --primary-ink: var(--app);
-        --live: #3ccf7c;
         --up: #3ccf7c;
+        --live: var(--up);
         --danger: #f2555a;
         --chart-grid: rgb(255 255 255 / 0.04);
         --chart-text: var(--muted);
@@ -113,8 +113,7 @@
 
       button,
       input,
-      textarea,
-      select {
+      textarea {
         font: inherit;
         color: inherit;
       }
@@ -188,7 +187,7 @@
         }
 
         &:disabled {
-          opacity: 0.4;
+          opacity: 0.35;
           cursor: default;
         }
 
@@ -207,6 +206,13 @@
             color: var(--ink);
             background: var(--hover);
           }
+        }
+
+        /* The compact one, in a line of text: a toast, an error, a heading. */
+        &.small {
+          height: 26px;
+          padding: 0 9px;
+          font-size: 12.5px;
         }
       }
 
@@ -237,7 +243,7 @@
         }
 
         &:disabled {
-          opacity: 0.3;
+          opacity: 0.35;
           cursor: default;
         }
 
@@ -284,7 +290,7 @@
           border-radius: var(--radius-sm);
           padding: 0 8px 0 6px;
           color: var(--danger);
-          background: color-mix(in srgb, var(--danger) 15%, var(--card));
+          background: color-mix(in srgb, var(--danger) 16%, var(--card));
           font: 510 11.5px/24px var(--sans);
           white-space: nowrap;
         }
@@ -352,6 +358,7 @@
         white-space: nowrap;
       }
 
+      /* A layer's letter, in its color: the same badge wherever the layer is named. */
       .letter {
         display: inline-grid;
         flex-shrink: 0;
@@ -360,8 +367,9 @@
         border-radius: var(--radius-xs);
         padding: 0 3px;
         place-items: center;
-        color: var(--soft);
-        background: var(--fill);
+        color: var(--c);
+        background: color-mix(in srgb, var(--c) 13%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 18%, transparent);
         font: 590 10px/1 var(--mono);
       }
 
@@ -575,7 +583,7 @@
 
         kbd {
           opacity: 0;
-          transition: opacity var(--dur-micro);
+          transition: opacity var(--dur-micro) var(--ease);
         }
 
         &:hover {
@@ -800,7 +808,6 @@
           opacity: 0.4;
         }
 
-
         > .cap {
           margin-right: 2px;
           opacity: 0;
@@ -864,9 +871,6 @@
         min-width: 22px;
         height: 22px;
         border-radius: var(--radius-sm);
-        color: var(--c);
-        background: color-mix(in srgb, var(--c) 13%, transparent);
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 18%, transparent);
       }
 
       .row-figures {
@@ -1085,7 +1089,7 @@
         }
 
         .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .live > :not(i)) {
-          transition: opacity var(--dur-small);
+          transition: opacity var(--dur-small) var(--ease);
         }
       }
 
@@ -1360,7 +1364,7 @@
           }
 
           &.hidden {
-            opacity: 0.45;
+            opacity: 0.4;
           }
 
           &.selected {
@@ -1414,10 +1418,10 @@
         position: relative;
         flex: 1;
         min-width: 80px;
-        height: 26px;
+        height: 28px;
         overflow: hidden;
-        border-radius: var(--radius-sm);
-        background: rgb(255 255 255 / 0.02);
+        border-radius: var(--radius-md);
+        background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
         touch-action: none;
         cursor: crosshair;
@@ -1447,7 +1451,7 @@
         border-radius: var(--radius-sm);
         background: var(--field);
         box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14), 0 0 0 9999px color-mix(in srgb, var(--card) 62%, transparent);
-        transition: box-shadow var(--dur-small);
+        transition: box-shadow var(--fade);
         cursor: grab;
 
         &.dragging {
@@ -1464,7 +1468,7 @@
           border-radius: 1px;
           background: var(--soft);
           transform: translateY(-50%);
-          transition: background var(--dur-small);
+          transition: background var(--fade);
           cursor: ew-resize;
         }
 
@@ -1741,12 +1745,7 @@
 
           /* Only for an empty chart with a chart to go back to: a new one is cancelled, a named one deleted. */
           .btn {
-            gap: 8px;
-            height: 28px;
             margin-left: auto;
-            padding: 0 6px 0 10px;
-            color: var(--soft);
-            font-size: 12.5px;
 
             &[hidden] {
               display: none;
@@ -1774,12 +1773,7 @@
           }
 
           .btn {
-            gap: 7px;
-            height: 28px;
-            margin-right: -8px;
-            padding: 0 8px;
-            color: var(--soft);
-            font-size: 12.5px;
+            margin-right: -9px;
           }
         }
       }
@@ -1800,7 +1794,7 @@
         display: grid;
         align-content: start;
         border: 0;
-        border-radius: var(--radius-lg);
+        border-radius: var(--radius-xl);
         padding: 12px;
         background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
@@ -1876,7 +1870,7 @@
 
         kbd {
           opacity: 0;
-          transition: opacity var(--dur-micro);
+          transition: opacity var(--dur-micro) var(--ease);
         }
 
         &:hover {
@@ -1963,7 +1957,14 @@
         margin-top: 6px;
         border-top: 1px solid var(--line);
         padding-top: 6px;
+      }
 
+      /* The inspector's own actions, under its settings: rows as the panel's adds are. */
+      .inspector section.layer-actions {
+        padding: 8px;
+      }
+
+      :is(.layer-adds, .layer-actions) {
         .nav-item {
           gap: 14px;
           height: 32px;
@@ -1981,6 +1982,18 @@
             svg {
               color: var(--ink);
             }
+          }
+
+          &.danger:hover {
+            &,
+            svg {
+              color: var(--danger);
+            }
+          }
+
+          &:disabled {
+            opacity: 0.35;
+            pointer-events: none;
           }
         }
       }
@@ -2226,7 +2239,6 @@
         font-size: 12px;
 
         .btn {
-          height: 26px;
           margin-left: auto;
         }
 
@@ -2270,6 +2282,10 @@
         border-radius: var(--radius-md);
         background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line-strong);
+
+        &:hover {
+          box-shadow: inset 0 0 0 1px var(--faint);
+        }
 
         &:focus-within {
           box-shadow: var(--field-focus);
@@ -2512,6 +2528,10 @@
         font-variant-numeric: tabular-nums;
         appearance: textfield;
 
+        &:hover {
+          box-shadow: inset 0 0 0 1px var(--faint);
+        }
+
         &:focus {
           outline: none;
           box-shadow: var(--field-focus);
@@ -2539,22 +2559,6 @@
         }
       }
 
-      select.select {
-        width: 100%;
-        height: 28px;
-        appearance: none;
-        border: 0;
-        border-radius: var(--radius-md);
-        padding: 0 28px 0 9px;
-        background: var(--field) url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2010%206'%3E%3Cpath%20d='M1%201l4%204%204-4'%20fill='none'%20stroke='%2362666d'%20stroke-width='1.4'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 9px 6px;
-        box-shadow: inset 0 0 0 1px var(--line-strong);
-        cursor: pointer;
-
-        &:hover {
-          box-shadow: inset 0 0 0 1px var(--faint);
-        }
-      }
-
       /*
        * A few values in order, scrubbed: it snaps from stop to stop, the chart following. The stops span it edge to edge,
        * so the most fills it; the value sits at the end the handle is away from, over the stops there. Fill, handle and
@@ -2568,10 +2572,19 @@
         height: 28px;
         border-radius: var(--radius-md);
         background: var(--field);
-        box-shadow: inset 0 0 0 1px var(--line);
+        box-shadow: inset 0 0 0 1px var(--line-strong);
         cursor: pointer;
         touch-action: pan-y;
         user-select: none;
+
+        &:hover {
+          box-shadow: inset 0 0 0 1px var(--faint);
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: var(--field-focus);
+        }
 
         &::before {
           content: "";
@@ -2609,7 +2622,7 @@
           position: absolute;
           right: 10px;
           color: var(--text);
-          font: 510 12px/1 var(--sans);
+          font: 13px/1 var(--sans);
           font-variant-numeric: tabular-nums;
           pointer-events: none;
         }
@@ -2640,7 +2653,7 @@
         box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
       }
 
-      /* The color's name, a select like the others: it opens the colors to pick from. */
+      /* The color's name, a picker like the pane's and the format's: it opens the colors to pick from. */
       .preset {
         display: flex;
         align-items: center;
@@ -2674,6 +2687,11 @@
         &:hover,
         &[aria-expanded="true"] {
           box-shadow: inset 0 0 0 1px var(--faint);
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: var(--field-focus);
         }
       }
 
@@ -2714,8 +2732,13 @@
           }
 
           &:focus-visible {
-            outline-offset: -2px;
+            outline: none;
+            box-shadow: none;
           }
+        }
+
+        &:has(> .preset:focus-visible)::after {
+          box-shadow: var(--field-focus);
         }
       }
 
@@ -2836,29 +2859,6 @@
         }
       }
 
-      .actions-row {
-        display: flex;
-        gap: 6px;
-
-        .btn {
-          flex: 1;
-          justify-content: center;
-        }
-
-        /* Long names (the formulas from a layer): one a row, read from the left. */
-        &.stacked {
-          flex-direction: column;
-
-          .btn {
-            justify-content: flex-start;
-          }
-        }
-
-        .danger:hover {
-          color: var(--danger);
-        }
-      }
-
       /* ── Dialogs, menus, toasts, tooltips ────────────────────────────────── */
 
       dialog {
@@ -2871,7 +2871,7 @@
 
         &::backdrop {
           background: var(--scrim);
-          animation: appear var(--dur-small);
+          animation: appear var(--dur-small) var(--ease);
         }
 
         &[open] {
@@ -2941,11 +2941,11 @@
         margin-top: 12dvh;
         background: color-mix(in srgb, var(--raise) 86%, transparent);
         backdrop-filter: blur(28px) saturate(1.5);
-        transition: background var(--dur-small);
+        transition: background var(--dur-small) var(--ease);
 
         &::backdrop {
           background: rgb(0 0 0 / 0.3);
-          transition: background var(--dur-small);
+          transition: background var(--dur-small) var(--ease);
         }
 
         &[open] {
@@ -3127,16 +3127,15 @@
         &.armed,
         &.armed[aria-selected="true"] {
           color: var(--danger);
-          background: color-mix(in srgb, var(--danger) 14%, transparent);
+          background: color-mix(in srgb, var(--danger) 16%, transparent);
         }
 
         &.dim .item-name {
-          opacity: 0.55;
+          opacity: 0.4;
         }
 
         > .letter {
           margin: 0 -1px;
-          color: var(--c);
         }
 
         > .swatch {
@@ -3632,7 +3631,7 @@
             }
 
             &:disabled {
-              opacity: 0.3;
+              opacity: 0.35;
               cursor: default;
             }
           }
@@ -3652,7 +3651,7 @@
       }
 
       /* Pressed once, a delete with a label asks in its label, in red, for a second press. */
-      :is(.btn, .menu > button).armed {
+      :is(.btn, .nav-item, .menu > button).armed {
         &,
         &:hover,
         &:focus-visible {
@@ -3685,7 +3684,7 @@
         transform: translateY(8px);
         /* Faded out, it's gone: no Undo left to tab to, or to show a key over. */
         visibility: hidden;
-        transition: opacity var(--dur-small), transform var(--dur-small) var(--ease), visibility 0s linear var(--dur-small);
+        transition: opacity var(--dur-small) var(--ease), transform var(--dur-small) var(--ease), visibility 0s linear var(--dur-small);
 
         &.visible {
           opacity: 1;
@@ -3706,12 +3705,12 @@
           background: color-mix(in srgb, var(--up) 14%, transparent);
         }
 
-        button {
-          height: 26px;
-        }
-
         &:not(:has(button)) {
           padding-right: 14px;
+        }
+
+        &:not(:has(i)) {
+          padding-left: 14px;
         }
       }
 
@@ -3731,7 +3730,7 @@
         font-size: 12px;
         line-height: 1.35;
         pointer-events: none;
-        animation: appear var(--dur-micro);
+        animation: appear var(--dur-micro) var(--ease);
 
         &.warm {
           animation: none;
@@ -3764,16 +3763,6 @@
         padding: 0;
       }
 
-      .actions-row .btn {
-        position: relative;
-
-        kbd {
-          position: absolute;
-          right: 6px;
-          display: none;
-        }
-      }
-
       body[data-hints] {
         kbd.mod {
           opacity: 1;
@@ -3781,7 +3770,7 @@
           background: var(--active);
         }
 
-        :is(.chart-item, .actions-row .btn) kbd.mod {
+        .chart-item kbd.mod {
           display: inline-grid;
         }
 
@@ -4094,7 +4083,7 @@
         opacity: 0;
         appearance: none;
         cursor: pointer;
-        transition: opacity var(--dur-micro), border-color var(--dur-micro), background var(--dur-micro);
+        transition: opacity var(--dur-micro) var(--ease), border-color var(--dur-micro) var(--ease), background var(--dur-micro) var(--ease);
 
         &:hover {
           border-color: var(--soft);
@@ -4245,7 +4234,7 @@
         inset: 0;
         z-index: 19;
         background: var(--scrim);
-        animation: appear var(--dur-panel);
+        animation: appear var(--dur-panel) var(--ease);
       }
 
       /*
@@ -4335,7 +4324,7 @@
           background: var(--scrim);
           opacity: 0;
           pointer-events: none;
-          transition: opacity var(--dur-panel);
+          transition: opacity var(--dur-panel) var(--ease);
         }
 
         body[data-sheet] .scrim {
@@ -4488,7 +4477,6 @@
       @media (pointer: coarse) {
         input:not([type="checkbox"]),
         textarea,
-        select,
         .formula-editor :is(textarea, pre) {
           font-size: 16px;
         }
@@ -4609,7 +4597,7 @@
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo"></button>
             <span class="divider"></span>
             <button id="export" class="cap" type="button" aria-haspopup="menu" aria-label="Export" data-tip="Export: an image, the data, the chart file" data-icon="download"></button>
-            <button id="share" class="cap" type="button" aria-label="Share" data-tip="Copy a link that opens this chart" data-icon="share"></button>
+            <button id="share" class="cap" type="button" aria-label="Copy a share link" data-tip="Copy a share link" data-icon="share"></button>
             <button id="add" class="cap" type="button" aria-haspopup="menu" aria-label="Add" data-tip="Add a series or a formula" data-icon="plus"></button>
             <span class="divider"></span>
             <button id="panel-toggle" class="cap" type="button" aria-pressed="true" aria-label="Layers panel" data-tip="Layers panel" data-kbd="P" data-action="toggle-panel" data-icon="panel"></button>
@@ -4621,7 +4609,7 @@
             <div class="canvas" id="canvas">
               <div id="chart" class="chart"></div>
               <div id="measure" class="measure" hidden><span></span></div>
-              <div id="corner" class="corner"><button id="measure-toggle" class="cap small" type="button" aria-pressed="false" aria-label="Measure" data-tip="Measure, or shift-drag" data-kbd="M" data-action="measure" data-icon="ruler"></button></div>
+              <div id="corner" class="corner"><button id="measure-toggle" class="cap small" type="button" aria-pressed="false" aria-label="Measure" data-tip="Measure, or ⇧ and drag" data-kbd="M" data-action="measure" data-icon="ruler"></button></div>
               <div id="progress" class="progress" hidden></div>
               <div id="loading" class="loading-state" hidden>
                 <svg viewBox="0 0 300 80" preserveAspectRatio="none" aria-hidden="true"><path d="M2 70 C 30 66, 40 52, 62 56 S 96 30, 118 38 S 150 20, 170 26 S 205 6, 228 14 S 268 2, 298 6" /></svg>
@@ -4637,10 +4625,10 @@
                     <span id="cta-label">Search every series</span><kbd>A</kbd>
                   </button>
                   <div class="starts">
-                    <div class="starts-head"><h2>Or start from a template</h2><button class="btn ghost" type="button" data-action="import"><span data-icon="upload"></span>Import a chart file</button></div>
+                    <div class="starts-head"><h2>Or start from a template</h2><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import a chart file</button></div>
                     <div id="templates" class="templates strip"></div>
                   </div>
-                  <div class="keys"><span>Hold <kbd>⌘</kbd> to reveal shortcuts</span><button id="leave-empty" class="btn ghost" type="button" data-action="leave-empty" hidden><span id="leave-label">Cancel</span><kbd>esc</kbd></button></div>
+                  <div class="keys"><span>Hold <kbd>⌘</kbd> to reveal shortcuts</span><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span id="leave-label">Cancel</span><kbd>esc</kbd></button></div>
                 </div>
               </div>
             </div>
@@ -4674,7 +4662,7 @@
           <div class="home-scroll">
             <div class="home-inner">
               <h1>All charts</h1>
-              <p>Your charts, as they show. Pick a few to duplicate, export or delete them at once.</p>
+              <p>Your charts, as they show. Select a few to duplicate, download or delete them at once.</p>
               <label class="home-filter">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
                 <input id="home-filter" aria-label="Filter charts" autocomplete="off" spellcheck="false" />
@@ -4687,8 +4675,8 @@
           <div id="home-bar" class="home-bar" role="group" aria-label="Selected charts" hidden>
             <span id="home-picked" class="home-picked" aria-live="polite"></span>
             <button class="btn ghost" type="button" data-batch="rename" aria-label="Rename"><span data-icon="pencil"></span><span class="label">Rename</span></button>
-            <button class="btn ghost" type="button" data-batch="duplicate" aria-label="Duplicate"><span data-icon="copy"></span><span class="label">Duplicate</span></button>
-            <button class="btn ghost" type="button" data-batch="export" aria-label="Download" data-tip="One chart file, to import again"><span data-icon="download"></span><span class="label">Download</span></button>
+            <button class="btn ghost" type="button" data-batch="duplicate" aria-label="Duplicate"><span data-icon="duplicate"></span><span class="label">Duplicate</span></button>
+            <button class="btn ghost" type="button" data-batch="export" aria-label="Download" data-tip="One chart file, to import again"><span data-icon="file"></span><span class="label">Download</span></button>
             <button class="btn ghost" type="button" data-batch="delete" aria-label="Delete" data-kbd="⌫"><span data-icon="trash"></span><span class="label">Delete</span></button>
             <span class="divider"></span>
             <button class="cap small" type="button" data-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button>
@@ -4728,7 +4716,7 @@
       </div>
     </dialog>
 
-    <dialog id="shortcuts" class="shortcuts" aria-label="Keyboard shortcuts" tabindex="-1">
+    <dialog id="shortcuts" class="shortcuts" aria-label="Shortcuts" tabindex="-1">
       <div class="dialog-head">
         <h2>Shortcuts</h2>
         <span class="spacer"></span>
@@ -4753,10 +4741,10 @@
           </dl>
           <h3>All charts</h3>
           <dl>
-            <div><dt>Pick the chart in focus</dt><dd><kbd>space</kbd> or <kbd>X</kbd></dd></div>
-            <div><dt>Pick every chart shown</dt><dd><kbd>⌘A</kbd></dd></div>
-            <div><dt>Delete the picked charts</dt><dd><kbd>⌫</kbd></dd></div>
-            <div><dt>Let the picked charts go</dt><dd><kbd>esc</kbd></dd></div>
+            <div><dt>Select the chart in focus</dt><dd><kbd>space</kbd> or <kbd>X</kbd></dd></div>
+            <div><dt>Select every chart shown</dt><dd><kbd>⌘A</kbd></dd></div>
+            <div><dt>Delete the selected charts</dt><dd><kbd>⌫</kbd></dd></div>
+            <div><dt>Clear the selection</dt><dd><kbd>esc</kbd></dd></div>
           </dl>
           <h3>In ⌘K</h3>
           <dl>
@@ -4785,7 +4773,7 @@
             <div><dt>Previous or next interval</dt><dd><kbd>[</kbd><kbd>]</kbd></dd></div>
             <div><dt>Zoom out or in</dt><dd><kbd>−</kbd><kbd>+</kbd></dd></div>
             <div><dt>Log or linear scale</dt><dd><kbd>L</kbd></dd></div>
-            <div><dt>Measure a change</dt><dd><kbd>M</kbd> or shift-drag</dd></div>
+            <div><dt>Measure a change</dt><dd><kbd>M</kbd> or <kbd>⇧</kbd> and drag</dd></div>
           </dl>
         </div>
       </div>
@@ -4859,6 +4847,7 @@
         axis: svg('<path d="M12 2.5v11M12 4.5h2M12 8h2M12 11.5h2"/><path d="M2 11.5 5 7.5l2.5 2 3-5"/>'),
         swap: svg('<path d="M3 5.5h9.5M10 3l2.5 2.5L10 8"/><path d="M13 10.5H3.5M6 8l-2.5 2.5L6 13"/>', 14),
         panel: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M10 2.5v11"/>'),
+        pane: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M2 9h12"/>'),
         more: svg('<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>', 14),
         back: svg('<path d="M10 3.5 5.5 8l4.5 4.5"/>', 14),
         pencil: svg('<path d="m10.5 2.5 3 3-8 8H2.5v-3z"/>', 14),
@@ -4869,12 +4858,14 @@
         eyeOff: svg('<path d="M2 2l12 12"/><path d="M6.4 3.8A6.6 6.6 0 0 1 8 3.5c4.1 0 6.5 4.5 6.5 4.5a11 11 0 0 1-1.9 2.4M10 10.6A2 2 0 0 1 6.9 7.3M4.1 5.2A11 11 0 0 0 1.5 8s2.4 4.5 6.5 4.5c.8 0 1.6-.2 2.3-.5"/>', 14),
         close: svg('<path d="m4 4 8 8M12 4l-8 8"/>', 14),
         copy: svg('<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5"/>', 14),
+        duplicate: svg('<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5M9.5 7.5v4M7.5 9.5h4"/>', 14),
         link: svg('<path d="M9.5 2.5h4v4M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>', 14),
         trash: svg('<path d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6"/>', 14),
         folder: svg('<path d="M1.5 4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z"/>', 15),
         series: svg('<path d="M1.5 12.5 6 7l3 3 5.5-6.5"/>', 15),
         recent: svg('<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>', 15),
-        share: svg('<path d="M8 10V2.5M5 5.5l3-3 3 3"/><path d="M3 9v3.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9"/>', 15),
+        calendar: svg('<rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/>', 15),
+        share: svg('<path d="M6.5 9.5l3-3"/><path d="M7.2 4.8l1.1-1.1a2.6 2.6 0 0 1 3.7 3.7l-1.1 1.1M8.8 11.2l-1.1 1.1a2.6 2.6 0 0 1-3.7-3.7l1.1-1.1"/>', 15),
         upload: svg('<path d="M8 10V2.5M5 5.5l3-3 3 3"/><path d="M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11"/>', 15),
         download: svg('<path d="M8 2.5V10M5 7l3 3 3-3"/><path d="M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11"/>', 15),
         image: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><circle cx="6" cy="6.5" r="1.2"/><path d="m2.5 12 3.5-3.5 2.5 2.5 2-2 3 3"/>', 14),
@@ -5089,15 +5080,17 @@
       const dashOf = (/** @type {number | undefined} */ style) => DASHES.find(([dash]) => dash === style) ?? DASHES[0];
       /** A pane's stack: none, its layers one on another, or as shares of their sum. @type {[("" | "stack" | "percent"), string, string][]} */
       const STACKS = [["", "Off", "Each layer at its own value"], ["stack", "Stacked", "Each layer on the ones under it (the panel's first on top; a negative value counts as none)"], ["percent", "100% stacked", "Each layer as its share of them all"]];
-      /** A pane's scales, by mode: the inspector's tab, the pane's chip, the menu's name, and the tab's tip. */
+      /** A pane's scales, by mode: its short name (the pane's chip, the inspector's tab), the menu's name, and the tab's tip. */
       const MODES = [
-        { tab: "Lin", chip: "Linear", name: "Linear", tip: "Linear" },
-        { tab: "Log", chip: "Log", name: "Logarithmic", tip: "Logarithmic" },
-        { tab: "%", chip: "Percent", name: "Percent change", tip: "Percent change from the first visible point" },
-        { tab: "100", chip: "Indexed", name: "Indexed to 100", tip: "Indexed to 100 at the first visible point" },
+        { chip: "Linear", name: "Linear", tip: "Linear" },
+        { chip: "Log", name: "Logarithmic", tip: "Logarithmic" },
+        { chip: "Percent", name: "Percent change", tip: "Percent change from the first visible point" },
+        { chip: "Indexed", name: "Indexed to 100", tip: "Indexed to 100 at the first visible point" },
       ];
       /** @type {[string, string][]} */
       const FORMATS = [["auto", "Automatic"], ["usd", "US dollars"], ["btc", "Bitcoin"], ["sats", "Satoshis"], ["percent", "Percent"], ["ratio", "Ratio ×"], ["count", "Count"], ["number", "Number"]];
+      /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
+      const formatName = (layer, result) => (layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] ?? "Number" : `Automatic (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})`);
       const UNIT_SIGNS = { usd: "USD", cents: "¢", btc: "BTC", sats: "sats", percent: "%", ratio: "×", bps: "bps" };
       const UNIT_NAMES = { usd: "US dollars", cents: "Cents", btc: "Bitcoin", sats: "Satoshis", percent: "Percent", ratio: "Ratio", bps: "Basis points", count: "Count", number: "Number" };
       /**
@@ -5717,7 +5710,7 @@
       /** Whether a chart has room for another layer; says so when it doesn't. @param {Chart} doc */
       function roomFor(doc) {
         if (doc.layers.length < MAX_LAYERS) return true;
-        toast(`A chart holds up to ${MAX_LAYERS} layers`);
+        notice(`A chart holds up to ${MAX_LAYERS} layers`);
         return false;
       }
       /** A new pane, or the last one once a chart has as many as it can hold. @param {Chart} doc */
@@ -5992,11 +5985,11 @@
           const saved = $("saved");
           const ok = storage.set(STORE, library);
           if (ok && !announced && !saved.classList.contains("error")) return;
-          saved.textContent = ok ? "Saved" : "Not saved · storage full or blocked";
+          saved.textContent = ok ? "Saved" : "Not saved: storage full or blocked";
           saved.classList.toggle("error", !ok);
           if (ok) saved.removeAttribute("role");
           else saved.setAttribute("role", "alert");
-          if (!ok && home) toast("Not saved: storage full or blocked");
+          if (!ok && home) notice("Not saved: storage full or blocked");
           saved.classList.remove("fade");
           void saved.offsetWidth;
           clearTimeout(savedTimer);
@@ -6669,7 +6662,7 @@
       const cssColor = (color) => (color === "ink" ? "var(--ink)" : OKLCH[color] ? `oklch(${OKLCH[color].join(" ")})` : color);
       const alpha = (color, a) => `${color}${Math.round(a * 255).toString(16).padStart(2, "0")}`;
       /** The unit a layer displays in: its chosen format, else its data's. */
-      const unitFor = (layer, result) => (layer.format && layer.format !== "auto" ? layer.format : result?.unit ?? (layer.series ? units.get(layer.series) : "number") ?? "number");
+      const unitFor = (layer, result) => (layer.format ? layer.format : result?.unit ?? (layer.series ? units.get(layer.series) : "number") ?? "number");
 
       const RIGHT_OFFSET = 6;
       /** The farthest the chart zooms out: four points a pixel (lightweight-charts' default, two), still smooth to pan. */
@@ -8259,7 +8252,7 @@
         if (action === "export") {
           // Always as charts (one or more): imported, they come back to the grid, picked.
           download(docs.length === 1 ? fileName("json", docs[0]) : `${docs.length}-charts.json`, new Blob([JSON.stringify({ v: 2, charts: docs.map(portable) }, null, 2)], { type: "application/json" }));
-          return toast(docs.length === 1 ? `Exported ${titleOf(docs[0])}` : `Exported ${docs.length} charts, in one file`);
+          return toast(docs.length === 1 ? `Downloaded ${titleOf(docs[0])}` : `Downloaded ${docs.length} charts, in one file`);
         }
         if (action === "duplicate") {
           picked.clear();
@@ -8346,8 +8339,8 @@
         const n = picked.size;
         showMenu(/** @type {HTMLElement} */ (tileOpen(id)), `
           ${n === 1 ? `<button type="button" data-pick="open">${ICONS.charts}Open</button><button type="button" data-pick="rename">${ICONS.pencil}Rename</button>` : ""}
-          <button type="button" data-pick="duplicate">${ICONS.copy}Duplicate</button>
-          <button type="button" data-pick="export">${ICONS.download}Export</button>
+          <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate</button>
+          <button type="button" data-pick="export">${ICONS.file}Download chart file</button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "open" ? go(chartById(id)) : batch(action)), point);
       }
@@ -8533,7 +8526,7 @@
         let pull = /** @type {{ y: number, at: number } | null} */ (null);
         const sheet = $("panel");
         sheet.addEventListener("pointerdown", (event) => {
-          if (!phone.matches || document.body.dataset.sheet !== "panel" || event.clientY - sheet.getBoundingClientRect().top > 56 || closest(event, "button, input, select, textarea, a")) return;
+          if (!phone.matches || document.body.dataset.sheet !== "panel" || event.clientY - sheet.getBoundingClientRect().top > 56 || closest(event, "button, input, textarea, a")) return;
           pull = { y: event.clientY, at: performance.now() };
           sheet.setPointerCapture(event.pointerId);
           sheet.style.transition = $("scrim").style.transition = "none";
@@ -8662,7 +8655,7 @@
       function chartMenu(anchor, id, point = null) {
         showMenu(anchor, `
           <button type="button" data-pick="rename">${ICONS.pencil}Rename</button>
-          <button type="button" data-pick="duplicate">${ICONS.copy}Duplicate</button>
+          <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate</button>
           <button type="button" data-pick="download">${ICONS.file}Download chart file</button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete</button>`, ({ pick }) => {
@@ -8987,7 +8980,7 @@
         button.classList.add("armed");
         delete button.dataset.tip;
         // An icon button keeps its place and asks beside it; one with a label asks in its label.
-        button.innerHTML = button.classList.contains("cap") ? `${button.innerHTML}<span class="confirm">${ICONS.trash}${text}</span>` : `${ICONS.trash}${text}`;
+        button.innerHTML = button.classList.contains("cap") ? `${button.innerHTML}<span class="confirm">${ICONS.trash}${text}</span>` : button.classList.contains("nav-item") ? `${ICONS.trash}<span class="label">${text}</span>` : `${ICONS.trash}${text}`;
         if (armed.label) button.setAttribute("aria-label", text);
         armTimer = setTimeout(disarm, 5000);
         return false;
@@ -9187,8 +9180,8 @@
           : `<section>
               <h3>Series</h3>
               <div class="source-name"><button type="button" class="source-pick" data-action="change-series" aria-label="Change the series, ${escape(layer.series)}" data-tip="Change the series"><code>${escape(layer.series)}</code>${ICONS.swap}</button>
-                <button type="button" class="cap small" data-action="copy-name" aria-label="Copy the series name" data-tip="Copy the name">${ICONS.copy}</button>
-                ${result?.missing ? "" : `<a class="cap small" href="${client.baseUrl}/api/series/${encodeURIComponent(layer.series)}/${chart.index}" target="_blank" rel="noreferrer" aria-label="Open the raw data" data-tip="Raw data, as JSON">${ICONS.link}</a>`}
+                <button type="button" class="cap small" data-action="copy-name" aria-label="Copy the series name" data-tip="Copy the series name">${ICONS.copy}</button>
+                ${result?.missing ? "" : `<a class="cap small" href="${client.baseUrl}/api/series/${encodeURIComponent(layer.series)}/${chart.index}" target="_blank" rel="noreferrer" aria-label="Open the raw data" data-tip="Open the raw data">${ICONS.link}</a>`}
               </div>
               ${result?.error ? errorBox(result) : ""}
               ${meta?.description ? `<p class="description ${expanded ? "" : "clamped"}">${escape(meta.description)}</p>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
@@ -9196,19 +9189,12 @@
             </section>`;
         panel.innerHTML = `
           <div class="inspector-head">
-            <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Layers" data-kbd="esc">${ICONS.back}</button>
+            <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
             <span class="letter" style="--c:${escape(ink(layer.color))}">${layer.letter}</span>
             <input id="label" class="label-input" maxlength="120" value="${escape(layer.label ?? "")}" placeholder="${escape(labelOf({ ...layer, label: "" }))}" aria-label="Layer name" spellcheck="false" />
             <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
           </div>
           ${sourceSection}
-          <section>
-            <h3>Formulas</h3>
-            <div class="actions-row stacked">
-              <button type="button" class="btn" data-action="derive" aria-haspopup="menu" data-tip="A moving average, bands, a percentile… as a layer of its own">${ICONS.formula}New formula from ${layer.letter}</button>
-              ${isFormula ? "" : `<button type="button" class="btn" data-action="to-formula" data-tip="This layer as a formula of its series, to write around it">${ICONS.swap}Turn into a formula</button>`}
-            </div>
-          </section>
           <section>
             <h3>Style</h3>
             <div class="field"><span>Type</span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${layer.type === type}" aria-label="${text}" ${type === "candles" && !result?.ohlc ? "disabled data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>
@@ -9223,22 +9209,23 @@
             <div class="field"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${Boolean(layer.priceLine) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>
             ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<span class="number-field"><input id="base" class="number-input" aria-label="Base" type="number" step="any" value="${layer.base ?? 0}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(UNIT_SIGNS[unit] ?? "")}</span></span></span></div>` : ""}
             <div class="field"><span>Levels<button type="button" class="reset" data-action="add-level" aria-label="Add a level" data-tip="Add a level, at the value in view">${ICONS.plus}</button></span>${(layer.levels ?? []).map((level, i) => {
-              return `<span class="level">${lineButtons(layer, i, `Level ${i + 1}`)}<span class="number-field"><input id="level-${i}" class="number-input" aria-label="Level ${i + 1}" type="number" step="any" value="${level.value}" /><span class="unit">${escape(UNIT_SIGNS[unit] ?? "")}</span></span><button type="button" class="cap small" data-remove-level="${i}" aria-label="Remove level ${i + 1}" data-tip="Remove">${ICONS.close}</button></span>`;
+              return `<span class="level">${lineButtons(layer, i, `Level ${i + 1}`)}<span class="number-field"><input id="level-${i}" class="number-input" aria-label="Level ${i + 1}" type="number" step="any" value="${level.value}" /><span class="unit">${escape(UNIT_SIGNS[unit] ?? "")}</span></span><button type="button" class="cap small" data-remove-level="${i}" aria-label="Remove level ${i + 1}" data-tip="Remove the level">${ICONS.trash}</button></span>`;
             }).join("")}</div>
           </section>
           <section>
-            <h3>Scale</h3>
-            <div class="field"><span>Pane</span><select id="pane" class="select" aria-label="Pane">${chart.panes.map((pane, i) => `<option value="${pane.id}" ${pane.id === layer.pane ? "selected" : ""}>Pane ${i + 1}</option>`).join("")}<option value="new">New pane</option></select></div>
+            <h3>Layout</h3>
+            <div class="field"><span>Pane</span><button type="button" id="pane" class="preset" data-action="pane-menu" aria-haspopup="menu" aria-label="Pane: ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}"><span class="name">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}</span>${CHEVRON}</button></div>
             <div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${layer.side === side}">${text}</button>`).join("")}</div></div>
-            <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ tab, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${mode < 2 ? `${tip} scale` : tip}" ${modesFor(/** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane))).includes(mode) ? "" : "disabled"}>${tab}</button>`).join("")}</div></div>
+            <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${mode < 2 ? `${tip} scale` : tip}" ${modesFor(/** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane))).includes(mode) ? "" : "disabled"}>${chip}</button>`).join("")}</div></div>
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
-            <div class="field"><span>Format${resetFor("format", layer)}</span><select id="format" class="select" aria-label="Format">${FORMATS.map(([id, text]) => `<option value="${id}" ${(layer.format ?? "auto") === id ? "selected" : ""}>${id === "auto" ? `${text} (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})` : text}</option>`).join("")}</select></div>
+            <div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>
           </section>
-          <section>
-            <div class="actions-row">
-              <button type="button" class="btn" data-action="duplicate" data-tip="Duplicate" data-kbd="⌘ D">Duplicate<kbd class="mod">${keyText("⌘D")}</kbd></button>
-              <button type="button" class="btn danger" data-action="remove" data-tip="Remove" data-kbd="⌫">Remove</button>
-            </div>
+          <section class="layer-actions">
+            <button type="button" id="derive" class="nav-item" data-action="derive" aria-haspopup="menu">${ICONS.formula}<span class="label">New formula from ${layer.letter}</span></button>
+            ${isFormula ? "" : `<button type="button" class="nav-item" data-action="to-formula">${ICONS.formula}<span class="label">Turn into a formula</span></button>`}
+            <button type="button" class="nav-item" data-action="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}<span class="label">${layer.hidden ? "Show" : "Hide"}</span><kbd>H</kbd></button>
+            <button type="button" class="nav-item" data-action="duplicate" data-kbd="⌘ D" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.duplicate}<span class="label">Duplicate</span><kbd class="mod">${keyText("⌘D")}</kbd></button>
+            <button type="button" class="nav-item danger" data-action="remove">${ICONS.trash}<span class="label">Remove</span><kbd>⌫</kbd></button>
           </section>`;
         if (isFormula) updateFormula(layer);
         restoreFocus(panel, focus);
@@ -9269,7 +9256,7 @@
       const resetFor = (key, layer) => (DEFAULTS[key].is(layer) ? "" : `<button type="button" class="reset" data-reset="${key}" aria-label="Reset to ${DEFAULTS[key].text}" data-tip="Reset to ${DEFAULTS[key].text}">${ICONS.undo}</button>`);
       /** The inspector's sliders, each a few values in order: what it steps through, how its value reads, what it sets. */
       const SLIDERS = {
-        width: { label: "Line width", stops: WIDTHS, of: (layer) => layer.width, text: (v) => `${v}px`, say: (v) => `${v} pixels`, set: (layer, v) => (layer.width = v) },
+        width: { label: "Width", stops: WIDTHS, of: (layer) => layer.width, text: (v) => `${v}px`, say: (v) => `${v} pixels`, set: (layer, v) => (layer.width = v) },
         opacity: { label: "Opacity", stops: OPACITIES, of: (layer) => layer.opacity ?? 1, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.opacity = v === 1 ? undefined : v) },
       };
       /** A slider: its stops, a handle at the value, and the value written out at the end away from the handle. */
@@ -9568,12 +9555,12 @@
         if (result.info && !result.info.indexes.includes(chart.index)) {
           const dated = datedIntervals(result.info);
           const nearest = dated.reduce((best, id) => (best === null || Math.abs(INTERVAL_ORDER.indexOf(id) - INTERVAL_ORDER.indexOf(chart.index)) < Math.abs(INTERVAL_ORDER.indexOf(best) - INTERVAL_ORDER.indexOf(chart.index)) ? id : best), null);
-          return `<div class="error-box">${dated.length ? `No ${escape(INTERVAL_LABEL[chart.index])} data; it has ${escape(dated.map((id) => INTERVAL_LABEL[id]).join(", "))}.<button type="button" class="btn" data-index="${nearest}">Switch to ${escape(INTERVAL_LABEL[nearest])}</button>` : "Indexed by block, not by date: Studio can't chart it."}</div>`;
+          return `<div class="error-box">${dated.length ? `No ${escape(INTERVAL_LABEL[chart.index])} data; it has ${escape(dated.map((id) => INTERVAL_LABEL[id]).join(", "))}.<button type="button" class="btn small" data-index="${nearest}">Switch to ${escape(INTERVAL_LABEL[nearest])}</button>` : "Indexed by block, not by date: Studio can't chart it."}</div>`;
         }
         // Renamed or removed in a newer Bitview: the closest series is offered, or another one to pick.
         if (result.missing) return `<div class="error-box gone"><p>Bitview doesn't have this series anymore: it was renamed or removed.</p>
           <div id="replacement" class="replacement"><span class="shimmer">Looking for the closest one…</span></div></div>`;
-        return `<div class="error-box">${escape(result.error)}.<button type="button" class="btn" data-action="retry">Retry</button></div>`;
+        return `<div class="error-box">${escape(result.error)}.<button type="button" class="btn small" data-action="retry">Retry</button></div>`;
       }
       /** The series closest to a gone one, by its words; asked once per name. */
       const nearestTo = new Map();
@@ -9589,7 +9576,7 @@
         const best = await nearestTo.get(name);
         const box = $("replacement");
         if (!box || layerById(selected)?.series !== name) return;
-        box.innerHTML = `${best ? `<span class="closest">Closest: <code>${escape(best)}</code></span><button type="button" class="btn" data-replace="${escape(best)}">Use it</button>` : `<span class="closest">Nothing close by name.</span>`}<button type="button" class="btn ghost" data-action="replace">${best ? "Another…" : "Find one…"}</button>`;
+        box.innerHTML = `${best ? `<span class="closest">Closest: <code>${escape(best)}</code></span><button type="button" class="btn small" data-replace="${escape(best)}">Use it</button>` : `<span class="closest">Nothing close by name.</span>`}<button type="button" class="btn ghost small" data-action="replace">${best ? "Find another" : "Find one"}</button>`;
       }
       /**
        * Another series for a layer, from ⌘K: opened in the catalog where its series is, on it, its neighbors around (a
@@ -9611,7 +9598,7 @@
         const meta = await info(name).catch(() => null);
         const layer = layerById(id);
         if (chart !== target || !layer?.series) return;
-        if (meta && !datedIntervals(meta).length) return toast(`${name} is indexed by block, not by date`);
+        if (meta && !datedIntervals(meta).length) return notice(`${name} is indexed by block, not by date`);
         const was = labelOf(layer);
         editById(id, (target) => {
           target.series = name;
@@ -9766,7 +9753,7 @@
       }, options);
       const editLayer = (edit, options = undefined) => editById(selected, edit, options);
       /** A series' name to the clipboard, and a word either way. @param {string} name */
-      const copyName = (name) => (navigator.clipboard?.writeText(name) ?? Promise.reject()).then(() => toast("Series name copied"), () => toast("Couldn't copy the name"));
+      const copyName = (name) => (navigator.clipboard?.writeText(name) ?? Promise.reject()).then(() => toast("Series name copied"), () => notice("Couldn't copy the series name"));
 
       $("inspector").addEventListener("input", (event) => {
         const target = event.target;
@@ -9786,6 +9773,12 @@
         }
       });
       $("inspector").addEventListener("keydown", (event) => {
+        // A picker (pane, format, color) opens its menu on ↑↓, as a select does: the keys don't go on to the layers.
+        if ((event.key === "ArrowDown" || event.key === "ArrowUp") && event.target.matches?.(".preset[aria-haspopup]")) {
+          event.preventDefault();
+          event.stopPropagation();
+          return event.target.click();
+        }
         if (event.target.id !== "formula") return;
         if (!$("suggest").hidden) {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -9813,13 +9806,25 @@
       $("inspector").addEventListener("scroll", (event) => {
         if (event.target.id === "formula") $("formula-mirror").scrollTop = event.target.scrollTop;
       }, true);
-      $("inspector").addEventListener("change", (event) => {
-        const target = event.target;
-        if (target.id === "pane") editLayer((layer, doc) => {
-          layer.pane = target.value === "new" ? newPaneIn(doc).id : target.value;
+      /** The selected layer's pane, from the inspector: each pane, its own checked, or a new one. */
+      function paneMenu(/** @type {HTMLElement} */ anchor) {
+        const layer = layerById(selected);
+        if (!layer) return;
+        showMenu(anchor, `${chart.panes.map((pane, i) => `<button type="button" data-pick-pane="${pane.id}" aria-checked="${pane.id === layer.pane}">${tick(pane.id === layer.pane)}Pane ${i + 1}<span>${escape(paneNames(pane))}</span></button>`).join("")}<div class="menu-rule"></div><button type="button" data-pick-pane="new">${ICONS.plus}A new pane</button>`, ({ pickPane }) => {
+          refocus("#pane");
+          editLayer((item, doc) => (item.pane = pickPane === "new" ? newPaneIn(doc).id : pickPane));
         });
-        else if (target.id === "format") editLayer((layer) => (layer.format = target.value === "auto" ? undefined : target.value));
-      });
+      }
+      /** How the selected layer's values read, from the inspector: automatic (its unit's), or one chosen. */
+      function formatMenu(/** @type {HTMLElement} */ anchor) {
+        const layer = layerById(selected);
+        if (!layer) return;
+        const result = resolved?.results.get(layer.id), now = layer.format ?? "auto";
+        showMenu(anchor, FORMATS.map(([id]) => `${id === "usd" ? '<div class="menu-rule"></div>' : ""}<button type="button" data-pick-format="${id}" aria-checked="${now === id}">${tick(now === id)}${escape(formatName({ ...layer, format: id === "auto" ? undefined : id }, result))}</button>`).join(""), ({ pickFormat }) => {
+          refocus("#format");
+          editLayer((item) => (item.format = pickFormat === "auto" ? undefined : pickFormat));
+        });
+      }
       $("inspector").addEventListener("mousedown", (event) => {
         const option = closest(event, "[data-suggest]");
         if (!option) return;
@@ -9832,6 +9837,8 @@
         const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorTarget: target, replace, removeLevel, lineColor, lineDash } = button.dataset;
         if (index) switchInterval(index);
         else if (action === "derive") deriveMenu(button, selected);
+        else if (action === "pane-menu") paneMenu(button);
+        else if (action === "format-menu") formatMenu(button);
         else if (action === "to-formula") toFormula(selected);
         else if (type) editLayer((layer) => (layer.type = type));
         else if (dash) editLayer((layer) => (layer.dash = Number(dash)));
@@ -9864,6 +9871,7 @@
         else if (action === "remove") {
           if (confirmed(button)) removeLayer(selected);
         } else if (action === "duplicate") duplicateLayer(selected);
+        else if (action === "hide") toggleHidden(selected);
         else if (action === "more") {
           expanded = !expanded;
           const description = $("inspector").querySelector(".description");
@@ -9895,7 +9903,7 @@
       /** A line's two buttons: its color and its style, each opening its menu. */
       function lineButtons(layer, key, label) {
         const { color, dash } = lineLook(layer, key), [, dashName, length, gap] = dashOf(dash);
-        return `<button type="button" class="cap small" data-line-color="${key}" aria-haspopup="menu" aria-label="${label} color: ${escape(colorName(color))}" data-tip="Color"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button><button type="button" class="cap small" data-line-dash="${key}" aria-haspopup="menu" aria-label="${label} line: ${dashName}" data-tip="Line">${dashGlyph(length, gap)}</button>`;
+        return `<button type="button" class="cap small" data-line-color="${key}" aria-haspopup="menu" aria-label="${label} color: ${escape(colorName(color))}" data-tip="Color"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button><button type="button" class="cap small" data-line-dash="${key}" aria-haspopup="menu" aria-label="${label} line style: ${dashName}" data-tip="Line style">${dashGlyph(length, gap)}</button>`;
       }
       /** A line's color (Bitview's) or style, from a menu under its button; picking its default forgets the choice. */
       function lineMenu(anchor, key, part) {
@@ -9964,14 +9972,19 @@
         if (!layer) return;
         showMenu(anchor, `
           <button type="button" data-pick="edit">${ICONS.sliders}Settings</button>
-          ${layer.series ? `<button type="button" data-pick="change">${ICONS.series}Change series…</button>` : ""}
+          ${layer.series ? `<button type="button" data-pick="change">${ICONS.swap}Change the series</button>` : ""}
+          <div class="menu-rule"></div>
+          <button type="button" data-pick="derive" aria-haspopup="menu">${ICONS.formula}New formula from ${layer.letter}</button>
+          ${layer.series ? `<button type="button" data-pick="to-formula">${ICONS.formula}Turn into a formula</button>` : ""}
           <button type="button" data-pick="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}${layer.hidden ? "Show" : "Hide"}<kbd>H</kbd></button>
-          <button type="button" data-pick="duplicate" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.copy}Duplicate<kbd>${keyText("⌘D")}</kbd></button>
+          <button type="button" data-pick="duplicate" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.duplicate}Duplicate<kbd>${keyText("⌘D")}</kbd></button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove<kbd>⌫</kbd></button>`, ({ pick }) => {
           if (!layerById(id)) return;
           if (pick === "edit") select(id);
           else if (pick === "change") changeSeries(id);
+          else if (pick === "derive") deriveMenu(anchor, id, point);
+          else if (pick === "to-formula") toFormula(id);
           else if (pick === "hide") toggleHidden(id);
           else if (pick === "duplicate") duplicateLayer(id);
           else if (pick === "remove") removeLayer(id);
@@ -10013,7 +10026,7 @@
         retryInfo(name);
         const meta = await info(name).catch(() => null);
         if (chart !== target || !roomFor(target)) return;
-        if (meta && !datedIntervals(meta).length) return toast(`${name} is indexed by block, not by date`);
+        if (meta && !datedIntervals(meta).length) return notice(`${name} is indexed by block, not by date`);
         const unit = meta ? unitOf(name, meta.type) : units.get(name) ?? "number";
         units.set(name, unit);
         let added;
@@ -10057,11 +10070,11 @@
       }
 
       /** The starters of formulas from a layer, as a menu from the inspector's button. */
-      function deriveMenu(/** @type {HTMLElement} */ button, /** @type {string} */ id) {
+      function deriveMenu(/** @type {HTMLElement} */ button, /** @type {string} */ id, point = null) {
         const layer = layerById(id);
         if (!layer) return;
         const rows = STARTERS.map((starter) => `<button type="button" data-starter="${starter.id}">${ICONS.formula}${escape(starter.label)}<span>${escape(starter.formulas[0].replaceAll("X", layer.letter))}${starter.formulas.length > 1 ? " …" : ""}</span></button>`).join("");
-        showMenu(button, `${rows}<div class="menu-rule"></div><button type="button" data-starter="own">${ICONS.pencil}Write your own</button>`, ({ starter }) => derive(id, starter));
+        showMenu(button, `${rows}<div class="menu-rule"></div><button type="button" data-starter="own">${ICONS.pencil}Write your own</button>`, ({ starter }) => derive(id, starter), point);
       }
       /**
        * A starter's formulas from a layer, added: in its pane when they're in its unit, else in a new one (a band's two
@@ -10073,7 +10086,7 @@
         if (starter === "own") return openPalette({ formula: true, into: source.pane, query: source.letter });
         const formulas = (STARTERS.find((item) => item.id === starter)?.formulas ?? []).map((text) => text.replaceAll("X", source.letter));
         if (!formulas.length) return;
-        if (chart.layers.length + formulas.length > MAX_LAYERS) return void toast(`A chart holds up to ${MAX_LAYERS} layers`);
+        if (chart.layers.length + formulas.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers`);
         // (Over a stack, it would add to it: a pane of its own then too.)
         const over = Boolean(STARTERS.find((item) => item.id === starter)?.over) && !chart.panes.find((pane) => pane.id === source.pane)?.stack;
         /** @type {Layer | undefined} */
@@ -10327,7 +10340,7 @@
         return seriesCounts.get(node);
       }
 
-      /** Where a series was last added from in "Add series", this session: the next one starts there. */
+      /** Where a series was last added from in "Add a series", this session: the next one starts there. */
       let addedFrom = /** @type {{ chart: string, path: string[], key: string } | null} */ (null);
       /**
        * Where ⌘K was when it was put away (esc, its close buttons, a click beside it): opened again to resume, within a
@@ -10373,7 +10386,7 @@
         const replacing = palette.replacing && layerById(palette.replacing)?.series;
         chip.hidden = !palette.adding && !palette.formula && !replacing;
         const into = palette.into ? ` to pane ${paneNumber(palette.into)}` : "";
-        chip.textContent = replacing ? `Replace ${replacing}` : palette.formula ? (palette.editing ? `Edit ${layerById(palette.editing)?.letter ?? "formula"}` : `Add formula${into}`) : `Add series${into}`;
+        chip.textContent = replacing ? `Replace ${replacing}` : palette.formula ? (palette.editing ? `Edit ${layerById(palette.editing)?.letter ?? "formula"}` : `Add a formula${into}`) : `Add a series${into}`;
         $("palette").dataset.mode = palette.formula ? "formula" : "";
         chip.disabled = Boolean(replacing);
         if (replacing) delete chip.dataset.tip;
@@ -10392,9 +10405,9 @@
         palette.path = palette.path.slice(0, depth);
         showPalette();
       }
-      /** Out of the "Add series" or "Add formula" page, to everything ⌘K does: on the command that stands for the page. */
+      /** Out of the "Add a series" or "Add a formula" page, to everything ⌘K does: on the command that stands for the page. */
       function leaveScope() {
-        palette.landOn = palette.formula ? "Add a formula" : "Add series…";
+        palette.landOn = palette.formula ? "Add a formula" : "Add a series";
         if (palette.formula) palette.query = $("palette-input").value = "";
         palette.adding = palette.formula = false;
         palette.into = palette.editing = null;
@@ -10457,7 +10470,7 @@
         const collapsed = document.body.dataset.sidebar === "collapsed";
         const empty = !chart.layers.length;
         return /** @type {Command[]} */ ([
-          { title: "Add series…", text: "Search every series, or browse them by topic.", words: "add series catalog browse explore folders metric data", icon: "series", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
+          { title: "Add a series", text: "Search every series, or browse them by topic.", words: "add series catalog browse explore folders metric data", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
           { title: "New chart", text: "A blank chart, to start from series, a template or a file.", words: "create blank empty", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
           ...(home ? [] : [{ title: "All charts", text: "Every chart, side by side.", words: "grid overview gallery library home browse", icon: "grid", run: () => showHome() }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
@@ -10470,31 +10483,31 @@
           ...TEMPLATES.map((template) => ({ title: `New chart from a template: ${template.title}`, text: template.text, words: "template example start", icon: "templates", run: () => useTemplate(template), anywhere: true })),
           ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
-          ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "charts", kbd: "L", run: () => toggleLog(pane.id) }))),
+          ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
           { title: measureMode ? "Stop measuring" : "Measure", text: measureMode ? "Dragging pans the chart again." : "Drag across the chart to measure a change.", words: "measure measuring ruler distance difference percent", icon: "ruler", kbd: "M", run: () => setMeasureMode(!measureMode) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
-          ...(TOUCH ? [] : [{ title: "Keyboard shortcuts", text: "Every key the studio answers to.", words: "keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
+          ...(TOUCH ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
           ...(edits.past.length || toastUndo?.mark === revision ? [{ title: "Undo", text: toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: toastUndo?.mark === revision }] : []),
           // The charts picked in the grid: what its bar does.
           ...(home && picked.size ? [
-            { title: `Duplicate the ${picked.size === 1 ? "picked chart" : `${picked.size} picked charts`}`, text: "A copy of each, beside it.", words: "copy picked selected", icon: "copy", run: () => batch("duplicate"), anywhere: true },
-            { title: `Download the ${picked.size === 1 ? "picked chart" : `${picked.size} picked charts`}`, text: "One chart file, to import again.", words: "export save json picked selected", icon: "download", run: () => batch("export"), anywhere: true },
-            { title: `Delete the ${picked.size === 1 ? "picked chart" : `${picked.size} picked charts`}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true },
+            { title: `Duplicate the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`}`, text: "A copy of each, beside it.", words: "copy picked selected", icon: "duplicate", run: () => batch("duplicate"), anywhere: true },
+            { title: `Download the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`}`, text: "One chart file, to import again.", words: "export save json picked selected", icon: "file", run: () => batch("export"), anywhere: true },
+            { title: `Delete the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true },
           ] : []),
           ...(edits.future.length ? [{ title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redo }] : []),
           ...(empty ? [] : [
             { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", words: "magnify closer", icon: "charts", kbd: "+", run: () => zoom(1 / 1.6) },
             { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", words: "wider further", icon: "charts", kbd: "−", run: () => zoom(1.6) },
           ]),
-          ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "recent", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
+          ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
-          { title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "copy", run: () => chartPick(chart.id, "duplicate") },
+          { title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") },
           ...(isDraft(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo, a moment after.", words: "remove trash", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
           ...(chart.layers.some((layer) => layer.hidden) ? [{ title: "Show every layer", text: "The hidden ones too.", words: "unhide visible all", icon: "eye", run: () => commit((doc) => doc.layers.forEach((layer) => delete layer.hidden)) }] : []),
           ...(chart.panes.length > 1 ? [
-            { title: "Equal pane heights", text: "Every pane as tall as the others.", words: "resize panes even same size", icon: "panel", run: () => commit((doc) => doc.panes.forEach((pane) => (pane.size = 1))) },
-            { title: "Reset pane heights", text: "The first one tall, the others shorter, as at first.", words: "resize panes default size", icon: "panel", run: () => commit((doc) => doc.panes.forEach((pane) => delete pane.size)) },
+            { title: "Equal pane heights", text: "Every pane as tall as the others.", words: "resize panes even same size", icon: "pane", run: () => commit((doc) => doc.panes.forEach((pane) => (pane.size = 1))) },
+            { title: "Reset pane heights", text: "The first one tall, the others shorter, as at first.", words: "resize panes default size", icon: "pane", run: () => commit((doc) => doc.panes.forEach((pane) => delete pane.size)) },
           ] : []),
         ]).filter((command) => !home || command.anywhere);
       }
@@ -10575,7 +10588,7 @@
         // change itself, on top.
         const direct = everything && !home ? directRows(query) : [];
         const span = everything && !home && chart.layers.length ? readDate(query.replace(/^(go ?to|jump( to)?)\s+/i, "")) : null;
-        const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: ICONS.recent, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
+        const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
         const local = [...direct, ...dated, ...strong, ...own, ...charts], more = weak.map((item) => ({ ...item, group: "More commands" }));
         palette.moved = false;
         const controller = (palette.controller = new AbortController());
@@ -10670,7 +10683,7 @@
        */
       function addFromPalette(pane = palette.into, keep = false) {
         const text = palette.query.trim(), problem = parseError(text);
-        if (problem) return toast(problem);
+        if (problem) return notice(problem);
         if (keep && !palette.editing) {
           // Added, and the formula stays, selected, to write the next one.
           addFormulaLayer(text, pane === "new" ? null : pane);
@@ -10960,7 +10973,7 @@
         }
         if (item.kind === "series" && item.name && home) return [
           { label: "New chart with it", kbd: "↵", run: () => choose() },
-          { label: "Copy the name", run: () => copyName(item.name) },
+          { label: "Copy the series name", run: () => copyName(item.name) },
         ];
         if (item.kind === "series" && item.name && !palette.replacing) {
           const name = item.name, layer = layerById(selected);
@@ -10970,7 +10983,7 @@
             ...(chart.layers.length ? [{ label: "Add to a new pane", kbd: "⇧↵", run: () => choose(true) }, ...intoPanes((pane) => addSeries(name, { pane }))] : []),
             ...(layer?.series && layer.series !== name ? [{ label: `Replace ${layer.letter} with it`, aside: labelOf(layer), run: () => replaceSeries(layer.id, name) }] : []),
             { label: "New chart with it", run: () => newChartWith(name) },
-            { label: "Copy the name", run: () => copyName(name) },
+            { label: "Copy the series name", run: () => copyName(name) },
           ];
         }
         if (item.kind === "chart") return chartActions(item.key);
@@ -11289,10 +11302,10 @@
         const any = chart.layers.length > 0;
         return [
           { key: "page:chart", icon: chartMark(chart), label: titleOf(chart), aside: "This chart", words: "this chart", page: chartPage },
-          { key: "page:charts", icon: ICONS.charts, label: "Charts", aside: plural(library.charts.length, "chart"), words: "go to open switch all library list", page: chartsPage },
+          { key: "page:charts", icon: ICONS.grid, label: "Charts", aside: plural(library.charts.length, "chart"), words: "go to open switch all library list", page: chartsPage },
           ...(any ? [
             { key: "page:layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), words: "series formulas edit change style", page: layersPage },
-            { key: "page:panes", icon: ICONS.panel, label: "Panes", aside: plural(chart.panes.length, "pane"), words: "scale height resize swap move", page: panesPage },
+            { key: "page:panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), words: "scale height resize swap move", page: panesPage },
           ] : []),
           { key: "page:templates", icon: ICONS.templates, label: "Templates", aside: plural(TEMPLATES.length, "template"), words: "examples start new", page: templatesPage },
         ].filter((row) => !home || row.key === "page:charts" || row.key === "page:templates").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
@@ -11340,19 +11353,19 @@
             { key: "title", icon: ICONS.pencil, label: "Title", aside: titleOf(chart), group: "Chart", page: () => renameChartPage(chart) },
             ...(any ? [
               { key: "interval", icon: ICONS.recent, label: "Interval", aside: CADENCE[chart.index], group: "Chart", page: intervalPage },
-              { key: "go-to", icon: ICONS.recent, label: "Go to a date", aside: "A year, a month, a day", kbd: "G", group: "Chart", page: datePage },
+              { key: "go-to", icon: ICONS.calendar, label: "Go to a date", aside: "A year, a month, a day", kbd: "G", group: "Chart", page: datePage },
               { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalize(PERIODS[shownRange()]) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => RANGES.filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalize(PERIODS[id]), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
               { key: "layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), group: "In it", page: layersPage },
-              { key: "panes", icon: ICONS.panel, label: "Panes", aside: plural(chart.panes.length, "pane"), group: "In it", page: panesPage },
+              { key: "panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), group: "In it", page: panesPage },
             ] : []),
-            { key: "add-series", icon: ICONS.plus, label: "Add series", kbd: "A", verb: "Add", group: "In it", leads: true, stay: true, run: () => openPalette({ add: true }) },
+            { key: "add-series", icon: ICONS.plus, label: "Add a series", kbd: "A", verb: "Add", group: "In it", leads: true, stay: true, run: () => openPalette({ add: true }) },
             { key: "add-formula", icon: ICONS.formula, label: "Add a formula", kbd: "F", verb: "Add", group: "In it", leads: true, stay: true, run: addFormula },
             ...(any ? [
               { key: "share", icon: ICONS.share, label: "Copy a share link", verb: "Copy", group: "Out of it", run: () => $("share").click() },
               { key: "copy-image", icon: ICONS.copy, label: "Copy as image", verb: "Copy", group: "Out of it", run: () => exportAs("copy") },
               { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => ({ title: "Export", rows: () => [["copy", "Copy as image", "", ICONS.copy], ["png", "Download image", "PNG", ICONS.image], ["csv", "Download data", "CSV", ICONS.table], ["json", "Download chart file", "JSON", ICONS.file]].map(([kind, label, aside, icon]) => ({ kind: "row", key: kind, icon, label, aside, verb: kind === "copy" ? "Copy" : "Download", run: () => exportAs(kind) })) }) },
             ] : []),
-            { key: "duplicate", icon: ICONS.copy, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") },
+            { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") },
             ...(isDraft(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, run: () => deleteChart(chart) }]),
           ].map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewChart(panel, chart), ...row }));
         } };
@@ -11360,7 +11373,7 @@
       /** @returns {Page} */
       const layersPage = () => ({ title: "Layers", placeholder: "Search this chart's layers", rows: () => [
         ...chart.panes.flatMap((pane, i) => chart.layers.filter((layer) => layer.pane === pane.id).map((layer) => ({ ...layerRow(layer), group: `Pane ${i + 1}` }))),
-        { kind: "row", key: "add-series", icon: ICONS.plus, label: "Add series", kbd: "A", verb: "Add", group: "Add", leads: true, stay: true, run: () => openPalette({ add: true }) },
+        { kind: "row", key: "add-series", icon: ICONS.plus, label: "Add a series", kbd: "A", verb: "Add", group: "Add", leads: true, stay: true, run: () => openPalette({ add: true }) },
         { kind: "row", key: "add-formula", icon: ICONS.formula, label: "Add a formula", kbd: "F", verb: "Add", group: "Add", leads: true, stay: true, run: addFormula },
         ...(chart.layers.some((layer) => layer.hidden) ? [{ kind: "row", key: "show-all", icon: ICONS.eye, label: "Show every layer", verb: "Show", group: "Add", stay: true, run: () => commit((doc) => doc.layers.forEach((layer) => delete layer.hidden)) }] : []),
       ] });
@@ -11377,9 +11390,9 @@
         };
       }
       /**
-       * Everything a layer is, each with its value, each to change: what it shows (its source, name, formulas from it, unit);
-       * its look; where it sits; its lines across (base, levels); then hiding, the panel, a copy, removing it. A choice or
-       * a value typed comes back here.
+       * Everything a layer is, each with its value, each to change, grouped as the inspector's sections are: its source
+       * and name; its style (lines across included); its layout (pane, scale, axis, order, format); then what's done to
+       * it (formulas from it, hiding, the panel, a copy, removing it). A choice or a value typed comes back here.
        * @returns {Page}
        */
       function layerPage(id) {
@@ -11395,54 +11408,56 @@
             if (item) edit(item, doc);
           } });
           const now = () => layerById(id) ?? layer;
+          // Grouped as the inspector's sections are, named as they are.
+          const first = layer.series ? "Series" : "Formula";
           const style = dashOf(layer.dash);
-          const automatic = UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number";
-          const color = (key, label, of, put) => ({ key, icon: swatchOf(of(layer)), label, aside: colorName(of(layer)), group: "Look", page: () => choicePage(label, () => SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: of(now()) === name, run: set((item) => put(item, name)), look: (doc) => {
+          const color = (key, label, of, put) => ({ key, icon: swatchOf(of(layer)), label, aside: colorName(of(layer)), group: "Style", page: () => choicePage(label, () => SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: of(now()) === name, run: set((item) => put(item, name)), look: (doc) => {
             const item = doc.layers.find((other) => other.id === id);
             if (item) put(item, name);
           } })), (panel, option) => previewLayer(panel, id, key === "color" ? option.key : null)) });
           return [
             layer.series
-              ? { key: "series", icon: ICONS.series, label: "Series", aside: layer.series, mono: true, verb: "Change", group: "Shows", leads: true, stay: true, run: () => changeSeries(id) }
-              : { key: "formula", icon: ICONS.formula, label: "Formula", aside: layer.formula, mono: true, verb: "Edit", group: "Shows", leads: true, stay: true, run: () => editFormula(id) },
+              ? { key: "series", icon: ICONS.series, label: "Series", aside: layer.series, mono: true, verb: "Change", group: first, leads: true, stay: true, run: () => changeSeries(id) }
+              : { key: "formula", icon: ICONS.formula, label: "Formula", aside: layer.formula, mono: true, verb: "Edit", group: first, leads: true, stay: true, run: () => editFormula(id) },
             ...(layer.series ? [
-              { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: "Shows", run: () => copyName(/** @type {string} */ (layer.series)) },
-              { key: "raw", icon: ICONS.link, label: "Open the raw data", aside: "As JSON, in a new tab", verb: "Open", group: "Shows", run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") },
+              { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
+              { key: "raw", icon: ICONS.link, label: "Open the raw data", aside: "As JSON, in a new tab", verb: "Open", group: first, run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") },
             ] : []),
-            { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: "Shows", page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
-            { key: "derive", icon: ICONS.formula, label: `New formula from ${layer.letter}`, aside: "An average, bands, a percentile…", group: "Shows", page: () => ({ title: `New formula from ${layer.letter}`, rows: () => [
-              ...STARTERS.map((starter) => ({ kind: "row", key: starter.id, icon: ICONS.formula, label: starter.label, aside: starter.formulas.map((text) => text.replaceAll("X", layer.letter)).join(", "), mono: true, verb: "Add", run: () => derive(id, starter.id) })),
-              { kind: "row", key: "own", icon: ICONS.formula, label: "Write your own", aside: `From ${layer.letter}`, verb: "Write", run: () => derive(id, "own") },
-            ] }) },
-            ...(layer.series ? [{ key: "to-formula", icon: ICONS.formula, label: "Turn into a formula", aside: "Of its series, to write around it", verb: "Turn", group: "Shows", run: () => toFormula(id) }] : []),
-            { key: "format", icon: ICONS.table, label: "Format", aside: layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] : `Automatic (${automatic})`, group: "Shows", page: () => choicePage("Format", () => FORMATS.map(([format, text]) => ({ key: format, icon: ICONS.table, label: format === "auto" ? `Automatic (${automatic})` : text, current: (now().format ?? "auto") === format, run: set((item) => (item.format = format === "auto" ? undefined : format)) }))) },
-            { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Look", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => (item.type = type)) }))) },
+            { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
+            { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => (item.type = type)) }))) },
             ...(pair
               ? [color("color", `Color ${pair[0].toLowerCase()}`, (item) => item.color, (item, name) => (item.color = name)), color("color-below", `Color ${pair[1].toLowerCase()}`, belowOf, (item, name) => (item.colorBelow = name === "red" ? undefined : name))]
               : [color("color", "Color", (item) => item.color, (item, name) => (item.color = name))]),
+            { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round((layer.opacity ?? 1) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: (now().opacity ?? 1) === opacity, ...both((item) => (item.opacity = opacity === 1 ? undefined : opacity)) }))) },
+            ...(layer.type !== "histogram" ? [{ key: "width", icon: ICONS.sliders, label: "Width", aside: `${layer.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) }] : []),
             ...(lineish ? [
-              { key: "dash", icon: dashGlyph(style[2], style[3]), label: "Line style", aside: style[1], group: "Look", page: () => choicePage("Line style", () => DASHES.map(([dash, text, length, gap]) => ({ key: String(dash), icon: dashGlyph(length, gap), label: text, current: now().dash === dash, ...both((item) => (item.dash = dash)) }))) },
-              { key: "shape", icon: shapeGlyph(layer.shape ?? "straight"), label: "Shape", aside: SHAPES.find(([shape]) => shape === (layer.shape ?? "straight"))?.[1], group: "Look", page: () => choicePage("Shape", () => SHAPES.map(([shape, text]) => ({ key: shape, icon: shapeGlyph(shape), label: text, aside: shape === "steps" ? "Each value held until the next" : undefined, current: (now().shape ?? "straight") === shape, ...both((item) => (item.shape = shape === "straight" ? undefined : shape)) }))) },
+              { key: "dash", icon: dashGlyph(style[2], style[3]), label: "Line style", aside: style[1], group: "Style", page: () => choicePage("Line style", () => DASHES.map(([dash, text, length, gap]) => ({ key: String(dash), icon: dashGlyph(length, gap), label: text, current: now().dash === dash, ...both((item) => (item.dash = dash)) }))) },
+              { key: "shape", icon: shapeGlyph(layer.shape ?? "straight"), label: "Shape", aside: SHAPES.find(([shape]) => shape === (layer.shape ?? "straight"))?.[1], group: "Style", page: () => choicePage("Shape", () => SHAPES.map(([shape, text]) => ({ key: shape, icon: shapeGlyph(shape), label: text, aside: shape === "steps" ? "Each value held until the next" : undefined, current: (now().shape ?? "straight") === shape, ...both((item) => (item.shape = shape === "straight" ? undefined : shape)) }))) },
             ] : []),
-            ...(layer.type === "area" ? [{ key: "fill", icon: glyph("area"), label: "Fill", aside: layer.fill === "above" ? "From the line up" : "From the line down", verb: layer.fill === "above" ? "Fill down" : "Fill up", group: "Look", stay: true, run: set((item) => (item.fill = item.fill === "above" ? undefined : "above")) }] : []),
-            ...(layer.type !== "histogram" ? [{ key: "width", icon: ICONS.sliders, label: "Width", aside: `${layer.width}px`, group: "Look", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) }] : []),
-            { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round((layer.opacity ?? 1) * 100)}%`, group: "Look", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: (now().opacity ?? 1) === opacity, ...both((item) => (item.opacity = opacity === 1 ? undefined : opacity)) }))) },
-            { key: "pane", icon: ICONS.panel, label: "Pane", aside: `Pane ${at + 1}`, group: "Place", page: () => choicePage("Pane", () => [
-              ...chart.panes.map((pane, i) => ({ key: pane.id, icon: ICONS.panel, label: `Pane ${i + 1}`, aside: paneNames(pane), current: now().pane === pane.id, run: set((item) => (item.pane = pane.id)) })),
+            ...(layer.type === "area" ? [{ key: "fill", icon: glyph("area"), label: "Fill", aside: layer.fill === "above" ? "From the line up" : "From the line down", verb: layer.fill === "above" ? "Fill down" : "Fill up", group: "Style", stay: true, run: set((item) => (item.fill = item.fill === "above" ? undefined : "above")) }] : []),
+            { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? "On" : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
+            ...(pair ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(layer.base ?? 0, unit), group: "Style", page: () => numberPage({ title: "Base", value: String(layer.base ?? 0), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n === 0 ? undefined : n)) }) }] : []),
+            ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
+            { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? plural(layer.levels.length, "level") : "None", group: "Style", page: () => levelsPage(id) },
+            { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => [
+              ...chart.panes.map((pane, i) => ({ key: pane.id, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: paneNames(pane), current: now().pane === pane.id, run: set((item) => (item.pane = pane.id)) })),
               { key: "new", icon: ICONS.plus, label: "A new pane", run: set((item, doc) => (item.pane = newPaneIn(doc).id)) },
             ]) },
-            { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Place", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")) },
+            { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")) },
+            ...panePage(layer.pane).rows().filter((row) => row.key === "scale" || row.key === "stack").map((row) => ({ ...row, group: "Layout" })),
             ...((mates) => [
-              ...(mates.indexOf(layer) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) - 1])}`, verb: "Move", group: "Place", stay: true, run: () => moveLayer(id, -1) }] : []),
-              ...(mates.indexOf(layer) < mates.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) + 1])}`, verb: "Move", group: "Place", stay: true, run: () => moveLayer(id, 1) }] : []),
+              ...(mates.indexOf(layer) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) - 1])}`, verb: "Move", group: "Layout", stay: true, run: () => moveLayer(id, -1) }] : []),
+              ...(mates.indexOf(layer) < mates.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) + 1])}`, verb: "Move", group: "Layout", stay: true, run: () => moveLayer(id, 1) }] : []),
             ])(chart.layers.filter((item) => item.pane === layer.pane)),
-            { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? "On" : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Place", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
-            ...(pair ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(layer.base ?? 0, unit), group: "Lines", page: () => numberPage({ title: "Base", value: String(layer.base ?? 0), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n === 0 ? undefined : n)) }) }] : []),
-            ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Lines")] : []),
-            { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? plural(layer.levels.length, "level") : "None", group: "Lines", page: () => levelsPage(id) },
+            { key: "format", icon: ICONS.table, label: "Format", aside: formatName(layer, result), group: "Layout", page: () => choicePage("Format", () => FORMATS.map(([format]) => ({ key: format, icon: ICONS.table, label: formatName({ ...layer, format: format === "auto" ? undefined : format }, result), current: (now().format ?? "auto") === format, run: set((item) => (item.format = format === "auto" ? undefined : format)) }))) },
+            { key: "derive", icon: ICONS.formula, label: `New formula from ${layer.letter}`, aside: "An average, bands, a percentile…", group: "Layer", page: () => ({ title: `New formula from ${layer.letter}`, rows: () => [
+              ...STARTERS.map((starter) => ({ kind: "row", key: starter.id, icon: ICONS.formula, label: starter.label, aside: starter.formulas.map((text) => text.replaceAll("X", layer.letter)).join(", "), mono: true, verb: "Add", run: () => derive(id, starter.id) })),
+              { kind: "row", key: "own", icon: ICONS.pencil, label: "Write your own", aside: `From ${layer.letter}`, verb: "Write", run: () => derive(id, "own") },
+            ] }) },
+            ...(layer.series ? [{ key: "to-formula", icon: ICONS.formula, label: "Turn into a formula", aside: "Of its series, to write around it", verb: "Turn", group: "Layer", run: () => toFormula(id) }] : []),
             { key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", group: "Layer", stay: true, run: () => toggleHidden(id) },
             { key: "panel", icon: ICONS.sliders, label: "Open in the panel", verb: "Open", group: "Layer", run: () => select(id) },
-            { key: "duplicate", icon: ICONS.copy, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", group: "Layer", run: () => duplicateLayer(id) },
+            { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", group: "Layer", run: () => duplicateLayer(id) },
             { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", group: "Layer", danger: true, run: () => removeLayer(id) },
           ].map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
         } };
@@ -11504,7 +11519,7 @@
           <div class="info"><h5>Layer ${escape(layer.letter)}</h5><dl>
             <div><dt>Type</dt><dd>${escape(TYPES.find(([type]) => type === layer.type)?.[1] ?? layer.type)}</dd></div>
             <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
-            <div><dt>Place</dt><dd>Pane ${at + 1}, ${layer.side === "left" ? "left" : "right"} axis</dd></div>
+            <div><dt>Layout</dt><dd>Pane ${at + 1}, ${layer.side === "left" ? "left" : "right"} axis</dd></div>
             <div><dt>Latest</dt><dd id="spark-caption">—</dd></div>
           </dl></div>`;
         if (result?.shown && !result.error) drawSpark(Array.from(result.shown), unit, ink(color ?? layer.color));
@@ -11513,8 +11528,8 @@
       const panesPage = () => ({ title: "Panes", placeholder: "Search this chart's panes", rows: () => [
         ...chart.panes.map((pane, i) => paneRow(pane.id, i)),
         ...(chart.panes.length > 1 ? [
-          { kind: "row", key: "equal", icon: ICONS.sliders, label: "Equal heights", aside: "Every pane as tall as the others", verb: "Apply", group: "Heights", stay: true, run: () => commit((doc) => doc.panes.forEach((pane) => (pane.size = 1))) },
-          { kind: "row", key: "reset", icon: ICONS.sliders, label: "Reset heights", aside: "The first tall, the others shorter", verb: "Reset", group: "Heights", stay: true, run: () => commit((doc) => doc.panes.forEach((pane) => delete pane.size)) },
+          { kind: "row", key: "equal", icon: ICONS.pane, label: "Equal heights", aside: "Every pane as tall as the others", verb: "Apply", group: "Heights", stay: true, run: () => commit((doc) => doc.panes.forEach((pane) => (pane.size = 1))) },
+          { kind: "row", key: "reset", icon: ICONS.pane, label: "Reset heights", aside: "The first tall, the others shorter", verb: "Reset", group: "Heights", stay: true, run: () => commit((doc) => doc.panes.forEach((pane) => delete pane.size)) },
         ] : []),
       ] });
       /** A pane's share of the chart's height, in percent. */
@@ -11539,7 +11554,7 @@
       function paneRow(id, i) {
         const pane = chart.panes[i], open = () => panePage(id);
         return {
-          kind: "row", key: `pane:${id}`, icon: ICONS.panel, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${paneChip(pane)}${chart.panes.length > 1 ? ` · ${shareOf(i)}%` : ""}`, words: "pane", verb: "Open", page: open,
+          kind: "row", key: `pane:${id}`, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${paneChip(pane)}${chart.panes.length > 1 ? ` · ${shareOf(i)}%` : ""}`, words: "pane", verb: "Open", page: open,
           actions: () => [{ label: "Open", kbd: "↵", page: open }, ...open().rows().filter((row) => !row.key.startsWith("layer:"))],
           preview: (/** @type {HTMLElement} */ panel) => previewPane(panel, id),
         };
@@ -11552,14 +11567,14 @@
           if (i < 0) return [];
           const pane = chart.panes[i], layers = chart.layers.filter((layer) => layer.pane === id), many = chart.panes.length > 1;
           return [
-            ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.charts, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => MODES.flatMap((mode, m) => (!modesFor(pane).includes(m) ? [] : [{ key: String(m), icon: ICONS.charts, label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(chart.panes[at()]) === m, run: () => setPaneMode(id, m) }])), (panel) => previewPane(panel, id)) }]),
+            ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => MODES.flatMap((mode, m) => (!modesFor(pane).includes(m) ? [] : [{ key: String(m), icon: ICONS.charts, label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(chart.panes[at()]) === m, run: () => setPaneMode(id, m) }])), (panel) => previewPane(panel, id)) }]),
             { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => STACKS.map(([stack, name, tip]) => ({ key: stack || "off", icon: ICONS.charts, label: name, aside: tip, current: (chart.panes[at()]?.stack ?? "") === stack, run: () => setPaneStack(id, stack) }))) },
             ...(many ? [{ key: "height", icon: ICONS.sliders, label: "Height", aside: `${shareOf(i)}% of the chart`, group: "Pane", page: () => choicePage("Height", () => SHARES.map((share) => ({ key: String(share), icon: ICONS.sliders, label: `${share}% of the chart`, current: shareOf(at()) === share, run: () => setShare(id, share / 100), look: (/** @type {Chart} */ doc) => shareOn(doc, id, share / 100) })), (panel, option) => previewPane(panel, id, Number(option.key) / 100)) }] : []),
             ...(i > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with pane ${i}`, verb: "Move", group: "Pane", stay: true, run: () => movePane(id, -1) }] : []),
             ...(i < chart.panes.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: `Swaps with pane ${i + 2}`, verb: "Move", group: "Pane", stay: true, run: () => movePane(id, 1) }] : []),
             { key: "remove", icon: ICONS.trash, label: many ? "Remove the pane" : "Remove every layer", aside: plural(layers.length, "layer"), verb: "Remove", group: "Pane", danger: true, run: () => removePane(id) },
             ...layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })),
-            { key: "add-series", icon: ICONS.plus, label: "Add series here", verb: "Add", group: "Layers", leads: true, stay: true, run: () => openPalette({ add: true, into: id }) },
+            { key: "add-series", icon: ICONS.plus, label: "Add a series here", verb: "Add", group: "Layers", leads: true, stay: true, run: () => openPalette({ add: true, into: id }) },
             { key: "add-formula", icon: ICONS.formula, label: "Add a formula here", verb: "Add", group: "Layers", leads: true, stay: true, run: () => addFormula(id) },
           ].map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewPane(panel, id), ...row }));
         } };
@@ -11687,7 +11702,7 @@
       }
       /** Go to a date, typed in ⌘K's field: the span it names lit on the overview; ↵ takes the view there and closes ⌘K. */
       const datePage = () => inputPage({
-        title: "Go to a date", value: "", placeholder: "2021, 2021-11, 10 nov 2021…", verb: "Go", icon: ICONS.recent, closes: true,
+        title: "Go to a date", value: "", placeholder: "2021, 2021-11, 10 nov 2021…", verb: "Go", icon: ICONS.calendar, closes: true,
         hint: (text) => (readDate(text) ? outOfData(/** @type {any} */ (readDate(text))) : "A year, a month or a day: 2021, 2021-11, 10 nov 2021"),
         read: (text) => {
           const span = readDate(text);
@@ -11814,10 +11829,12 @@
       // ── Menus and toolbar ─────────────────────────────────────────────────────
 
       let menuOwner = null;
+      /** What opened the menu, as it is now: a redraw (the inspector's) puts a new one in its place, by the same id. */
+      const ownerNow = () => (menuOwner && !menuOwner.isConnected && menuOwner.id ? document.getElementById(menuOwner.id) : menuOwner);
       /** A menu under (or over) its anchor, or at `point` for a right-click; focus goes back to the anchor. */
       function showMenu(anchor, html, onPick, point = null) {
         const menu = $("menu");
-        if (menuOwner === anchor && !menu.hidden && !point) return hideMenu();
+        if (ownerNow() === anchor && !menu.hidden && !point) return hideMenu();
         // Inside a modal dialog, the menu must live in the dialog's top layer to be seen.
         const host = anchor.closest("dialog") ?? document.body;
         if (menu.parentElement !== host) host.append(menu);
@@ -11885,13 +11902,13 @@
       function hideMenu() {
         menuScrim.remove();
         $("menu").hidden = true;
-        menuOwner?.removeAttribute("aria-expanded");
+        ownerNow()?.removeAttribute("aria-expanded");
         menuOwner = null;
       }
       $("menu").addEventListener("keydown", (event) => {
         // Tab goes on from what opened the menu.
         if (event.key === "Tab") {
-          const owner = menuOwner;
+          const owner = ownerNow();
           hideMenu();
           return owner?.focus();
         }
@@ -11920,7 +11937,7 @@
         items[to]?.focus();
       });
       document.addEventListener("pointerdown", (event) => {
-        if (!$("menu").hidden && event.target !== menuScrim && !$("menu").contains(event.target) && closest(event, "button") !== menuOwner) hideMenu();
+        if (!$("menu").hidden && event.target !== menuScrim && !$("menu").contains(event.target) && closest(event, "button") !== ownerNow()) hideMenu();
       });
 
       /** The intervals every series the chart reads has (those known so far). */
@@ -12008,8 +12025,8 @@
         <button type="button" data-export="json">${ICONS.file}Download chart file <span>JSON</span></button>`, ({ export: kind }) => exportAs(kind)));
       // The panel's two adds, from the header (and the phone's bar).
       for (const id of ["add", "mobile-add"]) $(id).addEventListener("click", (event) => home ? newChart() : showMenu(event.currentTarget, `
-        <button type="button" data-pick="series">${ICONS.series}Series<kbd>A</kbd></button>
-        <button type="button" data-pick="formula">${ICONS.formula}Formula<kbd>F</kbd></button>`, ({ pick }) => (pick === "series" ? openPalette({ add: true }) : addFormula())));
+        <button type="button" data-pick="series">${ICONS.plus}Add a series<kbd>A</kbd></button>
+        <button type="button" data-pick="formula">${ICONS.formula}Add a formula<kbd>F</kbd></button>`, ({ pick }) => (pick === "series" ? openPalette({ add: true }) : addFormula())));
       $("share").addEventListener("click", async () => {
         const link = shareLink(chart);
         try {
@@ -12018,7 +12035,7 @@
           try {
             await navigator.clipboard.writeText(await link);
           } catch {
-            return toast("Couldn't copy the link", { label: "Open it", run: async () => window.open(await link, "_blank", "noopener") });
+            return notice("Couldn't copy the link", { label: "Open", run: async () => window.open(await link, "_blank", "noopener") });
           }
         }
         const url = await link;
@@ -12063,7 +12080,7 @@
           adopt(doc);
           toast(`Imported ${titleOf(doc)}`);
         } catch {
-          toast("That file isn't a Bitview Studio chart");
+          notice("That file isn't a Bitview Studio chart");
         }
       });
 
@@ -12151,7 +12168,7 @@
             colorBelow: isColor(layer.colorBelow) ? layer.colorBelow : undefined,
             opacity: OPACITIES.includes(layer.opacity) && layer.opacity < 1 ? layer.opacity : undefined,
             letter: typeof layer.letter === "string" && /^[A-Z]{1,2}$/.test(layer.letter) ? layer.letter : undefined,
-            ...(FORMATS.some(([id]) => id === layer.format) ? { format: layer.format } : {}),
+            ...(layer.format !== "auto" && FORMATS.some(([id]) => id === layer.format) ? { format: layer.format } : {}),
             ...(Number.isFinite(layer.base) ? { base: layer.base } : {}),
             ...(SHAPES.some(([id]) => id !== "straight" && id === layer.shape) ? { shape: layer.shape } : {}),
             ...(layer.fill === "above" ? { fill: "above" } : {}),
@@ -12189,9 +12206,9 @@
 
       function exportAs(kind) {
         if (kind === "json") return downloadChart(chart);
-        if (!chart.layers.length) return toast("Add a layer first");
-        if (!settled()) return toast("The chart is still loading");
-        if (!resolved.times.length) return toast("This chart has no data yet");
+        if (!chart.layers.length) return notice("Add a layer first");
+        if (!settled()) return notice("The chart is still loading");
+        if (!resolved.times.length) return notice("This chart has no data yet");
         if (kind === "csv") {
           const layers = chart.layers.filter((layer) => resolved.results.get(layer.id)?.shown);
           const quote = (text) => `"${String(text).replace(/"/g, '""')}"`;
@@ -12204,17 +12221,17 @@
             return cells.some(Boolean) ? [new Date(time * 1000).toISOString().slice(0, FINE.has(chart.index) ? 16 : 10), ...cells].join(",") : null;
           }).filter(Boolean);
           download(fileName("csv"), new Blob([[header, ...rows].join("\n")], { type: "text/csv" }));
-          return toast(`Exported ${grouped.format(rows.length)} rows`);
+          return toast(`Downloaded ${grouped.format(rows.length)} rows`);
         }
         if (kind === "copy") return copyImage();
         const name = fileName("png");
-        const failed = () => toast("Couldn't make the image");
+        const failed = () => notice("Couldn't make the image");
         chartImage().then((canvas) => canvas.toBlob((blob) => (blob ? download(name, blob) : failed())), failed);
       }
       /** The image on the clipboard, given the picture while it's still being drawn (so the click that asked counts). */
       function copyImage() {
         const png = chartImage().then((canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png")));
-        navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(() => toast("Image copied: paste it anywhere"), () => toast("The browser didn't let the image be copied"));
+        navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(() => toast("Image copied: paste it anywhere"), () => notice("Couldn't copy the image"));
       }
       /**
        * The picture of the chart, as it shows: its title; each pane's legend where it stands; the source, the interval,
@@ -12408,22 +12425,26 @@
 
       // ── Toast and status ──────────────────────────────────────────────────────
 
+      /** A toast that tells, as a refusal or a failure: nothing was done, so no check. */
+      function notice(text, action) {
+        toast(text, action, false);
+      }
       /** A toast whose Undo steps back only while that change is still the latest one. */
       function undoToast(text) {
         const mark = revision;
-        toast(text, { label: "Undo", run: () => (revision === mark ? undo() : toast(`Changed since: step back with ${keyText("⌘Z")}`)) });
+        toast(text, { label: "Undo", run: () => (revision === mark ? undo() : notice(`Changed since: step back with ${keyText("⌘Z")}`)) });
       }
 
       let toastTimer = 0;
       /** A toast's Undo, which ⌘Z presses while it's up and nothing has changed since (a deleted chart comes back too). */
       let toastUndo = /** @type {{ press: () => void, mark: number } | null} */ (null);
-      /** @param {{ label: string, run: () => void }} [action] */
-      function toast(text, action) {
+      /** Something done, with its check; or (`done` false) something to know, without. @param {{ label: string, run: () => void }} [action] */
+      function toast(text, action, done = true) {
         const element = $("toast");
         const host = document.querySelector("dialog[open]") ?? document.body;
         if (element.parentElement !== host) host.append(element);
         const undoes = action?.label === "Undo";
-        element.innerHTML = `<i aria-hidden="true">${ICONS.check}</i><span>${escape(text)}</span>${action ? `<button type="button" class="btn" ${undoes ? 'data-kbd="⌘ Z"' : ""}>${escape(action.label)}</button>` : ""}`;
+        element.innerHTML = `${done ? `<i aria-hidden="true">${ICONS.check}</i>` : ""}<span>${escape(text)}</span>${action ? `<button type="button" class="btn small" ${undoes ? 'data-kbd="⌘ Z"' : ""}>${escape(action.label)}</button>` : ""}`;
         const press = () => {
           element.classList.remove("visible");
           toastUndo = null;
@@ -12573,7 +12594,7 @@
       }
 
       /** Typing into a field (a tick isn't one: keys still do what they do). */
-      const typing = (target) => (target instanceof HTMLInputElement && !["checkbox", "radio", "button"].includes(target.type)) || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target?.isContentEditable;
+      const typing = (target) => (target instanceof HTMLInputElement && !["checkbox", "radio", "button"].includes(target.type)) || target instanceof HTMLTextAreaElement || target?.isContentEditable;
       function selectBy(delta) {
         if (!chart.layers.length) return;
         const index = chart.layers.findIndex((layer) => layer.id === selected);
@@ -12589,6 +12610,8 @@
           return showActions();
         }
         if (document.querySelector("dialog[open]")) return;
+        // An open menu has the keys (its own, and its arrows): the chart's don't act behind it. Esc closes it.
+        if (!$("menu").hidden && event.key !== "Escape") return;
         if (mod && /^[1-9]$/.test(event.key) && !event.shiftKey && !event.altKey) {
           event.preventDefault();
           go(library.charts[Number(event.key) - 1]);
@@ -12640,7 +12663,7 @@
           if (armed) disarm();
           else if (home && picked.size && $("menu").hidden) clearPicks();
           else if (!$("menu").hidden) {
-            const owner = menuOwner;
+            const owner = ownerNow();
             hideMenu();
             owner?.focus();
           } else if (!$("measure").hidden) clearMeasure();
@@ -12662,7 +12685,7 @@
         else if (["1", "2", "3", "4"].includes(event.key)) {
           const [id, text] = RANGES[Number(event.key) - 1];
           if (presetFits(id)) setRange(id);
-          else toast(`${text} is more than fits at ${INTERVAL_LABEL[chart.index]}`);
+          else notice(`${text} is more than fits at ${INTERVAL_LABEL[chart.index]}`);
         }
         else if (event.key === "[" || event.key === "]") stepInterval(event.key === "]" ? 1 : -1);
         else return;
@@ -12674,6 +12697,7 @@
       const HOLD = MAC ? "Meta" : "Control";
       // The page's own keys as this platform writes them (the shortcuts sheet, "Hold ⌘", the search's ⌘K).
       if (!MAC) for (const element of all$("kbd, #shortcuts dt, #shortcuts h3")) element.textContent = keyText(element.textContent ?? "");
+      if (!MAC) for (const element of all$("[data-tip*='⇧']")) element.dataset.tip = keyText(element.dataset.tip ?? "");
       /** Long enough that a quick ⌘Z or ⌘C never flashes the keys, short enough to feel instant when held. */
       const HINT_DELAY = 200;
       let hintTimer = 0;
@@ -12910,7 +12934,7 @@
           toast(twin ? "Opened a shared chart you have already" : "Opened a shared chart: it's now in your charts");
           return twin ?? doc;
         } catch {
-          toast("That link doesn't contain a chart");
+          notice("That link doesn't contain a chart");
           return null;
         }
       }
