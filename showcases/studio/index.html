@@ -619,9 +619,55 @@
         --along: to bottom;
       }
 
-      /* Dragged to a new place: the item dimmed where it was, a line where it would land. */
+      /* Dragged to a new place: the items dimmed where they were, a pill naming them by the pointer, a line where they'd land. */
       :is(.chart-row, .layer-row, .tile).dragging {
         opacity: 0.35;
+      }
+
+      /* Beside the pointer, never over where they'd land. */
+      .drag-ghost {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 60;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        max-width: 240px;
+        border-radius: var(--radius-md);
+        padding: 6px 11px 6px 8px;
+        color: var(--ink);
+        background: var(--raise);
+        box-shadow: var(--pop);
+        font: 510 12.5px/18px var(--sans);
+        white-space: nowrap;
+        pointer-events: none;
+
+        .name {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      /* How many are carried, past one. */
+      .drag-count {
+        position: absolute;
+        top: -7px;
+        right: -7px;
+        min-width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        padding: 0 6px;
+        color: var(--app);
+        background: var(--ink);
+        font: 590 11px/20px var(--sans);
+        text-align: center;
+      }
+
+      body.carrying,
+      body.carrying * {
+        cursor: grabbing !important;
+        user-select: none;
       }
 
       :is(.chart-row, .layer-row) {
@@ -744,7 +790,6 @@
         position: relative;
         border-radius: var(--radius-md);
         padding-bottom: 4px;
-        transition: box-shadow var(--fade);
 
         /*
          * Panes apart by a hairline, spaced like the one over the adds below them: each pane's head nearer its layers
@@ -762,10 +807,6 @@
             height: 1px;
             background: var(--line);
           }
-        }
-
-        &.drop-target {
-          box-shadow: inset 0 0 0 1px var(--edge);
         }
       }
 
@@ -941,7 +982,8 @@
         font-size: 12px;
         text-align: center;
 
-        &:not(.visible) {
+        /* (Shown while layers are carried.) */
+        .layer-list:not(.carrying) & {
           display: none;
         }
 
@@ -4721,6 +4763,16 @@
           transition: transform var(--dur-panel) var(--ease);
         }
 
+        /* Over the sheet's foot (its adds), taking no room: the sheet, as tall as what it holds, would grow under the
+           finger that picked a row by holding it. */
+        .layers-bar {
+          position: absolute;
+          bottom: calc(12px + env(safe-area-inset-bottom));
+          left: 50%;
+          margin: 0;
+          translate: -50% 0;
+        }
+
         /* Its top drags it (the views below scroll on their own). */
         .panel,
         .panel-head,
@@ -6753,6 +6805,7 @@
       addEventListener("pagehide", saveView);
       /** @param {Chart} doc */
       function openChart(doc) {
+        stopCarrying();
         // What's being typed is kept, on the chart it was typed on.
         leaveField();
         saveView();
@@ -6826,6 +6879,7 @@
       const panelShown = () => (phone.matches ? document.body.dataset.sheet === "panel" : prefs.panel === "open" || document.body.hasAttribute("data-peek"));
       function togglePanel(open = !panelShown()) {
         if (!chart.layers.length) return;
+        if (!open) stopCarrying();
         if (phone.matches) {
           if (open) document.body.dataset.sheet = "panel";
           else if (document.body.dataset.sheet === "panel") delete document.body.dataset.sheet;
@@ -7549,7 +7603,8 @@
       /** The layer a series on the chart draws, candles or their close line. */
       const layerOfSeries = (series) => [...drawn].find(([, other]) => other === series)?.[0] ?? [...closes].find(([, close]) => close.series === series)?.[0] ?? null;
       document.addEventListener("pointerover", (event) => {
-        if (dragging) return;
+        // (Not while something's carried: the rows passed over aren't pointed at.)
+        if (document.body.classList.contains("carrying")) return;
         spotlight(closest(event, ".layer-row")?.dataset.layer ?? closest(event, ".legend [data-select]")?.dataset.select ?? null);
       });
       /** @type {Resolved | null} */
@@ -10759,7 +10814,7 @@
       function tileHtml(doc) {
         const title = escape(titleOf(doc)), on = picked.has(doc.id);
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
-        return `<div class="tile ${on ? "picked" : ""}" data-home-card="${doc.id}" draggable="${!TOUCH}">
+        return `<div class="tile ${on ? "picked" : ""}" data-home-card="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span><span class="tile-index">${INTERVAL_LABEL[doc.index]}</span></span><span class="tile-legend">${legend || "No layers yet"}</span>${plotHtml(doc)}</button>
             <input type="checkbox" class="pick-check tile-check" aria-label="Select ${title}" ${on ? "checked" : ""} />
           </div>`;
@@ -10982,12 +11037,6 @@
           else first.focus();
         }
       });
-      // Dragging a tile moves the chart in the list (the sidebar's order, and ⌘1–9's). Found by the filter, they're
-      // ranked, not in their order: there's no place to drop them into.
-      reorderable($("home-grid"), "home-card", "x", (event) => Boolean(closest(event, ".tile-rename") || $("home-filter").value.trim()), (id, to) => {
-        moveChart(id, to);
-        tileOpen(id)?.focus({ preventScroll: true });
-      });
       /** Draws every card that's out of date, one chart at a time, while the grid shows. */
       const schedulePreviews = serial(async () => {
         for (const doc of [...library.charts]) {
@@ -11029,6 +11078,7 @@
        * `push`: a step of the browser's history (not when going back to it).
        */
       function showHome(push = true) {
+        stopCarrying();
         delete document.body.dataset.sheet;
         if (home) return;
         leaveField();
@@ -11138,39 +11188,6 @@
         sheet.addEventListener("pointerup", letGo);
         sheet.addEventListener("pointercancel", letGo);
       }
-      /**
-       * A long press (by touch) on an item picks it, as a phone's photos do; then a tap picks more, or lets one go: a
-       * tile in the grid, a layer's row. `itemOf`: the id pressed, or none.
-       * @param {HTMLElement} container @param {(event: PointerEvent) => string | undefined} itemOf @param {(id: string) => void} pick
-       */
-      function pickOnLongPress(container, itemOf, pick) {
-        let press = /** @type {{ timer: number, x: number, y: number, done: boolean } | null} */ (null);
-        container.addEventListener("pointerdown", (event) => {
-          if (press) (clearTimeout(press.timer), (press = null));
-          const id = event.pointerType === "touch" ? itemOf(event) : undefined;
-          if (!id) return;
-          press = { x: event.clientX, y: event.clientY, done: false, timer: window.setTimeout(() => {
-            if (!press) return;
-            press.done = true;
-            navigator.vibrate?.(8);
-            pick(id);
-          }, 450) };
-        });
-        container.addEventListener("pointermove", (event) => {
-          if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) (clearTimeout(press.timer), (press = null));
-        });
-        container.addEventListener("pointerup", () => press && !press.done && (clearTimeout(press.timer), (press = null)));
-        // (Taken by the system, a scroll or a drag: its end makes no click to hold back.)
-        for (const type of ["pointercancel", "touchcancel"]) container.addEventListener(type, () => press && (clearTimeout(press.timer), (press = null)));
-        // A long press's end makes no click (it would open what was pressed, or land on the bar rising under the finger).
-        container.addEventListener("touchend", (event) => {
-          if (!press?.done) return;
-          press = null;
-          event.preventDefault();
-        }, { passive: false });
-      }
-      pickOnLongPress($("home-grid"), (event) => (closest(event, ".tile-check, .tile-rename") ? undefined : closest(event, "[data-home-card]")?.dataset.homeCard), (id) => !picked.has(id) && pickChart(id));
-      pickOnLongPress($("layer-list"), (event) => (closest(event, "[data-toggle], [data-pick-layer]") ? undefined : closest(event, ".layer-row[data-layer]")?.dataset.layer), (id) => !layerPicks.has(id) && pickLayer(id));
       // In the grid, the arrows walk the cards as they're laid out.
       $("home-grid").addEventListener("keydown", (event) => {
         if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
@@ -11291,7 +11308,7 @@
       let chartListShown = "";
       function renderCharts() {
         const current = home ? null : chart;
-        const list = library.charts.map((doc, i) => `<div class="chart-row ${doc === current ? "active" : ""}" draggable="true" data-chart-row="${doc.id}">
+        const list = library.charts.map((doc, i) => `<div class="chart-row ${doc === current ? "active" : ""}" data-chart-row="${doc.id}">
             <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i < 9 ? `data-kbd="⌘ ${i + 1}"` : ""} ${doc === current ? 'aria-current="page"' : ""}>${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span>${i < 9 ? `<kbd class="mod">${keyText(`⌘${i + 1}`)}</kbd>` : ""}</button>
             <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
           </div>`).join("");
@@ -11456,71 +11473,236 @@
       }
 
       /**
-       * Charts reordered by dragging their items (the sidebar's rows, the grid's tiles), each with its chart's id in a
-       * data attribute: one lands before the item under the pointer, or after it past its middle along `axis`. In a list
-       * (along y), by where the pointer is along it, whatever's under it (in a gap between rows, the nearest place, never
-       * the end); in the grid, off the tiles, where it last would (its gaps cross between them).
-       * @param {HTMLElement} list @param {string} attribute @param {"x" | "y"} axis
-       * @param {(event: DragEvent) => boolean} refuse @param {(id: string, to: number, event: DragEvent) => void} onDrop
+       * Items reordered by dragging them, one way for every list (the sidebar's charts, the grid's tiles, the layers): by
+       * the mouse, once it's moved a few pixels from a press; by touch, held still first (that picks the item, where items
+       * are picked, as a phone's photos do), then moved: a quick swipe still scrolls. A picked item takes every picked one
+       * along, in their order; another goes alone (the picks as they are). By the pointer, a pill naming it (`label`: its
+       * mark and name; how many, past one); where they'd land, a line, or a target lit (`landing` undefined: off every item;
+       * `sticky`, where it last would; null, nowhere), only over the list as it shows; the list scrolls at its edges; esc
+       * puts them back. `still`: none moved now (a press still picks).
+       * @param {HTMLElement} list
+       * @param {{ item: string, idOf: (item: HTMLElement) => string, carried?: (id: string) => string[],
+       *   pick?: (id: string) => void, refuse?: (event: PointerEvent) => boolean, still?: () => boolean, sticky?: boolean,
+       *   label: (id: string) => string, landing: (x: number, y: number, ids: string[]) => Landing | null | undefined,
+       *   land: (ids: string[], at: Landing, y: number) => void, lift?: () => void, settle?: () => void }} how
+       * @typedef {{ item: HTMLElement, after: boolean } | { zone: HTMLElement }} Landing
        */
-      function reorderable(list, attribute, axis, refuse, onDrop) {
-        const selector = `[data-${attribute}]`, idOf = (/** @type {Element} */ item) => item.getAttribute(`data-${attribute}`);
-        let dragging = "", target = /** @type {{ item: HTMLElement, after: boolean } | null} */ (null);
-        const clear = () => all$(".drop-before, .drop-after", list).forEach((item) => item.classList.remove("drop-before", "drop-after"));
-        /** @param {DragEvent} event */
-        const dropAt = (event) => {
-          const items = axis === "y" ? all$(selector, list) : [];
-          const item = axis === "y" ? items.find((each) => event.clientY < each.getBoundingClientRect().bottom) ?? items.at(-1) : closest(event, selector);
-          if (!item) return target;
-          const rect = item.getBoundingClientRect(), after = axis === "x" ? event.clientX > rect.left + rect.width / 2 : event.clientY > rect.top + rect.height / 2;
-          return idOf(item) === dragging ? null : { item, after };
+      function dragToReorder(list, how) {
+        /** @type {{ id: string, x: number, y: number, pointer: number, touch: boolean, held: boolean, timer: number, touched: EventTarget | null } | null} */
+        let press = null;
+        /** Held (or carried) by touch, nothing scrolls under the finger. */
+        const pin = (/** @type {Event} */ event) => (press?.held || drag) && event.preventDefault();
+        /** @type {{ ids: string[], ghost: HTMLElement, x: number, y: number, at: Landing | null, scroller: HTMLElement, frame: number } | null} */
+        let drag = null;
+        /** The item an id names now (the list may have been drawn anew since the press). */
+        const itemNamed = (/** @type {string} */ id) => all$(how.item, list).find((element) => how.idOf(element) === id);
+        const unmark = () => all$(".drop-before, .drop-after, .drop-target", list).forEach((element) => element.classList.remove("drop-before", "drop-after", "drop-target"));
+        const letGo = () => {
+          if (press) clearTimeout(press.timer);
+          press?.touched?.removeEventListener("touchmove", pin);
+          press = null;
+          if (carrying === letGo) carrying = null;
+          if (!drag) return;
+          cancelAnimationFrame(drag.frame);
+          drag.ghost.remove();
+          unmark();
+          all$(".dragging", list).forEach((element) => element.classList.remove("dragging"));
+          list.classList.remove("carrying");
+          document.body.classList.remove("carrying");
+          drag = null;
+          how.settle?.();
         };
-        const end = () => {
-          dragging = "";
-          target = null;
-          clear();
-          all$(".dragging", list).forEach((item) => item.classList.remove("dragging"));
+        /** Where they'd land from where the pointer is: only over the list as it shows (`sticky`: off every item, where it last would). */
+        const landingNow = () => {
+          if (!drag) return null;
+          const box = drag.scroller.getBoundingClientRect(), own = list.getBoundingClientRect();
+          if (drag.x < Math.max(box.left, own.left) || drag.x > Math.min(box.right, own.right) || drag.y < Math.max(box.top, own.top) || drag.y > Math.min(box.bottom, own.bottom)) return null;
+          const found = how.landing(drag.x, drag.y, drag.ids);
+          const kept = drag.at && ("item" in drag.at ? drag.at.item : "zone" in drag.at ? drag.at.zone : null);
+          return found === undefined ? (how.sticky && kept?.isConnected ? drag.at : null) : found;
         };
-        list.addEventListener("dragstart", (event) => {
-          const item = closest(event, selector);
-          if (!item || refuse(event)) return void event.preventDefault();
-          dragging = /** @type {string} */ (idOf(item));
-          item.classList.add("dragging");
+        /** The pill by the pointer; the carried dimmed (drawn anew, the list loses its marks); where they'd land, marked. */
+        const follow = () => {
+          if (!drag) return;
+          drag.ghost.style.transform = `translate(${drag.x + 14}px, ${drag.y + 12}px)`;
+          for (const element of all$(how.item, list)) element.classList.toggle("dragging", drag.ids.includes(how.idOf(element)));
+          unmark();
+          drag.at = landingNow();
+          if (drag.at && "item" in drag.at) drag.at.item.classList.add(drag.at.after ? "drop-after" : "drop-before");
+          else if (drag.at && "zone" in drag.at) drag.at.zone.classList.add("drop-target");
+        };
+        /** The list scrolled while the pointer's near its edge, faster the nearer. */
+        const edge = () => {
+          if (!drag) return;
+          const box = drag.scroller.getBoundingClientRect(), reach = 48;
+          const by = drag.y < box.top + reach ? drag.y - box.top - reach : drag.y > box.bottom - reach ? drag.y - box.bottom + reach : 0;
+          if (by && drag.x >= box.left && drag.x <= box.right) {
+            drag.scroller.scrollTop += by / 3;
+            follow();
+          }
+          drag.frame = requestAnimationFrame(edge);
+        };
+        function lift(/** @type {PointerEvent} */ event) {
+          if (!press) return;
+          const ids = how.carried?.(press.id) ?? [press.id], ghost = document.createElement("div");
+          ghost.className = "drag-ghost";
+          ghost.setAttribute("aria-hidden", "true");
+          ghost.innerHTML = `${how.label(ids[0])}${ids.length > 1 ? `<span class="drag-count">${ids.length}</span>` : ""}`;
+          document.body.append(ghost);
+          let scroller = /** @type {HTMLElement} */ (document.scrollingElement);
+          for (let node = list; node; node = node.parentElement) {
+            if (/(auto|scroll)/.test(getComputedStyle(node).overflowY)) {
+              scroller = node;
+              break;
+            }
+          }
+          drag = { ids, ghost, x: event.clientX, y: event.clientY, at: null, scroller, frame: 0 };
+          // (Its own first: the list's look as carrying, its new places shown, after.)
+          how.lift?.();
+          list.classList.add("carrying");
+          document.body.classList.add("carrying");
+          getSelection()?.removeAllRanges();
           hideTip();
-          event.dataTransfer.effectAllowed = "move";
-          event.dataTransfer.setData("text/plain", titleOf(/** @type {Chart} */ (chartById(dragging))));
+          hideMenu();
+          list.setPointerCapture(event.pointerId);
+          follow();
+          drag.frame = requestAnimationFrame(edge);
+        }
+        list.addEventListener("pointerdown", (event) => {
+          // (One gesture at a time, whatever the list: a second finger, a second press, starts none.)
+          if (event.button !== 0 || carrying) return;
+          const item = /** @type {HTMLElement | null} */ (closest(event, how.item));
+          if (!item || typing(event.target) || how.refuse?.(event)) return;
+          press = { id: how.idOf(item), x: event.clientX, y: event.clientY, pointer: event.pointerId, touch: event.pointerType === "touch", held: false, timer: 0, touched: null };
+          carrying = letGo;
+          // (A touch's moves go to what it started on, drawn anew or not: there, they're held from scrolling.)
+          if (press.touch) {
+            press.touched = event.target;
+            press.touched?.addEventListener("touchmove", pin, { passive: false });
+          }
+          // By touch, held still: picked (where items are), and ready to be carried.
+          if (press.touch) press.timer = window.setTimeout(() => {
+            if (!press) return;
+            if (!itemNamed(press.id)) return letGo();
+            press.held = true;
+            navigator.vibrate?.(8);
+            how.pick?.(press.id);
+          }, 450);
         });
-        list.addEventListener("dragover", (event) => {
-          if (!dragging) return;
+        // Followed wherever the pointer goes, ended wherever it's let go (off the list, outside the page's frame).
+        window.addEventListener("pointermove", (event) => {
+          if (!press || event.pointerId !== press.pointer) return;
+          // (A mouse with no button down: its press was let go where nothing heard it.)
+          if (!press.touch && !event.buttons) return letGo();
+          if (drag) {
+            drag.x = event.clientX;
+            drag.y = event.clientY;
+            return follow();
+          }
+          const moved = Math.hypot(event.clientX - press.x, event.clientY - press.y);
+          // (By touch, moved before it's held: a scroll.)
+          if (press.touch && !press.held) return void (moved > 8 && letGo());
+          if (moved >= (press.touch ? 6 : 4) && !how.still?.() && itemNamed(press.id)) lift(event);
+        });
+        window.addEventListener("pointerup", (event) => {
+          if (!press || event.pointerId !== press.pointer) return;
+          if (drag) {
+            drag.x = event.clientX;
+            drag.y = event.clientY;
+          }
+          // Where they land, read now (not as last marked: the list may have been drawn anew), unless now there's no place.
+          const carried = drag && { ids: drag.ids, at: how.still?.() ? null : landingNow(), y: drag.y };
+          // (A drag, or a hold, makes no click: it'd open, or pick again, what was pressed.)
+          if (carried || press.held) swallowClick();
+          letGo();
+          if (carried?.at) how.land(carried.ids, carried.at, carried.y);
+        });
+        window.addEventListener("pointercancel", (event) => event.pointerId === press?.pointer && letGo());
+        // (Its own capture lost, not a row's: a touch's own, let go as the list takes it, says nothing.)
+        list.addEventListener("lostpointercapture", (event) => drag && event.target === list && event.pointerId === press?.pointer && letGo());
+        // (Nothing in it is dragged the browser's way: an image, a link.)
+        list.addEventListener("dragstart", (event) => event.preventDefault());
+        document.addEventListener("keydown", (event) => {
+          if (!drag || event.key !== "Escape") return;
           event.preventDefault();
-          clear();
-          target = dropAt(event);
-          target?.item.classList.add(target.after ? "drop-after" : "drop-before");
-        });
-        list.addEventListener("dragend", end);
-        list.addEventListener("drop", (event) => {
-          event.preventDefault();
-          const id = dragging, drop = dropAt(event);
-          end();
-          if (id && drop) onDrop(id, library.charts.findIndex((doc) => doc.id === idOf(drop.item)) + (drop.after ? 1 : 0), event);
-        });
+          event.stopImmediatePropagation();
+          letGo();
+        }, true);
       }
-      /** Moves a chart to another place in the list, gliding there; a dropped one from where it was dropped (`dropY`). */
-      function moveChart(id, to, dropY = null) {
-        const from = library.charts.findIndex((doc) => doc.id === id);
-        if (from < 0) return;
+      /** The gesture going on, if one is (its letting go): one at a time, whatever the list; a chart opened, the grid, a panel closed end it. @type {(() => void) | null} */
+      let carrying = null;
+      const stopCarrying = () => carrying?.();
+      /** The click a gesture makes at its end, swallowed (after a drag, a long press): a pointer's, never a key's; a new press clears it. */
+      let swallowUntil = 0;
+      const swallowClick = () => (swallowUntil = performance.now() + 600);
+      window.addEventListener("pointerdown", () => (swallowUntil = 0), true);
+      window.addEventListener("click", (event) => {
+        if (performance.now() > swallowUntil || event.detail === 0) return;
+        swallowUntil = 0;
+        event.preventDefault();
+        event.stopPropagation();
+      }, true);
+      /** Where a drag in a list (along y) lands: by the row the pointer's over, or the nearest (never the end). @param {HTMLElement[]} rows */
+      function landingIn(rows, /** @type {number} */ y, /** @type {(row: HTMLElement) => string} */ idOf, /** @type {string[]} */ ids) {
+        // (Those carried aren't places: by the nearest of the others.)
+        const others = rows.filter((row) => !ids.includes(idOf(row))), row = others.find((each) => y < each.getBoundingClientRect().bottom) ?? others.at(-1);
+        if (!row) return null;
+        const box = row.getBoundingClientRect();
+        return { item: row, after: y > box.top + box.height / 2 };
+      }
+
+      /** Moves a chart to another place in the list (before the one at `to`), gliding there; a dropped one from where it was dropped (`dropY`). */
+      const moveChart = (/** @type {string} */ id, /** @type {number} */ to, dropY = null) => moveCharts([id], to, dropY);
+      /** Moves charts, in their order, before the one at `to` (one of them, or none: the end), gliding there. @param {string[]} ids */
+      function moveCharts(ids, to, /** @type {number | null} */ dropY = null) {
+        const moving = library.charts.filter((doc) => ids.includes(doc.id));
+        if (!moving.length) return;
         const rows = () => all$("[data-chart-row]", $("chart-list"));
         const key = (/** @type {HTMLElement} */ row) => row.dataset.chartRow;
         const was = placesOf(rows(), key);
-        const row = rows().find((item) => key(item) === id);
-        if (dropY !== null && row) was.set(id, dropY - row.offsetHeight / 2);
-        const [doc] = library.charts.splice(from, 1);
-        library.charts.splice(clamp(to > from ? to - 1 : to, 0, library.charts.length), 0, doc);
+        const row = rows().find((item) => key(item) === moving[0].id);
+        if (dropY !== null && row) was.set(moving[0].id, dropY - row.offsetHeight / 2);
+        const at = to - library.charts.slice(0, to).filter((doc) => ids.includes(doc.id)).length;
+        for (const doc of moving) library.charts.splice(library.charts.indexOf(doc), 1);
+        library.charts.splice(clamp(at, 0, library.charts.length), 0, ...moving);
         save();
         renderCharts();
-        slide(rows(), key, was, { moved: id });
+        slide(rows(), key, was, { moved: moving[0].id });
       }
-      reorderable($("chart-list"), "chart-row", "y", () => false, (id, to, event) => moveChart(id, to, event.clientY));
+      /** A landing's place among the charts: before its item (after it, past its middle). @param {Landing} at @param {string} attribute */
+      const chartPlace = (at, attribute) => ("item" in at ? library.charts.findIndex((doc) => doc.id === at.item.getAttribute(`data-${attribute}`)) + (at.after ? 1 : 0) : library.charts.length);
+      /** A chart as carried: its mark and title. */
+      const chartLabel = (/** @type {string} */ id) => ((doc) => (doc ? `${chartMark(doc)}<span class="name">${escape(titleOf(doc))}</span>` : ""))(chartById(id));
+      dragToReorder($("chart-list"), {
+        item: "[data-chart-row]",
+        label: chartLabel,
+        idOf: (row) => /** @type {string} */ (row.dataset.chartRow),
+        landing: (x, y, ids) => landingIn(all$("[data-chart-row]", $("chart-list")), y, (row) => /** @type {string} */ (row.dataset.chartRow), ids),
+        land: (ids, at, y) => moveCharts(ids, chartPlace(at, "chart-row"), y),
+      });
+      // The grid's tiles move the charts in the list (the sidebar's order, and ⌘1–9's): those picked together. Found by the
+      // filter, they're ranked, not in their order: there's no place to drop them into (a hold still picks).
+      dragToReorder($("home-grid"), {
+        item: "[data-home-card]",
+        label: chartLabel,
+        idOf: (tile) => /** @type {string} */ (tile.dataset.homeCard),
+        carried: (id) => (picked.has(id) ? library.charts.filter((doc) => picked.has(doc.id)).map((doc) => doc.id) : [id]),
+        pick: (id) => !picked.has(id) && pickChart(id),
+        refuse: (event) => Boolean(closest(event, ".tile-check, .tile-rename")),
+        still: () => Boolean($("home-filter").value.trim()),
+        sticky: true,
+        landing: (x, y, ids) => {
+          const tile = /** @type {HTMLElement | null | undefined} */ (document.elementFromPoint(x, y)?.closest("[data-home-card]"));
+          if (!tile) return undefined;
+          if (ids.includes(/** @type {string} */ (tile.dataset.homeCard))) return null;
+          const box = tile.getBoundingClientRect();
+          return { item: tile, after: x > box.left + box.width / 2 };
+        },
+        land: (ids, at) => {
+          moveCharts(ids, chartPlace(at, "home-card"));
+          tileOpen(ids[0])?.focus({ preventScroll: true });
+        },
+      });
       // In the list, ↑ ↓ (Home, End) walk the charts rather than the layers; ⌥↑ ⌥↓ move the focused one.
       $("chart-list").addEventListener("keydown", (event) => {
         if (!event.altKey && !event.metaKey && !event.ctrlKey && ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
@@ -11934,7 +12116,7 @@
               const result = resolved?.results.get(layer.id);
               const loading = layer.series && !result;
               const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.formula !== undefined ? `<span class="sub">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(layer.series ?? "")}</span>`;
-              return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" draggable="${!TOUCH}" data-layer="${layer.id}">
+              return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
                   <span class="letter" style="--c:${escape(ink(layer.color))}">${layer.letter}</span>
@@ -11953,50 +12135,43 @@
         renderLayersBar();
       }
 
-      // Drag a layer onto another to move it before that one (or after, on its lower half), onto a pane to append, or
-      // below to open a new pane.
-      let dragging = "";
-      $("layer-list").addEventListener("dragstart", (event) => {
-        const row = closest(event, "[data-layer]");
-        if (!row) return;
-        dragging = row.dataset.layer;
-        row.classList.add("dragging");
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", dragging);
-        document.querySelector("[data-drop-new]")?.classList.add("visible");
+      // Layers dragged: before a layer (or after, on its lower half), in its pane; or below, into a new pane.
+      dragToReorder($("layer-list"), {
+        item: ".layer-row[data-layer]",
+        label: (id) => ((layer) => (layer ? `<span class="letter" style="--c:${escape(ink(layer.color))}">${layer.letter}</span><span class="name">${escape(labelOf(layer))}</span>` : ""))(layerById(id)),
+        idOf: (row) => /** @type {string} */ (row.dataset.layer),
+        carried: (id) => (layerPicks.has(id) ? chart.layers.filter((layer) => layerPicks.has(layer.id)).map((layer) => layer.id) : [id]),
+        pick: (id) => !layerPicks.has(id) && pickLayer(id),
+        refuse: (event) => Boolean(closest(event, "[data-toggle]")),
+        // (The new pane's place shows below; the panel keeps its height: a phone's sheet, as tall as what it holds, would
+        // grow under the finger. Nearing its edge, it scrolls there.)
+        lift: () => ($("panel").style.height = `${$("panel").offsetHeight}px`),
+        settle: () => ($("panel").style.height = ""),
+        landing: (x, y, ids) => {
+          const under = document.elementFromPoint(x, y), zone = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-drop-new]"));
+          if (zone) return { zone };
+          const pane = /** @type {HTMLElement | null | undefined} */ (under?.closest(".pane-group[data-pane]"));
+          return pane ? landingIn(all$(".layer-row[data-layer]", pane), y, (row) => /** @type {string} */ (row.dataset.layer), ids) : null;
+        },
+        land: dropLayers,
       });
-      const clearDrop = () => all$(".drop-before, .drop-after, .drop-target", $("layer-list")).forEach((element) => element.classList.remove("drop-before", "drop-after", "drop-target"));
-      /** Whether a drop on a row lands after it: on its lower half. @param {DragEvent} event @param {HTMLElement} row */
-      const dropsAfter = (event, row) => {
-        const rect = row.getBoundingClientRect();
-        return event.clientY > rect.top + rect.height / 2;
-      };
-      /**
-       * The row a drop lands by (before it, or after it on its lower half): the one under the pointer; else in the pane
-       * under it, by where the pointer is along its rows (in a gap between them, the nearest place, never the pane's end).
-       * None in a pane without rows. @param {DragEvent} event @returns {HTMLElement | null}
-       */
-      const rowAt = (event) => {
-        const row = closest(event, "[data-layer]"), pane = row ? null : closest(event, "[data-pane]");
-        if (row || !pane) return row;
-        const rows = all$("[data-layer]", pane);
-        return rows.find((each) => event.clientY < each.getBoundingClientRect().bottom) ?? rows.at(-1) ?? null;
-      };
-      $("layer-list").addEventListener("dragover", (event) => {
-        if (!dragging) return;
-        event.preventDefault();
-        clearDrop();
-        const row = rowAt(event);
-        if (row) row.classList.add(dropsAfter(event, row) ? "drop-after" : "drop-before");
-        else closest(event, "[data-pane], [data-drop-new]")?.classList.add("drop-target");
-      });
-      $("layer-list").addEventListener("dragend", () => {
-        dragging = "";
-        clearDrop();
-        // Tidied in place: a drop's new list is already drawn, and gliding.
-        for (const row of all$(".layer-row.dragging")) row.classList.remove("dragging");
-        document.querySelector("[data-drop-new]")?.classList.remove("visible");
-      });
+      /** Layers dropped (in their order) before or after a layer, in its pane, or into a new one; everything gliding there, the first from where it was dropped. */
+      function dropLayers(/** @type {string[]} */ ids, /** @type {Landing} */ at, /** @type {number} */ y) {
+        const list = $("layer-list"), was = LIST_PARTS.map(([selector, key]) => placesOf(all$(selector, list), key));
+        const first = /** @type {HTMLElement | null} */ (list.querySelector(`.layer-row[data-layer="${ids[0]}"]`));
+        if (first) was[0].set(ids[0], y - first.offsetHeight / 2);
+        const toRow = "item" in at ? at.item.dataset.layer : null, after = "item" in at && at.after;
+        commit((doc) => {
+          const target = toRow ? doc.layers.find((layer) => layer.id === toRow) : null, moving = doc.layers.filter((layer) => ids.includes(layer.id));
+          if (toRow && !target) return;
+          const pane = target ? target.pane : newPaneIn(doc).id;
+          doc.layers = doc.layers.filter((layer) => !ids.includes(layer.id));
+          for (const layer of moving) layer.pane = pane;
+          if (target) doc.layers.splice(doc.layers.indexOf(target) + (after ? 1 : 0), 0, ...moving);
+          else doc.layers.push(...moving);
+        });
+        LIST_PARTS.forEach(([selector, key, options], k) => slide(all$(selector, list), key, was[k], { ...options, moved: k === 0 ? ids[0] : null }));
+      }
       /** The parts of the layer list a drop moves: rows, pane heads, the lines between panes, and the adds below. */
       const LIST_PARTS = /** @type {[string, (element: HTMLElement) => string | undefined, { fade?: boolean, pseudo?: string }][]} */ ([
         [".layer-row", (row) => row.dataset.layer, {}],
@@ -12004,38 +12179,6 @@
         [".pane-group + .pane-group", (group) => group.dataset.pane, { fade: true, pseudo: "::before" }],
         [".layer-adds", () => "adds", {}],
       ]);
-      $("layer-list").addEventListener("drop", (event) => {
-        event.preventDefault();
-        const id = dragging;
-        const row = rowAt(event);
-        const paneElement = closest(event, "[data-pane]");
-        const toNew = closest(event, "[data-drop-new]");
-        const after = row ? dropsAfter(event, row) : false;
-        dragging = "";
-        clearDrop();
-        // (On nothing (between panes, the list's edges, the adds): nothing moves.)
-        if (!id || row?.dataset.layer === id || (!row && !toNew)) return renderLayers();
-        // Everything glides to its new place; the dropped layer from where it was dropped, over the others.
-        const list = $("layer-list");
-        const was = LIST_PARTS.map(([selector, key]) => placesOf(all$(selector, list), key));
-        const source = /** @type {HTMLElement | null} */ (list.querySelector(`.layer-row[data-layer="${id}"]`));
-        if (source) was[0].set(id, event.clientY - source.offsetHeight / 2);
-        commit((doc) => {
-          const layer = doc.layers.find((item) => item.id === id);
-          doc.layers.splice(doc.layers.indexOf(layer), 1);
-          if (row) {
-            const target = doc.layers.find((item) => item.id === row.dataset.layer);
-            layer.pane = target.pane;
-            doc.layers.splice(doc.layers.indexOf(target) + (after ? 1 : 0), 0, layer);
-          } else {
-            if (toNew) layer.pane = newPaneIn(doc).id;
-            else if (paneElement) layer.pane = paneElement.dataset.pane;
-            doc.layers.push(layer);
-          }
-          // A move needs no data: drawn from what's at hand, the list isn't redrawn under its glide.
-        });
-        LIST_PARTS.forEach(([selector, key, options], k) => slide(all$(selector, list), key, was[k], { ...options, moved: k === 0 ? id : null }));
-      });
 
       // ── Picking layers, and what the bar does to them ─────────────────────────
 
@@ -13333,7 +13476,7 @@
         event.preventDefault();
         const point = { x: event.clientX, y: event.clientY };
         if (chartRow) chartMenu(/** @type {HTMLElement} */ (chartRow.querySelector("[data-open-chart]")), chartRow.dataset.chartRow, point);
-        // (By touch, a long press picks the row instead: see pickOnLongPress.)
+        // (By touch, a long press picks the row instead: see dragToReorder.)
         else if (TOUCH) return;
         // (On a picked row, it acts on every one picked; on another, on it alone: the picks stay as they are.)
         else if (layerPicks.has(/** @type {string} */ (layerRow.dataset.layer))) layersMenu(/** @type {HTMLElement} */ (layerRow.querySelector("[data-select]")), point);
