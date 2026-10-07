@@ -1313,19 +1313,12 @@
         }
       }
 
-      /* Where a scroller hides more, its edge fades: sideways on a strip, up and down on the chart list. */
-      :is(.strip, .chart-list) {
-        &.fade-start {
-          mask-image: linear-gradient(var(--along, to right), transparent, #000 28px);
-        }
-
-        &.fade-end {
-          mask-image: linear-gradient(var(--along, to right), #000 calc(100% - 28px), transparent);
-        }
-
-        &.fade-start.fade-end {
-          mask-image: linear-gradient(var(--along, to right), transparent, #000 28px, #000 calc(100% - 28px), transparent);
-        }
+      /*
+       * Where a scroller hides more, its edge fades (sideways on a strip, up and down on the chart list), as deep as
+       * there's more beyond it, up to 28px: scrolling, it eases in and out with the content, gone at the very end.
+       */
+      :is(.strip, .chart-list).overflows {
+        mask-image: linear-gradient(var(--along, to right), transparent, #000 var(--edge-start, 0px), #000 calc(100% - var(--edge-end, 0px)), transparent);
       }
 
       /*
@@ -1702,18 +1695,22 @@
             gap: 6px;
           }
 
-          /* Only for an empty chart with a chart to go back to: a new one is cancelled, a named one deleted. */
-          .btn {
+          /* Its ways out, on the right: importing a chart, and (only with a chart to go back to) leaving this one: a new one is
+             cancelled, a named one deleted. */
+          .keys-actions {
+            display: flex;
+            gap: 2px;
             margin-left: auto;
+            margin-right: -9px;
 
-            &[hidden] {
+            .btn[hidden] {
               display: none;
             }
           }
         }
       }
 
-      /* Or a chart already made: each template with its mini chart, name and gist; or a chart file. */
+      /* Or a chart already made: the recommended website charts, each with its mini chart, name and place; the rest of them a click away. */
       .starts {
         margin-top: 30px;
 
@@ -1734,6 +1731,10 @@
           .btn {
             margin-right: -9px;
           }
+
+          .more {
+            margin-left: -2px;
+          }
         }
       }
 
@@ -1745,8 +1746,6 @@
         gap: 8px;
         margin: -3px;
         padding: 3px;
-        scroll-padding-inline: 3px;
-        scroll-snap-type: x proximity;
       }
 
       .template {
@@ -1758,8 +1757,12 @@
         background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
         text-align: left;
-        scroll-snap-align: start;
         transition: background var(--fade), box-shadow var(--fade);
+
+        /* Waiting for the website's charts: the room a card takes, its plot shimmering, nothing to press. */
+        &.waiting {
+          pointer-events: none;
+        }
 
         .template-plot {
           --plot-ground: color-mix(in srgb, var(--card), white 4%);
@@ -4656,7 +4659,8 @@
         if (prefs.sidebar === "collapsed") document.body.dataset.sidebar = "collapsed";
         if (prefs.panel === "open" || prefs.panel === "closed") document.body.dataset.panel = prefs.panel;
         const there = history.state;
-        if (!/[#&]chart=/.test(location.hash) && (there ? there.home : (prefs.home ?? true))) document.body.toggleAttribute("data-home", true);
+        // (A first visit, nothing kept yet, opens on its empty chart, whatever a preference or the history says.)
+        if (!/[#&]chart=/.test(location.hash) && localStorage.getItem("bitview-studio:v2") !== null && (there ? there.home : (prefs.home ?? true))) document.body.toggleAttribute("data-home", true);
       } catch {}
     </script>
     <div class="app">
@@ -4716,10 +4720,10 @@
                     <span id="cta-label">Search every series</span><kbd>A</kbd>
                   </button>
                   <div class="starts">
-                    <div class="starts-head"><h2>Or start from a template</h2><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import a chart file</button></div>
+                    <div class="starts-head"><h2>Recommended</h2><button class="btn ghost small" type="button" data-action="website-charts">Browse all<span class="more" data-icon="next"></span></button></div>
                     <div id="templates" class="templates strip"></div>
                   </div>
-                  <div class="keys"><span>Hold <kbd>⌘</kbd> to reveal shortcuts</span><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span id="leave-label">Cancel</span><kbd>esc</kbd></button></div>
+                  <div class="keys"><span>Hold <kbd>⌘</kbd> to reveal shortcuts</span><div class="keys-actions"><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import a chart file</button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span id="leave-label">Cancel</span><kbd>esc</kbd></button></div></div>
                 </div>
               </div>
             </div>
@@ -4875,6 +4879,9 @@
     <div id="tip" class="tip" role="tooltip" hidden></div>
     <div id="hints" class="hints" aria-hidden="true"></div>
 
+    <!-- The website's charts, as presets (presets.js): the build puts the live website's here, compressed; the dev page's
+         come from the local website, made in a worker. -->
+    <script id="presets" type="application/gzip"></script>
     <script type="module">
       // @ts-check
       import { BitviewClient } from "../modules/bitview-client/index.js";
@@ -4930,7 +4937,6 @@
         plus: svg('<path d="M8 3v10M3 8h10"/>'),
         formula: svg('<path d="M10.5 2.5c-1.7 0-2.3.8-2.6 2.4L6.4 12c-.3 1.5-.9 2-2.4 2"/><path d="M4.8 6.5H10"/>'),
         charts: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="m4.5 10.5 2.2-2.6 1.8 1.6 3-3.5"/>'),
-        templates: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M2 6.5h12M6.5 6.5v7"/>'),
         grid: svg('<rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/>'),
         browse: svg('<circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/>'),
         keyboard: svg('<rect x="1.5" y="3.5" width="13" height="9" rx="1.8"/><path d="M4.5 6.5h.01M7 6.5h.01M9.5 6.5h.01M12 6.5h.01M5 9.5h6"/>'),
@@ -4942,6 +4948,7 @@
         panel: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M10 2.5v11"/>'),
         pane: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M2 9h12"/>'),
         more: svg('<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>', 14),
+        next: svg('<path d="M6 3.5 10.5 8 6 12.5"/>', 12),
         back: svg('<path d="M10 3.5 5.5 8l4.5 4.5"/>', 14),
         pencil: svg('<path d="m10.5 2.5 3 3-8 8H2.5v-3z"/>', 14),
         sliders: svg('<path d="M2.5 5h6.5M12.5 5h1M2.5 11h1M7 11h6.5"/><circle cx="10.75" cy="5" r="1.75"/><circle cx="5.25" cy="11" r="1.75"/>', 14),
@@ -5354,12 +5361,18 @@
        * An axis label: the number alone, since a scale can hold layers in several units and the legend gives each its
        * own; a percent-change scale's "%" is the scale's, true of every label on it.
        */
+      /** The axes' labels, by value and suffix: the chart asks for the same ticks every frame of a move. */
+      const axisLabels = new Map();
       function axisLabel(value, suffix = "") {
+        const key = `${value}${suffix}`, known = axisLabels.get(key);
+        if (known !== undefined) return known;
+        if (axisLabels.size > 4000) axisLabels.clear();
         // The library steps its ticks by subtraction: the zero one can come out as 6e-17. Below the scales' least move,
         // it's 0.
-        if (Math.abs(value) < 5e-10) value = 0;
-        const sign = value < 0 ? "-" : "";
-        return `${sign}${compact(Math.abs(value), 3, AXIS_CHARS - sign.length - suffix.length)}${suffix}`;
+        const shown = Math.abs(value) < 5e-10 ? 0 : value, sign = shown < 0 ? "-" : "";
+        const label = `${sign}${compact(Math.abs(shown), 3, AXIS_CHARS - sign.length - suffix.length)}${suffix}`;
+        axisLabels.set(key, label);
+        return label;
       }
       function duration(seconds) {
         const days = Math.abs(seconds) / 86400;
@@ -5953,87 +5966,8 @@
         doc.layers.sort((a, b) => order.get(a.pane) - order.get(b.pane));
       }
 
-      // Starting points, by typed client path: a renamed series fails type-checking here, not at runtime.
-      const cohorts = tree.distributionAggregated.cohorts;
-      /** Price as candles, its latest price lined across: the full open, high, low and close (formulas and values read its close). */
+      /** The price as a website chart starts with it: candles, its latest lined across (formulas and values read its close). */
       const price = { series: tree.price.ohlc.usd.name, label: "Price", type: "candles", color: "ink", priceLine: true };
-      const TEMPLATES = [
-        {
-          title: "Price",
-          text: "Bitcoin's price in candles, every day of its history, on a log scale.",
-          index: "day1",
-          panes: [{ mode: 1 }],
-          layers: [{ ...price }],
-        },
-        {
-          title: "Price & realized price",
-          text: "Spot price against the average price every coin last moved at, and their ratio, MVRV.",
-          index: "day1",
-          panes: [{ mode: 1, size: 3 }, { mode: 0, size: 1.3 }],
-          layers: [
-            { ...price, pane: 0 },
-            { series: cohorts.all.realized.price.usd.name, pane: 0, color: "orange" },
-            { formula: "A / B", label: "MVRV", pane: 1, type: "baseline", base: 1, color: "blue" },
-          ],
-        },
-        {
-          title: "Cointime prices",
-          text: "Price between the cointime valuations: active, vaulted, true market mean and cointime price.",
-          index: "day1",
-          panes: [{ mode: 1 }],
-          layers: [
-            { ...price },
-            { series: tree.cointime.prices.active.usd.name, color: "red" },
-            { series: tree.cointime.prices.trueMarketMean.usd.name, color: "orange" },
-            { series: tree.cointime.prices.vaulted.usd.name, color: "green" },
-            { series: tree.cointime.prices.cointime.usd.name, color: "blue" },
-          ],
-        },
-        {
-          title: "Who holds the supply",
-          text: "Coins held by short- and long-term holders, and the long-term share of all of them.",
-          index: "day1",
-          panes: [{ mode: 0, size: 2.2 }, { mode: 0, size: 1.2 }],
-          layers: [
-            { series: cohorts.lth.supply.total.btc.name, pane: 0, type: "area", color: "blue" },
-            { series: cohorts.sth.supply.total.btc.name, pane: 0, type: "area", color: "orange" },
-            { formula: "A / (A + B) * 100", label: "Long-term share", pane: 1, format: "percent", color: "violet" },
-          ],
-        },
-        {
-          title: "Supply in profit",
-          text: "The share of coins worth more than they last moved at, for all holders and by age.",
-          index: "day1",
-          panes: [{ mode: 1, size: 2 }, { mode: 0, size: 1.6 }],
-          layers: [
-            { ...price, pane: 0 },
-            { series: cohorts.all.relative.supplyInProfitShare.percent.name, pane: 1, color: "green" },
-            { series: cohorts.sth.relative.supplyInProfitShare.percent.name, pane: 1, color: "orange" },
-            { series: cohorts.lth.relative.supplyInProfitShare.percent.name, pane: 1, color: "blue" },
-          ],
-        },
-        {
-          title: "Hash rate & difficulty",
-          text: "The network's estimated hash rate against the difficulty it keeps re-targeting to.",
-          index: "day1",
-          panes: [{ mode: 1 }],
-          layers: [
-            { series: tree.mining.hashrate.rate.base.name, color: "yellow" },
-            { series: tree.blocks.difficulty.value.name, side: "left", color: "ink" },
-          ],
-        },
-        {
-          title: "Drawdown from the high",
-          text: "How far the price sits below its all-time high: two formulas over one series.",
-          index: "day1",
-          panes: [{ mode: 1, size: 2 }, { mode: 0, size: 1.4 }],
-          layers: [
-            { ...price, pane: 0 },
-            { formula: "highest(A)", label: "All-time high", pane: 0, color: "green", dash: 2 },
-            { formula: "(A / B - 1) * 100", label: "Drawdown", pane: 1, type: "baseline", base: 0, format: "percent", color: "green" },
-          ],
-        },
-      ];
 
       /** @returns {Chart} */
       function fromTemplate(template) {
@@ -6561,9 +6495,15 @@
         document.querySelector(".brand").addEventListener("pointerenter", () => {
           if (performance.now() - turnedAt > TURN * 1000) turnedAt = performance.now();
         });
+        // (Drawn only on a frame where it moves: its level rests most of the time, and the page has work of its own.)
+        let at = "";
         const frame = (now) => {
-          const d = draw(fillAt(now / 1000), REST + 2 * Math.PI * easeOut(Math.min(1, (now - turnedAt) / 1000 / TURN)));
-          if (d !== drawn) path.setAttribute("d", (drawn = d));
+          const fill = fillAt(now / 1000), angle = REST + 2 * Math.PI * easeOut(Math.min(1, (now - turnedAt) / 1000 / TURN));
+          if (`${fill} ${angle}` !== at) {
+            at = `${fill} ${angle}`;
+            const d = draw(fill, angle);
+            if (d !== drawn) path.setAttribute("d", (drawn = d));
+          }
           requestAnimationFrame(frame);
         };
         requestAnimationFrame(frame);
@@ -7451,7 +7391,7 @@
         drawnTimes = data.times;
         requestAnimationFrame(() => {
           placeLegends();
-          updateChanges();
+          updateValues();
         });
         relayout();
       }
@@ -7631,33 +7571,44 @@
       }
       /** A strip that scrolls sideways follows its scroll, and a wheel turns it, as on a tab strip (trackpads swipe it). */
       function strip(element) {
-        element.addEventListener("scroll", () => fitStrip(element), { passive: true });
+        element.addEventListener("scroll", () => fitSoon(element), { passive: true });
         element.addEventListener("wheel", (event) => {
           if (!element.classList.contains("overflows")) return;
           // A legend sits inside the chart, which zooms on any wheel that reaches it: a strip that scrolls keeps it.
           event.stopPropagation();
           if (Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
           event.preventDefault();
-          element.scrollLeft += event.deltaY;
+          // (In pixels: a wheel can count in lines, or pages.)
+          element.scrollLeft += event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientWidth : 1);
         }, { passive: false });
       }
       /**
        * A scroller's state: whether it scrolls (a legend then takes the wheel), and which of its edges hide more; a strip
        * scrolls sideways, the chart list down.
        */
+      /** A scroller fitted on the next frame, once however many scroll events come before it (its size read once). */
+      const fitting = new WeakSet();
+      function fitSoon(/** @type {HTMLElement} */ element, down = false) {
+        if (fitting.has(element)) return;
+        fitting.add(element);
+        requestAnimationFrame(() => (fitting.delete(element), fitStrip(element, down)));
+      }
       function fitStrip(element, down = false) {
         const [at, size, full] = down ? [element.scrollTop, element.clientHeight, element.scrollHeight] : [element.scrollLeft, element.clientWidth, element.scrollWidth];
         const overflows = full > size + 1;
         element.classList.toggle("overflows", overflows);
-        element.classList.toggle("fade-start", overflows && at > 1);
-        element.classList.toggle("fade-end", overflows && at + size < full - 1);
+        element.style.setProperty("--edge-start", `${overflows ? clamp(at, 0, 28) : 0}px`);
+        element.style.setProperty("--edge-end", `${overflows ? clamp(full - size - at, 0, 28) : 0}px`);
       }
       /** The layer whose line the pointer is on: its legend item and panel row light up, the legend scrolling to it if it must. */
       let litLayer = null;
       function lightLegend(id, again = false) {
         if (id === litLayer && !again) return;
+        // (Moving from one to another, only those two change; drawn again, every one is set.)
+        const of = (/** @type {string | null} */ layer) => (layer ? all$(`.legend [data-select="${CSS.escape(layer)}"], .layer-row[data-layer="${CSS.escape(layer)}"]`) : []);
+        const items = again ? all$(".legend [data-select], .layer-row[data-layer]") : [...of(litLayer), ...of(id)];
         litLayer = id;
-        for (const item of all$(".legend [data-select], .layer-row[data-layer]")) item.classList.toggle("lit", (item.dataset.select ?? item.dataset.layer) === id);
+        for (const item of items) item.classList.toggle("lit", (item.dataset.select ?? item.dataset.layer) === id);
         const button = id && /** @type {HTMLElement | null} */ (document.querySelector(`.legend [data-select="${id}"]`));
         const row = button?.parentElement;
         if (!button || !row || again) return;
@@ -7674,8 +7625,8 @@
           const layer = layerById(element.dataset.value);
           const result = resolved?.results.get(element.dataset.value);
           if (!layer || !result || result.error) continue;
-          const value = valueAt(layer, point);
-          element.textContent = Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
+          const value = valueAt(layer, point), text = Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
+          if (element.textContent !== text) element.textContent = text;
         }
       }
       /** Widths measured for the data on screen, forgotten with it. @type {WeakMap<object, Map<string, number>>} */
@@ -7775,7 +7726,7 @@
         lightLegend(param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null);
         if (time === hoverTime) return;
         hoverTime = time;
-        updateValues();
+        valuesSoon();
       });
       view.subscribeClick((param) => {
         if (!param.hoveredSeries) return;
@@ -7826,11 +7777,18 @@
         commit((doc) => doc.panes.forEach((pane, i) => (pane.size = sizes[i])), { redraw: "none", quiet: true });
       }, 0));
 
-      /** Each layer's change across the visible window, beside its value. */
-      let changesFrame = 0;
-      function updateChanges() {
-        changesFrame = 0;
-        updateValues();
+      /**
+       * The values and changes shown again, once on the next frame however many moves ask in it (the crosshair's and the
+       * view's: written per move, they'd lay the page out again for each).
+       */
+      let valuesFrame = 0;
+      const valuesSoon = () => (valuesFrame ||= requestAnimationFrame(() => ((valuesFrame = 0), updateValues())));
+      /** When the view last moved; once it rests (a moment later), what follows it is shown whole again (see updateRowChanges). */
+      let viewMovedAt = -Infinity, viewSettle = 0;
+      function viewMoved() {
+        viewMovedAt = performance.now();
+        clearTimeout(viewSettle);
+        viewSettle = setTimeout(() => ((viewMovedAt = -Infinity), valuesSoon()), 250);
       }
       /**
        * Each row's change from the view's start to the readout's point. Its figures keep the room of their widest
@@ -7838,18 +7796,28 @@
        */
       function updateRowChanges() {
         if (!resolved) return;
-        const point = readPoint();
+        const point = readPoint(), moving = performance.now() - viewMovedAt < 250;
         for (const element of all$(".row-change[data-change]")) {
           const layer = layerById(element.dataset.change);
           const result = resolved.results.get(element.dataset.change);
           if (!layer || !result) continue;
           const change = !layer.hidden && !result.error ? changeOver(layer, point) : null;
-          element.className = `row-change ${change?.up === true ? "up" : change?.up === false ? "down" : ""}`;
-          element.textContent = change ? chipText(change) : "";
-          if (change) element.dataset.tip = `Change from ${dateLabel(change.from, FINE.has(chart.index))} to ${dateLabel(change.to, FINE.has(chart.index))}`;
-          else delete element.dataset.tip;
-          const figures = /** @type {HTMLElement} */ (element.parentElement);
-          figures.style.minWidth = layer.hidden || result.error ? "" : `${Math.max(valueSlot(layer, 12.5), chipSlot(layer))}px`;
+          // (Each written only where it changed: a crosshair's move restyles nothing else.)
+          const name = `row-change ${change?.up === true ? "up" : change?.up === false ? "down" : ""}`, text = change ? chipText(change) : "";
+          if (element.className !== name) element.className = name;
+          if (element.textContent !== text) element.textContent = text;
+          // While the view moves (a pan, a zoom), its change only: its tip and its room, read and measured from the view,
+          // are set once the view rests (each frame, they'd cost the move its smoothness).
+          if (moving) continue;
+          const tip = change ? `Change from ${dateLabel(change.from, FINE.has(chart.index))} to ${dateLabel(change.to, FINE.has(chart.index))}` : undefined;
+          if (element.dataset.tip !== tip) {
+            if (tip) element.dataset.tip = tip;
+            else delete element.dataset.tip;
+            // (Its tip open: it says the new dates, or goes.)
+            if (tipTarget === element && !$("tip").hidden) tip ? showTip(element) : hideTip();
+          }
+          const figures = /** @type {HTMLElement} */ (element.parentElement), width = layer.hidden || result.error ? "" : `${Math.max(valueSlot(layer, 12.5), chipSlot(layer))}px`;
+          if (figures.style.minWidth !== width) figures.style.minWidth = width;
         }
       }
       /**
@@ -8073,10 +8041,11 @@
           view.applyOptions({ timeScale: { tickMarkFormatter: years ? yearsOnly : () => null } });
         }
         if (!measuring?.dragging) clearMeasure();
+        viewMoved();
         placeBrush();
         fitCandles();
         fitDots();
-        changesFrame ||= requestAnimationFrame(updateChanges);
+        valuesSoon();
         const shown = showsPreset();
         if (shown !== presetShown) {
           presetShown = shown;
@@ -8579,8 +8548,8 @@
         }
         return { lines, marks, bases };
       }
-      /** A drawing whose chart is gone (templates' stay). */
-      const orphan = (id) => !id.startsWith("template:") && !library.charts.some((doc) => doc.id === id);
+      /** A drawing whose chart is gone. */
+      const orphan = (id) => !library.charts.some((doc) => doc.id === id);
       /** Writes our drawings over the stored ones (another tab's stay), without charts that are gone. */
       function saveThumbs() {
         const merged = { ...(storage.get(THUMBS, {})), ...Object.fromEntries(thumbs) };
@@ -8636,7 +8605,7 @@
           return;
         }
         for (const [id, thumb] of Object.entries(stored ?? {})) {
-          const doc = chartById(id) ?? templateDocs.find((other) => other.id === id);
+          const doc = chartById(id);
           if (!doc || !validThumb(thumb) || thumb.key !== thumbKey(doc) || thumbs.get(id)?.key === thumb.key) continue;
           thumbs.set(id, thumb);
           updateMark(doc);
@@ -8670,11 +8639,11 @@
       /** What a card depends on: what the chart's mark does, its range, its layers' looks, the view it was left at and how much the chart shows. @param {Chart} doc */
       const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => [layer.type, layer.base, layer.colorBelow, layer.dash, layer.fill, layer.opacity]), doc.panes.map((pane) => [pane.stack, pane.reverse]), leftView(doc.id), Math.round(mostBars() / 200)]);
       /**
-       * The drawings kept: the templates', then those of the charts edited last, within a budget (they're a cache: drawn
+       * The drawings kept: the recommended charts', then those of the charts edited last, within a budget (they're a cache: drawn
        * again when missing, they never crowd out the charts themselves).
        */
       function savePreviews() {
-        const kept = {}, when = (id) => (id.startsWith("template:") ? Infinity : chartById(id)?.updated ?? -Infinity);
+        const kept = {}, when = (id) => (id.startsWith("recommended:") ? Infinity : chartById(id)?.updated ?? -Infinity);
         let size = 0;
         for (const [id, item] of [...previews].filter(([id]) => when(id) > -Infinity).sort(([a], [b]) => when(b) - when(a))) {
           size += JSON.stringify(item).length;
@@ -8884,7 +8853,9 @@
           const data = await resolve(copy).catch(() => null);
           if (!data || retryFailed(copy, data, index) || previewKey(doc) !== key) return null;
           // Replaced meanwhile (another tab's edit): its successor is drawn on its own.
-          if (!doc.id.startsWith("template:") && chartById(doc.id) !== doc) return null;
+          if (!/^(recommended|preset):/.test(doc.id) && chartById(doc.id) !== doc) return null;
+          // (A website chart let go meanwhile, out of the last looked at: its drawing isn't kept either.)
+          if (doc.id.startsWith("preset:") && !presetDocs.has(Number(doc.id.slice(7)))) return null;
           const drawn = { key, ...previewOf(copy, data, index === doc.index ? mostBars() : (mostBars() * INTERVAL_DAYS[doc.index]) / INTERVAL_DAYS[index]) };
           previews.set(doc.id, drawn);
           clearTimeout(previewsTimer);
@@ -8893,8 +8864,8 @@
         })().then((drawn) => (paint(doc.id, drawn, true), drawn)).finally(() => drawing.delete(ask)));
         return /** @type {Promise<(Preview & { key: string }) | null>} */ (drawing.get(ask));
       }
-      /** A template's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
-      const templateIndex = (doc) => (INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf("week1") || doc.layers.some((layer) => runsWindow(layer.formula ?? "")) ? doc.index : "week1");
+      /** A website chart's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
+      const previewIndex = (doc) => (INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf("week1") || doc.layers.some((layer) => runsWindow(layer.formula ?? "")) ? doc.index : "week1");
       /** A tile's plot: the chart drawn, "Empty" for an empty one, a shimmer until it's drawn. @param {Chart} doc */
       function plotHtml(doc) {
         const drawn = previews.get(doc.id);
@@ -9527,7 +9498,7 @@
         });
       }
       /**
-       * A blank chart on top of the list, where to start it from: series, a template or a file. An untouched blank one is
+       * A blank chart on top of the list, where to start it from: series, a website chart or a file. An untouched blank one is
        * reused rather than another piling up, and if it's the one open, it's just brought to the fore.
        */
       function newChart() {
@@ -9588,8 +9559,9 @@
 
       /**
        * Charts reordered by dragging their items (the sidebar's rows, the grid's tiles), each with its chart's id in a
-       * data attribute: one lands before the item under the pointer, or after it past its middle along `axis`. Off the
-       * items, in a list (along y) by its last; in the grid, where it last would (its gaps cross between them).
+       * data attribute: one lands before the item under the pointer, or after it past its middle along `axis`. In a list
+       * (along y), by where the pointer is along it, whatever's under it (in a gap between rows, the nearest place, never
+       * the end); in the grid, off the tiles, where it last would (its gaps cross between them).
        * @param {HTMLElement} list @param {string} attribute @param {"x" | "y"} axis
        * @param {(event: DragEvent) => boolean} refuse @param {(id: string, to: number, event: DragEvent) => void} onDrop
        */
@@ -9599,7 +9571,8 @@
         const clear = () => all$(".drop-before, .drop-after", list).forEach((item) => item.classList.remove("drop-before", "drop-after"));
         /** @param {DragEvent} event */
         const dropAt = (event) => {
-          const item = closest(event, selector) ?? (axis === "y" ? all$(selector, list).at(-1) : null);
+          const items = axis === "y" ? all$(selector, list) : [];
+          const item = axis === "y" ? items.find((each) => event.clientY < each.getBoundingClientRect().bottom) ?? items.at(-1) : closest(event, selector);
           if (!item) return target;
           const rect = item.getBoundingClientRect(), after = axis === "x" ? event.clientX > rect.left + rect.width / 2 : event.clientY > rect.top + rect.height / 2;
           return idOf(item) === dragging ? null : { item, after };
@@ -9671,46 +9644,271 @@
       });
 
       $("new-chart").addEventListener("click", newChart);
-      $("chart-list").addEventListener("scroll", () => fitStrip($("chart-list"), true), { passive: true });
+      $("chart-list").addEventListener("scroll", () => fitSoon($("chart-list"), true), { passive: true });
       new ResizeObserver(() => fitStrip($("chart-list"), true)).observe($("chart-list"));
-      /** Each template as the chart it makes, its drawing kept under a stable id. */
-      const templateDocs = TEMPLATES.map((template, i) => {
-        const doc = Object.assign(fromTemplate(template), { id: `template:${i}` });
-        doc.layers.forEach((layer, k) => (layer.id = `layer:${k}`));
-        return doc;
-      });
-      // The empty chart offers every template, with its mini chart, name and gist, in a row that scrolls.
+      // The empty chart offers the website's recommended charts, each with its mini chart, name and place, in a row that
+      // scrolls (waiting cards, the room they take, until the website's charts are read).
       strip($("templates"));
       new ResizeObserver(() => fitStrip($("templates"))).observe($("templates"));
-      $("templates").innerHTML = templateDocs.map((doc, i) => `<button type="button" class="template" data-template="${i}" data-template-doc="${doc.id}"><span class="template-plot ${previews.has(doc.id) ? "" : "pending"}" data-plot="${doc.id}">${previews.has(doc.id) ? previewSvg(/** @type {Preview} */ (previews.get(doc.id)), `template-plot-${doc.id}`) : ""}</span><span class="name">${escape(TEMPLATES[i].title)}</span><span class="gist">${escape(TEMPLATES[i].text)}</span></button>`).join("");
-      // A template's card shows the chart it makes, drawn as a tile is, once the card comes into view; its mark (⌘K's
-      // row) is drawn like a chart's. Both are kept for the day.
-      const templateQueue = new Set();
-      const drawTemplates = serial(async () => {
-        let marked = false;
-        for (const i of templateQueue) {
-          templateQueue.delete(i);
-          const doc = templateDocs[i], key = thumbKey(doc);
-          if (thumbs.get(doc.id)?.key !== key) {
-            const drawing = await drawThumb(structuredClone(doc), templateIndex(doc)).catch(() => null);
-            if (drawing) {
-              thumbs.set(doc.id, { key, lines: drawing.lines, marks: {} });
-              marked = true;
-            }
-          }
-          paint(doc.id, await drawPreview(doc, templateIndex(doc)));
+      /** The recommended charts as the charts they make, their drawings kept under stable ids. @type {{ preset: number, doc: Chart }[]} */
+      let recommendedCards = [];
+      function renderRecommended() {
+        const list = presets;
+        recommendedCards = !list ? [] : RECOMMENDED.flatMap((place, k) => {
+          const preset = list.findIndex((item) => item.p.join(" › ") === place);
+          if (preset < 0) return [];
+          const doc = Object.assign(fromTemplate(presetTemplate(list[preset])), { id: `recommended:${k}` });
+          doc.layers.forEach((layer, n) => (layer.id = `layer:${n}`));
+          return [{ preset, doc }];
+        });
+        // (Not read: no row, nor its head.)
+        /** @type {HTMLElement} */ ($("templates").closest(".starts")).hidden = !list && Boolean(presetsFailed);
+        $("templates").innerHTML = list ? recommendedCards.map(({ preset, doc }, i) => `<button type="button" class="template" data-template="${i}"><span class="template-plot ${previews.has(doc.id) ? "" : "pending"}" data-plot="${doc.id}">${previews.has(doc.id) ? previewSvg(/** @type {Preview} */ (previews.get(doc.id)), `template-plot-${doc.id}`) : ""}</span><span class="name">${escape(list[preset].t)}</span><span class="gist">${escape(list[preset].p.slice(0, -1).join(" › "))}</span></button>`).join("")
+          : RECOMMENDED.map(() => '<span class="template waiting" aria-hidden="true"><span class="template-plot pending"></span><span class="name">&nbsp;</span><span class="gist">&nbsp;<br>&nbsp;</span></span>').join("");
+        for (const card of all$("[data-template]")) cardsSeen.observe(card);
+        fitStrip($("templates"));
+      }
+      // A card's drawing, once it comes into view: one at a time, while the page is idle and the row isn't scrolling (the
+      // data it's drawn from comes over the network; drawn mid-scroll, the scroll would stall on it). Kept for the day.
+      const cardQueue = new Set();
+      let stripMoving = 0;
+      $("templates").addEventListener("scroll", () => {
+        clearTimeout(stripMoving);
+        stripMoving = setTimeout(() => (stripMoving = 0), 150);
+      }, { passive: true });
+      const calm = () => new Promise((done) => {
+        // (Checked again at its turn: the row may have started moving meanwhile.)
+        const turn = () => (stripMoving ? wait() : done(undefined));
+        const wait = () => (stripMoving ? setTimeout(wait, 100) : window.requestIdleCallback ? requestIdleCallback(turn, { timeout: 1000 }) : setTimeout(turn, 50));
+        wait();
+      });
+      const drawCards = serial(async () => {
+        for (const i of cardQueue) {
+          cardQueue.delete(i);
+          const card = recommendedCards[i];
+          if (!card || previews.get(card.doc.id)?.key === previewKey(card.doc)) continue;
+          await calm();
+          await drawPreview(card.doc, previewIndex(card.doc));
         }
-        if (marked) saveThumbsSoon();
       });
       const cardsSeen = new IntersectionObserver((entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
-          templateQueue.add(Number(/** @type {HTMLElement} */ (entry.target).dataset.template));
+          cardQueue.add(Number(/** @type {HTMLElement} */ (entry.target).dataset.template));
           cardsSeen.unobserve(entry.target);
         }
-        drawTemplates();
+        drawCards();
       });
-      for (const card of all$("[data-template]")) cardsSeen.observe(card);
+
+      // ── The website's charts: every one, a chart to start from ────────────────
+
+      /**
+       * A website chart (presets.js makes them): `p` its place in the website's tree, `t` its title, `a` its top pane's
+       * layers, `b` its bottom pane's. A layer: `s` its series, `k` its type, `c` its color (`c2` under its base), `l` its
+       * label, `h` hidden, `d` its dash, `z` its base, `v` its levels.
+       * @typedef {{ s: string, k?: string, c?: string, c2?: string, l?: string, h?: 1, d?: number, z?: number, v?: number[] }} PresetLayer
+       * @typedef {{ p: string[], t: string, a: PresetLayer[], b: PresetLayer[] }} Preset
+       */
+      /** The website's charts its page recommends first, by their place in its tree. */
+      const RECOMMENDED = [
+        "Market › Capitalization › Compare", "Market › Indicators › Value Anchors", "Market › Indicators › Puell Multiple",
+        "Market › Returns › Compare", "Distribution › STH vs LTH › Prices › Realized › Price", "Distribution › STH vs LTH › Capitalization › MVRV",
+        "Distribution › Overview › Supply › Profitability › Amount", "Mining › Economics › Hash Price", "Network › Supply › Inflation",
+        "Models › Capital Sentiment › Score", "Models › Bedrock › Raw",
+      ];
+      /** The website's charts, once read; each one's words (its title and place, lowercased) for the search. */
+      // (A page built without them knows at once: no waiting cards.)
+      let presets = /** @type {Preset[] | null} */ (null), presetWords = /** @type {string[]} */ ([]), presetsFailed = /** @type {boolean | "none"} */ ($("presets")?.hasAttribute("data-none") ? "none" : false);
+      /** @type {Promise<Preset[]> | null} */
+      let presetsLoad = null;
+      /**
+       * The website's charts, read once, when first wanted: the built page's own (the live website's, in it compressed),
+       * else the dev page's, the local website's, made in a worker (its modules read a page as they load). Read, ⌘K, open,
+       * shows them.
+       */
+      function loadPresets() {
+        return (presetsLoad ??= (async () => {
+          presetsFailed = false;
+          if ($("presets")?.hasAttribute("data-none")) throw Object.assign(new Error("Built without the website's charts"), { none: true });
+          const packed = $("presets")?.textContent?.trim();
+          /** @type {Preset[]} */
+          let list;
+          if (packed) {
+            const bytes = Uint8Array.from(atob(packed), (char) => char.charCodeAt(0));
+            list = JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+          } else {
+            const worker = new Worker(new URL("./presets-worker.js", import.meta.url), { type: "module" });
+            let deadline = 0;
+            const answer = await new Promise((done, fail) => {
+              worker.onmessage = (event) => done(event.data);
+              worker.onerror = (event) => fail(new Error(event.message || "The website's charts couldn't be read"));
+              // (A module that never loads answers nothing: it's let go.)
+              deadline = setTimeout(() => fail(new Error("The website's charts took too long to read")), 30_000);
+            }).finally(() => (clearTimeout(deadline), worker.terminate()));
+            if (answer.error) throw new Error(answer.error);
+            list = answer.presets;
+          }
+          presets = list;
+          presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
+          renderRecommended();
+          presetsArrived();
+          return list;
+        })().catch((error) => {
+          // Not read: said where they'd be, with a way to try again (never on its own: no loop of attempts; none in a page
+          // built without them).
+          presetsFailed = error?.none ? "none" : true;
+          renderRecommended();
+          presetsArrived();
+          throw error;
+        }));
+      }
+      /** The website's charts read again, asked for (after a failure). */
+      function retryPresets() {
+        presetsLoad = null;
+        presetsFailed = false;
+        renderRecommended();
+        void loadPresets().catch(() => {});
+        showPalette();
+      }
+      /** The pages the website's charts fill (each a group of them). @type {WeakSet<Page>} */
+      const presetPages = new WeakSet();
+      /**
+       * ⌘K, open where the website's charts show (their page, or everything ⌘K finds), shown again with them: on the row
+       * it was on (what ↵ runs doesn't change under you). Elsewhere (a formula, adding a series, a setting), left as it is.
+       */
+      function presetsArrived() {
+        if (!$("palette").open || palette.formula || palette.adding || palette.replacing) return;
+        const page = palette.pages.at(-1);
+        if (page && !presetPages.has(page)) return;
+        palette.landOn = palette.items[palette.active]?.key ?? null;
+        showPalette();
+      }
+      /** ⌘K, on the website's charts. */
+      function openPresets() {
+        openPalette();
+        pushPage(presetsPage([]));
+      }
+      /**
+       * A website chart as the Studio starts it, as the website draws it: the price up top (as candles), its top pane's
+       * layers over it; its bottom pane's, under, in their own pane. Its layers' looks as the website gives them, its
+       * series shown off hidden, its constant lines as levels; at 1D.
+       * @param {Preset} preset
+       */
+      function presetTemplate(preset) {
+        const layerOf = (/** @type {PresetLayer} */ layer, /** @type {number} */ pane) => ({
+          series: layer.s, pane,
+          ...(layer.k ? { type: layer.k } : {}), ...(isColor(layer.c) ? { color: layer.c } : {}), ...(isColor(layer.c2) ? { colorBelow: layer.c2 } : {}),
+          ...(layer.l ? { label: layer.l } : {}), ...(layer.h ? { hidden: true } : {}), ...(DASHES.some(([dash]) => dash === layer.d) ? { dash: layer.d } : {}),
+          ...(Number.isFinite(layer.z) ? { base: layer.z } : {}), ...(layer.v?.length ? { levels: layer.v.slice(0, 12).map((value) => ({ value })) } : {}),
+        });
+        const layers = [...preset.a.map((layer) => layerOf(layer, 0)), ...preset.b.map((layer) => layerOf(layer, 1))];
+        // Over the most a chart holds (the price is one): its shown layers first, in their order; the hidden ones in what
+        // room is left.
+        const room = MAX_LAYERS - 1, shown = layers.filter((layer) => !layer.hidden).length;
+        let shownLeft = room, hiddenLeft = Math.max(0, room - shown);
+        const kept = layers.filter((layer) => (layer.hidden ? hiddenLeft-- > 0 : shownLeft-- > 0));
+        return {
+          title: preset.t,
+          text: preset.p.slice(0, -1).join(" › "),
+          index: "day1",
+          panes: kept.some((layer) => layer.pane === 1) ? [{ mode: 1, size: 3 }, { mode: 0, size: 1.3 }] : [{ mode: 1 }],
+          layers: [{ ...price, pane: 0 }, ...kept],
+        };
+      }
+      /**
+       * Each website chart as the chart it makes, made once it's looked at (its id stable: its drawing kept), the last
+       * forty looked at kept (with their drawings). @type {Map<number, Chart>}
+       */
+      const presetDocs = new Map();
+      function presetDoc(/** @type {number} */ i) {
+        let doc = presetDocs.get(i);
+        if (doc) presetDocs.delete(i);
+        else {
+          doc = Object.assign(fromTemplate(presetTemplate(/** @type {Preset[]} */ (presets)[i])), { id: `preset:${i}` });
+          doc.layers.forEach((layer, k) => (layer.id = `layer:${k}`));
+        }
+        presetDocs.set(i, doc);
+        for (const [old] of presetDocs) {
+          if (presetDocs.size <= 40) break;
+          presetDocs.delete(old);
+          previews.delete(`preset:${old}`);
+        }
+        return doc;
+      }
+      /**
+       * The website charts whose words hold every word typed, the best first (every word in its title, then its title
+       * starting with the first, then the shortest title), as many as `most`.
+       */
+      function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = (/** @type {number} */ _i) => true) {
+        const list = /** @type {Preset[]} */ (presets), found = [];
+        for (let i = 0; i < presetWords.length; i++) if (under(i) && words.every((word) => presetWords[i].includes(word))) found.push(i);
+        const fit = (/** @type {number} */ i) => {
+          const title = list[i].t.toLowerCase();
+          return (words.every((word) => title.includes(word)) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
+        };
+        return found.map((i) => [i, fit(i)]).sort((a, b) => b[1] - a[1] || list[a[0]].t.length - list[b[0]].t.length).slice(0, most).map(([i]) => i);
+      }
+      /** A website chart's row: its title (and, found by a search, its place); its preview; ↵ makes it. */
+      const presetRow = (/** @type {number} */ i, deep = false) => {
+        const preset = /** @type {Preset[]} */ (presets)[i];
+        return {
+          kind: "row", key: `preset:${i}`, icon: ICONS.series, label: preset.t, ...(deep ? { aside: preset.p.slice(0, -1).join(" › ") } : {}), words: presetWords[i], verb: "Use",
+          run: () => useTemplate(presetTemplate(preset)),
+          preview: (/** @type {HTMLElement} */ panel) => {
+            const doc = presetDoc(i);
+            panel.innerHTML = `<h4 class="plain">${escape(preset.t)}</h4><p class="description">${escape(preset.p.slice(0, -1).join(" › "))}</p>
+              ${plotIn(doc, previewIndex(doc))}<div class="info"><h5>Layers</h5><dl>${doc.layers.map((layer) => `<div><dt><i class="dot" style="--c:${escape(cssColor(layer.color))}"></i>${escape(labelOf(layer))}${layer.hidden ? ' <span class="muted">(hidden)</span>' : ""}</dt><dd>${escape(layer.letter)}</dd></div>`).join("")}</dl></div>`;
+          },
+        };
+      };
+      /**
+       * The website's charts as its sidebar has them, a group at a time: its groups (each its count) and charts, in its
+       * order, at the top those it recommends first; a search looks through every chart under it. Unread yet, it says so,
+       * and fills in once they are.
+       * @param {string[]} path @returns {Page}
+       */
+      function presetsPage(path) {
+        void loadPresets().catch(() => {});
+        /** @type {Page} */
+        const page = {
+          title: path.at(-1) ?? "Website charts",
+          // (Its rows are its search's, best first.)
+          searches: true,
+          placeholder: path.length ? `Search in ${path.at(-1)}` : "Search the website's charts",
+          rows: () => {
+            if (!presets) return [presetsFailed === "none"
+              ? { kind: "row", key: "presets-none", icon: ICONS.recent, label: "This page was built without the website's charts", verb: "—", dim: true, stay: true }
+              : presetsFailed
+              ? { kind: "row", key: "presets-retry", icon: ICONS.recent, label: "The website's charts couldn't be read", aside: "Try again", verb: "Retry", stay: true, run: retryPresets }
+              : { kind: "row", key: "presets-waiting", icon: ICONS.recent, label: "Reading the website's charts…", verb: "—", dim: true, stay: true }];
+            const list = presets, under = (/** @type {number} */ i) => path.every((name, depth) => list[i].p[depth] === name);
+            const words = palette.pages.at(-1) === page ? palette.query.toLowerCase().split(/\s+/).filter(Boolean) : [];
+            if (words.length) return presetsMatching(words, 300, under).map((i) => presetRow(i, true));
+            const rows = [], counts = new Map();
+            list.forEach((preset, i) => {
+              if (!under(i)) return;
+              if (preset.p.length === path.length + 1) return void rows.push(presetRow(i));
+              const name = preset.p[path.length];
+              if (!counts.has(name)) rows.push({ kind: "row", key: `group:${name}`, icon: ICONS.folder, label: name, verb: "Open", page: () => presetsPage([...path, name]) });
+              counts.set(name, (counts.get(name) ?? 0) + 1);
+            });
+            for (const row of rows) if (counts.has(row.label) && row.page) row.aside = plural(counts.get(row.label), "chart");
+            if (path.length) return rows;
+            const recommended = RECOMMENDED.flatMap((place) => {
+              const i = list.findIndex((preset) => preset.p.join(" › ") === place);
+              return i < 0 ? [] : [{ ...presetRow(i, true), key: `recommended:${i}`, group: "Recommended" }];
+            });
+            return [...recommended, ...rows.map((row) => ({ ...row, group: "Sections" }))];
+          },
+        };
+        presetPages.add(page);
+        return page;
+      }
+      // Read once the page has settled: the recommended cards fill in, and ⌘K finds them at once.
+      renderRecommended();
+      const readPresets = () => void loadPresets().catch(() => {});
+      if (window.requestIdleCallback) requestIdleCallback(readPresets, { timeout: 4000 });
+      else setTimeout(readPresets, 1500);
 
       /** After a menu pick re-renders the list, focus goes back to the same menu button. */
       const refocus = (selector) => requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector(selector))?.focus());
@@ -9836,7 +10034,7 @@
           </section>`;
         }).join("") + `<div class="drop-new" data-drop-new>Drop here for a new pane</div><div class="layer-adds"><button type="button" class="nav-item" data-action="add-series">${ICONS.plus}<span class="label">Add a series</span><kbd>A</kbd></button><button type="button" class="nav-item" data-action="formula">${ICONS.formula}<span class="label">Add a formula</span><kbd>F</kbd></button></div>`;
         restoreFocus(list, focus);
-        updateChanges();
+        updateValues();
         lightLegend(litLayer, true);
       }
 
@@ -9858,11 +10056,22 @@
         const rect = row.getBoundingClientRect();
         return event.clientY > rect.top + rect.height / 2;
       };
+      /**
+       * The row a drop lands by (before it, or after it on its lower half): the one under the pointer; else in the pane
+       * under it, by where the pointer is along its rows (in a gap between them, the nearest place, never the pane's end).
+       * None in a pane without rows. @param {DragEvent} event @returns {HTMLElement | null}
+       */
+      const rowAt = (event) => {
+        const row = closest(event, "[data-layer]"), pane = row ? null : closest(event, "[data-pane]");
+        if (row || !pane) return row;
+        const rows = all$("[data-layer]", pane);
+        return rows.find((each) => event.clientY < each.getBoundingClientRect().bottom) ?? rows.at(-1) ?? null;
+      };
       $("layer-list").addEventListener("dragover", (event) => {
         if (!dragging) return;
         event.preventDefault();
         clearDrop();
-        const row = closest(event, "[data-layer]");
+        const row = rowAt(event);
         if (row) row.classList.add(dropsAfter(event, row) ? "drop-after" : "drop-before");
         else closest(event, "[data-pane], [data-drop-new]")?.classList.add("drop-target");
       });
@@ -9883,13 +10092,14 @@
       $("layer-list").addEventListener("drop", (event) => {
         event.preventDefault();
         const id = dragging;
-        const row = closest(event, "[data-layer]");
+        const row = rowAt(event);
         const paneElement = closest(event, "[data-pane]");
         const toNew = closest(event, "[data-drop-new]");
         const after = row ? dropsAfter(event, row) : false;
         dragging = "";
         clearDrop();
-        if (!id || row?.dataset.layer === id) return renderLayers();
+        // (On nothing (between panes, the list's edges, the adds): nothing moves.)
+        if (!id || row?.dataset.layer === id || (!row && !toNew)) return renderLayers();
         // Everything glides to its new place; the dropped layer from where it was dropped, over the others.
         const list = $("layer-list");
         const was = LIST_PARTS.map(([selector, key]) => placesOf(all$(selector, list), key));
@@ -10637,7 +10847,7 @@
         if (name === "x" || name === "a" || name === "b") {
           const layers = chart.layers.filter((layer) => layer !== self && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
           // A series drawn as a layer is its letter; an open-high-low-close one reads as its close (offered as itself).
-          const drawn = new Set(chart.layers.map((layer) => layer.series)), known = templateDocs.flatMap((doc) => doc.layers.flatMap((layer) => (layer.series ? [layer.series] : [])));
+          const drawn = new Set(chart.layers.map((layer) => layer.series)), known = recommendedCards.flatMap(({ doc }) => doc.layers.flatMap((layer) => (layer.series ? [layer.series] : [])));
           const names = [...new Set([...seriesIn(chart), ...recent(), ...known])].filter((name) => isSeriesName(name) && !gone.has(name) && !drawn.has(name) && !/_ohlc$/.test(name)).slice(0, 5);
           return { items: [...layers, ...names.map((name) => ({ insert: name, name, title: name, text: humanize(name), series: true }))], more: total > names.length ? `${grouped.format(total - names.length)} more series: type a few letters` : "" };
         }
@@ -11504,7 +11714,7 @@
         const empty = !chart.layers.length;
         return /** @type {Command[]} */ ([
           { title: "Add a series", text: "Search every series, or browse them by topic.", words: "add series catalog browse explore folders metric data", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
-          { title: "New chart", text: "A blank chart, to start from series, a template or a file.", words: "create blank empty", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
+          { title: "New chart", text: "A blank chart, to start from series, a website chart or a file.", words: "create blank empty", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
           ...(home ? [] : [{ title: "All charts", text: "Every chart, side by side.", words: "grid overview gallery library home browse", icon: "grid", run: () => showHome() }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
           ...(empty ? [] : [{ title: "Copy a share link", text: "A link that opens this chart for anyone.", words: "share url send", icon: "share", run: () => $("share").click(), suggested: true }]),
@@ -11513,7 +11723,6 @@
           ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer as drawn, one row per date.", words: "csv spreadsheet export save", icon: "table", run: () => exportAs("csv") }]),
           { title: "Download chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
           { title: "Import a chart file", text: "A chart's file, or several charts exported together.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
-          ...TEMPLATES.map((template) => ({ title: `New chart from a template: ${template.title}`, text: template.text, words: "template example start", icon: "templates", run: () => useTemplate(template), anywhere: true })),
           ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
@@ -11610,6 +11819,8 @@
         const strong = found.filter((item) => leads(item.command)).slice(0, 6), weak = found.filter((item) => !leads(item.command)).slice(0, 6);
         // Charts follow the series: the sidebar already lists them, and adding a series is what ⌘K is mostly for.
         const charts = !everything ? [] : rank(library.charts.filter((doc) => home || doc !== chart).map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), rowText, words).slice(0, 4);
+        // The website's charts (once read), after yours: a few that match; all of them on their own page.
+        const website = !everything || !presets ? [] : rank(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Website charts" })), rowText, words).slice(0, 4);
         // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
         // actions, by what they're of and what they are ("price color", "mvrv base").
         const own = !everything ? [] : home ? rank(browseRows(), rowText, words) : [
@@ -11623,7 +11834,7 @@
         const direct = everything && !home ? directRows(query) : [];
         const span = everything && !home && chart.layers.length ? readDate(query.replace(/^(go ?to|jump( to)?)\s+/i, "")) : null;
         const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
-        const local = [...direct, ...dated, ...strong, ...own, ...charts], more = weak.map((item) => ({ ...item, group: "More commands" }));
+        const local = [...direct, ...dated, ...strong, ...own, ...charts, ...website], more = weak.map((item) => ({ ...item, group: "More commands" }));
         palette.moved = false;
         const controller = (palette.controller = new AbortController());
         // What matched here, while the series are looked for: at once when bitview.space answers; on this machine they
@@ -11645,7 +11856,7 @@
           if (controller.signal.aborted) return;
           clearTimeout(palette.timer);
           const active = palette.items[palette.active];
-          palette.items = names ? [...direct, ...dated, ...strong, ...own, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...charts, ...more] : [...local, ...more];
+          palette.items = names ? [...direct, ...dated, ...strong, ...own, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...charts, ...website, ...more] : [...local, ...more];
           // The top result leads (or the row come back to), unless the person already moved to another row.
           palette.active = palette.moved ? Math.max(0, palette.items.indexOf(active)) : landing(palette.items);
           $("palette-glow").hidden = true;
@@ -12098,7 +12309,7 @@
        * An action, in ⌘K's menu or as a page's row: a label, an aside (a current value; `mono` for a name or a formula);
        * a `page` it opens, or what it `run`s (closing ⌘K unless it `stay`s); `danger` asks for a second ↵.
        * @typedef {{ label: string, aside?: string, mono?: boolean, kbd?: string, icon?: string, run?: () => void, page?: () => Page, leads?: boolean, stay?: boolean, danger?: boolean, key?: string, group?: string, preview?: (panel: HTMLElement) => void, look?: (doc: Chart) => void }} Action
-       * @typedef {{ title: string | (() => string), placeholder?: string, rows: () => any[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, set: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null }} Page
+       * @typedef {{ title: string | (() => string), placeholder?: string, rows: () => any[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, set: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean }} Page
        */
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
       /** What else a setting is called, for the search: "rename" finds a name, "sma" a formula from a layer, "resize" a height. */
@@ -12186,7 +12397,7 @@
           return renderPalette();
         }
         const words = palette.query.toLowerCase().split(/\s+/).filter(Boolean);
-        palette.items = words.length ? rank(page.rows(), rowText, words) : page.rows();
+        palette.items = words.length && !page.searches ? rank(page.rows(), rowText, words) : page.rows();
         // A search here can always widen to everything ⌘K finds.
         const query = palette.query.trim();
         if (query) palette.items.push({ kind: "row", key: "everywhere", icon: ICONS.browse, label: `Search everything for “${query}”`, group: palette.items.length ? "Everywhere" : `Nothing in ${pageTitle(page)} matches`, verb: "Search", stay: true, run: () => {
@@ -12380,8 +12591,8 @@
             { key: "page:layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), words: "series formulas edit change style", page: layersPage },
             { key: "page:panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), words: "scale height resize swap move", page: panesPage },
           ] : []),
-          { key: "page:templates", icon: ICONS.templates, label: "Templates", aside: plural(TEMPLATES.length, "template"), words: "examples start new", page: templatesPage },
-        ].filter((row) => !home || row.key === "page:charts" || row.key === "page:templates").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
+          { key: "page:presets", icon: ICONS.series, label: "Website charts", aside: presets ? plural(presets.length, "chart") : "From bitview.space", words: "website bitview presets examples import base start browse", page: () => presetsPage([]) },
+        ].filter((row) => !home || row.key === "page:charts" || row.key === "page:presets").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
       }
       /** @returns {Page} */
       const chartsPage = () => ({ title: "Charts", placeholder: "Search your charts", rows: () => [
@@ -12403,12 +12614,6 @@
           { label: "Delete", danger: true, run: () => chartPick(id, "delete") },
         ];
       }
-      /** @returns {Page} */
-      const templatesPage = () => ({ title: "Templates", placeholder: "Search the templates", rows: () => TEMPLATES.map((template, i) => ({
-        kind: "row", key: `template:${i}`, icon: chartMark(templateDocs[i]), label: template.title, words: template.text, verb: "Use", run: () => useTemplate(template),
-        preview: (/** @type {HTMLElement} */ panel) => void (panel.innerHTML = `<h4 class="plain">${escape(template.title)}</h4><p class="description">${escape(template.text)}</p>
-          ${plotIn(templateDocs[i], templateIndex(templateDocs[i]))}<div class="info"><h5>Layers</h5><dl>${templateDocs[i].layers.map((layer) => `<div><dt><i class="dot" style="--c:${escape(cssColor(layer.color))}"></i>${escape(labelOf(layer))}</dt><dd>${escape(layer.letter)}</dd></div>`).join("")}</dl></div>`),
-      })) });
       /** @returns {Page} */
       function intervalPage() {
         const supported = supportedIntervals();
@@ -13621,7 +13826,8 @@
           return;
         }
         const template = closest(event, "[data-template]");
-        if (template) return useTemplate(TEMPLATES[Number(template.dataset.template)]);
+        const card = template && recommendedCards[Number(template.dataset.template)];
+        if (card) return useTemplate(presetTemplate(/** @type {Preset[]} */ (presets)[card.preset]));
         const target = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
         if (!target) return;
         const { select: id, toggle, paneMode, paneStack, paneReverse, mode, action, sheet, openChart } = target.dataset;
@@ -13641,6 +13847,7 @@
           if (isDraft(chart) || confirmed(target)) leaveEmpty();
         }
         else if (action === "import") $("import-file").click();
+        else if (action === "website-charts") openPresets();
         else if (action === "formula") addFormula();
         else if (action === "toggle-sidebar") toggleSidebar();
         else if (action === "toggle-panel") togglePanel();
@@ -14032,17 +14239,19 @@
           if (!library.charts.includes(shared)) library.charts.unshift(shared);
           chart = shared;
         }
-        if (!chart) {
-          // First visit: every template is a chart of your own to start from (any can be deleted; New chart brings it back).
-          const now = Date.now();
-          library.charts.push(...TEMPLATES.map((template, i) => Object.assign(fromTemplate(template), { updated: now - i })));
-          chart = library.charts[0];
+        // First visit: an empty chart, open, to start from a search or one of the website's charts.
+        const first = !chart;
+        if (first) {
+          chart = blankChart();
+          library.charts.push(chart);
+          prefs.home = false;
+          savePrefs();
         }
         // Where this tab was, as its history keeps it (a reload), else where the studio was last: the grid, or a chart. A
-        // shared link opens its chart; a first visit, the grid.
-        const there = shared ? null : history.state;
+        // shared link opens its chart; a first visit, its empty chart.
+        const there = shared || first ? null : history.state;
         chart = (there?.chart && chartById(there.chart)) || chart;
-        home = !shared && Boolean(there ? there.home : prefs.home);
+        home = !shared && !first && Boolean(there ? there.home : prefs.home);
         document.body.toggleAttribute("data-home", home);
         if (!there) history.replaceState(home ? { home: true } : { chart: chart.id }, "");
         library.active = chart.id;

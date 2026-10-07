@@ -7,9 +7,12 @@
 // names by typed client paths (templates, examples) are written as their names: paths move between versions, names
 // are the server's. While bitview.space's client dates points unlike this repo's (its server's rules), the page takes
 // this repo's two date helpers in their place.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, posix, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { gzipSync } from "node:zlib";
 
 const SERVER = "https://bitview.space";
 const CLIENT = "/scripts/modules/bitview-client/index.js";
@@ -112,6 +115,54 @@ if (!served || differ(served)) {
   if (!html.includes("client.indexToDate = indexToDate;")) throw new Error("The page's client moved: the build can't give it the date helpers");
   console.log(`${SERVER}'s client dates points unlike this repo's: the page takes this repo's date helpers`);
 } else console.log(`${SERVER}'s client dates points as this repo's does`);
+
+// The website's charts, as presets (presets.js): the live website's, as bitview.space serves it now (which can differ
+// from this repo's, as its series names do). Its modules are fetched as served, each import followed from its options'
+// entry (one by its root path, written as one within the copy), and run in a process of their own that can only read
+// that copy and presets.js (no network, no files beyond, no processes, no environment): their charts come back as
+// JSON, put in the page compressed (unpacked once, when first wanted). Unreadable, the page has none (and says so).
+// (Its real path: the permissions are checked against it, and the system's temp folder can be a link.)
+const copy = realpathSync(mkdtempSync(join(tmpdir(), "bitview-website-")));
+try {
+  const fetched = new Set(), SPECIFIER = /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)(["'])([^"']+)\2/g;
+  const take = async (path, entry = false) => {
+    if (fetched.has(path)) return;
+    fetched.add(path);
+    const response = await fetch(`${SERVER}/${path}`);
+    // (A path read off a comment or a string may be nothing: what's needed and missing fails as it's run.)
+    if (!response.ok) {
+      if (entry) throw new Error(`${path}: ${response.status}`);
+      return;
+    }
+    let text = await response.text();
+    const next = [];
+    if (path.endsWith(".js")) text = text.replace(SPECIFIER, (match, lead, quote, specifier) => {
+      if (!/^\.{1,2}\//.test(specifier) && !specifier.startsWith("/")) return match;
+      const target = new URL(specifier, `${SERVER}/${path}`).pathname.slice(1);
+      next.push(target);
+      if (!specifier.startsWith("/")) return match;
+      const local = posix.relative(posix.dirname(path), target);
+      return `${lead}${quote}${local.startsWith(".") ? local : `./${local}`}${quote}`;
+    });
+    mkdirSync(dirname(join(copy, path)), { recursive: true });
+    writeFileSync(join(copy, path), text);
+    await Promise.all(next.map((target) => take(target)));
+  };
+  await take("scripts/options/partial.js", true);
+  const presetsJs = join(HERE, "presets.js");
+  const run = `console.log = console.error; const { websitePresets } = await import(${JSON.stringify(pathToFileURL(presetsJs).href)}); process.stdout.write(JSON.stringify(await websitePresets(${JSON.stringify(pathToFileURL(`${copy}/`).href)})));`;
+  const json = execFileSync(process.execPath, ["--permission", `--allow-fs-read=${copy}`, `--allow-fs-read=${presetsJs}`, "--input-type=module", "-e", run], { env: {}, maxBuffer: 1 << 28, timeout: 120_000, stdio: ["ignore", "pipe", "ignore"] });
+  const presets = JSON.parse(json.toString());
+  const packed = gzipSync(json, { level: 9 }).toString("base64");
+  replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip">${packed}</script>`);
+  console.log(`${SERVER}'s ${presets.length} charts, as presets: ${(packed.length / 1024).toFixed(0)} KB, from ${fetched.size} files`);
+} catch (error) {
+  // (Said in the page: it has no worker to read them with, so it doesn't try.)
+  if (html.includes(`<script id="presets" type="application/gzip"></script>`)) replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip" data-none></script>`);
+  console.warn(`Couldn't make ${SERVER}'s charts into presets (${error.message}): the page has none`);
+} finally {
+  rmSync(copy, { recursive: true, force: true });
+}
 
 const left = html.match(/["'(]\.\.\/(?:modules|fonts)\/[^"')]*/g);
 if (left?.length) throw new Error(`Still relative: ${left.join(", ")}`);
