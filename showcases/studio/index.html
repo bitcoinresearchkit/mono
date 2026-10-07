@@ -811,7 +811,7 @@
       }
 
       /* A pane's head: its name, how it draws (its scale, stack, order), its eye, and the rest in its menu. */
-      .pane-head {
+      :is(.pane-head, .markers-head) {
         display: flex;
         align-items: center;
         gap: 4px;
@@ -2228,6 +2228,27 @@
           font-size: 12px;
           font-weight: 400;
           font-variant-numeric: tabular-nums;
+        }
+      }
+
+      /* What's marked on the chart besides its layers (the halvings): under the panes, rows as theirs are. */
+      .markers {
+        margin-top: 13px;
+        border-top: 1px solid var(--line);
+        padding-top: 6px;
+
+        .marker-mark {
+          --c: var(--soft);
+
+          svg {
+            width: 12px;
+            height: 12px;
+          }
+        }
+
+        /* (A switch, not a page: no settings to open.) */
+        .row-main {
+          cursor: pointer;
         }
       }
 
@@ -5356,6 +5377,7 @@
         sliders: svg('<path d="M2.5 5h6.5M12.5 5h1M2.5 11h1M7 11h6.5"/><circle cx="10.75" cy="5" r="1.75"/><circle cx="5.25" cy="11" r="1.75"/>', 14),
         undo: svg('<path d="M5.5 3.5 2.5 6.5l3 3"/><path d="M2.5 6.5h7a4 4 0 0 1 0 8h-2"/>', 14),
         redo: svg('<path d="m10.5 3.5 3 3-3 3"/><path d="M13.5 6.5h-7a4 4 0 0 0 0 8h2"/>', 14),
+        halvings: svg('<path d="M5 2.5v11M11 2.5v11" stroke-dasharray="2 2"/>', 14),
         eye: svg('<path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/>', 14),
         eyeOff: svg('<path d="M2 2l12 12"/><path d="M6.4 3.8A6.6 6.6 0 0 1 8 3.5c4.1 0 6.5 4.5 6.5 4.5a11 11 0 0 1-1.9 2.4M10 10.6A2 2 0 0 1 6.9 7.3M4.1 5.2A11 11 0 0 0 1.5 8s2.4 4.5 6.5 4.5c.8 0 1.6-.2 2.3-.5"/>', 14),
         close: svg('<path d="m4 4 8 8M12 4l-8 8"/>', 14),
@@ -6296,7 +6318,7 @@
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, in sparse dots).
        * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`:
        *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
-       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], updated: number }} Chart
+       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], halvings?: true, updated: number }} Chart
        * @typedef {"trend" | "hline" | "vline" | "rect" | "ellipse" | "text" | "brush" | "ruler"} DrawingKind
        * @typedef {{ id: string, kind: DrawingKind, layer: string, points: [number, number][], color: string, width: number, dash: number,
        *   opacity?: number, extend?: "right" | "both", arrow?: boolean, text?: string, label?: string, at?: number, size?: number, back?: string }} Drawing
@@ -6328,6 +6350,14 @@
       const LINES = new Set(["trend", "hline", "vline"]);
       /** A label as kept: one line, 80 characters at most. */
       const LABEL_MAX = 80, labelText = (/** @type {string} */ text) => text.replace(/\s+/g, " ").trim().slice(0, LABEL_MAX);
+      /**
+       * The halvings: each block a multiple of 210,000 cut the reward in half; these, as they were mined (210,000 to
+       * 840,000). The next, a block every ten minutes from the tip's: an estimate, drawn as one.
+       */
+      const KNOWN_HALVINGS = [1354116278, 1468082773, 1589225023, 1713571767], HALVING_BLOCKS = 210_000;
+      /** The halvings mined so far: those known, and any since, placed from the tip's time back (a block each ten minutes). */
+      const minedHalvings = () => [...KNOWN_HALVINGS, ...Array.from({ length: Math.max(0, Math.floor(liveHeight / HALVING_BLOCKS) - KNOWN_HALVINGS.length) }, (_, k) => (liveAt || Date.now() / 1000) - (liveHeight - (KNOWN_HALVINGS.length + k + 1) * HALVING_BLOCKS) * 600)];
+      const nextHalving = () => (liveHeight ? Date.now() / 1000 + ((Math.floor(liveHeight / HALVING_BLOCKS) + 1) * HALVING_BLOCKS - liveHeight) * 600 : NaN);
       /** At most this many drawings, a stroke at most this many points: all of it still fits in a link (two megabytes at most). */
       const MAX_DRAWINGS = 100, MAX_STROKE = 300;
       /** A drawing's point as kept: its time to the second, its value as it is (any rounding moves it on a scale zoomed in far enough). */
@@ -8872,6 +8902,34 @@
         if (points.length === 1) return void context.lineTo(points[0].x + 0.01, points[0].y);
         for (let i = 1; i < points.length; i++) context.lineTo(points[i].x, points[i].y);
       }
+      /** 1st, 2nd, 3rd, 4th, 11th, 21st. */
+      const ordinal = (/** @type {number} */ n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+      /** The halvings across a pane, faint and dashed, behind its series; in the lowest pane, named at their foot by number. */
+      function paintHalvings(context, size, /** @type {{ x: number, n: number, next: boolean }[]} */ marks, /** @type {boolean} */ named) {
+        const ink = css("--soft");
+        context.save();
+        context.lineWidth = 1;
+        for (const { x, n, next } of marks) {
+          if (x < -1 || x > size.width + 1) continue;
+          const at = Math.round(x) + 0.5;
+          context.strokeStyle = alpha(ink, next ? 0.3 : 0.45);
+          context.setLineDash(next ? [1, 4] : [3, 4]);
+          context.beginPath();
+          context.moveTo(at, 0);
+          context.lineTo(at, size.height);
+          context.stroke();
+          if (!named) continue;
+          context.save();
+          context.translate(at + 4, size.height - 8);
+          context.rotate(-Math.PI / 2);
+          context.font = `510 10px ${SANS}`;
+          context.textBaseline = "top";
+          context.fillStyle = alpha(ink, next ? 0.6 : 0.85);
+          context.fillText(`${ordinal(n)} halving${next ? " ≈" : ""}`, 0, 0);
+          context.restore();
+        }
+        context.restore();
+      }
       /** A drawing on its pane (a line's label in a gap of it). */
       function paintDrawing(context, drawing, points, size, card) {
         const color = ink(drawing.color), [a, b] = points, words = { color, back: drawing.back ?? "", on: drawing.back === "solid" ? contrastOn(drawing.color) : color, card };
@@ -9217,7 +9275,13 @@
           /** @type {{ drawing: Drawing, points: { x: number, y: number }[], box: { left: number, top: number, right: number, bottom: number } | null }[]} */
           this.shown = [];
           this.size = { width: 0, height: 0 };
+          /** The halvings in this pane, in pixels across, each its number (`next`: the estimated one), if this layer draws them for its pane. @type {{ x: number, n: number, next: boolean }[]} */
+          this.marks = [];
+          this.lowest = false;
+          this.markView = { zOrder: () => /** @type {const} */ ("bottom"), renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context, mediaSize }) => paintHalvings(context, mediaSize, this.marks, this.lowest)) }) };
+          this.marksOnly = [this.markView];
           this.views = [{ zOrder: () => /** @type {const} */ ("top"), renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context, mediaSize }) => this.draw(context, mediaSize)) }) }];
+          this.both = [this.markView, ...this.views];
         }
         attached({ series, requestUpdate }) {
           this.series = series;
@@ -9229,6 +9293,10 @@
         }
         updateAllViews() {
           const line = timeLine(), series = this.series;
+          // (Once a pane: by its first shown layer; the lowest pane's carry their words.)
+          const host = chart.halvings && line && series ? chart.layers.find((layer) => drawn.has(layer.id) && !layer.hidden && layer.pane === layerById(this.layer)?.pane) : null;
+          this.marks = host?.id === this.layer && line ? [...minedHalvings().map((time, i) => ({ x: line.at + barOf(time) * line.step, n: i + 1, next: false })), ...(Number.isFinite(nextHalving()) ? [{ x: line.at + barOf(nextHalving()) * line.step, n: Math.floor(liveHeight / HALVING_BLOCKS) + 1, next: true }] : [])] : [];
+          this.lowest = Boolean(host) && chart.panes.filter((pane) => chart.layers.some((layer) => layer.pane === pane.id && !layer.hidden)).at(-1)?.id === host?.pane;
           this.shown = line && series ? drawingsShown().filter((drawing) => drawing.layer === this.layer && drawing.id !== typingIn).map((drawing) => {
             const points = onScreen(drawing, series, line);
             // A stroke's box, so the pointer far from it is turned away before its every segment.
@@ -9236,7 +9304,7 @@
           }) : [];
         }
         paneViews() {
-          return this.shown.length ? this.views : NONE;
+          return this.marks.length ? (this.shown.length ? this.both : this.marksOnly) : this.shown.length ? this.views : NONE;
         }
         /** Each line across's value; a selected line's or box's, each point's (and as it's drawn): as the axis reads it. */
         priceAxisViews() {
@@ -12096,6 +12164,20 @@
         requestAnimationFrame(() => /** @type {HTMLElement | null | undefined} */ (only ? document.querySelector("#empty [data-action='add-series']") : all$("#layer-list .pane-scale")[Math.max(0, Math.min(at, chart.panes.length - 1))])?.focus());
       }
 
+      /** What's marked on the chart besides its layers: the halvings, shown or not (as a layer, by its eye; the row the same). */
+      function markersHtml() {
+        // (The past ones on the chart; the next, what it can't say otherwise.)
+        const on = Boolean(chart.halvings), next = nextHalving(), years = Number.isFinite(next) ? `${ordinal(Math.floor(liveHeight / HALVING_BLOCKS) + 1)} ≈ ${new Date(next * 1000).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })}` : "Every 210,000 blocks";
+        return `<section class="markers"><div class="markers-head"><span>Markers</span></div>
+          <div class="layer-row marker-row ${on ? "" : "hidden"}">
+            <button type="button" class="row-main" data-markers="halvings" aria-pressed="${on}" data-tip="${on ? "Hide" : "Show"} the halvings">
+              <span class="letter marker-mark">${ICONS.halvings}</span>
+              <span class="row-text"><span class="name">Halvings</span><span class="sub">${years}</span></span>
+            </button>
+            <button type="button" class="cap small" data-markers="halvings-eye" aria-label="${on ? "Hide" : "Show"} the halvings" data-tip="${on ? "Hide" : "Show"}">${on ? ICONS.eye : ICONS.eyeOff}</button>
+          </div></section>`;
+      }
+      const toggleHalvings = () => commit((doc) => (doc.halvings ? delete doc.halvings : (doc.halvings = true)));
       function renderLayers() {
         const list = $("layer-list");
         const focus = focusKey(list);
@@ -12127,7 +12209,7 @@
               </div>`;
             }).join("")}
           </section>`;
-        }).join("") + `<div class="drop-new" data-drop-new>Drop here for a new pane</div><div class="layer-adds"><button type="button" class="nav-item" data-action="add-series">${ICONS.plus}<span class="label">Add a series</span><kbd>A</kbd></button><button type="button" class="nav-item" data-action="formula">${ICONS.formula}<span class="label">Add a formula</span><kbd>F</kbd></button></div>`;
+        }).join("") + `<div class="drop-new" data-drop-new>Drop here for a new pane</div>` + markersHtml() + `<div class="layer-adds"><button type="button" class="nav-item" data-action="add-series">${ICONS.plus}<span class="label">Add a series</span><kbd>A</kbd></button><button type="button" class="nav-item" data-action="formula">${ICONS.formula}<span class="label">Add a formula</span><kbd>F</kbd></button></div>`;
         restoreFocus(list, focus);
         updateValues();
         lightLegend(litLayer, true);
@@ -12172,9 +12254,10 @@
         });
         LIST_PARTS.forEach(([selector, key, options], k) => slide(all$(selector, list), key, was[k], { ...options, moved: k === 0 ? ids[0] : null }));
       }
-      /** The parts of the layer list a drop moves: rows, pane heads, the lines between panes, and the adds below. */
+      /** The parts of the layer list a drop moves: rows, pane heads, the lines between panes, the markers and the adds below. */
       const LIST_PARTS = /** @type {[string, (element: HTMLElement) => string | undefined, { fade?: boolean, pseudo?: string }][]} */ ([
-        [".layer-row", (row) => row.dataset.layer, {}],
+        [".layer-row[data-layer]", (row) => row.dataset.layer, {}],
+        [".markers", () => "markers", {}],
         [".pane-head", (head) => /** @type {HTMLElement} */ (head.closest("[data-pane]")).dataset.pane, { fade: true }],
         [".pane-group + .pane-group", (group) => group.dataset.pane, { fade: true, pseudo: "::before" }],
         [".layer-adds", () => "adds", {}],
@@ -14007,6 +14090,7 @@
             { title: `Remove ${n}`, text: "With an Undo.", words: "selected picked layers remove delete", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
             { title: "Clear the selection", text: `${n} selected.`, words: "selected picked layers deselect clear", icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
           ])(plural(layers.length, "layer"), layers.some((layer) => !layer.hidden)))(pickedLayers())),
+          ...(empty ? [] : [{ title: chart.halvings ? "Hide the halvings" : "Show the halvings", text: chart.halvings ? "The lines at each halving, off this chart." : "A line at each halving, and the next, estimated.", words: "halving halvings epoch cycle reward vertical lines markers", icon: "halvings", run: toggleHalvings }]),
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           ...(TOUCH ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
@@ -15724,7 +15808,7 @@
       function portable(doc) {
         if (doc === chart) saveView();
         const kept = leftView(doc.id);
-        return { v: 2, title: doc.title, index: doc.index, range: doc.range, panes: doc.panes, layers: doc.layers, ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
+        return { v: 2, title: doc.title, index: doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), panes: doc.panes, layers: doc.layers, ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
       }
       /** The view a file or a link carried with a chart, kept for it (as `saveView` keeps one). @param {Chart} doc */
       function keepCarriedView(doc, input) {
@@ -15735,7 +15819,7 @@
         storage.set(VIEWS, all);
       }
       /** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
-      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
+      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
       /** Two charts alike (a link opened again is the chart already here). */
       const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf(a) === contentOf(b);
       async function shareLink(doc) {
@@ -15782,6 +15866,7 @@
         const doc = blankChart(String(input.title ?? "").slice(0, 120));
         doc.index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1";
         doc.range = RANGES.some(([id]) => id === input.range) ? input.range : "max";
+        if (input.halvings === true) doc.halvings = true;
         const panes = input.panes.slice(0, MAX_PANES);
         doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}) }));
         const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
@@ -16212,6 +16297,7 @@
         if (menuFor) return menuFor.dataset.chartMenu ? chartMenu(menuFor, menuFor.dataset.chartMenu) : menuFor.dataset.paneMenu ? paneActions(menuFor, menuFor.dataset.paneMenu) : scaleMenu(menuFor, menuFor.dataset.scaleMenu);
         const tick = closest(event, "[data-pick-layer]");
         if (tick) return pickLayer(/** @type {string} */ (tick.dataset.pickLayer), event.shiftKey);
+        if (closest(event, "[data-markers]")) return toggleHalvings();
         const paneEye = closest(event, "[data-pane-eye]");
         if (paneEye) return hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id));
         const template = closest(event, "[data-template]");
@@ -16498,6 +16584,11 @@
         liveHeight = height;
         liveAt = Number.isFinite(health.lastIndexedAtUnix) ? health.lastIndexedAtUnix : 0;
         updateStatus();
+        // (The next halving, estimated from it: its row's words, and its line, once known.)
+        if (first && chart?.layers.length) {
+          renderLayers();
+          repaintDrawings();
+        }
         if (first) return;
         const live = $("live");
         live.classList.remove("block");
