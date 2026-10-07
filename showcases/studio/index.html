@@ -1081,12 +1081,12 @@
               opacity: 0;
             }
 
-            /* Centered on the column the logo and the search icon share. */
+            /* Centered on its button (the rail's buttons are its column's width). */
             :is(.search, .chart-item) > kbd.mod {
               position: absolute;
               top: 50%;
               right: auto;
-              left: 20px;
+              left: 50%;
               visibility: visible;
               opacity: 1;
               transform: translate(-50%, -50%);
@@ -5172,7 +5172,15 @@
       ];
       const dashOf = (/** @type {number | undefined} */ style) => DASHES.find(([dash]) => dash === style) ?? DASHES[0];
       /** A pane's stack: none, its layers one on another, or as shares of their sum. @type {[("" | "stack" | "percent"), string, string][]} */
-      const STACKS = [["", "Off", "Each layer at its own value"], ["stack", "Stacked", "Each layer on the ones under it (the panel's first on top; a negative value counts as none)"], ["percent", "100% stacked", "Each layer as its share of them all"]];
+      const STACKS = [["", "Off", "Each layer at its own value"], ["stack", "Stacked", "Each layer on the ones before it, drawn as it is"], ["percent", "100% stacked", "Each layer's running total as a share of them all"]];
+      /** A stack's sums by letters, as far as three ("A, A+B, A+B+C"; `reverse`, from the last). @param {string[]} letters */
+      const stackRun = (letters, reverse = false) => {
+        const run = letters.length < 2 ? ["A", "B", "C"] : [...letters];
+        if (reverse) run.reverse();
+        return run.slice(0, 3).map((_, i, all) => all.slice(0, i + 1).join("+")).join(", ") + (letters.length > 3 ? ", …" : "");
+      };
+      /** A stacked pane's layers' letters, in the panel's order (shown ones). @param {Pane} pane */
+      const stackLetters = (pane) => chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden).map((layer) => layer.letter);
       /** A pane's scales, by mode: its short name (the pane's chip, the inspector's tab), the menu's name, and the tab's tip. */
       const MODES = [
         { chip: "Linear", name: "Linear", tip: "Linear" },
@@ -5863,7 +5871,7 @@
        *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number } }} Layer
        * @typedef {{ value: number, color?: string, dash?: number }} Level A line across at a value: its color (else its
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, in sparse dots).
-       * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent" }} Pane
+       * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`: the panel's last at a stack's foot
        * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], updated: number }} Chart
        */
 
@@ -7075,8 +7083,6 @@
       const built = new Map();
       /** @type {Map<string, Record<string, string>>} layer id → its series' colors */
       const paints = new Map();
-      /** Faded, a stacked layer's colors: dim but solid (see-through, the bands under it would show as its own). @type {Map<string, Record<string, string>>} */
-      const fades = new Map();
       /** The layer in the spotlight while its row or caption is hovered: the others fade back. */
       let spotlit = null;
       /** The series that carry the lines across (levels, bases): drawn under every other, drawing nothing themselves. */
@@ -7088,7 +7094,7 @@
         if (id === spotlit) return;
         spotlit = id;
         const lit = id && drawn.has(id) && drawn.size > 1 && !layerById(id)?.hidden ? id : null;
-        for (const [layerId, series] of drawn) series.applyOptions(!lit || layerId === lit ? paints.get(layerId) : fades.get(layerId) ?? faded(paints.get(layerId)));
+        for (const [layerId, series] of drawn) series.applyOptions(!lit || layerId === lit ? paints.get(layerId) : faded(paints.get(layerId)));
         for (const [layerId, close] of closes) close.series.applyOptions(!lit || layerId === lit ? close.paint : faded(close.paint));
         for (const [layerId, bars] of barsBelow) {
           const faint = Boolean(lit) && layerId !== lit;
@@ -7233,7 +7239,7 @@
         const shift = sameView && !sameTimeline && FINE.has(doc.index) && drawnSpan && data.times.length ? Math.round((drawnSpan[0] - data.times[0]) / FINE_STEP[doc.index]) : 0;
         // Price scales stay as the person left them (a range set by hand, in any mode) while the panes and their modes
         // are the same: new data, a restyle. Otherwise they fit their data again.
-        const panesShape = doc.panes.map((pane) => `${pane.id}:${pane.mode}:${pane.stack ?? ""}`).join();
+        const panesShape = doc.panes.map((pane) => `${pane.id}:${pane.mode}:${pane.stack ?? ""}:${pane.reverse ? 1 : ""}`).join();
         const keep = sameView && panesShape === drawnPanes;
         const glidingTo = glideTarget;
         stopGlide();
@@ -7243,7 +7249,6 @@
         dotted.clear();
         barsBelow.clear();
         paints.clear();
-        fades.clear();
         spotlit = null;
         const paneIndex = new Map(doc.panes.map((pane, i) => [pane.id, i]));
         const stacked = stackOf(doc, data), shares = new Set(doc.panes.filter((pane) => pane.stack === "percent").map((pane) => pane.id));
@@ -7251,7 +7256,7 @@
         // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
         // alone, and a color or a width scrubbed stays smooth however many points there are. (A stack's bands and bars,
         // their colors in their points, are set again whole.)
-        const shapeOf = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane)]);
+        const shapeOf = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse)]);
         /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any }>} */
         const kept = new Map();
         doc.layers.forEach((layer, i) => {
@@ -7266,6 +7271,8 @@
         const across = [];
         /** A layer's lines across, drawn once all are known: its levels, and a baseline's base (not as a band). */
         const linesAcross = (layer, pane, format, op, base) => {
+          // (None in a 100% stack: a layer's levels are its own values', not shares.)
+          if (shares.has(layer.pane)) return;
           const values = [...(layer.levels ?? []).map((level, i) => ({ key: String(i), value: level.value })), ...(base && layer.type === "baseline" ? [{ key: "base", value: layer.base ?? 0 }] : [])];
           for (const { key, value } of values) {
             const { color, dash } = lineLook(layer, key);
@@ -7277,20 +7284,21 @@
           // Its opacity on every color it paints (fills keep their own share of it).
           const op = layer.opacity ?? 1, base = ink(layer.color), under = ink(belowOf(layer));
           const color = op < 1 ? alpha(base, op) : base, below = op < 1 ? alpha(under, op) : under;
+          // Stacked: drawn as it is, at its running total (its tag and price line would say that total, not its value: the
+          // legend says that); the scale from zero (the stack's foot), a 100% one's from 0 to 100.
+          const stack = stacked.get(layer.id);
           const common = {
             priceScaleId: layer.side,
             visible: !layer.hidden,
-            priceLineVisible: Boolean(layer.priceLine),
-            lastValueVisible: !layer.hidden,
+            priceLineVisible: Boolean(layer.priceLine) && !stack,
+            lastValueVisible: !layer.hidden && !stack,
+            ...(stack ? { autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) } : {}),
             // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
             priceFormat: { type: /** @type {const} */ ("custom"), formatter: shares.has(layer.pane) ? (value) => (value > 100.5 || value < -0.5 ? "" : axisLabel(value, "%")) : (value) => axisLabel(value), minMove: 1e-9 },
           };
           const lineWidth = /** @type {any} */ (layer.width);
           const pane = paneIndex.get(layer.pane) ?? 0;
-          // Stacked: a band of its color, solid, over the card (bars stay bars, solid too); over the ones under it. A 100%
-          // stack's scale runs from 0 to 100, whatever the margins.
-          const stack = stacked.get(layer.id);
-          const candles = !stack && layer.type === "candles" && result?.ohlc;
+          const candles = layer.type === "candles" && result?.ohlc;
           // Colors are kept apart from the rest so a spotlight can fade them and give them back.
           const paint = candles ? { upColor: css("--card"), downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs
@@ -7303,21 +7311,6 @@
           // A line's style and shape.
           const line = { lineWidth, lineStyle: layer.dash, lineType: lineTypeOf(layer) };
           let series;
-          if (stack) {
-            const band = solid(base, 0.32 * op + 0.1), bars = layer.type === "histogram";
-            // Its tag and price line would say the running total, not its value: the legend says that.
-            const own = { ...common, lastValueVisible: false, priceLineVisible: false, autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) };
-            const options = bars ? { ...own, color: solid(base, 0.75 * op) } : { ...own, ...marker, ...line, lineColor: color, topColor: band, bottomColor: band };
-            series = kept.has(layer.id) ? was.get(layer.id) : ((added = true), view.addSeries(bars ? LC.HistogramSeries : LC.AreaSeries, options, pane));
-            if (kept.has(layer.id)) series.applyOptions(lookOf(options));
-            built.set(layer.id, { shape: shapeOf(layer, i) });
-            paints.set(layer.id, bars ? { color: solid(base, 0.75 * op) } : { lineColor: color, topColor: band, bottomColor: band });
-            fades.set(layer.id, bars ? { color: solid(base, 0.14) } : { lineColor: solid(base, 0.3), topColor: solid(base, 0.08), bottomColor: solid(base, 0.08) });
-            series.setData(data.times.map((time, i) => (Number.isFinite(stack[i]) && (modeOf(doc, layer) !== 1 || stack[i] > 0) ? { time, value: stack[i] } : { time })));
-            if (!shares.has(layer.pane)) linesAcross(layer, pane, common.priceFormat, op, false);
-            drawn.set(layer.id, series);
-            continue;
-          }
           // (Drawn as before, the series as it was.)
           const again = kept.has(layer.id) ? was.get(layer.id) : undefined;
           if (!again) added = true;
@@ -7343,16 +7336,18 @@
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
           paints.set(layer.id, paint);
-          built.set(layer.id, { shape: shapeOf(layer, i), shown: result?.shown, ohlc: result?.ohlc });
+          built.set(layer.id, { shape: shapeOf(layer, i), shown: stack?.values ?? result?.shown, ohlc: result?.ohlc });
           // The same values (and not bars, their colors in them): nothing to set again. None now (an error, a formula
           // being written), a kept series is emptied.
           const before = kept.get(layer.id);
           if (!result?.shown && again && before?.shown) {
             series.setData([]);
             closes.get(layer.id)?.series.setData([]);
-          } else if (result?.shown && again && before?.shown === result.shown && before?.ohlc === result.ohlc && layer.type !== "histogram") linesAcross(layer, pane, common.priceFormat, op, true);
+          } else if (result?.shown && again && before?.shown === (stack?.values ?? result.shown) && before?.ohlc === result.ohlc && layer.type !== "histogram") linesAcross(layer, pane, common.priceFormat, op, true);
           else if (result?.shown) {
-            const shown = result.shown;
+            const shown = stack?.values ?? result.shown;
+            // A stacked candle: its open, high, low and close on the ones before it too.
+            const at = (/** @type {number} */ value, /** @type {number} */ i) => (stack ? (stack.under[i] + value) * (stack.scale?.[i] ?? 1) : value);
             // Log scales can't show zero or negative values: they become gaps.
             const log = modeOf(doc, layer) === 1;
             const drawable = (value) => Number.isFinite(value) && (!log || value > 0);
@@ -7364,7 +7359,7 @@
               if (bars.some((point) => "color" in point)) barsBelow.set(layer.id, { points: bars, color: tint, faded: faded({ color: tint }).color, faint: false });
               series.setData(bars);
             } else series.setData(candles
-              ? data.times.map((time, i) => (result.ohlc[i] && (!log || result.ohlc[i][2] > 0) ? { time, open: result.ohlc[i][0], high: result.ohlc[i][1], low: result.ohlc[i][2], close: result.ohlc[i][3] } : { time }))
+              ? data.times.map((time, i) => (result.ohlc[i] && Number.isFinite(shown[i]) && (!log || at(result.ohlc[i][2], i) > 0) ? { time, open: at(result.ohlc[i][0], i), high: at(result.ohlc[i][1], i), low: at(result.ohlc[i][2], i), close: at(result.ohlc[i][3], i) } : { time }))
               : points);
             closes.get(layer.id)?.series.setData(points);
             linesAcross(layer, pane, common.priceFormat, op, true);
@@ -7395,11 +7390,13 @@
           carrierOf.get(key).createPriceLine({ price: first.value, color: shared ? ink("gray") : first.color, lineWidth: 1, lineStyle: /** @type {any} */ (first.dash), lineVisible: shown, axisLabelVisible: shown, title: "" });
         }
         for (const series of old) view.removeSeries(series);
-        // A series made anew goes over the others: each pane back in the layers' order, over its lines across.
+        // A series made anew goes over the others: each pane back in the layers' order, over its lines across; in a stack,
+        // from its top (the tallest, at the back) down to its foot (in front), so each band and bar shows whole.
         if (added) {
           const next = new Map([...carrierOf.keys()].map((key) => [Number(key.split("|")[0]), 0]));
           for (const key of carrierOf.keys()) next.set(Number(key.split("|")[0]), (next.get(Number(key.split("|")[0])) ?? 0) + 1);
-          for (const layer of doc.layers) {
+          const topFirst = new Set(doc.panes.filter((pane) => pane.stack && !pane.reverse).map((pane) => pane.id));
+          for (const layer of [...doc.layers.filter((item) => !topFirst.has(item.pane)), ...doc.layers.filter((item) => topFirst.has(item.pane)).reverse()]) {
             const pane = paneIndex.get(layer.pane) ?? 0;
             for (const series of [drawn.get(layer.id), closes.get(layer.id)?.series]) {
               if (!series) continue;
@@ -8344,52 +8341,59 @@
 
       // ── Layers ────────────────────────────────────────────────────────────────
 
+      /** The open chart's stacks as last made, and what they were made of (see stackOf). */
+      let stacksMade = { key: "", stacked: /** @type {Map<string, { values: Float64Array, under: Float64Array, scale: Float64Array | null }>} */ (new Map()) };
       /**
-       * What stacked panes draw: each layer shown on a side, its own value plus those of the layers under it (the panel's
-       * order: its first on top); in a 100% one, that as a share of them all. A missing value counts as none; where none
-       * of them has one, nothing is drawn. @param {Chart} doc @param {{ results: Map<string, any> }} data
-       * @returns {Map<string, Float64Array>} by layer
+       * What stacked panes draw: each layer shown on a side at its own value plus those of the layers before it in the
+       * stack (the panel's order, its first at the foot: A, A+B, A+B+C; reversed, its last); in a 100% one, that as a
+       * share of them all. Each is drawn as it is (its type, its look): only its values change. A layer without a value at
+       * a point adds none there and shows none (it starts where its data does); in a 100% stack, a negative one counts as
+       * none (a share of a whole). `under` and `scale` take its own values there (a candle's open, high, low and close).
+       * @param {Chart} doc @param {{ results: Map<string, any> }} data
+       * @returns {Map<string, { values: Float64Array, under: Float64Array, scale: Float64Array | null }>} by layer
        */
       function stackOf(doc, data) {
+        // The open chart's, kept while what they're made of is the same (the stacked panes, their layers, places and values):
+        // an edit elsewhere (a color, a width) finds the same totals, and their series aren't set again.
+        const key = doc.id === chart?.id ? doc.panes.filter((pane) => pane.stack).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
+          const shown = data.results.get(layer.id)?.shown;
+          return `${layer.id}.${layer.side}.${layer.hidden ? 0 : 1}.${shown ? idOf(shown) : "-"}`;
+        }).join()}`).join("|") : "";
+        if (key && key === stacksMade.key) return stacksMade.stacked;
         const stacked = new Map();
         for (const pane of doc.panes) {
           if (!pane.stack) continue;
+          const shares = pane.stack === "percent";
           for (const side of ["left", "right"]) {
             const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && data.results.get(layer.id)?.shown);
             if (!layers.length) continue;
-            const n = data.results.get(layers[0].id).shown.length, any = new Uint8Array(n);
-            let under = new Float64Array(n);
-            for (const layer of [...layers].reverse()) {
-              const own = data.results.get(layer.id).shown, sum = new Float64Array(n);
-              // Bands stack up from the bottom: a negative value counts as none (the legend still says what it is).
+            const n = data.results.get(layers[0].id).shown.length, total = new Float64Array(n);
+            for (const layer of pane.reverse ? [...layers].reverse() : layers) {
+              const own = data.results.get(layer.id).shown, values = new Float64Array(n), under = Float64Array.from(total);
               for (let i = 0; i < n; i++) {
-                const value = own[i];
-                if (Number.isFinite(value)) any[i] = 1;
-                sum[i] = under[i] + (value > 0 ? value : 0);
+                if (Number.isFinite(own[i])) values[i] = total[i] += shares && own[i] < 0 ? 0 : own[i];
+                else values[i] = NaN;
               }
-              stacked.set(layer.id, sum);
-              under = sum;
+              stacked.set(layer.id, { values, under, scale: null });
             }
-            // (A copy: the top layer's sum is the total, and it's turned into shares in place.)
-            const total = Float64Array.from(under);
+            if (!shares) continue;
+            const scale = total.map((sum) => (sum ? 100 / sum : NaN));
             for (const layer of layers) {
-              const sum = stacked.get(layer.id);
-              for (let i = 0; i < n; i++) sum[i] = !any[i] ? NaN : pane.stack === "percent" ? (total[i] ? (sum[i] / total[i]) * 100 : NaN) : sum[i];
+              const item = stacked.get(layer.id);
+              for (let i = 0; i < n; i++) item.values[i] *= scale[i];
+              item.scale = scale;
             }
           }
         }
+        if (key) stacksMade = { key, stacked };
         return stacked;
       }
-      /** A stack's scale, on a linear one, takes in zero (a band's height is its value). */
+      /** A stack's scale, on a linear one, takes in zero: its foot (up from it, or down, a stack of negatives). */
       const fromZero = (mode) => (mode === 0 ? (/** @type {() => any} */ original) => {
         const info = original();
-        return info && { ...info, priceRange: { ...info.priceRange, minValue: Math.min(0, info.priceRange.minValue) } };
+        // (None in view, a layer that starts later: nothing to take in.)
+        return info?.priceRange ? { ...info, priceRange: { minValue: Math.min(0, info.priceRange.minValue), maxValue: Math.max(0, info.priceRange.maxValue) } } : info;
       } : undefined);
-      /** A color laid over the card at a share, as one solid color: stacked bands meet without mixing. */
-      function solid(hex, share) {
-        const card = css("--card"), mix = (k) => Math.round(parseInt(hex.slice(k, k + 2), 16) * share + parseInt(card.slice(k, k + 2), 16) * (1 - share));
-        return `#${[1, 3, 5].map((k) => mix(k).toString(16).padStart(2, "0")).join("")}`;
-      }
       /** The scale of the pane a layer is on. @param {Chart} doc */
       const modeOf = (doc, layer) => paneMode(doc.panes.find((item) => item.id === layer.pane));
       /**
@@ -8449,7 +8453,7 @@
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill])]);
       /**
        * A layer's shape: its values as its pane scales them (log, or from the first value), averaged down to the mini
        * charts' points and lightly smoothed (at this size, the trend is what reads), with the range of the full values;
@@ -8646,25 +8650,25 @@
       const PREVIEWS = "bitview-studio:previews";
       const PREVIEW = { width: 320, height: 200, points: 120 };
       /**
-       * A layer drawn small, as its type draws on the chart: `k` its kind (a line, an area, a stacked band, a baseline, bars,
-       * dots, or one of its lines across), `c` its color (`c2` under its base), `d` its line (or its bars above the base, `d2` those below), `f` a
-       * stacked band's fill, `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above), `dash`
+       * A layer drawn small, as its type draws on the chart: `k` its kind (a line, an area, a baseline, bars, dots, or one
+       * of its lines across), `c` its color (`c2` under its base), `d` its line (or its bars above the base, `d2` those
+       * below), `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above), `dash`
        * its line style, `op` its opacity, `end` its latest point.
-       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, f?: string, y0?: number, top?: number, bottom?: number, up?: boolean, dash?: string, op?: number, end?: number[] }} PlotMark
+       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, dash?: string, op?: number, end?: number[] }} PlotMark
        * @typedef {{ seps: number[], marks: PlotMark[] }} Preview
        */
       /** Each kind, with what it can't be drawn without. */
-      const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"], band: ["f"] };
+      const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"] };
       const isPath = (d) => typeof d === "string" && /^[MLVZh\d. -]*$/.test(d);
       const validMark = (mark) => Object.hasOwn(PLOT_NEEDS, mark?.k) && PLOT_NEEDS[mark.k].every((field) => mark[field] !== undefined) && isColor(mark.c) && (mark.c2 === undefined || isColor(mark.c2)) && isPath(mark.d)
-        && [mark.d2, mark.f].every((d) => d === undefined || isPath(d)) && [mark.y0, mark.top, mark.bottom, mark.op].every((n) => n === undefined || Number.isFinite(n))
+        && (mark.d2 === undefined || isPath(mark.d2)) && [mark.y0, mark.top, mark.bottom, mark.op].every((n) => n === undefined || Number.isFinite(n))
         && (mark.up === undefined || typeof mark.up === "boolean") && (mark.dash === undefined || (typeof mark.dash === "string" && /^[\d. ]+$/.test(mark.dash)))
         && (mark.end === undefined || (Array.isArray(mark.end) && mark.end.length === 2 && mark.end.every(Number.isFinite)));
       const validPreview = (item) => typeof item?.key === "string" && Array.isArray(item.seps) && item.seps.every(Number.isFinite) && Array.isArray(item.marks) && item.marks.every(validMark);
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on: what the chart's mark does, its range, its layers' looks, the view it was left at and how much the chart shows. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => [layer.type, layer.base, layer.colorBelow, layer.dash, layer.fill, layer.opacity]), doc.panes.map((pane) => pane.stack), leftView(doc.id), Math.round(mostBars() / 200)]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => [layer.type, layer.base, layer.colorBelow, layer.dash, layer.fill, layer.opacity]), doc.panes.map((pane) => [pane.stack, pane.reverse]), leftView(doc.id), Math.round(mostBars() / 200)]);
       /**
        * The drawings kept: the templates', then those of the charts edited last, within a budget (they're a cache: drawn
        * again when missing, they never crowd out the charts themselves).
@@ -8705,10 +8709,14 @@
           const paneTop = round(top), paneBottom = round(top + height);
           const band = { top: top + height * 0.17, height: height * 0.75 };
           top += height;
+          // The pane's marks in the order the chart draws its series, whichever side each is on (a stack from its top, at
+          // the back, to its foot); their lines across behind them all.
+          const from = drawn.marks.length, ranks = new Map(), inPaneOrder = doc.layers.filter((layer) => layer.pane === pane.id);
+          const zOf = new Map((pane.stack && !pane.reverse ? [...inPaneOrder].reverse() : inPaneOrder).map((layer, z) => [layer.id, z]));
           // Each side of a pane has its own scale, as on the chart.
           for (const side of ["left", "right"]) {
             const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && data.results.get(layer.id)?.shown).map((layer) => {
-              const values = stacked.get(layer.id) ?? data.results.get(layer.id).shown, mode = modeOf(doc, layer);
+              const values = stacked.get(layer.id)?.values ?? data.results.get(layer.id).shown, mode = modeOf(doc, layer);
               // Percent and indexed scales start from the first value in view.
               let base = NaN;
               for (let i = first; mode >= 2 && i <= last && !Number.isFinite(base); i++) if (Number.isFinite(values[i]) && values[i] !== 0) base = values[i];
@@ -8750,7 +8758,7 @@
             let lo = Infinity, hi = -Infinity;
             for (const { mode, bars, base, points, stack } of shaped) {
               if (bars) (lo = Math.min(lo, base)), (hi = Math.max(hi, base));
-              if (stack && mode === 0) lo = Math.min(lo, 0);
+              if (stack && mode === 0) (lo = Math.min(lo, 0)), (hi = Math.max(hi, 0));
               for (const point of points) for (const [, value] of point ?? []) (lo = Math.min(lo, value)), (hi = Math.max(hi, value));
             }
             if (!Number.isFinite(lo)) continue;
@@ -8758,8 +8766,9 @@
             const range = hi - lo;
             const y = (value) => round(band.top + band.height * (range ? 1 - (value - lo) / range : 0.5));
             const inPane = (value) => clamp(value, paneTop, paneBottom);
-            shaped.forEach(({ layer, scaled, bars, base, level, points, stack }, s) => {
-              const across = [...(layer.levels ?? []).map((item, i) => [String(i), item.value]), ...(layer.type === "baseline" ? [["base", layer.base ?? 0]] : [])];
+            const drawLayer = ({ layer, scaled, bars, base, level, points }) => {
+              // (None in a 100% stack: a layer's levels are its own values', not shares.)
+              const across = pane.stack === "percent" ? [] : [...(layer.levels ?? []).map((item, i) => [String(i), item.value]), ...(layer.type === "baseline" ? [["base", layer.base ?? 0]] : [])];
               for (const [key, value] of across) {
                 const yAt = y(scaled(value)), { color, dash } = lineLook(layer, key), [, , length, gap] = dashOf(dash);
                 if (yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...((layer.opacity ?? 1) < 1 ? { op: layer.opacity } : {}) });
@@ -8786,20 +8795,21 @@
               if (run.length) runs.push(run);
               if (!runs.length) return;
               const along = (/** @type {number[]} */ part) => part.flatMap((b) => /** @type {[number, number][]} */ (points[b]));
-              if (layer.type === "dots" && !stack) return void drawn.marks.push({ ...look, k: "dots", d: runs.flatMap(along).map((point) => `M${at(point)}h0`).join("") });
+              if (layer.type === "dots") return void drawn.marks.push({ ...look, k: "dots", d: runs.flatMap(along).map((point) => `M${at(point)}h0`).join("") });
               const d = runs.map((part) => `M${along(part).map(at).join("L")}`).join(""), [endAt, endValue] = along(runs[runs.length - 1]).at(-1) ?? [0, 0];
               const [, , length, gap] = LINED.has(layer.type) ? dashOf(layer.dash) : DASHES[0];
               const line = { ...look, d, end: [x(endAt), y(endValue)], ...(gap ? { dash: `${length} ${gap}` } : {}) };
-              if (stack) {
-                // A band from its line down to the one under it (the bottom one, to the pane's foot), as the chart stacks them.
-                const under = shaped[s + 1]?.points, floor = paneBottom;
-                const f = runs.map((part) => `M${along(part).map(at).join("L")}L${[...part].reverse().flatMap((b) => (under?.[b] ? [...under[b]].reverse().map(at) : [...(points[b] ?? [])].reverse().map(([i]) => `${x(i)} ${floor}`))).join("L")}Z`).join("");
-                drawn.marks.push({ ...line, k: "band", f });
-              } else if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, ...(layer.fill === "above" ? { up: true } : {}) });
+              if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, ...(layer.fill === "above" ? { up: true } : {}) });
               else if (layer.type === "baseline") drawn.marks.push({ ...line, k: "baseline", c2: belowOf(layer), y0: Number.isFinite(level) ? inPane(y(level)) : paneBottom, top: paneTop, bottom: paneBottom });
               else drawn.marks.push({ ...line, k: "line" });
-            });
+            };
+            for (const item of shaped) {
+              const start = drawn.marks.length;
+              drawLayer(item);
+              for (let m = start; m < drawn.marks.length; m++) ranks.set(drawn.marks[m], drawn.marks[m].k === "across" ? -1 : zOf.get(item.layer.id) ?? 0);
+            }
           }
+          drawn.marks.splice(from, Infinity, ...drawn.marks.slice(from).sort((a, b) => ranks.get(a) - ranks.get(b)));
         });
         return drawn;
       }
@@ -8828,8 +8838,7 @@
             html = `<g clip-path="url(#${g}a)"><path class="fill" style="fill:url(#${g}u)" d="${f}"/><path stroke="${c}"${dash} d="${mark.d}"/></g><g clip-path="url(#${g}b)"><path class="fill" style="fill:url(#${g}v)" d="${f}"/><path stroke="${c2}"${dash} d="${mark.d}"/></g>`;
           } else {
             let fill = "";
-            if (mark.k === "band") fill = `<path class="fill" style="fill:color-mix(in srgb, ${c} 32%, transparent)" d="${mark.f}"/>`;
-            else if (mark.k === "area" && mark.up) fill = `<path class="fill" style="fill:color-mix(in srgb, ${c} 12%, transparent)" d="${closedTo(mark.d, mark.top)}"/>`;
+            if (mark.k === "area" && mark.up) fill = `<path class="fill" style="fill:color-mix(in srgb, ${c} 12%, transparent)" d="${closedTo(mark.d, mark.top)}"/>`;
             else if (mark.k === "area") {
               defs.push(fade("u", c, mark.top, mark.bottom, 0.2, 0));
               fill = `<path class="fill" style="fill:url(#${g}u)" d="${closedTo(mark.d, mark.bottom)}"/>`;
@@ -9708,14 +9717,16 @@
       /** A menu item's mark: a check on the current one, the same room on the others. */
       const tick = (/** @type {boolean} */ on) => (on ? ICONS.check : '<i class="menu-space"></i>');
       /** A pane's chip: its scale, and its stack (a 100% one's scale is its own). @param {Pane} pane */
-      const paneChip = (pane) => (pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].chip}${pane.stack ? " · Stacked" : ""}`);
+      const paneChip = (pane) => `${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].chip}${pane.stack ? " · Stacked" : ""}`}${pane.stack && pane.reverse ? ", reversed" : ""}`;
       /** An edit to one pane, by its id: its scale (a mode), its stack ("" for none). @param {string} id @param {(pane: Pane) => void} edit */
       const editPane = (id, edit) => commit((doc) => {
         const pane = doc.panes.find((item) => item.id === id);
         if (pane) edit(pane);
       });
       const setPaneMode = (id, mode) => editPane(id, (pane) => (pane.mode = mode));
-      const setPaneStack = (id, stack) => editPane(id, (pane) => (stack ? (pane.stack = stack) : delete pane.stack));
+      // (Off, a stack's order goes with it.)
+      const setPaneStack = (id, stack) => editPane(id, (pane) => (stack ? (pane.stack = stack) : (delete pane.stack, delete pane.reverse)));
+      const setPaneReverse = (id, reverse) => editPane(id, (pane) => (reverse && pane.stack ? (pane.reverse = true) : delete pane.reverse));
       const toggleLog = (id) => {
         const pane = chart.panes.find((item) => item.id === id);
         if (pane && pane.stack !== "percent") setPaneMode(id, paneMode(pane) === 1 ? 0 : 1);
@@ -9724,10 +9735,11 @@
       function scaleMenu(anchor, id) {
         const pane = chart.panes.find((item) => item.id === id);
         if (!pane) return;
-        showMenu(anchor, `<div class="menu-group">Scale</div>${MODES.map(({ name }, mode) => `<button type="button" data-mode="${mode}" aria-checked="${paneMode(pane) === mode}" ${modesFor(pane).includes(mode) ? "" : "disabled"}>${tick(paneMode(pane) === mode)}${name}</button>`).join("")}<div class="menu-rule"></div><div class="menu-group">Stack</div>${STACKS.map(([stack, name]) => `<button type="button" data-stack="${stack}" aria-checked="${(pane.stack ?? "") === stack}">${tick((pane.stack ?? "") === stack)}${name}</button>`).join("")}`, ({ mode, stack }) => {
+        showMenu(anchor, `<div class="menu-group">Scale</div>${MODES.map(({ name }, mode) => `<button type="button" data-mode="${mode}" aria-checked="${paneMode(pane) === mode}" ${modesFor(pane).includes(mode) ? "" : "disabled"}>${tick(paneMode(pane) === mode)}${name}</button>`).join("")}<div class="menu-rule"></div><div class="menu-group">Stack</div>${STACKS.map(([stack, name]) => `<button type="button" data-stack="${stack}" aria-checked="${(pane.stack ?? "") === stack}">${tick((pane.stack ?? "") === stack)}${name}</button>`).join("")}${pane.stack ? `<div class="menu-rule"></div><button type="button" data-reverse="${pane.reverse ? "" : "1"}" role="menuitemcheckbox" aria-checked="${Boolean(pane.reverse)}" data-tip="${escape(stackRun(stackLetters(pane), true))}">${tick(Boolean(pane.reverse))}Reversed</button>` : ""}`, ({ mode, stack, reverse }) => {
           if (!chart.panes.some((item) => item.id === id)) return;
           refocus(`[data-scale-menu="${id}"]`);
-          if (stack !== undefined) setPaneStack(id, stack);
+          if (reverse !== undefined) setPaneReverse(id, Boolean(reverse));
+          else if (stack !== undefined) setPaneStack(id, stack);
           else setPaneMode(id, Number(mode));
         });
       }
@@ -9961,7 +9973,7 @@
         const meta = result?.info;
         const isFormula = layer.formula !== undefined;
         const unit = unitFor(layer, result);
-        const stackOfPane = chart.panes.find((pane) => pane.id === layer.pane)?.stack ?? "";
+        const layerPane = chart.panes.find((pane) => pane.id === layer.pane), stackOfPane = layerPane?.stack ?? "", letters = layerPane ? stackLetters(layerPane) : [];
         const sourceSection = isFormula
           ? `<section>
               <h3>Formula</h3>
@@ -10021,6 +10033,7 @@
             <div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${layer.side === side}">${text}</button>`).join("")}</div></div>
             <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${mode < 2 ? `${tip} scale` : tip}" ${modesFor(/** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane))).includes(mode) ? "" : "disabled"}>${chip}</button>`).join("")}</div></div>
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
+            ${stackOfPane ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Stack order">${/** @type {[boolean, string][]} */ ([[false, "Normal"], [true, "Reversed"]]).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane?.reverse) === reverse}" data-tip="${escape(stackRun(letters, reverse))}">${name}</button>`).join("")}</div></div>` : ""}
             <div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>
           </section>
           ${(actionsShown = actionsOf(layer))}`;
@@ -11504,6 +11517,7 @@
           ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
+          ...(empty || !scalePane().stack ? [] : [scalePane()].map((pane) => ({ title: pane.reverse ? "Stack in order" : "Reverse the stack", text: `${stackRun(stackLetters(pane), !pane.reverse)}${chart.panes.length > 1 ? `, in pane ${chart.panes.indexOf(pane) + 1}` : ""}.`, words: "stack stacked order reverse reversed flip bottom top", icon: "axis", run: () => setPaneReverse(pane.id, !pane.reverse) }))),
           { title: measureMode ? "Stop measuring" : "Measure", text: measureMode ? "Dragging pans the chart again." : "Drag across the chart to measure a change.", words: "measure measuring ruler distance difference percent", icon: "ruler", kbd: "M", run: () => setMeasureMode(!measureMode) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
@@ -12503,7 +12517,7 @@
               { key: "new", icon: ICONS.plus, label: "A new pane", run: set((item, doc) => (item.pane = newPaneIn(doc).id)) },
             ]) },
             { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")) },
-            ...panePage(layer.pane).rows().filter((row) => row.key === "scale" || row.key === "stack").map((row) => ({ ...row, group: "Layout" })),
+            ...panePage(layer.pane).rows().filter((row) => row.key === "scale" || row.key === "stack" || row.key === "order").map((row) => ({ ...row, group: "Layout" })),
             ...((mates) => [
               ...(mates.indexOf(layer) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) - 1])}`, verb: "Move", group: "Layout", stay: true, run: () => moveLayer(id, -1) }] : []),
               ...(mates.indexOf(layer) < mates.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) + 1])}`, verb: "Move", group: "Layout", stay: true, run: () => moveLayer(id, 1) }] : []),
@@ -12632,6 +12646,7 @@
           return [
             ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => MODES.flatMap((mode, m) => (!modesFor(pane).includes(m) ? [] : [{ key: String(m), icon: ICONS.charts, label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(chart.panes[at()]) === m, run: () => setPaneMode(id, m) }])), (panel) => previewPane(panel, id)) }]),
             { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => STACKS.map(([stack, name, tip]) => ({ key: stack || "off", icon: ICONS.charts, label: name, aside: tip, current: (chart.panes[at()]?.stack ?? "") === stack, run: () => setPaneStack(id, stack) }))) },
+            ...(pane.stack ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: pane.reverse ? "Reversed" : "Normal", group: "Pane", page: () => choicePage("Order", () => [false, true].map((reverse) => ({ key: reverse ? "reversed" : "normal", icon: ICONS.charts, label: reverse ? "Reversed" : "Normal", aside: stackRun(stackLetters(pane), reverse), current: Boolean(chart.panes[at()]?.reverse) === reverse, run: () => setPaneReverse(id, reverse) }))) }] : []),
             ...(many ? [{ key: "height", icon: ICONS.sliders, label: "Height", aside: `${shareOf(i)}% of the chart`, group: "Pane", page: () => choicePage("Height", () => SHARES.map((share) => ({ key: String(share), icon: ICONS.sliders, label: `${share}% of the chart`, current: shareOf(at()) === share, run: () => setShare(id, share / 100), look: (/** @type {Chart} */ doc) => shareOn(doc, id, share / 100) })), (panel, option) => previewPane(panel, id, Number(option.key) / 100)) }] : []),
             ...(i > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with pane ${i}`, verb: "Move", group: "Pane", stay: true, run: () => movePane(id, -1) }] : []),
             ...(i < chart.panes.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: `Swaps with pane ${i + 2}`, verb: "Move", group: "Pane", stay: true, run: () => movePane(id, 1) }] : []),
@@ -12650,7 +12665,7 @@
         const sizes = chart.panes.map((other, k) => other.size ?? defaultSize(k)), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
         if (share !== null) sizes[i] = (share * others) / (1 - share);
         panel.innerHTML = `<h4 class="plain">Pane ${i + 1}</h4>
-          <p class="description">${escape(pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`)}${chart.panes.length > 1 ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
+          <p class="description">${escape(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.stack && pane.reverse ? ", reversed" : ""}`)}${chart.panes.length > 1 ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
           <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size}">${k + 1}</i>`).join("")}</div>
           <div class="info"><h5>Layers</h5><dl>${layers.map((layer) => `<div><dt><i class="dot" style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</dt><dd>${escape(layer.letter)}</dd></div>`).join("") || "<div><dt>None yet</dt><dd></dd></div>"}</dl></div>`;
       }
@@ -12907,7 +12922,7 @@
         if (phone.matches) host.insertBefore(menuScrim, menu);
         for (const rule of all$(".menu-rule", menu)) rule.setAttribute("role", "separator");
         for (const button of all$("button", menu)) {
-          button.setAttribute("role", button.hasAttribute("aria-checked") ? "menuitemradio" : "menuitem");
+          if (!button.hasAttribute("role")) button.setAttribute("role", button.hasAttribute("aria-checked") ? "menuitemradio" : "menuitem");
           // Its key, kept while a second press is asked for (that replaces what it says).
           const key = button.querySelector("kbd")?.textContent;
           if (key) button.dataset.key = key;
@@ -13210,7 +13225,7 @@
         doc.index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1";
         doc.range = RANGES.some(([id]) => id === input.range) ? input.range : "max";
         const panes = input.panes.slice(0, MAX_PANES);
-        doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}) }));
+        doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack, ...(pane.reverse === true ? { reverse: true } : {}) } : {}) }));
         const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
         for (const layer of input.layers.slice(0, MAX_LAYERS)) {
           if (!layer || typeof layer !== "object") continue;
@@ -13607,9 +13622,9 @@
         }
         const template = closest(event, "[data-template]");
         if (template) return useTemplate(TEMPLATES[Number(template.dataset.template)]);
-        const target = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
+        const target = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
         if (!target) return;
-        const { select: id, toggle, paneMode, paneStack, mode, action, sheet, openChart } = target.dataset;
+        const { select: id, toggle, paneMode, paneStack, paneReverse, mode, action, sheet, openChart } = target.dataset;
         if (openChart) {
           delete document.body.dataset.sheet;
           go(chartById(openChart));
@@ -13617,6 +13632,7 @@
         else if (toggle) toggleHidden(toggle);
         else if (paneMode) setPaneMode(paneMode, Number(mode));
         else if (paneStack) setPaneStack(paneStack, target.dataset.stack ?? "");
+        else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
         else if (action === "palette") openPalette({ resume: true });
         else if (action === "home") showHome();
         else if (action === "add-series") openPalette({ add: true });
