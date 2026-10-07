@@ -1298,7 +1298,7 @@
         }
       }
 
-      body:is([data-measure], [data-drawing]) .chart {
+      body[data-drawing] .chart {
         cursor: crosshair;
       }
 
@@ -1307,7 +1307,7 @@
         cursor: pointer;
       }
 
-      .chart[data-over="handle"] {
+      .chart:is([data-over="handle"], [data-over="label"]) {
         cursor: grab;
       }
 
@@ -1317,6 +1317,14 @@
 
       .chart[data-over="nesw"] {
         cursor: nesw-resize;
+      }
+
+      .chart[data-over="ns"] {
+        cursor: ns-resize;
+      }
+
+      .chart[data-over="ew"] {
+        cursor: ew-resize;
       }
 
       /* Held, the cursor it was taken with stays wherever the pointer goes (--held: grabbing, or a corner's resize). */
@@ -1512,44 +1520,6 @@
         }
       }
 
-      .measure {
-        position: absolute;
-        z-index: 2;
-        border-radius: var(--radius-sm);
-        background: color-mix(in srgb, var(--m) 9%, transparent);
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--m) 70%, transparent);
-        pointer-events: none;
-
-        &[hidden] {
-          display: none;
-        }
-
-        > span {
-          position: absolute;
-          left: 50%;
-          display: flex;
-          gap: 10px;
-          border-radius: var(--radius-sm);
-          padding: 5px 9px;
-          color: var(--soft);
-          background: var(--raise);
-          box-shadow: var(--pop), inset 0 0 0 1px color-mix(in srgb, var(--m) 50%, transparent);
-          font: 510 12px/1.2 var(--sans);
-          font-variant-numeric: tabular-nums;
-          white-space: nowrap;
-          transform: translateX(-50%);
-
-          b {
-            color: var(--ink);
-            font-weight: 590;
-          }
-
-          .muted {
-            color: var(--muted);
-          }
-        }
-      }
-
       /*
        * The drawing belt, over the plot: its grip, the tools, then what's in hand (a tool's next look, or the selected
        * drawing's). Placed by script on a side of the plot: along the top or foot it lies (wrapping, if longer than the
@@ -1666,15 +1636,36 @@
         min-width: 0;
       }
 
+      .belt-size {
+        font: 590 11.5px/1 var(--sans);
+      }
+
+      /* Words on a background, as a text or a label shows them: none, a border, a soft fill (and a border), its color. */
+      .back-chip {
+        padding: 2px 3.5px;
+        border-radius: 4px;
+        color: var(--c);
+        font: 650 10.5px/1 var(--sans);
+
+        &:is([data-back="outline"], [data-back="soft-outline"]) {
+          box-shadow: inset 0 0 0 1px var(--c);
+        }
+
+        &:is([data-back="soft"], [data-back="soft-outline"]) {
+          background: color-mix(in srgb, var(--c) 22%, transparent);
+        }
+
+        &[data-back="solid"] {
+          background: var(--c);
+          color: var(--on);
+        }
+      }
+
       .belt-rule {
         width: 1px;
         height: 18px;
         margin: 0 3px;
         background: var(--line-strong);
-      }
-
-      .belt-size {
-        font: 590 11.5px/1 var(--sans);
       }
 
       /* Bitview's colors, a grid of swatches: the one in use ringed. */
@@ -1802,12 +1793,21 @@
         overflow: hidden;
         resize: none;
         outline: none;
-        color: var(--c);
+        color: var(--on);
         background: color-mix(in srgb, var(--card) 85%, transparent);
         box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 50%, transparent);
-        font: 510 var(--size) / var(--line) var(--sans);
+        font: 590 var(--size) / var(--line) var(--sans);
+        text-align: center;
         white-space: pre;
-        caret-color: var(--c);
+        caret-color: var(--on);
+
+        &:is([data-back="soft"], [data-back="soft-outline"]) {
+          background: color-mix(in srgb, var(--c) 16%, var(--card));
+        }
+
+        &[data-back="solid"] {
+          background: var(--c);
+        }
 
         &[hidden] {
           display: none;
@@ -4977,7 +4977,6 @@
           <section class="stage" aria-label="Chart">
             <div class="canvas" id="canvas">
               <div id="chart" class="chart"></div>
-              <div id="measure" class="measure" hidden><span></span></div>
               <div id="belt" class="belt" role="toolbar" aria-label="Drawing" hidden></div>
               <div id="select-box" class="select-box" hidden></div>
               <textarea id="draw-text" class="draw-text" rows="1" maxlength="500" spellcheck="false" aria-label="Text" hidden></textarea>
@@ -5102,7 +5101,7 @@
             <div><dt>Undo, redo</dt><dd><kbd>⌘Z</kbd><kbd>⇧⌘Z</kbd></dd></div>
             <div><dt>Show or hide the layers panel</dt><dd><kbd>P</kbd></dd></div>
             <div><dt>Collapse or expand the sidebar</dt><dd><kbd>\</kbd></dd></div>
-            <div><dt>Close, clear a measure, deselect</dt><dd><kbd>esc</kbd></dd></div>
+            <div><dt>Close, put a tool down, deselect</dt><dd><kbd>esc</kbd></dd></div>
           </dl>
           <h3>Charts</h3>
           <dl>
@@ -5144,15 +5143,16 @@
             <div><dt>Previous or next interval</dt><dd><kbd>[</kbd><kbd>]</kbd></dd></div>
             <div><dt>Zoom out or in</dt><dd><kbd>−</kbd><kbd>+</kbd></dd></div>
             <div><dt>Log or linear scale</dt><dd><kbd>L</kbd></dd></div>
-            <div><dt>Measure a change</dt><dd><kbd>M</kbd> or <kbd>⇧</kbd> and drag</dd></div>
+            <div><dt>Measure a change: a ruler, kept</dt><dd><kbd>M</kbd></dd></div>
           </dl>
           <h3>Drawing</h3>
           <dl>
             <div><dt>Draw: a line, a box, text, a stroke</dt><dd><kbd>D</kbd> then its key</dd></div>
             <div><dt>Place without drawing to a value</dt><dd><kbd>⌥</kbd> and draw</dd></div>
-            <div><dt>Edit a text</dt><dd>double-click it</dd></div>
+            <div><dt>Edit a text, or label a line (then drag the label along it)</dt><dd>double-click it</dd></div>
             <div><dt>Select several: one more, or a box around them</dt><dd><kbd>⇧</kbd> and click, <kbd>⌘</kbd> and drag</dd></div>
             <div><dt>Select every drawing</dt><dd><kbd>⌘A</kbd></dd></div>
+            <div><dt>Hide or show the drawings</dt><dd><kbd>⇧H</kbd></dd></div>
             <div><dt>Duplicate the selected drawings</dt><dd><kbd>⌘D</kbd></dd></div>
             <div><dt>Remove the selected drawings</dt><dd><kbd>⌫</kbd></dd></div>
             <div><dt>Stop drawing</dt><dd><kbd>esc</kbd></dd></div>
@@ -5261,6 +5261,9 @@
         check: svg('<path d="m4 8.4 2.6 2.6L12 5.4"/>', 12),
         ruler: svg('<path d="m2 11 9-9 3 3-9 9Z"/><path d="m5 8 1.5 1.5M7 6l1 1M9 4l1.5 1.5"/>'),
         draw: svg('<path d="m10.5 2 3 3-7 7-3.6.6.6-3.6Z"/><path d="M9.5 14h4"/>'),
+        ellipse: svg('<ellipse cx="8" cy="8" rx="6" ry="4.5"/>'),
+        arrow: svg('<path d="M3 13 12.5 3.5M7 3.5h5.5V9"/>'),
+        label: svg('<path d="M2.5 8h2M11.5 8h2"/><rect x="4.5" y="5" width="7" height="6" rx="1.5"/>'),
         select: svg('<path d="M2.5 5V3.5a1 1 0 0 1 1-1H5M8.5 2.5h-1M11 2.5h1.5a1 1 0 0 1 1 1V5M13.5 8.5v-1M13.5 11v1.5a1 1 0 0 1-1 1H11M7.5 13.5h1M5 13.5H3.5a1 1 0 0 1-1-1V11M2.5 7.5v1"/>'),
         cursor: svg('<path d="M4 2.5 12.5 8.6 8.7 9.3 10.7 13.5 9.1 14.2 7.1 10 4 12.7Z"/>'),
         opacity: svg('<circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11Z" fill="currentColor"/>'),
@@ -6186,11 +6189,15 @@
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, in sparse dots).
        * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`: the panel's last at a stack's foot
        * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], updated: number }} Chart
-       * @typedef {"trend" | "hline" | "vline" | "rect" | "text" | "brush"} DrawingKind
+       * @typedef {"trend" | "hline" | "vline" | "rect" | "ellipse" | "text" | "brush" | "ruler"} DrawingKind
        * @typedef {{ id: string, kind: DrawingKind, layer: string, points: [number, number][], color: string, width: number, dash: number,
-       *   opacity?: number, extend?: "right" | "both", text?: string, size?: number }} Drawing Drawn on a layer, on its scale: each point a time (unix
+       *   opacity?: number, extend?: "right" | "both", arrow?: boolean, text?: string, label?: string, at?: number, size?: number, back?: string }} Drawing
+       *   Drawn on a layer,
+       *   on its scale: each point a time (unix
        *   seconds) and a value as the layer reads; it goes with its layer. `extend`: a trend line on past its later point (into
-       *   the future, whichever way it was drawn), or past both.
+       *   the future, whichever way it was drawn), or past both. A text is a tag at its point (its middle), as a line's label is:
+       *   one size whatever the zoom (`size`, a preset; a line's label's too). A line's `label` sits `at` a share of the
+       *   way along it: a trend line's, from its first point to its second; a line across's, across the plot; down, down it.
        */
 
       /** The tools: each one's name, what it's called alone, its key in the Draw menu, how it's drawn, and its icon. */
@@ -6199,33 +6206,47 @@
         hline: { name: "Horizontal line", noun: "horizontal line", verb: "Draw a horizontal line", key: "H", tip: "Click at its value", icon: ICONS.hline },
         vline: { name: "Vertical line", noun: "vertical line", verb: "Draw a vertical line", key: "V", tip: "Click at its date", icon: ICONS.vline },
         rect: { name: "Rectangle", noun: "rectangle", verb: "Draw a rectangle", key: "R", tip: "Drag, or click two corners", icon: ICONS.rect },
+        ellipse: { name: "Ellipse", noun: "ellipse", verb: "Draw an ellipse", key: "E", tip: "Drag, or click two corners", icon: ICONS.ellipse },
         text: { name: "Text", noun: "text", verb: "Write on the chart", key: "T", tip: "Click where it goes, then type", icon: ICONS.text },
         brush: { name: "Brush", noun: "stroke", verb: "Draw with the brush", key: "B", tip: "Draw freely", icon: ICONS.brush },
+        ruler: { name: "Ruler", noun: "ruler", verb: "Measure a change", key: "M", tip: "Drag across the chart to measure a change", icon: ICONS.ruler },
       });
       const KINDS = /** @type {DrawingKind[]} */ (Object.keys(TOOLS));
       /** The kinds placed by two points: a line's ends, a box's corners. */
-      const PAIRED = new Set(["trend", "rect"]);
-      /** At most this many drawings, a stroke at most this many points: all of it still fits in a link (a megabyte at most). */
+      const PAIRED = new Set(["trend", "rect", "ellipse", "ruler"]);
+      /** The kinds that are boxes: taken by their corners, resized. */
+      const BOXES = new Set(["rect", "ellipse", "ruler"]);
+      /** The lines, each with a label it can carry (double-clicked on), slid along it. */
+      const LINES = new Set(["trend", "hline", "vline"]);
+      /** A label as kept: one line, 80 characters at most. */
+      const LABEL_MAX = 80, labelText = (/** @type {string} */ text) => text.replace(/\s+/g, " ").trim().slice(0, LABEL_MAX);
+      /** At most this many drawings, a stroke at most this many points: all of it still fits in a link (two megabytes at most). */
       const MAX_DRAWINGS = 100, MAX_STROKE = 300;
-      /** A drawing's point as kept: its time to the second, its value to six figures (far finer than a pixel). */
-      const pointOf = (/** @type {number} */ time, /** @type {number} */ value) => /** @type {[number, number]} */ ([Math.round(time), Number(value.toPrecision(6))]);
-      /** Text sizes, in pixels, and their names. */
-      const SIZES = [12, 14, 18, 24];
-      const SIZE_NAMES = { 12: "Small", 14: "Medium", 18: "Large", 24: "Larger" }, SIZE_SHORT = { 12: "S", 14: "M", 18: "L", 24: "XL" };
+      /** A drawing's point as kept: its time to the second, its value as it is (any rounding moves it on a scale zoomed in far enough). */
+      const pointOf = (/** @type {number} */ time, /** @type {number} */ value) => /** @type {[number, number]} */ ([Math.round(time), value]);
       /** How far a trend line goes: to its points, on to the right (into the future), on both ways. @type {[string, string, string][]} */
       const EXTENDS = [["", "None", "Ends at its points"], ["right", "Right", "On past its later point, into the future"], ["both", "Both", "On past both of its points"]];
 
+      /** Words' sizes, in pixels (a text's, a line's label's): presets, one size whatever the zoom; Medium unless chosen. */
+      const SIZES = [11, 13, 16, 22], TEXT_SIZE = 13;
+      const SIZE_NAMES = { 11: "Small", 13: "Medium", 16: "Large", 22: "Huge" }, SIZE_SHORT = { 11: "S", 13: "M", 16: "L", 22: "XL" };
+      /** What's behind words (a text's, a line's label's): nothing (a line breaks around them), a border, a soft fill of their color (and a border), or their color, the words in contrast. */
+      const BACKS = [["", "None", "Just the words"], ["outline", "Outline", "A border around the words"], ["soft", "Soft", "On a soft fill of its color"], ["soft-outline", "Soft, outlined", "On a soft fill, a border around"], ["solid", "Solid", "On its color, the words in contrast"]];
+      /** The preset nearest a size (between two, the larger). */
+      const presetSize = (/** @type {number} */ size) => SIZES.reduce((best, each) => (Math.abs(each - size) <= Math.abs(best - size) ? each : best));
       /** The pen's color at first: an annotation's, apart from the colors layers take first (ink, orange, blue, green). */
       const PEN_COLOR = "yellow";
-      /** A drawing's look as kept, from what was stored: its color, width, line; a trend line's extent, a text's size. */
+      /** A drawing's look as kept, from what was stored: its color, width, line, opacity; a trend line's extent and arrow; words' size and background. */
       function lookOfDrawing(kind, input) {
         return {
           color: isColor(input?.color) ? input.color : PEN_COLOR,
           width: WIDTHS.includes(input?.width) ? input.width : 1.5,
           dash: DASHES.some(([dash]) => dash === input?.dash) ? input.dash : 0,
-          ...(OPACITIES.includes(input?.opacity) && input.opacity < 1 ? { opacity: input.opacity } : {}),
+          ...(kind !== "ruler" && OPACITIES.includes(input?.opacity) && input.opacity < 1 ? { opacity: input.opacity } : {}),
           ...(kind === "trend" && (input?.extend === "right" || input?.extend === "both") ? { extend: input.extend } : {}),
-          ...(kind === "text" ? { size: SIZES.includes(input?.size) ? input.size : 14 } : {}),
+          ...(kind === "trend" && input?.arrow === true && !input?.extend ? { arrow: true } : {}),
+          ...((kind === "text" || LINES.has(kind)) && Number.isFinite(input?.size) ? { size: presetSize(input.size) } : {}),
+          ...((kind === "text" || LINES.has(kind)) && BACKS.some(([back]) => back && back === input?.back) ? { back: input.back } : {}),
         };
       }
 
@@ -6447,7 +6468,7 @@
         panel: stored.panel === "open" || stored.panel === "closed" ? stored.panel : tablet.matches ? "closed" : "open",
         home: stored.home !== false,
         belt: { on: stored.belt?.on === true, dock: ["top", "bottom", "left", "right"].includes(stored.belt?.dock) ? stored.belt.dock : "bottom", at: Number.isFinite(stored.belt?.at) ? clamp(stored.belt.at, 0, 1) : 0.5 },
-        pen: /** @type {{ color: string, width: number, dash: number, opacity?: number, extend?: "right" | "both", size?: number }} */ ({ ...lookOfDrawing("trend", stored.pen), size: lookOfDrawing("text", stored.pen).size }),
+        pen: /** @type {{ color: string, width: number, dash: number, opacity?: number, extend?: "right" | "both", arrow?: boolean, size: number, back?: string }} */ ({ ...lookOfDrawing("trend", stored.pen), size: Number.isFinite(stored.pen?.size) ? presetSize(stored.pen.size) : TEXT_SIZE }),
       };
       const savePrefs = () => storage.set(PREFS, prefs);
       /** The grid of every chart is on screen (the open chart stays laid out under it). */
@@ -6673,12 +6694,12 @@
         rememberViewed(doc.id);
         selected = "";
         chosen = new Set();
+        drawingsHidden = false;
         edits.past = [];
         edits.future = [];
         edits.key = "";
         revision++;
         hideMenu();
-        setMeasureMode(false);
         setTool("");
         save();
         refresh(true, true);
@@ -7716,13 +7737,15 @@
         }
         const panes = view.panes();
         const sides = new Set(doc.layers.map((layer) => layer.side));
+        const folded = foldedPanes(doc);
         doc.panes.forEach((pane, i) => {
           if (!panes[i]) return;
-          panes[i].setStretchFactor(pane.size ?? defaultSize(i));
           // A side shows in every pane once any layer uses it: the plots line up, and the chart library needs it so.
-          // A stack sits on its floor (a band's height is its value): no margin under it.
-          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), scaleMargins: { top: 0.17, bottom: pane.stack ? 0 : 0.08 }, ...(keep ? {} : { mode: paneMode(pane), autoScale: true }) });
+          // A stack sits on its floor (a band's height is its value): no margin under it. (Folded, a pane's scale reads
+          // nothing: it has nothing shown.)
+          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), textColor: folded.has(pane.id) ? "transparent" : css("--chart-text"), scaleMargins: { top: 0.17, bottom: pane.stack ? 0 : 0.08 }, ...(keep ? {} : { mode: paneMode(pane), autoScale: true }) });
         });
+        sizePanes(doc);
         drawnPanes = panesShape;
         view.applyOptions({ timeScale: { timeVisible: FINE.has(doc.index) } });
         // A chart opening comes back where it was left; at another interval, on the same time (on its preset, if it
@@ -7800,6 +7823,35 @@
       }
 
       const defaultSize = (i) => (i === 0 ? 3 : 1.4);
+      /**
+       * The panes folded: those with nothing shown (every layer in them hidden: as a website's chart opens some, or as
+       * hidden one by one), while another shows something. A folded pane keeps only its legend's height: its layers'
+       * names, there to be shown again; showing one opens it as tall as it was.
+       */
+      function foldedPanes(/** @type {Chart} */ doc) {
+        const showing = new Set(doc.layers.filter((layer) => !layer.hidden).map((layer) => layer.pane));
+        return new Set(showing.size ? doc.panes.filter((pane) => !showing.has(pane.id)).map((pane) => pane.id) : []);
+      }
+      /** Each pane's share of the height: as kept (else the first tall, the others shorter); a folded one's, its legend's height in pixels. */
+      function paneFactors(/** @type {Chart} */ doc) {
+        const folded = foldedPanes(doc), count = view.panes().length;
+        // (Its legend's names: hidden, its layers have no values under them; an error, if one has one.)
+        const strip = (pane) => {
+          const legend = $("chart").querySelector(`.legend[data-pane="${pane.id}"]`), top = legend?.parentElement?.getBoundingClientRect().top ?? 0;
+          return Math.max(28, ...[...(legend?.querySelectorAll(".legend-name, .legend-error") ?? [])].map((name) => Math.ceil(name.getBoundingClientRect().bottom - top) + 7));
+        };
+        const total = $("chart").clientHeight - view.timeScale().height() - (count - 1);
+        const strips = doc.panes.reduce((sum, pane) => sum + (folded.has(pane.id) ? strip(pane) : 0), 0);
+        const open = doc.panes.reduce((sum, pane, i) => sum + (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(i)), 0);
+        return doc.panes.map((pane, i) => (folded.has(pane.id) ? (open * strip(pane)) / Math.max(1, total - strips) : pane.size ?? defaultSize(i)));
+      }
+      /** The chart as ⌘K shows a look on it, while it does (sized as it shows). @type {Chart | null} */
+      let lookDoc = null;
+      function sizePanes(doc = lookDoc ?? chart) {
+        const panes = view.panes();
+        if (!doc || panes.length !== doc.panes.length) return;
+        paneFactors(doc).forEach((factor, i) => Math.abs(panes[i].getStretchFactor() - factor) > 1e-6 && panes[i].setStretchFactor(factor));
+      }
       /** The window a range preset shows, in bars: from its first day to the newest point, with the right margin. */
       function presetWindow(doc, data, most = mostBars()) {
         const n = data.times.length;
@@ -7912,6 +7964,7 @@
           legendFit.observe(element);
         });
         updateLegends();
+        sizePanes();
       }
       /**
        * Each pane's caption, and the chart's readout: every layer by name and color with its value, under the crosshair
@@ -8120,6 +8173,7 @@
           }
           drawOverview();
           placeBelt();
+          if (chart && drawnChart === chart.id) sizePanes();
         });
       }
       const resized = new ResizeObserver(relayout);
@@ -8129,9 +8183,12 @@
       $("chart").addEventListener("pointerup", () => setTimeout(() => {
         const panes = view.panes();
         if (!settled() || panes.length !== chart.panes.length) return;
+        // (A folded pane dragged open goes back: it opens when a layer in it shows.)
+        const folded = foldedPanes(chart), meant = paneFactors(chart);
+        if (chart.panes.some((pane, i) => folded.has(pane.id) && Math.abs(panes[i].getStretchFactor() - meant[i]) > 1e-6)) return sizePanes();
         const sizes = chart.panes.map((_, i) => Math.round(panes[i].getStretchFactor() * 100) / 100);
-        if (sizes.every((size, i) => size === Math.round((chart.panes[i].size ?? defaultSize(i)) * 100) / 100)) return;
-        commit((doc) => doc.panes.forEach((pane, i) => (pane.size = sizes[i])), { redraw: "none", quiet: true });
+        if (sizes.every((size, i) => folded.has(chart.panes[i].id) || size === Math.round((chart.panes[i].size ?? defaultSize(i)) * 100) / 100)) return;
+        commit((doc) => doc.panes.forEach((pane, i) => !folded.has(pane.id) && (pane.size = sizes[i])), { redraw: "none", quiet: true });
       }, 0));
 
       /**
@@ -8397,7 +8454,6 @@
           yearsAxis = years;
           view.applyOptions({ timeScale: { tickMarkFormatter: years ? yearsOnly : () => null } });
         }
-        if (!measuring?.dragging) clearMeasure();
         if (writing) placeField();
         viewMoved();
         placeBrush();
@@ -8567,18 +8623,7 @@
       $("navigator").addEventListener("pointerup", endBrush);
       $("navigator").addEventListener("pointercancel", endBrush);
 
-      // ── Measuring: M, the ruler, or shift-drag on the chart ───────────────────
-
-      let measuring = null;
-      let measureMode = false;
-      function setMeasureMode(on) {
-        if (on && tool) setTool("");
-        if (on && selectingArea) setSelectingArea(false);
-        measureMode = on;
-        document.body.toggleAttribute("data-measure", on);
-        if (!on) clearMeasure();
-        renderBelt();
-      }
+      /** The pane under a point of the page (its index, its box), or none. */
       function paneAt(clientY) {
         const panes = view.panes();
         for (let i = 0; i < panes.length; i++) {
@@ -8587,10 +8632,7 @@
         }
         return null;
       }
-      function logicalAt(clientX) {
-        const chartRect = $("chart").getBoundingClientRect();
-        return view.timeScale().coordinateToLogical(clientX - chartRect.left - view.priceScale("left", 0).width());
-      }
+      /** The point with a value nearest a point (itself, if it has one), or -1. */
       function nearestFinite(values, i) {
         for (let d = 0; d < values.length; d++) {
           if (Number.isFinite(values[i - d])) return i - d;
@@ -8598,75 +8640,6 @@
         }
         return -1;
       }
-      function updateMeasure(clientX, clientY) {
-        const { start, pane } = measuring;
-        const box = $("canvas").getBoundingClientRect();
-        const element = $("measure");
-        const top = clamp(Math.min(start.y, clientY), pane.rect.top, pane.rect.bottom);
-        const bottom = clamp(Math.max(start.y, clientY), pane.rect.top, pane.rect.bottom);
-        element.style.left = `${Math.min(start.x, clientX) - box.left}px`;
-        element.style.width = `${Math.abs(clientX - start.x)}px`;
-        element.style.top = `${top - box.top}px`;
-        element.style.height = `${Math.max(1, bottom - top)}px`;
-        element.hidden = false;
-        const paneId = chart.panes[pane.index]?.id;
-        const layer = chart.layers.find((item) => item.pane === paneId && !item.hidden && resolved?.results.get(item.id)?.shown);
-        const label = element.firstElementChild;
-        if (!layer || !resolved) {
-          label.textContent = "Nothing to measure in this pane";
-          return;
-        }
-        const values = resolved.results.get(layer.id).shown;
-        const n = resolved.times.length;
-        const a = nearestFinite(values, clamp(Math.round(start.logical ?? 0), 0, n - 1));
-        const b = nearestFinite(values, clamp(Math.round(logicalAt(clientX) ?? 0), 0, n - 1));
-        if (a < 0 || b < 0) return;
-        const unit = unitFor(layer, resolved.results.get(layer.id));
-        // Read left to right, whichever way the drag went.
-        const [from, to] = a <= b ? [a, b] : [b, a];
-        const delta = values[to] - values[from];
-        const relative = unit === "percent" ? null : growth(values[from], values[to]);
-        const rising = relative ? relative.up : delta >= 0;
-        element.style.setProperty("--m", rising ? css("--up") : css("--danger"));
-        const sign = (up) => (up ? "+" : "−");
-        label.innerHTML = `<span>${escape(labelOf(layer))}</span>${relative ? `<b>${escape(`${relative.text.endsWith("×") ? "" : sign(relative.up)}${relative.text}`)}</b>` : ""}<b>${escape(`${sign(delta >= 0)}${amount(delta, unit)}`)}</b><span class="muted">${escape(duration(resolved.times[to] - resolved.times[from]))}</span>`;
-        const frame = element.getBoundingClientRect();
-        const roomAbove = frame.top - box.top > 40, roomBelow = box.bottom - frame.bottom > 40;
-        const above = clientY < start.y ? roomAbove || !roomBelow : !roomBelow && roomAbove;
-        label.style.top = above ? "-34px" : "calc(100% + 8px)";
-        const half = label.offsetWidth / 2, center = frame.left + frame.width / 2 - box.left;
-        label.style.transform = `translateX(calc(-50% + ${clamp(center, half + 8, box.width - half - 8) - center}px))`;
-      }
-      function clearMeasure() {
-        measuring = null;
-        if ($("measure")) $("measure").hidden = true;
-      }
-      // Capture phase, so the chart doesn't also pan.
-      $("chart").addEventListener("pointerdown", (event) => {
-        if (!(event.shiftKey || measureMode) || !resolved?.times.length || (!measureMode && !tool && drawingAt(event.clientX, event.clientY, reachOf(event)))) {
-          if (!$("measure").hidden && !measuring?.dragging) clearMeasure();
-          return;
-        }
-        const pane = paneAt(event.clientY);
-        if (!pane) return;
-        event.preventDefault();
-        event.stopPropagation();
-        measuring = { start: { x: event.clientX, y: event.clientY, logical: logicalAt(event.clientX) }, pane, dragging: true };
-        $("chart").setPointerCapture(event.pointerId);
-        updateMeasure(event.clientX, event.clientY);
-      }, true);
-      $("chart").addEventListener("mousedown", (event) => {
-        if (event.shiftKey || measureMode) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-      }, true);
-      $("chart").addEventListener("pointermove", (event) => {
-        if (measuring?.dragging) updateMeasure(event.clientX, event.clientY);
-      });
-      $("chart").addEventListener("pointerup", () => {
-        if (measuring) measuring.dragging = false;
-      });
 
       // ── Drawing: lines, boxes, text and strokes, on the chart ─────────────────
 
@@ -8690,8 +8663,8 @@
       }
       /** A new drawing, in the pen's look (the belt shows it, and sets it). @param {DrawingKind} kind @returns {Drawing} */
       function newDrawing(kind, layer, points) {
-        const { size, extend, ...look } = prefs.pen;
-        return { id: uid(), kind, layer, points, ...look, ...(kind === "trend" && extend ? { extend } : {}), ...(kind === "text" ? { text: "", size: size ?? 14 } : {}) };
+        const { extend, arrow, size, back, opacity, ...look } = prefs.pen;
+        return { id: uid(), kind, layer, points, ...look, ...(opacity && kind !== "ruler" ? { opacity } : {}), ...(kind === "trend" ? { ...(extend ? { extend } : {}), ...(arrow ? { arrow } : {}) } : {}), ...(kind === "text" || LINES.has(kind) ? { size, ...(back ? { back } : {}) } : {}), ...(kind === "text" ? { text: "" } : {}) };
       }
 
       /** A time on the interval's calendar, in bars from its first (within a bar, the share of it gone). */
@@ -8719,7 +8692,8 @@
           const i = Math.floor(bar), share = bar - i;
           return share ? times[i] + share * (times[i + 1] - times[i]) : times[i];
         }
-        const edge = bar > n - 1 ? n - 1 : 0, at = calendarAt(times[edge]) + bar - edge, i = Math.floor(at), from = timeAt(drawnIndex, i);
+        // (Before the calendar's first bar, its first's length on back, as calendarAt reads it.)
+        const edge = bar > n - 1 ? n - 1 : 0, at = calendarAt(times[edge]) + bar - edge, i = Math.max(0, Math.floor(at)), from = timeAt(drawnIndex, i);
         return from + (at - i) * (timeAt(drawnIndex, i + 1) - from);
       }
       /** The time axis as a line: bar 0's x, and a bar's width (the chart library's own conversions keep to whole bars). */
@@ -8764,36 +8738,34 @@
         return [{ x: a.x + near * dx, y: a.y + near * dy }, { x: a.x + far * dx, y: a.y + far * dy }];
       }
       const measurer = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
-      /** A text's lines and the box they take, from its point: its first line's middle, at its left. */
-      function textBox(drawing, point) {
-        const size = drawing.size ?? 14, lines = (drawing.text ?? "").split("\n"), line = Math.round(size * 1.3);
-        measurer.font = `510 ${size}px ${SANS}`;
-        const width = Math.max(0, ...lines.map((text) => measurer.measureText(text).width));
-        return { lines, size, line, left: point.x, top: point.y - line / 2, width, height: line * lines.length };
-      }
-      /** A stroke through points, rounded: from the middle of each segment to the next's, curving at each point. */
+      /** A stroke through its points, as kept (steadied as drawn, simplified within a pixel): as it's hit. */
       function strokeThrough(context, points) {
         if (!points.length) return;
         context.moveTo(points[0].x, points[0].y);
         if (points.length === 1) return void context.lineTo(points[0].x + 0.01, points[0].y);
-        for (let i = 1; i < points.length - 1; i++) context.quadraticCurveTo(points[i].x, points[i].y, (points[i].x + points[i + 1].x) / 2, (points[i].y + points[i + 1].y) / 2);
-        context.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+        for (let i = 1; i < points.length; i++) context.lineTo(points[i].x, points[i].y);
       }
-      /** A drawing on its pane: a text over a halo of the card, so it reads over anything. */
+      /** A drawing on its pane (a line's label in a gap of it). */
       function paintDrawing(context, drawing, points, size, card) {
-        const color = ink(drawing.color), [a, b] = points;
+        const color = ink(drawing.color), [a, b] = points, words = { color, back: drawing.back ?? "", on: drawing.back === "solid" ? contrastOn(drawing.color) : color, card };
+        const label = drawing.label && drawing.id !== labelTyping ? labelPlace(drawing, points, size) : null;
         context.save();
-        context.globalAlpha = drawing.opacity ?? 1;
+        context.globalAlpha = drawing.kind === "ruler" ? 1 : drawing.opacity ?? 1;
         context.strokeStyle = context.fillStyle = color;
         context.lineWidth = drawing.width;
         context.lineCap = drawing.dash ? "butt" : "round";
         context.lineJoin = "round";
         context.setLineDash(dashesOf(drawing.dash, drawing.width));
+        if (label) {
+          context.save();
+          clipOut(context, label, size);
+        }
         context.beginPath();
         if (drawing.kind === "trend" && finite(a) && finite(b)) {
           const [from, to] = trendEnds(drawing, a, b, size);
           context.moveTo(from.x, from.y);
-          context.lineTo(to.x, to.y);
+          // (An arrow's line stops at its head's back: its head makes its end.)
+          context.lineTo(...(drawing.arrow && !drawing.extend ? arrowBack(a, b, drawing.width) : [to.x, to.y]));
         } else if (drawing.kind === "hline" && Number.isFinite(a.y)) {
           context.moveTo(0, a.y);
           context.lineTo(size.width, a.y);
@@ -8804,27 +8776,207 @@
           context.rect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
           context.fillStyle = alpha(color, 0.12);
           context.fill();
-        } else if (drawing.kind === "brush") strokeThrough(context, points.filter(finite));
-        else if (drawing.kind === "text" && finite(a)) {
-          const box = textBox(drawing, a);
-          context.font = `510 ${box.size}px ${SANS}`;
-          context.textBaseline = "middle";
-          context.setLineDash([]);
-          context.lineWidth = 3;
-          context.strokeStyle = card;
-          box.lines.forEach((text, i) => {
-            context.strokeText(text, box.left, a.y + i * box.line);
-            context.fillText(text, box.left, a.y + i * box.line);
-          });
+        } else if (drawing.kind === "ellipse" && finite(a) && finite(b)) {
+          context.ellipse((a.x + b.x) / 2, (a.y + b.y) / 2, Math.abs(b.x - a.x) / 2, Math.abs(b.y - a.y) / 2, 0, 0, Math.PI * 2);
+          context.fillStyle = alpha(color, 0.12);
+          context.fill();
+        } else if (drawing.kind === "ruler" && finite(a) && finite(b)) paintRuler(context, drawing, a, b, size);
+        else if (drawing.kind === "brush") strokeThrough(context, points.filter(finite));
+        else if (drawing.kind === "text" && finite(a)) paintLabel(context, drawing.text ?? "", textPlace(drawing, a), words);
+        if (drawing.kind !== "text" && drawing.kind !== "ruler") context.stroke();
+        if (drawing.kind === "trend" && drawing.arrow && !drawing.extend && finite(a) && finite(b)) paintArrow(context, a, b, drawing.width);
+        if (label) {
+          context.restore();
+          paintLabel(context, /** @type {string} */ (drawing.label), label, words);
         }
-        if (drawing.kind !== "text") context.stroke();
         context.restore();
+      }
+      /** Painting kept off a tag's place (a line's label: the line breaks around it). */
+      function clipOut(context, place, size) {
+        const cos = Math.cos(place.angle), sin = Math.sin(place.angle), w = place.width / 2, h = place.height / 2;
+        context.beginPath();
+        context.rect(-size.width, -size.height, size.width * 3, size.height * 3);
+        [[-w, -h], [w, -h], [w, h], [-w, h]].forEach(([x, y], i) => context[i ? "lineTo" : "moveTo"](place.x + x * cos - y * sin, place.y + x * sin + y * cos));
+        context.closePath();
+        context.clip("evenodd");
+      }
+      /** An arrow's head, from a line's first point to its second: as long and as wide as the line is thick asks (no longer than the line). */
+      const arrowSize = (a, b, /** @type {number} */ width) => Math.min(7 + width * 2.5, Math.hypot(b.x - a.x, b.y - a.y));
+      function arrowBack(a, b, /** @type {number} */ width) {
+        const angle = Math.atan2(b.y - a.y, b.x - a.x), back = arrowSize(a, b, width) * 0.8;
+        return [b.x - back * Math.cos(angle), b.y - back * Math.sin(angle)];
+      }
+      function paintArrow(context, a, b, /** @type {number} */ width) {
+        const angle = Math.atan2(b.y - a.y, b.x - a.x), length = arrowSize(a, b, width), half = length * 0.45;
+        const base = { x: b.x - length * Math.cos(angle), y: b.y - length * Math.sin(angle) };
+        context.setLineDash([]);
+        context.beginPath();
+        context.moveTo(b.x, b.y);
+        context.lineTo(base.x - half * Math.sin(angle), base.y + half * Math.cos(angle));
+        context.lineTo(base.x + half * Math.sin(angle), base.y - half * Math.cos(angle));
+        context.closePath();
+        context.fillStyle = context.strokeStyle;
+        context.fill();
+      }
+      /** A tag's lines and its box: its words at a size (half of it to each side, a line a third taller). */
+      const tagShapes = new Map();
+      document.fonts.addEventListener("loadingdone", () => {
+        tagShapes.clear();
+        repaintDrawings();
+      });
+      function tagShape(/** @type {string} */ text, /** @type {number} */ size) {
+        const key = `${size}|${text}`, kept = tagShapes.get(key);
+        if (kept) return kept;
+        if (tagShapes.size > 500) tagShapes.clear();
+        tagShapes.set(key, measureTag(text, size));
+        return tagShapes.get(key);
+      }
+      function measureTag(/** @type {string} */ text, /** @type {number} */ size) {
+        const lines = (text || " ").split("\n");
+        measurer.font = `590 ${size}px ${SANS}`;
+        return { lines, size, width: Math.max(...lines.map((line) => measurer.measureText(line).width)) + size, height: lines.length * Math.round(size * 1.33) + Math.round(size / 6) };
+      }
+      /** Where a text sits: a tag, level, its middle at its point. */
+      const textPlace = (/** @type {Drawing} */ drawing, point, text = drawing.text ?? "") => ({ x: point.x, y: point.y, angle: 0, ...tagShape(text, drawing.size ?? TEXT_SIZE) });
+      /**
+       * Where a line's label sits (its middle, the angle it reads at, its box): a share of the way along the line (a trend
+       * line's, from its first point to its second, upright whichever way it runs; across, across the plot; down, rising
+       * down the plot), kept whole in the plot.
+       */
+      function labelPlace(/** @type {Drawing} */ drawing, points, size, text = drawing.label ?? "") {
+        const [a, b] = points, at = drawing.at ?? (drawing.kind === "hline" ? 1 : drawing.kind === "vline" ? 0 : 0.5);
+        const shape = tagShape(text, drawing.size ?? TEXT_SIZE), { width, height } = shape;
+        if (drawing.kind === "trend") {
+          if (!finite(a) || !finite(b)) return null;
+          let angle = Math.atan2(b.y - a.y, b.x - a.x);
+          if (angle > Math.PI / 2) angle -= Math.PI;
+          else if (angle < -Math.PI / 2) angle += Math.PI;
+          return { ...shape, x: a.x + (b.x - a.x) * at, y: a.y + (b.y - a.y) * at, angle };
+        }
+        if (drawing.kind === "hline") return Number.isFinite(a.y) ? { ...shape, x: clamp(at * size.width, width / 2 + 6, size.width - width / 2 - 6), y: a.y, angle: 0 } : null;
+        return Number.isFinite(a.x) ? { ...shape, x: a.x, y: clamp(at * size.height, width / 2 + 6, size.height - width / 2 - 6), angle: -Math.PI / 2 } : null;
+      }
+      /**
+       * A tag: its words line under line, on what its back asks (nothing: a halo of the card around the letters, so they
+       * read over anything; a soft fill over the card; its color, the words in contrast) in a border if it asks.
+       */
+      function paintLabel(context, /** @type {string} */ text, place, /** @type {{ color: string, back: string, on: string, card: string }} */ words) {
+        const { color, back, on, card } = words, filled = back === "soft" || back === "soft-outline" || back === "solid";
+        context.save();
+        context.translate(place.x, place.y);
+        context.rotate(place.angle);
+        context.setLineDash([]);
+        context.beginPath();
+        context.roundRect(-place.width / 2 + 0.5, -place.height / 2 + 0.5, place.width - 1, place.height - 1, 4);
+        if (filled) {
+          context.fillStyle = back === "solid" ? color : card;
+          context.fill();
+        }
+        if (back === "soft" || back === "soft-outline") {
+          context.fillStyle = alpha(color, 0.16);
+          context.fill();
+        }
+        if (back === "outline" || back === "soft-outline") {
+          context.lineWidth = 1;
+          context.strokeStyle = color;
+          context.stroke();
+        }
+        context.font = `590 ${place.size}px ${SANS}`;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.lineJoin = "round";
+        context.lineWidth = 3;
+        context.strokeStyle = card;
+        context.fillStyle = on;
+        const line = Math.round(place.size * 1.33);
+        place.lines.forEach((words, i) => {
+          const y = -place.height / 2 + place.size / 12 + (i + 0.5) * line + 0.5;
+          if (!filled) context.strokeText(words, 0, y);
+          context.fillText(words, 0, y);
+        });
+        context.restore();
+      }
+      /** Whether a point of the pane is on a line's label (in the label's own frame: it may lie at an angle). */
+      function onLabel(/** @type {Drawing} */ drawing, points, size, x, y) {
+        const place = drawing.label ? labelPlace(drawing, points, size) : null;
+        if (!place) return false;
+        const dx = x - place.x, dy = y - place.y, cos = Math.cos(-place.angle), sin = Math.sin(-place.angle);
+        return Math.abs(dx * cos - dy * sin) <= place.width / 2 + 2 && Math.abs(dx * sin + dy * cos) <= place.height / 2 + 2;
+      }
+      /** The share of the way along a line a point of the pane is at (where a label slid there goes). */
+      function shareAlong(/** @type {Drawing} */ drawing, points, size, x, y) {
+        const [a, b] = points;
+        if (drawing.kind === "hline") return clamp(x / size.width, 0, 1);
+        if (drawing.kind === "vline") return clamp(y / size.height, 0, 1);
+        const dx = b.x - a.x, dy = b.y - a.y, length = dx * dx + dy * dy;
+        return length ? clamp(((x - a.x) * dx + (y - a.y) * dy) / length, 0, 1) : 0.5;
+      }
+      /** What a ruler measures: its layer's change from its first date to its last (whichever way it was drawn): in %, in its unit, over how long. */
+      function rulerReading(/** @type {Drawing} */ drawing) {
+        const layer = layerById(drawing.layer), result = layer && resolved?.results.get(layer.id), values = result?.shown, n = resolved?.times.length ?? 0;
+        if (!layer || !values || !n) return null;
+        const [a, b] = drawing.points.map(([time]) => nearestFinite(values, clamp(Math.round(barOf(time)), 0, n - 1)));
+        // (Its dates past the data read its nearest; both on one: nothing measured.)
+        if (a < 0 || b < 0 || a === b) return null;
+        const unit = unitFor(layer, result), [from, to] = a <= b ? [a, b] : [b, a], delta = values[to] - values[from];
+        const relative = unit === "percent" ? null : growth(values[from], values[to]), sign = (/** @type {boolean} */ up) => (up ? "+" : "−");
+        return {
+          rising: relative ? relative.up : delta >= 0,
+          name: labelOf(layer),
+          figures: [...(relative ? [`${relative.text.endsWith("×") ? "" : sign(relative.up)}${relative.text}`] : []), `${sign(delta >= 0)}${amount(delta, unit)}`],
+          span: duration(/** @type {Resolved} */ (resolved).times[to] - /** @type {Resolved} */ (resolved).times[from]),
+        };
+      }
+      /** A ruler: its box tinted (green up, red down), its reading on a label over it (under it, with no room above), in the plot. */
+      function paintRuler(context, /** @type {Drawing} */ drawing, a, b, size) {
+        const reading = rulerReading(drawing), color = css(reading?.rising === false ? "--danger" : "--up");
+        const left = Math.min(a.x, b.x), top = Math.min(a.y, b.y), width = Math.abs(b.x - a.x), height = Math.abs(b.y - a.y);
+        context.setLineDash([]);
+        context.fillStyle = alpha(color, 0.09);
+        context.fillRect(left, top, width, height);
+        context.strokeStyle = alpha(color, 0.7);
+        context.lineWidth = 1;
+        context.strokeRect(left + 0.5, top + 0.5, Math.max(0, width - 1), Math.max(0, height - 1));
+        if (!reading) return;
+        const parts = [[reading.name, css("--soft"), 510], ...reading.figures.map((figure) => [figure, css("--ink"), 590]), [reading.span, css("--muted"), 510]];
+        const widths = parts.map(([text, , weight]) => {
+          context.font = `${weight} 12px ${SANS}`;
+          return context.measureText(String(text)).width;
+        });
+        const fit = () => widths.reduce((sum, each) => sum + each, 0) + 10 * (parts.length - 1) + 18, label = { width: fit(), height: 26 };
+        // (Too wide for its pane: its layer's name cut short, or left out when little of it would be left.)
+        if (label.width > size.width - 8) {
+          const room = widths[0] - (label.width - (size.width - 8));
+          context.font = `510 12px ${SANS}`;
+          if (room >= 32) widths[0] = context.measureText(String((parts[0][0] = fitted(context, String(parts[0][0]), room)))).width;
+          else {
+            parts.shift();
+            widths.shift();
+          }
+          label.width = fit();
+        }
+        const x = clamp(left + width / 2 - label.width / 2, 4, size.width - label.width - 4), y = clamp(top - label.height - 8 >= 4 ? top - label.height - 8 : top + height + 8, 4, size.height - label.height - 4);
+        context.beginPath();
+        context.roundRect(x, y, label.width, label.height, 6);
+        context.fillStyle = css("--raise");
+        context.fill();
+        context.strokeStyle = alpha(color, 0.5);
+        context.stroke();
+        context.textBaseline = "middle";
+        let at = x + 9;
+        parts.forEach(([text, ink, weight], i) => {
+          context.font = `${weight} 12px ${SANS}`;
+          context.fillStyle = String(ink);
+          context.fillText(String(text), at, y + label.height / 2);
+          at += widths[i] + 10;
+        });
       }
       /** Where a drawing is held: its ends, a box's corners; a line across, at its point (kept in view). */
       function handlesOf(drawing, points, size) {
         const [a, b] = points;
         if (drawing.kind === "trend") return [a, b];
-        if (drawing.kind === "rect") return [a, { x: b.x, y: a.y }, b, { x: a.x, y: b.y }];
+        // (An ellipse's corners are off it, on its box: there once it's selected, as a stroke's.)
+        if (BOXES.has(drawing.kind) && (drawing.kind !== "ellipse" || lit(drawing))) return [a, { x: b.x, y: a.y }, b, { x: a.x, y: b.y }];
         if (drawing.kind === "hline") return [{ x: clamp(Number.isFinite(a.x) ? a.x : size.width / 2, 10, size.width - 10), y: a.y }];
         if (drawing.kind === "vline") return [{ x: a.x, y: clamp(Number.isFinite(a.y) ? a.y : size.height / 2, 10, size.height - 10) }];
         if (drawing.kind === "brush" && lit(drawing)) {
@@ -8833,19 +8985,39 @@
         }
         return [];
       }
+      /**
+       * The side of a box (a rectangle's, an ellipse's, a ruler's, a selected stroke's: its corners' box) a point is on,
+       * between its corners: 4 its top, 5 its right, 6 its foot, 7 its left; -1, none.
+       */
+      function sideOf(/** @type {Drawing} */ drawing, corners, x, y, reach) {
+        if (corners.length !== 4 || !(BOXES.has(drawing.kind) || drawing.kind === "brush")) return -1;
+        const left = Math.min(...corners.map((p) => p.x)), right = Math.max(...corners.map((p) => p.x)), top = Math.min(...corners.map((p) => p.y)), bottom = Math.max(...corners.map((p) => p.y));
+        const across = x > left + reach && x < right - reach, down = y > top + reach && y < bottom - reach;
+        return across && Math.abs(y - top) <= reach ? 4 : across && Math.abs(y - bottom) <= reach ? 6 : down && Math.abs(x - right) <= reach ? 5 : down && Math.abs(x - left) <= reach ? 7 : -1;
+      }
       /** The box around a text or a stroke: its outline, selected. */
       function boundsOf(drawing, points) {
         if (drawing.kind === "text") {
-          const box = textBox(drawing, points[0]);
-          return { left: box.left - 4, top: box.top - 2, right: box.left + box.width + 4, bottom: box.top + box.height + 2 };
+          const place = textPlace(drawing, points[0]);
+          return { left: place.x - place.width / 2 - 2, top: place.y - place.height / 2 - 2, right: place.x + place.width / 2 + 2, bottom: place.y + place.height / 2 + 2 };
         }
         const shown = points.filter(finite), pad = drawing.width / 2 + 4;
         return { left: Math.min(...shown.map((p) => p.x)) - pad, top: Math.min(...shown.map((p) => p.y)) - pad, right: Math.max(...shown.map((p) => p.x)) + pad, bottom: Math.max(...shown.map((p) => p.y)) + pad };
       }
+      /** A drawing's color as drawn: a ruler's, up or down; any other's, its own. */
+      const colorOfDrawing = (/** @type {Drawing} */ drawing) => (drawing.kind === "ruler" ? css(rulerReading(drawing)?.rising === false ? "--danger" : "--up") : ink(drawing.color));
       /** A drawing selected, being drawn, or pointed at: its points to take it by, or a box around a text or a stroke. */
       function paintHold(context, drawing, points, size, card, lit) {
-        const color = ink(drawing.color);
+        const color = colorOfDrawing(drawing);
         context.save();
+        if (drawing.kind === "ellipse" && lit && finite(points[0]) && finite(points[1])) {
+          const [a, b] = points;
+          context.strokeStyle = alpha(color, 0.5);
+          context.lineWidth = 1;
+          context.setLineDash([3, 3]);
+          context.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+          context.setLineDash([]);
+        }
         if (drawing.kind === "text" || drawing.kind === "brush") {
           const box = boundsOf(drawing, points);
           context.strokeStyle = alpha(color, lit ? 0.9 : 0.45);
@@ -8855,7 +9027,8 @@
           context.setLineDash([]);
         }
         for (const [i, point] of handlesOf(drawing, points, size).entries()) {
-          if (!finite(point)) continue;
+          // (A level's dot under its label: the label shows.)
+          if (!finite(point) || ((drawing.kind === "hline" || drawing.kind === "vline") && onLabel(drawing, points, size, point.x, point.y))) continue;
           context.beginPath();
           context.arc(point.x, point.y, hovering.id === drawing.id && hovering.handle === i ? 5 : 4, 0, Math.PI * 2);
           context.fillStyle = card;
@@ -8881,7 +9054,11 @@
         }
         if (drawing.kind === "hline") return Math.abs(y - a.y) <= near;
         if (drawing.kind === "vline") return Math.abs(x - a.x) <= near;
-        if (drawing.kind === "rect") return x >= Math.min(a.x, b.x) - near && x <= Math.max(a.x, b.x) + near && y >= Math.min(a.y, b.y) - near && y <= Math.max(a.y, b.y) + near;
+        if (drawing.kind === "ellipse") {
+          const rx = Math.abs(b.x - a.x) / 2 + near, ry = Math.abs(b.y - a.y) / 2 + near;
+          return Math.hypot((x - (a.x + b.x) / 2) / rx, (y - (a.y + b.y) / 2) / ry) <= 1;
+        }
+        if (BOXES.has(drawing.kind)) return x >= Math.min(a.x, b.x) - near && x <= Math.max(a.x, b.x) + near && y >= Math.min(a.y, b.y) - near && y <= Math.max(a.y, b.y) + near;
         if (drawing.kind === "brush") {
           const shown = points.filter(finite);
           return shown.some((point, i) => toSegment(x, y, point, shown[i + 1] ?? point) <= near);
@@ -8891,8 +9068,10 @@
         return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
       }
       /** A label on an axis, in a drawing's color. */
+      /** Words on a color: dark on a light one, white on a dark one. */
+      const contrastOn = (/** @type {string} */ color) => (oklchOf(color)[0] > 0.7 ? "#08090a" : "#ffffff");
       function axisTag(coordinate, text, color) {
-        const back = ink(color), fore = oklchOf(color)[0] > 0.7 ? "#08090a" : "#ffffff";
+        const back = ink(color), fore = contrastOn(color);
         return { coordinate: () => coordinate, text: () => text, textColor: () => fore, backColor: () => back, visible: () => Number.isFinite(coordinate) };
       }
 
@@ -8934,7 +9113,7 @@
         priceAxisViews() {
           if (!this.shown.length) return NONE;
           const text = this.valueText();
-          return this.shown.flatMap(({ drawing, points }) => (drawing.kind === "hline" ? [0] : told(drawing) && PAIRED.has(drawing.kind) ? [0, 1] : []).map((i) => axisTag(points[i].y, text(drawing.points[i][1]), drawing.color)));
+          return this.shown.flatMap(({ drawing, points }) => (drawing.kind === "hline" ? [0] : told(drawing) && PAIRED.has(drawing.kind) ? [0, 1] : []).map((i) => axisTag(points[i].y, text(drawing.points[i][1]), colorOfDrawing(drawing))));
         }
         /**
          * Values as this series' axis writes them: a % or indexed scale reads each against the series' first value in view,
@@ -8953,7 +9132,7 @@
         }
         timeAxisViews() {
           if (!this.shown.length) return NONE;
-          return this.shown.flatMap(({ drawing, points }) => (drawing.kind === "vline" ? [0] : told(drawing) && PAIRED.has(drawing.kind) ? [0, 1] : []).map((i) => axisTag(points[i].x, dateLabel(Math.round(drawing.points[i][0]), FINE.has(drawnIndex)), drawing.color)));
+          return this.shown.flatMap(({ drawing, points }) => (drawing.kind === "vline" ? [0] : told(drawing) && PAIRED.has(drawing.kind) ? [0, 1] : []).map((i) => axisTag(points[i].x, dateLabel(Math.round(drawing.points[i][0]), FINE.has(drawnIndex)), colorOfDrawing(drawing))));
         }
         draw(context, size) {
           this.size = size;
@@ -8968,15 +9147,27 @@
          */
         hit(x, y, reach) {
           let body = null;
-          for (const { drawing, points, box } of this.shown) {
+          // (From the last drawn, on top.)
+          for (let i = this.shown.length - 1; i >= 0; i--) {
+            const { drawing, points, box } = this.shown[i];
             if (box && !(x >= box.left - reach && x <= box.right + reach && y >= box.top - reach && y <= box.bottom + reach)) continue;
+            // (A line across's or down's label over its dot: the dot only moves it, as its body does.)
+            if (!body && (drawing.kind === "hline" || drawing.kind === "vline") && onLabel(drawing, points, this.size, x, y)) body = { drawing, handle: -1, over: "label" };
             const handles = handlesOf(drawing, points, this.size), handle = handles.findIndex((point) => Math.hypot(point.x - x, point.y - y) <= reach + 1);
-            if (handle >= 0) {
+            if (handle >= 0 && body?.drawing !== drawing) {
               const middle = { x: handles.reduce((sum, point) => sum + point.x, 0) / handles.length, y: handles.reduce((sum, point) => sum + point.y, 0) / handles.length };
-              const corner = drawing.kind === "rect" || drawing.kind === "brush";
+              const corner = BOXES.has(drawing.kind) || drawing.kind === "brush";
               return { drawing, handle, over: corner ? ((handles[handle].x - middle.x) * (handles[handle].y - middle.y) > 0 ? "nwse" : "nesw") : "handle" };
             }
-            if (touches(drawing, points, x, y, this.size, reach)) body = { drawing, handle: -1, over: "drawing" };
+            // (Under a drawing found above (a side of one too): only its points still win.)
+            if (body) continue;
+            const side = sideOf(drawing, handles, x, y, reach);
+            if (side >= 0) {
+              body = { drawing, handle: side, over: side % 2 ? "ew" : "ns" };
+              continue;
+            }
+            if (onLabel(drawing, points, this.size, x, y)) body = { drawing, handle: -1, over: "label" };
+            else if (touches(drawing, points, x, y, this.size, reach)) body = { drawing, handle: -1, over: "drawing" };
           }
           return body;
         }
@@ -8987,8 +9178,17 @@
       const told = (drawing) => lit(drawing) && (drawing === draft || chosen.size === 1);
       /** Each series' sketch. @type {WeakMap<any, Sketch>} */
       const sketches = new WeakMap();
+      /** The drawings hidden from view: a view, not an edit (back on another chart, with a tool taken, or any selected). */
+      let drawingsHidden = false;
+      function hideDrawings(/** @type {boolean} */ hidden) {
+        drawingsHidden = hidden;
+        if (hidden) chooseDrawings([]);
+        renderBelt();
+        repaintDrawings();
+      }
       /** The drawings as shown: the chart's (a look's, while one shows) as last built, one being drawn or moved in its place. */
       function drawingsShown() {
+        if (drawingsHidden) return draft ? [draft] : [];
         const list = shownDrawings.map((drawing) => reshaped.get(drawing.id) ?? drawing);
         return draft ? [...list, draft] : list;
       }
@@ -9019,21 +9219,21 @@
       let chosen = new Set();
       /** Drawings being moved or reshaped, as they show until let go (then they're the chart's), by id. @type {Map<string, Drawing>} */
       let reshaped = new Map();
-      /** The drawing under the pointer, and its handle there (-1: none). */
-      let hovering = { id: "", handle: -1 };
+      /** The drawing under the pointer, its handle there (-1: none), and how it's taken there (a corner's way). */
+      let hovering = { id: "", handle: -1, over: "" };
       /** A drawing being placed, as it shows until it's let go (then it's the chart's). @type {Drawing | null} */
       let draft = null;
-      /** A text being typed in its field (not drawn under it): the drawing, and whether it's new. */
-      let writing = null, typingIn = "";
+      /** A text being typed in its field (not drawn under it): the drawing, whether it's new; a line's label being typed (its line still drawn). */
+      let writing = null, typingIn = "", labelTyping = "";
       /** Drawn for a picture: nothing selected or pointed at. */
       let capturing = false;
       /** The drawings as last built. @type {Drawing[]} */
       let shownDrawings = [];
 
       function setTool(/** @type {DrawingKind | ""} */ kind) {
-        if (kind && measureMode) setMeasureMode(false);
-        // A tool in hand, nothing's selected: the belt shows what it'll draw.
+        // A tool in hand, nothing's selected: the belt shows what it'll draw (and the drawings, if hidden).
         if (kind) chooseDrawings([]);
+        if (kind) drawingsHidden = false;
         tool = kind;
         selectingArea = false;
         placing = moving = draft = boxing = null;
@@ -9048,10 +9248,7 @@
       /** The Select tool: a box dragged around drawings selects them (once; as ⌘ and a drag does, anytime). */
       let selectingArea = false;
       function setSelectingArea(/** @type {boolean} */ on) {
-        if (on) {
-          setTool("");
-          setMeasureMode(false);
-        }
+        if (on) setTool("");
         selectingArea = on;
         document.body.toggleAttribute("data-drawing", on || Boolean(tool));
         renderBelt();
@@ -9064,6 +9261,7 @@
        */
       function chooseDrawings(/** @type {Iterable<string>} */ ids) {
         const next = new Set(ids);
+        if (next.size) drawingsHidden = false;
         if (next.size && tool) setTool("");
         if (next.size && selectingArea) setSelectingArea(false);
         if (next.size === chosen.size && [...next].every((id) => chosen.has(id))) return;
@@ -9074,52 +9272,65 @@
       }
 
       /**
-       * The belt, over the chart: the cursor, the tools and the ruler, always the same; then what's in hand, which adapts:
-       * with a tool, the look its next drawing takes (kept for that tool); with a drawing selected, that drawing's look and
-       * what to do with it. On, it stays; off, it shows only while a tool's in hand, the ruler measures, or a drawing is
-       * selected. Its grip moves it to any side of the plot, anywhere along it: along the top or the foot it lies, along
+       * The belt, over the chart: the cursor, Select and the tools, always the same; then what's in hand, which adapts:
+       * with a tool, the look its next drawing takes (the pen's, one for every tool); with drawings selected, their look and
+       * what to do with them. On, it stays; off, it shows only while a tool's in hand or a drawing is selected. Its grip moves it to any side of the plot, anywhere along it: along the top or the foot it lies, along
        * the left or the right it stands, turning as it's carried there.
        */
       let beltShown = "", beltKeys = false;
-      /** The belt's tools, in order: the cursor (none in hand), each drawing's, the ruler. */
-      const BELT_TOOLS = ["cursor", "select", ...KINDS, "measure"];
+      /** The belt's tools, in order: the cursor (none in hand), Select (a box around drawings), each drawing's (the ruler last). */
+      const BELT_TOOLS = ["cursor", "select", ...KINDS];
       const upright = (/** @type {string} */ side) => side === "left" || side === "right";
       /** A belt button's name, its key (after D; the ruler's is its own, M), its icon. */
       const beltTool = (/** @type {string} */ each) =>
         each === "cursor" ? { name: "Cursor", key: "", kbd: "esc", icon: ICONS.cursor }
         : each === "select" ? { name: "Select", tip: `Select: drag a box around drawings, or ${keyText("⌘")} and drag anytime`, key: "S", kbd: "D S", icon: ICONS.select }
-        : each === "measure" ? { name: "Ruler", key: "M", kbd: "M", icon: ICONS.ruler }
-        : { name: TOOLS[each].name, key: TOOLS[each].key, kbd: `D ${TOOLS[each].key}`, icon: TOOLS[each].icon };
+        : { name: TOOLS[each].name, key: TOOLS[each].key, kbd: each === "ruler" ? "M" : `D ${TOOLS[each].key}`, icon: TOOLS[each].icon };
       function renderBelt() {
         const belt = $("belt"), drawings = tool ? [] : /** @type {Drawing[]} */ ([...chosen].map(drawingById).filter(Boolean)), drawing = drawings.length === 1 ? drawings[0] : undefined;
         const was = belt.hidden || belt.classList.contains("held") || reduced.matches ? null : belt.getBoundingClientRect();
-        belt.hidden = home || !chart.layers.length || !(prefs.belt.on || tool || measureMode || selectingArea || drawings.length || beltKeys);
+        belt.hidden = home || !chart.layers.length || !(prefs.belt.on || tool || selectingArea || drawings.length || beltKeys);
         $("draw-toggle").setAttribute("aria-pressed", String(prefs.belt.on));
-        if (belt.hidden) return;
+        if (belt.hidden) {
+          // (What had the focus in it lets go: hidden, it can't keep it.)
+          if (belt.contains(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
+          return;
+        }
         // (Carried, it turns as it goes: its side is set on release.)
         if (!belt.classList.contains("held")) belt.classList.toggle("upright", upright(prefs.belt.dock));
         const kinds = new Set(tool ? [tool] : drawings.map((item) => item.kind)), look = (/** @type {string} */ part) => lookFor(part, drawings);
-        const pressed = (/** @type {string} */ each) => (each === "cursor" ? !tool && !measureMode && !selectingArea : each === "measure" ? measureMode : each === "select" ? selectingArea : tool === each);
+        const pressed = (/** @type {string} */ each) => (each === "cursor" ? !tool && !selectingArea : each === "select" ? selectingArea : tool === each);
         const tools = BELT_TOOLS.map((each) => {
           const { name, tip = name, key, kbd, icon } = beltTool(each);
           return `<button type="button" class="cap" id="belt-${each}" data-tool="${each}" aria-pressed="${pressed(each)}" aria-label="${name}" data-tip="${escape(tip)}" data-kbd="${kbd}">${icon}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
-        }).join("");
+        }).join("") + (chart.drawings?.length ? `<i class="belt-rule"></i><button type="button" class="cap" id="belt-hide" data-belt="hide" aria-pressed="${drawingsHidden}" aria-label="${drawingsHidden ? "Show the drawings" : "Hide the drawings"}" data-tip="${drawingsHidden ? "Show the drawings" : "Hide the drawings: the chart as it is, without them"}" data-kbd="⇧ H">${drawingsHidden ? ICONS.eyeOff : ICONS.eye}</button>` : "");
         const button = (/** @type {string} */ part, /** @type {string} */ label, /** @type {string} */ body, menu = true, kbd = "") => `<button type="button" class="cap" id="belt-${part}" data-belt="${part}" ${menu ? 'aria-haspopup="menu"' : ""} aria-label="${escape(label)}" data-tip="${escape(label)}" ${kbd ? `data-kbd="${kbd}"` : ""}>${body}</button>`;
         // Each look shown as the first drawing that has it has it; set, it's set on each that has it.
+        const has = (/** @type {string} */ part) => [...kinds].some((each) => hasLook(each, part));
         const context = !kinds.size ? "" : [
-          button("color", `Color: ${colorName(look("color").color)}`, `<i class="swatch" style="--c:${escape(cssColor(look("color").color))}"></i>`),
-          button("opacity", `Opacity: ${Math.round((look("opacity").opacity ?? 1) * 100)}%`, ICONS.opacity),
-          ...([...kinds].some((each) => each !== "text") ? [button("width", `Width: ${look("width").width}px`, ICONS.weight), button("dash", `Line style: ${dashOf(look("dash").dash)[1]}`, dashGlyph(dashOf(look("dash").dash)[2], dashOf(look("dash").dash)[3]))] : []),
-          ...(kinds.has("text") ? [button("size", `Size: ${SIZE_NAMES[look("size").size ?? 14]}`, `<span class="belt-size">${SIZE_SHORT[look("size").size ?? 14]}</span>`)] : []),
-          ...(kinds.has("trend") ? [button("extend", `Extend: ${EXTENDS.find(([extend]) => extend === (look("extend").extend ?? ""))?.[1]}`, extendGlyph(look("extend").extend ?? ""))] : []),
+          ...(has("color") ? [
+            button("color", `Color: ${colorName(look("color").color)}`, `<i class="swatch" style="--c:${escape(cssColor(look("color").color))}"></i>`),
+            button("opacity", `Opacity: ${Math.round((look("opacity").opacity ?? 1) * 100)}%`, ICONS.opacity),
+          ] : []),
+          ...(has("width") ? [button("width", `Width: ${look("width").width}px`, ICONS.weight), button("dash", `Line style: ${dashOf(look("dash").dash)[1]}`, dashGlyph(dashOf(look("dash").dash)[2], dashOf(look("dash").dash)[3]))] : []),
+          // (Words' size and background: a text's, a labelled line's; with a tool, the Text tool's.)
+          ...((tool ? tool === "text" : Boolean(wordsIn(drawings))) ? ((words) => [
+            button("size", `Size: ${SIZE_NAMES[words.size ?? TEXT_SIZE]}`, `<span class="belt-size">${SIZE_SHORT[words.size ?? TEXT_SIZE]}</span>`),
+            button("back", `Background: ${backOf(words.back)[1]}`, backChip(words.back ?? "", words.color)),
+          ])(tool ? prefs.pen : /** @type {Drawing} */ (wordsIn(drawings))) : []),
+          ...(kinds.has("trend") ? [
+            button("extend", `Extend: ${EXTENDS.find(([extend]) => extend === (look("extend").extend ?? ""))?.[1]}`, extendGlyph(look("extend").extend ?? "")),
+            `<button type="button" class="cap" id="belt-arrow" data-belt="arrow" aria-pressed="${Boolean(look("arrow").arrow)}" aria-label="Arrow" data-tip="An arrow at its second end">${ICONS.arrow}</button>`,
+          ] : []),
           ...(drawings.length ? [
-            '<i class="belt-rule"></i>',
+            ...([...kinds].some((each) => hasLook(each, "color")) ? ['<i class="belt-rule"></i>'] : []),
             ...(drawing?.kind === "text" ? [button("text", "Edit the text", ICONS.pencil, false)] : []),
+            ...(drawing && LINES.has(drawing.kind) ? [button("label", drawing.label ? "Edit the label (or double-click it)" : "Add a label (or double-click the line)", ICONS.label, false)] : []),
             button("duplicate", drawings.length > 1 ? `Duplicate the ${drawings.length}` : "Duplicate", ICONS.duplicate, false, keyText("⌘D")),
             button("remove", drawings.length > 1 ? `Remove the ${drawings.length}` : "Remove", ICONS.trash, false, "⌫"),
           ] : []),
         ].join("");
-        const how = measureMode ? "Drag across the chart to measure a change" : selectingArea ? "Drag a box around drawings to select them" : tool && (placing?.clicks ? `Click its ${tool === "rect" ? "other corner" : "other end"}` : TOOLS[tool].tip);
+        const how = selectingArea ? "Drag a box around drawings to select them" : tool && (placing?.clicks ? `Click its ${BOXES.has(tool) ? "other corner" : "other end"}` : TOOLS[tool].tip);
         // With drawings selected, only what's theirs: the tools come back as they're let go (esc, a click away).
         const html = `<button type="button" class="grip" id="belt-grip" aria-label="Move the drawing tools" data-tip="Drag it to any side of the chart">${ICONS.grip}</button>
           ${drawings.length ? "" : `<div class="belt-tools" role="group" aria-label="Tools">${tools}</div>`}
@@ -9161,6 +9372,8 @@
       function placeBelt(glide = false) {
         const belt = $("belt"), plot = belt.hidden || belt.classList.contains("held") ? null : plotBox();
         if (!plot) return;
+        // Measured at rest: a glide still going ends where it was going.
+        belt.getAnimations().forEach((animation) => animation.finish());
         let side = prefs.belt.dock, up = upright(side);
         belt.classList.toggle("upright", up);
         // Standing taller than the plot (a short window, a phone on its side): it lies along the foot, this time.
@@ -9198,7 +9411,7 @@
         });
         belt.animate({ width: [`${from.width}px`, `${to.width}px`], height: [`${from.height}px`, `${to.height}px`] }, timing);
       }
-      /** The belt on (it stays) or off (it shows only while drawing or measuring, or with a drawing selected). */
+      /** The belt on (it stays) or off (it shows only while drawing, or with a drawing selected). */
       function toggleBelt() {
         prefs.belt.on = !prefs.belt.on;
         savePrefs();
@@ -9221,11 +9434,9 @@
         beltKeys = false;
         renderBelt();
       });
-      /** A tool from the belt: the cursor puts down what's in hand, the ruler measures (or stops), a drawing tool's taken (or put down). */
+      /** A tool from the belt: the cursor puts down what's in hand, Select boxes drawings (or stops), a drawing tool's taken (or put down). */
       function pickTool(/** @type {string} */ each) {
-        if (each === "measure") return setMeasureMode(!measureMode);
         if (each === "select") return setSelectingArea(!selectingArea);
-        setMeasureMode(false);
         setSelectingArea(false);
         setTool(each === "cursor" || each === tool ? "" : /** @type {DrawingKind} */ (each));
       }
@@ -9244,8 +9455,15 @@
         event.preventDefault();
         event.stopPropagation();
       });
-      /** Whether a kind of drawing has a look: every one a color and an opacity; a line, its width and style; a trend line, its extent; a text, its size. */
-      const hasLook = (/** @type {string | undefined} */ kind, /** @type {string} */ part) => Boolean(kind) && (part === "width" || part === "dash" ? kind !== "text" : part === "extend" ? kind === "trend" : part === "size" ? kind === "text" : true);
+      /** Whether a kind of drawing has a look: every one a color and an opacity; a line, its width and style; a trend line, its extent and arrow; words (a text's, a line's label's), their size and background. */
+      const hasLook = (/** @type {string | undefined} */ kind, /** @type {string} */ part) => Boolean(kind) && kind !== "ruler" && (part === "width" || part === "dash" ? kind !== "text" : part === "extend" || part === "arrow" ? kind === "trend" : part === "size" || part === "back" ? kind === "text" || LINES.has(kind) : true);
+      /** The first of some drawings with words: a text, a labelled line. */
+      const wordsIn = (/** @type {(Drawing | undefined)[]} */ drawings) => drawings.find((item) => item?.kind === "text" || (item && LINES.has(item.kind) && item.label));
+      const backOf = (/** @type {string | undefined} */ back) => BACKS.find(([each]) => each === (back ?? "")) ?? BACKS[0];
+      /** A background's glyph (⌘K's): a bar of words in a box as it asks. */
+      const backGlyph = (/** @type {string} */ back) => glyphSvg(`${back ? `<rect x="1" y="2" width="14" height="8" rx="2.5" ${back === "outline" ? 'fill="none"' : `fill="currentColor" fill-opacity="${back === "solid" ? 1 : 0.4}"`} ${back.includes("outline") ? 'stroke="currentColor" stroke-width="1.2"' : 'stroke="none"'}/>` : ""}<path d="M4.5 6h7" stroke-width="1.6" stroke-linecap="round" ${back === "solid" ? 'style="stroke: var(--card)"' : 'stroke="currentColor"'}/>`);
+      /** A background as the belt shows it: words on it, in their color. */
+      const backChip = (/** @type {string} */ back, /** @type {string} */ color) => `<span class="back-chip" data-back="${back}" style="--c:${escape(cssColor(color))};--on:${contrastOn(color)}">Aa</span>`;
       /** A look as the belt shows it: with a tool in hand, the pen's; else the first selected drawing that has it's. */
       const lookFor = (/** @type {string} */ part, drawings = /** @type {Drawing[]} */ ([...chosen].map(drawingById).filter(Boolean))) => (tool ? prefs.pen : drawings.find((drawing) => hasLook(drawing.kind, part)) ?? drawings[0]);
       /**
@@ -9254,7 +9472,13 @@
        * its slider).
        */
       function setLook(/** @type {string} */ part, value, coalesce = "", keepMenu = false) {
-        const apply = (/** @type {Record<string, any>} */ look) => (value === undefined ? delete look[part] : (look[part] = value));
+        const apply = (/** @type {Record<string, any>} */ look) => {
+          if (value === undefined) delete look[part];
+          else look[part] = value;
+          // (An arrow or an extent: one or the other: an arrow mid-line points nowhere.)
+          if (part === "arrow" && value) delete look.extend;
+          if (part === "extend" && value) delete look.arrow;
+        };
         apply(prefs.pen);
         savePrefs();
         if (tool) return renderBelt();
@@ -9276,7 +9500,19 @@
         if (!button) return;
         const { tool: each, belt: part = "" } = button.dataset, drawings = [...chosen], drawing = chosen.size === 1 ? drawingById(drawings[0]) : undefined, look = lookFor(part);
         if (each) return pickTool(each);
+        if (part === "hide") return hideDrawings(!drawingsHidden);
         if (!look) return;
+        if (part === "arrow") return setLook("arrow", look.arrow ? undefined : true);
+        const words = tool ? prefs.pen : wordsIn([...chosen].map(drawingById));
+        if (part === "size") {
+          const now = words?.size ?? TEXT_SIZE;
+          return beltPopover(button, "Size", beltTabs("Size", SIZES.map((size) => `<button type="button" data-pick-size="${size}" aria-pressed="${now === size}" aria-label="${SIZE_NAMES[size]}" data-tip="${SIZE_NAMES[size]}, ${size}px">${SIZE_SHORT[size]}</button>`)), ({ pickSize }) => pickSize && setLook("size", Number(pickSize)));
+        }
+        if (part === "back") {
+          const now = words?.back ?? "", color = words?.color ?? PEN_COLOR;
+          return beltPopover(button, "Background", beltTabs("Background", BACKS.map(([back, text, tip]) => `<button type="button" data-pick-back="${back}" aria-pressed="${now === back}" aria-label="${text}" data-tip="${text}: ${tip.toLowerCase()}">${backChip(back, color)}</button>`)), ({ pickBack }) => pickBack !== undefined && setLook("back", pickBack || undefined));
+        }
+        if (part === "label" && drawing) return startLabel(drawing);
         // (Bitview's colors as a grid of swatches, not the layers panel's named list: picked often, at a glance.)
         if (part === "color") beltPopover(button, "Color", `<div class="swatch-grid">${SWATCHES.map((color) => `<button type="button" data-pick-color="${escape(color)}" aria-checked="${look.color === color}" aria-label="${escape(colorName(color))}" data-tip="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`, ({ pickColor }) => pickColor && setLook("color", pickColor));
         else if (part === "width" || part === "opacity") {
@@ -9284,7 +9520,6 @@
           $(`draw-${part}`)?.focus();
         } else if (part === "dash") beltPopover(button, "Line style", beltTabs("Line style", DASHES.map(([dash, text, length, gap]) => `<button type="button" data-pick-dash="${dash}" aria-pressed="${look.dash === dash}" aria-label="${text}" data-tip="${text}">${dashGlyph(length, gap)}</button>`)), ({ pickDash }) => pickDash !== undefined && setLook("dash", Number(pickDash)));
         else if (part === "extend") beltPopover(button, "Extend", beltTabs("Extend", EXTENDS.map(([extend, text, tip]) => `<button type="button" data-pick-extend="${extend}" aria-pressed="${(look.extend ?? "") === extend}" aria-label="${text}" data-tip="${tip}">${extendGlyph(extend)}</button>`)), ({ pickExtend }) => pickExtend !== undefined && setLook("extend", pickExtend || undefined));
-        else if (part === "size") beltPopover(button, "Size", beltTabs("Text size", SIZES.map((size) => `<button type="button" data-pick-size="${size}" aria-pressed="${(look.size ?? 14) === size}" aria-label="${SIZE_NAMES[size]}" data-tip="${SIZE_NAMES[size]}, ${size}px">${SIZE_SHORT[size]}</button>`)), ({ pickSize }) => pickSize && setLook("size", Number(pickSize)));
         else if (part === "text" && drawing) startTyping(drawing);
         else if (part === "duplicate") duplicateDrawings(drawings);
         else if (part === "remove") removeDrawings(drawings);
@@ -9303,7 +9538,7 @@
       // The width's or the opacity's slider, in its popover: scrubbed or stepped by keys as the layers panel's, one undo
       // step a drag.
       function setDrawSlider(/** @type {"draw-width" | "draw-opacity"} */ id, /** @type {number | undefined} */ value) {
-        const part = id === "draw-width" ? "width" : "opacity", look = lookFor(part), element = $(id), spec = SLIDERS[id];
+        const part = id === "draw-width" ? "width" : "opacity", look = lookFor(part), element = $(id);
         if (value === undefined || !look) return;
         setLook(part, part === "opacity" && value === 1 ? undefined : value, part, true);
         const now = lookFor(part);
@@ -9365,8 +9600,8 @@
       });
       /** The drawing under the pointer, lit; its cursor on the chart. */
       function hover(hit) {
-        const next = hit ? { id: hit.drawing.id, handle: hit.handle } : { id: "", handle: -1 };
-        if (next.id === hovering.id && next.handle === hovering.handle) return;
+        const next = hit ? { id: hit.drawing.id, handle: hit.handle, over: hit.over } : { id: "", handle: -1, over: "" };
+        if (next.id === hovering.id && next.handle === hovering.handle && next.over === hovering.over) return;
         hovering = next;
         if (next.id) $("chart").dataset.over = hit.over;
         else delete $("chart").dataset.over;
@@ -9381,7 +9616,10 @@
         const at = plotPoint(clientX, clientY, pane.rect);
         // Over an axis, the axis'.
         if (at.x < 0 || at.x > view.timeScale().width()) return null;
-        const score = (hit) => (hit.handle >= 0 ? MAX_DRAWINGS : 0) + shownDrawings.indexOf(hit.drawing);
+        // (On top as painted: as the pane's series are, a later layer's over an earlier's (a stack, from its top); then the
+        // later added; a point of one (a corner, an end; not a side) over any body.)
+        const paneOf = chart.panes[pane.index], inPane = chart.layers.filter((layer) => layer.pane === id);
+        const order = new Map((paneOf.stack && !paneOf.reverse ? inPane.reverse() : inPane).map((layer, i) => [layer.id, i])), score = (hit) => (hit.handle >= 0 && hit.handle < 4 ? MAX_DRAWINGS * (chart.layers.length + 1) : 0) + (order.get(hit.drawing.layer) ?? 0) * MAX_DRAWINGS + shownDrawings.indexOf(hit.drawing);
         let found = null;
         for (const layer of chart.layers) {
           const hit = layer.pane === id ? sketches.get(drawn.get(layer.id))?.hit(at.x, at.y, reach) : null;
@@ -9389,10 +9627,10 @@
         }
         return found;
       }
-      /** The layer drawn on in a pane: its first shown (its first, every one hidden). */
+      /** The layer drawn on in a pane: the selected one, if it's there and shown; else its first shown (its first, every one hidden). */
       function hostIn(index) {
         const id = chart.panes[index]?.id, mates = chart.layers.filter((layer) => layer.pane === id && drawn.has(layer.id));
-        return mates.find((layer) => !layer.hidden) ?? mates[0] ?? null;
+        return mates.find((layer) => layer.id === selected && !layer.hidden) ?? mates.find((layer) => !layer.hidden) ?? mates[0] ?? null;
       }
       /**
        * A point on a layer's scale, from where the pointer is: its time on the nearest bar (`free`: anywhere), past the
@@ -9455,17 +9693,15 @@
         event.preventDefault();
         event.stopPropagation();
       }, { capture: true, passive: false });
-      // Capture phase, before the chart: a press that draws, or takes a drawing, doesn't pan. (⇧ measures.)
+      // Capture phase, before the chart: a press that draws, or takes a drawing, doesn't pan.
       $("chart").addEventListener("pointerdown", (event) => {
         if (writing) $("draw-text").blur();
-        if (event.button !== 0 || measureMode || !resolved?.times.length) return;
+        if (event.button !== 0 || !resolved?.times.length) return;
         const pane = paneAt(event.clientY);
         if (!pane) return;
         const at = plotPoint(event.clientX, event.clientY, pane.rect);
         // A press on an axis scales it, whatever's drawing.
         if (at.x < 0 || at.x > view.timeScale().width()) return;
-        // (⇧ and a drag, the ruler, measures: its own handler, before this one, took it.)
-        if (event.shiftKey && (tool || !drawingAt(event.clientX, event.clientY, reachOf(event)))) return;
         // A box around drawings: the Select tool's, or ⌘ and a drag (a chord: the keys held don't come up).
         if (!tool && (selectingArea || boxKey(event))) {
           take(event);
@@ -9477,30 +9713,32 @@
           take(event);
           // Placed click by click: this press ends it, at its release.
           if (placing) return void Object.assign(placing, { down: at, held: true });
-          const host = hostIn(pane.index), point = host && pointFrom(at, host, { free: tool === "brush" || tool === "text", pull: PAIRED.has(tool) || tool === "hline" ? !event.altKey : false });
+          // (Drawn to a value within reach: a line's ends, a box's corners, a level; not a ruler's: it reads its dates.)
+          const host = hostIn(pane.index), point = host && pointFrom(at, host, { free: tool === "brush" || tool === "text", pull: (PAIRED.has(tool) && tool !== "ruler") || tool === "hline" ? !event.altKey : false });
           if (!host || !point) return;
-          placing = { rect: pane.rect, host, down: at, held: true, clicks: false, stroke: [at] };
+          placing = { rect: pane.rect, host, down: at, held: true, clicks: false, stroke: [{ ...at, point }] };
           if (tool !== "text") draft = newDrawing(tool, host.id, PAIRED.has(tool) ? [point, [...point]] : [point]);
           return repaintDrawings();
         }
         const hit = drawingAt(event.clientX, event.clientY, reachOf(event));
-        // A press on nothing pans; a click there lets the selected drawings go (at its release, unmoved).
-        if (!hit) return void (pressedAt = chosen.size ? { x: event.clientX, y: event.clientY } : null);
+        // A press on nothing pans; a click there lets the selected drawings go (at its release, unmoved; a ⇧-click that
+        // missed one changes nothing).
+        if (!hit) return void (pressedAt = chosen.size && !event.shiftKey ? { x: event.clientX, y: event.clientY } : null);
         take(event);
         const id = hit.drawing.id;
         // ⇧: in or out of the selection.
         if (event.shiftKey) return chooseDrawings(chosen.has(id) ? [...chosen].filter((other) => other !== id) : [...chosen, id]);
         // Taken by its body, it moves with every other selected; by one of its points, it alone is reshaped.
         if (!chosen.has(id)) chooseDrawings([id]);
-        // (A line across's dot is its body: it has nothing to reshape.)
-        const reshape = hit.handle >= 0 && (PAIRED.has(hit.drawing.kind) || hit.drawing.kind === "brush"), group = reshape ? [id] : [...chosen];
-        moving = { originals: new Map(group.map((each) => [each, drawingById(each) ?? hit.drawing])), target: id, handle: reshape ? hit.handle : -1, rect: pane.rect, start: at, moved: false, cursor: hit.over === "nwse" || hit.over === "nesw" ? `${hit.over}-resize` : "grabbing" };
+        // (A line across's dot is its body: it has nothing to reshape. A label taken slides along its line, alone.)
+        const reshape = hit.handle >= 0 && (PAIRED.has(hit.drawing.kind) || hit.drawing.kind === "brush"), slide = hit.over === "label", group = reshape || slide ? [id] : [...chosen];
+        moving = { originals: new Map(group.map((each) => [each, drawingById(each) ?? hit.drawing])), target: id, handle: reshape ? hit.handle : -1, slide, rect: pane.rect, start: at, moved: false, cursor: ["nwse", "nesw", "ns", "ew"].includes(hit.over) ? `${hit.over}-resize` : "grabbing" };
       }, true);
       $("chart").addEventListener("pointermove", (event) => {
         if (placing) return placeTo(event);
         if (moving) return moveTo(event);
         if (boxing) return boxTo(event);
-        hover(event.buttons || tool || measureMode || event.shiftKey ? null : drawingAt(event.clientX, event.clientY));
+        hover(event.buttons || tool || selectingArea ? null : drawingAt(event.clientX, event.clientY));
       });
       /** Where a press on nothing was, while a drawing is selected. */
       let pressedAt = null;
@@ -9517,12 +9755,17 @@
         stopDrawing();
       });
       $("chart").addEventListener("pointerleave", () => !placing && !moving && hover(null));
-      // Double-click a text: typed into, where it is.
+      // Double-click a text: typed into, where it is; a line: its label, typed where the click was (on it: typed into).
       $("chart").addEventListener("dblclick", (event) => {
         const hit = tool ? null : drawingAt(event.clientX, event.clientY);
         if (!hit) return;
         event.stopPropagation();
-        if (hit.drawing.kind === "text") startTyping(hit.drawing);
+        if (hit.drawing.kind === "text") return startTyping(hit.drawing);
+        if (!LINES.has(hit.drawing.kind)) return;
+        const pane = paneAt(event.clientY), series = drawn.get(hit.drawing.layer), line = timeLine(), size = sketches.get(series)?.size;
+        if (hit.over === "label" || !pane || !series || !line || !size) return startLabel(hit.drawing);
+        const at = plotPoint(event.clientX, event.clientY, pane.rect);
+        startLabel(hit.drawing, shareAlong(hit.drawing, onScreen(hit.drawing, series, line), size, at.x, at.y));
       }, true);
       // A right-click on a drawing: its menu, as a layer's row has.
       $("chart").addEventListener("contextmenu", (event) => {
@@ -9537,12 +9780,14 @@
         const ids = [...chosen], several = ids.length > 1;
         showMenu($("chart"), `
           ${drawing.kind === "text" && !several ? `<button type="button" data-pick="text">${ICONS.pencil}Edit the text</button>` : ""}
+          ${LINES.has(drawing.kind) && !several ? `<button type="button" data-pick="label">${ICONS.label}${drawing.label ? "Edit the label" : "Add a label"}</button>` : ""}
           <button type="button" data-pick="duplicate">${ICONS.duplicate}${several ? `Duplicate the ${ids.length}` : "Duplicate"}<kbd>${keyText("⌘D")}</kbd></button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="remove" class="danger">${ICONS.trash}${several ? `Remove the ${ids.length}` : "Remove"}<kbd>⌫</kbd></button>`, ({ pick }) => {
           const now = drawingById(drawing.id);
           if (!now) return;
           if (pick === "text") startTyping(now);
+          else if (pick === "label") startLabel(now);
           else if (pick === "duplicate") duplicateDrawings(ids);
           else if (pick === "remove") removeDrawings(ids);
         }, point);
@@ -9565,13 +9810,15 @@
           for (const each of coalesced.length ? coalesced : [event]) {
             // Each point half the way from the last to the pointer: the hand's tremor taken out.
             const raw = plotPoint(each.clientX, each.clientY, placing.rect), last = placing.stroke[placing.stroke.length - 1];
-            const point = { x: (last.x + raw.x) / 2, y: (last.y + raw.y) / 2 }, at = pointFrom(point, host, { free: true });
-            placing.stroke.push(point);
-            if (at) draft.points.push(at);
+            const x = (last.x + raw.x) / 2, y = (last.y + raw.y) / 2;
+            if (Math.hypot(x - last.x, y - last.y) < 1) continue;
+            const point = pointFrom({ x, y }, host, { free: true });
+            placing.stroke.push({ x, y, point });
+            if (point) draft.points.push(point);
           }
           return repaintDrawings();
         }
-        const point = draft && pointFrom(plotPoint(event.clientX, event.clientY, placing.rect), host, { pull: tool !== "vline" && !event.altKey });
+        const point = draft && pointFrom(plotPoint(event.clientX, event.clientY, placing.rect), host, { pull: tool !== "vline" && tool !== "ruler" && !event.altKey });
         if (!point || !draft) return;
         draft = { ...draft, points: [...draft.points.slice(0, -1), point] };
         repaintDrawings();
@@ -9587,15 +9834,16 @@
         let drawing = draft;
         setTool("");
         if (kind === "text") {
+          // (Its middle where the click was.)
           const point = pointFrom(at, host, { free: true });
           return void (point && startTyping(newDrawing("text", host.id, [point])));
         }
         if (kind === "brush" && drawing) {
-          stroke.push(at);
+          stroke.push({ ...at, point: pointFrom(at, host, { free: true }) });
           let kept = simplify(stroke, 0.75);
           // (Tolerance grows until it fits: only a long scribble gets there.)
           for (let tolerance = 1.5; kept.length > MAX_STROKE; tolerance *= 1.5) kept = simplify(stroke, tolerance);
-          drawing = { ...drawing, points: /** @type {[number, number][]} */ (kept.map((point) => pointFrom(point, host, { free: true })).filter(Boolean)) };
+          drawing = { ...drawing, points: /** @type {[number, number][]} */ (kept.map((each) => each.point).filter(Boolean)) };
         }
         const series = drawn.get(host.id), line = timeLine(), ends = drawing && series && line ? onScreen(drawing, series, line) : [];
         // Its two points on one spot: nothing to draw.
@@ -9613,6 +9861,11 @@
         moving.moved = true;
         hold(moving.cursor);
         if (!line) return;
+        if (moving.slide) {
+          const original = /** @type {Drawing} */ (originals.get(target)), series = drawn.get(original.layer), size = sketches.get(series)?.size;
+          if (series && size) reshaped.set(target, { ...original, at: shareAlong(original, onScreen(original, series, line), size, at.x, at.y) });
+          return repaintDrawings();
+        }
         if (handle < 0) {
           // One shift for all of them (whole bars, if any keeps to bars): they keep their places to each other.
           const free = [...originals.values()].every((each) => each.kind === "brush" || each.kind === "text"), dx = free ? at.x - moving.start.x : Math.round((at.x - moving.start.x) / line.step) * line.step;
@@ -9624,10 +9877,15 @@
         }
         const original = /** @type {Drawing} */ (originals.get(target)), host = layerById(original.layer), series = drawn.get(original.layer);
         if (!host || !series) return;
-        const point = () => pointFrom(at, host, { pull: !event.altKey });
+        const point = () => pointFrom(at, host, { pull: original.kind !== "ruler" && !event.altKey });
         let points = original.points;
         if (original.kind === "trend") points = original.points.map((each, i) => (i === handle ? point() ?? each : each));
-        else if (original.kind === "rect") {
+        else if (BOXES.has(original.kind) && handle >= 4) {
+          // A side: the point on that side takes the pointer's time (its left or right) or value (its top or foot).
+          const [a, b] = onScreen(original, series, line), across = handle % 2 === 1, taken = point() ?? original.points[0];
+          const i = across ? Number((handle === 5) !== (a.x >= b.x)) : Number((handle === 4) !== (a.y <= b.y));
+          points = original.points.map((each, k) => (k === i ? (across ? [taken[0], each[1]] : [each[0], taken[1]]) : each));
+        } else if (BOXES.has(original.kind)) {
           const [[t0, v0], [t1, v1]] = original.points, held = /** @type {[number, number]} */ ([[t0, v0], [t1, v0], [t1, v1], [t0, v1]][(handle + 2) % 4]);
           points = [held, point() ?? original.points[1]];
         } else if (original.kind === "brush") points = scaled(original, series, line, handle, at);
@@ -9639,11 +9897,14 @@
       function scaled(/** @type {Drawing} */ drawing, series, line, /** @type {number} */ corner, at) {
         const points = onScreen(drawing, series, line), shown = points.filter(finite), pad = drawing.width / 2 + 4;
         const box = { left: Math.min(...shown.map((p) => p.x)), right: Math.max(...shown.map((p) => p.x)), top: Math.min(...shown.map((p) => p.y)), bottom: Math.max(...shown.map((p) => p.y)) };
-        const west = corner === 0 || corner === 3, north = corner < 2;
+        // A side (4 top, 5 right, 6 foot, 7 left) stretches it one way: the other way, as it is.
+        if (corner >= 4) at = { x: corner === 5 ? at.x : corner === 7 ? at.x : box.right + pad, y: corner === 4 || corner === 6 ? at.y : box.bottom + pad };
+        const west = corner === 0 || corner === 3 || corner === 7, north = corner < 2 || corner === 4;
         const held = { x: west ? box.right : box.left, y: north ? box.bottom : box.top }, from = { x: west ? box.left : box.right, y: north ? box.top : box.bottom };
-        // The corner under the pointer is the box's, padded: the points' own corner lies the padding inside it. (A flat
-        // stroke, no height or no width, keeps it.)
-        const to = { x: at.x + (west ? pad : -pad), y: at.y + (north ? pad : -pad) };
+        // The corner under the pointer is the box's, padded: the points' own corner lies the padding inside it, on the side
+        // the pointer is of the held corner (it can be taken past it). (A flat stroke, no height or no width, keeps it.)
+        const inside = (/** @type {number} */ to, /** @type {number} */ from) => (Math.abs(to - from) <= pad ? from : to + (to < from ? pad : -pad));
+        const to = { x: inside(at.x, held.x), y: inside(at.y, held.y) };
         const sx = from.x === held.x ? 1 : (to.x - held.x) / (from.x - held.x), sy = from.y === held.y ? 1 : (to.y - held.y) / (from.y - held.y);
         return points.flatMap((point) => {
           if (!finite(point)) return [];
@@ -9672,14 +9933,14 @@
       }
       /** Let go of drawings: moved, they're the chart's where they are (one undo); not moved, it was a click: they're selected. */
       function moved() {
-        const { originals } = moving, now = [...reshaped.values()].filter((drawing) => JSON.stringify(drawing.points) !== JSON.stringify(originals.get(drawing.id)?.points));
+        const { originals } = moving, now = [...reshaped.values()].filter((drawing) => JSON.stringify(drawing) !== JSON.stringify(originals.get(drawing.id)));
         moving = null;
         reshaped = new Map();
         hold("");
         if (!now.length) return repaintDrawings();
         commit((doc) => doc.drawings?.forEach((item) => {
           const moved = now.find((drawing) => drawing.id === item.id);
-          if (moved) item.points = moved.points;
+          if (moved) Object.assign(item, { points: moved.points, ...(moved.at === undefined ? {} : { at: moved.at }) });
         }), { redraw: "none" });
       }
       /** Drawings into the chart (one undo), selected. @param {Drawing[]} drawings */
@@ -9753,7 +10014,7 @@
         if (drawing.kind === "trend") return crossesBox(...trendEnds(drawing, a, b, size), box);
         if (drawing.kind === "hline") return a.y >= box.top && a.y <= box.bottom;
         if (drawing.kind === "vline") return a.x >= box.left && a.x <= box.right;
-        if (drawing.kind === "rect") return finite(a) && finite(b) && overlaps({ left: Math.min(a.x, b.x), right: Math.max(a.x, b.x), top: Math.min(a.y, b.y), bottom: Math.max(a.y, b.y) });
+        if (BOXES.has(drawing.kind)) return finite(a) && finite(b) && overlaps({ left: Math.min(a.x, b.x), right: Math.max(a.x, b.x), top: Math.min(a.y, b.y), bottom: Math.max(a.y, b.y) });
         if (drawing.kind === "text") return finite(a) && overlaps(boundsOf(drawing, points));
         const shown = points.filter(finite);
         return shown.some((point, i) => crossesBox(point, shown[i + 1] ?? point, box));
@@ -9766,18 +10027,40 @@
       }
 
       /** Typing a text where it's drawn: ↵ or esc (or a click away) keeps it, ⇧↵ starts a line; emptied, it goes. @param {Drawing} drawing */
+      /** The field typed in, dressed as the words will be: their color, size, background. */
+      function dressField(/** @type {Drawing} */ drawing) {
+        const field = $("draw-text"), size = drawing.size ?? TEXT_SIZE;
+        field.style.setProperty("--c", cssColor(drawing.color));
+        field.style.setProperty("--on", drawing.back === "solid" ? contrastOn(drawing.color) : "var(--c)");
+        field.style.setProperty("--size", `${size}px`);
+        field.style.setProperty("--line", `${Math.round(size * 1.33)}px`);
+        field.dataset.back = drawing.back ?? "";
+        field.hidden = false;
+      }
       function startTyping(drawing) {
-        const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), size = drawing.size ?? 14;
-        writing = { drawing, fresh: !drawingById(drawing.id) };
+        const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), fresh = !drawingById(drawing.id);
+        writing = { drawing, fresh };
+        field.maxLength = 500;
         typingIn = drawing.id;
         field.value = drawing.text ?? "";
-        field.style.setProperty("--c", cssColor(drawing.color));
-        field.style.setProperty("--size", `${size}px`);
-        field.style.setProperty("--line", `${Math.round(size * 1.3)}px`);
-        field.hidden = false;
+        dressField(drawing);
         placeField();
         field.focus();
         field.setSelectionRange(field.value.length, field.value.length);
+        repaintDrawings();
+      }
+      /** Typing a line's label where it sits (`at`: where it goes, a share of the way along): ↵ or esc keeps it; emptied, it goes. @param {Drawing} drawing */
+      function startLabel(drawing, at = drawing.at) {
+        if (!chosen.has(drawing.id)) chooseDrawings([drawing.id]);
+        const field = /** @type {HTMLTextAreaElement} */ ($("draw-text"));
+        writing = { drawing: { ...drawing, ...(at === undefined ? {} : { at }) }, fresh: false, label: true };
+        field.maxLength = LABEL_MAX;
+        labelTyping = drawing.id;
+        field.value = drawing.label ?? "";
+        dressField(drawing);
+        placeField();
+        field.focus();
+        field.select();
         repaintDrawings();
       }
       /** The field over where its text is drawn, as wide and tall as what's typed. */
@@ -9785,25 +10068,47 @@
         const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), drawing = writing?.drawing, layer = drawing && layerById(drawing.layer);
         const series = layer && drawn.get(layer.id), line = timeLine(), pane = layer && view.panes()[chart.panes.findIndex((item) => item.id === layer.pane)]?.getHTMLElement();
         if (!drawing || !series || !line || !pane) return;
-        const [point] = onScreen(drawing, series, line), box = textBox({ ...drawing, text: field.value || " " }, point);
-        const canvas = $("canvas").getBoundingClientRect(), plot = $("chart").getBoundingClientRect().left + view.priceScale("left", 0).width();
-        Object.assign(field.style, { left: `${plot - canvas.left + box.left - 4}px`, top: `${pane.getBoundingClientRect().top - canvas.top + box.top}px`, width: `${Math.ceil(Math.max(box.width, box.size)) + 10}px`, height: `${box.height}px` });
+        const canvasBox = $("canvas").getBoundingClientRect(), plotLeft = $("chart").getBoundingClientRect().left + view.priceScale("left", 0).width();
+        if (writing.label) {
+          // A label: centered where it sits (a trend line's at its angle; its field level).
+          const size = sketches.get(series)?.size, place = size && labelPlace(drawing, onScreen(drawing, series, line), size, field.value || " ");
+          if (!place) return;
+          return void Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.getBoundingClientRect().top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
+        }
+        // A text: its tag around its middle, as wide and tall as what's typed.
+        const place = textPlace(drawing, onScreen(drawing, series, line)[0], field.value || " ");
+        Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.getBoundingClientRect().top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
       }
       function endTyping() {
         if (!writing) return;
+        if (writing.label) {
+          const { drawing } = writing, label = labelText(/** @type {HTMLTextAreaElement} */ ($("draw-text")).value);
+          writing = null;
+          labelTyping = "";
+          $("draw-text").hidden = true;
+          if (label === (drawing.label ?? "") && drawing.at === drawingById(drawing.id)?.at) return repaintDrawings();
+          return editById(drawing.id, (item) => {
+            if (label) Object.assign(item, { label, ...(drawing.at === undefined ? {} : { at: drawing.at }) });
+            else {
+              delete item.label;
+              delete item.at;
+            }
+          });
+        }
         const { drawing, fresh } = writing, text = /** @type {HTMLTextAreaElement} */ ($("draw-text")).value.replace(/\s+$/, "");
         writing = null;
         typingIn = "";
         $("draw-text").hidden = true;
-        if (fresh) return text.trim() ? addDrawing({ ...drawing, text }) : repaintDrawings();
-        if (!text.trim()) return removeDrawing(drawing.id);
+        if (!text.trim()) return fresh ? repaintDrawings() : removeDrawing(drawing.id);
         if (text === drawing.text) return repaintDrawings();
+        if (fresh) return addDrawing({ ...drawing, text });
         editById(drawing.id, (item) => (item.text = text));
       }
       $("draw-text").addEventListener("input", placeField);
       $("draw-text").addEventListener("blur", endTyping);
       $("draw-text").addEventListener("keydown", (event) => {
-        if (!((event.key === "Enter" && !event.shiftKey) || event.key === "Escape")) return;
+        // (Enter mid-composition is the input method's. A label is one line: ⇧Enter puts it down too.)
+        if (event.isComposing || !((event.key === "Enter" && (!event.shiftKey || writing?.label)) || event.key === "Escape")) return;
         event.preventDefault();
         $("draw-text").blur();
       });
@@ -10170,11 +10475,13 @@
         const B = Math.min(PREVIEW.points, Math.floor(span));
         const first = clamp(Math.floor(shown.from), 0, n - 1), last = clamp(Math.ceil(shown.to), 0, n - 1);
         const round = (value) => Math.round(value * 10) / 10;
-        const total = doc.panes.reduce((sum, pane, i) => sum + (pane.size ?? defaultSize(i)), 0), stacked = stackOf(doc, data);
+        // (A folded pane takes no band: it shows nothing.)
+        const folded = foldedPanes(doc), sizeOf = (pane, k) => (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(k));
+        const total = doc.panes.reduce((sum, pane, i) => sum + sizeOf(pane, i), 0), stacked = stackOf(doc, data);
         let top = 0;
         doc.panes.forEach((pane, k) => {
-          const height = ((pane.size ?? defaultSize(k)) / total) * H;
-          if (k) drawn.seps.push(round(top));
+          const height = (sizeOf(pane, k) / total) * H;
+          if (top > 0 && height) drawn.seps.push(round(top));
           const paneTop = round(top), paneBottom = round(top + height);
           const band = { top: top + height * 0.17, height: height * 0.75 };
           top += height;
@@ -10656,8 +10963,6 @@
         setTool("");
         disarm();
         hideTip();
-        clearMeasure();
-        if (measureMode) setMeasureMode(false);
         if (selected) deselect();
         document.body.removeAttribute("data-peek");
         home = true;
@@ -13247,10 +13552,10 @@
           ...(empty ? [] : [
             { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", words: "draw drawing belt toolbar tools annotate", icon: "draw", run: toggleBelt },
             ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, words: "draw drawing tool cancel end", icon: tool, kbd: "esc", run: () => setTool("") }] : []),
-            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: `${TOOLS[kind].tip}; esc to stop.`, words: `draw drawing annotate annotation ${TOOLS[kind].name} ${TOOLS[kind].noun}`, icon: kind, run: () => setTool(kind) })),
+            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: `${TOOLS[kind].tip}; esc to stop.`, words: `draw drawing annotate annotation ${TOOLS[kind].name} ${TOOLS[kind].noun}${kind === "ruler" ? " measure measuring distance difference percent" : ""}`, icon: kind, ...(kind === "ruler" ? { kbd: "M" } : {}), run: () => setTool(kind) })),
+            ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", words: "drawings annotations hide show visible clean", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden) }] : []),
             ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
           ]),
-          { title: measureMode ? "Stop measuring" : "Measure", text: measureMode ? "Dragging pans the chart again." : "Drag across the chart to measure a change.", words: "measure measuring ruler distance difference percent", icon: "ruler", kbd: "M", run: () => setMeasureMode(!measureMode) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           ...(TOUCH ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
@@ -13340,7 +13645,7 @@
         const leads = (command) => (command.follows ?? `${command.title.split(/[\s:]/)[0]} ${command.words ?? ""}`).toLowerCase().split(/\s+/).some((word) => word.startsWith(words[0]));
         const found = !everything ? [] : rank(commands().map((command) => ({ kind: "command", key: command.title, command, group: "Commands" })), (item) => `${item.command.title} ${item.command.words ?? ""}`, words);
         const strong = found.filter((item) => leads(item.command)).slice(0, 6), weak = found.filter((item) => !leads(item.command)).slice(0, 6);
-        // Charts follow the series: the sidebar already lists them, and adding a series is what ⌘K is mostly for.
+        // Charts that match come before the series: a chart's title is a few words, matched, it's what's looked for.
         const charts = !everything ? [] : rank(library.charts.filter((doc) => home || doc !== chart).map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), rowText, words).slice(0, 4);
         // The website's charts (once read), after yours: a few that match; all of them on their own page.
         const website = !everything || !presets ? [] : rank(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Website charts" })), rowText, words).slice(0, 4);
@@ -13379,7 +13684,7 @@
           if (controller.signal.aborted) return;
           clearTimeout(palette.timer);
           const active = palette.items[palette.active];
-          palette.items = names ? [...direct, ...dated, ...strong, ...own, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...charts, ...website, ...more] : [...local, ...more];
+          palette.items = names ? [...direct, ...dated, ...strong, ...own, ...charts, ...website, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...more] : [...local, ...more];
           // The top result leads (or the row come back to), unless the person already moved to another row.
           palette.active = palette.moved ? Math.max(0, palette.items.indexOf(active)) : landing(palette.items);
           $("palette-glow").hidden = true;
@@ -13735,12 +14040,14 @@
         const doc = structuredClone(chart);
         look(doc);
         // (A look is a restyle: each series kept, its look applied.)
+        lookDoc = doc;
         build(doc, resolved, false);
         looking = true;
         $("palette").toggleAttribute("data-looking", true);
       }
       function clearLook() {
         $("palette").removeAttribute("data-looking");
+        lookDoc = null;
         if (!looking) return;
         looking = false;
         if (resolved && drawnChart === chart.id) build(structuredClone(chart), resolved, false);
@@ -14275,7 +14582,7 @@
         const names = drawingNames();
         return [
           ...(chart.drawings ?? []).map((drawing) => ({ kind: "row", key: drawing.id, icon: TOOLS[drawing.kind].icon, label: /** @type {string} */ (names.get(drawing.id)), aside: `On ${labelOf(layerById(drawing.layer) ?? { label: "" })}`, group: "On the chart", page: () => drawingPage(drawing.id) })),
-          ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => setTool(kind) })),
+          ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => setTool(kind) })),
           ...(chart.drawings?.length ? [{ kind: "row", key: "clear", icon: ICONS.trash, label: "Remove every drawing", verb: "Remove", group: "Draw", danger: true, run: clearDrawings }] : []),
         ];
       } });
@@ -14291,16 +14598,41 @@
             if (item) edit(item);
           } });
           return [
-            ...(drawing.kind === "text" ? [{ key: "text", icon: ICONS.pencil, label: "Text", aside: drawing.text, group: "Style", page: () => inputPage({ title: "Text", value: drawing.text ?? "", placeholder: "Its words", hint: "Its words", verb: "Set", read: (text) => (text.trim() ? `Set to “${text.trim()}”` : null), apply: (text) => editById(id, (item) => (item.text = text.trim())) }) }] : []),
-            { key: "color", icon: swatchOf(drawing.color), label: "Color", aside: colorName(drawing.color), group: "Style", page: () => choicePage("Color", () => SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: now().color === name, ...both((item) => (item.color = name)) }))) },
-            { key: "opacity", icon: ICONS.opacity, label: "Opacity", aside: `${Math.round((drawing.opacity ?? 1) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.opacity, label: `${Math.round(opacity * 100)}%`, current: (now().opacity ?? 1) === opacity, ...both((item) => (item.opacity = opacity === 1 ? undefined : opacity)) }))) },
-            ...(drawing.kind === "text"
-              ? [{ key: "size", icon: ICONS.text, label: "Size", aside: SIZE_NAMES[drawing.size ?? 14], group: "Style", page: () => choicePage("Size", () => SIZES.map((size) => ({ key: String(size), icon: ICONS.text, label: SIZE_NAMES[size], aside: `${size}px`, current: (now().size ?? 14) === size, ...both((item) => (item.size = size)) }))) }]
+            ...(drawing.kind === "text" ? [{ key: "text", icon: ICONS.pencil, label: "Text", aside: drawing.text, verb: "Edit", group: "Style", run: () => {
+              $("palette").close();
+              const now = drawingById(id);
+              if (now) startTyping(now);
+            } }] : []),
+            // (A ruler's look is its reading's: up or down.)
+            ...(drawing.kind === "ruler" ? [] : [
+              { key: "color", icon: swatchOf(drawing.color), label: "Color", aside: colorName(drawing.color), group: "Style", page: () => choicePage("Color", () => SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: now().color === name, ...both((item) => (item.color = name)) }))) },
+              { key: "opacity", icon: ICONS.opacity, label: "Opacity", aside: `${Math.round((drawing.opacity ?? 1) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.opacity, label: `${Math.round(opacity * 100)}%`, current: (now().opacity ?? 1) === opacity, ...both((item) => (item.opacity = opacity === 1 ? undefined : opacity)) }))) },
+            ]),
+            ...(drawing.kind === "ruler" ? [] : drawing.kind === "text"
+              ? []
               : [
                 { key: "width", icon: ICONS.sliders, label: "Width", aside: `${drawing.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) },
                 { key: "dash", icon: dashGlyph(style[2], style[3]), label: "Line style", aside: style[1], group: "Style", page: () => choicePage("Line style", () => DASHES.map(([dash, text, length, gap]) => ({ key: String(dash), icon: dashGlyph(length, gap), label: text, current: now().dash === dash, ...both((item) => (item.dash = dash)) }))) },
               ]),
-            ...(drawing.kind === "trend" ? [{ key: "extend", icon: extendGlyph(drawing.extend ?? ""), label: "Extend", aside: EXTENDS.find(([extend]) => extend === (drawing.extend ?? ""))?.[1], group: "Style", page: () => choicePage("Extend", () => EXTENDS.map(([extend, text, tip]) => ({ key: extend || "none", icon: extendGlyph(extend), label: text, aside: tip, current: (now().extend ?? "") === extend, ...both((item) => (item.extend = extend || undefined)) }))) }] : []),
+            ...(LINES.has(drawing.kind) ? [{ key: "label", icon: ICONS.label, label: "Label", aside: drawing.label ?? "None", group: "Style", page: () => inputPage({ title: "Label", value: drawing.label ?? "", placeholder: "Its words (empty: none)", hint: "No label", verb: "Set", read: (text) => (labelText(text) ? `Label it “${labelText(text)}”` : drawing.label ? "Remove its label" : null), apply: (text) => editById(id, (item) => {
+              if (labelText(text)) item.label = labelText(text);
+              else {
+                delete item.label;
+                delete item.at;
+              }
+            }) }) }] : []),
+            ...(drawing.kind === "text" || drawing.label ? [
+              { key: "size", icon: ICONS.text, label: "Size", aside: SIZE_NAMES[drawing.size ?? TEXT_SIZE], group: "Style", page: () => choicePage("Size", () => SIZES.map((size) => ({ key: String(size), icon: ICONS.text, label: SIZE_NAMES[size], aside: `${size}px`, current: (now().size ?? TEXT_SIZE) === size, ...both((item) => (item.size = size)) }))) },
+              { key: "back", icon: backGlyph(drawing.back ?? ""), label: "Background", aside: backOf(drawing.back)[1], group: "Style", page: () => choicePage("Background", () => BACKS.map(([back, text, tip]) => ({ key: back || "none", icon: backGlyph(back), label: text, aside: tip, current: (now().back ?? "") === back, ...both((item) => (item.back = back || undefined)) }))) },
+            ] : []),
+            ...(drawing.kind === "trend" ? [{ key: "arrow", icon: ICONS.arrow, label: "Arrow", aside: drawing.arrow ? "On" : "Off", verb: drawing.arrow ? "Turn off" : "Turn on", group: "Style", stay: true, run: () => editById(id, (item) => {
+              item.arrow = !item.arrow || undefined;
+              if (item.arrow) delete item.extend;
+            }) }] : []),
+            ...(drawing.kind === "trend" ? [{ key: "extend", icon: extendGlyph(drawing.extend ?? ""), label: "Extend", aside: EXTENDS.find(([extend]) => extend === (drawing.extend ?? ""))?.[1], group: "Style", page: () => choicePage("Extend", () => EXTENDS.map(([extend, text, tip]) => ({ key: extend || "none", icon: extendGlyph(extend), label: text, aside: tip, current: (now().extend ?? "") === extend, ...both((item) => {
+              item.extend = extend || undefined;
+              if (extend) delete item.arrow;
+            }) }))) }] : []),
             { key: "select", icon: TOOLS[drawing.kind].icon, label: "Select it", aside: "Its look and actions on the belt", verb: "Select", group: "Drawing", run: () => chooseDrawings([id]) },
             { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", group: "Drawing", run: () => duplicateDrawings([id]) },
             { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", group: "Drawing", danger: true, run: () => removeDrawing(id) },
@@ -14376,29 +14708,32 @@
           { kind: "row", key: "reset", icon: ICONS.pane, label: "Reset heights", aside: "The first tall, the others shorter", verb: "Reset", group: "Heights", stay: true, run: () => commit((doc) => doc.panes.forEach((pane) => delete pane.size)) },
         ] : []),
       ] });
-      /** A pane's share of the chart's height, in percent. */
+      /** A pane's share of the chart's height, in percent, among those that show (folded, none: see foldedPanes). */
       function shareOf(i) {
-        const sizes = chart.panes.map((pane, k) => pane.size ?? defaultSize(k));
+        const folded = foldedPanes(chart), sizes = chart.panes.map((pane, k) => (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(k)));
         return Math.round((sizes[i] / sizes.reduce((sum, size) => sum + size, 0)) * 100);
       }
+      /** Whether a pane's height can be chosen: it shows, and so does another. */
+      const sizable = (/** @type {number} */ i) => ((folded) => !folded.has(chart.panes[i].id) && chart.panes.filter((pane) => !folded.has(pane.id)).length > 1)(foldedPanes(chart));
       /** A pane at a share of the chart's height, the others keeping theirs between them. */
       const setShare = (id, share) => commit((doc) => shareOn(doc, id, share));
       /** The same, on a doc as it is (a copy, to look at). @param {Chart} doc */
       function shareOn(doc, id, share) {
-        const sizes = doc.panes.map((pane, k) => pane.size ?? defaultSize(k)), i = doc.panes.findIndex((pane) => pane.id === id);
-        if (i < 0) return;
-        const others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
+        // (Among the panes that show: a folded one keeps its own, for when it opens.)
+        const folded = foldedPanes(doc), i = doc.panes.findIndex((pane) => pane.id === id), open = doc.panes.map((pane) => !folded.has(pane.id));
+        const sizes = doc.panes.map((pane, k) => pane.size ?? defaultSize(k)), others = sizes.reduce((sum, size, k) => sum + (k !== i && open[k] ? size : 0), 0);
+        if (i < 0 || !open[i] || !others) return;
         sizes[i] = (share * others) / (1 - share);
-        // Scaled to sum to the number of panes: choices made one after another don't grow them past what's kept.
-        const total = sizes.reduce((sum, size) => sum + size, 0);
-        doc.panes.forEach((pane, k) => (pane.size = Math.max(0.01, Math.round((sizes[k] / total) * doc.panes.length * 100) / 100)));
+        // Scaled to sum to the number of panes that show: choices made one after another don't grow them past what's kept.
+        const total = sizes.reduce((sum, size, k) => sum + (open[k] ? size : 0), 0), count = open.filter(Boolean).length;
+        doc.panes.forEach((pane, k) => open[k] && (pane.size = Math.max(0.01, Math.round((sizes[k] / total) * count * 100) / 100)));
       }
       const SHARES = [25, 33, 50, 67, 75];
       /** A pane, by its layers, scale and height: ↵ opens all it is. */
       function paneRow(id, i) {
         const pane = chart.panes[i], open = () => panePage(id);
         return {
-          kind: "row", key: `pane:${id}`, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${paneChip(pane)}${chart.panes.length > 1 ? ` · ${shareOf(i)}%` : ""}`, words: "pane", verb: "Open", page: open,
+          kind: "row", key: `pane:${id}`, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${paneChip(pane)}${foldedPanes(chart).has(pane.id) ? " · Folded" : sizable(i) ? ` · ${shareOf(i)}%` : ""}`, words: "pane", verb: "Open", page: open,
           actions: () => [{ label: "Open", kbd: "↵", page: open }, ...open().rows().filter((row) => !row.key.startsWith("layer:"))],
           preview: (/** @type {HTMLElement} */ panel) => previewPane(panel, id),
         };
@@ -14414,7 +14749,7 @@
             ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => MODES.flatMap((mode, m) => (!modesFor(pane).includes(m) ? [] : [{ key: String(m), icon: ICONS.charts, label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(chart.panes[at()]) === m, run: () => setPaneMode(id, m) }])), (panel) => previewPane(panel, id)) }]),
             { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => STACKS.map(([stack, name, tip]) => ({ key: stack || "off", icon: ICONS.charts, label: name, aside: tip, current: (chart.panes[at()]?.stack ?? "") === stack, run: () => setPaneStack(id, stack) }))) },
             ...(pane.stack ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: pane.reverse ? "Reversed" : "Normal", group: "Pane", page: () => choicePage("Order", () => [false, true].map((reverse) => ({ key: reverse ? "reversed" : "normal", icon: ICONS.charts, label: reverse ? "Reversed" : "Normal", aside: stackRun(stackLetters(pane), reverse), current: Boolean(chart.panes[at()]?.reverse) === reverse, run: () => setPaneReverse(id, reverse) }))) }] : []),
-            ...(many ? [{ key: "height", icon: ICONS.sliders, label: "Height", aside: `${shareOf(i)}% of the chart`, group: "Pane", page: () => choicePage("Height", () => SHARES.map((share) => ({ key: String(share), icon: ICONS.sliders, label: `${share}% of the chart`, current: shareOf(at()) === share, run: () => setShare(id, share / 100), look: (/** @type {Chart} */ doc) => shareOn(doc, id, share / 100) })), (panel, option) => previewPane(panel, id, Number(option.key) / 100)) }] : []),
+            ...(sizable(i) ? [{ key: "height", icon: ICONS.sliders, label: "Height", aside: `${shareOf(i)}% of the chart`, group: "Pane", page: () => choicePage("Height", () => SHARES.map((share) => ({ key: String(share), icon: ICONS.sliders, label: `${share}% of the chart`, current: shareOf(at()) === share, run: () => setShare(id, share / 100), look: (/** @type {Chart} */ doc) => shareOn(doc, id, share / 100) })), (panel, option) => previewPane(panel, id, Number(option.key) / 100)) }] : []),
             ...(i > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with pane ${i}`, verb: "Move", group: "Pane", stay: true, run: () => movePane(id, -1) }] : []),
             ...(i < chart.panes.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: `Swaps with pane ${i + 2}`, verb: "Move", group: "Pane", stay: true, run: () => movePane(id, 1) }] : []),
             { key: "remove", icon: ICONS.trash, label: many ? "Remove the pane" : "Remove every layer", aside: plural(layers.length, "layer"), verb: "Remove", group: "Pane", danger: true, run: () => removePane(id) },
@@ -14429,11 +14764,12 @@
         const i = chart.panes.findIndex((pane) => pane.id === id), pane = chart.panes[i];
         if (!pane) return void (panel.innerHTML = "");
         const layers = chart.layers.filter((layer) => layer.pane === id);
-        const sizes = chart.panes.map((other, k) => other.size ?? defaultSize(k)), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
+        // (A folded pane, a sliver: it shows only its legend.)
+        const folded = foldedPanes(chart), sizes = chart.panes.map((other, k) => (folded.has(other.id) ? 0 : other.size ?? defaultSize(k))), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
         if (share !== null) sizes[i] = (share * others) / (1 - share);
         panel.innerHTML = `<h4 class="plain">Pane ${i + 1}</h4>
-          <p class="description">${escape(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.stack && pane.reverse ? ", reversed" : ""}`)}${chart.panes.length > 1 ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
-          <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size}">${k + 1}</i>`).join("")}</div>
+          <p class="description">${escape(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.stack && pane.reverse ? ", reversed" : ""}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
+          <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size ? size : "0 0 4px"}">${size ? k + 1 : ""}</i>`).join("")}</div>
           <div class="info"><h5>Layers</h5><dl>${layers.map((layer) => `<div><dt><i class="dot" style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</dt><dd>${escape(layer.letter)}</dd></div>`).join("") || "<div><dt>None yet</dt><dd></dd></div>"}</dl></div>`;
       }
 
@@ -14959,13 +15295,13 @@
       async function fromLink(encoded) {
         const binary = atob(encoded.replace(/-/g, "+").replace(/_/g, "/"));
         const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-        // A chart is a few kilobytes: inflating stops at a megabyte, whatever the link claims.
+        // A chart is a few kilobytes (its drawings at most, about a megabyte): inflating stops at two, whatever the link claims.
         const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw")).getReader();
         const chunks = [];
         for (let size = 0; ;) {
           const { done, value } = await reader.read();
           if (done) break;
-          if ((size += value.length) > 1_000_000) {
+          if ((size += value.length) > 2_000_000) {
             reader.cancel();
             throw new Error("Too large to be a chart");
           }
@@ -15051,6 +15387,7 @@
             id: idOf(drawing.id), kind, layer, points: points.slice(0, takes),
             ...lookOfDrawing(kind, drawing),
             ...(kind === "text" ? { text } : {}),
+            ...(LINES.has(kind) && typeof drawing.label === "string" && labelText(drawing.label) ? { label: labelText(drawing.label), ...(Number.isFinite(drawing.at) ? { at: clamp(drawing.at, 0, 1) } : {}) } : {}),
           }];
         });
         normalize(doc);
@@ -15107,9 +15444,13 @@
         // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
         capturing = true;
         repaintDrawings();
-        const shot = view.takeScreenshot(true, false);
-        capturing = false;
-        repaintDrawings();
+        let shot;
+        try {
+          shot = view.takeScreenshot(true, false);
+        } finally {
+          capturing = false;
+          repaintDrawings();
+        }
         const scale = shot.width / $("chart").clientWidth;
         const pieces = measureLegends(scale), dates = viewDates(), title = titleOf(chart), cadence = CADENCE[chart.index];
         await drawMarks(pieces);
@@ -15128,6 +15469,7 @@
         context.drawImage(shot, pad, head);
         for (const piece of pieces) {
           const x = pad + piece.x, y = head + piece.y;
+          context.globalAlpha = piece.faded ? 0.4 : 1;
           if (piece.image) {
             context.drawImage(piece.image, x, y, piece.width, piece.height);
             continue;
@@ -15138,6 +15480,7 @@
           context.textBaseline = "middle";
           context.fillText(fitted(context, /** @type {string} */ (piece.text), piece.width), piece.align === "right" ? x + piece.width : x, y + piece.height / 2);
         }
+        context.globalAlpha = 1;
         context.textAlign = "left";
         context.textBaseline = "alphabetic";
         // The source, set like the sidebar's brand; across from it the interval, the view's dates, the values' date.
@@ -15174,18 +15517,20 @@
       }
       /**
        * Each pane's legend as the page shows it at rest, for the picture: its layers' marks, names and values, measured
-       * with the hidden layers taken out (the others close up as they would), no layer lit or selected, and every layer
+       * with the hidden layers taken out (the others close up as they would; a folded pane's kept, faded, all it shows), no layer lit or selected, and every layer
        * shown (a crowded legend wraps onto more lines within its pane, a picture can't scroll); in the chart's own
        * coordinates, scaled.
-       * @returns {{ x: number, y: number, width: number, height: number, svg?: string, image?: HTMLImageElement, text?: string, font?: string, color?: string, align?: CanvasTextAlign }[]}
+       * @returns {{ x: number, y: number, width: number, height: number, svg?: string, image?: HTMLImageElement, text?: string, font?: string, color?: string, align?: CanvasTextAlign, faded?: boolean }[]}
        */
       function measureLegends(scale) {
         const shown = legends(), buttons = all$("#chart .legend button");
         const states = buttons.map((button) => /** @type {[HTMLElement, string]} */ ([button, button.className]));
         const styles = shown.map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
         for (const legend of shown) Object.assign(legend.style, { flexWrap: "wrap", overflow: "visible", rowGap: "2px" });
+        // (A hidden layer's name is left out; a folded pane's show, faded, as on the chart: all it shows.)
+        const folded = foldedPanes(chart);
         for (const button of buttons) {
-          if (button.classList.contains("hidden")) button.style.display = "none";
+          if (button.classList.contains("hidden") && !folded.has(/** @type {HTMLElement | null} */ (button.closest(".legend"))?.dataset.pane ?? "")) button.style.display = "none";
           button.classList.remove("selected", "lit");
         }
         const origin = $("chart").getBoundingClientRect();
@@ -15198,12 +15543,12 @@
           const edge = legend.getBoundingClientRect().right;
           for (const button of legend.querySelectorAll("button")) {
             if (button.style.display === "none" || button.getBoundingClientRect().right > edge + 1) continue;
-            const mark = button.querySelector(".series-mark");
-            if (mark) pieces.push({ ...box(mark), svg: mark.outerHTML });
+            const mark = button.querySelector(".series-mark"), faded = button.classList.contains("hidden");
+            if (mark) pieces.push({ ...box(mark), svg: mark.outerHTML, faded });
             for (const element of /** @type {HTMLElement[]} */ ([button.querySelector(".name"), button.querySelector(".legend-value, .legend-error")])) {
               if (!element?.textContent?.trim()) continue;
               const style = getComputedStyle(element);
-              pieces.push({ ...box(element), text: element.textContent.trim(), font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ (["right", "end"].includes(style.textAlign) ? "right" : "left") });
+              pieces.push({ ...box(element), faded, text: element.textContent.trim(), font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ (["right", "end"].includes(style.textAlign) ? "right" : "left") });
             }
           }
         }
@@ -15550,8 +15895,6 @@
           else if (tool) setTool("");
           else if (selectingArea) setSelectingArea(false);
           else if (chosen.size) chooseDrawings([]);
-          else if (!$("measure").hidden) clearMeasure();
-          else if (measureMode) setMeasureMode(false);
           else if (selected) deselect();
           else if (document.body.hasAttribute("data-peek")) document.body.removeAttribute("data-peek");
           else if (document.body.dataset.sheet) delete document.body.dataset.sheet;
@@ -15560,9 +15903,10 @@
           else if (!home && !chart.layers.length && isDraft(chart) && (previousChart() || backToHome())) leaveEmpty();
         } else if (event.key === "ArrowDown" || event.key === "ArrowUp") selectBy(event.key === "ArrowDown" ? 1 : -1);
         else if ((event.key === "Backspace" || event.key === "Delete") && (chosen.size || selected)) chosen.size ? removeDrawings([...chosen]) : removeLayer(selected);
+        else if (key === "h" && event.shiftKey && chart.drawings?.length) hideDrawings(!drawingsHidden);
         else if (key === "h" && layerById(selected)) toggleHidden(selected);
         else if (key === "l" && chart.layers.length) toggleLog(scalePane().id);
-        else if (key === "m") setMeasureMode(!measureMode);
+        else if (key === "m" && chart.layers.length) setTool(tool === "ruler" ? "" : "ruler");
         else if (key === "d" && chart.layers.length) focusBelt();
         else if (key === "g" && chart.layers.length) openPage(datePage());
         else if (event.key === "-" || event.key === "_") zoom(1.6);
