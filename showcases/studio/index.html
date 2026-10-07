@@ -2430,6 +2430,82 @@
         }
       }
 
+      /* The call at the caret: its arguments (the one at the caret marked), what that one takes, what the call does. */
+      .call-help {
+        padding: 8px 10px;
+        color: var(--soft);
+        font-size: 12px;
+        line-height: 1.5;
+
+        &[hidden] {
+          display: none;
+        }
+
+        .call-sig {
+          color: var(--muted);
+          font: 12px/1.6 var(--mono);
+
+          b {
+            color: var(--ink);
+            font-weight: 510;
+          }
+
+          .on {
+            border-radius: var(--radius-xs);
+            padding: 1px 3px;
+            color: var(--ink);
+            background: var(--press);
+          }
+        }
+
+        p {
+          margin: 2px 0 0;
+
+          b {
+            color: var(--text);
+            font: 510 12px var(--mono);
+          }
+        }
+
+        .call-what {
+          color: var(--muted);
+        }
+
+        .call-error {
+          color: var(--danger);
+
+          /* Mid-word, as on the status line, it waits for a pause. */
+          .typing > & {
+            color: var(--muted);
+          }
+        }
+
+        /* Under the inspector's formula, floating where its completions show: what's below doesn't move, and a click
+           goes through to it. */
+        .formula-editor > & {
+          position: absolute;
+          top: calc(100% + 4px);
+          right: 0;
+          left: 0;
+          z-index: 5;
+          margin: 0;
+          border-radius: var(--radius-lg);
+          background: var(--raise);
+          box-shadow: var(--pop);
+          pointer-events: none;
+        }
+
+        /* In ⌘K, a line under the field, as tall for the guide as for a call's help: nothing below it moves. */
+        .palette > & {
+          min-height: 75px;
+          margin: 0;
+          border-radius: 0;
+          padding: 8px 18px;
+          background: none;
+          box-shadow: inset 0 -1px 0 var(--line);
+        }
+      }
+
       .formula-status {
         min-height: 18px;
         margin: 8px 0 0;
@@ -4730,9 +4806,10 @@
       <div class="palette-search">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
         <button id="palette-scope" class="scope" type="button" hidden></button>
-        <input id="palette-input" type="text" role="combobox" aria-label="Search series, charts and commands" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" />
+        <input id="palette-input" type="text" role="combobox" aria-label="Search series, charts and commands" aria-describedby="palette-call" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" />
         <button class="cap small" type="button" data-action="close-palette" aria-label="Close" data-icon="close"></button>
       </div>
+      <div id="palette-call" class="call-help" aria-live="polite" hidden></div>
       <div class="palette-body">
         <div class="palette-left">
           <nav id="palette-path" class="path" aria-label="Catalog path" hidden></nav>
@@ -5509,7 +5586,7 @@
         lowest: [2, "lowest(x, span?)", "rolling minimum (no span: of all so far)", (x, n, _p, partial) => extreme(x, n, (a, b) => a < b, partial), true],
         log: [1, "log(x)", "logarithm, base 10", (x) => x.map(Math.log10)],
         ln: [1, "ln(x)", "natural logarithm", (x) => x.map(Math.log)],
-        exp: [1, "exp(x)", "e to the power x", (x) => x.map(Math.exp)],
+        exp: [1, "exp(x)", "the exponential: e to the power x", (x) => x.map(Math.exp)],
         sqrt: [1, "sqrt(x)", "square root", (x) => x.map(Math.sqrt)],
         abs: [1, "abs(x)", "absolute value", (x) => x.map(Math.abs)],
         min: [2, "min(a, b)", "smaller of two", null],
@@ -9495,8 +9572,9 @@
               <h3>Formula</h3>
               <div class="formula-editor" id="formula-editor">
                 <pre id="formula-mirror" aria-hidden="true"></pre>
-                <textarea id="formula" maxlength="500" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Formula" aria-describedby="formula-status">${escape(layer.formula)}</textarea>
+                <textarea id="formula" maxlength="500" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Formula" aria-describedby="formula-status formula-call">${escape(layer.formula)}</textarea>
                 <ul id="suggest" class="suggest" role="listbox" hidden></ul>
+                <div id="formula-call" class="call-help" aria-live="polite" hidden></div>
               </div>
               <p id="formula-status" class="formula-status"></p>
               <details class="help"><summary>Functions and how letters work</summary>
@@ -9965,6 +10043,7 @@
         }
         status.classList.toggle("error", Boolean(message));
         $("formula-editor").classList.toggle("invalid", Boolean(message));
+        updateCallHelp();
         const label = $("label");
         if (label) label.placeholder = labelOf({ ...layer, label: "" });
       }
@@ -9975,6 +10054,8 @@
         active: 0,
         start: 0,
         controller: /** @type {AbortController | null} */ (null),
+        /** A lookup of series under way: its list is coming. */
+        pending: false,
         /** Just accepted: the word now there needs no list. */
         quiet: false,
       };
@@ -9988,6 +10069,7 @@
         suggest.active = Math.max(0, chosen);
         list.hidden = !items.length;
         list.innerHTML = items.map((item, i) => `<li role="option" ${item.series ? 'class="series"' : ""} data-suggest="${i}" aria-selected="${i === suggest.active}"><b>${escape(item.title)}</b>${item.text ? `<span>${escape(item.text)}</span>` : ""}</li>`).join("");
+        updateCallHelp();
       }
       /**
        * What completes the word before the caret: for a capital, this chart's layers (but `self`); for a lowercase word,
@@ -10013,6 +10095,7 @@
         if (!textarea || !$("suggest")) return;
         suggest.controller?.abort();
         suggest.active = 0;
+        suggest.pending = false;
         const { start, token, items } = completionsAt(textarea.value, textarea.selectionStart, layerById(selected));
         suggest.start = start;
         if (suggest.quiet || !token) {
@@ -10022,11 +10105,83 @@
         showSuggestions(items);
         if (token.length < 2 || /^[A-Z]/.test(token)) return;
         const controller = (suggest.controller = new AbortController());
+        suggest.pending = true;
         seriesCompleting(token, controller.signal).then((series) => {
           if (controller.signal.aborted || document.activeElement !== textarea) return;
+          suggest.pending = false;
           showSuggestions(series.some((item) => item.insert === token) ? items : [...items, ...series]);
-        }, () => {});
+        }, () => {
+          if (controller.signal.aborted) return;
+          suggest.pending = false;
+          updateCallHelp();
+        });
       }
+      /** What each argument of a function takes, by its name in the signatures. */
+      const ARGUMENTS = {
+        x: "the values, as a layer's letter, a series by its name, or a formula",
+        a: "a value, as a layer, a series, a formula or a number",
+        b: "a value, as a layer, a series, a formula or a number",
+        p: "a percent, from 0 to 100: 50 is the median, 95 near the top",
+        span: "how far back, as 12h, 30d, 4w, 6mo or 2y (a bare number is days)",
+        "span?": "how far back, as 12h, 30d, 4w, 6mo or 2y; left out (at 1D and up), all of history so far",
+      };
+      /** The innermost call the caret is in, and which of its arguments it's at; null outside of one. */
+      function callAt(/** @type {string} */ text, /** @type {number} */ caret) {
+        const open = /** @type {{ f: string | null, arg: number }[]} */ ([]);
+        for (let i = 0; i < caret; i++) {
+          if (text[i] === "(") {
+            let end = i;
+            while (end > 0 && /\s/.test(text[end - 1])) end--;
+            let start = end;
+            while (start > 0 && /[a-z0-9_]/.test(text[start - 1])) start--;
+            // A whole word only: the tail of another (Asma, 12sma) isn't a call.
+            const name = start > 0 && /[A-Za-z0-9_.]/.test(text[start - 1]) ? "" : text.slice(start, end);
+            open.push({ f: /^[a-z_]/.test(name) && hasFunction(name) ? name : null, arg: 0 });
+          } else if (text[i] === ")") open.pop();
+          else if (text[i] === "," && open.length) open[open.length - 1].arg++;
+        }
+        return open.findLast((call) => call.f) ?? null;
+      }
+      /**
+       * The call at the caret, at the formula: its arguments (the one at the caret marked), what that one takes, and what
+       * the call does. Empty outside of a call.
+       */
+      function callHelp(/** @type {string} */ text, /** @type {number} */ caret) {
+        const word = /(?<![A-Za-z0-9_.])[a-z_][a-z0-9_]*$/.exec(text.slice(0, caret))?.[0] ?? "";
+        const call = hasFunction(word) ? { f: word, arg: -1 } : callAt(text, caret);
+        if (!call?.f) return "";
+        const [, signature, what] = FUNCTIONS[call.f], names = signature.slice(signature.indexOf("(") + 1, -1).split(", "), at = names[call.arg];
+        return `<div class="call-sig"><b>${escape(call.f)}</b>(${names.map((name, i) => `<span${i === call.arg ? ' class="on"' : ""}>${escape(name)}</span>`).join(", ")})</div>
+          ${call.arg < 0 ? "" : `<p>${at ? `<b>${escape(at.replace("?", ""))}</b>: ${escape(ARGUMENTS[/** @type {keyof typeof ARGUMENTS} */ (at)] ?? "")}` : `No more arguments: ${escape(call.f)} takes ${names.length} at most`}</p>`}
+          <p class="call-what">${escape(capitalize(what.replace(/\s*\([^)]*\)$/, "")))}.</p>`;
+      }
+      /** ⌘K's formula line, outside of a call: how a formula reads. */
+      const FORMULA_GUIDE = `<p class="call-what">Layers by their letter, series by their name, numbers, + − × ÷ ^ and functions (sma, zscore, percentile…): inside a function's parentheses, its help shows here.</p>`;
+      /**
+       * The helper at the field being typed in, as the caret moves: under the inspector's formula, floating where its
+       * completions show (they take the place while they're up); in ⌘K, a line under the field for as long as a formula
+       * is written there (in a call, its help; else how formulas read), so nothing jumps as the caret goes in and out.
+       */
+      function updateCallHelp() {
+        const field = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.activeElement);
+        for (const [id, host] of [["formula", "formula-call"], ["palette-input", "palette-call"]]) {
+          const element = $(host);
+          if (!element) continue;
+          const typing = field?.id === id && (id === "formula" ? $("suggest")?.hidden !== false && !suggest.pending : palette.formula);
+          let help = typing && field ? callHelp(field.value, field.selectionStart ?? 0) : "";
+          // Over the inspector's status line, it says what that line would: the formula's error.
+          const status = $("formula-status");
+          if (help && id === "formula" && status?.classList.contains("error")) help += `<p class="call-error">${escape(status.textContent ?? "")}</p>`;
+          const html = help || (id === "palette-input" && $("palette").open && palette.formula ? FORMULA_GUIDE : "");
+          if (element.dataset.shown === html) continue;
+          element.dataset.shown = html;
+          element.innerHTML = html;
+          element.hidden = !html;
+        }
+      }
+      document.addEventListener("selectionchange", updateCallHelp);
+      document.addEventListener("input", updateCallHelp);
+      document.addEventListener("focusout", () => requestAnimationFrame(updateCallHelp));
       /** A completion as it goes in: a function's "(" left out where one follows already. */
       const completion = (/** @type {string} */ insert, /** @type {string} */ after) => (insert.endsWith("(") && after.startsWith("(") ? insert.slice(0, -1) : insert);
       function acceptSuggestion(i = suggest.active) {
@@ -10109,16 +10264,18 @@
           } else if (event.key === "Enter" || event.key === "Tab") acceptSuggestion();
           else if (event.key === "Escape") {
             suggest.controller?.abort();
-            $("suggest").hidden = true;
+            showSuggestions([]);
           }
           else return;
           event.preventDefault();
           event.stopPropagation();
         } else if (event.key === "Escape") event.target.blur();
       });
-      $("inspector").addEventListener("keyup", (event) => {
-        if (event.target.id === "formula" && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) updateSuggestions();
-      });
+      for (const type of ["keyup", "click"]) {
+        $("inspector").addEventListener(type, (event) => {
+          if (event.target.id === "formula" && (event.type === "click" || ["ArrowLeft", "ArrowRight", "Home", "End"].includes(/** @type {KeyboardEvent} */ (event).key))) updateSuggestions();
+        });
+      }
       $("inspector").addEventListener("focusout", (event) => {
         if (event.target.id !== "formula") return;
         suggest.controller?.abort();
@@ -11143,6 +11300,7 @@
 
       /** The palette's list, grouped; `pending` adds a searching row, `note` a closing remark. */
       function renderPalette(pending = false, note = "") {
+        updateCallHelp();
         const searching = Boolean(palette.query.trim());
         const list = $("palette-list");
         const tail = pending ? `<li class="note"><span class="shimmer">Searching ${total ? grouped.format(total) : "every"} series…</span></li>` : note ? `<li class="note">${escape(note)}</li>` : "";
