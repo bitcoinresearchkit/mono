@@ -2374,19 +2374,45 @@
         color: var(--muted);
       }
 
+      /*
+       * Under the formula, floating (nothing below it moves): one popover, the call at the caret over what fits its
+       * argument or completes the word typed; either alone when there's only one.
+       */
+      .assist {
+        position: fixed;
+        inset: auto;
+        margin: 0;
+        border: 0;
+        padding: 0;
+        overflow-y: auto;
+        border-radius: var(--radius-lg);
+        color: inherit;
+        background: var(--raise);
+        box-shadow: var(--pop);
+
+        > .call-help:not([hidden]) + .suggest:not([hidden]) {
+          border-top: 1px solid var(--line);
+        }
+
+        /* How many more a search finds: a line to read under the list, not a row to pick. */
+        > .more {
+          margin: 0;
+          border-top: 1px solid var(--line);
+          padding: 7px 12px;
+          color: var(--muted);
+          font-size: 12px;
+
+          &[hidden] {
+            display: none;
+          }
+        }
+      }
+
       .suggest {
-        position: absolute;
-        top: calc(100% + 4px);
-        right: 0;
-        left: 0;
-        z-index: 5;
         max-height: 268px;
         overflow-y: auto;
         margin: 0;
-        border-radius: var(--radius-lg);
         padding: 4px;
-        background: var(--raise);
-        box-shadow: var(--pop);
         list-style: none;
 
         &[hidden] {
@@ -2426,6 +2452,10 @@
             min-width: 0;
             white-space: normal;
             overflow-wrap: anywhere;
+          }
+
+          &:hover:not([aria-selected="true"]) {
+            background: var(--hover);
           }
         }
       }
@@ -2475,34 +2505,26 @@
           color: var(--danger);
 
           /* Mid-word, as on the status line, it waits for a pause. */
-          .typing > & {
+          .typing & {
             color: var(--muted);
           }
         }
 
-        /* Under the inspector's formula, floating where its completions show: what's below doesn't move, and a click
-           goes through to it. */
-        .formula-editor > & {
-          position: absolute;
-          top: calc(100% + 4px);
-          right: 0;
-          left: 0;
-          z-index: 5;
-          margin: 0;
-          border-radius: var(--radius-lg);
-          background: var(--raise);
-          box-shadow: var(--pop);
-          pointer-events: none;
-        }
-
-        /* In ⌘K, a line under the field, as tall for the guide as for a call's help: nothing below it moves. */
+        /* In ⌘K, a line under the field, one height for the guide and a call's help: nothing below it moves. */
         .palette > & {
-          min-height: 75px;
+          height: 75px;
+          overflow: hidden;
           margin: 0;
           border-radius: 0;
           padding: 8px 18px;
           background: none;
           box-shadow: inset 0 -1px 0 var(--line);
+
+          :is(.call-sig, p) {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
         }
       }
 
@@ -4925,7 +4947,9 @@
 
       /** @type {(id: string) => any} */
       const $ = (id) => document.getElementById(id);
-      const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      /** A token of the page's styles (they don't change while it's open: one theme, set once), read once. */
+      const tokens = new Map();
+      const css = (name) => tokens.get(name) ?? (tokens.set(name, getComputedStyle(document.documentElement).getPropertyValue(name).trim()), tokens.get(name));
       const uid = () => Math.random().toString(36).slice(2, 10);
       /** The element an event came from, or its nearest ancestor matching `selector`. @returns {HTMLElement | null} */
       const closest = (event, selector) => /** @type {HTMLElement} */ (event.target)?.closest?.(selector) ?? null;
@@ -5439,7 +5463,12 @@
        */
       function rolling(x, n, partial = false) {
         const byWindow = statsOf.get(x) ?? new Map(), key = `${n} ${partial}`, kept = byWindow.get(key);
-        if (kept) return kept;
+        if (kept) {
+          // (Used last, last out: the few a chart's formulas share stay, those typed through go.)
+          byWindow.delete(key);
+          byWindow.set(key, kept);
+          return kept;
+        }
         const mean = new Float64Array(x.length).fill(NaN), variance = new Float64Array(x.length).fill(NaN), counts = new Float64Array(x.length).fill(NaN), totals = new Float64Array(x.length).fill(NaN);
         let origin = NaN, sum = 0, squares = 0, count = 0, peak = 0, first = -1;
         const add = (/** @type {number} */ value, /** @type {number} */ sign) => {
@@ -5471,6 +5500,7 @@
         }
         const stats = { mean, variance, count: counts, total: totals };
         statsOf.set(x, byWindow.set(key, stats));
+        if (byWindow.size > 12) byWindow.delete(/** @type {string} */ (byWindow.keys().next().value));
         return stats;
       }
       /**
@@ -5595,6 +5625,8 @@
       const hasFunction = (name) => Object.hasOwn(FUNCTIONS, name);
 
       const TOKEN = /\s*(?:(\d+\.?\d*(?:e[+-]?\d+)?|\.\d+)([a-z]\w*)?|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([-+*/^(),]))/y;
+      /** A formula that only isn't finished yet (more to type, not a mistake). */
+      const unfinished = (/** @type {string} */ message) => Object.assign(new Error(message), { unfinished: true });
       function tokenize(source) {
         const tokens = [];
         let index = 0;
@@ -5628,12 +5660,12 @@
         const peek = () => tokens[at];
         const expect = (value) => {
           const token = tokens[at++];
-          if (!token || token.v !== value) throw new Error(token ? `Expected "${value}" before "${token.v}"` : `Missing "${value}"`);
+          if (!token || token.v !== value) throw token ? new Error(`Expected "${value}" before "${token.v}"`) : unfinished(`Missing "${value}"`);
         };
         /** @returns {Node} */
         function primary() {
           const token = tokens[at++];
-          if (!token) throw new Error("The formula ends too early");
+          if (!token) throw unfinished("The formula ends too early");
           if (token.t === "num") return token.unit ? { k: "num", v: token.v, unit: token.unit, text: token.text } : { k: "num", v: token.v };
           if (token.t === "ref") return { k: "ref", v: token.v };
           if (token.t === "id") {
@@ -6658,12 +6690,24 @@
        * Fetches every series the chart reads, its layers' and those its formulas name, at its interval; aligns them on
        * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
        */
+      /** Each chart's timeline and series on it, by its interval, while its data is the same (see resolve). @type {Map<string, any>} */
+      const frames = new Map();
+      let frameCount = 0;
+      /** Each result trimmed of the leading points none has, by where it starts. @type {WeakMap<object, { first: number, out: Result }>} */
+      const trims = new WeakMap();
+      /** A number for each vector, to tell the same one from another. */
+      const vectorIds = new WeakMap();
+      let vectorCount = 0;
+      const idOf = (/** @type {object} */ vector) => vectorIds.get(vector) ?? (vectorIds.set(vector, ++vectorCount), vectorCount);
       async function resolve(doc, fresh = false) {
         const sources = doc.layers.filter((layer) => layer.series);
         const named = formulaSeries(doc);
         if (fresh) for (const name of seriesIn(doc)) retryInfo(name);
         /** A series with its data at the chart's interval, or why there is none. @param {string} name @returns {Promise<any>} */
         const fetchSeries = async (name) => {
+          // Not in the client's catalog (it holds every series): not on Bitview, said here (a name half typed in a
+          // formula is never asked for). Until the catalog is indexed (just after load), Bitview is asked.
+          if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
           // Known to lack this interval: say so without asking for its data.
           const lacking = known.get(name) && !known.get(name).indexes.includes(doc.index);
           const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
@@ -6676,25 +6720,35 @@
         };
         // Each series once, however many layers and formulas read it.
         const fetched = new Map(await Promise.all(seriesIn(doc).map(async (name) => /** @type {[string, any]} */ ([name, await fetchSeries(name)]))));
-        // The timeline: every point any series has, by its index at this interval (shared by them all), in order; and
-        // where each index lands on it. In flat arrays over the span of indexes: a Map per point is many times slower.
-        let lo = Infinity, hi = -Infinity, stamp = "";
-        for (const { data } of fetched.values()) {
-          if (!data) continue;
-          lo = Math.min(lo, data.start);
-          hi = Math.max(hi, data.start + data.times.length);
-          if (data.stamp > stamp) stamp = data.stamp;
+        // The timeline and each series on it, kept from the last resolve of this chart that read the same data (the same
+        // fetched objects): its series keep their identity, and with them what's computed from them (formulas, windows'
+        // stats, the chart's series): an edit to one layer redoes that layer only.
+        const datas = [...fetched.values()].flatMap(({ data }) => (data ? [data] : []));
+        const frameKey = `${doc.id}@${doc.index}`;
+        let frame = frames.has(frameKey) ? lastUsed(frames, frameKey, frames.get(frameKey)) : undefined;
+        if (!frame || frame.datas.length !== datas.length || !datas.every((data) => frame?.datas.includes(data))) {
+          // The timeline: every point any series has, by its index at this interval (shared by them all), in order; and
+          // where each index lands on it. In flat arrays over the span of indexes: a Map per point is many times slower.
+          let lo = Infinity, hi = -Infinity, stamp = "";
+          for (const data of datas) {
+            lo = Math.min(lo, data.start);
+            hi = Math.max(hi, data.start + data.times.length);
+            if (data.stamp > stamp) stamp = data.stamp;
+          }
+          const timeAt = new Float64Array(Math.max(0, hi - lo)).fill(NaN), position = new Int32Array(timeAt.length).fill(-1);
+          for (const data of datas) for (let k = 0; k < data.times.length; k++) timeAt[data.start - lo + k] = data.times[k];
+          /** @type {number[]} */
+          const times = [];
+          for (let i = 0; i < timeAt.length; i++) if (!Number.isNaN(timeAt[i])) (position[i] = times.length), times.push(timeAt[i]);
+          frame = { id: ++frameCount, datas, lo, stamp, times, position, aligned: new Map(), series: new Map(), computed: new Map(), trimmed: null };
+          frames.set(frameKey, frame);
+          prune(frames, 8);
         }
-        const timeAt = new Float64Array(Math.max(0, hi - lo)).fill(NaN), position = new Int32Array(timeAt.length).fill(-1);
-        for (const { data } of fetched.values()) if (data) for (let k = 0; k < data.times.length; k++) timeAt[data.start - lo + k] = data.times[k];
-        /** @type {number[]} */
-        const times = [];
-        for (let i = 0; i < timeAt.length; i++) if (!Number.isNaN(timeAt[i])) (position[i] = times.length), times.push(timeAt[i]);
-        const length = times.length;
+        const { lo, stamp, times, position } = frame, length = times.length;
         /** @type {Map<string, Result>} */
         const results = new Map();
-        /** A series' data on the timeline: its values (a candle's close), and its candles when it has them (once a series, its layers and formulas sharing them). */
-        const aligned = new Map();
+        /** A series' data on the timeline: its values (a candle's close), and its candles when it has them (once a series, its layers and formulas sharing them, kept with the frame). */
+        const aligned = frame.aligned;
         const align = (data) => {
           if (aligned.has(data)) return aligned.get(data);
           const values = new Float64Array(length).fill(NaN);
@@ -6716,8 +6770,15 @@
             results.set(layer.id, { unit: units.get(layer.series) ?? "number", error: failure(error, doc.index), info: meta, unavailable: Boolean(error?.unavailable), missing: error?.status === 404 });
             continue;
           }
-          const { values, ohlc } = align(data);
-          results.set(layer.id, { values, ohlc, shown: values, unit: unitOf(layer.series, meta.type), info: meta });
+          // (The same result while the frame and what Bitview says of the series are: the chart keeps its series.)
+          const before = frame.series.get(layer.series);
+          if (before?.info === meta) results.set(layer.id, before);
+          else {
+            const { values, ohlc } = align(data);
+            const result = { values, ohlc, shown: values, unit: unitOf(layer.series, meta.type), info: meta };
+            frame.series.set(layer.series, result);
+            results.set(layer.id, result);
+          }
         }
         /** The series formulas name, as they are (no transform: a formula applies its own). @type {Map<string, Result>} */
         const bySeries = new Map();
@@ -6742,6 +6803,19 @@
           visiting.add(layer.id);
           try {
             const node = parse(layer.formula ?? "");
+            // The same formula over the same inputs (by identity: unchanged since the last resolve) is the same result.
+            const inputs = [...refsOf(node)].map((letter) => {
+              const target = byLetter.get(letter);
+              const result = !target || target === layer ? null : target.formula !== undefined ? compute(target) : results.get(target.id);
+              return result?.shown ? idOf(result.shown) : result?.error ?? "-";
+            });
+            const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "series")].map((name) => (bySeries.get(name)?.shown ? idOf(bySeries.get(name)?.shown) : "-"))].join("|");
+            // (Kept with the frame: by chart and interval, and gone with its data.)
+            const cached = frame.computed.get(layer.id);
+            if (cached?.key === key) {
+              results.set(layer.id, cached.result);
+              return cached.result;
+            }
             const value = evaluate(node, length, (name, kind) => {
               if (kind === "series") {
                 const input = bySeries.get(name);
@@ -6765,6 +6839,7 @@
             /** @type {Result} */
             const result = { values, shown: values, unit };
             results.set(layer.id, result);
+            frame.computed.set(layer.id, { key, result });
             return result;
           } catch (error) {
             /** @type {Result} */
@@ -6786,12 +6861,21 @@
         }
         const failed = [...fetched].filter(([, { error }]) => error && !error.unavailable && error.status !== 404).map(([name]) => name);
         if (first === 0 || first === length) return { times, results, stamp, failed };
+        // Trimmed once a result and a start: kept the same, as the chart keeps its series.
+        if (frame.trimmed?.first !== first) frame.trimmed = { first, times: times.slice(first) };
         for (const [id, result] of results) {
+          const kept = trims.get(result);
+          if (kept?.first === first) {
+            results.set(id, kept.out);
+            continue;
+          }
           // (Shown as they are, the values are copied once.)
           const values = result.values?.slice(first);
-          results.set(id, { ...result, values, shown: result.shown === result.values ? values : result.shown?.slice(first), ohlc: result.ohlc?.slice(first) });
+          const out = { ...result, values, shown: result.shown === result.values ? values : result.shown?.slice(first), ohlc: result.ohlc?.slice(first) };
+          trims.set(result, { first, out });
+          results.set(id, out);
         }
-        return { times: times.slice(first), results, stamp, failed };
+        return { times: frame.trimmed.times, results, stamp, failed };
       }
 
       // ── The chart ─────────────────────────────────────────────────────────────
@@ -7037,17 +7121,21 @@
         spotlit = null;
         const paneIndex = new Map(doc.panes.map((pane, i) => [pane.id, i]));
         const stacked = stackOf(doc, data), shares = new Set(doc.panes.filter((pane) => pane.stack === "percent").map((pane) => pane.id));
-        // A restyle (every layer drawn as before: its kind, place, scale and data the same) keeps the series, their look
-        // applied to them, no data set again: a color or a width scrubbed stays smooth however many points there are.
-        // (A stack or a histogram, its colors in its points, is drawn anew, and with it the rest, to keep their order.)
-        const shapeOf = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc)]);
-        const restyle = doc.layers.length === built.size && was.size === built.size && doc.layers.every((layer, i) => {
-          const before = built.get(layer.id), result = data.results.get(layer.id);
-          return before && layer.type !== "histogram" && !stacked.has(layer.id) && before.shape === shapeOf(layer, i) && before.shown === result?.shown && before.ohlc === result?.ohlc && was.has(layer.id);
+        // Each layer drawn as before (its kind, place, scale and stacking the same) keeps its series, its look applied to
+        // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
+        // alone, and a color or a width scrubbed stays smooth however many points there are. (A stack's bands and bars,
+        // their colors in their points, are set again whole.)
+        const shapeOf = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane)]);
+        /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any }>} */
+        const kept = new Map();
+        doc.layers.forEach((layer, i) => {
+          const before = built.get(layer.id);
+          if (before && before.shape === shapeOf(layer, i) && was.has(layer.id)) kept.set(layer.id, before);
         });
         built.clear();
-        // The old series go once the new ones are in: a scale left empty is reset by the chart library.
-        const old = [...(restyle ? [] : [...was.values(), ...[...wasCloses.values()].map((close) => close.series)]), ...carriers.splice(0)];
+        // The others' series go once the new ones are in: a scale left empty is reset by the chart library.
+        const old = [...[...was].filter(([id]) => !kept.has(id)).map(([, series]) => series), ...[...wasCloses].filter(([id]) => !kept.has(id)).map(([, close]) => close.series), ...carriers.splice(0)];
+        let added = false;
         /** @type {{ layer: Layer, value: number, color: string, dash: number, mode: number, pane: number, format: any }[]} */
         const across = [];
         /** A layer's lines across, drawn once all are known: its levels, and a baseline's base (not as a band). */
@@ -7093,7 +7181,10 @@
             const band = solid(base, 0.32 * op + 0.1), bars = layer.type === "histogram";
             // Its tag and price line would say the running total, not its value: the legend says that.
             const own = { ...common, lastValueVisible: false, priceLineVisible: false, autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) };
-            series = bars ? view.addSeries(LC.HistogramSeries, { ...own, color: solid(base, 0.75 * op) }, pane) : view.addSeries(LC.AreaSeries, { ...own, ...marker, ...line, lineColor: color, topColor: band, bottomColor: band }, pane);
+            const options = bars ? { ...own, color: solid(base, 0.75 * op) } : { ...own, ...marker, ...line, lineColor: color, topColor: band, bottomColor: band };
+            series = kept.has(layer.id) ? was.get(layer.id) : ((added = true), view.addSeries(bars ? LC.HistogramSeries : LC.AreaSeries, options, pane));
+            if (kept.has(layer.id)) series.applyOptions(lookOf(options));
+            built.set(layer.id, { shape: shapeOf(layer, i) });
             paints.set(layer.id, bars ? { color: solid(base, 0.75 * op) } : { lineColor: color, topColor: band, bottomColor: band });
             fades.set(layer.id, bars ? { color: solid(base, 0.14) } : { lineColor: solid(base, 0.3), topColor: solid(base, 0.08), bottomColor: solid(base, 0.08) });
             series.setData(data.times.map((time, i) => (Number.isFinite(stack[i]) && (modeOf(doc, layer) !== 1 || stack[i] > 0) ? { time, value: stack[i] } : { time })));
@@ -7101,8 +7192,9 @@
             drawn.set(layer.id, series);
             continue;
           }
-          // (On a restyle, the series as it was.)
-          const again = restyle ? was.get(layer.id) : undefined;
+          // (Drawn as before, the series as it was.)
+          const again = kept.has(layer.id) ? was.get(layer.id) : undefined;
+          if (!again) added = true;
           if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
@@ -7126,7 +7218,13 @@
           }
           paints.set(layer.id, paint);
           built.set(layer.id, { shape: shapeOf(layer, i), shown: result?.shown, ohlc: result?.ohlc });
-          if (result?.shown && again) linesAcross(layer, pane, common.priceFormat, op, true);
+          // The same values (and not bars, their colors in them): nothing to set again. None now (an error, a formula
+          // being written), a kept series is emptied.
+          const before = kept.get(layer.id);
+          if (!result?.shown && again && before?.shown) {
+            series.setData([]);
+            closes.get(layer.id)?.series.setData([]);
+          } else if (result?.shown && again && before?.shown === result.shown && before?.ohlc === result.ohlc && layer.type !== "histogram") linesAcross(layer, pane, common.priceFormat, op, true);
           else if (result?.shown) {
             const shown = result.shown;
             // Log scales can't show zero or negative values: they become gaps.
@@ -7171,6 +7269,20 @@
           carrierOf.get(key).createPriceLine({ price: first.value, color: shared ? ink("gray") : first.color, lineWidth: 1, lineStyle: /** @type {any} */ (first.dash), lineVisible: shown, axisLabelVisible: shown, title: "" });
         }
         for (const series of old) view.removeSeries(series);
+        // A series made anew goes over the others: each pane back in the layers' order, over its lines across.
+        if (added) {
+          const next = new Map([...carrierOf.keys()].map((key) => [Number(key.split("|")[0]), 0]));
+          for (const key of carrierOf.keys()) next.set(Number(key.split("|")[0]), (next.get(Number(key.split("|")[0])) ?? 0) + 1);
+          for (const layer of doc.layers) {
+            const pane = paneIndex.get(layer.pane) ?? 0;
+            for (const series of [drawn.get(layer.id), closes.get(layer.id)?.series]) {
+              if (!series) continue;
+              const k = next.get(pane) ?? 0;
+              series.setSeriesOrder(k);
+              next.set(pane, k + 1);
+            }
+          }
+        }
         const panes = view.panes();
         const sides = new Set(doc.layers.map((layer) => layer.side));
         doc.panes.forEach((pane, i) => {
@@ -7186,8 +7298,8 @@
         // showed one: it kept no view then). (Unless the view has since fallen off the data: an old one of a fine
         // interval, past its latest points.)
         const left = drawnChart !== doc.id || drawnIndex !== doc.index ? leftView(doc.id) : null;
-        const kept = left && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
-        if (kept && kept.to - kept.from >= 1) view.timeScale().setVisibleLogicalRange(within(kept, "to"));
+        const back = left && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
+        if (back && back.to - back.from >= 1) view.timeScale().setVisibleLogicalRange(within(back, "to"));
         else if (!visible || presetShown) applyRange(doc, data);
         else if (shift && (glidingTo ?? logical)) {
           const range = /** @type {{ from: number, to: number }} */ (glidingTo ?? logical);
@@ -8202,6 +8314,11 @@
         for (const id of Object.keys(merged)) if (orphan(id)) delete merged[id];
         storage.set(THUMBS, merged);
       }
+      let thumbsSaving = 0;
+      const saveThumbsSoon = () => {
+        clearTimeout(thumbsSaving);
+        thumbsSaving = setTimeout(saveThumbs, 1000);
+      };
       /** A chart's row, and its legend while it's open, show its new drawings in place: focus, menus and tooltips stay. @param {Chart} doc */
       function updateMark(doc) {
         const mark = document.querySelector(`:is([data-open-chart="${doc.id}"], [data-template-doc="${doc.id}"]) .chart-mark`);
@@ -8213,26 +8330,28 @@
         }
       }
       /** Brings every chart's mini chart up to date, one chart at a time, in the background. */
+      /** A chart whose mark failed (a fetch), and when: asked for again after a while, or once it's edited. @type {Map<string, { key: string, at: number }>} */
+      const thumbsFailed = new Map();
       const drawThumbs = serial(async () => {
         for (const id of [...thumbs.keys()]) if (orphan(id)) thumbs.delete(id);
         let drew = false;
         for (const doc of [...library.charts]) {
-          const key = thumbKey(doc);
-          if (thumbs.get(doc.id)?.key === key) continue;
+          const key = thumbKey(doc), failed = thumbsFailed.get(doc.id);
+          if (thumbs.get(doc.id)?.key === key || (failed?.key === key && Date.now() - failed.at < 30_000)) continue;
           const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : { lines: [], marks: {} };
+          if (!drawing) thumbsFailed.set(doc.id, { key, at: Date.now() });
           // Edited or deleted meanwhile: the next run draws what it has become.
           if (!drawing || thumbKey(doc) !== key || !library.charts.includes(doc)) continue;
           thumbs.set(doc.id, { key, ...drawing });
           updateMark(doc);
           drew = true;
         }
-        // Stored once a pass is through.
-        if (drew) saveThumbs();
+        // Stored a moment after (passes follow each edit: one write for many).
+        if (drew) saveThumbsSoon();
       });
-      let thumbTimer = 0;
+      /** The marks follow each edit (one pass at a time; what's unchanged is reused, so a pass is quick). */
       function scheduleThumbs() {
-        clearTimeout(thumbTimer);
-        thumbTimer = setTimeout(() => drawThumbs(), 700);
+        drawThumbs();
       }
       // Drawings another tab made.
       addEventListener("storage", (event) => {
@@ -9021,13 +9140,18 @@
       }
       const titleOf = (doc) => doc.title || "Untitled chart";
       /** The list keeps the order you give it (new charts on top), so ⌘1–⌘9 always mean the same charts. */
+      /** The chart list as last written: an edit that changes nothing in it (a formula typed) leaves it as it is. */
+      let chartListShown = "";
       function renderCharts() {
         const current = home ? null : chart;
-        $("chart-list").innerHTML = library.charts.map((doc, i) => `<div class="chart-row ${doc === current ? "active" : ""}" draggable="true" data-chart-row="${doc.id}">
+        const list = library.charts.map((doc, i) => `<div class="chart-row ${doc === current ? "active" : ""}" draggable="true" data-chart-row="${doc.id}">
             <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i < 9 ? `data-kbd="⌘ ${i + 1}"` : ""} ${doc === current ? 'aria-current="page"' : ""}>${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span>${i < 9 ? `<kbd class="mod">${keyText(`⌘${i + 1}`)}</kbd>` : ""}</button>
             <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
           </div>`).join("");
-        fitStrip($("chart-list"), true);
+        if (list !== chartListShown) {
+          $("chart-list").innerHTML = chartListShown = list;
+          fitStrip($("chart-list"), true);
+        }
         if (home) $("all-charts").setAttribute("aria-current", "page");
         else $("all-charts").removeAttribute("aria-current");
         // The phone bar's Add, in the grid, makes a chart (there's none open to add to).
@@ -9298,7 +9422,7 @@
           }
           paint(doc.id, await drawPreview(doc, templateIndex(doc)));
         }
-        if (marked) saveThumbs();
+        if (marked) saveThumbsSoon();
       });
       const cardsSeen = new IntersectionObserver((entries) => {
         for (const entry of entries) {
@@ -9554,6 +9678,8 @@
         // (Turned into a series meanwhile, or into a formula, it's drawn anew.)
         if (inspected === layer.id && Boolean($("formula")) === (layer.formula !== undefined) && panel.contains(active) && (["formula", "label", "base"].includes(active.id) || active.id.startsWith("level-"))) {
           updateFormula(layer);
+          // (The interval may have changed: the spans offered follow.)
+          suggestHere();
           const fresh = actionsOf(layer);
           if (fresh !== actionsShown) /** @type {HTMLElement} */ (panel.querySelector(".layer-actions")).outerHTML = actionsShown = fresh;
           return;
@@ -9572,9 +9698,12 @@
               <h3>Formula</h3>
               <div class="formula-editor" id="formula-editor">
                 <pre id="formula-mirror" aria-hidden="true"></pre>
-                <textarea id="formula" maxlength="500" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Formula" aria-describedby="formula-status formula-call">${escape(layer.formula)}</textarea>
-                <ul id="suggest" class="suggest" role="listbox" hidden></ul>
-                <div id="formula-call" class="call-help" aria-live="polite" hidden></div>
+                <textarea id="formula" aria-controls="suggest" aria-autocomplete="list" maxlength="500" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Formula" aria-describedby="formula-status formula-call">${escape(layer.formula)}</textarea>
+                <div class="assist" popover="manual">
+                  <div id="formula-call" class="call-help" aria-live="polite" hidden></div>
+                  <ul id="suggest" class="suggest" role="listbox" hidden></ul>
+                  <p id="suggest-more" class="more" hidden></p>
+                </div>
               </div>
               <p id="formula-status" class="formula-status"></p>
               <details class="help"><summary>Functions and how letters work</summary>
@@ -10054,22 +10183,70 @@
         active: 0,
         start: 0,
         controller: /** @type {AbortController | null} */ (null),
-        /** A lookup of series under way: its list is coming. */
-        pending: false,
+        /** Where esc put the popover away (see assistAway). */
+        away: "",
         /** Just accepted: the word now there needs no list. */
         quiet: false,
       };
-      /** @param {typeof suggest.items} items */
-      function showSuggestions(items) {
+      /**
+       * The list under the formula. `offered`: unasked, between words (what fits the argument at the caret), none chosen,
+       * so ↵ stays the field's own until an arrow picks one; typed, the first is chosen. `more`: a closing line.
+       * @param {typeof suggest.items} items
+       */
+      function showSuggestions(items, { offered = false, more = "" } = {}) {
         const list = $("suggest");
         if (!list) return;
         // A row chosen with the arrows stays chosen as more arrive.
         const chosen = suggest.active > 0 ? items.findIndex((item) => item.insert === suggest.items[suggest.active]?.insert) : -1;
         suggest.items = items;
-        suggest.active = Math.max(0, chosen);
+        suggest.active = offered ? -1 : Math.max(0, chosen);
         list.hidden = !items.length;
-        list.innerHTML = items.map((item, i) => `<li role="option" ${item.series ? 'class="series"' : ""} data-suggest="${i}" aria-selected="${i === suggest.active}"><b>${escape(item.title)}</b>${item.text ? `<span>${escape(item.text)}</span>` : ""}</li>`).join("");
+        list.innerHTML = items.map((item, i) => `<li role="option" id="suggest-${i}" ${item.series ? 'class="series"' : ""} data-suggest="${i}" aria-selected="${i === suggest.active}"><b>${escape(item.title)}</b>${item.text ? `<span>${escape(item.text)}</span>` : ""}</li>`).join("");
+        const line = $("suggest-more");
+        if (line) (line.textContent = items.length ? more : ""), (line.hidden = !(items.length && more));
+        chooseSuggestion(suggest.active);
         updateCallHelp();
+      }
+      /**
+       * The popover under the formula, in the page's top layer (the panel neither grows nor scrolls for it), placed at the
+       * field: up while it holds something and the field has the focus, as tall as the window leaves it below the field.
+       */
+      function placeAssist() {
+        const assist = /** @type {HTMLElement | null} */ (document.querySelector(".assist")), editor = $("formula-editor");
+        if (!assist || !editor) return;
+        const rect = editor.getBoundingClientRect(), view = $("inspector").getBoundingClientRect();
+        const bottom = window.visualViewport ? visualViewport.offsetTop + visualViewport.height : innerHeight;
+        const holds = [...assist.children].some((child) => !(/** @type {HTMLElement} */ (child).hidden));
+        if (!holds || document.activeElement?.id !== "formula" || rect.bottom < view.top || rect.bottom > Math.min(view.bottom, bottom - 48)) return void (assist.matches(":popover-open") && assist.hidePopover());
+        Object.assign(assist.style, { left: `${rect.left}px`, top: `${rect.bottom + 4}px`, width: `${rect.width}px`, maxHeight: `${bottom - rect.bottom - 12}px` });
+        if (!assist.matches(":popover-open")) assist.showPopover();
+      }
+      $("inspector").addEventListener("scroll", placeAssist, true);
+      addEventListener("resize", placeAssist);
+      window.visualViewport?.addEventListener("resize", placeAssist);
+      window.visualViewport?.addEventListener("scroll", placeAssist);
+      /** The row chosen (-1: none), as the field tells assistive tech. */
+      function chooseSuggestion(/** @type {number} */ i) {
+        suggest.active = i;
+        for (const option of all$("[data-suggest]", $("suggest") ?? undefined)) option.setAttribute("aria-selected", String(Number(option.dataset.suggest) === i));
+        const textarea = $("formula");
+        if (textarea && i >= 0 && !$("suggest")?.hidden) textarea.setAttribute("aria-activedescendant", `suggest-${i}`);
+        else textarea?.removeAttribute("aria-activedescendant");
+        $("suggest")?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+      }
+      /** Where the popover is (the layer, the text, the selection): esc puts it away until that changes. */
+      const assistKey = () => `${selected} ${$("formula")?.value ?? ""}\u0000${$("formula")?.selectionStart ?? 0} ${$("formula")?.selectionEnd ?? 0}`;
+      const assistAway = () => {
+        if (suggest.away && suggest.away !== assistKey()) suggest.away = "";
+        return suggest.away !== "";
+      };
+      /** Suggestions where the caret is now (and at this interval): made again only when either changed, so an arrow's pick stays. */
+      let suggestedAt = "";
+      function suggestHere() {
+        const at = `${assistKey()} ${chart.index} ${resolved?.times.length ?? 0}`;
+        if (at === suggestedAt) return;
+        suggestedAt = at;
+        updateSuggestions();
       }
       /**
        * What completes the word before the caret: for a capital, this chart's layers (but `self`); for a lowercase word,
@@ -10083,7 +10260,7 @@
         /** @type {{ insert: string, title: string, text: string, layer?: string, series?: boolean }[]} */
         let items = [];
         if (/^[A-Z]/.test(token)) {
-          items = chart.layers.filter((layer) => layer !== self && layer.letter.startsWith(token)).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
+          items = chart.layers.filter((layer) => layer !== self && layer.letter.startsWith(token) && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
           if (items.length === 1 && items[0].insert === token) items = [];
         } else if (token) items = Object.entries(FUNCTIONS).filter(([name]) => name.startsWith(token) && name !== token).map(([name, [, signature, what]]) => ({ insert: `${name}(`, title: signature, text: what }));
         return { start, token, items };
@@ -10095,26 +10272,24 @@
         if (!textarea || !$("suggest")) return;
         suggest.controller?.abort();
         suggest.active = 0;
-        suggest.pending = false;
         const { start, token, items } = completionsAt(textarea.value, textarea.selectionStart, layerById(selected));
         suggest.start = start;
-        if (suggest.quiet || !token) {
-          suggest.quiet = false;
-          return showSuggestions([]);
+        const quiet = suggest.quiet;
+        suggest.quiet = false;
+        if (assistAway()) return showSuggestions([]);
+        // Between words, what fits the argument at the caret; a word just completed needs nothing.
+        if (!token) {
+          const fits = fitsAt(textarea.value, textarea.selectionStart, layerById(selected), textarea.selectionEnd);
+          return showSuggestions(fits?.items ?? [], { offered: true, more: fits?.more });
         }
+        if (quiet) return showSuggestions([]);
         showSuggestions(items);
         if (token.length < 2 || /^[A-Z]/.test(token)) return;
         const controller = (suggest.controller = new AbortController());
-        suggest.pending = true;
         seriesCompleting(token, controller.signal).then((series) => {
           if (controller.signal.aborted || document.activeElement !== textarea) return;
-          suggest.pending = false;
           showSuggestions(series.some((item) => item.insert === token) ? items : [...items, ...series]);
-        }, () => {
-          if (controller.signal.aborted) return;
-          suggest.pending = false;
-          updateCallHelp();
-        });
+        }, () => {});
       }
       /** What each argument of a function takes, by its name in the signatures. */
       const ARGUMENTS = {
@@ -10155,29 +10330,102 @@
           ${call.arg < 0 ? "" : `<p>${at ? `<b>${escape(at.replace("?", ""))}</b>: ${escape(ARGUMENTS[/** @type {keyof typeof ARGUMENTS} */ (at)] ?? "")}` : `No more arguments: ${escape(call.f)} takes ${names.length} at most`}</p>`}
           <p class="call-what">${escape(capitalize(what.replace(/\s*\([^)]*\)$/, "")))}.</p>`;
       }
-      /** ⌘K's formula line, outside of a call: how a formula reads. */
-      const FORMULA_GUIDE = `<p class="call-what">Layers by their letter, series by their name, numbers, + − × ÷ ^ and functions (sma, zscore, percentile…): inside a function's parentheses, its help shows here.</p>`;
+      /** Spans a window often takes, from the shortest, each in words. */
+      const SPANS = [["12h", "half a day"], ["1d", "a day"], ["7d", "a week"], ["30d", "a month"], ["90d", "a quarter"], ["200d", "about six and a half months"], ["1y", "a year"], ["2y", "two years"], ["4y", "four years, a halving cycle"]];
+      const spanDays = (/** @type {string} */ span) => {
+        const [, n, letter] = /** @type {RegExpExecArray} */ (/^(\d+)(mo|[hdwy])$/.exec(span));
+        return Number(n) * SPAN_DAYS[SPAN_LETTERS[/** @type {keyof typeof SPAN_LETTERS} */ (letter)]];
+      };
+      /** Percents a percentile often takes, and what each is. */
+      const PERCENTS = /** @type {[number, string][]} */ ([[5, "near the bottom"], [25, "the lower quartile"], [50, "the median"], [75, "the upper quartile"], [95, "near the top"]]);
       /**
-       * The helper at the field being typed in, as the caret moves: under the inspector's formula, floating where its
-       * completions show (they take the place while they're up); in ⌘K, a line under the field for as long as a formula
-       * is written there (in a call, its help; else how formulas read), so nothing jumps as the caret goes in and out.
+       * What fits the argument at the caret, where it's empty: for values, this chart's layers (but `self` and those that
+       * read it: a loop) and a few series (its formulas', the recent ones, the templates'), then how many more a search
+       * finds; for a span, the usual ones a window holds two points of at this interval (a shift, one step: change(A, 1d))
+       * and that what's loaded holds, with their points; for p, the usual percents. Null anywhere else.
+       * @param {Layer | null | undefined} self
+       * @returns {{ items: { insert: string, title: string, text: string, layer?: string, series?: boolean, group?: string }[], more: string } | null}
        */
+      function fitsAt(/** @type {string} */ text, /** @type {number} */ caret, self, end = caret) {
+        // Where a value starts and nothing's there yet: after "(", "," or an operator, up to a ",", a ")" or the end.
+        if (!/[-+*/^(,×÷−]\s*$/.test(text.slice(0, caret)) || !/^\s*(?:[,)]|$)/.test(text.slice(end))) return null;
+        const call = callAt(text, caret);
+        if (!call?.f) return null;
+        const signature = FUNCTIONS[call.f][1], name = signature.slice(signature.indexOf("(") + 1, -1).split(", ")[call.arg];
+        if (name === "x" || name === "a" || name === "b") {
+          const layers = chart.layers.filter((layer) => layer !== self && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
+          // A series drawn as a layer is its letter; an open-high-low-close one reads as its close (offered as itself).
+          const drawn = new Set(chart.layers.map((layer) => layer.series)), known = templateDocs.flatMap((doc) => doc.layers.flatMap((layer) => (layer.series ? [layer.series] : [])));
+          const names = [...new Set([...seriesIn(chart), ...recent(), ...known])].filter((name) => isSeriesName(name) && !gone.has(name) && !drawn.has(name) && !/_ohlc$/.test(name)).slice(0, 5);
+          return { items: [...layers, ...names.map((name) => ({ insert: name, name, title: name, text: humanize(name), series: true }))], more: total > names.length ? `${grouped.format(total - names.length)} more series: type a few letters` : "" };
+        }
+        if (name === "span" || name === "span?") {
+          // A window, two points at least (one is the series itself); a shift, a step at least. In points where they aren't days.
+          const shift = ["change", "diff", "lag"].includes(call.f), loaded = FINE.has(chart.index) ? resolved?.times.length ?? 0 : Infinity;
+          const fit = SPANS.map(([span, words]) => /** @type {[string, string, number]} */ ([span, words, windowPoints(spanDays(span), chart.index)])).filter(([span, , points]) => (shift ? spanDays(span) >= 0.9 * INTERVAL_DAYS[chart.index] : points >= 2) && points <= loaded);
+          return { items: fit.map(([span, words, points]) => ({ insert: span, title: span, text: chart.index === "day1" ? words : `${words} · ${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}`, group: "Spans" })), more: "" };
+        }
+        if (name === "p") return { items: PERCENTS.map(([p, what]) => ({ insert: String(p), title: String(p), text: what, group: "Percents" })), more: "" };
+        return null;
+      }
+      /** The letters a layer reads, through the formulas of those it reads too. @param {Layer} layer */
+      function readsOf(layer) {
+        const seen = new Set(), queue = [layer];
+        while (queue.length) {
+          const formula = /** @type {Layer} */ (queue.pop()).formula;
+          if (formula === undefined) continue;
+          try {
+            for (const letter of refsOf(parse(formula))) {
+              if (seen.has(letter)) continue;
+              seen.add(letter);
+              const next = chart.layers.find((item) => item.letter === letter);
+              if (next) queue.push(next);
+            }
+          } catch {}
+        }
+        return seen;
+      }
+      /** Whether a formula's only fault is that it isn't finished. */
+      const isUnfinished = (/** @type {string} */ text) => {
+        try {
+          parse(text);
+          return false;
+        } catch (error) {
+          return Boolean(error.unfinished);
+        }
+      };
+      /** ⌘K's formula line, outside of a call: how a formula reads. */
+      const FORMULA_GUIDE = `<p class="call-what">Layers by their letter, series by their name, numbers, + − × ÷ ^ and functions.</p><p class="call-what">Inside a function's parentheses, its help shows here.</p>`;
+      /**
+       * The helper at the field being typed in, as the caret moves: under the inspector's formula, floating, over what
+       * fits or completes the argument (one popover: nothing below it moves); in ⌘K, a line under the field for as long
+       * as a formula is written there (in a call, its help; else how formulas read), so nothing jumps.
+       */
+      let helping = 0;
       function updateCallHelp() {
+        helping ||= requestAnimationFrame(() => {
+          helping = 0;
+          drawCallHelp();
+        });
+      }
+      function drawCallHelp() {
         const field = /** @type {HTMLInputElement | HTMLTextAreaElement | null} */ (document.activeElement);
         for (const [id, host] of [["formula", "formula-call"], ["palette-input", "palette-call"]]) {
           const element = $(host);
           if (!element) continue;
-          const typing = field?.id === id && (id === "formula" ? $("suggest")?.hidden !== false && !suggest.pending : palette.formula);
+          const typing = field?.id === id && (id === "formula" ? !assistAway() : palette.formula);
           let help = typing && field ? callHelp(field.value, field.selectionStart ?? 0) : "";
-          // Over the inspector's status line, it says what that line would: the formula's error.
+          // Over the inspector's status line, it says what that line would: the formula's error (one that only says it
+          // isn't finished, inside a call still open, it doesn't).
           const status = $("formula-status");
-          if (help && id === "formula" && status?.classList.contains("error")) help += `<p class="call-error">${escape(status.textContent ?? "")}</p>`;
+          if (help && id === "formula" && status?.classList.contains("error") && !isUnfinished(field?.value ?? "")) help += `<p class="call-error">${escape(status.textContent ?? "")}</p>`;
           const html = help || (id === "palette-input" && $("palette").open && palette.formula ? FORMULA_GUIDE : "");
           if (element.dataset.shown === html) continue;
           element.dataset.shown = html;
           element.innerHTML = html;
           element.hidden = !html;
         }
+        placeAssist();
       }
       document.addEventListener("selectionchange", updateCallHelp);
       document.addEventListener("input", updateCallHelp);
@@ -10187,8 +10435,9 @@
       function acceptSuggestion(i = suggest.active) {
         const item = suggest.items[i];
         const textarea = $("formula");
-        if (!item || !textarea) return;
-        const end = textarea.selectionStart;
+        if (!item || !textarea || suggest.start > textarea.selectionStart) return;
+        // Over what's selected, and the rest of the word the caret is in.
+        const end = textarea.selectionEnd + (/^\w*/.exec(textarea.value.slice(textarea.selectionEnd))?.[0].length ?? 0);
         textarea.setRangeText(completion(item.insert, textarea.value.slice(end)), suggest.start, end, "end");
         suggest.quiet = true;
         textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -10239,7 +10488,7 @@
           editLayer((layer) => (layer.formula = target.value), { coalesce: `formula:${selected}` });
           const layer = layerById(selected);
           if (layer) updateFormula(layer);
-          updateSuggestions();
+          suggestHere();
         } else if (target.id === "base") {
           const base = Number(target.value);
           if (target.value !== "" && Number.isFinite(base)) editLayer((layer) => (layer.base = base), { coalesce: `base:${selected}` });
@@ -10256,30 +10505,29 @@
           return event.target.click();
         }
         if (event.target.id !== "formula") return;
-        if (!$("suggest").hidden) {
-          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-            suggest.active = (suggest.active + (event.key === "ArrowDown" ? 1 : -1) + suggest.items.length) % suggest.items.length;
-            for (const option of all$("[data-suggest]", $("suggest"))) option.setAttribute("aria-selected", String(Number(option.dataset.suggest) === suggest.active));
-            $("suggest").querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
-          } else if (event.key === "Enter" || event.key === "Tab") acceptSuggestion();
-          else if (event.key === "Escape") {
-            suggest.controller?.abort();
-            showSuggestions([]);
-          }
+        if (event.key === "Escape" && (!$("suggest").hidden || !$("formula-call").hidden)) {
+          suggest.controller?.abort();
+          suggest.away = assistKey();
+          showSuggestions([]);
+          event.preventDefault();
+          event.stopPropagation();
+        } else if (!$("suggest").hidden) {
+          const n = suggest.items.length, down = event.key === "ArrowDown";
+          if (down || event.key === "ArrowUp") chooseSuggestion(suggest.active < 0 ? (down ? 0 : n - 1) : (suggest.active + (down ? 1 : -1) + n) % n);
+          else if ((event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) && suggest.active >= 0) acceptSuggestion();
           else return;
           event.preventDefault();
           event.stopPropagation();
         } else if (event.key === "Escape") event.target.blur();
       });
-      for (const type of ["keyup", "click"]) {
-        $("inspector").addEventListener(type, (event) => {
-          if (event.target.id === "formula" && (event.type === "click" || ["ArrowLeft", "ArrowRight", "Home", "End"].includes(/** @type {KeyboardEvent} */ (event).key))) updateSuggestions();
-        });
-      }
+      $("inspector").addEventListener("focusin", (event) => event.target.id === "formula" && suggestHere());
+      document.addEventListener("selectionchange", () => document.activeElement?.id === "formula" && suggestHere());
       $("inspector").addEventListener("focusout", (event) => {
         if (event.target.id !== "formula") return;
         suggest.controller?.abort();
-        setTimeout(() => $("suggest") && ($("suggest").hidden = true), 150);
+        // Out of the field, it all goes at once (a press on the popover keeps the field's focus); back in, anew.
+        suggest.away = suggestedAt = "";
+        showSuggestions([]);
       });
       $("inspector").addEventListener("scroll", (event) => {
         if (event.target.id === "formula") $("formula-mirror").scrollTop = event.target.scrollTop;
@@ -10304,6 +10552,7 @@
         });
       }
       $("inspector").addEventListener("mousedown", (event) => {
+        if (closest(event, ".assist")) event.preventDefault();
         const option = closest(event, "[data-suggest]");
         if (!option) return;
         event.preventDefault();
@@ -11127,21 +11376,24 @@
        * it), or between words what a formula is made of: this chart's layers, then the functions.
        */
       function showFormula() {
+        palette.controller?.abort();
         const input = $("palette-input"), text = palette.query;
         const caret = input.selectionStart ?? text.length;
+        formulaAt = `${text} ${caret} ${input.selectionEnd}`;
         const self = palette.editing ? layerById(palette.editing) : null;
         const { start, token, items } = completionsAt(text, caret, self);
         palette.from = token ? start : caret;
         const top = text.trim() ? [{ kind: "formula", key: "formula" }] : [];
         const pieces = (list) => list.map((item) => ({ kind: "insert", key: item.insert, group: item.layer ? "Layers" : item.series ? "Series" : "Functions", ...item }));
-        const blocks = token ? [] : pieces([
-          ...chart.layers.filter((layer) => layer !== self).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id })),
+        const fits = token ? null : fitsAt(text, caret, self, input.selectionEnd ?? caret);
+        const blocks = token ? [] : pieces(fits?.items ?? [
+          ...chart.layers.filter((layer) => layer !== self && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id })),
           ...Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => ({ insert: `${name}(`, title: signature, text: what })),
         ]);
         palette.items = [...top, ...pieces(items), ...blocks];
         palette.active = items.length ? top.length : 0;
         palette.moved = false;
-        renderPalette();
+        renderPalette(false, fits?.more ?? "");
         if (token.length < 2 || /^[A-Z]/.test(token)) return;
         const controller = (palette.controller = new AbortController());
         seriesCompleting(token, controller.signal).then((series) => {
@@ -11151,6 +11403,13 @@
           renderPalette();
         }, () => {});
       }
+      /** Where ⌘K's formula list was made (the text, the selection): the caret moving elsewhere makes it again. */
+      let formulaAt = "";
+      document.addEventListener("selectionchange", () => {
+        const input = /** @type {HTMLInputElement} */ ($("palette-input"));
+        if (document.activeElement !== input || !palette.formula || !$("palette").open) return;
+        if (`${input.value} ${input.selectionStart} ${input.selectionEnd}` !== formulaAt) showFormula();
+      });
       /** Why a formula doesn't read, or "" when it does. */
       const parseError = (/** @type {string} */ text) => {
         try {
@@ -11164,16 +11423,16 @@
       function formulaRow(item) {
         if (item.kind === "formula") {
           const editing = palette.editing ? layerById(palette.editing) : null, problem = parseError(palette.query.trim());
-          return `${ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta error">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
+          return `${ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
         }
         const layer = item.layer ? layerById(item.layer) : null;
-        const icon = layer ? `<i class="dot" style="--c:${escape(ink(layer.color))}"></i>` : item.series ? ICONS.series : ICONS.formula;
+        const icon = layer ? `<i class="dot" style="--c:${escape(ink(layer.color))}"></i>` : item.series ? ICONS.series : item.group === "Spans" ? ICONS.recent : item.group === "Percents" ? ICONS.ruler : ICONS.formula;
         return `${icon}<span class="item-name"><code>${escape(item.title ?? "")}</code></span>${item.text ? `<span class="item-meta">${escape(item.text)}</span>` : ""}`;
       }
       /** A piece into the formula: over the word it completes, else at the caret (over what's selected). */
       function insertPiece(item) {
         const input = $("palette-input");
-        const end = input.selectionEnd ?? input.value.length;
+        const end = (input.selectionEnd ?? input.value.length) + (/^\w*/.exec(input.value.slice(input.selectionEnd ?? input.value.length))?.[0].length ?? 0);
         input.setRangeText(completion(item.insert, input.value.slice(end)), Math.min(palette.from, end), end, "end");
         input.focus();
         palette.query = input.value;
@@ -11205,16 +11464,17 @@
       let formulaRun = 0;
       /**
        * The formula computed as it would be added, with this chart's data: its line in its color, its latest value, what it
-       * uses, its unit. A pause in typing first, so the preview follows without flickering.
+       * uses, its unit. As it's typed (what's unchanged is reused: the formula alone is computed); a run overtaken by a
+       * newer one shows nothing.
        */
       function previewFormula(panel) {
         const text = palette.query.trim(), run = ++formulaRun;
-        previewTimer = setTimeout(async () => {
+        void (async () => {
           let node;
           try {
             node = parse(text);
           } catch (error) {
-            panel.innerHTML = `<h4><code>${escape(text)}</code></h4><div class="error-box">${escape(error.message)}</div>`;
+            panel.innerHTML = `<h4><code>${escape(text)}</code></h4>${error.unfinished ? `<p class="description">${escape(error.message)}.</p>` : `<div class="error-box">${escape(error.message)}</div>`}`;
             return;
           }
           const doc = structuredClone(chart);
@@ -11241,7 +11501,7 @@
               ${editing ? "" : `<div><dt>Goes in</dt><dd>${palette.into ? `Pane ${paneNumber(palette.into)}` : "A new pane"}</dd></div>`}
             </dl></div>`;
           drawSpark(Array.from(result.shown), unit, ink(layer.color));
-        }, 120);
+        })();
       }
       /** What a piece of a formula is: a layer of this chart, with its latest value; or a function. */
       function previewPiece(item) {
@@ -11432,20 +11692,17 @@
        * While a row with a `look` is highlighted, the chart shows it (a doc's edit: a color), drawn from the data at hand;
        * nothing is kept until it's chosen. Moving off it, going back or closing, the chart is as it was.
        */
-      let lookTimer = 0, looking = false;
+      let looking = false;
       function showLook(look) {
-        clearTimeout(lookTimer);
-        lookTimer = setTimeout(() => {
-          if (!resolved || drawnChart !== chart.id || !$("palette").open) return;
-          const doc = structuredClone(chart);
-          look(doc);
-          build(doc, resolved, false);
-          looking = true;
-          $("palette").toggleAttribute("data-looking", true);
-        }, 30);
+        if (!resolved || drawnChart !== chart.id || !$("palette").open) return;
+        const doc = structuredClone(chart);
+        look(doc);
+        // (A look is a restyle: each series kept, its look applied.)
+        build(doc, resolved, false);
+        looking = true;
+        $("palette").toggleAttribute("data-looking", true);
       }
       function clearLook() {
-        clearTimeout(lookTimer);
         $("palette").removeAttribute("data-looking");
         if (!looking) return;
         looking = false;
@@ -12312,7 +12569,7 @@
         else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.pages.length) popPage();
         else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.path.length) goUp(palette.path.length - 1);
         else if (event.key === "Backspace" && !event.target.value && (palette.adding || palette.formula)) leaveScope();
-        else if (event.key === "Tab" && palette.items[palette.active]?.kind === "insert") choose();
+        else if (event.key === "Tab" && !event.shiftKey && palette.items[palette.active]?.kind === "insert") choose();
         else return;
         event.preventDefault();
       });
