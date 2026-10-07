@@ -250,7 +250,7 @@
     <canvas id="scene" role="img" aria-label="Bitcoin blocks on a belt, the newest leaving a mining machine"></canvas>
 
     <header class="bar">
-      <span id="fig"><b>Fig 1</b> · <span id="clock">--:--</span></span>
+      <span id="fig"><b>Fig 1</b> · <span id="clock">--:--</span><span id="warp" hidden> · <b></b></span></span>
       <nav>
         <button id="now" type="button" hidden>Now</button>
         <button id="theme" type="button">Dark</button>
@@ -347,7 +347,7 @@
        * @typedef {{ data: Projected, slot: number, target: number, fill: number, alpha: number, lift: number }} Waiting
        *   lift: how far above the belt it is, below it while still rising out of the lift.
        * @typedef {{ block: Block, entering: Waiting | null, enterFrom: number, start: number,
-       *   speed: number, pressed: boolean, out: boolean }} Job
+       *   pressed: boolean, out: boolean }} Job
        * @typedef {{ item: Block | Waiting | Worker, points: number[] }} Hit
        */
 
@@ -356,7 +356,8 @@
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const root = document.documentElement;
       const canvas = /** @type {HTMLCanvasElement} */ ($("scene"));
-      const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+      // Where everything is drawn: the screen's canvas, but for pictures drawn once and kept.
+      let ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
       const clock = $("clock");
       const caption = $("caption");
       const status = $("status");
@@ -404,6 +405,9 @@
       let animateUntil = 0;
       let lastDraw = 0;
       let lastFrame = 0;
+      // The clock everything that moves runs on, but the belt: real time, sped up while
+      // something would otherwise take long. In milliseconds.
+      let sim = performance.now();
 
       // Theme ----------------------------------------------------------------
 
@@ -1197,7 +1201,7 @@
       // The machine ------------------------------------------------------------
 
       function drawMachine(/** @type {number} */ now) {
-        const t = job ? (now - job.start) * job.speed : -1;
+        const t = job ? now - job.start : -1;
         const press = t >= IN_MS && t < IN_MS + PRESS_MS ? Math.sin((Math.PI * (t - IN_MS)) / PRESS_MS) : 0;
         const lit = t >= IN_MS && t < IN_MS + PRESS_MS + OUT_MS / 2;
         const s = camera.scale;
@@ -1749,9 +1753,12 @@
       const timeFormat = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
       const dateFormat = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short" });
 
-      /** @param {Block} block @param {number} cx @param {number} cy @param {number} angle @param {boolean} newest */
-      function drawBlock(block, cx, cy, angle, newest) {
-        if (!cube(cx, cy, angle, block.weight / MAX_BLOCK_WEIGHT, false, block)) return;
+      /**
+       * @param {Block} block @param {number} cx @param {number} cy @param {number} angle @param {boolean} newest
+       * @param {number} lift how far above the belt it is, carried or on the table
+       */
+      function drawBlock(block, cx, cy, angle, newest, lift = 0) {
+        if (!cube(cx, cy, angle, block.weight / MAX_BLOCK_WEIGHT, false, block, lift)) return;
         const s = camera.scale;
 
         // The miner's stamp on top: a label with its logo, turning with the cube.
@@ -1775,8 +1782,17 @@
         const size = 0.17 * s;
         const alpha = legible(size);
         if (!alpha) return;
-        ctx.globalAlpha = alpha;
+        // As faint as the block, when it fades.
+        const faded = ctx.globalAlpha;
+        ctx.globalAlpha = faded * alpha;
         printSides(heightFormat.format(block.height), feeRate(block.fee), s);
+        ctx.globalAlpha = faded;
+      }
+
+      /** Where a block taken to the table belongs on the belt: an empty glass, faint. */
+      function drawGhost(/** @type {Block} */ block, /** @type {number} */ cx, /** @type {number} */ cy, /** @type {number} */ angle) {
+        ctx.globalAlpha = 0.5;
+        cube(cx, cy, angle, 0, true, block);
         ctx.globalAlpha = 1;
       }
 
@@ -2187,6 +2203,936 @@
         card.style.transform = `translate(${x}px, ${y}px) translate(-50%, calc(-100% - 0.75rem))`;
       }
 
+      // The viewing table -------------------------------------------------------
+
+      // A low table to look inside a block on, a car on guideways along the folds' right side,
+      // from past the signs into the past. On a click it rides to where it shows best on screen
+      // while its drone flies to the block, both quick, much quicker out of sight, and the drone
+      // sets the block down on it, where it splits into its transactions: a box each, in the
+      // block's order from the back corner, as wide as its bytes, as high and inked as its fee
+      // rate. For another block, the drone first takes this one back to its place, and the table
+      // leaves as soon as it is off. The camera stays where it is. Low, the table and its way
+      // hide nothing.
+      const TABLE_X0 = SIGN_X + 1.4;
+      const TABLE_SIZE = 11;
+      const TABLE_X1 = TABLE_X0 + TABLE_SIZE;
+      // It hovers on four sleds over two guideways, its deck on them.
+      const TABLE_TOP = 0.5;
+      const DECK = 0.36;
+      const TABLE_MARGIN = 0.9;
+      // Behind its boxes, a strip for the drone's dock instead of a margin: it is that much
+      // longer than wide.
+      const DOCK_STRIP = 2.4;
+      const TABLE_LENGTH = TABLE_SIZE - TABLE_MARGIN + DOCK_STRIP;
+      // Its back edge at home, where its way ends just past its front edge. The way: a slab
+      // a little wider than the table, cut in segments, a guide line down its middle, bollards
+      // along its edges, and two smooth beams with a strip along their tops, one under each of
+      // the table's sides. Beside it, level with each fold's end on the right, the time there.
+      const HOME_Y = QUEUE_Y - 1.2;
+      const WAY_END = HOME_Y + TABLE_LENGTH + 0.4;
+      const WAY_X0 = TABLE_X0 - 0.4;
+      const WAY_X1 = TABLE_X1 + 0.4;
+      const SLAB = 0.04;
+      const BEAMS = [TABLE_X0 + 0.45, TABLE_X1 - 0.45];
+      const BEAM = 0.24;
+      const BEAM_TOP = 0.16;
+      const JOINT = 3;
+      const BOLLARD = 6;
+      const HOVER = 0.05;
+      // On screen, units a second, or pixels when zoomed out. Out of sight, the table and the
+      // drone close in fast, the farther the faster: a year away is a few seconds.
+      const TABLE_SPEED = 10;
+      const SCREEN_SPEED = 400;
+      const OFFSCREEN = 12;
+      const OFFSCREEN_S = 0.5;
+      // The boxes' grid, inside the margins, the dock's strip behind it.
+      const GRID = 160;
+      const AREA_X0 = TABLE_X0 + TABLE_MARGIN;
+      const CELL = (TABLE_SIZE - 2 * TABLE_MARGIN) / GRID;
+      const MIDDLE_X = AREA_X0 + (GRID * CELL) / 2;
+      // The dock: a raised pad with its landing marks and lights at its corners, the drone's
+      // charger beside it.
+      const PAD_X = TABLE_X0 + 1.5;
+      const PAD_HALF = 0.85;
+      const PAD_TOP = TABLE_TOP + 0.12;
+      // Where the table is on its guideways, its back edge, and where it is going.
+      let tableY = HOME_Y;
+      let tableTo = HOME_Y;
+      const areaY = () => tableY + DOCK_STRIP;
+      const padY = () => tableY + DOCK_STRIP / 2;
+      const middleY = () => areaY() + (GRID * CELL) / 2;
+      // Splitting: the block turns into a stack of little cubes, one per transaction, and they fly
+      // off its top one after another, in order, each landing as its box. Closing is the
+      // same, backward.
+      const CONVERT_MS = 350;
+      const SCATTER_MS = 1_100;
+      const FLIGHT_MS = 500;
+      const SPLIT_MS = CONVERT_MS + SCATTER_MS + FLIGHT_MS;
+      // Fee rates, in sat/vB, from which a box is a shade inkier.
+      const FEE_STEPS = [0, 2, 5, 10, 25, 75];
+      const FEE_ALPHAS = [0.1, 0.22, 0.36, 0.5, 0.66, 0.82];
+      // Each one a box: as wide as its bytes make its square, as high as its fee rate makes it,
+      // on a log scale, up to this one.
+      const LOWEST = 0.03;
+      const HIGHEST = 0.5;
+      const TOP_FEE = 300;
+      // Transactions per request, well within what the server takes.
+      const TX_BATCH = 4_000;
+
+      /**
+       * @typedef {{ block: Block, sizes: Uint32Array, fees: Float32Array, bytes: number, side: Uint16Array,
+       *   col: Uint16Array, row: Uint16Array, cells: Int32Array, shade: Uint8Array, rise: Float32Array,
+       *   order: Uint32Array }} Layout
+       *   Each transaction's box: its footprint's side in cells and its corner; which one is in each
+       *   cell; its fee rate's shade and height; all of them back to front.
+       */
+
+      /**
+       * The block on the table and its layout once loaded; when it started splitting, or
+       * closing back up for the drone, 0 when not, and from how far along.
+       */
+      const table = {
+        block: /** @type {Block | null} */ (null),
+        layout: /** @type {Layout | null} */ (null),
+        split: 0,
+        closing: 0,
+        // How far along the split was when closing started.
+        from: 0,
+        // How many blocks have been set down on it, so late answers know theirs.
+        visit: 0,
+      };
+      /** The transaction under the pointer on the table, -1 when none. */
+      let hoveredTx = -1;
+      /** @type {Map<number, Promise<Layout>>} */
+      const layouts = new Map();
+
+      /** A block's transactions laid out, fetched once. */
+      function layoutOf(/** @type {Block} */ block) {
+        let found = layouts.get(block.height);
+        if (!found) {
+          found = loadLayout(block);
+          layouts.set(block.height, found);
+          found.catch((error) => {
+            console.error("transactions", error);
+            layouts.delete(block.height);
+          });
+        }
+        return found;
+      }
+
+      async function loadLayout(/** @type {Block} */ block) {
+        const client = await clientReady;
+        const range = await client.getSeriesBulk("first_tx_index,tx_count", "height", block.height, block.height + 1);
+        const [first, count] = /** @type {{ data: number[] }[]} */ (range);
+        const start = first.data[0];
+        const n = count.data[0];
+        const sizes = new Uint32Array(n);
+        const fees = new Float32Array(n);
+        for (let from = 0; from < n; from += TX_BATCH) {
+          const to = Math.min(n, from + TX_BATCH);
+          const response = await client.getSeriesBulk("total_size,fee_rate", "tx_index", start + from, start + to);
+          const [size, fee] = /** @type {{ data: number[] }[]} */ (response);
+          sizes.set(size.data, from);
+          fees.set(fee.data, from);
+        }
+        return lay(block, sizes, fees);
+      }
+
+      /** Lays the squares out at the scale, in bytes per cell, that about fills the grid. */
+      function lay(/** @type {Block} */ block, /** @type {Uint32Array} */ sizes, /** @type {Float32Array} */ fees) {
+        let bytes = 0;
+        for (const size of sizes) bytes += size;
+        let unit = bytes / (0.85 * GRID * GRID);
+        let packed = pack(sizes, unit);
+        while (!packed) {
+          unit *= 1.15;
+          packed = pack(sizes, unit);
+        }
+        const shade = new Uint8Array(fees.length);
+        const rise = new Float32Array(fees.length);
+        fees.forEach((fee, i) => {
+          let step = FEE_STEPS.length - 1;
+          while (fee < FEE_STEPS[step]) step--;
+          shade[i] = step;
+          rise[i] = LOWEST + (HIGHEST - LOWEST) * Math.min(1, Math.log2(1 + fee) / Math.log2(1 + TOP_FEE));
+        });
+        const { side, col, row } = packed;
+        const order = Uint32Array.from(sizes.keys()).sort((a, b) => col[a] + row[a] + side[a] - (col[b] + row[b] + side[b]));
+        return { block, sizes, fees, bytes, ...packed, shade, rise, order };
+      }
+
+      /**
+       * Each square, in order, in the first place it fits from the first free cell on, reading
+       * the grid row by row; null when they don't all fit.
+       */
+      function pack(/** @type {Uint32Array} */ sizes, /** @type {number} */ unit) {
+        const n = sizes.length;
+        const side = new Uint16Array(n);
+        const col = new Uint16Array(n);
+        const row = new Uint16Array(n);
+        const cells = new Int32Array(GRID * GRID).fill(-1);
+        let cursor = 0;
+        for (let i = 0; i < n; i++) {
+          const k = Math.min(GRID, Math.max(1, Math.round(Math.sqrt(sizes[i] / unit))));
+          while (cursor < cells.length && cells[cursor] >= 0) cursor++;
+          for (let at = cursor; ; at++) {
+            const c = at % GRID;
+            const r = (at - c) / GRID;
+            if (r + k > GRID) return null;
+            if (c + k > GRID || !fits(cells, c, r, k)) continue;
+            for (let dr = 0; dr < k; dr++) cells.fill(i, (r + dr) * GRID + c, (r + dr) * GRID + c + k);
+            side[i] = k;
+            col[i] = c;
+            row[i] = r;
+            break;
+          }
+        }
+        return { side, col, row, cells };
+      }
+
+      function fits(/** @type {Int32Array} */ cells, /** @type {number} */ c, /** @type {number} */ r, /** @type {number} */ k) {
+        for (let dr = 0; dr < k; dr++) {
+          for (let dc = 0; dc < k; dc++) if (cells[(r + dr) * GRID + c + dc] >= 0) return false;
+        }
+        return true;
+      }
+
+      /** How far along the split is, in milliseconds: back toward 0 while closing up. */
+      function splitTime(/** @type {number} */ now) {
+        if (!table.layout || !table.split) return 0;
+        if (table.closing) return Math.max(0, table.from - (now - table.closing));
+        return Math.min(SPLIT_MS, now - table.split);
+      }
+
+      /** How many of n transactions have left the stack by `t` into the split, `late` after leaving. */
+      function flown(/** @type {number} */ t, /** @type {number} */ n, late = 0) {
+        const since = t - CONVERT_MS - late;
+        return since < 0 ? 0 : Math.min(n, Math.floor((since * n) / SCATTER_MS) + 1);
+      }
+
+      /**
+       * The stack of the n transactions still on it, a cube each, L to a side: whole layers, then
+       * whole rows of the top one, then the rest of a row. The first transactions are on top.
+       */
+      function drawStack(/** @type {number} */ n, /** @type {number} */ L) {
+        const v = CUBE / L;
+        const x0 = MIDDLE_X - CUBE / 2;
+        const y0 = middleY() - CUBE / 2;
+        const layers = Math.floor(n / (L * L));
+        const rest = n - layers * L * L;
+        const rows = Math.floor(rest / L);
+        const z = TABLE_TOP + layers * v;
+        if (layers) gridBox(x0, y0, TABLE_TOP, x0 + CUBE, y0 + CUBE, z, v);
+        if (rows) gridBox(x0, y0, z, x0 + CUBE, y0 + rows * v, z + v, v);
+        if (rest % L) gridBox(x0, y0 + rows * v, z, x0 + (rest % L) * v, y0 + (rows + 1) * v, z + v, v);
+      }
+
+      /** A box ruled every `step` along its three faces in sight. */
+      function gridBox(
+        /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ z0,
+        /** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ z1, /** @type {number} */ step,
+      ) {
+        box(x0, y0, z0, x1, y1, z1, palette);
+        if (step * camera.scale < 3) return;
+        ctx.strokeStyle = palette.muted;
+        ctx.beginPath();
+        for (let x = x0 + step; x < x1 - 1e-6; x += step) {
+          moveTo(x, y0, z1);
+          lineTo(x, y1, z1);
+          lineTo(x, y1, z0);
+        }
+        for (let y = y0 + step; y < y1 - 1e-6; y += step) {
+          moveTo(x0, y, z1);
+          lineTo(x1, y, z1);
+          lineTo(x1, y, z0);
+        }
+        for (let z = z0 + step; z < z1 - 1e-6; z += step) {
+          moveTo(x0, y1, z);
+          lineTo(x1, y1, z);
+          lineTo(x1, y0, z);
+        }
+        ctx.stroke();
+      }
+
+      // Each shade's faces: the table's colors inked as much as the fee rate says, per palette.
+      let facesFor = "";
+      /** @type {Faces[]} */
+      let faces = [];
+
+      function shadeFaces() {
+        const key = palette.top + palette.left + palette.right + palette.ink;
+        if (key !== facesFor) {
+          facesFor = key;
+          faces = FEE_ALPHAS.map((alpha) => ({
+            top: shade(palette.top, palette.ink, alpha * 0.85),
+            left: shade(palette.left, palette.ink, alpha * 0.85),
+            right: shade(palette.right, palette.ink, alpha * 0.85),
+          }));
+        }
+        return faces;
+      }
+
+      // The last box located: its corner, width and height.
+      let boxX = 0;
+      let boxY = 0;
+      let boxW = 0;
+      let boxH = 0;
+
+      /** Where the i-th transaction's box is on the table, `gap` apart from the next. */
+      function locate(/** @type {Layout} */ layout, /** @type {number} */ i, /** @type {number} */ gap) {
+        boxW = layout.side[i] * CELL - gap;
+        boxX = AREA_X0 + layout.col[i] * CELL + gap / 2;
+        boxY = areaY() + layout.row[i] * CELL + gap / 2;
+        boxH = layout.rise[i];
+      }
+
+      /** The i-th transaction's box, landed: only if on screen, unless `all`. */
+      function drawBox(
+        /** @type {Layout} */ layout, /** @type {number} */ i, /** @type {number} */ gap,
+        /** @type {Faces[]} */ shades, /** @type {boolean} */ all,
+      ) {
+        locate(layout, i, gap);
+        const z = TABLE_TOP + boxH;
+        if (!all && !inView(boxX, boxY, boxX + boxW, boxY + boxW, z)) return;
+        fillBox(boxX, boxY, TABLE_TOP, boxX + boxW, boxY + boxW, z, shades[layout.shade[i]]);
+        if (boxW * camera.scale < 7) return;
+        ctx.strokeStyle = palette.muted;
+        strokeBox(boxX, boxY, TABLE_TOP, boxX + boxW, boxY + boxW, z);
+      }
+
+      // All of them landed, drawn once into a picture and copied while only the view moves; drawn
+      // again when the zoom, the theme or the block changes. Too big a picture, up close, they
+      // are drawn as they come, only those on screen.
+      const picture = document.createElement("canvas");
+      const pictureCtx = /** @type {CanvasRenderingContext2D} */ (picture.getContext("2d"));
+      let pictureOf = "";
+      // Its corner, from where the grid's back corner is on screen.
+      let pictureX = 0;
+      let pictureY = 0;
+
+      function drawLanded(/** @type {Layout} */ layout, /** @type {number} */ gap) {
+        const s = camera.scale;
+        const n = layout.sizes.length;
+        const span = GRID * CELL;
+        const width = 2 * span * COS * s + 4;
+        const height = (span + HIGHEST) * s + 4;
+        const shades = shadeFaces();
+        if (width * height * dpr * dpr > 8e6) {
+          for (const i of layout.order) drawBox(layout, i, gap, shades, false);
+          return;
+        }
+        const ax = sx(AREA_X0, areaY());
+        const ay = sy(AREA_X0, areaY(), TABLE_TOP);
+        const key = `${layout.block.height} ${s} ${dpr} ${facesFor}`;
+        if (key !== pictureOf) {
+          pictureOf = key;
+          pictureX = -span * COS * s - 2;
+          pictureY = -HIGHEST * s - 2;
+          picture.width = Math.ceil(width * dpr);
+          picture.height = Math.ceil(height * dpr);
+          const screen = ctx;
+          ctx = pictureCtx;
+          ctx.setTransform(dpr, 0, 0, dpr, -(ax + pictureX) * dpr, -(ay + pictureY) * dpr);
+          ctx.lineWidth = 1;
+          ctx.lineJoin = "round";
+          ctx.setLineDash(SOLID);
+          for (let k = 0; k < n; k++) drawBox(layout, layout.order[k], gap, shades, true);
+          ctx = screen;
+        }
+        ctx.drawImage(picture, ax + pictureX, ay + pictureY, picture.width / dpr, picture.height / dpr);
+      }
+
+      // The transactions in the air this frame: where each is, how big, how deep, back to front.
+      let flyingCap = 0;
+      let flyX = new Float64Array(0);
+      let flyY = new Float64Array(0);
+      let flyZ = new Float64Array(0);
+      let flyW = new Float64Array(0);
+      let flyH = new Float64Array(0);
+      let flyDepth = new Float64Array(0);
+      let flyOrder = new Uint32Array(0);
+
+      /**
+       * Where the transactions in the air are, from their cube on the stack to their box: arcing
+       * over, turning into their box as they land. Above every box, one is drawn last; lower, by
+       * its depth. How many there are.
+       */
+      function fly(/** @type {Layout} */ layout, /** @type {number} */ t, /** @type {number} */ L, /** @type {number} */ gap) {
+        const n = layout.sizes.length;
+        const { side, col, row, rise } = layout;
+        if (flyingCap < n) {
+          flyingCap = n;
+          flyX = new Float64Array(n);
+          flyY = new Float64Array(n);
+          flyZ = new Float64Array(n);
+          flyW = new Float64Array(n);
+          flyH = new Float64Array(n);
+          flyDepth = new Float64Array(n);
+          flyOrder = new Uint32Array(n);
+        }
+        const v = CUBE / L;
+        const first = flown(t, n, FLIGHT_MS);
+        const count = flown(t, n) - first;
+        for (let k = 0; k < count; k++) {
+          const i = first + k;
+          const e = ease((t - CONVERT_MS - (i * SCATTER_MS) / n) / FLIGHT_MS);
+          // From its cube on the stack, the first ones on top, to its box.
+          const b = n - 1 - i;
+          const at = b % (L * L);
+          const fromX = MIDDLE_X - CUBE / 2 + ((at % L) + 0.5) * v;
+          const fromY = middleY() - CUBE / 2 + (Math.floor(at / L) + 0.5) * v;
+          const fromZ = TABLE_TOP + Math.floor(b / (L * L)) * v;
+          const width = side[i] * CELL - gap;
+          const toX = AREA_X0 + col[i] * CELL + gap / 2 + width / 2;
+          const toY = areaY() + row[i] * CELL + gap / 2 + width / 2;
+          const arc = 0.4 + 0.12 * Math.hypot(toX - fromX, toY - fromY);
+          flyX[k] = fromX + (toX - fromX) * e;
+          flyY[k] = fromY + (toY - fromY) * e;
+          flyZ[k] = fromZ + (TABLE_TOP - fromZ) * e + Math.sin(Math.PI * e) * arc;
+          flyW[k] = (v + (width - v) * e) / 2;
+          flyH[k] = v + (rise[i] - v) * e;
+          flyDepth[k] = flyZ[k] > TABLE_TOP + HIGHEST ? Infinity : flyX[k] + flyY[k];
+          flyOrder[k] = k;
+        }
+        flyOrder.subarray(0, count).sort((p, q) => flyDepth[p] - flyDepth[q]);
+        return count;
+      }
+
+      /** The k-th transaction in the air, `first` the first of them. */
+      function drawFlyer(
+        /** @type {Layout} */ layout, /** @type {number} */ k, /** @type {number} */ first,
+        /** @type {Faces[]} */ shades, /** @type {boolean} */ outline,
+      ) {
+        const x = flyX[k];
+        const y = flyY[k];
+        const w = flyW[k];
+        const z = flyZ[k];
+        fillBox(x - w, y - w, z, x + w, y + w, z + flyH[k], shades[layout.shade[first + k]]);
+        if (!outline) return;
+        ctx.strokeStyle = palette.ink;
+        strokeBox(x - w, y - w, z, x + w, y + w, z + flyH[k]);
+      }
+
+      /**
+       * While the block splits, or closes back up: the boxes landed, the stack and those in the
+       * air, back to front together; the boxes under the stack, inside it, first.
+       */
+      function drawSplitting(
+        /** @type {Layout} */ layout, /** @type {number} */ t, /** @type {number} */ gap,
+        /** @type {number} */ landed, /** @type {number} */ turned,
+      ) {
+        const n = layout.sizes.length;
+        const L = Math.ceil(Math.cbrt(n));
+        const shades = shadeFaces();
+        const count = fly(layout, t, L, gap);
+        const first = flown(t, n, FLIGHT_MS);
+        const stacked = n - flown(t, n);
+        const outline = (CUBE / L) * camera.scale >= 4;
+        const x0 = MIDDLE_X - CUBE / 2;
+        const y0 = middleY() - CUBE / 2;
+        const under = () => boxX < x0 + CUBE && boxX + boxW > x0 && boxY < y0 + CUBE && boxY + boxW > y0;
+        let stackDone = !stacked;
+        const depth = MIDDLE_X + middleY();
+        /** The stack, if not yet drawn and behind depth d. */
+        const stackBehind = (/** @type {number} */ d) => {
+          if (stackDone || depth >= d) return;
+          stackDone = true;
+          ctx.globalAlpha = turned;
+          drawStack(stacked, L);
+          ctx.globalAlpha = 1;
+        };
+        if (stacked) {
+          for (const i of layout.order) {
+            if (i >= landed) continue;
+            locate(layout, i, gap);
+            if (under()) drawBox(layout, i, gap, shades, false);
+          }
+        }
+        let f = 0;
+        for (const i of layout.order) {
+          if (i >= landed) continue;
+          locate(layout, i, gap);
+          if (stacked && under()) continue;
+          const d = boxX + boxY + boxW;
+          for (; f < count && flyDepth[flyOrder[f]] < d; f++) {
+            stackBehind(flyDepth[flyOrder[f]]);
+            drawFlyer(layout, flyOrder[f], first, shades, outline);
+          }
+          stackBehind(d);
+          drawBox(layout, i, gap, shades, false);
+        }
+        for (; f < count; f++) {
+          stackBehind(flyDepth[flyOrder[f]]);
+          drawFlyer(layout, flyOrder[f], first, shades, outline);
+        }
+        stackBehind(Infinity);
+      }
+
+      function drawTable(/** @type {number} */ now) {
+        const back = tableY;
+        const front = tableY + TABLE_LENGTH;
+        const areaTop = areaY();
+        if (!inView(TABLE_X0, back, TABLE_X1, front, TABLE_TOP + CUBE + 0.3)) return;
+        const s = camera.scale;
+        // Its sleds over the guideways, flush with its corners and hovering, then its deck.
+        for (const y of [back + 0.9, front - 0.9]) {
+          for (const x of BEAMS) box(x - 0.4, y - 0.9, BEAM_TOP + HOVER, x + 0.4, y + 0.9, DECK, palette);
+        }
+        box(TABLE_X0, back, DECK, TABLE_X1, front, TABLE_TOP, palette);
+        const x1 = AREA_X0 + GRID * CELL;
+        const y1 = areaTop + GRID * CELL;
+        ctx.strokeStyle = palette.faint;
+        ctx.setLineDash(DASHED);
+        face(AREA_X0, areaTop, TABLE_TOP, x1, areaTop, TABLE_TOP, x1, y1, TABLE_TOP, AREA_X0, y1, TABLE_TOP);
+        ctx.stroke();
+        ctx.setLineDash(SOLID);
+        drawDock();
+
+        const layout = table.layout;
+        const t = splitTime(now);
+        const n = layout ? layout.sizes.length : 0;
+        const landed = flown(t, n, FLIGHT_MS);
+        // Apart by about a pixel, so even the smallest stay one each.
+        const gap = Math.max(CELL * 0.14, Math.min(CELL * 0.4, 1 / s));
+
+        // What it shows, printed along its front margins.
+        const size = 0.3 * s;
+        if (legible(size)) {
+          const block = table.block;
+          const title = !block
+            ? "CLICK A BLOCK TO LOOK INSIDE IT"
+            : !layout
+              ? `#${heightFormat.format(block.height)} · LOADING`
+              : `#${heightFormat.format(block.height)} · ${heightFormat.format(layout.sizes.length)} TX · ${(layout.bytes / 1_000_000).toFixed(2)} MB`;
+          ctx.globalAlpha = legible(size);
+          ctx.textBaseline = "middle";
+          plane(sx(AREA_X0, front - TABLE_MARGIN / 2), sy(AREA_X0, front - TABLE_MARGIN / 2, TABLE_TOP), COS, SIN, -COS, SIN);
+          label(title, 0, 0, size, palette.ink, "left");
+          flat();
+          plane(sx(TABLE_X1 - TABLE_MARGIN / 2, areaTop + GRID * CELL), sy(TABLE_X1 - TABLE_MARGIN / 2, areaTop + GRID * CELL, TABLE_TOP), COS, -SIN, COS, SIN);
+          ctx.globalAlpha = legible(0.2 * s);
+          label("A BOX PER TX, IN ORDER · AS WIDE AS ITS BYTES · AS HIGH AND INKED AS ITS FEE RATE", 0, 0, 0.2 * s, palette.muted, "left");
+          flat();
+          ctx.textBaseline = "alphabetic";
+          ctx.globalAlpha = 1;
+        }
+
+        // The block itself, turning into the stack of its transactions, which then fly off it to
+        // land as their boxes: those behind the stack drawn before it, those in front after.
+        if (!table.block) return;
+        const turned = Math.min(1, t / CONVERT_MS);
+        if (turned < 1) {
+          ctx.globalAlpha = 1 - turned;
+          drawBlock(table.block, MIDDLE_X, middleY(), 0, false, TABLE_TOP - BELT_TOP);
+          ctx.globalAlpha = 1;
+        }
+        if (!layout || !turned) return;
+        if (t >= SPLIT_MS && !table.closing) drawLanded(layout, gap);
+        else drawSplitting(layout, t, gap, landed, turned);
+        if (hoveredTx >= 0 && hoveredTx < landed) {
+          locate(layout, hoveredTx, gap);
+          ctx.strokeStyle = palette.ink;
+          ctx.lineWidth = 2;
+          strokeBox(boxX, boxY, TABLE_TOP, boxX + boxW, boxY + boxW, TABLE_TOP + boxH);
+          ctx.lineWidth = 1;
+        }
+      }
+
+      /** The drone's dock on the table's back strip: its pad, marks and lights, its charger. */
+      function drawDock() {
+        const x = PAD_X;
+        const y = padY();
+        const h = PAD_HALF;
+        box(x - h, y - h, TABLE_TOP, x + h, y + h, PAD_TOP, palette);
+        // A ring and a cross to land on.
+        ctx.strokeStyle = palette.muted;
+        ctx.beginPath();
+        ctx.ellipse(sx(x, y), sy(x, y, PAD_TOP), ellipseX(0.55), ellipseY(0.55), 0, 0, Math.PI * 2);
+        moveTo(x - 0.3, y, PAD_TOP);
+        lineTo(x + 0.3, y, PAD_TOP);
+        moveTo(x, y - 0.3, PAD_TOP);
+        lineTo(x, y + 0.3, PAD_TOP);
+        ctx.stroke();
+        // Lights at its corners, lit while the drone is out.
+        ctx.fillStyle = drone.steps.length ? palette.ink : palette.top;
+        for (const [ex, ey] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+          const lx = x + ex * (h - 0.12);
+          const ly = y + ey * (h - 0.12);
+          ctx.beginPath();
+          ctx.ellipse(sx(lx, ly), sy(lx, ly, PAD_TOP), ellipseX(0.06), ellipseY(0.06), 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+        // The charger, beside the pad, with its cable to it.
+        const cx = x + h + 0.75;
+        box(cx - 0.3, y - 0.45, TABLE_TOP, cx + 0.3, y + 0.15, TABLE_TOP + 0.55, palette);
+        ctx.strokeStyle = palette.ink;
+        ctx.beginPath();
+        moveTo(cx - 0.3, y + 0.05, TABLE_TOP + 0.08);
+        lineTo(x + h, y + 0.05, PAD_TOP - 0.04);
+        ctx.stroke();
+        if (camera.scale >= 30) {
+          ctx.fillStyle = drone.steps.length ? palette.top : palette.ink;
+          ctx.beginPath();
+          ctx.ellipse(sx(cx + 0.3, y - 0.15), sy(cx + 0.3, y - 0.15, TABLE_TOP + 0.4), 0.05 * camera.scale, 0.05 * camera.scale, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      /**
+       * The transaction under the screen point (x, y) on the table, -1 when none: of the boxes
+       * whose cells the line of sight crosses over the table, the one it meets nearest the eye.
+       */
+      function txAt(/** @type {number} */ x, /** @type {number} */ y) {
+        const layout = table.layout;
+        if (!layout || !table.split || table.closing) return -1;
+        const landed = flown(splitTime(sim), layout.sizes.length, FLIGHT_MS);
+        const gap = Math.max(CELL * 0.14, Math.min(CELL * 0.4, 1 / camera.scale));
+        // On the line of sight, at height z: x - y = a, x + y = 2 (v + z).
+        const a = ((x - W / 2) / camera.scale + camera.u) / COS;
+        const v = (y - H / 2) / camera.scale + camera.v;
+        let best = -1;
+        let nearest = -Infinity;
+        for (let z = TABLE_TOP + HIGHEST; z >= TABLE_TOP; z -= CELL / 4) {
+          const c = Math.floor((v + z + a / 2 - AREA_X0) / CELL);
+          const r = Math.floor((v + z - a / 2 - areaY()) / CELL);
+          if (c < 0 || r < 0 || c >= GRID || r >= GRID) continue;
+          const i = layout.cells[r * GRID + c];
+          if (i < 0 || i >= landed || i === best) continue;
+          locate(layout, i, gap);
+          // The heights at which the line is over its footprint and below its top.
+          const top = Math.min(boxX + boxW - a / 2 - v, boxY + boxW + a / 2 - v, TABLE_TOP + boxH);
+          const bottom = Math.max(boxX - a / 2 - v, boxY + a / 2 - v, TABLE_TOP);
+          if (top >= bottom && top > nearest) {
+            nearest = top;
+            best = i;
+          }
+        }
+        return best;
+      }
+
+      // The drone -----------------------------------------------------------------
+
+      /**
+       * @typedef {{ kind: "go", to: "here" | "pad" | "table" | "belt", z: number, block?: Block }
+       *   | { kind: "grab", from: "belt" | "table", block: Block, then?: number }
+       *   | { kind: "drop", onto: "belt" | "table" }
+       *   | { kind: "close" }} Flight
+       *   A leg of the drone's errand: fly straight to a point, z its feet's height, or straight
+       *   up or down where it is; take a block,
+       *   off the table sending the table on to `then`; set it down; wait for the block on the
+       *   table to close back up.
+       * @typedef {{ x: number, y: number, z: number, angle: number, load: Block | null,
+       *   steps: Flight[], since: number, spin: number }} Drone
+       *   angle: the way the block it holds faces.
+       */
+
+      // It flies over everything, and holds a block by its top, this far under its feet.
+      const CRUISE = 2.6;
+      const HOLD = 0.12;
+      const DRONE_SPEED = 11;
+      const GRAB_MS = 200;
+      /** @type {Drone} */
+      const drone = { x: PAD_X, y: HOME_Y + DOCK_STRIP / 2, z: PAD_TOP, angle: 0, load: null, steps: [], since: 0, spin: 0 };
+      /** The block to look at next, once the drone is back. @type {Block | null} */
+      let nextLook = null;
+      /** Blocks off the belt, held or on the table: an outline shows where they belong. @type {Set<Block>} */
+      const away = new Set();
+
+      /** Sends the drone for a block, after taking back the one on the table. */
+      function look(/** @type {Block} */ block) {
+        // Busy, the drone takes the latest click when back.
+        if (drone.steps.length) {
+          nextLook = block;
+          return;
+        }
+        if (table.block === block) return;
+        void layoutOf(block);
+        const onTable = TABLE_TOP + CUBE + HOLD;
+        const onBelt = TOP + HOLD;
+        // The table stops where it shows best in the view: its middle as near the screen's as
+        // its way lets it.
+        const level = Math.min(HOME_Y, 0.5 * MIDDLE_X - COS * camera.u + 0.5 * camera.v - TABLE_LENGTH / 2);
+        /** @type {Flight[]} */
+        const steps = [];
+        const back = table.block;
+        if (back) {
+          steps.push(
+            { kind: "go", to: "pad", z: onTable },
+            { kind: "go", to: "table", z: onTable },
+            { kind: "close" },
+            { kind: "grab", from: "table", block: back, then: level },
+            { kind: "go", to: "here", z: CRUISE },
+            { kind: "go", to: "belt", z: CRUISE, block: back },
+            { kind: "go", to: "belt", z: onBelt, block: back },
+            { kind: "drop", onto: "belt" },
+            { kind: "go", to: "belt", z: CRUISE, block: back },
+          );
+        } else {
+          tableTo = level;
+          steps.push({ kind: "go", to: "here", z: CRUISE });
+        }
+        steps.push(
+          { kind: "go", to: "belt", z: CRUISE, block },
+          { kind: "go", to: "belt", z: onBelt, block },
+          { kind: "grab", from: "belt", block },
+          { kind: "go", to: "belt", z: CRUISE, block },
+          { kind: "go", to: "table", z: CRUISE },
+          { kind: "go", to: "table", z: onTable },
+          { kind: "drop", onto: "table" },
+          { kind: "go", to: "table", z: onTable + 0.6 },
+          { kind: "go", to: "pad", z: PAD_TOP + 0.6 },
+          { kind: "go", to: "pad", z: PAD_TOP },
+        );
+        drone.steps = steps;
+        drone.since = sim;
+      }
+
+      /** The table's way, from its end into the past, only where it shows. */
+      function drawWay() {
+        const s = camera.scale;
+        // Where along Y some of it is on screen.
+        const from = Math.max(WAY_X0 - viewU1 / COS, 2 * viewV0 - WAY_X1);
+        const to = Math.min(WAY_END, WAY_X1 - viewU0 / COS, 2 * (viewV1 + 0.4) - WAY_X0);
+        if (from >= to) return;
+        box(WAY_X0, from, 0, WAY_X1, to, SLAB, palette);
+        // Its segments and the guide line down its middle.
+        ctx.strokeStyle = palette.faint;
+        ctx.beginPath();
+        if (JOINT * s >= 10) {
+          for (let y = Math.ceil(from / JOINT) * JOINT; y < to; y += JOINT) {
+            moveTo(WAY_X0, y, SLAB);
+            lineTo(WAY_X1, y, SLAB);
+            lineTo(WAY_X1, y, 0);
+          }
+        }
+        ctx.stroke();
+        ctx.strokeStyle = palette.muted;
+        ctx.setLineDash(DASHED);
+        ctx.beginPath();
+        moveTo(MIDDLE_X, from, SLAB);
+        lineTo(MIDDLE_X, to, SLAB);
+        ctx.stroke();
+        ctx.setLineDash(SOLID);
+        // The time at each right fold's end, the middle of its U-turn, on the ground between it
+        // and the way, where the table never covers it.
+        const size = 0.4 * s;
+        if (legible(size)) {
+          ctx.textBaseline = "middle";
+          ctx.globalAlpha = legible(size);
+          const start = Math.max(0, Math.ceil((-(to + 3) - BEND) / FOLD));
+          for (let k = start + (start % 2); -k * FOLD - BEND > from - 3; k += 2) {
+            const y = -k * FOLD - BEND;
+            const seconds = beltSeconds - (FIRST + k * PERIOD + ARC / 2) * SECONDS_PER_UNIT;
+            const x = RIGHT + BEND + BELT_WIDTH / 2 + OUTLINE + 0.1;
+            plane(sx(x, y), sy(x, y, 0), COS, SIN, -COS, SIN);
+            label(timeFormat.format(seconds * 1000), 0, 0, size, palette.muted, "left");
+            flat();
+          }
+          ctx.globalAlpha = 1;
+          ctx.textBaseline = "alphabetic";
+        }
+        // Bollards on the far edge, the beams, bollards on the near edge.
+        const bollards = (/** @type {number} */ x) => {
+          if (s < 14) return;
+          for (let y = Math.ceil(from / BOLLARD) * BOLLARD; y < to; y += BOLLARD) {
+            box(x - 0.06, y - 0.06, SLAB, x + 0.06, y + 0.06, SLAB + 0.3, palette);
+          }
+        };
+        bollards(WAY_X0 + 0.15);
+        const w = BEAM / 2;
+        for (const x of BEAMS) {
+          box(x - w, from, SLAB, x + w, to, BEAM_TOP, palette);
+          ctx.strokeStyle = palette.muted;
+          ctx.beginPath();
+          moveTo(x, from, BEAM_TOP);
+          lineTo(x, to, BEAM_TOP);
+          ctx.stroke();
+        }
+        bollards(WAY_X1 - 0.15);
+      }
+
+      /** Moves the table along its way; whether it is moving. */
+      function stepTable(/** @type {number} */ dt) {
+        if (tableY === tableTo) return false;
+        const left = Math.abs(tableTo - tableY);
+        const shown = inView(TABLE_X0, tableY, TABLE_X1, tableY + TABLE_LENGTH, TABLE_TOP);
+        const move = (pace(left, TABLE_SPEED, 2.5, shown) * dt) / 1000;
+        tableY = left <= move ? tableTo : tableY + Math.sign(tableTo - tableY) * move;
+        return true;
+      }
+
+      /**
+       * How fast to cover what is left: up to a top speed, or a pace on screen when zoomed out,
+       * easing in over the last stretch; out of sight, far faster, more so the farther.
+       */
+      function pace(/** @type {number} */ left, /** @type {number} */ top, /** @type {number} */ ease, /** @type {boolean} */ shown) {
+        if (!shown) return Math.max(top * OFFSCREEN, left / OFFSCREEN_S);
+        return Math.min(Math.max(top, SCREEN_SPEED / camera.scale), Math.max(1.5, left * ease));
+      }
+
+      /** Moves the drone on its errand; whether it is on one. Docked, it rides with the table. */
+      function stepDrone(/** @type {number} */ now, /** @type {number} */ dt) {
+        const step = drone.steps[0];
+        if (!step) {
+          drone.y = padY();
+          return false;
+        }
+        drone.spin += dt / 40;
+        if (step.kind === "go") {
+          let tx = PAD_X;
+          let ty = padY();
+          let angle = drone.angle;
+          if (step.to === "here") {
+            tx = drone.x;
+            ty = drone.y;
+          } else if (step.to === "table") {
+            tx = MIDDLE_X;
+            ty = middleY();
+            angle = 0;
+          } else if (step.to === "belt" && step.block) {
+            at(position(step.block, Date.now() / 1000, now));
+            tx = atX;
+            ty = atY;
+            angle = atAngle;
+          }
+          const dx = tx - drone.x;
+          const dy = ty - drone.y;
+          const dz = step.z - drone.z;
+          const d = Math.hypot(dx, dy, dz);
+          const shown = inView(drone.x - 0.6, drone.y - 0.6, drone.x + 0.6, drone.y + 0.6, drone.z + 0.3);
+          const move = (pace(d, DRONE_SPEED, 5, shown) * dt) / 1000;
+          // The block it holds turns the short way round.
+          const turn = angle - drone.angle - 2 * Math.PI * Math.round((angle - drone.angle) / (2 * Math.PI));
+          if (drone.load) drone.angle += Math.max(-dt / 150, Math.min(dt / 150, turn));
+          if (d <= move) {
+            drone.x = tx;
+            drone.y = ty;
+            drone.z = step.z;
+            next(now);
+          } else {
+            drone.x += (dx / d) * move;
+            drone.y += (dy / d) * move;
+            drone.z += (dz / d) * move;
+          }
+        } else if (step.kind === "close") {
+          if (!table.closing && table.layout && table.split) {
+            table.from = splitTime(now);
+            table.closing = now;
+            hoveredTx = -1;
+            describe();
+          }
+          if (!table.closing || splitTime(now) === 0) next(now);
+        } else if (now - drone.since >= GRAB_MS) {
+          if (step.kind === "grab") {
+            drone.load = step.block;
+            if (step.from === "belt") {
+              away.add(step.block);
+              at(position(step.block, Date.now() / 1000, now));
+              drone.angle = atAngle;
+            } else {
+              table.block = null;
+              table.layout = null;
+              table.split = 0;
+              table.closing = 0;
+              drone.angle = 0;
+              hoveredTx = -1;
+              describe();
+              if (step.then !== undefined) tableTo = step.then;
+            }
+          } else if (drone.load) {
+            const block = drone.load;
+            drone.load = null;
+            if (step.onto === "belt") away.delete(block);
+            else {
+              table.block = block;
+              table.visit += 1;
+              show(block, table.visit);
+            }
+          }
+          next(now);
+        }
+        return true;
+      }
+
+      /**
+       * Splits the block set down on the table, visit `visit`, once its transactions are in,
+       * trying again if they fail; not once the table has moved on.
+       */
+      function show(/** @type {Block} */ block, /** @type {number} */ visit) {
+        const current = () => table.visit === visit && table.block === block && !table.closing;
+        layoutOf(block).then((layout) => {
+          if (!current() || table.layout) return;
+          table.layout = layout;
+          table.split = sim;
+          animateUntil = table.split + SPLIT_MS + 100;
+          dirty = true;
+        }).catch(() => setTimeout(() => current() && show(block, visit), TIP_POLL_MS));
+      }
+
+      function next(/** @type {number} */ now) {
+        drone.steps.shift();
+        drone.since = now;
+        if (drone.steps.length || !nextLook) return;
+        const block = nextLook;
+        nextLook = null;
+        look(block);
+      }
+
+      /** The drone: its shadow, the block it holds, its body, four arms and their rotors. */
+      function drawDrone() {
+        const { x, y, z } = drone;
+        const low = drone.load ? z - HOLD - CUBE : z;
+        if (!inView(x - 0.6, y - 0.6, x + 0.6, y + 0.6, z + 0.3)) return;
+        const onPad = Math.abs(x - PAD_X) < PAD_HALF && Math.abs(y - padY()) < PAD_HALF;
+        const ground = onPad ? PAD_TOP : x > TABLE_X0 && x < TABLE_X1 && y > tableY && y < tableY + TABLE_LENGTH ? TABLE_TOP : 0;
+        if (low > ground + 0.01) {
+          ctx.globalAlpha = 0.5;
+          ctx.fillStyle = palette.faint;
+          ctx.beginPath();
+          ctx.ellipse(sx(x, y), sy(x, y, ground), ellipseX(0.45), ellipseY(0.45), 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+        if (drone.load) {
+          drawBlock(drone.load, x, y, drone.angle, false, z - HOLD - TOP);
+          // Its claws on the block's top.
+          ctx.strokeStyle = palette.ink;
+          ctx.beginPath();
+          for (const [ex, ey] of [[-0.2, 0], [0.2, 0], [0, -0.2], [0, 0.2]]) {
+            moveTo(x + ex, y + ey, z);
+            lineTo(x + ex * 1.3, y + ey * 1.3, z - HOLD);
+          }
+          ctx.stroke();
+        }
+        const flying = drone.steps.length > 0;
+        ctx.strokeStyle = palette.ink;
+        ctx.beginPath();
+        for (const [ex, ey] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+          moveTo(x + ex * 0.16, y + ey * 0.16, z + 0.1);
+          lineTo(x + ex * 0.4, y + ey * 0.4, z + 0.14);
+        }
+        ctx.stroke();
+        box(x - 0.18, y - 0.18, z, x + 0.18, y + 0.18, z + 0.16, palette);
+        for (const [ex, ey] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+          const rx = x + ex * 0.4;
+          const ry = y + ey * 0.4;
+          ctx.beginPath();
+          ctx.ellipse(sx(rx, ry), sy(rx, ry, z + 0.16), ellipseX(0.17), ellipseY(0.17), 0, 0, Math.PI * 2);
+          ctx.fillStyle = palette.top;
+          ctx.fill();
+          ctx.stroke();
+          // A blade, spinning while it flies.
+          const turn = flying ? drone.spin + ex + 2 * ey : Math.PI / 4;
+          const bx = Math.cos(turn) * 0.15;
+          const by = Math.sin(turn) * 0.15;
+          ctx.beginPath();
+          moveTo(rx - bx, ry - by, z + 0.17);
+          lineTo(rx + bx, ry + by, z + 0.17);
+          ctx.stroke();
+        }
+      }
+
       /** @type {ReturnType<typeof setTimeout> | undefined} */
       let recentTimer;
 
@@ -2198,7 +3144,7 @@
           const recent = await client.getMempoolRecent({ cache: false });
           const fresh = recent.filter((tx) => !seenTxids.has(tx.txid));
           // Each drops into the pool, spread over the time until the next look.
-          const now = performance.now();
+          const now = sim;
           fresh.forEach((tx, i) => {
             seenTxids.add(tx.txid);
             pending.push(tx);
@@ -2288,8 +3234,6 @@
           entering,
           enterFrom: entering ? entering.slot : 0,
           start: now,
-          // Faster the more there are to catch up on.
-          speed: Math.min(20, 1 + 1.5 * arriving.length),
           pressed: false,
           out: false,
         };
@@ -2298,7 +3242,7 @@
       function stepJob(/** @type {number} */ now) {
         if (!job && arriving.length) startJob(now);
         if (!job) return;
-        const t = (now - job.start) * job.speed;
+        const t = now - job.start;
         if (!job.pressed && t >= IN_MS) {
           job.pressed = true;
           lastPool = job.block.pool;
@@ -2308,7 +3252,7 @@
           const block = job.block;
           block.tEff = Math.min(block.time, Date.now() / 1000 - EXIT * SECONDS_PER_UNIT);
           blocks.push(block);
-          glide(block, -0.6, OUT_MS / job.speed, now);
+          glide(block, -0.6, OUT_MS, now);
           if (blocks.length > 1) settle(blocks.length - 2, now);
         }
         if (t >= IN_MS + PRESS_MS + OUT_MS) {
@@ -2368,9 +3312,10 @@
         beltSeconds = seconds;
         printed.length = 0;
 
-        // Back to front: the folds behind the machine, the machine, the belts before it, then
-        // every cube by depth.
+        // Back to front: the table's way, the folds behind the machine, the machine, the belts
+        // before it, then every cube by depth.
         drawGround(first, last);
+        drawWay();
         drawFolds(first, last, phase);
         if (inView(-PLINTH, PLINTH_Y0, PLINTH, PLINTH_Y1, LID_TOP + 1.5)) drawMachine(now);
         if (first === 0) {
@@ -2403,13 +3348,16 @@
           shown.push({ block, x: atX, y: atY, angle: atAngle, newest: i === newest && !job });
         }
         shown.sort((a, b) => a.x + a.y - (b.x + b.y));
-        for (const { block, x, y, angle, newest } of shown) drawBlock(block, x, y, angle, newest);
+        for (const { block, x, y, angle, newest } of shown) {
+          if (away.has(block)) drawGhost(block, x, y, angle);
+          else drawBlock(block, x, y, angle, newest);
+        }
 
         // The mempool's belt beside the chain's, its blocks nearest the machine first, the sign at
         // its end, then the robots and the pool in front of them.
         drawQueueBelt();
         if (job && job.entering) {
-          const t = ((now - job.start) * job.speed) / IN_MS;
+          const t = (now - job.start) / IN_MS;
           if (t < 1) {
             const from = HALF + EXIT + job.enterFrom * SLOT;
             drawWaiting(job.entering, from - ease(t) * (from - HALF + 0.6), job.block.height);
@@ -2418,11 +3366,14 @@
         queue.forEach((waiting, i) => drawWaiting(waiting, HALF + EXIT + waiting.slot * SLOT, expectedHeight(i)));
         const worth = Math.ceil(mempoolVSize / MAX_BLOCK_VSIZE);
         drawSign(QUEUE_Y, "NEXT BLOCKS", worth ? `${heightFormat.format(worth)} BLOCKS TO CLEAR` : "");
-        // The robots, between the belt and the pool, its rim over their feet.
+        // The robots, between the belt and the pool, its rim over their feet; the table, the pool,
+        // what is thrown, and the drone over it all.
         workers.sort((a, b) => a.x + a.y - (b.x + b.y));
         for (const worker of workers) drawWorker(worker);
+        drawTable(now);
         drawPool(now);
         drawThrows(now);
+        drawDrone();
         placeCard();
 
         if (blocks.length && !reachedGenesis && position(blocks[0], seconds, now) < pHi + PERIOD) {
@@ -2446,18 +3397,85 @@
           if (t >= 1) flight = null;
           dirty = true;
         }
-        stepJob(now);
-        stepWorkers(now, dt);
+        // What shows now, for what moves faster out of sight.
+        updateView();
+        stepWarp(dt);
+        const step = dt * warp;
+        sim += step;
+        stepJob(sim);
+        stepWorkers(sim, step);
+        const rolling = stepTable(step);
+        const flying = stepDrone(sim, step) || rolling;
         // The pool's water and the robots move all the time: at full rate while they show.
         const lively = camera.scale >= 12 && inView(PLINTH, QUEUE_Y - BELT_WIDTH, SIGN_X, POOL_Y1, 2);
-        stepFollow(dt);
-        const moving = stepQueue(dt) || !!job || now < animateUntil || lively;
+        stepFollow(step);
+        const moving = stepQueue(step) || !!job || sim < animateUntil || lively || flying || warp > 1;
         // The belt moves under a pixel a second: a few frames a second carry it, more up close.
         const idleMs = (1000 * IDLE_STEP * SECONDS_PER_UNIT) / camera.scale;
         if (!moving && !dirty && now - lastDraw < idleMs) return;
         dirty = false;
         lastDraw = now;
-        draw(now);
+        draw(sim);
+        streak();
+      }
+
+      // Fast-forward -------------------------------------------------------------
+
+      // What would take long runs faster: a backlog of blocks to stamp, several rising out of
+      // the lift. Time speeds up by powers of two, eased in and out, shown by the clock, and what
+      // moves leaves a faint trail. The belt keeps real time.
+      const MAX_WARP = 64;
+      const warpLabel = $("warp");
+      let warp = 1;
+      // The frame before, for the trail.
+      const trail = document.createElement("canvas");
+      const trailCtx = /** @type {CanvasRenderingContext2D} */ (trail.getContext("2d"));
+      let trailing = false;
+
+      /** How much faster things should run for what is going on now. */
+      function warpWanted() {
+        let wanted = 1;
+        if (arriving.length) wanted = 2 ** Math.ceil(Math.log2(arriving.length + 1));
+        let rising = 0;
+        for (const waiting of queue) if (waiting.lift < 0) rising++;
+        if (rising > 1) wanted = Math.max(wanted, 2 ** Math.ceil(Math.log2(rising)));
+        return Math.min(MAX_WARP, wanted);
+      }
+
+      /** Eases the speed toward what is wanted, in real time, and shows it. */
+      function stepWarp(/** @type {number} */ dt) {
+        const wanted = warpWanted();
+        warp *= Math.pow(wanted / warp, 1 - Math.exp(-dt / 250));
+        if (Math.abs(warp - wanted) < 0.01) warp = wanted;
+        const level = warp < 1.4 ? 1 : 2 ** Math.round(Math.log2(warp));
+        warpLabel.hidden = level === 1;
+        const text = `\u25B6\uFE0E\u25B6\uFE0E ${level}×`;
+        const bold = /** @type {HTMLElement} */ (warpLabel.lastElementChild);
+        if (bold.textContent !== text) bold.textContent = text;
+      }
+
+      /** The trail: the frame before laid faintly over this one, more so the faster it runs. */
+      function streak() {
+        const strength = Math.min(0.4, 0.12 * Math.log2(warp));
+        if (strength < 0.02) {
+          trailing = false;
+          return;
+        }
+        if (trail.width !== canvas.width || trail.height !== canvas.height) {
+          trail.width = canvas.width;
+          trail.height = canvas.height;
+          trailing = false;
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        if (trailing) {
+          ctx.globalAlpha = strength;
+          ctx.drawImage(trail, 0, 0);
+          ctx.globalAlpha = 1;
+        }
+        trailCtx.clearRect(0, 0, trail.width, trail.height);
+        trailCtx.drawImage(canvas, 0, 0);
+        trailing = true;
+        flat();
       }
 
       // Camera -----------------------------------------------------------------
@@ -2562,12 +3580,16 @@
         });
       }
 
-      /** A click on a robot follows it; anywhere else lets go. */
+      /** A click on a robot follows it; on a mined block, sends the drone for it; anywhere else lets go. */
       function click(/** @type {number} */ x, /** @type {number} */ y) {
         for (let i = hits.length - 1; i >= 0; i--) {
           if (!inside(hits[i].points, x, y)) continue;
           const { item } = hits[i];
-          follow("tx" in item ? item : null);
+          if ("tx" in item) follow(item);
+          else {
+            follow(null);
+            if ("height" in item) look(item);
+          }
           return;
         }
         follow(null);
@@ -2640,13 +3662,24 @@
             break;
           }
         }
-        if (found === hovered) return;
+        const tx = found ? -1 : txAt(x, y);
+        if (found === hovered && tx === hoveredTx) return;
         hovered = found;
+        hoveredTx = tx;
         dirty = true;
         describe();
       }
 
       function describe() {
+        if (!hovered && hoveredTx >= 0 && table.layout) {
+          const { block, sizes, fees } = table.layout;
+          caption.textContent = [
+            `Transaction ${heightFormat.format(hoveredTx + 1)} of ${heightFormat.format(sizes.length)} in #${heightFormat.format(block.height)}`,
+            hoveredTx === 0 ? "the coinbase" : `${feeRate(fees[hoveredTx])} sats/vB`,
+            `${heightFormat.format(sizes[hoveredTx])} bytes`,
+          ].join(" · ");
+          return;
+        }
         if (!hovered) {
           caption.textContent = HINT;
           return;
@@ -2666,6 +3699,7 @@
             `${((block.weight / MAX_BLOCK_WEIGHT) * 100).toFixed(1)}% full`,
             timeFormat.format(block.time * 1000),
             ago(Date.now() / 1000 - block.time),
+            table.block === block ? "On the table" : drone.load === block ? "On its way" : "Click to look inside",
           ].join(" · ");
           return;
         }
