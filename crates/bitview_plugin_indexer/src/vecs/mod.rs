@@ -149,7 +149,7 @@ impl Vecs {
 
     pub fn flush(&mut self, height: Height) -> Result<()> {
         self.stamped_write(height)?;
-        self.db.flush()?;
+        self.db.flush();
         Ok(())
     }
 

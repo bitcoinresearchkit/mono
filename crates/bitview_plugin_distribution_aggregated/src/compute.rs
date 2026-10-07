@@ -144,7 +144,7 @@ impl Vecs {
         for v in vectors {
             v.any_stamped_write_maybe_with_changes(stamp, final_chunk)?;
         }
-        self.db.flush()?;
+        self.db.flush();
         Ok(())
     }
 }

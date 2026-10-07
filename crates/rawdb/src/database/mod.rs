@@ -21,7 +21,7 @@ use std::{
 use log::debug;
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::{Error, PAGE_SIZE, Region, RegionMetadata, Result, dirty_ranges::DirtyRanges};
+use crate::{Error, PAGE_SIZE, Region, RegionMetadata, Result};
 
 use self::{
     background_tasks::BackgroundTasks, data_file::DataFile, inner::DatabaseInner, layout::Layout,
@@ -171,7 +171,8 @@ impl Database {
         }
         let _writes = self.inner.writes.write();
         self.regions_mut().shrink_to_fit()?;
-        self.flush_inner(&_writes).map(|_| ())
+        self.flush_inner(&_writes);
+        Ok(())
     }
 
     /// Opens the data file read-only (for external consumers like mmap readers).
@@ -179,41 +180,16 @@ impl Database {
         File::open(self.path().join("data")).map_err(Error::from)
     }
 
-    /// Flushes all dirty data and metadata to disk.
-    /// Returns the number of regions whose data was flushed.
-    pub fn flush(&self) -> Result<usize> {
+    /// Makes freed space reusable. Writes go straight to the shared mapping, so they are visible to
+    /// the next open (soft quits included) without syncing; power loss is out of scope.
+    pub fn flush(&self) {
         let _writes = self.inner.writes.write();
-        self.flush_inner(&_writes).map(|(regions, _)| regions)
+        self.flush_inner(&_writes);
     }
 
-    fn flush_inner(&self, _writes: &RwLockWriteGuard<'_, ()>) -> Result<(usize, bool)> {
-        // The caller holds the mutation barrier, so dirty state stays stable.
-        // Leave it intact until both files are durable; errors need no rollback.
-        let mut layout = self.layout_mut();
-        let mut ranges = DirtyRanges::default();
-        let mut dirty_regions = Vec::new();
-        for region in layout.regions() {
-            // SAFETY: the exclusive mutation barrier keeps all dirty state stable.
-            if unsafe { region.0.append_dirty_ranges(&mut ranges) } {
-                dirty_regions.push(&region.0);
-            }
-        }
-        // SAFETY: the exclusive mutation barrier remains held.
-        unsafe { self.inner.data.flush(&ranges) }?;
-        let metadata_flushed = self.regions().flush()?;
-        let flushed = dirty_regions.len();
-        for region in dirty_regions {
-            // SAFETY: mutations remain excluded until both files are durable.
-            unsafe { region.clear_dirty_ranges() };
-        }
-
-        // Pending holes become reusable only after their metadata is durable.
-        layout.promote_pending_holes();
-        debug!(
-            "{}: flushed {} data regions (metadata: {})",
-            self, flushed, metadata_flushed
-        );
-        Ok((flushed, metadata_flushed))
+    fn flush_inner(&self, _writes: &RwLockWriteGuard<'_, ()>) {
+        // Pending holes become reusable once their metadata is written.
+        self.layout_mut().promote_pending_holes();
     }
 
     /// Cancellable wait for use inside `run_bg` closures. Returns
@@ -222,7 +198,7 @@ impl Database {
         self.inner.tasks.sleep(dur);
     }
 
-    /// Waits five seconds before compacting so the OS can write dirty mmap pages.
+    /// Waits five seconds before compacting, off the caller's save path.
     /// Intended for background tasks; `sync_bg_tasks` cuts the wait short.
     pub fn compact_deferred_default(&self) -> Result<()> {
         self.bg_sleep(Duration::from_secs(5));
@@ -233,18 +209,9 @@ impl Database {
     pub fn compact(&self) -> Result<()> {
         let _writes = self.inner.writes.write();
         let i = Instant::now();
-        self.flush_inner(&_writes)?;
-        let flush_time = i.elapsed();
-        let i = Instant::now();
+        self.flush_inner(&_writes);
         let r = self.punch_holes(&_writes);
-        let punch_time = i.elapsed();
-        debug!(
-            "{}: compact in {:?} (flush: {:?}, punch_holes: {:?})",
-            self,
-            flush_time + punch_time,
-            flush_time,
-            punch_time
-        );
+        debug!("{}: compact in {:?}", self, i.elapsed());
         r
     }
 
@@ -315,10 +282,8 @@ impl Database {
         drop(layout);
 
         // KEEP_SIZE preserves file length; the kernel zeroes punched pages.
-        if punched > 0 {
-            debug!("{}: punch_holes syncing after {} punches", self, punched);
-        }
-        self.inner.data.sync(false)
+        debug!("{}: punched {} holes", self, punched);
+        Ok(())
     }
 
     pub(crate) fn regions(&self) -> RwLockReadGuard<'_, Regions> {

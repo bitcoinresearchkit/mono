@@ -300,7 +300,7 @@ mod mutable {
             // Flush and close
             vec.stamped_write(checkpoint1_stamp)?;
 
-            database.flush()?;
+            database.flush();
             drop(vec);
             drop(database);
             let database = Database::open(temp.path())?;
@@ -332,7 +332,7 @@ mod mutable {
 
             // Flush and close
             vec.stamped_write(checkpoint2_stamp)?;
-            database.flush()?;
+            database.flush();
             drop(vec);
             drop(database);
             let database = Database::open(temp.path())?;

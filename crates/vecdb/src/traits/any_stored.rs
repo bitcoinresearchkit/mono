@@ -33,7 +33,7 @@ pub trait AnyStoredVec: AnyVec {
     fn flush(&mut self) -> Result<()> {
         let guard = self.header().begin_write()?;
         self.write()?;
-        self.db().flush()?;
+        self.db().flush();
         guard.finish(Ok(()))
     }
 

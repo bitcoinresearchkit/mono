@@ -47,7 +47,7 @@ impl ComputePlugin for Vecs {
             })?;
         self.supply.write()?;
         self.count.height.write()?;
-        self.db.flush()?;
+        self.db.flush();
         Ok(())
     }
 }

@@ -26,11 +26,11 @@ fn truncating_relocation_preserves_prefix_and_neighbor_on_reopen() -> Result<()>
         let old_start = region.meta().start();
         let neighbor = db.create_region_if_needed("neighbor")?;
         neighbor.write(b"kept")?;
-        db.flush()?;
+        db.flush();
 
         region.truncate_write(prefix, &vec![7; 3 * PAGE_SIZE - prefix])?;
         assert_ne!(region.meta().start(), old_start);
-        assert_eq!(db.flush()?, 1);
+        db.flush();
         drop(region);
         drop(neighbor);
         drop(db);
@@ -63,7 +63,7 @@ fn retention_and_compaction_preserve_relocated_slots() -> Result<()> {
     first.reserve_capacity(2 * PAGE_SIZE)?;
     let relocated_start = first.meta().start();
     assert!(relocated_start >= 3 * PAGE_SIZE);
-    db.flush()?;
+    db.flush();
     drop(first);
     drop(db);
 
@@ -114,7 +114,7 @@ fn metadata_slot_reuse_survives_reopen_and_shrink() -> Result<()> {
     assert!(db.get_region("0").is_none());
     assert!(db.get_region("pending").is_some());
     pending.remove()?;
-    db.flush()?;
+    db.flush();
     drop(db);
 
     let db = Database::open(dir.path())?;
@@ -133,7 +133,7 @@ fn metadata_slot_reuse_survives_reopen_and_shrink() -> Result<()> {
         assert_eq!(region.index(), slot);
         region.write(&[index as u8])?;
     }
-    db.flush()?;
+    db.flush();
     drop(db);
     let db = Database::open(dir.path())?;
     for index in 0..6 {
@@ -162,7 +162,7 @@ fn concurrent_relocations_and_flushes_preserve_every_region() -> Result<()> {
         }
         // Block in-place growth, so each writer must copy to a new allocation.
         drop(db.create_region_if_needed("blocker")?);
-        db.flush()?;
+        db.flush();
         let barrier = Barrier::new(regions.len() + 1);
         thread::scope(|scope| -> Result<()> {
             let handles: Vec<_> = regions
@@ -176,13 +176,13 @@ fn concurrent_relocations_and_flushes_preserve_every_region() -> Result<()> {
                 })
                 .collect();
             barrier.wait();
-            db.flush()?;
+            db.flush();
             for handle in handles {
                 handle.join().unwrap()?;
             }
             Ok(())
         })?;
-        db.flush()?;
+        db.flush();
     }
     let db = Database::open(dir.path())?;
     for id in 0..4u8 {
@@ -200,7 +200,7 @@ fn opening_either_locked_file_preserves_existing_data() -> Result<()> {
         let dir = TempDir::new()?;
         let db = Database::open(dir.path())?;
         db.create_region_if_needed("kept")?.write(b"kept")?;
-        db.flush()?;
+        db.flush();
         drop(db);
 
         let path = dir.path().join(name);

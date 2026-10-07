@@ -2,7 +2,6 @@
 #![warn(unreachable_pub)]
 
 mod database;
-mod dirty_ranges;
 mod error;
 mod region;
 

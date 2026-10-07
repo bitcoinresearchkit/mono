@@ -46,7 +46,6 @@ impl Snapshots {
                 return Err(invalid("missing snapshot page index"));
             }
             pages.write_all_at(&[MAGIC.as_slice(), &[0]].concat(), 0)?;
-            pages.sync_data()?;
         }
         let size = pages.metadata()?.len();
         if size < HEADER as u64
@@ -173,7 +172,6 @@ impl Snapshots {
         if !self.writing || !self.writable {
             return Err(invalid("snapshot commit outside update"));
         }
-        self.data.sync_data()?;
         let mut index = Vec::with_capacity(HEADER + self.entries.len() * ROW);
         index.extend_from_slice(MAGIC);
         index.push(u8::from(
@@ -185,7 +183,6 @@ impl Snapshots {
         }
         self.pages.write_all_at(&index, 0)?;
         self.pages.set_len(index.len() as u64)?;
-        self.pages.sync_data()?;
         self.writing = false;
         Ok(())
     }

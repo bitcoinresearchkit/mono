@@ -1,17 +1,15 @@
 use std::{fs::File, path::Path, slice};
 
 use memmap2::{MmapOptions, MmapRaw};
-use parking_lot::Mutex;
 
 use crate::{Error, RegionMetadata, Result, region::metadata::SIZE_OF_REGION_METADATA};
 
 use super::{locked_file::open_locked_file, mmap::write_to_mmap};
 
-/// Owns metadata slots, their mapping, and synchronization to disk.
+/// Owns metadata slots and their mapping.
 pub(crate) struct MetadataFile {
     file: File,
     mmap: MmapRaw,
-    dirty: Mutex<bool>,
 }
 
 impl MetadataFile {
@@ -25,11 +23,7 @@ impl MetadataFile {
                 SIZE_OF_REGION_METADATA
             )));
         }
-        Ok(Self {
-            file,
-            mmap,
-            dirty: Mutex::new(false),
-        })
+        Ok(Self { file, mmap })
     }
 
     /// Exclusive access prevents writes while the initial slots are decoded.
@@ -66,14 +60,13 @@ impl MetadataFile {
         Ok(())
     }
 
-    /// Discard empty trailing slots; the caller then flushes data and metadata.
+    /// Discard empty trailing slots.
     pub(crate) fn truncate(&mut self, slots: usize) -> Result<()> {
         let len = slots * SIZE_OF_REGION_METADATA;
         if self.file.metadata()?.len() > len as u64 {
             let mmap = MmapOptions::new().len(len).map_raw(&self.file)?;
             self.file.set_len(len as u64)?;
             self.mmap = mmap;
-            *self.dirty.get_mut() = true;
         }
         Ok(())
     }
@@ -94,23 +87,9 @@ impl MetadataFile {
 
     fn write_slot(&self, index: usize, bytes: &[u8]) {
         assert!(bytes.len() <= SIZE_OF_REGION_METADATA);
-        let mut dirty = self.dirty.lock();
-        // SAFETY: the mutex serializes writes/flushes; shared access excludes
+        // SAFETY: each slot belongs to one region, and its writers hold that region's access
+        // or the registry write lock, so no two write one slot at once; shared access excludes
         // remapping and decoding. No reference over other slots is formed.
         unsafe { write_to_mmap(&self.mmap, index * SIZE_OF_REGION_METADATA, bytes) };
-        *dirty = true;
-    }
-
-    pub(crate) fn flush(&self) -> Result<bool> {
-        let mut dirty = self.dirty.lock();
-        if !*dirty {
-            return Ok(false);
-        }
-        if self.mmap.len() != 0 {
-            self.mmap.flush_async()?;
-        }
-        self.file.sync_all()?;
-        *dirty = false;
-        Ok(true)
     }
 }

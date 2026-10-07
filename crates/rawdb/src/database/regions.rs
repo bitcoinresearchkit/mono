@@ -144,10 +144,6 @@ impl Regions {
         self.metadata.clear(region.index());
     }
 
-    pub(crate) fn flush(&self) -> Result<bool> {
-        self.metadata.flush()
-    }
-
     pub(crate) fn update_bounds(&self, index: usize, meta: &RegionMetadata) {
         self.metadata.update_bounds(index, meta);
     }

@@ -10,7 +10,7 @@ It features:
 - Zero-copy mmap access
 - Concurrent reads and writes to independent regions
 - Page-aligned allocations (4KB)
-- Explicit synchronization of data and metadata
+- No device syncs: writes live in the OS page cache, which survives soft quits
 - Foundation for higher-level abstractions (e.g., [`vecdb`](../vecdb/README.md))
 
 It is not:
@@ -32,7 +32,7 @@ let region = db.create_region_if_needed("blocks")?;
 region.write_at(b"hello", 0)?;
 let reader = region.create_reader();
 assert_eq!(reader.read(0, 5), b"hello");
-db.flush()?;
+db.flush();
 ```
 
 ## Sparse files
@@ -50,22 +50,14 @@ Each database directory contains a `data` file and a `regions` metadata file.
 Metadata uses fixed 4 KiB slots containing each region's ID, offset, length,
 and capacity. These slots are not guaranteed atomic disk writes.
 
-Writes become visible in process immediately. `Database::flush()` excludes
-mutations while it synchronizes dirty data and the data file's metadata, then
-synchronizes the region metadata. Only after that do old allocations from
-moves and removals become reusable. `Region::flush()` synchronizes its own data when metadata is unchanged. If
-metadata changed, it synchronizes all database data before the shared metadata.
+Writes go straight to shared file mappings: they are visible in process immediately and to the next process
+that opens the database, across soft quits and process crashes, because the OS page cache holds them until it
+writes them back. rawdb never syncs to the device. `Database::flush()` excludes mutations and makes old
+allocations from moves and removals reusable.
 
-Dirty tracking starts when the database is opened. Reopening alone does not
-request file synchronization; a flush without changes since opening is a no-op.
-It does not establish durability for pending writes left by a previous process.
-
-This is not a transaction or crash-recovery protocol. Both mappings can be
-written back by the OS before an explicit flush, and in-place writes can
-partially persist. A crash during unflushed operations or synchronization can
-leave inconsistent data or torn metadata; a previously flushed state is not
-preserved as a rollback point. There is no WAL or checksum-based repair. File
-synchronization guarantees also depend on the filesystem and storage device.
+This is not a transaction or crash-recovery protocol. Kernel panics, power loss and storage removal are out of
+scope: they can lose any write the OS had not yet written back and leave inconsistent data or torn metadata.
+There is no WAL or checksum-based repair.
 
 On open, rawdb validates metadata sizes, IDs, region bounds, and overlaps before
 rebuilding its lookup and allocation structures. Invalid metadata returns an
@@ -84,8 +76,8 @@ error; valid-looking data corruption cannot be detected by rawdb.
   Allocation changes are serialized. Flush and compaction exclude mutations,
   while ordinary reads can continue.
 - Batch callbacks must not reenter their region or resize/flush the database.
-  They may read other regions while file growth waits. Written bytes remain
-  dirty if a callback panics.
+  They may read other regions while file growth waits. Bytes written before a
+  callback panics stay written.
 - Keep a `Database` alive while using region handles. A `Reader` owns the
   database and region handles needed for its own lifetime. Release metadata and
   read guards before requesting conflicting operations.

@@ -80,7 +80,7 @@ impl Vecs {
         for v in self.metrics.stored_vecs_mut() {
             v.any_stamped_write_maybe_with_changes(stamp, true)?;
         }
-        self.db.flush()?;
+        self.db.flush();
         Ok(())
     }
 }

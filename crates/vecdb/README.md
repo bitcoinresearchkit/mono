@@ -60,8 +60,9 @@ other corruption is an error.
 
 - `push` appends to the in-memory write buffer.
 - `write` publishes buffered changes to the backing regions.
-- `flush` publishes the vector's changes and synchronizes its database.
-- `Database::flush` synchronizes all dirty data and shared metadata.
+- `flush` publishes the vector's changes and flushes its database.
+- `Database::flush` makes space freed by moves and removals reusable (no device syncs: written data lives in the
+  OS page cache, which survives soft quits).
 - `reader` creates a read handle for repeated random access.
 - `collect`, `collect_range`, folds, and iterators provide sequential access.
 - `truncate_if_needed` removes a suffix without changing earlier indexes.

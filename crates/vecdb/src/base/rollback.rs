@@ -95,24 +95,15 @@ where
         let path = self.changes_path();
         if !path.exists() {
             fs::create_dir_all(&path)?;
-            // Persist new directory entries all the way back to the database.
-            let db_path = self.db_path();
-            for ancestor in path.ancestors().take_while(|p| *p != db_path) {
-                File::open(ancestor)?.sync_all()?;
-            }
-            File::open(db_path)?.sync_all()?;
         }
 
         // Never truncate an existing undo record until its replacement is
         // complete. Ignore this non-numeric staging name when listing stamps.
         let pending = path.join("pending");
-        let mut file = File::create(&pending)?;
-        file.write_all(data)?;
-        file.sync_all()?;
+        File::create(&pending)?.write_all(data)?;
         fs::rename(&pending, path.join(u64::from(stamp).to_string()))?;
-        File::open(&path)?.sync_all()?;
 
-        // Prune only after the new undo record is durable.
+        // Prune only after the new undo record is in place.
         let files = self.find_rollback_files()?;
         let older = files.range(..stamp).count();
         let excess = older.saturating_sub(self.saved_stamped_changes as usize - 1);

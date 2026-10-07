@@ -2,22 +2,21 @@ use std::{
     fs::File,
     path::Path,
     ptr,
-    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 use memmap2::MmapRaw;
 use parking_lot::{RwLock, RwLockReadGuard};
 
-use crate::{Error, PAGE_SIZE, Result, dirty_ranges::DirtyRanges};
+use crate::{Error, PAGE_SIZE, Result};
 
 use super::{hole_punch::punch_hole, locked_file::open_locked_file, mmap::write_to_mmap};
 
-/// Owns the data file, its mapping, and file-size durability.
+/// Owns the data file and its mapping.
 pub(crate) struct DataFile {
     file: File,
     mmap: RwLock<MmapRaw>,
     len: AtomicUsize,
-    dirty: AtomicBool,
 }
 
 impl DataFile {
@@ -31,7 +30,6 @@ impl DataFile {
             file,
             mmap: RwLock::new(mmap),
             len: AtomicUsize::new(len),
-            dirty: AtomicBool::new(false),
         })
     }
 
@@ -66,7 +64,6 @@ impl DataFile {
         let target_len =
             Self::aligned_len(len.max(current_len.saturating_mul(2)).max(1024 * 1024))?;
         self.file.set_len(target_len as u64)?;
-        self.dirty.store(true, Ordering::Relaxed);
         *mmap = MmapRaw::map_raw(&self.file)?;
         // A failed remap leaves the old capacity usable; a later growth retries.
         self.len.store(target_len, Ordering::Relaxed);
@@ -105,31 +102,7 @@ impl DataFile {
         };
     }
 
-    /// # Safety
-    /// Hold the database mutation barrier exclusively.
-    pub(crate) unsafe fn flush(&self, ranges: &DirtyRanges) -> Result<()> {
-        if !ranges.is_empty() {
-            // SAFETY: flush holds the exclusive mutation barrier.
-            let mmap = unsafe { self.mapping() };
-            for range in ranges.iter() {
-                mmap.flush_async_range(range.start, range.len())?;
-            }
-        }
-        self.sync(!ranges.is_empty())
-    }
-
-    pub(crate) fn sync(&self, force: bool) -> Result<()> {
-        // Callers hold the exclusive mutation barrier. Leave dirty state intact
-        // on failure; a clean flush needs no atomic read-modify-write.
-        if force || self.dirty.load(Ordering::Relaxed) {
-            self.file.sync_all()?;
-            self.dirty.store(false, Ordering::Relaxed);
-        }
-        Ok(())
-    }
-
     pub(crate) fn punch_hole(&self, start: usize, len: usize) -> Result<()> {
-        self.dirty.store(true, Ordering::Relaxed);
         punch_hole(&self.file, start, len)
     }
 }

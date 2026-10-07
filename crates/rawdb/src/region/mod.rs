@@ -1,4 +1,3 @@
-mod dirty_write;
 mod inner;
 pub(crate) mod metadata;
 mod reader;
@@ -19,7 +18,6 @@ use parking_lot::RwLockReadGuard;
 use crate::{Database, Error, PAGE_SIZE, Result};
 
 use self::{
-    dirty_write::DirtyWrite,
     inner::RegionInner,
     metadata::MAX_RESERVED_SIZE,
     residency::{MMAP_RESIDENCY_MIN_BYTES, is_range_resident},
@@ -189,20 +187,18 @@ impl Region {
                 // readers out, and the barrier prevents flushing or remapping
                 // until the copy and the caller's write have both completed.
                 unsafe { db.inner.data.copy(start, new_start, copy_len) };
-                unsafe { self.0.mark_dirty(0, copy_len) };
             }
             return Ok(writes);
         }
     }
 
-    /// Appends data to the region. Not durable until `flush()`.
+    /// Appends data to the region.
     #[cfg(test)]
     pub(crate) fn write(&self, data: &[u8]) -> Result<()> {
         self.write_with(data, None, false)
     }
 
     /// Writes at or before the current end, extending the length if needed.
-    /// Not durable until `flush()`.
     #[inline]
     pub fn write_at(&self, data: &[u8], at: usize) -> Result<()> {
         self.write_with(data, Some(at), false)
@@ -210,7 +206,7 @@ impl Region {
 
     /// Writes fixed-size values at `at + index * value_len` within the current
     /// region length, in ascending key order. All bounds are checked before writing.
-    /// Written bytes remain dirty if a callback or value destructor panics.
+    /// Bytes written before a callback or value destructor panics stay written.
     /// Callbacks and destructors may read other regions, but must not read this
     /// region or write, resize, or flush this database.
     #[inline]
@@ -221,14 +217,9 @@ impl Region {
         at: usize,
         mut write_fn: impl FnMut(&T, &mut [u8]),
     ) {
-        let Some((&first, _)) = values.first_key_value() else {
+        let Some((&last, _)) = values.last_key_value() else {
             return;
         };
-        let last = *values.last_key_value().unwrap().0;
-        let start = first
-            .checked_mul(value_len)
-            .and_then(|n| at.checked_add(n))
-            .expect("batch offset overflow");
         let end = last
             .checked_mul(value_len)
             .and_then(|n| at.checked_add(n))
@@ -241,16 +232,11 @@ impl Region {
         // SAFETY: access keeps bounds stable; the barrier prevents remapping.
         let (region_start, region_len, _) = unsafe { self.0.bounds() };
         assert!(end <= region_len, "batch bounds exceed region");
-        let _dirty = DirtyWrite {
-            region: &self.0,
-            start,
-            end,
-        };
         // SAFETY: at <= end <= region_len; access excludes readers and other
         // writers, and the barrier keeps the validated mapping in place.
         let ptr = unsafe { storage.data.mapping().as_mut_ptr().add(region_start + at) };
         for (index, value) in values {
-            // SAFETY: this owned map has immutable usize keys in [first, last].
+            // SAFETY: this owned map has immutable usize keys in [0, last].
             // The checked maximum proves every record fits without overflow.
             // Each exclusive borrow ends before the next callback.
             let bytes = unsafe { slice::from_raw_parts_mut(ptr.add(index * value_len), value_len) };
@@ -339,8 +325,6 @@ impl Region {
         };
         // SAFETY: access excludes readers and overlapping writes to this region.
         unsafe { db.inner.data.write(start + offset, data) };
-        // SAFETY: region access and the mutation barrier remain held.
-        unsafe { self.0.mark_dirty(offset, data.len()) };
         if new_len != len {
             let regions = db.regions();
             let mut meta = self.0.meta.write();

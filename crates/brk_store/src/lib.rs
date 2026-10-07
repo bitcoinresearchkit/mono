@@ -136,7 +136,7 @@ where
 
     /// Takes buffered puts/dels and returns a closure that ingests them into the keyspace.
     /// The store is left with empty buffers, ready for the next batch. The caller must
-    /// persist the database after ingestion before treating the data as durable.
+    /// persist the database after ingestion before treating the data as persisted.
     pub fn take_pending_ingest(&mut self) -> Option<PendingIngest>
     where
         K: Send + 'static,

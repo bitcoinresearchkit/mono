@@ -83,7 +83,7 @@ impl Vecs {
             &indexer.vecs().blocks.blockhash,
             exit,
         )?;
-        self.db.flush()?;
+        self.db.flush();
         Ok(())
     }
 }

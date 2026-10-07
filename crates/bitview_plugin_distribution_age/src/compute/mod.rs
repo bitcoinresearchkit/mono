@@ -156,7 +156,7 @@ impl Vecs {
         self.outputs_mut()
             .into_par_iter()
             .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, final_chunk))?;
-        self.db.flush()?;
+        self.db.flush();
         Ok(())
     }
 }

@@ -10,7 +10,7 @@ use inner::Inner;
 use crate::{
     DatabaseBuilder, Error, Keyspace, KeyspaceCreateOptions, Result,
     db_config::Config,
-    file::{DATABASE_FORMAT, KEYSPACES_FOLDER, LOCK_FILE, VERSION_MARKER, fsync_directory},
+    file::{DATABASE_FORMAT, KEYSPACES_FOLDER, LOCK_FILE, VERSION_MARKER},
     locked_file::LockedFileGuard,
     worker_pool::WorkerPool,
 };
@@ -44,11 +44,7 @@ impl Database {
             let keyspaces_path = config.path.join(KEYSPACES_FOLDER);
             fs::create_dir_all(&keyspaces_path)?;
 
-            let mut marker = File::create_new(&marker_path)?;
-            marker.write_all(DATABASE_FORMAT)?;
-            marker.sync_all()?;
-            fsync_directory(&keyspaces_path)?;
-            fsync_directory(&config.path)?;
+            File::create_new(&marker_path)?.write_all(DATABASE_FORMAT)?;
         }
 
         let worker_pool = WorkerPool::start()?;

@@ -163,7 +163,7 @@ impl Vecs {
         for vec in self.state_vecs_mut() {
             vec.any_stamped_write_maybe_with_changes(stamp, true)?;
         }
-        self.db.flush()?;
+        self.db.flush();
         Ok(())
     }
 }

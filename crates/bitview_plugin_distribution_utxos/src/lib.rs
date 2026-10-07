@@ -47,7 +47,7 @@ where
 
 impl Vecs {
     fn flush(&self) -> Result<()> {
-        self.db.flush()?;
+        self.db.flush();
         Ok(())
     }
 }

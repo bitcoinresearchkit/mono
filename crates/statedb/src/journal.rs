@@ -279,7 +279,6 @@ impl Journal {
         }
         let result = (|| {
             self.data.flush()?;
-            self.data.get_ref().sync_data()?;
             let mut bytes = Vec::with_capacity((self.index.len() - self.committed) * INDEX_BYTES);
             for &end in &self.index[self.committed..] {
                 bytes.extend_from_slice(&end.to_le_bytes());
@@ -287,7 +286,6 @@ impl Journal {
             self.index_file
                 .seek(SeekFrom::Start((self.committed * INDEX_BYTES) as u64))?;
             self.index_file.write_all(&bytes)?;
-            self.index_file.sync_data()?;
             self.publish(self.index.len())?;
             self.committed = self.index.len();
             Ok(())
