@@ -769,17 +769,18 @@
         }
       }
 
+      /* A pane's head: its name, how it draws (its scale, stack, order), its eye, and the rest in its menu. */
       .pane-head {
         display: flex;
         align-items: center;
         gap: 4px;
         height: 26px;
-        margin-bottom: 4px;
         padding: 0 2px 0 9px;
         color: var(--muted);
         font-size: 11.5px;
         font-weight: 510;
         white-space: nowrap;
+        margin-bottom: 4px;
       }
 
       .layer-row {
@@ -795,7 +796,7 @@
           background: var(--hover);
         }
 
-        &.selected {
+        &:is(.selected, .picked) {
           background: var(--press);
 
           &::before {
@@ -868,7 +869,7 @@
         }
       }
 
-      .layer-row.selected .row-text .name {
+      .layer-row:is(.selected, .picked) .row-text .name {
         color: var(--ink);
       }
 
@@ -4437,11 +4438,9 @@
         }
       }
 
-      /* Picking: a tick at the corner, shown on hover, on focus, and on every tile once one is picked. */
-      .tile-check {
+      /* Picking: a tick (a card's at its corner, a layer's in its letter's place), shown on hover, on focus, and on every one once one is picked. */
+      .pick-check {
         position: absolute;
-        top: 13px;
-        right: 13px;
         width: 16px;
         height: 16px;
         margin: 0;
@@ -4468,8 +4467,42 @@
         }
       }
 
+      .tile-check {
+        top: 13px;
+        right: 13px;
+      }
+
       .tile:is(:hover, :has(:focus-visible)) .tile-check,
       .home.picking .tile-check {
+        opacity: 1;
+      }
+
+      /* In the letter's place, as large as it, in its colors (over it while it shows); picked, filled with them. */
+      .row-check {
+        z-index: 1;
+        top: 50%;
+        left: 9px;
+        width: 22px;
+        height: 22px;
+        border: 0;
+        border-radius: var(--radius-sm);
+        background: color-mix(in srgb, var(--c) 13%, var(--card));
+        box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 55%, transparent);
+        translate: 0 -50%;
+
+        &:hover {
+          box-shadow: inset 0 0 0 1.5px var(--c);
+        }
+
+        &:checked {
+          background: var(--c) var(--tick) center / 16px no-repeat;
+          box-shadow: none;
+        }
+      }
+
+      .layer-row:hover .row-check,
+      .row-check:focus-visible,
+      .layer-list.picking .row-check {
         opacity: 1;
       }
 
@@ -4493,11 +4526,8 @@
         visibility: hidden;
       }
 
-      /* What's picked, and what to do with it: over the grid's foot. */
-      .home-bar {
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
+      /* What's picked, and what to do with it: over the foot of where it's picked (the grid's, the layers'). */
+      .pick-bar {
         z-index: 2;
         display: flex;
         align-items: center;
@@ -4507,7 +4537,6 @@
         padding: 5px;
         background: var(--raise);
         box-shadow: var(--pop);
-        translate: -50% 0;
         animation: rise var(--dur-small) var(--ease);
 
         &[hidden],
@@ -4515,7 +4544,7 @@
           display: none;
         }
 
-        [data-batch="delete"]:is(:hover, .armed) {
+        :is([data-batch="delete"]:is(:hover, .armed), [data-layers-batch="remove"]:hover) {
           color: var(--danger);
 
           svg {
@@ -4528,7 +4557,23 @@
         }
       }
 
-      .home-picked {
+      .home-bar {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        translate: -50% 0;
+      }
+
+      /* Under the layers, kept in sight as the list scrolls. */
+      .layers-bar {
+        position: sticky;
+        bottom: 12px;
+        flex-shrink: 0;
+        align-self: center;
+        margin: auto 0 12px;
+      }
+
+      .pick-count {
         padding: 0 10px 0 9px;
         color: var(--ink);
         font-weight: 510;
@@ -4877,7 +4922,7 @@
           min-height: 44px;
         }
 
-        .tile-check {
+        .pick-check {
           width: 22px;
           height: 22px;
         }
@@ -4896,10 +4941,14 @@
           opacity: 1;
         }
 
-        /* Long-pressed for picking, not for the system's menu; the ticks show only once some are picked. */
-        .tile {
+        /* Long-pressed for picking, not for the system's menu; the ticks show (and take a tap) only once some are picked. */
+        :is(.tile, .layer-row) {
           -webkit-touch-callout: none;
           user-select: none;
+        }
+
+        .layer-list:not(.picking) .row-check {
+          pointer-events: none;
         }
       }
 
@@ -5022,6 +5071,15 @@
                 <button class="cap small sheet-close" type="button" data-action="close-sheet" aria-label="Close" data-icon="close"></button>
               </div>
               <div id="layer-list" class="layer-list"></div>
+              <div id="layers-bar" class="pick-bar layers-bar" role="group" aria-label="Selected layers" hidden>
+                <span id="layers-picked" class="pick-count" aria-live="polite"></span>
+                <button class="cap" type="button" data-layers-batch="hide" data-kbd="H"></button>
+                <button class="cap" type="button" data-layers-batch="duplicate" aria-label="Duplicate" data-tip="Duplicate" data-kbd="⌘ D" data-icon="duplicate"></button>
+                <button class="cap" type="button" data-layers-batch="move" aria-haspopup="menu" aria-label="Move to a pane" data-tip="Move to a pane" data-icon="pane"></button>
+                <button class="cap" type="button" data-layers-batch="remove" aria-label="Remove" data-tip="Remove" data-kbd="⌫" data-icon="trash"></button>
+                <span class="divider"></span>
+                <button class="cap small" type="button" data-layers-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button>
+              </div>
             </section>
             <section id="inspector" class="panel-view inspector" aria-label="Layer settings"></section>
           </aside>
@@ -5041,8 +5099,8 @@
               <p id="home-none" class="home-none" hidden></p>
             </div>
           </div>
-          <div id="home-bar" class="home-bar" role="group" aria-label="Selected charts" hidden>
-            <span id="home-picked" class="home-picked" aria-live="polite"></span>
+          <div id="home-bar" class="pick-bar home-bar" role="group" aria-label="Selected charts" hidden>
+            <span id="home-picked" class="pick-count" aria-live="polite"></span>
             <button class="btn ghost" type="button" data-batch="rename" aria-label="Rename"><span data-icon="pencil"></span><span class="label">Rename</span></button>
             <button class="btn ghost" type="button" data-batch="duplicate" aria-label="Duplicate"><span data-icon="duplicate"></span><span class="label">Duplicate</span></button>
             <button class="btn ghost" type="button" data-batch="export" aria-label="Download" data-tip="One chart file, to import again"><span data-icon="file"></span><span class="label">Download</span></button>
@@ -5132,9 +5190,14 @@
             <div><dt>Add a series</dt><dd><kbd>A</kbd></dd></div>
             <div><dt>Add a formula</dt><dd><kbd>F</kbd></dd></div>
             <div><dt>Select the previous or next layer</dt><dd><kbd>↑</kbd><kbd>↓</kbd></dd></div>
-            <div><dt>Hide or show the selected layer</dt><dd><kbd>H</kbd></dd></div>
-            <div><dt>Duplicate the selected layer</dt><dd><kbd>⌘D</kbd></dd></div>
-            <div><dt>Remove the selected layer</dt><dd><kbd>⌫</kbd></dd></div>
+            <div><dt>Select several: one more, or a run</dt><dd><kbd>⌘</kbd> or <kbd>⇧</kbd> and click</dd></div>
+            <div><dt>Select the next or previous too</dt><dd><kbd>⇧↓</kbd><kbd>⇧↑</kbd></dd></div>
+            <div><dt>Select the layer in focus</dt><dd><kbd>space</kbd> or <kbd>X</kbd></dd></div>
+            <div><dt>Select every layer, from the list</dt><dd><kbd>⌘A</kbd></dd></div>
+            <div><dt>Hide or show the selected layers</dt><dd><kbd>H</kbd></dd></div>
+            <div><dt>Show one layer alone in its pane</dt><dd><kbd>⌥</kbd> and click its eye</dd></div>
+            <div><dt>Duplicate the selected layers</dt><dd><kbd>⌘D</kbd></dd></div>
+            <div><dt>Remove the selected layers</dt><dd><kbd>⌫</kbd></dd></div>
           </dl>
           <h3>View</h3>
           <dl>
@@ -5483,14 +5546,6 @@
       const dashOf = (/** @type {number | undefined} */ style) => DASHES.find(([dash]) => dash === style) ?? DASHES[0];
       /** A pane's stack: none, its layers one on another, or as shares of their sum. @type {[("" | "stack" | "percent"), string, string][]} */
       const STACKS = [["", "Off", "Each layer at its own value"], ["stack", "Stacked", "Each layer on the ones before it, drawn as it is"], ["percent", "100% stacked", "Each layer's running total as a share of them all"]];
-      /** A stack's sums by letters, as far as three ("A, A+B, A+B+C"; `reverse`, from the last). @param {string[]} letters */
-      const stackRun = (letters, reverse = false) => {
-        const run = letters.length < 2 ? ["A", "B", "C"] : [...letters];
-        if (reverse) run.reverse();
-        return run.slice(0, 3).map((_, i, all) => all.slice(0, i + 1).join("+")).join(", ") + (letters.length > 3 ? ", …" : "");
-      };
-      /** A stacked pane's layers' letters, in the panel's order (shown ones). @param {Pane} pane */
-      const stackLetters = (pane) => chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden).map((layer) => layer.letter);
       /** A pane's scales, by mode: its short name (the pane's chip, the inspector's tab), the menu's name, and the tab's tip. */
       const MODES = [
         { chip: "Linear", name: "Linear", tip: "Linear" },
@@ -6187,7 +6242,8 @@
        *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number } }} Layer
        * @typedef {{ value: number, color?: string, dash?: number }} Level A line across at a value: its color (else its
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, in sparse dots).
-       * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`: the panel's last at a stack's foot
+       * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`:
+       *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
        * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], updated: number }} Chart
        * @typedef {"trend" | "hline" | "vline" | "rect" | "ellipse" | "text" | "brush" | "ruler"} DrawingKind
        * @typedef {{ id: string, kind: DrawingKind, layer: string, points: [number, number][], color: string, width: number, dash: number,
@@ -6291,6 +6347,8 @@
 
       /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
       function normalize(doc) {
+        // (A pane's order with fewer than two layers is none: nothing then says it, nothing could turn it back.)
+        for (const pane of doc.panes) if (pane.reverse && doc.layers.filter((layer) => layer.pane === pane.id).length < 2) delete pane.reverse;
         // A series follows its path: renamed in a newer client, it takes the new name; its path is learned (or
         // relearned) from the catalog once that is indexed.
         for (const layer of doc.layers) {
@@ -6453,7 +6511,15 @@
       }
       /** @type {Chart} */
       let chart = chartById(library.active) ?? library.charts[0];
+      /** The layer open in the panel (its settings). */
       let selected = "";
+      /**
+       * The layers picked, as charts are in the grid: by ⌘- or ⇧-click (in the list or a legend), space or X on a row, ⇧↑↓,
+       * ⌘A in the list, a long press by touch; while some are, a click picks too. The last one picked is where a run
+       * starts (`pickHead`: where ⇧↑↓ has taken it).
+       */
+      const layerPicks = new Set();
+      let layerPickLast = "", pickHead = "";
       const edits = { past: /** @type {string[]} */ ([]), future: /** @type {string[]} */ ([]), key: "", at: 0 };
       /** Bumped by every change of state: edits, undo, redo, opening a chart. */
       let revision = 0;
@@ -6593,6 +6659,9 @@
         if (!keepMenu) hideMenu();
         if (!layerById(selected)) selected = "";
         chosen = new Set([...chosen].filter((id) => drawingById(id)));
+        for (const id of layerPicks) if (!layerById(id)) layerPicks.delete(id);
+        if (!layerById(layerPickLast)) layerPickLast = [...layerPicks][0] ?? "";
+        if (!layerById(pickHead)) pickHead = layerPickLast;
         save(announce);
         refresh(redraw);
       }
@@ -6694,6 +6763,7 @@
         rememberViewed(doc.id);
         selected = "";
         chosen = new Set();
+        layerPicks.clear();
         drawingsHidden = false;
         edits.past = [];
         edits.future = [];
@@ -7389,6 +7459,8 @@
             panes: { separatorColor: css("--line-strong"), separatorHoverColor: css("--press"), enableResize: true },
           },
           grid: { vertLines: { visible: false }, horzLines: { color: css("--chart-grid") } },
+          // (The pane's order, as chosen, holds under the pointer too: its drawings are found as they're drawn.)
+          hoveredSeriesOnTop: false,
           crosshair: { mode: LC.CrosshairMode.Normal, vertLine: crosshair, horzLine: { ...crosshair, color: css("--crosshair-faint"), style: LC.LineStyle.LargeDashed } },
           rightPriceScale: scale,
           leftPriceScale: { ...scale },
@@ -7719,13 +7791,13 @@
           carrierOf.get(key).createPriceLine({ price: first.value, color: shared ? ink("gray") : first.color, lineWidth: 1, lineStyle: /** @type {any} */ (first.dash), lineVisible: shown, axisLabelVisible: shown, title: "" });
         }
         for (const series of old) view.removeSeries(series);
-        // A series made anew goes over the others: each pane back in the layers' order, over its lines across; in a stack,
-        // from its top (the tallest, at the back) down to its foot (in front), so each band and bar shows whole.
+        // Each pane's series front to back as the panel lists them (its first layer in front; reversed, its last), over its
+        // lines across (in a stack, its foot in front of the taller ones: each band and bar shows whole). Drawn back first.
         if (added) {
           const next = new Map([...carrierOf.keys()].map((key) => [Number(key.split("|")[0]), 0]));
           for (const key of carrierOf.keys()) next.set(Number(key.split("|")[0]), (next.get(Number(key.split("|")[0])) ?? 0) + 1);
-          const topFirst = new Set(doc.panes.filter((pane) => pane.stack && !pane.reverse).map((pane) => pane.id));
-          for (const layer of [...doc.layers.filter((item) => !topFirst.has(item.pane)), ...doc.layers.filter((item) => topFirst.has(item.pane)).reverse()]) {
+          const reversed = new Set(doc.panes.filter((pane) => pane.reverse).map((pane) => pane.id));
+          for (const layer of [...[...doc.layers].reverse().filter((item) => !reversed.has(item.pane)), ...doc.layers.filter((item) => reversed.has(item.pane))]) {
             const pane = paneIndex.get(layer.pane) ?? 0;
             for (const series of [drawn.get(layer.id), closes.get(layer.id)?.series]) {
               if (!series) continue;
@@ -7978,7 +8050,7 @@
             const value = result?.error ? `<span class="legend-error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>`
               : layer.hidden || !result?.shown ? '<span class="legend-value"></span>'
               : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
-            return `<button type="button" class="${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""}" data-select="${layer.id}">
+            return `<button type="button" class="${layer.hidden ? "hidden" : ""} ${layer.id === selected || layerPicks.has(layer.id) ? "selected" : ""}" data-select="${layer.id}">
               <span class="legend-name">${seriesMark(layer)}<span class="name">${escape(labelOf(layer))}</span></span>${value}
             </button>`;
           }).join("");
@@ -9070,6 +9142,8 @@
       /** A label on an axis, in a drawing's color. */
       /** Words on a color: dark on a light one, white on a dark one. */
       const contrastOn = (/** @type {string} */ color) => (oklchOf(color)[0] > 0.7 ? "#08090a" : "#ffffff");
+      /** A tick on a color, in contrast, as a background image. */
+      const tickOn = (/** @type {string} */ color) => `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 8.2 2.6 2.6L12 5.4' fill='none' stroke='${encodeURIComponent(contrastOn(color))}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`;
       function axisTag(coordinate, text, color) {
         const back = ink(color), fore = contrastOn(color);
         return { coordinate: () => coordinate, text: () => text, textColor: () => fore, backColor: () => back, visible: () => Number.isFinite(coordinate) };
@@ -9266,6 +9340,7 @@
         if (next.size && selectingArea) setSelectingArea(false);
         if (next.size === chosen.size && [...next].every((id) => chosen.has(id))) return;
         chosen = next;
+        if (next.size && layerPicks.size) clearLayerPicks();
         if (next.size && selected) deselect();
         renderBelt();
         repaintDrawings();
@@ -9616,10 +9691,10 @@
         const at = plotPoint(clientX, clientY, pane.rect);
         // Over an axis, the axis'.
         if (at.x < 0 || at.x > view.timeScale().width()) return null;
-        // (On top as painted: as the pane's series are, a later layer's over an earlier's (a stack, from its top); then the
+        // (On top as painted: as the pane's series are, its first layer's over the others (reversed, its last's); then the
         // later added; a point of one (a corner, an end; not a side) over any body.)
-        const paneOf = chart.panes[pane.index], inPane = chart.layers.filter((layer) => layer.pane === id);
-        const order = new Map((paneOf.stack && !paneOf.reverse ? inPane.reverse() : inPane).map((layer, i) => [layer.id, i])), score = (hit) => (hit.handle >= 0 && hit.handle < 4 ? MAX_DRAWINGS * (chart.layers.length + 1) : 0) + (order.get(hit.drawing.layer) ?? 0) * MAX_DRAWINGS + shownDrawings.indexOf(hit.drawing);
+        const inPane = chart.layers.filter((layer) => layer.pane === id);
+        const order = new Map((chart.panes[pane.index].reverse ? inPane : inPane.reverse()).map((layer, i) => [layer.id, i])), score = (hit) => (hit.handle >= 0 && hit.handle < 4 ? MAX_DRAWINGS * (chart.layers.length + 1) : 0) + (order.get(hit.drawing.layer) ?? 0) * MAX_DRAWINGS + shownDrawings.indexOf(hit.drawing);
         let found = null;
         for (const layer of chart.layers) {
           const hit = layer.pane === id ? sketches.get(drawn.get(layer.id))?.hit(at.x, at.y, reach) : null;
@@ -9696,7 +9771,8 @@
       // Capture phase, before the chart: a press that draws, or takes a drawing, doesn't pan.
       $("chart").addEventListener("pointerdown", (event) => {
         if (writing) $("draw-text").blur();
-        if (event.button !== 0 || !resolved?.times.length) return;
+        // (A legend takes its own presses: a click on a name, ⌘ or ⇧ too, is the layer's, not a drawing's.)
+        if (event.button !== 0 || !resolved?.times.length || closest(event, ".legend")) return;
         const pane = paneAt(event.clientY);
         if (!pane) return;
         const at = plotPoint(event.clientX, event.clientY, pane.rect);
@@ -9783,7 +9859,7 @@
           ${LINES.has(drawing.kind) && !several ? `<button type="button" data-pick="label">${ICONS.label}${drawing.label ? "Edit the label" : "Add a label"}</button>` : ""}
           <button type="button" data-pick="duplicate">${ICONS.duplicate}${several ? `Duplicate the ${ids.length}` : "Duplicate"}<kbd>${keyText("⌘D")}</kbd></button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="remove" class="danger">${ICONS.trash}${several ? `Remove the ${ids.length}` : "Remove"}<kbd>⌫</kbd></button>`, ({ pick }) => {
+          <button type="button" data-pick="remove" class="danger">${ICONS.trash}${several ? `Remove the ${ids.length}` : "Remove"}<kbd>${keyText("⌫")}</kbd></button>`, ({ pick }) => {
           const now = drawingById(drawing.id);
           if (!now) return;
           if (pick === "text") startTyping(now);
@@ -10488,7 +10564,7 @@
           // The pane's marks in the order the chart draws its series, whichever side each is on (a stack from its top, at
           // the back, to its foot); their lines across behind them all.
           const from = drawn.marks.length, ranks = new Map(), inPaneOrder = doc.layers.filter((layer) => layer.pane === pane.id);
-          const zOf = new Map((pane.stack && !pane.reverse ? [...inPaneOrder].reverse() : inPaneOrder).map((layer, z) => [layer.id, z]));
+          const zOf = new Map((pane.reverse ? inPaneOrder : [...inPaneOrder].reverse()).map((layer, z) => [layer.id, z]));
           // Each side of a pane has its own scale, as on the chart.
           for (const side of ["left", "right"]) {
             const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && data.results.get(layer.id)?.shown).map((layer) => {
@@ -10685,7 +10761,7 @@
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
         return `<div class="tile ${on ? "picked" : ""}" data-home-card="${doc.id}" draggable="${!TOUCH}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span><span class="tile-index">${INTERVAL_LABEL[doc.index]}</span></span><span class="tile-legend">${legend || "No layers yet"}</span>${plotHtml(doc)}</button>
-            <input type="checkbox" class="tile-check" aria-label="Select ${title}" ${on ? "checked" : ""} />
+            <input type="checkbox" class="pick-check tile-check" aria-label="Select ${title}" ${on ? "checked" : ""} />
           </div>`;
       }
       /** A chart's words for the grid's filter: its title, its layers' names, series and formulas. @param {Chart} doc */
@@ -10754,8 +10830,12 @@
         hideMenu();
         const ids = filtered().map((doc) => doc.id), from = ids.indexOf(pickedLast), to = ids.indexOf(id);
         if (range && picked.size && from >= 0 && to >= 0) for (const other of ids.slice(Math.min(from, to), Math.max(from, to) + 1)) picked.add(other);
-        else if (picked.has(id)) picked.delete(id);
-        else picked.add(id);
+        else if (picked.has(id)) {
+          // (One taken off isn't where a run starts: the last one picked that's still there is.)
+          picked.delete(id);
+          if (!picked.has(pickedLast)) pickedLast = [...picked].at(-1) ?? "";
+          return renderPicked();
+        } else picked.add(id);
         pickedLast = id;
         renderPicked();
       }
@@ -10771,8 +10851,9 @@
        * under its original, the copies then picked), export (one file), delete (asking twice, one Undo for all).
        * @param {string} action @param {HTMLElement | null} [button] the bar's button, which asks the second time
        */
-      function batch(action, button = null) {
-        const docs = library.charts.filter((doc) => picked.has(doc.id));
+      function batch(action, button = null, /** @type {string[] | null} */ ids = null) {
+        // (`ids`: a chart's own menu, on one not picked: the picks stay as they are.)
+        const docs = library.charts.filter((doc) => (ids ? ids.includes(doc.id) : picked.has(doc.id)));
         if (action === "clear" || !docs.length) return clearPicks(action === "clear");
         if (action === "rename") return void (docs.length === 1 && renameTile(docs[0]));
         if (action === "export") {
@@ -10781,18 +10862,22 @@
           return toast(docs.length === 1 ? `Downloaded ${titleOf(docs[0])}` : `Downloaded ${docs.length} charts, in one file`);
         }
         if (action === "duplicate") {
-          picked.clear();
-          for (const doc of docs) picked.add(duplicateChart(doc).id);
+          // (The picks' copies picked; one not picked, its copy alone, the picks as they are.)
+          const copies = docs.map((doc) => duplicateChart(doc).id);
+          if (!ids) {
+            picked.clear();
+            for (const id of copies) picked.add(id);
+          }
           save();
           renderCharts();
-          tileOpen([...picked][0])?.focus();
+          tileOpen(copies[0])?.focus();
           return;
         }
         if (action === "delete") {
           if (button && !confirmed(button)) return;
           // The focus then goes to the tile that takes the first one's place (or the filter, if none is left).
-          const at = filtered().findIndex((doc) => picked.has(doc.id));
-          clearPicks();
+          const at = filtered().findIndex((doc) => docs.includes(doc));
+          if (!ids) clearPicks();
           deleteCharts(docs);
           (all$(".tile-open", $("home-grid"))[at] ?? all$(".tile-open", $("home-grid")).at(-1) ?? $("home-filter")).focus();
         }
@@ -10856,19 +10941,16 @@
         });
         input.addEventListener("blur", () => finish(true, false));
       }
-      /** A tile's right-click: it's picked (alone, unless it already was), and the bar's actions show at the pointer. */
+      /** A tile's right-click: the bar's actions at the pointer, on the picks if it's one of them, else on it alone. */
       function tileMenu(id, point) {
-        if (!picked.has(id)) {
-          picked.clear();
-          pickChart(id);
-        }
-        const n = picked.size;
+        // (On a picked tile, it acts on every one picked; on another, on it alone: the picks stay as they are.)
+        const ids = picked.has(id) ? null : [id], n = ids ? 1 : picked.size;
         showMenu(/** @type {HTMLElement} */ (tileOpen(id)), `
           ${n === 1 ? `<button type="button" data-pick="open">${ICONS.charts}Open</button><button type="button" data-pick="rename">${ICONS.pencil}Rename</button>` : ""}
           <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate</button>
           <button type="button" data-pick="export">${ICONS.file}Download chart file</button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "open" ? go(chartById(id)) : batch(action)), point);
+          <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "open" ? go(chartById(id)) : batch(action, null, ids)), point);
       }
       $("home-bar").addEventListener("click", (event) => {
         const button = closest(event, "[data-batch]");
@@ -11056,30 +11138,39 @@
         sheet.addEventListener("pointerup", letGo);
         sheet.addEventListener("pointercancel", letGo);
       }
-      // A long press on a tile (by touch) picks it, as a phone's photos do; then a tap picks more, or lets one go.
-      {
+      /**
+       * A long press (by touch) on an item picks it, as a phone's photos do; then a tap picks more, or lets one go: a
+       * tile in the grid, a layer's row. `itemOf`: the id pressed, or none.
+       * @param {HTMLElement} container @param {(event: PointerEvent) => string | undefined} itemOf @param {(id: string) => void} pick
+       */
+      function pickOnLongPress(container, itemOf, pick) {
         let press = /** @type {{ timer: number, x: number, y: number, done: boolean } | null} */ (null);
-        $("home-grid").addEventListener("pointerdown", (event) => {
-          const tile = closest(event, "[data-home-card]");
-          if (event.pointerType !== "touch" || !tile || closest(event, ".tile-check, .tile-rename")) return;
+        container.addEventListener("pointerdown", (event) => {
+          if (press) (clearTimeout(press.timer), (press = null));
+          const id = event.pointerType === "touch" ? itemOf(event) : undefined;
+          if (!id) return;
           press = { x: event.clientX, y: event.clientY, done: false, timer: window.setTimeout(() => {
             if (!press) return;
             press.done = true;
             navigator.vibrate?.(8);
-            if (!picked.has(/** @type {string} */ (tile.dataset.homeCard))) pickChart(/** @type {string} */ (tile.dataset.homeCard));
+            pick(id);
           }, 450) };
         });
-        $("home-grid").addEventListener("pointermove", (event) => {
+        container.addEventListener("pointermove", (event) => {
           if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) (clearTimeout(press.timer), (press = null));
         });
-        for (const type of ["pointerup", "pointercancel"]) $("home-grid").addEventListener(type, () => press && !press.done && (clearTimeout(press.timer), (press = null)));
-        // A long press's end makes no click (it would open the tile, or land on the bar rising under the finger).
-        $("home-grid").addEventListener("touchend", (event) => {
+        container.addEventListener("pointerup", () => press && !press.done && (clearTimeout(press.timer), (press = null)));
+        // (Taken by the system, a scroll or a drag: its end makes no click to hold back.)
+        for (const type of ["pointercancel", "touchcancel"]) container.addEventListener(type, () => press && (clearTimeout(press.timer), (press = null)));
+        // A long press's end makes no click (it would open what was pressed, or land on the bar rising under the finger).
+        container.addEventListener("touchend", (event) => {
           if (!press?.done) return;
           press = null;
           event.preventDefault();
         }, { passive: false });
       }
+      pickOnLongPress($("home-grid"), (event) => (closest(event, ".tile-check, .tile-rename") ? undefined : closest(event, "[data-home-card]")?.dataset.homeCard), (id) => !picked.has(id) && pickChart(id));
+      pickOnLongPress($("layer-list"), (event) => (closest(event, "[data-toggle], [data-pick-layer]") ? undefined : closest(event, ".layer-row[data-layer]")?.dataset.layer), (id) => !layerPicks.has(id) && pickLayer(id));
       // In the grid, the arrows walk the cards as they're laid out.
       $("home-grid").addEventListener("keydown", (event) => {
         if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
@@ -11224,7 +11315,7 @@
           <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate</button>
           <button type="button" data-pick="download">${ICONS.file}Download chart file</button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete</button>`, ({ pick }) => {
+          <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete</button>`, ({ pick }) => {
           // Back to the ⋯ it was opened from (in the grid, a copy is focused instead).
           const scope = anchor.closest("#home-grid") ? "#home-grid" : "#chart-list";
           if (pick === "download" || (pick === "duplicate" && !home)) refocus(`${scope} [data-chart-menu="${id}"]`);
@@ -11722,7 +11813,7 @@
       /** A menu item's mark: a check on the current one, the same room on the others. */
       const tick = (/** @type {boolean} */ on) => (on ? ICONS.check : '<i class="menu-space"></i>');
       /** A pane's chip: its scale, and its stack (a 100% one's scale is its own). @param {Pane} pane */
-      const paneChip = (pane) => `${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].chip}${pane.stack ? " · Stacked" : ""}`}${pane.stack && pane.reverse ? ", reversed" : ""}`;
+      const paneChip = (pane) => `${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].chip}${pane.stack ? " · Stacked" : ""}`}${pane.reverse ? " · Rev" : ""}`;
       /** An edit to one pane, by its id: its scale (a mode), its stack ("" for none). @param {string} id @param {(pane: Pane) => void} edit */
       const editPane = (id, edit) => commit((doc) => {
         const pane = doc.panes.find((item) => item.id === id);
@@ -11730,8 +11821,10 @@
       });
       const setPaneMode = (id, mode) => editPane(id, (pane) => (pane.mode = mode));
       // (Off, a stack's order goes with it.)
-      const setPaneStack = (id, stack) => editPane(id, (pane) => (stack ? (pane.stack = stack) : (delete pane.stack, delete pane.reverse)));
-      const setPaneReverse = (id, reverse) => editPane(id, (pane) => (reverse && pane.stack ? (pane.reverse = true) : delete pane.reverse));
+      const setPaneStack = (id, stack) => editPane(id, (pane) => (stack ? (pane.stack = stack) : delete pane.stack));
+      const setPaneReverse = (id, reverse) => editPane(id, (pane) => (reverse ? (pane.reverse = true) : delete pane.reverse));
+      /** A pane's two orders, named as it draws them: [reverse, its name, its short name]. @param {Pane} pane */
+      const ordersOf = (pane) => /** @type {[boolean, string, string][]} */ ([[false, pane.stack ? "First at the foot" : "First in front", "First"], [true, pane.stack ? "Last at the foot" : "Last in front", "Last"]]);
       const toggleLog = (id) => {
         const pane = chart.panes.find((item) => item.id === id);
         if (pane && pane.stack !== "percent") setPaneMode(id, paneMode(pane) === 1 ? 0 : 1);
@@ -11740,7 +11833,7 @@
       function scaleMenu(anchor, id) {
         const pane = chart.panes.find((item) => item.id === id);
         if (!pane) return;
-        showMenu(anchor, `<div class="menu-group">Scale</div>${MODES.map(({ name }, mode) => `<button type="button" data-mode="${mode}" aria-checked="${paneMode(pane) === mode}" ${modesFor(pane).includes(mode) ? "" : "disabled"}>${tick(paneMode(pane) === mode)}${name}</button>`).join("")}<div class="menu-rule"></div><div class="menu-group">Stack</div>${STACKS.map(([stack, name]) => `<button type="button" data-stack="${stack}" aria-checked="${(pane.stack ?? "") === stack}">${tick((pane.stack ?? "") === stack)}${name}</button>`).join("")}${pane.stack ? `<div class="menu-rule"></div><button type="button" data-reverse="${pane.reverse ? "" : "1"}" role="menuitemcheckbox" aria-checked="${Boolean(pane.reverse)}" data-tip="${escape(stackRun(stackLetters(pane), true))}">${tick(Boolean(pane.reverse))}Reversed</button>` : ""}`, ({ mode, stack, reverse }) => {
+        showMenu(anchor, `<div class="menu-group">Scale</div>${MODES.map(({ name }, mode) => `<button type="button" data-mode="${mode}" aria-checked="${paneMode(pane) === mode}" ${modesFor(pane).includes(mode) ? "" : "disabled"}>${tick(paneMode(pane) === mode)}${name}</button>`).join("")}<div class="menu-rule"></div><div class="menu-group">Stack</div>${STACKS.map(([stack, name]) => `<button type="button" data-stack="${stack}" aria-checked="${(pane.stack ?? "") === stack}">${tick((pane.stack ?? "") === stack)}${name}</button>`).join("")}${chart.layers.filter((layer) => layer.pane === id).length > 1 ? `<div class="menu-rule"></div><div class="menu-group">Order</div>${ordersOf(pane).map(([reverse, name]) => `<button type="button" data-reverse="${reverse ? 1 : ""}" aria-checked="${Boolean(pane.reverse) === reverse}">${tick(Boolean(pane.reverse) === reverse)}${name}</button>`).join("")}` : ""}`, ({ mode, stack, reverse }) => {
           if (!chart.panes.some((item) => item.id === id)) return;
           refocus(`[data-scale-menu="${id}"]`);
           if (reverse !== undefined) setPaneReverse(id, Boolean(reverse));
@@ -11748,7 +11841,20 @@
           else setPaneMode(id, Number(mode));
         });
       }
-      /** A pane one place up or down; its arrow keeps the focus, or the other one once it reaches an end. */
+      /** A pane's menu (its ⋯, a right-click on its head): moved up or down, removed. */
+      function paneActions(/** @type {HTMLElement} */ anchor, /** @type {string} */ id, point = undefined) {
+        const i = chart.panes.findIndex((pane) => pane.id === id), many = chart.panes.length > 1;
+        if (i < 0) return;
+        showMenu(anchor, `${many ? `<button type="button" data-pick="up" ${i === 0 ? "disabled" : ""}>${ICONS.arrowUp}Move up</button>
+          <button type="button" data-pick="down" ${i === chart.panes.length - 1 ? "disabled" : ""}>${ICONS.arrowDown}Move down</button>
+          <div class="menu-rule"></div>` : ""}
+          <button type="button" data-pick="remove" class="danger">${ICONS.trash}${many ? "Remove the pane" : "Remove every layer"}<span>${plural(chart.layers.filter((layer) => layer.pane === id).length, "layer")}</span></button>`, ({ pick }) => {
+          if (!chart.panes.some((pane) => pane.id === id)) return;
+          if (pick === "up" || pick === "down") movePane(id, pick === "up" ? -1 : 1);
+          else if (pick === "remove") removePane(id);
+        }, point);
+      }
+      /** A pane one place up or down; its menu's button keeps the focus. */
       function movePane(id, by) {
         // Where each pane is on screen now (mid-glide, where it shows), for the swap to start from.
         const groups = () => all$("#layer-list .pane-group"), key = (/** @type {HTMLElement} */ group) => group.dataset.pane;
@@ -11761,7 +11867,7 @@
           [doc.panes[from], doc.panes[to]] = [doc.panes[to], doc.panes[from]];
         });
         slide(groups(), key, was, { moved: id });
-        requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector(`[data-move-pane="${id}"][data-by="${by}"]:not(:disabled)`) ?? document.querySelector(`[data-move-pane="${id}"]:not(:disabled)`))?.focus());
+        refocus(`[data-pane-menu="${id}"]`);
       }
       /**
        * Deleting takes two presses: the first arms the button, which then says what a second press does. Pressing
@@ -11820,22 +11926,22 @@
           const layers = chart.layers.filter((layer) => layer.pane === pane.id);
           return `<section class="pane-group" data-pane="${pane.id}">
             <div class="pane-head">
-              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="Scale and stack">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
-              ${chart.panes.length > 1 ? `<button type="button" class="cap small" data-move-pane="${pane.id}" data-by="-1" ${i === 0 ? "disabled" : ""} aria-label="Move pane ${i + 1} up" data-tip="Move up">${ICONS.arrowUp}</button>
-              <button type="button" class="cap small" data-move-pane="${pane.id}" data-by="1" ${i === chart.panes.length - 1 ? "disabled" : ""} aria-label="Move pane ${i + 1} down" data-tip="Move down">${ICONS.arrowDown}</button>` : ""}
-              <button type="button" class="cap small" data-remove-pane="${pane.id}" aria-label="Remove pane ${i + 1} and its ${plural(layers.length, "layer")}" data-tip="${chart.panes.length > 1 ? "Remove the pane and its layers" : "Remove every layer"}">${ICONS.trash}</button>
+              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="Scale, stack and order">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
+              ${((shown) => `<button type="button" class="cap small" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} every layer in pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} every layer">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(layers.some((layer) => !layer.hidden))}
+              <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="More for pane ${i + 1}" data-tip="More">${ICONS.more}</button>
             </div>
             ${layers.map((layer) => {
               const result = resolved?.results.get(layer.id);
               const loading = layer.series && !result;
               const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.formula !== undefined ? `<span class="sub">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(layer.series ?? "")}</span>`;
-              return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""}" draggable="true" data-layer="${layer.id}">
+              return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" draggable="${!TOUCH}" data-layer="${layer.id}">
+                <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
                   <span class="letter" style="--c:${escape(ink(layer.color))}">${layer.letter}</span>
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
                   <span class="row-figures"><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"`}></span><span class="row-change" data-change="${layer.id}"></span></span>
                 </button>
-                <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
+                <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"} ${keyText("(⌥-click: alone in its pane)")}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
               </div>`;
             }).join("")}
           </section>`;
@@ -11843,6 +11949,8 @@
         restoreFocus(list, focus);
         updateValues();
         lightLegend(litLayer, true);
+        list.classList.toggle("picking", layerPicks.size > 0);
+        renderLayersBar();
       }
 
       // Drag a layer onto another to move it before that one (or after, on its lower half), onto a pane to append, or
@@ -11929,12 +12037,180 @@
         LIST_PARTS.forEach(([selector, key, options], k) => slide(all$(selector, list), key, was[k], { ...options, moved: k === 0 ? id : null }));
       });
 
+      // ── Picking layers, and what the bar does to them ─────────────────────────
+
+      /** The panel shown with the list (a layer open in it closes; a phone's sheet opens, a closed panel peeks). */
+      function showList() {
+        if (selected) {
+          selected = "";
+          renderInspector();
+        }
+        if (phone.matches) document.body.dataset.sheet = "panel";
+        else if (prefs.panel === "closed") document.body.toggleAttribute("data-peek", true);
+      }
+      /** Picks a layer: added or taken off; with `range`, every one from the last picked (or the one open) to it. */
+      function pickLayer(/** @type {string} */ id, range = false) {
+        hideMenu();
+        const ids = chart.layers.map((layer) => layer.id), start = layerPicks.size ? layerPickLast : selected, from = ids.indexOf(start), to = ids.indexOf(id);
+        if (range && from >= 0 && to >= 0) for (const other of ids.slice(Math.min(from, to), Math.max(from, to) + 1)) layerPicks.add(other);
+        else if (layerPicks.has(id)) {
+          // (One taken off isn't where a run starts: the last one picked that's still there is.)
+          layerPicks.delete(id);
+          if (!layerPicks.has(layerPickLast)) layerPickLast = [...layerPicks].at(-1) ?? "";
+          pickHead = layerPickLast;
+          return showPicks();
+        } else {
+          // (The layer open, as a run from it takes it: picked with the one added.)
+          if (!layerPicks.size && selected && selected !== id) layerPicks.add(selected);
+          layerPicks.add(id);
+        }
+        layerPickLast = range && from >= 0 ? start : id;
+        pickHead = id;
+        showPicks();
+      }
+      /** ⇧↓ or ⇧↑: the run from where picking started to the next or previous layer (from the one open, or in focus, at first). */
+      function extendPicks(/** @type {number} */ delta) {
+        const ids = chart.layers.map((layer) => layer.id), focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.(".layer-row[data-layer]") ?? null);
+        if (!ids.length) return;
+        const anchor = layerPicks.size ? layerPickLast : selected || focused?.dataset.layer || "", start = anchor || ids[delta > 0 ? 0 : ids.length - 1], from = ids.indexOf(start);
+        if (from < 0) return;
+        // (From nothing, the first one alone, as ↓ takes it.)
+        const head = anchor ? clamp((layerPicks.size && ids.includes(pickHead) ? ids.indexOf(pickHead) : from) + delta, 0, ids.length - 1) : from;
+        layerPicks.clear();
+        for (const id of ids.slice(Math.min(from, head), Math.max(from, head) + 1)) layerPicks.add(id);
+        layerPickLast = start;
+        pickHead = ids[head];
+        showPicks();
+        /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`[data-select="${pickHead}"]`))?.focus();
+      }
+      function pickEvery() {
+        for (const layer of chart.layers) layerPicks.add(layer.id);
+        layerPickLast = pickHead = chart.layers[0]?.id ?? "";
+        showPicks();
+      }
+      /** The picks shown: the rows, the legends, the bar (drawings let go: one selection at a time). */
+      function showPicks() {
+        if (layerPicks.size) {
+          showList();
+          if (chosen.size) chooseDrawings([]);
+        }
+        markPicks();
+      }
+      /**
+       * The rows and legend items marked as they are, in place: redrawn, a row pressed by touch would be gone before the
+       * press ends, and its end would make a click.
+       */
+      function markPicks() {
+        $("layer-list").classList.toggle("picking", layerPicks.size > 0);
+        for (const row of all$(".layer-row[data-layer]", $("layer-list"))) {
+          const on = layerPicks.has(/** @type {string} */ (row.dataset.layer));
+          row.classList.toggle("picked", on);
+          row.classList.toggle("selected", row.dataset.layer === selected);
+          row.querySelector(".row-main")?.toggleAttribute("aria-current", row.dataset.layer === selected);
+          /** @type {HTMLInputElement} */ (row.querySelector(".row-check")).checked = on;
+        }
+        for (const item of all$(".legend [data-select]")) item.classList.toggle("selected", item.dataset.select === selected || layerPicks.has(/** @type {string} */ (item.dataset.select)));
+        renderLayersBar();
+      }
+      /** No more picks; `refocus`: the focus goes back to the row last picked (from the bar's ×, it'd be lost). */
+      function clearLayerPicks(refocus = false) {
+        layerPicks.clear();
+        markPicks();
+        if (refocus) /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`[data-select="${layerPickLast}"]`))?.focus();
+      }
+      const pickedLayers = () => chart.layers.filter((layer) => layerPicks.has(layer.id));
+      /** The bar over the list's foot: how many are picked, and what can be done to them. */
+      function renderLayersBar() {
+        const layers = pickedLayers(), hide = layers.some((layer) => !layer.hidden), bar = $("layers-bar");
+        bar.hidden = !layers.length;
+        if (!layers.length) return;
+        $("layers-picked").textContent = plural(layers.length, "layer");
+        const toggle = /** @type {HTMLElement} */ (bar.querySelector('[data-layers-batch="hide"]'));
+        toggle.innerHTML = hide ? ICONS.eyeOff : ICONS.eye;
+        toggle.setAttribute("aria-label", hide ? "Hide" : "Show");
+        toggle.dataset.tip = hide ? "Hide" : "Show";
+        /** @type {HTMLButtonElement} */ (bar.querySelector('[data-layers-batch="duplicate"]')).disabled = chart.layers.length + layers.length > MAX_LAYERS;
+      }
+      /** What the bar (or a picked row's right-click, ⌘K, a key) does to the layers picked. @param {string} action @param {HTMLElement} [anchor] */
+      function layersBatch(action, anchor) {
+        const ids = pickedLayers().map((layer) => layer.id);
+        if (action === "clear" || !ids.length) return clearLayerPicks(action === "clear");
+        if (action === "hide") hideLayers(ids);
+        else if (action === "duplicate") {
+          const copies = duplicateLayers(ids);
+          if (!copies.length) return;
+          layerPicks.clear();
+          for (const id of copies) layerPicks.add(id);
+          layerPickLast = pickHead = copies[0];
+          showPicks();
+        } else if (action === "move" && anchor) moveMenu(anchor, ids);
+        else if (action === "remove") {
+          const at = chart.layers.findIndex((layer) => ids.includes(layer.id));
+          removeLayers(ids);
+          /** @type {HTMLElement | null | undefined} */ (all$(".layer-row .row-main", $("layer-list"))[Math.min(at, chart.layers.length - 1)] ?? document.querySelector("#empty [data-action='add-series']"))?.focus();
+        }
+      }
+      $("layers-bar").addEventListener("click", (event) => {
+        const button = closest(event, "[data-layers-batch]");
+        if (button) layersBatch(/** @type {string} */ (button.dataset.layersBatch), button);
+      });
+      /** Hides layers, in one step; all hidden already, shows them. @param {string[]} ids */
+      function hideLayers(ids) {
+        const hide = chart.layers.some((layer) => ids.includes(layer.id) && !layer.hidden);
+        commit((doc) => doc.layers.forEach((layer) => ids.includes(layer.id) && (layer.hidden = hide || undefined)));
+      }
+      /** A layer alone in its pane: shown, the others there hidden; alone already, every one there shown again. */
+      function soloLayer(/** @type {string} */ id) {
+        const layer = layerById(id);
+        if (!layer) return;
+        // (The only one in its pane: shown or hidden, as a click does.)
+        if (!chart.layers.some((other) => other.pane === layer.pane && other.id !== id)) return toggleHidden(id);
+        const alone = !layer.hidden && chart.layers.every((other) => other.pane !== layer.pane || other.id === id || other.hidden);
+        commit((doc) => doc.layers.forEach((other) => other.pane === layer.pane && (other.hidden = alone || other.id === id ? undefined : true)));
+      }
+      /** Whether a layer is the only one shown in its pane (beside others hidden). */
+      const aloneInPane = (/** @type {Layer} */ layer) => !layer.hidden && chart.layers.some((other) => other.pane === layer.pane && other.id !== layer.id) && chart.layers.every((other) => other.pane !== layer.pane || other.id === layer.id || other.hidden);
+      /** Moves layers to a pane (`into`), or to a new one, at its end in their order. @param {string[]} ids @param {string | null} into */
+      function moveLayers(ids, into) {
+        commit((doc) => {
+          const pane = into ? doc.panes.find((item) => item.id === into) : newPaneIn(doc);
+          if (!pane) return;
+          const moving = doc.layers.filter((layer) => ids.includes(layer.id));
+          for (const layer of moving) layer.pane = pane.id;
+          doc.layers = [...doc.layers.filter((layer) => !ids.includes(layer.id)), ...moving];
+        });
+      }
+      /** Where layers can go: each pane (named by what it shows), or a new one. @param {HTMLElement} anchor @param {string[]} ids */
+      function moveMenu(anchor, ids, point = undefined) {
+        const room = chart.panes.length < MAX_PANES;
+        showMenu(anchor, `${chart.panes.map((pane, i) => `<button type="button" data-pick="${pane.id}" ${chart.layers.every((layer) => !ids.includes(layer.id) || layer.pane === pane.id) ? "disabled" : ""}>${ICONS.pane}Pane ${i + 1}<span>${escape(paneNames(pane))}</span></button>`).join("")}
+          <div class="menu-rule"></div>
+          <button type="button" data-pick="new" ${room ? "" : "disabled"}>${ICONS.plus}A new pane</button>`, ({ pick }) => {
+          if (!pick) return;
+          moveLayers(ids, pick === "new" ? null : pick);
+          refocus('[data-layers-batch="move"]');
+        }, point);
+      }
+      /** The picked rows' menu, for a right-click on one: as the bar. @param {HTMLElement} anchor */
+      function layersMenu(anchor, point) {
+        const layers = pickedLayers(), n = plural(layers.length, "layer"), hide = layers.some((layer) => !layer.hidden);
+        showMenu(anchor, `
+          <button type="button" data-pick="hide">${hide ? ICONS.eyeOff : ICONS.eye}${hide ? "Hide" : "Show"} ${n}<kbd>H</kbd></button>
+          <button type="button" data-pick="duplicate" ${chart.layers.length + layers.length > MAX_LAYERS ? "disabled" : ""}>${ICONS.duplicate}Duplicate ${n}<kbd>${keyText("⌘D")}</kbd></button>
+          <button type="button" data-pick="move" aria-haspopup="menu">${ICONS.pane}Move to a pane</button>
+          <div class="menu-rule"></div>
+          <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove ${n}<kbd>${keyText("⌫")}</kbd></button>`, ({ pick }) => (pick === "move" ? moveMenu(anchor, layers.map((layer) => layer.id), point) : pick && layersBatch(pick)), point);
+      }
+
       // ── Inspector ─────────────────────────────────────────────────────────────
 
       function select(id) {
         const fromList = $("layer-list").contains(document.activeElement);
         selected = id;
-        if (id) chosen = new Set();
+        if (id) {
+          chosen = new Set();
+          layerPicks.clear();
+        }
         if (selected && phone.matches) document.body.dataset.sheet = "panel";
         else if (selected && prefs.panel === "closed") document.body.toggleAttribute("data-peek", true);
         renderLayers();
@@ -11961,7 +12237,7 @@
             ${layer.formula !== undefined ? (turnsInto(layer).length ? `<button type="button" id="to-series" class="nav-item" data-action="to-series" ${turnsInto(layer).length > 1 ? 'aria-haspopup="menu"' : ""}>${ICONS.series}<span class="label">Turn into a series</span></button>` : "") : `<button type="button" class="nav-item" data-action="to-formula">${ICONS.formula}<span class="label">Turn into a formula</span></button>`}
             <button type="button" class="nav-item" data-action="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}<span class="label">${layer.hidden ? "Show" : "Hide"}</span><kbd>H</kbd></button>
             <button type="button" class="nav-item" data-action="duplicate" data-kbd="⌘ D" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.duplicate}<span class="label">Duplicate</span><kbd class="mod">${keyText("⌘D")}</kbd></button>
-            <button type="button" class="nav-item danger" data-action="remove">${ICONS.trash}<span class="label">Remove</span><kbd>⌫</kbd></button>
+            <button type="button" class="nav-item danger" data-action="remove">${ICONS.trash}<span class="label">Remove</span><kbd>${keyText("⌫")}</kbd></button>
           </section>`;
       function renderInspector() {
         const layer = layerById(selected);
@@ -11993,7 +12269,7 @@
         const meta = result?.info;
         const isFormula = layer.formula !== undefined;
         const unit = unitFor(layer, result);
-        const layerPane = chart.panes.find((pane) => pane.id === layer.pane), stackOfPane = layerPane?.stack ?? "", letters = layerPane ? stackLetters(layerPane) : [];
+        const layerPane = /** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane)), stackOfPane = layerPane?.stack ?? "", ordered = chart.layers.filter((item) => item.pane === layer.pane).length > 1;
         const sourceSection = isFormula
           ? `<section>
               <h3>Formula</h3>
@@ -12053,7 +12329,7 @@
             <div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${layer.side === side}">${text}</button>`).join("")}</div></div>
             <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${mode < 2 ? `${tip} scale` : tip}" ${modesFor(/** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane))).includes(mode) ? "" : "disabled"}>${chip}</button>`).join("")}</div></div>
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
-            ${stackOfPane ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Stack order">${/** @type {[boolean, string][]} */ ([[false, "Normal"], [true, "Reversed"]]).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane?.reverse) === reverse}" data-tip="${escape(stackRun(letters, reverse))}">${name}</button>`).join("")}</div></div>` : ""}
+            ${ordered ? `<div class="field"><span>${stackOfPane ? "At the foot" : "In front"}</span><div class="tabs" role="group" aria-label="Pane order">${ordersOf(layerPane).map(([reverse, name, short]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}" data-tip="${name}">${short}</button>`).join("")}</div></div>` : ""}
             <div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>
           </section>
           ${(actionsShown = actionsOf(layer))}`;
@@ -12889,7 +13165,6 @@
         else if (lineColor) lineMenu(button, lineColor, "color");
         else if (lineDash) lineMenu(button, lineDash, "dash");
         else if (removeLevel) {
-          if (!confirmed(button)) return;
           const i = Number(removeLevel);
           editLayer((layer) => {
             const rest = layer.levels?.filter((_, k) => k !== i);
@@ -12909,9 +13184,8 @@
           renderInspector();
           refocus(`[data-color-target="${target}"]`);
         } else if (action === "deselect") deselect();
-        else if (action === "remove") {
-          if (confirmed(button)) removeLayer(selected);
-        } else if (action === "duplicate") duplicateLayer(selected);
+        else if (action === "remove") removeLayer(selected);
+        else if (action === "duplicate") duplicateLayer(selected);
         else if (action === "hide") toggleHidden(selected);
         else if (action === "more") {
           expanded = !expanded;
@@ -12993,20 +13267,23 @@
           input?.select();
         });
       }
-      function removeLayer(id) {
-        const layer = layerById(id);
-        if (!layer) return;
-        // Formulas that used it break: the toast says which, beside its Undo.
-        const users = chart.layers.filter((item) => item.formula !== undefined && item.id !== id && (() => {
+      const removeLayer = (/** @type {string} */ id) => removeLayers([id]);
+      /** Removes layers, in one step (one Undo), their drawings with them. @param {string[]} ids */
+      function removeLayers(ids) {
+        const gone = chart.layers.filter((layer) => ids.includes(layer.id)), letters = gone.map((layer) => layer.letter);
+        if (!gone.length) return;
+        // Formulas that used them break: the toast says which, beside its Undo.
+        const users = chart.layers.filter((item) => item.formula !== undefined && !ids.includes(item.id) && (() => {
           try {
-            return refsOf(parse(item.formula)).has(layer.letter);
+            const refs = refsOf(parse(item.formula));
+            return letters.some((letter) => refs.has(letter));
           } catch {
             return false;
           }
         })());
-        const sketched = chart.drawings?.filter((drawing) => drawing.layer === id).length ?? 0;
-        commit((doc) => (doc.layers = doc.layers.filter((item) => item.id !== id)));
-        undoToast(`Removed ${labelOf(layer)}${sketched ? ` and its ${plural(sketched, "drawing")}` : ""}${users.length ? `; ${users.map(labelOf).join(", ")} used it` : ""}`);
+        const sketched = chart.drawings?.filter((drawing) => ids.includes(drawing.layer)).length ?? 0, one = gone.length === 1;
+        commit((doc) => (doc.layers = doc.layers.filter((item) => !ids.includes(item.id))));
+        undoToast(`Removed ${one ? labelOf(gone[0]) : plural(gone.length, "layer")}${sketched ? ` and ${one ? "its" : "their"} ${plural(sketched, "drawing")}` : ""}${users.length ? `; ${users.map(labelOf).join(", ")} used ${one ? "it" : "them"}` : ""}`);
       }
       /** A layer's menu, for a right-click on its row. */
       function layerMenu(anchor, id, point) {
@@ -13019,9 +13296,10 @@
           <button type="button" data-pick="derive" aria-haspopup="menu">${ICONS.formula}New formula from ${layer.letter}</button>
           ${layer.series ? `<button type="button" data-pick="to-formula">${ICONS.formula}Turn into a formula</button>` : turnsInto(layer).length ? `<button type="button" data-pick="to-series" ${turnsInto(layer).length > 1 ? 'aria-haspopup="menu"' : ""}>${ICONS.series}Turn into a series</button>` : ""}
           <button type="button" data-pick="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}${layer.hidden ? "Show" : "Hide"}<kbd>H</kbd></button>
+          ${chart.layers.some((other) => other.pane === layer.pane && other.id !== id) ? `<button type="button" data-pick="solo">${ICONS.eye}${aloneInPane(layer) ? "Show every layer in its pane" : "Show it alone in its pane"}</button>` : ""}
           <button type="button" data-pick="duplicate" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.duplicate}Duplicate<kbd>${keyText("⌘D")}</kbd></button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove<kbd>⌫</kbd></button>`, ({ pick }) => {
+          <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove<kbd>${keyText("⌫")}</kbd></button>`, ({ pick }) => {
           if (!layerById(id)) return;
           if (pick === "edit") select(id);
           else if (pick === "change") changeSeries(id);
@@ -13029,7 +13307,9 @@
           else if (pick === "to-formula") toFormula(id);
           else if (pick === "to-series") turnToSeries(anchor, id, point);
           else if (pick === "hide") toggleHidden(id);
-          else if (pick === "duplicate") duplicateLayer(id);
+          else if (pick === "solo") soloLayer(id);
+          // (With others picked, its copy alone: the picks as they are.)
+          else if (pick === "duplicate") layerPicks.size ? duplicateLayers([id]) : duplicateLayer(id);
           else if (pick === "remove") removeLayer(id);
         }, point);
       }
@@ -13043,21 +13323,40 @@
         }
         const chartRow = closest(event, "[data-chart-row]");
         const layerRow = closest(event, ".layer-row[data-layer]");
+        const paneHead = closest(event, ".pane-head");
+        if (paneHead) {
+          event.preventDefault();
+          const more = /** @type {HTMLElement} */ (paneHead.querySelector("[data-pane-menu]"));
+          return paneActions(more, /** @type {string} */ (more.dataset.paneMenu), { x: event.clientX, y: event.clientY });
+        }
         if (!chartRow && !layerRow) return;
         event.preventDefault();
         const point = { x: event.clientX, y: event.clientY };
         if (chartRow) chartMenu(/** @type {HTMLElement} */ (chartRow.querySelector("[data-open-chart]")), chartRow.dataset.chartRow, point);
+        // (By touch, a long press picks the row instead: see pickOnLongPress.)
+        else if (TOUCH) return;
+        // (On a picked row, it acts on every one picked; on another, on it alone: the picks stay as they are.)
+        else if (layerPicks.has(/** @type {string} */ (layerRow.dataset.layer))) layersMenu(/** @type {HTMLElement} */ (layerRow.querySelector("[data-select]")), point);
         else layerMenu(/** @type {HTMLElement} */ (layerRow.querySelector("[data-select]")), layerRow.dataset.layer, point);
       });
-      function duplicateLayer(id) {
-        const layer = layerById(id);
-        if (!layer || !roomFor(chart)) return;
-        let copy;
+      function duplicateLayer(/** @type {string} */ id) {
+        const [copy] = duplicateLayers([id]);
+        if (copy) select(copy);
+      }
+      /** Copies of layers, each under its original, in one step: their ids (none, without room for them all). @param {string[]} ids */
+      function duplicateLayers(ids) {
+        const originals = chart.layers.filter((layer) => ids.includes(layer.id));
+        if (!originals.length) return [];
+        if (chart.layers.length + originals.length > MAX_LAYERS) return (notice(`A chart holds up to ${MAX_LAYERS} layers`), []);
+        const copies = /** @type {string[]} */ ([]);
         commit((doc) => {
-          copy = { ...structuredClone(layer), id: uid(), letter: nextLetter(doc), color: nextColor(doc), label: layer.label ? `${layer.label} copy` : undefined };
-          doc.layers.splice(doc.layers.findIndex((item) => item.id === id) + 1, 0, copy);
+          for (const layer of originals) {
+            const copy = { ...structuredClone(layer), id: uid(), letter: nextLetter(doc), color: nextColor(doc), label: layer.label ? `${layer.label} copy` : undefined };
+            doc.layers.splice(doc.layers.findIndex((item) => item.id === layer.id) + 1, 0, copy);
+            copies.push(copy.id);
+          }
         });
-        if (copy) select(copy.id);
+        return copies;
       }
 
       // ── Adding layers ─────────────────────────────────────────────────────────
@@ -13523,7 +13822,8 @@
 
       /**
        * @typedef {{ title: string, text: string, words?: string, icon: string, kbd?: string, run: () => any, suggested?: boolean,
-       *   anywhere?: boolean, keepOpen?: boolean, danger?: boolean, follows?: string }} Command
+       *   anywhere?: boolean, keepOpen?: boolean, danger?: boolean, confirm?: boolean, follows?: string }} Command `confirm`: asked
+       *   twice (what ⌘Z can't undo: a chart deleted); `danger` only marks it
        */
       /**
        * Everything ⌘K can do besides adding a series; `suggested` ones show before anything is typed, `anywhere` ones in
@@ -13548,7 +13848,7 @@
           ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
-          ...(empty || !scalePane().stack ? [] : [scalePane()].map((pane) => ({ title: pane.reverse ? "Stack in order" : "Reverse the stack", text: `${stackRun(stackLetters(pane), !pane.reverse)}${chart.panes.length > 1 ? `, in pane ${chart.panes.indexOf(pane) + 1}` : ""}.`, words: "stack stacked order reverse reversed flip bottom top", icon: "axis", run: () => setPaneReverse(pane.id, !pane.reverse) }))),
+          ...(empty ? [] : [scalePane()].filter((pane) => chart.layers.filter((layer) => layer.pane === pane.id).length > 1).map((pane) => ({ title: ordersOf(pane)[pane.reverse ? 0 : 1][1], text: `${pane.stack ? "The stack's order" : "Which layer is drawn over the others"}, for ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "order reverse reversed front back stack foot paint draw over under", icon: "axis", run: () => setPaneReverse(pane.id, !pane.reverse) }))),
           ...(empty ? [] : [
             { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", words: "draw drawing belt toolbar tools annotate", icon: "draw", run: toggleBelt },
             ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, words: "draw drawing tool cancel end", icon: tool, kbd: "esc", run: () => setTool("") }] : []),
@@ -13556,6 +13856,14 @@
             ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", words: "drawings annotations hide show visible clean", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden) }] : []),
             ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
           ]),
+          ...(((layers) => !layers.length ? [] : ((n, hide) => [
+            { title: `${hide ? "Hide" : "Show"} ${n}`, text: layers.map(labelOf).join(", "), words: "selected picked layers hide show visible", icon: hide ? "eyeOff" : "eye", kbd: "H", run: () => layersBatch("hide"), suggested: true },
+            { title: `Duplicate ${n}`, text: "Each copy under its original.", words: "selected picked layers copy duplicate", icon: "duplicate", kbd: "⌘D", run: () => layersBatch("duplicate"), suggested: true },
+            ...chart.panes.filter((pane) => layers.some((layer) => layer.pane !== pane.id)).map((pane) => ({ title: `Move ${n} to pane ${chart.panes.indexOf(pane) + 1}`, text: paneNames(pane), words: "selected picked layers move pane", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), pane.id) })),
+            ...(chart.panes.length < MAX_PANES ? [{ title: `Move ${n} to a new pane`, text: "A pane of their own, under the others.", words: "selected picked layers move pane new", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), null), suggested: true }] : []),
+            { title: `Remove ${n}`, text: "With an Undo.", words: "selected picked layers remove delete", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
+            { title: "Clear the selection", text: `${n} selected.`, words: "selected picked layers deselect clear", icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
+          ])(plural(layers.length, "layer"), layers.some((layer) => !layer.hidden)))(pickedLayers())),
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           ...(TOUCH ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
@@ -13564,7 +13872,7 @@
           ...(home && picked.size ? [
             { title: `Duplicate the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`}`, text: "A copy of each, beside it.", words: "copy picked selected", icon: "duplicate", run: () => batch("duplicate"), anywhere: true },
             { title: `Download the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`}`, text: "One chart file, to import again.", words: "export save json picked selected", icon: "file", run: () => batch("export"), anywhere: true },
-            { title: `Delete the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true },
+            { title: `Delete the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true, confirm: true },
           ] : []),
           ...(edits.future.length ? [{ title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redo }] : []),
           ...(empty ? [] : [
@@ -13574,7 +13882,7 @@
           ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
           { title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") },
-          ...(isDraft(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo, a moment after.", words: "remove trash", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
+          ...(isDraft(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo, a moment after.", words: "remove trash", icon: "trash", danger: true, confirm: true, run: () => deleteChart(chart) }]),
           ...(chart.layers.some((layer) => layer.hidden) ? [{ title: "Show every layer", text: "The hidden ones too.", words: "unhide visible all", icon: "eye", run: () => commit((doc) => doc.layers.forEach((layer) => delete layer.hidden)) }] : []),
           ...(chart.panes.length > 1 ? [
             { title: "Equal pane heights", text: "Every pane as tall as the others.", words: "resize panes even same size", icon: "pane", run: () => commit((doc) => doc.panes.forEach((pane) => (pane.size = 1))) },
@@ -14097,7 +14405,7 @@
       function showActions() {
         const item = palette.items[palette.active], actions = actionsFor(item);
         if (actions.length < 2) return;
-        showMenu($("palette-actions"), actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
+        showMenu($("palette-actions"), actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""} ${action.confirm ? "data-confirm" : ""}>${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
       }
       /**
        * An action, from ⌘K's menu or a page's row: a page opens; anything else acts, closing ⌘K unless it stays (a
@@ -14138,7 +14446,7 @@
       /**
        * An action, in ⌘K's menu or as a page's row: a label, an aside (a current value; `mono` for a name or a formula);
        * a `page` it opens, or what it `run`s (closing ⌘K unless it `stay`s); `danger` asks for a second ↵.
-       * @typedef {{ label: string, aside?: string, mono?: boolean, kbd?: string, icon?: string, run?: () => void, page?: () => Page, leads?: boolean, stay?: boolean, danger?: boolean, key?: string, group?: string, preview?: (panel: HTMLElement) => void, look?: (doc: Chart) => void }} Action
+       * @typedef {{ label: string, aside?: string, mono?: boolean, kbd?: string, icon?: string, run?: () => void, page?: () => Page, leads?: boolean, stay?: boolean, danger?: boolean, confirm?: boolean, key?: string, group?: string, preview?: (panel: HTMLElement) => void, look?: (doc: Chart) => void }} Action
        * @typedef {{ title: string | (() => string), placeholder?: string, rows: () => any[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, set: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean }} Page
        */
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
@@ -14443,7 +14751,7 @@
           ...(at > 0 ? [{ label: "Move up", kbd: "⌥↑", stay: true, run: () => moveChart(id, at - 1) }] : []),
           ...(at < library.charts.length - 1 ? [{ label: "Move down", kbd: "⌥↓", stay: true, run: () => moveChart(id, at + 2) }] : []),
           { label: "Download chart file", run: () => chartPick(id, "download") },
-          { label: "Delete", danger: true, run: () => chartPick(id, "delete") },
+          { label: "Delete", danger: true, confirm: true, run: () => chartPick(id, "delete") },
         ];
       }
       /** @returns {Page} */
@@ -14476,7 +14784,7 @@
               { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => ({ title: "Export", rows: () => [["copy", "Copy as image", "", ICONS.copy], ["png", "Download image", "PNG", ICONS.image], ["csv", "Download data", "CSV", ICONS.table], ["json", "Download chart file", "JSON", ICONS.file]].map(([kind, label, aside, icon]) => ({ kind: "row", key: kind, icon, label, aside, verb: kind === "copy" ? "Copy" : "Download", run: () => exportAs(kind) })) }) },
             ] : []),
             { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") },
-            ...(isDraft(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, run: () => deleteChart(chart) }]),
+            ...(isDraft(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, confirm: true, run: () => deleteChart(chart) }]),
           ].map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewChart(panel, chart), ...row }));
         } };
       }
@@ -14570,6 +14878,7 @@
               : named.length ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: `${named.length} series`, group: "Layer", page: () => ({ title: "Turn into a series", rows: () => named.map((name) => ({ kind: "row", key: name, icon: ICONS.series, label: name, mono: true, verb: "Turn", run: () => toSeries(id, name) })) }) }]
               : []))(turnsInto(layer)),
             { key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", group: "Layer", stay: true, run: () => toggleHidden(id) },
+            ...(chart.layers.some((other) => other.pane === layer.pane && other.id !== id) ? [{ key: "solo", icon: ICONS.eye, label: aloneInPane(layer) ? "Show every layer in its pane" : "Show it alone in its pane", aside: aloneInPane(layer) ? undefined : "The others there hidden", verb: "Show", group: "Layer", stay: true, run: () => soloLayer(id) }] : []),
             { key: "panel", icon: ICONS.sliders, label: "Open in the panel", verb: "Open", group: "Layer", run: () => select(id) },
             { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", group: "Layer", run: () => duplicateLayer(id) },
             { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", group: "Layer", danger: true, run: () => removeLayer(id) },
@@ -14748,10 +15057,11 @@
           return [
             ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => MODES.flatMap((mode, m) => (!modesFor(pane).includes(m) ? [] : [{ key: String(m), icon: ICONS.charts, label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(chart.panes[at()]) === m, run: () => setPaneMode(id, m) }])), (panel) => previewPane(panel, id)) }]),
             { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => STACKS.map(([stack, name, tip]) => ({ key: stack || "off", icon: ICONS.charts, label: name, aside: tip, current: (chart.panes[at()]?.stack ?? "") === stack, run: () => setPaneStack(id, stack) }))) },
-            ...(pane.stack ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: pane.reverse ? "Reversed" : "Normal", group: "Pane", page: () => choicePage("Order", () => [false, true].map((reverse) => ({ key: reverse ? "reversed" : "normal", icon: ICONS.charts, label: reverse ? "Reversed" : "Normal", aside: stackRun(stackLetters(pane), reverse), current: Boolean(chart.panes[at()]?.reverse) === reverse, run: () => setPaneReverse(id, reverse) }))) }] : []),
+            ...(layers.length > 1 ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: ordersOf(pane)[pane.reverse ? 1 : 0][1], group: "Pane", page: () => choicePage("Order", () => ordersOf(chart.panes[at()] ?? pane).map(([reverse, name]) => ({ key: reverse ? "last" : "first", icon: ICONS.charts, label: name, current: Boolean(chart.panes[at()]?.reverse) === reverse, run: () => setPaneReverse(id, reverse) }))) }] : []),
             ...(sizable(i) ? [{ key: "height", icon: ICONS.sliders, label: "Height", aside: `${shareOf(i)}% of the chart`, group: "Pane", page: () => choicePage("Height", () => SHARES.map((share) => ({ key: String(share), icon: ICONS.sliders, label: `${share}% of the chart`, current: shareOf(at()) === share, run: () => setShare(id, share / 100), look: (/** @type {Chart} */ doc) => shareOn(doc, id, share / 100) })), (panel, option) => previewPane(panel, id, Number(option.key) / 100)) }] : []),
             ...(i > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with pane ${i}`, verb: "Move", group: "Pane", stay: true, run: () => movePane(id, -1) }] : []),
             ...(i < chart.panes.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: `Swaps with pane ${i + 2}`, verb: "Move", group: "Pane", stay: true, run: () => movePane(id, 1) }] : []),
+            ...((shown) => [{ key: "eye", icon: shown ? ICONS.eyeOff : ICONS.eye, label: shown ? "Hide every layer" : "Show every layer", aside: shown && many ? "The pane folds to its names" : undefined, verb: shown ? "Hide" : "Show", group: "Pane", stay: true, run: () => hideLayers(layers.map((layer) => layer.id)) }])(layers.some((layer) => !layer.hidden)),
             { key: "remove", icon: ICONS.trash, label: many ? "Remove the pane" : "Remove every layer", aside: plural(layers.length, "layer"), verb: "Remove", group: "Pane", danger: true, run: () => removePane(id) },
             ...layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })),
             { key: "add-series", icon: ICONS.plus, label: "Add a series here", verb: "Add", group: "Layers", leads: true, stay: true, run: () => openPalette({ add: true, into: id }) },
@@ -14768,7 +15078,7 @@
         const folded = foldedPanes(chart), sizes = chart.panes.map((other, k) => (folded.has(other.id) ? 0 : other.size ?? defaultSize(k))), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
         if (share !== null) sizes[i] = (share * others) / (1 - share);
         panel.innerHTML = `<h4 class="plain">Pane ${i + 1}</h4>
-          <p class="description">${escape(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.stack && pane.reverse ? ", reversed" : ""}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
+          <p class="description">${escape(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
           <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size ? size : "0 0 4px"}">${size ? k + 1 : ""}</i>`).join("")}</div>
           <div class="info"><h5>Layers</h5><dl>${layers.map((layer) => `<div><dt><i class="dot" style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</dt><dd>${escape(layer.letter)}</dd></div>`).join("") || "<div><dt>None yet</dt><dd></dd></div>"}</dl></div>`;
       }
@@ -14920,8 +15230,8 @@
           showPalette();
           return;
         }
-        if (item.kind === "row" || (item.kind === "command" && item.command.danger)) {
-          if ((item.danger || item.command?.danger) && palette.armed !== item.key) {
+        if (item.kind === "row" || (item.kind === "command" && item.command.confirm)) {
+          if ((item.confirm || item.command?.confirm) && palette.armed !== item.key) {
             palette.armed = item.key;
             return renderPalette();
           }
@@ -15038,7 +15348,7 @@
         else placeMenu(menu, host, anchor, point);
         menu.onclick = (event) => {
           const button = closest(event, "button:not(:disabled)");
-          if (!button || (button.classList.contains("danger") && !confirmed(button))) return;
+          if (!button || (button.hasAttribute("data-confirm") && !confirmed(button))) return;
           hideMenu();
           onPick(button.dataset);
         };
@@ -15330,7 +15640,7 @@
         doc.index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1";
         doc.range = RANGES.some(([id]) => id === input.range) ? input.range : "max";
         const panes = input.panes.slice(0, MAX_PANES);
-        doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack, ...(pane.reverse === true ? { reverse: true } : {}) } : {}) }));
+        doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}) }));
         const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
         /** Each layer's id as read, to its own: its drawings follow it. */
         const layerIds = new Map();
@@ -15571,12 +15881,18 @@
       }
 
       const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
-      /** A shortcut as this platform writes it: ⌘Z on a Mac; Ctrl+Z, Ctrl+Shift+Z, Alt+↑ elsewhere. */
-      const keyText = (/** @type {string} */ text) => MAC ? text : text.replace(/[⌘⇧⌥⌃]+/g, (mods, at) => {
-        const names = [["⌘⌃", "Ctrl"], ["⌥", "Alt"], ["⇧", "Shift"]].filter(([glyphs]) => [...glyphs].some((glyph) => mods.includes(glyph))).map(([, name]) => name);
-        const next = text[at + mods.length];
-        return `${names.join("+")}${next && next !== " " ? "+" : ""}`;
-      });
+      /**
+       * A shortcut as this platform writes it: ⌘Z on a Mac; Ctrl+Z, Ctrl+Shift+Z, Alt+↑ elsewhere. The erase key by its
+       * name, as esc and space are (its symbol reads as a box in a keycap's box): delete on a Mac, Backspace elsewhere.
+       */
+      const keyText = (/** @type {string} */ text) => {
+        const named = text.replace(/⌫/g, MAC ? "delete" : "Backspace");
+        return MAC ? named : named.replace(/[⌘⇧⌥⌃]+/g, (mods, at) => {
+          const names = [["⌘⌃", "Ctrl"], ["⌥", "Alt"], ["⇧", "Shift"]].filter(([glyphs]) => [...glyphs].some((glyph) => mods.includes(glyph))).map(([, name]) => name);
+          const next = named[at + mods.length];
+          return `${names.join("+")}${next && !" -".includes(next) ? "+" : ""}`;
+        });
+      };
       /** "⇧ ⌘ Z" reads ⇧⌘Z; alternatives like "[ ]" keep their space. */
       const keysOf = (kbd) => {
         const keys = kbd.split(" ");
@@ -15749,15 +16065,12 @@
       // ── Global clicks and keys ────────────────────────────────────────────────
 
       document.addEventListener("click", (event) => {
-        const menuFor = closest(event, "[data-chart-menu], [data-scale-menu]");
-        if (menuFor) return menuFor.dataset.chartMenu ? chartMenu(menuFor, menuFor.dataset.chartMenu) : scaleMenu(menuFor, menuFor.dataset.scaleMenu);
-        const paneAction = closest(event, "[data-move-pane]:not(:disabled), [data-remove-pane]");
-        if (paneAction?.dataset.movePane) return movePane(paneAction.dataset.movePane, Number(paneAction.dataset.by));
-        if (paneAction) {
-          const id = paneAction.dataset.removePane;
-          if (confirmed(paneAction, `Remove ${plural(chart.layers.filter((layer) => layer.pane === id).length, "layer")}`)) removePane(id);
-          return;
-        }
+        const menuFor = closest(event, "[data-chart-menu], [data-scale-menu], [data-pane-menu]");
+        if (menuFor) return menuFor.dataset.chartMenu ? chartMenu(menuFor, menuFor.dataset.chartMenu) : menuFor.dataset.paneMenu ? paneActions(menuFor, menuFor.dataset.paneMenu) : scaleMenu(menuFor, menuFor.dataset.scaleMenu);
+        const tick = closest(event, "[data-pick-layer]");
+        if (tick) return pickLayer(/** @type {string} */ (tick.dataset.pickLayer), event.shiftKey);
+        const paneEye = closest(event, "[data-pane-eye]");
+        if (paneEye) return hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id));
         const template = closest(event, "[data-template]");
         const card = template && recommendedCards[Number(template.dataset.template)];
         if (card) return useTemplate(presetTemplate(/** @type {Preset[]} */ (presets)[card.preset]));
@@ -15767,8 +16080,11 @@
         if (openChart) {
           delete document.body.dataset.sheet;
           go(chartById(openChart));
-        } else if (id) select(id);
-        else if (toggle) toggleHidden(toggle);
+        }
+        // ⌘ or ⇧, or a click while some are picked (not a key: ↵ opens it): picked with the others; else opened.
+        else if (id && (event.metaKey || event.ctrlKey || event.shiftKey || (layerPicks.size && event.detail > 0))) pickLayer(id, event.shiftKey);
+        else if (id) select(id);
+        else if (toggle) event.altKey ? soloLayer(toggle) : toggleHidden(toggle);
         else if (paneMode) setPaneMode(paneMode, Number(mode));
         else if (paneStack) setPaneStack(paneStack, target.dataset.stack ?? "");
         else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
@@ -15818,7 +16134,7 @@
       const typing = (target) => (target instanceof HTMLInputElement && !["checkbox", "radio", "button"].includes(target.type)) || target instanceof HTMLTextAreaElement || target?.isContentEditable;
       function selectBy(delta) {
         if (!chart.layers.length) return;
-        const index = chart.layers.findIndex((layer) => layer.id === selected);
+        const from = layerPicks.size ? pickHead : selected, index = chart.layers.findIndex((layer) => layer.id === from);
         select(chart.layers[clamp(index < 0 ? (delta > 0 ? 0 : chart.layers.length - 1) : index + delta, 0, chart.layers.length - 1)].id);
       }
       document.addEventListener("keydown", (event) => {
@@ -15860,9 +16176,14 @@
           for (const doc of filtered()) picked.add(doc.id);
           return renderPicked();
         }
-        if (mod && key === "d" && !home && (chosen.size || selected) && !typing(event.target)) {
+        if (mod && key === "d" && !home && (chosen.size || layerPicks.size || selected) && !typing(event.target)) {
           event.preventDefault();
-          return chosen.size ? duplicateDrawings([...chosen]) : duplicateLayer(selected);
+          return chosen.size ? duplicateDrawings([...chosen]) : layerPicks.size ? layersBatch("duplicate") : duplicateLayer(selected);
+        }
+        // ⌘A picks every layer while some are picked, or from the panel (on the chart, every drawing).
+        if (mod && key === "a" && !home && chart.layers.length && !typing(event.target) && (layerPicks.size || $("layers-view").contains(document.activeElement))) {
+          event.preventDefault();
+          return pickEvery();
         }
         if (mod && key === "a" && !home && chart.drawings?.length && !typing(event.target)) {
           event.preventDefault();
@@ -15872,11 +16193,17 @@
         if (home && (event.key === "Backspace" || event.key === "Delete") && picked.size) {
           event.preventDefault();
           // Asked on the bar's Delete, as a click there asks.
-          if (confirmed(/** @type {HTMLElement} */ ($("home-bar").querySelector('[data-batch="delete"]')), "⌫ again to delete")) batch("delete");
+          if (confirmed(/** @type {HTMLElement} */ ($("home-bar").querySelector('[data-batch="delete"]')), `${keyText("⌫")} again to delete`)) batch("delete");
           return;
         }
         // In the grid, only what isn't of a chart: the open one is out of sight.
         if (home && !["/", "n", "?", "\\", "escape"].includes(key)) return;
+        // Space or X on a layer's row picks it, as on a chart's card in the grid.
+        const row = /** @type {HTMLElement | null} */ (document.activeElement?.matches?.(".layer-row .row-main") ? document.activeElement.closest(".layer-row[data-layer]") : null);
+        if ((event.key === " " || key === "x") && row && !event.shiftKey) {
+          event.preventDefault();
+          return pickLayer(/** @type {string} */ (row.dataset.layer));
+        }
         if (event.key === "/") openPalette({ resume: true });
         else if (key === "f") addFormula();
         else if (key === "n") newChart();
@@ -15895,16 +16222,19 @@
           else if (tool) setTool("");
           else if (selectingArea) setSelectingArea(false);
           else if (chosen.size) chooseDrawings([]);
+          else if (layerPicks.size) clearLayerPicks(true);
           else if (selected) deselect();
           else if (document.body.hasAttribute("data-peek")) document.body.removeAttribute("data-peek");
           else if (document.body.dataset.sheet) delete document.body.dataset.sheet;
           else if (!home && tablet.matches && prefs.panel === "open") togglePanel(false);
           // A new chart left empty: Escape takes it back, as its Cancel button does.
           else if (!home && !chart.layers.length && isDraft(chart) && (previousChart() || backToHome())) leaveEmpty();
-        } else if (event.key === "ArrowDown" || event.key === "ArrowUp") selectBy(event.key === "ArrowDown" ? 1 : -1);
-        else if ((event.key === "Backspace" || event.key === "Delete") && (chosen.size || selected)) chosen.size ? removeDrawings([...chosen]) : removeLayer(selected);
+        } else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && event.shiftKey) extendPicks(event.key === "ArrowDown" ? 1 : -1);
+        else if (event.key === "ArrowDown" || event.key === "ArrowUp") selectBy(event.key === "ArrowDown" ? 1 : -1);
+        else if ((event.key === "Backspace" || event.key === "Delete") && (chosen.size || layerPicks.size || selected)) chosen.size ? removeDrawings([...chosen]) : layerPicks.size ? layersBatch("remove") : removeLayer(selected);
         else if (key === "h" && event.shiftKey && chart.drawings?.length) hideDrawings(!drawingsHidden);
-        else if (key === "h" && layerById(selected)) toggleHidden(selected);
+        else if (key === "h" && !event.shiftKey && layerPicks.size) layersBatch("hide");
+        else if (key === "h" && !event.shiftKey && layerById(selected)) toggleHidden(selected);
         else if (key === "l" && chart.layers.length) toggleLog(scalePane().id);
         else if (key === "m" && chart.layers.length) setTool(tool === "ruler" ? "" : "ruler");
         else if (key === "d" && chart.layers.length) focusBelt();
@@ -15925,7 +16255,7 @@
 
       const HOLD = MAC ? "Meta" : "Control";
       // The page's own keys as this platform writes them (the shortcuts sheet, "Hold ⌘", the search's ⌘K).
-      if (!MAC) for (const element of all$("kbd, #shortcuts dt, #shortcuts h3")) element.textContent = keyText(element.textContent ?? "");
+      for (const element of all$(MAC ? "kbd" : "kbd, #shortcuts dt, #shortcuts h3")) element.textContent = keyText(element.textContent ?? "");
       if (!MAC) for (const element of all$("[data-tip*='⇧']")) element.dataset.tip = keyText(element.dataset.tip ?? "");
       /** Long enough that a quick ⌘Z or ⌘C never flashes the keys, short enough to feel instant when held. */
       const HINT_DELAY = 200;
