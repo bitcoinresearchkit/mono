@@ -877,6 +877,57 @@
         min-width: 22px;
         height: 22px;
         border-radius: var(--radius-sm);
+
+        svg {
+          width: 13px;
+          height: 13px;
+        }
+      }
+
+      /* The layer a drawing is on, named as its row names it. */
+      .drawn-on {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        color: var(--text);
+        font-size: 12.5px;
+      }
+
+      /* A drawing's kind, where a layer has its name. */
+      .inspector-head .kind {
+        flex: 1;
+        min-width: 0;
+        padding: 4px 6px;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 590;
+      }
+
+      /* A text drawing's words, as the formula box takes a formula. */
+      .text-field {
+        display: block;
+        width: 100%;
+        min-height: 64px;
+        margin: 0;
+        border: 0;
+        border-radius: var(--radius-md);
+        padding: 9px 11px;
+        resize: none;
+        color: var(--ink);
+        background: var(--field);
+        box-shadow: inset 0 0 0 1px var(--line-strong);
+        font: 13px/1.5 var(--sans);
+        field-sizing: content;
+
+        &:hover {
+          box-shadow: inset 0 0 0 1px var(--faint);
+        }
+
+        &:focus {
+          outline: none;
+          box-shadow: var(--field-focus);
+        }
       }
 
       .row-figures {
@@ -1298,8 +1349,22 @@
         }
       }
 
-      body[data-measure] .chart {
+      body:is([data-measure], [data-drawing]) .chart {
         cursor: crosshair;
+      }
+
+      /* Over a drawing, it can be taken: a hand over it, a grip over one of its points; held, it moves. */
+      .chart[data-over="drawing"] {
+        cursor: pointer;
+      }
+
+      .chart[data-over="handle"] {
+        cursor: grab;
+      }
+
+      body.grabbing,
+      body.grabbing * {
+        cursor: grabbing !important;
       }
 
       /* A row that scrolls sideways when it doesn't fit, with no scrollbar. */
@@ -1527,6 +1592,70 @@
         }
       }
 
+      /* While a tool draws, at the foot of the plot: the tool, how it's drawn, and the key that stops it. Placed by script. */
+      .draw-hint {
+        position: absolute;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: var(--radius-md);
+        padding: 4px 4px 4px 9px;
+        color: var(--soft);
+        background: var(--raise);
+        box-shadow: var(--pop);
+        font: 510 12px/18px var(--sans);
+        white-space: nowrap;
+        pointer-events: none;
+        transform: translateX(-50%);
+        animation: hint-in var(--dur-small) var(--ease);
+
+        svg {
+          width: 13px;
+          height: 13px;
+          color: var(--ink);
+        }
+
+        b {
+          color: var(--ink);
+          font-weight: 590;
+        }
+
+        &[hidden] {
+          display: none;
+        }
+      }
+
+      @keyframes hint-in {
+        from {
+          opacity: 0;
+          translate: 0 4px;
+        }
+      }
+
+      /* A text being typed on the chart: where it's drawn, as it's drawn, its box sized to it by script. */
+      .draw-text {
+        position: absolute;
+        z-index: 3;
+        margin: 0;
+        border: 0;
+        border-radius: var(--radius-xs);
+        padding: 0 4px;
+        overflow: hidden;
+        resize: none;
+        outline: none;
+        color: var(--c);
+        background: color-mix(in srgb, var(--card) 85%, transparent);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 50%, transparent);
+        font: 510 var(--size) / var(--line) var(--sans);
+        white-space: pre;
+        caret-color: var(--c);
+
+        &[hidden] {
+          display: none;
+        }
+      }
+
       .stage-foot {
         display: flex;
         align-items: center;
@@ -1548,12 +1677,15 @@
         padding: 0;
       }
 
-      /* Where the price axis meets the time axis, under the plot: the ruler. Placed and sized by script, from the axes. */
+      /* Where the price axis meets the time axis, under the plot: drawing and the ruler. Placed and sized by script, from the axes. */
       .corner {
         position: absolute;
         bottom: 8px;
         z-index: 2;
         display: grid;
+        grid-auto-flow: column;
+        gap: 2px;
+        place-content: center;
         place-items: center;
 
         &[hidden] {
@@ -4704,7 +4836,9 @@
             <div class="canvas" id="canvas">
               <div id="chart" class="chart"></div>
               <div id="measure" class="measure" hidden><span></span></div>
-              <div id="corner" class="corner"><button id="measure-toggle" class="cap small" type="button" aria-pressed="false" aria-label="Measure" data-tip="Measure, or ⇧ and drag" data-kbd="M" data-action="measure" data-icon="ruler"></button></div>
+              <div id="draw-hint" class="draw-hint" aria-live="polite" hidden></div>
+              <textarea id="draw-text" class="draw-text" rows="1" maxlength="500" spellcheck="false" aria-label="Text" hidden></textarea>
+              <div id="corner" class="corner"><button id="draw-toggle" class="cap small" type="button" aria-pressed="false" aria-haspopup="menu" aria-label="Draw" data-tip="Draw" data-kbd="D" data-action="draw" data-icon="draw"></button><button id="measure-toggle" class="cap small" type="button" aria-pressed="false" aria-label="Measure" data-tip="Measure, or ⇧ and drag" data-kbd="M" data-action="measure" data-icon="ruler"></button></div>
               <div id="progress" class="progress" hidden></div>
               <div id="loading" class="loading-state" hidden>
                 <svg viewBox="0 0 300 80" preserveAspectRatio="none" aria-hidden="true"><path d="M2 70 C 30 66, 40 52, 62 56 S 96 30, 118 38 S 150 20, 170 26 S 205 6, 228 14 S 268 2, 298 6" /></svg>
@@ -4870,6 +5004,15 @@
             <div><dt>Log or linear scale</dt><dd><kbd>L</kbd></dd></div>
             <div><dt>Measure a change</dt><dd><kbd>M</kbd> or <kbd>⇧</kbd> and drag</dd></div>
           </dl>
+          <h3>Drawing</h3>
+          <dl>
+            <div><dt>Draw: a line, a box, text, a stroke</dt><dd><kbd>D</kbd> then its key</dd></div>
+            <div><dt>Place without drawing to a value</dt><dd><kbd>⌥</kbd> and draw</dd></div>
+            <div><dt>Edit a text, or a drawing's settings</dt><dd>double-click it</dd></div>
+            <div><dt>Duplicate the selected drawing</dt><dd><kbd>⌘D</kbd></dd></div>
+            <div><dt>Remove the selected drawing</dt><dd><kbd>⌫</kbd></dd></div>
+            <div><dt>Stop drawing</dt><dd><kbd>esc</kbd></dd></div>
+          </dl>
         </div>
       </div>
     </dialog>
@@ -4973,6 +5116,14 @@
         file: svg('<path d="M4 1.5h5l3.5 3.5v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11.5a1 1 0 0 1 1-1Z"/><path d="M9 1.5V5h3.5"/>', 14),
         check: svg('<path d="m4 8.4 2.6 2.6L12 5.4"/>', 12),
         ruler: svg('<path d="m2 11 9-9 3 3-9 9Z"/><path d="m5 8 1.5 1.5M7 6l1 1M9 4l1.5 1.5"/>'),
+        draw: svg('<path d="m10.5 2 3 3-7 7-3.6.6.6-3.6Z"/><path d="M9.5 14h4"/>'),
+        // The drawing tools.
+        trend: svg('<path d="M4.4 11.6 11.6 4.4"/><circle cx="3.2" cy="12.8" r="1.6"/><circle cx="12.8" cy="3.2" r="1.6"/>'),
+        hline: svg('<path d="M1.5 8h4.8M9.7 8h4.8"/><circle cx="8" cy="8" r="1.6"/>'),
+        vline: svg('<path d="M8 1.5v4.8M8 9.7v4.8"/><circle cx="8" cy="8" r="1.6"/>'),
+        rect: svg('<rect x="2.5" y="3.5" width="11" height="9" rx="1"/>'),
+        text: svg('<path d="M3.5 3.5h9M8 3.5V13M6.2 13h3.6"/>'),
+        brush: svg('<path d="M2 12c1.6-3.4 3-4.4 4-2.8s1.6 3.2 3.4 1.2S12 4.5 14 3.8"/>'),
       };
       /** The caret of a control that opens a list. */
       const CHEVRON = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -5885,8 +6036,35 @@
        * @typedef {{ value: number, color?: string, dash?: number }} Level A line across at a value: its color (else its
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, in sparse dots).
        * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`: the panel's last at a stack's foot
-       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], updated: number }} Chart
+       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], updated: number }} Chart
+       * @typedef {"trend" | "hline" | "vline" | "rect" | "text" | "brush"} DrawingKind
+       * @typedef {{ id: string, kind: DrawingKind, layer: string, points: [number, number][], color: string, width: number, dash: number,
+       *   extend?: "right" | "both", text?: string, size?: number }} Drawing Drawn on a layer, on its scale: each point a time (unix
+       *   seconds) and a value as the layer reads; it goes with its layer. `extend`: a trend line on past its later point (into
+       *   the future, whichever way it was drawn), or past both.
        */
+
+      /** The tools: each one's name, what it's called alone, its key in the Draw menu, how it's drawn, and its icon. */
+      const TOOLS = /** @type {Record<DrawingKind, { name: string, noun: string, verb: string, key: string, tip: string, icon: string }>} */ ({
+        trend: { name: "Trend line", noun: "trend line", verb: "Draw a trend line", key: "L", tip: "Drag, or click its two ends", icon: ICONS.trend },
+        hline: { name: "Horizontal line", noun: "horizontal line", verb: "Draw a horizontal line", key: "H", tip: "Click at its value", icon: ICONS.hline },
+        vline: { name: "Vertical line", noun: "vertical line", verb: "Draw a vertical line", key: "V", tip: "Click at its date", icon: ICONS.vline },
+        rect: { name: "Rectangle", noun: "rectangle", verb: "Draw a rectangle", key: "R", tip: "Drag, or click two corners", icon: ICONS.rect },
+        text: { name: "Text", noun: "text", verb: "Write on the chart", key: "T", tip: "Click where it goes, then type", icon: ICONS.text },
+        brush: { name: "Brush", noun: "stroke", verb: "Draw with the brush", key: "B", tip: "Draw freely, stroke after stroke", icon: ICONS.brush },
+      });
+      const KINDS = /** @type {DrawingKind[]} */ (Object.keys(TOOLS));
+      /** The kinds placed by two points: a line's ends, a box's corners. */
+      const PAIRED = new Set(["trend", "rect"]);
+      /** At most this many drawings, a stroke at most this many points: all of it still fits in a link (a megabyte at most). */
+      const MAX_DRAWINGS = 100, MAX_STROKE = 300;
+      /** A drawing's point as kept: its time to the second, its value to six figures (far finer than a pixel). */
+      const pointOf = (/** @type {number} */ time, /** @type {number} */ value) => /** @type {[number, number]} */ ([Math.round(time), Number(value.toPrecision(6))]);
+      /** Text sizes, in pixels, and their names. */
+      const SIZES = [12, 14, 18, 24];
+      const SIZE_NAMES = { 12: "Small", 14: "Medium", 18: "Large", 24: "Larger" };
+      /** How far a trend line goes: to its points, on to the right (into the future), on both ways. @type {[string, string, string][]} */
+      const EXTENDS = [["", "None", "Ends at its points"], ["right", "Right", "On past its later point, into the future"], ["both", "Both", "On past both of its points"]];
 
       const letterAt = (n) => (n < 26 ? String.fromCharCode(65 + n) : String.fromCharCode(64 + Math.floor(n / 26)) + String.fromCharCode(65 + (n % 26)));
       /** @param {Chart} doc */
@@ -5964,6 +6142,12 @@
         }
         const order = new Map(doc.panes.map((pane, i) => [pane.id, i]));
         doc.layers.sort((a, b) => order.get(a.pane) - order.get(b.pane));
+        // A drawing goes with its layer.
+        if (doc.drawings) {
+          const layers = new Set(doc.layers.map((layer) => layer.id));
+          doc.drawings = doc.drawings.filter((drawing) => layers.has(drawing.layer));
+          if (!doc.drawings.length) delete doc.drawings;
+        }
       }
 
       /** The price as a website chart starts with it: candles, its latest lined across (formulas and values read its close). */
@@ -6193,12 +6377,20 @@
         if (toastUndo?.mark === revision) return toastUndo.press();
         if (!home) undo();
       }
-      function travel(from, to) {
+      function travel(/** @type {"past" | "future"} */ back, /** @type {"past" | "future"} */ forth) {
+        // A field being typed into is kept first (a step of its own: the steps are read after it); what's being drawn or
+        // moved, of the chart as it is, goes.
+        leaveField();
+        stopDrawing();
+        const from = edits[back], to = edits[forth];
         const state = from.pop();
         if (!state) return;
         to.push(JSON.stringify(chart));
-        // (The range is a view, as a pan is: it stays as it is.)
-        Object.assign(chart, JSON.parse(state), { range: chart.range });
+        // The chart as it was, all of it (what it didn't have then, it hasn't now); the range is a view, as a pan is: it
+        // stays as it is.
+        const was = JSON.parse(state);
+        for (const key of Object.keys(chart)) if (!(key in was)) delete chart[key];
+        Object.assign(chart, was, { range: chart.range });
         chart.updated = Date.now();
         edits.key = "";
         changed(true);
@@ -6207,12 +6399,12 @@
       function changed(announce, redraw = /** @type {Redraw} */ (true)) {
         revision++;
         hideMenu();
-        if (!chart.layers.some((layer) => layer.id === selected)) selected = "";
+        if (!layerById(selected) && !drawingById(selected)) selected = "";
         save(announce);
         refresh(redraw);
       }
-      const undo = () => travel(edits.past, edits.future);
-      const redo = () => travel(edits.future, edits.past);
+      const undo = () => travel("past", "future");
+      const redo = () => travel("future", "past");
 
       /** A chart with nothing in it yet (no layer, no title): a new chart that Cancel (or Escape) can take back. */
       const isDraft = (doc) => !doc.layers.length && !doc.title;
@@ -6299,6 +6491,8 @@
       addEventListener("pagehide", saveView);
       /** @param {Chart} doc */
       function openChart(doc) {
+        // What's being typed is kept, on the chart it was typed on.
+        leaveField();
         saveView();
         // This tab's place, for a reload and for Back: the chart it shows now (a step from the grid stays one).
         if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ chart: doc.id }, "");
@@ -6312,6 +6506,7 @@
         revision++;
         hideMenu();
         setMeasureMode(false);
+        setTool("");
         save();
         refresh(true, true);
       }
@@ -7019,7 +7214,7 @@
       const drawn = new Map();
       /** A series' options without its format and scale (a restyle keeps both, and applying them again costs a pass over every point). */
       const lookOf = (/** @type {Record<string, any>} */ { priceFormat, priceScaleId, ...look }) => look;
-      /** What each layer was drawn as (its shape, its data), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any }>} */
+      /** What each layer was drawn as (its shape, its data, stacked or not), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean }>} */
       const built = new Map();
       /** @type {Map<string, Record<string, string>>} layer id → its series' colors */
       const paints = new Map();
@@ -7197,7 +7392,7 @@
         // alone, and a color or a width scrubbed stays smooth however many points there are. (A stack's bands and bars,
         // their colors in their points, are set again whole.)
         const shapeOf = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse)]);
-        /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any }>} */
+        /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean }>} */
         const kept = new Map();
         doc.layers.forEach((layer, i) => {
           const before = built.get(layer.id);
@@ -7276,7 +7471,7 @@
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
           paints.set(layer.id, paint);
-          built.set(layer.id, { shape: shapeOf(layer, i), shown: stack?.values ?? result?.shown, ohlc: result?.ohlc });
+          built.set(layer.id, { shape: shapeOf(layer, i), shown: stack?.values ?? result?.shown, ohlc: result?.ohlc, stacked: Boolean(stack) });
           // The same values (and not bars, their colors in them): nothing to set again. None now (an error, a formula
           // being written), a kept series is emptied.
           const before = kept.get(layer.id);
@@ -7389,6 +7584,7 @@
         drawnSpan = data.times.length ? [data.times[0], data.times.at(-1)] : null;
         drawnPoints = data.times.length;
         drawnTimes = data.times;
+        showDrawings(doc);
         requestAnimationFrame(() => {
           placeLegends();
           updateValues();
@@ -7744,6 +7940,7 @@
         if (!table) return;
         const short = { x: box.clientWidth - table.offsetWidth, y: box.clientHeight - table.offsetHeight };
         Object.assign(corner.style, { width: `${right || left}px`, height: `${view.timeScale().height()}px`, bottom: `${8 + short.y}px`, right: right ? `${short.x}px` : "", left: right ? "" : "0px" });
+        placeHint();
       }
       let layoutFrame = 0, laidWidth = 0;
       /**
@@ -8041,6 +8238,7 @@
           view.applyOptions({ timeScale: { tickMarkFormatter: years ? yearsOnly : () => null } });
         }
         if (!measuring?.dragging) clearMeasure();
+        if (writing) placeField();
         viewMoved();
         placeBrush();
         fitCandles();
@@ -8214,6 +8412,7 @@
       let measuring = null;
       let measureMode = false;
       function setMeasureMode(on) {
+        if (on && tool) setTool("");
         measureMode = on;
         document.body.toggleAttribute("data-measure", on);
         $("measure-toggle").setAttribute("aria-pressed", String(on));
@@ -8306,6 +8505,730 @@
       });
       $("chart").addEventListener("pointerup", () => {
         if (measuring) measuring.dragging = false;
+      });
+
+      // ── Drawing: lines, boxes, text and strokes, on the chart ─────────────────
+
+      /** How far a trend line goes, drawn at 16×12: its points as dots, its line to them or on past them. */
+      const extendGlyph = (extend) => glyphSvg(`<path d="${{ "": "M4 6h8", right: "M4 6h11.5", both: "M.5 6h15" }[extend]}" stroke="currentColor" stroke-width="1.5"/><circle cx="${extend === "both" ? 5 : 4}" cy="6" r="1.75" fill="currentColor"/><circle cx="${extend === "both" ? 11 : extend ? 10 : 12}" cy="6" r="1.75" fill="currentColor"/>`);
+      /** How near a press must be to take a drawing (a finger's, further), and to a value to be drawn to it, in pixels. */
+      const REACH = 6, PULL = 8;
+      const reachOf = (event) => (event.pointerType === "touch" ? 14 : REACH);
+      const SANS = css("--sans");
+      const drawingById = (id) => (id ? chart.drawings?.find((drawing) => drawing.id === id) : undefined);
+      /** What's selected, a layer or a drawing. */
+      const subject = () => layerById(selected) ?? drawingById(selected);
+      /** Each drawing's name, its kind's (a text, its words), numbered where the chart has more than one alike. */
+      function drawingNames(doc = chart) {
+        const all = doc.drawings ?? [], named = (drawing) => (drawing.kind === "text" ? `“${(drawing.text ?? "").trim().split("\n")[0].slice(0, 32)}”` : TOOLS[drawing.kind].name);
+        const counts = new Map(), seen = new Map();
+        for (const drawing of all) counts.set(named(drawing), (counts.get(named(drawing)) ?? 0) + 1);
+        return new Map(all.map((drawing) => {
+          const name = named(drawing), n = (seen.get(name) ?? 0) + 1;
+          seen.set(name, n);
+          return [drawing.id, counts.get(name) > 1 ? `${name} ${n}` : name];
+        }));
+      }
+      /** A new drawing, in the color of the chart's last (else blue). @param {DrawingKind} kind @returns {Drawing} */
+      function newDrawing(kind, layer, points) {
+        return { id: uid(), kind, layer, points, color: chart.drawings?.at(-1)?.color ?? "blue", width: 1.5, dash: 0, ...(kind === "text" ? { text: "", size: 14 } : {}) };
+      }
+
+      /** A time on the interval's calendar, in bars from its first (within a bar, the share of it gone). */
+      function calendarAt(time) {
+        const i = indexAt(drawnIndex, time), from = timeAt(drawnIndex, i);
+        return i + (time - from) / (timeAt(drawnIndex, i + 1) - from);
+      }
+      /**
+       * A time's place across the chart, in bars, as its points have theirs: between two, the share of the way; past either
+       * end of the data, by the calendar, so a drawing holds in the room past the latest (and before the first) too.
+       */
+      function barOf(time) {
+        const times = drawnTimes, n = times.length;
+        if (time >= times[0] && time <= times[n - 1]) {
+          const i = lowerBound(times, time);
+          return times[i] === time ? i : i - 1 + (time - times[i - 1]) / (times[i] - times[i - 1]);
+        }
+        const edge = time > times[n - 1] ? n - 1 : 0;
+        return edge + calendarAt(time) - calendarAt(times[edge]);
+      }
+      /** The time at a place across the chart, in bars: `barOf`, read back. */
+      function timeOfBar(bar) {
+        const times = drawnTimes, n = times.length;
+        if (bar >= 0 && bar <= n - 1) {
+          const i = Math.floor(bar), share = bar - i;
+          return share ? times[i] + share * (times[i + 1] - times[i]) : times[i];
+        }
+        const edge = bar > n - 1 ? n - 1 : 0, at = calendarAt(times[edge]) + bar - edge, i = Math.floor(at), from = timeAt(drawnIndex, i);
+        return from + (at - i) * (timeAt(drawnIndex, i + 1) - from);
+      }
+      /** The time axis as a line: bar 0's x, and a bar's width (the chart library's own conversions keep to whole bars). */
+      function timeLine() {
+        const scale = view.timeScale(), at = scale.logicalToCoordinate(/** @type {any} */ (0)), next = scale.logicalToCoordinate(/** @type {any} */ (1));
+        return drawnTimes.length && at !== null && next !== null && next > at ? { at, step: next - at } : null;
+      }
+      /** A drawing's points on its pane, in pixels (NaN where there's none: a value its scale can't show). */
+      function onScreen(drawing, series, line) {
+        const bars = pointBars(drawing.points);
+        return drawing.points.map(([, value], i) => ({ x: line.at + bars[i] * line.step, y: series.priceToCoordinate(value) ?? NaN }));
+      }
+      /**
+       * Each point's place across, in bars, kept until the chart's times change (a pan, a zoom need none of it again). A
+       * drawing's points are never changed in place, only added to (a stroke being drawn): those added are placed alone.
+       */
+      const placedBars = new WeakMap();
+      function pointBars(points) {
+        let kept = placedBars.get(points);
+        if (kept?.times !== drawnTimes || kept.index !== drawnIndex) placedBars.set(points, (kept = { times: drawnTimes, index: drawnIndex, bars: [] }));
+        for (let i = kept.bars.length; i < points.length; i++) kept.bars.push(barOf(points[i][0]));
+        return kept.bars;
+      }
+      const finite = (point) => Number.isFinite(point?.x) && Number.isFinite(point?.y);
+
+      /** A line style's dashes, as the chart draws a series' (in widths). */
+      const dashesOf = (dash, width) => ({ [LC.LineStyle.Dotted]: [1, 1], [LC.LineStyle.Dashed]: [2, 2], [LC.LineStyle.LargeDashed]: [6, 6], [LC.LineStyle.SparseDotted]: [1, 4] })[dash]?.map((n) => n * width) ?? [];
+      /** A trend line as drawn: to its points, or on past the later one (and the earlier, `both`) to the plot's edges. */
+      function trendEnds(drawing, a, b, size) {
+        if (!drawing.extend) return [a, b];
+        const [left, right] = a.x <= b.x ? [a, b] : [b, a];
+        return reach(left, right, size, drawing.extend === "both");
+      }
+      /** A line through two points, out to a box's edges: on past the second (and the first, `both`). */
+      function reach(a, b, size, both) {
+        const dx = b.x - a.x, dy = b.y - a.y;
+        if (!dx && !dy) return [a, b];
+        const exit = (from, d, edge) => (d > 0 ? (edge - from) / d : d < 0 ? -from / d : Infinity);
+        const entry = (from, d, edge) => (d > 0 ? -from / d : d < 0 ? (edge - from) / d : -Infinity);
+        const far = Math.max(1, Math.min(exit(a.x, dx, size.width), exit(a.y, dy, size.height)));
+        const near = both ? Math.min(0, Math.max(entry(a.x, dx, size.width), entry(a.y, dy, size.height))) : 0;
+        return [{ x: a.x + near * dx, y: a.y + near * dy }, { x: a.x + far * dx, y: a.y + far * dy }];
+      }
+      const measurer = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
+      /** A text's lines and the box they take, from its point: its first line's middle, at its left. */
+      function textBox(drawing, point) {
+        const size = drawing.size ?? 14, lines = (drawing.text ?? "").split("\n"), line = Math.round(size * 1.3);
+        measurer.font = `510 ${size}px ${SANS}`;
+        const width = Math.max(0, ...lines.map((text) => measurer.measureText(text).width));
+        return { lines, size, line, left: point.x, top: point.y - line / 2, width, height: line * lines.length };
+      }
+      /** A stroke through points, rounded: from the middle of each segment to the next's, curving at each point. */
+      function strokeThrough(context, points) {
+        if (!points.length) return;
+        context.moveTo(points[0].x, points[0].y);
+        if (points.length === 1) return void context.lineTo(points[0].x + 0.01, points[0].y);
+        for (let i = 1; i < points.length - 1; i++) context.quadraticCurveTo(points[i].x, points[i].y, (points[i].x + points[i + 1].x) / 2, (points[i].y + points[i + 1].y) / 2);
+        context.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+      }
+      /** A drawing on its pane: a text over a halo of the card, so it reads over anything. */
+      function paintDrawing(context, drawing, points, size, card) {
+        const color = ink(drawing.color), [a, b] = points;
+        context.save();
+        context.strokeStyle = context.fillStyle = color;
+        context.lineWidth = drawing.width;
+        context.lineCap = drawing.dash ? "butt" : "round";
+        context.lineJoin = "round";
+        context.setLineDash(dashesOf(drawing.dash, drawing.width));
+        context.beginPath();
+        if (drawing.kind === "trend" && finite(a) && finite(b)) {
+          const [from, to] = trendEnds(drawing, a, b, size);
+          context.moveTo(from.x, from.y);
+          context.lineTo(to.x, to.y);
+        } else if (drawing.kind === "hline" && Number.isFinite(a.y)) {
+          context.moveTo(0, a.y);
+          context.lineTo(size.width, a.y);
+        } else if (drawing.kind === "vline" && Number.isFinite(a.x)) {
+          context.moveTo(a.x, 0);
+          context.lineTo(a.x, size.height);
+        } else if (drawing.kind === "rect" && finite(a) && finite(b)) {
+          context.rect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+          context.fillStyle = alpha(color, 0.12);
+          context.fill();
+        } else if (drawing.kind === "brush") strokeThrough(context, points.filter(finite));
+        else if (drawing.kind === "text" && finite(a)) {
+          const box = textBox(drawing, a);
+          context.font = `510 ${box.size}px ${SANS}`;
+          context.textBaseline = "middle";
+          context.setLineDash([]);
+          context.lineWidth = 3;
+          context.strokeStyle = card;
+          box.lines.forEach((text, i) => {
+            context.strokeText(text, box.left, a.y + i * box.line);
+            context.fillText(text, box.left, a.y + i * box.line);
+          });
+        }
+        if (drawing.kind !== "text") context.stroke();
+        context.restore();
+      }
+      /** Where a drawing is held: its ends, a box's corners; a line across, at its point (kept in view). */
+      function handlesOf(drawing, points, size) {
+        const [a, b] = points;
+        if (drawing.kind === "trend") return [a, b];
+        if (drawing.kind === "rect") return [a, { x: b.x, y: a.y }, b, { x: a.x, y: b.y }];
+        if (drawing.kind === "hline") return [{ x: clamp(Number.isFinite(a.x) ? a.x : size.width / 2, 10, size.width - 10), y: a.y }];
+        if (drawing.kind === "vline") return [{ x: a.x, y: clamp(Number.isFinite(a.y) ? a.y : size.height / 2, 10, size.height - 10) }];
+        return [];
+      }
+      /** The box around a text or a stroke: its outline, selected. */
+      function boundsOf(drawing, points) {
+        if (drawing.kind === "text") {
+          const box = textBox(drawing, points[0]);
+          return { left: box.left - 4, top: box.top - 2, right: box.left + box.width + 4, bottom: box.top + box.height + 2 };
+        }
+        const shown = points.filter(finite), pad = drawing.width / 2 + 4;
+        return { left: Math.min(...shown.map((p) => p.x)) - pad, top: Math.min(...shown.map((p) => p.y)) - pad, right: Math.max(...shown.map((p) => p.x)) + pad, bottom: Math.max(...shown.map((p) => p.y)) + pad };
+      }
+      /** A drawing selected, being drawn, or pointed at: its points to take it by, or a box around a text or a stroke. */
+      function paintHold(context, drawing, points, size, card, lit) {
+        const color = ink(drawing.color);
+        context.save();
+        if (drawing.kind === "text" || drawing.kind === "brush") {
+          const box = boundsOf(drawing, points);
+          context.strokeStyle = alpha(color, lit ? 0.9 : 0.45);
+          context.lineWidth = 1;
+          context.setLineDash([3, 3]);
+          if (Number.isFinite(box.left)) context.strokeRect(box.left, box.top, box.right - box.left, box.bottom - box.top);
+        } else for (const [i, point] of handlesOf(drawing, points, size).entries()) {
+          if (!finite(point)) continue;
+          context.beginPath();
+          context.arc(point.x, point.y, hovering.id === drawing.id && hovering.handle === i ? 5 : 4, 0, Math.PI * 2);
+          context.fillStyle = card;
+          context.fill();
+          context.lineWidth = 1.5;
+          context.strokeStyle = color;
+          context.stroke();
+        }
+        context.restore();
+      }
+      /** How far a point is from a segment. */
+      function toSegment(x, y, a, b) {
+        const dx = b.x - a.x, dy = b.y - a.y, length = dx * dx + dy * dy;
+        const t = length ? clamp(((x - a.x) * dx + (y - a.y) * dy) / length, 0, 1) : 0;
+        return Math.hypot(x - a.x - t * dx, y - a.y - t * dy);
+      }
+      /** Whether a point of the pane is on a drawing: within reach of its line, inside its box. */
+      function touches(drawing, points, x, y, size, reach) {
+        const [a, b] = points, near = reach + drawing.width / 2;
+        if (drawing.kind === "trend") {
+          const [from, to] = trendEnds(drawing, a, b, size);
+          return toSegment(x, y, from, to) <= near;
+        }
+        if (drawing.kind === "hline") return Math.abs(y - a.y) <= near;
+        if (drawing.kind === "vline") return Math.abs(x - a.x) <= near;
+        if (drawing.kind === "rect") return x >= Math.min(a.x, b.x) - near && x <= Math.max(a.x, b.x) + near && y >= Math.min(a.y, b.y) - near && y <= Math.max(a.y, b.y) + near;
+        if (drawing.kind === "brush") {
+          const shown = points.filter(finite);
+          return shown.some((point, i) => toSegment(x, y, point, shown[i + 1] ?? point) <= near);
+        }
+        if (!finite(a)) return false;
+        const box = boundsOf(drawing, points);
+        return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+      }
+      /** A label on an axis, in a drawing's color. */
+      function axisTag(coordinate, text, color) {
+        const back = ink(color), fore = oklchOf(color)[0] > 0.7 ? "#08090a" : "#ffffff";
+        return { coordinate: () => coordinate, text: () => text, textColor: () => fore, backColor: () => back, visible: () => Number.isFinite(coordinate) };
+      }
+
+      const NONE = /** @type {any[]} */ ([]);
+      /**
+       * A layer's drawings, on its series: over its pane (over every series, and the crosshair), a line across's value or
+       * date on its axis (a selected one's, each point's), and found under the pointer where they were last drawn.
+       */
+      class Sketch {
+        constructor(layer) {
+          this.layer = layer;
+          this.series = null;
+          this.update = () => {};
+          /** @type {{ drawing: Drawing, points: { x: number, y: number }[], box: { left: number, top: number, right: number, bottom: number } | null }[]} */
+          this.shown = [];
+          this.size = { width: 0, height: 0 };
+          this.views = [{ zOrder: () => /** @type {const} */ ("top"), renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context, mediaSize }) => this.draw(context, mediaSize)) }) }];
+        }
+        attached({ series, requestUpdate }) {
+          this.series = series;
+          this.update = requestUpdate;
+        }
+        detached() {
+          this.series = null;
+          this.shown = [];
+        }
+        updateAllViews() {
+          const line = timeLine(), series = this.series;
+          this.shown = line && series ? drawingsShown().filter((drawing) => drawing.layer === this.layer && drawing.id !== typingIn).map((drawing) => {
+            const points = onScreen(drawing, series, line);
+            // A stroke's box, so the pointer far from it is turned away before its every segment.
+            return { drawing, points, box: drawing.kind === "brush" ? boundsOf(drawing, points) : null };
+          }) : [];
+        }
+        paneViews() {
+          return this.shown.length ? this.views : NONE;
+        }
+        /** Each line across's value; a selected line's or box's, each point's (and as it's drawn): as the axis reads it. */
+        priceAxisViews() {
+          if (!this.shown.length) return NONE;
+          const text = this.valueText();
+          return this.shown.flatMap(({ drawing, points }) => (drawing.kind === "hline" ? [0] : lit(drawing) && PAIRED.has(drawing.kind) ? [0, 1] : []).map((i) => axisTag(points[i].y, text(drawing.points[i][1]), drawing.color)));
+        }
+        /**
+         * Values as this series' axis writes them: a % or indexed scale reads each against the series' first value in view,
+         * as the chart's own labels do (its percent from it, or 100 at it).
+         */
+        valueText() {
+          const series = this.series, mode = series.priceScale().options().mode;
+          if (mode < 2) return (/** @type {number} */ value) => series.priceFormatter().format(value);
+          const from = view.timeScale().getVisibleLogicalRange()?.from, row = from === undefined ? null : series.dataByIndex(Math.floor(from), LC.MismatchDirection.NearestRight);
+          const base = row?.close ?? row?.value;
+          return (/** @type {number} */ value) => {
+            if (!base) return "";
+            const change = (100 * (value - base)) / Math.abs(base);
+            return mode === 2 ? axisLabel(change, "%") : axisLabel(base < 0 ? change - 100 : change + 100);
+          };
+        }
+        timeAxisViews() {
+          if (!this.shown.length) return NONE;
+          return this.shown.flatMap(({ drawing, points }) => (drawing.kind === "vline" ? [0] : lit(drawing) && PAIRED.has(drawing.kind) ? [0, 1] : []).map((i) => axisTag(points[i].x, dateLabel(Math.round(drawing.points[i][0]), FINE.has(drawnIndex)), drawing.color)));
+        }
+        draw(context, size) {
+          this.size = size;
+          const card = css("--card");
+          for (const { drawing, points } of this.shown) paintDrawing(context, drawing, points, size, card);
+          if (capturing) return;
+          for (const { drawing, points } of this.shown) if (lit(drawing) || hovering.id === drawing.id) paintHold(context, drawing, points, size, card, lit(drawing));
+        }
+        /** The drawing at a point of the pane, within `reach`: a point of one before a body, the topmost body. */
+        hit(x, y, reach) {
+          let body = null;
+          for (const { drawing, points, box } of this.shown) {
+            if (box && !(x >= box.left - reach && x <= box.right + reach && y >= box.top - reach && y <= box.bottom + reach)) continue;
+            const handle = handlesOf(drawing, points, this.size).findIndex((point) => Math.hypot(point.x - x, point.y - y) <= reach + 1);
+            if (handle >= 0) return { drawing, handle };
+            if (touches(drawing, points, x, y, this.size, reach)) body = { drawing, handle: -1 };
+          }
+          return body;
+        }
+      }
+      /** A drawing selected, or being drawn (a stroke aside: it shows as it's drawn). */
+      const lit = (drawing) => !capturing && (drawing.id === selected || (drawing === draft && drawing.kind !== "brush"));
+      /** Each series' sketch. @type {WeakMap<any, Sketch>} */
+      const sketches = new WeakMap();
+      /** The drawings as shown: the chart's (a look's, while one shows) as last built, one being drawn or moved in its place. */
+      function drawingsShown() {
+        const list = shownDrawings.map((drawing) => (draft?.id === drawing.id ? draft : drawing));
+        return draft && !list.includes(draft) ? [...list, draft] : list;
+      }
+      /** Every sketch drawn again: the drawings, what's selected or pointed at, changed. */
+      function repaintDrawings() {
+        for (const series of drawn.values()) sketches.get(series)?.update();
+      }
+      /** A chart's drawings, on the series just built (each given its sketch once). @param {Chart} doc */
+      function showDrawings(doc) {
+        shownDrawings = doc.drawings ?? [];
+        for (const [id, series] of drawn) {
+          if (sketches.has(series)) continue;
+          const sketch = new Sketch(id);
+          series.attachPrimitive(sketch);
+          sketches.set(series, sketch);
+        }
+        repaintDrawings();
+      }
+
+      /** The tool a press on the chart draws with, or none. @type {DrawingKind | ""} */
+      let tool = "";
+      /** A drawing being placed: its pane, its layer, where its press was; `clicks`, placed click by click. */
+      let placing = null;
+      /** A drawing taken hold of: as it was, by a handle (-1: all of it), from where. */
+      let moving = null;
+      /** The drawing under the pointer, and its handle there (-1: none). */
+      let hovering = { id: "", handle: -1 };
+      /** A drawing being placed or moved, as it shows until it's let go (then it's the chart's). @type {Drawing | null} */
+      let draft = null;
+      /** A text being typed in its field (not drawn under it): the drawing, and whether it's new. */
+      let writing = null, typingIn = "";
+      /** Drawn for a picture: nothing selected or pointed at. */
+      let capturing = false;
+      /** The drawings as last built. @type {Drawing[]} */
+      let shownDrawings = [];
+
+      function setTool(/** @type {DrawingKind | ""} */ kind) {
+        if (kind && measureMode) setMeasureMode(false);
+        tool = kind;
+        placing = moving = draft = null;
+        document.body.classList.remove("grabbing");
+        document.body.toggleAttribute("data-drawing", Boolean(kind));
+        const button = $("draw-toggle");
+        button.setAttribute("aria-pressed", String(Boolean(kind)));
+        button.innerHTML = kind ? TOOLS[kind].icon : ICONS.draw;
+        button.setAttribute("aria-label", kind ? `Drawing: ${TOOLS[kind].name}` : "Draw");
+        button.dataset.tip = kind ? `${TOOLS[kind].name}: ${TOOLS[kind].tip.toLowerCase()}` : "Draw";
+        hover(null);
+        showHint();
+        repaintDrawings();
+      }
+      /** While a tool draws: what it is and how it's drawn (its second point, once its first was clicked), at the plot's foot. */
+      function showHint() {
+        const element = $("draw-hint");
+        element.hidden = !tool;
+        if (!tool) return;
+        const how = placing?.clicks ? `Click its ${tool === "rect" ? "other corner" : "other end"}` : TOOLS[tool].tip;
+        element.innerHTML = `${TOOLS[tool].icon}<b>${TOOLS[tool].name}</b><span>${escape(how)}</span><kbd>esc</kbd>`;
+        placeHint();
+      }
+      /** The hint centered under the plot's last pane, over the time axis. */
+      function placeHint() {
+        const element = $("draw-hint"), pane = view.panes().at(-1)?.getHTMLElement();
+        if (element.hidden || !pane) return;
+        const canvas = $("canvas").getBoundingClientRect(), box = $("chart").getBoundingClientRect(), left = view.priceScale("left", 0).width();
+        element.style.left = `${box.left - canvas.left + left + view.timeScale().width() / 2}px`;
+        element.style.bottom = `${canvas.bottom - pane.getBoundingClientRect().bottom + 12}px`;
+      }
+      /** The tools, from the corner (or D), each with its key; the one in use checked (picked again, it stops). */
+      function drawMenu(anchor = $("draw-toggle")) {
+        if (!chart.layers.length || home) return;
+        const any = chart.drawings?.length;
+        showMenu(anchor, `${KINDS.map((kind) => `<button type="button" data-tool="${kind}" aria-checked="${tool === kind}">${tick(tool === kind)}${TOOLS[kind].icon}${TOOLS[kind].name}<kbd>${TOOLS[kind].key}</kbd></button>`).join("")}${any ? `<div class="menu-rule"></div><button type="button" class="danger" data-tool="clear">${ICONS.trash}Remove every drawing</button>` : ""}`, ({ tool: picked }) => {
+          if (picked === "clear") clearDrawings();
+          else setTool(picked === tool ? "" : /** @type {DrawingKind} */ (picked));
+        });
+      }
+      /** The drawing under the pointer, lit; its cursor on the chart. */
+      function hover(hit) {
+        const next = hit ? { id: hit.drawing.id, handle: hit.handle } : { id: "", handle: -1 };
+        if (next.id === hovering.id && next.handle === hovering.handle) return;
+        hovering = next;
+        if (next.id) $("chart").dataset.over = next.handle >= 0 ? "handle" : "drawing";
+        else delete $("chart").dataset.over;
+        repaintDrawings();
+      }
+      /** A point of the chart in its pane's plot, where drawings are drawn, in pixels. */
+      const plotPoint = (clientX, clientY, rect) => ({ x: clientX - $("chart").getBoundingClientRect().left - view.priceScale("left", 0).width(), y: clientY - rect.top });
+      /** The drawing under a point of the chart: a point of one first, else the last drawn. */
+      function drawingAt(clientX, clientY, reach = REACH) {
+        const pane = shownDrawings.length ? paneAt(clientY) : null, id = pane && chart.panes[pane.index]?.id;
+        if (!pane || !id) return null;
+        const at = plotPoint(clientX, clientY, pane.rect);
+        // Over an axis, the axis'.
+        if (at.x < 0 || at.x > view.timeScale().width()) return null;
+        const score = (hit) => (hit.handle >= 0 ? MAX_DRAWINGS : 0) + shownDrawings.indexOf(hit.drawing);
+        let found = null;
+        for (const layer of chart.layers) {
+          const hit = layer.pane === id ? sketches.get(drawn.get(layer.id))?.hit(at.x, at.y, reach) : null;
+          if (hit && (!found || score(hit) > score(found))) found = hit;
+        }
+        return found;
+      }
+      /** The layer drawn on in a pane: its first shown (its first, every one hidden). */
+      function hostIn(index) {
+        const id = chart.panes[index]?.id, mates = chart.layers.filter((layer) => layer.pane === id && drawn.has(layer.id));
+        return mates.find((layer) => !layer.hidden) ?? mates[0] ?? null;
+      }
+      /**
+       * A point on a layer's scale, from where the pointer is: its time on the nearest bar (`free`: anywhere), past the
+       * data too; its value drawn to a shown layer's at that bar within reach (`pull`: a candle's high, a line's point),
+       * else as the scale reads there.
+       * @returns {[number, number] | null}
+       */
+      function pointFrom(at, layer, { free = false, pull = false } = {}) {
+        const line = timeLine(), series = drawn.get(layer.id);
+        if (!line || !series) return null;
+        const exact = (at.x - line.at) / line.step, near = pull ? nearestValue(Math.round(exact), at.y, layer.pane) : null;
+        const value = near?.layer === layer.id ? near.value : series.coordinateToPrice(near?.y ?? at.y);
+        return value === null || !Number.isFinite(value) ? null : pointOf(timeOfBar(free ? exact : Math.round(exact)), value);
+      }
+      /** The value nearest a height at a bar among a pane's shown layers' as drawn (a candle's four; stacked, its total), within reach. */
+      function nearestValue(bar, y, pane) {
+        if (bar < 0 || bar >= drawnTimes.length) return null;
+        let best = null;
+        for (const layer of chart.layers) {
+          const made = built.get(layer.id), series = drawn.get(layer.id);
+          if (layer.pane !== pane || layer.hidden || !made || !series) continue;
+          for (const value of layer.type === "candles" && !made.stacked && made.ohlc?.[bar] ? made.ohlc[bar] : [made.shown?.[bar]]) {
+            const at = Number.isFinite(value) ? series.priceToCoordinate(value) : null;
+            if (at !== null && Math.abs(at - y) <= PULL && (!best || Math.abs(at - y) < best.off)) best = { layer: layer.id, value, y: at, off: Math.abs(at - y) };
+          }
+        }
+        return best;
+      }
+      /** A stroke with what adds nothing taken out: no point strays further than `tolerance` pixels from what's kept. */
+      function simplify(points, tolerance) {
+        if (points.length < 3) return points;
+        const keep = new Uint8Array(points.length), stack = [[0, points.length - 1]];
+        keep[0] = keep[points.length - 1] = 1;
+        while (stack.length) {
+          const [from, to] = /** @type {[number, number]} */ (stack.pop());
+          let far = -1, most = tolerance;
+          for (let i = from + 1; i < to; i++) {
+            const off = toSegment(points[i].x, points[i].y, points[from], points[to]);
+            if (off > most) [far, most] = [i, off];
+          }
+          if (far >= 0) {
+            keep[far] = 1;
+            stack.push([from, far], [far, to]);
+          }
+        }
+        return points.filter((_, i) => keep[i]);
+      }
+
+      /** A press the chart doesn't also take (it would pan): its mousedown or touchstart, swallowed. */
+      let swallow = false;
+      function take(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        swallow = true;
+        $("chart").setPointerCapture(event.pointerId);
+      }
+      for (const type of ["mousedown", "touchstart"]) $("chart").addEventListener(type, (event) => {
+        if (!swallow) return;
+        swallow = false;
+        event.preventDefault();
+        event.stopPropagation();
+      }, { capture: true, passive: false });
+      // Capture phase, before the chart: a press that draws, or takes a drawing, doesn't pan. (⇧ measures.)
+      $("chart").addEventListener("pointerdown", (event) => {
+        if (writing) $("draw-text").blur();
+        if (event.button !== 0 || event.shiftKey || measureMode || !resolved?.times.length) return;
+        const pane = paneAt(event.clientY);
+        if (!pane) return;
+        const at = plotPoint(event.clientX, event.clientY, pane.rect);
+        // A press on an axis scales it, whatever's drawing.
+        if (at.x < 0 || at.x > view.timeScale().width()) return;
+        if (tool) {
+          take(event);
+          // Placed click by click: this press ends it, at its release.
+          if (placing) return void Object.assign(placing, { down: at, held: true });
+          const host = hostIn(pane.index), point = host && pointFrom(at, host, { free: tool === "brush" || tool === "text", pull: PAIRED.has(tool) || tool === "hline" ? !event.altKey : false });
+          if (!host || !point) return;
+          placing = { rect: pane.rect, host, down: at, held: true, clicks: false, stroke: [at] };
+          if (tool !== "text") draft = newDrawing(tool, host.id, PAIRED.has(tool) ? [point, [...point]] : [point]);
+          return repaintDrawings();
+        }
+        const hit = drawingAt(event.clientX, event.clientY, reachOf(event));
+        // A press on nothing pans; a click there lets the selected drawing go (at its release, unmoved).
+        if (!hit) return void (pressedAt = drawingById(selected) ? { x: event.clientX, y: event.clientY } : null);
+        take(event);
+        moving = { original: hit.drawing, handle: hit.handle, rect: pane.rect, start: at, moved: false };
+        selectDrawing(hit.drawing.id);
+      }, true);
+      $("chart").addEventListener("pointermove", (event) => {
+        if (placing) return placeTo(event);
+        if (moving) return moveTo(event);
+        hover(event.buttons || tool || measureMode || event.shiftKey ? null : drawingAt(event.clientX, event.clientY));
+      });
+      /** Where a press on nothing was, while a drawing is selected. */
+      let pressedAt = null;
+      $("chart").addEventListener("pointerup", (event) => {
+        swallow = false;
+        if (placing?.held) placed(event);
+        else if (moving) moved();
+        else if (pressedAt && Math.hypot(event.clientX - pressedAt.x, event.clientY - pressedAt.y) < 4 && drawingById(selected)) deselect();
+        pressedAt = null;
+      });
+      $("chart").addEventListener("pointercancel", () => {
+        swallow = false;
+        stopDrawing();
+      });
+      $("chart").addEventListener("pointerleave", () => !placing && !moving && hover(null));
+      // Double-click: a text, to type into; any other drawing, its settings, in the panel.
+      $("chart").addEventListener("dblclick", (event) => {
+        const hit = tool ? null : drawingAt(event.clientX, event.clientY);
+        if (!hit) return;
+        event.stopPropagation();
+        if (hit.drawing.kind === "text") startTyping(hit.drawing);
+        else select(hit.drawing.id);
+      }, true);
+      // A right-click on a drawing: its menu, as a layer's row has.
+      $("chart").addEventListener("contextmenu", (event) => {
+        const hit = tool || placing ? null : drawingAt(event.clientX, event.clientY);
+        if (!hit) return;
+        event.preventDefault();
+        selectDrawing(hit.drawing.id);
+        drawingMenu(hit.drawing, { x: event.clientX, y: event.clientY });
+      });
+      /** @param {Drawing} drawing */
+      function drawingMenu(drawing, point) {
+        showMenu($("chart"), `
+          <button type="button" data-pick="edit">${ICONS.sliders}Settings</button>
+          ${drawing.kind === "text" ? `<button type="button" data-pick="text">${ICONS.pencil}Edit the text</button>` : ""}
+          <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate<kbd>${keyText("⌘D")}</kbd></button>
+          <div class="menu-rule"></div>
+          <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove<kbd>⌫</kbd></button>`, ({ pick }) => {
+          const now = drawingById(drawing.id);
+          if (!now) return;
+          if (pick === "edit") select(now.id);
+          else if (pick === "text") startTyping(now);
+          else if (pick === "duplicate") duplicateDrawing(now.id);
+          else if (pick === "remove") removeDrawing(now.id);
+        }, point);
+      }
+      /** What's being drawn or moved, let go of as it was. */
+      function stopDrawing() {
+        if (!placing && !moving) return;
+        placing = moving = draft = null;
+        document.body.classList.remove("grabbing");
+        showHint();
+        repaintDrawings();
+      }
+      /** The point being placed follows the pointer (a stroke goes on, steadied). */
+      function placeTo(event) {
+        const host = placing.host;
+        if (tool === "brush" && draft) {
+          const coalesced = event.getCoalescedEvents?.() ?? [];
+          for (const each of coalesced.length ? coalesced : [event]) {
+            // Each point half the way from the last to the pointer: the hand's tremor taken out.
+            const raw = plotPoint(each.clientX, each.clientY, placing.rect), last = placing.stroke[placing.stroke.length - 1];
+            const point = { x: (last.x + raw.x) / 2, y: (last.y + raw.y) / 2 }, at = pointFrom(point, host, { free: true });
+            placing.stroke.push(point);
+            if (at) draft.points.push(at);
+          }
+          return repaintDrawings();
+        }
+        const point = draft && pointFrom(plotPoint(event.clientX, event.clientY, placing.rect), host, { pull: tool !== "vline" && !event.altKey });
+        if (!point || !draft) return;
+        draft = { ...draft, points: [...draft.points.slice(0, -1), point] };
+        repaintDrawings();
+      }
+      /** Let go: a click on a line's or a box's first point leaves its second to the next click; else it's placed. */
+      function placed(event) {
+        const at = plotPoint(event.clientX, event.clientY, placing.rect), still = Math.hypot(at.x - placing.down.x, at.y - placing.down.y) < 4;
+        if (PAIRED.has(tool) && still && !placing.clicks) {
+          Object.assign(placing, { clicks: true, held: false });
+          return showHint();
+        }
+        const { host, stroke } = placing, kind = tool;
+        let drawing = draft;
+        if (kind !== "brush") setTool("");
+        placing = draft = null;
+        if (kind === "text") {
+          const point = pointFrom(at, host, { free: true });
+          return void (point && startTyping(newDrawing("text", host.id, [point])));
+        }
+        if (kind === "brush" && drawing) {
+          stroke.push(at);
+          let kept = simplify(stroke, 0.75);
+          // (Tolerance grows until it fits: only a long scribble gets there.)
+          for (let tolerance = 1.5; kept.length > MAX_STROKE; tolerance *= 1.5) kept = simplify(stroke, tolerance);
+          drawing = { ...drawing, points: /** @type {[number, number][]} */ (kept.map((point) => pointFrom(point, host, { free: true })).filter(Boolean)) };
+        }
+        const series = drawn.get(host.id), line = timeLine(), ends = drawing && series && line ? onScreen(drawing, series, line) : [];
+        // Its two points on one spot: nothing to draw.
+        if (!drawing || !drawing.points.length || (PAIRED.has(kind) && !(ends.length && Math.hypot(ends[1].x - ends[0].x, ends[1].y - ends[0].y) >= 3))) return repaintDrawings();
+        addDrawing(drawing, kind !== "brush");
+      }
+      /** A drawing taken hold of follows the pointer: by a point (a box, by a corner, the opposite one held), or all of it. */
+      function moveTo(event) {
+        const at = plotPoint(event.clientX, event.clientY, moving.rect), { original, handle } = moving;
+        // A click isn't a move.
+        if (!moving.moved && Math.hypot(at.x - moving.start.x, at.y - moving.start.y) < 3) return;
+        moving.moved = true;
+        document.body.classList.add("grabbing");
+        const host = layerById(original.layer), series = drawn.get(original.layer), line = timeLine();
+        if (!host || !series || !line) return;
+        const point = () => pointFrom(at, host, { pull: !event.altKey });
+        let points = null;
+        if (handle >= 0 && original.kind === "trend") points = original.points.map((each, i) => (i === handle ? point() ?? each : each));
+        else if (handle >= 0 && original.kind === "rect") {
+          const [[t0, v0], [t1, v1]] = original.points, held = [[t0, v0], [t1, v0], [t1, v1], [t0, v1]][(handle + 2) % 4];
+          points = [held, point() ?? original.points[1]];
+        } else points = movedBy(original, series, line, at.x - moving.start.x, at.y - moving.start.y);
+        draft = { ...original, points };
+        repaintDrawings();
+      }
+      /**
+       * A drawing's points moved by pixels on its pane: across by whole bars (a stroke, a text: as far as it's moved), up or
+       * down on its scale. @param {Drawing} drawing @returns {[number, number][]}
+       */
+      function movedBy(drawing, series, line, dx, dy) {
+        const bars = drawing.kind === "brush" || drawing.kind === "text" ? dx / line.step : Math.round(dx / line.step);
+        return drawing.points.map(([time, value]) => {
+          const y = dy ? series.priceToCoordinate(value) : null, to = y === null ? null : series.coordinateToPrice(y + dy);
+          return pointOf(timeOfBar(barOf(time) + bars), to !== null && Number.isFinite(to) ? to : value);
+        });
+      }
+      /** A copy of a drawing, a little down and to the right of it (a bar at least), selected. */
+      function duplicateDrawing(id) {
+        const drawing = drawingById(id), series = drawing && drawn.get(drawing.layer), line = timeLine();
+        if (!drawing || !series || !line) return;
+        addDrawing({ ...structuredClone(drawing), id: uid(), points: movedBy(drawing, series, line, Math.max(12, line.step), 12) });
+      }
+      /** Let go of a drawing: moved, it's the chart's where it is (one undo); not moved, it was a click: it's selected. */
+      function moved() {
+        const { original } = moving, drawing = draft;
+        moving = draft = null;
+        document.body.classList.remove("grabbing");
+        if (!drawing || JSON.stringify(drawing.points) === JSON.stringify(original.points)) return repaintDrawings();
+        editById(drawing.id, (item) => (item.points = drawing.points));
+      }
+      /** A drawing selected on the chart: its points to hold it by, its settings in the panel where that's open. */
+      function selectDrawing(id) {
+        if (selected === id) return;
+        selected = id;
+        renderLayers();
+        renderInspector();
+        updateLegends();
+        repaintDrawings();
+      }
+      /** A drawing into the chart (one undo), selected (a stroke isn't: the brush goes on). @param {Drawing} drawing */
+      function addDrawing(drawing, selectIt = true) {
+        if ((chart.drawings?.length ?? 0) >= MAX_DRAWINGS) {
+          repaintDrawings();
+          return notice(`A chart holds up to ${MAX_DRAWINGS} drawings`);
+        }
+        commit((doc) => (doc.drawings ??= []).push(drawing), { redraw: "none" });
+        if (selectIt) selectDrawing(drawing.id);
+      }
+      function removeDrawing(id) {
+        const drawing = drawingById(id);
+        if (!drawing) return;
+        commit((doc) => (doc.drawings = doc.drawings?.filter((item) => item.id !== id)), { redraw: "none" });
+        undoToast(`Removed the ${TOOLS[drawing.kind].noun}`);
+      }
+      function clearDrawings() {
+        const n = chart.drawings?.length ?? 0;
+        if (!n) return;
+        commit((doc) => delete doc.drawings, { redraw: "none" });
+        undoToast(`Removed ${plural(n, "drawing")}`);
+      }
+
+      /** Typing a text where it's drawn: ↵ or esc (or a click away) keeps it, ⇧↵ starts a line; emptied, it goes. @param {Drawing} drawing */
+      function startTyping(drawing) {
+        const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), size = drawing.size ?? 14;
+        writing = { drawing, fresh: !drawingById(drawing.id) };
+        typingIn = drawing.id;
+        field.value = drawing.text ?? "";
+        field.style.setProperty("--c", cssColor(drawing.color));
+        field.style.setProperty("--size", `${size}px`);
+        field.style.setProperty("--line", `${Math.round(size * 1.3)}px`);
+        field.hidden = false;
+        placeField();
+        field.focus();
+        field.setSelectionRange(field.value.length, field.value.length);
+        repaintDrawings();
+      }
+      /** The field over where its text is drawn, as wide and tall as what's typed. */
+      function placeField() {
+        const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), drawing = writing?.drawing, layer = drawing && layerById(drawing.layer);
+        const series = layer && drawn.get(layer.id), line = timeLine(), pane = layer && view.panes()[chart.panes.findIndex((item) => item.id === layer.pane)]?.getHTMLElement();
+        if (!drawing || !series || !line || !pane) return;
+        const [point] = onScreen(drawing, series, line), box = textBox({ ...drawing, text: field.value || " " }, point);
+        const canvas = $("canvas").getBoundingClientRect(), plot = $("chart").getBoundingClientRect().left + view.priceScale("left", 0).width();
+        Object.assign(field.style, { left: `${plot - canvas.left + box.left - 4}px`, top: `${pane.getBoundingClientRect().top - canvas.top + box.top}px`, width: `${Math.ceil(Math.max(box.width, box.size)) + 10}px`, height: `${box.height}px` });
+      }
+      function endTyping() {
+        if (!writing) return;
+        const { drawing, fresh } = writing, text = /** @type {HTMLTextAreaElement} */ ($("draw-text")).value.replace(/\s+$/, "");
+        writing = null;
+        typingIn = "";
+        $("draw-text").hidden = true;
+        if (fresh) return text.trim() ? addDrawing({ ...drawing, text }) : repaintDrawings();
+        if (!text.trim()) return removeDrawing(drawing.id);
+        if (text === drawing.text) return repaintDrawings();
+        editById(drawing.id, (item) => (item.text = text));
+      }
+      $("draw-text").addEventListener("input", placeField);
+      $("draw-text").addEventListener("blur", endTyping);
+      $("draw-text").addEventListener("keydown", (event) => {
+        if (!((event.key === "Enter" && !event.shiftKey) || event.key === "Escape")) return;
+        event.preventDefault();
+        $("draw-text").blur();
       });
 
       // ── Layers ────────────────────────────────────────────────────────────────
@@ -8406,9 +9329,9 @@
       /**
        * A chart's mark: up to three lines, each with its kind (none: a line), its second color and its base; and each
        * layer's own, with its base (a baseline's, bars'), in hundredths of the height.
-       * @typedef {{ lines: ([string, (number | null)[]] | [string, (number | null)[], string, string, number])[], marks: Record<string, (number | null)[]>, bases?: Record<string, number> }} Drawing
+       * @typedef {{ lines: ([string, (number | null)[]] | [string, (number | null)[], string, string, number])[], marks: Record<string, (number | null)[]>, bases?: Record<string, number> }} Thumb
        */
-      /** @type {Map<string, Drawing & { key: string }>} */
+      /** @type {Map<string, Thumb & { key: string }>} */
       const thumbs = new Map(Object.entries(storage.get(THUMBS, {})).filter(([, thumb]) => validThumb(thumb)));
       /** Whether a formula runs a window (a call with its span: on a coarser interval, a short one would be one point). */
       const runsWindow = (/** @type {string} */ formula) => {
@@ -8488,7 +9411,7 @@
         }
         return data.failed.length > 0;
       }
-      /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @param {string} [at] its data's interval, if not the usual one @returns {Promise<Drawing | null>} null when a fetch failed */
+      /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @param {string} [at] its data's interval, if not the usual one @returns {Promise<Thumb | null>} null when a fetch failed */
       async function drawThumb(doc, at = "") {
         const coarse = INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf("month1");
         const windowed = doc.layers.some((layer) => runsWindow(layer.formula ?? ""));
@@ -9142,6 +10065,7 @@
       function showHome(push = true) {
         delete document.body.dataset.sheet;
         if (home) return;
+        leaveField();
         saveView();
         // The open chart as it is now: its card shows it before it shrinks into it.
         if (settled() && chart.layers.length) {
@@ -9152,6 +10076,7 @@
         const draft = cancelling === chart.id && library.charts.length > 1 ? chart : null;
         cancelling = "";
         hideMenu();
+        setTool("");
         disarm();
         hideTip();
         clearMeasure();
@@ -10132,6 +11057,7 @@
         renderLayers();
         renderInspector();
         updateLegends();
+        repaintDrawings();
         if (fromList && selected) /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="deselect"]'))?.focus();
       }
       function deselect() {
@@ -10154,9 +11080,10 @@
             <button type="button" class="nav-item danger" data-action="remove">${ICONS.trash}<span class="label">Remove</span><kbd>⌫</kbd></button>
           </section>`;
       function renderInspector() {
-        const layer = layerById(selected);
-        document.body.toggleAttribute("data-inspect", Boolean(layer));
+        const layer = layerById(selected), drawing = layer ? undefined : drawingById(selected);
+        document.body.toggleAttribute("data-inspect", Boolean(layer || drawing));
         const panel = $("inspector");
+        if (drawing) return inspectDrawing(drawing, panel);
         // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from.
         const was = new Map(all$("#inspector .stepper").map((element) => [element.id, { handle: getComputedStyle(element, "::after").left, fill: getComputedStyle(element, "::before").width }]));
         if (!layer) {
@@ -10263,6 +11190,39 @@
         if (result?.missing) suggestReplacement(layer);
       }
 
+      /** A drawing's settings: its color and line (a text, its words and size), a trend line's reach; removing it. @param {Drawing} drawing */
+      function inspectDrawing(drawing, panel) {
+        // While its words are typed here, the field (and its caret) stays as it is.
+        if (inspected === drawing.id && document.activeElement?.id === "drawing-text") return;
+        const another = inspected !== drawing.id, focus = another ? null : focusKey(panel), host = layerById(drawing.layer);
+        inspected = drawing.id;
+        panel.innerHTML = `
+          <div class="inspector-head">
+            <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
+            <span class="letter" style="--c:${escape(ink(drawing.color))}">${TOOLS[drawing.kind].icon}</span>
+            <span class="kind">${TOOLS[drawing.kind].name}</span>
+            <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
+          </div>
+          ${drawing.kind === "text" ? `<section><h3>Text</h3><textarea id="drawing-text" class="text-field" data-drawing="${drawing.id}" maxlength="500" spellcheck="false" aria-label="Text">${escape(drawing.text ?? "")}</textarea></section>` : ""}
+          <section>
+            <h3>Style</h3>
+            ${colorPicker(drawing)}
+            ${drawing.kind === "text"
+              ? `<div class="field"><span>Size</span><div class="tabs" role="group" aria-label="Text size">${SIZES.map((size) => `<button type="button" data-text-size="${size}" aria-pressed="${(drawing.size ?? 14) === size}" aria-label="${SIZE_NAMES[size]}" data-tip="${SIZE_NAMES[size]}, ${size}px">${{ 12: "S", 14: "M", 18: "L", 24: "XL" }[size]}</button>`).join("")}</div></div>`
+              : `<div class="field"><span>Width${resetFor("width", drawing)}</span>${slider("width", drawing)}</div>
+            <div class="field"><span>Line</span><div class="tabs glyphs" role="group" aria-label="Line style">${DASHES.map(([dash, text, length, gap]) => `<button type="button" data-dash="${dash}" aria-pressed="${drawing.dash === dash}" aria-label="${text}" data-tip="${text}">${dashGlyph(length, gap)}</button>`).join("")}</div></div>`}
+            ${drawing.kind === "trend" ? `<div class="field"><span>Extend</span><div class="tabs glyphs" role="group" aria-label="Extend">${EXTENDS.map(([extend, text, tip]) => `<button type="button" data-extend="${extend}" aria-pressed="${(drawing.extend ?? "") === extend}" aria-label="${text}" data-tip="${tip}">${extendGlyph(extend)}<span>${text}</span></button>`).join("")}</div></div>` : ""}
+            ${host ? `<div class="field"><span>Layer</span><span class="drawn-on" data-tip="Drawn on its scale; it goes with it"><span class="letter" style="--c:${escape(ink(host.color))}">${host.letter}</span>${escape(labelOf(host))}</span></div>` : ""}
+          </section>
+          <section class="layer-actions">
+            <button type="button" class="nav-item" data-action="duplicate" data-kbd="⌘ D">${ICONS.duplicate}<span class="label">Duplicate</span></button>
+            <button type="button" class="nav-item danger" data-action="remove">${ICONS.trash}<span class="label">Remove</span><kbd>⌫</kbd></button>
+          </section>`;
+        restoreFocus(panel, focus);
+        drawPlane();
+        if (another) panel.scrollTop = 0;
+      }
+
       /**
        * The values a field resets to, and how each reads: a field's reset shows only when its value isn't the default, at
        * the end of its label. (Tabs need none: their default is one click away.)
@@ -10288,7 +11248,7 @@
       }
       /** A value, as a slider sets it: one undo step per drag or run of keys, the chart rebuilt at each stop. */
       function setSlider(id, value) {
-        const layer = layerById(selected);
+        const layer = subject();
         if (!layer || SLIDERS[id].of(layer) === value) return;
         editLayer((target) => SLIDERS[id].set(target, value), { coalesce: `${id}:${selected}` });
       }
@@ -10331,7 +11291,7 @@
       });
       $("inspector").addEventListener("keydown", (event) => {
         const spec = SLIDERS[event.target.id];
-        const layer = layerById(selected);
+        const layer = subject();
         if (!spec || !layer || !event.target.classList.contains("stepper")) return;
         const at = spec.stops.indexOf(spec.of(layer)), last = spec.stops.length - 1;
         const to = { ArrowLeft: at - 1, ArrowDown: at - 1, PageDown: at - 1, ArrowRight: at + 1, ArrowUp: at + 1, PageUp: at + 1, Home: 0, End: last }[event.key];
@@ -10488,7 +11448,7 @@
         picking = color;
         pickFrame ||= requestAnimationFrame(() => {
           pickFrame = 0;
-          const layer = layerById(selected), key = layer ? colorKey(layer) : "color";
+          const layer = subject(), key = layer ? colorKey(layer) : "color";
           if (!layer || colorOf(layer, key) === picking) return;
           const color = picking;
           editLayer((target) => setColor(target, key, color), { coalesce: `${key}:${selected}` });
@@ -10534,7 +11494,7 @@
       /** The color under a point of the surface (found again each time: the inspector redraws under the drag). */
       function pickAt(clientX, clientY) {
         const element = $("plane");
-        if (!element || !layerById(selected)) return;
+        if (!element || !subject()) return;
         const box = element.getBoundingClientRect();
         // The outermost pixel and a half of each side is its edge: white, black and the purest grays need no aim.
         const snap = (v, size) => (v < 1.5 / size ? 0 : v > 1 - 1.5 / size ? 1 : v);
@@ -10544,7 +11504,7 @@
       $("inspector").addEventListener("keydown", (event) => {
         const id = event.target.id;
         if (id !== "plane" || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
-        const layer = layerById(selected);
+        const layer = subject();
         if (!layer) return;
         event.preventDefault();
         event.stopPropagation();
@@ -10560,9 +11520,9 @@
           if (pickColor && pickColor !== current) apply(pickColor);
         });
       }
-      /** The selected layer's color (or the second of its pair), from the menu under its name. */
+      /** The selected layer's color (or the second of its pair), or drawing's, from the menu under its name. */
       function layerColorMenu(anchor) {
-        const layer = layerById(selected);
+        const layer = subject();
         if (!layer) return;
         const key = colorKey(layer);
         colorMenu(anchor, colorOf(layer, key), (color) => {
@@ -10952,6 +11912,8 @@
       }
       document.addEventListener("focusout", (event) => {
         const field = /** @type {HTMLInputElement} */ (event.target);
+        // A text emptied is no drawing.
+        if (field.id === "drawing-text") return void (!field.value.trim() && removeDrawing(/** @type {string} */ (field.dataset.drawing)));
         if (field.id === "base") {
           // Its Reset put in or taken out (only it: the panel drawn again would lose the click that left the field).
           const layer = layerById(selected), label = field.closest(".field")?.firstElementChild, reset = label?.querySelector(".reset");
@@ -10963,11 +11925,18 @@
         clearTimeout(typingTimer);
         $("formula-editor")?.classList.remove("typing");
       });
-      /** An edit to one layer, by its id; `editLayer`, to the selected one. @param {string} id @param {(layer: Layer, doc: Chart) => void} edit */
-      const editById = (id, edit, options = undefined) => commit((doc) => {
-        const layer = doc.layers.find((item) => item.id === id);
-        if (layer) edit(layer, doc);
-      }, options);
+      /**
+       * An edit to one layer (or drawing), by its id; `editLayer`, to the selected one. A drawing's leaves the series as
+       * they are: only the drawings are drawn again.
+       * @param {string} id @param {(item: any, doc: Chart) => void} edit
+       */
+      function editById(id, edit, options = undefined) {
+        const drawing = Boolean(drawingById(id));
+        commit((doc) => {
+          const item = drawing ? doc.drawings?.find((other) => other.id === id) : doc.layers.find((other) => other.id === id);
+          if (item) edit(item, doc);
+        }, drawing ? { redraw: "none", ...options } : options);
+      }
       const editLayer = (edit, options = undefined) => editById(selected, edit, options);
       /** A series' name to the clipboard, and a word either way. @param {string} name */
       const copyName = (name) => (navigator.clipboard?.writeText(name) ?? Promise.reject()).then(() => toast("Series name copied"), () => notice("Couldn't copy the series name"));
@@ -10975,6 +11944,7 @@
       $("inspector").addEventListener("input", (event) => {
         const target = event.target;
         if (target.id === "label") editLayer((layer) => (layer.label = target.value.trim() || undefined), { coalesce: `label:${selected}`, redraw: "none" });
+        else if (target.id === "drawing-text") editById(target.dataset.drawing, (drawing) => (drawing.text = target.value), { coalesce: `text:${target.dataset.drawing}` });
         else if (target.id === "formula") {
           markTyping();
           editLayer((layer) => (layer.formula = target.value), { coalesce: `formula:${selected}` });
@@ -11053,7 +12023,7 @@
       $("inspector").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
-        const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorTarget: target, replace, removeLevel, lineColor, lineDash } = button.dataset;
+        const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorTarget: target, replace, removeLevel, lineColor, lineDash, extend, textSize } = button.dataset;
         if (index) switchInterval(index);
         else if (action === "derive") deriveMenu(button, selected);
         else if (action === "pane-menu") paneMenu(button);
@@ -11062,6 +12032,8 @@
         else if (action === "to-series") turnToSeries(button, selected);
         else if (type) editLayer((layer) => (layer.type = type));
         else if (dash) editLayer((layer) => (layer.dash = Number(dash)));
+        else if (extend !== undefined) editLayer((drawing) => (drawing.extend = extend || undefined));
+        else if (textSize) editLayer((drawing) => (drawing.size = Number(textSize)));
         else if (shape) editLayer((layer) => (layer.shape = shape === "straight" ? undefined : shape));
         else if (fill) editLayer((layer) => (layer.fill = fill === "above" ? "above" : undefined));
         else if (action === "add-level") addLevel();
@@ -11089,8 +12061,8 @@
           refocus(`[data-color-target="${target}"]`);
         } else if (action === "deselect") deselect();
         else if (action === "remove") {
-          if (confirmed(button)) removeLayer(selected);
-        } else if (action === "duplicate") duplicateLayer(selected);
+          if (confirmed(button)) (drawingById(selected) ? removeDrawing : removeLayer)(selected);
+        } else if (action === "duplicate") (drawingById(selected) ? duplicateDrawing : duplicateLayer)(selected);
         else if (action === "hide") toggleHidden(selected);
         else if (action === "more") {
           expanded = !expanded;
@@ -11183,8 +12155,9 @@
             return false;
           }
         })());
+        const sketched = chart.drawings?.filter((drawing) => drawing.layer === id).length ?? 0;
         commit((doc) => (doc.layers = doc.layers.filter((item) => item.id !== id)));
-        undoToast(`Removed ${labelOf(layer)}${users.length ? `; ${users.map(labelOf).join(", ")} used it` : ""}`);
+        undoToast(`Removed ${labelOf(layer)}${sketched ? ` and its ${plural(sketched, "drawing")}` : ""}${users.length ? `; ${users.map(labelOf).join(", ")} used it` : ""}`);
       }
       /** A layer's menu, for a right-click on its row. */
       function layerMenu(anchor, id, point) {
@@ -11727,6 +12700,11 @@
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
           ...(empty || !scalePane().stack ? [] : [scalePane()].map((pane) => ({ title: pane.reverse ? "Stack in order" : "Reverse the stack", text: `${stackRun(stackLetters(pane), !pane.reverse)}${chart.panes.length > 1 ? `, in pane ${chart.panes.indexOf(pane) + 1}` : ""}.`, words: "stack stacked order reverse reversed flip bottom top", icon: "axis", run: () => setPaneReverse(pane.id, !pane.reverse) }))),
+          ...(empty ? [] : [
+            ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, words: "draw drawing tool cancel end", icon: tool, kbd: "esc", run: () => setTool("") }] : []),
+            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: `${TOOLS[kind].tip}; esc to stop.`, words: `draw drawing annotate annotation ${TOOLS[kind].name} ${TOOLS[kind].noun}`, icon: kind, run: () => setTool(kind) })),
+            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
+          ]),
           { title: measureMode ? "Stop measuring" : "Measure", text: measureMode ? "Dragging pans the chart again." : "Drag across the chart to measure a change.", words: "measure measuring ruler distance difference percent", icon: "ruler", kbd: "M", run: () => setMeasureMode(!measureMode) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
@@ -12319,7 +13297,7 @@
         fill: "area", width: "thickness stroke", opacity: "transparency alpha", pane: "move", side: "left right", "price-line": "last value",
         base: "zero", levels: "horizontal lines threshold", hide: "visible show", remove: "delete", duplicate: "copy clone",
         interval: "timeframe resolution", range: "zoom period", export: "download png csv json image", share: "link url",
-        scale: "log linear percent indexed", stack: "stacked cumulative sum share total", height: "size resize", up: "swap reorder", down: "swap reorder", "go-to": "jump date when",
+        scale: "log linear percent indexed", extend: "ray reach extended project future", text: "words label note write", size: "font bigger smaller", stack: "stacked cumulative sum share total", height: "size resize", up: "swap reorder", down: "swap reorder", "go-to": "jump date when",
       };
       /** Edits from one word to another (a letter added, dropped, changed, two swapped), stopping past `most`. */
       function editsBetween(a, b, most) {
@@ -12531,6 +13509,7 @@
           { name: titleOf(chart), page: chartPage, only: ["title", "interval", "range"] },
           ...chart.layers.map((layer) => ({ name: shared.has(labelOf(layer)) ? `${labelOf(layer)} (${layer.letter})` : labelOf(layer), page: () => layerPage(layer.id), only: null })),
           ...chart.panes.map((pane, i) => ({ name: `Pane ${i + 1}`, page: () => panePage(pane.id), only: null })),
+          ...((names) => (chart.drawings ?? []).map((drawing) => ({ name: /** @type {string} */ (names.get(drawing.id)), page: () => drawingPage(drawing.id), only: null })))(drawingNames()),
         ];
         return owners.flatMap(({ name, page, only }) => page().rows().filter((row) => !row.key.startsWith("layer:") && !row.key.startsWith("add-") && (!only || only.includes(row.key))).map((row) => ({
           ...row, key: `setting:${name}:${row.key}`, group: "In this chart", label: `${name} · ${row.label}`, words: `${name} ${row.words ?? ""} ${SYNONYMS[row.key] ?? ""}`, of: row.page,
@@ -12590,6 +13569,7 @@
           ...(any ? [
             { key: "page:layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), words: "series formulas edit change style", page: layersPage },
             { key: "page:panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), words: "scale height resize swap move", page: panesPage },
+            { key: "page:drawings", icon: ICONS.draw, label: "Drawings", aside: chart.drawings?.length ? plural(chart.drawings.length, "drawing") : "Lines, boxes, text", words: "draw drawings annotations lines shapes text brush", page: drawingsPage },
           ] : []),
           { key: "page:presets", icon: ICONS.series, label: "Website charts", aside: presets ? plural(presets.length, "chart") : "From bitview.space", words: "website bitview presets examples import base start browse", page: () => presetsPage([]) },
         ].filter((row) => !home || row.key === "page:charts" || row.key === "page:presets").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
@@ -12745,6 +13725,42 @@
         } };
       }
       const swatchOf = (color) => `<i class="swatch" style="--c:${escape(cssColor(color))}"></i>`;
+      /** The chart's drawings, each to open; the tools, to draw another; removing them all. @returns {Page} */
+      const drawingsPage = () => ({ title: "Drawings", placeholder: "Search the drawings", rows: () => {
+        const names = drawingNames();
+        return [
+          ...(chart.drawings ?? []).map((drawing) => ({ kind: "row", key: drawing.id, icon: TOOLS[drawing.kind].icon, label: /** @type {string} */ (names.get(drawing.id)), aside: `On ${labelOf(layerById(drawing.layer) ?? { label: "" })}`, group: "On the chart", page: () => drawingPage(drawing.id) })),
+          ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => setTool(kind) })),
+          ...(chart.drawings?.length ? [{ kind: "row", key: "clear", icon: ICONS.trash, label: "Remove every drawing", verb: "Remove", group: "Draw", danger: true, run: clearDrawings }] : []),
+        ];
+      } });
+      /** A drawing, all it is: its color, its line (a text's words and size), a trend line's reach; showing it; removing it. @returns {Page} */
+      function drawingPage(id) {
+        return { title: () => drawingNames().get(id) ?? "Drawing", placeholder: "Search its settings", rows: () => {
+          const drawing = drawingById(id);
+          if (!drawing) return [];
+          const now = () => drawingById(id) ?? drawing, style = dashOf(drawing.dash);
+          /** A change, kept with ↵, shown on the chart while highlighted. */
+          const both = (edit) => ({ run: () => editById(id, edit), look: (/** @type {Chart} */ doc) => {
+            const item = doc.drawings?.find((other) => other.id === id);
+            if (item) edit(item);
+          } });
+          return [
+            ...(drawing.kind === "text" ? [{ key: "text", icon: ICONS.pencil, label: "Text", aside: drawing.text, group: "Style", page: () => inputPage({ title: "Text", value: drawing.text ?? "", placeholder: "Its words", hint: "Its words", verb: "Set", read: (text) => (text.trim() ? `Set to “${text.trim()}”` : null), apply: (text) => editById(id, (item) => (item.text = text.trim())) }) }] : []),
+            { key: "color", icon: swatchOf(drawing.color), label: "Color", aside: colorName(drawing.color), group: "Style", page: () => choicePage("Color", () => SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: now().color === name, ...both((item) => (item.color = name)) }))) },
+            ...(drawing.kind === "text"
+              ? [{ key: "size", icon: ICONS.text, label: "Size", aside: SIZE_NAMES[drawing.size ?? 14], group: "Style", page: () => choicePage("Size", () => SIZES.map((size) => ({ key: String(size), icon: ICONS.text, label: SIZE_NAMES[size], aside: `${size}px`, current: (now().size ?? 14) === size, ...both((item) => (item.size = size)) }))) }]
+              : [
+                { key: "width", icon: ICONS.sliders, label: "Width", aside: `${drawing.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) },
+                { key: "dash", icon: dashGlyph(style[2], style[3]), label: "Line style", aside: style[1], group: "Style", page: () => choicePage("Line style", () => DASHES.map(([dash, text, length, gap]) => ({ key: String(dash), icon: dashGlyph(length, gap), label: text, current: now().dash === dash, ...both((item) => (item.dash = dash)) }))) },
+              ]),
+            ...(drawing.kind === "trend" ? [{ key: "extend", icon: extendGlyph(drawing.extend ?? ""), label: "Extend", aside: EXTENDS.find(([extend]) => extend === (drawing.extend ?? ""))?.[1], group: "Style", page: () => choicePage("Extend", () => EXTENDS.map(([extend, text, tip]) => ({ key: extend || "none", icon: extendGlyph(extend), label: text, aside: tip, current: (now().extend ?? "") === extend, ...both((item) => (item.extend = extend || undefined)) }))) }] : []),
+            { key: "panel", icon: ICONS.sliders, label: "Open in the panel", verb: "Open", group: "Drawing", run: () => select(id) },
+            { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", group: "Drawing", run: () => duplicateDrawing(id) },
+            { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", group: "Drawing", danger: true, run: () => removeDrawing(id) },
+          ].map((row) => ({ kind: "row", ...row }));
+        } };
+      }
       /** A line across, as a row: its color and style, opening them (and a level's value) to change. */
       function lineRow(id, key, label, group) {
         const layer = /** @type {Layer} */ (layerById(id)), look = lineLook(layer, key), dash = dashOf(look.dash);
@@ -13371,7 +14387,7 @@
       function portable(doc) {
         if (doc === chart) saveView();
         const kept = leftView(doc.id);
-        return { v: 2, title: doc.title, index: doc.index, range: doc.range, panes: doc.panes, layers: doc.layers, ...(kept ? { view: kept } : {}) };
+        return { v: 2, title: doc.title, index: doc.index, range: doc.range, panes: doc.panes, layers: doc.layers, ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
       }
       /** The view a file or a link carried with a chart, kept for it (as `saveView` keeps one). @param {Chart} doc */
       function keepCarriedView(doc, input) {
@@ -13382,7 +14398,7 @@
         storage.set(VIEWS, all);
       }
       /** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
-      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
+      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
       /** Two charts alike (a link opened again is the chart already here). */
       const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf(a) === contentOf(b);
       async function shareLink(doc) {
@@ -13432,6 +14448,8 @@
         const panes = input.panes.slice(0, MAX_PANES);
         doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack, ...(pane.reverse === true ? { reverse: true } : {}) } : {}) }));
         const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
+        /** Each layer's id as read, to its own: its drawings follow it. */
+        const layerIds = new Map();
         for (const layer of input.layers.slice(0, MAX_LAYERS)) {
           if (!layer || typeof layer !== "object") continue;
           /** @type {Record<string, any>} */
@@ -13470,8 +14488,26 @@
             delete spec.path;
             if (spec.type === "candles") spec.type = "line";
           } else if (was) spec.formula = was;
-          doc.layers.push(makeLayer({ ...Object.fromEntries(Object.entries(spec).filter(([, value]) => value !== undefined)), id: idOf(layer.id) }, doc));
+          const id = idOf(layer.id);
+          if (typeof layer.id === "string") layerIds.set(layer.id, id);
+          doc.layers.push(makeLayer({ ...Object.fromEntries(Object.entries(spec).filter(([, value]) => value !== undefined)), id }, doc));
         }
+        // Drawings: each on a layer read, its points numbers (as many as its kind takes), its look where valid.
+        doc.drawings = (Array.isArray(input.drawings) ? input.drawings : []).slice(0, MAX_DRAWINGS).flatMap((drawing) => {
+          const kind = drawing?.kind, layer = layerIds.get(drawing?.layer);
+          if (!Object.hasOwn(TOOLS, kind) || !layer || !Array.isArray(drawing.points)) return [];
+          const points = drawing.points.filter((point) => Array.isArray(point) && point.length === 2 && point.every(Number.isFinite) && Math.abs(point[0]) < 1e11).map(([time, value]) => pointOf(time, value));
+          const takes = kind === "brush" ? MAX_STROKE : PAIRED.has(kind) ? 2 : 1, text = String(drawing.text ?? "").slice(0, 500);
+          if (!points.length || (kind !== "brush" && points.length < takes) || (kind === "text" && !text.trim())) return [];
+          return [{
+            id: idOf(drawing.id), kind, layer, points: points.slice(0, takes),
+            color: isColor(drawing.color) ? drawing.color : "blue",
+            width: WIDTHS.includes(drawing.width) ? drawing.width : 1.5,
+            dash: DASHES.some(([style]) => style === drawing.dash) ? drawing.dash : 0,
+            ...(kind === "trend" && (drawing.extend === "right" || drawing.extend === "both") ? { extend: drawing.extend } : {}),
+            ...(kind === "text" ? { text, size: SIZES.includes(drawing.size) ? drawing.size : 14 } : {}),
+          }];
+        });
         normalize(doc);
         return doc;
       }
@@ -13523,8 +14559,12 @@
        */
       async function chartImage() {
         const PAD = 28, HEAD = 60, FOOT = 40;
-        // All of it read now: while the marks load, another chart can open.
+        // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
+        capturing = true;
+        repaintDrawings();
         const shot = view.takeScreenshot(true, false);
+        capturing = false;
+        repaintDrawings();
         const scale = shot.width / $("chart").clientWidth;
         const pieces = measureLegends(scale), dates = viewDates(), title = titleOf(chart), cadence = CADENCE[chart.index];
         await drawMarks(pieces);
@@ -13808,8 +14848,10 @@
         renderInspector();
         updateStatus();
         scheduleThumbs();
-        if (redraw === "none") updateLegends();
-        else if (resolved && drawnChart === chart.id && drawnData === dataKey(chart) && drawingData === drawnData) build(structuredClone(chart), resolved, refit);
+        if (redraw === "none") {
+          updateLegends();
+          showDrawings(chart);
+        } else if (resolved && drawnChart === chart.id && drawnData === dataKey(chart) && drawingData === drawnData) build(structuredClone(chart), resolved, refit);
         else draw(refit);
       }
 
@@ -13853,6 +14895,7 @@
         else if (action === "toggle-panel") togglePanel();
         else if (action === "shortcuts") showShortcuts();
         else if (action === "measure") setMeasureMode(!measureMode);
+        else if (action === "draw") drawMenu(target);
         else if (action === "close-palette") dismissPalette();
         else if (action === "close-shortcuts") $("shortcuts").close();
         else if (action === "close-sheet") {
@@ -13879,6 +14922,8 @@
         });
       }
 
+      /** Out of the field being typed into: what it holds is kept (or, a text emptied, goes), there and then. */
+      const leaveField = () => typing(document.activeElement) && /** @type {HTMLElement} */ (document.activeElement).blur();
       /** Typing into a field (a tick isn't one: keys still do what they do). */
       const typing = (target) => (target instanceof HTMLInputElement && !["checkbox", "radio", "button"].includes(target.type)) || target instanceof HTMLTextAreaElement || target?.isContentEditable;
       function selectBy(delta) {
@@ -13927,7 +14972,7 @@
         }
         if (mod && key === "d" && selected && !typing(event.target)) {
           event.preventDefault();
-          return duplicateLayer(selected);
+          return (drawingById(selected) ? duplicateDrawing : duplicateLayer)(selected);
         }
         if (mod || event.altKey || typing(event.target)) return;
         if (home && (event.key === "Backspace" || event.key === "Delete") && picked.size) {
@@ -13952,7 +14997,9 @@
             const owner = ownerNow();
             hideMenu();
             owner?.focus();
-          } else if (!$("measure").hidden) clearMeasure();
+          } else if (placing || moving) stopDrawing();
+          else if (tool) setTool("");
+          else if (!$("measure").hidden) clearMeasure();
           else if (measureMode) setMeasureMode(false);
           else if (selected) deselect();
           else if (document.body.hasAttribute("data-peek")) document.body.removeAttribute("data-peek");
@@ -13961,10 +15008,11 @@
           // A new chart left empty: Escape takes it back, as its Cancel button does.
           else if (!home && !chart.layers.length && isDraft(chart) && (previousChart() || backToHome())) leaveEmpty();
         } else if (event.key === "ArrowDown" || event.key === "ArrowUp") selectBy(event.key === "ArrowDown" ? 1 : -1);
-        else if ((event.key === "Backspace" || event.key === "Delete") && selected) removeLayer(selected);
-        else if (key === "h" && selected) toggleHidden(selected);
+        else if ((event.key === "Backspace" || event.key === "Delete") && selected) (drawingById(selected) ? removeDrawing : removeLayer)(selected);
+        else if (key === "h" && layerById(selected)) toggleHidden(selected);
         else if (key === "l" && chart.layers.length) toggleLog(scalePane().id);
         else if (key === "m") setMeasureMode(!measureMode);
+        else if (key === "d" && chart.layers.length) drawMenu();
         else if (key === "g" && chart.layers.length) openPage(datePage());
         else if (event.key === "-" || event.key === "_") zoom(1.6);
         else if (event.key === "=" || event.key === "+") zoom(1 / 1.6);
