@@ -1,0 +1,2905 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="The Bitcoin chain on a belt: the next blocks wait in the mempool, miners stamp them, and confirmed blocks travel away at the pace of time."
+    />
+    <title>City · bitview</title>
+    <link rel="preconnect" href="https://bitview.space" crossorigin />
+    <script>
+      // The theme before the first paint: the stored choice, else the system's.
+      (() => {
+        let stored = null;
+        try {
+          stored = localStorage.getItem("city-theme");
+        } catch {}
+        const dark = stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
+    <style>
+      @font-face {
+        font-family: Lilex;
+        src: url("../fonts/Lilex.woff2") format("woff2");
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: light;
+
+        --paper: #f6f6f3;
+        --ink: #1a1a1a;
+        --muted: #8a8a85;
+        --faint: #d2d2cc;
+        --ground: #b4b4ae;
+        --top: #ffffff;
+        --left: #efefeb;
+        --right: #e2e2dd;
+        --liquid-top: #ffffff;
+        --liquid-left: #e3e3de;
+        --liquid-right: #d5d5cf;
+        --hole: #1a1a1a;
+
+        --font-mono: Lilex, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+
+        --paper: #101010;
+        --ink: #d9d9d5;
+        --muted: #7a7a75;
+        --faint: #2f2f2c;
+        --ground: #4a4a46;
+        --top: #1d1d1c;
+        --left: #171716;
+        --right: #121211;
+        --liquid-top: #2e2e2c;
+        --liquid-left: #292927;
+        --liquid-right: #222221;
+        --hole: #000000;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--paper);
+        color: var(--ink);
+      }
+
+      body {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+        touch-action: none;
+      }
+
+      canvas[data-dragging] {
+        cursor: grabbing;
+      }
+
+      .bar {
+        position: fixed;
+        inset-inline: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        pointer-events: none;
+      }
+
+      .bar > * {
+        pointer-events: auto;
+      }
+
+      header.bar {
+        top: 0;
+        padding-top: max(0.875rem, env(safe-area-inset-top));
+      }
+
+      footer.bar {
+        bottom: 0;
+        padding-bottom: max(0.875rem, env(safe-area-inset-bottom));
+        color: var(--muted);
+      }
+
+      #fig,
+      #caption,
+      #status {
+        padding: 0.1875rem 0.375rem;
+        margin: -0.1875rem -0.375rem;
+        border-radius: 0.25rem;
+        background: color-mix(in srgb, var(--paper) 88%, transparent);
+      }
+
+      #fig b {
+        font-weight: 500;
+        color: var(--ink);
+      }
+
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      button,
+      nav a {
+        padding: 0.3125rem 0.5625rem;
+        border: 1px solid var(--faint);
+        border-radius: 0.25rem;
+        background: var(--paper);
+        color: var(--ink);
+        font: inherit;
+        letter-spacing: inherit;
+        text-decoration: none;
+        text-transform: inherit;
+        cursor: pointer;
+      }
+
+      button:hover,
+      nav a:hover {
+        border-color: var(--ink);
+      }
+
+      button[hidden] {
+        display: none;
+      }
+
+      #caption {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      #status {
+        flex: none;
+        color: var(--ink);
+      }
+
+      #status[data-live]::before {
+        display: inline-block;
+        width: 0.375rem;
+        height: 0.375rem;
+        margin-right: 0.5rem;
+        border-radius: 50%;
+        background: var(--ink);
+        content: "";
+        vertical-align: 0.0625rem;
+      }
+
+      /* Floats over the followed robot: placed by script at its head, pointing down at it. */
+      #card {
+        position: fixed;
+        top: 0;
+        left: 0;
+        display: grid;
+        gap: 0.375rem;
+        width: max-content;
+        max-width: min(20rem, calc(100vw - 2rem));
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--ink);
+        border-radius: 0.375rem;
+        background: var(--paper);
+        will-change: transform;
+      }
+
+      #card::after {
+        position: absolute;
+        bottom: -0.75rem;
+        left: 50%;
+        width: 1px;
+        height: 0.75rem;
+        background: var(--ink);
+        content: "";
+      }
+
+      #card[hidden] {
+        display: none;
+      }
+
+      #card-title {
+        color: var(--muted);
+      }
+
+      /* Transaction ids read as they are written: in lower case. */
+      #card-body {
+        line-height: 1.7;
+        text-transform: none;
+        white-space: pre-line;
+      }
+
+      #card button {
+        position: absolute;
+        top: 0.375rem;
+        right: 0.375rem;
+        padding: 0.125rem 0.375rem;
+        border: none;
+      }
+
+      @media (max-width: 560px) {
+        #caption {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene" role="img" aria-label="Bitcoin blocks on a belt, the newest leaving a mining machine"></canvas>
+
+    <header class="bar">
+      <span id="fig"><b>Fig 1</b> · <span id="clock">--:--</span></span>
+      <nav>
+        <button id="now" type="button" hidden>Now</button>
+        <button id="theme" type="button">Dark</button>
+        <a href="https://bitview.space">bitview ↗</a>
+      </nav>
+    </header>
+
+    <aside id="card" hidden>
+      <span id="card-title">Carrying</span>
+      <span id="card-body"></span>
+      <button id="card-stop" type="button" aria-label="Stop following">×</button>
+    </aside>
+
+    <footer class="bar">
+      <span id="caption">Drag or scroll to walk · Pinch to zoom</span>
+      <span id="status">Connecting</span>
+    </footer>
+
+    <noscript><p>JavaScript is required to watch the chain.</p></noscript>
+
+    <!-- Styles and code are inline; the generated client loads from ../modules, the logos from ../pools and the font from ../fonts.
+         Blocks and mempool projections come live from bitview.space. -->
+    <script type="module">
+      // @ts-check
+      // Config ---------------------------------------------------------------
+
+      const ORIGIN = "https://bitview.space";
+      // The belt and the blocks on it move one cube width every 2 minutes, so the room between
+      // two blocks is the time between them. Closer blocks would mean a slower belt.
+      const SECONDS_PER_UNIT = 120;
+      const CUBE = 1;
+      // The least room between two blocks, enough for two turning together not to touch: ones
+      // found closer in time push the older along.
+      const GAP = 0.4;
+      const SPACING = (CUBE + GAP) * SECONDS_PER_UNIT;
+      const BELT_WIDTH = 1.6;
+      const BELT_TOP = 0.3;
+      // The machine: HALF deep either side of x = 0, and long enough along Y for both belts
+      // to go through its +X face, the chain's at y = 0 and the mempool's beside it at QUEUE_Y,
+      // as far apart as the chain's folds.
+      const HALF = 2;
+      const QUEUE_Y = 3;
+      const MACHINE_Y0 = -1.5;
+      const MACHINE_Y1 = QUEUE_Y + 1.5;
+      const MACHINE_TOP = 2.6;
+      const LID_TOP = MACHINE_TOP + 0.14;
+      const PLINTH = 2.7;
+      const PLINTH_Y0 = MACHINE_Y0 - 0.7;
+      const PLINTH_Y1 = MACHINE_Y1 + 0.7;
+      const PLINTH_TOP = 0.16;
+      const HOLE = 0.85;
+      const HOLE_TOP = BELT_TOP + 1.25;
+      // A block's center this far past a face is fully out of the machine.
+      const EXIT = 0.95;
+      const SLOT = 1.55;
+      // Seven projected blocks wait on the belt; the eighth projection, the rest of the mempool,
+      // is the pool.
+      const QUEUE_SLOTS = 7;
+      const OUTLINE = 0.42;
+      const MAX_BLOCK_WEIGHT = 4_000_000;
+      const MAX_BLOCK_VSIZE = 1_000_000;
+      const SERIES = "timestamp,pool,block_weight,tx_count,effective_fee_rate_median";
+      const HISTORY_BATCH = 720;
+      const TIP_POLL_MS = 10_000;
+      const IN_MS = 700;
+      const PRESS_MS = 450;
+      const OUT_MS = 1_000;
+      const SETTLE_MS = 600;
+      // When nothing else moves, the belt is drawn again once it has moved this far, in pixels.
+      const IDLE_STEP = 0.2;
+      const MIN_SCALE = 3;
+      const MAX_SCALE = 160;
+      const COS = Math.cos(Math.PI / 6);
+      const SIN = 0.5;
+      const FONT = "Lilex, ui-monospace, SFMono-Regular, Menlo, monospace";
+      const LIGHT_LOGOS = new Set(["foundryusa", "unknown", "ultimuspool", "whitepool"]);
+      /** @type {number[]} */
+      const SOLID = [];
+      const DASHED = [4, 4];
+      const DOTTED = [2, 2];
+
+      /**
+       * @typedef {{ height: number, time: number, pool: string, weight: number, txs: number, fee: number,
+       *   tEff: number, offset: number, offsetStart: number, offsetMs: number }} Block
+       * @typedef {{ blockVSize: number, nTx: number, medianFee: number, totalFees: number, feeRange?: number[] }} Projected
+       * @typedef {{ txid: string, fee: number, vsize: number, value: number }} Recent
+       * @typedef {{ kind: "walk", to: number } | { kind: "toss" | "pick", block: number } | { kind: "fish" }} Step
+       *   A robot's errand: fish its transaction out of the pool, walk to a waiting block (-1 is
+       *   its spot by the pool), throw its parcel in, take one out.
+       * @typedef {{ tx: Recent | null, x: number, y: number, home: number, place: number, steps: Step[],
+       *   since: number, load: "tx" | "bumped" | null, stride: number, fishX: number, fishY: number }} Worker
+       *   place: the place it holds on the line it throws from, -1 when none. load: its own
+       *   transaction, one bumped out of the next block, or nothing.
+       * @typedef {{ data: Projected, slot: number, target: number, fill: number, alpha: number, lift: number }} Waiting
+       *   lift: how far above the belt it is, below it while still rising out of the lift.
+       * @typedef {{ block: Block, entering: Waiting | null, enterFrom: number, start: number,
+       *   speed: number, pressed: boolean, out: boolean }} Job
+       * @typedef {{ item: Block | Waiting | Worker, points: number[] }} Hit
+       */
+
+      // DOM ------------------------------------------------------------------
+
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      const root = document.documentElement;
+      const canvas = /** @type {HTMLCanvasElement} */ ($("scene"));
+      const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+      const clock = $("clock");
+      const caption = $("caption");
+      const status = $("status");
+      const nowButton = $("now");
+      const themeButton = $("theme");
+      const card = $("card");
+      const cardBody = $("card-body");
+      const cardTitle = $("card-title");
+      const HINT = caption.textContent ?? "";
+
+      // State ----------------------------------------------------------------
+
+      /** Confirmed blocks by ascending height. @type {Block[]} */
+      let blocks = [];
+      /** Blocks found but not yet out of the machine. @type {Block[]} */
+      const arriving = [];
+      /** The projected blocks waiting in front of the machine. @type {Waiting[]} */
+      const queue = [];
+      /** @type {Job | null} */
+      let job = null;
+      let knownTip = -1;
+      let lastPool = "";
+      let loadingOlder = false;
+      // After a failed load of older blocks, none is tried again before this.
+      let olderAfter = 0;
+      let reachedGenesis = false;
+      /** Projections fetched while found blocks still wait to be stamped. @type {Projected[] | null} */
+      let projectedLater = null;
+      /** @type {Map<string, string>} */
+      const poolNames = new Map();
+      /** @type {Hit[]} */
+      const hits = [];
+      /** The blocks on screen this frame, where they are. @type {{ block: Block, x: number, y: number, angle: number, newest: boolean }[]} */
+      const shown = [];
+      /** @type {Block | Waiting | Worker | null} */
+      let hovered = null;
+
+      let W = 0;
+      let H = 0;
+      let dpr = 1;
+      const camera = { u: 0, v: 0, scale: 40 };
+      /** @type {{ from: typeof camera, to: typeof camera, start: number } | null} */
+      let flight = null;
+      let dirty = true;
+      let animateUntil = 0;
+      let lastDraw = 0;
+      let lastFrame = 0;
+
+      // Theme ----------------------------------------------------------------
+
+      const palette = {
+        paper: "", ink: "", muted: "", faint: "", ground: "", top: "", left: "", right: "",
+        liquidTop: "", liquidLeft: "", liquidRight: "", hole: "",
+      };
+
+      function readPalette() {
+        const style = getComputedStyle(root);
+        for (const key of /** @type {(keyof typeof palette)[]} */ (Object.keys(palette))) {
+          palette[key] = style.getPropertyValue(`--${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`).trim();
+        }
+      }
+
+      const systemDark = matchMedia("(prefers-color-scheme: dark)");
+
+      /** The viewer's pick, kept even where storage is blocked; none follows the system. */
+      let choice = (() => {
+        try {
+          return localStorage.getItem("city-theme");
+        } catch {
+          return null;
+        }
+      })();
+
+      function applyTheme() {
+        const dark = choice ? choice === "dark" : systemDark.matches;
+        root.dataset.theme = dark ? "dark" : "light";
+        themeButton.textContent = dark ? "Light" : "Dark";
+        readPalette();
+        dirty = true;
+      }
+
+      themeButton.addEventListener("click", () => {
+        choice = root.dataset.theme === "dark" ? "light" : "dark";
+        try {
+          localStorage.setItem("city-theme", choice);
+        } catch {}
+        applyTheme();
+      });
+      systemDark.addEventListener("change", applyTheme);
+
+      // Pool logos, inked in gray -------------------------------------------
+
+      /** @type {Map<string, HTMLCanvasElement | null>} */
+      const logos = new Map();
+
+      /** @param {string} slug */
+      function logo(slug) {
+        const light = root.dataset.theme !== "dark";
+        const key = `${slug}${light ? ".light" : ""}`;
+        const cached = logos.get(key);
+        if (cached !== undefined) return cached;
+        logos.set(key, null);
+        const image = new Image();
+        let fallback = false;
+        image.addEventListener("load", () => {
+          logos.set(key, inked(image));
+          dirty = true;
+        });
+        image.addEventListener("error", () => {
+          if (fallback) return;
+          fallback = true;
+          image.src = `../pools/default${light ? ".light" : ""}.svg`;
+        });
+        image.src = `../pools/${slug}${light && LIGHT_LOGOS.has(slug) ? ".light" : ""}.svg`;
+        return null;
+      }
+
+      /** @param {HTMLImageElement} image */
+      function inked(image) {
+        const size = 96;
+        const target = document.createElement("canvas");
+        target.width = target.height = size;
+        const context = /** @type {CanvasRenderingContext2D} */ (target.getContext("2d", { willReadFrequently: true }));
+        const ratio = image.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 1;
+        const w = ratio >= 1 ? size : size * ratio;
+        const h = ratio >= 1 ? size / ratio : size;
+        // No color: drawn through a gray filter where there is one, then made gray pixel by
+        // pixel where the pixels can be read back.
+        context.filter = "grayscale(1)";
+        try {
+          context.drawImage(image, (size - w) / 2, (size - h) / 2, w, h);
+        } catch {
+          return null;
+        }
+        try {
+          const pixels = context.getImageData(0, 0, size, size);
+          const data = pixels.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const gray = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+            data[i] = data[i + 1] = data[i + 2] = gray;
+          }
+          context.putImageData(pixels, 0, 0);
+        } catch {}
+        return target;
+      }
+
+      // Projection -----------------------------------------------------------
+
+      // Isometric: +X runs right and down the screen, +Y left and down, +Z up.
+      const sx = (/** @type {number} */ x, /** @type {number} */ y) =>
+        ((x - y) * COS - camera.u) * camera.scale + W / 2;
+      const sy = (/** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ z) =>
+        ((x + y) * SIN - z - camera.v) * camera.scale + H / 2;
+
+      /** @param {number} x @param {number} y @param {number} z */
+      const moveTo = (x, y, z) => ctx.moveTo(sx(x, y), sy(x, y, z));
+      /** @param {number} x @param {number} y @param {number} z */
+      const lineTo = (x, y, z) => ctx.lineTo(sx(x, y), sy(x, y, z));
+
+      /** A four-cornered face as the current path. */
+      function face(
+        /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ z0,
+        /** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ z1,
+        /** @type {number} */ x2, /** @type {number} */ y2, /** @type {number} */ z2,
+        /** @type {number} */ x3, /** @type {number} */ y3, /** @type {number} */ z3,
+      ) {
+        ctx.beginPath();
+        moveTo(x0, y0, z0);
+        lineTo(x1, y1, z1);
+        lineTo(x2, y2, z2);
+        lineTo(x3, y3, z3);
+        ctx.closePath();
+      }
+
+      /**
+       * Draws in a plane through the screen point (ox, oy), one step along u or v being
+       * the screen vector (ux, uy) or (vx, vy).
+       */
+      function plane(
+        /** @type {number} */ ox, /** @type {number} */ oy,
+        /** @type {number} */ ux, /** @type {number} */ uy,
+        /** @type {number} */ vx, /** @type {number} */ vy,
+      ) {
+        ctx.setTransform(dpr * ux, dpr * uy, dpr * vx, dpr * vy, dpr * ox, dpr * oy);
+      }
+
+      const flat = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // What may show: the screen and MARGIN pixels around it, in projected units. Anything
+      // outside is not drawn.
+      const MARGIN = 96;
+      let viewU0 = 0;
+      let viewU1 = 0;
+      let viewV0 = 0;
+      let viewV1 = 0;
+
+      function updateView() {
+        const s = camera.scale;
+        viewU0 = camera.u - (W / 2 + MARGIN) / s;
+        viewU1 = camera.u + (W / 2 + MARGIN) / s;
+        viewV0 = camera.v - (H / 2 + MARGIN) / s;
+        viewV1 = camera.v + (H / 2 + MARGIN) / s;
+      }
+
+      /** Whether anything inside [x0, x1] × [y0, y1] × [0, z1] may show. */
+      function inView(
+        /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ x1,
+        /** @type {number} */ y1, /** @type {number} */ z1,
+      ) {
+        return (x1 - y0) * COS >= viewU0 && (x0 - y1) * COS <= viewU1
+          && (x1 + y1) * SIN >= viewV0 && (x0 + y0) * SIN - z1 <= viewV1;
+      }
+
+      // Boxes ------------------------------------------------------------------
+
+      /** @typedef {{ top: string, left: string, right: string }} Faces */
+
+      /** The three faces a box shows: its top, its +Y side and its +X side. */
+      function fillBox(
+        /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ z0,
+        /** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ z1,
+        /** @type {Faces} */ faces,
+      ) {
+        ctx.fillStyle = faces.left;
+        face(x0, y1, z1, x1, y1, z1, x1, y1, z0, x0, y1, z0);
+        ctx.fill();
+        ctx.fillStyle = faces.right;
+        face(x1, y0, z1, x1, y1, z1, x1, y1, z0, x1, y0, z0);
+        ctx.fill();
+        ctx.fillStyle = faces.top;
+        face(x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1);
+        ctx.fill();
+      }
+
+      /** The outline and the three inner edges of a box, in one stroke. */
+      function strokeBox(
+        /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ z0,
+        /** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ z1,
+      ) {
+        ctx.beginPath();
+        moveTo(x0, y0, z1);
+        lineTo(x1, y0, z1);
+        lineTo(x1, y0, z0);
+        lineTo(x1, y1, z0);
+        lineTo(x0, y1, z0);
+        lineTo(x0, y1, z1);
+        ctx.closePath();
+        moveTo(x1, y1, z1);
+        lineTo(x1, y0, z1);
+        moveTo(x1, y1, z1);
+        lineTo(x0, y1, z1);
+        moveTo(x1, y1, z1);
+        lineTo(x1, y1, z0);
+        ctx.stroke();
+      }
+
+      function box(
+        /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ z0,
+        /** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ z1,
+        /** @type {Faces} */ faces,
+      ) {
+        fillBox(x0, y0, z0, x1, y1, z1, faces);
+        ctx.strokeStyle = palette.ink;
+        ctx.setLineDash(SOLID);
+        strokeBox(x0, y0, z0, x1, y1, z1);
+      }
+
+      /** An upright cylinder: its side, then its top. */
+      function cylinder(
+        /** @type {number} */ cx, /** @type {number} */ cy,
+        /** @type {number} */ z0, /** @type {number} */ z1,
+        /** @type {number} */ r, /** @type {string} */ side, /** @type {string} */ top,
+      ) {
+        const x = sx(cx, cy);
+        const yTop = sy(cx, cy, z1);
+        const yBottom = sy(cx, cy, z0);
+        const rx = r * Math.SQRT2 * COS * camera.scale;
+        const ry = r * Math.SQRT2 * SIN * camera.scale;
+        ctx.strokeStyle = palette.ink;
+        ctx.setLineDash(SOLID);
+        ctx.beginPath();
+        ctx.moveTo(x - rx, yTop);
+        ctx.lineTo(x - rx, yBottom);
+        ctx.ellipse(x, yBottom, rx, ry, 0, Math.PI, 0, true);
+        ctx.lineTo(x + rx, yTop);
+        ctx.ellipse(x, yTop, rx, ry, 0, 0, Math.PI);
+        ctx.closePath();
+        ctx.fillStyle = side;
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(x, yTop, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fillStyle = top;
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      /** @param {string} value @param {number} u @param {number} v @param {number} size @param {string} color @param {CanvasTextAlign} align */
+      function label(value, u, v, size, color, align) {
+        ctx.font = `${size}px ${FONT}`;
+        ctx.fillStyle = color;
+        ctx.textAlign = align;
+        ctx.fillText(value, u, v);
+      }
+
+      /** How visible text this many pixels tall is: gone when too small to read. */
+      const legible = (/** @type {number} */ size) => Math.min(1, Math.max(0, (size - 5) / 3));
+
+      // The belt ---------------------------------------------------------------
+
+      // The chain's belt folds away behind the machine: out along +X, a U-turn back along -X one
+      // fold further back, a U-turn out again, and so on into the past. The middle of every
+      // U-turn is a PERIOD further along, so each one is a fixed age.
+      const FOLD = 3;
+      const BEND = FOLD / 2;
+      const ARC = Math.PI * BEND;
+      const PERIOD = 15;
+      const RUN = PERIOD - ARC;
+      // The run out of the machine: just long enough for the folds coming back to clear its
+      // plinth and their footprints its footprint.
+      const FIRST = PERIOD - ARC / 2 + 0.9;
+      const RIGHT = HALF + FIRST;
+      const LEFT = RIGHT - RUN;
+
+      // The mempool's belt reaches as far as the folds do, blocks on it or not.
+      const QUEUE_END = RIGHT + BEND + BELT_WIDTH / 2;
+      // Near its far end, a lift: each next block rises out of the belt there from below, so
+      // nothing stands up to hide the folds behind.
+      const LIFT_X = QUEUE_END - 1.1;
+      const LIFT_HALF = CUBE / 2 + 0.1;
+      const RISE = CUBE + 0.25;
+      const RISE_MS = 900;
+      // The mempool, as a pool: in front of the mempool's belt and as long, on its own, a basin of
+      // the liquid the blocks hold with the transactions floating in it, twice as long as deep.
+      // The robots fish them out from its far side.
+      const POOL_X0 = PLINTH + 0.9;
+      const POOL_X1 = QUEUE_END;
+      const POOL_Y0 = QUEUE_Y + BELT_WIDTH / 2 + 1.1;
+      const POOL_Y1 = POOL_Y0 + (POOL_X1 - POOL_X0) / 2;
+      const POOL_RIM = 0.5;
+      const POOL_WALL = 0.22;
+      const POOL_RADIUS = 0.55;
+      const SLAT = 0.5;
+      const RAIL = 0.14;
+
+      let atX = 0;
+      let atY = 0;
+      // The way across the belt there, and which way a cube riding it faces, from +X toward +Y.
+      let acrossX = 0;
+      let acrossY = 1;
+      let atAngle = 0;
+      // Whether it is on a straight run rather than in a U-turn.
+      let atStraight = true;
+
+      /** Moves (atX, atY) to the point p along the belt. */
+      function at(/** @type {number} */ p) {
+        if (p < FIRST) {
+          atX = HALF + p;
+          atY = 0;
+          acrossX = 0;
+          acrossY = 1;
+          atAngle = 0;
+          atStraight = true;
+          return;
+        }
+        const q = p - FIRST;
+        const k = Math.floor(q / PERIOD);
+        const run = q - k * PERIOD;
+        const right = (k & 1) === 0;
+        const y = -k * FOLD;
+        if (run < ARC) {
+          // Even U-turns go round the right end through +X, odd ones the left end through -X.
+          const theta = right ? Math.PI / 2 - run / BEND : Math.PI / 2 + run / BEND;
+          acrossX = Math.cos(theta);
+          acrossY = Math.sin(theta);
+          atX = (right ? RIGHT : LEFT) + BEND * acrossX;
+          atY = y - BEND + BEND * acrossY;
+          atAngle = right ? theta - Math.PI / 2 : theta + Math.PI / 2;
+          atStraight = false;
+          return;
+        }
+        atX = right ? RIGHT - (run - ARC) : LEFT + (run - ARC);
+        atY = y - FOLD;
+        acrossX = 0;
+        acrossY = 1;
+        atAngle = right ? Math.PI : 0;
+        atStraight = true;
+      }
+
+      /** Where the k-th part of the belt starts and ends: the run into the k-th U-turn, and it. */
+      const partStart = (/** @type {number} */ k) => (k === 0 ? 0 : FIRST + (k - 1) * PERIOD + ARC);
+      const partEnd = (/** @type {number} */ k) => FIRST + k * PERIOD + ARC;
+
+      // Room beyond the belt's middle line for its footprint and the cubes riding it.
+      const REACH = BELT_WIDTH / 2 + OUTLINE + CUBE;
+
+      /** The parts of the belt that may show, as [first, last]; none when last < first. */
+      function visibleParts() {
+        // Part k spans y from -(k + 1) FOLD to -k FOLD and x from xMin to xMax, each with REACH
+        // around, so on screen each part sits one fold right of and above the last.
+        const xMin = LEFT - BEND;
+        const xMax = RIGHT + BEND;
+        const lo = Math.max(
+          (viewU0 / COS - xMax - 2 * REACH) / FOLD - 1,
+          (xMin - 2 * REACH - 2 * (viewV1 + TOP)) / FOLD - 1,
+        );
+        const hi = Math.min((viewU1 / COS - xMin + 2 * REACH) / FOLD, (xMax + 2 * REACH - 2 * viewV0) / FOLD);
+        return [Math.max(0, Math.ceil(lo)), Math.floor(hi)];
+      }
+
+      /** The stretch [lo, hi] of x from x0 to x1, along a run at y, that may show. */
+      function runInView(/** @type {number} */ y, /** @type {number} */ x0, /** @type {number} */ x1) {
+        return [
+          Math.max(x0, viewU0 / COS + y - REACH, 2 * viewV0 - y - REACH),
+          Math.min(x1, viewU1 / COS + y + REACH, 2 * (viewV1 + TOP) - y + REACH),
+        ];
+      }
+
+      /** Whether the k-th U-turn, with what rides it, may show. */
+      function turnInView(/** @type {number} */ k) {
+        turnAt(k);
+        const r = BEND + REACH;
+        return inView(turnX - r, turnY - r, turnX + r, turnY + r, TOP);
+      }
+
+      /** The straight belt from pa to pb, raised from z0: runs go along +X or -X. */
+      function straight(/** @type {number} */ pa, /** @type {number} */ pb, /** @type {number} */ z0) {
+        const w = BELT_WIDTH / 2;
+        at(pa);
+        const x = atX + Math.cos(atAngle) * (pb - pa);
+        strip(0, Math.min(atX, x), Math.max(atX, x), atY - w, atY + w, z0, false);
+      }
+
+      /**
+       * A straight stretch of belt from a to b along X (axis 0) or Y (axis 1), across from c0
+       * to c1, on a base at z0: its top, its side toward the viewer, and its far end when `end`.
+       * The belt is one surface: where it joins more belt nothing is outlined, and its fill
+       * reaches half a pixel over the join so no seam shows.
+       */
+      function strip(
+        /** @type {0 | 1} */ axis, /** @type {number} */ a, /** @type {number} */ b,
+        /** @type {number} */ c0, /** @type {number} */ c1, /** @type {number} */ z0, /** @type {boolean} */ end,
+      ) {
+        const pad = 0.5 / camera.scale;
+        const a0 = a - pad;
+        const b0 = end ? b : b + pad;
+        const T = BELT_TOP;
+        /** @param {number} u along @param {number} v across @param {number} z */
+        const to = (u, v, z, move = false) => {
+          const x = axis === 0 ? u : v;
+          const y = axis === 0 ? v : u;
+          if (move) moveTo(x, y, z);
+          else lineTo(x, y, z);
+        };
+        /** @param {number} u0 @param {number} v0 @param {number} u1 @param {number} v1 @param {number} zA @param {number} zB */
+        const quad = (u0, v0, u1, v1, zA, zB, /** @type {string} */ fill) => {
+          ctx.beginPath();
+          to(u0, v0, zA, true);
+          to(u1, v1, zA);
+          to(u1, v1, zB);
+          to(u0, v0, zB);
+          ctx.closePath();
+          ctx.fillStyle = fill;
+          ctx.fill();
+        };
+        quad(a0, c1, b0, c1, T, z0, axis === 0 ? palette.left : palette.right);
+        if (end) quad(b, c0, b, c1, T, z0, axis === 0 ? palette.right : palette.left);
+        ctx.beginPath();
+        to(a0, c0, T, true);
+        to(b0, c0, T);
+        to(b0, c1, T);
+        to(a0, c1, T);
+        ctx.closePath();
+        ctx.fillStyle = palette.top;
+        ctx.fill();
+
+        ctx.strokeStyle = palette.ink;
+        ctx.setLineDash(SOLID);
+        ctx.beginPath();
+        to(a, c0, T, true);
+        to(b, c0, T);
+        to(a, c1, T, true);
+        to(b, c1, T);
+        to(a, c1, z0, true);
+        to(b, c1, z0);
+        if (end) {
+          to(b, c0, T, true);
+          to(b, c1, T);
+          to(b, c0, T, true);
+          to(b, c0, z0);
+          to(b, c1, z0);
+          to(b, c1, T, true);
+          to(b, c1, z0);
+        }
+        ctx.stroke();
+        ctx.strokeStyle = palette.faint;
+        ctx.beginPath();
+        to(a, c0 + RAIL, T, true);
+        to(b, c0 + RAIL, T);
+        to(a, c1 - RAIL, T, true);
+        to(b, c1 - RAIL, T);
+        ctx.stroke();
+      }
+
+      /** Where a belt on the ground meets the plinth's side: the one crease between them. */
+      function crease(/** @type {number} */ x, /** @type {number} */ y) {
+        ctx.strokeStyle = palette.ink;
+        ctx.beginPath();
+        moveTo(x, y, 0);
+        lineTo(x, y, PLINTH_TOP);
+        ctx.stroke();
+      }
+
+      // A circle on the ground of radius r is, on screen, an upright ellipse whose angles are
+      // the ground's plus 45°: its front half is where sin is positive.
+      const ellipseX = (/** @type {number} */ r) => r * Math.SQRT2 * COS * camera.scale;
+      const ellipseY = (/** @type {number} */ r) => r * Math.SQRT2 * SIN * camera.scale;
+
+      // The k-th U-turn's center on the ground, and its span of screen angles.
+      let turnX = 0;
+      let turnY = 0;
+      let turnFrom = 0;
+      let turnTo = 0;
+
+      function turnAt(/** @type {number} */ k) {
+        const right = (k & 1) === 0;
+        turnX = right ? RIGHT : LEFT;
+        turnY = -k * FOLD - BEND;
+        turnFrom = right ? -Math.PI / 4 : (3 * Math.PI) / 4;
+        turnTo = turnFrom + Math.PI;
+      }
+
+      /**
+       * A curved wall of radius r between two screen angles, shaded by where it faces: an
+       * outer wall turns from +X to +Y right to left across the screen, an inner one the other way.
+       * One end is the wall's outline on screen, upright; the other joins a run, unlined, its
+       * fill reaching a little past so no seam shows.
+       */
+      function wall(
+        /** @type {number} */ r, /** @type {number} */ from, /** @type {number} */ to,
+        /** @type {boolean} */ outer, /** @type {boolean} */ outlineAtEnd,
+      ) {
+        const x = sx(turnX, turnY);
+        const top = sy(turnX, turnY, BELT_TOP);
+        const bottom = sy(turnX, turnY, 0);
+        const rx = ellipseX(r);
+        const ry = ellipseY(r);
+        const pad = 0.75 / (r * camera.scale);
+        const fillFrom = outlineAtEnd ? from - pad : from;
+        const fillTo = outlineAtEnd ? to : to + pad;
+        const reach = rx * Math.SQRT1_2 * (outer ? 1 : -1);
+        const fill = ctx.createLinearGradient(x + reach, 0, x - reach, 0);
+        fill.addColorStop(0, palette.right);
+        fill.addColorStop(1, palette.left);
+        ctx.beginPath();
+        ctx.ellipse(x, top, rx, ry, 0, fillFrom, fillTo);
+        ctx.lineTo(x + rx * Math.cos(fillTo), bottom + ry * Math.sin(fillTo));
+        ctx.ellipse(x, bottom, rx, ry, 0, fillTo, fillFrom, true);
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.fill();
+        const edge = outlineAtEnd ? to : from;
+        ctx.beginPath();
+        ctx.ellipse(x, bottom, rx, ry, 0, from, to);
+        ctx.moveTo(x + rx * Math.cos(edge), top + ry * Math.sin(edge));
+        ctx.lineTo(x + rx * Math.cos(edge), bottom + ry * Math.sin(edge));
+        ctx.stroke();
+      }
+
+      /** The k-th U-turn: the walls that face the viewer, then its top, one surface with its runs. */
+      function uTurn(/** @type {number} */ k) {
+        turnAt(k);
+        const w = BELT_WIDTH / 2;
+        const outer = BEND + w;
+        const inner = BEND - w;
+        ctx.strokeStyle = palette.ink;
+        ctx.setLineDash(SOLID);
+        // The outer wall shows where the ellipse's front is, the inner one where its back is;
+        // both end, upright, at the ellipse's side.
+        if ((k & 1) === 0) {
+          wall(inner, turnFrom, 0, false, true);
+          wall(outer, 0, turnTo, true, false);
+        } else {
+          wall(outer, turnFrom, Math.PI, true, true);
+          wall(inner, Math.PI, turnTo, false, false);
+        }
+        const x = sx(turnX, turnY);
+        const top = sy(turnX, turnY, BELT_TOP);
+        const pad = 0.75 / (inner * camera.scale);
+        ctx.beginPath();
+        ctx.ellipse(x, top, ellipseX(outer), ellipseY(outer), 0, turnFrom - pad, turnTo + pad);
+        ctx.ellipse(x, top, ellipseX(inner), ellipseY(inner), 0, turnTo + pad, turnFrom - pad, true);
+        ctx.closePath();
+        ctx.fillStyle = palette.top;
+        ctx.fill();
+        for (const r of [outer, inner]) {
+          ctx.beginPath();
+          ctx.ellipse(x, top, ellipseX(r), ellipseY(r), 0, turnFrom, turnTo);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = palette.faint;
+        for (const r of [outer - RAIL, inner + RAIL]) {
+          ctx.beginPath();
+          ctx.ellipse(x, top, ellipseX(r), ellipseY(r), 0, turnFrom, turnTo);
+          ctx.stroke();
+        }
+      }
+
+      /** Slats across the belt from pa to pb, `phase` along. */
+      function slats(/** @type {number} */ pa, /** @type {number} */ pb, /** @type {number} */ phase) {
+        if (SLAT * camera.scale < 5) return;
+        const inset = BELT_WIDTH / 2 - RAIL;
+        ctx.strokeStyle = palette.faint;
+        ctx.beginPath();
+        for (let p = Math.ceil((pa - phase) / SLAT) * SLAT + phase; p < pb; p += SLAT) {
+          at(p);
+          moveTo(atX - inset * acrossX, atY - inset * acrossY, BELT_TOP);
+          lineTo(atX + inset * acrossX, atY + inset * acrossY, BELT_TOP);
+        }
+        ctx.stroke();
+      }
+
+      // The belt has the time printed on it every 5 minutes, across one of its steps. It moves
+      // with the blocks, so a printed time stays by the blocks mined then; a block may cover
+      // one, there are plenty.
+      const PRINT = 300;
+      // The moment the belt is drawn at, in seconds: a point p along was at the machine p
+      // cube widths of time before.
+      let beltSeconds = 0;
+      // The stretches of belt drawn this frame, as pairs, printed once all the belt is down.
+      /** @type {number[]} */
+      const printed = [];
+
+      /** Whether the belt is straight from pa to pb and on the ground, with a full side to print on. */
+      function sideFrom(/** @type {number} */ pa, /** @type {number} */ pb) {
+        if (pa < PLINTH - HALF) return false;
+        at(pa);
+        if (!atStraight) return false;
+        at(pb);
+        return atStraight;
+      }
+
+      /**
+       * What is printed on the belt from pa to pb, local time. Across its top like its slats,
+       * reading left to right on screen: the time, hours in ink. Along the side toward the
+       * viewer, under each time on the runs: the date, so the day shows wherever you are.
+       * Midnight is a line across the top and down that side.
+       */
+      function marks(/** @type {number} */ pa, /** @type {number} */ pb) {
+        const s = camera.scale;
+        const size = 0.28 * s;
+        const alpha = legible(size);
+        if (!alpha || (PRINT / SECONDS_PER_UNIT) * s < 24) return;
+        const sideSize = 0.2 * s;
+        const sideAlpha = legible(sideSize);
+        const w = BELT_WIDTH / 2;
+        const zone = -new Date(beltSeconds * 1000).getTimezoneOffset() * 60;
+        const newest = beltSeconds - pa * SECONDS_PER_UNIT;
+        const oldest = beltSeconds - pb * SECONDS_PER_UNIT;
+        ctx.textBaseline = "middle";
+        for (let t = Math.ceil((oldest + zone) / PRINT) * PRINT - zone; t <= newest; t += PRINT) {
+          // Its own offset, across a change of clocks.
+          const local = t - new Date(t * 1000).getTimezoneOffset() * 60;
+          const day = local % 86_400 === 0;
+          const hour = local % 3_600 === 0;
+          const p = (beltSeconds - t) / SECONDS_PER_UNIT;
+          if (day) {
+            at(p);
+            ctx.strokeStyle = palette.ink;
+            ctx.beginPath();
+            moveTo(atX - w * acrossX, atY - w * acrossY, BELT_TOP);
+            lineTo(atX + w * acrossX, atY + w * acrossY, BELT_TOP);
+            if (sideFrom(p, p)) {
+              moveTo(atX, atY + w, BELT_TOP);
+              lineTo(atX, atY + w, 0);
+            }
+            ctx.stroke();
+          }
+          // Slats fall on every minute, so the time is on one; it is printed in the step after
+          // it, the minute it names, toward the machine.
+          const step = p - SLAT / 2;
+          // Not until its step is all out of the machine.
+          if (step < SLAT / 2) continue;
+          at(step);
+          let dx = acrossX;
+          let dy = acrossY;
+          if (dx - dy < 0) {
+            dx = -dx;
+            dy = -dy;
+          }
+          plane(sx(atX, atY), sy(atX, atY, BELT_TOP), (dx - dy) * COS, (dx + dy) * SIN, (-dy - dx) * COS, (dx - dy) * SIN);
+          ctx.globalAlpha = alpha;
+          label(timeFormat.format(t * 1000), 0, 0, size, day || hour ? palette.ink : palette.muted, "center");
+          flat();
+          // Runs go along X, so their side toward the viewer is the +Y one.
+          if (sideAlpha && sideFrom(step - 0.7, step + 0.7)) {
+            at(step);
+            const y = atY + w;
+            plane(sx(atX, y), sy(atX, y, BELT_TOP), COS, SIN, 0, 1);
+            ctx.globalAlpha = sideAlpha;
+            const date = dateFormat.format(t * 1000).replace(",", "").toUpperCase();
+            label(date, 0, (BELT_TOP / 2) * s, sideSize, palette.muted, "center");
+            flat();
+          }
+          ctx.globalAlpha = 1;
+        }
+        ctx.textBaseline = "alphabetic";
+      }
+
+      /** The k-th U-turn and its slats, if they may show. */
+      function drawTurn(/** @type {number} */ k, /** @type {number} */ phase) {
+        if (!turnInView(k)) return;
+        const start = FIRST + k * PERIOD;
+        uTurn(k);
+        slats(start, start + ARC, phase);
+        printed.push(start, start + ARC);
+      }
+
+      /** The stretch of the run from pa to pb that may show, raised from z0, with its slats. */
+      function drawRun(
+        /** @type {number} */ pa, /** @type {number} */ pb, /** @type {number} */ z0, /** @type {number} */ phase,
+      ) {
+        at(pa);
+        const x = atX;
+        const forward = Math.cos(atAngle) > 0;
+        const [lo, hi] = runInView(atY, forward ? x : x - (pb - pa), forward ? x + (pb - pa) : x);
+        if (lo >= hi) return;
+        const a = pa + (forward ? lo - x : x - hi);
+        const b = pa + (forward ? hi - x : x - lo);
+        straight(a, b, z0);
+        slats(a, b, phase);
+        printed.push(a, b);
+      }
+
+      /**
+       * The folds behind the machine, farthest first. A run's end shows toward +X, so a U-turn
+       * on the right goes over the runs it joins, and the runs go over one on the left. The
+       * first U-turn waits for the first run, drawn in front of the machine.
+       */
+      function drawFolds(/** @type {number} */ first, /** @type {number} */ last, /** @type {number} */ phase) {
+        for (let k = last; k >= Math.max(first, 1); k--) {
+          const right = (k & 1) === 0;
+          if (!right) drawTurn(k, phase);
+          drawRun(partStart(k), FIRST + k * PERIOD, 0, phase);
+          if (right) drawTurn(k, phase);
+        }
+      }
+
+      /** The run out of the machine, in front of it: its mouth on the plinth, then the ground. */
+      function drawFirstRun(/** @type {number} */ phase) {
+        drawRun(0, PLINTH - HALF, PLINTH_TOP, phase);
+        drawRun(PLINTH - HALF, FIRST, 0, phase);
+        if (inView(PLINTH, 0, PLINTH, BELT_WIDTH / 2, PLINTH_TOP)) crease(PLINTH, BELT_WIDTH / 2);
+      }
+
+      /**
+       * The belt the projected blocks wait on, still like them: beside the chain's, nearer the
+       * viewer, into the same face of the machine.
+       */
+      function drawQueueBelt() {
+        const w = BELT_WIDTH / 2;
+        const y0 = QUEUE_Y - w;
+        const y1 = QUEUE_Y + w;
+        if (!inView(HALF, y0, QUEUE_END, y1, BELT_TOP)) return;
+        strip(0, HALF, PLINTH, y0, y1, PLINTH_TOP, false);
+        strip(0, PLINTH, QUEUE_END, y0, y1, 0, true);
+        crease(PLINTH, y1);
+        if (SLAT * camera.scale >= 5) {
+          const inset = w - RAIL;
+          ctx.strokeStyle = palette.faint;
+          ctx.beginPath();
+          for (let x = HALF + SLAT; x < QUEUE_END; x += SLAT) {
+            moveTo(x, QUEUE_Y - inset, BELT_TOP);
+            lineTo(x, QUEUE_Y + inset, BELT_TOP);
+          }
+          ctx.stroke();
+        }
+        drawLift();
+      }
+
+      // The ground -------------------------------------------------------------
+
+      /** Dashed footprints around the plinth and the belts. */
+      function drawGround(/** @type {number} */ first, /** @type {number} */ last) {
+        const P = PLINTH + OUTLINE;
+        const Y0 = PLINTH_Y0 - OUTLINE;
+        const Y1 = PLINTH_Y1 + OUTLINE;
+        const e = BELT_WIDTH / 2 + OUTLINE;
+        ctx.strokeStyle = palette.ground;
+        ctx.setLineDash(DASHED);
+        ctx.beginPath();
+        // The plinth, open where the two belts leave it, and the mempool's belt round its end.
+        const end = QUEUE_END + OUTLINE;
+        if (inView(-P, Y0, end, Y1, 0)) {
+          moveTo(P, e, 0);
+          lineTo(P, QUEUE_Y - e, 0);
+          lineTo(end, QUEUE_Y - e, 0);
+          lineTo(end, QUEUE_Y + e, 0);
+          lineTo(P, QUEUE_Y + e, 0);
+          lineTo(P, Y1, 0);
+          lineTo(-P, Y1, 0);
+          lineTo(-P, Y0, 0);
+          lineTo(P, Y0, 0);
+          lineTo(P, -e, 0);
+        }
+        // A run's sides start a whole number of dashes from its end, so they hold still as
+        // the shown stretch changes.
+        const dash = DASHED.reduce((a, b) => a + b) / camera.scale;
+        for (let k = first; k <= last; k++) {
+          const y = -k * FOLD;
+          for (const side of [e, -e]) {
+            const from = k > 0 ? LEFT : P;
+            const [lo, hi] = runInView(y, from, RIGHT);
+            if (lo >= hi) continue;
+            const start = from + Math.floor((lo - from) / dash) * dash;
+            moveTo(start, y + side, 0);
+            lineTo(hi, y + side, 0);
+          }
+          if (!turnInView(k)) continue;
+          const x = sx(turnX, turnY);
+          const top = sy(turnX, turnY, 0);
+          for (const r of [BEND + e, BEND - e]) {
+            const rx = ellipseX(r);
+            const ry = ellipseY(r);
+            ctx.moveTo(x + rx * Math.cos(turnFrom), top + ry * Math.sin(turnFrom));
+            ctx.ellipse(x, top, rx, ry, 0, turnFrom, turnTo);
+          }
+        }
+        ctx.stroke();
+        // The pool's, round it like its rim.
+        if (inView(POOL_X0 - 1, POOL_Y0 - 1, POOL_X1 + 1, POOL_Y1 + 1, 0)) {
+          rounded(POOL_X0 - OUTLINE, POOL_Y0 - OUTLINE, POOL_X1 + OUTLINE, POOL_Y1 + OUTLINE, POOL_RADIUS + OUTLINE, 0);
+          ctx.stroke();
+        }
+        ctx.setLineDash(SOLID);
+      }
+
+      // The machine ------------------------------------------------------------
+
+      function drawMachine(/** @type {number} */ now) {
+        const t = job ? (now - job.start) * job.speed : -1;
+        const press = t >= IN_MS && t < IN_MS + PRESS_MS ? Math.sin((Math.PI * (t - IN_MS)) / PRESS_MS) : 0;
+        const lit = t >= IN_MS && t < IN_MS + PRESS_MS + OUT_MS / 2;
+        const s = camera.scale;
+
+        box(-PLINTH, PLINTH_Y0, 0, PLINTH, PLINTH_Y1, PLINTH_TOP, palette);
+
+        fillBox(-HALF, MACHINE_Y0, PLINTH_TOP, HALF, MACHINE_Y1, MACHINE_TOP, palette);
+        ctx.strokeStyle = palette.ink;
+        ctx.fillStyle = palette.hole;
+        for (const y of [0, QUEUE_Y]) {
+          face(HALF, y + HOLE, HOLE_TOP, HALF, y - HOLE, HOLE_TOP, HALF, y - HOLE, PLINTH_TOP, HALF, y + HOLE, PLINTH_TOP);
+          ctx.fill();
+          ctx.stroke();
+        }
+        strokeBox(-HALF, MACHINE_Y0, PLINTH_TOP, HALF, MACHINE_Y1, MACHINE_TOP);
+
+        // Who stamped what came out last, over the way out.
+        // Each line shows as soon as it is big enough to read, the small one over the big one.
+        const big = 0.24 * s;
+        const small = 0.15 * s;
+        const timer = 0.6 * s;
+        if (legible(big)) {
+          plane(sx(HALF, MACHINE_Y1), sy(HALF, MACHINE_Y1, MACHINE_TOP), COS, -SIN, 0, 1);
+          ctx.globalAlpha = legible(small);
+          label("STAMPED BY", MACHINE_Y1 * s, 0.45 * s, small, palette.ink, "center");
+          const name = lastPool ? (poolNames.get(lastPool) ?? lastPool) : "—";
+          ctx.globalAlpha = legible(big);
+          label(name.toUpperCase(), MACHINE_Y1 * s, 0.8 * s, big, palette.ink, "center");
+          flat();
+          ctx.globalAlpha = 1;
+        }
+
+        // How long since the last block, counting up, on the side facing the pool.
+        const tip = blocks.at(-1);
+        if (tip && legible(timer)) {
+          plane(sx(-HALF, MACHINE_Y1), sy(-HALF, MACHINE_Y1, MACHINE_TOP), COS, SIN, 0, 1);
+          ctx.globalAlpha = legible(small);
+          label("SINCE THE LAST BLOCK", HALF * s, 0.75 * s, small, palette.ink, "center");
+          ctx.globalAlpha = legible(timer);
+          label(since(Date.now() / 1000 - tip.time), HALF * s, 1.45 * s, timer, palette.ink, "center");
+          flat();
+          ctx.globalAlpha = 1;
+        }
+
+        // The lamp, lit while stamping.
+        ctx.beginPath();
+        ctx.arc(sx(1.55, MACHINE_Y1), sy(1.55, MACHINE_Y1, MACHINE_TOP - 0.35), 0.09 * s, 0, Math.PI * 2);
+        ctx.fillStyle = lit ? palette.ink : palette.top;
+        ctx.fill();
+        ctx.stroke();
+
+        box(-HALF + 0.2, MACHINE_Y0 + 0.2, MACHINE_TOP, HALF - 0.2, MACHINE_Y1 - 0.2, LID_TOP, palette);
+
+        // Pegs at the corners and, in the middle, the stamp: a base with the last miner's mark on
+        // it, a neck and a knob. It hangs over the roof and comes down on every block.
+        const peg = 1.4;
+        const back = MACHINE_Y0 + 0.6;
+        const front = MACHINE_Y1 - 0.6;
+        const middle = (MACHINE_Y0 + MACHINE_Y1) / 2;
+        cylinder(-peg, back, LID_TOP, LID_TOP + 0.2, 0.14, palette.left, palette.top);
+        cylinder(peg, back, LID_TOP, LID_TOP + 0.2, 0.14, palette.left, palette.top);
+        const base = 0.7;
+        const foot = LID_TOP + 0.02 + 0.3 * (1 - press);
+        const head = foot + 0.34;
+        box(-base, middle - base, foot, base, middle + base, head, palette);
+        const mark = lastPool && s >= 10 ? logo(lastPool) : null;
+        if (mark) {
+          const m = 0.28;
+          plane(sx(base, middle + base), sy(base, middle + base, head), COS * s, -SIN * s, 0, s);
+          ctx.drawImage(mark, base - m / 2, (head - foot - m) / 2, m, m);
+          plane(sx(-base, middle + base), sy(-base, middle + base, head), COS * s, SIN * s, 0, s);
+          ctx.drawImage(mark, base - m / 2, (head - foot - m) / 2, m, m);
+          flat();
+        }
+        cylinder(0, middle, head, head + 0.5, 0.17, palette.left, palette.top);
+        cylinder(0, middle, head + 0.5, head + 0.72, 0.34, palette.right, lit ? palette.ink : palette.top);
+        cylinder(-peg, front, LID_TOP, LID_TOP + 0.2, 0.14, palette.left, palette.top);
+        cylinder(peg, front, LID_TOP, LID_TOP + 0.2, 0.14, palette.left, palette.top);
+      }
+
+      /** A time counting up: m:ss, or h:mm:ss past an hour. */
+      function since(/** @type {number} */ seconds) {
+        const whole = Math.max(0, Math.floor(seconds));
+        const h = Math.floor(whole / 3600);
+        const m = Math.floor((whole % 3600) / 60);
+        const sec = String(whole % 60).padStart(2, "0");
+        return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+      }
+
+      // The mempool -------------------------------------------------------------
+
+      /** The lift's opening in the belt: dark while a block rises out of it, else its platform, flush. */
+      function drawLift() {
+        const o = LIFT_HALF;
+        face(
+          LIFT_X - o, QUEUE_Y - o, BELT_TOP, LIFT_X + o, QUEUE_Y - o, BELT_TOP,
+          LIFT_X + o, QUEUE_Y + o, BELT_TOP, LIFT_X - o, QUEUE_Y + o, BELT_TOP,
+        );
+        ctx.fillStyle = queue.some((waiting) => waiting.lift < 0) ? palette.hole : palette.top;
+        ctx.fill();
+        ctx.strokeStyle = palette.ink;
+        ctx.setLineDash(SOLID);
+        ctx.stroke();
+      }
+
+      // The whole mempool, from the projections.
+      let mempoolCount = 0;
+      let mempoolVSize = 0;
+
+      /** A number in [0, 1) that is always the same for n. */
+      const hash = (/** @type {number} */ n) => {
+        const x = Math.sin(n * 12.9898) * 43_758.5453;
+        return x - Math.floor(x);
+      };
+
+      // Transactions floating in the pool, each in its own cell of an even grid, drifting
+      // round its spot, as many as the mempool's size calls for; one fished out is gone a while.
+      // The cell by the ladder stays clear.
+      const FLOAT_COLUMNS = 22;
+      const FLOAT_ROWS = 10;
+      const LADDER_CELL = 1;
+      const FISHED_MS = 4_000;
+      const floats = Array.from({ length: FLOAT_COLUMNS * FLOAT_ROWS }, (_, cell) => ({
+        cell,
+        u: 0.25 + 0.5 * hash(cell * 2 + 1),
+        v: 0.25 + 0.5 * hash(cell * 2 + 2),
+        phase: hash(cell + 99) * Math.PI * 2,
+        gone: 0,
+      }))
+        .filter((f) => f.cell !== LADDER_CELL)
+        .sort((a, b) => hash(a.cell + 7) - hash(b.cell + 7));
+      // Where each new transaction drops in.
+      const RIPPLE_MS = 1_600;
+      /** @type {{ x: number, y: number, start: number }[]} */
+      const ripples = [];
+      // Little waves on the water, each at its own spot.
+      const WAVES = Array.from({ length: 56 }, (_, i) => ({ u: hash(i + 300), v: hash(i + 400), phase: hash(i + 500) * 6 }));
+
+      const floatCount = () => Math.max(10, Math.min(floats.length, Math.round(Math.sqrt(mempoolCount) / 2)));
+      // The floating ones on screen this frame, back to front, and where they are.
+      /** @type {number[]} */
+      const afloat = [];
+      const floatX = new Float64Array(floats.length);
+      const floatY = new Float64Array(floats.length);
+
+      // The water, inside the coping.
+      const WATER_X0 = POOL_X0 + POOL_WALL;
+      const WATER_X1 = POOL_X1 - POOL_WALL;
+      const WATER_Y0 = POOL_Y0 + POOL_WALL;
+      const WATER_Y1 = POOL_Y1 - POOL_WALL;
+
+      /** Where the i-th floating transaction is now. */
+      function floatAt(/** @type {number} */ i, /** @type {number} */ now) {
+        const f = floats[i];
+        const w = (WATER_X1 - WATER_X0 - 0.4) / FLOAT_COLUMNS;
+        const h = (WATER_Y1 - WATER_Y0 - 0.4) / FLOAT_ROWS;
+        return {
+          x: WATER_X0 + 0.2 + ((f.cell % FLOAT_COLUMNS) + f.u) * w + 0.08 * Math.cos(now / 4_000 + f.phase),
+          y: WATER_Y0 + 0.2 + (Math.floor(f.cell / FLOAT_COLUMNS) + f.v) * h + 0.08 * Math.sin(now / 4_000 + f.phase),
+        };
+      }
+
+      /** How high the water is, by how many blocks the mempool holds, on a log scale. */
+      function poolLevel() {
+        const full = Math.log(1 + mempoolVSize / MAX_BLOCK_VSIZE) / Math.log(301);
+        return POOL_RIM * Math.min(0.75, Math.max(0.25, full));
+      }
+
+      /**
+       * A rounded rectangle at height z, its corners like the belt's turns: as the current path,
+       * or added to `into`.
+       */
+      function rounded(
+        /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ x1, /** @type {number} */ y1,
+        /** @type {number} */ r, /** @type {number} */ z, /** @type {Path2D | null} */ into = null,
+      ) {
+        const path = into ?? ctx;
+        if (!into) ctx.beginPath();
+        const rx = ellipseX(r);
+        const ry = ellipseY(r);
+        const corners = [
+          [x1 - r, y0 + r, -Math.PI / 2],
+          [x1 - r, y1 - r, 0],
+          [x0 + r, y1 - r, Math.PI / 2],
+          [x0 + r, y0 + r, Math.PI],
+        ];
+        const [fx, fy, first] = corners[0];
+        path.moveTo(sx(fx, fy) + rx * Math.cos(first + Math.PI / 4), sy(fx, fy, z) + ry * Math.sin(first + Math.PI / 4));
+        for (const [cx, cy, theta] of corners) {
+          path.ellipse(sx(cx, cy), sy(cx, cy, z), rx, ry, 0, theta + Math.PI / 4, theta + (3 * Math.PI) / 4);
+        }
+        path.closePath();
+      }
+
+      /**
+       * The pool: its outer wall, the inside of its far wall down to the water, the water with
+       * what floats on it, the coping round it, and its ladder. The pool is round-cornered and
+       * convex, so each layer only covers what the next would.
+       */
+      function drawPool(/** @type {number} */ now) {
+        const x0 = POOL_X0;
+        const x1 = POOL_X1;
+        const y0 = POOL_Y0;
+        const y1 = POOL_Y1;
+        if (!inView(x0, y0, SIGN_X + 0.1, y1, POOL_RIM + 0.8)) return;
+        const r = POOL_RADIUS;
+        const ri = r - POOL_WALL;
+        const level = poolLevel();
+        const s = camera.scale;
+        ctx.setLineDash(SOLID);
+
+        // The outer wall: the outline at the foot, filled, shows below the rim in front. It turns
+        // from facing +Y to facing +X round the front corner.
+        const front = [x1 - r, y1 - r];
+        const fx = sx(front[0], front[1]);
+        const reach = ellipseX(r) * Math.SQRT1_2;
+        const outer = ctx.createLinearGradient(fx - reach, 0, fx + reach, 0);
+        outer.addColorStop(0, palette.left);
+        outer.addColorStop(1, palette.right);
+        rounded(x0, y0, x1, y1, r, 0);
+        ctx.fillStyle = outer;
+        ctx.fill();
+        // Between its two ends on screen, up to the rim, where neither outline reaches.
+        const left = [x0 + r + r * Math.cos((3 * Math.PI) / 4), y1 - r + r * Math.sin((3 * Math.PI) / 4)];
+        const right = [x1 - r + r * Math.cos(-Math.PI / 4), y0 + r + r * Math.sin(-Math.PI / 4)];
+        face(left[0], left[1], 0, left[0], left[1], POOL_RIM, right[0], right[1], POOL_RIM, right[0], right[1], 0);
+        ctx.fill();
+
+        // The inside of the far walls, from the rim down: facing +X on the left, +Y on the right.
+        const back = [WATER_X0 + ri, WATER_Y0 + ri];
+        const bx = sx(back[0], back[1]);
+        const inner = ctx.createLinearGradient(bx - ellipseX(ri) * Math.SQRT1_2, 0, bx + ellipseX(ri) * Math.SQRT1_2, 0);
+        inner.addColorStop(0, palette.right);
+        inner.addColorStop(1, palette.left);
+        rounded(WATER_X0, WATER_Y0, WATER_X1, WATER_Y1, ri, POOL_RIM);
+        ctx.fillStyle = inner;
+        ctx.fill();
+
+        // The water, seen through the opening, with its line round the walls.
+        ctx.save();
+        ctx.clip();
+        rounded(WATER_X0, WATER_Y0, WATER_X1, WATER_Y1, ri, level);
+        ctx.fillStyle = palette.liquidLeft;
+        ctx.fill();
+        ctx.strokeStyle = palette.muted;
+        ctx.stroke();
+        // Waves, ripples where transactions drop in, and the ones floating.
+        if (s >= 12) {
+          ctx.beginPath();
+          for (const wave of WAVES) {
+            const x = WATER_X0 + 0.3 + wave.u * (WATER_X1 - WATER_X0 - 0.6);
+            const y = WATER_Y0 + 0.3 + wave.v * (WATER_Y1 - WATER_Y0 - 0.6);
+            if (!inView(x - 0.3, y - 0.3, x + 0.3, y + 0.3, level)) continue;
+            const px = sx(x, y) + Math.sin(now / 2_000 + wave.phase) * 0.06 * s;
+            const py = sy(x, y, level);
+            const width = 0.32 * s;
+            for (let i = 0; i <= 8; i++) {
+              const qx = px + (i / 8 - 0.5) * width;
+              const qy = py + Math.sin((i / 8) * Math.PI * 2 + now / 600 + wave.phase) * 0.025 * s;
+              if (i === 0) ctx.moveTo(qx, qy);
+              else ctx.lineTo(qx, qy);
+            }
+          }
+          ctx.stroke();
+        }
+        for (const ripple of ripples) {
+          const t = (now - ripple.start) / RIPPLE_MS;
+          if (t < 0 || t >= 1) continue;
+          const rr = 0.08 + 0.7 * t;
+          ctx.globalAlpha = 1 - t;
+          ctx.beginPath();
+          ctx.ellipse(sx(ripple.x, ripple.y), sy(ripple.x, ripple.y, level), ellipseX(rr), ellipseY(rr), 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        if (s >= 12) {
+          afloat.length = 0;
+          for (let i = 0; i < floatCount(); i++) {
+            if (floats[i].gone > now) continue;
+            const { x, y } = floatAt(i, now);
+            if (!inView(x - 0.2, y - 0.2, x + 0.2, y + 0.2, level + 0.1)) continue;
+            floatX[i] = x;
+            floatY[i] = y;
+            afloat.push(i);
+          }
+          afloat.sort((a, b) => floatX[a] + floatY[a] - (floatX[b] + floatY[b]));
+          for (const i of afloat) {
+            const x = floatX[i];
+            const y = floatY[i];
+            const z = level + 0.012 * Math.sin(now / 700 + floats[i].phase);
+            // Mostly under water: a ring round it, and its top just out.
+            ctx.strokeStyle = palette.muted;
+            ctx.beginPath();
+            ctx.ellipse(sx(x, y), sy(x, y, level), ellipseX(0.17), ellipseY(0.17), 0, 0, Math.PI * 2);
+            ctx.stroke();
+            parcel(x, y, z - 0.1, 0.085);
+          }
+        }
+        ctx.restore();
+
+        // The coping, the rim's top, between the outside and the opening.
+        ctx.strokeStyle = palette.ink;
+        const coping = new Path2D();
+        rounded(x0, y0, x1, y1, r, POOL_RIM, coping);
+        rounded(WATER_X0, WATER_Y0, WATER_X1, WATER_Y1, ri, POOL_RIM, coping);
+        ctx.fillStyle = palette.top;
+        ctx.fill(coping, "evenodd");
+        ctx.stroke(coping);
+
+        // The outer wall's foot in front, and its two ends on screen, upright.
+        ctx.beginPath();
+        ctx.ellipse(sx(x0 + r, y1 - r), sy(x0 + r, y1 - r, 0), ellipseX(r), ellipseY(r), 0, Math.PI, (3 * Math.PI) / 4, true);
+        ctx.ellipse(sx(x1 - r, y1 - r), sy(x1 - r, y1 - r, 0), ellipseX(r), ellipseY(r), 0, (3 * Math.PI) / 4, Math.PI / 4, true);
+        ctx.ellipse(sx(x1 - r, y0 + r), sy(x1 - r, y0 + r, 0), ellipseX(r), ellipseY(r), 0, Math.PI / 4, 0, true);
+        for (const [x, y] of [left, right]) {
+          ctx.moveTo(sx(x, y), sy(x, y, 0));
+          ctx.lineTo(sx(x, y), sy(x, y, POOL_RIM));
+        }
+        ctx.stroke();
+
+        // The ladder over the far side: two rails up from the coping, over, and down into the
+        // water, with a rung above it. Over the edge the deck is out of sight behind the pool.
+        const lx = WATER_X0 + ((LADDER_CELL + 0.5) / FLOAT_COLUMNS) * (WATER_X1 - WATER_X0);
+        const out = y0 + 0.03;
+        const into = WATER_Y0 + 0.14;
+        ctx.beginPath();
+        for (const dx of [-0.15, 0.15]) {
+          const x = lx + dx;
+          moveTo(x, out, POOL_RIM);
+          lineTo(x, out, POOL_RIM + 0.28);
+          for (let i = 1; i <= 8; i++) {
+            const a = (i / 8) * Math.PI;
+            lineTo(x, (out + into) / 2 - Math.cos(a) * ((into - out) / 2), POOL_RIM + 0.28 + Math.sin(a) * 0.1);
+          }
+          lineTo(x, into, level);
+        }
+        const rung = (POOL_RIM + level) / 2;
+        moveTo(lx - 0.15, into, rung);
+        lineTo(lx + 0.15, into, rung);
+        ctx.stroke();
+
+        const held = mempoolCount ? `${heightFormat.format(mempoolCount)} TX · ${(mempoolVSize / 1_000_000).toFixed(1)} MvB` : "";
+        drawSign((POOL_Y0 + POOL_Y1) / 2, "MEMPOOL", held);
+      }
+
+      // Signs past the far ends of the belt and of the pool, side by side: what each holds. Far
+      // enough out that, low as they are, they hide no more than the pool's coping behind.
+      const SIGN_X = QUEUE_END + 0.9;
+      const SIGN_HALF = 1.2;
+      const SIGN_FOOT = 0.4;
+      const SIGN_TOP = 1.3;
+
+      /** A sign centered at y along SIGN_X, facing +X: a title, and a line under it if any. */
+      function drawSign(/** @type {number} */ y, /** @type {string} */ title, /** @type {string} */ line) {
+        const y0 = y - SIGN_HALF;
+        const y1 = y + SIGN_HALF;
+        if (!inView(SIGN_X - 0.05, y0, SIGN_X + 0.05, y1, SIGN_TOP)) return;
+        for (const post of [y0 + 0.3, y1 - 0.3]) box(SIGN_X - 0.035, post - 0.035, 0, SIGN_X + 0.035, post + 0.035, SIGN_FOOT, palette);
+        box(SIGN_X - 0.05, y0, SIGN_FOOT, SIGN_X + 0.05, y1, SIGN_TOP, palette);
+        const s = camera.scale;
+        const size = 0.3 * s;
+        const small = 0.18 * s;
+        if (!legible(size)) return;
+        ctx.textBaseline = "middle";
+        plane(sx(SIGN_X + 0.05, y1), sy(SIGN_X + 0.05, y1, SIGN_TOP), COS, -SIN, 0, 1);
+        ctx.globalAlpha = legible(size);
+        label(title, SIGN_HALF * s, (line ? 0.33 : 0.45) * s, size, palette.ink, "center");
+        if (line) {
+          ctx.globalAlpha = legible(small);
+          label(line, SIGN_HALF * s, 0.65 * s, small, palette.muted, "center");
+        }
+        ctx.textBaseline = "alphabetic";
+        ctx.globalAlpha = 1;
+        flat();
+      }
+
+      // Cubes ------------------------------------------------------------------
+
+      // The last cube's corners at its foot, going round: whole, and cut where it is still
+      // inside the machine. Which corners show its left face, its right face, and the one behind.
+      const wholeX = [0, 0, 0, 0];
+      const wholeY = [0, 0, 0, 0];
+      const cutX = [0, 0, 0, 0];
+      const cutY = [0, 0, 0, 0];
+      let L = 0;
+      let S = 0;
+      let R = 0;
+      let F = 0;
+      const BOTTOM = BELT_TOP;
+      const TOP = BELT_TOP + CUBE;
+
+      /** @param {string} hex */
+      const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+
+      /** A side's color between its colors facing +X (t = 0) and facing +Y (t = 1). */
+      function shade(/** @type {string} */ right, /** @type {string} */ left, /** @type {number} */ t) {
+        if (t <= 0) return right;
+        if (t >= 1) return left;
+        const a = rgb(right);
+        const b = rgb(left);
+        return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",")})`;
+      }
+
+      /** A side face of the last cube, from corner i to corner j, between z0 and z1. */
+      function side(
+        /** @type {number} */ i, /** @type {number} */ j, /** @type {number} */ z0, /** @type {number} */ z1,
+      ) {
+        face(cutX[i], cutY[i], z1, cutX[j], cutY[j], z1, cutX[j], cutY[j], z0, cutX[i], cutY[i], z0);
+      }
+
+      // How high the last cube's foot and top are: on the belt, or lifted off it.
+      let zBottom = BOTTOM;
+      let zTop = TOP;
+      // Which way the last cube faces, for its stamp, and its center.
+      let facing = 0;
+      let centerX = 0;
+      let centerY = 0;
+
+      /**
+       * A cube on the belt at (cx, cy), facing `heading` (from +X toward +Y), cut where it is
+       * still inside the machine. False when none of it is out.
+       * @param {number} cx @param {number} cy @param {number} heading
+       * @param {number} fill @param {boolean} dashed @param {Block | Waiting} item
+       * @param {number} lift how far above the belt it is
+       */
+      function cube(cx, cy, heading, fill, dashed, item, lift = 0) {
+        zBottom = BOTTOM + lift;
+        zTop = TOP + lift;
+        facing = heading;
+        centerX = cx;
+        centerY = cy;
+        // A quarter turn leaves a cube as it was: only its stamp knows the difference.
+        const quarter = Math.PI / 2;
+        const angle = ((heading % quarter) + quarter) % quarter;
+        const c = (Math.cos(angle) * CUBE) / 2;
+        const s = (Math.sin(angle) * CUBE) / 2;
+        wholeX[0] = cx - c + s;
+        wholeY[0] = cy - s - c;
+        wholeX[1] = cx + c + s;
+        wholeY[1] = cy + s - c;
+        wholeX[2] = cx + c - s;
+        wholeY[2] = cy + s + c;
+        wholeX[3] = cx - c - s;
+        wholeY[3] = cy - s + c;
+        for (let i = 0; i < 4; i++) {
+          cutX[i] = cy > MACHINE_Y0 && cy < MACHINE_Y1 ? Math.max(wholeX[i], HALF) : wholeX[i];
+          cutY[i] = wholeY[i];
+        }
+        if (Math.max(...cutX) - Math.min(...cutX) < 1e-6 || Math.max(...cutY) - Math.min(...cutY) < 1e-6) return false;
+
+        // Its front corner swaps at 45°, where one side turns edge on and the other appears.
+        const before = angle < Math.PI / 4;
+        L = before ? 3 : 2;
+        S = before ? 2 : 1;
+        R = before ? 1 : 0;
+        F = before ? 0 : 3;
+        // Sides shade by where they face: the left one's normal is angle + 90° or angle.
+        const leftT = before ? 1 : angle / (Math.PI / 2);
+        const rightT = before ? angle / (Math.PI / 2) : 0;
+
+        // A glass cube holding the block as a liquid, as full as the block, like the bitview
+        // mark: the liquid solid, the glass above it clear but for its edges.
+        const level = zBottom + Math.min(1, Math.max(0, fill)) * CUBE;
+
+        // Through the glass: its far edges, faint.
+        ctx.strokeStyle = palette.faint;
+        ctx.setLineDash(SOLID);
+        ctx.beginPath();
+        moveTo(cutX[L], cutY[L], zBottom);
+        lineTo(cutX[F], cutY[F], zBottom);
+        lineTo(cutX[R], cutY[R], zBottom);
+        moveTo(cutX[F], cutY[F], zBottom);
+        lineTo(cutX[F], cutY[F], zTop);
+        ctx.stroke();
+
+        // The liquid: its two near sides and its surface, with the surface's edges.
+        ctx.fillStyle = shade(palette.liquidRight, palette.liquidLeft, leftT);
+        side(L, S, zBottom, level);
+        ctx.fill();
+        ctx.fillStyle = shade(palette.liquidRight, palette.liquidLeft, rightT);
+        side(S, R, zBottom, level);
+        ctx.fill();
+        ctx.fillStyle = palette.liquidTop;
+        face(cutX[0], cutY[0], level, cutX[1], cutY[1], level, cutX[2], cutY[2], level, cutX[3], cutY[3], level);
+        ctx.fill();
+        ctx.strokeStyle = palette.muted;
+        ctx.stroke();
+
+        // Every edge once, so dashes stay even: the top, three uprights, the foot in front.
+        ctx.strokeStyle = palette.ink;
+        ctx.setLineDash(dashed ? DASHED : SOLID);
+        ctx.lineWidth = item === hovered ? 2 : 1;
+        ctx.beginPath();
+        moveTo(cutX[0], cutY[0], zTop);
+        for (let i = 1; i < 4; i++) lineTo(cutX[i], cutY[i], zTop);
+        ctx.closePath();
+        for (const i of [L, S, R]) {
+          moveTo(cutX[i], cutY[i], zTop);
+          lineTo(cutX[i], cutY[i], zBottom);
+        }
+        moveTo(cutX[L], cutY[L], zBottom);
+        lineTo(cutX[S], cutY[S], zBottom);
+        lineTo(cutX[R], cutY[R], zBottom);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.setLineDash(SOLID);
+
+        hits.push({
+          item,
+          points: [L, F, R].flatMap((i) => [sx(cutX[i], cutY[i]), sy(cutX[i], cutY[i], zTop)]).concat(
+            [R, S, L].flatMap((i) => [sx(cutX[i], cutY[i]), sy(cutX[i], cutY[i], zBottom)]),
+          ),
+        });
+        return true;
+      }
+
+      /** Clips to one face of the last cube, so what is printed on it stays on it. */
+      function clipFace(/** @type {"top" | "left" | "right"} */ which) {
+        if (which === "top") face(cutX[0], cutY[0], zTop, cutX[1], cutY[1], zTop, cutX[2], cutY[2], zTop, cutX[3], cutY[3], zTop);
+        else if (which === "left") side(L, S, zBottom, zTop);
+        else side(S, R, zBottom, zTop);
+        ctx.save();
+        ctx.clip();
+      }
+
+      /** Prints on the last cube's side from corner i to corner j, in pixels from its top left. */
+      function onSide(/** @type {number} */ i, /** @type {number} */ j) {
+        const ux = wholeX[j] - wholeX[i];
+        const uy = wholeY[j] - wholeY[i];
+        plane(sx(wholeX[i], wholeY[i]), sy(wholeX[i], wholeY[i], zTop), (ux - uy) * COS, (ux + uy) * SIN, 0, 1);
+      }
+
+      /** Prints on the last cube's top, in cube widths from its back corner as it faces. */
+      function onTop() {
+        const s = camera.scale;
+        const ux = Math.cos(facing) * CUBE;
+        const uy = Math.sin(facing) * CUBE;
+        const vx = -uy;
+        const vy = ux;
+        const ox = centerX - (ux + vx) / 2;
+        const oy = centerY - (uy + vy) / 2;
+        plane(
+          sx(ox, oy), sy(ox, oy, zTop),
+          (ux - uy) * COS * s, (ux + uy) * SIN * s, (vx - vy) * COS * s, (vx + vy) * SIN * s,
+        );
+      }
+
+      const heightFormat = new Intl.NumberFormat("en-US");
+      const timeFormat = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+      const dateFormat = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short" });
+
+      /** @param {Block} block @param {number} cx @param {number} cy @param {number} angle @param {boolean} newest */
+      function drawBlock(block, cx, cy, angle, newest) {
+        if (!cube(cx, cy, angle, block.weight / MAX_BLOCK_WEIGHT, false, block)) return;
+        const s = camera.scale;
+
+        // The miner's stamp on top: a label with its logo, turning with the cube.
+        if (s >= 10) {
+          const mark = logo(block.pool);
+          clipFace("top");
+          onTop();
+          ctx.beginPath();
+          ctx.roundRect(0.17, 0.17, 0.66, 0.66, 0.08);
+          ctx.fillStyle = palette.top;
+          ctx.fill();
+          ctx.strokeStyle = palette.ink;
+          ctx.lineWidth = (newest ? 2 : 1.2) / s;
+          ctx.stroke();
+          ctx.lineWidth = 1;
+          if (mark) ctx.drawImage(mark, 0.25, 0.25, 0.5, 0.5);
+          flat();
+          ctx.restore();
+        }
+
+        const size = 0.17 * s;
+        const alpha = legible(size);
+        if (!alpha) return;
+        ctx.globalAlpha = alpha;
+        printSides(heightFormat.format(block.height), feeRate(block.fee), s);
+        ctx.globalAlpha = 1;
+      }
+
+      /**
+       * A projected block at cx on the mempool's belt, cut where it is inside the machine.
+       * @param {Waiting} waiting @param {number} cx @param {number} height what it is expected to be
+       */
+      function drawWaiting(waiting, cx, height) {
+        if (!inView(cx - CUBE / 2, QUEUE_Y - CUBE / 2, cx + CUBE / 2, QUEUE_Y + CUBE / 2, TOP + waiting.lift)) return;
+        // Rising out of the lift, what is still under the belt is hidden by the belt in front.
+        const rising = waiting.lift < 0;
+        if (rising) {
+          const o = LIFT_HALF;
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(sx(LIFT_X - o, QUEUE_Y + o), -1e5);
+          lineTo(LIFT_X - o, QUEUE_Y + o, BELT_TOP);
+          lineTo(LIFT_X + o, QUEUE_Y + o, BELT_TOP);
+          lineTo(LIFT_X + o, QUEUE_Y - o, BELT_TOP);
+          ctx.lineTo(sx(LIFT_X + o, QUEUE_Y - o), -1e5);
+          ctx.closePath();
+          ctx.clip();
+        }
+        ctx.globalAlpha = waiting.alpha;
+        if (!cube(cx, QUEUE_Y, 0, waiting.fill, true, waiting, waiting.lift)) {
+          ctx.globalAlpha = 1;
+          if (rising) ctx.restore();
+          return;
+        }
+        const s = camera.scale;
+
+        // Where the stamp will go.
+        clipFace("top");
+        ctx.strokeStyle = palette.muted;
+        ctx.setLineDash(DASHED);
+        ctx.beginPath();
+        moveTo(cx - 0.33, QUEUE_Y - 0.33, zTop);
+        lineTo(cx + 0.33, QUEUE_Y - 0.33, zTop);
+        lineTo(cx + 0.33, QUEUE_Y + 0.33, zTop);
+        lineTo(cx - 0.33, QUEUE_Y + 0.33, zTop);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.setLineDash(SOLID);
+        ctx.restore();
+
+        const size = 0.16 * s;
+        const alpha = legible(size);
+        if (alpha) {
+          ctx.globalAlpha = waiting.alpha * alpha;
+          printSides(heightFormat.format(height), feeRate(waiting.data.medianFee), s);
+        }
+        ctx.globalAlpha = 1;
+        if (rising) ctx.restore();
+      }
+
+      const feeRate = (/** @type {number} */ rate) => (rate < 10 ? rate.toFixed(1) : Math.round(rate).toString());
+
+      /**
+       * What every block shows on both its sides, mined or still waiting: its height (or the one
+       * it is expected at), its median fee rate, and the unit.
+       */
+      function printSides(/** @type {string} */ height, /** @type {string} */ rate, /** @type {number} */ s) {
+        for (const [which, i, j] of /** @type {const} */ ([["left", L, S], ["right", S, R]])) {
+          clipFace(which);
+          onSide(i, j);
+          label(height, 0.5 * s, 0.27 * s, 0.16 * s, palette.ink, "center");
+          label(rate, 0.5 * s, 0.5 * s, 0.2 * s, palette.ink, "center");
+          label("sats/vB", 0.5 * s, 0.67 * s, 0.11 * s, palette.muted, "center");
+          flat();
+          ctx.restore();
+        }
+      }
+
+      /**
+       * The height the i-th waiting block is expected at: after the tip, counting the blocks
+       * found but not yet through the machine, whose projections are still in front of it.
+       */
+      const expectedHeight = (/** @type {number} */ i) => knownTip + 1 + i - arriving.length;
+
+      // Workers ----------------------------------------------------------------
+
+      // A crew of little robots lives by the pool. An idle one fishes each transaction that drops
+      // in out of it, and carries it along the front of the mempool's belt into the first waiting
+      // block its fee rate makes it into. The next block is full, so one that goes into it puts
+      // another out: the robot takes a parcel back out and on to the block after, then walks
+      // back to its spot by the pool. Parcels are dashed like what is not mined yet.
+      // Between the belt and the pool, from the belt out: the line the robots throw from, a lane
+      // toward the machine, one away from it, and the row they wait in by the pool. A robot walks
+      // in the lane of its way, behind any walking ahead of it there, and steps out of it where
+      // it is going, so none stands in another's way.
+      const THROW_Y = QUEUE_Y + BELT_WIDTH / 2 + 0.15;
+      const LANE_IN = THROW_Y + 0.2;
+      const LANE_OUT = LANE_IN + 0.2;
+      const SPOT_Y = LANE_OUT + 0.2;
+      const ROOM = 0.42;
+      // Places along the line, half a block apart, one robot each: off the machine's plinth, up
+      // to the lift. A robot throws from the free one nearest its block.
+      const PLACE = 0.5;
+      const PLACES = Array.from({ length: Math.floor((LIFT_X - PLINTH - 0.5) / PLACE) + 1 }, (_, i) => PLINTH + 0.5 + i * PLACE);
+      const THROW_REACH = 1;
+      const CREW = 10;
+      const WALK = 1.6;
+      const TOSS_MS = 650;
+      const MAX_PENDING = 6;
+      const RECENT_POLL_MS = 3_000;
+
+      /** @type {Worker[]} */
+      const workers = Array.from({ length: CREW }, (_, i) => {
+        const first = POOL_X0 + 1.6;
+        const home = first + (i * (POOL_X1 - 0.6 - first)) / (CREW - 1);
+        return { tx: null, x: home, y: SPOT_Y, home, place: -1, steps: [], since: 0, load: null, stride: 0, fishX: 0, fishY: 0 };
+      });
+      /** Transactions seen dropping into the mempool, waiting for an idle robot. @type {Recent[]} */
+      const pending = [];
+      /** @type {Set<string>} */
+      const seenTxids = new Set();
+
+      /** Where the i-th waiting block is along X, or the nearest there is. */
+      function slotX(/** @type {number} */ i) {
+        const waiting = queue[Math.min(i, queue.length - 1)];
+        return HALF + EXIT + (waiting ? waiting.slot : 0) * SLOT;
+      }
+
+      /**
+       * The free place nearest the i-th waiting block, within reach of it or anywhere; -1 when
+       * none. Reach counts from where the line starts for a block before it, the next one.
+       */
+      function freePlace(/** @type {number} */ i, /** @type {boolean} */ anywhere) {
+        const x = Math.max(slotX(i), PLACES[0]);
+        let best = -1;
+        PLACES.forEach((px, k) => {
+          if (workers.some((worker) => worker.place === k)) return;
+          const d = Math.abs(px - x);
+          if ((anywhere || d <= THROW_REACH) && (best < 0 || d < Math.abs(PLACES[best] - x))) best = k;
+        });
+        return best;
+      }
+
+      /**
+       * The first waiting block a fee rate makes it into, the projections being by fee, highest
+       * first; -1 when none, the transaction staying in the pool.
+       */
+      function destination(/** @type {number} */ rate) {
+        for (let i = 0; i < queue.length; i++) {
+          if (rate >= (queue[i].data.feeRange?.[0] ?? 0)) return i;
+        }
+        return -1;
+      }
+
+      /**
+       * Gives the first transaction with a free place near its block to the idle robot nearest
+       * that place; the others wait their turn.
+       */
+      function assign(/** @type {number} */ now) {
+        if (!pending.length || !queue.length) return;
+        if (!workers.some((worker) => !worker.steps.length)) return;
+        for (let k = 0; k < pending.length; k++) {
+          const tx = pending[k];
+          const to = destination(tx.fee / tx.vsize);
+          if (to < 0) {
+            pending.splice(k--, 1);
+            continue;
+          }
+          const spot = freePlace(to, false);
+          if (spot < 0) continue;
+          const x = PLACES[spot];
+          /** @type {Worker | null} */
+          let free = null;
+          for (const worker of workers) {
+            if (!worker.steps.length && (!free || Math.abs(worker.x - x) < Math.abs(free.x - x))) free = worker;
+          }
+          if (!free) return;
+          pending.splice(k, 1);
+          send(free, tx, to, spot, now);
+          return;
+        }
+      }
+
+      /** Sends a robot to fish a transaction out and throw it into the to-th waiting block from a place. */
+      function send(
+        /** @type {Worker} */ free, /** @type {Recent} */ tx, /** @type {number} */ to,
+        /** @type {number} */ place, /** @type {number} */ now,
+      ) {
+        /** @type {Step[]} */
+        const steps = [{ kind: "fish" }, { kind: "walk", to }, { kind: "toss", block: to }];
+        if (to === 0 && queue.length > 1 && queue[0].data.blockVSize >= 0.995 * MAX_BLOCK_VSIZE) {
+          steps.push({ kind: "pick", block: 0 }, { kind: "walk", to: 1 }, { kind: "toss", block: 1 });
+        }
+        steps.push({ kind: "walk", to: -1 });
+        // It fishes the floating one nearest it.
+        let nearest = -1;
+        let best = Infinity;
+        for (let i = 0; i < floatCount(); i++) {
+          if (floats[i].gone > now) continue;
+          const { x, y } = floatAt(i, now);
+          const d = Math.hypot(x - free.x, y - free.y);
+          if (d < best) {
+            best = d;
+            nearest = i;
+          }
+        }
+        const target = nearest < 0 ? { x: free.x, y: WATER_Y0 + 0.4 } : floatAt(nearest, now);
+        if (nearest >= 0) floats[nearest].gone = now + FISHED_MS;
+        Object.assign(free, { tx, place, steps, since: now, fishX: target.x, fishY: target.y });
+      }
+
+      /**
+       * The blocks ahead move up one when the next goes into the machine; so do the robots'
+       * errands, but for a bumped parcel's, from the next block to the one after, whichever those
+       * are now. One not yet at its place finds one near its block again.
+       */
+      function shiftWorkers() {
+        for (const worker of workers) {
+          for (const step of worker.steps) {
+            if (step.kind === "pick") break;
+            if (step.kind === "walk" && step.to > 0) step.to -= 1;
+            if (step.kind === "toss" && step.block > 0) step.block -= 1;
+          }
+          const step = worker.steps[0];
+          if (step && (step.kind === "fish" || (step.kind === "walk" && step.to >= 0))) worker.place = -1;
+        }
+      }
+
+      /** Moves the robots on. */
+      function stepWorkers(/** @type {number} */ now, /** @type {number} */ dt) {
+        assign(now);
+        for (const worker of workers) {
+          const step = worker.steps[0];
+          if (!step) continue;
+          if (step.kind === "walk") {
+            const home = step.to < 0;
+            if (!home && worker.place < 0) worker.place = freePlace(step.to, true);
+            const target = home ? worker.home : (PLACES[worker.place] ?? worker.x);
+            const move = (WALK * dt) / 1000;
+            const dx = target - worker.x;
+            const way = Math.sign(dx) || 1;
+            // In the lane of its way until there, then out of it: onto the line or into its spot.
+            const lane = dx ? (way < 0 ? LANE_IN : LANE_OUT) : home ? SPOT_Y : THROW_Y;
+            worker.y += Math.max(-move, Math.min(move, lane - worker.y));
+            if (!dx) {
+              if (worker.y !== lane) continue;
+              worker.steps.shift();
+              worker.since = now;
+              continue;
+            }
+            const ahead = workers.some(
+              (other) =>
+                other !== worker && other.steps.length > 0 && Math.abs(other.y - lane) < 0.1 &&
+                (other.x - worker.x) * way > 0 && (other.x - worker.x) * way < ROOM,
+            );
+            if (ahead) continue;
+            worker.x = Math.abs(dx) <= move ? target : worker.x + way * move;
+            worker.stride += move * 14;
+          } else if (now - worker.since >= TOSS_MS) {
+            worker.load = step.kind === "pick" ? "bumped" : step.kind === "fish" ? "tx" : null;
+            worker.steps.shift();
+            worker.since = now;
+            // Done at its place: it gives it up to walk on.
+            if (step.kind !== "fish" && worker.steps[0]?.kind === "walk") worker.place = -1;
+          }
+        }
+      }
+
+      /** A robot: two legs, a body, a cube for a head with two eyes, and its parcel held up. */
+      function drawWorker(/** @type {Worker} */ worker) {
+        const x = worker.x;
+        const y = worker.y;
+        if (camera.scale < 12 || !inView(x - 0.3, y - 0.3, x + 0.3, y + 0.3, 1)) return;
+        const step = worker.steps[0];
+        const walking = step?.kind === "walk";
+        const swing = walking ? Math.sin(worker.stride) * 0.07 : 0;
+        ctx.strokeStyle = palette.ink;
+        ctx.setLineDash(SOLID);
+        ctx.beginPath();
+        moveTo(x, y - 0.045, 0.18);
+        lineTo(x + swing, y - 0.045, 0);
+        moveTo(x, y + 0.045, 0.18);
+        lineTo(x - swing, y + 0.045, 0);
+        ctx.stroke();
+        box(x - 0.1, y - 0.08, 0.17, x + 0.1, y + 0.08, 0.42, palette);
+        box(x - 0.065, y - 0.065, 0.44, x + 0.065, y + 0.065, 0.57, palette);
+        ctx.fillStyle = palette.ink;
+        for (const ex of [-0.03, 0.03]) {
+          ctx.beginPath();
+          ctx.arc(sx(x + ex, y + 0.065), sy(x + ex, y + 0.065, 0.51), 0.011 * camera.scale, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Arms up under the parcel, or down; a throw is the parcel flying, drawn after.
+        const held = worker.load !== null && (walking || !step);
+        ctx.beginPath();
+        for (const side of [-1, 1]) {
+          moveTo(x + side * 0.1, y, 0.38);
+          if (held) lineTo(x + side * 0.1, y, 0.62);
+          else lineTo(x + side * 0.13, y, 0.2);
+        }
+        ctx.stroke();
+        if (held) parcel(x, y, 0.6);
+        hits.push({
+          item: worker,
+          points: [
+            sx(x - 0.1, y - 0.08), sy(x - 0.1, y - 0.08, 0.8), sx(x + 0.1, y - 0.08), sy(x + 0.1, y - 0.08, 0.8),
+            sx(x + 0.1, y + 0.08), sy(x + 0.1, y + 0.08, 0), sx(x - 0.1, y + 0.08), sy(x - 0.1, y + 0.08, 0),
+          ],
+        });
+      }
+
+      /** A transaction: a small dashed cube with its foot at z; carried, bigger than a robot's head. */
+      function parcel(/** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ z, h = 0.11) {
+        fillBox(x - h, y - h, z, x + h, y + h, z + 2 * h, palette);
+        ctx.strokeStyle = palette.ink;
+        ctx.setLineDash(DOTTED);
+        strokeBox(x - h, y - h, z, x + h, y + h, z + 2 * h);
+        ctx.setLineDash(SOLID);
+      }
+
+      /** Parcels in the air: out of the pool, or between a robot's hands and a waiting block. */
+      function drawThrows(/** @type {number} */ now) {
+        for (const worker of workers) {
+          const step = worker.steps[0];
+          if (!step || step.kind === "walk") continue;
+          const t = Math.min(1, (now - worker.since) / TOSS_MS);
+          const k = step.kind === "toss" ? t : 1 - t;
+          const fish = step.kind === "fish";
+          const toX = fish ? worker.fishX : slotX(step.block);
+          const toY = fish ? worker.fishY : QUEUE_Y;
+          const toZ = fish ? poolLevel() - 0.05 : TOP - 0.15;
+          const x = worker.x + (toX - worker.x) * k;
+          const y = worker.y + (toY - worker.y) * k;
+          const z = 0.6 + (toZ - 0.6) * k + Math.sin(Math.PI * k) * 0.7;
+          if (!inView(x - 0.2, y - 0.2, x + 0.2, y + 0.2, z + 0.2)) continue;
+          // It sinks out of sight into the block at the end of a throw, and out of it at the start of a pick.
+          ctx.globalAlpha = Math.min(1, (1 - k) * 6);
+          parcel(x, y, z);
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      /** The robot the camera follows. @type {Worker | null} */
+      let followed = null;
+      let cardText = "";
+
+      function follow(/** @type {Worker | null} */ worker) {
+        followed = worker;
+        card.hidden = !worker;
+        cardText = "";
+        dirty = true;
+      }
+
+      const ordinal = (/** @type {number} */ n) => (n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`);
+      const blockName = (/** @type {number} */ i) => (i === 0 ? "the next block" : `the ${ordinal(i + 1)} block`);
+
+      /** What a robot carries, and where to, in a few lines. */
+      function cargo(/** @type {Worker} */ worker) {
+        const step = worker.steps[0];
+        const toss = worker.steps.find((next) => next.kind === "toss");
+        const into = toss && toss.kind === "toss" ? `Into ${blockName(toss.block)}` : "";
+        const { tx } = worker;
+        if (!step) return ["Waiting by the pool"];
+        if (tx && (worker.load === "tx" || step.kind === "fish")) {
+          return [
+            `TX ${tx.txid.slice(0, 8)}…${tx.txid.slice(-8)}`,
+            `${feeRate(tx.fee / tx.vsize)} sat/vB · ${heightFormat.format(tx.vsize)} vB · ${(tx.value / 100_000_000).toFixed(8)} BTC`,
+            into,
+          ];
+        }
+        if (worker.load === "bumped" || step?.kind === "pick") {
+          const low = queue[0]?.data.feeRange?.[0];
+          return [
+            "A transaction bumped out of the next block",
+            low === undefined ? "" : `About ${feeRate(low)} sat/vB, its lowest`,
+            into,
+          ];
+        }
+        return ["Nothing: going back to the pool"];
+      }
+
+      /** Keeps the followed robot in the middle, and its card up to date. */
+      function stepFollow(/** @type {number} */ dt) {
+        if (!followed) return;
+        const k = 1 - Math.exp(-dt / 200);
+        const du = ((followed.x - followed.y) * COS - camera.u) * k;
+        const dv = ((followed.x + followed.y) * SIN - 0.5 - camera.v) * k;
+        camera.u += du;
+        camera.v += dv;
+        // Redrawn while the camera moves by more than a hundredth of a pixel.
+        if ((Math.abs(du) + Math.abs(dv)) * camera.scale > 0.01) dirty = true;
+        const step = followed.steps[0];
+        const title = !step
+          ? "Waiting"
+          : step.kind === "fish"
+            ? "Fishing"
+            : followed.load || step.kind === "pick"
+              ? "Carrying"
+              : "Empty-handed";
+        const text = cargo(followed).filter(Boolean).join("\n");
+        if (`${title}\n${text}` !== cardText) {
+          cardText = `${title}\n${text}`;
+          cardTitle.textContent = title;
+          cardBody.textContent = text;
+        }
+      }
+
+      /** Puts the card over the followed robot's head, where it is drawn this frame. */
+      function placeCard() {
+        if (!followed) return;
+        const x = sx(followed.x, followed.y);
+        const y = sy(followed.x, followed.y, 1.05);
+        card.style.transform = `translate(${x}px, ${y}px) translate(-50%, calc(-100% - 0.75rem))`;
+      }
+
+      /** @type {ReturnType<typeof setTimeout> | undefined} */
+      let recentTimer;
+
+      async function pollRecent() {
+        clearTimeout(recentTimer);
+        // Nothing to see while the page is hidden.
+        if (!document.hidden) try {
+          const client = await clientReady;
+          const recent = await client.getMempoolRecent({ cache: false });
+          const fresh = recent.filter((tx) => !seenTxids.has(tx.txid));
+          // Each drops into the pool, spread over the time until the next look.
+          const now = performance.now();
+          fresh.forEach((tx, i) => {
+            seenTxids.add(tx.txid);
+            pending.push(tx);
+            const margin = POOL_WALL + 0.4;
+            ripples.push({
+              x: POOL_X0 + margin + Math.random() * (POOL_X1 - POOL_X0 - 2 * margin),
+              y: POOL_Y0 + margin + Math.random() * (POOL_Y1 - POOL_Y0 - 2 * margin),
+              start: now + (i * RECENT_POLL_MS) / fresh.length,
+            });
+          });
+          ripples.splice(0, Math.max(0, ripples.length - 16));
+          pending.splice(0, Math.max(0, pending.length - MAX_PENDING));
+          if (seenTxids.size > 2_000) {
+            const keep = [...seenTxids].slice(-1_000);
+            seenTxids.clear();
+            for (const txid of keep) seenTxids.add(txid);
+          }
+        } catch (error) {
+          console.error("recent", error);
+        }
+        recentTimer = setTimeout(pollRecent, RECENT_POLL_MS);
+      }
+
+      // Positions --------------------------------------------------------------
+
+      const ease = (/** @type {number} */ t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+
+      /** How far along the belt a block is: its age, unless it was pushed along. */
+      function position(/** @type {Block} */ block, /** @type {number} */ seconds, /** @type {number} */ now) {
+        const target = (seconds - block.tEff) / SECONDS_PER_UNIT;
+        if (!block.offset) return target;
+        const t = (now - block.offsetStart) / block.offsetMs;
+        if (t >= 1) {
+          block.offset = 0;
+          return target;
+        }
+        return target + block.offset * (1 - ease(t));
+      }
+
+      /** Lets a block glide from where it is drawn now to where it belongs. */
+      function glide(/** @type {Block} */ block, /** @type {number} */ from, /** @type {number} */ ms, /** @type {number} */ now) {
+        block.offset = from - (Date.now() / 1000 - block.tEff) / SECONDS_PER_UNIT;
+        block.offsetStart = now;
+        block.offsetMs = ms;
+        animateUntil = Math.max(animateUntil, now + ms);
+      }
+
+      /**
+       * Older blocks give way to the one at index i: each keeps at least SPACING of time
+       * behind the next, which only ever moves it further along.
+       */
+      function settle(/** @type {number} */ i, /** @type {number} */ now) {
+        const seconds = Date.now() / 1000;
+        for (; i >= 0; i--) {
+          const block = blocks[i];
+          const tEff = Math.min(block.tEff, blocks[i + 1].tEff - SPACING);
+          if (tEff === block.tEff) return;
+          const from = position(block, seconds, now);
+          block.tEff = tEff;
+          glide(block, from, SETTLE_MS, now);
+        }
+      }
+
+      /** Places blocks older than `next` (or the newest, if none) behind it. */
+      function place(/** @type {Block[]} */ older, /** @type {Block | null} */ next) {
+        const seconds = Date.now() / 1000;
+        for (let i = older.length - 1; i >= 0; i--) {
+          const block = older[i];
+          block.tEff = next
+            ? Math.min(block.time, next.tEff - SPACING)
+            : Math.min(block.time, seconds - EXIT * SECONDS_PER_UNIT);
+          next = block;
+        }
+      }
+
+      // Stamping ---------------------------------------------------------------
+
+      function startJob(/** @type {number} */ now) {
+        const block = /** @type {Block} */ (arriving.shift());
+        const entering = queue.shift() ?? null;
+        // One still rising goes in from the belt, out of the lift.
+        if (entering) entering.lift = 0;
+        for (const waiting of queue) waiting.target -= 1;
+        shiftWorkers();
+        job = {
+          block,
+          entering,
+          enterFrom: entering ? entering.slot : 0,
+          start: now,
+          // Faster the more there are to catch up on.
+          speed: Math.min(20, 1 + 1.5 * arriving.length),
+          pressed: false,
+          out: false,
+        };
+      }
+
+      function stepJob(/** @type {number} */ now) {
+        if (!job && arriving.length) startJob(now);
+        if (!job) return;
+        const t = (now - job.start) * job.speed;
+        if (!job.pressed && t >= IN_MS) {
+          job.pressed = true;
+          lastPool = job.block.pool;
+        }
+        if (!job.out && t >= IN_MS + PRESS_MS) {
+          job.out = true;
+          const block = job.block;
+          block.tEff = Math.min(block.time, Date.now() / 1000 - EXIT * SECONDS_PER_UNIT);
+          blocks.push(block);
+          glide(block, -0.6, OUT_MS / job.speed, now);
+          if (blocks.length > 1) settle(blocks.length - 2, now);
+        }
+        if (t >= IN_MS + PRESS_MS + OUT_MS) {
+          job = null;
+          if (arriving.length) startJob(now);
+          else if (projectedLater) {
+            setProjected(projectedLater, false);
+            projectedLater = null;
+          }
+        }
+      }
+
+      /** Eases the waiting blocks toward their slots, fills and full presence. */
+      function stepQueue(/** @type {number} */ dt) {
+        const k = 1 - Math.exp(-dt / 140);
+        let moving = false;
+        for (const waiting of queue) {
+          const fill = waiting.data.blockVSize / MAX_BLOCK_VSIZE;
+          // One rising out of the lift is all out before it moves up.
+          if (waiting.lift < 0) {
+            waiting.lift = Math.min(0, waiting.lift + (RISE * dt) / RISE_MS);
+            moving = true;
+            continue;
+          }
+          waiting.slot += (waiting.target - waiting.slot) * k;
+          waiting.fill += (fill - waiting.fill) * k;
+          waiting.alpha += (1 - waiting.alpha) * k;
+          if (Math.abs(waiting.target - waiting.slot) > 0.002 || Math.abs(fill - waiting.fill) > 0.002 || waiting.alpha < 0.998) {
+            moving = true;
+          } else {
+            waiting.slot = waiting.target;
+            waiting.fill = fill;
+            waiting.alpha = 1;
+          }
+        }
+        return moving;
+      }
+
+      // Drawing ----------------------------------------------------------------
+
+      function draw(/** @type {number} */ now) {
+        const seconds = Date.now() / 1000;
+        flat();
+        ctx.fillStyle = palette.paper;
+        ctx.fillRect(0, 0, W, H);
+        ctx.lineWidth = 1;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        hits.length = 0;
+        updateView();
+
+        const [first, last] = visibleParts();
+        const pLo = partStart(first) - CUBE;
+        const pHi = partEnd(last) + CUBE;
+        // The belt's slats are spaced along it and move with the blocks.
+        const phase = (seconds / SECONDS_PER_UNIT) % SLAT;
+        beltSeconds = seconds;
+        printed.length = 0;
+
+        // Back to front: the folds behind the machine, the machine, the belts before it, then
+        // every cube by depth.
+        drawGround(first, last);
+        drawFolds(first, last, phase);
+        if (inView(-PLINTH, PLINTH_Y0, PLINTH, PLINTH_Y1, LID_TOP + 1.5)) drawMachine(now);
+        if (first === 0) {
+          drawFirstRun(phase);
+          drawTurn(0, phase);
+        }
+        for (let i = 0; i < printed.length; i += 2) marks(printed[i], printed[i + 1]);
+        // A cube turned any way stays within this of its center.
+        const half = (CUBE * Math.SQRT2) / 2;
+
+        // Blocks are in order of tEff, so the newest that can show is found by halving; the
+        // two after it may be gliding. The folds turn back on themselves, so sort by depth.
+        const newest = blocks.length - 1;
+        const latest = seconds - pLo * SECONDS_PER_UNIT;
+        let lo = 0;
+        let hi = blocks.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (blocks[mid].tEff <= latest) lo = mid + 1;
+          else hi = mid;
+        }
+        shown.length = 0;
+        for (let i = Math.min(newest, lo + 1); i >= 0; i--) {
+          const block = blocks[i];
+          const p = position(block, seconds, now);
+          if (p > pHi) break;
+          if (p < pLo) continue;
+          at(p);
+          if (!inView(atX - half, atY - half, atX + half, atY + half, TOP)) continue;
+          shown.push({ block, x: atX, y: atY, angle: atAngle, newest: i === newest && !job });
+        }
+        shown.sort((a, b) => a.x + a.y - (b.x + b.y));
+        for (const { block, x, y, angle, newest } of shown) drawBlock(block, x, y, angle, newest);
+
+        // The mempool's belt beside the chain's, its blocks nearest the machine first, the sign at
+        // its end, then the robots and the pool in front of them.
+        drawQueueBelt();
+        if (job && job.entering) {
+          const t = ((now - job.start) * job.speed) / IN_MS;
+          if (t < 1) {
+            const from = HALF + EXIT + job.enterFrom * SLOT;
+            drawWaiting(job.entering, from - ease(t) * (from - HALF + 0.6), job.block.height);
+          }
+        }
+        queue.forEach((waiting, i) => drawWaiting(waiting, HALF + EXIT + waiting.slot * SLOT, expectedHeight(i)));
+        const worth = Math.ceil(mempoolVSize / MAX_BLOCK_VSIZE);
+        drawSign(QUEUE_Y, "NEXT BLOCKS", worth ? `${heightFormat.format(worth)} BLOCKS TO CLEAR` : "");
+        // The robots, between the belt and the pool, its rim over their feet.
+        workers.sort((a, b) => a.x + a.y - (b.x + b.y));
+        for (const worker of workers) drawWorker(worker);
+        drawPool(now);
+        drawThrows(now);
+        placeCard();
+
+        if (blocks.length && !reachedGenesis && position(blocks[0], seconds, now) < pHi + PERIOD) {
+          void loadOlder();
+        }
+
+        const machineX = sx(0, 0);
+        const machineY = sy(0, 0, 1.2);
+        nowButton.hidden = machineX > -80 && machineX < W + 80 && machineY > -80 && machineY < H + 80;
+      }
+
+      function frame(/** @type {number} */ now) {
+        requestAnimationFrame(frame);
+        const dt = lastFrame ? Math.min(100, now - lastFrame) : 16;
+        lastFrame = now;
+        if (flight) {
+          const t = ease((now - flight.start) / 700);
+          camera.u = flight.from.u + (flight.to.u - flight.from.u) * t;
+          camera.v = flight.from.v + (flight.to.v - flight.from.v) * t;
+          camera.scale = flight.from.scale * Math.pow(flight.to.scale / flight.from.scale, t);
+          if (t >= 1) flight = null;
+          dirty = true;
+        }
+        stepJob(now);
+        stepWorkers(now, dt);
+        // The pool's water and the robots move all the time: at full rate while they show.
+        const lively = camera.scale >= 12 && inView(PLINTH, QUEUE_Y - BELT_WIDTH, SIGN_X, POOL_Y1, 2);
+        stepFollow(dt);
+        const moving = stepQueue(dt) || !!job || now < animateUntil || lively;
+        // The belt moves under a pixel a second: a few frames a second carry it, more up close.
+        const idleMs = (1000 * IDLE_STEP * SECONDS_PER_UNIT) / camera.scale;
+        if (!moving && !dirty && now - lastDraw < idleMs) return;
+        dirty = false;
+        lastDraw = now;
+        draw(now);
+      }
+
+      // Camera -----------------------------------------------------------------
+
+      function homeView() {
+        // Close enough to see the belt move: the machine on the left, the two belts out of it,
+        // the pool in front, and the first folds rising to the right.
+        const scale = Math.max(20, Math.min(W / 32, (H - 96) / 20, 64));
+        // A phone, upright: the machine and the first folds above it.
+        const narrow = W / scale < 22;
+        return { u: narrow ? 4 : 7, v: narrow ? 2 : 5, scale };
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        W = window.innerWidth;
+        H = window.innerHeight;
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+        dirty = true;
+      }
+
+      function pan(/** @type {number} */ dx, /** @type {number} */ dy) {
+        flight = null;
+        if (followed) follow(null);
+        camera.u -= dx / camera.scale;
+        camera.v -= dy / camera.scale;
+        dirty = true;
+      }
+
+      function zoom(/** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ factor) {
+        flight = null;
+        const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, camera.scale * factor));
+        const u = camera.u + (x - W / 2) / camera.scale;
+        const v = camera.v + (y - H / 2) / camera.scale;
+        camera.scale = scale;
+        camera.u = u - (x - W / 2) / scale;
+        camera.v = v - (y - H / 2) / scale;
+        dirty = true;
+      }
+
+      function flyHome() {
+        follow(null);
+        flight = { from: { ...camera }, to: homeView(), start: performance.now() };
+      }
+
+      /** @type {Map<number, { x: number, y: number }>} */
+      const pointers = new Map();
+      let pinch = 0;
+
+      // A press that moves less than this is a click.
+      const CLICK_SLOP = 4;
+      let pressX = 0;
+      let pressY = 0;
+      let dragged = false;
+
+      canvas.addEventListener("pointerdown", (event) => {
+        canvas.setPointerCapture(event.pointerId);
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        canvas.dataset.dragging = "";
+        pinch = 0;
+        if (pointers.size === 1) {
+          pressX = event.clientX;
+          pressY = event.clientY;
+          dragged = false;
+        } else dragged = true;
+      });
+
+      canvas.addEventListener("pointermove", (event) => {
+        const last = pointers.get(event.pointerId);
+        if (!last) {
+          hover(event.clientX, event.clientY);
+          return;
+        }
+        if (pointers.size === 1) {
+          if (!dragged && Math.hypot(event.clientX - pressX, event.clientY - pressY) < CLICK_SLOP) return;
+          dragged = true;
+          pan(event.clientX - last.x, event.clientY - last.y);
+        } else if (pointers.size === 2) {
+          const [a, b] = [...pointers.values()];
+          const before = Math.hypot(a.x - b.x, a.y - b.y);
+          const midX = (a.x + b.x) / 2;
+          const midY = (a.y + b.y) / 2;
+          last.x = event.clientX;
+          last.y = event.clientY;
+          const after = Math.hypot(a.x - b.x, a.y - b.y);
+          pan(((a.x + b.x) / 2 - midX) , ((a.y + b.y) / 2 - midY));
+          if (before > 0 && pinch++ > 0) zoom((a.x + b.x) / 2, (a.y + b.y) / 2, after / before);
+          return;
+        }
+        last.x = event.clientX;
+        last.y = event.clientY;
+      });
+
+      for (const type of ["pointerup", "pointercancel"]) {
+        canvas.addEventListener(type, (event) => {
+          const pointer = /** @type {PointerEvent} */ (event);
+          pointers.delete(pointer.pointerId);
+          if (pointers.size) return;
+          delete canvas.dataset.dragging;
+          if (type === "pointerup" && !dragged) click(pointer.clientX, pointer.clientY);
+        });
+      }
+
+      /** A click on a robot follows it; anywhere else lets go. */
+      function click(/** @type {number} */ x, /** @type {number} */ y) {
+        for (let i = hits.length - 1; i >= 0; i--) {
+          if (!inside(hits[i].points, x, y)) continue;
+          const { item } = hits[i];
+          follow("tx" in item ? item : null);
+          return;
+        }
+        follow(null);
+      }
+
+      canvas.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? H : 1;
+        if (event.ctrlKey || event.metaKey) zoom(event.clientX, event.clientY, Math.exp(-event.deltaY * unit * 0.01));
+        else pan(-event.deltaX * unit, -event.deltaY * unit);
+      }, { passive: false });
+
+      // Safari's trackpad pinch.
+      let gestureScale = 1;
+      canvas.addEventListener("gesturestart", (event) => {
+        event.preventDefault();
+        gestureScale = 1;
+      });
+      canvas.addEventListener("gesturechange", (event) => {
+        event.preventDefault();
+        const scale = /** @type {any} */ (event).scale;
+        const e = /** @type {MouseEvent} */ (/** @type {unknown} */ (event));
+        zoom(e.clientX, e.clientY, scale / gestureScale);
+        gestureScale = scale;
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.target instanceof HTMLInputElement || event.metaKey || event.ctrlKey || event.altKey) return;
+        const step = 80;
+        const keys = {
+          ArrowUp: () => pan(0, step), w: () => pan(0, step),
+          ArrowDown: () => pan(0, -step), s: () => pan(0, -step),
+          ArrowLeft: () => pan(step, 0), a: () => pan(step, 0),
+          ArrowRight: () => pan(-step, 0), d: () => pan(-step, 0),
+          "+": () => zoom(W / 2, H / 2, 1.25), "=": () => zoom(W / 2, H / 2, 1.25),
+          "-": () => zoom(W / 2, H / 2, 0.8),
+          "0": flyHome, Home: flyHome,
+          Escape: () => follow(null),
+        };
+        const action = keys[/** @type {keyof typeof keys} */ (event.key)];
+        if (!action) return;
+        event.preventDefault();
+        action();
+      });
+
+      nowButton.addEventListener("click", flyHome);
+      $("card-stop").addEventListener("click", () => follow(null));
+      window.addEventListener("resize", resize);
+
+      // Hover ------------------------------------------------------------------
+
+      /** Whether (x, y) is inside the convex polygon `points`. */
+      function inside(/** @type {number[]} */ points, /** @type {number} */ x, /** @type {number} */ y) {
+        let sign = 0;
+        for (let i = 0; i < points.length; i += 2) {
+          const j = (i + 2) % points.length;
+          const cross = (points[j] - points[i]) * (y - points[i + 1]) - (points[j + 1] - points[i + 1]) * (x - points[i]);
+          if (cross === 0) continue;
+          if (sign === 0) sign = Math.sign(cross);
+          else if (Math.sign(cross) !== sign) return false;
+        }
+        return true;
+      }
+
+      function hover(/** @type {number} */ x, /** @type {number} */ y) {
+        let found = null;
+        for (let i = hits.length - 1; i >= 0; i--) {
+          if (inside(hits[i].points, x, y)) {
+            found = hits[i].item;
+            break;
+          }
+        }
+        if (found === hovered) return;
+        hovered = found;
+        dirty = true;
+        describe();
+      }
+
+      function describe() {
+        if (!hovered) {
+          caption.textContent = HINT;
+          return;
+        }
+        if ("tx" in hovered) {
+          caption.textContent = ["A robot", ...cargo(hovered).filter(Boolean), "Click to follow"].join(" · ");
+          return;
+        }
+        if ("height" in hovered) {
+          const block = hovered;
+          const pool = poolNames.get(block.pool) ?? block.pool;
+          caption.textContent = [
+            `#${heightFormat.format(block.height)}`,
+            pool,
+            `${heightFormat.format(block.txs)} tx`,
+            `${feeRate(block.fee)} sats/vB median`,
+            `${((block.weight / MAX_BLOCK_WEIGHT) * 100).toFixed(1)}% full`,
+            timeFormat.format(block.time * 1000),
+            ago(Date.now() / 1000 - block.time),
+          ].join(" · ");
+          return;
+        }
+        const index = queue.indexOf(hovered);
+        if (index < 0) {
+          // It went into the machine.
+          hovered = null;
+          caption.textContent = HINT;
+          return;
+        }
+        const { data } = hovered;
+        caption.textContent = [
+          `#${heightFormat.format(expectedHeight(index))} expected`,
+          index === 0 ? "Next block" : `In ${index + 1} blocks`,
+          `${heightFormat.format(data.nTx)} tx`,
+          `${feeRate(data.medianFee)} sats/vB median`,
+          `${((data.blockVSize / MAX_BLOCK_VSIZE) * 100).toFixed(1)}% full`,
+        ].join(" · ");
+      }
+
+      // Time -------------------------------------------------------------------
+
+      /** @param {number} seconds */
+      function ago(seconds) {
+        if (seconds < 60) return `${Math.max(0, Math.round(seconds))} s ago`;
+        const minutes = Math.round(seconds / 60);
+        if (minutes < 60) return `${minutes} min ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 48) return `${hours} h ${minutes % 60} min ago`;
+        return `${Math.floor(hours / 24)} d ${hours % 24} h ago`;
+      }
+
+      let live = false;
+
+      function tick() {
+        clock.textContent = timeFormat.format(Date.now());
+        const tip = blocks.at(-1);
+        if (live && tip) {
+          status.textContent = `#${heightFormat.format(tip.height)} · ${ago(Date.now() / 1000 - tip.time)}`;
+        }
+        if (hovered) describe();
+        if (blocks.length && legible(0.6 * camera.scale) && inView(-HALF, MACHINE_Y0, HALF, MACHINE_Y1, MACHINE_TOP)) dirty = true;
+      }
+
+      function setLive(/** @type {boolean} */ value, /** @type {string} */ text = "") {
+        live = value;
+        if (value) status.dataset.live = "";
+        else {
+          delete status.dataset.live;
+          status.textContent = text;
+        }
+        tick();
+      }
+
+      // Data -------------------------------------------------------------------
+
+      const clientReady = import("../modules/bitview-client/index.js").then(
+        ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 }),
+      );
+
+      /** @param {number} start @param {number} end @param {boolean} cache @returns {Promise<Block[]>} */
+      async function fetchBlocks(start, end, cache) {
+        const client = await clientReady;
+        const response = await client.getSeriesBulk(SERIES, "height", start, end, undefined, undefined, { cache });
+        const [time, pool, weight, txs, fee] = /** @type {{ start: number, data: any[] }[]} */ (response);
+        const length = Math.min(time.data.length, pool.data.length, weight.data.length, txs.data.length, fee.data.length);
+        /** @type {Block[]} */
+        const out = new Array(length);
+        for (let i = 0; i < length; i++) {
+          out[i] = {
+            height: time.start + i,
+            time: Number(time.data[i]),
+            pool: String(pool.data[i]),
+            weight: Number(weight.data[i]),
+            txs: Number(txs.data[i]),
+            fee: Number(fee.data[i]),
+            tEff: 0,
+            offset: 0,
+            offsetStart: 0,
+            offsetMs: 1,
+          };
+        }
+        return out;
+      }
+
+      async function loadOlder() {
+        if (loadingOlder || reachedGenesis || !blocks.length || performance.now() < olderAfter) return;
+        loadingOlder = true;
+        try {
+          const end = blocks[0].height;
+          const start = Math.max(0, end - HISTORY_BATCH);
+          const older = await fetchBlocks(start, end, true);
+          place(older, blocks[0]);
+          blocks = older.concat(blocks);
+          if (start === 0) reachedGenesis = true;
+          dirty = true;
+        } catch (error) {
+          console.error("older blocks", error);
+          olderAfter = performance.now() + TIP_POLL_MS;
+        } finally {
+          loadingOlder = false;
+        }
+      }
+
+      /** @param {Projected[]} list @param {boolean} initial */
+      function setProjected(list, initial) {
+        const count = Math.min(list.length, QUEUE_SLOTS);
+        // New ones rise out of the lift near the belt's far end, one after another.
+        let below = Math.min(0, ...queue.map((waiting) => waiting.lift));
+        for (let i = 0; i < count; i++) {
+          const data = list[i];
+          if (queue[i]) queue[i].data = data;
+          else {
+            const fill = data.blockVSize / MAX_BLOCK_VSIZE;
+            const under = (LIFT_X - HALF - EXIT) / SLOT;
+            if (!initial) below -= RISE;
+            queue.push({ data, slot: initial ? i : under, target: i, fill, alpha: 1, lift: below });
+          }
+        }
+        queue.length = count;
+        queue.forEach((waiting, i) => (waiting.target = i));
+        mempoolCount = list.reduce((sum, block) => sum + block.nTx, 0);
+        mempoolVSize = list.reduce((sum, block) => sum + block.blockVSize, 0);
+        dirty = true;
+      }
+
+      /** Projections wait for the blocks found before them to be stamped, which takes theirs in. */
+      function projected(/** @type {Projected[]} */ list) {
+        if (arriving.length || job) projectedLater = list;
+        else setProjected(list, false);
+      }
+
+      /** @type {ReturnType<typeof setTimeout> | undefined} */
+      let pollTimer;
+      let polling = false;
+
+      /**
+       * New blocks, in batches the server takes even after a long sleep, then the projections,
+       * which so never still hold a block found. One look at a time.
+       */
+      async function poll() {
+        // Until start() has the first blocks, it owns the polling.
+        if (knownTip < 0 || polling) return;
+        polling = true;
+        clearTimeout(pollTimer);
+        try {
+          const client = await clientReady;
+          const height = await client.getBlockTipHeight({ cache: false });
+          while (height > knownTip) {
+            const fresh = await fetchBlocks(knownTip + 1, Math.min(height, knownTip + HISTORY_BATCH) + 1, false);
+            if (!fresh.length) break;
+            knownTip = fresh[fresh.length - 1].height;
+            arriving.push(...fresh);
+          }
+          projected(await client.getMempoolBlocks({ cache: false }));
+          setLive(true);
+        } catch (error) {
+          console.error("poll", error);
+          setLive(false, "Offline");
+        }
+        polling = false;
+        pollTimer = setTimeout(poll, TIP_POLL_MS);
+      }
+
+      async function start() {
+        try {
+          const client = await clientReady;
+          client.getPools().then((list) => {
+            for (const { slug, name } of list) poolNames.set(slug, name);
+            dirty = true;
+            describe();
+          }).catch(() => {});
+          const height = await client.getBlockTipHeight({ cache: false });
+          const initial = await fetchBlocks(Math.max(0, height - HISTORY_BATCH + 1), height + 1, false);
+          const list = await client.getMempoolBlocks({ cache: false });
+          place(initial, null);
+          blocks = initial;
+          reachedGenesis = initial.length > 0 && initial[0].height === 0;
+          const tip = initial[initial.length - 1];
+          knownTip = tip ? tip.height : height;
+          lastPool = tip ? tip.pool : "";
+          setProjected(list, true);
+          setLive(true);
+          void pollRecent();
+        } catch (error) {
+          console.error("start", error);
+          setLive(false, "Offline");
+          pollTimer = setTimeout(start, TIP_POLL_MS);
+          return;
+        }
+        pollTimer = setTimeout(poll, TIP_POLL_MS);
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          saveCamera();
+          return;
+        }
+        void poll();
+      });
+
+      // Where the viewer was, kept for their next visit: saved as the page goes away.
+      const CAMERA_KEY = "city-camera";
+
+      function saveCamera() {
+        try {
+          localStorage.setItem(CAMERA_KEY, JSON.stringify({ u: camera.u, v: camera.v, scale: camera.scale }));
+        } catch {}
+      }
+
+      /** @returns {typeof camera | null} */
+      function savedCamera() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(CAMERA_KEY) ?? "null");
+          if (!saved || ![saved.u, saved.v, saved.scale].every(Number.isFinite)) return null;
+          return { u: saved.u, v: saved.v, scale: Math.min(MAX_SCALE, Math.max(MIN_SCALE, saved.scale)) };
+        } catch {
+          return null;
+        }
+      }
+
+      window.addEventListener("pagehide", saveCamera);
+
+      // Start ------------------------------------------------------------------
+
+      readPalette();
+      themeButton.textContent = root.dataset.theme === "dark" ? "Light" : "Dark";
+      resize();
+      Object.assign(camera, savedCamera() ?? homeView());
+      document.fonts.load(`12px ${FONT}`).then(() => (dirty = true));
+      tick();
+      setInterval(tick, 1_000);
+      requestAnimationFrame(frame);
+      void start();
+    </script>
+  </body>
+</html>
