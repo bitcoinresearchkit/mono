@@ -1,5 +1,5 @@
 mod background_tasks;
-mod data_file;
+pub(crate) mod data_file;
 mod hole_punch;
 mod inner;
 mod layout;
@@ -180,8 +180,8 @@ impl Database {
         File::open(self.path().join("data")).map_err(Error::from)
     }
 
-    /// Makes freed space reusable. Writes go straight to the shared mapping, so they are visible to
-    /// the next open (soft quits included) without syncing; power loss is out of scope.
+    /// Makes freed space reusable. Writes reach the OS page cache or the file directly, so they are
+    /// visible to the next open (soft quits included) without syncing; power loss is out of scope.
     pub fn flush(&self) {
         let _writes = self.inner.writes.write();
         self.flush_inner(&_writes);

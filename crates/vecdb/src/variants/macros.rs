@@ -413,18 +413,18 @@ macro_rules! impl_mutable_raw_vec {
                     self.0.reserve_pushed(additional);
                 }
 
-                fn write_updates(&mut self, updated: BTreeMap<usize, T>) {
-                    let guard = self
-                        .header()
-                        .begin_write()
-                        .expect("vector cannot continue after a failed write");
-                    self.region().write_indexed(
-                        updated,
-                        size_of::<T>(),
-                        crate::HEADER_OFFSET,
-                        $strategy::<T>::write_to_slice,
-                    );
-                    guard.finish(Ok(())).expect("ordered update completed");
+                fn write_updates(&mut self, updated: BTreeMap<usize, T>) -> Result<()> {
+                    let guard = self.header().begin_write()?;
+                    let result = self
+                        .region()
+                        .write_indexed(
+                            updated,
+                            size_of::<T>(),
+                            crate::HEADER_OFFSET,
+                            $strategy::<T>::write_to_slice,
+                        )
+                        .map_err(Into::into);
+                    guard.finish(result)
                 }
 
                 fn append_previous_values(

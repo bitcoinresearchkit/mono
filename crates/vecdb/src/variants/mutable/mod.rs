@@ -222,7 +222,7 @@ where
                         .or_insert_with(|| V::read_stored(&reader, index));
                 }
             }
-            self.vec.write_updates(updated);
+            self.vec.write_updates(updated)?;
             changed = true;
         }
 

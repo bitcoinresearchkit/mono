@@ -1,3 +1,5 @@
+#[cfg(unix)]
+mod indexed;
 mod inner;
 pub(crate) mod metadata;
 mod reader;
@@ -204,21 +206,21 @@ impl Region {
         self.write_with(data, Some(at), false)
     }
 
-    /// Writes fixed-size values at `at + index * value_len` within the current
-    /// region length, in ascending key order. All bounds are checked before writing.
-    /// Bytes written before a callback or value destructor panics stay written.
-    /// Callbacks and destructors may read other regions, but must not read this
-    /// region or write, resize, or flush this database.
-    #[inline]
-    pub fn write_indexed<T>(
+    /// Writes fixed-size values at `at + index * value_len` within the current region length, in no
+    /// particular order. All bounds are checked before writing. On unix the values go in whole-page
+    /// chunks on a few threads (see `indexed`); elsewhere they are stored through the mapping. If a
+    /// callback or value destructor panics, what was already written stays written. Callbacks and
+    /// destructors must not access this database: this region's access and the database's mutation
+    /// barrier are held throughout, so reading a region whose growth waits on the barrier would deadlock.
+    pub fn write_indexed<T: Sync>(
         &self,
         values: BTreeMap<usize, T>,
         value_len: usize,
         at: usize,
-        mut write_fn: impl FnMut(&T, &mut [u8]),
-    ) {
+        write_fn: impl Fn(&T, &mut [u8]) + Sync,
+    ) -> Result<()> {
         let Some((&last, _)) = values.last_key_value() else {
-            return;
+            return Ok(());
         };
         let end = last
             .checked_mul(value_len)
@@ -230,18 +232,38 @@ impl Region {
         let _access = self.0.access.write();
         let _writes = storage.writes.read();
         // SAFETY: access keeps bounds stable; the barrier prevents remapping.
-        let (region_start, region_len, _) = unsafe { self.0.bounds() };
+        let (region_start, region_len, _reserved) = unsafe { self.0.bounds() };
         assert!(end <= region_len, "batch bounds exceed region");
-        // SAFETY: at <= end <= region_len; access excludes readers and other
-        // writers, and the barrier keeps the validated mapping in place.
-        let ptr = unsafe { storage.data.mapping().as_mut_ptr().add(region_start + at) };
-        for (index, value) in values {
-            // SAFETY: this owned map has immutable usize keys in [0, last].
-            // The checked maximum proves every record fits without overflow.
-            // Each exclusive borrow ends before the next callback.
-            let bytes = unsafe { slice::from_raw_parts_mut(ptr.add(index * value_len), value_len) };
-            write_fn(&value, bytes);
+        let base = region_start + at;
+        // SAFETY: at <= end <= region_len, so every value lies within this region; access excludes its
+        // readers and other writers, and the barrier keeps the validated mapping in place.
+        let store = |index: usize, value: &T| {
+            let bytes = unsafe {
+                let ptr = storage
+                    .data
+                    .mapping()
+                    .as_mut_ptr()
+                    .add(base + index * value_len);
+                slice::from_raw_parts_mut(ptr, value_len)
+            };
+            write_fn(value, bytes);
+        };
+        #[cfg(unix)]
+        indexed::write(
+            &storage.data,
+            region_start,
+            _reserved,
+            base,
+            value_len,
+            values,
+            &store,
+            &write_fn,
+        )?;
+        #[cfg(not(unix))]
+        for (index, value) in &values {
+            store(*index, value);
         }
+        Ok(())
     }
 
     /// Keeps the first `from` bytes without changing reserved capacity.

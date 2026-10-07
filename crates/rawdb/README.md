@@ -50,9 +50,12 @@ Each database directory contains a `data` file and a `regions` metadata file.
 Metadata uses fixed 4 KiB slots containing each region's ID, offset, length,
 and capacity. These slots are not guaranteed atomic disk writes.
 
-Writes go straight to shared file mappings: they are visible in process immediately and to the next process
-that opens the database, across soft quits and process crashes, because the OS page cache holds them until it
-writes them back. rawdb never syncs to the device. `Database::flush()` excludes mutations and makes old
+Writes go to the shared file mapping, except indexed batch writes (`Region::write_indexed`), which run in
+page-aligned chunks on a few threads: on macOS, where dirtying a cached page costs far more than the I/O, each
+chunk is patched in a buffer and written through a second, uncached descriptor; elsewhere chunks not in memory
+are read into the page cache in parallel before the values are stored through the mapping. Every write is
+visible in process immediately and to the next process that opens the database, across soft quits and process
+crashes. rawdb never syncs to the device. `Database::flush()` excludes mutations and makes old
 allocations from moves and removals reusable.
 
 This is not a transaction or crash-recovery protocol. Kernel panics, power loss and storage removal are out of
@@ -76,8 +79,10 @@ error; valid-looking data corruption cannot be detected by rawdb.
   Allocation changes are serialized. Flush and compaction exclude mutations,
   while ordinary reads can continue.
 - Batch callbacks must not reenter their region or resize/flush the database.
-  They may read other regions while file growth waits. Bytes written before a
-  callback panics stay written.
+  They may read other regions while file growth waits, except indexed batch
+  writes' callbacks, which must not access the database at all. Indexed batch
+  writes go in no particular order; if a callback panics, the values and chunks
+  already written stay written.
 - Keep a `Database` alive while using region handles. A `Reader` owns the
   database and region handles needed for its own lifetime. Release metadata and
   read guards before requesting conflicting operations.

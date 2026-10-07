@@ -18,7 +18,7 @@ pub trait MutableRawVec: StoredVec + ImportableVec + WritableVec<Self::I, Self::
     fn rollback_len(&self) -> usize;
     fn pushed_mut(&mut self) -> &mut Vec<Self::T>;
     fn reserve_pushed(&mut self, additional: usize);
-    fn write_updates(&mut self, updated: BTreeMap<usize, Self::T>);
+    fn write_updates(&mut self, updated: BTreeMap<usize, Self::T>) -> Result<()>;
     fn append_previous_values(
         &self,
         indices: &[usize],
