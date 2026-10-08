@@ -808,7 +808,7 @@
           right: 9px;
           width: 24px;
           color: var(--muted);
-          font: 510 11px/1 var(--mono);
+          font: 510 11.5px/1 var(--sans);
           font-variant-numeric: tabular-nums;
           text-align: center;
           translate: 0 -50%;
@@ -853,7 +853,7 @@
       }
 
       /* A folder's name typed where it shows. */
-      .folder-rename {
+      :is(.folder-rename, .row-rename) {
         position: absolute;
         inset: 2px 6px;
         z-index: 1;
@@ -959,7 +959,7 @@
         height: 26px;
         padding: 0 2px 0 9px;
         color: var(--muted);
-        font-size: 11.5px;
+        font-size: 12px;
         font-weight: 510;
         white-space: nowrap;
         margin-bottom: 4px;
@@ -1228,7 +1228,7 @@
           }
 
           .chart-row.in-folder .chart-item {
-            padding-left: 13px;
+            padding-left: 8px;
           }
 
           .new-chart::after {
@@ -1325,6 +1325,7 @@
       }
 
       .card-head {
+        container: head / inline-size;
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         grid-template-areas: "title actions";
@@ -1333,6 +1334,19 @@
         flex-shrink: 0;
         border-bottom: 1px solid var(--line);
         padding: 14px;
+      }
+
+      /* A narrow header (a phone, a tablet upright beside the sidebar): a preview said by its Keep alone, dashed as the
+         pill is (not yours yet): no room for both beside the title. */
+      @container head (max-width: 640px) {
+        .preview-pill {
+          display: none;
+        }
+
+        #keep {
+          border-style: dashed;
+          border-color: var(--line-strong);
+        }
       }
 
       .head-title {
@@ -1390,6 +1404,10 @@
       }
 
       /* A preview: said so (a dashed pill: not yours yet), and kept by a click (or a change). */
+      #keep[hidden] {
+        display: none;
+      }
+
       .preview-note {
         display: inline-flex;
         align-items: center;
@@ -1431,11 +1449,9 @@
       }
 
       .preview-caption {
-        padding: 2px 10px 3px;
+        padding: 2px 13px 3px;
         color: var(--muted);
-        font-size: 11px;
-        font-weight: 510;
-        line-height: 14px;
+        font: 510 12px/16px var(--sans);
         white-space: nowrap;
       }
 
@@ -1489,11 +1505,20 @@
       }
 
       /* One width for every interval, so the ranges beside it never shift. */
-      .interval {
+      .interval.btn {
         justify-content: space-between;
         width: 56px;
+        height: 28px;
+        border: 0;
         gap: 5px;
         padding: 0 8px 0 9px;
+        background: var(--field);
+        box-shadow: inset 0 0 0 1px var(--line);
+
+        &:hover {
+          background: var(--hover);
+        }
+
         font: 510 12px var(--sans);
         font-variant-numeric: tabular-nums;
 
@@ -1954,19 +1979,17 @@
 
       /* A belt button's choice, as the layers panel makes it: a field, its row of tabs or its slider. */
       .field.belt-pop {
+        width: 268px;
         margin: 0;
         padding: 2px 8px 8px;
 
-        .tabs {
-          min-width: 210px;
+        :is(.tabs, .stepper, .color-box) {
+          width: 100%;
+          min-width: 0;
         }
 
-        .stepper {
-          width: 240px;
-        }
-
-        .color-box {
-          width: 252px;
+        .tabs button {
+          flex: 1;
         }
       }
 
@@ -2226,8 +2249,7 @@
             gap: 6px;
           }
 
-          /* Its ways out, on the right: importing a chart, and (only with a chart to go back to) leaving this one: a new one is
-             cancelled, a named one deleted. */
+          /* Its ways out, on the right: importing a chart, and (a new one, with a chart to go back to) leaving it: cancelled. */
           .keys-actions {
             display: flex;
             gap: 2px;
@@ -2254,8 +2276,8 @@
 
           h2 {
             margin: 0;
-            color: var(--soft);
-            font-size: 12.5px;
+            color: var(--muted);
+            font-size: 12px;
             font-weight: 510;
           }
 
@@ -2439,8 +2461,7 @@
         .count {
           margin-left: 3px;
           color: var(--muted);
-          font-size: 12px;
-          font-weight: 400;
+          font: 510 11.5px var(--sans);
           font-variant-numeric: tabular-nums;
         }
       }
@@ -2555,7 +2576,7 @@
 
       .inspector section {
         border-top: 1px solid var(--line);
-        padding: 14px 16px 16px;
+        padding: 14px 17px 16px;
 
         h3 {
           display: flex;
@@ -2617,9 +2638,7 @@
           justify-content: space-between;
           height: 16px;
           color: var(--muted);
-          font: 590 10.5px/16px var(--sans);
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
+          font: 510 12px/16px var(--sans);
 
           &:empty {
             display: none;
@@ -3308,7 +3327,7 @@
 
       /* The color's name, beside its label. */
       .color-now {
-        margin-left: 6px;
+        margin-left: auto;
         color: var(--muted);
         font-weight: 400;
       }
@@ -3777,9 +3796,9 @@
 
       .palette-list li > .dot {
         flex-shrink: 0;
-        width: 8px;
-        height: 8px;
-        margin: 0 4px;
+        width: 7px;
+        height: 7px;
+        margin: 0 4.5px;
         border-radius: 50%;
         background: var(--c);
       }
@@ -3813,15 +3832,18 @@
             }
           }
 
+          /* (Each in the chart mark's 16px column: labels start at one x.) */
           > svg {
             flex-shrink: 0;
             width: 14px;
             height: 14px;
+            margin-inline: 1px;
             color: var(--muted);
 
             &.chart-mark {
               width: 16px;
               height: 12px;
+              margin-inline: 0;
             }
           }
 
@@ -3833,7 +3855,7 @@
             flex: 1;
             min-width: 0;
             overflow: hidden;
-            color: var(--soft);
+            color: var(--text);
             text-overflow: ellipsis;
             white-space: nowrap;
           }
@@ -4077,7 +4099,8 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            height: 34px;
+            min-height: 34px;
+            padding-block: 7px;
 
             + div {
               box-shadow: inset 0 1px 0 var(--line);
@@ -4086,10 +4109,8 @@
         }
 
         dt {
-          overflow: hidden;
           color: var(--text);
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          text-wrap: pretty;
         }
 
         dd {
@@ -4185,9 +4206,13 @@
             padding: 0;
             color: var(--muted);
             background: none;
-            font: 11px var(--mono);
+            font: 12px var(--sans);
             text-overflow: ellipsis;
             white-space: nowrap;
+          }
+
+          kbd {
+            font: 510 11.5px var(--sans);
           }
         }
 
@@ -4477,7 +4502,7 @@
 
       .home-count {
         color: var(--muted);
-        font-size: 12.5px;
+        font: 510 11.5px var(--sans);
         font-variant-numeric: tabular-nums;
       }
 
@@ -4487,12 +4512,12 @@
         flex-direction: column;
         gap: 20px;
         margin-top: 24px;
-        border-radius: calc(var(--radius-xl) + 6px);
+        border-radius: var(--radius-xl);
 
         /* A drop off any folder's box: out of its folder. */
         &.drop-target {
           outline: 1px dashed var(--line-strong);
-          outline-offset: 8px;
+          outline-offset: 11px;
         }
       }
 
@@ -4502,11 +4527,14 @@
         gap: 12px;
       }
 
-      /* A folder: a box of its own, its head kept in sight while its charts scroll under it. */
+      /* A folder: a box of its own, quieter than its charts (between the page and them), a card's corners; its head kept
+         in sight while its charts scroll under it. */
       .grid-section.folder {
-        border-radius: calc(var(--radius-xl) + 6px);
+        --box: color-mix(in srgb, var(--card) 50%, var(--app));
+        margin-inline: -10px;
+        border-radius: var(--radius-xl);
         padding: 0 10px 10px;
-        background: var(--raise);
+        background: var(--box);
         box-shadow: inset 0 0 0 1px var(--line);
 
         /* (At the very top of the page as it scrolls: a sticky box keeps clear of its scroller's padding, it's undone.) */
@@ -4516,9 +4544,10 @@
           z-index: 3;
           height: 44px;
           margin: 0 -10px;
-          border-radius: calc(var(--radius-xl) + 6px) calc(var(--radius-xl) + 6px) 0 0;
+          border-radius: var(--radius-xl) var(--radius-xl) 0 0;
           padding: 0 10px 0 6px;
-          background: var(--raise);
+          background: var(--box);
+          box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
 
           &.closed {
             border-radius: inherit;
@@ -4580,7 +4609,8 @@
 
         .folder-count {
           color: var(--muted);
-          font: 510 11px/1 var(--mono);
+          font: 510 11.5px/1 var(--sans);
+          font-variant-numeric: tabular-nums;
         }
 
         .cap {
@@ -4616,6 +4646,29 @@
         color: var(--muted);
         font-size: 14px;
         text-align: center;
+
+        p {
+          margin: 0;
+        }
+
+        .home-none-actions {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 16px;
+        }
+      }
+
+      /* An empty folder's box: a place to drop charts, saying so. */
+      .grid-empty {
+        display: grid;
+        height: 64px;
+        margin: 0;
+        border: 1px dashed var(--line-strong);
+        border-radius: var(--radius-lg);
+        place-items: center;
+        color: var(--muted);
+        font-size: 13px;
       }
 
       /* A chart, as its own card, small: its title, its layers' legend at the top (as on its panes), its mini chart (as
@@ -4799,7 +4852,8 @@
       .tile-index {
         flex-shrink: 0;
         color: var(--muted);
-        font: 510 11px var(--mono);
+        font: 510 11.5px var(--sans);
+        font-variant-numeric: tabular-nums;
       }
 
       /* Its layers, with their colors; cut, fading, when they run long. */
@@ -4822,8 +4876,8 @@
         }
 
         i {
-          width: 6px;
-          height: 6px;
+          width: 7px;
+          height: 7px;
           border-radius: 50%;
           background: var(--c);
         }
@@ -4866,6 +4920,32 @@
       .tile:is(:hover, :has(:focus-visible)) .tile-check,
       .home.picking .tile-check {
         opacity: 1;
+      }
+
+      /* The item a menu acts on alone, beside others picked. */
+      .tile.menu-target {
+        box-shadow: inset 0 0 0 1.5px var(--edge), var(--sheen);
+      }
+
+      .layer-row.menu-target {
+        box-shadow: inset 0 0 0 1px var(--edge);
+      }
+
+      .tile-more {
+        position: absolute;
+        top: 9px;
+        right: 35px;
+        opacity: 0;
+      }
+
+      .tile:is(:hover, :has(:focus-visible)) {
+        .tile-more {
+          opacity: 1;
+        }
+
+        .tile-index {
+          visibility: hidden;
+        }
       }
 
       /* In the letter's place, as large as it, in its colors (over it while it shows); picked, filled with them. */
@@ -5062,6 +5142,7 @@
         .sidebar,
         #redo,
         #add,
+        #chart-more,
         .card-head .divider,
         #panel-toggle {
           display: none;
@@ -5120,16 +5201,6 @@
         /* The grid's own New folder (the sidebar's isn't here). */
         #home-new-folder {
           display: inline-flex;
-        }
-
-        /* A preview, said by its Keep alone, dashed as the pill is (not yours yet): no room for both beside the title. */
-        .preview-pill {
-          display: none;
-        }
-
-        #keep {
-          border-style: dashed;
-          border-color: var(--line-strong);
         }
 
 
@@ -5337,7 +5408,7 @@
           height: 32px;
         }
 
-        .interval {
+        .interval.btn {
           height: 36px;
         }
 
@@ -5357,8 +5428,18 @@
 
       @media (hover: none) {
         :is(.chart-row, .folder-row) .chart-more,
-        .grid-folder .cap {
+        .grid-folder .cap,
+        .tile :is(.tile-more, .tile-check) {
           opacity: 1;
+        }
+
+        /* (Its ⋯ and tick always there: its interval before them.) */
+        .tile-head {
+          margin-right: 58px;
+        }
+
+        .tile .tile-index {
+          visibility: visible !important;
         }
 
         /* (Its ⋯ always there: the count beside it, the name short of both.) */
@@ -5439,8 +5520,8 @@
         <input id="import-file" type="file" accept="application/json,.json" hidden />
         <div class="side-foot" style="--i: 3">
           <div id="live" class="live" data-tip="Live"><i></i><span id="stamp">Live</span></div>
-          <button class="nav-item" type="button" data-action="shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span><span class="label">Shortcuts</span><kbd>?</kbd></button>
-          <button class="nav-item" type="button" id="sidebar-toggle" data-action="toggle-sidebar" data-tip="Collapse" data-kbd="\" aria-expanded="true"><span data-icon="sidebar"></span><span class="label">Collapse</span><kbd>\</kbd></button>
+          <button class="nav-item side-action" type="button" data-action="shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span><span class="label">Shortcuts</span><kbd>?</kbd></button>
+          <button class="nav-item side-action" type="button" id="sidebar-toggle" data-action="toggle-sidebar" data-tip="Collapse" data-kbd="\" aria-expanded="true"><span data-icon="sidebar"></span><span class="label">Collapse</span><kbd>\</kbd></button>
         </div>
       </aside>
 
@@ -5459,6 +5540,7 @@
             <button id="export" class="cap" type="button" aria-haspopup="menu" aria-label="Export" data-tip="Export: an image, the data, the chart file" data-icon="download"></button>
             <button id="share" class="cap" type="button" aria-label="Copy a share link" data-tip="Copy a share link" data-icon="share"></button>
             <button id="add" class="cap" type="button" aria-haspopup="menu" aria-label="Add" data-tip="Add a series or a formula" data-icon="plus"></button>
+            <button id="chart-more" class="cap" type="button" aria-haspopup="menu" aria-label="More for this chart" data-tip="More" data-icon="more"></button>
             <span class="divider"></span>
             <button id="panel-toggle" class="cap" type="button" aria-pressed="true" aria-label="Layers panel" data-tip="Layers panel" data-kbd="P" data-action="toggle-panel" data-icon="panel"></button>
           </div>
@@ -5489,7 +5571,7 @@
                     <div class="starts-head"><h2>Recommended</h2><button class="btn ghost small" type="button" data-action="website-charts">Browse all<span class="more" data-icon="next"></span></button></div>
                     <div id="templates" class="templates strip"></div>
                   </div>
-                  <div class="keys"><span>Hold <kbd>⌘</kbd> to reveal shortcuts</span><div class="keys-actions"><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import a chart file</button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span id="leave-label">Cancel</span><kbd>esc</kbd></button></div></div>
+                  <div class="keys"><span>Hold <kbd>⌘</kbd> to reveal shortcuts</span><div class="keys-actions"><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import a chart file</button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div></div>
                 </div>
               </div>
             </div>
@@ -5517,7 +5599,7 @@
                 <span id="layers-picked" class="pick-count" aria-live="polite"></span>
                 <button class="cap" type="button" data-layers-batch="hide" data-kbd="H"></button>
                 <button class="cap" type="button" data-layers-batch="duplicate" aria-label="Duplicate" data-tip="Duplicate" data-kbd="⌘ D" data-icon="duplicate"></button>
-                <button class="cap" type="button" data-layers-batch="move" aria-haspopup="menu" aria-label="Move to a pane" data-tip="Move to a pane" data-icon="pane"></button>
+                <button class="cap" type="button" data-layers-batch="move" aria-haspopup="menu" aria-label="Move to pane" data-tip="Move to pane" data-icon="pane"></button>
                 <button class="cap" type="button" data-layers-batch="remove" aria-label="Remove" data-tip="Remove" data-kbd="⌫" data-icon="trash"></button>
                 <span class="divider"></span>
                 <button class="cap small" type="button" data-layers-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button>
@@ -5536,10 +5618,11 @@
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
                 <input id="home-filter" aria-label="Filter charts" autocomplete="off" spellcheck="false" />
                 <span id="home-count" class="home-count"></span>
+                <button id="home-import" class="cap" type="button" aria-label="Import a chart file" data-tip="Import a chart file" data-action="import" data-icon="upload"></button>
                 <button id="home-new-folder" class="cap" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
               </label>
               <div id="home-grid" class="home-grid"></div>
-              <p id="home-none" class="home-none" hidden></p>
+              <div id="home-none" class="home-none" hidden></div>
             </div>
           </div>
           <div id="home-bar" class="pick-bar home-bar" role="group" aria-label="Selected charts" hidden>
@@ -5610,10 +5693,13 @@
             <div><dt>Open one of your first nine charts</dt><dd><kbd>⌘1</kbd>–<kbd>⌘9</kbd></dd></div>
             <div><dt>New chart</dt><dd><kbd>N</kbd></dd></div>
             <div><dt>Move a chart in your list</dt><dd><kbd>⌥↑</kbd><kbd>⌥↓</kbd> or drag</dd></div>
+            <div><dt>Duplicate or delete the chart in focus</dt><dd><kbd>⌘D</kbd><kbd>⌫</kbd></dd></div>
           </dl>
           <h3>All charts</h3>
           <dl>
             <div><dt>Select the chart in focus</dt><dd><kbd>space</kbd> or <kbd>X</kbd></dd></div>
+            <div><dt>Select the next too</dt><dd><kbd>⇧</kbd> and an arrow</dd></div>
+            <div><dt>Move the chart in focus</dt><dd><kbd>⌥</kbd> and an arrow</dd></div>
             <div><dt>Select every chart shown</dt><dd><kbd>⌘A</kbd></dd></div>
             <div><dt>Delete the selected charts</dt><dd><kbd>⌫</kbd></dd></div>
             <div><dt>Clear the selection</dt><dd><kbd>esc</kbd></dd></div>
@@ -5637,6 +5723,7 @@
             <div><dt>Select several: one more, or a run</dt><dd><kbd>⌘</kbd> or <kbd>⇧</kbd> and click</dd></div>
             <div><dt>Select the next or previous too</dt><dd><kbd>⇧↓</kbd><kbd>⇧↑</kbd></dd></div>
             <div><dt>Select the layer in focus</dt><dd><kbd>space</kbd> or <kbd>X</kbd></dd></div>
+            <div><dt>Move the layer in focus</dt><dd><kbd>⌥↑</kbd><kbd>⌥↓</kbd></dd></div>
             <div><dt>Select every layer, from the list</dt><dd><kbd>⌘A</kbd></dd></div>
             <div><dt>Hide or show the selected layers</dt><dd><kbd>H</kbd></dd></div>
             <div><dt>Show one layer alone in its pane</dt><dd><kbd>⌥</kbd> and click its eye</dd></div>
@@ -5886,6 +5973,8 @@
       /** Bitview's colors, each named by the nearest name no other has taken (closest pairs first): never two alike. */
       let ownNames = null;
       function ownName(key) {
+        // (The text's own color: white here, whatever its nearest name.)
+        if (key === "ink") return "White";
         if (!ownNames) {
           const pairs = [];
           for (const color of SWATCHES) {
@@ -7279,10 +7368,7 @@
         save();
         refresh(true, true);
       }
-      /**
-       * Leaves an empty chart for the one before it. A new chart, untouched, is simply taken back (nothing is lost); one
-       * with a name is deleted, with an Undo.
-       */
+      /** Leaves a new chart, empty, for the one before it: it's simply taken back (nothing is lost). */
       function leaveEmpty() {
         if (backToHome()) {
           cancelling = chart.id;
@@ -7291,7 +7377,6 @@
         const back = previousChart();
         if (chart.layers.length || !back) return;
         if (chart === previewing) return openChart(back);
-        if (!isDraft(chart)) return deleteChart(chart, back);
         unlist(chart);
         openChart(back);
       }
@@ -10148,8 +10233,8 @@
             ...([...kinds].some((each) => hasLook(each, "color")) ? ['<i class="belt-rule"></i>'] : []),
             ...(drawing?.kind === "text" ? [button("text", "Edit the text", ICONS.pencil, false)] : []),
             ...(drawing && LINES.has(drawing.kind) ? [button("label", drawing.label ? "Edit the label (or double-click it)" : "Add a label (or double-click the line)", ICONS.label, false)] : []),
-            button("duplicate", drawings.length > 1 ? `Duplicate the ${drawings.length}` : "Duplicate", ICONS.duplicate, false, keyText("⌘D")),
-            button("remove", drawings.length > 1 ? `Remove the ${drawings.length}` : "Remove", ICONS.trash, false, "⌫"),
+            button("duplicate", drawings.length > 1 ? `Duplicate ${drawings.length} drawings` : "Duplicate", ICONS.duplicate, false, keyText("⌘D")),
+            button("remove", drawings.length > 1 ? `Remove ${drawings.length} drawings` : "Remove", ICONS.trash, false, "⌫"),
           ] : []),
         ].join("");
         const how = selectingArea ? "Drag a box around drawings to select them" : tool && (placing?.clicks ? `Click its ${BOXES.has(tool) ? "other corner" : "other end"}` : TOOLS[tool].tip);
@@ -10609,9 +10694,9 @@
         showMenu($("chart"), `
           ${drawing.kind === "text" && !several ? `<button type="button" data-pick="text">${ICONS.pencil}Edit the text</button>` : ""}
           ${LINES.has(drawing.kind) && !several ? `<button type="button" data-pick="label">${ICONS.label}${drawing.label ? "Edit the label" : "Add a label"}</button>` : ""}
-          <button type="button" data-pick="duplicate">${ICONS.duplicate}${several ? `Duplicate the ${ids.length}` : "Duplicate"}<kbd>${keyText("⌘D")}</kbd></button>
+          <button type="button" data-pick="duplicate">${ICONS.duplicate}${several ? `Duplicate ${ids.length} drawings` : "Duplicate"}<kbd>${keyText("⌘D")}</kbd></button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="remove" class="danger">${ICONS.trash}${several ? `Remove the ${ids.length}` : "Remove"}<kbd>${keyText("⌫")}</kbd></button>`, ({ pick }) => {
+          <button type="button" data-pick="remove" class="danger">${ICONS.trash}${several ? `Remove ${ids.length} drawings` : "Remove"}<kbd>${keyText("⌫")}</kbd></button>`, ({ pick }) => {
           const now = drawingById(drawing.id);
           if (!now) return;
           if (pick === "text") startTyping(now);
@@ -10869,6 +10954,7 @@
         const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), fresh = !drawingById(drawing.id);
         writing = { drawing, fresh };
         field.maxLength = 500;
+        field.setAttribute("aria-label", "Text");
         typingIn = drawing.id;
         field.value = drawing.text ?? "";
         dressField(drawing);
@@ -10883,6 +10969,7 @@
         const field = /** @type {HTMLTextAreaElement} */ ($("draw-text"));
         writing = { drawing: { ...drawing, ...(at === undefined ? {} : { at }) }, fresh: false, label: true };
         field.maxLength = LABEL_MAX;
+        field.setAttribute("aria-label", "Label");
         labelTyping = drawing.id;
         field.value = drawing.label ?? "";
         dressField(drawing);
@@ -11519,6 +11606,7 @@
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
         return `<div class="tile ${on ? "picked" : ""}" data-home-card="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span><span class="tile-index">${INTERVAL_LABEL[doc.index]}</span></span><span class="tile-legend">${legend || "No layers yet"}</span>${plotHtml(doc)}</button>
+            <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button>
             <input type="checkbox" class="pick-check tile-check" aria-label="Select ${title}" ${on ? "checked" : ""} />
           </div>`;
       }
@@ -11582,7 +11670,7 @@
           // (The focus, on a head or a tile, comes back to its like.)
           const focus = focusKey($("home-grid")), htmlOf = new Map(visible.map((doc, i) => [doc.id, html[i]]));
           $("home-grid").innerHTML = sections.map(({ folder, docs, count }) => (folder
-            ? `<section class="grid-section folder">${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : ""}</section>`
+            ? `<section class="grid-section folder">${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : !count && !folder.closed ? `<p class="grid-empty">${TOUCH ? "No charts yet: move one here from its menu" : "No charts yet: drag one here, or move it from its menu"}</p>` : ""}</section>`
             : `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>`)).join("");
           restoreFocus($("home-grid"), focus);
         }
@@ -11590,7 +11678,7 @@
         drawnTiles.clear();
         visible.forEach((doc, i) => drawnTiles.set(doc.id, html[i]));
         $("home-none").hidden = shown.length > 0;
-        $("home-none").textContent = query ? `No charts match “${query}”` : "No charts yet. A new chart, or one of the website's, is yours once you change it (or keep it).";
+        $("home-none").innerHTML = query ? `No charts match “${escape(query)}”` : `<p>No charts yet. A new chart, or one of the website's, is yours once you change it (or keep it).</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import a chart file</button></div>`;
         if (focused) tileOpen(focused)?.focus({ preventScroll: true });
         renderPicked();
         schedulePreviews();
@@ -11651,19 +11739,19 @@
         if (action === "rename") return void (docs.length === 1 && renameTile(docs[0]));
         if (action === "folder") return folderMenu(/** @type {HTMLElement} */ (button ?? tileOpen(docs[0].id)), docs.map((doc) => doc.id));
         if (action === "export") {
-          // Always as charts (one or more): imported, they come back to the grid, picked.
-          download(docs.length === 1 ? fileName("json", docs[0]) : `${docs.length}-charts.json`, new Blob([JSON.stringify({ v: 2, charts: docs.map(portable) }, null, 2)], { type: "application/json" }));
-          return toast(docs.length === 1 ? `Downloaded ${titleOf(docs[0])}` : `Downloaded ${docs.length} charts, in one file`);
+          // One, its chart file (as from its menu); several, one file of them (imported, they come back to the grid, picked).
+          if (docs.length === 1) return downloadChart(docs[0]);
+          download(`${docs.length}-charts.json`, new Blob([JSON.stringify({ v: 2, charts: docs.map(portable) }, null, 2)], { type: "application/json" }));
+          return toast(`Downloaded ${docs.length} charts, in one file`);
         }
         if (action === "duplicate") {
           // (The picks' copies picked; one not picked, its copy alone, the picks as they are.)
-          const copies = docs.map((doc) => duplicateChart(doc).id);
+          const copies = duplicateCharts(docs).map((doc) => doc.id);
           if (!ids) {
             picked.clear();
             for (const id of copies) picked.add(id);
+            renderPicked();
           }
-          save();
-          renderCharts();
           tileOpen(copies[0])?.focus();
           return;
         }
@@ -11734,18 +11822,46 @@
         });
         input.addEventListener("blur", () => finish(true, false));
       }
+      /** A chart's title, typed in its sidebar row: ↵ or leaving keeps it, esc doesn't. @param {Chart} doc @param {HTMLElement} row */
+      function renameRow(doc, row) {
+        const input = document.createElement("input");
+        Object.assign(input, { className: "row-rename", value: doc.title, placeholder: "Untitled chart", maxLength: 120, spellcheck: false, autocomplete: "off" });
+        input.setAttribute("aria-label", "Chart title");
+        row.append(input);
+        input.focus();
+        input.select();
+        let done = false;
+        const finish = (/** @type {boolean} */ keep, /** @type {boolean} */ refocus) => {
+          if (done) return;
+          done = true;
+          const title = input.value.trim().slice(0, 120);
+          input.remove();
+          if (keep && title !== doc.title) renameChart(doc, title);
+          if (refocus) /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${doc.id}"]`))?.focus();
+        };
+        input.addEventListener("keydown", (event) => {
+          if (event.isComposing || (event.key !== "Enter" && event.key !== "Escape")) return;
+          event.preventDefault();
+          event.stopPropagation();
+          finish(event.key === "Enter", true);
+        });
+        input.addEventListener("blur", () => finish(true, false));
+      }
       /** A tile's right-click: the bar's actions at the pointer, on the picks if it's one of them, else on it alone. */
-      function tileMenu(id, point) {
+      function tileMenu(id, point = undefined, anchor = /** @type {HTMLElement} */ (tileOpen(id))) {
         // (On a picked tile, it acts on every one picked; on another, on it alone: the picks stay as they are.)
         const ids = picked.has(id) ? null : [id], n = ids ? 1 : picked.size, leave = outOf(ids ?? [...picked]);
-        showMenu(/** @type {HTMLElement} */ (tileOpen(id)), `
+        // (On it alone, beside picks: outlined, so it's clear which.)
+        const target = picked.size && ids ? cardOf(id) : null;
+        queueMicrotask(() => target && !$("menu").hidden && (menuTarget = target).classList.add("menu-target"));
+        showMenu(anchor, `
           ${n === 1 ? `<button type="button" data-pick="open">${ICONS.charts}Open</button><button type="button" data-pick="rename">${ICONS.pencil}Rename</button>` : ""}
           <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate</button>
           <button type="button" data-pick="folder" aria-haspopup="menu">${ICONS.folder}Move to folder</button>
           ${leave ? `<button type="button" data-pick="out">${ICONS.folderOut}${escape(leave)}</button>` : ""}
           <button type="button" data-pick="export">${ICONS.file}Download chart file</button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "open" ? go(chartById(id)) : action === "folder" ? folderMenu(/** @type {HTMLElement} */ (tileOpen(id)), ids ?? [...picked], point, false) : action === "out" ? moveToFolder(ids ?? [...picked], null) : batch(action, null, ids)), point);
+          <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "open" ? go(chartById(id)) : action === "folder" ? folderMenu(anchor, ids ?? [...picked], point, false) : action === "out" ? moveToFolder(ids ?? [...picked], null) : batch(action, null, ids)), point);
       }
       $("home-bar").addEventListener("click", (event) => {
         const button = closest(event, "[data-batch]");
@@ -11753,6 +11869,8 @@
       });
       // A click on a tile picks it with ⌘ or ⇧, on its tick, or while others are picked; else (or by a key) it opens.
       $("home-grid").addEventListener("click", (event) => {
+        const more = closest(event, "[data-tile-menu]");
+        if (more) return tileMenu(/** @type {string} */ (more.dataset.tileMenu), undefined, more);
         const tile = closest(event, "[data-home-card]"), check = closest(event, ".tile-check");
         if (!tile || closest(event, ".tile-rename")) return;
         if (!(check || event.metaKey || event.ctrlKey || event.shiftKey || (picked.size && event.detail > 0))) return;
@@ -11930,6 +12048,21 @@
       }
       // In the grid, the arrows walk the cards as they're laid out.
       $("home-grid").addEventListener("keydown", (event) => {
+        const arrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key), focused = /** @type {HTMLElement} */ (document.activeElement);
+        if (arrow && event.altKey && !event.metaKey && !event.ctrlKey && focused.matches(".tile-open") && !$("home-filter").value.trim()) {
+          event.preventDefault();
+          const id = /** @type {string} */ (focused.dataset.openChart);
+          stepChart(id, event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1);
+          return void tileOpen(id)?.focus({ preventScroll: true });
+        }
+        if (arrow && event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey && focused.matches(".tile-open")) {
+          event.preventDefault();
+          const next = nextCard(focused, event.key);
+          if (!next) return;
+          if (!picked.size) pickChart(/** @type {string} */ (focused.dataset.openChart));
+          pickChart(/** @type {string} */ (next.dataset.openChart), true);
+          return void next.focus();
+        }
         if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
         const cards = all$(".tile-open", $("home-grid"));
         if ((event.key === " " || event.key.toLowerCase() === "x") && cards.includes(/** @type {HTMLElement} */ (document.activeElement))) {
@@ -11940,15 +12073,22 @@
         if (at < 0 || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
         event.preventDefault();
         if (event.key === "Home" || event.key === "End") return cards[event.key === "Home" ? 0 : cards.length - 1].focus();
-        if (event.key === "ArrowLeft" || event.key === "ArrowRight") return cards[at + (event.key === "ArrowLeft" ? -1 : 1)]?.focus();
-        // (↑ ↓: the nearest row above or below, as laid out, its card nearest across: sections break the columns.)
-        const box = (/** @type {HTMLElement} */ card) => card.getBoundingClientRect(), here = box(cards[at]), down = event.key === "ArrowDown";
+        nextCard(cards[at], event.key)?.focus();
+      });
+      /**
+       * The card an arrow goes to from another: ← → the one before or after; ↑ ↓ the nearest row above or below, as laid
+       * out, its card nearest across (sections break the columns). @param {HTMLElement} from
+       */
+      function nextCard(from, /** @type {string} */ key) {
+        const cards = all$(".tile-open", $("home-grid")), at = cards.indexOf(from);
+        if (key === "ArrowLeft" || key === "ArrowRight") return cards[at + (key === "ArrowLeft" ? -1 : 1)] ?? null;
+        const box = (/** @type {HTMLElement} */ card) => card.getBoundingClientRect(), here = box(from), down = key === "ArrowDown";
         const beyond = cards.filter((card) => (down ? box(card).top > here.bottom - 1 : box(card).bottom < here.top + 1));
-        if (!beyond.length) return;
+        if (!beyond.length) return null;
         const row = down ? Math.min(...beyond.map((card) => box(card).top)) : Math.max(...beyond.map((card) => box(card).top));
         const inRow = beyond.filter((card) => Math.abs(box(card).top - row) < 2);
-        inRow.reduce((best, card) => (Math.abs(box(card).left - here.left) < Math.abs(box(best).left - here.left) ? card : best)).focus();
-      });
+        return inRow.reduce((best, card) => (Math.abs(box(card).left - here.left) < Math.abs(box(best).left - here.left) ? card : best));
+      }
       /** A drawing's points placed at `x(i)`, `y(value)`: the runs of "x,y" between its gaps, each of two points or more. */
       function runs(ys, x, y) {
         const parts = [[]];
@@ -12078,6 +12218,8 @@
         if (home) $("all-charts").setAttribute("aria-current", "page");
         else $("all-charts").removeAttribute("aria-current");
         $("preview-note").hidden = !previewing || previewing !== chart;
+        // (An empty one has nothing to keep: a new chart is yours once something's in it.)
+        $("keep").hidden = !chart.layers.length;
         // The phone bar's Add, in the grid, makes a chart (there's none open to add to).
         /** @type {HTMLElement} */ ($("mobile-add").querySelector(".label")).textContent = home ? "New chart" : "Add";
         if (home) $("mobile-charts").setAttribute("aria-current", "page");
@@ -12118,7 +12260,7 @@
         const folder = /** @type {Folder} */ ({ id: uid(), name: "New folder" });
         library.folders.push(folder);
         setSide([folder, ...sideItems().filter((item) => item !== folder)]);
-        moveToFolder(ids, folder.id);
+        moveToFolder(ids, folder.id, true);
         save();
         renderCharts();
         renameFolder(folder.id);
@@ -12172,13 +12314,13 @@
         input.addEventListener("blur", () => finish(true, false));
       }
       /** A folder's name, as ⌘K's page (read by its id when set: another tab may have changed it since). */
-      const renameFolderPage = (/** @type {string} */ id) => renamePage("Rename", folderById(id)?.name ?? "", "Folder", (text) => {
+      const renameFolderPage = (/** @type {string} */ id) => inputPage({ title: "Rename", value: folderById(id)?.name ?? "", placeholder: "The folder's name", hint: "A folder needs a name", verb: "Rename", read: (text) => (text.trim() ? `Rename to “${text.trim().slice(0, 60)}”` : null), apply: (text) => {
         const folder = folderById(id), name = text.trim().slice(0, 60);
         if (!folder || !name) return;
         folder.name = name;
         save();
         renderCharts();
-      });
+      } });
       /** A folder a place up or down in the sidebar (past a chart, or another folder), gliding there. */
       function stepFolder(/** @type {string} */ id, /** @type {number} */ by) {
         const folder = folderById(id);
@@ -12224,10 +12366,30 @@
           renderCharts();
         } });
       }
-      /** Charts moved into a folder (after its last), or out of any (`null`: each just under the one it was in). */
-      function moveToFolder(/** @type {string[]} */ ids, /** @type {string | null} */ id) {
+      /** The charts as they're arranged (their order, their folders, the sidebar's order), to put back. */
+      const arrangement = () => ({ charts: [...library.charts], order: [...library.order], folders: new Map(library.charts.map((doc) => [doc, doc.folder])) });
+      /** Charts whose folder changed since `was` say so (into one, or out of theirs), with an Undo back to it. @param {Chart[]} docs */
+      function folderToast(was, docs) {
+        const moved = docs.filter((doc) => was.folders.get(doc) !== doc.folder);
+        if (!moved.length) return;
+        const what = moved.length === 1 ? `“${titleOf(moved[0])}”` : `${moved.length} charts`, to = new Set(moved.map((doc) => doc.folder)), from = new Set(moved.map((doc) => was.folders.get(doc)));
+        const named = (/** @type {string | undefined} */ id) => `“${folderById(id)?.name ?? ""}”`, into = [...to][0], left = [...from][0];
+        toast(to.size === 1 && into ? `Moved ${what} to ${named(into)}` : to.size === 1 ? `Moved ${what} out of ${from.size === 1 ? named(left) : "their folders"}` : `Moved ${what}`, { label: "Undo", run: () => {
+          for (const [doc, folder] of was.folders) if (library.charts.includes(doc)) folder && folderById(folder) ? (doc.folder = folder) : delete doc.folder;
+          library.charts = [...was.charts.filter((doc) => library.charts.includes(doc)), ...library.charts.filter((doc) => !was.charts.includes(doc))];
+          library.order = was.order;
+          save();
+          renderCharts();
+        } });
+      }
+      /**
+       * Charts moved into a folder (after its last), or out of any (`null`: each just under the one it was in); said, with
+       * an Undo (`quiet`: not, a new folder's own, named first).
+       */
+      function moveToFolder(/** @type {string[]} */ ids, /** @type {string | null} */ id, quiet = false) {
         const moving = library.charts.filter((doc) => ids.includes(doc.id) && (doc.folder ?? null) !== id);
         if (!moving.length) return;
+        const was = arrangement();
         // (Out of one, each comes just under it in the sidebar, in their order.)
         const keys = sideItems().map(sideKey);
         if (!id) for (const doc of [...moving].reverse()) if (doc.folder) keys.splice(keys.indexOf(`f:${doc.folder}`) + 1, 0, `c:${doc.id}`);
@@ -12242,6 +12404,7 @@
         library.charts.splice(at, 0, ...moving);
         save();
         renderCharts();
+        if (!quiet) folderToast(was, moving);
       }
       /** "Move out of" the folder charts are in (theirs, for charts in several), or "" for charts in none. @param {string[]} ids */
       function outOf(ids) {
@@ -12267,9 +12430,9 @@
       function folderActions(/** @type {HTMLElement} */ anchor, /** @type {string} */ id, point = undefined) {
         showMenu(anchor, `
           <button type="button" data-pick="rename">${ICONS.pencil}Rename</button>
-          <button type="button" data-pick="toggle">${ICONS.folder}${folderById(id)?.closed ? "Open" : "Close"}</button>
+          <button type="button" data-pick="toggle">${ICONS.folder}${folderById(id)?.closed ? "Expand" : "Collapse"}</button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete the folder<span>its charts kept</span></button>`, ({ pick }) => {
+          <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete the folder<span>Its charts kept</span></button>`, ({ pick }) => {
           if (pick === "rename") renameFolder(id);
           else if (pick === "toggle") toggleFolder(id);
           else if (pick === "delete") deleteFolder(id);
@@ -12278,9 +12441,10 @@
       /** The preview's menu (a right-click on it): into your charts, or let go of. */
       function previewMenu(/** @type {HTMLElement} */ anchor, point = undefined) {
         const closes = previewing !== chart || Boolean(previousChart());
-        showMenu(anchor, `<button type="button" data-pick="keep">${ICONS.check}Keep<span>into your charts</span></button>${closes ? `<button type="button" data-pick="close">${ICONS.close}Close the preview</button>` : ""}`, ({ pick }) => (pick === "keep" ? keepPreview() : pick === "close" ? closePreview() : undefined), point);
+        showMenu(anchor, `${previewing?.layers.length ? `<button type="button" data-pick="keep">${ICONS.check}Keep<span>Into your charts</span></button>` : ""}${closes ? `<button type="button" data-pick="close">${ICONS.close}Close the preview</button>` : ""}`, ({ pick }) => (pick === "keep" ? keepPreview() : pick === "close" ? closePreview() : undefined), point);
       }
-      function chartMenu(anchor, id, point = null) {
+      /** A chart's menu (`renameHere`: its title renamed where it shows instead, as the header's is). */
+      function chartMenu(anchor, id, point = null, renameHere = /** @type {(() => void) | null} */ (null)) {
         const leave = outOf([id]);
         showMenu(anchor, `
           <button type="button" data-pick="rename">${ICONS.pencil}Rename</button>
@@ -12294,7 +12458,8 @@
           const scope = anchor.closest("#home-grid") ? "#home-grid" : "#chart-list";
           if (pick === "folder") return folderMenu(anchor, [id], point ?? undefined, false);
           if (pick === "out") return moveToFolder([id], null);
-          if (pick === "download" || (pick === "duplicate" && !home)) refocus(`${scope} [data-chart-menu="${id}"]`);
+          if (pick === "rename" && renameHere) return renameHere();
+          if (pick === "download" || (pick === "duplicate" && !home)) refocus(anchor.id === "chart-more" ? "#chart-more" : `${scope} [data-chart-menu="${id}"]`);
           chartPick(id, pick);
         }, point);
       }
@@ -12307,19 +12472,31 @@
           pickChart(id);
           renameTile(doc);
         } else if (pick === "rename") {
-          go(doc);
-          void until(() => !document.body.hasAttribute("data-home"), 1000).then(() => {
-            $("title").focus();
-            $("title").select();
-          });
+          const row = !phone.matches && document.body.dataset.sidebar !== "collapsed" ? /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-chart-row="${id}"]`)) : null;
+          if (row) renameRow(doc, row);
+          else openPage(renameChartPage(doc));
         } else if (pick === "duplicate") {
-          if (!home) return openChart(duplicateChart(doc));
+          if (!home) return void duplicateCharts([doc]);
           picked.clear();
           picked.add(id);
           batch("duplicate");
         }
         else if (pick === "download") downloadChart(doc);
         else if (pick === "delete") deleteChart(doc);
+      }
+      /** Charts copied, each right under its original (nothing opens), with an Undo. @param {Chart[]} docs */
+      function duplicateCharts(docs) {
+        const copies = docs.map(duplicateChart);
+        save();
+        renderCharts();
+        toast(copies.length === 1 ? `Duplicated “${titleOf(docs[0])}”` : `Duplicated ${copies.length} charts`, { label: "Undo", run: () => {
+          const open = copies.indexOf(chart);
+          if (open >= 0) openChart(docs[open]);
+          for (const copy of copies) unlist(copy);
+          save();
+          renderCharts();
+        } });
+        return copies;
       }
       /**
        * A copy of a chart. New charts start the list; a copy is a variant of its original and sits right under it (as
@@ -12355,7 +12532,7 @@
         if (wasOpen) openChart(standIn ?? (next && library.charts.includes(next) ? next : library.charts[Math.min(index, library.charts.length - 1)]));
         save();
         renderCharts();
-        toast(`Deleted ${titleOf(doc)}`, {
+        toast(`Deleted “${titleOf(doc)}”`, {
           label: "Undo",
           run: () => {
             if (library.charts.includes(doc)) return;
@@ -12684,8 +12861,10 @@
           // Beside a chart in a folder: in it, there. Else at the top level, before or after what's there.
           const beside = at.item.dataset.chartRow ? chartById(at.item.dataset.chartRow) : null;
           if (!beside?.folder) return placeSide(ids, topKeyOf(at.item), at.after, y);
+          const was = arrangement();
           for (const doc of library.charts) if (charts.includes(doc.id)) doc.folder = beside.folder;
           moveCharts(charts, chartPlace(at, "chart-row"), y);
+          folderToast(was, library.charts.filter((doc) => charts.includes(doc.id)));
         },
       });
       /**
@@ -12694,6 +12873,7 @@
        */
       function placeSide(keys, /** @type {string} */ target, /** @type {boolean} */ after, /** @type {number | null} */ y = null) {
         if (keys.includes(target)) return;
+        const was = arrangement();
         arrange(() => {
           for (const doc of library.charts) if (keys.includes(`c:${doc.id}`)) delete doc.folder;
           const items = sideItems(), moving = keys.map((key) => items.find((item) => sideKey(item) === key)).filter((item) => item !== undefined), rest = items.filter((item) => !moving.includes(item));
@@ -12701,6 +12881,7 @@
           rest.splice(at < 0 ? rest.length : at + (after ? 1 : 0), 0, ...moving);
           setSide(rest);
         }, keys[0], y);
+        folderToast(was, library.charts.filter((doc) => keys.includes(`c:${doc.id}`)));
       }
       // The grid's tiles move the charts in the list (the sidebar's order, and ⌘1–9's): those picked together. Found by the
       // filter, they're ranked, not in their order: there's no place to drop them into (a hold still picks).
@@ -12710,7 +12891,7 @@
         idOf: (tile) => /** @type {string} */ (tile.dataset.homeCard),
         carried: (id) => (picked.has(id) ? shownCharts().filter((doc) => picked.has(doc.id)).map((doc) => doc.id) : [id]),
         pick: (id) => !picked.has(id) && pickChart(id),
-        refuse: (event) => Boolean(closest(event, ".tile-check, .tile-rename")),
+        refuse: (event) => Boolean(closest(event, ".tile-check, .tile-more, .tile-rename")),
         still: () => Boolean($("home-filter").value.trim()),
         sticky: true,
         landing: (x, y, ids) => {
@@ -12733,8 +12914,10 @@
             const beside = chartById(/** @type {string} */ (at.item.dataset.homeCard));
             if (!beside?.folder) placeSide(ids.map((id) => `c:${id}`), `c:${beside?.id}`, at.after);
             else {
+              const was = arrangement();
               for (const doc of library.charts) if (ids.includes(doc.id)) doc.folder = beside.folder;
               moveCharts(ids, chartPlace(at, "home-card"));
+              folderToast(was, library.charts.filter((doc) => ids.includes(doc.id)));
             }
           }
           tileOpen(ids[0])?.focus({ preventScroll: true });
@@ -12773,7 +12956,15 @@
       });
 
       $("new-chart").addEventListener("click", newChart);
-      $("keep").addEventListener("click", () => keepPreview());
+      $("keep").addEventListener("click", () => chart.layers.length && keepPreview());
+      $("chart-more").addEventListener("click", (event) => {
+        const button = /** @type {HTMLElement} */ (event.currentTarget);
+        if (chart === previewing) return previewMenu(button);
+        chartMenu(button, chart.id, null, () => {
+          $("title").focus();
+          /** @type {HTMLInputElement} */ ($("title")).select();
+        });
+      });
       $("home-new-folder").addEventListener("click", (event) => {
         event.preventDefault();
         $("home-filter").value = "";
@@ -13359,7 +13550,7 @@
           for (const id of copies) layerPicks.add(id);
           layerPickLast = pickHead = copies[0];
           showPicks();
-        } else if (action === "move" && anchor) moveMenu(anchor, ids);
+        } else if (action === "move" && anchor) paneMenu(anchor, ids, undefined, () => refocus('[data-layers-batch="move"]'));
         else if (action === "remove") {
           const at = chart.layers.findIndex((layer) => ids.includes(layer.id));
           removeLayers(ids);
@@ -13396,15 +13587,18 @@
           doc.layers = [...doc.layers.filter((layer) => !ids.includes(layer.id)), ...moving];
         });
       }
-      /** Where layers can go: each pane (named by what it shows), or a new one. @param {HTMLElement} anchor @param {string[]} ids */
-      function moveMenu(anchor, ids, point = undefined) {
-        const room = chart.panes.length < MAX_PANES;
-        showMenu(anchor, `${chart.panes.map((pane, i) => `<button type="button" data-pick="${pane.id}" ${chart.layers.every((layer) => !ids.includes(layer.id) || layer.pane === pane.id) ? "disabled" : ""}>${ICONS.pane}Pane ${i + 1}<span>${escape(paneNames(pane))}</span></button>`).join("")}
+      /**
+       * Where layers can go: each pane (theirs ticked, when they're in one), or a new one; moved there at its end, in their
+       * order (`after`: then, the focus back where it was).
+       * @param {HTMLElement} anchor @param {string[]} ids
+       */
+      function paneMenu(anchor, ids, point = undefined, after = () => {}) {
+        const within = new Set(chart.layers.filter((layer) => ids.includes(layer.id)).map((layer) => layer.pane)), theirs = (/** @type {string} */ id) => within.size === 1 && within.has(id);
+        showMenu(anchor, `${chart.panes.map((pane, i) => `<button type="button" data-pick="${pane.id}" aria-checked="${theirs(pane.id)}">${tick(theirs(pane.id))}Pane ${i + 1}<span>${escape(paneNames(pane))}</span></button>`).join("")}
           <div class="menu-rule"></div>
-          <button type="button" data-pick="new" ${room ? "" : "disabled"}>${ICONS.plus}A new pane</button>`, ({ pick }) => {
-          if (!pick) return;
-          moveLayers(ids, pick === "new" ? null : pick);
-          refocus('[data-layers-batch="move"]');
+          <button type="button" data-pick="new" ${chart.panes.length < MAX_PANES ? "" : "disabled"}>${ICONS.plus}New pane</button>`, ({ pick }) => {
+          if (pick && !theirs(pick)) moveLayers(ids, pick === "new" ? null : pick);
+          after();
         }, point);
       }
       /** The picked rows' menu, for a right-click on one: as the bar. @param {HTMLElement} anchor */
@@ -13413,9 +13607,9 @@
         showMenu(anchor, `
           <button type="button" data-pick="hide">${hide ? ICONS.eyeOff : ICONS.eye}${hide ? "Hide" : "Show"} ${n}<kbd>H</kbd></button>
           <button type="button" data-pick="duplicate" ${chart.layers.length + layers.length > MAX_LAYERS ? "disabled" : ""}>${ICONS.duplicate}Duplicate ${n}<kbd>${keyText("⌘D")}</kbd></button>
-          <button type="button" data-pick="move" aria-haspopup="menu">${ICONS.pane}Move to a pane</button>
+          <button type="button" data-pick="move" aria-haspopup="menu">${ICONS.pane}Move to pane</button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove ${n}<kbd>${keyText("⌫")}</kbd></button>`, ({ pick }) => (pick === "move" ? moveMenu(anchor, layers.map((layer) => layer.id), point) : pick && layersBatch(pick)), point);
+          <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove ${n}<kbd>${keyText("⌫")}</kbd></button>`, ({ pick }) => (pick === "move" ? paneMenu(anchor, layers.map((layer) => layer.id), point) : pick && layersBatch(pick)), point);
       }
 
       // ── Inspector ─────────────────────────────────────────────────────────────
@@ -13506,7 +13700,7 @@
             </section>`
           : `<section>
               <h3>Series</h3>
-              <div class="source-name"><button type="button" class="source-pick" data-action="change-series" aria-label="Change the series, ${escape(layer.series)}" data-tip="Change the series"><code>${escape(layer.series)}</code>${ICONS.swap}</button>
+              <div class="source-name"><button type="button" class="source-pick" data-action="change-series" aria-label="Replace series, ${escape(layer.series)}" data-tip="Replace series"><code>${escape(layer.series)}</code>${ICONS.swap}</button>
                 <button type="button" class="cap small" data-action="copy-name" aria-label="Copy the series name" data-tip="Copy the series name">${ICONS.copy}</button>
                 ${result?.missing ? "" : `<a class="cap small" href="${client.baseUrl}/api/series/${encodeURIComponent(layer.series)}/${chart.index}" target="_blank" rel="noreferrer" aria-label="Open the raw data" data-tip="Open the raw data">${ICONS.link}</a>`}
               </div>
@@ -13545,7 +13739,7 @@
             <div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${layer.side === side}">${text}</button>`).join("")}</div></div>
             <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${mode < 2 ? `${tip} scale` : tip}" ${modesFor(/** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane))).includes(mode) ? "" : "disabled"}>${chip}</button>`).join("")}</div></div>
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
-            ${ordered ? `<div class="field"><span>${stackOfPane ? "At the foot" : "In front"}</span><div class="tabs" role="group" aria-label="Pane order">${ordersOf(layerPane).map(([reverse, name, short]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}" data-tip="${name}">${short}</button>`).join("")}</div></div>` : ""}
+            ${ordered ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Order">${ordersOf(layerPane).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}">${name}</button>`).join("")}</div></div>` : ""}
             <div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>
           </section>
           ${(actionsShown = actionsOf(layer))}`;
@@ -13932,7 +14126,7 @@
         const best = await nearestTo.get(name);
         const box = $("replacement");
         if (!box || layerById(selected)?.series !== name) return;
-        box.innerHTML = `${best ? `<span class="closest">Closest: <code>${escape(best)}</code></span><button type="button" class="btn small" data-replace="${escape(best)}">Use it</button>` : `<span class="closest">Nothing close by name.</span>`}<button type="button" class="btn ghost small" data-action="replace">${best ? "Find another" : "Find one"}</button>`;
+        box.innerHTML = `${best ? `<span class="closest">Closest: <code>${escape(best)}</code></span><button type="button" class="btn small" data-replace="${escape(best)}">Replace</button>` : `<span class="closest">Nothing close by name.</span>`}<button type="button" class="btn ghost small" data-action="replace">${best ? "Find another" : "Find one"}</button>`;
       }
       /**
        * Another series for a layer, from ⌘K: opened in the catalog where its series is, on it, its neighbors around (a
@@ -13961,7 +14155,7 @@
           delete target.path;
         });
         remember(name);
-        undoToast(`Replaced ${was} with ${humanize(name)}`);
+        undoToast(`Replaced “${was}” with “${humanize(name)}”`);
       }
 
       /** What a formula reads, in words: this chart's layers by letter and name, and series by theirs. @param {Node} node */
@@ -14313,7 +14507,7 @@
       }
       const editLayer = (edit, options = undefined) => editById(selected, edit, options);
       /** A series' name to the clipboard, and a word either way. @param {string} name */
-      const copyName = (name) => (navigator.clipboard?.writeText(name) ?? Promise.reject()).then(() => toast("Series name copied"), () => notice("Couldn't copy the series name"));
+      const copyName = (name) => (navigator.clipboard?.writeText(name) ?? Promise.reject()).then(() => toast("Copied the series name"), () => notice("Couldn't copy the series name"));
 
       $("inspector").addEventListener("input", (event) => {
         const target = event.target;
@@ -14367,15 +14561,6 @@
       $("inspector").addEventListener("scroll", (event) => {
         if (event.target.id === "formula") $("formula-mirror").scrollTop = event.target.scrollTop;
       }, true);
-      /** The selected layer's pane, from the inspector: each pane, its own checked, or a new one. */
-      function paneMenu(/** @type {HTMLElement} */ anchor) {
-        const layer = layerById(selected);
-        if (!layer) return;
-        showMenu(anchor, `${chart.panes.map((pane, i) => `<button type="button" data-pick-pane="${pane.id}" aria-checked="${pane.id === layer.pane}">${tick(pane.id === layer.pane)}Pane ${i + 1}<span>${escape(paneNames(pane))}</span></button>`).join("")}<div class="menu-rule"></div><button type="button" data-pick-pane="new" ${chart.panes.length < MAX_PANES ? "" : "disabled"}>${ICONS.plus}A new pane</button>`, ({ pickPane }) => {
-          refocus("#pane");
-          editLayer((item, doc) => (item.pane = pickPane === "new" ? newPaneIn(doc).id : pickPane));
-        });
-      }
       /** How the selected layer's values read, from the inspector: automatic (its unit's), or one chosen. */
       function formatMenu(/** @type {HTMLElement} */ anchor) {
         const layer = layerById(selected);
@@ -14404,7 +14589,7 @@
           refocus(`#inspector [data-pick-color="${CSS.escape(pickColor)}"]`);
         }
         else if (action === "derive") deriveMenu(button, selected);
-        else if (action === "pane-menu") paneMenu(button);
+        else if (action === "pane-menu") paneMenu(button, [selected], undefined, () => refocus("#pane"));
         else if (action === "format-menu") formatMenu(button);
         else if (action === "to-formula") toFormula(selected);
         else if (action === "to-series") turnToSeries(button, selected);
@@ -14544,16 +14729,18 @@
         if (!layer) return;
         showMenu(anchor, `
           <button type="button" data-pick="edit">${ICONS.sliders}Settings</button>
-          ${layer.series ? `<button type="button" data-pick="change">${ICONS.swap}Change the series</button>` : ""}
+          ${layer.series ? `<button type="button" data-pick="change">${ICONS.swap}Replace series</button>` : ""}
           <div class="menu-rule"></div>
           <button type="button" data-pick="derive" aria-haspopup="menu">${ICONS.formula}New formula from ${layer.letter}</button>
           ${layer.series ? `<button type="button" data-pick="to-formula">${ICONS.formula}Turn into a formula</button>` : turnsInto(layer).length ? `<button type="button" data-pick="to-series" ${turnsInto(layer).length > 1 ? 'aria-haspopup="menu"' : ""}>${ICONS.series}Turn into a series</button>` : ""}
           <button type="button" data-pick="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}${layer.hidden ? "Show" : "Hide"}<kbd>H</kbd></button>
           ${chart.layers.some((other) => other.pane === layer.pane && other.id !== id) ? `<button type="button" data-pick="solo">${ICONS.eye}${aloneInPane(layer) ? "Show every layer in its pane" : "Show it alone in its pane"}</button>` : ""}
           <button type="button" data-pick="duplicate" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.duplicate}Duplicate<kbd>${keyText("⌘D")}</kbd></button>
+          <button type="button" data-pick="move" aria-haspopup="menu">${ICONS.pane}Move to pane</button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove<kbd>${keyText("⌫")}</kbd></button>`, ({ pick }) => {
           if (!layerById(id)) return;
+          if (pick === "move") return paneMenu(anchor, [id], point);
           if (pick === "edit") select(id);
           else if (pick === "change") changeSeries(id);
           else if (pick === "derive") deriveMenu(anchor, id, point);
@@ -14585,7 +14772,7 @@
           event.preventDefault();
           return previewMenu(/** @type {HTMLElement} */ (previewRow.querySelector("[data-open-chart]")), { x: event.clientX, y: event.clientY });
         }
-        const chartRow = closest(event, "[data-chart-row]");
+        const chartRow = closest(event, "[data-chart-row]:not(:has(.row-rename))");
         const layerRow = closest(event, ".layer-row[data-layer]");
         const paneHead = closest(event, ".pane-head");
         if (paneHead) {
@@ -14601,7 +14788,11 @@
         else if (TOUCH) return;
         // (On a picked row, it acts on every one picked; on another, on it alone: the picks stay as they are.)
         else if (layerPicks.has(/** @type {string} */ (layerRow.dataset.layer))) layersMenu(/** @type {HTMLElement} */ (layerRow.querySelector("[data-select]")), point);
-        else layerMenu(/** @type {HTMLElement} */ (layerRow.querySelector("[data-select]")), layerRow.dataset.layer, point);
+        else {
+          layerMenu(/** @type {HTMLElement} */ (layerRow.querySelector("[data-select]")), layerRow.dataset.layer, point);
+          // (On it alone, beside picks: outlined, so it's clear which.)
+          if (layerPicks.size && !$("menu").hidden) (menuTarget = layerRow).classList.add("menu-target");
+        }
       });
       function duplicateLayer(/** @type {string} */ id) {
         const [copy] = duplicateLayers([id]);
@@ -15022,7 +15213,8 @@
         // As long as the fields it stands in for take: a formula, 500; a search, any.
         if (palette.formula) input.maxLength = 500;
         else input.removeAttribute("maxlength");
-        input.placeholder = replacing ? "A series to use instead" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (total ? `Search ${grouped.format(total)} series` : "Search every series") : total ? `Search ${grouped.format(total)} series, your charts and commands` : "Search series, your charts and commands";
+        input.setAttribute("aria-label", replacing ? "Replace series" : palette.formula ? "Formula" : palette.adding ? "Search series" : "Search series, charts and commands");
+        input.placeholder = replacing ? "A series to use instead" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (total ? `Search ${grouped.format(total)} series` : "Search every series") : phone.matches ? "Search series, charts, commands" : total ? `Search ${grouped.format(total)} series, your charts and commands` : "Search series, your charts and commands";
         $("palette-count").textContent = total ? `${grouped.format(total)} series on Bitview` : "Bitview";
       }
       /**
@@ -15101,10 +15293,10 @@
         return /** @type {Command[]} */ ([
           { title: "Add a series", text: "Search every series, or browse them by topic.", words: "add series catalog browse explore folders metric data", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
           { title: "New chart", text: "A blank chart, to start from series, a website chart or a file.", words: "create blank empty", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
-          ...(previewing && previewing === chart && !home ? [{ title: "Keep this chart", text: "A preview: into your charts as it is (a change keeps it too).", words: "keep save preview add charts", icon: "check", run: () => keepPreview(), suggested: true }] : []),
+          ...(previewing && previewing === chart && !home && chart.layers.length ? [{ title: "Keep this chart", text: "A preview: into your charts as it is (a change keeps it too).", words: "keep save preview add charts", icon: "check", run: () => keepPreview(), suggested: true }] : []),
           ...(previewing && (previewing !== chart || previousChart()) ? [{ title: "Close the preview", text: `${titleOf(previewing)}: not in your charts, let go of.`, words: "close preview discard dismiss", icon: "close", run: closePreview }] : []),
           { title: "New folder", text: "For charts that go together, named at once.", words: "create folder group organize", icon: "folderAdd", run: () => (home && ($("home-filter").value = ""), newFolder()), anywhere: true },
-          // Each folder, by its name: its page (open or close it, rename it, delete it, its charts).
+          // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
           ...library.folders.map((folder) => ({ title: folder.name, text: `A folder: ${plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart")}.`, words: `folder ${folder.name}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })),
           ...(home ? [] : [{ title: "All charts", text: "Every chart, side by side.", words: "grid overview gallery library home browse", icon: "grid", run: () => showHome() }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
@@ -15116,12 +15308,12 @@
           { title: "Import a chart file", text: "A chart's file, or several charts exported together.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
-          ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Log scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
+          ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Logarithmic scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
           ...(empty ? [] : [scalePane()].filter((pane) => chart.layers.filter((layer) => layer.pane === pane.id).length > 1).map((pane) => ({ title: ordersOf(pane)[pane.reverse ? 0 : 1][1], text: `${pane.stack ? "The stack's order" : "Which layer is drawn over the others"}, for ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "order reverse reversed front back stack foot paint draw over under", icon: "axis", run: () => setPaneReverse(pane.id, !pane.reverse) }))),
           ...(empty ? [] : [
             { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", words: "draw drawing belt toolbar tools annotate", icon: "draw", run: toggleBelt },
             ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, words: "draw drawing tool cancel end", icon: tool, kbd: "esc", run: () => setTool("") }] : []),
-            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: `${TOOLS[kind].tip}; esc to stop.`, words: `draw drawing annotate annotation ${TOOLS[kind].name} ${TOOLS[kind].noun}${kind === "ruler" ? " measure measuring distance difference percent" : ""}`, icon: kind, ...(kind === "ruler" ? { kbd: "M" } : {}), run: () => setTool(kind) })),
+            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: `${TOOLS[kind].tip}; esc to stop.`, words: `draw drawing annotate annotation ${TOOLS[kind].name} ${TOOLS[kind].noun}${kind === "ruler" ? " measure measuring distance difference percent" : ""}`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => setTool(kind) })),
             ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", words: "drawings annotations hide show visible clean", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden) }] : []),
             ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
           ]),
@@ -15133,6 +15325,12 @@
             { title: `Remove ${n}`, text: "With an Undo.", words: "selected picked layers remove delete", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
             { title: "Clear the selection", text: `${n} selected.`, words: "selected picked layers deselect clear", icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
           ])(plural(layers.length, "layer"), layers.some((layer) => !layer.hidden)))(pickedLayers())),
+          // The selected drawings, as the picked layers: what the belt does to them.
+          ...(((ids) => home || !ids.length ? [] : ((n) => [
+            { title: `Duplicate ${n}`, text: "Each copy beside its original.", words: "selected chosen drawings copy duplicate", icon: "duplicate", kbd: "⌘D", run: () => duplicateDrawings(ids), suggested: true },
+            { title: `Remove ${n}`, text: "With an Undo.", words: "selected chosen drawings remove delete erase", icon: "trash", kbd: "⌫", danger: true, run: () => removeDrawings(ids), suggested: true },
+            { title: "Clear the selection", text: `${n} selected.`, words: "selected chosen drawings deselect clear", icon: "close", kbd: "esc", run: () => chooseDrawings([]), suggested: true },
+          ])(plural(ids.length, "drawing")))([...chosen])),
           ...(empty ? [] : [{ title: chart.halvings ? "Hide the halvings" : "Show the halvings", text: chart.halvings ? "The lines at each halving, off this chart." : "A line at each halving, and the next, estimated.", words: "halving halvings epoch cycle reward vertical lines markers", icon: "halvings", run: toggleHalvings }]),
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
@@ -15140,12 +15338,12 @@
           ...(edits.past.length || toastUndo?.mark === revision ? [{ title: "Undo", text: toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: toastUndo?.mark === revision }] : []),
           // The charts picked in the grid: what its bar does.
           ...(home && picked.size ? [
-            ...(picked.size === 1 ? [{ title: "Rename the selected chart", text: "Its title, typed in place.", words: "rename title picked selected", icon: "pencil", run: () => batch("rename"), anywhere: true }] : []),
-            { title: `Move the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`} to a folder`, text: "A folder, a new one, or none.", words: "move folder picked selected", icon: "folder", keepOpen: true, run: () => openPage(folderPage([...picked])), anywhere: true },
+            ...(picked.size === 1 ? [{ title: "Rename 1 chart", text: "Its title, typed in place.", words: "rename title picked selected", icon: "pencil", run: () => batch("rename"), anywhere: true }] : []),
+            { title: `Move ${plural(picked.size, "chart")} to folder`, text: "A folder, a new one, or out of theirs.", words: "move folder picked selected", icon: "folder", keepOpen: true, run: () => openPage(folderPage([...picked])), anywhere: true },
             { title: "Clear the selection", text: plural(picked.size, "chart") + " selected.", words: "deselect clear picked selected", icon: "close", kbd: "esc", run: () => clearPicks(), anywhere: true },
-            { title: `Duplicate the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`}`, text: "A copy of each, beside it.", words: "copy picked selected", icon: "duplicate", run: () => batch("duplicate"), anywhere: true },
-            { title: `Download the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`}`, text: "One chart file, to import again.", words: "export save json picked selected", icon: "file", run: () => batch("export"), anywhere: true },
-            { title: `Delete the ${picked.size === 1 ? "selected chart" : `${picked.size} selected charts`}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true, confirm: true },
+            { title: `Duplicate ${plural(picked.size, "chart")}`, text: "A copy of each, beside it.", words: "copy picked selected", icon: "duplicate", run: () => batch("duplicate"), anywhere: true },
+            { title: `Download ${plural(picked.size, "chart")}`, text: "One chart file, to import again.", words: "export save json picked selected", icon: "file", run: () => batch("export"), anywhere: true },
+            { title: `Delete ${plural(picked.size, "chart")}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true, confirm: true },
           ] : []),
           ...(edits.future.length ? [{ title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redo }] : []),
           ...(empty ? [] : [
@@ -15401,7 +15599,7 @@
             <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
               <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
               <div><dt>Latest</dt><dd id="spark-caption"></dd></div>
-              ${editing ? "" : `<div><dt>Goes in</dt><dd>${palette.into ? `Pane ${paneNumber(palette.into)}` : chart.panes.length < MAX_PANES ? "A new pane" : `Pane ${chart.panes.length}`}</dd></div>`}
+              ${editing ? "" : `<div><dt>Goes in</dt><dd>${palette.into ? `Pane ${paneNumber(palette.into)}` : chart.panes.length < MAX_PANES ? "New pane" : `Pane ${chart.panes.length}`}</dd></div>`}
             </dl></div>`;
           drawSpark(Array.from(result.shown), unit, ink(layer.color));
         })();
@@ -15837,6 +16035,7 @@
         // (A name, as the fields for names take: 120.)
         if (page.input) /** @type {HTMLInputElement} */ ($("palette-input")).maxLength = 120;
         $("palette-input").placeholder = page.input ? page.input.placeholder : page.placeholder ?? `Search ${pageTitle(page).toLowerCase()}`;
+        $("palette-input").setAttribute("aria-label", page.input ? pageTitle(page) : `Search ${pageTitle(page).toLowerCase()}`);
       }
       /** A row: its icon, its label, at its end its value (or a check for the choice in effect), › if it opens a page. */
       function rowHtml(item) {
@@ -15928,12 +16127,12 @@
         });
       }
       const renameChartPage = (doc) => renamePage("Rename", doc.title ?? "", "Untitled chart", (text) => renameChart(chartById(doc.id) ?? doc, text));
-      /** A folder, as ⌘K's page: open or close it, rename it, delete it (its charts kept), and its charts. @returns {Page} */
+      /** A folder, as ⌘K's page: expand or collapse it, rename it, delete it (its charts kept), and its charts. @returns {Page} */
       const folderOwnPage = (/** @type {string} */ id) => ({ title: () => folderById(id)?.name ?? "Folder", placeholder: "Search this folder", rows: () => {
         const folder = folderById(id);
         if (!folder) return [];
         return [
-          { key: "toggle", icon: ICONS.folder, label: folder.closed ? "Open" : "Close", aside: folder.closed ? "Its charts shown" : "Its charts out of sight", verb: folder.closed ? "Open" : "Close", group: "Folder", stay: true, run: () => toggleFolder(id) },
+          { key: "toggle", icon: ICONS.folder, label: folder.closed ? "Expand" : "Collapse", aside: folder.closed ? "Its charts shown" : "Its charts out of sight", verb: folder.closed ? "Expand" : "Collapse", group: "Folder", stay: true, run: () => toggleFolder(id) },
           { key: "rename", icon: ICONS.pencil, label: "Rename", aside: folder.name, group: "Folder", page: () => renameFolderPage(id) },
           ...(sideItems().indexOf(folder) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", verb: "Move", group: "Folder", stay: true, run: () => stepFolder(id, -1) }] : []),
           ...(sideItems().indexOf(folder) < sideItems().length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", verb: "Move", group: "Folder", stay: true, run: () => stepFolder(id, 1) }] : []),
@@ -16027,10 +16226,12 @@
           { key: "page:presets", icon: ICONS.series, label: "Website charts", aside: presets ? plural(presets.length, "chart") : "From bitview.space", words: "website bitview presets examples import base start browse", page: () => presetsPage([]) },
         ].filter((row) => !home || row.key === "page:charts" || row.key === "page:presets").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
       }
-      /** @returns {Page} */
+      /** Your charts, as ⌘K's page: those in no folder, then each folder's under its name (the sidebar's order); and making more. */
       const chartsPage = () => ({ title: "Charts", placeholder: "Search your charts", rows: () => [
-        ...library.charts.map((doc) => ({ kind: "chart", key: doc.id })),
+        ...sideItems().filter((item) => "layers" in item).map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })),
+        .../** @type {Folder[]} */ (sideItems().filter((item) => !("layers" in item))).flatMap((folder) => library.charts.filter((doc) => doc.folder === folder.id).map((doc) => ({ kind: "chart", key: doc.id, group: folder.name }))),
         { kind: "row", key: "new", icon: ICONS.plus, label: "New chart", kbd: "N", verb: "Create", group: "Add", run: newChart },
+        { kind: "row", key: "new-folder", icon: ICONS.folderAdd, label: "New folder", verb: "Create", group: "Add", run: () => { dismissPalette(); if (home) $("home-filter").value = ""; newFolder(); } },
         { kind: "row", key: "import", icon: ICONS.upload, label: "Import a chart file", verb: "Import", group: "Add", run: () => $("import-file").click() },
       ] });
       /** A chart's actions: open; rename, here; duplicate; move in your list; download; delete. @returns {Action[]} */
@@ -16039,7 +16240,7 @@
         const docs = library.charts.filter((doc) => ids.includes(doc.id)), within = new Set(docs.map((doc) => doc.folder ?? ""));
         return [
           ...library.folders.map((folder) => ({ key: folder.id, icon: ICONS.folder, label: folder.name, aside: plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart"), current: within.size === 1 && within.has(folder.id), run: () => moveToFolder(ids, folder.id) })),
-          { key: "new", icon: ICONS.plus, label: "A new folder", run: () => { dismissPalette(); newFolder(ids); } },
+          { key: "new", icon: ICONS.plus, label: "New folder", run: () => { dismissPalette(); newFolder(ids); } },
           ...(outOf(ids) ? [{ key: "out", icon: ICONS.folderOut, label: outOf(ids), run: () => moveToFolder(ids, null) }] : []),
         ];
       });
@@ -16048,7 +16249,7 @@
         if (!doc) return [];
         if (doc === previewing) return [
           { label: "Open", kbd: "↵", run: () => go(doc) },
-          { label: "Keep", run: () => keepPreview() },
+          ...(doc.layers.length ? [{ label: "Keep", run: () => keepPreview() }] : []),
           { label: "Rename", page: () => renameChartPage(doc) },
           { label: "Download chart file", run: () => chartPick(id, "download") },
           ...(doc !== chart || previousChart() ? [{ label: "Close the preview", run: closePreview }] : []),
@@ -16097,7 +16298,7 @@
               { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => ({ title: "Export", rows: () => [["copy", "Copy as image", "", ICONS.copy], ["png", "Download image", "PNG", ICONS.image], ["csv", "Download data", "CSV", ICONS.table], ["json", "Download chart file", "JSON", ICONS.file]].map(([kind, label, aside, icon]) => ({ kind: "row", key: kind, icon, label, aside, verb: kind === "copy" ? "Copy" : "Download", run: () => exportAs(kind) })) }) },
             ] : []),
             ...(chart === previewing ? [] : [{ key: "folder", icon: ICONS.folder, label: "Folder", aside: folderById(chart.folder)?.name ?? "None", group: "Chart file", page: () => folderPage([chart.id]) }]),
-            ...(chart === previewing ? [{ key: "keep", icon: ICONS.check, label: "Keep", aside: "A preview: into your charts as it is", verb: "Keep", group: "Chart file", run: () => keepPreview() }] : []),
+            ...(chart === previewing && chart.layers.length ? [{ key: "keep", icon: ICONS.check, label: "Keep", aside: "A preview: into your charts as it is", verb: "Keep", group: "Chart file", run: () => keepPreview() }] : []),
             ...(chart === previewing ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") }]),
             ...(isDraft(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, confirm: true, run: () => deleteChart(chart) }]),
           ].map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewChart(panel, chart), ...row }));
@@ -16174,7 +16375,7 @@
             { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? plural(layer.levels.length, "level") : "None", group: "Style", page: () => levelsPage(id) },
             { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => [
               ...chart.panes.map((pane, i) => ({ key: pane.id, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: paneNames(pane), current: now().pane === pane.id, run: set((item) => (item.pane = pane.id)) })),
-              ...(chart.panes.length < MAX_PANES ? [{ key: "new", icon: ICONS.plus, label: "A new pane", run: set((item, doc) => (item.pane = newPaneIn(doc).id)) }] : []),
+              ...(chart.panes.length < MAX_PANES ? [{ key: "new", icon: ICONS.plus, label: "New pane", run: set((item, doc) => (item.pane = newPaneIn(doc).id)) }] : []),
             ]) },
             { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")) },
             ...panePage(layer.pane).rows().filter((row) => row.key === "scale" || row.key === "stack" || row.key === "order").map((row) => ({ ...row, group: "Layout" })),
@@ -16194,7 +16395,7 @@
               : []))(turnsInto(layer)),
             { key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", group: "Layer", stay: true, run: () => toggleHidden(id) },
             ...(chart.layers.some((other) => other.pane === layer.pane && other.id !== id) ? [{ key: "solo", icon: ICONS.eye, label: aloneInPane(layer) ? "Show every layer in its pane" : "Show it alone in its pane", aside: aloneInPane(layer) ? undefined : "The others there hidden", verb: "Show", group: "Layer", stay: true, run: () => soloLayer(id) }] : []),
-            { key: "panel", icon: ICONS.sliders, label: "Open in the panel", verb: "Open", group: "Layer", run: () => select(id) },
+            { key: "panel", icon: ICONS.sliders, label: "Settings", aside: "In the panel", verb: "Open", group: "Layer", run: () => select(id) },
             { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", group: "Layer", run: () => duplicateLayer(id) },
             { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", group: "Layer", danger: true, run: () => removeLayer(id) },
           ].map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
@@ -16229,7 +16430,12 @@
       const drawingsPage = () => ({ title: "Drawings", placeholder: "Search the drawings", rows: () => {
         const names = drawingNames();
         return [
-          ...(chart.drawings ?? []).map((drawing) => ({ kind: "row", key: drawing.id, icon: TOOLS[drawing.kind].icon, label: /** @type {string} */ (names.get(drawing.id)), aside: `On ${labelOf(layerById(drawing.layer) ?? { label: "" })}`, group: "On the chart", page: () => drawingPage(drawing.id) })),
+          ...(chart.drawings ?? []).map((drawing) => ({ kind: "row", key: drawing.id, icon: TOOLS[drawing.kind].icon, label: /** @type {string} */ (names.get(drawing.id)), aside: `On ${labelOf(layerById(drawing.layer) ?? { label: "" })}`, group: "On the chart", page: () => drawingPage(drawing.id), actions: () => [
+            { label: "Open", kbd: "↵", page: () => drawingPage(drawing.id) },
+            { label: "Select", run: () => chooseDrawings([drawing.id]) },
+            { label: "Duplicate", kbd: "⌘D", run: () => duplicateDrawings([drawing.id]) },
+            { label: "Remove", kbd: "⌫", danger: true, run: () => removeDrawing(drawing.id) },
+          ] })),
           ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => setTool(kind) })),
           ...(chart.drawings?.length ? [
             { kind: "row", key: "select-box", icon: ICONS.select, label: "Select drawings with a box", aside: "Drag a box around them", kbd: "D S", verb: "Select", group: "Select", run: () => setSelectingArea(true) },
@@ -16359,8 +16565,8 @@
       const panesPage = () => ({ title: "Panes", placeholder: "Search this chart's panes", rows: () => [
         ...chart.panes.map((pane, i) => paneRow(pane.id, i)),
         ...(chart.panes.length > 1 ? [
-          { kind: "row", key: "equal", icon: ICONS.pane, label: "Equal heights", aside: "Every pane as tall as the others", verb: "Apply", group: "Heights", stay: true, run: () => commit((doc) => doc.panes.forEach((pane) => (pane.size = 1))) },
-          { kind: "row", key: "reset", icon: ICONS.pane, label: "Reset heights", aside: "The first tall, the others shorter", verb: "Reset", group: "Heights", stay: true, run: () => commit((doc) => doc.panes.forEach((pane) => delete pane.size)) },
+          { kind: "row", key: "equal", icon: ICONS.pane, label: "Equal pane heights", aside: "Every pane as tall as the others", verb: "Apply", group: "Heights", stay: true, run: () => commit((doc) => doc.panes.forEach((pane) => (pane.size = 1))) },
+          { kind: "row", key: "reset", icon: ICONS.pane, label: "Reset pane heights", aside: "The first tall, the others shorter", verb: "Reset", group: "Heights", stay: true, run: () => commit((doc) => doc.panes.forEach((pane) => delete pane.size)) },
         ] : []),
       ] });
       /** A pane's share of the chart's height, in percent, among those that show (folded, none: see foldedPanes). */
@@ -16698,9 +16904,11 @@
         menu.onclick = (event) => {
           const button = closest(event, "button:not(:disabled)");
           if (!button || (button.hasAttribute("data-confirm") && !confirmed(button))) return;
-          const owner = menuOwner, key = owner && keyOf(owner), scope = owner?.parentElement?.closest("[id]");
+          const owner = menuOwner, key = owner && keyOf(owner), scope = owner?.parentElement?.closest("[id]"), target = menuTarget;
           hideMenu();
           onPick(button.dataset);
+          // (A menu it leads to acts on the same: outlined still.)
+          if (!menu.hidden && target?.isConnected) (menuTarget = target).classList.add("menu-target");
           // (Picked by a key, the focus was in the menu: back on what opened it (its like, once redrawn), if nothing took it,
           // and no menu it opened has it.)
           if (!menu.hidden) return;
@@ -16734,7 +16942,7 @@
           menu.style.animation = "";
           return;
         }
-        const left = clamp(rect.left, bounds.left + 8, bounds.right - width - 8);
+        const left = clamp(rect.left + width > bounds.right - 8 && !point ? rect.right - width : rect.left, bounds.left + 8, bounds.right - width - 8);
         const fitsBelow = rect.bottom + gap + height <= bounds.bottom - 8, below = side === "above" ? rect.top - gap - height < bounds.top + 8 && fitsBelow : fitsBelow;
         menu.style.left = `${left - origin.x}px`;
         menu.style.top = `${(below ? rect.bottom + gap : Math.max(bounds.top + 8, rect.top - gap - height)) - origin.y}px`;
@@ -16758,7 +16966,11 @@
         event.stopPropagation();
         hideMenu();
       });
+      /** The item a menu acts on alone, beside others picked: outlined while it shows. @type {HTMLElement | null} */
+      let menuTarget = null;
       function hideMenu() {
+        menuTarget?.classList.remove("menu-target");
+        menuTarget = null;
         menuScrim.remove();
         $("menu").hidden = true;
         ownerNow()?.removeAttribute("aria-expanded");
@@ -16775,8 +16987,11 @@
           return owner?.focus();
         }
         // A key shown beside an item does it, to what the menu is of: a layer's menu acts on that layer, selected or not.
-        const key = keyText(`${event.metaKey || event.ctrlKey ? "⌘" : ""}${event.key === "Backspace" ? "⌫" : event.key.toUpperCase()}`);
-        const hinted = !event.altKey && !event.shiftKey && all$("button:not(:disabled)", $("menu")).find((button) => button.dataset.key === key);
+        // (With its modifiers, as it's written: ⌥↑, ⇧↵, ⌘↵. A bare ↵ or arrow is the menu's own: the focused item, the next.)
+        const glyph = { Backspace: "⌫", Enter: "↵", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" }[event.key] ?? event.key.toUpperCase();
+        const modified = event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
+        const key = keyText(`${event.metaKey || event.ctrlKey ? "⌘" : ""}${event.altKey ? "⌥" : ""}${event.shiftKey && event.key.length > 1 ? "⇧" : ""}${glyph}`);
+        const hinted = (modified || !["↵", "↑", "↓", "←", "→"].includes(glyph)) && all$("button:not(:disabled)", $("menu")).find((button) => button.dataset.key === key);
         if (hinted) {
           event.preventDefault();
           event.stopPropagation();
@@ -16823,7 +17038,7 @@
       function renderRanges() {
         $("ranges").innerHTML = RANGES.map(([id, text], i) => {
           const fits = presetFits(id), tip = fits ? capitalize(PERIODS[id]) : `More than fits at ${INTERVAL_LABEL[chart.index]}`;
-          return `<button type="button" data-range="${id}" aria-pressed="${presetShown && shownRange() === id}" aria-label="${tip}" data-tip="${tip}" ${fits ? `data-kbd="${i + 1}"` : "disabled"}>${text}</button>`;
+          return `<button type="button" data-range="${id}" aria-pressed="${presetShown && shownRange() === id}" aria-label="${text}: ${tip.toLowerCase()}" data-tip="${tip}" ${fits ? `data-kbd="${i + 1}"` : "disabled"}>${text}</button>`;
         }).join("");
       }
       /** Another interval for the open chart: its view kept first, so the new one opens on the same time (on its preset, if it showed one). */
@@ -16878,7 +17093,7 @@
         // The edit may have redrawn the field: leave whichever one has the focus now.
         /** @type {HTMLElement} */ (document.activeElement)?.blur();
       }, true);
-      $("undo").addEventListener("click", undo);
+      $("undo").addEventListener("click", undoLast);
       $("redo").addEventListener("click", redo);
       // Export: the image, copied or downloaded; the data; the chart file.
       $("export").addEventListener("click", (event) => showMenu(event.currentTarget, `
@@ -16903,7 +17118,7 @@
           }
         }
         const url = await link;
-        toast("Link copied: it opens this chart for anyone", { label: "Open", run: () => window.open(url, "_blank", "noopener") });
+        toast("Copied a link: it opens this chart for anyone", { label: "Open", run: () => window.open(url, "_blank", "noopener") });
       });
 
       // ── Share, import, export ─────────────────────────────────────────────────
@@ -16942,7 +17157,7 @@
           // Onto an untouched new chart, the file takes its place.
           if (isDraft(chart)) unlist(chart);
           adopt(doc);
-          toast(`Imported ${titleOf(doc)}`);
+          toast(`Imported “${titleOf(doc)}”`);
         } catch {
           notice("That file isn't a Bitview Studio chart");
         }
@@ -17085,7 +17300,10 @@
       }
       const fileName = (extension, doc = chart) => `${(doc.title || "chart").trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "chart"}.${extension}`;
       /** A chart's file, to import again later. @param {Chart} doc */
-      const downloadChart = (doc) => download(fileName("json", doc), new Blob([JSON.stringify(portable(doc), null, 2)], { type: "application/json" }));
+      function downloadChart(/** @type {Chart} */ doc) {
+        download(fileName("json", doc), new Blob([JSON.stringify(portable(doc), null, 2)], { type: "application/json" }));
+        toast(`Downloaded “${titleOf(doc)}”`);
+      }
 
       function exportAs(kind) {
         if (kind === "json") return downloadChart(chart);
@@ -17109,12 +17327,12 @@
         if (kind === "copy") return copyImage();
         const name = fileName("png");
         const failed = () => notice("Couldn't make the image");
-        chartImage().then((canvas) => canvas.toBlob((blob) => (blob ? download(name, blob) : failed())), failed);
+        chartImage().then((canvas) => canvas.toBlob((blob) => (blob ? (download(name, blob), toast("Downloaded the image")) : failed())), failed);
       }
       /** The image on the clipboard, given the picture while it's still being drawn (so the click that asked counts). */
       function copyImage() {
         const png = chartImage().then((canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png")));
-        navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(() => toast("Image copied: paste it anywhere"), () => notice("Couldn't copy the image"));
+        navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(() => toast("Copied the image: paste it anywhere"), () => notice("Couldn't copy the image"));
       }
       /**
        * The picture of the chart, as it shows: its title; each pane's legend where it stands; the source, the interval,
@@ -17365,6 +17583,8 @@
       }
 
       let toastTimer = 0;
+      /** The toolbar's Undo: on while ⌘Z has something to undo (the chart's last edit, or a toast's Undo). */
+      const syncUndo = () => ($("undo").disabled = !edits.past.length && toastUndo?.mark !== revision);
       /** A toast's Undo, which ⌘Z presses while it's up and nothing has changed since (a deleted chart comes back too). */
       let toastUndo = /** @type {{ press: () => void, mark: number } | null} */ (null);
       /** Something done, with its check; or (`done` false) something to know, without. @param {{ label: string, run: () => void }} [action] */
@@ -17377,10 +17597,12 @@
         const press = () => {
           element.classList.remove("visible");
           toastUndo = null;
+          syncUndo();
           action.run();
         };
         element.querySelector("button")?.addEventListener("click", press);
         toastUndo = undoes ? { press, mark: revision } : null;
+        syncUndo();
         // Above the chart's foot; in the grid, above its bar (or its foot), centered on it.
         const frame = (home ? $("home") : $("stage-foot")).getBoundingClientRect();
         const above = !home ? frame.top : $("home-bar").hidden ? frame.bottom - 8 : $("home-bar").getBoundingClientRect().top;
@@ -17391,6 +17613,7 @@
         toastTimer = setTimeout(() => {
           element.classList.remove("visible");
           toastUndo = null;
+          syncUndo();
         }, action ? 5000 : 2200);
       }
 
@@ -17430,20 +17653,17 @@
         disarm();
         if (document.activeElement !== $("title")) $("title").value = chart.title;
         document.title = home ? "All charts · Bitview Studio" : `${titleOf(chart)} · Bitview Studio`;
-        $("undo").disabled = !edits.past.length;
+        syncUndo();
         $("redo").disabled = !edits.future.length;
         $("interval").innerHTML = `${INTERVAL_LABEL[chart.index] ?? chart.index}${CHEVRON}`;
         $("interval").setAttribute("aria-label", `Interval: ${CADENCE[chart.index] ?? chart.index}`);
         renderRanges();
         $("empty").hidden = chart.layers.length > 0;
-        // An empty chart can be left with Escape, for the chart before it: a new one cancelled, a named one deleted.
+        // A new chart, empty, can be left with Escape (or Cancel), for the chart before it: taken back.
         const back = chart.layers.length ? null : previousChart();
-        $("leave-empty").hidden = !back && !backToHome();
-        $("leave-label").textContent = isDraft(chart) ? "Cancel" : "Delete chart";
-        // Escape only takes back a new chart; deleting one asks for two presses.
-        /** @type {HTMLElement} */ ($("leave-empty").querySelector("kbd")).hidden = !isDraft(chart);
+        $("leave-empty").hidden = !isDraft(chart) || (!back && !backToHome());
         if (backToHome()) $("leave-empty").dataset.tip = "Back to all charts";
-        else if (back) $("leave-empty").dataset.tip = isDraft(chart) ? `Back to ${titleOf(back)}` : `Delete this empty chart, back to ${titleOf(back)}`;
+        else if (back) $("leave-empty").dataset.tip = `Back to ${titleOf(back)}`;
         // An empty chart is the empty state's to fill: no panel beside it, nothing to export or share yet.
         document.body.toggleAttribute("data-empty", !chart.layers.length);
         $("export").disabled = $("share").disabled = $("draw-toggle").disabled = $("panel-toggle").disabled = $("mobile-layers").disabled = !chart.layers.length;
@@ -17492,12 +17712,13 @@
         else if (paneStack) setPaneStack(paneStack, target.dataset.stack ?? "");
         else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
         else if (action === "palette") openPalette({ resume: true });
+        else if (action === "new-chart") newChart();
         else if (action === "close-preview") closePreview();
         else if (action === "home") showHome();
         else if (action === "add-series") openPalette({ add: true });
         else if (action === "leave-empty") {
           // A new chart is only taken back; a saved one is deleted, which asks first.
-          if (isDraft(chart) || confirmed(target)) leaveEmpty();
+          leaveEmpty();
         }
         else if (action === "import") $("import-file").click();
         else if (action === "website-charts") openPresets();
@@ -17579,6 +17800,31 @@
           disarm();
           for (const doc of shownCharts()) picked.add(doc.id);
           return renderPicked();
+        }
+        // A chart focused in the sidebar or the grid: ⌘D and ⌫ are its own (in the grid, the picks' too), not the open chart's.
+        const inList = typing(event.target) || !document.activeElement?.matches?.(":focus-visible") ? null : /** @type {HTMLElement | null} */ (document.activeElement.closest("#chart-list, #home-grid"));
+        if (inList && !event.altKey && ((mod && key === "d") || (!mod && (event.key === "Backspace" || event.key === "Delete")))) {
+          event.preventDefault();
+          const item = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-chart-row], [data-home-card]") ?? null);
+          const id = item?.dataset.chartRow ?? item?.dataset.homeCard ?? "", doc = chartById(id), inGrid = inList.id === "home-grid";
+          if (!doc || doc === previewing) return;
+          if (key === "d") return inGrid ? batch("duplicate", null, picked.has(id) ? null : [id]) : void duplicateCharts([doc]);
+          // (One of the picks: they all go, asked as the bar asks. One alone: asked at its ⋯, or its row.)
+          if (inGrid && picked.has(id)) {
+            if (confirmed(/** @type {HTMLElement} */ ($("home-bar").querySelector('[data-batch="delete"]')), `${keyText("⌫")} again to delete`)) batch("delete");
+            return;
+          }
+          const asks = /** @type {HTMLElement} */ (inGrid ? item?.querySelector(".tile-more") : item?.querySelector("[data-open-chart]"));
+          if (asks && confirmed(asks, `${keyText("⌫")} again to delete`)) inGrid ? batch("delete", null, [id]) : deleteChart(doc);
+          return;
+        }
+        // A layer's row: ⌥↑ ⌥↓ move it among its pane's, as a chart's row moves in the list.
+        const layerRow = typing(event.target) ? null : /** @type {HTMLElement | null} */ (document.activeElement?.closest?.(".layer-row[data-layer]") ?? null);
+        if (layerRow && event.altKey && !mod && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+          event.preventDefault();
+          const id = /** @type {string} */ (layerRow.dataset.layer);
+          moveLayer(id, event.key === "ArrowUp" ? -1 : 1);
+          return void refocus(`.layer-row[data-layer="${CSS.escape(id)}"] .row-main`);
         }
         if (mod && key === "d" && !home && (chosen.size || layerPicks.size || selected) && !typing(event.target)) {
           event.preventDefault();
