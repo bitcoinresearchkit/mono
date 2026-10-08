@@ -4,8 +4,9 @@
   https://studio.bitview.space/#chart={"title": "Cost basis", "range": "4y", "layers": [{"series": "price"},
   {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}, {"cloud": ["A", "B"]}]}
   It opens as a preview. Layers are a series (exact name), a formula of other layers by letter (A, B... in order), or a
-  cloud between layers. Names: https://bitview.space/api/series/search?q=words. The full reference is the "About
-  Studio's links" section near the end of this page.
+  cloud between layers; drawings, panes and a date window are written the same way. As an image: Export, then Open
+  image (the chart's picture alone, in a tab of its own). Series names are the live API's: how to find them,
+  https://bitview.space/llms.txt. The full reference is the "About Studio's links" section near the end of this page.
 -->
 <html lang="en">
   <head>
@@ -152,6 +153,7 @@
       /* What the page's links carry, for its text's readers (see the section): out of sight while the page runs. */
       .about {
         position: absolute;
+        top: 0;
         width: 1px;
         height: 1px;
         overflow: hidden;
@@ -806,6 +808,13 @@
         display: flex;
         align-items: center;
         border-radius: var(--radius-md);
+        transition: margin-top var(--dur-layout) var(--ease-layout), padding-top var(--dur-layout) var(--ease-layout);
+
+        /* An open folder's room, above it and under its last chart (on the rail, inside its surface: as far from its
+           squares at its ends as at its sides; collapsing moves nothing), easing in and out as it opens and closes. */
+        &:not(.closed):has(+ .chart-row.in-folder) {
+          margin-top: 5px;
+        }
 
         .folder-item {
           min-width: 0;
@@ -824,14 +833,12 @@
            by a key; a click leaves the count. */
         .folder-count {
           position: absolute;
-          top: 50%;
           right: 9px;
           width: 24px;
           color: var(--muted);
           font: 510 12px/1 var(--sans);
           font-variant-numeric: tabular-nums;
           text-align: center;
-          translate: 0 -50%;
         }
 
         .chart-more {
@@ -883,6 +890,11 @@
           width: 1px;
           background: var(--line-strong);
           pointer-events: none;
+        }
+
+        /* (Its folder's room under it: see .folder-row.) */
+        &:not(:has(+ .chart-row.in-folder)) {
+          margin-bottom: 5px;
         }
       }
 
@@ -1246,9 +1258,14 @@
             pointer-events: none;
           }
 
-          /* On the rail, the rule under New chart is short, at the same height: nothing moves. */
+          /* On the rail, the rule under New chart is short, at the same height: nothing moves. New chart, a square as
+             the others (its room for New folder given back). */
           .new-chart {
             overflow: visible;
+          }
+
+          #new-chart {
+            padding-right: 0;
           }
 
           #new-folder {
@@ -1256,34 +1273,58 @@
             opacity: 0;
           }
 
-          /* An open folder, as a rail of servers has it: its icon and its charts on one surface (the sidebar open, their
-             line), the charts in line with the others. */
-          .folder-row:not(.closed):has(+ .chart-row.in-folder) {
-            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+          /* An open folder, as a rail of servers has it: its icon and its charts on one surface, a field edged as the
+             search is (the sidebar open, their line), its corners around its squares'; the charts in line with the
+             others. */
+          .folder-row:has(+ .chart-row.in-folder) {
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
             background: var(--field);
+            box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
+          }
+
+          .folder-row:not(.closed):has(+ .chart-row.in-folder) {
+            margin-top: 0;
+            padding-top: 5px;
           }
 
           .chart-row.in-folder {
             border-radius: 0;
             background: var(--field);
-            /* (Over the gap above it: one surface.) */
-            box-shadow: 0 -1px 0 var(--field);
+            box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
 
             &:not(:has(+ .chart-row.in-folder)) {
-              border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+              margin-bottom: 0;
+              border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+              padding-bottom: 5px;
+              box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line);
+            }
+
+            /* (Dragged: its chart dimmed, its folder's surface whole.) */
+            &.dragging {
+              opacity: 1;
+
+              > * {
+                opacity: 0.35;
+              }
             }
 
             .chart-item {
               padding-left: 8px;
             }
 
+            /* (The gap above it, of the same surface, edged: its line, open, is this here.) */
             &::before {
-              display: none;
+              inset: -1px 0 auto;
+              width: auto;
+              height: 1px;
+              background: var(--field);
+              box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
             }
           }
 
+          /* (Centered under New chart's icon.) */
           .new-chart::after {
-            left: 5px;
+            left: 11px;
             width: 20px;
           }
 
@@ -4612,7 +4653,8 @@
 
       .home {
         position: absolute;
-        inset: 0;
+        /* Out to the window's edges: past the card it's in (none to see here), its margin and its border. */
+        inset: -9px -9px -9px -1px;
         z-index: 8;
         display: none;
       }
@@ -4623,6 +4665,7 @@
         }
 
         .card {
+          overflow: visible;
           border-color: transparent;
           background: none;
           box-shadow: none;
@@ -4632,6 +4675,7 @@
           }
 
           > :is(.card-head, .card-body) {
+            overflow: clip;
             visibility: hidden;
           }
         }
@@ -4757,9 +4801,11 @@
             border-radius: inherit;
           }
 
-          /* Held at the top while its charts scroll under it: its foot edged, a shadow over them. */
+          /* Held at the top while its charts scroll under it (square, at the window's edge, no line there): its foot
+             edged, a shadow over them. */
           &.held:not(.closed) {
-            box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line), 0 12px 20px -14px rgb(0 0 0 / 0.8);
+            border-radius: 0;
+            box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line), 0 12px 20px -14px rgb(0 0 0 / 0.8);
           }
         }
 
@@ -5380,6 +5426,10 @@
           border: 0;
           border-radius: 0;
           box-shadow: none;
+        }
+
+        .home {
+          inset: 0;
         }
 
         .sidebar,
@@ -6088,23 +6138,48 @@
       <h1>Bitview Studio</h1>
       <p>Charts of Bitcoin's on-chain data from bitview.space, made in the browser: it needs JavaScript.</p>
       <h2>Opening a chart from a link</h2>
-      <p>A link can carry a chart: https://studio.bitview.space/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. For example (before encoding):</p>
+      <p>A link carries a whole chart: https://studio.bitview.space/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
       <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
-      <p>A chart has its "layers" (in order); optionally a "title", an "index" (its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10; day1 if none) and a "range" (what it shows of it: 3m, 1y, 4y or max; max if none).</p>
-      <p>A layer is one of:</p>
+      <h2>A chart</h2>
+      <ul>
+        <li>"layers" (the one thing needed): its layers, in order (see below).</li>
+        <li>"title".</li>
+        <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).</li>
+        <li>"range": what it shows: 3m, 1y, 4y or max (max if none). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
+        <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.</li>
+        <li>"halvings": true: a line at each halving.</li>
+        <li>"drawings" (see below).</li>
+      </ul>
+      <h2>A layer</h2>
+      <p>One of:</p>
       <ul>
         <li>{"series": "realized_price"}: a series, by its exact name.</li>
         <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, and percentile(A, 95, 1y). Spans are a number and a unit: h, d, w, mo or y.</li>
         <li>{"cloud": ["B", "C"]}: filled from the lowest of those layers to the highest, at each date.</li>
       </ul>
-      <p>Any layer can also have a "label" (its name), a "color", a "type" (line, dots, area, histogram, baseline, or candles for an OHLC series such as price_ohlc), a "pane" (1, 2 and so on, top to bottom; 1 if none), a "side" (its axis: left or right) and "hidden": true. A color is one of Bitview's: gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink (the page's text color); or a six-digit hex such as #ff8800.</p>
-      <p>Panes, where they matter, as "panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is the scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares). Without them, the first pane is logarithmic and the others linear.</p>
-      <p>To show it as a picture, once it's drawn: Export (the download button in the chart's header), then Copy as image or Download image (PNG): the chart with its legends and a footer (its source, interval and dates).</p>
+      <p>Then, each if wanted:</p>
+      <ul>
+        <li>"label": its name.</li>
+        <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)"; "colorBelow": a baseline's or bars' second color, under their base.</li>
+        <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc).</li>
+        <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths.</li>
+        <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value; "baseLine": {"color": "gray", "dash": 4}, that base's line.</li>
+        <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional).</li>
+        <li>"priceLine": true: a line across at its latest value.</li>
+        <li>"format": how its values read: usd, btc, sats, percent, ratio, count or number (by its unit if none).</li>
+        <li>"pane": 1, 2 and so on, top to bottom (1 if none); "side": its axis, left or right; "hidden": true.</li>
+        <li>"letter": the letter formulas read it by. Copy link writes every layer's once one isn't the letter its place gives (a layer removed leaves the others' as they were): keep them.</li>
+      </ul>
+      <h2>Drawings</h2>
+      <p>"drawings": [{"kind": "trend", "layer": "A", "points": [["2021-04-14", 64000], ["2021-11-10", 69000]]}]: each on a layer (by its letter, on its scale), its points each a date and a value. Kinds: trend (a line through two points), hline and vline (a line across, or down, through one point: an hline's date and a vline's value can be any), rect and ellipse (by two corners), ruler (a measure between two points), text (at one point, with its "text": up to 500 characters, centered there, "\n" for a new line) and brush (a free stroke, up to 300 points). Up to 100 drawings.</p>
+      <p>Each can have a "color" (yellow if none), "width" (0.5 to 5, by halves; 1.5 if none), "dash" and "opacity", as a layer's; a ruler is drawn in its own colors and lines (no opacity, width or dash), a text without width or dash. A trend line can have "extend" (right, or both) or "arrow": true (not both). A trend, hline or vline can have a "label" (up to 80 characters) and where along it ("at", 0 to 1: 0.5 for a trend, 1 for an hline, 0 for a vline if none). A text or a line's label can have a "size" (11, 13, 16 or 22) and a "back" (outline, soft, soft-outline or solid).</p>
+      <h2>As a picture</h2>
+      <p>To show the chart as an image, show its picture, not a screenshot of the page: once it's drawn, Export (the download button in the chart's header), then Open image (the picture alone, in a tab of its own), Copy as image, or Download image (PNG). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
       <h2>Changing a chart</h2>
-      <p>A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link) is written the same way, URL-encoded only where a link needs it (%20 spaces, %22 quotes, %7B %7D braces, %5B %5D brackets): it's the chart as whoever copied it has it now, their own changes in it. Read it, change it, write it back. It may also have a "view" (how far it was zoomed and scrolled): keep that as it is, or leave it out to show the chart's range. A chart with drawings, or a long one, is copied compressed instead: it opens, but can't be read.</p>
+      <p>A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link) is written the same way, URL-encoded only where a link needs it (%20 spaces, %22 quotes, %7B %7D braces, %5B %5D brackets, %2B a plus, which a link would read as a space): it's the chart as whoever copied it has it now, their own changes in it. Read it, change it, write it back (only one past what a browser opens, about a megabyte, is compressed instead: it opens, but can't be read). Its "view", if any, is where it was zoomed and scrolled: keep it, change it, or leave it out to show the chart's "range".</p>
       <h2>Series names</h2>
-      <p>Only exact names: one Bitview doesn't have shows as missing, with the closest offered. Find them with https://bitview.space/api/series/search?q=words (names and descriptions are searched); https://bitview.space/api/series/&lt;name&gt; (for example /api/series/realized_price) describes one. Only series by date can be charted (some are by block). A few: price, price_ohlc, realized_price, mvrv, supply_in_profit, lth_realized_price and sth_realized_price (long- and short-term holders' cost basis).</p>
-      <p>Bitview's API is also an MCP server, without sign-in: https://mcp.bitview.space/ (added as a connector by whoever uses the assistant).</p>
+      <p>Only exact names, as Bitview's API has them now (the names on this page are examples, and can change): one it doesn't have shows as missing, with the closest offered. How to find them is at https://bitview.space/llms.txt, which follows the API as it is. Only series by date can be charted (some are only by block).</p>
+      <p>An assistant without web access can't look names up: whoever uses it can, or can add Bitview's MCP server to it as a connector (https://mcp.bitview.space/, no sign-in), for the search and the data as tools.</p>
     </section>
 
     <!-- The website's charts, as presets (presets.js): the build puts the live website's here, compressed; the dev page's
@@ -7661,11 +7736,21 @@
        * On its preset, a chart keeps nothing: the preset follows the newest data.
        */
       const VIEWS = "bitview-studio:views";
-      const isEdge = (edge) => Array.isArray(edge) && edge.length === 2 && edge.every(Number.isFinite);
+      const isEdge = (edge) => Array.isArray(edge) && edge.length === 2 && edge.every(Number.isFinite) && Math.abs(edge[0]) < 1e11;
+      /** A view that reads as dates: at a known interval, its edges (their bars counted) within the calendar. */
+      function isView(/** @type {any} */ view) {
+        if (!view || !Object.hasOwn(INTERVAL_LABEL, view.index) || !isEdge(view.from) || !isEdge(view.to)) return false;
+        try {
+          const { start, end } = viewTimes(view);
+          return Math.abs(start) < 1e11 && Math.abs(end) < 1e11;
+        } catch {
+          return false;
+        }
+      }
       /** @returns {{ index: string, from: [number, number], to: [number, number] } | null} */
       function leftView(id) {
         const left = storage.get(VIEWS, {})[id];
-        return left && typeof left.index === "string" && isEdge(left.from) && isEdge(left.to) ? left : null;
+        return isView(left) ? left : null;
       }
       /** An edge of the view as the time of the point nearest it, and how many bars it lies from that point. */
       function edgeOf(logical, times) {
@@ -7694,14 +7779,14 @@
         }
         return lo;
       }
-      /** An edge back on the chart: the point at its time (or the first after it), and the bars from there. */
-      const logicalOf = ([time, bars], times) => Math.min(lowerBound(times, time), times.length - 1) + bars;
+      /** An edge back on the chart: the bar holding its time (past the data, counted by the calendar), and the bars from there. */
+      const logicalOf = (/** @type {[number, number]} */ [time, bars], /** @type {number[]} */ times, /** @type {string} */ index) => (time > /** @type {number} */ (times.at(-1)) ? times.length - 1 + indexAt(index, time) - indexAt(index, /** @type {number} */ (times.at(-1))) : Math.max(0, lowerBound(times, time + 1) - 1)) + bars;
       /**
        * A view kept for a chart, on its points at `index`: as kept, at the interval it was kept at; at another, by its
        * edges' times (bars past them counted as time, the last bar whole), so it shows the same stretch of history.
        */
       function viewOn(left, index, times) {
-        if (left.index === index) return { from: logicalOf(left.from, times), to: logicalOf(left.to, times) };
+        if (left.index === index) return { from: logicalOf(left.from, times, index), to: logicalOf(left.to, times, index) };
         const { start, end } = viewTimes(left), last = /** @type {number} */ (times.at(-1)), lastIndex = indexAt(index, last);
         // The bar holding a time: on the data, the point at or before it; past it, counted by the calendar.
         const barOf = (/** @type {number} */ time) => (time <= last ? Math.max(0, lowerBound(times, time + 1) - 1) : times.length - 1 + indexAt(index, time) - lastIndex);
@@ -12794,6 +12879,12 @@
         }
         if (!closing) renderCharts();
         const folds = foldOf(id).map((element) => fold(element, closing));
+        // (Its room above it, open, comes and goes with them.)
+        const head = /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-folder-row="${id}"]`));
+        if (head) {
+          const { marginTop, paddingTop } = getComputedStyle(head), along = (/** @type {string} */ room) => (closing ? [room, "0px"] : ["0px", room]);
+          folds.push(head.animate({ marginTop: along(marginTop), paddingTop: along(paddingTop) }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" }));
+        }
         if (!closing) return;
         closings++;
         Promise.allSettled(folds.map((animation) => animation.finished)).then(() => {
@@ -12821,10 +12912,12 @@
         const from = moving ? now : closing ? full : low, shown = full > low ? (from - low) / (full - low) : 1;
         Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: row ? "flex-end" : "" });
         if (row) element.inert = closing;
+        // (A row's room under it, a folder's last, goes and comes with it.)
+        const { marginBottom, paddingBottom } = getComputedStyle(element), along = (/** @type {string} */ room) => (closing ? [room, "0px"] : ["0px", room]);
         const animation = element.animate({
           height: [`${from}px`, `${closing ? low : full}px`],
           // (A row's 1px from the one above goes and comes with it.)
-          ...(row ? { marginTop: closing ? ["0px", "-1px"] : ["-1px", "0px"], opacity: [shown, closing ? 0 : 1] } : {}),
+          ...(row ? { marginTop: closing ? ["0px", "-1px"] : ["-1px", "0px"], marginBottom: along(marginBottom), paddingBottom: along(paddingBottom), opacity: [shown, closing ? 0 : 1] } : {}),
         }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
         if (!closing) animation.finished.then(() => Object.assign(element.style, { overflow: "", overflowClipMargin: "", alignItems: "" }), () => {});
         return animation;
@@ -16943,7 +17036,7 @@
             ...(any ? [
               { key: "share", icon: ICONS.share, label: "Copy a share link", verb: "Copy", group: "Out of it", run: () => $("share").click() },
               { key: "copy-image", icon: ICONS.copy, label: "Copy as image", verb: "Copy", group: "Out of it", run: () => exportAs("copy") },
-              { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => ({ title: "Export", rows: () => [["copy", "Copy as image", "", ICONS.copy], ["png", "Download image", "PNG", ICONS.image], ["csv", "Download data", "CSV", ICONS.table], ["json", "Download chart file", "JSON", ICONS.file]].map(([kind, label, aside, icon]) => ({ kind: "row", key: kind, icon, label, aside, verb: kind === "copy" ? "Copy" : "Download", run: () => exportAs(kind) })) }) },
+              { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => ({ title: "Export", rows: () => [["copy", "Copy as image", "", ICONS.copy], ["open", "Open image", "In a tab of its own", ICONS.link], ["png", "Download image", "PNG", ICONS.image], ["csv", "Download data", "CSV", ICONS.table], ["json", "Download chart file", "JSON", ICONS.file]].map(([kind, label, aside, icon]) => ({ kind: "row", key: kind, icon, label, aside, verb: kind === "copy" ? "Copy" : kind === "open" ? "Open" : "Download", run: () => exportAs(kind) })) }) },
             ] : []),
             ...(chart === previewing ? [] : [{ key: "folder", icon: ICONS.folder, label: "Folder", aside: folderById(chart.folder)?.name ?? "None", group: "Chart file", page: () => folderPage([chart.id]) }]),
             ...(chart === previewing && chart.layers.length ? [{ key: "keep", icon: ICONS.check, label: "Keep", aside: "A preview: into your charts as it is", verb: "Keep", group: "Chart file", run: () => keepPreview() }] : []),
@@ -17758,6 +17851,7 @@
       // Export: the image, copied or downloaded; the data; the chart file.
       $("export").addEventListener("click", (event) => showMenu(event.currentTarget, `
         <button type="button" data-export="copy">${ICONS.copy}Copy as image</button>
+        <button type="button" data-export="open">${ICONS.link}Open image</button>
         <button type="button" data-export="png">${ICONS.image}Download image <span>PNG</span></button>
         <div class="menu-rule"></div>
         <button type="button" data-export="csv">${ICONS.table}Download data <span>CSV</span></button>
@@ -17863,7 +17957,7 @@
       /** The view a file or a link carried with a chart, kept for it (as `saveView` keeps one). @param {Chart} doc */
       function keepCarriedView(doc, input) {
         const carried = input?.view;
-        if (!carried || typeof carried.index !== "string" || !isEdge(carried.from) || !isEdge(carried.to)) return;
+        if (!isView(carried)) return;
         const all = storage.get(VIEWS, {});
         all[doc.id] = { index: carried.index, from: carried.from, to: carried.to };
         storage.set(VIEWS, all);
@@ -17872,9 +17966,19 @@
       const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.cloud ? { cloud: layer.cloud.map((member) => doc.layers.findIndex((item) => item.id === member)) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
       /** Two charts alike (a link opened again is the chart already here). */
       const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf(a) === contentOf(b);
+      /** A time as a link writes it: its date ("2021-11-10"), with its time where it has one ("2021-11-10T14:30:00Z"). */
+      const dateText = (/** @type {number} */ time) => ((iso) => (iso.endsWith("T00:00:00Z") ? iso.slice(0, 10) : iso))(new Date(time * 1000).toISOString().replace(/\.\d+Z$/, "Z"));
+      /** A time as a link has it: a date (as dateText writes it, or any ISO date), or seconds since 1970; else null. */
+      const timeOfText = (/** @type {any} */ value) => {
+        // (Without a zone, UTC, as every date here: "2021-01-01T10:00" or "2021-01-01 10:00" is 10:00 UTC.)
+        const text = typeof value === "string" ? value.trim().replace(/^(\d{4}-\d\d-\d\d)[T ](\d\d:\d\d(?::\d\d(?:\.\d+)?)?)$/, "$1T$2Z") : null;
+        const time = Number.isFinite(value) ? value : text !== null && Number.isFinite(Date.parse(text)) ? Date.parse(text) / 1000 : NaN;
+        return Math.abs(time) < 1e11 ? Math.floor(time) : null;
+      };
       /**
-       * A chart as one writes it into a link (see the guide in <noscript>): its defaults left out, panes by number, a cloud
-       * by its layers' letters (all its letters, where they aren't in order); what fromSketch reads back as the same chart.
+       * A chart as one writes it into a link (see the guide, the "About" section): its defaults left out, panes by number,
+       * a cloud and a drawing by their layers' letters (all its letters, where they aren't in order), times as dates; what
+       * fromSketch reads back as the same chart.
        * @param {Chart} doc
        */
       function toSketch(doc) {
@@ -17890,9 +17994,11 @@
           ...(doc.halvings ? { halvings: true } : {}),
           ...(plain ? {} : { panes: doc.panes.map(({ id, ...pane }) => pane) }),
           // (Not a series' path in the catalog: learned again where it opens.)
-          layers: doc.layers.map(({ id, letter, pane, cloud, type, width, dash, side, path, paths, ...rest }) => ({
-            ...(ordered ? {} : { letter }),
+          layers: doc.layers.map(({ id, letter, pane, cloud, type, width, dash, side, path, paths, series, formula, ...rest }) => ({
+            // (What it is first, then how it looks.)
+            ...(series !== undefined ? { series } : formula !== undefined ? { formula } : {}),
             ...(cloud ? { cloud: cloud.map((member) => doc.layers.find((item) => item.id === member)?.letter ?? member) } : {}),
+            ...(ordered ? {} : { letter }),
             ...rest,
             ...(type !== "line" && !cloud ? { type } : {}),
             ...(width !== 1.5 && !cloud ? { width } : {}),
@@ -17900,20 +18006,28 @@
             ...(side !== "right" ? { side } : {}),
             ...(place(pane) > 1 ? { pane: place(pane) } : {}),
           })),
-          ...(kept ? { view: kept } : {}),
+          ...(doc.drawings?.length ? { drawings: doc.drawings.map(({ id, layer, points, color, width, dash, ...rest }) => ({
+            ...rest,
+            layer: doc.layers.find((item) => item.id === layer)?.letter ?? layer,
+            points: points.map(([time, value]) => [dateText(time), value]),
+            ...(color !== PEN_COLOR ? { color } : {}),
+            ...(width !== 1.5 ? { width } : {}),
+            ...(dash ? { dash } : {}),
+          })) } : {}),
+          // (Its view at its interval: the dates of its first bar and its last, past the data too.)
+          ...(kept ? { view: Object.fromEntries((/** @type {const} */ (["from", "to"])).map((edge) => [edge, dateText(timeAt(kept.index, indexAt(kept.index, kept[edge][0]) + Math.round(kept[edge][1])))])) } : {}),
         };
       }
       /**
-       * A chart's link: written as one writes it (to read, for a person or an assistant, and write again), but for a chart
-       * with drawings, or too long for a chat to carry: compressed. Either opens it.
+       * A chart's link, written as one writes it: for a person or an assistant to read, change and write again. Past what a
+       * browser opens (Firefox, a megabyte: long strokes of the brush, many), compressed: it opens, but can't be read.
        */
       async function shareLink(doc) {
         const base = `${location.origin}${location.pathname}#chart=`;
-        if (!doc.drawings?.length) {
-          // (Only what a link or a chat would break on encoded: brackets and braces too, a chat cuts a trailing "]}" off.)
-          const written = JSON.stringify(toSketch(doc)).replace(/[\s"<>`%#\\{}[\]]/g, (char) => encodeURIComponent(char));
-          if (base.length + written.length <= 2000) return base + written;
-        }
+        // (Only what a link or a chat would break on encoded: brackets and braces too, a chat cuts a trailing "]}" off; a
+        // "+", read as a space by what decodes forms.)
+        const written = JSON.stringify(toSketch(doc)).replace(/[\s"<>`%#\\{}[\]+]/g, (char) => encodeURIComponent(char));
+        if (new URL(base + written).href.length <= 1_000_000) return base + written;
         const stream = new Blob([JSON.stringify(portable(doc))]).stream().pipeThrough(new CompressionStream("deflate-raw"));
         const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
         let binary = "";
@@ -17951,8 +18065,9 @@
           } catch (error) {
             // (The last one's: of the text as decoded as it gets, what its writer can fix.)
             failure = error;
-            // (Encoded by something that encodes "{" too, a "+" is a space: a plus is "%2B" there.)
-            if (/^\s*(?:%[0-9a-f]{2})*%(?:25)*7b/i.test(text)) text = text.replace(/\+/g, "%20");
+            // (Encoded as a form, a "+" is a space, a plus "%2B": it's told by its ":" encoded too, where a link's own
+            // encoding, a chat's, Studio's, keeps it, and a "+" with it. Every chart has one, after its first key.)
+            if (/^\s*(?:%[0-9a-f]{2})*%(?:25)*7b/i.test(text) && !text.includes(":")) text = text.replace(/\+/g, "%20");
             try {
               text = decodeURIComponent(text.replace(/%(?![0-9a-f]{2})/gi, "%25"));
             } catch {
@@ -17963,6 +18078,7 @@
         if (parsed === undefined) throw failure;
         const input = fromSketch(parsed), doc = validate(input);
         keepCarriedView(doc, input);
+        lostDrawings = (input.drawings?.length ?? 0) - (doc.drawings?.length ?? 0);
         return doc;
       }
       /**
@@ -17974,7 +18090,9 @@
         if (!input || typeof input !== "object" || !Array.isArray(input.layers)) throw new Error("A chart has layers");
         const layers = input.layers.filter((/** @type {any} */ layer) => layer && typeof layer === "object").slice(0, MAX_LAYERS);
         const number = (/** @type {any} */ value) => (Number.isInteger(value) ? value : typeof value === "string" && /^\d{1,3}$/.test(value) ? Number(value) : null);
-        const given = Array.isArray(input.panes) && input.panes.length ? input.panes : Array.from({ length: clamp(Math.max(1, ...layers.map((/** @type {any} */ layer) => number(layer.pane) ?? 1)), 1, MAX_PANES) }, () => ({}));
+        // (As many panes as given, or as the layers' numbers ask, whichever's more.)
+        const asked = Math.max(1, ...layers.map((/** @type {any} */ layer) => number(layer.pane) ?? 1)), listed = Array.isArray(input.panes) ? input.panes : [];
+        const given = Array.from({ length: clamp(Math.max(asked, listed.length), 1, MAX_PANES) }, (_, i) => listed[i] ?? {});
         // Ids, letters and colors given are kept; the others, the first free ones in order (none taken twice).
         const free = (/** @type {Set<string>} */ taken, /** @type {(n: number) => string} */ make) => {
           let n = 0;
@@ -18002,8 +18120,18 @@
           usedColors.add(color);
           return color;
         });
-        return { ...input, panes, layers: layers.map((/** @type {any} */ layer, /** @type {number} */ i) => {
-          const cloud = Array.isArray(layer.cloud) ? layer.cloud.map((/** @type {any} */ ref) => ((key) => (letters.includes(key) ? ids[letters.indexOf(key)] : ref))(typeof ref === "string" ? ref.toUpperCase() : ref)) : null;
+        const letterId = (/** @type {any} */ ref) => ((key) => (letters.includes(key) ? ids[letters.indexOf(key)] : ref))(typeof ref === "string" ? ref.toUpperCase() : ref);
+        const index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1", from = timeOfText(input.view?.from), to = input.view?.to === undefined && from !== null ? Date.now() / 1000 : timeOfText(input.view?.to);
+        return { ...input,
+          ...(Array.isArray(input.drawings) ? { drawings: input.drawings.filter((/** @type {any} */ drawing) => drawing && typeof drawing === "object").map((/** @type {any} */ drawing) => ({
+            ...drawing,
+            layer: letterId(drawing.layer),
+            points: Array.isArray(drawing.points) ? drawing.points.map((/** @type {any} */ point) => (Array.isArray(point) ? [timeOfText(point[0]), point[1]] : point)) : drawing.points,
+          })) } : {}),
+          // (A view by dates, at the chart's interval; one as Studio keeps it, as it is.)
+          ...(from !== null && to !== null && from < to ? { view: { index, from: [from, 0], to: [to, 0] } } : {}),
+          panes, layers: layers.map((/** @type {any} */ layer, /** @type {number} */ i) => {
+          const cloud = Array.isArray(layer.cloud) ? layer.cloud.map(letterId) : null;
           return {
             ...layer,
             id: ids[i],
@@ -18151,9 +18279,31 @@
           return toast(`Downloaded ${grouped.format(rows.length)} rows`);
         }
         if (kind === "copy") return copyImage();
+        if (kind === "open") return openImage();
         const name = fileName("png");
         const failed = () => notice("Couldn't make the image");
         chartImage().then((canvas) => canvas.toBlob((blob) => (blob ? (download(name, blob), toast("Downloaded the image")) : failed())), failed);
+      }
+      /**
+       * The chart's picture alone, in a tab of its own: to look at, save, or show (an assistant in a browser shares this,
+       * not a screenshot of the page). The tab opened at once, while the click counts: one opened once it's drawn is
+       * blocked.
+       */
+      function openImage() {
+        const tab = window.open("", "_blank");
+        if (!tab) return void notice("Couldn't open a tab: allow pop-ups here, or download the image");
+        const title = `${titleOf(chart)} · Bitview Studio`, failed = () => (tab.close(), notice("Couldn't make the image"));
+        tab.document.title = title;
+        chartImage().then((canvas) => canvas.toBlob((blob) => {
+          if (!blob || tab.closed) return blob ? undefined : failed();
+          const url = URL.createObjectURL(blob), page = tab.document, image = page.createElement("img");
+          // (At its size on screen, as on a screen of this density; smaller where the window is.)
+          Object.assign(image, { src: url, alt: titleOf(chart) });
+          image.style.cssText = `width: ${canvas.width / devicePixelRatio}px; max-width: 100%; height: auto`;
+          image.addEventListener("load", () => setTimeout(() => URL.revokeObjectURL(url), 1000), { once: true });
+          page.body.style.cssText = `margin: 0; min-height: 100vh; display: grid; place-items: center; background: ${css("--app")}`;
+          page.body.replaceChildren(image);
+        }), failed);
       }
       /** The image on the clipboard, given the picture while it's still being drawn (so the click that asked counts). */
       function copyImage() {
@@ -18997,9 +19147,12 @@
 
       // ── Start ─────────────────────────────────────────────────────────────────
 
+      /** Drawings a written link had that couldn't be read (no layer, a time not a date, too few points): told. */
+      let lostDrawings = 0;
       /**
-       * The chart a link carries in the URL's hash, if any (the hash is cleared either way): as JSON written by hand (see
-       * the guide in <noscript>: "{" first, as typed or URL-encoded), else compressed (Studio's own share links).
+       * The chart a link carries in the URL's hash, if any (the hash is cleared either way): as JSON as one writes it (see
+       * the guide, the "About" section: "{" first, as typed or URL-encoded), else compressed (older links, and the longest).
+       * A chart already kept is the one opened, at the link's window (or its range, the link having none).
        */
       async function fromHash() {
         const hash = location.hash.slice(1), shared = new URLSearchParams(hash).get("chart");
@@ -19008,8 +19161,19 @@
         // (Written, it runs to the end, read as it is: a "+" in a formula a plus, an "&" in a name, part of it.)
         const written = /(?:^|&)chart=(.*)$/s.exec(hash)?.[1] ?? "";
         try {
+          lostDrawings = 0;
           const doc = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? fromWritten(written) : await fromLink(shared), twin = library.charts.find((other) => sameChart(other, doc));
-          toast(twin ? "Opened a shared chart you have already" : "Opened a shared chart: change it, or keep it, to have it in your charts");
+          if (twin) {
+            const all = storage.get(VIEWS, {});
+            if (all[doc.id]) all[twin.id] = all[doc.id];
+            else delete all[twin.id];
+            delete all[doc.id];
+            storage.set(VIEWS, all);
+            // (Its chunks at hand were for its view before: those of this one are fetched.)
+            spans.delete(`${twin.id}@${twin.index}`);
+          }
+          const lost = lostDrawings ? `; ${plural(lostDrawings, "drawing")} couldn't be read` : "";
+          toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: change it, or keep it, to have it in your charts${lost}`);
           return twin ?? doc;
         } catch (error) {
           // (Written by hand, why: to tell whoever wrote it.)
@@ -19022,7 +19186,9 @@
         if (!new URLSearchParams(location.hash.slice(1)).has("chart")) return;
         closeDialogs();
         const doc = await fromHash();
-        if (doc && library.charts.includes(doc)) leaveHome(() => openChart(doc));
+        // (The one open already, or last open behind the grid: drawn anew, so at the link's window.)
+        if (doc && doc === chart) leaveHome(() => { drawnChart = ""; refresh(true, true); });
+        else if (doc && library.charts.includes(doc)) leaveHome(() => openChart(doc));
         else if (doc) showPreview(doc);
       });
 
