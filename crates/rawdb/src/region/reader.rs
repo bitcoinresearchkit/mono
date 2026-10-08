@@ -5,7 +5,7 @@ use parking_lot::{RwLockReadGuard, lock_api::RawRwLock};
 
 use crate::Database;
 
-use super::Region;
+use super::{Region, residency::will_need};
 
 /// Zero-copy reader that keeps this region's bytes and bounds stable.
 ///
@@ -54,6 +54,16 @@ impl Reader {
         // SAFETY: allocation/import validate region bounds;
         // the owned region lock and mmap guard keep bytes and address stable.
         unsafe { slice::from_raw_parts(self.mmap.as_ptr().add(self.start + offset), len) }
+    }
+
+    /// Hints the OS to start reading the pages holding `offset..offset + len`
+    /// (`madvise(MADV_WILLNEED)`), so a read issued shortly after may find them in memory: lets
+    /// independent random reads overlap. Advisory: ignores out-of-bounds ranges.
+    #[inline]
+    pub fn will_need(&self, offset: usize, len: usize) {
+        if len <= self.len() && offset <= self.len() - len {
+            will_need(&self.mmap, self.start + offset, len);
+        }
     }
 
     pub(crate) fn len(&self) -> usize {

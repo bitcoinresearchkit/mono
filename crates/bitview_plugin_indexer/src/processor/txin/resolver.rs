@@ -62,6 +62,12 @@ impl InputResolver {
                         let parent = Self::read_parent(cache, processor, prefix)?;
                         let outpoint = OutPoint::new(parent.tx_index, vout);
                         let txout_index = parent.first_txout_index + vout;
+                        // Start the type_index page read before faulting in output_type's, so the
+                        // two page-ins overlap instead of running one after the other.
+                        processor
+                            .readers
+                            .txout_index_to_type_index
+                            .prefetch(txout_index);
                         let output_type = processor
                             .vecs
                             .outputs
@@ -204,6 +210,12 @@ impl InputResolver {
                 return Err(Error::UnknownTxid);
             }
         };
+        // The read below follows at once, but on macOS the advice reads just this page instead of
+        // the fault's larger read-around: ~7% fewer bytes read when indexing past 600k.
+        processor
+            .readers
+            .tx_index_to_first_txout_index
+            .prefetch(tx_index);
         let first_txout_index = processor
             .vecs
             .transactions
