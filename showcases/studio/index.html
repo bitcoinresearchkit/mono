@@ -5,14 +5,17 @@
   {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}, {"cloud": ["A", "B"]}]}
   It opens as a preview. Layers are a series (exact name), a formula of other layers by letter (A, B... in order), or a
   cloud between layers; drawings, panes and a date window are written the same way. As an image: Export, then Open
-  image (the chart's picture alone, in a tab of its own). Series names are the live API's: how to find them,
-  https://bitview.space/llms.txt. The full reference is the "About Studio's links" section near the end of this page.
+  image (the chart's picture alone, in a tab of its own). From a script in the page: studio.open(chart), then
+  await studio.ready() and await studio.png() (its picture, a PNG data URL); #image= in place of #chart= is a page of
+  that picture alone. Series names are the live API's: how to find them, https://bitview.space/llms.txt. The full
+  reference is the "About Studio's links" section at the start of the page's main, and llms.txt beside this page.
 -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link." />
+    <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link: a chart is a link, #chart= and its JSON (llms.txt says how, and how to have its picture)." />
+    <link rel="alternate" type="text/markdown" href="llms.txt" title="About Studio's links: charts as JSON, their pictures" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <link rel="apple-touch-icon" href="data:image/png;base64,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" />
     <title>Bitview Studio</title>
@@ -178,7 +181,55 @@
         color: inherit;
       }
 
-      /* What the page's links carry, for its text's readers (see the section): out of sight while the page runs. */
+      /* A link's picture alone (#image=): the page out of sight while the chart's made (as full screen lays it out), then
+         its picture, centered, a click opening the chart. */
+      .picture {
+        display: none;
+      }
+
+      body[data-picture] {
+        .app {
+          visibility: hidden;
+        }
+
+        * {
+          transition: none !important;
+          animation: none !important;
+        }
+
+        .picture {
+          position: fixed;
+          inset: 0;
+          z-index: 10;
+          display: grid;
+          place-items: center;
+          padding: 16px;
+          color: var(--muted);
+          background: var(--app);
+          visibility: visible;
+          font-size: 13px;
+
+          .picture-open {
+            display: grid;
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+
+            &[hidden] {
+              display: none;
+            }
+          }
+
+          img {
+            max-width: 100%;
+            max-height: calc(100dvh - 32px);
+          }
+        }
+      }
+
+      /* What the page's links carry, for its text's readers (the section, first in main: what reads a page's main reads it
+         first; a page without JavaScript shows it, see the noscript style): out of sight while the page runs. */
       .about {
         position: absolute;
         top: 0;
@@ -2489,6 +2540,24 @@
             .btn[hidden] {
               display: none;
             }
+          }
+        }
+      }
+
+      .links-note {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+
+        a {
+          color: var(--soft);
+          white-space: nowrap;
+          text-decoration: underline;
+          text-decoration-color: var(--line-strong);
+          text-underline-offset: 3px;
+
+          &:hover {
+            color: var(--ink);
           }
         }
       }
@@ -5951,8 +6020,25 @@
           overflow: auto;
         }
 
-        body > :not(.about) {
+        body > :not(.app),
+        .app > :not(.card),
+        .card > :not(.about) {
           display: none !important;
+        }
+
+        .app.app {
+          display: block;
+          height: auto;
+        }
+
+        .card.card {
+          margin: 0;
+          overflow: visible;
+          border: 0;
+          background: none;
+          box-shadow: none;
+          container-type: normal;
+          animation: none;
         }
 
         .about.about {
@@ -5986,7 +6072,9 @@
         if (prefs.theme === "light" || prefs.theme === "system") document.documentElement.dataset.theme = prefs.theme;
         const there = history.state;
         // (A first visit, nothing kept yet, opens on its empty chart, whatever a preference or the history says.)
-        if (!/[#&]chart=/.test(location.hash) && localStorage.getItem("bitview-studio:v2") !== null && (there ? there.home : (prefs.home ?? true))) document.body.toggleAttribute("data-home", true);
+        // (A picture's link, #image=: the picture alone, the page out of sight while it's made.)
+        if (/[#&]image=/.test(location.hash)) document.body.toggleAttribute("data-picture", true);
+        if (!/[#&](?:chart|image)=/.test(location.hash) && localStorage.getItem("bitview-studio:v2") !== null && (there ? there.home : (prefs.home ?? true))) document.body.toggleAttribute("data-home", true);
       } catch {}
     </script>
     <div class="app">
@@ -6012,6 +6100,76 @@
       </aside>
 
       <main id="main" class="card" style="--i: 2">
+        <section id="about" class="about" aria-label="About Studio's links">
+          <h1>Bitview Studio</h1>
+          <p>Charts of Bitcoin's on-chain data from bitview.space, drawn in the browser (with JavaScript on). This guide is also at https://studio.bitview.space/llms.txt.</p>
+          <h2>In short</h2>
+          <ul>
+            <li>A chart is a link: https://studio.bitview.space/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.</li>
+            <li>Its picture alone: the same link with #image= in place of #chart=, a page that is, once drawn, that picture (with only screenshots to work with, take one of it).</li>
+            <li>From a script in the page: await studio.open(chart); await studio.ready(); await studio.png(), its picture as a PNG data URL (see "From a script").</li>
+          </ul>
+          <h2>Opening a chart from a link</h2>
+          <p>A link carries a whole chart: https://studio.bitview.space/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
+          <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
+          <h2>A chart</h2>
+          <ul>
+            <li>"layers" (the one thing needed): its layers, in order (see below).</li>
+            <li>"title".</li>
+            <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).</li>
+            <li>"range": what it shows: 3m, 1y, 4y or max (max if none: as far back as fits on the screen at its interval; a coarser one, such as week1, fits more). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
+            <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.</li>
+            <li>"halvings": true: a line at each halving.</li>
+            <li>"legend": "off" (none), or "still" (not scrolling to the line pointed at, as it does by default).</li>
+            <li>"drawings" (see below).</li>
+          </ul>
+          <h2>A layer</h2>
+          <p>One of:</p>
+          <ul>
+            <li>{"series": "realized_price"}: a series, by its exact name.</li>
+            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, and percentile(A, 95, 1y). Spans are a number and a unit: h, d, w, mo or y.</li>
+            <li>{"cloud": ["B", "C"]}: filled from the lowest of those layers to the highest, at each date. "top" or "bottom" (one) in place of a layer fills from them up to the pane's top, or from its bottom up to them: {"cloud": ["A", "top"]}.</li>
+          </ul>
+          <p>Then, each if wanted:</p>
+          <ul>
+            <li>"label": its name.</li>
+            <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base.</li>
+            <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc).</li>
+            <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths (1 if none; a cloud's 0.2, solid at 1).</li>
+            <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value; "baseLine": {"color": "gray", "dash": 4}, that base's line.</li>
+            <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional).</li>
+            <li>"priceLine": true: a line across at its latest value.</li>
+            <li>"format": how its values read: usd, btc, sats, percent, ratio, count or number (by its unit if none).</li>
+            <li>"pane": 1, 2 and so on, top to bottom (1 if none); "side": its axis, left or right; "hidden": true.</li>
+            <li>"letter": the letter formulas read it by. Copy link writes every layer's once one isn't the letter its place gives (a layer removed leaves the others' as they were): keep them.</li>
+          </ul>
+          <h2>Drawings</h2>
+          <p>"drawings": [{"kind": "trend", "layer": "A", "points": [["2021-04-14", 64000], ["2021-11-10", 69000]]}]: each on a layer (by its letter, on its scale), its points each a date and a value. Kinds: trend (a line through two points), hline and vline (a line across, or down, through one point: an hline's date and a vline's value can be any), rect and ellipse (by two corners), ruler (a measure between two points), text (at one point, with its "text": up to 500 characters, centered there, "\n" for a new line) and brush (a free stroke, up to 300 points). Up to 100 drawings.</p>
+          <p>Each can have a "color" (yellow if none), "width" (0.5 to 5, by halves; 1.5 if none), "dash" and "opacity", as a layer's; a ruler is drawn in its own colors and lines (no opacity, width or dash), a text without width or dash. A trend line can have "extend" (right, or both) or "arrow": true (not both). A trend, hline or vline can have a "label" (up to 80 characters) and where along it ("at", 0 to 1: 0.5 for a trend, 1 for an hline, 0 for a vline if none). A text or a line's label can have a "size" (11, 13, 16 or 22) and a "back" (outline, soft, soft-outline or solid).</p>
+          <h2>As a picture</h2>
+          <p>A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), the chart as the page lays it out; from a link, https://studio.bitview.space/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (the download button in the chart's header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy as image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
+          <h2>From a script</h2>
+          <p>For a script run in the page (a browser's console, an assistant driving a browser), window.studio:</p>
+          <ul>
+            <li>await studio.open(chart): a chart as a link writes it (an object, or its JSON), opened as its link opens it; rejected with why if it can't be read.</li>
+            <li>await studio.ready(): once the chart open is drawn, its data in; rejected with why not (no chart, no layers, still loading after a minute). In a tab that's shown, in a window of some size: a browser draws nothing out of sight.</li>
+            <li>await studio.png(): its picture, as Export makes it (its title, legends and dates), as a data:image/png;base64 URL: a long string, one to save or show, not to print.</li>
+            <li>studio.chart(): the chart open, as a link writes it.</li>
+            <li>await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a formula it can't read.</li>
+            <li>await studio.search(words): series names for those words, the best first, as Studio's search finds them (its catalog is in the page: no web access needed).</li>
+          </ul>
+          <p>What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or max.</p>
+          <pre>await studio.open({"title": "Cost basis", "layers": [{"series": "price"}, {"series": "realized_price"}]});
+await studio.ready();
+const picture = await studio.png();</pre>
+          <h2>Changing a chart</h2>
+          <p>A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link) is written the same way, URL-encoded only where a link needs it (%20 spaces, %22 quotes, %7B %7D braces, %5B %5D brackets, %2B a plus, which a link would read as a space): it's the chart as whoever copied it has it now, their own changes in it. Read it, change it, write it back (only one past what a browser opens, about a megabyte, is compressed instead: it opens, but can't be read). Its "view", if any, is where it was zoomed and scrolled: keep it, change it, or leave it out to show the chart's "range".</p>
+          <h2>Series names</h2>
+          <p>Only exact names, as Bitview's API has them now (the names on this page are examples, and can change): one it doesn't have shows as missing, with the closest offered. How to find them is at https://bitview.space/llms.txt, which follows the API as it is. Only series by date can be charted (some are only by block).</p>
+          <p>An assistant without web access can't look names up: whoever uses it can, or can add Bitview's MCP server to it as a connector (https://mcp.bitview.space/, no sign-in), for the search and the data as tools.</p>
+        </section>
+        <!-- A link's picture alone (#image=): the chart made out of sight, then its picture, nothing else. -->
+        <div id="picture" class="picture"><p id="picture-note">Drawing the chart…</p><a id="picture-open" class="picture-open" data-tip="Open the chart" hidden><img id="picture-img" alt="" /></a></div>
         <header class="card-head">
           <div class="head-title">
             <input id="title" class="title" aria-label="Chart title" placeholder="Untitled chart" maxlength="120" spellcheck="false" autocomplete="off" />
@@ -6059,6 +6217,7 @@
                     <div id="templates" class="templates strip"></div>
                   </div>
                   <div class="keys"><span>Hold <kbd>⌘</kbd> to reveal shortcuts</span><div class="keys-actions"><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div></div>
+                  <p class="links-note">A chart is also a link: #chart= and the chart as JSON, to write by hand or have an assistant write. <a href="llms.txt" target="_blank" rel="noopener">How links work</a></p>
                 </div>
               </div>
             </div>
@@ -6254,56 +6413,6 @@
     <div id="tip" class="tip" role="tooltip" hidden></div>
     <div id="hints" class="hints" aria-hidden="true"></div>
 
-    <!-- What Studio's links carry, for whoever reads the page's text (a page without JavaScript shows it; see the noscript
-         style in <head>). With the page's script, it's out of sight, last, for a screen reader to reach at the end. -->
-    <section id="about" class="about" aria-label="About Studio's links">
-      <h1>Bitview Studio</h1>
-      <p>Charts of Bitcoin's on-chain data from bitview.space, made in the browser: it needs JavaScript.</p>
-      <h2>Opening a chart from a link</h2>
-      <p>A link carries a whole chart: https://studio.bitview.space/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
-      <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
-      <h2>A chart</h2>
-      <ul>
-        <li>"layers" (the one thing needed): its layers, in order (see below).</li>
-        <li>"title".</li>
-        <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).</li>
-        <li>"range": what it shows: 3m, 1y, 4y or max (max if none). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
-        <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.</li>
-        <li>"halvings": true: a line at each halving.</li>
-        <li>"legend": "off" (none), or "still" (not scrolling to the line pointed at, as it does by default).</li>
-        <li>"drawings" (see below).</li>
-      </ul>
-      <h2>A layer</h2>
-      <p>One of:</p>
-      <ul>
-        <li>{"series": "realized_price"}: a series, by its exact name.</li>
-        <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, and percentile(A, 95, 1y). Spans are a number and a unit: h, d, w, mo or y.</li>
-        <li>{"cloud": ["B", "C"]}: filled from the lowest of those layers to the highest, at each date. "top" or "bottom" (one) in place of a layer fills from them up to the pane's top, or from its bottom up to them: {"cloud": ["A", "top"]}.</li>
-      </ul>
-      <p>Then, each if wanted:</p>
-      <ul>
-        <li>"label": its name.</li>
-        <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base.</li>
-        <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc).</li>
-        <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths (1 if none; a cloud's 0.2, solid at 1).</li>
-        <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value; "baseLine": {"color": "gray", "dash": 4}, that base's line.</li>
-        <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional).</li>
-        <li>"priceLine": true: a line across at its latest value.</li>
-        <li>"format": how its values read: usd, btc, sats, percent, ratio, count or number (by its unit if none).</li>
-        <li>"pane": 1, 2 and so on, top to bottom (1 if none); "side": its axis, left or right; "hidden": true.</li>
-        <li>"letter": the letter formulas read it by. Copy link writes every layer's once one isn't the letter its place gives (a layer removed leaves the others' as they were): keep them.</li>
-      </ul>
-      <h2>Drawings</h2>
-      <p>"drawings": [{"kind": "trend", "layer": "A", "points": [["2021-04-14", 64000], ["2021-11-10", 69000]]}]: each on a layer (by its letter, on its scale), its points each a date and a value. Kinds: trend (a line through two points), hline and vline (a line across, or down, through one point: an hline's date and a vline's value can be any), rect and ellipse (by two corners), ruler (a measure between two points), text (at one point, with its "text": up to 500 characters, centered there, "\n" for a new line) and brush (a free stroke, up to 300 points). Up to 100 drawings.</p>
-      <p>Each can have a "color" (yellow if none), "width" (0.5 to 5, by halves; 1.5 if none), "dash" and "opacity", as a layer's; a ruler is drawn in its own colors and lines (no opacity, width or dash), a text without width or dash. A trend line can have "extend" (right, or both) or "arrow": true (not both). A trend, hline or vline can have a "label" (up to 80 characters) and where along it ("at", 0 to 1: 0.5 for a trend, 1 for an hline, 0 for a vline if none). A text or a line's label can have a "size" (11, 13, 16 or 22) and a "back" (outline, soft, soft-outline or solid).</p>
-      <h2>As a picture</h2>
-      <p>To show the chart as an image, show its picture, not a screenshot of the page: once it's drawn, Export (the download button in the chart's header), then Open image (the picture alone, in a tab of its own), Copy as image, or Download image (PNG). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
-      <h2>Changing a chart</h2>
-      <p>A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link) is written the same way, URL-encoded only where a link needs it (%20 spaces, %22 quotes, %7B %7D braces, %5B %5D brackets, %2B a plus, which a link would read as a space): it's the chart as whoever copied it has it now, their own changes in it. Read it, change it, write it back (only one past what a browser opens, about a megabyte, is compressed instead: it opens, but can't be read). Its "view", if any, is where it was zoomed and scrolled: keep it, change it, or leave it out to show the chart's "range".</p>
-      <h2>Series names</h2>
-      <p>Only exact names, as Bitview's API has them now (the names on this page are examples, and can change): one it doesn't have shows as missing, with the closest offered. How to find them is at https://bitview.space/llms.txt, which follows the API as it is. Only series by date can be charted (some are only by block).</p>
-      <p>An assistant without web access can't look names up: whoever uses it can, or can add Bitview's MCP server to it as a connector (https://mcp.bitview.space/, no sign-in), for the search and the data as tools.</p>
-    </section>
 
     <!-- The website's charts, as presets (presets.js): the build puts the live website's here, compressed; the dev page's
          come from the local website, made in a worker. -->
@@ -14410,22 +14519,26 @@
        * here; a browser's own way out leaves it too (Firefox's Escape, a held one in Chromium).
        */
       function setFull(on = !fullOn()) {
-        const app = /** @type {HTMLElement} */ (document.querySelector(".app")), button = $("full");
         if (on === fullOn()) return;
+        layOutAlone(on);
         if (on) {
-          app.toggleAttribute("data-full", true);
-          document.body.removeAttribute("data-peek");
-          delete document.body.dataset.sheet;
-          applyPanel("closed");
           const screenWide = outerWidth >= screen.width && outerHeight >= screen.height;
           // (Chromium gives a page asking for it every Escape but a held one; out again before the browser answered, out.)
           if (!document.fullscreenElement && !screenWide) document.documentElement.requestFullscreen?.({ navigationUI: "hide" }).then(() => (fullOn() ? /** @type {any} */ (navigator).keyboard?.lock?.(["Escape"]) : document.exitFullscreen())).catch(() => {});
         } else {
-          app.removeAttribute("data-full");
-          applyPanel();
           /** @type {any} */ (navigator).keyboard?.unlock?.();
           if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
         }
+      }
+      /** The chart alone, laid out (full screen's, a picture's) or not: no peeking panel, no sheet; its button said so. */
+      function layOutAlone(/** @type {boolean} */ on) {
+        const button = $("full");
+        /** @type {HTMLElement} */ (document.querySelector(".app")).toggleAttribute("data-full", on);
+        if (on) {
+          document.body.removeAttribute("data-peek");
+          delete document.body.dataset.sheet;
+        }
+        applyPanel(on ? "closed" : prefs.panel);
         button.setAttribute("aria-pressed", String(on));
         button.setAttribute("aria-label", (button.dataset.tip = on ? "Exit full screen" : "Full screen"));
         button.innerHTML = on ? ICONS.shrink : ICONS.expand;
@@ -15232,8 +15345,8 @@
       }
       /** The series closest to a gone one, by its words; asked once per name. */
       const nearestTo = new Map();
-      async function suggestReplacement(layer) {
-        const name = layer.series;
+      /** @returns {Promise<string | null>} */
+      function closestSeries(/** @type {string} */ name) {
         const words = name.split("_").filter((word) => word.length > 2);
         // Close means sharing at least half of its words ("close" counts for "closed").
         const near = (other) => {
@@ -15241,7 +15354,11 @@
           return words.filter((word) => theirs.some((their) => their.startsWith(word) || (their.length > 2 && word.startsWith(their)))).length * 2 >= words.length;
         };
         if (!nearestTo.has(name)) nearestTo.set(name, findSeries(name.replace(/_/g, " "), 8).then((names) => names.find((other) => isSeriesName(other) && other !== name && !gone.has(other) && near(other)) ?? null, () => null));
-        const best = await nearestTo.get(name);
+        return nearestTo.get(name);
+      }
+      async function suggestReplacement(layer) {
+        const name = layer.series;
+        const best = await closestSeries(name);
         const box = $("replacement");
         if (!box || layerById(selected)?.series !== name) return;
         box.innerHTML = `${best ? `<span class="closest">Closest: <code>${escape(best)}</code></span><button type="button" class="btn small" data-replace="${escape(best)}">Replace</button>` : `<span class="closest">Nothing close by name.</span>`}<button type="button" class="btn ghost small" data-action="replace">${best ? "Find another" : "Find one"}</button>`;
@@ -18812,7 +18929,7 @@
         if (kind === "copy") return copyImage();
         if (kind === "open") return openImage();
         const name = fileName("png");
-        const failed = () => notice("Couldn't make the image");
+        const failed = (/** @type {unknown} */ error = null) => notice(error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image");
         chartImage().then((canvas) => canvas.toBlob((blob) => (blob ? (download(name, blob), toast("Downloaded the image")) : failed())), failed);
       }
       /**
@@ -18823,7 +18940,7 @@
       function openImage() {
         const tab = window.open("", "_blank");
         if (!tab) return void notice("Couldn't open a tab: allow pop-ups here, or download the image");
-        const title = `${titleOf(chart)} · Bitview Studio`, failed = () => (tab.close(), notice("Couldn't make the image"));
+        const title = `${titleOf(chart)} · Bitview Studio`, failed = (/** @type {unknown} */ error = null) => (tab.close(), notice(error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image"));
         tab.document.title = title;
         chartImage().then((canvas) => canvas.toBlob((blob) => {
           if (!blob || tab.closed) return blob ? undefined : failed();
@@ -18838,15 +18955,41 @@
       }
       /** The image on the clipboard, given the picture while it's still being drawn (so the click that asked counts). */
       function copyImage() {
+        if (!canvasReadable()) return void notice(UNREADABLE);
         const png = chartImage().then((canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png")));
         navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(() => toast("Copied the image: paste it anywhere"), () => notice("Couldn't copy the image"));
       }
       /**
+       * Whether this browser gives a page its own drawing back: some keep it (a privacy setting, as Mullvad's and Tor's),
+       * giving noise unless the site's allowed. Asked each time (allowed since, it's given).
+       */
+      function canvasReadable() {
+        try {
+          // (Many pixels of many colors, as a chart's are: a randomizer spares a single pixel, and a plain color.)
+          const size = 16, context = /** @type {CanvasRenderingContext2D} */ (Object.assign(document.createElement("canvas"), { width: size, height: size }).getContext("2d", { willReadFrequently: true }));
+          for (let x = 0; x < size; x++) for (let y = 0; y < size; y++) {
+            context.fillStyle = `rgb(${x * 16} ${y * 16} ${(x * 7 + y * 11) % 256})`;
+            context.fillRect(x, y, 1, 1);
+          }
+          const data = context.getImageData(0, 0, size, size).data;
+          for (let x = 0; x < size; x++) for (let y = 0; y < size; y++) {
+            const at = (y * size + x) * 4;
+            if (data[at] !== x * 16 || data[at + 1] !== y * 16 || data[at + 2] !== (x * 7 + y * 11) % 256) return false;
+          }
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      const UNREADABLE = "This browser keeps the page from reading its own drawing (a privacy setting): allow it for this site to have the picture";
+      /**
        * The picture of the chart, as it shows: its title; each pane's legend where it stands; the source, the interval,
-       * the view's dates and the date of the values the legends show.
+       * the view's dates and the date of the values the legends show. None where the browser would give noise for it.
        * @returns {Promise<HTMLCanvasElement>}
        */
       async function chartImage() {
+        if (!canvasReadable()) throw new Error(UNREADABLE);
+        if (!$("chart").clientWidth || !$("chart").clientHeight) throw new Error("The chart has no room: the window is of no size");
         const PAD = 28, HEAD = 60, FOOT = 40;
         // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
         capturing = true;
@@ -18886,6 +19029,12 @@
         context.font = font(590, 20);
         context.fillText(fitted(context, title, canvas.width - pad * 2), pad, px(38));
         context.drawImage(shot, pad, head);
+        // (A date cut by the plot's left edge fades into it, as on the page.)
+        const axis = Math.round(view.timeScale().height() * scale), left = pad + Math.round(view.priceScale("left").width() * scale), fade = context.createLinearGradient(left, 0, left + px(14), 0);
+        fade.addColorStop(0, cardColor);
+        fade.addColorStop(1, alpha(cardColor, 0));
+        context.fillStyle = fade;
+        context.fillRect(left, head + shot.height - axis, px(14), axis);
         // (The time axis's rule, as the page draws it over the chart.)
         context.fillStyle = css("--line");
         context.fillRect(pad, head + shot.height - Math.round(view.timeScale().height() * scale) - px(1), shot.width, Math.max(1, px(1)));
@@ -19710,11 +19859,23 @@
        * A chart already kept is the one opened, at the link's window (or its range, the link having none).
        */
       async function fromHash(run = linkRun) {
-        const hash = location.hash.slice(1), shared = new URLSearchParams(hash).get("chart");
+        const hash = location.hash.slice(1), params = new URLSearchParams(hash), key = params.has("chart") ? "chart" : params.has("image") ? "image" : "";
+        const shared = key ? params.get(key) : null;
         if (!shared) return null;
-        history.replaceState(history.state, "", location.pathname);
+        picturing = key === "image";
+        // (A picture's kept while it shows: reloaded, the picture again.)
+        if (!picturing) history.replaceState(history.state, "", location.pathname);
         // (Written, it runs to the end, read as it is: a "+" in a formula a plus, an "&" in a name, part of it.)
-        const written = /(?:^|&)chart=(.*)$/s.exec(hash)?.[1] ?? "";
+        return linked(new RegExp(`(?:^|&)${key}=(.*)$`, "s").exec(hash)?.[1] ?? "", shared, run);
+      }
+      /** Why the last chart written couldn't be read (for studio.open). */
+      let linkError = "";
+      /**
+       * A chart from a link, written (its JSON) or compressed (`shared`): the one kept already if it's the same, else it;
+       * said in a toast (not under a picture), or why it couldn't be read.
+       * @param {string} written @param {string | null} shared @param {number} run
+       */
+      async function linked(written, shared, run) {
         try {
           lostDrawings = 0;
           const doc = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? fromWritten(written) : await fromLink(shared);
@@ -19730,28 +19891,159 @@
             spans.delete(`${twin.id}@${twin.index}`);
           }
           const lost = lostDrawings ? `; ${plural(lostDrawings, "drawing")} couldn't be read` : "";
-          toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: change it, or keep it, to have it in your charts${lost}`);
+          if (!picturing) toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: change it, or keep it, to have it in your charts${lost}`);
           return twin ?? doc;
         } catch (error) {
           // (Written by hand, why: to tell whoever wrote it.)
-          notice(/^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? `That link's chart couldn't be read: ${/** @type {Error} */ (error).message}` : "That link doesn't contain a chart");
+          linkError = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? `That link's chart couldn't be read: ${/** @type {Error} */ (error).message}` : "That link doesn't contain a chart";
+          notice(linkError);
           return null;
         }
+      }
+      /** A chart a link (or a script) brought, shown: the one open drawn anew, at the link's window; one kept, opened; else a preview. */
+      function showLinked(/** @type {Chart} */ doc) {
+        if (doc === chart) leaveHome(() => { drawnChart = ""; refresh(true, true); });
+        else if (library.charts.includes(doc)) leaveHome(() => openChart(doc));
+        else showPreview(doc, true);
       }
       // A link pasted into this tab while it's open.
       /** Each link opened, counted: one still being read when another comes is dropped (see fromHash). */
       let linkRun = 0;
-      addEventListener("hashchange", async () => {
-        if (!new URLSearchParams(location.hash.slice(1)).has("chart")) return;
+      addEventListener("hashchange", () => {
+        const params = new URLSearchParams(location.hash.slice(1));
+        if (!params.has("chart") && !params.has("image")) return void (document.body.hasAttribute("data-picture") && leavePicture());
         closeDialogs();
         const run = ++linkRun;
-        const doc = await fromHash(run);
-        if (run !== linkRun) return;
-        // (The one open already, or last open behind the grid: drawn anew, so at the link's window.)
-        if (doc && doc === chart) leaveHome(() => { drawnChart = ""; refresh(true, true); });
-        else if (doc && library.charts.includes(doc)) leaveHome(() => openChart(doc));
-        else if (doc) showPreview(doc, true);
+        navigate((async () => {
+          const doc = await fromHash(run);
+          if (run !== linkRun) return;
+          if (doc) showLinked(doc);
+          // (Its picture once it's the chart open: not the one before's; any other link, out of a picture.)
+          if (doc && picturing) await until(() => chart === doc && !home, 5000);
+          if (doc && picturing && run === linkRun) showPicture();
+          else if (document.body.hasAttribute("data-picture")) leavePicture();
+        })());
       });
+
+      // ── A link's picture, and the page's script API ───────────────────────────
+
+      /** Whether the page is a link's picture (#image=): see showPicture. */
+      let picturing = false;
+      /**
+       * The page's last way to a chart (its start, a link, a script's open), till it's the chart open: what studio.ready
+       * waits for first, failing as it failed; counted, a picture made meanwhile for another dropped.
+       */
+      let navigating = Promise.resolve(), navigations = 0;
+      function navigate(/** @type {Promise<void>} */ way) {
+        navigations++;
+        navigating = way;
+        // (Its failure said where it happens: a toast, or a script's own catch.)
+        way.catch(() => {});
+        return way;
+      }
+      /** The picture being made: a newer one's, the older dropped. */
+      let pictureRun = 0;
+      /**
+       * The picture alone: the chart laid out as full screen has it, out of sight, then its picture as Export makes it,
+       * an image on the page's ground; a click on it, the chart (as its #chart= link opens it). One that can't be made,
+       * the chart instead, and why.
+       */
+      async function showPicture() {
+        const run = ++pictureRun;
+        document.body.toggleAttribute("data-picture", true);
+        layOutAlone(true);
+        const image = /** @type {HTMLImageElement} */ ($("picture-img"));
+        $("picture-open").hidden = true;
+        $("picture-note").hidden = false;
+        try {
+          const url = await studio.png();
+          if (run !== pictureRun || !picturing) return;
+          image.src = url;
+          image.alt = titleOf(chart);
+          /** @type {HTMLAnchorElement} */ ($("picture-open")).href = `#chart=${JSON.stringify(toSketch(chart)).replace(/[\s"<>`%#\\{}[\]+]/g, (char) => encodeURIComponent(char))}`;
+          $("picture-open").hidden = false;
+          $("picture-note").hidden = true;
+        } catch (error) {
+          if (run !== pictureRun) return;
+          leavePicture();
+          notice(`Couldn't make its picture: ${/** @type {Error} */ (error).message}`);
+        }
+      }
+      /** Out of a picture: the chart, as its #chart= link opens it (the picture's link let go). */
+      function leavePicture() {
+        picturing = false;
+        pictureRun++;
+        document.body.removeAttribute("data-picture");
+        if (/[#&]image=/.test(location.hash)) history.replaceState(history.state, "", location.pathname);
+        setFull(false);
+        layOutAlone(false);
+      }
+      $("picture-open").addEventListener("click", (event) => {
+        // (A plain click: here. A new tab's, as links open.)
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+        event.preventDefault();
+        leavePicture();
+      });
+      // A picture's page takes no keys for the chart out of sight under it (⌘K, P, a layer removed): its link's, as ever.
+      window.addEventListener("keydown", (event) => document.body.hasAttribute("data-picture") && !(/** @type {Element} */ (event.target)).closest?.("#picture") && event.stopImmediatePropagation(), true);
+
+      /**
+       * Studio for scripts run in the page (a console, an assistant driving a browser): a chart opened as its link opens
+       * it, waited for, its picture as Export makes it; the guide says the same ("From a script").
+       */
+      const studio = Object.freeze({
+        /** A chart as a link writes it (an object, or its JSON): opened as its link would be; done once it's the one open. */
+        open(/** @type {object | string} */ sketch) {
+          const run = ++linkRun;
+          closeDialogs();
+          if (document.body.hasAttribute("data-picture")) leavePicture();
+          return navigate((async () => {
+            const doc = await linked(typeof sketch === "string" ? sketch : JSON.stringify(sketch), null, run);
+            if (!doc) throw new Error(linkError);
+            if (run !== linkRun) throw new Error("Another chart was opened meanwhile");
+            showLinked(doc);
+            await until(() => chart === doc && !home, 5000);
+          })());
+        },
+        /**
+         * Once the chart open (or opening: failing as a script's open failed) is drawn with its data, and the fonts its
+         * picture writes in; else why not: at once for what can't change (no chart, no layers).
+         */
+        async ready(ms = 60_000) {
+          await navigating;
+          await document.fonts.ready;
+          const end = performance.now() + ms;
+          while (home || !chart.layers.length || !settled()) {
+            if (home) throw new Error("No chart is open (the page shows all charts)");
+            if (!chart.layers.length) throw new Error("The chart has no layers");
+            if (performance.now() > end) throw new Error("The chart is still loading");
+            await new Promise((done) => setTimeout(done, 50));
+          }
+          // (Drawn on its next frame; a tab out of sight has none: its picture's drawn when it's made.)
+          await new Promise((done) => (requestAnimationFrame(() => done(undefined)), setTimeout(done, 100)));
+        },
+        /** Its picture as Export makes it (title, legends, dates), a PNG data URL: none if another chart opens meanwhile. */
+        async png() {
+          await studio.ready();
+          const at = navigations, url = (await chartImage()).toDataURL("image/png");
+          if (at !== navigations) throw new Error("Another chart was opened meanwhile");
+          return url;
+        },
+        /** The chart open, as a link writes it. */
+        chart: () => toSketch(chart),
+        /** Once it's drawn, its layers that show nothing, and why: [{ layer, error }], a missing series' closest too. */
+        async errors() {
+          await studio.ready();
+          return Promise.all(chart.layers.flatMap((layer) => {
+            const result = resolved?.results.get(layer.id), error = result?.error ? result.detail ?? result.error : cloudUnfit(chart, layer);
+            if (!error) return [];
+            return [result?.missing && layer.series ? closestSeries(layer.series).then((closest) => ({ layer: layer.letter, error, ...(closest ? { closest } : {}) })) : { layer: layer.letter, error }];
+          }));
+        },
+        /** Series names for words, as Studio's search finds them (the catalog it has, at hand): the best first. */
+        search: async (/** @type {string} */ text, count = 10) => (await findSeries(String(text), Math.min(50, count))).filter((name) => !gone.has(name)),
+      });
+      Object.defineProperty(window, "studio", { value: studio });
 
       async function start() {
         const shared = await fromHash();
@@ -19778,6 +20070,8 @@
         normalize(chart);
         save();
         refresh(true, true);
+        if (picturing && shared) showPicture();
+        else if (document.body.hasAttribute("data-picture")) leavePicture();
         setTimeout(() => document.body.classList.remove("boot"), 1400);
         // Once the chart is up, while the page is idle: the search's index builds (off the page), and the color surface.
         const later = (/** @type {() => void} */ work) => (window.requestIdleCallback ? requestIdleCallback(work, { timeout: 3000 }) : setTimeout(work, 1500));
@@ -19787,7 +20081,7 @@
         const aside = storage.get(UNREAD, []);
         if (Array.isArray(aside) && aside.length) notice(`${plural(aside.length, "saved chart")} couldn't be read here: kept aside`, { label: "Download", run: () => download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
       }
-      start();
+      navigate(start());
     </script>
   </body>
 </html>
