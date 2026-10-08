@@ -79,6 +79,10 @@
         --dur-micro: 120ms;
         --dur-small: 160ms;
         --dur-panel: 240ms;
+        /* A layout's move (the sidebar, the panel, a folder's charts): eased in and out over more frames, so a long one
+           glides, its first frame no leap. */
+        --ease-layout: cubic-bezier(0.4, 0, 0.2, 1);
+        --dur-layout: 280ms;
         --dur-page: 380ms;
         /* Corners by size: keys and chips, small controls, controls, popovers, cards and bars, sheets and dialogs. */
         --radius-xs: 4px;
@@ -457,7 +461,7 @@
         min-height: 0;
         overflow: hidden;
         padding: 10px 8px 8px;
-        transition: width var(--dur-panel) var(--ease);
+        transition: width var(--dur-layout) var(--ease-layout);
 
         /* Only the list gives way when the column runs out of room (and scrolls): every other row keeps its size. */
         > :not(.chart-list) {
@@ -542,6 +546,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        width: 100%;
         height: 32px;
         margin: 12px 0 10px;
         border: 0;
@@ -653,9 +658,10 @@
         flex-direction: column;
         gap: 1px;
         min-height: 64px;
-        margin: 2px -8px 0;
+        /* (Room on every side for a row's focus ring, its rows where they were.) */
+        margin: -1px -8px 0;
         overflow: hidden auto;
-        padding: 0 8px 8px;
+        padding: 3px 8px 8px;
         scrollbar-width: thin;
         --along: to bottom;
       }
@@ -716,6 +722,7 @@
         &.drop-after::after {
           content: "";
           position: absolute;
+          z-index: 1;
           right: 6px;
           left: 6px;
           height: 2px;
@@ -782,8 +789,8 @@
         }
       }
 
-      /* A folder: its chevron where a chart's mark is (turned while closed), its name, how many it holds; its charts under
-         it, a step in. Holding the open chart, closed, it says so. */
+      /* A folder: its icon where a chart's mark is (open or closed), its name, how many it holds; its charts under it, a
+         step in, along a line down from its icon. Holding the open chart, closed, it says so. */
       .folder-row {
         position: relative;
         display: flex;
@@ -796,21 +803,11 @@
           color: var(--soft);
 
           .folder-glyph {
-            display: none;
-          }
-
-          /* (At the icons' weight: its 10×6 drawn at 1:1, its stroke as theirs.) */
-          > svg {
+            display: inline-flex;
             flex-shrink: 0;
+            justify-content: center;
             width: 16px;
-            height: 6.2px;
-            color: var(--muted);
-            transition: rotate var(--dur-micro) var(--ease);
           }
-        }
-
-        &.closed .folder-item > svg {
-          rotate: -90deg;
         }
 
         /* How many it holds, in its ⋯'s place (the column New folder's icon is in): the ⋯ takes it on hover, or reached
@@ -861,8 +858,22 @@
         }
       }
 
-      .chart-row.in-folder .chart-item {
-        padding-left: 29px;
+      .chart-row.in-folder {
+        .chart-item {
+          padding-left: 29px;
+        }
+
+        /* (The line, under its folder's icon: down its charts and the gaps between them.) */
+        &::before {
+          content: "";
+          position: absolute;
+          top: -1px;
+          bottom: 0;
+          left: 20.5px;
+          width: 1px;
+          background: var(--line-strong);
+          pointer-events: none;
+        }
       }
 
       /* A folder's name typed where it shows. */
@@ -924,9 +935,9 @@
         &::after {
           content: "";
           position: absolute;
-          right: 8px;
           bottom: -5px;
           left: 8px;
+          width: calc(100% - 16px);
           height: 1px;
           background: var(--line);
         }
@@ -1225,27 +1236,43 @@
             pointer-events: none;
           }
 
-          /* On the rail, the rule under New chart is short, at the same height: nothing moves. A folder, its icon; its
-             charts in line with the others. */
+          /* On the rail, the rule under New chart is short, at the same height: nothing moves. */
           .new-chart {
             overflow: visible;
           }
 
-          #new-folder,
-          .folder-item > svg {
-            display: none;
+          #new-folder {
+            visibility: hidden;
+            opacity: 0;
           }
 
-          .folder-item .folder-glyph {
-            display: inline-flex;
+          /* An open folder, as a rail of servers has it: its icon and its charts on one surface (the sidebar open, their
+             line), the charts in line with the others. */
+          .folder-row:not(.closed):has(+ .chart-row.in-folder) {
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            background: var(--field);
           }
 
-          .chart-row.in-folder .chart-item {
-            padding-left: 8px;
+          .chart-row.in-folder {
+            border-radius: 0;
+            background: var(--field);
+            /* (Over the gap above it: one surface.) */
+            box-shadow: 0 -1px 0 var(--field);
+
+            &:not(:has(+ .chart-row.in-folder)) {
+              border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+            }
+
+            .chart-item {
+              padding-left: 8px;
+            }
+
+            &::before {
+              display: none;
+            }
           }
 
           .new-chart::after {
-            right: auto;
             left: 5px;
             width: 20px;
           }
@@ -1261,6 +1288,7 @@
            */
           .search,
           .chart-row .chart-item,
+          .folder-row .folder-item,
           .side-action,
           .side-foot .nav-item,
           .live {
@@ -1308,6 +1336,28 @@
 
         .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .live > :not(i)) {
           transition: opacity var(--dur-small) var(--ease);
+        }
+
+        /* Collapsing and expanding, every part eases with the sidebar's width (the fields and rows to the rail's squares
+           and back, a folder's charts into line), its icons still all the way. */
+        .sidebar {
+          .brand,
+          .nav-item,
+          .live {
+            transition: width var(--dur-layout) var(--ease-layout), margin var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), background var(--fade), color var(--fade);
+          }
+
+          .search {
+            transition: width var(--dur-layout) var(--ease-layout), height var(--dur-layout) var(--ease-layout), margin var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), box-shadow var(--fade), color var(--fade);
+          }
+
+          .new-chart::after {
+            transition: left var(--dur-layout) var(--ease-layout), width var(--dur-layout) var(--ease-layout);
+          }
+
+          #new-folder {
+            transition: opacity var(--dur-small) var(--ease), visibility var(--dur-small);
+          }
         }
       }
 
@@ -2437,7 +2487,7 @@
         min-height: 0;
         overflow: hidden;
         border-left: 1px solid var(--line);
-        transition: width var(--dur-panel) var(--ease), border-width var(--dur-panel) var(--ease);
+        transition: width var(--dur-layout) var(--ease-layout), border-width var(--dur-layout) var(--ease-layout);
 
         > .panel-view {
           min-width: 299px;
@@ -2450,7 +2500,7 @@
           width: 0;
           border-left-width: 0;
           visibility: hidden;
-          transition: width var(--dur-panel) var(--ease), border-width var(--dur-panel) var(--ease), visibility 0s var(--dur-panel);
+          transition: width var(--dur-layout) var(--ease-layout), border-width var(--dur-layout) var(--ease-layout), visibility 0s var(--dur-layout);
         }
 
         body[data-empty] .panel {
@@ -4612,7 +4662,7 @@
           height: 44px;
           margin: 0 -10px;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-          padding: 0 10px 0 4px;
+          padding: 0 10px;
           background: var(--box);
           box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
 
@@ -4646,26 +4696,25 @@
           height: 100%;
           border: 0;
           border-radius: var(--radius-md);
-          padding: 0 10px 0 6px;
+          padding: 0 10px 0 14px;
           color: inherit;
           background: none;
           font: inherit;
 
-          > svg {
-            width: 10.4px;
-            height: 6.2px;
-            color: var(--muted);
-            transition: rotate var(--dur-micro) var(--ease);
+          .folder-glyph {
+            display: inline-flex;
+            color: var(--soft);
+
+            svg {
+              width: 14px;
+              height: 14px;
+            }
           }
 
           &:hover {
             color: var(--ink);
             background: var(--hover);
           }
-        }
-
-        &.closed .grid-folder-toggle > svg {
-          rotate: -90deg;
         }
 
         .name {
@@ -4697,7 +4746,7 @@
         }
 
         .folder-rename {
-          inset: 0 auto 0 6px;
+          inset: 0 auto 0 12px;
           width: min(320px, 70%);
         }
       }
@@ -5921,7 +5970,7 @@
       const isCatalogPath = (path) => typeof path === "string" && /^\w{1,80}(\.\w{1,80}){0,15}$/.test(path);
       const reduced = matchMedia("(prefers-reduced-motion: reduce)");
       /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
-      const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease") };
+      const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout") };
       const phone = matchMedia("(max-width: 760px), (max-height: 500px)");
       const tablet = matchMedia("(max-width: 1100px)");
 
@@ -5936,28 +5985,30 @@
         sidebar: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11"/>'),
         arrowUp: svg('<path d="M8 13V3M4 7l4-4 4 4"/>', 14),
         arrowDown: svg('<path d="M8 3v10M4 9l4 4 4-4"/>', 14),
-        axis: svg('<path d="M12 2.5v11M12 4.5h2M12 8h2M12 11.5h2"/><path d="M2 11.5 5 7.5l2.5 2 3-5"/>'),
+        axis: svg('<path d="M12 2.5v11M12 5h2M12 8h2M12 11h2"/><path d="M2 11 4.6 7.6l2.2 1.9L9.3 5"/>'),
         swap: svg('<path d="M3 5.5h9.5M10 3l2.5 2.5L10 8"/><path d="M13 10.5H3.5M6 8l-2.5 2.5L6 13"/>', 14),
         panel: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M10 2.5v11"/>'),
         pane: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M2 9h12"/>'),
         more: svg('<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>', 14),
         next: svg('<path d="M6 3.5 10.5 8 6 12.5"/>', 12),
         back: svg('<path d="M10 3.5 5.5 8l4.5 4.5"/>', 14),
-        pencil: svg('<path d="m10.5 2.5 3 3-8 8H2.5v-3z"/>', 14),
+        pencil: svg('<path d="m10.5 2.5 3 3-8 8H2.5v-3z"/><path d="m8.5 4.5 3 3"/>', 14),
         sliders: svg('<path d="M2.5 5h6.5M12.5 5h1M2.5 11h1M7 11h6.5"/><circle cx="10.75" cy="5" r="1.75"/><circle cx="5.25" cy="11" r="1.75"/>', 14),
         undo: svg('<path d="M5.5 3.5 2.5 6.5l3 3"/><path d="M2.5 6.5h7a4 4 0 0 1 0 8h-2"/>', 14),
         redo: svg('<path d="m10.5 3.5 3 3-3 3"/><path d="M13.5 6.5h-7a4 4 0 0 0 0 8h2"/>', 14),
         halvings: svg('<path d="M2 4h4v4h4v4h4"/>', 14),
         eye: svg('<path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/>', 14),
-        eyeOff: svg('<path d="M2 2l12 12"/><path d="M6.4 3.8A6.6 6.6 0 0 1 8 3.5c4.1 0 6.5 4.5 6.5 4.5a11 11 0 0 1-1.9 2.4M10 10.6A2 2 0 0 1 6.9 7.3M4.1 5.2A11 11 0 0 0 1.5 8s2.4 4.5 6.5 4.5c.8 0 1.6-.2 2.3-.5"/>', 14),
+        // (The eye's own outline and pupil, cut where the slash covers them.)
+        eyeOff: svg('<path d="M1.5 8C1.5 8 2.6 5.93 4.6 4.6M7.11 3.57C7.4 3.53 7.69 3.5 8 3.5C12.1 3.5 14.5 8 14.5 8C14.5 8 14.07 8.8 13.27 9.73M11.4 11.41C10.46 12.04 9.32 12.5 8 12.5C3.9 12.5 1.5 8 1.5 8"/><path d="M9.41 9.41A2 2 0 0 1 6.59 6.59"/><path d="m2 2 12 12"/>', 14),
         close: svg('<path d="m4 4 8 8M12 4l-8 8"/>', 14),
         copy: svg('<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5"/>', 14),
         duplicate: svg('<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5M9.5 7.5v4M7.5 9.5h4"/>', 14),
         link: svg('<path d="M9.5 2.5h4v4M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>', 14),
         trash: svg('<path d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6"/>', 14),
         folder: svg('<path d="M1.5 4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z"/>', 15),
-        folderOut: svg('<path d="M1.5 4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z"/><path d="M8 11.2V7M6.2 8.8 8 7l1.8 1.8"/>', 15),
-        folderAdd: svg('<path d="M1.5 4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z"/><path d="M8 7v4M6 9h4"/>', 15),
+        folderOpen: svg('<path d="M2.5 13a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3.6l1.6 1.6h4.8a1 1 0 0 1 1 1V7"/><path d="M2.5 13h9.4a1 1 0 0 0 .93-.63l1.8-4.5A.64.64 0 0 0 14.04 7H5.1a1 1 0 0 0-.93.63L2.5 13Z"/>', 15),
+        folderOut: svg('<path d="M7.5 13h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1v2.4"/><path d="M12 14.5v-5M9.8 11.7 12 9.5l2.2 2.2"/>', 15),
+        folderAdd: svg('<path d="M7.5 13h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1v2.4"/><path d="M12 9.5v5M9.5 12h5"/>', 15),
         series: svg('<path d="M1.5 12.5 6 7l3 3 5.5-6.5"/>', 15),
         recent: svg('<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>', 15),
         calendar: svg('<rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/>', 15),
@@ -5969,7 +6020,7 @@
         file: svg('<path d="M4 1.5h5l3.5 3.5v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11.5a1 1 0 0 1 1-1Z"/><path d="M9 1.5V5h3.5"/>', 14),
         check: svg('<path d="m4 8.4 2.6 2.6L12 5.4"/>', 12),
         ruler: svg('<path d="m2 11 9-9 3 3-9 9Z"/><path d="m5 8 1.5 1.5M7 6l1 1M9 4l1.5 1.5"/>'),
-        draw: svg('<path d="m10.5 2 3 3-7 7-3.6.6.6-3.6Z"/><path d="M9.5 14h4"/>'),
+        draw: svg('<path d="m10.5 2 3 3-7 7-3.6.6.6-3.6Z"/><path d="m8.5 4 3 3"/><path d="M9.5 14h4"/>'),
         ellipse: svg('<ellipse cx="8" cy="8" rx="6" ry="4.5"/>'),
         arrow: svg('<path d="M3 13 12.5 3.5M7 3.5h5.5V9"/>'),
         label: svg('<path d="M2.5 8h2M11.5 8h2"/><rect x="4.5" y="5" width="7" height="6" rx="1.5"/>'),
@@ -5984,7 +6035,7 @@
         vline: svg('<path d="M8 1.5v4.8M8 9.7v4.8"/><circle cx="8" cy="8" r="1.6"/>'),
         rect: svg('<rect x="2.5" y="3.5" width="11" height="9" rx="1"/>'),
         text: svg('<path d="M3.5 3.5h9M8 3.5V13M6.2 13h3.6"/>'),
-        brush: svg('<path d="M2 12c1.6-3.4 3-4.4 4-2.8s1.6 3.2 3.4 1.2S12 4.5 14 3.8"/>'),
+        brush: svg('<path d="M13.6 2.4a1.15 1.15 0 0 1 0 1.65L8.9 8.75 7.25 7.1l4.7-4.7a1.15 1.15 0 0 1 1.65 0Z"/><path d="M6.9 9.1C5.3 8.6 3.9 9.4 3.7 11c-.15 1.2-.7 1.9-1.7 2.3 2.4.9 4.9.3 5.4-1.6.2-.9.05-1.8-.5-2.6Z"/>'),
       };
       /** The caret of a control that opens a list. */
       const CHEVRON = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -11768,7 +11819,7 @@
         return sections;
       }
       /** A folder's head in the grid: opened or closed, its menu. */
-      const gridHeadHtml = (/** @type {Folder} */ folder, /** @type {number} */ count) => `<div class="grid-folder ${folder.closed ? "closed" : ""}" data-grid-folder="${folder.id}"><button type="button" class="grid-folder-toggle" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}">${CHEVRON}<span class="name">${escape(folder.name)}</span><span class="folder-count">${count}</span></button><button type="button" class="cap small" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button></div>`;
+      const gridHeadHtml = (/** @type {Folder} */ folder, /** @type {number} */ count) => `<div class="grid-folder ${folder.closed ? "closed" : ""}" data-grid-folder="${folder.id}"><button type="button" class="grid-folder-toggle" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}"><span class="folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="name">${escape(folder.name)}</span><span class="folder-count">${count}</span></button><button type="button" class="cap small" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button></div>`;
       function renderHome() {
         if (!home) return;
         const shown = filtered(), query = $("home-filter").value.trim();
@@ -12323,7 +12374,7 @@
             if ("layers" in item) return row(item);
             const folder = item, docs = library.charts.filter((doc) => doc.folder === folder.id), holds = Boolean(current && docs.includes(current));
             return `<div class="folder-row ${folder.closed ? "closed" : ""} ${folder.closed && holds ? "holds" : ""}" data-folder-row="${folder.id}">
-              <button type="button" class="nav-item folder-item" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${ICONS.folder}</span>${CHEVRON}<span class="label">${escape(folder.name)}</span><span class="folder-count">${docs.length}</span></button>
+              <button type="button" class="nav-item folder-item" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="label">${escape(folder.name)}</span><span class="folder-count">${docs.length}</span></button>
               <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button>
             </div>${folder.closed ? "" : docs.map(row).join("")}`;
           }),
@@ -12385,13 +12436,59 @@
         renameFolder(folder.id);
         return folder;
       }
+      /**
+       * A folder opened or closed: its charts unfold from under it (in the grid, its box from under its head), or fold
+       * back into it, and what's under them follows. Its icon turns at once; closing, the list is drawn without its charts
+       * once they've folded away.
+       */
       function toggleFolder(/** @type {string} */ id) {
         const folder = folderById(id);
         if (!folder) return;
-        if (folder.closed) delete folder.closed;
-        else folder.closed = true;
+        const closing = !folder.closed;
+        if (closing) folder.closed = true;
+        else delete folder.closed;
         save();
-        renderCharts();
+        if (reduced.matches) return renderCharts();
+        for (const toggle of all$(`[data-folder-toggle="${id}"]`)) {
+          toggle.setAttribute("aria-expanded", String(!closing));
+          /** @type {HTMLElement} */ (toggle.querySelector(".folder-glyph")).innerHTML = closing ? ICONS.folder : ICONS.folderOpen;
+        }
+        if (!closing) renderCharts();
+        const folds = foldOf(id).map((element) => fold(element, closing));
+        if (!closing) return;
+        closings++;
+        Promise.allSettled(folds.map((animation) => animation.finished)).then(() => {
+          if (--closings) return;
+          // (Out of the grid by now, it's drawn anew when it's back: its box may be left folded.)
+          if (!home) drawnLayout = "";
+          renderCharts();
+        });
+      }
+      /** Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others short). */
+      let closings = 0;
+      /** What a folder's opening or closing moves: its charts' rows in the sidebar, its box in the grid. */
+      const foldOf = (/** @type {string} */ id) => [
+        ...all$(".chart-row.in-folder", $("chart-list")).filter((row) => chartById(/** @type {string} */ (row.dataset.chartRow))?.folder === id),
+        ...(home ? [$("home-grid").querySelector(`[data-grid-folder="${id}"]`)?.parentElement].filter((box) => box instanceof HTMLElement) : []),
+      ];
+      /**
+       * A chart's row unfolding from nothing, or folding to it (a folder's box, to its head): clipped as it goes, a row
+       * sliding out from under the one above and fading. One under way turns back from where it is.
+       */
+      function fold(/** @type {HTMLElement} */ element, /** @type {boolean} */ closing) {
+        const row = element.matches(".chart-row"), moving = element.getAnimations().length > 0, now = element.getBoundingClientRect().height;
+        for (const animation of element.getAnimations()) animation.cancel();
+        const full = element.offsetHeight, low = /** @type {HTMLElement | null} */ (element.querySelector(":scope > .grid-folder"))?.offsetHeight ?? 0;
+        const from = moving ? now : closing ? full : low, shown = full > low ? (from - low) / (full - low) : 1;
+        Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: row ? "flex-end" : "" });
+        if (row) element.inert = closing;
+        const animation = element.animate({
+          height: [`${from}px`, `${closing ? low : full}px`],
+          // (A row's 1px from the one above goes and comes with it.)
+          ...(row ? { marginTop: closing ? ["0px", "-1px"] : ["-1px", "0px"], opacity: [shown, closing ? 0 : 1] } : {}),
+        }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
+        if (!closing) animation.finished.then(() => Object.assign(element.style, { overflow: "", overflowClipMargin: "", alignItems: "" }), () => {});
+        return animation;
       }
       /**
        * A folder's name typed in place (the grid's head, at home; else the sidebar's row): ↵ keeps it, esc doesn't. Neither
@@ -12549,7 +12646,7 @@
       function folderActions(/** @type {HTMLElement} */ anchor, /** @type {string} */ id, point = undefined) {
         showMenu(anchor, `
           <button type="button" data-pick="rename">${ICONS.pencil}Rename</button>
-          <button type="button" data-pick="toggle">${ICONS.folder}${folderById(id)?.closed ? "Expand" : "Collapse"}</button>
+          <button type="button" data-pick="toggle">${folderById(id)?.closed ? `${ICONS.folderOpen}Expand` : `${ICONS.folder}Collapse`}</button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete the folder<span>Its charts kept</span></button>`, ({ pick }) => {
           if (pick === "rename") renameFolder(id);
@@ -12720,7 +12817,8 @@
           if (Math.abs(by) < 0.5) continue;
           const lift = moved !== null && key(element) === moved;
           if (lift) Object.assign(element.style, { zIndex: "1", background: groundOf(element) });
-          element.animate({ transform: [`translateY(${by}px)`, "none"] }, timing).finished.then(() => lift && Object.assign(element.style, { zIndex: "", background: "" }), () => {});
+          const land = () => lift && Object.assign(element.style, { zIndex: "", background: "" });
+          element.animate({ transform: [`translateY(${by}px)`, "none"] }, timing).finished.then(land, land);
         }
       }
 
@@ -13046,7 +13144,7 @@
       $("chart-list").addEventListener("keydown", (event) => {
         if (event.isComposing || typing(event.target)) return;
         if (!event.altKey && !event.metaKey && !event.ctrlKey && ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
-          const rows = all$("[data-chart-row], [data-folder-row], [data-preview-row]", $("chart-list"));
+          const rows = all$("[data-chart-row]:not([inert]), [data-folder-row], [data-preview-row]", $("chart-list"));
           const at = rows.indexOf(/** @type {HTMLElement} */ (closest(event, "[data-chart-row], [data-folder-row], [data-preview-row]")));
           if (at < 0) return;
           event.preventDefault();
@@ -16260,7 +16358,7 @@
         const folder = folderById(id);
         if (!folder) return [];
         return [
-          { key: "toggle", icon: ICONS.folder, label: folder.closed ? "Expand" : "Collapse", aside: folder.closed ? "Its charts shown" : "Its charts out of sight", verb: folder.closed ? "Expand" : "Collapse", group: "Folder", stay: true, run: () => toggleFolder(id) },
+          { key: "toggle", icon: folder.closed ? ICONS.folderOpen : ICONS.folder, label: folder.closed ? "Expand" : "Collapse", aside: folder.closed ? "Its charts shown" : "Its charts out of sight", verb: folder.closed ? "Expand" : "Collapse", group: "Folder", stay: true, run: () => toggleFolder(id) },
           { key: "rename", icon: ICONS.pencil, label: "Rename", aside: folder.name, group: "Folder", page: () => renameFolderPage(id) },
           ...(sideItems().indexOf(folder) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", verb: "Move", group: "Folder", stay: true, run: () => stepFolder(id, -1) }] : []),
           ...(sideItems().indexOf(folder) < sideItems().length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", verb: "Move", group: "Folder", stay: true, run: () => stepFolder(id, 1) }] : []),
