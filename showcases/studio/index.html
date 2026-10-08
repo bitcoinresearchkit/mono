@@ -492,48 +492,38 @@
           }
         }
 
-        /* The chain it mines (see animateMark): blocks and their links, out of the cube and back. */
-        .egg {
+        /* What it mines (see animateMark): a ring going out from the cube as a block's found. */
+        .mined-ring {
           position: absolute;
           inset: 0;
+          border: 1.5px solid oklch(64.34% 0.191 44.41);
+          border-radius: 50%;
           pointer-events: none;
-
-          .egg-block {
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            display: grid;
-            width: 18px;
-            height: 18px;
-            place-items: center;
-
-            svg {
-              width: 15px;
-              height: 18px;
-            }
-          }
-
-          .egg-link {
-            position: absolute;
-            top: 11.25px;
-            height: 1.5px;
-            border-radius: 1px;
-            background: oklch(64.34% 0.191 44.41 / 0.7);
-            transform-origin: 0 50%;
-          }
-
-          &.down .egg-link {
-            left: 11.25px;
-            width: 1.5px;
-            transform-origin: 50% 0;
-          }
         }
 
         .brand-name {
+          overflow: hidden;
           color: var(--soft);
           font-weight: 510;
           letter-spacing: -0.01em;
           white-space: nowrap;
+
+          /* Mining: the hashes tried, their zeros found lit; the block found. */
+          .hash {
+            color: var(--muted);
+            font: 510 11.5px/1 var(--mono);
+            letter-spacing: 0;
+
+            b {
+              color: oklch(64.34% 0.191 44.41);
+            }
+          }
+
+          .found {
+            display: inline-block;
+            color: var(--ink);
+            font-variant-numeric: tabular-nums;
+          }
         }
 
         b {
@@ -708,7 +698,7 @@
         user-select: none;
       }
 
-      :is(.chart-row, .layer-row) {
+      :is(.chart-row, .folder-row, .layer-row) {
         &.drop-before::after,
         &.drop-after::after {
           content: "";
@@ -760,8 +750,9 @@
           bottom: -2px;
         }
 
+        /* (Its ⋯ on hover, or reached by a key: a click leaves nothing showing.) */
         &:hover,
-        &:focus-within {
+        &:has(:focus-visible) {
           .chart-more {
             opacity: 1;
           }
@@ -795,10 +786,11 @@
             display: none;
           }
 
+          /* (At the icons' weight: its 10×6 drawn at 1:1, its stroke as theirs.) */
           > svg {
             flex-shrink: 0;
             width: 16px;
-            height: 5px;
+            height: 6.2px;
             color: var(--muted);
             transition: rotate var(--dur-micro) var(--ease);
           }
@@ -808,10 +800,18 @@
           rotate: -90deg;
         }
 
+        /* How many it holds, in its ⋯'s place (the column New folder's icon is in): the ⋯ takes it on hover, or reached
+           by a key; a click leaves the count. */
         .folder-count {
+          position: absolute;
+          top: 50%;
+          right: 9px;
+          width: 24px;
           color: var(--muted);
           font: 510 11px/1 var(--mono);
           font-variant-numeric: tabular-nums;
+          text-align: center;
+          translate: 0 -50%;
         }
 
         .chart-more {
@@ -821,7 +821,7 @@
         }
 
         &:hover,
-        &:focus-within {
+        &:has(:focus-visible) {
           .chart-more {
             opacity: 1;
           }
@@ -897,20 +897,15 @@
         align-items: center;
         margin: 1px 0 6px;
 
-        /* New folder: a smaller "new", at the end of its row (New chart's key hint before it). */
+        /* New folder: an icon at the end of its row, always there, in the column the rows' ⋯ and counts are in (New chart's
+           key hint before it). */
         #new-chart {
           padding-right: 34px;
         }
 
         #new-folder {
           position: absolute;
-          right: 4px;
-          opacity: 0;
-        }
-
-        &:hover #new-folder,
-        #new-folder:focus-visible {
-          opacity: 1;
+          right: 9px;
         }
 
         &::after {
@@ -1209,6 +1204,7 @@
           width: var(--side-collapsed);
 
           .brand > :not(.logo),
+          .preview-caption,
           .search > :not([data-icon]),
           .nav-item > :not([data-icon], .chart-mark),
           .live > :not(i) {
@@ -1393,38 +1389,58 @@
         gap: 4px;
       }
 
-      /* A preview: said so, and kept by a click (or a change). */
+      /* A preview: said so (a dashed pill: not yours yet), and kept by a click (or a change). */
       .preview-note {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        margin-right: 4px;
-        color: var(--muted);
-        font-size: 12px;
+        gap: 8px;
+        margin-right: 6px;
         white-space: nowrap;
-
-        &::before {
-          content: "";
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          box-shadow: inset 0 0 0 1px var(--muted);
-        }
 
         &[hidden] {
           display: none;
         }
       }
 
-      .chart-row.preview .chart-item {
-        .label {
-          font-style: italic;
-        }
+      .preview-pill {
+        border: 1px dashed var(--line-strong);
+        border-radius: 999px;
+        padding: 2px 9px;
+        color: var(--soft);
+        font-size: 12px;
+        line-height: 16px;
+      }
 
-        .preview-tag {
-          color: var(--muted);
-          font-size: 11px;
+      /* The sidebar's preview: a place of its own over your charts, named, its title in italics (not yours yet). */
+      .preview-slot {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+
+        &::after {
+          content: "";
+          position: absolute;
+          right: 8px;
+          bottom: 0;
+          left: 8px;
+          height: 1px;
+          background: var(--line);
         }
+      }
+
+      .preview-caption {
+        padding: 2px 10px 3px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 510;
+        line-height: 14px;
+        white-space: nowrap;
+      }
+
+      .chart-row.preview .chart-item .label {
+        font-style: italic;
       }
 
       .saved {
@@ -1937,7 +1953,7 @@
       }
 
       /* A belt button's choice, as the layers panel makes it: a field, its row of tabs or its slider. */
-      .belt-pop {
+      .field.belt-pop {
         margin: 0;
         padding: 2px 8px 8px;
 
@@ -1947,6 +1963,10 @@
 
         .stepper {
           width: 240px;
+        }
+
+        .color-box {
+          width: 252px;
         }
       }
 
@@ -3286,16 +3306,14 @@
         }
       }
 
-      /* Its list: the current color, then Bitview's, each with its hex; taller than other menus, and it scrolls. */
-      .menu:has(> .color-item) {
-        max-height: min(400px, calc(100dvh - 16px));
+      /* The color's name, beside its label. */
+      .color-now {
+        margin-left: 6px;
+        color: var(--muted);
+        font-weight: 400;
       }
 
-      .menu > .color-item .swatch {
-        margin-right: -2px;
-      }
-
-      /* The color, one box: its name (a select) on top, the surface under a hairline, one border around both. */
+      /* The color, one box: Bitview's colors on top, the surface under a hairline, one border around both. */
       .color-box {
         position: relative;
         border-radius: var(--radius-md);
@@ -3311,20 +3329,12 @@
           pointer-events: none;
         }
 
-        .preset {
-          border-radius: var(--radius-md) var(--radius-md) 0 0;
-          background: none;
-          box-shadow: none;
+        .swatch-grid {
+          grid-template-columns: repeat(10, minmax(0, 1fr));
+          padding: 4px;
 
-          &:hover,
-          &[aria-expanded="true"] {
-            background: var(--hover);
-            box-shadow: none;
-          }
-
-          &:focus-visible {
-            outline: none;
-            box-shadow: none;
+          button {
+            width: auto;
           }
         }
 
@@ -4429,11 +4439,12 @@
       }
 
       .home-scroll {
+        --home-top: 56px;
         position: absolute;
         inset: 0;
         overflow-y: auto;
         /* Room all around; at the foot, for the selection's bar too. */
-        padding: 56px clamp(20px, 5vw, 64px) 112px;
+        padding: var(--home-top) clamp(20px, 5vw, 64px) 112px;
         scrollbar-width: thin;
       }
 
@@ -4470,29 +4481,67 @@
         font-variant-numeric: tabular-nums;
       }
 
+      /* The grid: its sections one under another, each a grid of tiles. */
       .home-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-top: 24px;
+        border-radius: calc(var(--radius-xl) + 6px);
+
+        /* A drop off any folder's box: out of its folder. */
+        &.drop-target {
+          outline: 1px dashed var(--line-strong);
+          outline-offset: 8px;
+        }
+      }
+
+      .grid-tiles {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 12px;
-        margin-top: 24px;
       }
 
-      /* A section of the grid: a folder's head (opened or closed, its menu), or those in none's. */
+      /* A folder: a box of its own, its head kept in sight while its charts scroll under it. */
+      .grid-section.folder {
+        border-radius: calc(var(--radius-xl) + 6px);
+        padding: 0 10px 10px;
+        background: var(--raise);
+        box-shadow: inset 0 0 0 1px var(--line);
+
+        /* (At the very top of the page as it scrolls: a sticky box keeps clear of its scroller's padding, it's undone.) */
+        > .grid-folder {
+          position: sticky;
+          top: calc(-1 * var(--home-top));
+          z-index: 3;
+          height: 44px;
+          margin: 0 -10px;
+          border-radius: calc(var(--radius-xl) + 6px) calc(var(--radius-xl) + 6px) 0 0;
+          padding: 0 10px 0 6px;
+          background: var(--raise);
+
+          &.closed {
+            border-radius: inherit;
+          }
+        }
+
+        /* (Closed: its head, alone.) */
+        &:has(> .grid-folder.closed) {
+          padding-bottom: 0;
+        }
+      }
+
+      /* A section's head: a folder's (opened or closed, its menu), or those in none's. */
       .grid-folder {
         position: relative;
         display: flex;
-        grid-column: 1 / -1;
         align-items: center;
         gap: 4px;
         height: 28px;
-        margin: 10px 0 -4px;
+        margin-bottom: 8px;
         border-radius: var(--radius-md);
         color: var(--soft);
         font-weight: 590;
-
-        &:first-child {
-          margin-top: 0;
-        }
 
         .grid-folder-toggle {
           display: flex;
@@ -4508,7 +4557,7 @@
 
           > svg {
             width: 16px;
-            height: 5px;
+            height: 6.2px;
             color: var(--muted);
             transition: rotate var(--dur-micro) var(--ease);
           }
@@ -4521,12 +4570,6 @@
 
         &.closed .grid-folder-toggle > svg {
           rotate: -90deg;
-        }
-
-        /* (Its name in line with the folders', past their chevron.) */
-        &.loose {
-          gap: 8px;
-          padding-left: 30px;
         }
 
         .name {
@@ -5069,14 +5112,26 @@
           transition: transform var(--dur-panel) var(--ease);
         }
 
-        /* The grid's own New folder (the sidebar's isn't here); a preview's note, its dot and Keep (no room for words). */
+        /* (Focused as it opens, as a whole: no ring around the sheet.) */
+        .panel:focus {
+          outline: none;
+        }
+
+        /* The grid's own New folder (the sidebar's isn't here). */
         #home-new-folder {
           display: inline-flex;
         }
 
-        .preview-note > span {
+        /* A preview, said by its Keep alone, dashed as the pill is (not yours yet): no room for both beside the title. */
+        .preview-pill {
           display: none;
         }
+
+        #keep {
+          border-style: dashed;
+          border-color: var(--line-strong);
+        }
+
 
         /* Over the sheet's foot (its adds), taking no room: the sheet, as tall as what it holds, would grow under the
            finger that picked a row by holding it. */
@@ -5211,13 +5266,18 @@
 
         /* The grid: one chart a row (two on a phone on its side), as on a wide screen, legends and all. */
         .home-grid {
-          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-          gap: 10px;
+          gap: 14px;
           margin-top: 18px;
         }
 
+        .grid-tiles {
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 10px;
+        }
+
         .home-scroll {
-          padding: calc(24px + env(safe-area-inset-top)) 12px 96px;
+          --home-top: calc(24px + env(safe-area-inset-top));
+          padding: var(--home-top) 12px 96px;
         }
 
         :is(.empty-inner, .home-inner) > h1 + p {
@@ -5297,9 +5357,18 @@
 
       @media (hover: none) {
         :is(.chart-row, .folder-row) .chart-more,
-        .grid-folder .cap,
-        .new-chart #new-folder {
+        .grid-folder .cap {
           opacity: 1;
+        }
+
+        /* (Its ⋯ always there: the count beside it, the name short of both.) */
+        .folder-row .folder-count {
+          right: 33px;
+          visibility: visible !important;
+        }
+
+        .folder-row .folder-item {
+          padding-right: 58px;
         }
 
         .nav-item[data-action="shortcuts"] {
@@ -5381,7 +5450,7 @@
             <input id="title" class="title" aria-label="Chart title" placeholder="Untitled chart" maxlength="120" spellcheck="false" autocomplete="off" />
           </div>
           <div class="head-actions">
-            <span id="preview-note" class="preview-note" hidden><span>Preview</span><button id="keep" class="btn ghost small" type="button" data-tip="Into your charts as it is (a change keeps it too)">Keep</button></span>
+            <span id="preview-note" class="preview-note" hidden><span class="preview-pill" data-tip="Not in your charts: a change, or Keep, adds it">Preview</span><button id="keep" class="btn small" type="button" data-tip="Into your charts as it is">Keep</button></span>
             <span id="saved" class="saved"></span>
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo"></button>
@@ -5436,7 +5505,7 @@
 
           <!-- On a phone, under the layers' sheet (in the card's own layering, as the sheet is), over all else. -->
           <div id="scrim" class="scrim" data-action="close-sheet"></div>
-          <aside id="panel" class="panel" aria-label="This chart">
+          <aside id="panel" class="panel" aria-label="This chart" tabindex="-1">
             <section id="layers-view" class="panel-view" aria-label="Layers">
               <div class="panel-head">
                 <h2>Layers <span id="layer-count" class="count"></span></h2>
@@ -5688,6 +5757,7 @@
         link: svg('<path d="M9.5 2.5h4v4M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>', 14),
         trash: svg('<path d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6"/>', 14),
         folder: svg('<path d="M1.5 4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z"/>', 15),
+        folderOut: svg('<path d="M1.5 4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z"/><path d="M8 11.2V7M6.2 8.8 8 7l1.8 1.8"/>', 15),
         folderAdd: svg('<path d="M1.5 4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z"/><path d="M8 7v4M6 9h4"/>', 15),
         series: svg('<path d="M1.5 12.5 6 7l3 3 5.5-6.5"/>', 15),
         recent: svg('<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>', 15),
@@ -6820,9 +6890,15 @@
           } catch {}
         },
       };
-      /** @type {{ charts: Chart[], active: string, folders: Folder[] }} */
+      /**
+       * The charts, their folders, and the sidebar's own order: its top level, folders and the charts in none, as arranged
+       * ("f:" a folder's id, "c:" a chart's; see sideItems).
+       * @type {{ charts: Chart[], active: string, folders: Folder[], order: string[] }}
+       */
       let library = storage.get(STORE, null);
-      if (!Array.isArray(library?.charts)) library = { charts: [], active: "", folders: [] };
+      if (!Array.isArray(library?.charts)) library = { charts: [], active: "", folders: [], order: [] };
+      /** The sidebar's order as stored, read: its keys, once each. */
+      const orderOf = (/** @type {any} */ stored) => [...new Set((Array.isArray(stored) ? stored : []).filter((key) => typeof key === "string" && /^[fc]:[a-z0-9]{1,16}$/.test(key)))];
       /** Saved charts this version couldn't read, kept aside as they were: never lost to the next save. */
       const UNREAD = "bitview-studio:unread";
       /** A stored chart, validated like any import but keeping its identity; throws if it isn't one. @returns {Chart} */
@@ -6885,13 +6961,14 @@
         }
       }
       library.folders = foldersOf(library.folders, library.charts);
+      library.order = orderOf(library.order);
       /**
-       * The chart open as a preview, if it is (`previewing`): one opened from the website's charts, from a link, or new, not in the list
-       * yet. Looked at (zoomed, its range), it stays one; changed (or kept), it's yours, first in the list; left for another
-       * chart, untouched, it goes. This tab keeps it for a reload; others don't see it. @type {Chart | null}
+       * The preview, if there's one (`previewing`): a chart opened from the website's charts, from a link, or new, not in
+       * the list. Looked at (zoomed, its range), it stays one; changed (or kept), it's yours, first in the list. It waits,
+       * in its own place in the sidebar, while other charts open: another preview takes its place, its × closes it (an
+       * empty one, left, simply goes). This tab's only, until it's reloaded. @type {Chart | null}
        */
       let previewing = null;
-      const PREVIEWING = "bitview-studio:preview";
       /** A chart taken out of the list, if it's there (a preview isn't). */
       const unlist = (/** @type {Chart} */ doc) => {
         const at = library.charts.indexOf(doc);
@@ -6956,10 +7033,6 @@
       let announcing = false;
       function save(announce = false) {
         announcing ||= announce;
-        try {
-          if (previewing) sessionStorage.setItem(PREVIEWING, JSON.stringify(previewing));
-          else sessionStorage.removeItem(PREVIEWING);
-        } catch {}
         clearTimeout(saveTimer);
         saveTimer = setTimeout(() => {
           const announced = announcing;
@@ -7018,6 +7091,7 @@
         }
         library.charts = merged;
         library.folders = foldersOf(stored.folders, merged);
+        library.order = orderOf(stored.order);
         scheduleThumbs();
         if ($("palette").open) showPalette();
         if (current === chart) return renderCharts();
@@ -7187,7 +7261,8 @@
         saveView();
         // This tab's place, for a reload and for Back: the chart it shows now (a step from the grid stays one).
         if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ chart: doc.id }, "");
-        if (previewing && doc !== previewing) previewing = null;
+        // (An empty preview left has nothing to come back to.)
+        if (previewing && doc !== previewing && !previewing.layers.length && !previewing.title) previewing = null;
         chart = doc;
         library.active = doc.id;
         rememberViewed(doc.id);
@@ -7231,6 +7306,22 @@
           previewing = doc;
           openChart(doc);
         });
+      }
+      /**
+       * The preview let go of (its ×): open, the chart before it takes its place (under the grid too). The last chart there
+       * is has nowhere to go back to: no × then.
+       */
+      function closePreview() {
+        const was = previewing;
+        if (!was) return;
+        const back = chart === was ? previousChart() : chart;
+        if (!back) return;
+        const focused = Boolean(document.activeElement?.closest("[data-preview-row]"));
+        previewing = null;
+        if (chart === was) openChart(back);
+        save();
+        renderCharts();
+        if (focused) /** @type {HTMLElement | null} */ ($("chart-list").querySelector("[data-open-chart]"))?.focus();
       }
       /** The preview, the user's: first in the list, saved (`announce`: kept by the button, the "Saved" note says so). */
       function keepPreview(announce = true) {
@@ -7287,6 +7378,27 @@
         applyPanel();
       }
       applyPanel();
+      // A phone's sheet is modal: what's behind it (the tab bar too: it covers it) can't be reached, by Tab or a screen
+      // reader, while it's up; the focus goes into it, and back to what opened it when it closes.
+      {
+        let opener = /** @type {Element | null} */ (null);
+        const sheetModal = () => {
+          const open = phone.matches && document.body.dataset.sheet === "panel", panel = $("panel");
+          for (const element of [$("sidebar"), ...all$(".mobile-bar"), ...$("main").children, ...(/** @type {HTMLElement} */ (panel.parentElement)).children]) {
+            if (!element.contains(panel) && element.id !== "scrim") /** @type {HTMLElement} */ (element).inert = open;
+          }
+          if (open && !panel.contains(document.activeElement)) {
+            opener = document.activeElement;
+            panel.focus({ preventScroll: true });
+          } else if (!open && opener) {
+            const back = opener;
+            opener = null;
+            if ((panel.contains(document.activeElement) || document.activeElement === document.body) && back instanceof HTMLElement && back.isConnected) back.focus({ preventScroll: true });
+          }
+        };
+        new MutationObserver(sheetModal).observe(document.body, { attributes: true, attributeFilter: ["data-sheet"] });
+        phone.addEventListener("change", sheetModal);
+      }
       function toggleSidebar() {
         prefs.sidebar = prefs.sidebar === "collapsed" ? "expanded" : "collapsed";
         savePrefs();
@@ -7404,7 +7516,11 @@
         };
         // Pointed at: its spin speeds up over RAMP to MAX (turns a second); HOLD more at that, and it mines.
         const RAMP = 3, MAX = 1.5, HOLD = 1, brand = /** @type {HTMLElement} */ (document.querySelector(".brand"));
-        let pointed = false, since = 0, yaw = REST, spin = 0, last = 0, mining = false, drawn = "", at = "";
+        let pointed = false, since = 0, yaw = REST, spin = 0, last = 0, mining = false, found = false, drawn = "", at = "";
+        // The glass: full while it turns (a box, turning, reads as one); at rest, it empties and fills again, from full.
+        let fill = 1, cycleAt = 0;
+        /** The mark at rest, by its fill (in 240ths): drawn once each, the idle loop then costs nothing. */
+        const restPaths = new Map();
         brand.addEventListener("pointerenter", (event) => {
           if (event.pointerType !== "mouse" || pointed) return;
           pointed = true;
@@ -7418,29 +7534,43 @@
           if (phone.matches) return void requestAnimationFrame((next) => ((last = next), frame(next)));
           const dt = Math.min(0.05, (now - (last || now)) / 1000);
           last = now;
-          if (pointed && !mining) {
+          if (found) {
+            // Found: stopped dead, square.
+            spin = 0;
+            yaw = squared();
+          } else if (mining) spin = 2 * Math.PI * MAX;
+          else if (pointed) {
             const held = (now - since) / 1000;
             spin = 2 * Math.PI * MAX * Math.min(1, held / RAMP) ** 2;
             if (held > RAMP + HOLD) {
               mining = true;
               mine().then(() => {
-                mining = false;
+                found = mining = false;
                 since = performance.now();
               });
             }
           } else {
-            // Let go of (or mining): the spin winds down, then it eases square.
+            // Let go of: the spin winds down, then it eases square.
             spin *= Math.exp(-dt * 4);
             if (spin < 0.6) {
               spin = 0;
               yaw += (squared() - yaw) * Math.min(1, dt * 7);
+              if (Math.abs(squared() - yaw) < 1e-4) yaw = squared();
             }
           }
           yaw += spin * dt;
-          const fill = fillAt(now / 1000);
-          if (`${fill} ${yaw}` !== at) {
-            at = `${fill} ${yaw}`;
-            const d = draw(fill, yaw);
+          const still = !pointed && !mining && !spin && yaw === squared();
+          if (!still) cycleAt = now;
+          const wanted = still ? fillAt((now - cycleAt) / 1000) : 1;
+          fill = still && fill === 1 ? wanted : Math.abs(wanted - fill) < 0.002 ? wanted : fill + (wanted - fill) * Math.min(1, dt * 12);
+          const key = still ? `r${Math.round(fill * 240)}` : `${fill} ${yaw}`;
+          if (key !== at) {
+            at = key;
+            let d = still ? restPaths.get(key) : undefined;
+            if (d === undefined) {
+              d = still ? draw(Math.round(fill * 240) / 240, REST) : draw(fill, yaw);
+              if (still) restPaths.set(key, d);
+            }
             if (d !== drawn) path.setAttribute("d", (drawn = d));
           }
           requestAnimationFrame(frame);
@@ -7448,74 +7578,53 @@
         requestAnimationFrame(frame);
 
         /**
-         * It mines: pressed, five blocks come out of it in a chain (along the name, which steps aside; on the rail, down),
-         * linked one to the next; each lights in turn, as confirmed; they go back in, the last first, and the cube is back,
-         * popped. Resolves once it's back.
+         * It mines: at full speed, the name turns into hashes being tried, more of their leading zeros found as it goes;
+         * then one's found: the cube stops dead, square, and pops, a ring going out from it; the name says the block (the
+         * next one's height), and comes back. On the rail, the cube alone. Resolves once it's back.
          */
         function mine() {
           const logo = /** @type {HTMLElement} */ (brand.querySelector(".logo")), name = /** @type {HTMLElement} */ (brand.querySelector(".brand-name"));
-          const down = document.body.dataset.sidebar === "collapsed", step = 22, n = 5, glyph = `<svg viewBox="-0.63 -0.7311 1.26 1.4622"><path fill="oklch(64.34% 0.191 44.41)" fill-rule="evenodd" d="${draw(1, REST)}"/></svg>`;
-          const egg = document.createElement("span");
-          egg.className = `egg${down ? " down" : ""}`;
-          egg.setAttribute("aria-hidden", "true");
-          // (Each link in its gap: from the cube to the first block, then from one to the next.)
-          const place = (/** @type {number} */ i) => 6 + (i + 1) * step;
-          egg.innerHTML = Array.from({ length: n }, (_, i) => `<i class="egg-link" style="${down ? "top" : "left"}: ${i ? place(i - 1) + 19.5 : 23}px; ${down ? "height" : "width"}: ${i ? 7 : 10}px"></i><i class="egg-block">${glyph}</i>`).join("");
-          logo.append(egg);
-          const blocks = all$(".egg-block", egg), links = all$(".egg-link", egg);
-          const aside = down ? /** @type {HTMLElement[]} */ ([.../** @type {HTMLElement} */ (brand.parentElement).children]).filter((element) => element !== brand) : [name];
-          for (const element of aside) element.inert = true;
-          const along = (/** @type {number} */ k) => (down ? `translateY(${k}px)` : `translateX(${k}px)`);
-          const ease = "cubic-bezier(0.32, 0.72, 0, 1)", back = "cubic-bezier(0.55, 0, 0.75, 0.3)";
-          const runs = [
-            // (What the chain passes over steps aside: the name; on the rail, all under the mark, out of reach meanwhile.)
-            ...aside.map((element) => element.animate([{ opacity: 1 }, { opacity: 0, offset: 0.12 }, { opacity: 0, offset: 0.86 }, { opacity: 1 }], { duration: 3000, easing: "linear" })),
-            ...blocks.flatMap((block, i) => {
-              const out = place(i), leave = 260 + i * 90, light = 1250 + i * 120, home = 2050 + (n - 1 - i) * 70;
-              return [
-                // (Each step its own easing: out easing out, back easing in; the whole, at an even pace.)
-                block.animate([
-                  { transform: `${along(0)} scale(0.3)`, opacity: 0, offset: 0 },
-                  { transform: `${along(0)} scale(0.3)`, opacity: 0, offset: leave / 3000, easing: ease },
-                  { transform: `${along(out)} scale(1)`, opacity: 1, offset: (leave + 520) / 3000 },
-                  { transform: `${along(out)} scale(1)`, opacity: 1, offset: home / 3000, easing: back },
-                  { transform: `${along(0)} scale(0.3)`, opacity: 0, offset: (home + 420) / 3000 },
-                  { transform: `${along(0)} scale(0.3)`, opacity: 0, offset: 1 },
-                ], { duration: 3000 }),
-                block.animate([
-                  { filter: "brightness(1)", offset: 0 },
-                  { filter: "brightness(1)", offset: light / 3000 },
-                  { filter: "brightness(1.9)", offset: (light + 110) / 3000 },
-                  { filter: "brightness(1)", offset: (light + 360) / 3000 },
-                  { filter: "brightness(1)", offset: 1 },
-                ], { duration: 3000 }),
-              ];
-            }),
-            ...links.map((link, i) => {
-              const grow = 600 + i * 90, gone = 2000 + (n - 1 - i) * 70;
-              const length = (/** @type {number} */ k) => (down ? `scale(1, ${k})` : `scale(${k}, 1)`);
-              return link.animate([
-                { transform: length(0), opacity: 0, offset: 0 },
-                { transform: length(0), opacity: 0, offset: grow / 3000, easing: ease },
-                { transform: length(1), opacity: 1, offset: (grow + 260) / 3000 },
-                { transform: length(1), opacity: 1, offset: gone / 3000, easing: back },
-                { transform: length(0), opacity: 0, offset: (gone + 200) / 3000 },
-                { transform: length(0), opacity: 0, offset: 1 },
-              ], { duration: 3000 });
-            }),
-          ];
-          // Pressed as it begins; back, it pops, as a block found (one animation: two would fight over its transform).
-          const pop = logo.animate([
-            { transform: "scale(1)", offset: 0, easing: "ease-out" },
-            { transform: "scale(0.82, 0.74)", offset: 210 / 3200, easing: "ease-in-out" },
-            { transform: "scale(1)", offset: 420 / 3200 },
-            { transform: "scale(1)", offset: 2550 / 3200, easing: "ease-out" },
-            { transform: "scale(1.18)", offset: 2800 / 3200, easing: "ease-in-out" },
-            { transform: "scale(1)", offset: 1 },
-          ], { duration: 3200 });
-          return Promise.all([...runs, pop].map((run) => run.finished.catch(() => {}))).then(() => {
-            egg.remove();
-            for (const element of aside) element.inert = false;
+          const named = document.body.dataset.sidebar !== "collapsed", original = name.innerHTML, GRIND = 1500, HOLDING = 1700, LENGTH = 14, ZEROS = 8;
+          const hex = () => "0123456789abcdef"[Math.floor(Math.random() * 16)];
+          let tick = 0;
+          if (named) {
+            // (The hashes in the name's own room; its name, to a screen reader, the same throughout.)
+            name.style.width = `${name.offsetWidth}px`;
+            brand.setAttribute("aria-label", name.textContent ?? "");
+          }
+          const grind = (/** @type {number} */ now) => {
+            if (found || !named) return;
+            const share = Math.min(1, (now - start) / GRIND), zeros = Math.floor(share * ZEROS);
+            if (now - tick > 45) {
+              tick = now;
+              name.innerHTML = `<span class="hash"><b>${"0".repeat(zeros)}</b>${Array.from({ length: LENGTH - zeros }, hex).join("")}</span>`;
+            }
+            requestAnimationFrame(grind);
+          };
+          const start = performance.now();
+          requestAnimationFrame(grind);
+          return new Promise((done) => setTimeout(done, GRIND)).then(() => {
+            found = true;
+            // (The block's own width: nothing's beside the name to move.)
+            if (named) {
+              name.style.width = "";
+              name.innerHTML = `<span class="found">${liveHeight ? `Block ${grouped.format(liveHeight + 1)}` : "Block found"}</span>`;
+            }
+            const ring = document.createElement("i");
+            ring.className = "mined-ring";
+            logo.append(ring);
+            const runs = [
+              logo.animate([{ transform: "scale(1)", filter: "brightness(1.9)", easing: "cubic-bezier(0.2, 0.9, 0.3, 1.4)" }, { transform: "scale(1.22)", filter: "brightness(1.4)", offset: 0.35, easing: "ease-in-out" }, { transform: "scale(1)", filter: "brightness(1)" }], { duration: 650 }),
+              ring.animate([{ transform: "scale(0.7)", opacity: 0.9 }, { transform: "scale(2.3)", opacity: 0 }], { duration: 800, easing: "cubic-bezier(0.2, 0.7, 0.3, 1)" }),
+              ...(named ? [/** @type {HTMLElement} */ (name.firstElementChild).animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], { duration: 220, easing: "ease-out" })] : []),
+            ];
+            return Promise.all(runs.map((run) => run.finished.catch(() => {}))).then(() => new Promise((done) => setTimeout(done, HOLDING - 650)));
+          }).then(() => {
+            logo.querySelector(".mined-ring")?.remove();
+            if (!named) return;
+            name.innerHTML = original;
+            brand.removeAttribute("aria-label");
+            return name.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease-out" }).finished.catch(() => {});
           });
         }
       }
@@ -8734,8 +8843,27 @@
         return { up: to === from ? null : ratio ? ratio.up : delta > 0, text: ratio ? ratio.text : amount(delta, unit), from: fromTime, to: toTime };
       }
       const chipText = (change) => `${change.up === null ? "" : change.up ? "↑ " : "↓ "}${change.text}`;
-      /** The windows of the view now, by layer and unit: read many times a move, scanned once. */
+      /** The windows of the view now, by layer and unit: read many times a move, found once. */
       let windows = { data: /** @type {Resolved | null} */ (null), view: "", by: new Map() };
+      /**
+       * A vector read once for every window over it: where its first value is, its first non-zero one, and the negatives
+       * up to each point (a span has some if the counts at its ends differ). @type {WeakMap<object, { first: number, nonZero: number, below: Int32Array }>}
+       */
+      const scans = new WeakMap();
+      function scanOf(/** @type {ArrayLike<number>} */ values) {
+        let scan = scans.get(values);
+        if (scan) return scan;
+        const n = values.length, below = new Int32Array(n + 1);
+        let first = n, nonZero = n;
+        for (let i = 0; i < n; i++) {
+          const value = values[i], finite = Number.isFinite(value);
+          if (finite && first === n) first = i;
+          if (finite && value && nonZero === n) nonZero = i;
+          below[i + 1] = below[i] + (finite && value < 0 ? 1 : 0);
+        }
+        scans.set(values, (scan = { first, nonZero, below }));
+        return scan;
+      }
       /**
        * What a layer's changes in this view are measured from: its first value in view, and, when the series stays
        * positive across the view, relatively from its first non-zero one (price before 2010 starts at zero).
@@ -8749,17 +8877,16 @@
         if (windows.data !== resolved || windows.view !== `${first}:${last}`) windows = { data: resolved, view: `${first}:${last}`, by: new Map() };
         const key = `${layer.id}:${unit}`;
         if (windows.by.has(key)) return windows.by.get(key);
-        let a = first;
+        const scan = scanOf(values);
+        let a = Math.min(Math.max(first, scan.first), last);
         while (a < last && !Number.isFinite(values[a])) a++;
         let found = null;
         if (Number.isFinite(values[a])) {
-          let base = a, lo = Infinity, hi = -Infinity;
+          let base = Math.min(Math.max(a, scan.nonZero), last);
           while (base < last && !values[base]) base++;
-          for (let i = a; i <= last; i++) if (Number.isFinite(values[i])) {
-            if (values[i] < lo) lo = values[i];
-            if (values[i] > hi) hi = values[i];
-          }
-          found = { values, a, base, last, lo, hi, unit, relative: unit !== "percent" && lo >= 0 && values[base] > 0 };
+          const negative = scan.below[last + 1] > scan.below[a];
+          // (Its lowest and highest, for a chip's room, read once the view rests: see extremes.)
+          found = { values, a, base, last, lo: NaN, hi: NaN, unit, relative: unit !== "percent" && !negative && values[base] > 0 };
         }
         windows.by.set(key, found);
         return found;
@@ -8866,15 +8993,30 @@
       function chipSlot(layer) {
         const span = changeWindow(layer);
         if (!span) return 0;
-        const { values, a, base, last, lo, hi, relative, unit } = span;
-        const key = `chip:${layer.id}:${unit}:${a}:${last}`, measured = slotsNow();
+        const key = `chip:${layer.id}:${span.unit}:${span.a}:${span.last}`, measured = slotsNow();
         if (measured.has(key)) return /** @type {number} */ (measured.get(key));
+        const { values, a, base, lo, hi, relative, unit } = extremes(span);
         const from = values[relative ? base : a];
         const texts = [lo, hi].map((to) => chipText(change(from, to, relative, unit)));
         if (relative) texts.push("↓ 00.0%", "↑ 00.0%", "↑ 000%");
         const width = widest(texts, 510, 10.5) + 8;
         measured.set(key, width);
         return width;
+      }
+
+      /** A window's lowest and highest values, scanned the first time they're asked for. @template {{ values: ArrayLike<number>, a: number, last: number, lo: number, hi: number }} T @param {T} span @returns {T} */
+      function extremes(span) {
+        if (!Number.isNaN(span.lo)) return span;
+        let lo = Infinity, hi = -Infinity;
+        for (let i = span.a; i <= span.last; i++) {
+          const value = span.values[i];
+          if (!Number.isFinite(value)) continue;
+          if (value < lo) lo = value;
+          if (value > hi) hi = value;
+        }
+        span.lo = lo;
+        span.hi = hi;
+        return span;
       }
 
       // ── Navigator: the whole history, and the window being shown ──────────────
@@ -8918,6 +9060,13 @@
       let overviewMarks = [];
       /** The screen's density the overview was drawn at (the navigator is painted at it; a new one draws it again). */
       let overviewRatio = 1;
+      /** Live prices laid on the data so far (the overview's shape is drawn again for each). */
+      let liveMoves = 0;
+      /**
+       * The overview's shape, kept while its series, scale, width and the live price are the same: its points (each
+       * column's mean) and their range. A morph's frames, a relayout, only place them. @type {{ key: string, n: number, lo: number, hi: number, points: [number, number][] }}
+       */
+      let overviewShape = { key: "", n: 0, lo: NaN, hi: NaN, points: [] };
       function drawOverview() {
         const canvas = overviewBase;
         const rect = $("overview").getBoundingClientRect();
@@ -8929,15 +9078,25 @@
         overviewMarks = [];
         const source = overviewSource();
         if (source && source.values.length > 1) {
-          const scaled = Array.from(source.values, (value) => (Number.isFinite(value) && (!source.log || value > 0) ? (source.log ? Math.log10(value) : value) : NaN));
-          let lo = Infinity, hi = -Infinity;
-          for (const value of scaled) if (Number.isFinite(value)) {
-            lo = Math.min(lo, value);
-            hi = Math.max(hi, value);
+          const key = `${idOf(source.values)}:${source.log}:${canvas.width}:${liveMoves}`;
+          if (overviewShape.key !== key) {
+            const scaled = Array.from(source.values, (value) => (Number.isFinite(value) && (!source.log || value > 0) ? (source.log ? Math.log10(value) : value) : NaN));
+            let lo = Infinity, hi = -Infinity;
+            for (const value of scaled) if (Number.isFinite(value)) {
+              lo = Math.min(lo, value);
+              hi = Math.max(hi, value);
+            }
+            // The shape: smooth (each pixel's column its mean: a sketch of the series, not its noise). (A few points in
+            // one column, a mean is one point, no line: their lowest and highest then.)
+            let points = meansOf(scaled, canvas.width);
+            if (points.length < 2) points = columnsOf(scaled, canvas.width);
+            overviewShape = { key, n: scaled.length, lo, hi, points };
           }
+          let { lo, hi } = overviewShape;
+          const points = overviewShape.points;
           if (Number.isFinite(lo)) {
             // The shape over the strip's whole height (its labels drawn over it, haloed).
-            const span = overviewSpan(scaled.length), w = canvas.width, h = canvas.height, top = 4 * ratio, band = 3 * ratio;
+            const span = overviewSpan(overviewShape.n), w = canvas.width, h = canvas.height, top = 4 * ratio, band = 3 * ratio;
             overviewScale = { lo, hi };
             // On its way: from the old scale too.
             if (morphFrom && span.t < 1 && Number.isFinite(morphFrom.lo)) (lo = morphFrom.lo + (lo - morphFrom.lo) * span.t), (hi = morphFrom.hi + (hi - morphFrom.hi) * span.t);
@@ -8957,10 +9116,7 @@
               const before = overviewMarks[overviewMarks.length - 1];
               if (!before || mark.x - mark.width / 2 >= before.x + before.width / 2 + 8 * ratio) overviewMarks.push(mark);
             }
-            // The shape: a line over a filled body, smooth (each pixel's column its mean: a sketch of the series, not its noise).
-            // (A few points in one column, a mean is one point, no line: their lowest and highest then.)
-            let points = meansOf(scaled, w);
-            if (points.length < 2) points = columnsOf(scaled, w);
+            // The shape: a line over a filled body.
             context.beginPath();
             for (const [i, value] of points) context.lineTo(x(i), y(value));
             context.strokeStyle = alpha(color, 0.85);
@@ -10152,12 +10308,14 @@
         if (!ids.length) return;
         commit((doc) => doc.drawings?.forEach((drawing) => ids.includes(drawing.id) && apply(drawing)), { redraw: "none", keepMenu, ...(coalesce ? { coalesce: `${coalesce}:${ids.join()}` } : {}) });
       }
+      /** Where the belt's popovers open: toward the chart, away from the edge it's docked on (each the same way). */
+      const beltSide = () => ({ bottom: "above", top: "below", left: "right", right: "left" })[prefs.belt.dock] ?? "";
       /** A choice from a belt button's popover, as the layers panel makes it (its tabs, its slider); focus back on the button. */
       function beltPopover(/** @type {HTMLElement} */ button, /** @type {string} */ title, /** @type {string} */ body, onPick) {
         showMenu(button, `<div class="field belt-pop"><span>${title}</span>${body}</div>`, (data) => {
           onPick(data);
           refocus(`#${button.id}`);
-        });
+        }, null, beltSide());
       }
       /** A row of tabs, as the layers panel's. */
       const beltTabs = (/** @type {string} */ label, /** @type {string[]} */ items) => `<div class="tabs ${items.some((item) => item.includes("<svg")) ? "glyphs" : ""}" role="group" aria-label="${label}">${items.join("")}</div>`;
@@ -10180,7 +10338,10 @@
         }
         if (part === "label" && drawing) return startLabel(drawing);
         // (Bitview's colors as a grid of swatches, not the layers panel's named list: picked often, at a glance.)
-        if (part === "color") beltPopover(button, "Color", `<div class="swatch-grid">${SWATCHES.map((color) => `<button type="button" data-pick-color="${escape(color)}" aria-checked="${look.color === color}" aria-label="${escape(colorName(color))}" data-tip="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`, ({ pickColor }) => pickColor && setLook("color", pickColor));
+        if (part === "color") colorPopover(button, look.color, "pen", (color) => {
+          setLook("color", color);
+          refocus(`#${button.id}`);
+        });
         else if (part === "width" || part === "opacity") {
           beltPopover(button, part === "width" ? "Width" : "Opacity", slider(`draw-${part}`, look), () => {});
           $(`draw-${part}`)?.focus();
@@ -10190,15 +10351,15 @@
         else if (part === "duplicate") duplicateDrawings(drawings);
         else if (part === "remove") removeDrawings(drawings);
       });
-      // A grid of swatches: the arrows go across it and up and down it (before the menu's own, which go down a list).
-      $("menu").addEventListener("keydown", (event) => {
-        const grid = /** @type {HTMLElement | null} */ (event.target.closest?.(".swatch-grid"));
+      // A grid of swatches: the arrows go across it and up and down it (in a menu, before its own, which go down a list).
+      document.addEventListener("keydown", (event) => {
+        const target = /** @type {HTMLElement} */ (event.target), grid = /** @type {HTMLElement | null} */ (target.closest?.(".swatch-grid"));
         const step = grid && { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -1, ArrowDown: 1 }[event.key];
         if (!grid || !step) return;
         event.preventDefault();
         event.stopPropagation();
         // (At its edge, an arrow stays.)
-        const swatches = all$("button", grid), at = swatches.indexOf(event.target), columns = getComputedStyle(grid).gridTemplateColumns.split(" ").length;
+        const swatches = all$("button", grid), at = swatches.indexOf(target), columns = getComputedStyle(grid).gridTemplateColumns.split(" ").length;
         swatches[at + step * (event.key === "ArrowUp" || event.key === "ArrowDown" ? columns : 1)]?.focus();
       }, true);
       // The width's or the opacity's slider, in its popover: scrubbed or stepped by keys as the layers panel's, one undo
@@ -10793,10 +10954,11 @@
        * @param {Chart} doc @param {{ results: Map<string, any> }} data
        * @returns {Map<string, { values: Float64Array, under: Float64Array, scale: Float64Array | null }>} by layer
        */
-      function stackOf(doc, data) {
+      function stackOf(doc, data, kept = true) {
         // The open chart's, kept while what they're made of is the same (the stacked panes, their layers, places and values):
-        // an edit elsewhere (a color, a width) finds the same totals, and their series aren't set again.
-        const key = doc.id === chart?.id ? doc.panes.filter((pane) => pane.stack).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
+        // an edit elsewhere (a color, a width) finds the same totals, and their series aren't set again. (Its marks' own,
+        // from other data, aren't kept: `kept` false.)
+        const key = kept && doc.id === chart?.id ? doc.panes.filter((pane) => pane.stack).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
           const shown = data.results.get(layer.id)?.shown;
           return `${layer.id}.${layer.side}.${layer.hidden ? 0 : 1}.${shown ? idOf(shown) : "-"}`;
         }).join()}`).join("|") : "";
@@ -10969,10 +11131,13 @@
         const data = await resolve({ ...doc, index });
         if (retryFailed(doc, data, index)) return null;
         /** @type {Map<string, ReturnType<typeof shapeOf>>} */
-        const shapes = new Map();
+        // (The chart's lines as it draws them, stacked; each layer's own mark, its own values.)
+        const shapes = new Map(), own = new Map(), stacked = stackOf(doc, data, false);
         for (const layer of doc.layers) {
-          const values = data.results.get(layer.id)?.shown;
-          if (values) shapes.set(layer.id, shapeOf(values, modeOf(doc, layer), layer.type === "histogram" && modeOf(doc, layer) === 0, layer.base ?? 0));
+          const values = data.results.get(layer.id)?.shown, high = stacked.get(layer.id)?.values, bars = layer.type === "histogram" && modeOf(doc, layer) === 0;
+          if (!values) continue;
+          own.set(layer.id, shapeOf(values, modeOf(doc, layer), bars, layer.base ?? 0));
+          shapes.set(layer.id, high ? shapeOf(high, modeOf(doc, layer), bars, layer.base ?? 0) : own.get(layer.id));
         }
         // Up to three lines, first pane first; each pane with one gets a band as tall as on the chart.
         const groups = [];
@@ -10986,7 +11151,7 @@
         const total = groups.reduce((sum, group) => sum + group.size, 0);
         const lines = [];
         let top = 1;
-        for (const { size, layers } of groups) {
+        for (const { pane, size, layers } of groups) {
           const height = size / total, gap = groups.length > 1 ? Math.min(0.08, height * 0.25) : 0;
           const band = { bottom: top - height + gap / 2, height: height - gap };
           top -= height;
@@ -10994,7 +11159,8 @@
           for (const side of ["left", "right"]) {
             const on = layers.filter((layer) => layer.side === side).map((layer) => ({ layer, shape: shapes.get(layer.id) }));
             // Bars' base is in their scale, as on the chart.
-            const bases = on.filter(({ layer }) => layer.type === "histogram" && modeOf(doc, layer) === 0).map(({ layer, shape }) => shape.scale(layer.base ?? 0)).filter(Number.isFinite);
+            // (A stack's, its foot too, on a linear scale: one layer alone, a 100% one, is a line at its top.)
+            const bases = on.filter(({ layer }) => (layer.type === "histogram" || pane.stack) && modeOf(doc, layer) === 0).map(({ layer, shape }) => shape.scale(pane.stack ? 0 : layer.base ?? 0)).filter(Number.isFinite);
             const lo = Math.min(...on.map(({ shape }) => shape.lo), ...bases), hi = Math.max(...on.map(({ shape }) => shape.hi), ...bases);
             if (!Number.isFinite(lo)) continue;
             for (const { layer, shape } of on) {
@@ -11010,7 +11176,7 @@
         }
         // Each layer alone fills its own mark; a baseline's and bars' with their base.
         const marks = /** @type {Record<string, (number | null)[]>} */ ({}), bases = /** @type {Record<string, number>} */ ({});
-        for (const [id, { points, scale }] of shapes) {
+        for (const [id, { points, scale }] of own) {
           const there = points.filter((value) => value !== null);
           if (there.length < 2) continue;
           const layer = doc.layers.find((item) => item.id === id), level = layer && PAIRS[layer.type] ? scale(layer.base ?? 0) : NaN;
@@ -11375,22 +11541,27 @@
       const drawnTiles = new Map();
       let drawnLayout = "";
       /**
-       * The grid's sections: with folders (and no filter), each folder (its charts, none while closed), then those in none;
-       * else, one, unnamed (`folder` undefined): the charts as they're found. `folder` null: those in none.
+       * The grid's sections, in the sidebar's order: each folder (its charts, none while closed), and each run of charts in
+       * none between them (`folder` null); filtered, one (`folder` undefined): the charts as they're found.
        * @returns {{ folder: Folder | null | undefined, docs: Chart[], count: number }[]}
        */
       function sectionsOf(/** @type {Chart[]} */ shown, /** @type {string} */ query) {
-        if (query || !library.folders.length) return [{ folder: undefined, docs: shown, count: shown.length }];
-        const loose = shown.filter((doc) => !doc.folder);
-        return [
-          ...library.folders.map((folder) => ((docs) => ({ folder, docs: folder.closed ? [] : docs, count: docs.length }))(shown.filter((doc) => doc.folder === folder.id))),
-          ...(loose.length ? [{ folder: null, docs: loose, count: loose.length }] : []),
-        ];
+        if (query) return [{ folder: undefined, docs: shown, count: shown.length }];
+        const seen = new Set(shown), sections = /** @type {{ folder: Folder | null | undefined, docs: Chart[], count: number }[]} */ ([]);
+        for (const item of sideItems()) {
+          if (!("layers" in item)) {
+            const docs = shown.filter((doc) => doc.folder === item.id);
+            sections.push({ folder: item, docs: item.closed ? [] : docs, count: docs.length });
+          } else if (seen.has(item)) {
+            const run = sections.at(-1);
+            if (run?.folder === null) run.docs.push(item), run.count++;
+            else sections.push({ folder: null, docs: [item], count: 1 });
+          }
+        }
+        return sections;
       }
-      /** A section's head: a folder's (opened or closed, its menu), or those in none's. */
-      const gridHeadHtml = (/** @type {Folder | null} */ folder, /** @type {number} */ count) => (folder
-        ? `<div class="grid-folder ${folder.closed ? "closed" : ""}" data-grid-folder="${folder.id}"><button type="button" class="grid-folder-toggle" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}">${CHEVRON}<span class="name">${escape(folder.name)}</span><span class="folder-count">${count}</span></button><button type="button" class="cap small" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button></div>`
-        : `<div class="grid-folder loose" data-grid-folder=""><span class="name">Charts</span><span class="folder-count">${count}</span></div>`);
+      /** A folder's head in the grid: opened or closed, its menu. */
+      const gridHeadHtml = (/** @type {Folder} */ folder, /** @type {number} */ count) => `<div class="grid-folder ${folder.closed ? "closed" : ""}" data-grid-folder="${folder.id}"><button type="button" class="grid-folder-toggle" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}">${CHEVRON}<span class="name">${escape(folder.name)}</span><span class="folder-count">${count}</span></button><button type="button" class="cap small" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button></div>`;
       function renderHome() {
         if (!home) return;
         const shown = filtered(), query = $("home-filter").value.trim();
@@ -11410,7 +11581,9 @@
         } else {
           // (The focus, on a head or a tile, comes back to its like.)
           const focus = focusKey($("home-grid")), htmlOf = new Map(visible.map((doc, i) => [doc.id, html[i]]));
-          $("home-grid").innerHTML = sections.map(({ folder, docs, count }) => `${folder === undefined ? "" : gridHeadHtml(folder, count)}${docs.map((doc) => htmlOf.get(doc.id)).join("")}`).join("");
+          $("home-grid").innerHTML = sections.map(({ folder, docs, count }) => (folder
+            ? `<section class="grid-section folder">${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : ""}</section>`
+            : `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>`)).join("");
           restoreFocus($("home-grid"), focus);
         }
         drawnLayout = layout;
@@ -11511,8 +11684,8 @@
           unlist(doc);
           deletedHere.add(doc.id);
         }
-        // All of them gone (the open one with them), a blank preview stands in.
-        const open = chart, wasOpen = places.some(([, doc]) => doc === open), standIn = wasOpen && !library.charts.length ? blankChart() : null;
+        // All of them gone (the open one with them), the preview there is stands in, else a blank one.
+        const open = chart, wasOpen = places.some(([, doc]) => doc === open), standIn = wasOpen && !library.charts.length ? previewing ?? blankChart() : null;
         if (standIn) previewing = standIn;
         if (wasOpen) openChart(standIn ?? library.charts[Math.min(places[0][0], library.charts.length - 1)]);
         save();
@@ -11564,14 +11737,15 @@
       /** A tile's right-click: the bar's actions at the pointer, on the picks if it's one of them, else on it alone. */
       function tileMenu(id, point) {
         // (On a picked tile, it acts on every one picked; on another, on it alone: the picks stay as they are.)
-        const ids = picked.has(id) ? null : [id], n = ids ? 1 : picked.size;
+        const ids = picked.has(id) ? null : [id], n = ids ? 1 : picked.size, leave = outOf(ids ?? [...picked]);
         showMenu(/** @type {HTMLElement} */ (tileOpen(id)), `
           ${n === 1 ? `<button type="button" data-pick="open">${ICONS.charts}Open</button><button type="button" data-pick="rename">${ICONS.pencil}Rename</button>` : ""}
           <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate</button>
           <button type="button" data-pick="folder" aria-haspopup="menu">${ICONS.folder}Move to folder</button>
+          ${leave ? `<button type="button" data-pick="out">${ICONS.folderOut}${escape(leave)}</button>` : ""}
           <button type="button" data-pick="export">${ICONS.file}Download chart file</button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "open" ? go(chartById(id)) : action === "folder" ? folderMenu(/** @type {HTMLElement} */ (tileOpen(id)), ids ?? [...picked], point) : batch(action, null, ids)), point);
+          <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "open" ? go(chartById(id)) : action === "folder" ? folderMenu(/** @type {HTMLElement} */ (tileOpen(id)), ids ?? [...picked], point, false) : action === "out" ? moveToFolder(ids ?? [...picked], null) : batch(action, null, ids)), point);
       }
       $("home-bar").addEventListener("click", (event) => {
         const button = closest(event, "[data-batch]");
@@ -11882,17 +12056,18 @@
             <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
           </div>`)(keys.indexOf(doc));
         const list = [
-          ...(previewing ? [`<div class="chart-row preview ${previewing === current ? "active" : ""}" data-preview-row>
-            <button type="button" class="nav-item chart-item" data-open-chart="${previewing.id}" data-tip="${escape(titleOf(previewing))}: a preview, yours once changed (or kept)" ${previewing === current ? 'aria-current="page"' : ""}>${chartMark(previewing)}<span class="label">${escape(titleOf(previewing))}</span><span class="preview-tag">Preview</span></button>
-          </div>`] : []),
-          ...library.folders.map((folder) => {
-            const docs = library.charts.filter((doc) => doc.folder === folder.id), holds = Boolean(current && docs.includes(current));
+          ...(previewing ? [`<div class="preview-slot" data-preview-row><span class="preview-caption">Preview</span><div class="chart-row preview ${previewing === current ? "active" : ""}">
+            <button type="button" class="nav-item chart-item" data-open-chart="${previewing.id}" data-tip="${escape(titleOf(previewing))}: a preview, not in your charts (a change, or Keep, adds it)" ${previewing === current ? 'aria-current="page"' : ""}>${chartMark(previewing)}<span class="label">${escape(titleOf(previewing))}</span></button>
+            ${previewing !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" aria-label="Close the preview" data-tip="Close the preview">${ICONS.close}</button>` : ""}
+          </div></div>`] : []),
+          ...sideItems().map((item) => {
+            if ("layers" in item) return row(item);
+            const folder = item, docs = library.charts.filter((doc) => doc.folder === folder.id), holds = Boolean(current && docs.includes(current));
             return `<div class="folder-row ${folder.closed ? "closed" : ""} ${folder.closed && holds ? "holds" : ""}" data-folder-row="${folder.id}">
               <button type="button" class="nav-item folder-item" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${ICONS.folder}</span>${CHEVRON}<span class="label">${escape(folder.name)}</span><span class="folder-count">${docs.length}</span></button>
               <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button>
             </div>${folder.closed ? "" : docs.map(row).join("")}`;
           }),
-          ...library.charts.filter((doc) => !doc.folder).map(row),
         ].join("");
         if (list !== chartListShown) {
           const focus = focusKey($("chart-list"));
@@ -11911,8 +12086,30 @@
         else $("mobile-add").setAttribute("aria-haspopup", "menu");
         renderHome();
       }
-      /** The charts as the sidebar lists them: each folder's (in the library's order), then those in none. */
-      const listed = () => [...library.folders.flatMap((folder) => library.charts.filter((doc) => doc.folder === folder.id)), ...library.charts.filter((doc) => !doc.folder)];
+      /** A top-level item's key in the sidebar's order: a folder's, or a chart's in none. @param {Chart | Folder} item */
+      const sideKey = (item) => ("layers" in item ? `c:${item.id}` : `f:${item.id}`);
+      /**
+       * The sidebar's top level, in its order: folders and the charts in none, as arranged. One new to it: a folder, on
+       * top; a chart, after the one before it in the list (on top if none is: a new chart; a copy, after its own).
+       * @returns {(Chart | Folder)[]}
+       */
+      function sideItems() {
+        const loose = library.charts.filter((doc) => !doc.folder);
+        const byKey = new Map([...library.folders, ...loose].map((item) => [sideKey(item), item]));
+        const keys = library.order.filter((key) => byKey.has(key));
+        let after = -1;
+        for (const doc of loose) {
+          const at = keys.indexOf(`c:${doc.id}`);
+          if (at >= 0) after = at;
+          else keys.splice(++after, 0, `c:${doc.id}`);
+        }
+        keys.unshift(...library.folders.map(sideKey).filter((key) => !keys.includes(key)));
+        return keys.map((key) => /** @type {Chart | Folder} */ (byKey.get(key)));
+      }
+      /** The sidebar's top level in a new order. @param {(Chart | Folder)[]} items */
+      const setSide = (items) => (library.order = items.map(sideKey));
+      /** The charts as the sidebar lists them: in its order, a folder's in theirs. */
+      const listed = () => sideItems().flatMap((item) => ("layers" in item ? [item] : library.charts.filter((doc) => doc.folder === item.id)));
       const folderById = (/** @type {string | undefined} */ id) => library.folders.find((folder) => folder.id === id);
       /** The charts ⌘1–9 open: the first nine the sidebar shows (one in a closed folder, out of sight, out of reach). */
       const numbered = () => listed().filter((doc) => !folderById(doc.folder)?.closed).slice(0, 9);
@@ -11920,6 +12117,7 @@
       function newFolder(/** @type {string[]} */ ids = []) {
         const folder = /** @type {Folder} */ ({ id: uid(), name: "New folder" });
         library.folders.push(folder);
+        setSide([folder, ...sideItems().filter((item) => item !== folder)]);
         moveToFolder(ids, folder.id);
         save();
         renderCharts();
@@ -11981,36 +12179,59 @@
         save();
         renderCharts();
       });
-      /** A folder a place up or down among the folders. */
+      /** A folder a place up or down in the sidebar (past a chart, or another folder), gliding there. */
       function stepFolder(/** @type {string} */ id, /** @type {number} */ by) {
-        const at = library.folders.findIndex((folder) => folder.id === id), to = at + by;
-        if (at < 0 || to < 0 || to >= library.folders.length) return;
-        [library.folders[at], library.folders[to]] = [library.folders[to], library.folders[at]];
+        const folder = folderById(id);
+        if (folder) stepSide(folder, by);
+      }
+      /** A top-level item a place up or down in the sidebar's order. @param {Chart | Folder} item */
+      function stepSide(item, by) {
+        const items = sideItems(), at = items.indexOf(item), to = at + by;
+        if (at < 0 || to < 0 || to >= items.length) return;
+        [items[at], items[to]] = [items[to], items[at]];
+        arrange(() => setSide(items), sideKey(item));
+      }
+      /**
+       * The sidebar rearranged (`edit`), gliding: its rows from where they were to where they are (`moved`, the one moved,
+       * from `dropY`, where it was let go).
+       */
+      function arrange(/** @type {() => void} */ edit, /** @type {string} */ moved, /** @type {number | null} */ dropY = null) {
+        const rows = () => all$("[data-chart-row], [data-folder-row]", $("chart-list")), was = placesOf(rows(), sideId);
+        const row = rows().find((item) => sideId(item) === moved);
+        if (dropY !== null && row) was.set(moved, dropY - row.offsetHeight / 2);
+        edit();
         save();
         renderCharts();
+        slide(rows(), sideId, was, { moved });
       }
       /** A folder deleted: its charts kept (out of it, where they were), with an Undo. */
       function deleteFolder(/** @type {string} */ id) {
         const at = library.folders.findIndex((folder) => folder.id === id), folder = library.folders[at];
         if (!folder) return;
-        const members = library.charts.filter((doc) => doc.folder === id);
+        const members = library.charts.filter((doc) => doc.folder === id), keys = sideItems().map(sideKey);
         library.folders.splice(at, 1);
-        // (Its charts where it was, as near as can be: first among those in none, in their order.)
-        moveToFolder(members.map((doc) => doc.id), null);
+        // (Its charts where it was in the sidebar, in their order.)
+        for (const doc of members) delete doc.folder;
+        library.order = keys.flatMap((key) => (key === `f:${id}` ? members.map((doc) => `c:${doc.id}`) : [key]));
         save();
         renderCharts();
         toast(`Deleted “${folder.name}”${members.length ? `; its ${plural(members.length, "chart")} kept` : ""}`, { label: "Undo", run: () => {
           if (folderById(id)) return;
           library.folders.splice(Math.min(at, library.folders.length), 0, folder);
           for (const doc of members) if (library.charts.includes(doc) && !doc.folder) doc.folder = id;
+          library.order = keys;
           save();
           renderCharts();
         } });
       }
-      /** Charts moved into a folder (after its last), or out of any (`null`: before the first in none). */
+      /** Charts moved into a folder (after its last), or out of any (`null`: each just under the one it was in). */
       function moveToFolder(/** @type {string[]} */ ids, /** @type {string | null} */ id) {
         const moving = library.charts.filter((doc) => ids.includes(doc.id) && (doc.folder ?? null) !== id);
         if (!moving.length) return;
+        // (Out of one, each comes just under it in the sidebar, in their order.)
+        const keys = sideItems().map(sideKey);
+        if (!id) for (const doc of [...moving].reverse()) if (doc.folder) keys.splice(keys.indexOf(`f:${doc.folder}`) + 1, 0, `c:${doc.id}`);
+        library.order = keys;
         for (const doc of moving) {
           unlist(doc);
           if (id) doc.folder = id;
@@ -12022,13 +12243,22 @@
         save();
         renderCharts();
       }
-      /** Where charts can go: each folder (theirs checked), a new one, or out of theirs. @param {HTMLElement} anchor @param {string[]} ids */
-      function folderMenu(anchor, ids, point = undefined) {
-        const docs = library.charts.filter((doc) => ids.includes(doc.id)), within = new Set(docs.map((doc) => doc.folder ?? ""));
+      /** "Move out of" the folder charts are in (theirs, for charts in several), or "" for charts in none. @param {string[]} ids */
+      function outOf(ids) {
+        const within = new Set(library.charts.filter((doc) => ids.includes(doc.id) && doc.folder).map((doc) => doc.folder));
+        return !within.size ? "" : within.size === 1 ? `Move out of “${folderById([...within][0])?.name ?? ""}”` : "Move out of their folders";
+      }
+      /**
+       * Where charts can go: each folder (theirs checked), a new one; and out of theirs, where nothing else offers it
+       * (`out`: a chart's own menu has it beside Move to folder).
+       * @param {HTMLElement} anchor @param {string[]} ids
+       */
+      function folderMenu(anchor, ids, point = undefined, out = true) {
+        const docs = library.charts.filter((doc) => ids.includes(doc.id)), within = new Set(docs.map((doc) => doc.folder ?? "")), leave = out ? outOf(ids) : "";
         showMenu(anchor, `${library.folders.map((folder) => `<button type="button" data-pick="${folder.id}" aria-checked="${within.size === 1 && within.has(folder.id)}">${tick(within.size === 1 && within.has(folder.id))}${escape(folder.name)}</button>`).join("")}
           ${library.folders.length ? '<div class="menu-rule"></div>' : ""}
           <button type="button" data-pick="new">${ICONS.plus}New folder</button>
-          ${[...within].some(Boolean) ? `<button type="button" data-pick="out">${ICONS.folder}Out of ${within.size === 1 ? `“${escape(folderById([...within][0])?.name ?? "")}”` : "their folders"}</button>` : ""}`, ({ pick }) => {
+          ${leave ? `<button type="button" data-pick="out">${ICONS.folderOut}${escape(leave)}</button>` : ""}`, ({ pick }) => {
           if (pick === "new") return void newFolder(ids);
           if (pick) moveToFolder(ids, pick === "out" ? null : pick);
         }, point);
@@ -12045,17 +12275,25 @@
           else if (pick === "delete") deleteFolder(id);
         }, point);
       }
+      /** The preview's menu (a right-click on it): into your charts, or let go of. */
+      function previewMenu(/** @type {HTMLElement} */ anchor, point = undefined) {
+        const closes = previewing !== chart || Boolean(previousChart());
+        showMenu(anchor, `<button type="button" data-pick="keep">${ICONS.check}Keep<span>into your charts</span></button>${closes ? `<button type="button" data-pick="close">${ICONS.close}Close the preview</button>` : ""}`, ({ pick }) => (pick === "keep" ? keepPreview() : pick === "close" ? closePreview() : undefined), point);
+      }
       function chartMenu(anchor, id, point = null) {
+        const leave = outOf([id]);
         showMenu(anchor, `
           <button type="button" data-pick="rename">${ICONS.pencil}Rename</button>
           <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate</button>
           <button type="button" data-pick="folder" aria-haspopup="menu">${ICONS.folder}Move to folder</button>
+          ${leave ? `<button type="button" data-pick="out">${ICONS.folderOut}${escape(leave)}</button>` : ""}
           <button type="button" data-pick="download">${ICONS.file}Download chart file</button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete</button>`, ({ pick }) => {
           // Back to the ⋯ it was opened from (in the grid, a copy is focused instead).
           const scope = anchor.closest("#home-grid") ? "#home-grid" : "#chart-list";
-          if (pick === "folder") return folderMenu(anchor, [id], point ?? undefined);
+          if (pick === "folder") return folderMenu(anchor, [id], point ?? undefined, false);
+          if (pick === "out") return moveToFolder([id], null);
           if (pick === "download" || (pick === "duplicate" && !home)) refocus(`${scope} [data-chart-menu="${id}"]`);
           chartPick(id, pick);
         }, point);
@@ -12111,8 +12349,8 @@
         const undoable = wasOpen ? { past: [...edits.past], future: [...edits.future] } : null;
         library.charts.splice(index, 1);
         deletedHere.add(doc.id);
-        // The last chart gone (the open one), a blank preview stands in.
-        const standIn = wasOpen && !library.charts.length ? blankChart() : null;
+        // The last chart gone (the open one), the preview there is stands in, else a blank one.
+        const standIn = wasOpen && !library.charts.length ? previewing ?? blankChart() : null;
         if (standIn) previewing = standIn;
         if (wasOpen) openChart(standIn ?? (next && library.charts.includes(next) ? next : library.charts[Math.min(index, library.charts.length - 1)]));
         save();
@@ -12214,7 +12452,7 @@
         let drag = null;
         /** The item an id names now (the list may have been drawn anew since the press). */
         const itemNamed = (/** @type {string} */ id) => all$(how.item, list).find((element) => how.idOf(element) === id);
-        const unmark = () => all$(".drop-before, .drop-after, .drop-target", list).forEach((element) => element.classList.remove("drop-before", "drop-after", "drop-target"));
+        const unmark = () => [list, ...all$(".drop-before, .drop-after, .drop-target", list)].forEach((element) => element.classList.remove("drop-before", "drop-after", "drop-target"));
         const letGo = () => {
           if (press) clearTimeout(press.timer);
           press?.touched?.removeEventListener("touchmove", pin);
@@ -12369,11 +12607,12 @@
         return { item: row, after: y > box.top + box.height / 2 };
       }
 
-      /** A chart a place up or down among those beside it (its folder's, or those in none), gliding there. */
+      /** A chart a place up or down: among its folder's, or in the sidebar's order (past a folder too), gliding there. */
       function stepChart(/** @type {string} */ id, /** @type {number} */ by) {
         const doc = chartById(id);
-        if (!doc) return;
-        const peers = library.charts.filter((other) => (other.folder ?? "") === (doc.folder ?? "")), next = peers[peers.indexOf(doc) + by];
+        if (!doc || doc === previewing) return;
+        if (!doc.folder) return stepSide(doc, by);
+        const peers = library.charts.filter((other) => other.folder === doc.folder), next = peers[peers.indexOf(doc) + by];
         if (!next) return;
         const to = library.charts.indexOf(next) + (by > 0 ? 1 : 0);
         moveCharts([id], to);
@@ -12398,39 +12637,70 @@
       const chartPlace = (at, attribute) => ("item" in at ? library.charts.findIndex((doc) => doc.id === at.item.getAttribute(`data-${attribute}`)) + (at.after ? 1 : 0) : library.charts.length);
       /** A chart as carried: its mark and title. */
       const chartLabel = (/** @type {string} */ id) => ((doc) => (doc ? `${chartMark(doc)}<span class="name">${escape(titleOf(doc))}</span>` : ""))(chartById(id));
-      // The sidebar: a chart onto a folder goes into it; beside another chart, it takes its place (and its folder, or none).
-      // A folder moves among the folders.
+      // The sidebar, in its one order: a chart onto a folder's row goes into it (its top edge: above it; its foot: into it,
+      // first, or under it, closed); beside a chart, it takes its place (in its folder, or none). A folder moves before or
+      // after anything at the top level, its charts along.
       const sideId = (/** @type {HTMLElement} */ row) => (row.dataset.chartRow ? `c:${row.dataset.chartRow}` : `f:${row.dataset.folderRow}`);
+      /** The top level as laid out: each item's rows, first and last (an open folder's, its last chart's). */
+      function sideBlocks() {
+        /** @type {{ key: string, first: HTMLElement, last: HTMLElement }[]} */
+        const blocks = [];
+        for (const row of all$("[data-chart-row], [data-folder-row]", $("chart-list"))) {
+          const block = blocks.at(-1);
+          if (row.classList.contains("in-folder") && block) block.last = row;
+          else blocks.push({ key: sideId(row), first: row, last: row });
+        }
+        return blocks;
+      }
+      /** The top-level item a row stands for: a chart in a folder (an open one's last), its folder. */
+      const topKeyOf = (/** @type {HTMLElement} */ row) => (row.classList.contains("in-folder") ? `f:${chartById(/** @type {string} */ (row.dataset.chartRow))?.folder}` : sideId(row));
       dragToReorder($("chart-list"), {
         item: "[data-chart-row], [data-folder-row]",
         idOf: sideId,
         label: (id) => (id.startsWith("f:") ? `${ICONS.folder}<span class="name">${escape(folderById(id.slice(2))?.name ?? "")}</span>` : chartLabel(id.slice(2))),
         landing: (x, y, ids) => {
-          const folders = all$("[data-folder-row]", $("chart-list"));
-          if (ids[0].startsWith("f:")) return landingIn(folders, y, sideId, ids);
+          if (ids[0].startsWith("f:")) {
+            // A folder: before or after a whole item (a folder with its charts), by its middle.
+            const blocks = sideBlocks().filter((block) => !ids.includes(block.key)), block = blocks.find((each) => y < each.last.getBoundingClientRect().bottom) ?? blocks.at(-1);
+            if (!block) return null;
+            const after = y > (block.first.getBoundingClientRect().top + block.last.getBoundingClientRect().bottom) / 2;
+            return { item: after ? block.last : block.first, after };
+          }
           const onto = /** @type {HTMLElement | null | undefined} */ (document.elementFromPoint(x, y)?.closest("[data-folder-row]"));
-          return onto ? { zone: onto } : landingIn(all$("[data-chart-row]", $("chart-list")), y, sideId, ids);
+          if (onto) {
+            const box = onto.getBoundingClientRect(), share = (y - box.top) / box.height;
+            let first = /** @type {HTMLElement | null} */ (onto.nextElementSibling);
+            while (first?.classList.contains("in-folder") && ids.includes(sideId(first))) first = /** @type {HTMLElement | null} */ (first.nextElementSibling);
+            if (share < 0.25) return { item: onto, after: false };
+            if (share > 0.75) return folderById(onto.dataset.folderRow)?.closed ? { item: onto, after: true } : first?.classList.contains("in-folder") ? { item: first, after: false } : { zone: onto };
+            return { zone: onto };
+          }
+          return landingIn(all$("[data-chart-row]", $("chart-list")), y, sideId, ids);
         },
         land: (ids, at, y) => {
-          if (ids[0].startsWith("f:")) return moveFolder(ids[0].slice(2), at);
+          if (ids[0].startsWith("f:")) return "item" in at && placeSide(ids, topKeyOf(at.item), at.after, y);
           const charts = ids.map((id) => id.slice(2));
           if ("zone" in at) return moveToFolder(charts, /** @type {string} */ (at.zone.dataset.folderRow));
-          // (Beside a chart: in its folder, or none.)
-          const beside = chartById(/** @type {string} */ (at.item.dataset.chartRow));
-          for (const doc of library.charts) if (charts.includes(doc.id)) beside?.folder ? (doc.folder = beside.folder) : delete doc.folder;
+          // Beside a chart in a folder: in it, there. Else at the top level, before or after what's there.
+          const beside = at.item.dataset.chartRow ? chartById(at.item.dataset.chartRow) : null;
+          if (!beside?.folder) return placeSide(ids, topKeyOf(at.item), at.after, y);
+          for (const doc of library.charts) if (charts.includes(doc.id)) doc.folder = beside.folder;
           moveCharts(charts, chartPlace(at, "chart-row"), y);
         },
       });
-      /** A folder moved before or after another, its charts along. @param {string} id @param {Landing} at */
-      function moveFolder(id, at) {
-        const folder = folderById(id), other = "item" in at ? folderById(at.item.dataset.folderRow) : null;
-        if (!folder || !other || other === folder || !("item" in at)) return;
-        const rows = () => all$("[data-chart-row], [data-folder-row]", $("chart-list")), key = sideId, was = placesOf(rows(), key);
-        library.folders.splice(library.folders.indexOf(folder), 1);
-        library.folders.splice(library.folders.indexOf(other) + (at.after ? 1 : 0), 0, folder);
-        save();
-        renderCharts();
-        slide(rows(), key, was, { moved: `f:${id}` });
+      /**
+       * Items placed at the sidebar's top level (charts out of their folders), before or after another there (its key),
+       * gliding there. @param {string[]} keys
+       */
+      function placeSide(keys, /** @type {string} */ target, /** @type {boolean} */ after, /** @type {number | null} */ y = null) {
+        if (keys.includes(target)) return;
+        arrange(() => {
+          for (const doc of library.charts) if (keys.includes(`c:${doc.id}`)) delete doc.folder;
+          const items = sideItems(), moving = keys.map((key) => items.find((item) => sideKey(item) === key)).filter((item) => item !== undefined), rest = items.filter((item) => !moving.includes(item));
+          const at = rest.findIndex((item) => sideKey(item) === target);
+          rest.splice(at < 0 ? rest.length : at + (after ? 1 : 0), 0, ...moving);
+          setSide(rest);
+        }, keys[0], y);
       }
       // The grid's tiles move the charts in the list (the sidebar's order, and ⌘1–9's): those picked together. Found by the
       // filter, they're ranked, not in their order: there's no place to drop them into (a hold still picks).
@@ -12438,7 +12708,7 @@
         item: "[data-home-card]",
         label: chartLabel,
         idOf: (tile) => /** @type {string} */ (tile.dataset.homeCard),
-        carried: (id) => (picked.has(id) ? library.charts.filter((doc) => picked.has(doc.id)).map((doc) => doc.id) : [id]),
+        carried: (id) => (picked.has(id) ? shownCharts().filter((doc) => picked.has(doc.id)).map((doc) => doc.id) : [id]),
         pick: (id) => !picked.has(id) && pickChart(id),
         refuse: (event) => Boolean(closest(event, ".tile-check, .tile-rename")),
         still: () => Boolean($("home-filter").value.trim()),
@@ -12447,7 +12717,11 @@
           const under = document.elementFromPoint(x, y), head = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-grid-folder]"));
           if (head) return { zone: head };
           const tile = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-home-card]"));
-          if (!tile) return undefined;
+          // Off the tiles: in a folder's box, into it; elsewhere on the grid, out of any.
+          if (!tile) {
+            const box = under?.closest(".grid-section.folder");
+            return box ? { zone: /** @type {HTMLElement} */ (box.querySelector("[data-grid-folder]")) } : under?.closest("#home-grid") ? { zone: $("home-grid") } : undefined;
+          }
           if (ids.includes(/** @type {string} */ (tile.dataset.homeCard))) return null;
           const box = tile.getBoundingClientRect();
           return { item: tile, after: x > box.left + box.width / 2 };
@@ -12455,10 +12729,13 @@
         land: (ids, at) => {
           if ("zone" in at) moveToFolder(ids, at.zone.dataset.gridFolder || null);
           else {
-            // (Beside a tile: in its folder, or none.)
+            // (Beside a tile: in its folder, there; or, in none, before or after it in the sidebar's order.)
             const beside = chartById(/** @type {string} */ (at.item.dataset.homeCard));
-            for (const doc of library.charts) if (ids.includes(doc.id)) beside?.folder ? (doc.folder = beside.folder) : delete doc.folder;
-            moveCharts(ids, chartPlace(at, "home-card"));
+            if (!beside?.folder) placeSide(ids.map((id) => `c:${id}`), `c:${beside?.id}`, at.after);
+            else {
+              for (const doc of library.charts) if (ids.includes(doc.id)) doc.folder = beside.folder;
+              moveCharts(ids, chartPlace(at, "home-card"));
+            }
           }
           tileOpen(ids[0])?.focus({ preventScroll: true });
         },
@@ -13274,7 +13551,7 @@
           ${(actionsShown = actionsOf(layer))}`;
         if (isFormula) updateFormula(layer);
         restoreFocus(panel, focus);
-        drawPlane();
+        drawPlanes();
         // Redrawn, each slider glides on from where it was to its stop, however many times it's redrawn on the way.
         for (const element of another || reduced.matches ? [] : all$("#inspector .stepper")) {
           const from = was.get(element.id);
@@ -13350,12 +13627,11 @@
         addEventListener("pointerup", end);
         addEventListener("pointercancel", end);
       }
-      // Sliders scrub from stop to stop; the color surface picks under the pointer.
+      // Sliders scrub from stop to stop.
       $("inspector").addEventListener("pointerdown", (event) => {
-        const element = closest(event, ".stepper, #plane");
+        const element = closest(event, ".stepper");
         if (event.button !== 0 || !element) return;
         const id = element.id;
-        if (id === "plane") return track(event, element, "picking", (point) => pickAt(point.clientX, point.clientY));
         track(event, element, "scrubbing", (point) => {
           const value = stopAt(id, point.clientX);
           if (value !== undefined) setSlider(id, value);
@@ -13423,20 +13699,30 @@
       /** The surface's chroma, across every hue: OKLCH's even saturation, less only where sRGB can't hold it. */
       const CHROMA = 0.18;
 
+      /** Bitview's colors, a dot each (its name on hover), the one in use ringed. */
+      const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="group" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}" data-tip="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
+      /** The surface: every hue across, lightness down, the color's place ringed (`target`: what it picks for, see planeTarget). */
+      function planeHtml(/** @type {string} */ color, /** @type {string} */ target) {
+        const [l, c, h] = oklchOf(color), { u, t } = placeOf(color), grayish = u > HUES + (1 - HUES) * 0.85 - 1e-9;
+        return `<div class="plane" data-plane="${escape(target)}" role="slider" tabindex="0" aria-label="Color: hue across, then grays; lightness down" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(l * 100)}" aria-valuetext="${grayish || c < 0.02 ? "Gray" : `Hue ${Math.round(h)} degrees`}, lightness ${Math.round(l * 100)} percent" style="--x: ${u}; --y: ${t}"><canvas></canvas><i class="ring" style="--c:${escape(cssColor(color))}"></i></div>`;
+      }
       /**
-       * A layer's color: its name opening Bitview's colors to pick from, and one surface, every hue across and lightness
-       * down, at one chroma (a quieter color is a matter of opacity). A baseline picks which of its two colors it edits.
+       * A color to pick, the same wherever one is (a layer's, a drawing's, a line's): one of Bitview's, a click; any other,
+       * on the surface under them, every hue across and lightness down, at one chroma (a quieter color is a matter of
+       * opacity).
        */
+      const colorBox = (/** @type {string} */ color, /** @type {string} */ target) => `<div class="color-box">${swatchGrid(color)}${planeHtml(color, target)}</div>`;
+      /** A layer's color, its name beside the label; a baseline picks which of its two colors it edits. */
       function colorPicker(layer) {
-        const key = colorKey(layer);
-        const color = colorOf(layer, key), [l, c, h] = oklchOf(color), { u, t } = placeOf(color), grayish = u > HUES + (1 - HUES) * 0.85 - 1e-9;
+        const key = colorKey(layer), color = colorOf(layer, key);
         // A type's two colors: which one the box edits, in the label's row.
         const which = PAIRS[layer.type] ? `<span class="which" role="group" aria-label="Which color">${[["color", PAIRS[layer.type][0]], ["colorBelow", PAIRS[layer.type][1]]].map(([id, text]) => `<button type="button" data-color-target="${id}" aria-pressed="${key === id}"><i class="swatch" style="--c:${escape(cssColor(colorOf(layer, id)))}"></i>${text}</button>`).join("")}</span>` : "";
-        return `<div class="field"><span>Color${which}</span>
-          <div class="color-box">
-            <button type="button" id="color-name" class="preset" data-action="color-menu" aria-haspopup="menu" aria-label="Color: ${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i><span class="name">${escape(colorName(color))}</span>${CHEVRON}</button>
-            <div id="plane" class="plane" role="slider" tabindex="0" aria-label="Color: hue across, then grays; lightness down" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(l * 100)}" aria-valuetext="${grayish || c < 0.02 ? "Gray" : `Hue ${Math.round(h)} degrees`}, lightness ${Math.round(l * 100)} percent" style="--x: ${u}; --y: ${t}"><canvas></canvas><i class="ring" style="--c:${escape(cssColor(color))}"></i></div>
-          </div></div>`;
+        return `<div class="field"><span>Color<span class="color-now">${escape(colorName(color))}</span>${which}</span>${colorBox(color, "layer")}</div>`;
+      }
+      /** A color in a popover (a drawing's, from the belt; a line's, from its button): picked from Bitview's, it closes. */
+      function colorPopover(/** @type {HTMLElement} */ anchor, /** @type {string} */ color, /** @type {string} */ target, /** @type {(color: string) => void} */ apply) {
+        showMenu(anchor, `<div class="field belt-pop color-pop"><span>Color<span class="color-now">${escape(colorName(color))}</span></span>${colorBox(color, target)}</div>`, ({ pickColor }) => pickColor && apply(pickColor), null, anchor.closest("#belt") ? beltSide() : "");
+        drawPlanes();
       }
       /**
        * The surface's chroma at a lightness and hue: CHROMA, the same for every hue as OKLCH means it, eased down where
@@ -13488,10 +13774,11 @@
        * smoothed (it's all gradient), kept by size: nothing redraws it but a resize.
        */
       const planes = new Map();
-      function drawPlane() {
-        const plane = $("plane");
-        const canvas = /** @type {HTMLCanvasElement | null} */ (plane?.querySelector("canvas"));
-        if (!plane || !canvas || !plane.clientWidth) return;
+      /** Every surface on screen (the inspector's, a popover's), drawn. */
+      const drawPlanes = () => all$(".plane").forEach(drawPlane);
+      function drawPlane(/** @type {HTMLElement} */ plane) {
+        const canvas = /** @type {HTMLCanvasElement | null} */ (plane.querySelector("canvas"));
+        if (!canvas || !plane.clientWidth) return;
         const width = plane.clientWidth, height = plane.clientHeight, key = `${width}x${height}`;
         canvas.width = width;
         canvas.height = height;
@@ -13514,16 +13801,36 @@
         }
         context.putImageData(planes.get(key), 0, 0);
       }
+      /**
+       * What a surface picks for, by its name: the selected layer's color ("layer"), the belt's (the pen's, and the selected
+       * drawings') ("pen"), a line across's ("line:" and its key). Its color now, and how a pick sets it: one undo step a
+       * drag (or run of keys), the popover it's in left open.
+       * @returns {{ color: string, set: (color: string) => void } | null}
+       */
+      function planeTarget(/** @type {string} */ name) {
+        const layer = layerById(selected);
+        if (name === "layer" && layer) {
+          const key = colorKey(layer);
+          return { color: colorOf(layer, key), set: (color) => editLayer((target) => setColor(target, key, color), { coalesce: `${key}:${selected}` }) };
+        }
+        if (name === "pen") {
+          const look = lookFor("color");
+          return look ? { color: look.color, set: (color) => setLook("color", color, "color", true) } : null;
+        }
+        const key = name.startsWith("line:") ? name.slice(5) : "";
+        if (key && layer && lineAt(layer, key)) return { color: lineLook(layer, key).color, set: (color) => setLineLook(selected, key, "color", color, { coalesce: `line:${key}:${selected}`, keepMenu: true }) };
+        return null;
+      }
+      /** A surface by what it picks for (found again each time: the inspector redraws under a drag). */
+      const planeOf = (/** @type {string} */ name) => /** @type {HTMLElement | null} */ (document.querySelector(`.plane[data-plane="${CSS.escape(name)}"]`));
       /** A color picked, one frame at a time while dragging; the whole drag (or run of keys) is one undo step. */
-      let pickFrame = 0, picking = null;
-      function pick(color) {
-        picking = color;
+      let pickFrame = 0, picking = /** @type {{ name: string, color: string } | null} */ (null);
+      function pick(/** @type {string} */ name, /** @type {string} */ color) {
+        picking = { name, color };
         pickFrame ||= requestAnimationFrame(() => {
           pickFrame = 0;
-          const layer = layerById(selected), key = layer ? colorKey(layer) : "color";
-          if (!layer || colorOf(layer, key) === picking) return;
-          const color = picking;
-          editLayer((target) => setColor(target, key, color), { coalesce: `${key}:${selected}` });
+          const target = picking && planeTarget(picking.name);
+          if (target && picking && target.color !== picking.color) target.set(picking.color);
         });
       }
       /** The color at a point of the surface (a hue and a lightness): at the surface's chroma there. */
@@ -13535,15 +13842,21 @@
       }
       /** Where each color was picked this session: a gray (white, black) is the same anywhere along its row. */
       const pickedAt = new Map();
-      /** Picks the color at a point, remembering the point. */
-      function pickPoint(u, t) {
-        const color = colorAt(u, t), place = { u: clamp(u, 0, 1), t: clamp(t, 0, 1) };
+      /** Picks the color at a point of a surface, remembering the point. */
+      function pickPoint(/** @type {string} */ name, u, t) {
+        const color = colorAt(u, t), place = { u: clamp(u, 0, 1), t: clamp(t, 0, 1) }, plane = planeOf(name);
         if (pickedAt.size > 500) pickedAt.clear();
         pickedAt.set(color, place);
-        // The ring follows at once, even along white or black, where the color stays the same as it moves.
-        $("plane")?.style.setProperty("--x", String(place.u));
-        $("plane")?.style.setProperty("--y", String(place.t));
-        pick(color);
+        // The ring follows at once, even along white or black, where the color stays the same as it moves (in a popover,
+        // nothing redraws it: its color too).
+        plane?.style.setProperty("--x", String(place.u));
+        plane?.style.setProperty("--y", String(place.t));
+        plane?.querySelector(".ring")?.setAttribute("style", `--c:${cssColor(color)}`);
+        // (Its name, and Bitview's colors, none of them ringed now, follow too.)
+        const field = plane?.closest(".field"), named = field?.querySelector(".color-now");
+        if (named) named.textContent = colorName(color);
+        for (const dot of field ? all$(".swatch-grid [aria-checked='true']", field) : []) dot.setAttribute("aria-checked", "false");
+        pick(name, color);
       }
       /**
        * Where a color is on the surface: where it was picked; else by its hue, or in the fade to the grays by the share of
@@ -13561,47 +13874,38 @@
         if (c < 0.02) return { u: (HUES + fade + 1) / 2, t };
         return { u: (Math.min(h, 359.9) / 359.9) * HUES, t };
       }
-      /** The color being picked: the one waiting for its frame, else the layer's. */
-      const pickedOf = (layer) => (pickFrame && picking ? picking : colorOf(layer, colorKey(layer)));
-      /** The color under a point of the surface (found again each time: the inspector redraws under the drag). */
-      function pickAt(clientX, clientY) {
-        const element = $("plane");
-        if (!element || !layerById(selected)) return;
-        const box = element.getBoundingClientRect();
+      /** The color being picked: the one waiting for its frame, else its target's now. */
+      const pickedOf = (/** @type {string} */ name) => (pickFrame && picking?.name === name ? picking.color : planeTarget(name)?.color ?? "gray");
+      /** The color under a point of a surface. */
+      function pickAt(/** @type {string} */ name, clientX, clientY) {
+        const plane = planeOf(name);
+        if (!plane || !planeTarget(name)) return;
+        const box = plane.getBoundingClientRect();
         // The outermost pixel and a half of each side is its edge: white, black and the purest grays need no aim.
         const snap = (v, size) => (v < 1.5 / size ? 0 : v > 1 - 1.5 / size ? 1 : v);
-        pickPoint(snap((clientX - box.left) / box.width, box.width), snap((clientY - box.top) / box.height, box.height));
+        pickPoint(name, snap((clientX - box.left) / box.width, box.width), snap((clientY - box.top) / box.height, box.height));
       }
-      // Keys move over the surface: ← → a degree of hue (on into the grays), ↑ ↓ a step of lightness; ⇧ for ten.
-      $("inspector").addEventListener("keydown", (event) => {
-        const id = event.target.id;
-        if (id !== "plane" || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
-        const layer = layerById(selected);
-        if (!layer) return;
+      // Keys move over a surface: ← → a degree of hue (on into the grays), ↑ ↓ a step of lightness; ⇧ for ten. (Before a
+      // menu's own keys, when it's in one.)
+      document.addEventListener("keydown", (event) => {
+        const plane = /** @type {HTMLElement} */ (event.target);
+        if (!plane.classList?.contains("plane") || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+        const name = /** @type {string} */ (plane.dataset.plane);
+        if (!planeTarget(name)) return;
         event.preventDefault();
         event.stopPropagation();
-        const { u, t } = placeOf(pickedOf(layer));
+        const { u, t } = placeOf(pickedOf(name));
         const sign = event.key === "ArrowUp" || event.key === "ArrowRight" ? 1 : -1, steps = event.shiftKey ? 10 : 1;
-        if (event.key === "ArrowUp" || event.key === "ArrowDown") pickPoint(u, t - sign * steps * 0.02);
-        else pickPoint(u + (sign * steps * HUES) / 360, t);
+        if (event.key === "ArrowUp" || event.key === "ArrowDown") pickPoint(name, u, t - sign * steps * 0.02);
+        else pickPoint(name, u + (sign * steps * HUES) / 360, t);
+      }, true);
+      // A surface picks under the pointer, wherever it is (the inspector, a popover).
+      document.addEventListener("pointerdown", (event) => {
+        const plane = closest(event, ".plane");
+        if (event.button !== 0 || !plane) return;
+        const name = /** @type {string} */ (plane.dataset.plane);
+        track(event, plane, "picking", (point) => pickAt(name, point.clientX, point.clientY));
       });
-      /** The colors to pick from, under the color's name: the current one, then Bitview's; it scrolls. */
-      function colorMenu(anchor, current, apply) {
-        const row = (color) => `<button type="button" class="color-item" data-pick-color="${escape(color)}" aria-checked="${color === current}">${tick(color === current)}<i class="swatch" style="--c:${escape(cssColor(color))}"></i>${escape(colorName(color))}<span>${escape(ink(color))}</span></button>`;
-        showMenu(anchor, `${row(current)}<div class="menu-rule"></div>${SWATCHES.filter((color) => color !== current).map(row).join("")}`, ({ pickColor }) => {
-          if (pickColor && pickColor !== current) apply(pickColor);
-        });
-      }
-      /** The selected layer's color (or the second of its pair), from the menu under its name. */
-      function layerColorMenu(anchor) {
-        const layer = layerById(selected);
-        if (!layer) return;
-        const key = colorKey(layer);
-        colorMenu(anchor, colorOf(layer, key), (color) => {
-          refocus("#color-name");
-          editLayer((target) => setColor(target, key, color));
-        });
-      }
       /** What went wrong with a series layer, and the way out: another interval, or a retry. */
       function errorBox(result) {
         if (result.info && !result.info.indexes.includes(chart.index)) {
@@ -14092,8 +14396,13 @@
       $("inspector").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
-        const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorTarget: target, replace, removeLevel, lineColor, lineDash } = button.dataset;
+        const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorTarget: target, replace, removeLevel, lineColor, lineDash, pickColor } = button.dataset;
         if (index) switchInterval(index);
+        else if (pickColor) {
+          const layer = layerById(selected), key = layer ? colorKey(layer) : "color";
+          if (layer && colorOf(layer, key) !== pickColor) editLayer((item) => setColor(item, key, pickColor));
+          refocus(`#inspector [data-pick-color="${CSS.escape(pickColor)}"]`);
+        }
         else if (action === "derive") deriveMenu(button, selected);
         else if (action === "pane-menu") paneMenu(button);
         else if (action === "format-menu") formatMenu(button);
@@ -14117,7 +14426,6 @@
         else if (side) editLayer((layer) => (layer.side = side));
         else if (priceLine) editLayer((layer) => (layer.priceLine = priceLine === "1" || undefined));
         else if (insert) insertAtCaret(insert);
-        else if (action === "color-menu") layerColorMenu(button);
         else if (reset) {
           editLayer((layer) => DEFAULTS[reset].set(layer));
           refocus(DEFAULTS[reset].focus);
@@ -14174,7 +14482,7 @@
           refocus(`[data-line-${part}="${key}"]`);
           setLineLook(selected, key, part, value);
         };
-        if (part === "color") return colorMenu(anchor, current, apply);
+        if (part === "color") return colorPopover(anchor, current, `line:${key}`, apply);
         showMenu(anchor, DASHES.map(([style, name, length, gap]) => `<button type="button" data-pick-dash="${style}" aria-checked="${style === current}">${tick(style === current)}${dashGlyph(length, gap)}${name}</button>`).join(""), ({ pickDash }) => pickDash !== undefined && apply(Number(pickDash)));
       }
       /** A layer one place up or down among its pane's (listed, and drawn, before or after its neighbor). */
@@ -14187,7 +14495,7 @@
         });
       }
       /** A line across's color or style (a level's, by index, or the base's), on a layer; at its default, forgotten. */
-      const setLineLook = (id, key, part, value) => commit((doc) => lineLookOn(doc, id, key, part, value));
+      const setLineLook = (id, key, part, value, options = undefined) => commit((doc) => lineLookOn(doc, id, key, part, value), options);
       /** The same, on a doc as it is (a copy, to look at). @param {Chart} doc */
       function lineLookOn(doc, id, key, part, value) {
         const target = doc.layers.find((item) => item.id === id);
@@ -14271,6 +14579,11 @@
           event.preventDefault();
           const more = /** @type {HTMLElement} */ (folderRow.querySelector("[data-folder-menu]"));
           return folderActions(more, /** @type {string} */ (more.dataset.folderMenu), { x: event.clientX, y: event.clientY });
+        }
+        const previewRow = closest(event, "[data-preview-row]");
+        if (previewRow) {
+          event.preventDefault();
+          return previewMenu(/** @type {HTMLElement} */ (previewRow.querySelector("[data-open-chart]")), { x: event.clientX, y: event.clientY });
         }
         const chartRow = closest(event, "[data-chart-row]");
         const layerRow = closest(event, ".layer-row[data-layer]");
@@ -14789,6 +15102,7 @@
           { title: "Add a series", text: "Search every series, or browse them by topic.", words: "add series catalog browse explore folders metric data", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
           { title: "New chart", text: "A blank chart, to start from series, a website chart or a file.", words: "create blank empty", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
           ...(previewing && previewing === chart && !home ? [{ title: "Keep this chart", text: "A preview: into your charts as it is (a change keeps it too).", words: "keep save preview add charts", icon: "check", run: () => keepPreview(), suggested: true }] : []),
+          ...(previewing && (previewing !== chart || previousChart()) ? [{ title: "Close the preview", text: `${titleOf(previewing)}: not in your charts, let go of.`, words: "close preview discard dismiss", icon: "close", run: closePreview }] : []),
           { title: "New folder", text: "For charts that go together, named at once.", words: "create folder group organize", icon: "folderAdd", run: () => (home && ($("home-filter").value = ""), newFolder()), anywhere: true },
           // Each folder, by its name: its page (open or close it, rename it, delete it, its charts).
           ...library.folders.map((folder) => ({ title: folder.name, text: `A folder: ${plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart")}.`, words: `folder ${folder.name}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })),
@@ -15621,8 +15935,8 @@
         return [
           { key: "toggle", icon: ICONS.folder, label: folder.closed ? "Open" : "Close", aside: folder.closed ? "Its charts shown" : "Its charts out of sight", verb: folder.closed ? "Open" : "Close", group: "Folder", stay: true, run: () => toggleFolder(id) },
           { key: "rename", icon: ICONS.pencil, label: "Rename", aside: folder.name, group: "Folder", page: () => renameFolderPage(id) },
-          ...(library.folders.indexOf(folder) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", verb: "Move", group: "Folder", stay: true, run: () => stepFolder(id, -1) }] : []),
-          ...(library.folders.indexOf(folder) < library.folders.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", verb: "Move", group: "Folder", stay: true, run: () => stepFolder(id, 1) }] : []),
+          ...(sideItems().indexOf(folder) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", verb: "Move", group: "Folder", stay: true, run: () => stepFolder(id, -1) }] : []),
+          ...(sideItems().indexOf(folder) < sideItems().length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", verb: "Move", group: "Folder", stay: true, run: () => stepFolder(id, 1) }] : []),
           { key: "delete", icon: ICONS.trash, label: "Delete the folder", aside: "Its charts kept", verb: "Delete", group: "Folder", danger: true, run: () => deleteFolder(id) },
           ...library.charts.filter((doc) => doc.folder === id).map((doc) => ({ key: `chart:${doc.id}`, icon: chartMark(doc), label: titleOf(doc), verb: "Open", group: "Charts", run: () => go(doc) })),
         ].map((row) => ({ kind: "row", ...row }));
@@ -15631,6 +15945,8 @@
       function renameChart(doc, title) {
         if (doc === chart) return commit((draft) => (draft.title = title), { redraw: "none" });
         Object.assign(doc, { title, updated: Date.now() });
+        // (A preview renamed is changed: it's yours.)
+        if (doc === previewing) return keepPreview(false);
         save();
         renderCharts();
       }
@@ -15724,7 +16040,7 @@
         return [
           ...library.folders.map((folder) => ({ key: folder.id, icon: ICONS.folder, label: folder.name, aside: plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart"), current: within.size === 1 && within.has(folder.id), run: () => moveToFolder(ids, folder.id) })),
           { key: "new", icon: ICONS.plus, label: "A new folder", run: () => { dismissPalette(); newFolder(ids); } },
-          ...([...within].some(Boolean) ? [{ key: "none", icon: ICONS.charts, label: "No folder", current: within.size === 1 && within.has(""), run: () => moveToFolder(ids, null) }] : []),
+          ...(outOf(ids) ? [{ key: "out", icon: ICONS.folderOut, label: outOf(ids), run: () => moveToFolder(ids, null) }] : []),
         ];
       });
       function chartActions(id) {
@@ -15735,6 +16051,7 @@
           { label: "Keep", run: () => keepPreview() },
           { label: "Rename", page: () => renameChartPage(doc) },
           { label: "Download chart file", run: () => chartPick(id, "download") },
+          ...(doc !== chart || previousChart() ? [{ label: "Close the preview", run: closePreview }] : []),
         ];
         return [
           { label: "Open", kbd: "↵", run: () => go(doc) },
@@ -15743,8 +16060,9 @@
           ...((peers) => [
             ...(peers.indexOf(doc) > 0 ? [{ label: "Move up", kbd: "⌥↑", stay: true, run: () => stepChart(id, -1) }] : []),
             ...(peers.indexOf(doc) < peers.length - 1 ? [{ label: "Move down", kbd: "⌥↓", stay: true, run: () => stepChart(id, 1) }] : []),
-          ])(library.charts.filter((other) => (other.folder ?? "") === (doc.folder ?? ""))),
+          ])(doc.folder ? library.charts.filter((other) => other.folder === doc.folder) : sideItems()),
           { label: "Move to folder", aside: folderById(doc.folder)?.name ?? "None", page: () => folderPage([id]) },
+          ...(outOf([id]) ? [{ label: outOf([id]), run: () => moveToFolder([id], null) }] : []),
           { label: "Download chart file", run: () => chartPick(id, "download") },
           { label: "Delete", danger: true, confirm: true, run: () => chartPick(id, "delete") },
         ];
@@ -15826,10 +16144,10 @@
           // Grouped as the inspector's sections are, named as they are.
           const first = layer.series ? "Series" : "Formula";
           const style = dashOf(layer.dash);
-          const color = (key, label, of, put) => ({ key, icon: swatchOf(of(layer)), label, aside: colorName(of(layer)), group: "Style", page: () => choicePage(label, () => SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: of(now()) === name, run: set((item) => put(item, name)), look: (doc) => {
+          const color = (key, label, of, put) => ({ key, icon: swatchOf(of(layer)), label, aside: colorName(of(layer)), group: "Style", page: () => choicePage(label, () => colorRows(of(now()), (name) => set((item) => put(item, name))(), (doc, name) => {
             const item = doc.layers.find((other) => other.id === id);
             if (item) put(item, name);
-          } })), (panel, option) => previewLayer(panel, id, key === "color" ? option.key : null)) });
+          }), (panel, option) => previewLayer(panel, id, key === "color" && option.key !== "other" ? option.key : null)) });
           return [
             layer.series
               ? { key: "series", icon: ICONS.series, label: "Series", aside: layer.series, mono: true, verb: "Change", group: first, leads: true, stay: true, run: () => changeSeries(id) }
@@ -15883,13 +16201,41 @@
         } };
       }
       const swatchOf = (color) => `<i class="swatch" style="--c:${escape(cssColor(color))}"></i>`;
+      /** A color typed: a hex (#, or not; three digits or six), an OKLCH, or any color CSS reads, as a hex (opaque only). */
+      function readColor(/** @type {string} */ text) {
+        const typed = text.trim().toLowerCase(), hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/.exec(typed);
+        if (hex) return `#${hex[1].length === 3 ? [...hex[1]].map((digit) => digit + digit).join("") : hex[1]}`;
+        if (isColor(typed)) return typed;
+        if (!typed || !CSS.supports("color", typed)) return null;
+        measure.fillStyle = "#000000";
+        measure.fillStyle = typed;
+        return /^#[0-9a-f]{6}$/.test(measure.fillStyle) ? measure.fillStyle : null;
+      }
+      /**
+       * ⌘K's colors: Bitview's, each a row (`look`: shown on the chart while highlighted), and any other, typed (as the
+       * surface picks one).
+       */
+      function colorRows(/** @type {string} */ current, /** @type {(color: string) => void} */ apply, /** @type {((doc: Chart, color: string) => void) | undefined} */ look = undefined) {
+        const own = !SWATCHES.includes(current);
+        return [
+          ...SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: current === name, run: () => apply(name), ...(look ? { look: (/** @type {Chart} */ doc) => look(doc, name) } : {}) })),
+          { key: "other", icon: own ? swatchOf(current) : ICONS.pencil, label: "Another color", aside: own ? ink(current) : "A hex, OKLCH or CSS color", current: own, page: () => inputPage({ title: "Another color", value: own ? ink(current) : "", placeholder: "#f7931a, oklch(0.7 0.18 50), teal…", hint: "A hex, OKLCH or CSS color", verb: "Set", read: (text) => (readColor(text) ? `Set to ${readColor(text)}` : null), apply: (text) => {
+            const color = readColor(text);
+            if (color) apply(color);
+          } }) },
+        ];
+      }
       /** The chart's drawings, each to open; the tools, to draw another; removing them all. @returns {Page} */
       const drawingsPage = () => ({ title: "Drawings", placeholder: "Search the drawings", rows: () => {
         const names = drawingNames();
         return [
           ...(chart.drawings ?? []).map((drawing) => ({ kind: "row", key: drawing.id, icon: TOOLS[drawing.kind].icon, label: /** @type {string} */ (names.get(drawing.id)), aside: `On ${labelOf(layerById(drawing.layer) ?? { label: "" })}`, group: "On the chart", page: () => drawingPage(drawing.id) })),
           ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => setTool(kind) })),
-          ...(chart.drawings?.length ? [{ kind: "row", key: "clear", icon: ICONS.trash, label: "Remove every drawing", verb: "Remove", group: "Draw", danger: true, run: clearDrawings }] : []),
+          ...(chart.drawings?.length ? [
+            { kind: "row", key: "select-box", icon: ICONS.select, label: "Select drawings with a box", aside: "Drag a box around them", kbd: "D S", verb: "Select", group: "Select", run: () => setSelectingArea(true) },
+            { kind: "row", key: "select-all", icon: ICONS.select, label: "Select every drawing", aside: plural(chart.drawings.length, "drawing"), verb: "Select", group: "Select", run: () => chooseDrawings((chart.drawings ?? []).map((drawing) => drawing.id)) },
+            { kind: "row", key: "clear", icon: ICONS.trash, label: "Remove every drawing", verb: "Remove", group: "Draw", danger: true, run: clearDrawings },
+          ] : []),
         ];
       } });
       /** A drawing, all it is: its color, its line (a text's words and size), a trend line's reach; showing it; removing it. @returns {Page} */
@@ -15911,7 +16257,10 @@
             } }] : []),
             // (A ruler's look is its reading's: up or down.)
             ...(drawing.kind === "ruler" ? [] : [
-              { key: "color", icon: swatchOf(drawing.color), label: "Color", aside: colorName(drawing.color), group: "Style", page: () => choicePage("Color", () => SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: now().color === name, ...both((item) => (item.color = name)) }))) },
+              { key: "color", icon: swatchOf(drawing.color), label: "Color", aside: colorName(drawing.color), group: "Style", page: () => choicePage("Color", () => colorRows(now().color, (name) => editById(id, (item) => (item.color = name)), (doc, name) => {
+                const item = doc.drawings?.find((other) => other.id === id);
+                if (item) item.color = name;
+              })) },
               { key: "opacity", icon: ICONS.opacity, label: "Opacity", aside: `${Math.round((drawing.opacity ?? 1) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.opacity, label: `${Math.round(opacity * 100)}%`, current: (now().opacity ?? 1) === opacity, ...both((item) => (item.opacity = opacity === 1 ? undefined : opacity)) }))) },
             ]),
             ...(drawing.kind === "ruler" ? [] : drawing.kind === "text"
@@ -15958,7 +16307,7 @@
           const now = () => lineLook(layerById(id) ?? layer, key), look = now(), dash = dashOf(look.dash);
           return [
             ...(level ? [{ key: "value", icon: ICONS.pencil, label: "Value", aside: format(level.value, unitFor(layer, resolved?.results.get(layer.id))), page: () => numberPage({ title: "Value", value: String(level.value), apply: (n) => editById(id, (item) => item.levels?.[Number(key)] && (item.levels[Number(key)].value = n)) }) }] : []),
-            { key: "color", icon: swatchOf(look.color), label: "Color", aside: colorName(look.color), page: () => choicePage("Color", () => SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: now().color === name, run: () => setLineLook(id, key, "color", name), look: (doc) => lineLookOn(doc, id, key, "color", name) }))) },
+            { key: "color", icon: swatchOf(look.color), label: "Color", aside: colorName(look.color), page: () => choicePage("Color", () => colorRows(now().color, (name) => setLineLook(id, key, "color", name), (doc, name) => lineLookOn(doc, id, key, "color", name))) },
             { key: "dash", icon: dashGlyph(dash[2], dash[3]), label: "Line style", aside: dash[1], page: () => choicePage("Line style", () => DASHES.map(([style, text, length, gap]) => ({ key: String(style), icon: dashGlyph(length, gap), label: text, current: now().dash === style, run: () => setLineLook(id, key, "dash", style), look: (doc) => lineLookOn(doc, id, key, "dash", style) }))) },
             ...(level ? [{ key: "remove", icon: ICONS.trash, label: "Remove the level", verb: "Remove", danger: true, stay: true, run: () => {
               editById(id, (item) => {
@@ -16322,7 +16671,8 @@
       /** What opened the menu, as it is now: a redraw (the inspector's) puts a new one in its place, by the same id. */
       const ownerNow = () => (menuOwner && !menuOwner.isConnected && menuOwner.id ? document.getElementById(menuOwner.id) : menuOwner);
       /** A menu under (or over) its anchor, or at `point` for a right-click; focus goes back to the anchor. */
-      function showMenu(anchor, html, onPick, point = null) {
+      /** `side`: where it opens, if it fits there (else across): "above", "below", "left" or "right" of what opened it. */
+      function showMenu(anchor, html, onPick, point = null, side = "") {
         const menu = $("menu");
         if (ownerNow() === anchor && !menu.hidden && !point) return hideMenu();
         // Inside a modal dialog, the menu must live in the dialog's top layer to be seen.
@@ -16344,7 +16694,7 @@
         menuOwner = anchor;
         if (!point && anchor.hasAttribute("aria-haspopup")) anchor.setAttribute("aria-expanded", "true");
         if (phone.matches) Object.assign(menu.style, { left: "", top: "", maxHeight: "", transformOrigin: "" });
-        else placeMenu(menu, host, anchor, point);
+        else placeMenu(menu, host, anchor, point, side);
         menu.onclick = (event) => {
           const button = closest(event, "button:not(:disabled)");
           if (!button || (button.hasAttribute("data-confirm") && !confirmed(button))) return;
@@ -16362,7 +16712,7 @@
         /** @type {HTMLElement | null} */ (menu.querySelector("button[aria-checked='true']") ?? menu.querySelector("button:not(:disabled)"))?.focus({ preventScroll: true });
       }
       /** A menu beside what opened it (or at a point): below it if it fits, else above, kept within its host. */
-      function placeMenu(menu, host, anchor, point) {
+      function placeMenu(menu, host, anchor, point, side = "") {
         const rect = point ? new DOMRect(point.x, point.y, 0, 0) : anchor.getBoundingClientRect();
         const gap = point ? 2 : 6;
         // Measured from its origin, with all the room it can take; kept within the window, or within its dialog (and no
@@ -16373,8 +16723,19 @@
         menu.style.animation = "none";
         const origin = fixedOrigin(menu);
         const width = menu.offsetWidth, height = menu.offsetHeight;
+        // Beside it (asked for): right or left, as fits, centered on it.
+        if (side === "left" || side === "right") {
+          const right = side === "right" ? rect.right + gap + width <= bounds.right - 8 : rect.left - gap - width < bounds.left + 8;
+          const x = right ? rect.right + gap : rect.left - gap - width, top = clamp(rect.top + rect.height / 2 - height / 2, bounds.top + 8, bounds.bottom - height - 8);
+          menu.style.left = `${x - origin.x}px`;
+          menu.style.top = `${top - origin.y}px`;
+          menu.style.transformOrigin = `${right ? "0" : "100%"} ${clamp(rect.top + rect.height / 2 - top, 0, height)}px`;
+          void menu.offsetWidth;
+          menu.style.animation = "";
+          return;
+        }
         const left = clamp(rect.left, bounds.left + 8, bounds.right - width - 8);
-        const below = rect.bottom + gap + height <= bounds.bottom - 8;
+        const fitsBelow = rect.bottom + gap + height <= bounds.bottom - 8, below = side === "above" ? rect.top - gap - height < bounds.top + 8 && fitsBelow : fitsBelow;
         menu.style.left = `${left - origin.x}px`;
         menu.style.top = `${(below ? rect.bottom + gap : Math.max(bounds.top + 8, rect.top - gap - height)) - origin.y}px`;
         menu.style.transformOrigin = `${clamp(rect.left + Math.min(rect.width, 24) / 2 - left, 0, width)}px ${below ? "0" : "100%"}`;
@@ -16404,8 +16765,11 @@
         menuOwner = null;
       }
       $("menu").addEventListener("keydown", (event) => {
-        // Tab goes on from what opened the menu.
+        // Tab goes on from what opened the menu (in a color's popover, first between Bitview's colors and the surface).
         if (event.key === "Tab") {
+          const pop = $("menu").querySelector(".color-pop"), plane = /** @type {HTMLElement | null} */ (pop?.querySelector(".plane") ?? null), target = /** @type {HTMLElement} */ (event.target);
+          if (pop && plane && !event.shiftKey && target.closest(".swatch-grid")) return void (event.preventDefault(), plane.focus());
+          if (pop && plane && event.shiftKey && target === plane) return void (event.preventDefault(), /** @type {HTMLElement | null} */ (pop.querySelector(".swatch-grid [aria-checked='true']") ?? pop.querySelector(".swatch-grid button"))?.focus());
           const owner = ownerNow();
           hideMenu();
           return owner?.focus();
@@ -16770,7 +17134,18 @@
           repaintDrawings();
         }
         const scale = shot.width / $("chart").clientWidth;
-        const pieces = measureLegends(scale), dates = viewDates(), title = titleOf(chart), cadence = CADENCE[chart.index];
+        // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
+        const hovered = hoverTime;
+        hoverTime = null;
+        updateReadout();
+        let pieces;
+        try {
+          pieces = measureLegends(scale);
+        } finally {
+          hoverTime = hovered;
+          updateReadout();
+        }
+        const dates = viewDates(), title = titleOf(chart), cadence = CADENCE[chart.index];
         await drawMarks(pieces);
         const px = (n) => Math.round(n * scale);
         const font = (weight, size) => `${weight} ${px(size)}px ${css("--sans")}`;
@@ -16913,6 +17288,8 @@
 
       const tip = $("tip");
       let tipTarget = null, tipTimer = 0, tipClosed = 0;
+      /** The item a shown tip describes (as its description, to a screen reader, where its label doesn't say it already). */
+      let described = /** @type {HTMLElement | null} */ (null);
       function showTip(target) {
         if (!target.isConnected) return;
         // The expanded sidebar says what its items do, and a tip repeating a label shown in full adds nothing:
@@ -16928,6 +17305,10 @@
         const keys = target.dataset.kbd ? keycaps(target.dataset.kbd) : "";
         tip.innerHTML = `<span>${escape(target.dataset.tip)}</span>${keys}`;
         tip.hidden = false;
+        if (target.getAttribute("aria-label") !== target.dataset.tip) {
+          described?.removeAttribute("aria-describedby");
+          (described = target).setAttribute("aria-describedby", "tip");
+        }
         const rect = target.getBoundingClientRect();
         const box = tip.getBoundingClientRect();
         let left = rect.left + rect.width / 2 - box.width / 2, top = rect.bottom + 8;
@@ -16944,7 +17325,18 @@
         if (!tip.hidden) tipClosed = performance.now();
         tip.hidden = true;
         tipTarget = null;
+        described?.removeAttribute("aria-describedby");
+        described = null;
       }
+      document.addEventListener("focusin", (event) => {
+        const target = /** @type {HTMLElement} */ (event.target);
+        if (!(target instanceof HTMLElement) || !target.dataset.tip || target === tipTarget || !target.matches(":focus-visible") || typing(target)) return;
+        hideTip();
+        tipTarget = target;
+        tip.classList.add("warm");
+        showTip(target);
+      });
+      document.addEventListener("focusout", (event) => event.target === tipTarget && hideTip());
       document.addEventListener("pointerover", (event) => {
         if (event.pointerType === "touch") return;
         const target = closest(event, "[data-tip]");
@@ -17100,6 +17492,7 @@
         else if (paneStack) setPaneStack(paneStack, target.dataset.stack ?? "");
         else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
         else if (action === "palette") openPalette({ resume: true });
+        else if (action === "close-preview") closePreview();
         else if (action === "home") showHome();
         else if (action === "add-series") openPalette({ add: true });
         else if (action === "leave-empty") {
@@ -17404,17 +17797,31 @@
         if (home || !settled() || (FINE.has(chart.index) && !spans.get(`${chart.id}@${chart.index}`)?.live)) return [];
         return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack);
       }
+      /** Vectors the live price has its own copies of (written in place from then on: a tick copies nothing). */
+      const ownLive = new WeakSet();
+      /** A vector the live price can write: its own copy, made once. @template {Float64Array | any[]} T @param {T} vector @returns {T} */
+      const liveCopy = (vector) => {
+        if (ownLive.has(vector)) return vector;
+        const copy = /** @type {T} */ (vector.slice());
+        ownLive.add(copy);
+        return copy;
+      };
+      /** What the live price was last laid on (the data, the price, the layers): a poll bringing the same does nothing. */
+      let liveLast = "";
       /** Data with intervals added at its end, empty for now: every layer's, as copies (the data drawn stays as it was). */
       function widened(/** @type {Resolved} */ data, /** @type {number[]} */ added) {
         const grown = (/** @type {any} */ values) => {
           if (!values) return values;
           const out = new Float64Array(values.length + added.length).fill(NaN);
           out.set(values);
+          ownLive.add(out);
           return out;
         };
         const results = new Map([...data.results].map(([id, result]) => {
           const values = grown(result.values);
-          return [id, { ...result, values, shown: result.shown === result.values ? values : grown(result.shown), ohlc: result.ohlc && [...result.ohlc, ...added.map(() => null)] }];
+          const ohlc = result.ohlc && [...result.ohlc, ...added.map(() => null)];
+          if (ohlc) ownLive.add(ohlc);
+          return [id, { ...result, values, shown: result.shown === result.values ? values : grown(result.shown), ohlc }];
         }));
         return { ...data, times: [...data.times, ...added], results };
       }
@@ -17440,6 +17847,10 @@
           drawnTimes = resolved.times;
         }
         const data = /** @type {Resolved} */ (resolved), at = data.times.length - 1, time = data.times[at];
+        // The same price on the same data, for the same layers (as most polls bring): nothing to move.
+        const key = `${idOf(data)}:${price}:${layers.map((layer) => layer.id).join()}`;
+        if (key === liveLast) return;
+        liveLast = key;
         let moved = false;
         for (const layer of layers) {
           const result = data.results.get(layer.id), value = /** @type {(price: number) => number} */ (LIVE.get(layer.series ?? ""))(price);
@@ -17448,10 +17859,11 @@
           let last = at;
           if (added.length) while (last > 0 && !Number.isFinite(result.values[last])) last--;
           else if (!Number.isFinite(result.values[at])) continue;
-          const values = result.values.slice(), bar = result.ohlc?.[last], close = closes.get(layer.id), series = close?.series ?? drawn.get(layer.id);
+          const values = liveCopy(result.values), bar = result.ohlc?.[last], close = closes.get(layer.id), series = close?.series ?? drawn.get(layer.id);
           values[at] = value;
+          scans.delete(values);
           // Its candles move too, drawn as candles or not (a switch to candles shows them as they are).
-          const ohlc = bar ? result.ohlc.slice() : result.ohlc;
+          const ohlc = bar ? liveCopy(result.ohlc) : result.ohlc;
           if (bar) {
             const [open, high, low, before] = bar.map(Number), from = added.length ? before : open;
             const candle = added.length ? [from, Math.max(from, value), Math.min(from, value), value] : [open, Math.max(high, value), Math.min(low, value), value];
@@ -17461,10 +17873,14 @@
           }
           for (const gap of added.slice(0, -1)) series?.update({ time: gap });
           data.results.set(layer.id, { ...result, values, shown: values, ohlc });
+          // (What's drawn is read too: a drawing snaps to the price as it is now.)
+          const made = built.get(layer.id);
+          if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ohlc });
           series?.update({ time, value });
           moved = true;
         }
         if (!moved) return;
+        liveMoves++;
         // (The view's change windows were read from the old value.)
         windows.data = null;
         updateValues();
@@ -17527,13 +17943,6 @@
         if (shared) {
           if (!library.charts.includes(shared)) previewing = shared;
           chart = shared;
-        }
-        // A preview this tab had open, or under the grid (a reload): there again, as one.
-        if (!shared) {
-          try {
-            const kept = read(JSON.parse(sessionStorage.getItem(PREVIEWING) ?? "null"));
-            if ((history.state?.home || history.state?.chart === kept.id) && !library.charts.some((doc) => doc.id === kept.id)) chart = previewing = kept;
-          } catch {}
         }
         // First visit: an empty chart, open as a preview, to start from a search or one of the website's charts.
         const first = !chart;
