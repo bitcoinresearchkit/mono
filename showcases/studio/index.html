@@ -6516,24 +6516,8 @@
         const dh = 2 * Math.sqrt(c1 * c2) * Math.sin(((h1 - h2) * Math.PI) / 360);
         return (l1 - l2) ** 2 + 2 * (c1 - c2) ** 2 + 3 * dh ** 2;
       }
-      /** Bitview's colors, each named by the nearest name no other has taken (closest pairs first): never two alike. */
-      let ownNames = null;
-      function ownName(key) {
-        // (The text's own color: white on the dark, black on the light, whatever its nearest name.)
-        if (key === "ink") return light ? "Black" : "White";
-        if (!ownNames) {
-          const pairs = [];
-          for (const color of SWATCHES) {
-            const [l, c, h] = oklchOf(color), chroma = Math.min(c, maxChroma(l, h));
-            for (const name of namesAt()) pairs.push([nameDistance(l, chroma, h, name.l, name.c, name.h), color, name.name]);
-          }
-          pairs.sort((a, b) => a[0] - b[0]);
-          ownNames = {};
-          const taken = new Set();
-          for (const [, color, name] of pairs) if (!ownNames[color] && !taken.has(name)) (ownNames[color] = capitalize(name)), taken.add(name);
-        }
-        return ownNames[key];
-      }
+      /** Bitview's colors by their own names, as links, files and the guide write them (the page's ink: white or black). */
+      const ownName = (/** @type {string} */ key) => (key === "ink" ? (light ? "Black" : "White") : capitalize(key));
       /** A color's name: Bitview's own as they're named, any other by the nearest familiar name to it as shown. */
       function colorName(color) {
         if (SWATCHES.includes(color)) return ownName(color);
@@ -7557,6 +7541,13 @@
        */
       let library = storage.get(STORE, null);
       if (!Array.isArray(library?.charts)) library = { charts: [], active: "", folders: [], order: [] };
+      /**
+       * The library's shape, as this Studio writes it (raised with what `validate` learns to read): one saved by a newer
+       * Studio (a later number) is opened read-only here, said so, since it may hold what this one would drop if it saved
+       * it again.
+       */
+      const SCHEMA = 3;
+      let readOnly = Number(/** @type {any} */ (library).schema) > SCHEMA;
       /** The sidebar's order as stored, read: its keys, once each. */
       const orderOf = (/** @type {any} */ stored) => [...new Set((Array.isArray(stored) ? stored : []).filter((key) => typeof key === "string" && /^[fc]:[a-z0-9]{1,16}$/.test(key)))];
       /** Saved charts this version couldn't read, kept aside as they were: never lost to the next save. */
@@ -7570,16 +7561,17 @@
         doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;
         return doc;
       }
-      /** A stored chart, read; one that can't be is set aside (never dropped). @returns {Chart[]} */
+      /** A stored chart, read; one that can't be is set aside (never dropped: if it can't be, nothing's saved). @returns {Chart[]} */
       function restore(stored) {
         try {
           return [read(stored)];
         } catch (error) {
-          // Never silently: the chart goes aside, untouched, and the reason shows.
-          // One per chart, as it was last: a chart edited again elsewhere replaces its older copy.
+          // Never silently: the chart goes aside, untouched, and it's said (see start). One per chart, as it was last: a
+          // chart edited again elsewhere replaces its older copy.
           const aside = storage.get(UNREAD, []);
           const list = (Array.isArray(aside) ? aside : []).filter((item) => (stored?.id ? item?.id !== stored.id : JSON.stringify(item) !== JSON.stringify(stored)));
-          storage.set(UNREAD, [...list, stored].slice(-50));
+          // (Not set aside: the library stays as stored, read-only, rather than lose it at the next save.)
+          if (!storage.set(UNREAD, [...list, stored])) readOnly = true;
           console.error(`A saved chart couldn't be read; it's kept under "${UNREAD}" in this browser's storage.`, error);
           return [];
         }
@@ -7614,7 +7606,7 @@
             }
           }
           // Off the side only once they're saved in the library.
-          if (still.length !== aside.length && storage.set(STORE, { ...library, charts: [...back, ...library.charts] })) {
+          if (!readOnly && still.length !== aside.length && storage.set(STORE, { ...library, schema: SCHEMA, charts: [...back, ...library.charts] })) {
             library.charts.unshift(...back);
             storage.set(UNREAD, still);
           }
@@ -7636,6 +7628,9 @@
       };
       /** @returns {Chart | undefined} */
       const chartById = (id) => library.charts.find((doc) => doc.id === id) ?? (previewing?.id === id ? previewing : undefined);
+      /** The catalog indexed (see below): a series added waits for it, as for its info, its path kept with its name at once. */
+      let indexed = /** @type {(value?: unknown) => void} */ (() => {});
+      const catalogIndexed = new Promise((resolve) => (indexed = resolve));
       // Index the catalog when the page is idle; then charts saved without paths get theirs (and survive renames).
       {
         /** @type {(step: (deadline: { timeRemaining: () => number }) => void, options?: { timeout: number }) => void} */
@@ -7651,6 +7646,7 @@
           }
           if (stack.length) return void idle(step, { timeout: 1000 });
           catalogIndex = index;
+          indexed();
           const learned = library.charts.some((doc) => doc.layers.some((layer) => layer.series && !layer.path && index.has(layer.series)));
           for (const doc of library.charts) normalize(doc);
           if (learned) save();
@@ -7668,7 +7664,11 @@
        */
       const layerPicks = new Set();
       let layerPickLast = "", pickHead = "";
-      const edits = { past: /** @type {string[]} */ ([]), future: /** @type {string[]} */ ([]), key: "", at: 0 };
+      const edits = { past: /** @type {string[]} */ ([]), future: /** @type {string[]} */ ([]), key: "", at: 0, held: 0 };
+      /** The drag under way (a slider's, a color surface's: see track), counted; none, 0. Its edits undo as one. */
+      let holding = 0, holds = 0;
+      /** Each chart's undo and redo, kept while others are open (the last few charts'), for as long as the page is. */
+      const histories = /** @type {Map<string, { past: string[], future: string[] }>} */ (new Map());
       /** Bumped by every change of state: edits, undo, redo, opening a chart. */
       let revision = 0;
       /**
@@ -7706,6 +7706,26 @@
       let saveTimer = 0, savedTimer = 0;
       /** Writes the library soon; `announce` shows a brief "Saved" after an edit. A failure stays on screen. */
       let announcing = false;
+      /**
+       * The library written, its shape's number with it; storage full, the cached previews and marks (drawn again) give
+       * way to it. Whether it was. Read-only (see SCHEMA), it isn't, and that's said once.
+       */
+      function persist() {
+        if (readOnly) {
+          if (!readOnlyTold) notice("Read-only: these charts were saved by a newer Studio. Reload it to keep changes", { label: "Reload", run: () => location.reload() });
+          readOnlyTold = true;
+          return false;
+        }
+        const written = { ...library, schema: SCHEMA };
+        return storage.set(STORE, written) || (storage.drop(PREVIEWS, THUMBS), storage.set(STORE, written));
+      }
+      let readOnlyTold = false;
+      /** What's being typed where it shows (a drawing's text or label, a name), kept now: before a save, a page left. */
+      function flushEdits() {
+        endTyping();
+        const active = document.activeElement;
+        if (active instanceof HTMLInputElement && active.matches(".tile-rename, .row-rename, .folder-rename")) active.blur();
+      }
       function save(announce = false) {
         announcing ||= announce;
         clearTimeout(saveTimer);
@@ -7714,8 +7734,8 @@
           saveTimer = 0;
           announcing = false;
           const saved = $("saved");
-          // Full: the drawings (a cache, drawn again) give way to the charts.
-          const ok = storage.set(STORE, library) || (storage.drop(PREVIEWS, THUMBS), storage.set(STORE, library));
+          const ok = persist();
+          if (readOnly) return;
           if (ok && !announced && !saved.classList.contains("error")) return;
           saved.textContent = ok ? "Saved" : "Not saved: storage full or blocked";
           saved.classList.toggle("error", !ok);
@@ -7744,6 +7764,7 @@
           return;
         }
         if (!Array.isArray(stored?.charts)) return;
+        if (Number(stored.schema) > SCHEMA) readOnly = true;
         const ours = new Map(library.charts.map((doc) => [doc.id, doc]));
         const merged = stored.charts.flatMap(restore).filter((doc) => !deletedHere.has(doc.id)).map((doc) => (ours.get(doc.id)?.updated >= doc.updated ? ours.get(doc.id) : doc));
         let before = [];
@@ -7764,6 +7785,7 @@
           if (typeof folder === "string") doc.folder = folder;
           else delete doc.folder;
         }
+        for (const doc of merged) if (ours.get(doc.id) !== doc) histories.delete(doc.id);
         library.charts = merged;
         library.folders = foldersOf(stored.folders, merged);
         library.order = orderOf(stored.order);
@@ -7777,10 +7799,13 @@
         refresh(true);
       });
 
+      // Leaving: what's being typed kept, and what's not yet written written now (as a save would, full storage too).
       addEventListener("pagehide", () => {
+        flushEdits();
         if (!saveTimer) return;
         clearTimeout(saveTimer);
-        storage.set(STORE, library);
+        saveTimer = 0;
+        persist();
       });
 
       /**
@@ -7790,18 +7815,21 @@
        * @param {(doc: Chart) => void} edit @param {{ coalesce?: string, redraw?: Redraw, quiet?: boolean, keepMenu?: boolean }} [options]
        */
       function commit(edit, { coalesce = "", redraw = /** @type {Redraw} */ (true), quiet = false, keepMenu = false } = {}) {
-        const before = JSON.stringify(chart);
+        const before = JSON.stringify(chart), had = chart.layers.length;
         edit(chart);
         normalize(chart);
         if (JSON.stringify(chart) === before) return;
         const now = Date.now();
-        if (!(coalesce && coalesce === edits.key && now - edits.at < 1000)) edits.past.push(before);
+        // One step: a drag's edits, however long it lasts (the next drag, another); typed ones a second apart.
+        const joins = coalesce && coalesce === edits.key && (holding ? edits.held === holding : !edits.held && now - edits.at < 1000);
+        if (!joins) edits.past.push(before);
         if (edits.past.length > 200) edits.past.shift();
         edits.future = [];
         edits.key = coalesce;
         edits.at = now;
+        edits.held = holding;
         chart.updated = now;
-        if (chart === previewing && !quiet) keepPreview(false);
+        if (chart === previewing && !quiet) keepPreview(false, had > 0);
         changed(!quiet, redraw, keepMenu);
       }
       /** Undo, as ⌘Z and ⌘K do it: a toast's Undo while it's up (a deleted chart comes back), else the chart's last edit. */
@@ -7948,6 +7976,7 @@
         if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ chart: doc.id }, "");
         // (An empty preview left has nothing to come back to.)
         if (previewing && doc !== previewing && !previewing.layers.length && !previewing.title) previewing = null;
+        const previous = chart;
         chart = doc;
         library.active = doc.id;
         rememberViewed(doc.id);
@@ -7955,9 +7984,15 @@
         chosen = new Set();
         layerPicks.clear();
         drawingsHidden = false;
-        edits.past = [];
-        edits.future = [];
+        // (Its undo and redo, as left; the one before's kept for when it's back.)
+        if (previous) histories.set(previous.id, { past: edits.past.slice(-50), future: edits.future.slice(-50) });
+        const kept = histories.get(doc.id);
+        histories.delete(doc.id);
+        while (histories.size > 8) histories.delete(/** @type {string} */ (histories.keys().next().value));
+        edits.past = kept?.past ?? [];
+        edits.future = kept?.future ?? [];
         edits.key = "";
+        edits.held = 0;
         revision++;
         hideMenu();
         setTool("");
@@ -7982,11 +8017,15 @@
         leaveHome(() => openChart(doc));
       }
       /** A chart opened as a preview: looked at, not in the list yet (see `preview`). @param {Chart} doc */
-      function showPreview(doc) {
+      function showPreview(doc, linked = false) {
+        // (What's being typed in the chart before, kept on it while it's still the preview it is.)
+        flushEdits();
+        const was = previewing && previewing !== doc && previewing.layers.length && !library.charts.includes(previewing) ? previewing : null;
         leaveHome(() => {
           previewing = doc;
           openChart(doc);
         });
+        if (was && !linked) toast(`Closed the preview “${titleOf(was)}”`, { label: "Undo", run: () => showPreview(was) });
       }
       /**
        * The preview let go of (its ×): open, the chart before it takes its place (under the grid too). The last chart there
@@ -8005,15 +8044,18 @@
         if (focused) /** @type {HTMLElement | null} */ ($("chart-list").querySelector("[data-open-chart]"))?.focus();
       }
       /** The preview, the user's: first in the list, saved (`announce`: kept by the button, the "Saved" note says so). */
-      function keepPreview(announce = true) {
+      function keepPreview(announce = true, tell = false) {
         if (!previewing) return;
         if (library.charts.some((doc) => doc.id === previewing?.id)) previewing.id = uid();
-        // (Kept by its button: the focus, which it leaves, to the title.)
-        if (document.activeElement === $("keep")) $("title").focus();
-        library.charts.unshift(previewing);
+        // (Kept by its button, which goes: the focus let go of, not into a field where the next key would type.)
+        if (document.activeElement === $("keep")) /** @type {HTMLElement} */ (document.activeElement).blur();
+        const kept = previewing;
+        library.charts.unshift(kept);
         previewing = null;
         save(announce);
         renderCharts();
+        // (Kept by a change made to a chart opened with something in it, a link's, a website's: said, once.)
+        if (tell) toast(`Kept “${titleOf(kept)}” in your charts`);
       }
 
       const recent = () => {
@@ -10916,6 +10958,13 @@
         const left = chartBox.left - canvas.left + view.priceScale("left", 0).width(), top = first.getBoundingClientRect().top - canvas.top;
         return { left, top, width: view.timeScale().width(), height: last.getBoundingClientRect().bottom - canvas.top - top };
       }
+      /** The drawing tools docked on a side (⌘K's way to what dragging them does), in the middle of it. */
+      function dockBelt(/** @type {"top" | "bottom" | "left" | "right"} */ side) {
+        Object.assign(prefs.belt, { dock: side, at: 0.5 });
+        savePrefs();
+        turnBelt(upright(side));
+        placeBelt(true);
+      }
       /** The belt where it's docked: on its side of the plot, along it where it was left, inside it (along the top or foot, it wraps). */
       function placeBelt(glide = false) {
         const belt = $("belt"), plot = belt.hidden || belt.classList.contains("held") ? null : plotBox();
@@ -12516,23 +12565,34 @@
       function renameTile(doc) {
         const tile = cardOf(doc.id);
         if (!tile) return;
-        const input = document.createElement("input");
-        Object.assign(input, { className: "tile-rename", value: doc.title, placeholder: "Untitled chart", maxLength: 120, spellcheck: false, autocomplete: "off" });
-        input.setAttribute("aria-label", "Chart title");
         const name = /** @type {HTMLElement} */ (tile.querySelector(".tile-name"));
-        input.style.top = `${name.getBoundingClientRect().top - tile.getBoundingClientRect().top - 4}px`;
-        tile.append(input);
+        nameInPlace(tile, { className: "tile-rename", value: doc.title, placeholder: "Untitled chart", max: 120, label: "Chart title", top: name.getBoundingClientRect().top - tile.getBoundingClientRect().top - 4, apply: (title) => renameById(doc.id, title), back: () => tileOpen(doc.id)?.focus() });
+      }
+      /** A chart's title, typed in its sidebar row: ↵ or leaving keeps it, esc doesn't. @param {Chart} doc @param {HTMLElement} row */
+      function renameRow(doc, row) {
+        nameInPlace(row, { className: "row-rename", value: doc.title, placeholder: "Untitled chart", max: 120, label: "Chart title", apply: (title) => renameById(doc.id, title), back: () => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${doc.id}"]`))?.focus() });
+      }
+      /**
+       * A name typed where it shows (a tile's, a sidebar row's, a folder's head): ↵ or leaving it keeps it, esc doesn't;
+       * ended by a key, `back` puts the focus back on what it names. `apply` takes the name.
+       * @param {HTMLElement} host @param {{ className: string, value: string, placeholder: string, max: number, label: string, top?: number, apply: (name: string) => void, back: () => void }} options
+       */
+      function nameInPlace(host, { className, value, placeholder, max, label, top, apply, back }) {
+        const input = document.createElement("input");
+        Object.assign(input, { className, value, placeholder, maxLength: max, spellcheck: false, autocomplete: "off" });
+        input.setAttribute("aria-label", label);
+        if (top !== undefined) input.style.top = `${top}px`;
+        host.append(input);
         input.focus();
         input.select();
         let done = false;
-        /** Kept or not; back on the tile when it ends by a key (left by a click, the focus is where it went). */
         const finish = (/** @type {boolean} */ keep, /** @type {boolean} */ refocus) => {
           if (done) return;
           done = true;
-          const title = input.value.trim().slice(0, 120);
+          const name = input.value.trim().slice(0, max);
           input.remove();
-          if (keep && title !== doc.title) renameChart(doc, title);
-          if (refocus) tileOpen(doc.id)?.focus();
+          if (keep) apply(name);
+          if (refocus) back();
         };
         input.addEventListener("keydown", (event) => {
           if (event.isComposing || (event.key !== "Enter" && event.key !== "Escape")) return;
@@ -12542,30 +12602,10 @@
         });
         input.addEventListener("blur", () => finish(true, false));
       }
-      /** A chart's title, typed in its sidebar row: ↵ or leaving keeps it, esc doesn't. @param {Chart} doc @param {HTMLElement} row */
-      function renameRow(doc, row) {
-        const input = document.createElement("input");
-        Object.assign(input, { className: "row-rename", value: doc.title, placeholder: "Untitled chart", maxLength: 120, spellcheck: false, autocomplete: "off" });
-        input.setAttribute("aria-label", "Chart title");
-        row.append(input);
-        input.focus();
-        input.select();
-        let done = false;
-        const finish = (/** @type {boolean} */ keep, /** @type {boolean} */ refocus) => {
-          if (done) return;
-          done = true;
-          const title = input.value.trim().slice(0, 120);
-          input.remove();
-          if (keep && title !== doc.title) renameChart(doc, title);
-          if (refocus) /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${doc.id}"]`))?.focus();
-        };
-        input.addEventListener("keydown", (event) => {
-          if (event.isComposing || (event.key !== "Enter" && event.key !== "Escape")) return;
-          event.preventDefault();
-          event.stopPropagation();
-          finish(event.key === "Enter", true);
-        });
-        input.addEventListener("blur", () => finish(true, false));
+      /** A chart renamed by its id, as it is now (not as it was when the name began). */
+      function renameById(/** @type {string} */ id, /** @type {string} */ title) {
+        const doc = chartById(id);
+        if (doc && title !== doc.title) renameChart(doc, title);
       }
       /** A tile's right-click: the bar's actions at the pointer, on the picks if it's one of them, else on it alone. */
       function tileMenu(id, point = undefined, anchor = /** @type {HTMLElement} */ (tileOpen(id))) {
@@ -13123,32 +13163,13 @@
         const host = /** @type {HTMLElement | null} */ (inGrid ?? inSide);
         if (!host) return openPage(renameFolderPage(id));
         const scope = /** @type {HTMLElement} */ (host.closest("#home-grid, #chart-list"));
-        const input = document.createElement("input");
-        Object.assign(input, { className: "folder-rename", value: folder.name, placeholder: "Folder", maxLength: 60, spellcheck: false, autocomplete: "off" });
-        input.setAttribute("aria-label", "Folder name");
-        host.append(input);
-        input.focus();
-        input.select();
-        let done = false;
-        const finish = (/** @type {boolean} */ keep, /** @type {boolean} */ refocus) => {
-          if (done) return;
-          done = true;
-          const name = input.value.trim().slice(0, 60);
-          input.remove();
-          if (keep && name && name !== folder.name) {
-            folder.name = name;
-            save();
-            renderCharts();
-          }
-          if (refocus) /** @type {HTMLElement | null} */ (scope.querySelector(`[data-folder-toggle="${id}"]`))?.focus();
-        };
-        input.addEventListener("keydown", (event) => {
-          if (event.isComposing || (event.key !== "Enter" && event.key !== "Escape")) return;
-          event.preventDefault();
-          event.stopPropagation();
-          finish(event.key === "Enter", true);
-        });
-        input.addEventListener("blur", () => finish(true, false));
+        nameInPlace(host, { className: "folder-rename", value: folder.name, placeholder: "Folder", max: 60, label: "Folder name", apply: (name) => {
+          const now = folderById(id);
+          if (!now || !name || name === now.name) return;
+          now.name = name;
+          save();
+          renderCharts();
+        }, back: () => /** @type {HTMLElement | null} */ (scope.querySelector(`[data-folder-toggle="${id}"]`))?.focus() });
       }
       /** A folder's name, as ⌘K's page (read by its id when set: another tab may have changed it since). */
       const renameFolderPage = (/** @type {string} */ id) => inputPage({ title: "Rename", value: folderById(id)?.name ?? "", placeholder: "The folder's name", hint: "A folder needs a name", verb: "Rename", read: (text) => (text.trim() ? `Rename to “${text.trim().slice(0, 60)}”` : null), apply: (text) => {
@@ -13196,9 +13217,12 @@
         renderCharts();
         toast(`Deleted “${folder.name}”${members.length ? `; its ${plural(members.length, "chart")} kept` : ""}`, { label: "Undo", run: () => {
           if (folderById(id)) return;
+          const back = new Set(members.map((doc) => doc.id)), now = sideItems().map(sideKey), first = now.findIndex((key) => back.has(key.slice(2)));
+          const order = now.filter((key) => !back.has(key.slice(2)) && key !== `f:${id}`);
           library.folders.splice(Math.min(at, library.folders.length), 0, folder);
-          for (const doc of members) if (library.charts.includes(doc) && !doc.folder) doc.folder = id;
-          library.order = keys;
+          for (const doc of library.charts) if (back.has(doc.id) && !doc.folder) doc.folder = id;
+          order.splice(first >= 0 ? first : Math.min(keys.indexOf(`f:${id}`), order.length), 0, `f:${id}`);
+          library.order = order;
           save();
           renderCharts();
         } });
@@ -13327,9 +13351,9 @@
         save();
         renderCharts();
         toast(copies.length === 1 ? `Duplicated “${titleOf(docs[0])}”` : `Duplicated ${copies.length} charts`, { label: "Undo", run: () => {
-          const open = copies.indexOf(chart);
-          if (open >= 0) openChart(docs[open]);
-          for (const copy of copies) unlist(copy);
+          const ids = copies.map((copy) => copy.id), open = ids.indexOf(chart.id);
+          if (open >= 0) openChart(chartById(docs[open].id) ?? previousChart() ?? library.charts[0]);
+          for (const doc of library.charts.filter((doc) => ids.includes(doc.id))) (unlist(doc), deletedHere.add(doc.id));
           save();
           renderCharts();
         } });
@@ -13340,7 +13364,10 @@
        * layers do), drawn as it until it's drawn itself. @param {Chart} doc
        */
       function duplicateChart(doc) {
-        const copy = { ...structuredClone(doc), id: uid(), title: `${titleOf(doc)} copy`, updated: Date.now() };
+        const base = `${titleOf(doc).replace(/ copy(?: \d+)?$/, "")} copy`, titles = new Set(library.charts.map(titleOf));
+        let title = base;
+        for (let n = 2; titles.has(title); n++) title = `${base} ${n}`;
+        const copy = { ...structuredClone(doc), id: uid(), title, updated: Date.now() };
         library.charts.splice(library.charts.indexOf(doc) + 1, 0, copy);
         // Where it's looked at, too.
         if (doc === chart) saveView();
@@ -14653,20 +14680,28 @@
       function track(event, element, cursor, move) {
         event.preventDefault();
         element.focus();
+        // (Its edits one undo step: see commit.)
+        holding = ++holds;
         move(event);
         document.body.classList.add(cursor);
-        // (Its own pointer's: a second finger moves, or ends, nothing.)
-        const pointer = event.pointerId, follow = (/** @type {PointerEvent} */ next) => next.pointerId === pointer && move(next);
-        const end = (/** @type {PointerEvent} */ next) => {
-          if (next.pointerId !== pointer) return;
+        // (Its own pointer's: a second finger moves, or ends, nothing. A mouse moving with no button down, or the window
+        // left, ends it: its release went elsewhere.)
+        const pointer = event.pointerId;
+        const follow = (/** @type {PointerEvent} */ next) => next.pointerId === pointer && (next.pointerType === "mouse" && !next.buttons ? stop() : move(next));
+        const end = (/** @type {PointerEvent} */ next) => next.pointerId === pointer && stop();
+        const stop = () => {
+          flushPick();
+          holding = 0;
           document.body.classList.remove(cursor);
           removeEventListener("pointermove", follow);
           removeEventListener("pointerup", end);
           removeEventListener("pointercancel", end);
+          removeEventListener("blur", stop);
         };
         addEventListener("pointermove", follow);
         addEventListener("pointerup", end);
         addEventListener("pointercancel", end);
+        addEventListener("blur", stop);
       }
       // Sliders scrub from stop to stop.
       $("inspector").addEventListener("pointerdown", (event) => {
@@ -14851,28 +14886,35 @@
       function planeTarget(/** @type {string} */ name) {
         const layer = layerById(selected);
         if (name === "layer" && layer) {
-          const key = colorKey(layer);
-          return { color: colorOf(layer, key), set: (color) => editLayer((target) => setColor(target, key, color), { coalesce: `${key}:${selected}` }) };
+          const key = colorKey(layer), id = layer.id;
+          return { color: colorOf(layer, key), set: (color) => editById(id, (target) => setColor(target, key, color), { coalesce: `${key}:${id}` }) };
         }
         if (name === "pen") {
           const look = lookFor("color");
           return look ? { color: look.color, set: (color) => setLook("color", color, "color", true) } : null;
         }
         const key = name.startsWith("line:") ? name.slice(5) : "";
-        if (key && layer && lineAt(layer, key)) return { color: lineLook(layer, key).color, set: (color) => setLineLook(selected, key, "color", color, { coalesce: `line:${key}:${selected}`, keepMenu: true }) };
+        if (key && layer && lineAt(layer, key)) return { color: lineLook(layer, key).color, set: (color) => setLineLook(layer.id, key, "color", color, { coalesce: `line:${key}:${layer.id}`, keepMenu: true }) };
         return null;
       }
       /** A surface by what it picks for (found again each time: the inspector redraws under a drag). */
       const planeOf = (/** @type {string} */ name) => /** @type {HTMLElement | null} */ (document.querySelector(`.plane[data-plane="${CSS.escape(name)}"]`));
       /** A color picked, one frame at a time while dragging; the whole drag (or run of keys) is one undo step. */
-      let pickFrame = 0, picking = /** @type {{ name: string, color: string } | null} */ (null);
+      let pickFrame = 0, picking = /** @type {{ name: string, color: string, doc: Chart, target: { color: string, set: (color: string) => void } | null } | null} */ (null);
       function pick(/** @type {string} */ name, /** @type {string} */ color) {
-        picking = { name, color };
-        pickFrame ||= requestAnimationFrame(() => {
-          pickFrame = 0;
-          const target = picking && planeTarget(picking.name);
-          if (target && picking && target.color !== picking.color) target.set(picking.color);
-        });
+        // (What it's for, taken now, on this chart: by its frame, another may be selected, or open.)
+        picking = { name, color, doc: chart, target: picking?.name === name && pickFrame ? picking.target : planeTarget(name) };
+        pickFrame ||= requestAnimationFrame(applyPick);
+      }
+      function applyPick() {
+        pickFrame = 0;
+        if (picking?.doc === chart && picking.target && picking.target.color !== picking.color) picking.target.set(picking.color);
+      }
+      /** The color waiting for its frame, set now (a drag ending: in its step). */
+      function flushPick() {
+        if (!pickFrame) return;
+        cancelAnimationFrame(pickFrame);
+        applyPick();
       }
       /** The color at a point of the surface (a hue and a lightness): at the surface's chroma there. */
       function colorAt(u, t) {
@@ -14988,19 +15030,24 @@
         openPalette(keys.length && nodeAt(keys) != null ? { replace: id, path: keys.slice(0, -1), landOn: keys.at(-1) } : { replace: id, query: layer.series.replace(/_/g, " ") });
       }
       /** Swaps a layer's series, keeping everything else (its letter, so formulas using it come back). */
+      /** Each replacement asked for, by layer: the latest one's, applied; any earlier one's answer, dropped. */
+      const replacing = new Map();
       async function replaceSeries(id, name) {
-        const target = chart;
+        const target = chart, run = (replacing.get(id) ?? 0) + 1;
+        replacing.set(id, run);
         if (!layerById(id)?.series || !isSeriesName(name) || name === layerById(id).series) return;
         // As Add does: a series counted by block has no dates to chart.
         retryInfo(name);
-        const meta = await info(name).catch(() => null);
+        const [meta] = await Promise.all([info(name).catch(() => null), catalogIndexed]);
         const layer = layerById(id);
-        if (chart !== target || !layer?.series) return;
+        if (chart !== target || !layer?.series || replacing.get(id) !== run) return;
         if (meta && !datedIntervals(meta).length) return notice(`${name} is indexed by block, not by date`);
         const was = labelOf(layer);
         editById(id, (target) => {
           target.series = name;
           delete target.path;
+          // (Its name was the old series': the new one's shows.)
+          delete target.label;
         });
         remember(name);
         undoToast(`Replaced “${was}” with “${humanize(name)}”`);
@@ -15681,7 +15728,8 @@
         const target = chart;
         if (!roomFor(target)) return;
         retryInfo(name);
-        const meta = await info(name).catch(() => null);
+        // (Its path too, kept with its name in the same edit: see normalize.)
+        const [meta] = await Promise.all([info(name).catch(() => null), catalogIndexed]);
         if (chart !== target || !roomFor(target)) return;
         if (meta && !datedIntervals(meta).length) return notice(`${name} is indexed by block, not by date`);
         const unit = meta ? unitOf(name, meta.type) : units.get(name) ?? "number";
@@ -16097,7 +16145,8 @@
       function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false } = {}) {
         // (And while what it was on is still there: the layer being replaced or edited, the pane being added to.)
         const there = ({ replacing, editing, into }) => (!replacing || layerById(replacing)?.series) && (!editing || layerById(editing)) && (!into || chart.panes.some((pane) => pane.id === into));
-        const spot = resume && putAway?.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000 && there(putAway.state) ? putAway.state : null;
+        const scoped = (/** @type {any} */ state) => Boolean(state.adding || state.replacing || state.formula || state.editing);
+        const spot = resume && putAway?.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000 && there(putAway.state) && !scoped(putAway.state) ? putAway.state : null;
         putAway = null;
         hideMenu();
         // Opened afresh, it starts at the search (or where adding a series last added from, on this chart).
@@ -16215,6 +16264,8 @@
           ...(cloudable() ? [{ title: "Add a cloud", text: "Filled between layers: from the lowest of them to the highest, at each date.", words: "cloud band range envelope fill between min max percentiles", icon: "cloud", keepOpen: true, run: () => pushPage(cloudPage()) }] : []),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
           ...(empty ? [] : [{ title: "Copy a share link", text: "A link that opens this chart for anyone.", words: "share url send", icon: "share", run: () => $("share").click(), suggested: true }]),
+          ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", words: "image picture tab open view", icon: "link", run: () => exportAs("open") }]),
+          ...(chart === previewing || isDraft(chart) ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${folderById(chart.folder)?.name ?? "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
           ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
           ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows, with its title.", words: "png picture screenshot export save", icon: "image", run: () => exportAs("png"), suggested: true }]),
           ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per date.", words: "csv spreadsheet export save", icon: "table", run: () => exportAs("csv") }]),
@@ -16222,7 +16273,7 @@
           ...(library.charts.length ? [{ title: "Download all charts", text: "One file of them all, folders and all, to import anywhere else.", words: "export everything backup move computer device browser phone library save json", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
           { title: "Import charts", text: "A chart's file, several exported together, or all of them from anywhere else.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           ...THEMES.filter(([id]) => id !== prefs.theme).map(([id, name, icon, text, words]) => ({ title: `Theme: ${name}`, text, words: `theme appearance mode color scheme ${words}`, icon, run: () => setTheme(id), anywhere: true })),
-          ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
+          ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale out the way" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Logarithmic scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
           ...(empty ? [] : [scalePane()].filter((pane) => chart.layers.filter((layer) => layer.pane === pane.id).length > 1).map((pane) => ({ title: ordersOf(pane)[pane.reverse ? 0 : 1][1], text: `${pane.stack ? "The stack's order" : "Which layer is drawn over the others"}, for ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "order reverse reversed front back stack foot paint draw over under", icon: "axis", run: () => setPaneReverse(pane.id, !pane.reverse) }))),
@@ -16230,6 +16281,8 @@
             { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", words: "draw drawing belt toolbar tools annotate", icon: "draw", run: toggleBelt },
             ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, words: "draw drawing tool cancel end", icon: tool, kbd: "esc", run: () => setTool("") }] : []),
             ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: `${TOOLS[kind].tip}; esc to stop.`, words: `draw drawing annotate annotation ${TOOLS[kind].name} ${TOOLS[kind].noun}${kind === "ruler" ? " measure measuring distance difference percent" : ""}`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => setTool(kind) })),
+            { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, words: "select drawings box marquee pick several", icon: "select", kbd: "D S", run: () => setSelectingArea(true) },
+            ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, words: "drawing tools belt toolbar dock move side top bottom left right", icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", () => /** @type {const} */ (["top", "bottom", "left", "right"]).map((side) => ({ key: side, label: capitalize(side), current: prefs.belt.dock === side, run: () => dockBelt(side) })))) }] : []),
             ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", words: "drawings annotations hide show visible clean", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden) }] : []),
             ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
           ]),
@@ -16320,7 +16373,7 @@
           const recents = root && browsing ? recent().map((name) => ({ kind: "series", key: name, name, group: "Recent series" })) : [];
           const suggested = root ? commands().filter((command) => command.suggested).map((command) => ({ kind: "command", key: command.title, command, group: "Commands" })) : [];
           // What you pick most from here, lately: three, a step closer.
-          const usual = root && !browsing ? byUse([...commands().map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingRows(), ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0)).slice(0, 3).map((item) => ({ ...item, group: "Recently used" })) : [];
+          const usual = root && !browsing ? byUse([...commands().map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingRows(), ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Recently used" })) : [];
           const fresh = (item) => !usual.some((other) => other.key === item.key);
           palette.items = browsing ? [...recents, ...folder] : [...lastCharts, ...usual, ...browseRows().filter(fresh), ...suggested.filter(fresh)];
           // Coming back up, the row you came from stays highlighted; going in, the first.
@@ -16451,10 +16504,17 @@
           return error.message;
         }
       };
+      /** Why a formula can't be added to this chart: it doesn't read, or a letter names no layer here; else "". */
+      function formulaError(/** @type {string} */ text) {
+        const problem = parseError(text);
+        if (problem) return problem;
+        const missing = [...refsOf(parse(text))].find((letter) => !chart.layers.some((layer) => layer.letter === letter));
+        return missing ? `There is no layer ${missing}` : "";
+      }
       /** A row of the formula page: the formula to add, or a piece of one (a layer by its color). */
       function formulaRow(item) {
         if (item.kind === "formula") {
-          const editing = palette.editing ? layerById(palette.editing) : null, problem = parseError(palette.query.trim());
+          const editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(palette.query.trim());
           return `${ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
         }
         const layer = item.layer ? layerById(item.layer) : null;
@@ -16475,7 +16535,7 @@
        * its error is in the preview.
        */
       function addFromPalette(pane = palette.into, keep = false) {
-        const text = palette.query.trim(), problem = parseError(text);
+        const text = palette.query.trim(), problem = formulaError(text);
         if (problem) return notice(problem);
         if (keep && !palette.editing) {
           // Added, and the formula stays, selected, to write the next one.
@@ -16857,8 +16917,8 @@
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
       /** What else a setting is called, for the search: "rename" finds a name, "sma" a formula from a layer, "resize" a height. */
       const SYNONYMS = {
-        title: "rename name", name: "rename label", derive: "moving average sma ema smooth bands percentile median deviation zscore transform", "to-formula": "convert transform", "to-series": "convert", format: "format",
-        type: "line area bars candles dots style", color: "colour", "color-below": "colour", dash: "dashed dotted stroke", shape: "steps curved smooth",
+        title: "rename name", name: "rename label", series: "replace swap change other", solo: "solo alone only isolate", derive: "moving average sma ema smooth bands percentile median deviation zscore transform", "to-formula": "convert transform", "to-series": "convert", format: "format",
+        type: "line area bars histogram baseline candles dots style", color: "colour", "color-below": "colour", dash: "dashed dotted stroke", shape: "steps curved smooth",
         fill: "area", width: "thickness stroke", opacity: "transparency alpha", pane: "move", side: "left right", "price-line": "last value",
         base: "zero", levels: "horizontal lines threshold", hide: "visible show", remove: "delete", duplicate: "copy clone",
         interval: "timeframe resolution", range: "zoom period", export: "download png csv json image", share: "link url",
@@ -16883,26 +16943,37 @@
        * How well what's typed finds a text, word by word: a whole word, a word's start, inside one, or (from four letters)
        * a word a letter or two off; 0 when a word finds nothing.
        */
+      /** Words that say nothing of what's looked for, in a search of several ("move to pane", "the price color"). */
+      const FILLER = new Set(["a", "an", "the", "to", "of", "in", "on", "for", "and", "my", "into", "with", "at", "by"]);
       function fitScore(text, words) {
         const lower = text.toLowerCase(), own = lower.split(/[^a-z0-9%×.]+/).filter(Boolean);
         let total = 0;
         for (const word of words) {
+          if (!/[a-z0-9]/.test(word)) {
+            if (lower.includes(word)) total += 2;
+            continue;
+          }
           let best = 0;
           for (const other of own) {
             if (other === word) best = 4;
             else if (other.startsWith(word)) best = Math.max(best, 3);
-            else if (other.includes(word)) best = Math.max(best, 2);
+            else if (word.length >= 3 && other.includes(word)) best = Math.max(best, 2);
             else if (!best && word.length >= 4 && editsBetween(word, other.slice(0, word.length + 1), word.length >= 7 ? 2 : 1) <= (word.length >= 7 ? 2 : 1)) best = 1;
             if (best === 4) break;
           }
-          if (!best && lower.includes(word)) best = 2;
+          if (!best && word.length >= 3 && lower.includes(word)) best = 2;
+          if (!best && words.length > 1 && FILLER.has(word)) continue;
           if (!best) return 0;
           total += best;
         }
         return total;
       }
-      /** What's found, best first, then what's used most lately, then as listed. */
-      const rank = (list, textOf, words) => list.map((item, i) => /** @type {[any, number, number]} */ ([item, fitScore(textOf(item), words), i])).filter(([, score]) => score > 0).sort((a, b) => b[1] - a[1] || useScore(b[0].key) - useScore(a[0].key) || a[2] - b[2]).map(([item]) => item);
+      /** What removes or deletes, asked for by name: one of its kind's verbs typed, a word starting it ("del", "remove"). */
+      const DANGER_VERBS = ["remove", "delete", "clear", "erase", "trash", "discard"];
+      const dangerous = (/** @type {any} */ item) => Boolean(item.danger ?? item.command?.danger);
+      const askedFor = (/** @type {string[]} */ words) => words.some((word) => word.length >= 2 && DANGER_VERBS.some((verb) => verb.startsWith(word)));
+      /** What's found, best first, then what's used most lately, then as listed (what removes, only when asked for). */
+      const rank = (list, textOf, words) => list.map((item, i) => /** @type {[any, number, number]} */ ([item, fitScore(textOf(item), words), i])).filter(([item, score]) => score > 0 && (!dangerous(item) || askedFor(words))).sort((a, b) => b[1] - a[1] || useScore(b[0].key) - useScore(a[0].key) || a[2] - b[2]).map(([item]) => item);
       /** What a row is found by: its label, its aside, its words, what else it's called; a chart, by its title. */
       const rowText = (item) => (item.kind === "chart" ? titleOf(chartById(item.key) ?? { title: "" }) : `${item.label ?? ""} ${item.aside ?? ""} ${item.words ?? ""} ${SYNONYMS[item.key] ?? ""}`);
       /** Into a page: what was typed, and the row that led there, come back with ⌫. @param {Page} page */
@@ -16995,7 +17066,8 @@
       function previewRow(panel, item) {
         if (item.preview) return item.preview(panel);
         if (item.page) {
-          const page = item.page(), rows = page.input ? [] : page.rows();
+          // (A setting's own page, as it is: the way into it, `page`, goes there, its owner's page under it.)
+          const page = (item.of ?? item.page)(), rows = page.input ? [] : page.rows();
           panel.innerHTML = `<h4 class="plain">${escape(item.label)}</h4><p class="description">${escape(item.aside ?? "")}</p>${rows.length ? `<ul class="contents">${rows.slice(0, 14).map((row) => {
             const doc = row.kind === "chart" ? chartById(row.key) : null;
             return `<li>${doc ? chartMark(doc) : row.icon ?? ""}<span>${escape(doc ? titleOf(doc) : row.label)}</span></li>`;
@@ -17088,13 +17160,13 @@
         // (The chart's page adds only its settings: its actions are commands already.)
         const shared = new Set(chart.layers.map(labelOf).filter((name, i, names) => names.indexOf(name) !== i));
         const owners = [
-          { name: titleOf(chart), page: chartPage, only: ["title", "interval", "range"] },
-          ...chart.layers.map((layer) => ({ name: shared.has(labelOf(layer)) ? `${labelOf(layer)} (${layer.letter})` : labelOf(layer), page: () => layerPage(layer.id), only: null })),
-          ...chart.panes.map((pane, i) => ({ name: `Pane ${i + 1}`, page: () => panePage(pane.id), only: null })),
-          ...((names) => (chart.drawings ?? []).map((drawing) => ({ name: /** @type {string} */ (names.get(drawing.id)), page: () => drawingPage(drawing.id), only: null })))(drawingNames()),
+          { name: titleOf(chart), kind: "chart", page: chartPage, only: ["title", "interval", "range"] },
+          ...chart.layers.map((layer) => ({ name: shared.has(labelOf(layer)) ? `${labelOf(layer)} (${layer.letter})` : labelOf(layer), kind: "layer", page: () => layerPage(layer.id), only: null })),
+          ...chart.panes.map((pane, i) => ({ name: `Pane ${i + 1}`, kind: "pane", page: () => panePage(pane.id), only: null })),
+          ...((names) => (chart.drawings ?? []).map((drawing) => ({ name: /** @type {string} */ (names.get(drawing.id)), kind: "drawing", page: () => drawingPage(drawing.id), only: null })))(drawingNames()),
         ];
-        return owners.flatMap(({ name, page, only }) => page().rows().filter((row) => !row.key.startsWith("layer:") && !row.key.startsWith("add-") && (!only || only.includes(row.key))).map((row) => ({
-          ...row, key: `setting:${name}:${row.key}`, group: "In this chart", label: `${name} · ${row.label}`, words: `${name} ${row.words ?? ""} ${SYNONYMS[row.key] ?? ""}`, of: row.page,
+        return owners.flatMap(({ name, kind, page, only }) => page().rows().filter((row) => !row.key.startsWith("layer:") && !row.key.startsWith("add-") && (!only || only.includes(row.key))).map((row) => ({
+          ...row, key: `setting:${name}:${row.key}`, group: "In this chart", label: `${name} · ${row.label}`, words: `${name} ${kind} ${row.words ?? ""} ${SYNONYMS[row.key] ?? ""}`, of: row.page,
           page: row.page && (() => {
             const owner = page();
             pushPage(owner);
@@ -17130,6 +17202,7 @@
             if (!score || !head.some((word) => word.length > 1 && fitScore(itself, [word]))) continue;
             const page = row.of();
             if (page.input) {
+              if (namesSomething(value)) break;
               const said = page.input.read(value);
               if (said) found.push({ score, row: { kind: "row", key: `do:${row.key}`, icon: row.icon, label: `${row.label} → ${said.replace(/^(Set|Rename) to /, "")}`, group: "Set", verb: "Set", run: () => page.input?.set(value), preview: row.preview } });
             } else {
@@ -17141,6 +17214,12 @@
           }
         }
         return found.sort((a, b) => b.score - a.score).slice(0, 3).map(({ row }) => row);
+      }
+      /** Whether words name something here (a folder, a chart, a layer) or a kind of thing: never a value to set. */
+      function namesSomething(/** @type {string} */ value) {
+        const said = value.trim().toLowerCase();
+        return ["folder", "folders", "chart", "charts", "layer", "layers", "pane", "panes", "drawing", "drawings", "series"].includes(said)
+          || library.folders.some((folder) => folder.name.toLowerCase() === said) || library.charts.some((doc) => titleOf(doc).toLowerCase() === said) || chart.layers.some((layer) => labelOf(layer).toLowerCase() === said);
       }
       /** The root's ways into each part: this chart, your charts, its layers and panes, the templates. */
       function browseRows() {
@@ -18048,10 +18127,11 @@
         <div class="menu-rule"></div>
         <button type="button" data-export="csv">${ICONS.table}Download data <span>CSV</span></button>
         <button type="button" data-export="json">${ICONS.file}Download chart file <span>JSON</span></button>`, ({ export: kind }) => exportAs(kind)));
-      // The panel's two adds, from the header (and the phone's bar).
+      // The panel's adds, from the header (and the phone's bar): a cloud too, once there are layers for one.
       for (const id of ["add", "mobile-add"]) $(id).addEventListener("click", (event) => home ? newChart() : showMenu(event.currentTarget, `
         <button type="button" data-pick="series">${ICONS.plus}Add a series<kbd>A</kbd></button>
-        <button type="button" data-pick="formula">${ICONS.formula}Add a formula<kbd>F</kbd></button>`, ({ pick }) => (pick === "series" ? openPalette({ add: true }) : addFormula())));
+        <button type="button" data-pick="formula">${ICONS.formula}Add a formula<kbd>F</kbd></button>${cloudable() ? `
+        <button type="button" data-pick="cloud">${ICONS.cloud}Add a cloud</button>` : ""}`, ({ pick }) => (pick === "series" ? openPalette({ add: true }) : pick === "cloud" ? openPage(cloudPage()) : addFormula())));
       $("share").addEventListener("click", async () => {
         const link = shareLink(chart);
         try {
@@ -18081,10 +18161,11 @@
             const folders = new Map(foldersOf(parsed.folders, []).map((folder) => [folder.id, { ...folder, id: uid() }]));
             /** @type {Map<string, Chart>} */
             const byId = new Map();
+            let already = 0;
             const docs = parsed.charts.flatMap((item) => {
               try {
-                const doc = validate(item);
-                keepCarriedView(doc, item);
+                const doc = readChart(item);
+                if (library.charts.some((other) => sameChart(other, doc))) return (already++, []);
                 const folder = folders.get(item.folder);
                 if (folder) doc.folder = folder.id;
                 if (typeof item.id === "string" && !byId.has(item.id)) byId.set(item.id, doc);
@@ -18093,7 +18174,10 @@
                 return [];
               }
             });
+            if (!docs.length && already) return toast(`${already === 1 ? "That chart is" : `All ${grouped.format(already)} charts are`} here already`);
             if (!docs.length) throw new Error("No charts in it");
+            // (Folders with charts in them, and empty ones not here by name: none made for charts left out.)
+            for (const [from, folder] of folders) if (!docs.some((doc) => doc.folder === folder.id) && (parsed.charts.some((item) => item?.folder === from) || library.folders.some((other) => other.name === folder.name))) folders.delete(from);
             const before = sideItems().map(sideKey), among = library.charts.length > 0;
             const order = orderOf(parsed.order).flatMap((key) => {
               const folder = key[0] === "f" ? folders.get(key.slice(2)) : undefined, doc = key[0] === "c" ? byId.get(key.slice(2)) : undefined;
@@ -18110,8 +18194,8 @@
             scheduleThumbs();
             if (home) renderCharts();
             else showHome();
-            const skipped = parsed.charts.length - docs.length;
-            return toast(`Imported ${plural(docs.length, "chart")}${folders.size ? ` and ${plural(folders.size, "folder")}` : ""}${skipped === 1 ? "; 1 entry wasn't a chart" : skipped ? `; ${grouped.format(skipped)} entries weren't charts` : ""}`, { label: "Undo", run: () => {
+            const skipped = parsed.charts.length - docs.length - already;
+            return toast(`Imported ${plural(docs.length, "chart")}${folders.size ? ` and ${plural(folders.size, "folder")}` : ""}${already ? `; ${grouped.format(already)} already here` : ""}${skipped === 1 ? "; 1 entry wasn't a chart" : skipped ? `; ${grouped.format(skipped)} entries weren't charts` : ""}`, { label: "Undo", run: () => {
               // (As a delete takes them, by their ids: another tab may have saved one anew since; the open one among them,
               // another opens.)
               const ids = new Set(docs.map((doc) => doc.id));
@@ -18129,12 +18213,24 @@
               renderCharts();
             } });
           }
-          const doc = validate(parsed);
-          keepCarriedView(doc, parsed);
+          const doc = readChart(parsed);
+          // One here already (the same chart, as a link opened again finds it): that one opens.
+          const twin = library.charts.find((other) => sameChart(other, doc));
+          if (twin) {
+            leaveHome(() => openChart(twin));
+            return toast(`Opened “${titleOf(twin)}”: you have it already`);
+          }
           // Onto an untouched new chart, the file takes its place.
+          const before = chart;
           if (isDraft(chart)) unlist(chart);
           adopt(doc);
-          toast(`Imported “${titleOf(doc)}”`);
+          toast(`Imported “${titleOf(doc)}”`, { label: "Undo", run: () => {
+            const now = chartById(doc.id);
+            if (now) (unlist(now), deletedHere.add(doc.id));
+            if (chart.id === doc.id) openChart(chartById(before.id) ?? (before === previewing ? before : null) ?? previousChart() ?? library.charts[0] ?? (previewing = blankChart()));
+            save();
+            renderCharts();
+          } });
         } catch {
           notice("That file isn't a Bitview Studio chart");
         }
@@ -18268,9 +18364,8 @@
           }
         }
         if (parsed === undefined) throw failure;
-        const input = fromSketch(parsed), doc = validate(input);
-        keepCarriedView(doc, input);
-        lostDrawings = (input.drawings?.length ?? 0) - (doc.drawings?.length ?? 0);
+        const doc = readChart(parsed);
+        lostDrawings = (parsed.drawings?.length ?? 0) - (doc.drawings?.length ?? 0);
         return doc;
       }
       /**
@@ -18334,6 +18429,15 @@
             ...(cloud ? { cloud } : {}),
           };
         }) };
+      }
+      /**
+       * A chart as it comes in, however it was written: a link's sketch, a file, an item of a file of several (a whole
+       * chart passes through the sketch's reading as it is), validated, its view kept.
+       */
+      function readChart(/** @type {any} */ input) {
+        const sketch = fromSketch(input), doc = validate(sketch);
+        keepCarriedView(doc, sketch);
+        return doc;
       }
       /** A line's style, read back: its color and line style where valid. */
       function lineStyleOf(line) {
@@ -18961,6 +19065,7 @@
         // Everything saves as you go: ⌘S just says so, instead of the browser saving the page.
         if (mod && key === "s") {
           event.preventDefault();
+          flushEdits();
           return save(true);
         }
         if (mod && key === "z" && !typing(event.target)) {
@@ -19169,13 +19274,17 @@
       // while the page is seen and at once when it's seen again. A new block refetches the chart, and the dot flashes.
 
       $("live").addEventListener("animationend", (event) => event.animationName === "block" && $("live").classList.remove("block"));
+      let checking = false;
       async function checkLive() {
-        if (document.visibilityState !== "visible") return;
+        if (document.visibilityState !== "visible" || checking) return;
+        checking = true;
         let health;
         try {
           health = await client.getHealth({ cache: false });
         } catch {
           return updateStatus();
+        } finally {
+          checking = false;
         }
         answeredAt = Date.now();
         if ($("live").classList.contains("offline")) updateStatus();
@@ -19348,7 +19457,7 @@
        * the guide, the "About" section: "{" first, as typed or URL-encoded), else compressed (older links, and the longest).
        * A chart already kept is the one opened, at the link's window (or its range, the link having none).
        */
-      async function fromHash() {
+      async function fromHash(run = linkRun) {
         const hash = location.hash.slice(1), shared = new URLSearchParams(hash).get("chart");
         if (!shared) return null;
         history.replaceState(history.state, "", location.pathname);
@@ -19356,7 +19465,9 @@
         const written = /(?:^|&)chart=(.*)$/s.exec(hash)?.[1] ?? "";
         try {
           lostDrawings = 0;
-          const doc = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? fromWritten(written) : await fromLink(shared), twin = library.charts.find((other) => sameChart(other, doc));
+          const doc = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? fromWritten(written) : await fromLink(shared);
+          if (run !== linkRun) return null;
+          const twin = library.charts.find((other) => sameChart(other, doc));
           if (twin) {
             const all = storage.get(VIEWS, {});
             if (all[doc.id]) all[twin.id] = all[doc.id];
@@ -19376,14 +19487,18 @@
         }
       }
       // A link pasted into this tab while it's open.
+      /** Each link opened, counted: one still being read when another comes is dropped (see fromHash). */
+      let linkRun = 0;
       addEventListener("hashchange", async () => {
         if (!new URLSearchParams(location.hash.slice(1)).has("chart")) return;
         closeDialogs();
-        const doc = await fromHash();
+        const run = ++linkRun;
+        const doc = await fromHash(run);
+        if (run !== linkRun) return;
         // (The one open already, or last open behind the grid: drawn anew, so at the link's window.)
         if (doc && doc === chart) leaveHome(() => { drawnChart = ""; refresh(true, true); });
         else if (doc && library.charts.includes(doc)) leaveHome(() => openChart(doc));
-        else if (doc) showPreview(doc);
+        else if (doc) showPreview(doc, true);
       });
 
       async function start() {
@@ -19416,6 +19531,9 @@
         const later = (/** @type {() => void} */ work) => (window.requestIdleCallback ? requestIdleCallback(work, { timeout: 3000 }) : setTimeout(work, 1500));
         later(startFinder);
         later(() => vivid(0.5, 0));
+        // Charts this Studio couldn't read: kept aside, said once, to be had as a file.
+        const aside = storage.get(UNREAD, []);
+        if (Array.isArray(aside) && aside.length) notice(`${plural(aside.length, "saved chart")} couldn't be read here: kept aside`, { label: "Download", run: () => download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
       }
       start();
     </script>
