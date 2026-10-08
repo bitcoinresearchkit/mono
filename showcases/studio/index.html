@@ -1,10 +1,18 @@
 <!doctype html>
+<!--
+  Bitview Studio: charts of Bitcoin's on-chain data, from links. A link carries a chart as JSON, URL-encoded or as it is:
+  https://studio.bitview.space/#chart={"title": "Cost basis", "range": "4y", "layers": [{"series": "price"},
+  {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}, {"cloud": ["A", "B"]}]}
+  It opens as a preview. Layers are a series (exact name), a formula of other layers by letter (A, B... in order), or a
+  cloud between layers. Names: https://bitview.space/api/series/search?q=words. The full reference is the "About
+  Studio's links" section near the end of this page.
+-->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
-    <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result." />
+    <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <link rel="apple-touch-icon" href="data:image/png;base64,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" />
     <title>Bitview Studio</title>
@@ -139,6 +147,16 @@
 
       a {
         color: inherit;
+      }
+
+      /* What the page's links carry, for its text's readers (see the section): out of sight while the page runs. */
+      .about {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
       }
 
       kbd {
@@ -4733,10 +4751,21 @@
           padding: 0 10px;
           background: var(--box);
           box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
+          transition: box-shadow var(--dur-small) var(--ease);
 
           &.closed {
             border-radius: inherit;
           }
+
+          /* Held at the top while its charts scroll under it: its foot edged, a shadow over them. */
+          &.held:not(.closed) {
+            box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line), 0 12px 20px -14px rgb(0 0 0 / 0.8);
+          }
+        }
+
+        /* (Where its box starts: see heldHeads.) */
+        > .held-mark {
+          display: block;
         }
 
         /* (Closed: its head, alone.) */
@@ -5747,6 +5776,36 @@
         }
       }
     </style>
+    <!-- Without JavaScript, the page is its guide (after the page's style: this wins). -->
+    <noscript>
+      <style>
+        body {
+          height: auto;
+          overflow: auto;
+        }
+
+        body > :not(.about) {
+          display: none !important;
+        }
+
+        .about.about {
+          position: static;
+          width: auto;
+          height: auto;
+          max-width: 72ch;
+          margin: 0 auto;
+          overflow: visible;
+          padding: 24px 16px 48px;
+          clip-path: none;
+          white-space: normal;
+        }
+
+        .about pre {
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+        }
+      </style>
+    </noscript>
   </head>
   <body class="boot">
     <script>
@@ -6022,6 +6081,31 @@
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <div id="tip" class="tip" role="tooltip" hidden></div>
     <div id="hints" class="hints" aria-hidden="true"></div>
+
+    <!-- What Studio's links carry, for whoever reads the page's text (a page without JavaScript shows it; see the noscript
+         style in <head>). With the page's script, it's out of sight, last, for a screen reader to reach at the end. -->
+    <section id="about" class="about" aria-label="About Studio's links">
+      <h1>Bitview Studio</h1>
+      <p>Charts of Bitcoin's on-chain data from bitview.space, made in the browser: it needs JavaScript.</p>
+      <h2>Opening a chart from a link</h2>
+      <p>A link can carry a chart: https://studio.bitview.space/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. For example (before encoding):</p>
+      <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
+      <p>A chart has its "layers" (in order); optionally a "title", an "index" (its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10; day1 if none) and a "range" (what it shows of it: 3m, 1y, 4y or max; max if none).</p>
+      <p>A layer is one of:</p>
+      <ul>
+        <li>{"series": "realized_price"}: a series, by its exact name.</li>
+        <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, and percentile(A, 95, 1y). Spans are a number and a unit: h, d, w, mo or y.</li>
+        <li>{"cloud": ["B", "C"]}: filled from the lowest of those layers to the highest, at each date.</li>
+      </ul>
+      <p>Any layer can also have a "label" (its name), a "color", a "type" (line, dots, area, histogram, baseline, or candles for an OHLC series such as price_ohlc), a "pane" (1, 2 and so on, top to bottom; 1 if none), a "side" (its axis: left or right) and "hidden": true. A color is one of Bitview's: gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink (the page's text color); or a six-digit hex such as #ff8800.</p>
+      <p>Panes, where they matter, as "panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is the scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares). Without them, the first pane is logarithmic and the others linear.</p>
+      <p>To show it as a picture, once it's drawn: Export (the download button in the chart's header), then Copy as image or Download image (PNG): the chart with its legends and a footer (its source, interval and dates).</p>
+      <h2>Changing a chart</h2>
+      <p>A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link) is written the same way, URL-encoded only where a link needs it (%20 spaces, %22 quotes, %7B %7D braces, %5B %5D brackets): it's the chart as whoever copied it has it now, their own changes in it. Read it, change it, write it back. It may also have a "view" (how far it was zoomed and scrolled): keep that as it is, or leave it out to show the chart's range. A chart with drawings, or a long one, is copied compressed instead: it opens, but can't be read.</p>
+      <h2>Series names</h2>
+      <p>Only exact names: one Bitview doesn't have shows as missing, with the closest offered. Find them with https://bitview.space/api/series/search?q=words (names and descriptions are searched); https://bitview.space/api/series/&lt;name&gt; (for example /api/series/realized_price) describes one. Only series by date can be charted (some are by block). A few: price, price_ohlc, realized_price, mvrv, supply_in_profit, lth_realized_price and sth_realized_price (long- and short-term holders' cost basis).</p>
+      <p>Bitview's API is also an MCP server, without sign-in: https://mcp.bitview.space/ (added as a connector by whoever uses the assistant).</p>
+    </section>
 
     <!-- The website's charts, as presets (presets.js): the build puts the live website's here, compressed; the dev page's
          come from the local website, made in a worker. -->
@@ -12086,9 +12170,11 @@
           // (The focus, on a head or a tile, comes back to its like.)
           const focus = focusKey($("home-grid")), htmlOf = new Map(visible.map((doc, i) => [doc.id, html[i]]));
           $("home-grid").innerHTML = sections.map(({ folder, docs, count }) => (folder
-            ? `<section class="grid-section folder">${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : !count && !folder.closed ? `<p class="grid-empty">${TOUCH ? "No charts yet: move one here from its menu" : "No charts yet: drag one here, or move it from its menu"}</p>` : ""}</section>`
+            ? `<section class="grid-section folder"><i class="held-mark" aria-hidden="true"></i>${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : !count && !folder.closed ? `<p class="grid-empty">${TOUCH ? "No charts yet: move one here from its menu" : "No charts yet: drag one here, or move it from its menu"}</p>` : ""}</section>`
             : `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>`)).join("");
           restoreFocus($("home-grid"), focus);
+          heldHeads.disconnect();
+          for (const mark of all$(".held-mark", $("home-grid"))) heldHeads.observe(mark);
         }
         drawnLayout = layout;
         drawnTiles.clear();
@@ -12100,6 +12186,10 @@
         renderPicked();
         schedulePreviews();
       }
+      /** A folder's head, held at the top of the grid while its charts scroll under it: edged then, a line and a shadow. */
+      const heldHeads = new IntersectionObserver((entries) => {
+        for (const { target, isIntersecting, boundingClientRect, rootBounds } of entries) target.nextElementSibling?.classList.toggle("held", !isIntersecting && boundingClientRect.top < (rootBounds?.top ?? 0));
+      }, { root: /** @type {HTMLElement} */ (document.querySelector(".home-scroll")) });
       /** A chart's tile: what the chart grows out of and shrinks into. */
       const cardOf = (id) => /** @type {HTMLElement | null} */ ($("home-grid").querySelector(`[data-home-card="${id}"]`));
       const tileOpen = (id) => /** @type {HTMLElement | null} */ (cardOf(id)?.querySelector(".tile-open") ?? null);
@@ -14583,7 +14673,7 @@
           return `<div class="error-box">${dated.length ? `No ${escape(INTERVAL_LABEL[chart.index])} data; it has ${escape(dated.map((id) => INTERVAL_LABEL[id]).join(", "))}.<button type="button" class="btn small" data-index="${nearest}">Switch to ${escape(INTERVAL_LABEL[nearest])}</button>` : "Indexed by block, not by date: Studio can't chart it."}</div>`;
         }
         // Renamed or removed in a newer Bitview: the closest series is offered, or another one to pick.
-        if (result.missing) return `<div class="error-box gone"><p>Bitview doesn't have this series anymore: it was renamed or removed.</p>
+        if (result.missing) return `<div class="error-box gone"><p>Bitview has no series by this name: renamed, removed, or mistyped.</p>
           <div id="replacement" class="replacement"><span class="shimmer">Looking for the closest one…</span></div></div>`;
         return `<div class="error-box">${escape(result.error)}.<button type="button" class="btn small" data-action="retry">Retry</button></div>`;
       }
@@ -17779,15 +17869,56 @@
         storage.set(VIEWS, all);
       }
       /** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
-      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.cloud ? { cloud: layer.cloud.map((member) => doc.layers.findIndex((item) => item.id === member)) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
+      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.cloud ? { cloud: layer.cloud.map((member) => doc.layers.findIndex((item) => item.id === member)) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
       /** Two charts alike (a link opened again is the chart already here). */
       const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf(a) === contentOf(b);
+      /**
+       * A chart as one writes it into a link (see the guide in <noscript>): its defaults left out, panes by number, a cloud
+       * by its layers' letters (all its letters, where they aren't in order); what fromSketch reads back as the same chart.
+       * @param {Chart} doc
+       */
+      function toSketch(doc) {
+        const place = (/** @type {string} */ id) => doc.panes.findIndex((pane) => pane.id === id) + 1;
+        const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && !pane.stack && !pane.reverse && pane.size === undefined);
+        const ordered = doc.layers.every((layer, i) => layer.letter === letterAt(i));
+        if (doc === chart) saveView();
+        const kept = leftView(doc.id);
+        return {
+          ...(doc.title ? { title: doc.title } : {}),
+          ...(doc.index !== "day1" ? { index: doc.index } : {}),
+          ...(doc.range !== "max" ? { range: doc.range } : {}),
+          ...(doc.halvings ? { halvings: true } : {}),
+          ...(plain ? {} : { panes: doc.panes.map(({ id, ...pane }) => pane) }),
+          // (Not a series' path in the catalog: learned again where it opens.)
+          layers: doc.layers.map(({ id, letter, pane, cloud, type, width, dash, side, path, paths, ...rest }) => ({
+            ...(ordered ? {} : { letter }),
+            ...(cloud ? { cloud: cloud.map((member) => doc.layers.find((item) => item.id === member)?.letter ?? member) } : {}),
+            ...rest,
+            ...(type !== "line" && !cloud ? { type } : {}),
+            ...(width !== 1.5 && !cloud ? { width } : {}),
+            ...(dash && !cloud ? { dash } : {}),
+            ...(side !== "right" ? { side } : {}),
+            ...(place(pane) > 1 ? { pane: place(pane) } : {}),
+          })),
+          ...(kept ? { view: kept } : {}),
+        };
+      }
+      /**
+       * A chart's link: written as one writes it (to read, for a person or an assistant, and write again), but for a chart
+       * with drawings, or too long for a chat to carry: compressed. Either opens it.
+       */
       async function shareLink(doc) {
+        const base = `${location.origin}${location.pathname}#chart=`;
+        if (!doc.drawings?.length) {
+          // (Only what a link or a chat would break on encoded: brackets and braces too, a chat cuts a trailing "]}" off.)
+          const written = JSON.stringify(toSketch(doc)).replace(/[\s"<>`%#\\{}[\]]/g, (char) => encodeURIComponent(char));
+          if (base.length + written.length <= 2000) return base + written;
+        }
         const stream = new Blob([JSON.stringify(portable(doc))]).stream().pipeThrough(new CompressionStream("deflate-raw"));
         const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
         let binary = "";
         for (const byte of bytes) binary += String.fromCharCode(byte);
-        return `${location.origin}${location.pathname}#chart=${btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
+        return `${base}${btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
       }
       async function fromLink(encoded) {
         const binary = atob(encoded.replace(/-/g, "+").replace(/_/g, "/"));
@@ -17807,6 +17938,82 @@
         const input = JSON.parse(await new Blob(chunks).text()), doc = validate(input);
         keepCarriedView(doc, input);
         return doc;
+      }
+      /**
+       * A chart written into a link by hand: its JSON, URL-encoded or not, once or twice (a "%" of its own, as typed, kept;
+       * encoded as a form, its spaces "+"); what came before its "{" or after its last "}" left out.
+       */
+      function fromWritten(/** @type {string} */ raw) {
+        let text = raw, parsed, failure;
+        for (let round = 0; round < 3 && parsed === undefined; round++) {
+          try {
+            parsed = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+          } catch (error) {
+            // (The last one's: of the text as decoded as it gets, what its writer can fix.)
+            failure = error;
+            // (Encoded by something that encodes "{" too, a "+" is a space: a plus is "%2B" there.)
+            if (/^\s*(?:%[0-9a-f]{2})*%(?:25)*7b/i.test(text)) text = text.replace(/\+/g, "%20");
+            try {
+              text = decodeURIComponent(text.replace(/%(?![0-9a-f]{2})/gi, "%25"));
+            } catch {
+              break;
+            }
+          }
+        }
+        if (parsed === undefined) throw failure;
+        const input = fromSketch(parsed), doc = validate(input);
+        keepCarriedView(doc, input);
+        return doc;
+      }
+      /**
+       * A chart as written by hand: a chart file's JSON with only its layers needed. Its panes by number (a layer's
+       * "pane", from 1, else the first), its layers' ids and letters in order (their own kept), a cloud by its layers'
+       * letters: as `validate` reads a chart file.
+       */
+      function fromSketch(/** @type {any} */ input) {
+        if (!input || typeof input !== "object" || !Array.isArray(input.layers)) throw new Error("A chart has layers");
+        const layers = input.layers.filter((/** @type {any} */ layer) => layer && typeof layer === "object").slice(0, MAX_LAYERS);
+        const number = (/** @type {any} */ value) => (Number.isInteger(value) ? value : typeof value === "string" && /^\d{1,3}$/.test(value) ? Number(value) : null);
+        const given = Array.isArray(input.panes) && input.panes.length ? input.panes : Array.from({ length: clamp(Math.max(1, ...layers.map((/** @type {any} */ layer) => number(layer.pane) ?? 1)), 1, MAX_PANES) }, () => ({}));
+        // Ids, letters and colors given are kept; the others, the first free ones in order (none taken twice).
+        const free = (/** @type {Set<string>} */ taken, /** @type {(n: number) => string} */ make) => {
+          let n = 0;
+          return () => {
+            while (taken.has(make(n))) n++;
+            const next = make(n);
+            taken.add(next);
+            return next;
+          };
+        };
+        const ownString = (/** @type {any} */ value, /** @type {RegExp} */ shape) => (typeof value === "string" && shape.test(value) ? value : null);
+        const paneIds = new Set(given.map((/** @type {any} */ pane) => ownString(pane?.id, /^[a-z0-9]{1,16}$/)).filter(Boolean)), nextPane = free(paneIds, (n) => `p${n}`);
+        const panes = given.slice(0, MAX_PANES).map((/** @type {any} */ pane, /** @type {number} */ i) => ({ ...(i ? {} : { mode: 1 }), ...pane, id: ownString(pane?.id, /^[a-z0-9]{1,16}$/) ?? nextPane() }));
+        const nextId = free(new Set(layers.map((/** @type {any} */ layer) => ownString(layer.id, /^[a-z0-9]{1,16}$/)).filter(Boolean)), (n) => `l${n}`);
+        const ids = layers.map((/** @type {any} */ layer) => ownString(layer.id, /^[a-z0-9]{1,16}$/) ?? nextId());
+        const nextLetter = free(new Set(layers.map((/** @type {any} */ layer) => ownString(layer.letter, /^[A-Z]{1,2}$/)).filter(Boolean)), letterAt);
+        const letters = layers.map((/** @type {any} */ layer) => ownString(layer.letter, /^[A-Z]{1,2}$/) ?? nextLetter());
+        // (A cloud without one, its first layer's, as one made here takes; others, the palette's first unused.)
+        const usedColors = new Set(layers.map((/** @type {any} */ layer) => (isColor(layer.color) ? layer.color : null)).filter(Boolean));
+        let cycled = 0;
+        const colors = layers.map((/** @type {any} */ layer) => {
+          if (isColor(layer.color)) return layer.color;
+          if (Array.isArray(layer.cloud)) return null;
+          const color = PALETTE.find((name) => !usedColors.has(name)) ?? PALETTE[cycled++ % PALETTE.length];
+          usedColors.add(color);
+          return color;
+        });
+        return { ...input, panes, layers: layers.map((/** @type {any} */ layer, /** @type {number} */ i) => {
+          const cloud = Array.isArray(layer.cloud) ? layer.cloud.map((/** @type {any} */ ref) => ((key) => (letters.includes(key) ? ids[letters.indexOf(key)] : ref))(typeof ref === "string" ? ref.toUpperCase() : ref)) : null;
+          return {
+            ...layer,
+            id: ids[i],
+            letter: letters[i],
+            color: colors[i] ?? colors[ids.indexOf(cloud?.[0])] ?? PALETTE[0],
+            ...(number(layer.pane) !== null ? { pane: panes[clamp(/** @type {number} */ (number(layer.pane)), 1, panes.length) - 1].id } : layer.pane === undefined ? { pane: panes[0].id } : {}),
+            ...(typeof layer.series === "string" ? { series: layer.series.trim().toLowerCase().replace(/[\s-]+/g, "_") } : {}),
+            ...(cloud ? { cloud } : {}),
+          };
+        }) };
       }
       /** A line's style, read back: its color and line style where valid. */
       function lineStyleOf(line) {
@@ -18790,17 +18997,23 @@
 
       // ── Start ─────────────────────────────────────────────────────────────────
 
-      /** The chart a shared link carries in the URL's hash, if any; the hash is cleared either way. */
+      /**
+       * The chart a link carries in the URL's hash, if any (the hash is cleared either way): as JSON written by hand (see
+       * the guide in <noscript>: "{" first, as typed or URL-encoded), else compressed (Studio's own share links).
+       */
       async function fromHash() {
-        const shared = new URLSearchParams(location.hash.slice(1)).get("chart");
+        const hash = location.hash.slice(1), shared = new URLSearchParams(hash).get("chart");
         if (!shared) return null;
         history.replaceState(history.state, "", location.pathname);
+        // (Written, it runs to the end, read as it is: a "+" in a formula a plus, an "&" in a name, part of it.)
+        const written = /(?:^|&)chart=(.*)$/s.exec(hash)?.[1] ?? "";
         try {
-          const doc = await fromLink(shared), twin = library.charts.find((other) => sameChart(other, doc));
+          const doc = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? fromWritten(written) : await fromLink(shared), twin = library.charts.find((other) => sameChart(other, doc));
           toast(twin ? "Opened a shared chart you have already" : "Opened a shared chart: change it, or keep it, to have it in your charts");
           return twin ?? doc;
-        } catch {
-          notice("That link doesn't contain a chart");
+        } catch (error) {
+          // (Written by hand, why: to tell whoever wrote it.)
+          notice(/^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? `That link's chart couldn't be read: ${/** @type {Error} */ (error).message}` : "That link doesn't contain a chart");
           return null;
         }
       }
