@@ -34,6 +34,7 @@ impl<K: Debug> Debug for InternalKey<K> {
                 ValueType::Value => "V",
                 ValueType::Tombstone => "T",
                 ValueType::WeakTombstone => "W",
+                ValueType::ValueOverWeakTombstone => "P",
             },
         )
     }

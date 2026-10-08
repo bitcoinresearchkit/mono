@@ -66,6 +66,9 @@ mod coding;
 mod compaction;
 mod compression;
 
+#[cfg(test)]
+mod tests;
+
 /// Configuration
 pub mod config;
 

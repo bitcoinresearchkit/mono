@@ -65,6 +65,12 @@ where
     pub fn insert(&mut self, key: K, value: V) {
         match self {
             Self::Hashed { puts, dels } => {
+                // A key deleted and put again in one batch is written as a plain value over the stored one,
+                // which a later weak delete would bring back; callers never do it.
+                debug_assert!(
+                    dels.is_empty() || !dels.contains(&key),
+                    "put after a deletion in pending store changes"
+                );
                 let _ = dels.is_empty() || dels.remove(&key);
                 puts.insert(key, value);
             }

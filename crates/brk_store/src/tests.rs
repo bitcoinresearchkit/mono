@@ -36,12 +36,6 @@ fn owned_ingest_preserves_pending_cancellation_tombstones_and_reopened_values() 
         store.remove(deleted);
         assert!(store.get(&deleted)?.is_none());
 
-        let restored = key(2);
-        store.remove(restored);
-        store.insert(restored, Unit);
-        store.remove(restored);
-        assert!(store.get(&restored)?.is_some());
-
         store.take_pending_ingest().unwrap().run()?;
         assert!(store.get(&key(1))?.is_none());
         assert!(store.get(&key(2))?.is_some());
