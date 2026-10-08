@@ -266,6 +266,7 @@
           svg {
             width: 13px;
             height: 13px;
+            stroke-width: 1.65;
           }
         }
 
@@ -457,12 +458,17 @@
         overflow: hidden;
         padding: 10px 8px 8px;
         transition: width var(--dur-panel) var(--ease);
+
+        /* Only the list gives way when the column runs out of room (and scrolls): every other row keeps its size. */
+        > :not(.chart-list) {
+          flex-shrink: 0;
+        }
       }
 
-      /* Its header just above the card title's line, its last row on the card foot's. */
+      /* Its brand on the card title's line (its search's top on the header's rule), its last row on the card foot's. */
       @media (min-width: 761px) and (min-height: 501px) {
         .sidebar {
-          padding-top: 16px;
+          padding-top: 20px;
           padding-bottom: 16px;
         }
       }
@@ -471,7 +477,7 @@
         display: flex;
         align-self: flex-start;
         align-items: center;
-        gap: 10px;
+        gap: 7px;
         height: 36px;
         border-radius: var(--radius-md);
         padding: 0 8px;
@@ -546,6 +552,13 @@
         box-shadow: inset 0 0 0 1px var(--line);
         text-align: left;
         white-space: nowrap;
+
+        > [data-icon] {
+          display: grid;
+          flex-shrink: 0;
+          width: 16px;
+          justify-items: center;
+        }
         transition: box-shadow var(--fade), color var(--fade);
 
         svg {
@@ -808,7 +821,7 @@
           right: 9px;
           width: 24px;
           color: var(--muted);
-          font: 510 11.5px/1 var(--sans);
+          font: 510 12px/1 var(--sans);
           font-variant-numeric: tabular-nums;
           text-align: center;
           translate: 0 -50%;
@@ -1157,7 +1170,7 @@
         i {
           display: grid;
           flex-shrink: 0;
-          width: 14px;
+          width: 16px;
           place-items: center;
 
           &::before {
@@ -1339,7 +1352,7 @@
       /* A narrow header (a phone, a tablet upright beside the sidebar): a preview said by its Keep alone, dashed as the
          pill is (not yours yet): no room for both beside the title. */
       @container head (max-width: 640px) {
-        .preview-pill {
+        .preview-note .preview-pill {
           display: none;
         }
 
@@ -1421,9 +1434,12 @@
       }
 
       .preview-pill {
+        display: inline-flex;
+        align-items: center;
+        height: 26px;
         border: 1px dashed var(--line-strong);
-        border-radius: 999px;
-        padding: 2px 9px;
+        border-radius: var(--radius-md);
+        padding: 0 9px;
         color: var(--soft);
         font-size: 12px;
         line-height: 16px;
@@ -1635,6 +1651,11 @@
        * lights its item and brings it into view. It lives inside its pane's plot, over the chart's two canvases, so it
        * moves and resizes with the pane; its marks start where the title's text does.
        */
+      /* The time axis: a label cut by the plot's left edge fades into it (as a strip's edges do). */
+      #chart table tr:last-child > td:nth-child(2) {
+        mask-image: linear-gradient(90deg, transparent, #000 14px);
+      }
+
       .legend {
         position: absolute;
         top: 4px;
@@ -1658,8 +1679,10 @@
           border-radius: var(--radius-md);
           padding: 2px 8px 4px 5px;
           color: var(--soft);
-          /* Clear at rest, so the crosshair and the grid run through; a ground only when pointed at or selected. */
+          /* Clear at rest, so the crosshair and the grid run through (its words haloed over them); a ground only when pointed
+             at or selected. */
           background: none;
+          text-shadow: 0 0 2px var(--card), 0 0 4px var(--card);
           font-size: 12px;
           font-weight: 510;
           pointer-events: auto;
@@ -1704,10 +1727,11 @@
           /* As large as its name: the weight and the ink set it apart, not the size. */
           .legend-error,
           .legend-value {
-            justify-self: end;
+            justify-self: start;
             min-height: 18px;
+            padding-left: 22px;
             font: 510 12px/18px var(--mono);
-            text-align: right;
+            text-align: left;
             white-space: nowrap;
           }
 
@@ -1717,6 +1741,7 @@
           }
 
           .legend-value {
+            box-sizing: content-box;
             color: var(--ink);
           }
         }
@@ -1756,7 +1781,7 @@
         top: 0;
         bottom: 0;
         min-width: 10px;
-        border-radius: var(--radius-sm);
+        border-radius: var(--radius-md);
         box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
         transition: box-shadow var(--fade);
         cursor: grab;
@@ -2376,6 +2401,11 @@
         width: 100%;
         border: 0;
         padding-right: 12px;
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: var(--field-focus);
+        }
         text-align: left;
 
         span {
@@ -2461,16 +2491,17 @@
         .count {
           margin-left: 3px;
           color: var(--muted);
-          font: 510 11.5px var(--sans);
+          font: 510 12px var(--sans);
           font-variant-numeric: tabular-nums;
         }
       }
 
       /* What's marked on the chart besides its layers (the halvings): under the panes, rows as theirs are. */
       .markers {
-        margin-top: 13px;
+        margin-top: 6px;
         border-top: 1px solid var(--line);
         padding-top: 6px;
+        padding-bottom: 4px;
 
         .marker-mark {
           --c: var(--soft);
@@ -3543,7 +3574,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 12px 10px 10px 18px;
+        padding: 12px 10px 10px 20px;
 
         h2 {
           margin: 0;
@@ -3554,13 +3585,12 @@
         }
       }
 
-      /* The palette floats like a launcher: translucent, blurred, keys along the bottom. */
+      /* The palette floats like a launcher, keys along the bottom. */
       .palette {
         width: min(820px, calc(100vw - 32px));
         height: min(520px, calc(100dvh - 64px));
         margin-top: 12dvh;
-        background: color-mix(in srgb, var(--raise) 86%, transparent);
-        backdrop-filter: blur(28px) saturate(1.5);
+        background: var(--raise);
         transition: background var(--dur-small) var(--ease);
 
         &::backdrop {
@@ -3579,7 +3609,6 @@
          */
         &[data-looking] {
           background: none;
-          backdrop-filter: none;
 
           &::backdrop {
             background: none;
@@ -3600,9 +3629,9 @@
       .palette-search {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         border-bottom: 1px solid var(--line);
-        padding: 0 12px 0 18px;
+        padding: 0 12px 0 16px;
 
         > svg {
           width: 16px;
@@ -3684,14 +3713,6 @@
         padding: 0 10px;
         white-space: nowrap;
 
-        /* Back up the trail, as ← does: at its end. */
-        .back {
-          flex-shrink: 0;
-          margin-left: auto;
-          color: var(--muted);
-          font-size: 11.5px;
-        }
-
         &[hidden] {
           display: none;
         }
@@ -3762,9 +3783,17 @@
           margin: 0 2px;
         }
 
-        .item-meta svg {
+        .item-meta svg,
+        .item-mark svg {
           vertical-align: -3px;
           color: var(--ink);
+        }
+
+        /* A row's tick and ›, after its aside (which is cut, they aren't). */
+        .item-mark {
+          flex-shrink: 0;
+          color: var(--muted);
+          font-size: 12px;
         }
       }
 
@@ -3861,8 +3890,13 @@
           }
 
           .item-meta {
+            min-width: 0;
+            max-width: 45%;
+            overflow: hidden;
             color: var(--muted);
             font-size: 12px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
 
             &.error {
               color: var(--danger);
@@ -4018,7 +4052,7 @@
         gap: 14px;
         height: 42px;
         border-top: 1px solid var(--line);
-        padding: 0 12px 0 18px;
+        padding: 0 12px 0 16px;
         color: var(--soft);
         font-size: 12px;
 
@@ -4076,6 +4110,14 @@
       /* Grouped by what they act on, each action read first and its keys across from it. */
       .shortcuts {
         width: min(780px, calc(100vw - 32px));
+        max-height: min(760px, calc(100dvh - 96px));
+
+        .dialog-head {
+          position: sticky;
+          top: 0;
+          z-index: 1;
+          background: var(--raise);
+        }
 
         .key-groups {
           display: grid;
@@ -4212,7 +4254,7 @@
           }
 
           kbd {
-            font: 510 11.5px var(--sans);
+            font: 510 12px var(--sans);
           }
         }
 
@@ -4230,8 +4272,8 @@
         }
 
         .menu-row {
-          display: flex;
-          flex-wrap: wrap;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
           gap: 3px;
           padding: 2px 6px 6px;
 
@@ -4265,9 +4307,12 @@
         }
 
         .menu-note {
+          width: 0;
+          min-width: 100%;
+          box-sizing: border-box;
           padding: 4px 10px 8px;
           color: var(--muted);
-          font-size: 11.5px;
+          font-size: 12px;
         }
 
         .menu-rule {
@@ -4300,8 +4345,8 @@
         display: flex;
         align-items: center;
         gap: 14px;
-        border-radius: var(--radius-lg);
-        padding: 8px 8px 8px 10px;
+        border-radius: var(--radius-xl);
+        padding: 6px 6px 6px 10px;
         color: var(--ink);
         background: var(--raise);
         box-shadow: var(--pop);
@@ -4478,7 +4523,29 @@
         margin: 0 auto;
       }
 
-      /* The search of "Start a chart" (above), as a field. */
+      /* The filter, and beside it, as fields, the grid's tools. */
+      .home-tools {
+        display: flex;
+        gap: 8px;
+
+        .home-filter {
+          flex: 1;
+        }
+      }
+
+      .field-cap {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-lg);
+        background: var(--field);
+        box-shadow: inset 0 0 0 1px var(--line);
+
+        &:hover:not(:disabled) {
+          background: var(--field);
+          box-shadow: inset 0 0 0 1px var(--line-strong);
+        }
+      }
+
       .home-filter {
         input {
           flex: 1;
@@ -4502,7 +4569,7 @@
 
       .home-count {
         color: var(--muted);
-        font: 510 11.5px var(--sans);
+        font: 510 12px var(--sans);
         font-variant-numeric: tabular-nums;
       }
 
@@ -4545,7 +4612,7 @@
           height: 44px;
           margin: 0 -10px;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-          padding: 0 10px 0 6px;
+          padding: 0 10px 0 4px;
           background: var(--box);
           box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
 
@@ -4575,7 +4642,7 @@
         .grid-folder-toggle {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           height: 100%;
           border: 0;
           border-radius: var(--radius-md);
@@ -4585,7 +4652,7 @@
           font: inherit;
 
           > svg {
-            width: 16px;
+            width: 10.4px;
             height: 6.2px;
             color: var(--muted);
             transition: rotate var(--dur-micro) var(--ease);
@@ -4609,7 +4676,7 @@
 
         .folder-count {
           color: var(--muted);
-          font: 510 11.5px/1 var(--sans);
+          font: 510 12px/1 var(--sans);
           font-variant-numeric: tabular-nums;
         }
 
@@ -4852,7 +4919,7 @@
       .tile-index {
         flex-shrink: 0;
         color: var(--muted);
-        font: 510 11.5px var(--sans);
+        font: 510 12px var(--sans);
         font-variant-numeric: tabular-nums;
       }
 
@@ -5200,7 +5267,7 @@
 
         /* The grid's own New folder (the sidebar's isn't here). */
         #home-new-folder {
-          display: inline-flex;
+          display: inline-grid;
         }
 
 
@@ -5244,18 +5311,48 @@
 
         /* Menus: sheets too, their rows a thumb's height, the page dimmed behind (by their shadow). */
         .menu.as-sheet {
-          right: calc(8px + env(safe-area-inset-right));
-          bottom: calc(8px + env(safe-area-inset-bottom));
-          left: calc(8px + env(safe-area-inset-left));
+          right: 0;
+          bottom: 0;
+          left: 0;
           max-height: 70dvh;
-          border-radius: var(--radius-2xl);
-          padding: 6px;
+          border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+          padding: 8px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
           animation: rise var(--dur-panel) var(--ease);
+
+          .menu-space {
+            width: 16px;
+          }
 
           > button {
             height: 46px;
+            gap: 12px;
             font-size: 15px;
+
+            svg {
+              width: 16px;
+              height: 16px;
+            }
           }
+        }
+
+        /* ⌘K's foot on one line: Close left out (the search's × closes), and the count while a row's action shows. */
+        .palette-foot:has(#palette-enter:not([hidden])) #palette-count,
+        #palette-close-sep,
+        #palette-close-sep + .foot-action {
+          display: none;
+        }
+
+        .foot-action {
+          white-space: nowrap;
+        }
+
+        /* The grid's heading short: its title alone. */
+        .home-inner > h1 {
+          margin-bottom: 14px;
+        }
+
+        .home-inner > h1 + p {
+          display: none;
         }
 
         /* The tab bar: each its icon over its name; the one where you are lit. */
@@ -5280,9 +5377,16 @@
             font-size: 11px;
             font-weight: 510;
 
+            > span[data-icon] {
+              display: grid;
+              height: 24px;
+              place-items: center;
+            }
+
             svg {
               width: 20px;
               height: 20px;
+              stroke-width: 1.15;
             }
 
             &:active {
@@ -5429,11 +5533,17 @@
       @media (hover: none) {
         :is(.chart-row, .folder-row) .chart-more,
         .grid-folder .cap,
-        .tile :is(.tile-more, .tile-check) {
+        .tile .tile-more {
           opacity: 1;
         }
 
-        /* (Its ⋯ and tick always there: its interval before them.) */
+        /* (A tile's tick once picking's begun: a long press, or Select in its ⋯.) */
+        .home:not(.picking) .tile-check:not(:focus-visible) {
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        /* (Its ⋯ always there, its tick while picking: its interval before them.) */
         .tile-head {
           margin-right: 58px;
         }
@@ -5614,13 +5724,15 @@
             <div class="home-inner">
               <h1>All charts</h1>
               <p>Your charts, as they show. Select a few to move, duplicate, download or delete them at once.</p>
+              <div class="home-tools">
               <label class="home-filter">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
                 <input id="home-filter" aria-label="Filter charts" autocomplete="off" spellcheck="false" />
                 <span id="home-count" class="home-count"></span>
-                <button id="home-import" class="cap" type="button" aria-label="Import a chart file" data-tip="Import a chart file" data-action="import" data-icon="upload"></button>
-                <button id="home-new-folder" class="cap" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
               </label>
+              <button id="home-import" class="cap field-cap" type="button" aria-label="Import a chart file" data-tip="Import a chart file" data-action="import" data-icon="upload"></button>
+              <button id="home-new-folder" class="cap field-cap" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
+              </div>
               <div id="home-grid" class="home-grid"></div>
               <div id="home-none" class="home-none" hidden></div>
             </div>
@@ -5835,7 +5947,7 @@
         sliders: svg('<path d="M2.5 5h6.5M12.5 5h1M2.5 11h1M7 11h6.5"/><circle cx="10.75" cy="5" r="1.75"/><circle cx="5.25" cy="11" r="1.75"/>', 14),
         undo: svg('<path d="M5.5 3.5 2.5 6.5l3 3"/><path d="M2.5 6.5h7a4 4 0 0 1 0 8h-2"/>', 14),
         redo: svg('<path d="m10.5 3.5 3 3-3 3"/><path d="M13.5 6.5h-7a4 4 0 0 0 0 8h2"/>', 14),
-        halvings: svg('<path d="M5 2.5v11M11 2.5v11" stroke-dasharray="2 2"/>', 14),
+        halvings: svg('<path d="M2 4h4v4h4v4h4"/>', 14),
         eye: svg('<path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/>', 14),
         eyeOff: svg('<path d="M2 2l12 12"/><path d="M6.4 3.8A6.6 6.6 0 0 1 8 3.5c4.1 0 6.5 4.5 6.5 4.5a11 11 0 0 1-1.9 2.4M10 10.6A2 2 0 0 1 6.9 7.3M4.1 5.2A11 11 0 0 0 1.5 8s2.4 4.5 6.5 4.5c.8 0 1.6-.2 2.3-.5"/>', 14),
         close: svg('<path d="m4 4 8 8M12 4l-8 8"/>', 14),
@@ -6353,9 +6465,16 @@
           return { time, label };
         });
       }
-      /** A date as the page writes it ("3 Oct 2024"), with its time at a fine interval; made once, read on every move. */
-      const DATES = [false, true].map((fine) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC", ...(fine ? { hour: "2-digit", minute: "2-digit" } : {}) }));
-      const dateLabel = (/** @type {number} */ time, /** @type {boolean} */ fine) => DATES[Number(fine)].format(time * 1000);
+      /** A month as the page writes it: "Sep 2022" (`whole`: "September 2022"), in UTC. */
+      const monthYear = (/** @type {number} */ time, whole = false) => {
+        const at = new Date(time * 1000);
+        return `${whole ? capitalize(MONTH_NAMES[at.getUTCMonth()]) : MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}`;
+      };
+      /** A date as the page writes it: "25 Sep 2022" (and "14:30", for fine intervals), in UTC. */
+      const dateLabel = (/** @type {number} */ time, /** @type {boolean} */ fine) => {
+        const at = new Date(time * 1000), day = `${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}`;
+        return fine ? `${day}, ${String(at.getUTCHours()).padStart(2, "0")}:${String(at.getUTCMinutes()).padStart(2, "0")}` : day;
+      };
 
       // ── Formulas ──────────────────────────────────────────────────────────────
       // A small, safe expression language over aligned layers: no eval, vectors in, vectors out.
@@ -8210,7 +8329,7 @@
           crosshair: { mode: LC.CrosshairMode.Normal, vertLine: crosshair, horzLine: { ...crosshair, color: css("--crosshair-faint"), style: LC.LineStyle.LargeDashed } },
           rightPriceScale: scale,
           leftPriceScale: { ...scale },
-          timeScale: { borderVisible: false, rightOffset: RIGHT_OFFSET, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, lockVisibleTimeRangeOnResize: true },
+          timeScale: { borderVisible: false, rightOffset: RIGHT_OFFSET, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, lockVisibleTimeRangeOnResize: true, allowBoldLabels: false },
           localization: { locale: "en-US", timeFormatter: (time) => dateLabel(Number(time), FINE.has(chart.index)), percentageFormatter: (value) => axisLabel(value, "%") },
         };
       }
@@ -9267,7 +9386,7 @@
         else {
           const left = lit.left * w, right = Math.max(lit.right * w, left + 10 * ratio);
           outside.rect(0, 0, w, h);
-          outside.roundRect(left, 0, right - left, h, 6 * ratio);
+          outside.roundRect(left, 0, right - left, h, 8 * ratio);
           context.fillStyle = alpha(css("--card"), 0.5);
           context.fill(outside, "evenodd");
           const ends = spanParts(Number(shown.from), Number(shown.to), FINE.has(chart.index)).map((text) => ({ text, width: context.measureText(text).width }));
@@ -9514,7 +9633,7 @@
       /** How near a press must be to take a drawing (a finger's, further), and to a value to be drawn to it, in pixels. */
       const REACH = 6, PULL = 8;
       const reachOf = (event) => (event.pointerType === "touch" ? 14 : REACH);
-      const SANS = css("--sans");
+      const SANS = css("--sans"), MONO = css("--mono");
       const drawingById = (id) => (id ? chart.drawings?.find((drawing) => drawing.id === id) : undefined);
       /** Each drawing's name, its kind's (a text, its words), numbered where the chart has more than one alike. */
       function drawingNames(doc = chart) {
@@ -9834,7 +9953,7 @@
         if (!reading) return;
         const parts = [[reading.name, css("--soft"), 510], ...reading.figures.map((figure) => [figure, css("--ink"), 590]), [reading.span, css("--muted"), 510]];
         const widths = parts.map(([text, , weight]) => {
-          context.font = `${weight} 12px ${SANS}`;
+          context.font = `${weight} 12px ${weight === 590 ? MONO : SANS}`;
           return context.measureText(String(text)).width;
         });
         const fit = () => widths.reduce((sum, each) => sum + each, 0) + 10 * (parts.length - 1) + 18, label = { width: fit(), height: 26 };
@@ -9859,7 +9978,7 @@
         context.textBaseline = "middle";
         let at = x + 9;
         parts.forEach(([text, ink, weight], i) => {
-          context.font = `${weight} 12px ${SANS}`;
+          context.font = `${weight} 12px ${weight === 590 ? MONO : SANS}`;
           context.fillStyle = String(ink);
           context.fillText(String(text), at, y + label.height / 2);
           at += widths[i] + 10;
@@ -10394,7 +10513,7 @@
         commit((doc) => doc.drawings?.forEach((drawing) => ids.includes(drawing.id) && apply(drawing)), { redraw: "none", keepMenu, ...(coalesce ? { coalesce: `${coalesce}:${ids.join()}` } : {}) });
       }
       /** Where the belt's popovers open: toward the chart, away from the edge it's docked on (each the same way). */
-      const beltSide = () => ({ bottom: "above", top: "below", left: "right", right: "left" })[prefs.belt.dock] ?? "";
+      const beltSide = () => ({ bottom: "above", top: "below", left: "right", right: "left" })[$("belt").dataset.dock ?? ""] ?? "";
       /** A choice from a belt button's popover, as the layers panel makes it (its tabs, its slider); focus back on the button. */
       function beltPopover(/** @type {HTMLElement} */ button, /** @type {string} */ title, /** @type {string} */ body, onPick) {
         showMenu(button, `<div class="field belt-pop"><span>${title}</span>${body}</div>`, (data) => {
@@ -11855,13 +11974,13 @@
         const target = picked.size && ids ? cardOf(id) : null;
         queueMicrotask(() => target && !$("menu").hidden && (menuTarget = target).classList.add("menu-target"));
         showMenu(anchor, `
-          ${n === 1 ? `<button type="button" data-pick="open">${ICONS.charts}Open</button><button type="button" data-pick="rename">${ICONS.pencil}Rename</button>` : ""}
+          ${n === 1 ? `<button type="button" data-pick="open">${ICONS.charts}Open</button>${picked.has(id) ? "" : `<button type="button" data-pick="select">${ICONS.check}Select</button>`}<button type="button" data-pick="rename">${ICONS.pencil}Rename</button>` : ""}
           <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate</button>
           <button type="button" data-pick="folder" aria-haspopup="menu">${ICONS.folder}Move to folder</button>
           ${leave ? `<button type="button" data-pick="out">${ICONS.folderOut}${escape(leave)}</button>` : ""}
-          <button type="button" data-pick="export">${ICONS.file}Download chart file</button>
+          <button type="button" data-pick="export">${ICONS.file}Download chart file<span>JSON</span></button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "open" ? go(chartById(id)) : action === "folder" ? folderMenu(anchor, ids ?? [...picked], point, false) : action === "out" ? moveToFolder(ids ?? [...picked], null) : batch(action, null, ids)), point);
+          <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "select" ? pickChart(id) : action === "open" ? go(chartById(id)) : action === "folder" ? folderMenu(anchor, ids ?? [...picked], point, false) : action === "out" ? moveToFolder(ids ?? [...picked], null) : batch(action, null, ids)), point);
       }
       $("home-bar").addEventListener("click", (event) => {
         const button = closest(event, "[data-batch]");
@@ -12451,7 +12570,7 @@
           <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate</button>
           <button type="button" data-pick="folder" aria-haspopup="menu">${ICONS.folder}Move to folder</button>
           ${leave ? `<button type="button" data-pick="out">${ICONS.folderOut}${escape(leave)}</button>` : ""}
-          <button type="button" data-pick="download">${ICONS.file}Download chart file</button>
+          <button type="button" data-pick="download">${ICONS.file}Download chart file<span>JSON</span></button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete</button>`, ({ pick }) => {
           // Back to the ⋯ it was opened from (in the grid, a copy is focused instead).
@@ -13182,7 +13301,7 @@
       const presetRow = (/** @type {number} */ i, deep = false) => {
         const preset = /** @type {Preset[]} */ (presets)[i];
         return {
-          kind: "row", key: `preset:${i}`, icon: ICONS.series, label: preset.t, ...(deep ? { aside: preset.p.slice(0, -1).join(" › ") } : {}), words: presetWords[i], verb: "Use",
+          kind: "row", key: `preset:${i}`, icon: ICONS.charts, label: preset.t, ...(deep ? { aside: preset.p.slice(0, -1).join(" › ") } : {}), words: presetWords[i], verb: "Use",
           run: () => useTemplate(presetTemplate(preset)),
           preview: (/** @type {HTMLElement} */ panel) => {
             const doc = presetDoc(i);
@@ -13264,7 +13383,7 @@
       function scaleMenu(anchor, id) {
         const pane = chart.panes.find((item) => item.id === id);
         if (!pane) return;
-        showMenu(anchor, `<div class="menu-group">Scale</div>${MODES.map(({ name }, mode) => `<button type="button" data-mode="${mode}" aria-checked="${paneMode(pane) === mode}" ${modesFor(pane).includes(mode) ? "" : "disabled"}>${tick(paneMode(pane) === mode)}${name}</button>`).join("")}<div class="menu-rule"></div><div class="menu-group">Stack</div>${STACKS.map(([stack, name]) => `<button type="button" data-stack="${stack}" aria-checked="${(pane.stack ?? "") === stack}">${tick((pane.stack ?? "") === stack)}${name}</button>`).join("")}${chart.layers.filter((layer) => layer.pane === id).length > 1 ? `<div class="menu-rule"></div><div class="menu-group">Order</div>${ordersOf(pane).map(([reverse, name]) => `<button type="button" data-reverse="${reverse ? 1 : ""}" aria-checked="${Boolean(pane.reverse) === reverse}">${tick(Boolean(pane.reverse) === reverse)}${name}</button>`).join("")}` : ""}`, ({ mode, stack, reverse }) => {
+        showMenu(anchor, `<div class="menu-group">Scale</div>${MODES.map(({ chip, name }, mode) => `<button type="button" data-mode="${mode}" aria-checked="${paneMode(pane) === mode}" ${modesFor(pane).includes(mode) ? "" : "disabled"}>${tick(paneMode(pane) === mode)}${chip}${name === chip ? "" : `<span>${name}</span>`}</button>`).join("")}<div class="menu-rule"></div><div class="menu-group">Stack</div>${STACKS.map(([stack, name]) => `<button type="button" data-stack="${stack}" aria-checked="${(pane.stack ?? "") === stack}">${tick((pane.stack ?? "") === stack)}${stack === "percent" ? "100%<span>Stacked, as shares</span>" : name}</button>`).join("")}${chart.layers.filter((layer) => layer.pane === id).length > 1 ? `<div class="menu-rule"></div><div class="menu-group">Order</div>${ordersOf(pane).map(([reverse, name]) => `<button type="button" data-reverse="${reverse ? 1 : ""}" aria-checked="${Boolean(pane.reverse) === reverse}">${tick(Boolean(pane.reverse) === reverse)}${name}</button>`).join("")}` : ""}`, ({ mode, stack, reverse }) => {
           if (!chart.panes.some((item) => item.id === id)) return;
           refocus(`[data-scale-menu="${id}"]`);
           if (reverse !== undefined) setPaneReverse(id, Boolean(reverse));
@@ -13348,7 +13467,7 @@
       /** What's marked on the chart besides its layers: the halvings, shown or not (as a layer, by its eye; the row the same). */
       function markersHtml() {
         // (The past ones on the chart; the next, what it can't say otherwise.)
-        const on = Boolean(chart.halvings), next = nextHalving(), years = Number.isFinite(next) ? `${ordinal(Math.floor(liveHeight / HALVING_BLOCKS) + 1)} ≈ ${new Date(next * 1000).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })}` : "Every 210,000 blocks";
+        const on = Boolean(chart.halvings), next = nextHalving(), years = Number.isFinite(next) ? `${ordinal(Math.floor(liveHeight / HALVING_BLOCKS) + 1)} ≈ ${monthYear(next)}` : "Every 210,000 blocks";
         return `<section class="markers"><div class="markers-head"><span>Markers</span></div>
           <div class="layer-row marker-row ${on ? "" : "hidden"}">
             <button type="button" class="row-main" data-markers="halvings" aria-pressed="${on}" data-tip="${on ? "Hide" : "Show"} the halvings">
@@ -13372,8 +13491,8 @@
           return `<section class="pane-group" data-pane="${pane.id}">
             <div class="pane-head">
               <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="Scale, stack and order">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
-              ${((shown) => `<button type="button" class="cap small" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} every layer in pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} every layer">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(layers.some((layer) => !layer.hidden))}
               <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="More for pane ${i + 1}" data-tip="More">${ICONS.more}</button>
+              ${((shown) => `<button type="button" class="cap small" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} every layer in pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} every layer">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(layers.some((layer) => !layer.hidden))}
             </div>
             ${layers.map((layer) => {
               const result = resolved?.results.get(layer.id);
@@ -15191,10 +15310,7 @@
         if (!dialog.open) dialog.showModal();
         applyScope();
         input.value = palette.query;
-        if (spot) {
-          input.focus();
-          input.setSelectionRange(input.value.length, input.value.length);
-        } else input.select();
+        input.select();
         showPalette();
       }
       /** A pane's number, as the panel counts them (from 1). */
@@ -15245,13 +15361,13 @@
       });
       /**
        * A trail of places ([name, depth], the last `current`), as many as fit: past that, "… ›" stands for the ones
-       * dropped on the left (and goes up to the deepest of them); ← Back always at its end.
+       * dropped on the left (and goes up to the deepest of them).
        */
       function drawTrail(crumbs, current) {
         const bar = $("palette-path");
         const draw = (from) => {
           const shown = from ? [["…", crumbs[from - 1][1]], ...crumbs.slice(from)] : crumbs;
-          bar.innerHTML = shown.map(([text, depth], i) => `${i ? '<i aria-hidden="true">›</i>' : ""}<button type="button" data-depth="${depth}" ${depth === current ? 'aria-current="location"' : ""} ${text === "…" ? 'aria-label="Up a level" data-tip="Up"' : ""}>${escape(String(text))}</button>`).join("") + backButton(current - 1);
+          bar.innerHTML = shown.map(([text, depth], i) => `${i ? '<i aria-hidden="true">›</i>' : ""}<button type="button" data-depth="${depth}" ${depth === current ? 'aria-current="location"' : ""} ${text === "…" ? 'aria-label="Up a level" data-tip="Up"' : ""}>${escape(String(text))}</button>`).join("");
         };
         let from = 0;
         bar.classList.remove("tight");
@@ -15440,8 +15556,11 @@
         // change itself, on top.
         const direct = everything && !home ? directRows(query) : [];
         const span = everything && !home && chart.layers.length ? readDate(query.replace(/^(go ?to|jump( to)?)\s+/i, "")) : null;
+        // (A formula typed here, not a date: one that reads, of this chart's layers, all there; added as a layer, first,
+        // as ⌘K's formula row adds it. A search with a dash in it stays a search.)
+        const asFormula = everything && !home && !span && isOwnFormula(query.trim()) ? [{ kind: "formula", key: "formula", group: "Formula" }] : [];
         const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
-        const local = [...direct, ...dated, ...strong, ...own, ...charts, ...website], more = weak.map((item) => ({ ...item, group: "More commands" }));
+        const local = [...asFormula, ...direct, ...dated, ...strong, ...own, ...charts, ...website], more = weak.map((item) => ({ ...item, group: "More commands" }));
         palette.moved = false;
         const controller = (palette.controller = new AbortController());
         // What matched here, while the series are looked for: at once when bitview.space answers; on this machine they
@@ -15463,7 +15582,7 @@
           if (controller.signal.aborted) return;
           clearTimeout(palette.timer);
           const active = palette.items[palette.active];
-          palette.items = names ? [...direct, ...dated, ...strong, ...own, ...charts, ...website, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...more] : [...local, ...more];
+          palette.items = names ? [...asFormula, ...direct, ...dated, ...strong, ...own, ...charts, ...website, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...more] : [...local, ...more];
           // The top result leads (or the row come back to), unless the person already moved to another row.
           palette.active = palette.moved ? Math.max(0, palette.items.indexOf(active)) : landing(palette.items);
           $("palette-glow").hidden = true;
@@ -15511,6 +15630,17 @@
         if (document.activeElement !== input || !palette.formula || !$("palette").open) return;
         if (`${input.value} ${input.selectionStart} ${input.selectionEnd}` !== formulaAt) showFormula();
       });
+      /** A formula that reads, of at least one layer of this chart, every layer it names there. */
+      function isOwnFormula(/** @type {string} */ text) {
+        if (!/[-+*/()^]/.test(plainOperators(text))) return false;
+        let letters;
+        try {
+          letters = [...refsOf(parse(text))];
+        } catch {
+          return false;
+        }
+        return letters.length > 0 && letters.every((letter) => chart.layers.some((layer) => layer.letter === letter));
+      }
       /** Why a formula doesn't read, or "" when it does. */
       const parseError = (/** @type {string} */ text) => {
         try {
@@ -16024,8 +16154,6 @@
         palette.moved = false;
         renderPalette();
       }
-      /** At the trail's end, back up one (as ← does): a button, so a click or a tap does it too. */
-      const backButton = (depth) => `<button type="button" class="back" data-depth="${depth}" data-tip="Back" data-kbd="←">← Back</button>`;
       /** The pages' trail under the search: ⌘K › Layers › Price › Color; each step goes back there. */
       function renderPages() {
         const pages = palette.pages, page = pages.at(-1);
@@ -16041,9 +16169,9 @@
       function rowHtml(item) {
         const armed = palette.armed === item.key;
         const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : escape(item.aside)) : "";
-        const end = armed ? AGAIN : [aside, item.current ? ICONS.check : "", item.page || item.leads ? "›" : ""].filter(Boolean).join(" ");
+        const end = armed ? AGAIN : aside, marks = armed ? "" : [item.current ? ICONS.check : "", item.page || item.leads ? "›" : ""].filter(Boolean).join(" ");
         const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
-        return `${item.icon ?? ""}<span class="item-name">${armed ? `Confirm: ${escape(item.label)}` : query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${item.kbd && !armed ? `<kbd>${escape(keyText(item.kbd))}</kbd>` : ""}`;
+        return `${item.icon ?? ""}<span class="item-name">${armed ? `Confirm: ${escape(item.label)}` : query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd && !armed ? `<kbd>${escape(keyText(item.kbd))}</kbd>` : ""}`;
       }
       /** A chart: its title, layers, interval, when it was last edited. */
       function previewChart(panel, doc) {
@@ -16197,7 +16325,7 @@
             const head = words.slice(0, k).map((word) => word.toLowerCase()), value = words.slice(k).join(" ");
             // The words name the setting itself, not only what it's of: "mvrv base 1", not "mvrv 1".
             const score = fitScore(name, head);
-            if (!score || !head.some((word) => fitScore(itself, [word]))) continue;
+            if (!score || !head.some((word) => word.length > 1 && fitScore(itself, [word]))) continue;
             const page = row.of();
             if (page.input) {
               const said = page.input.read(value);
@@ -16223,7 +16351,7 @@
             { key: "page:panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), words: "scale height resize swap move", page: panesPage },
             { key: "page:drawings", icon: ICONS.draw, label: "Drawings", aside: chart.drawings?.length ? plural(chart.drawings.length, "drawing") : "Lines, boxes, text", words: "draw drawings annotations lines shapes text brush", page: drawingsPage },
           ] : []),
-          { key: "page:presets", icon: ICONS.series, label: "Website charts", aside: presets ? plural(presets.length, "chart") : "From bitview.space", words: "website bitview presets examples import base start browse", page: () => presetsPage([]) },
+          { key: "page:presets", icon: ICONS.charts, label: "Website charts", aside: presets ? plural(presets.length, "chart") : "From bitview.space", words: "website bitview presets examples import base start browse", page: () => presetsPage([]) },
         ].filter((row) => !home || row.key === "page:charts" || row.key === "page:presets").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
       }
       /** Your charts, as ⌘K's page: those in no folder, then each folder's under its name (the sidebar's order); and making more. */
@@ -16657,14 +16785,13 @@
         else if ((match = /^([a-z]+) (\d{1,2}) (\d{4})$/.exec(words)) && month(match[1]) >= 0) [year, at, day] = [Number(match[3]), month(match[1]), Number(match[2])];
         else return null;
         if (year < 2009 || year > 2100 || at < 0 || at > 11 || day < 1) return null;
-        const utc = (options, time) => new Date(time).toLocaleDateString("en-GB", { ...options, timeZone: "UTC" });
         if (day !== undefined) {
           const time = Date.UTC(year, at, day);
           // No 31 November.
           if (new Date(time).getUTCDate() !== day) return null;
-          return { from: time / 1000, to: time / 1000 + 86399, day: true, label: utc({ day: "numeric", month: "short", year: "numeric" }, time) };
+          return { from: time / 1000, to: time / 1000 + 86399, day: true, label: dateLabel(time / 1000, false) };
         }
-        if (at !== undefined) return { from: Date.UTC(year, at, 1) / 1000, to: Date.UTC(year, at + 1, 1) / 1000 - 1, day: false, label: utc({ month: "long", year: "numeric" }, Date.UTC(year, at, 1)) };
+        if (at !== undefined) return { from: Date.UTC(year, at, 1) / 1000, to: Date.UTC(year, at + 1, 1) / 1000 - 1, day: false, label: monthYear(Date.UTC(year, at, 1) / 1000, true) };
         return { from: Date.UTC(year, 0, 1) / 1000, to: Date.UTC(year + 1, 0, 1) / 1000 - 1, day: false, label: String(year) };
       }
       /** Where a span falls in this chart's points: the first in it and the last (a day: the point that holds it). */
@@ -16692,8 +16819,7 @@
         const fine = FINE.has(chart.index), start = fine ? timeAt(chart.index, 0) : times[0];
         const end = fine ? Date.now() / 1000 : timeAt(chart.index, indexAt(chart.index, /** @type {number} */ (times.at(-1))) + 1);
         if (span.to >= start && span.from < end) return "";
-        const say = (time) => new Date(time * 1000).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" });
-        return `This chart runs from ${say(start)} to ${say(end - 1)}`;
+        return `This chart runs from ${monthYear(start)} to ${monthYear(end - 1)}`;
       }
       /** The view on a date: a year or a month shown whole, a day (or a span of a few points) centered at the zoom it has. */
       function goToDate(span, loaded = false) {
@@ -16891,6 +17017,8 @@
         for (const rule of all$(".menu-rule", menu)) rule.setAttribute("role", "separator");
         for (const button of all$("button", menu)) {
           if (!button.hasAttribute("role")) button.setAttribute("role", button.hasAttribute("aria-checked") ? "menuitemradio" : "menuitem");
+          // (One leading to another menu: its ›, where nothing else is at its end.)
+          if (button.getAttribute("aria-haspopup") === "menu" && !button.querySelector("span, kbd")) button.insertAdjacentHTML("beforeend", `<span class="sub">${ICONS.next}</span>`);
           // Its key, kept while a second press is asked for (that replaces what it says).
           const key = button.querySelector("kbd")?.textContent;
           if (key) button.dataset.key = key;
@@ -16951,8 +17079,8 @@
         menu.style.animation = "";
       }
       /**
-       * Where a fixed element's 0, 0 lands: the viewport's corner, or, inside a dialog whose blur makes it the frame for
-       * fixed elements (as ⌘K's does), that dialog's. Positions in the viewport then come out right in either.
+       * Where a fixed element's 0, 0 lands: the viewport's corner, or, inside a dialog that's the frame for fixed elements
+       * (a blur or a transform makes it one), that dialog's. Positions in the viewport then come out right in either.
        */
       function fixedOrigin(element) {
         element.style.left = element.style.top = "0px";
@@ -17530,7 +17658,12 @@
         const rect = target.getBoundingClientRect();
         const box = tip.getBoundingClientRect();
         let left = rect.left + rect.width / 2 - box.width / 2, top = rect.bottom + 8;
-        if (target.closest(".sidebar")) {
+        const side = target.closest("#belt") ? beltSide() : "";
+        if (side === "above") top = rect.top - box.height - 8;
+        else if (side === "left" || side === "right") {
+          left = side === "right" ? rect.right + 8 : rect.left - box.width - 8;
+          top = rect.top + rect.height / 2 - box.height / 2;
+        } else if (target.closest(".sidebar")) {
           left = $("sidebar").getBoundingClientRect().right + 6;
           top = rect.top + rect.height / 2 - box.height / 2;
         } else if (top + box.height > innerHeight - 8) top = rect.top - box.height - 8;
@@ -17605,7 +17738,8 @@
         syncUndo();
         // Above the chart's foot; in the grid, above its bar (or its foot), centered on it.
         const frame = (home ? $("home") : $("stage-foot")).getBoundingClientRect();
-        const above = !home ? frame.top : $("home-bar").hidden ? frame.bottom - 8 : $("home-bar").getBoundingClientRect().top;
+        const belt = $("belt"), beltTop = !home && !belt.hidden && belt.dataset.dock === "bottom" ? belt.getBoundingClientRect().top : Infinity;
+        const above = !home ? Math.min(frame.top, beltTop) : $("home-bar").hidden ? frame.bottom - 8 : $("home-bar").getBoundingClientRect().top;
         element.style.bottom = host === document.body && frame.height ? `${innerHeight - above + 12}px` : "";
         element.style.left = host === document.body && frame.width ? `${frame.left + frame.width / 2}px` : "";
         element.classList.add("visible");
@@ -17636,7 +17770,7 @@
         const lost = offline();
         $("live").classList.toggle("offline", lost);
         $("stamp").textContent = [lost ? "Offline" : "Live", !lost && livePrice ? format(livePrice, "usd") : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
-        $("live").dataset.tip = [lost ? "bitview.space isn't answering: trying again" : "bitview.space", !lost && livePrice ? `live price ${format(livePrice, "usd")}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${at.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}` : "", lost ? "" : "new blocks show within seconds"].filter(Boolean).join(" · ");
+        $("live").dataset.tip = [lost ? "bitview.space isn't answering: trying again" : "bitview.space", !lost && livePrice ? `live price ${format(livePrice, "usd")}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${`${at.getDate()} ${MONTHS[at.getMonth()]}, ${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}` : "", lost ? "" : "new blocks show within seconds"].filter(Boolean).join(" · ");
       }
 
       // ── Rendering the page ────────────────────────────────────────────────────
