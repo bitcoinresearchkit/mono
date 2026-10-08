@@ -4578,8 +4578,10 @@
         display: flex;
         gap: 8px;
 
+        /* (It gives the room the tools need, down to a phone's.) */
         .home-filter {
           flex: 1;
+          min-width: 0;
         }
       }
 
@@ -4772,6 +4774,34 @@
           justify-content: center;
           gap: 8px;
           margin-top: 16px;
+        }
+      }
+
+      /* At the grid's end, under a rule, the way elsewhere (they're kept in this browser): them all in one file, and back. */
+      .home-foot {
+        display: grid;
+        justify-items: center;
+        gap: 12px;
+        margin-top: 40px;
+        border-top: 1px solid var(--line);
+        padding: 24px 0 8px;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+
+        &[hidden] {
+          display: none;
+        }
+
+        p {
+          margin: 0;
+        }
+
+        div {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 8px;
         }
       }
 
@@ -5144,8 +5174,10 @@
         }
       }
 
+      /* (Over the grid's folder heads, which hold above their charts.) */
       .home-bar {
         position: absolute;
+        z-index: 4;
         bottom: 20px;
         left: 50%;
         translate: -50% 0;
@@ -5730,7 +5762,7 @@
                     <div class="starts-head"><h2>Recommended</h2><button class="btn ghost small" type="button" data-action="website-charts">Browse all<span class="more" data-icon="next"></span></button></div>
                     <div id="templates" class="templates strip"></div>
                   </div>
-                  <div class="keys"><span>Hold <kbd>⌘</kbd> to reveal shortcuts</span><div class="keys-actions"><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import a chart file</button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div></div>
+                  <div class="keys"><span>Hold <kbd>⌘</kbd> to reveal shortcuts</span><div class="keys-actions"><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div></div>
                 </div>
               </div>
             </div>
@@ -5779,11 +5811,14 @@
                 <input id="home-filter" aria-label="Filter charts" autocomplete="off" spellcheck="false" />
                 <span id="home-count" class="home-count"></span>
               </label>
-              <button id="home-import" class="cap field-cap" type="button" aria-label="Import a chart file" data-tip="Import a chart file" data-action="import" data-icon="upload"></button>
               <button id="home-new-folder" class="cap field-cap" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
               </div>
               <div id="home-grid" class="home-grid"></div>
               <div id="home-none" class="home-none" hidden></div>
+              <div id="home-foot" class="home-foot" hidden>
+                <p>Your charts are kept in this browser. Download them all, folders and all, to import them anywhere else.</p>
+                <div><button class="btn ghost small" type="button" data-action="download-all"><span data-icon="download"></span>Download all charts</button><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button></div>
+              </div>
             </div>
           </div>
           <div id="home-bar" class="pick-bar home-bar" role="group" aria-label="Selected charts" hidden>
@@ -11848,7 +11883,8 @@
         drawnTiles.clear();
         visible.forEach((doc, i) => drawnTiles.set(doc.id, html[i]));
         $("home-none").hidden = shown.length > 0;
-        $("home-none").innerHTML = query ? `No charts match “${escape(query)}”` : `<p>No charts yet. A new chart, or one of the website's, is yours once you change it (or keep it).</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import a chart file</button></div>`;
+        $("home-foot").hidden = !library.charts.length;
+        $("home-none").innerHTML = query ? `No charts match “${escape(query)}”` : `<p>No charts yet. A new chart, or one of the website's, is yours once you change it (or keep it).</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`;
         if (focused) tileOpen(focused)?.focus({ preventScroll: true });
         renderPicked();
         schedulePreviews();
@@ -11911,7 +11947,7 @@
         if (action === "export") {
           // One, its chart file (as from its menu); several, one file of them (imported, they come back to the grid, picked).
           if (docs.length === 1) return downloadChart(docs[0]);
-          download(`${docs.length}-charts.json`, new Blob([JSON.stringify({ v: 2, charts: docs.map(portable) }, null, 2)], { type: "application/json" }));
+          download(`${docs.length}-charts.json`, chartsFile(docs));
           return toast(`Downloaded ${docs.length} charts, in one file`);
         }
         if (action === "duplicate") {
@@ -15519,7 +15555,8 @@
           ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows, with its title.", words: "png picture screenshot export save", icon: "image", run: () => exportAs("png"), suggested: true }]),
           ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per date.", words: "csv spreadsheet export save", icon: "table", run: () => exportAs("csv") }]),
           { title: "Download chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
-          { title: "Import a chart file", text: "A chart's file, or several charts exported together.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
+          ...(library.charts.length ? [{ title: "Download all charts", text: "One file of them all, folders and all, to import anywhere else.", words: "export everything backup move computer device browser phone library save json", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
+          { title: "Import charts", text: "A chart's file, several exported together, or all of them from anywhere else.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Logarithmic scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
@@ -16458,7 +16495,8 @@
         .../** @type {Folder[]} */ (sideItems().filter((item) => !("layers" in item))).flatMap((folder) => library.charts.filter((doc) => doc.folder === folder.id).map((doc) => ({ kind: "chart", key: doc.id, group: folder.name }))),
         { kind: "row", key: "new", icon: ICONS.plus, label: "New chart", kbd: "N", verb: "Create", group: "Add", run: newChart },
         { kind: "row", key: "new-folder", icon: ICONS.folderAdd, label: "New folder", verb: "Create", group: "Add", run: () => { dismissPalette(); if (home) $("home-filter").value = ""; newFolder(); } },
-        { kind: "row", key: "import", icon: ICONS.upload, label: "Import a chart file", verb: "Import", group: "Add", run: () => $("import-file").click() },
+        { kind: "row", key: "import", icon: ICONS.upload, label: "Import charts", verb: "Import", group: "Files", run: () => $("import-file").click() },
+        ...(library.charts.length ? [{ kind: "row", key: "download-all", icon: ICONS.download, label: "Download all charts", aside: "Folders and all", verb: "Download", group: "Files", run: () => (dismissPalette(), downloadAll()) }] : []),
       ] });
       /** A chart's actions: open; rename, here; duplicate; move in your list; download; delete. @returns {Action[]} */
       /** Where charts go, as ⌘K's page: each folder, a new one, or none. @param {string[]} ids @returns {Page} */
@@ -17355,28 +17393,59 @@
         if (!file) return;
         try {
           const parsed = JSON.parse(await file.text());
-          // Several, exported together from All charts: they join the top of the list, shown picked in the grid.
+          // Several, exported together from All charts: they join the top of the list, shown picked in the grid. All of
+          // them (Download all), their folders too, made anew here, and their order: on top, arranged as they were.
           if (Array.isArray(parsed?.charts)) {
+            const folders = new Map(foldersOf(parsed.folders, []).map((folder) => [folder.id, { ...folder, id: uid() }]));
+            /** @type {Map<string, Chart>} */
+            const byId = new Map();
             const docs = parsed.charts.flatMap((item) => {
               try {
                 const doc = validate(item);
                 keepCarriedView(doc, item);
+                const folder = folders.get(item.folder);
+                if (folder) doc.folder = folder.id;
+                if (typeof item.id === "string" && !byId.has(item.id)) byId.set(item.id, doc);
                 return [doc];
               } catch {
                 return [];
               }
             });
             if (!docs.length) throw new Error("No charts in it");
+            const before = sideItems().map(sideKey), among = library.charts.length > 0;
+            const order = orderOf(parsed.order).flatMap((key) => {
+              const folder = key[0] === "f" ? folders.get(key.slice(2)) : undefined, doc = key[0] === "c" ? byId.get(key.slice(2)) : undefined;
+              return folder ? [`f:${folder.id}`] : doc && !doc.folder ? [`c:${doc.id}`] : [];
+            });
             library.charts.unshift(...docs);
+            library.folders.push(...folders.values());
+            library.order = [...order, ...before];
             save();
+            // (Picked to tell them from the charts already here; into none, they're all there is.)
             picked.clear();
-            for (const doc of docs) picked.add(doc.id);
+            if (among) for (const doc of docs) picked.add(doc.id);
             /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
             scheduleThumbs();
             if (home) renderCharts();
             else showHome();
             const skipped = parsed.charts.length - docs.length;
-            return toast(`Imported ${plural(docs.length, "chart")}${skipped === 1 ? "; 1 entry wasn't a chart" : skipped ? `; ${grouped.format(skipped)} entries weren't charts` : ""}`);
+            return toast(`Imported ${plural(docs.length, "chart")}${folders.size ? ` and ${plural(folders.size, "folder")}` : ""}${skipped === 1 ? "; 1 entry wasn't a chart" : skipped ? `; ${grouped.format(skipped)} entries weren't charts` : ""}`, { label: "Undo", run: () => {
+              // (As a delete takes them, by their ids: another tab may have saved one anew since; the open one among them,
+              // another opens.)
+              const ids = new Set(docs.map((doc) => doc.id));
+              for (const doc of library.charts.filter((doc) => ids.has(doc.id))) (unlist(doc), deletedHere.add(doc.id), picked.delete(doc.id));
+              const gone = new Set([...folders.values()].map((folder) => folder.id));
+              library.folders = library.folders.filter((folder) => !gone.has(folder.id));
+              for (const doc of library.charts) if (doc.folder && gone.has(doc.folder)) delete doc.folder;
+              library.order = before;
+              if (ids.has(chart.id)) {
+                const standIn = library.charts.length ? null : previewing ?? blankChart();
+                if (standIn) previewing = standIn;
+                openChart(standIn ?? library.charts[0]);
+              }
+              save();
+              renderCharts();
+            } });
           }
           const doc = validate(parsed);
           keepCarriedView(doc, parsed);
@@ -17525,6 +17594,21 @@
         setTimeout(() => URL.revokeObjectURL(link.href), 1000);
       }
       const fileName = (extension, doc = chart) => `${(doc.title || "chart").trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "chart"}.${extension}`;
+      /**
+       * Several charts in one file (their ids with them), their folders (`folders`: those they're in) and their order in
+       * the sidebar too: imported anywhere else, they're arranged as here.
+       */
+      function chartsFile(/** @type {Chart[]} */ docs, folders = library.folders.filter((folder) => docs.some((doc) => doc.folder === folder.id))) {
+        const ids = new Set(docs.map((doc) => doc.id)), kept = new Set(folders.map((folder) => `f:${folder.id}`));
+        const charts = docs.map((doc) => ({ id: doc.id, ...(doc.folder ? { folder: doc.folder } : {}), ...portable(doc) }));
+        return new Blob([JSON.stringify({ v: 2, charts, folders, order: sideItems().map(sideKey).filter((key) => kept.has(key) || ids.has(key.slice(2))) }, null, 2)], { type: "application/json" });
+      }
+      /** All the charts in one file, every folder with them (an empty one too). */
+      function downloadAll() {
+        if (!library.charts.length) return notice("No charts yet");
+        download(`bitview-charts-${new Date().toLocaleDateString("en-CA")}.json`, chartsFile(library.charts, library.folders));
+        toast(`Downloaded ${plural(library.charts.length, "chart")}${library.folders.length ? ` and ${plural(library.folders.length, "folder")}` : ""}, in one file`);
+      }
       /** A chart's file, to import again later. @param {Chart} doc */
       function downloadChart(/** @type {Chart} */ doc) {
         download(fileName("json", doc), new Blob([JSON.stringify(portable(doc), null, 2)], { type: "application/json" }));
@@ -17953,6 +18037,7 @@
           leaveEmpty();
         }
         else if (action === "import") $("import-file").click();
+        else if (action === "download-all") downloadAll();
         else if (action === "website-charts") openPresets();
         else if (action === "formula") addFormula();
         else if (action === "toggle-sidebar") toggleSidebar();
