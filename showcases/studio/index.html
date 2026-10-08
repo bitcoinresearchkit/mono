@@ -155,6 +155,26 @@
         &[hidden] {
           display: none;
         }
+
+        /* ⇧ and ↵ drawn (see drawKeys), in line with the rest; their glyphs kept for a screen reader. */
+        &:has(.key) {
+          grid-auto-flow: column;
+          gap: 1px;
+        }
+
+        .key {
+          width: 1.1em;
+          height: 1.1em;
+        }
+
+        .key-name {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
+        }
       }
 
       /* ── Controls ─────────────────────────────────────────────────────────── */
@@ -3114,7 +3134,8 @@
         }
       }
 
-      .formula-status {
+      /* Under a formula, or a cloud's layers: what it is, or why it isn't drawn. */
+      :is(.formula-status, .cloud-status) {
         min-height: 18px;
         margin: 8px 0 0;
         color: var(--soft);
@@ -3443,6 +3464,49 @@
             border-radius: inherit;
             box-shadow: inset 0 0 0 1px var(--line-strong);
             pointer-events: none;
+          }
+        }
+      }
+
+      /* A cloud's layers: each by its letter and name, pressed while it's in the cloud. */
+      .cloud-of {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+
+        button {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          max-width: 100%;
+          height: 26px;
+          border: 0;
+          border-radius: var(--radius-sm);
+          padding: 0 8px 0 4px;
+          color: var(--muted);
+          background: none;
+          box-shadow: inset 0 0 0 1px var(--line);
+          font: 510 12px var(--sans);
+
+          .name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          &:hover {
+            color: var(--text);
+            background: var(--hover);
+          }
+
+          &[aria-pressed="true"] {
+            color: var(--ink);
+            background: var(--press);
+            box-shadow: inset 0 0 0 1px var(--line-strong);
+          }
+
+          &[aria-pressed="false"] .letter {
+            opacity: 0.5;
           }
         }
       }
@@ -5793,6 +5857,7 @@
                 <button class="cap" type="button" data-layers-batch="hide" data-kbd="H"></button>
                 <button class="cap" type="button" data-layers-batch="duplicate" aria-label="Duplicate" data-tip="Duplicate" data-kbd="⌘ D" data-icon="duplicate"></button>
                 <button class="cap" type="button" data-layers-batch="move" aria-haspopup="menu" aria-label="Move to pane" data-tip="Move to pane" data-icon="pane"></button>
+                <button class="cap" type="button" data-layers-batch="cloud" aria-label="A cloud between them" data-tip="A cloud between them" data-icon="cloud"></button>
                 <button class="cap" type="button" data-layers-batch="remove" aria-label="Remove" data-tip="Remove" data-kbd="⌫" data-icon="trash"></button>
                 <span class="divider"></span>
                 <button class="cap small" type="button" data-layers-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button>
@@ -6072,11 +6137,29 @@
         vline: svg('<path d="M8 1.5v4.8M8 9.7v4.8"/><circle cx="8" cy="8" r="1.6"/>'),
         rect: svg('<rect x="2.5" y="3.5" width="11" height="9" rx="1"/>'),
         text: svg('<path d="M3.5 3.5h9M8 3.5V13M6.2 13h3.6"/>'),
+        cloud: svg('<path d="M2 6.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4v5c-2.1 2.4-3.9 2.4-6 1.4s-3.9-.6-6 1.3Z" fill="currentColor" fill-opacity=".4" stroke="none"/><path d="M2 6.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4M2 11.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4"/>'),
         brush: svg('<path d="M13.6 2.4a1.15 1.15 0 0 1 0 1.65L8.9 8.75 7.25 7.1l4.7-4.7a1.15 1.15 0 0 1 1.65 0Z"/><path d="M6.9 9.1C5.3 8.6 3.9 9.4 3.7 11c-.15 1.2-.7 1.9-1.7 2.3 2.4.9 4.9.3 5.4-1.6.2-.9.05-1.8-.5-2.6Z"/>'),
       };
       /** The caret of a control that opens a list. */
       const CHEVRON = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       for (const element of all$("[data-icon]")) element.insertAdjacentHTML("afterbegin", ICONS[element.dataset.icon] ?? "");
+      /** ⇧ and ↵ as keycaps draw them: fonts draw these two thin and uneven. */
+      const KEY_GLYPHS = /** @type {Record<string, string>} */ ({
+        "⇧": '<path d="M8 2.5 2.5 8.4h3.1v5.1h4.8V8.4h3.1Z"/>',
+        "↵": '<path d="M12.5 3v5a2 2 0 0 1-2 2H3.5"/><path d="M6.5 7 3.5 10l3 3"/>',
+      });
+      /** Each keycap under `root` with ⇧ or ↵ in it, those drawn (once), each beside its glyph for a screen reader. */
+      function drawKeys(/** @type {ParentNode} */ root) {
+        for (const key of root.querySelectorAll("kbd")) {
+          const text = key.textContent ?? "";
+          if (!/[⇧↵]/.test(text) || key.querySelector(".key")) continue;
+          key.textContent = "";
+          for (const glyph of text) {
+            if (KEY_GLYPHS[glyph]) key.insertAdjacentHTML("beforeend", `<svg class="key" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KEY_GLYPHS[glyph]}</svg><span class="key-name">${glyph}</span>`);
+            else key.append(glyph);
+          }
+        }
+      }
       /** A small drawing at 16×12, in the text's color. */
       const glyphSvg = (/** @type {string} */ body) => `<svg class="glyph" viewBox="0 0 16 12" aria-hidden="true">${body}</svg>`;
       /** Each chart type, drawn on whole pixels at 16×12: crisp at any pixel density. Candles as on the chart: filled when falling, hollow when rising. */
@@ -6982,7 +7065,9 @@
        * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, color: string,
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, colorBelow?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
-       *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number } }} Layer
+       *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number }, cloud?: string[] }} Layer
+       *   A cloud (`cloud`: the ids of the layers it's made of, none a cloud; its type "cloud") is filled from the lowest of
+       *   them to the highest, at each date (with fewer than two, it says so).
        * @typedef {{ value: number, color?: string, dash?: number }} Level A line across at a value: its color (else its
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, in sparse dots).
        * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`:
@@ -7077,6 +7162,19 @@
         return { id: uid(), letter: nextLetter(doc), color: nextColor(doc), type: "line", width: 1.5, dash: 0, pane: doc.panes[0]?.id ?? "", side: "right", ...spec };
       }
 
+      /** The chart a layer is in: the open one, else the one holding it (a tile's, a preview's; a copy, by its id). @param {Layer} layer */
+      const ownerOf = (layer) => ((docs) => docs.find((doc) => doc?.layers.includes(layer)) ?? docs.find((doc) => doc?.layers.some((item) => item.id === layer.id)))([chart, previewing, ...library.charts]);
+      /** A cloud's layers, by their letters, in its chart's order. @param {Layer} layer @param {Chart} [doc] */
+      const cloudLetters = (layer, doc = ownerOf(layer)) => (doc?.layers ?? []).filter((item) => layer.cloud?.includes(item.id)).map((item) => item.letter);
+      /**
+       * Why a cloud isn't drawn in its pane, if it isn't: it's its layers' values side by side, not their changes from where
+       * each starts (a percent or indexed scale), nor a stack's running totals.
+       */
+      const cloudUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
+        const pane = doc.panes.find((item) => item.id === layer.pane);
+        return !layer.cloud ? "" : pane?.stack ? "Not in a stack" : paneMode(pane) >= 2 ? "Not on this scale" : "";
+      };
+
       const MAX_LAYERS = 40, MAX_PANES = 12;
       /** Whether a chart has room for another layer; says so when it doesn't. @param {Chart} doc */
       function roomFor(doc) {
@@ -7124,6 +7222,9 @@
           if (Object.keys(paths).length) layer.paths = paths;
           else delete layer.paths;
         }
+        // A cloud spans layers still there, none a cloud, each once (with fewer than two, it says so, as a formula does).
+        const plain = new Set(doc.layers.filter((layer) => !layer.cloud).map((layer) => layer.id));
+        for (const layer of doc.layers) if (layer.cloud) layer.cloud = [...new Set(layer.cloud.filter((id) => plain.has(id)))];
         if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
         const ids = new Set(doc.panes.map((pane) => pane.id));
         for (const layer of doc.layers) if (!ids.has(layer.pane)) layer.pane = doc.panes[0].id;
@@ -8131,7 +8232,8 @@
       const datedIntervals = (meta) => INTERVAL_ORDER.filter((id) => meta?.indexes?.includes(id));
 
       /**
-       * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
+       * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], low?: Vector, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
+       *   `low`: a cloud's lows (its highs, its values).
        * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
        * @typedef {{ times: number[], results: Map<string, Result>, stamp: string, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
        */
@@ -8280,6 +8382,7 @@
               const target = byLetter.get(name);
               if (!target) throw new Error(`There is no layer ${name}`);
               if (target === layer) throw new Error(`${name} can't refer to itself`);
+              if (target.cloud) throw new Error(`${name} is a cloud: a range, not one value`);
               const result = target.formula !== undefined ? compute(target) : results.get(target.id);
               if (!result?.shown) throw result?.error ? failing(`${name} has no data (${quiet(result.detail ?? result.error)})`, `${name} has no data`) : new Error(`${name} has no data`);
               return result.shown;
@@ -8289,7 +8392,7 @@
             const unit = unitOfNode(node, (name, kind) => {
               if (kind === "series") return bySeries.get(name)?.unit ?? null;
               const target = byLetter.get(name);
-              return (target.formula !== undefined ? compute(target) : results.get(target.id))?.unit ?? null;
+              return target?.cloud ? null : (target.formula !== undefined ? compute(target) : results.get(target.id))?.unit ?? null;
             }) ?? "number";
             /** @type {Result} */
             const result = { values, shown: values, unit };
@@ -8306,6 +8409,38 @@
           }
         };
         doc.layers.filter((layer) => layer.formula !== undefined).forEach(compute);
+        // Clouds, from what their layers show: at each date, the lowest of them and the highest (kept with the frame, as a
+        // formula's result is, while its layers' values are the same).
+        for (const layer of doc.layers) {
+          if (!layer.cloud) continue;
+          const inputs = layer.cloud.map((id) => results.get(id)).filter((result) => result?.shown);
+          if (inputs.length < 2) {
+            results.set(layer.id, { unit: inputs[0]?.unit ?? "number", error: layer.cloud.length < 2 ? "Select two layers or more" : "Needs two layers with data" });
+            continue;
+          }
+          const key = [frame.id, ...inputs.map((input) => idOf(/** @type {Vector} */ (input.shown)))].join("|"), cached = frame.computed.get(layer.id);
+          if (cached?.key === key) {
+            results.set(layer.id, cached.result);
+            continue;
+          }
+          const low = new Float64Array(length).fill(NaN), high = new Float64Array(length).fill(NaN), count = new Uint8Array(length);
+          for (const { shown } of inputs) {
+            for (let i = 0; i < length; i++) {
+              const value = /** @type {Vector} */ (shown)[i];
+              if (!Number.isFinite(value)) continue;
+              count[i]++;
+              // (NaN, where none was yet, compares false.)
+              if (!(value >= low[i])) low[i] = value;
+              if (!(value <= high[i])) high[i] = value;
+            }
+          }
+          // (Where fewer than two have a value, none: a range of one value isn't one.)
+          for (let i = 0; i < length; i++) if (count[i] < 2) low[i] = high[i] = NaN;
+          /** @type {Result} */
+          const result = { values: high, shown: high, low, unit: inputs[0].unit };
+          results.set(layer.id, result);
+          frame.computed.set(layer.id, { key, result });
+        }
         let first = length;
         for (const { shown } of results.values()) {
           if (!shown) continue;
@@ -8326,7 +8461,7 @@
           }
           // (Shown as they are, the values are copied once.)
           const values = result.values?.slice(first);
-          const out = { ...result, values, shown: result.shown === result.values ? values : result.shown?.slice(first), ohlc: result.ohlc?.slice(first) };
+          const out = { ...result, values, shown: result.shown === result.values ? values : result.shown?.slice(first), ohlc: result.ohlc?.slice(first), ...(result.low ? { low: result.low.slice(first) } : {}) };
           trims.set(result, { first, out });
           results.set(id, out);
         }
@@ -8402,7 +8537,7 @@
       const drawn = new Map();
       /** A series' options without its format and scale (a restyle keeps both, and applying them again costs a pass over every point). */
       const lookOf = (/** @type {Record<string, any>} */ { priceFormat, priceScaleId, ...look }) => look;
-      /** What each layer was drawn as (its shape, its data, stacked or not), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean }>} */
+      /** What each layer was drawn as (its shape, its data, stacked or not), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, low?: Vector }>} */
       const built = new Map();
       /** @type {Map<string, Record<string, string>>} layer id → its series' colors */
       const paints = new Map();
@@ -8497,7 +8632,7 @@
       /** Whether what's drawn is this chart with all its data. */
       const settled = () => Boolean(resolved) && drawnChart === chart.id && drawnVersion === drawVersion;
       /** What a chart's data depends on: its interval and what each layer reads (in any order). */
-      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula }) => [id, letter, series, formula]).sort()]);
+      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula, cloud }) => [id, letter, series, formula, cloud ?? null]).sort()]);
 
       /**
        * Fetches what's missing, then rebuilds every series from cached data (fast enough to do on each edit).
@@ -8580,8 +8715,8 @@
         // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
         // alone, and a color or a width scrubbed stays smooth however many points there are. (A stack's bands and bars,
         // their colors in their points, are set again whole.)
-        const shapeOf = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse)]);
-        /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean }>} */
+        const shapeOf = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, cloudUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse)]);
+        /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, low?: Vector }>} */
         const kept = new Map();
         doc.layers.forEach((layer, i) => {
           const before = built.get(layer.id);
@@ -8624,7 +8759,7 @@
           const pane = paneIndex.get(layer.pane) ?? 0;
           const candles = layer.type === "candles" && result?.ohlc;
           // Colors are kept apart from the rest so a spotlight can fade them and give them back.
-          const paint = candles ? { upColor: css("--card"), downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }
+          const paint = layer.cloud ? { color: alpha(base, 0.2 * op) } : candles ? { upColor: css("--card"), downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs
             // high it would all but vanish.
             : layer.type === "area" ? { lineColor: color, ...(layer.fill === "above" ? { topColor: alpha(base, 0.12 * op), bottomColor: alpha(base, 0.12 * op) } : { topColor: alpha(base, 0.2 * op), bottomColor: alpha(base, 0) }) }
@@ -8638,7 +8773,12 @@
           // (Drawn as before, the series as it was.)
           const again = kept.has(layer.id) ? was.get(layer.id) : undefined;
           if (!again) added = true;
-          if (candles) {
+          if (layer.cloud) {
+            // Its band alone: no label on the axis, no line across, no marker (its legend says its range).
+            const options = { ...common, ...paint, lastValueVisible: false, priceLineVisible: false };
+            series = again ?? view.addCustomSeries(cloudView(), options, pane);
+            if (again) series.applyOptions(lookOf(options));
+          } else if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
             const options = { ...common, ...paint, borderVisible: true, lastValueVisible: false, priceLineVisible: false, visible: !layer.hidden && candlesFit };
@@ -8660,15 +8800,19 @@
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
           paints.set(layer.id, paint);
-          built.set(layer.id, { shape: shapeOf(layer, i), shown: stack?.values ?? result?.shown, ohlc: result?.ohlc, stacked: Boolean(stack) });
+          built.set(layer.id, { shape: shapeOf(layer, i), shown: stack?.values ?? result?.shown, ohlc: result?.ohlc, stacked: Boolean(stack), ...(result?.low ? { low: result.low } : {}) });
           // The same values (and not bars, their colors in them): nothing to set again. None now (an error, a formula
           // being written), a kept series is emptied.
           const before = kept.get(layer.id);
           if (!result?.shown && again && before?.shown) {
             series.setData([]);
             closes.get(layer.id)?.series.setData([]);
-          } else if (result?.shown && again && before?.shown === (stack?.values ?? result.shown) && before?.ohlc === result.ohlc && layer.type !== "histogram") linesAcross(layer, pane, common.priceFormat, op, true);
-          else if (result?.shown) {
+          } else if (result?.shown && again && before?.shown === (stack?.values ?? result.shown) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) linesAcross(layer, pane, common.priceFormat, op, true);
+          else if (result?.shown && layer.cloud) {
+            // (Its scale's: log, none at or under zero; on one it doesn't fit, none.)
+            const log = modeOf(doc, layer) === 1, low = /** @type {Vector} */ (result.low), high = result.shown;
+            series.setData(cloudUnfit(doc, layer) ? [] : data.times.map((time, i) => (Number.isFinite(low[i]) && Number.isFinite(high[i]) && (!log || low[i] > 0) ? { time, low: low[i], high: high[i] } : { time })));
+          } else if (result?.shown) {
             const shown = stack?.values ?? result.shown;
             // A stacked candle: its open, high, low and close on the ones before it too.
             const at = (/** @type {number} */ value, /** @type {number} */ i) => (stack ? (stack.under[i] + value) * (stack.scale?.[i] ?? 1) : value);
@@ -8938,6 +9082,13 @@
         if (rest) while (at > 0 && !Number.isFinite(values[at])) at--;
         return values[at];
       }
+      /** A cloud's range at a point, as its legend writes it: its lowest to its highest (a dash where there's none). */
+      function rangeAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }, /** @type {string} */ unit) {
+        const result = resolved?.results.get(layer.id), high = result?.shown, low = result?.low;
+        if (!high || !low || at < 0) return "—";
+        if (rest) while (at > 0 && !Number.isFinite(high[at])) at--;
+        return Number.isFinite(low[at]) && Number.isFinite(high[at]) ? `${format(low[at], unit)} – ${format(high[at], unit)}` : "—";
+      }
       const legends = () => /** @type {HTMLElement[]} */ ([...$("chart").querySelectorAll(".legend")]);
       /** A legend whose width changes (the window, a price scale) checks again whether it scrolls. */
       const legendFit = new ResizeObserver((entries) => entries.forEach(({ target }) => fitStrip(/** @type {HTMLElement} */ (target))));
@@ -8971,6 +9122,7 @@
           element.innerHTML = chart.layers.filter((layer) => layer.pane === element.dataset.pane).map((layer) => {
             const result = resolved?.results.get(layer.id);
             const value = result?.error ? `<span class="legend-error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>`
+              : cloudUnfit(chart, layer) ? `<span class="legend-error">${cloudUnfit(chart, layer)}</span>`
               : layer.hidden || !result?.shown ? '<span class="legend-value"></span>'
               : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
             return `<button type="button" class="${layer.hidden ? "hidden" : ""} ${layer.id === selected || layerPicks.has(layer.id) ? "selected" : ""}" data-select="${layer.id}">
@@ -9042,7 +9194,7 @@
           const layer = layerById(element.dataset.value);
           const result = resolved?.results.get(element.dataset.value);
           if (!layer || !result || result.error) continue;
-          const value = valueAt(layer, point), text = Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
+          const value = valueAt(layer, point), text = result.low ? rangeAt(layer, point, unitFor(layer, result)) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
           if (element.textContent !== text) element.textContent = text;
         }
       }
@@ -9062,6 +9214,16 @@
         measure.font = `${weight} ${size}px ${(mono ||= css("--mono"))}`;
         return Math.ceil(Math.max(0, ...texts.map((text) => measure.measureText(text).width)));
       }
+      /** The widest a run of values can be written: its lowest, highest, last and a sample across it. */
+      function slotOf(/** @type {Vector} */ values, /** @type {string} */ unit, /** @type {number} */ size) {
+        const texts = new Set();
+        const stride = Math.max(1, Math.floor(values.length / 240));
+        let lo = Infinity, hi = -Infinity;
+        for (let i = 0; i < values.length; i++) if (Number.isFinite(values[i])) (lo = Math.min(lo, values[i])), (hi = Math.max(hi, values[i]));
+        for (const value of [lo, hi, values[values.length - 1]]) if (Number.isFinite(value)) texts.add(format(value, unit));
+        for (let i = 0; i < values.length; i += stride) if (Number.isFinite(values[i])) texts.add(format(values[i], unit));
+        return widest([...texts].sort((x, y) => y.length - x.length).slice(0, 5), 510, size);
+      }
       /**
        * The width a layer's value can take: its lowest, highest, latest and a sample across its history written out,
        * the longest of them measured at a size in semibold tabular figures, in whole pixels. The legend and the panel
@@ -9073,6 +9235,12 @@
         const unit = unitFor(layer, result), key = `${layer.id}:${unit}:${size}`;
         const measured = slotsNow();
         if (measured.has(key)) return measured.get(key);
+        // A cloud's: its widest low, its widest high, and the dash between.
+        if (result?.low) {
+          const width = slotOf(result.low, unit, size) + widest([" – "], 510, size) + slotOf(values, unit, size);
+          measured.set(key, width);
+          return width;
+        }
         let lo = Infinity, hi = -Infinity;
         for (const value of values) if (Number.isFinite(value)) {
           if (value < lo) lo = value;
@@ -10740,12 +10908,59 @@
         for (const layer of chart.layers) {
           const made = built.get(layer.id), series = drawn.get(layer.id);
           if (layer.pane !== pane || layer.hidden || !made || !series) continue;
-          for (const value of layer.type === "candles" && !made.stacked && made.ohlc?.[bar] ? made.ohlc[bar] : [made.shown?.[bar]]) {
+          for (const value of layer.type === "candles" && !made.stacked && made.ohlc?.[bar] ? made.ohlc[bar] : made.low ? [made.low[bar], made.shown?.[bar]] : [made.shown?.[bar]]) {
             const at = Number.isFinite(value) ? series.priceToCoordinate(value) : null;
             if (at !== null && Math.abs(at - y) <= PULL && (!best || Math.abs(at - y) < best.off)) best = { layer: layer.id, value, y: at, off: Math.abs(at - y) };
           }
         }
         return best;
+      }
+      /**
+       * A cloud as the chart draws it: from its lows up to its highs, filled in its color, run by run (a gap in its data, a
+       * gap in it; a point alone, a sliver), over the bars in view. One of the chart's own series:
+       * its scale fits it, its pane orders it.
+       */
+      function cloudView() {
+        /** @type {any} */
+        let data = null, color = "transparent";
+        return {
+          renderer: () => ({
+            draw: (/** @type {any} */ target, /** @type {(price: number) => number | null} */ toY) => target.useBitmapCoordinateSpace((/** @type {any} */ scope) => {
+              const range = data?.visibleRange;
+              if (!range || !data.bars.length) return;
+              const { context, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
+              context.fillStyle = color;
+              /** @type {[number, number, number][]} */
+              let run = [];
+              const fill = () => {
+                if (run.length === 1) context.fillRect(run[0][0] - h / 2, run[0][1], h, run[0][2] - run[0][1]);
+                else if (run.length) {
+                  context.beginPath();
+                  run.forEach(([x, top], k) => (k ? context.lineTo(x, top) : context.moveTo(x, top)));
+                  for (let k = run.length - 1; k >= 0; k--) context.lineTo(run[k][0], run[k][2]);
+                  context.closePath();
+                  context.fill();
+                }
+                run = [];
+              };
+              // (A date with nothing isn't among the bars: one not next to the last breaks the run.)
+              let last = NaN;
+              for (let i = Math.max(0, range.from); i < Math.min(data.bars.length, range.to); i++) {
+                const { x, time, originalData: row } = data.bars[i];
+                if (time !== last + 1) fill();
+                last = time;
+                const top = Number.isFinite(row.high) ? toY(row.high) : null, bottom = Number.isFinite(row.low) ? toY(row.low) : null;
+                if (top === null || bottom === null) fill();
+                else run.push([x * h, top * v, bottom * v]);
+              }
+              fill();
+            }),
+          }),
+          update: (/** @type {any} */ next, /** @type {any} */ options) => ((data = next), (color = options.color)),
+          priceValueBuilder: (/** @type {any} */ row) => [row.low, row.high, row.high],
+          isWhitespace: (/** @type {any} */ row) => !Number.isFinite(row.low) || !Number.isFinite(row.high),
+          defaultOptions: () => ({ ...LC.customSeriesDefaultOptions, color: "transparent" }),
+        };
       }
       /** A stroke with what adds nothing taken out: no point strays further than `tolerance` pixels from what's kept. */
       function simplify(points, tolerance) {
@@ -11231,7 +11446,7 @@
           if (!pane.stack) continue;
           const shares = pane.stack === "percent";
           for (const side of ["left", "right"]) {
-            const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && data.results.get(layer.id)?.shown);
+            const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.cloud && data.results.get(layer.id)?.shown);
             if (!layers.length) continue;
             const n = data.results.get(layers[0].id).shown.length, total = new Float64Array(n);
             for (const layer of pane.reverse ? [...layers].reverse() : layers) {
@@ -11269,7 +11484,9 @@
       const paneMode = (pane) => (!pane ? 0 : pane.stack === "percent" || (pane.stack && pane.mode > 1) ? 0 : pane.mode);
       /** The scales a pane can take now (a stack: linear and log; a 100% one: none to choose). @param {Pane} pane */
       const modesFor = (pane) => (pane.stack === "percent" ? [] : pane.stack ? [0, 1] : [0, 1, 2, 3]);
-      const labelOf = (layer) => layer.label || (layer.series ? humanize(layer.series) : layer.formula || "Formula");
+      const labelOf = (layer) => layer.label || (layer.series ? humanize(layer.series) : layer.cloud ? cloudName(layer) : layer.formula || "Formula");
+      /** A cloud's name, unnamed: its layers' letters (three at most; past that, how many). @param {Layer} layer */
+      const cloudName = (layer) => ((letters) => (!letters.length ? "Cloud" : letters.length > 3 ? `Cloud of ${letters.length} layers` : `Cloud of ${letters.join(", ")}`))(cloudLetters(layer));
       const layerById = (id) => chart.layers.find((layer) => layer.id === id);
 
       /** Rebuilding a panel's HTML would drop focus: these find the same control again afterwards. */
@@ -11320,7 +11537,7 @@
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill, layer.cloud])]);
       /**
        * A layer's shape: its values as its pane scales them (log, or from the first value), averaged down to the mini
        * charts' points and lightly smoothed (at this size, the trend is what reads), with the range of the full values;
@@ -11398,7 +11615,8 @@
         const shapes = new Map(), own = new Map(), stacked = stackOf(doc, data, false);
         for (const layer of doc.layers) {
           const values = data.results.get(layer.id)?.shown, high = stacked.get(layer.id)?.values, bars = layer.type === "histogram" && modeOf(doc, layer) === 0;
-          if (!values) continue;
+          // (A chart's mark is its lines: a cloud, a range, isn't one.)
+          if (!values || layer.cloud) continue;
           own.set(layer.id, shapeOf(values, modeOf(doc, layer), bars, layer.base ?? 0));
           shapes.set(layer.id, high ? shapeOf(high, modeOf(doc, layer), bars, layer.base ?? 0) : own.get(layer.id));
         }
@@ -11588,7 +11806,7 @@
           const zOf = new Map((pane.reverse ? inPaneOrder : [...inPaneOrder].reverse()).map((layer, z) => [layer.id, z]));
           // Each side of a pane has its own scale, as on the chart.
           for (const side of ["left", "right"]) {
-            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && data.results.get(layer.id)?.shown).map((layer) => {
+            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && data.results.get(layer.id)?.shown && !cloudUnfit(doc, layer)).map((layer) => {
               const values = stacked.get(layer.id)?.values ?? data.results.get(layer.id).shown, mode = modeOf(doc, layer);
               // Percent and indexed scales start from the first value in view.
               let base = NaN;
@@ -11614,7 +11832,17 @@
               });
               const end = points.findLast(Boolean);
               if (end && latest > end[end.length - 1][0]) end.push([latest, scaled(values[latest])]);
-              return { layer, mode, scaled, values, bars: layer.type === "histogram" && mode === 0, base: layer.base ?? 0, level: scaled(layer.base ?? 0), points, stack: stacked.has(layer.id) };
+              // A cloud: each bucket from its lowest low to its highest high.
+              const low = data.results.get(layer.id)?.low;
+              const band = low ? Array.from({ length: B }, (_, b) => {
+                let under = Infinity, over = -Infinity;
+                for (let i = Math.max(first, Math.ceil(shown.from + (b * span) / B)); i <= last && i < shown.from + ((b + 1) * span) / B; i++) {
+                  const down = scaled(low[i]), up = scaled(values[i]);
+                  if (Number.isFinite(down) && Number.isFinite(up)) (under = Math.min(under, down)), (over = Math.max(over, up));
+                }
+                return under <= over ? /** @type {[number, number]} */ ([under, over]) : null;
+              }) : null;
+              return { layer, mode, scaled, values, bars: layer.type === "histogram" && mode === 0, base: layer.base ?? 0, level: scaled(layer.base ?? 0), points: band ? band.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, stack: stacked.has(layer.id) };
             });
             // A stack's layers, sampled at the same points, every one's highs and lows: each is the sum of those under it,
             // so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
@@ -11639,7 +11867,7 @@
             const range = hi - lo;
             const y = (value) => round(band.top + band.height * (range ? 1 - (value - lo) / range : 0.5));
             const inPane = (value) => clamp(value, paneTop, paneBottom);
-            const drawLayer = ({ layer, scaled, bars, base, level, points }) => {
+            const drawLayer = ({ layer, scaled, bars, base, level, points, band }) => {
               // (None in a 100% stack: a layer's levels are its own values', not shares.)
               const across = pane.stack === "percent" ? [] : [...(layer.levels ?? []).map((item, i) => [String(i), item.value]), ...(layer.type === "baseline" ? [["base", layer.base ?? 0]] : [])];
               for (const [key, value] of across) {
@@ -11648,6 +11876,17 @@
               }
               const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), at = ([i, value]) => `${x(i)} ${y(value)}`;
               const look = { c: layer.color, ...((layer.opacity ?? 1) < 1 ? { op: layer.opacity } : {}) };
+              if (band) {
+                // Run by run, its highs along, its lows back.
+                const runs = [];
+                let run = [];
+                band.forEach((range, b) => (range ? run.push(b) : run.length && (runs.push(run), (run = []))));
+                if (run.length) runs.push(run);
+                const middle = (/** @type {number} */ b) => x(shown.from + ((b + 0.5) * span) / B);
+                const d = runs.map((part) => `M${part.map((b) => `${middle(b)} ${y(/** @type {[number, number]} */ (band[b])[1])}`).join("L")}L${[...part].reverse().map((b) => `${middle(b)} ${y(/** @type {[number, number]} */ (band[b])[0])}`).join("L")}Z`).join("");
+                if (d) drawn.marks.push({ ...look, k: "band", d });
+                return;
+              }
               if (bars) {
                 let d = "", d2 = "";
                 // A bar a bucket, at its middle, to the one of its extremes farthest from the base.
@@ -11703,6 +11942,7 @@
           const fade = (key, color, from, to, a, b) => `<linearGradient id="${g}${key}" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="${from}" y2="${to}"><stop offset="0" stop-color="${color}" stop-opacity="${a}"/><stop offset="1" stop-color="${color}" stop-opacity="${b}"/></linearGradient>`;
           let html = "";
           if (mark.k === "across") html = `<path class="across" stroke="${c}"${dash} d="${mark.d}"/>`;
+          else if (mark.k === "band") html = `<path class="fill" style="fill:color-mix(in srgb, ${c} 22%, transparent)" d="${mark.d}"/>`;
           else if (mark.k === "bars") html = `<path class="bars" stroke="${c}" d="${mark.d}"/>${mark.d2 ? `<path class="bars" stroke="${c2}" d="${mark.d2}"/>` : ""}`;
           else if (mark.k === "dots") html = `<path class="dots" stroke="${c}" d="${mark.d}"/>`;
           else if (mark.k === "baseline") {
@@ -12338,7 +12578,9 @@
         const color = escape(ink(layer.color)), below = escape(ink(belowOf(layer)));
         const x = (i) => 0.8 + (i / (ys.length - 1)) * 14.4, y = (value) => 11 - value * 10;
         let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4" stroke-dasharray="2 2"/>`;
-        if (ys && layer.type === "histogram" && modeOf(chart, layer) === 0) {
+        // A cloud's, a band in its color.
+        if (layer.cloud) body = `<path d="M1 4.5c2.4-2 4.6-2.4 7-1.3s4.6 1 7-1.6v6.2c-2.4 2.6-4.6 2.6-7 1.5S3.4 8.1 1 10Z" fill="${color}" fill-opacity=".35"/>`;
+        else if (ys && layer.type === "histogram" && modeOf(chart, layer) === 0) {
           // Six bars from its base: above it in its color, under it in the other.
           body = barsOf(ys, 6, level, (k, value) => `<rect x="${(0.5 + k * 2.6).toFixed(1)}" y="${Math.min(y(value), y(level)).toFixed(1)}" width="1.8" height="${Math.max(1.2, Math.abs(y(value) - y(level))).toFixed(1)}" rx=".4" fill="${value >= level ? color : below}"/>`);
         } else if (ys && layer.type === "dots") {
@@ -13602,19 +13844,19 @@
             ${layers.map((layer) => {
               const result = resolved?.results.get(layer.id);
               const loading = layer.series && !result;
-              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.formula !== undefined ? `<span class="sub">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(layer.series ?? "")}</span>`;
+              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.cloud ? `<span class="sub">${escape(cloudUnfit(chart, layer) || `Between ${cloudLetters(layer).join(", ")}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.cloud?.includes(item.id) && !resolved?.results.get(item.id)?.shown).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? `<span class="sub">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(layer.series ?? "")}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
                   <span class="letter" style="--c:${escape(ink(layer.color))}">${layer.letter}</span>
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
-                  <span class="row-figures"><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"`}></span><span class="row-change" data-change="${layer.id}"></span></span>
+                  <span class="row-figures"${layer.cloud && result?.low ? ` style="min-width: ${valueSlot(layer, 12.5)}px"` : ""}><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"`}></span>${layer.cloud ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
                 <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"} ${keyText("(⌥-click: alone in its pane)")}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
               </div>`;
             }).join("")}
           </section>`;
-        }).join("") + `<div class="drop-new" data-drop-new>Drop here for a new pane</div>` + markersHtml() + `<div class="layer-adds"><button type="button" class="nav-item" data-action="add-series">${ICONS.plus}<span class="label">Add a series</span><kbd>A</kbd></button><button type="button" class="nav-item" data-action="formula">${ICONS.formula}<span class="label">Add a formula</span><kbd>F</kbd></button></div>`;
+        }).join("") + `<div class="drop-new" data-drop-new>Drop here for a new pane</div>` + markersHtml() + `<div class="layer-adds"><button type="button" class="nav-item" data-action="add-series">${ICONS.plus}<span class="label">Add a series</span><kbd>A</kbd></button><button type="button" class="nav-item" data-action="formula">${ICONS.formula}<span class="label">Add a formula</span><kbd>F</kbd></button>${cloudable() ? `<button type="button" class="nav-item" data-action="add-cloud">${ICONS.cloud}<span class="label">Add a cloud</span></button>` : ""}</div>`;
         restoreFocus(list, focus);
         updateValues();
         lightLegend(litLayer, true);
@@ -13761,6 +14003,7 @@
         toggle.setAttribute("aria-label", hide ? "Hide" : "Show");
         toggle.dataset.tip = hide ? "Hide" : "Show";
         /** @type {HTMLButtonElement} */ (bar.querySelector('[data-layers-batch="duplicate"]')).disabled = chart.layers.length + layers.length > MAX_LAYERS;
+        /** @type {HTMLButtonElement} */ (bar.querySelector('[data-layers-batch="cloud"]')).disabled = layers.filter((layer) => !layer.cloud).length < 2;
       }
       /** What the bar (or a picked row's right-click, ⌘K, a key) does to the layers picked. @param {string} action @param {HTMLElement} [anchor] */
       function layersBatch(action, anchor) {
@@ -13775,6 +14018,7 @@
           layerPickLast = pickHead = copies[0];
           showPicks();
         } else if (action === "move" && anchor) paneMenu(anchor, ids, undefined, () => refocus('[data-layers-batch="move"]'));
+        else if (action === "cloud") addCloud(ids);
         else if (action === "remove") {
           const at = chart.layers.findIndex((layer) => ids.includes(layer.id));
           removeLayers(ids);
@@ -13832,6 +14076,7 @@
           <button type="button" data-pick="hide">${hide ? ICONS.eyeOff : ICONS.eye}${hide ? "Hide" : "Show"} ${n}<kbd>H</kbd></button>
           <button type="button" data-pick="duplicate" ${chart.layers.length + layers.length > MAX_LAYERS ? "disabled" : ""}>${ICONS.duplicate}Duplicate ${n}<kbd>${keyText("⌘D")}</kbd></button>
           <button type="button" data-pick="move" aria-haspopup="menu">${ICONS.pane}Move to pane</button>
+          <button type="button" data-pick="cloud" ${layers.filter((layer) => !layer.cloud).length < 2 ? "disabled" : ""}>${ICONS.cloud}A cloud between them</button>
           <div class="menu-rule"></div>
           <button type="button" data-pick="remove" class="danger">${ICONS.trash}Remove ${n}<kbd>${keyText("⌫")}</kbd></button>`, ({ pick }) => (pick === "move" ? paneMenu(anchor, layers.map((layer) => layer.id), point) : pick && layersBatch(pick)), point);
       }
@@ -13867,8 +14112,8 @@
       /** A layer's actions, at the inspector's foot: as the layers panel's adds, a row each. @param {Layer} layer */
       let actionsShown = "";
       const actionsOf = (layer) => `<section class="layer-actions">
-            <button type="button" id="derive" class="nav-item" data-action="derive" aria-haspopup="menu">${ICONS.formula}<span class="label">New formula from ${layer.letter}</span></button>
-            ${layer.formula !== undefined ? (turnsInto(layer).length ? `<button type="button" id="to-series" class="nav-item" data-action="to-series" ${turnsInto(layer).length > 1 ? 'aria-haspopup="menu"' : ""}>${ICONS.series}<span class="label">Turn into a series</span></button>` : "") : `<button type="button" class="nav-item" data-action="to-formula">${ICONS.formula}<span class="label">Turn into a formula</span></button>`}
+            ${layer.cloud ? "" : `<button type="button" id="derive" class="nav-item" data-action="derive" aria-haspopup="menu">${ICONS.formula}<span class="label">New formula from ${layer.letter}</span></button>`}
+            ${layer.cloud ? "" : layer.formula !== undefined ? (turnsInto(layer).length ? `<button type="button" id="to-series" class="nav-item" data-action="to-series" ${turnsInto(layer).length > 1 ? 'aria-haspopup="menu"' : ""}>${ICONS.series}<span class="label">Turn into a series</span></button>` : "") : `<button type="button" class="nav-item" data-action="to-formula">${ICONS.formula}<span class="label">Turn into a formula</span></button>`}
             <button type="button" class="nav-item" data-action="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}<span class="label">${layer.hidden ? "Show" : "Hide"}</span><kbd>H</kbd></button>
             <button type="button" class="nav-item" data-action="duplicate" data-kbd="⌘ D" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.duplicate}<span class="label">Duplicate</span><kbd class="mod">${keyText("⌘D")}</kbd></button>
             <button type="button" class="nav-item danger" data-action="remove">${ICONS.trash}<span class="label">Remove</span><kbd>${keyText("⌫")}</kbd></button>
@@ -13904,7 +14149,13 @@
         const isFormula = layer.formula !== undefined;
         const unit = unitFor(layer, result);
         const layerPane = /** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane)), stackOfPane = layerPane?.stack ?? "", ordered = chart.layers.filter((item) => item.pane === layer.pane).length > 1;
-        const sourceSection = isFormula
+        const sourceSection = layer.cloud
+          ? `<section>
+              <h3>Cloud</h3>
+              <div class="field"><span>Between<span class="color-now">${plural(layer.cloud.length, "layer")}</span></span><div class="cloud-of" role="group" aria-label="The layers it spans">${chart.layers.filter((item) => !item.cloud).map((item) => ((on) => `<button type="button" data-cloud-of="${item.id}" aria-pressed="${on}"><span class="letter" style="--c:${escape(ink(item.color))}">${item.letter}</span><span class="name">${escape(labelOf(item))}</span></button>`)(Boolean(layer.cloud?.includes(item.id)))).join("")}</div></div>
+              ${((error) => `<p class="cloud-status ${error ? "error" : ""}" role="status">${error ? escape(error) : `At each date, from the lowest of them to the highest${cloudUnfit(chart, layer) ? `; ${cloudUnfit(chart, layer) === "Not in a stack" ? "not drawn in a stacked pane" : "not drawn on a percent or indexed scale"}` : ""}.`}</p>`)((layer.cloud?.length ?? 0) < 2 ? "Select two layers or more" : result?.error)}
+            </section>`
+          : isFormula
           ? `<section>
               <h3>Formula</h3>
               <div class="formula-editor" id="formula-editor">
@@ -13942,20 +14193,20 @@
           ${sourceSection}
           <section>
             <h3>Style</h3>
-            <div class="field"><span>Type</span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${layer.type === type}" aria-label="${text}" ${type === "candles" && !result?.ohlc ? "disabled data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>
+            ${layer.cloud ? "" : `<div class="field"><span>Type</span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${layer.type === type}" aria-label="${text}" ${type === "candles" && !result?.ohlc ? "disabled data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`}
             ${colorPicker(layer)}
             <div class="field"><span>Opacity${resetFor("opacity", layer)}</span>${slider("opacity", layer)}</div>
-            ${layer.type !== "histogram" ? `<div class="field"><span>Width${resetFor("width", layer)}</span>${slider("width", layer, layer.type === "candles" ? "The line candles turn into, zoomed out" : layer.type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>` : ""}
+            ${layer.type !== "histogram" && !layer.cloud ? `<div class="field"><span>Width${resetFor("width", layer)}</span>${slider("width", layer, layer.type === "candles" ? "The line candles turn into, zoomed out" : layer.type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>` : ""}
             ${LINED.has(layer.type) ? `<div class="field"><span>Line</span><div class="pair">
               <div class="tabs glyphs" role="group" aria-label="Line style" style="flex: ${DASHES.length}">${DASHES.map(([dash, text, length, gap]) => `<button type="button" data-dash="${dash}" aria-pressed="${layer.dash === dash}" aria-label="${text}" data-tip="${text}">${dashGlyph(length, gap)}</button>`).join("")}</div>
               <div class="tabs glyphs" role="group" aria-label="Line shape" style="flex: ${SHAPES.length}">${SHAPES.map(([shape, text]) => `<button type="button" data-shape="${shape}" aria-pressed="${(layer.shape ?? "straight") === shape}" aria-label="${text}" data-tip="${shape === "steps" ? "Steps: each value held until the next" : text}">${shapeGlyph(shape)}</button>`).join("")}</div>
             </div></div>` : ""}
             ${layer.type === "area" ? `<div class="field"><span>Fill</span><div class="tabs" role="group" aria-label="Fill">${[["below", "Below", "Filled from the line down"], ["above", "Above", "Filled from the line up"]].map(([fill, text, tip]) => `<button type="button" data-fill="${fill}" aria-pressed="${(layer.fill ?? "below") === fill}" data-tip="${tip}">${text}</button>`).join("")}</div></div>` : ""}
-            <div class="field"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${Boolean(layer.priceLine) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>
+            ${layer.cloud ? "" : `<div class="field"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${Boolean(layer.priceLine) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`}
             ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<span class="number-field"><input id="base" class="number-input" aria-label="Base" type="number" step="any" value="${layer.base ?? 0}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(UNIT_SIGNS[unit] ?? "")}</span></span></span></div>` : ""}
-            <div class="field"><span>Levels<button type="button" class="reset" data-action="add-level" aria-label="Add a level" data-tip="Add a level, at the value in view">${ICONS.plus}</button></span>${(layer.levels ?? []).map((level, i) => {
+            ${layer.cloud ? "" : `<div class="field"><span>Levels<button type="button" class="reset" data-action="add-level" aria-label="Add a level" data-tip="Add a level, at the value in view">${ICONS.plus}</button></span>${(layer.levels ?? []).map((level, i) => {
               return `<span class="level">${lineButtons(layer, i, `Level ${i + 1}`)}<span class="number-field"><input id="level-${i}" class="number-input" aria-label="Level ${i + 1}" type="number" step="any" value="${level.value}" /><span class="unit">${escape(UNIT_SIGNS[unit] ?? "")}</span></span><button type="button" class="cap small" data-remove-level="${i}" aria-label="Remove level ${i + 1}" data-tip="Remove the level">${ICONS.trash}</button></span>`;
-            }).join("")}</div>
+            }).join("")}</div>`}
           </section>
           <section>
             <h3>Layout</h3>
@@ -14506,7 +14757,7 @@
         /** @type {{ insert: string, title: string, text: string, layer?: string, series?: boolean }[]} */
         let items = [];
         if (/^[A-Z]/.test(token)) {
-          items = chart.layers.filter((layer) => layer !== self && layer.letter.startsWith(token) && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
+          items = chart.layers.filter((layer) => layer !== self && !layer.cloud && layer.letter.startsWith(token) && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
           if (items.length === 1 && items[0].insert === token) items = [];
         } else if (token) items = Object.entries(FUNCTIONS).filter(([name]) => name.startsWith(token) && name !== token).map(([name, [, signature, what]]) => ({ insert: `${name}(`, title: signature, text: what }));
         return { start, token, items };
@@ -14599,7 +14850,7 @@
         if (!call?.f) return null;
         const signature = FUNCTIONS[call.f][1], name = signature.slice(signature.indexOf("(") + 1, -1).split(", ")[call.arg];
         if (name === "x" || name === "a" || name === "b") {
-          const layers = chart.layers.filter((layer) => layer !== self && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
+          const layers = chart.layers.filter((layer) => layer !== self && !layer.cloud && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
           // A series drawn as a layer is its letter; an open-high-low-close one reads as its close (offered as itself).
           const drawn = new Set(chart.layers.map((layer) => layer.series)), known = recommendedCards.flatMap(({ doc }) => doc.layers.flatMap((layer) => (layer.series ? [layer.series] : [])));
           const names = [...new Set([...seriesIn(chart), ...recent(), ...known])].filter((name) => isSeriesName(name) && !gone.has(name) && !drawn.has(name) && !/_ohlc$/.test(name)).slice(0, 5);
@@ -14818,6 +15069,16 @@
         else if (action === "to-formula") toFormula(selected);
         else if (action === "to-series") turnToSeries(button, selected);
         else if (type) editLayer((layer) => (layer.type = type));
+        else if (button.dataset.cloudOf) {
+          const member = button.dataset.cloudOf;
+          editLayer((layer) => {
+            const ids = new Set(layer.cloud);
+            if (ids.has(member)) ids.delete(member);
+            else ids.add(member);
+            layer.cloud = chart.layers.filter((item) => ids.has(item.id)).map((item) => item.id);
+          });
+          refocus(`#inspector [data-cloud-of="${CSS.escape(member)}"]`);
+        }
         else if (dash) editLayer((layer) => (layer.dash = Number(dash)));
         else if (shape) editLayer((layer) => (layer.shape = shape === "straight" ? undefined : shape));
         else if (fill) editLayer((layer) => (layer.fill = fill === "above" ? "above" : undefined));
@@ -14944,8 +15205,10 @@
           }
         })());
         const sketched = chart.drawings?.filter((drawing) => ids.includes(drawing.layer)).length ?? 0, one = gone.length === 1;
+        // (Named now: a cloud's name is its layers'.)
+        const usedBy = [...users, ...chart.layers.filter((item) => item.cloud && !ids.includes(item.id) && item.cloud.some((member) => ids.includes(member)))].map(labelOf), goneName = labelOf(gone[0]);
         commit((doc) => (doc.layers = doc.layers.filter((item) => !ids.includes(item.id))));
-        undoToast(`Removed ${one ? labelOf(gone[0]) : plural(gone.length, "layer")}${sketched ? ` and ${one ? "its" : "their"} ${plural(sketched, "drawing")}` : ""}${users.length ? `; ${users.map(labelOf).join(", ")} used ${one ? "it" : "them"}` : ""}`);
+        undoToast(`Removed ${one ? goneName : plural(gone.length, "layer")}${sketched ? ` and ${one ? "its" : "their"} ${plural(sketched, "drawing")}` : ""}${usedBy.length ? `; ${usedBy.join(", ")} used ${one ? "it" : "them"}` : ""}`);
       }
       /** A layer's menu, for a right-click on its row. */
       function layerMenu(anchor, id, point) {
@@ -14955,7 +15218,7 @@
           <button type="button" data-pick="edit">${ICONS.sliders}Settings</button>
           ${layer.series ? `<button type="button" data-pick="change">${ICONS.swap}Replace series</button>` : ""}
           <div class="menu-rule"></div>
-          <button type="button" data-pick="derive" aria-haspopup="menu">${ICONS.formula}New formula from ${layer.letter}</button>
+          ${layer.cloud ? "" : `<button type="button" data-pick="derive" aria-haspopup="menu">${ICONS.formula}New formula from ${layer.letter}</button>`}
           ${layer.series ? `<button type="button" data-pick="to-formula">${ICONS.formula}Turn into a formula</button>` : turnsInto(layer).length ? `<button type="button" data-pick="to-series" ${turnsInto(layer).length > 1 ? 'aria-haspopup="menu"' : ""}>${ICONS.series}Turn into a series</button>` : ""}
           <button type="button" data-pick="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}${layer.hidden ? "Show" : "Hide"}<kbd>H</kbd></button>
           ${chart.layers.some((other) => other.pane === layer.pane && other.id !== id) ? `<button type="button" data-pick="solo">${ICONS.eye}${aloneInPane(layer) ? "Show every layer in its pane" : "Show it alone in its pane"}</button>` : ""}
@@ -15074,7 +15337,7 @@
        */
       function addFormula(into = null) {
         if (!roomFor(chart)) return;
-        const letters = chart.layers.map((layer) => layer.letter);
+        const letters = chart.layers.filter((layer) => !layer.cloud).map((layer) => layer.letter);
         openPalette({ formula: true, into, query: letters.length >= 2 ? `${letters[0]} / ${letters[1]}` : letters.length ? `sma(${letters[0]}, 200d)` : EXAMPLE });
       }
       /** A formula as a layer, in a new pane (or `pane`), selected. @param {string | null} [pane] */
@@ -15090,6 +15353,62 @@
         toast(`Added ${formula} as ${added.letter}`);
       }
 
+      /** Whether a cloud can be made here: two layers or more that aren't clouds. */
+      const cloudable = () => chart.layers.filter((layer) => !layer.cloud).length > 1;
+      /**
+       * A cloud of layers (two or more, none a cloud), in the first one's pane, on its side and in its color, behind them
+       * (after the last of them there); opened in the panel.
+       */
+      function addCloud(/** @type {string[]} */ ids) {
+        const members = chart.layers.filter((layer) => ids.includes(layer.id) && !layer.cloud);
+        if (members.length < 2) return void notice("A cloud spans two layers or more");
+        if (!roomFor(chart)) return;
+        /** @type {Layer | undefined} */
+        let added;
+        commit((doc) => {
+          const first = /** @type {Layer} */ (doc.layers.find((layer) => layer.id === members[0].id));
+          added = makeLayer({ type: "cloud", cloud: members.map((layer) => layer.id), pane: first.pane, side: first.side, color: first.color }, doc);
+          // (Behind: after the last of them, or, in a pane whose last is in front, before the first.)
+          const mine = doc.layers.flatMap((layer, i) => (layer.pane === first.pane && ids.includes(layer.id) ? [i] : []));
+          doc.layers.splice(doc.panes.find((pane) => pane.id === first.pane)?.reverse ? mine[0] : mine[mine.length - 1] + 1, 0, added);
+        });
+        if (!added) return;
+        layerPicks.clear();
+        select(added.id);
+        const unfit = cloudUnfit(chart, added);
+        toast(`Added the ${labelOf(added).replace(/^Cloud/, "cloud")}${unfit ? `; ${unfit === "Not in a stack" ? "its pane stacks, so it isn't drawn" : "its pane's scale doesn't draw it"}` : ""}`);
+      }
+      /**
+       * ⌘K's cloud: the chart's layers to tick (none a cloud), then one made of those; for a cloud (`id`), its layers,
+       * ticked on and off in place (two at least).
+       * @returns {Page}
+       */
+      function cloudPage(id = "") {
+        const ticked = new Set();
+        return { title: id ? "Between" : "Add a cloud", placeholder: "Search the layers", rows: () => {
+          const cloud = id ? layerById(id) : null, layers = chart.layers.filter((layer) => !layer.cloud), has = (/** @type {string} */ layerId) => (cloud ? Boolean(cloud.cloud?.includes(layerId)) : ticked.has(layerId));
+          const letters = layers.filter((layer) => ticked.has(layer.id)).map((layer) => layer.letter);
+          /** Its layers as these (a cloud's, two at least). @param {string[]} ids */
+          const put = (ids) => {
+            if (!cloud) return void (ticked.clear(), ids.forEach((other) => ticked.add(other)));
+            editById(cloud.id, (item) => (item.cloud = layers.filter((other) => ids.includes(other.id)).map((other) => other.id)));
+          };
+          const add = { label: letters.length > 1 ? `Add the cloud of ${letters.length > 3 ? plural(letters.length, "layer") : letters.join(", ")}` : "Select two layers or more", kbd: "⌘↵", stay: letters.length < 2, run: () => (letters.length < 2 ? notice("A cloud spans two layers or more") : addCloud([...ticked])) };
+          return [
+            ...layers.map((layer) => {
+              const on = has(layer.id), toggle = () => put(layers.filter((other) => (other === layer ? !on : has(other.id))).map((other) => other.id));
+              return { kind: "row", key: layer.id, icon: `<span class="letter" style="--c:${escape(ink(layer.color))}">${escape(layer.letter)}</span>`, label: labelOf(layer), aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", group: "Layers", stay: true, run: toggle, preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
+                actions: () => [
+                  { label: on ? "Deselect" : "Select", kbd: "↵", stay: true, run: toggle },
+                  { label: "Select all", stay: true, run: () => put(layers.map((other) => other.id)) },
+                  { label: "Deselect all", stay: true, run: () => put([]) },
+                  ...(cloud ? [] : [add]),
+                ] };
+            }),
+            ...(cloud ? [] : [{ kind: "row", key: "add", icon: ICONS.cloud, label: add.label, kbd: "⌘↵", dim: letters.length < 2, verb: letters.length < 2 ? "—" : "Add", stay: letters.length < 2, group: "Cloud", run: add.run }]),
+          ];
+        } };
+      }
       /** The starters of formulas from a layer, as a menu from the inspector's button. */
       function deriveMenu(/** @type {HTMLElement} */ button, /** @type {string} */ id, point = null) {
         const layer = layerById(id);
@@ -15520,6 +15839,7 @@
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
           ...library.folders.map((folder) => ({ title: folder.name, text: `A folder: ${plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart")}.`, words: `folder ${folder.name}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })),
           ...(home ? [] : [{ title: "All charts", text: "Every chart, side by side.", words: "grid overview gallery library home browse", icon: "grid", run: () => showHome() }]),
+          ...(cloudable() ? [{ title: "Add a cloud", text: "Filled between layers: from the lowest of them to the highest, at each date.", words: "cloud band range envelope fill between min max percentiles", icon: "cloud", keepOpen: true, run: () => pushPage(cloudPage()) }] : []),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
           ...(empty ? [] : [{ title: "Copy a share link", text: "A link that opens this chart for anyone.", words: "share url send", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
@@ -15544,6 +15864,7 @@
             { title: `Duplicate ${n}`, text: "Each copy under its original.", words: "selected picked layers copy duplicate", icon: "duplicate", kbd: "⌘D", run: () => layersBatch("duplicate"), suggested: true },
             ...chart.panes.filter((pane) => layers.some((layer) => layer.pane !== pane.id)).map((pane) => ({ title: `Move ${n} to pane ${chart.panes.indexOf(pane) + 1}`, text: paneNames(pane), words: "selected picked layers move pane", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), pane.id) })),
             ...(chart.panes.length < MAX_PANES ? [{ title: `Move ${n} to a new pane`, text: "A pane of their own, under the others.", words: "selected picked layers move pane new", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), null), suggested: true }] : []),
+            ...(layers.filter((layer) => !layer.cloud).length > 1 ? [{ title: "A cloud between them", text: "Filled from the lowest of them to the highest, at each date.", words: "selected picked layers cloud band range envelope fill between min max", icon: "cloud", run: () => layersBatch("cloud"), suggested: true }] : []),
             { title: `Remove ${n}`, text: "With an Undo.", words: "selected picked layers remove delete", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
             { title: "Clear the selection", text: `${n} selected.`, words: "selected picked layers deselect clear", icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
           ])(plural(layers.length, "layer"), layers.some((layer) => !layer.hidden)))(pickedLayers())),
@@ -15713,7 +16034,7 @@
         const pieces = (list) => list.map((item) => ({ kind: "insert", key: item.insert, group: item.layer ? "Layers" : item.series ? "Series" : "Functions", ...item }));
         const fits = token ? null : fitsAt(text, caret, self, input.selectionEnd ?? caret);
         const blocks = token ? [] : pieces(fits?.items ?? [
-          ...chart.layers.filter((layer) => layer !== self && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id })),
+          ...chart.layers.filter((layer) => layer !== self && !layer.cloud && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id })),
           ...Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => ({ insert: `${name}(`, title: signature, text: what })),
         ]);
         palette.items = [...top, ...pieces(items), ...blocks];
@@ -15941,6 +16262,7 @@
           const meta = item.kind === "folder" ? `<span class="item-meta">›</span>` : item.kind === "command" ? (item.command.kbd ? `<kbd>${escape(keyText(item.command.kbd))}</kbd>` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : item.kind === "series" && palette.added.has(item.name) ? `<span class="item-meta">Added ${ICONS.check}</span>` : "";
           return `${header}<li role="option" id="option-${i}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${icon}<span class="item-name">${name}</span>${meta}</li>`;
         }).join("") + tail;
+        drawKeys(list);
         // A new list starts at its top; a row landed on (coming back up) is brought into view, with its neighbors.
         list.scrollTop = 0;
         if (palette.active) $(`option-${palette.active}`)?.scrollIntoView({ block: "center" });
@@ -16527,6 +16849,7 @@
             ] : []),
             { key: "add-series", icon: ICONS.plus, label: "Add a series", kbd: "A", verb: "Add", group: "In it", leads: true, stay: true, run: () => openPalette({ add: true }) },
             { key: "add-formula", icon: ICONS.formula, label: "Add a formula", kbd: "F", verb: "Add", group: "In it", leads: true, stay: true, run: addFormula },
+            ...(cloudable() ? [{ key: "add-cloud", icon: ICONS.cloud, label: "Add a cloud", group: "In it", page: () => cloudPage() }] : []),
             ...(any ? [
               { key: "share", icon: ICONS.share, label: "Copy a share link", verb: "Copy", group: "Out of it", run: () => $("share").click() },
               { key: "copy-image", icon: ICONS.copy, label: "Copy as image", verb: "Copy", group: "Out of it", run: () => exportAs("copy") },
@@ -16544,16 +16867,17 @@
         ...chart.panes.flatMap((pane, i) => chart.layers.filter((layer) => layer.pane === pane.id).map((layer) => ({ ...layerRow(layer), group: `Pane ${i + 1}` }))),
         { kind: "row", key: "add-series", icon: ICONS.plus, label: "Add a series", kbd: "A", verb: "Add", group: "Add", leads: true, stay: true, run: () => openPalette({ add: true }) },
         { kind: "row", key: "add-formula", icon: ICONS.formula, label: "Add a formula", kbd: "F", verb: "Add", group: "Add", leads: true, stay: true, run: addFormula },
+        ...(cloudable() ? [{ kind: "row", key: "add-cloud", icon: ICONS.cloud, label: "Add a cloud", group: "Add", page: () => cloudPage() }] : []),
         ...(chart.layers.some((layer) => layer.hidden) ? [{ kind: "row", key: "show-all", icon: ICONS.eye, label: "Show every layer", verb: "Show", group: "Add", stay: true, run: () => commit((doc) => doc.layers.forEach((layer) => delete layer.hidden)) }] : []),
       ] });
       /** A layer row's ⌘K: what's changed most, the rest a ↵ away on its page. */
-      const QUICK = new Set(["series", "formula", "name", "type", "color", "pane", "hide", "duplicate", "remove"]);
+      const QUICK = new Set(["series", "formula", "between", "name", "type", "color", "pane", "hide", "duplicate", "remove"]);
       /** A layer, by its letter and name, with what it shows (a series, a formula): ↵ opens all it is, to change. */
       function layerRow(layer) {
         const open = () => layerPage(layer.id);
         return {
           kind: "row", key: `layer:${layer.id}`, icon: `<span class="letter" style="--c:${escape(ink(layer.color))}">${escape(layer.letter)}</span>`, label: labelOf(layer),
-          aside: layer.series ?? layer.formula ?? "", mono: true, dim: Boolean(layer.hidden), words: `${layer.letter} layer ${layer.hidden ? "hidden" : ""}`, verb: "Open", page: open,
+          aside: layer.cloud ? `Between ${cloudLetters(layer).join(", ")}` : layer.series ?? layer.formula ?? "", mono: !layer.cloud, dim: Boolean(layer.hidden), words: `${layer.letter} layer ${layer.hidden ? "hidden" : ""}`, verb: "Open", page: open,
           actions: () => [{ label: "Open", kbd: "↵", page: open }, ...open().rows().filter((row) => QUICK.has(row.key))],
           preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
         };
@@ -16584,8 +16908,10 @@
             const item = doc.layers.find((other) => other.id === id);
             if (item) put(item, name);
           }), (panel, option) => previewLayer(panel, id, key === "color" && option.key !== "other" ? option.key : null)) });
-          return [
-            layer.series
+          const rows = [
+            layer.cloud
+              ? { key: "between", icon: ICONS.cloud, label: "Between", aside: cloudLetters(layer).join(", "), group: "Cloud", leads: true, page: () => cloudPage(id) }
+              : layer.series
               ? { key: "series", icon: ICONS.series, label: "Series", aside: layer.series, mono: true, verb: "Change", group: first, leads: true, stay: true, run: () => changeSeries(id) }
               : { key: "formula", icon: ICONS.formula, label: "Formula", aside: layer.formula, mono: true, verb: "Edit", group: first, leads: true, stay: true, run: () => editFormula(id) },
             ...(layer.series ? [
@@ -16633,7 +16959,10 @@
             { key: "panel", icon: ICONS.sliders, label: "Settings", aside: "In the panel", verb: "Open", group: "Layer", run: () => select(id) },
             { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", group: "Layer", run: () => duplicateLayer(id) },
             { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", group: "Layer", danger: true, run: () => removeLayer(id) },
-          ].map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
+          ];
+          // (A cloud's: what's a line's, a series' or a formula's isn't its.)
+          const NOT_A_CLOUDS = new Set(["type", "color-below", "width", "dash", "shape", "fill", "price-line", "base", "levels", "derive", "to-formula", "to-series"]);
+          return (layer.cloud ? rows.filter((row) => !NOT_A_CLOUDS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: "Cloud" } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
         } };
       }
       const swatchOf = (color) => `<i class="swatch" style="--c:${escape(cssColor(color))}"></i>`;
@@ -16785,16 +17114,16 @@
         const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), at = chart.panes.findIndex((pane) => pane.id === layer.pane);
         const about = layer.series ? known.get(layer.series)?.description : null;
         panel.innerHTML = `<h4 class="plain">${escape(labelOf(layer))}</h4>
-          <p class="description"><code>${escape(layer.series ?? layer.formula ?? "")}</code></p>
+          <p class="description">${layer.cloud ? escape(`Between ${cloudLetters(layer).join(", ") || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? "")}</code>`}</p>
           ${about ? `<p class="description clamped">${escape(about)}</p>` : ""}
-          ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : '<svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
+          ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.cloud ? "" : '<svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
           <div class="info"><h5>Layer ${escape(layer.letter)}</h5><dl>
-            <div><dt>Type</dt><dd>${escape(TYPES.find(([type]) => type === layer.type)?.[1] ?? layer.type)}</dd></div>
+            <div><dt>Type</dt><dd>${escape(layer.cloud ? "Cloud" : TYPES.find(([type]) => type === layer.type)?.[1] ?? layer.type)}</dd></div>
             <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
             <div><dt>Layout</dt><dd>Pane ${at + 1}, ${layer.side === "left" ? "left" : "right"} axis</dd></div>
-            <div><dt>Latest</dt><dd id="spark-caption">—</dd></div>
+            <div><dt>Latest</dt><dd id="spark-caption">${layer.cloud && result?.shown ? escape(rangeAt(layer, { at: result.shown.length - 1, rest: true }, unit)) : "—"}</dd></div>
           </dl></div>`;
-        if (result?.shown && !result.error) drawSpark(Array.from(result.shown), unit, ink(color ?? layer.color));
+        if (result?.shown && !result.error && !layer.cloud) drawSpark(Array.from(result.shown), unit, ink(color ?? layer.color));
       }
       /** @returns {Page} */
       const panesPage = () => ({ title: "Panes", placeholder: "Search this chart's panes", rows: () => [
@@ -17023,7 +17352,9 @@
           palette.armed = null;
           if (item.kind === "row") {
             if (fromSearch() && item.key !== "everywhere") noteUse(item.key);
-            return runAction(item, item);
+            // (⇧↵ or ⌘↵ on a row: its action with that key, where it has one.)
+            const keyed = newPane || keep ? item.actions?.().find((action) => action.kbd === (newPane ? "⇧↵" : "⌘↵")) : undefined;
+            return runAction(keyed ?? item, item);
           }
         }
         if (item.kind === "command") {
@@ -17118,6 +17449,7 @@
         const host = anchor.closest("dialog") ?? document.body;
         if (menu.parentElement !== host) host.append(menu);
         menu.innerHTML = html;
+        drawKeys(menu);
         // On a phone, a sheet from the foot (placed by its style), over a backdrop of its own.
         menu.classList.toggle("as-sheet", phone.matches);
         if (phone.matches) host.insertBefore(menuScrim, menu);
@@ -17447,7 +17779,7 @@
         storage.set(VIEWS, all);
       }
       /** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
-      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
+      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.cloud ? { cloud: layer.cloud.map((member) => doc.layers.findIndex((item) => item.id === member)) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
       /** Two charts alike (a link opened again is the chart already here). */
       const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf(a) === contentOf(b);
       async function shareLink(doc) {
@@ -17504,12 +17836,12 @@
           if (!layer || typeof layer !== "object") continue;
           /** @type {Record<string, any>} */
           const spec = {
-            ...(typeof layer.series === "string"
+            ...(Array.isArray(layer.cloud) ? { cloud: layer.cloud.filter((id) => typeof id === "string").slice(0, MAX_LAYERS) } : typeof layer.series === "string"
               ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
               : { formula: currentFormula(String(layer.formula ?? "").slice(0, 1000)), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
             ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
             color: isColor(layer.color) ? layer.color : undefined,
-            type: TYPES.some(([type]) => type === layer.type) ? layer.type : "line",
+            type: Array.isArray(layer.cloud) ? "cloud" : TYPES.some(([type]) => type === layer.type) ? layer.type : "line",
             width: WIDTHS.includes(layer.width) ? layer.width : 1.5,
             dash: DASHES.some(([style]) => style === layer.dash) ? layer.dash : 0,
             pane: paneFor(layer.pane),
@@ -17528,7 +17860,7 @@
           };
           // A transform from before is the formula it was: a series layer becomes a formula of its series (named as it
           // showed, a line: a formula has no candles).
-          const was = transformFormula(layer.transform, spec.series ?? spec.formula ?? "");
+          const was = spec.cloud ? "" : transformFormula(layer.transform, spec.series ?? spec.formula ?? "");
           if (was && spec.series) {
             const span = /, ([^)]+)\)$/.exec(was)?.[1];
             spec.label ??= `${humanize(spec.series)} (${{ sma: "SMA", ema: "EMA", change: "Δ%", zscore: "Z", log: "Log" }[layer.transform.fn]}${span ? ` ${span}` : ""})`;
@@ -17542,6 +17874,8 @@
           if (typeof layer.id === "string") layerIds.set(layer.id, id);
           doc.layers.push(makeLayer({ ...Object.fromEntries(Object.entries(spec).filter(([, value]) => value !== undefined)), id }, doc));
         }
+        // A cloud's layers, by their ids here (normalize leaves out what's not a layer, and a cloud of fewer than two).
+        for (const layer of doc.layers) if (layer.cloud) layer.cloud = layer.cloud.flatMap((id) => (layerIds.has(id) ? [/** @type {string} */ (layerIds.get(id))] : []));
         // Drawings: each on a layer read, its points numbers (as many as its kind takes), its look where valid.
         doc.drawings = (Array.isArray(input.drawings) ? input.drawings : []).slice(0, MAX_DRAWINGS).flatMap((drawing) => {
           const kind = drawing?.kind, layer = layerIds.get(drawing?.layer);
@@ -17597,11 +17931,12 @@
         if (kind === "csv") {
           const layers = chart.layers.filter((layer) => resolved.results.get(layer.id)?.shown);
           const quote = (text) => `"${String(text).replace(/"/g, '""')}"`;
-          const header = ["date", ...layers.map((layer) => quote(`${layer.letter} ${labelOf(layer)}`))].join(",");
+          // (A cloud's two columns: its low, its high.)
+          const header = ["date", ...layers.flatMap((layer) => (layer.cloud ? [quote(`${layer.letter} ${labelOf(layer)} (low)`), quote(`${layer.letter} ${labelOf(layer)} (high)`)] : [quote(`${layer.letter} ${labelOf(layer)}`)]))].join(",");
           const rows = resolved.times.map((time, i) => {
-            const cells = layers.map((layer) => {
-              const value = resolved.results.get(layer.id).shown[i];
-              return Number.isFinite(value) ? String(value) : "";
+            const cells = layers.flatMap((layer) => {
+              const result = resolved.results.get(layer.id);
+              return (result.low ? [result.low[i], result.shown[i]] : [result.shown[i]]).map((value) => (Number.isFinite(value) ? String(value) : ""));
             });
             return cells.some(Boolean) ? [new Date(time * 1000).toISOString().slice(0, FINE.has(chart.index) ? 16 : 10), ...cells].join(",") : null;
           }).filter(Boolean);
@@ -17806,6 +18141,7 @@
         if (tip.parentElement !== host) host.append(tip);
         const keys = target.dataset.kbd ? keycaps(target.dataset.kbd) : "";
         tip.innerHTML = `<span>${escape(target.dataset.tip)}</span>${keys}`;
+        drawKeys(tip);
         tip.hidden = false;
         if (target.getAttribute("aria-label") !== target.dataset.tip) {
           described?.removeAttribute("aria-describedby");
@@ -18006,6 +18342,7 @@
         else if (action === "close-preview") closePreview();
         else if (action === "home") showHome();
         else if (action === "add-series") openPalette({ add: true });
+        else if (action === "add-cloud") openPage(cloudPage());
         else if (action === "leave-empty") {
           // A new chart is only taken back; a saved one is deleted, which asks first.
           leaveEmpty();
@@ -18197,6 +18534,7 @@
       const HOLD = MAC ? "Meta" : "Control";
       // The page's own keys as this platform writes them (the shortcuts sheet, "Hold ⌘", the search's ⌘K).
       for (const element of all$(MAC ? "kbd" : "kbd, #shortcuts dt, #shortcuts h3")) element.textContent = keyText(element.textContent ?? "");
+      drawKeys(document.body);
       if (!MAC) for (const element of all$("[data-tip*='⇧']")) element.dataset.tip = keyText(element.dataset.tip ?? "");
       /** Long enough that a quick ⌘Z or ⌘C never flashes the keys, short enough to feel instant when held. */
       const HINT_DELAY = 200;
@@ -18358,7 +18696,7 @@
           const values = grown(result.values);
           const ohlc = result.ohlc && [...result.ohlc, ...added.map(() => null)];
           if (ohlc) ownLive.add(ohlc);
-          return [id, { ...result, values, shown: result.shown === result.values ? values : grown(result.shown), ohlc }];
+          return [id, { ...result, values, shown: result.shown === result.values ? values : grown(result.shown), ohlc, ...(result.low ? { low: grown(result.low) } : {}) }];
         }));
         return { ...data, times: [...data.times, ...added], results };
       }
