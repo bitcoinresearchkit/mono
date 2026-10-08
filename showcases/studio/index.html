@@ -17124,7 +17124,10 @@
         };
         /** @type {HTMLElement | null} */ (menu.querySelector("button[aria-checked='true']") ?? menu.querySelector("button:not(:disabled)"))?.focus({ preventScroll: true });
       }
-      /** A menu beside what opened it (or at a point): below it if it fits, else above, kept within its host. */
+      /**
+       * A menu beside what opened it (or at a point): below it if it fits, else above, kept within its host; from its left
+       * edge (its right, where that fits better), or, asked for a side (the belt's popovers), centered on it.
+       */
       function placeMenu(menu, host, anchor, point, side = "") {
         const rect = point ? new DOMRect(point.x, point.y, 0, 0) : anchor.getBoundingClientRect();
         const gap = point ? 2 : 6;
@@ -17147,11 +17150,11 @@
           menu.style.animation = "";
           return;
         }
-        const left = clamp(rect.left + width > bounds.right - 8 && !point ? rect.right - width : rect.left, bounds.left + 8, bounds.right - width - 8);
+        const left = clamp(side ? rect.left + rect.width / 2 - width / 2 : rect.left + width > bounds.right - 8 && !point ? rect.right - width : rect.left, bounds.left + 8, bounds.right - width - 8);
         const fitsBelow = rect.bottom + gap + height <= bounds.bottom - 8, below = side === "above" ? rect.top - gap - height < bounds.top + 8 && fitsBelow : fitsBelow;
         menu.style.left = `${left - origin.x}px`;
         menu.style.top = `${(below ? rect.bottom + gap : Math.max(bounds.top + 8, rect.top - gap - height)) - origin.y}px`;
-        menu.style.transformOrigin = `${clamp(rect.left + Math.min(rect.width, 24) / 2 - left, 0, width)}px ${below ? "0" : "100%"}`;
+        menu.style.transformOrigin = `${clamp(rect.left + (side ? rect.width : Math.min(rect.width, 24)) / 2 - left, 0, width)}px ${below ? "0" : "100%"}`;
         void menu.offsetWidth;
         menu.style.animation = "";
       }
