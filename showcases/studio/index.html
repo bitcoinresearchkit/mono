@@ -12,7 +12,6 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="dark" />
     <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <link rel="apple-touch-icon" href="data:image/png;base64,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" />
@@ -38,45 +37,65 @@
       }
 
       /*
-       * One dark theme, calibrated on the quiet end: a near-black page, one card a shade lighter, hairlines at
-       * 6% white, text in three greys. Color comes from the data: the chrome is monochrome, orange is the brand's.
+       * Two themes from one set of tokens, each a light-dark() pair: the page's color-scheme picks (dark until the light
+       * one is settled; light; or the device's, System), the chart and the canvases read them resolved (see css). The
+       * dark calibrated on the quiet end: a near-black page, one card a shade lighter, hairlines at 6% white, text in three
+       * greys. The light, the same turned over: a near-white page, the card white on it, hairlines in black a shade
+       * stronger (thin dark lines on white read lighter), shadows soft, tips and keys white as the menus. Color comes from
+       * the data (its tone, the theme's: see toned): the chrome is monochrome, orange is the brand's.
        */
       :root {
         color-scheme: dark;
-        --app: #08090a;
-        --card: #0e0f11;
-        --raise: #17181b;
-        --ink: #f7f8f8;
-        --text: #d0d6e0;
-        --soft: #8a8f98;
-        --muted: #62666d;
-        --faint: #3e4147;
-        /* White over the dark, rest to emphasis; a hover is a step above rest. */
-        --field: rgb(255 255 255 / 0.035);
-        --hover: rgb(255 255 255 / 0.04);
-        --fill: rgb(255 255 255 / 0.05);
-        --line: rgb(255 255 255 / 0.06);
-        --press: rgb(255 255 255 / 0.07);
-        --line-strong: rgb(255 255 255 / 0.1);
-        --active: rgb(255 255 255 / 0.12);
-        --edge: rgb(255 255 255 / 0.32);
-        --focus: rgb(255 255 255 / 0.5);
-        --scrim: rgb(0 0 0 / 0.5);
+        --app: light-dark(#f6f6f7, #08090a);
+        --card: light-dark(#ffffff, #0e0f11);
+        --raise: light-dark(#ffffff, #17181b);
+        --ink: light-dark(#0f1012, #f7f8f8);
+        --text: light-dark(#2b2f36, #d0d6e0);
+        --soft: light-dark(#5f6570, #8a8f98);
+        --muted: light-dark(#868b94, #62666d);
+        --faint: light-dark(#c4c7cc, #3e4147);
+        /* Black over the light, white over the dark, rest to emphasis; a hover is a step above rest. */
+        --field: light-dark(rgb(0 0 0 / 0.03), rgb(255 255 255 / 0.035));
+        --hover: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.04));
+        --fill: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.05));
+        --line: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.06));
+        --press: light-dark(rgb(0 0 0 / 0.065), rgb(255 255 255 / 0.07));
+        /* A segment chosen: a step up on the dark, a white chip lifted off its track on the light. */
+        --chosen: light-dark(#ffffff, rgb(255 255 255 / 0.07));
+        --line-strong: light-dark(rgb(0 0 0 / 0.13), rgb(255 255 255 / 0.1));
+        --active: light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.12));
+        --edge: light-dark(rgb(0 0 0 / 0.32), rgb(255 255 255 / 0.32));
+        --focus: light-dark(rgb(0 0 0 / 0.45), rgb(255 255 255 / 0.5));
+        --scrim: light-dark(rgb(0 0 0 / 0.3), rgb(0 0 0 / 0.5));
+        --backdrop: light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.3));
+        --selection: light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.2));
+        /* A dot's or a swatch's own edge; a loading row's sweep. */
+        --ring: light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.14));
+        --sweep: light-dark(rgb(0 0 0 / 0.035), rgb(255 255 255 / 0.03));
         /* A surface's top edge catching the light; a field typed in, its edge lit with a halo around. */
-        --sheen: inset 0 1px 0 rgb(255 255 255 / 0.04);
+        --sheen: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.04));
         --field-focus: inset 0 0 0 1px var(--edge), 0 0 0 3px var(--line);
         /* The interface's own emphasis: the primary action, focus and indicators, in ink rather than a hue. */
         --primary: var(--ink);
-        --primary-ink: var(--app);
-        --up: #3ccf7c;
+        --primary-ink: light-dark(#ffffff, #08090a);
+        --up: light-dark(#17a057, #3ccf7c);
         --live: var(--up);
-        --danger: #f2555a;
-        --chart-grid: rgb(255 255 255 / 0.04);
+        --danger: light-dark(#e0393e, #f2555a);
+        --chart-grid: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.04));
         --chart-text: var(--muted);
-        --crosshair: rgb(255 255 255 / 0.2);
+        --crosshair: light-dark(rgb(0 0 0 / 0.25), rgb(255 255 255 / 0.2));
         --crosshair-faint: var(--line-strong);
-        --crosshair-label: #26272b;
-        --pop: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 64px -12px rgb(0 0 0 / 0.7), 0 8px 20px -8px rgb(0 0 0 / 0.5);
+        --crosshair-label: light-dark(#2b2d31, #26272b);
+        /* Tips and keys' hints, over the page: white in the light, as its menus. */
+        --tip: light-dark(#ffffff, #1e1f23);
+        --hint: light-dark(#ffffff, #2c2d30);
+        /* Shadows, each one shape, its colors by theme: what pops over the page, the card on it, a pressed tab lifted,
+           a folder's held head over its charts, a key's hint. */
+        --pop: inset 0 1px 0 light-dark(transparent, rgb(255 255 255 / 0.05)), 0 0 0 1px light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.08)), 0 24px 64px -12px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.7)), 0 8px 20px -8px light-dark(rgb(0 0 0 / 0.1), rgb(0 0 0 / 0.5));
+        --card-shadow: 0 0 0 2px light-dark(transparent, rgb(0 0 0 / 0.2)), 0 1px 2px light-dark(rgb(0 0 0 / 0.04), transparent), 0 24px 60px -30px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.6));
+        --lift: 0 1px 2px light-dark(rgb(0 0 0 / 0.1), rgb(0 0 0 / 0.3)), 0 0 0 1px light-dark(rgb(0 0 0 / 0.04), transparent);
+        --held-shadow: 0 12px 20px -14px light-dark(rgb(0 0 0 / 0.2), rgb(0 0 0 / 0.8));
+        --hint-shadow: 0 0 0 1px light-dark(rgb(0 0 0 / 0.08), transparent), 0 4px 12px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.45));
         --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         --mono: Lilex, ui-monospace, SFMono-Regular, Menlo, monospace;
         /*
@@ -105,12 +124,21 @@
         scrollbar-color: var(--faint) transparent;
       }
 
+      /* The theme chosen: light, or the device's (dark is the default above). */
+      :root[data-theme="light"] {
+        color-scheme: light;
+      }
+
+      :root[data-theme="system"] {
+        color-scheme: light dark;
+      }
+
       * {
         box-sizing: border-box;
       }
 
       ::selection {
-        background: rgb(255 255 255 / 0.2);
+        background: var(--selection);
       }
 
       html,
@@ -386,8 +414,8 @@
 
           &[aria-pressed="true"] {
             color: var(--ink);
-            background: var(--press);
-            box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+            background: var(--chosen);
+            box-shadow: var(--lift);
           }
 
           &:disabled {
@@ -808,13 +836,8 @@
         display: flex;
         align-items: center;
         border-radius: var(--radius-md);
-        transition: margin-top var(--dur-layout) var(--ease-layout), padding-top var(--dur-layout) var(--ease-layout);
-
-        /* An open folder's room, above it and under its last chart (on the rail, inside its surface: as far from its
-           squares at its ends as at its sides; collapsing moves nothing), easing in and out as it opens and closes. */
-        &:not(.closed):has(+ .chart-row.in-folder) {
-          margin-top: 5px;
-        }
+        /* (On the rail, an open folder's room, eased in and out as the sidebar collapses and expands: see the rail.) */
+        transition: padding-top var(--dur-layout) var(--ease-layout);
 
         .folder-item {
           min-width: 0;
@@ -892,10 +915,8 @@
           pointer-events: none;
         }
 
-        /* (Its folder's room under it: see .folder-row.) */
-        &:not(:has(+ .chart-row.in-folder)) {
-          margin-bottom: 5px;
-        }
+        /* (Its folder's room under it, on the rail: see .folder-row.) */
+        transition: padding-bottom var(--dur-layout) var(--ease-layout);
       }
 
       /* A folder's name typed where it shows. */
@@ -962,6 +983,35 @@
           width: calc(100% - 16px);
           height: 1px;
           background: var(--line);
+        }
+      }
+
+      /* The theme: a row as the others, its three at its end, icons alone (on the rail, its own icon: a menu of them). */
+      .theme-row {
+        position: relative;
+        display: flex;
+
+        #theme {
+          padding-right: 96px;
+        }
+      }
+
+      .theme-switch {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+
+        button {
+          display: grid;
+          min-width: 26px;
+          height: 22px;
+          padding: 0;
+          place-items: center;
+
+          svg {
+            width: 14px;
+            height: 14px;
+          }
         }
       }
 
@@ -1264,8 +1314,14 @@
             overflow: visible;
           }
 
-          #new-chart {
+          #new-chart,
+          #theme {
             padding-right: 0;
+          }
+
+          .theme-switch {
+            visibility: hidden;
+            opacity: 0;
           }
 
           #new-folder {
@@ -1282,8 +1338,9 @@
             box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
           }
 
+          /* (Its room, above its icon and under its last chart: its surface as far from its squares at its ends as at
+             its sides.) */
           .folder-row:not(.closed):has(+ .chart-row.in-folder) {
-            margin-top: 0;
             padding-top: 5px;
           }
 
@@ -1293,7 +1350,6 @@
             box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
 
             &:not(:has(+ .chart-row.in-folder)) {
-              margin-bottom: 0;
               border-radius: 0 0 var(--radius-xl) var(--radius-xl);
               padding-bottom: 5px;
               box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line);
@@ -1406,7 +1462,7 @@
             transition: left var(--dur-layout) var(--ease-layout), width var(--dur-layout) var(--ease-layout);
           }
 
-          #new-folder {
+          :is(#new-folder, .theme-switch) {
             transition: opacity var(--dur-small) var(--ease), visibility var(--dur-small);
           }
         }
@@ -1423,7 +1479,7 @@
         border: 1px solid var(--line);
         border-radius: var(--radius-xl);
         background: var(--card);
-        box-shadow: var(--sheen), 0 0 0 2px rgb(0 0 0 / 0.2), 0 24px 60px -30px rgb(0 0 0 / 0.6);
+        box-shadow: var(--sheen), var(--card-shadow);
         isolation: isolate;
         container: card / inline-size;
 
@@ -1883,7 +1939,7 @@
         bottom: 0;
         min-width: 10px;
         border-radius: var(--radius-md);
-        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+        box-shadow: inset 0 0 0 1px var(--ring);
         transition: box-shadow var(--fade);
         cursor: grab;
 
@@ -3413,7 +3469,7 @@
         height: 12px;
         border-radius: 50%;
         background: var(--c);
-        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+        box-shadow: inset 0 0 0 1px var(--ring);
       }
 
       /* The color's name, a picker like the pane's and the format's: it opens the colors to pick from. */
@@ -3769,7 +3825,7 @@
         transition: background var(--dur-small) var(--ease);
 
         &::backdrop {
-          background: rgb(0 0 0 / 0.3);
+          background: var(--backdrop);
           transition: background var(--dur-small) var(--ease);
         }
 
@@ -4572,7 +4628,7 @@
         border-radius: var(--radius-sm);
         padding: 5px 6px 5px 9px;
         color: var(--ink);
-        background: #1e1f23;
+        background: var(--tip);
         box-shadow: var(--pop);
         font-size: 12px;
         line-height: 1.35;
@@ -4637,8 +4693,8 @@
       .key-hint {
         position: fixed;
         color: var(--ink);
-        background: #2c2d30;
-        box-shadow: 0 4px 12px rgb(0 0 0 / 0.45);
+        background: var(--hint);
+        box-shadow: var(--hint-shadow);
         white-space: nowrap;
       }
 
@@ -4805,7 +4861,7 @@
              edged, a shadow over them. */
           &.held:not(.closed) {
             border-radius: 0;
-            box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line), 0 12px 20px -14px rgb(0 0 0 / 0.8);
+            box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line), var(--held-shadow);
           }
         }
 
@@ -5087,7 +5143,7 @@
           position: absolute;
           inset: 0;
           border-radius: var(--radius-sm);
-          background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.03) 50%, transparent 70%) 0 0 / 200% 100%;
+          background: linear-gradient(100deg, transparent 30%, var(--sweep) 50%, transparent 70%) 0 0 / 200% 100%;
           animation: sweep 1.4s linear infinite;
         }
       }
@@ -5190,7 +5246,7 @@
 
         &:checked {
           border-color: var(--ink);
-          background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 8.2 2.6 2.6L12 5.4' fill='none' stroke='%2308090a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat;
+          background: var(--ink) var(--tick) center / 14px no-repeat;
         }
 
         &:focus-visible {
@@ -5865,6 +5921,8 @@
         const prefs = JSON.parse(localStorage.getItem("bitview-studio:prefs") ?? "{}") ?? {};
         if (prefs.sidebar === "collapsed") document.body.dataset.sidebar = "collapsed";
         if (prefs.panel === "open" || prefs.panel === "closed") document.body.dataset.panel = prefs.panel;
+        // (The theme, as chosen: the stylesheet does the rest.)
+        if (prefs.theme === "light" || prefs.theme === "system") document.documentElement.dataset.theme = prefs.theme;
         const there = history.state;
         // (A first visit, nothing kept yet, opens on its empty chart, whatever a preference or the history says.)
         if (!/[#&]chart=/.test(location.hash) && localStorage.getItem("bitview-studio:v2") !== null && (there ? there.home : (prefs.home ?? true))) document.body.toggleAttribute("data-home", true);
@@ -5886,6 +5944,14 @@
         <input id="import-file" type="file" accept="application/json,.json" hidden />
         <div class="side-foot" style="--i: 3">
           <div id="live" class="live" data-tip="Live"><i></i><span id="stamp">Live</span></div>
+          <div class="theme-row">
+            <button class="nav-item side-action" type="button" id="theme" data-action="theme" data-tip="Theme" aria-haspopup="menu"><span id="theme-icon" data-icon="moon"></span><span class="label">Theme</span></button>
+            <div id="theme-switch" class="tabs theme-switch" role="group" aria-label="Theme">
+              <button type="button" data-theme-pick="system" data-tip="System" aria-label="System" data-icon="computer"></button>
+              <button type="button" data-theme-pick="light" data-tip="Light" aria-label="Light" data-icon="sun"></button>
+              <button type="button" data-theme-pick="dark" data-tip="Dark" aria-label="Dark" data-icon="moon"></button>
+            </div>
+          </div>
           <button class="nav-item side-action" type="button" data-action="shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span><span class="label">Shortcuts</span><kbd>?</kbd></button>
           <button class="nav-item side-action" type="button" id="sidebar-toggle" data-action="toggle-sidebar" data-tip="Collapse" data-kbd="\" aria-expanded="true"><span data-icon="sidebar"></span><span class="label">Collapse</span><kbd>\</kbd></button>
         </div>
@@ -6160,7 +6226,7 @@
       <p>Then, each if wanted:</p>
       <ul>
         <li>"label": its name.</li>
-        <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)"; "colorBelow": a baseline's or bars' second color, under their base.</li>
+        <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base.</li>
         <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc).</li>
         <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths.</li>
         <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value; "baseLine": {"color": "gray", "dash": 4}, that base's line.</li>
@@ -6216,8 +6282,19 @@
       /** @type {(id: string) => any} */
       const $ = (id) => document.getElementById(id);
       /** A token of the page's styles (they don't change while it's open: one theme, set once), read once. */
-      const tokens = new Map();
-      const css = (name) => tokens.get(name) ?? (tokens.set(name, getComputedStyle(document.documentElement).getPropertyValue(name).trim()), tokens.get(name));
+      /**
+       * A token's value, kept until the theme changes: a color, as the theme resolves it (its light-dark() picked by the
+       * page's color-scheme, on an element of its own), in hex for the chart and the canvases; anything else as written.
+       */
+      const tokens = new Map(), probe = document.head.appendChild(document.createElement("i"));
+      function token(/** @type {string} */ name) {
+        const written = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        if (!written.startsWith("light-dark(")) return written;
+        probe.style.color = `var(${name})`;
+        const [r, g, b, a = 1] = (getComputedStyle(probe).color.match(/[\d.]+/g) ?? []).map(Number);
+        return `#${[r, g, b, ...(a < 1 ? [a * 255] : [])].map((n) => Math.round(n).toString(16).padStart(2, "0")).join("")}`;
+      }
+      const css = (/** @type {string} */ name) => tokens.get(name) ?? (tokens.set(name, token(name)), tokens.get(name));
       const uid = () => Math.random().toString(36).slice(2, 10);
       /** The element an event came from, or its nearest ancestor matching `selector`. @returns {HTMLElement | null} */
       const closest = (event, selector) => /** @type {HTMLElement} */ (event.target)?.closest?.(selector) ?? null;
@@ -6238,6 +6315,9 @@
       const svg = (body, size = 16) => `<svg viewBox="0 0 16 16" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
       const ICONS = {
         plus: svg('<path d="M8 3v10M3 8h10"/>'),
+        computer: svg('<rect x="1.5" y="2.5" width="13" height="8.5" rx="1.8"/><path d="M5.5 14h5M8 11v3"/>'),
+        sun: svg('<circle cx="8" cy="8" r="2.75"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/>'),
+        moon: svg('<path d="M7.8 2.3A6 6 0 1 0 13.98 8.84A4.6 4.6 0 0 1 7.8 2.3Z"/>'),
         formula: svg('<path d="M10.5 2.5c-1.7 0-2.3.8-2.6 2.4L6.4 12c-.3 1.5-.9 2-2.4 2"/><path d="M4.8 6.5H10"/>'),
         charts: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="m4.5 10.5 2.2-2.6 1.8 1.6 3-3.5"/>'),
         grid: svg('<rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/>'),
@@ -6389,6 +6469,30 @@
         blue: [0.5845, 0.2295, 261.348], indigo: [0.548, 0.2475, 277.0415], violet: [0.5735, 0.2655, 292.863], purple: [0.5925, 0.2765, 303.1105],
         fuchsia: [0.629, 0.294, 322.523], pink: [0.624, 0.245, 357.444], rose: [0.6155, 0.2495, 17.012],
       };
+      /**
+       * Every color as the theme shows it, Bitview's and any picked alike (they're kept as the dark shows them): on the
+       * dark, as it is; on the light, its lightness turned over along one curve: white as black and black as white,
+       * Bitview's band (0.5 to 0.75) narrowed and raised (0.64 to 0.58), so yellow, amber and lime deepen enough to read
+       * on white and indigo, violet lighten a little, each still itself. A color picked on the light is kept by the
+       * curve's inverse: the dark shows its counterpart. (The page's ink is its own: white or black.)
+       */
+      let light = false;
+      const TONE = /** @type {[number, number][]} */ ([[0, 1], [0.5, 0.64], [0.75, 0.58], [1, 0]]);
+      /** A piecewise-linear curve's value at x, its knots in order of x (clamped at its ends). */
+      function onCurve(/** @type {[number, number][]} */ knots, /** @type {number} */ x) {
+        const i = clamp(knots.findIndex(([at]) => at >= x), 1, knots.length - 1), [x0, y0] = knots[i - 1], [x1, y1] = knots[i];
+        return clamp(y0 + ((x - x0) * (y1 - y0)) / (x1 - x0), Math.min(y0, y1), Math.max(y0, y1));
+      }
+      const UNTONE = /** @type {[number, number][]} */ (TONE.map(([x, y]) => [y, x]).reverse());
+      const toned = (/** @type {number[]} */ [l, c, h]) => /** @type {[number, number, number]} */ (light ? [onCurve(TONE, l), c, h] : [l, c, h]);
+      /** A color's lightness, chroma and hue as shown (the page's ink, as it is). */
+      const shownOklch = (/** @type {string} */ color) => (color === "ink" ? oklchOf(color) : toned(oklchOf(color)));
+      /** A color given as shown (picked, typed), as it's kept: on the light, its lightness turned back (Bitview's, as named). */
+      function kept(/** @type {string} */ color) {
+        if (!light || isNamed(color)) return color;
+        const [l, c, h] = oklchOf(color), back = +onCurve(UNTONE, l).toFixed(3);
+        return c < 0.0005 ? `oklch(${back} 0 0)` : `oklch(${back} ${+c.toFixed(4)} ${+h.toFixed(1)})`;
+      }
       /** Bitview's colors as the color menu lists them: the two neutrals, then the hues around the wheel from red. */
       const SWATCHES = ["ink", "gray", "red", "orange", "amber", "yellow", "avocado", "lime", "green", "emerald", "teal", "cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose"];
       /** New layers take these in turn, far apart on the wheel. */
@@ -6415,8 +6519,8 @@
       /** Bitview's colors, each named by the nearest name no other has taken (closest pairs first): never two alike. */
       let ownNames = null;
       function ownName(key) {
-        // (The text's own color: white here, whatever its nearest name.)
-        if (key === "ink") return "White";
+        // (The text's own color: white on the dark, black on the light, whatever its nearest name.)
+        if (key === "ink") return light ? "Black" : "White";
         if (!ownNames) {
           const pairs = [];
           for (const color of SWATCHES) {
@@ -6430,10 +6534,10 @@
         }
         return ownNames[key];
       }
-      /** A color's name: Bitview's own as they're named, any other by the nearest familiar name. */
+      /** A color's name: Bitview's own as they're named, any other by the nearest familiar name to it as shown. */
       function colorName(color) {
         if (SWATCHES.includes(color)) return ownName(color);
-        const [l, c, h] = oklchOf(color);
+        const [l, c, h] = shownOklch(color);
         let best = namesAt()[0], nearest = Infinity;
         for (const name of namesAt()) {
           const distance = nameDistance(l, c, h, name.l, name.c, name.h);
@@ -7577,10 +7681,25 @@
         sidebar: stored.sidebar === "collapsed" ? "collapsed" : "expanded",
         panel: stored.panel === "open" || stored.panel === "closed" ? stored.panel : tablet.matches ? "closed" : "open",
         home: stored.home !== false,
+        theme: /** @type {"system" | "light" | "dark"} */ (["system", "light", "dark"].includes(stored.theme) ? stored.theme : "dark"),
         belt: { on: stored.belt?.on === true, dock: ["top", "bottom", "left", "right"].includes(stored.belt?.dock) ? stored.belt.dock : "bottom", at: Number.isFinite(stored.belt?.at) ? clamp(stored.belt.at, 0, 1) : 0.5 },
         pen: /** @type {{ color: string, width: number, dash: number, opacity?: number, extend?: "right" | "both", arrow?: boolean, size: number, back?: string }} */ ({ ...lookOfDrawing("trend", stored.pen), size: Number.isFinite(stored.pen?.size) ? presetSize(stored.pen.size) : TEXT_SIZE }),
       };
       const savePrefs = () => storage.set(PREFS, prefs);
+      /**
+       * The theme, as chosen (dark until the light one is settled: the default), System the device's. The page takes it
+       * from its tokens; the chart, the charts' marks and their drawings draw again with them (and the palette's tone: see
+       * toned), crossfaded where the browser can. Set before the first paint (see the page's first script), and here.
+       */
+      const THEMES = /** @type {const} */ ([
+        ["system", "System", "computer", "As the device is set, and as it changes.", "system device auto automatic os follow"],
+        ["light", "Light", "sun", "Light surfaces; the data's colors deepened to read on white.", "light day white bright"],
+        ["dark", "Dark", "moon", "Dark surfaces; the data's colors as they are.", "dark night black"],
+      ]);
+      const deviceLight = matchMedia("(prefers-color-scheme: light)");
+      const lightChosen = () => prefs.theme === "light" || (prefs.theme === "system" && deviceLight.matches);
+      light = lightChosen();
+      document.documentElement.dataset.theme = prefs.theme;
       /** The grid of every chart is on screen (the open chart stays laid out under it). */
       let home = false;
 
@@ -8643,15 +8762,15 @@
       /** A color as the chart draws it, in sRGB hex: converted on demand, and kept (a picker's drag makes many: a few hundred). */
       const ink = (color) => {
         if (color === "ink") return css("--ink");
-        if (color.startsWith("#")) return color;
+        if (!light && color.startsWith("#")) return color;
         if (hexCache.size > 500) hexCache.clear();
-        if (!hexCache.has(color)) hexCache.set(color, oklchToHex(...oklchOf(color)));
+        if (!hexCache.has(color)) hexCache.set(color, oklchToHex(...shownOklch(color)));
         return hexCache.get(color);
       };
       /** A color's lightness, chroma and hue. @returns {[number, number, number]} */
-      const oklchOf = (color) => OKLCH[color] ?? (color.startsWith("oklch(") ? /** @type {[number, number, number]} */ (color.slice(6, -1).split(" ").map(Number)) : hexToOklch(ink(color)));
+      const oklchOf = (color) => OKLCH[color] ?? (color.startsWith("oklch(") ? /** @type {[number, number, number]} */ (color.slice(6, -1).split(" ").map(Number)) : hexToOklch(color === "ink" ? css("--ink") : color));
       /** A color as CSS writes it: OKLCH as it is, wide-gamut where the screen has it. */
-      const cssColor = (color) => (color === "ink" ? "var(--ink)" : OKLCH[color] ? `oklch(${OKLCH[color].join(" ")})` : color);
+      const cssColor = (color) => (color === "ink" ? "var(--ink)" : light ? `oklch(${shownOklch(color).map((n) => +n.toFixed(4)).join(" ")})` : OKLCH[color] ? `oklch(${OKLCH[color].join(" ")})` : color);
       const alpha = (color, a) => `${color}${Math.round(a * 255).toString(16).padStart(2, "0")}`;
       /** The unit a layer displays in: its chosen format, else its data's. */
       const unitFor = (layer, result) => (layer.format ? layer.format : result?.unit ?? (layer.series ? units.get(layer.series) : "number") ?? "number");
@@ -8672,22 +8791,31 @@
         const width = Math.ceil(1 + 5 + (2 * 5 * 11) / 12 + 5 + context.measureText("0".repeat(AXIS_CHARS)).width);
         return width + (width % 2);
       }
+      /** The chart's colors, the theme's (set again when it changes). */
+      function chartColors() {
+        const crosshair = { color: css("--crosshair"), labelBackgroundColor: css("--crosshair-label") };
+        return {
+          layout: { textColor: css("--chart-text"), panes: { separatorColor: css("--line-strong"), separatorHoverColor: css("--press") } },
+          grid: { horzLines: { color: css("--chart-grid") } },
+          crosshair: { vertLine: crosshair, horzLine: { ...crosshair, color: css("--crosshair-faint") } },
+        };
+      }
       function chartOptions() {
-        const crosshair = { color: css("--crosshair"), width: /** @type {const} */ (1), style: LC.LineStyle.Solid, labelBackgroundColor: css("--crosshair-label") };
+        const colors = chartColors(), line = { width: /** @type {const} */ (1), style: LC.LineStyle.Solid };
         const scale = { borderVisible: false, entireTextOnly: true, minimumWidth: axisWidth(), scaleMargins: { top: 0.17, bottom: 0.08 } };
         return {
           layout: {
+            ...colors.layout,
             background: { type: LC.ColorType.Solid, color: "transparent" },
-            textColor: css("--chart-text"),
             fontFamily: css("--mono"),
             fontSize: 11,
             attributionLogo: false,
-            panes: { separatorColor: css("--line-strong"), separatorHoverColor: css("--press"), enableResize: true },
+            panes: { ...colors.layout.panes, enableResize: true },
           },
-          grid: { vertLines: { visible: false }, horzLines: { color: css("--chart-grid") } },
+          grid: { vertLines: { visible: false }, ...colors.grid },
           // (The pane's order, as chosen, holds under the pointer too: its drawings are found as they're drawn.)
           hoveredSeriesOnTop: false,
-          crosshair: { mode: LC.CrosshairMode.Normal, vertLine: crosshair, horzLine: { ...crosshair, color: css("--crosshair-faint"), style: LC.LineStyle.LargeDashed } },
+          crosshair: { mode: LC.CrosshairMode.Normal, vertLine: { ...line, ...colors.crosshair.vertLine }, horzLine: { ...line, ...colors.crosshair.horzLine, style: LC.LineStyle.LargeDashed } },
           rightPriceScale: scale,
           leftPriceScale: { ...scale },
           timeScale: { borderVisible: false, rightOffset: RIGHT_OFFSET, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, lockVisibleTimeRangeOnResize: true, allowBoldLabels: false },
@@ -10476,7 +10604,7 @@
       }
       /** A label on an axis, in a drawing's color. */
       /** Words on a color: dark on a light one, white on a dark one. */
-      const contrastOn = (/** @type {string} */ color) => (oklchOf(color)[0] > 0.7 ? "#08090a" : "#ffffff");
+      const contrastOn = (/** @type {string} */ color) => (shownOklch(color)[0] > 0.7 ? "#08090a" : "#ffffff");
       /** A tick on a color, in contrast, as a background image. */
       const tickOn = (/** @type {string} */ color) => `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 8.2 2.6 2.6L12 5.4' fill='none' stroke='${encodeURIComponent(contrastOn(color))}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`;
       function axisTag(coordinate, text, color) {
@@ -12192,7 +12320,7 @@
         return `<div class="tile ${on ? "picked" : ""}" data-home-card="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span><span class="tile-index">${INTERVAL_LABEL[doc.index]}</span></span><span class="tile-legend">${legend || "No layers yet"}</span>${plotHtml(doc)}</button>
             <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button>
-            <input type="checkbox" class="pick-check tile-check" aria-label="Select ${title}" ${on ? "checked" : ""} />
+            <input type="checkbox" class="pick-check tile-check" style="--tick:${escape(tickOn("ink"))}" aria-label="Select ${title}" ${on ? "checked" : ""} />
           </div>`;
       }
       /** A chart's words for the grid's filter: its title, its layers' names, series and formulas. @param {Chart} doc */
@@ -12879,11 +13007,11 @@
         }
         if (!closing) renderCharts();
         const folds = foldOf(id).map((element) => fold(element, closing));
-        // (Its room above it, open, comes and goes with them.)
+        // (On the rail, its own part of their surface fades with them, and its room above it comes and goes.)
         const head = /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-folder-row="${id}"]`));
         if (head) {
-          const { marginTop, paddingTop } = getComputedStyle(head), along = (/** @type {string} */ room) => (closing ? [room, "0px"] : ["0px", room]);
-          folds.push(head.animate({ marginTop: along(marginTop), paddingTop: along(paddingTop) }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" }));
+          const { paddingTop, backgroundColor, boxShadow } = getComputedStyle(head), along = (/** @type {string} */ from, /** @type {string} */ to) => (closing ? [from, to] : [to, from]);
+          folds.push(head.animate({ paddingTop: along(paddingTop, "0px"), backgroundColor: along(backgroundColor, "transparent"), boxShadow: along(boxShadow, boxShadow.replace(/rgba?\([^)]*\)/g, "transparent")) }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" }));
         }
         if (!closing) return;
         closings++;
@@ -12894,6 +13022,67 @@
           renderCharts();
         });
       }
+      /** A theme chosen: kept, shown on the row and its switch, and on the page (see THEMES). @param {"system" | "light" | "dark"} theme */
+      function setTheme(theme) {
+        prefs.theme = theme;
+        savePrefs();
+        renderTheme();
+        applyTheme();
+      }
+      /** The row's icon and tip, the switch's choice. */
+      function renderTheme() {
+        const [, name, icon] = THEMES.find(([id]) => id === prefs.theme) ?? THEMES[2];
+        $("theme-icon").innerHTML = ICONS[icon];
+        $("theme").dataset.tip = `Theme: ${name}`;
+        for (const button of all$("[data-theme-pick]")) button.setAttribute("aria-pressed", String(button.dataset.themePick === prefs.theme));
+      }
+      /**
+       * The page in the theme now chosen (the device's, with System), if it changed: drawn again, crossfaded (the chart
+       * paints in the frame the crossfade ends on: nothing's waited for, the page is still while it's taken).
+       */
+      function applyTheme() {
+        if (lightChosen() === light) return void (document.documentElement.dataset.theme = prefs.theme);
+        const swap = () => {
+          // (As chosen when it runs: two changes queued are one. Where colors were picked, on the other surface.)
+          light = lightChosen();
+          pickedAt.clear();
+          document.documentElement.dataset.theme = prefs.theme;
+          tokens.clear();
+          hexCache.clear();
+          view.applyOptions(chartColors());
+          refresh();
+          if (home) renderHome();
+          // (Every chart's plot on screen in its tones: the tiles, the cards of charts to start from, ⌘K's preview.)
+          for (const [id, drawn] of previews) paint(id, drawn, true);
+          if (/** @type {HTMLDialogElement} */ ($("palette")).open) renderPalette();
+        };
+        if (document.startViewTransition && !reduced.matches) document.startViewTransition(swap);
+        else swap();
+      }
+      deviceLight.addEventListener("change", applyTheme);
+      // Another tab's choice, taken here too (else this one's preferences, saved later, would undo it).
+      addEventListener("storage", ({ key, newValue }) => {
+        if (key !== PREFS) return;
+        let theme;
+        try {
+          theme = JSON.parse(newValue ?? "")?.theme;
+        } catch {
+          return;
+        }
+        if (theme === prefs.theme || !THEMES.some(([id]) => id === theme)) return;
+        prefs.theme = theme;
+        renderTheme();
+        applyTheme();
+      });
+      /** The themes, from the row (on the rail, its only way): the one chosen ticked. */
+      function themeMenu(/** @type {HTMLElement} */ anchor) {
+        showMenu(anchor, THEMES.map(([id, name, icon]) => `<button type="button" data-pick="${id}" aria-checked="${prefs.theme === id}">${tick(prefs.theme === id)}${ICONS[icon]}${name}</button>`).join(""), ({ pick }) => setTheme(/** @type {"system" | "light" | "dark"} */ (pick)));
+      }
+      $("theme-switch").addEventListener("click", (event) => {
+        const pick = /** @type {HTMLElement | null} */ (closest(event, "[data-theme-pick]"))?.dataset.themePick;
+        if (pick) setTheme(/** @type {"system" | "light" | "dark"} */ (pick));
+      });
+      renderTheme();
       /** Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others short). */
       let closings = 0;
       /** What a folder's opening or closing moves: its charts' rows in the sidebar, its box in the grid. */
@@ -12912,12 +13101,12 @@
         const from = moving ? now : closing ? full : low, shown = full > low ? (from - low) / (full - low) : 1;
         Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: row ? "flex-end" : "" });
         if (row) element.inert = closing;
-        // (A row's room under it, a folder's last, goes and comes with it.)
-        const { marginBottom, paddingBottom } = getComputedStyle(element), along = (/** @type {string} */ room) => (closing ? [room, "0px"] : ["0px", room]);
+        // (A row's room under it, a folder's last on the rail, goes and comes with it.)
+        const { paddingBottom } = getComputedStyle(element), along = (/** @type {string} */ room) => (closing ? [room, "0px"] : ["0px", room]);
         const animation = element.animate({
           height: [`${from}px`, `${closing ? low : full}px`],
           // (A row's 1px from the one above goes and comes with it.)
-          ...(row ? { marginTop: closing ? ["0px", "-1px"] : ["-1px", "0px"], marginBottom: along(marginBottom), paddingBottom: along(paddingBottom), opacity: [shown, closing ? 0 : 1] } : {}),
+          ...(row ? { marginTop: closing ? ["0px", "-1px"] : ["-1px", "0px"], paddingBottom: along(paddingBottom), opacity: [shown, closing ? 0 : 1] } : {}),
         }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
         if (!closing) animation.finished.then(() => Object.assign(element.style, { overflow: "", overflowClipMargin: "", alignItems: "" }), () => {});
         return animation;
@@ -14555,7 +14744,7 @@
       const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="group" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}" data-tip="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
       /** The surface: every hue across, lightness down, the color's place ringed (`target`: what it picks for, see planeTarget). */
       function planeHtml(/** @type {string} */ color, /** @type {string} */ target) {
-        const [l, c, h] = oklchOf(color), { u, t } = placeOf(color), grayish = u > HUES + (1 - HUES) * 0.85 - 1e-9;
+        const [l, c, h] = shownOklch(color), { u, t } = placeOf(color), grayish = u > HUES + (1 - HUES) * 0.85 - 1e-9;
         return `<div class="plane" data-plane="${escape(target)}" role="slider" tabindex="0" aria-label="Color: hue across, then grays; lightness down" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(l * 100)}" aria-valuetext="${grayish || c < 0.02 ? "Gray" : `Hue ${Math.round(h)} degrees`}, lightness ${Math.round(l * 100)} percent" style="--x: ${u}; --y: ${t}"><canvas></canvas><i class="ring" style="--c:${escape(cssColor(color))}"></i></div>`;
       }
       /**
@@ -14690,7 +14879,7 @@
         const l = lightAt(clamp(t, 0, 1)), h = hueAt(clamp(u, 0, 1));
         // At the very ends, white and black: no chroma to speak of.
         const c = l <= 0.001 || l >= 0.999 ? 0 : Math.min(vivid(l, h), maxChroma(l, h)) * keepAt(clamp(u, 0, 1));
-        return c < 0.0005 ? `oklch(${+l.toFixed(3)} 0 0)` : `oklch(${+l.toFixed(3)} ${+c.toFixed(4)} ${+h.toFixed(1)})`;
+        return kept(c < 0.0005 ? `oklch(${+l.toFixed(3)} 0 0)` : `oklch(${+l.toFixed(3)} ${+c.toFixed(4)} ${+h.toFixed(1)})`);
       }
       /** Where each color was picked this session: a gray (white, black) is the same anywhere along its row. */
       const pickedAt = new Map();
@@ -14712,12 +14901,13 @@
       }
       /**
        * Where a color is on the surface: where it was picked; else by its hue, or in the fade to the grays by the share of
-       * chroma it keeps; a gray (or nearly) amid the grays. A color from elsewhere goes where its hue and lightness are.
+       * chroma it keeps; a gray (or nearly) amid the grays. A color from elsewhere goes where its hue and lightness are;
+       * one of Bitview's, where it shows (in the light, its tone).
        */
       function placeOf(color) {
         const spot = pickedAt.get(color);
         if (spot) return spot;
-        const [l, c, h] = oklchOf(color), t = heightOf(l), fade = (1 - HUES) * 0.85;
+        const [l, c, h] = shownOklch(color), t = heightOf(l), fade = (1 - HUES) * 0.85;
         if (h >= 359) {
           const keep = clamp(c / Math.max(1e-6, Math.min(vivid(l, h), maxChroma(l, h))), 0, 1);
           if (keep < 0.999) return { u: HUES + (fade * Math.acos(2 * keep - 1)) / Math.PI, t };
@@ -16031,6 +16221,7 @@
           { title: "Download chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
           ...(library.charts.length ? [{ title: "Download all charts", text: "One file of them all, folders and all, to import anywhere else.", words: "export everything backup move computer device browser phone library save json", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
           { title: "Import charts", text: "A chart's file, several exported together, or all of them from anywhere else.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
+          ...THEMES.filter(([id]) => id !== prefs.theme).map(([id, name, icon, text, words]) => ({ title: `Theme: ${name}`, text, words: `theme appearance mode color scheme ${words}`, icon, run: () => setTheme(id), anywhere: true })),
           ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: id === "max" ? "Zoom out all the way" : `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Logarithmic scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
@@ -17152,12 +17343,13 @@
       /** A color typed: a hex (#, or not; three digits or six), an OKLCH, or any color CSS reads, as a hex (opaque only). */
       function readColor(/** @type {string} */ text) {
         const typed = text.trim().toLowerCase(), hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/.exec(typed);
-        if (hex) return `#${hex[1].length === 3 ? [...hex[1]].map((digit) => digit + digit).join("") : hex[1]}`;
-        if (isColor(typed)) return typed;
+        // (Typed as it's to show: kept as the dark shows it, see kept.)
+        if (hex) return kept(`#${hex[1].length === 3 ? [...hex[1]].map((digit) => digit + digit).join("") : hex[1]}`);
+        if (isColor(typed)) return kept(typed);
         if (!typed || !CSS.supports("color", typed)) return null;
         measure.fillStyle = "#000000";
         measure.fillStyle = typed;
-        return /^#[0-9a-f]{6}$/.test(measure.fillStyle) ? measure.fillStyle : null;
+        return /^#[0-9a-f]{6}$/.test(measure.fillStyle) ? kept(measure.fillStyle) : null;
       }
       /**
        * ⌘K's colors: Bitview's, each a row (`look`: shown on the chart while highlighted), and any other, typed (as the
@@ -18339,18 +18531,19 @@
           hoverTime = hovered;
           updateReadout();
         }
-        const dates = viewDates(), title = titleOf(chart), cadence = CADENCE[chart.index];
+        // (The theme's colors too, as the shot has them.)
+        const dates = viewDates(), title = titleOf(chart), cadence = CADENCE[chart.index], [sans, cardColor, inkColor, softColor, mutedColor] = ["--sans", "--card", "--ink", "--soft", "--muted"].map(css);
         await drawMarks(pieces);
         const px = (n) => Math.round(n * scale);
-        const font = (weight, size) => `${weight} ${px(size)}px ${css("--sans")}`;
+        const font = (weight, size) => `${weight} ${px(size)}px ${sans}`;
         const pad = px(PAD), head = px(HEAD), foot = px(FOOT);
         const canvas = document.createElement("canvas");
         canvas.width = shot.width + pad * 2;
         canvas.height = shot.height + head + foot;
         const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
-        context.fillStyle = css("--card");
+        context.fillStyle = cardColor;
         context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = css("--ink");
+        context.fillStyle = inkColor;
         context.font = font(590, 20);
         context.fillText(fitted(context, title, canvas.width - pad * 2), pad, px(38));
         context.drawImage(shot, pad, head);
@@ -18373,14 +18566,14 @@
         // The source, set like the sidebar's brand; across from it the interval, the view's dates, the values' date.
         const baseline = head + shot.height + px(28);
         context.font = font(590, 12);
-        context.fillStyle = css("--ink");
+        context.fillStyle = inkColor;
         context.fillText("Bitview", pad, baseline);
         let at = pad + context.measureText("Bitview ").width;
         context.font = font(510, 12);
-        context.fillStyle = css("--soft");
+        context.fillStyle = softColor;
         context.fillText("Studio", at, baseline);
         at += context.measureText("Studio").width;
-        context.fillStyle = css("--muted");
+        context.fillStyle = mutedColor;
         context.fillText(" · bitview.space", at, baseline);
         at += context.measureText(" · bitview.space").width;
         // Too narrow for all of it: the view's dates go first, the values' date stays.
@@ -18711,6 +18904,7 @@
         else if (action === "toggle-sidebar") toggleSidebar();
         else if (action === "toggle-panel") togglePanel();
         else if (action === "shortcuts") showShortcuts();
+        else if (action === "theme") themeMenu(target);
         else if (action === "draw") toggleBelt();
         else if (action === "close-palette") dismissPalette();
         else if (action === "close-shortcuts") $("shortcuts").close();
