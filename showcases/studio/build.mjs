@@ -50,6 +50,9 @@ replaceOnce(`import * as LC from "../modules/lightweight-charts/5.2.1/dist/light
   `      const [{ BitviewClient }, LC] = await Promise.all([${JSON.stringify(CLIENT)}, ${JSON.stringify(CHARTS)}].map((path) => import(\`${SERVER}\${served[path] ?? path}\`)));`,
 ].join("\n"));
 replaceOnce(/new BitviewClient\(\{ baseUrl: "[^"]*"/, `new BitviewClient({ baseUrl: "${SERVER}"`);
+// Asked for at once (the page's head, not after its 2 MB are read): its server's connection, and its page, which the
+// module reads first (the same request: anonymous, as fetch makes it).
+replaceOnce(`    <title>Bitview Studio</title>`, `    <link rel="preconnect" href="${SERVER}" crossorigin />\n    <link rel="preload" href="${SERVER}/" as="fetch" crossorigin />\n    <title>Bitview Studio</title>`);
 
 // Typed client paths, as the names they stand for (by this repo's client, whose paths they are).
 const { BitviewClient } = await import(pathToFileURL(join(SHOWCASES, "modules/bitview-client/index.js")).href);

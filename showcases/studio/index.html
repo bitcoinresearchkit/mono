@@ -529,7 +529,7 @@
         min-height: 0;
         overflow: hidden;
         padding: 10px 8px 8px;
-        transition: width var(--dur-layout) var(--ease-layout);
+        transition: width var(--dur-layout) var(--ease-layout), margin-left var(--dur-layout) var(--ease-layout), visibility 0s;
 
         /* Only the list gives way when the column runs out of room (and scrolls): every other row keeps its size. */
         > :not(.chart-list) {
@@ -693,10 +693,12 @@
       }
 
       .chart-list {
+        /* (Its rows' gap, the same open and on the rail: room there for an open folder's surface, see the rail.) */
+        --row-gap: 4px;
         display: flex;
         flex: 0 1 auto;
         flex-direction: column;
-        gap: 1px;
+        gap: var(--row-gap);
         min-height: 64px;
         /* (Room on every side for a row's focus ring, its rows where they were.) */
         margin: -1px -8px 0;
@@ -771,11 +773,11 @@
         }
 
         &.drop-before::after {
-          top: -1px;
+          top: calc(var(--row-gap, 0px) / -2 - 1px);
         }
 
         &.drop-after::after {
-          bottom: -1px;
+          bottom: calc(var(--row-gap, 0px) / -2 - 1px);
         }
       }
 
@@ -836,8 +838,6 @@
         display: flex;
         align-items: center;
         border-radius: var(--radius-md);
-        /* (On the rail, an open folder's room, eased in and out as the sidebar collapses and expands: see the rail.) */
-        transition: padding-top var(--dur-layout) var(--ease-layout);
 
         .folder-item {
           min-width: 0;
@@ -907,7 +907,7 @@
         &::before {
           content: "";
           position: absolute;
-          top: -1px;
+          top: calc(-1 * var(--row-gap));
           bottom: 0;
           left: 20.5px;
           width: 1px;
@@ -915,8 +915,6 @@
           pointer-events: none;
         }
 
-        /* (Its folder's room under it, on the rail: see .folder-row.) */
-        transition: padding-bottom var(--dur-layout) var(--ease-layout);
       }
 
       /* A folder's name typed where it shows. */
@@ -986,33 +984,10 @@
         }
       }
 
-      /* The theme: a row as the others, its three at its end, icons alone (on the rail, its own icon: a menu of them). */
-      .theme-row {
-        position: relative;
-        display: flex;
-
-        #theme {
-          padding-right: 96px;
-        }
-      }
-
-      .theme-switch {
-        position: absolute;
-        top: 2px;
-        right: 2px;
-
-        button {
-          display: grid;
-          min-width: 26px;
-          height: 22px;
-          padding: 0;
-          place-items: center;
-
-          svg {
-            width: 14px;
-            height: 14px;
-          }
-        }
+      /* The theme: a row as the others, the one chosen written at its end, quietly; a click, the menu of the three. */
+      #theme .theme-name {
+        color: var(--muted);
+        font-weight: 400;
       }
 
       .layer-list {
@@ -1314,14 +1289,8 @@
             overflow: visible;
           }
 
-          #new-chart,
-          #theme {
+          #new-chart {
             padding-right: 0;
-          }
-
-          .theme-switch {
-            visibility: hidden;
-            opacity: 0;
           }
 
           #new-folder {
@@ -1329,29 +1298,40 @@
             opacity: 0;
           }
 
-          /* An open folder, as a rail of servers has it: its icon and its charts on one surface, a field edged as the
-             search is (the sidebar open, their line), its corners around its squares'; the charts in line with the
-             others. */
-          .folder-row:has(+ .chart-row.in-folder) {
-            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-            background: var(--field);
+          /*
+           * An open folder, as a rail of servers has it: its icon and its charts on one surface, a field edged as the
+           * search is (the sidebar open, their line), drawn around their squares, 2px out, into the gaps between them
+           * (half of one: as much is left clear to the next): nothing moves as it opens or closes. Each row draws its
+           * slice, through the gap under it.
+           */
+          .folder-row:has(+ .chart-row.in-folder),
+          .chart-row.in-folder {
+            isolation: isolate;
+
+            &::before {
+              content: "";
+              position: absolute;
+              inset: 0 3px calc(-1 * var(--row-gap));
+              z-index: -1;
+              display: block;
+              width: auto;
+              border-radius: 0;
+              background: var(--field);
+              box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
+              pointer-events: none;
+            }
+          }
+
+          .folder-row:has(+ .chart-row.in-folder)::before {
+            top: -2px;
+            border-radius: calc(var(--radius-md) + 2px) calc(var(--radius-md) + 2px) 0 0;
             box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
           }
 
-          /* (Its room, above its icon and under its last chart: its surface as far from its squares at its ends as at
-             its sides.) */
-          .folder-row:not(.closed):has(+ .chart-row.in-folder) {
-            padding-top: 5px;
-          }
-
           .chart-row.in-folder {
-            border-radius: 0;
-            background: var(--field);
-            box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
-
-            &:not(:has(+ .chart-row.in-folder)) {
-              border-radius: 0 0 var(--radius-xl) var(--radius-xl);
-              padding-bottom: 5px;
+            &:not(:has(+ .chart-row.in-folder))::before {
+              bottom: -2px;
+              border-radius: 0 0 calc(var(--radius-md) + 2px) calc(var(--radius-md) + 2px);
               box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line);
             }
 
@@ -1366,15 +1346,6 @@
 
             .chart-item {
               padding-left: 8px;
-            }
-
-            /* (The gap above it, of the same surface, edged: its line, open, is this here.) */
-            &::before {
-              inset: -1px 0 auto;
-              width: auto;
-              height: 1px;
-              background: var(--field);
-              box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
             }
           }
 
@@ -1462,7 +1433,7 @@
             transition: left var(--dur-layout) var(--ease-layout), width var(--dur-layout) var(--ease-layout);
           }
 
-          :is(#new-folder, .theme-switch) {
+          #new-folder {
             transition: opacity var(--dur-small) var(--ease), visibility var(--dur-small);
           }
         }
@@ -1475,6 +1446,7 @@
         min-width: 0;
         min-height: 0;
         margin: 8px 8px 8px 0;
+        transition: margin var(--dur-layout) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
         overflow: hidden;
         border: 1px solid var(--line);
         border-radius: var(--radius-xl);
@@ -1504,6 +1476,41 @@
         flex-shrink: 0;
         border-bottom: 1px solid var(--line);
         padding: 14px;
+        transition: margin-top var(--dur-layout) var(--ease-layout), visibility 0s;
+      }
+
+      /*
+       * Full screen: the chart alone. The sidebar slides off, the header up, the card out to the edges, all as the
+       * sidebar collapses; once gone, they're not drawn at all (the screen's whole, where the browser gives it).
+       */
+      .app[data-full] {
+        .sidebar {
+          margin-left: calc(-1 * var(--side));
+          visibility: hidden;
+          transition: width var(--dur-layout) var(--ease-layout), margin-left var(--dur-layout) var(--ease-layout), visibility 0s var(--dur-layout);
+        }
+
+        .card {
+          margin: 0;
+          border-color: transparent;
+          border-radius: 0;
+          /* (On a phone, what the header and the tab bar kept clear: the notch, the home indicator.) */
+          padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+        }
+
+        .card-head {
+          margin-top: calc(-1 * var(--head-height, 59px));
+          visibility: hidden;
+          transition: margin-top var(--dur-layout) var(--ease-layout), visibility 0s var(--dur-layout);
+        }
+
+        .mobile-bar {
+          display: none;
+        }
+      }
+
+      body[data-sidebar="collapsed"] .app[data-full] .sidebar {
+        margin-left: calc(-1 * var(--side-collapsed));
       }
 
       /* A narrow header (a phone, a tablet upright beside the sidebar): a preview said by its Keep alone, dashed as the
@@ -1725,7 +1732,7 @@
 
       .chart {
         position: absolute;
-        inset: 10px 0 8px 0;
+        inset: 0 0 8px 0;
         z-index: 0;
 
         &.reveal {
@@ -1734,6 +1741,11 @@
           -webkit-mask-size: 260% 100%;
           mask-size: 260% 100%;
           animation: wipe 1150ms cubic-bezier(0.32, 0.72, 0.2, 1) both;
+
+          /* (A chart switched to: the same wipe, at a page's pace; the page's first, unhurried.) */
+          &.quick {
+            animation-duration: var(--dur-page);
+          }
         }
       }
 
@@ -1808,6 +1820,37 @@
        * lights its item and brings it into view. It lives inside its pane's plot, over the chart's two canvases, so it
        * moves and resizes with the pane; its marks start where the title's text does.
        */
+      /* The time axis's rule: one line along the last pane's foot, across its price scales too (the chart draws none
+         under them), in the borders' color; under the right scale, at its end, Full screen. */
+      #chart table tr:nth-last-child(2) > td {
+        position: relative;
+
+        &::after {
+          content: "";
+          position: absolute;
+          inset: auto 0 0;
+          z-index: 4;
+          height: 1px;
+          background: var(--line);
+          pointer-events: none;
+        }
+      }
+
+      #chart table tr:last-child > td {
+        position: relative;
+      }
+
+      #full {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        margin: auto;
+
+        &[hidden] {
+          display: none;
+        }
+      }
+
       /* The time axis: a label cut by the plot's left edge fades into it (as a strip's edges do). */
       #chart table tr:last-child > td:nth-child(2) {
         mask-image: linear-gradient(90deg, transparent, #000 14px);
@@ -1835,11 +1878,9 @@
           border: 0;
           border-radius: var(--radius-md);
           padding: 2px 8px 4px 5px;
-          color: var(--soft);
-          /* Clear at rest, so the crosshair and the grid run through (its words haloed over them); a ground only when pointed
-             at or selected. */
+          color: var(--text);
+          /* Clear at rest; a ground only when pointed at or selected. */
           background: none;
-          text-shadow: 0 0 2px var(--card), 0 0 4px var(--card);
           font-size: 12px;
           font-weight: 510;
           pointer-events: auto;
@@ -1847,12 +1888,19 @@
 
           &:hover,
           &.lit {
-            color: var(--text);
+            color: var(--ink);
             background: var(--fill);
           }
 
           &.hidden {
             opacity: 0.4;
+          }
+
+          /* Its words edged in a hairline of the card's color: unseen on the plain plot, over a solid cloud what keeps
+             them apart from it (bright enough that the edge never sits on grey). */
+          :is(.name, .legend-value, .legend-error) {
+            paint-order: stroke fill;
+            -webkit-text-stroke: 2px var(--card);
           }
 
           &.selected {
@@ -2672,6 +2720,19 @@
         /* (A switch, not a page: no settings to open.) */
         .row-main {
           cursor: pointer;
+        }
+      }
+
+      /* The legend's: the three ways at the end of its head, as small as the head is. */
+      .legend-setting {
+        padding-bottom: 0;
+
+        .tabs {
+          margin-left: auto;
+
+          button {
+            height: 20px;
+          }
         }
       }
 
@@ -3583,7 +3644,7 @@
         }
       }
 
-      /* A cloud's layers: each by its letter and name, pressed while it's in the cloud. */
+      /* A cloud's layers, each by its letter and name, and its pane's edges: pressed while in the cloud. */
       .cloud-of {
         display: flex;
         flex-wrap: wrap;
@@ -3620,7 +3681,7 @@
             box-shadow: inset 0 0 0 1px var(--line-strong);
           }
 
-          &[aria-pressed="false"] .letter {
+          &[aria-pressed="false"] :is(.letter, svg) {
             opacity: 0.5;
           }
         }
@@ -5944,14 +6005,7 @@
         <input id="import-file" type="file" accept="application/json,.json" hidden />
         <div class="side-foot" style="--i: 3">
           <div id="live" class="live" data-tip="Live"><i></i><span id="stamp">Live</span></div>
-          <div class="theme-row">
-            <button class="nav-item side-action" type="button" id="theme" data-action="theme" data-tip="Theme" aria-haspopup="menu"><span id="theme-icon" data-icon="moon"></span><span class="label">Theme</span></button>
-            <div id="theme-switch" class="tabs theme-switch" role="group" aria-label="Theme">
-              <button type="button" data-theme-pick="system" data-tip="System" aria-label="System" data-icon="computer"></button>
-              <button type="button" data-theme-pick="light" data-tip="Light" aria-label="Light" data-icon="sun"></button>
-              <button type="button" data-theme-pick="dark" data-tip="Dark" aria-label="Dark" data-icon="moon"></button>
-            </div>
-          </div>
+          <button class="nav-item side-action" type="button" id="theme" data-action="theme" data-tip="Theme" aria-haspopup="menu"><span id="theme-icon" data-icon="moon"></span><span class="label">Theme</span><span id="theme-name" class="theme-name"></span></button>
           <button class="nav-item side-action" type="button" data-action="shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span><span class="label">Shortcuts</span><kbd>?</kbd></button>
           <button class="nav-item side-action" type="button" id="sidebar-toggle" data-action="toggle-sidebar" data-tip="Collapse" data-kbd="\" aria-expanded="true"><span data-icon="sidebar"></span><span class="label">Collapse</span><kbd>\</kbd></button>
         </div>
@@ -5982,6 +6036,7 @@
           <section class="stage" aria-label="Chart">
             <div class="canvas" id="canvas">
               <div id="chart" class="chart"></div>
+              <button type="button" id="full" class="cap small" data-action="full" aria-pressed="false" aria-label="Full screen" data-tip="Full screen" data-kbd="⇧F" data-icon="expand" hidden></button>
               <div id="belt" class="belt" role="toolbar" aria-label="Drawing" hidden></div>
               <div id="select-box" class="select-box" hidden></div>
               <textarea id="draw-text" class="draw-text" rows="1" maxlength="500" spellcheck="false" aria-label="Text" hidden></textarea>
@@ -6124,6 +6179,7 @@
             <div><dt>Undo, redo</dt><dd><kbd>⌘Z</kbd><kbd>⇧⌘Z</kbd></dd></div>
             <div><dt>Show or hide the layers panel</dt><dd><kbd>P</kbd></dd></div>
             <div><dt>Collapse or expand the sidebar</dt><dd><kbd>\</kbd></dd></div>
+            <div><dt>Full screen, or back</dt><dd><kbd>⇧F</kbd></dd></div>
             <div><dt>Close, put a tool down, deselect</dt><dd><kbd>esc</kbd></dd></div>
           </dl>
           <h3>Charts</h3>
@@ -6214,6 +6270,7 @@
         <li>"range": what it shows: 3m, 1y, 4y or max (max if none). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
         <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.</li>
         <li>"halvings": true: a line at each halving.</li>
+        <li>"legend": "off" (none), or "still" (not scrolling to the line pointed at, as it does by default).</li>
         <li>"drawings" (see below).</li>
       </ul>
       <h2>A layer</h2>
@@ -6221,14 +6278,14 @@
       <ul>
         <li>{"series": "realized_price"}: a series, by its exact name.</li>
         <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, and percentile(A, 95, 1y). Spans are a number and a unit: h, d, w, mo or y.</li>
-        <li>{"cloud": ["B", "C"]}: filled from the lowest of those layers to the highest, at each date.</li>
+        <li>{"cloud": ["B", "C"]}: filled from the lowest of those layers to the highest, at each date. "top" or "bottom" (one) in place of a layer fills from them up to the pane's top, or from its bottom up to them: {"cloud": ["A", "top"]}.</li>
       </ul>
       <p>Then, each if wanted:</p>
       <ul>
         <li>"label": its name.</li>
         <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base.</li>
         <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc).</li>
-        <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths.</li>
+        <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths (1 if none; a cloud's 0.2, solid at 1).</li>
         <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value; "baseLine": {"color": "gray", "dash": 4}, that base's line.</li>
         <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional).</li>
         <li>"priceLine": true: a line across at its latest value.</li>
@@ -6326,6 +6383,8 @@
         sidebar: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11"/>'),
         arrowUp: svg('<path d="M8 13V3M4 7l4-4 4 4"/>', 14),
         arrowDown: svg('<path d="M8 3v10M4 9l4 4 4-4"/>', 14),
+        toTop: svg('<path d="M3 2.5h10M8 13.5V6M4.5 9.5 8 6l3.5 3.5"/>'),
+        toBottom: svg('<path d="M3 13.5h10M8 2.5V10M4.5 6.5 8 10l3.5-3.5"/>'),
         axis: svg('<path d="M12 2.5v11M12 5h2M12 8h2M12 11h2"/><path d="M2 11 4.6 7.6l2.2 1.9L9.3 5"/>'),
         swap: svg('<path d="M3 5.5h9.5M10 3l2.5 2.5L10 8"/><path d="M13 10.5H3.5M6 8l-2.5 2.5L6 13"/>', 14),
         panel: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M10 2.5v11"/>'),
@@ -6365,6 +6424,9 @@
         ellipse: svg('<ellipse cx="8" cy="8" rx="6" ry="4.5"/>'),
         arrow: svg('<path d="M3 13 12.5 3.5M7 3.5h5.5V9"/>'),
         label: svg('<path d="M2.5 8h2M11.5 8h2"/><rect x="4.5" y="5" width="7" height="6" rx="1.5"/>'),
+        legend: svg('<path d="M2.5 5h2.5M7.5 5h6M2.5 11h2.5M7.5 11h4"/>'),
+        expand: svg('<path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/>'),
+        shrink: svg('<path d="M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5"/>'),
         select: svg('<path d="M2.5 5V3.5a1 1 0 0 1 1-1H5M8.5 2.5h-1M11 2.5h1.5a1 1 0 0 1 1 1V5M13.5 8.5v-1M13.5 11v1.5a1 1 0 0 1-1 1H11M7.5 13.5h1M5 13.5H3.5a1 1 0 0 1-1-1V11M2.5 7.5v1"/>'),
         cursor: svg('<path d="M4 2.5 12.5 8.6 8.7 9.3 10.7 13.5 9.1 14.2 7.1 10 4 12.7Z"/>'),
         opacity: svg('<circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11Z" fill="currentColor"/>'),
@@ -6679,6 +6741,8 @@
       const WIDTHS = Array.from({ length: 10 }, (_, i) => (i + 1) / 2);
       /** Opacities, in tenths: the opacity slider's stops. */
       const OPACITIES = Array.from({ length: 10 }, (_, i) => (i + 1) / 10);
+      /** A layer's opacity: its own, else its type's (a cloud's fill a fifth, under what it spans; solid at 100%). */
+      const defaultOpacity = (/** @type {Layer} */ layer) => (layer.cloud ? 0.2 : 1), opacityOf = (/** @type {Layer} */ layer) => layer.opacity ?? defaultOpacity(layer);
       /** A window's units in days (a month and a year on average), the letters formulas write them with, and each interval in days. */
       const SPAN_DAYS = { hour: 1 / 24, day: 1, week: 7, month: 365.25 / 12, year: 365.25 };
       const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year" };
@@ -7313,14 +7377,15 @@
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, colorBelow?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
        *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number }, cloud?: string[] }} Layer
-       *   A cloud (`cloud`: the ids of the layers it's made of, none a cloud; its type "cloud") is filled from the lowest of
-       *   them to the highest, at each date (with fewer than two, it says so).
+       *   A cloud (`cloud`: the ids of the layers it's made of, none a cloud, then its edge, "top" or "bottom", if any; its
+       *   type "cloud") is filled from the lowest of them to the highest, at each date, or to its pane's edge (short of a layer
+       *   and one more, it says so).
        * @typedef {{ value: number, color?: string, dash?: number }} Level A line across at a value: its color (else its
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, in sparse dots).
        * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`:
        *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
        * @typedef {{ id: string, name: string, closed?: true }} Folder A folder of charts (one level: none in another); `closed`, its charts out of sight.
-       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], halvings?: true, folder?: string, updated: number }} Chart
+       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], halvings?: true, legend?: "off" | "still", folder?: string, updated: number }} Chart
        * @typedef {"trend" | "hline" | "vline" | "rect" | "ellipse" | "text" | "brush" | "ruler"} DrawingKind
        * @typedef {{ id: string, kind: DrawingKind, layer: string, points: [number, number][], color: string, width: number, dash: number,
        *   opacity?: number, extend?: "right" | "both", arrow?: boolean, text?: string, label?: string, at?: number, size?: number, back?: string }} Drawing
@@ -7411,8 +7476,22 @@
 
       /** The chart a layer is in: the open one, else the one holding it (a tile's, a preview's; a copy, by its id). @param {Layer} layer */
       const ownerOf = (layer) => ((docs) => docs.find((doc) => doc?.layers.includes(layer)) ?? docs.find((doc) => doc?.layers.some((item) => item.id === layer.id)))([chart, previewing, ...library.charts]);
-      /** A cloud's layers, by their letters, in its chart's order. @param {Layer} layer @param {Chart} [doc] */
-      const cloudLetters = (layer, doc = ownerOf(layer)) => (doc?.layers ?? []).filter((item) => layer.cloud?.includes(item.id)).map((item) => item.letter);
+      /** A cloud's layers, by their letters, in its chart's order. @param {{ cloud?: string[] }} layer @param {Chart} [doc] */
+      const cloudLetters = (layer, doc = ownerOf(/** @type {Layer} */ (layer))) => (doc?.layers ?? []).filter((item) => layer.cloud?.includes(item.id)).map((item) => item.letter);
+      /** A cloud's edge: its pane's top or its bottom (one), in place of a layer (from its layers up to there, or down). */
+      const EDGES = ["top", "bottom"];
+      const edgesOf = (/** @type {{ cloud?: string[] }} */ layer) => EDGES.filter((edge) => layer.cloud?.includes(edge));
+      /** A cloud's members as kept: its layers (none a cloud) in the chart's order, then its edge, each once. @param {Chart} doc @param {Iterable<string>} members */
+      const cloudOf = (doc, members) => ((set) => [...doc.layers.filter((item) => !item.cloud && set.has(item.id)).map((item) => item.id), ...EDGES.filter((edge) => set.has(edge)).slice(0, 1)])(new Set(members));
+      /** Members with one ticked on or off: an edge on takes the other's place. @param {Iterable<string>} members @param {string} member */
+      const toggleMember = (members, member) => ((set) => (set.has(member) ? set.delete(member) : (EDGES.includes(member) && EDGES.forEach((edge) => set.delete(edge)), set.add(member)), [...set]))(new Set(members));
+      /** What a cloud spans, as written: its layers' letters, then its edges. @param {Layer} layer @param {Chart} [doc] */
+      const cloudSpan = (layer, doc = ownerOf(layer)) => [...cloudLetters(layer, doc), ...edgesOf(layer).map((edge) => `the ${edge}`)].join(", ");
+      /** A cloud spans two layers or more, or one and an edge: else what to do. @param {{ cloud?: string[] }} layer */
+      const cloudShort = (layer) => ((edges) => ((layers) => (layers && layers + edges > 1 ? "" : CLOUD_SHORT))((layer.cloud?.length ?? 0) - edges))(edgesOf(layer).length);
+      const CLOUD_SHORT = "Select two layers, or a layer and an edge";
+      /** How a cloud is filled, said. @param {{ cloud?: string[] }} layer */
+      const cloudSays = (layer) => ({ "": "At each date, from the lowest of them to the highest", top: "At each date, from the lowest of them up to the pane's top", bottom: "At each date, from the pane's bottom up to the highest of them" })[edgesOf(layer).join()];
       /**
        * Why a cloud isn't drawn in its pane, if it isn't: it's its layers' values side by side, not their changes from where
        * each starts (a percent or indexed scale), nor a stack's running totals.
@@ -7469,9 +7548,9 @@
           if (Object.keys(paths).length) layer.paths = paths;
           else delete layer.paths;
         }
-        // A cloud spans layers still there, none a cloud, each once (with fewer than two, it says so, as a formula does).
-        const plain = new Set(doc.layers.filter((layer) => !layer.cloud).map((layer) => layer.id));
-        for (const layer of doc.layers) if (layer.cloud) layer.cloud = [...new Set(layer.cloud.filter((id) => plain.has(id)))];
+        // A cloud spans layers still there, none a cloud, and its edges, each once (short of a layer and one more, it says
+        // so, as a formula does).
+        for (const layer of doc.layers) if (layer.cloud) layer.cloud = cloudOf(doc, layer.cloud);
         if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
         const ids = new Set(doc.panes.map((pane) => pane.id));
         for (const layer of doc.layers) if (!ids.has(layer.pane)) layer.pane = doc.panes[0].id;
@@ -7868,8 +7947,16 @@
         if (!layerById(layerPickLast)) layerPickLast = [...layerPicks][0] ?? "";
         if (!layerById(pickHead)) pickHead = layerPickLast;
         save(announce);
+        // While a drag holds (a slider's, a color surface's): the chart drawn at once, the rest of the page once it ends
+        // (see track), not under the pointer at every step.
+        if (holding) {
+          heldEdits = true;
+          return redrawChart(redraw);
+        }
         refresh(redraw);
       }
+      /** Edits made while a drag held: the page drawn again when it ends. */
+      let heldEdits = false;
       const undo = () => travel("past", "future");
       const redo = () => travel("future", "past");
 
@@ -8082,11 +8169,12 @@
         toggle.dataset.tip = collapsed ? "Expand" : "Collapse";
         toggle.querySelector(".label").textContent = collapsed ? "Expand" : "Collapse";
       }
-      function applyPanel() {
-        document.body.dataset.panel = prefs.panel;
-        $("panel-toggle").setAttribute("aria-pressed", String(prefs.panel === "open"));
+      /** The panel open or closed: as kept, or (full screen's, for the while) as given. */
+      function applyPanel(state = prefs.panel) {
+        document.body.dataset.panel = state;
+        $("panel-toggle").setAttribute("aria-pressed", String(state === "open"));
       }
-      const panelShown = () => (phone.matches ? document.body.dataset.sheet === "panel" : prefs.panel === "open" || document.body.hasAttribute("data-peek"));
+      const panelShown = () => (phone.matches ? document.body.dataset.sheet === "panel" : document.body.dataset.panel === "open" || document.body.hasAttribute("data-peek"));
       function togglePanel(open = !panelShown()) {
         if (!chart.layers.length) return;
         if (!open) stopCarrying();
@@ -8096,6 +8184,8 @@
           return;
         }
         document.body.removeAttribute("data-peek");
+        // (In full screen, for the while: leaving it, the panel's as it was.)
+        if (fullOn()) return applyPanel(open ? "open" : "closed");
         prefs.panel = open ? "open" : "closed";
         savePrefs();
         applyPanel();
@@ -8254,11 +8344,22 @@
         let landing = /** @type {{ back: boolean, from: number, to: number, h: number, stretch: number, speed: number, at: number, length: number } | null} */ (null);
         /** The mark at rest, by its fill (in 240ths): drawn once each, the idle loop then costs nothing. */
         const rest = new Map();
+        /** The frames asked for while it moves (its fill's cycle from `cycleFrom`); none at rest. */
+        let looping = false, cycleFrom = performance.now();
+        const wake = () => {
+          if (looping || phone.matches || reduced.matches) return;
+          looping = true;
+          last = 0;
+          requestAnimationFrame(frame);
+        };
+        const written = paths.map(() => ({ d: /** @type {string | null} */ (null), opacity: "" }));
         brand.addEventListener("pointerenter", (event) => {
           if (event.pointerType !== "mouse" || pointedAt !== null) return;
-          // (Pointed at again while slowing: on from the speed it has.)
+          // (Pointed at again while slowing: on from the speed it has; still, a new cycle of its fill.)
+          if (!looping) cycleFrom = performance.now();
           pointedAt = performance.now() - 1000 * timeTo(speed);
           landing = null;
+          wake();
         });
         brand.addEventListener("pointerleave", () => {
           if (pointedAt === null) return;
@@ -8269,9 +8370,16 @@
           landing = { back: stretch <= 3, from: angle, to, h, stretch, speed, at: performance.now(), length: Math.min(0.7, (2.7 * span) / Math.max(speed, 1e-3)) };
         });
         const frame = (now) => {
-          requestAnimationFrame(frame);
-          // (Out of sight, a phone's: nothing drawn.)
-          if (phone.matches) return void (last = now);
+          // (Out of sight, a phone's, or motion reduced: at rest, full.)
+          if (phone.matches || reduced.matches) {
+            looping = false;
+            paths.forEach((path, i) => {
+              const d = i ? "" : (rest.get(240) ?? (rest.set(240, draw(1, REST)), rest.get(240)));
+              if (written[i].d !== d) path.setAttribute("d", (written[i].d = d));
+              if (!i && written[i].opacity !== "1") path.setAttribute("fill-opacity", (written[i].opacity = "1"));
+            });
+            return;
+          }
           const dt = Math.min(0.05, (now - (last || now)) / 1000);
           last = now;
           if (pointedAt !== null) {
@@ -8298,8 +8406,11 @@
               landing = null;
             }
           }
-          const fill = fillAt(now / 1000), sweep = Math.min(QUARTER, speed * EXPOSURE), spinning = Math.min(1, speed / 2);
+          const cycle = (now - cycleFrom) / 1000, fill = fillAt(cycle), sweep = Math.min(QUARTER, speed * EXPOSURE), spinning = Math.min(1, speed / 2);
           const still = !speed && !landing && pointedAt === null, step = sweep / COPIES;
+          // Moving, or its cycle under way: the next frame; still and full again, a cycle over: none.
+          if (!still || cycle < LOOP || cycle % LOOP >= WAIT) requestAnimationFrame(frame);
+          else looping = false;
           const from = sweep >= QUARTER ? Math.floor(angle / step) * step : angle;
           // What's drawn, by what it depends on (the still cylinder, whatever its angle, by its fill alone).
           const key = still ? `r${Math.round(fill * 240)}` : sweep < 0.005 ? `s${fill} ${angle}` : `b${fill} ${sweep >= QUARTER ? "" : from} ${sweep}`;
@@ -8314,11 +8425,14 @@
           else shapes = Array.from({ length: COPIES }, (_, j) => draw(fill, REST + from - j * step, spinning));
           const opacity = shapes.length === 1 ? "1" : String(1 - 0.005 ** (1 / COPIES));
           paths.forEach((path, i) => {
-            path.setAttribute("d", shapes[i] ?? "");
-            path.setAttribute("fill-opacity", opacity);
+            const d = shapes[i] ?? "", seen = written[i];
+            if (seen.d !== d) path.setAttribute("d", (seen.d = d));
+            if (d && seen.opacity !== opacity) path.setAttribute("fill-opacity", (seen.opacity = opacity));
           });
         };
-        requestAnimationFrame(frame);
+        phone.addEventListener("change", wake);
+        reduced.addEventListener("change", wake);
+        wake();
       }
       animateMark();
 
@@ -8366,9 +8480,12 @@
           return k === undefined || (Boolean(span) && Number(k) >= /** @type {Span} */ (span).from - 1 && Number(k) <= /** @type {Span} */ (span).to + 1);
         };
       }
-      /** Past `most` entries the open chart doesn't hold, the least recently used go. @param {Map<string, unknown>} cache */
-      function prune(cache, most) {
-        const held = holder(), loose = [...cache.keys()].filter((key) => !held(key));
+      /**
+       * Past `most` entries the open chart doesn't hold, the least recently used go. `held`: what it holds, by key (its
+       * series', by default; a cache by chart, its own). @param {Map<string, unknown>} cache
+       */
+      function prune(cache, most, held = holder()) {
+        const loose = [...cache.keys()].filter((key) => !held(key));
         for (const key of loose.slice(0, Math.max(0, loose.length - most))) cache.delete(key);
       }
       /**
@@ -8629,7 +8746,8 @@
           for (let i = 0; i < timeAt.length; i++) if (!Number.isNaN(timeAt[i])) (position[i] = times.length), times.push(timeAt[i]);
           frame = { id: ++frameCount, datas, lo, stamp, times, position, aligned: new Map(), series: new Map(), computed: new Map(), trimmed: null };
           frames.set(frameKey, frame);
-          prune(frames, 8);
+          // (By chart: the open one's kept, whatever the previews drawn meanwhile.)
+          prune(frames, 8, (key) => Boolean(chart) && key.startsWith(`${chart.id}@`));
         }
         const { lo, stamp, times, position } = frame, length = times.length;
         /** @type {Map<string, Result>} */
@@ -8743,12 +8861,12 @@
         // formula's result is, while its layers' values are the same).
         for (const layer of doc.layers) {
           if (!layer.cloud) continue;
-          const inputs = layer.cloud.map((id) => results.get(id)).filter((result) => result?.shown);
-          if (inputs.length < 2) {
-            results.set(layer.id, { unit: inputs[0]?.unit ?? "number", error: layer.cloud.length < 2 ? "Select two layers or more" : "Needs two layers with data" });
+          const inputs = layer.cloud.map((id) => results.get(id)).filter((result) => result?.shown), edges = edgesOf(layer).length;
+          if (!inputs.length || inputs.length + edges < 2) {
+            results.set(layer.id, { unit: inputs[0]?.unit ?? "number", error: cloudShort(layer) || (edges ? "Needs a layer with data" : "Needs two layers with data") });
             continue;
           }
-          const key = [frame.id, ...inputs.map((input) => idOf(/** @type {Vector} */ (input.shown)))].join("|"), cached = frame.computed.get(layer.id);
+          const key = [frame.id, edgesOf(layer).join(), ...inputs.map((input) => idOf(/** @type {Vector} */ (input.shown)))].join("|"), cached = frame.computed.get(layer.id);
           if (cached?.key === key) {
             results.set(layer.id, cached.result);
             continue;
@@ -8764,8 +8882,9 @@
               if (!(value <= high[i])) high[i] = value;
             }
           }
-          // (Where fewer than two have a value, none: a range of one value isn't one.)
-          for (let i = 0; i < length; i++) if (count[i] < 2) low[i] = high[i] = NaN;
+          // (Where fewer than two have a value, none: a range of one value isn't one; with an edge, one is enough, its low and
+          // high the same, the edge the other end.)
+          for (let i = 0; i < length; i++) if (count[i] + edges < 2) low[i] = high[i] = NaN;
           /** @type {Result} */
           const result = { values: high, shown: high, low, unit: inputs[0].unit };
           results.set(layer.id, result);
@@ -8837,7 +8956,7 @@
       function chartColors() {
         const crosshair = { color: css("--crosshair"), labelBackgroundColor: css("--crosshair-label") };
         return {
-          layout: { textColor: css("--chart-text"), panes: { separatorColor: css("--line-strong"), separatorHoverColor: css("--press") } },
+          layout: { textColor: css("--chart-text"), panes: { separatorColor: css("--line"), separatorHoverColor: css("--press") } },
           grid: { horzLines: { color: css("--chart-grid") } },
           crosshair: { vertLine: crosshair, horzLine: { ...crosshair, color: css("--crosshair-faint") } },
         };
@@ -9019,7 +9138,9 @@
           const chartElement = $("chart");
           chartElement.classList.remove("reveal");
           void chartElement.offsetWidth;
+          chartElement.classList.toggle("quick", revealed);
           chartElement.classList.add("reveal");
+          revealed = true;
           chartElement.addEventListener("animationend", () => chartElement.classList.remove("reveal"), { once: true });
         }
         return true;
@@ -9080,7 +9201,7 @@
         for (const [i, layer] of doc.layers.entries()) {
           const result = data.results.get(layer.id);
           // Its opacity on every color it paints (fills keep their own share of it).
-          const op = layer.opacity ?? 1, base = ink(layer.color), under = ink(belowOf(layer));
+          const op = opacityOf(layer), base = ink(layer.color), under = ink(belowOf(layer));
           const color = op < 1 ? alpha(base, op) : base, below = op < 1 ? alpha(under, op) : under;
           // Stacked: drawn as it is, at its running total (its tag and price line would say that total, not its value: the
           // legend says that); the scale from zero (the stack's foot), a 100% one's from 0 to 100.
@@ -9098,7 +9219,7 @@
           const pane = paneIndex.get(layer.pane) ?? 0;
           const candles = layer.type === "candles" && result?.ohlc;
           // Colors are kept apart from the rest so a spotlight can fade them and give them back.
-          const paint = layer.cloud ? { color: alpha(base, 0.2 * op) } : candles ? { upColor: css("--card"), downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }
+          const paint = layer.cloud ? { color: alpha(base, op) } : candles ? { upColor: css("--card"), downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs
             // high it would all but vanish.
             : layer.type === "area" ? { lineColor: color, ...(layer.fill === "above" ? { topColor: alpha(base, 0.12 * op), bottomColor: alpha(base, 0.12 * op) } : { topColor: alpha(base, 0.2 * op), bottomColor: alpha(base, 0) }) }
@@ -9113,8 +9234,9 @@
           const again = kept.has(layer.id) ? was.get(layer.id) : undefined;
           if (!again) added = true;
           if (layer.cloud) {
-            // Its band alone: no label on the axis, no line across, no marker (its legend says its range).
-            const options = { ...common, ...paint, lastValueVisible: false, priceLineVisible: false };
+            // Its band alone: no label on the axis, no line across, no marker (its legend says its range); to its pane's edges
+            // if it has them.
+            const options = { ...common, ...paint, lastValueVisible: false, priceLineVisible: false, top: layer.cloud.includes("top"), bottom: layer.cloud.includes("bottom") };
             series = again ?? view.addCustomSeries(cloudView(), options, pane);
             if (again) series.applyOptions(lookOf(options));
           } else if (candles) {
@@ -9148,8 +9270,10 @@
             closes.get(layer.id)?.series.setData([]);
           } else if (result?.shown && again && before?.shown === (stack?.values ?? result.shown) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) linesAcross(layer, pane, common.priceFormat, op, true);
           else if (result?.shown && layer.cloud) {
-            // (Its scale's: log, none at or under zero; on one it doesn't fit, none.)
-            const log = modeOf(doc, layer) === 1, low = /** @type {Vector} */ (result.low), high = result.shown;
+            // (Its scale's: log, none at or under zero; on one it doesn't fit, none. To an edge, only its other end, the one
+            // drawn: the scale fits that, not a low it never shows.)
+            const log = modeOf(doc, layer) === 1, top = layer.cloud.includes("top"), bottom = layer.cloud.includes("bottom");
+            const low = bottom ? result.shown : /** @type {Vector} */ (result.low), high = top ? low : result.shown;
             series.setData(cloudUnfit(doc, layer) ? [] : data.times.map((time, i) => (Number.isFinite(low[i]) && Number.isFinite(high[i]) && (!log || low[i] > 0) ? { time, low: low[i], high: high[i] } : { time })));
           } else if (result?.shown) {
             const shown = stack?.values ?? result.shown;
@@ -9223,7 +9347,8 @@
           // nothing: it has nothing shown.)
           for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), textColor: folded.has(pane.id) ? "transparent" : css("--chart-text"), scaleMargins: { top: 0.17, bottom: pane.stack ? 0 : 0.08 }, ...(keep ? {} : { mode: paneMode(pane), autoScale: true }) });
         });
-        sizePanes(doc);
+        // (Mid-drag, panes of the same shape keep their sizes: no need to measure them again.)
+        if (!(holding && drawnPanes === panesShape)) sizePanes(doc);
         drawnPanes = panesShape;
         view.applyOptions({ timeScale: { timeVisible: FINE.has(doc.index) } });
         // A chart opening comes back where it was left; at another interval, on the same time (on its preset, if it
@@ -9258,9 +9383,15 @@
         drawnSpan = data.times.length ? [data.times[0], data.times.at(-1)] : null;
         drawnPoints = data.times.length;
         drawnTimes = data.times;
+        // (The build before let go of: the chart's own closures, made here, keep this scope, and so these, alive.)
+        was.clear();
+        wasCloses.clear();
+        kept.clear();
         showDrawings(doc);
         requestAnimationFrame(() => {
-          placeLegends();
+          // (Mid-drag, the panes as they were: their legends kept, their contents written again.)
+          if (holding && legends().length === chart.panes.length) updateLegends();
+          else placeLegends();
           updateValues();
         });
         relayout();
@@ -9421,23 +9552,40 @@
         if (rest) while (at > 0 && !Number.isFinite(values[at])) at--;
         return values[at];
       }
-      /** A cloud's range at a point, as its legend writes it: its lowest to its highest (a dash where there's none). */
+      /**
+       * A cloud's range at a point, as its legend writes it: its lowest to its highest, from its lowest up (≥, to the top),
+       * or up to its highest (≤, from the bottom); a dash where there's none.
+       */
       function rangeAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }, /** @type {string} */ unit) {
         const result = resolved?.results.get(layer.id), high = result?.shown, low = result?.low;
         if (!high || !low || at < 0) return "—";
         if (rest) while (at > 0 && !Number.isFinite(high[at])) at--;
-        return Number.isFinite(low[at]) && Number.isFinite(high[at]) ? `${format(low[at], unit)} – ${format(high[at], unit)}` : "—";
+        if (!Number.isFinite(low[at]) || !Number.isFinite(high[at])) return "—";
+        return layer.cloud?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.cloud?.includes("bottom") ? `≤ ${format(high[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`;
       }
       const legends = () => /** @type {HTMLElement[]} */ ([...$("chart").querySelectorAll(".legend")]);
+
       /** A legend whose width changes (the window, a price scale) checks again whether it scrolls. */
       const legendFit = new ResizeObserver((entries) => entries.forEach(({ target }) => fitStrip(/** @type {HTMLElement} */ (target))));
+      /** Full screen's button, in the chart's corner under its price scale (the right one's, else the left's). */
+      function placeFull() {
+        const row = $("chart").querySelector("table tr:last-child"), button = $("full");
+        const corner = row && [...row.children].reverse().find((cell) => cell !== row.children[1] && /** @type {HTMLElement} */ (cell).offsetWidth >= 24);
+        if (corner && button.parentElement !== corner) corner.append(button);
+        button.hidden = !corner;
+      }
       function placeLegends() {
+        // (Each pane's strip where it was scrolled to: a still one, above all, stays where it was left.)
+        const scrolled = new Map(legends().map((legend) => [legend.dataset.pane, legend.scrollLeft]));
         for (const legend of legends()) legend.remove();
         legendFit.disconnect();
-        // Until this chart is drawn, its panes don't exist yet: no legends to place.
+        // Until this chart is drawn, its panes don't exist yet: no legends to place (none at all, turned off).
+        if (chart && drawnChart === chart.id) placeFull();
         if (!chart || drawnChart !== chart.id) return;
-        const panes = view.panes();
+        // (Turned off, none; but a folded pane's, its names all it shows.)
+        const panes = view.panes(), folded = chart.legend === "off" ? foldedPanes(chart) : null;
         chart.panes.forEach((pane, i) => {
+          if (folded && !folded.has(pane.id)) return;
           // The pane's row holds its left scale, its plot, its right scale; the legend goes in the plot's frame.
           const plot = panes[i]?.getHTMLElement()?.children[1]?.firstElementChild;
           if (!plot) return;
@@ -9449,6 +9597,7 @@
           legendFit.observe(element);
         });
         updateLegends();
+        for (const legend of legends()) if (scrolled.get(legend.dataset.pane)) legend.scrollLeft = /** @type {number} */ (scrolled.get(legend.dataset.pane));
         sizePanes();
       }
       /**
@@ -9468,7 +9617,8 @@
               <span class="legend-name">${seriesMark(layer)}<span class="name">${escape(labelOf(layer))}</span></span>${value}
             </button>`;
           }).join("");
-          fitStrip(element);
+          // (Mid-drag, a color or a width changed, not what it holds: no need to measure it again.)
+          if (!holding) fitStrip(element);
         }
         lightLegend(litLayer, true);
         updateValues();
@@ -9508,7 +9658,7 @@
         element.style.setProperty("--edge-start", `${overflows ? clamp(at, 0, 28) : 0}px`);
         element.style.setProperty("--edge-end", `${overflows ? clamp(full - size - at, 0, 28) : 0}px`);
       }
-      /** The layer whose line the pointer is on: its legend item and panel row light up, the legend scrolling to it if it must. */
+      /** The layer whose line the pointer is on: its legend item and panel row light up, the legend scrolling to it if it must (but a still one). */
       let litLayer = null;
       function lightLegend(id, again = false) {
         if (id === litLayer && !again) return;
@@ -9519,7 +9669,7 @@
         for (const item of items) item.classList.toggle("lit", (item.dataset.select ?? item.dataset.layer) === id);
         const button = id && /** @type {HTMLElement | null} */ (document.querySelector(`.legend [data-select="${id}"]`));
         const row = button?.parentElement;
-        if (!button || !row || again) return;
+        if (!button || !row || again || chart?.legend === "still") return;
         const left = button.offsetLeft, right = left + button.offsetWidth;
         if (left < row.scrollLeft + 28 || right > row.scrollLeft + row.clientWidth - 28) row.scrollTo({ left: clamp(left - 28, 0, row.scrollWidth - row.clientWidth), behavior: reduced.matches ? "auto" : "smooth" });
       }
@@ -9571,12 +9721,14 @@
       function valueSlot(layer, size) {
         const result = resolved?.results.get(layer.id), values = result?.shown;
         if (!values) return 0;
-        const unit = unitFor(layer, result), key = `${layer.id}:${unit}:${size}`;
+        const unit = unitFor(layer, result), key = `${layer.id}:${unit}:${size}:${layer.cloud ? edgesOf(layer).join() : ""}`;
         const measured = slotsNow();
         if (measured.has(key)) return measured.get(key);
-        // A cloud's: its widest low, its widest high, and the dash between.
+        // A cloud's: its widest low, its widest high, and the dash between; to an edge, its other end after a ≥ or ≤.
         if (result?.low) {
-          const width = slotOf(result.low, unit, size) + widest([" – "], 510, size) + slotOf(values, unit, size);
+          const width = layer.cloud?.includes("top") ? widest(["≥ "], 510, size) + slotOf(result.low, unit, size)
+            : layer.cloud?.includes("bottom") ? widest(["≤ "], 510, size) + slotOf(values, unit, size)
+            : slotOf(result.low, unit, size) + widest([" – "], 510, size) + slotOf(values, unit, size);
           measured.set(key, width);
           return width;
         }
@@ -9804,6 +9956,8 @@
       /** The overview's scale as last drawn, for a move to start from. */
       let overviewScale = { lo: NaN, hi: NaN };
       const eased = (/** @type {number} */ t) => 1 - (1 - t) ** 3;
+      /** A chart has been revealed on this page: the next ones switched to wipe in at a page's pace. */
+      let revealed = false;
       /** The page's wipe curve, cubic-bezier(0.32, 0.72, 0.2, 1), at a share of its time (its time solved by halving). */
       function wiped(/** @type {number} */ x) {
         const at = (/** @type {number} */ a, /** @type {number} */ b, /** @type {number} */ t) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
@@ -9931,6 +10085,8 @@
        * they don't both fit so, as one ("7 Oct ’25 – 7 Oct ’26") beside the window or in it; else none.
        * @param {{ left: number, right: number } | null} lit the window, in shares of the navigator's width
        */
+      /** The navigator's font as its canvas last took it (see paintNavigator). */
+      let navigatorFont = "";
       function paintNavigator(lit) {
         const canvas = $("overview"), context = canvas.getContext("2d"), ratio = overviewRatio;
         // (Moved to a screen of another density: drawn again for it, this frame painted as it was.)
@@ -9938,7 +10094,11 @@
         if (canvas.width !== overviewBase.width || canvas.height !== overviewBase.height) (canvas.width = overviewBase.width), (canvas.height = overviewBase.height);
         const w = canvas.width, h = canvas.height, edge = 4 * ratio, inner = 10 * ratio, gap = 8 * ratio, foot = h - 3.5 * ratio;
         context.clearRect(0, 0, w, h);
-        context.font = `${11 * ratio}px ${css("--mono")}`;
+        // (Its font set once: kept by the canvas till it's resized, setting it again would work out the page's styles.)
+        if (context.font !== navigatorFont) {
+          context.font = `${11 * ratio}px ${css("--mono")}`;
+          navigatorFont = context.font;
+        }
         /** What a mark stays clear of: the dates, and the window's grips. @type {{ x: number, width: number }[]} */
         const taken = [];
         /** @type {{ text: string, width: number, x: number }[]} */
@@ -11262,20 +11422,20 @@
         return best;
       }
       /**
-       * A cloud as the chart draws it: from its lows up to its highs, filled in its color, run by run (a gap in its data, a
-       * gap in it; a point alone, a sliver), over the bars in view. One of the chart's own series:
-       * its scale fits it, its pane orders it.
+       * A cloud as the chart draws it: from its lows up to its highs (or from its pane's bottom, up to its top: `bottom`,
+       * `top`), filled in its color, run by run (a gap in its data, a gap in it; a point alone, a sliver), over the bars in
+       * view. One of the chart's own series: its scale fits its values (not its edges), its pane orders it.
        */
       function cloudView() {
         /** @type {any} */
-        let data = null, color = "transparent";
+        let data = null, options = { color: "transparent", top: false, bottom: false };
         return {
           renderer: () => ({
             draw: (/** @type {any} */ target, /** @type {(price: number) => number | null} */ toY) => target.useBitmapCoordinateSpace((/** @type {any} */ scope) => {
               const range = data?.visibleRange;
               if (!range || !data.bars.length) return;
-              const { context, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
-              context.fillStyle = color;
+              const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
+              context.fillStyle = options.color;
               /** @type {[number, number, number][]} */
               let run = [];
               const fill = () => {
@@ -11295,17 +11455,17 @@
                 const { x, time, originalData: row } = data.bars[i];
                 if (time !== last + 1) fill();
                 last = time;
-                const top = Number.isFinite(row.high) ? toY(row.high) : null, bottom = Number.isFinite(row.low) ? toY(row.low) : null;
+                const top = options.top ? 0 : Number.isFinite(row.high) ? toY(row.high) : null, bottom = options.bottom ? mediaSize.height : Number.isFinite(row.low) ? toY(row.low) : null;
                 if (top === null || bottom === null) fill();
                 else run.push([x * h, top * v, bottom * v]);
               }
               fill();
             }),
           }),
-          update: (/** @type {any} */ next, /** @type {any} */ options) => ((data = next), (color = options.color)),
+          update: (/** @type {any} */ next, /** @type {any} */ given) => ((data = next), (options = given)),
           priceValueBuilder: (/** @type {any} */ row) => [row.low, row.high, row.high],
           isWhitespace: (/** @type {any} */ row) => !Number.isFinite(row.low) || !Number.isFinite(row.high),
-          defaultOptions: () => ({ ...LC.customSeriesDefaultOptions, color: "transparent" }),
+          defaultOptions: () => ({ ...LC.customSeriesDefaultOptions, color: "transparent", top: false, bottom: false }),
         };
       }
       /** A stroke with what adds nothing taken out: no point strays further than `tolerance` pixels from what's kept. */
@@ -11346,7 +11506,7 @@
       $("chart").addEventListener("pointerdown", (event) => {
         if (writing) $("draw-text").blur();
         // (A legend takes its own presses: a click on a name, ⌘ or ⇧ too, is the layer's, not a drawing's.)
-        if (event.button !== 0 || !resolved?.times.length || closest(event, ".legend")) return;
+        if (event.button !== 0 || !resolved?.times.length || closest(event, ".legend, #full")) return;
         const pane = paneAt(event.clientY);
         if (!pane) return;
         const at = plotPoint(event.clientX, event.clientY, pane.rect);
@@ -11831,8 +11991,8 @@
       /** The scales a pane can take now (a stack: linear and log; a 100% one: none to choose). @param {Pane} pane */
       const modesFor = (pane) => (pane.stack === "percent" ? [] : pane.stack ? [0, 1] : [0, 1, 2, 3]);
       const labelOf = (layer) => layer.label || (layer.series ? humanize(layer.series) : layer.cloud ? cloudName(layer) : layer.formula || "Formula");
-      /** A cloud's name, unnamed: its layers' letters (three at most; past that, how many). @param {Layer} layer */
-      const cloudName = (layer) => ((letters) => (!letters.length ? "Cloud" : letters.length > 3 ? `Cloud of ${letters.length} layers` : `Cloud of ${letters.join(", ")}`))(cloudLetters(layer));
+      /** A cloud's name, unnamed: its layers' letters (three at most; past that, how many), then its edges. @param {{ cloud?: string[] }} layer @param {Chart} [doc] */
+      const cloudName = (layer, doc = ownerOf(/** @type {Layer} */ (layer))) => ((letters, edges) => (!letters.length ? "Cloud" : `${letters.length > 3 ? `Cloud of ${letters.length} layers` : `Cloud of ${letters.join(", ")}`}${edges.length ? ` to the ${edges[0]}` : ""}`))(cloudLetters(layer, doc), edgesOf(layer));
       const layerById = (id) => chart.layers.find((layer) => layer.id === id);
 
       /** Rebuilding a panel's HTML would drop focus: these find the same control again afterwards. */
@@ -12178,12 +12338,13 @@
               });
               const end = points.findLast(Boolean);
               if (end && latest > end[end.length - 1][0]) end.push([latest, scaled(values[latest])]);
-              // A cloud: each bucket from its lowest low to its highest high.
-              const low = data.results.get(layer.id)?.low;
+              // A cloud: each bucket from its lowest low to its highest high (an edge's end, the other's: it's drawn to the
+              // pane's edge, and its scale needn't read it).
+              const low = data.results.get(layer.id)?.low, top = layer.cloud?.includes("top"), bottom = layer.cloud?.includes("bottom");
               const band = low ? Array.from({ length: B }, (_, b) => {
                 let under = Infinity, over = -Infinity;
                 for (let i = Math.max(first, Math.ceil(shown.from + (b * span) / B)); i <= last && i < shown.from + ((b + 1) * span) / B; i++) {
-                  const down = scaled(low[i]), up = scaled(values[i]);
+                  const lowest = scaled(low[i]), highest = scaled(values[i]), down = bottom ? highest : lowest, up = top ? lowest : highest;
                   if (Number.isFinite(down) && Number.isFinite(up)) (under = Math.min(under, down)), (over = Math.max(over, up));
                 }
                 return under <= over ? /** @type {[number, number]} */ ([under, over]) : null;
@@ -12218,18 +12379,19 @@
               const across = pane.stack === "percent" ? [] : [...(layer.levels ?? []).map((item, i) => [String(i), item.value]), ...(layer.type === "baseline" ? [["base", layer.base ?? 0]] : [])];
               for (const [key, value] of across) {
                 const yAt = y(scaled(value)), { color, dash } = lineLook(layer, key), [, , length, gap] = dashOf(dash);
-                if (yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...((layer.opacity ?? 1) < 1 ? { op: layer.opacity } : {}) });
+                if (yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) });
               }
               const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), at = ([i, value]) => `${x(i)} ${y(value)}`;
-              const look = { c: layer.color, ...((layer.opacity ?? 1) < 1 ? { op: layer.opacity } : {}) };
+              const look = { c: layer.color, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) };
               if (band) {
-                // Run by run, its highs along, its lows back.
+                // Run by run, its highs along, its lows back (or its pane's edges, if it has them).
+                const above = (b) => (layer.cloud?.includes("top") ? paneTop : y(/** @type {[number, number]} */ (band[b])[1])), below = (b) => (layer.cloud?.includes("bottom") ? paneBottom : y(/** @type {[number, number]} */ (band[b])[0]));
                 const runs = [];
                 let run = [];
                 band.forEach((range, b) => (range ? run.push(b) : run.length && (runs.push(run), (run = []))));
                 if (run.length) runs.push(run);
                 const middle = (/** @type {number} */ b) => x(shown.from + ((b + 0.5) * span) / B);
-                const d = runs.map((part) => `M${part.map((b) => `${middle(b)} ${y(/** @type {[number, number]} */ (band[b])[1])}`).join("L")}L${[...part].reverse().map((b) => `${middle(b)} ${y(/** @type {[number, number]} */ (band[b])[0])}`).join("L")}Z`).join("");
+                const d = runs.map((part) => `M${part.map((b) => `${middle(b)} ${above(b)}`).join("L")}L${[...part].reverse().map((b) => `${middle(b)} ${below(b)}`).join("L")}Z`).join("");
                 if (d) drawn.marks.push({ ...look, k: "band", d });
                 return;
               }
@@ -12288,7 +12450,7 @@
           const fade = (key, color, from, to, a, b) => `<linearGradient id="${g}${key}" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="${from}" y2="${to}"><stop offset="0" stop-color="${color}" stop-opacity="${a}"/><stop offset="1" stop-color="${color}" stop-opacity="${b}"/></linearGradient>`;
           let html = "";
           if (mark.k === "across") html = `<path class="across" stroke="${c}"${dash} d="${mark.d}"/>`;
-          else if (mark.k === "band") html = `<path class="fill" style="fill:color-mix(in srgb, ${c} 22%, transparent)" d="${mark.d}"/>`;
+          else if (mark.k === "band") html = `<path class="fill" style="fill:${c}" d="${mark.d}"/>`;
           else if (mark.k === "bars") html = `<path class="bars" stroke="${c}" d="${mark.d}"/>${mark.d2 ? `<path class="bars" stroke="${c2}" d="${mark.d2}"/>` : ""}`;
           else if (mark.k === "dots") html = `<path class="dots" stroke="${c}" d="${mark.d}"/>`;
           else if (mark.k === "baseline") {
@@ -12373,19 +12535,22 @@
           </div>`;
       }
       /** A chart's words for the grid's filter: its title, its layers' names, series and formulas. @param {Chart} doc */
-      const wordsOf = (doc) => [titleOf(doc), ...doc.layers.flatMap((layer) => [labelOf(layer), layer.series ?? "", layer.formula ?? ""])].join(" ").toLowerCase().replace(/_/g, " ");
+      const wordsOf = (doc) => [titleOf(doc), folderById(doc.folder)?.name ?? "", ...doc.layers.flatMap((layer) => [labelOf(layer), layer.series ?? "", layer.formula ?? ""])].join(" ").toLowerCase().replace(/_/g, " ");
       /**
        * The charts the filter finds, as ⌘K finds series (quickmatch: prefixes, joined words, typos), those matching the
        * most of its words, best first; without a filter, all of them in their order.
        */
       /** The charts the grid shows, in its order: its sections' (a closed folder's, none). */
       const shownCharts = () => sectionsOf(filtered(), $("home-filter").value.trim()).flatMap((section) => section.docs);
+      /** The filter's index of the charts (their words, their folders' names), kept till a chart or a folder changes. */
+      let filterIndex = { key: "", charts: /** @type {Chart[]} */ ([]), index: /** @type {any} */ (null) };
       function filtered() {
         const query = $("home-filter").value.trim().toLowerCase();
         if (!query) return library.charts;
-        const charts = library.charts.slice();
-        const found = new QuickMatch(charts.map(wordsOf)).matchesBestWithIdsAndMatchedWords(query, new QuickMatchConfig().withLimit(charts.length).withUnionFallback(false));
-        return found.map(([id]) => charts[id]);
+        const key = JSON.stringify([library.charts.map((doc) => [doc.id, doc.updated, doc.folder ?? ""]), library.folders.map((folder) => [folder.id, folder.name])]);
+        if (filterIndex.key !== key) filterIndex = { key, charts: library.charts.slice(), index: new QuickMatch(library.charts.map(wordsOf)) };
+        const found = filterIndex.index.matchesBestWithIdsAndMatchedWords(query, new QuickMatchConfig().withLimit(filterIndex.charts.length).withUnionFallback(false));
+        return found.map((/** @type {[number]} */ [id]) => filterIndex.charts[id]);
       }
       /** Each tile as last drawn, to redraw only those that changed; the sections as last drawn. @type {Map<string, string>} */
       const drawnTiles = new Map();
@@ -12414,9 +12579,9 @@
       const gridHeadHtml = (/** @type {Folder} */ folder, /** @type {number} */ count) => `<div class="grid-folder ${folder.closed ? "closed" : ""}" data-grid-folder="${folder.id}"><button type="button" class="grid-folder-toggle" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}"><span class="folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="name">${escape(folder.name)}</span><span class="folder-count">${count}</span></button><button type="button" class="cap small" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button></div>`;
       function renderHome() {
         if (!home) return;
-        const shown = filtered(), query = $("home-filter").value.trim();
+        const shown = filtered(), query = $("home-filter").value.trim(), sections = sectionsOf(shown, query);
         // Only what's shown stays picked: the bar acts on what can be seen.
-        const ids = new Set(shownCharts().map((doc) => doc.id));
+        const ids = new Set(sections.flatMap((section) => section.docs).map((doc) => doc.id));
         for (const id of [...picked]) if (!ids.has(id)) picked.delete(id);
         if (!picked.has(pickedLast)) pickedLast = [...picked].at(-1) ?? "";
         const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest(".tile-open") ?? null)?.dataset.openChart;
@@ -12424,7 +12589,7 @@
         $("home-count").textContent = query ? `${shown.length} of ${library.charts.length}` : "";
         // The same charts in the same order (and folders): only the tiles that changed are drawn again (a click on another
         // one, under way, isn't lost; focus and hover stay). Otherwise, all of them.
-        const sections = sectionsOf(shown, query), visible = sections.flatMap((section) => section.docs), html = visible.map(tileHtml), tiles = all$(".tile", $("home-grid"));
+        const visible = sections.flatMap((section) => section.docs), html = visible.map(tileHtml), tiles = all$(".tile", $("home-grid"));
         const layout = JSON.stringify(sections.map(({ folder, docs, count }) => [folder?.id, folder?.name, folder?.closed, count, docs.length]));
         if (layout === drawnLayout && tiles.length === visible.length && tiles.every((tile, i) => tile.dataset.homeCard === visible[i].id)) {
           tiles.forEach((tile, i) => drawnTiles.get(visible[i].id) !== html[i] && (tile.outerHTML = html[i]));
@@ -12699,6 +12864,8 @@
         stopCarrying();
         delete document.body.dataset.sheet;
         if (home) return;
+        // (Full screen is the chart's: the grid, as ever.)
+        setFull(false);
         leaveField();
         saveView();
         // The open chart as it is now: its card shows it before it shrinks into it.
@@ -13047,12 +13214,9 @@
         }
         if (!closing) renderCharts();
         const folds = foldOf(id).map((element) => fold(element, closing));
-        // (On the rail, its own part of their surface fades with them, and its room above it comes and goes.)
+        // (On the rail, its own slice of their surface fades with them.)
         const head = /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-folder-row="${id}"]`));
-        if (head) {
-          const { paddingTop, backgroundColor, boxShadow } = getComputedStyle(head), along = (/** @type {string} */ from, /** @type {string} */ to) => (closing ? [from, to] : [to, from]);
-          folds.push(head.animate({ paddingTop: along(paddingTop, "0px"), backgroundColor: along(backgroundColor, "transparent"), boxShadow: along(boxShadow, boxShadow.replace(/rgba?\([^)]*\)/g, "transparent")) }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" }));
-        }
+        if (head) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
         if (!closing) return;
         closings++;
         Promise.allSettled(folds.map((animation) => animation.finished)).then(() => {
@@ -13062,19 +13226,19 @@
           renderCharts();
         });
       }
-      /** A theme chosen: kept, shown on the row and its switch, and on the page (see THEMES). @param {"system" | "light" | "dark"} theme */
+      /** A theme chosen: kept, named on its row, and on the page (see THEMES). @param {"system" | "light" | "dark"} theme */
       function setTheme(theme) {
         prefs.theme = theme;
         savePrefs();
         renderTheme();
         applyTheme();
       }
-      /** The row's icon and tip, the switch's choice. */
+      /** The row's icon, its tip and the name of the one chosen. */
       function renderTheme() {
         const [, name, icon] = THEMES.find(([id]) => id === prefs.theme) ?? THEMES[2];
         $("theme-icon").innerHTML = ICONS[icon];
         $("theme").dataset.tip = `Theme: ${name}`;
-        for (const button of all$("[data-theme-pick]")) button.setAttribute("aria-pressed", String(button.dataset.themePick === prefs.theme));
+        $("theme-name").textContent = name;
       }
       /**
        * The page in the theme now chosen (the device's, with System), if it changed: drawn again, crossfaded (the chart
@@ -13114,14 +13278,10 @@
         renderTheme();
         applyTheme();
       });
-      /** The themes, from the row (on the rail, its only way): the one chosen ticked. */
+      /** The themes, from their row (and ⌘K): the one chosen ticked. */
       function themeMenu(/** @type {HTMLElement} */ anchor) {
         showMenu(anchor, THEMES.map(([id, name, icon]) => `<button type="button" data-pick="${id}" aria-checked="${prefs.theme === id}">${tick(prefs.theme === id)}${ICONS[icon]}${name}</button>`).join(""), ({ pick }) => setTheme(/** @type {"system" | "light" | "dark"} */ (pick)));
       }
-      $("theme-switch").addEventListener("click", (event) => {
-        const pick = /** @type {HTMLElement | null} */ (closest(event, "[data-theme-pick]"))?.dataset.themePick;
-        if (pick) setTheme(/** @type {"system" | "light" | "dark"} */ (pick));
-      });
       renderTheme();
       /** Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others short). */
       let closings = 0;
@@ -13141,12 +13301,11 @@
         const from = moving ? now : closing ? full : low, shown = full > low ? (from - low) / (full - low) : 1;
         Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: row ? "flex-end" : "" });
         if (row) element.inert = closing;
-        // (A row's room under it, a folder's last on the rail, goes and comes with it.)
-        const { paddingBottom } = getComputedStyle(element), along = (/** @type {string} */ room) => (closing ? [room, "0px"] : ["0px", room]);
+        // (A row's gap from the one above, as wide as its list has it, goes and comes with it.)
+        const gap = row ? `-${parseFloat(getComputedStyle(/** @type {HTMLElement} */ (element.parentElement)).rowGap) || 0}px` : "0px";
         const animation = element.animate({
           height: [`${from}px`, `${closing ? low : full}px`],
-          // (A row's 1px from the one above goes and comes with it.)
-          ...(row ? { marginTop: closing ? ["0px", "-1px"] : ["-1px", "0px"], paddingBottom: along(paddingBottom), opacity: [shown, closing ? 0 : 1] } : {}),
+          ...(row ? { marginTop: closing ? ["0px", gap] : [gap, "0px"], opacity: [shown, closing ? 0 : 1] } : {}),
         }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
         if (!closing) animation.finished.then(() => Object.assign(element.style, { overflow: "", overflowClipMargin: "", alignItems: "" }), () => {});
         return animation;
@@ -13490,7 +13649,7 @@
         let press = null;
         /** Held (or carried) by touch, nothing scrolls under the finger. */
         const pin = (/** @type {Event} */ event) => (press?.held || drag) && event.preventDefault();
-        /** @type {{ ids: string[], ghost: HTMLElement, x: number, y: number, at: Landing | null, scroller: HTMLElement, frame: number } | null} */
+        /** @type {{ ids: string[], ghost: HTMLElement, x: number, y: number, at: Landing | null, scroller: HTMLElement, box: DOMRect, frame: number } | null} */
         let drag = null;
         /** The item an id names now (the list may have been drawn anew since the press). */
         const itemNamed = (/** @type {string} */ id) => all$(how.item, list).find((element) => how.idOf(element) === id);
@@ -13513,26 +13672,33 @@
         /** Where they'd land from where the pointer is: only over the list as it shows (`sticky`: off every item, where it last would). */
         const landingNow = () => {
           if (!drag) return null;
-          const box = drag.scroller.getBoundingClientRect(), own = list.getBoundingClientRect();
+          const box = drag.box, own = list.getBoundingClientRect();
           if (drag.x < Math.max(box.left, own.left) || drag.x > Math.min(box.right, own.right) || drag.y < Math.max(box.top, own.top) || drag.y > Math.min(box.bottom, own.bottom)) return null;
           const found = how.landing(drag.x, drag.y, drag.ids);
           const kept = drag.at && ("item" in drag.at ? drag.at.item : "zone" in drag.at ? drag.at.zone : null);
           return found === undefined ? (how.sticky && kept?.isConnected ? drag.at : null) : found;
         };
-        /** The pill by the pointer; the carried dimmed (drawn anew, the list loses its marks); where they'd land, marked. */
+        /** Two landings the same: the same side of the same item, or the same zone (or none). */
+        const sameLanding = (/** @type {Landing | null} */ a, /** @type {Landing | null} */ b) => (!a || !b ? a === b : "item" in a && "item" in b ? a.item === b.item && a.after === b.after : "zone" in a && "zone" in b && a.zone === b.zone);
+        /**
+         * The pill by the pointer; the carried dimmed (once: again only if the list was drawn anew); where they'd land,
+         * marked, when that changes. (Read first, written after: nothing laid out twice a move.)
+         */
         const follow = () => {
           if (!drag) return;
+          const at = landingNow(), marked = itemNamed(drag.ids[0])?.classList.contains("dragging");
           drag.ghost.style.transform = `translate(${drag.x + 14}px, ${drag.y + 12}px)`;
-          for (const element of all$(how.item, list)) element.classList.toggle("dragging", drag.ids.includes(how.idOf(element)));
+          if (!marked) for (const element of all$(how.item, list)) element.classList.toggle("dragging", drag.ids.includes(how.idOf(element)));
+          if (marked && sameLanding(at, drag.at) && (!at || ("item" in at ? at.item : at.zone).isConnected)) return;
           unmark();
-          drag.at = landingNow();
-          if (drag.at && "item" in drag.at) drag.at.item.classList.add(drag.at.after ? "drop-after" : "drop-before");
-          else if (drag.at && "zone" in drag.at) drag.at.zone.classList.add("drop-target");
+          drag.at = at;
+          if (at && "item" in at) at.item.classList.add(at.after ? "drop-after" : "drop-before");
+          else if (at && "zone" in at) at.zone.classList.add("drop-target");
         };
         /** The list scrolled while the pointer's near its edge, faster the nearer. */
         const edge = () => {
           if (!drag) return;
-          const box = drag.scroller.getBoundingClientRect(), reach = 48;
+          const box = drag.box, reach = 48;
           const by = drag.y < box.top + reach ? drag.y - box.top - reach : drag.y > box.bottom - reach ? drag.y - box.bottom + reach : 0;
           if (by && drag.x >= box.left && drag.x <= box.right) {
             drag.scroller.scrollTop += by / 3;
@@ -13554,7 +13720,7 @@
               break;
             }
           }
-          drag = { ids, ghost, x: event.clientX, y: event.clientY, at: null, scroller, frame: 0 };
+          drag = { ids, ghost, x: event.clientX, y: event.clientY, at: null, scroller, box: scroller.getBoundingClientRect(), frame: 0 };
           // (Its own first: the list's look as carrying, its new places shown, after.)
           how.lift?.();
           list.classList.add("carrying");
@@ -14034,14 +14200,25 @@
        * The website charts whose words hold every word typed, the best first (every word in its title, then its title
        * starting with the first, then the shortest title), as many as `most`.
        */
-      function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = (/** @type {number} */ _i) => true) {
-        const list = /** @type {Preset[]} */ (presets), found = [];
-        for (let i = 0; i < presetWords.length; i++) if (under(i) && words.every((word) => presetWords[i].includes(word))) found.push(i);
-        const fit = (/** @type {number} */ i) => {
-          const title = list[i].t.toLowerCase();
-          return (words.every((word) => title.includes(word)) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
-        };
-        return found.map((i) => [i, fit(i)]).sort((a, b) => b[1] - a[1] || list[a[0]].t.length - list[b[0]].t.length).slice(0, most).map(([i]) => i);
+      /** The last search over the website's charts (all of them, no `under`): typed on, it narrows what it found. */
+      let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
+      function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null)) {
+        const list = /** @type {Preset[]} */ (presets), query = words.join(" ");
+        // (Typed on from the last search, every match is among its matches.)
+        const among = !under && presetsFound.query && query.startsWith(presetsFound.query) ? presetsFound.found : null, found = [];
+        if (among) for (const i of among) words.every((word) => presetWords[i].includes(word)) && found.push(i);
+        else for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && words.every((word) => presetWords[i].includes(word))) found.push(i);
+        if (!under) presetsFound = { query, found };
+        // The best first: all its words in its title, starting it; then the shortest. Bucketed (fit, then length), not
+        // sorted: a word or two matches thousands.
+        const buckets = /** @type {number[][][]} */ ([[], [], [], []]);
+        for (const i of found) {
+          const title = list[i].t.toLowerCase(), fit = (words.every((word) => title.includes(word)) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
+          (buckets[fit][list[i].t.length] ??= []).push(i);
+        }
+        const best = [];
+        for (let fit = 3; fit >= 0 && best.length < most; fit--) for (const same of buckets[fit]) if (same && best.length < most) best.push(...same.slice(0, most - best.length));
+        return best;
       }
       /** A website chart's row: its title (and, found by a search, its place); its preview; ↵ makes it. */
       const presetRow = (/** @type {number} */ i, deep = false) => {
@@ -14223,7 +14400,48 @@
             <button type="button" class="cap small" data-markers="halvings-eye" aria-label="${on ? "Hide" : "Show"} the halvings" data-tip="${on ? "Hide" : "Show"}">${on ? ICONS.eye : ICONS.eyeOff}</button>
           </div></section>`;
       }
+      function fullOn() {
+        return /** @type {HTMLElement} */ (document.querySelector(".app")).hasAttribute("data-full");
+      }
+      /**
+       * Full screen, on or off: the chart alone (see .app[data-full]; the panel closed, P opening it for the while), on
+       * the screen's whole where the browser gives it (asked in the same click, as it must be; not when the window is the
+       * screen already, or says so: Mullvad's does), else the window's. Out by its button, ⇧F or ⌘K, never by Escape
+       * here; a browser's own way out leaves it too (Firefox's Escape, a held one in Chromium).
+       */
+      function setFull(on = !fullOn()) {
+        const app = /** @type {HTMLElement} */ (document.querySelector(".app")), button = $("full");
+        if (on === fullOn()) return;
+        if (on) {
+          app.toggleAttribute("data-full", true);
+          document.body.removeAttribute("data-peek");
+          delete document.body.dataset.sheet;
+          applyPanel("closed");
+          const screenWide = outerWidth >= screen.width && outerHeight >= screen.height;
+          // (Chromium gives a page asking for it every Escape but a held one; out again before the browser answered, out.)
+          if (!document.fullscreenElement && !screenWide) document.documentElement.requestFullscreen?.({ navigationUI: "hide" }).then(() => (fullOn() ? /** @type {any} */ (navigator).keyboard?.lock?.(["Escape"]) : document.exitFullscreen())).catch(() => {});
+        } else {
+          app.removeAttribute("data-full");
+          applyPanel();
+          /** @type {any} */ (navigator).keyboard?.unlock?.();
+          if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        }
+        button.setAttribute("aria-pressed", String(on));
+        button.setAttribute("aria-label", (button.dataset.tip = on ? "Exit full screen" : "Full screen"));
+        button.innerHTML = on ? ICONS.shrink : ICONS.expand;
+      }
+      document.addEventListener("fullscreenchange", () => !document.fullscreenElement && fullOn() && setFull(false));
+      // (Full screen slides the header up by its own height, as it is: a phone's, a desktop's.)
+      new ResizeObserver(([entry]) => /** @type {HTMLElement} */ (document.querySelector(".app")).style.setProperty("--head-height", `${entry.borderBoxSize[0].blockSize}px`)).observe(/** @type {HTMLElement} */ (document.querySelector(".card-head")));
+      // Escape is the page's: it does here what it does, and goes no further, so a browser's own full screen (macOS's,
+      // ⌃⌘F) doesn't leave with it; a dialog's own, as ever. (One a page asked for is the browser's to leave, see setFull.)
+      window.addEventListener("keydown", (event) => event.key === "Escape" && !document.querySelector("dialog[open]") && event.preventDefault(), true);
       const toggleHalvings = () => commit((doc) => (doc.halvings ? delete doc.halvings : (doc.halvings = true)));
+      /** How a chart's legends show: none, still, or (the default, "") following the pointer to the line it's on. */
+      const LEGENDS = /** @type {const} */ ([["off", "Off", "No legend over the panes", "None"], ["still", "Still", "A legend over each pane, staying where you leave it", "Where you leave it"], ["", "Follows", "A legend over each pane, scrolling to the line you point at", "To the line you point at"]]);
+      /** The legend's setting, under the markers: its name, and the three ways across from it, as a pane's head has its scale. */
+      const legendHtml = () => `<section class="markers legend-setting"><div class="markers-head"><span>Legend</span><div class="tabs" role="group" aria-label="Legend">${LEGENDS.map(([id, text, tip]) => `<button type="button" data-legend="${id}" aria-pressed="${(chart.legend ?? "") === id}" data-tip="${tip}">${text}</button>`).join("")}</div></div></section>`;
+      const setLegend = (/** @type {string} */ mode) => (chart.legend ?? "") !== mode && commit((doc) => (mode === "off" || mode === "still" ? (doc.legend = mode) : delete doc.legend));
       function renderLayers() {
         const list = $("layer-list");
         const focus = focusKey(list);
@@ -14243,7 +14461,7 @@
             ${layers.map((layer) => {
               const result = resolved?.results.get(layer.id);
               const loading = layer.series && !result;
-              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.cloud ? `<span class="sub">${escape(cloudUnfit(chart, layer) || `Between ${cloudLetters(layer).join(", ")}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.cloud?.includes(item.id) && !resolved?.results.get(item.id)?.shown).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? `<span class="sub">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(layer.series ?? "")}</span>`;
+              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.cloud ? `<span class="sub">${escape(cloudUnfit(chart, layer) || `Between ${cloudSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.cloud?.includes(item.id) && !resolved?.results.get(item.id)?.shown).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? `<span class="sub">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(layer.series ?? "")}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
@@ -14255,7 +14473,7 @@
               </div>`;
             }).join("")}
           </section>`;
-        }).join("") + `<div class="drop-new" data-drop-new>Drop here for a new pane</div>` + markersHtml() + `<div class="layer-adds"><button type="button" class="nav-item" data-action="add-series">${ICONS.plus}<span class="label">Add a series</span><kbd>A</kbd></button><button type="button" class="nav-item" data-action="formula">${ICONS.formula}<span class="label">Add a formula</span><kbd>F</kbd></button>${cloudable() ? `<button type="button" class="nav-item" data-action="add-cloud">${ICONS.cloud}<span class="label">Add a cloud</span></button>` : ""}</div>`;
+        }).join("") + `<div class="drop-new" data-drop-new>Drop here for a new pane</div>` + markersHtml() + legendHtml() + `<div class="layer-adds"><button type="button" class="nav-item" data-action="add-series">${ICONS.plus}<span class="label">Add a series</span><kbd>A</kbd></button><button type="button" class="nav-item" data-action="formula">${ICONS.formula}<span class="label">Add a formula</span><kbd>F</kbd></button>${cloudable() ? `<button type="button" class="nav-item" data-action="add-cloud">${ICONS.cloud}<span class="label">Add a cloud</span></button>` : ""}</div>`;
         restoreFocus(list, focus);
         updateValues();
         lightLegend(litLayer, true);
@@ -14318,7 +14536,7 @@
           renderInspector();
         }
         if (phone.matches) document.body.dataset.sheet = "panel";
-        else if (prefs.panel === "closed") document.body.toggleAttribute("data-peek", true);
+        else if (document.body.dataset.panel === "closed") document.body.toggleAttribute("data-peek", true);
       }
       /** Picks a layer: added or taken off; with `range`, every one from the last picked (or the one open) to it. */
       function pickLayer(/** @type {string} */ id, range = false) {
@@ -14490,7 +14708,7 @@
           layerPicks.clear();
         }
         if (selected && phone.matches) document.body.dataset.sheet = "panel";
-        else if (selected && prefs.panel === "closed") document.body.toggleAttribute("data-peek", true);
+        else if (selected && document.body.dataset.panel === "closed") document.body.toggleAttribute("data-peek", true);
         renderLayers();
         renderInspector();
         updateLegends();
@@ -14551,8 +14769,8 @@
         const sourceSection = layer.cloud
           ? `<section>
               <h3>Cloud</h3>
-              <div class="field"><span>Between<span class="color-now">${plural(layer.cloud.length, "layer")}</span></span><div class="cloud-of" role="group" aria-label="The layers it spans">${chart.layers.filter((item) => !item.cloud).map((item) => ((on) => `<button type="button" data-cloud-of="${item.id}" aria-pressed="${on}"><span class="letter" style="--c:${escape(ink(item.color))}">${item.letter}</span><span class="name">${escape(labelOf(item))}</span></button>`)(Boolean(layer.cloud?.includes(item.id)))).join("")}</div></div>
-              ${((error) => `<p class="cloud-status ${error ? "error" : ""}" role="status">${error ? escape(error) : `At each date, from the lowest of them to the highest${cloudUnfit(chart, layer) ? `; ${cloudUnfit(chart, layer) === "Not in a stack" ? "not drawn in a stacked pane" : "not drawn on a percent or indexed scale"}` : ""}.`}</p>`)((layer.cloud?.length ?? 0) < 2 ? "Select two layers or more" : result?.error)}
+              <div class="field"><span>Between<span class="color-now">${plural(cloudLetters(layer, chart).length, "layer")}${edgesOf(layer).length ? `, the ${edgesOf(layer)[0]}` : ""}</span></span><div class="cloud-of" role="group" aria-label="What it spans">${chart.layers.filter((item) => !item.cloud).map((item) => ((on) => `<button type="button" data-cloud-of="${item.id}" aria-pressed="${on}"><span class="letter" style="--c:${escape(ink(item.color))}">${item.letter}</span><span class="name">${escape(labelOf(item))}</span></button>`)(Boolean(layer.cloud?.includes(item.id)))).join("")}${EDGES.map((edge) => `<button type="button" data-cloud-of="${edge}" aria-pressed="${Boolean(layer.cloud?.includes(edge))}" data-tip="${edge === "top" ? "From its lowest up to the pane's top" : "From the pane's bottom up to its highest"}">${edge === "top" ? ICONS.toTop : ICONS.toBottom}<span class="name">The ${edge}</span></button>`).join("")}</div></div>
+              ${((error) => `<p class="cloud-status ${error ? "error" : ""}" role="status">${error ? escape(error) : `${cloudSays(layer)}${cloudUnfit(chart, layer) ? `; ${cloudUnfit(chart, layer) === "Not in a stack" ? "not drawn in a stacked pane" : "not drawn on a percent or indexed scale"}` : ""}.`}</p>`)(cloudShort(layer) || result?.error)}
             </section>`
           : isFormula
           ? `<section>
@@ -14638,19 +14856,19 @@
        * the end of its label. (Tabs need none: their default is one click away.)
        */
       const DEFAULTS = {
-        opacity: { is: (layer) => (layer.opacity ?? 1) === 1, set: (layer) => (layer.opacity = undefined), text: "100%", focus: "#opacity" },
+        opacity: { is: (layer) => layer.opacity === undefined, set: (layer) => (layer.opacity = undefined), text: (layer) => `${Math.round(defaultOpacity(layer) * 100)}%`, focus: "#opacity" },
         width: { is: (layer) => layer.width === 1.5, set: (layer) => (layer.width = 1.5), text: "1.5px", focus: "#width" },
         base: { is: (layer) => (layer.base ?? 0) === 0, set: (layer) => (layer.base = undefined), text: "0", focus: "#base" },
         format: { is: (layer) => !layer.format, set: (layer) => (layer.format = undefined), text: "Automatic", focus: "#format" },
       };
-      const resetFor = (key, layer) => (DEFAULTS[key].is(layer) ? "" : `<button type="button" class="reset" data-reset="${key}" aria-label="Reset to ${DEFAULTS[key].text}" data-tip="Reset to ${DEFAULTS[key].text}">${ICONS.undo}</button>`);
+      const resetFor = (key, layer) => ((text) => (DEFAULTS[key].is(layer) ? "" : `<button type="button" class="reset" data-reset="${key}" aria-label="Reset to ${text}" data-tip="Reset to ${text}">${ICONS.undo}</button>`))(typeof DEFAULTS[key].text === "function" ? DEFAULTS[key].text(layer) : DEFAULTS[key].text);
       /** The inspector's sliders, each a few values in order: what it steps through, how its value reads, what it sets. */
       const SLIDERS = {
         width: { label: "Width", stops: WIDTHS, of: (layer) => layer.width, text: (v) => `${v}px`, say: (v) => `${v} pixels`, set: (layer, v) => (layer.width = v) },
         // A drawing's, on the belt: the same stops, read the same.
         "draw-width": { label: "Width", stops: WIDTHS, of: (look) => look.width, text: (v) => `${v}px`, say: (v) => `${v} pixels`, set: (look, v) => (look.width = v) },
         "draw-opacity": { label: "Opacity", stops: OPACITIES, of: (look) => look.opacity ?? 1, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (look, v) => (look.opacity = v === 1 ? undefined : v) },
-        opacity: { label: "Opacity", stops: OPACITIES, of: (layer) => layer.opacity ?? 1, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.opacity = v === 1 ? undefined : v) },
+        opacity: { label: "Opacity", stops: OPACITIES, of: opacityOf, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.opacity = v === defaultOpacity(layer) ? undefined : v) },
       };
       /** A slider: its stops, a handle at the value, and the value written out at the end away from the handle. */
       function slider(id, layer, tip = "") {
@@ -14664,6 +14882,12 @@
         const layer = layerById(selected);
         if (!layer || SLIDERS[id].of(layer) === value) return;
         editLayer((target) => SLIDERS[id].set(target, value), { coalesce: `${id}:${selected}` });
+        // (Dragged, the page isn't drawn again till it ends: the slider shows its new value itself, as the belt's do.)
+        const element = $(id), now = layerById(selected);
+        if (holding && element && now) {
+          element.outerHTML = slider(id, now, element.dataset.tip ?? "");
+          $(id)?.focus({ preventScroll: true });
+        }
       }
       /** The stop nearest a point across a slider (found again each time: the inspector redraws under the drag). */
       function stopAt(id, clientX) {
@@ -14692,6 +14916,10 @@
         const stop = () => {
           flushPick();
           holding = 0;
+          if (heldEdits) {
+            heldEdits = false;
+            refresh("none");
+          }
           document.body.classList.remove(cursor);
           removeEventListener("pointermove", follow);
           removeEventListener("pointerup", end);
@@ -15491,12 +15719,7 @@
         else if (type) editLayer((layer) => (layer.type = type));
         else if (button.dataset.cloudOf) {
           const member = button.dataset.cloudOf;
-          editLayer((layer) => {
-            const ids = new Set(layer.cloud);
-            if (ids.has(member)) ids.delete(member);
-            else ids.add(member);
-            layer.cloud = chart.layers.filter((item) => ids.has(item.id)).map((item) => item.id);
-          });
+          editLayer((layer) => (layer.cloud = cloudOf(chart, toggleMember(layer.cloud ?? [], member))));
           refocus(`#inspector [data-cloud-of="${CSS.escape(member)}"]`);
         }
         else if (dash) editLayer((layer) => (layer.dash = Number(dash)));
@@ -15774,21 +15997,21 @@
         toast(`Added ${formula} as ${added.letter}`);
       }
 
-      /** Whether a cloud can be made here: two layers or more that aren't clouds. */
-      const cloudable = () => chart.layers.filter((layer) => !layer.cloud).length > 1;
+      /** Whether a cloud can be made here: a layer that isn't one (with another, or an edge). */
+      const cloudable = () => chart.layers.some((layer) => !layer.cloud);
       /**
-       * A cloud of layers (two or more, none a cloud), in the first one's pane, on its side and in its color, behind them
-       * (after the last of them there); opened in the panel.
+       * A cloud of layers (none a cloud) and edges (two or more, a layer among them), in the first one's pane, on its side
+       * and in its color, behind them (after the last of them there); opened in the panel.
        */
       function addCloud(/** @type {string[]} */ ids) {
-        const members = chart.layers.filter((layer) => ids.includes(layer.id) && !layer.cloud);
-        if (members.length < 2) return void notice("A cloud spans two layers or more");
+        const members = cloudOf(chart, ids);
+        if (cloudShort({ cloud: members })) return void notice("A cloud spans two layers, or a layer and an edge");
         if (!roomFor(chart)) return;
         /** @type {Layer | undefined} */
         let added;
         commit((doc) => {
-          const first = /** @type {Layer} */ (doc.layers.find((layer) => layer.id === members[0].id));
-          added = makeLayer({ type: "cloud", cloud: members.map((layer) => layer.id), pane: first.pane, side: first.side, color: first.color }, doc);
+          const first = /** @type {Layer} */ (doc.layers.find((layer) => layer.id === members[0]));
+          added = makeLayer({ type: "cloud", cloud: members, pane: first.pane, side: first.side, color: first.color }, doc);
           // (Behind: after the last of them, or, in a pane whose last is in front, before the first.)
           const mine = doc.layers.flatMap((layer, i) => (layer.pane === first.pane && ids.includes(layer.id) ? [i] : []));
           doc.layers.splice(doc.panes.find((pane) => pane.id === first.pane)?.reverse ? mine[0] : mine[mine.length - 1] + 1, 0, added);
@@ -15800,33 +16023,36 @@
         toast(`Added the ${labelOf(added).replace(/^Cloud/, "cloud")}${unfit ? `; ${unfit === "Not in a stack" ? "its pane stacks, so it isn't drawn" : "its pane's scale doesn't draw it"}` : ""}`);
       }
       /**
-       * ⌘K's cloud: the chart's layers to tick (none a cloud), then one made of those; for a cloud (`id`), its layers,
-       * ticked on and off in place (two at least).
+       * ⌘K's cloud: the chart's layers (none a cloud) and an edge of the pane to tick, then one made of those; for a cloud
+       * (`id`), what it spans, ticked on and off in place.
        * @returns {Page}
        */
       function cloudPage(id = "") {
         const ticked = new Set();
-        return { title: id ? "Between" : "Add a cloud", placeholder: "Search the layers", rows: () => {
-          const cloud = id ? layerById(id) : null, layers = chart.layers.filter((layer) => !layer.cloud), has = (/** @type {string} */ layerId) => (cloud ? Boolean(cloud.cloud?.includes(layerId)) : ticked.has(layerId));
-          const letters = layers.filter((layer) => ticked.has(layer.id)).map((layer) => layer.letter);
-          /** Its layers as these (a cloud's, two at least). @param {string[]} ids */
+        return { title: id ? "Between" : "Add a cloud", placeholder: "Search the layers and edges", rows: () => {
+          const cloud = id ? layerById(id) : null, layers = chart.layers.filter((layer) => !layer.cloud), has = (/** @type {string} */ member) => (cloud ? Boolean(cloud.cloud?.includes(member)) : ticked.has(member));
+          const members = [...layers.map((layer) => layer.id), ...EDGES], short = cloudShort({ cloud: cloudOf(chart, ticked) });
+          /** What it spans as these. @param {string[]} ids */
           const put = (ids) => {
             if (!cloud) return void (ticked.clear(), ids.forEach((other) => ticked.add(other)));
-            editById(cloud.id, (item) => (item.cloud = layers.filter((other) => ids.includes(other.id)).map((other) => other.id)));
+            editById(cloud.id, (item) => (item.cloud = cloudOf(chart, ids)));
           };
-          const add = { label: letters.length > 1 ? `Add the cloud of ${letters.length > 3 ? plural(letters.length, "layer") : letters.join(", ")}` : "Select two layers or more", kbd: "⌘↵", stay: letters.length < 2, run: () => (letters.length < 2 ? notice("A cloud spans two layers or more") : addCloud([...ticked])) };
+          const add = { label: short || `Add the ${cloudName({ cloud: cloudOf(chart, ticked) }, chart).replace(/^Cloud/, "cloud")}`, kbd: "⌘↵", stay: Boolean(short), run: () => addCloud([...ticked]) };
+          /** A layer's row or an edge's: ↵ ticks it on or off. @param {string} member @param {Record<string, any>} row */
+          const tick = (member, row) => {
+            const on = has(member), toggle = () => put(toggleMember(members.filter(has), member));
+            return { kind: "row", key: member, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, run: toggle, ...row,
+              actions: () => [
+                { label: on ? "Deselect" : "Select", kbd: "↵", stay: true, run: toggle },
+                { label: "Select all", stay: true, run: () => put([...layers.map((other) => other.id), ...EDGES.filter(has)]) },
+                { label: "Deselect all", stay: true, run: () => put([]) },
+                ...(cloud ? [] : [add]),
+              ] };
+          };
           return [
-            ...layers.map((layer) => {
-              const on = has(layer.id), toggle = () => put(layers.filter((other) => (other === layer ? !on : has(other.id))).map((other) => other.id));
-              return { kind: "row", key: layer.id, icon: `<span class="letter" style="--c:${escape(ink(layer.color))}">${escape(layer.letter)}</span>`, label: labelOf(layer), aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", group: "Layers", stay: true, run: toggle, preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
-                actions: () => [
-                  { label: on ? "Deselect" : "Select", kbd: "↵", stay: true, run: toggle },
-                  { label: "Select all", stay: true, run: () => put(layers.map((other) => other.id)) },
-                  { label: "Deselect all", stay: true, run: () => put([]) },
-                  ...(cloud ? [] : [add]),
-                ] };
-            }),
-            ...(cloud ? [] : [{ kind: "row", key: "add", icon: ICONS.cloud, label: add.label, kbd: "⌘↵", dim: letters.length < 2, verb: letters.length < 2 ? "—" : "Add", stay: letters.length < 2, group: "Cloud", run: add.run }]),
+            ...layers.map((layer) => tick(layer.id, { icon: `<span class="letter" style="--c:${escape(ink(layer.color))}">${escape(layer.letter)}</span>`, label: labelOf(layer), group: "Layers", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id) })),
+            ...EDGES.map((edge) => tick(edge, { icon: edge === "top" ? ICONS.toTop : ICONS.toBottom, label: `The ${edge}`, words: "edge pane", group: "Edges" })),
+            ...(cloud ? [] : [{ kind: "row", key: "add", icon: ICONS.cloud, label: add.label, kbd: "⌘↵", dim: Boolean(short), verb: short ? "—" : "Add", stay: Boolean(short), group: "Cloud", run: add.run }]),
           ];
         } };
       }
@@ -16261,7 +16487,7 @@
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
           ...library.folders.map((folder) => ({ title: folder.name, text: `A folder: ${plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart")}.`, words: `folder ${folder.name}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })),
           ...(home ? [] : [{ title: "All charts", text: "Every chart, side by side.", words: "grid overview gallery library home browse", icon: "grid", run: () => showHome() }]),
-          ...(cloudable() ? [{ title: "Add a cloud", text: "Filled between layers: from the lowest of them to the highest, at each date.", words: "cloud band range envelope fill between min max percentiles", icon: "cloud", keepOpen: true, run: () => pushPage(cloudPage()) }] : []),
+          ...(cloudable() ? [{ title: "Add a cloud", text: "Filled between layers, from the lowest of them to the highest at each date, or from them to the pane's top or bottom.", words: "cloud band range envelope fill between min max percentiles", icon: "cloud", keepOpen: true, run: () => pushPage(cloudPage()) }] : []),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
           ...(empty ? [] : [{ title: "Copy a share link", text: "A link that opens this chart for anyone.", words: "share url send", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", words: "image picture tab open view", icon: "link", run: () => exportAs("open") }]),
@@ -16302,6 +16528,8 @@
             { title: "Clear the selection", text: `${n} selected.`, words: "selected chosen drawings deselect clear", icon: "close", kbd: "esc", run: () => chooseDrawings([]), suggested: true },
           ])(plural(ids.length, "drawing")))([...chosen])),
           ...(empty ? [] : [{ title: chart.halvings ? "Hide the halvings" : "Show the halvings", text: chart.halvings ? "The lines at each halving, off this chart." : "A line at each halving, and the next, estimated.", words: "halving halvings epoch cycle reward vertical lines markers", icon: "halvings", run: toggleHalvings }]),
+          ...(empty ? [] : LEGENDS.filter(([id]) => id !== (chart.legend ?? "")).map(([id, text, tip]) => ({ title: `Legend: ${text}`, text: `${tip}.`, words: `legend names values strip caption ${{ off: "hide none no", still: "fixed static stay keep put", "": "follow scroll pointer hover show" }[id]}`, icon: "legend", run: () => setLegend(id) }))),
+          ...(empty && !fullOn() ? [] : [{ title: fullOn() ? "Exit full screen" : "Full screen", text: "The chart alone, on the whole screen.", words: "fullscreen full screen focus maximize expand zen present", icon: fullOn() ? "shrink" : "expand", kbd: "⇧F", run: () => setFull() }]),
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           ...(TOUCH ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
@@ -16685,6 +16913,8 @@
         palette.items = palette.items.filter((item) => (palette.replacing || palette.adding ? item.kind === "series" || item.kind === "folder" || item.kind === "widen" : item.kind !== "chart" || Boolean(chartById(item.key))));
         palette.active = Math.min(palette.active, Math.max(0, palette.items.length - 1));
         let group = "";
+        // A new list starts at its top (set before it's written: after, it would lay the list out at once).
+        list.scrollTop = 0;
         list.innerHTML = palette.items.map((item, i) => {
           const header = item.group && item.group !== group ? `<li class="group" role="presentation">${escape((group = item.group))}</li>` : "";
           if (item.kind === "formula" || item.kind === "insert") return `${header}<li role="option" id="option-${i}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${formulaRow(item)}</li>`;
@@ -16697,8 +16927,7 @@
           return `${header}<li role="option" id="option-${i}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${icon}<span class="item-name">${name}</span>${meta}</li>`;
         }).join("") + tail;
         drawKeys(list);
-        // A new list starts at its top; a row landed on (coming back up) is brought into view, with its neighbors.
-        list.scrollTop = 0;
+        // A row landed on (coming back up) is brought into view, with its neighbors.
         if (palette.active) $(`option-${palette.active}`)?.scrollIntoView({ block: "center" });
         $("palette-input").setAttribute("aria-activedescendant", `option-${palette.active}`);
         preview();
@@ -17297,6 +17526,7 @@
               { key: "interval", icon: ICONS.recent, label: "Interval", aside: CADENCE[chart.index], group: "Chart", page: intervalPage },
               { key: "go-to", icon: ICONS.calendar, label: "Go to a date", aside: "A year, a month, a day", kbd: "G", group: "Chart", page: datePage },
               { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalize(PERIODS[shownRange()]) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => RANGES.filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalize(PERIODS[id]), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
+              { key: "legend", icon: ICONS.legend, label: "Legend", aside: LEGENDS.find(([id]) => id === (chart.legend ?? ""))?.[1], words: "legend names values strip caption hide show off still follow scroll pointer hover", group: "Chart", page: () => choicePage("Legend", () => LEGENDS.map(([id, text, , aside]) => ({ key: id || "follows", icon: ICONS.legend, label: text, aside, current: (chart.legend ?? "") === id, run: () => setLegend(id) }))) },
               { key: "layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), group: "In it", page: layersPage },
               { key: "panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), group: "In it", page: panesPage },
             ] : []),
@@ -17330,7 +17560,7 @@
         const open = () => layerPage(layer.id);
         return {
           kind: "row", key: `layer:${layer.id}`, icon: `<span class="letter" style="--c:${escape(ink(layer.color))}">${escape(layer.letter)}</span>`, label: labelOf(layer),
-          aside: layer.cloud ? `Between ${cloudLetters(layer).join(", ")}` : layer.series ?? layer.formula ?? "", mono: !layer.cloud, dim: Boolean(layer.hidden), words: `${layer.letter} layer ${layer.hidden ? "hidden" : ""}`, verb: "Open", page: open,
+          aside: layer.cloud ? `Between ${cloudSpan(layer)}` : layer.series ?? layer.formula ?? "", mono: !layer.cloud, dim: Boolean(layer.hidden), words: `${layer.letter} layer ${layer.hidden ? "hidden" : ""}`, verb: "Open", page: open,
           actions: () => [{ label: "Open", kbd: "↵", page: open }, ...open().rows().filter((row) => QUICK.has(row.key))],
           preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
         };
@@ -17363,7 +17593,7 @@
           }), (panel, option) => previewLayer(panel, id, key === "color" && option.key !== "other" ? option.key : null)) });
           const rows = [
             layer.cloud
-              ? { key: "between", icon: ICONS.cloud, label: "Between", aside: cloudLetters(layer).join(", "), group: "Cloud", leads: true, page: () => cloudPage(id) }
+              ? { key: "between", icon: ICONS.cloud, label: "Between", aside: cloudSpan(layer), group: "Cloud", leads: true, page: () => cloudPage(id) }
               : layer.series
               ? { key: "series", icon: ICONS.series, label: "Series", aside: layer.series, mono: true, verb: "Change", group: first, leads: true, stay: true, run: () => changeSeries(id) }
               : { key: "formula", icon: ICONS.formula, label: "Formula", aside: layer.formula, mono: true, verb: "Edit", group: first, leads: true, stay: true, run: () => editFormula(id) },
@@ -17376,7 +17606,7 @@
             ...(pair
               ? [color("color", `Color ${pair[0].toLowerCase()}`, (item) => item.color, (item, name) => (item.color = name)), color("color-below", `Color ${pair[1].toLowerCase()}`, belowOf, (item, name) => (item.colorBelow = name === "red" ? undefined : name))]
               : [color("color", "Color", (item) => item.color, (item, name) => (item.color = name))]),
-            { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round((layer.opacity ?? 1) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: (now().opacity ?? 1) === opacity, ...both((item) => (item.opacity = opacity === 1 ? undefined : opacity)) }))) },
+            { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round(opacityOf(layer) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: opacityOf(now()) === opacity, ...both((item) => (item.opacity = opacity === defaultOpacity(item) ? undefined : opacity)) }))) },
             ...(layer.type !== "histogram" ? [{ key: "width", icon: ICONS.sliders, label: "Width", aside: `${layer.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) }] : []),
             ...(lineish ? [
               { key: "dash", icon: dashGlyph(style[2], style[3]), label: "Line style", aside: style[1], group: "Style", page: () => choicePage("Line style", () => DASHES.map(([dash, text, length, gap]) => ({ key: String(dash), icon: dashGlyph(length, gap), label: text, current: now().dash === dash, ...both((item) => (item.dash = dash)) }))) },
@@ -17568,7 +17798,7 @@
         const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), at = chart.panes.findIndex((pane) => pane.id === layer.pane);
         const about = layer.series ? known.get(layer.series)?.description : null;
         panel.innerHTML = `<h4 class="plain">${escape(labelOf(layer))}</h4>
-          <p class="description">${layer.cloud ? escape(`Between ${cloudLetters(layer).join(", ") || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? "")}</code>`}</p>
+          <p class="description">${layer.cloud ? escape(`Between ${cloudSpan(layer) || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? "")}</code>`}</p>
           ${about ? `<p class="description clamped">${escape(about)}</p>` : ""}
           ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.cloud ? "" : '<svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
           <div class="info"><h5>Layer ${escape(layer.letter)}</h5><dl>
@@ -18240,7 +18470,7 @@
       function portable(doc) {
         if (doc === chart) saveView();
         const kept = leftView(doc.id);
-        return { v: 2, title: doc.title, index: doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), panes: doc.panes, layers: doc.layers, ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
+        return { v: 2, title: doc.title, index: doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), ...(doc.legend ? { legend: doc.legend } : {}), panes: doc.panes, layers: doc.layers, ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
       }
       /** The view a file or a link carried with a chart, kept for it (as `saveView` keeps one). @param {Chart} doc */
       function keepCarriedView(doc, input) {
@@ -18251,7 +18481,7 @@
         storage.set(VIEWS, all);
       }
       /** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
-      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.cloud ? { cloud: layer.cloud.map((member) => doc.layers.findIndex((item) => item.id === member)) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
+      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.legend ?? "", doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.cloud ? { cloud: layer.cloud.map((member) => (EDGES.includes(member) ? member : doc.layers.findIndex((item) => item.id === member))) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
       /** Two charts alike (a link opened again is the chart already here). */
       const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf(a) === contentOf(b);
       /** A time as a link writes it: its date ("2021-11-10"), with its time where it has one ("2021-11-10T14:30:00Z"). */
@@ -18280,6 +18510,7 @@
           ...(doc.index !== "day1" ? { index: doc.index } : {}),
           ...(doc.range !== "max" ? { range: doc.range } : {}),
           ...(doc.halvings ? { halvings: true } : {}),
+          ...(doc.legend ? { legend: doc.legend } : {}),
           ...(plain ? {} : { panes: doc.panes.map(({ id, ...pane }) => pane) }),
           // (Not a series' path in the catalog: learned again where it opens.)
           layers: doc.layers.map(({ id, letter, pane, cloud, type, width, dash, side, path, paths, series, formula, ...rest }) => ({
@@ -18393,8 +18624,10 @@
         const ownString = (/** @type {any} */ value, /** @type {RegExp} */ shape) => (typeof value === "string" && shape.test(value) ? value : null);
         const paneIds = new Set(given.map((/** @type {any} */ pane) => ownString(pane?.id, /^[a-z0-9]{1,16}$/)).filter(Boolean)), nextPane = free(paneIds, (n) => `p${n}`);
         const panes = given.slice(0, MAX_PANES).map((/** @type {any} */ pane, /** @type {number} */ i) => ({ ...(i ? {} : { mode: 1 }), ...pane, id: ownString(pane?.id, /^[a-z0-9]{1,16}$/) ?? nextPane() }));
-        const nextId = free(new Set(layers.map((/** @type {any} */ layer) => ownString(layer.id, /^[a-z0-9]{1,16}$/)).filter(Boolean)), (n) => `l${n}`);
-        const ids = layers.map((/** @type {any} */ layer) => ownString(layer.id, /^[a-z0-9]{1,16}$/) ?? nextId());
+        // (A layer's own id, but an edge's name: a cloud's "top" is its pane's.)
+        const ownId = (/** @type {any} */ value) => ((id) => (id && !EDGES.includes(id) ? id : null))(ownString(value, /^[a-z0-9]{1,16}$/));
+        const nextId = free(new Set(layers.map((/** @type {any} */ layer) => ownId(layer.id)).filter(Boolean)), (n) => `l${n}`);
+        const ids = layers.map((/** @type {any} */ layer) => ownId(layer.id) ?? nextId());
         const nextLetter = free(new Set(layers.map((/** @type {any} */ layer) => ownString(layer.letter, /^[A-Z]{1,2}$/)).filter(Boolean)), letterAt);
         const letters = layers.map((/** @type {any} */ layer) => ownString(layer.letter, /^[A-Z]{1,2}$/) ?? nextLetter());
         // (A cloud without one, its first layer's, as one made here takes; others, the palette's first unused.)
@@ -18423,7 +18656,7 @@
             ...layer,
             id: ids[i],
             letter: letters[i],
-            color: colors[i] ?? colors[ids.indexOf(cloud?.[0])] ?? PALETTE[0],
+            color: colors[i] ?? colors[ids.indexOf(cloud?.find((member) => ids.includes(member)))] ?? PALETTE[0],
             ...(number(layer.pane) !== null ? { pane: panes[clamp(/** @type {number} */ (number(layer.pane)), 1, panes.length) - 1].id } : layer.pane === undefined ? { pane: panes[0].id } : {}),
             ...(typeof layer.series === "string" ? { series: layer.series.trim().toLowerCase().replace(/[\s-]+/g, "_") } : {}),
             ...(cloud ? { cloud } : {}),
@@ -18458,6 +18691,7 @@
         doc.index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1";
         doc.range = RANGES.some(([id]) => id === input.range) ? input.range : "max";
         if (input.halvings === true) doc.halvings = true;
+        if (input.legend === "off" || input.legend === "still") doc.legend = input.legend;
         const panes = input.panes.slice(0, MAX_PANES);
         doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}) }));
         const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
@@ -18467,7 +18701,7 @@
           if (!layer || typeof layer !== "object") continue;
           /** @type {Record<string, any>} */
           const spec = {
-            ...(Array.isArray(layer.cloud) ? { cloud: layer.cloud.filter((id) => typeof id === "string").slice(0, MAX_LAYERS) } : typeof layer.series === "string"
+            ...(Array.isArray(layer.cloud) ? { cloud: layer.cloud.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
               ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
               : { formula: currentFormula(String(layer.formula ?? "").slice(0, 1000)), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
             ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
@@ -18480,7 +18714,7 @@
             hidden: layer.hidden === true || undefined,
             priceLine: layer.priceLine === true || undefined,
             colorBelow: isColor(layer.colorBelow) ? layer.colorBelow : undefined,
-            opacity: OPACITIES.includes(layer.opacity) && layer.opacity < 1 ? layer.opacity : undefined,
+            opacity: OPACITIES.includes(layer.opacity) && layer.opacity !== defaultOpacity(layer) ? layer.opacity : undefined,
             letter: typeof layer.letter === "string" && /^[A-Z]{1,2}$/.test(layer.letter) ? layer.letter : undefined,
             ...(layer.format !== "auto" && FORMATS.some(([id]) => id === layer.format) ? { format: layer.format } : {}),
             ...(Number.isFinite(layer.base) ? { base: layer.base } : {}),
@@ -18505,8 +18739,8 @@
           if (typeof layer.id === "string") layerIds.set(layer.id, id);
           doc.layers.push(makeLayer({ ...Object.fromEntries(Object.entries(spec).filter(([, value]) => value !== undefined)), id }, doc));
         }
-        // A cloud's layers, by their ids here (normalize leaves out what's not a layer, and a cloud of fewer than two).
-        for (const layer of doc.layers) if (layer.cloud) layer.cloud = layer.cloud.flatMap((id) => (layerIds.has(id) ? [/** @type {string} */ (layerIds.get(id))] : []));
+        // A cloud's layers, by their ids here, and its edges (normalize leaves out what's not a layer).
+        for (const layer of doc.layers) if (layer.cloud) layer.cloud = layer.cloud.flatMap((id) => (EDGES.includes(id) ? [id] : layerIds.has(id) ? [/** @type {string} */ (layerIds.get(id))] : []));
         // Drawings: each on a layer read, its points numbers (as many as its kind takes), its look where valid.
         doc.drawings = (Array.isArray(input.drawings) ? input.drawings : []).slice(0, MAX_DRAWINGS).flatMap((drawing) => {
           const kind = drawing?.kind, layer = layerIds.get(drawing?.layer);
@@ -18562,12 +18796,13 @@
         if (kind === "csv") {
           const layers = chart.layers.filter((layer) => resolved.results.get(layer.id)?.shown);
           const quote = (text) => `"${String(text).replace(/"/g, '""')}"`;
-          // (A cloud's two columns: its low, its high.)
-          const header = ["date", ...layers.flatMap((layer) => (layer.cloud ? [quote(`${layer.letter} ${labelOf(layer)} (low)`), quote(`${layer.letter} ${labelOf(layer)} (high)`)] : [quote(`${layer.letter} ${labelOf(layer)}`)]))].join(",");
+          // (A cloud's columns: its low, its high, but for an edge.)
+          const ends = (/** @type {Layer} */ layer) => (["low", "high"]).filter((end) => !layer.cloud?.includes(end === "low" ? "bottom" : "top"));
+          const header = ["date", ...layers.flatMap((layer) => (layer.cloud ? ends(layer).map((end) => quote(`${layer.letter} ${labelOf(layer)} (${end})`)) : [quote(`${layer.letter} ${labelOf(layer)}`)]))].join(",");
           const rows = resolved.times.map((time, i) => {
             const cells = layers.flatMap((layer) => {
               const result = resolved.results.get(layer.id);
-              return (result.low ? [result.low[i], result.shown[i]] : [result.shown[i]]).map((value) => (Number.isFinite(value) ? String(value) : ""));
+              return (layer.cloud ? ends(layer).map((end) => (end === "low" ? /** @type {Vector} */ (result.low) : result.shown)[i]) : [result.shown[i]]).map((value) => (Number.isFinite(value) ? String(value) : ""));
             });
             return cells.some(Boolean) ? [new Date(time * 1000).toISOString().slice(0, FINE.has(chart.index) ? 16 : 10), ...cells].join(",") : null;
           }).filter(Boolean);
@@ -18651,6 +18886,9 @@
         context.font = font(590, 20);
         context.fillText(fitted(context, title, canvas.width - pad * 2), pad, px(38));
         context.drawImage(shot, pad, head);
+        // (The time axis's rule, as the page draws it over the chart.)
+        context.fillStyle = css("--line");
+        context.fillRect(pad, head + shot.height - Math.round(view.timeScale().height() * scale) - px(1), shot.width, Math.max(1, px(1)));
         for (const piece of pieces) {
           const x = pad + piece.x, y = head + piece.y;
           context.globalAlpha = piece.faded ? 0.4 : 1;
@@ -18662,7 +18900,13 @@
           context.fillStyle = /** @type {string} */ (piece.color);
           context.textAlign = piece.align ?? "left";
           context.textBaseline = "middle";
-          context.fillText(fitted(context, /** @type {string} */ (piece.text), piece.width), piece.align === "right" ? x + piece.width : x, y + piece.height / 2);
+          // (Edged as the page edges it: a hairline of the card's color under the letters.)
+          const text = fitted(context, /** @type {string} */ (piece.text), piece.width), at = piece.align === "right" ? x + piece.width : x;
+          context.strokeStyle = cardColor;
+          context.lineWidth = 2 * scale;
+          context.lineJoin = "round";
+          context.strokeText(text, at, y + piece.height / 2);
+          context.fillText(text, at, y + piece.height / 2);
         }
         context.globalAlpha = 1;
         context.textAlign = "left";
@@ -18681,7 +18925,7 @@
         context.fillText(" · bitview.space", at, baseline);
         at += context.measureText(" · bitview.space").width;
         // Too narrow for all of it: the view's dates go first, the values' date stays.
-        const full = [cadence, dates.span, dates.values].join(" · "), short = [cadence, dates.values].join(" · ");
+        const full = [cadence, dates.span, dates.values].filter(Boolean).join(" · "), short = [cadence, dates.values || dates.span].join(" · ");
         context.textAlign = "right";
         context.fillText(context.measureText(full).width < canvas.width - pad - at - px(24) ? full : short, canvas.width - pad, baseline);
         return canvas;
@@ -18690,7 +18934,7 @@
       function viewDates() {
         const times = resolved.times, fine = FINE.has(chart.index), span = view.timeScale().getVisibleRange();
         const last = times[lastShown()];
-        return { span: spanParts(Number(span?.from ?? times[0]), Number(span?.to ?? last), fine).join(" – "), values: `Values on ${dateLabel(last, fine)}` };
+        return { span: spanParts(Number(span?.from ?? times[0]), Number(span?.to ?? last), fine).join(" – "), values: chart.legend === "off" ? "" : `Values on ${dateLabel(last, fine)}` };
       }
       /** A text cut with an ellipsis to fit a width, as the page cuts a long name. */
       function fitted(context, text, width) {
@@ -18955,6 +19199,10 @@
         updateStatus();
         scheduleThumbs();
         renderBelt();
+        redrawChart(redraw, refit);
+      }
+      /** The chart drawn again as it is now: its legends and drawings only (`none`), restyled on its data, or resolved anew. */
+      function redrawChart(/** @type {Redraw} */ redraw, refit = false) {
         if (redraw === "none") {
           updateLegends();
           showDrawings(chart);
@@ -18972,6 +19220,8 @@
         const tick = closest(event, "[data-pick-layer]");
         if (tick) return pickLayer(/** @type {string} */ (tick.dataset.pickLayer), event.shiftKey);
         if (closest(event, "[data-markers]")) return toggleHalvings();
+        const legendMode = closest(event, "[data-legend]");
+        if (legendMode) return setLegend(/** @type {string} */ (legendMode.dataset.legend));
         const paneEye = closest(event, "[data-pane-eye]");
         if (paneEye) return hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id));
         const template = closest(event, "[data-template]");
@@ -19009,13 +19259,14 @@
         else if (action === "toggle-panel") togglePanel();
         else if (action === "shortcuts") showShortcuts();
         else if (action === "theme") themeMenu(target);
+        else if (action === "full") setFull();
         else if (action === "draw") toggleBelt();
         else if (action === "close-palette") dismissPalette();
         else if (action === "close-shortcuts") $("shortcuts").close();
         else if (action === "close-sheet") {
           delete document.body.dataset.sheet;
           document.body.removeAttribute("data-peek");
-          if (!phone.matches && prefs.panel === "open") togglePanel(false);
+          if (!phone.matches && panelShown()) togglePanel(false);
         }
         else if (sheet) {
           if (document.body.dataset.sheet === sheet) delete document.body.dataset.sheet;
@@ -19139,6 +19390,7 @@
           return pickLayer(/** @type {string} */ (row.dataset.layer));
         }
         if (event.key === "/") openPalette({ resume: true });
+        else if (key === "f" && event.shiftKey && !home) setFull();
         else if (key === "f") addFormula();
         else if (key === "n") newChart();
         else if (key === "a" && chart.layers.length < MAX_LAYERS) openPalette({ add: true });
@@ -19160,7 +19412,7 @@
           else if (selected) deselect();
           else if (document.body.hasAttribute("data-peek")) document.body.removeAttribute("data-peek");
           else if (document.body.dataset.sheet) delete document.body.dataset.sheet;
-          else if (!home && tablet.matches && prefs.panel === "open") togglePanel(false);
+          else if (!home && tablet.matches && panelShown()) togglePanel(false);
           // A new chart left empty: Escape takes it back, as its Cancel button does.
           else if (!home && !chart.layers.length && isDraft(chart) && (previousChart() || backToHome())) leaveEmpty();
         } else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && event.shiftKey) extendPicks(event.key === "ArrowDown" ? 1 : -1);
