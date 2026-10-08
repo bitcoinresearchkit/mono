@@ -2019,8 +2019,8 @@
         }
 
         .swatch {
-          width: 15px;
-          height: 15px;
+          width: 18px;
+          height: 18px;
         }
       }
 
@@ -3385,7 +3385,8 @@
         font-weight: 400;
       }
 
-      /* The color, one box: Bitview's colors on top, the surface under a hairline, one border around both. */
+      /* The color, one box, as the panel's other fields are: Bitview's colors on top, the surface under a hairline, one
+         border around both. */
       .color-box {
         position: relative;
         border-radius: var(--radius-md);
@@ -3410,8 +3411,39 @@
           }
         }
 
-        &:has(> .preset:focus-visible)::after {
-          box-shadow: var(--field-focus);
+        .plane {
+          border-top: 1px solid var(--line-strong);
+          border-radius: 0 0 var(--radius-md) var(--radius-md);
+        }
+      }
+
+      /* In a popover, no box of its own (the popover is one): Bitview's colors on the label's line, the surface under
+         them a control of its own, edged as one. */
+      .color-pop .color-box {
+        background: none;
+
+        &::after {
+          display: none;
+        }
+
+        .swatch-grid {
+          padding: 0;
+        }
+
+        .plane {
+          margin-top: 6px;
+          border-top: 0;
+          border-radius: var(--radius-md);
+
+          /* (Its edge over its colors: a dark one's would fade into the popover.) */
+          &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            box-shadow: inset 0 0 0 1px var(--line-strong);
+            pointer-events: none;
+          }
         }
       }
 
@@ -3451,12 +3483,10 @@
         }
       }
 
-      /* Under the name, past a hairline: every hue across, lightness down, at one chroma where sRGB holds it; grays last. */
+      /* Under the swatches: every hue across, lightness down, at one chroma where sRGB holds it; grays last. */
       .plane {
         position: relative;
         height: 80px;
-        border-top: 1px solid var(--line-strong);
-        border-radius: 0 0 var(--radius-md) var(--radius-md);
         background: var(--card);
         cursor: crosshair;
         touch-action: none;
