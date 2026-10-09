@@ -334,13 +334,18 @@ export class QuickMatch {
 
     const known = [];
     const unknown = [];
+    // Every word of three letters or more the index doesn't hold: each must be
+    // a typo of a candidate's (the trigrams probe only some of them; shorter
+    // ones are left out, as they are when nothing's mistyped).
+    const unmatched = [];
 
     for (const w of qwords) {
       const hits = this._postings(w);
       if (hits) {
         known.push(hits);
-      } else if (w.length >= 3 && unknown.length < trigramBudget) {
-        unknown.push(w);
+      } else if (w.length >= 3) {
+        unmatched.push(w);
+        if (unknown.length < trigramBudget) unknown.push(w);
       }
     }
 
@@ -400,7 +405,11 @@ export class QuickMatch {
         Math.max(0, q.length - 3),
       );
       const minScore = Math.max(config.minScore, Math.ceil(hitCount / 2));
-      const result = this._rank(dirty, minScore, qwords, sep, limit, bestOnly);
+      // Shared trigrams only nominate: each unknown word must be a typo of one
+      // of the item's words, not letters scattered across several.
+      const checks = unmatched.map((word) => new Typo(word)), indexed = sep === this._sepLookup;
+      const typos = dirty.filter((i) => scores[i] >= minScore && checks.every((typo) => (indexed ? typo.ofIndexed(this, i) : typo.ofText(this.items[i], sep))));
+      const result = this._rank(typos, minScore, qwords, sep, limit, bestOnly);
 
       for (const i of dirty) scores[i] = 0;
       dirty.length = 0;
@@ -669,6 +678,152 @@ function wordMatch(item, qwords, sep, exact = false) {
     }
   }
   return [matched, position];
+}
+
+/**
+ * A query word not in the index, checked against candidates: whether it's a
+ * typo of a run of an item's adjacent words (one word, or several joined):
+ * within one edit of the whole run (a swap counts as one; two from seven
+ * letters), or, from five letters, within one edit of the run's start (a word
+ * typed partway). Never letters scattered across words. Runs too short to be
+ * close are skipped, longer ones stop growing, and (by an index's word ids)
+ * each word and pair is compared once per query.
+ */
+class Typo {
+  /** @param {string} word */
+  constructor(word) {
+    this.codes = Int32Array.from(word, (c) => c.charCodeAt(0));
+    this.most = word.length >= 7 ? 2 : 1;
+    /** One word's answer by its number: 0 not asked yet, 1 no, 2 yes. @type {Uint8Array | null} */
+    this.single = null;
+    /** Pairs' answers, by their numbers. @type {Map<number, boolean>} */
+    this.runs = new Map();
+    /** Whether a word can start a close run (0 not asked yet, 1 no, 2 yes), by its number. @type {Uint8Array | null} */
+    this.starts = null;
+  }
+
+  /** Whether `word` is within reach of some start of this one: else no run it begins is (its alignment, cut after it, costs no more). @param {string} word */
+  startsRun(word) {
+    if (letters.length < word.length) letters = new Int32Array(word.length * 2);
+    for (let c = 0; c < word.length; c++) letters[c] = word.charCodeAt(c);
+    return editsWithin(letters, word.length, this.codes, this.codes.length, this.most, true);
+  }
+
+  /** In an index's own words, by their numbers. @param {QuickMatch} index @param {number} idx */
+  ofIndexed(index, idx) {
+    const words = index._words, ids = index._itemWords, from = index._itemOffsets[idx], to = index._itemOffsets[idx + 1];
+    const n = this.codes.length, count = words.length, single = (this.single ??= new Uint8Array(count)), starts = (this.starts ??= new Uint8Array(count));
+    for (let first = from; first < to; first++) {
+      const id = ids[first], length = words[id].length;
+      if (length + this.most >= n) {
+        if (single[id] === 0) single[id] = this.closeRun(words, ids, first, first, length) ? 2 : 1;
+        if (single[id] === 2) return true;
+      }
+      // (Longer runs from here: only from a word that can start one.)
+      if (length > n || first + 1 === to) continue;
+      if (starts[id] === 0) starts[id] = this.startsRun(words[id]) ? 2 : 1;
+      if (starts[id] === 1) continue;
+      let len = length;
+      for (let last = first + 1; last < to; last++) {
+        if (len > n) break;
+        len += words[ids[last]].length;
+        if (len + this.most < n) continue;
+        // (Pairs remembered, by a key small enough to stay a small integer, and exact; longer runs are rare.)
+        const key = last - first === 1 && count < 94906266 ? ids[first] * count + ids[last] : -1;
+        let close = key >= 0 ? this.runs.get(key) : undefined;
+        if (close === undefined) {
+          close = this.closeRun(words, ids, first, last, len);
+          if (key >= 0) this.runs.set(key, close);
+        }
+        if (close) return true;
+      }
+    }
+    return false;
+  }
+
+  /** In an item's text, split on the caller's separators. @param {string} item @param {Uint8Array} sep */
+  ofText(item, sep) {
+    /** @type {string[]} */
+    const words = [];
+    let start = 0;
+    for (let i = 0; i <= item.length; i++) {
+      if (i < item.length && !sep[item.charCodeAt(i)]) continue;
+      if (i > start) words.push(item.slice(start, i));
+      start = i + 1;
+    }
+    const ids = Uint32Array.from(words, (_, k) => k), n = this.codes.length;
+    for (let first = 0; first < words.length; first++) {
+      const length = words[first].length;
+      if (length + this.most >= n && this.closeRun(words, ids, first, first, length)) return true;
+      if (length > n || first + 1 === words.length || !this.startsRun(words[first])) continue;
+      let len = length;
+      for (let last = first + 1; last < words.length; last++) {
+        if (len > n) break;
+        len += words[last].length;
+        if (len + this.most < n) continue;
+        if (this.closeRun(words, ids, first, last, len)) return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * The run of words `ids[first..=last]` (`len` letters in all), cut to this word's length and `most` more: within reach
+   * of it whole, or of its start.
+   * @param {string[]} words @param {ArrayLike<number>} ids @param {number} first @param {number} last @param {number} len
+   */
+  closeRun(words, ids, first, last, len) {
+    const n = this.codes.length, cut = Math.min(len, n + this.most);
+    if (letters.length < cut) letters = new Int32Array(cut * 2);
+    let k = 0;
+    for (let w = first; w <= last && k < cut; w++) {
+      const word = words[ids[w]];
+      for (let c = 0; c < word.length && k < cut; c++) letters[k++] = word.charCodeAt(c);
+    }
+    return (cut === len && editsWithin(this.codes, this.codes.length, letters, cut, this.most, false)) || (n >= 5 && editsWithin(this.codes, this.codes.length, letters, Math.min(cut, n + 1), 1, true));
+  }
+}
+
+/** The letters compared, and the rows of their comparison: reused from one to the next. */
+let letters = new Int32Array(32);
+let before = new Int32Array(32);
+let row = new Int32Array(32);
+let next = new Int32Array(32);
+
+/**
+ * Whether the first `n` of `a` and the first `m` of `b` are at most `most`
+ * edits apart (insertions, deletions, substitutions, adjacent swaps), giving up
+ * as soon as they can't be; `start`: `a` against the closest start of `b`
+ * instead (the last row's least, which no row lowers).
+ * @param {Int32Array} a @param {number} n @param {Int32Array} b @param {number} m @param {number} most @param {boolean} start
+ */
+function editsWithin(a, n, b, m, most, start) {
+  if (!start && Math.abs(n - m) > most) return false;
+  if (row.length <= m) {
+    before = new Int32Array((m + 1) * 2);
+    row = new Int32Array((m + 1) * 2);
+    next = new Int32Array((m + 1) * 2);
+  }
+  let x = before;
+  let y = row;
+  let z = next;
+  for (let j = 0; j <= m; j++) y[j] = j;
+  for (let i = 1; i <= n; i++) {
+    z[0] = i;
+    let least = i;
+    for (let j = 1; j <= m; j++) {
+      let value = Math.min(y[j] + 1, z[j - 1] + 1, y[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) value = Math.min(value, x[j - 2] + 1);
+      z[j] = value;
+      if (value < least) least = value;
+    }
+    if (least > most) return false;
+    const t = x;
+    x = y;
+    y = z;
+    z = t;
+  }
+  return start || y[m] <= most;
 }
 
 /** @param {number} len @param {number} round */

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cmp::Ordering, iter};
+use std::{borrow::Cow, cmp::Ordering, iter, mem};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -204,13 +204,20 @@ impl<'a> QuickMatch<'a> {
         }
 
         let mut unknown_words: Vec<&str> = vec![];
+        // Every word of three letters or more the index doesn't hold: each must be
+        // a typo of a candidate's (the trigrams probe only some of them; shorter
+        // ones are left out, as they are when nothing's mistyped).
+        let mut unmatched: Vec<&str> = vec![];
         let mut known_lists: Vec<&[ItemId]> = vec![];
 
         for &word in &query_words {
             if let Some(items) = self.word_index.get(word) {
                 known_lists.push(items)
-            } else if word.len() >= 3 && unknown_words.len() < trigram_budget {
-                unknown_words.push(word)
+            } else if word.len() >= 3 {
+                unmatched.push(word);
+                if unknown_words.len() < trigram_budget {
+                    unknown_words.push(word)
+                }
             }
         }
 
@@ -299,8 +306,13 @@ impl<'a> QuickMatch<'a> {
             let (scores, hit_count) =
                 self.score_trigrams(&unknown_words, trigram_budget, pool.as_deref(), min_len);
             let min_score = hit_count.div_ceil(2).max(MIN_SCORE);
+            // Shared trigrams only nominate: each unknown word must be a typo of
+            // one of the item's words, not letters scattered across several.
+            let mut typos: Vec<Typo> = unmatched.iter().map(|word| Typo::new(word)).collect();
             let results = self.rank::<false>(
-                scores.into_iter().filter(|(_, s)| *s >= min_score),
+                scores.into_iter().filter(|&(id, s)| {
+                    s >= min_score && typos.iter_mut().all(|typo| typo.of(self.item(id), &sep))
+                }),
                 &query_words,
                 &sep,
                 limit,
@@ -541,6 +553,159 @@ fn word_match(item: &str, query_words: &[&str], sep: &[bool; 256], exact: bool) 
         }
     }
     (matched, first_position)
+}
+
+/// A query word not in the index, checked against candidates: whether it's a
+/// typo of a run of an item's adjacent words (one word, or several joined):
+/// within one edit of the whole run (a swap counts as one; two from seven
+/// letters), or, from five letters, within one edit of the run's start (a word
+/// typed partway). Never letters scattered across words. Runs too short to be
+/// close are skipped, longer ones stop growing, and each is compared once per
+/// query.
+struct Typo<'q, 's> {
+    word: &'q [u8],
+    most: usize,
+    seen: FxHashMap<&'s str, bool>,
+    /// Whether a word can start a close run.
+    starts: FxHashMap<&'s str, bool>,
+    spans: Vec<(usize, usize)>,
+    letters: Vec<u8>,
+    rows: [Vec<usize>; 3],
+}
+
+impl<'q, 's> Typo<'q, 's> {
+    fn new(word: &'q str) -> Self {
+        Self {
+            word: word.as_bytes(),
+            most: if word.len() >= 7 { 2 } else { 1 },
+            seen: FxHashMap::default(),
+            starts: FxHashMap::default(),
+            spans: Vec::new(),
+            letters: Vec::new(),
+            rows: Default::default(),
+        }
+    }
+
+    fn of(&mut self, item: &'s str, sep: &[bool; 256]) -> bool {
+        let bytes = item.as_bytes();
+        self.spans.clear();
+        let mut at = 0;
+        while at < bytes.len() {
+            while at < bytes.len() && sep[bytes[at] as usize] {
+                at += 1;
+            }
+            let start = at;
+            while at < bytes.len() && !sep[bytes[at] as usize] {
+                at += 1;
+            }
+            if at > start {
+                self.spans.push((start, at));
+            }
+        }
+        let n = self.word.len();
+        for first in 0..self.spans.len() {
+            let (start, end) = self.spans[first];
+            let length = end - start;
+            if length + self.most >= n && self.remembered(item, first, first, length) {
+                return true;
+            }
+            // (Longer runs from here: only from a word that can start one, out of
+            // reach of every start of this one, its alignment cut after it costs
+            // no more.)
+            if length > n || first + 1 == self.spans.len() {
+                continue;
+            }
+            let word = &item[start..end];
+            let starts = match self.starts.get(word) {
+                Some(&starts) => starts,
+                None => {
+                    let starts = edits_within(word.as_bytes(), self.word, self.most, true, &mut self.rows);
+                    self.starts.insert(word, starts);
+                    starts
+                }
+            };
+            if !starts {
+                continue;
+            }
+            let mut len = length;
+            for last in first + 1..self.spans.len() {
+                if len > n {
+                    break;
+                }
+                len += self.spans[last].1 - self.spans[last].0;
+                if len + self.most >= n && self.remembered(item, first, last, len) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// Whether the run of words `first..=last` is close, each run's answer kept
+    /// by its span in the item.
+    fn remembered(&mut self, item: &'s str, first: usize, last: usize, len: usize) -> bool {
+        let run = &item[self.spans[first].0..self.spans[last].1];
+        if let Some(&close) = self.seen.get(run) {
+            return close;
+        }
+        let close = self.close(item.as_bytes(), first, last, len);
+        self.seen.insert(run, close);
+        close
+    }
+
+    /// The run of words `first..=last` (`len` letters in all), cut to this word's
+    /// length and `most` more: within reach of it whole, or of its start.
+    fn close(&mut self, bytes: &[u8], first: usize, last: usize, len: usize) -> bool {
+        let n = self.word.len();
+        let cut = len.min(n + self.most);
+        self.letters.clear();
+        for &(start, end) in &self.spans[first..=last] {
+            let take = (cut - self.letters.len()).min(end - start);
+            self.letters.extend_from_slice(&bytes[start..start + take]);
+            if self.letters.len() == cut {
+                break;
+            }
+        }
+        (cut == len && edits_within(self.word, &self.letters, self.most, false, &mut self.rows))
+            || (n >= 5 && edits_within(self.word, &self.letters[..cut.min(n + 1)], 1, true, &mut self.rows))
+    }
+}
+
+/// Whether `a` and `b` are at most `most` edits apart (insertions, deletions,
+/// substitutions, adjacent swaps), giving up as soon as they can't be; `start`:
+/// `a` against the closest start of `b` instead (the last row's least, which no
+/// row lowers). `rows` are reused from one call to the next.
+fn edits_within(a: &[u8], b: &[u8], most: usize, start: bool, rows: &mut [Vec<usize>; 3]) -> bool {
+    if !start && a.len().abs_diff(b.len()) > most {
+        return false;
+    }
+    let [before, row, next] = rows;
+    for cells in [&mut *before, &mut *row, &mut *next] {
+        cells.clear();
+        cells.resize(b.len() + 1, 0);
+    }
+    for (j, cell) in row.iter_mut().enumerate() {
+        *cell = j;
+    }
+    for i in 1..=a.len() {
+        next[0] = i;
+        let mut least = i;
+        for j in 1..=b.len() {
+            let cost = usize::from(a[i - 1] != b[j - 1]);
+            let mut value = (row[j] + 1).min(next[j - 1] + 1).min(row[j - 1] + cost);
+            if i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1] {
+                value = value.min(before[j - 2] + 1);
+            }
+            next[j] = value;
+            least = least.min(value);
+        }
+        if least > most {
+            return false;
+        }
+        mem::swap(before, row);
+        mem::swap(row, next);
+    }
+    start || row[b.len()] <= most
 }
 
 /// Picks which trigram of a length-`len` word to probe on `round`, spreading
