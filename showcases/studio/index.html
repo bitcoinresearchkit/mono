@@ -18,6 +18,24 @@
     <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link: a chart is a link, #chart= and its JSON (this page's text says how, and how to have its picture)." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAKqUlEQVR4nOydfWwT5x3Hz/adnTgkpaMDQgIkJIaEEAZBDA1NawUVtGIv6mi3tpu2UQora2Gj7VoNGJo6mpV10FJEKVShqgai21q0raUVEhtok7pRRMmAkIQEEl6SUhbShEBs3519+xlLaKryiy/gxM9z9/0o8h/gyHe5j5/n93L3PGpWdlABoC+8CgAMkAOwQA7AAjkAC+QALJADsEAOwAI5AAvkACyQA7BADsACOQAL5AAskAOwQA7AAjkAC+QALJADsEAOwAI5AAvkACyQA7BADsACOQAL5AAskAOwQA7AAjkAC+QALJADsEAOwAI5AAvkACyQA7BADsCiKi5mVJa1oDBWkhvPD1oF2daYoEX/2N7raQt76PVMj3fvBd+nEY/iVjzuXDBu4XjzwSJzxoh4ynceuex9q1V956wbv0XukiOoKotKjR+VmCMC1oB+sSPqefO0+kaz1msq7sEtcmT5lEdDxpKQmasNTIv/p8fwbD2VUCQaU9yAK+T4TpG5crJBEYaSDi6GPRtPam+7YKJxuBwUVVRP10N5qWOLgdJ0xbvqqJ8iEsW5OFaOgqC1ulK/p2BwJ4AP2nzVx/1tvc7MaBwoR7ZP+ckk4/Eyw+b7z13ztF71XjWVq4aHXsOmZ9yw+LTb42Nz7E5Dr9Rr205pYccFIk6Tg3LUn1cYI22EF3Qt/9Cq/rFVbejue2qYfFucghX6oWA2JZcinhfrNIdlvM6RY8rweHWVTq923ryjWd1cr3UbqaeD2/3W8vJE9qvY4ESXd9XHfnpVHIET5KBx4tkpxn3jbF0/Gi02N2jtA4wSqHi6osygUcTOm/ecU39zXLsclT4QkV4Oii2WTTSCNobzDy/51tT6W6/e/DUrGmatm6bPHpk6uKBa2ZZGbWujpsiMxHLcWxD7RaVeGEwdXpAQvz7mP3DRRuxggzmjY2um6iRKyneev+ahXGZfe3o+d+iRUg6qW1D1wk5nhBKQzQ3q603p/wYvnWgsLzNz1NSKHOrwrq31U11EkQ3J5KDw8OkK46FiW3M/FTHXnxjEuZ8aNBTr3D/e1sHsalE31GldukyBiExyLA6ZFBXaaY7UdnpXH/XXdw/Fl9V+lnTF8Gyq195olibdlUOOu0bHfjlVL7YxzVPj47d12p/PDfUFoFzpmSm22jcUAFFcTNGxIjyiy2E/QSBebdS2NGSsUkkZ0xOTjMcm2arMUnRMMfKtpE5DgLhy0PTx5GTjh/aqT/s/8T33H/8FAXoc43IsymXuzrdlKNXiaKLpMQRVRFA5Hi42n6owKPxM+c7TPd41R/2UESgiMeuO+Lrpeklu6kCkM+r5XZ32VquIgYhwcpTmxl+aqVcMt5WmUjvj92fEje8WlZory41hNiJoqriv+Cgg2izjUzWBqng0idTMjtppm1FmuPRfgY86hA7rKGmiIWG4X0mZy9Ap07nTKHLsM4GGQFFGDqom0YBhZ6o+cjlxl41cNSX7VTsKnlYe9l8zhRhCRJFjz12RaV9I8bejbtnzx/0ftMlajV5QGFtdqY/OTjEuftzpvf9gliIAQkwrFN7fm+qWLSqBLzsUaOiWuBtOo93OFi3Lp1T1O4TkZ1s5qvJPAQohmR85KCU58vVw/+853OH97j+E+DKlhT/dGUk5xUx/N7s70ylu5r+IobzU4eeOZrl735+jxsbp2On6DjaZzwMDvtR/hTNiVxIHyume1KeTJUBklXk57Fz2HGc9I5IryenIEd/dOcpRd3ZTH1GRATnkWBIy8rMzPwenBTqRR0rtPjaRWeSQgxqe782N/KBE+qeY6RToRIKYVtILZby/+pK+7+6InTqjgFArjg6eTsFON1EQJKspUR2aigRbZkVHyzPLFAStV2dFd38tMhiP7A4qUqYBVE6dMzq8vUl7rVHohxCzfcqySQYFTAE5K/6yVqPpz728zNg/L/yNQkHt+OZY82/zwk+UyWqGIvuCcRT5b/pylJp25bcJNGLTwdAhvTxTl2ju6xMnPNVJ7dy9cyPVVZmP9egAXqjS6WBSdpilwDlrjzxYZB6cH3mkNGPp7uJQ4gBsPk8rBY5amCZXS9zc+/d5YZt3q6cL+jj60NWV+q0sOCYgDly1iPqZO78aff0r0XE5g36p6CNqZkfp40RooqYdx656Njc/Njc/vO2UtrlhUNaHzFGtFeUmpamKc3H48tY/nmgcmBdeOD7NdjxQZB6YH3G2GYob1j7/Ypb14gz9r3MiNhf96Z9kZrS+Sr8j4MB55HO4ZdVmMoP82HNO3XhywMv6JBmbY/203Pj2OOckIylx15LedGnpZ3eL+tJJrcP20gw0SDxdYTgpR7WJG9d7f6g4oUhNs/bmafW//W6KMCJgUfViUYnEJfBbIfNyZGTqDlxfq5R+9rX73m9T67oSG2jc+N8JufHK4XFq780b445FzhnkuId08Jg/Jjbf3Qb0A3ZqAiyQA7BADsACOQAL5AAskAOwQA7AAjkAC+QALJADsEAOwAI5AAvkACyQA7BADsACOQAL5AAskAOwQA7AAjkAC+QALJADsEAOwAI5AAvkACyQA7BADsACOQAL5AAskAOwQA7AAjkAS+YXbwnHHLXzY7qICLCiTOblaL4COfqgRYDdUjM/rXyme3Y0u3Hdun6oaVKvZHo7akWE7cqTpGsRWQdwtNO78KAQe7P7VE2IncDfu+AL5VkTcp2/LHD/7P/E99i/A0ZciKlWFDn0uOfdCypNMbJsyDsYrK31P3/cL4gZijjTyg1CefGXZ+pCbcs1BNR1eX922H+6R6zKgnByJHm42HyqwpBoC9abpjPq2XBS290iYkguqBxEnmatKDcyuC3XEEBp2qZ6rUeAxKRPxJUjSdEwa+1U3XmByMGLvueO+VsFKGb0g+hyJJk9MrZumu6MrbJIiDW1/g8vSbDUvhxyJKEphiaaPGk32aO61iv1mkQVP5nkUK5v3EqBKoWrimzsalE31Glduky9AsnkSELpbvV0fcYIOdLdQx1eKmA0XZGvAS6lHEnuKYitqtQLg+LOMueveaqP+/e1y7qTj8RyJHm8zFg20QgKNo/3msqWRm1roxDV55tGejmIkVnWs1OM+4TZmu+ds+oLJ7TLUelvRXCCHEmoqVtdpWe2tVvbmQgvTnQ55P4658iRhMaPZ6YYo7KGOhC5GPasP6H95byjbkxxmhxEti8RiCwuHaItHaMxZXuT9lqjFnZcO9mBciQpCFqrK3XKaJTB5P0237pjfho2FCfiWDmSUC2EKiJUF1HSTX13Irw4ctnJt+87XI4kDxSZT05OWyBC48TGk9rbZ51/36sr5CCyfMqjIWNJyMy9hdYM9da3nVJrmrWoO+5Wc4scSahW9r1iY+lEc0RgYIpQ0WL7KXVXi9brpg3t3SXHDb411vz+BNNOd4aiip1nVIflqDZxqRxJKApZUBgryY3nB62CbGvM9TZNe6+nrdfTHk7sbr/3gu/TiHufuXK1HKB/8CA1YIEcgAVyABbIAVggB2CBHIAFcgAWyAFYIAdggRyABXIAFsgBWCAHYIEcgAVyABbIAVggB2CBHIAFcgAWyAFYIAdggRyABXIAFsgBWCAHYIEcgAVyABbIAVggB2CBHIAFcgAWyAFYIAdggRyABXIAlv8BAAD//3hecRUAAAAGSURBVAMAcidt7US+2DMAAAAASUVORK5CYII=" />
+    <!-- Installed (a phone's home screen, a desktop's dock): "Bitview Studio", whatever chart it shows; its own window. -->
+    <meta name="application-name" content="Bitview Studio" />
+    <meta name="apple-mobile-web-app-title" content="Bitview Studio" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#08090a" />
+    <link id="manifest" rel="manifest" />
+    <script>
+      // Its manifest, made here (the page is one file): its name, its icons, opening where it's served, as an app.
+      {
+        const here = location.origin + location.pathname, icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
+        // (Its launch screen in the theme it opens in: dark unless light is chosen, or the system's.)
+        const theme = (() => { try { return JSON.parse(localStorage.getItem("bitview-studio:prefs") ?? "{}").theme; } catch { return undefined; } })();
+        const ground = theme === "light" || (theme === "system" && matchMedia("(prefers-color-scheme: light)").matches) ? "#f6f6f7" : "#08090a";
+        const manifest = { id: here, name: "Bitview Studio", short_name: "Bitview Studio", start_url: here, scope: here.replace(/[^/]*$/, ""), display: "standalone", background_color: ground, theme_color: ground, icons: [{ src: icon("icon"), sizes: "any", type: "image/svg+xml" }, { src: icon("apple-touch-icon"), sizes: "180x180", type: "image/png" }] };
+        /** @type {HTMLLinkElement} */ (document.getElementById("manifest")).href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`;
+      }
+    </script>
     <title>Bitview Studio</title>
     <style>
       @font-face {
@@ -200,10 +218,11 @@
         padding: 8px 12px;
         color: var(--ink);
         background: var(--raise);
-        box-shadow: var(--pop);
         transform: translateY(-200%);
 
+        /* (Its shadow once it shows: waiting above the top edge, its blur fell into the page, a grey smudge there.) */
         &:focus {
+          box-shadow: var(--pop);
           transform: none;
         }
       }
@@ -433,11 +452,17 @@
           }
         }
 
-        /* The compact one, in a line of text: a toast, an error, a heading. */
+        /* The compact one, in a line of text: a toast, an error, a heading (a finger's, 32). */
         &.small {
           height: 26px;
           padding: 0 9px;
           font-size: 12px;
+
+          @media (pointer: coarse) {
+            height: 32px;
+            padding: 0 11px;
+            font-size: 13px;
+          }
         }
       }
 
@@ -489,14 +514,14 @@
           }
         }
 
-        /* A finger's: no icon button under 40, a small one 36, wherever it is (the glyph as it was). */
+        /* A finger's: no icon button under 36, a small one 32, wherever it is (the glyph as it was). */
         @media (pointer: coarse) {
-          width: 40px;
-          height: 40px;
+          width: 36px;
+          height: 36px;
 
           &.small {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
           }
         }
 
@@ -506,42 +531,6 @@
 
           &:hover {
             background: var(--active);
-          }
-        }
-      }
-
-      /* Pressed once, a delete icon asks for a second press beside it, over its neighbors, which keep their places. */
-      .cap.armed {
-        > svg {
-          visibility: hidden;
-        }
-
-        .confirm {
-          position: absolute;
-          top: 0;
-          right: 0;
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          height: 100%;
-          border-radius: var(--radius-sm);
-          padding: 0 8px 0 6px;
-          color: var(--danger);
-          background: color-mix(in srgb, var(--danger) 16%, var(--card));
-          font: 510 12px/24px var(--sans);
-          white-space: nowrap;
-        }
-
-        &:hover .confirm {
-          background: color-mix(in srgb, var(--danger) 22%, var(--card));
-        }
-
-        &:focus-visible {
-          outline: none;
-
-          .confirm {
-            outline: 2px solid var(--focus);
-            outline-offset: 1px;
           }
         }
       }
@@ -1180,8 +1169,8 @@
             content: "";
             position: absolute;
             top: -7px;
-            right: 0;
-            left: 0;
+            right: -8px;
+            left: -8px;
             height: 1px;
             background: var(--line);
           }
@@ -2960,10 +2949,9 @@
 
       /* What's marked on the chart besides its layers (the halvings): under the panes, rows as theirs are. */
       .markers {
-        margin-top: 6px;
+        margin: 6px -8px 0;
         border-top: 1px solid var(--line);
-        padding-top: 6px;
-        padding-bottom: 4px;
+        padding: 6px 8px 4px;
 
         .marker-mark {
           --c: var(--soft);
@@ -2994,9 +2982,9 @@
       }
 
       .layer-adds {
-        margin-top: 6px;
+        margin: 6px -8px 0;
         border-top: 1px solid var(--line);
-        padding-top: 6px;
+        padding: 6px 8px 0;
       }
 
       /* The inspector's own actions, under its settings: rows as the panel's adds are. */
@@ -3174,6 +3162,19 @@
           &:hover {
             color: var(--ink);
             background: var(--hover);
+          }
+
+          /* (A finger's, 32, its row no taller.) */
+          @media (pointer: coarse) {
+            width: 32px;
+            height: 32px;
+            margin: -6px -10px -6px 0;
+            border-radius: var(--radius-sm);
+
+            svg {
+              width: 14px;
+              height: 14px;
+            }
           }
         }
       }
@@ -4393,14 +4394,8 @@
         font-size: 12px;
       }
 
-      /* A delete asking for a second ↵; a hidden layer; a layer's letter and a color, in the icon's place. */
+      /* A hidden layer; a layer's letter and a color, in the icon's place. */
       .palette-list li {
-        &.armed,
-        &.armed[aria-selected="true"] {
-          color: var(--danger);
-          background: color-mix(in srgb, var(--danger) 16%, transparent);
-        }
-
         &.dim .item-name {
           color: var(--muted);
         }
@@ -5034,21 +5029,6 @@
           height: 1px;
           margin: 4px 6px;
           background: var(--line);
-        }
-      }
-
-      /* Pressed once, a delete with a label asks in its label, in red, for a second press. */
-      :is(.btn, .nav-item, .menu > button).armed {
-        &,
-        &:hover,
-        &:focus-visible {
-          border-color: transparent;
-          color: var(--danger);
-          background: color-mix(in srgb, var(--danger) 16%, transparent);
-        }
-
-        svg {
-          color: var(--danger);
         }
       }
 
@@ -5854,7 +5834,7 @@
           display: none;
         }
 
-        :is([data-batch="delete"]:is(:hover, .armed), [data-layers-batch="remove"]:hover) {
+        :is([data-batch="delete"], [data-layers-batch="remove"]):hover {
           color: var(--danger);
 
           svg {
@@ -5864,6 +5844,11 @@
 
         .divider {
           height: 18px;
+        }
+
+        /* (The layers' actions by their icons, their tips naming them; a phone names them under them.) */
+        .cap .label {
+          display: none;
         }
       }
 
@@ -5993,16 +5978,18 @@
           display: none;
         }
 
-        /* The tab bar's room under it: as iOS's own floating bar sits, just over the home indicator (into the room the
-           screen keeps clear there, 10px of it left), else 10px. What stands on it follows: the chart's foot, toasts,
-           the selections' bars, the fades. */
+        /* The tab bar's measures: a pill as wide as the page's content (its 12px margins, the chart's foot's too), 58 tall,
+           12px over the screen's foot, or over the home indicator as iOS's own sits; the room kept for it (it, and 12px
+           over it). */
         :root {
-          --bar-below: max(10px, calc(env(safe-area-inset-bottom) - 10px));
+          --bar-h: 58px;
+          --bar-y: max(12px, calc(env(safe-area-inset-bottom) - 8px));
+          --bar-room: calc(var(--bar-y) + var(--bar-h) + 12px);
         }
 
         /* Over the tab bar, not on it. */
         .toast {
-          bottom: calc(var(--bar-below) + 66px);
+          bottom: var(--bar-room);
         }
 
         /* The header: the title, Undo (Keep in its place for a preview), Draw, Share, ⋯ (Export in it); "Saved" said
@@ -6025,7 +6012,7 @@
           overscroll-behavior-x: contain;
           scrollbar-width: none;
           border-radius: 0;
-          padding: 2px 8px;
+          padding: 2px 6px;
           background: var(--card);
           box-shadow: inset 0 1px var(--line);
 
@@ -6044,11 +6031,12 @@
         }
 
         .card-head {
-          padding: calc(8px + env(safe-area-inset-top)) 8px 8px 10px;
+          padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
         }
 
         .title {
           flex: 1;
+          margin-left: -6px;
           /* (Room left for the header's actions on the narrowest phone: the title truncates first.) */
           min-width: 4rem;
           max-width: none;
@@ -6064,10 +6052,10 @@
           left: 0;
           z-index: 12;
           width: auto;
-          max-height: 82dvh;
+          max-height: 88dvh;
           border: 0;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-          padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+          padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
           background: var(--raise);
           box-shadow: var(--pop);
           visibility: hidden;
@@ -6101,26 +6089,75 @@
           display: inline-grid;
         }
 
-        /* Over the sheet's foot (its adds), taking no room: the sheet, as tall as what it holds, would grow under the
-           finger that picked a row by holding it. */
-        .layers-bar {
-          position: absolute;
-          bottom: calc(var(--bar-below) + 4px);
-          left: 50%;
-          margin: 0;
-          translate: -50% 0;
-        }
-
-        /* Its views end clear of the tab bar's capsule, over the sheet: their last row (a layer's Remove) scrolls above it,
-           and a thumb there for "Charts" taps no row. */
+        /* (Its views' last rows scroll clear of the pill over them.) */
         #inspector::after {
           content: "";
           flex: none;
-          height: 84px;
+          height: var(--bar-room);
         }
 
         .panel .layer-list {
-          padding-bottom: 92px;
+          padding-bottom: var(--bar-room);
+        }
+
+        /* What's read in the sheet at a phone's sizes (a wide screen's, made for a pointer at arm's length, read small in a
+           hand): its title 17, names and actions 15, figures 14, heads 13, what's under a name 12. */
+        .panel-head {
+          h2 {
+            font-size: 17px;
+          }
+
+          .count {
+            font-size: 15px;
+          }
+        }
+
+        .layer-row .row-main {
+          padding-block: 8px;
+        }
+
+        .row-text {
+          .name {
+            font-size: 15px;
+          }
+
+          .sub {
+            font-size: 12px;
+          }
+        }
+
+        .row-value {
+          font-size: 14px;
+        }
+
+        .row-change {
+          font-size: 12px;
+        }
+
+        .layer-row .letter {
+          font-size: 11px;
+        }
+
+        :is(.pane-head, .markers-head) {
+          font-size: 13px;
+        }
+
+        .pane-scale {
+          padding: 0 8px 0 9px;
+          font-size: 13px;
+        }
+
+        :is(.layer-adds, .layer-actions) .nav-item {
+          font-size: 15px;
+
+          svg {
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        .inspector section h3 {
+          font-size: 15px;
         }
 
         /* Its top drags it (the views below scroll on their own). */
@@ -6172,7 +6209,7 @@
           }
 
           > button {
-            height: 46px;
+            height: 42px;
             gap: 12px;
             font-size: 15px;
 
@@ -6199,9 +6236,10 @@
           display: grid;
           grid-template-columns: auto minmax(0, 1fr) auto;
           column-gap: 10px;
+          row-gap: 0;
           height: auto;
           min-height: 48px;
-          padding-block: 5px;
+          padding-block: 6px;
 
           > svg {
             grid-row: span 2;
@@ -6257,18 +6295,19 @@
           display: none;
         }
 
-        /* The tab bar: a capsule of icons floating over the page's foot (the grid scrolls under it, the chart's foot sits
-           above it), the one where you are on a raised chip, adding in ink. Their names are their buttons' (said, not
-           shown). Room is kept for it at the card's foot. */
+        /* The tab bar, a phone's own: a pill floating over the page's foot, as wide as its content, its four tabs the same
+           everywhere, each named under its icon, where you are on a raised chip; over what scrolls under it (the grid,
+           the sheet), translucent. Room is kept for it at the card's foot. */
         .card {
-          padding-bottom: calc(var(--bar-below) + 66px);
+          padding-bottom: var(--bar-room);
         }
 
         /* The chart's foot across its width, in line with the page: its interval, then its ranges sharing the rest (the
-           navigator, a sliver at this width, is left out). */
+           navigator, a sliver at this width, is left out); the tab bar right under it. */
         .stage-foot {
           gap: 8px;
           padding: 0 12px;
+          box-shadow: none;
 
           #ranges {
             flex: 1;
@@ -6282,32 +6321,35 @@
 
         .mobile-bar {
           position: fixed;
-          bottom: var(--bar-below);
-          left: 50%;
-          z-index: 9;
+          right: calc(12px + env(safe-area-inset-right));
+          bottom: var(--bar-y);
+          left: calc(12px + env(safe-area-inset-left));
+          z-index: 13;
           display: grid;
-          grid-auto-flow: column;
-          grid-auto-columns: 54px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 2px;
-          border: 1px solid var(--line);
+          height: var(--bar-h);
           border-radius: 999px;
           padding: 4px;
-          background: color-mix(in srgb, var(--raise) 84%, transparent);
+          background: color-mix(in srgb, var(--raise) 78%, transparent);
           box-shadow: var(--pop);
-          translate: -50% 0;
-          -webkit-backdrop-filter: blur(18px) saturate(1.4);
-          backdrop-filter: blur(18px) saturate(1.4);
+          -webkit-backdrop-filter: blur(24px) saturate(1.6);
+          backdrop-filter: blur(24px) saturate(1.6);
 
           .tab {
             position: relative;
-            display: grid;
-            place-items: center;
-            height: 44px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            min-width: 0;
             border: 0;
             border-radius: 999px;
+            padding: 0;
             color: var(--muted);
             background: none;
-            font-size: 0;
+            font: 510 10px/12px var(--sans);
             transition: color var(--fade), background var(--fade), box-shadow var(--fade);
 
             > span[data-icon] {
@@ -6316,71 +6358,74 @@
             }
 
             svg {
-              width: 20px;
-              height: 20px;
-              stroke-width: 1.3;
+              width: 22px;
+              height: 22px;
+              stroke-width: 1.35;
             }
 
             &:active {
               background: var(--press);
             }
+
+            &:disabled {
+              opacity: 0.35;
+            }
           }
+        }
 
-          /* Adding (a new chart, in the grid): the one thing done most, in ink. */
-          .add {
-            color: var(--ink);
+        /* Typing by touch (the keyboard up, the page as short as it leaves): the bars out of the way of the field. */
+        @media (pointer: coarse) {
+          body:has(:is(input:not([type="checkbox"], [type="range"], [type="color"]), textarea, [contenteditable="true"]):focus) :is(.mobile-bar, .pick-bar) {
+            display: none;
           }
         }
 
-        /* What scrolls under it (the grid, the sheet's views) fades out before it: nothing cut off around it or below.
-           Under a selection's bar, which takes its place while there's a selection (a photo library's toolbar, as it
-           were): its actions in reach, nothing over them. */
-        :is(.home, .panel)::after {
-          content: "";
-          position: absolute;
-          inset: auto 0 0;
-          z-index: 3;
-          height: calc(var(--bar-below) + 84px);
-          background: linear-gradient(transparent, var(--app) 50%);
-          pointer-events: none;
-        }
-
-        .panel::after {
-          background: linear-gradient(transparent, var(--raise) 50%);
-        }
-
-        .pick-bar {
-          z-index: 4;
-        }
-
-        .home-bar {
-          bottom: calc(var(--bar-below) + 4px);
-        }
-
-        body[data-home]:has(#home-bar:not([hidden])) .mobile-bar,
-        body[data-sheet="panel"]:has(#layers-bar:not([hidden])) .mobile-bar {
-          display: none;
-        }
-
-        body[data-home] #mobile-charts,
+        /* Where you are, on a tinted chip (a raised one, white on the white pill, didn't show in light): Charts, the grid
+           or a chart in it; Layers, while its sheet is open. */
+        body:not([data-sheet="panel"]) #mobile-charts,
         body[data-sheet="panel"] #mobile-layers {
           color: var(--ink);
-          background: var(--chosen);
-          box-shadow: var(--lift);
+          background: var(--press);
 
-          /* (Pressed, it says so too.) */
           &:active {
             background: var(--active);
           }
         }
 
-        body[data-home] #mobile-layers {
-          display: none;
+        /* A selection's bar in the tab bar's place while there's a selection (a photo library's toolbar, as it were): the
+           same pill, its actions in reach. */
+        .pick-bar {
+          position: fixed;
+          right: calc(12px + env(safe-area-inset-right));
+          bottom: var(--bar-y);
+          left: calc(12px + env(safe-area-inset-left));
+          z-index: 14;
+          max-width: none;
+          height: var(--bar-h);
+          margin: 0;
+          border: 0;
+          border-radius: 999px;
+          padding: 4px 6px 4px 8px;
+          background: color-mix(in srgb, var(--raise) 78%, transparent);
+          box-shadow: var(--pop);
+          translate: none;
+          -webkit-backdrop-filter: blur(24px) saturate(1.6);
+          backdrop-filter: blur(24px) saturate(1.6);
+          animation: none;
+
+          .pick-count {
+            margin-right: auto;
+          }
         }
 
-        /* Full screen: the chart alone, no room kept. */
+        body[data-home]:has(#home-bar:not([hidden])) .mobile-bar,
+        body[data-sheet="panel"]:has(#layers-bar:not([hidden])) .mobile-bar {
+          visibility: hidden;
+        }
+
+        /* Full screen: the chart alone, no room kept for the bar; clear of the notch and the home indicator. */
         .app[data-full] .card {
-          padding: 0;
+          padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
         }
 
         /* A phone on its side (wide as well as short: an upright one with its keyboard up stays upright): the capsule
@@ -6389,7 +6434,7 @@
         @media (max-height: 500px) and (min-width: 568px) {
           .card {
             padding-bottom: env(safe-area-inset-bottom);
-            padding-left: 76px;
+            padding-left: 86px;
           }
 
           .belt {
@@ -6397,7 +6442,7 @@
           }
 
           .home {
-            left: 76px;
+            left: 86px;
           }
 
           /* (Its ranges their own width there: the foot's whole width would stretch each across a screen.) */
@@ -6412,29 +6457,44 @@
             }
           }
 
-          /* (Nothing scrolls under it there, nor sits where it is.) */
-          :is(.home, .panel)::after {
-            display: none;
-          }
-
+          /* (The tabs a rail there, a selection's bar floating over the foot: the rail stays.) */
           body[data-home]:has(#home-bar:not([hidden])) .mobile-bar,
           body[data-sheet="panel"]:has(#layers-bar:not([hidden])) .mobile-bar {
-            display: grid;
+            visibility: visible;
           }
 
           .mobile-bar {
             top: 50%;
+            right: auto;
             bottom: auto;
             left: calc(10px + env(safe-area-inset-left));
-            grid-auto-flow: row;
-            grid-auto-rows: 44px;
-            grid-auto-columns: auto;
-            grid-template-columns: 44px;
+            width: 64px;
+            height: auto;
+            grid-template-columns: 1fr;
+            grid-template-rows: repeat(4, 52px);
             translate: 0 -50%;
           }
 
+          /* (The grid's centered on what the rail leaves; the sheet's, in the sheet, at its foot.) */
+          .pick-bar.home-bar {
+            left: calc(50% + 43px);
+          }
+
+          .layers-bar {
+            position: absolute;
+          }
+
+          .pick-bar {
+            right: auto;
+            bottom: calc(10px + env(safe-area-inset-bottom));
+            left: 50%;
+            width: auto;
+            max-width: calc(100% - 24px);
+            translate: -50% 0;
+          }
+
           .card-head {
-            padding: 6px 10px;
+            padding: 6px 12px;
           }
 
           .stage-foot {
@@ -6451,6 +6511,23 @@
             width: min(480px, 100%);
           }
 
+          .panel {
+            padding-bottom: env(safe-area-inset-bottom);
+          }
+
+          /* (Nothing over the sheet's foot there but a selection's bar: room for it while it shows.) */
+          #inspector::after {
+            height: 12px;
+          }
+
+          .panel .layer-list {
+            padding-bottom: 12px;
+
+            &:has(+ .layers-bar:not([hidden])) {
+              padding-bottom: calc(var(--bar-h) + 22px);
+            }
+          }
+
           /* (At the right, the left inset is the capsule's, not theirs.) */
           .panel {
             padding-left: 0;
@@ -6463,6 +6540,23 @@
 
         .legend button .name {
           max-width: 7rem;
+        }
+
+        .grid-section.folder {
+          margin-inline: 0;
+          padding: 0 8px 8px;
+
+          > .grid-folder {
+            margin: 0 -8px;
+            padding: 0 8px;
+          }
+        }
+
+        .grid-empty {
+          height: auto;
+          min-height: 64px;
+          padding: 12px 16px;
+          text-align: center;
         }
 
         /* The grid: one chart a row (two on a phone on its side), as on a wide screen, legends and all. */
@@ -6478,16 +6572,74 @@
 
         .home-scroll {
           --home-top: calc(24px + env(safe-area-inset-top));
-          padding: var(--home-top) 12px 96px;
+          padding: var(--home-top) 12px calc(var(--bar-room) + 12px);
         }
 
         :is(.empty-inner, .home-inner) > h1 + p {
           margin-bottom: 18px;
         }
 
-        /* The bar's actions, by their icons alone. */
-        .home-bar .label {
-          display: none;
+        /* A selection's bars as the tab bar they stand in for: its count, then each action its icon over its name, sharing
+           the width (Delete and Remove in red), then the × that ends it. */
+        .pick-bar {
+          gap: 0;
+
+          :is([data-batch], [data-layers-batch]):not([hidden], [data-batch="clear"], [data-layers-batch="clear"]) {
+            display: flex;
+            flex: 1 1 0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            width: auto;
+            min-width: 0;
+            height: 100%;
+            border: 0;
+            border-radius: 999px;
+            padding: 0;
+            color: var(--text);
+            background: none;
+            font: 510 10px/12px var(--sans);
+
+            > span[data-icon] {
+              display: grid;
+            }
+
+            svg {
+              width: 20px;
+              height: 20px;
+              color: inherit;
+            }
+
+            .label {
+              display: block;
+              max-width: 100%;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+
+            &:active:not(:disabled) {
+              background: var(--press);
+              transform: none;
+            }
+          }
+
+          :is([data-batch="delete"], [data-layers-batch="remove"]):not(:disabled) {
+            color: var(--danger);
+          }
+
+          .pick-count {
+            padding: 0 8px 0 10px;
+          }
+
+          /* (On its side, where the bar is its own width: each action as wide as its name needs.) */
+          @media (max-height: 500px) and (min-width: 568px) {
+            :is([data-batch], [data-layers-batch]):not([hidden], [data-batch="clear"], [data-layers-batch="clear"]) {
+              flex: none;
+              width: 64px;
+            }
+          }
         }
 
         .palette {
@@ -6521,24 +6673,24 @@
           font-size: 16px;
         }
 
-        /* Every control a finger aims at, from its building block: rows 40 (adds 44), segments and swatches 36, the rest at
-           least 32. */
+        /* Every control a finger aims at, from its building block, sized to be hit, not to fill the screen: rows 36 (adds
+           40), segments and swatches 32, the rest at least 28. */
         .nav-item {
-          height: 40px;
+          height: 36px;
         }
 
         :is(.layer-adds, .layer-actions) .nav-item {
-          height: 44px;
+          height: 40px;
         }
 
         .tabs button,
         .tabs.glyphs button {
-          height: 36px;
+          height: 32px;
         }
 
-        /* (The segments' row is 40 with its frame: a slider, a menu, a number, a name, the same.) */
+        /* (The segments' row is 36 with its frame: a slider, a menu, a number, a name, the same.) */
         :is(.stepper, .preset, .number-input) {
-          height: 40px;
+          height: 36px;
         }
 
         /* (Five to a row, four rows: each wide enough to aim at.) */
@@ -6549,20 +6701,20 @@
 
           button {
             width: auto;
-            height: 36px;
+            height: 32px;
           }
         }
 
         .pane-scale,
         .source-pick,
         .more {
-          min-height: 32px;
+          min-height: 28px;
         }
 
         /* A pane's head and the legend's: their controls (the scale, the two ways) 32, clear of the rules around them,
            the legend's ending where the eyes do. */
         :is(.pane-head, .markers-head) {
-          height: 44px;
+          height: 40px;
           margin-bottom: 0;
         }
 
@@ -6575,11 +6727,11 @@
         }
 
         .menu .menu-row button {
-          height: 40px;
+          height: 36px;
         }
 
         .search {
-          height: 40px;
+          height: 36px;
         }
 
         /* (In the time axis's corner, as tall as it is.) */
@@ -6597,15 +6749,15 @@
         }
 
         .menu > button {
-          height: 42px;
+          height: 38px;
         }
 
         .palette-list li {
-          min-height: 44px;
+          min-height: 40px;
         }
 
         .foot-action {
-          min-height: 40px;
+          min-height: 36px;
         }
 
         .pick-check {
@@ -6638,13 +6790,42 @@
           pointer-events: none;
         }
 
-        /* (Its ⋯ always there, its tick while picking: its interval before them.) */
+        /* (Its ⋯ always there, at the content's edge, its interval before it; picking, its tick there instead.) */
         .tile-head {
-          margin-right: 58px;
+          margin-right: 30px;
+        }
+
+        .tile .tile-more {
+          right: 3px;
+        }
+
+        .home.picking .tile .tile-more {
+          visibility: hidden;
         }
 
         .tile .tile-index {
           visibility: visible !important;
+        }
+
+        .menu > button.danger {
+          color: var(--danger);
+
+          svg {
+            color: var(--danger);
+          }
+        }
+
+        /* (The adds and a layer's actions in ink, their icons muted: grayed, with no hover to raise them, they read as
+           off; Remove in red.) */
+        :is(.layer-adds, .layer-actions) .nav-item {
+          color: var(--text);
+
+          &.danger {
+            &,
+            svg {
+              color: var(--danger);
+            }
+          }
         }
 
         /* (Its ⋯ always there: the count beside it, the name short of both.) */
@@ -6982,10 +7163,10 @@ const first = await studio.png({ part: 0 });</pre>
               <div id="layers-bar" class="pick-bar layers-bar" role="group" aria-label="Selected layers" hidden>
                 <span id="layers-picked" class="pick-count" aria-live="polite"></span>
                 <button class="cap" type="button" data-layers-batch="hide" data-kbd="H"></button>
-                <button class="cap" type="button" data-layers-batch="duplicate" aria-label="Duplicate" data-tip="Duplicate" data-kbd="⌘ D" data-icon="duplicate"></button>
-                <button class="cap" type="button" data-layers-batch="move" aria-haspopup="menu" aria-label="Move to pane" data-tip="Move to pane" data-icon="pane"></button>
-                <button class="cap" type="button" data-layers-batch="cloud" aria-label="A cloud between them" data-tip="A cloud between them" data-icon="cloud"></button>
-                <button class="cap" type="button" data-layers-batch="remove" aria-label="Remove" data-tip="Remove" data-kbd="⌫" data-icon="trash"></button>
+                <button class="cap" type="button" data-layers-batch="duplicate" aria-label="Duplicate" data-tip="Duplicate" data-kbd="⌘ D" data-icon="duplicate"><span class="label">Duplicate</span></button>
+                <button class="cap" type="button" data-layers-batch="move" aria-haspopup="menu" aria-label="Move to pane" data-tip="Move to pane" data-icon="pane"><span class="label">Move</span></button>
+                <button class="cap" type="button" data-layers-batch="cloud" aria-label="A cloud between them" data-tip="A cloud between them" data-icon="cloud"><span class="label">Cloud</span></button>
+                <button class="cap" type="button" data-layers-batch="remove" aria-label="Remove" data-tip="Remove" data-kbd="⌫" data-icon="trash"><span class="label">Remove</span></button>
                 <span class="divider"></span>
                 <button class="cap small" type="button" data-layers-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button>
               </div>
@@ -7033,10 +7214,10 @@ const first = await studio.png({ part: 0 });</pre>
       </main>
 
       <nav class="mobile-bar" aria-label="Studio">
-        <button id="mobile-charts" class="tab" type="button" data-action="home"><span data-icon="grid"></span><span class="vh">Charts</span></button>
-        <button class="tab" type="button" data-action="palette"><span data-icon="browse"></span><span class="vh">Search</span></button>
-        <button id="mobile-add" class="tab add" type="button" aria-haspopup="menu"><span data-icon="plus"></span><span class="label vh">Add</span></button>
-        <button id="mobile-layers" class="tab" type="button" data-sheet="panel"><span data-icon="panel"></span><span class="vh">Layers</span></button>
+        <button id="mobile-charts" class="tab" type="button" data-action="home"><span data-icon="grid"></span><span>Charts</span></button>
+        <button class="tab" type="button" data-action="palette"><span data-icon="browse"></span><span>Search</span></button>
+        <button id="mobile-add" class="tab add" type="button" aria-haspopup="menu"><span data-icon="plus"></span><span class="label">Add</span></button>
+        <button id="mobile-layers" class="tab" type="button" data-sheet="panel"><span data-icon="panel"></span><span>Layers</span></button>
       </nav>
     </div>
 
@@ -7284,7 +7465,7 @@ const first = await studio.png({ part: 0 });</pre>
         series: svg('<path d="M1.5 12.5 6 7l3 3 5.5-6.5"/>', 15),
         recent: svg('<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>', 15),
         calendar: svg('<rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/>', 15),
-        share: svg('<path d="M6.5 9.5l3-3"/><path d="M7.2 4.8l1.1-1.1a2.6 2.6 0 0 1 3.7 3.7l-1.1 1.1M8.8 11.2l-1.1 1.1a2.6 2.6 0 0 1-3.7-3.7l1.1-1.1"/>', 15),
+        share: svg('<path d="M8 9.5V2M5.5 4.5 8 2l2.5 2.5"/><path d="M5.5 7H4.5a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1"/>', 15),
         upload: svg('<path d="M8 10V2.5M5 5.5l3-3 3 3"/><path d="M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11"/>', 15),
         download: svg('<path d="M8 2.5V10M5 7l3 3 3-3"/><path d="M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11"/>', 15),
         image: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><circle cx="6" cy="6.5" r="1.2"/><path d="m2.5 12 3.5-3.5 2.5 2.5 2-2 3 3"/>', 14),
@@ -7608,7 +7789,8 @@ const first = await studio.png({ part: 0 });</pre>
       const FORMATS = [["auto", "Automatic"], ["usd", "US dollars"], ["btc", "Bitcoin"], ["sats", "Satoshis"], ["percent", "Percent"], ["ratio", "Ratio ×"], ["count", "Count"], ["number", "Number"]];
       /** A layer's letter, its badge wherever it shows (the panel, ⌘K's rows, its previews): in its color. @param {Layer} layer */
       function letterChip(layer) {
-        return `<span class="letter" style="--c:${escape(ink(layer.color))}">${escape(layer.letter)}</span>`;
+        const colored = (layer.colorFrom && ownerOf(layer)?.layers.find((other) => other.id === layer.colorFrom)) || layer;
+        return `<span class="letter" style="--c:${escape(ink(colored.color))}">${escape(layer.letter)}</span>`;
       }
       /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
       const formatName = (layer, result) => (layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] ?? "Number" : `Automatic (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})`);
@@ -8769,6 +8951,14 @@ const first = await studio.png({ part: 0 });</pre>
         ["dark", "Dark", "moon", "Dark surfaces; the data's colors as they are.", "dark night black"],
       ]);
       const deviceLight = matchMedia("(prefers-color-scheme: light)");
+      /** The bar over the page (a browser's, an installed app's, a phone's status bar) in the page's color under it: the grid's ground, a chart's card on a phone. */
+      const themeColor = /** @type {HTMLMetaElement | null} */ (document.querySelector('meta[name="theme-color"]'));
+      const syncThemeColor = () => themeColor && (themeColor.content = token(phone.matches && !document.body.hasAttribute("data-home") ? "--card" : "--app"));
+      new MutationObserver(syncThemeColor).observe(document.body, { attributes: true, attributeFilter: ["data-home"] });
+      new MutationObserver(syncThemeColor).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+      deviceLight.addEventListener("change", syncThemeColor);
+      phone.addEventListener("change", syncThemeColor);
+      syncThemeColor();
       const lightChosen = () => prefs.theme === "light" || (prefs.theme === "system" && deviceLight.matches);
       light = lightChosen();
       document.documentElement.dataset.theme = prefs.theme;
@@ -8796,6 +8986,8 @@ const first = await studio.png({ part: 0 });</pre>
       function flushEdits() {
         endTyping();
         naming?.finish();
+        const formula = /** @type {HTMLTextAreaElement | null} */ (document.getElementById("formula"));
+        if (formula && document.activeElement === formula && selected) applyFormula(selected, formula.value);
       }
       function save(announce = false) {
         announcing ||= announce;
@@ -9209,14 +9401,14 @@ const first = await studio.png({ part: 0 });</pre>
         applyPanel();
       }
       applyPanel();
-      // A phone's sheet is modal: what's behind it (the tab bar too: it covers it) can't be reached, by Tab or a screen
-      // reader, while it's up; the focus goes into it, and back to what opened it when it closes.
+      // A phone's sheet is modal: what's behind it can't be reached, by Tab or a screen reader, while it's up (the tab bar
+      // isn't behind it: it floats over it, live); the focus goes into it, and back to what opened it when it closes.
       {
         let opener = /** @type {Element | null} */ (null);
         const sheetModal = () => {
           const open = phone.matches && document.body.dataset.sheet === "panel", panel = $("panel");
-          for (const element of [$("sidebar"), ...all$(".mobile-bar"), ...$("main").children, ...(/** @type {HTMLElement} */ (panel.parentElement)).children]) {
-            if (!element.contains(panel) && element.id !== "scrim") /** @type {HTMLElement} */ (element).inert = open;
+          for (const element of [$("sidebar"), ...$("main").children, ...(/** @type {HTMLElement} */ (panel.parentElement)).children]) {
+            if (!element.contains(panel) && element.id !== "scrim" && !element.classList.contains("mobile-bar")) /** @type {HTMLElement} */ (element).inert = open;
           }
           if (open && !panel.contains(document.activeElement)) {
             opener = document.activeElement;
@@ -10583,12 +10775,32 @@ const first = await studio.png({ part: 0 });</pre>
         paneFactors(doc).forEach((factor, i) => Math.abs(panes[i].getStretchFactor() - factor) > 1e-6 && panes[i].setStretchFactor(factor));
       }
       /** The window a range preset shows, in bars: from its first day to the newest point, with the right margin. */
-      function presetWindow(doc, data, most = mostBars()) {
+      /** The first date anything shown has a value at (an index's first dates can hold none: the price's start in 2010). */
+      let firstOf = { data: /** @type {Resolved | null} */ (null), key: "", first: 0 };
+      function firstShown(doc, data) {
+        const key = doc.layers.map((layer) => (layer.hidden ? "" : layer.id)).join();
+        if (firstOf.data === data && firstOf.key === key) return firstOf.first;
+        let first = data.times.length;
+        for (const layer of doc.layers) {
+          const values = layer.hidden ? null : data.results.get(layer.id)?.shown;
+          if (!values) continue;
+          for (let i = 0; i < first; i++) if (Number.isFinite(values[i])) {
+            first = i;
+            break;
+          }
+        }
+        firstOf = { data, key, first: first < data.times.length ? first : 0 };
+        return firstOf.first;
+      }
+      /** A preset's window; "Max" from the first value shown, with room on its left for the first date's label (none on a card's preview, which has no labels). */
+      function presetWindow(doc, data, most = mostBars(), room = 30) {
         const n = data.times.length;
         const to = n - 1 + RIGHT_OFFSET;
         const days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
-        // "Max" leaves room on the left for the first date's label (where it shows all of history).
-        if (!days) return within({ from: -(to * 30) / Math.max(1, view.timeScale().width() - 30), to }, "to", most);
+        if (!days) {
+          const first = firstShown(doc, data);
+          return within({ from: first - ((to - first) * room) / Math.max(1, view.timeScale().width() - room), to }, "to", most);
+        }
         return within({ from: lowerBound(data.times, data.times[n - 1] - days * 86400), to }, "to", most);
       }
       function applyRange(doc, data, animate = false) {
@@ -11076,6 +11288,8 @@ const first = await studio.png({ part: 0 });</pre>
         const key = `${layer.id}:${unit}`;
         if (windows.by.has(key)) return windows.by.get(key);
         const scan = scanOf(values);
+        // (A view reaching back to its first value has no start of its own to measure from: none.)
+        if (first <= scan.first) return (windows.by.set(key, null), null);
         let a = Math.min(Math.max(first, scan.first), last);
         while (a < last && !Number.isFinite(values[a])) a++;
         let found = null;
@@ -13915,7 +14129,7 @@ const first = await studio.png({ part: 0 });</pre>
         const drawn = { seps: [], marks: [] };
         if (n < 2) return drawn;
         const left = leftView(doc.id);
-        const shown = left ? within(viewOn(left, doc.index, times), "to") : presetWindow(doc, data, most);
+        const shown = left ? within(viewOn(left, doc.index, times), "to") : presetWindow(doc, data, most, 0);
         const span = shown.to - shown.from;
         if (!(span >= 1)) return drawn;
         // No more points than bars in view: each one then holds a bar at least, so only missing data breaks a line.
@@ -14258,7 +14472,7 @@ const first = await studio.png({ part: 0 });</pre>
           const focus = focusKey($("home-grid")), old = new Map(tiles.map((tile) => [/** @type {string} */ (tile.dataset.homeCard), tile]));
           const htmlOf = new Map(visible.map((doc, i) => [doc.id, old.has(doc.id) && drawnTiles.get(doc.id) === html[i] ? `<i data-slot="${doc.id}"></i>` : html[i]]));
           $("home-grid").innerHTML = sections.map(({ folder, docs, count }) => (folder
-            ? `<section class="grid-section folder"><i class="held-mark" aria-hidden="true"></i>${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : !count && !folder.closed ? `<p class="grid-empty">${TOUCH ? "No charts yet: hold one, then move it here (or use its menu)" : "No charts yet: drag one here, or move it from its menu"}</p>` : ""}</section>`
+            ? `<section class="grid-section folder"><i class="held-mark" aria-hidden="true"></i>${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : !count && !folder.closed ? `<p class="grid-empty">${TOUCH ? "No charts yet. Hold one, then tap Move" : "No charts yet: drag one here, or move it from its menu"}</p>` : ""}</section>`
             : `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>`)).join("");
           for (const slot of all$("[data-slot]", $("home-grid"))) slot.replaceWith(/** @type {HTMLElement} */ (old.get(/** @type {string} */ (slot.dataset.slot))));
           restoreFocus($("home-grid"), focus);
@@ -14306,7 +14520,6 @@ const first = await studio.png({ part: 0 });</pre>
       }
       /** Picks a chart: added or taken off; with `range`, every chart from the last one picked to it. */
       function pickChart(id, range = false) {
-        disarm();
         hideMenu();
         const ids = shownCharts().map((doc) => doc.id), from = ids.indexOf(pickedLast), to = ids.indexOf(id);
         if (range && picked.size && from >= 0 && to >= 0) for (const other of ids.slice(Math.min(from, to), Math.max(from, to) + 1)) picked.add(other);
@@ -14321,7 +14534,6 @@ const first = await studio.png({ part: 0 });</pre>
       }
       /** No more picks; `refocus`: the focus goes back to the tile last picked (from the bar's ×, it'd be lost). */
       function clearPicks(refocus = false) {
-        disarm();
         picked.clear();
         renderPicked();
         if (refocus) tileOpen(pickedLast)?.focus();
@@ -14355,7 +14567,6 @@ const first = await studio.png({ part: 0 });</pre>
           return;
         }
         if (action === "delete") {
-          if (button && !confirmed(button)) return;
           // The focus then goes to the tile that takes the first one's place; none left, to the toast's Undo (never a
           // field: there ⌘Z would undo its typing, not this).
           const at = shownCharts().findIndex((doc) => docs.includes(doc));
@@ -14471,7 +14682,7 @@ const first = await studio.png({ part: 0 });</pre>
           ${leave ? `<button type="button" data-pick="out">${ICONS.folderOut}${escape(leave)}</button>` : ""}
           <button type="button" data-pick="export">${ICONS.file}Download chart file<span>JSON</span></button>
           <div class="menu-rule"></div>
-          <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "select" ? pickChart(id) : action === "open" ? go(chartById(id)) : action === "folder" ? folderMenu(anchor, ids ?? [...picked], point, false) : action === "out" ? moveToFolder(ids ?? [...picked], null) : batch(action, null, ids)), point);
+          <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete${n > 1 ? ` ${n} charts` : ""}</button>`, ({ pick: action }) => (action === "select" ? pickChart(id) : action === "open" ? go(chartById(id)) : action === "folder" ? folderMenu(anchor, ids ?? [...picked], point, false) : action === "out" ? moveToFolder(ids ?? [...picked], null) : batch(action, null, ids)), point);
       }
       $("home-bar").addEventListener("click", (event) => {
         const button = closest(event, "[data-batch]");
@@ -14564,7 +14775,6 @@ const first = await studio.png({ part: 0 });</pre>
         cancelling = "";
         hideMenu();
         setTool("");
-        disarm();
         hideTip();
         if (selected) deselect();
         document.body.removeAttribute("data-peek");
@@ -14597,7 +14807,6 @@ const first = await studio.png({ part: 0 });</pre>
         prefs.home = false;
         savePrefs();
         picked.clear();
-        disarm();
         show();
         if (push) history.pushState({ chart: chart.id, fromHome: true }, "");
         const focused = $("home").contains(document.activeElement);
@@ -14882,6 +15091,8 @@ const first = await studio.png({ part: 0 });</pre>
         $("chart-more").hidden = !home && chart === previewing && !chart.layers.length;
         // The phone bar's Add, in the grid, makes a chart (there's none open to add to).
         /** @type {HTMLElement} */ ($("mobile-add").querySelector(".label")).textContent = home ? "New chart" : "Add";
+        // (Layers, the open chart's: none in the grid, nor on an empty chart.)
+        $("mobile-layers").disabled = home || !chart.layers.length;
         if (home) $("mobile-charts").setAttribute("aria-current", "page");
         else $("mobile-charts").removeAttribute("aria-current");
         if (home) $("mobile-add").removeAttribute("aria-haspopup");
@@ -15218,16 +15429,18 @@ const first = await studio.png({ part: 0 });</pre>
           else if (pick === "delete") deleteFolder(id);
         }, point);
       }
+      /** A phone's header has Undo alone: its ⋯ (the chart's, a preview's) starts with Redo while there's something to redo. */
+      const redoRow = (/** @type {HTMLElement} */ anchor) => (phone.matches && anchor.id === "chart-more" && edits.future.length ? `<button type="button" data-pick="redo">${ICONS.redo}Redo</button><div class="menu-rule"></div>` : "");
       /** The preview's menu (a right-click on it, the header's ⋯): into your charts, or let go of; on a phone, Export too. */
       function previewMenu(/** @type {HTMLElement} */ anchor, point = undefined) {
         if (!previewing?.layers.length) return;
         const closes = previewing !== chart || Boolean(previousChart());
-        showMenu(anchor, `<button type="button" data-pick="keep">${ICONS.keep}Keep<span>Into your charts</span></button>${phone.matches && anchor.id === "chart-more" ? `<button type="button" data-pick="export" aria-haspopup="menu">${ICONS.download}Export<span>Image, data</span></button>` : ""}${closes ? `<div class="menu-rule"></div><button type="button" data-pick="close">${ICONS.close}Close the preview</button>` : ""}`, ({ pick }) => (pick === "keep" ? keepPreview() : pick === "export" ? $("export").click() : pick === "close" ? closePreview() : undefined), point);
+        showMenu(anchor, `${redoRow(anchor)}<button type="button" data-pick="keep">${ICONS.keep}Keep<span>Into your charts</span></button>${phone.matches && anchor.id === "chart-more" ? `<button type="button" data-pick="export" aria-haspopup="menu">${ICONS.download}Export<span>Image, data</span></button>` : ""}${closes ? `<div class="menu-rule"></div><button type="button" data-pick="close">${ICONS.close}Close the preview</button>` : ""}`, ({ pick }) => (pick === "redo" ? redo() : pick === "keep" ? keepPreview() : pick === "export" ? $("export").click() : pick === "close" ? closePreview() : undefined), point);
       }
       /** A chart's menu (`renameHere`: its title renamed where it shows instead, as the header's is). */
       function chartMenu(anchor, id, point = null, renameHere = /** @type {(() => void) | null} */ (null)) {
         const leave = outOf([id]);
-        showMenu(anchor, `
+        showMenu(anchor, `${redoRow(anchor)}
           <button type="button" data-pick="rename">${ICONS.pencil}Rename</button>
           <button type="button" data-pick="duplicate">${ICONS.duplicate}Duplicate</button>
           <button type="button" data-pick="folder" aria-haspopup="menu">${ICONS.folder}Move to folder</button>
@@ -15235,8 +15448,9 @@ const first = await studio.png({ part: 0 });</pre>
           <button type="button" data-pick="download">${ICONS.file}Download chart file<span>JSON</span></button>${phone.matches && anchor.id === "chart-more" ? `
           <button type="button" data-pick="export" aria-haspopup="menu">${ICONS.download}Export<span>Image, data</span></button>` : ""}
           <div class="menu-rule"></div>
-          <button type="button" data-pick="delete" class="danger" data-confirm>${ICONS.trash}Delete</button>`, ({ pick }) => {
+          <button type="button" data-pick="delete" class="danger">${ICONS.trash}Delete</button>`, ({ pick }) => {
           if (pick === "export") return $("export").click();
+          if (pick === "redo") return redo();
           // Back to the ⋯ it was opened from (in the grid, a copy is focused instead).
           const scope = anchor.closest("#home-grid") ? "#home-grid" : "#chart-list";
           if (pick === "folder") return folderMenu(anchor, [id], point ?? undefined, false);
@@ -15402,16 +15616,17 @@ const first = await studio.png({ part: 0 });</pre>
        * along, in their order; another goes alone (the picks as they are). By the pointer, a pill naming it (`label`: its
        * mark and name; how many, past one); where they'd land, a line, or a target lit (`landing` undefined: off every item;
        * `sticky`, where it last would; null, nowhere), only over the list as it shows; the list scrolls at its edges; esc
-       * puts them back. `still`: none moved now (a press still picks).
+       * puts them back. `still`: none moved now (a press still picks). A hold that began picking (`picking`: whether any
+       * were) and then carried its item off picked nothing: `unpick` ends it.
        * @param {HTMLElement} list
        * @param {{ item: string, idOf: (item: HTMLElement) => string, carried?: (id: string) => string[],
-       *   pick?: (id: string) => void, refuse?: (event: PointerEvent) => boolean, still?: () => boolean, sticky?: boolean,
+       *   pick?: (id: string) => void, picking?: () => boolean, unpick?: () => void, refuse?: (event: PointerEvent) => boolean, still?: () => boolean, sticky?: boolean,
        *   label: (id: string) => string, landing: (x: number, y: number, ids: string[]) => Landing | null | undefined,
        *   land: (ids: string[], at: Landing, y: number) => void, lift?: () => void, settle?: () => void }} how
        * @typedef {{ item: HTMLElement, after: boolean } | { zone: HTMLElement }} Landing
        */
       function dragToReorder(list, how) {
-        /** @type {{ id: string, x: number, y: number, pointer: number, touch: boolean, held: boolean, timer: number, touched: EventTarget | null } | null} */
+        /** @type {{ id: string, x: number, y: number, at: [number, number], pointer: number, touch: boolean, held: boolean, began: boolean, timer: number, touched: EventTarget | null } | null} */
         let press = null;
         /** Held (or carried) by touch, nothing scrolls under the finger. */
         const pin = (/** @type {Event} */ event) => (press?.held || drag) && event.preventDefault();
@@ -15420,7 +15635,8 @@ const first = await studio.png({ part: 0 });</pre>
         /** The item an id names now (the list may have been drawn anew since the press). */
         const itemNamed = (/** @type {string} */ id) => all$(how.item, list).find((element) => how.idOf(element) === id);
         const unmark = () => [list, ...all$(".drop-before, .drop-after, .drop-target", list)].forEach((element) => element.classList.remove("drop-before", "drop-after", "drop-target"));
-        const letGo = () => {
+        const letGo = (landed = false) => {
+          const unpick = Boolean(press?.began && drag && !landed);
           if (press) clearTimeout(press.timer);
           press?.touched?.removeEventListener("touchmove", pin);
           press = null;
@@ -15434,6 +15650,7 @@ const first = await studio.png({ part: 0 });</pre>
           document.body.classList.remove("carrying");
           drag = null;
           how.settle?.();
+          if (unpick) how.unpick?.();
         };
         /** Where they'd land from where the pointer is: only over the list as it shows (`sticky`: off every item, where it last would). */
         const landingNow = () => {
@@ -15505,7 +15722,7 @@ const first = await studio.png({ part: 0 });</pre>
           if (event.button !== 0 || carrying) return;
           const item = /** @type {HTMLElement | null} */ (closest(event, how.item));
           if (!item || typing(event.target) || how.refuse?.(event)) return;
-          press = { id: how.idOf(item), x: event.clientX, y: event.clientY, pointer: event.pointerId, touch: event.pointerType === "touch", held: false, timer: 0, touched: null };
+          press = { id: how.idOf(item), x: event.clientX, y: event.clientY, at: [event.clientX, event.clientY], pointer: event.pointerId, touch: event.pointerType === "touch", held: false, began: false, timer: 0, touched: null };
           carrying = letGo;
           // (A touch's moves go to what it started on, drawn anew or not: there, they're held from scrolling.)
           if (press.touch) {
@@ -15517,6 +15734,10 @@ const first = await studio.png({ part: 0 });</pre>
             if (!press) return;
             if (!itemNamed(press.id)) return letGo();
             press.held = true;
+            // (A carry from here: a drift while held still isn't one.)
+            [press.x, press.y] = press.at;
+            // (Whether this hold began picking: carried off instead, it leaves none picked.)
+            press.began = !how.picking?.();
             navigator.vibrate?.(8);
             how.pick?.(press.id);
           }, 450);
@@ -15533,6 +15754,7 @@ const first = await studio.png({ part: 0 });</pre>
           }
           const moved = Math.hypot(event.clientX - press.x, event.clientY - press.y);
           // (By touch, moved before it's held: a scroll.)
+          press.at = [event.clientX, event.clientY];
           if (press.touch && !press.held) return void (moved > 8 && letGo());
           if (moved >= (press.touch ? 6 : 4) && !how.still?.() && itemNamed(press.id)) lift(event);
         });
@@ -15546,8 +15768,11 @@ const first = await studio.png({ part: 0 });</pre>
           const carried = drag && { ids: drag.ids, at: how.still?.() ? null : landingNow(), y: drag.y };
           // (A drag, or a hold, makes no click: it'd open, or pick again, what was pressed.)
           if (carried || press.held) swallowClick();
-          letGo();
+          const began = press.began;
+          letGo(true);
           if (carried?.at) how.land(carried.ids, carried.at, carried.y);
+          // A hold that became a drag moved it: it picked nothing (picking was on before, it stays).
+          if (carried && began) how.unpick?.();
         });
         window.addEventListener("pointercancel", (event) => event.pointerId === press?.pointer && letGo());
         // (Its own capture lost, not a row's: a touch's own, let go as the list takes it, says nothing.)
@@ -15690,6 +15915,8 @@ const first = await studio.png({ part: 0 });</pre>
         idOf: (tile) => /** @type {string} */ (tile.dataset.homeCard),
         carried: (id) => (picked.has(id) ? shownCharts().filter((doc) => picked.has(doc.id)).map((doc) => doc.id) : [id]),
         pick: (id) => !picked.has(id) && pickChart(id),
+        picking: () => picked.size > 0,
+        unpick: () => clearPicks(),
         refuse: (event) => Boolean(closest(event, ".tile-check, .tile-more, .tile-rename")),
         still: () => Boolean($("home-filter").value.trim()),
         sticky: true,
@@ -16109,46 +16336,6 @@ const first = await studio.png({ part: 0 });</pre>
         slide(groups(), key, was, { moved: id });
         refocus(`[data-pane-menu="${id}"]`);
       }
-      /** How a second press is asked for, as the first came: a tap, a key, a click. */
-      const confirmWord = () => (TOUCH ? "Tap to confirm" : keyed ? "Press again to confirm" : "Click to confirm");
-      /** Whether the last thing done was by a key (else a pointer). */
-      let keyed = false;
-      addEventListener("keydown", () => (keyed = true), true);
-      addEventListener("pointerdown", () => (keyed = false), true);
-      /** What a row of ⌘K asking for a second press says. */
-      const AGAIN = TOUCH ? "Tap again" : "↵ again";
-      /**
-       * Deleting takes two presses: the first arms the button, which then says what a second press does. Pressing
-       * anything else, leaving it, Escape or a few seconds disarm it. The button armed, as it was:
-       * @type {{ button: HTMLElement, html: string, tip: string | undefined, label: string | null } | null}
-       */
-      let armed = null;
-      let armTimer = 0;
-      /** Whether this press is the second; the first only arms the button. @param {HTMLElement} button */
-      function confirmed(button, text = confirmWord()) {
-        if (armed?.button === button) return (disarm(), true);
-        disarm();
-        armed = { button, html: button.innerHTML, tip: button.dataset.tip, label: button.getAttribute("aria-label") };
-        button.classList.add("armed");
-        delete button.dataset.tip;
-        // An icon button keeps its place and asks beside it; one with a label asks in its label.
-        button.innerHTML = button.classList.contains("cap") ? `${button.innerHTML}<span class="confirm">${ICONS.trash}${text}</span>` : button.classList.contains("nav-item") ? `${ICONS.trash}<span class="label">${text}</span>` : `${ICONS.trash}${text}`;
-        if (armed.label) button.setAttribute("aria-label", `${armed.label}: ${text.toLowerCase()}`);
-        armTimer = setTimeout(disarm, 5000);
-        return false;
-      }
-      function disarm() {
-        if (!armed) return;
-        const { button, html, tip, label } = armed;
-        armed = null;
-        clearTimeout(armTimer);
-        button.classList.remove("armed");
-        button.innerHTML = html;
-        if (tip !== undefined) button.dataset.tip = tip;
-        if (label) button.setAttribute("aria-label", label);
-      }
-      document.addEventListener("pointerdown", (event) => armed && !armed.button.contains(/** @type {HTMLElement} */ (event.target)) && disarm(), true);
-      document.addEventListener("focusout", (event) => armed?.button === event.target && disarm());
       /** A pane and its layers, undoably (the only one: every layer); the focus goes to the pane that takes its place. */
       function removePane(id) {
         const at = chart.panes.findIndex((pane) => pane.id === id), only = chart.panes.length === 1;
@@ -16293,6 +16480,8 @@ const first = await studio.png({ part: 0 });</pre>
         idOf: (row) => /** @type {string} */ (row.dataset.layer),
         carried: (id) => (layerPicks.has(id) ? chart.layers.filter((layer) => layerPicks.has(layer.id)).map((layer) => layer.id) : [id]),
         pick: (id) => !layerPicks.has(id) && pickLayer(id),
+        picking: () => layerPicks.size > 0,
+        unpick: () => clearLayerPicks(),
         refuse: (event) => Boolean(closest(event, "[data-toggle]")),
         // (The new pane's place shows below; the panel keeps its height: a phone's sheet, as tall as what it holds, would
         // grow under the finger. Nearing its edge, it scrolls there.)
@@ -16424,7 +16613,7 @@ const first = await studio.png({ part: 0 });</pre>
         if (!layers.length) return;
         $("layers-picked").textContent = plural(layers.length, "layer");
         const toggle = /** @type {HTMLElement} */ (bar.querySelector('[data-layers-batch="hide"]'));
-        toggle.innerHTML = hide ? ICONS.eyeOff : ICONS.eye;
+        toggle.innerHTML = `${hide ? ICONS.eyeOff : ICONS.eye}<span class="label">${hide ? "Hide" : "Show"}</span>`;
         toggle.setAttribute("aria-label", hide ? "Hide" : "Show");
         toggle.dataset.tip = hide ? "Hide" : "Show";
         /** @type {HTMLButtonElement} */ (bar.querySelector('[data-layers-batch="duplicate"]')).disabled = chart.layers.length + layers.length > MAX_LAYERS;
@@ -17261,11 +17450,11 @@ const first = await studio.png({ part: 0 });</pre>
         textarea.style.height = "auto";
         textarea.style.height = `${textarea.scrollHeight}px`;
         $("formula-mirror").scrollTop = textarea.scrollTop;
-        const result = resolved?.results.get(layer.id);
+        const result = resolved?.results.get(layer.id), text = textarea.value;
         let message = "", node = null;
         try {
-          node = parse(layer.formula ?? "");
-          message = result?.detail ?? result?.error ?? "";
+          node = parse(text);
+          message = text.trim() === (layer.formula ?? "").trim() ? result?.detail ?? result?.error ?? "" : formulaError(text);
         } catch (error) {
           message = error.message;
         }
@@ -17574,7 +17763,31 @@ const first = await studio.png({ part: 0 });</pre>
         }
         if (field.id !== "formula") return;
         $("formula-editor")?.classList.remove("typing");
+        // (After the press that left it, if one did: the panel drawn anew now would lose the control pressed.)
+        const id = selected, text = field.value;
+        formulaTyped++;
+        afterPress(() => applyFormula(id, text));
       });
+      /** A layer's formula as typed, applied whatever it is (left, or the page left): what's wrong then said. */
+      function applyFormula(/** @type {string} */ id, /** @type {string} */ text) {
+        const layer = layerById(id);
+        if (layer?.formula !== undefined && layer.formula !== text) editById(id, (item) => (item.formula = text), { coalesce: `formula:${id}` });
+      }
+      /** Whether a pointer is down anywhere (a press under way). */
+      let pointerDown = false;
+      addEventListener("pointerdown", () => (pointerDown = true), true);
+      for (const type of ["pointerup", "pointercancel"]) addEventListener(type, () => (pointerDown = false), true);
+      /** Now, or once the press under way is let go (its click done). @param {() => void} run */
+      function afterPress(run) {
+        if (!pointerDown) return run();
+        const done = () => {
+          removeEventListener("pointerup", done, true);
+          removeEventListener("pointercancel", done, true);
+          setTimeout(run);
+        };
+        addEventListener("pointerup", done, true);
+        addEventListener("pointercancel", done, true);
+      }
       /**
        * An edit to one layer (or drawing), by its id; `editLayer`, to the selected one. A drawing's leaves the series as
        * they are: only the drawings are drawn again.
@@ -17596,7 +17809,7 @@ const first = await studio.png({ part: 0 });</pre>
         if (target.id === "label") editLayer((layer) => (layer.label = target.value.trim() || undefined), { coalesce: `label:${selected}`, redraw: "none" });
         else if (target.id === "formula") {
           markTyping();
-          editLayer((layer) => (layer.formula = target.value), { coalesce: `formula:${selected}` });
+          drawWhenReady(selected, target.value);
           const layer = layerById(selected);
           if (layer) updateFormula(layer);
           suggestHere();
@@ -17634,23 +17847,29 @@ const first = await studio.png({ part: 0 });</pre>
           else return;
           event.preventDefault();
           event.stopPropagation();
-        } else if (event.key === "Enter" && !event.shiftKey) {
-          // ↵ is done, as in every field (⇧↵ a line); esc, as it was when it was entered.
+        } else if ((event.key === "Enter" && !event.shiftKey) || event.key === "Escape") {
+          // ↵ is done, as in every field (⇧↵ a line); esc too, as typed (⌘Z takes it back).
           event.preventDefault();
-          event.target.blur();
-        } else if (event.key === "Escape") {
-          const layer = layerById(selected);
-          if (layer && formulaFrom !== null && layer.formula !== formulaFrom) editLayer((item) => (item.formula = formulaFrom));
           event.target.blur();
         }
       });
-      /** The formula as it was when its field was entered (esc puts it back). */
-      let formulaFrom = /** @type {string | null} */ (null);
       $("inspector").addEventListener("focusin", (event) => {
         if (event.target.id !== "formula") return;
-        formulaFrom = layerById(selected)?.formula ?? null;
         suggestHere();
       });
+      /** The last formula typed, for its draw once it's ready (a later keystroke's takes its place). */
+      let formulaTyped = 0;
+      /**
+       * A layer's formula as typed, drawn once it's one to draw: it reads, its layers are here, its series are Bitview's
+       * (this machine's catalog says; before it's up, as soon as it reads). Till then the chart keeps the last one that was.
+       */
+      async function drawWhenReady(/** @type {string} */ id, /** @type {string} */ text) {
+        const turn = ++formulaTyped;
+        if (formulaError(text)) return;
+        const series = [...refsOf(parse(text), "series")];
+        if (finder.ready && finder.worker && series.length && (await Promise.all(series.map(aboutOf))).some((about) => !about)) return;
+        if (turn === formulaTyped && layerById(id)?.formula?.trim() !== text.trim()) editById(id, (layer) => (layer.formula = text), { coalesce: `formula:${id}` });
+      }
       document.addEventListener("selectionchange", () => document.activeElement?.id === "formula" && suggestHere());
       $("inspector").addEventListener("focusout", (event) => {
         if (event.target.id !== "formula") return;
@@ -18415,8 +18634,6 @@ const first = await studio.png({ part: 0 });</pre>
         pages: [],
         /** The search itself, as left for a page: what was typed, the row that led on. @type {{ query?: string, landOn?: string | null }} */
         root: {},
-        /** A row asking for a second ↵ (a delete). @type {string | null} */
-        armed: null,
         /** In the formula page, where a chosen piece goes in: the start of the word it completes, or the caret. */
         from: 0,
       };
@@ -18467,7 +18684,7 @@ const first = await studio.png({ part: 0 });</pre>
         hideMenu();
         // Opened afresh, it starts at the search (or where adding a series last added from, on this chart).
         const back = add && !query && addedFrom?.chart === chart.id ? addedFrom : null;
-        Object.assign(palette, spot ?? { adding: add, replacing: replace, formula, editing, into, pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null }, { armed: null });
+        Object.assign(palette, spot ?? { adding: add, replacing: replace, formula, editing, into, pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null });
         const dialog = $("palette"), input = $("palette-input");
         if (!dialog.open) trailDrawn = "";
         if (!dialog.open) dialog.showModal();
@@ -18613,7 +18830,7 @@ const first = await studio.png({ part: 0 });</pre>
             { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, words: "select drawings box marquee pick several", icon: "select", kbd: "D S", run: () => setSelectingArea(true) },
             ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, words: "drawing tools belt toolbar dock move side top bottom left right", icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", () => /** @type {const} */ (["top", "bottom", "left", "right"]).map((side) => ({ key: side, label: capitalize(side), current: prefs.belt.dock === side, run: () => dockBelt(side) })))) }] : []),
             ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", words: "drawings annotations hide show visible clean", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden, true) }] : []),
-            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, confirm: true, run: clearDrawings }] : []),
+            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
           ]),
           ...(((layers) => !layers.length ? [] : ((n, hide) => [
             { title: `${hide ? "Hide" : "Show"} ${n}`, text: layers.map(labelOf).join(", "), words: "selected picked layers hide show visible", icon: hide ? "eyeOff" : "eye", kbd: "H", run: () => layersBatch("hide"), suggested: true },
@@ -18646,7 +18863,7 @@ const first = await studio.png({ part: 0 });</pre>
             { title: "Clear the selection", text: plural(picked.size, "chart") + " selected.", words: "deselect clear picked selected", icon: "close", kbd: "esc", run: () => clearPicks(), anywhere: true },
             { title: `Duplicate ${plural(picked.size, "chart")}`, text: "A copy of each, beside it.", words: "copy picked selected", icon: "duplicate", run: () => batch("duplicate"), anywhere: true },
             { title: `Download ${plural(picked.size, "chart")}`, text: "One chart file, to import again.", words: "export save json picked selected", icon: "file", run: () => batch("export"), anywhere: true },
-            { title: `Delete ${plural(picked.size, "chart")}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true, confirm: true },
+            { title: `Delete ${plural(picked.size, "chart")}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true },
           ] : []),
           !home && edits.future.length ? { title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redo } : { title: "Redo", text: "Nothing to redo.", words: "again forward", icon: "redo", anywhere: true },
           ...(empty ? [] : [
@@ -18656,7 +18873,7 @@ const first = await studio.png({ part: 0 });</pre>
           ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
           { title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") },
-          ...(isDraft(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo, a moment after.", words: "remove trash", icon: "trash", danger: true, confirm: true, run: () => deleteChart(chart) }]),
+          ...(isDraft(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo.", words: "remove trash", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
           ...(chart.layers.some((layer) => layer.hidden) ? [{ title: "Show every layer", text: "The hidden ones too.", words: "unhide visible all", icon: "eye", run: showEvery }] : []),
           ...(chart.panes.length > 1 ? [
             { title: "Equal pane heights", text: "Every pane as tall as the others.", words: "resize panes even same size", icon: "pane", run: () => commit((doc) => doc.panes.forEach((pane) => (pane.size = 1)), { quiet: true }) },
@@ -18740,7 +18957,8 @@ const first = await studio.png({ part: 0 });</pre>
           ...rank(browseRows(), rowText, words),
           ...rank(chart.layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })), rowText, words),
           ...rank(chart.panes.map((pane, i) => ({ ...paneRow(pane.id, i), group: "Panes" })), rowText, words),
-          ...rank(settings, rowText, words).slice(0, 8),
+          // (A setting by a word of its own, not its owner's alone: "mvrv" is the layer's row, "mvrv color" its color.)
+          ...rank(settings.filter((row) => words.some((typed) => typed.length > 1 && !FILLER.has(typed) && fitScore(row.itself, [typed]))), rowText, words).slice(0, 4),
         ];
         // A setting with its value after it ("price color orange"), and a date ("go to 2021", or just "nov 2021"): the
         // change itself, on top.
@@ -19053,8 +19271,7 @@ const first = await studio.png({ part: 0 });</pre>
           const i = from + at;
           const header = item.group && item.group !== group ? `<li class="group" role="presentation">${escape((group = item.group))}</li>` : "";
           if (item.kind === "formula" || item.kind === "insert") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${formulaRow(item)}</li>`;
-          if (item.kind === "row") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}" data-kind="row" data-option="${i}" aria-selected="${i === palette.active}" class="${palette.armed === item.key ? "armed" : ""} ${item.dim ? "dim" : ""}">${rowHtml(item)}</li>`;
-          if (item.kind === "command" && palette.armed === item.key) return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}" data-kind="command" data-option="${i}" aria-selected="${i === palette.active}" class="armed">${ICONS.trash}<span class="item-name">Confirm: ${escape(item.command.title)}</span><span class="item-meta">${AGAIN}</span></li>`;
+          if (item.kind === "row") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}" data-kind="row" data-option="${i}" aria-selected="${i === palette.active}" class="${item.dim ? "dim" : ""}">${rowHtml(item)}</li>`;
           const doc = item.kind === "chart" ? chartById(item.key) : null;
           if (item.kind === "series") {
             const blocked = byBlock.has(item.name), human = humanize(item.name);
@@ -19086,7 +19303,6 @@ const first = await studio.png({ part: 0 });</pre>
         if (item?.kind === "insert") $("palette-primary").textContent = "Insert";
         if (item?.kind === "row") $("palette-primary").textContent = item.verb ?? (item.page ? "Open" : "Run");
         if (item?.kind === "formula" && palette.editing) $("palette-primary").textContent = "Apply";
-        if (item && palette.armed === item.key) $("palette-primary").textContent = "Confirm";
         $("palette-more").hidden = actionsFor(item).length < 2;
         // (A row saying how things are, or what's still wanting, has nothing for ↵ to do: esc says that.)
         $("palette-enter").hidden = $("palette-close-sep").hidden = !item || (item.kind === "command" ? !item.command.run : item.kind === "row" && !item.run && !item.page);
@@ -19100,10 +19316,6 @@ const first = await studio.png({ part: 0 });</pre>
         palette.moved = true;
         const n = palette.items.length;
         palette.active = Math.abs(delta) > 1 ? clamp(palette.active + delta, 0, n - 1) : (palette.active + delta + n) % n;
-        if (palette.armed) {
-          palette.armed = null;
-          return renderPalette();
-        }
         drawOptions(palette.active + PALETTE_PAGE / 2);
         $("palette-list").querySelector('[aria-selected="true"]')?.setAttribute("aria-selected", "false");
         $(`option-${palette.active}`)?.setAttribute("aria-selected", "true");
@@ -19267,7 +19479,7 @@ const first = await studio.png({ part: 0 });</pre>
       function showActions() {
         const item = palette.items[palette.active], actions = actionsFor(item);
         if (actions.length < 2) return;
-        showMenu($("palette-actions"), actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""} ${action.confirm ? "data-confirm" : ""}>${action.icon ?? '<i class="menu-space"></i>'}${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
+        showMenu($("palette-actions"), actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${action.icon ?? '<i class="menu-space"></i>'}${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
       }
       /**
        * An action, from ⌘K's menu or a page's row: a page opens; anything else acts, closing ⌘K unless it stays (a
@@ -19383,7 +19595,6 @@ const first = await studio.png({ part: 0 });</pre>
         from.query = palette.query;
         from.landOn = palette.items[palette.active]?.key ?? null;
         palette.pages = [...palette.pages, page];
-        palette.armed = null;
         palette.query = page.input?.value ?? "";
         const input = $("palette-input");
         input.value = palette.query;
@@ -19397,7 +19608,6 @@ const first = await studio.png({ part: 0 });</pre>
         const back = palette.pages.at(-1) ?? palette.root;
         palette.query = back.query ?? "";
         palette.landOn = back.landOn ?? null;
-        palette.armed = null;
         $("palette-input").value = palette.query;
         showPalette();
         $("palette-input").focus();
@@ -19441,11 +19651,10 @@ const first = await studio.png({ part: 0 });</pre>
       }
       /** A row: its icon, its label, at its end its value (or a check for the choice in effect), › if it opens a page. */
       function rowHtml(item) {
-        const armed = palette.armed === item.key;
         const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : escape(item.aside)) : "";
-        const end = armed ? AGAIN : aside, marks = armed ? "" : [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", item.page || item.leads ? '<span aria-hidden="true">›</span>' : ""].filter(Boolean).join(" ");
+        const end = aside, marks = [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", item.page || item.leads ? '<span aria-hidden="true">›</span>' : ""].filter(Boolean).join(" ");
         const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
-        return `${item.icon ?? ""}<span class="item-name">${armed ? `Confirm: ${escape(item.label)}` : query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd && !armed ? `<kbd>${escape(keyText(item.kbd))}</kbd>` : ""}`;
+        return `${item.icon ?? ""}<span class="item-name">${query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? `<kbd>${escape(keyText(item.kbd))}</kbd>` : ""}`;
       }
       /** A chart's layers as ⌘K's previews list them: each by its badge and name, what it draws across. @param {Layer[]} layers */
       const layerRows = (layers) => layers.map((layer) => `<div><dt>${letterChip(layer)}${escape(labelOf(layer))}${layer.hidden ? ' <span class="muted">(hidden)</span>' : ""}</dt><dd>${typeName(layer.type)}</dd></div>`).join("");
@@ -19570,7 +19779,7 @@ const first = await studio.png({ part: 0 });</pre>
           ...((names) => (chart.drawings ?? []).map((drawing) => ({ name: /** @type {string} */ (names.get(drawing.id)), kind: "drawing", page: () => drawingPage(drawing.id), only: null, not: [] })))(drawingNames()),
         ];
         return owners.flatMap(({ name, kind, page, only, not }) => page().rows().filter((row) => !row.key.startsWith("layer:") && !row.key.startsWith("add-") && (!only || only.includes(row.key)) && !not.includes(row.key)).map((row) => ({
-          ...row, key: `setting:${name}:${row.key}`, owner: { name, kind: kind.split(" ")[0] }, group: "In this chart", label: `${name} · ${row.label}`, words: `${name} ${kind} ${row.words ?? ""} ${SYNONYMS[row.key] ?? ""}`, of: row.page ?? (row.choices && (() => choicePage(row.label, row.choices))),
+          ...row, key: `setting:${name}:${row.key}`, owner: { name, kind: kind.split(" ")[0] }, group: "In this chart", label: `${name} · ${row.label}`, words: `${name} ${kind} ${row.words ?? ""} ${SYNONYMS[row.key] ?? ""}`, itself: `${row.label} ${row.aside ?? ""} ${row.words ?? ""} ${SYNONYMS[row.key] ?? ""}`, of: row.page ?? (row.choices && (() => choicePage(row.label, row.choices))),
           page: row.page && (() => {
             const owner = page();
             pushPage(owner);
@@ -19699,7 +19908,7 @@ const first = await studio.png({ part: 0 });</pre>
           { label: "Move to folder", icon: ICONS.folder, aside: folderById(doc.folder)?.name ?? "None", page: () => folderPage([id]) },
           ...(outOf([id]) ? [{ label: outOf([id]), icon: ICONS.folderOut, run: () => moveToFolder([id], null) }] : []),
           { label: "Download chart file", icon: ICONS.file, run: () => chartPick(id, "download") },
-          { label: "Delete", icon: ICONS.trash, danger: true, confirm: true, run: () => chartPick(id, "delete") },
+          { label: "Delete", icon: ICONS.trash, danger: true, run: () => chartPick(id, "delete") },
         ];
       }
       /** @returns {Page} */
@@ -19736,7 +19945,7 @@ const first = await studio.png({ part: 0 });</pre>
             ...(chart === previewing ? [] : [{ key: "folder", icon: ICONS.folder, label: "Folder", aside: folderById(chart.folder)?.name ?? "None", group: "Chart file", page: () => folderPage([chart.id]) }]),
             ...(chart === previewing && chart.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Keep", aside: "A preview: into your charts as it is", verb: "Keep", group: "Chart file", run: () => keepPreview() }] : []),
             ...(chart === previewing ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") }]),
-            ...(isDraft(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, confirm: true, run: () => deleteChart(chart) }]),
+            ...(isDraft(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, run: () => deleteChart(chart) }]),
           ].map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewChart(panel, chart), ...row }));
         } };
       }
@@ -20252,18 +20461,11 @@ const first = await studio.png({ part: 0 });</pre>
           showPalette();
           return;
         }
-        if (item.kind === "row" || (item.kind === "command" && item.command.confirm)) {
-          if ((item.confirm || item.command?.confirm) && palette.armed !== item.key) {
-            palette.armed = item.key;
-            return renderPalette();
-          }
-          palette.armed = null;
-          if (item.kind === "row") {
-            if (fromSearch() && item.key !== "everywhere") noteUse(item.key);
-            // (⇧↵ or ⌘↵ on a row: its action with that key, where it has one.)
-            const keyed = newPane || keep ? item.actions?.().find((action) => action.kbd === (newPane ? "⇧↵" : "⌘↵")) : undefined;
-            return runAction(keyed ?? item, item);
-          }
+        if (item.kind === "row") {
+          if (fromSearch() && item.key !== "everywhere") noteUse(item.key);
+          // (⇧↵ or ⌘↵ on a row: its action with that key, where it has one.)
+          const keyed = newPane || keep ? item.actions?.().find((action) => action.kbd === (newPane ? "⇧↵" : "⌘↵")) : undefined;
+          return runAction(keyed ?? item, item);
         }
         if (item.kind === "command") {
           // (One saying how things are: nothing to do, ⌘K closes.)
@@ -20303,7 +20505,6 @@ const first = await studio.png({ part: 0 });</pre>
 
       $("palette-input").addEventListener("input", (event) => {
         palette.query = event.target.value;
-        palette.armed = null;
         showPalette();
       });
       $("palette-input").addEventListener("keydown", (event) => {
@@ -20388,7 +20589,7 @@ const first = await studio.png({ part: 0 });</pre>
         else placeMenu(menu, host, anchor, point, side);
         menu.onclick = (event) => {
           const button = closest(event, "button:not(:disabled)");
-          if (!button || (button.hasAttribute("data-confirm") && !confirmed(button))) return;
+          if (!button) return;
           const owner = menuOwner, key = owner && keyOf(owner), scope = owner?.parentElement?.closest("[id]"), target = menuTarget;
           hideMenu();
           onPick(button.dataset);
@@ -20497,7 +20698,6 @@ const first = await studio.png({ part: 0 });</pre>
         if (event.key === "Escape" && $("menu").closest("#palette")) {
           event.preventDefault();
           event.stopPropagation();
-          disarm();
           hideMenu();
           return $("palette-input").focus();
         }
@@ -21508,9 +21708,13 @@ const first = await studio.png({ part: 0 });</pre>
         described?.removeAttribute("aria-describedby");
         described = null;
       }
+      /** Whether the focus is moved by the keys that move it (Tab, the arrows): only then does a control focused say its tip, not where the page puts the focus (back on a menu's button, on a dropdown's choice). */
+      let tabbing = false;
+      addEventListener("keydown", (event) => (tabbing = event.key === "Tab" || event.key.startsWith("Arrow")), true);
+      addEventListener("pointerdown", () => (tabbing = false), true);
       document.addEventListener("focusin", (event) => {
         const target = /** @type {HTMLElement} */ (event.target);
-        if (!(target instanceof HTMLElement) || !target.dataset.tip || target === tipTarget || !target.matches(":focus-visible") || typing(target)) return;
+        if (!(target instanceof HTMLElement) || !target.dataset.tip || target === tipTarget || !tabbing || !target.matches(":focus-visible") || typing(target)) return;
         hideTip();
         tipTarget = target;
         tip.classList.add("warm");
@@ -21572,10 +21776,13 @@ const first = await studio.png({ part: 0 });</pre>
         element.querySelector("button")?.addEventListener("click", press);
         toastUndo = undoes ? { press, mark: revision } : null;
         syncUndo();
-        // Above the chart's foot; in the grid, above its bar (or its foot), centered on it.
-        const frame = (home ? $("home") : $("stage-foot")).getBoundingClientRect();
+        // Above the chart's foot; in the grid, above its bar (or its foot), centered on it; the layers' bar showing on a
+        // phone's sheet, above it.
+        const layersBar = $("layers-bar"), sheetBar = document.body.dataset.sheet === "panel" && !layersBar.hidden ? layersBar.getBoundingClientRect() : null;
+        const frame = sheetBar ?? (home ? $("home") : $("stage-foot")).getBoundingClientRect();
         const belt = $("belt"), beltTop = !home && !belt.hidden && belt.dataset.dock === "bottom" ? belt.getBoundingClientRect().top : Infinity;
-        const above = !home ? Math.min(frame.top, beltTop) : $("home-bar").hidden ? frame.bottom - 8 : $("home-bar").getBoundingClientRect().top;
+        const tabs = /** @type {HTMLElement} */ (document.querySelector(".mobile-bar")).getBoundingClientRect(), tabsTop = tabs.width > tabs.height ? tabs.top : Infinity;
+        const above = sheetBar ? sheetBar.top : Math.min(tabsTop, !home ? Math.min(frame.top, beltTop) : $("home-bar").hidden ? frame.bottom - 8 : $("home-bar").getBoundingClientRect().top);
         element.style.bottom = host === document.body && frame.height ? `${innerHeight - above + 12}px` : "";
         const center = host === document.body && frame.width ? frame.left + frame.width / 2 : 0;
         element.style.left = center ? `${center}px` : "";
@@ -21659,8 +21866,6 @@ const first = await studio.png({ part: 0 });</pre>
        * @param {Redraw} [redraw]
        */
       function refresh(redraw = true, refit = false) {
-        // A second press asked for is void once the page shows another state.
-        disarm();
         linkInUrl();
         if (document.activeElement !== $("title")) $("title").value = chart.title;
         document.title = home ? "All charts · Bitview Studio" : `${titleOf(chart)} · Bitview Studio`;
@@ -21680,7 +21885,7 @@ const first = await studio.png({ part: 0 });</pre>
         else if (back) $("leave-empty").dataset.tip = `Back to ${titleOf(back)}`;
         // An empty chart is the empty state's to fill: no panel beside it, nothing to export or share yet.
         document.body.toggleAttribute("data-empty", !chart.layers.length);
-        $("export").disabled = $("share").disabled = $("draw-toggle").disabled = $("panel-toggle").disabled = $("mobile-layers").disabled = !chart.layers.length;
+        $("export").disabled = $("share").disabled = $("draw-toggle").disabled = $("panel-toggle").disabled = !chart.layers.length;
         $("add").dataset.tip = cloudable() ? "Add a series, a formula or a cloud" : "Add a series or a formula";
         if (!chart.layers.length && document.body.dataset.sheet === "panel") delete document.body.dataset.sheet;
         renderCharts();
@@ -21836,7 +22041,6 @@ const first = await studio.png({ part: 0 });</pre>
         }
         if (mod && key === "a" && home && !typing(event.target)) {
           event.preventDefault();
-          disarm();
           for (const doc of shownCharts()) picked.add(doc.id);
           return renderPicked();
         }
@@ -21848,14 +22052,8 @@ const first = await studio.png({ part: 0 });</pre>
           const id = item?.dataset.chartRow ?? item?.dataset.homeCard ?? "", doc = chartById(id), inGrid = inList.id === "home-grid";
           if (!doc || doc === previewing) return;
           if (key === "d") return inGrid ? batch("duplicate", null, picked.has(id) ? null : [id]) : void duplicateCharts([doc]);
-          // (One of the picks: they all go, asked as the bar asks. One alone: asked at its ⋯, or its row.)
-          if (inGrid && picked.has(id)) {
-            if (confirmed(/** @type {HTMLElement} */ ($("home-bar").querySelector('[data-batch="delete"]')), "Press again to delete")) batch("delete");
-            return;
-          }
-          const asks = /** @type {HTMLElement} */ (inGrid ? item?.querySelector(".tile-more") : item?.querySelector("[data-open-chart]"));
-          if (asks && confirmed(asks, "Press again to delete")) inGrid ? batch("delete", null, [id]) : deleteChart(doc);
-          return;
+          // (One of the picks: they all go; one alone, alone. An Undo brings them back.)
+          return inGrid ? batch("delete", null, picked.has(id) ? null : [id]) : deleteChart(doc);
         }
         // A layer's row: ⌥↑ ⌥↓ move it among its pane's, as a chart's row moves in the list.
         const layerRow = typing(event.target) ? null : /** @type {HTMLElement | null} */ (document.activeElement?.closest?.(".layer-row[data-layer]") ?? null);
@@ -21889,9 +22087,7 @@ const first = await studio.png({ part: 0 });</pre>
         if (!prefs.keys && event.key.length === 1) return;
         if (home && (event.key === "Backspace" || event.key === "Delete") && picked.size) {
           event.preventDefault();
-          // Asked on the bar's Delete, as a click there asks.
-          if (confirmed(/** @type {HTMLElement} */ ($("home-bar").querySelector('[data-batch="delete"]')), "Press again to delete")) batch("delete");
-          return;
+          return batch("delete");
         }
         // In the grid, only what isn't of a chart: the open one is out of sight.
         if (home && !["/", "n", "?", "\\", "escape"].includes(key)) return;
@@ -21904,8 +22100,7 @@ const first = await studio.png({ part: 0 });</pre>
         else if (event.key === "\\") toggleSidebar();
         else if (key === "p") togglePanel();
         else if (event.key === "Escape") {
-          if (armed) disarm();
-          else if (home && picked.size && $("menu").hidden) clearPicks();
+          if (home && picked.size && $("menu").hidden) clearPicks();
           else if (!$("menu").hidden) {
             const owner = ownerNow();
             hideMenu();
