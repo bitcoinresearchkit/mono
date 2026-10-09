@@ -71,8 +71,8 @@ pub struct AddrCache {
     shards: [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>; SHARDS],
     /// Reusable scratch space for the unique addresses touched by one batch.
     addresses: Vec<AddressKey>,
-    /// Reusable scratch space for their loaded sources.
-    sources: Vec<SourcedAddrData<FundedAddrData>>,
+    /// Reusable scratch space for their loaded sources (`None`: already cached).
+    sources: Vec<Option<SourcedAddrData<FundedAddrData>>>,
 }
 
 impl AddrCache {
@@ -94,29 +94,31 @@ impl AddrCache {
                 })
                 .map(|(ty, index)| AddressKey::new(ty, index)),
         );
-        self.addresses.sort_unstable();
+        self.addresses.par_sort_unstable();
         self.addresses.dedup();
         let shards = &self.shards;
-        self.addresses.retain(|address| {
-            !shards[shard_of(address.type_index())]
-                .get_unwrap(address.addr_type())
-                .contains_key(&address.type_index())
-        });
 
-        // Keep cold reads concurrent without scheduling tiny tasks.
+        // Keep cold reads concurrent without scheduling tiny tasks; the cached check runs there too.
         self.addresses
             .par_iter()
             .with_min_len(32)
             .copied()
-            .map(|address| address.load(vr, state))
+            .map(|address| {
+                (!shards[shard_of(address.type_index())]
+                    .get_unwrap(address.addr_type())
+                    .contains_key(&address.type_index()))
+                .then(|| address.load(vr, state))
+            })
             .collect_into_vec(&mut self.sources);
 
         for (address, source) in self.addresses.iter().copied().zip(self.sources.drain(..)) {
-            self.shards[shard_of(address.type_index())].insert_for_type(
-                address.addr_type(),
-                address.type_index(),
-                source,
-            );
+            if let Some(source) = source {
+                self.shards[shard_of(address.type_index())].insert_for_type(
+                    address.addr_type(),
+                    address.type_index(),
+                    source,
+                );
+            }
         }
     }
 
