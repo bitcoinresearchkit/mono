@@ -4835,8 +4835,9 @@
             color: var(--ink);
           }
 
-          /* At its end, an aside: the format it makes, where it goes, or its key (plain, not a keycap); cut if long. */
-          :is(span, kbd) {
+          /* At its end, an aside: the format it makes, where it goes, or its key (plain, not a keycap); cut if long. (A
+             layer's letter is its badge, as everywhere.) */
+          :is(span:not(.letter), kbd) {
             display: inline;
             overflow: hidden;
             min-width: 0;
@@ -6563,7 +6564,7 @@
   <body class="boot">
     <!-- The first stop by keys: past the guide (for scripts, at the start of the page's main) to the chart, or the grid. -->
     <a class="skip" href="#main" onclick="event.preventDefault(); const keys = document.getElementById('plot-keys'); (document.body.hasAttribute('data-home') ? document.getElementById('home-filter') : keys && !keys.hidden ? keys : document.getElementById('title'))?.focus()">Skip to the chart</a>
-    <!-- Bitview's client and chart library didn't load (the built page takes them from bitview.space): said, plainly. -->
+    <!-- Bitview's client didn't load (the built page takes it from bitview.space): said, plainly. -->
     <div id="offline" class="offline" role="alert">
       <h1>Bitview can't be reached</h1>
       <p>Studio draws its charts from bitview.space, and couldn't load from it just now. Your charts are kept in this browser.</p>
@@ -7332,21 +7333,21 @@ const picture = await studio.png();</pre>
         const l = 0.2104542553 * L + 0.793617785 * M - 0.0040720468 * S, a = 1.9779984951 * L - 2.428592205 * M + 0.4505937099 * S, bb = 0.0259040371 * L + 0.7827717662 * M - 0.808675766 * S;
         return [l, Math.hypot(a, bb), (((Math.atan2(bb, a) * 180) / Math.PI) + 360) % 360];
       }
-      /** @type {[string, string][]} */
       /** The types of a layer made from layers. @type {[string, string][]} */
       const FROM_TYPES = [["cloud", "Cloud"], ["trend", "Trend"]];
       /** What a trend makes of its layers, said (a cloud's: see cloudSays). */
       const TREND_SAYS = "On the lowest of them until its reference touches it, then on the highest until it touches that";
       /** What can flip a trend: a layer of one value (not made from layers), not one of those it's made from. @param {Chart} doc @param {Layer} trend */
-      const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && !trend.from?.includes(layer.id));
-      /** A trend's reference by default: the first of those in its pane (a price, most often), else the first of them. @param {Chart} doc @param {Layer} trend */
-      const refFor = (doc, trend) => ((refs) => (refs.find((layer) => layer.pane === trend.pane) ?? refs[0])?.id)(refsFor(doc, trend));
+      const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && !trend.from?.includes(layer.id) && !readsOf(layer).has(trend.letter));
+      /** A trend's reference by default: a price in its pane (candles, a series named so), else the first of those there, else the first. @param {Chart} doc @param {Layer} trend */
+      const refFor = (doc, trend) => ((refs) => (refs.find((layer) => layer.pane === trend.pane && (layer.type === "candles" || /^price/.test(layer.series ?? ""))) ?? refs.find((layer) => layer.pane === trend.pane) ?? refs[0])?.id)(refsFor(doc, trend));
       const fromIcon = (/** @type {string} */ type) => (type === "trend" ? ICONS.riding : ICONS.cloud);
       /** A type's name: a series' or a formula's, or one made from layers. */
       const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES].find(([id]) => id === type)?.[1] ?? type;
+      /** @type {[string, string][]} */
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
       /** The types drawn as a line: a dash and a shape apply. */
-      const LINED = new Set(["line", "area", "baseline"]);
+      const LINED = new Set(["line", "area", "baseline", "trend"]);
       /** How a line runs between its points: straight, in steps (a value that holds until it changes), or curved. @type {[string, string, number][]} */
       const SHAPES = [["straight", "Straight", LC.LineType.Simple], ["steps", "Steps", LC.LineType.WithSteps], ["curved", "Curved", LC.LineType.Curved]];
       const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LC.LineType.Simple;
@@ -8263,7 +8264,8 @@ const picture = await studio.png();</pre>
         // A cloud spans layers still there, none a cloud, and its edges, each once (short of a layer and one more, it says
         // so, as a formula does).
         for (const layer of doc.layers) if (layer.from) layer.from = fromOf(doc, layer.from, layer.type === "cloud");
-        // (A trend's reference one that can flip it; none else: it says so.)
+        // (A trend's reference one that can flip it, none else (it says so); no shape: a step would draw its flips.)
+        for (const layer of doc.layers) if (layer.type === "trend") delete layer.shape;
         for (const layer of doc.layers) if (layer.ref && (layer.type !== "trend" || !refsFor(doc, layer).some((other) => other.id === layer.ref))) delete layer.ref;
         if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
         const ids = new Set(doc.panes.map((pane) => pane.id));
@@ -8338,7 +8340,7 @@ const picture = await studio.png();</pre>
        * Studio (a later number), or stored in a shape it can't read at all (damaged, another's), is opened read-only here,
        * said so, and kept as it is: it may hold what this one would drop, or lose entirely, if it saved over it.
        */
-      const SCHEMA = 3;
+      const SCHEMA = 4;
       let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && (() => {
         try {
           return localStorage.getItem(STORE) !== null;
@@ -9593,19 +9595,19 @@ const picture = await studio.png();</pre>
         const quiet = (text) => (/^([A-Z]{1,2}\b|Bitview)/.test(text) ? text : `${text.charAt(0).toLowerCase()}${text.slice(1)}`);
         // Formulas, in dependency order; a loop is an error, not a hang.
         const byLetter = new Map(doc.layers.map((layer) => [layer.letter, layer]));
-        const visiting = new Set();
+        const visiting = new Set(), LOOP = "Formulas refer to each other in a loop";
         /** The parts of the chart's formulas computed so far, shared between them. */
         const memo = new Map();
         const compute = (layer) => {
           if (results.has(layer.id)) return results.get(layer.id);
-          if (visiting.has(layer.id)) throw new Error("Formulas refer to each other in a loop");
+          if (visiting.has(layer.id)) throw new Error(LOOP);
           visiting.add(layer.id);
           try {
             const node = parse(layer.formula ?? "");
             // The same formula over the same inputs (by identity: unchanged since the last resolve) is the same result.
             const inputs = [...refsOf(node)].map((letter) => {
               const target = byLetter.get(letter);
-              const result = !target || target === layer ? null : computed(target);
+              const result = !target || target === layer || target.type === "cloud" ? null : computed(target);
               return result?.shown ? idOf(result.shown) : result?.error ?? "-";
             });
             const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "series")].map((name) => (bySeries.get(name)?.shown ? idOf(bySeries.get(name)?.shown) : "-"))].join("|");
@@ -9658,10 +9660,13 @@ const picture = await studio.png();</pre>
          */
         const made = (/** @type {Layer} */ layer) => {
           if (results.has(layer.id)) return results.get(layer.id);
-          if (visiting.has(layer.id)) throw new Error("Formulas refer to each other in a loop");
+          if (visiting.has(layer.id)) throw new Error(LOOP);
           visiting.add(layer.id);
           try {
-            const inputs = (layer.from ?? []).flatMap((id) => ((member) => (member ? [computed(member)] : []))(doc.layers.find((item) => item.id === id))).filter((result) => result?.shown), edges = edgesOf(layer).length;
+            const all = (layer.from ?? []).flatMap((id) => ((member) => (member ? [computed(member)] : []))(doc.layers.find((item) => item.id === id)));
+            // (One of them in a loop through it: it's in the loop too, whatever's computed first.)
+            if (all.some((result) => result?.error === LOOP)) throw new Error(LOOP);
+            const inputs = all.filter((result) => result?.shown), edges = edgesOf(layer).length;
             if (!inputs.length || inputs.length + edges < 2) {
               /** @type {Result} */
               const short = { unit: inputs[0]?.unit ?? "number", error: fromShort(layer) || (edges ? "Needs a layer with data" : "Needs two layers with data") };
@@ -9669,6 +9674,7 @@ const picture = await studio.png();</pre>
               return short;
             }
             const ref = layer.type === "trend" ? doc.layers.find((item) => item.id === layer.ref) : null, by = ref ? computed(ref) : null;
+            if (by?.error === LOOP) throw new Error(LOOP);
             if (layer.type === "trend" && !by?.shown) {
               /** @type {Result} */
               const short = { unit: inputs[0].unit, error: !ref ? "Pick what flips it" : `${ref.letter} has no data` };
@@ -10097,7 +10103,7 @@ const picture = await studio.png();</pre>
               : layer.type === "area" ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, invertFilledArea: layer.fill === "above" }]
               : layer.type === "histogram" ? [LC.HistogramSeries, { ...common, ...paint, base: layer.base ?? 0 }]
               : layer.type === "baseline" ? [LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: "price", price: layer.base ?? 0 } }]
-              : [LC.LineSeries, { ...common, ...paint, ...marker, ...line }];
+              : [LC.LineSeries, { ...common, ...paint, ...marker, ...line, ...(layer.type === "trend" ? { priceLineColor: color, crosshairMarkerBackgroundColor: color } : {}) }];
             series = again ?? view.addSeries(/** @type {any} */ (kind), options, pane);
             if (again) series.applyOptions(lookOf(options));
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
@@ -10124,7 +10130,7 @@ const picture = await studio.png();</pre>
             // Log scales can't show zero or negative values: they become gaps.
             const log = modeOf(doc, layer) === 1;
             const drawable = (value) => Number.isFinite(value) && (!log || value > 0);
-            const points = data.times.map((time, i) => (drawable(shown[i]) ? (result.breaks?.[i] ? { time, value: shown[i], color: "transparent" } : { time, value: shown[i] }) : { time }));
+            const points = layer.from && fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (drawable(shown[i]) ? (result.breaks?.[i] ? { time, value: shown[i], color: "transparent" } : { time, value: shown[i] }) : { time }));
             if (layer.type === "histogram") {
               // Bars below their base take the second color, each its own (the rest take the series').
               const tint = alpha(under, 0.75 * op), from = layer.base ?? 0;
@@ -11865,6 +11871,10 @@ const picture = await studio.png();</pre>
           this.ends = [];
           this.endsLook = { color: "", radius: 1.5 };
           this.endsView = { zOrder: () => /** @type {const} */ ("normal"), renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context }) => paintEnds(context, this.ends, this.endsLook)) }) };
+          this.endsOnly = [this.endsView];
+          this.endsMarks = [this.endsView, this.markView];
+          this.endsViews = [this.endsView, ...this.views];
+          this.endsBoth = [this.endsView, ...this.both];
         }
         attached({ series, requestUpdate }) {
           this.series = series;
@@ -11894,8 +11904,8 @@ const picture = await studio.png();</pre>
           }) : [];
         }
         paneViews() {
-          const views = this.marks.length ? (this.shown.length ? this.both : this.marksOnly) : this.shown.length ? this.views : NONE;
-          return this.ends.length ? [this.endsView, ...views] : views;
+          if (!this.ends.length) return this.marks.length ? (this.shown.length ? this.both : this.marksOnly) : this.shown.length ? this.views : NONE;
+          return this.marks.length ? (this.shown.length ? this.endsBoth : this.endsMarks) : this.shown.length ? this.endsViews : this.endsOnly;
         }
         /** Each line across's value; a selected line's or box's, each point's (and as it's drawn): as the axis reads it. */
         priceAxisViews() {
@@ -13230,7 +13240,7 @@ const picture = await studio.png();</pre>
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill, layer.from])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill, layer.from, layer.ref])]);
       /**
        * A layer's shape: its values as its pane scales them (log, or from the first value), averaged down to the mini
        * charts' points and lightly smoothed (at this size, the trend is what reads), with the range of the full values;
@@ -13515,9 +13525,11 @@ const picture = await studio.png();</pre>
               // them off.
               const lows = new Float64Array(B).fill(Infinity), highs = new Float64Array(B).fill(-Infinity), lowAt = new Float64Array(B), highAt = new Float64Array(B);
               let latest = -1;
+              const breaks = data.results.get(layer.id)?.breaks, cut = breaks ? new Uint8Array(B) : null;
               for (let i = first; i <= last; i++) {
                 // (The point at the view's very end is its last bucket's, not past it.)
                 const value = scaled(values[i]), b = Math.min(Math.floor(((i - shown.from) / span) * B), i <= shown.to ? B - 1 : B);
+                if (cut && breaks?.[i] && b >= 0 && b < B) cut[b] = 1;
                 if (!Number.isFinite(value) || b < 0 || b >= B) continue;
                 if (value < lows[b]) (lows[b] = value), (lowAt[b] = i);
                 if (value > highs[b]) (highs[b] = value), (highAt[b] = i);
@@ -13525,7 +13537,7 @@ const picture = await studio.png();</pre>
               }
               /** @type {([number, number][] | null)[]} */
               const points = Array.from({ length: B }, (_, b) => {
-                if (highs[b] === -Infinity) return null;
+                if (highs[b] === -Infinity || cut?.[b]) return null;
                 const low = /** @type {[number, number]} */ ([lowAt[b], lows[b]]), high = /** @type {[number, number]} */ ([highAt[b], highs[b]]);
                 return lowAt[b] === highAt[b] ? [low] : lowAt[b] < highAt[b] ? [low, high] : [high, low];
               });
@@ -16161,7 +16173,7 @@ const picture = await studio.png();</pre>
             ${layer.type !== "histogram" && layer.type !== "cloud" ? `<div class="field"><span>Width${resetFor("width", layer)}</span>${slider("width", layer, layer.type === "candles" ? "The line candles turn into, zoomed out" : layer.type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>` : ""}
             ${LINED.has(layer.type) ? `<div class="field"><span>Line</span><div class="pair">
               <div class="tabs glyphs" role="group" aria-label="Line style" style="flex: ${DASHES.length}">${DASHES.map(([dash, text, length, gap]) => `<button type="button" data-dash="${dash}" aria-pressed="${layer.dash === dash}" aria-label="${text}" data-tip="${text}">${dashGlyph(length, gap)}</button>`).join("")}</div>
-              <div class="tabs glyphs" role="group" aria-label="Line shape" style="flex: ${SHAPES.length}">${SHAPES.map(([shape, text]) => `<button type="button" data-shape="${shape}" aria-pressed="${(layer.shape ?? "straight") === shape}" aria-label="${text}" data-tip="${shape === "steps" ? "Steps: each value held until the next" : text}">${shapeGlyph(shape)}</button>`).join("")}</div>
+              ${layer.type === "trend" ? "" : `<div class="tabs glyphs" role="group" aria-label="Line shape" style="flex: ${SHAPES.length}">${SHAPES.map(([shape, text]) => `<button type="button" data-shape="${shape}" aria-pressed="${(layer.shape ?? "straight") === shape}" aria-label="${text}" data-tip="${shape === "steps" ? "Steps: each value held until the next" : text}">${shapeGlyph(shape)}</button>`).join("")}</div>`}
             </div></div>` : ""}
             ${layer.type === "area" ? `<div class="field"><span>Fill</span><div class="tabs" role="group" aria-label="Fill">${[["below", "Below", "Filled from the line down"], ["above", "Above", "Filled from the line up"]].map(([fill, text, tip]) => `<button type="button" data-fill="${fill}" aria-pressed="${(layer.fill ?? "below") === fill}" data-tip="${tip}">${text}</button>`).join("")}</div></div>` : ""}
             ${layer.type === "cloud" ? "" : `<div class="field"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${Boolean(layer.priceLine) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`}
@@ -17434,7 +17446,7 @@ const picture = await studio.png();</pre>
         let added;
         commit((doc) => {
           const first = /** @type {Layer} */ (doc.layers.find((layer) => layer.id === members[0]));
-          added = makeLayer({ type, from: members, pane: first.pane, side: first.side, color: first.color }, doc);
+          added = makeLayer({ type, from: members, pane: first.pane, side: first.side, ...(type === "cloud" ? { color: first.color } : {}) }, doc);
           if (type === "trend") added.ref = refFor(doc, added);
           const mine = doc.layers.flatMap((layer, i) => (layer.pane === first.pane && ids.includes(layer.id) ? [i] : []));
           const reversed = Boolean(doc.panes.find((pane) => pane.id === first.pane)?.reverse), behind = type === "cloud" ? !reversed : reversed;
@@ -18024,7 +18036,7 @@ const picture = await studio.png();</pre>
           ...(home ? [] : [{ title: "All charts", text: "Every chart, side by side.", words: "grid overview gallery library home browse", icon: "grid", run: () => showHome() }]),
           ...(cloudable() ? [
             { title: "Add a cloud", text: "From layers: filled between them, from the lowest of them to the highest at each date, or from them to the pane's top or bottom.", words: "cloud band envelope fill between shade percentiles from layers", icon: "cloud", keepOpen: true, run: () => pushPage(fromPage("cloud")) },
-            { title: "Add a trend", text: "From layers: the lowest of them while the highest makes new highs, the highest while the lowest makes new lows.", words: "trend support resistance bound ride regime from layers percentiles", icon: "riding", keepOpen: true, run: () => pushPage(fromPage("trend")) },
+            { title: "Add a trend", text: "From layers: on the lowest of them until a price touches it, then on the highest until it touches that.", words: "trend support resistance bound ride regime from layers percentiles", icon: "riding", keepOpen: true, run: () => pushPage(fromPage("trend")) },
           ] : []),
           ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a pane of its own, under the others.", words: "new pane add series separate own below", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
@@ -18057,7 +18069,7 @@ const picture = await studio.png();</pre>
             { title: `Duplicate ${n}`, text: "Each copy under its original.", words: "selected picked layers copy duplicate", icon: "duplicate", kbd: "⌘D", run: () => layersBatch("duplicate"), suggested: true },
             ...chart.panes.filter((pane) => layers.some((layer) => layer.pane !== pane.id)).map((pane) => ({ title: `Move ${n} to pane ${chart.panes.indexOf(pane) + 1}`, text: paneNames(pane), words: "selected picked layers move pane", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), pane.id) })),
             ...(chart.panes.length < MAX_PANES ? [{ title: `Move ${n} to a new pane`, text: "A pane of their own, under the others.", words: "selected picked layers move pane new", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), null), suggested: true }] : []),
-            ...(layers.filter((layer) => !layer.from).length > 1 ? [{ title: "A cloud between them", text: "Filled from the lowest of them to the highest, at each date.", words: "selected picked layers cloud band envelope fill between shade", icon: "cloud", run: () => layersBatch("cloud"), suggested: true }, { title: "A trend between them", text: "The lowest of them while the highest makes new highs, the highest while the lowest makes new lows.", words: "selected picked layers trend support resistance bound ride", icon: "riding", run: () => layersBatch("trend") }] : []),
+            ...(layers.filter((layer) => !layer.from).length > 1 ? [{ title: "A cloud between them", text: "Filled from the lowest of them to the highest, at each date.", words: "selected picked layers cloud band envelope fill between shade", icon: "cloud", run: () => layersBatch("cloud"), suggested: true }, { title: "A trend between them", text: "On the lowest of them until a price touches it, then on the highest until it touches that.", words: "selected picked layers trend support resistance bound ride", icon: "riding", run: () => layersBatch("trend") }] : []),
             { title: `Remove ${n}`, text: "With an Undo.", words: "selected picked layers remove delete", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
             { title: "Clear the selection", text: `${n} selected.`, words: "selected picked layers deselect clear", icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
           ])(plural(layers.length, "layer"), layers.some((layer) => !layer.hidden)))(pickedLayers())),
@@ -19274,7 +19286,7 @@ const picture = await studio.png();</pre>
             { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", group: "Layer", danger: true, run: () => removeLayer(id) },
           ];
           // (One made from layers: what's a series' or a formula's isn't its; a cloud's, what's a line's either.)
-          const NOT_ITS = new Set(["type", "color-below", "fill", "base", "levels", "to-formula", "to-series", ...(layer.type === "cloud" ? ["width", "dash", "shape", "price-line", "derive"] : [])]);
+          const NOT_ITS = new Set(["type", "color-below", "fill", "base", "levels", "to-formula", "to-series", "shape", ...(layer.type === "cloud" ? ["width", "dash", "price-line", "derive"] : [])]);
           return (layer.from ? rows.filter((row) => !NOT_ITS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: typeName(layer.type) } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
         } };
       }
@@ -20140,7 +20152,7 @@ const picture = await studio.png();</pre>
       function portable(doc) {
         if (doc === chart) saveView();
         const kept = leftView(doc.id);
-        return { v: 2, title: doc.title, index: doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), ...(doc.legend ? { legend: doc.legend } : {}), panes: doc.panes, layers: doc.layers, ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
+        return { v: 2, title: doc.title, index: doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), ...(doc.legend ? { legend: doc.legend } : {}), panes: doc.panes, layers: doc.layers.map(({ from, ...layer }) => (from ? { ...layer, [layer.type]: from } : layer)), ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
       }
       /** The view a file or a link carried with a chart, kept for it (as `saveView` keeps one). @param {Chart} doc */
       function keepCarriedView(doc, input) {
@@ -20308,12 +20320,12 @@ const picture = await studio.png();</pre>
         let cycled = 0;
         const colors = layers.map((/** @type {any} */ layer) => {
           if (isColor(layer.color)) return layer.color;
-          if (Array.isArray(layer.cloud) || Array.isArray(layer.trend)) return null;
+          if (Array.isArray(layer.cloud)) return null;
           const color = PALETTE.find((name) => !usedColors.has(name)) ?? PALETTE[cycled++ % PALETTE.length];
           usedColors.add(color);
           return color;
         });
-        const letterId = (/** @type {any} */ ref) => ((key) => (letters.includes(key) ? ids[letters.indexOf(key)] : ref))(typeof ref === "string" ? ref.toUpperCase() : ref);
+        const letterId = (/** @type {any} */ ref) => (typeof ref === "string" && ids.includes(ref) ? ref : ((key) => (letters.includes(key) ? ids[letters.indexOf(key)] : ref))(typeof ref === "string" ? ref.toUpperCase() : ref));
         const index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1", from = timeOfText(input.view?.from), to = input.view?.to === undefined && from !== null ? Date.now() / 1000 : timeOfText(input.view?.to);
         return { ...input,
           ...(Array.isArray(input.drawings) ? { drawings: input.drawings.slice(0, MAX_DRAWINGS).filter((/** @type {any} */ drawing) => drawing && typeof drawing === "object").map((/** @type {any} */ drawing) => ({

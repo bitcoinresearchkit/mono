@@ -152,18 +152,18 @@ if (served) {
   const names = new Set(served.names), missing = [...named].filter((name) => !names.has(name));
   console[missing.length ? "warn" : "log"](`${SERVER}'s client ${served.version}: ${missing.length ? `lacks ${missing.join(", ")}, which the page names (shown as missing there)` : `has all ${named.size} series the page names`}`);
 }
-if (!served || served.differs) {
+// (Unread, the page trusts the server's own client: a patch for no client in particular would outlive the one it was for.)
+if (served?.differs) {
   if (/\.(?:dates|dateEntries|toDateMap)\(\)/.test(html)) throw new Error("The page dates points through a response's helpers: the replaced two don't cover it");
   const source = readFileSync(join(SHOWCASES, "modules/bitview-client/index.js"), "utf8");
   const from = source.indexOf("// Date conversion constants and helpers"), to = source.indexOf("/**\n * Wrap raw series data");
   if (from < 0 || to < from) throw new Error("This repo's client's date helpers moved: the build can't find them");
-  // (Only while the client that needed them is the one live: one released since dates its server's points itself. Unread,
-  // always: there's no telling which.)
-  const when = served ? `if (client.VERSION === ${JSON.stringify(served.version)}) ` : "";
+  // (Only while the client that needed them is the one live: one released since dates its server's points itself.)
+  const when = `if (client.VERSION === ${JSON.stringify(served.version)}) `;
   html = html.replace(/\n( *)const client = new BitviewClient\([^\n]*\);\n/, (line, indent) => `${line}${indent}// ${SERVER}'s client dates points unlike its server: this repo's helpers instead (the next release's).\n${indent}${when}{\n${source.slice(from, to)}\nclient.indexToDate = indexToDate;\nclient.dateToIndex = dateToIndex;\n${indent}}\n`);
   if (!html.includes("client.indexToDate = indexToDate;")) throw new Error("The page's client moved: the build can't give it the date helpers");
   console.log(`${SERVER}'s client dates points unlike this repo's: the page takes this repo's date helpers`);
-} else console.log(`${SERVER}'s client dates points as this repo's does`);
+} else console.log(served ? `${SERVER}'s client dates points as this repo's does` : `${SERVER}'s client unread: the page dates points as it does`);
 
 // The website's charts, as presets (presets.js): the live website's, as bitview.space serves it now (which can differ
 // from this repo's, as its series names do). Its modules are fetched as served, each import followed from its options'
