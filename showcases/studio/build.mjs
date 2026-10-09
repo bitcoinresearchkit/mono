@@ -1,13 +1,15 @@
 // Studio as one file, for bitview.space: `node showcases/studio/build.mjs [out]` (out: dist/index.html, beside this),
 // and its guide as llms.txt beside it.
 //
-// index.html stays as it is, the repo's: it imports the modules beside it and the client this code builds. The file
-// made here imports the client and the chart library bitview.space serves (the builds its own page maps, read at each
-// load: the page always speaks its server's version, and a release never leaves it on a stale or a missing build);
-// everything else is inside it: the fonts, the color names, the search (newer than bitview.space's). Series the page
-// names by typed client paths (templates, examples) are written as their names: paths move between versions, names
-// are the server's. While bitview.space's client dates points unlike this repo's (its server's rules), the page takes
-// this repo's two date helpers in their place.
+// index.html stays as it is, the repo's: it imports the modules beside it and the client this code builds (it's the
+// version a server ships with itself, always in step). The file made here is served on its own, updated whenever, so
+// it holds up against whatever bitview.space runs: it imports the client bitview.space serves (the build its own page
+// maps, read at each load: made from that server's API, it always speaks the one live); everything else is inside it:
+// the chart library (this repo's, tried with Studio), the fonts, the color names, the search (newer than
+// bitview.space's). Series the page names by typed client paths are written as their names: paths move between
+// versions, names are the server's (one it lacks is said, and shows as missing). While bitview.space's client dates
+// points unlike this repo's (its server's rules), the page takes this repo's two date helpers in their place, for as
+// long as that client is the one live.
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,7 +19,6 @@ import { gzipSync } from "node:zlib";
 
 const SERVER = "https://bitview.space";
 const CLIENT = "/scripts/modules/bitview-client/index.js";
-const CHARTS = "/scripts/modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url)), SHOWCASES = join(HERE, "..");
 const out = process.argv[2] ?? join(HERE, "dist", "index.html");
 
@@ -62,20 +63,21 @@ replaceOnce(`new URL("../modules/quickmatch-js/src/index.js", location.href).hre
 // (A type for the editor only: nothing to load.)
 replaceOnce(`/** @type {typeof import("../modules/quickmatch-js/src/index.js")} */ (await import(quickmatch))`, "(await import(quickmatch))");
 
-// The client and the chart library, bitview.space's, by its page's import map.
-replaceOnce(`import { BitviewClient } from "../modules/bitview-client/index.js";\n`, "");
-replaceOnce(`import * as LC from "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";`, [
-  `// The client and the chart library as ${SERVER} serves them now: the builds its own page maps (cached for good, under`,
-  `      // names that change with each release), read at each load; their plain paths if the page can't be read (or doesn't`,
-  `      // answer in a few seconds). Neither loading, the page says so (see #offline): the charts are kept, in this browser.`,
+// The chart library, this repo's, in the page: Studio leans on its insides (its series drawn its own way, what it draws
+// over them), so it changes only when it's been tried, never with the website's.
+replaceOnce(`import * as LC from "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";`, `import * as LC from "${inlined("modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs")}";`);
+// The client, bitview.space's: it's made from that server's API, so it always speaks the one live.
+replaceOnce(`import { BitviewClient } from "../modules/bitview-client/index.js";\n`, `${[
+  `// The client as ${SERVER} serves it now: the build its own page maps (cached for good, under a name that changes`,
+  `      // with each release), read at each load; its plain path if the page can't be read (or doesn't answer in a few`,
+  `      // seconds), or the mapped build fails. Not loading, the page says so (see #offline): the charts are kept, in this browser.`,
   `      const served = await fetch("${SERVER}/", { signal: AbortSignal.timeout(8000) }).then((response) => response.text()).then((page) => JSON.parse(/<script type="importmap"[^>]*>([\\s\\S]*?)<\\/script>/.exec(page)?.[1] ?? "{}").imports ?? {}).catch(() => ({}));`,
-  `      // (A mapped build that fails, its plain path once.)`,
-  `      const imported = (map) => Promise.all([${JSON.stringify(CLIENT)}, ${JSON.stringify(CHARTS)}].map((path) => import(\`${SERVER}\${map[path] ?? path}\`)));`,
-  `      const [{ BitviewClient }, LC] = await imported(served).catch(() => imported({})).catch((error) => {`,
+  `      const clientAt = (map) => import(\`${SERVER}\${map[${JSON.stringify(CLIENT)}] ?? ${JSON.stringify(CLIENT)}}\`);`,
+  `      const { BitviewClient } = await clientAt(served).catch(() => clientAt({})).catch((error) => {`,
   `        document.body.toggleAttribute("data-offline", true);`,
   `        throw error;`,
   `      });`,
-].join("\n"));
+].join("\n")}\n`);
 replaceOnce(/new BitviewClient\(\{ baseUrl: "[^"]*"/, `new BitviewClient({ baseUrl: "${SERVER}"`);
 // Asked for at once (the page's head, not after its 2 MB are read): its server's connection, and its page, which the
 // module reads first (the same request: anonymous, as fetch makes it).
@@ -144,18 +146,21 @@ try {
   rmSync(checks, { recursive: true, force: true });
 }
 
-// Each of those names, checked against it: a series it lacks would show as not there, so the page isn't made.
+// Each of those names, checked against it: one it lacks (this repo ahead of it, mid-release) is said; the page shows it as
+// missing, its closest offered, as any series the server doesn't have.
 if (served) {
   const names = new Set(served.names), missing = [...named].filter((name) => !names.has(name));
-  if (missing.length) throw new Error(`${SERVER}'s client ${served.version} lacks ${missing.join(", ")}, which the page names`);
-  console.log(`${SERVER}'s client ${served.version}: has all ${named.size} series the page names`);
+  console[missing.length ? "warn" : "log"](`${SERVER}'s client ${served.version}: ${missing.length ? `lacks ${missing.join(", ")}, which the page names (shown as missing there)` : `has all ${named.size} series the page names`}`);
 }
 if (!served || served.differs) {
   if (/\.(?:dates|dateEntries|toDateMap)\(\)/.test(html)) throw new Error("The page dates points through a response's helpers: the replaced two don't cover it");
   const source = readFileSync(join(SHOWCASES, "modules/bitview-client/index.js"), "utf8");
   const from = source.indexOf("// Date conversion constants and helpers"), to = source.indexOf("/**\n * Wrap raw series data");
   if (from < 0 || to < from) throw new Error("This repo's client's date helpers moved: the build can't find them");
-  html = html.replace(/\n( *)const client = new BitviewClient\([^\n]*\);\n/, (line, indent) => `${line}${indent}// ${SERVER}'s client dates points unlike its server: this repo's helpers instead (the next release's).\n${indent}{\n${source.slice(from, to)}\nclient.indexToDate = indexToDate;\nclient.dateToIndex = dateToIndex;\n${indent}}\n`);
+  // (Only while the client that needed them is the one live: one released since dates its server's points itself. Unread,
+  // always: there's no telling which.)
+  const when = served ? `if (client.VERSION === ${JSON.stringify(served.version)}) ` : "";
+  html = html.replace(/\n( *)const client = new BitviewClient\([^\n]*\);\n/, (line, indent) => `${line}${indent}// ${SERVER}'s client dates points unlike its server: this repo's helpers instead (the next release's).\n${indent}${when}{\n${source.slice(from, to)}\nclient.indexToDate = indexToDate;\nclient.dateToIndex = dateToIndex;\n${indent}}\n`);
   if (!html.includes("client.indexToDate = indexToDate;")) throw new Error("The page's client moved: the build can't give it the date helpers");
   console.log(`${SERVER}'s client dates points unlike this repo's: the page takes this repo's date helpers`);
 } else console.log(`${SERVER}'s client dates points as this repo's does`);
