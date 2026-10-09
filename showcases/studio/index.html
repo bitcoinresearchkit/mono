@@ -5993,9 +5993,16 @@
           display: none;
         }
 
+        /* The tab bar's room under it: as iOS's own floating bar sits, just over the home indicator (into the room the
+           screen keeps clear there, 10px of it left), else 10px. What stands on it follows: the chart's foot, toasts,
+           the selections' bars, the fades. */
+        :root {
+          --bar-below: max(10px, calc(env(safe-area-inset-bottom) - 10px));
+        }
+
         /* Over the tab bar, not on it. */
         .toast {
-          bottom: calc(76px + env(safe-area-inset-bottom));
+          bottom: calc(var(--bar-below) + 66px);
         }
 
         /* The header: the title, Undo (Keep in its place for a preview), Draw, Share, ⋯ (Export in it); "Saved" said
@@ -6098,7 +6105,7 @@
            finger that picked a row by holding it. */
         .layers-bar {
           position: absolute;
-          bottom: calc(12px + env(safe-area-inset-bottom));
+          bottom: calc(var(--bar-below) + 4px);
           left: 50%;
           margin: 0;
           translate: -50% 0;
@@ -6254,19 +6261,35 @@
            above it), the one where you are on a raised chip, adding in ink. Their names are their buttons' (said, not
            shown). Room is kept for it at the card's foot. */
         .card {
-          padding-bottom: calc(70px + env(safe-area-inset-bottom));
+          padding-bottom: calc(var(--bar-below) + 66px);
+        }
+
+        /* The chart's foot across its width, in line with the page: its interval, then its ranges sharing the rest (the
+           navigator, a sliver at this width, is left out). */
+        .stage-foot {
+          gap: 8px;
+          padding: 0 12px;
+
+          #ranges {
+            flex: 1;
+          }
+
+          #ranges button {
+            flex: 1;
+            width: auto;
+          }
         }
 
         .mobile-bar {
           position: fixed;
-          bottom: calc(10px + env(safe-area-inset-bottom));
+          bottom: var(--bar-below);
           left: 50%;
           z-index: 9;
           display: grid;
           grid-auto-flow: column;
-          grid-auto-columns: 56px;
+          grid-auto-columns: 54px;
           gap: 2px;
-          border: 1px solid var(--line-strong);
+          border: 1px solid var(--line);
           border-radius: 999px;
           padding: 4px;
           background: color-mix(in srgb, var(--raise) 84%, transparent);
@@ -6276,9 +6299,10 @@
           backdrop-filter: blur(18px) saturate(1.4);
 
           .tab {
+            position: relative;
             display: grid;
             place-items: center;
-            height: 46px;
+            height: 44px;
             border: 0;
             border-radius: 999px;
             color: var(--muted);
@@ -6292,8 +6316,8 @@
             }
 
             svg {
-              width: 21px;
-              height: 21px;
+              width: 20px;
+              height: 20px;
               stroke-width: 1.3;
             }
 
@@ -6316,7 +6340,7 @@
           position: absolute;
           inset: auto 0 0;
           z-index: 3;
-          height: calc(96px + env(safe-area-inset-bottom));
+          height: calc(var(--bar-below) + 84px);
           background: linear-gradient(transparent, var(--app) 50%);
           pointer-events: none;
         }
@@ -6330,7 +6354,7 @@
         }
 
         .home-bar {
-          bottom: calc(15px + env(safe-area-inset-bottom));
+          bottom: calc(var(--bar-below) + 4px);
         }
 
         body[data-home]:has(#home-bar:not([hidden])) .mobile-bar,
@@ -6343,6 +6367,11 @@
           color: var(--ink);
           background: var(--chosen);
           box-shadow: var(--lift);
+
+          /* (Pressed, it says so too.) */
+          &:active {
+            background: var(--active);
+          }
         }
 
         body[data-home] #mobile-layers {
@@ -6371,6 +6400,18 @@
             left: 76px;
           }
 
+          /* (Its ranges their own width there: the foot's whole width would stretch each across a screen.) */
+          .stage-foot {
+            #ranges {
+              flex: none;
+            }
+
+            #ranges button {
+              flex: none;
+              width: 38px;
+            }
+          }
+
           /* (Nothing scrolls under it there, nor sits where it is.) */
           :is(.home, .panel)::after {
             display: none;
@@ -6386,9 +6427,9 @@
             bottom: auto;
             left: calc(10px + env(safe-area-inset-left));
             grid-auto-flow: row;
-            grid-auto-rows: 46px;
+            grid-auto-rows: 44px;
             grid-auto-columns: auto;
-            grid-template-columns: 46px;
+            grid-template-columns: 44px;
             translate: 0 -50%;
           }
 
@@ -6992,10 +7033,10 @@ const first = await studio.png({ part: 0 });</pre>
       </main>
 
       <nav class="mobile-bar" aria-label="Studio">
-        <button id="mobile-charts" class="tab" type="button" data-action="home"><span data-icon="grid"></span>Charts</button>
-        <button class="tab" type="button" data-action="palette"><span data-icon="browse"></span>Search</button>
-        <button id="mobile-add" class="tab add" type="button" aria-haspopup="menu"><span data-icon="plus"></span><span class="label">Add</span></button>
-        <button id="mobile-layers" class="tab" type="button" data-sheet="panel"><span data-icon="panel"></span>Layers</button>
+        <button id="mobile-charts" class="tab" type="button" data-action="home"><span data-icon="grid"></span><span class="vh">Charts</span></button>
+        <button class="tab" type="button" data-action="palette"><span data-icon="browse"></span><span class="vh">Search</span></button>
+        <button id="mobile-add" class="tab add" type="button" aria-haspopup="menu"><span data-icon="plus"></span><span class="label vh">Add</span></button>
+        <button id="mobile-layers" class="tab" type="button" data-sheet="panel"><span data-icon="panel"></span><span class="vh">Layers</span></button>
       </nav>
     </div>
 
