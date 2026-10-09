@@ -3234,11 +3234,14 @@ A = TypeVar('A')
 B = TypeVar('B')
 C = TypeVar('C')
 D = TypeVar('D')
-E = TypeVar('E')
 
 class UtxoHistory(_Node):
     supply: SeriesPattern21[Sats] = _at(SeriesPattern21, '*')
     count: SeriesPattern2[Count] = _at(SeriesPattern2, 'utxo_count_bis')
+
+
+class Spent(_Node):
+    txin_index: SeriesPattern24[TxInIndex] = _at(SeriesPattern24, '*')
 
 
 class Velocity(_Node):
@@ -3246,34 +3249,52 @@ class Velocity(_Node):
     fiat: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, '*_usd')
 
 
-class SoprRatioExtended(_Node):
-    _1w: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_1w')
-    _1m: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_1m')
-    _1y: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_1y')
+class AddressesEmpty(_Node):
+    all: SeriesPattern2[Count] = _at(SeriesPattern2, '*')
+    p2pk65: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pk65_*')
+    p2pk33: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pk33_*')
+    p2pkh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pkh_*')
+    p2sh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2sh_*')
+    p2wpkh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2wpkh_*')
+    p2wsh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2wsh_*')
+    p2tr: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2tr_*')
+    p2a: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2a_*')
 
 
-class CostBasisInLoss(_Node):
-    per_coin: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_coin')
-    per_dollar: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_dollar')
+class ExposedCount(_Node):
+    funded: AddressesEmpty = _at(AddressesEmpty, '*')
+    total: AddressesEmpty = _at(AddressesEmpty, 'total_*')
 
 
-class AgeBoundsAll(_Node):
-    min: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_min')
-    max: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_max')
+class RealizedCap(_Node):
+    _0sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_0sats_*')
+    _1sat_to_10sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_1sat_to_10sats_*')
+    _10sats_to_100sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_10sats_to_100sats_*')
+    _100sats_to_1k_sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_100sats_to_1k_sats_*')
+    _1k_sats_to_10k_sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_1k_sats_to_10k_sats_*')
+    _10k_sats_to_100k_sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_10k_sats_to_100k_sats_*')
+    _100k_sats_to_1m_sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_100k_sats_to_1m_sats_*')
+    _1m_sats_to_10m_sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_1m_sats_to_10m_sats_*')
+    _10m_sats_to_1btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_10m_sats_to_1btc_*')
+    _1btc_to_10btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_1btc_to_10btc_*')
+    _10btc_to_100btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_10btc_to_100btc_*')
+    _100btc_to_1k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_100btc_to_1k_btc_*')
+    _1k_btc_to_10k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_1k_btc_to_10k_btc_*')
+    _10k_btc_to_100k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_10k_btc_to_100k_btc_*')
+    over_100k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_over_100k_btc_*')
 
 
-class AgeBounds(_Node):
-    all: AgeBoundsAll = _at(AgeBoundsAll, '*_all_cost_basis')
-    sth: AgeBoundsAll = _at(AgeBoundsAll, '*_sth_cost_basis')
-    lth: AgeBoundsAll = _at(AgeBoundsAll, '*_lth_cost_basis')
-    under_4m: AgeBoundsAll = _at(AgeBoundsAll, '*_under_4m_cost_basis')
-    under_6m: AgeBoundsAll = _at(AgeBoundsAll, '*_under_6m_cost_basis')
-    over_4m: AgeBoundsAll = _at(AgeBoundsAll, '*_over_4m_cost_basis')
-    over_6m: AgeBoundsAll = _at(AgeBoundsAll, '*_over_6m_cost_basis')
-
-
-class CohortsUrpd(_Node):
-    age_bounds: AgeBounds = _at(AgeBounds, '*')
+class State(_Node):
+    p2a: SeriesPattern27[AddrState] = _at(SeriesPattern27, '*_state')
+    p2pk33: SeriesPattern29[AddrState] = _at(SeriesPattern29, '*_state')
+    p2pk65: SeriesPattern30[AddrState] = _at(SeriesPattern30, '*_state')
+    p2pkh: SeriesPattern31[AddrState] = _at(SeriesPattern31, '*_state')
+    p2sh: SeriesPattern32[AddrState] = _at(SeriesPattern32, '*_state')
+    p2tr: SeriesPattern33[AddrState] = _at(SeriesPattern33, '*_state')
+    p2wpkh: SeriesPattern34[AddrState] = _at(SeriesPattern34, '*_state')
+    p2wsh: SeriesPattern35[AddrState] = _at(SeriesPattern35, '*_state')
+    funded: SeriesPattern37[FundedAddrData] = _at(SeriesPattern37, 'funded_*_data')
+    extended_empty: SeriesPattern38[EmptyAddrData] = _at(SeriesPattern38, 'extended_empty_*_data')
 
 
 class Type(_Node):
@@ -3306,6 +3327,32 @@ class CapUtxoAmount(_Node):
     _1k_btc_to_10k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'utxos_1k_btc_to_10k_btc_*')
     _10k_btc_to_100k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'utxos_10k_btc_to_100k_btc_*')
     over_100k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'utxos_over_100k_btc_*')
+
+
+class SoprRatioExtended(_Node):
+    _1w: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_1w')
+    _1m: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_1m')
+    _1y: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_1y')
+
+
+class CostBasisInLoss(_Node):
+    per_coin: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_coin')
+    per_dollar: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_dollar')
+
+
+class AgeBoundsAll(_Node):
+    min: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_min')
+    max: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_max')
+
+
+class AgeBounds(_Node):
+    all: AgeBoundsAll = _at(AgeBoundsAll, '*_all_cost_basis')
+    sth: AgeBoundsAll = _at(AgeBoundsAll, '*_sth_cost_basis')
+    lth: AgeBoundsAll = _at(AgeBoundsAll, '*_lth_cost_basis')
+    under_4m: AgeBoundsAll = _at(AgeBoundsAll, '*_under_4m_cost_basis')
+    under_6m: AgeBoundsAll = _at(AgeBoundsAll, '*_under_6m_cost_basis')
+    over_4m: AgeBoundsAll = _at(AgeBoundsAll, '*_over_4m_cost_basis')
+    over_6m: AgeBoundsAll = _at(AgeBoundsAll, '*_over_6m_cost_basis')
 
 
 class CapClass(_Node):
@@ -4073,9 +4120,7 @@ class SpendingRate(_Node, Generic[A]):
 
 
 class RealizedPrice(_Node):
-    age: SpendingRate[Optional[Dollars]] = _at(SpendingRate, 'old_*')
-    utxo_amount: CapUtxoAmount = _at(CapUtxoAmount, '*')
-    type_: Type = _at(Type, '*')
+    age: SpendingRate[Optional[Dollars]] = _at(SpendingRate, '*')
 
 
 class SpendingExposure(_Node):
@@ -4111,164 +4156,47 @@ class AgeRangeActivity(_Node):
     wakefulness_to_dormancy: SpendingRate[Optional[Ratio64]] = _at(SpendingRate, '*_wakefulness_to_dormancy')
 
 
+class EffectiveFeeRate6b(_Node, Generic[A]):
+    min: SeriesPattern2[A] = _at(SeriesPattern2, '*_min')
+    max: SeriesPattern2[A] = _at(SeriesPattern2, '*_max')
+    pct10: SeriesPattern2[A] = _at(SeriesPattern2, '*_pct10')
+    pct25: SeriesPattern2[A] = _at(SeriesPattern2, '*_pct25')
+    median: SeriesPattern2[A] = _at(SeriesPattern2, '*_median')
+    pct75: SeriesPattern2[A] = _at(SeriesPattern2, '*_pct75')
+    pct90: SeriesPattern2[A] = _at(SeriesPattern2, '*_pct90')
+
+
+class SizeWeight(_Node):
+    block: EffectiveFeeRate6b[Weight] = _at(EffectiveFeeRate6b, '*')
+    _6b: EffectiveFeeRate6b[Weight] = _at(EffectiveFeeRate6b, '*_6b')
+
+
+class Vsize6b(_Node):
+    min: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_min')
+    max: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_max')
+    pct10: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_pct10')
+    pct25: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_pct25')
+    median: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_median')
+    pct75: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_pct75')
+    pct90: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_pct90')
+
+
+class EffectiveFeeRate(_Node, Generic[A, B]):
+    tx_index: SeriesPattern22[A] = _at(SeriesPattern22, '*')
+    block: B = _at(0, '*')
+    _6b: B = _at(0, '*_6b')
+
+
+class TransactionsSize(_Node):
+    vsize: EffectiveFeeRate[VSize, Vsize6b] = _at((EffectiveFeeRate, Vsize6b), '*_vsize')
+    weight: SizeWeight = _at(SizeWeight, '*_weight')
+
+
 class RateSma(_Node):
     _1w: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_1w')
     _1m: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_1m')
     _2m: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_2m')
     _1y: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_1y')
-
-
-class OpReturnRaw(_Node):
-    first_index: SeriesPattern21[OpReturnIndex] = _at(SeriesPattern21, 'first_op_return_*')
-    to_tx_index: SeriesPattern26[TxIndex] = _at(SeriesPattern26, 'tx_*')
-    kind: SeriesPattern26[OpReturnKind] = _at(SeriesPattern26, 'kind')
-    post_op_return_bytes: SeriesPattern26[Bytes32] = _at(SeriesPattern26, 'op_return_post_op_return_bytes')
-
-
-class RawUnknown(_Node):
-    first_index: SeriesPattern21[UnknownOutputIndex] = _at(SeriesPattern21, 'first_unknown_output_*')
-    to_tx_index: SeriesPattern36[TxIndex] = _at(SeriesPattern36, 'tx_*')
-    legacy_sigops: SeriesPattern36[SigOps] = _at(SeriesPattern36, 'unknown_legacy_sigops')
-
-
-class RawP2ms(_Node):
-    first_index: SeriesPattern21[P2MSOutputIndex] = _at(SeriesPattern21, 'first_p2ms_output_*')
-    to_tx_index: SeriesPattern28[TxIndex] = _at(SeriesPattern28, 'tx_*')
-    legacy_sigops: SeriesPattern28[SigOps] = _at(SeriesPattern28, 'p2ms_legacy_sigops')
-
-
-class RawEmpty(_Node):
-    first_index: SeriesPattern21[EmptyOutputIndex] = _at(SeriesPattern21, 'first_empty_output_*')
-    to_tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, 'tx_*')
-
-
-class ScriptsRaw(_Node):
-    empty: RawEmpty = _at(RawEmpty, '*')
-    p2ms: RawP2ms = _at(RawP2ms, '*')
-    unknown: RawUnknown = _at(RawUnknown, '*')
-
-
-class Scripts(_Node):
-    raw: ScriptsRaw = _at(ScriptsRaw, '*')
-
-
-class AddrsEmpty(_Node):
-    all: SeriesPattern2[Count] = _at(SeriesPattern2, '*')
-    p2pk65: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pk65_*')
-    p2pk33: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pk33_*')
-    p2pkh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2pkh_*')
-    p2sh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2sh_*')
-    p2wpkh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2wpkh_*')
-    p2wsh: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2wsh_*')
-    p2tr: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2tr_*')
-    p2a: SeriesPattern2[Count] = _at(SeriesPattern2, 'p2a_*')
-
-
-class ExposedCount(_Node):
-    funded: AddrsEmpty = _at(AddrsEmpty, '*')
-    total: AddrsEmpty = _at(AddrsEmpty, 'total_*')
-
-
-class RealizedCap(_Node):
-    _0sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_0sats_*')
-    _1sat_to_10sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_1sat_to_10sats_*')
-    _10sats_to_100sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_10sats_to_100sats_*')
-    _100sats_to_1k_sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_100sats_to_1k_sats_*')
-    _1k_sats_to_10k_sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_1k_sats_to_10k_sats_*')
-    _10k_sats_to_100k_sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_10k_sats_to_100k_sats_*')
-    _100k_sats_to_1m_sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_100k_sats_to_1m_sats_*')
-    _1m_sats_to_10m_sats: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_1m_sats_to_10m_sats_*')
-    _10m_sats_to_1btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_10m_sats_to_1btc_*')
-    _1btc_to_10btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_1btc_to_10btc_*')
-    _10btc_to_100btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_10btc_to_100btc_*')
-    _100btc_to_1k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_100btc_to_1k_btc_*')
-    _1k_btc_to_10k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_1k_btc_to_10k_btc_*')
-    _10k_btc_to_100k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_10k_btc_to_100k_btc_*')
-    over_100k_btc: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, 'addrs_over_100k_btc_*')
-
-
-class State(_Node):
-    p2a: SeriesPattern27[AddrState] = _at(SeriesPattern27, '*_state')
-    p2pk33: SeriesPattern29[AddrState] = _at(SeriesPattern29, '*_state')
-    p2pk65: SeriesPattern30[AddrState] = _at(SeriesPattern30, '*_state')
-    p2pkh: SeriesPattern31[AddrState] = _at(SeriesPattern31, '*_state')
-    p2sh: SeriesPattern32[AddrState] = _at(SeriesPattern32, '*_state')
-    p2tr: SeriesPattern33[AddrState] = _at(SeriesPattern33, '*_state')
-    p2wpkh: SeriesPattern34[AddrState] = _at(SeriesPattern34, '*_state')
-    p2wsh: SeriesPattern35[AddrState] = _at(SeriesPattern35, '*_state')
-    funded: SeriesPattern37[FundedAddrData] = _at(SeriesPattern37, 'funded_*_data')
-    extended_empty: SeriesPattern38[EmptyAddrData] = _at(SeriesPattern38, 'extended_empty_*_data')
-
-
-class RawP2a(_Node):
-    first_index: SeriesPattern21[P2AAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
-    bytes: SeriesPattern27[P2ABytes] = _at(SeriesPattern27, '*_bytes')
-
-
-class RawP2tr(_Node):
-    first_index: SeriesPattern21[P2TRAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
-    bytes: SeriesPattern33[P2TRBytes] = _at(SeriesPattern33, '*_bytes')
-
-
-class RawP2wsh(_Node):
-    first_index: SeriesPattern21[P2WSHAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
-    bytes: SeriesPattern35[P2WSHBytes] = _at(SeriesPattern35, '*_bytes')
-
-
-class RawP2wpkh(_Node):
-    first_index: SeriesPattern21[P2WPKHAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
-    bytes: SeriesPattern34[P2WPKHBytes] = _at(SeriesPattern34, '*_bytes')
-
-
-class RawP2sh(_Node):
-    first_index: SeriesPattern21[P2SHAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
-    bytes: SeriesPattern32[P2SHBytes] = _at(SeriesPattern32, '*_bytes')
-
-
-class RawP2pkh(_Node):
-    first_index: SeriesPattern21[P2PKHAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
-    bytes: SeriesPattern31[P2PKHBytes] = _at(SeriesPattern31, '*_bytes')
-
-
-class RawP2pk33(_Node):
-    first_index: SeriesPattern21[P2PK33AddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
-    bytes: SeriesPattern29[P2PK33Bytes] = _at(SeriesPattern29, '*_bytes')
-
-
-class RawP2pk65(_Node):
-    first_index: SeriesPattern21[P2PK65AddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
-    bytes: SeriesPattern30[P2PK65Bytes] = _at(SeriesPattern30, '*_bytes')
-
-
-class AddrsRaw(_Node):
-    p2pk65: RawP2pk65 = _at(RawP2pk65, '*')
-    p2pk33: RawP2pk33 = _at(RawP2pk33, 'p2pk33')
-    p2pkh: RawP2pkh = _at(RawP2pkh, 'p2pkh')
-    p2sh: RawP2sh = _at(RawP2sh, 'p2sh')
-    p2wpkh: RawP2wpkh = _at(RawP2wpkh, 'p2wpkh')
-    p2wsh: RawP2wsh = _at(RawP2wsh, 'p2wsh')
-    p2tr: RawP2tr = _at(RawP2tr, 'p2tr')
-    p2a: RawP2a = _at(RawP2a, 'p2a')
-
-
-class Spent(_Node):
-    txin_index: SeriesPattern24[TxInIndex] = _at(SeriesPattern24, '*')
-
-
-class OutputsRaw(_Node):
-    first_txout_index: SeriesPattern21[TxOutIndex] = _at(SeriesPattern21, 'first_txout_index')
-    value: SeriesPattern24[Sats] = _at(SeriesPattern24, 'value')
-    output_type: SeriesPattern24[OutputType] = _at(SeriesPattern24, 'output_*')
-    type_index: SeriesPattern24[TypeIndex] = _at(SeriesPattern24, '*_index')
-
-
-class InputsRaw(_Node):
-    first_txin_index: SeriesPattern21[TxInIndex] = _at(SeriesPattern21, 'first_txin_*')
-    outpoint: SeriesPattern23[OutPoint] = _at(SeriesPattern23, 'outpoint')
-    txout_index: SeriesPattern23[TxOutIndex] = _at(SeriesPattern23, 'txout_*')
-    tx_index: SeriesPattern23[TxIndex] = _at(SeriesPattern23, 'tx_*')
-    output_type: SeriesPattern23[OutputType] = _at(SeriesPattern23, 'output_type')
-    type_index: SeriesPattern23[TypeIndex] = _at(SeriesPattern23, 'type_*')
 
 
 class Circulating(_Node):
@@ -4316,407 +4244,10 @@ class OutputsValue(_Node):
     op_return: Burned = _at(Burned, '*')
 
 
-class EffectiveFeeRate6b(_Node, Generic[A]):
-    min: SeriesPattern2[A] = _at(SeriesPattern2, '*_min')
-    max: SeriesPattern2[A] = _at(SeriesPattern2, '*_max')
-    pct10: SeriesPattern2[A] = _at(SeriesPattern2, '*_pct10')
-    pct25: SeriesPattern2[A] = _at(SeriesPattern2, '*_pct25')
-    median: SeriesPattern2[A] = _at(SeriesPattern2, '*_median')
-    pct75: SeriesPattern2[A] = _at(SeriesPattern2, '*_pct75')
-    pct90: SeriesPattern2[A] = _at(SeriesPattern2, '*_pct90')
-
-
-class SizeWeight(_Node):
-    block: EffectiveFeeRate6b[Weight] = _at(EffectiveFeeRate6b, '*')
-    _6b: EffectiveFeeRate6b[Weight] = _at(EffectiveFeeRate6b, '*_6b')
-
-
-class Vsize6b(_Node):
-    min: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_min')
-    max: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_max')
-    pct10: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_pct10')
-    pct25: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_pct25')
-    median: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_median')
-    pct75: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_pct75')
-    pct90: SeriesPattern21[VSize] = _at(SeriesPattern21, '*_pct90')
-
-
-class EffectiveFeeRate(_Node, Generic[A, B]):
-    tx_index: SeriesPattern22[A] = _at(SeriesPattern22, '*')
-    block: B = _at(0, '*')
-    _6b: B = _at(0, '*_6b')
-
-
-class TransactionsSize(_Node):
-    vsize: EffectiveFeeRate[VSize, Vsize6b] = _at((EffectiveFeeRate, Vsize6b), '*_vsize')
-    weight: SizeWeight = _at(SizeWeight, '*_weight')
-
-
-class TransactionsRaw(_Node):
-    first_tx_index: SeriesPattern21[TxIndex] = _at(SeriesPattern21, 'first_*_index')
-    txid: SeriesPattern22[Txid] = _at(SeriesPattern22, 'txid')
-    tx_version: SeriesPattern22[TxVersion] = _at(SeriesPattern22, '*_version')
-    raw_locktime: SeriesPattern22[RawLockTime] = _at(SeriesPattern22, 'raw_locktime')
-    weight: SeriesPattern22[Weight] = _at(SeriesPattern22, '*_weight')
-    total_size: SeriesPattern22[Bytes32] = _at(SeriesPattern22, 'total_size')
-    total_sigop_cost: SeriesPattern22[SigOps] = _at(SeriesPattern22, 'total_sigop_cost')
-    is_explicitly_rbf: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_explicitly_rbf')
-    first_txin_index: SeriesPattern22[TxInIndex] = _at(SeriesPattern22, 'first_txin_index')
-    first_txout_index: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, 'first_txout_index')
-
-
 class BlocksHalving(_Node):
     epoch: SeriesPattern2[Halving] = _at(SeriesPattern2, '*_epoch')
     blocks_to_halving: SeriesPattern2[Count] = _at(SeriesPattern2, 'blocks_to_*')
     days_to_halving: SeriesPattern2[Optional[Days]] = _at(SeriesPattern2, 'days_to_*')
-
-
-class Fullness(_Node):
-    ppm: SeriesPattern21[Optional[PartsPerMillion32]] = _at(SeriesPattern21, '*_ppm')
-    ratio: SeriesPattern21[Optional[Ratio]] = _at(SeriesPattern21, '*_ratio')
-    percent: SeriesPattern21[Optional[Percent]] = _at(SeriesPattern21, '*')
-
-
-class Interval(_Node, Generic[A, B]):
-    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
-    _24h: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_24h')
-    _1w: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_1w')
-    _1m: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_1m')
-    _1y: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_1y')
-
-
-class BlocksLookback(_Node):
-    _1h: SeriesPattern21[Height] = _at(SeriesPattern21, '*_1h_ago')
-    _24h: SeriesPattern21[Height] = _at(SeriesPattern21, '*_24h_ago')
-    _3d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_3d_ago')
-    _1w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_1w_ago')
-    _8d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_8d_ago')
-    _9d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_9d_ago')
-    _12d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_12d_ago')
-    _13d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_13d_ago')
-    _2w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_2w_ago')
-    _21d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_21d_ago')
-    _26d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_26d_ago')
-    _1m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_1m_ago')
-    _34d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_34d_ago')
-    _50d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_50d_ago')
-    _55d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_55d_ago')
-    _2m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_2m_ago')
-    _9w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_9w_ago')
-    _12w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_12w_ago')
-    _89d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_89d_ago')
-    _3m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_3m_ago')
-    _14w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_14w_ago')
-    _111d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_111d_ago')
-    _144d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_144d_ago')
-    _6m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_6m_ago')
-    _26w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_26w_ago')
-    _200d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_200d_ago')
-    _9m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_9m_ago')
-    _350d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_350d_ago')
-    _12m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_12m_ago')
-    _1y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_1y_ago')
-    _14m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_14m_ago')
-    _2y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_2y_ago')
-    _26m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_26m_ago')
-    _3y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_3y_ago')
-    _200w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_200w_ago')
-    _4y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_4y_ago')
-    _5y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_5y_ago')
-    _6y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_6y_ago')
-    _8y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_8y_ago')
-    _9y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_9y_ago')
-    _10y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_10y_ago')
-    _12y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_12y_ago')
-    _14y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_14y_ago')
-    _26y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_26y_ago')
-
-
-class Target(_Node):
-    _24h: SeriesPattern1[Count] = _at(SeriesPattern1, '*_24h')
-    _1w: SeriesPattern1[Count] = _at(SeriesPattern1, '*_1w')
-    _1m: SeriesPattern1[Count] = _at(SeriesPattern1, '*_1m')
-    _1y: SeriesPattern1[Count] = _at(SeriesPattern1, '*_1y')
-
-
-class PerSec(_Node, Generic[A]):
-    _24h: SeriesPattern2[A] = _at(SeriesPattern2, '*_24h')
-    _1w: SeriesPattern2[A] = _at(SeriesPattern2, '*_1w')
-    _1m: SeriesPattern2[A] = _at(SeriesPattern2, '*_1m')
-    _1y: SeriesPattern2[A] = _at(SeriesPattern2, '*_1y')
-
-
-class RealizedLoss0sats(_Node, Generic[A]):
-    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
-    cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
-    sum: PerSec[A] = _at(PerSec, '*_sum')
-
-
-class Rolling(_Node, Generic[A]):
-    sum: PerSec[Count] = _at(PerSec, '*_sum')
-    average: PerSec[Optional[CountFract]] = _at(PerSec, '*_average')
-    min: PerSec[A] = _at(PerSec, '*_min')
-    max: PerSec[A] = _at(PerSec, '*_max')
-    pct10: PerSec[A] = _at(PerSec, '*_pct10')
-    pct25: PerSec[A] = _at(PerSec, '*_pct25')
-    median: PerSec[A] = _at(PerSec, '*_median')
-    pct75: PerSec[A] = _at(PerSec, '*_pct75')
-    pct90: PerSec[A] = _at(PerSec, '*_pct90')
-
-
-class InputsCount(_Node, Generic[A]):
-    sum: SeriesPattern21[Count] = _at(SeriesPattern21, '*_sum')
-    cumulative: SeriesPattern2[Count] = _at(SeriesPattern2, '*_cumulative')
-    rolling: Rolling[A] = _at(Rolling, '*')
-
-
-class Vbytes(_Node, Generic[A, B, C]):
-    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
-    cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
-    sum: PerSec[A] = _at(PerSec, '*_sum')
-    average: PerSec[B] = _at(PerSec, '*_average')
-    min: PerSec[C] = _at(PerSec, '*_min')
-    max: PerSec[C] = _at(PerSec, '*_max')
-    pct10: PerSec[C] = _at(PerSec, '*_pct10')
-    pct25: PerSec[C] = _at(PerSec, '*_pct25')
-    median: PerSec[C] = _at(PerSec, '*_median')
-    pct75: PerSec[C] = _at(PerSec, '*_pct75')
-    pct90: PerSec[C] = _at(PerSec, '*_pct90')
-
-
-class NewAll(_Node, Generic[A, B]):
-    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
-    cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
-    sum: PerSec[A] = _at(PerSec, '*_sum')
-    average: PerSec[B] = _at(PerSec, '*_average')
-
-
-class Sopr(_Node):
-    _24h: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_sopr_24h')
-    value_destroyed: NewAll[Optional[Dollars], Optional[Dollars]] = _at(NewAll, '*_value_destroyed')
-
-
-class AdjustedSopr(_Node):
-    ratio: PerSec[Optional[Ratio]] = _at(PerSec, '*_adjusted_sopr')
-    transfer_volume: NewAll[Optional[Dollars], Optional[Dollars]] = _at(NewAll, '*_adj_value_created')
-    value_destroyed: NewAll[Optional[Dollars], Optional[Dollars]] = _at(NewAll, '*_adj_value_destroyed')
-
-
-class CointimeValue(_Node):
-    destroyed: NewAll[Optional[Float64], Optional[Float64]] = _at(NewAll, '*_destroyed')
-    created: NewAll[Optional[Float64], Optional[Float64]] = _at(NewAll, '*_created')
-    stored: NewAll[Optional[Float64], Optional[Float64]] = _at(NewAll, '*_stored')
-    vocdd: NewAll[Optional[Float64], Optional[Float64]] = _at(NewAll, 'vocdd')
-
-
-class CointimeActivity(_Node):
-    coinblocks_created: NewAll[Optional[CoinBlocks], Optional[CoinBlocks]] = _at(NewAll, '*_created')
-    coinblocks_stored: NewAll[Optional[CoinBlocks], Optional[CoinBlocks]] = _at(NewAll, '*_stored')
-    liveliness: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'liveliness')
-    vaultedness: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'vaultedness')
-    ratio: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'activity_to_vaultedness')
-    coinblocks_destroyed: NewAll[Optional[CoinBlocks], Optional[CoinBlocks]] = _at(NewAll, '*_destroyed')
-
-
-class OutputsByTypeTxCount(_Node):
-    all: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_bis')
-    p2pk65: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pk65_output')
-    p2pk33: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pk33_output')
-    p2pkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pkh_output')
-    p2ms: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2ms_output')
-    p2sh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2sh_output')
-    p2wpkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2wpkh_output')
-    p2wsh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2wsh_output')
-    p2tr: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2tr_output')
-    p2a: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2a_output')
-    unknown: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_unknown_outputs_output')
-    empty: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_empty_outputs_output')
-    op_return: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_op_return_output')
-
-
-class OutputCount(_Node):
-    all: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_bis')
-    p2pk65: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pk65_*')
-    p2pk33: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pk33_*')
-    p2pkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pkh_*')
-    p2ms: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2ms_*')
-    p2sh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2sh_*')
-    p2wpkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2wpkh_*')
-    p2wsh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2wsh_*')
-    p2tr: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2tr_*')
-    p2a: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2a_*')
-    unknown: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'unknown_outputs_*')
-    empty: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'empty_outputs_*')
-    op_return: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'op_return_*')
-
-
-class InputsByTypeTxCount(_Node):
-    all: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'non_coinbase_*')
-    p2pk65: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pk65_prevout')
-    p2pk33: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pk33_prevout')
-    p2pkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2pkh_prevout')
-    p2ms: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2ms_prevout')
-    p2sh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2sh_prevout')
-    p2wpkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2wpkh_prevout')
-    p2wsh: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2wsh_prevout')
-    p2tr: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2tr_prevout')
-    p2a: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_p2a_prevout')
-    unknown: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_unknown_outputs_prevout')
-    empty: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_with_empty_outputs_prevout')
-
-
-class InputCount(_Node):
-    all: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'input_*_bis')
-    p2pk65: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pk65_prevout_*')
-    p2pk33: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pk33_prevout_*')
-    p2pkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2pkh_prevout_*')
-    p2ms: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2ms_prevout_*')
-    p2sh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2sh_prevout_*')
-    p2wpkh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2wpkh_prevout_*')
-    p2wsh: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2wsh_prevout_*')
-    p2tr: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2tr_prevout_*')
-    p2a: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'p2a_prevout_*')
-    unknown: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'unknown_outputs_prevout_*')
-    empty: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'empty_outputs_prevout_*')
-
-
-class Versions(_Node):
-    v1: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_v1')
-    v2: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_v2')
-    v3: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_v3')
-    other: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_other_version')
-
-
-class PolicyCount(_Node):
-    nonstandard: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*')
-
-
-class Policy(_Node):
-    count: PolicyCount = _at(PolicyCount, '*_count')
-    is_nonstandard: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_*')
-
-
-class PatternsCount(_Node):
-    coinjoin: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'coinjoin_*')
-    consolidation: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'consolidation_*')
-    batch_payout: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'batch_payout_*')
-
-
-class Patterns(_Node):
-    count: PatternsCount = _at(PatternsCount, 'count')
-    is_coinjoin: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_coinjoin')
-    is_consolidation: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_consolidation')
-    is_batch_payout: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_batch_payout')
-
-
-class FeesCount(_Node):
-    cpfp_parent: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_parent_count')
-    cpfp_child: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_child_count')
-
-
-class TransactionsFees(_Node):
-    count: FeesCount = _at(FeesCount, 'cpfp')
-    fee: EffectiveFeeRate[Sats, EffectiveFeeRate6b[Sats]] = _at((EffectiveFeeRate, EffectiveFeeRate6b), '*')
-    fee_rate: SeriesPattern22[Optional[FeeRate]] = _at(SeriesPattern22, '*_rate')
-    effective_fee_rate: EffectiveFeeRate[Optional[FeeRate], EffectiveFeeRate6b[Optional[FeeRate]]] = _at((EffectiveFeeRate, EffectiveFeeRate6b), 'effective_*_rate')
-    is_cpfp_parent: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_cpfp_parent')
-    is_cpfp_child: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_cpfp_child')
-
-
-class OutputsCount(_Node, Generic[A]):
-    total: A = _at(0, '*')
-
-
-class FeaturesCount(_Node):
-    v1: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_v1')
-    v2: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_v2')
-    v3: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_v3')
-    other_version: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_other_version')
-    explicitly_rbf: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_explicitly_rbf')
-    one_input: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_one_input')
-    one_output: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_one_output')
-    p2pk: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2pk')
-    p2ms: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2ms')
-    p2pkh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2pkh')
-    p2sh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2sh')
-    p2wpkh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2wpkh')
-    p2wsh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2wsh')
-    p2tr: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2tr')
-    p2a: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2a')
-    op_return: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_op_return')
-    empty: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_empty')
-    unknown: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_unknown')
-    fake_pubkey: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_fake_pubkey')
-    fake_scripthash: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_fake_scripthash')
-    annex: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_annex')
-    sighash_all: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_sighash_all')
-    sighash_none: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_sighash_none')
-    sighash_single: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_sighash_single')
-    sighash_default: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_sighash_default')
-    sighash_anyone_can_pay: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_sighash_anyone_can_pay')
-    dust_output: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_dust_output')
-
-
-class Features(_Node):
-    count: FeaturesCount = _at(FeaturesCount, 'tx_count')
-    has_p2pk: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2pk')
-    has_p2ms: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2ms')
-    has_p2pkh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2pkh')
-    has_p2sh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2sh')
-    has_p2wpkh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2wpkh')
-    has_p2wsh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2wsh')
-    has_p2tr: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2tr')
-    has_p2a: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2a')
-    has_op_return: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_op_return')
-    has_empty: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_empty')
-    has_unknown: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_unknown')
-    has_fake_pubkey: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_fake_pubkey')
-    has_fake_scripthash: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_fake_scripthash')
-    has_inscription: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_inscription')
-    has_annex: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_annex')
-    has_sighash_all: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_all')
-    has_sighash_none: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_none')
-    has_sighash_single: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_single')
-    has_sighash_default: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_default')
-    has_sighash_anyone_can_pay: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_anyone_can_pay')
-    has_dust_output: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_dust_output')
-
-
-class BlocksCount(_Node):
-    target: Target = _at(Target, '*_target')
-    total: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*')
-
-
-class BlocksWeight(_Node):
-    base: SeriesPattern21[Weight] = _at(SeriesPattern21, '*')
-    cumulative: SeriesPattern2[Weight64] = _at(SeriesPattern2, '*_cumulative')
-    sum: PerSec[Weight64] = _at(PerSec, '*_sum')
-    average: PerSec[Optional[WeightFract]] = _at(PerSec, '*_average')
-    min: PerSec[Weight] = _at(PerSec, '*_min')
-    max: PerSec[Weight] = _at(PerSec, '*_max')
-    pct10: PerSec[Weight] = _at(PerSec, '*_pct10')
-    pct25: PerSec[Weight] = _at(PerSec, '*_pct25')
-    median: PerSec[Weight] = _at(PerSec, '*_median')
-    pct75: PerSec[Weight] = _at(PerSec, '*_pct75')
-    pct90: PerSec[Weight] = _at(PerSec, '*_pct90')
-
-
-class BlocksSize(_Node):
-    base: SeriesPattern21[Bytes32] = _at(SeriesPattern21, 'total_*')
-    cumulative: SeriesPattern2[Bytes] = _at(SeriesPattern2, 'block_*_cumulative')
-    sum: PerSec[Bytes] = _at(PerSec, 'block_*_sum')
-    average: PerSec[Optional[BytesFract]] = _at(PerSec, 'block_*_average')
-    min: PerSec[Bytes32] = _at(PerSec, 'block_*_min')
-    max: PerSec[Bytes32] = _at(PerSec, 'block_*_max')
-    pct10: PerSec[Bytes32] = _at(PerSec, 'block_*_pct10')
-    pct25: PerSec[Bytes32] = _at(PerSec, 'block_*_pct25')
-    median: PerSec[Bytes32] = _at(PerSec, 'block_*_median')
-    pct75: PerSec[Bytes32] = _at(PerSec, 'block_*_pct75')
-    pct90: PerSec[Bytes32] = _at(PerSec, 'block_*_pct90')
-
-
-class Time(_Node):
-    timestamp: SeriesPattern21[Timestamp] = _at(SeriesPattern21, '*')
 
 
 class Gini(_Node, Generic[A]):
@@ -4743,7 +4274,7 @@ class Relative(_Node):
     net_pnl_change_1m_to_rcap: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, '*_net_pnl_change_1m_to_rcap')
 
 
-class CohortsAllCostBasis(_Node):
+class HoldersAllCostBasis(_Node):
     in_profit: CostBasisInLoss = _at(CostBasisInLoss, '*_cost_basis_in_profit_per')
     in_loss: CostBasisInLoss = _at(CostBasisInLoss, '*_cost_basis_in_loss_per')
     min: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_cost_basis_min')
@@ -4753,156 +4284,11 @@ class CohortsAllCostBasis(_Node):
     supply_density: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_supply_density')
 
 
-class Aaopool(_Node):
-    blocks_mined: RealizedLoss0sats[Count] = _at(RealizedLoss0sats, '*_blocks_mined')
-    dominance: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_dominance')
-
-
-class Minor(_Node):
-    blockfills: Aaopool = _at(Aaopool, '*')
-    ultimuspool: Aaopool = _at(Aaopool, 'ultimuspool')
-    terrapool: Aaopool = _at(Aaopool, 'terrapool')
-    onethash: Aaopool = _at(Aaopool, 'onethash')
-    bitfarms: Aaopool = _at(Aaopool, 'bitfarms')
-    huobipool: Aaopool = _at(Aaopool, 'huobipool')
-    wayicn: Aaopool = _at(Aaopool, 'wayicn')
-    canoepool: Aaopool = _at(Aaopool, 'canoepool')
-    bitcoincom: Aaopool = _at(Aaopool, 'bitcoincom')
-    pool175btc: Aaopool = _at(Aaopool, 'pool175btc')
-    gbminers: Aaopool = _at(Aaopool, 'gbminers')
-    axbt: Aaopool = _at(Aaopool, 'axbt')
-    asicminer: Aaopool = _at(Aaopool, 'asicminer')
-    bitminter: Aaopool = _at(Aaopool, 'bitminter')
-    bitcoinrussia: Aaopool = _at(Aaopool, 'bitcoinrussia')
-    btcserv: Aaopool = _at(Aaopool, 'btcserv')
-    simplecoinus: Aaopool = _at(Aaopool, 'simplecoinus')
-    ozcoin: Aaopool = _at(Aaopool, 'ozcoin')
-    eclipsemc: Aaopool = _at(Aaopool, 'eclipsemc')
-    maxbtc: Aaopool = _at(Aaopool, 'maxbtc')
-    triplemining: Aaopool = _at(Aaopool, 'triplemining')
-    coinlab: Aaopool = _at(Aaopool, 'coinlab')
-    pool50btc: Aaopool = _at(Aaopool, 'pool50btc')
-    ghashio: Aaopool = _at(Aaopool, 'ghashio')
-    stminingcorp: Aaopool = _at(Aaopool, 'stminingcorp')
-    bitparking: Aaopool = _at(Aaopool, 'bitparking')
-    mmpool: Aaopool = _at(Aaopool, 'mmpool')
-    polmine: Aaopool = _at(Aaopool, 'polmine')
-    kncminer: Aaopool = _at(Aaopool, 'kncminer')
-    bitalo: Aaopool = _at(Aaopool, 'bitalo')
-    hhtt: Aaopool = _at(Aaopool, 'hhtt')
-    megabigpower: Aaopool = _at(Aaopool, 'megabigpower')
-    mtred: Aaopool = _at(Aaopool, 'mtred')
-    nmcbit: Aaopool = _at(Aaopool, 'nmcbit')
-    yourbtcnet: Aaopool = _at(Aaopool, 'yourbtcnet')
-    givemecoins: Aaopool = _at(Aaopool, 'givemecoins')
-    multicoinco: Aaopool = _at(Aaopool, 'multicoinco')
-    bcpoolio: Aaopool = _at(Aaopool, 'bcpoolio')
-    cointerra: Aaopool = _at(Aaopool, 'cointerra')
-    kanopool: Aaopool = _at(Aaopool, 'kanopool')
-    solock: Aaopool = _at(Aaopool, 'solock')
-    ckpool: Aaopool = _at(Aaopool, 'ckpool')
-    nicehash: Aaopool = _at(Aaopool, 'nicehash')
-    bitclub: Aaopool = _at(Aaopool, 'bitclub')
-    bitcoinaffiliatenetwork: Aaopool = _at(Aaopool, 'bitcoinaffiliatenetwork')
-    exxbw: Aaopool = _at(Aaopool, 'exxbw')
-    bitsolo: Aaopool = _at(Aaopool, 'bitsolo')
-    twentyoneinc: Aaopool = _at(Aaopool, 'twentyoneinc')
-    digitalbtc: Aaopool = _at(Aaopool, 'digitalbtc')
-    eightbaochi: Aaopool = _at(Aaopool, 'eightbaochi')
-    mybtccoinpool: Aaopool = _at(Aaopool, 'mybtccoinpool')
-    tbdice: Aaopool = _at(Aaopool, 'tbdice')
-    hashpool: Aaopool = _at(Aaopool, 'hashpool')
-    nexious: Aaopool = _at(Aaopool, 'nexious')
-    bravomining: Aaopool = _at(Aaopool, 'bravomining')
-    hotpool: Aaopool = _at(Aaopool, 'hotpool')
-    okexpool: Aaopool = _at(Aaopool, 'okexpool')
-    bcmonster: Aaopool = _at(Aaopool, 'bcmonster')
-    onehash: Aaopool = _at(Aaopool, 'onehash')
-    bixin: Aaopool = _at(Aaopool, 'bixin')
-    tatmaspool: Aaopool = _at(Aaopool, 'tatmaspool')
-    connectbtc: Aaopool = _at(Aaopool, 'connectbtc')
-    batpool: Aaopool = _at(Aaopool, 'batpool')
-    waterhole: Aaopool = _at(Aaopool, 'waterhole')
-    dcexploration: Aaopool = _at(Aaopool, 'dcexploration')
-    dcex: Aaopool = _at(Aaopool, 'dcex')
-    btpool: Aaopool = _at(Aaopool, 'btpool')
-    fiftyeightcoin: Aaopool = _at(Aaopool, 'fiftyeightcoin')
-    bitcoinindia: Aaopool = _at(Aaopool, 'bitcoinindia')
-    shawnp0wers: Aaopool = _at(Aaopool, 'shawnp0wers')
-    phashio: Aaopool = _at(Aaopool, 'phashio')
-    rigpool: Aaopool = _at(Aaopool, 'rigpool')
-    haozhuzhu: Aaopool = _at(Aaopool, 'haozhuzhu')
-    sevenpool: Aaopool = _at(Aaopool, 'sevenpool')
-    miningkings: Aaopool = _at(Aaopool, 'miningkings')
-    hashbx: Aaopool = _at(Aaopool, 'hashbx')
-    dpool: Aaopool = _at(Aaopool, 'dpool')
-    rawpool: Aaopool = _at(Aaopool, 'rawpool')
-    haominer: Aaopool = _at(Aaopool, 'haominer')
-    helix: Aaopool = _at(Aaopool, 'helix')
-    bitcoinukraine: Aaopool = _at(Aaopool, 'bitcoinukraine')
-    secretsuperstar: Aaopool = _at(Aaopool, 'secretsuperstar')
-    tigerpoolnet: Aaopool = _at(Aaopool, 'tigerpoolnet')
-    sigmapoolcom: Aaopool = _at(Aaopool, 'sigmapoolcom')
-    okpooltop: Aaopool = _at(Aaopool, 'okpooltop')
-    hummerpool: Aaopool = _at(Aaopool, 'hummerpool')
-    tangpool: Aaopool = _at(Aaopool, 'tangpool')
-    bytepool: Aaopool = _at(Aaopool, 'bytepool')
-    novablock: Aaopool = _at(Aaopool, 'novablock')
-    miningcity: Aaopool = _at(Aaopool, 'miningcity')
-    minerium: Aaopool = _at(Aaopool, 'minerium')
-    lubiancom: Aaopool = _at(Aaopool, 'lubiancom')
-    okkong: Aaopool = _at(Aaopool, 'okkong')
-    aaopool: Aaopool = _at(Aaopool, 'aaopool')
-    emcdpool: Aaopool = _at(Aaopool, 'emcdpool')
-    arkpool: Aaopool = _at(Aaopool, 'arkpool')
-    purebtccom: Aaopool = _at(Aaopool, 'purebtccom')
-    kucoinpool: Aaopool = _at(Aaopool, 'kucoinpool')
-    entrustcharitypool: Aaopool = _at(Aaopool, 'entrustcharitypool')
-    okminer: Aaopool = _at(Aaopool, 'okminer')
-    titan: Aaopool = _at(Aaopool, 'titan')
-    pegapool: Aaopool = _at(Aaopool, 'pegapool')
-    btcnuggets: Aaopool = _at(Aaopool, 'btcnuggets')
-    cloudhashing: Aaopool = _at(Aaopool, 'cloudhashing')
-    digitalxmintsy: Aaopool = _at(Aaopool, 'digitalxmintsy')
-    telco214: Aaopool = _at(Aaopool, 'telco214')
-    btcpoolparty: Aaopool = _at(Aaopool, 'btcpoolparty')
-    multipool: Aaopool = _at(Aaopool, 'multipool')
-    transactioncoinmining: Aaopool = _at(Aaopool, 'transactioncoinmining')
-    btcdig: Aaopool = _at(Aaopool, 'btcdig')
-    trickysbtcpool: Aaopool = _at(Aaopool, 'trickysbtcpool')
-    btcmp: Aaopool = _at(Aaopool, 'btcmp')
-    eobot: Aaopool = _at(Aaopool, 'eobot')
-    unomp: Aaopool = _at(Aaopool, 'unomp')
-    patels: Aaopool = _at(Aaopool, 'patels')
-    gogreenlight: Aaopool = _at(Aaopool, 'gogreenlight')
-    bitcoinindiapool: Aaopool = _at(Aaopool, 'bitcoinindiapool')
-    ekanembtc: Aaopool = _at(Aaopool, 'ekanembtc')
-    canoe: Aaopool = _at(Aaopool, 'canoe')
-    tiger: Aaopool = _at(Aaopool, 'tiger')
-    onem1x: Aaopool = _at(Aaopool, 'onem1x')
-    zulupool: Aaopool = _at(Aaopool, 'zulupool')
-    wiz: Aaopool = _at(Aaopool, 'wiz')
-    wk057: Aaopool = _at(Aaopool, 'wk057')
-    futurebitapollosolo: Aaopool = _at(Aaopool, 'futurebitapollosolo')
-    carbonnegative: Aaopool = _at(Aaopool, 'carbonnegative')
-    portlandhodl: Aaopool = _at(Aaopool, 'portlandhodl')
-    phoenix: Aaopool = _at(Aaopool, 'phoenix')
-    neopool: Aaopool = _at(Aaopool, 'neopool')
-    maxipool: Aaopool = _at(Aaopool, 'maxipool')
-    bitfufupool: Aaopool = _at(Aaopool, 'bitfufupool')
-    gdpool: Aaopool = _at(Aaopool, 'gdpool')
-    miningdutch: Aaopool = _at(Aaopool, 'miningdutch')
-    publicpool: Aaopool = _at(Aaopool, 'publicpool')
-    miningsquared: Aaopool = _at(Aaopool, 'miningsquared')
-    innopolistech: Aaopool = _at(Aaopool, 'innopolistech')
-    btclab: Aaopool = _at(Aaopool, 'btclab')
-    parasite: Aaopool = _at(Aaopool, 'parasite')
-    redrockpool: Aaopool = _at(Aaopool, 'redrockpool')
-    est3lar: Aaopool = _at(Aaopool, 'est3lar')
-    braiinssolo: Aaopool = _at(Aaopool, 'braiinssolo')
-    solopool: Aaopool = _at(Aaopool, 'solopool')
-    noderunners: Aaopool = _at(Aaopool, 'noderunners')
-    dmnd: Aaopool = _at(Aaopool, 'dmnd')
+class AllRate(_Node):
+    _24h: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, '*_24h_rate')
+    _1w: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, '*_1w_rate')
+    _1m: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, '*_1m_rate')
+    _1y: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, '*_1y_rate')
 
 
 class Rsi1m(_Node):
@@ -5067,136 +4453,6 @@ class MiningHashrate(_Node):
     value: HashratePrice = _at(HashratePrice, '*_value')
 
 
-class DataBytesAscribe(_Node):
-    block: SeriesPattern21[Bytes] = _at(SeriesPattern21, '*_data_bytes')
-    cumulative: SeriesPattern2[Bytes] = _at(SeriesPattern2, '*_data_bytes_cumulative')
-    sum: PerSec[Bytes] = _at(PerSec, '*_data_bytes_sum')
-    average: PerSec[Optional[BytesFract]] = _at(PerSec, '*_data_bytes_average')
-    data_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_data_share')
-    chain_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_chain_share')
-
-
-class PolicyDataBytes(_Node, Generic[A]):
-    pre_v30_standard: A = _at(0, 'op_return_policy_pre_v30_standard_*')
-    pre_v30_nonstandard: A = _at(0, 'op_return_policy_pre_v30_nonstandard_*')
-    oversized: A = _at(0, 'op_return_policy_oversized_*')
-    multiple: A = _at(0, 'op_return_policy_multiple_*')
-
-
-class ByKindDataBytes(_Node, Generic[A]):
-    runes: A = _at(0, 'op_return_runes_*')
-    veri_block: A = _at(0, 'op_return_veri_block_*')
-    omni: A = _at(0, 'op_return_omni_*')
-    stacks: A = _at(0, 'op_return_stacks_*')
-    blockstack: A = _at(0, 'op_return_blockstack_*')
-    colu: A = _at(0, 'op_return_colu_*')
-    open_assets: A = _at(0, 'op_return_open_assets_*')
-    komodo: A = _at(0, 'op_return_komodo_*')
-    coin_spark: A = _at(0, 'op_return_coin_spark_*')
-    poet: A = _at(0, 'op_return_poet_*')
-    docproof: A = _at(0, 'op_return_docproof_*')
-    open_timestamps: A = _at(0, 'op_return_open_timestamps_*')
-    factom: A = _at(0, 'op_return_factom_*')
-    eternity_wall: A = _at(0, 'op_return_eternity_wall_*')
-    memo: A = _at(0, 'op_return_memo_*')
-    bitproof: A = _at(0, 'op_return_bitproof_*')
-    ascribe: A = _at(0, 'op_return_ascribe_*')
-    stampery: A = _at(0, 'op_return_stampery_*')
-    epobc: A = _at(0, 'op_return_epobc_*')
-    bare_hash: A = _at(0, 'op_return_bare_hash_*')
-    text: A = _at(0, 'op_return_text_*')
-    empty: A = _at(0, 'op_return_empty_*')
-    unknown: A = _at(0, 'op_return_unknown_*')
-
-
-class AllRate(_Node):
-    _24h: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, '*_24h_rate')
-    _1w: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, '*_1w_rate')
-    _1m: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, '*_1m_rate')
-    _1y: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, '*_1y_rate')
-
-
-class DeltaAll(_Node, Generic[A]):
-    absolute: PerSec[A] = _at(PerSec, '*')
-    rate: AllRate = _at(AllRate, '*')
-
-
-class DiscountSupply(_Node):
-    total: Circulating = _at(Circulating, '*')
-    delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
-    dominance: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_dominance')
-    in_profit: Circulating = _at(Circulating, '*_in_profit')
-    in_loss: Circulating = _at(Circulating, '*_in_loss')
-
-
-class MarketCap(_Node):
-    usd: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*')
-    delta: DeltaAll[Optional[Dollars]] = _at(DeltaAll, '*_delta')
-
-
-class Supply(_Node):
-    circulating: Circulating = _at(Circulating, 'circulating_*')
-    burned: Burned = _at(Burned, 'unspendable_*')
-    inflation_rate: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, 'inflation_rate')
-    velocity: Velocity = _at(Velocity, 'velocity')
-    market_cap: MarketCap = _at(MarketCap, 'market_cap')
-    market_minus_realized_cap_growth_rate: PerSec[Optional[PartsPerMillionSigned64]] = _at(PerSec, 'market_minus_realized_cap_growth_rate')
-    hodled_or_lost: Circulating = _at(Circulating, 'hodled_or_lost_*')
-
-
-class AllSupply(_Node):
-    total: Circulating = _at(Circulating, '*')
-    in_profit: Circulating = _at(Circulating, '*_in_profit')
-    in_loss: Circulating = _at(Circulating, '*_in_loss')
-    delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
-
-
-class Age10yTo12y(_Node):
-    block: SeriesPattern21[Optional[Dollars]] = _at(SeriesPattern21, '*')
-    cumulative: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_cumulative')
-    sum: PerSec[Optional[Dollars]] = _at(PerSec, '*_sum')
-    delta: DeltaAll[Optional[Dollars]] = _at(DeltaAll, '*_delta')
-
-
-class DiscountRealized(_Node):
-    cap: MarketCap = _at(MarketCap, '*_realized_cap')
-    price: CapitalizedPrice = _at(CapitalizedPrice, '*_realized_price')
-    profit: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_profit')
-    loss: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_loss')
-    net_pnl: Age10yTo12y = _at(Age10yTo12y, '*_net_realized_pnl')
-    sopr: Sopr = _at(Sopr, '*')
-    mvrv: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_mvrv')
-
-
-class AllRealized(_Node):
-    cap: MarketCap = _at(MarketCap, '*_realized_cap')
-    price: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_realized_price')
-    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, '*_capitalized_price')
-    profit: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_profit')
-    loss: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_loss')
-    net_pnl: Age10yTo12y = _at(Age10yTo12y, '*_net_realized_pnl')
-    value_destroyed: NewAll[Optional[Dollars], Optional[Dollars]] = _at(NewAll, '*_value_destroyed')
-    gross_pnl: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_gross_pnl')
-    peak_regret: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_peak_regret')
-    mvrv: RhodlRatio[Optional[PriceRatio]] = _at(RhodlRatio, '*_mvrv')
-
-
-class UtxoCount0sats(_Node):
-    base: SeriesPattern2[Count] = _at(SeriesPattern2, '*')
-    delta: DeltaAll[CountSigned] = _at(DeltaAll, '*_delta')
-
-
-class DiscountOutputs(_Node):
-    unspent_count: UtxoCount0sats = _at(UtxoCount0sats, '*_utxo_count')
-    spent_count: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_spent_utxo_count')
-
-
-class Supply0sats(_Node):
-    total: Circulating = _at(Circulating, '*')
-    delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
-    dominance: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_dominance')
-
-
 class FeeShare(_Node):
     ppm: SeriesPattern2[Optional[PartsPerMillion32]] = _at(SeriesPattern2, '*_ppm')
     ratio: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_ratio')
@@ -5205,6 +4461,193 @@ class FeeShare(_Node):
     _1w: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_1w')
     _1m: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_1m')
     _1y: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_1y')
+
+
+class OutputsByTypeTxShare(_Node):
+    p2pk65: FeeShare = _at(FeeShare, '*_p2pk65_output')
+    p2pk33: FeeShare = _at(FeeShare, '*_p2pk33_output')
+    p2pkh: FeeShare = _at(FeeShare, '*_p2pkh_output')
+    p2ms: FeeShare = _at(FeeShare, '*_p2ms_output')
+    p2sh: FeeShare = _at(FeeShare, '*_p2sh_output')
+    p2wpkh: FeeShare = _at(FeeShare, '*_p2wpkh_output')
+    p2wsh: FeeShare = _at(FeeShare, '*_p2wsh_output')
+    p2tr: FeeShare = _at(FeeShare, '*_p2tr_output')
+    p2a: FeeShare = _at(FeeShare, '*_p2a_output')
+    unknown: FeeShare = _at(FeeShare, '*_unknown_outputs_output')
+    empty: FeeShare = _at(FeeShare, '*_empty_outputs_output')
+    op_return: FeeShare = _at(FeeShare, '*_op_return_output')
+
+
+class OutputShare(_Node):
+    p2pk65: FeeShare = _at(FeeShare, 'p2pk65_*')
+    p2pk33: FeeShare = _at(FeeShare, 'p2pk33_*')
+    p2pkh: FeeShare = _at(FeeShare, 'p2pkh_*')
+    p2ms: FeeShare = _at(FeeShare, 'p2ms_*')
+    p2sh: FeeShare = _at(FeeShare, 'p2sh_*')
+    p2wpkh: FeeShare = _at(FeeShare, 'p2wpkh_*')
+    p2wsh: FeeShare = _at(FeeShare, 'p2wsh_*')
+    p2tr: FeeShare = _at(FeeShare, 'p2tr_*')
+    p2a: FeeShare = _at(FeeShare, 'p2a_*')
+    unknown: FeeShare = _at(FeeShare, 'unknown_outputs_*')
+    empty: FeeShare = _at(FeeShare, 'empty_outputs_*')
+    op_return: FeeShare = _at(FeeShare, 'op_return_*')
+
+
+class InputsByTypeTxShare(_Node):
+    p2pk65: FeeShare = _at(FeeShare, '*_p2pk65_prevout')
+    p2pk33: FeeShare = _at(FeeShare, '*_p2pk33_prevout')
+    p2pkh: FeeShare = _at(FeeShare, '*_p2pkh_prevout')
+    p2ms: FeeShare = _at(FeeShare, '*_p2ms_prevout')
+    p2sh: FeeShare = _at(FeeShare, '*_p2sh_prevout')
+    p2wpkh: FeeShare = _at(FeeShare, '*_p2wpkh_prevout')
+    p2wsh: FeeShare = _at(FeeShare, '*_p2wsh_prevout')
+    p2tr: FeeShare = _at(FeeShare, '*_p2tr_prevout')
+    p2a: FeeShare = _at(FeeShare, '*_p2a_prevout')
+    unknown: FeeShare = _at(FeeShare, '*_unknown_outputs_prevout')
+    empty: FeeShare = _at(FeeShare, '*_empty_outputs_prevout')
+
+
+class Sd24h(_Node, Generic[A]):
+    _24h: A = _at(0, '*_24h')
+    _1w: A = _at(0, '*_1w')
+    _1m: A = _at(0, '*_1m')
+    _1y: A = _at(0, '*_1y')
+
+
+class Returns(_Node):
+    periods: Periods = _at(Periods, '*_return')
+    cagr: Cagr = _at(Cagr, '*_cagr')
+    sd_24h: Sd24h[Sd24h1m] = _at((Sd24h, Sd24h1m), '')
+
+
+class RewardsFees(_Node):
+    block: Block = _at(Block, '*')
+    cumulative: Circulating = _at(Circulating, '*_cumulative')
+    sum: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_sum')
+    average: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_average')
+    min: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_min')
+    max: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_max')
+    pct10: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_pct10')
+    pct25: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_pct25')
+    median: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_median')
+    pct75: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_pct75')
+    pct90: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_pct90')
+    dominance: FeeShare = _at(FeeShare, 'fee_dominance')
+    to_subsidy: Sd24h[Gini[Optional[PartsPerMillion64]]] = _at((Sd24h, Gini), 'fee_to_subsidy')
+
+
+class Subsidy(_Node):
+    block: Block = _at(Block, '*')
+    cumulative: Circulating = _at(Circulating, '*_cumulative')
+    sum: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_sum')
+    average: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_average')
+    dominance: FeeShare = _at(FeeShare, '*_dominance')
+
+
+class TransferVolume0sats(_Node):
+    block: Block = _at(Block, '*')
+    cumulative: Circulating = _at(Circulating, '*_cumulative')
+    sum: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_sum')
+    average: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_average')
+
+
+class DiscountActivityTransferVolume(_Node):
+    block: Block = _at(Block, '*')
+    cumulative: Circulating = _at(Circulating, '*_cumulative')
+    sum: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_sum')
+    average: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_average')
+    in_profit: TransferVolume0sats = _at(TransferVolume0sats, '*_in_profit')
+    in_loss: TransferVolume0sats = _at(TransferVolume0sats, '*_in_loss')
+
+
+class Rewards(_Node):
+    coinbase: TransferVolume0sats = _at(TransferVolume0sats, '*')
+    subsidy: Subsidy = _at(Subsidy, 'subsidy')
+    fees: RewardsFees = _at(RewardsFees, 'fees')
+    output_volume: SeriesPattern21[Sats] = _at(SeriesPattern21, 'output_volume')
+    unclaimed: Burned = _at(Burned, 'unclaimed_rewards')
+
+
+class Mining(_Node):
+    rewards: Rewards = _at(Rewards, '*')
+    hashrate: MiningHashrate = _at(MiningHashrate, 'hash')
+
+
+class BlocksDifficulty(_Node):
+    value: SeriesPattern2[Optional[Difficulty]] = _at(SeriesPattern2, '*')
+    hashrate: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_hashrate')
+    adjustment: Gini[Optional[PartsPerMillionSigned32]] = _at(Gini, '*_adjustment')
+    epoch: SeriesPattern2[Epoch] = _at(SeriesPattern2, '*_epoch')
+    blocks_to_retarget: SeriesPattern2[Count] = _at(SeriesPattern2, 'blocks_to_retarget')
+    days_to_retarget: SeriesPattern2[Optional[Days]] = _at(SeriesPattern2, 'days_to_retarget')
+
+
+class Fullness(_Node):
+    ppm: SeriesPattern21[Optional[PartsPerMillion32]] = _at(SeriesPattern21, '*_ppm')
+    ratio: SeriesPattern21[Optional[Ratio]] = _at(SeriesPattern21, '*_ratio')
+    percent: SeriesPattern21[Optional[Percent]] = _at(SeriesPattern21, '*')
+
+
+class Interval(_Node, Generic[A, B]):
+    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
+    _24h: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_24h')
+    _1w: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_1w')
+    _1m: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_1m')
+    _1y: SeriesPattern2[B] = _at(SeriesPattern2, '*_average_1y')
+
+
+class BlocksLookback(_Node):
+    _1h: SeriesPattern21[Height] = _at(SeriesPattern21, '*_1h_ago')
+    _24h: SeriesPattern21[Height] = _at(SeriesPattern21, '*_24h_ago')
+    _3d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_3d_ago')
+    _1w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_1w_ago')
+    _8d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_8d_ago')
+    _9d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_9d_ago')
+    _12d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_12d_ago')
+    _13d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_13d_ago')
+    _2w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_2w_ago')
+    _21d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_21d_ago')
+    _26d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_26d_ago')
+    _1m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_1m_ago')
+    _34d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_34d_ago')
+    _50d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_50d_ago')
+    _55d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_55d_ago')
+    _2m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_2m_ago')
+    _9w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_9w_ago')
+    _12w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_12w_ago')
+    _89d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_89d_ago')
+    _3m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_3m_ago')
+    _14w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_14w_ago')
+    _111d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_111d_ago')
+    _144d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_144d_ago')
+    _6m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_6m_ago')
+    _26w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_26w_ago')
+    _200d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_200d_ago')
+    _9m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_9m_ago')
+    _350d: SeriesPattern21[Height] = _at(SeriesPattern21, '*_350d_ago')
+    _12m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_12m_ago')
+    _1y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_1y_ago')
+    _14m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_14m_ago')
+    _2y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_2y_ago')
+    _26m: SeriesPattern21[Height] = _at(SeriesPattern21, '*_26m_ago')
+    _3y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_3y_ago')
+    _200w: SeriesPattern21[Height] = _at(SeriesPattern21, '*_200w_ago')
+    _4y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_4y_ago')
+    _5y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_5y_ago')
+    _6y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_6y_ago')
+    _8y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_8y_ago')
+    _9y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_9y_ago')
+    _10y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_10y_ago')
+    _12y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_12y_ago')
+    _14y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_14y_ago')
+    _26y: SeriesPattern21[Height] = _at(SeriesPattern21, '*_26y_ago')
+
+
+class PerSec(_Node, Generic[A]):
+    _24h: SeriesPattern2[A] = _at(SeriesPattern2, '*_24h')
+    _1w: SeriesPattern2[A] = _at(SeriesPattern2, '*_1w')
+    _1m: SeriesPattern2[A] = _at(SeriesPattern2, '*_1m')
+    _1y: SeriesPattern2[A] = _at(SeriesPattern2, '*_1y')
 
 
 class FeesAscribe(_Node):
@@ -5248,319 +4691,242 @@ class ByKindFees(_Node):
     unknown: FeesAscribe = _at(FeesAscribe, '*_unknown')
 
 
-class ByKind(_Node, Generic[A, B, C, D]):
-    output_count: A = _at(0, 'output_count')
-    data_bytes: B = _at(1, '')
-    tx_count: A = _at(0, 'tx_count')
-    tx_vsize: C = _at(2, 'tx_vsize')
-    fees: D = _at(3, '*')
-
-
-class Total(_Node):
-    data_bytes: NewAll[Bytes, Optional[BytesFract]] = _at(NewAll, '*_data_bytes')
-    tx_count: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_tx_count')
-    tx_vsize: NewAll[VSize, Optional[VSizeFract]] = _at(NewAll, '*_tx_vsize')
-    fees: NewAll[Sats, Optional[SatsFract]] = _at(NewAll, '*_fees')
+class DataBytesAscribe(_Node):
+    block: SeriesPattern21[Bytes] = _at(SeriesPattern21, '*_data_bytes')
+    cumulative: SeriesPattern2[Bytes] = _at(SeriesPattern2, '*_data_bytes_cumulative')
+    sum: PerSec[Bytes] = _at(PerSec, '*_data_bytes_sum')
+    average: PerSec[Optional[BytesFract]] = _at(PerSec, '*_data_bytes_average')
+    data_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_data_share')
     chain_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_chain_share')
-    fee_share: FeeShare = _at(FeeShare, '*_fee_share')
 
 
-class OpReturn(_Node):
-    raw: OpReturnRaw = _at(OpReturnRaw, 'index')
-    total: Total = _at(Total, '*')
-    by_kind: ByKind[ByKindDataBytes[NewAll[Count, Optional[CountFract]]], ByKindDataBytes[DataBytesAscribe], ByKindDataBytes[NewAll[VSize, Optional[VSizeFract]]], ByKindFees] = _at((ByKind, (ByKindDataBytes, NewAll), (ByKindDataBytes, DataBytesAscribe), (ByKindDataBytes, NewAll), ByKindFees), '*')
-    policy: ByKind[PolicyDataBytes[NewAll[Count, Optional[CountFract]]], PolicyDataBytes[DataBytesAscribe], PolicyDataBytes[NewAll[VSize, Optional[VSizeFract]]], PolicyFees] = _at((ByKind, (PolicyDataBytes, NewAll), (PolicyDataBytes, DataBytesAscribe), (PolicyDataBytes, NewAll), PolicyFees), '*_policy')
+class Rolling(_Node, Generic[A]):
+    sum: PerSec[Count] = _at(PerSec, '*_sum')
+    average: PerSec[Optional[CountFract]] = _at(PerSec, '*_average')
+    min: PerSec[A] = _at(PerSec, '*_min')
+    max: PerSec[A] = _at(PerSec, '*_max')
+    pct10: PerSec[A] = _at(PerSec, '*_pct10')
+    pct25: PerSec[A] = _at(PerSec, '*_pct25')
+    median: PerSec[A] = _at(PerSec, '*_median')
+    pct75: PerSec[A] = _at(PerSec, '*_pct75')
+    pct90: PerSec[A] = _at(PerSec, '*_pct90')
 
 
-class AvgBalance(_Node, Generic[A]):
-    all: A = _at(0, '*')
-    p2pk65: A = _at(0, 'p2pk65_*')
-    p2pk33: A = _at(0, 'p2pk33_*')
-    p2pkh: A = _at(0, 'p2pkh_*')
-    p2sh: A = _at(0, 'p2sh_*')
-    p2wpkh: A = _at(0, 'p2wpkh_*')
-    p2wsh: A = _at(0, 'p2wsh_*')
-    p2tr: A = _at(0, 'p2tr_*')
-    p2a: A = _at(0, 'p2a_*')
+class InputsCount(_Node, Generic[A]):
+    sum: SeriesPattern21[Count] = _at(SeriesPattern21, '*_sum')
+    cumulative: SeriesPattern2[Count] = _at(SeriesPattern2, '*_cumulative')
+    rolling: Rolling[A] = _at(Rolling, '*')
 
 
-class ExposedSupply(_Node):
-    all: Circulating = _at(Circulating, '*')
-    p2pk65: Circulating = _at(Circulating, 'p2pk65_*')
-    p2pk33: Circulating = _at(Circulating, 'p2pk33_*')
-    p2pkh: Circulating = _at(Circulating, 'p2pkh_*')
-    p2sh: Circulating = _at(Circulating, 'p2sh_*')
-    p2wpkh: Circulating = _at(Circulating, 'p2wpkh_*')
-    p2wsh: Circulating = _at(Circulating, 'p2wsh_*')
-    p2tr: Circulating = _at(Circulating, 'p2tr_*')
-    p2a: Circulating = _at(Circulating, 'p2a_*')
-    share: AvgBalance[Gini[Optional[PartsPerMillion32]]] = _at((AvgBalance, Gini), '*_share')
+class DeltaAll(_Node, Generic[A]):
+    absolute: PerSec[A] = _at(PerSec, '*')
+    rate: AllRate = _at(AllRate, '*')
 
 
-class Exposed(_Node):
-    count: ExposedCount = _at(ExposedCount, '*_count')
-    supply: ExposedSupply = _at(ExposedSupply, '*_supply')
+class DiscountSupply(_Node):
+    total: Circulating = _at(Circulating, '*')
+    delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
+    dominance: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_dominance')
+    in_profit: Circulating = _at(Circulating, '*_in_profit')
+    in_loss: Circulating = _at(Circulating, '*_in_loss')
 
 
-class Events(_Node):
-    output_to_reused_addr_count: AvgBalance[NewAll[Count, Optional[CountFract]]] = _at((AvgBalance, NewAll), 'output_to_*_count')
-    output_to_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'output_to_*_share')
-    spendable_output_to_reused_addr_share: FeeShare = _at(FeeShare, 'spendable_output_to_*_share')
-    input_from_reused_addr_count: AvgBalance[NewAll[Count, Optional[CountFract]]] = _at((AvgBalance, NewAll), 'input_from_*_count')
-    input_from_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'input_from_*_share')
-    active_reused_addr_count: Interval[Count, Optional[CountFract]] = _at(Interval, 'active_*_count')
-    active_reused_addr_share: FeeShare = _at(FeeShare, 'active_*_share')
+class MarketCap(_Node):
+    usd: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*')
+    delta: DeltaAll[Optional[Dollars]] = _at(DeltaAll, '*_delta')
 
 
-class Respent(_Node):
-    count: ExposedCount = _at(ExposedCount, '*_count')
-    events: Events = _at(Events, '*')
-    supply: ExposedSupply = _at(ExposedSupply, '*_supply')
+class Supply(_Node):
+    circulating: Circulating = _at(Circulating, 'circulating_*')
+    burned: Burned = _at(Burned, 'unspendable_*')
+    inflation_rate: Gini[Optional[PartsPerMillionSigned64]] = _at(Gini, 'inflation_rate')
+    velocity: Velocity = _at(Velocity, 'velocity')
+    market_cap: MarketCap = _at(MarketCap, 'market_cap')
+    market_minus_realized_cap_growth_rate: PerSec[Optional[PartsPerMillionSigned64]] = _at(PerSec, 'market_minus_realized_cap_growth_rate')
+    hodled_or_lost: Circulating = _at(Circulating, 'hodled_or_lost_*')
 
 
-class AddrsActivity(_Node):
-    reactivated: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'reactivated_*')
-    sending: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'sending_*')
-    receiving: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'receiving_*')
-    bidirectional: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'bidirectional_*')
-    active: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'active_*')
+class AllSupply(_Node):
+    total: Circulating = _at(Circulating, '*')
+    in_profit: Circulating = _at(Circulating, '*_in_profit')
+    in_loss: Circulating = _at(Circulating, '*_in_loss')
+    delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
 
 
-class OutputsByTypeTxShare(_Node):
-    p2pk65: FeeShare = _at(FeeShare, '*_p2pk65_output')
-    p2pk33: FeeShare = _at(FeeShare, '*_p2pk33_output')
-    p2pkh: FeeShare = _at(FeeShare, '*_p2pkh_output')
-    p2ms: FeeShare = _at(FeeShare, '*_p2ms_output')
-    p2sh: FeeShare = _at(FeeShare, '*_p2sh_output')
-    p2wpkh: FeeShare = _at(FeeShare, '*_p2wpkh_output')
-    p2wsh: FeeShare = _at(FeeShare, '*_p2wsh_output')
-    p2tr: FeeShare = _at(FeeShare, '*_p2tr_output')
-    p2a: FeeShare = _at(FeeShare, '*_p2a_output')
-    unknown: FeeShare = _at(FeeShare, '*_unknown_outputs_output')
-    empty: FeeShare = _at(FeeShare, '*_empty_outputs_output')
-    op_return: FeeShare = _at(FeeShare, '*_op_return_output')
+class NetPnl(_Node):
+    block: SeriesPattern21[Optional[Dollars]] = _at(SeriesPattern21, '*')
+    cumulative: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_cumulative')
+    sum: PerSec[Optional[Dollars]] = _at(PerSec, '*_sum')
+    delta: DeltaAll[Optional[Dollars]] = _at(DeltaAll, '*_delta')
 
 
-class OutputShare(_Node):
-    p2pk65: FeeShare = _at(FeeShare, 'p2pk65_*')
-    p2pk33: FeeShare = _at(FeeShare, 'p2pk33_*')
-    p2pkh: FeeShare = _at(FeeShare, 'p2pkh_*')
-    p2ms: FeeShare = _at(FeeShare, 'p2ms_*')
-    p2sh: FeeShare = _at(FeeShare, 'p2sh_*')
-    p2wpkh: FeeShare = _at(FeeShare, 'p2wpkh_*')
-    p2wsh: FeeShare = _at(FeeShare, 'p2wsh_*')
-    p2tr: FeeShare = _at(FeeShare, 'p2tr_*')
-    p2a: FeeShare = _at(FeeShare, 'p2a_*')
-    unknown: FeeShare = _at(FeeShare, 'unknown_outputs_*')
-    empty: FeeShare = _at(FeeShare, 'empty_outputs_*')
-    op_return: FeeShare = _at(FeeShare, 'op_return_*')
+class UtxoCount0sats(_Node):
+    base: SeriesPattern2[Count] = _at(SeriesPattern2, '*')
+    delta: DeltaAll[CountSigned] = _at(DeltaAll, '*_delta')
 
 
-class OutputsByType(_Node):
-    output_count: OutputCount = _at(OutputCount, '*_count')
-    spendable_output_count: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'spendable_*_count')
-    output_share: OutputShare = _at(OutputShare, '*_share')
-    tx_count: OutputsByTypeTxCount = _at(OutputsByTypeTxCount, 'tx_count')
-    tx_share: OutputsByTypeTxShare = _at(OutputsByTypeTxShare, 'tx_share_with')
+class RealizedLoss0sats(_Node, Generic[A]):
+    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
+    cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
+    sum: PerSec[A] = _at(PerSec, '*_sum')
 
 
-class Outputs(_Node):
-    raw: OutputsRaw = _at(OutputsRaw, 'type')
-    spent: Spent = _at(Spent, 'txin_index')
-    count: OutputsCount[InputsCount[Count32]] = _at((OutputsCount, InputsCount), '*_count')
-    per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'outputs_per_sec')
-    by_type: OutputsByType = _at(OutputsByType, '*')
-    value: OutputsValue = _at(OutputsValue, 'op_return_value')
+class Aaopool(_Node):
+    blocks_mined: RealizedLoss0sats[Count] = _at(RealizedLoss0sats, '*_blocks_mined')
+    dominance: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_dominance')
 
 
-class InputsByTypeTxShare(_Node):
-    p2pk65: FeeShare = _at(FeeShare, '*_p2pk65_prevout')
-    p2pk33: FeeShare = _at(FeeShare, '*_p2pk33_prevout')
-    p2pkh: FeeShare = _at(FeeShare, '*_p2pkh_prevout')
-    p2ms: FeeShare = _at(FeeShare, '*_p2ms_prevout')
-    p2sh: FeeShare = _at(FeeShare, '*_p2sh_prevout')
-    p2wpkh: FeeShare = _at(FeeShare, '*_p2wpkh_prevout')
-    p2wsh: FeeShare = _at(FeeShare, '*_p2wsh_prevout')
-    p2tr: FeeShare = _at(FeeShare, '*_p2tr_prevout')
-    p2a: FeeShare = _at(FeeShare, '*_p2a_prevout')
-    unknown: FeeShare = _at(FeeShare, '*_unknown_outputs_prevout')
-    empty: FeeShare = _at(FeeShare, '*_empty_outputs_prevout')
-
-
-class Sd24h(_Node, Generic[A]):
-    _24h: A = _at(0, '*_24h')
-    _1w: A = _at(0, '*_1w')
-    _1m: A = _at(0, '*_1m')
-    _1y: A = _at(0, '*_1y')
-
-
-class Ratios(_Node):
-    adjusted_sopr: AdjustedSopr = _at(AdjustedSopr, '*')
-    dormancy: PerSec[Optional[Days]] = _at(PerSec, '*_dormancy')
-    sopr: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_sopr_24h')
-    sopr_ratio_extended: SoprRatioExtended = _at(SoprRatioExtended, '*_sopr')
-    sell_side_risk_ratio: Sd24h[Gini[Optional[PartsPerMillion32]]] = _at((Sd24h, Gini), '*_sell_side_risk_ratio')
-    profit_to_loss_ratio: PerSec[Optional[Ratio]] = _at(PerSec, '*_realized_profit_to_loss_ratio')
-
-
-class Returns(_Node):
-    periods: Periods = _at(Periods, '*_return')
-    cagr: Cagr = _at(Cagr, '*_cagr')
-    sd_24h: Sd24h[Sd24h1m] = _at((Sd24h, Sd24h1m), '')
-
-
-class Market(_Node):
-    ath: Ath = _at(Ath, '*')
-    lookback: MarketLookback = _at(MarketLookback, '*_past')
-    returns: Returns = _at(Returns, '*')
-    volatility: PerSec[Optional[Ratio]] = _at(PerSec, '*_volatility')
-    range: Range = _at(Range, '*')
-    moving_average: MovingAverage = _at(MovingAverage, '*')
-    technical: Technical = _at(Technical, '24h')
-
-
-class RewardsFees(_Node):
-    block: Block = _at(Block, '*')
-    cumulative: Circulating = _at(Circulating, '*_cumulative')
-    sum: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_sum')
-    average: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_average')
-    min: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_min')
-    max: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_max')
-    pct10: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_pct10')
-    pct25: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_pct25')
-    median: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_median')
-    pct75: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_pct75')
-    pct90: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_pct90')
-    dominance: FeeShare = _at(FeeShare, 'fee_dominance')
-    to_subsidy: Sd24h[Gini[Optional[PartsPerMillion64]]] = _at((Sd24h, Gini), 'fee_to_subsidy')
-
-
-class Subsidy(_Node):
-    block: Block = _at(Block, '*')
-    cumulative: Circulating = _at(Circulating, '*_cumulative')
-    sum: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_sum')
-    average: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_average')
-    dominance: FeeShare = _at(FeeShare, '*_dominance')
-
-
-class Coinbase(_Node):
-    block: Block = _at(Block, '*')
-    cumulative: Circulating = _at(Circulating, '*_cumulative')
-    sum: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_sum')
-    average: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_average')
-
-
-class DiscountActivityTransferVolume(_Node):
-    block: Block = _at(Block, '*')
-    cumulative: Circulating = _at(Circulating, '*_cumulative')
-    sum: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_sum')
-    average: Sd24h[Circulating] = _at((Sd24h, Circulating), '*_average')
-    in_profit: Coinbase = _at(Coinbase, '*_in_profit')
-    in_loss: Coinbase = _at(Coinbase, '*_in_loss')
-
-
-class DiscountActivity(_Node):
-    transfer_volume: DiscountActivityTransferVolume = _at(DiscountActivityTransferVolume, '*_transfer_volume')
-    coindays_destroyed: NewAll[Optional[CoinDays], Optional[CoinDays]] = _at(NewAll, '*_coindays_destroyed')
-
-
-class Discount(_Node):
-    supply: DiscountSupply = _at(DiscountSupply, '*_supply')
-    outputs: DiscountOutputs = _at(DiscountOutputs, '*')
-    activity: DiscountActivity = _at(DiscountActivity, '*')
-    realized: DiscountRealized = _at(DiscountRealized, '*')
-    unrealized: DiscountUnrealized = _at(DiscountUnrealized, '*')
-
-
-class EntryCohorts(_Node):
-    discount: Discount = _at(Discount, '*')
-    premium: Discount = _at(Discount, 'rookie')
-
-
-class AllActivity(_Node):
-    transfer_volume: Coinbase = _at(Coinbase, '*_transfer_volume')
-    transfer_volume_in_profit: Coinbase = _at(Coinbase, '*_transfer_volume_in_profit')
-    transfer_volume_in_loss: Coinbase = _at(Coinbase, '*_transfer_volume_in_loss')
-    coindays_destroyed: NewAll[Optional[CoinDays], Optional[CoinDays]] = _at(NewAll, '*_coindays_destroyed')
-    coinyears_destroyed: SeriesPattern2[Optional[CoinYears]] = _at(SeriesPattern2, '*_coinyears_destroyed')
-
-
-class CohortsAll(_Node):
-    supply: AllSupply = _at(AllSupply, '*_supply')
-    outputs: DiscountOutputs = _at(DiscountOutputs, '*')
-    activity: AllActivity = _at(AllActivity, '*')
-    realized: AllRealized = _at(AllRealized, '*')
-    unrealized: AllUnrealized = _at(AllUnrealized, '*')
-    cost_basis: CohortsAllCostBasis = _at(CohortsAllCostBasis, '*')
-    ratios: Ratios = _at(Ratios, '*')
-    relative: Relative = _at(Relative, '*')
-
-
-class HoldersCohorts(_Node):
-    all: CohortsAll = _at(CohortsAll, '')
-    sth: CohortsAll = _at(CohortsAll, 'sth')
-    lth: CohortsAll = _at(CohortsAll, 'lth')
-    under_4m: CohortsAll = _at(CohortsAll, '*_4m')
-    under_6m: CohortsAll = _at(CohortsAll, '*_6m')
-    over_4m: CohortsAll = _at(CohortsAll, 'over_4m')
-    over_6m: CohortsAll = _at(CohortsAll, 'over_6m')
-
-
-class Entry(_Node, Generic[A]):
-    cohorts: A = _at(0, '*')
-
-
-class TransferVolumeUtxoAmount(_Node, Generic[A]):
-    _0sats: A = _at(0, 'utxos_0sats_*')
-    _1sat_to_10sats: A = _at(0, 'utxos_1sat_to_10sats_*')
-    _10sats_to_100sats: A = _at(0, 'utxos_10sats_to_100sats_*')
-    _100sats_to_1k_sats: A = _at(0, 'utxos_100sats_to_1k_sats_*')
-    _1k_sats_to_10k_sats: A = _at(0, 'utxos_1k_sats_to_10k_sats_*')
-    _10k_sats_to_100k_sats: A = _at(0, 'utxos_10k_sats_to_100k_sats_*')
-    _100k_sats_to_1m_sats: A = _at(0, 'utxos_100k_sats_to_1m_sats_*')
-    _1m_sats_to_10m_sats: A = _at(0, 'utxos_1m_sats_to_10m_sats_*')
-    _10m_sats_to_1btc: A = _at(0, 'utxos_10m_sats_to_1btc_*')
-    _1btc_to_10btc: A = _at(0, 'utxos_1btc_to_10btc_*')
-    _10btc_to_100btc: A = _at(0, 'utxos_10btc_to_100btc_*')
-    _100btc_to_1k_btc: A = _at(0, 'utxos_100btc_to_1k_btc_*')
-    _1k_btc_to_10k_btc: A = _at(0, 'utxos_1k_btc_to_10k_btc_*')
-    _10k_btc_to_100k_btc: A = _at(0, 'utxos_10k_btc_to_100k_btc_*')
-    over_100k_btc: A = _at(0, 'utxos_over_100k_btc_*')
-
-
-class CoindaysDestroyedClass(_Node, Generic[A]):
-    _2009: A = _at(0, 'class_2009_*')
-    _2010: A = _at(0, 'class_2010_*')
-    _2011: A = _at(0, 'class_2011_*')
-    _2012: A = _at(0, 'class_2012_*')
-    _2013: A = _at(0, 'class_2013_*')
-    _2014: A = _at(0, 'class_2014_*')
-    _2015: A = _at(0, 'class_2015_*')
-    _2016: A = _at(0, 'class_2016_*')
-    _2017: A = _at(0, 'class_2017_*')
-    _2018: A = _at(0, 'class_2018_*')
-    _2019: A = _at(0, 'class_2019_*')
-    _2020: A = _at(0, 'class_2020_*')
-    _2021: A = _at(0, 'class_2021_*')
-    _2022: A = _at(0, 'class_2022_*')
-    _2023: A = _at(0, 'class_2023_*')
-    _2024: A = _at(0, 'class_2024_*')
-    _2025: A = _at(0, 'class_2025_*')
-    _2026: A = _at(0, 'class_2026_*')
-
-
-class CoindaysDestroyedEpoch(_Node, Generic[A]):
-    _0: A = _at(0, 'epoch_0_*')
-    _1: A = _at(0, 'epoch_1_*')
-    _2: A = _at(0, 'epoch_2_*')
-    _3: A = _at(0, 'epoch_3_*')
-    _4: A = _at(0, 'epoch_4_*')
+class Minor(_Node):
+    blockfills: Aaopool = _at(Aaopool, '*')
+    ultimuspool: Aaopool = _at(Aaopool, 'ultimuspool')
+    terrapool: Aaopool = _at(Aaopool, 'terrapool')
+    onethash: Aaopool = _at(Aaopool, 'onethash')
+    bitfarms: Aaopool = _at(Aaopool, 'bitfarms')
+    huobipool: Aaopool = _at(Aaopool, 'huobipool')
+    wayicn: Aaopool = _at(Aaopool, 'wayicn')
+    canoepool: Aaopool = _at(Aaopool, 'canoepool')
+    bitcoincom: Aaopool = _at(Aaopool, 'bitcoincom')
+    pool175btc: Aaopool = _at(Aaopool, 'pool175btc')
+    gbminers: Aaopool = _at(Aaopool, 'gbminers')
+    axbt: Aaopool = _at(Aaopool, 'axbt')
+    asicminer: Aaopool = _at(Aaopool, 'asicminer')
+    bitminter: Aaopool = _at(Aaopool, 'bitminter')
+    bitcoinrussia: Aaopool = _at(Aaopool, 'bitcoinrussia')
+    btcserv: Aaopool = _at(Aaopool, 'btcserv')
+    simplecoinus: Aaopool = _at(Aaopool, 'simplecoinus')
+    ozcoin: Aaopool = _at(Aaopool, 'ozcoin')
+    eclipsemc: Aaopool = _at(Aaopool, 'eclipsemc')
+    maxbtc: Aaopool = _at(Aaopool, 'maxbtc')
+    triplemining: Aaopool = _at(Aaopool, 'triplemining')
+    coinlab: Aaopool = _at(Aaopool, 'coinlab')
+    pool50btc: Aaopool = _at(Aaopool, 'pool50btc')
+    ghashio: Aaopool = _at(Aaopool, 'ghashio')
+    stminingcorp: Aaopool = _at(Aaopool, 'stminingcorp')
+    bitparking: Aaopool = _at(Aaopool, 'bitparking')
+    mmpool: Aaopool = _at(Aaopool, 'mmpool')
+    polmine: Aaopool = _at(Aaopool, 'polmine')
+    kncminer: Aaopool = _at(Aaopool, 'kncminer')
+    bitalo: Aaopool = _at(Aaopool, 'bitalo')
+    hhtt: Aaopool = _at(Aaopool, 'hhtt')
+    megabigpower: Aaopool = _at(Aaopool, 'megabigpower')
+    mtred: Aaopool = _at(Aaopool, 'mtred')
+    nmcbit: Aaopool = _at(Aaopool, 'nmcbit')
+    yourbtcnet: Aaopool = _at(Aaopool, 'yourbtcnet')
+    givemecoins: Aaopool = _at(Aaopool, 'givemecoins')
+    multicoinco: Aaopool = _at(Aaopool, 'multicoinco')
+    bcpoolio: Aaopool = _at(Aaopool, 'bcpoolio')
+    cointerra: Aaopool = _at(Aaopool, 'cointerra')
+    kanopool: Aaopool = _at(Aaopool, 'kanopool')
+    solock: Aaopool = _at(Aaopool, 'solock')
+    ckpool: Aaopool = _at(Aaopool, 'ckpool')
+    nicehash: Aaopool = _at(Aaopool, 'nicehash')
+    bitclub: Aaopool = _at(Aaopool, 'bitclub')
+    bitcoinaffiliatenetwork: Aaopool = _at(Aaopool, 'bitcoinaffiliatenetwork')
+    exxbw: Aaopool = _at(Aaopool, 'exxbw')
+    bitsolo: Aaopool = _at(Aaopool, 'bitsolo')
+    twentyoneinc: Aaopool = _at(Aaopool, 'twentyoneinc')
+    digitalbtc: Aaopool = _at(Aaopool, 'digitalbtc')
+    eightbaochi: Aaopool = _at(Aaopool, 'eightbaochi')
+    mybtccoinpool: Aaopool = _at(Aaopool, 'mybtccoinpool')
+    tbdice: Aaopool = _at(Aaopool, 'tbdice')
+    hashpool: Aaopool = _at(Aaopool, 'hashpool')
+    nexious: Aaopool = _at(Aaopool, 'nexious')
+    bravomining: Aaopool = _at(Aaopool, 'bravomining')
+    hotpool: Aaopool = _at(Aaopool, 'hotpool')
+    okexpool: Aaopool = _at(Aaopool, 'okexpool')
+    bcmonster: Aaopool = _at(Aaopool, 'bcmonster')
+    onehash: Aaopool = _at(Aaopool, 'onehash')
+    bixin: Aaopool = _at(Aaopool, 'bixin')
+    tatmaspool: Aaopool = _at(Aaopool, 'tatmaspool')
+    connectbtc: Aaopool = _at(Aaopool, 'connectbtc')
+    batpool: Aaopool = _at(Aaopool, 'batpool')
+    waterhole: Aaopool = _at(Aaopool, 'waterhole')
+    dcexploration: Aaopool = _at(Aaopool, 'dcexploration')
+    dcex: Aaopool = _at(Aaopool, 'dcex')
+    btpool: Aaopool = _at(Aaopool, 'btpool')
+    fiftyeightcoin: Aaopool = _at(Aaopool, 'fiftyeightcoin')
+    bitcoinindia: Aaopool = _at(Aaopool, 'bitcoinindia')
+    shawnp0wers: Aaopool = _at(Aaopool, 'shawnp0wers')
+    phashio: Aaopool = _at(Aaopool, 'phashio')
+    rigpool: Aaopool = _at(Aaopool, 'rigpool')
+    haozhuzhu: Aaopool = _at(Aaopool, 'haozhuzhu')
+    sevenpool: Aaopool = _at(Aaopool, 'sevenpool')
+    miningkings: Aaopool = _at(Aaopool, 'miningkings')
+    hashbx: Aaopool = _at(Aaopool, 'hashbx')
+    dpool: Aaopool = _at(Aaopool, 'dpool')
+    rawpool: Aaopool = _at(Aaopool, 'rawpool')
+    haominer: Aaopool = _at(Aaopool, 'haominer')
+    helix: Aaopool = _at(Aaopool, 'helix')
+    bitcoinukraine: Aaopool = _at(Aaopool, 'bitcoinukraine')
+    secretsuperstar: Aaopool = _at(Aaopool, 'secretsuperstar')
+    tigerpoolnet: Aaopool = _at(Aaopool, 'tigerpoolnet')
+    sigmapoolcom: Aaopool = _at(Aaopool, 'sigmapoolcom')
+    okpooltop: Aaopool = _at(Aaopool, 'okpooltop')
+    hummerpool: Aaopool = _at(Aaopool, 'hummerpool')
+    tangpool: Aaopool = _at(Aaopool, 'tangpool')
+    bytepool: Aaopool = _at(Aaopool, 'bytepool')
+    novablock: Aaopool = _at(Aaopool, 'novablock')
+    miningcity: Aaopool = _at(Aaopool, 'miningcity')
+    minerium: Aaopool = _at(Aaopool, 'minerium')
+    lubiancom: Aaopool = _at(Aaopool, 'lubiancom')
+    okkong: Aaopool = _at(Aaopool, 'okkong')
+    aaopool: Aaopool = _at(Aaopool, 'aaopool')
+    emcdpool: Aaopool = _at(Aaopool, 'emcdpool')
+    arkpool: Aaopool = _at(Aaopool, 'arkpool')
+    purebtccom: Aaopool = _at(Aaopool, 'purebtccom')
+    kucoinpool: Aaopool = _at(Aaopool, 'kucoinpool')
+    entrustcharitypool: Aaopool = _at(Aaopool, 'entrustcharitypool')
+    okminer: Aaopool = _at(Aaopool, 'okminer')
+    titan: Aaopool = _at(Aaopool, 'titan')
+    pegapool: Aaopool = _at(Aaopool, 'pegapool')
+    btcnuggets: Aaopool = _at(Aaopool, 'btcnuggets')
+    cloudhashing: Aaopool = _at(Aaopool, 'cloudhashing')
+    digitalxmintsy: Aaopool = _at(Aaopool, 'digitalxmintsy')
+    telco214: Aaopool = _at(Aaopool, 'telco214')
+    btcpoolparty: Aaopool = _at(Aaopool, 'btcpoolparty')
+    multipool: Aaopool = _at(Aaopool, 'multipool')
+    transactioncoinmining: Aaopool = _at(Aaopool, 'transactioncoinmining')
+    btcdig: Aaopool = _at(Aaopool, 'btcdig')
+    trickysbtcpool: Aaopool = _at(Aaopool, 'trickysbtcpool')
+    btcmp: Aaopool = _at(Aaopool, 'btcmp')
+    eobot: Aaopool = _at(Aaopool, 'eobot')
+    unomp: Aaopool = _at(Aaopool, 'unomp')
+    patels: Aaopool = _at(Aaopool, 'patels')
+    gogreenlight: Aaopool = _at(Aaopool, 'gogreenlight')
+    bitcoinindiapool: Aaopool = _at(Aaopool, 'bitcoinindiapool')
+    ekanembtc: Aaopool = _at(Aaopool, 'ekanembtc')
+    canoe: Aaopool = _at(Aaopool, 'canoe')
+    tiger: Aaopool = _at(Aaopool, 'tiger')
+    onem1x: Aaopool = _at(Aaopool, 'onem1x')
+    zulupool: Aaopool = _at(Aaopool, 'zulupool')
+    wiz: Aaopool = _at(Aaopool, 'wiz')
+    wk057: Aaopool = _at(Aaopool, 'wk057')
+    futurebitapollosolo: Aaopool = _at(Aaopool, 'futurebitapollosolo')
+    carbonnegative: Aaopool = _at(Aaopool, 'carbonnegative')
+    portlandhodl: Aaopool = _at(Aaopool, 'portlandhodl')
+    phoenix: Aaopool = _at(Aaopool, 'phoenix')
+    neopool: Aaopool = _at(Aaopool, 'neopool')
+    maxipool: Aaopool = _at(Aaopool, 'maxipool')
+    bitfufupool: Aaopool = _at(Aaopool, 'bitfufupool')
+    gdpool: Aaopool = _at(Aaopool, 'gdpool')
+    miningdutch: Aaopool = _at(Aaopool, 'miningdutch')
+    publicpool: Aaopool = _at(Aaopool, 'publicpool')
+    miningsquared: Aaopool = _at(Aaopool, 'miningsquared')
+    innopolistech: Aaopool = _at(Aaopool, 'innopolistech')
+    btclab: Aaopool = _at(Aaopool, 'btclab')
+    parasite: Aaopool = _at(Aaopool, 'parasite')
+    redrockpool: Aaopool = _at(Aaopool, 'redrockpool')
+    est3lar: Aaopool = _at(Aaopool, 'est3lar')
+    braiinssolo: Aaopool = _at(Aaopool, 'braiinssolo')
+    solopool: Aaopool = _at(Aaopool, 'solopool')
+    noderunners: Aaopool = _at(Aaopool, 'noderunners')
+    dmnd: Aaopool = _at(Aaopool, 'dmnd')
 
 
 class Antpool(_Node):
     blocks_mined: RealizedLoss0sats[Count] = _at(RealizedLoss0sats, '*_blocks_mined')
     dominance: FeeShare = _at(FeeShare, '*_dominance')
-    rewards: Coinbase = _at(Coinbase, '*_rewards')
+    rewards: TransferVolume0sats = _at(TransferVolume0sats, '*_rewards')
 
 
 class Major(_Node):
@@ -5594,122 +4960,312 @@ class Pools(_Node):
     minor: Minor = _at(Minor, 'blockfills')
 
 
-class Matured(_Node, Generic[A]):
-    under_1h: A = _at(0, 'utxos_under_1h_*')
-    _1h_to_1d: A = _at(0, 'utxos_1h_to_1d_*')
-    _1d_to_1w: A = _at(0, 'utxos_1d_to_1w_*')
-    _1w_to_1m: A = _at(0, 'utxos_1w_to_1m_*')
-    _1m_to_2m: A = _at(0, 'utxos_1m_to_2m_*')
-    _2m_to_3m: A = _at(0, 'utxos_2m_to_3m_*')
-    _3m_to_4m: A = _at(0, 'utxos_3m_to_4m_*')
-    _4m_to_5m: A = _at(0, 'utxos_4m_to_5m_*')
-    _5m_to_6m: A = _at(0, 'utxos_5m_to_6m_*')
-    _6m_to_9m: A = _at(0, 'utxos_6m_to_9m_*')
-    _9m_to_1y: A = _at(0, 'utxos_9m_to_1y_*')
-    _1y_to_18m: A = _at(0, 'utxos_1y_to_18m_*')
-    _18m_to_2y: A = _at(0, 'utxos_18m_to_2y_*')
-    _2y_to_3y: A = _at(0, 'utxos_2y_to_3y_*')
-    _3y_to_4y: A = _at(0, 'utxos_3y_to_4y_*')
-    _4y_to_5y: A = _at(0, 'utxos_4y_to_5y_*')
-    _5y_to_6y: A = _at(0, 'utxos_5y_to_6y_*')
-    _6y_to_7y: A = _at(0, 'utxos_6y_to_7y_*')
-    _7y_to_8y: A = _at(0, 'utxos_7y_to_8y_*')
-    _8y_to_10y: A = _at(0, 'utxos_8y_to_10y_*')
-    _10y_to_12y: A = _at(0, 'utxos_10y_to_12y_*')
-    _12y_to_15y: A = _at(0, 'utxos_12y_to_15y_*')
-    over_15y: A = _at(0, 'utxos_over_15y_*')
+class Market(_Node):
+    ath: Ath = _at(Ath, '*')
+    lookback: MarketLookback = _at(MarketLookback, '*_past')
+    returns: Returns = _at(Returns, '*')
+    volatility: PerSec[Optional[Ratio]] = _at(PerSec, '*_volatility')
+    range: Range = _at(Range, '*')
+    moving_average: MovingAverage = _at(MovingAverage, '*')
+    technical: Technical = _at(Technical, '24h')
 
 
-class CoindaysDestroyed(_Node, Generic[A, B, C]):
-    age: A = _at(0, 'old_*')
-    epoch: B = _at(1, '*')
-    class_: C = _at(2, '*')
+class Volume(_Node):
+    transfer_volume: TransferVolume0sats = _at(TransferVolume0sats, '*')
+    tx_per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'tx_per_sec')
 
 
-class CohortsUnrealized(_Node):
-    profit: CoindaysDestroyed[SpendingRate[Optional[Dollars]], CapEpoch, CapClass] = _at((CoindaysDestroyed, SpendingRate, CapEpoch, CapClass), '*_profit')
-    loss: CoindaysDestroyed[SpendingRate[Optional[Dollars]], CapEpoch, CapClass] = _at((CoindaysDestroyed, SpendingRate, CapEpoch, CapClass), '*_loss')
-    net_pnl: CoindaysDestroyed[SpendingRate[Optional[Dollars]], CapEpoch, CapClass] = _at((CoindaysDestroyed, SpendingRate, CapEpoch, CapClass), 'net_*_pnl')
+class BlocksSize(_Node, Generic[A, B, C]):
+    cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
+    sum: PerSec[A] = _at(PerSec, '*_sum')
+    average: PerSec[B] = _at(PerSec, '*_average')
+    min: PerSec[C] = _at(PerSec, '*_min')
+    max: PerSec[C] = _at(PerSec, '*_max')
+    pct10: PerSec[C] = _at(PerSec, '*_pct10')
+    pct25: PerSec[C] = _at(PerSec, '*_pct25')
+    median: PerSec[C] = _at(PerSec, '*_median')
+    pct75: PerSec[C] = _at(PerSec, '*_pct75')
+    pct90: PerSec[C] = _at(PerSec, '*_pct90')
 
 
-class CoinflowAgeRangeSupply(_Node):
-    mobile: Matured[Circulating] = _at((Matured, Circulating), '*_mobile_supply')
-    immobile: Matured[Circulating] = _at((Matured, Circulating), '*_immobile_supply')
+class Vbytes(_Node, Generic[A, B, C]):
+    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
+    cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
+    sum: PerSec[A] = _at(PerSec, '*_sum')
+    average: PerSec[B] = _at(PerSec, '*_average')
+    min: PerSec[C] = _at(PerSec, '*_min')
+    max: PerSec[C] = _at(PerSec, '*_max')
+    pct10: PerSec[C] = _at(PerSec, '*_pct10')
+    pct25: PerSec[C] = _at(PerSec, '*_pct25')
+    median: PerSec[C] = _at(PerSec, '*_median')
+    pct75: PerSec[C] = _at(PerSec, '*_pct75')
+    pct90: PerSec[C] = _at(PerSec, '*_pct90')
 
 
-class CoinflowAgeRange(_Node):
-    spending_rate: SpendingRate[Optional[PerDay]] = _at(SpendingRate, '*_spending_rate')
-    spending_exposure: SpendingExposure = _at(SpendingExposure, '*')
-    supply: CoinflowAgeRangeSupply = _at(CoinflowAgeRangeSupply, '*')
+class CoinblocksDestroyed(_Node, Generic[A, B]):
+    block: SeriesPattern21[A] = _at(SeriesPattern21, '*')
+    cumulative: SeriesPattern2[A] = _at(SeriesPattern2, '*_cumulative')
+    sum: PerSec[A] = _at(PerSec, '*_sum')
+    average: PerSec[B] = _at(PerSec, '*_average')
 
 
-class Coinflow(_Node):
-    age_range: CoinflowAgeRange = _at(CoinflowAgeRange, 'old')
-    urpd: CoinflowUrpd[CoinflowUrpdLth] = _at((CoinflowUrpd, CoinflowUrpdLth), '*')
-    supply: CoinflowSupply = _at(CoinflowSupply, '')
-    cap: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_cap')
-    price: CapitalizedPrice = _at(CapitalizedPrice, '*_price')
-    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, '*_capitalized_price')
-    sth: CoinflowLth = _at(CoinflowLth, 'sth')
-    lth: CoinflowLth = _at(CoinflowLth, 'lth')
-    under_4m_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_price')
-    under_4m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_capitalized_price')
-    under_6m_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_price')
-    under_6m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_capitalized_price')
-    over_4m_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_price')
-    over_4m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_capitalized_price')
-    over_6m_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_price')
-    over_6m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_capitalized_price')
+class PolicyDataBytes(_Node, Generic[A]):
+    pre_v30_standard: A = _at(0, 'op_return_policy_pre_v30_standard_*')
+    pre_v30_nonstandard: A = _at(0, 'op_return_policy_pre_v30_nonstandard_*')
+    oversized: A = _at(0, 'op_return_policy_oversized_*')
+    multiple: A = _at(0, 'op_return_policy_multiple_*')
 
 
-class CointimeAgeRangeSupply(_Node):
-    awake: Matured[Circulating] = _at((Matured, Circulating), '*_awake_supply')
-    dormant: Matured[Circulating] = _at((Matured, Circulating), '*_dormant_supply')
+class ByKindDataBytes(_Node, Generic[A]):
+    runes: A = _at(0, 'op_return_runes_*')
+    veri_block: A = _at(0, 'op_return_veri_block_*')
+    omni: A = _at(0, 'op_return_omni_*')
+    stacks: A = _at(0, 'op_return_stacks_*')
+    blockstack: A = _at(0, 'op_return_blockstack_*')
+    colu: A = _at(0, 'op_return_colu_*')
+    open_assets: A = _at(0, 'op_return_open_assets_*')
+    komodo: A = _at(0, 'op_return_komodo_*')
+    coin_spark: A = _at(0, 'op_return_coin_spark_*')
+    poet: A = _at(0, 'op_return_poet_*')
+    docproof: A = _at(0, 'op_return_docproof_*')
+    open_timestamps: A = _at(0, 'op_return_open_timestamps_*')
+    factom: A = _at(0, 'op_return_factom_*')
+    eternity_wall: A = _at(0, 'op_return_eternity_wall_*')
+    memo: A = _at(0, 'op_return_memo_*')
+    bitproof: A = _at(0, 'op_return_bitproof_*')
+    ascribe: A = _at(0, 'op_return_ascribe_*')
+    stampery: A = _at(0, 'op_return_stampery_*')
+    epobc: A = _at(0, 'op_return_epobc_*')
+    bare_hash: A = _at(0, 'op_return_bare_hash_*')
+    text: A = _at(0, 'op_return_text_*')
+    empty: A = _at(0, 'op_return_empty_*')
+    unknown: A = _at(0, 'op_return_unknown_*')
 
 
-class CointimeAgeRange(_Node):
-    coindays_consumed: Matured[NewAll[Optional[CoinDays], Optional[CoinDays]]] = _at((Matured, NewAll), '*_coindays_consumed')
-    coindays_stored: Matured[NewAll[Optional[CoinDays], Optional[CoinDays]]] = _at((Matured, NewAll), '*_coindays_stored')
-    activity: AgeRangeActivity = _at(AgeRangeActivity, '*')
-    supply: CointimeAgeRangeSupply = _at(CointimeAgeRangeSupply, '*')
-    coindays_created: Matured[NewAll[Optional[CoinDays], Optional[CoinDays]]] = _at((Matured, NewAll), '*_coindays_created')
+class ByKind(_Node, Generic[A, B, C, D]):
+    output_count: A = _at(0, 'output_count')
+    data_bytes: B = _at(1, '')
+    tx_count: A = _at(0, 'tx_count')
+    tx_vsize: C = _at(2, 'tx_vsize')
+    fees: D = _at(3, '*')
 
 
-class Cointime(_Node):
-    activity: CointimeActivity = _at(CointimeActivity, 'coinblocks')
-    age_range: CointimeAgeRange = _at(CointimeAgeRange, 'old')
-    urpd: CoinflowUrpd[CointimeUrpdLth] = _at((CoinflowUrpd, CointimeUrpdLth), 'cointime')
-    awake: Awake = _at(Awake, '*')
-    dormant: Dormant = _at(Dormant, 'dormant_supply')
-    sth: CointimeLth = _at(CointimeLth, 'sth')
-    lth: CointimeLth = _at(CointimeLth, 'lth')
-    under_4m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_price')
-    under_4m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_capitalized_price')
-    under_6m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_price')
-    under_6m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_capitalized_price')
-    over_4m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_price')
-    over_4m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_capitalized_price')
-    over_6m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_price')
-    over_6m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_capitalized_price')
-    supply: CointimeSupply = _at(CointimeSupply, 'supply')
-    value: CointimeValue = _at(CointimeValue, 'cointime_value')
-    cap: Cap = _at(Cap, 'cap')
-    prices: CointimePrices = _at(CointimePrices, 'price')
-    adjusted: Adjusted = _at(Adjusted, 'cointime_adj')
-    reserve_risk: ReserveRisk = _at(ReserveRisk, 'reserve_risk')
+class Total(_Node):
+    data_bytes: CoinblocksDestroyed[Bytes, Optional[BytesFract]] = _at(CoinblocksDestroyed, '*_data_bytes')
+    tx_count: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_tx_count')
+    tx_vsize: CoinblocksDestroyed[VSize, Optional[VSizeFract]] = _at(CoinblocksDestroyed, '*_tx_vsize')
+    fees: CoinblocksDestroyed[Sats, Optional[SatsFract]] = _at(CoinblocksDestroyed, '*_fees')
+    chain_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_chain_share')
+    fee_share: FeeShare = _at(FeeShare, '*_fee_share')
 
 
-class Rewards(_Node):
-    coinbase: Coinbase = _at(Coinbase, '*')
-    subsidy: Subsidy = _at(Subsidy, 'subsidy')
-    fees: RewardsFees = _at(RewardsFees, 'fees')
-    output_volume: SeriesPattern21[Sats] = _at(SeriesPattern21, 'output_volume')
-    unclaimed: Burned = _at(Burned, 'unclaimed_rewards')
+class OpReturn(_Node):
+    total: Total = _at(Total, '*')
+    by_kind: ByKind[ByKindDataBytes[CoinblocksDestroyed[Count, Optional[CountFract]]], ByKindDataBytes[DataBytesAscribe], ByKindDataBytes[CoinblocksDestroyed[VSize, Optional[VSizeFract]]], ByKindFees] = _at((ByKind, (ByKindDataBytes, CoinblocksDestroyed), (ByKindDataBytes, DataBytesAscribe), (ByKindDataBytes, CoinblocksDestroyed), ByKindFees), '*')
+    policy: ByKind[PolicyDataBytes[CoinblocksDestroyed[Count, Optional[CountFract]]], PolicyDataBytes[DataBytesAscribe], PolicyDataBytes[CoinblocksDestroyed[VSize, Optional[VSizeFract]]], PolicyFees] = _at((ByKind, (PolicyDataBytes, CoinblocksDestroyed), (PolicyDataBytes, DataBytesAscribe), (PolicyDataBytes, CoinblocksDestroyed), PolicyFees), '*_policy')
 
 
-class Mining(_Node):
-    rewards: Rewards = _at(Rewards, '*')
-    hashrate: MiningHashrate = _at(MiningHashrate, 'hash')
+class OutputsByTypeTxCount(_Node):
+    all: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_bis')
+    p2pk65: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2pk65_output')
+    p2pk33: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2pk33_output')
+    p2pkh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2pkh_output')
+    p2ms: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2ms_output')
+    p2sh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2sh_output')
+    p2wpkh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2wpkh_output')
+    p2wsh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2wsh_output')
+    p2tr: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2tr_output')
+    p2a: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2a_output')
+    unknown: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_unknown_outputs_output')
+    empty: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_empty_outputs_output')
+    op_return: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_op_return_output')
+
+
+class OutputCount(_Node):
+    all: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_bis')
+    p2pk65: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2pk65_*')
+    p2pk33: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2pk33_*')
+    p2pkh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2pkh_*')
+    p2ms: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2ms_*')
+    p2sh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2sh_*')
+    p2wpkh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2wpkh_*')
+    p2wsh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2wsh_*')
+    p2tr: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2tr_*')
+    p2a: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2a_*')
+    unknown: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'unknown_outputs_*')
+    empty: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'empty_outputs_*')
+    op_return: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'op_return_*')
+
+
+class OutputsByType(_Node):
+    output_count: OutputCount = _at(OutputCount, '*_count')
+    spendable_output_count: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'spendable_*_count')
+    output_share: OutputShare = _at(OutputShare, '*_share')
+    tx_count: OutputsByTypeTxCount = _at(OutputsByTypeTxCount, 'tx_count')
+    tx_share: OutputsByTypeTxShare = _at(OutputsByTypeTxShare, 'tx_share_with')
+
+
+class InputsByTypeTxCount(_Node):
+    all: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'non_coinbase_*')
+    p2pk65: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2pk65_prevout')
+    p2pk33: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2pk33_prevout')
+    p2pkh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2pkh_prevout')
+    p2ms: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2ms_prevout')
+    p2sh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2sh_prevout')
+    p2wpkh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2wpkh_prevout')
+    p2wsh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2wsh_prevout')
+    p2tr: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2tr_prevout')
+    p2a: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_p2a_prevout')
+    unknown: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_unknown_outputs_prevout')
+    empty: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_with_empty_outputs_prevout')
+
+
+class InputCount(_Node):
+    all: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'input_*_bis')
+    p2pk65: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2pk65_prevout_*')
+    p2pk33: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2pk33_prevout_*')
+    p2pkh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2pkh_prevout_*')
+    p2ms: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2ms_prevout_*')
+    p2sh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2sh_prevout_*')
+    p2wpkh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2wpkh_prevout_*')
+    p2wsh: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2wsh_prevout_*')
+    p2tr: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2tr_prevout_*')
+    p2a: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'p2a_prevout_*')
+    unknown: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'unknown_outputs_prevout_*')
+    empty: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'empty_outputs_prevout_*')
+
+
+class AvgBalance(_Node, Generic[A]):
+    all: A = _at(0, '*')
+    p2pk65: A = _at(0, 'p2pk65_*')
+    p2pk33: A = _at(0, 'p2pk33_*')
+    p2pkh: A = _at(0, 'p2pkh_*')
+    p2sh: A = _at(0, 'p2sh_*')
+    p2wpkh: A = _at(0, 'p2wpkh_*')
+    p2wsh: A = _at(0, 'p2wsh_*')
+    p2tr: A = _at(0, 'p2tr_*')
+    p2a: A = _at(0, 'p2a_*')
+
+
+class ExposedSupply(_Node):
+    all: Circulating = _at(Circulating, '*')
+    p2pk65: Circulating = _at(Circulating, 'p2pk65_*')
+    p2pk33: Circulating = _at(Circulating, 'p2pk33_*')
+    p2pkh: Circulating = _at(Circulating, 'p2pkh_*')
+    p2sh: Circulating = _at(Circulating, 'p2sh_*')
+    p2wpkh: Circulating = _at(Circulating, 'p2wpkh_*')
+    p2wsh: Circulating = _at(Circulating, 'p2wsh_*')
+    p2tr: Circulating = _at(Circulating, 'p2tr_*')
+    p2a: Circulating = _at(Circulating, 'p2a_*')
+    share: AvgBalance[Gini[Optional[PartsPerMillion32]]] = _at((AvgBalance, Gini), '*_share')
+
+
+class Exposed(_Node):
+    count: ExposedCount = _at(ExposedCount, '*_count')
+    supply: ExposedSupply = _at(ExposedSupply, '*_supply')
+
+
+class Events(_Node):
+    output_to_reused_addr_count: AvgBalance[CoinblocksDestroyed[Count, Optional[CountFract]]] = _at((AvgBalance, CoinblocksDestroyed), 'output_to_*_count')
+    output_to_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'output_to_*_share')
+    spendable_output_to_reused_addr_share: FeeShare = _at(FeeShare, 'spendable_output_to_*_share')
+    input_from_reused_addr_count: AvgBalance[CoinblocksDestroyed[Count, Optional[CountFract]]] = _at((AvgBalance, CoinblocksDestroyed), 'input_from_*_count')
+    input_from_reused_addr_share: AvgBalance[FeeShare] = _at((AvgBalance, FeeShare), 'input_from_*_share')
+    active_reused_addr_count: Interval[Count, Optional[CountFract]] = _at(Interval, 'active_*_count')
+    active_reused_addr_share: FeeShare = _at(FeeShare, 'active_*_share')
+
+
+class Respent(_Node):
+    count: ExposedCount = _at(ExposedCount, '*_count')
+    events: Events = _at(Events, '*')
+    supply: ExposedSupply = _at(ExposedSupply, '*_supply')
+
+
+class AddressesActivity(_Node):
+    reactivated: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'reactivated_*')
+    sending: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'sending_*')
+    receiving: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'receiving_*')
+    bidirectional: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'bidirectional_*')
+    active: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'active_*')
+
+
+class InputShare(_Node, Generic[A]):
+    p2pk65: A = _at(0, 'p2pk65_*')
+    p2pk33: A = _at(0, 'p2pk33_*')
+    p2pkh: A = _at(0, 'p2pkh_*')
+    p2ms: A = _at(0, 'p2ms_*')
+    p2sh: A = _at(0, 'p2sh_*')
+    p2wpkh: A = _at(0, 'p2wpkh_*')
+    p2wsh: A = _at(0, 'p2wsh_*')
+    p2tr: A = _at(0, 'p2tr_*')
+    p2a: A = _at(0, 'p2a_*')
+    unknown: A = _at(0, 'unknown_outputs_*')
+    empty: A = _at(0, 'empty_outputs_*')
+
+
+class InputsByType(_Node):
+    input_count: InputCount = _at(InputCount, '*')
+    input_share: InputShare[FeeShare] = _at((InputShare, FeeShare), 'prevout_share')
+    tx_count: InputsByTypeTxCount = _at(InputsByTypeTxCount, 'tx_*')
+    tx_share: InputsByTypeTxShare = _at(InputsByTypeTxShare, 'tx_share_with')
+
+
+class Inputs(_Node):
+    value: SeriesPattern23[Sats] = _at(SeriesPattern23, 'value')
+    count: InputsCount[Count16] = _at(InputsCount, 'input_*')
+    per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'inputs_per_sec')
+    by_type: InputsByType = _at(InputsByType, '*')
+
+
+class AvgAmount(_Node):
+    all: Circulating = _at(Circulating, '*')
+    by_type: InputShare[Circulating] = _at((InputShare, Circulating), '*')
+
+
+class TransferVolumeUtxoAmount(_Node, Generic[A]):
+    _0sats: A = _at(0, 'utxos_0sats_*')
+    _1sat_to_10sats: A = _at(0, 'utxos_1sat_to_10sats_*')
+    _10sats_to_100sats: A = _at(0, 'utxos_10sats_to_100sats_*')
+    _100sats_to_1k_sats: A = _at(0, 'utxos_100sats_to_1k_sats_*')
+    _1k_sats_to_10k_sats: A = _at(0, 'utxos_1k_sats_to_10k_sats_*')
+    _10k_sats_to_100k_sats: A = _at(0, 'utxos_10k_sats_to_100k_sats_*')
+    _100k_sats_to_1m_sats: A = _at(0, 'utxos_100k_sats_to_1m_sats_*')
+    _1m_sats_to_10m_sats: A = _at(0, 'utxos_1m_sats_to_10m_sats_*')
+    _10m_sats_to_1btc: A = _at(0, 'utxos_10m_sats_to_1btc_*')
+    _1btc_to_10btc: A = _at(0, 'utxos_1btc_to_10btc_*')
+    _10btc_to_100btc: A = _at(0, 'utxos_10btc_to_100btc_*')
+    _100btc_to_1k_btc: A = _at(0, 'utxos_100btc_to_1k_btc_*')
+    _1k_btc_to_10k_btc: A = _at(0, 'utxos_1k_btc_to_10k_btc_*')
+    _10k_btc_to_100k_btc: A = _at(0, 'utxos_10k_btc_to_100k_btc_*')
+    over_100k_btc: A = _at(0, 'utxos_over_100k_btc_*')
+
+
+class UtxosActivityTransferVolume(_Node, Generic[A, B]):
+    utxo_amount: A = _at(0, '*')
+    type_: B = _at(1, '*')
+
+
+class UtxosRealized(_Node):
+    cap: UtxosActivityTransferVolume[CapUtxoAmount, Type] = _at((UtxosActivityTransferVolume, CapUtxoAmount, Type), '*_cap')
+    price: UtxosActivityTransferVolume[CapUtxoAmount, Type] = _at((UtxosActivityTransferVolume, CapUtxoAmount, Type), '*_price')
+    profit: UtxosActivityTransferVolume[TransferVolumeUtxoAmount[RealizedLoss0sats[Optional[Dollars]]], InputShare[RealizedLoss0sats[Optional[Dollars]]]] = _at((UtxosActivityTransferVolume, (TransferVolumeUtxoAmount, RealizedLoss0sats), (InputShare, RealizedLoss0sats)), '*_profit')
+    loss: UtxosActivityTransferVolume[TransferVolumeUtxoAmount[RealizedLoss0sats[Optional[Dollars]]], InputShare[RealizedLoss0sats[Optional[Dollars]]]] = _at((UtxosActivityTransferVolume, (TransferVolumeUtxoAmount, RealizedLoss0sats), (InputShare, RealizedLoss0sats)), '*_loss')
+
+
+class UtxosActivity(_Node):
+    transfer_volume: UtxosActivityTransferVolume[TransferVolumeUtxoAmount[TransferVolume0sats], InputShare[TransferVolume0sats]] = _at((UtxosActivityTransferVolume, (TransferVolumeUtxoAmount, TransferVolume0sats), (InputShare, TransferVolume0sats)), '*')
+
+
+class UtxosOutputs(_Node):
+    avg_amount: AvgAmount = _at(AvgAmount, 'avg_*_amount')
+    unspent_count: UtxosActivityTransferVolume[TransferVolumeUtxoAmount[UtxoCount0sats], InputShare[UtxoCount0sats]] = _at((UtxosActivityTransferVolume, (TransferVolumeUtxoAmount, UtxoCount0sats), (InputShare, UtxoCount0sats)), '*_count')
+    spent_count: UtxosActivityTransferVolume[TransferVolumeUtxoAmount[CoinblocksDestroyed[Count, Optional[CountFract]]], InputShare[CoinblocksDestroyed[Count, Optional[CountFract]]]] = _at((UtxosActivityTransferVolume, (TransferVolumeUtxoAmount, CoinblocksDestroyed), (InputShare, CoinblocksDestroyed)), 'spent_*_count')
+
+
+class UtxosSupply(_Node, Generic[A, B, C]):
+    total: A = _at(0, '*')
+    delta: B = _at(1, '*_delta')
+    dominance: C = _at(2, '*_dominance')
 
 
 class RealizedLoss(_Node, Generic[A]):
@@ -5743,24 +5299,19 @@ class Funded(_Node):
     balance: RealizedLoss[UtxoCount0sats] = _at((RealizedLoss, UtxoCount0sats), '*')
 
 
-class ByBalance(_Node):
-    supply: RealizedLoss[Supply0sats] = _at((RealizedLoss, Supply0sats), 'supply')
-    utxo_count: RealizedLoss[UtxoCount0sats] = _at((RealizedLoss, UtxoCount0sats), 'utxo_count')
-    transfer_volume: RealizedLoss[Coinbase] = _at((RealizedLoss, Coinbase), 'transfer_volume')
-    realized_cap: RealizedCap = _at(RealizedCap, '*_cap')
-    realized_profit: RealizedLoss[RealizedLoss0sats[Optional[Dollars]]] = _at((RealizedLoss, RealizedLoss0sats), '*_profit')
-    realized_loss: RealizedLoss[RealizedLoss0sats[Optional[Dollars]]] = _at((RealizedLoss, RealizedLoss0sats), '*_loss')
-
-
-class Addrs(_Node):
-    raw: AddrsRaw = _at(AddrsRaw, 'p2pk65')
+class Addresses(_Node):
     state: State = _at(State, '*')
-    by_balance: ByBalance = _at(ByBalance, 'realized')
+    supply: RealizedLoss[UtxosSupply[Circulating, DeltaAll[Optional[Bitcoin]], Gini[Optional[PartsPerMillion32]]]] = _at((RealizedLoss, (UtxosSupply, Circulating, DeltaAll, Gini)), 'supply')
+    utxo_count: RealizedLoss[UtxoCount0sats] = _at((RealizedLoss, UtxoCount0sats), 'utxo_count')
+    transfer_volume: RealizedLoss[TransferVolume0sats] = _at((RealizedLoss, TransferVolume0sats), 'transfer_volume')
+    realized_cap: RealizedCap = _at(RealizedCap, 'realized_cap')
+    realized_profit: RealizedLoss[RealizedLoss0sats[Optional[Dollars]]] = _at((RealizedLoss, RealizedLoss0sats), 'realized_profit')
+    realized_loss: RealizedLoss[RealizedLoss0sats[Optional[Dollars]]] = _at((RealizedLoss, RealizedLoss0sats), 'realized_loss')
     funded: Funded = _at(Funded, '*_count')
-    empty: AddrsEmpty = _at(AddrsEmpty, 'empty_*_count')
-    activity: AddrsActivity = _at(AddrsActivity, 'addrs')
-    total: AddrsEmpty = _at(AddrsEmpty, 'total_*_count')
-    new: AvgBalance[NewAll[Count, Optional[CountFract]]] = _at((AvgBalance, NewAll), 'new_*_count')
+    empty: AddressesEmpty = _at(AddressesEmpty, 'empty_*_count')
+    activity: AddressesActivity = _at(AddressesActivity, 'addrs')
+    total: AddressesEmpty = _at(AddressesEmpty, 'total_*_count')
+    new: AvgBalance[CoinblocksDestroyed[Count, Optional[CountFract]]] = _at((AvgBalance, CoinblocksDestroyed), 'new_*_count')
     reused: Respent = _at(Respent, 'reused_*')
     respent: Respent = _at(Respent, 'respent_*')
     exposed: Exposed = _at(Exposed, 'exposed_*')
@@ -5768,157 +5319,608 @@ class Addrs(_Node):
     avg_balance: AvgBalance[Circulating] = _at((AvgBalance, Circulating), 'avg_*_amount')
 
 
-class InputShare(_Node, Generic[A]):
-    p2pk65: A = _at(0, 'p2pk65_*')
-    p2pk33: A = _at(0, 'p2pk33_*')
-    p2pkh: A = _at(0, 'p2pkh_*')
-    p2ms: A = _at(0, 'p2ms_*')
-    p2sh: A = _at(0, 'p2sh_*')
-    p2wpkh: A = _at(0, 'p2wpkh_*')
-    p2wsh: A = _at(0, 'p2wsh_*')
-    p2tr: A = _at(0, 'p2tr_*')
-    p2a: A = _at(0, 'p2a_*')
-    unknown: A = _at(0, 'unknown_outputs_*')
-    empty: A = _at(0, 'empty_outputs_*')
+class Utxos(_Node):
+    supply: UtxosSupply[UtxosActivityTransferVolume[TransferVolumeUtxoAmount[Circulating], InputShare[Circulating]], UtxosActivityTransferVolume[TransferVolumeUtxoAmount[DeltaAll[Optional[Bitcoin]]], InputShare[DeltaAll[Optional[Bitcoin]]]], UtxosActivityTransferVolume[TransferVolumeUtxoAmount[Gini[Optional[PartsPerMillion32]]], InputShare[Gini[Optional[PartsPerMillion32]]]]] = _at((UtxosSupply, (UtxosActivityTransferVolume, (TransferVolumeUtxoAmount, Circulating), (InputShare, Circulating)), (UtxosActivityTransferVolume, (TransferVolumeUtxoAmount, DeltaAll), (InputShare, DeltaAll)), (UtxosActivityTransferVolume, (TransferVolumeUtxoAmount, Gini), (InputShare, Gini))), '*')
+    outputs: UtxosOutputs = _at(UtxosOutputs, 'utxo')
+    activity: UtxosActivity = _at(UtxosActivity, 'transfer_volume')
+    realized: UtxosRealized = _at(UtxosRealized, 'realized')
 
 
-class CohortsActivityTransferVolume(_Node):
-    age: Matured[Coinbase] = _at((Matured, Coinbase), 'old_*')
-    epoch: CoindaysDestroyedEpoch[Coinbase] = _at((CoindaysDestroyedEpoch, Coinbase), '*')
-    class_: CoindaysDestroyedClass[Coinbase] = _at((CoindaysDestroyedClass, Coinbase), '*')
-    in_profit: CoindaysDestroyed[Matured[Coinbase], CoindaysDestroyedEpoch[Coinbase], CoindaysDestroyedClass[Coinbase]] = _at((CoindaysDestroyed, (Matured, Coinbase), (CoindaysDestroyedEpoch, Coinbase), (CoindaysDestroyedClass, Coinbase)), '*_in_profit')
-    in_loss: CoindaysDestroyed[Matured[Coinbase], CoindaysDestroyedEpoch[Coinbase], CoindaysDestroyedClass[Coinbase]] = _at((CoindaysDestroyed, (Matured, Coinbase), (CoindaysDestroyedEpoch, Coinbase), (CoindaysDestroyedClass, Coinbase)), '*_in_loss')
-    utxo_amount: TransferVolumeUtxoAmount[Coinbase] = _at((TransferVolumeUtxoAmount, Coinbase), '*')
-    type_: InputShare[Coinbase] = _at((InputShare, Coinbase), '*')
+class Sopr(_Node):
+    _24h: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_sopr_24h')
+    value_destroyed: CoinblocksDestroyed[Optional[Dollars], Optional[Dollars]] = _at(CoinblocksDestroyed, '*_value_destroyed')
 
 
-class CohortsActivity(_Node):
-    transfer_volume: CohortsActivityTransferVolume = _at(CohortsActivityTransferVolume, '*')
-    coindays_destroyed: CoindaysDestroyed[Matured[NewAll[Optional[CoinDays], Optional[CoinDays]]], CoindaysDestroyedEpoch[NewAll[Optional[CoinDays], Optional[CoinDays]]], CoindaysDestroyedClass[NewAll[Optional[CoinDays], Optional[CoinDays]]]] = _at((CoindaysDestroyed, (Matured, NewAll), (CoindaysDestroyedEpoch, NewAll), (CoindaysDestroyedClass, NewAll)), 'coindays_destroyed')
+class DiscountRealized(_Node):
+    cap: MarketCap = _at(MarketCap, '*_realized_cap')
+    price: CapitalizedPrice = _at(CapitalizedPrice, '*_realized_price')
+    profit: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_profit')
+    loss: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_loss')
+    net_pnl: NetPnl = _at(NetPnl, '*_net_realized_pnl')
+    sopr: Sopr = _at(Sopr, '*')
+    mvrv: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_mvrv')
 
 
-class AvgAmount(_Node):
-    all: Circulating = _at(Circulating, '*')
-    by_type: InputShare[Circulating] = _at((InputShare, Circulating), '*')
+class DiscountActivity(_Node):
+    transfer_volume: DiscountActivityTransferVolume = _at(DiscountActivityTransferVolume, '*_transfer_volume')
+    coindays_destroyed: CoinblocksDestroyed[Optional[CoinDays], Optional[CoinDays]] = _at(CoinblocksDestroyed, '*_coindays_destroyed')
 
 
-class SpentCount(_Node, Generic[A, B, C, D, E]):
+class AdjustedSopr(_Node):
+    ratio: PerSec[Optional[Ratio]] = _at(PerSec, '*_adjusted_sopr')
+    transfer_volume: CoinblocksDestroyed[Optional[Dollars], Optional[Dollars]] = _at(CoinblocksDestroyed, '*_adj_value_created')
+    value_destroyed: CoinblocksDestroyed[Optional[Dollars], Optional[Dollars]] = _at(CoinblocksDestroyed, '*_adj_value_destroyed')
+
+
+class Ratios(_Node):
+    adjusted_sopr: AdjustedSopr = _at(AdjustedSopr, '*')
+    dormancy: PerSec[Optional[Days]] = _at(PerSec, '*_dormancy')
+    sopr: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_sopr_24h')
+    sopr_ratio_extended: SoprRatioExtended = _at(SoprRatioExtended, '*_sopr')
+    sell_side_risk_ratio: Sd24h[Gini[Optional[PartsPerMillion32]]] = _at((Sd24h, Gini), '*_sell_side_risk_ratio')
+    profit_to_loss_ratio: PerSec[Optional[Ratio]] = _at(PerSec, '*_realized_profit_to_loss_ratio')
+
+
+class AllRealized(_Node):
+    cap: MarketCap = _at(MarketCap, '*_realized_cap')
+    price: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_realized_price')
+    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, '*_capitalized_price')
+    profit: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_profit')
+    loss: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_loss')
+    net_pnl: NetPnl = _at(NetPnl, '*_net_realized_pnl')
+    value_destroyed: CoinblocksDestroyed[Optional[Dollars], Optional[Dollars]] = _at(CoinblocksDestroyed, '*_value_destroyed')
+    gross_pnl: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_gross_pnl')
+    peak_regret: RealizedLoss0sats[Optional[Dollars]] = _at(RealizedLoss0sats, '*_realized_peak_regret')
+    mvrv: RhodlRatio[Optional[PriceRatio]] = _at(RhodlRatio, '*_mvrv')
+
+
+class AllActivity(_Node):
+    transfer_volume: TransferVolume0sats = _at(TransferVolume0sats, '*_transfer_volume')
+    transfer_volume_in_profit: TransferVolume0sats = _at(TransferVolume0sats, '*_transfer_volume_in_profit')
+    transfer_volume_in_loss: TransferVolume0sats = _at(TransferVolume0sats, '*_transfer_volume_in_loss')
+    coindays_destroyed: CoinblocksDestroyed[Optional[CoinDays], Optional[CoinDays]] = _at(CoinblocksDestroyed, '*_coindays_destroyed')
+    coinyears_destroyed: SeriesPattern2[Optional[CoinYears]] = _at(SeriesPattern2, '*_coinyears_destroyed')
+
+
+class DiscountOutputs(_Node):
+    unspent_count: UtxoCount0sats = _at(UtxoCount0sats, '*_utxo_count')
+    spent_count: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_spent_utxo_count')
+
+
+class Discount(_Node):
+    supply: DiscountSupply = _at(DiscountSupply, '*_supply')
+    outputs: DiscountOutputs = _at(DiscountOutputs, '*')
+    activity: DiscountActivity = _at(DiscountActivity, '*')
+    realized: DiscountRealized = _at(DiscountRealized, '*')
+    unrealized: DiscountUnrealized = _at(DiscountUnrealized, '*')
+
+
+class Entry(_Node):
+    discount: Discount = _at(Discount, '*')
+    premium: Discount = _at(Discount, 'rookie')
+
+
+class HoldersAll(_Node):
+    supply: AllSupply = _at(AllSupply, '*_supply')
+    outputs: DiscountOutputs = _at(DiscountOutputs, '*')
+    activity: AllActivity = _at(AllActivity, '*')
+    realized: AllRealized = _at(AllRealized, '*')
+    unrealized: AllUnrealized = _at(AllUnrealized, '*')
+    cost_basis: HoldersAllCostBasis = _at(HoldersAllCostBasis, '*')
+    ratios: Ratios = _at(Ratios, '*')
+    relative: Relative = _at(Relative, '*')
+
+
+class Holders(_Node):
+    all: HoldersAll = _at(HoldersAll, '')
+    sth: HoldersAll = _at(HoldersAll, 'sth')
+    lth: HoldersAll = _at(HoldersAll, 'lth')
+    under_4m: HoldersAll = _at(HoldersAll, '*_4m')
+    under_6m: HoldersAll = _at(HoldersAll, '*_6m')
+    over_4m: HoldersAll = _at(HoldersAll, 'over_4m')
+    over_6m: HoldersAll = _at(HoldersAll, 'over_6m')
+
+
+class CoindaysDestroyedClass(_Node, Generic[A]):
+    _2009: A = _at(0, 'class_2009_*')
+    _2010: A = _at(0, 'class_2010_*')
+    _2011: A = _at(0, 'class_2011_*')
+    _2012: A = _at(0, 'class_2012_*')
+    _2013: A = _at(0, 'class_2013_*')
+    _2014: A = _at(0, 'class_2014_*')
+    _2015: A = _at(0, 'class_2015_*')
+    _2016: A = _at(0, 'class_2016_*')
+    _2017: A = _at(0, 'class_2017_*')
+    _2018: A = _at(0, 'class_2018_*')
+    _2019: A = _at(0, 'class_2019_*')
+    _2020: A = _at(0, 'class_2020_*')
+    _2021: A = _at(0, 'class_2021_*')
+    _2022: A = _at(0, 'class_2022_*')
+    _2023: A = _at(0, 'class_2023_*')
+    _2024: A = _at(0, 'class_2024_*')
+    _2025: A = _at(0, 'class_2025_*')
+    _2026: A = _at(0, 'class_2026_*')
+
+
+class CoindaysDestroyedEpoch(_Node, Generic[A]):
+    _0: A = _at(0, 'epoch_0_*')
+    _1: A = _at(0, 'epoch_1_*')
+    _2: A = _at(0, 'epoch_2_*')
+    _3: A = _at(0, 'epoch_3_*')
+    _4: A = _at(0, 'epoch_4_*')
+
+
+class CointimeValue(_Node):
+    destroyed: CoinblocksDestroyed[Optional[Float64], Optional[Float64]] = _at(CoinblocksDestroyed, '*_destroyed')
+    created: CoinblocksDestroyed[Optional[Float64], Optional[Float64]] = _at(CoinblocksDestroyed, '*_created')
+    stored: CoinblocksDestroyed[Optional[Float64], Optional[Float64]] = _at(CoinblocksDestroyed, '*_stored')
+    vocdd: CoinblocksDestroyed[Optional[Float64], Optional[Float64]] = _at(CoinblocksDestroyed, 'vocdd')
+
+
+class CoindaysCreated(_Node, Generic[A]):
+    under_1h: A = _at(0, 'utxos_under_1h_*')
+    _1h_to_1d: A = _at(0, 'utxos_1h_to_1d_*')
+    _1d_to_1w: A = _at(0, 'utxos_1d_to_1w_*')
+    _1w_to_1m: A = _at(0, 'utxos_1w_to_1m_*')
+    _1m_to_2m: A = _at(0, 'utxos_1m_to_2m_*')
+    _2m_to_3m: A = _at(0, 'utxos_2m_to_3m_*')
+    _3m_to_4m: A = _at(0, 'utxos_3m_to_4m_*')
+    _4m_to_5m: A = _at(0, 'utxos_4m_to_5m_*')
+    _5m_to_6m: A = _at(0, 'utxos_5m_to_6m_*')
+    _6m_to_9m: A = _at(0, 'utxos_6m_to_9m_*')
+    _9m_to_1y: A = _at(0, 'utxos_9m_to_1y_*')
+    _1y_to_18m: A = _at(0, 'utxos_1y_to_18m_*')
+    _18m_to_2y: A = _at(0, 'utxos_18m_to_2y_*')
+    _2y_to_3y: A = _at(0, 'utxos_2y_to_3y_*')
+    _3y_to_4y: A = _at(0, 'utxos_3y_to_4y_*')
+    _4y_to_5y: A = _at(0, 'utxos_4y_to_5y_*')
+    _5y_to_6y: A = _at(0, 'utxos_5y_to_6y_*')
+    _6y_to_7y: A = _at(0, 'utxos_6y_to_7y_*')
+    _7y_to_8y: A = _at(0, 'utxos_7y_to_8y_*')
+    _8y_to_10y: A = _at(0, 'utxos_8y_to_10y_*')
+    _10y_to_12y: A = _at(0, 'utxos_10y_to_12y_*')
+    _12y_to_15y: A = _at(0, 'utxos_12y_to_15y_*')
+    over_15y: A = _at(0, 'utxos_over_15y_*')
+
+
+class CoindaysDestroyed(_Node, Generic[A, B, C]):
     age: A = _at(0, 'old_*')
     epoch: B = _at(1, '*')
     class_: C = _at(2, '*')
-    utxo_amount: D = _at(3, '*')
-    type_: E = _at(4, '*')
 
 
-class CohortsRealized(_Node):
-    cap: SpentCount[SpendingRate[Optional[Dollars]], CapEpoch, CapClass, CapUtxoAmount, Type] = _at((SpentCount, SpendingRate, CapEpoch, CapClass, CapUtxoAmount, Type), '*_cap')
-    price: RealizedPrice = _at(RealizedPrice, '*_price')
-    profit: SpentCount[Matured[RealizedLoss0sats[Optional[Dollars]]], CoindaysDestroyedEpoch[RealizedLoss0sats[Optional[Dollars]]], CoindaysDestroyedClass[RealizedLoss0sats[Optional[Dollars]]], TransferVolumeUtxoAmount[RealizedLoss0sats[Optional[Dollars]]], InputShare[RealizedLoss0sats[Optional[Dollars]]]] = _at((SpentCount, (Matured, RealizedLoss0sats), (CoindaysDestroyedEpoch, RealizedLoss0sats), (CoindaysDestroyedClass, RealizedLoss0sats), (TransferVolumeUtxoAmount, RealizedLoss0sats), (InputShare, RealizedLoss0sats)), '*_profit')
-    loss: SpentCount[Matured[RealizedLoss0sats[Optional[Dollars]]], CoindaysDestroyedEpoch[RealizedLoss0sats[Optional[Dollars]]], CoindaysDestroyedClass[RealizedLoss0sats[Optional[Dollars]]], TransferVolumeUtxoAmount[RealizedLoss0sats[Optional[Dollars]]], InputShare[RealizedLoss0sats[Optional[Dollars]]]] = _at((SpentCount, (Matured, RealizedLoss0sats), (CoindaysDestroyedEpoch, RealizedLoss0sats), (CoindaysDestroyedClass, RealizedLoss0sats), (TransferVolumeUtxoAmount, RealizedLoss0sats), (InputShare, RealizedLoss0sats)), '*_loss')
-    net_pnl: CoindaysDestroyed[Matured[Age10yTo12y], CoindaysDestroyedEpoch[Age10yTo12y], CoindaysDestroyedClass[Age10yTo12y]] = _at((CoindaysDestroyed, (Matured, Age10yTo12y), (CoindaysDestroyedEpoch, Age10yTo12y), (CoindaysDestroyedClass, Age10yTo12y)), 'net_*_pnl')
-    value_destroyed: CoindaysDestroyed[Matured[NewAll[Optional[Dollars], Optional[Dollars]]], CoindaysDestroyedEpoch[NewAll[Optional[Dollars], Optional[Dollars]]], CoindaysDestroyedClass[NewAll[Optional[Dollars], Optional[Dollars]]]] = _at((CoindaysDestroyed, (Matured, NewAll), (CoindaysDestroyedEpoch, NewAll), (CoindaysDestroyedClass, NewAll)), 'value_destroyed')
+class AgeUnrealized(_Node):
+    profit: CoindaysDestroyed[SpendingRate[Optional[Dollars]], CapEpoch, CapClass] = _at((CoindaysDestroyed, SpendingRate, CapEpoch, CapClass), '*_profit')
+    loss: CoindaysDestroyed[SpendingRate[Optional[Dollars]], CapEpoch, CapClass] = _at((CoindaysDestroyed, SpendingRate, CapEpoch, CapClass), '*_loss')
+    net_pnl: CoindaysDestroyed[SpendingRate[Optional[Dollars]], CapEpoch, CapClass] = _at((CoindaysDestroyed, SpendingRate, CapEpoch, CapClass), 'net_*_pnl')
 
 
-class CohortsOutputs(_Node):
-    unspent_count: SpentCount[Matured[UtxoCount0sats], CoindaysDestroyedEpoch[UtxoCount0sats], CoindaysDestroyedClass[UtxoCount0sats], TransferVolumeUtxoAmount[UtxoCount0sats], InputShare[UtxoCount0sats]] = _at((SpentCount, (Matured, UtxoCount0sats), (CoindaysDestroyedEpoch, UtxoCount0sats), (CoindaysDestroyedClass, UtxoCount0sats), (TransferVolumeUtxoAmount, UtxoCount0sats), (InputShare, UtxoCount0sats)), '*_count')
-    spent_count: SpentCount[Matured[NewAll[Count, Optional[CountFract]]], CoindaysDestroyedEpoch[NewAll[Count, Optional[CountFract]]], CoindaysDestroyedClass[NewAll[Count, Optional[CountFract]]], TransferVolumeUtxoAmount[NewAll[Count, Optional[CountFract]]], InputShare[NewAll[Count, Optional[CountFract]]]] = _at((SpentCount, (Matured, NewAll), (CoindaysDestroyedEpoch, NewAll), (CoindaysDestroyedClass, NewAll), (TransferVolumeUtxoAmount, NewAll), (InputShare, NewAll)), 'spent_*_count')
-    avg_amount: AvgAmount = _at(AvgAmount, 'avg_*_amount')
+class AgeRealized(_Node):
+    cap: CoindaysDestroyed[SpendingRate[Optional[Dollars]], CapEpoch, CapClass] = _at((CoindaysDestroyed, SpendingRate, CapEpoch, CapClass), '*_cap')
+    price: RealizedPrice = _at(RealizedPrice, 'old_*_price')
+    profit: CoindaysDestroyed[CoindaysCreated[RealizedLoss0sats[Optional[Dollars]]], CoindaysDestroyedEpoch[RealizedLoss0sats[Optional[Dollars]]], CoindaysDestroyedClass[RealizedLoss0sats[Optional[Dollars]]]] = _at((CoindaysDestroyed, (CoindaysCreated, RealizedLoss0sats), (CoindaysDestroyedEpoch, RealizedLoss0sats), (CoindaysDestroyedClass, RealizedLoss0sats)), '*_profit')
+    loss: CoindaysDestroyed[CoindaysCreated[RealizedLoss0sats[Optional[Dollars]]], CoindaysDestroyedEpoch[RealizedLoss0sats[Optional[Dollars]]], CoindaysDestroyedClass[RealizedLoss0sats[Optional[Dollars]]]] = _at((CoindaysDestroyed, (CoindaysCreated, RealizedLoss0sats), (CoindaysDestroyedEpoch, RealizedLoss0sats), (CoindaysDestroyedClass, RealizedLoss0sats)), '*_loss')
+    net_pnl: CoindaysDestroyed[CoindaysCreated[NetPnl], CoindaysDestroyedEpoch[NetPnl], CoindaysDestroyedClass[NetPnl]] = _at((CoindaysDestroyed, (CoindaysCreated, NetPnl), (CoindaysDestroyedEpoch, NetPnl), (CoindaysDestroyedClass, NetPnl)), 'net_*_pnl')
+    value_destroyed: CoindaysDestroyed[CoindaysCreated[CoinblocksDestroyed[Optional[Dollars], Optional[Dollars]]], CoindaysDestroyedEpoch[CoinblocksDestroyed[Optional[Dollars], Optional[Dollars]]], CoindaysDestroyedClass[CoinblocksDestroyed[Optional[Dollars], Optional[Dollars]]]] = _at((CoindaysDestroyed, (CoindaysCreated, CoinblocksDestroyed), (CoindaysDestroyedEpoch, CoinblocksDestroyed), (CoindaysDestroyedClass, CoinblocksDestroyed)), 'value_destroyed')
 
 
-class CohortsSupply(_Node):
-    total: SpentCount[Matured[Circulating], CoindaysDestroyedEpoch[Circulating], CoindaysDestroyedClass[Circulating], TransferVolumeUtxoAmount[Circulating], InputShare[Circulating]] = _at((SpentCount, (Matured, Circulating), (CoindaysDestroyedEpoch, Circulating), (CoindaysDestroyedClass, Circulating), (TransferVolumeUtxoAmount, Circulating), (InputShare, Circulating)), '*')
-    matured: Matured[Coinbase] = _at((Matured, Coinbase), 'old_matured_*')
-    in_profit: CoindaysDestroyed[Matured[Circulating], CoindaysDestroyedEpoch[Circulating], CoindaysDestroyedClass[Circulating]] = _at((CoindaysDestroyed, (Matured, Circulating), (CoindaysDestroyedEpoch, Circulating), (CoindaysDestroyedClass, Circulating)), '*_in_profit')
-    in_loss: CoindaysDestroyed[Matured[Circulating], CoindaysDestroyedEpoch[Circulating], CoindaysDestroyedClass[Circulating]] = _at((CoindaysDestroyed, (Matured, Circulating), (CoindaysDestroyedEpoch, Circulating), (CoindaysDestroyedClass, Circulating)), '*_in_loss')
-    delta: SpentCount[Matured[DeltaAll[Optional[Bitcoin]]], CoindaysDestroyedEpoch[DeltaAll[Optional[Bitcoin]]], CoindaysDestroyedClass[DeltaAll[Optional[Bitcoin]]], TransferVolumeUtxoAmount[DeltaAll[Optional[Bitcoin]]], InputShare[DeltaAll[Optional[Bitcoin]]]] = _at((SpentCount, (Matured, DeltaAll), (CoindaysDestroyedEpoch, DeltaAll), (CoindaysDestroyedClass, DeltaAll), (TransferVolumeUtxoAmount, DeltaAll), (InputShare, DeltaAll)), '*_delta')
-    dominance: SpentCount[Matured[Gini[Optional[PartsPerMillion32]]], CoindaysDestroyedEpoch[Gini[Optional[PartsPerMillion32]]], CoindaysDestroyedClass[Gini[Optional[PartsPerMillion32]]], TransferVolumeUtxoAmount[Gini[Optional[PartsPerMillion32]]], InputShare[Gini[Optional[PartsPerMillion32]]]] = _at((SpentCount, (Matured, Gini), (CoindaysDestroyedEpoch, Gini), (CoindaysDestroyedClass, Gini), (TransferVolumeUtxoAmount, Gini), (InputShare, Gini)), '*_dominance')
+class AgeActivityTransferVolume(_Node):
+    age: CoindaysCreated[TransferVolume0sats] = _at((CoindaysCreated, TransferVolume0sats), 'old_*')
+    epoch: CoindaysDestroyedEpoch[TransferVolume0sats] = _at((CoindaysDestroyedEpoch, TransferVolume0sats), '*')
+    class_: CoindaysDestroyedClass[TransferVolume0sats] = _at((CoindaysDestroyedClass, TransferVolume0sats), '*')
+    in_profit: CoindaysDestroyed[CoindaysCreated[TransferVolume0sats], CoindaysDestroyedEpoch[TransferVolume0sats], CoindaysDestroyedClass[TransferVolume0sats]] = _at((CoindaysDestroyed, (CoindaysCreated, TransferVolume0sats), (CoindaysDestroyedEpoch, TransferVolume0sats), (CoindaysDestroyedClass, TransferVolume0sats)), '*_in_profit')
+    in_loss: CoindaysDestroyed[CoindaysCreated[TransferVolume0sats], CoindaysDestroyedEpoch[TransferVolume0sats], CoindaysDestroyedClass[TransferVolume0sats]] = _at((CoindaysDestroyed, (CoindaysCreated, TransferVolume0sats), (CoindaysDestroyedEpoch, TransferVolume0sats), (CoindaysDestroyedClass, TransferVolume0sats)), '*_in_loss')
 
 
-class Cohorts(_Node):
-    supply: CohortsSupply = _at(CohortsSupply, '*')
-    outputs: CohortsOutputs = _at(CohortsOutputs, 'utxo')
-    activity: CohortsActivity = _at(CohortsActivity, 'transfer_volume')
-    realized: CohortsRealized = _at(CohortsRealized, 'realized')
-    unrealized: CohortsUnrealized = _at(CohortsUnrealized, 'unrealized')
-    urpd: CohortsUrpd = _at(CohortsUrpd, 'utxos_urpd')
+class AgeActivity(_Node):
+    transfer_volume: AgeActivityTransferVolume = _at(AgeActivityTransferVolume, '*')
+    coindays_destroyed: CoindaysDestroyed[CoindaysCreated[CoinblocksDestroyed[Optional[CoinDays], Optional[CoinDays]]], CoindaysDestroyedEpoch[CoinblocksDestroyed[Optional[CoinDays], Optional[CoinDays]]], CoindaysDestroyedClass[CoinblocksDestroyed[Optional[CoinDays], Optional[CoinDays]]]] = _at((CoindaysDestroyed, (CoindaysCreated, CoinblocksDestroyed), (CoindaysDestroyedEpoch, CoinblocksDestroyed), (CoindaysDestroyedClass, CoinblocksDestroyed)), 'coindays_destroyed')
 
 
-class InputsByType(_Node):
-    input_count: InputCount = _at(InputCount, '*')
-    input_share: InputShare[FeeShare] = _at((InputShare, FeeShare), 'prevout_share')
-    tx_count: InputsByTypeTxCount = _at(InputsByTypeTxCount, 'tx_*')
-    tx_share: InputsByTypeTxShare = _at(InputsByTypeTxShare, 'tx_share_with')
+class AgeOutputs(_Node):
+    unspent_count: CoindaysDestroyed[CoindaysCreated[UtxoCount0sats], CoindaysDestroyedEpoch[UtxoCount0sats], CoindaysDestroyedClass[UtxoCount0sats]] = _at((CoindaysDestroyed, (CoindaysCreated, UtxoCount0sats), (CoindaysDestroyedEpoch, UtxoCount0sats), (CoindaysDestroyedClass, UtxoCount0sats)), '*')
+    spent_count: CoindaysDestroyed[CoindaysCreated[CoinblocksDestroyed[Count, Optional[CountFract]]], CoindaysDestroyedEpoch[CoinblocksDestroyed[Count, Optional[CountFract]]], CoindaysDestroyedClass[CoinblocksDestroyed[Count, Optional[CountFract]]]] = _at((CoindaysDestroyed, (CoindaysCreated, CoinblocksDestroyed), (CoindaysDestroyedEpoch, CoinblocksDestroyed), (CoindaysDestroyedClass, CoinblocksDestroyed)), 'spent_*')
 
 
-class Inputs(_Node):
-    raw: InputsRaw = _at(InputsRaw, 'index')
-    value: SeriesPattern23[Sats] = _at(SeriesPattern23, 'value')
-    count: InputsCount[Count16] = _at(InputsCount, 'input_*')
-    per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'inputs_per_sec')
-    by_type: InputsByType = _at(InputsByType, '*')
+class AgeSupply(_Node):
+    total: CoindaysDestroyed[CoindaysCreated[Circulating], CoindaysDestroyedEpoch[Circulating], CoindaysDestroyedClass[Circulating]] = _at((CoindaysDestroyed, (CoindaysCreated, Circulating), (CoindaysDestroyedEpoch, Circulating), (CoindaysDestroyedClass, Circulating)), '*')
+    matured: CoindaysCreated[TransferVolume0sats] = _at((CoindaysCreated, TransferVolume0sats), 'old_matured_*')
+    in_profit: CoindaysDestroyed[CoindaysCreated[Circulating], CoindaysDestroyedEpoch[Circulating], CoindaysDestroyedClass[Circulating]] = _at((CoindaysDestroyed, (CoindaysCreated, Circulating), (CoindaysDestroyedEpoch, Circulating), (CoindaysDestroyedClass, Circulating)), '*_in_profit')
+    in_loss: CoindaysDestroyed[CoindaysCreated[Circulating], CoindaysDestroyedEpoch[Circulating], CoindaysDestroyedClass[Circulating]] = _at((CoindaysDestroyed, (CoindaysCreated, Circulating), (CoindaysDestroyedEpoch, Circulating), (CoindaysDestroyedClass, Circulating)), '*_in_loss')
+    delta: CoindaysDestroyed[CoindaysCreated[DeltaAll[Optional[Bitcoin]]], CoindaysDestroyedEpoch[DeltaAll[Optional[Bitcoin]]], CoindaysDestroyedClass[DeltaAll[Optional[Bitcoin]]]] = _at((CoindaysDestroyed, (CoindaysCreated, DeltaAll), (CoindaysDestroyedEpoch, DeltaAll), (CoindaysDestroyedClass, DeltaAll)), '*_delta')
+    dominance: CoindaysDestroyed[CoindaysCreated[Gini[Optional[PartsPerMillion32]]], CoindaysDestroyedEpoch[Gini[Optional[PartsPerMillion32]]], CoindaysDestroyedClass[Gini[Optional[PartsPerMillion32]]]] = _at((CoindaysDestroyed, (CoindaysCreated, Gini), (CoindaysDestroyedEpoch, Gini), (CoindaysDestroyedClass, Gini)), '*_dominance')
 
 
-class Volume(_Node):
-    transfer_volume: Coinbase = _at(Coinbase, '*')
-    tx_per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'tx_per_sec')
+class Age(_Node):
+    supply: AgeSupply = _at(AgeSupply, '*')
+    outputs: AgeOutputs = _at(AgeOutputs, 'utxo_count')
+    activity: AgeActivity = _at(AgeActivity, 'transfer_volume')
+    realized: AgeRealized = _at(AgeRealized, 'realized')
+    unrealized: AgeUnrealized = _at(AgeUnrealized, 'unrealized')
+    age_bounds: AgeBounds = _at(AgeBounds, 'utxos_urpd')
+    coindays_created: CoindaysCreated[CoinblocksDestroyed[Optional[CoinDays], Optional[CoinDays]]] = _at((CoindaysCreated, CoinblocksDestroyed), 'old_coindays_created')
+    coinblocks_destroyed: CoinblocksDestroyed[Optional[CoinBlocks], Optional[CoinBlocks]] = _at(CoinblocksDestroyed, 'coinblocks_destroyed')
+
+
+class CoinflowAgeRangeSupply(_Node):
+    mobile: CoindaysCreated[Circulating] = _at((CoindaysCreated, Circulating), '*_mobile_supply')
+    immobile: CoindaysCreated[Circulating] = _at((CoindaysCreated, Circulating), '*_immobile_supply')
+
+
+class CoinflowAgeRange(_Node):
+    spending_rate: SpendingRate[Optional[PerDay]] = _at(SpendingRate, '*_spending_rate')
+    spending_exposure: SpendingExposure = _at(SpendingExposure, '*')
+    supply: CoinflowAgeRangeSupply = _at(CoinflowAgeRangeSupply, '*')
+
+
+class Coinflow(_Node):
+    age_range: CoinflowAgeRange = _at(CoinflowAgeRange, 'old')
+    urpd: CoinflowUrpd[CoinflowUrpdLth] = _at((CoinflowUrpd, CoinflowUrpdLth), '*')
+    supply: CoinflowSupply = _at(CoinflowSupply, '')
+    cap: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_cap')
+    price: CapitalizedPrice = _at(CapitalizedPrice, '*_price')
+    capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, '*_capitalized_price')
+    sth: CoinflowLth = _at(CoinflowLth, 'sth')
+    lth: CoinflowLth = _at(CoinflowLth, 'lth')
+    under_4m_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_price')
+    under_4m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_capitalized_price')
+    under_6m_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_price')
+    under_6m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_capitalized_price')
+    over_4m_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_price')
+    over_4m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_capitalized_price')
+    over_6m_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_price')
+    over_6m_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_capitalized_price')
+
+
+class CointimeAgeRangeSupply(_Node):
+    awake: CoindaysCreated[Circulating] = _at((CoindaysCreated, Circulating), '*_awake_supply')
+    dormant: CoindaysCreated[Circulating] = _at((CoindaysCreated, Circulating), '*_dormant_supply')
+
+
+class CointimeAgeRange(_Node):
+    coindays_consumed: CoindaysCreated[CoinblocksDestroyed[Optional[CoinDays], Optional[CoinDays]]] = _at((CoindaysCreated, CoinblocksDestroyed), '*_coindays_consumed')
+    coindays_stored: CoindaysCreated[CoinblocksDestroyed[Optional[CoinDays], Optional[CoinDays]]] = _at((CoindaysCreated, CoinblocksDestroyed), '*_coindays_stored')
+    activity: AgeRangeActivity = _at(AgeRangeActivity, '*')
+    supply: CointimeAgeRangeSupply = _at(CointimeAgeRangeSupply, '*')
+
+
+class CointimeActivity(_Node):
+    coinblocks_created: CoinblocksDestroyed[Optional[CoinBlocks], Optional[CoinBlocks]] = _at(CoinblocksDestroyed, '*_created')
+    coinblocks_stored: CoinblocksDestroyed[Optional[CoinBlocks], Optional[CoinBlocks]] = _at(CoinblocksDestroyed, '*_stored')
+    liveliness: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'liveliness')
+    vaultedness: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'vaultedness')
+    ratio: SeriesPattern2[Optional[Ratio64]] = _at(SeriesPattern2, 'activity_to_vaultedness')
+
+
+class Cointime(_Node):
+    activity: CointimeActivity = _at(CointimeActivity, 'coinblocks')
+    age_range: CointimeAgeRange = _at(CointimeAgeRange, 'old')
+    urpd: CoinflowUrpd[CointimeUrpdLth] = _at((CoinflowUrpd, CointimeUrpdLth), 'cointime')
+    awake: Awake = _at(Awake, '*')
+    dormant: Dormant = _at(Dormant, 'dormant_supply')
+    sth: CointimeLth = _at(CointimeLth, 'sth')
+    lth: CointimeLth = _at(CointimeLth, 'lth')
+    under_4m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_price')
+    under_4m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_4m_*_capitalized_price')
+    under_6m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_price')
+    under_6m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'under_6m_*_capitalized_price')
+    over_4m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_price')
+    over_4m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_4m_*_capitalized_price')
+    over_6m_awake_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_price')
+    over_6m_awake_capitalized_price: CapitalizedPrice = _at(CapitalizedPrice, 'over_6m_*_capitalized_price')
+    supply: CointimeSupply = _at(CointimeSupply, 'supply')
+    value: CointimeValue = _at(CointimeValue, 'cointime_value')
+    cap: Cap = _at(Cap, 'cap')
+    prices: CointimePrices = _at(CointimePrices, 'price')
+    adjusted: Adjusted = _at(Adjusted, 'cointime_adj')
+    reserve_risk: ReserveRisk = _at(ReserveRisk, 'reserve_risk')
+
+
+class Versions(_Node):
+    v1: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_v1')
+    v2: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_v2')
+    v3: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_v3')
+    other: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_other_version')
+
+
+class PolicyCount(_Node):
+    nonstandard: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*')
+
+
+class Policy(_Node):
+    count: PolicyCount = _at(PolicyCount, '*_count')
+    is_nonstandard: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_*')
+
+
+class PatternsCount(_Node):
+    coinjoin: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'coinjoin_*')
+    consolidation: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'consolidation_*')
+    batch_payout: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'batch_payout_*')
+
+
+class Patterns(_Node):
+    count: PatternsCount = _at(PatternsCount, 'count')
+    is_coinjoin: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_coinjoin')
+    is_consolidation: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_consolidation')
+    is_batch_payout: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_batch_payout')
 
 
 class Inscription(_Node):
-    count: NewAll[Count, Optional[CountFract]] = _at(NewAll, 'tx_count_*')
-    fees: NewAll[Sats, Optional[SatsFract]] = _at(NewAll, '*_fees')
+    count: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, 'tx_count_*')
+    fees: CoinblocksDestroyed[Sats, Optional[SatsFract]] = _at(CoinblocksDestroyed, '*_fees')
     fee_share: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_fee_share')
 
 
+class FeesCount(_Node):
+    cpfp_parent: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_parent_count')
+    cpfp_child: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_child_count')
+
+
+class TransactionsFees(_Node):
+    count: FeesCount = _at(FeesCount, 'cpfp')
+    fee: EffectiveFeeRate[Sats, EffectiveFeeRate6b[Sats]] = _at((EffectiveFeeRate, EffectiveFeeRate6b), '*')
+    fee_rate: SeriesPattern22[Optional[FeeRate]] = _at(SeriesPattern22, '*_rate')
+    effective_fee_rate: EffectiveFeeRate[Optional[FeeRate], EffectiveFeeRate6b[Optional[FeeRate]]] = _at((EffectiveFeeRate, EffectiveFeeRate6b), 'effective_*_rate')
+    is_cpfp_parent: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_cpfp_parent')
+    is_cpfp_child: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_cpfp_child')
+
+
+class TransactionsFeaturesCount(_Node):
+    annex: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_annex')
+    sighash_all: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_sighash_all')
+    sighash_none: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_sighash_none')
+    sighash_single: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_sighash_single')
+    sighash_default: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_sighash_default')
+    sighash_anyone_can_pay: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_sighash_anyone_can_pay')
+    dust_output: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*_dust_output')
+
+
+class TransactionsFeatures(_Node):
+    count: TransactionsFeaturesCount = _at(TransactionsFeaturesCount, '*')
+
+
+class OutputsCount(_Node, Generic[A]):
+    total: A = _at(0, '*')
+
+
+class Outputs(_Node):
+    spent: Spent = _at(Spent, 'txin_index')
+    count: OutputsCount[InputsCount[Count32]] = _at((OutputsCount, InputsCount), '*_count')
+    per_sec: PerSec[Optional[PerSecond]] = _at(PerSec, 'outputs_per_sec')
+    by_type: OutputsByType = _at(OutputsByType, '*')
+    value: OutputsValue = _at(OutputsValue, 'op_return_value')
+
+
 class Transactions(_Node):
-    raw: TransactionsRaw = _at(TransactionsRaw, '*')
-    features: Features = _at(Features, 'has')
     count: OutputsCount[Vbytes[Count, Optional[CountFract], Count16]] = _at((OutputsCount, Vbytes), '*_count')
+    features: TransactionsFeatures = _at(TransactionsFeatures, '*_count')
     size: TransactionsSize = _at(TransactionsSize, '*')
     fees: TransactionsFees = _at(TransactionsFees, 'fee')
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'is')
     policy: Policy = _at(Policy, 'nonstandard')
-    sigops: OutputsCount[NewAll[SigOps64, Optional[SigOpsFract]]] = _at((OutputsCount, NewAll), 'total_sigop_cost')
+    sigops: OutputsCount[CoinblocksDestroyed[SigOps64, Optional[SigOpsFract]]] = _at((OutputsCount, CoinblocksDestroyed), 'total_sigop_cost')
     versions: Versions = _at(Versions, '*')
     volume: Volume = _at(Volume, 'transfer_volume_bis')
 
 
-class BlocksDifficulty(_Node):
-    value: SeriesPattern2[Optional[Difficulty]] = _at(SeriesPattern2, '*')
-    hashrate: SeriesPattern2[Optional[Hashrate]] = _at(SeriesPattern2, '*_hashrate')
-    adjustment: Gini[Optional[PartsPerMillionSigned32]] = _at(Gini, '*_adjustment')
-    epoch: SeriesPattern2[Epoch] = _at(SeriesPattern2, '*_epoch')
-    blocks_to_retarget: SeriesPattern2[Count] = _at(SeriesPattern2, 'blocks_to_retarget')
-    days_to_retarget: SeriesPattern2[Optional[Days]] = _at(SeriesPattern2, 'days_to_retarget')
+class Target(_Node):
+    _24h: SeriesPattern1[Count] = _at(SeriesPattern1, '*_24h')
+    _1w: SeriesPattern1[Count] = _at(SeriesPattern1, '*_1w')
+    _1m: SeriesPattern1[Count] = _at(SeriesPattern1, '*_1m')
+    _1y: SeriesPattern1[Count] = _at(SeriesPattern1, '*_1y')
+
+
+class BlocksCount(_Node):
+    target: Target = _at(Target, '*_target')
+    total: CoinblocksDestroyed[Count, Optional[CountFract]] = _at(CoinblocksDestroyed, '*')
 
 
 class Blocks(_Node):
-    blockhash: SeriesPattern21[BlockHash] = _at(SeriesPattern21, 'blockhash')
-    coinbase_tag: SeriesPattern21[CoinbaseTag] = _at(SeriesPattern21, 'coinbase_tag')
-    difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
-    time: Time = _at(Time, 'timestamp')
-    size: BlocksSize = _at(BlocksSize, 'size')
-    weight: BlocksWeight = _at(BlocksWeight, '*_weight')
-    segwit_txs: SeriesPattern21[Count16] = _at(SeriesPattern21, 'segwit_txs')
-    segwit_size: SeriesPattern21[Bytes32] = _at(SeriesPattern21, 'segwit_size')
-    segwit_weight: SeriesPattern21[Weight] = _at(SeriesPattern21, 'segwit_weight')
     count: BlocksCount = _at(BlocksCount, '*_count')
     lookback: BlocksLookback = _at(BlocksLookback, 'height')
     interval: Interval[Seconds, Optional[SecondsFract]] = _at(Interval, '*_interval')
     vbytes: Vbytes[VSize, Optional[VSizeFract], VSize] = _at(Vbytes, '*_vbytes')
+    size: BlocksSize[Bytes, Optional[BytesFract], Bytes32] = _at(BlocksSize, '*_size')
+    weight: BlocksSize[Weight64, Optional[WeightFract], Weight] = _at(BlocksSize, '*_weight')
     fullness: Fullness = _at(Fullness, '*_fullness')
+    difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
     halving: BlocksHalving = _at(BlocksHalving, 'halving')
 
 
+class IndexerOpReturn(_Node):
+    first_index: SeriesPattern21[OpReturnIndex] = _at(SeriesPattern21, 'first_op_return_*')
+    to_tx_index: SeriesPattern26[TxIndex] = _at(SeriesPattern26, 'tx_*')
+    kind: SeriesPattern26[OpReturnKind] = _at(SeriesPattern26, 'kind')
+    post_op_return_bytes: SeriesPattern26[Bytes32] = _at(SeriesPattern26, 'op_return_post_op_return_bytes')
+
+
+class ScriptsUnknown(_Node):
+    first_index: SeriesPattern21[UnknownOutputIndex] = _at(SeriesPattern21, 'first_unknown_output_*')
+    to_tx_index: SeriesPattern36[TxIndex] = _at(SeriesPattern36, 'tx_*')
+    legacy_sigops: SeriesPattern36[SigOps] = _at(SeriesPattern36, 'unknown_legacy_sigops')
+
+
+class ScriptsP2ms(_Node):
+    first_index: SeriesPattern21[P2MSOutputIndex] = _at(SeriesPattern21, 'first_p2ms_output_*')
+    to_tx_index: SeriesPattern28[TxIndex] = _at(SeriesPattern28, 'tx_*')
+    legacy_sigops: SeriesPattern28[SigOps] = _at(SeriesPattern28, 'p2ms_legacy_sigops')
+
+
+class ScriptsEmpty(_Node):
+    first_index: SeriesPattern21[EmptyOutputIndex] = _at(SeriesPattern21, 'first_empty_output_*')
+    to_tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, 'tx_*')
+
+
+class Scripts(_Node):
+    empty: ScriptsEmpty = _at(ScriptsEmpty, '*')
+    p2ms: ScriptsP2ms = _at(ScriptsP2ms, '*')
+    unknown: ScriptsUnknown = _at(ScriptsUnknown, '*')
+
+
+class AddressesP2a(_Node):
+    first_index: SeriesPattern21[P2AAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
+    bytes: SeriesPattern27[P2ABytes] = _at(SeriesPattern27, '*_bytes')
+
+
+class AddressesP2tr(_Node):
+    first_index: SeriesPattern21[P2TRAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
+    bytes: SeriesPattern33[P2TRBytes] = _at(SeriesPattern33, '*_bytes')
+
+
+class AddressesP2wsh(_Node):
+    first_index: SeriesPattern21[P2WSHAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
+    bytes: SeriesPattern35[P2WSHBytes] = _at(SeriesPattern35, '*_bytes')
+
+
+class AddressesP2wpkh(_Node):
+    first_index: SeriesPattern21[P2WPKHAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
+    bytes: SeriesPattern34[P2WPKHBytes] = _at(SeriesPattern34, '*_bytes')
+
+
+class AddressesP2sh(_Node):
+    first_index: SeriesPattern21[P2SHAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
+    bytes: SeriesPattern32[P2SHBytes] = _at(SeriesPattern32, '*_bytes')
+
+
+class AddressesP2pkh(_Node):
+    first_index: SeriesPattern21[P2PKHAddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
+    bytes: SeriesPattern31[P2PKHBytes] = _at(SeriesPattern31, '*_bytes')
+
+
+class AddressesP2pk33(_Node):
+    first_index: SeriesPattern21[P2PK33AddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
+    bytes: SeriesPattern29[P2PK33Bytes] = _at(SeriesPattern29, '*_bytes')
+
+
+class AddressesP2pk65(_Node):
+    first_index: SeriesPattern21[P2PK65AddrIndex] = _at(SeriesPattern21, 'first_*_addr_index')
+    bytes: SeriesPattern30[P2PK65Bytes] = _at(SeriesPattern30, '*_bytes')
+
+
+class IndexerAddresses(_Node):
+    p2pk65: AddressesP2pk65 = _at(AddressesP2pk65, '*')
+    p2pk33: AddressesP2pk33 = _at(AddressesP2pk33, 'p2pk33')
+    p2pkh: AddressesP2pkh = _at(AddressesP2pkh, 'p2pkh')
+    p2sh: AddressesP2sh = _at(AddressesP2sh, 'p2sh')
+    p2wpkh: AddressesP2wpkh = _at(AddressesP2wpkh, 'p2wpkh')
+    p2wsh: AddressesP2wsh = _at(AddressesP2wsh, 'p2wsh')
+    p2tr: AddressesP2tr = _at(AddressesP2tr, 'p2tr')
+    p2a: AddressesP2a = _at(AddressesP2a, 'p2a')
+
+
+class IndexerOutputs(_Node):
+    first_txout_index: SeriesPattern21[TxOutIndex] = _at(SeriesPattern21, 'first_txout_index')
+    value: SeriesPattern24[Sats] = _at(SeriesPattern24, 'value')
+    output_type: SeriesPattern24[OutputType] = _at(SeriesPattern24, 'output_*')
+    type_index: SeriesPattern24[TypeIndex] = _at(SeriesPattern24, '*_index')
+
+
+class IndexerInputs(_Node):
+    first_txin_index: SeriesPattern21[TxInIndex] = _at(SeriesPattern21, 'first_txin_*')
+    outpoint: SeriesPattern23[OutPoint] = _at(SeriesPattern23, 'outpoint')
+    txout_index: SeriesPattern23[TxOutIndex] = _at(SeriesPattern23, 'txout_*')
+    tx_index: SeriesPattern23[TxIndex] = _at(SeriesPattern23, 'tx_*')
+    output_type: SeriesPattern23[OutputType] = _at(SeriesPattern23, 'output_type')
+    type_index: SeriesPattern23[TypeIndex] = _at(SeriesPattern23, 'type_*')
+
+
+class IndexerTransactionsFeaturesCount(_Node):
+    v1: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_v1')
+    v2: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_v2')
+    v3: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_v3')
+    other_version: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_other_version')
+    explicitly_rbf: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_explicitly_rbf')
+    one_input: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_one_input')
+    one_output: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_one_output')
+    p2pk: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2pk')
+    p2ms: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2ms')
+    p2pkh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2pkh')
+    p2sh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2sh')
+    p2wpkh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2wpkh')
+    p2wsh: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2wsh')
+    p2tr: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2tr')
+    p2a: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_p2a')
+    op_return: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_op_return')
+    empty: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_empty')
+    unknown: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_unknown')
+    fake_pubkey: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_fake_pubkey')
+    fake_scripthash: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_fake_scripthash')
+
+
+class IndexerTransactionsFeatures(_Node):
+    count: IndexerTransactionsFeaturesCount = _at(IndexerTransactionsFeaturesCount, 'tx_count')
+    has_p2pk: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2pk')
+    has_p2ms: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2ms')
+    has_p2pkh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2pkh')
+    has_p2sh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2sh')
+    has_p2wpkh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2wpkh')
+    has_p2wsh: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2wsh')
+    has_p2tr: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2tr')
+    has_p2a: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_p2a')
+    has_op_return: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_op_return')
+    has_empty: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_empty')
+    has_unknown: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_unknown')
+    has_fake_pubkey: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_fake_pubkey')
+    has_fake_scripthash: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_fake_scripthash')
+    has_inscription: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_inscription')
+    has_annex: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_annex')
+    has_sighash_all: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_all')
+    has_sighash_none: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_none')
+    has_sighash_single: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_single')
+    has_sighash_default: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_default')
+    has_sighash_anyone_can_pay: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_sighash_anyone_can_pay')
+    has_dust_output: SeriesPattern22[Boolean] = _at(SeriesPattern22, '*_dust_output')
+
+
+class IndexerTransactions(_Node):
+    first_tx_index: SeriesPattern21[TxIndex] = _at(SeriesPattern21, 'first_*_index')
+    txid: SeriesPattern22[Txid] = _at(SeriesPattern22, 'txid')
+    tx_version: SeriesPattern22[TxVersion] = _at(SeriesPattern22, '*_version')
+    raw_locktime: SeriesPattern22[RawLockTime] = _at(SeriesPattern22, 'raw_locktime')
+    weight: SeriesPattern22[Weight] = _at(SeriesPattern22, '*_weight')
+    total_size: SeriesPattern22[Bytes32] = _at(SeriesPattern22, 'total_size')
+    total_sigop_cost: SeriesPattern22[SigOps] = _at(SeriesPattern22, 'total_sigop_cost')
+    is_explicitly_rbf: SeriesPattern22[Boolean] = _at(SeriesPattern22, 'is_explicitly_rbf')
+    first_txin_index: SeriesPattern22[TxInIndex] = _at(SeriesPattern22, 'first_txin_index')
+    first_txout_index: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, 'first_txout_index')
+    features: IndexerTransactionsFeatures = _at(IndexerTransactionsFeatures, 'has')
+
+
+class IndexerBlocksSize(_Node, Generic[A]):
+    base: SeriesPattern21[A] = _at(SeriesPattern21, '*')
+
+
+class Time(_Node):
+    timestamp: SeriesPattern21[Timestamp] = _at(SeriesPattern21, '*')
+
+
+class IndexerBlocks(_Node):
+    blockhash: SeriesPattern21[BlockHash] = _at(SeriesPattern21, 'blockhash')
+    coinbase_tag: SeriesPattern21[CoinbaseTag] = _at(SeriesPattern21, 'coinbase_tag')
+    time: Time = _at(Time, 'timestamp')
+    size: IndexerBlocksSize[Bytes32] = _at(IndexerBlocksSize, 'total_size')
+    weight: IndexerBlocksSize[Weight] = _at(IndexerBlocksSize, 'block_weight')
+    segwit_txs: SeriesPattern21[Count16] = _at(SeriesPattern21, '*_txs')
+    segwit_size: SeriesPattern21[Bytes32] = _at(SeriesPattern21, '*_size')
+    segwit_weight: SeriesPattern21[Weight] = _at(SeriesPattern21, '*_weight')
+
+
+class Indexer(_Node):
+    blocks: IndexerBlocks = _at(IndexerBlocks, 'segwit')
+    transactions: IndexerTransactions = _at(IndexerTransactions, 'tx')
+    inputs: IndexerInputs = _at(IndexerInputs, '*')
+    outputs: IndexerOutputs = _at(IndexerOutputs, 'type')
+    addresses: IndexerAddresses = _at(IndexerAddresses, 'p2pk65')
+    scripts: Scripts = _at(Scripts, '*')
+    op_return: IndexerOpReturn = _at(IndexerOpReturn, '*')
+
+
 class SeriesTree(_Node):
+    indexer: Indexer = _at(Indexer, 'index')
     blocks: Blocks = _at(Blocks, 'block')
-    transactions: Transactions = _at(Transactions, 'tx')
-    inputs: Inputs = _at(Inputs, 'count')
-    outputs: Outputs = _at(Outputs, 'output')
-    addrs: Addrs = _at(Addrs, 'addr')
-    scripts: Scripts = _at(Scripts, 'index')
-    op_return: OpReturn = _at(OpReturn, 'op_return')
     mining: Mining = _at(Mining, 'coinbase')
+    transactions: Transactions = _at(Transactions, 'tx')
     cointime: Cointime = _at(Cointime, 'awake')
     coinflow: Coinflow = _at(Coinflow, 'coinflow')
     bedrock: Bedrock = _at(Bedrock, 'bedrock')
@@ -5929,11 +5931,16 @@ class SeriesTree(_Node):
     market: Market = _at(Market, 'price')
     pools: Pools = _at(Pools, 'pool')
     price: Price = _at(Price, 'price')
-    cohorts: Cohorts = _at(Cohorts, 'supply')
-    holders: Entry[HoldersCohorts] = _at((Entry, HoldersCohorts), 'under')
-    entry: Entry[EntryCohorts] = _at((Entry, EntryCohorts), 'veteran')
+    age: Age = _at(Age, 'supply')
+    holders: Holders = _at(Holders, 'under')
+    entry: Entry = _at(Entry, 'veteran')
+    utxos: Utxos = _at(Utxos, 'supply')
+    addresses: Addresses = _at(Addresses, 'addr')
     supply: Supply = _at(Supply, 'supply')
+    inputs: Inputs = _at(Inputs, 'count')
+    outputs: Outputs = _at(Outputs, 'output')
     utxo_history: UtxoHistory = _at(UtxoHistory, 'unspent_sats')
+    op_return: OpReturn = _at(OpReturn, 'op_return')
 
 
 class BitviewClient(BitviewClientBase):

@@ -98,8 +98,11 @@ has to be deleted by hand.
   `bitview_distribution` (was `bitview_plugin_distribution_common`). `Has*`/`Supports*` traits and composition
   accessors follow (`HasHolders`, `.holders()`, ...). Their storage directories are renamed (bitviewd deletes the old
   ones and recomputes; moving `plugins/distribution_<x>` to `plugins/<x>` skips that), and `/api/series/count`'s
-  `by_db` keys follow. The series of `distribution_aggregated` and `distribution_entry` move to the `holders` and
-  `entry` roots (ids unchanged); age, utxos, addresses and the indexer keep their current roots for now
+  `by_db` keys follow. Every plugin's series live under its own root, ids unchanged: `cohorts.*` splits into `age.*`
+  and `utxos.*`, `addrs.*` is `addresses.*`, `distribution_aggregated.cohorts.<c>` is `holders.<c>`,
+  `distribution_entry.cohorts.<c>` is `entry.<c>`, the profitability bands are `profitability.*`, and the indexer's
+  per-record data (`transactions.raw`, `inputs.raw`, `addrs.raw`, `scripts.raw`, block hashes, sizes, timestamps...)
+  is `indexer.*`. `difficulty` stays one series at `blocks.difficulty.value`
 - Removed the `constants` plugin and its 18 `constant_*` series: chart reference lines are drawn client-side
 - Removed `brk_fetcher`, `brk_iterator` and the `brk` umbrella crate; depend on `brk_reader`, `brk_rpc` and
   `brk_types` directly

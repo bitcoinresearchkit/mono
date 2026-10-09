@@ -36,10 +36,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
     live: M::WriteOnly<Option<LiveState<AddrStates>>>,
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
-    #[traversable(wrap = "addrs", rename = "state")]
+    #[traversable(rename = "state")]
     pub addr_state: AddrStateVecs<M>,
-    #[traversable(wrap = "addrs", rename = "by_balance")]
+    #[traversable(flatten)]
     balances: Box<BalanceMetrics<M>>,
+    #[traversable(flatten)]
     addrs: AddrVecs<M>,
 }
 

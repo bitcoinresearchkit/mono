@@ -26,7 +26,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     live: M::WriteOnly<Option<LiveState>>,
-    #[traversable(wrap = "cohorts", rename = "profitability")]
+    #[traversable(flatten)]
     metrics: Box<Metrics<M>>,
 }
 

@@ -32,6 +32,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
     live: M::WriteOnly<Option<LiveState<UTXOStates>>>,
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
+    #[traversable(flatten)]
     pub cohorts: CohortMetrics<M>,
 }
 

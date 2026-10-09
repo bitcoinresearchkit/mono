@@ -15,5 +15,5 @@ published anchor series. Only validated append updates reuse resident state.
 Accounting, cost-basis maps and scalar metric views are shared libraries. Age
 contains no entry classifications, entry state or entry recovery boundary.
 
-The catalog exposes `entry.cohorts.discount` and
-`entry.cohorts.premium`, as `veteran_*` and `rookie_*` series.
+The catalog exposes `entry.discount` and `entry.premium`, as `veteran_*` and
+`rookie_*` series.

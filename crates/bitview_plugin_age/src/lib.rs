@@ -32,12 +32,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     live: M::WriteOnly<Option<LiveState>>,
+    #[traversable(flatten)]
     pub cohorts: CohortMetrics<M>,
-    #[traversable(wrap = "cohorts/urpd")]
     age_bounds: AgeBoundsMetrics<M>,
-    #[traversable(wrap = "cointime/age_range")]
     pub coindays_created: AgeRange<PerBlockCumulativeRolling<CoinDays, M>>,
-    #[traversable(wrap = "cointime/activity")]
     pub coinblocks_destroyed: PerBlockCumulativeRolling<CoinBlocks, M>,
 }
 

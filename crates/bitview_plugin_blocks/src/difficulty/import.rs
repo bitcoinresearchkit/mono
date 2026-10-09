@@ -4,7 +4,7 @@ use bitview_primitives::{Count, Difficulty, Epoch, PartsPerMillionSigned32};
 use bitview_transforms::{BlocksToDays, DifficultyToHashrate};
 use bitview_vecs::{LazyFixedRatioPerBlock, LazyPerBlock, Resolutions};
 use brk_types::{BLOCKS_PER_DIFF_EPOCHS, Height, Version};
-use vecdb::{Ident, IndexVec, ReadOnlyClone};
+use vecdb::{Ident, IndexVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
 use super::Vecs;
 
@@ -67,6 +67,12 @@ impl Vecs {
 
         Self {
             value: Resolutions::from_source("difficulty", &difficulty_source, version, mappings),
+            value_height: LazyVec::init(
+                "difficulty",
+                version,
+                difficulty_source.read_only_boxed_clone(),
+                |_, difficulty| difficulty,
+            ),
             hashrate,
             adjustment: LazyFixedRatioPerBlock::from_lookback_source(
                 "difficulty_adjustment",

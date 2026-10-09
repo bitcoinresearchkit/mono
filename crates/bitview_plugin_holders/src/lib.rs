@@ -41,6 +41,7 @@ pub const ID: PluginId = STORAGE.id();
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
+    #[traversable(flatten)]
     pub cohorts: AgeAggregate<Metrics<M>>,
     #[traversable(hidden)]
     cost_basis: Box<CostBasisVecs<M>>,

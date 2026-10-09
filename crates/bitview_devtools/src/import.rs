@@ -19,7 +19,6 @@ pub struct AllPlugins<M: StorageMode = Rw> {
     #[traversable(flatten)]
     #[plugin_set(flatten)]
     pub(crate) defaults: DefaultPlugins<M>,
-    #[traversable(flatten)]
     profitability: Profitability<M>,
 }
 

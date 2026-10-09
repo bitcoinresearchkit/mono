@@ -35,19 +35,14 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     pub blocks: BlocksVecs<M>,
-    #[traversable(wrap = "transactions", rename = "raw")]
     pub transactions: TransactionsVecs<M>,
     #[traversable(wrap = "transactions", rename = "features")]
     pub transaction_features: TransactionFeaturesVecs<M>,
-    #[traversable(wrap = "inputs", rename = "raw")]
     pub inputs: InputsVecs<M>,
-    #[traversable(wrap = "outputs", rename = "raw")]
     pub outputs: OutputsVecs<M>,
-    #[traversable(wrap = "addrs", rename = "raw")]
+    #[traversable(rename = "addresses")]
     pub addrs: AddrsVecs<M>,
-    #[traversable(wrap = "scripts", rename = "raw")]
     pub scripts: ScriptsVecs<M>,
-    #[traversable(wrap = "op_return", rename = "raw")]
     pub op_return: OpReturnVecs<M>,
 }
 

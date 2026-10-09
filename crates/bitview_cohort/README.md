@@ -77,7 +77,7 @@ base metric, preserving the original transform's rounding.
 
 Range series names and stored versions are unchanged. Generated client tree
 paths now select ranges directly (for example,
-`cohorts.profitability.supply._0pctTo10pctInProfit.all.btc`), without a `range`
+`profitability.supply._0pctTo10pctInProfit.all.btc`), without a `range`
 wrapper. Old threshold series are absent from the catalog; existing database
 files for them are not deleted by this change.
 

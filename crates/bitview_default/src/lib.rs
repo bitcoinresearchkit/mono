@@ -36,7 +36,6 @@ mod timing;
 #[derive(PluginSet, Traversable)]
 pub struct DefaultPlugins<M: StorageMode = Rw> {
     #[plugin_set(has = bitview_plugin_indexer::HasIndexer<M>)]
-    #[traversable(flatten)]
     indexer: Box<Indexer<M>>,
     #[plugin_set(has = bitview_plugin_blocks::HasBlocks<M>)]
     blocks: Box<Blocks<M>>,
@@ -60,16 +59,13 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     #[plugin_set(has = bitview_plugin_price::HasPrice<M>)]
     price: Box<Price<M>>,
     #[plugin_set(has = bitview_plugin_age::HasAge<M>)]
-    #[traversable(flatten)]
     age: Box<Age<M>>,
     #[plugin_set(has = bitview_plugin_holders::HasHolders<M>)]
     holders: Box<Holders<M>>,
     #[plugin_set(has = bitview_plugin_entry::HasEntry<M>)]
     entry: Box<Entry<M>>,
-    #[traversable(flatten)]
     utxos: Box<Utxos<M>>,
     #[plugin_set(has = bitview_plugin_addresses::HasAddresses<M>)]
-    #[traversable(flatten)]
     addresses: Box<Addresses<M>>,
     supply: Box<Supply<M>>,
     #[plugin_set(has = bitview_plugin_inputs::HasInputs<M>)]

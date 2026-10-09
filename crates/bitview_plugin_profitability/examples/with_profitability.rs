@@ -23,7 +23,6 @@ struct Plugins<M: StorageMode = Rw> {
     #[traversable(flatten)]
     #[plugin_set(flatten)]
     defaults: DefaultPlugins<M>,
-    #[traversable(flatten)]
     #[plugin_set(has = HasProfitability<M>)]
     profitability: Profitability<M>,
 }
