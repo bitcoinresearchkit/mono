@@ -2832,6 +2832,7 @@
 
       /* Opening and closing, it slides as the sidebar does: its width, its views held at full width inside. */
       .panel {
+        --panel-ground: var(--card);
         display: flex;
         flex: none;
         flex-direction: column;
@@ -2867,6 +2868,20 @@
         min-height: 0;
         overflow-y: auto;
         scrollbar-width: thin;
+
+        /* Its head (the list's, a layer's: ‹, its name, ×) stays at its top as it scrolls, on the panel's own ground
+           (over what passes under it, the color surface's ring too); a rule under it once something has. */
+        > :is(.panel-head, .inspector-head) {
+          position: sticky;
+          top: 0;
+          z-index: 3;
+          background: var(--panel-ground);
+          transition: box-shadow var(--fade);
+        }
+
+        &[data-scrolled] > :is(.panel-head, .inspector-head) {
+          box-shadow: 0 1px 0 var(--line), 0 8px 12px -10px rgb(0 0 0 / 0.45);
+        }
       }
 
       body:not([data-inspect]) #layers-view,
@@ -5059,6 +5074,11 @@
         margin: 0 auto;
       }
 
+      /* What the sidebar's foot says (live, the theme), at the grid's foot: shown where there's no sidebar. */
+      .home-device {
+        display: none;
+      }
+
       /* The filter, and beside it, as fields, the grid's tools. */
       .home-tools {
         display: flex;
@@ -5738,6 +5758,7 @@
           top: 8px;
           right: 8px;
           bottom: 88px;
+          --panel-ground: var(--raise);
           z-index: 6;
           border: 0;
           border-radius: var(--radius-xl);
@@ -5777,7 +5798,7 @@
       @media (max-width: 760px), (max-height: 500px) {
         .app {
           grid-template-columns: minmax(0, 1fr);
-          grid-template-rows: minmax(0, 1fr) auto;
+          grid-template-rows: minmax(0, 1fr);
           padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
         }
 
@@ -5802,7 +5823,7 @@
 
         /* Over the tab bar, not on it. */
         .toast {
-          bottom: calc(66px + env(safe-area-inset-bottom));
+          bottom: calc(76px + env(safe-area-inset-bottom));
         }
 
         /* The header: the title, Undo (Keep in its place for a preview), Draw, Share, ⋯ (Export in it); "Saved" said
@@ -5856,6 +5877,7 @@
 
         /* The layers (and a layer's settings): a sheet from the foot, over a dimmed page; its handle drags it away. */
         .panel {
+          --panel-ground: var(--raise);
           position: fixed;
           top: auto;
           right: 0;
@@ -5900,7 +5922,6 @@
           display: inline-grid;
         }
 
-
         /* Over the sheet's foot (its adds), taking no room: the sheet, as tall as what it holds, would grow under the
            finger that picked a row by holding it. */
         .layers-bar {
@@ -5911,16 +5932,16 @@
           translate: -50% 0;
         }
 
-        /* Its views end clear of where the tab bar is, under the sheet: a thumb there for "Charts" taps no row (a
-           layer's Remove, last). */
+        /* Its views end clear of the tab bar's capsule, over the sheet: their last row (a layer's Remove) scrolls above it,
+           and a thumb there for "Charts" taps no row. */
         #inspector::after {
           content: "";
           flex: none;
-          height: 56px;
+          height: 84px;
         }
 
         .panel .layer-list {
-          padding-bottom: 68px;
+          padding-bottom: 92px;
         }
 
         /* Its top drags it (the views below scroll on their own). */
@@ -5957,15 +5978,15 @@
           bottom: 0;
           left: 0;
           max-height: 70dvh;
+          border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+          padding: 8px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
+          animation: rise var(--dur-panel) var(--ease);
 
           /* A drawing's look, as the panel's fields are on a phone: the sheet's width, its controls a finger's. */
           .field.belt-pop {
             width: auto;
             padding: 4px 10px 10px;
           }
-          border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-          padding: 8px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
-          animation: rise var(--dur-panel) var(--ease);
 
           .menu-space {
             width: 16px;
@@ -5994,47 +6015,114 @@
           white-space: nowrap;
         }
 
+        /* A series' row: the name people read, the API's name under it (beside it, there's no room). */
+        .palette-list li[data-kind="series"] {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          column-gap: 10px;
+          height: auto;
+          min-height: 48px;
+          padding-block: 5px;
+
+          > svg {
+            grid-row: span 2;
+          }
+
+          .item-name {
+            grid-column: 2;
+          }
+
+          .item-meta {
+            grid-column: 2;
+            max-width: none;
+            line-height: 16px;
+          }
+
+          .item-mark {
+            grid-column: 3;
+            grid-row: 1 / span 2;
+          }
+        }
+
         /* The grid's heading short: its title alone. */
         .home-inner > h1 {
           margin-bottom: 14px;
+        }
+
+        .home-device {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-top: 22px;
+          border-top: 1px solid var(--line);
+          padding-top: 12px;
+          color: var(--muted);
+          font: 510 12px/1 var(--mono);
+          text-transform: uppercase;
+
+          .btn {
+            text-transform: none;
+            font-family: var(--sans);
+          }
+
+          .home-live {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
         }
 
         .home-inner > h1 + p {
           display: none;
         }
 
-        /* The tab bar: each its icon over its name; the one where you are lit. */
+        /* The tab bar: a capsule of icons floating over the page's foot (the grid scrolls under it, the chart's foot sits
+           above it), the one where you are on a raised chip, adding in ink. Their names are their buttons' (said, not
+           shown). Room is kept for it at the card's foot. */
+        .card {
+          padding-bottom: calc(70px + env(safe-area-inset-bottom));
+        }
+
         .mobile-bar {
+          position: fixed;
+          bottom: calc(10px + env(safe-area-inset-bottom));
+          left: 50%;
+          z-index: 9;
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          border-top: 1px solid var(--line);
-          padding: 2px 6px env(safe-area-inset-bottom);
-          background: var(--card);
+          grid-auto-flow: column;
+          grid-auto-columns: 56px;
+          gap: 2px;
+          border: 1px solid var(--line-strong);
+          border-radius: 999px;
+          padding: 4px;
+          background: color-mix(in srgb, var(--raise) 84%, transparent);
+          box-shadow: var(--pop);
+          translate: -50% 0;
+          -webkit-backdrop-filter: blur(18px) saturate(1.4);
+          backdrop-filter: blur(18px) saturate(1.4);
 
           .tab {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            height: 52px;
+            display: grid;
+            place-items: center;
+            height: 46px;
             border: 0;
-            border-radius: var(--radius-xl);
+            border-radius: 999px;
             color: var(--muted);
             background: none;
-            font-size: 11px;
-            font-weight: 510;
+            font-size: 0;
+            transition: color var(--fade), background var(--fade), box-shadow var(--fade);
 
             > span[data-icon] {
               display: grid;
-              height: 24px;
               place-items: center;
             }
 
             svg {
-              width: 20px;
-              height: 20px;
-              stroke-width: 1.15;
+              width: 21px;
+              height: 21px;
+              stroke-width: 1.3;
             }
 
             &:active {
@@ -6042,44 +6130,81 @@
             }
           }
 
-          /* Adding (a new chart, in the grid): the one thing done most, on ink. */
-          .add span[data-icon] {
-            width: 36px;
-            height: 24px;
-            border-radius: var(--radius-md);
-            color: var(--primary-ink);
-            background: var(--primary);
-
-            svg {
-              width: 16px;
-              height: 16px;
-            }
-          }
-
+          /* Adding (a new chart, in the grid): the one thing done most, in ink. */
           .add {
-            color: var(--text);
+            color: var(--ink);
           }
         }
 
         body[data-home] #mobile-charts,
         body[data-sheet="panel"] #mobile-layers {
           color: var(--ink);
+          background: var(--chosen);
+          box-shadow: var(--lift);
         }
 
-        /* A phone on its side: the bar slimmer, each tab's icon beside its name (the chart keeps the height). */
-        @media (max-height: 500px) {
-          .mobile-bar .tab {
-            flex-direction: row;
-            gap: 8px;
+        body[data-home] #mobile-layers {
+          display: none;
+        }
+
+        /* Full screen: the chart alone, no room kept. */
+        .app[data-full] .card {
+          padding: 0;
+        }
+
+        /* A phone on its side (wide as well as short: an upright one with its keyboard up stays upright): the capsule
+           stands at the left (the chart has the height's whole), the header and the foot slimmer; sheets and menus a
+           column on the right, not the screen's width. */
+        @media (max-height: 500px) and (min-width: 568px) {
+          .card {
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: 76px;
+          }
+
+          .belt {
+            padding-block: 0;
+          }
+
+          .home {
+            left: 76px;
+          }
+
+          .mobile-bar {
+            top: 50%;
+            bottom: auto;
+            left: calc(10px + env(safe-area-inset-left));
+            grid-auto-flow: row;
+            grid-auto-rows: 46px;
+            grid-auto-columns: auto;
+            grid-template-columns: 46px;
+            translate: 0 -50%;
+          }
+
+          .card-head {
+            padding: 6px 10px;
+          }
+
+          .stage-foot {
             height: 40px;
           }
-        }
 
-        body[data-home] .mobile-bar {
-          grid-template-columns: repeat(3, 1fr);
+          .toast {
+            bottom: calc(12px + env(safe-area-inset-bottom));
+          }
 
-          #mobile-layers {
-            display: none;
+          .panel,
+          .menu.as-sheet {
+            left: auto;
+            width: min(480px, 100%);
+          }
+
+          /* (At the right, the left inset is the capsule's, not theirs.) */
+          .panel {
+            padding-left: 0;
+          }
+
+          .menu.as-sheet {
+            padding-left: 6px;
           }
         }
 
@@ -6159,6 +6284,11 @@
           height: 36px;
         }
 
+        /* (The segments' row is 40 with its frame: a slider, a menu, a number, a name, the same.) */
+        :is(.stepper, .preset, .number-input) {
+          height: 40px;
+        }
+
         /* (Five to a row, four rows: each wide enough to aim at.) */
         .swatch-grid,
         .color-box .swatch-grid {
@@ -6214,6 +6344,17 @@
         .pick-check {
           width: 22px;
           height: 22px;
+        }
+
+        /* (The drawing tools' handle, wide enough to take hold of; standing, tall enough.) */
+        .belt .grip {
+          width: 24px;
+          height: 36px;
+        }
+
+        .belt.upright .grip {
+          width: 36px;
+          height: 24px;
         }
       }
 
@@ -6599,6 +6740,10 @@ const picture = await studio.png();</pre>
               <div id="home-foot" class="home-foot" hidden>
                 <p>Your charts are kept in this browser. Download them all, folders and all, to import them anywhere else.</p>
                 <div><button class="btn ghost small" type="button" data-action="download-all"><span data-icon="download"></span>Download all charts</button><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button></div>
+              </div>
+              <div class="home-device" role="group" aria-label="This device">
+                <span id="home-live" class="home-live">Connecting</span>
+                <button id="home-theme" class="btn ghost small" type="button" data-action="theme" aria-haspopup="menu"></button>
               </div>
             </div>
           </div>
@@ -12784,6 +12929,10 @@ const picture = await studio.png();</pre>
         line.textContent = "";
         requestAnimationFrame(() => (line.textContent = text));
       }
+      // The panel's views: a rule under their head once something has scrolled under it.
+      for (const view of all$(".panel-view")) view.addEventListener("scroll", () => view.toggleAttribute("data-scrolled", view.scrollTop > 0), { passive: true });
+      // (The list of layers scrolls inside its view: its head is ruled by its scroll.)
+      $("layer-list").addEventListener("scroll", () => $("layers-view").toggleAttribute("data-scrolled", $("layer-list").scrollTop > 0), { passive: true });
       // A status line in the page and in each dialog, there from the start: what a toast says is read from it.
       for (const host of [document.body, ...all$("dialog")]) {
         const said = document.createElement("p");
@@ -14099,6 +14248,7 @@ const picture = await studio.png();</pre>
         $("theme-icon").innerHTML = ICONS[icon];
         $("theme").dataset.tip = `Theme: ${name}`;
         $("theme-name").textContent = name;
+        $("home-theme").innerHTML = `${ICONS[icon]}Theme: ${name}`;
       }
       /**
        * The page in the theme now chosen (the device's, with System), if it changed: drawn again, crossfaded (the chart
@@ -14308,7 +14458,7 @@ const picture = await studio.png();</pre>
        */
       function folderMenu(anchor, ids, point = undefined, out = true) {
         const docs = library.charts.filter((doc) => ids.includes(doc.id)), within = new Set(docs.map((doc) => doc.folder ?? "")), leave = out ? outOf(ids) : "";
-        showMenu(anchor, `${library.folders.map((folder) => `<button type="button" data-pick="${folder.id}" aria-checked="${within.size === 1 && within.has(folder.id)}">${tick(within.size === 1 && within.has(folder.id))}${escape(folder.name)}</button>`).join("")}
+        showMenu(anchor, `${phone.matches ? '<div class="menu-group">Move to folder</div>' : ""}${library.folders.map((folder) => `<button type="button" data-pick="${folder.id}" aria-checked="${within.size === 1 && within.has(folder.id)}">${tick(within.size === 1 && within.has(folder.id))}${escape(folder.name)}</button>`).join("")}
           ${library.folders.length ? '<div class="menu-rule"></div>' : ""}
           <button type="button" data-pick="new">${ICONS.plus}New folder</button>
           ${leave ? `<button type="button" data-pick="out">${ICONS.folderOut}${escape(leave)}</button>` : ""}`, ({ pick }) => {
@@ -18037,7 +18187,7 @@ const picture = await studio.png();</pre>
           const doc = item.kind === "chart" ? chartById(item.key) : null;
           if (item.kind === "series") {
             const blocked = byBlock.has(item.name), human = humanize(item.name);
-            const end = blocked ? `<span class="item-meta">By block only</span>` : `<span class="item-meta"><code>${searching ? highlightMatch(item.name, palette.query) : escape(item.name)}</code></span>${shown.has(item.name) ? `<span class="item-mark" role="img" aria-label="In this chart">${ICONS.check}</span>` : ""}`;
+            const end = blocked ? `<span class="item-meta">By block only</span>` : `<span class="item-meta"><code>${escape(item.name)}</code></span>${shown.has(item.name) ? `<span class="item-mark" role="img" aria-label="In this chart">${ICONS.check}</span>` : ""}`;
             return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}" data-kind="series" data-option="${i}" aria-selected="${i === palette.active}" ${blocked ? 'class="dim" aria-disabled="true"' : ""}>${item.group === "Recent series" ? ICONS.recent : ICONS.series}<span class="item-name">${searching ? highlightMatch(human, palette.query) : escape(human)}</span>${end}</li>`;
           }
           const icon = item.kind === "widen" ? ICONS.browse : item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? ICONS.series : doc ? chartMark(doc) : ICONS.series;
@@ -20436,7 +20586,7 @@ const picture = await studio.png();</pre>
         const lost = offline();
         $("live").classList.toggle("offline", lost);
         $("live").classList.remove("waiting");
-        $("stamp").textContent = [lost ? "Offline" : "Live", !lost && livePrice ? format(livePrice, "usd") : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
+        $("stamp").textContent = $("home-live").textContent = [lost ? "Offline" : "Live", !lost && livePrice ? format(livePrice, "usd") : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
         $("live").dataset.tip = [lost ? "bitview.space isn't answering: trying again" : "bitview.space", !lost && livePrice ? `live price ${format(livePrice, "usd")}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${`${at.getDate()} ${MONTHS[at.getMonth()]}, ${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}` : "", lost ? "" : "new blocks show within seconds"].filter(Boolean).join(" · ");
       }
 
@@ -20974,8 +21124,8 @@ const picture = await studio.png();</pre>
         try {
           // On a phone the live element isn't shown: only a chart drawing the price asks. An answer that comes after a
           // draw (another chart, interval or block) moves no point: the next one is for it.
-          // (Nor in full screen, where the live line isn't shown.)
-          if ((!phone.matches && !fullOn()) || liveLayers().length) {
+          // (Nor in full screen, where the live line isn't shown; on a phone, its grid shows it.)
+          if ((phone.matches ? home : !fullOn()) || liveLayers().length) {
             const version = drawVersion, price = await client.getLivePrice();
             if (Number.isFinite(price) && price !== livePrice) {
               livePrice = price;
