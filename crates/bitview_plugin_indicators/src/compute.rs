@@ -23,8 +23,8 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             indexer,
             mining,
-            distribution_age,
-            distribution_aggregated,
+            age,
+            holders,
             utxos,
             market,
         } = dependencies;
@@ -39,8 +39,8 @@ impl ComputePlugin for Vecs {
             ..
         } = self;
         let subsidy = &mining.rewards.subsidy;
-        let realized_cap = &distribution_age.cohorts.realized.cap.cohorts.age;
-        let supply = &distribution_aggregated.cohorts.all.supply;
+        let realized_cap = &age.cohorts.realized.cap.cohorts.age;
+        let supply = &holders.cohorts.all.supply;
         let supply_total_sats = &supply.total.sats.height;
 
         let compute_puell = || {

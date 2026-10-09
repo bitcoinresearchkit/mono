@@ -7,7 +7,7 @@ mod ratio;
 
 pub use arithmetic::{
     BlockCountTarget, BlocksToDays, CountPerSecond, DaysToYears, DifficultyToHashrate, MaskSats,
-    OneMinusPpm, ReturnTenths, ThsToPhs, TimesSqrt, WeightToVSize,
+    OneMinusPpm, ThsToPhs, TimesSqrt, WeightToVSize,
 };
 pub use convert::Convert;
 pub use currency::{

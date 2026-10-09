@@ -62,10 +62,9 @@ pub use r#impl::{
 pub use r#impl::{ResolvedQuery, SeriesRead};
 pub use output::*;
 pub use query_plugin_set::{
-    QueryPluginSet, SupportsBlocks, SupportsCoinflow, SupportsCointime,
-    SupportsDistributionAddresses, SupportsDistributionAge, SupportsInputs, SupportsMappings,
-    SupportsMining, SupportsOutputs, SupportsPools, SupportsPrice, SupportsTransactions,
-    SupportsUtxoHistory,
+    QueryPluginSet, SupportsAddresses, SupportsAge, SupportsBlocks, SupportsCoinflow,
+    SupportsCointime, SupportsInputs, SupportsMappings, SupportsMining, SupportsOutputs,
+    SupportsPools, SupportsPrice, SupportsTransactions, SupportsUtxoHistory,
 };
 pub use query_plugins::QueryPlugins;
 pub use representation_id::RepresentationId;

@@ -3613,27 +3613,6 @@ class Mappings(_Node):
     timestamp: MappingsTimestamp = _at(MappingsTimestamp, 'timestamp')
 
 
-class Constants(_Node):
-    _0: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_0')
-    _1: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_1')
-    _2: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_2')
-    _3: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_3')
-    _4: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_4')
-    _20: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_20')
-    _30: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_30')
-    _38_2: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_38_2')
-    _50: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_50')
-    _61_8: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_61_8')
-    _70: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_70')
-    _80: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_80')
-    _100: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_100')
-    _600: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_600')
-    minus_1: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_minus_1')
-    minus_2: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_minus_2')
-    minus_3: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_minus_3')
-    minus_4: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_minus_4')
-
-
 class Cycle(_Node):
     pct0_1: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_pct0_1')
     pct0_5: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_pct0_5')
@@ -5207,7 +5186,7 @@ class UtxoCount0sats(_Node):
     delta: DeltaAll[CountSigned] = _at(DeltaAll, '*_delta')
 
 
-class AllOutputs(_Node):
+class DiscountOutputs(_Node):
     unspent_count: UtxoCount0sats = _at(UtxoCount0sats, '*_utxo_count')
     spent_count: NewAll[Count, Optional[CountFract]] = _at(NewAll, '*_spent_utxo_count')
 
@@ -5487,13 +5466,13 @@ class DiscountActivity(_Node):
 
 class Discount(_Node):
     supply: DiscountSupply = _at(DiscountSupply, '*_supply')
-    outputs: AllOutputs = _at(AllOutputs, '*')
+    outputs: DiscountOutputs = _at(DiscountOutputs, '*')
     activity: DiscountActivity = _at(DiscountActivity, '*')
     realized: DiscountRealized = _at(DiscountRealized, '*')
     unrealized: DiscountUnrealized = _at(DiscountUnrealized, '*')
 
 
-class DistributionEntryCohorts(_Node):
+class EntryCohorts(_Node):
     discount: Discount = _at(Discount, '*')
     premium: Discount = _at(Discount, 'rookie')
 
@@ -5508,7 +5487,7 @@ class AllActivity(_Node):
 
 class CohortsAll(_Node):
     supply: AllSupply = _at(AllSupply, '*_supply')
-    outputs: AllOutputs = _at(AllOutputs, '*')
+    outputs: DiscountOutputs = _at(DiscountOutputs, '*')
     activity: AllActivity = _at(AllActivity, '*')
     realized: AllRealized = _at(AllRealized, '*')
     unrealized: AllUnrealized = _at(AllUnrealized, '*')
@@ -5517,7 +5496,7 @@ class CohortsAll(_Node):
     relative: Relative = _at(Relative, '*')
 
 
-class DistributionAggregatedCohorts(_Node):
+class HoldersCohorts(_Node):
     all: CohortsAll = _at(CohortsAll, '')
     sth: CohortsAll = _at(CohortsAll, 'sth')
     lth: CohortsAll = _at(CohortsAll, 'lth')
@@ -5527,7 +5506,7 @@ class DistributionAggregatedCohorts(_Node):
     over_6m: CohortsAll = _at(CohortsAll, 'over_6m')
 
 
-class DistributionAggregated(_Node, Generic[A]):
+class Entry(_Node, Generic[A]):
     cohorts: A = _at(0, '*')
 
 
@@ -5945,15 +5924,14 @@ class SeriesTree(_Node):
     bedrock: Bedrock = _at(Bedrock, 'bedrock')
     capital_sentiment: CapitalSentiment = _at(CapitalSentiment, 'capital_sentiment')
     rarity_meter: RarityMeter = _at(RarityMeter, 'rarity_meter')
-    constants: Constants = _at(Constants, 'constant')
     mappings: Mappings = _at(Mappings, 'date')
     indicators: Indicators = _at(Indicators, 'destroyed_supply_adj')
     market: Market = _at(Market, 'price')
     pools: Pools = _at(Pools, 'pool')
     price: Price = _at(Price, 'price')
     cohorts: Cohorts = _at(Cohorts, 'supply')
-    distribution_aggregated: DistributionAggregated[DistributionAggregatedCohorts] = _at((DistributionAggregated, DistributionAggregatedCohorts), 'under')
-    distribution_entry: DistributionAggregated[DistributionEntryCohorts] = _at((DistributionAggregated, DistributionEntryCohorts), 'veteran')
+    holders: Entry[HoldersCohorts] = _at((Entry, HoldersCohorts), 'under')
+    entry: Entry[EntryCohorts] = _at((Entry, EntryCohorts), 'veteran')
     supply: Supply = _at(Supply, 'supply')
     utxo_history: UtxoHistory = _at(UtxoHistory, 'unspent_sats')
 

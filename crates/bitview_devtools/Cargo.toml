@@ -16,7 +16,7 @@ bitview_catalog = { workspace = true }
 bitview_default = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_blocks = { workspace = true }
-bitview_plugin_distribution_profitability = { workspace = true }
+bitview_plugin_profitability = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_price = { workspace = true }
 bitview_query = { workspace = true, features = ["full-api"] }

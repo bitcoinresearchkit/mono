@@ -1,17 +1,15 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::type_complexity)]
 
+use bitview_plugin_addresses::Vecs as Addresses;
+use bitview_plugin_age::Vecs as Age;
 use bitview_plugin_bedrock::Vecs as Bedrock;
 use bitview_plugin_blocks::Vecs as Blocks;
 use bitview_plugin_capital_sentiment::Vecs as CapitalSentiment;
 use bitview_plugin_coinflow::Vecs as Coinflow;
 use bitview_plugin_cointime::Vecs as Cointime;
-use bitview_plugin_constants::Vecs as Constants;
-use bitview_plugin_distribution_addresses::Vecs as DistributionAddresses;
-use bitview_plugin_distribution_age::Vecs as DistributionAge;
-use bitview_plugin_distribution_aggregated::Vecs as DistributionAggregated;
-use bitview_plugin_distribution_entry::Vecs as DistributionEntry;
-use bitview_plugin_distribution_utxos::Vecs as DistributionUtxos;
+use bitview_plugin_entry::Vecs as Entry;
+use bitview_plugin_holders::Vecs as Holders;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_indicators::Vecs as Indicators;
 use bitview_plugin_inputs::Vecs as Inputs;
@@ -26,6 +24,7 @@ use bitview_plugin_rarity_meter::Vecs as RarityMeter;
 use bitview_plugin_supply::Vecs as Supply;
 use bitview_plugin_transactions::Vecs as Transactions;
 use bitview_plugin_utxo_history::Vecs as UtxoHistory;
+use bitview_plugin_utxos::Vecs as Utxos;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use vecdb::{Rw, StorageMode};
@@ -52,7 +51,6 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     bedrock: Box<Bedrock<M>>,
     capital_sentiment: Box<CapitalSentiment<M>>,
     rarity_meter: Box<RarityMeter<M>>,
-    constants: Box<Constants>,
     #[plugin_set(has = bitview_plugin_mappings::HasMappings<M>)]
     mappings: Box<Mappings<M>>,
     indicators: Box<Indicators<M>>,
@@ -61,18 +59,18 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     pools: Box<Pools<M>>,
     #[plugin_set(has = bitview_plugin_price::HasPrice<M>)]
     price: Box<Price<M>>,
-    #[plugin_set(has = bitview_plugin_distribution_age::HasDistributionAge<M>)]
+    #[plugin_set(has = bitview_plugin_age::HasAge<M>)]
     #[traversable(flatten)]
-    distribution_age: Box<DistributionAge<M>>,
-    #[plugin_set(has = bitview_plugin_distribution_aggregated::HasDistributionAggregated<M>)]
-    distribution_aggregated: Box<DistributionAggregated<M>>,
-    #[plugin_set(has = bitview_plugin_distribution_entry::HasDistributionEntry<M>)]
-    distribution_entry: Box<DistributionEntry<M>>,
+    age: Box<Age<M>>,
+    #[plugin_set(has = bitview_plugin_holders::HasHolders<M>)]
+    holders: Box<Holders<M>>,
+    #[plugin_set(has = bitview_plugin_entry::HasEntry<M>)]
+    entry: Box<Entry<M>>,
     #[traversable(flatten)]
-    distribution_utxos: Box<DistributionUtxos<M>>,
-    #[plugin_set(has = bitview_plugin_distribution_addresses::HasDistributionAddresses<M>)]
+    utxos: Box<Utxos<M>>,
+    #[plugin_set(has = bitview_plugin_addresses::HasAddresses<M>)]
     #[traversable(flatten)]
-    distribution_addresses: Box<DistributionAddresses<M>>,
+    addresses: Box<Addresses<M>>,
     supply: Box<Supply<M>>,
     #[plugin_set(has = bitview_plugin_inputs::HasInputs<M>)]
     inputs: Box<Inputs<M>>,

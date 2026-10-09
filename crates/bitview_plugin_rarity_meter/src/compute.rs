@@ -22,25 +22,19 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             indexer,
             bedrock,
-            distribution_aggregated,
+            holders,
             cointime,
             coinflow,
             price: prices,
         } = dependencies;
 
         let spot = &prices.spot.cents.height;
-        let metrics = &distribution_aggregated.cohorts.all;
+        let metrics = &holders.cohorts.all;
         let realized = &metrics.realized;
         let (components_result, extremes_result) = join(
             || {
-                self.components.compute(
-                    indexer,
-                    distribution_aggregated,
-                    cointime,
-                    coinflow,
-                    spot,
-                    exit,
-                )
+                self.components
+                    .compute(indexer, holders, cointime, coinflow, spot, exit)
             },
             || {
                 self.extremes.compute(

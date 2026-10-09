@@ -26,34 +26,16 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             indexer,
             price: prices,
-            distribution_aggregated,
+            holders,
             moving_average,
         } = dependencies;
         let exit = context.exit();
 
         let spot = &prices.spot.cents.height;
         let sma = &moving_average.sma._1y.cents.height;
-        let all = &distribution_aggregated
-            .cohorts
-            .all
-            .realized
-            .capitalized_price
-            .cents
-            .height;
-        let sth = &distribution_aggregated
-            .cohorts
-            .sth
-            .realized
-            .capitalized_price
-            .cents
-            .height;
-        let lth = &distribution_aggregated
-            .cohorts
-            .lth
-            .realized
-            .capitalized_price
-            .cents
-            .height;
+        let all = &holders.cohorts.all.realized.capitalized_price.cents.height;
+        let sth = &holders.cohorts.sth.realized.capitalized_price.cents.height;
+        let lth = &holders.cohorts.lth.realized.capitalized_price.cents.height;
 
         compute_series(
             &mut self.phase_code.height,

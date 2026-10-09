@@ -1,9 +1,9 @@
 use bitview_default::DefaultPlugins;
 use bitview_plugin::ImportContext;
 use bitview_plugin_blocks::HasBlocks;
-use bitview_plugin_distribution_profitability::Vecs as DistributionProfitability;
 use bitview_plugin_mappings::HasMappings;
 use bitview_plugin_price::HasPrice;
+use bitview_plugin_profitability::Vecs as Profitability;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -20,7 +20,7 @@ pub struct AllPlugins<M: StorageMode = Rw> {
     #[plugin_set(flatten)]
     pub(crate) defaults: DefaultPlugins<M>,
     #[traversable(flatten)]
-    distribution_profitability: DistributionProfitability<M>,
+    profitability: Profitability<M>,
 }
 
 /// A fresh offline import; the data directory lives as long as this value.
@@ -41,13 +41,13 @@ pub fn import() -> Result<Imported> {
     let defaults = DefaultPlugins::import(context, &reader)?;
     let window_starts = defaults.blocks().lookback.window_starts();
     let prices = defaults.price().spot.cents.height.read_only_boxed_clone();
-    let distribution_profitability =
-        DistributionProfitability::import(context, defaults.mappings(), &window_starts, &prices)?;
+    let profitability =
+        Profitability::import(context, defaults.mappings(), &window_starts, &prices)?;
 
     Ok(Imported {
         plugins: AllPlugins {
             defaults,
-            distribution_profitability,
+            profitability,
         },
         dir,
     })

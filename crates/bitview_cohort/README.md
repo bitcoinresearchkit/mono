@@ -14,7 +14,7 @@ families. Both hold per-cohort series and per-block values alike, with mapping
 and addition. Consumers compose only the families they need and reconstruct
 under/over thresholds from disjoint inputs.
 Entry-price cohorts use their own `ByEntry` collection in the
-`bitview_plugin_distribution_entry` plugin.
+`bitview_plugin_entry` plugin.
 
 Address balance cohorts use `AmountRange` with the address naming context.
 `ByAddrType` and `WithAddrTypes` compose address-type populations where needed;

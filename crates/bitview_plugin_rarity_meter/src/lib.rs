@@ -37,7 +37,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    /// Completed reference prices are supplied by Aggregated, Cointime and Coinflow.
+    /// Completed reference prices are supplied by Holders, Cointime and Coinflow.
     /// Reference-price components used by the Rarity Meter. A UTXO's creation
     /// price is Bitcoin's spot price when that output was created. Realized
     /// price is `sum(creation price x unspent sats) / sum(unspent sats)`;

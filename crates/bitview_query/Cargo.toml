@@ -15,7 +15,7 @@ chain = [
     "dep:brk_cpfp",
     "dep:smallvec",
     "dep:bitview_plugin_blocks",
-    "dep:bitview_plugin_distribution_addresses",
+    "dep:bitview_plugin_addresses",
     "dep:bitview_plugin_inputs",
     "dep:bitview_plugin_mining",
     "dep:bitview_plugin_outputs",
@@ -31,7 +31,7 @@ urpd = [
     "dep:bitview_plugin_utxo_history",
     "dep:bitview_plugin_coinflow",
     "dep:bitview_plugin_cointime",
-    "dep:bitview_plugin_distribution_age",
+    "dep:bitview_plugin_age",
 ]
 price = [
     "dep:bitview_plugin_mappings",
@@ -46,8 +46,8 @@ bitview_cohort = { workspace = true, features = ["storage"], optional = true }
 bitview_plugin_blocks = { workspace = true, optional = true }
 bitview_plugin_coinflow = { workspace = true, optional = true }
 bitview_plugin_cointime = { workspace = true, optional = true }
-bitview_plugin_distribution_age = { workspace = true, optional = true }
-bitview_plugin_distribution_addresses = { workspace = true, optional = true }
+bitview_plugin_age = { workspace = true, optional = true }
+bitview_plugin_addresses = { workspace = true, optional = true }
 bitview_plugin_mappings = { workspace = true, optional = true }
 bitview_plugin_inputs = { workspace = true, optional = true }
 bitview_plugin_mining = { workspace = true, optional = true }

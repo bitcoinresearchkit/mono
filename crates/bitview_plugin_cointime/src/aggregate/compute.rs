@@ -5,7 +5,7 @@ use bitview_compute::{
     CohortAccounting, WeightedCohortAggregates, WeightedCohortState, collect_age_range,
     prepare_computed,
 };
-use bitview_plugin_distribution_age::{AccountingSources, Vecs as AgeVecs};
+use bitview_plugin_age::{AccountingSources, Vecs as AgeVecs};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::BoundedRatio;
 use bitview_vecs::PerBlock;
@@ -22,13 +22,13 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        distribution_age: &AgeVecs,
+        age: &AgeVecs,
         age_range: &mut AgeRangeVecs,
         all_supply_in_loss_share: &mut PerBlock<BoundedRatio>,
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
-        let accounting = distribution_age.accounting_sources();
+        let accounting = age.accounting_sources();
         let weights = AgeRange::from_fn(|id| id.select(&age_range.activity_sources));
 
         self.sources.compute_primary(

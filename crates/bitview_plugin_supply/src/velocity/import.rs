@@ -1,4 +1,4 @@
-use bitview_plugin_distribution_common::AllChainSources;
+use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::Ratio64;

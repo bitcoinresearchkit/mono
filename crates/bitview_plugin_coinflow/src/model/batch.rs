@@ -2,7 +2,7 @@ use bitview_cohort::AgeRange;
 use bitview_compute::{
     AgeBand, CohortAccounting, MINIMUM_DURATION_DAYS, WeightedCohortAggregates, collect_age_range,
 };
-use bitview_plugin_distribution_age::AccountingSources;
+use bitview_plugin_age::AccountingSources;
 use bitview_primitives::{BoundedRatio, CoinDays, Float64, PerDay};
 use brk_types::{Bitcoin, Height, Sats, Timestamp};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};

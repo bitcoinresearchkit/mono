@@ -1,6 +1,6 @@
 use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
-use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
+use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -129,11 +129,11 @@ impl Components {
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
-        distribution_aggregated: &AggregatedVecs,
+        holders: &HoldersVecs,
         cointime: &CointimeVecs,
         coinflow: &CoinflowVecs,
     ) -> Result<Self> {
-        let utxos = &distribution_aggregated.cohorts;
+        let utxos = &holders.cohorts;
 
         macro_rules! import {
             ($name:expr, $source:expr) => {
@@ -409,14 +409,14 @@ impl Components {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        distribution_aggregated: &AggregatedVecs,
+        holders: &HoldersVecs,
         cointime: &CointimeVecs,
         coinflow: &CoinflowVecs,
         spot: &impl ReadableVec<Height, Cents>,
         exit: &Exit,
     ) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
-        let utxos = &distribution_aggregated.cohorts;
+        let utxos = &holders.cohorts;
 
         [
             &mut self.median_price_btc_weighted,

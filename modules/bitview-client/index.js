@@ -3549,49 +3549,6 @@ const _Mappings = _s({
 
 /**
  * @typedef {{
- *   _0: SeriesPattern1<?Float32>,
- *   _1: SeriesPattern1<?Float32>,
- *   _2: SeriesPattern1<?Float32>,
- *   _3: SeriesPattern1<?Float32>,
- *   _4: SeriesPattern1<?Float32>,
- *   _20: SeriesPattern1<?Float32>,
- *   _30: SeriesPattern1<?Float32>,
- *   _382: SeriesPattern1<?Float32>,
- *   _50: SeriesPattern1<?Float32>,
- *   _618: SeriesPattern1<?Float32>,
- *   _70: SeriesPattern1<?Float32>,
- *   _80: SeriesPattern1<?Float32>,
- *   _100: SeriesPattern1<?Float32>,
- *   _600: SeriesPattern1<?Float32>,
- *   minus1: SeriesPattern1<?Float32>,
- *   minus2: SeriesPattern1<?Float32>,
- *   minus3: SeriesPattern1<?Float32>,
- *   minus4: SeriesPattern1<?Float32>,
- * }} Constants
- */
-const _Constants = _s({
-  _0: [_i1, '*_0'],
-  _1: [_i1, '*_1'],
-  _2: [_i1, '*_2'],
-  _3: [_i1, '*_3'],
-  _4: [_i1, '*_4'],
-  _20: [_i1, '*_20'],
-  _30: [_i1, '*_30'],
-  _382: [_i1, '*_38_2'],
-  _50: [_i1, '*_50'],
-  _618: [_i1, '*_61_8'],
-  _70: [_i1, '*_70'],
-  _80: [_i1, '*_80'],
-  _100: [_i1, '*_100'],
-  _600: [_i1, '*_600'],
-  minus1: [_i1, '*_minus_1'],
-  minus2: [_i1, '*_minus_2'],
-  minus3: [_i1, '*_minus_3'],
-  minus4: [_i1, '*_minus_4'],
-});
-
-/**
- * @typedef {{
  *   pct01: SeriesPattern2<?Dollars>,
  *   pct05: SeriesPattern2<?Dollars>,
  *   pct1: SeriesPattern2<?Dollars>,
@@ -6926,9 +6883,9 @@ const _UtxoCount0sats = _s({
  * @typedef {{
  *   unspentCount: UtxoCount0sats,
  *   spentCount: NewAll<Count, ?CountFract>,
- * }} AllOutputs
+ * }} DiscountOutputs
  */
-const _AllOutputs = _s({
+const _DiscountOutputs = _s({
   unspentCount: [_UtxoCount0sats, '*_utxo_count'],
   spentCount: [_NewAll, '*_spent_utxo_count'],
 });
@@ -7516,7 +7473,7 @@ const _DiscountActivity = _s({
 /**
  * @typedef {{
  *   supply: DiscountSupply,
- *   outputs: AllOutputs,
+ *   outputs: DiscountOutputs,
  *   activity: DiscountActivity,
  *   realized: DiscountRealized,
  *   unrealized: DiscountUnrealized,
@@ -7524,7 +7481,7 @@ const _DiscountActivity = _s({
  */
 const _Discount = _s({
   supply: [_DiscountSupply, '*_supply'],
-  outputs: [_AllOutputs, '*'],
+  outputs: [_DiscountOutputs, '*'],
   activity: [_DiscountActivity, '*'],
   realized: [_DiscountRealized, '*'],
   unrealized: [_DiscountUnrealized, '*'],
@@ -7534,9 +7491,9 @@ const _Discount = _s({
  * @typedef {{
  *   discount: Discount,
  *   premium: Discount,
- * }} DistributionEntryCohorts
+ * }} EntryCohorts
  */
-const _DistributionEntryCohorts = _s({
+const _EntryCohorts = _s({
   discount: [_Discount, '*'],
   premium: [_Discount, 'rookie'],
 });
@@ -7561,7 +7518,7 @@ const _AllActivity = _s({
 /**
  * @typedef {{
  *   supply: AllSupply,
- *   outputs: AllOutputs,
+ *   outputs: DiscountOutputs,
  *   activity: AllActivity,
  *   realized: AllRealized,
  *   unrealized: AllUnrealized,
@@ -7572,7 +7529,7 @@ const _AllActivity = _s({
  */
 const _CohortsAll = _s({
   supply: [_AllSupply, '*_supply'],
-  outputs: [_AllOutputs, '*'],
+  outputs: [_DiscountOutputs, '*'],
   activity: [_AllActivity, '*'],
   realized: [_AllRealized, '*'],
   unrealized: [_AllUnrealized, '*'],
@@ -7590,9 +7547,9 @@ const _CohortsAll = _s({
  *   under6m: CohortsAll,
  *   over4m: CohortsAll,
  *   over6m: CohortsAll,
- * }} DistributionAggregatedCohorts
+ * }} HoldersCohorts
  */
-const _DistributionAggregatedCohorts = _s({
+const _HoldersCohorts = _s({
   all: [_CohortsAll, ''],
   sth: [_CohortsAll, 'sth'],
   lth: [_CohortsAll, 'lth'],
@@ -7606,10 +7563,10 @@ const _DistributionAggregatedCohorts = _s({
  * @template A
  * @typedef {{
  *   cohorts: A,
- * }} DistributionAggregated
+ * }} Entry
  */
 /** @type {_Make} */
-const _DistributionAggregated = (c, b, f0) => _n(c, b, {
+const _Entry = (c, b, f0) => _n(c, b, {
   cohorts: [f0, '*'],
 });
 
@@ -8481,15 +8438,14 @@ const _Blocks = _s({
  *   bedrock: Bedrock,
  *   capitalSentiment: CapitalSentiment,
  *   rarityMeter: RarityMeter,
- *   constants: Constants,
  *   mappings: Mappings,
  *   indicators: Indicators,
  *   market: Market,
  *   pools: Pools,
  *   price: Price,
  *   cohorts: Cohorts,
- *   distributionAggregated: DistributionAggregated<DistributionAggregatedCohorts>,
- *   distributionEntry: DistributionAggregated<DistributionEntryCohorts>,
+ *   holders: Entry<HoldersCohorts>,
+ *   entry: Entry<EntryCohorts>,
  *   supply: Supply,
  *   utxoHistory: UtxoHistory,
  * }} SeriesTree
@@ -8508,15 +8464,14 @@ const _SeriesTree = _s({
   bedrock: [_Bedrock, 'bedrock'],
   capitalSentiment: [_CapitalSentiment, 'capital_sentiment'],
   rarityMeter: [_RarityMeter, 'rarity_meter'],
-  constants: [_Constants, 'constant'],
   mappings: [_Mappings, 'date'],
   indicators: [_Indicators, 'destroyed_supply_adj'],
   market: [_Market, 'price'],
   pools: [_Pools, 'pool'],
   price: [_Price, 'price'],
   cohorts: [_Cohorts, 'supply'],
-  distributionAggregated: [(c, b) => _DistributionAggregated(c, b, _DistributionAggregatedCohorts), 'under'],
-  distributionEntry: [(c, b) => _DistributionAggregated(c, b, _DistributionEntryCohorts), 'veteran'],
+  holders: [(c, b) => _Entry(c, b, _HoldersCohorts), 'under'],
+  entry: [(c, b) => _Entry(c, b, _EntryCohorts), 'veteran'],
   supply: [_Supply, 'supply'],
   utxoHistory: [_UtxoHistory, 'unspent_sats'],
 });

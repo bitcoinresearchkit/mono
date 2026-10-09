@@ -9,7 +9,6 @@ mod count_per_second;
 mod difficulty_to_hashrate;
 mod mask_sats;
 mod one_minus_ppm;
-mod return_tenths;
 mod ths_to_phs;
 mod weight_to_v_size;
 
@@ -18,6 +17,5 @@ pub use count_per_second::CountPerSecond;
 pub use difficulty_to_hashrate::DifficultyToHashrate;
 pub use mask_sats::MaskSats;
 pub use one_minus_ppm::OneMinusPpm;
-pub use return_tenths::ReturnTenths;
 pub use ths_to_phs::ThsToPhs;
 pub use weight_to_v_size::WeightToVSize;

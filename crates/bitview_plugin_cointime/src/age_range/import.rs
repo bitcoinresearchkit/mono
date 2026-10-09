@@ -1,6 +1,6 @@
 use bitview_cohort::{AgeRange, AgeRangeId, CohortContext};
 use bitview_collections::Windows;
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
+use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::{BoundedOdds, BoundedToRatio};
 use bitview_vecs::{
@@ -22,7 +22,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
         spot_price: &ReadableBoxedVec<Height, Cents>,
-        distribution_age: &AgeVecs,
+        age: &AgeVecs,
     ) -> Result<Self> {
         let version = parent_version + VERSION;
         let import_coindays = |metric: &str| {
@@ -69,7 +69,7 @@ impl Vecs {
         let import_supply = |side: &str, complement: bool| {
             AgeRangeId::series(CohortContext::Utxo, |id, name| {
                 let name = format!("{name}_{side}_supply");
-                let supply = distribution_age
+                let supply = age
                     .cohorts
                     .supply
                     .total

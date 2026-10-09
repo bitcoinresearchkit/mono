@@ -1,6 +1,6 @@
+use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_blocks::Vecs as BlocksVecs;
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
-use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
+use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::{PartsPerMillionSigned64, Ratio64};
@@ -16,6 +16,6 @@ pub struct Dependencies<'a> {
     pub inflation_rate: &'a LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
     pub velocity_native: &'a LazyPerBlock<Ratio64>,
     pub velocity_fiat: &'a LazyPerBlock<Ratio64>,
-    pub distribution_aggregated: &'a AggregatedVecs,
-    pub distribution_age: &'a AgeVecs,
+    pub holders: &'a HoldersVecs,
+    pub age: &'a AgeVecs,
 }

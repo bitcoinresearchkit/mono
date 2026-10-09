@@ -14,7 +14,7 @@ replay progress, scratch buffers and recovery stay inside the owning plugin.
 Inputs and Outputs finish their contributions before UTXO History updates the
 canonical origin state. UTXOs runs alongside Outputs, History and Age; Addresses
 then consumes UTXOs’s completed output-type sources in its own complete update.
-Aggregated consumes Age’s completed disjoint accounting and canonical History
+Holders consumes Age’s completed disjoint accounting and canonical History
 for the seven overlapping age filters; Entry then classifies outputs by creation
 price against its all-chain capitalized price. Cointime and Coinflow
 compute their scalar and URPD metrics before Bedrock consumes their completed
@@ -22,8 +22,8 @@ sources. These models share replay and metric algorithms in `bitview_urpd`; each
 owns its resumable replay state. No per-block URPD distributions are persisted.
 
 Detailed percentage-profit/loss bands belong to the optional
-`bitview_plugin_distribution_profitability` plugin. Age keeps disjoint age,
-creation-year and epoch cohorts; Aggregated owns the overlapping filters,
+`bitview_plugin_profitability` plugin. Age keeps disjoint age,
+creation-year and epoch cohorts; Holders owns the overlapping filters,
 including their basic profit/loss, cost-basis percentiles and density. Custom compositions can
 include profitability bands for the seven shared age filters; the plugin's
 `with_profitability` example shows the complete update and query registration.

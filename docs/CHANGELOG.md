@@ -36,7 +36,7 @@ has to be deleted by hand.
   `Boolean`, `Score`, `Rank`, `Count`/`Count16`/`Count32`/`CountSigned`, `Bytes`/`Bytes32`, `VSize`, `Weight`,
   `SigOps64`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`, `VSizeFract`,
   `WeightFract`, `SigOpsFract`, `SecondsFract`, `SatsFract`, `CentsFract`), coin days/blocks/years, `Days`/`Years`,
-  `Hashrate`, `Difficulty`, `PerDay`, `PerSecond`, and the generic `Float32`/`Float64` (all `constant_*` series). MACD
+  `Hashrate`, `Difficulty`, `PerDay`, `PerSecond`, and the generic `Float32`/`Float64`. MACD
   series are `Dollars`. Values keep their JSON form (numbers; `Boolean` stays a boolean); client type names change
 - Stored per-block distributions use narrow per-block types (block size `Bytes32`, weight `Weight`, transaction and
   input counts `Count16`, output counts `Count32`); cumulatives and sums stay wide. Block interval is `Seconds`
@@ -92,6 +92,15 @@ has to be deleted by hand.
 
 #### Crates and features
 
+- A plugin's crate, id and series root are one word: `bitview_plugin_age` (was `bitview_plugin_distribution_age`),
+  `holders` (`distribution_aggregated`), `utxos` (`distribution_utxos`), `entry` (`distribution_entry`), `addresses`
+  (`distribution_addresses`), `profitability` (`distribution_profitability`); the shared library is
+  `bitview_distribution` (was `bitview_plugin_distribution_common`). `Has*`/`Supports*` traits and composition
+  accessors follow (`HasHolders`, `.holders()`, ...). Their storage directories are renamed (bitviewd deletes the old
+  ones and recomputes; moving `plugins/distribution_<x>` to `plugins/<x>` skips that), and `/api/series/count`'s
+  `by_db` keys follow. The series of `distribution_aggregated` and `distribution_entry` move to the `holders` and
+  `entry` roots (ids unchanged); age, utxos, addresses and the indexer keep their current roots for now
+- Removed the `constants` plugin and its 18 `constant_*` series: chart reference lines are drawn client-side
 - Removed `brk_fetcher`, `brk_iterator` and the `brk` umbrella crate; depend on `brk_reader`, `brk_rpc` and
   `brk_types` directly
 - Moved Bitview's index, value and state types from `brk_types` to the new `bitview_primitives` crate (calendar and
@@ -278,13 +287,13 @@ has to be deleted by hand.
 - The indexer saves its pending data at the first 100-block boundary after 20 million records are pending, instead of
   35 million: memory climbs with the pending data between saves, and indexing blocks 600,000 to 650,000 peaks at
   8.6 GiB instead of 9.4 at the same speed
-- `distribution_addresses` takes 337 s instead of 420 s at 600,000 blocks, with the same series and address data. Its
+- `addresses` takes 337 s instead of 420 s at 600,000 blocks, with the same series and address data. Its
   block cache keeps emptied addresses in place, in one map per address type instead of a funded and an empty map. Each
   block's outputs and inputs are grouped on the processing thread instead of the thread pool. A reader thread reads
-  the next batch's columns while the current batch is processed, for `distribution_utxos` too
+  the next batch's columns while the current batch is processed, for `utxos` too
 - Pushes onto stored vectors check that the vector is still writable only in debug builds (6.7 ns per push instead
   of 7.1)
-- `distribution_addresses` flushes its address cache every 10,000 blocks or once it holds 32 million addresses,
+- `addresses` flushes its address cache every 10,000 blocks or once it holds 32 million addresses,
   whichever comes first, and each of its tables then keeps room only for what it just held, so the cache follows the
   chain's activity instead of its busiest past: an addresses-only run to 970,056 blocks peaks at 7.6 GiB
 - Coinflow, cointime and bedrock replay their per-block URPD in parallel 5,000-block segments, each from its nearest
@@ -292,10 +301,10 @@ has to be deleted by hand.
   so a block's projection reads mostly contiguous memory, and the cohort statistics come from one compact sweep. At
   970,056 blocks coinflow takes 169 s instead of 491, cointime 188 s instead of 494 and bedrock 19 s instead of 75,
   with identical outputs
-- `distribution_addresses` runs its block loop alongside `distribution_utxos` instead of after it: only the per-type
-  supply shares and average balances it derives afterwards wait for `distribution_utxos`. Computing every plugin over
+- `addresses` runs its block loop alongside `utxos` instead of after it: only the per-type
+  supply shares and average balances it derives afterwards wait for `utxos`. Computing every plugin over
   an indexed 970,056-block chain takes 1417 s instead of 1543 s and peaks at 9.7 GiB instead of 10.7
-- `distribution_addresses` applies each 16-block batch in three steps: blocks are grouped by address in parallel,
+- `addresses` applies each 16-block batch in three steps: blocks are grouped by address in parallel,
   each address type's addresses are split by index into 8 shards and the 64 shards applied in parallel (each to its
   own cached addresses, logging its cohort changes per block), and the logs are folded block by block. Alone at
   970,133 blocks it takes 547 s instead of 989 and peaks at 7.8 GiB instead of 8.0, with the same series and the same
@@ -307,10 +316,10 @@ has to be deleted by hand.
 - On unix, rawdb writes indexed updates (vecdb's mutable vectors on save) in page-aligned chunks of up to 1 MiB on up
   to 8 threads; on macOS uncached (`F_NOCACHE`), where dirtying a cached 16 KiB file page costs 70-100 µs, reading
   back the chunks that were in memory so they stay cached (elsewhere values are still stored through the mapping). On
-  a 16 GB Mac mini `distribution_addresses` alone at 970,224 blocks takes 515 s instead of 1,139 s (741 s instead of
+  a 16 GB Mac mini `addresses` alone at 970,224 blocks takes 515 s instead of 1,139 s (741 s instead of
   1,218 s with its data on the internal SSD), and every plugin 1,375 s instead of 1,832 s, peaking at 10.32 GiB
   instead of 9.67
-- `distribution_addresses` sorts each batch's addresses and skips the cached ones on the thread pool: alone at 970,536
+- `addresses` sorts each batch's addresses and skips the cached ones on the thread pool: alone at 970,536
   blocks it takes 487-489 s instead of 515-519 s, with the same series
 - The indexer resolves each input that spends an earlier block's output with one lookup in a new store of unspent
   outputs (transaction-ID prefix and output index to the output's transaction, output index, type and type index),
@@ -349,7 +358,7 @@ has to be deleted by hand.
   bindgen-model checks, and a client typed-paths check) and the `with_profitability`, website and
   `examples/custom_plugin` examples; the JS/Python client and quickmatch parity suites are gone; the byteview and
   lsm-tree forks drop repetitive tests
-- Plugin crates other than the indexer and constants follow one skeleton; distribution plugins share their cohort
+- Plugin crates other than the indexer follow one skeleton; distribution plugins share their cohort
   families and replay scaffold
 - `cargo bindgen`, `cargo api` (series tree, OpenAPI, error responses and typed client paths) and `cargo surface`
   (storage layout) regenerate and snapshot the generated outputs; `cargo api` records the snapshot the client test

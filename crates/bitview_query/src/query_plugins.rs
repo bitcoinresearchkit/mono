@@ -1,15 +1,13 @@
 #[cfg(feature = "chain")]
+use bitview_plugin_addresses::{HasAddresses, Vecs as Addresses};
+#[cfg(feature = "urpd")]
+use bitview_plugin_age::{HasAge, Vecs as Age};
+#[cfg(feature = "chain")]
 use bitview_plugin_blocks::{HasBlocks, Vecs as Blocks};
 #[cfg(feature = "urpd")]
 use bitview_plugin_coinflow::{HasCoinflow, Vecs as Coinflow};
 #[cfg(feature = "urpd")]
 use bitview_plugin_cointime::{HasCointime, Vecs as Cointime};
-#[cfg(feature = "chain")]
-use bitview_plugin_distribution_addresses::{
-    HasDistributionAddresses, Vecs as DistributionAddresses,
-};
-#[cfg(feature = "urpd")]
-use bitview_plugin_distribution_age::{HasDistributionAge, Vecs as DistributionAge};
 use bitview_plugin_indexer::{HasIndexer, Indexer};
 #[cfg(feature = "chain")]
 use bitview_plugin_inputs::{HasInputs, Vecs as Inputs};
@@ -33,10 +31,10 @@ use crate::QueryPluginSet;
 
 pub struct QueryPlugins<'a> {
     #[cfg(feature = "chain")]
-    pub(crate) distribution_addresses: &'a DistributionAddresses<Ro>,
+    pub(crate) addresses: &'a Addresses<Ro>,
     pub(crate) indexer: &'a Indexer<Ro>,
     #[cfg(feature = "urpd")]
-    pub(crate) distribution_age: &'a DistributionAge<Ro>,
+    pub(crate) age: &'a Age<Ro>,
     #[cfg(any(feature = "series", feature = "price"))]
     pub(crate) mappings: &'a Mappings<Ro>,
     #[cfg(feature = "chain")]
@@ -71,9 +69,9 @@ impl<'a> QueryPlugins<'a> {
         Self {
             indexer: plugins.indexer(),
             #[cfg(feature = "chain")]
-            distribution_addresses: plugins.distribution_addresses(),
+            addresses: plugins.addresses(),
             #[cfg(feature = "urpd")]
-            distribution_age: plugins.distribution_age(),
+            age: plugins.age(),
             #[cfg(any(feature = "series", feature = "price"))]
             mappings: plugins.mappings(),
             #[cfg(feature = "chain")]

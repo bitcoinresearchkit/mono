@@ -1,6 +1,6 @@
 use bitview_cohort::{AgeRange, AgeRangeId, CohortContext, UTXOAggregate, UTXOAggregateId};
 use bitview_plugin::ImportContext;
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
+use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_transforms::BoundedToRatio;
@@ -138,7 +138,7 @@ impl Vecs {
         context: ImportContext<'_>,
         mappings: &MappingsVecs,
         prices: &PriceVecs,
-        distribution_age: &AgeVecs,
+        age: &AgeVecs,
     ) -> Result<Self> {
         let database = STORAGE.open_database(context, 250_000)?;
 
@@ -180,7 +180,7 @@ impl Vecs {
             let side = side.name();
             AgeRangeId::series(CohortContext::Utxo, |id, name| {
                 let name = format!("{name}_{side}_supply");
-                let supply = distribution_age
+                let supply = age
                     .cohorts
                     .supply
                     .total

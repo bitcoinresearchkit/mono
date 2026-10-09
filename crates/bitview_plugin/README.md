@@ -37,7 +37,7 @@ extracted into independent crates.
 
 ## Plugin layout
 
-Every built-in plugin crate (except the indexer and constants) has the same root:
+Every built-in plugin crate (except the indexer) has the same root:
 
 - `lib.rs`, in this order: `macro_rules!` used by its modules, module
   declarations, re-exports, imports, `STORAGE` (and `ID` when the composition

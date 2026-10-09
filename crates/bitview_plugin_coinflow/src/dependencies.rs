@@ -1,4 +1,4 @@
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
+use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_urpd::ReplayInputs;
@@ -8,5 +8,5 @@ pub struct Dependencies<'a> {
     pub urpd: ReplayInputs<'a>,
     pub indexer: &'a Indexer,
     pub mappings: &'a MappingsVecs,
-    pub distribution_age: &'a AgeVecs,
+    pub age: &'a AgeVecs,
 }

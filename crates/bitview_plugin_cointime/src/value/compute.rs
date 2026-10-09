@@ -1,5 +1,5 @@
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
-use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
+use bitview_plugin_age::Vecs as AgeVecs;
+use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::{CoinDays, Float64};
@@ -15,19 +15,15 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         prices: &PriceVecs,
-        distribution_age: &AgeVecs,
-        distribution_aggregated: &AggregatedVecs,
+        age: &AgeVecs,
+        holders: &HoldersVecs,
         activity: &activity::Vecs,
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
-        let coinblocks_destroyed = &distribution_age.coinblocks_destroyed;
-        let coindays_destroyed = &distribution_aggregated
-            .cohorts
-            .all
-            .activity
-            .coindays_destroyed;
-        let circulating_supply = &distribution_aggregated.cohorts.all.supply.total.btc.height;
+        let coinblocks_destroyed = &age.coinblocks_destroyed;
+        let coindays_destroyed = &holders.cohorts.all.activity.coindays_destroyed;
+        let circulating_supply = &holders.cohorts.all.supply.total.btc.height;
 
         for (target, source) in [
             (

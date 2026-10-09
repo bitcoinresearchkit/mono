@@ -1,5 +1,5 @@
 use bitview_cohort::AmountRange;
-use bitview_plugin_distribution_utxos::Vecs as UtxosVecs;
+use bitview_plugin_utxos::Vecs as UtxosVecs;
 use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_vecs::FixedRatioPerBlock;
 use brk_error::Result;
@@ -9,18 +9,12 @@ use vecdb::{AnyVec, ReadableVec, WritableVec};
 
 pub fn compute(
     gini: &mut FixedRatioPerBlock<PartsPerMillion32>,
-    distribution_utxos: &UtxosVecs,
+    utxos: &UtxosVecs,
     starting_height: Height,
     exit: &Exit,
 ) -> Result<()> {
-    let supplies = &distribution_utxos
-        .cohorts
-        .supply
-        .total
-        .stored
-        .cohorts
-        .utxo_amount;
-    let counts = &distribution_utxos
+    let supplies = &utxos.cohorts.supply.total.stored.cohorts.utxo_amount;
+    let counts = &utxos
         .cohorts
         .outputs
         .unspent_count

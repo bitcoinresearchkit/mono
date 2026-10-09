@@ -1,6 +1,6 @@
+use bitview_distribution::AllChainSources;
 use bitview_plugin::ImportContext;
-use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
-use bitview_plugin_distribution_common::AllChainSources;
+use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
@@ -23,7 +23,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         all_chain: &AllChainSources,
         mining: &MiningVecs,
-        distribution_aggregated: &AggregatedVecs,
+        holders: &HoldersVecs,
         transactions: &TransactionsVecs,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
@@ -68,7 +68,7 @@ impl Vecs {
             mappings,
         );
 
-        let activity = &distribution_aggregated.cohorts.all.activity;
+        let activity = &holders.cohorts.all.activity;
         let cdd_source = all_chain.with_supply(
             "coindays_destroyed_supply_adj_source",
             v,
@@ -94,7 +94,7 @@ impl Vecs {
             &cyd_source,
             mappings,
         );
-        let dormancy_24h = distribution_aggregated
+        let dormancy_24h = holders
             .cohorts
             .all
             .ratios

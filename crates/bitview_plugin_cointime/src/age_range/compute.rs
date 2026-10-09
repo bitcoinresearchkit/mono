@@ -1,6 +1,6 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_compute::prepare_computed;
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
+use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{BoundedRatio, CoinDays};
 use brk_error::Result;
@@ -14,41 +14,19 @@ const HOURS_PER_DAY: f64 = 24.0;
 const WRITE_INTERVAL: usize = 10_000;
 
 impl Vecs {
-    pub(crate) fn compute(
-        &mut self,
-        indexer: &Indexer,
-        distribution_age: &AgeVecs,
-        exit: &Exit,
-    ) -> Result<()> {
+    pub(crate) fn compute(&mut self, indexer: &Indexer, age: &AgeVecs, exit: &Exit) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
         let transfer_volumes = AgeRange::from_fn(|id| {
-            &id.select(
-                &distribution_age
-                    .cohorts
-                    .activity
-                    .transfer_volume
-                    .cohorts
-                    .age,
-            )
-            .block
-            .sats
+            &id.select(&age.cohorts.activity.transfer_volume.cohorts.age)
+                .block
+                .sats
         });
         let coindays_destroyed = AgeRange::from_fn(|id| {
-            &id.select(
-                &distribution_age
-                    .cohorts
-                    .activity
-                    .coindays_destroyed
-                    .cohorts
-                    .age,
-            )
-            .block
+            &id.select(&age.cohorts.activity.coindays_destroyed.cohorts.age)
+                .block
         });
-        let coindays_created = AgeRange::from_fn(|id| {
-            &id.select(&distribution_age.coindays_created)
-                .cumulative
-                .height
-        });
+        let coindays_created =
+            AgeRange::from_fn(|id| &id.select(&age.coindays_created).cumulative.height);
 
         self.compute_consumed(
             starting_height,

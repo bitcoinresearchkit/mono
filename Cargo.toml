@@ -47,19 +47,16 @@ bitview_collections = { version = "0.12.2", path = "crates/bitview_collections" 
 bitview_compute = { version = "0.12.2", path = "crates/bitview_compute" }
 bitview_default = { version = "0.12.2", path = "crates/bitview_default" }
 bitview_plugin = { version = "0.12.2", path = "crates/bitview_plugin" }
+bitview_distribution = { version = "0.12.2", path = "crates/bitview_distribution" }
+bitview_plugin_addresses = { version = "0.12.2", path = "crates/bitview_plugin_addresses" }
+bitview_plugin_age = { version = "0.12.2", path = "crates/bitview_plugin_age" }
 bitview_plugin_bedrock = { version = "0.12.2", path = "crates/bitview_plugin_bedrock" }
 bitview_plugin_blocks = { version = "0.12.2", path = "crates/bitview_plugin_blocks" }
 bitview_plugin_capital_sentiment = { version = "0.12.2", path = "crates/bitview_plugin_capital_sentiment" }
 bitview_plugin_coinflow = { version = "0.12.2", path = "crates/bitview_plugin_coinflow" }
 bitview_plugin_cointime = { version = "0.12.2", path = "crates/bitview_plugin_cointime" }
-bitview_plugin_constants = { version = "0.12.2", path = "crates/bitview_plugin_constants" }
-bitview_plugin_distribution_common = { version = "0.12.2", path = "crates/bitview_plugin_distribution_common" }
-bitview_plugin_distribution_profitability = { version = "0.12.2", path = "crates/bitview_plugin_distribution_profitability" }
-bitview_plugin_distribution_entry = { version = "0.12.2", path = "crates/bitview_plugin_distribution_entry" }
-bitview_plugin_distribution_aggregated = { version = "0.12.2", path = "crates/bitview_plugin_distribution_aggregated" }
-bitview_plugin_distribution_age = { version = "0.12.2", path = "crates/bitview_plugin_distribution_age" }
-bitview_plugin_distribution_addresses = { version = "0.12.2", path = "crates/bitview_plugin_distribution_addresses" }
-bitview_plugin_distribution_utxos = { version = "0.12.2", path = "crates/bitview_plugin_distribution_utxos" }
+bitview_plugin_entry = { version = "0.12.2", path = "crates/bitview_plugin_entry" }
+bitview_plugin_holders = { version = "0.12.2", path = "crates/bitview_plugin_holders" }
 bitview_plugin_indexer = { version = "0.12.2", path = "crates/bitview_plugin_indexer" }
 bitview_plugin_indicators = { version = "0.12.2", path = "crates/bitview_plugin_indicators" }
 bitview_plugin_inputs = { version = "0.12.2", path = "crates/bitview_plugin_inputs" }
@@ -70,10 +67,12 @@ bitview_plugin_op_return = { version = "0.12.2", path = "crates/bitview_plugin_o
 bitview_plugin_outputs = { version = "0.12.2", path = "crates/bitview_plugin_outputs" }
 bitview_plugin_pools = { version = "0.12.2", path = "crates/bitview_plugin_pools" }
 bitview_plugin_price = { version = "0.12.2", path = "crates/bitview_plugin_price" }
+bitview_plugin_profitability = { version = "0.12.2", path = "crates/bitview_plugin_profitability" }
 bitview_plugin_rarity_meter = { version = "0.12.2", path = "crates/bitview_plugin_rarity_meter" }
 bitview_plugin_supply = { version = "0.12.2", path = "crates/bitview_plugin_supply" }
 bitview_plugin_transactions = { version = "0.12.2", path = "crates/bitview_plugin_transactions" }
 bitview_plugin_utxo_history = { version = "0.12.2", path = "crates/bitview_plugin_utxo_history" }
+bitview_plugin_utxos = { version = "0.12.2", path = "crates/bitview_plugin_utxos" }
 bitview_primitives = { version = "0.12.2", path = "crates/bitview_primitives" }
 bitview_query = { version = "0.12.2", path = "crates/bitview_query", default-features = false }
 bitview_runtime = { version = "0.12.2", path = "crates/bitview_runtime" }

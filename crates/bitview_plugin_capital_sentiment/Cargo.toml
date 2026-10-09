@@ -12,7 +12,7 @@ bitview_compute = { workspace = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_vecs = { workspace = true }
 bitview_plugin = { workspace = true }
-bitview_plugin_distribution_aggregated = { workspace = true }
+bitview_plugin_holders = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_market = { workspace = true }
 bitview_plugin_price = { workspace = true }

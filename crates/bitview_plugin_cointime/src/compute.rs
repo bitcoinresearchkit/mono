@@ -21,8 +21,8 @@ impl Vecs {
             inflation_rate,
             velocity_native,
             velocity_fiat,
-            distribution_age,
-            distribution_aggregated,
+            age,
+            holders,
         } = dependencies;
         let inflation_rate = &inflation_rate.ppm.height;
         let velocity_native = &velocity_native.height;
@@ -30,9 +30,8 @@ impl Vecs {
         let exit = context.exit();
 
         // Activity computes first (liveliness, vaultedness, etc.)
-        self.activity
-            .compute(indexer, distribution_age, distribution_aggregated, exit)?;
-        self.age_range.compute(indexer, distribution_age, exit)?;
+        self.activity.compute(indexer, age, holders, exit)?;
+        self.age_range.compute(indexer, age, exit)?;
 
         // Age-range supply is lazy over the same cached inputs as aggregates.
         // Adjusted and value compute independently.
@@ -40,7 +39,7 @@ impl Vecs {
             || {
                 self.aggregate.compute(
                     indexer,
-                    distribution_age,
+                    age,
                     &mut self.age_range,
                     &mut self.supply.active_supply_in_loss_share.bounded,
                     exit,
@@ -59,14 +58,8 @@ impl Vecs {
                         )
                     },
                     || {
-                        self.value.compute(
-                            indexer,
-                            prices,
-                            distribution_age,
-                            distribution_aggregated,
-                            &self.activity,
-                            exit,
-                        )
+                        self.value
+                            .compute(indexer, prices, age, holders, &self.activity, exit)
                     },
                 )
             },
@@ -76,20 +69,15 @@ impl Vecs {
         r2.1?;
 
         // Cap depends on activity + value
-        self.cap.compute(
-            indexer,
-            distribution_aggregated,
-            &self.activity,
-            &self.value,
-            exit,
-        )?;
+        self.cap
+            .compute(indexer, holders, &self.activity, &self.value, exit)?;
 
         // Phase 4: pricing and reserve_risk are independent
         let (r3, r4) = join(
             || {
                 self.prices.compute(
                     indexer,
-                    distribution_aggregated,
+                    holders,
                     &self.activity,
                     &self.supply,
                     &self.cap,
@@ -121,15 +109,10 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<()> {
         self.compute_primary(dependencies, context)?;
-        let supplies = dependencies
-            .distribution_age
-            .cohorts
-            .supply
-            .total
-            .age_supplies();
+        let supplies = dependencies.age.cohorts.supply.total.age_supplies();
         let weights = self.age_range.urpd_weight_sources();
         self.urpd.compute(
-            dependencies.distribution_age.cohorts.all_supply().version()
+            dependencies.age.cohorts.all_supply().version()
                 + dependencies.urpd.timestamps.version(),
             usize::from(dependencies.indexer.safe_lengths().height),
             dependencies.urpd,

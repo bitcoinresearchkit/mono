@@ -1,7 +1,7 @@
 use bitview_collections::Windows;
+use bitview_distribution::AllChainSources;
 use bitview_plugin::ImportContext;
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
-use bitview_plugin_distribution_common::AllChainSources;
+use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_urpd::Metrics as UrpdMetrics;
@@ -23,21 +23,15 @@ impl Vecs {
         prices: &PriceVecs,
         subsidy_cents: &PerBlock<Cents>,
         all_chain: &AllChainSources,
-        distribution_age: &AgeVecs,
+        age: &AgeVecs,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 250_000)?;
         let version = STORAGE.schema_version();
         let v1 = version + Version::ONE;
         let spot_price = prices.spot.cents.height.read_only_boxed_clone();
         let activity = activity::Vecs::import(&db, version, mappings, window_starts)?;
-        let age_range = age_range::Vecs::import(
-            &db,
-            version,
-            mappings,
-            window_starts,
-            &spot_price,
-            distribution_age,
-        )?;
+        let age_range =
+            age_range::Vecs::import(&db, version, mappings, window_starts, &spot_price, age)?;
         let supply = supply::Vecs::import(&db, v1, mappings, &spot_price, &activity, all_chain)?;
         let aggregate = aggregate::Vecs::import(
             &db,

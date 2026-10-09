@@ -1,4 +1,4 @@
-use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
+use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -13,20 +13,14 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        distribution_aggregated: &AggregatedVecs,
+        holders: &HoldersVecs,
         activity: &activity::Vecs,
         value: &value::Vecs,
         exit: &Exit,
     ) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
-        let realized_cap_cents = &distribution_aggregated
-            .cohorts
-            .all
-            .realized
-            .cap
-            .cents
-            .height;
-        let circulating_supply = &distribution_aggregated.cohorts.all.supply.total.btc.height;
+        let realized_cap_cents = &holders.cohorts.all.realized.cap.cents.height;
+        let circulating_supply = &holders.cohorts.all.supply.total.btc.height;
 
         self.investor.cents.height.compute_subtract(
             starting_lengths.height,

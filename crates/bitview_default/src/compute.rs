@@ -1,9 +1,8 @@
-use bitview_plugin_distribution_aggregated::{
-    Dependencies as AggregatedDependencies, ID as DISTRIBUTION_AGGREGATED_ID,
-};
 use std::{sync::mpsc, thread, time::Duration};
 
 use bitview_plugin::{ComputePlugin, Publication, UpdateContext};
+use bitview_plugin_addresses::{Dependencies as AddressesDependencies, ID as ADDRESSES_ID};
+use bitview_plugin_age::{Dependencies as AgeDependencies, ID as AGE_ID};
 use bitview_plugin_bedrock::{Dependencies as BedrockDependencies, ID as BEDROCK_ID};
 use bitview_plugin_blocks::{Dependencies as BlocksDependencies, ID as BLOCKS_ID};
 use bitview_plugin_capital_sentiment::{
@@ -11,16 +10,8 @@ use bitview_plugin_capital_sentiment::{
 };
 use bitview_plugin_coinflow::{Dependencies as CoinflowDependencies, ID as COINFLOW_ID};
 use bitview_plugin_cointime::{Dependencies as CointimeDependencies, ID as COINTIME_ID};
-use bitview_plugin_distribution_addresses::{
-    Dependencies as AddressesDependencies, ID as DISTRIBUTION_ADDRESSES_ID,
-};
-use bitview_plugin_distribution_age::{Dependencies as AgeDependencies, ID as DISTRIBUTION_AGE_ID};
-use bitview_plugin_distribution_entry::{
-    Dependencies as EntryDependencies, ID as DISTRIBUTION_ENTRY_ID,
-};
-use bitview_plugin_distribution_utxos::{
-    Dependencies as UtxosDependencies, ID as DISTRIBUTION_UTXOS_ID,
-};
+use bitview_plugin_entry::{Dependencies as EntryDependencies, ID as ENTRY_ID};
+use bitview_plugin_holders::{Dependencies as HoldersDependencies, ID as HOLDERS_ID};
 use bitview_plugin_indexer::ID as INDEXER_ID;
 use bitview_plugin_indicators::{Dependencies as IndicatorsDependencies, ID as INDICATORS_ID};
 use bitview_plugin_inputs::{Dependencies as InputsDependencies, ID as INPUTS_ID};
@@ -37,6 +28,7 @@ use bitview_plugin_transactions::{
     Dependencies as TransactionsDependencies, ID as TRANSACTIONS_ID,
 };
 use bitview_plugin_utxo_history::{Dependencies as UtxoHistoryDependencies, ID as UTXO_HISTORY_ID};
+use bitview_plugin_utxos::{Dependencies as UtxosDependencies, ID as UTXOS_ID};
 use bitview_runtime::{BootstrapAction, ComputePluginSet};
 use bitview_urpd::ReplayInputs;
 use brk_error::Result;
@@ -100,7 +92,7 @@ impl DefaultPlugins {
             inputs_result?;
             prices_result?;
 
-            // Market, UTXOs, Addresses, Outputs → History → Age → Aggregated, and Transactions →
+            // Market, UTXOs, Addresses, Outputs → History → Age → Holders, and Transactions →
             // Mining + OP_RETURN are independent complete-plugin branches.
             let market = scope.spawn(|| -> Result<_> {
                 timed(Phase::Compute, MARKET_ID, || {
@@ -167,8 +159,8 @@ impl DefaultPlugins {
             let (type_supply_tx, type_supply_rx) = mpsc::sync_channel(1);
             let utxos = scope.spawn(|| -> Result<_> {
                 let type_supply = type_supply_tx;
-                timed(Phase::Compute, DISTRIBUTION_UTXOS_ID, || {
-                    self.distribution_utxos.compute(
+                timed(Phase::Compute, UTXOS_ID, || {
+                    self.utxos.compute(
                         UtxosDependencies {
                             indexer,
                             mappings: &self.mappings,
@@ -178,12 +170,12 @@ impl DefaultPlugins {
                         context,
                     )
                 })?;
-                let _ = type_supply.send(self.distribution_utxos.type_supply());
-                Ok(self.distribution_utxos.as_ref())
+                let _ = type_supply.send(self.utxos.type_supply());
+                Ok(self.utxos.as_ref())
             });
             let addresses = scope.spawn(|| {
-                timed(Phase::Compute, DISTRIBUTION_ADDRESSES_ID, || {
-                    self.distribution_addresses.compute(
+                timed(Phase::Compute, ADDRESSES_ID, || {
+                    self.addresses.compute(
                         AddressesDependencies {
                             indexer,
                             mappings: &self.mappings,
@@ -223,8 +215,8 @@ impl DefaultPlugins {
             let history = self
                 .utxo_history
                 .reader(self.inputs.origins.spends(), creations)?;
-            timed(Phase::Compute, DISTRIBUTION_AGE_ID, || {
-                self.distribution_age.compute(
+            timed(Phase::Compute, AGE_ID, || {
+                self.age.compute(
                     AgeDependencies {
                         history: &history,
                         from: indexer.safe_lengths().height,
@@ -234,12 +226,12 @@ impl DefaultPlugins {
                     context,
                 )
             })?;
-            timed(Phase::Compute, DISTRIBUTION_AGGREGATED_ID, || {
-                self.distribution_aggregated.compute(
-                    AggregatedDependencies {
+            timed(Phase::Compute, HOLDERS_ID, || {
+                self.holders.compute(
+                    HoldersDependencies {
                         history: &history,
                         from: indexer.safe_lengths().height,
-                        age: &self.distribution_age,
+                        age: &self.age,
                         mappings: &self.mappings,
                         price: &self.price,
                     },
@@ -254,7 +246,7 @@ impl DefaultPlugins {
             let entry_prices = self.price.spot.cents.height.read_only_boxed_clone();
             let entry_timestamps = self.mappings.timestamp.monotonic.read_only_boxed_clone();
             let capitalized_price = self
-                .distribution_aggregated
+                .holders
                 .cohorts
                 .all
                 .realized
@@ -264,8 +256,8 @@ impl DefaultPlugins {
                 .read_only_boxed_clone();
             thread::scope(|scope| -> Result<()> {
                 let entry = scope.spawn(|| {
-                    timed(Phase::Compute, DISTRIBUTION_ENTRY_ID, || {
-                        self.distribution_entry.compute(
+                    timed(Phase::Compute, ENTRY_ID, || {
+                        self.entry.compute(
                             EntryDependencies {
                                 history: &history,
                                 from: indexer.safe_lengths().height,
@@ -284,7 +276,7 @@ impl DefaultPlugins {
                                 urpd,
                                 indexer,
                                 mappings: self.mappings.as_ref(),
-                                distribution_age: self.distribution_age.as_ref(),
+                                age: self.age.as_ref(),
                             },
                             context,
                         )
@@ -298,7 +290,7 @@ impl DefaultPlugins {
                             CapitalSentimentDependencies {
                                 indexer,
                                 price: self.price.as_ref(),
-                                distribution_aggregated: self.distribution_aggregated.as_ref(),
+                                holders: self.holders.as_ref(),
                                 moving_average: &market.moving_average,
                             },
                             context,
@@ -341,8 +333,8 @@ impl DefaultPlugins {
                             inflation_rate: &self.supply.inflation_rate,
                             velocity_native: &self.supply.velocity.native,
                             velocity_fiat: &self.supply.velocity.fiat,
-                            distribution_age: self.distribution_age.as_ref(),
-                            distribution_aggregated: self.distribution_aggregated.as_ref(),
+                            age: self.age.as_ref(),
+                            holders: self.holders.as_ref(),
                         },
                         context,
                     )
@@ -355,8 +347,8 @@ impl DefaultPlugins {
                             urpd,
                             indexer,
                             mappings: &self.mappings,
-                            distribution_age: &self.distribution_age,
-                            distribution_aggregated: &self.distribution_aggregated,
+                            age: &self.age,
+                            holders: &self.holders,
                             cointime: &self.cointime,
                             coinflow,
                         },
@@ -368,7 +360,7 @@ impl DefaultPlugins {
                         RarityMeterDependencies {
                             indexer,
                             bedrock: self.bedrock.as_ref(),
-                            distribution_aggregated: self.distribution_aggregated.as_ref(),
+                            holders: self.holders.as_ref(),
                             cointime: self.cointime.as_ref(),
                             coinflow,
                             price: self.price.as_ref(),
@@ -385,8 +377,8 @@ impl DefaultPlugins {
                             utxos,
                             indexer,
                             mining,
-                            distribution_age: self.distribution_age.as_ref(),
-                            distribution_aggregated: self.distribution_aggregated.as_ref(),
+                            age: self.age.as_ref(),
+                            holders: self.holders.as_ref(),
                             market,
                         },
                         context,

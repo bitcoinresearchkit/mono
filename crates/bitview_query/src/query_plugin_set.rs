@@ -1,13 +1,13 @@
 #[cfg(feature = "chain")]
+use bitview_plugin_addresses::HasAddresses;
+#[cfg(feature = "urpd")]
+use bitview_plugin_age::HasAge;
+#[cfg(feature = "chain")]
 use bitview_plugin_blocks::HasBlocks;
 #[cfg(feature = "urpd")]
 use bitview_plugin_coinflow::HasCoinflow;
 #[cfg(feature = "urpd")]
 use bitview_plugin_cointime::HasCointime;
-#[cfg(feature = "chain")]
-use bitview_plugin_distribution_addresses::HasDistributionAddresses;
-#[cfg(feature = "urpd")]
-use bitview_plugin_distribution_age::HasDistributionAge;
 use bitview_plugin_indexer::HasIndexer;
 #[cfg(feature = "chain")]
 use bitview_plugin_inputs::HasInputs;
@@ -63,13 +63,13 @@ plugin_capability!(
 );
 plugin_capability!(
     #[cfg(feature = "chain")]
-    SupportsDistributionAddresses,
-    HasDistributionAddresses
+    SupportsAddresses,
+    HasAddresses
 );
 plugin_capability!(
     #[cfg(feature = "urpd")]
-    SupportsDistributionAge,
-    HasDistributionAge
+    SupportsAge,
+    HasAge
 );
 plugin_capability!(
     #[cfg(feature = "chain")]
@@ -121,8 +121,8 @@ pub trait QueryPluginSet: PluginSet + Traversable {
         + SupportsBlocks
         + SupportsCoinflow
         + SupportsCointime
-        + SupportsDistributionAge
-        + SupportsDistributionAddresses
+        + SupportsAge
+        + SupportsAddresses
         + SupportsInputs
         + SupportsMappings
         + SupportsMining
@@ -144,8 +144,8 @@ where
         + SupportsBlocks
         + SupportsCoinflow
         + SupportsCointime
-        + SupportsDistributionAge
-        + SupportsDistributionAddresses
+        + SupportsAge
+        + SupportsAddresses
         + SupportsInputs
         + SupportsMappings
         + SupportsMining
