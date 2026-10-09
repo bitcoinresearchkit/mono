@@ -166,6 +166,9 @@ has to be deleted by hand.
   `CentsSats::to_capitalized_cap` → `CentsSquaredSats::from_price_cents_sats`; views only mappings uses moved from
   `bitview_vecs` into the mappings plugin. `bitview_catalog` merge methods return values instead of `Option` and panic
   on a conflicting key; `brk_exit::set_ctrlc_handler` panics when called twice
+- RawDB `Database::flush` returns nothing (was `Result<usize>`; it no longer syncs the device).
+  `Region::write_indexed` takes `T: Sync` and an `Fn + Sync` writer, returns a `Result`, writes in no particular
+  order, and its writer must not access the database; VecDB's `write_updates` returns a `Result`
 
 #### Configuration
 
@@ -238,6 +241,11 @@ has to be deleted by hand.
   files of the vector's previous life; a value whose width changed without a version bump resets instead of being
   misread
 - `utxo_history` now compacts its database; the Docker image build copies every build input
+- After a reorg, an address's unspent outputs no longer list outputs that the replacement chain spent again. The
+  storage engine's weak deletes assume a key is written once; a rollback writes spent outputs back, and a compaction
+  that merged the restored entry with the orphaned spend dropped the delete still owed to the original entry below.
+  Compaction now writes the merged entry as a value that still owes the weak delete (a new on-disk record type,
+  unreadable by older builds)
 
 ### Performance Improvements
 
@@ -274,7 +282,18 @@ has to be deleted by hand.
   own cached addresses, logging its cohort changes per block), and the logs are folded block by block. Alone at
   970,133 blocks it takes 547 s instead of 989 and peaks at 7.8 GiB instead of 8.0, with the same series and the same
   stored state for every address
-
+- No durability syncs (msync, `F_FULLFSYNC`, fsync) in rawdb, vecdb, statedb and fjall: a soft quit (SIGINT, SIGTERM)
+  still leaves consistent data, while kernel panics, power loss and storage removal are not supported. Computing every
+  plugin over an indexed 970,224-block chain takes 1,762 s instead of 1,905 s on a 16 GB Mac mini and peaks at
+  9.87 GiB instead of 10.32
+- On unix, rawdb writes indexed updates (vecdb's mutable vectors on save) in page-aligned chunks of up to 1 MiB on up
+  to 8 threads; on macOS uncached (`F_NOCACHE`), where dirtying a cached 16 KiB file page costs 70-100 µs, reading
+  back the chunks that were in memory so they stay cached (elsewhere values are still stored through the mapping). On
+  a 16 GB Mac mini `distribution_addresses` alone at 970,224 blocks takes 515 s instead of 1,139 s (741 s instead of
+  1,218 s with its data on the internal SSD), and every plugin 1,375 s instead of 1,832 s, peaking at 10.32 GiB
+  instead of 9.67
+- `distribution_addresses` sorts each batch's addresses and skips the cached ones on the thread pool: alone at 970,536
+  blocks it takes 487-489 s instead of 515-519 s, with the same series
 - The indexer resolves each input that spends an earlier block's output with one lookup in a new store of unspent
   outputs (transaction-ID prefix and output index to the output's transaction, output index, type and type index),
   instead of a transaction-ID lookup and three reads of the output vectors. Indexing 970,536 blocks on a 16 GB Mac
