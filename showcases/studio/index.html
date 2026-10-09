@@ -4248,7 +4248,7 @@
         }
 
         &.dim .item-name {
-          opacity: 0.4;
+          color: var(--muted);
         }
 
         > .letter {
@@ -4428,6 +4428,19 @@
           &.plain {
             font: 590 15px/1.35 var(--sans);
             letter-spacing: -0.01em;
+          }
+        }
+
+        /* A series' name in the API, under the one read. */
+        .series-id {
+          margin: 3px 0 0;
+          color: var(--muted);
+          font-size: 12px;
+          overflow-wrap: anywhere;
+
+          code {
+            color: var(--soft);
+            font-size: 12px;
           }
         }
 
@@ -6417,8 +6430,8 @@
             <li>await studio.ready(): once the chart open is drawn, its data in; rejected with why not (no chart, no layers, still loading after a minute). In a tab that's shown, in a window of some size: a browser draws nothing out of sight.</li>
             <li>await studio.png(): its picture, as Export makes it (its title, legends and dates), as a data:image/png;base64 URL: a long string, one to save or show, not to print.</li>
             <li>studio.chart(): the chart open, as a link writes it.</li>
-            <li>await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a formula it can't read.</li>
-            <li>await studio.search(words): series names for those words, the best first, as Studio's search finds them (its catalog is in the page: no web access needed).</li>
+            <li>await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.</li>
+            <li>await studio.search(words): series names for those words, the best first, as Studio's search finds them, only those it can chart (by date; words as people say them do: "200 day moving average", "transaction count"). Its catalog is in the page: no web access needed.</li>
           </ul>
           <p>What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or max.</p>
           <pre>await studio.open({"title": "Cost basis", "layers": [{"series": "price"}, {"series": "realized_price"}]});
@@ -6705,6 +6718,8 @@ const picture = await studio.png();</pre>
       }
       /** Every name the client knows, to its path: built once, in idle slices (the whole catalog takes a while). */
       let catalogIndex = /** @type {Map<string, string> | null} */ (null);
+      /** The series Bitview has only by block, none by date (Studio charts by date): known once the catalog's indexed. */
+      const byBlock = new Set();
       /**
        * A catalog node's child, read off to the side: the client makes each child the first time it's read and keeps it
        * on its parent, so a walk over everything would keep the whole catalog (tens of megabytes); this one keeps nothing.
@@ -7265,8 +7280,8 @@ const picture = await studio.png();</pre>
       const amount = (delta, unit) => (unit === "percent" ? `${trim(Math.abs(delta), 3)} pt` : format(Math.abs(delta), unit === "ratio" ? "number" : unit));
 
       /** Words of series names and catalog folders, written the way people write them. */
-      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "asopr", "nupl", "nvt", "usd", "btc", "ath", "sma", "ema", "utxo", "utxos", "ohlc", "op", "rsi", "macd", "cdd", "vdd", "hodl", "ppm", "pct", "rbf", "cpfp", "tx", "vb", "vbytes", "cagr", "pnl", "urpd"]);
-      const WORDS = { addrs: "addresses", addr: "address", txs: "transactions" };
+      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "asopr", "nupl", "nvt", "usd", "btc", "ath", "sma", "ema", "utxo", "ohlc", "op", "rsi", "macd", "cdd", "vdd", "vocdd", "hodl", "rhodl", "ppm", "pct", "rbf", "cpfp", "tx", "vb", "vbytes", "cagr", "dca", "pnl", "urpd"]);
+      const WORDS = { addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs" };
       const word = (text) => WORDS[text] ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
       /** "1 layer", "3 layers". */
       const plural = (n, word) => `${grouped.format(n)} ${word}${n === 1 ? "" : "s"}`;
@@ -8110,7 +8125,9 @@ const picture = await studio.png();</pre>
           for (let done = 0; stack.length && (deadline.timeRemaining() > 1 || done < 400); done++) {
             const [node, path] = stack.pop();
             if (isLeaf(node)) {
-              if (!index.has(node.name)) index.set(node.name, path);
+              if (index.has(node.name)) continue;
+              index.set(node.name, path);
+              if (!INTERVAL_ORDER.some((id) => node.indexes().includes(id))) byBlock.add(node.name);
             } else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push([aside(node, key), path ? `${path}.${key}` : key]);
           }
           if (stack.length) return void idle(step, { timeout: 1000 });
@@ -8553,6 +8570,8 @@ const picture = await studio.png();</pre>
         return Array.isArray(names) ? names.filter((name) => isSeriesName(name) && !gone.has(name)).slice(0, 8) : [];
       };
       const remember = (name) => storage.set(RECENT, [name, ...recent().filter((other) => other !== name)].slice(0, 8));
+      /** What adding a series offers first, after those added lately: the series most charts start from. */
+      const SUGGESTED = ["price", "realized_price", "mvrv", "market_cap", "supply_in_profit", "hash_rate"];
       /** The charts last opened, most recent first: kept on their own, so viewing reorders and edits nothing. */
       const VIEWED = "bitview-studio:viewed";
       const viewed = () => {
@@ -9080,6 +9099,15 @@ const picture = await studio.png();</pre>
         : "Couldn't load";
       /** The date intervals a series has, in order. */
       const datedIntervals = (meta) => INTERVAL_ORDER.filter((id) => meta?.indexes?.includes(id));
+      /** The names a series by block's day could have, likeliest first (as the search's worker has them too). */
+      const DAILY = (/** @type {string} */ name) => ((unit) => ["24h", "sum_24h", "average_24h"].flatMap((end) => [`${name}_${end}`, ...(unit ? [`${unit[1]}_${end}_${unit[2]}`] : [])]))(/^(.*)_(usd|cents|sats|btc)$/.exec(name));
+      /** Why a series by block isn't charted, said one way everywhere. */
+      const BY_BLOCK = "By block only: Studio charts by date";
+      /**
+       * A series by block, by its day (its own over 24 hours, their sum, their average; before a unit it ends in, as
+       * fees_usd's is fees_sum_24h_usd), if Bitview has one; else null.
+       */
+      const dailyOf = (/** @type {string} */ name) => DAILY(name).find((other) => catalogIndex?.has(other) && !byBlock.has(other)) ?? null;
 
       /**
        * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], low?: Vector, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
@@ -9115,8 +9143,8 @@ const picture = await studio.png();</pre>
           // Not in the client's catalog (it holds every series): not on Bitview, said here (a name half typed in a
           // formula is never asked for). Until the catalog is indexed (just after load), Bitview is asked.
           if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
-          // Known to lack this interval: say so without asking for its data.
-          const lacking = known.get(name) && !known.get(name).indexes.includes(doc.index);
+          // Known to lack this interval (any by date, by block only): say so without asking for its data.
+          const lacking = byBlock.has(name) || (known.get(name) && !known.get(name).indexes.includes(doc.index));
           const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
           if (about.status === "rejected") return { error: about.reason };
           const meta = about.value;
@@ -9175,7 +9203,8 @@ const picture = await studio.png();</pre>
         for (const layer of sources) {
           const { meta, data, error } = fetched.get(layer.series);
           if (error) {
-            results.set(layer.id, { unit: units.get(layer.series) ?? "number", error: failure(error, doc.index), info: meta, unavailable: Boolean(error?.unavailable), missing: error?.status === 404 });
+            const blocked = Boolean(error?.unavailable && meta && !datedIntervals(meta).length);
+            results.set(layer.id, { unit: units.get(layer.series) ?? "number", error: blocked ? "By block only" : failure(error, doc.index), ...(blocked ? { detail: BY_BLOCK } : {}), info: meta, unavailable: Boolean(error?.unavailable), missing: error?.status === 404 });
             continue;
           }
           // (The same result while the frame and what Bitview says of the series are: the chart keeps its series.)
@@ -9192,7 +9221,7 @@ const picture = await studio.png();</pre>
         const bySeries = new Map();
         for (const name of named) {
           const { meta, data, error } = fetched.get(name);
-          if (error) bySeries.set(name, { unit: units.get(name) ?? "number", error: failure(error, doc.index) });
+          if (error) bySeries.set(name, { unit: units.get(name) ?? "number", error: error?.unavailable && meta && !datedIntervals(meta).length ? "By block only" : failure(error, doc.index) });
           else {
             const { values } = align(data);
             bySeries.set(name, { values, shown: values, unit: unitOf(name, meta.type) });
@@ -15304,7 +15333,7 @@ const picture = await studio.png();</pre>
                 <button type="button" class="cap small" data-action="copy-name" aria-label="Copy the series name" data-tip="Copy the series name">${ICONS.copy}</button>
                 ${result?.missing ? "" : `<a class="cap small" href="${client.baseUrl}/api/series/${encodeURIComponent(layer.series)}/${chart.index}" target="_blank" rel="noreferrer" aria-label="Open the raw data" data-tip="Open the raw data">${ICONS.link}</a>`}
               </div>
-              ${result?.error ? errorBox(result) : ""}
+              ${result?.error ? errorBox(result, layer.series ?? "") : ""}
               ${meta?.description ? `<p class="description ${expanded ? "" : "clamped"}">${escape(meta.description)}</p>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
               ${meta ? `<div class="facts"><span class="chip">${escape(UNIT_NAMES[unitOf(layer.series, meta.type)] ?? "Number")}</span><span class="chip">${meta.indexes.length} intervals</span></div>` : ""}
             </section>`;
@@ -15744,17 +15773,24 @@ const picture = await studio.png();</pre>
         addEventListener("pointerup", up);
         addEventListener("pointercancel", off);
       });
-      /** What went wrong with a series layer, and the way out: another interval, or a retry. */
-      function errorBox(result) {
+      /** What went wrong with a series layer, and the way out: another interval, its day's series, or a retry. */
+      function errorBox(result, /** @type {string} */ name) {
         if (result.info && !result.info.indexes.includes(chart.index)) {
           const dated = datedIntervals(result.info);
           const nearest = dated.reduce((best, id) => (best === null || Math.abs(INTERVAL_ORDER.indexOf(id) - INTERVAL_ORDER.indexOf(chart.index)) < Math.abs(INTERVAL_ORDER.indexOf(best) - INTERVAL_ORDER.indexOf(chart.index)) ? id : best), null);
-          return `<div class="error-box">${dated.length ? `No ${escape(INTERVAL_LABEL[chart.index])} data; it has ${escape(dated.map((id) => INTERVAL_LABEL[id]).join(", "))}.<button type="button" class="btn small" data-index="${nearest}">Switch to ${escape(INTERVAL_LABEL[nearest])}</button>` : "Indexed by block, not by date: Studio can't chart it."}</div>`;
+          if (dated.length) return `<div class="error-box">No ${escape(INTERVAL_LABEL[chart.index])} data; it has ${escape(dated.map((id) => INTERVAL_LABEL[id]).join(", "))}.<button type="button" class="btn small" data-index="${nearest}">Switch to ${escape(INTERVAL_LABEL[nearest])}</button></div>`;
+          const day = dailyOf(name);
+          return `<div class="error-box gone"><p>${BY_BLOCK}.</p><div class="replacement">${day ? `<span class="closest">By day: <code>${escape(day)}</code></span><button type="button" class="btn small" data-replace="${escape(day)}">Replace</button>` : ""}<button type="button" class="btn ghost small" data-action="replace">${day ? "Find another" : "Find one"}</button></div></div>`;
         }
         // Renamed or removed in a newer Bitview: the closest series is offered, or another one to pick.
         if (result.missing) return `<div class="error-box gone"><p>Bitview has no series by this name: renamed, removed, or mistyped.</p>
           <div id="replacement" class="replacement"><span class="shimmer">Looking for the closest one…</span></div></div>`;
         return `<div class="error-box">${escape(result.error)}.<button type="button" class="btn small" data-action="retry">Retry</button></div>`;
+      }
+      /** A series by block, not added: why, and its day's series to use instead, if there's one (on this chart, while it's open). */
+      function blockOnly(/** @type {string} */ name, /** @type {(day: string) => void} */ use) {
+        const day = dailyOf(name), target = chart;
+        notice(`${name} is by block only: Studio charts by date`, day ? { label: `Use ${day}`, run: () => chart === target && !home && use(day) } : undefined);
       }
       /** The series closest to a gone one, by its words; asked once per name. */
       const nearestTo = new Map();
@@ -15766,7 +15802,7 @@ const picture = await studio.png();</pre>
           const theirs = other.split("_");
           return words.filter((word) => theirs.some((their) => their.startsWith(word) || (their.length > 2 && word.startsWith(their)))).length * 2 >= words.length;
         };
-        if (!nearestTo.has(name)) nearestTo.set(name, findSeries(name.replace(/_/g, " "), 8).then((names) => names.find((other) => isSeriesName(other) && other !== name && !gone.has(other) && near(other)) ?? null, () => null));
+        if (!nearestTo.has(name)) nearestTo.set(name, findSeries(name.replace(/_/g, " "), 8).then((names) => names.find((other) => isSeriesName(other) && other !== name && !gone.has(other) && !byBlock.has(other) && near(other)) ?? null, () => null));
         return nearestTo.get(name);
       }
       async function suggestReplacement(layer) {
@@ -15799,7 +15835,7 @@ const picture = await studio.png();</pre>
         const [meta] = await Promise.all([info(name).catch(() => null), catalogIndexed]);
         const layer = layerById(id);
         if (chart !== target || !layer?.series || replacing.get(id) !== run) return;
-        if (meta && !datedIntervals(meta).length) return notice(`${name} is indexed by block, not by date`);
+        if (meta && !datedIntervals(meta).length) return void blockOnly(name, (day) => replaceSeries(id, day));
         const was = labelOf(layer);
         editById(id, (target) => {
           target.series = name;
@@ -16495,7 +16531,7 @@ const picture = await studio.png();</pre>
         // (Its path too, kept with its name in the same edit: see normalize.)
         const [meta] = await Promise.all([info(name).catch(() => null), catalogIndexed]);
         if (chart !== target || !roomFor(target)) return;
-        if (meta && !datedIntervals(meta).length) return notice(`${name} is indexed by block, not by date`);
+        if (meta && !datedIntervals(meta).length) return void blockOnly(name, (day) => addSeries(day, { newPane, pane: into }));
         const unit = meta ? unitOf(name, meta.type) : units.get(name) ?? "number";
         units.set(name, unit);
         let added;
@@ -16673,31 +16709,62 @@ const picture = await studio.png();</pre>
       /**
        * The series search as bitview.space runs it (crates/bitview_query/src/vecs/search.rs, on the same quickmatch): the
        * query normalized, then whole name words, whole description words, name prefixes and typos, description prefixes
-       * and typos; a description several series share ranks them by how few other words their names carry. It runs in a
-       * worker started from this function's own source: the catalog's names and descriptions are indexed once, off the
-       * page, and each query is answered in milliseconds.
-       * @param {string} quickmatch the module's URL @param {string} catalog the catalog's URL
+       * and typos; a description several series share ranks them by how few other words their names carry. Before it, what
+       * people type is said as the names say it ("200 day moving average" is "200d sma"), the query as typed searched
+       * after. Series only by block (none of `dated`, the intervals Studio charts) come last, their day's (a 24h sum, an
+       * average) in their place. It runs in a worker started from this function's own source: the catalog's names and
+       * descriptions are indexed once, off the page, and each query is answered in milliseconds.
+       * @param {string} quickmatch the module's URL @param {string} catalog the catalog's URL @param {string[]} dated
        */
-      async function seriesSearch(quickmatch, catalog) {
+      async function seriesSearch(quickmatch, catalog, dated) {
         const { QuickMatch, QuickMatchConfig } = /** @type {typeof import("../modules/quickmatch-js/src/index.js")} */ (await import(quickmatch));
         const RUNS = /(?:[A-Za-z0-9<>=+%]|(?<=[0-9])\.(?=[0-9]))+/g;
         /** crates/bitview_query/src/vecs/normalize.rs: words of letters, digits and < > = + %, decimals kept, lowercase. @param {string} text */
         const normalize = (text) => (text.match(RUNS) ?? []).join(" ").toLowerCase();
+        /** Ways of saying it, in the names' words (on the normalized query: words, single spaces). @type {[RegExp, string][]} */
+        const SAYINGS = [
+          [/\brealis(e|ed)\b/g, "realiz$1"],
+          [/\bexponential moving averages?\b/g, "ema"],
+          [/\b(?:simple )?moving averages?\b/g, "sma"],
+          [/\b(\d+) (?:hours?|hrs?)\b/g, "$1h"],
+          [/\b(\d+) days?\b/g, "$1d"],
+          [/\b(\d+) weeks?\b/g, "$1w"],
+          [/\b(\d+) months?\b/g, "$1m"],
+          [/\b(\d+) years?\b/g, "$1y"],
+          [/\btransactions?\b/g, "tx"],
+          [/\baddresses\b/g, "addrs"],
+          [/\baddress\b/g, "addr"],
+          [/\blong term holders?\b/g, "lth"],
+          [/\bshort term holders?\b/g, "sth"],
+          [/\ball time highs?\b/g, "ath"],
+          [/\bmarket capitali[sz]ation\b/g, "market cap"],
+          [/\bcoin (days|years|blocks)\b/g, "coin$1"],
+          [/^(?:bitcoin|btc) (?=\S)/, ""],
+          [/^cdd$/, "coindays destroyed"],
+          [/^s2f$/, "stock to flow"],
+          [/^mayer(?: multiple)?$/, "price sma 200d ratio"],
+        ];
+        const say = (/** @type {string} */ text) => SAYINGS.reduce((said, [pattern, put]) => said.replace(pattern, put), text);
         const byBytes = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
         const index = (async () => {
           const response = await fetch(catalog);
           if (!response.ok) throw new Error(`The catalog answered ${response.status}`);
           /** @type {Map<string, string>} */
           const described = new Map();
+          /** @type {Set<string>} */
+          const byBlock = new Set();
           const stack = [await response.json()];
           while (stack.length) {
             const node = stack.pop();
             if (typeof node?.name === "string" && Array.isArray(node.indexes)) {
-              if (!described.has(node.name)) described.set(node.name, typeof node.description === "string" ? node.description : "");
+              if (described.has(node.name)) continue;
+              described.set(node.name, typeof node.description === "string" ? node.description : "");
+              if (!dated.some((id) => node.indexes.includes(id))) byBlock.add(node.name);
             } else if (node && typeof node === "object") for (const child of Object.values(node)) stack.push(child);
           }
           // In the server's orders: names by length then text, descriptions by text.
           const names = [...described.keys()].sort((a, b) => a.length - b.length || byBytes(a, b));
+          const ids = new Map(names.map((name, id) => [name, id]));
           /** @type {Map<string, number[]>} */
           const byDescription = new Map();
           names.forEach((name, id) => {
@@ -16711,39 +16778,62 @@ const picture = await studio.png();</pre>
             seriesOf: descriptions.map((text) => /** @type {number[]} */ (byDescription.get(text))),
             matcher: new QuickMatch(names),
             descriptionMatcher: new QuickMatch(descriptions),
+            blocked: names.map((name) => byBlock.has(name)),
+            // A series by block, by its day: its own over 24 hours, their sum, their average (before a unit it ends in).
+            daily: names.map((name) => (byBlock.has(name) ? ((unit) => ["24h", "sum_24h", "average_24h"].flatMap((end) => [`${name}_${end}`, ...(unit ? [`${unit[1]}_${end}_${unit[2]}`] : [])]))(/^(.*)_(usd|cents|sats|btc)$/.exec(name)).map((other) => ids.get(other) ?? -1).find((id) => id >= 0 && !byBlock.has(names[id])) ?? -1 : -1)),
           };
         })();
         /** @param {Awaited<typeof index>} found @param {string} query @param {number} max @returns {string[]} */
-        function search({ names, wordCounts, seriesOf, matcher, descriptionMatcher }, query, max) {
-          const limit = Math.min(max, names.length);
+        function search(found, query, max) {
+          const limit = Math.min(max, found.names.length);
           if (!limit) return [];
-          query = normalize(query);
-          const config = new QuickMatchConfig().withLimit(limit).withUnionFallback(false);
+          const typed = normalize(query), said = say(typed);
           /** @type {number[]} */
-          const result = [];
+          const result = [], last = [];
           const seen = new Set();
           /** @param {Iterable<number>} ids */
           const append = (ids) => {
             for (const id of ids) {
               if (result.length === limit) break;
-              if (!seen.has(id)) (seen.add(id), result.push(id));
+              if (seen.has(id)) continue;
+              seen.add(id);
+              if (!found.blocked[id]) result.push(id);
+              else {
+                if (last.length < limit) last.push(id);
+                const day = found.daily[id];
+                if (day >= 0 && !seen.has(day)) (seen.add(day), result.push(day));
+              }
             }
           };
+          // (What's said, then as typed: the whole words of both before the starts and slips of either.)
+          const queries = (said === typed ? [typed] : [said, typed]).filter(Boolean).map((words) => stages(found, words, limit));
+          for (const half of [0, 2]) for (const run of queries) for (const stage of run.slice(half, half + 2)) if (result.length < limit) append(stage());
+          return [...result, ...last].slice(0, limit).map((id) => found.names[id]);
+        }
+        /**
+         * The server's four stages for a query, each run when asked (while there's room): whole name words, whole
+         * description words, then name and description starts and slips. @param {Awaited<typeof index>} found
+         * @param {string} query @param {number} limit @returns {(() => number[])[]}
+         */
+        function stages({ names, wordCounts, seriesOf, matcher, descriptionMatcher }, query, limit) {
+          // (More than fit: those by block give way to those by date.)
+          const room = Math.min(names.length, limit * 3), config = new QuickMatchConfig().withLimit(room).withUnionFallback(false);
           /** Series by matching description, those whose names carry fewer other words first. @param {[number, number][]} matches @param {Map<number, number>} nameWords */
           const ranked = (matches, nameWords) => matches
             .flatMap(([description], rank) => seriesOf[description].map((id) => [id, rank, nameWords.get(id) ?? 0, wordCounts[id]]))
             .sort((a, b) => b[2] * a[3] - a[2] * b[3] || names[a[0]].length - names[b[0]].length || a[1] - b[1] || byBytes(names[a[0]], names[b[0]]))
-            .slice(0, limit)
+            .slice(0, room)
             .map(([id]) => id);
-          append(matcher.matchesExactWithIdsAndMatchedWords(query, config).map(([id]) => id));
-          if (result.length < limit) {
-            const nameWords = new Map(matcher.matchesExactWithIdsAndMatchedWords(query, new QuickMatchConfig().withLimit(names.length)));
-            const descriptionConfig = new QuickMatchConfig().withLimit(seriesOf.length).withUnionFallback(false);
-            append(ranked(descriptionMatcher.matchesExactWithIdsAndMatchedWords(query, descriptionConfig), nameWords));
-            if (result.length < limit) append(matcher.matchesWithIdsAndMatchedWords(query, config).map(([id]) => id));
-            if (result.length < limit) append(ranked(descriptionMatcher.matchesWithIdsAndMatchedWords(query, descriptionConfig), nameWords));
-          }
-          return result.map((id) => names[id]);
+          const descriptionConfig = new QuickMatchConfig().withLimit(seriesOf.length).withUnionFallback(false);
+          /** @type {Map<number, number> | null} */
+          let nameWords = null;
+          const words = () => (nameWords ??= new Map(matcher.matchesExactWithIdsAndMatchedWords(query, new QuickMatchConfig().withLimit(names.length))));
+          return [
+            () => matcher.matchesExactWithIdsAndMatchedWords(query, config).map(([id]) => id),
+            () => ranked(descriptionMatcher.matchesExactWithIdsAndMatchedWords(query, descriptionConfig), words()),
+            () => matcher.matchesWithIdsAndMatchedWords(query, config).map(([id]) => id),
+            () => ranked(descriptionMatcher.matchesWithIdsAndMatchedWords(query, descriptionConfig), words()),
+          ];
         }
         index.then(() => postMessage({ ready: true }), (error) => postMessage({ broken: String(error) }));
         onmessage = async ({ data: { query, limit } }) => {
@@ -16761,6 +16851,8 @@ const picture = await studio.png();</pre>
        * the latest is never stuck behind stale ones.
        */
       const finder = {
+        /** Started (once: one that failed isn't again). */
+        started: false,
         ready: false,
         worker: /** @type {Worker | null} */ (null),
         /** @type {{ query: string, limit: number, reply: (names: string[] | null) => void }[]} */
@@ -16768,6 +16860,9 @@ const picture = await studio.png();</pre>
         /** @type {((names: string[] | null) => void) | null} */
         asking: null,
       };
+      /** Settled once the worker's index is built, or once it can't be (it failed: bitview.space answers). */
+      let finderDone = /** @type {(value?: unknown) => void} */ (() => {});
+      const finderUp = new Promise((resolve) => (finderDone = resolve));
       function askNext() {
         const next = !finder.asking && finder.worker ? finder.line.shift() : undefined;
         if (!next) return;
@@ -16775,9 +16870,11 @@ const picture = await studio.png();</pre>
         finder.worker?.postMessage({ query: next.query, limit: next.limit });
       }
       function startFinder() {
-        if (finder.worker || typeof Worker !== "function") return;
+        if (finder.started) return;
+        finder.started = true;
+        if (typeof Worker !== "function") return void finderDone();
         const quickmatch = new URL("../modules/quickmatch-js/src/index.js", location.href).href;
-        const source = URL.createObjectURL(new Blob([`(${seriesSearch})(${JSON.stringify(quickmatch)}, ${JSON.stringify(`${client.baseUrl}/api/series`)});`], { type: "text/javascript" }));
+        const source = URL.createObjectURL(new Blob([`(${seriesSearch})(${JSON.stringify(quickmatch)}, ${JSON.stringify(`${client.baseUrl}/api/series`)}, ${JSON.stringify(INTERVAL_ORDER)});`], { type: "text/javascript" }));
         const worker = (finder.worker = new Worker(source, { type: "module" }));
         // A worker that fails leaves the search to bitview.space, the questions it had included.
         const stop = () => {
@@ -16786,12 +16883,14 @@ const picture = await studio.png();</pre>
           const waiting = [finder.asking, ...finder.line.splice(0).map((question) => question.reply)];
           Object.assign(finder, { ready: false, worker: null, asking: null });
           for (const reply of waiting) reply?.(null);
+          finderDone();
         };
         worker.onerror = stop;
         worker.onmessage = ({ data }) => {
           if (data.broken !== undefined) return stop();
           if (data.ready) {
             finder.ready = true;
+            finderDone();
             return URL.revokeObjectURL(source);
           }
           const reply = finder.asking;
@@ -16803,17 +16902,36 @@ const picture = await studio.png();</pre>
       /** Answers had already, by limit and query (the catalog stays as it is while the page is open): the oldest go past a few hundred. */
       const searched = new Map();
       /**
+       * Series by date first, one by block after them, its day's in its place (if Bitview has one): as this machine's
+       * search answers, for bitview.space's too. @param {string[]} names
+       */
+      function byDate(names) {
+        const first = [], last = [], placed = new Set();
+        for (const name of names) {
+          if (placed.has(name)) continue;
+          placed.add(name);
+          if (!byBlock.has(name)) first.push(name);
+          else {
+            last.push(name);
+            const day = dailyOf(name);
+            if (day && !placed.has(day)) (placed.add(day), first.push(day));
+          }
+        }
+        return [...first, ...last].slice(0, names.length);
+      }
+      /**
        * Series for a query, best first, as bitview.space ranks them: one asked before at once, else from this machine
-       * once its index is built, else from bitview.space after `pause` milliseconds (more typing aborts it first).
+       * once its index is built, else from bitview.space after `pause` milliseconds (more typing aborts it first; its
+       * answers aren't kept: this machine's come soon).
        * @param {string} query @param {number} limit @param {AbortSignal} [signal] @returns {Promise<string[]>}
        */
       function findSeries(query, limit, signal, pause = 0) {
         const key = `${limit}\n${query}`, kept = searched.get(key);
         if (kept) return Promise.resolve(kept);
-        const remote = () => client.searchSeries(/** @type {any} */ (query), /** @type {any} */ (limit), { signal });
+        const remote = () => client.searchSeries(/** @type {any} */ (query), /** @type {any} */ (limit), { signal }).then((names) => byDate(/** @type {string[]} */ (names)));
         return new Promise((resolve, reject) => {
           if (finder.ready && finder.worker) {
-            const question = { query, limit, reply: (/** @type {string[] | null} */ names) => (names ? resolve(names) : remote().then(resolve, reject)) };
+            const question = { query, limit, reply: (/** @type {string[] | null} */ names) => (names ? resolve((searched.set(key, names), names)) : remote().then(resolve, reject)) };
             finder.line.push(question);
             signal?.addEventListener("abort", () => {
               const at = finder.line.indexOf(question);
@@ -16825,7 +16943,6 @@ const picture = await studio.png();</pre>
           const timer = setTimeout(() => remote().then(resolve, reject), pause);
           signal?.addEventListener("abort", () => (clearTimeout(timer), reject(signal.reason)), { once: true });
         }).then((/** @type {string[]} */ names) => {
-          searched.set(key, names);
           if (searched.size > 300) searched.delete(/** @type {string} */ (searched.keys().next().value));
           return names;
         });
@@ -16858,10 +16975,8 @@ const picture = await studio.png();</pre>
         formula: false,
         /** With `formula`, the layer whose formula is being edited (else one is being added). @type {string | null} */
         editing: null,
-        /** Adding (a series or a formula) into this pane, chosen beforehand. @type {string | null} */
+        /** Adding (a series or a formula) into this pane, chosen beforehand ("new": each into a new one). @type {string | null} */
         into: null,
-        /** The series added with ⌘↵ since ⌘K opened. */
-        added: new Set(),
         /** The pages opened, deepest last (⌫ goes back up). @type {Page[]} */
         pages: [],
         /** The search itself, as left for a page: what was typed, the row that led on. @type {{ query?: string, landOn?: string | null }} */
@@ -16911,14 +17026,14 @@ const picture = await studio.png();</pre>
        */
       function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false } = {}) {
         // (And while what it was on is still there: the layer being replaced or edited, the pane being added to.)
-        const there = ({ replacing, editing, into }) => (!replacing || layerById(replacing)?.series) && (!editing || layerById(editing)) && (!into || chart.panes.some((pane) => pane.id === into));
+        const there = ({ replacing, editing, into }) => (!replacing || layerById(replacing)?.series) && (!editing || layerById(editing)) && (!into || into === "new" || chart.panes.some((pane) => pane.id === into));
         const scoped = (/** @type {any} */ state) => Boolean(state.adding || state.replacing || state.formula || state.editing);
         const spot = resume && putAway?.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000 && there(putAway.state) && !scoped(putAway.state) ? putAway.state : null;
         putAway = null;
         hideMenu();
         // Opened afresh, it starts at the search (or where adding a series last added from, on this chart).
         const back = add && !query && addedFrom?.chart === chart.id ? addedFrom : null;
-        Object.assign(palette, spot ?? { adding: add, replacing: replace, formula, editing, into, added: new Set(), pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null }, { armed: null });
+        Object.assign(palette, spot ?? { adding: add, replacing: replace, formula, editing, into, pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null }, { armed: null });
         const dialog = $("palette"), input = $("palette-input");
         if (!dialog.open) dialog.showModal();
         applyScope();
@@ -16933,7 +17048,7 @@ const picture = await studio.png();</pre>
         const chip = $("palette-scope"), input = $("palette-input");
         const replacing = palette.replacing && layerById(palette.replacing)?.series;
         chip.hidden = !palette.adding && !palette.formula && !replacing;
-        const into = palette.into ? ` to pane ${paneNumber(palette.into)}` : "";
+        const into = palette.into === "new" ? " to a new pane" : palette.into ? ` to pane ${paneNumber(palette.into)}` : "";
         chip.textContent = replacing ? `Replace ${replacing}` : palette.formula ? (palette.editing ? `Edit ${layerById(palette.editing)?.letter ?? "formula"}` : `Add a formula${into}`) : `Add a series${into}`;
         $("palette").dataset.mode = palette.formula ? "formula" : "";
         chip.disabled = Boolean(replacing);
@@ -17006,9 +17121,10 @@ const picture = await studio.png();</pre>
       const scalePane = () => chart.panes.find((item) => item.id === layerById(selected)?.pane) ?? chart.panes[0];
 
       /**
-       * @typedef {{ title: string, text: string, words?: string, icon: string, kbd?: string, run: () => any, suggested?: boolean,
-       *   anywhere?: boolean, keepOpen?: boolean, danger?: boolean, confirm?: boolean, follows?: string }} Command `confirm`: asked
-       *   twice (what ⌘Z can't undo: a chart deleted); `danger` only marks it
+       * @typedef {{ title: string, text: string, words?: string, icon: string, kbd?: string, run?: () => any, suggested?: boolean,
+       *   anywhere?: boolean, keepOpen?: boolean, danger?: boolean, confirm?: boolean, follows?: string, current?: boolean }} Command
+       *   `confirm`: asked twice (what ⌘Z can't undo, a chart deleted; what removes many at once); `danger` only marks it. With
+       *   no `run`, it says how things are (found by typing only): `current`, the choice in effect, ticked; else not now (dim)
        */
       /**
        * Everything ⌘K can do besides adding a series; `suggested` ones show before anything is typed, `anywhere` ones in
@@ -17028,9 +17144,10 @@ const picture = await studio.png();</pre>
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
           ...library.folders.map((folder) => ({ title: folder.name, text: `A folder: ${plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart")}.`, words: `folder ${folder.name}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })),
           ...(home ? [] : [{ title: "All charts", text: "Every chart, side by side.", words: "grid overview gallery library home browse", icon: "grid", run: () => showHome() }]),
-          ...(cloudable() ? [{ title: "Add a cloud", text: "Filled between layers, from the lowest of them to the highest at each date, or from them to the pane's top or bottom.", words: "cloud band range envelope fill between min max percentiles", icon: "cloud", keepOpen: true, run: () => pushPage(cloudPage()) }] : []),
+          ...(cloudable() ? [{ title: "Add a cloud", text: "Filled between layers, from the lowest of them to the highest at each date, or from them to the pane's top or bottom.", words: "cloud band envelope fill between shade percentiles", icon: "cloud", keepOpen: true, run: () => pushPage(cloudPage()) }] : []),
+          ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a pane of its own, under the others.", words: "new pane add series separate own below", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
-          ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", words: "share url send", icon: "share", run: () => $("share").click(), suggested: true }]),
+          ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", words: "share url send link", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", words: "image picture tab open view", icon: "link", run: () => exportAs("open") }]),
           ...(chart === previewing || isDraft(chart) ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${folderById(chart.folder)?.name ?? "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
           ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
@@ -17039,11 +17156,11 @@ const picture = await studio.png();</pre>
           { title: "Download chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
           ...(library.charts.length || asideCount() ? [{ title: "Download all charts", text: "One file of them all, folders and all, to import anywhere else.", words: "export everything backup move computer device browser phone library save json", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
           { title: "Import charts", text: "A chart's file, several exported together, or all of them from anywhere else.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
-          ...THEMES.filter(([id]) => id !== prefs.theme).map(([id, name, icon, text, words]) => ({ title: `Theme: ${name}`, text, words: `theme appearance mode ${words}`, icon, run: () => setTheme(id), anywhere: true })),
-          ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period zoom time ${id === "max" ? "max all history everything fit reset autoscale out the way" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
-          ...INTERVAL_ORDER.filter((id) => id !== chart.index && supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", run: () => switchInterval(id) })),
-          ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].map((pane) => ({ title: paneMode(pane) === 1 ? "Linear scale" : "Logarithmic scale", text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "logarithmic linear scale axis", icon: "axis", kbd: "L", run: () => toggleLog(pane.id) }))),
-          ...(empty ? [] : [scalePane()].filter((pane) => chart.layers.filter((layer) => layer.pane === pane.id).length > 1).map((pane) => ({ title: ordersOf(pane)[pane.reverse ? 0 : 1][1], text: `${pane.stack ? "The stack's order" : "Which layer is drawn over the others"}, for ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: "order reverse reversed front back stack foot paint draw over under", icon: "axis", run: () => setPaneReverse(pane.id, !pane.reverse) }))),
+          // A choice among a few (a theme, an interval, a scale, a legend): each, the one in effect ticked (typed, it says so).
+          ...THEMES.map(([id, name, icon, text, words]) => ({ title: `Theme: ${name}`, text, words: `theme appearance mode ${words}`, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
+          ...(empty ? [] : RANGES.map(([id, label], i) => ({ id, label, i })).filter(({ id }) => presetFits(id)).map(({ id, label, i }) => ({ title: `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period time ${label} ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
+          ...INTERVAL_ORDER.filter((id) => supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", ...(id === chart.index ? { current: true } : { run: () => switchInterval(id) }) })),
+          ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string, string][]} */ ([[1, "Logarithmic scale", "log logarithmic"], [0, "Linear scale", "linear"]]).map(([mode, title, words]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: `${words} scale axis`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
           ...(empty ? [] : [
             { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", words: "draw drawing belt toolbar tools annotate", icon: "draw", run: toggleBelt },
             ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, words: "draw drawing tool cancel end", icon: tool, kbd: "esc", run: () => setTool("") }] : []),
@@ -17051,14 +17168,14 @@ const picture = await studio.png();</pre>
             { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, words: "select drawings box marquee pick several", icon: "select", kbd: "D S", run: () => setSelectingArea(true) },
             ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, words: "drawing tools belt toolbar dock move side top bottom left right", icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", () => /** @type {const} */ (["top", "bottom", "left", "right"]).map((side) => ({ key: side, label: capitalize(side), current: prefs.belt.dock === side, run: () => dockBelt(side) })))) }] : []),
             ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", words: "drawings annotations hide show visible clean", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden) }] : []),
-            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
+            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, confirm: true, run: clearDrawings }] : []),
           ]),
           ...(((layers) => !layers.length ? [] : ((n, hide) => [
             { title: `${hide ? "Hide" : "Show"} ${n}`, text: layers.map(labelOf).join(", "), words: "selected picked layers hide show visible", icon: hide ? "eyeOff" : "eye", kbd: "H", run: () => layersBatch("hide"), suggested: true },
             { title: `Duplicate ${n}`, text: "Each copy under its original.", words: "selected picked layers copy duplicate", icon: "duplicate", kbd: "⌘D", run: () => layersBatch("duplicate"), suggested: true },
             ...chart.panes.filter((pane) => layers.some((layer) => layer.pane !== pane.id)).map((pane) => ({ title: `Move ${n} to pane ${chart.panes.indexOf(pane) + 1}`, text: paneNames(pane), words: "selected picked layers move pane", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), pane.id) })),
             ...(chart.panes.length < MAX_PANES ? [{ title: `Move ${n} to a new pane`, text: "A pane of their own, under the others.", words: "selected picked layers move pane new", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), null), suggested: true }] : []),
-            ...(layers.filter((layer) => !layer.cloud).length > 1 ? [{ title: "A cloud between them", text: "Filled from the lowest of them to the highest, at each date.", words: "selected picked layers cloud band range envelope fill between min max", icon: "cloud", run: () => layersBatch("cloud"), suggested: true }] : []),
+            ...(layers.filter((layer) => !layer.cloud).length > 1 ? [{ title: "A cloud between them", text: "Filled from the lowest of them to the highest, at each date.", words: "selected picked layers cloud band envelope fill between shade", icon: "cloud", run: () => layersBatch("cloud"), suggested: true }] : []),
             { title: `Remove ${n}`, text: "With an Undo.", words: "selected picked layers remove delete", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
             { title: "Clear the selection", text: `${n} selected.`, words: "selected picked layers deselect clear", icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
           ])(plural(layers.length, "layer"), layers.some((layer) => !layer.hidden)))(pickedLayers())),
@@ -17069,12 +17186,13 @@ const picture = await studio.png();</pre>
             { title: "Clear the selection", text: `${n} selected.`, words: "selected chosen drawings deselect clear", icon: "close", kbd: "esc", run: () => chooseDrawings([]), suggested: true },
           ])(plural(ids.length, "drawing")))([...chosen])),
           ...(empty ? [] : [{ title: chart.halvings ? "Hide the halvings" : "Show the halvings", text: chart.halvings ? "The lines at each halving, off this chart." : "A line at each halving, and the next, estimated.", words: "halving halvings epoch cycle reward vertical lines markers", icon: "halvings", run: toggleHalvings }]),
-          ...(empty ? [] : LEGENDS.filter(([id]) => id !== (chart.legend ?? "")).map(([id, text, tip]) => ({ title: `Legend: ${text}`, text: `${tip}.`, words: `legend names values strip caption ${{ off: "hide none no", still: "fixed static stay keep put", "": "follow scroll pointer hover show" }[id]}`, icon: "legend", run: () => setLegend(id) }))),
+          ...(empty ? [] : LEGENDS.map(([id, text, tip]) => ({ title: `Legend: ${text}`, text: `${tip}.`, words: `legend names values strip caption ${{ off: "hide none no", still: "fixed static stay keep put", "": "follow scroll pointer hover show" }[id]}`, icon: "legend", ...(id === (chart.legend ?? "") ? { current: true } : { run: () => setLegend(id) }) }))),
           ...(empty && !fullOn() ? [] : [{ title: fullOn() ? "Exit full screen" : "Full screen", text: "The chart alone, on the whole screen.", words: "fullscreen full screen focus maximize expand zen present", icon: fullOn() ? "shrink" : "expand", kbd: "⇧F", run: () => setFull() }]),
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           ...(TOUCH ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
-          ...(edits.past.length || toastUndo?.mark === revision ? [{ title: "Undo", text: toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: toastUndo?.mark === revision }] : []),
+          { title: "How links work", text: "A chart is a link: what one holds, and how to write it by hand or have an assistant write it (the guide, in a tab of its own).", words: "about guide docs documentation help link links json api script assistant ai llms", icon: "link", run: () => window.open("llms.txt", "_blank", "noopener"), anywhere: true },
+          toastUndo?.mark === revision || (!home && edits.past.length) ? { title: "Undo", text: toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", words: "revert back", icon: "undo", anywhere: true },
           // The charts picked in the grid: what its bar does.
           ...(home && picked.size ? [
             ...(picked.size === 1 ? [{ title: "Rename 1 chart", text: "Its title, typed in place.", words: "rename title picked selected", icon: "pencil", run: () => batch("rename"), anywhere: true }] : []),
@@ -17084,10 +17202,10 @@ const picture = await studio.png();</pre>
             { title: `Download ${plural(picked.size, "chart")}`, text: "One chart file, to import again.", words: "export save json picked selected", icon: "file", run: () => batch("export"), anywhere: true },
             { title: `Delete ${plural(picked.size, "chart")}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true, confirm: true },
           ] : []),
-          ...(edits.future.length ? [{ title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redo }] : []),
+          !home && edits.future.length ? { title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redo } : { title: "Redo", text: "Nothing to redo.", words: "again forward", icon: "redo", anywhere: true },
           ...(empty ? [] : [
-            { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", words: "magnify closer", icon: "charts", kbd: "+", run: () => zoom(1 / 1.6) },
-            { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", words: "wider further", icon: "charts", kbd: "−", run: () => zoom(1.6) },
+            { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", words: "magnify enlarge nearer", icon: "charts", kbd: "+", run: () => zoom(1 / 1.6) },
+            { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", words: "wider further shrink", icon: "charts", kbd: "−", run: () => zoom(1.6) },
           ]),
           ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
@@ -17138,13 +17256,14 @@ const picture = await studio.png();</pre>
           const browsing = palette.adding || Boolean(palette.replacing) || !root;
           // ⌘K opens on where you were (the charts you last opened, not this one) and what to do; adding a series opens
           // on the series you last added, then the catalog.
-          const lastCharts = root ? viewed().map(chartById).filter((doc) => doc && (home || doc !== chart)).slice(0, 3).map((doc) => ({ kind: "chart", key: doc.id, group: "Recent charts" })) : [];
+          const lastCharts = root ? viewed().map(chartById).filter((doc) => doc && (home || doc !== chart) && doc.layers.length).slice(0, 3).map((doc) => ({ kind: "chart", key: doc.id, group: "Recent charts" })) : [];
           const recents = root && browsing ? recent().map((name) => ({ kind: "series", key: name, name, group: "Recent series" })) : [];
+          const suggestions = root && browsing ? SUGGESTED.filter((name) => !gone.has(name) && !recents.some((item) => item.name === name)).map((name) => ({ kind: "series", key: name, name, group: "Suggested" })) : [];
           const suggested = root ? commands().filter((command) => command.suggested).map((command) => ({ kind: "command", key: command.title, command, group: "Commands" })) : [];
           // What you pick most from here, lately: three, a step closer.
-          const usual = root && !browsing ? byUse([...commands().map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingRows(), ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Recently used" })) : [];
+          const usual = root && !browsing ? byUse([...commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingRows(), ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Recently used" })) : [];
           const fresh = (item) => !usual.some((other) => other.key === item.key);
-          palette.items = browsing ? [...recents, ...folder] : [...lastCharts, ...usual, ...browseRows().filter(fresh), ...suggested.filter(fresh)];
+          palette.items = browsing ? [...recents, ...suggestions, ...folder] : [...lastCharts, ...usual, ...browseRows().filter(fresh), ...suggested.filter(fresh)];
           // Coming back up, the row you came from stays highlighted; going in, the first.
           palette.active = Math.max(0, palette.items.findIndex((item) => (item.kind !== "series" || palette.path.length > 0) && item.key === palette.landOn));
           palette.landOn = null;
@@ -17177,13 +17296,13 @@ const picture = await studio.png();</pre>
         ];
         // A setting with its value after it ("price color orange"), and a date ("go to 2021", or just "nov 2021"): the
         // change itself, on top.
-        const direct = everything && !home ? directRows(query) : [];
+        const direct = everything && !home ? directRows(query) : [], named = direct.filter((row) => row.named), unnamed = direct.filter((row) => !row.named);
         const span = everything && !home && chart.layers.length ? readDate(query.replace(/^(go ?to|jump( to)?)\s+/i, "")) : null;
         // (A formula typed here, not a date: one that reads, of this chart's layers, all there; added as a layer, first,
         // as ⌘K's formula row adds it. A search with a dash in it stays a search.)
         const asFormula = everything && !home && !span && isOwnFormula(query.trim()) ? [{ kind: "formula", key: "formula", group: "Formula" }] : [];
         const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
-        const local = [...asFormula, ...direct, ...dated, ...strong, ...own, ...charts, ...website], more = weak.map((item) => ({ ...item, group: "More commands" }));
+        const local = [...asFormula, ...named, ...dated, ...strong, ...unnamed, ...own, ...charts, ...website], more = weak.map((item) => ({ ...item, group: "More commands" }));
         palette.moved = false;
         const controller = (palette.controller = new AbortController());
         // What matched here, while the series are looked for: at once when bitview.space answers; on this machine they
@@ -17205,13 +17324,14 @@ const picture = await studio.png();</pre>
           if (controller.signal.aborted) return;
           clearTimeout(palette.timer);
           const active = palette.items[palette.active];
-          palette.items = names ? [...asFormula, ...direct, ...dated, ...strong, ...own, ...charts, ...website, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...more] : [...local, ...more];
+          palette.items = names ? [...asFormula, ...named, ...dated, ...strong, ...unnamed, ...own, ...charts, ...website, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...more] : [...local, ...more];
           // The top result leads (or the row come back to), unless the person already moved to another row.
           palette.active = palette.moved ? Math.max(0, palette.items.indexOf(active)) : landing(palette.items);
           $("palette-glow").hidden = true;
           renderPalette(false, note);
         };
-        findSeries(query, 80, controller.signal, 140).then((names) => settle(names), () => settle(null, "Series search is unavailable right now."));
+        // ("add price" is a search for price: ↵ adds it.)
+        findSeries(query.replace(/^add\s+(?=\S)/i, ""), 80, controller.signal, 140).then((names) => settle(names), () => settle(null, "Series search is unavailable right now."));
       }
 
       /**
@@ -17458,16 +17578,23 @@ const picture = await studio.png();</pre>
         let group = "";
         // A new list starts at its top (set before it's written: after, it would lay the list out at once).
         list.scrollTop = 0;
+        const shown = new Set(home ? [] : chart.layers.map((layer) => layer.series));
         list.innerHTML = palette.items.map((item, i) => {
           const header = item.group && item.group !== group ? `<li class="group" role="presentation">${escape((group = item.group))}</li>` : "";
           if (item.kind === "formula" || item.kind === "insert") return `${header}<li role="option" id="option-${i}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${formulaRow(item)}</li>`;
           if (item.kind === "row") return `${header}<li role="option" id="option-${i}" data-kind="row" data-option="${i}" aria-selected="${i === palette.active}" class="${palette.armed === item.key ? "armed" : ""} ${item.dim ? "dim" : ""}">${rowHtml(item)}</li>`;
           if (item.kind === "command" && palette.armed === item.key) return `${header}<li role="option" id="option-${i}" data-kind="command" data-option="${i}" aria-selected="${i === palette.active}" class="armed">${ICONS.trash}<span class="item-name">Confirm: ${escape(item.command.title)}</span><span class="item-meta">${AGAIN}</span></li>`;
           const doc = item.kind === "chart" ? chartById(item.key) : null;
-          const icon = item.kind === "widen" ? ICONS.browse : item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? ICONS.series : doc ? chartMark(doc) : item.group === "Recent series" ? ICONS.recent : ICONS.series;
-          const name = item.kind === "widen" ? `Search all series for “${escape(palette.query.trim())}”` : item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : searching ? highlightMatch(item.name, palette.query) : escape(item.name);
-          const meta = item.kind === "folder" ? `<span class="item-meta">›</span>` : item.kind === "command" ? (item.command.kbd ? `<kbd>${escape(keyText(item.command.kbd))}</kbd>` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : item.kind === "series" && palette.added.has(item.name) ? `<span class="item-meta">Added ${ICONS.check}</span>` : "";
-          return `${header}<li role="option" id="option-${i}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${icon}<span class="item-name">${name}</span>${meta}</li>`;
+          if (item.kind === "series") {
+            const blocked = byBlock.has(item.name), human = humanize(item.name);
+            const end = blocked ? `<span class="item-meta">By block only</span>` : `<span class="item-meta"><code>${searching ? highlightMatch(item.name, palette.query) : escape(item.name)}</code></span>${shown.has(item.name) ? `<span class="item-mark" role="img" aria-label="In this chart">${ICONS.check}</span>` : ""}`;
+            return `${header}<li role="option" id="option-${i}" data-kind="series" data-option="${i}" aria-selected="${i === palette.active}" ${blocked ? 'class="dim" aria-disabled="true"' : ""}>${item.group === "Recent series" ? ICONS.recent : ICONS.series}<span class="item-name">${searching ? highlightMatch(human, palette.query) : escape(human)}</span>${end}</li>`;
+          }
+          const icon = item.kind === "widen" ? ICONS.browse : item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? ICONS.series : doc ? chartMark(doc) : ICONS.series;
+          const name = item.kind === "widen" ? `Search all series for “${escape(palette.query.trim())}”` : item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : "";
+          const meta = item.kind === "folder" ? `<span class="item-meta">›</span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : item.command.kbd && item.command.run ? `<kbd>${escape(keyText(item.command.kbd))}</kbd>` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
+          const idle = item.kind === "command" && !item.command.run && !item.command.current;
+          return `${header}<li role="option" id="option-${i}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}" ${idle ? 'class="dim" aria-disabled="true"' : ""}>${icon}<span class="item-name">${name}</span>${meta}</li>`;
         }).join("") + tail;
         drawKeys(list);
         // A row landed on (coming back up) is brought into view, with its neighbors.
@@ -17478,14 +17605,17 @@ const picture = await studio.png();</pre>
       /** The footer names what Enter does to the highlighted row. */
       function updatePaletteKeys() {
         const item = palette.items[palette.active];
-        const adds = home ? "New chart with it" : "Add to chart";
-        $("palette-primary").textContent = !item ? adds : item.kind === "widen" ? "Search" : item.kind === "command" ? "Run" : item.kind === "chart" ? "Open chart" : item.kind === "folder" ? "Open folder" : palette.replacing ? "Use instead" : adds;
+        const adds = home ? "New chart with it" : palette.into === "new" && chart.layers.length ? "Add to a new pane" : "Add to chart";
+        $("palette-primary").textContent = !item ? adds : item.kind === "widen" ? "Search" : item.kind === "command" ? (item.command.run ? "Run" : "Close") : item.kind === "chart" ? "Open chart" : item.kind === "folder" ? "Open folder" : palette.replacing ? "Use instead" : adds;
         if (item?.kind === "insert") $("palette-primary").textContent = "Insert";
         if (item?.kind === "row") $("palette-primary").textContent = item.verb ?? (item.page ? "Open" : "Run");
         if (item?.kind === "formula" && palette.editing) $("palette-primary").textContent = "Apply";
         if (item && palette.armed === item.key) $("palette-primary").textContent = "Confirm";
         $("palette-more").hidden = actionsFor(item).length < 2;
-        $("palette-enter").hidden = $("palette-close-sep").hidden = !item;
+        // (A row saying how things are has nothing for ↵ to do but close: esc says that.)
+        $("palette-enter").hidden = $("palette-close-sep").hidden = !item || (item.kind === "command" ? !item.command.run : item.kind === "row" && Boolean(item.current) && !item.run && !item.page);
+        // (How many series there are, where they're searched: not on a page, nor writing a formula.)
+        $("palette-count").hidden = palette.pages.length > 0 || palette.formula;
       }
 
       /** The highlight, one row on (round past the ends), or several (⇧: five, stopping at the ends). */
@@ -17528,11 +17658,17 @@ const picture = await studio.png();</pre>
           return;
         }
         if (item.kind === "command") {
-          panel.innerHTML = `<h4 class="plain">${escape(item.command.title)}</h4><p class="description">${escape(item.command.text)}</p>${item.command.kbd ? `<div class="info"><dl><div><dt>Shortcut</dt><dd><kbd>${escape(keyText(item.command.kbd))}</kbd></dd></div></dl></div>` : ""}`;
+          panel.innerHTML = `<h4 class="plain">${escape(item.command.title)}</h4><p class="description">${escape(item.command.text)}${item.command.current ? " In effect now." : ""}</p>${item.command.kbd && item.command.run ? `<div class="info"><dl><div><dt>Shortcut</dt><dd><kbd>${escape(keyText(item.command.kbd))}</kbd></dd></div></dl></div>` : ""}`;
           return;
         }
         if (item.kind === "chart") return previewChart(panel, chartById(item.key));
-        panel.innerHTML = `<h4>${escape(item.name)}</h4><p class="description"><span class="shimmer">Loading description…</span></p>`;
+        const head = `<h4 class="plain">${escape(humanize(item.name))}</h4><p class="series-id"><code>${escape(item.name)}</code>${((layer) => (layer ? ` · in this chart as ${escape(layer.letter)}` : ""))(home ? null : chart.layers.find((layer) => layer.series === item.name))}</p>`;
+        if (byBlock.has(item.name)) {
+          const day = dailyOf(item.name);
+          panel.innerHTML = `${head}<p class="description">${BY_BLOCK}.${day ? ` By day, there's ${escape(humanize(day))} (<code>${escape(day)}</code>).` : ""}</p>`;
+          return;
+        }
+        panel.innerHTML = `${head}<p class="description"><span class="shimmer">Loading description…</span></p>`;
         previewTimer = setTimeout(async () => {
           try {
             retryInfo(item.name);
@@ -17540,7 +17676,7 @@ const picture = await studio.png();</pre>
             if (palette.items[palette.active] !== item) return;
             const unit = unitOf(item.name, meta.type);
             units.set(item.name, unit);
-            panel.innerHTML = `<h4>${escape(item.name)}</h4>
+            panel.innerHTML = `${head}
               ${meta.description ? `<p class="description clamped">${escape(meta.description)}</p>` : ""}
               <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
               <div class="info"><h5>Information</h5><dl>
@@ -17566,7 +17702,7 @@ const picture = await studio.png();</pre>
             if (palette.items[palette.active] !== item) return;
             drawSpark(response.data.map((value) => (Array.isArray(value) ? value[3] : value)).map((value) => (value == null ? NaN : Number(value))), unit);
           } catch (error) {
-            if (palette.items[palette.active] === item) panel.innerHTML = `<h4>${escape(item.name)}</h4><div class="error-box">${escape(failure(error))}</div>`;
+            if (palette.items[palette.active] === item) panel.innerHTML = `${head}<div class="error-box">${escape(failure(error))}</div>`;
           }
         }, 90);
       }
@@ -17627,9 +17763,9 @@ const picture = await studio.png();</pre>
         if (item.kind === "series" && item.name && !palette.replacing) {
           const name = item.name, layer = layerById(selected);
           return [
-            { label: palette.into ? `Add to pane ${paneNumber(palette.into)}` : "Add to chart", kbd: "↵", run: () => choose() },
+            { label: palette.into === "new" ? "Add to a new pane" : palette.into ? `Add to pane ${paneNumber(palette.into)}` : "Add to chart", kbd: "↵", run: () => choose() },
             { label: "Add and keep going", kbd: "⌘↵", stay: true, run: () => choose(false, true) },
-            ...(chart.layers.length ? [...(room ? [{ label: "Add to a new pane", kbd: "⇧↵", run: () => choose(true) }] : []), ...intoPanes((pane) => addSeries(name, { pane }))] : []),
+            ...(chart.layers.length ? [...(room && palette.into !== "new" ? [{ label: "Add to a new pane", kbd: "⇧↵", run: () => choose(true) }] : []), ...intoPanes((pane) => addSeries(name, { pane }))] : []),
             ...(layer?.series && layer.series !== name ? [{ label: `Replace ${layer.letter} with it`, aside: labelOf(layer), run: () => replaceSeries(layer.id, name) }] : []),
             { label: "New chart with it", run: () => newChartWith(name) },
             { label: "Copy the series name", run: () => copyName(name) },
@@ -17692,7 +17828,7 @@ const picture = await studio.png();</pre>
         title: "rename name", name: "rename label", series: "replace swap change other", solo: "solo alone only isolate", derive: "moving average sma ema smooth bands percentile median deviation zscore transform", "to-formula": "convert transform", "to-series": "convert", format: "format",
         type: "line area bars histogram baseline candles dots style", color: "colour", "color-below": "colour", dash: "dashed dotted stroke", shape: "steps curved smooth",
         fill: "area", width: "thickness stroke", opacity: "transparency alpha", pane: "move", side: "left right", "price-line": "last value",
-        base: "zero", levels: "horizontal lines threshold", hide: "visible show", remove: "delete", duplicate: "copy clone",
+        base: "zero", levels: "horizontal lines threshold", hide: "visible show eye", remove: "delete", duplicate: "copy clone",
         interval: "timeframe resolution", range: "zoom period", export: "download png csv json image", share: "link url",
         scale: "log linear percent indexed", extend: "ray reach extended project future", text: "words label note write", size: "font bigger smaller", stack: "stacked cumulative sum share total", height: "size resize", up: "swap reorder", down: "swap reorder", "go-to": "jump date when",
       };
@@ -17711,14 +17847,15 @@ const picture = await studio.png();</pre>
         }
         return row[b.length];
       }
-      /**
-       * How well what's typed finds a text, word by word: a whole word, a word's start, inside one, or (from four letters)
-       * a word a letter or two off; 0 when a word finds nothing.
-       */
       /** Words that say nothing of what's looked for, in a search of several ("move to pane", "the price color"). */
       const FILLER = new Set(["a", "an", "the", "to", "of", "in", "on", "for", "and", "my", "into", "with", "at", "by"]);
-      function fitScore(text, words) {
-        const lower = text.toLowerCase(), own = lower.split(/[^a-z0-9%×.]+/).filter(Boolean);
+      /**
+       * How well what's typed finds a text, word by word: a whole word, a word's start, inside one, or (from four letters)
+       * a word of its `name` a letter or two off (a slip in what it's called, not in what's said of it: "light" isn't
+       * "right"); 0 when a word finds nothing.
+       */
+      function fitScore(text, words, name = text) {
+        const lower = text.toLowerCase(), own = lower.split(/[^a-z0-9%×.]+/).filter(Boolean), named = new Set(name.toLowerCase().split(/[^a-z0-9%×.]+/));
         let total = 0;
         for (const word of words) {
           if (!/[a-z0-9]/.test(word)) {
@@ -17730,7 +17867,7 @@ const picture = await studio.png();</pre>
             if (other === word) best = 4;
             else if (other.startsWith(word)) best = Math.max(best, 3);
             else if (word.length >= 3 && other.includes(word)) best = Math.max(best, 2);
-            else if (!best && word.length >= 4 && editsBetween(word, other.slice(0, word.length + 1), word.length >= 7 ? 2 : 1) <= (word.length >= 7 ? 2 : 1)) best = 1;
+            else if (!best && word.length >= 4 && named.has(other) && editsBetween(word, other.slice(0, word.length + 1), word.length >= 7 ? 2 : 1) <= (word.length >= 7 ? 2 : 1)) best = 1;
             if (best === 4) break;
           }
           if (!best && word.length >= 3 && lower.includes(word)) best = 2;
@@ -17744,8 +17881,10 @@ const picture = await studio.png();</pre>
       const DANGER_VERBS = ["remove", "delete", "clear", "erase", "trash", "discard"];
       const dangerous = (/** @type {any} */ item) => Boolean(item.danger ?? item.command?.danger);
       const askedFor = (/** @type {string[]} */ words) => words.some((word) => word.length >= 2 && DANGER_VERBS.some((verb) => verb.startsWith(word)));
+      /** What a row of ⌘K is called: a chart's title, a command's, a row's label (where a slip in typing still finds it). */
+      const nameOf = (/** @type {any} */ item) => (item.kind === "chart" ? titleOf(chartById(item.key) ?? { title: "" }) : item.command?.title ?? item.label ?? "");
       /** What's found, best first, then what's used most lately, then as listed (what removes, only when asked for). */
-      const rank = (list, textOf, words) => list.map((item, i) => /** @type {[any, number, number]} */ ([item, fitScore(textOf(item), words), i])).filter(([item, score]) => score > 0 && (!dangerous(item) || askedFor(words))).sort((a, b) => b[1] - a[1] || useScore(b[0].key) - useScore(a[0].key) || a[2] - b[2]).map(([item]) => item);
+      const rank = (list, textOf, words) => list.map((item, i) => /** @type {[any, number, number]} */ ([item, fitScore(textOf(item), words, nameOf(item)), i])).filter(([item, score]) => score > 0 && (!dangerous(item) || askedFor(words))).sort((a, b) => b[1] - a[1] || useScore(b[0].key) - useScore(a[0].key) || a[2] - b[2]).map(([item]) => item);
       /** What a row is found by: its label, its aside, its words, what else it's called; a chart, by its title. */
       const rowText = (item) => (item.kind === "chart" ? titleOf(chartById(item.key) ?? { title: "" }) : `${item.label ?? ""} ${item.aside ?? ""} ${item.words ?? ""} ${SYNONYMS[item.key] ?? ""}`);
       /** Into a page: what was typed, and the row that led there, come back with ⌫. @param {Page} page */
@@ -17814,9 +17953,9 @@ const picture = await studio.png();</pre>
       function rowHtml(item) {
         const armed = palette.armed === item.key;
         const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : escape(item.aside)) : "";
-        const end = armed ? AGAIN : aside, marks = armed ? "" : [item.current ? ICONS.check : "", item.page || item.leads ? "›" : ""].filter(Boolean).join(" ");
+        const end = armed ? AGAIN : aside, marks = armed ? "" : [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", item.page || item.leads ? '<span aria-hidden="true">›</span>' : ""].filter(Boolean).join(" ");
         const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
-        return `${item.icon ?? ""}<span class="item-name">${armed ? `Confirm: ${escape(item.label)}` : query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark" aria-hidden="true">${marks}</span>` : ""}${item.kbd && !armed ? `<kbd>${escape(keyText(item.kbd))}</kbd>` : ""}`;
+        return `${item.icon ?? ""}<span class="item-name">${armed ? `Confirm: ${escape(item.label)}` : query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd && !armed ? `<kbd>${escape(keyText(item.kbd))}</kbd>` : ""}`;
       }
       /** A chart: its title, layers, interval, when it was last edited. */
       function previewChart(panel, doc) {
@@ -17929,16 +18068,17 @@ const picture = await studio.png();</pre>
        * Color", its value at its end. Opened, it opens within its owner's page, so ← goes back there.
        */
       function settingRows() {
-        // (The chart's page adds only its settings: its actions are commands already.)
+        // (The chart's page adds only its settings, as the chart's: its actions are commands already; its title found
+        // too. A layer's adds its own: its pane's are the pane's, once.)
         const shared = new Set(chart.layers.map(labelOf).filter((name, i, names) => names.indexOf(name) !== i));
         const owners = [
-          { name: titleOf(chart), kind: "chart", page: chartPage, only: ["title", "interval", "range"] },
-          ...chart.layers.map((layer) => ({ name: shared.has(labelOf(layer)) ? `${labelOf(layer)} (${layer.letter})` : labelOf(layer), kind: "layer", page: () => layerPage(layer.id), only: null })),
-          ...chart.panes.map((pane, i) => ({ name: `Pane ${i + 1}`, kind: "pane", page: () => panePage(pane.id), only: null })),
-          ...((names) => (chart.drawings ?? []).map((drawing) => ({ name: /** @type {string} */ (names.get(drawing.id)), kind: "drawing", page: () => drawingPage(drawing.id), only: null })))(drawingNames()),
+          { name: "Chart", kind: `chart ${titleOf(chart)}`, page: chartPage, only: ["title", "interval", "range"], not: [] },
+          ...chart.layers.map((layer) => ({ name: shared.has(labelOf(layer)) ? `${labelOf(layer)} (${layer.letter})` : labelOf(layer), kind: "layer", page: () => layerPage(layer.id), only: null, not: ["scale", "stack", "order"] })),
+          ...chart.panes.map((pane, i) => ({ name: `Pane ${i + 1}`, kind: `pane ${chart.layers.filter((layer) => layer.pane === pane.id).map(labelOf).join(" ")}`, page: () => panePage(pane.id), only: null, not: [] })),
+          ...((names) => (chart.drawings ?? []).map((drawing) => ({ name: /** @type {string} */ (names.get(drawing.id)), kind: "drawing", page: () => drawingPage(drawing.id), only: null, not: [] })))(drawingNames()),
         ];
-        return owners.flatMap(({ name, kind, page, only }) => page().rows().filter((row) => !row.key.startsWith("layer:") && !row.key.startsWith("add-") && (!only || only.includes(row.key))).map((row) => ({
-          ...row, key: `setting:${name}:${row.key}`, group: "In this chart", label: `${name} · ${row.label}`, words: `${name} ${kind} ${row.words ?? ""} ${SYNONYMS[row.key] ?? ""}`, of: row.page,
+        return owners.flatMap(({ name, kind, page, only, not }) => page().rows().filter((row) => !row.key.startsWith("layer:") && !row.key.startsWith("add-") && (!only || only.includes(row.key)) && !not.includes(row.key)).map((row) => ({
+          ...row, key: `setting:${name}:${row.key}`, owner: { name, kind: kind.split(" ")[0] }, group: "In this chart", label: `${name} · ${row.label}`, words: `${name} ${kind} ${row.words ?? ""} ${SYNONYMS[row.key] ?? ""}`, of: row.page ?? (row.choices && (() => choicePage(row.label, row.choices))),
           page: row.page && (() => {
             const owner = page();
             pushPage(owner);
@@ -17948,49 +18088,69 @@ const picture = await studio.png();</pre>
         })));
       }
       /**
-       * A setting with its value typed after it, as one change to run: "price color orange", "mvrv base 1", "pane 1 scale
-       * log", "interval weekly", "rename BTC cycles". The words before the value find the setting (as the search does);
-       * the value picks a choice by its name, or is read as the setting's own page reads it.
+       * A setting with its value typed after it (or before, or between: "left axis", "price right axis"), as one change to
+       * run: "price color orange", "mvrv base 1", "pane 1 scale log", "interval weekly", "rename BTC cycles". The other
+       * words find the setting (as the search does); the value picks a choice by its name (one in effect, said so:
+       * nothing to change), or is read as the setting's own page reads it. `named`: what it's of named too ("price"), not
+       * only the setting (then a layer's, a pane's, a drawing's leads only after the commands that do).
        */
       function directRows(query) {
         const words = query.trim().split(/\s+/);
+        // (What it's of, the setting and its value: a few words; a name's value, any.)
         if (words.length < 2) return [];
+        const many = words.length > 6;
+        // (The value after the setting's words, the most of them first; then before them; then between.)
+        const runs = words.flatMap((_, from) => words.map((__, to) => /** @type {[number, number]} */ ([from, to + 1]))).filter(([from, to]) => from < to && to - from < words.length);
+        const where = ([from, to]) => (to === words.length ? 0 : from === 0 ? 1 : 2);
+        // (A value not at the end is one a choice is called by, as typed or its start: "left axis", never "pane 2 log".)
+        const splits = runs.sort((a, b) => where(a) - where(b) || (where(a) === 1 ? a[1] - b[1] : b[0] - a[0])).map((run) => /** @type {[string[], string[], boolean]} */ ([[...words.slice(0, run[0]), ...words.slice(run[1])], words.slice(run[0], run[1]), where(run) > 0]));
         /** How a choice answers to a value: its name exactly, its start, any of its words (a slip allowed). */
+        // (A key that's a number is a place in a list, a scale's "2", never what it's called.)
         const answer = (option, value) => {
-          const lower = value.toLowerCase();
-          if (option.label.toLowerCase() === lower || option.key.toLowerCase() === lower) return 4;
+          const lower = value.toLowerCase(), key = /^\d+$/.test(option.key) ? "" : option.key.toLowerCase();
+          if (option.label.toLowerCase() === lower || key === lower) return 4;
           if (option.label.toLowerCase().startsWith(lower)) return 3;
-          return Math.min(2, fitScore(`${option.label} ${option.aside ?? ""} ${option.key}`, lower.split(/\s+/)));
+          return Math.min(2, fitScore(`${option.label} ${option.aside ?? ""} ${key}`, lower.split(/\s+/)));
         };
         const found = [];
         for (const row of settingRows()) {
           if (!row.of) continue;
           const name = rowText({ ...row, aside: "" }), itself = `${row.label.split(" · ").pop()} ${SYNONYMS[row.key.split(":").pop()] ?? ""}`;
-          // The longest run of words that finds the setting; the rest is its value.
-          for (let k = words.length - 1; k >= 1; k--) {
-            const head = words.slice(0, k).map((word) => word.toLowerCase()), value = words.slice(k).join(" ");
+          // The longest run of words that finds the setting, and a value for it in the rest.
+          /** @type {Page | null} */
+          let page = null;
+          for (const [lead, rest, within] of splits) {
+            if (many && (within || lead.length > 4)) continue;
+            const head = lead.map((word) => word.toLowerCase()), value = rest.join(" ");
             // The words name the setting itself, not only what it's of: "mvrv base 1", not "mvrv 1".
             const score = fitScore(name, head);
             if (!score || !head.some((word) => word.length > 1 && fitScore(itself, [word]))) continue;
-            const page = row.of();
-            if (page.input) {
-              if (namesSomething(value)) break;
-              const said = page.input.read(value);
-              if (said) found.push({ score, row: { kind: "row", key: `do:${row.key}`, icon: row.icon, label: `${row.label} → ${said.replace(/^(Set|Rename) to /, "")}`, group: "Set", verb: "Set", run: () => page.input?.set(value), preview: row.preview } });
+            const own = (page ??= row.of());
+            if (own.input) {
+              // (A name's value: what follows the longest run of words finding it, whatever it is; "rename chart Price" is no title.)
+              if (within) continue;
+              const said = namesSomething(value) ? null : own.input.read(value);
+              if (said) found.push({ score, row: { kind: "row", key: `do:${row.key}`, icon: row.icon, label: `${row.label} → ${said.replace(/^(Set|Rename) to /, "")}`, group: "Set", verb: "Set", run: () => own.input?.set(value), preview: row.preview, named: row.owner.kind === "chart" || head.some((word) => fitScore(row.owner.name, [word])) } });
+              break;
             } else {
-              const options = page.rows().filter((option) => option.apply);
-              const best = options.map((option) => /** @type {[any, number]} */ ([option, answer(option, value)])).filter(([, fits]) => fits > 0).sort((a, b) => b[1] - a[1])[0]?.[0];
-              if (best) found.push({ score, row: { kind: "row", key: `do:${row.key}:${best.key}`, icon: best.icon ?? row.icon, label: `${row.label} → ${best.label}`, group: "Set", verb: "Set", run: best.apply, look: best.look, preview: best.preview ?? row.preview } });
+              // (Of two that fit as well, the one not in effect: "move to pane" offers another pane.)
+              const options = own.rows().filter((option) => option.apply);
+              const best = options.map((option) => /** @type {[any, number]} */ ([option, answer(option, value)])).filter(([, fits]) => fits > (within ? 2 : 0)).sort((a, b) => b[1] - a[1] || Number(Boolean(a[0].current)) - Number(Boolean(b[0].current)))[0]?.[0];
+              if (!best) continue;
+              const named = row.owner.kind === "chart" || head.some((word) => fitScore(row.owner.name, [word]));
+              found.push({ score, row: best.current
+                ? { kind: "row", key: `do:${row.key}:${best.key}`, icon: best.icon ?? row.icon, label: `${row.label} → ${best.label}`, group: "Set", verb: "Close", current: true, preview: best.preview ?? row.preview, named }
+                : { kind: "row", key: `do:${row.key}:${best.key}`, icon: best.icon ?? row.icon, label: `${row.label} → ${best.label}`, group: "Set", verb: "Set", run: best.apply, look: best.look, preview: best.preview ?? row.preview, named } });
             }
             break;
           }
         }
         return found.sort((a, b) => b.score - a.score).slice(0, 3).map(({ row }) => row);
       }
-      /** Whether words name something here (a folder, a chart, a layer) or a kind of thing: never a value to set. */
+      /** Whether words name something here (a folder, a chart, a layer) or a kind of thing, or start with one ("chart Price"): never a value to set. */
       function namesSomething(/** @type {string} */ value) {
-        const said = value.trim().toLowerCase();
-        return ["folder", "folders", "chart", "charts", "layer", "layers", "pane", "panes", "drawing", "drawings", "series"].includes(said)
+        const said = value.trim().toLowerCase(), kinds = ["folder", "folders", "chart", "charts", "layer", "layers", "pane", "panes", "drawing", "drawings", "series"];
+        return kinds.includes(said.split(/\s+/)[0])
           || library.folders.some((folder) => folder.name.toLowerCase() === said) || library.charts.some((doc) => titleOf(doc).toLowerCase() === said) || chart.layers.some((layer) => labelOf(layer).toLowerCase() === said);
       }
       /** The root's ways into each part: this chart, your charts, its layers and panes, the templates. */
@@ -18004,7 +18164,7 @@ const picture = await studio.png();</pre>
             { key: "page:panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), words: "scale height resize swap move", page: panesPage },
             { key: "page:drawings", icon: ICONS.draw, label: "Drawings", aside: chart.drawings?.length ? plural(chart.drawings.length, "drawing") : "Lines, boxes, text", words: "draw drawings annotations lines shapes text brush", page: drawingsPage },
           ] : []),
-          { key: "page:presets", icon: ICONS.charts, label: "Website charts", aside: presets ? plural(presets.length, "chart") : "From bitview.space", words: "website bitview presets examples import base start browse", page: () => presetsPage([]) },
+          { key: "page:presets", icon: ICONS.charts, label: "Website charts", aside: presets ? plural(presets.length, "chart") : "From bitview.space", words: "website bitview presets templates examples gallery import base start browse", page: () => presetsPage([]) },
         ].filter((row) => !home || row.key === "page:charts" || row.key === "page:presets").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
       }
       /** Your charts, as ⌘K's page: those in no folder, then each folder's under its name (the sidebar's order); and making more. */
@@ -18156,7 +18316,7 @@ const picture = await studio.png();</pre>
               { key: "shape", icon: shapeGlyph(layer.shape ?? "straight"), label: "Shape", aside: SHAPES.find(([shape]) => shape === (layer.shape ?? "straight"))?.[1], group: "Style", page: () => choicePage("Shape", () => SHAPES.map(([shape, text]) => ({ key: shape, icon: shapeGlyph(shape), label: text, aside: shape === "steps" ? "Each value held until the next" : undefined, current: (now().shape ?? "straight") === shape, ...both((item) => (item.shape = shape === "straight" ? undefined : shape)) }))) },
             ] : []),
             ...(layer.type === "area" ? [{ key: "fill", icon: glyph("area"), label: "Fill", aside: layer.fill === "above" ? "From the line up" : "From the line down", verb: layer.fill === "above" ? "Fill down" : "Fill up", group: "Style", stay: true, run: set((item) => (item.fill = item.fill === "above" ? undefined : "above")) }] : []),
-            { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? "On" : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
+            { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? "On" : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)), choices: () => [true, false].map((on) => ({ key: on ? "on" : "off", icon: dashGlyph(2, 2), label: on ? "On" : "Off", current: Boolean(now().priceLine) === on, run: set((item) => (item.priceLine = on || undefined)) })) },
             ...(pair ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(layer.base ?? 0, unit), group: "Style", page: () => numberPage({ title: "Base", value: String(layer.base ?? 0), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n === 0 ? undefined : n)) }) }] : []),
             ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
             { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? plural(layer.levels.length, "level") : "None", group: "Style", page: () => levelsPage(id) },
@@ -18164,7 +18324,7 @@ const picture = await studio.png();</pre>
               ...chart.panes.map((pane, i) => ({ key: pane.id, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: paneNames(pane), current: now().pane === pane.id, run: set((item) => (item.pane = pane.id)) })),
               ...(chart.panes.length < MAX_PANES ? [{ key: "new", icon: ICONS.plus, label: "New pane", run: set((item, doc) => (item.pane = newPaneIn(doc).id)) }] : []),
             ]) },
-            { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")) },
+            { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")), choices: () => /** @type {const} */ (["left", "right"]).map((side) => ({ key: side, icon: ICONS.axis, label: capitalize(side), current: (now().side === "left" ? "left" : "right") === side, run: set((item) => (item.side = side)) })) },
             ...panePage(layer.pane).rows().filter((row) => row.key === "scale" || row.key === "stack" || row.key === "order").map((row) => ({ ...row, group: "Layout" })),
             ...((mates) => [
               ...(mates.indexOf(layer) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) - 1])}`, verb: "Move", group: "Layout", stay: true, run: () => moveLayer(id, -1) }] : []),
@@ -18183,7 +18343,7 @@ const picture = await studio.png();</pre>
             { key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", group: "Layer", stay: true, run: () => toggleHidden(id) },
             ...(chart.layers.some((other) => other.pane === layer.pane && other.id !== id) ? [{ key: "solo", icon: ICONS.eye, label: aloneInPane(layer) ? "Show every layer in its pane" : "Show it alone in its pane", aside: aloneInPane(layer) ? undefined : "The others there hidden", verb: "Show", group: "Layer", stay: true, run: () => soloLayer(id) }] : []),
             { key: "panel", icon: ICONS.sliders, label: "Settings", aside: "In the panel", verb: "Open", group: "Layer", run: () => select(id) },
-            { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", group: "Layer", run: () => duplicateLayer(id) },
+            ...(chart.layers.length < MAX_LAYERS ? [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", group: "Layer", run: () => duplicateLayer(id) }] : []),
             { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", group: "Layer", danger: true, run: () => removeLayer(id) },
           ];
           // (A cloud's: what's a line's, a series' or a formula's isn't its.)
@@ -18585,6 +18745,8 @@ const picture = await studio.png();</pre>
           }
         }
         if (item.kind === "command") {
+          // (One saying how things are: nothing to do, ⌘K closes.)
+          if (!item.command.run) return void $("palette").close();
           if (fromSearch()) noteUse(item.key);
           if (!item.command.keepOpen) $("palette").close();
           item.command.run();
@@ -18600,13 +18762,14 @@ const picture = await studio.png();</pre>
           return void newChartWith(item.name);
         }
         const replacing = palette.replacing;
+        // (Adding to a new pane, chosen beforehand: each one added goes in one.)
+        newPane ||= palette.into === "new";
         if (newPane && !replacing && chart.layers.length && chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes`);
         // Related series sit together: adding another to this chart reopens here, on this one.
         if (!replacing) addedFrom = palette.adding && palette.path.length ? { chart: chart.id, path: palette.path.slice(), key: item.key } : null;
         if (keep && !replacing) {
           // Added, and ⌘K stays on these results: the next one is a ⌘↵ away.
-          addSeries(item.name, { newPane, pane: newPane ? null : palette.into }).then((added) => {
-            if (added) palette.added.add(item.name);
+          addSeries(item.name, { newPane, pane: newPane ? null : palette.into }).then(() => {
             renderPalette();
             $("palette-input").focus();
           });
@@ -20544,11 +20707,20 @@ const picture = await studio.png();</pre>
           return Promise.all(chart.layers.flatMap((layer) => {
             const result = resolved?.results.get(layer.id), error = result?.error ? result.detail ?? result.error : cloudUnfit(chart, layer);
             if (!error) return [];
-            return [result?.missing && layer.series ? closestSeries(layer.series).then((closest) => ({ layer: layer.letter, error, ...(closest ? { closest } : {}) })) : { layer: layer.letter, error }];
+            const closest = !layer.series ? null : result?.missing ? closestSeries(layer.series) : result?.detail === BY_BLOCK ? catalogIndexed.then(() => dailyOf(/** @type {string} */ (layer.series)) ?? closestSeries(/** @type {string} */ (layer.series))) : null;
+            return [closest ? closest.then((name) => ({ layer: layer.letter, error, ...(name ? { closest: name } : {}) })) : { layer: layer.letter, error }];
           }));
         },
-        /** Series names for words, as Studio's search finds them (the catalog it has, at hand): the best first. */
-        search: async (/** @type {string} */ text, count = 10) => (await findSeries(String(text), Math.min(50, count))).filter((name) => !gone.has(name)),
+        /**
+         * Series names for words, as Studio's search finds them (the catalog at hand, its index awaited a while): the
+         * best first, only those it can chart (by date).
+         */
+        async search(/** @type {string} */ text, count = 10) {
+          startFinder();
+          const late = new Promise((done) => setTimeout(done, 15_000));
+          await Promise.race([Promise.all([finderUp, catalogIndexed]), late]);
+          return (await findSeries(String(text), Math.min(50, count) + 20)).filter((name) => !gone.has(name) && !byBlock.has(name)).slice(0, Math.min(50, count));
+        },
       });
       Object.defineProperty(window, "studio", { value: studio });
 
