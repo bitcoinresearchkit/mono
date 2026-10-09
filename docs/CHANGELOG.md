@@ -302,6 +302,9 @@ has to be deleted by hand.
   instead of a transaction-ID lookup and three reads of the output vectors. Indexing 970,536 blocks on a 16 GB Mac
   mini takes 4,421 s instead of 7,109 s (850,000 to 900,000 in half the time) and peaks 0.7 GiB higher, with the
   same series
+- The mempool resolves inputs that spend confirmed outputs through the unspent-output store first (one lookup, the
+  txid check, the value and the address bytes), falling back to the parent transaction: at startup its first two
+  resolutions take 0.65-0.74 s and 2.3-2.4 s instead of 1.0-1.1 s and 3.3 s (about 12,000 and 18,500 inputs)
 
 #### `brk_reader`
 

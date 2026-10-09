@@ -54,6 +54,7 @@ mod vecs;
 pub use has::HasIndexer;
 
 pub use safe_lengths::SafeLengths;
+pub use stores::UtxoKey;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indexer"), VERSION);
 const EXPORT_HEIGHT_INTERVAL: usize = 100;

@@ -100,8 +100,10 @@ impl Stores {
         self.txid_prefix_to_tx_index.get(prefix)
     }
 
+    /// The unspent output under `key`, as last ingested: it can be above the published safe lengths, and the key
+    /// holds only an 8-byte txid prefix, so readers outside the indexer check both. Spent outputs miss.
     #[inline]
-    pub(crate) fn utxo(&self, key: &UtxoKey) -> Result<Option<Utxo>> {
+    pub fn utxo(&self, key: &UtxoKey) -> Result<Option<Utxo>> {
         self.utxos.get(key)
     }
 

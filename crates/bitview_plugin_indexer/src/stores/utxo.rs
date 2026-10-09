@@ -37,7 +37,7 @@ pub struct Utxo([u8; 17]);
 
 impl Utxo {
     #[inline]
-    pub fn new(
+    pub(crate) fn new(
         tx_index: TxIndex,
         txout_index: TxOutIndex,
         output_type: OutputType,
