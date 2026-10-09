@@ -14,7 +14,6 @@ impl BlockBuffers {
     pub fn continue_from(&mut self, parent: Option<BlockHash>) {
         if self.tip != parent {
             self.addresses.clear_cache();
-            self.inputs.clear_cache();
         }
         self.tip = parent;
     }

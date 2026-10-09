@@ -21,8 +21,10 @@ use checkpoint::{
 
 pub mod checkpoint;
 pub mod transaction;
+mod utxo;
 
 pub use transaction::TransactionStoresMut;
+pub use utxo::{Utxo, UtxoKey};
 
 #[derive(Clone)]
 pub struct Stores {
@@ -34,6 +36,8 @@ pub struct Stores {
     addr_type_to_addr_index_and_unspent_outpoint: ByAddrType<Store<AddrIndexOutPoint, Unit>>,
     blockhash_prefix_to_height: Store<BlockHashPrefix, Height>,
     txid_prefix_to_tx_index: Store<TxidPrefix, TxIndex>,
+    /// Every output not spent yet but OP_RETURN ones: what resolving an input needs, in one lookup.
+    utxos: Store<UtxoKey, Utxo>,
 }
 
 impl Stores {
@@ -94,6 +98,11 @@ impl Stores {
     #[inline]
     pub fn tx_index(&self, prefix: &TxidPrefix) -> Result<Option<TxIndex>> {
         self.txid_prefix_to_tx_index.get(prefix)
+    }
+
+    #[inline]
+    pub(crate) fn utxo(&self, key: &UtxoKey) -> Result<Option<Utxo>> {
+        self.utxos.get(key)
     }
 
     pub fn import(parent: &Path, version: Version) -> Result<Self> {
@@ -165,11 +174,20 @@ impl Stores {
                 || ByAddrType::par_try_from_fn(create_addr_index_to_unspent_outpoint_store),
             )
         };
-        let create_prefix_stores = || join(create_blockhash_prefix_store, create_txid_prefix_store);
+        let create_utxo_store =
+            || Store::import(database_ref, path, "utxos", version, Kind::Recent);
+        let create_prefix_stores = || {
+            join(
+                || join(create_blockhash_prefix_store, create_txid_prefix_store),
+                create_utxo_store,
+            )
+        };
 
-        // Every store owns an independent keyspace, so all 26 can recover in parallel.
-        let (((addr_hashes, addr_tx_indexes), addr_unspent_outpoints), (blockhashes, txids)) =
-            join(create_address_stores, create_prefix_stores);
+        // Every store owns an independent keyspace, so all 27 can recover in parallel.
+        let (
+            ((addr_hashes, addr_tx_indexes), addr_unspent_outpoints),
+            ((blockhashes, txids), utxos),
+        ) = join(create_address_stores, create_prefix_stores);
 
         let stores = Self {
             db: database.clone(),
@@ -179,6 +197,7 @@ impl Stores {
             addr_type_to_addr_index_and_unspent_outpoint: addr_unspent_outpoints?,
             blockhash_prefix_to_height: blockhashes?,
             txid_prefix_to_tx_index: txids?,
+            utxos: utxos?,
         };
 
         if stores.checkpoint.next_height()?.is_none() && stores.is_empty()? {
@@ -196,6 +215,7 @@ impl Stores {
         [
             &mut self.blockhash_prefix_to_height as &mut dyn AnyStore,
             &mut self.txid_prefix_to_tx_index,
+            &mut self.utxos,
         ]
         .into_par_iter()
         .chain(
@@ -246,6 +266,7 @@ impl Stores {
 
         take!(self.blockhash_prefix_to_height);
         take!(self.txid_prefix_to_tx_index);
+        take!(self.utxos);
 
         for store in self.addr_type_to_addr_hash_to_addr_index.values_mut() {
             take!(store);
@@ -296,6 +317,7 @@ impl Stores {
     fn is_empty(&self) -> Result<bool> {
         Ok(self.blockhash_prefix_to_height.is_empty()?
             && self.txid_prefix_to_tx_index.is_empty()?
+            && self.utxos.is_empty()?
             && self
                 .addr_type_to_addr_hash_to_addr_index
                 .values()
@@ -379,13 +401,27 @@ impl Stores {
             return Err(Error::Internal("Invalid rollback output boundaries"));
         }
 
-        for (tx_index, txout_range) in txout_ranges(
+        let txids = vecs.transactions.txid.reader();
+        let removed_txids = vecs
+            .transactions
+            .txid
+            .collect_range_at(starting_tx_index.to_usize(), vecs.transactions.txid.len());
+        debug_assert_eq!(removed_txids.len(), first_txout_indexes.len());
+
+        for ((tx_index, txout_range), txid) in txout_ranges(
             starting_tx_index,
             &first_txout_indexes,
             TxOutIndex::from(rollback_end),
-        ) {
+        )
+        .zip(&removed_txids)
+        {
+            let txid_prefix = TxidPrefix::from(txid);
             for (vout, txout_index) in txout_range.enumerate() {
                 let output_type = txout_index_to_output_type_reader.get_at(txout_index);
+                if !output_type.is_unspendable() {
+                    self.utxos
+                        .remove(UtxoKey::new(txid_prefix, Vout::from(vout)));
+                }
                 if !output_type.is_addr() {
                     continue;
                 }
@@ -406,6 +442,7 @@ impl Stores {
         let start = starting_lengths.txin_index.to_usize();
         let end = vecs.inputs.outpoint.len();
         let mut outpoints = vecs.inputs.outpoint.cursor();
+        let mut txout_indexes = vecs.inputs.txout_index.cursor();
         let mut output_types = vecs.inputs.output_type.cursor();
         let mut type_indexes = vecs.inputs.type_index.cursor();
         let mut spending_tx_indexes = vecs.inputs.tx_index.cursor();
@@ -416,9 +453,23 @@ impl Stores {
                 continue;
             }
             let output_type = output_types.get(index).data()?;
+            let type_index = type_indexes.get(index).data()?;
+            // Outputs created by removed transactions went with them; older ones are unspent again.
+            if outpoint.tx_index() < starting_tx_index {
+                let txid = txids.get(outpoint.tx_index());
+                self.utxos.insert(
+                    UtxoKey::new(TxidPrefix::from(&txid), outpoint.vout()),
+                    Utxo::new(
+                        outpoint.tx_index(),
+                        txout_indexes.get(index).data()?,
+                        output_type,
+                        type_index,
+                    ),
+                );
+            }
             if output_type.is_addr() {
                 let addr_type = output_type;
-                let addr_index = type_indexes.get(index).data()?;
+                let addr_index = type_index;
                 let spending_tx_index = spending_tx_indexes.get(index).data()?;
 
                 addr_index_tx_index_to_remove.insert((addr_type, addr_index, spending_tx_index));
@@ -452,6 +503,7 @@ impl Stores {
             addr_tx_indexes: &mut self.addr_type_to_addr_index_and_tx_index,
             addr_unspent_outpoints: &mut self.addr_type_to_addr_index_and_unspent_outpoint,
             txid_prefixes: &mut self.txid_prefix_to_tx_index,
+            utxos: &mut self.utxos,
         }
     }
 }

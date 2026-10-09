@@ -12,7 +12,7 @@ A workspace-wide refactor: one job per crate, typed series values, a typed error
 composition model, and many correctness fixes.
 
 **Upgrading:** a node upgrading from v0.12.2 rebuilds once. VecDB headers moved to version 3 (they record the value
-size), so every stored vector resets; the indexer reindexes (indexer version 35) and every plugin recomputes. Nothing
+size), so every stored vector resets; the indexer reindexes (indexer version 36) and every plugin recomputes. Nothing
 has to be deleted by hand.
 
 ### Breaking Changes
@@ -274,6 +274,12 @@ has to be deleted by hand.
   own cached addresses, logging its cohort changes per block), and the logs are folded block by block. Alone at
   970,133 blocks it takes 547 s instead of 989 and peaks at 7.8 GiB instead of 8.0, with the same series and the same
   stored state for every address
+
+- The indexer resolves each input that spends an earlier block's output with one lookup in a new store of unspent
+  outputs (transaction-ID prefix and output index to the output's transaction, output index, type and type index),
+  instead of a transaction-ID lookup and three reads of the output vectors. Indexing 970,536 blocks on a 16 GB Mac
+  mini takes 4,421 s instead of 7,109 s (850,000 to 900,000 in half the time) and peaks 0.7 GiB higher, with the
+  same series
 
 #### `brk_reader`
 

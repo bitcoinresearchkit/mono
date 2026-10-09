@@ -17,7 +17,7 @@ use crate::{AnyStoredVec, HEADER_OFFSET, ReadOnlyRawVec, VecIndex, VecValue, cac
 /// The reader holds the current mmap generation alive. Drop long-lived readers
 /// before writes that may grow the database and remap the file.
 pub struct VecReader<I, T, S> {
-    reader: Reader,
+    _reader: Reader,
     data: *const u8,
     stored_len: usize,
     _marker: PhantomData<(I, T, S)>,
@@ -29,20 +29,6 @@ where
     S: RawStrategy<T>,
 {
     const SIZE_OF_T: usize = size_of::<T>();
-
-    /// Hints the OS to start reading the pages holding the value at typed `index`
-    /// ([`Reader::will_need`]). No-op past `stored_len()`.
-    #[inline]
-    pub fn prefetch(&self, index: I)
-    where
-        I: VecIndex,
-    {
-        let index = index.to_usize();
-        if index < self.stored_len {
-            self.reader
-                .will_need(HEADER_OFFSET + index * Self::SIZE_OF_T, Self::SIZE_OF_T);
-        }
-    }
 
     /// Returns the value at typed `index`.
     ///
@@ -102,7 +88,7 @@ where
         let ptr = slice.as_ptr();
 
         Self {
-            reader,
+            _reader: reader,
             data: ptr,
             stored_len,
             _marker: PhantomData,

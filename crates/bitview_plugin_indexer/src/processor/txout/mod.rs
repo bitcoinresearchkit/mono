@@ -6,7 +6,7 @@ pub use address::BlockAddresses;
 pub use processed::ProcessedOutput;
 pub use processed::ProcessedOutputData;
 
-use bitcoin::{Script, Transaction, constants::WITNESS_SCALE_FACTOR};
+use bitcoin::{Script, constants::WITNESS_SCALE_FACTOR};
 use bitview_cohort::ByAddrType;
 use bitview_primitives::{AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, TxOutIndex, TypeIndex};
 use brk_error::Result;
@@ -14,8 +14,11 @@ use brk_store::Store;
 use brk_types::{AddrBytes, OutPoint, OutputType, Sats, SigOps, TxIndex, Unit, Vout};
 use vecdb::{BytesVec, WritableVec, likely};
 
-use super::BlockProcessor;
-use crate::{AddrsVecs, Lengths, OpReturnVecs, OutputsVecs, ScriptsVecs};
+use super::{BlockProcessor, transaction::ComputedTx};
+use crate::{
+    AddrsVecs, Lengths, OpReturnVecs, OutputsVecs, ScriptsVecs,
+    stores::{Utxo, UtxoKey},
+};
 
 impl<'a> BlockProcessor<'a> {
     pub fn process_outputs(&self, addresses: &mut BlockAddresses) -> Result<Vec<ProcessedOutput>> {
@@ -71,8 +74,7 @@ pub fn executed_legacy_sigops_for_output(
 
 #[allow(clippy::too_many_arguments)]
 pub fn finalize_outputs(
-    transactions: &[Transaction],
-    base_tx_index: TxIndex,
+    txs: &[ComputedTx],
     lengths: &mut Lengths,
     first_txout_index: &mut BytesVec<TxIndex, TxOutIndex>,
     outputs: &mut OutputsVecs,
@@ -82,13 +84,16 @@ pub fn finalize_outputs(
     addr_hash_stores: &mut ByAddrType<Store<AddrHash, TypeIndex>>,
     addr_tx_index_stores: &mut ByAddrType<Store<AddrIndexTxIndex, Unit>>,
     addr_outpoint_stores: &mut ByAddrType<Store<AddrIndexOutPoint, Unit>>,
+    utxos: &mut Store<UtxoKey, Utxo>,
     txouts: &mut [ProcessedOutput],
     addresses: &mut BlockAddresses,
 ) {
     let base_txout_index = lengths.txout_index;
     let mut output_offset = 0;
-    for (block_tx_index, tx) in transactions.iter().enumerate() {
-        let tx_index = base_tx_index + TxIndex::from(block_tx_index);
+    for ct in txs {
+        let tx = ct.tx;
+        let tx_index = ct.tx_index;
+        let txid_prefix = ct.txid_prefix();
         let next_output_offset = output_offset + tx.output.len();
 
         for (vout, (txout, processed)) in tx
@@ -186,6 +191,15 @@ pub fn finalize_outputs(
                 .type_index
                 .debug_checked_push(txout_index, type_index);
             processed.data = ProcessedOutputData::Resolved(type_index);
+
+            // OP_RETURN outputs can never be spent. A BIP30 duplicate coinbase (two, in 2010)
+            // replaces its original's entry, as in Bitcoin Core.
+            if !output_type.is_unspendable() {
+                utxos.insert(
+                    UtxoKey::new(txid_prefix, vout),
+                    Utxo::new(tx_index, txout_index, output_type, type_index),
+                );
+            }
 
             if likely(output_type.is_addr()) {
                 let addr_type = output_type;

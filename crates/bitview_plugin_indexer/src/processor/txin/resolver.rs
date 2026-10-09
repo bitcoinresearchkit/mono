@@ -6,22 +6,20 @@ use rustc_hash::FxHashMap;
 use tracing::error;
 use vecdb::unlikely;
 
-use super::{InputSource, parent_cache::ParentCache, parent_read::ParentRead};
-use crate::processor::{BlockProcessor, transaction::ComputedTx};
+use super::InputSource;
+use crate::{
+    processor::{BlockProcessor, transaction::ComputedTx},
+    stores::UtxoKey,
+};
 
 #[derive(Default)]
 pub struct InputResolver {
     block_parents: FxHashMap<TxidPrefix, TxIndex>,
     inputs: Vec<UnresolvedInput>,
-    cache: ParentCache,
     resolved: Vec<InputSource>,
 }
 
 impl InputResolver {
-    pub fn clear_cache(&mut self) {
-        self.cache.clear();
-    }
-
     pub fn resolve(
         &mut self,
         processor: &BlockProcessor<'_>,
@@ -35,10 +33,8 @@ impl InputResolver {
 
         let tracks_executed_legacy_sigops = processor.tracks_executed_legacy_sigops();
         let inputs = &self.inputs;
-        let cache = &self.cache;
 
         self.resolved.resize(inputs.len(), InputSource::Coinbase);
-        // Resolve each input in one pass so parent and output reads can overlap.
         self.resolved.par_iter_mut().zip(inputs).try_for_each(
             |(resolved, input)| -> Result<()> {
                 match *input {
@@ -59,33 +55,12 @@ impl InputResolver {
                         Ok(())
                     }
                     UnresolvedInput::PreviousBlock { prefix, vout } => {
-                        let parent = Self::read_parent(cache, processor, prefix)?;
-                        let outpoint = OutPoint::new(parent.tx_index, vout);
-                        let txout_index = parent.first_txout_index + vout;
-                        // Start the type_index page read before faulting in output_type's, so the
-                        // two page-ins overlap instead of running one after the other.
-                        processor
-                            .readers
-                            .txout_index_to_type_index
-                            .prefetch(txout_index);
-                        let output_type = processor
-                            .vecs
-                            .outputs
-                            .output_type
-                            .get_append_only(
-                                txout_index,
-                                &processor.readers.txout_index_to_output_type,
-                            )
-                            .ok_or(Error::Internal("Missing output_type"))?;
-                        let type_index = processor
-                            .vecs
-                            .outputs
-                            .type_index
-                            .get_append_only(
-                                txout_index,
-                                &processor.readers.txout_index_to_type_index,
-                            )
-                            .ok_or(Error::Internal("Missing type_index"))?;
+                        let key = UtxoKey::new(prefix, vout);
+                        let Some(utxo) = processor.stores.utxo(&key)? else {
+                            error!("Spent output not in the UTXO store: prefix={prefix:?}, vout={vout:?}");
+                            return Err(Error::Internal("Spent output not in the UTXO store"));
+                        };
+                        let (output_type, type_index) = (utxo.output_type(), utxo.type_index());
 
                         let legacy_sigops = if tracks_executed_legacy_sigops {
                             processor
@@ -98,8 +73,8 @@ impl InputResolver {
                         };
 
                         *resolved = InputSource::PreviousBlock {
-                            outpoint,
-                            txout_index,
+                            outpoint: OutPoint::new(utxo.tx_index(), vout),
+                            txout_index: utxo.txout_index(),
                             output_type,
                             legacy_sigops,
                             type_index,
@@ -110,30 +85,6 @@ impl InputResolver {
             },
         )?;
 
-        // Recent parents already have a cheap lookup in the store's pending map.
-        let stored_tx_count = processor.readers.tx_index_to_first_txout_index.stored_len();
-        for (input, resolved) in self.inputs.iter().zip(&self.resolved) {
-            if let (
-                UnresolvedInput::PreviousBlock { prefix, vout },
-                InputSource::PreviousBlock {
-                    outpoint,
-                    txout_index,
-                    ..
-                },
-            ) = (input, resolved)
-                && usize::from(outpoint.tx_index()) < stored_tx_count
-            {
-                self.cache.insert(
-                    *prefix,
-                    ParentRead {
-                        tx_index: outpoint.tx_index(),
-                        first_txout_index: TxOutIndex::new(
-                            u64::from(*txout_index) - u64::from(*vout),
-                        ),
-                    },
-                );
-            }
-        }
         Ok(&self.resolved)
     }
 
@@ -147,12 +98,8 @@ impl InputResolver {
         self.inputs.clear();
 
         self.block_parents.reserve(txs.len());
-        self.block_parents.extend(txs.iter().map(|tx| {
-            let prefix = tx.txid_prefix();
-            // A newly indexed transaction may replace a historical prefix.
-            self.cache.invalidate(prefix);
-            (prefix, tx.tx_index)
-        }));
+        self.block_parents
+            .extend(txs.iter().map(|tx| (tx.txid_prefix(), tx.tx_index)));
 
         let total_inputs = txs.iter().map(|tx| tx.tx.input.len()).sum();
         self.inputs.reserve(total_inputs);
@@ -186,46 +133,6 @@ impl InputResolver {
                 }
             }
         }
-    }
-
-    fn read_parent(
-        cache: &ParentCache,
-        processor: &BlockProcessor<'_>,
-        prefix: TxidPrefix,
-    ) -> Result<ParentRead> {
-        let current_tx_index = processor.lengths.tx_index;
-        if let Some(cached) = cache.get(prefix)
-            && cached.tx_index < current_tx_index
-        {
-            return Ok(cached);
-        }
-        let store_result = processor.stores.tx_index(&prefix)?;
-        let tx_index = match store_result {
-            Some(tx_index) if tx_index < current_tx_index => tx_index,
-            _ => {
-                error!(
-                    "UnknownTxid: prefix={:?}, store_result={:?}, current_tx_index={:?}",
-                    prefix, store_result, current_tx_index
-                );
-                return Err(Error::UnknownTxid);
-            }
-        };
-        // The read below follows at once, but on macOS the advice reads just this page instead of
-        // the fault's larger read-around: ~7% fewer bytes read when indexing past 600k.
-        processor
-            .readers
-            .tx_index_to_first_txout_index
-            .prefetch(tx_index);
-        let first_txout_index = processor
-            .vecs
-            .transactions
-            .first_txout_index
-            .get_append_only(tx_index, &processor.readers.tx_index_to_first_txout_index)
-            .ok_or(Error::Internal("Missing txout_index"))?;
-        Ok(ParentRead {
-            tx_index,
-            first_txout_index,
-        })
     }
 }
 

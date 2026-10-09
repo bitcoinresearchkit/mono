@@ -2,7 +2,7 @@
 use std::sync::OnceLock;
 
 #[cfg(unix)]
-use libc::{_SC_PAGESIZE, MADV_WILLNEED, madvise, mincore, sysconf};
+use libc::{_SC_PAGESIZE, mincore, sysconf};
 use memmap2::MmapRaw;
 
 pub(crate) const MMAP_RESIDENCY_MIN_BYTES: usize = 128 * 1024;
@@ -109,35 +109,6 @@ pub(crate) fn is_fully_resident(mmap: &MmapRaw, offset: usize, len: usize) -> bo
     };
     result == 0 && states.iter().all(|state| state & 1 != 0)
 }
-
-/// Hints the OS to start reading the pages holding a mapped range (`madvise(MADV_WILLNEED)`).
-/// Advisory: out-of-bounds ranges, unsupported page geometry and errors are ignored.
-#[cfg(unix)]
-pub(crate) fn will_need(mmap: &MmapRaw, offset: usize, len: usize) {
-    let Some(page_size) = vm_page_size() else {
-        return;
-    };
-    let Some(absolute_end) = offset.checked_add(len).filter(|&end| end <= mmap.len()) else {
-        return;
-    };
-    let Some(end) = absolute_end.checked_next_multiple_of(page_size) else {
-        return;
-    };
-    let start = offset / page_size * page_size;
-    // SAFETY: the range lies within the mapping, and rounding only adds the rest of its first and
-    // last pages, which the page-granular mapping (from file offset 0) also covers. The advice
-    // schedules reads and never changes the mapped contents.
-    unsafe {
-        madvise(
-            mmap.as_ptr().add(start).cast_mut().cast(),
-            end - start,
-            MADV_WILLNEED,
-        )
-    };
-}
-
-#[cfg(not(unix))]
-pub(crate) fn will_need(_mmap: &MmapRaw, _offset: usize, _len: usize) {}
 
 #[cfg(not(unix))]
 pub(crate) fn is_range_resident(_mmap: &MmapRaw, _offset: usize, _len: usize) -> bool {

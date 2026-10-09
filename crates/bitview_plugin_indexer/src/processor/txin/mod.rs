@@ -1,5 +1,3 @@
-mod parent_cache;
-mod parent_read;
 pub mod resolver;
 pub mod source;
 
@@ -10,11 +8,14 @@ use bitcoin::Transaction;
 use bitview_cohort::ByAddrType;
 use bitview_primitives::{AddrIndexOutPoint, AddrIndexTxIndex, TxInIndex, TxOutIndex, TypeIndex};
 use brk_store::Store;
-use brk_types::{OutPoint, OutputType, TxIndex, Unit, Vin};
+use brk_types::{OutPoint, OutputType, TxIndex, Txid, TxidPrefix, Unit, Vin, Vout};
 use vecdb::{PcoVec, WritableVec, unlikely};
 
 use super::txout::ProcessedOutput;
-use crate::InputsVecs;
+use crate::{
+    InputsVecs,
+    stores::{Utxo, UtxoKey},
+};
 
 #[allow(clippy::too_many_arguments)]
 pub fn finalize_inputs(
@@ -25,6 +26,7 @@ pub fn finalize_inputs(
     inputs: &mut InputsVecs,
     addr_tx_index_stores: &mut ByAddrType<Store<AddrIndexTxIndex, Unit>>,
     addr_outpoint_stores: &mut ByAddrType<Store<AddrIndexOutPoint, Unit>>,
+    utxos: &mut Store<UtxoKey, Utxo>,
     txins: &[InputSource],
     txouts: &[ProcessedOutput],
 ) {
@@ -33,7 +35,11 @@ pub fn finalize_inputs(
         let tx_index = base_tx_index + TxIndex::from(block_tx_index);
         let next_input_offset = input_offset + tx.input.len();
 
-        for (vin, input_source) in txins[input_offset..next_input_offset].iter().enumerate() {
+        for (vin, (input_source, txin)) in txins[input_offset..next_input_offset]
+            .iter()
+            .zip(&tx.input)
+            .enumerate()
+        {
             let block_txin_index = input_offset + vin;
             let txin_index = base_txin_index + TxInIndex::from(block_txin_index);
             let vin = Vin::from(vin);
@@ -68,6 +74,15 @@ pub fn finalize_inputs(
 
             if vin.is_zero() {
                 first_txin_index.debug_checked_push(tx_index, txin_index);
+            }
+
+            if !matches!(input_source, InputSource::Coinbase) {
+                let previous_output = &txin.previous_output;
+                let txid = <&Txid>::from(&previous_output.txid);
+                utxos.remove(UtxoKey::new(
+                    TxidPrefix::from(txid),
+                    Vout::from(previous_output.vout),
+                ));
             }
 
             inputs.tx_index.debug_checked_push(txin_index, tx_index);

@@ -128,13 +128,14 @@ impl<'a> BlockProcessor<'a> {
             addr_tx_indexes,
             addr_unspent_outpoints,
             txid_prefixes,
+            utxos,
         } = self.stores.transaction_stores_mut();
+        let txs = &txs;
 
         join(
             || {
                 txout::finalize_outputs(
-                    transactions,
-                    base_tx_index,
+                    txs,
                     lengths,
                     first_txout_index,
                     outputs,
@@ -144,6 +145,7 @@ impl<'a> BlockProcessor<'a> {
                     addr_hashes,
                     addr_tx_indexes,
                     addr_unspent_outpoints,
+                    utxos,
                     &mut txouts,
                     addresses,
                 );
@@ -155,6 +157,7 @@ impl<'a> BlockProcessor<'a> {
                     inputs,
                     addr_tx_indexes,
                     addr_unspent_outpoints,
+                    utxos,
                     txins,
                     &txouts,
                 );
@@ -175,7 +178,7 @@ impl<'a> BlockProcessor<'a> {
 
 pub fn store_tx_metadata(
     height: Height,
-    txs: Vec<ComputedTx>,
+    txs: &[ComputedTx],
     transaction_analyses: Vec<TransactionAnalysis>,
     store: &mut Store<TxidPrefix, TxIndex>,
     md: &mut TxMetadataVecs<'_>,
@@ -183,7 +186,7 @@ pub fn store_tx_metadata(
 ) {
     debug_assert_eq!(txs.len(), transaction_analyses.len());
     let mut counts = TransactionCounts::default();
-    for (ct, analysis) in txs.into_iter().zip(transaction_analyses) {
+    for (ct, analysis) in txs.iter().zip(transaction_analyses) {
         if likely(ct.insert_txid_prefix) {
             store.insert(ct.txid_prefix(), ct.tx_index);
         }
