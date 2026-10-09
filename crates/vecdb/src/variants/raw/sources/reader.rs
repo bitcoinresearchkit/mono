@@ -78,7 +78,7 @@ where
 
     /// Returns the number of stored values.
     #[inline(always)]
-    pub fn stored_len(&self) -> usize {
+    pub(crate) fn stored_len(&self) -> usize {
         self.stored_len
     }
 
