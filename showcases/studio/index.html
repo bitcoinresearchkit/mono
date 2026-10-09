@@ -3815,24 +3815,68 @@
         }
       }
 
-      /* Share: the link's QR code, dark on white as scanners read it (a module whole pixels), what was done under it. */
+      /* Share: the link's QR code across the popover, dark on white as scanners read it (the website's, square modules),
+         then the chart it opens and what was done, in line with the rows under them. */
       .share-pop {
-        display: grid;
-        justify-items: center;
-        gap: 8px;
-        padding: 10px 10px 4px;
+        width: min-content;
+        min-width: 212px;
+        padding: 2px 2px 0;
 
         .share-qr {
+          display: block;
+          margin: 0 auto;
           border-radius: var(--radius-sm);
-          image-rendering: pixelated;
+          box-shadow: 0 0 0 1px var(--line);
+        }
+
+        .share-text {
+          padding: 10px 8px 6px;
+        }
+
+        p {
+          margin: 0;
+          font-size: 12px;
+          line-height: 18px;
+        }
+
+        .share-title {
+          overflow: hidden;
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 510;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .share-done {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: var(--text);
+
+          svg {
+            width: 13px;
+            height: 13px;
+          }
+
+          &.failed {
+            color: var(--muted);
+          }
         }
 
         .share-said {
-          max-width: 220px;
-          margin: 0;
           color: var(--muted);
-          font-size: 12px;
-          text-align: center;
+        }
+      }
+
+      /* (On a phone's sheet: a column in its middle, its words centered under the code.) */
+      .menu.as-sheet .share-pop {
+        min-width: 0;
+        margin: 0 auto;
+        text-align: center;
+
+        .share-done {
+          justify-content: center;
         }
       }
 
@@ -20452,22 +20496,35 @@ const picture = await studio.png();</pre>
         }
       }
       /** lean-qr, loaded the first time a QR code is asked for (its types ambient: what's used, typed here); failing, asked again next time. */
-      let qrModule = /** @type {Promise<{ generate: (text: string) => { size: number, toDataURL(options: { on: number[], off: number[], pad: number, scale: number }): string } }> | null} */ (null);
+      let qrModule = /** @type {Promise<{ generate: (text: string) => { size: number, get(x: number, y: number): boolean } }> | null} */ (null);
       /** The most a QR code holds, in bytes (at its lowest correction): a link longer can't be one, and isn't tried. */
       const QR_MOST = 2953;
       /**
-       * A link as a QR code: dark on white as scanners read it, its quiet zone (four modules) in, whole pixels a module, as
-       * large as `room` takes; null where it's too long for one, or the code can't be made.
+       * A link as a QR code, an SVG (its modules square, whole device pixels each, each row's runs one shape), dark on white
+       * as scanners read it, its quiet zone (four modules) in. Null where it's too long for one, or it can't be made.
        */
-      async function qrImage(/** @type {string} */ text, /** @type {number} */ room) {
+      async function qrCode(/** @type {string} */ text) {
         if (new TextEncoder().encode(text).length > QR_MOST) return null;
         try {
           const { generate } = await (qrModule ??= /** @type {any} */ (/** @type {unknown} */ (import("../modules/lean-qr/2.7.3/index.mjs").catch((error) => {
             qrModule = null;
             throw error;
           }))));
-          const code = generate(text), scale = Math.max(1, Math.floor(room / (code.size + 8)));
-          return { src: code.toDataURL({ on: [0, 0, 0, 255], off: [255, 255, 255, 255], pad: 4, scale }), width: (code.size + 8) * scale };
+          const code = generate(text), n = code.size, pad = 4, side = n + 2 * pad;
+          let d = "";
+          for (let y = 0; y < n; y++) {
+            for (let x = 0; x < n; x++) {
+              if (!code.get(x, y)) continue;
+              const from = x;
+              while (x + 1 < n && code.get(x + 1, y)) x++;
+              d += `M${from + pad} ${y + pad}h${x - from + 1}v1h${from - x - 1}z`;
+            }
+          }
+          // (A module whole device pixels, two at least: a dense code finer than that doesn't scan; its popover grows. As
+          // tall as a sheet shows, a phone on its side's too.)
+          const room = Math.min(phone.matches ? Math.min(256, innerWidth * 0.72) : 208, innerHeight * 0.7 - 24);
+          const per = Math.max(2, Math.floor((room * devicePixelRatio) / side)), width = (side * per) / devicePixelRatio;
+          return `<svg class="share-qr" viewBox="0 0 ${side} ${side}" width="${width}" height="${width}" shape-rendering="crispEdges" role="img" aria-label="A QR code of this chart's link"><rect width="${side}" height="${side}" fill="#fff"/><path fill="#000" d="${d}"/></svg>`;
         } catch {
           return null;
         }
@@ -20481,15 +20538,15 @@ const picture = await studio.png();</pre>
         const doc = chart, ask = ++shareAsk, { copy, short } = linksOf(doc), copying = SHEET_SHARE ? Promise.resolve(false) : copyLink(copy);
         void (async () => {
           // (Its code as large as the popover takes: a phone's sheet, the screen's width.)
-          const [copied, url, qr] = await Promise.all([copying, copy.catch(() => ""), short.then((text) => qrImage(text, Math.min(216, innerWidth - 48)))]);
+          const [copied, url, qr] = await Promise.all([copying, copy.catch(() => ""), short.then(qrCode)]);
           if (!url) return notice("Couldn't make the link");
           // (Pressed again, another chart or the grid shown, another menu opened meanwhile: nothing shown, what was done said.)
           if (ask !== shareAsk || chart !== doc || document.body.hasAttribute("data-home") || !$("menu").hidden) return void (copied && toast("Copied a link: it opens this chart for anyone"));
           const done = SHEET_SHARE ? "" : copied ? "Link copied" : "Couldn't copy the link";
-          const code = qr ? (SHEET_SHARE ? "scan it to open this chart on another phone" : "scan it to open this chart on a phone") : "too long for a QR code";
-          const said = [done, code].filter(Boolean).join(" · ").replace(/^./, (first) => first.toUpperCase());
-          say(said);
-          showMenu(button, `<div class="share-pop">${qr ? `<img class="share-qr" src="${qr.src}" width="${qr.width}" height="${qr.width}" alt="A QR code of this chart's link" />` : ""}<p class="share-said">${said}</p></div><div class="menu-rule"></div>${SHEET_SHARE ? `<button type="button" data-share="sheet">${ICONS.share}Share…</button>` : ""}${copied ? "" : `<button type="button" data-share="copy">${ICONS.copy}Copy link</button>`}<button type="button" data-share="open">${ICONS.link}Open in a new tab</button>`, async ({ share }) => {
+          const code = qr ? (SHEET_SHARE ? "Scan to open it on another phone" : "Scan to open it on a phone") : "Too long for a QR code";
+          say([done, code].filter(Boolean).join(". "));
+          // (The code on its card, the chart it opens, what was done, then what else.)
+          showMenu(button, `<div class="share-pop">${qr ?? ""}<div class="share-text"><p class="share-title">${escape(titleOf(doc))}</p>${done ? `<p class="share-done${copied ? "" : " failed"}">${copied ? ICONS.check : ""}${done}</p>` : ""}<p class="share-said">${code}</p></div></div><div class="menu-rule"></div>${SHEET_SHARE ? `<button type="button" data-share="sheet">${ICONS.share}Share…</button>` : ""}${copied ? "" : `<button type="button" data-share="copy">${ICONS.copy}Copy link</button>`}<button type="button" data-share="open">${ICONS.link}Open in a new tab</button>`, async ({ share }) => {
             if (share === "open") window.open(url, "_blank", "noopener");
             else if (share === "copy") (await copyLink(Promise.resolve(url))) ? toast("Copied a link: it opens this chart for anyone") : notice("Couldn't copy the link");
             else if (share === "sheet") {
@@ -20500,6 +20557,8 @@ const picture = await studio.png();</pre>
               }
             }
           });
+          // (The code first, in sight: the row taking the focus may be under it, as on a phone on its side.)
+          $("menu").scrollTop = 0;
         })();
       });
 
