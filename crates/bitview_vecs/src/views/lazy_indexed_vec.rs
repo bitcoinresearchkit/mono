@@ -149,6 +149,11 @@ where
         self.source.len().min(self.metadata.len())
     }
 
+    /// A view of a mutable source changes with it.
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable() || self.metadata.is_mutable()
+    }
+
     fn value_type_to_size_of(&self) -> usize {
         size_of::<T>()
     }
