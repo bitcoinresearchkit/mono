@@ -3927,41 +3927,16 @@
         }
       }
 
-      /* A baseline's two colors, small in the label's row: which one the box edits. */
-      .field .which {
-        display: inline-flex;
-        gap: 2px;
-        margin-right: -4px;
-        margin-left: 10px;
+      /* A two-color type's colors, one select under the other. */
+      .color-selects {
+        display: grid;
+        gap: 6px;
+      }
 
-        button {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          height: 20px;
-          border: 0;
-          border-radius: var(--radius-xs);
-          padding: 0 6px;
-          color: var(--muted);
-          background: none;
-          font: 510 11px var(--sans);
-          letter-spacing: 0;
-          text-transform: none;
-
-          .swatch {
-            width: 8px;
-            height: 8px;
-          }
-
-          &:hover {
-            color: var(--text);
-          }
-
-          &[aria-pressed="true"] {
-            color: var(--ink);
-            background: var(--press);
-          }
-        }
+      .color-select .swatch {
+        flex-shrink: 0;
+        width: 12px;
+        height: 12px;
       }
 
       /* Under the swatches: every hue across, lightness down, at one chroma where sRGB holds it; grays last. */
@@ -5655,9 +5630,10 @@
 
       .tile-more {
         position: absolute;
-        top: 9px;
+        top: 22px;
         right: 35px;
         opacity: 0;
+        translate: 0 -50%;
       }
 
       .tile:is(:hover, :has(:focus-visible)) {
@@ -6191,6 +6167,36 @@
           }
         }
 
+        /* What scrolls under it (the grid, the sheet's views) fades out before it: nothing cut off around it or below.
+           Under a selection's bar, which takes its place while there's a selection (a photo library's toolbar, as it
+           were): its actions in reach, nothing over them. */
+        :is(.home, .panel)::after {
+          content: "";
+          position: absolute;
+          inset: auto 0 0;
+          z-index: 3;
+          height: calc(96px + env(safe-area-inset-bottom));
+          background: linear-gradient(transparent, var(--app) 50%);
+          pointer-events: none;
+        }
+
+        .panel::after {
+          background: linear-gradient(transparent, var(--raise) 50%);
+        }
+
+        .pick-bar {
+          z-index: 4;
+        }
+
+        .home-bar {
+          bottom: calc(15px + env(safe-area-inset-bottom));
+        }
+
+        body[data-home]:has(#home-bar:not([hidden])) .mobile-bar,
+        body[data-sheet="panel"]:has(#layers-bar:not([hidden])) .mobile-bar {
+          display: none;
+        }
+
         body[data-home] #mobile-charts,
         body[data-sheet="panel"] #mobile-layers {
           color: var(--ink);
@@ -6222,6 +6228,16 @@
 
           .home {
             left: 76px;
+          }
+
+          /* (Nothing scrolls under it there, nor sits where it is.) */
+          :is(.home, .panel)::after {
+            display: none;
+          }
+
+          body[data-home]:has(#home-bar:not([hidden])) .mobile-bar,
+          body[data-sheet="panel"]:has(#layers-bar:not([hidden])) .mobile-bar {
+            display: grid;
           }
 
           .mobile-bar {
@@ -6334,7 +6350,6 @@
         }
 
         .tabs button,
-        .legend-setting .tabs button,
         .tabs.glyphs button {
           height: 36px;
         }
@@ -6360,6 +6375,21 @@
         .source-pick,
         .more {
           min-height: 32px;
+        }
+
+        /* A pane's head and the legend's: their controls (the scale, the two ways) 32, clear of the rules around them,
+           the legend's ending where the eyes do. */
+        :is(.pane-head, .markers-head) {
+          height: 44px;
+          margin-bottom: 0;
+        }
+
+        .legend-setting .tabs {
+          margin-right: 11px;
+
+          button {
+            height: 28px;
+          }
         }
 
         .menu .menu-row button {
@@ -6644,7 +6674,8 @@
           <p>Then, each if wanted:</p>
           <ul>
             <li>"label": its name.</li>
-            <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base.</li>
+            <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base, or a trend's on support (its own color if none).</li>
+            <li>"colorFrom": "B" on a line, dots, an area, bars, a cloud or a trend: its colors taken from layer B date by date, as B is drawn (a baseline's above or below its base, bars' too, a trend's on resistance or support, else B's one color).</li>
             <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc).</li>
             <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths (1 if none; a cloud's 0.2, solid at 1).</li>
             <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value; "baseLine": {"color": "gray", "dash": 4}, that base's line.</li>
@@ -7284,7 +7315,8 @@ const picture = await studio.png();</pre>
         return capitalize([...words, best.name].join(" "));
       }
       /** A layer's second color, below its base (baselines, bars): red unless chosen. */
-      const belowOf = (layer) => layer.colorBelow ?? "red";
+      /** A layer's second color: a baseline's or bars' under their base (red, unset); a trend's on a support (its own, unset). */
+      const belowOf = (layer) => layer.colorBelow ?? (layer.type === "trend" ? layer.color : "red");
       /** OKLCH to sRGB: its chroma lowered until it fits, so hue and lightness hold. @returns {string} */
       function oklchToHex(l, c, h) {
         let chroma = c, rgb = oklchToLinear(l, chroma, h);
@@ -7352,7 +7384,9 @@ const picture = await studio.png();</pre>
       const SHAPES = [["straight", "Straight", LC.LineType.Simple], ["steps", "Steps", LC.LineType.WithSteps], ["curved", "Curved", LC.LineType.Curved]];
       const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LC.LineType.Simple;
       /** A type's two colors, where it has two: what each is called. */
-      const PAIRS = { baseline: ["Above", "Below"], histogram: ["Above", "Below"] };
+      const PAIRS = { baseline: ["Above", "Below"], histogram: ["Above", "Below"], trend: ["Resistance", "Support"] };
+      /** The types that can take their colors from another layer (a baseline's are its base's, candles' their rise and fall). */
+      const COLORED_FROM = new Set(["line", "dots", "area", "histogram", "cloud", "trend"]);
       /**
        * The chart's line styles, lightest to most broken up: each with its name, and its dash and gap as drawn on whole
        * pixels at 16×12 (in the proportions the chart dashes them).
@@ -8076,12 +8110,14 @@ const picture = await studio.png();</pre>
        * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, color: string,
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, colorBelow?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
-       *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number }, from?: string[], ref?: string }} Layer
+       *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number }, from?: string[], ref?: string, colorFrom?: string }} Layer
        *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers; a cloud's, then its
        *   edge, "top" or "bottom", if any), by its type: a cloud ("cloud") is filled from the lowest of them to the highest,
        *   at each date, or to its pane's edge; a trend ("trend") is on the lowest of them or the highest, flipping when
        *   its reference (`ref`: a layer's id, one of one value, not one of them) touches it (see trendOf). Short of what
        *   it needs, it says so.
+       *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt): a line's, dots', an area's,
+       *   bars', a cloud's or a trend's (not a baseline's, nor candles').
        * @typedef {{ value: number, color?: string, dash?: number }} Level A line across at a value: its color (else its
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, in sparse dots).
        * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`:
@@ -8266,6 +8302,8 @@ const picture = await studio.png();</pre>
         for (const layer of doc.layers) if (layer.from) layer.from = fromOf(doc, layer.from, layer.type === "cloud");
         // (A trend's reference one that can flip it, none else (it says so); no shape: a step would draw its flips.)
         for (const layer of doc.layers) if (layer.type === "trend") delete layer.shape;
+        // (Colors from another layer: one there, not itself, for a type that takes them.)
+        for (const layer of doc.layers) if (layer.colorFrom && (!COLORED_FROM.has(layer.type) || layer.colorFrom === layer.id || !doc.layers.some((other) => other.id === layer.colorFrom))) delete layer.colorFrom;
         for (const layer of doc.layers) if (layer.ref && (layer.type !== "trend" || !refsFor(doc, layer).some((other) => other.id === layer.ref))) delete layer.ref;
         if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
         const ids = new Set(doc.panes.map((pane) => pane.id));
@@ -9474,8 +9512,8 @@ const picture = await studio.png();</pre>
       const dailyOf = (/** @type {string} */ name) => DAILY(name).find((other) => catalogIndex?.has(other) && !byBlock.has(other)) ?? null;
 
       /**
-       * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], low?: Vector, breaks?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
-       *   `low`: a cloud's lows (its highs, its values); `breaks`: a trend line's switches (see trendOf).
+       * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], low?: Vector, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
+       *   `low`: a cloud's lows (its highs, its values); `breaks`, `sides`: a trend's flips, and which it's on (see trendOf).
        * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
        * @typedef {{ times: number[], results: Map<string, Result>, stamp: string, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
        */
@@ -9703,7 +9741,7 @@ const picture = await studio.png();</pre>
 
             const trend = by?.shown ? trendOf(low, high, by.shown, by.ohlc ?? null) : null;
             /** @type {Result} */
-            const result = trend ? { values: trend.values, shown: trend.values, breaks: trend.breaks, unit: inputs[0].unit } : { values: high, shown: high, low, unit: inputs[0].unit };
+            const result = trend ? { values: trend.values, shown: trend.values, breaks: trend.breaks, sides: trend.sides, unit: inputs[0].unit } : { values: high, shown: high, low, unit: inputs[0].unit };
             results.set(layer.id, result);
             frame.computed.set(layer.id, { key, result });
             return result;
@@ -9737,7 +9775,7 @@ const picture = await studio.png();</pre>
           }
           // (Shown as they are, the values are copied once.)
           const values = result.values?.slice(first);
-          const out = { ...result, values, shown: result.shown === result.values ? values : result.shown?.slice(first), ohlc: result.ohlc?.slice(first), ...(result.low ? { low: result.low.slice(first) } : {}), ...(result.breaks ? { breaks: result.breaks.slice(first) } : {}) };
+          const out = { ...result, values, shown: result.shown === result.values ? values : result.shown?.slice(first), ohlc: result.ohlc?.slice(first), ...(result.low ? { low: result.low.slice(first) } : {}), ...(result.breaks ? { breaks: result.breaks.slice(first) } : {}), ...(result.sides ? { sides: result.sides.slice(first) } : {}) };
           trims.set(result, { first, out });
           results.set(id, out);
         }
@@ -9833,7 +9871,7 @@ const picture = await studio.png();</pre>
       const drawn = new Map();
       /** A series' options without its format and scale (a restyle keeps both, and applying them again costs a pass over every point). */
       const lookOf = (/** @type {Record<string, any>} */ { priceFormat, priceScaleId, ...look }) => look;
-      /** What each layer was drawn as (its shape, its data, stacked or not), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, low?: Vector }>} */
+      /** What each layer was drawn as (its shape, its data, stacked or not, painted date by date or not), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
       const built = new Map();
       /** @type {Map<string, Record<string, string>>} layer id → its series' colors */
       const paints = new Map();
@@ -9855,6 +9893,12 @@ const picture = await studio.png();</pre>
           if (bars.faint === faint) continue;
           bars.faint = faint;
           drawn.get(layerId)?.setData(bars.points.map((point) => (point.color ? { ...point, color: faint ? bars.faded : bars.color } : point)));
+        }
+        for (const [layerId, painted] of paintedPoints) {
+          const faint = Boolean(lighted) && layerId !== lighted;
+          if (painted.faint === faint) continue;
+          painted.faint = faint;
+          drawn.get(layerId)?.setData(faint ? painted.points.map(fadedPoint) : painted.points);
         }
       }
       /**
@@ -10015,6 +10059,8 @@ const picture = await studio.png();</pre>
         closes.clear();
         dotted.clear();
         barsBelow.clear();
+        const wasPainted = new Map(paintedPoints);
+        paintedPoints.clear();
         paints.clear();
         spotlit = null;
         const paneIndex = new Map(doc.panes.map((pane, i) => [pane.id, i]));
@@ -10024,7 +10070,7 @@ const picture = await studio.png();</pre>
         // alone, and a color or a width scrubbed stays smooth however many points there are. (A stack's bands and bars,
         // their colors in their points, are set again whole.)
         const layerShape = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse)]);
-        /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, low?: Vector }>} */
+        /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
         const kept = new Map();
         doc.layers.forEach((layer, i) => {
           const before = built.get(layer.id);
@@ -10066,6 +10112,11 @@ const picture = await studio.png();</pre>
           const lineWidth = /** @type {any} */ (layer.width);
           const pane = paneIndex.get(layer.pane) ?? 0;
           const candles = layer.type === "candles" && result?.ohlc;
+          // Its colors date by date, where they vary (or come from another layer).
+          const fromSource = candles ? null : paintOf(doc, layer, data);
+          // (A date it has no color for: its own.)
+          const dated = fromSource && ((/** @type {number} */ i) => ((name) => (name ? ink(name) : base))(fromSource(i)));
+          const painting = dated ? paintSig(doc, layer, data, op, base) : null;
           // Colors are kept apart from the rest so a spotlight can fade them and give them back.
           const paint = layer.type === "cloud" ? { color: alpha(base, op) } : candles ? { upColor: css("--card"), downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs
@@ -10103,26 +10154,34 @@ const picture = await studio.png();</pre>
               : layer.type === "area" ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, invertFilledArea: layer.fill === "above" }]
               : layer.type === "histogram" ? [LC.HistogramSeries, { ...common, ...paint, base: layer.base ?? 0 }]
               : layer.type === "baseline" ? [LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: "price", price: layer.base ?? 0 } }]
-              : [LC.LineSeries, { ...common, ...paint, ...marker, ...line, ...(layer.type === "trend" ? { priceLineColor: color, crosshairMarkerBackgroundColor: color } : {}) }];
+              : [LC.LineSeries, { ...common, ...paint, ...marker, ...line, ...(layer.type === "trend" ? (dated ? { priceLineColor: "", crosshairMarkerBackgroundColor: "" } : { priceLineColor: color, crosshairMarkerBackgroundColor: color }) : {}) }];
             series = again ?? view.addSeries(/** @type {any} */ (kind), options, pane);
             if (again) series.applyOptions(lookOf(options));
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
           paints.set(layer.id, paint);
-          built.set(layer.id, { shape: layerShape(layer, i), shown: stack?.values ?? result?.shown, ohlc: result?.ohlc, stacked: Boolean(stack), ...(result?.low ? { low: result.low } : {}) });
+          built.set(layer.id, { shape: layerShape(layer, i), shown: stack?.values ?? result?.shown, ohlc: result?.ohlc, stacked: Boolean(stack), painted: painting, ...(result?.low ? { low: result.low } : {}) });
           // The same values (and not bars, their colors in them): nothing to set again. None now (an error, a formula
           // being written), a kept series is emptied.
           const before = kept.get(layer.id);
           if (!result?.shown && again && before?.shown) {
             series.setData([]);
             closes.get(layer.id)?.series.setData([]);
-          } else if (result?.shown && again && before?.shown === (stack?.values ?? result.shown) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) linesAcross(layer, pane, common.priceFormat, op, true);
+          } else if (result?.shown && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.shown) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) {
+            const carried = painting ? wasPainted.get(layer.id) : undefined;
+            // (Faded by a spotlight the build ends: given back.)
+            if (carried?.faint) (carried.faint = false), series.setData(carried.points);
+            if (carried) paintedPoints.set(layer.id, carried);
+            linesAcross(layer, pane, common.priceFormat, op, true);
+          }
           else if (result?.shown && layer.type === "cloud") {
             // (Its scale's: log, none at or under zero; on one it doesn't fit, none. To an edge, only its other end, the one
             // drawn: the scale fits that, not a low it never shows.)
             const log = modeOf(doc, layer) === 1, top = layer.from?.includes("top"), bottom = layer.from?.includes("bottom");
             const low = bottom ? result.shown : /** @type {Vector} */ (result.low), high = top ? low : result.shown;
-            series.setData(fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (Number.isFinite(low[i]) && Number.isFinite(high[i]) && (!log || low[i] > 0) ? { time, low: low[i], high: high[i] } : { time })));
+            const rows = fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (Number.isFinite(low[i]) && Number.isFinite(high[i]) && (!log || low[i] > 0) ? { time, low: low[i], high: high[i], ...(dated ? { color: alpha(dated(i), op) } : {}) } : { time }));
+            series.setData(rows);
+            if (dated) paintedPoints.set(layer.id, { points: rows, faint: false });
           } else if (result?.shown) {
             const shown = stack?.values ?? result.shown;
             // A stacked candle: its open, high, low and close on the ones before it too.
@@ -10130,8 +10189,15 @@ const picture = await studio.png();</pre>
             // Log scales can't show zero or negative values: they become gaps.
             const log = modeOf(doc, layer) === 1;
             const drawable = (value) => Number.isFinite(value) && (!log || value > 0);
-            const points = layer.from && fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (drawable(shown[i]) ? (result.breaks?.[i] ? { time, value: shown[i], color: "transparent" } : { time, value: shown[i] }) : { time }));
-            if (layer.type === "histogram") {
+            // (Painted date by date: a line's, dots' and bars' color, an area's line and fill, as its paint has them.)
+            // (Its colors another layer's, they say something: its fill stronger, as a regime's.)
+            const fill = layer.fill === "above" ? (layer.colorFrom ? [0.3, 0.3] : [0.12, 0.12]) : layer.colorFrom ? [0.5, 0.04] : [0.2, 0];
+            const paintWith = !dated ? null : layer.type === "area" ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
+              : layer.type === "histogram" ? (/** @type {string} */ c) => ({ color: alpha(c, 0.75 * op) }) : (/** @type {string} */ c) => ({ color: op < 1 ? alpha(c, op) : c });
+            const paintAt = paintWith && dated && ((/** @type {number} */ i) => paintWith(dated(i)));
+            const points = layer.from && fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (drawable(shown[i]) ? (result.breaks?.[i] ? { time, value: shown[i], color: "transparent" } : paintAt ? { time, value: shown[i], ...paintAt(i) } : { time, value: shown[i] }) : { time }));
+            if (paintWith) paintedPoints.set(layer.id, { points, faint: false, paintWith });
+            if (layer.type === "histogram" && !paintAt) {
               // Bars below their base take the second color, each its own (the rest take the series').
               const tint = alpha(under, 0.75 * op), from = layer.base ?? 0;
               const bars = points.map((point) => ("value" in point && point.value < from ? { ...point, color: tint } : point));
@@ -10562,7 +10628,7 @@ const picture = await studio.png();</pre>
        * @param {(number[] | null)[] | null} bars
        */
       function trendOf(low, high, ref, bars) {
-        const n = low.length, values = new Float64Array(n).fill(NaN), breaks = new Uint8Array(n);
+        const n = low.length, values = new Float64Array(n).fill(NaN), breaks = new Uint8Array(n), onSide = new Uint8Array(n);
         // (Which it's on: 0 none yet, 1 the low, 2 the high; `last`, its last date with a value.)
         let side = 0, last = -1;
         for (let i = 0; i < n; i++) {
@@ -10576,12 +10642,108 @@ const picture = await studio.png();</pre>
             if (last >= 0) breaks[last] = 1;
           }
           values[i] = side === 1 ? low[i] : high[i];
+          onSide[i] = side;
           last = i;
         }
-        return { values, breaks };
+        return { values, breaks, sides: onSide };
       }
       /** A result's values drawn small: a trend's with a gap at each switch (its point there left out: small, no line up or down). */
       const gapped = (/** @type {Vector | undefined} */ values, /** @type {Result | undefined} */ result) => (values && result?.breaks ? Float64Array.from(values, (value, i) => (result.breaks?.[i] ? NaN : value)) : values);
+      /**
+       * What a layer paints at each date (its colors' names, its opacity aside): one taking its colors from another, that
+       * one's as drawn (a loop of those: its own); with two, the one its value calls for: a baseline's or bars' over or
+       * under their base, a trend's on resistance or support. Null: its one color all along (a date its source has no
+       * value at: its own color there).
+       * @param {Chart} doc @param {Layer} layer @param {Resolved} data @returns {((i: number) => string | null) | null}
+       */
+      function colorsAt(doc, layer, data, seen = new Set()) {
+        if (layer.colorFrom && !seen.has(layer.id)) {
+          const source = doc.layers.find((item) => item.id === layer.colorFrom);
+          // (Its source's as drawn, date by date: where that has a value, its colors, else its own one.)
+          const values = source && data.results.get(source.id)?.shown;
+          if (source) {
+            const one = source.color, its = colorsAt(doc, source, data, seen.add(layer.id));
+            return values ? (i) => (Number.isFinite(values[i]) ? its?.(i) ?? one : null) : null;
+          }
+        }
+        const result = data.results.get(layer.id), values = result?.shown, top = layer.color, under = belowOf(layer);
+        if (!values || ink(top) === ink(under)) return null;
+        const base = layer.base ?? 0;
+        if (layer.type === "baseline" || layer.type === "histogram") return (i) => (!Number.isFinite(values[i]) ? null : values[i] < base ? under : top);
+        if (layer.type === "trend" && result?.sides) return (i) => (/** @type {Uint8Array} */ (result.sides)[i] === 1 ? under : result.sides?.[i] ? top : null);
+        return null;
+      }
+      /**
+       * What a layer's painted points depend on besides its values: its type, fill, opacity and color, and each layer its
+       * colors come from (their colors, base, type, values and sides), as colorsAt follows them.
+       */
+      function paintSig(/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {Resolved} */ data, /** @type {number} */ op, /** @type {string} */ base) {
+        /** @type {any[]} */
+        const sig = [layer.type, layer.fill, op, base];
+        /** @type {Layer | undefined} */
+        let at = layer;
+        for (const seen = new Set(); at && !seen.has(at.id); at = at.colorFrom ? doc.layers.find((item) => item.id === at?.colorFrom) : undefined) {
+          seen.add(at.id);
+          const result = data.results.get(at.id);
+          sig.push(ink(at.color), ink(belowOf(at)), at.base, at.type, result?.shown, result?.sides);
+        }
+        return sig;
+      }
+      const samePaint = (/** @type {any[] | null | undefined} */ a, /** @type {any[]} */ b) => Boolean(a) && a?.length === b.length && b.every((value, i) => a?.[i] === value);
+      /** Where a layer's colors vary date by date as the chart paints them (its colors another's, a trend's two): its colorsAt. */
+      const paintOf = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {{ times: number[], results: Map<string, any> }} */ data) => (layer.colorFrom || layer.type === "trend" ? colorsAt(doc, layer, /** @type {Resolved} */ (data)) : null);
+      /** The color a layer is drawn in at its latest value (its name), where it varies (its colors another's, a trend's two); else null. @param {Layer} layer */
+      function colorNow(layer) {
+        const at = resolved ? paintOf(chart, layer, resolved) : null;
+        const values = at && resolved?.results.get(layer.id)?.shown;
+        if (!at || !values) return null;
+        for (let i = values.length - 1; i >= 0; i--) if (Number.isFinite(values[i])) return at(i);
+        return null;
+      }
+      /**
+       * Points cut into pieces of one color each where their colors change (a null: a gap, no piece across it); a piece
+       * shares its first point with the one before (`share`), as the chart draws a color from its point on.
+       * @template T @param {(T | null)[]} points @param {(point: T) => string} tint @returns {{ color: string, points: T[] }[]}
+       */
+      function byColor(points, tint, share = true) {
+        /** @type {{ color: string, points: T[] }[]} */
+        const pieces = [];
+        /** @type {{ color: string, points: T[] } | null} */
+        let piece = null;
+        for (const point of points) {
+          if (point === null) {
+            piece = null;
+            continue;
+          }
+          const color = tint(point);
+          if (piece && piece.color !== color) {
+            if (share) piece.points.push(point);
+            piece = null;
+          }
+          if (!piece) pieces.push((piece = { color, points: [] }));
+          piece.points.push(point);
+        }
+        return pieces;
+      }
+      /**
+       * Layers painted date by date, as their points were last set (the spotlight fades them, and gives them back), and
+       * how a point is painted in a color (the live price paints its own).
+       * @type {Map<string, { points: any[], faint: boolean, paintWith?: (color: string) => Record<string, string> }>}
+       */
+      const paintedPoints = new Map();
+      /** A point's colors, faded as a spotlight fades the others. */
+      const fadedPoint = (/** @type {Record<string, any>} */ point) => {
+        const out = { ...point };
+        for (const key of POINT_COLORS) if (typeof out[key] === "string" && out[key] !== "transparent") out[key] = fadedColor(out[key]);
+        return out;
+      };
+      const POINT_COLORS = ["color", "lineColor", "topColor", "bottomColor"], fadedColors = new Map();
+      /** A color faded as the spotlight fades (a painted layer has a handful: each once). */
+      const fadedColor = (/** @type {string} */ color) => {
+        if (fadedColors.size > 500) fadedColors.clear();
+        if (!fadedColors.has(color)) fadedColors.set(color, faded({ value: color }).value);
+        return fadedColors.get(color);
+      };
       /** Widths measured for the data on screen, forgotten with it. @type {WeakMap<object, Map<string, number>>} */
       const slots = new WeakMap();
       const slotsNow = () => {
@@ -11428,16 +11590,18 @@ const picture = await studio.png();</pre>
         for (let i = Math.max(0, Math.floor(range.from) - 1), to = Math.min(shown.length - 1, Math.ceil(range.to) + 1); i <= to; i++) {
           if (!on(i) || (on(i - 1) && !breaks?.[i - 1] && !breaks?.[i] && on(i + 1))) continue;
           const y = series.priceToCoordinate(shown[i]);
-          if (y !== null) ends.push({ x: line.at + i * line.step, y });
+          if (y !== null) ends.push({ x: line.at + i * line.step, y, i });
         }
         return ends;
       }
       /** Those ends, dotted in the line's color (faded with it), a little wider than it. */
-      function paintEnds(context, /** @type {{ x: number, y: number }[]} */ ends, /** @type {{ color: string, radius: number }} */ look) {
-        context.fillStyle = look.color;
-        context.beginPath();
-        for (const { x, y } of ends) (context.moveTo(x + look.radius, y), context.arc(x, y, look.radius, 0, Math.PI * 2));
-        context.fill();
+      function paintEnds(context, /** @type {{ x: number, y: number, i: number }[]} */ ends, /** @type {{ color: string, radius: number, at?: ((i: number) => string) | null }} */ look) {
+        for (const { x, y, i } of ends) {
+          context.fillStyle = look.at?.(i) ?? look.color;
+          context.beginPath();
+          context.arc(x, y, look.radius, 0, Math.PI * 2);
+          context.fill();
+        }
       }
       /** A drawing's points on its pane, in pixels (NaN where there's none: a value its scale can't show). */
       function onScreen(drawing, series, line) {
@@ -11867,9 +12031,9 @@ const picture = await studio.png();</pre>
           this.marksOnly = [this.markView];
           this.views = [{ zOrder: () => /** @type {const} */ ("top"), renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context, mediaSize }) => this.draw(context, mediaSize)) }) }];
           this.both = [this.markView, ...this.views];
-          /** A trend's segments' ends, dotted (where one starts after a switch, or ends before one), as the series draws. @type {{ x: number, y: number }[]} */
+          /** A trend's segments' ends, dotted (where one starts after a switch, or ends before one), as the series draws. @type {{ x: number, y: number, i: number }[]} */
           this.ends = [];
-          this.endsLook = { color: "", radius: 1.5 };
+          this.endsLook = /** @type {{ color: string, radius: number, at?: ((i: number) => string) | null }} */ ({ color: "", radius: 1.5 });
           this.endsView = { zOrder: () => /** @type {const} */ ("normal"), renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context }) => paintEnds(context, this.ends, this.endsLook)) }) };
           this.endsOnly = [this.endsView];
           this.endsMarks = [this.endsView, this.markView];
@@ -11896,7 +12060,11 @@ const picture = await studio.png();</pre>
           this.lowest = Boolean(host) && chart.panes.filter((pane) => chart.layers.some((layer) => layer.pane === pane.id && !layer.hidden)).at(-1)?.id === host?.pane;
           const own = layerById(this.layer), trend = own?.type === "trend" && !own.hidden && line && series ? resolved?.results.get(this.layer) : null;
           this.ends = trend ? segmentEnds(trend, /** @type {{ at: number, step: number }} */ (line), series) : [];
-          if (this.ends.length && own) this.endsLook = { color: /** @type {any} */ (series?.options()).color, radius: own.width / 2 + 1 };
+          if (this.ends.length && own) {
+            // (Each in its segment's color, as painted: a flip's last point is its old side's, as drawn before it.)
+            const painted = paintedPoints.get(own.id), source = painted && resolved ? colorsAt(chart, own, resolved) : null, op = opacityOf(own), dated = source && ((/** @type {number} */ i) => ink(source(i) ?? own.color));
+            this.endsLook = { color: /** @type {any} */ (series?.options()).color, radius: own.width / 2 + 1, at: dated ? (/** @type {number} */ i) => (painted?.faint ? faded({ value: op < 1 ? alpha(dated(i), op) : dated(i) }).value : op < 1 ? alpha(dated(i), op) : dated(i)) : null };
+          }
           this.shown = line && series ? drawingsShown().filter((drawing) => drawing.layer === this.layer && drawing.id !== typingIn).map((drawing) => {
             const points = onScreen(drawing, series, line);
             // A stroke's box, so the pointer far from it is turned away before its every segment.
@@ -12508,13 +12676,14 @@ const picture = await studio.png();</pre>
               const range = data?.visibleRange;
               if (!range || !data.bars.length) return;
               const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
-              context.fillStyle = options.color;
+              let color = options.color;
               const from = Math.max(0, range.from), to = Math.min(data.bars.length, range.to);
               if (xs.length < to - from) [xs, highs, lows] = [0, 0, 0].map(() => new Float64Array((to - from) * 2));
               const topAt = (/** @type {number} */ k) => (options.top ? 0 : /** @type {number} */ (toY(highs[k]))) * v, bottomAt = (/** @type {number} */ k) => (options.bottom ? mediaSize.height : /** @type {number} */ (toY(lows[k]))) * v;
               // A run of columns, filled: its highs along, its lows back (a column alone, a sliver).
               let k = 0;
               const fill = () => {
+                context.fillStyle = color;
                 if (k === 1) context.fillRect(xs[0] - h / 2, topAt(0), h, bottomAt(0) - topAt(0));
                 else if (k > 1) {
                   context.beginPath();
@@ -12528,12 +12697,23 @@ const picture = await studio.png();</pre>
               // (A date with nothing isn't among the bars: one not next to the last breaks the run.)
               let last = NaN;
               for (let i = from; i < to; i++) {
-                const { x, time, originalData: row } = data.bars[i];
+                // (A row's own color, the chart library keeps as its bar's, not in the row.)
+                const { x, time, originalData: row, barColor } = data.bars[i];
                 if (time !== last + 1) fill();
                 last = time;
                 if (!Number.isFinite(row.high) || !Number.isFinite(row.low)) {
                   fill();
                   continue;
+                }
+                // (Another color: what's run so far filled, the next run from its last column.)
+                const now = barColor ?? options.color;
+                if (now !== color) {
+                  if (k) {
+                    const [x0, high0, low0] = [xs[k - 1], highs[k - 1], lows[k - 1]];
+                    fill();
+                    (xs[0] = x0), (highs[0] = high0), (lows[0] = low0), (k = 1);
+                  }
+                  color = now;
                 }
                 const column = Math.round(x * h);
                 if (k && xs[k - 1] === column) {
@@ -13218,13 +13398,14 @@ const picture = await studio.png();</pre>
       const MARK_KINDS = new Set(["area", "baseline", "bars", "dots"]);
       const validLevel = (y) => typeof y === "number" && y >= 0 && y <= 1;
       const validThumb = (thumb) => typeof thumb?.key === "string" && Array.isArray(thumb.lines) && thumb.lines.length <= 3
-        && thumb.lines.every((line) => Array.isArray(line) && isColor(line[0]) && validYs(line[1]) && (line[2] === undefined || (MARK_KINDS.has(line[2]) && isColor(line[3]) && validLevel(line[4]))))
+        && thumb.lines.every((line) => Array.isArray(line) && isColor(line[0]) && validYs(line[1]) && (line[2] == null || (MARK_KINDS.has(line[2]) && isColor(line[3]) && validLevel(line[4])))
+          && (line[5] === undefined || (Array.isArray(line[5]) && line[5].length === line[1].length && line[5].every((color) => color === null || isColor(color)))))
         && typeof thumb.marks === "object" && thumb.marks !== null && Object.values(thumb.marks).every(validYs)
         && (thumb.bases === undefined || (typeof thumb.bases === "object" && thumb.bases !== null && Object.values(thumb.bases).every(validLevel)));
       /**
        * A chart's mark: up to three lines, each with its kind (none: a line), its second color and its base; and each
        * layer's own, with its base (a baseline's, bars'), in hundredths of the height.
-       * @typedef {{ lines: ([string, (number | null)[]] | [string, (number | null)[], string, string, number])[], marks: Record<string, (number | null)[]>, bases?: Record<string, number> }} Thumb
+       * @typedef {{ lines: ([string, (number | null)[]] | [string, (number | null)[], string, string, number] | [string, (number | null)[], string | null, string | null, number | null, (string | null)[]])[], marks: Record<string, (number | null)[]>, bases?: Record<string, number> }} Thumb
        */
       /** @type {Map<string, Thumb & { key: string }>} */
       const thumbs = new Map(Object.entries(storage.get(THUMBS, {})).filter(([, thumb]) => validThumb(thumb)));
@@ -13240,7 +13421,7 @@ const picture = await studio.png();</pre>
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill, layer.from, layer.ref])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill, layer.from, layer.ref, layer.colorFrom])]);
       /**
        * A layer's shape: its values as its pane scales them (log, or from the first value), averaged down to the mini
        * charts' points and lightly smoothed (at this size, the trend is what reads), with the range of the full values;
@@ -13354,7 +13535,11 @@ const picture = await studio.png();</pre>
               const level = place([shape.scale(layer.base ?? 0)], lo, hi, band.bottom, band.height)[0] ?? band.bottom;
               // An area fills down to its band's foot, or up to its top where it's filled above.
               const edge = layer.fill === "above" ? Math.min(1, band.bottom + band.height + gap / 2) : Math.max(0, band.bottom - gap / 2);
-              lines.push(kind ? [layer.color, ys, kind, belowOf(layer), kind === "area" ? edge : level] : [layer.color, ys]);
+              // (Painted date by date: each point's color, its bucket's last date's.)
+              const dateColors = paintOf(doc, layer, data), step = (data.times.length || 1) / THUMB_POINTS;
+              const colors = dateColors && ys.map((value, k) => (value === null ? null : dateColors(Math.min(data.times.length - 1, Math.max(Math.floor(k * step), Math.floor((k + 1) * step) - 1))) ?? layer.color));
+              if (colors) lines.push([layer.color, ys, kind ?? null, kind ? belowOf(layer) : null, kind ? (kind === "area" ? edge : level) : null, colors]);
+              else lines.push(kind ? [layer.color, ys, kind, belowOf(layer), kind === "area" ? edge : level] : [layer.color, ys]);
             }
           }
         }
@@ -13588,6 +13773,16 @@ const picture = await studio.png();</pre>
               }
               const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), at = ([i, value]) => `${x(i)} ${y(value)}`;
               const look = { c: layer.color, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) };
+              // (Painted date by date, as on the chart: a mark for each of its colors, its pieces in that color.)
+              const dateColors = paintOf(doc, layer, data), tintAt = (/** @type {number} */ i) => (dateColors && dateColors(Math.round(i))) ?? layer.color;
+              /** @template T @param {{ color: string, points: T[] }[]} pieces @returns {Map<string, T[][]>} */
+              const perColor = (pieces) => {
+                const by = new Map();
+                for (const piece of pieces) by.set(piece.color, [...(by.get(piece.color) ?? []), piece.points]);
+                return by;
+              };
+              /** Runs one after another, a gap between each (for byColor). @template T @param {T[][]} parts @returns {(T | null)[]} */
+              const joined = (parts) => parts.flatMap((part, k) => (k ? [null, ...part] : part));
               if (band) {
                 // Run by run, its highs along, its lows back (or its pane's edges, if it has them).
                 const above = (b) => (layer.from?.includes("top") ? paneTop : y(/** @type {[number, number]} */ (band[b])[1])), below = (b) => (layer.from?.includes("bottom") ? paneBottom : y(/** @type {[number, number]} */ (band[b])[0]));
@@ -13596,20 +13791,26 @@ const picture = await studio.png();</pre>
                 band.forEach((range, b) => (range ? run.push(b) : run.length && (runs.push(run), (run = []))));
                 if (run.length) runs.push(run);
                 const middle = (/** @type {number} */ b) => x(shown.from + ((b + 0.5) * span) / B);
-                const d = runs.map((part) => `M${part.map((b) => `${middle(b)} ${above(b)}`).join("L")}L${[...part].reverse().map((b) => `${middle(b)} ${below(b)}`).join("L")}Z`).join("");
-                if (d) drawn.marks.push({ ...look, k: "band", d });
+                for (const [c, parts] of perColor(byColor(joined(runs), (b) => tintAt(shown.from + ((b + 0.5) * span) / B)))) {
+                  const d = parts.map((part) => `M${part.map((b) => `${middle(b)} ${above(b)}`).join("L")}L${[...part].reverse().map((b) => `${middle(b)} ${below(b)}`).join("L")}Z`).join("");
+                  if (d) drawn.marks.push({ ...look, c, k: "band", d });
+                }
                 return;
               }
               if (bars) {
                 let d = "", d2 = "";
-                // A bar a bucket, at its middle, to the one of its extremes farthest from the base.
+                const painted = new Map();
+                // A bar a bucket, at its middle, to the one of its extremes farthest from the base (painted: in its date's
+                // color, whichever side).
                 points.forEach((point, b) => {
                   if (!point) return;
-                  const [, value] = point.reduce((far, next) => (Math.abs(next[1] - base) > Math.abs(far[1] - base) ? next : far));
+                  const [i, value] = point.reduce((far, next) => (Math.abs(next[1] - base) > Math.abs(far[1] - base) ? next : far));
                   const bar = `M${x(shown.from + ((b + 0.5) * span) / B)} ${y(base)}V${y(value)}`;
-                  if (value >= base) d += bar;
+                  if (dateColors) painted.set(tintAt(i), (painted.get(tintAt(i)) ?? "") + bar);
+                  else if (value >= base) d += bar;
                   else d2 += bar;
                 });
+                for (const [c, path] of painted) drawn.marks.push({ ...look, c, k: "bars", d: path });
                 if (d || d2) drawn.marks.push({ ...look, k: "bars", c2: belowOf(layer), d, ...(d2 ? { d2 } : {}) });
                 return;
               }
@@ -13620,13 +13821,22 @@ const picture = await studio.png();</pre>
               if (run.length) runs.push(run);
               if (!runs.length) return;
               const along = (/** @type {number[]} */ part) => part.flatMap((b) => /** @type {[number, number][]} */ (points[b]));
-              if (layer.type === "dots") return void drawn.marks.push({ ...look, k: "dots", d: runs.flatMap(along).map((point) => `M${at(point)}h0`).join("") });
-              const d = runs.map((part) => `M${along(part).map(at).join("L")}`).join(""), [endAt, endValue] = along(runs[runs.length - 1]).at(-1) ?? [0, 0];
+              // (Its latest value's dot, in the color it's drawn in there.)
+              const pieces = byColor(joined(runs.map(along)), ([i]) => tintAt(i), layer.type !== "dots"), last = pieces.at(-1);
+              if (!last) return;
+              const [endAt, endValue] = /** @type {[number, number]} */ (last.points.at(-1));
               const [, , length, gap] = LINED.has(layer.type) ? dashOf(layer.dash) : DASHES[0];
-              const line = { ...look, d, end: [x(endAt), y(endValue)], ...(gap ? { dash: `${length} ${gap}` } : {}) };
-              if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, ...(layer.fill === "above" ? { up: true } : {}) });
-              else if (layer.type === "baseline") drawn.marks.push({ ...line, k: "baseline", c2: belowOf(layer), y0: Number.isFinite(level) ? inPane(y(level)) : paneBottom, top: paneTop, bottom: paneBottom });
-              else drawn.marks.push({ ...line, k: "line" });
+              // (The latest value's color last: its dot over the rest.)
+              for (const [c, parts] of [...perColor(pieces)].sort(([a], [b]) => Number(a === last.color) - Number(b === last.color))) {
+                if (layer.type === "dots") {
+                  drawn.marks.push({ ...look, c, k: "dots", d: parts.flat().map((point) => `M${at(point)}h0`).join("") });
+                  continue;
+                }
+                const line = { ...look, c, d: parts.map((part) => `M${part.map(at).join("L")}`).join(""), ...(c === last.color ? { end: [x(endAt), y(endValue)] } : {}), ...(gap ? { dash: `${length} ${gap}` } : {}) };
+                if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, ...(layer.fill === "above" ? { up: true } : {}) });
+                else if (layer.type === "baseline") drawn.marks.push({ ...line, k: "baseline", c2: belowOf(layer), y0: Number.isFinite(level) ? inPane(y(level)) : paneBottom, top: paneTop, bottom: paneBottom });
+                else drawn.marks.push({ ...line, k: "line" });
+              }
             };
             for (const item of shaped) {
               const start = drawn.marks.length;
@@ -14321,10 +14531,11 @@ const picture = await studio.png();</pre>
         if (part.length > 1) out[side].push({ part, from });
         return out;
       }
-      /** A few bars from a drawing's points (each its share's farthest from the base), above the base in one color, under it in the other. */
+      /** A few bars from a drawing's points (each its share's farthest from the base, and where that is), above the base in one color, under it in the other. */
       const barsOf = (ys, n, base, place) => Array.from({ length: n }, (_, k) => {
-        const bucket = ys.slice(Math.floor((k * ys.length) / n), Math.floor(((k + 1) * ys.length) / n)).filter((value) => value !== null);
-        return bucket.length ? place(k, bucket.reduce((far, value) => (Math.abs(value - base) > Math.abs(far - base) ? value : far)), base) : "";
+        let far = -1;
+        for (let i = Math.floor((k * ys.length) / n); i < Math.floor(((k + 1) * ys.length) / n); i++) if (ys[i] !== null && (far < 0 || Math.abs(ys[i] - base) > Math.abs(ys[far] - base))) far = i;
+        return far < 0 ? "" : place(k, ys[far], base, far);
       }).join("");
       /** A chart's mark: its mini chart once drawn, a faint line until then. @param {Chart} doc */
       const chartMark = (doc) => {
@@ -14332,10 +14543,17 @@ const picture = await studio.png();</pre>
         const y = (value) => 36 - value * 32, stroke = 'fill="none" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"';
         const polyline = (part, color) => `<polyline points="${part.join(" ")}" stroke="${color}" ${stroke}/>`;
         // Each line as its type: an area over a light fill, a baseline in its two colors about its base, bars, dots.
-        const paths = lines.map(([raw, ys, kind, under, level = 0]) => {
+        const paths = lines.map(([raw, ys, kind, under, level, dated]) => {
+          level ??= 0;
           const color = escape(ink(raw)), below = escape(ink(under ?? raw)), x = (i) => 2 + (i / (ys.length - 1)) * 116, base = y(level);
-          if (kind === "bars") return barsOf(ys, 10, level, (k, value) => `<rect x="${(4 + k * 11.6).toFixed(1)}" y="${Math.min(y(value), base).toFixed(1)}" width="7" height="${Math.max(1.5, Math.abs(y(value) - base)).toFixed(1)}" fill="${value >= level ? color : below}"/>`);
-          if (kind === "dots") return `<path d="${ys.map((value, i) => (value === null || i % 2 ? "" : `M${x(i).toFixed(1)} ${y(value).toFixed(1)}h0`)).join("")}" stroke="${color}" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+          // (Painted date by date: a bar, a dot, a stretch of line in its points' color.)
+          const tintAt = (/** @type {number} */ i) => escape(ink(dated?.[i] ?? raw));
+          if (kind === "bars") return barsOf(ys, 10, level, (k, value, _base, i) => `<rect x="${(4 + k * 11.6).toFixed(1)}" y="${Math.min(y(value), base).toFixed(1)}" width="7" height="${Math.max(1.5, Math.abs(y(value) - base)).toFixed(1)}" fill="${dated ? tintAt(i) : value >= level ? color : below}"/>`);
+          if (kind === "dots") return byColor(ys.map((value, i) => (value === null || i % 2 ? null : { i, value })), ({ i }) => tintAt(i), false).map((piece) => `<path d="${piece.points.map(({ i, value }) => `M${x(i).toFixed(1)} ${y(value).toFixed(1)}h0`).join("")}" stroke="${piece.color}" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
+          if (dated) return byColor(ys.map((value, i) => (value === null ? null : { i, value })), ({ i }) => tintAt(i)).filter((piece) => piece.points.length > 1).map(({ color: stroke, points }) => {
+            const part = points.map(({ i, value }) => `${x(i).toFixed(1)},${y(value).toFixed(1)}`);
+            return (kind === "area" ? `<polygon points="${part[0].split(",")[0]},${base} ${part.join(" ")} ${part.at(-1)?.split(",")[0]},${base}" fill="${stroke}" fill-opacity=".2"/>` : "") + polyline(part, stroke);
+          }).join("");
           return runs(ys, x, y).map((part) => {
             if (kind === "baseline") {
               const { above, below: under } = sides(part, base);
@@ -14355,7 +14573,7 @@ const picture = await studio.png();</pre>
       function seriesMark(layer) {
         const thumb = thumbs.get(chart.id), ys = thumb && Object.hasOwn(thumb.marks, layer.id) ? thumb.marks[layer.id] : undefined;
         const level = thumb?.bases && Object.hasOwn(thumb.bases, layer.id) ? thumb.bases[layer.id] : 0;
-        const color = escape(ink(layer.color)), below = escape(ink(belowOf(layer)));
+        const color = escape(ink(colorNow(layer) ?? layer.color)), below = escape(ink(belowOf(layer)));
         const x = (i) => 0.8 + (i / (ys.length - 1)) * 14.4, y = (value) => 11 - value * 10;
         let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4" stroke-dasharray="2 2"/>`;
         // A cloud's, a band in its color.
@@ -15040,6 +15258,8 @@ const picture = await studio.png();</pre>
           follow();
           drag.frame = requestAnimationFrame(edge);
         }
+        // (Asked before it scrolls under a finger, or a list long enough to scroll starts to before the hold can stop it.)
+        list.addEventListener("touchmove", pin, { passive: false });
         list.addEventListener("pointerdown", (event) => {
           // (One gesture at a time, whatever the list: a second finger, a second press, starts none.)
           if (event.button !== 0 || carrying) return;
@@ -16323,14 +16543,14 @@ const picture = await studio.png();</pre>
       }
       sliders($("inspector"), { valueOf: (id) => ((layer) => (layer ? SLIDERS[id].of(layer) : undefined))(layerById(selected)), set: setSlider });
 
-      /** Which of a layer's two colors (where its type has two) the picker edits. */
-      let colorTarget = "color";
-      const colorKey = (layer) => (PAIRS[layer.type] ? colorTarget : "color");
       const colorOf = (layer, key) => (key === "color" ? layer.color : belowOf(layer));
-      /** A layer's color, set: below a baseline's base, red is the default and isn't kept. */
+      /**
+       * A layer's color, set: its own (no other layer's any more), or its second, kept only where it isn't its default
+       * (red below a baseline's base, bars' too; a trend's own one on a support).
+       */
       function setColor(layer, key, color) {
-        if (key === "color") layer.color = color;
-        else layer.colorBelow = color === "red" ? undefined : color;
+        if (key === "color") (layer.color = color), delete layer.colorFrom;
+        else layer.colorBelow = color === (layer.type === "trend" ? layer.color : "red") ? undefined : color;
       }
       /**
        * The surface, one plane, every point (u across, t down, 0 to 1) a color. Down, lightness, white at the top to
@@ -16377,25 +16597,51 @@ const picture = await studio.png();</pre>
       const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="radiogroup" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" role="radio" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}" data-tip="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
       /** The surface: every hue across, lightness down, the color's place ringed (`target`: what it picks for, see planeTarget). */
       function planeHtml(/** @type {string} */ color, /** @type {string} */ target) {
-        const [l, c, h] = shownOklch(color), { u, t } = placeOf(color), grayish = u > HUES + (1 - HUES) * 0.85 - 1e-9;
-        return `<div class="plane" data-plane="${escape(target)}" role="slider" tabindex="0" aria-label="Color: hue across, then grays; lightness down" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(l * 100)}" aria-valuetext="${grayish || c < 0.02 ? "Gray" : `Hue ${Math.round(h)} degrees`}, lightness ${Math.round(l * 100)} percent" style="--x: ${u}; --y: ${t}"><canvas></canvas><i class="ring" style="--c:${escape(cssColor(color))}"></i></div>`;
+        const { u, t } = placeOf(color), said = planeSays(color, u);
+        return `<div class="plane" data-plane="${escape(target)}" role="slider" tabindex="0" aria-label="Color: hue across, then grays; lightness down" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${said.now}" aria-valuetext="${said.text}" style="--x: ${u}; --y: ${t}"><canvas></canvas><i class="ring" style="--c:${escape(cssColor(color))}"></i></div>`;
+      }
+      /** What a surface says of its color, at its place across: its lightness, and its hue (amid the grays, a gray). */
+      function planeSays(/** @type {string} */ color, /** @type {number} */ u) {
+        const [l, c, h] = shownOklch(color), grayish = u > HUES + (1 - HUES) * 0.85 - 1e-9;
+        return { now: Math.round(l * 100), text: `${grayish || c < 0.02 ? "Gray" : `Hue ${Math.round(h)} degrees`}, lightness ${Math.round(l * 100)} percent` };
       }
       /**
        * A color to pick, the same wherever one is (a layer's, a drawing's, a line's): one of Bitview's, a click; any other,
        * on the surface under them, every hue across and lightness down, at one chroma (a quieter color is a matter of
        * opacity).
        */
-      const colorBox = (/** @type {string} */ color, /** @type {string} */ target) => `<div class="color-box">${swatchGrid(color)}${planeHtml(color, target)}</div>`;
-      /** A layer's color, its name beside the label; a baseline picks which of its two colors it edits. */
+      const colorBox = (/** @type {string} */ color, /** @type {string} */ target, ticked = color) => `<div class="color-box">${swatchGrid(ticked)}${planeHtml(color, target)}</div>`;
+      /**
+       * A layer's color, a select: its popover Bitview's colors, the surface, and (one that can) another layer's colors to
+       * take date by date. A two-color type's two, one under the other, each said by what it's for; taken from another,
+       * one, saying so.
+       */
       function colorPicker(layer) {
-        const key = colorKey(layer), color = colorOf(layer, key);
-        // A type's two colors: which one the box edits, in the label's row.
-        const which = PAIRS[layer.type] ? `<span class="which" role="group" aria-label="Which color">${[["color", PAIRS[layer.type][0]], ["colorBelow", PAIRS[layer.type][1]]].map(([id, text]) => `<button type="button" data-color-target="${id}" aria-pressed="${key === id}"><i class="swatch" style="--c:${escape(cssColor(colorOf(layer, id)))}"></i>${text}</button>`).join("")}</span>` : "";
-        return `<div class="field"><span>Color<span class="color-now">${escape(colorName(color))}</span>${which}</span>${colorBox(color, "layer")}</div>`;
+        const source = layer.colorFrom ? layerById(layer.colorFrom) : null, pair = PAIRS[layer.type];
+        const selectFor = (/** @type {string} */ key, /** @type {string} */ label) => ((color) => `<button type="button" id="color-select-${key}" class="preset color-select" data-color-select="${key}" aria-haspopup="menu" aria-label="${escape(label ? `${label} color` : "Color")}: ${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i><span class="name">${label ? `${escape(label)}: ` : ""}${escape(colorName(color))}</span>${CHEVRON}</button>`)(colorOf(layer, key));
+        const body = source
+          ? `<button type="button" id="color-select-color" class="preset color-select" data-color-select="color" aria-haspopup="menu" aria-label="Colors from ${escape(labelOf(source))}">${letterChip(source)}<span class="name">From ${escape(labelOf(source))}</span>${CHEVRON}</button>`
+          : pair ? `<div class="color-selects">${selectFor("color", pair[0])}${selectFor("colorBelow", pair[1])}</div>` : selectFor("color", "");
+        return `<div class="field"><span>Color</span>${body}</div>`;
+      }
+      /** What a layer can take its colors from: another layer, none taking its own (no loop of two). @param {Layer} layer */
+      const colorSources = (layer) => chart.layers.filter((other) => other.id !== layer.id && other.colorFrom !== layer.id);
+      /** A layer's color from its select: a popover of the colors, and (its own color, of a type that can) the layers to take theirs. */
+      function layerColorMenu(/** @type {HTMLElement} */ button, /** @type {string} */ key) {
+        const layer = layerById(selected);
+        if (!layer) return;
+        const id = layer.id, from = key === "color" && COLORED_FROM.has(layer.type) ? colorSources(layer) : [];
+        colorPopover(button, colorOf(layer, key), `layer:${key}`, (color) => {
+          refocus(`#inspector [data-color-select="${key}"]`);
+          editById(id, (item) => setColor(item, key, color));
+        }, from.length ? `<div class="menu-rule"></div><div class="menu-group">From a layer</div>${from.map((other) => `<button type="button" data-pick-from="${other.id}" aria-checked="${layer.colorFrom === other.id}" data-tip="Its colors, date by date">${tick(layer.colorFrom === other.id)}${letterChip(other)}${escape(labelOf(other))}</button>`).join("")}` : "", (other) => {
+          refocus(`#inspector [data-color-select="color"]`);
+          editById(id, (item) => (item.colorFrom = other));
+        }, ((source) => (key === "color" && source ? labelOf(source) : ""))(layer.colorFrom ? layerById(layer.colorFrom) : null));
       }
       /** A color in a popover (a drawing's, from the belt; a line's, from its button): picked from Bitview's, it closes. */
-      function colorPopover(/** @type {HTMLElement} */ anchor, /** @type {string} */ color, /** @type {string} */ target, /** @type {(color: string) => void} */ apply) {
-        showMenu(anchor, `<div class="field belt-pop color-pop"><span>Color<span class="color-now">${escape(colorName(color))}</span></span>${colorBox(color, target)}</div>`, ({ pickColor }) => pickColor && apply(pickColor), null, anchor.closest("#belt") ? beltSide() : "");
+      function colorPopover(/** @type {HTMLElement} */ anchor, /** @type {string} */ color, /** @type {string} */ target, /** @type {(color: string) => void} */ apply, more = "", /** @type {(id: string) => void} */ pickFrom = () => {}, from = "") {
+        showMenu(anchor, `<div class="field belt-pop color-pop"><span>Color<span class="color-now">${escape(from ? `From ${from}` : colorName(color))}</span></span>${colorBox(color, target, from ? "" : color)}</div>${more}`, ({ pickColor, pickFrom: from }) => (from ? pickFrom(from) : pickColor && apply(pickColor)), null, anchor.closest("#belt") ? beltSide() : "");
         drawPlanes();
       }
       /**
@@ -16488,16 +16734,16 @@ const picture = await studio.png();</pre>
         context.putImageData(planes.get(key), 0, 0);
       }
       /**
-       * What a surface picks for, by its name: the selected layer's color ("layer"), the belt's (the pen's, and the selected
+       * What a surface picks for, by its name: the selected layer's colors ("layer:" and which: "color", "colorBelow"), the belt's (the pen's, and the selected
        * drawings') ("pen"), a line across's ("line:" and its key). Its color now, and how a pick sets it: one undo step a
        * drag (or run of keys), the popover it's in left open.
        * @returns {{ color: string, set: (color: string) => void } | null}
        */
       function planeTarget(/** @type {string} */ name) {
         const layer = layerById(selected);
-        if (name === "layer" && layer) {
-          const key = colorKey(layer), id = layer.id;
-          return { color: colorOf(layer, key), set: (color) => editById(id, (target) => setColor(target, key, color), { coalesce: `${key}:${id}` }) };
+        if (name.startsWith("layer:") && layer) {
+          const key = name.slice(6), id = layer.id;
+          return { color: colorOf(layer, key), set: (color) => editById(id, (target) => setColor(target, key, color), { coalesce: `${key}:${id}`, keepMenu: true }) };
         }
         if (name === "pen") {
           const look = lookFor("color");
@@ -16545,6 +16791,9 @@ const picture = await studio.png();</pre>
         plane?.style.setProperty("--x", String(place.u));
         plane?.style.setProperty("--y", String(place.t));
         plane?.querySelector(".ring")?.setAttribute("style", `--c:${cssColor(color)}`);
+        const said = planeSays(color, place.u);
+        plane?.setAttribute("aria-valuenow", String(said.now));
+        plane?.setAttribute("aria-valuetext", said.text);
         // (Its name, and Bitview's colors, none of them ringed now, follow too.)
         const field = plane?.closest(".field"), named = field?.querySelector(".color-now");
         if (named) named.textContent = colorName(color);
@@ -17129,13 +17378,9 @@ const picture = await studio.png();</pre>
       $("inspector").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
-        const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorTarget: target, replace, removeLevel, lineColor, lineDash, pickColor } = button.dataset;
+        const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorSelect, replace, removeLevel, lineColor, lineDash } = button.dataset;
         if (index) switchInterval(index);
-        else if (pickColor) {
-          const layer = layerById(selected), key = layer ? colorKey(layer) : "color";
-          if (layer && colorOf(layer, key) !== pickColor) editLayer((item) => setColor(item, key, pickColor));
-          refocus(`#inspector [data-pick-color="${CSS.escape(pickColor)}"]`);
-        }
+        else if (colorSelect) layerColorMenu(button, colorSelect);
         else if (action === "derive") deriveMenu(button, selected);
         else if (action === "pane-menu") paneMenu(button, [selected], undefined, () => refocus("#pane"));
         else if (button.id === "trend-ref") refMenu(button, selected);
@@ -17168,10 +17413,6 @@ const picture = await studio.png();</pre>
         else if (reset) {
           editLayer((layer) => DEFAULTS[reset].set(layer));
           refocus(DEFAULTS[reset].focus);
-        } else if (target) {
-          colorTarget = target;
-          renderInspector();
-          refocus(`[data-color-target="${target}"]`);
         } else if (action === "deselect") deselect();
         else if (action === "remove") {
           const at = chart.layers.findIndex((layer) => layer.id === selected);
@@ -19228,10 +19469,17 @@ const picture = await studio.png();</pre>
           // Grouped as the inspector's sections are, named as they are.
           const first = layer.series ? "Series" : "Formula";
           const style = dashOf(layer.dash);
-          const color = (key, label, of, put) => ({ key, icon: swatchOf(of(layer)), label, aside: colorName(of(layer)), group: "Style", page: () => choicePage(label, () => colorRows(of(now()), (name) => set((item) => put(item, name))(), (doc, name) => {
-            const item = doc.layers.find((other) => other.id === id);
-            if (item) put(item, name);
-          }), (panel, option) => previewLayer(panel, id, key === "color" && option.key !== "other" ? option.key : null)) });
+          const fromLayer = layer.colorFrom ? layerById(layer.colorFrom) : null;
+          const color = (key, label, of, put) => ({ key, icon: key === "color" && fromLayer ? letterChip(fromLayer) : swatchOf(of(layer)), label, aside: key === "color" && fromLayer ? `From ${labelOf(fromLayer)}` : colorName(of(layer)), group: "Style", page: () => choicePage(label, () => [
+            ...colorRows(key === "color" && now().colorFrom ? "" : of(now()), (name) => set((item) => put(item, name))(), (doc, name) => {
+              const item = doc.layers.find((other) => other.id === id);
+              if (item) put(item, name);
+            }),
+            ...(key === "color" && COLORED_FROM.has(now().type) ? colorSources(now()).map((other) => ({ key: `from:${other.id}`, icon: letterChip(other), label: labelOf(other), aside: "Its colors, date by date", group: "From a layer", current: now().colorFrom === other.id, run: set((item) => (item.colorFrom = other.id)), look: (/** @type {Chart} */ doc) => {
+              const item = doc.layers.find((one) => one.id === id);
+              if (item) item.colorFrom = other.id;
+            } })) : []),
+          ], (panel, option) => previewLayer(panel, id, key === "color" && option.key !== "other" && !option.key.startsWith("from:") ? option.key : null)) });
           const rows = [
             layer.from
               ? { key: "between", icon: fromIcon(layer.type), label: "Between", aside: fromSpan(layer), group: typeName(layer.type), leads: true, page: () => fromPage(layer.type, id) }
@@ -19246,8 +19494,8 @@ const picture = await studio.png();</pre>
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
             { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => (item.type = type)) }))) },
             ...(pair
-              ? [color("color", `Color ${pair[0].toLowerCase()}`, (item) => item.color, (item, name) => (item.color = name)), color("color-below", `Color ${pair[1].toLowerCase()}`, belowOf, (item, name) => (item.colorBelow = name === "red" ? undefined : name))]
-              : [color("color", "Color", (item) => item.color, (item, name) => (item.color = name))]),
+              ? [color("color", fromLayer ? "Color" : `Color ${pair[0].toLowerCase()}`, (item) => item.color, (item, name) => setColor(item, "color", name)), ...(fromLayer ? [] : [color("color-below", `Color ${pair[1].toLowerCase()}`, belowOf, (item, name) => setColor(item, "colorBelow", name))])]
+              : [color("color", "Color", (item) => item.color, (item, name) => setColor(item, "color", name))]),
             { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round(opacityOf(layer) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: opacityOf(now()) === opacity, ...both((item) => (item.opacity = opacity === defaultOpacity(item) ? undefined : opacity)) }))) },
             ...(layer.type !== "histogram" ? [{ key: "width", icon: ICONS.sliders, label: "Width", aside: `${layer.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) }] : []),
             ...(lineish ? [
@@ -19286,7 +19534,7 @@ const picture = await studio.png();</pre>
             { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", group: "Layer", danger: true, run: () => removeLayer(id) },
           ];
           // (One made from layers: what's a series' or a formula's isn't its; a cloud's, what's a line's either.)
-          const NOT_ITS = new Set(["type", "color-below", "fill", "base", "levels", "to-formula", "to-series", "shape", ...(layer.type === "cloud" ? ["width", "dash", "price-line", "derive"] : [])]);
+          const NOT_ITS = new Set(["type", "fill", "base", "levels", "to-formula", "to-series", "shape", ...(layer.type === "cloud" ? ["width", "dash", "price-line", "derive"] : [])]);
           return (layer.from ? rows.filter((row) => !NOT_ITS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: typeName(layer.type) } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
         } };
       }
@@ -19307,7 +19555,7 @@ const picture = await studio.png();</pre>
        * surface picks one).
        */
       function colorRows(/** @type {string} */ current, /** @type {(color: string) => void} */ apply, /** @type {((doc: Chart, color: string) => void) | undefined} */ look = undefined) {
-        const own = !SWATCHES.includes(current);
+        const own = Boolean(current) && !SWATCHES.includes(current);
         return [
           ...SWATCHES.map((name) => ({ key: name, icon: swatchOf(name), label: colorName(name), current: current === name, run: () => apply(name), ...(look ? { look: (/** @type {Chart} */ doc) => look(doc, name) } : {}) })),
           { key: "other", icon: own ? swatchOf(current) : ICONS.pencil, label: "Another color", aside: own ? ink(current) : "A hex, OKLCH or CSS color", current: own, page: () => inputPage({ title: "Another color", value: own ? ink(current) : "", placeholder: "#f7931a, oklch(0.7 0.18 50), teal…", hint: "A hex, OKLCH or CSS color", verb: "Set", read: (text) => (readColor(text) ? `Set to ${readColor(text)}` : null), apply: (text) => {
@@ -19891,11 +20139,16 @@ const picture = await studio.png();</pre>
         menuOwner = null;
       }
       $("menu").addEventListener("keydown", (event) => {
-        // Tab goes on from what opened the menu (in a color's popover, first between Bitview's colors and the surface).
+        // Tab goes on from what opened the menu (in a color's popover, first from Bitview's colors to the surface, and on to
+        // the layers to take colors from).
         if (event.key === "Tab") {
           const pop = $("menu").querySelector(".color-pop"), plane = /** @type {HTMLElement | null} */ (pop?.querySelector(".plane") ?? null), target = /** @type {HTMLElement} */ (event.target);
           if (pop && plane && !event.shiftKey && target.closest(".swatch-grid")) return void (event.preventDefault(), plane.focus());
           if (pop && plane && event.shiftKey && target === plane) return void (event.preventDefault(), /** @type {HTMLElement | null} */ (pop.querySelector(".swatch-grid [aria-checked='true']") ?? pop.querySelector(".swatch-grid button"))?.focus());
+          // (Then the layers to take colors from, where there are; ⇧Tab from them, the surface again.)
+          const from = /** @type {HTMLElement | null} */ (pop ? $("menu").querySelector("[data-pick-from][aria-checked='true']") ?? $("menu").querySelector("[data-pick-from]") : null);
+          if (from && plane && !event.shiftKey && target === plane) return void (event.preventDefault(), from.focus());
+          if (from && plane && event.shiftKey && target.closest("[data-pick-from]")) return void (event.preventDefault(), plane.focus());
           const owner = ownerNow();
           hideMenu();
           return owner?.focus();
@@ -20163,7 +20416,7 @@ const picture = await studio.png();</pre>
         storage.set(VIEWS, all);
       }
       /** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
-      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.legend ?? "", doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.from ? { from: layer.from.map((member) => (EDGES.includes(member) ? member : doc.layers.findIndex((item) => item.id === member))) } : {}), ...(layer.ref ? { ref: doc.layers.findIndex((item) => item.id === layer.ref) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
+      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.legend ?? "", doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.from ? { from: layer.from.map((member) => (EDGES.includes(member) ? member : doc.layers.findIndex((item) => item.id === member))) } : {}), ...(layer.ref ? { ref: doc.layers.findIndex((item) => item.id === layer.ref) } : {}), ...(layer.colorFrom ? { colorFrom: doc.layers.findIndex((item) => item.id === layer.colorFrom) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
       /** Two charts alike (a link opened again is the chart already here). */
       const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf(a) === contentOf(b);
       /** A time as a link writes it: its date ("2021-11-10"), with its time where it has one ("2021-11-10T14:30:00Z"). */
@@ -20195,11 +20448,12 @@ const picture = await studio.png();</pre>
           ...(doc.legend ? { legend: doc.legend } : {}),
           ...(plain ? {} : { panes: doc.panes.map(({ id, ...pane }) => pane) }),
           // (Not a series' path in the catalog: learned again where it opens.)
-          layers: doc.layers.map(({ id, letter, pane, from, ref, type, width, dash, side, path, paths, series, formula, ...rest }) => ({
+          layers: doc.layers.map(({ id, letter, pane, from, ref, colorFrom, type, width, dash, side, path, paths, series, formula, ...rest }) => ({
             // (What it is first, then how it looks.)
             ...(series !== undefined ? { series } : formula !== undefined ? { formula } : {}),
             ...(from ? { [type]: from.map((member) => doc.layers.find((item) => item.id === member)?.letter ?? member) } : {}),
             ...(ref ? { ref: doc.layers.find((item) => item.id === ref)?.letter ?? ref } : {}),
+            ...(colorFrom ? { colorFrom: doc.layers.find((item) => item.id === colorFrom)?.letter ?? colorFrom } : {}),
             ...(ordered ? {} : { letter }),
             ...rest,
             ...(type !== "line" && !from ? { type } : {}),
@@ -20346,6 +20600,7 @@ const picture = await studio.png();</pre>
             ...(typeof layer.series === "string" ? { series: layer.series.trim().toLowerCase().replace(/[\s-]+/g, "_") } : {}),
             ...(kind ? { [kind]: members } : {}),
             ...(typeof layer.ref === "string" ? { ref: letterId(layer.ref) } : {}),
+            ...(typeof layer.colorFrom === "string" ? { colorFrom: letterId(layer.colorFrom) } : {}),
           };
         }) };
       }
@@ -20410,6 +20665,7 @@ const picture = await studio.png();</pre>
             ...(SHAPES.some(([id]) => id !== "straight" && id === layer.shape) ? { shape: layer.shape } : {}),
             ...(layer.fill === "above" ? { fill: "above" } : {}),
             ...(made === "trend" && typeof layer.ref === "string" ? { ref: layer.ref } : {}),
+            ...(typeof layer.colorFrom === "string" ? { colorFrom: layer.colorFrom } : {}),
             levels: levelsOf(layer.levels),
             baseLine: Object.keys(lineStyleOf(layer.baseLine)).length ? lineStyleOf(layer.baseLine) : undefined,
           };
@@ -20431,6 +20687,7 @@ const picture = await studio.png();</pre>
         }
         // A cloud's layers, by their ids here, and its edges (normalize leaves out what's not a layer).
         for (const layer of doc.layers) if (layer.ref) layer.ref = layerIds.get(layer.ref);
+        for (const layer of doc.layers) if (layer.colorFrom) layer.colorFrom = layerIds.get(layer.colorFrom);
         for (const layer of doc.layers) if (layer.from) layer.from = layer.from.flatMap((id) => (EDGES.includes(id) ? [id] : layerIds.has(id) ? [/** @type {string} */ (layerIds.get(id))] : []));
         // Drawings: each on a layer read, its points numbers (as many as its kind takes), its look where valid.
         doc.drawings = (Array.isArray(input.drawings) ? input.drawings : []).slice(0, MAX_DRAWINGS).flatMap((drawing) => {
@@ -21398,9 +21655,9 @@ const picture = await studio.png();</pre>
           const values = grown(result.values);
           const ohlc = result.ohlc && [...result.ohlc, ...added.map(() => null)];
           if (ohlc) ownLive.add(ohlc);
-          // (A trend line's breaks too, none on the bars added.)
-          const breaks = result.breaks && Uint8Array.from({ length: result.breaks.length + added.length }, (_, i) => result.breaks?.[i] ?? 0);
-          return [id, { ...result, values, shown: result.shown === result.values ? values : grown(result.shown), ohlc, ...(result.low ? { low: grown(result.low) } : {}), ...(breaks ? { breaks } : {}) }];
+          // (A trend's breaks and sides too, none on the bars added.)
+          const more = (/** @type {Uint8Array | undefined} */ marks) => marks && Uint8Array.from({ length: marks.length + added.length }, (_, i) => marks[i] ?? 0);
+          return [id, { ...result, values, shown: result.shown === result.values ? values : grown(result.shown), ohlc, ...(result.low ? { low: grown(result.low) } : {}), ...(result.breaks ? { breaks: more(result.breaks), sides: more(result.sides) } : {}) }];
         }));
         return { ...data, times: [...data.times, ...added], results };
       }
@@ -21431,6 +21688,8 @@ const picture = await studio.png();</pre>
         if (key === liveLast) return;
         liveLast = key;
         let moved = false;
+        /** @type {{ layer: Layer, series: any, painted: { points: any[], faint: boolean, paintWith?: (color: string) => Record<string, string> }, value: number }[]} */
+        const toPaint = [];
         for (const layer of layers) {
           const result = data.results.get(layer.id), value = /** @type {(price: number) => number} */ (LIVE.get(layer.series ?? ""))(price);
           if (!result?.values) continue;
@@ -21451,12 +21710,23 @@ const picture = await studio.png();</pre>
             close?.candles.update({ time, open: candle[0], high: candle[1], low: candle[2], close: value });
           }
           for (const gap of added.slice(0, -1)) series?.update({ time: gap });
+          // (Painted date by date: its point once every live value is in, from the colors as they are then; kept with the
+          // others.)
+          const painted = paintedPoints.get(layer.id);
+          if (painted) for (const gap of added.slice(0, -1)) painted.points.push({ time: gap });
           data.results.set(layer.id, { ...result, values, shown: values, ohlc });
           // (What's drawn is read too: a drawing snaps to the price as it is now.)
           const made = built.get(layer.id);
           if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ohlc });
-          series?.update({ time, value });
+          if (painted?.paintWith) toPaint.push({ layer, series, painted, value });
+          else series?.update({ time, value });
           moved = true;
+        }
+        for (const { layer, series, painted, value } of toPaint) {
+          const name = paintOf(chart, layer, data)?.(at);
+          const point = { time, value, .../** @type {(color: string) => Record<string, string>} */ (painted.paintWith)(ink(name ?? layer.color)) };
+          painted.points[at] = point;
+          series?.update(painted.faint ? fadedPoint(point) : point);
         }
         if (!moved) return;
         liveMoves++;
