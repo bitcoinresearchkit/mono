@@ -4753,6 +4753,24 @@
         }
       }
 
+      /* ⌘K by a finger: no keyboard's foot (↵, actions, esc), no row lit before one's touched; a row's other actions,
+         held (as cards and layers are picked). */
+      @media (hover: none) and (pointer: coarse) {
+        .palette-foot {
+          display: none;
+        }
+
+        .palette-list li[aria-selected="true"]:not(:active) {
+          background: none;
+        }
+
+        .palette-list li {
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          user-select: none;
+        }
+      }
+
       /* Single-key shortcuts off: their caps go too (the sheet keeps them, as it says what they'd be). */
       body[data-single-off] kbd[data-single]:not(.shortcuts kbd) {
         display: none !important;
@@ -5767,7 +5785,7 @@
         }
       }
 
-      /* In the letter's place, as large as it, in its colors (over it while it shows); picked, filled with them. */
+      /* In the letter's place, as large as it, in its colors: a ring round the letter (seen through it), picked, filled. */
       .row-check {
         z-index: 1;
         top: 50%;
@@ -5776,7 +5794,7 @@
         height: 22px;
         border: 0;
         border-radius: var(--radius-sm);
-        background: color-mix(in srgb, var(--c) 13%, var(--card));
+        background: none;
         box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 55%, transparent);
         translate: 0 -50%;
 
@@ -6079,6 +6097,47 @@
           transition: transform var(--dur-panel) var(--ease);
         }
 
+        /* Upright: half the screen, one height whatever it shows (its list, a layer's settings: no jumps), the chart
+           above it live and undimmed; dragged up by its top (or its handle tapped), whole: the page behind dimmed and out
+           of reach until it's back down. */
+        @media not all and (max-height: 500px) and (min-width: 568px) {
+          .panel {
+            height: 56dvh;
+            max-height: none;
+            /* (Its height back to half once it's out of sight, not as it goes.) */
+            transition: transform var(--dur-panel) var(--ease), height 0s var(--dur-panel), visibility 0s var(--dur-panel);
+          }
+
+          body[data-sheet-size="full"] .panel {
+            height: 88dvh;
+          }
+
+          body[data-sheet="panel"] .panel {
+            transition: transform var(--dur-panel) var(--ease), height var(--dur-panel) var(--ease);
+          }
+
+          body[data-sheet]:not([data-sheet-size="full"]) .scrim {
+            opacity: 0;
+            pointer-events: none;
+          }
+
+          /* (The chart in what the half sheet leaves, every pane in sight: what's changed in it shows as it's changed; the
+             sheet whole, as it was behind the dim. Its legends a line each, as on a phone on its side.) */
+          body[data-sheet="panel"] .card {
+            padding-bottom: 56dvh;
+          }
+
+          body[data-sheet="panel"] .legend button {
+            grid-auto-flow: column;
+            align-items: center;
+            column-gap: 6px;
+
+            :is(.legend-value, .legend-error) {
+              padding-left: 0;
+            }
+          }
+        }
+
         /* (Focused as it opens, as a whole: no ring around the sheet.) */
         .panel:focus {
           outline: none;
@@ -6195,8 +6254,25 @@
           left: 0;
           max-height: 70dvh;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-          padding: 8px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
+          padding: 7px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
           animation: rise var(--dur-panel) var(--ease);
+
+          /* Its handle, as the layers sheet's: dragged down, it goes (no scroll takes the drag). */
+          .menu-handle {
+            display: grid;
+            height: 20px;
+            margin: -7px 0 0;
+            place-items: center;
+            touch-action: none;
+
+            &::before {
+              content: "";
+              width: 36px;
+              height: 5px;
+              border-radius: 3px;
+              background: var(--faint);
+            }
+          }
 
           /* A drawing's look, as the panel's fields are on a phone: the sheet's width, its controls a finger's. */
           .field.belt-pop {
@@ -6432,9 +6508,73 @@
            stands at the left (the chart has the height's whole), the header and the foot slimmer; sheets and menus a
            column on the right, not the screen's width. */
         @media (max-height: 500px) and (min-width: 568px) {
+          /* (The card to the screen's edges, the insets its own room: no strip of the page's ground at either side; full
+             screen and the grid keep clear of them too.) */
+          .app {
+            padding-inline: 0;
+          }
+
+          .app[data-full] .card {
+            padding-right: env(safe-area-inset-right);
+            padding-left: env(safe-area-inset-left);
+          }
+
           .card {
+            padding-right: env(safe-area-inset-right);
             padding-bottom: env(safe-area-inset-bottom);
-            padding-left: 86px;
+            padding-left: calc(86px + env(safe-area-inset-left));
+          }
+
+          /* (Panes short: each legend item on one line, its value after its name.) */
+          .legend button {
+            grid-auto-flow: column;
+            align-items: center;
+            column-gap: 6px;
+
+            :is(.legend-value, .legend-error) {
+              padding-left: 0;
+            }
+          }
+
+          /* Share: its code beside its buttons, the sheet as short as the screen is. */
+          .menu.as-sheet:has(> .share-pop) {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            column-gap: 12px;
+            align-content: start;
+
+            > .menu-handle {
+              grid-column: 1 / -1;
+            }
+
+            /* (Its code at the left; what it says, then its buttons, at the right.) */
+            > .share-pop {
+              display: contents;
+              text-align: left;
+
+              .share-qr {
+                grid-column: 1;
+                grid-row: 2 / span 8;
+                margin: 0 0 4px;
+              }
+
+              .share-text {
+                grid-column: 2;
+                padding: 2px 4px 8px;
+              }
+
+              .share-done {
+                justify-content: start;
+              }
+            }
+
+            > .menu-rule {
+              display: none;
+            }
+
+            > button {
+              grid-column: 2;
+            }
           }
 
           .belt {
@@ -6442,7 +6582,8 @@
           }
 
           .home {
-            left: 86px;
+            right: env(safe-area-inset-right);
+            left: calc(86px + env(safe-area-inset-left));
           }
 
           /* (Its ranges their own width there: the foot's whole width would stretch each across a screen.) */
@@ -6568,6 +6709,11 @@
         .grid-tiles {
           grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
           gap: 10px;
+        }
+
+        /* (Shorter than a wide screen's: more of them in sight.) */
+        .tile-plot {
+          aspect-ratio: 12 / 5;
         }
 
         .home-scroll {
@@ -6734,9 +6880,9 @@
           height: 36px;
         }
 
-        /* (In the time axis's corner, as tall as it is.) */
+        /* (In the time axis's corner, a finger's height.) */
         #full {
-          height: 28px;
+          height: 32px;
         }
 
         #ranges button {
@@ -7091,7 +7237,7 @@ const first = await studio.png({ part: 0 });</pre>
             <button id="draw-toggle" class="cap" type="button" aria-pressed="false" aria-label="Drawing tools" data-tip="Drawing tools" data-kbd="D" data-action="draw" data-icon="draw"></button>
             <button id="export" class="cap" type="button" aria-haspopup="menu" aria-label="Export" data-tip="Export" data-icon="download"></button>
             <button id="share" class="cap" type="button" aria-haspopup="menu" aria-label="Copy a share link" data-tip="Copy a share link" data-icon="share"></button>
-            <button id="add" class="cap" type="button" aria-haspopup="menu" aria-label="Add" data-tip="Add a series or a formula" data-icon="plus"></button>
+            <button id="add" class="cap" type="button" aria-haspopup="dialog" aria-label="Add a layer" data-tip="Add a layer" data-kbd="A" data-icon="plus"></button>
             <button id="chart-more" class="cap" type="button" aria-haspopup="menu" aria-label="More for this chart" data-tip="More" data-icon="more"></button>
             <span class="divider"></span>
             <button id="panel-toggle" class="cap" type="button" aria-pressed="true" aria-label="Layers panel" data-tip="Layers panel" data-kbd="P" data-action="toggle-panel" data-icon="panel"></button>
@@ -7418,6 +7564,10 @@ const first = await studio.png({ part: 0 });</pre>
       /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
       const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout") };
       const phone = matchMedia("(max-width: 760px), (max-height: 500px)");
+      /** A phone held upright (its sheet at half height first). */
+      const heldUpright = matchMedia("not all and (max-height: 500px) and (min-width: 568px)");
+      /** Whether a phone's sheet is whole: on its side, always; upright, dragged up. */
+      const sheetWhole = () => !heldUpright.matches || document.body.dataset.sheetSize === "full";
       /** A device of fingers (no hover): its words "tap", not "click". */
       const TOUCH = matchMedia("(hover: none)").matches, CLICK = TOUCH ? "tap" : "click";
       const tablet = matchMedia("(max-width: 1100px)");
@@ -9401,26 +9551,30 @@ const first = await studio.png({ part: 0 });</pre>
         applyPanel();
       }
       applyPanel();
-      // A phone's sheet is modal: what's behind it can't be reached, by Tab or a screen reader, while it's up (the tab bar
-      // isn't behind it: it floats over it, live); the focus goes into it, and back to what opened it when it closes.
+      // A phone's sheet takes the focus as it opens, and gives it back to what opened it as it closes. Whole (on its side,
+      // or dragged up), it's modal: what's behind it can't be reached, by Tab or a screen reader (the tab bar isn't behind
+      // it: it floats over it, live); at half height, the chart above stays live.
       {
-        let opener = /** @type {Element | null} */ (null);
+        let opener = /** @type {Element | null} */ (null), shown = false, wasModal = false;
         const sheetModal = () => {
-          const open = phone.matches && document.body.dataset.sheet === "panel", panel = $("panel");
+          const panel = $("panel"), was = shown, modalWas = wasModal;
+          shown = phone.matches && document.body.dataset.sheet === "panel";
+          const modal = (wasModal = shown && sheetWhole());
           for (const element of [$("sidebar"), ...$("main").children, ...(/** @type {HTMLElement} */ (panel.parentElement)).children]) {
-            if (!element.contains(panel) && element.id !== "scrim" && !element.classList.contains("mobile-bar")) /** @type {HTMLElement} */ (element).inert = open;
+            if (!element.contains(panel) && element.id !== "scrim" && !element.classList.contains("mobile-bar")) /** @type {HTMLElement} */ (element).inert = modal;
           }
-          if (open && !panel.contains(document.activeElement)) {
-            opener = document.activeElement;
+          if (shown && (!was || (modal && !modalWas)) && !panel.contains(document.activeElement)) {
+            if (!was) opener = document.activeElement;
             panel.focus({ preventScroll: true });
-          } else if (!open && opener) {
+          } else if (!shown && opener) {
             const back = opener;
             opener = null;
             if ((panel.contains(document.activeElement) || document.activeElement === document.body) && back instanceof HTMLElement && back.isConnected) back.focus({ preventScroll: true });
           }
         };
-        new MutationObserver(sheetModal).observe(document.body, { attributes: true, attributeFilter: ["data-sheet"] });
+        new MutationObserver(sheetModal).observe(document.body, { attributes: true, attributeFilter: ["data-sheet", "data-sheet-size"] });
         phone.addEventListener("change", sheetModal);
+        heldUpright.addEventListener("change", sheetModal);
       }
       function toggleSidebar() {
         prefs.sidebar = prefs.sidebar === "collapsed" ? "expanded" : "collapsed";
@@ -14861,6 +15015,7 @@ const first = await studio.png({ part: 0 });</pre>
           } else delete document.body.dataset.sheet;
         };
         const sync = () => {
+          if (!document.body.dataset.sheet) delete document.body.dataset.sheetSize;
           if (panelOpen && document.body.dataset.sheet !== "panel" && selected) deselect();
           panelOpen = document.body.dataset.sheet === "panel";
           watch("sheet", phone.matches && Boolean(document.body.dataset.sheet), closeSheet);
@@ -14874,30 +15029,40 @@ const first = await studio.png({ part: 0 });</pre>
         if (event.state?.home) return showHome(false);
         go(chartById(event.state?.chart) ?? chart, false);
       });
-      // A phone's sheet (the layers): dragged down by its top (the handle, the head), past a third of its height or
-      // flicked, it goes; less, it comes back.
+      // A phone's sheet (the layers), by its top (the handle, the head): upright, dragged up it's whole, dragged down half
+      // again, then it goes (from whole, far enough, at once); its handle tapped, half or whole. On its side (a column,
+      // whole), dragged down it goes. Past a third of the way, or flicked, it moves on; less, it comes back.
       {
-        let pull = /** @type {{ y: number, at: number, pointer: number } | null} */ (null);
+        let pull = /** @type {{ y: number, at: number, pointer: number, height: number, handle: boolean } | null} */ (null);
         const sheet = $("panel");
         sheet.addEventListener("pointerdown", (event) => {
-          if (pull || !phone.matches || document.body.dataset.sheet !== "panel" || event.clientY - sheet.getBoundingClientRect().top > 56 || closest(event, "button, input, textarea, a")) return;
-          pull = { y: event.clientY, at: performance.now(), pointer: event.pointerId };
+          const from = event.clientY - sheet.getBoundingClientRect().top;
+          if (pull || !phone.matches || document.body.dataset.sheet !== "panel" || from > 56 || closest(event, "button, input, textarea, a")) return;
+          pull = { y: event.clientY, at: performance.now(), pointer: event.pointerId, height: sheet.offsetHeight, handle: from <= 22 };
           sheet.setPointerCapture(event.pointerId);
           sheet.style.transition = $("scrim").style.transition = "none";
         });
-        const back = () => (sheet.style.transition = sheet.style.transform = $("scrim").style.transition = $("scrim").style.opacity = "");
+        const back = () => (sheet.style.transition = sheet.style.transform = sheet.style.height = $("scrim").style.transition = $("scrim").style.opacity = "");
         sheet.addEventListener("pointermove", (event) => {
           if (event.pointerId !== pull?.pointer) return;
-          const by = Math.max(0, event.clientY - pull.y);
-          sheet.style.transform = `translateY(${by}px)`;
-          $("scrim").style.opacity = String(1 - by / sheet.offsetHeight);
+          const by = event.clientY - pull.y;
+          // (Up, half: it grows, as far as whole.)
+          if (by < 0 && !sheetWhole()) return void (sheet.style.height = `${Math.min(pull.height - by, innerHeight * 0.88)}px`);
+          const down = Math.max(0, by);
+          sheet.style.transform = `translateY(${down}px)`;
+          if (sheetWhole()) $("scrim").style.opacity = String(1 - down / sheet.offsetHeight);
         });
         sheet.addEventListener("pointerup", (event) => {
           if (event.pointerId !== pull?.pointer) return;
-          const by = Math.max(0, event.clientY - pull.y), speed = by / Math.max(1, performance.now() - pull.at);
+          const by = event.clientY - pull.y, speed = by / Math.max(1, performance.now() - pull.at), { height, handle } = pull;
           pull = null;
           back();
-          if (by > sheet.offsetHeight / 3 || (by > 24 && speed > 0.6)) /** @type {HTMLElement} */ ($("scrim")).click();
+          const up = by < -40 || (by < -16 && speed < -0.6), down = by > height / 3 || (by > 24 && speed > 0.6), tap = handle && Math.abs(by) < 4;
+          if (!heldUpright.matches) return void (down && /** @type {HTMLElement} */ ($("scrim")).click());
+          const whole = sheetWhole();
+          if (!whole && (up || tap)) document.body.dataset.sheetSize = "full";
+          else if (whole && (tap || (down && by < height * 0.6))) delete document.body.dataset.sheetSize;
+          else if (down) /** @type {HTMLElement} */ ($("scrim")).click();
         });
         // (Taken by the system mid-way, it comes back: a cancel isn't a release where it was.)
         for (const type of ["pointercancel", "lostpointercapture"]) sheet.addEventListener(type, (event) => event.pointerId === pull?.pointer && ((pull = null), back()));
@@ -15096,7 +15261,7 @@ const first = await studio.png({ part: 0 });</pre>
         if (home) $("mobile-charts").setAttribute("aria-current", "page");
         else $("mobile-charts").removeAttribute("aria-current");
         if (home) $("mobile-add").removeAttribute("aria-haspopup");
-        else $("mobile-add").setAttribute("aria-haspopup", "menu");
+        else $("mobile-add").setAttribute("aria-haspopup", "dialog");
         keepNaming();
         renderHome();
       }
@@ -16816,7 +16981,7 @@ const first = await studio.png({ part: 0 });</pre>
           ${sourceSection}
           <section>
             <h3>Style</h3>
-            ${layer.from ? "" : `<div class="field"><span>Type</span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${layer.type === type}" aria-label="${text}" ${type === "candles" && !result?.ohlc ? "disabled data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`}
+            ${layer.from ? "" : `<div class="field"><span>Type<span class="color-now">${escape(TYPES.find(([type]) => type === layer.type)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${layer.type === type}" aria-label="${text}" ${type === "candles" && !result?.ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`}
             ${colorPicker(layer)}
             <div class="field"><span>Opacity${resetFor("opacity", layer)}</span>${slider("opacity", layer)}</div>
             ${layer.type !== "histogram" && layer.type !== "cloud" ? `<div class="field"><span>Width${resetFor("width", layer)}</span>${slider("width", layer, layer.type === "candles" ? "The line candles turn into, zoomed out" : layer.type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>` : ""}
@@ -17910,6 +18075,7 @@ const first = await studio.png({ part: 0 });</pre>
         else if (action === "format-menu") formatMenu(button);
         else if (action === "to-formula") toFormula(selected);
         else if (action === "to-series") turnToSeries(button, selected);
+        else if (type && button.getAttribute("aria-disabled") === "true") notice(/** @type {string} */ (button.dataset.tip));
         else if (type) editLayer((layer) => (layer.type = type));
         else if (button.dataset.cloudOf) {
           const member = button.dataset.cloudOf;
@@ -18699,7 +18865,7 @@ const first = await studio.png({ part: 0 });</pre>
       function applyScope() {
         const chip = $("palette-scope"), input = $("palette-input");
         const replacing = palette.replacing && layerById(palette.replacing)?.series;
-        chip.hidden = !palette.adding && !palette.formula && !replacing;
+        chip.hidden = (!palette.adding && !palette.formula && !replacing) || palette.pages.length > 0;
         const into = palette.into === "new" ? " to a new pane" : palette.into ? ` to pane ${paneNumber(palette.into)}` : "";
         chip.textContent = replacing ? `Replace ${replacing}` : palette.formula ? (palette.editing ? `Edit ${layerById(palette.editing)?.letter ?? "formula"}` : `Add a formula${into}`) : `Add a series${into}`;
         $("palette").dataset.mode = palette.formula ? "formula" : "";
@@ -18926,7 +19092,8 @@ const first = await studio.png({ part: 0 });</pre>
           // What you pick most from here, lately: three, a step closer.
           const usual = root && !browsing ? byUse([...commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingRows(), ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Recently used" })) : [];
           const fresh = (item) => !usual.some((other) => other.key === item.key);
-          palette.items = browsing ? [...recents, ...suggestions, ...folder] : [...lastCharts, ...usual, ...browseRows().filter(fresh), ...suggested.filter(fresh)];
+          const others = root && palette.adding ? otherLayerRows() : [];
+          palette.items = browsing ? [...others, ...recents, ...suggestions, ...folder] : [...lastCharts, ...usual, ...browseRows().filter(fresh), ...suggested.filter(fresh)];
           // Coming back up, the row you came from stays highlighted; going in, the first.
           palette.active = Math.max(0, palette.items.findIndex((item) => (item.kind !== "series" || palette.path.length > 0) && item.key === palette.landOn));
           palette.landOn = null;
@@ -18968,7 +19135,10 @@ const first = await studio.png({ part: 0 });</pre>
         // as ⌘K's formula row adds it. A search with a dash in it stays a search.)
         const asFormula = everything && !home && !span && isOwnFormula(query.trim()) ? [{ kind: "formula", key: "formula", group: "Formula" }] : [];
         const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
-        const local = [...asFormula, ...named, ...dated, ...strong, ...unnamed, ...own, ...charts, ...website], more = weak.map((item) => ({ ...item, group: "More commands" }));
+        // (The add page's other layers: first where what's typed starts their name, "clo"; else after the series, "ratio".)
+        const others = palette.adding && !palette.path.length ? rank(otherLayerRows(), rowText, words) : [];
+        const leading = others.filter((row) => row.label.toLowerCase().startsWith(words[0])), trailing = others.filter((row) => !leading.includes(row));
+        const local = [...leading, ...asFormula, ...named, ...dated, ...strong, ...unnamed, ...own, ...charts, ...website, ...trailing], more = weak.map((item) => ({ ...item, group: "More commands" }));
         palette.moved = false;
         const controller = (palette.controller = new AbortController());
         // What matched here, while the series are looked for: at once when bitview.space answers; on this machine they
@@ -18990,7 +19160,7 @@ const first = await studio.png({ part: 0 });</pre>
           if (controller.signal.aborted) return;
           clearTimeout(palette.timer);
           const active = palette.items[palette.active];
-          palette.items = names ? [...asFormula, ...named, ...dated, ...strong, ...unnamed, ...own, ...charts, ...website, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...more] : [...local, ...more];
+          palette.items = names ? [...leading, ...asFormula, ...named, ...dated, ...strong, ...unnamed, ...own, ...charts, ...website, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...trailing, ...more] : [...local, ...more];
           // The top result leads (or the row come back to), unless the person already moved to another row.
           palette.active = palette.moved ? Math.max(0, palette.items.indexOf(active)) : landing(palette.items);
           $("palette-glow").hidden = true;
@@ -19236,7 +19406,7 @@ const first = await studio.png({ part: 0 });</pre>
         const searching = Boolean(palette.query.trim());
         const list = $("palette-list");
         const tail = pending ? `<li class="note"><span class="shimmer">Searching ${seriesCount ? grouped.format(seriesCount) : "every"} series…</span></li>` : note ? `<li class="note">${escape(note)}</li>` : "";
-        palette.items = palette.items.filter((item) => (palette.replacing || palette.adding ? item.kind === "series" || item.kind === "folder" || item.kind === "widen" : item.kind !== "chart" || Boolean(chartById(item.key))));
+        palette.items = palette.items.filter((item) => ((palette.replacing || palette.adding) && !palette.pages.length ? item.kind === "series" || item.kind === "folder" || item.kind === "widen" || (palette.adding && item.other) : item.kind !== "chart" || Boolean(chartById(item.key))));
         // (Nothing found: the list alone, across.)
         $("palette").toggleAttribute("data-none", !palette.items.length && !pending);
         if (!palette.items.length) {
@@ -19476,10 +19646,10 @@ const first = await studio.png({ part: 0 });</pre>
         return [];
       }
       /** ⌘K in ⌘K: the highlighted row's actions, over the footer. */
-      function showActions() {
+      function showActions(/** @type {HTMLElement} */ anchor = $("palette-actions")) {
         const item = palette.items[palette.active], actions = actionsFor(item);
         if (actions.length < 2) return;
-        showMenu($("palette-actions"), actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${action.icon ?? '<i class="menu-space"></i>'}${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
+        showMenu(anchor, actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${action.icon ?? '<i class="menu-space"></i>'}${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
       }
       /**
        * An action, from ⌘K's menu or a page's row: a page opens; anything else acts, closing ⌘K unless it stays (a
@@ -19853,6 +20023,16 @@ const first = await studio.png({ part: 0 });</pre>
         const said = value.trim().toLowerCase(), kinds = ["folder", "folders", "chart", "charts", "layer", "layers", "pane", "panes", "drawing", "drawings", "series"];
         return kinds.includes(said.split(/\s+/)[0])
           || library.folders.some((folder) => folder.name.toLowerCase() === said) || library.charts.some((doc) => titleOf(doc).toLowerCase() === said) || chart.layers.some((layer) => labelOf(layer).toLowerCase() === said);
+      }
+      /** Adding: what a layer can be besides a series, first on the page (and found by its words). */
+      function otherLayerRows() {
+        return [
+          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", words: "formula expression math ratio divide combine function", group: "Other layers", other: true, verb: "Add", run: () => addFormula(palette.into) },
+          ...(cloudable() ? [
+            { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", words: "cloud band fill area between range", group: "Other layers", other: true, verb: "Add", page: () => fromPage("cloud") },
+            { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: "Above or below one layer", words: "trend riding above below support resistance", group: "Other layers", other: true, verb: "Add", page: () => fromPage("trend") },
+          ] : []),
+        ];
       }
       /** The root's ways into each part: this chart, your charts, its layers and panes, the templates. */
       function browseRows() {
@@ -20543,7 +20723,32 @@ const first = await studio.png({ part: 0 });</pre>
         choose(false);
         if ($("palette").open) $("palette-input").focus();
       });
-      $("palette-actions").addEventListener("click", showActions);
+      $("palette-actions").addEventListener("click", () => showActions());
+      // By a finger, a row held: its other actions (there's no foot's Actions by touch); moved, it's a scroll.
+      {
+        let rowHold = 0, rowHeld = false, at = /** @type {[number, number]} */ ([0, 0]);
+        $("palette-list").addEventListener("pointerdown", (event) => {
+          const option = /** @type {HTMLElement | null} */ (event.pointerType === "touch" ? closest(event, "[data-option]") : null);
+          clearTimeout(rowHold);
+          if (!option) return;
+          at = [event.clientX, event.clientY];
+          rowHeld = false;
+          rowHold = window.setTimeout(() => {
+            palette.active = Number(option.dataset.option);
+            if (actionsFor(palette.items[palette.active]).length < 2) return;
+            rowHeld = true;
+            navigator.vibrate?.(8);
+            showActions(option);
+          }, 450);
+        });
+        $("palette-list").addEventListener("pointermove", (event) => Math.hypot(event.clientX - at[0], event.clientY - at[1]) > 8 && clearTimeout(rowHold));
+        for (const type of ["pointerup", "pointercancel"]) $("palette-list").addEventListener(type, () => {
+          clearTimeout(rowHold);
+          if (rowHeld) swallowClick();
+          rowHeld = false;
+        });
+        $("palette-list").addEventListener("contextmenu", (event) => TOUCH && event.preventDefault());
+      }
       $("palette-path").addEventListener("click", (event) => {
         const crumb = closest(event, "[data-depth]");
         if (!crumb || crumb.hasAttribute("aria-current")) return;
@@ -20569,8 +20774,9 @@ const first = await studio.png({ part: 0 });</pre>
         if (menu.parentElement !== host) host.append(menu);
         menu.innerHTML = html;
         drawKeys(menu);
-        // On a phone, a sheet from the foot (placed by its style), over a backdrop of its own.
+        // On a phone, a sheet from the foot (placed by its style), over a backdrop of its own; its handle first.
         menu.classList.toggle("as-sheet", phone.matches);
+        if (phone.matches) menu.insertAdjacentHTML("afterbegin", '<div class="menu-handle" aria-hidden="true"></div>');
         if (phone.matches) host.insertBefore(menuScrim, menu);
         for (const rule of all$(".menu-rule", menu)) rule.setAttribute("role", "separator");
         for (const button of all$("button", menu)) {
@@ -20663,6 +20869,27 @@ const first = await studio.png({ part: 0 });</pre>
       });
       /** The item a menu acts on alone, beside others picked: outlined while it shows. @type {HTMLElement | null} */
       let menuTarget = null;
+      // A phone's menu sheet, dragged down by its top (its handle): past a third of its height, or flicked, it goes; less,
+      // it comes back.
+      {
+        let pull = /** @type {{ y: number, at: number, pointer: number } | null} */ (null);
+        const menu = $("menu"), back = () => (menu.style.transition = menu.style.transform = "");
+        menu.addEventListener("pointerdown", (event) => {
+          if (pull || !menu.classList.contains("as-sheet") || !closest(event, ".menu-handle")) return;
+          pull = { y: event.clientY, at: performance.now(), pointer: event.pointerId };
+          menu.setPointerCapture(event.pointerId);
+          menu.style.transition = "none";
+        });
+        menu.addEventListener("pointermove", (event) => event.pointerId === pull?.pointer && (menu.style.transform = `translateY(${Math.max(0, event.clientY - pull.y)}px)`));
+        menu.addEventListener("pointerup", (event) => {
+          if (event.pointerId !== pull?.pointer) return;
+          const by = Math.max(0, event.clientY - pull.y), speed = by / Math.max(1, performance.now() - pull.at);
+          pull = null;
+          back();
+          if (by > menu.offsetHeight / 3 || (by > 24 && speed > 0.6)) hideMenu();
+        });
+        for (const type of ["pointercancel", "lostpointercapture"]) menu.addEventListener(type, (event) => event.pointerId === pull?.pointer && ((pull = null), back()));
+      }
       function hideMenu() {
         menuTarget?.classList.remove("menu-target");
         menuTarget = null;
@@ -20807,12 +21034,8 @@ const first = await studio.png({ part: 0 });</pre>
         <div class="menu-rule"></div>
         <button type="button" data-export="csv">${ICONS.table}Download data <span>CSV</span></button>`, ({ export: kind }) => exportAs(kind)));
       // The panel's adds, from the header (and the phone's bar): those made from layers too, once there are layers for one.
-      for (const id of ["add", "mobile-add"]) $(id).addEventListener("click", (event) => home ? newChart() : showMenu(event.currentTarget, `
-        <button type="button" data-pick="series">${ICONS.plus}Add a series<kbd>A</kbd></button>
-        <button type="button" data-pick="formula">${ICONS.formula}Add a formula<kbd>F</kbd></button>${cloudable() ? `
-        <div class="menu-rule"></div><div class="menu-group">From layers</div>
-        <button type="button" data-pick="cloud">${ICONS.cloud}Cloud</button>
-        <button type="button" data-pick="trend">${ICONS.riding}Trend</button>` : ""}`, ({ pick }) => (pick === "series" ? openPalette({ add: true }) : pick === "cloud" || pick === "trend" ? openPage(fromPage(pick)) : addFormula())));
+      // Adding: one page, the series, and the other kinds of layer first (in the grid, a new chart).
+      for (const id of ["add", "mobile-add"]) $(id).addEventListener("click", () => (home ? newChart() : openPalette({ add: true })));
       // ── Share, import, export ─────────────────────────────────────────────────
 
       /** Where a device has a share sheet (a phone's), the link goes through it (copying, one of its ways); else it's copied. */
@@ -21372,26 +21595,34 @@ const first = await studio.png({ part: 0 });</pre>
         chartImage().then((canvas) => canvas.toBlob((blob) => (blob ? (download(name, blob), toast("Downloaded the image")) : failed())), failed);
       }
       /**
-       * The chart's picture alone, in a tab of its own: to look at, save, or show (an assistant in a browser shares this,
-       * not a screenshot of the page). The tab opened at once, while the click counts: one opened once it's drawn is
-       * blocked.
+       * The chart's picture alone, in a tab of its own (titled with the chart's): to look at, save, or show (an assistant
+       * in a browser shares this, not a screenshot of the page). Round it, the picture's own ground (nothing framing it);
+       * its address kept as long as this page is (dropped any sooner, saving it fails). The tab opened at once, while the
+       * click counts: one opened once it's drawn is blocked.
        */
       function openImage() {
         const tab = window.open("", "_blank");
         if (!tab) return void notice("Couldn't open a tab: allow pop-ups here, or download the image");
-        const title = `${titleOf(chart)} · Bitview Studio`, failed = (/** @type {unknown} */ error = null) => (tab.close(), notice(error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image"));
-        tab.document.title = title;
+        const failed = (/** @type {unknown} */ error = null) => (tab.close(), notice(error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image"));
+        tab.document.title = `${titleOf(chart)} · Bitview Studio`;
         chartImage().then((canvas) => canvas.toBlob((blob) => {
           if (!blob || tab.closed) return blob ? undefined : failed();
-          const url = URL.createObjectURL(blob), page = tab.document, image = page.createElement("img");
+          const url = URL.createObjectURL(new File([blob], fileName("png"), { type: "image/png" })), page = tab.document, image = page.createElement("img");
+          openedImages.push(url);
+          tab.addEventListener("pagehide", () => {
+            URL.revokeObjectURL(url);
+            openedImages.splice(openedImages.indexOf(url) >>> 0, 1);
+          }, { once: true });
           // (At its size on screen, as on a screen of this density; smaller where the window is.)
           Object.assign(image, { src: url, alt: titleOf(chart) });
-          image.style.cssText = `width: ${canvas.width / devicePixelRatio}px; max-width: 100%; height: auto`;
-          image.addEventListener("load", () => setTimeout(() => URL.revokeObjectURL(url), 1000), { once: true });
-          page.body.style.cssText = `margin: 0; min-height: 100vh; display: grid; place-items: center; background: ${css("--app")}`;
+          image.style.cssText = `display: block; width: ${canvas.width / devicePixelRatio}px; max-width: 100%; height: auto`;
+          page.body.style.cssText = `margin: 0; min-height: 100vh; display: grid; place-items: center; background: ${css("--card")}`;
           page.body.replaceChildren(image);
         }), failed);
       }
+      /** The images opened in tabs of their own, their addresses let go of as this page goes. @type {string[]} */
+      const openedImages = [];
+      addEventListener("pagehide", () => openedImages.splice(0).forEach((url) => URL.revokeObjectURL(url)));
       /** The image on the clipboard, given the picture while it's still being drawn (so the click that asked counts). */
       function copyImage() {
         if (!canvasReadable()) return void notice(UNREADABLE);
@@ -21886,7 +22117,6 @@ const first = await studio.png({ part: 0 });</pre>
         // An empty chart is the empty state's to fill: no panel beside it, nothing to export or share yet.
         document.body.toggleAttribute("data-empty", !chart.layers.length);
         $("export").disabled = $("share").disabled = $("draw-toggle").disabled = $("panel-toggle").disabled = !chart.layers.length;
-        $("add").dataset.tip = cloudable() ? "Add a series, a formula or a cloud" : "Add a series or a formula";
         if (!chart.layers.length && document.body.dataset.sheet === "panel") delete document.body.dataset.sheet;
         renderCharts();
         $("stage-foot").hidden = !chart.layers.length;
