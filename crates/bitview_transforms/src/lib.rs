@@ -10,9 +10,7 @@ pub use arithmetic::{
     OneMinusPpm, ThsToPhs, TimesSqrt, WeightToVSize,
 };
 pub use convert::Convert;
-pub use currency::{
-    AvgCentsToUsd, AvgSatsToBtc, CentsTimesTenths, CentsUnsignedToSats, SatsToCents,
-};
+pub use currency::{CentsTimesTenths, CentsUnsignedToSats, SatsToCents};
 pub use ohlc::{OhlcCentsToHighCents, OhlcCentsToLowCents};
 pub use ratio::{
     BoundedOdds, BoundedToRatio, Cagr, FixedToPercent, FixedToRatio, MvrvToNupl, PriceTimesRatio,

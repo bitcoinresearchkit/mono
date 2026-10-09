@@ -59,6 +59,14 @@ has to be deleted by hand.
   18,300 fewer series. Two placements change besides: the entry cohorts' 24-hour SOPR is `realized.sopr.24h` (was
   `realized.sopr.raw`), and market cap stays at `supply.market_cap.usd` beside its `delta`
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
+- One word per concept in paths and ids: `avg` for a mean (was `average`), `median` for the 50th percentile in every
+  percentile set (was `pct50`), unpadded percentiles (`pct5`, was `pct05`; the rarity bands' price ids `pct1`, `pct2`,
+  `pct5`, were `pct01`, ...), and `block` for a node's own per-block series beside its derived children (was `base`)
+- Flows (amounts or counts summed per block: transfer volume, rewards, realized profit, coin days destroyed, ...) lose
+  their per-block window averages, which were the window `sum` divided by its block count: they keep `block`, `sum`
+  and `cumulative`, about 4,200 fewer series. Distributions (block size, fees per block, ...) keep `avg` beside
+  `min`, `max` and the percentiles. Per-block averages without a sum (address activity counts, block interval) sit
+  under `avg` (were the window keys directly under the series)
 - `TxStatus` omits `block_height`, `block_hash` and `block_time` until confirmed, like Esplora (they were sent as
   `null`)
 - Script payload series (`p2pkh_bytes`, `p2tr_bytes`, ...) are lowercase hex strings (were the Rust debug form
@@ -149,6 +157,13 @@ has to be deleted by hand.
 - `bitview::run` refuses to serve when a composition's `publication()` is not its indexer's gate
   (`Publication::ptr_eq`, `Query::reads_under`); it returns `bitview::Result`, and `bitview` re-exports only what a
   runner needs (`run`, `Config`, `RunConfig`, `bootstrap`, the contexts, `QueryPluginSet`)
+- Plugins may publish the same series id: compositions are open, so ids can collide. An id still spans plugins by
+  index (a height series and its date resolutions); at the same index the first plugin in the composition's
+  declaration order serves it; a later plugin with the same value type at every colliding index keeps its tree path
+  (and adds its other indexes), one with another type loses the id. The serving plugin's description wins; an id
+  spanning plugins by index must be described alike. The server logs each collision at startup,
+  `bitview_query::Vecs::shared_series` lists them, and `PluginData::collect_descriptions` collects a plugin's
+  descriptions
 
 #### Rust APIs
 
@@ -179,7 +194,12 @@ has to be deleted by hand.
   `fixed` (was `ppm`), and `RatioPerBlock::import` takes the full name (`import_ppm` is gone). `RatioRollingWindows`,
   `LazyRatioRollingWindows` and `BoundedPercentPerBlock` are new, and `StdDevPerBlock` is in percent.
   `LazySpotValuePerBlock` is a `SpotValue` (BTC, sats and USD, no cents); `LazyValuePerBlock` (use
-  `LazySpotValuePerBlock::identity`), `LazyValue`, `LazyValueDerivedResolutions` and `SpotValueSource` are gone.
+  `LazySpotValuePerBlock::identity`), `LazyValue`, `LazyValueDerivedResolutions` and `SpotValueSource` are gone. Flow
+  types (`PerBlockCumulativeRolling`, `LazyPerBlockCumulativeRolling`, value and fiat cumulatives) expose a window
+  `sum` field (no `average`, no `rolling` field or `Deref` to rolling totals); `RollingAmountTotals`,
+  `LazyFiatPerBlockCumulativeRolling`, the `LazyRollingAvg*Amount*`/`LazyRollingAvgFiatFromHeight` types and the
+  `AvgCentsToUsd`/`AvgSatsToBtc` transforms are gone. `PercentileId::{Pct5, Median}` (were
+  `Pct05`/`Pct50`) with `suffix()`; `RarityPercentileId::Median` (was `Pct50`), `price_suffix` is gone.
   `FiatType`/`AmountType` lose their conversion types,
   `FixedRatio` its transform types, and the `PerBlockRollingAverage` family is gone; `Quantity` names a unit's mean
   (`Fract`) and total (`Sum`) types. `bitview_collections::Percent` is `PercentViews` (storage and percent); value
@@ -252,6 +272,8 @@ has to be deleted by hand.
 - Block weight totals and statistics are exact (they were derived from vbytes × 4, off by up to 3 WU per block);
   block vbytes are weight / 4 rounded up, like Bitcoin Core (were rounded down)
 - True range and its two-week sum are exact cents (the sum drifted as an f32 running sum)
+- Puell Multiple uses daily issuance, as defined: the trailing 24-hour subsidy in USD over its 365-day daily mean
+  (the 365-day sum over 365). It was the block's subsidy over its 365-day per-block mean
 - The year10 `timestamp` series were wrong (2019/2029)
 - Cointime's consumed coin days resume within their sources' length
 - Every replayed distribution output (age, addresses, UTXOs) carries its dependency versions (price, timestamps,

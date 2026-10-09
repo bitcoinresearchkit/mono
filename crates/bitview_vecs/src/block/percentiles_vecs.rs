@@ -27,15 +27,11 @@ impl PercentilesVecs {
     ) -> Result<Self> {
         let version = version + Version::TWO;
         let stored = ByPercentile::try_from_fn(|id| {
-            import_cached(
-                db,
-                &format!("{prefix}_pct{:02}_cents", id.percentile()),
-                version,
-            )
+            import_cached(db, &format!("{prefix}_{}_cents", id.suffix()), version)
         })?;
         let prices = ByPercentile::from_fn(|id| {
             Price::from_height_source(
-                &format!("{prefix}_pct{:02}", id.percentile()),
+                &format!("{prefix}_{}", id.suffix()),
                 version,
                 stored.select(id),
                 indexes,

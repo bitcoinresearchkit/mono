@@ -13,7 +13,7 @@ const LEVEL_PERCENTILES: Levels<f64> = Levels {
     pct20: 0.2,
     pct30: 0.3,
     pct40: 0.4,
-    pct50: 0.5,
+    median: 0.5,
     pct60: 0.6,
     pct70: 0.7,
     pct80: 0.8,

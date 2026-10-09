@@ -1,17 +1,16 @@
 //! Lazy counterpart to `PerBlockCumulativeRolling`.
 
-use crate::RollingTotals;
+use crate::LazyRollingSumsFromHeight;
 use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
-use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{Ident, ReadableCloneableVec};
 
 use crate::{IndexSources, LazyPerBlock, LazyPreviousDeltaVec};
 
-#[derive(Clone, Deref, DerefMut, Traversable)]
+#[derive(Clone, Traversable)]
 pub struct LazyPerBlockCumulativeRolling<T>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
@@ -22,10 +21,7 @@ where
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
     pub cumulative: LazyPerBlock<T>,
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    rolling: RollingTotals<T>,
+    pub sum: LazyRollingSumsFromHeight<T>,
 }
 
 impl<T> LazyPerBlockCumulativeRolling<T>
@@ -41,12 +37,18 @@ where
     ) -> Self {
         let source = &cumulative.height;
         let block = LazyPreviousDeltaVec::new(name, version, source);
-        let rolling = RollingTotals::new(name, version, source, window_starts, indexes);
+        let sum = LazyRollingSumsFromHeight::new(
+            &format!("{name}_sum"),
+            version,
+            source,
+            window_starts,
+            indexes,
+        );
 
         Self {
             block,
             cumulative,
-            rolling,
+            sum,
         }
     }
 

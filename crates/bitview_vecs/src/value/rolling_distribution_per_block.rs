@@ -11,8 +11,8 @@ use crate::{IndexSources, ValuePerBlock, WindowStarts};
 
 /// Rolling distribution across 4 windows, stat-first naming.
 ///
-/// Tree: `average._24h.sats.height`, `max._24h.sats.height`, etc.
-/// Series: `{name}_average_24h`, `{name}_max_24h`, etc.
+/// Tree: `avg._24h.sats.height`, `max._24h.sats.height`, etc.
+/// Series: `{name}_avg_24h`, `{name}_max_24h`, etc.
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct RollingDistributionValuePerBlock<M: StorageMode = Rw>(

@@ -55,6 +55,19 @@ impl TreeNode {
         }
     }
 
+    /// Removes every leaf of a series, and the branches left empty.
+    pub fn remove_series(&mut self, name: &str) {
+        if let Self::Branch(branch) = self {
+            branch.children.retain(|_, child| match child {
+                Self::Leaf(leaf) => leaf.name() != name,
+                Self::Branch(_) => {
+                    child.remove_series(name);
+                    child.leaf_count() > 0
+                }
+            });
+        }
+    }
+
     /// Collect one shared description per documented series.
     pub fn descriptions(&self) -> BTreeMap<&str, Arc<str>> {
         let mut descriptions = BTreeMap::new();

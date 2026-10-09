@@ -69,7 +69,7 @@ pub use query_plugin_set::{
 pub use query_plugins::QueryPlugins;
 pub use representation_id::RepresentationId;
 #[cfg(feature = "series")]
-pub use vecs::{ResolvedSeriesInfo, SeriesEntry, Vecs};
+pub use vecs::{ResolvedSeriesInfo, SeriesEntry, SharedSeries, Vecs};
 
 /// Read-only queries whose resolved chain views pin the published prefix.
 /// Bare lengths and unguarded internal helpers cannot authorize chain reads.

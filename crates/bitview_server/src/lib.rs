@@ -17,6 +17,8 @@ use axum::{
     routing::get,
     serve,
 };
+#[cfg(feature = "series")]
+use bitview_query::SharedSeries;
 use bitview_query::{AsyncQuery, Result};
 use bitview_website::router as WebsiteRouter;
 use jiff::Timestamp;
@@ -31,7 +33,7 @@ use tower_http::{
     normalize_path::{NormalizePath, NormalizePathLayer},
 };
 use tower_layer::Layer;
-use tracing::info;
+use tracing::{info, warn};
 
 use api::*;
 use cache::{CacheParams, CacheStrategy};
@@ -118,6 +120,8 @@ impl Server {
         let listener = TcpListener::bind(address).await?;
 
         config.website.log();
+        #[cfg(feature = "series")]
+        query.sync(|q| log_shared_series(q.vecs().shared_series()));
 
         Ok(Self {
             app: app(query, config).await?,
@@ -224,4 +228,24 @@ pub fn finish_openapi<S: Clone + Send + Sync + 'static>(
     let mut openapi = create_openapi();
     let router = router.finish_api(&mut openapi);
     (router, openapi)
+}
+
+/// A composition may publish one id from several plugins: say which plugin serves it.
+#[cfg(feature = "series")]
+fn log_shared_series(shared: &[SharedSeries]) {
+    for series in shared {
+        for (plugin, matches) in &series.also {
+            if *matches {
+                info!(
+                    "Series {} is published by {} and {plugin}; {} serves it",
+                    series.name, series.served_by, series.served_by
+                );
+            } else {
+                warn!(
+                    "Series {} from {plugin} has another value type than {}'s and is left out",
+                    series.name, series.served_by
+                );
+            }
+        }
+    }
 }

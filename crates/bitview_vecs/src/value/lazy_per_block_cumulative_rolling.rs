@@ -3,9 +3,11 @@ use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::ReadableCloneableVec;
 
-use crate::{IndexSources, LazyCumulativeValuePerBlock, LazyValueBlock, RollingAmountTotals};
+use crate::{
+    IndexSources, LazyCumulativeValuePerBlock, LazyRollingSumsAmountFromHeight, LazyValueBlock,
+};
 
-#[derive(Clone, derive_more::Deref, derive_more::DerefMut, Traversable)]
+#[derive(Clone, Traversable)]
 pub struct LazyValuePerBlockCumulativeRolling {
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
@@ -13,10 +15,7 @@ pub struct LazyValuePerBlockCumulativeRolling {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
     pub cumulative: LazyCumulativeValuePerBlock,
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    rolling: RollingAmountTotals,
+    pub sum: LazyRollingSumsAmountFromHeight,
 }
 
 impl LazyValuePerBlockCumulativeRolling {
@@ -41,8 +40,8 @@ impl LazyValuePerBlockCumulativeRolling {
             &cumulative.sats.height,
             &cumulative.cents.height,
         );
-        let rolling = RollingAmountTotals::new(
-            name,
+        let sum = LazyRollingSumsAmountFromHeight::new(
+            &format!("{name}_sum"),
             version,
             &cumulative.sats.height,
             &cumulative.cents.height,
@@ -53,7 +52,7 @@ impl LazyValuePerBlockCumulativeRolling {
         Self {
             block,
             cumulative,
-            rolling,
+            sum,
         }
     }
 }

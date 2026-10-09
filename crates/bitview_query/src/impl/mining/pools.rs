@@ -281,7 +281,7 @@ impl Query {
             .mining
             .hashrate
             .rate
-            .base
+            .block
             .day1
             .collect_range_at(start_day, end_day);
         let first_heights = plugins

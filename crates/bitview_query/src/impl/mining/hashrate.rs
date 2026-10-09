@@ -61,7 +61,7 @@ impl Query {
             + 1;
         let step = total_days.div_ceil(max_points.max(1));
 
-        let mut hr_cursor = plugins.mining.hashrate.rate.base.day1.cursor();
+        let mut hr_cursor = plugins.mining.hashrate.rate.block.day1.cursor();
         let mut ts_cursor = plugins.mappings.timestamp.day1.cursor();
 
         let mut hashrates = Vec::with_capacity(total_days / step + 1);
@@ -106,7 +106,7 @@ impl Query {
             .mining
             .hashrate
             .rate
-            .base
+            .block
             .day1
             .collect_one_flat(day)
             .data()? as u128)

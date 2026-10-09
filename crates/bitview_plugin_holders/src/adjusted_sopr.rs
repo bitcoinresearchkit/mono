@@ -4,7 +4,7 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::Ratio;
 use bitview_transforms::RatioCentsOrOne;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFiatPerBlockCumulativeRolling, LazyWindowStartVec, RollingWindows};
+use bitview_vecs::{LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec, RollingWindows};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
@@ -15,8 +15,8 @@ use crate::columns::Columns;
 #[derive(Traversable)]
 pub struct AdjustedSopr<M: StorageMode = Rw> {
     pub ratio: RollingWindows<Ratio, M>,
-    pub transfer_volume: LazyFiatPerBlockCumulativeRolling<Cents>,
-    pub value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
+    pub transfer_volume: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
 }
 impl AdjustedSopr {
     pub(crate) fn import(
@@ -29,14 +29,14 @@ impl AdjustedSopr {
     ) -> Result<Self> {
         Ok(Self {
             ratio: RollingWindows::import(db, &id.metric_name("adjusted_sopr"), v, mappings)?,
-            transfer_volume: LazyFiatPerBlockCumulativeRolling::from_cumulative_cents_source(
+            transfer_volume: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &id.metric_name("adj_value_created"),
                 v,
                 &c.adjusted_volume,
                 mappings,
                 windows,
             ),
-            value_destroyed: LazyFiatPerBlockCumulativeRolling::from_cumulative_cents_source(
+            value_destroyed: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &id.metric_name("adj_value_destroyed"),
                 v,
                 &c.adjusted_value_destroyed,

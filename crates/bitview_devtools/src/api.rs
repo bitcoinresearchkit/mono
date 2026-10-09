@@ -41,6 +41,19 @@ pub fn render_api(plugins: &AllPlugins) -> Result<Vec<Snapshot>> {
     );
     section(
         &mut out,
+        "Ids published by several plugins (full composition): id, serving plugin, others (= matching)",
+        all.shared_series().iter().map(|shared| {
+            let also = shared
+                .also
+                .iter()
+                .map(|(plugin, matches)| format!("{plugin}{}", if *matches { "=" } else { "!" }))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("{}\t{}\t{also}", shared.name, shared.served_by)
+        }),
+    );
+    section(
+        &mut out,
         "Descriptions",
         leaves
             .descriptions

@@ -50,12 +50,7 @@ impl RarityMeterInner {
     ) -> Result<Self> {
         let version = version + VERSION;
         let prices = RarityPercentiles::try_from_fn(|id| {
-            Price::import(
-                db,
-                &format!("{prefix}_{}", id.price_suffix()),
-                version,
-                mappings,
-            )
+            Price::import(db, &format!("{prefix}_{}", id.suffix()), version, mappings)
         })?;
 
         Ok(RarityMeterInner {

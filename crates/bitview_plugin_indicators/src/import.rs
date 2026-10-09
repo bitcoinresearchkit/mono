@@ -27,18 +27,12 @@ impl Vecs {
         let v = STORAGE.schema_version();
 
         let bps_version = v + Version::ONE;
-        let puell_multiple = RatioPerBlock::import(&db, "puell_multiple", bps_version, mappings)?;
+        let puell_multiple =
+            RatioPerBlock::import(&db, "puell_multiple", bps_version + Version::ONE, mappings)?;
         let nvt_source = all_chain.with_market_cap(
             "nvt_bps_source",
             bps_version,
-            &transactions
-                .volume
-                .transfer_volume
-                .rolling
-                .sum
-                ._24h
-                .cents
-                .height,
+            &transactions.volume.transfer_volume.sum._24h.cents.height,
             |_, volume, market_cap| Self::market_ratio(market_cap, volume),
         );
         let nvt = LazyRatioPerBlock::from_height_source("nvt", bps_version, &nvt_source, mappings);

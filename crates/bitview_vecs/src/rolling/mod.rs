@@ -23,7 +23,5 @@ pub use lazy_sum_from_height::LazyRollingSumFromHeight;
 pub use lazy_sums_from_height::LazyRollingSumsFromHeight;
 pub use windows::RollingWindows;
 pub use windows_from_1w::RollingWindowsFrom1w;
-mod amount_totals;
 mod totals;
-pub use amount_totals::RollingAmountTotals;
 pub use totals::RollingTotals;

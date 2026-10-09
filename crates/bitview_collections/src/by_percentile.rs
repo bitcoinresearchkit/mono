@@ -6,7 +6,7 @@ use bitview_traversable::Traversable;
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ByPercentile<T> {
     /// Uses the 5th percentile.
-    pct05: T,
+    pct5: T,
     /// Uses the 10th percentile.
     pct10: T,
     /// Uses the 15th percentile.
@@ -23,8 +23,8 @@ pub struct ByPercentile<T> {
     pct40: T,
     /// Uses the 45th percentile.
     pct45: T,
-    /// Uses the 50th percentile.
-    pub pct50: T,
+    /// Uses the 50th percentile (median).
+    pub median: T,
     /// Uses the 55th percentile.
     pct55: T,
     /// Uses the 60th percentile.
@@ -48,7 +48,7 @@ pub struct ByPercentile<T> {
 impl<T> ByPercentile<T> {
     pub fn try_from_fn<E>(mut f: impl FnMut(PercentileId) -> Result<T, E>) -> Result<Self, E> {
         Ok(Self {
-            pct05: f(PercentileId::Pct05)?,
+            pct5: f(PercentileId::Pct5)?,
             pct10: f(PercentileId::Pct10)?,
             pct15: f(PercentileId::Pct15)?,
             pct20: f(PercentileId::Pct20)?,
@@ -57,7 +57,7 @@ impl<T> ByPercentile<T> {
             pct35: f(PercentileId::Pct35)?,
             pct40: f(PercentileId::Pct40)?,
             pct45: f(PercentileId::Pct45)?,
-            pct50: f(PercentileId::Pct50)?,
+            median: f(PercentileId::Median)?,
             pct55: f(PercentileId::Pct55)?,
             pct60: f(PercentileId::Pct60)?,
             pct65: f(PercentileId::Pct65)?,
@@ -72,7 +72,7 @@ impl<T> ByPercentile<T> {
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         [
-            &mut self.pct05,
+            &mut self.pct5,
             &mut self.pct10,
             &mut self.pct15,
             &mut self.pct20,
@@ -81,7 +81,7 @@ impl<T> ByPercentile<T> {
             &mut self.pct35,
             &mut self.pct40,
             &mut self.pct45,
-            &mut self.pct50,
+            &mut self.median,
             &mut self.pct55,
             &mut self.pct60,
             &mut self.pct65,
@@ -97,7 +97,7 @@ impl<T> ByPercentile<T> {
 
     pub fn select(&self, id: PercentileId) -> &T {
         match id {
-            PercentileId::Pct05 => &self.pct05,
+            PercentileId::Pct5 => &self.pct5,
             PercentileId::Pct10 => &self.pct10,
             PercentileId::Pct15 => &self.pct15,
             PercentileId::Pct20 => &self.pct20,
@@ -106,7 +106,7 @@ impl<T> ByPercentile<T> {
             PercentileId::Pct35 => &self.pct35,
             PercentileId::Pct40 => &self.pct40,
             PercentileId::Pct45 => &self.pct45,
-            PercentileId::Pct50 => &self.pct50,
+            PercentileId::Median => &self.median,
             PercentileId::Pct55 => &self.pct55,
             PercentileId::Pct60 => &self.pct60,
             PercentileId::Pct65 => &self.pct65,
@@ -121,7 +121,7 @@ impl<T> ByPercentile<T> {
 
     pub fn from_fn(mut f: impl FnMut(PercentileId) -> T) -> Self {
         Self {
-            pct05: f(PercentileId::Pct05),
+            pct5: f(PercentileId::Pct5),
             pct10: f(PercentileId::Pct10),
             pct15: f(PercentileId::Pct15),
             pct20: f(PercentileId::Pct20),
@@ -130,7 +130,7 @@ impl<T> ByPercentile<T> {
             pct35: f(PercentileId::Pct35),
             pct40: f(PercentileId::Pct40),
             pct45: f(PercentileId::Pct45),
-            pct50: f(PercentileId::Pct50),
+            median: f(PercentileId::Median),
             pct55: f(PercentileId::Pct55),
             pct60: f(PercentileId::Pct60),
             pct65: f(PercentileId::Pct65),

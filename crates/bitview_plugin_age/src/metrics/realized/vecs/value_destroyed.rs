@@ -2,7 +2,7 @@ use bitview_cohort::{CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFiatPerBlockCumulativeRolling, LazyWindowStartVec};
+use bitview_vecs::{LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec};
 use brk_error::Result;
 use brk_types::{Cents, Version};
 use vecdb::{Database, Rw, StorageMode};
@@ -12,7 +12,7 @@ use crate::metrics::CumulativeCreationSources;
 #[derive(Traversable)]
 pub struct CumulativeValueDestroyedByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: CreationCohorts<LazyFiatPerBlockCumulativeRolling<Cents>>,
+    pub cohorts: CreationCohorts<LazyFiatPerBlockCumulativeWithSums<Cents>>,
     #[traversable(hidden)]
     pub stored: CumulativeCreationSources<Cents, M>,
 }
@@ -33,7 +33,7 @@ impl CumulativeValueDestroyedByCohort {
                 .stored
                 .get(cohort_id)
                 .expect("supported value-destroyed cohort");
-            LazyFiatPerBlockCumulativeRolling::from_cumulative_cents_source(
+            LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &name,
                 version,
                 source,

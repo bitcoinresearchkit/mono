@@ -9,7 +9,7 @@ use super::HashRateSmaVecs;
 pub struct RateVecs<M: StorageMode = Rw> {
     /// Network hash-rate estimate for the represented block, in hashes per
     /// second.
-    pub base: PerBlock<Hashrate, M>,
+    pub block: PerBlock<Hashrate, M>,
     /// Arithmetic mean of the per-block network hash-rate estimates over a
     /// trailing duration; every block has equal weight.
     pub sma: HashRateSmaVecs<M>,

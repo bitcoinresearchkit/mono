@@ -34,8 +34,8 @@ impl ComputePlugin for Vecs {
             &blocks.count,
             &blocks.lookback,
             &blocks.difficulty,
-            &self.rewards.coinbase.rolling.sum._24h.sats.height,
-            &self.rewards.coinbase.rolling.sum._24h.usd.height,
+            &self.rewards.coinbase.sum._24h.sats.height,
+            &self.rewards.coinbase.sum._24h.usd.height,
             exit,
         )?;
 

@@ -38,11 +38,11 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// this is the byte length of the transaction's consensus serialization. At
     /// `height`, this is the entire block: its 80-byte header, transaction-count
     /// CompactSize, and every serialized transaction.
-    #[traversable(wrap = "size", rename = "base")]
+    #[traversable(wrap = "size", rename = "block")]
     pub total: M::Stored<PcoVec<Height, Bytes32>>,
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one.
-    #[traversable(wrap = "weight", rename = "base")]
+    #[traversable(wrap = "weight", rename = "block")]
     pub weight: M::Stored<PcoVec<Height, Weight>>,
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<Height, BlkPosition>>,

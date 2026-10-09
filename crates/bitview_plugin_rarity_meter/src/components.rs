@@ -149,42 +149,42 @@ impl Components {
                 "median_price_btc_weighted",
                 version,
                 mappings,
-                &utxos.all.cost_basis.per_coin.pct50.cents.height,
+                &utxos.all.cost_basis.per_coin.median.cents.height,
             )?,
             median_price_usd_weighted: MedianComponent::import(
                 db,
                 "median_price_usd_weighted",
                 version,
                 mappings,
-                &utxos.all.cost_basis.per_dollar.pct50.cents.height,
+                &utxos.all.cost_basis.per_dollar.median.cents.height,
             )?,
             sth_median_price_btc_weighted: MedianComponent::import(
                 db,
                 "sth_median_price_btc_weighted",
                 version,
                 mappings,
-                &utxos.sth.cost_basis.per_coin.pct50.cents.height,
+                &utxos.sth.cost_basis.per_coin.median.cents.height,
             )?,
             sth_median_price_usd_weighted: MedianComponent::import(
                 db,
                 "sth_median_price_usd_weighted",
                 version,
                 mappings,
-                &utxos.sth.cost_basis.per_dollar.pct50.cents.height,
+                &utxos.sth.cost_basis.per_dollar.median.cents.height,
             )?,
             lth_median_price_btc_weighted: MedianComponent::import(
                 db,
                 "lth_median_price_btc_weighted",
                 version,
                 mappings,
-                &utxos.lth.cost_basis.per_coin.pct50.cents.height,
+                &utxos.lth.cost_basis.per_coin.median.cents.height,
             )?,
             lth_median_price_usd_weighted: MedianComponent::import(
                 db,
                 "lth_median_price_usd_weighted",
                 version,
                 mappings,
-                &utxos.lth.cost_basis.per_dollar.pct50.cents.height,
+                &utxos.lth.cost_basis.per_dollar.median.cents.height,
             )?,
             cointime_median_price_btc_weighted: MedianComponent::import(
                 db,
@@ -197,7 +197,7 @@ impl Components {
                     .all
                     .cost_basis
                     .per_coin
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -212,7 +212,7 @@ impl Components {
                     .all
                     .cost_basis
                     .per_dollar
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -227,7 +227,7 @@ impl Components {
                     .all
                     .cost_basis
                     .per_coin
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -242,7 +242,7 @@ impl Components {
                     .all
                     .cost_basis
                     .per_dollar
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -257,7 +257,7 @@ impl Components {
                     .sth
                     .cost_basis
                     .per_coin
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -272,7 +272,7 @@ impl Components {
                     .sth
                     .cost_basis
                     .per_dollar
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -287,7 +287,7 @@ impl Components {
                     .lth
                     .cost_basis
                     .per_coin
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -302,7 +302,7 @@ impl Components {
                     .lth
                     .cost_basis
                     .per_dollar
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -317,7 +317,7 @@ impl Components {
                     .sth
                     .cost_basis
                     .per_coin
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -332,7 +332,7 @@ impl Components {
                     .sth
                     .cost_basis
                     .per_dollar
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -347,7 +347,7 @@ impl Components {
                     .lth
                     .cost_basis
                     .per_coin
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,
@@ -362,7 +362,7 @@ impl Components {
                     .lth
                     .cost_basis
                     .per_dollar
-                    .pct50
+                    .median
                     .cents
                     .height,
             )?,

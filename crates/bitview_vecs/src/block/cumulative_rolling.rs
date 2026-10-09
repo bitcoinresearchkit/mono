@@ -1,7 +1,7 @@
 //! PerBlockCumulativeRolling - stored cumulative + lazy block and rolling views.
 //!
 //! The cumulative vector is the sole stored source of truth. Per-block values
-//! and rolling sums/averages are all derived lazily from it.
+//! and window sums are derived lazily from it.
 
 use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
@@ -9,16 +9,15 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
-use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{
     AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex,
     VecValue, WritableVec,
 };
 
-use crate::{IndexSources, LazyPreviousDeltaVec, PerBlock, RollingTotals};
+use crate::{IndexSources, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, PerBlock};
 
-#[derive(Deref, DerefMut, Traversable)]
+#[derive(Traversable)]
 pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
@@ -27,10 +26,7 @@ where
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
     pub cumulative: PerBlock<T, M>,
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    rolling: RollingTotals<T>,
+    sum: LazyRollingSumsFromHeight<T>,
     last_cumulative: M::WriteOnly<Option<(usize, T)>>,
 }
 
@@ -48,7 +44,13 @@ where
         let cumulative = PerBlock::import(db, &format!("{name}_cumulative"), version, indexes)?;
         let source = cumulative.resolutions.height_source();
         let block = LazyPreviousDeltaVec::new(name, version, source);
-        let rolling = RollingTotals::new(name, version, source, window_starts, indexes);
+        let sum = LazyRollingSumsFromHeight::new(
+            &format!("{name}_sum"),
+            version,
+            source,
+            window_starts,
+            indexes,
+        );
         let last_cumulative = cumulative
             .height
             .collect_last()
@@ -57,7 +59,7 @@ where
         Ok(Self {
             block,
             cumulative,
-            rolling,
+            sum,
             last_cumulative,
         })
     }

@@ -25,8 +25,7 @@ where
     block: LazyPreviousDeltaVec<Height, T>,
     #[traversable(hidden)]
     cumulative: CachedSeries<Height, T, M>,
-    #[traversable(flatten)]
-    average: LazyRollingAvgsFromHeight<T>,
+    avg: LazyRollingAvgsFromHeight<T>,
     last_cumulative: M::WriteOnly<Option<(usize, T)>>,
 }
 
@@ -47,8 +46,8 @@ where
             .collect_last()
             .map(|value| (cumulative.len(), value));
         let block = LazyPreviousDeltaVec::new(name, version, &cumulative);
-        let average = LazyRollingAvgsFromHeight::new(
-            &format!("{name}_average"),
+        let avg = LazyRollingAvgsFromHeight::new(
+            &format!("{name}_avg"),
             cumulative_version,
             &cumulative,
             window_starts,
@@ -58,7 +57,7 @@ where
         Ok(Self {
             block,
             cumulative,
-            average,
+            avg,
             last_cumulative,
         })
     }

@@ -39,7 +39,7 @@ impl Vecs {
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
 
-        self.rate.base.height.compute_transform2(
+        self.rate.block.height.compute_transform2(
             starting_height,
             &count_vecs.total.sum._24h.height,
             &difficulty_vecs.hashrate.height,
@@ -55,7 +55,7 @@ impl Vecs {
             exit,
         )?;
 
-        let hash_rate = &self.rate.base.height;
+        let hash_rate = &self.rate.block.height;
         for (sma, window) in [
             (&mut self.rate.sma._1w.height, lookback.start_vec(7)),
             (&mut self.rate.sma._1m.height, lookback.start_vec(30)),
@@ -67,13 +67,13 @@ impl Vecs {
 
         self.rate.ath.height.compute_all_time_high(
             starting_height,
-            &self.rate.base.height,
+            &self.rate.block.height,
             exit,
         )?;
 
         self.rate.drawdown.compute_drawdown(
             starting_height,
-            &self.rate.base.height,
+            &self.rate.block.height,
             &self.rate.ath.height,
             exit,
         )?;
@@ -81,7 +81,7 @@ impl Vecs {
         self.price.ths.height.compute_transform2(
             starting_height,
             coinbase_usd_24h_sum,
-            &self.rate.base.height,
+            &self.rate.block.height,
             |(i, coinbase_sum, hashrate, ..)| {
                 (
                     i,
@@ -94,7 +94,7 @@ impl Vecs {
         self.value.ths.height.compute_transform2(
             starting_height,
             coinbase_sats_24h_sum,
-            &self.rate.base.height,
+            &self.rate.block.height,
             |(i, coinbase_sum, hashrate, ..)| {
                 (
                     i,

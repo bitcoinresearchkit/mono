@@ -2,9 +2,8 @@ use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_primitives::{BasisPoints32, PartsPerMillion64, Ratio};
 use bitview_transforms::RatioDollars;
 use brk_error::Result;
-use brk_types::Dollars;
 use rayon::join;
-use vecdb::Database;
+use vecdb::{BinaryTransform, Database};
 
 use crate::{Dependencies, Vecs, gini};
 
@@ -43,15 +42,20 @@ impl ComputePlugin for Vecs {
         let supply = &holders.cohorts.all.supply;
         let supply_total_sats = &supply.total.sats.height;
 
+        // Daily issuance over its 365-day daily mean: the 24-hour sum over the 365-day sum / 365.
         let compute_puell = || {
-            puell_multiple
-                .fixed
-                .compute_binary::<Dollars, Dollars, RatioDollars<BasisPoints32>>(
-                    starting_height,
-                    &subsidy.block.usd,
-                    &subsidy.rolling.average._1y.usd.height,
-                    exit,
-                )
+            puell_multiple.fixed.height.compute_transform2(
+                starting_height,
+                &subsidy.sum._24h.usd.height,
+                &subsidy.sum._1y.usd.height,
+                |(height, day, year, ..)| {
+                    (
+                        height,
+                        RatioDollars::<BasisPoints32>::apply(day * 365.0, year),
+                    )
+                },
+                exit,
+            )
         };
         let compute_gini = || gini::compute(gini, utxos, starting_height, exit);
         let compute_rhodl = || {

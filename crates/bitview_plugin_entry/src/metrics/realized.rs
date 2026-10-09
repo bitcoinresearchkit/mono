@@ -4,9 +4,9 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{PartsPerMillionSigned64, PriceRatio, Ratio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlockCumulativeRolling, LazyFiatPerBlockCumulativeWithSums,
-    LazyFiatPerBlockCumulativeWithSumsAndDeltas, LazyFiatPerBlockWithDeltas, LazyPerBlock,
-    LazyPriceWithRatioPerBlock, LazyWindowStartVec, PerBlock,
+    LazyFiatPerBlockCumulativeWithSums, LazyFiatPerBlockCumulativeWithSumsAndDeltas,
+    LazyFiatPerBlockWithDeltas, LazyPerBlock, LazyPriceWithRatioPerBlock, LazyWindowStartVec,
+    PerBlock,
 };
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Height, Version};
@@ -35,7 +35,7 @@ pub struct RealizedMetrics<M: StorageMode = Rw> {
     pub(crate) sopr: PerBlock<Ratio, M>,
     #[traversable(wrap = "sopr")]
     /// Creation-date value of outputs spent from this cohort.
-    pub(crate) value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
+    pub(crate) value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Spot price divided by this cohort's realized price.
     mvrv: LazyPerBlock<Ratio>,
 }
@@ -97,7 +97,7 @@ impl RealizedMetrics {
                 windows,
             ),
             sopr: PerBlock::import(db, &name("sopr_24h"), version, mappings)?,
-            value_destroyed: LazyFiatPerBlockCumulativeRolling::from_cumulative_cents_source(
+            value_destroyed: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &name("value_destroyed"),
                 version,
                 sources.value_destroyed.cumulative_source(),

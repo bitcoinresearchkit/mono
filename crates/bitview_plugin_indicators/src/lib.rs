@@ -22,10 +22,10 @@ pub const ID: PluginId = STORAGE.id();
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
-    /// Puell Multiple: the represented block's derived subsidy value in USD
-    /// divided by its trailing 365-day per-block arithmetic mean. Values above
-    /// one mean current subsidy revenue is above its one-year average; values
-    /// below one mean it is below average.
+    /// Puell Multiple: derived subsidy value in USD over the trailing 24 hours
+    /// divided by its trailing 365-day daily mean (the 365-day total over 365).
+    /// Values above one mean current issuance revenue is above its one-year
+    /// average; values below one mean it is below average.
     puell_multiple: RatioPerBlock<BasisPoints32, M>,
     /// Network Value to Transactions ratio: market capitalization divided by
     /// trailing-24-hour transfer volume, both valued in USD. Returns zero when

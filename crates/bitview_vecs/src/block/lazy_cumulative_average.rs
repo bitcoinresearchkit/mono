@@ -16,8 +16,7 @@ where
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
     block: LazyPreviousDeltaVec<Height, T>,
-    #[traversable(flatten)]
-    average: LazyRollingAvgsFromHeight<T>,
+    avg: LazyRollingAvgsFromHeight<T>,
 }
 
 impl<T> Clone for LazyPerBlockCumulativeAverage<T>
@@ -27,7 +26,7 @@ where
     fn clone(&self) -> Self {
         Self {
             block: self.block.clone(),
-            average: self.average.clone(),
+            avg: self.avg.clone(),
         }
     }
 }
@@ -45,8 +44,8 @@ where
     ) -> Self {
         Self {
             block: LazyPreviousDeltaVec::new(name, version, cumulative),
-            average: LazyRollingAvgsFromHeight::new(
-                &format!("{name}_average"),
+            avg: LazyRollingAvgsFromHeight::new(
+                &format!("{name}_avg"),
                 version + Version::TWO,
                 cumulative,
                 window_starts,

@@ -4,9 +4,9 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{PartsPerMillionSigned64, PriceRatio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlockCumulativeRolling, LazyFiatPerBlockCumulativeWithSums,
-    LazyFiatPerBlockCumulativeWithSumsAndDeltas, LazyFiatPerBlockWithDeltas, LazyPerBlock,
-    LazyPriceWithRatioPerBlock, LazyRatioPerBlock, LazyWindowStartVec, Price,
+    LazyFiatPerBlockCumulativeWithSums, LazyFiatPerBlockCumulativeWithSumsAndDeltas,
+    LazyFiatPerBlockWithDeltas, LazyPerBlock, LazyPriceWithRatioPerBlock, LazyRatioPerBlock,
+    LazyWindowStartVec, Price,
 };
 use brk_types::{Cents, CentsSigned, Height, Version};
 use vecdb::ReadableBoxedVec;
@@ -26,7 +26,7 @@ pub struct Realized {
         CentsSigned,
         PartsPerMillionSigned64,
     >,
-    pub value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
+    pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
     pub gross_pnl: LazyFiatPerBlockCumulativeWithSums<Cents>,
     pub peak_regret: LazyFiatPerBlockCumulativeWithSums<Cents>,
     pub mvrv: LazyRatioPerBlock<PriceRatio>,
@@ -79,7 +79,7 @@ impl Realized {
             mappings,
             windows,
         );
-        let value_destroyed = LazyFiatPerBlockCumulativeRolling::from_cumulative_cents_source(
+        let value_destroyed = LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
             &id.metric_name("value_destroyed"),
             v,
             &c.value_destroyed,

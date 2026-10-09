@@ -18,7 +18,7 @@ pub struct Levels<T> {
     /// Returns the 40th percentile of that subset's creation-price distribution.
     pub pct40: T,
     /// Returns the 50th percentile of that subset's creation-price distribution.
-    pub pct50: T,
+    pub median: T,
     /// Returns the 60th percentile of that subset's creation-price distribution.
     pub pct60: T,
     /// Returns the 70th percentile of that subset's creation-price distribution.
@@ -34,7 +34,7 @@ impl_named_row_formattable!(Levels {
     pct20,
     pct30,
     pct40,
-    pct50,
+    median,
     pct60,
     pct70,
     pct80,
@@ -48,7 +48,7 @@ impl<T> Levels<T> {
             pct20: create(LevelId::Pct20)?,
             pct30: create(LevelId::Pct30)?,
             pct40: create(LevelId::Pct40)?,
-            pct50: create(LevelId::Pct50)?,
+            median: create(LevelId::Median)?,
             pct60: create(LevelId::Pct60)?,
             pct70: create(LevelId::Pct70)?,
             pct80: create(LevelId::Pct80)?,
@@ -62,7 +62,7 @@ impl<T> Levels<T> {
             &mut self.pct20,
             &mut self.pct30,
             &mut self.pct40,
-            &mut self.pct50,
+            &mut self.median,
             &mut self.pct60,
             &mut self.pct70,
             &mut self.pct80,
@@ -76,7 +76,7 @@ impl<T> Levels<T> {
             pct20: create(LevelId::Pct20),
             pct30: create(LevelId::Pct30),
             pct40: create(LevelId::Pct40),
-            pct50: create(LevelId::Pct50),
+            median: create(LevelId::Median),
             pct60: create(LevelId::Pct60),
             pct70: create(LevelId::Pct70),
             pct80: create(LevelId::Pct80),

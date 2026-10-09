@@ -24,7 +24,7 @@ pub struct RarityPercentiles<T> {
     /// Uses the 40% quantile.
     pct40: T,
     /// Uses the 50% quantile.
-    pct50: T,
+    median: T,
     /// Uses the 60% quantile.
     pct60: T,
     /// Uses the 70% quantile.
@@ -57,7 +57,7 @@ impl<T> RarityPercentiles<T> {
             pct20: f(Pct20),
             pct30: f(Pct30),
             pct40: f(Pct40),
-            pct50: f(Pct50),
+            median: f(Median),
             pct60: f(Pct60),
             pct70: f(Pct70),
             pct80: f(Pct80),
@@ -81,7 +81,7 @@ impl<T> RarityPercentiles<T> {
             Pct20 => &self.pct20,
             Pct30 => &self.pct30,
             Pct40 => &self.pct40,
-            Pct50 => &self.pct50,
+            Median => &self.median,
             Pct60 => &self.pct60,
             Pct70 => &self.pct70,
             Pct80 => &self.pct80,
@@ -113,7 +113,7 @@ impl<T> RarityPercentiles<T> {
             pct20: f(Pct20)?,
             pct30: f(Pct30)?,
             pct40: f(Pct40)?,
-            pct50: f(Pct50)?,
+            median: f(Median)?,
             pct60: f(Pct60)?,
             pct70: f(Pct70)?,
             pct80: f(Pct80)?,
@@ -136,7 +136,7 @@ impl<T> RarityPercentiles<T> {
             &self.pct20,
             &self.pct30,
             &self.pct40,
-            &self.pct50,
+            &self.median,
             &self.pct60,
             &self.pct70,
             &self.pct80,
@@ -160,7 +160,7 @@ impl<T> RarityPercentiles<T> {
             &mut self.pct20,
             &mut self.pct30,
             &mut self.pct40,
-            &mut self.pct50,
+            &mut self.median,
             &mut self.pct60,
             &mut self.pct70,
             &mut self.pct80,

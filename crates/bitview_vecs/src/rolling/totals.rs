@@ -7,11 +7,11 @@ use vecdb::ReadableCloneableVec;
 
 use crate::{IndexSources, LazyRollingAvgsFromHeight, LazyRollingSumsFromHeight};
 
-/// Sums and averages projected from the same cumulative source and windows.
+/// Window sums and per-block averages of a distribution, from one cumulative source.
 #[derive(Clone, Traversable)]
 pub struct RollingTotals<T: NumericValue + JsonSchema + Quantity> {
     pub sum: LazyRollingSumsFromHeight<T>,
-    average: LazyRollingAvgsFromHeight<T>,
+    avg: LazyRollingAvgsFromHeight<T>,
 }
 
 impl<T: NumericValue + JsonSchema + Quantity> RollingTotals<T> {
@@ -30,8 +30,8 @@ impl<T: NumericValue + JsonSchema + Quantity> RollingTotals<T> {
                 window_starts,
                 indexes,
             ),
-            average: LazyRollingAvgsFromHeight::new(
-                &format!("{name}_average"),
+            avg: LazyRollingAvgsFromHeight::new(
+                &format!("{name}_avg"),
                 version,
                 source,
                 window_starts,

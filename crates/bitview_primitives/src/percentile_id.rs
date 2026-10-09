@@ -17,7 +17,7 @@ pub const RARITY_PERCENTILES_LEN: usize = RARITY_PERCENTILES.len();
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum PercentileId {
-    Pct05,
+    Pct5,
     Pct10,
     Pct15,
     Pct20,
@@ -26,7 +26,7 @@ pub enum PercentileId {
     Pct35,
     Pct40,
     Pct45,
-    Pct50,
+    Median,
     Pct55,
     Pct60,
     Pct65,
@@ -50,7 +50,7 @@ pub enum RarityPercentileId {
     Pct20,
     Pct30,
     Pct40,
-    Pct50,
+    Median,
     Pct60,
     Pct70,
     Pct80,
@@ -72,7 +72,7 @@ const RARITY_PERCENTILE_IDS: [RarityPercentileId; RARITY_PERCENTILES_LEN] = [
     RarityPercentileId::Pct20,
     RarityPercentileId::Pct30,
     RarityPercentileId::Pct40,
-    RarityPercentileId::Pct50,
+    RarityPercentileId::Median,
     RarityPercentileId::Pct60,
     RarityPercentileId::Pct70,
     RarityPercentileId::Pct80,
@@ -88,6 +88,31 @@ impl PercentileId {
     #[inline]
     pub const fn percentile(self) -> u8 {
         PERCENTILES[self as usize]
+    }
+
+    /// Catalog key: `median` for the 50th percentile, `pct5`, `pct10`, ... otherwise.
+    pub const fn suffix(self) -> &'static str {
+        match self {
+            Self::Pct5 => "pct5",
+            Self::Pct10 => "pct10",
+            Self::Pct15 => "pct15",
+            Self::Pct20 => "pct20",
+            Self::Pct25 => "pct25",
+            Self::Pct30 => "pct30",
+            Self::Pct35 => "pct35",
+            Self::Pct40 => "pct40",
+            Self::Pct45 => "pct45",
+            Self::Median => "median",
+            Self::Pct55 => "pct55",
+            Self::Pct60 => "pct60",
+            Self::Pct65 => "pct65",
+            Self::Pct70 => "pct70",
+            Self::Pct75 => "pct75",
+            Self::Pct80 => "pct80",
+            Self::Pct85 => "pct85",
+            Self::Pct90 => "pct90",
+            Self::Pct95 => "pct95",
+        }
     }
 }
 
@@ -144,7 +169,7 @@ impl RarityPercentileId {
             Self::Pct20 => "pct20",
             Self::Pct30 => "pct30",
             Self::Pct40 => "pct40",
-            Self::Pct50 => "pct50",
+            Self::Median => "median",
             Self::Pct60 => "pct60",
             Self::Pct70 => "pct70",
             Self::Pct80 => "pct80",
@@ -154,15 +179,6 @@ impl RarityPercentileId {
             Self::Pct99 => "pct99",
             Self::Pct99_5 => "pct99_5",
             Self::Pct99_9 => "pct99_9",
-        }
-    }
-
-    pub const fn price_suffix(self) -> &'static str {
-        match self {
-            Self::Pct1 => "pct01",
-            Self::Pct2 => "pct02",
-            Self::Pct5 => "pct05",
-            _ => self.suffix(),
         }
     }
 }

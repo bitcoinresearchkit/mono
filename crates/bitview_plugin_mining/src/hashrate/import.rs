@@ -39,7 +39,7 @@ impl Vecs {
 
         Ok(Vecs {
             rate: RateVecs {
-                base: PerBlock::import(db, "hash_rate", version + v5, mappings)?,
+                block: PerBlock::import(db, "hash_rate", version + v5, mappings)?,
                 sma: HashRateSmaVecs {
                     _1w: PerBlock::import(db, "hash_rate_sma_1w", version, mappings)?,
                     _1m: PerBlock::import(db, "hash_rate_sma_1m", version, mappings)?,
