@@ -1143,10 +1143,17 @@
         }
       }
 
-      /* The theme: a row as the others, the one chosen written at its end, quietly; a click, the menu of the three. */
-      #theme .theme-name {
-        color: var(--muted);
-        font-weight: 400;
+      /* The theme: a row as the others, the one chosen right after its name, quietly; a click, the menu of the three. */
+      #theme {
+        .label {
+          flex: 0 1 auto;
+        }
+
+        .theme-name {
+          margin-left: -4px;
+          color: var(--muted);
+          font-weight: 400;
+        }
       }
 
       .layer-list {
@@ -7235,8 +7242,8 @@ const picture = await studio.png();</pre>
       /**
        * Color names, each at its usual color: the xkcd survey's, the names people use (filtered: see its module). A color
        * takes the nearest one's name; light, dark or muted only where it sits far from every name.
+       * @type {{ name: string, l: number, c: number, h: number }[] | null}
        */
-      /** @type {{ name: string, l: number, c: number, h: number }[] | null} */
       let names = null;
       const namesAt = () => (names ??= XKCD.map(([name, hex]) => { const [l, c, h] = hexToOklch(hex); return { name, l, c, h }; }));
       /**
@@ -7352,6 +7359,10 @@ const picture = await studio.png();</pre>
       ];
       /** @type {[string, string][]} */
       const FORMATS = [["auto", "Automatic"], ["usd", "US dollars"], ["btc", "Bitcoin"], ["sats", "Satoshis"], ["percent", "Percent"], ["ratio", "Ratio ×"], ["count", "Count"], ["number", "Number"]];
+      /** A layer's letter, its badge wherever it shows (the panel, ⌘K's rows, its previews): in its color. @param {Layer} layer */
+      function letterChip(layer) {
+        return `<span class="letter" style="--c:${escape(ink(layer.color))}">${escape(layer.letter)}</span>`;
+      }
       /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
       const formatName = (layer, result) => (layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] ?? "Number" : `Automatic (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})`);
       const UNIT_SIGNS = { usd: "USD", cents: "¢", btc: "BTC", sats: "sats", percent: "%", ratio: "×", bps: "bps" };
@@ -7516,12 +7527,12 @@ const picture = await studio.png();</pre>
       }
       /** An axis label is at most this many characters, its sign included; the price scales are that wide. */
       const AXIS_CHARS = 6;
+      /** The axes' labels, by value and suffix: the chart asks for the same ticks every frame of a move. */
+      const axisLabels = new Map();
       /**
        * An axis label: the number alone, since a scale can hold layers in several units and the legend gives each its
        * own; a percent-change scale's "%" is the scale's, true of every label on it.
        */
-      /** The axes' labels, by value and suffix: the chart asks for the same ticks every frame of a move. */
-      const axisLabels = new Map();
       function axisLabel(value, suffix = "") {
         const key = `${value}${suffix}`, known = axisLabels.get(key);
         if (known !== undefined) return known;
@@ -8391,10 +8402,14 @@ const picture = await studio.png();</pre>
       /** The catalog indexed (see below): a series added waits for it, as for its info, its path kept with its name at once. */
       let indexed = /** @type {(value?: unknown) => void} */ (() => {});
       const catalogIndexed = new Promise((resolve) => (indexed = resolve));
+      /**
+       * Work for a moment the page is idle, given how long it has: at the latest after `timeout` ms. Without idle
+       * callbacks (Safari), after `settle` ms, with a slice of 8.
+       * @param {(deadline: { timeRemaining: () => number }) => void} work
+       */
+      const whenIdle = (work, { timeout = 1000, settle = 40 } = {}) => void (window.requestIdleCallback ? requestIdleCallback(work, { timeout }) : setTimeout(() => work({ timeRemaining: () => 8 }), settle));
       // Index the catalog when the page is idle; then charts saved without paths get theirs (and survive renames).
       {
-        /** @type {(step: (deadline: { timeRemaining: () => number }) => void, options?: { timeout: number }) => void} */
-        const idle = window.requestIdleCallback ? (step, options) => void requestIdleCallback(step, options) : (step) => void setTimeout(() => step({ timeRemaining: () => 8 }), 40);
         const index = new Map();
         const stack = [[/** @type {any} */ (tree), ""]];
         const step = (deadline) => {
@@ -8407,14 +8422,14 @@ const picture = await studio.png();</pre>
               if (!INTERVAL_ORDER.some((id) => node.indexes().includes(id))) byBlock.add(node.name);
             } else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push([aside(node, key), path ? `${path}.${key}` : key]);
           }
-          if (stack.length) return void idle(step, { timeout: 1000 });
+          if (stack.length) return whenIdle(step);
           catalogIndex = index;
           indexed();
           const learned = library.charts.some((doc) => doc.layers.some((layer) => layer.series && !layer.path && index.has(layer.series)));
           for (const doc of library.charts) normalize(doc);
           if (learned) save();
         };
-        idle(step, { timeout: 3000 });
+        whenIdle(step, { timeout: 3000 });
       }
       /** @type {Chart} */
       let chart = chartById(library.active) ?? library.charts[0];
@@ -8432,13 +8447,21 @@ const picture = await studio.png();</pre>
       let holding = 0, holds = 0;
       /** Each chart's undo and redo, kept while others are open (the last few charts'), for as long as the page is. */
       const histories = /** @type {Map<string, { past: string[], future: string[] }>} */ (new Map());
+      /**
+       * Undo's memory, in characters of a chart's states (JSON, two bytes each): the open chart's steps up to 8M (≈16 MB),
+       * each chart's kept while others are open up to 2M (a long history of a large chart would hold hundreds of MB).
+       */
+      const UNDO_CHARS = 8e6, KEPT_CHARS = 2e6;
+      /** Steps within a budget: the farthest go first (the oldest undo, then the farthest redo), the nearest of each stays. */
+      function trimSteps(/** @type {{ past: string[], future: string[] }} */ steps, /** @type {number} */ budget) {
+        let size = 0;
+        for (const state of steps.past) size += state.length;
+        for (const state of steps.future) size += state.length;
+        while (size > budget && steps.past.length > 1) size -= /** @type {string} */ (steps.past.shift()).length;
+        while (size > budget && steps.future.length > 1) size -= /** @type {string} */ (steps.future.shift()).length;
+      }
       /** Bumped by every change of state: edits, undo, redo, opening a chart. */
       let revision = 0;
-      /**
-       * Per-browser view preferences: whether the sidebar is collapsed, whether the layers panel shows (at first, closed
-       * on a narrow screen), whether the page opens on the grid; the drawing belt (on, where), and the pen: the look the
-       * next drawing takes, whatever its tool (the last one set, on a tool or on a drawing).
-       */
       /** Preferences as stored, read (each its default where it's missing or isn't one). */
       function readPrefs(/** @type {any} */ stored) {
         return {
@@ -8452,6 +8475,11 @@ const picture = await studio.png();</pre>
           pen: /** @type {{ color: string, width: number, dash: number, opacity?: number, extend?: "right" | "both", arrow?: boolean, size: number, back?: string }} */ ({ ...lookOfDrawing("trend", stored.pen), size: Number.isFinite(stored.pen?.size) ? presetSize(stored.pen.size) : TEXT_SIZE }),
         };
       }
+      /**
+       * Per-browser view preferences: whether the sidebar is collapsed, whether the layers panel shows (at first, closed
+       * on a narrow screen), whether the page opens on the grid; the drawing belt (on, where), and the pen: the look the
+       * next drawing takes, whatever its tool (the last one set, on a tool or on a drawing).
+       */
       const prefs = readPrefs(storage.get(PREFS, {}));
       /** Each preference as this tab last wrote or took it: only what it changed since is written (another tab's kept). */
       const prefsSeen = Object.fromEntries(Object.entries(prefs).map(([key, value]) => [key, JSON.stringify(value)]));
@@ -8499,8 +8527,7 @@ const picture = await studio.png();</pre>
       /** What's being typed where it shows (a drawing's text or label, a name), kept now: before a save, a page left. */
       function flushEdits() {
         endTyping();
-        const active = document.activeElement;
-        if (active instanceof HTMLInputElement && active.matches(".tile-rename, .row-rename, .folder-rename")) active.blur();
+        naming?.finish();
       }
       function save(announce = false) {
         announcing ||= announce;
@@ -8566,7 +8593,7 @@ const picture = await studio.png();</pre>
         library.charts = merged;
         library.folders = foldersOf(stored.folders, merged);
         library.order = orderOf(stored.order);
-        scheduleThumbs();
+        drawThumbs();
         if ($("palette").open) showPalette();
         if (current === chart) return renderCharts();
         chart = current;
@@ -8604,6 +8631,7 @@ const picture = await studio.png();</pre>
         if (!joins) edits.past.push(before);
         if (edits.past.length > 200) edits.past.shift();
         edits.future = [];
+        trimSteps(edits, UNDO_CHARS);
         edits.key = coalesce;
         edits.at = now;
         edits.held = holding;
@@ -8674,6 +8702,10 @@ const picture = await studio.png();</pre>
        * On its preset, a chart keeps nothing: the preset follows the newest data.
        */
       const VIEWS = "bitview-studio:views";
+      /** The views left, as stored: read once (a grid of tiles asks for each, at each key typed), written through; another tab's write, read again. */
+      let viewsLeft = /** @type {Record<string, any> | null} */ (null);
+      const viewsNow = () => (viewsLeft ??= storage.get(VIEWS, {}));
+      addEventListener("storage", (event) => event.key === VIEWS && (viewsLeft = null));
       const isEdge = (edge) => Array.isArray(edge) && edge.length === 2 && edge.every(Number.isFinite) && Math.abs(edge[0]) < 1e11;
       /** A view that reads as dates: at a known interval, its edges (their bars counted) within the calendar. */
       function isView(/** @type {any} */ view) {
@@ -8687,7 +8719,7 @@ const picture = await studio.png();</pre>
       }
       /** @returns {{ index: string, from: [number, number], to: [number, number] } | null} */
       function leftView(id) {
-        const left = storage.get(VIEWS, {})[id];
+        const left = viewsNow()[id];
         return isView(left) ? left : null;
       }
       /** An edge of the view as the time of the point nearest it, and how many bars it lies from that point. */
@@ -8750,15 +8782,18 @@ const picture = await studio.png();</pre>
         // Only the chart on screen, drawn at its interval: mid-switch the view still shows the one before.
         if (!chart || drawnChart !== chart.id || drawnIndex !== chart.index || !times?.length || !view.timeScale().width()) return;
         const range = view.timeScale().getVisibleLogicalRange();
-        const all = storage.get(VIEWS, {});
+        const all = viewsNow();
         if (presetShown || !range) delete all[chart.id];
         else all[chart.id] = { index: chart.index, from: edgeOf(range.from, times), to: edgeOf(range.to, times) };
         for (const id of Object.keys(all)) if (!chartById(id)) delete all[id];
         storage.set(VIEWS, all);
       }
       addEventListener("pagehide", saveView);
+      /** Charts opened, and the grid (a link, a script, a click): a picture made meanwhile, of the one before, dropped. */
+      let navigations = 0;
       /** @param {Chart} doc */
       function openChart(doc) {
+        navigations++;
         stopCarrying();
         // What's being typed is kept, on the chart it was typed on.
         leaveField();
@@ -8777,7 +8812,11 @@ const picture = await studio.png();</pre>
         layerPicks.clear();
         drawingsHidden = false;
         // (Its undo and redo, as left; the one before's kept for when it's back.)
-        if (previous) histories.set(previous.id, { past: edits.past.slice(-50), future: edits.future.slice(-50) });
+        if (previous) {
+          const steps = { past: edits.past.slice(-50), future: edits.future.slice(-50) };
+          trimSteps(steps, KEPT_CHARS);
+          histories.set(previous.id, steps);
+        }
         const kept = histories.get(doc.id);
         histories.delete(doc.id);
         while (histories.size > 8) histories.delete(/** @type {string} */ (histories.keys().next().value));
@@ -9414,10 +9453,6 @@ const picture = await studio.png();</pre>
       /** Every series a chart reads, its layers' and its formulas', each once. @param {Chart} doc @returns {string[]} */
       const seriesIn = (doc) => [...new Set([...doc.layers.flatMap((layer) => (layer.series ? [layer.series] : [])), ...formulaSeries(doc)])];
 
-      /**
-       * Fetches every series the chart reads, its layers' and those its formulas name, at its interval; aligns them on
-       * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
-       */
       /** Each chart's timeline and series on it, by its interval, while its data is the same (see resolve). @type {Map<string, any>} */
       const frames = new Map();
       let frameCount = 0;
@@ -9427,6 +9462,10 @@ const picture = await studio.png();</pre>
       const vectorIds = new WeakMap();
       let vectorCount = 0;
       const idOf = (/** @type {object} */ vector) => vectorIds.get(vector) ?? (vectorIds.set(vector, ++vectorCount), vectorCount);
+      /**
+       * Fetches every series the chart reads, its layers' and those its formulas name, at its interval; aligns them on
+       * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
+       */
       async function resolve(doc, fresh = false) {
         const sources = doc.layers.filter((layer) => layer.series);
         const named = formulaSeries(doc);
@@ -9463,11 +9502,11 @@ const picture = await studio.png();</pre>
             hi = Math.max(hi, data.start + data.times.length);
             if (data.stamp > stamp) stamp = data.stamp;
           }
-          const timeAt = new Float64Array(Math.max(0, hi - lo)).fill(NaN), position = new Int32Array(timeAt.length).fill(-1);
-          for (const data of datas) for (let k = 0; k < data.times.length; k++) timeAt[data.start - lo + k] = data.times[k];
+          const timeOf = new Float64Array(Math.max(0, hi - lo)).fill(NaN), position = new Int32Array(timeOf.length).fill(-1);
+          for (const data of datas) for (let k = 0; k < data.times.length; k++) timeOf[data.start - lo + k] = data.times[k];
           /** @type {number[]} */
           const times = [];
-          for (let i = 0; i < timeAt.length; i++) if (!Number.isNaN(timeAt[i])) (position[i] = times.length), times.push(timeAt[i]);
+          for (let i = 0; i < timeOf.length; i++) if (!Number.isNaN(timeOf[i])) (position[i] = times.length), times.push(timeOf[i]);
           frame = { id: ++frameCount, datas, lo, stamp, times, position, aligned: new Map(), series: new Map(), computed: new Map(), trimmed: null };
           frames.set(frameKey, frame);
           // (By chart: the open one's kept, whatever the previews drawn meanwhile.)
@@ -9745,11 +9784,11 @@ const picture = await studio.png();</pre>
       function spotlight(id) {
         if (id === spotlit) return;
         spotlit = id;
-        const lit = id && drawn.has(id) && drawn.size > 1 && !layerById(id)?.hidden ? id : null;
-        for (const [layerId, series] of drawn) series.applyOptions(!lit || layerId === lit ? paints.get(layerId) : faded(paints.get(layerId)));
-        for (const [layerId, close] of closes) close.series.applyOptions(!lit || layerId === lit ? close.paint : faded(close.paint));
+        const lighted = id && drawn.has(id) && drawn.size > 1 && !layerById(id)?.hidden ? id : null;
+        for (const [layerId, series] of drawn) series.applyOptions(!lighted || layerId === lighted ? paints.get(layerId) : faded(paints.get(layerId)));
+        for (const [layerId, close] of closes) close.series.applyOptions(!lighted || layerId === lighted ? close.paint : faded(close.paint));
         for (const [layerId, bars] of barsBelow) {
-          const faint = Boolean(lit) && layerId !== lit;
+          const faint = Boolean(lighted) && layerId !== lighted;
           if (bars.faint === faint) continue;
           bars.faint = faint;
           drawn.get(layerId)?.setData(bars.points.map((point) => (point.color ? { ...point, color: faint ? bars.faded : bars.color } : point)));
@@ -9921,12 +9960,12 @@ const picture = await studio.png();</pre>
         // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
         // alone, and a color or a width scrubbed stays smooth however many points there are. (A stack's bands and bars,
         // their colors in their points, are set again whole.)
-        const shapeOf = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, cloudUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse)]);
+        const layerShape = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, cloudUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse)]);
         /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, low?: Vector }>} */
         const kept = new Map();
         doc.layers.forEach((layer, i) => {
           const before = built.get(layer.id);
-          if (before && before.shape === shapeOf(layer, i) && was.has(layer.id)) kept.set(layer.id, before);
+          if (before && before.shape === layerShape(layer, i) && was.has(layer.id)) kept.set(layer.id, before);
         });
         built.clear();
         // The others' series go once the new ones are in: a scale left empty is reset by the chart library.
@@ -10007,7 +10046,7 @@ const picture = await studio.png();</pre>
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
           paints.set(layer.id, paint);
-          built.set(layer.id, { shape: shapeOf(layer, i), shown: stack?.values ?? result?.shown, ohlc: result?.ohlc, stacked: Boolean(stack), ...(result?.low ? { low: result.low } : {}) });
+          built.set(layer.id, { shape: layerShape(layer, i), shown: stack?.values ?? result?.shown, ohlc: result?.ohlc, stacked: Boolean(stack), ...(result?.low ? { low: result.low } : {}) });
           // The same values (and not bars, their colors in them): nothing to set again. None now (an error, a formula
           // being written), a kept series is emptied.
           const before = kept.get(layer.id);
@@ -10399,10 +10438,6 @@ const picture = await studio.png();</pre>
           element.scrollLeft += event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientWidth : 1);
         }, { passive: false });
       }
-      /**
-       * A scroller's state: whether it scrolls (a legend then takes the wheel), and which of its edges hide more; a strip
-       * scrolls sideways, the chart list down.
-       */
       /** A scroller fitted on the next frame, once however many scroll events come before it (its size read once). */
       const fitting = new WeakSet();
       function fitSoon(/** @type {HTMLElement} */ element, down = false) {
@@ -10410,6 +10445,10 @@ const picture = await studio.png();</pre>
         fitting.add(element);
         requestAnimationFrame(() => (fitting.delete(element), fitStrip(element, down)));
       }
+      /**
+       * A scroller's state: whether it scrolls (a legend then takes the wheel), and which of its edges hide more; a strip
+       * scrolls sideways, the chart list down.
+       */
       function fitStrip(element, down = false) {
         const [at, size, full] = down ? [element.scrollTop, element.clientHeight, element.scrollHeight] : [element.scrollLeft, element.clientWidth, element.scrollWidth];
         const overflows = full > size + 1;
@@ -10470,9 +10509,9 @@ const picture = await studio.png();</pre>
       function slotOf(/** @type {Vector} */ values, /** @type {string} */ unit, /** @type {number} */ size) {
         const texts = new Set();
         const stride = Math.max(1, Math.floor(values.length / 240));
-        let lo = Infinity, hi = -Infinity;
-        for (let i = 0; i < values.length; i++) if (Number.isFinite(values[i])) (lo = Math.min(lo, values[i])), (hi = Math.max(hi, values[i]));
-        for (const value of [lo, hi, values[values.length - 1]]) if (Number.isFinite(value)) texts.add(format(value, unit));
+        let lo = Infinity, hi = -Infinity, last = NaN;
+        for (let i = 0; i < values.length; i++) if (Number.isFinite(values[i])) (lo = Math.min(lo, values[i])), (hi = Math.max(hi, values[i])), (last = values[i]);
+        for (const value of [lo, hi, last]) if (Number.isFinite(value)) texts.add(format(value, unit));
         for (let i = 0; i < values.length; i += stride) if (Number.isFinite(values[i])) texts.add(format(values[i], unit));
         return widest([...texts].sort((x, y) => y.length - x.length).slice(0, 5), 510, size);
       }
@@ -10496,15 +10535,7 @@ const picture = await studio.png();</pre>
           measured.set(key, width);
           return width;
         }
-        let lo = Infinity, hi = -Infinity;
-        for (const value of values) if (Number.isFinite(value)) {
-          if (value < lo) lo = value;
-          if (value > hi) hi = value;
-        }
-        const texts = new Set([lo, hi, valueAt(layer, { at: values.length - 1, rest: true })].filter(Number.isFinite).map((value) => format(value, unit)));
-        const stride = Math.max(1, Math.floor(values.length / 240));
-        for (let i = 0; i < values.length; i += stride) if (Number.isFinite(values[i])) texts.add(format(values[i], unit));
-        const width = widest([...texts].sort((x, y) => y.length - x.length).slice(0, 5), 510, size);
+        const width = slotOf(values, unit, size);
         measured.set(key, width);
         return width;
       }
@@ -10547,6 +10578,19 @@ const picture = await studio.png();</pre>
         }
         scans.set(values, (scan = { first, nonZero, below }));
         return scan;
+      }
+      /**
+       * A vector's value changed at `at` (the live price's, at its end): its scan brought up to date from there, not read
+       * again whole; the first value, or the first non-zero one, gone there: read again.
+       */
+      function rescan(/** @type {ArrayLike<number>} */ values, /** @type {number} */ at) {
+        const scan = scans.get(values);
+        if (!scan) return;
+        const value = values[at], finite = Number.isFinite(value);
+        if (scan.below.length !== values.length + 1 || (!finite && at === scan.first) || (!(finite && value) && at === scan.nonZero)) return void scans.delete(values);
+        if (finite && at < scan.first) scan.first = at;
+        if (finite && value && at < scan.nonZero) scan.nonZero = at;
+        for (let i = at; i < values.length; i++) scan.below[i + 1] = scan.below[i] + (Number.isFinite(values[i]) && values[i] < 0 ? 1 : 0);
       }
       /**
        * What a layer's changes in this view are measured from: its first value in view, and, when the series stays
@@ -10937,6 +10981,10 @@ const picture = await studio.png();</pre>
       }
       /** The overview dimmed outside the window, made on each move (the dimming touches the shape only, not the marks under it). */
       const overviewLit = document.createElement("canvas");
+      /** The navigator's font as its canvas last took it (see paintNavigator). */
+      let navigatorFont = "";
+      /** Whether the pointer's over the navigator (its window's dates show then, and while it's dragged). */
+      let navigatorNear = false;
       /**
        * The navigator as shown, on each move, back to front: the strip dimmed outside the window; time's marks (context:
        * the shape runs over them, as a line over a grid's labels; none where a date or a grip stands); the overview,
@@ -10946,10 +10994,6 @@ const picture = await studio.png();</pre>
        * they don't both fit so, as one ("7 Oct ’25 – 7 Oct ’26") beside the window or in it; else none.
        * @param {{ left: number, right: number } | null} lit the window, in shares of the navigator's width
        */
-      /** The navigator's font as its canvas last took it (see paintNavigator). */
-      let navigatorFont = "";
-      /** Whether the pointer's over the navigator (its window's dates show then, and while it's dragged). */
-      let navigatorNear = false;
       function paintNavigator(lit) {
         const canvas = $("overview"), context = canvas.getContext("2d"), ratio = overviewRatio;
         // (Moved to a screen of another density: drawn again for it, this frame painted as it was.)
@@ -11328,13 +11372,13 @@ const picture = await studio.png();</pre>
       const ordinal = (/** @type {number} */ n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
       /** The halvings across a pane, faint and dashed, behind its series; in the lowest pane, named at their foot by number. */
       function paintHalvings(context, size, /** @type {{ x: number, n: number, next: boolean }[]} */ marks, /** @type {boolean} */ named) {
-        const ink = css("--soft");
+        const soft = css("--soft");
         context.save();
         context.lineWidth = 1;
         for (const { x, n, next } of marks) {
           if (x < -1 || x > size.width + 1) continue;
           const at = Math.round(x) + 0.5;
-          context.strokeStyle = alpha(ink, next ? 0.3 : 0.45);
+          context.strokeStyle = alpha(soft, next ? 0.3 : 0.45);
           context.setLineDash(next ? [1, 4] : [3, 4]);
           context.beginPath();
           context.moveTo(at, 0);
@@ -11346,7 +11390,7 @@ const picture = await studio.png();</pre>
           context.rotate(-Math.PI / 2);
           context.font = `510 10px ${SANS}`;
           context.textBaseline = "top";
-          context.fillStyle = alpha(ink, next ? 0.6 : 0.85);
+          context.fillStyle = alpha(soft, next ? 0.6 : 0.85);
           context.fillText(`${ordinal(n)} halving${next ? " ≈" : ""}`, 0, 0);
           context.restore();
         }
@@ -11389,12 +11433,12 @@ const picture = await studio.png();</pre>
           context.fill();
         } else if (drawing.kind === "ruler" && finite(a) && finite(b)) paintRuler(context, drawing, a, b, size);
         else if (drawing.kind === "brush") strokeThrough(context, points.filter(finite));
-        else if (drawing.kind === "text" && finite(a)) paintLabel(context, drawing.text ?? "", textPlace(drawing, a), words);
+        else if (drawing.kind === "text" && finite(a)) paintLabel(context, textPlace(drawing, a), words);
         if (drawing.kind !== "text" && drawing.kind !== "ruler") context.stroke();
         if (drawing.kind === "trend" && drawing.arrow && !drawing.extend && finite(a) && finite(b)) paintArrow(context, a, b, drawing.width);
         if (label) {
           context.restore();
-          paintLabel(context, /** @type {string} */ (drawing.label), label, words);
+          paintLabel(context, label, words);
         }
         context.restore();
       }
@@ -11452,7 +11496,7 @@ const picture = await studio.png();</pre>
        */
       function labelPlace(/** @type {Drawing} */ drawing, points, size, text = drawing.label ?? "") {
         const [a, b] = points, at = drawing.at ?? (drawing.kind === "hline" || drawing.kind === "vline" ? 1 : 0.5);
-        const shape = tagShape(text, drawing.size ?? TEXT_SIZE), { width, height } = shape;
+        const shape = tagShape(text, drawing.size ?? TEXT_SIZE), { width } = shape;
         if (drawing.kind === "trend") {
           if (!finite(a) || !finite(b)) return null;
           let angle = Math.atan2(b.y - a.y, b.x - a.x);
@@ -11467,7 +11511,7 @@ const picture = await studio.png();</pre>
        * A tag: its words line under line, on what its back asks (nothing: a halo of the card around the letters, so they
        * read over anything; a soft fill over the card; its color, the words in contrast) in a border if it asks.
        */
-      function paintLabel(context, /** @type {string} */ text, place, /** @type {{ color: string, back: string, on: string, card: string }} */ words) {
+      function paintLabel(context, place, /** @type {{ color: string, back: string, on: string, card: string }} */ words) {
         const { color, back, on, card } = words, filled = back === "soft" || back === "soft-outline" || back === "solid";
         context.save();
         context.translate(place.x, place.y);
@@ -12011,8 +12055,10 @@ const picture = await studio.png();</pre>
         turnBelt(upright(side));
         placeBelt(true);
       }
-      /** The belt where it's docked: on its side of the plot, along it where it was left, inside it (along the top or foot, it wraps). */
-      /** `stay`: what's in it changed, its tools where they were (it grows or shrinks from there, inside the plot). */
+      /**
+       * The belt where it's docked: on its side of the plot, along it where it was left, inside it (along the top or foot,
+       * it wraps). `stay`: what's in it changed, its tools where they were (it grows or shrinks from there, inside the plot).
+       */
       function placeBelt(glide = false, stay = false) {
         const belt = $("belt"), plot = belt.hidden || belt.classList.contains("held") ? null : plotBox();
         if (!plot) return;
@@ -12213,22 +12259,7 @@ const picture = await studio.png();</pre>
           if ($("menu").contains(document.activeElement) || document.activeElement === document.body) $(id)?.focus();
         }
       }
-      $("menu").addEventListener("pointerdown", (event) => {
-        const element = closest(event, "#draw-width, #draw-opacity");
-        if (event.button !== 0 || !element) return;
-        const id = /** @type {"draw-width" | "draw-opacity"} */ (element.id);
-        track(event, element, "scrubbing", (point) => setDrawSlider(id, stopAt(id, point.clientX)));
-      });
-      $("menu").addEventListener("keydown", (event) => {
-        const id = event.target.id;
-        if (id !== "draw-width" && id !== "draw-opacity") return;
-        const look = lookFor(id === "draw-width" ? "width" : "opacity"), spec = SLIDERS[id], stops = spec.stops, at = look ? stops.indexOf(spec.of(look)) : -1, last = stops.length - 1;
-        const to = { ArrowLeft: at - 1, ArrowDown: at - 1, ArrowRight: at + 1, ArrowUp: at + 1, Home: 0, End: last }[event.key];
-        if (to === undefined) return;
-        event.preventDefault();
-        event.stopPropagation();
-        setDrawSlider(id, stops[clamp(to, 0, last)]);
-      });
+      sliders($("menu"), { valueOf: (id) => ((look) => (look ? SLIDERS[id].of(look) : undefined))(lookFor(id === "draw-width" ? "width" : "opacity")), set: (id, value) => setDrawSlider(/** @type {"draw-width" | "draw-opacity"} */ (id), value) });
       // Its grip carries it, turning as it nears a side; let go, it docks on that side, where along it it was let go.
       $("belt").addEventListener("pointerdown", (event) => {
         const belt = $("belt");
@@ -12406,10 +12437,15 @@ const picture = await studio.png();</pre>
 
       /** A press the chart doesn't also take (it would pan): its mousedown or touchstart, swallowed. */
       let swallow = false;
+      /** The pointer a gesture under way is (a drawing placed, moved, a box drawn): another finger's moves nothing. */
+      let gesturePointer = -1;
+      /** A press held that's drawing, moving drawings or drawing a box. */
+      const gesturing = () => Boolean(placing?.held || moving || boxing);
       function take(event) {
         event.preventDefault();
         event.stopPropagation();
         swallow = true;
+        gesturePointer = event.pointerId;
         $("chart").setPointerCapture(event.pointerId);
       }
       for (const type of ["mousedown", "touchstart"]) $("chart").addEventListener(type, (event) => {
@@ -12420,6 +12456,13 @@ const picture = await studio.png();</pre>
       }, { capture: true, passive: false });
       // Capture phase, before the chart: a press that draws, or takes a drawing, doesn't pan.
       $("chart").addEventListener("pointerdown", (event) => {
+        // (A second finger, while one draws or moves: neither a drawing's nor the chart's, which would pinch or pan.)
+        if (gesturing() && event.pointerId !== gesturePointer) {
+          event.preventDefault();
+          event.stopPropagation();
+          swallow = true;
+          return;
+        }
         if (writing) $("draw-text").blur();
         // (A legend takes its own presses: a click on a name, ⌘ or ⇧ too, is the layer's, not a drawing's.)
         if (event.button !== 0 || !resolved?.times.length || closest(event, ".legend, #full")) return;
@@ -12461,6 +12504,7 @@ const picture = await studio.png();</pre>
         moving = { originals: new Map(group.map((each) => [each, drawingById(each) ?? hit.drawing])), target: id, handle: reshape ? hit.handle : -1, slide, rect: pane.rect, start: at, moved: false, cursor: ["nwse", "nesw", "ns", "ew"].includes(hit.over) ? `${hit.over}-resize` : "grabbing" };
       }, true);
       $("chart").addEventListener("pointermove", (event) => {
+        if (gesturing() && event.pointerId !== gesturePointer) return;
         if (placing) return placeTo(event);
         if (moving) return moveTo(event);
         if (boxing) return boxTo(event);
@@ -12470,14 +12514,16 @@ const picture = await studio.png();</pre>
       let pressedAt = null;
       $("chart").addEventListener("pointerup", (event) => {
         swallow = false;
+        if (gesturing() && event.pointerId !== gesturePointer) return;
         if (placing?.held) placed(event);
         else if (moving) moved();
         else if (boxing) boxed();
         else if (pressedAt && Math.hypot(event.clientX - pressedAt.x, event.clientY - pressedAt.y) < 4) chooseDrawings([]);
         pressedAt = null;
       });
-      $("chart").addEventListener("pointercancel", () => {
+      $("chart").addEventListener("pointercancel", (event) => {
         swallow = false;
+        if (gesturing() && event.pointerId !== gesturePointer) return;
         stopDrawing();
       });
       $("chart").addEventListener("pointerleave", () => !placing && !moving && hover(null));
@@ -12754,7 +12800,6 @@ const picture = await studio.png();</pre>
         undoToast(`Removed ${plural(n, "drawing")}`);
       }
 
-      /** Typing a text where it's drawn: ↵ or esc (or a click away) keeps it, ⇧↵ starts a line; emptied, it goes. @param {Drawing} drawing */
       /** The field typed in, dressed as the words will be: their color, size, background. */
       function dressField(/** @type {Drawing} */ drawing) {
         const field = $("draw-text"), size = drawing.size ?? TEXT_SIZE;
@@ -12769,6 +12814,7 @@ const picture = await studio.png();</pre>
         field.dataset.back = drawing.back ?? "";
         field.hidden = false;
       }
+      /** Typing a text where it's drawn: ↵ or esc (or a click away) keeps it, ⇧↵ starts a line; emptied, it goes. @param {Drawing} drawing */
       function startTyping(drawing) {
         const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), fresh = !drawingById(drawing.id);
         writing = { drawing, fresh };
@@ -13202,7 +13248,7 @@ const picture = await studio.png();</pre>
       };
       /** A chart's row, and its legend while it's open, show its new drawings in place: focus, menus and tooltips stay. @param {Chart} doc */
       function updateMark(doc) {
-        const mark = document.querySelector(`:is([data-open-chart="${doc.id}"], [data-template-doc="${doc.id}"]) .chart-mark`);
+        const mark = document.querySelector(`[data-open-chart="${doc.id}"] .chart-mark`);
         if (mark) mark.outerHTML = chartMark(doc);
         if (doc !== chart) return;
         for (const element of all$(".legend .series-mark")) {
@@ -13210,9 +13256,9 @@ const picture = await studio.png();</pre>
           if (layer) element.outerHTML = seriesMark(layer);
         }
       }
-      /** Brings every chart's mini chart up to date, one chart at a time, in the background. */
       /** A chart whose mark failed (a fetch), and when: asked for again after a while, or once it's edited. @type {Map<string, { key: string, at: number }>} */
       const thumbsFailed = new Map();
+      /** Brings every chart's mini chart up to date, one chart at a time, in the background. */
       const drawThumbs = serial(async () => {
         for (const id of [...thumbs.keys()]) if (orphan(id)) thumbs.delete(id);
         let drew = false;
@@ -13230,10 +13276,6 @@ const picture = await studio.png();</pre>
         // Stored a moment after (passes follow each edit: one write for many).
         if (drew) saveThumbsSoon();
       });
-      /** The marks follow each edit (one pass at a time; what's unchanged is reused, so a pass is quick). */
-      function scheduleThumbs() {
-        drawThumbs();
-      }
       // Drawings another tab made.
       addEventListener("storage", (event) => {
         if (event.key !== THUMBS || !event.newValue) return;
@@ -13338,14 +13380,16 @@ const picture = await studio.png();</pre>
               // Percent and indexed scales start from the first value in view.
               let base = NaN;
               for (let i = first; mode >= 2 && i <= last && !Number.isFinite(base); i++) if (Number.isFinite(values[i]) && values[i] !== 0) base = values[i];
-              const scaled = (value) => (!Number.isFinite(value) ? NaN : mode === 1 ? (value > 0 ? Math.log10(value) : NaN) : mode >= 2 ? value / base : value);
+              // (A change from it over its size, as the chart's are: from a negative one, a rise still rises.)
+              const scaled = (value) => (!Number.isFinite(value) ? NaN : mode === 1 ? (value > 0 ? Math.log10(value) : NaN) : mode >= 2 ? (value - base) / Math.abs(base) : value);
               // Each bucket's low and high, in the order they came (one point where they're one), and the latest value last:
               // at up to four bars a pixel the chart shows every bar, so its peaks and troughs show; an average would round
               // them off.
               const lows = new Float64Array(B).fill(Infinity), highs = new Float64Array(B).fill(-Infinity), lowAt = new Float64Array(B), highAt = new Float64Array(B);
               let latest = -1;
               for (let i = first; i <= last; i++) {
-                const value = scaled(values[i]), b = Math.floor(((i - shown.from) / span) * B);
+                // (The point at the view's very end is its last bucket's, not past it.)
+                const value = scaled(values[i]), b = Math.min(Math.floor(((i - shown.from) / span) * B), i <= shown.to ? B - 1 : B);
                 if (!Number.isFinite(value) || b < 0 || b >= B) continue;
                 if (value < lows[b]) (lows[b] = value), (lowAt[b] = i);
                 if (value > highs[b]) (highs[b] = value), (highAt[b] = i);
@@ -13364,7 +13408,7 @@ const picture = await studio.png();</pre>
               const low = data.results.get(layer.id)?.low, top = layer.cloud?.includes("top"), bottom = layer.cloud?.includes("bottom");
               const band = low ? Array.from({ length: B }, (_, b) => {
                 let under = Infinity, over = -Infinity;
-                for (let i = Math.max(first, Math.ceil(shown.from + (b * span) / B)); i <= last && i < shown.from + ((b + 1) * span) / B; i++) {
+                for (let i = Math.max(first, Math.ceil(shown.from + (b * span) / B)); i <= last && (i < shown.from + ((b + 1) * span) / B || (b === B - 1 && i <= shown.to)); i++) {
                   const lowest = scaled(low[i]), highest = scaled(values[i]), down = bottom ? highest : lowest, up = top ? lowest : highest;
                   if (Number.isFinite(down) && Number.isFinite(up)) (under = Math.min(under, down)), (over = Math.max(over, up));
                 }
@@ -13495,8 +13539,8 @@ const picture = await studio.png();</pre>
         });
         return `<svg class="plot" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${defs.length ? `<defs>${defs.join("")}</defs>` : ""}${body.join("")}</svg>`;
       }
-      /** The drawings being made, by what they're made of. */
-      const drawing = new Map();
+      /** The mini charts being drawn (a chart's tile, a card's, ⌘K's), by what they're drawn of: one ask at a time each. */
+      const plotsDrawing = new Map();
       let previewsTimer = 0;
       /**
        * A chart's drawing, shown wherever it's framed (its tile, a template's card, ⌘K's preview): in the frames still
@@ -13522,7 +13566,7 @@ const picture = await studio.png();</pre>
         if (have?.key === key) return Promise.resolve(have);
         // Asked again while it's being drawn (⌘K's highlight, the grid), the same drawing answers.
         const ask = JSON.stringify([doc.id, key, index]);
-        if (!drawing.has(ask)) drawing.set(ask, (async () => {
+        if (!plotsDrawing.has(ask)) plotsDrawing.set(ask, (async () => {
           const copy = { ...structuredClone(doc), index };
           const data = await resolve(copy).catch(() => null);
           if (!data || retryFailed(copy, data, index) || previewKey(doc) !== key) return null;
@@ -13535,8 +13579,8 @@ const picture = await studio.png();</pre>
           clearTimeout(previewsTimer);
           previewsTimer = setTimeout(savePreviews, 1000);
           return drawn;
-        })().then((drawn) => (paint(doc.id, drawn, true), drawn)).finally(() => drawing.delete(ask)));
-        return /** @type {Promise<(Preview & { key: string }) | null>} */ (drawing.get(ask));
+        })().then((drawn) => (paint(doc.id, drawn, true), drawn)).finally(() => plotsDrawing.delete(ask)));
+        return /** @type {Promise<(Preview & { key: string }) | null>} */ (plotsDrawing.get(ask));
       }
       /** A website chart's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
       const previewIndex = (doc) => (INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf("week1") || doc.layers.some((layer) => runsWindow(layer.formula ?? "")) ? doc.index : "week1");
@@ -13559,14 +13603,14 @@ const picture = await studio.png();</pre>
       }
       /** A chart's words for the grid's filter: its title, its layers' names, series and formulas. @param {Chart} doc */
       const wordsOf = (doc) => [titleOf(doc), folderById(doc.folder)?.name ?? "", ...doc.layers.flatMap((layer) => [labelOf(layer), layer.series ?? "", layer.formula ?? ""])].join(" ").toLowerCase().replace(/_/g, " ");
-      /**
-       * The charts the filter finds, as ⌘K finds series (quickmatch: prefixes, joined words, typos), those matching the
-       * most of its words, best first; without a filter, all of them in their order.
-       */
       /** The charts the grid shows, in its order: its sections' (a closed folder's, none). */
       const shownCharts = () => sectionsOf(filtered(), $("home-filter").value.trim()).flatMap((section) => section.docs);
       /** The filter's index of the charts (their words, their folders' names), kept till a chart or a folder changes. */
       let filterIndex = { key: "", charts: /** @type {Chart[]} */ ([]), index: /** @type {any} */ (null) };
+      /**
+       * The charts the filter finds, as ⌘K finds series (quickmatch: prefixes, joined words, typos), those matching the
+       * most of its words, best first; without a filter, all of them in their order.
+       */
       function filtered() {
         const query = $("home-filter").value.trim().toLowerCase();
         if (!query) return library.charts;
@@ -13642,6 +13686,7 @@ const picture = await studio.png();</pre>
         if (focused) tileOpen(focused)?.focus({ preventScroll: true });
         renderPicked();
         schedulePreviews();
+        keepNaming();
       }
       /** A folder's head, held at the top of the grid while its charts scroll under it: edged then, a line and a shadow. */
       const heldHeads = new IntersectionObserver((entries) => {
@@ -13762,18 +13807,33 @@ const picture = await studio.png();</pre>
         const tile = cardOf(doc.id);
         if (!tile) return;
         const name = /** @type {HTMLElement} */ (tile.querySelector(".tile-name"));
-        nameInPlace(tile, { className: "tile-rename", value: doc.title, placeholder: "Untitled chart", max: 120, label: "Chart title", top: name.getBoundingClientRect().top - tile.getBoundingClientRect().top - 4, apply: (title) => renameById(doc.id, title), back: () => tileOpen(doc.id)?.focus() });
+        nameInPlace(tile, { className: "tile-rename", value: doc.title, placeholder: "Untitled chart", max: 120, label: "Chart title", top: name.getBoundingClientRect().top - tile.getBoundingClientRect().top - 4, apply: (title) => renameById(doc.id, title), back: () => tileOpen(doc.id)?.focus(), find: () => cardOf(doc.id) });
       }
       /** A chart's title, typed in its sidebar row: ↵ or leaving keeps it, esc doesn't. @param {Chart} doc @param {HTMLElement} row */
       function renameRow(doc, row) {
-        nameInPlace(row, { className: "row-rename", value: doc.title, placeholder: "Untitled chart", max: 120, label: "Chart title", apply: (title) => renameById(doc.id, title), back: () => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${doc.id}"]`))?.focus() });
+        nameInPlace(row, { className: "row-rename", value: doc.title, placeholder: "Untitled chart", max: 120, label: "Chart title", apply: (title) => renameById(doc.id, title), back: () => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${doc.id}"]`))?.focus(), find: () => $("chart-list").querySelector(`[data-chart-row="${doc.id}"]`) });
+      }
+      /** A name being typed in place, and where it goes again when what it's in is drawn anew. */
+      let naming = /** @type {{ input: HTMLInputElement, find: () => Element | null, finish: () => void } | null} */ (null);
+      /** The name being typed, back in its place drawn anew (its text, its selection, the focus); its place gone, it ends. */
+      function keepNaming() {
+        if (!naming || (naming.input.isConnected && document.activeElement === naming.input)) return;
+        const { input } = naming, { selectionStart, selectionEnd } = input;
+        if (!input.isConnected) {
+          const host = naming.find();
+          if (!host) return void (naming = null);
+          host.append(input);
+        }
+        input.focus({ preventScroll: true });
+        input.setSelectionRange(selectionStart, selectionEnd);
       }
       /**
        * A name typed where it shows (a tile's, a sidebar row's, a folder's head): ↵ or leaving it keeps it, esc doesn't;
-       * ended by a key, `back` puts the focus back on what it names. `apply` takes the name.
-       * @param {HTMLElement} host @param {{ className: string, value: string, placeholder: string, max: number, label: string, top?: number, apply: (name: string) => void, back: () => void }} options
+       * ended by a key, `back` puts the focus back on what it names. `apply` takes the name; `find`, where it shows when
+       * that's drawn again (another tab's change, a mark redrawn): the name being typed goes on there.
+       * @param {HTMLElement} host @param {{ className: string, value: string, placeholder: string, max: number, label: string, top?: number, apply: (name: string) => void, back: () => void, find: () => Element | null }} options
        */
-      function nameInPlace(host, { className, value, placeholder, max, label, top, apply, back }) {
+      function nameInPlace(host, { className, value, placeholder, max, label, top, apply, back, find }) {
         const input = document.createElement("input");
         Object.assign(input, { className, value, placeholder, maxLength: max, spellcheck: false, autocomplete: "off" });
         input.setAttribute("aria-label", label);
@@ -13785,18 +13845,22 @@ const picture = await studio.png();</pre>
         const finish = (/** @type {boolean} */ keep, /** @type {boolean} */ refocus) => {
           if (done) return;
           done = true;
+          if (naming?.input === input) naming = null;
           const name = input.value.trim().slice(0, max);
           input.remove();
           if (keep) apply(name);
           if (refocus) back();
         };
+        // (Kept at once where the page leaves it: a save, another chart opened.)
+        naming = { input, find, finish: () => finish(true, false) };
         input.addEventListener("keydown", (event) => {
           if (event.isComposing || (event.key !== "Enter" && event.key !== "Escape")) return;
           event.preventDefault();
           event.stopPropagation();
           finish(event.key === "Enter", true);
         });
-        input.addEventListener("blur", () => finish(true, false));
+        // (Left, it's kept; taken out with what it's in, drawn anew, it's put back there: see keepNaming.)
+        input.addEventListener("blur", () => queueMicrotask(() => input.isConnected && document.activeElement !== input && finish(true, false)));
       }
       /** A chart renamed by its id, as it is now (not as it was when the name began). */
       function renameById(/** @type {string} */ id, /** @type {string} */ title) {
@@ -13895,6 +13959,7 @@ const picture = await studio.png();</pre>
         stopCarrying();
         delete document.body.dataset.sheet;
         if (home) return;
+        navigations++;
         // (Full screen is the chart's: the grid, as ever.)
         setFull(false);
         leaveField();
@@ -14013,29 +14078,30 @@ const picture = await studio.png();</pre>
       // A phone's sheet (the layers): dragged down by its top (the handle, the head), past a third of its height or
       // flicked, it goes; less, it comes back.
       {
-        let pull = /** @type {{ y: number, at: number } | null} */ (null);
+        let pull = /** @type {{ y: number, at: number, pointer: number } | null} */ (null);
         const sheet = $("panel");
         sheet.addEventListener("pointerdown", (event) => {
-          if (!phone.matches || document.body.dataset.sheet !== "panel" || event.clientY - sheet.getBoundingClientRect().top > 56 || closest(event, "button, input, textarea, a")) return;
-          pull = { y: event.clientY, at: performance.now() };
+          if (pull || !phone.matches || document.body.dataset.sheet !== "panel" || event.clientY - sheet.getBoundingClientRect().top > 56 || closest(event, "button, input, textarea, a")) return;
+          pull = { y: event.clientY, at: performance.now(), pointer: event.pointerId };
           sheet.setPointerCapture(event.pointerId);
           sheet.style.transition = $("scrim").style.transition = "none";
         });
+        const back = () => (sheet.style.transition = sheet.style.transform = $("scrim").style.transition = $("scrim").style.opacity = "");
         sheet.addEventListener("pointermove", (event) => {
-          if (!pull) return;
+          if (event.pointerId !== pull?.pointer) return;
           const by = Math.max(0, event.clientY - pull.y);
           sheet.style.transform = `translateY(${by}px)`;
           $("scrim").style.opacity = String(1 - by / sheet.offsetHeight);
         });
-        const letGo = (/** @type {PointerEvent} */ event) => {
-          if (!pull) return;
+        sheet.addEventListener("pointerup", (event) => {
+          if (event.pointerId !== pull?.pointer) return;
           const by = Math.max(0, event.clientY - pull.y), speed = by / Math.max(1, performance.now() - pull.at);
           pull = null;
-          sheet.style.transition = sheet.style.transform = $("scrim").style.transition = $("scrim").style.opacity = "";
+          back();
           if (by > sheet.offsetHeight / 3 || (by > 24 && speed > 0.6)) /** @type {HTMLElement} */ ($("scrim")).click();
-        };
-        sheet.addEventListener("pointerup", letGo);
-        sheet.addEventListener("pointercancel", letGo);
+        });
+        // (Taken by the system mid-way, it comes back: a cancel isn't a release where it was.)
+        for (const type of ["pointercancel", "lostpointercapture"]) sheet.addEventListener(type, (event) => event.pointerId === pull?.pointer && ((pull = null), back()));
       }
       // In the grid, the arrows walk the cards as they're laid out.
       $("home-grid").addEventListener("keydown", (event) => {
@@ -14179,8 +14245,10 @@ const picture = await studio.png();</pre>
         return `<svg class="series-mark" viewBox="0 0 16 12" aria-hidden="true">${body}</svg>`;
       }
       const titleOf = (doc) => doc.title || "Untitled chart";
-      /** The list keeps the order you give it (new charts on top; folders first, each with its own), and ⌘1–⌘9 open the first nine it shows. */
-      /** The chart list as last written: an edit that changes nothing in it (a formula typed) leaves it as it is. */
+      /**
+       * The sidebar's charts, in the order you give them (new ones on top), ⌘1–⌘9 opening the first nine it shows: written
+       * again only where it changed (an edit that changes nothing in it, a formula typed, leaves it as it is).
+       */
       function renderCharts() {
         const current = home ? null : chart, keys = numbered();
         const row = (/** @type {Chart} */ doc) => ((i) => `<div class="chart-row ${doc === current ? "active" : ""} ${doc.folder ? "in-folder" : ""}" data-chart-row="${doc.id}">
@@ -14220,6 +14288,7 @@ const picture = await studio.png();</pre>
         else $("mobile-charts").removeAttribute("aria-current");
         if (home) $("mobile-add").removeAttribute("aria-haspopup");
         else $("mobile-add").setAttribute("aria-haspopup", "menu");
+        keepNaming();
         renderHome();
       }
       /** A top-level item's key in the sidebar's order: a folder's, or a chart's in none. @param {Chart | Folder} item */
@@ -14404,7 +14473,7 @@ const picture = await studio.png();</pre>
           now.name = name;
           save();
           renderCharts();
-        }, back: () => /** @type {HTMLElement | null} */ (scope.querySelector(`[data-folder-toggle="${id}"]`))?.focus() });
+        }, back: () => /** @type {HTMLElement | null} */ (scope.querySelector(`[data-folder-toggle="${id}"]`))?.focus(), find: () => scope.querySelector(inGrid ? `[data-grid-folder="${id}"]` : `[data-folder-row="${id}"]`) });
       }
       /** A folder's name, as ⌘K's page (read by its id when set: another tab may have changed it since). */
       const renameFolderPage = (/** @type {string} */ id) => inputPage({ title: "Rename", value: folderById(id)?.name ?? "", placeholder: "The folder's name", hint: "A folder needs a name", verb: "Rename", read: (text) => (text.trim() ? `Rename to “${text.trim().slice(0, 60)}”` : null), apply: (text) => {
@@ -14462,8 +14531,14 @@ const picture = await studio.png();</pre>
           renderCharts();
         } });
       }
+      /** `item` in `list`, just after the last of `before` still in it (none: first). @template T @param {T[]} list @param {T} item @param {(T | undefined)[]} before */
+      function placedAfter(list, item, before) {
+        const after = before.findLast((other) => other !== undefined && list.includes(other));
+        const at = after === undefined ? 0 : list.indexOf(after) + 1;
+        return [...list.slice(0, at), item, ...list.slice(at)];
+      }
       /** The charts as they're arranged (their order, their folders, the sidebar's order), to put back. */
-      const arrangement = () => ({ charts: [...library.charts], order: [...library.order], folders: new Map(library.charts.map((doc) => [doc, doc.folder])) });
+      const arrangement = () => ({ charts: [...library.charts], order: sideItems().map(sideKey), folders: new Map(library.charts.map((doc) => [doc, doc.folder])) });
       /** Charts whose folder changed since `was` say so (into one, or out of theirs), with an Undo back to it. @param {Chart[]} docs */
       function folderToast(was, docs) {
         const moved = docs.filter((doc) => was.folders.get(doc) !== doc.folder);
@@ -14471,9 +14546,20 @@ const picture = await studio.png();</pre>
         const what = moved.length === 1 ? `“${titleOf(moved[0])}”` : `${moved.length} charts`, to = new Set(moved.map((doc) => doc.folder)), from = new Set(moved.map((doc) => was.folders.get(doc)));
         const named = (/** @type {string | undefined} */ id) => `“${folderById(id)?.name ?? ""}”`, into = [...to][0], left = [...from][0];
         toast(to.size === 1 && into ? `Moved ${what} to ${named(into)}` : to.size === 1 ? `Moved ${what} out of ${from.size === 1 ? named(left) : "their folders"}` : `Moved ${what}`, { label: "Undo", run: () => {
-          for (const [doc, folder] of was.folders) if (library.charts.includes(doc)) folder && folderById(folder) ? (doc.folder = folder) : delete doc.folder;
-          library.charts = [...was.charts.filter((doc) => library.charts.includes(doc)), ...library.charts.filter((doc) => !was.charts.includes(doc))];
-          library.order = was.order;
+          // These alone, back where they were (by id: another tab's moves since, and its copies of them, stay as they are):
+          // each in its folder then (still there), after the nearest chart before it then; at the top level, after the
+          // nearest item before it there.
+          for (const doc of moved) {
+            const now = chartById(doc.id), folder = was.folders.get(doc), key = `c:${doc.id}`;
+            if (!now) continue;
+            if (folder && folderById(folder)) now.folder = folder;
+            else delete now.folder;
+            library.charts = placedAfter(library.charts.filter((other) => other !== now), now, was.charts.slice(0, was.charts.indexOf(doc)).map((other) => chartById(other.id)));
+            const keys = sideItems().map(sideKey).filter((other) => other !== key);
+            // (Out of a folder deleted since: where that folder was.)
+            const at = was.order.indexOf(key), before = at >= 0 ? was.order.slice(0, at) : was.order.slice(0, was.order.indexOf(`f:${folder}`) + 1);
+            library.order = now.folder ? keys : placedAfter(keys, key, before);
+          }
           save();
           renderCharts();
         } });
@@ -15122,7 +15208,7 @@ const picture = await studio.png();</pre>
       const calm = () => new Promise((done) => {
         // (Checked again at its turn: the row may have started moving meanwhile.)
         const turn = () => (stripMoving ? wait() : done(undefined));
-        const wait = () => (stripMoving ? setTimeout(wait, 100) : window.requestIdleCallback ? requestIdleCallback(turn, { timeout: 1000 }) : setTimeout(turn, 50));
+        const wait = () => (stripMoving ? setTimeout(wait, 100) : whenIdle(turn));
         wait();
       });
       const drawCards = serial(async () => {
@@ -15278,12 +15364,12 @@ const picture = await studio.png();</pre>
         }
         return doc;
       }
+      /** The last search over the website's charts (all of them, no `under`): typed on, it narrows what it found. */
+      let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
       /**
        * The website charts whose words hold every word typed, the best first (every word in its title, then its title
        * starting with the first, then the shortest title), as many as `most`.
        */
-      /** The last search over the website's charts (all of them, no `under`): typed on, it narrows what it found. */
-      let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
       function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null)) {
         const list = /** @type {Preset[]} */ (presets), query = words.join(" ");
         // (Typed on from the last search, every match is among its matches.)
@@ -15361,8 +15447,7 @@ const picture = await studio.png();</pre>
       // Read once the page has settled: the recommended cards fill in, and ⌘K finds them at once.
       renderRecommended();
       const readPresets = () => void loadPresets().catch(() => {});
-      if (window.requestIdleCallback) requestIdleCallback(readPresets, { timeout: 4000 });
-      else setTimeout(readPresets, 1500);
+      whenIdle(readPresets, { timeout: 4000, settle: 1500 });
 
       /** After a menu pick re-renders the list, focus goes back to the same menu button. */
       const refocus = (selector) => requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector(selector))?.focus());
@@ -15424,10 +15509,6 @@ const picture = await studio.png();</pre>
         slide(groups(), key, was, { moved: id });
         refocus(`[data-pane-menu="${id}"]`);
       }
-      /**
-       * Deleting takes two presses: the first arms the button, which then says what a second press does. Pressing
-       * anything else, leaving it, Escape or a few seconds disarm it.
-       */
       /** How a second press is asked for, as the first came: a tap, a key, a click. */
       const confirmWord = () => (TOUCH ? "Tap to confirm" : keyed ? "Press again to confirm" : "Click to confirm");
       /** Whether the last thing done was by a key (else a pointer). */
@@ -15436,7 +15517,11 @@ const picture = await studio.png();</pre>
       addEventListener("pointerdown", () => (keyed = false), true);
       /** What a row of ⌘K asking for a second press says. */
       const AGAIN = TOUCH ? "Tap again" : "↵ again";
-      /** @type {{ button: HTMLElement, html: string, tip: string | undefined, label: string | null } | null} */
+      /**
+       * Deleting takes two presses: the first arms the button, which then says what a second press does. Pressing
+       * anything else, leaving it, Escape or a few seconds disarm it. The button armed, as it was:
+       * @type {{ button: HTMLElement, html: string, tip: string | undefined, label: string | null } | null}
+       */
       let armed = null;
       let armTimer = 0;
       /** Whether this press is the second; the first only arms the button. @param {HTMLElement} button */
@@ -15572,7 +15657,7 @@ const picture = await studio.png();</pre>
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
-                  <span class="letter" style="--c:${escape(ink(layer.color))}">${layer.letter}</span>
+                  ${letterChip(layer)}
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
                   <span class="row-figures"${layer.cloud && result?.low ? ` style="min-width: ${valueSlot(layer, 12, true)}px"` : ""}><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.cloud ? " data-lines" : ""}`}></span>${layer.cloud ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
@@ -15604,7 +15689,7 @@ const picture = await studio.png();</pre>
       // Layers dragged: before a layer (or after, on its lower half), in its pane; or below, into a new pane.
       dragToReorder($("layer-list"), {
         item: ".layer-row[data-layer]",
-        label: (id) => ((layer) => (layer ? `<span class="letter" style="--c:${escape(ink(layer.color))}">${layer.letter}</span><span class="name">${escape(labelOf(layer))}</span>` : ""))(layerById(id)),
+        label: (id) => ((layer) => (layer ? `${letterChip(layer)}<span class="name">${escape(labelOf(layer))}</span>` : ""))(layerById(id)),
         idOf: (row) => /** @type {string} */ (row.dataset.layer),
         carried: (id) => (layerPicks.has(id) ? chart.layers.filter((layer) => layerPicks.has(layer.id)).map((layer) => layer.id) : [id]),
         pick: (id) => !layerPicks.has(id) && pickLayer(id),
@@ -15863,6 +15948,7 @@ const picture = await studio.png();</pre>
             ${layer.cloud ? "" : `<button type="button" id="derive" class="nav-item" data-action="derive" aria-haspopup="menu">${ICONS.formula}<span class="label">New formula from ${layer.letter}</span></button>`}
             ${layer.cloud ? "" : layer.formula !== undefined ? (turnsInto(layer).length ? `<button type="button" id="to-series" class="nav-item" data-action="to-series" ${turnsInto(layer).length > 1 ? 'aria-haspopup="menu"' : ""}>${ICONS.series}<span class="label">Turn into a series</span></button>` : "") : `<button type="button" class="nav-item" data-action="to-formula">${ICONS.formula}<span class="label">Turn into a formula</span></button>`}
             <button type="button" class="nav-item" data-action="hide">${layer.hidden ? ICONS.eye : ICONS.eyeOff}<span class="label">${layer.hidden ? "Show" : "Hide"}</span><kbd>H</kbd></button>
+            ${chart.layers.some((other) => other.pane === layer.pane && other.id !== layer.id) ? `<button type="button" class="nav-item" data-action="solo">${ICONS.eye}<span class="label">${aloneInPane(layer) ? "Show every layer in its pane" : "Show it alone in its pane"}</span></button>` : ""}
             <button type="button" class="nav-item" data-action="duplicate" data-kbd="⌘ D" ${chart.layers.length < MAX_LAYERS ? "" : "disabled"}>${ICONS.duplicate}<span class="label">Duplicate</span><kbd class="mod">${keyText("⌘D")}</kbd></button>
             <button type="button" class="nav-item danger" data-action="remove">${ICONS.trash}<span class="label">Remove</span><kbd>${keyText("⌫")}</kbd></button>
           </section>`;
@@ -15898,7 +15984,7 @@ const picture = await studio.png();</pre>
         const sourceSection = layer.cloud
           ? `<section>
               <h3>Cloud</h3>
-              <div class="field"><span>Between<span class="color-now">${plural(cloudLetters(layer, chart).length, "layer")}${edgesOf(layer).length ? `, the ${edgesOf(layer)[0]}` : ""}</span></span><div class="cloud-of" role="group" aria-label="What it spans">${chart.layers.filter((item) => !item.cloud).map((item) => ((on) => `<button type="button" data-cloud-of="${item.id}" aria-pressed="${on}"><span class="letter" style="--c:${escape(ink(item.color))}">${item.letter}</span><span class="name">${escape(labelOf(item))}</span></button>`)(Boolean(layer.cloud?.includes(item.id)))).join("")}${EDGES.map((edge) => `<button type="button" data-cloud-of="${edge}" aria-pressed="${Boolean(layer.cloud?.includes(edge))}" data-tip="${edge === "top" ? "From its lowest up to the pane's top" : "From the pane's bottom up to its highest"}">${edge === "top" ? ICONS.toTop : ICONS.toBottom}<span class="name">The ${edge}</span></button>`).join("")}</div></div>
+              <div class="field"><span>Between<span class="color-now">${plural(cloudLetters(layer, chart).length, "layer")}${edgesOf(layer).length ? `, the ${edgesOf(layer)[0]}` : ""}</span></span><div class="cloud-of" role="group" aria-label="What it spans">${chart.layers.filter((item) => !item.cloud).map((item) => ((on) => `<button type="button" data-cloud-of="${item.id}" aria-pressed="${on}">${letterChip(item)}<span class="name">${escape(labelOf(item))}</span></button>`)(Boolean(layer.cloud?.includes(item.id)))).join("")}${EDGES.map((edge) => `<button type="button" data-cloud-of="${edge}" aria-pressed="${Boolean(layer.cloud?.includes(edge))}" data-tip="${edge === "top" ? "From its lowest up to the pane's top" : "From the pane's bottom up to its highest"}">${edge === "top" ? ICONS.toTop : ICONS.toBottom}<span class="name">The ${edge}</span></button>`).join("")}</div></div>
               ${((error) => `<p class="cloud-status ${error ? "error" : ""}" role="status">${error ? escape(error) : `${cloudSays(layer)}${cloudUnfit(chart, layer) ? `; ${cloudUnfit(chart, layer) === "Not in a stack" ? "not drawn in a stacked pane" : "not drawn on a percent or indexed scale"}` : ""}.`}</p>`)(cloudShort(layer) || result?.error)}
             </section>`
           : isFormula
@@ -15932,7 +16018,7 @@ const picture = await studio.png();</pre>
         const html = `
           <div class="inspector-head">
             <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
-            <span class="letter" style="--c:${escape(ink(layer.color))}">${layer.letter}</span>
+            ${letterChip(layer)}
             <input id="label" class="label-input" maxlength="120" value="${escape(layer.label ?? "")}" placeholder="${escape(labelOf({ ...layer, label: "" }))}" aria-label="Layer name" spellcheck="false" />
             <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
           </div>
@@ -15998,9 +16084,9 @@ const picture = await studio.png();</pre>
       /** The inspector's sliders, each a few values in order: what it steps through, how its value reads, what it sets. */
       const SLIDERS = {
         width: { label: "Width", stops: WIDTHS, of: (layer) => layer.width, text: (v) => `${v}px`, say: (v) => `${v} pixels`, set: (layer, v) => (layer.width = v) },
-        // A drawing's, on the belt: the same stops, read the same.
-        "draw-width": { label: "Width", stops: WIDTHS, of: (look) => look.width, text: (v) => `${v}px`, say: (v) => `${v} pixels`, set: (look, v) => (look.width = v) },
-        "draw-opacity": { label: "Opacity", stops: OPACITIES, of: (look) => look.opacity ?? 1, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (look, v) => (look.opacity = v === 1 ? undefined : v) },
+        // A drawing's, on the belt: the same stops, read the same (its look set by setDrawSlider).
+        "draw-width": { label: "Width", stops: WIDTHS, of: (look) => look.width, text: (v) => `${v}px`, say: (v) => `${v} pixels` },
+        "draw-opacity": { label: "Opacity", stops: OPACITIES, of: (look) => look.opacity ?? 1, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent` },
         opacity: { label: "Opacity", stops: OPACITIES, of: opacityOf, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.opacity = v === defaultOpacity(layer) ? undefined : v) },
       };
       /** A slider: its stops, a handle at the value, and the value written out at the end away from the handle. */
@@ -16064,27 +16150,36 @@ const picture = await studio.png();</pre>
         addEventListener("pointercancel", end);
         addEventListener("blur", stop);
       }
-      // Sliders scrub from stop to stop.
-      $("inspector").addEventListener("pointerdown", (event) => {
-        const element = closest(event, ".stepper");
-        if (event.button !== 0 || !element) return;
-        const id = element.id;
-        track(event, element, "scrubbing", (point) => {
-          const value = stopAt(id, point.clientX);
-          if (value !== undefined) setSlider(id, value);
+      /**
+       * Sliders' pointer and keys, wherever they are (the panel's, the belt's popover's): a press scrubs from stop to stop
+       * (one undo step a drag), the arrows and Page Up and Down step, Home and End go to the ends; off its stops (a value
+       * set otherwise), a step goes to the nearest stop that way. `valueOf` reads a slider's value now; `set` sets it.
+       * @param {HTMLElement} host @param {{ valueOf: (id: string) => number | undefined, set: (id: string, value: number) => void }} how
+       */
+      function sliders(host, { valueOf, set }) {
+        host.addEventListener("pointerdown", (event) => {
+          const element = closest(event, ".stepper");
+          if (event.button !== 0 || !element || !SLIDERS[element.id]) return;
+          const id = element.id;
+          track(event, element, "scrubbing", (point) => {
+            const value = stopAt(id, point.clientX);
+            if (value !== undefined) set(id, value);
+          });
         });
-      });
-      $("inspector").addEventListener("keydown", (event) => {
-        const spec = SLIDERS[event.target.id];
-        const layer = layerById(selected);
-        if (!spec || !layer || !event.target.classList.contains("stepper")) return;
-        const at = spec.stops.indexOf(spec.of(layer)), last = spec.stops.length - 1;
-        const to = { ArrowLeft: at - 1, ArrowDown: at - 1, PageDown: at - 1, ArrowRight: at + 1, ArrowUp: at + 1, PageUp: at + 1, Home: 0, End: last }[event.key];
-        if (to === undefined) return;
-        event.preventDefault();
-        event.stopPropagation();
-        setSlider(event.target.id, spec.stops[clamp(at < 0 ? (to > at ? 0 : last) : to, 0, last)]);
-      });
+        host.addEventListener("keydown", (event) => {
+          const element = /** @type {HTMLElement} */ (event.target), spec = SLIDERS[element.id], value = spec && element.classList.contains("stepper") ? valueOf(element.id) : undefined;
+          const up = ["ArrowRight", "ArrowUp", "PageUp"].includes(event.key), down = ["ArrowLeft", "ArrowDown", "PageDown"].includes(event.key);
+          if (value === undefined || !(up || down || event.key === "Home" || event.key === "End")) return;
+          event.preventDefault();
+          event.stopPropagation();
+          const stops = /** @type {number[]} */ (spec.stops), at = stops.indexOf(value);
+          const to = event.key === "Home" ? stops[0] : event.key === "End" ? stops.at(-1)
+            : at >= 0 ? stops[clamp(at + (up ? 1 : -1), 0, stops.length - 1)]
+            : up ? stops.find((stop) => stop > value) ?? stops.at(-1) : stops.findLast((stop) => stop < value) ?? stops[0];
+          set(element.id, /** @type {number} */ (to));
+        });
+      }
+      sliders($("inspector"), { valueOf: (id) => ((layer) => (layer ? SLIDERS[id].of(layer) : undefined))(layerById(selected)), set: setSlider });
 
       /** Which of a layer's two colors (where its type has two) the picker edits. */
       let colorTarget = "color";
@@ -16178,7 +16273,7 @@ const picture = await studio.png();</pre>
         if (vividGrid) return;
         const until = performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining()));
         for (; vividRow < VIVID_ROWS && performance.now() < until; vividRow++) for (let c = 0; c < 360; c++) vividRows[vividRow * 360 + c] = limit(1 - vividRow * 0.005, c, 12);
-        if (vividRow < VIVID_ROWS) return void (window.requestIdleCallback ? requestIdleCallback(vividSoon, { timeout: 1000 }) : setTimeout(() => vividSoon({ timeRemaining: () => 8 }), 40));
+        if (vividRow < VIVID_ROWS) return whenIdle(vividSoon);
         vivid(0.5, 0);
       }
       function vivid(l, h) {
@@ -16431,9 +16526,9 @@ const picture = await studio.png();</pre>
         const keys = layer.path?.split(".") ?? [];
         openPalette(keys.length && nodeAt(keys) != null ? { replace: id, path: keys.slice(0, -1), landOn: keys.at(-1) } : { replace: id, query: layer.series.replace(/_/g, " ") });
       }
-      /** Swaps a layer's series, keeping everything else (its letter, so formulas using it come back). */
       /** Each replacement asked for, by layer: the latest one's, applied; any earlier one's answer, dropped. */
       const replacing = new Map();
+      /** Swaps a layer's series, keeping everything else (its letter, so formulas using it come back). */
       async function replaceSeries(id, name) {
         const target = chart, run = (replacing.get(id) ?? 0) + 1;
         replacing.set(id, run);
@@ -16679,7 +16774,7 @@ const picture = await studio.png();</pre>
           // A series drawn as a layer is its letter; an open-high-low-close one reads as its close (offered as itself).
           const drawn = new Set(chart.layers.map((layer) => layer.series)), known = recommendedCards.flatMap(({ doc }) => doc.layers.flatMap((layer) => (layer.series ? [layer.series] : [])));
           const names = [...new Set([...seriesIn(chart), ...recent(), ...known])].filter((name) => isSeriesName(name) && !gone.has(name) && !drawn.has(name) && !/_ohlc$/.test(name)).slice(0, 5);
-          return { items: [...layers, ...names.map((name) => ({ insert: name, name, title: name, text: humanize(name), series: true }))], more: total > names.length ? `${grouped.format(total - names.length)} more series: type a few letters` : "" };
+          return { items: [...layers, ...names.map((name) => ({ insert: name, name, title: name, text: humanize(name), series: true }))], more: seriesCount > names.length ? `${grouped.format(seriesCount - names.length)} more series: type a few letters` : "" };
         }
         if (name === "span" || name === "span?") {
           // A window, two points at least (one is the series itself); a shift, a step at least. In points where they aren't days.
@@ -16941,6 +17036,7 @@ const picture = await studio.png();</pre>
           /** @type {HTMLElement | null | undefined} */ (all$(".layer-row .row-main", $("layer-list"))[Math.min(at, chart.layers.length - 1)] ?? document.querySelector("#empty [data-action='add-series']"))?.focus();
         } else if (action === "duplicate") duplicateLayer(selected);
         else if (action === "hide") toggleHidden(selected);
+        else if (action === "solo") soloLayer(selected);
         else if (action === "more") {
           expanded = !expanded;
           const description = $("inspector").querySelector(".description");
@@ -17084,7 +17180,7 @@ const picture = await studio.png();</pre>
           if (TOUCH) return;
           return tileMenu(tile.dataset.homeCard, { x: event.clientX, y: event.clientY });
         }
-        const folderRow = closest(event, "[data-folder-row], [data-grid-folder]:not(.loose)");
+        const folderRow = closest(event, "[data-folder-row], [data-grid-folder]");
         if (folderRow && !closest(event, ".folder-rename")) {
           event.preventDefault();
           const more = /** @type {HTMLElement} */ (folderRow.querySelector("[data-folder-menu]"));
@@ -17232,7 +17328,7 @@ const picture = await studio.png();</pre>
           };
           const add = { icon: ICONS.cloud, label: short || `Add the ${cloudName({ cloud: cloudOf(chart, ticked) }, chart).replace(/^Cloud/, "cloud")}`, kbd: "⌘↵", stay: Boolean(short), run: () => addCloud([...ticked]) };
           /** A layer's row or an edge's: ↵ ticks it on or off. @param {string} member @param {Record<string, any>} row */
-          const tick = (member, row) => {
+          const memberRow = (member, row) => {
             const on = has(member), toggle = () => put(toggleMember(members.filter(has), member));
             return { kind: "row", key: member, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, run: toggle, ...row,
               actions: () => [
@@ -17243,8 +17339,8 @@ const picture = await studio.png();</pre>
               ] };
           };
           return [
-            ...layers.map((layer) => tick(layer.id, { icon: `<span class="letter" style="--c:${escape(ink(layer.color))}">${escape(layer.letter)}</span>`, label: labelOf(layer), group: "Layers", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id) })),
-            ...EDGES.map((edge) => tick(edge, { icon: edge === "top" ? ICONS.toTop : ICONS.toBottom, label: `The ${edge}`, words: "edge pane", group: "Edges" })),
+            ...layers.map((layer) => memberRow(layer.id, { icon: letterChip(layer), label: labelOf(layer), group: "Layers", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id) })),
+            ...EDGES.map((edge) => memberRow(edge, { icon: edge === "top" ? ICONS.toTop : ICONS.toBottom, label: `The ${edge}`, words: "edge pane", group: "Edges" })),
             ...(cloud ? [] : [{ kind: "row", key: "add", icon: ICONS.cloud, label: add.label, kbd: "⌘↵", dim: Boolean(short), verb: "Add", stay: Boolean(short), group: "Cloud", run: add.run }]),
           ];
         } };
@@ -17577,11 +17673,12 @@ const picture = await studio.png();</pre>
 
       // ── Palette: search and browse the catalog ────────────────────────────────
 
-      let total = 0;
+      /** How many series Bitview has, as its server counts them. */
+      let seriesCount = 0;
       client.getSeriesCount().then((count) => {
-        total = count.distinct;
-        $("cta-label").textContent = `Search ${grouped.format(total)} series`;
-        $("palette-count").textContent = `${grouped.format(total)} series on Bitview`;
+        seriesCount = count.distinct;
+        $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
+        $("palette-count").textContent = `${grouped.format(seriesCount)} series on Bitview`;
       }).catch(() => {});
 
       const palette = {
@@ -17688,8 +17785,8 @@ const picture = await studio.png();</pre>
         if (palette.formula) input.maxLength = 500;
         else input.removeAttribute("maxlength");
         input.setAttribute("aria-label", replacing ? "Replace series" : palette.formula ? "Formula" : palette.adding ? "Search series" : "Search series, charts and commands");
-        input.placeholder = replacing ? "A series to use instead" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (total ? `Search ${grouped.format(total)} series` : "Search every series") : phone.matches ? "Search series, charts, commands" : total ? `Search ${grouped.format(total)} series, your charts and commands` : "Search series, your charts and commands";
-        $("palette-count").textContent = total ? `${grouped.format(total)} series on Bitview` : "Bitview";
+        input.placeholder = replacing ? "A series to use instead" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (seriesCount ? `Search ${grouped.format(seriesCount)} series` : "Search every series") : phone.matches ? "Search series, charts, commands" : seriesCount ? `Search ${grouped.format(seriesCount)} series, your charts and commands` : "Search series, your charts and commands";
+        $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
       }
       /**
        * Up the catalog to `depth`, landing on the folder you came out of (as a tree does), not at the top of the list.
@@ -17717,12 +17814,12 @@ const picture = await studio.png();</pre>
           $("palette-input").focus();
         } else if (palette.adding || palette.formula) leaveScope();
       });
+      /** The trail as last drawn (drawn again only when it changes, or the window does). */
+      let trailDrawn = "";
       /**
        * A trail of places ([name, depth], the last `current`), as many as fit: past that, "… ›" stands for the ones
        * dropped on the left (and goes up to the deepest of them).
        */
-      /** The trail as last drawn (drawn again only when it changes, or the window does). */
-      let trailDrawn = "";
       function drawTrail(crumbs, current) {
         const bar = $("palette-path"), key = JSON.stringify([crumbs, current, bar.hidden]);
         if (key === trailDrawn) return;
@@ -17926,15 +18023,17 @@ const picture = await studio.png();</pre>
         const website = !everything || !presets ? [] : rank(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Website charts" })), rowText, words).slice(0, 4);
         // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
         // actions, by what they're of and what they are ("price color", "mvrv base").
+        // (The chart's settings, made once a search: its rows and the changes typed whole read the same ones.)
+        const settings = everything && !home ? settingRows() : [];
         const own = !everything ? [] : home ? rank(browseRows(), rowText, words) : [
           ...rank(browseRows(), rowText, words),
           ...rank(chart.layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })), rowText, words),
           ...rank(chart.panes.map((pane, i) => ({ ...paneRow(pane.id, i), group: "Panes" })), rowText, words),
-          ...rank(settingRows(), rowText, words).slice(0, 8),
+          ...rank(settings, rowText, words).slice(0, 8),
         ];
         // A setting with its value after it ("price color orange"), and a date ("go to 2021", or just "nov 2021"): the
         // change itself, on top.
-        const direct = everything && !home ? directRows(query) : [], named = direct.filter((row) => row.named), unnamed = direct.filter((row) => !row.named);
+        const direct = everything && !home ? directRows(query, settings) : [], named = direct.filter((row) => row.named), unnamed = direct.filter((row) => !row.named);
         const span = everything && !home && chart.layers.length ? readDate(query.replace(/^(go ?to|jump( to)?)\s+/i, "")) : null;
         // (A formula typed here, not a date: one that reads, of this chart's layers, all there; added as a layer, first,
         // as ⌘K's formula row adds it. A search with a dash in it stays a search.)
@@ -18197,14 +18296,14 @@ const picture = await studio.png();</pre>
         return out + escape(text.slice(last));
       }
 
-      /** The palette's list, grouped; `pending` adds a searching row, `note` a closing remark. */
       /** The row a screen reader's on, as ⌘K's input says it: none when no row is (an empty list). */
       const activeOption = () => ($(`option-${palette.active}`) ? $("palette-input").setAttribute("aria-activedescendant", `option-${palette.active}`) : $("palette-input").removeAttribute("aria-activedescendant"));
+      /** The palette's list, grouped; `pending` adds a searching row, `note` a closing remark. */
       function renderPalette(pending = false, note = "") {
         updateCallHelp();
         const searching = Boolean(palette.query.trim());
         const list = $("palette-list");
-        const tail = pending ? `<li class="note"><span class="shimmer">Searching ${total ? grouped.format(total) : "every"} series…</span></li>` : note ? `<li class="note">${escape(note)}</li>` : "";
+        const tail = pending ? `<li class="note"><span class="shimmer">Searching ${seriesCount ? grouped.format(seriesCount) : "every"} series…</span></li>` : note ? `<li class="note">${escape(note)}</li>` : "";
         palette.items = palette.items.filter((item) => (palette.replacing || palette.adding ? item.kind === "series" || item.kind === "folder" || item.kind === "widen" : item.kind !== "chart" || Boolean(chartById(item.key))));
         // (Nothing found: the list alone, across.)
         $("palette").toggleAttribute("data-none", !palette.items.length && !pending);
@@ -18312,7 +18411,7 @@ const picture = await studio.png();</pre>
         if (item.kind === "formula") return previewFormula(panel);
         if (item.kind === "row") return previewRow(panel, item);
         if (item.kind === "insert" && !item.series) return void (panel.innerHTML = previewPiece(item));
-        if (item.kind === "widen") return void (panel.innerHTML = `<h4 class="plain">Every series</h4><p class="description">The same words, across all ${total ? grouped.format(total) : ""} series rather than this folder.</p>`);
+        if (item.kind === "widen") return void (panel.innerHTML = `<h4 class="plain">Every series</h4><p class="description">The same words, across all ${seriesCount ? grouped.format(seriesCount) : ""} series rather than this folder.</p>`);
         if (item.kind === "folder") {
           const node = nodeAt(item.path);
           const keys = Object.keys(node ?? {}).filter((key) => node[key] && typeof node[key] === "object");
@@ -18494,7 +18593,8 @@ const picture = await studio.png();</pre>
 
       /**
        * An action, in ⌘K's menu or as a page's row: a label, an aside (a current value; `mono` for a name or a formula);
-       * a `page` it opens, or what it `run`s (closing ⌘K unless it `stay`s); `danger` asks for a second ↵.
+       * a `page` it opens, or what it `run`s (closing ⌘K unless it `stay`s); `confirm` asks for a second ↵, `danger`
+       * only marks it (red, set apart).
        * @typedef {{ label: string, aside?: string, mono?: boolean, kbd?: string, icon?: string, run?: () => void, page?: () => Page, leads?: boolean, stay?: boolean, danger?: boolean, confirm?: boolean, key?: string, group?: string, preview?: (panel: HTMLElement) => void, look?: (doc: Chart) => void }} Action
        * @typedef {{ title: string | (() => string), placeholder?: string, rows: () => any[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, set: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean }} Page
        */
@@ -18633,9 +18733,9 @@ const picture = await studio.png();</pre>
         const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
         return `${item.icon ?? ""}<span class="item-name">${armed ? `Confirm: ${escape(item.label)}` : query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd && !armed ? `<kbd>${escape(keyText(item.kbd))}</kbd>` : ""}`;
       }
-      /** A chart: its title, layers, interval, when it was last edited. */
       /** A chart's layers as ⌘K's previews list them: each by its badge and name, what it draws across. @param {Layer[]} layers */
-      const layerRows = (layers) => layers.map((layer) => `<div><dt><span class="letter" style="--c:${escape(ink(layer.color))}">${escape(layer.letter)}</span>${escape(labelOf(layer))}${layer.hidden ? ' <span class="muted">(hidden)</span>' : ""}</dt><dd>${layer.cloud ? "Cloud" : TYPES.find(([type]) => type === layer.type)?.[1] ?? ""}</dd></div>`).join("");
+      const layerRows = (layers) => layers.map((layer) => `<div><dt>${letterChip(layer)}${escape(labelOf(layer))}${layer.hidden ? ' <span class="muted">(hidden)</span>' : ""}</dt><dd>${layer.cloud ? "Cloud" : TYPES.find(([type]) => type === layer.type)?.[1] ?? ""}</dd></div>`).join("");
+      /** A chart: its title, layers, interval, when it was last edited. */
       function previewChart(panel, doc) {
         if (!doc) return void (panel.innerHTML = "");
         panel.innerHTML = `<h4 class="plain">${escape(titleOf(doc))}</h4><p class="description">${plural(doc.layers.length, "layer")} · ${escape(CADENCE[doc.index])} · edited ${escape(ago(doc.updated))}</p>
@@ -18772,7 +18872,7 @@ const picture = await studio.png();</pre>
        * nothing to change), or is read as the setting's own page reads it. `named`: what it's of named too ("price"), not
        * only the setting (then a layer's, a pane's, a drawing's leads only after the commands that do).
        */
-      function directRows(query) {
+      function directRows(/** @type {string} */ query, /** @type {any[]} */ settings) {
         const words = query.trim().split(/\s+/);
         // (What it's of, the setting and its value: a few words; a name's value, any.)
         if (words.length < 2) return [];
@@ -18791,7 +18891,7 @@ const picture = await studio.png();</pre>
           return Math.min(2, fitScore(`${option.label} ${option.aside ?? ""} ${key}`, lower.split(/\s+/)));
         };
         const found = [];
-        for (const row of settingRows()) {
+        for (const row of settings) {
           if (!row.of) continue;
           const name = rowText({ ...row, aside: "" }), itself = `${row.label.split(" · ").pop()} ${SYNONYMS[row.key.split(":").pop()] ?? ""}`;
           // The longest run of words that finds the setting, and a value for it in the rest.
@@ -18854,7 +18954,6 @@ const picture = await studio.png();</pre>
         { kind: "row", key: "import", icon: ICONS.upload, label: "Import charts", verb: "Import", group: "Files", run: () => $("import-file").click() },
         ...(library.charts.length || asideCount() ? [{ kind: "row", key: "download-all", icon: ICONS.download, label: "Download all charts", aside: "Folders and all", verb: "Download", group: "Files", run: () => (dismissPalette(), downloadAll()) }] : []),
       ] });
-      /** A chart's actions: open; rename, here; duplicate; move in your list; download; delete. @returns {Action[]} */
       /** Where charts go, as ⌘K's page: each folder, a new one, or none. @param {string[]} ids @returns {Page} */
       const folderPage = (ids) => choicePage("Move to folder", () => {
         const docs = library.charts.filter((doc) => ids.includes(doc.id)), within = new Set(docs.map((doc) => doc.folder ?? ""));
@@ -18864,6 +18963,7 @@ const picture = await studio.png();</pre>
           ...(outOf(ids) ? [{ key: "out", icon: ICONS.folderOut, label: outOf(ids), run: () => moveToFolder(ids, null) }] : []),
         ];
       });
+      /** A chart's actions: open; rename, here; duplicate; move in your list; download; delete. @returns {Action[]} */
       function chartActions(id) {
         const doc = chartById(id);
         if (!doc) return [];
@@ -18935,12 +19035,12 @@ const picture = await studio.png();</pre>
         ...(chart.layers.some((layer) => layer.hidden) ? [{ kind: "row", key: "show-all", icon: ICONS.eye, label: "Show every layer", verb: "Show", group: "Add", stay: true, run: showEvery }] : []),
       ] });
       /** A layer row's ⌘K: what's changed most, the rest a ↵ away on its page. */
-      const QUICK = new Set(["series", "formula", "between", "name", "type", "color", "pane", "hide", "duplicate", "remove"]);
+      const QUICK = new Set(["series", "formula", "between", "name", "type", "color", "pane", "derive", "hide", "solo", "duplicate", "remove"]);
       /** A layer, by its letter and name, with what it shows (a series, a formula): ↵ opens all it is, to change. */
       function layerRow(layer) {
         const open = () => layerPage(layer.id);
         return {
-          kind: "row", key: `layer:${layer.id}`, icon: `<span class="letter" style="--c:${escape(ink(layer.color))}">${escape(layer.letter)}</span>`, label: labelOf(layer),
+          kind: "row", key: `layer:${layer.id}`, icon: `${letterChip(layer)}`, label: labelOf(layer),
           aside: layer.cloud ? `Between ${cloudSpan(layer)}` : layer.series ?? layer.formula ?? "", mono: !layer.cloud, dim: Boolean(layer.hidden), words: `${layer.letter} layer ${layer.hidden ? "hidden" : ""}`, verb: "Open", page: open,
           actions: () => [{ label: "Open", icon: ICONS.next, kbd: "↵", page: open }, ...open().rows().filter((row) => QUICK.has(row.key))],
           preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
@@ -19518,8 +19618,10 @@ const picture = await studio.png();</pre>
       let menuOwner = null;
       /** What opened the menu, as it is now: a redraw (the inspector's) puts a new one in its place, by the same id. */
       const ownerNow = () => (menuOwner && !menuOwner.isConnected && menuOwner.id ? document.getElementById(menuOwner.id) : menuOwner);
-      /** A menu under (or over) its anchor, or at `point` for a right-click; focus goes back to the anchor. */
-      /** `side`: where it opens, if it fits there (else across): "above", "below", "left" or "right" of what opened it. */
+      /**
+       * A menu under (or over) its anchor, or at `point` for a right-click; focus goes back to the anchor. `side`: where
+       * it opens, if it fits there (else across): "above", "below", "left" or "right" of what opened it.
+       */
       function showMenu(anchor, html, onPick, point = null, side = "") {
         const menu = $("menu");
         if (ownerNow() === anchor && !menu.hidden && !point) return hideMenu();
@@ -19838,7 +19940,7 @@ const picture = await studio.png();</pre>
             picked.clear();
             if (among) for (const doc of docs) picked.add(doc.id);
             /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
-            scheduleThumbs();
+            drawThumbs();
             if (home) renderCharts();
             else showHome();
             const skipped = parsed.charts.length - docs.length - already;
@@ -19893,7 +19995,7 @@ const picture = await studio.png();</pre>
       function keepCarriedView(doc, input) {
         const carried = input?.view;
         if (!isView(carried)) return;
-        const all = storage.get(VIEWS, {});
+        const all = viewsNow();
         all[doc.id] = { index: carried.index, from: carried.from, to: carried.to };
         storage.set(VIEWS, all);
       }
@@ -19955,14 +20057,16 @@ const picture = await studio.png();</pre>
         };
       }
       /**
+       * A chart as its link's #chart= writes it, readable. (Only what a link or a chat would break on encoded: brackets and
+       * braces too, a chat cuts a trailing "]}" off; a "+", read as a space by what decodes forms.)
+       */
+      const linkText = (/** @type {Chart} */ doc) => JSON.stringify(toSketch(doc)).replace(/[\s"<>`%#\\{}[\]+]/g, (char) => encodeURIComponent(char));
+      /**
        * A chart's link, written as one writes it: for a person or an assistant to read, change and write again. Past what a
        * browser opens (Firefox, a megabyte: long strokes of the brush, many), compressed: it opens, but can't be read.
        */
       async function shareLink(doc) {
-        const base = `${location.origin}${location.pathname}#chart=`;
-        // (Only what a link or a chat would break on encoded: brackets and braces too, a chat cuts a trailing "]}" off; a
-        // "+", read as a space by what decodes forms.)
-        const written = JSON.stringify(toSketch(doc)).replace(/[\s"<>`%#\\{}[\]+]/g, (char) => encodeURIComponent(char));
+        const base = `${location.origin}${location.pathname}#chart=`, written = linkText(doc);
         if (new URL(base + written).href.length <= 1_000_000) return base + written;
         const stream = new Blob([JSON.stringify(portable(doc))]).stream().pipeThrough(new CompressionStream("deflate-raw"));
         const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
@@ -20060,10 +20164,10 @@ const picture = await studio.png();</pre>
         const letterId = (/** @type {any} */ ref) => ((key) => (letters.includes(key) ? ids[letters.indexOf(key)] : ref))(typeof ref === "string" ? ref.toUpperCase() : ref);
         const index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1", from = timeOfText(input.view?.from), to = input.view?.to === undefined && from !== null ? Date.now() / 1000 : timeOfText(input.view?.to);
         return { ...input,
-          ...(Array.isArray(input.drawings) ? { drawings: input.drawings.filter((/** @type {any} */ drawing) => drawing && typeof drawing === "object").map((/** @type {any} */ drawing) => ({
+          ...(Array.isArray(input.drawings) ? { drawings: input.drawings.slice(0, MAX_DRAWINGS).filter((/** @type {any} */ drawing) => drawing && typeof drawing === "object").map((/** @type {any} */ drawing) => ({
             ...drawing,
             layer: letterId(drawing.layer),
-            points: Array.isArray(drawing.points) ? drawing.points.map((/** @type {any} */ point) => (Array.isArray(point) ? [timeOfText(point[0]), point[1]] : point)) : drawing.points,
+            points: Array.isArray(drawing.points) ? drawing.points.slice(0, MAX_STROKE).map((/** @type {any} */ point) => (Array.isArray(point) ? [timeOfText(point[0]), point[1]] : point)) : drawing.points,
           })) } : {}),
           // (A view by dates, at the chart's interval; one as Studio keeps it, as it is.)
           ...(from !== null && to !== null && from < to ? { view: { index, from: [from, 0], to: [to, 0] } } : {}),
@@ -20162,7 +20266,7 @@ const picture = await studio.png();</pre>
         doc.drawings = (Array.isArray(input.drawings) ? input.drawings : []).slice(0, MAX_DRAWINGS).flatMap((drawing) => {
           const kind = drawing?.kind, layer = layerIds.get(drawing?.layer);
           if (!Object.hasOwn(TOOLS, kind) || !layer || !Array.isArray(drawing.points)) return [];
-          const points = drawing.points.filter((point) => Array.isArray(point) && point.length === 2 && point.every(Number.isFinite) && Math.abs(point[0]) < 1e11).map(([time, value]) => pointOf(time, value));
+          const points = drawing.points.slice(0, MAX_STROKE).filter((point) => Array.isArray(point) && point.length === 2 && point.every(Number.isFinite) && Math.abs(point[0]) < 1e11).map(([time, value]) => pointOf(time, value));
           const takes = kind === "brush" ? MAX_STROKE : PAIRED.has(kind) ? 2 : 1, text = String(drawing.text ?? "").slice(0, 500);
           if (!points.length || (kind !== "brush" && points.length < takes) || (kind === "text" && !text.trim())) return [];
           return [{
@@ -20702,7 +20806,7 @@ const picture = await studio.png();</pre>
         renderLayers();
         renderInspector();
         updateStatus();
-        scheduleThumbs();
+        drawThumbs();
         renderBelt();
         redrawChart(redraw, refit);
       }
@@ -20722,8 +20826,8 @@ const picture = await studio.png();</pre>
         if (menuFor) return menuFor.dataset.chartMenu ? chartMenu(menuFor, menuFor.dataset.chartMenu) : menuFor.dataset.paneMenu ? paneActions(menuFor, menuFor.dataset.paneMenu) : menuFor.dataset.folderMenu ? folderActions(menuFor, menuFor.dataset.folderMenu) : scaleMenu(menuFor, menuFor.dataset.scaleMenu);
         const folderToggle = closest(event, "[data-folder-toggle]");
         if (folderToggle) return toggleFolder(/** @type {string} */ (folderToggle.dataset.folderToggle));
-        const tick = closest(event, "[data-pick-layer]");
-        if (tick) return pickLayer(/** @type {string} */ (tick.dataset.pickLayer), event.shiftKey);
+        const check = closest(event, "[data-pick-layer]");
+        if (check) return pickLayer(/** @type {string} */ (check.dataset.pickLayer), event.shiftKey);
         const marker = closest(event, "[data-markers]");
         if (marker) return marker.dataset.markers?.startsWith("drawings") ? hideDrawings(!drawingsHidden) : toggleHalvings();
         const legendMode = closest(event, "[data-legend]");
@@ -20802,7 +20906,7 @@ const picture = await studio.png();</pre>
       }
 
       /** Out of the field being typed into: what it holds is kept (or, a text emptied, goes), there and then. */
-      const leaveField = () => typing(document.activeElement) && /** @type {HTMLElement} */ (document.activeElement).blur();
+      const leaveField = () => (naming?.finish(), typing(document.activeElement) && /** @type {HTMLElement} */ (document.activeElement).blur());
       /** Typing into a field (a tick isn't one: keys still do what they do). */
       const typing = (target) => (target instanceof HTMLInputElement && !["checkbox", "radio", "button"].includes(target.type)) || target instanceof HTMLTextAreaElement || target?.isContentEditable;
       function selectBy(delta) {
@@ -21164,7 +21268,7 @@ const picture = await studio.png();</pre>
           else if (!Number.isFinite(result.values[at])) continue;
           const values = liveCopy(result.values), bar = result.ohlc?.[last], close = closes.get(layer.id), series = close?.series ?? drawn.get(layer.id);
           values[at] = value;
-          scans.delete(values);
+          rescan(values, at);
           // Its candles move too, drawn as candles or not (a switch to candles shows them as they are).
           const ohlc = bar ? liveCopy(result.ohlc) : result.ohlc;
           if (bar) {
@@ -21242,13 +21346,13 @@ const picture = await studio.png();</pre>
        */
       function linkInUrl() {
         if (picturing) return;
-        const doc = chart && chart === previewing && !home && chart.layers.length ? chart : null, written = doc ? JSON.stringify(toSketch(doc)) : "";
+        const doc = chart && chart === previewing && !home && chart.layers.length ? chart : null, written = doc ? linkText(doc) : "";
         // (A link that couldn't be read stays as it was, to be put right, until another chart's opened.)
         if (location.hash && location.hash === brokenLink) return;
         const put = (/** @type {string} */ hash) => location.hash !== hash && history.replaceState(history.state, "", `${location.pathname}${location.search}${hash}`);
         // (A long one compressed, as Copy link writes it: once it's ready, if it's still the chart shown.)
         if (written.length >= 60_000) return void shareLink(doc).then((link) => chart === doc && previewing === doc && !picturing && put(link.slice(link.indexOf("#"))));
-        put(written ? `#chart=${written.replace(/[\s"<>`%#\\{}[\]+]/g, (char) => encodeURIComponent(char))}` : "");
+        put(written ? `#chart=${written}` : "");
       }
       /** Why the last chart written couldn't be read (for studio.open). */
       let linkError = "";
@@ -21258,14 +21362,16 @@ const picture = await studio.png();</pre>
        * @param {string} written @param {string | null} shared @param {number} run
        */
       async function linked(written, shared, run) {
+        // (Written out, as JSON, however encoded: else compressed.)
+        const plain = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written);
         try {
           lostDrawings = 0;
-          const doc = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? fromWritten(written) : await fromLink(shared);
+          const doc = plain ? fromWritten(written) : await fromLink(shared);
           if (!doc.layers.length) throw new Error("it lists no layers");
           if (run !== linkRun) return null;
           const twin = library.charts.find((other) => sameChart(other, doc));
           if (twin) {
-            const all = storage.get(VIEWS, {});
+            const all = viewsNow();
             if (all[doc.id]) all[twin.id] = all[doc.id];
             else delete all[twin.id];
             delete all[doc.id];
@@ -21280,7 +21386,7 @@ const picture = await studio.png();</pre>
           // (Written by hand, why: to tell whoever wrote it; a newer link meanwhile, nothing.)
           if (run !== linkRun) return null;
           // (Plain words first, the reader's own after: whoever wrote it can find the spot.)
-          linkError = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? `That link's chart couldn't be read: ${error instanceof SyntaxError ? `its JSON is broken (${error.message})` : /** @type {Error} */ (error).message}` : "That link doesn't contain a chart";
+          linkError = plain ? `That link's chart couldn't be read: ${error instanceof SyntaxError ? `its JSON is broken (${error.message})` : /** @type {Error} */ (error).message}` : "That link doesn't contain a chart";
           if (shared !== null) brokenLink = location.hash;
           notice(linkError);
           return null;
@@ -21318,9 +21424,9 @@ const picture = await studio.png();</pre>
       let picturing = false;
       /**
        * The page's last way to a chart (its start, a link, a script's open), till it's the chart open: what studio.ready
-       * waits for first, failing as it failed; counted, a picture made meanwhile for another dropped.
+       * waits for first, failing as it failed (counted, as every chart opened is: see navigations).
        */
-      let navigating = Promise.resolve(), navigations = 0;
+      let navigating = Promise.resolve();
       function navigate(/** @type {Promise<void>} */ way) {
         navigations++;
         navigating = way;
@@ -21348,7 +21454,10 @@ const picture = await studio.png();</pre>
           image.src = url;
           image.alt = `${titleOf(chart)}. ${chartFacts()}`;
           $("picture-leave").hidden = true;
-          /** @type {HTMLAnchorElement} */ ($("picture-open")).href = `#chart=${JSON.stringify(toSketch(chart)).replace(/[\s"<>`%#\\{}[\]+]/g, (char) => encodeURIComponent(char))}`;
+          // (Its link as Copy link writes it, a long one compressed: shown once it's this picture's.)
+          const link = await shareLink(chart);
+          if (run !== pictureRun || !picturing) return;
+          /** @type {HTMLAnchorElement} */ ($("picture-open")).href = link.slice(link.indexOf("#"));
           $("picture-open").hidden = false;
           $("picture-note").hidden = true;
         } catch (error) {
@@ -21390,10 +21499,6 @@ const picture = await studio.png();</pre>
       window.addEventListener("keydown", (event) => document.body.hasAttribute("data-picture") && !(/** @type {Element} */ (event.target)).closest?.("#picture") && event.stopImmediatePropagation(), true);
 
       /**
-       * Studio for scripts run in the page (a console, an assistant driving a browser): a chart opened as its link opens
-       * it, waited for, its picture as Export makes it; the guide says the same ("From a script").
-       */
-      /**
        * The chart open (or opening: failing as a script's open failed) drawn, with what data it has, and the fonts its
        * picture writes in, all within `ms`; else why not: at once for what can't change (no chart, no layers).
        */
@@ -21410,6 +21515,10 @@ const picture = await studio.png();</pre>
         // (Drawn on its next frame; a tab out of sight has none: its picture's drawn when it's made.)
         await new Promise((done) => (requestAnimationFrame(() => done(undefined)), setTimeout(done, Math.min(100, left()))));
       }
+      /**
+       * Studio for scripts run in the page (a console, an assistant driving a browser): a chart opened as its link opens
+       * it, waited for, its picture as Export makes it; the guide says the same ("From a script").
+       */
       const studio = Object.freeze({
         /** A chart as a link writes it (an object, or its JSON): opened as its link would be; done once it's the one open. */
         open(/** @type {object | string} */ sketch) {
@@ -21494,9 +21603,8 @@ const picture = await studio.png();</pre>
         else if (document.body.hasAttribute("data-picture")) leavePicture();
         setTimeout(() => document.body.classList.remove("boot"), 1400);
         // Once the chart is up, while the page is idle: the search's index builds (off the page), and the color surface.
-        const later = (/** @type {() => void} */ work) => (window.requestIdleCallback ? requestIdleCallback(work, { timeout: 3000 }) : setTimeout(work, 1500));
-        later(startFinder);
-        later(() => vividSoon({ timeRemaining: () => 8 }));
+        whenIdle(startFinder, { timeout: 3000, settle: 1500 });
+        whenIdle(vividSoon, { timeout: 3000, settle: 1500 });
         // Charts this Studio couldn't read: kept aside, said once (again only when they change), to be had as a file
         // (Download all has them too).
         const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(JSON.stringify(aside).length) : "";

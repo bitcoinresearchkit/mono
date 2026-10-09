@@ -29,6 +29,26 @@ function replaceOnce(from, to) {
   html = html.replace(from, () => to);
 }
 const dataUrl = (type, bytes) => `data:${type};base64,${Buffer.from(bytes).toString("base64")}`;
+/** A file of bitview.space's, as text: in a time (a stalled server stalls nothing), and only if it answered with it. */
+async function fetchText(path, ms = 30_000) {
+  const response = await fetch(`${SERVER}${path}`, { signal: AbortSignal.timeout(ms) });
+  if (!response.ok) throw new Error(`${path}: ${response.status}`);
+  return response.text();
+}
+/**
+ * Fetched code, run in a process of its own that can read only what it's given (no network, no other files, no
+ * processes, no environment): `script` (a module's text) prints its answer as JSON.
+ */
+function sandboxed(script, readable) {
+  try {
+    const json = execFileSync(process.execPath, ["--permission", ...readable.map((path) => `--allow-fs-read=${path}`), "--input-type=module", "-e", `console.log = console.error; ${script}`], { env: {}, maxBuffer: 1 << 28, timeout: 120_000, stdio: ["ignore", "pipe", "pipe"] });
+    return { json, value: JSON.parse(json.toString()) };
+  } catch (error) {
+    // (What went wrong in there, its last words: not the whole script, which the error's message is.)
+    const said = String(error.stderr ?? "").trim().split("\n").filter(Boolean).slice(-3).join(" | ");
+    throw new Error(said || (error.signal ? `stopped (${error.signal})` : "it failed"));
+  }
+}
 const inlined = (path) => dataUrl("text/javascript", readFileSync(join(SHOWCASES, path)));
 
 // The fonts.
@@ -49,7 +69,9 @@ replaceOnce(`import * as LC from "../modules/lightweight-charts/5.2.1/dist/light
   `      // names that change with each release), read at each load; their plain paths if the page can't be read (or doesn't`,
   `      // answer in a few seconds). Neither loading, the page says so (see #offline): the charts are kept, in this browser.`,
   `      const served = await fetch("${SERVER}/", { signal: AbortSignal.timeout(8000) }).then((response) => response.text()).then((page) => JSON.parse(/<script type="importmap"[^>]*>([\\s\\S]*?)<\\/script>/.exec(page)?.[1] ?? "{}").imports ?? {}).catch(() => ({}));`,
-  `      const [{ BitviewClient }, LC] = await Promise.all([${JSON.stringify(CLIENT)}, ${JSON.stringify(CHARTS)}].map((path) => import(\`${SERVER}\${served[path] ?? path}\`))).catch((error) => {`,
+  `      // (A mapped build that fails, its plain path once.)`,
+  `      const imported = (map) => Promise.all([${JSON.stringify(CLIENT)}, ${JSON.stringify(CHARTS)}].map((path) => import(\`${SERVER}\${map[path] ?? path}\`)));`,
+  `      const [{ BitviewClient }, LC] = await imported(served).catch(() => imported({})).catch((error) => {`,
   `        document.body.toggleAttribute("data-offline", true);`,
   `        throw error;`,
   `      });`,
@@ -75,46 +97,60 @@ html = html.replace(/(?<![\w$.])(tree|cohorts)((?:\.[A-Za-z_$][\w$]*)+)\.name\b/
 });
 if (/(?<![\w$.])cohorts\./.test(html)) throw new Error("A path through `cohorts` is left that the build doesn't know");
 
-// bitview.space's client, to check against.
-let served;
-try {
-  const page = await (await fetch(`${SERVER}/`)).text();
-  const map = JSON.parse(/<script type="importmap"[^>]*>([\s\S]*?)<\/script>/.exec(page)?.[1] ?? "{}").imports ?? {};
-  const source = await (await fetch(`${SERVER}${map[CLIENT] ?? CLIENT}`)).text();
-  served = new (await import(dataUrl("text/javascript", source))).BitviewClient({ baseUrl: SERVER });
-} catch (error) {
-  console.warn(`Couldn't read ${SERVER}'s client (${error.message}): its names go unchecked, its dates replaced`);
-}
-
-// Each of those names, checked against it (a series it lacks would show as not there).
-if (served) {
+// bitview.space's client, checked against (in the sandbox: it's fetched code): the series it has, and its dates
+// against this repo's client's: every date index, both ways (a bucket's first and last instants), in timezones on both
+// sides of UTC (a client on local time agrees in some). Unlike (or unread), the page's client takes this repo's
+// `indexToDate` and `dateToIndex` (the page dates points through those two alone).
+const CHECK = `
+  const DATE_INDEXES = ["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10"];
+  const repo = new (await import(REPO)).BitviewClient({ baseUrl: "${SERVER}" }), served = new (await import(SERVED)).BitviewClient({ baseUrl: "${SERVER}" });
+  const differ = (client) => ["Pacific/Kiritimati", "Pacific/Pago_Pago"].some((zone) => {
+    process.env.TZ = zone;
+    return DATE_INDEXES.some((index) => [...Array(2000).keys(), 5000, 20000, 400000].some((i) => {
+      if (/^year/.test(index) && i > 50) return false;
+      const attempt = (run) => { try { return run(); } catch { return "throws"; } };
+      const date = repo.indexToDate(index, i), last = new Date(repo.indexToDate(index, i + 1).getTime() - 1);
+      return attempt(() => client.indexToDate(index, i).getTime()) !== date.getTime()
+        || attempt(() => client.dateToIndex(index, date)) !== i || attempt(() => client.dateToIndex(index, last)) !== i;
+    }));
+  });
   const names = new Set(), stack = [served.series];
   while (stack.length) {
     const node = stack.pop();
     if (typeof node?.name === "string" && typeof node.indexes === "function") names.add(node.name);
     else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push(Reflect.get(node, key, {}));
   }
-  const missing = [...named].filter((name) => !names.has(name));
-  console.log(`${SERVER}'s client ${served.VERSION}: ${missing.length ? `lacks ${missing.join(", ")}` : `has all ${named.size} series the page names`}`);
+  process.stdout.write(JSON.stringify({ version: String(served.VERSION), names: [...names], self: differ(repo), differs: differ(served) }));`;
+let served;
+const checks = realpathSync(mkdtempSync(join(tmpdir(), "bitview-client-")));
+try {
+  // (Both beside each other there: what the sandbox reads is that folder alone. Unread, the repo's own stands in for
+  // the server's, so the date check still checks itself.)
+  writeFileSync(join(checks, "repo.mjs"), readFileSync(join(SHOWCASES, "modules/bitview-client/index.js")));
+  let read = true;
+  try {
+    const page = await fetchText("/");
+    const map = JSON.parse(/<script type="importmap"[^>]*>([\s\S]*?)<\/script>/.exec(page)?.[1] ?? "{}").imports ?? {};
+    writeFileSync(join(checks, "served.mjs"), await fetchText(map[CLIENT] ?? CLIENT));
+  } catch (error) {
+    read = false;
+    writeFileSync(join(checks, "served.mjs"), readFileSync(join(checks, "repo.mjs")));
+    console.warn(`Couldn't read ${SERVER}'s client (${error.message}): its names go unchecked, its dates replaced`);
+  }
+  const checked = sandboxed(CHECK.replace("REPO", JSON.stringify(pathToFileURL(join(checks, "repo.mjs")).href)).replace("SERVED", JSON.stringify(pathToFileURL(join(checks, "served.mjs")).href)), [checks]).value;
+  if (checked.self) throw new Error("This repo's client disagrees with itself: the date check is wrong");
+  if (read) served = checked;
+} finally {
+  rmSync(checks, { recursive: true, force: true });
 }
 
-// Its dates, against this repo's client's: every date index, both ways (a bucket's first and last instants), in
-// timezones on both sides of UTC (a client on local time agrees in some). Unlike (or unread), the page's client takes
-// this repo's `indexToDate` and `dateToIndex` (the page dates points through those two alone).
-const repo = new BitviewClient({ baseUrl: SERVER });
-const DATE_INDEXES = ["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10"];
-const differ = (client) => ["Pacific/Kiritimati", "Pacific/Pago_Pago"].some((zone) => {
-  process.env.TZ = zone;
-  return DATE_INDEXES.some((index) => [...Array(2000).keys(), 5000, 20000, 400000].some((i) => {
-    if (/^year/.test(index) && i > 50) return false;
-    const attempt = (run) => { try { return run(); } catch { return "throws"; } };
-    const date = repo.indexToDate(index, i), last = new Date(repo.indexToDate(index, i + 1).getTime() - 1);
-    return attempt(() => client.indexToDate(index, i).getTime()) !== date.getTime()
-      || attempt(() => client.dateToIndex(index, date)) !== i || attempt(() => client.dateToIndex(index, last)) !== i;
-  }));
-});
-if (differ(repo)) throw new Error("This repo's client disagrees with itself: the date check is wrong");
-if (!served || differ(served)) {
+// Each of those names, checked against it: a series it lacks would show as not there, so the page isn't made.
+if (served) {
+  const names = new Set(served.names), missing = [...named].filter((name) => !names.has(name));
+  if (missing.length) throw new Error(`${SERVER}'s client ${served.version} lacks ${missing.join(", ")}, which the page names`);
+  console.log(`${SERVER}'s client ${served.version}: has all ${named.size} series the page names`);
+}
+if (!served || served.differs) {
   if (/\.(?:dates|dateEntries|toDateMap)\(\)/.test(html)) throw new Error("The page dates points through a response's helpers: the replaced two don't cover it");
   const source = readFileSync(join(SHOWCASES, "modules/bitview-client/index.js"), "utf8");
   const from = source.indexOf("// Date conversion constants and helpers"), to = source.indexOf("/**\n * Wrap raw series data");
@@ -136,7 +172,7 @@ try {
   const take = async (path, entry = false) => {
     if (fetched.has(path)) return;
     fetched.add(path);
-    const response = await fetch(`${SERVER}/${path}`);
+    const response = await fetch(`${SERVER}/${path}`, { signal: AbortSignal.timeout(30_000) });
     // (A path read off a comment or a string may be nothing: what's needed and missing fails as it's run.)
     if (!response.ok) {
       if (entry) throw new Error(`${path}: ${response.status}`);
@@ -158,9 +194,7 @@ try {
   };
   await take("scripts/options/partial.js", true);
   const presetsJs = join(HERE, "presets.js");
-  const run = `console.log = console.error; const { websitePresets } = await import(${JSON.stringify(pathToFileURL(presetsJs).href)}); process.stdout.write(JSON.stringify(await websitePresets(${JSON.stringify(pathToFileURL(`${copy}/`).href)})));`;
-  const json = execFileSync(process.execPath, ["--permission", `--allow-fs-read=${copy}`, `--allow-fs-read=${presetsJs}`, "--input-type=module", "-e", run], { env: {}, maxBuffer: 1 << 28, timeout: 120_000, stdio: ["ignore", "pipe", "ignore"] });
-  const presets = JSON.parse(json.toString());
+  const { json, value: presets } = sandboxed(`const { websitePresets } = await import(${JSON.stringify(pathToFileURL(presetsJs).href)}); process.stdout.write(JSON.stringify(await websitePresets(${JSON.stringify(pathToFileURL(`${copy}/`).href)})));`, [copy, presetsJs]);
   const packed = gzipSync(json, { level: 9 }).toString("base64");
   replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip">${packed}</script>`);
   console.log(`${SERVER}'s ${presets.length} charts, as presets: ${(packed.length / 1024).toFixed(0)} KB, from ${fetched.size} files`);
@@ -174,6 +208,23 @@ try {
 
 const left = html.match(/["'(]\.\.\/(?:modules|fonts)\/[^"')]*/g);
 if (left?.length) throw new Error(`Still relative: ${left.join(", ")}`);
+// Each of the page's scripts as it's written now, parsed (what the build put in can't break it: a name declared twice
+// fails here, not in a browser).
+const parsing = realpathSync(mkdtempSync(join(tmpdir(), "bitview-page-")));
+try {
+  for (const [i, [, attributes, body]] of [...html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/g)].entries()) {
+    if (/type="(?!module)[^"]*"/.test(attributes ?? "") || !body.trim()) continue;
+    const file = join(parsing, `script-${i}.${/type="module"/.test(attributes ?? "") ? "mjs" : "cjs"}`);
+    writeFileSync(file, body);
+    try {
+      execFileSync(process.execPath, ["--check", file], { stdio: ["ignore", "ignore", "pipe"] });
+    } catch (error) {
+      throw new Error(`The page's script ${i} doesn't parse: ${String(error.stderr ?? "").trim().split("\n").filter(Boolean).slice(-2).join(" | ")}`);
+    }
+  }
+} finally {
+  rmSync(parsing, { recursive: true, force: true });
+}
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, html);
 console.log(`${relative(process.cwd(), out)}: ${(Buffer.byteLength(html) / 1024).toFixed(0)} KB`);
