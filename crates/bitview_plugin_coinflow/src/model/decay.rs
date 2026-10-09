@@ -1,7 +1,5 @@
-use bitview_cohort::{AgeRange, AgeRangeId};
+use bitview_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId};
 use bitview_compute::{AgeBand, MINIMUM_DURATION_DAYS};
-
-use crate::AGE_COHORT_COUNT;
 
 #[derive(Clone, Copy)]
 pub(super) struct DecayFit {
@@ -18,7 +16,7 @@ impl DecayFit {
         let mut weighted_log_hazard = 0.0;
         let mut anchor = None;
 
-        for &id in &AgeRangeId::ALL[..AGE_COHORT_COUNT - 1] {
+        for &id in &AgeRangeId::ALL[..AGE_RANGE_COUNT - 1] {
             let band = *id.select(bounds);
             let hazard = *id.select(hazards);
             if band.upper > network_age || !hazard.is_finite() || hazard <= 0.0 {
@@ -43,7 +41,7 @@ impl DecayFit {
         let mut covariance = 0.0;
         let mut age_variance = 0.0;
 
-        for &id in &AgeRangeId::ALL[..AGE_COHORT_COUNT - 1] {
+        for &id in &AgeRangeId::ALL[..AGE_RANGE_COUNT - 1] {
             let band = *id.select(bounds);
             let hazard = *id.select(hazards);
             if band.upper > network_age || !hazard.is_finite() || hazard <= 0.0 {
@@ -113,7 +111,7 @@ impl DecayFit {
         };
         let mut exposure = 0.0;
 
-        for &band_id in &AgeRangeId::ALL[start_band.index()..AGE_COHORT_COUNT - 1] {
+        for &band_id in &AgeRangeId::ALL[start_band.index()..AGE_RANGE_COUNT - 1] {
             let band = *band_id.select(bounds);
             let duration = (band.upper - age.max(band.lower)).max(MINIMUM_DURATION_DAYS);
             let hazard = *band_id.select(hazards);

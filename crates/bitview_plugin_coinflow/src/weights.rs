@@ -9,12 +9,12 @@ use crate::Vecs;
 impl<M: StorageMode> Vecs<M> {
     /// Per-block URPD weight from the age range's lifetime mobility.
     pub fn urpd_weight(&self, age: AgeRangeId, height: Height, supply: Sats) -> Option<f64> {
-        let sources = self.age_range.urpd_weight_sources();
+        let sources = self.age_ranges.urpd_weight_sources();
         resolve_cohort_weight(age.select(&sources).collect_one(height), supply)
     }
 
-    /// All-supply in-loss share at full precision, for models calibrating on it.
-    pub fn all_supply_in_loss_share(&self) -> &impl ReadableVec<Height, BoundedRatio> {
-        &self.aggregate_sources.supply_in_loss_share.all
+    /// All-supply mobile in-loss share at full precision, for models calibrating on it.
+    pub fn all_mobile_supply_in_loss_share(&self) -> &impl ReadableVec<Height, BoundedRatio> {
+        &self.aggregate.sources.mobile_supply_in_loss_share.all
     }
 }

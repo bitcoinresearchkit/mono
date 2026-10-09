@@ -1,6 +1,6 @@
-use bitview_primitives::CoinBlocks;
+use bitview_primitives::{CoinBlocks, PartsPerMillion64};
 use bitview_traversable::Traversable;
-use bitview_vecs::PerBlockCumulativeRolling;
+use bitview_vecs::{LazyRatioRollingWindows, PerBlockCumulativeRolling};
 use derive_more::{Deref, DerefMut};
 use vecdb::{Rw, StorageMode};
 
@@ -19,4 +19,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[deref_mut]
     #[traversable(flatten)]
     pub derived: DerivedVecs<M>,
+    /// Concurrent liveliness: coinblocks destroyed divided by coinblocks
+    /// created within a trailing window. Above one, spending consumed more
+    /// holding time than the window added.
+    pub concurrent_liveliness: LazyRatioRollingWindows<PartsPerMillion64>,
 }

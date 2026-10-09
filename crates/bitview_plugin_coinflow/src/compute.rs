@@ -26,7 +26,7 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         self.compute_primary(dependencies, context.exit())?;
         let supplies = dependencies.age.cohorts.supply.total.age_supplies();
-        let weights = self.age_range.urpd_weight_sources();
+        let weights = self.age_ranges.urpd_weight_sources();
         self.urpd.compute(
             dependencies.age.cohorts.all_supply().version()
                 + dependencies.urpd.timestamps.version(),
@@ -105,12 +105,8 @@ impl Vecs {
                 chunk_end,
             );
             for values in batch.primary_values_batch(genesis_timestamp, &bounds) {
-                self.age_range.push(
-                    &values.spending_rate,
-                    &values.spending_exposure,
-                    &values.mobility,
-                );
-                self.aggregate_sources.push(values);
+                self.age_ranges.push(&values);
+                self.aggregate.sources.push(&values.cohorts);
             }
 
             {
@@ -126,8 +122,8 @@ impl Vecs {
     }
 
     fn primary_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.age_range
+        self.age_ranges
             .stored_vecs_mut()
-            .chain(self.aggregate_sources.stored_vecs_mut())
+            .chain(self.aggregate.sources.vecs_mut())
     }
 }

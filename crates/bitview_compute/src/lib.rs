@@ -21,5 +21,5 @@ pub use statistics::{
 };
 pub use traits::{ComputedVecValue, FixedRatio, NumericValue, Quantity};
 pub use weighted::{
-    WeightedCapitalizedPrice, WeightedCohortAggregates, WeightedCohortState, WeightedRatio,
+    WeightedCapitalizedPrice, WeightedCohortState, WeightedRatio, weighted_age_aggregates,
 };

@@ -19,7 +19,7 @@ pub struct DerivedVecs<M: StorageMode = Rw> {
     /// Ratio of consumed to still-stored holding time: liveliness divided by
     /// vaultedness, or `liveliness / (1 - liveliness)`. Values above one mean
     /// consumed holding time exceeds stored holding time.
-    pub ratio: LazyPerBlock<Ratio64, BoundedRatio>,
+    pub liveliness_to_vaultedness: LazyPerBlock<Ratio64, BoundedRatio>,
     /// Canonical bounded source; cumulative coinblock inputs remain unrounded.
     #[traversable(hidden)]
     pub liveliness_source: PerBlock<BoundedRatio, M>,

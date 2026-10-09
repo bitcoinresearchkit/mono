@@ -29,19 +29,21 @@ impl Vecs {
         let version = STORAGE.schema_version();
         let v1 = version + Version::ONE;
         let spot_price = prices.spot.cents.height.read_only_boxed_clone();
-        let activity = activity::Vecs::import(&db, version, mappings, window_starts)?;
-        let age_range =
+        let activity = activity::Vecs::import(&db, version, mappings, window_starts, age)?;
+        let age_ranges =
             age_range::Vecs::import(&db, version, mappings, window_starts, &spot_price, age)?;
-        let supply = supply::Vecs::import(&db, v1, mappings, &spot_price, &activity, all_chain)?;
-        let aggregate = aggregate::Vecs::import(
-            &db,
-            version + Version::new(4),
-            mappings,
-            &spot_price,
-            &supply.active_supply_in_loss_share.fixed,
-        )?;
+        let supply = supply::Vecs::new(v1, mappings, &spot_price, &activity, all_chain);
+        let aggregate =
+            aggregate::Vecs::import(&db, version + Version::new(4), mappings, &spot_price)?;
         let value = value::Vecs::import(&db, v1, mappings, window_starts)?;
-        let cap = cap::Vecs::import(&db, version + Version::TWO, mappings, subsidy_cents)?;
+        let cap = cap::Vecs::import(
+            &db,
+            version + Version::TWO,
+            mappings,
+            subsidy_cents,
+            &supply,
+            all_chain.realized_cap(),
+        )?;
         let prices = prices::Vecs::import(
             &db,
             version + Version::new(3),
@@ -53,11 +55,11 @@ impl Vecs {
         let adjusted = adjusted::Vecs::import(&db, version, mappings)?;
         let reserve_risk = reserve_risk::Vecs::import(&db, v1, mappings, &spot_price)?;
 
-        let urpd = UrpdMetrics::import(&db, "cointime", version, mappings, &spot_price)?;
+        let urpd = UrpdMetrics::import(&db, "cointime", version, mappings)?;
         let this = Self {
             db,
             activity,
-            age_range,
+            age_ranges,
             urpd,
             aggregate,
             supply,

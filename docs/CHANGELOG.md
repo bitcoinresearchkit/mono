@@ -107,6 +107,27 @@ has to be deleted by hand.
   (fees of the pool's blocks per block it mined, per window, BTC and USD; empty when it mined none) and `hashrate` (its
   window share of blocks times the network hash-rate estimate). All are read from in-memory per-pool running totals: the pools plugin stores only the
   per-block attribution (`pool`). `GET /api/v1/mining/pool/{slug}` reports `totalReward` for every pool
+- Cointime and Coinflow are member-first. Every cohort (`all`, `sth`, `lth` and the age cutoffs `under_4m`,
+  `under_6m`, `over_4m`, `over_6m`, which had prices only and now have the same shape) sits at `cointime.<cohort>`
+  with `awake` (`supply` with `in_loss.share`, `realized_cap`, `realized_price`, `capitalized_price`), `dormant.supply`
+  and `cost_basis` (the weighted URPD percentiles and `supply_density`); Coinflow's cohorts have `mobile` and
+  `immobile` in their place. Age ranges are `cointime.age_ranges.<range>.{coindays_consumed, coindays_stored,
+  wakefulness, awake_to_dormant, supply.{awake, dormant}}` and `coinflow.age_ranges.<range>.{spending_rate,
+  spending_exposure, mobility, supply.{mobile, immobile}}`. They were `cointime.awake`, `cointime.<cohort>.awake`,
+  `cointime.urpd.<cohort>`, `coinflow.supply`, `coinflow.price`, ... and metric-first under `age_range`
+- Cointime and Coinflow names: the weighted realized capitalization and price are `realized_cap` and `realized_price`
+  (ids `awake_realized_cap`, `awake_realized_price`, `mobile_realized_cap`, `mobile_realized_price`; were
+  `awake_cap`, `awake_price`, `coinflow_cap`, `coinflow_price`), Coinflow's other cohort ids name the side
+  (`mobile_capitalized_price`, `mobile_supply_in_loss_share`, `sth_mobile_*`, `under_4m_mobile_*`; were
+  `coinflow_capitalized_price`, ..., `under_4m_coinflow_price`), `liveliness_to_vaultedness` (was
+  `activity_to_vaultedness` at `activity.ratio`), `awake_to_dormant` (was `wakefulness_to_dormancy`), the adjusted
+  rates `cointime.adjusted.{inflation_rate, velocity.btc, velocity.usd}` with ids `cointime_adjusted_*` (were ids
+  `cointime_adj_*`, keys `tx_velocity_native` and `tx_velocity_fiat`), and `supply.velocity.{btc, usd}` (were `native` and
+  `fiat`). AVIV is `prices.true_market_mean.aviv` (id `aviv`; was `cap.aviv`, id `aviv_ratio`).
+  URPD `supply_density` sits under `cost_basis` (ids `cointime_supply_density_total`, ...; were
+  `cointime_urpd_all_supply_density_total`, ...). Gone: each age range's `dormancy` (one minus its wakefulness),
+  `cointime.supply.active.in_loss.share` (the awake share under another name) and the URPD `capitalized_price` per
+  cohort (a rounded copy of the exact awake or mobile `capitalized_price`)
 - Shared ids: `circulating_supply` (UTXO set, holders' `all` and supply), `market_cap` (holders' `all` supply in USD
   and supply), `utxo_count` (UTXO set and holders' `all`).
   `utxo_set.supply` is `circulating_supply` in BTC (was `unspent_sats` in sats); `supply.circulating` is BTC only,
@@ -235,8 +256,8 @@ has to be deleted by hand.
   `CentsSignedToDollars` and `OhlcCentsToDollars`; `Quotient<P>` the `Ratio{Cents,Sats,Count,Bytes,CentsSignedCents}`
   transforms; `RelativeChange<P>` `RatioDiff{Cents,Dollars}`. `bitview_vecs`: `Percent*` types hold the fixed-point
   storage and a percent view (no ratio view), `Ratio*` types the storage and a ratio view; both name the storage `fixed`
-  (was `ppm`), and `RatioPerBlock::import` takes the full name (`import_ppm` is gone). `RatioRollingWindows`,
-  `LazyRatioRollingWindows` and `BoundedPercentPerBlock` are new. `LazySpotValuePerBlock` is a `SpotValue` (BTC, sats
+  (was `ppm`), and `RatioPerBlock::import` takes the full name (`import_ppm` is gone). `RatioRollingWindows` and
+  `LazyRatioRollingWindows` are new. `LazySpotValuePerBlock` is a `SpotValue` (BTC, sats
   and USD, no cents); `LazyValuePerBlock` (use `LazySpotValuePerBlock::identity`), `LazyValue`,
   `LazyValueDerivedResolutions` and `SpotValueSource` are gone. Flow types (`PerBlockCumulativeRolling`,
   `LazyPerBlockCumulativeRolling`, value and fiat cumulatives) expose a window `sum` field (no `average`, no `rolling`
@@ -263,6 +284,12 @@ has to be deleted by hand.
   `Date::into_jiff`; `bitview_compute` `walk_blocks` and `BlockAggregate` (`CoinbasePolicy` moved to `bitview_vecs`);
   `bitview_catalog` `TreeBranch::{source, field_types, field_suffixes}`, `TreeNode::{with_source, with_field_suffixes}`
   and `#[traversable(field_suffixes)]`
+- `bitview_compute::weighted_age_aggregates` returns an `AgeAggregate` (replaces `WeightedCohortAggregates`);
+  `bitview_urpd::Metrics::import` no longer takes the spot price. `AllChainSources::new` takes the all-chain realized
+  cap too (read with `realized_cap()`); `all_awake_supply_in_loss_share` (Cointime) and
+  `all_mobile_supply_in_loss_share` (Coinflow, was `all_supply_in_loss_share`) expose the full-precision loss shares.
+  `vecdb::EagerVec::compute_multiply`, `bitview_vecs::RatioPerBlock::compute_ratio` and
+  `bitview_cohort::{UTXOAggregate, UTXOAggregateId}` are removed, and `WeightedCohortState::merged` is crate-private
 - Renamed cohort families `UTXOCoreValues` → `CreationCohorts` and `UtxoValues` → `UtxoGroups`;
   `CentsSats::to_capitalized_cap` → `CentsSquaredSats::from_price_cents_sats`; views only mappings uses moved from
   `bitview_vecs` into the mappings plugin. `bitview_catalog` merge methods return values instead of `Option` and panic
@@ -290,6 +317,12 @@ has to be deleted by hand.
 - Each age band serves its realized price again (`utxos_<band>_old_realized_price`, USD, at
   `cohorts.realized.price.age.<band>`): the band's exact creation-price product over its supply, like the aggregated
   cohorts' realized price. Stored per band, so the age plugin replays from block 0 once
+- Cointime series from the paper: AVIV-NUPL (`aviv_nupl`, 1 - 1/AVIV), MVRVs of the active, vaulted and Cointime
+  prices (`active_mvrv`, `vaulted_mvrv`, `cointime_mvrv`), the adjusted stock-to-flow (`cointime_adjusted_stock_to_flow`,
+  one over the adjusted inflation rate), investorness and producerness (investor cap and thermocap over realized cap)
+  and concurrent liveliness (coinblocks destroyed over created within each window, `concurrent_liveliness_24h`...`_1y`;
+  a single block's ratio is too noisy to serve). Cointime and Coinflow's four age cutoffs gain supply, the in-loss
+  share and realized cap, like `sth` and `lth`
 - UTXO set endpoints (`chain` feature, tag "UTXO Set"): `GET /api/utxo-set[/{point}]` returns the set after a block
   (`840000`) or a UTC day's last published block (`YYYY-MM-DD`), latest when omitted, as columnar `origins.count` and
   `origins.supply` (BTC) indexed by creation height; `GET /api/utxo-set/{point}/diff` returns what a block or a day's
@@ -340,6 +373,15 @@ has to be deleted by hand.
   blocks), the reciprocal of stock-to-flow, which uses the scheduled subsidy too (was the derived one, zero for a block
   whose miner claimed nothing); it was the trailing 365-day supply change, which lagged a halving by up to a year (that
   change remains the supply's 1-year `delta.rate`). Cointime's adjusted inflation follows
+- Cointime's active and vaulted caps are market cap times liveliness and vaultedness, as in the Cointime paper, so
+  they add up to market cap (were realized cap times them), and AVIV is active cap over investor cap, spot over True
+  Market Mean (was realized cap times liveliness over investor cap). The adjusted velocity is velocity over
+  liveliness, the turnover of the active supply (was velocity times liveliness over vaultedness)
+- Reserve Risk is time-weighted, like Glassnode's daily definition: the HODL bank accrues each block's opportunity
+  cost times the time since the previous block in days, on monotonic timestamps (it added a full price per block,
+  leaving Reserve Risk orders of magnitude below Glassnode's 0.0025 to 0.02). Its benchmark is the median over the last
+  30 days of blocks of the trailing 24-hour VOCDD (was the median over a year of each block's own VOCDD;
+  `vocdd_median_1m`, was `vocdd_median_1y`)
 - The year10 `timestamp` series were wrong (2019/2029)
 - Cointime's consumed coin days resume within their sources' length
 - Every replayed distribution output (age, addresses, UTXOs) carries its dependency versions (price, timestamps,

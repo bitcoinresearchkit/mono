@@ -401,8 +401,14 @@ impl Components {
                 cointime.prices.true_market_mean
             ),
             cointime_price: import!("cointime_price", cointime.prices.cointime),
-            awake_price: import!("awake_price", cointime.aggregate.all.awake.price),
-            coinflow_price: import!("coinflow_price", coinflow.all.price),
+            awake_price: import!(
+                "awake_price",
+                cointime.aggregate.cohorts.all.awake.realized_price
+            ),
+            coinflow_price: import!(
+                "coinflow_price",
+                coinflow.aggregate.cohorts.all.mobile.realized_price
+            ),
         })
     }
 
@@ -520,11 +526,27 @@ impl Components {
             ),
             (
                 &mut self.awake_price,
-                &cointime.aggregate.all.awake.price.relative.ratio.height,
+                &cointime
+                    .aggregate
+                    .cohorts
+                    .all
+                    .awake
+                    .realized_price
+                    .relative
+                    .ratio
+                    .height,
             ),
             (
                 &mut self.coinflow_price,
-                &coinflow.all.price.relative.ratio.height,
+                &coinflow
+                    .aggregate
+                    .cohorts
+                    .all
+                    .mobile
+                    .realized_price
+                    .relative
+                    .ratio
+                    .height,
             ),
         ];
         let has_work = jobs

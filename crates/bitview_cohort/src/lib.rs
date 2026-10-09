@@ -20,7 +20,6 @@ mod profitability_range;
 mod spendable_type;
 mod term;
 mod unspendable_type;
-mod utxo_aggregate;
 mod utxo_all_and_sth;
 mod with_addr_types;
 
@@ -41,7 +40,6 @@ pub use profitability_range::*;
 pub use spendable_type::*;
 pub use term::Term;
 pub use unspendable_type::*;
-pub use utxo_aggregate::*;
 pub use utxo_all_and_sth::*;
 
 pub use with_addr_types::WithAddrTypes;

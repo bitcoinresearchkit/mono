@@ -29,7 +29,7 @@ pub mod writable;
 ///
 /// # Common Operations
 /// - Transformations: `compute_transform()`, `compute_batched_to()`
-/// - Arithmetic: `compute_subtract()`, `compute_multiply()`
+/// - Arithmetic: `compute_subtract()`
 /// - Custom computations: `compute_init()` (rolling statistics build on it downstream)
 #[derive(Debug)]
 #[must_use = "Vector should be stored to keep data accessible"]

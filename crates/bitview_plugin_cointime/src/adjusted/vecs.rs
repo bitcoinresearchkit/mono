@@ -1,6 +1,6 @@
-use bitview_primitives::{PartsPerMillionSigned32, Ratio64};
+use bitview_primitives::{PartsPerMillionSigned32, Ratio64, Years};
 use bitview_traversable::Traversable;
-use bitview_vecs::{PerBlock, PercentPerBlock};
+use bitview_vecs::{LazyPerBlock, PerBlock, PercentPerBlock};
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
@@ -12,18 +12,20 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// is at most 50 BTC. Higher values combine faster issuance with a larger
     /// active-to-vaulted holding-time ratio.
     pub inflation_rate: PercentPerBlock<PartsPerMillionSigned32, M>,
-    /// Cointime-adjusted native transaction velocity: trailing 365-day transfer
-    /// volume in satoshis divided by all-chain supply at the represented block,
-    /// multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative
-    /// coinblocks destroyed divided by cumulative coinblocks created. Higher
-    /// values mean more native-unit turnover after emphasizing consumed over
-    /// still-stored holding time.
-    pub tx_velocity_native: PerBlock<Ratio64, M>,
-    /// Cointime-adjusted fiat transaction velocity: trailing 365-day transfer
-    /// volume in cents divided by all-chain market capitalization at the
-    /// represented block, multiplied by `liveliness / (1 - liveliness)`.
-    /// Liveliness is cumulative coinblocks destroyed divided by cumulative
-    /// coinblocks created. Higher values mean more USD-value turnover after
-    /// emphasizing consumed over still-stored holding time.
-    pub tx_velocity_fiat: PerBlock<Ratio64, M>,
+    /// Cointime-adjusted stock-to-flow: one over the adjusted inflation rate,
+    /// the years of adjusted issuance that would equal the supply. NaN when the
+    /// adjusted inflation rate is zero or negative.
+    pub stock_to_flow: LazyPerBlock<Years, PartsPerMillionSigned32>,
+    /// Cointime-adjusted transaction velocity: velocity divided by liveliness,
+    /// the turnover of the active supply rather than of all supply. NaN until
+    /// the first coins are spent (liveliness zero).
+    pub velocity: Velocity<M>,
+}
+
+#[derive(Traversable)]
+pub struct Velocity<M: StorageMode = Rw> {
+    /// Trailing 365-day transfer volume in BTC over the active supply.
+    pub btc: PerBlock<Ratio64, M>,
+    /// Trailing 365-day transfer volume in USD over the active capitalization.
+    pub usd: PerBlock<Ratio64, M>,
 }

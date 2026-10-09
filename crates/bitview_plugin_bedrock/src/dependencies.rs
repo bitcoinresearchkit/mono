@@ -32,14 +32,9 @@ impl Dependencies<'_> {
             .height
     }
     pub(crate) fn cointime_loss_share(&self) -> &impl ReadableVec<Height, BoundedRatio> {
-        &self
-            .cointime
-            .supply
-            .active_supply_in_loss_share
-            .fixed
-            .height
+        self.cointime.all_awake_supply_in_loss_share()
     }
     pub(crate) fn coinflow_loss_share(&self) -> &impl ReadableVec<Height, BoundedRatio> {
-        self.coinflow.all_supply_in_loss_share()
+        self.coinflow.all_mobile_supply_in_loss_share()
     }
 }

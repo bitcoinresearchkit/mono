@@ -1,7 +1,11 @@
 use bitview_collections::Windows;
+use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::{BoundedOdds, BoundedToRatio};
-use bitview_vecs::{LazyPerBlock, LazyWindowStartVec, PerBlock, PerBlockCumulativeRolling};
+use bitview_primitives::{CoinBlocks, PartsPerMillion64};
+use bitview_transforms::{BoundedOdds, BoundedToRatio, Quotient};
+use bitview_vecs::{
+    LazyPerBlock, LazyRatioRollingWindows, LazyWindowStartVec, PerBlock, PerBlockCumulativeRolling,
+};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
@@ -36,8 +40,8 @@ impl DerivedVecs {
             version,
             &liveliness_source,
         );
-        let ratio = LazyPerBlock::from_resolutions::<BoundedOdds>(
-            &name("activity_to_vaultedness"),
+        let liveliness_to_vaultedness = LazyPerBlock::from_resolutions::<BoundedOdds>(
+            &name("liveliness_to_vaultedness"),
             version + Version::ONE,
             &liveliness_source,
         );
@@ -46,7 +50,7 @@ impl DerivedVecs {
             liveliness_source,
             liveliness,
             vaultedness,
-            ratio,
+            liveliness_to_vaultedness,
         })
     }
 }
@@ -57,15 +61,30 @@ impl Vecs {
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
+        age: &AgeVecs,
     ) -> Result<Self> {
-        Ok(Vecs {
-            coinblocks_created: PerBlockCumulativeRolling::import(
+        let coinblocks_created: PerBlockCumulativeRolling<CoinBlocks> =
+            PerBlockCumulativeRolling::import(
                 db,
                 "coinblocks_created",
                 version,
                 mappings,
                 window_starts,
-            )?,
+            )?;
+        let concurrent_liveliness = LazyRatioRollingWindows::from_cumulative_ratio_with_numerator::<
+            CoinBlocks,
+            CoinBlocks,
+            Quotient<PartsPerMillion64>,
+        >(
+            "concurrent_liveliness",
+            version,
+            age.coinblocks_destroyed.cumulative_source(),
+            coinblocks_created.cumulative_source(),
+            window_starts,
+            mappings,
+        );
+        Ok(Vecs {
+            coinblocks_created,
             coinblocks_stored: PerBlockCumulativeRolling::import(
                 db,
                 "coinblocks_stored",
@@ -74,6 +93,7 @@ impl Vecs {
                 window_starts,
             )?,
             derived: DerivedVecs::import_with_prefix(db, "", version, mappings)?,
+            concurrent_liveliness,
         })
     }
 }

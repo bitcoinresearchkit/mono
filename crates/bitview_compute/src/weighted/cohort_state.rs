@@ -55,7 +55,7 @@ impl WeightedCohortState {
     }
 
     #[inline]
-    pub fn merged(mut self, other: Self) -> Self {
+    pub(crate) fn merged(mut self, other: Self) -> Self {
         self.weighted_supply += other.weighted_supply;
         self.complement_supply += other.complement_supply;
         self.weighted_cap += other.weighted_cap;

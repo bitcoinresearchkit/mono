@@ -7,17 +7,24 @@ use vecdb::{ReadableBoxedVec, ReadableCloneableVec, VecValue};
 pub struct AllChainSources {
     supply: ReadableBoxedVec<Height, Sats>,
     market_cap: ReadableBoxedVec<Height, Cents>,
+    realized_cap: ReadableBoxedVec<Height, Cents>,
 }
 
 impl AllChainSources {
     pub fn new(
         supply: &impl ReadableCloneableVec<Height, Sats>,
         market_cap: &impl ReadableCloneableVec<Height, Cents>,
+        realized_cap: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Self {
         Self {
             supply: supply.read_only_boxed_clone(),
             market_cap: market_cap.read_only_boxed_clone(),
+            realized_cap: realized_cap.read_only_boxed_clone(),
         }
+    }
+
+    pub fn realized_cap(&self) -> &ReadableBoxedVec<Height, Cents> {
+        &self.realized_cap
     }
 
     /// Derive from shared inputs. The caller owns the ordinary source's cache.

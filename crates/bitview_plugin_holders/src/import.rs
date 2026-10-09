@@ -54,7 +54,11 @@ impl Vecs {
         })
     }
     pub fn all_chain_sources(&self) -> AllChainSources {
-        AllChainSources::new(&self.all_supply, &self.all_market_cap)
+        AllChainSources::new(
+            &self.all_supply,
+            &self.all_market_cap,
+            &self.cohorts.all.realized.cap.cents.height,
+        )
     }
     pub fn all_supply(&self) -> &ReadableBoxedVec<Height, Sats> {
         &self.all_supply

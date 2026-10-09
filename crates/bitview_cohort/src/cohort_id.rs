@@ -1,9 +1,12 @@
 use brk_types::OutputType;
 
 use crate::{
-    AgeRangeId, AmountRangeId, CLASS_NAMES, ClassId, ENTRY_NAMES, EPOCH_NAMES, EntryPrice, EpochId,
-    OP_RETURN, SPENDABLE_TYPE_NAMES, TERM_NAMES, Term, UTXO_ALL_NAME,
+    AgeRangeId, AmountRangeId, CLASS_NAMES, ClassId, CohortName, ENTRY_NAMES, EPOCH_NAMES,
+    EntryPrice, EpochId, OP_RETURN, SPENDABLE_TYPE_NAMES, TERM_NAMES, Term,
 };
+
+/// Canonical name for the cohort containing every UTXO.
+const UTXO_ALL_NAME: CohortName = CohortName::new("all", "All", "All UTXOs");
 
 /// A supported cohort, composed from the selectors of its constituent groups.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

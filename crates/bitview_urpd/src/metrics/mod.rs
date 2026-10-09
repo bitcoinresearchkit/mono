@@ -6,7 +6,6 @@ mod cost_basis;
 pub(crate) mod density;
 mod import;
 mod metric_buckets;
-mod price_stats;
 
 use bitview_cohort::AgeAggregate;
 use bitview_traversable::Traversable;

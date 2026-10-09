@@ -18,13 +18,13 @@ impl Vecs {
         transactions: &TransactionsVecs,
     ) -> Result<Self> {
         let volume = &transactions.volume.value.sum._1y;
-        let native_source = all_chain.with_supply(
+        let btc_source = all_chain.with_supply(
             "velocity_btc_source",
             version,
             &volume.sats.height,
             |_, volume, supply| Quotient::<Ratio64>::apply(volume, supply),
         );
-        let fiat_source = all_chain.with_market_cap(
+        let usd_source = all_chain.with_market_cap(
             "velocity_usd_source",
             version,
             &volume.cents.height,
@@ -32,16 +32,16 @@ impl Vecs {
         );
 
         Ok(Self {
-            native: LazyPerBlock::from_height_source::<Ident>(
+            btc: LazyPerBlock::from_height_source::<Ident>(
                 "velocity_btc",
                 version,
-                &native_source,
+                &btc_source,
                 mappings,
             ),
-            fiat: LazyPerBlock::from_height_source::<Ident>(
+            usd: LazyPerBlock::from_height_source::<Ident>(
                 "velocity_usd",
                 version,
-                &fiat_source,
+                &usd_source,
                 mappings,
             ),
         })

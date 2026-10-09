@@ -6,14 +6,14 @@ use bitview_primitives::{
 };
 use brk_types::Cents;
 
-use super::{density::SupplyDensity, price_stats::PriceStats};
+use super::density::SupplyDensity;
 use crate::ProjectedBucket;
 
 const COHORTS: usize = AgeAggregateId::ALL.len();
 
 /// One block's statistics and supply density for one cohort.
 pub(super) struct CohortBlock {
-    pub stats: PriceStats,
+    pub cost_basis: CostBasisByPercentile,
     pub density: SupplyDensity<PartsPerMillion32>,
 }
 
@@ -28,22 +28,10 @@ pub(super) struct MetricBuckets {
     band: Option<(Range<usize>, Range<usize>)>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 struct Totals {
     sats: u128,
     value: u128,
-    /// Σ price² × sats; `None` once it overflows.
-    second_moment: Option<u128>,
-}
-
-impl Default for Totals {
-    fn default() -> Self {
-        Self {
-            sats: 0,
-            value: 0,
-            second_moment: Some(0),
-        }
-    }
 }
 
 impl MetricBuckets {
@@ -62,10 +50,6 @@ impl MetricBuckets {
                 let value = price * u128::from(sats);
                 totals.sats += u128::from(sats);
                 totals.value += value;
-                // A u32 price squared times u64 sats fits u128; only the sum can overflow.
-                totals.second_moment = totals
-                    .second_moment
-                    .and_then(|sum| sum.checked_add(value * price));
             }
             self.prices.push(bucket.price);
             self.sats.push(sats);
@@ -88,14 +72,7 @@ impl MetricBuckets {
             let cohort = id.index();
             let totals = self.totals[cohort];
             CohortBlock {
-                stats: PriceStats {
-                    cost_basis: self.cost_basis(cohort, totals),
-                    capitalized_price: totals
-                        .second_moment
-                        .and_then(|value| value.checked_div(totals.value))
-                        .map(Cents::from)
-                        .unwrap_or(Cents::NAN),
-                },
+                cost_basis: self.cost_basis(cohort, totals),
                 density: self.density(cohort, totals),
             }
         })

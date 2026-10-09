@@ -29,20 +29,6 @@ impl Vecs {
             exit,
         )?;
 
-        self.vaulted.cents.height.compute_multiply(
-            starting_lengths.height,
-            realized_cap_cents,
-            &activity.vaultedness.height,
-            exit,
-        )?;
-
-        self.active.cents.height.compute_multiply(
-            starting_lengths.height,
-            realized_cap_cents,
-            &activity.liveliness.height,
-            exit,
-        )?;
-
         // cointime_cap = (cointime_value_destroyed_cumulative * circulating_supply) / coinblocks_stored_cumulative
         self.cointime.cents.height.compute_transform3(
             starting_lengths.height,
@@ -56,14 +42,6 @@ impl Vecs {
                 let usd = Dollars::from(destroyed * supply / stored);
                 (i, usd.to_cents())
             },
-            exit,
-        )?;
-
-        // AVIV = active_cap / investor_cap
-        self.aviv.compute_ratio(
-            &starting_lengths,
-            &self.active.cents.height,
-            &self.investor.cents.height,
             exit,
         )?;
 

@@ -8,7 +8,7 @@ use brk_exit::Exit;
 use brk_types::{Bitcoin, Height, Sats, Version};
 use vecdb::{AnyStoredVec, AnyVec, CheckedSub, ReadableVec, WritableVec};
 
-use super::Vecs;
+use super::{RangeVecs, Vecs};
 
 const HOURS_PER_DAY: f64 = 24.0;
 const WRITE_INTERVAL: usize = 10_000;
@@ -58,9 +58,9 @@ impl Vecs {
             .unwrap_or_default();
         let bounds = age_bounds_days();
         let start = prepare_computed(
-            self.coindays_consumed
+            self.ranges
                 .as_array_mut()
-                .map(|vec| vec.stored_mut()),
+                .map(|range| range.coindays_consumed.stored_mut()),
             version,
             usize::from(starting_height).min(source_end),
             exit,
@@ -83,13 +83,13 @@ impl Vecs {
                 let destroyed =
                     AgeRange::from_fn(|id| f64::from(id.select(&destroyed_batches)[offset]));
                 let consumed = allocate_consumed_coindays(volumes_btc, destroyed, &bounds);
-                for (target, value) in self.coindays_consumed.iter_mut().zip(consumed.iter()) {
-                    target.push_block(CoinDays::from(*value));
+                for (range, value) in self.ranges.iter_mut().zip(consumed.iter()) {
+                    range.coindays_consumed.push_block(CoinDays::from(*value));
                 }
             }
             let _lock = exit.lock();
-            for vec in self.coindays_consumed.iter_mut() {
-                vec.write()?;
+            for range in self.ranges.iter_mut() {
+                range.coindays_consumed.write()?;
             }
             chunk_start = chunk_end;
         }
@@ -104,9 +104,13 @@ impl Vecs {
     ) -> Result<()> {
         for id in AgeRangeId::ALL {
             let created = id.select(created);
-            let consumed = &id.select(&self.coindays_consumed).cumulative.height;
-            let stored = id.select_mut(&mut self.coindays_stored);
-            let activity = id.select_mut(&mut self.activity_sources);
+            let RangeVecs {
+                coindays_consumed,
+                coindays_stored: stored,
+                wakefulness_source: activity,
+                ..
+            } = id.select_mut(&mut self.ranges);
+            let consumed = &coindays_consumed.cumulative.height;
             let source_end = created.len().min(consumed.len());
             let mut start = prepare_computed(
                 [stored.stored_mut(), activity],

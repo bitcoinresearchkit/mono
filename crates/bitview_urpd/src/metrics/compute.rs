@@ -2,7 +2,7 @@ use std::{array, iter, mem};
 
 use bitview_cohort::{AgeAggregate, AgeAggregateId, AgeRange};
 use bitview_compute::{collect_cohort_weights, prepare_computed};
-use bitview_primitives::Ratio64;
+use bitview_primitives::{CostBasisByPercentile, Ratio64};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, Version};
@@ -12,7 +12,6 @@ use super::{
     Metrics, WRITE_INTERVAL_BLOCKS,
     density::SupplyDensity,
     metric_buckets::{CohortBlock, MetricBuckets},
-    price_stats::PriceStats,
 };
 use crate::{COMPUTE_VERSION, ReplayInputs};
 
@@ -97,11 +96,11 @@ impl Metrics {
                 Some(block) => {
                     let block = id.select(block);
                     id.select_mut(&mut self.cohorts)
-                        .push(&block.stats, &block.density);
+                        .push(&block.cost_basis, &block.density);
                 }
                 None => id
                     .select_mut(&mut self.cohorts)
-                    .push(&PriceStats::default(), &SupplyDensity::NAN),
+                    .push(&CostBasisByPercentile::default(), &SupplyDensity::NAN),
             }
         }
     }

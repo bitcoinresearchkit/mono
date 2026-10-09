@@ -39,9 +39,9 @@ impl ComputePlugin for Vecs {
             coinflow,
         } = dependencies;
 
-        let cointime_wakefulness = cointime.age_range.urpd_weight_sources();
+        let cointime_wakefulness = cointime.age_ranges.urpd_weight_sources();
         let age_supplies = age.cohorts.supply.total.age_supplies();
-        let coinflow_mobility = coinflow.age_range.urpd_weight_sources();
+        let coinflow_mobility = coinflow.age_ranges.urpd_weight_sources();
         let raw_loss_share = dependencies.raw_loss_share();
         let cointime_loss_share = dependencies.cointime_loss_share();
         let coinflow_loss_share = dependencies.coinflow_loss_share();

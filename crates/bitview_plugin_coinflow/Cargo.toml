@@ -23,6 +23,5 @@ brk_error = { workspace = true, features = ["vecdb"] }
 bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
-derive_more = { workspace = true }
 rayon = { workspace = true }
 vecdb = { workspace = true }

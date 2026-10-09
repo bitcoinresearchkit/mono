@@ -1,10 +1,10 @@
 use bitview_compute::FixedRatio;
-use bitview_primitives::{Lengths, Ratio};
+use bitview_primitives::Ratio;
 use bitview_transforms::FixedToRatio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, Version};
+use brk_types::{Height, Version};
 use vecdb::{BinaryTransform, Database, ReadableVec, Rw, StorageMode, VecValue};
 
 use crate::{IndexSources, LazyPerBlock, PerBlock};
@@ -52,28 +52,5 @@ impl<R: FixedRatio> RatioPerBlock<R> {
     {
         self.fixed
             .compute_binary::<S1T, S2T, F>(max_from, source1, source2, exit)
-    }
-
-    pub fn compute_ratio(
-        &mut self,
-        starting_lengths: &Lengths,
-        close_price: &impl ReadableVec<Height, Cents>,
-        series_price: &impl ReadableVec<Height, Cents>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.fixed.height.compute_transform2(
-            starting_lengths.height,
-            close_price,
-            series_price,
-            |(i, close, price, ..)| {
-                if price == Cents::ZERO {
-                    (i, R::from(1.0))
-                } else {
-                    (i, R::from(f64::from(close) / f64::from(price)))
-                }
-            },
-            exit,
-        )?;
-        Ok(())
     }
 }

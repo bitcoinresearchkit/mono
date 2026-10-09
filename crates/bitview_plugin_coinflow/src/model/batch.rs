@@ -1,6 +1,6 @@
 use bitview_cohort::AgeRange;
 use bitview_compute::{
-    AgeBand, CohortAccounting, MINIMUM_DURATION_DAYS, WeightedCohortAggregates, collect_age_range,
+    AgeBand, CohortAccounting, MINIMUM_DURATION_DAYS, collect_age_range, weighted_age_aggregates,
 };
 use bitview_plugin_age::AccountingSources;
 use bitview_primitives::{BoundedRatio, CoinDays, Float64, PerDay};
@@ -68,7 +68,7 @@ impl PrimaryBatch {
         let exposures = DecayFit::exposures(&hazards, network_age, bounds);
         let mobilities =
             AgeRange::from_fn(|id| BoundedRatio::from(AgeBand::mobility(*id.select(&exposures))));
-        let aggregates = WeightedCohortAggregates::from_fn(|id| {
+        let cohorts = weighted_age_aggregates(|id| {
             let mobility = *id.select(&mobilities);
             self.accounting.weighted(id, offset, mobility)
         });
@@ -77,11 +77,7 @@ impl PrimaryBatch {
             spending_rate: AgeRange::from_fn(|id| PerDay::from(*id.select(&hazards))),
             spending_exposure: AgeRange::from_fn(|id| Float64::from(*id.select(&exposures))),
             mobility: mobilities,
-            under_4m: aggregates.under_4m,
-            under_6m: aggregates.under_6m,
-            over_4m: aggregates.over_4m,
-            over_6m: aggregates.over_6m,
-            terms: aggregates.terms,
+            cohorts,
         }
     }
 

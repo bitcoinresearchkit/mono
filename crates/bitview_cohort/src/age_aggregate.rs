@@ -1,4 +1,4 @@
-use crate::{AgeRangeId, UTXOAggregateId};
+use crate::{AgeRangeId, LTH_AGE_RANGE_IDS, STH_AGE_RANGE_IDS};
 
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
@@ -7,6 +7,7 @@ use bitview_traversable::Traversable;
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct AgeAggregate<T> {
+    /// Uses all UTXOs.
     pub all: T,
     /// Uses short-term-holder UTXOs younger than 150 days.
     pub sth: T,
@@ -37,9 +38,9 @@ define_cohort_id!(
 impl AgeAggregateId {
     pub fn age_range_ids(self) -> &'static [AgeRangeId] {
         match self {
-            Self::All => UTXOAggregateId::All.age_range_ids(),
-            Self::Sth => UTXOAggregateId::Sth.age_range_ids(),
-            Self::Lth => UTXOAggregateId::Lth.age_range_ids(),
+            Self::All => AgeRangeId::ALL,
+            Self::Sth => STH_AGE_RANGE_IDS,
+            Self::Lth => LTH_AGE_RANGE_IDS,
             Self::Under4M => &AgeRangeId::ALL[..AgeRangeId::From4MTo5M.index()],
             Self::Under6M => &AgeRangeId::ALL[..AgeRangeId::From6MTo9M.index()],
             Self::Over4M => &AgeRangeId::ALL[AgeRangeId::From4MTo5M.index()..],

@@ -16,43 +16,36 @@ impl Vecs {
         let Dependencies {
             indexer,
             urpd: _,
+            mappings,
             price: prices,
             blocks,
             inflation_rate,
-            velocity_native,
-            velocity_fiat,
+            velocity_btc,
+            velocity_usd,
             age,
             holders,
         } = dependencies;
         let inflation_rate = &inflation_rate.fixed.height;
-        let velocity_native = &velocity_native.height;
-        let velocity_fiat = &velocity_fiat.height;
+        let velocity_btc = &velocity_btc.height;
+        let velocity_usd = &velocity_usd.height;
         let exit = context.exit();
 
         // Activity computes first (liveliness, vaultedness, etc.)
         self.activity.compute(indexer, age, holders, exit)?;
-        self.age_range.compute(indexer, age, exit)?;
+        self.age_ranges.compute(indexer, age, exit)?;
 
         // Age-range supply is lazy over the same cached inputs as aggregates.
         // Adjusted and value compute independently.
         let (r1, r2) = join(
-            || {
-                self.aggregate.compute(
-                    indexer,
-                    age,
-                    &mut self.age_range,
-                    &mut self.supply.active_supply_in_loss_share.fixed,
-                    exit,
-                )
-            },
+            || self.aggregate.compute(indexer, age, &self.age_ranges, exit),
             || {
                 join(
                     || {
                         self.adjusted.compute(
                             indexer,
                             inflation_rate,
-                            velocity_native,
-                            velocity_fiat,
+                            velocity_btc,
+                            velocity_usd,
                             &self.activity,
                             exit,
                         )
@@ -86,7 +79,7 @@ impl Vecs {
             },
             || {
                 self.reserve_risk
-                    .compute(indexer, blocks, prices, &self.value, exit)
+                    .compute(indexer, blocks, mappings, prices, &self.value, exit)
             },
         );
         r3?;
@@ -110,7 +103,7 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         self.compute_primary(dependencies, context)?;
         let supplies = dependencies.age.cohorts.supply.total.age_supplies();
-        let weights = self.age_range.urpd_weight_sources();
+        let weights = self.age_ranges.urpd_weight_sources();
         self.urpd.compute(
             dependencies.age.cohorts.all_supply().version()
                 + dependencies.urpd.timestamps.version(),
