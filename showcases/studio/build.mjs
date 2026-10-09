@@ -46,9 +46,13 @@ replaceOnce(`/** @type {typeof import("../modules/quickmatch-js/src/index.js")} 
 replaceOnce(`import { BitviewClient } from "../modules/bitview-client/index.js";\n`, "");
 replaceOnce(`import * as LC from "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";`, [
   `// The client and the chart library as ${SERVER} serves them now: the builds its own page maps (cached for good, under`,
-  `      // names that change with each release), read at each load; their plain paths if the page can't be read.`,
-  `      const served = await fetch("${SERVER}/").then((response) => response.text()).then((page) => JSON.parse(/<script type="importmap"[^>]*>([\\s\\S]*?)<\\/script>/.exec(page)?.[1] ?? "{}").imports ?? {}).catch(() => ({}));`,
-  `      const [{ BitviewClient }, LC] = await Promise.all([${JSON.stringify(CLIENT)}, ${JSON.stringify(CHARTS)}].map((path) => import(\`${SERVER}\${served[path] ?? path}\`)));`,
+  `      // names that change with each release), read at each load; their plain paths if the page can't be read (or doesn't`,
+  `      // answer in a few seconds). Neither loading, the page says so (see #offline): the charts are kept, in this browser.`,
+  `      const served = await fetch("${SERVER}/", { signal: AbortSignal.timeout(8000) }).then((response) => response.text()).then((page) => JSON.parse(/<script type="importmap"[^>]*>([\\s\\S]*?)<\\/script>/.exec(page)?.[1] ?? "{}").imports ?? {}).catch(() => ({}));`,
+  `      const [{ BitviewClient }, LC] = await Promise.all([${JSON.stringify(CLIENT)}, ${JSON.stringify(CHARTS)}].map((path) => import(\`${SERVER}\${served[path] ?? path}\`))).catch((error) => {`,
+  `        document.body.toggleAttribute("data-offline", true);`,
+  `        throw error;`,
+  `      });`,
 ].join("\n"));
 replaceOnce(/new BitviewClient\(\{ baseUrl: "[^"]*"/, `new BitviewClient({ baseUrl: "${SERVER}"`);
 // Asked for at once (the page's head, not after its 2 MB are read): its server's connection, and its page, which the
