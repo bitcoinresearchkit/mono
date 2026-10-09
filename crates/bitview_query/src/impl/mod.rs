@@ -20,6 +20,8 @@ pub mod series;
 pub mod tx;
 #[cfg(feature = "urpd")]
 pub mod urpd;
+#[cfg(feature = "chain")]
+pub mod utxo_set;
 
 #[cfg(feature = "urpd")]
 pub use urpd::ResolvedUrpd;
@@ -38,3 +40,5 @@ pub use mining::ResolvedPoolBlocks;
 pub use series::{ResolvedQuery, SeriesRead};
 #[cfg(feature = "chain")]
 pub use tx::{ResolvedConfirmedTx, ResolvedRawTransaction, ResolvedTransaction};
+#[cfg(feature = "chain")]
+pub use utxo_set::UtxoSetPoint;

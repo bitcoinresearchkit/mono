@@ -99,9 +99,9 @@ has to be deleted by hand.
   `fee_share`); the totals' `chain_share` and `fee_share` moved under `data_bytes` and `fees`. Fees are BTC and USD
   (were sats). The totals gain `output_count` (id `op_return_output_count`, shared with outputs). Policy ids drop
   `policy_` (`op_return_oversized_tx_count`, was `op_return_policy_oversized_tx_count`)
-- Shared ids: `circulating_supply` (UTXO history, holders' `all` and supply), `market_cap` (holders' `all` supply in
-  USD and supply), `utxo_count` (UTXO history and holders' `all`).
-  `utxo_history.supply` is `circulating_supply` in BTC (was `unspent_sats` in sats); `supply.circulating` is BTC only,
+- Shared ids: `circulating_supply` (UTXO set, holders' `all` and supply), `market_cap` (holders' `all` supply in USD
+  and supply), `utxo_count` (UTXO set and holders' `all`).
+  `utxo_set.supply` is `circulating_supply` in BTC (was `unspent_sats` in sats); `supply.circulating` is BTC only,
   its USD value being `supply.market_cap`
 - `TxStatus` omits `block_height`, `block_hash` and `block_time` until confirmed, like Esplora (they were sent as
   `null`)
@@ -282,6 +282,12 @@ has to be deleted by hand.
 - Each age band serves its realized price again (`utxos_<band>_old_realized_price`, USD, at
   `cohorts.realized.price.age.<band>`): the band's exact creation-price product over its supply, like the aggregated
   cohorts' realized price. Stored per band, so the age plugin replays from block 0 once
+- UTXO set endpoints (`chain` feature, tag "UTXO Set"): `GET /api/utxo-set[/{point}]` returns the set after a block
+  (`840000`) or a UTC day's last published block (`YYYY-MM-DD`), latest when omitted, as columnar `origins.count` and
+  `origins.supply` (BTC) indexed by creation height; `GET /api/utxo-set/{point}/diff` returns what a block or a day's
+  blocks changed, `created` per block and `spent` per creation height. A set plus the next diff gives the next set,
+  exact when each supply is rounded to 8 decimals. The `utxo_set` plugin (crate `bitview_plugin_utxo_set`) reconstructs both from its
+  history on demand
 
 #### `bitviewd` and `bitviewd_bench`
 
@@ -345,7 +351,7 @@ has to be deleted by hand.
 - A VecDB import-time reset deletes the vector's rollback history, so a later deep reorg cannot walk into change
   files of the vector's previous life; a value whose width changed without a version bump resets instead of being
   misread
-- `utxo_history` now compacts its database; the Docker image build copies every build input
+- `utxo_set` now compacts its database; the Docker image build copies every build input
 - After a reorg, an address's unspent outputs no longer list outputs that the replacement chain spent again. The
   storage engine's weak deletes assume a key is written once; a rollback writes spent outputs back, and a compaction
   that merged the restored entry with the orphaned spend dropped the delete still owed to the original entry below.

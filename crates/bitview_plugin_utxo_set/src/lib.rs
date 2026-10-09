@@ -4,7 +4,7 @@ mod has;
 mod import;
 
 pub use dependencies::Dependencies;
-pub use has::HasUtxoHistory;
+pub use has::HasUtxoSet;
 
 use std::path::PathBuf;
 
@@ -17,10 +17,10 @@ use brk_types::{Bitcoin, Height, Sats, Version};
 use statedb::{Creations, History, Reader, Spends, View};
 use vecdb::{Database, Rw, StorageMode};
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("utxo_history"), Version::ONE);
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("utxo_set"), Version::ONE);
 pub const ID: PluginId = STORAGE.id();
 
-/// Publishes complete UTXO history and its global totals after both producers finish.
+/// Publishes the UTXO set's complete history and its global totals after both producers finish.
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]

@@ -1,4 +1,4 @@
-//! URPD reconstruction and derived metrics from canonical UTXO history.
+//! URPD reconstruction and derived metrics from the canonical UTXO set history.
 mod metrics;
 mod projected_bucket;
 mod projection;

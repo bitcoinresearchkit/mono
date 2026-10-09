@@ -31,6 +31,8 @@ pub trait TransformResponseExtended<'t> {
     fn series_tag(self) -> Self;
     #[cfg(feature = "urpd")]
     fn urpd_tag(self) -> Self;
+    #[cfg(feature = "chain")]
+    fn utxo_set_tag(self) -> Self;
 
     /// Keep the REST operation public while excluding it from generated MCP tools.
     fn mcp_ignore(self) -> Self;
@@ -140,6 +142,11 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
     #[cfg(feature = "urpd")]
     fn urpd_tag(self) -> Self {
         self.tag("URPD")
+    }
+
+    #[cfg(feature = "chain")]
+    fn utxo_set_tag(self) -> Self {
+        self.tag("UTXO Set")
     }
 
     fn json_response<R>(self) -> Self

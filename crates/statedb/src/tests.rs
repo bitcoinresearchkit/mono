@@ -19,7 +19,7 @@ fn separate_producers_reconstruct_every_height_zero_value_outputs_and_same_block
     let root = tempdir().unwrap();
     let inputs = root.path().join("inputs");
     let outputs = root.path().join("outputs");
-    let snapshots = root.path().join("utxo_history");
+    let snapshots = root.path().join("utxo_set");
     let mut spends = Spends::open(&inputs).unwrap();
     let mut created = Creations::open(&outputs).unwrap();
     let mut history = History::open(&snapshots).unwrap();

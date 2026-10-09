@@ -5290,7 +5290,7 @@
       const plural = (n, word) => `${grouped.format(n)} ${word}${n === 1 ? "" : "s"}`;
       const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
       const humanize = (name) => capitalize(name.split("_").filter(Boolean).map(word).join(" "));
-      /** A catalog key: "utxoHistory" is UTXO history, "minute10" is Minute 10, "p2pkh" stays whole. */
+      /** A catalog key: "utxoSet" is UTXO set, "minute10" is Minute 10, "p2pkh" stays whole. */
       const humanizeKey = (key) => capitalize(key.replace(/^_/, "").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" "))).map(word).join(" "));
       function ago(time) {
         const minutes = Math.round((Date.now() - time) / 60000);

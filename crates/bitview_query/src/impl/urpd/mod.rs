@@ -23,7 +23,7 @@ pub struct ResolvedUrpd {
 impl Query {
     pub fn urpd_cohorts(&self) -> Result<Vec<Cohort>> {
         let _guard = self.read_publication()?;
-        let view = self.plugins().utxo_history.view()?;
+        let view = self.plugins().utxo_set.view()?;
         if self.safe_lengths().height.is_zero() || view.reader()?.is_empty() {
             return Ok(Vec::new());
         }
@@ -44,7 +44,7 @@ impl Query {
     pub fn urpd_dates_with_weight(&self, cohort: &Cohort, weight: UrpdWeight) -> Result<Vec<Date>> {
         let _guard = self.read_publication()?;
         let ages = Self::urpd_ages(cohort)?;
-        let view = self.plugins().utxo_history.view()?;
+        let view = self.plugins().utxo_set.view()?;
         let reader = view.reader()?;
         let end = reader.len().min(usize::from(self.safe_lengths().height));
         let mut dates = Vec::new();
@@ -92,7 +92,7 @@ impl Query {
         let height = self
             .safe_lengths()
             .last_height()
-            .ok_or_else(|| Error::NotFound("No published UTXO history".into()))?;
+            .ok_or_else(|| Error::NotFound("No published UTXO set".into()))?;
         self.resolve_urpd_inner(cohort, height, aggregation, weight)
     }
 
@@ -160,11 +160,11 @@ impl Query {
         }
         let plugins = self.plugins();
         let weights = self.urpd_weights(ages, height, weight)?;
-        let view = plugins.utxo_history.view()?;
+        let view = plugins.utxo_set.view()?;
         let reader = view.reader()?;
         if end > reader.len() {
             return Err(Error::NotFound(
-                "Block is outside published UTXO history".into(),
+                "Block is outside the published UTXO set".into(),
             ));
         }
         let state = reader.state_at(end)?;

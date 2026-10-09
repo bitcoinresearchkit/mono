@@ -56,7 +56,7 @@ pub use r#impl::{
     BlockTemplateSource, ResolvedAddrChainTxs, ResolvedAddrTxs, ResolvedAddrUtxos,
     ResolvedBlockTemplateDiff, ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1,
     ResolvedConfirmedTx, ResolvedCpfp, ResolvedPoolBlocks, ResolvedRawTransaction, ResolvedRbf,
-    ResolvedTransaction,
+    ResolvedTransaction, UtxoSetPoint,
 };
 #[cfg(feature = "series")]
 pub use r#impl::{ResolvedQuery, SeriesRead};
@@ -64,7 +64,7 @@ pub use output::*;
 pub use query_plugin_set::{
     QueryPluginSet, SupportsAddresses, SupportsAge, SupportsBlocks, SupportsCoinflow,
     SupportsCointime, SupportsInputs, SupportsMappings, SupportsMining, SupportsOutputs,
-    SupportsPools, SupportsPrice, SupportsTransactions, SupportsUtxoHistory,
+    SupportsPools, SupportsPrice, SupportsTransactions, SupportsUtxoSet,
 };
 pub use query_plugins::QueryPlugins;
 pub use representation_id::RepresentationId;

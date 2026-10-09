@@ -6,7 +6,7 @@ price selects discount (Veteran); a higher price selects premium (Rookie).
 A zero anchor selects discount. Membership stays fixed for the output's lifetime.
 
 Run after Holders, supplying its completed all-chain capitalized-price series plus
-published UTXO history, block prices and monotonic timestamps. The plugin consumes
+the published UTXO set, block prices and monotonic timestamps. The plugin consumes
 a borrowed `statedb::Reader`; it owns neither history nor the anchor series.
 It owns its database, entry classifications, price maps, update and recovery.
 Restart, reorg and failed updates reconstruct from canonical history and the

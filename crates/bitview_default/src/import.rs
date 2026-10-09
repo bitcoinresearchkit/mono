@@ -23,7 +23,7 @@ use bitview_plugin_price::{ID as PRICE_ID, Vecs as Price};
 use bitview_plugin_rarity_meter::{ID as RARITY_METER_ID, Vecs as RarityMeter};
 use bitview_plugin_supply::{ID as SUPPLY_ID, Vecs as Supply};
 use bitview_plugin_transactions::{ID as TRANSACTIONS_ID, Vecs as Transactions};
-use bitview_plugin_utxo_history::{ID as UTXO_HISTORY_ID, Vecs as UtxoHistory};
+use bitview_plugin_utxo_set::{ID as UTXO_SET_ID, Vecs as UtxoSet};
 use bitview_plugin_utxos::{ID as UTXOS_ID, Vecs as Utxos};
 use brk_error::Result;
 use brk_reader::Reader;
@@ -140,8 +140,8 @@ impl DefaultPlugins {
                 Ok((inputs, outputs, mining, transactions, pools, op_return))
             })?;
 
-        let utxo_history = timed(Phase::Import, UTXO_HISTORY_ID, || -> Result<_> {
-            Ok(Box::new(UtxoHistory::import(
+        let utxo_set = timed(Phase::Import, UTXO_SET_ID, || -> Result<_> {
+            Ok(Box::new(UtxoSet::import(
                 context,
                 &mappings,
                 inputs.storage().path(context),
@@ -165,7 +165,7 @@ impl DefaultPlugins {
                     &mappings,
                     &window_starts,
                     &price,
-                    &utxo_history.supply.read_only_boxed_clone(),
+                    &utxo_set.supply.read_only_boxed_clone(),
                 )?))
             })?;
 
@@ -179,7 +179,7 @@ impl DefaultPlugins {
                 &mappings,
                 &window_starts,
                 &price,
-                &utxo_history.supply.read_only_boxed_clone(),
+                &utxo_set.supply.read_only_boxed_clone(),
             )?))
         })?;
 
@@ -191,7 +191,7 @@ impl DefaultPlugins {
                 &price,
                 &inputs,
                 &outputs,
-                &utxo_history.supply.read_only_boxed_clone(),
+                &utxo_set.supply.read_only_boxed_clone(),
             )?))
         })?;
 
@@ -201,7 +201,7 @@ impl DefaultPlugins {
                 &mappings,
                 &window_starts,
                 &price,
-                &utxo_history.supply.read_only_boxed_clone(),
+                &utxo_set.supply.read_only_boxed_clone(),
             )?))
         })?;
         let all_chain = holders.all_chain_sources();
@@ -318,7 +318,7 @@ impl DefaultPlugins {
             inputs,
             price,
             outputs,
-            utxo_history,
+            utxo_set,
             op_return,
         })
     }

@@ -24,7 +24,7 @@ use bitview_plugin_price::HasPrice;
 #[cfg(feature = "chain")]
 use bitview_plugin_transactions::HasTransactions;
 #[cfg(any(feature = "chain", feature = "urpd"))]
-use bitview_plugin_utxo_history::HasUtxoHistory;
+use bitview_plugin_utxo_set::HasUtxoSet;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use vecdb::Ro;
@@ -108,8 +108,8 @@ plugin_capability!(
 );
 plugin_capability!(
     #[cfg(any(feature = "chain", feature = "urpd"))]
-    SupportsUtxoHistory,
-    HasUtxoHistory
+    SupportsUtxoSet,
+    HasUtxoSet
 );
 
 /// Composition contract for the plugins the enabled API features read.
@@ -130,7 +130,7 @@ pub trait QueryPluginSet: PluginSet + Traversable {
         + SupportsPools
         + SupportsPrice
         + SupportsTransactions
-        + SupportsUtxoHistory
+        + SupportsUtxoSet
         + ?Sized;
 
     fn query_capabilities(&self) -> &Self::Capabilities;
@@ -153,7 +153,7 @@ where
         + SupportsPools
         + SupportsPrice
         + SupportsTransactions
-        + SupportsUtxoHistory,
+        + SupportsUtxoSet,
 {
     type Capabilities = Self;
 

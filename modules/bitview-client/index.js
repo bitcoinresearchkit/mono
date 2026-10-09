@@ -373,7 +373,7 @@ prior template's transactions or a full transaction body.
  * URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.
  *
  * Names are non-empty ASCII `[a-z0-9_]+`. Availability is determined by
- * supported age filters and published UTXO history.
+ * supported age filters and the published UTXO set.
  *
  * @typedef {string} Cohort
  */
@@ -1563,6 +1563,52 @@ undefined one (e.g. NaN).
  * @property {Sats} value - Output value in satoshis
  */
 /**
+ * Columnar counts and supplies by creation height.
+ *
+ * @typedef {Object} UtxoChanges
+ * @property {Height[]} height - Creation height of each row.
+ * @property {number[]} count - Number of outputs in each row.
+ * @property {Bitcoin[]} supply - BTC held by the outputs in each row.
+ */
+/**
+ * Columnar unspent amounts indexed by creation height.
+ *
+ * @typedef {Object} UtxoOrigins
+ * @property {number[]} count - Number of unspent outputs per creation height.
+ * @property {Bitcoin[]} supply - BTC held by the unspent outputs per creation height.
+ */
+/**
+ * The UTXO set after a block, grouped by the height of the block that created each output.
+ *
+ * The set excludes `OP_RETURN` outputs and the genesis coinbase, which are unspendable, and the
+ * coinbases of blocks 91812 and 91722 once duplicates at 91842 and 91880 overwrite them; it
+ * includes zero-value outputs. The set after block `first - 1` plus a diff's `created` minus its
+ * `spent` gives the set after block `last`; rounding each supply to 8 decimals keeps it exact.
+ *
+ * @typedef {Object} UtxoSet
+ * @property {Height} height - Height of the represented block.
+ * @property {BlockHash} hash - Hash of the represented block.
+ * @property {Date} date - UTC date of the represented block's monotonic timestamp (the running maximum of block
+times).
+ * @property {number} count - Number of unspent outputs.
+ * @property {Bitcoin} supply - BTC held by the unspent outputs.
+ * @property {UtxoOrigins} origins - Unspent outputs by creation height: entry `i` is what remains of block `i`'s outputs.
+ */
+/**
+ * What blocks `first` through `last` changed in the UTXO set.
+ *
+ * @typedef {Object} UtxoSetDiff
+ * @property {Height} first - First block of the diff; it applies to the set after block `first - 1` (the empty set for
+block 0).
+ * @property {Height} last - Last block of the diff, described by `hash` and `date`.
+ * @property {BlockHash} hash - Hash of block `last`.
+ * @property {Date} date - UTC date of block `last`'s monotonic timestamp.
+ * @property {UtxoChanges} created - Outputs created, one row per block, including those spent again within the range (which
+`spent` lists too).
+ * @property {UtxoChanges} spent - Outputs removed, one row per creation height in ascending order: spent outputs, plus the
+coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 overwrote.
+ */
+/**
  * Virtual size in vbytes (weight / 4, rounded up). Max block vsize is ~1,000,000 vB.
  *
  * @typedef {number} VSize
@@ -2653,9 +2699,9 @@ const _s = (children) => (c, b) => _n(c, b, children);
  * @typedef {{
  *   supply: SeriesPattern2<?Bitcoin>,
  *   count: SeriesPattern2<Count>,
- * }} UtxoHistory
+ * }} UtxoSet2
  */
-const _UtxoHistory = _s({
+const _UtxoSet2 = _s({
   supply: [_i2, '*'],
   count: [_i2, 'utxo_count'],
 });
@@ -7948,7 +7994,7 @@ const _Indexer = _s({
  *   supply: Supply,
  *   inputs: Inputs,
  *   outputs: Outputs,
- *   utxoHistory: UtxoHistory,
+ *   utxoSet: UtxoSet2,
  *   opReturn: OpReturn,
  * }} SeriesTree
  */
@@ -7975,7 +8021,7 @@ const _SeriesTree = _s({
   supply: [_Supply, 'supply'],
   inputs: [_Inputs, 'input'],
   outputs: [_Outputs, 'output'],
-  utxoHistory: [_UtxoHistory, 'circulating_supply'],
+  utxoSet: [_UtxoSet2, 'circulating_supply'],
   opReturn: [_OpReturn, 'op_return'],
 });
 
@@ -10382,6 +10428,54 @@ address payload bytes.
   async postTx(body, { signal } = {}) {
     const path = `/api/tx`;
     return this.postText(path, body, { signal });
+  }
+
+  /**
+   * Latest UTXO set
+   *
+   * The UTXO set after the latest published block, by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+   *
+   * Endpoint: `GET /api/utxo-set`
+   * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSet) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<UtxoSet>}
+   */
+  async getUtxoSetLatest({ signal, onValue, cache, memCache } = {}) {
+    const path = `/api/utxo-set`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * UTXO set at block height or date
+   *
+   * The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+   *
+   * Endpoint: `GET /api/utxo-set/{point}`
+   *
+   * @param {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
+`YYYY-MM-DD` format.
+   * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSet) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<UtxoSet>}
+   */
+  async getUtxoSet(point, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/utxo-set/${point}`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * UTXO set changes of a block or date
+   *
+   * What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
+   *
+   * Endpoint: `GET /api/utxo-set/{point}/diff`
+   *
+   * @param {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
+`YYYY-MM-DD` format.
+   * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSetDiff) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<UtxoSetDiff>}
+   */
+  async getUtxoSetDiff(point, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/utxo-set/${point}/diff`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**

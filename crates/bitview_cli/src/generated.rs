@@ -1172,6 +1172,44 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-utxo-set",
+        method: "GET",
+        path: "/api/utxo-set/{point}",
+        summary: "UTXO set at block height or date",
+        description: "The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.",
+        path_parameters: &[
+            Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: Some("Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.") },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-utxo-set-diff",
+        method: "GET",
+        path: "/api/utxo-set/{point}/diff",
+        summary: "UTXO set changes of a block or date",
+        description: "What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.",
+        path_parameters: &[
+            Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: Some("Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.") },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-utxo-set-latest",
+        method: "GET",
+        path: "/api/utxo-set",
+        summary: "Latest UTXO set",
+        description: "The UTXO set after the latest published block, by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-version",
         method: "GET",
         path: "/version",

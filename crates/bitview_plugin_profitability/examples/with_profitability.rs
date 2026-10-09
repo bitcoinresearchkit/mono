@@ -8,7 +8,7 @@ use bitview_plugin_mappings::HasMappings;
 use bitview_plugin_outputs::HasOutputs;
 use bitview_plugin_price::HasPrice;
 use bitview_plugin_profitability::{Dependencies, HasProfitability, Vecs as Profitability};
-use bitview_plugin_utxo_history::HasUtxoHistory;
+use bitview_plugin_utxo_set::HasUtxoSet;
 use bitview_runtime::{BootstrapAction, ComputePluginSet, PluginSet};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -43,7 +43,7 @@ impl Plugins {
     }
 
     fn compute_profitability(&mut self, context: UpdateContext<'_>) -> Result<()> {
-        let history = self.defaults.utxo_history().reader(
+        let history = self.defaults.utxo_set().reader(
             self.defaults.inputs().origins.spends(),
             &self.defaults.outputs().creations,
         )?;

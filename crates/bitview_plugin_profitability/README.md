@@ -4,7 +4,7 @@ Optional percentage-profit/loss bands for all, STH, LTH, under 4m, under 6m,
 over 4m, and over 6m. Each of the 25 bands exposes supply, creation-value cap,
 unrealized profit/loss, and NUPL through the same layout.
 
-The plugin consumes published UTXO History, block prices, and monotonic timestamps.
+The plugin consumes the published UTXO Set, block prices, and monotonic timestamps.
 It owns one complete `ComputePlugin::compute_state()`, its database, and a resident
 price index. Four overlapping totals (all, STH, under 4m, under 6m) represent all
 seven filters; complementary totals are derived. Only the three relevant age

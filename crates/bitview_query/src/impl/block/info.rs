@@ -423,11 +423,7 @@ impl Query {
             .collect_range_at(begin, end);
         let input_counts = plugins.inputs.count.block.collect_range_at(begin, end);
         let output_counts = plugins.outputs.count.block.collect_range_at(begin, end);
-        let utxo_set_sizes = plugins
-            .utxo_history
-            .count
-            .height
-            .collect_range_at(begin, end);
+        let utxo_set_sizes = plugins.utxo_set.count.height.collect_range_at(begin, end);
         let input_volumes = plugins
             .transactions
             .volume

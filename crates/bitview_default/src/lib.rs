@@ -23,7 +23,7 @@ use bitview_plugin_price::Vecs as Price;
 use bitview_plugin_rarity_meter::Vecs as RarityMeter;
 use bitview_plugin_supply::Vecs as Supply;
 use bitview_plugin_transactions::Vecs as Transactions;
-use bitview_plugin_utxo_history::Vecs as UtxoHistory;
+use bitview_plugin_utxo_set::Vecs as UtxoSet;
 use bitview_plugin_utxos::Vecs as Utxos;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
@@ -72,7 +72,7 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     inputs: Box<Inputs<M>>,
     #[plugin_set(has = bitview_plugin_outputs::HasOutputs<M>)]
     outputs: Box<Outputs<M>>,
-    #[plugin_set(has = bitview_plugin_utxo_history::HasUtxoHistory<M>)]
-    utxo_history: Box<UtxoHistory<M>>,
+    #[plugin_set(has = bitview_plugin_utxo_set::HasUtxoSet<M>)]
+    utxo_set: Box<UtxoSet<M>>,
     op_return: Box<OpReturn<M>>,
 }

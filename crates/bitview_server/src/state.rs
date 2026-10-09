@@ -40,6 +40,10 @@ pub struct AppState {
     pub node: AsyncClient,
     #[cfg(feature = "series")]
     pub series_bodies: Arc<SeriesBodies>,
+    #[cfg(feature = "chain")]
+    pub utxo_set_query: Arc<Semaphore>,
+    #[cfg(feature = "chain")]
+    pub utxo_set_bodies: Arc<Semaphore>,
     #[cfg(feature = "urpd")]
     pub urpd_query: Arc<Semaphore>,
     #[cfg(feature = "urpd")]

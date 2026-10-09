@@ -119,7 +119,7 @@ CapitalSentimentPhase = Literal["raging_bull", "bull", "cautious_bull", "hopeful
 # URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.
 #
 # Names are non-empty ASCII `[a-z0-9_]+`. Availability is determined by
-# supported age filters and published UTXO history.
+# supported age filters and the published UTXO set.
 Cohort = str
 # Bitcoin multiplied by the blocks it was held.
 CoinBlocks = float
@@ -1830,6 +1830,73 @@ class Utxo(TypedDict):
     status: TxStatus
     value: Sats
 
+class UtxoChanges(TypedDict):
+    """
+    Columnar counts and supplies by creation height.
+
+    Attributes:
+        height: Creation height of each row.
+        count: Number of outputs in each row.
+        supply: BTC held by the outputs in each row.
+    """
+    height: List[Height]
+    count: List[int]
+    supply: List[Bitcoin]
+
+class UtxoOrigins(TypedDict):
+    """
+    Columnar unspent amounts indexed by creation height.
+
+    Attributes:
+        count: Number of unspent outputs per creation height.
+        supply: BTC held by the unspent outputs per creation height.
+    """
+    count: List[int]
+    supply: List[Bitcoin]
+
+class UtxoSet(TypedDict):
+    """
+    The UTXO set after a block, grouped by the height of the block that created each output.
+    
+    The set excludes `OP_RETURN` outputs and the genesis coinbase, which are unspendable, and the
+    coinbases of blocks 91812 and 91722 once duplicates at 91842 and 91880 overwrite them; it
+    includes zero-value outputs. The set after block `first - 1` plus a diff's `created` minus its
+    `spent` gives the set after block `last`; rounding each supply to 8 decimals keeps it exact.
+
+    Attributes:
+        height: Height of the represented block.
+        hash: Hash of the represented block.
+        date: UTC date of the represented block's monotonic timestamp (the running maximum of block times).
+        count: Number of unspent outputs.
+        supply: BTC held by the unspent outputs.
+        origins: Unspent outputs by creation height: entry `i` is what remains of block `i`'s outputs.
+    """
+    height: Height
+    hash: BlockHash
+    date: Date
+    count: int
+    supply: Bitcoin
+    origins: UtxoOrigins
+
+class UtxoSetDiff(TypedDict):
+    """
+    What blocks `first` through `last` changed in the UTXO set.
+
+    Attributes:
+        first: First block of the diff; it applies to the set after block `first - 1` (the empty set for block 0).
+        last: Last block of the diff, described by `hash` and `date`.
+        hash: Hash of block `last`.
+        date: UTC date of block `last`'s monotonic timestamp.
+        created: Outputs created, one row per block, including those spent again within the range (which `spent` lists too).
+        spent: Outputs removed, one row per creation height in ascending order: spent outputs, plus the coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 overwrote.
+    """
+    first: Height
+    last: Height
+    hash: BlockHash
+    date: Date
+    created: UtxoChanges
+    spent: UtxoChanges
+
 class ValidateAddrParam(TypedDict):
     """
     Attributes:
@@ -3175,7 +3242,7 @@ A = TypeVar('A')
 B = TypeVar('B')
 C = TypeVar('C')
 
-class UtxoHistory(_Node):
+class UtxoSet2(_Node):
     supply: SeriesPattern2[Optional[Bitcoin]] = _at(SeriesPattern2, '*')
     count: SeriesPattern2[Count] = _at(SeriesPattern2, 'utxo_count')
 
@@ -5676,7 +5743,7 @@ class SeriesTree(_Node):
     supply: Supply = _at(Supply, 'supply')
     inputs: Inputs = _at(Inputs, 'input')
     outputs: Outputs = _at(Outputs, 'output')
-    utxo_history: UtxoHistory = _at(UtxoHistory, 'circulating_supply')
+    utxo_set: UtxoSet2 = _at(UtxoSet2, 'circulating_supply')
     op_return: OpReturn = _at(OpReturn, 'op_return')
 
 
@@ -7366,6 +7433,30 @@ class BitviewClient(BitviewClientBase):
 
         Endpoint: `POST /api/tx`"""
         return self.post_text('/api/tx', body)
+
+    def get_utxo_set_latest(self) -> UtxoSet:
+        """Latest UTXO set.
+
+        The UTXO set after the latest published block, by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+
+        Endpoint: `GET /api/utxo-set`"""
+        return self.get_json('/api/utxo-set')
+
+    def get_utxo_set(self, point: str) -> UtxoSet:
+        """UTXO set at block height or date.
+
+        The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+
+        Endpoint: `GET /api/utxo-set/{point}`"""
+        return self.get_json(f'/api/utxo-set/{point}')
+
+    def get_utxo_set_diff(self, point: str) -> UtxoSetDiff:
+        """UTXO set changes of a block or date.
+
+        What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
+
+        Endpoint: `GET /api/utxo-set/{point}/diff`"""
+        return self.get_json(f'/api/utxo-set/{point}/diff')
 
     def get_oracle_price(self) -> Dollars:
         """Live BTC/USD price.

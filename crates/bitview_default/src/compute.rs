@@ -27,7 +27,7 @@ use bitview_plugin_supply::{Dependencies as SupplyDependencies, ID as SUPPLY_ID}
 use bitview_plugin_transactions::{
     Dependencies as TransactionsDependencies, ID as TRANSACTIONS_ID,
 };
-use bitview_plugin_utxo_history::{Dependencies as UtxoHistoryDependencies, ID as UTXO_HISTORY_ID};
+use bitview_plugin_utxo_set::{Dependencies as UtxoSetDependencies, ID as UTXO_SET_ID};
 use bitview_plugin_utxos::{Dependencies as UtxosDependencies, ID as UTXOS_ID};
 use bitview_runtime::{BootstrapAction, ComputePluginSet};
 use bitview_urpd::ReplayInputs;
@@ -201,9 +201,9 @@ impl DefaultPlugins {
             })?;
             let creations = &self.outputs.creations;
 
-            timed(Phase::Compute, UTXO_HISTORY_ID, || {
-                self.utxo_history.compute(
-                    UtxoHistoryDependencies {
+            timed(Phase::Compute, UTXO_SET_ID, || {
+                self.utxo_set.compute(
+                    UtxoSetDependencies {
                         spends: self.inputs.origins.spends(),
                         creations,
                         from: indexer.safe_lengths().height,
@@ -214,7 +214,7 @@ impl DefaultPlugins {
             })?;
 
             let history = self
-                .utxo_history
+                .utxo_set
                 .reader(self.inputs.origins.spends(), creations)?;
             timed(Phase::Compute, AGE_ID, || {
                 self.age.compute(

@@ -24,7 +24,7 @@ use bitview_plugin_price::{HasPrice, Vecs as Price};
 #[cfg(feature = "chain")]
 use bitview_plugin_transactions::{HasTransactions, Vecs as Transactions};
 #[cfg(any(feature = "chain", feature = "urpd"))]
-use bitview_plugin_utxo_history::{HasUtxoHistory, Vecs as UtxoHistory};
+use bitview_plugin_utxo_set::{HasUtxoSet, Vecs as UtxoSet};
 use vecdb::Ro;
 
 use crate::QueryPluginSet;
@@ -46,7 +46,7 @@ pub struct QueryPlugins<'a> {
     #[cfg(feature = "chain")]
     pub(crate) outputs: &'a Outputs<Ro>,
     #[cfg(any(feature = "chain", feature = "urpd"))]
-    pub(crate) utxo_history: &'a UtxoHistory<Ro>,
+    pub(crate) utxo_set: &'a UtxoSet<Ro>,
     #[cfg(feature = "chain")]
     pub(crate) pools: &'a Pools<Ro>,
     #[cfg(feature = "price")]
@@ -83,7 +83,7 @@ impl<'a> QueryPlugins<'a> {
             #[cfg(feature = "chain")]
             outputs: plugins.outputs(),
             #[cfg(any(feature = "chain", feature = "urpd"))]
-            utxo_history: plugins.utxo_history(),
+            utxo_set: plugins.utxo_set(),
             #[cfg(feature = "chain")]
             pools: plugins.pools(),
             #[cfg(feature = "price")]

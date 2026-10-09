@@ -68,6 +68,7 @@ mod urpd_aggregation;
 mod urpd_bucket;
 mod urpd_weight;
 mod utxo;
+mod utxo_set;
 
 pub use addr_chain_stats::*;
 pub use addr_hash_prefix_matches::*;
@@ -130,6 +131,7 @@ pub use urpd_aggregation::*;
 pub use urpd_bucket::*;
 pub use urpd_weight::*;
 pub use utxo::*;
+pub use utxo_set::*;
 
 fn de_unquote_limit<'de, D>(deserializer: D) -> Result<Option<Limit>, D::Error>
 where

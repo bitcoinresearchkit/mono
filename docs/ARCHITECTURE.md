@@ -100,13 +100,13 @@ The default data directory is `~/.bitview/`:
     |   `-- spends/
     |-- outputs/
     |   `-- creations/
-    |-- utxo_history/
+    |-- utxo_set/
     |   `-- snapshots/
     `-- ... one directory per active plugin ID
 ```
 
-The UTXO history stores are split by owner: Inputs owns `spends/`, Outputs owns
-`creations/`, and UTXO History owns `snapshots/` and its aggregate metrics. This
+The UTXO set history stores are split by owner: Inputs owns `spends/`, Outputs owns
+`creations/`, and UTXO Set owns `snapshots/` and its aggregate metrics. This
 keeps every persisted file below the plugin that creates it and lets the runtime
 clean up inactive plugin roots without a project-level `origins/` directory.
 

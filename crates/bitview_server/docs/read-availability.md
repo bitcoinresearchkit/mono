@@ -44,6 +44,7 @@ The 2026-09-06 source audit covered these transient-failure families:
 | Historical/current prices | Plugin/source readiness; historical-price body capacity |
 | Series, including ranges and bulk JSON/CSV | Plugin publication; encoded-body capacity |
 | URPD, current/historical/weighted | Plugin publication and source validation; encoded-body capacity |
+| UTXO set states and diffs | Plugin publication and block-hash validation; encoded-body capacity |
 | Fees and projected templates/diffs | Published projection readiness |
 | Health, discovery, static documents | Included in the router policy; no transient retry on successful responses |
 

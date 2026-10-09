@@ -1,6 +1,6 @@
 [package]
-name = "bitview_plugin_utxo_history"
-description = "Published UTXO history and global supply accounting for Bitview"
+name = "bitview_plugin_utxo_set"
+description = "The UTXO set: its published history by creation block and its global totals for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

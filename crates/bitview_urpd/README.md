@@ -2,7 +2,7 @@
 
 There is one durable source: `statedb` stores remaining sats and UTXO counts by
 creation height, using block diffs and full snapshots. Inputs and Outputs supply
-their contributions during their existing scans. The UTXO History plugin
+their contributions during their existing scans. The UTXO Set plugin
 publishes their complete prefix and owns snapshots, every 5,000 blocks and at the
 latest published block. Neither prices nor URPDs are stored in that history.
 

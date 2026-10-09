@@ -8,7 +8,7 @@ unrealized accounting, cost-basis statistics and relative metrics.
 Accounting totals are collected in batches from Age's completed disjoint bands.
 Exact raw capital products are summed before computing weighted prices. They
 are consumed during calculation rather than copied into this database.
-A resident price index advances from canonical UTXO History and supplies
+A resident price index advances from the canonical UTXO Set and supplies
 percentiles and density for all seven filters. Shared price-index algorithms
 live in Distribution; this plugin owns its index, database and recovery.
 

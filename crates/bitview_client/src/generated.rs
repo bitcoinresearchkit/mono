@@ -1322,7 +1322,7 @@ impl SeriesValue for Year10 {
 pub mod tree {
     use super::*;
 
-    shape! { UtxoHistory at "series().utxo_history" {
+    shape! { UtxoSet2 at "series().utxo_set" {
         supply: SeriesPattern2<Option<Bitcoin>> = "*",
         count: SeriesPattern2<Count> = "utxo_count",
     } }
@@ -3548,7 +3548,7 @@ pub mod tree {
         supply: Supply = "supply",
         inputs: Inputs = "input",
         outputs: Outputs = "output",
-        utxo_history: UtxoHistory = "circulating_supply",
+        utxo_set: UtxoSet2 = "circulating_supply",
         op_return: OpReturn = "op_return",
     } }
 }
@@ -4831,6 +4831,33 @@ impl BitviewClient {
                     "Invalid submission response; outcome may be unknown: {error}"
                 ))
             })
+    }
+
+    /// Latest UTXO set
+    ///
+    /// The UTXO set after the latest published block, by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+    ///
+    /// Endpoint: `GET /api/utxo-set`
+    pub fn get_utxo_set_latest(&self) -> Result<UtxoSet> {
+        self.base.get_json(&format!("/api/utxo-set"))
+    }
+
+    /// UTXO set at block height or date
+    ///
+    /// The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+    ///
+    /// Endpoint: `GET /api/utxo-set/{point}`
+    pub fn get_utxo_set(&self, point: &str) -> Result<UtxoSet> {
+        self.base.get_json(&format!("/api/utxo-set/{point}"))
+    }
+
+    /// UTXO set changes of a block or date
+    ///
+    /// What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
+    ///
+    /// Endpoint: `GET /api/utxo-set/{point}/diff`
+    pub fn get_utxo_set_diff(&self, point: &str) -> Result<UtxoSetDiff> {
+        self.base.get_json(&format!("/api/utxo-set/{point}/diff"))
     }
 
     /// Live BTC/USD price

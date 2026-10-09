@@ -195,11 +195,27 @@ All errors return structured JSON with a consistent format:
             ..Default::default()
         },
         Tag {
+            name: "UTXO Set".to_string(),
+            description: Some(
+                "The UTXO set by creation height: what remains unspent of each block's outputs \
+                after a block or a UTC day, and what a block or a day changed. Reconstructed from \
+                the UTXO set's history on demand. Supplies are in BTC; a set plus the next diff \
+                gives the next set, exact when each supply is rounded to 8 decimals. A date \
+                covers the day's published blocks, by each block's monotonic timestamp (the \
+                running maximum of block times), like URPD.\n\n\
+                The set excludes `OP_RETURN` outputs and the genesis coinbase (unspendable), and \
+                the coinbases of blocks 91812 and 91722 once duplicates at 91842 and 91880 \
+                overwrite them; it includes zero-value outputs."
+                    .to_string(),
+            ),
+            ..Default::default()
+        },
+        Tag {
             name: "URPD".to_string(),
             description: Some(
                 "UTXO Realized Price Distribution. For each (cohort, block) pair, supply is \
                 grouped by the price at which each UTXO was last moved. Distributions are \
-                reconstructed from UTXO history on demand.\n\n\
+                reconstructed from the UTXO set's history on demand.\n\n\
                 Each bucket carries `supply` (BTC), `realized_cap` (USD, = `price_floor * supply`), \
                 and `unrealized_pnl` (USD, = `(close - price_floor) * supply`, can be negative).\n\n\
                 Aggregate with the `agg` query parameter (alias `bucket`):\n\

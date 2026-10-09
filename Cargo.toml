@@ -71,7 +71,7 @@ bitview_plugin_profitability = { version = "0.12.2", path = "crates/bitview_plug
 bitview_plugin_rarity_meter = { version = "0.12.2", path = "crates/bitview_plugin_rarity_meter" }
 bitview_plugin_supply = { version = "0.12.2", path = "crates/bitview_plugin_supply" }
 bitview_plugin_transactions = { version = "0.12.2", path = "crates/bitview_plugin_transactions" }
-bitview_plugin_utxo_history = { version = "0.12.2", path = "crates/bitview_plugin_utxo_history" }
+bitview_plugin_utxo_set = { version = "0.12.2", path = "crates/bitview_plugin_utxo_set" }
 bitview_plugin_utxos = { version = "0.12.2", path = "crates/bitview_plugin_utxos" }
 bitview_primitives = { version = "0.12.2", path = "crates/bitview_primitives" }
 bitview_query = { version = "0.12.2", path = "crates/bitview_query", default-features = false }

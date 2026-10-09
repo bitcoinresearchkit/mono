@@ -6,7 +6,7 @@
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
 - Metrics: 17661
-- Operations: 97
+- Operations: 100
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -1415,6 +1415,50 @@ Returns: JSON `Urpd`
 curl -s "https://bitview.space/api/urpd/<cohort>/<point>?agg=<agg>&weight=<weight>"
 ```
 
+### Utxo Set
+
+#### GET `/api/utxo-set`
+
+Latest UTXO set
+
+The UTXO set after the latest published block, by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+
+Returns: JSON `UtxoSet`
+
+```bash
+curl -s "https://bitview.space/api/utxo-set"
+```
+
+#### GET `/api/utxo-set/{point}`
+
+UTXO set at block height or date
+
+The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+
+Parameters:
+- `point` (path, string, required): Confirmed block height as decimal digits (`840000`) or calendar date in `YYYY-MM-DD` format.
+
+Returns: JSON `UtxoSet`
+
+```bash
+curl -s "https://bitview.space/api/utxo-set/<point>"
+```
+
+#### GET `/api/utxo-set/{point}/diff`
+
+UTXO set changes of a block or date
+
+What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
+
+Parameters:
+- `point` (path, string, required): Confirmed block height as decimal digits (`840000`) or calendar date in `YYYY-MM-DD` format.
+
+Returns: JSON `UtxoSetDiff`
+
+```bash
+curl -s "https://bitview.space/api/utxo-set/<point>/diff"
+```
+
 ### Validate Address
 
 #### GET `/api/v1/validate-address/{address}`
@@ -2075,6 +2119,35 @@ curl -s "https://bitview.space/version"
 ### `UrpdWeight`
 
 `raw | cointime | coinflow`
+
+### `UtxoChanges`
+
+- `height`: `Height[]` (required) — Creation height of each row.
+- `count`: `integer[]` (required) — Number of outputs in each row.
+- `supply`: `Bitcoin[]` (required) — BTC held by the outputs in each row.
+
+### `UtxoOrigins`
+
+- `count`: `integer[]` (required) — Number of unspent outputs per creation height.
+- `supply`: `Bitcoin[]` (required) — BTC held by the unspent outputs per creation height.
+
+### `UtxoSet`
+
+- `height`: `Height` (required) — Height of the represented block.
+- `hash`: `BlockHash` (required) — Hash of the represented block.
+- `date`: `Date` (required) — UTC date of the represented block's monotonic timestamp (the running maximum of block times).
+- `count`: `integer` (required) — Number of unspent outputs.
+- `supply`: `Bitcoin` (required) — BTC held by the unspent outputs.
+- `origins`: `UtxoOrigins` (required) — Unspent outputs by creation height: entry `i` is what remains of block `i`'s outputs.
+
+### `UtxoSetDiff`
+
+- `first`: `Height` (required) — First block of the diff; it applies to the set after block `first - 1` (the empty set for block 0).
+- `last`: `Height` (required) — Last block of the diff, described by `hash` and `date`.
+- `hash`: `BlockHash` (required) — Hash of block `last`.
+- `date`: `Date` (required) — UTC date of block `last`'s monotonic timestamp.
+- `created`: `UtxoChanges` (required) — Outputs created, one row per block, including those spent again within the range (which `spent` lists too).
+- `spent`: `UtxoChanges` (required) — Outputs removed, one row per creation height in ascending order: spent outputs, plus the coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 overwrote.
 
 ### `VSize`
 

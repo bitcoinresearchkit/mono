@@ -173,6 +173,10 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
             .await?,
         #[cfg(feature = "series")]
         series_bodies,
+        #[cfg(feature = "chain")]
+        utxo_set_query: Arc::new(Semaphore::new(2)),
+        #[cfg(feature = "chain")]
+        utxo_set_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "urpd")]
         urpd_query: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "urpd")]

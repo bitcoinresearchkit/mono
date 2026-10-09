@@ -13190,7 +13190,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and published UTXO history.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and the published UTXO set.",
               "type": "string",
               "pattern": "^[a-z0-9_]+$"
             },
@@ -13439,7 +13439,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and published UTXO history.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and the published UTXO set.",
               "type": "string",
               "pattern": "^[a-z0-9_]+$"
             },
@@ -13821,7 +13821,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and published UTXO history.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and the published UTXO set.",
               "type": "string",
               "pattern": "^[a-z0-9_]+$"
             },

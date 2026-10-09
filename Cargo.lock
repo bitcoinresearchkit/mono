@@ -524,7 +524,7 @@ dependencies = [
  "bitview_plugin_rarity_meter",
  "bitview_plugin_supply",
  "bitview_plugin_transactions",
- "bitview_plugin_utxo_history",
+ "bitview_plugin_utxo_set",
  "bitview_plugin_utxos",
  "bitview_runtime",
  "bitview_traversable",
@@ -1084,7 +1084,7 @@ dependencies = [
  "bitview_plugin_mappings",
  "bitview_plugin_outputs",
  "bitview_plugin_price",
- "bitview_plugin_utxo_history",
+ "bitview_plugin_utxo_set",
  "bitview_primitives",
  "bitview_runtime",
  "bitview_traversable",
@@ -1179,7 +1179,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_plugin_utxo_history"
+name = "bitview_plugin_utxo_set"
 version = "0.12.2"
 dependencies = [
  "bitview_compute",
@@ -1260,7 +1260,7 @@ dependencies = [
  "bitview_plugin_pools",
  "bitview_plugin_price",
  "bitview_plugin_transactions",
- "bitview_plugin_utxo_history",
+ "bitview_plugin_utxo_set",
  "bitview_primitives",
  "bitview_runtime",
  "bitview_traversable",

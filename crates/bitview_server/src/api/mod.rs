@@ -46,6 +46,8 @@ mod server;
 mod transactions;
 #[cfg(feature = "urpd")]
 mod urpd;
+#[cfg(feature = "chain")]
+mod utxo_set;
 
 #[cfg(feature = "chain")]
 use addrs::AddrRoutes;
@@ -64,6 +66,8 @@ pub use openapi::*;
 use oracle::OracleRoutes;
 #[cfg(feature = "chain")]
 use transactions::TxRoutes;
+#[cfg(feature = "chain")]
+use utxo_set::UtxoSetRoutes;
 
 pub trait ApiRoutes {
     fn add_api_routes(self) -> Self;
@@ -84,7 +88,8 @@ impl ApiRoutes for ApiRouter<AppState> {
             .add_mining_routes()
             .add_fees_routes()
             .add_mempool_routes()
-            .add_tx_routes();
+            .add_tx_routes()
+            .add_utxo_set_routes();
         #[cfg(feature = "price")]
         let router = router.add_oracle_routes();
 

@@ -128,7 +128,7 @@ unindexable date) keep their meaning through `From<brk_error::Error>`.
 
 ## Features
 
-The API features select endpoints and the plugins those endpoints read: `chain` (blocks, transactions, addresses, mining, mempool; implies
+The API features select endpoints and the plugins those endpoints read: `chain` (blocks, transactions, addresses, mining, mempool, UTXO set; implies
 `price`), `series`, `price` (oracle prices) and `urpd` (implies `price`); `full-api` enables all of
 them. Each plugin an enabled API feature reads adds its typed `HasX` requirement to
 `QueryPluginSet` and exposes its typed accessor.

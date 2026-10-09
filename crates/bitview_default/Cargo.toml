@@ -33,7 +33,7 @@ bitview_plugin_price = { workspace = true }
 bitview_plugin_rarity_meter = { workspace = true }
 bitview_plugin_supply = { workspace = true }
 bitview_plugin_transactions = { workspace = true }
-bitview_plugin_utxo_history = { workspace = true }
+bitview_plugin_utxo_set = { workspace = true }
 bitview_plugin_utxos = { workspace = true }
 bitview_runtime = { workspace = true }
 bitview_traversable = { workspace = true }

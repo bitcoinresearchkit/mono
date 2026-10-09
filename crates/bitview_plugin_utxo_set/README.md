@@ -1,4 +1,4 @@
-# UTXO history stage
+# UTXO set stage
 
 Inputs and Outputs commit their own contributions during their existing scans.
 This stage runs after both, owns snapshots and global supply/count metrics, and
@@ -24,7 +24,7 @@ pattern.
 
 The persisted state follows plugin ownership: Inputs writes `plugins/inputs/spends/`,
 Outputs writes `plugins/outputs/creations/`, and this stage writes
-`plugins/utxo_history/snapshots/` alongside its fixed-width totals. There is no
+`plugins/utxo_set/snapshots/` alongside its fixed-width totals. There is no
 shared `data/origins/` directory. Existing datasets can be moved into these
 three owner directories and reopened without replaying the chain. New datasets
 compute from genesis.

@@ -6,7 +6,7 @@ depends on neither vecdb nor another Bitview crate.
 
 Inputs writes grouped `Spends` while resolving input values. Outputs writes
 `Creations` while scanning new outputs, excluding unspendable outputs and keeping
-historical overwrite corrections separate from actual spends. UTXO History joins
+historical overwrite corrections separate from actual spends. UTXO Set joins
 these two contributions, checks their block hashes, updates the canonical `State`,
 and publishes snapshots plus global supply/count. Neither producer rescans outputs.
 
@@ -44,7 +44,7 @@ snapshot writes and producer rewinds. Each plugin still owns its complete
 
 The three stores are opened from their owning plugin roots: Inputs provides
 `plugins/inputs/` for `spends/`, Outputs provides `plugins/outputs/` for
-`creations/`, and UTXO History provides `plugins/utxo_history/` for
+`creations/`, and UTXO Set provides `plugins/utxo_set/` for
 `snapshots/`. Readers accept these roots separately, so the database does not
 require a shared `data/origins/` directory. Existing stores can be moved into
 the corresponding owner directories and reopened without replaying the chain.

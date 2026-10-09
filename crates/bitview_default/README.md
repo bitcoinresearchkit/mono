@@ -11,7 +11,7 @@ consuming read-only dependencies. The default composition orders those complete
 calls and publishes reads only after the entire graph succeeds. Internal phases,
 replay progress, scratch buffers and recovery stay inside the owning plugin.
 
-Inputs and Outputs finish their contributions before UTXO History updates the
+Inputs and Outputs finish their contributions before UTXO Set updates the
 canonical origin state. UTXOs runs alongside Outputs, History and Age; Addresses
 then consumes UTXOs’s completed output-type sources in its own complete update.
 Holders consumes Age’s completed disjoint accounting and canonical History
