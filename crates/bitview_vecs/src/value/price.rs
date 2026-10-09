@@ -1,12 +1,9 @@
-//! Generic price wrapper with cents, USD, and sats representations.
+//! Generic price wrapper: the USD series over its exact cents.
 //!
 //! The field types preserve each family's source, sampling and rounding policy.
-//! The default family derives fractional sats from USD; spot candles retain
-//! their integer-sats conversion directly from cents.
 
 use bitview_compute::ComputedVecValue;
-use bitview_primitives::SatsFract;
-use bitview_transforms::{Convert, DollarsToSatsFract};
+use bitview_transforms::Convert;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Height, Version};
@@ -15,19 +12,19 @@ use vecdb::{Database, Ident, ReadableCloneableVec, UnaryTransform};
 
 use crate::{IndexSources, LazyPerBlock, PerBlock};
 
-/// Generic price metric with cents, USD, and sats representations.
+/// Generic price metric: the series is the USD price, cents its exact storage.
 #[derive(Clone, Traversable)]
-pub struct Price<C, U = LazyPerBlock<Dollars, Cents>, S = LazyPerBlock<SatsFract, Dollars>> {
+#[traversable(merge)]
+pub struct Price<C, U = LazyPerBlock<Dollars, Cents>> {
     /// Reported in USD per BTC.
     pub usd: U,
     /// Reported in cents per BTC.
+    #[traversable(hidden)]
     pub cents: C,
-    /// Reported in sats per USD: 100,000,000 divided by the price in USD per BTC.
-    pub(crate) sats: S,
 }
 
 impl Price<PerBlock<Cents>> {
-    /// Import from database: stored cents, lazy USD + sats.
+    /// Import from database: stored cents, lazy USD.
     pub fn import(
         db: &Database,
         name: &str,
@@ -36,7 +33,7 @@ impl Price<PerBlock<Cents>> {
     ) -> Result<Self> {
         let cents = PerBlock::import(db, &format!("{name}_cents"), version, indexes)?;
         let usd = LazyPerBlock::from_resolutions::<Convert>(name, version, &cents);
-        Ok(Self::from_cents_and_usd(name, version, cents, usd))
+        Ok(Self { usd, cents })
     }
 }
 
@@ -52,7 +49,7 @@ impl Price<LazyPerBlock<Cents, Cents>> {
     {
         let cents = LazyPerBlock::from_lazy::<F, S>(&format!("{name}_cents"), version, source);
         let usd = LazyPerBlock::from_lazy::<Convert, Cents>(name, version, &cents);
-        Self::from_cents_and_usd(name, version, cents, usd)
+        Self { usd, cents }
     }
 }
 
@@ -73,22 +70,6 @@ impl Price<LazyPerBlock<Cents>> {
             indexes,
         );
         let usd = LazyPerBlock::from_lazy::<Convert, Cents>(name, version, &cents);
-        Self::from_cents_and_usd(name, version, cents, usd)
-    }
-}
-
-impl<C> Price<C> {
-    fn from_cents_and_usd(
-        name: &str,
-        version: Version,
-        cents: C,
-        usd: LazyPerBlock<Dollars, Cents>,
-    ) -> Self {
-        let sats = LazyPerBlock::from_lazy::<DollarsToSatsFract, Cents>(
-            &format!("{name}_sats"),
-            version,
-            &usd,
-        );
-        Self { usd, cents, sats }
+        Self { usd, cents }
     }
 }

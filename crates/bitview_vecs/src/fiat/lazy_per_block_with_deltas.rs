@@ -19,7 +19,7 @@ where
 {
     #[deref]
     #[deref_mut]
-    #[traversable(flatten)]
+    #[traversable(flatten, rename = "usd")]
     inner: LazyFiatPerBlock<C>,
     delta: LazyRollingDeltasFiatFromHeight<C, CS, B>,
 }

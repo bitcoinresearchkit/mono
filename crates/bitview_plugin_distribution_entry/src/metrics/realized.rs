@@ -31,6 +31,7 @@ pub struct RealizedMetrics<M: StorageMode = Rw> {
         PartsPerMillionSigned64,
     >,
     /// Spending value divided by creation-date value over the trailing 24 hours.
+    #[traversable(wrap = "sopr", rename = "24h")]
     pub(crate) sopr: PerBlock<Ratio, M>,
     #[traversable(wrap = "sopr")]
     /// Creation-date value of outputs spent from this cohort.

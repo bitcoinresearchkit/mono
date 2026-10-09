@@ -32,7 +32,6 @@ fn main() -> bitview_client::Result<()> {
         .price
         .split
         .close
-        .usd
         .by
         .day1()
         .last(30)

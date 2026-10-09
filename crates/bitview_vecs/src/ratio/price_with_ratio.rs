@@ -9,7 +9,7 @@ use crate::LazyRatioPerBlock;
 pub struct PriceWithRatio<P> {
     #[deref]
     #[deref_mut]
-    #[traversable(flatten)]
+    #[traversable(flatten, rename = "usd")]
     pub(crate) price: P,
     #[traversable(flatten)]
     pub relative: LazyRatioPerBlock<PriceRatio>,

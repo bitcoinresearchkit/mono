@@ -4,7 +4,7 @@ use std::{
     ops::Add,
 };
 
-use brk_types::{Cents, Dollars, Sats};
+use brk_types::{Cents, Dollars};
 use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
@@ -12,7 +12,7 @@ use serde::{
     ser::SerializeTuple,
 };
 
-use super::{Close, High, Low, OHLCDollars, OHLCSats, Open};
+use super::{Close, High, Low, OHLCDollars, Open};
 
 #[cfg(feature = "storage")]
 use vecdb::Result as VecdbResult;
@@ -118,7 +118,6 @@ macro_rules! impl_ohlc_deserialize {
 
 impl_ohlc_deserialize!(OHLCCents, Cents);
 impl_ohlc_deserialize!(OHLCDollars, Dollars);
-impl_ohlc_deserialize!(OHLCSats, Sats);
 
 /// The schema of the serialized form: `[open, high, low, close]`.
 macro_rules! impl_ohlc_schema {
@@ -146,11 +145,6 @@ impl_ohlc_schema!(
     OHLCDollars,
     Dollars,
     "Open, high, low and close prices in US dollars: [open, high, low, close]."
-);
-impl_ohlc_schema!(
-    OHLCSats,
-    Sats,
-    "Open, high, low and close prices in sats: [open, high, low, close]."
 );
 
 impl Display for OHLCCents {

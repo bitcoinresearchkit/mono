@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, mem, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use indexmap::IndexMap;
 use schemars::JsonSchema;
@@ -15,8 +15,6 @@ pub enum TreeNode {
     /// Leaf node containing series metadata with schema
     Leaf(SeriesLeafWithSchema),
 }
-
-const BASE: &str = "raw";
 
 impl TreeNode {
     pub fn branch(children: IndexMap<String, TreeNode>) -> Self {
@@ -198,8 +196,15 @@ impl TreeNode {
         Self::Leaf(merged_leaf.unwrap())
     }
 
+    fn leaf_and_group(key: &str, series: &str) -> ! {
+        panic!(
+            "Key '{key}' is both the series '{series}' and a group: give one of them its own key"
+        )
+    }
+
     /// Merges a node into the target map at the given key (consuming version).
-    /// Panics on a conflict: two different series, or one series with two descriptions.
+    /// Panics on a conflict: two different series, one series with two descriptions, or a key
+    /// that is both a series and a group.
     pub(crate) fn merge_node(target: &mut IndexMap<String, TreeNode>, key: String, node: TreeNode) {
         let Some(existing) = target.get_mut(&key) else {
             target.insert(key, node);
@@ -217,19 +222,8 @@ impl TreeNode {
             (Self::Leaf(a), Self::Leaf(b)) => {
                 panic!("Conflicting leaves for key '{key}':\n  existing: {a:?}\n  new: {b:?}")
             }
-            (existing @ Self::Leaf(_), Self::Branch(branch)) => {
-                let Self::Leaf(leaf) = mem::replace(existing, Self::branch(IndexMap::new())) else {
-                    unreachable!()
-                };
-                let Self::Branch(new_branch) = existing else {
-                    unreachable!()
-                };
-                new_branch.insert(BASE.to_string(), Self::Leaf(leaf));
-                new_branch.merge_fields(branch);
-            }
-            (Self::Branch(existing_branch), Self::Leaf(leaf)) => {
-                Self::merge_node(existing_branch, BASE.to_string(), Self::Leaf(leaf));
-            }
+            (Self::Leaf(leaf), Self::Branch(_)) => Self::leaf_and_group(&key, leaf.name()),
+            (Self::Branch(_), Self::Leaf(leaf)) => Self::leaf_and_group(&key, leaf.name()),
             // Both branches: merge recursively
             (Self::Branch(existing_branch), Self::Branch(new_inner)) => {
                 existing_branch.merge_fields(new_inner);

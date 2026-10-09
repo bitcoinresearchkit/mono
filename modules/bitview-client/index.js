@@ -398,17 +398,6 @@ prior template's transactions or a full transaction body.
  * @typedef {number} Cents
  */
 /**
- * A mean amount in cents.
- *
- * @typedef {number} CentsFract
- */
-/**
- * Signed cents (i64) - for values that can be negative.
- * Used for profit/loss calculations, deltas, etc.
- *
- * @typedef {number} CentsSigned
- */
-/**
  * URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.
  *
  * Names are non-empty ASCII `[a-z0-9_]+`. Availability is determined by
@@ -897,19 +886,9 @@ ancestors and no descendants (matches mempool.space).
  * @property {NextBlockHash} hash
  */
 /**
- * Open, high, low and close prices in cents: [open, high, low, close].
- *
- * @typedef {Cents[]} OHLCCents
- */
-/**
  * Open, high, low and close prices in US dollars: [open, high, low, close].
  *
  * @typedef {Dollars[]} OHLCDollars
- */
-/**
- * Open, high, low and close prices in sats: [open, high, low, close].
- *
- * @typedef {Sats[]} OHLCSats
  */
 /**
  * Index of an OP_RETURN output.
@@ -2796,44 +2775,210 @@ const _SoprRatioExtended = _s({
 
 /**
  * @typedef {{
- *   usd: SeriesPattern5<?Dollars>,
- *   cents: SeriesPattern5<?Cents>,
- *   sats: SeriesPattern5<Sats>,
- * }} Close
+ *   perCoin: SeriesPattern2<?Dollars>,
+ *   perDollar: SeriesPattern2<?Dollars>,
+ * }} CostBasisInLoss
  */
-const _Close = _s({
-  usd: [_i5, '*'],
-  cents: [_i5, '*_cents'],
-  sats: [_i5, '*_sats'],
-});
-
-/**
- * @template A, B, C
- * @typedef {{
- *   usd: SeriesPattern4<A>,
- *   cents: SeriesPattern4<B>,
- *   sats: SeriesPattern4<C>,
- * }} Ohlc
- */
-const _Ohlc = _s({
-  usd: [_i4, '*'],
-  cents: [_i4, '*_cents'],
-  sats: [_i4, '*_sats'],
+const _CostBasisInLoss = _s({
+  perCoin: [_i2, '*_coin'],
+  perDollar: [_i2, '*_dollar'],
 });
 
 /**
  * @typedef {{
- *   open: Ohlc<?Dollars, ?Cents, Sats>,
- *   high: Ohlc<?Dollars, ?Cents, Sats>,
- *   low: Ohlc<?Dollars, ?Cents, Sats>,
- *   close: Close,
+ *   min: SeriesPattern2<?Dollars>,
+ *   max: SeriesPattern2<?Dollars>,
+ * }} AgeBoundsAll
+ */
+const _AgeBoundsAll = _s({
+  min: [_i2, '*_min'],
+  max: [_i2, '*_max'],
+});
+
+/**
+ * @typedef {{
+ *   all: AgeBoundsAll,
+ *   sth: AgeBoundsAll,
+ *   lth: AgeBoundsAll,
+ *   under4m: AgeBoundsAll,
+ *   under6m: AgeBoundsAll,
+ *   over4m: AgeBoundsAll,
+ *   over6m: AgeBoundsAll,
+ * }} AgeBounds
+ */
+const _AgeBounds = _s({
+  all: [_AgeBoundsAll, '*_all_cost_basis'],
+  sth: [_AgeBoundsAll, '*_sth_cost_basis'],
+  lth: [_AgeBoundsAll, '*_lth_cost_basis'],
+  under4m: [_AgeBoundsAll, '*_under_4m_cost_basis'],
+  under6m: [_AgeBoundsAll, '*_under_6m_cost_basis'],
+  over4m: [_AgeBoundsAll, '*_over_4m_cost_basis'],
+  over6m: [_AgeBoundsAll, '*_over_6m_cost_basis'],
+});
+
+/**
+ * @typedef {{
+ *   ageBounds: AgeBounds,
+ * }} CohortsUrpd
+ */
+const _CohortsUrpd = _s({
+  ageBounds: [_AgeBounds, '*'],
+});
+
+/**
+ * @typedef {{
+ *   p2pk65: SeriesPattern2<?Dollars>,
+ *   p2pk33: SeriesPattern2<?Dollars>,
+ *   p2pkh: SeriesPattern2<?Dollars>,
+ *   p2ms: SeriesPattern2<?Dollars>,
+ *   p2sh: SeriesPattern2<?Dollars>,
+ *   p2wpkh: SeriesPattern2<?Dollars>,
+ *   p2wsh: SeriesPattern2<?Dollars>,
+ *   p2tr: SeriesPattern2<?Dollars>,
+ *   p2a: SeriesPattern2<?Dollars>,
+ *   unknown: SeriesPattern2<?Dollars>,
+ *   empty: SeriesPattern2<?Dollars>,
+ * }} Type
+ */
+const _Type = _s({
+  p2pk65: [_i2, 'p2pk65_*'],
+  p2pk33: [_i2, 'p2pk33_*'],
+  p2pkh: [_i2, 'p2pkh_*'],
+  p2ms: [_i2, 'p2ms_*'],
+  p2sh: [_i2, 'p2sh_*'],
+  p2wpkh: [_i2, 'p2wpkh_*'],
+  p2wsh: [_i2, 'p2wsh_*'],
+  p2tr: [_i2, 'p2tr_*'],
+  p2a: [_i2, 'p2a_*'],
+  unknown: [_i2, 'unknown_outputs_*'],
+  empty: [_i2, 'empty_outputs_*'],
+});
+
+/**
+ * @typedef {{
+ *   _0sats: SeriesPattern2<?Dollars>,
+ *   _1satTo10sats: SeriesPattern2<?Dollars>,
+ *   _10satsTo100sats: SeriesPattern2<?Dollars>,
+ *   _100satsTo1kSats: SeriesPattern2<?Dollars>,
+ *   _1kSatsTo10kSats: SeriesPattern2<?Dollars>,
+ *   _10kSatsTo100kSats: SeriesPattern2<?Dollars>,
+ *   _100kSatsTo1mSats: SeriesPattern2<?Dollars>,
+ *   _1mSatsTo10mSats: SeriesPattern2<?Dollars>,
+ *   _10mSatsTo1btc: SeriesPattern2<?Dollars>,
+ *   _1btcTo10btc: SeriesPattern2<?Dollars>,
+ *   _10btcTo100btc: SeriesPattern2<?Dollars>,
+ *   _100btcTo1kBtc: SeriesPattern2<?Dollars>,
+ *   _1kBtcTo10kBtc: SeriesPattern2<?Dollars>,
+ *   _10kBtcTo100kBtc: SeriesPattern2<?Dollars>,
+ *   over100kBtc: SeriesPattern2<?Dollars>,
+ * }} CapUtxoAmount
+ */
+const _CapUtxoAmount = _s({
+  _0sats: [_i2, 'utxos_0sats_*'],
+  _1satTo10sats: [_i2, 'utxos_1sat_to_10sats_*'],
+  _10satsTo100sats: [_i2, 'utxos_10sats_to_100sats_*'],
+  _100satsTo1kSats: [_i2, 'utxos_100sats_to_1k_sats_*'],
+  _1kSatsTo10kSats: [_i2, 'utxos_1k_sats_to_10k_sats_*'],
+  _10kSatsTo100kSats: [_i2, 'utxos_10k_sats_to_100k_sats_*'],
+  _100kSatsTo1mSats: [_i2, 'utxos_100k_sats_to_1m_sats_*'],
+  _1mSatsTo10mSats: [_i2, 'utxos_1m_sats_to_10m_sats_*'],
+  _10mSatsTo1btc: [_i2, 'utxos_10m_sats_to_1btc_*'],
+  _1btcTo10btc: [_i2, 'utxos_1btc_to_10btc_*'],
+  _10btcTo100btc: [_i2, 'utxos_10btc_to_100btc_*'],
+  _100btcTo1kBtc: [_i2, 'utxos_100btc_to_1k_btc_*'],
+  _1kBtcTo10kBtc: [_i2, 'utxos_1k_btc_to_10k_btc_*'],
+  _10kBtcTo100kBtc: [_i2, 'utxos_10k_btc_to_100k_btc_*'],
+  over100kBtc: [_i2, 'utxos_over_100k_btc_*'],
+});
+
+/**
+ * @typedef {{
+ *   _2009: SeriesPattern2<?Dollars>,
+ *   _2010: SeriesPattern2<?Dollars>,
+ *   _2011: SeriesPattern2<?Dollars>,
+ *   _2012: SeriesPattern2<?Dollars>,
+ *   _2013: SeriesPattern2<?Dollars>,
+ *   _2014: SeriesPattern2<?Dollars>,
+ *   _2015: SeriesPattern2<?Dollars>,
+ *   _2016: SeriesPattern2<?Dollars>,
+ *   _2017: SeriesPattern2<?Dollars>,
+ *   _2018: SeriesPattern2<?Dollars>,
+ *   _2019: SeriesPattern2<?Dollars>,
+ *   _2020: SeriesPattern2<?Dollars>,
+ *   _2021: SeriesPattern2<?Dollars>,
+ *   _2022: SeriesPattern2<?Dollars>,
+ *   _2023: SeriesPattern2<?Dollars>,
+ *   _2024: SeriesPattern2<?Dollars>,
+ *   _2025: SeriesPattern2<?Dollars>,
+ *   _2026: SeriesPattern2<?Dollars>,
+ * }} CapClass
+ */
+const _CapClass = _s({
+  _2009: [_i2, 'class_2009_*'],
+  _2010: [_i2, 'class_2010_*'],
+  _2011: [_i2, 'class_2011_*'],
+  _2012: [_i2, 'class_2012_*'],
+  _2013: [_i2, 'class_2013_*'],
+  _2014: [_i2, 'class_2014_*'],
+  _2015: [_i2, 'class_2015_*'],
+  _2016: [_i2, 'class_2016_*'],
+  _2017: [_i2, 'class_2017_*'],
+  _2018: [_i2, 'class_2018_*'],
+  _2019: [_i2, 'class_2019_*'],
+  _2020: [_i2, 'class_2020_*'],
+  _2021: [_i2, 'class_2021_*'],
+  _2022: [_i2, 'class_2022_*'],
+  _2023: [_i2, 'class_2023_*'],
+  _2024: [_i2, 'class_2024_*'],
+  _2025: [_i2, 'class_2025_*'],
+  _2026: [_i2, 'class_2026_*'],
+});
+
+/**
+ * @typedef {{
+ *   _0: SeriesPattern2<?Dollars>,
+ *   _1: SeriesPattern2<?Dollars>,
+ *   _2: SeriesPattern2<?Dollars>,
+ *   _3: SeriesPattern2<?Dollars>,
+ *   _4: SeriesPattern2<?Dollars>,
+ * }} CapEpoch
+ */
+const _CapEpoch = _s({
+  _0: [_i2, 'epoch_0_*'],
+  _1: [_i2, 'epoch_1_*'],
+  _2: [_i2, 'epoch_2_*'],
+  _3: [_i2, 'epoch_3_*'],
+  _4: [_i2, 'epoch_4_*'],
+});
+
+/**
+ * @typedef {{
+ *   open: SeriesPattern4<?Dollars>,
+ *   high: SeriesPattern4<?Dollars>,
+ *   low: SeriesPattern4<?Dollars>,
+ *   close: SeriesPattern5<?Dollars>,
  * }} Split
  */
 const _Split = _s({
-  open: [_Ohlc, '*_open'],
-  high: [_Ohlc, '*_high'],
-  low: [_Ohlc, '*_low'],
-  close: [_Close, '*_close'],
+  open: [_i4, '*_open'],
+  high: [_i4, '*_high'],
+  low: [_i4, '*_low'],
+  close: [_i5, '*_close'],
+});
+
+/**
+ * @typedef {{
+ *   split: Split,
+ *   ohlc: SeriesPattern4<OHLCDollars>,
+ *   spot: SeriesPattern2<?Dollars>,
+ *   satsPerDollar: SeriesPattern2<Sats>,
+ * }} Price
+ */
+const _Price = _s({
+  split: [_Split, '*'],
+  ohlc: [_i4, '*_ohlc'],
+  spot: [_i2, '*'],
+  satsPerDollar: [_i2, 'sats_per_dollar'],
 });
 
 /**
@@ -2855,6 +3000,53 @@ const _Macd1m = _s({
 
 /**
  * @typedef {{
+ *   usd: SeriesPattern2<?Dollars>,
+ *   ppm: SeriesPattern2<?PriceRatio>,
+ *   ratio: SeriesPattern2<?Ratio>,
+ *   x2: SeriesPattern2<?Dollars>,
+ * }} Sma350d
+ */
+const _Sma350d = _s({
+  usd: [_i2, '*'],
+  ppm: [_i2, '*_ratio_ppm'],
+  ratio: [_i2, '*_ratio'],
+  x2: [_i2, '*_x2'],
+});
+
+/**
+ * @typedef {{
+ *   usd: SeriesPattern2<?Dollars>,
+ *   ppm: SeriesPattern2<?PriceRatio>,
+ *   ratio: SeriesPattern2<?Ratio>,
+ *   x24: SeriesPattern2<?Dollars>,
+ *   x08: SeriesPattern2<?Dollars>,
+ * }} Sma200d
+ */
+const _Sma200d = _s({
+  usd: [_i2, '*'],
+  ppm: [_i2, '*_ratio_ppm'],
+  ratio: [_i2, '*_ratio'],
+  x24: [_i2, '*_x2_4'],
+  x08: [_i2, '*_x0_8'],
+});
+
+/**
+ * @typedef {{
+ *   _1w: SeriesPattern2<?Dollars>,
+ *   _2w: SeriesPattern2<?Dollars>,
+ *   _1m: SeriesPattern2<?Dollars>,
+ *   _1y: SeriesPattern2<?Dollars>,
+ * }} Max
+ */
+const _Max = _s({
+  _1w: [_i2, '*_1w'],
+  _2w: [_i2, '*_2w'],
+  _1m: [_i2, '*_1m'],
+  _1y: [_i2, '*_1y'],
+});
+
+/**
+ * @typedef {{
  *   sma: SeriesPattern2<?Ratio>,
  *   sd: SeriesPattern2<?Ratio>,
  * }} Sd24h1m
@@ -2862,6 +3054,39 @@ const _Macd1m = _s({
 const _Sd24h1m = _s({
   sma: [_i2, 'price_return_24h_sma_*'],
   sd: [_i2, 'price_return_24h_sd_*'],
+});
+
+/**
+ * @typedef {{
+ *   _24h: SeriesPattern2<?Dollars>,
+ *   _1w: SeriesPattern2<?Dollars>,
+ *   _1m: SeriesPattern2<?Dollars>,
+ *   _3m: SeriesPattern2<?Dollars>,
+ *   _6m: SeriesPattern2<?Dollars>,
+ *   _1y: SeriesPattern2<?Dollars>,
+ *   _2y: SeriesPattern2<?Dollars>,
+ *   _3y: SeriesPattern2<?Dollars>,
+ *   _4y: SeriesPattern2<?Dollars>,
+ *   _5y: SeriesPattern2<?Dollars>,
+ *   _6y: SeriesPattern2<?Dollars>,
+ *   _8y: SeriesPattern2<?Dollars>,
+ *   _10y: SeriesPattern2<?Dollars>,
+ * }} MarketLookback
+ */
+const _MarketLookback = _s({
+  _24h: [_i2, '*_24h'],
+  _1w: [_i2, '*_1w'],
+  _1m: [_i2, '*_1m'],
+  _3m: [_i2, '*_3m'],
+  _6m: [_i2, '*_6m'],
+  _1y: [_i2, '*_1y'],
+  _2y: [_i2, '*_2y'],
+  _3y: [_i2, '*_3y'],
+  _4y: [_i2, '*_4y'],
+  _5y: [_i2, '*_5y'],
+  _6y: [_i2, '*_6y'],
+  _8y: [_i2, '*_8y'],
+  _10y: [_i2, '*_10y'],
 });
 
 /**
@@ -3367,432 +3592,49 @@ const _Constants = _s({
 
 /**
  * @typedef {{
- *   isLong: SeriesPattern2<Boolean>,
- *   isShort: SeriesPattern2<Boolean>,
- *   phase: SeriesPattern3<CapitalSentimentPhase>,
- *   score: SeriesPattern3<Score>,
- * }} CapitalSentiment
- */
-const _CapitalSentiment = _s({
-  isLong: [_i2, '*_is_long'],
-  isShort: [_i2, '*_is_short'],
-  phase: [_i3, '*_phase'],
-  score: [_i3, '*_score'],
-});
-
-/**
- * @typedef {{
- *   pct95: SeriesPattern2<?Ratio64>,
- *   pct98: SeriesPattern2<?Ratio64>,
- *   pct99: SeriesPattern2<?Ratio64>,
- *   pct995: SeriesPattern2<?Ratio64>,
- *   pct999: SeriesPattern2<?Ratio64>,
- * }} SupplyInLossThreshold
- */
-const _SupplyInLossThreshold = _s({
-  pct95: [_i2, '*_pct95_ratio'],
-  pct98: [_i2, '*_pct98_ratio'],
-  pct99: [_i2, '*_pct99_ratio'],
-  pct995: [_i2, '*_pct99_5_ratio'],
-  pct999: [_i2, '*_pct99_9_ratio'],
-});
-
-/**
- * @typedef {{
- *   value: SeriesPattern2<?Float64>,
- *   vocddMedian1y: SeriesPattern21<?Float64>,
- *   hodlBank: SeriesPattern21<?Float64>,
- * }} ReserveRisk
- */
-const _ReserveRisk = _s({
-  value: [_i2, '*'],
-  vocddMedian1y: [_i21, 'vocdd_median_1y'],
-  hodlBank: [_i21, 'hodl_bank'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   ppm: SeriesPattern2<A>,
- *   ratio: SeriesPattern2<?Ratio>,
- * }} RhodlRatio
- */
-const _RhodlRatio = _s({
-  ppm: [_i2, '*_ppm'],
-  ratio: [_i2, '*'],
-});
-
-/**
- * @typedef {{
- *   bounded: SeriesPattern2<?BoundedRatio>,
- *   ratio: SeriesPattern2<?Ratio64>,
- * }} Share
- */
-const _Share = _s({
-  bounded: [_i2, '*_bounded'],
-  ratio: [_i2, '*'],
-});
-
-/**
- * @typedef {{
- *   share: Share,
- * }} ActiveInLoss
- */
-const _ActiveInLoss = _s({
-  share: [_Share, '*'],
-});
-
-/**
- * @typedef {{
- *   btc: SeriesPattern2<?Bitcoin>,
- *   sats: SeriesPattern2<Sats>,
- *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<?Cents>,
- *   inLoss: ActiveInLoss,
- * }} Active
- */
-const _Active = _s({
-  btc: [_i2, 'active_*'],
-  sats: [_i2, 'active_*_sats'],
-  usd: [_i2, 'active_*_usd'],
-  cents: [_i2, 'active_*_cents'],
-  inLoss: [_ActiveInLoss, 'cointime_*_in_loss_share'],
-});
-
-/**
- * @typedef {{
- *   share: SeriesPattern2<?Ratio64>,
- * }} MobileInLoss
- */
-const _MobileInLoss = _s({
-  share: [_i2, '*'],
-});
-
-/**
- * @typedef {{
- *   btc: SeriesPattern2<?Bitcoin>,
- *   sats: SeriesPattern2<Sats>,
- *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<?Cents>,
- *   inLoss: MobileInLoss,
- * }} Mobile
- */
-const _Mobile = _s({
-  btc: [_i2, '*_mobile_supply'],
-  sats: [_i2, '*_mobile_supply_sats'],
-  usd: [_i2, '*_mobile_supply_usd'],
-  cents: [_i2, '*_mobile_supply_cents'],
-  inLoss: [_MobileInLoss, '*_coinflow_supply_in_loss_share'],
-});
-
-/**
- * @typedef {{
- *   btc: SeriesPattern2<?Bitcoin>,
- *   sats: SeriesPattern2<Sats>,
- *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<?Cents>,
- *   inLoss: MobileInLoss,
- * }} AwakeSupply
- */
-const _AwakeSupply = _s({
-  btc: [_i2, '*'],
-  sats: [_i2, '*_sats'],
-  usd: [_i2, '*_usd'],
-  cents: [_i2, '*_cents'],
-  inLoss: [_MobileInLoss, '*_in_loss_share'],
-});
-
-/**
- * @typedef {{
- *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<?Cents>,
- *   sats: SeriesPattern2<?SatsFract>,
- *   ppm: SeriesPattern2<?PriceRatio>,
- *   ratio: SeriesPattern2<?Ratio>,
- * }} CapitalizedPrice
- */
-const _CapitalizedPrice = _s({
-  usd: [_i2, '*'],
-  cents: [_i2, '*_cents'],
-  sats: [_i2, '*_sats'],
-  ppm: [_i2, '*_ratio_ppm'],
-  ratio: [_i2, '*_ratio'],
-});
-
-/**
- * @typedef {{
- *   _1w: CapitalizedPrice,
- *   _8d: CapitalizedPrice,
- *   _12d: CapitalizedPrice,
- *   _13d: CapitalizedPrice,
- *   _21d: CapitalizedPrice,
- *   _26d: CapitalizedPrice,
- *   _1m: CapitalizedPrice,
- *   _34d: CapitalizedPrice,
- *   _55d: CapitalizedPrice,
- *   _89d: CapitalizedPrice,
- *   _144d: CapitalizedPrice,
- *   _200d: CapitalizedPrice,
- *   _1y: CapitalizedPrice,
- *   _2y: CapitalizedPrice,
- *   _200w: CapitalizedPrice,
- *   _4y: CapitalizedPrice,
- * }} Ema
- */
-const _Ema = _s({
-  _1w: [_CapitalizedPrice, '*_1w'],
-  _8d: [_CapitalizedPrice, '*_8d'],
-  _12d: [_CapitalizedPrice, '*_12d'],
-  _13d: [_CapitalizedPrice, '*_13d'],
-  _21d: [_CapitalizedPrice, '*_21d'],
-  _26d: [_CapitalizedPrice, '*_26d'],
-  _1m: [_CapitalizedPrice, '*_1m'],
-  _34d: [_CapitalizedPrice, '*_34d'],
-  _55d: [_CapitalizedPrice, '*_55d'],
-  _89d: [_CapitalizedPrice, '*_89d'],
-  _144d: [_CapitalizedPrice, '*_144d'],
-  _200d: [_CapitalizedPrice, '*_200d'],
-  _1y: [_CapitalizedPrice, '*_1y'],
-  _2y: [_CapitalizedPrice, '*_2y'],
-  _200w: [_CapitalizedPrice, '*_200w'],
-  _4y: [_CapitalizedPrice, '*_4y'],
-});
-
-/**
- * @typedef {{
- *   vaulted: CapitalizedPrice,
- *   active: CapitalizedPrice,
- *   trueMarketMean: CapitalizedPrice,
- *   cointime: CapitalizedPrice,
- * }} CointimePrices
- */
-const _CointimePrices = _s({
-  vaulted: [_CapitalizedPrice, 'vaulted_*'],
-  active: [_CapitalizedPrice, 'active_*'],
-  trueMarketMean: [_CapitalizedPrice, 'true_market_mean'],
-  cointime: [_CapitalizedPrice, 'cointime_*'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<?Cents>,
- *   sats: SeriesPattern2<A>,
- * }} Spot
- */
-const _Spot = _s({
-  usd: [_i2, '*'],
-  cents: [_i2, '*_cents'],
-  sats: [_i2, '*_sats'],
-});
-
-/**
- * @typedef {{
- *   min: Spot<?SatsFract>,
- *   max: Spot<?SatsFract>,
- * }} AgeBoundsAll
- */
-const _AgeBoundsAll = _s({
-  min: [_Spot, '*_min'],
-  max: [_Spot, '*_max'],
-});
-
-/**
- * @typedef {{
- *   all: AgeBoundsAll,
- *   sth: AgeBoundsAll,
- *   lth: AgeBoundsAll,
- *   under4m: AgeBoundsAll,
- *   under6m: AgeBoundsAll,
- *   over4m: AgeBoundsAll,
- *   over6m: AgeBoundsAll,
- * }} AgeBounds
- */
-const _AgeBounds = _s({
-  all: [_AgeBoundsAll, '*_all_cost_basis'],
-  sth: [_AgeBoundsAll, '*_sth_cost_basis'],
-  lth: [_AgeBoundsAll, '*_lth_cost_basis'],
-  under4m: [_AgeBoundsAll, '*_under_4m_cost_basis'],
-  under6m: [_AgeBoundsAll, '*_under_6m_cost_basis'],
-  over4m: [_AgeBoundsAll, '*_over_4m_cost_basis'],
-  over6m: [_AgeBoundsAll, '*_over_6m_cost_basis'],
-});
-
-/**
- * @typedef {{
- *   ageBounds: AgeBounds,
- * }} CohortsUrpd
- */
-const _CohortsUrpd = _s({
-  ageBounds: [_AgeBounds, '*'],
-});
-
-/**
- * @typedef {{
- *   split: Split,
- *   ohlc: Ohlc<OHLCDollars, OHLCCents, OHLCSats>,
- *   spot: Spot<Sats>,
- * }} Price
- */
-const _Price = _s({
-  split: [_Split, '*'],
-  ohlc: [_Ohlc, '*_ohlc'],
-  spot: [_Spot, '*'],
-});
-
-/**
- * @typedef {{
- *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<?Cents>,
- *   sats: SeriesPattern2<?SatsFract>,
- *   ppm: SeriesPattern2<?PriceRatio>,
- *   ratio: SeriesPattern2<?Ratio>,
- *   x2: Spot<?SatsFract>,
- * }} Sma350d
- */
-const _Sma350d = _s({
-  usd: [_i2, '*'],
-  cents: [_i2, '*_cents'],
-  sats: [_i2, '*_sats'],
-  ppm: [_i2, '*_ratio_ppm'],
-  ratio: [_i2, '*_ratio'],
-  x2: [_Spot, '*_x2'],
-});
-
-/**
- * @typedef {{
- *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<?Cents>,
- *   sats: SeriesPattern2<?SatsFract>,
- *   ppm: SeriesPattern2<?PriceRatio>,
- *   ratio: SeriesPattern2<?Ratio>,
- *   x24: Spot<?SatsFract>,
- *   x08: Spot<?SatsFract>,
- * }} Sma200d
- */
-const _Sma200d = _s({
-  usd: [_i2, '*'],
-  cents: [_i2, '*_cents'],
-  sats: [_i2, '*_sats'],
-  ppm: [_i2, '*_ratio_ppm'],
-  ratio: [_i2, '*_ratio'],
-  x24: [_Spot, '*_x2_4'],
-  x08: [_Spot, '*_x0_8'],
-});
-
-/**
- * @typedef {{
- *   _1w: CapitalizedPrice,
- *   _8d: CapitalizedPrice,
- *   _13d: CapitalizedPrice,
- *   _21d: CapitalizedPrice,
- *   _1m: CapitalizedPrice,
- *   _34d: CapitalizedPrice,
- *   _50d: CapitalizedPrice,
- *   _55d: CapitalizedPrice,
- *   _89d: CapitalizedPrice,
- *   _111d: CapitalizedPrice,
- *   _144d: CapitalizedPrice,
- *   _200d: Sma200d,
- *   _350d: Sma350d,
- *   _1y: CapitalizedPrice,
- *   _2y: CapitalizedPrice,
- *   _200w: CapitalizedPrice,
- *   _4y: CapitalizedPrice,
- * }} MovingAverageSma
- */
-const _MovingAverageSma = _s({
-  _1w: [_CapitalizedPrice, '*_1w'],
-  _8d: [_CapitalizedPrice, '*_8d'],
-  _13d: [_CapitalizedPrice, '*_13d'],
-  _21d: [_CapitalizedPrice, '*_21d'],
-  _1m: [_CapitalizedPrice, '*_1m'],
-  _34d: [_CapitalizedPrice, '*_34d'],
-  _50d: [_CapitalizedPrice, '*_50d'],
-  _55d: [_CapitalizedPrice, '*_55d'],
-  _89d: [_CapitalizedPrice, '*_89d'],
-  _111d: [_CapitalizedPrice, '*_111d'],
-  _144d: [_CapitalizedPrice, '*_144d'],
-  _200d: [_Sma200d, '*_200d'],
-  _350d: [_Sma350d, '*_350d'],
-  _1y: [_CapitalizedPrice, '*_1y'],
-  _2y: [_CapitalizedPrice, '*_2y'],
-  _200w: [_CapitalizedPrice, '*_200w'],
-  _4y: [_CapitalizedPrice, '*_4y'],
-});
-
-/**
- * @typedef {{
- *   sma: MovingAverageSma,
- *   ema: Ema,
- * }} MovingAverage
- */
-const _MovingAverage = _s({
-  sma: [_MovingAverageSma, '*_sma'],
-  ema: [_Ema, '*_ema'],
-});
-
-/**
- * @typedef {{
- *   _1w: Spot<?SatsFract>,
- *   _2w: Spot<?SatsFract>,
- *   _1m: Spot<?SatsFract>,
- *   _1y: Spot<?SatsFract>,
- * }} Max
- */
-const _Max = _s({
-  _1w: [_Spot, '*_1w'],
-  _2w: [_Spot, '*_2w'],
-  _1m: [_Spot, '*_1m'],
-  _1y: [_Spot, '*_1y'],
-});
-
-/**
- * @typedef {{
- *   pct01: Spot<?SatsFract>,
- *   pct05: Spot<?SatsFract>,
- *   pct1: Spot<?SatsFract>,
- *   pct2: Spot<?SatsFract>,
- *   pct5: Spot<?SatsFract>,
- *   pct10: Spot<?SatsFract>,
- *   pct20: Spot<?SatsFract>,
- *   pct30: Spot<?SatsFract>,
- *   pct40: Spot<?SatsFract>,
- *   pct50: Spot<?SatsFract>,
- *   pct60: Spot<?SatsFract>,
- *   pct70: Spot<?SatsFract>,
- *   pct80: Spot<?SatsFract>,
- *   pct90: Spot<?SatsFract>,
- *   pct95: Spot<?SatsFract>,
- *   pct98: Spot<?SatsFract>,
- *   pct99: Spot<?SatsFract>,
- *   pct995: Spot<?SatsFract>,
- *   pct999: Spot<?SatsFract>,
+ *   pct01: SeriesPattern2<?Dollars>,
+ *   pct05: SeriesPattern2<?Dollars>,
+ *   pct1: SeriesPattern2<?Dollars>,
+ *   pct2: SeriesPattern2<?Dollars>,
+ *   pct5: SeriesPattern2<?Dollars>,
+ *   pct10: SeriesPattern2<?Dollars>,
+ *   pct20: SeriesPattern2<?Dollars>,
+ *   pct30: SeriesPattern2<?Dollars>,
+ *   pct40: SeriesPattern2<?Dollars>,
+ *   pct50: SeriesPattern2<?Dollars>,
+ *   pct60: SeriesPattern2<?Dollars>,
+ *   pct70: SeriesPattern2<?Dollars>,
+ *   pct80: SeriesPattern2<?Dollars>,
+ *   pct90: SeriesPattern2<?Dollars>,
+ *   pct95: SeriesPattern2<?Dollars>,
+ *   pct98: SeriesPattern2<?Dollars>,
+ *   pct99: SeriesPattern2<?Dollars>,
+ *   pct995: SeriesPattern2<?Dollars>,
+ *   pct999: SeriesPattern2<?Dollars>,
  *   level: SeriesPattern2<Score>,
  *   score: SeriesPattern2<Score>,
  * }} Cycle
  */
 const _Cycle = _s({
-  pct01: [_Spot, '*_pct0_1'],
-  pct05: [_Spot, '*_pct0_5'],
-  pct1: [_Spot, '*_pct01'],
-  pct2: [_Spot, '*_pct02'],
-  pct5: [_Spot, '*_pct05'],
-  pct10: [_Spot, '*_pct10'],
-  pct20: [_Spot, '*_pct20'],
-  pct30: [_Spot, '*_pct30'],
-  pct40: [_Spot, '*_pct40'],
-  pct50: [_Spot, '*_pct50'],
-  pct60: [_Spot, '*_pct60'],
-  pct70: [_Spot, '*_pct70'],
-  pct80: [_Spot, '*_pct80'],
-  pct90: [_Spot, '*_pct90'],
-  pct95: [_Spot, '*_pct95'],
-  pct98: [_Spot, '*_pct98'],
-  pct99: [_Spot, '*_pct99'],
-  pct995: [_Spot, '*_pct99_5'],
-  pct999: [_Spot, '*_pct99_9'],
+  pct01: [_i2, '*_pct0_1'],
+  pct05: [_i2, '*_pct0_5'],
+  pct1: [_i2, '*_pct01'],
+  pct2: [_i2, '*_pct02'],
+  pct5: [_i2, '*_pct05'],
+  pct10: [_i2, '*_pct10'],
+  pct20: [_i2, '*_pct20'],
+  pct30: [_i2, '*_pct30'],
+  pct40: [_i2, '*_pct40'],
+  pct50: [_i2, '*_pct50'],
+  pct60: [_i2, '*_pct60'],
+  pct70: [_i2, '*_pct70'],
+  pct80: [_i2, '*_pct80'],
+  pct90: [_i2, '*_pct90'],
+  pct95: [_i2, '*_pct95'],
+  pct98: [_i2, '*_pct98'],
+  pct99: [_i2, '*_pct99'],
+  pct995: [_i2, '*_pct99_5'],
+  pct999: [_i2, '*_pct99_9'],
   level: [_i2, '*_level'],
   score: [_i2, '*_score'],
 });
@@ -3801,254 +3643,252 @@ const _Cycle = _s({
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct999
  */
 const _Pct999 = _s({
   ppm: [_i2, '*_ratio_pct99_9_ppm'],
   ratio: [_i2, '*_ratio_pct99_9'],
-  price: [_Spot, '*_pct99_9'],
+  price: [_i2, '*_pct99_9'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct995
  */
 const _Pct995 = _s({
   ppm: [_i2, '*_ratio_pct99_5_ppm'],
   ratio: [_i2, '*_ratio_pct99_5'],
-  price: [_Spot, '*_pct99_5'],
+  price: [_i2, '*_pct99_5'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct99
  */
 const _Pct99 = _s({
   ppm: [_i2, '*_ratio_pct99_ppm'],
   ratio: [_i2, '*_ratio_pct99'],
-  price: [_Spot, '*_pct99'],
+  price: [_i2, '*_pct99'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct98
  */
 const _Pct98 = _s({
   ppm: [_i2, '*_ratio_pct98_ppm'],
   ratio: [_i2, '*_ratio_pct98'],
-  price: [_Spot, '*_pct98'],
+  price: [_i2, '*_pct98'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct95
  */
 const _Pct95 = _s({
   ppm: [_i2, '*_ratio_pct95_ppm'],
   ratio: [_i2, '*_ratio_pct95'],
-  price: [_Spot, '*_pct95'],
+  price: [_i2, '*_pct95'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct90
  */
 const _Pct90 = _s({
   ppm: [_i2, '*_ratio_pct90_ppm'],
   ratio: [_i2, '*_ratio_pct90'],
-  price: [_Spot, '*_pct90'],
+  price: [_i2, '*_pct90'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct80
  */
 const _Pct80 = _s({
   ppm: [_i2, '*_ratio_pct80_ppm'],
   ratio: [_i2, '*_ratio_pct80'],
-  price: [_Spot, '*_pct80'],
+  price: [_i2, '*_pct80'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct70
  */
 const _Pct70 = _s({
   ppm: [_i2, '*_ratio_pct70_ppm'],
   ratio: [_i2, '*_ratio_pct70'],
-  price: [_Spot, '*_pct70'],
+  price: [_i2, '*_pct70'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct60
  */
 const _Pct60 = _s({
   ppm: [_i2, '*_ratio_pct60_ppm'],
   ratio: [_i2, '*_ratio_pct60'],
-  price: [_Spot, '*_pct60'],
+  price: [_i2, '*_pct60'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct50
  */
 const _Pct50 = _s({
   ppm: [_i2, '*_ratio_pct50_ppm'],
   ratio: [_i2, '*_ratio_pct50'],
-  price: [_Spot, '*_pct50'],
+  price: [_i2, '*_pct50'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct40
  */
 const _Pct40 = _s({
   ppm: [_i2, '*_ratio_pct40_ppm'],
   ratio: [_i2, '*_ratio_pct40'],
-  price: [_Spot, '*_pct40'],
+  price: [_i2, '*_pct40'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct30
  */
 const _Pct30 = _s({
   ppm: [_i2, '*_ratio_pct30_ppm'],
   ratio: [_i2, '*_ratio_pct30'],
-  price: [_Spot, '*_pct30'],
+  price: [_i2, '*_pct30'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct20
  */
 const _Pct20 = _s({
   ppm: [_i2, '*_ratio_pct20_ppm'],
   ratio: [_i2, '*_ratio_pct20'],
-  price: [_Spot, '*_pct20'],
+  price: [_i2, '*_pct20'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct10
  */
 const _Pct10 = _s({
   ppm: [_i2, '*_ratio_pct10_ppm'],
   ratio: [_i2, '*_ratio_pct10'],
-  price: [_Spot, '*_pct10'],
+  price: [_i2, '*_pct10'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct5
  */
 const _Pct5 = _s({
   ppm: [_i2, '*_ratio_pct5_ppm'],
   ratio: [_i2, '*_ratio_pct5'],
-  price: [_Spot, '*_pct5'],
+  price: [_i2, '*_pct5'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct2
  */
 const _Pct2 = _s({
   ppm: [_i2, '*_ratio_pct2_ppm'],
   ratio: [_i2, '*_ratio_pct2'],
-  price: [_Spot, '*_pct2'],
+  price: [_i2, '*_pct2'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct1
  */
 const _Pct1 = _s({
   ppm: [_i2, '*_ratio_pct1_ppm'],
   ratio: [_i2, '*_ratio_pct1'],
-  price: [_Spot, '*_pct1'],
+  price: [_i2, '*_pct1'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct05
  */
 const _Pct05 = _s({
   ppm: [_i2, '*_ratio_pct0_5_ppm'],
   ratio: [_i2, '*_ratio_pct0_5'],
-  price: [_Spot, '*_pct0_5'],
+  price: [_i2, '*_pct0_5'],
 });
 
 /**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
- *   price: Spot<?SatsFract>,
+ *   price: SeriesPattern2<?Dollars>,
  * }} Pct01
  */
 const _Pct01 = _s({
   ppm: [_i2, '*_ratio_pct0_1_ppm'],
   ratio: [_i2, '*_ratio_pct0_1'],
-  price: [_Spot, '*_pct0_1'],
+  price: [_i2, '*_pct0_1'],
 });
 
 /**
  * @typedef {{
  *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<?Cents>,
- *   sats: SeriesPattern2<?SatsFract>,
  *   ppm: SeriesPattern2<?PriceRatio>,
  *   ratio: SeriesPattern2<?Ratio>,
  *   pct01: Pct01,
@@ -4074,8 +3914,6 @@ const _Pct01 = _s({
  */
 const _CoinflowMedianPriceBtcWeighted = _s({
   usd: [_i2, '*'],
-  cents: [_i2, '*_cents'],
-  sats: [_i2, '*_sats'],
   ppm: [_i2, '*_ratio_ppm'],
   ratio: [_i2, '*_ratio'],
   pct01: [_Pct01, '*'],
@@ -4225,44 +4063,76 @@ const _Components = _s({
 
 /**
  * @typedef {{
- *   pct10: Spot<?SatsFract>,
- *   pct20: Spot<?SatsFract>,
- *   pct30: Spot<?SatsFract>,
- *   pct40: Spot<?SatsFract>,
- *   pct50: Spot<?SatsFract>,
- *   pct60: Spot<?SatsFract>,
- *   pct70: Spot<?SatsFract>,
- *   pct80: Spot<?SatsFract>,
- *   pct90: Spot<?SatsFract>,
- * }} Level
+ *   isLong: SeriesPattern2<Boolean>,
+ *   isShort: SeriesPattern2<Boolean>,
+ *   phase: SeriesPattern3<CapitalSentimentPhase>,
+ *   score: SeriesPattern3<Score>,
+ * }} CapitalSentiment
  */
-const _Level = _s({
-  pct10: [_Spot, '*_pct10'],
-  pct20: [_Spot, '*_pct20'],
-  pct30: [_Spot, '*_pct30'],
-  pct40: [_Spot, '*_pct40'],
-  pct50: [_Spot, '*_pct50'],
-  pct60: [_Spot, '*_pct60'],
-  pct70: [_Spot, '*_pct70'],
-  pct80: [_Spot, '*_pct80'],
-  pct90: [_Spot, '*_pct90'],
+const _CapitalSentiment = _s({
+  isLong: [_i2, '*_is_long'],
+  isShort: [_i2, '*_is_short'],
+  phase: [_i3, '*_phase'],
+  score: [_i3, '*_score'],
 });
 
 /**
  * @typedef {{
- *   pct95: Spot<?SatsFract>,
- *   pct98: Spot<?SatsFract>,
- *   pct99: Spot<?SatsFract>,
- *   pct995: Spot<?SatsFract>,
- *   pct999: Spot<?SatsFract>,
+ *   pct10: SeriesPattern2<?Dollars>,
+ *   pct20: SeriesPattern2<?Dollars>,
+ *   pct30: SeriesPattern2<?Dollars>,
+ *   pct40: SeriesPattern2<?Dollars>,
+ *   pct50: SeriesPattern2<?Dollars>,
+ *   pct60: SeriesPattern2<?Dollars>,
+ *   pct70: SeriesPattern2<?Dollars>,
+ *   pct80: SeriesPattern2<?Dollars>,
+ *   pct90: SeriesPattern2<?Dollars>,
+ * }} Level
+ */
+const _Level = _s({
+  pct10: [_i2, '*_pct10'],
+  pct20: [_i2, '*_pct20'],
+  pct30: [_i2, '*_pct30'],
+  pct40: [_i2, '*_pct40'],
+  pct50: [_i2, '*_pct50'],
+  pct60: [_i2, '*_pct60'],
+  pct70: [_i2, '*_pct70'],
+  pct80: [_i2, '*_pct80'],
+  pct90: [_i2, '*_pct90'],
+});
+
+/**
+ * @typedef {{
+ *   pct95: SeriesPattern2<?Dollars>,
+ *   pct98: SeriesPattern2<?Dollars>,
+ *   pct99: SeriesPattern2<?Dollars>,
+ *   pct995: SeriesPattern2<?Dollars>,
+ *   pct999: SeriesPattern2<?Dollars>,
  * }} Floor
  */
 const _Floor = _s({
-  pct95: [_Spot, '*_pct95'],
-  pct98: [_Spot, '*_pct98'],
-  pct99: [_Spot, '*_pct99'],
-  pct995: [_Spot, '*_pct99_5'],
-  pct999: [_Spot, '*_pct99_9'],
+  pct95: [_i2, '*_pct95'],
+  pct98: [_i2, '*_pct98'],
+  pct99: [_i2, '*_pct99'],
+  pct995: [_i2, '*_pct99_5'],
+  pct999: [_i2, '*_pct99_9'],
+});
+
+/**
+ * @typedef {{
+ *   pct95: SeriesPattern2<?Ratio64>,
+ *   pct98: SeriesPattern2<?Ratio64>,
+ *   pct99: SeriesPattern2<?Ratio64>,
+ *   pct995: SeriesPattern2<?Ratio64>,
+ *   pct999: SeriesPattern2<?Ratio64>,
+ * }} SupplyInLossThreshold
+ */
+const _SupplyInLossThreshold = _s({
+  pct95: [_i2, '*_pct95_ratio'],
+  pct98: [_i2, '*_pct98_ratio'],
+  pct99: [_i2, '*_pct99_ratio'],
+  pct995: [_i2, '*_pct99_5_ratio'],
+  pct999: [_i2, '*_pct99_9_ratio'],
 });
 
 /**
@@ -4293,60 +4163,346 @@ const _Bedrock = _s({
 
 /**
  * @typedef {{
- *   pct05: Spot<?SatsFract>,
- *   pct10: Spot<?SatsFract>,
- *   pct15: Spot<?SatsFract>,
- *   pct20: Spot<?SatsFract>,
- *   pct25: Spot<?SatsFract>,
- *   pct30: Spot<?SatsFract>,
- *   pct35: Spot<?SatsFract>,
- *   pct40: Spot<?SatsFract>,
- *   pct45: Spot<?SatsFract>,
- *   pct50: Spot<?SatsFract>,
- *   pct55: Spot<?SatsFract>,
- *   pct60: Spot<?SatsFract>,
- *   pct65: Spot<?SatsFract>,
- *   pct70: Spot<?SatsFract>,
- *   pct75: Spot<?SatsFract>,
- *   pct80: Spot<?SatsFract>,
- *   pct85: Spot<?SatsFract>,
- *   pct90: Spot<?SatsFract>,
- *   pct95: Spot<?SatsFract>,
- * }} PerCoin
+ *   value: SeriesPattern2<?Float64>,
+ *   vocddMedian1y: SeriesPattern21<?Float64>,
+ *   hodlBank: SeriesPattern21<?Float64>,
+ * }} ReserveRisk
  */
-const _PerCoin = _s({
-  pct05: [_Spot, '*_pct05'],
-  pct10: [_Spot, '*_pct10'],
-  pct15: [_Spot, '*_pct15'],
-  pct20: [_Spot, '*_pct20'],
-  pct25: [_Spot, '*_pct25'],
-  pct30: [_Spot, '*_pct30'],
-  pct35: [_Spot, '*_pct35'],
-  pct40: [_Spot, '*_pct40'],
-  pct45: [_Spot, '*_pct45'],
-  pct50: [_Spot, '*_pct50'],
-  pct55: [_Spot, '*_pct55'],
-  pct60: [_Spot, '*_pct60'],
-  pct65: [_Spot, '*_pct65'],
-  pct70: [_Spot, '*_pct70'],
-  pct75: [_Spot, '*_pct75'],
-  pct80: [_Spot, '*_pct80'],
-  pct85: [_Spot, '*_pct85'],
-  pct90: [_Spot, '*_pct90'],
-  pct95: [_Spot, '*_pct95'],
+const _ReserveRisk = _s({
+  value: [_i2, '*'],
+  vocddMedian1y: [_i21, 'vocdd_median_1y'],
+  hodlBank: [_i21, 'hodl_bank'],
 });
 
 /**
  * @template A
  * @typedef {{
- *   perCoin: A,
- *   perDollar: A,
+ *   ppm: SeriesPattern2<A>,
+ *   ratio: SeriesPattern2<?Ratio>,
+ * }} RhodlRatio
+ */
+const _RhodlRatio = _s({
+  ppm: [_i2, '*_ppm'],
+  ratio: [_i2, '*'],
+});
+
+/**
+ * @typedef {{
+ *   profit: SeriesPattern2<?Dollars>,
+ *   loss: SeriesPattern2<?Dollars>,
+ *   netPnl: SeriesPattern2<?Dollars>,
+ *   nupl: RhodlRatio<?PartsPerMillionSigned32>,
+ * }} DiscountUnrealized
+ */
+const _DiscountUnrealized = _s({
+  profit: [_i2, '*_unrealized_profit'],
+  loss: [_i2, '*_unrealized_loss'],
+  netPnl: [_i2, '*_net_unrealized_pnl'],
+  nupl: [_RhodlRatio, '*_nupl'],
+});
+
+/**
+ * @typedef {{
+ *   profit: SeriesPattern2<?Dollars>,
+ *   loss: SeriesPattern2<?Dollars>,
+ *   netPnl: SeriesPattern2<?Dollars>,
+ *   grossPnl: SeriesPattern2<?Dollars>,
+ *   investedCapitalInProfit: SeriesPattern2<?Dollars>,
+ *   investedCapitalInLoss: SeriesPattern2<?Dollars>,
+ *   painIndex: SeriesPattern2<?Dollars>,
+ *   greedIndex: SeriesPattern2<?Dollars>,
+ *   netSentiment: SeriesPattern2<?Dollars>,
+ *   nupl: RhodlRatio<?PartsPerMillionSigned32>,
+ * }} AllUnrealized
+ */
+const _AllUnrealized = _s({
+  profit: [_i2, '*_unrealized_profit'],
+  loss: [_i2, '*_unrealized_loss'],
+  netPnl: [_i2, '*_net_unrealized_pnl'],
+  grossPnl: [_i2, '*_unrealized_gross_pnl'],
+  investedCapitalInProfit: [_i2, '*_invested_capital_in_profit'],
+  investedCapitalInLoss: [_i2, '*_invested_capital_in_loss'],
+  painIndex: [_i2, '*_pain_index'],
+  greedIndex: [_i2, '*_greed_index'],
+  netSentiment: [_i2, '*_net_sentiment'],
+  nupl: [_RhodlRatio, '*_nupl'],
+});
+
+/**
+ * @typedef {{
+ *   thermo: SeriesPattern2<?Dollars>,
+ *   investor: SeriesPattern2<?Dollars>,
+ *   vaulted: SeriesPattern2<?Dollars>,
+ *   active: SeriesPattern2<?Dollars>,
+ *   cointime: SeriesPattern2<?Dollars>,
+ *   aviv: RhodlRatio<?PartsPerMillion32>,
+ * }} Cap
+ */
+const _Cap = _s({
+  thermo: [_i2, 'thermo_*'],
+  investor: [_i2, 'investor_*'],
+  vaulted: [_i2, 'vaulted_*'],
+  active: [_i2, 'active_*'],
+  cointime: [_i2, 'cointime_*'],
+  aviv: [_RhodlRatio, 'aviv_ratio'],
+});
+
+/**
+ * @typedef {{
+ *   bounded: SeriesPattern2<?BoundedRatio>,
+ *   ratio: SeriesPattern2<?Ratio64>,
+ * }} Share
+ */
+const _Share = _s({
+  bounded: [_i2, '*_bounded'],
+  ratio: [_i2, '*'],
+});
+
+/**
+ * @typedef {{
+ *   share: Share,
+ * }} ActiveInLoss
+ */
+const _ActiveInLoss = _s({
+  share: [_Share, '*'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern2<?Bitcoin>,
+ *   usd: SeriesPattern2<?Dollars>,
+ *   inLoss: ActiveInLoss,
+ * }} Active
+ */
+const _Active = _s({
+  btc: [_i2, 'active_*'],
+  usd: [_i2, 'active_*_usd'],
+  inLoss: [_ActiveInLoss, 'cointime_*_in_loss_share'],
+});
+
+/**
+ * @typedef {{
+ *   share: SeriesPattern2<?Ratio64>,
+ * }} MobileInLoss
+ */
+const _MobileInLoss = _s({
+  share: [_i2, '*'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern2<?Bitcoin>,
+ *   usd: SeriesPattern2<?Dollars>,
+ *   inLoss: MobileInLoss,
+ * }} Mobile
+ */
+const _Mobile = _s({
+  btc: [_i2, '*_mobile_supply'],
+  usd: [_i2, '*_mobile_supply_usd'],
+  inLoss: [_MobileInLoss, '*_coinflow_supply_in_loss_share'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern2<?Bitcoin>,
+ *   usd: SeriesPattern2<?Dollars>,
+ *   inLoss: MobileInLoss,
+ * }} AwakeSupply
+ */
+const _AwakeSupply = _s({
+  btc: [_i2, '*'],
+  usd: [_i2, '*_usd'],
+  inLoss: [_MobileInLoss, '*_in_loss_share'],
+});
+
+/**
+ * @typedef {{
+ *   usd: SeriesPattern2<?Dollars>,
+ *   ppm: SeriesPattern2<?PriceRatio>,
+ *   ratio: SeriesPattern2<?Ratio>,
+ * }} CapitalizedPrice
+ */
+const _CapitalizedPrice = _s({
+  usd: [_i2, '*'],
+  ppm: [_i2, '*_ratio_ppm'],
+  ratio: [_i2, '*_ratio'],
+});
+
+/**
+ * @typedef {{
+ *   _1w: CapitalizedPrice,
+ *   _8d: CapitalizedPrice,
+ *   _12d: CapitalizedPrice,
+ *   _13d: CapitalizedPrice,
+ *   _21d: CapitalizedPrice,
+ *   _26d: CapitalizedPrice,
+ *   _1m: CapitalizedPrice,
+ *   _34d: CapitalizedPrice,
+ *   _55d: CapitalizedPrice,
+ *   _89d: CapitalizedPrice,
+ *   _144d: CapitalizedPrice,
+ *   _200d: CapitalizedPrice,
+ *   _1y: CapitalizedPrice,
+ *   _2y: CapitalizedPrice,
+ *   _200w: CapitalizedPrice,
+ *   _4y: CapitalizedPrice,
+ * }} Ema
+ */
+const _Ema = _s({
+  _1w: [_CapitalizedPrice, '*_1w'],
+  _8d: [_CapitalizedPrice, '*_8d'],
+  _12d: [_CapitalizedPrice, '*_12d'],
+  _13d: [_CapitalizedPrice, '*_13d'],
+  _21d: [_CapitalizedPrice, '*_21d'],
+  _26d: [_CapitalizedPrice, '*_26d'],
+  _1m: [_CapitalizedPrice, '*_1m'],
+  _34d: [_CapitalizedPrice, '*_34d'],
+  _55d: [_CapitalizedPrice, '*_55d'],
+  _89d: [_CapitalizedPrice, '*_89d'],
+  _144d: [_CapitalizedPrice, '*_144d'],
+  _200d: [_CapitalizedPrice, '*_200d'],
+  _1y: [_CapitalizedPrice, '*_1y'],
+  _2y: [_CapitalizedPrice, '*_2y'],
+  _200w: [_CapitalizedPrice, '*_200w'],
+  _4y: [_CapitalizedPrice, '*_4y'],
+});
+
+/**
+ * @typedef {{
+ *   _1w: CapitalizedPrice,
+ *   _8d: CapitalizedPrice,
+ *   _13d: CapitalizedPrice,
+ *   _21d: CapitalizedPrice,
+ *   _1m: CapitalizedPrice,
+ *   _34d: CapitalizedPrice,
+ *   _50d: CapitalizedPrice,
+ *   _55d: CapitalizedPrice,
+ *   _89d: CapitalizedPrice,
+ *   _111d: CapitalizedPrice,
+ *   _144d: CapitalizedPrice,
+ *   _200d: Sma200d,
+ *   _350d: Sma350d,
+ *   _1y: CapitalizedPrice,
+ *   _2y: CapitalizedPrice,
+ *   _200w: CapitalizedPrice,
+ *   _4y: CapitalizedPrice,
+ * }} MovingAverageSma
+ */
+const _MovingAverageSma = _s({
+  _1w: [_CapitalizedPrice, '*_1w'],
+  _8d: [_CapitalizedPrice, '*_8d'],
+  _13d: [_CapitalizedPrice, '*_13d'],
+  _21d: [_CapitalizedPrice, '*_21d'],
+  _1m: [_CapitalizedPrice, '*_1m'],
+  _34d: [_CapitalizedPrice, '*_34d'],
+  _50d: [_CapitalizedPrice, '*_50d'],
+  _55d: [_CapitalizedPrice, '*_55d'],
+  _89d: [_CapitalizedPrice, '*_89d'],
+  _111d: [_CapitalizedPrice, '*_111d'],
+  _144d: [_CapitalizedPrice, '*_144d'],
+  _200d: [_Sma200d, '*_200d'],
+  _350d: [_Sma350d, '*_350d'],
+  _1y: [_CapitalizedPrice, '*_1y'],
+  _2y: [_CapitalizedPrice, '*_2y'],
+  _200w: [_CapitalizedPrice, '*_200w'],
+  _4y: [_CapitalizedPrice, '*_4y'],
+});
+
+/**
+ * @typedef {{
+ *   sma: MovingAverageSma,
+ *   ema: Ema,
+ * }} MovingAverage
+ */
+const _MovingAverage = _s({
+  sma: [_MovingAverageSma, '*_sma'],
+  ema: [_Ema, '*_ema'],
+});
+
+/**
+ * @typedef {{
+ *   vaulted: CapitalizedPrice,
+ *   active: CapitalizedPrice,
+ *   trueMarketMean: CapitalizedPrice,
+ *   cointime: CapitalizedPrice,
+ * }} CointimePrices
+ */
+const _CointimePrices = _s({
+  vaulted: [_CapitalizedPrice, 'vaulted_*'],
+  active: [_CapitalizedPrice, 'active_*'],
+  trueMarketMean: [_CapitalizedPrice, 'true_market_mean'],
+  cointime: [_CapitalizedPrice, 'cointime_*'],
+});
+
+/**
+ * @typedef {{
+ *   supply: AwakeSupply,
+ *   cap: SeriesPattern2<?Dollars>,
+ *   price: CapitalizedPrice,
+ *   capitalizedPrice: CapitalizedPrice,
+ * }} Awake
+ */
+const _Awake = _s({
+  supply: [_AwakeSupply, '*_supply'],
+  cap: [_i2, '*_cap'],
+  price: [_CapitalizedPrice, '*_price'],
+  capitalizedPrice: [_CapitalizedPrice, '*_capitalized_price'],
+});
+
+/**
+ * @typedef {{
+ *   pct05: SeriesPattern2<?Dollars>,
+ *   pct10: SeriesPattern2<?Dollars>,
+ *   pct15: SeriesPattern2<?Dollars>,
+ *   pct20: SeriesPattern2<?Dollars>,
+ *   pct25: SeriesPattern2<?Dollars>,
+ *   pct30: SeriesPattern2<?Dollars>,
+ *   pct35: SeriesPattern2<?Dollars>,
+ *   pct40: SeriesPattern2<?Dollars>,
+ *   pct45: SeriesPattern2<?Dollars>,
+ *   pct50: SeriesPattern2<?Dollars>,
+ *   pct55: SeriesPattern2<?Dollars>,
+ *   pct60: SeriesPattern2<?Dollars>,
+ *   pct65: SeriesPattern2<?Dollars>,
+ *   pct70: SeriesPattern2<?Dollars>,
+ *   pct75: SeriesPattern2<?Dollars>,
+ *   pct80: SeriesPattern2<?Dollars>,
+ *   pct85: SeriesPattern2<?Dollars>,
+ *   pct90: SeriesPattern2<?Dollars>,
+ *   pct95: SeriesPattern2<?Dollars>,
+ * }} PerCoin
+ */
+const _PerCoin = _s({
+  pct05: [_i2, '*_pct05'],
+  pct10: [_i2, '*_pct10'],
+  pct15: [_i2, '*_pct15'],
+  pct20: [_i2, '*_pct20'],
+  pct25: [_i2, '*_pct25'],
+  pct30: [_i2, '*_pct30'],
+  pct35: [_i2, '*_pct35'],
+  pct40: [_i2, '*_pct40'],
+  pct45: [_i2, '*_pct45'],
+  pct50: [_i2, '*_pct50'],
+  pct55: [_i2, '*_pct55'],
+  pct60: [_i2, '*_pct60'],
+  pct65: [_i2, '*_pct65'],
+  pct70: [_i2, '*_pct70'],
+  pct75: [_i2, '*_pct75'],
+  pct80: [_i2, '*_pct80'],
+  pct85: [_i2, '*_pct85'],
+  pct90: [_i2, '*_pct90'],
+  pct95: [_i2, '*_pct95'],
+});
+
+/**
+ * @typedef {{
+ *   perCoin: PerCoin,
+ *   perDollar: PerCoin,
  * }} UrpdAllCostBasis
  */
-/** @type {_Make} */
-const _UrpdAllCostBasis = (c, b, f0) => _n(c, b, {
-  perCoin: [f0, '*_coin'],
-  perDollar: [f0, '*_dollar'],
+const _UrpdAllCostBasis = _s({
+  perCoin: [_PerCoin, '*_coin'],
+  perDollar: [_PerCoin, '*_dollar'],
 });
 
 /**
@@ -4401,6 +4557,19 @@ const _SpendingRate = _s({
   _10yTo12y: [_i2, 'utxos_10y_to_12y_*'],
   _12yTo15y: [_i2, 'utxos_12y_to_15y_*'],
   over15y: [_i2, 'utxos_over_15y_*'],
+});
+
+/**
+ * @typedef {{
+ *   age: SpendingRate<?Dollars>,
+ *   utxoAmount: CapUtxoAmount,
+ *   type: Type,
+ * }} RealizedPrice
+ */
+const _RealizedPrice = _s({
+  age: [_SpendingRate, 'old_*'],
+  utxoAmount: [_CapUtxoAmount, '*'],
+  type: [_Type, '*'],
 });
 
 /**
@@ -4597,114 +4766,40 @@ const _ExposedCount = _s({
 });
 
 /**
- * @template A
  * @typedef {{
- *   usd: SeriesPattern21<?Dollars>,
- *   cents: SeriesPattern21<A>,
- * }} RealizedLoss0satsBlock
+ *   _0sats: SeriesPattern2<?Dollars>,
+ *   _1satTo10sats: SeriesPattern2<?Dollars>,
+ *   _10satsTo100sats: SeriesPattern2<?Dollars>,
+ *   _100satsTo1kSats: SeriesPattern2<?Dollars>,
+ *   _1kSatsTo10kSats: SeriesPattern2<?Dollars>,
+ *   _10kSatsTo100kSats: SeriesPattern2<?Dollars>,
+ *   _100kSatsTo1mSats: SeriesPattern2<?Dollars>,
+ *   _1mSatsTo10mSats: SeriesPattern2<?Dollars>,
+ *   _10mSatsTo1btc: SeriesPattern2<?Dollars>,
+ *   _1btcTo10btc: SeriesPattern2<?Dollars>,
+ *   _10btcTo100btc: SeriesPattern2<?Dollars>,
+ *   _100btcTo1kBtc: SeriesPattern2<?Dollars>,
+ *   _1kBtcTo10kBtc: SeriesPattern2<?Dollars>,
+ *   _10kBtcTo100kBtc: SeriesPattern2<?Dollars>,
+ *   over100kBtc: SeriesPattern2<?Dollars>,
+ * }} RealizedCap
  */
-const _RealizedLoss0satsBlock = _s({
-  usd: [_i21, '*'],
-  cents: [_i21, '*_cents'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<A>,
- * }} CoinflowCap
- */
-const _CoinflowCap = _s({
-  usd: [_i2, '*'],
-  cents: [_i2, '*_cents'],
-});
-
-/**
- * @typedef {{
- *   profit: CoinflowCap<?Cents>,
- *   loss: CoinflowCap<?Cents>,
- *   netPnl: CoinflowCap<CentsSigned>,
- *   nupl: RhodlRatio<?PartsPerMillionSigned32>,
- * }} DiscountUnrealized
- */
-const _DiscountUnrealized = _s({
-  profit: [_CoinflowCap, '*_unrealized_profit'],
-  loss: [_CoinflowCap, '*_unrealized_loss'],
-  netPnl: [_CoinflowCap, '*_net_unrealized_pnl'],
-  nupl: [_RhodlRatio, '*_nupl'],
-});
-
-/**
- * @typedef {{
- *   profit: CoinflowCap<?Cents>,
- *   loss: CoinflowCap<?Cents>,
- *   netPnl: CoinflowCap<CentsSigned>,
- *   grossPnl: CoinflowCap<?Cents>,
- *   investedCapitalInProfit: CoinflowCap<?Cents>,
- *   investedCapitalInLoss: CoinflowCap<?Cents>,
- *   painIndex: CoinflowCap<?Cents>,
- *   greedIndex: CoinflowCap<?Cents>,
- *   netSentiment: CoinflowCap<CentsSigned>,
- *   nupl: RhodlRatio<?PartsPerMillionSigned32>,
- * }} AllUnrealized
- */
-const _AllUnrealized = _s({
-  profit: [_CoinflowCap, '*_unrealized_profit'],
-  loss: [_CoinflowCap, '*_unrealized_loss'],
-  netPnl: [_CoinflowCap, '*_net_unrealized_pnl'],
-  grossPnl: [_CoinflowCap, '*_unrealized_gross_pnl'],
-  investedCapitalInProfit: [_CoinflowCap, '*_invested_capital_in_profit'],
-  investedCapitalInLoss: [_CoinflowCap, '*_invested_capital_in_loss'],
-  painIndex: [_CoinflowCap, '*_pain_index'],
-  greedIndex: [_CoinflowCap, '*_greed_index'],
-  netSentiment: [_CoinflowCap, '*_net_sentiment'],
-  nupl: [_RhodlRatio, '*_nupl'],
-});
-
-/**
- * @typedef {{
- *   thermo: CoinflowCap<?Cents>,
- *   investor: CoinflowCap<?Cents>,
- *   vaulted: CoinflowCap<?Cents>,
- *   active: CoinflowCap<?Cents>,
- *   cointime: CoinflowCap<?Cents>,
- *   aviv: RhodlRatio<?PartsPerMillion32>,
- * }} CointimeCap
- */
-const _CointimeCap = _s({
-  thermo: [_CoinflowCap, 'thermo_*'],
-  investor: [_CoinflowCap, 'investor_*'],
-  vaulted: [_CoinflowCap, 'vaulted_*'],
-  active: [_CoinflowCap, 'active_*'],
-  cointime: [_CoinflowCap, 'cointime_*'],
-  aviv: [_RhodlRatio, 'aviv_ratio'],
-});
-
-/**
- * @typedef {{
- *   supply: AwakeSupply,
- *   cap: CoinflowCap<?Cents>,
- *   price: CapitalizedPrice,
- *   capitalizedPrice: CapitalizedPrice,
- * }} Awake
- */
-const _Awake = _s({
-  supply: [_AwakeSupply, '*_supply'],
-  cap: [_CoinflowCap, '*_cap'],
-  price: [_CapitalizedPrice, '*_price'],
-  capitalizedPrice: [_CapitalizedPrice, '*_capitalized_price'],
-});
-
-/**
- * @typedef {{
- *   btc: SeriesPattern2<?Bitcoin>,
- *   sats: SeriesPattern2<SatsSigned>,
- * }} Absolute1m
- */
-const _Absolute1m = _s({
-  btc: [_i2, '*'],
-  sats: [_i2, '*_sats'],
+const _RealizedCap = _s({
+  _0sats: [_i2, 'addrs_0sats_*'],
+  _1satTo10sats: [_i2, 'addrs_1sat_to_10sats_*'],
+  _10satsTo100sats: [_i2, 'addrs_10sats_to_100sats_*'],
+  _100satsTo1kSats: [_i2, 'addrs_100sats_to_1k_sats_*'],
+  _1kSatsTo10kSats: [_i2, 'addrs_1k_sats_to_10k_sats_*'],
+  _10kSatsTo100kSats: [_i2, 'addrs_10k_sats_to_100k_sats_*'],
+  _100kSatsTo1mSats: [_i2, 'addrs_100k_sats_to_1m_sats_*'],
+  _1mSatsTo10mSats: [_i2, 'addrs_1m_sats_to_10m_sats_*'],
+  _10mSatsTo1btc: [_i2, 'addrs_10m_sats_to_1btc_*'],
+  _1btcTo10btc: [_i2, 'addrs_1btc_to_10btc_*'],
+  _10btcTo100btc: [_i2, 'addrs_10btc_to_100btc_*'],
+  _100btcTo1kBtc: [_i2, 'addrs_100btc_to_1k_btc_*'],
+  _1kBtcTo10kBtc: [_i2, 'addrs_1k_btc_to_10k_btc_*'],
+  _10kBtcTo100kBtc: [_i2, 'addrs_10k_btc_to_100k_btc_*'],
+  over100kBtc: [_i2, 'addrs_over_100k_btc_*'],
 });
 
 /**
@@ -4889,25 +4984,20 @@ const _InputsRaw = _s({
 });
 
 /**
- * @template A, B
  * @typedef {{
  *   btc: SeriesPattern2<?Bitcoin>,
- *   sats: SeriesPattern2<A>,
  *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<B>,
  * }} Circulating
  */
 const _Circulating = _s({
   btc: [_i2, '*'],
-  sats: [_i2, '*_sats'],
   usd: [_i2, '*_usd'],
-  cents: [_i2, '*_cents'],
 });
 
 /**
  * @typedef {{
  *   mobile: Mobile,
- *   immobile: Circulating<Sats, ?Cents>,
+ *   immobile: Circulating,
  * }} CoinflowSupply
  */
 const _CoinflowSupply = _s({
@@ -4918,21 +5008,21 @@ const _CoinflowSupply = _s({
 /**
  * @typedef {{
  *   supply: CoinflowSupply,
- *   cap: CoinflowCap<?Cents>,
+ *   cap: SeriesPattern2<?Dollars>,
  *   price: CapitalizedPrice,
  *   capitalizedPrice: CapitalizedPrice,
  * }} CoinflowLth
  */
 const _CoinflowLth = _s({
   supply: [_CoinflowSupply, '*'],
-  cap: [_CoinflowCap, '*_coinflow_cap'],
+  cap: [_i2, '*_coinflow_cap'],
   price: [_CapitalizedPrice, '*_coinflow_price'],
   capitalizedPrice: [_CapitalizedPrice, '*_coinflow_capitalized_price'],
 });
 
 /**
  * @typedef {{
- *   vaulted: Circulating<Sats, ?Cents>,
+ *   vaulted: Circulating,
  *   active: Active,
  * }} CointimeSupply
  */
@@ -4943,7 +5033,7 @@ const _CointimeSupply = _s({
 
 /**
  * @typedef {{
- *   supply: Circulating<Sats, ?Cents>,
+ *   supply: Circulating,
  * }} Dormant
  */
 const _Dormant = _s({
@@ -4964,26 +5054,22 @@ const _CointimeLth = _s({
 /**
  * @typedef {{
  *   btc: SeriesPattern21<?Bitcoin>,
- *   sats: SeriesPattern21<Sats>,
  *   usd: SeriesPattern21<?Dollars>,
- *   cents: SeriesPattern21<?Cents>,
- * }} BurnedBlock
+ * }} Block
  */
-const _BurnedBlock = _s({
+const _Block = _s({
   btc: [_i21, '*'],
-  sats: [_i21, '*_sats'],
   usd: [_i21, '*_usd'],
-  cents: [_i21, '*_cents'],
 });
 
 /**
  * @typedef {{
- *   block: BurnedBlock,
- *   cumulative: Circulating<Sats, ?Cents>,
+ *   block: Block,
+ *   cumulative: Circulating,
  * }} Burned
  */
 const _Burned = _s({
-  block: [_BurnedBlock, '*'],
+  block: [_Block, '*'],
   cumulative: [_Circulating, '*_cumulative'],
 });
 
@@ -5274,13 +5360,14 @@ const _PerSec = _s({
 });
 
 /**
+ * @template A
  * @typedef {{
- *   block: SeriesPattern21<Count>,
- *   cumulative: SeriesPattern2<Count>,
- *   sum: PerSec<Count>,
- * }} BlocksMined
+ *   block: SeriesPattern21<A>,
+ *   cumulative: SeriesPattern2<A>,
+ *   sum: PerSec<A>,
+ * }} RealizedLoss0sats
  */
-const _BlocksMined = _s({
+const _RealizedLoss0sats = _s({
   block: [_i21, '*'],
   cumulative: [_i2, '*_cumulative'],
   sum: [_PerSec, '*_sum'],
@@ -5370,6 +5457,30 @@ const _NewAll = _s({
   cumulative: [_i2, '*_cumulative'],
   sum: [_PerSec, '*_sum'],
   average: [_PerSec, '*_average'],
+});
+
+/**
+ * @typedef {{
+ *   _24h: SeriesPattern2<?Ratio>,
+ *   valueDestroyed: NewAll<?Dollars, ?Dollars>,
+ * }} Sopr
+ */
+const _Sopr = _s({
+  _24h: [_i2, '*_sopr_24h'],
+  valueDestroyed: [_NewAll, '*_value_destroyed'],
+});
+
+/**
+ * @typedef {{
+ *   ratio: PerSec<?Ratio>,
+ *   transferVolume: NewAll<?Dollars, ?Dollars>,
+ *   valueDestroyed: NewAll<?Dollars, ?Dollars>,
+ * }} AdjustedSopr
+ */
+const _AdjustedSopr = _s({
+  ratio: [_PerSec, '*_adjusted_sopr'],
+  transferVolume: [_NewAll, '*_adj_value_created'],
+  valueDestroyed: [_NewAll, '*_adj_value_destroyed'],
 });
 
 /**
@@ -5881,20 +5992,20 @@ const _Relative = _s({
 
 /**
  * @typedef {{
- *   inProfit: UrpdAllCostBasis<Spot<?SatsFract>>,
- *   inLoss: UrpdAllCostBasis<Spot<?SatsFract>>,
- *   min: Spot<?SatsFract>,
- *   max: Spot<?SatsFract>,
+ *   inProfit: CostBasisInLoss,
+ *   inLoss: CostBasisInLoss,
+ *   min: SeriesPattern2<?Dollars>,
+ *   max: SeriesPattern2<?Dollars>,
  *   perCoin: PerCoin,
  *   perDollar: PerCoin,
  *   supplyDensity: Gini<?PartsPerMillion32>,
  * }} CohortsAllCostBasis
  */
 const _CohortsAllCostBasis = _s({
-  inProfit: [(c, b) => _UrpdAllCostBasis(c, b, _Spot), '*_cost_basis_in_profit_per'],
-  inLoss: [(c, b) => _UrpdAllCostBasis(c, b, _Spot), '*_cost_basis_in_loss_per'],
-  min: [_Spot, '*_cost_basis_min'],
-  max: [_Spot, '*_cost_basis_max'],
+  inProfit: [_CostBasisInLoss, '*_cost_basis_in_profit_per'],
+  inLoss: [_CostBasisInLoss, '*_cost_basis_in_loss_per'],
+  min: [_i2, '*_cost_basis_min'],
+  max: [_i2, '*_cost_basis_max'],
   perCoin: [_PerCoin, '*_cost_basis_per_coin'],
   perDollar: [_PerCoin, '*_cost_basis_per_dollar'],
   supplyDensity: [_Gini, '*_supply_density'],
@@ -5902,12 +6013,12 @@ const _CohortsAllCostBasis = _s({
 
 /**
  * @typedef {{
- *   blocksMined: BlocksMined,
+ *   blocksMined: RealizedLoss0sats<Count>,
  *   dominance: Gini<?PartsPerMillion32>,
  * }} Aaopool
  */
 const _Aaopool = _s({
-  blocksMined: [_BlocksMined, '*_blocks_mined'],
+  blocksMined: [_RealizedLoss0sats, '*_blocks_mined'],
   dominance: [_Gini, '*_dominance'],
 });
 
@@ -6286,43 +6397,41 @@ const _Cagr = _s({
 });
 
 /**
- * @template A
  * @typedef {{
- *   _24h: A,
- *   _1w: A,
- *   _1m: A,
- *   _3m: A,
- *   _6m: A,
- *   _1y: A,
- *   _2y: A,
- *   _3y: A,
- *   _4y: A,
- *   _5y: A,
- *   _6y: A,
- *   _8y: A,
- *   _10y: A,
- * }} MarketLookback
+ *   _24h: Gini<?PartsPerMillionSigned64>,
+ *   _1w: Gini<?PartsPerMillionSigned64>,
+ *   _1m: Gini<?PartsPerMillionSigned64>,
+ *   _3m: Gini<?PartsPerMillionSigned64>,
+ *   _6m: Gini<?PartsPerMillionSigned64>,
+ *   _1y: Gini<?PartsPerMillionSigned64>,
+ *   _2y: Gini<?PartsPerMillionSigned64>,
+ *   _3y: Gini<?PartsPerMillionSigned64>,
+ *   _4y: Gini<?PartsPerMillionSigned64>,
+ *   _5y: Gini<?PartsPerMillionSigned64>,
+ *   _6y: Gini<?PartsPerMillionSigned64>,
+ *   _8y: Gini<?PartsPerMillionSigned64>,
+ *   _10y: Gini<?PartsPerMillionSigned64>,
+ * }} Periods
  */
-/** @type {_Make} */
-const _MarketLookback = (c, b, f0) => _n(c, b, {
-  _24h: [f0, '*_24h'],
-  _1w: [f0, '*_1w'],
-  _1m: [f0, '*_1m'],
-  _3m: [f0, '*_3m'],
-  _6m: [f0, '*_6m'],
-  _1y: [f0, '*_1y'],
-  _2y: [f0, '*_2y'],
-  _3y: [f0, '*_3y'],
-  _4y: [f0, '*_4y'],
-  _5y: [f0, '*_5y'],
-  _6y: [f0, '*_6y'],
-  _8y: [f0, '*_8y'],
-  _10y: [f0, '*_10y'],
+const _Periods = _s({
+  _24h: [_Gini, '*_24h'],
+  _1w: [_Gini, '*_1w'],
+  _1m: [_Gini, '*_1m'],
+  _3m: [_Gini, '*_3m'],
+  _6m: [_Gini, '*_6m'],
+  _1y: [_Gini, '*_1y'],
+  _2y: [_Gini, '*_2y'],
+  _3y: [_Gini, '*_3y'],
+  _4y: [_Gini, '*_4y'],
+  _5y: [_Gini, '*_5y'],
+  _6y: [_Gini, '*_6y'],
+  _8y: [_Gini, '*_8y'],
+  _10y: [_Gini, '*_10y'],
 });
 
 /**
  * @typedef {{
- *   high: Spot<?SatsFract>,
+ *   high: SeriesPattern2<?Dollars>,
  *   drawdown: Gini<?PartsPerMillionSigned32>,
  *   daysSince: SeriesPattern2<?Days>,
  *   yearsSince: SeriesPattern2<?Years>,
@@ -6331,7 +6440,7 @@ const _MarketLookback = (c, b, f0) => _n(c, b, {
  * }} Ath
  */
 const _Ath = _s({
-  high: [_Spot, '*_ath'],
+  high: [_i2, '*_ath'],
   drawdown: [_Gini, '*_drawdown'],
   daysSince: [_i2, 'days_since_*_ath'],
   yearsSince: [_i2, 'years_since_*_ath'],
@@ -6452,39 +6561,39 @@ const _SupplyDensity = _s({
 
 /**
  * @typedef {{
- *   costBasis: UrpdAllCostBasis<PerCoin>,
+ *   costBasis: UrpdAllCostBasis,
  *   capitalizedPrice: CapitalizedPrice,
  *   supplyDensity: SupplyDensity,
  * }} CoinflowUrpdLth
  */
 const _CoinflowUrpdLth = _s({
-  costBasis: [(c, b) => _UrpdAllCostBasis(c, b, _PerCoin), '*_coinflow_cost_basis_per'],
+  costBasis: [_UrpdAllCostBasis, '*_coinflow_cost_basis_per'],
   capitalizedPrice: [_CapitalizedPrice, 'coinflow_urpd_*_capitalized_price'],
   supplyDensity: [_SupplyDensity, 'coinflow_urpd_*_supply_density'],
 });
 
 /**
  * @typedef {{
- *   costBasis: UrpdAllCostBasis<PerCoin>,
+ *   costBasis: UrpdAllCostBasis,
  *   capitalizedPrice: CapitalizedPrice,
  *   supplyDensity: SupplyDensity,
  * }} CointimeUrpdLth
  */
 const _CointimeUrpdLth = _s({
-  costBasis: [(c, b) => _UrpdAllCostBasis(c, b, _PerCoin), '*_cointime_cost_basis_per'],
+  costBasis: [_UrpdAllCostBasis, '*_cointime_cost_basis_per'],
   capitalizedPrice: [_CapitalizedPrice, 'cointime_urpd_*_capitalized_price'],
   supplyDensity: [_SupplyDensity, 'cointime_urpd_*_supply_density'],
 });
 
 /**
  * @typedef {{
- *   costBasis: UrpdAllCostBasis<PerCoin>,
+ *   costBasis: UrpdAllCostBasis,
  *   capitalizedPrice: CapitalizedPrice,
  *   supplyDensity: SupplyDensity,
  * }} UrpdAll
  */
 const _UrpdAll = _s({
-  costBasis: [(c, b) => _UrpdAllCostBasis(c, b, _PerCoin), '*_cost_basis_per'],
+  costBasis: [_UrpdAllCostBasis, '*_cost_basis_per'],
   capitalizedPrice: [_CapitalizedPrice, '*_urpd_all_capitalized_price'],
   supplyDensity: [_SupplyDensity, '*_urpd_all_supply_density'],
 });
@@ -6664,6 +6773,180 @@ const _AllRate = _s({
 });
 
 /**
+ * @template A
+ * @typedef {{
+ *   absolute: PerSec<A>,
+ *   rate: AllRate,
+ * }} DeltaAll
+ */
+const _DeltaAll = _s({
+  absolute: [_PerSec, '*'],
+  rate: [_AllRate, '*'],
+});
+
+/**
+ * @typedef {{
+ *   total: Circulating,
+ *   delta: DeltaAll<?Bitcoin>,
+ *   dominance: Gini<?PartsPerMillion32>,
+ *   inProfit: Circulating,
+ *   inLoss: Circulating,
+ * }} DiscountSupply
+ */
+const _DiscountSupply = _s({
+  total: [_Circulating, '*'],
+  delta: [_DeltaAll, '*_delta'],
+  dominance: [_Gini, '*_dominance'],
+  inProfit: [_Circulating, '*_in_profit'],
+  inLoss: [_Circulating, '*_in_loss'],
+});
+
+/**
+ * @typedef {{
+ *   usd: SeriesPattern2<?Dollars>,
+ *   delta: DeltaAll<?Dollars>,
+ * }} MarketCap
+ */
+const _MarketCap = _s({
+  usd: [_i2, '*'],
+  delta: [_DeltaAll, '*_delta'],
+});
+
+/**
+ * @typedef {{
+ *   circulating: Circulating,
+ *   burned: Burned,
+ *   inflationRate: Gini<?PartsPerMillionSigned64>,
+ *   velocity: Velocity,
+ *   marketCap: MarketCap,
+ *   marketMinusRealizedCapGrowthRate: PerSec<?PartsPerMillionSigned64>,
+ *   hodledOrLost: Circulating,
+ * }} Supply
+ */
+const _Supply = _s({
+  circulating: [_Circulating, 'circulating_*'],
+  burned: [_Burned, 'unspendable_*'],
+  inflationRate: [_Gini, 'inflation_rate'],
+  velocity: [_Velocity, 'velocity'],
+  marketCap: [_MarketCap, 'market_cap'],
+  marketMinusRealizedCapGrowthRate: [_PerSec, 'market_minus_realized_cap_growth_rate'],
+  hodledOrLost: [_Circulating, 'hodled_or_lost_*'],
+});
+
+/**
+ * @typedef {{
+ *   total: Circulating,
+ *   inProfit: Circulating,
+ *   inLoss: Circulating,
+ *   delta: DeltaAll<?Bitcoin>,
+ * }} AllSupply
+ */
+const _AllSupply = _s({
+  total: [_Circulating, '*'],
+  inProfit: [_Circulating, '*_in_profit'],
+  inLoss: [_Circulating, '*_in_loss'],
+  delta: [_DeltaAll, '*_delta'],
+});
+
+/**
+ * @typedef {{
+ *   block: SeriesPattern21<?Dollars>,
+ *   cumulative: SeriesPattern2<?Dollars>,
+ *   sum: PerSec<?Dollars>,
+ *   delta: DeltaAll<?Dollars>,
+ * }} Age10yTo12y
+ */
+const _Age10yTo12y = _s({
+  block: [_i21, '*'],
+  cumulative: [_i2, '*_cumulative'],
+  sum: [_PerSec, '*_sum'],
+  delta: [_DeltaAll, '*_delta'],
+});
+
+/**
+ * @typedef {{
+ *   cap: MarketCap,
+ *   price: CapitalizedPrice,
+ *   profit: RealizedLoss0sats<?Dollars>,
+ *   loss: RealizedLoss0sats<?Dollars>,
+ *   netPnl: Age10yTo12y,
+ *   sopr: Sopr,
+ *   mvrv: SeriesPattern2<?Ratio>,
+ * }} DiscountRealized
+ */
+const _DiscountRealized = _s({
+  cap: [_MarketCap, '*_realized_cap'],
+  price: [_CapitalizedPrice, '*_realized_price'],
+  profit: [_RealizedLoss0sats, '*_realized_profit'],
+  loss: [_RealizedLoss0sats, '*_realized_loss'],
+  netPnl: [_Age10yTo12y, '*_net_realized_pnl'],
+  sopr: [_Sopr, '*'],
+  mvrv: [_i2, '*_mvrv'],
+});
+
+/**
+ * @typedef {{
+ *   cap: MarketCap,
+ *   price: SeriesPattern2<?Dollars>,
+ *   capitalizedPrice: CapitalizedPrice,
+ *   profit: RealizedLoss0sats<?Dollars>,
+ *   loss: RealizedLoss0sats<?Dollars>,
+ *   netPnl: Age10yTo12y,
+ *   valueDestroyed: NewAll<?Dollars, ?Dollars>,
+ *   grossPnl: RealizedLoss0sats<?Dollars>,
+ *   peakRegret: RealizedLoss0sats<?Dollars>,
+ *   mvrv: RhodlRatio<?PriceRatio>,
+ * }} AllRealized
+ */
+const _AllRealized = _s({
+  cap: [_MarketCap, '*_realized_cap'],
+  price: [_i2, '*_realized_price'],
+  capitalizedPrice: [_CapitalizedPrice, '*_capitalized_price'],
+  profit: [_RealizedLoss0sats, '*_realized_profit'],
+  loss: [_RealizedLoss0sats, '*_realized_loss'],
+  netPnl: [_Age10yTo12y, '*_net_realized_pnl'],
+  valueDestroyed: [_NewAll, '*_value_destroyed'],
+  grossPnl: [_RealizedLoss0sats, '*_realized_gross_pnl'],
+  peakRegret: [_RealizedLoss0sats, '*_realized_peak_regret'],
+  mvrv: [_RhodlRatio, '*_mvrv'],
+});
+
+/**
+ * @typedef {{
+ *   base: SeriesPattern2<Count>,
+ *   delta: DeltaAll<CountSigned>,
+ * }} UtxoCount0sats
+ */
+const _UtxoCount0sats = _s({
+  base: [_i2, '*'],
+  delta: [_DeltaAll, '*_delta'],
+});
+
+/**
+ * @typedef {{
+ *   unspentCount: UtxoCount0sats,
+ *   spentCount: NewAll<Count, ?CountFract>,
+ * }} AllOutputs
+ */
+const _AllOutputs = _s({
+  unspentCount: [_UtxoCount0sats, '*_utxo_count'],
+  spentCount: [_NewAll, '*_spent_utxo_count'],
+});
+
+/**
+ * @typedef {{
+ *   total: Circulating,
+ *   delta: DeltaAll<?Bitcoin>,
+ *   dominance: Gini<?PartsPerMillion32>,
+ * }} Supply0sats
+ */
+const _Supply0sats = _s({
+  total: [_Circulating, '*'],
+  delta: [_DeltaAll, '*_delta'],
+  dominance: [_Gini, '*_dominance'],
+});
+
+/**
  * @typedef {{
  *   ppm: SeriesPattern2<?PartsPerMillion32>,
  *   ratio: SeriesPattern2<?Ratio>,
@@ -6823,6 +7106,122 @@ const _OpReturn = _s({
 });
 
 /**
+ * @template A
+ * @typedef {{
+ *   all: A,
+ *   p2pk65: A,
+ *   p2pk33: A,
+ *   p2pkh: A,
+ *   p2sh: A,
+ *   p2wpkh: A,
+ *   p2wsh: A,
+ *   p2tr: A,
+ *   p2a: A,
+ * }} AvgBalance
+ */
+/** @type {_Make} */
+const _AvgBalance = (c, b, f0) => _n(c, b, {
+  all: [f0, '*'],
+  p2pk65: [f0, 'p2pk65_*'],
+  p2pk33: [f0, 'p2pk33_*'],
+  p2pkh: [f0, 'p2pkh_*'],
+  p2sh: [f0, 'p2sh_*'],
+  p2wpkh: [f0, 'p2wpkh_*'],
+  p2wsh: [f0, 'p2wsh_*'],
+  p2tr: [f0, 'p2tr_*'],
+  p2a: [f0, 'p2a_*'],
+});
+
+/**
+ * @typedef {{
+ *   all: Circulating,
+ *   p2pk65: Circulating,
+ *   p2pk33: Circulating,
+ *   p2pkh: Circulating,
+ *   p2sh: Circulating,
+ *   p2wpkh: Circulating,
+ *   p2wsh: Circulating,
+ *   p2tr: Circulating,
+ *   p2a: Circulating,
+ *   share: AvgBalance<Gini<?PartsPerMillion32>>,
+ * }} ExposedSupply
+ */
+const _ExposedSupply = _s({
+  all: [_Circulating, '*'],
+  p2pk65: [_Circulating, 'p2pk65_*'],
+  p2pk33: [_Circulating, 'p2pk33_*'],
+  p2pkh: [_Circulating, 'p2pkh_*'],
+  p2sh: [_Circulating, 'p2sh_*'],
+  p2wpkh: [_Circulating, 'p2wpkh_*'],
+  p2wsh: [_Circulating, 'p2wsh_*'],
+  p2tr: [_Circulating, 'p2tr_*'],
+  p2a: [_Circulating, 'p2a_*'],
+  share: [(c, b) => _AvgBalance(c, b, _Gini), '*_share'],
+});
+
+/**
+ * @typedef {{
+ *   count: ExposedCount,
+ *   supply: ExposedSupply,
+ * }} Exposed
+ */
+const _Exposed = _s({
+  count: [_ExposedCount, '*_count'],
+  supply: [_ExposedSupply, '*_supply'],
+});
+
+/**
+ * @typedef {{
+ *   outputToReusedAddrCount: AvgBalance<NewAll<Count, ?CountFract>>,
+ *   outputToReusedAddrShare: AvgBalance<FeeShare>,
+ *   spendableOutputToReusedAddrShare: FeeShare,
+ *   inputFromReusedAddrCount: AvgBalance<NewAll<Count, ?CountFract>>,
+ *   inputFromReusedAddrShare: AvgBalance<FeeShare>,
+ *   activeReusedAddrCount: Interval<Count, ?CountFract>,
+ *   activeReusedAddrShare: FeeShare,
+ * }} Events
+ */
+const _Events = _s({
+  outputToReusedAddrCount: [(c, b) => _AvgBalance(c, b, _NewAll), 'output_to_*_count'],
+  outputToReusedAddrShare: [(c, b) => _AvgBalance(c, b, _FeeShare), 'output_to_*_share'],
+  spendableOutputToReusedAddrShare: [_FeeShare, 'spendable_output_to_*_share'],
+  inputFromReusedAddrCount: [(c, b) => _AvgBalance(c, b, _NewAll), 'input_from_*_count'],
+  inputFromReusedAddrShare: [(c, b) => _AvgBalance(c, b, _FeeShare), 'input_from_*_share'],
+  activeReusedAddrCount: [_Interval, 'active_*_count'],
+  activeReusedAddrShare: [_FeeShare, 'active_*_share'],
+});
+
+/**
+ * @typedef {{
+ *   count: ExposedCount,
+ *   events: Events,
+ *   supply: ExposedSupply,
+ * }} Respent
+ */
+const _Respent = _s({
+  count: [_ExposedCount, '*_count'],
+  events: [_Events, '*'],
+  supply: [_ExposedSupply, '*_supply'],
+});
+
+/**
+ * @typedef {{
+ *   reactivated: AvgBalance<Interval<Count, ?CountFract>>,
+ *   sending: AvgBalance<Interval<Count, ?CountFract>>,
+ *   receiving: AvgBalance<Interval<Count, ?CountFract>>,
+ *   bidirectional: AvgBalance<Interval<Count, ?CountFract>>,
+ *   active: AvgBalance<Interval<Count, ?CountFract>>,
+ * }} AddrsActivity
+ */
+const _AddrsActivity = _s({
+  reactivated: [(c, b) => _AvgBalance(c, b, _Interval), 'reactivated_*'],
+  sending: [(c, b) => _AvgBalance(c, b, _Interval), 'sending_*'],
+  receiving: [(c, b) => _AvgBalance(c, b, _Interval), 'receiving_*'],
+  bidirectional: [(c, b) => _AvgBalance(c, b, _Interval), 'bidirectional_*'],
+  active: [(c, b) => _AvgBalance(c, b, _Interval), 'active_*'],
+});
+
+/**
  * @typedef {{
  *   p2pk65: FeeShare,
  *   p2pk33: FeeShare,
@@ -6968,13 +7367,32 @@ const _Sd24h = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   periods: MarketLookback<Gini<?PartsPerMillionSigned64>>,
+ *   adjustedSopr: AdjustedSopr,
+ *   dormancy: PerSec<?Days>,
+ *   sopr: SeriesPattern2<?Ratio>,
+ *   soprRatioExtended: SoprRatioExtended,
+ *   sellSideRiskRatio: Sd24h<Gini<?PartsPerMillion32>>,
+ *   profitToLossRatio: PerSec<?Ratio>,
+ * }} Ratios
+ */
+const _Ratios = _s({
+  adjustedSopr: [_AdjustedSopr, '*'],
+  dormancy: [_PerSec, '*_dormancy'],
+  sopr: [_i2, '*_sopr_24h'],
+  soprRatioExtended: [_SoprRatioExtended, '*_sopr'],
+  sellSideRiskRatio: [(c, b) => _Sd24h(c, b, _Gini), '*_sell_side_risk_ratio'],
+  profitToLossRatio: [_PerSec, '*_realized_profit_to_loss_ratio'],
+});
+
+/**
+ * @typedef {{
+ *   periods: Periods,
  *   cagr: Cagr,
  *   sd24h: Sd24h<Sd24h1m>,
  * }} Returns
  */
 const _Returns = _s({
-  periods: [(c, b) => _MarketLookback(c, b, _Gini), '*_return'],
+  periods: [_Periods, '*_return'],
   cagr: [_Cagr, '*_cagr'],
   sd24h: [(c, b) => _Sd24h(c, b, _Sd24h1m), ''],
 });
@@ -6982,7 +7400,7 @@ const _Returns = _s({
 /**
  * @typedef {{
  *   ath: Ath,
- *   lookback: MarketLookback<Spot<?SatsFract>>,
+ *   lookback: MarketLookback,
  *   returns: Returns,
  *   volatility: PerSec<?Ratio>,
  *   range: Range,
@@ -6992,7 +7410,7 @@ const _Returns = _s({
  */
 const _Market = _s({
   ath: [_Ath, '*'],
-  lookback: [(c, b) => _MarketLookback(c, b, _Spot), '*_past'],
+  lookback: [_MarketLookback, '*_past'],
   returns: [_Returns, '*'],
   volatility: [_PerSec, '*_volatility'],
   range: [_Range, '*'],
@@ -7002,23 +7420,23 @@ const _Market = _s({
 
 /**
  * @typedef {{
- *   block: BurnedBlock,
- *   cumulative: Circulating<Sats, ?Cents>,
- *   sum: Sd24h<Circulating<Sats, ?Cents>>,
- *   average: Sd24h<Circulating<?SatsFract, ?CentsFract>>,
- *   min: Sd24h<Circulating<Sats, ?Cents>>,
- *   max: Sd24h<Circulating<Sats, ?Cents>>,
- *   pct10: Sd24h<Circulating<Sats, ?Cents>>,
- *   pct25: Sd24h<Circulating<Sats, ?Cents>>,
- *   median: Sd24h<Circulating<Sats, ?Cents>>,
- *   pct75: Sd24h<Circulating<Sats, ?Cents>>,
- *   pct90: Sd24h<Circulating<Sats, ?Cents>>,
+ *   block: Block,
+ *   cumulative: Circulating,
+ *   sum: Sd24h<Circulating>,
+ *   average: Sd24h<Circulating>,
+ *   min: Sd24h<Circulating>,
+ *   max: Sd24h<Circulating>,
+ *   pct10: Sd24h<Circulating>,
+ *   pct25: Sd24h<Circulating>,
+ *   median: Sd24h<Circulating>,
+ *   pct75: Sd24h<Circulating>,
+ *   pct90: Sd24h<Circulating>,
  *   dominance: FeeShare,
  *   toSubsidy: Sd24h<Gini<?PartsPerMillion64>>,
  * }} RewardsFees
  */
 const _RewardsFees = _s({
-  block: [_BurnedBlock, '*'],
+  block: [_Block, '*'],
   cumulative: [_Circulating, '*_cumulative'],
   sum: [(c, b) => _Sd24h(c, b, _Circulating), '*_sum'],
   average: [(c, b) => _Sd24h(c, b, _Circulating), '*_average'],
@@ -7035,15 +7453,15 @@ const _RewardsFees = _s({
 
 /**
  * @typedef {{
- *   block: BurnedBlock,
- *   cumulative: Circulating<Sats, ?Cents>,
- *   sum: Sd24h<Circulating<Sats, ?Cents>>,
- *   average: Sd24h<Circulating<?SatsFract, ?CentsFract>>,
+ *   block: Block,
+ *   cumulative: Circulating,
+ *   sum: Sd24h<Circulating>,
+ *   average: Sd24h<Circulating>,
  *   dominance: FeeShare,
  * }} Subsidy
  */
 const _Subsidy = _s({
-  block: [_BurnedBlock, '*'],
+  block: [_Block, '*'],
   cumulative: [_Circulating, '*_cumulative'],
   sum: [(c, b) => _Sd24h(c, b, _Circulating), '*_sum'],
   average: [(c, b) => _Sd24h(c, b, _Circulating), '*_average'],
@@ -7052,328 +7470,36 @@ const _Subsidy = _s({
 
 /**
  * @typedef {{
- *   block: RealizedLoss0satsBlock<?Cents>,
- *   cumulative: CoinflowCap<?Cents>,
- *   sum: Sd24h<CoinflowCap<?Cents>>,
- * }} RealizedLoss0sats
- */
-const _RealizedLoss0sats = _s({
-  block: [_RealizedLoss0satsBlock, '*'],
-  cumulative: [_CoinflowCap, '*_cumulative'],
-  sum: [(c, b) => _Sd24h(c, b, _CoinflowCap), '*_sum'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   absolute: A,
- *   rate: AllRate,
- * }} DeltaAll
- */
-/** @type {_Make} */
-const _DeltaAll = (c, b, f0) => _n(c, b, {
-  absolute: [f0, '*'],
-  rate: [_AllRate, '*'],
-});
-
-/**
- * @typedef {{
- *   total: Circulating<Sats, ?Cents>,
- *   delta: DeltaAll<Sd24h<Absolute1m>>,
- *   dominance: Gini<?PartsPerMillion32>,
- *   inProfit: Circulating<Sats, ?Cents>,
- *   inLoss: Circulating<Sats, ?Cents>,
- * }} DiscountSupply
- */
-const _DiscountSupply = _s({
-  total: [_Circulating, '*'],
-  delta: [(c, b) => _DeltaAll(c, b, (c, b) => _Sd24h(c, b, _Absolute1m)), '*_delta'],
-  dominance: [_Gini, '*_dominance'],
-  inProfit: [_Circulating, '*_in_profit'],
-  inLoss: [_Circulating, '*_in_loss'],
-});
-
-/**
- * @typedef {{
- *   usd: SeriesPattern2<?Dollars>,
- *   cents: SeriesPattern2<?Cents>,
- *   delta: DeltaAll<Sd24h<CoinflowCap<CentsSigned>>>,
- * }} MarketCap
- */
-const _MarketCap = _s({
-  usd: [_i2, '*'],
-  cents: [_i2, '*_cents'],
-  delta: [(c, b) => _DeltaAll(c, b, (c, b) => _Sd24h(c, b, _CoinflowCap)), '*_delta'],
-});
-
-/**
- * @typedef {{
- *   circulating: Circulating<Sats, ?Cents>,
- *   burned: Burned,
- *   inflationRate: Gini<?PartsPerMillionSigned64>,
- *   velocity: Velocity,
- *   marketCap: MarketCap,
- *   marketMinusRealizedCapGrowthRate: PerSec<?PartsPerMillionSigned64>,
- *   hodledOrLost: Circulating<Sats, ?Cents>,
- * }} Supply
- */
-const _Supply = _s({
-  circulating: [_Circulating, 'circulating_*'],
-  burned: [_Burned, 'unspendable_*'],
-  inflationRate: [_Gini, 'inflation_rate'],
-  velocity: [_Velocity, 'velocity'],
-  marketCap: [_MarketCap, 'market_cap'],
-  marketMinusRealizedCapGrowthRate: [_PerSec, 'market_minus_realized_cap_growth_rate'],
-  hodledOrLost: [_Circulating, 'hodled_or_lost_*'],
-});
-
-/**
- * @typedef {{
- *   total: Circulating<Sats, ?Cents>,
- *   inProfit: Circulating<Sats, ?Cents>,
- *   inLoss: Circulating<Sats, ?Cents>,
- *   delta: DeltaAll<Sd24h<Absolute1m>>,
- * }} AllSupply
- */
-const _AllSupply = _s({
-  total: [_Circulating, '*'],
-  inProfit: [_Circulating, '*_in_profit'],
-  inLoss: [_Circulating, '*_in_loss'],
-  delta: [(c, b) => _DeltaAll(c, b, (c, b) => _Sd24h(c, b, _Absolute1m)), '*_delta'],
-});
-
-/**
- * @typedef {{
- *   block: RealizedLoss0satsBlock<CentsSigned>,
- *   cumulative: CoinflowCap<CentsSigned>,
- *   sum: Sd24h<CoinflowCap<CentsSigned>>,
- *   delta: DeltaAll<Sd24h<CoinflowCap<CentsSigned>>>,
- * }} Age10yTo12y
- */
-const _Age10yTo12y = _s({
-  block: [_RealizedLoss0satsBlock, '*'],
-  cumulative: [_CoinflowCap, '*_cumulative'],
-  sum: [(c, b) => _Sd24h(c, b, _CoinflowCap), '*_sum'],
-  delta: [(c, b) => _DeltaAll(c, b, (c, b) => _Sd24h(c, b, _CoinflowCap)), '*_delta'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   all: A,
- *   p2pk65: A,
- *   p2pk33: A,
- *   p2pkh: A,
- *   p2sh: A,
- *   p2wpkh: A,
- *   p2wsh: A,
- *   p2tr: A,
- *   p2a: A,
- * }} AvgBalance
- */
-/** @type {_Make} */
-const _AvgBalance = (c, b, f0) => _n(c, b, {
-  all: [f0, '*'],
-  p2pk65: [f0, 'p2pk65_*'],
-  p2pk33: [f0, 'p2pk33_*'],
-  p2pkh: [f0, 'p2pkh_*'],
-  p2sh: [f0, 'p2sh_*'],
-  p2wpkh: [f0, 'p2wpkh_*'],
-  p2wsh: [f0, 'p2wsh_*'],
-  p2tr: [f0, 'p2tr_*'],
-  p2a: [f0, 'p2a_*'],
-});
-
-/**
- * @typedef {{
- *   all: Circulating<Sats, ?Cents>,
- *   p2pk65: Circulating<Sats, ?Cents>,
- *   p2pk33: Circulating<Sats, ?Cents>,
- *   p2pkh: Circulating<Sats, ?Cents>,
- *   p2sh: Circulating<Sats, ?Cents>,
- *   p2wpkh: Circulating<Sats, ?Cents>,
- *   p2wsh: Circulating<Sats, ?Cents>,
- *   p2tr: Circulating<Sats, ?Cents>,
- *   p2a: Circulating<Sats, ?Cents>,
- *   share: AvgBalance<Gini<?PartsPerMillion32>>,
- * }} ExposedSupply
- */
-const _ExposedSupply = _s({
-  all: [_Circulating, '*'],
-  p2pk65: [_Circulating, 'p2pk65_*'],
-  p2pk33: [_Circulating, 'p2pk33_*'],
-  p2pkh: [_Circulating, 'p2pkh_*'],
-  p2sh: [_Circulating, 'p2sh_*'],
-  p2wpkh: [_Circulating, 'p2wpkh_*'],
-  p2wsh: [_Circulating, 'p2wsh_*'],
-  p2tr: [_Circulating, 'p2tr_*'],
-  p2a: [_Circulating, 'p2a_*'],
-  share: [(c, b) => _AvgBalance(c, b, _Gini), '*_share'],
-});
-
-/**
- * @typedef {{
- *   count: ExposedCount,
- *   supply: ExposedSupply,
- * }} Exposed
- */
-const _Exposed = _s({
-  count: [_ExposedCount, '*_count'],
-  supply: [_ExposedSupply, '*_supply'],
-});
-
-/**
- * @typedef {{
- *   outputToReusedAddrCount: AvgBalance<NewAll<Count, ?CountFract>>,
- *   outputToReusedAddrShare: AvgBalance<FeeShare>,
- *   spendableOutputToReusedAddrShare: FeeShare,
- *   inputFromReusedAddrCount: AvgBalance<NewAll<Count, ?CountFract>>,
- *   inputFromReusedAddrShare: AvgBalance<FeeShare>,
- *   activeReusedAddrCount: Interval<Count, ?CountFract>,
- *   activeReusedAddrShare: FeeShare,
- * }} Events
- */
-const _Events = _s({
-  outputToReusedAddrCount: [(c, b) => _AvgBalance(c, b, _NewAll), 'output_to_*_count'],
-  outputToReusedAddrShare: [(c, b) => _AvgBalance(c, b, _FeeShare), 'output_to_*_share'],
-  spendableOutputToReusedAddrShare: [_FeeShare, 'spendable_output_to_*_share'],
-  inputFromReusedAddrCount: [(c, b) => _AvgBalance(c, b, _NewAll), 'input_from_*_count'],
-  inputFromReusedAddrShare: [(c, b) => _AvgBalance(c, b, _FeeShare), 'input_from_*_share'],
-  activeReusedAddrCount: [_Interval, 'active_*_count'],
-  activeReusedAddrShare: [_FeeShare, 'active_*_share'],
-});
-
-/**
- * @typedef {{
- *   count: ExposedCount,
- *   events: Events,
- *   supply: ExposedSupply,
- * }} Respent
- */
-const _Respent = _s({
-  count: [_ExposedCount, '*_count'],
-  events: [_Events, '*'],
-  supply: [_ExposedSupply, '*_supply'],
-});
-
-/**
- * @typedef {{
- *   reactivated: AvgBalance<Interval<Count, ?CountFract>>,
- *   sending: AvgBalance<Interval<Count, ?CountFract>>,
- *   receiving: AvgBalance<Interval<Count, ?CountFract>>,
- *   bidirectional: AvgBalance<Interval<Count, ?CountFract>>,
- *   active: AvgBalance<Interval<Count, ?CountFract>>,
- * }} AddrsActivity
- */
-const _AddrsActivity = _s({
-  reactivated: [(c, b) => _AvgBalance(c, b, _Interval), 'reactivated_*'],
-  sending: [(c, b) => _AvgBalance(c, b, _Interval), 'sending_*'],
-  receiving: [(c, b) => _AvgBalance(c, b, _Interval), 'receiving_*'],
-  bidirectional: [(c, b) => _AvgBalance(c, b, _Interval), 'bidirectional_*'],
-  active: [(c, b) => _AvgBalance(c, b, _Interval), 'active_*'],
-});
-
-/**
- * @typedef {{
- *   base: SeriesPattern2<Count>,
- *   delta: DeltaAll<PerSec<CountSigned>>,
- * }} UtxoCount0sats
- */
-const _UtxoCount0sats = _s({
-  base: [_i2, '*'],
-  delta: [(c, b) => _DeltaAll(c, b, _PerSec), '*_delta'],
-});
-
-/**
- * @typedef {{
- *   unspentCount: UtxoCount0sats,
- *   spentCount: NewAll<Count, ?CountFract>,
- * }} AllOutputs
- */
-const _AllOutputs = _s({
-  unspentCount: [_UtxoCount0sats, '*_utxo_count'],
-  spentCount: [_NewAll, '*_spent_utxo_count'],
-});
-
-/**
- * @typedef {{
- *   total: Circulating<Sats, ?Cents>,
- *   delta: DeltaAll<Sd24h<Absolute1m>>,
- *   dominance: Gini<?PartsPerMillion32>,
- * }} Supply0sats
- */
-const _Supply0sats = _s({
-  total: [_Circulating, '*'],
-  delta: [(c, b) => _DeltaAll(c, b, (c, b) => _Sd24h(c, b, _Absolute1m)), '*_delta'],
-  dominance: [_Gini, '*_dominance'],
-});
-
-/**
- * @template A, B, C
- * @typedef {{
- *   block: A,
- *   cumulative: B,
- *   sum: Sd24h<B>,
- *   average: Sd24h<C>,
+ *   block: Block,
+ *   cumulative: Circulating,
+ *   sum: Sd24h<Circulating>,
+ *   average: Sd24h<Circulating>,
  * }} Coinbase
  */
-/** @type {_Make} */
-const _Coinbase = (c, b, f0, f1, f2) => _n(c, b, {
-  block: [f0, '*'],
-  cumulative: [f1, '*_cumulative'],
-  sum: [(c, b) => _Sd24h(c, b, f1), '*_sum'],
-  average: [(c, b) => _Sd24h(c, b, f2), '*_average'],
-});
-
-/**
- * @typedef {{
- *   raw: SeriesPattern2<?Ratio>,
- *   valueDestroyed: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>,
- * }} Sopr
- */
-const _Sopr = _s({
-  raw: [_i2, '*_sopr_24h'],
-  valueDestroyed: [(c, b) => _Coinbase(c, b, _RealizedLoss0satsBlock, _CoinflowCap, _CoinflowCap), '*_value_destroyed'],
-});
-
-/**
- * @typedef {{
- *   cap: MarketCap,
- *   price: CapitalizedPrice,
- *   profit: RealizedLoss0sats,
- *   loss: RealizedLoss0sats,
- *   netPnl: Age10yTo12y,
- *   sopr: Sopr,
- *   mvrv: SeriesPattern2<?Ratio>,
- * }} DiscountRealized
- */
-const _DiscountRealized = _s({
-  cap: [_MarketCap, '*_realized_cap'],
-  price: [_CapitalizedPrice, '*_realized_price'],
-  profit: [_RealizedLoss0sats, '*_realized_profit'],
-  loss: [_RealizedLoss0sats, '*_realized_loss'],
-  netPnl: [_Age10yTo12y, '*_net_realized_pnl'],
-  sopr: [_Sopr, '*'],
-  mvrv: [_i2, '*_mvrv'],
-});
-
-/**
- * @typedef {{
- *   block: BurnedBlock,
- *   cumulative: Circulating<Sats, ?Cents>,
- *   sum: Sd24h<Circulating<Sats, ?Cents>>,
- *   average: Sd24h<Circulating<?SatsFract, ?CentsFract>>,
- *   inProfit: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
- *   inLoss: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
- * }} DiscountActivityTransferVolume
- */
-const _DiscountActivityTransferVolume = _s({
-  block: [_BurnedBlock, '*'],
+const _Coinbase = _s({
+  block: [_Block, '*'],
   cumulative: [_Circulating, '*_cumulative'],
   sum: [(c, b) => _Sd24h(c, b, _Circulating), '*_sum'],
   average: [(c, b) => _Sd24h(c, b, _Circulating), '*_average'],
-  inProfit: [(c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating), '*_in_profit'],
-  inLoss: [(c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating), '*_in_loss'],
+});
+
+/**
+ * @typedef {{
+ *   block: Block,
+ *   cumulative: Circulating,
+ *   sum: Sd24h<Circulating>,
+ *   average: Sd24h<Circulating>,
+ *   inProfit: Coinbase,
+ *   inLoss: Coinbase,
+ * }} DiscountActivityTransferVolume
+ */
+const _DiscountActivityTransferVolume = _s({
+  block: [_Block, '*'],
+  cumulative: [_Circulating, '*_cumulative'],
+  sum: [(c, b) => _Sd24h(c, b, _Circulating), '*_sum'],
+  average: [(c, b) => _Sd24h(c, b, _Circulating), '*_average'],
+  inProfit: [_Coinbase, '*_in_profit'],
+  inLoss: [_Coinbase, '*_in_loss'],
 });
 
 /**
@@ -7417,76 +7543,17 @@ const _DistributionEntryCohorts = _s({
 
 /**
  * @typedef {{
- *   ratio: PerSec<?Ratio>,
- *   transferVolume: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>,
- *   valueDestroyed: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>,
- * }} AdjustedSopr
- */
-const _AdjustedSopr = _s({
-  ratio: [_PerSec, '*_adjusted_sopr'],
-  transferVolume: [(c, b) => _Coinbase(c, b, _RealizedLoss0satsBlock, _CoinflowCap, _CoinflowCap), '*_adj_value_created'],
-  valueDestroyed: [(c, b) => _Coinbase(c, b, _RealizedLoss0satsBlock, _CoinflowCap, _CoinflowCap), '*_adj_value_destroyed'],
-});
-
-/**
- * @typedef {{
- *   adjustedSopr: AdjustedSopr,
- *   dormancy: PerSec<?Days>,
- *   sopr: SeriesPattern2<?Ratio>,
- *   soprRatioExtended: SoprRatioExtended,
- *   sellSideRiskRatio: Sd24h<Gini<?PartsPerMillion32>>,
- *   profitToLossRatio: PerSec<?Ratio>,
- * }} Ratios
- */
-const _Ratios = _s({
-  adjustedSopr: [_AdjustedSopr, '*'],
-  dormancy: [_PerSec, '*_dormancy'],
-  sopr: [_i2, '*_sopr_24h'],
-  soprRatioExtended: [_SoprRatioExtended, '*_sopr'],
-  sellSideRiskRatio: [(c, b) => _Sd24h(c, b, _Gini), '*_sell_side_risk_ratio'],
-  profitToLossRatio: [_PerSec, '*_realized_profit_to_loss_ratio'],
-});
-
-/**
- * @typedef {{
- *   cap: MarketCap,
- *   price: Spot<?SatsFract>,
- *   capitalizedPrice: CapitalizedPrice,
- *   profit: RealizedLoss0sats,
- *   loss: RealizedLoss0sats,
- *   netPnl: Age10yTo12y,
- *   valueDestroyed: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>,
- *   grossPnl: RealizedLoss0sats,
- *   peakRegret: RealizedLoss0sats,
- *   mvrv: RhodlRatio<?PriceRatio>,
- * }} AllRealized
- */
-const _AllRealized = _s({
-  cap: [_MarketCap, '*_realized_cap'],
-  price: [_Spot, '*_realized_price'],
-  capitalizedPrice: [_CapitalizedPrice, '*_capitalized_price'],
-  profit: [_RealizedLoss0sats, '*_realized_profit'],
-  loss: [_RealizedLoss0sats, '*_realized_loss'],
-  netPnl: [_Age10yTo12y, '*_net_realized_pnl'],
-  valueDestroyed: [(c, b) => _Coinbase(c, b, _RealizedLoss0satsBlock, _CoinflowCap, _CoinflowCap), '*_value_destroyed'],
-  grossPnl: [_RealizedLoss0sats, '*_realized_gross_pnl'],
-  peakRegret: [_RealizedLoss0sats, '*_realized_peak_regret'],
-  mvrv: [_RhodlRatio, '*_mvrv'],
-});
-
-/**
- * @typedef {{
- *   transferVolume: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
- *   transferVolumeInProfit: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
- *   transferVolumeInLoss: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
+ *   transferVolume: Coinbase,
+ *   transferVolumeInProfit: Coinbase,
+ *   transferVolumeInLoss: Coinbase,
  *   coindaysDestroyed: NewAll<?CoinDays, ?CoinDays>,
  *   coinyearsDestroyed: SeriesPattern2<?CoinYears>,
  * }} AllActivity
  */
 const _AllActivity = _s({
-  transferVolume: [(c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating), '*_transfer_volume'],
-  transferVolumeInProfit: [(c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating), '*_transfer_volume_in_profit'],
-  transferVolumeInLoss: [(c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating), '*_transfer_volume_in_loss'],
+  transferVolume: [_Coinbase, '*_transfer_volume'],
+  transferVolumeInProfit: [_Coinbase, '*_transfer_volume_in_profit'],
+  transferVolumeInLoss: [_Coinbase, '*_transfer_volume_in_loss'],
   coindaysDestroyed: [_NewAll, '*_coindays_destroyed'],
   coinyearsDestroyed: [_i2, '*_coinyears_destroyed'],
 });
@@ -7564,10 +7631,10 @@ const _DistributionAggregated = (c, b, f0) => _n(c, b, {
  *   _1kBtcTo10kBtc: A,
  *   _10kBtcTo100kBtc: A,
  *   over100kBtc: A,
- * }} UtxoAmount
+ * }} TransferVolumeUtxoAmount
  */
 /** @type {_Make} */
-const _UtxoAmount = (c, b, f0) => _n(c, b, {
+const _TransferVolumeUtxoAmount = (c, b, f0) => _n(c, b, {
   _0sats: [f0, 'utxos_0sats_*'],
   _1satTo10sats: [f0, 'utxos_1sat_to_10sats_*'],
   _10satsTo100sats: [f0, 'utxos_10sats_to_100sats_*'],
@@ -7606,10 +7673,10 @@ const _UtxoAmount = (c, b, f0) => _n(c, b, {
  *   _2024: A,
  *   _2025: A,
  *   _2026: A,
- * }} Class
+ * }} CoindaysDestroyedClass
  */
 /** @type {_Make} */
-const _Class = (c, b, f0) => _n(c, b, {
+const _CoindaysDestroyedClass = (c, b, f0) => _n(c, b, {
   _2009: [f0, 'class_2009_*'],
   _2010: [f0, 'class_2010_*'],
   _2011: [f0, 'class_2011_*'],
@@ -7651,15 +7718,15 @@ const _CoindaysDestroyedEpoch = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   blocksMined: BlocksMined,
+ *   blocksMined: RealizedLoss0sats<Count>,
  *   dominance: FeeShare,
- *   rewards: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
+ *   rewards: Coinbase,
  * }} Antpool
  */
 const _Antpool = _s({
-  blocksMined: [_BlocksMined, '*_blocks_mined'],
+  blocksMined: [_RealizedLoss0sats, '*_blocks_mined'],
   dominance: [_FeeShare, '*_dominance'],
-  rewards: [(c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating), '*_rewards'],
+  rewards: [_Coinbase, '*_rewards'],
 });
 
 /**
@@ -7782,37 +7849,37 @@ const _Matured = (c, b, f0) => _n(c, b, {
 });
 
 /**
- * @template A
+ * @template A, B, C
  * @typedef {{
- *   age: Matured<A>,
- *   epoch: CoindaysDestroyedEpoch<A>,
- *   class: Class<A>,
+ *   age: A,
+ *   epoch: B,
+ *   class: C,
  * }} CoindaysDestroyed
  */
 /** @type {_Make} */
-const _CoindaysDestroyed = (c, b, f0) => _n(c, b, {
-  age: [(c, b) => _Matured(c, b, f0), 'old_*'],
-  epoch: [(c, b) => _CoindaysDestroyedEpoch(c, b, f0), '*'],
-  class: [(c, b) => _Class(c, b, f0), '*'],
+const _CoindaysDestroyed = (c, b, f0, f1, f2) => _n(c, b, {
+  age: [f0, 'old_*'],
+  epoch: [f1, '*'],
+  class: [f2, '*'],
 });
 
 /**
  * @typedef {{
- *   profit: CoindaysDestroyed<CoinflowCap<?Cents>>,
- *   loss: CoindaysDestroyed<CoinflowCap<?Cents>>,
- *   netPnl: CoindaysDestroyed<CoinflowCap<CentsSigned>>,
+ *   profit: CoindaysDestroyed<SpendingRate<?Dollars>, CapEpoch, CapClass>,
+ *   loss: CoindaysDestroyed<SpendingRate<?Dollars>, CapEpoch, CapClass>,
+ *   netPnl: CoindaysDestroyed<SpendingRate<?Dollars>, CapEpoch, CapClass>,
  * }} CohortsUnrealized
  */
 const _CohortsUnrealized = _s({
-  profit: [(c, b) => _CoindaysDestroyed(c, b, _CoinflowCap), '*_profit'],
-  loss: [(c, b) => _CoindaysDestroyed(c, b, _CoinflowCap), '*_loss'],
-  netPnl: [(c, b) => _CoindaysDestroyed(c, b, _CoinflowCap), 'net_*_pnl'],
+  profit: [(c, b) => _CoindaysDestroyed(c, b, _SpendingRate, _CapEpoch, _CapClass), '*_profit'],
+  loss: [(c, b) => _CoindaysDestroyed(c, b, _SpendingRate, _CapEpoch, _CapClass), '*_loss'],
+  netPnl: [(c, b) => _CoindaysDestroyed(c, b, _SpendingRate, _CapEpoch, _CapClass), 'net_*_pnl'],
 });
 
 /**
  * @typedef {{
- *   mobile: Matured<Circulating<Sats, ?Cents>>,
- *   immobile: Matured<Circulating<Sats, ?Cents>>,
+ *   mobile: Matured<Circulating>,
+ *   immobile: Matured<Circulating>,
  * }} CoinflowAgeRangeSupply
  */
 const _CoinflowAgeRangeSupply = _s({
@@ -7838,7 +7905,7 @@ const _CoinflowAgeRange = _s({
  *   ageRange: CoinflowAgeRange,
  *   urpd: CoinflowUrpd<CoinflowUrpdLth>,
  *   supply: CoinflowSupply,
- *   cap: CoinflowCap<?Cents>,
+ *   cap: SeriesPattern2<?Dollars>,
  *   price: CapitalizedPrice,
  *   capitalizedPrice: CapitalizedPrice,
  *   sth: CoinflowLth,
@@ -7857,7 +7924,7 @@ const _Coinflow = _s({
   ageRange: [_CoinflowAgeRange, 'old'],
   urpd: [(c, b) => _CoinflowUrpd(c, b, _CoinflowUrpdLth), '*'],
   supply: [_CoinflowSupply, ''],
-  cap: [_CoinflowCap, '*_cap'],
+  cap: [_i2, '*_cap'],
   price: [_CapitalizedPrice, '*_price'],
   capitalizedPrice: [_CapitalizedPrice, '*_capitalized_price'],
   sth: [_CoinflowLth, 'sth'],
@@ -7874,8 +7941,8 @@ const _Coinflow = _s({
 
 /**
  * @typedef {{
- *   awake: Matured<Circulating<Sats, ?Cents>>,
- *   dormant: Matured<Circulating<Sats, ?Cents>>,
+ *   awake: Matured<Circulating>,
+ *   dormant: Matured<Circulating>,
  * }} CointimeAgeRangeSupply
  */
 const _CointimeAgeRangeSupply = _s({
@@ -7919,7 +7986,7 @@ const _CointimeAgeRange = _s({
  *   over6mAwakeCapitalizedPrice: CapitalizedPrice,
  *   supply: CointimeSupply,
  *   value: CointimeValue,
- *   cap: CointimeCap,
+ *   cap: Cap,
  *   prices: CointimePrices,
  *   adjusted: Adjusted,
  *   reserveRisk: ReserveRisk,
@@ -7943,7 +8010,7 @@ const _Cointime = _s({
   over6mAwakeCapitalizedPrice: [_CapitalizedPrice, 'over_6m_*_capitalized_price'],
   supply: [_CointimeSupply, 'supply'],
   value: [_CointimeValue, 'cointime_value'],
-  cap: [_CointimeCap, 'cap'],
+  cap: [_Cap, 'cap'],
   prices: [_CointimePrices, 'price'],
   adjusted: [_Adjusted, 'cointime_adj'],
   reserveRisk: [_ReserveRisk, 'reserve_risk'],
@@ -7951,7 +8018,7 @@ const _Cointime = _s({
 
 /**
  * @typedef {{
- *   coinbase: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
+ *   coinbase: Coinbase,
  *   subsidy: Subsidy,
  *   fees: RewardsFees,
  *   outputVolume: SeriesPattern21<Sats>,
@@ -7959,7 +8026,7 @@ const _Cointime = _s({
  * }} Rewards
  */
 const _Rewards = _s({
-  coinbase: [(c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating), '*'],
+  coinbase: [_Coinbase, '*'],
   subsidy: [_Subsidy, 'subsidy'],
   fees: [_RewardsFees, 'fees'],
   outputVolume: [_i21, 'output_volume'],
@@ -7995,10 +8062,10 @@ const _Mining = _s({
  *   _1kBtcTo10kBtc: A,
  *   _10kBtcTo100kBtc: A,
  *   over100kBtc: A,
- * }} RealizedCap
+ * }} RealizedLoss
  */
 /** @type {_Make} */
-const _RealizedCap = (c, b, f0) => _n(c, b, {
+const _RealizedLoss = (c, b, f0) => _n(c, b, {
   _0sats: [f0, 'addrs_0sats_*'],
   _1satTo10sats: [f0, 'addrs_1sat_to_10sats_*'],
   _10satsTo100sats: [f0, 'addrs_10sats_to_100sats_*'],
@@ -8027,7 +8094,7 @@ const _RealizedCap = (c, b, f0) => _n(c, b, {
  *   p2wsh: SeriesPattern2<Count>,
  *   p2tr: SeriesPattern2<Count>,
  *   p2a: SeriesPattern2<Count>,
- *   balance: RealizedCap<UtxoCount0sats>,
+ *   balance: RealizedLoss<UtxoCount0sats>,
  * }} Funded
  */
 const _Funded = _s({
@@ -8040,26 +8107,26 @@ const _Funded = _s({
   p2wsh: [_i2, 'p2wsh_*'],
   p2tr: [_i2, 'p2tr_*'],
   p2a: [_i2, 'p2a_*'],
-  balance: [(c, b) => _RealizedCap(c, b, _UtxoCount0sats), '*'],
+  balance: [(c, b) => _RealizedLoss(c, b, _UtxoCount0sats), '*'],
 });
 
 /**
  * @typedef {{
- *   supply: RealizedCap<Supply0sats>,
- *   utxoCount: RealizedCap<UtxoCount0sats>,
- *   transferVolume: RealizedCap<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
- *   realizedCap: RealizedCap<CoinflowCap<?Cents>>,
- *   realizedProfit: RealizedCap<RealizedLoss0sats>,
- *   realizedLoss: RealizedCap<RealizedLoss0sats>,
+ *   supply: RealizedLoss<Supply0sats>,
+ *   utxoCount: RealizedLoss<UtxoCount0sats>,
+ *   transferVolume: RealizedLoss<Coinbase>,
+ *   realizedCap: RealizedCap,
+ *   realizedProfit: RealizedLoss<RealizedLoss0sats<?Dollars>>,
+ *   realizedLoss: RealizedLoss<RealizedLoss0sats<?Dollars>>,
  * }} ByBalance
  */
 const _ByBalance = _s({
-  supply: [(c, b) => _RealizedCap(c, b, _Supply0sats), 'supply'],
-  utxoCount: [(c, b) => _RealizedCap(c, b, _UtxoCount0sats), 'utxo_count'],
-  transferVolume: [(c, b) => _RealizedCap(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), 'transfer_volume'],
-  realizedCap: [(c, b) => _RealizedCap(c, b, _CoinflowCap), '*_cap'],
-  realizedProfit: [(c, b) => _RealizedCap(c, b, _RealizedLoss0sats), '*_profit'],
-  realizedLoss: [(c, b) => _RealizedCap(c, b, _RealizedLoss0sats), '*_loss'],
+  supply: [(c, b) => _RealizedLoss(c, b, _Supply0sats), 'supply'],
+  utxoCount: [(c, b) => _RealizedLoss(c, b, _UtxoCount0sats), 'utxo_count'],
+  transferVolume: [(c, b) => _RealizedLoss(c, b, _Coinbase), 'transfer_volume'],
+  realizedCap: [_RealizedCap, '*_cap'],
+  realizedProfit: [(c, b) => _RealizedLoss(c, b, _RealizedLoss0sats), '*_profit'],
+  realizedLoss: [(c, b) => _RealizedLoss(c, b, _RealizedLoss0sats), '*_loss'],
 });
 
 /**
@@ -8075,8 +8142,8 @@ const _ByBalance = _s({
  *   reused: Respent,
  *   respent: Respent,
  *   exposed: Exposed,
- *   delta: AvgBalance<DeltaAll<PerSec<CountSigned>>>,
- *   avgBalance: AvgBalance<Circulating<Sats, ?Cents>>,
+ *   delta: AvgBalance<DeltaAll<CountSigned>>,
+ *   avgBalance: AvgBalance<Circulating>,
  * }} Addrs
  */
 const _Addrs = _s({
@@ -8091,7 +8158,7 @@ const _Addrs = _s({
   reused: [_Respent, 'reused_*'],
   respent: [_Respent, 'respent_*'],
   exposed: [_Exposed, 'exposed_*'],
-  delta: [(c, b) => _AvgBalance(c, b, (c, b) => _DeltaAll(c, b, _PerSec)), '*_count'],
+  delta: [(c, b) => _AvgBalance(c, b, _DeltaAll), '*_count'],
   avgBalance: [(c, b) => _AvgBalance(c, b, _Circulating), 'avg_*_amount'],
 });
 
@@ -8128,51 +8195,40 @@ const _InputShare = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   utxoAmount: UtxoAmount<Spot<?SatsFract>>,
- *   type: InputShare<Spot<?SatsFract>>,
- * }} RealizedPrice
- */
-const _RealizedPrice = _s({
-  utxoAmount: [(c, b) => _UtxoAmount(c, b, _Spot), '*'],
-  type: [(c, b) => _InputShare(c, b, _Spot), '*'],
-});
-
-/**
- * @typedef {{
- *   age: Matured<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
- *   epoch: CoindaysDestroyedEpoch<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
- *   class: Class<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
- *   inProfit: CoindaysDestroyed<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
- *   inLoss: CoindaysDestroyed<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
- *   utxoAmount: UtxoAmount<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
- *   type: InputShare<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
+ *   age: Matured<Coinbase>,
+ *   epoch: CoindaysDestroyedEpoch<Coinbase>,
+ *   class: CoindaysDestroyedClass<Coinbase>,
+ *   inProfit: CoindaysDestroyed<Matured<Coinbase>, CoindaysDestroyedEpoch<Coinbase>, CoindaysDestroyedClass<Coinbase>>,
+ *   inLoss: CoindaysDestroyed<Matured<Coinbase>, CoindaysDestroyedEpoch<Coinbase>, CoindaysDestroyedClass<Coinbase>>,
+ *   utxoAmount: TransferVolumeUtxoAmount<Coinbase>,
+ *   type: InputShare<Coinbase>,
  * }} CohortsActivityTransferVolume
  */
 const _CohortsActivityTransferVolume = _s({
-  age: [(c, b) => _Matured(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), 'old_*'],
-  epoch: [(c, b) => _CoindaysDestroyedEpoch(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), '*'],
-  class: [(c, b) => _Class(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), '*'],
-  inProfit: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), '*_in_profit'],
-  inLoss: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), '*_in_loss'],
-  utxoAmount: [(c, b) => _UtxoAmount(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), '*'],
-  type: [(c, b) => _InputShare(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), '*'],
+  age: [(c, b) => _Matured(c, b, _Coinbase), 'old_*'],
+  epoch: [(c, b) => _CoindaysDestroyedEpoch(c, b, _Coinbase), '*'],
+  class: [(c, b) => _CoindaysDestroyedClass(c, b, _Coinbase), '*'],
+  inProfit: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _Matured(c, b, _Coinbase), (c, b) => _CoindaysDestroyedEpoch(c, b, _Coinbase), (c, b) => _CoindaysDestroyedClass(c, b, _Coinbase)), '*_in_profit'],
+  inLoss: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _Matured(c, b, _Coinbase), (c, b) => _CoindaysDestroyedEpoch(c, b, _Coinbase), (c, b) => _CoindaysDestroyedClass(c, b, _Coinbase)), '*_in_loss'],
+  utxoAmount: [(c, b) => _TransferVolumeUtxoAmount(c, b, _Coinbase), '*'],
+  type: [(c, b) => _InputShare(c, b, _Coinbase), '*'],
 });
 
 /**
  * @typedef {{
  *   transferVolume: CohortsActivityTransferVolume,
- *   coindaysDestroyed: CoindaysDestroyed<NewAll<?CoinDays, ?CoinDays>>,
+ *   coindaysDestroyed: CoindaysDestroyed<Matured<NewAll<?CoinDays, ?CoinDays>>, CoindaysDestroyedEpoch<NewAll<?CoinDays, ?CoinDays>>, CoindaysDestroyedClass<NewAll<?CoinDays, ?CoinDays>>>,
  * }} CohortsActivity
  */
 const _CohortsActivity = _s({
   transferVolume: [_CohortsActivityTransferVolume, '*'],
-  coindaysDestroyed: [(c, b) => _CoindaysDestroyed(c, b, _NewAll), 'coindays_destroyed'],
+  coindaysDestroyed: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _Matured(c, b, _NewAll), (c, b) => _CoindaysDestroyedEpoch(c, b, _NewAll), (c, b) => _CoindaysDestroyedClass(c, b, _NewAll)), 'coindays_destroyed'],
 });
 
 /**
  * @typedef {{
- *   all: Circulating<Sats, ?Cents>,
- *   byType: InputShare<Circulating<Sats, ?Cents>>,
+ *   all: Circulating,
+ *   byType: InputShare<Circulating>,
  * }} AvgAmount
  */
 const _AvgAmount = _s({
@@ -8181,73 +8237,73 @@ const _AvgAmount = _s({
 });
 
 /**
- * @template A
+ * @template A, B, C, D, E
  * @typedef {{
- *   age: Matured<A>,
- *   epoch: CoindaysDestroyedEpoch<A>,
- *   class: Class<A>,
- *   utxoAmount: UtxoAmount<A>,
- *   type: InputShare<A>,
+ *   age: A,
+ *   epoch: B,
+ *   class: C,
+ *   utxoAmount: D,
+ *   type: E,
  * }} SpentCount
  */
 /** @type {_Make} */
-const _SpentCount = (c, b, f0) => _n(c, b, {
-  age: [(c, b) => _Matured(c, b, f0), 'old_*'],
-  epoch: [(c, b) => _CoindaysDestroyedEpoch(c, b, f0), '*'],
-  class: [(c, b) => _Class(c, b, f0), '*'],
-  utxoAmount: [(c, b) => _UtxoAmount(c, b, f0), '*'],
-  type: [(c, b) => _InputShare(c, b, f0), '*'],
+const _SpentCount = (c, b, f0, f1, f2, f3, f4) => _n(c, b, {
+  age: [f0, 'old_*'],
+  epoch: [f1, '*'],
+  class: [f2, '*'],
+  utxoAmount: [f3, '*'],
+  type: [f4, '*'],
 });
 
 /**
  * @typedef {{
- *   cap: SpentCount<CoinflowCap<?Cents>>,
- *   profit: SpentCount<RealizedLoss0sats>,
- *   loss: SpentCount<RealizedLoss0sats>,
- *   netPnl: CoindaysDestroyed<Age10yTo12y>,
- *   valueDestroyed: CoindaysDestroyed<Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>>,
+ *   cap: SpentCount<SpendingRate<?Dollars>, CapEpoch, CapClass, CapUtxoAmount, Type>,
  *   price: RealizedPrice,
+ *   profit: SpentCount<Matured<RealizedLoss0sats<?Dollars>>, CoindaysDestroyedEpoch<RealizedLoss0sats<?Dollars>>, CoindaysDestroyedClass<RealizedLoss0sats<?Dollars>>, TransferVolumeUtxoAmount<RealizedLoss0sats<?Dollars>>, InputShare<RealizedLoss0sats<?Dollars>>>,
+ *   loss: SpentCount<Matured<RealizedLoss0sats<?Dollars>>, CoindaysDestroyedEpoch<RealizedLoss0sats<?Dollars>>, CoindaysDestroyedClass<RealizedLoss0sats<?Dollars>>, TransferVolumeUtxoAmount<RealizedLoss0sats<?Dollars>>, InputShare<RealizedLoss0sats<?Dollars>>>,
+ *   netPnl: CoindaysDestroyed<Matured<Age10yTo12y>, CoindaysDestroyedEpoch<Age10yTo12y>, CoindaysDestroyedClass<Age10yTo12y>>,
+ *   valueDestroyed: CoindaysDestroyed<Matured<NewAll<?Dollars, ?Dollars>>, CoindaysDestroyedEpoch<NewAll<?Dollars, ?Dollars>>, CoindaysDestroyedClass<NewAll<?Dollars, ?Dollars>>>,
  * }} CohortsRealized
  */
 const _CohortsRealized = _s({
-  cap: [(c, b) => _SpentCount(c, b, _CoinflowCap), '*_cap'],
-  profit: [(c, b) => _SpentCount(c, b, _RealizedLoss0sats), '*_profit'],
-  loss: [(c, b) => _SpentCount(c, b, _RealizedLoss0sats), '*_loss'],
-  netPnl: [(c, b) => _CoindaysDestroyed(c, b, _Age10yTo12y), 'net_*_pnl'],
-  valueDestroyed: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _Coinbase(c, b, _RealizedLoss0satsBlock, _CoinflowCap, _CoinflowCap)), 'value_destroyed'],
+  cap: [(c, b) => _SpentCount(c, b, _SpendingRate, _CapEpoch, _CapClass, _CapUtxoAmount, _Type), '*_cap'],
   price: [_RealizedPrice, '*_price'],
+  profit: [(c, b) => _SpentCount(c, b, (c, b) => _Matured(c, b, _RealizedLoss0sats), (c, b) => _CoindaysDestroyedEpoch(c, b, _RealizedLoss0sats), (c, b) => _CoindaysDestroyedClass(c, b, _RealizedLoss0sats), (c, b) => _TransferVolumeUtxoAmount(c, b, _RealizedLoss0sats), (c, b) => _InputShare(c, b, _RealizedLoss0sats)), '*_profit'],
+  loss: [(c, b) => _SpentCount(c, b, (c, b) => _Matured(c, b, _RealizedLoss0sats), (c, b) => _CoindaysDestroyedEpoch(c, b, _RealizedLoss0sats), (c, b) => _CoindaysDestroyedClass(c, b, _RealizedLoss0sats), (c, b) => _TransferVolumeUtxoAmount(c, b, _RealizedLoss0sats), (c, b) => _InputShare(c, b, _RealizedLoss0sats)), '*_loss'],
+  netPnl: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _Matured(c, b, _Age10yTo12y), (c, b) => _CoindaysDestroyedEpoch(c, b, _Age10yTo12y), (c, b) => _CoindaysDestroyedClass(c, b, _Age10yTo12y)), 'net_*_pnl'],
+  valueDestroyed: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _Matured(c, b, _NewAll), (c, b) => _CoindaysDestroyedEpoch(c, b, _NewAll), (c, b) => _CoindaysDestroyedClass(c, b, _NewAll)), 'value_destroyed'],
 });
 
 /**
  * @typedef {{
- *   unspentCount: SpentCount<UtxoCount0sats>,
- *   spentCount: SpentCount<NewAll<Count, ?CountFract>>,
+ *   unspentCount: SpentCount<Matured<UtxoCount0sats>, CoindaysDestroyedEpoch<UtxoCount0sats>, CoindaysDestroyedClass<UtxoCount0sats>, TransferVolumeUtxoAmount<UtxoCount0sats>, InputShare<UtxoCount0sats>>,
+ *   spentCount: SpentCount<Matured<NewAll<Count, ?CountFract>>, CoindaysDestroyedEpoch<NewAll<Count, ?CountFract>>, CoindaysDestroyedClass<NewAll<Count, ?CountFract>>, TransferVolumeUtxoAmount<NewAll<Count, ?CountFract>>, InputShare<NewAll<Count, ?CountFract>>>,
  *   avgAmount: AvgAmount,
  * }} CohortsOutputs
  */
 const _CohortsOutputs = _s({
-  unspentCount: [(c, b) => _SpentCount(c, b, _UtxoCount0sats), '*_count'],
-  spentCount: [(c, b) => _SpentCount(c, b, _NewAll), 'spent_*_count'],
+  unspentCount: [(c, b) => _SpentCount(c, b, (c, b) => _Matured(c, b, _UtxoCount0sats), (c, b) => _CoindaysDestroyedEpoch(c, b, _UtxoCount0sats), (c, b) => _CoindaysDestroyedClass(c, b, _UtxoCount0sats), (c, b) => _TransferVolumeUtxoAmount(c, b, _UtxoCount0sats), (c, b) => _InputShare(c, b, _UtxoCount0sats)), '*_count'],
+  spentCount: [(c, b) => _SpentCount(c, b, (c, b) => _Matured(c, b, _NewAll), (c, b) => _CoindaysDestroyedEpoch(c, b, _NewAll), (c, b) => _CoindaysDestroyedClass(c, b, _NewAll), (c, b) => _TransferVolumeUtxoAmount(c, b, _NewAll), (c, b) => _InputShare(c, b, _NewAll)), 'spent_*_count'],
   avgAmount: [_AvgAmount, 'avg_*_amount'],
 });
 
 /**
  * @typedef {{
- *   total: SpentCount<Circulating<Sats, ?Cents>>,
- *   matured: Matured<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
- *   inProfit: CoindaysDestroyed<Circulating<Sats, ?Cents>>,
- *   inLoss: CoindaysDestroyed<Circulating<Sats, ?Cents>>,
- *   delta: SpentCount<DeltaAll<Sd24h<Absolute1m>>>,
- *   dominance: SpentCount<Gini<?PartsPerMillion32>>,
+ *   total: SpentCount<Matured<Circulating>, CoindaysDestroyedEpoch<Circulating>, CoindaysDestroyedClass<Circulating>, TransferVolumeUtxoAmount<Circulating>, InputShare<Circulating>>,
+ *   matured: Matured<Coinbase>,
+ *   inProfit: CoindaysDestroyed<Matured<Circulating>, CoindaysDestroyedEpoch<Circulating>, CoindaysDestroyedClass<Circulating>>,
+ *   inLoss: CoindaysDestroyed<Matured<Circulating>, CoindaysDestroyedEpoch<Circulating>, CoindaysDestroyedClass<Circulating>>,
+ *   delta: SpentCount<Matured<DeltaAll<?Bitcoin>>, CoindaysDestroyedEpoch<DeltaAll<?Bitcoin>>, CoindaysDestroyedClass<DeltaAll<?Bitcoin>>, TransferVolumeUtxoAmount<DeltaAll<?Bitcoin>>, InputShare<DeltaAll<?Bitcoin>>>,
+ *   dominance: SpentCount<Matured<Gini<?PartsPerMillion32>>, CoindaysDestroyedEpoch<Gini<?PartsPerMillion32>>, CoindaysDestroyedClass<Gini<?PartsPerMillion32>>, TransferVolumeUtxoAmount<Gini<?PartsPerMillion32>>, InputShare<Gini<?PartsPerMillion32>>>,
  * }} CohortsSupply
  */
 const _CohortsSupply = _s({
-  total: [(c, b) => _SpentCount(c, b, _Circulating), '*'],
-  matured: [(c, b) => _Matured(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), 'old_matured_*'],
-  inProfit: [(c, b) => _CoindaysDestroyed(c, b, _Circulating), '*_in_profit'],
-  inLoss: [(c, b) => _CoindaysDestroyed(c, b, _Circulating), '*_in_loss'],
-  delta: [(c, b) => _SpentCount(c, b, (c, b) => _DeltaAll(c, b, (c, b) => _Sd24h(c, b, _Absolute1m))), '*_delta'],
-  dominance: [(c, b) => _SpentCount(c, b, _Gini), '*_dominance'],
+  total: [(c, b) => _SpentCount(c, b, (c, b) => _Matured(c, b, _Circulating), (c, b) => _CoindaysDestroyedEpoch(c, b, _Circulating), (c, b) => _CoindaysDestroyedClass(c, b, _Circulating), (c, b) => _TransferVolumeUtxoAmount(c, b, _Circulating), (c, b) => _InputShare(c, b, _Circulating)), '*'],
+  matured: [(c, b) => _Matured(c, b, _Coinbase), 'old_matured_*'],
+  inProfit: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _Matured(c, b, _Circulating), (c, b) => _CoindaysDestroyedEpoch(c, b, _Circulating), (c, b) => _CoindaysDestroyedClass(c, b, _Circulating)), '*_in_profit'],
+  inLoss: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _Matured(c, b, _Circulating), (c, b) => _CoindaysDestroyedEpoch(c, b, _Circulating), (c, b) => _CoindaysDestroyedClass(c, b, _Circulating)), '*_in_loss'],
+  delta: [(c, b) => _SpentCount(c, b, (c, b) => _Matured(c, b, _DeltaAll), (c, b) => _CoindaysDestroyedEpoch(c, b, _DeltaAll), (c, b) => _CoindaysDestroyedClass(c, b, _DeltaAll), (c, b) => _TransferVolumeUtxoAmount(c, b, _DeltaAll), (c, b) => _InputShare(c, b, _DeltaAll)), '*_delta'],
+  dominance: [(c, b) => _SpentCount(c, b, (c, b) => _Matured(c, b, _Gini), (c, b) => _CoindaysDestroyedEpoch(c, b, _Gini), (c, b) => _CoindaysDestroyedClass(c, b, _Gini), (c, b) => _TransferVolumeUtxoAmount(c, b, _Gini), (c, b) => _InputShare(c, b, _Gini)), '*_dominance'],
 });
 
 /**
@@ -8303,12 +8359,12 @@ const _Inputs = _s({
 
 /**
  * @typedef {{
- *   transferVolume: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
+ *   transferVolume: Coinbase,
  *   txPerSec: PerSec<?PerSecond>,
  * }} Volume
  */
 const _Volume = _s({
-  transferVolume: [(c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating), '*'],
+  transferVolume: [_Coinbase, '*'],
   txPerSec: [_PerSec, 'tx_per_sec'],
 });
 

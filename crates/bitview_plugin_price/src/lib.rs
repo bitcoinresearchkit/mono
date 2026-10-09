@@ -12,9 +12,9 @@ pub use oracle_feed::{feed_blocks_for_warmup, feed_blocks_with};
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
-use bitview_vecs::{OhlcPrice, SplitPrice, SpotPrice};
+use bitview_vecs::{LazyPerBlock, OhlcPrice, SplitPrice, SpotPrice};
 use brk_oracle::VERSION as ORACLE_VERSION;
-use brk_types::Version;
+use brk_types::{Cents, Sats, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 const STORAGE: PluginStorage =
@@ -42,6 +42,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// that estimates price from round-USD transaction-output patterns. This is
     /// a model-derived block price, not a contemporaneous exchange ticker.
     pub spot: SpotPrice<M>,
+    /// Whole satoshis one US dollar buys at the spot price: 100,000,000 divided
+    /// by the price in USD per BTC.
+    sats_per_dollar: LazyPerBlock<Sats, Cents>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

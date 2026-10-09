@@ -19,12 +19,14 @@ impl Vecs {
         let spot = SpotPrice::import(db, "price", version, mappings)?;
         let ohlc = OhlcPrice::from_spot("price_ohlc", version, mappings, &spot);
         let split = SplitPrice::new("price", version, mappings, &spot, &ohlc);
+        let sats_per_dollar = spot.sats_per_dollar("sats_per_dollar", version);
 
         Ok(Self {
             db: db.clone(),
             split,
             ohlc,
             spot,
+            sats_per_dollar,
         })
     }
 }

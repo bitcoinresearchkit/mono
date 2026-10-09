@@ -649,12 +649,17 @@ fn generate_field_traversals(infos: &[FieldInfo], merge: bool) -> ProcMacro2Toke
                 }
                 FieldAttr::Flatten => {
                     let field_name = info.name;
+                    // A flattened leaf keeps a key: its rename, else the field name.
+                    let leaf_key = info
+                        .rename
+                        .clone()
+                        .unwrap_or_else(|| field_name.to_string());
                     let merge_branch = quote! {
                         bitview_traversable::TreeNode::Branch(map) => {
                             collected.merge_fields(map);
                         }
                         leaf @ bitview_traversable::TreeNode::Leaf(_) => {
-                            collected.merge_field(String::from(stringify!(#field_name)), leaf);
+                            collected.merge_field(String::from(#leaf_key), leaf);
                         }
                     };
 

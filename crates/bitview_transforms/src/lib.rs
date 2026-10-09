@@ -11,10 +11,9 @@ pub use arithmetic::{
 };
 pub use convert::Convert;
 pub use currency::{
-    AvgCentsToUsd, AvgSatsToBtc, CentsTimesTenths, CentsUnsignedToSats, DollarsToSatsFract,
-    SatsToCents,
+    AvgCentsToUsd, AvgSatsToBtc, CentsTimesTenths, CentsUnsignedToSats, SatsToCents,
 };
-pub use ohlc::{OhlcCentsToHighCents, OhlcCentsToLowCents, OhlcCentsToSats};
+pub use ohlc::{OhlcCentsToHighCents, OhlcCentsToLowCents};
 pub use ratio::{
     BoundedOdds, BoundedToRatio, Cagr, FixedToPercent, FixedToRatio, MvrvToNupl, PriceTimesRatio,
     Quotient, RatioCentsOrOne, RatioDiffFloat32, RatioDollars, RelativeChange, price_ratio,

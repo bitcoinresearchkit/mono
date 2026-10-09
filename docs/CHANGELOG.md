@@ -44,6 +44,13 @@ has to be deleted by hand.
   halving and epoch never) or a type's own undefined value (non-finite floats, and the `Cents`, `PartsPerMillion*`,
   `BasisPoints32`, `PriceRatio` and `BoundedRatio` sentinels). CSV writes undefined sentinel integers as empty cells
   (was the raw sentinel, e.g. `18446744073709551615`)
+- One unit per quantity: the `_cents` copies of USD series and the `_sats` copies of BTC amounts are gone from the API
+  and the clients (they stay the exact storage; the USD and BTC series print the same values exactly). A price or USD
+  value left with one unit is the series itself: `price.spot`, `price.split.close`, `price.ohlc`,
+  `cohorts.realized.cap.age.<band>`, ... (were their `.usd` child), and BTC changes over a window drop their `.btc`.
+  Prices in sats per USD (`*_price_sats` and every other price's `_sats`) are gone; `sats_per_dollar` replaces
+  `price_sats`. About 12,800 fewer series. Two placements change besides: the entry cohorts' 24-hour SOPR is
+  `realized.sopr.24h` (was `realized.sopr.raw`), and market cap stays at `supply.market_cap.usd` beside its `delta`
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
 - `TxStatus` omits `block_height`, `block_hash` and `block_time` until confirmed, like Esplora (they were sent as
   `null`)
@@ -65,9 +72,10 @@ has to be deleted by hand.
 
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
-- Generated all three series trees from one composition model. Typed series paths are unchanged
-  (`client.series().price.split.close.usd.by.day1()`), but type names change: each repeated structure is one generic
-  type named after its path (`Blocks`, `Ohlc<A, B, C>`, `SeriesTree`; Rust types live in `bitview_client::tree`)
+- Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One
+  unit per quantity": `client.series().price.split.close.by.day1()`), and type names change: each repeated structure
+  is one generic type named after its path (`Blocks`, `Interval<A, B>`, `SeriesTree`; Rust types live in
+  `bitview_client::tree`)
   instead of `SeriesTree_Blocks`, `_1m1w1y24hPattern6<T>` or `CatalogOhlc<T0, T1, T2>`. Tree children materialize on
   first access. The JS `createSeriesPatternN` helpers are gone. Clients shrink from 781 KB to 358 KB (JS), 654 KB to
   322 KB (Python) and 4.25 MB to 214 KB (Rust)
@@ -125,6 +133,10 @@ has to be deleted by hand.
 
 #### Rust APIs
 
+- `bitview_vecs::Price` is the USD series over its cents (the derived sats-per-USD field and type parameter are
+  gone; `SpotPrice::sats_per_dollar` builds the one public sats view); `OHLCSats`, `DollarsToSatsFract` and
+  `OhlcCentsToSats` are removed. `#[traversable(flatten, rename = "...")]` names a flattened leaf. A catalog key that is
+  both a series and a group panics when the catalog is built (it was silently filed under `raw`)
 - `bitview_query` returns its own typed `Error` and `Result` (with `SeriesNotFound`); `bitview_server::{app, App,
   Error}` are public. `brk_error` drops `MempoolNotAvailable`, `ReadTimeout`, `UnknownAddr`, `SeriesNotFound`,
   `SeriesUnsupportedIndex`, `NoSeries`, `NoData`, `WeightExceeded`, `TooManyUtxos`, `FetchFailed`, `HttpStatus`,
@@ -186,6 +198,9 @@ has to be deleted by hand.
 - Entry cohorts are part of the default plugins again: outputs created at a price at or below the previous block's
   all-chain capitalized price (`veteran_*`, discount) or above it (`rookie_*`, premium), served and in the generated
   clients. Computing them from block 0 takes about 50 s at 970,536 blocks on a 16 GB Mac mini
+- Each age band serves its realized price again (`utxos_<band>_old_realized_price`, USD, at
+  `cohorts.realized.price.age.<band>`): the band's exact creation-price product over its supply, like the aggregated
+  cohorts' realized price. Stored per band, so the age plugin replays from block 0 once
 
 #### `bitviewd` and `bitviewd_bench`
 

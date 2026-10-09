@@ -32,7 +32,7 @@ const tx = await client.getTx(
 );
 
 // Typed, chainable series access.
-const prices = await client.series.price.split.close.usd.by.day1
+const prices = await client.series.price.split.close.by.day1
   .last(30)
   .fetch();
 
