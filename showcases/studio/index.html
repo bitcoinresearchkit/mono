@@ -3815,6 +3815,27 @@
         }
       }
 
+      /* Share: the link's QR code, dark on white as scanners read it (a module whole pixels), what was done under it. */
+      .share-pop {
+        display: grid;
+        justify-items: center;
+        gap: 8px;
+        padding: 10px 10px 4px;
+
+        .share-qr {
+          border-radius: var(--radius-sm);
+          image-rendering: pixelated;
+        }
+
+        .share-said {
+          max-width: 220px;
+          margin: 0;
+          color: var(--muted);
+          font-size: 12px;
+          text-align: center;
+        }
+      }
+
       /* The color's name, beside its label. */
       .color-now {
         margin-left: auto;
@@ -6742,7 +6763,7 @@ const picture = await studio.png();</pre>
             <span class="divider"></span>
             <button id="draw-toggle" class="cap" type="button" aria-pressed="false" aria-label="Drawing tools" data-tip="Drawing tools" data-kbd="D" data-action="draw" data-icon="draw"></button>
             <button id="export" class="cap" type="button" aria-haspopup="menu" aria-label="Export" data-tip="Export" data-icon="download"></button>
-            <button id="share" class="cap" type="button" aria-label="Copy a share link" data-tip="Copy a share link" data-icon="share"></button>
+            <button id="share" class="cap" type="button" aria-haspopup="menu" aria-label="Copy a share link" data-tip="Copy a share link" data-icon="share"></button>
             <button id="add" class="cap" type="button" aria-haspopup="menu" aria-label="Add" data-tip="Add a series or a formula" data-icon="plus"></button>
             <button id="chart-more" class="cap" type="button" aria-haspopup="menu" aria-label="More for this chart" data-tip="More" data-icon="more"></button>
             <span class="divider"></span>
@@ -18389,7 +18410,7 @@ const picture = await studio.png();</pre>
           ] : []),
           ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a pane of its own, under the others.", words: "new pane add series separate own below", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
-          ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", words: "share url send link", icon: "share", run: () => $("share").click(), suggested: true }]),
+          ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", words: "share url send link copy qr code scan phone", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", words: "image picture tab open view", icon: "link", run: () => exportAs("open") }]),
           ...(chart === previewing || isDraft(chart) ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${folderById(chart.folder)?.name ?? "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
           ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
@@ -19527,7 +19548,7 @@ const picture = await studio.png();</pre>
             { key: "add-formula", icon: ICONS.formula, label: "Add a formula", kbd: "F", verb: "Add", group: "In it", leads: true, stay: true, run: addFormula },
             ...(cloudable() ? [{ key: "add-cloud", icon: ICONS.cloud, label: "Add a cloud", group: "In it", page: () => fromPage("cloud") }, { key: "add-trend", icon: ICONS.riding, label: "Add a trend", group: "In it", page: () => fromPage("trend") }] : []),
             ...(any ? [
-              { key: "share", icon: ICONS.share, label: SHARE, verb: SHEET_SHARE ? "Share" : "Copy", group: "Out of it", run: () => $("share").click() },
+              { key: "share", icon: ICONS.share, label: SHARE, aside: "Its QR code too", words: "share link url copy qr code scan phone", verb: SHEET_SHARE ? "Share" : "Copy", group: "Out of it", run: () => $("share").click() },
               { key: "copy-image", icon: ICONS.copy, label: "Copy as image", verb: "Copy", group: "Out of it", run: () => exportAs("copy") },
               { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => ({ title: "Export", rows: () => [["copy", "Copy as image", "", ICONS.copy], ["open", "Open image", "In a tab of its own", ICONS.link], ["png", "Download image", "PNG", ICONS.image], ["csv", "Download data", "CSV", ICONS.table], ["json", "Download chart file", "JSON", ICONS.file]].map(([kind, label, aside, icon]) => ({ kind: "row", key: kind, icon, label, aside, verb: kind === "copy" ? "Copy" : kind === "open" ? "Open" : "Download", run: () => exportAs(kind) })) }) },
             ] : []),
@@ -20411,33 +20432,77 @@ const picture = await studio.png();</pre>
         <div class="menu-rule"></div><div class="menu-group">From layers</div>
         <button type="button" data-pick="cloud">${ICONS.cloud}Cloud</button>
         <button type="button" data-pick="trend">${ICONS.riding}Trend</button>` : ""}`, ({ pick }) => (pick === "series" ? openPalette({ add: true }) : pick === "cloud" || pick === "trend" ? openPage(fromPage(pick)) : addFormula())));
+      // ── Share, import, export ─────────────────────────────────────────────────
+
       /** Where a device has a share sheet (a phone's), the link goes through it (copying, one of its ways); else it's copied. */
       const SHEET_SHARE = TOUCH && typeof navigator.share === "function", SHARE = SHEET_SHARE ? "Share a link" : "Copy a share link";
       $("share").setAttribute("aria-label", ($("share").dataset.tip = SHARE));
-      $("share").addEventListener("click", async () => {
-        const link = shareLink(chart);
-        if (SHEET_SHARE) {
-          try {
-            await navigator.share({ title: titleOf(chart), url: await link });
-          } catch (error) {
-            if (/** @type {Error} */ (error).name !== "AbortError") notice("Couldn't share the link");
-          }
-          return;
-        }
+      /** A link copied (asked for in the click itself, its text to come: a browser lets that write). @param {Promise<string>} link */
+      async function copyLink(link) {
         try {
           await navigator.clipboard.write([new ClipboardItem({ "text/plain": link.then((text) => new Blob([text], { type: "text/plain" })) })]);
+          return true;
         } catch {
           try {
             await navigator.clipboard.writeText(await link);
+            return true;
           } catch {
-            return notice("Couldn't copy the link", { label: "Open", run: async () => window.open(await link, "_blank", "noopener") });
+            return false;
           }
         }
-        const url = await link;
-        toast("Copied a link: it opens this chart for anyone", { label: "Open", run: () => window.open(url, "_blank", "noopener") });
+      }
+      /** lean-qr, loaded the first time a QR code is asked for (its types ambient: what's used, typed here); failing, asked again next time. */
+      let qrModule = /** @type {Promise<{ generate: (text: string) => { size: number, toDataURL(options: { on: number[], off: number[], pad: number, scale: number }): string } }> | null} */ (null);
+      /** The most a QR code holds, in bytes (at its lowest correction): a link longer can't be one, and isn't tried. */
+      const QR_MOST = 2953;
+      /**
+       * A link as a QR code: dark on white as scanners read it, its quiet zone (four modules) in, whole pixels a module, as
+       * large as `room` takes; null where it's too long for one, or the code can't be made.
+       */
+      async function qrImage(/** @type {string} */ text, /** @type {number} */ room) {
+        if (new TextEncoder().encode(text).length > QR_MOST) return null;
+        try {
+          const { generate } = await (qrModule ??= /** @type {any} */ (/** @type {unknown} */ (import("../modules/lean-qr/2.7.3/index.mjs").catch((error) => {
+            qrModule = null;
+            throw error;
+          }))));
+          const code = generate(text), scale = Math.max(1, Math.floor(room / (code.size + 8)));
+          return { src: code.toDataURL({ on: [0, 0, 0, 255], off: [255, 255, 255, 255], pad: 4, scale }), width: (code.size + 8) * scale };
+        } catch {
+          return null;
+        }
+      }
+      /** Each press of Share, numbered: one asked again (or let go) shows nothing of the one before. */
+      let shareAsk = 0;
+      $("share").addEventListener("click", () => {
+        const button = $("share");
+        // (Open: a press closes it, as a menu's button does.)
+        if (ownerNow() === button && !$("menu").hidden) return hideMenu();
+        const doc = chart, ask = ++shareAsk, { copy, short } = linksOf(doc), copying = SHEET_SHARE ? Promise.resolve(false) : copyLink(copy);
+        void (async () => {
+          // (Its code as large as the popover takes: a phone's sheet, the screen's width.)
+          const [copied, url, qr] = await Promise.all([copying, copy.catch(() => ""), short.then((text) => qrImage(text, Math.min(216, innerWidth - 48)))]);
+          if (!url) return notice("Couldn't make the link");
+          // (Pressed again, another chart or the grid shown, another menu opened meanwhile: nothing shown, what was done said.)
+          if (ask !== shareAsk || chart !== doc || document.body.hasAttribute("data-home") || !$("menu").hidden) return void (copied && toast("Copied a link: it opens this chart for anyone"));
+          const done = SHEET_SHARE ? "" : copied ? "Link copied" : "Couldn't copy the link";
+          const code = qr ? (SHEET_SHARE ? "scan it to open this chart on another phone" : "scan it to open this chart on a phone") : "too long for a QR code";
+          const said = [done, code].filter(Boolean).join(" · ").replace(/^./, (first) => first.toUpperCase());
+          say(said);
+          showMenu(button, `<div class="share-pop">${qr ? `<img class="share-qr" src="${qr.src}" width="${qr.width}" height="${qr.width}" alt="A QR code of this chart's link" />` : ""}<p class="share-said">${said}</p></div><div class="menu-rule"></div>${SHEET_SHARE ? `<button type="button" data-share="sheet">${ICONS.share}Share…</button>` : ""}${copied ? "" : `<button type="button" data-share="copy">${ICONS.copy}Copy link</button>`}<button type="button" data-share="open">${ICONS.link}Open in a new tab</button>`, async ({ share }) => {
+            if (share === "open") window.open(url, "_blank", "noopener");
+            else if (share === "copy") (await copyLink(Promise.resolve(url))) ? toast("Copied a link: it opens this chart for anyone") : notice("Couldn't copy the link");
+            else if (share === "sheet") {
+              try {
+                await navigator.share({ title: titleOf(doc), url });
+              } catch (error) {
+                if (/** @type {Error} */ (error).name !== "AbortError") notice("Couldn't share the link");
+              }
+            }
+          });
+        })();
       });
 
-      // ── Share, import, export ─────────────────────────────────────────────────
 
       $("import-file").addEventListener("change", async (event) => {
         const file = event.target.files?.[0];
@@ -20611,13 +20676,27 @@ const picture = await studio.png();</pre>
        * browser opens (Firefox, a megabyte: long strokes of the brush, many), compressed: it opens, but can't be read.
        */
       async function shareLink(doc) {
-        const base = `${location.origin}${location.pathname}#chart=`, written = linkText(doc);
-        if (new URL(base + written).href.length <= 1_000_000) return base + written;
+        const written = `${linkBase()}${linkText(doc)}`;
+        return new URL(written).href.length <= 1_000_000 ? written : packedLink(doc);
+      }
+      const linkBase = () => `${location.origin}${location.pathname}#chart=`;
+      /** A chart's link compressed (a long one's; read the same as one written out). @param {Chart} doc */
+      async function packedLink(doc) {
         const stream = new Blob([JSON.stringify(portable(doc))]).stream().pipeThrough(new CompressionStream("deflate-raw"));
         const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
         let binary = "";
         for (const byte of bytes) binary += String.fromCharCode(byte);
-        return `${base}${btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
+        return `${linkBase()}${btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
+      }
+      /**
+       * A chart's links, made once: the one to copy (as written; compressed where that's too long), and the shorter of the
+       * two for a QR code (it holds little; compressing failed, the written one). @param {Chart} doc
+       */
+      function linksOf(doc) {
+        const written = `${linkBase()}${linkText(doc)}`, packed = packedLink(doc);
+        const copy = new URL(written).href.length <= 1_000_000 ? Promise.resolve(written) : packed;
+        const short = packed.then((one) => (new URL(one).href.length < new URL(written).href.length ? one : written), () => written);
+        return { copy, short };
       }
       async function fromLink(encoded) {
         const binary = atob(encoded.replace(/-/g, "+").replace(/_/g, "/"));

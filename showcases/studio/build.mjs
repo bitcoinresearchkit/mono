@@ -60,6 +60,8 @@ const quickmatch = inlined("modules/quickmatch-js/src/index.js");
 replaceOnce(`import XKCD from "../modules/xkcd-colors/index.js";`, `import XKCD from "${inlined("modules/xkcd-colors/index.js")}";`);
 replaceOnce(`import { QuickMatch, QuickMatchConfig } from "../modules/quickmatch-js/src/index.js";`, `import { QuickMatch, QuickMatchConfig } from "${quickmatch}";`);
 replaceOnce(`new URL("../modules/quickmatch-js/src/index.js", location.href).href`, JSON.stringify(quickmatch));
+// (The QR code's, loaded once a link's is asked for.)
+replaceOnce(`import("../modules/lean-qr/2.7.3/index.mjs")`, `import(${JSON.stringify(inlined("modules/lean-qr/2.7.3/index.mjs"))})`);
 // (A type for the editor only: nothing to load.)
 replaceOnce(`/** @type {typeof import("../modules/quickmatch-js/src/index.js")} */ (await import(quickmatch))`, "(await import(quickmatch))");
 
