@@ -310,6 +310,32 @@
         white-space: nowrap;
       }
 
+      /* Words for a screen reader alone (what the chart shows, the values read along it). */
+      .vh {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      /* The plot, as the keys reach it: over it, its ring when it has the focus (the pointer goes through to the chart). */
+      .plot-keys {
+        position: absolute;
+        z-index: 1;
+        border-radius: var(--radius-sm);
+        pointer-events: none;
+
+        &[hidden] {
+          display: none;
+        }
+
+        &:focus-visible {
+          outline-offset: -2px;
+        }
+      }
+
       kbd {
         display: inline-grid;
         min-width: 18px;
@@ -1687,7 +1713,7 @@
         &:focus {
           outline: none;
           background: var(--field);
-          box-shadow: inset 0 0 0 1px var(--line-strong);
+          box-shadow: var(--field-focus);
         }
 
         &::placeholder {
@@ -4609,6 +4635,25 @@
           padding: 0 20px 18px;
         }
 
+        /* Single-key shortcuts, on or off: a setting over the keys it turns. */
+        .keys-setting {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin: 0 20px 6px;
+          border-bottom: 1px solid var(--line);
+          padding: 4px 0 12px;
+          color: var(--text);
+          font-size: 13px;
+
+          #single-keys-text {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+          }
+        }
+
         h3 {
           margin: 10px 0 4px;
           color: var(--muted);
@@ -6322,7 +6367,7 @@
   </head>
   <body class="boot">
     <!-- The first stop by keys: past the guide (for scripts, at the start of the page's main) to the chart, or the grid. -->
-    <a class="skip" href="#main" onclick="event.preventDefault(); document.getElementById(document.body.hasAttribute('data-home') ? 'home-filter' : 'title')?.focus()">Skip to the chart</a>
+    <a class="skip" href="#main" onclick="event.preventDefault(); const keys = document.getElementById('plot-keys'); (document.body.hasAttribute('data-home') ? document.getElementById('home-filter') : keys && !keys.hidden ? keys : document.getElementById('title'))?.focus()">Skip to the chart</a>
     <!-- Bitview's client and chart library didn't load (the built page takes them from bitview.space): said, plainly. -->
     <div id="offline" class="offline" role="alert">
       <h1>Bitview can't be reached</h1>
@@ -6463,6 +6508,9 @@ const picture = await studio.png();</pre>
           <section class="stage" aria-label="Chart">
             <div class="canvas" id="canvas">
               <div id="chart" class="chart"></div>
+              <div id="plot-keys" class="plot-keys" tabindex="0" role="application" aria-roledescription="chart" aria-label="Chart" aria-describedby="chart-summary" hidden></div>
+              <p id="chart-summary" hidden></p>
+              <p id="chart-said" class="vh" role="status" aria-live="polite"></p>
               <button type="button" id="full" class="cap small" data-action="full" aria-pressed="false" aria-label="Full screen" data-tip="Full screen" data-kbd="⇧F" data-icon="expand" hidden></button>
               <div id="belt" class="belt" role="toolbar" aria-label="Drawing" hidden></div>
               <div id="select-box" class="select-box" hidden></div>
@@ -6606,6 +6654,10 @@ const picture = await studio.png();</pre>
         <span class="spacer"></span>
         <button class="cap small" type="button" data-action="close-shortcuts" aria-label="Close" data-icon="close"></button>
       </div>
+      <div class="keys-setting">
+        <span><span id="single-keys-label">Single-key shortcuts</span><span id="single-keys-text">A letter, a digit or a sign alone; off, only those with ⌘ or ⌥ act</span></span>
+        <div class="tabs" role="group" aria-labelledby="single-keys-label" aria-describedby="single-keys-text"><button type="button" data-single-keys="on" aria-pressed="true">On</button><button type="button" data-single-keys="off" aria-pressed="false">Off</button></div>
+      </div>
       <div class="key-groups">
         <div>
           <h3>General</h3>
@@ -6686,7 +6738,7 @@ const picture = await studio.png();</pre>
     </dialog>
 
     <div id="menu" class="menu" role="menu" hidden></div>
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="toast" class="toast"></div>
     <div id="tip" class="tip" role="tooltip" hidden></div>
     <div id="hints" class="hints" aria-hidden="true"></div>
 
@@ -6842,10 +6894,36 @@ const picture = await studio.png();</pre>
         "⇧": '<path d="M8 2.5 2.5 8.4h3.1v5.1h4.8V8.4h3.1Z"/>',
         "↵": '<path d="M12.5 3v5a2 2 0 0 1-2 2H3.5"/><path d="M6.5 7 3.5 10l3 3"/>',
       });
-      /** Each keycap under `root` with ⇧ or ↵ in it, those drawn (once), each beside its glyph for a screen reader. */
+      /** Keys by their names in aria-keyshortcuts, from how they're written here (a Mac's glyphs, or "Ctrl+"). */
+      const ARIA_KEYS = /** @type {Record<string, string>} */ ({ "⌘": "Meta", "⇧": "Shift", "⌥": "Alt", "⌃": "Control", ctrl: "Control", shift: "Shift", alt: "Alt", "↵": "Enter", enter: "Enter", "⌫": "Backspace", backspace: "Backspace", esc: "Escape", space: "Space", "↑": "ArrowUp", "↓": "ArrowDown", "←": "ArrowLeft", "→": "ArrowRight", "−": "-", "+": "Plus", "⇥": "Tab", tab: "Tab" });
+      /** A key as aria-keyshortcuts names it ("⌘⇧Z" is Meta+Shift+Z, "Ctrl+K" Control+K); a sequence ("D L"), alternatives ("[ ]"), none. */
+      function ariaKey(/** @type {string} */ text) {
+        const written = text.trim();
+        if (!written || /\s/.test(written)) return "";
+        let parts = written.length > 1 && written.includes("+") ? written.split("+").filter(Boolean) : [];
+        if (!parts.length) {
+          let rest = written;
+          while (rest.length > 1 && "⌘⇧⌥⌃".includes(rest[0])) (parts.push(rest[0]), (rest = rest.slice(1)));
+          parts.push(rest);
+        }
+        // (A Mac's ⌫ is written "delete": Backspace.)
+        return parts.map((part) => (part.toLowerCase() === "delete" ? (MAC ? "Backspace" : "Delete") : ARIA_KEYS[part] ?? ARIA_KEYS[part.toLowerCase()] ?? (part.length === 1 ? part.toUpperCase() : part))).join("+");
+      }
+      /**
+       * Each keycap under `root`: one on a control said as its shortcut, not its name; one with ⇧ or ↵ in it drawn
+       * (once), each beside its glyph for a screen reader.
+       */
       function drawKeys(/** @type {ParentNode} */ root) {
         for (const key of root.querySelectorAll("kbd")) {
           const text = key.textContent ?? "";
+          // (A key on a control isn't part of its name, said as its shortcut instead: "Collapse", not "Collapse backslash".)
+          // (Not where a key isn't the control's own: a drawing tool's comes after D, ⌘K's rows are found by typing.)
+          const control = !key.hasAttribute("aria-hidden") ? key.closest('button, a, [role="option"], [role="menuitem"]') : null;
+          if (control) {
+            key.setAttribute("aria-hidden", "true");
+            const name = control.matches('[role="option"], .belt-tools button') ? "" : ariaKey(text);
+            if (name && !control.hasAttribute("aria-keyshortcuts")) control.setAttribute("aria-keyshortcuts", name);
+          }
           if (!/[⇧↵]/.test(text) || key.querySelector(".key")) continue;
           key.textContent = "";
           for (const glyph of text) {
@@ -8168,6 +8246,8 @@ const picture = await studio.png();</pre>
           sidebar: stored.sidebar === "collapsed" || stored.sidebar === "expanded" ? stored.sidebar : tablet.matches ? "collapsed" : "expanded",
           panel: stored.panel === "open" || stored.panel === "closed" ? stored.panel : tablet.matches ? "closed" : "open",
           home: stored.home !== false,
+          /** Single-key shortcuts (a letter, a digit, a sign alone): on unless turned off. */
+          keys: stored.keys !== false,
           theme: /** @type {"system" | "light" | "dark"} */ (["system", "light", "dark"].includes(stored.theme) ? stored.theme : "dark"),
           belt: { on: stored.belt?.on === true, dock: ["top", "bottom", "left", "right"].includes(stored.belt?.dock) ? stored.belt.dock : "bottom", at: Number.isFinite(stored.belt?.at) ? clamp(stored.belt.at, 0, 1) : 0.5 },
           pen: /** @type {{ color: string, width: number, dash: number, opacity?: number, extend?: "right" | "both", arrow?: boolean, size: number, back?: string }} */ ({ ...lookOfDrawing("trend", stored.pen), size: Number.isFinite(stored.pen?.size) ? presetSize(stored.pen.size) : TEXT_SIZE }),
@@ -8357,6 +8437,8 @@ const picture = await studio.png();</pre>
         chart.updated = Date.now();
         edits.key = "";
         changed(true);
+        // (Said, for a screen reader: nothing else on screen says it.)
+        say(back === "past" ? "Undone" : "Redone");
       }
       /** The open chart changed (an edit, an undo): its menu closes, a selection gone with it too; saved, shown. */
       function changed(announce, redraw = /** @type {Redraw} */ (true), keepMenu = false) {
@@ -8518,6 +8600,8 @@ const picture = await studio.png();</pre>
         }
         const back = previousChart();
         if (chart.layers.length || !back) return;
+        // (The focus on the chart gone back to: its row, else its title.)
+        keepFocus(null, () => $("chart-list").querySelector(`[data-open-chart="${CSS.escape(back.id)}"]`), () => $("plot-keys"), () => $("new-chart"));
         if (chart === previewing) return openChart(back);
         unlist(chart);
         openChart(back);
@@ -8558,8 +8642,8 @@ const picture = await studio.png();</pre>
       function keepPreview(announce = true, tell = false) {
         if (!previewing) return;
         if (library.charts.some((doc) => doc.id === previewing?.id)) previewing.id = uid();
-        // (Kept by its button, which goes: the focus let go of, not into a field where the next key would type.)
-        if (document.activeElement === $("keep")) /** @type {HTMLElement} */ (document.activeElement).blur();
+        // (Kept by its button, which goes: the focus on the chart's ⋯ beside it, not into a field where the next key would type.)
+        if (document.activeElement === $("keep")) keepFocus(null, () => $("chart-more"), () => $("plot-keys"));
         const kept = previewing;
         library.charts.unshift(kept);
         previewing = null;
@@ -8611,6 +8695,7 @@ const picture = await studio.png();</pre>
           return;
         }
         document.body.removeAttribute("data-peek");
+        if (!open) keepFocus($("panel"), () => $("panel-toggle"), () => $("plot-keys"));
         // (In full screen, for the while: leaving it, the panel's as it was.)
         if (fullOn()) return applyPanel(open ? "open" : "closed");
         prefs.panel = open ? "open" : "closed";
@@ -8642,7 +8727,10 @@ const picture = await studio.png();</pre>
       function toggleSidebar() {
         prefs.sidebar = prefs.sidebar === "collapsed" ? "expanded" : "collapsed";
         savePrefs();
+        // (Collapsed, the rail keeps only its icons: a focus on what it puts away, a row's ⋯, a folder's, on its toggle.)
+        const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
         applySidebar();
+        keepFocus(putAway, () => $("sidebar-toggle"));
       }
       applySidebar();
 
@@ -9432,6 +9520,8 @@ const picture = await studio.png();</pre>
       }
 
       const view = LC.createChart($("chart"), { autoSize: true, ...chartOptions() });
+      // (Its layout table is no table to read: the chart's said by its plot's keys, see placePlotKeys.)
+      view.chartElement().querySelector("table")?.setAttribute("role", "presentation");
       // Its figures in mono, like every figure of data here (a canvas has no tabular figures; mono has nothing else),
       // set again once the font has loaded: a canvas doesn't wait for it.
       document.fonts.load("11px Lilex").then(() => {
@@ -9603,6 +9693,8 @@ const picture = await studio.png();</pre>
 
       /** @param {Chart} doc @param {Resolved} data */
       function build(doc, data, refit) {
+        // (Another chart, another interval: the keys' crosshair lets go of a date it may not have.)
+        if (drawnChart !== doc.id || drawnIndex !== doc.index) keyAway();
         const sameView = !refit && drawnIndex === doc.index && drawnRange === doc.range && drawnChart === doc.id;
         const visible = sameView ? view.timeScale().getVisibleRange() : null;
         const logical = sameView ? view.timeScale().getVisibleLogicalRange() : null;
@@ -10062,6 +10154,7 @@ const picture = await studio.png();</pre>
         updateLegends();
         for (const legend of legends()) if (scrolled.get(legend.dataset.pane)) legend.scrollLeft = /** @type {number} */ (scrolled.get(legend.dataset.pane));
         sizePanes();
+        relayout();
       }
       /**
        * Each pane's caption, and the chart's readout: every layer by name and color with its value, under the crosshair
@@ -10298,6 +10391,92 @@ const picture = await studio.png();</pre>
         const id = layerOfSeries(param.hoveredSeries);
         if (id) select(id);
       });
+
+      // ── The chart by keys: what it shows, said; a crosshair taken bar by bar ──────
+
+      /** The date the keys' crosshair is on (a time in the data), or null: none. */
+      let keyTime = /** @type {number | null} */ (null);
+      /** The plot as the keys reach it, laid over the plot as it's laid out (none without a chart drawn). */
+      function placePlotKeys() {
+        const keys = $("plot-keys"), plot = home || !chart?.layers.length || drawnChart !== chart.id ? null : plotBox();
+        if (!plot) keyAway();
+        keys.hidden = !plot;
+        if (!plot) return;
+        Object.assign(keys.style, { left: `${plot.left}px`, top: `${plot.top}px`, width: `${plot.width}px`, height: `${plot.height}px` });
+        // (With the focus, its name and description follow the chart: another one opened, redrawn.)
+        if (document.activeElement === keys) describePlot();
+      }
+      /** The plot's name and what it shows, as the chart is now. */
+      function describePlot() {
+        $("plot-keys").setAttribute("aria-label", `Chart: ${titleOf(chart)}`);
+        $("chart-summary").textContent = chartSummary();
+      }
+      /** A layer's value at a point, as its legend writes it, or why it has none. */
+      function sayValue(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
+        const result = resolved?.results.get(layer.id);
+        if (!result || result.error) return (result?.error ?? "no data").toLowerCase();
+        const value = valueAt(layer, point);
+        return result.low ? rangeAt(layer, point, unitFor(layer, result)) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "no value";
+      }
+      /** What the chart shows, in words: its interval and dates, each pane's layers with their values at the view's end. */
+      function chartFacts() {
+        if (!resolved?.times.length) return "No data yet.";
+        const point = { at: lastShown(), rest: true }, shown = view.timeScale().getVisibleRange();
+        const span = shown ? spanParts(Number(shown.from), Number(shown.to), FINE.has(chart.index)).join(" to ").replace(/’(\d\d)/g, "20$1") : "";
+        const panes = chart.panes.map((pane, i) => {
+          const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden);
+          return layers.length ? capitalize(`${chart.panes.length > 1 ? `Pane ${i + 1}, ` : ""}${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name.toLowerCase()} scale`}: ${layers.map((layer) => `${labelOf(layer)} ${sayValue(layer, point)}`).join(", ")}`) : "";
+        }).filter(Boolean);
+        return `${CADENCE[chart.index]}, ${span}. ${panes.join(". ")}.`;
+      }
+      /** The plot as its keys describe it: what it shows, and how to read it. */
+      const chartSummary = () => `${chartFacts()} The left and right arrows read it date by date (with shift, ten at a time); Home and End, the first and last shown.`;
+      /** The keys' crosshair on a bar: in view (the view moves to it), on the chart, its values in the legends, said. */
+      function keyAt(/** @type {number} */ i) {
+        if (!resolved) return;
+        const time = resolved.times[i], range = view.timeScale().getVisibleLogicalRange();
+        keyTime = time;
+        // (Out of sight, the view moves just enough to show it.)
+        const first = range ? Math.ceil(range.from) : i, last = lastShown(), shift = i < first ? i - first : i > last ? i - last : 0;
+        if (range && shift) view.timeScale().setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
+        // Its line at the first layer drawn there, as it's drawn (a stack's at its height); none drawn there, none.
+        const at = (/** @type {Layer} */ item) => built.get(item.id)?.shown?.[i];
+        const layer = chart.layers.find((item) => !item.hidden && drawn.get(item.id) && Number.isFinite(at(item)));
+        if (layer) view.setCrosshairPosition(/** @type {number} */ (at(layer)), /** @type {any} */ (time), drawn.get(layer.id));
+        else view.clearCrosshairPosition();
+        hoverTime = time;
+        valuesSoon();
+        const shown = chart.layers.filter((item) => !item.hidden);
+        $("chart-said").textContent = `${dateLabel(time, FINE.has(chart.index))}: ${shown.length ? shown.map((item) => `${labelOf(item)} ${sayValue(item, { at: i, rest: false })}`).join(", ") : "every layer is hidden"}`;
+      }
+      /** The keys' crosshair let go: the readout back at the view's end. */
+      function keyAway() {
+        if (keyTime === null) return;
+        keyTime = null;
+        view.clearCrosshairPosition();
+        hoverTime = null;
+        valuesSoon();
+      }
+      $("plot-keys").addEventListener("focus", describePlot);
+      // (Left for another window, it's where it was when the window's back.)
+      $("plot-keys").addEventListener("blur", () => document.hasFocus() && keyAway());
+      $("plot-keys").addEventListener("keydown", (event) => {
+        const n = resolved?.times.length ?? 0, range = view.timeScale().getVisibleLogicalRange();
+        // (Another chart loading, nothing to read yet.)
+        if (!n || !range || drawnChart !== chart.id || $("chart").classList.contains("waiting") || event.metaKey || event.ctrlKey || event.altKey) return;
+        const on = keyTime === null ? -1 : indexOfTime(keyTime), first = clamp(Math.ceil(range.from), 0, n - 1), last = lastShown(), from = on >= 0 ? on : last + 1;
+        const step = event.shiftKey ? 10 : 1;
+        const to = event.key === "ArrowLeft" ? from - step : event.key === "ArrowRight" ? (on < 0 ? first : from + step) : event.key === "Home" ? first : event.key === "End" ? last : null;
+        if (event.key === "Escape" && keyTime !== null) {
+          event.preventDefault();
+          event.stopPropagation();
+          return keyAway();
+        }
+        if (to === null) return;
+        event.preventDefault();
+        event.stopPropagation();
+        keyAt(clamp(to, 0, n - 1));
+      });
       let layoutFrame = 0, laidWidth = 0;
       /**
        * The overview, the drawing belt and a preset's window, laid out again once a frame however many changes ask: the
@@ -10317,6 +10496,7 @@ const picture = await studio.png();</pre>
           }
           drawOverview();
           placeBelt();
+          placePlotKeys();
           if (chart && drawnChart === chart.id) sizePanes();
         });
       }
@@ -11593,6 +11773,7 @@ const picture = await studio.png();</pre>
         if (html !== beltShown) {
           const focus = focusKey(belt);
           belt.innerHTML = beltShown = html;
+          drawKeys(belt);
           restoreFocus(belt, focus);
           // The button in focus gone with what it was for (a drawing removed from it): D's keys end with it.
           if (focus && !belt.contains(document.activeElement) && beltKeys) {
@@ -12546,6 +12727,70 @@ const picture = await studio.png();</pre>
         if (!key || container.contains(document.activeElement)) return;
         const match = key.id ? container.querySelector(`#${CSS.escape(key.id)}`) : [...container.querySelectorAll(key.tag)].find((element) => element instanceof HTMLElement && key.data.length > 0 && key.data.every(([name, value]) => element.dataset[name] === value));
         /** @type {HTMLElement | null} */ (match)?.focus();
+      }
+      /**
+       * The focus, where what had it goes (`away`: put away, the panel closed, the sidebar slid off; else removed, once
+       * the page is drawn again), on the first of `next` that shows (a row's successor, the button that brings it back):
+       * never lost to the page. A focus nowhere (after a click on the chart) stays nowhere.
+       * @param {Element | null} away @param {...(() => Element | null | undefined)} next
+       */
+      function keepFocus(away, ...next) {
+        const had = document.activeElement;
+        if (!had || had === document.body) return;
+        const go = () => {
+          for (const pick of next) {
+            const element = pick();
+            if (element instanceof HTMLElement && element.isConnected && !away?.contains(element) && element.checkVisibility({ checkVisibilityCSS: true })) return (element.focus({ preventScroll: true }), true);
+          }
+          return false;
+        };
+        if (away?.contains(had)) return void go();
+        // (Gone: once the page is drawn again; what takes its place still coming in, once it's in.)
+        const lost = () => !had.isConnected || document.activeElement === document.body;
+        requestAnimationFrame(() => lost() && !go() && setTimeout(() => lost() && go(), MOTION.page + 40));
+      }
+      // ── A group of choices, one stop for Tab: in it, the arrows ───────────────────
+      /** A segmented control (its pressed one is its value) or a set of radios: one place in the tab order, the arrows within. */
+      const GROUP = '.tabs[role="group"], [role="radiogroup"]';
+      const groupButtons = (/** @type {Element} */ group) => /** @type {HTMLButtonElement[]} */ (all$(":scope > button", group)).filter((button) => !button.disabled && !button.hidden);
+      // Entered from outside, the one in effect takes the focus; whichever has it is the group's one stop.
+      document.addEventListener("focusin", (event) => {
+        const button = /** @type {HTMLElement} */ (event.target), group = button.matches?.("button") ? button.parentElement?.closest(GROUP) : null;
+        if (!group || button.parentElement !== group) return;
+        const from = /** @type {HTMLElement | null} */ (event.relatedTarget), buttons = groupButtons(group);
+        const chosen = buttons.find((other) => other.getAttribute("aria-pressed") === "true" || other.getAttribute("aria-checked") === "true");
+        // (By Tab, onto the one in effect; a click or a tap lands where it's made.)
+        if (from && !group.contains(from) && chosen && chosen !== button && button.matches(":focus-visible")) return chosen.focus();
+        for (const other of buttons) other.tabIndex = other === button ? 0 : -1;
+      });
+      // The arrows move along it (round past its ends), what's chosen waiting for ↵ or space (the swatches, a grid, have
+      // their own arrows: see below).
+      document.addEventListener("keydown", (event) => {
+        const button = /** @type {HTMLElement} */ (document.activeElement), group = button?.parentElement?.closest('.tabs[role="group"]');
+        if (!group || button.parentElement !== group || event.metaKey || event.ctrlKey || event.altKey) return;
+        const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[event.key] ?? (event.key === "Home" ? -Infinity : event.key === "End" ? Infinity : 0);
+        if (!step) return;
+        const buttons = groupButtons(group), at = buttons.indexOf(/** @type {HTMLButtonElement} */ (button));
+        if (at < 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        buttons[Number.isFinite(step) ? (at + step + buttons.length) % buttons.length : step < 0 ? 0 : buttons.length - 1].focus();
+      }, true);
+
+      /** Words for a screen reader alone, on the status line where the focus is (the page's, or an open dialog's). */
+      function say(/** @type {string} */ text) {
+        const line = /** @type {HTMLElement | null} */ ((document.querySelector("dialog[open]") ?? document.body).querySelector(":scope > [data-said]"));
+        if (!line) return;
+        line.textContent = "";
+        requestAnimationFrame(() => (line.textContent = text));
+      }
+      // A status line in the page and in each dialog, there from the start: what a toast says is read from it.
+      for (const host of [document.body, ...all$("dialog")]) {
+        const said = document.createElement("p");
+        Object.assign(said, { className: "vh" });
+        said.setAttribute("role", "status");
+        said.dataset.said = "";
+        host.append(said);
       }
       /** What each keyed list last wrote: its parts, [key, html], each one element. */
       const listWritten = new WeakMap();
@@ -13755,7 +14000,10 @@ const picture = await studio.png();</pre>
           }),
         ];
         // (Its scroll edges measured on the next frame, once, as the page lays out anyway: not here, mid-change.)
-        if (writeList($("chart-list"), parts)) fitSoon($("chart-list"), true);
+        if (writeList($("chart-list"), parts)) {
+          fitSoon($("chart-list"), true);
+          drawKeys($("chart-list"));
+        }
         if (home) $("all-charts").setAttribute("aria-current", "page");
         else $("all-charts").removeAttribute("aria-current");
         // (A new chart, empty, has nothing to keep, nor anything ⋯ does: it's yours once something's in it; its Cancel takes it back.)
@@ -13898,6 +14146,7 @@ const picture = await studio.png();</pre>
         if (took.includes("sidebar")) applySidebar();
         if (took.includes("panel") && !fullOn()) applyPanel();
         if (took.includes("belt") || took.includes("pen")) renderBelt();
+        if (took.includes("keys")) renderSingleKeys();
       });
       /** The themes, from their row (and ⌘K): the one chosen ticked. */
       function themeMenu(/** @type {HTMLElement} */ anchor) {
@@ -14171,6 +14420,9 @@ const picture = await studio.png();</pre>
         const wasOpen = doc === chart;
         // Its history goes with it and comes back with it: undone, the chart can still be undone further.
         const undoable = wasOpen ? { past: [...edits.past], future: [...edits.future] } : null;
+        // (Where the focus goes, asked before what has it goes: the row after, else the one before, else New chart.)
+        const neighbor = library.charts[index + 1] ?? library.charts[index - 1];
+        keepFocus(null, () => (neighbor && library.charts.includes(neighbor) ? $("chart-list").querySelector(`[data-open-chart="${CSS.escape(neighbor.id)}"]`) : null), () => $("new-chart"));
         library.charts.splice(index, 1);
         deletedHere.add(doc.id);
         // The last chart gone (the open one), the preview there is stands in, else a blank one.
@@ -14970,14 +15222,19 @@ const picture = await studio.png();</pre>
        * Deleting takes two presses: the first arms the button, which then says what a second press does. Pressing
        * anything else, leaving it, Escape or a few seconds disarm it.
        */
-      const CONFIRM = TOUCH ? "Tap to confirm" : "Click to confirm";
+      /** How a second press is asked for, as the first came: a tap, a key, a click. */
+      const confirmWord = () => (TOUCH ? "Tap to confirm" : keyed ? "Press again to confirm" : "Click to confirm");
+      /** Whether the last thing done was by a key (else a pointer). */
+      let keyed = false;
+      addEventListener("keydown", () => (keyed = true), true);
+      addEventListener("pointerdown", () => (keyed = false), true);
       /** What a row of ⌘K asking for a second press says. */
       const AGAIN = TOUCH ? "Tap again" : "↵ again";
       /** @type {{ button: HTMLElement, html: string, tip: string | undefined, label: string | null } | null} */
       let armed = null;
       let armTimer = 0;
       /** Whether this press is the second; the first only arms the button. @param {HTMLElement} button */
-      function confirmed(button, text = CONFIRM) {
+      function confirmed(button, text = confirmWord()) {
         if (armed?.button === button) return (disarm(), true);
         disarm();
         armed = { button, html: button.innerHTML, tip: button.dataset.tip, label: button.getAttribute("aria-label") };
@@ -14985,7 +15242,7 @@ const picture = await studio.png();</pre>
         delete button.dataset.tip;
         // An icon button keeps its place and asks beside it; one with a label asks in its label.
         button.innerHTML = button.classList.contains("cap") ? `${button.innerHTML}<span class="confirm">${ICONS.trash}${text}</span>` : button.classList.contains("nav-item") ? `${ICONS.trash}<span class="label">${text}</span>` : `${ICONS.trash}${text}`;
-        if (armed.label) button.setAttribute("aria-label", text);
+        if (armed.label) button.setAttribute("aria-label", `${armed.label}: ${text.toLowerCase()}`);
         armTimer = setTimeout(disarm, 5000);
         return false;
       }
@@ -15046,6 +15303,8 @@ const picture = await studio.png();</pre>
       function setFull(on = !fullOn()) {
         if (on === fullOn()) return;
         layOutAlone(on);
+        // (The focus in what full screen puts away, the sidebar or the panel: on its way out, then the chart.)
+        if (on) keepFocus(document.activeElement?.closest(".sidebar, #panel, .card-head") ?? null, () => $("full"), () => $("plot-keys"));
         if (on) {
           const screenWide = outerWidth >= screen.width && outerHeight >= screen.height;
           // (Chromium gives a page asking for it every Escape but a held one; out again before the browser answered, out.)
@@ -15129,6 +15388,7 @@ const picture = await studio.png();</pre>
           sections.forEach(({ rows }, i) => listWritten.set(/** @type {HTMLElement} */ (list.children[i]), rows));
           restoreFocus(list, focus);
         }
+        drawKeys(list);
         updateValues();
         lightLegend(litLayer, true);
         list.classList.toggle("picking", layerPicks.size > 0);
@@ -15501,6 +15761,7 @@ const picture = await studio.png();</pre>
         // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from.
         const was = new Map(all$("#inspector .stepper").map((element) => [element.id, { handle: getComputedStyle(element, "::after").left, fill: getComputedStyle(element, "::before").width }]));
         panel.innerHTML = html;
+        drawKeys(panel);
         if (isFormula) updateFormula(layer);
         restoreFocus(panel, focus);
         drawPlanes();
@@ -16024,6 +16285,9 @@ const picture = await studio.png();</pre>
         }
         status.classList.toggle("error", Boolean(message));
         $("formula-editor").classList.toggle("invalid", Boolean(message));
+        // (Said to a screen reader too: the field is in error, its status says why.)
+        if (message) $("formula")?.setAttribute("aria-invalid", "true");
+        else $("formula")?.removeAttribute("aria-invalid");
         updateCallHelp();
         const label = $("label");
         if (label) label.placeholder = labelOf({ ...layer, label: "" });
@@ -16570,6 +16834,9 @@ const picture = await studio.png();</pre>
         const sketched = chart.drawings?.filter((drawing) => ids.includes(drawing.layer)).length ?? 0, one = gone.length === 1;
         // (Named now: a cloud's name is its layers'.)
         const usedBy = [...users, ...chart.layers.filter((item) => item.cloud && !ids.includes(item.id) && item.cloud.some((member) => ids.includes(member)))].map(labelOf), goneName = labelOf(gone[0]);
+        const order = chart.layers.filter((item) => !ids.includes(item.id)), at = chart.layers.findIndex((item) => ids.includes(item.id)), after = chart.layers.slice(at).find((item) => !ids.includes(item.id)) ?? order.at(-1);
+        // (Asked before: where the focus is, before what has it goes.)
+        keepFocus(null, () => (after ? $("layer-list").querySelector(`[data-select="${CSS.escape(after.id)}"]`) : null), () => document.querySelector("#empty [data-action='add-series']"), () => $("plot-keys"));
         commit((doc) => (doc.layers = doc.layers.filter((item) => !ids.includes(item.id))));
         undoToast(`Removed ${one ? goneName : plural(gone.length, "layer")}${sketched ? ` and ${one ? "its" : "their"} ${plural(sketched, "drawing")}` : ""}${usedBy.length ? `; ${usedBy.join(", ")} used ${one ? "it" : "them"}` : ""}`);
       }
@@ -17355,6 +17622,7 @@ const picture = await studio.png();</pre>
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           ...(TOUCH ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
+          ...(TOUCH ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, words: "single key keys keyboard shortcuts letters hotkeys accessibility disable enable turn", icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
           { title: "How links work", text: "A chart is a link: what one holds, and how to write it by hand or have an assistant write it (the guide, in a tab of its own).", words: "about guide docs documentation help link links json api script assistant ai llms", icon: "link", run: () => window.open("llms.txt", "_blank", "noopener"), anywhere: true },
           toastUndo?.mark === revision || (!home && edits.past.length) ? { title: "Undo", text: toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", words: "revert back", icon: "undo", anywhere: true },
           // The charts picked in the grid: what its bar does.
@@ -17774,7 +18042,7 @@ const picture = await studio.png();</pre>
           }
           const icon = item.kind === "widen" ? ICONS.browse : item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? ICONS.series : doc ? chartMark(doc) : ICONS.series;
           const name = item.kind === "widen" ? `Search all series for “${escape(palette.query.trim())}”` : item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : "";
-          const meta = item.kind === "folder" ? `<span class="item-meta">›</span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : item.command.kbd && item.command.run ? `<kbd>${escape(keyText(item.command.kbd))}</kbd>` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
+          const meta = item.kind === "folder" ? `<span class="item-meta">›</span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : item.command.kbd && item.command.run && answers(item.command.kbd) ? `<kbd>${escape(keyText(item.command.kbd))}</kbd>` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
           const idle = item.kind === "command" && !item.command.run && !item.command.current;
           return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}" ${idle ? 'class="dim" aria-disabled="true"' : ""}>${icon}<span class="item-name">${name}</span>${meta}</li>`;
         }).join("");
@@ -17847,7 +18115,7 @@ const picture = await studio.png();</pre>
           return;
         }
         if (item.kind === "command") {
-          panel.innerHTML = `<h4 class="plain">${escape(item.command.title)}</h4><p class="description">${escape(item.command.text)}${item.command.current ? " In effect now." : ""}</p>${item.command.kbd && item.command.run ? `<div class="info"><dl><div><dt>Shortcut</dt><dd><kbd>${escape(keyText(item.command.kbd))}</kbd></dd></div></dl></div>` : ""}`;
+          panel.innerHTML = `<h4 class="plain">${escape(item.command.title)}</h4><p class="description">${escape(item.command.text)}${item.command.current ? " In effect now." : ""}</p>${item.command.kbd && item.command.run && answers(item.command.kbd) ? `<div class="info"><dl><div><dt>Shortcut</dt><dd><kbd>${escape(keyText(item.command.kbd))}</kbd></dd></div></dl></div>` : ""}`;
           return;
         }
         if (item.kind === "chart") return previewChart(panel, chartById(item.key));
@@ -19201,11 +19469,17 @@ const picture = await studio.png();</pre>
         toast(`Interval: ${CADENCE[next]}`);
       }
       function renderRanges() {
-        $("ranges").innerHTML = RANGES.map(([id, text], i) => {
+        const html = RANGES.map(([id, text], i) => {
           const fits = presetFits(id), tip = fits ? capitalize(periodOf(id)) : `More than fits at ${INTERVAL_LABEL[chart.index]}`;
           return `<button type="button" data-range="${id}" aria-pressed="${presetShown && shownRange() === id}" aria-label="${text}: ${tip.toLowerCase()}" data-tip="${tip}" ${fits ? `data-kbd="${i + 1}"` : 'aria-disabled="true"'}>${text}</button>`;
         }).join("");
+        if (html === rangesShown) return;
+        const focus = focusKey($("ranges"));
+        $("ranges").innerHTML = rangesShown = html;
+        restoreFocus($("ranges"), focus);
       }
+      /** The presets as last written. */
+      let rangesShown = "";
       /** Another interval for the open chart: its view kept first, so the new one opens on the same time (on its preset, if it showed one). */
       function switchInterval(/** @type {string} */ index) {
         saveView();
@@ -20002,7 +20276,7 @@ const picture = await studio.png();</pre>
         // Inside a modal dialog, the tip must live in the dialog's top layer to be seen.
         const host = target.closest("dialog") ?? document.body;
         if (tip.parentElement !== host) host.append(tip);
-        const keys = target.dataset.kbd ? keycaps(target.dataset.kbd) : "";
+        const keys = target.dataset.kbd && answers(target.dataset.kbd) ? keycaps(target.dataset.kbd) : "";
         tip.innerHTML = `<span>${escape(target.dataset.tip)}</span>${keys}`;
         drawKeys(tip);
         tip.hidden = false;
@@ -20080,6 +20354,12 @@ const picture = await studio.png();</pre>
         const element = $("toast");
         const host = document.querySelector("dialog[open]") ?? document.body;
         if (element.parentElement !== host) host.append(element);
+        // Said where it shows, by the status line that's always there (one moved in, or made, is often not read).
+        const said = /** @type {HTMLElement | null} */ (host.querySelector(":scope > [data-said]"));
+        if (said) {
+          said.textContent = "";
+          requestAnimationFrame(() => (said.textContent = action ? `${text}. ${action.label}${action.label === "Undo" ? `, ${keyText("⌘Z")}` : ""}` : text));
+        }
         const undoes = action?.label === "Undo";
         // (No ✓ where there's an Undo: a removal, a move, isn't a success to tick; ✓ elsewhere says what's chosen.)
         element.innerHTML = `${done && !undoes ? `<i aria-hidden="true">${ICONS.check}</i>` : ""}<span>${escape(text)}</span>${action ? `<button type="button" class="btn small" ${undoes ? 'data-kbd="⌘ Z"' : ""}>${escape(action.label)}</button>` : ""}`;
@@ -20121,9 +20401,27 @@ const picture = await studio.png();</pre>
 
       /** The shortcuts sheet opens on itself, not on a ringed close button. */
       function showShortcuts() {
+        renderSingleKeys();
         $("shortcuts").showModal();
         $("shortcuts").focus();
       }
+      /** A key a hint says the page answers to: any, but a single one (a letter, a digit, a sign) once those are off. */
+      const answers = (/** @type {string} */ kbd) => prefs.keys || /[⌘⌥⌃]|esc|⌫|↵|[←→↑↓]/i.test(kbd);
+      /** Single-key shortcuts on or off: kept, said where they're set. */
+      function setSingleKeys(/** @type {boolean} */ on) {
+        prefs.keys = on;
+        savePrefs();
+        renderSingleKeys();
+        toast(on ? "Single-key shortcuts on" : `Single-key shortcuts off: only those with ${keyText("⌘")} or ${keyText("⌥")} act`);
+      }
+      function renderSingleKeys() {
+        for (const button of all$("[data-single-keys]")) button.setAttribute("aria-pressed", String((button.dataset.singleKeys === "on") === prefs.keys));
+        $("single-keys-text").textContent = `A letter, a digit or a sign alone; off, only those with ${keyText("⌘")} or ${keyText("⌥")} act`;
+      }
+      $("shortcuts").addEventListener("click", (event) => {
+        const button = closest(event, "[data-single-keys]");
+        if (button && (button.dataset.singleKeys === "on") !== prefs.keys) setSingleKeys(button.dataset.singleKeys === "on");
+      });
 
       /** The block the server's series are computed up to, when it was indexed (unix seconds), and the live price, as last seen. */
       let liveHeight = 0, liveAt = 0, livePrice = 0;
@@ -20177,6 +20475,8 @@ const picture = await studio.png();</pre>
         if (!chart.layers.length && document.body.dataset.sheet === "panel") delete document.body.dataset.sheet;
         renderCharts();
         $("stage-foot").hidden = !chart.layers.length;
+        // (Placed once the chart's laid out: see placePlotKeys.)
+        if (home || !chart.layers.length) $("plot-keys").hidden = true;
         renderLayers();
         renderInspector();
         updateStatus();
@@ -20367,6 +20667,14 @@ const picture = await studio.png();</pre>
           return chooseDrawings(chart.drawings.map((drawing) => drawing.id));
         }
         if (mod || event.altKey || typing(event.target)) return;
+        // Space or X on a layer's row picks it, as on a chart's card in the grid (a row's own key: whatever the setting).
+        const row = /** @type {HTMLElement | null} */ (document.activeElement?.matches?.(".layer-row .row-main") ? document.activeElement.closest(".layer-row[data-layer]") : null);
+        if ((event.key === " " || key === "x") && row && !event.shiftKey && !home) {
+          event.preventDefault();
+          return pickLayer(/** @type {string} */ (row.dataset.layer));
+        }
+        // (Turned off, a letter, a digit or a sign alone does nothing here: only named keys, ⌫, esc, the arrows.)
+        if (!prefs.keys && event.key.length === 1) return;
         if (home && (event.key === "Backspace" || event.key === "Delete") && picked.size) {
           event.preventDefault();
           // Asked on the bar's Delete, as a click there asks.
@@ -20375,12 +20683,6 @@ const picture = await studio.png();</pre>
         }
         // In the grid, only what isn't of a chart: the open one is out of sight.
         if (home && !["/", "n", "?", "\\", "escape"].includes(key)) return;
-        // Space or X on a layer's row picks it, as on a chart's card in the grid.
-        const row = /** @type {HTMLElement | null} */ (document.activeElement?.matches?.(".layer-row .row-main") ? document.activeElement.closest(".layer-row[data-layer]") : null);
-        if ((event.key === " " || key === "x") && row && !event.shiftKey) {
-          event.preventDefault();
-          return pickLayer(/** @type {string} */ (row.dataset.layer));
-        }
         if (event.key === "/") openPalette({ resume: true });
         else if (key === "f" && event.shiftKey && !home) setFull();
         else if (key === "f") addFormula();
@@ -20822,7 +21124,7 @@ const picture = await studio.png();</pre>
           const url = await studio.png();
           if (run !== pictureRun || !picturing) return;
           image.src = url;
-          image.alt = titleOf(chart);
+          image.alt = `${titleOf(chart)}. ${chartFacts()}`;
           $("picture-leave").hidden = true;
           /** @type {HTMLAnchorElement} */ ($("picture-open")).href = `#chart=${JSON.stringify(toSketch(chart)).replace(/[\s"<>`%#\\{}[\]+]/g, (char) => encodeURIComponent(char))}`;
           $("picture-open").hidden = false;
