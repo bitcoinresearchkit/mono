@@ -293,6 +293,13 @@ has to be deleted by hand.
 
 - Added the `cachebudget` config key and `--cachebudget` flag (bytes of the shared vector cache, default 2 GiB);
   `bitviewd_bench` records it in `metadata.txt`
+- `bitviewd_bench` records CPU time (`cpu.csv`), resident size and system swap (`memory.csv`), page-ins (`io.csv`),
+  the data-directory size every minute and its final size per component (`disk_breakdown.csv`), the source of each
+  progress height, and host name, CPU and RAM; every row is flushed as written, so a killed run keeps its data
+- `bitviewd_bench_visualizer` draws one `dashboard.svg` per run (plugin timeline, height, memory, CPU, I/O and
+  page-in rates, data-directory size, time per plugin, size per component, with the bootstrap cycles shaded) and a
+  `compare.svg` across complete runs. It finds runs at any depth and reads old recordings by column name. The
+  previous charts covered only the first seconds of each run and skipped nested runs
 
 #### `vecdb` and `rawdb`
 

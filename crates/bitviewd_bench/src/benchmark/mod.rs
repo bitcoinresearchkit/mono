@@ -47,9 +47,14 @@ impl Outcome {
     }
 }
 
+/// Process samples are cheap; the data-directory scan walks every file, so it runs less often,
+/// on its own thread so a slow scan never delays process samples.
+const PROCESS_INTERVAL: Duration = Duration::from_secs(5);
+const DISK_INTERVAL: Duration = Duration::from_secs(60);
+
 struct Inner {
     path: PathBuf,
-    disk: Mutex<DiskMonitor>,
+    disk: Arc<Mutex<DiskMonitor>>,
     run: Mutex<RunMonitor>,
     trace: Arc<TraceMonitor>,
     stop: Arc<AtomicBool>,
@@ -60,7 +65,7 @@ enum State {
     Ready,
     Running {
         started_at: Instant,
-        monitor: JoinHandle<Result<()>>,
+        monitors: [JoinHandle<Result<()>>; 2],
     },
     Finished,
 }
@@ -97,7 +102,11 @@ impl Benchmark {
             .map_err(|error| IoError::new(ErrorKind::AlreadyExists, error))?;
 
         Ok(Self(Arc::new(Inner {
-            disk: Mutex::new(DiskMonitor::new(data_path, &runs, &path.join("disk.csv"))?),
+            disk: Arc::new(Mutex::new(DiskMonitor::new(
+                data_path,
+                &runs,
+                &path.join("disk.csv"),
+            )?)),
             run: Mutex::new(RunMonitor::new(&path.join("run.csv"))?),
             trace,
             path,
@@ -143,35 +152,32 @@ impl Benchmark {
         let started_at = Instant::now();
         self.0.stop.store(false, Ordering::Relaxed);
 
-        let stop = Arc::clone(&self.0.stop);
-        let monitor = thread::spawn(move || -> Result<()> {
-            let mut next_sample = started_at + Duration::from_secs(5);
-
-            loop {
-                while !stop.load(Ordering::Relaxed) {
-                    let now = Instant::now();
-                    if now >= next_sample {
-                        break;
+        let disk = Arc::clone(&self.0.disk);
+        let monitors = [
+            sampler(
+                &self.0.stop,
+                started_at,
+                PROCESS_INTERVAL,
+                move |elapsed, _| process.record(elapsed),
+            ),
+            // The final scan belongs to `finish`, with the breakdown.
+            sampler(
+                &self.0.stop,
+                started_at,
+                DISK_INTERVAL,
+                move |elapsed, last| {
+                    if last {
+                        Ok(())
+                    } else {
+                        disk.lock().record(elapsed)
                     }
-                    thread::park_timeout(next_sample - now);
-                }
-
-                if stop.load(Ordering::Relaxed) {
-                    break;
-                }
-
-                process.record(started_at.elapsed().as_millis())?;
-                next_sample += Duration::from_secs(5);
-            }
-
-            process.record(started_at.elapsed().as_millis())?;
-            process.flush()?;
-            Ok(())
-        });
+                },
+            ),
+        ];
 
         *state = State::Running {
             started_at,
-            monitor,
+            monitors,
         };
         Ok(())
     }
@@ -183,31 +189,75 @@ impl Benchmark {
             match mem::replace(&mut *state, State::Finished) {
                 State::Running {
                     started_at,
-                    monitor,
-                } => Some((started_at, monitor)),
+                    monitors,
+                } => Some((started_at, monitors)),
                 State::Ready | State::Finished => None,
             }
         };
-        let Some((started_at, monitor)) = running else {
+        let Some((started_at, monitors)) = running else {
             return Ok(());
         };
 
         self.0.stop.store(true, Ordering::Relaxed);
-        monitor.thread().unpark();
-        let process_result = match monitor.join() {
-            Ok(result) => result,
-            Err(_) => Err(Error::Internal("Process monitor panicked")),
-        };
+        for monitor in &monitors {
+            monitor.thread().unpark();
+        }
+        let mut monitor_result = Ok(());
+        for monitor in monitors {
+            let result = monitor
+                .join()
+                .unwrap_or(Err(Error::Internal("Benchmark monitor panicked")));
+            if monitor_result.is_ok() {
+                monitor_result = result;
+            }
+        }
 
         let elapsed = measured.unwrap_or_else(|| ended_at.duration_since(started_at));
         let run_result = self.0.run.lock().record(elapsed, outcome.as_str());
         let trace_result = self.0.trace.finish();
-        let disk_result = self.0.disk.lock().record(elapsed.as_millis());
+        let disk_result = self
+            .0
+            .disk
+            .lock()
+            .finish(elapsed.as_millis(), &self.0.path.join("disk_breakdown.csv"));
 
-        process_result?;
+        monitor_result?;
         run_result?;
         trace_result?;
         disk_result?;
         Ok(())
     }
+}
+
+/// Records every `interval` until stopped, then once more with `last` set. A failed sample
+/// keeps the first error for the end and sampling goes on, so one bad read loses one row.
+fn sampler(
+    stop: &Arc<AtomicBool>,
+    started_at: Instant,
+    interval: Duration,
+    mut record: impl FnMut(u128, bool) -> std::io::Result<()> + Send + 'static,
+) -> JoinHandle<Result<()>> {
+    let stop = Arc::clone(stop);
+    thread::spawn(move || {
+        let mut first_error = None;
+        let mut next_sample = started_at + interval;
+        loop {
+            while !stop.load(Ordering::Relaxed) {
+                let now = Instant::now();
+                if now >= next_sample {
+                    break;
+                }
+                thread::park_timeout(next_sample - now);
+            }
+            let last = stop.load(Ordering::Relaxed);
+            if let Err(error) = record(started_at.elapsed().as_millis(), last) {
+                first_error.get_or_insert(error);
+            }
+            if last {
+                break;
+            }
+            next_sample += interval;
+        }
+        first_error.map_or(Ok(()), |error| Err(error.into()))
+    })
 }

@@ -9,5 +9,4 @@ repository.workspace = true
 publish = false
 
 [dependencies]
-derive_more = { workspace = true }
 plotters = "0.3.7"

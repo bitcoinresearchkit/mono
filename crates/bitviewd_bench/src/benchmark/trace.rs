@@ -36,7 +36,7 @@ impl TraceMonitor {
         let mut timings = BufWriter::new(File::create(path.join("timings.csv"))?);
         writeln!(timings, "phase,plugin,start_ms,duration_ms")?;
         let mut progress = BufWriter::new(File::create(path.join("progress.csv"))?);
-        writeln!(progress, "timestamp_ms,height")?;
+        writeln!(progress, "timestamp_ms,source,height")?;
 
         Ok(Self(Mutex::new(State {
             started_at: None,
@@ -69,10 +69,13 @@ impl TraceMonitor {
                 state.timings,
                 "{phase},{plugin},{start_ms:.3},{duration_ms:.3}"
             )
+            .and_then(|()| state.timings.flush())
         } else if let Some(height) = progress(&fields.message)
             && height % 10 == 0
         {
-            writeln!(state.progress, "{end_ms:.3},{height}")
+            let source = source(event.metadata().target());
+            writeln!(state.progress, "{end_ms:.3},{source},{height}")
+                .and_then(|()| state.progress.flush())
         } else {
             Ok(())
         };
@@ -117,6 +120,12 @@ impl Visit for Fields {
             let _ = write!(self.message, "{value:?}");
         }
     }
+}
+
+/// The emitting crate, without the plugin prefix: `indexer`, `addresses`, `bitview_vecs`, ...
+fn source(target: &str) -> &str {
+    let krate = target.split("::").next().unwrap_or(target);
+    krate.strip_prefix("bitview_plugin_").unwrap_or(krate)
 }
 
 fn progress(message: &str) -> Option<u64> {
