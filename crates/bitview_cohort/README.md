@@ -13,7 +13,7 @@ and creation year. `UtxoGroups` groups the disjoint amount and spendable-type
 families. Both hold per-cohort series and per-block values alike, with mapping
 and addition. Consumers compose only the families they need and reconstruct
 under/over thresholds from disjoint inputs.
-Entry-price cohorts use their own `ByEntry` collection in the optional
+Entry-price cohorts use their own `ByEntry` collection in the
 `bitview_plugin_distribution_entry` plugin.
 
 Address balance cohorts use `AmountRange` with the address naming context.

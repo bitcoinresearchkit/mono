@@ -14,6 +14,7 @@ use bitview_plugin_distribution_addresses::{
     ID as DISTRIBUTION_ADDRESSES_ID, Vecs as DistributionAddresses,
 };
 use bitview_plugin_distribution_age::{ID as DISTRIBUTION_AGE_ID, Vecs as DistributionAge};
+use bitview_plugin_distribution_entry::{ID as DISTRIBUTION_ENTRY_ID, Vecs as DistributionEntry};
 use bitview_plugin_distribution_utxos::{ID as DISTRIBUTION_UTXOS_ID, Vecs as DistributionUtxos};
 use bitview_plugin_indexer::{ID as INDEXER_ID, Indexer};
 use bitview_plugin_indicators::{ID as INDICATORS_ID, Vecs as Indicators};
@@ -218,7 +219,7 @@ impl DefaultPlugins {
         )?;
         let all_chain = distribution_aggregated.all_chain_sources();
 
-        let (cointime, coinflow, bedrock, capital_sentiment, indicators) =
+        let (cointime, coinflow, bedrock, capital_sentiment, indicators, distribution_entry) =
             thread::scope(|scope| -> Result<_> {
                 let cointime = big_thread().spawn_scoped(scope, || -> Result<_> {
                     timed(Phase::Import, COINTIME_ID, || {
@@ -253,6 +254,17 @@ impl DefaultPlugins {
                         Ok(Box::new(CapitalSentiment::import(context, &mappings)?))
                     })
                 })?;
+                let distribution_entry = big_thread().spawn_scoped(scope, || -> Result<_> {
+                    timed(Phase::Import, DISTRIBUTION_ENTRY_ID, || {
+                        Ok(Box::new(DistributionEntry::import(
+                            context,
+                            &mappings,
+                            &window_starts,
+                            &price.spot.cents.height.read_only_boxed_clone(),
+                            distribution_aggregated.all_supply(),
+                        )?))
+                    })
+                })?;
                 let indicators = timed(Phase::Import, INDICATORS_ID, || -> Result<_> {
                     Ok(Box::new(Indicators::import(
                         context,
@@ -269,6 +281,7 @@ impl DefaultPlugins {
                     bedrock.join().unwrap()?,
                     capital_sentiment.join().unwrap()?,
                     indicators,
+                    distribution_entry.join().unwrap()?,
                 ))
             })?;
 
@@ -312,6 +325,7 @@ impl DefaultPlugins {
             market,
             distribution_age,
             distribution_aggregated,
+            distribution_entry,
             distribution_utxos,
             distribution_addresses,
             supply,

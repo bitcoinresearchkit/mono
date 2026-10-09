@@ -21,6 +21,7 @@ use metrics::CohortMetrics;
 
 const STORAGE: PluginStorage =
     PluginStorage::new(PluginId::new("distribution_entry"), Version::ONE);
+pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

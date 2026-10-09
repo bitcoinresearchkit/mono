@@ -4625,6 +4625,21 @@ const _CoinflowCap = _s({
  *   profit: CoinflowCap<?Cents>,
  *   loss: CoinflowCap<?Cents>,
  *   netPnl: CoinflowCap<CentsSigned>,
+ *   nupl: RhodlRatio<?PartsPerMillionSigned32>,
+ * }} DiscountUnrealized
+ */
+const _DiscountUnrealized = _s({
+  profit: [_CoinflowCap, '*_unrealized_profit'],
+  loss: [_CoinflowCap, '*_unrealized_loss'],
+  netPnl: [_CoinflowCap, '*_net_unrealized_pnl'],
+  nupl: [_RhodlRatio, '*_nupl'],
+});
+
+/**
+ * @typedef {{
+ *   profit: CoinflowCap<?Cents>,
+ *   loss: CoinflowCap<?Cents>,
+ *   netPnl: CoinflowCap<CentsSigned>,
  *   grossPnl: CoinflowCap<?Cents>,
  *   investedCapitalInProfit: CoinflowCap<?Cents>,
  *   investedCapitalInLoss: CoinflowCap<?Cents>,
@@ -7063,6 +7078,23 @@ const _DeltaAll = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
+ *   total: Circulating<Sats, ?Cents>,
+ *   delta: DeltaAll<Sd24h<Absolute1m>>,
+ *   dominance: Gini<?PartsPerMillion32>,
+ *   inProfit: Circulating<Sats, ?Cents>,
+ *   inLoss: Circulating<Sats, ?Cents>,
+ * }} DiscountSupply
+ */
+const _DiscountSupply = _s({
+  total: [_Circulating, '*'],
+  delta: [(c, b) => _DeltaAll(c, b, (c, b) => _Sd24h(c, b, _Absolute1m)), '*_delta'],
+  dominance: [_Gini, '*_dominance'],
+  inProfit: [_Circulating, '*_in_profit'],
+  inLoss: [_Circulating, '*_in_loss'],
+});
+
+/**
+ * @typedef {{
  *   usd: SeriesPattern2<?Dollars>,
  *   cents: SeriesPattern2<?Cents>,
  *   delta: DeltaAll<Sd24h<CoinflowCap<CentsSigned>>>,
@@ -7295,6 +7327,96 @@ const _Coinbase = (c, b, f0, f1, f2) => _n(c, b, {
 
 /**
  * @typedef {{
+ *   raw: SeriesPattern2<?Ratio>,
+ *   valueDestroyed: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>,
+ * }} Sopr
+ */
+const _Sopr = _s({
+  raw: [_i2, '*_sopr_24h'],
+  valueDestroyed: [(c, b) => _Coinbase(c, b, _RealizedLoss0satsBlock, _CoinflowCap, _CoinflowCap), '*_value_destroyed'],
+});
+
+/**
+ * @typedef {{
+ *   cap: MarketCap,
+ *   price: CapitalizedPrice,
+ *   profit: RealizedLoss0sats,
+ *   loss: RealizedLoss0sats,
+ *   netPnl: Age10yTo12y,
+ *   sopr: Sopr,
+ *   mvrv: SeriesPattern2<?Ratio>,
+ * }} DiscountRealized
+ */
+const _DiscountRealized = _s({
+  cap: [_MarketCap, '*_realized_cap'],
+  price: [_CapitalizedPrice, '*_realized_price'],
+  profit: [_RealizedLoss0sats, '*_realized_profit'],
+  loss: [_RealizedLoss0sats, '*_realized_loss'],
+  netPnl: [_Age10yTo12y, '*_net_realized_pnl'],
+  sopr: [_Sopr, '*'],
+  mvrv: [_i2, '*_mvrv'],
+});
+
+/**
+ * @typedef {{
+ *   block: BurnedBlock,
+ *   cumulative: Circulating<Sats, ?Cents>,
+ *   sum: Sd24h<Circulating<Sats, ?Cents>>,
+ *   average: Sd24h<Circulating<?SatsFract, ?CentsFract>>,
+ *   inProfit: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
+ *   inLoss: Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>,
+ * }} DiscountActivityTransferVolume
+ */
+const _DiscountActivityTransferVolume = _s({
+  block: [_BurnedBlock, '*'],
+  cumulative: [_Circulating, '*_cumulative'],
+  sum: [(c, b) => _Sd24h(c, b, _Circulating), '*_sum'],
+  average: [(c, b) => _Sd24h(c, b, _Circulating), '*_average'],
+  inProfit: [(c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating), '*_in_profit'],
+  inLoss: [(c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating), '*_in_loss'],
+});
+
+/**
+ * @typedef {{
+ *   transferVolume: DiscountActivityTransferVolume,
+ *   coindaysDestroyed: NewAll<?CoinDays, ?CoinDays>,
+ * }} DiscountActivity
+ */
+const _DiscountActivity = _s({
+  transferVolume: [_DiscountActivityTransferVolume, '*_transfer_volume'],
+  coindaysDestroyed: [_NewAll, '*_coindays_destroyed'],
+});
+
+/**
+ * @typedef {{
+ *   supply: DiscountSupply,
+ *   outputs: AllOutputs,
+ *   activity: DiscountActivity,
+ *   realized: DiscountRealized,
+ *   unrealized: DiscountUnrealized,
+ * }} Discount
+ */
+const _Discount = _s({
+  supply: [_DiscountSupply, '*_supply'],
+  outputs: [_AllOutputs, '*'],
+  activity: [_DiscountActivity, '*'],
+  realized: [_DiscountRealized, '*'],
+  unrealized: [_DiscountUnrealized, '*'],
+});
+
+/**
+ * @typedef {{
+ *   discount: Discount,
+ *   premium: Discount,
+ * }} DistributionEntryCohorts
+ */
+const _DistributionEntryCohorts = _s({
+  discount: [_Discount, '*'],
+  premium: [_Discount, 'rookie'],
+});
+
+/**
+ * @typedef {{
  *   ratio: PerSec<?Ratio>,
  *   transferVolume: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>,
  *   valueDestroyed: Coinbase<RealizedLoss0satsBlock<?Cents>, CoinflowCap<?Cents>, CoinflowCap<?CentsFract>>,
@@ -7414,12 +7536,14 @@ const _DistributionAggregatedCohorts = _s({
 });
 
 /**
+ * @template A
  * @typedef {{
- *   cohorts: DistributionAggregatedCohorts,
+ *   cohorts: A,
  * }} DistributionAggregated
  */
-const _DistributionAggregated = _s({
-  cohorts: [_DistributionAggregatedCohorts, '*'],
+/** @type {_Make} */
+const _DistributionAggregated = (c, b, f0) => _n(c, b, {
+  cohorts: [f0, '*'],
 });
 
 /**
@@ -8022,9 +8146,9 @@ const _RealizedPrice = _s({
  *   inLoss: CoindaysDestroyed<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
  *   utxoAmount: UtxoAmount<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
  *   type: InputShare<Coinbase<BurnedBlock, Circulating<Sats, ?Cents>, Circulating<?SatsFract, ?CentsFract>>>,
- * }} TransferVolume
+ * }} CohortsActivityTransferVolume
  */
-const _TransferVolume = _s({
+const _CohortsActivityTransferVolume = _s({
   age: [(c, b) => _Matured(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), 'old_*'],
   epoch: [(c, b) => _CoindaysDestroyedEpoch(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), '*'],
   class: [(c, b) => _Class(c, b, (c, b) => _Coinbase(c, b, _BurnedBlock, _Circulating, _Circulating)), '*'],
@@ -8036,12 +8160,12 @@ const _TransferVolume = _s({
 
 /**
  * @typedef {{
- *   transferVolume: TransferVolume,
+ *   transferVolume: CohortsActivityTransferVolume,
  *   coindaysDestroyed: CoindaysDestroyed<NewAll<?CoinDays, ?CoinDays>>,
  * }} CohortsActivity
  */
 const _CohortsActivity = _s({
-  transferVolume: [_TransferVolume, '*'],
+  transferVolume: [_CohortsActivityTransferVolume, '*'],
   coindaysDestroyed: [(c, b) => _CoindaysDestroyed(c, b, _NewAll), 'coindays_destroyed'],
 });
 
@@ -8308,7 +8432,8 @@ const _Blocks = _s({
  *   pools: Pools,
  *   price: Price,
  *   cohorts: Cohorts,
- *   distributionAggregated: DistributionAggregated,
+ *   distributionAggregated: DistributionAggregated<DistributionAggregatedCohorts>,
+ *   distributionEntry: DistributionAggregated<DistributionEntryCohorts>,
  *   supply: Supply,
  *   utxoHistory: UtxoHistory,
  * }} SeriesTree
@@ -8334,7 +8459,8 @@ const _SeriesTree = _s({
   pools: [_Pools, 'pool'],
   price: [_Price, 'price'],
   cohorts: [_Cohorts, 'supply'],
-  distributionAggregated: [_DistributionAggregated, 'under'],
+  distributionAggregated: [(c, b) => _DistributionAggregated(c, b, _DistributionAggregatedCohorts), 'under'],
+  distributionEntry: [(c, b) => _DistributionAggregated(c, b, _DistributionEntryCohorts), 'veteran'],
   supply: [_Supply, 'supply'],
   utxoHistory: [_UtxoHistory, 'unspent_sats'],
 });

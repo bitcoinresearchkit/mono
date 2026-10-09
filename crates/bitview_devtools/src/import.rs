@@ -1,8 +1,6 @@
 use bitview_default::DefaultPlugins;
 use bitview_plugin::ImportContext;
 use bitview_plugin_blocks::HasBlocks;
-use bitview_plugin_distribution_aggregated::HasDistributionAggregated;
-use bitview_plugin_distribution_entry::Vecs as DistributionEntry;
 use bitview_plugin_distribution_profitability::Vecs as DistributionProfitability;
 use bitview_plugin_mappings::HasMappings;
 use bitview_plugin_price::HasPrice;
@@ -21,7 +19,6 @@ pub struct AllPlugins<M: StorageMode = Rw> {
     #[traversable(flatten)]
     #[plugin_set(flatten)]
     pub(crate) defaults: DefaultPlugins<M>,
-    distribution_entry: DistributionEntry<M>,
     #[traversable(flatten)]
     distribution_profitability: DistributionProfitability<M>,
 }
@@ -44,20 +41,12 @@ pub fn import() -> Result<Imported> {
     let defaults = DefaultPlugins::import(context, &reader)?;
     let window_starts = defaults.blocks().lookback.window_starts();
     let prices = defaults.price().spot.cents.height.read_only_boxed_clone();
-    let distribution_entry = DistributionEntry::import(
-        context,
-        defaults.mappings(),
-        &window_starts,
-        &prices,
-        defaults.distribution_aggregated().all_supply(),
-    )?;
     let distribution_profitability =
         DistributionProfitability::import(context, defaults.mappings(), &window_starts, &prices)?;
 
     Ok(Imported {
         plugins: AllPlugins {
             defaults,
-            distribution_entry,
             distribution_profitability,
         },
         dir,

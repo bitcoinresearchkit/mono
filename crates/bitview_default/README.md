@@ -15,7 +15,8 @@ Inputs and Outputs finish their contributions before UTXO History updates the
 canonical origin state. UTXOs runs alongside Outputs, History and Age; Addresses
 then consumes UTXOs’s completed output-type sources in its own complete update.
 Aggregated consumes Age’s completed disjoint accounting and canonical History
-for the seven overlapping age filters. Cointime and Coinflow
+for the seven overlapping age filters; Entry then classifies outputs by creation
+price against its all-chain capitalized price. Cointime and Coinflow
 compute their scalar and URPD metrics before Bedrock consumes their completed
 sources. These models share replay and metric algorithms in `bitview_urpd`; each
 owns its resumable replay state. No per-block URPD distributions are persisted.

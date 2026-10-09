@@ -10,6 +10,7 @@ use bitview_plugin_constants::Vecs as Constants;
 use bitview_plugin_distribution_addresses::Vecs as DistributionAddresses;
 use bitview_plugin_distribution_age::Vecs as DistributionAge;
 use bitview_plugin_distribution_aggregated::Vecs as DistributionAggregated;
+use bitview_plugin_distribution_entry::Vecs as DistributionEntry;
 use bitview_plugin_distribution_utxos::Vecs as DistributionUtxos;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_indicators::Vecs as Indicators;
@@ -65,6 +66,8 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     distribution_age: Box<DistributionAge<M>>,
     #[plugin_set(has = bitview_plugin_distribution_aggregated::HasDistributionAggregated<M>)]
     distribution_aggregated: Box<DistributionAggregated<M>>,
+    #[plugin_set(has = bitview_plugin_distribution_entry::HasDistributionEntry<M>)]
+    distribution_entry: Box<DistributionEntry<M>>,
     #[traversable(flatten)]
     distribution_utxos: Box<DistributionUtxos<M>>,
     #[plugin_set(has = bitview_plugin_distribution_addresses::HasDistributionAddresses<M>)]

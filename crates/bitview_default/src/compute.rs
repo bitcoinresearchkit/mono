@@ -15,6 +15,9 @@ use bitview_plugin_distribution_addresses::{
     Dependencies as AddressesDependencies, ID as DISTRIBUTION_ADDRESSES_ID,
 };
 use bitview_plugin_distribution_age::{Dependencies as AgeDependencies, ID as DISTRIBUTION_AGE_ID};
+use bitview_plugin_distribution_entry::{
+    Dependencies as EntryDependencies, ID as DISTRIBUTION_ENTRY_ID,
+};
 use bitview_plugin_distribution_utxos::{
     Dependencies as UtxosDependencies, ID as DISTRIBUTION_UTXOS_ID,
 };
@@ -39,6 +42,7 @@ use bitview_urpd::ReplayInputs;
 use brk_error::Result;
 use rayon::join;
 use tracing::info;
+use vecdb::ReadableCloneableVec;
 
 use crate::{
     DefaultPlugins,
@@ -247,7 +251,32 @@ impl DefaultPlugins {
                 prices: &self.price.spot.cents.height,
                 timestamps: &self.mappings.timestamp.monotonic,
             };
+            let entry_prices = self.price.spot.cents.height.read_only_boxed_clone();
+            let entry_timestamps = self.mappings.timestamp.monotonic.read_only_boxed_clone();
+            let capitalized_price = self
+                .distribution_aggregated
+                .cohorts
+                .all
+                .realized
+                .capitalized_price
+                .cents
+                .height
+                .read_only_boxed_clone();
             thread::scope(|scope| -> Result<()> {
+                let entry = scope.spawn(|| {
+                    timed(Phase::Compute, DISTRIBUTION_ENTRY_ID, || {
+                        self.distribution_entry.compute(
+                            EntryDependencies {
+                                history: &history,
+                                from: indexer.safe_lengths().height,
+                                prices: &entry_prices,
+                                timestamps: &entry_timestamps,
+                                capitalized_price: &capitalized_price,
+                            },
+                            context,
+                        )
+                    })
+                });
                 let coinflow = scope.spawn(|| -> Result<_> {
                     timed(Phase::Compute, COINFLOW_ID, || {
                         self.coinflow.compute(
@@ -364,6 +393,7 @@ impl DefaultPlugins {
                     )
                 })?;
                 pools.join().unwrap()?;
+                entry.join().unwrap()?;
                 Ok(())
             })?;
             Ok(())

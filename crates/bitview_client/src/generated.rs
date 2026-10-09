@@ -2094,6 +2094,12 @@ pub mod tree {
         usd: SeriesPattern2<Option<Dollars>> = "*",
         cents: SeriesPattern2<A> = "*_cents",
     } }
+    shape! { DiscountUnrealized at "series().distribution_entry.cohorts.discount.unrealized" {
+        profit: CoinflowCap<Option<Cents>> = "*_unrealized_profit",
+        loss: CoinflowCap<Option<Cents>> = "*_unrealized_loss",
+        net_pnl: CoinflowCap<CentsSigned> = "*_net_unrealized_pnl",
+        nupl: RhodlRatio<Option<PartsPerMillionSigned32>> = "*_nupl",
+    } }
     shape! { AllUnrealized at "series().distribution_aggregated.cohorts.all.unrealized" {
         profit: CoinflowCap<Option<Cents>> = "*_unrealized_profit",
         loss: CoinflowCap<Option<Cents>> = "*_unrealized_loss",
@@ -3133,6 +3139,13 @@ pub mod tree {
         absolute: A = "*",
         rate: AllRate = "*",
     } }
+    shape! { DiscountSupply at "series().distribution_entry.cohorts.discount.supply" {
+        total: Circulating<Sats, Option<Cents>> = "*",
+        delta: DeltaAll<Sd24h<Absolute1m>> = "*_delta",
+        dominance: Gini<Option<PartsPerMillion32>> = "*_dominance",
+        in_profit: Circulating<Sats, Option<Cents>> = "*_in_profit",
+        in_loss: Circulating<Sats, Option<Cents>> = "*_in_loss",
+    } }
     shape! { MarketCap at "series().supply.market_cap" {
         usd: SeriesPattern2<Option<Dollars>> = "*",
         cents: SeriesPattern2<Option<Cents>> = "*_cents",
@@ -3226,6 +3239,42 @@ pub mod tree {
         sum: Sd24h<B> = "*_sum",
         average: Sd24h<C> = "*_average",
     } }
+    shape! { Sopr at "series().distribution_entry.cohorts.discount.realized.sopr" {
+        raw: SeriesPattern2<Option<Ratio>> = "*_sopr_24h",
+        value_destroyed: Coinbase<RealizedLoss0satsBlock<Option<Cents>>, CoinflowCap<Option<Cents>>, CoinflowCap<Option<CentsFract>>> = "*_value_destroyed",
+    } }
+    shape! { DiscountRealized at "series().distribution_entry.cohorts.discount.realized" {
+        cap: MarketCap = "*_realized_cap",
+        price: CapitalizedPrice = "*_realized_price",
+        profit: RealizedLoss0sats = "*_realized_profit",
+        loss: RealizedLoss0sats = "*_realized_loss",
+        net_pnl: Age10yTo12y = "*_net_realized_pnl",
+        sopr: Sopr = "*",
+        mvrv: SeriesPattern2<Option<Ratio>> = "*_mvrv",
+    } }
+    shape! { DiscountActivityTransferVolume at "series().distribution_entry.cohorts.discount.activity.transfer_volume" {
+        block: BurnedBlock = "*",
+        cumulative: Circulating<Sats, Option<Cents>> = "*_cumulative",
+        sum: Sd24h<Circulating<Sats, Option<Cents>>> = "*_sum",
+        average: Sd24h<Circulating<Option<SatsFract>, Option<CentsFract>>> = "*_average",
+        in_profit: Coinbase<BurnedBlock, Circulating<Sats, Option<Cents>>, Circulating<Option<SatsFract>, Option<CentsFract>>> = "*_in_profit",
+        in_loss: Coinbase<BurnedBlock, Circulating<Sats, Option<Cents>>, Circulating<Option<SatsFract>, Option<CentsFract>>> = "*_in_loss",
+    } }
+    shape! { DiscountActivity at "series().distribution_entry.cohorts.discount.activity" {
+        transfer_volume: DiscountActivityTransferVolume = "*_transfer_volume",
+        coindays_destroyed: NewAll<Option<CoinDays>, Option<CoinDays>> = "*_coindays_destroyed",
+    } }
+    shape! { Discount at "series().distribution_entry.cohorts.discount" {
+        supply: DiscountSupply = "*_supply",
+        outputs: AllOutputs = "*",
+        activity: DiscountActivity = "*",
+        realized: DiscountRealized = "*",
+        unrealized: DiscountUnrealized = "*",
+    } }
+    shape! { DistributionEntryCohorts at "series().distribution_entry.cohorts" {
+        discount: Discount = "*",
+        premium: Discount = "rookie",
+    } }
     shape! { AdjustedSopr at "series().distribution_aggregated.cohorts.all.ratios.adjusted_sopr" {
         ratio: PerSec<Option<Ratio>> = "*_adjusted_sopr",
         transfer_volume: Coinbase<RealizedLoss0satsBlock<Option<Cents>>, CoinflowCap<Option<Cents>>, CoinflowCap<Option<CentsFract>>> = "*_adj_value_created",
@@ -3277,8 +3326,8 @@ pub mod tree {
         over_4m: CohortsAll = "over_4m",
         over_6m: CohortsAll = "over_6m",
     } }
-    shape! { DistributionAggregated at "series().distribution_aggregated" {
-        cohorts: DistributionAggregatedCohorts = "*",
+    shape! { DistributionAggregated<A> at "series().distribution_aggregated" {
+        cohorts: A = "*",
     } }
     shape! { UtxoAmount<A> at "series().cohorts.activity.transfer_volume.utxo_amount" {
         _0sats: A = "utxos_0sats_*",
@@ -3534,7 +3583,7 @@ pub mod tree {
         utxo_amount: UtxoAmount<Spot<Option<SatsFract>>> = "*",
         type_: InputShare<Spot<Option<SatsFract>>> = "*",
     } }
-    shape! { TransferVolume at "series().cohorts.activity.transfer_volume" {
+    shape! { CohortsActivityTransferVolume at "series().cohorts.activity.transfer_volume" {
         age: Matured<Coinbase<BurnedBlock, Circulating<Sats, Option<Cents>>, Circulating<Option<SatsFract>, Option<CentsFract>>>> = "old_*",
         epoch: CoindaysDestroyedEpoch<Coinbase<BurnedBlock, Circulating<Sats, Option<Cents>>, Circulating<Option<SatsFract>, Option<CentsFract>>>> = "*",
         class: Class<Coinbase<BurnedBlock, Circulating<Sats, Option<Cents>>, Circulating<Option<SatsFract>, Option<CentsFract>>>> = "*",
@@ -3544,7 +3593,7 @@ pub mod tree {
         type_: InputShare<Coinbase<BurnedBlock, Circulating<Sats, Option<Cents>>, Circulating<Option<SatsFract>, Option<CentsFract>>>> = "*",
     } }
     shape! { CohortsActivity at "series().cohorts.activity" {
-        transfer_volume: TransferVolume = "*",
+        transfer_volume: CohortsActivityTransferVolume = "*",
         coindays_destroyed: CoindaysDestroyed<NewAll<Option<CoinDays>, Option<CoinDays>>> = "coindays_destroyed",
     } }
     shape! { AvgAmount at "series().cohorts.outputs.avg_amount" {
@@ -3668,7 +3717,8 @@ pub mod tree {
         pools: Pools = "pool",
         price: Price = "price",
         cohorts: Cohorts = "supply",
-        distribution_aggregated: DistributionAggregated = "under",
+        distribution_aggregated: DistributionAggregated<DistributionAggregatedCohorts> = "under",
+        distribution_entry: DistributionAggregated<DistributionEntryCohorts> = "veteran",
         supply: Supply = "supply",
         utxo_history: UtxoHistory = "unspent_sats",
     } }

@@ -2,7 +2,7 @@ use brk_types::{Cents, Height, Timestamp};
 use statedb::Reader;
 use vecdb::ReadableBoxedVec;
 
-/// Completed, read-only history and price inputs. Age owns the anchor series.
+/// Completed, read-only history and price inputs. Aggregated owns the anchor series.
 pub struct Dependencies<'a> {
     pub history: &'a Reader<'a>,
     pub from: Height,

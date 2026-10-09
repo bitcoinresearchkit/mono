@@ -4115,6 +4115,13 @@ class CoinflowCap(_Node, Generic[A]):
     cents: SeriesPattern2[A] = _at(SeriesPattern2, '*_cents')
 
 
+class DiscountUnrealized(_Node):
+    profit: CoinflowCap[Optional[Cents]] = _at(CoinflowCap, '*_unrealized_profit')
+    loss: CoinflowCap[Optional[Cents]] = _at(CoinflowCap, '*_unrealized_loss')
+    net_pnl: CoinflowCap[CentsSigned] = _at(CoinflowCap, '*_net_unrealized_pnl')
+    nupl: RhodlRatio[Optional[PartsPerMillionSigned32]] = _at(RhodlRatio, '*_nupl')
+
+
 class AllUnrealized(_Node):
     profit: CoinflowCap[Optional[Cents]] = _at(CoinflowCap, '*_unrealized_profit')
     loss: CoinflowCap[Optional[Cents]] = _at(CoinflowCap, '*_unrealized_loss')
@@ -5265,6 +5272,14 @@ class DeltaAll(_Node, Generic[A]):
     rate: AllRate = _at(AllRate, '*')
 
 
+class DiscountSupply(_Node):
+    total: Circulating[Sats, Optional[Cents]] = _at(Circulating, '*')
+    delta: DeltaAll[Sd24h[Absolute1m]] = _at((DeltaAll, (Sd24h, Absolute1m)), '*_delta')
+    dominance: Gini[Optional[PartsPerMillion32]] = _at(Gini, '*_dominance')
+    in_profit: Circulating[Sats, Optional[Cents]] = _at(Circulating, '*_in_profit')
+    in_loss: Circulating[Sats, Optional[Cents]] = _at(Circulating, '*_in_loss')
+
+
 class MarketCap(_Node):
     usd: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*')
     cents: SeriesPattern2[Optional[Cents]] = _at(SeriesPattern2, '*_cents')
@@ -5372,6 +5387,48 @@ class Coinbase(_Node, Generic[A, B, C]):
     average: Sd24h[C] = _at((Sd24h, 2), '*_average')
 
 
+class Sopr(_Node):
+    raw: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_sopr_24h')
+    value_destroyed: Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[CentsFract]]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_value_destroyed')
+
+
+class DiscountRealized(_Node):
+    cap: MarketCap = _at(MarketCap, '*_realized_cap')
+    price: CapitalizedPrice = _at(CapitalizedPrice, '*_realized_price')
+    profit: RealizedLoss0sats = _at(RealizedLoss0sats, '*_realized_profit')
+    loss: RealizedLoss0sats = _at(RealizedLoss0sats, '*_realized_loss')
+    net_pnl: Age10yTo12y = _at(Age10yTo12y, '*_net_realized_pnl')
+    sopr: Sopr = _at(Sopr, '*')
+    mvrv: SeriesPattern2[Optional[Ratio]] = _at(SeriesPattern2, '*_mvrv')
+
+
+class DiscountActivityTransferVolume(_Node):
+    block: BurnedBlock = _at(BurnedBlock, '*')
+    cumulative: Circulating[Sats, Optional[Cents]] = _at(Circulating, '*_cumulative')
+    sum: Sd24h[Circulating[Sats, Optional[Cents]]] = _at((Sd24h, Circulating), '*_sum')
+    average: Sd24h[Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Sd24h, Circulating), '*_average')
+    in_profit: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_in_profit')
+    in_loss: Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]] = _at((Coinbase, BurnedBlock, Circulating, Circulating), '*_in_loss')
+
+
+class DiscountActivity(_Node):
+    transfer_volume: DiscountActivityTransferVolume = _at(DiscountActivityTransferVolume, '*_transfer_volume')
+    coindays_destroyed: NewAll[Optional[CoinDays], Optional[CoinDays]] = _at(NewAll, '*_coindays_destroyed')
+
+
+class Discount(_Node):
+    supply: DiscountSupply = _at(DiscountSupply, '*_supply')
+    outputs: AllOutputs = _at(AllOutputs, '*')
+    activity: DiscountActivity = _at(DiscountActivity, '*')
+    realized: DiscountRealized = _at(DiscountRealized, '*')
+    unrealized: DiscountUnrealized = _at(DiscountUnrealized, '*')
+
+
+class DistributionEntryCohorts(_Node):
+    discount: Discount = _at(Discount, '*')
+    premium: Discount = _at(Discount, 'rookie')
+
+
 class AdjustedSopr(_Node):
     ratio: PerSec[Optional[Ratio]] = _at(PerSec, '*_adjusted_sopr')
     transfer_volume: Coinbase[RealizedLoss0satsBlock[Optional[Cents]], CoinflowCap[Optional[Cents]], CoinflowCap[Optional[CentsFract]]] = _at((Coinbase, RealizedLoss0satsBlock, CoinflowCap, CoinflowCap), '*_adj_value_created')
@@ -5429,8 +5486,8 @@ class DistributionAggregatedCohorts(_Node):
     over_6m: CohortsAll = _at(CohortsAll, 'over_6m')
 
 
-class DistributionAggregated(_Node):
-    cohorts: DistributionAggregatedCohorts = _at(DistributionAggregatedCohorts, '*')
+class DistributionAggregated(_Node, Generic[A]):
+    cohorts: A = _at(0, '*')
 
 
 class UtxoAmount(_Node, Generic[A]):
@@ -5710,7 +5767,7 @@ class RealizedPrice(_Node):
     type_: InputShare[Spot[Optional[SatsFract]]] = _at((InputShare, Spot), '*')
 
 
-class TransferVolume(_Node):
+class CohortsActivityTransferVolume(_Node):
     age: Matured[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((Matured, (Coinbase, BurnedBlock, Circulating, Circulating)), 'old_*')
     epoch: CoindaysDestroyedEpoch[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((CoindaysDestroyedEpoch, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
     class_: Class[Coinbase[BurnedBlock, Circulating[Sats, Optional[Cents]], Circulating[Optional[SatsFract], Optional[CentsFract]]]] = _at((Class, (Coinbase, BurnedBlock, Circulating, Circulating)), '*')
@@ -5721,7 +5778,7 @@ class TransferVolume(_Node):
 
 
 class CohortsActivity(_Node):
-    transfer_volume: TransferVolume = _at(TransferVolume, '*')
+    transfer_volume: CohortsActivityTransferVolume = _at(CohortsActivityTransferVolume, '*')
     coindays_destroyed: CoindaysDestroyed[NewAll[Optional[CoinDays], Optional[CoinDays]]] = _at((CoindaysDestroyed, NewAll), 'coindays_destroyed')
 
 
@@ -5859,7 +5916,8 @@ class SeriesTree(_Node):
     pools: Pools = _at(Pools, 'pool')
     price: Price = _at(Price, 'price')
     cohorts: Cohorts = _at(Cohorts, 'supply')
-    distribution_aggregated: DistributionAggregated = _at(DistributionAggregated, 'under')
+    distribution_aggregated: DistributionAggregated[DistributionAggregatedCohorts] = _at((DistributionAggregated, DistributionAggregatedCohorts), 'under')
+    distribution_entry: DistributionAggregated[DistributionEntryCohorts] = _at((DistributionAggregated, DistributionEntryCohorts), 'veteran')
     supply: Supply = _at(Supply, 'supply')
     utxo_history: UtxoHistory = _at(UtxoHistory, 'unspent_sats')
 

@@ -183,6 +183,9 @@ has to be deleted by hand.
 
 - `GET /api/series/{name}` returns `unit`, what the value type measures (e.g. "A duration in days."), and `nullable`,
   the indexes whose values can be `null`; the catalog carries `nullable` too. Every series value type has a description
+- Entry cohorts are part of the default plugins again: outputs created at a price at or below the previous block's
+  all-chain capitalized price (`veteran_*`, discount) or above it (`rookie_*`, premium), served and in the generated
+  clients. Computing them from block 0 takes about 50 s at 970,536 blocks on a 16 GB Mac mini
 
 #### `bitviewd` and `bitviewd_bench`
 
@@ -319,7 +322,7 @@ has to be deleted by hand.
 #### Workspace
 
 - Kept only critical low-level tests (storage invariants in rawdb, vecdb, statedb, brk_store and brk_types, scalar and
-  bindgen-model checks, and a client typed-paths check) and the `with_entry`, `with_profitability`, website and
+  bindgen-model checks, and a client typed-paths check) and the `with_profitability`, website and
   `examples/custom_plugin` examples; the JS/Python client and quickmatch parity suites are gone; the byteview and
   lsm-tree forks drop repetitive tests
 - Plugin crates other than the indexer and constants follow one skeleton; distribution plugins share their cohort
