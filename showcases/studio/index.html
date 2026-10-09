@@ -1652,19 +1652,6 @@
         margin-left: calc(-1 * var(--side-collapsed));
       }
 
-      /* A narrow header (a phone, a tablet upright beside the sidebar): a preview said by its Keep alone, dashed as the
-         pill is (not yours yet): no room for both beside the title. */
-      @container head (max-width: 640px) {
-        .preview-note .preview-pill {
-          display: none;
-        }
-
-        #keep {
-          border-style: dashed;
-          border-color: var(--line-strong);
-        }
-      }
-
       .head-title {
         display: flex;
         grid-area: title;
@@ -1719,8 +1706,8 @@
         gap: 4px;
       }
 
-      /* A preview: said so (a dashed pill: not yours yet), and kept by a click (or a change). */
-      #keep[hidden] {
+      /* A preview: kept by its Keep (or by editing it). A new chart, empty: no ⋯ (nothing it does there). */
+      #chart-more[hidden] {
         display: none;
       }
 
@@ -1736,19 +1723,7 @@
         }
       }
 
-      .preview-pill {
-        display: inline-flex;
-        align-items: center;
-        height: 26px;
-        border: 1px dashed var(--line-strong);
-        border-radius: var(--radius-md);
-        padding: 0 9px;
-        color: var(--soft);
-        font-size: 12px;
-        line-height: 16px;
-      }
-
-      /* The sidebar's preview: a place of its own over your charts, named, its title in italics (not yours yet). */
+      /* The sidebar's preview: a place of its own over your charts, named (a new chart's, empty, is only that). */
       .preview-slot {
         position: relative;
         display: flex;
@@ -1772,10 +1747,6 @@
         color: var(--muted);
         font: 510 12px/16px var(--sans);
         white-space: nowrap;
-      }
-
-      .chart-row.preview .chart-item .label {
-        font-style: italic;
       }
 
       .saved {
@@ -1874,7 +1845,8 @@
         inset: 0 0 8px 0;
         z-index: 0;
 
-        &.waiting {
+        /* (Every layer hidden: an empty plot's scales would say nothing true.) */
+        &:is(.waiting, .unseen) {
           visibility: hidden;
         }
 
@@ -2292,6 +2264,23 @@
         min-width: 0;
       }
 
+      /* A tool kept in hand (double-clicked): a dot under it, as long as it's kept. */
+      .belt .cap.kept {
+        position: relative;
+
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: 2px;
+          left: 50%;
+          width: 4px;
+          height: 4px;
+          margin-left: -2px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+      }
+
       .belt-size {
         font: 590 11.5px/1 var(--sans);
       }
@@ -2559,7 +2548,12 @@
         }
       }
 
-      /* Nothing came at all (the server not answering): said once over the plot, with its Retry. */
+      /* Nothing came at all (the server not answering), every layer hidden: said once over the plot, with the way out
+         (loading, or not reached, said first). */
+      :is(#loading, #unreached):not([hidden]) ~ #all-hidden {
+        display: none;
+      }
+
       .unreached {
         gap: 10px;
 
@@ -5025,6 +5019,10 @@
         display: flex;
         gap: 8px;
 
+        &[hidden] {
+          display: none;
+        }
+
         /* (It gives the room the tools need, down to a phone's.) */
         .home-filter {
           flex: 1;
@@ -5417,12 +5415,8 @@
         aspect-ratio: 16 / 9;
         margin-top: 12px;
 
-        &.empty {
-          display: grid;
+        &.blank {
           border-radius: var(--radius-md);
-          place-items: center;
-          color: var(--muted);
-          font-size: 12px;
           box-shadow: inset 0 0 0 1px var(--line);
         }
       }
@@ -6392,7 +6386,7 @@
             <li>"layers" (the one thing needed): its layers, in order (see below).</li>
             <li>"title".</li>
             <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).</li>
-            <li>"range": what it shows: 3m, 1y, 4y or max (max if none: as far back as fits on the screen at its interval; a coarser one, such as week1, fits more). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
+            <li>"range": what it shows: 3m, 1y, 4y or max (max if none: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
             <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.</li>
             <li>"halvings": true: a line at each halving.</li>
             <li>"legend": "off" (none), or "still" (not scrolling to the line pointed at, as it does by default).</li>
@@ -6450,7 +6444,7 @@ const picture = await studio.png();</pre>
             <input id="title" class="title" aria-label="Chart title" placeholder="Untitled chart" maxlength="120" spellcheck="false" autocomplete="off" />
           </div>
           <div class="head-actions">
-            <span id="preview-note" class="preview-note" hidden><span class="preview-pill" data-tip="Not in your charts: a change, or Keep, adds it">Preview</span><button id="keep" class="btn small" type="button" data-tip="Into your charts as it is">Keep</button></span>
+            <span id="preview-note" class="preview-note" hidden><button id="keep" class="btn small" type="button" data-tip="A preview: Keep puts it in your charts (so does editing it)">Keep</button></span>
             <span id="saved" class="saved"></span>
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo"></button>
@@ -6482,6 +6476,10 @@ const picture = await studio.png();</pre>
               <div id="unreached" class="loading-state unreached" role="status" hidden>
                 <p>Couldn't reach bitview.space</p>
                 <button type="button" class="btn small" data-action="retry-all">Retry</button>
+              </div>
+              <div id="all-hidden" class="loading-state unreached" role="status" hidden>
+                <p>Every layer is hidden</p>
+                <button type="button" class="btn small" data-action="show-every">Show every layer</button>
               </div>
               <div id="empty" class="empty" hidden>
                 <div class="empty-inner">
@@ -6539,8 +6537,8 @@ const picture = await studio.png();</pre>
           <div class="home-scroll">
             <div class="home-inner">
               <h1>All charts</h1>
-              <p>Your charts, as they show. Select a few to move, duplicate, download or delete them at once.</p>
-              <div class="home-tools">
+              <p id="home-intro">Your charts. Select a few to move, duplicate, download or delete them at once.</p>
+              <div id="home-tools" class="home-tools">
               <label class="home-filter">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
                 <input id="home-filter" aria-label="Filter charts" autocomplete="off" spellcheck="false" />
@@ -6664,7 +6662,7 @@ const picture = await studio.png();</pre>
           </dl>
           <h3>View</h3>
           <dl>
-            <div><dt>3 months, a year, 4 years, the most that fits</dt><dd><kbd>1</kbd>–<kbd>4</kbd></dd></div>
+            <div><dt>3 months, a year, 4 years, Max</dt><dd><kbd>1</kbd>–<kbd>4</kbd></dd></div>
             <div><dt>Go to a date</dt><dd><kbd>G</kbd></dd></div>
             <div><dt>Previous or next interval</dt><dd><kbd>[</kbd><kbd>]</kbd></dd></div>
             <div><dt>Zoom out or in</dt><dd><kbd>−</kbd><kbd>+</kbd></dd></div>
@@ -8104,6 +8102,8 @@ const picture = await studio.png();</pre>
        * empty one, left, simply goes). This tab's only, until it's reloaded. @type {Chart | null}
        */
       let previewing = null;
+      /** A link that couldn't be read, left in the address bar to be put right (until another chart's opened). */
+      let brokenLink = "";
       /** A chart taken out of the list, if it's there (a preview isn't). */
       const unlist = (/** @type {Chart} */ doc) => {
         const at = library.charts.indexOf(doc);
@@ -8308,11 +8308,13 @@ const picture = await studio.png();</pre>
 
       /**
        * Every edit goes through here: undoable, normalized, saved, redrawn. Edits sharing a `coalesce` key within a second
-       * (typing) undo as one; `quiet`, a change of view (range, pane sizes), is saved without the "Saved" note; `keepMenu`,
-       * made from a menu that stays (its slider), the menu stays open.
-       * @param {(doc: Chart) => void} edit @param {{ coalesce?: string, redraw?: Redraw, quiet?: boolean, keepMenu?: boolean }} [options]
+       * (typing) undo as one; `quiet`, a change of view (range, pane sizes), is saved without the "Saved" note; `look`, a
+       * way of looking at what's there (a scale, an interval, the legend, layers hidden), keeps no preview (only making
+       * something does: a layer, a style, a drawing, a title); `keepMenu`, made from a menu that stays (its slider), the
+       * menu stays open.
+       * @param {(doc: Chart) => void} edit @param {{ coalesce?: string, redraw?: Redraw, quiet?: boolean, look?: boolean, keepMenu?: boolean }} [options]
        */
-      function commit(edit, { coalesce = "", redraw = /** @type {Redraw} */ (true), quiet = false, keepMenu = false } = {}) {
+      function commit(edit, { coalesce = "", redraw = /** @type {Redraw} */ (true), quiet = false, look = false, keepMenu = false } = {}) {
         const before = JSON.stringify(chart), had = chart.layers.length;
         edit(chart);
         normalize(chart);
@@ -8327,7 +8329,7 @@ const picture = await studio.png();</pre>
         edits.at = now;
         edits.held = holding;
         chart.updated = now;
-        if (chart === previewing && !quiet) keepPreview(false, had > 0);
+        if (chart === previewing && !quiet && !look) keepPreview(false, had > 0);
         changed(!quiet, redraw, keepMenu);
       }
       /** Undo, as ⌘Z and ⌘K do it: a toast's Undo while it's up (a deleted chart comes back), else the chart's last edit. */
@@ -8358,6 +8360,8 @@ const picture = await studio.png();</pre>
       }
       /** The open chart changed (an edit, an undo): its menu closes, a selection gone with it too; saved, shown. */
       function changed(announce, redraw = /** @type {Redraw} */ (true), keepMenu = false) {
+        // (A preview's changes aren't saved: no "Saved" for them.)
+        announce &&= chart !== previewing;
         revision++;
         if (!keepMenu) hideMenu();
         if (!layerById(selected)) selected = "";
@@ -8480,8 +8484,9 @@ const picture = await studio.png();</pre>
         saveView();
         // This tab's place, for a reload and for Back: the chart it shows now (a step from the grid stays one).
         if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ chart: doc.id }, "");
-        // (An empty preview left has nothing to come back to.)
+        // (An empty preview left has nothing to come back to; a link that couldn't be read, left behind.)
         if (previewing && doc !== previewing && !previewing.layers.length && !previewing.title) previewing = null;
+        brokenLink = "";
         const previous = chart;
         chart = doc;
         library.active = doc.id;
@@ -9371,6 +9376,15 @@ const picture = await studio.png();</pre>
       const RIGHT_OFFSET = 6;
       /** The farthest the chart zooms out: four points a pixel (lightweight-charts' default, two), still smooth to pan. */
       const MIN_BAR_SPACING = 0.25;
+      /**
+       * How close the chart's bars can get: four a pixel; at a day or coarser (all of history at hand, a few thousand
+       * bars), as close as all of it needs to fit, its first date's label room left: Max is all of history there.
+       */
+      function fitSpacing(/** @type {Chart} */ doc, /** @type {number} */ bars) {
+        const width = view.timeScale().width();
+        const spacing = FINE.has(doc.index) || width <= 30 || bars < 2 ? MIN_BAR_SPACING : Math.max(0.005, Math.min(MIN_BAR_SPACING, (0.995 * (width - 30)) / (bars - 1 + RIGHT_OFFSET)));
+        if (spacing !== view.timeScale().options().minBarSpacing) view.applyOptions({ timeScale: { minBarSpacing: spacing } });
+      }
       /** Over several years the time axis names years only: a lone month at the edge ("Sep") reads as noise. */
       const yearsOnly = (_time, type) => (type === LC.TickMarkType.Year ? null : "");
       let yearsAxis = false;
@@ -9794,10 +9808,16 @@ const picture = await studio.png();</pre>
         // A chart opening comes back where it was left; at another interval, on the same time (on its preset, if it
         // showed one: it kept no view then). (Unless the view has since fallen off the data: an old one of a fine
         // interval, past its latest points.)
+        fitSpacing(doc, data.times.length);
         const left = drawnChart !== doc.id || drawnIndex !== doc.index ? leftView(doc.id) : null;
         const back = left && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
-        if (back && back.to - back.from >= 1) view.timeScale().setVisibleLogicalRange(within(back, "to"));
-        else if (!visible || presetShown) applyRange(doc, data);
+        if (back && back.to - back.from >= 1) {
+          view.timeScale().setVisibleLogicalRange(within(back, "to"));
+          presetShown = false;
+        } else if (!visible || presetShown) {
+          applyRange(doc, data);
+          presetShown = true;
+        }
         else if (shift && (glidingTo ?? logical)) {
           const range = /** @type {{ from: number, to: number }} */ (glidingTo ?? logical);
           view.timeScale().setVisibleLogicalRange(within({ from: range.from + shift, to: range.to + shift }));
@@ -10254,8 +10274,9 @@ const picture = await studio.png();</pre>
         return found;
       }
 
-      /** The range presets, in words. */
-      const PERIODS = { "3m": "past 3 months", "1y": "past year", "4y": "past 4 years", max: "most that fits" };
+      /** The range presets, in words: Max, all of history at a day or coarser, the most that fits finer. */
+      const PERIODS = { "3m": "past 3 months", "1y": "past year", "4y": "past 4 years", max: "whole history" };
+      const periodOf = (/** @type {string} */ id) => (id === "max" && FINE.has(chart.index) ? "most that fits" : PERIODS[id]);
 
       view.subscribeCrosshairMove((param) => {
         const time = param.time === undefined ? null : /** @type {number} */ (param.time);
@@ -10282,6 +10303,7 @@ const picture = await studio.png();</pre>
           const width = view.timeScale().width();
           if (width !== laidWidth) {
             laidWidth = width;
+            if (chart && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
             if (chart) renderRanges();
             if (presetShown && !glideTarget && resolved && drawnChart === chart.id) applyRange(chart, resolved);
           }
@@ -10616,7 +10638,8 @@ const picture = await studio.png();</pre>
         fitCandles();
         fitDots();
         valuesSoon();
-        const shown = showsPreset();
+        // (Mid-resize, a preset showing still is: the new width's layout puts it back, see relayout.)
+        const shown = view.timeScale().width() !== laidWidth ? presetShown : showsPreset();
         if (shown !== presetShown) {
           presetShown = shown;
           renderRanges();
@@ -11380,11 +11403,20 @@ const picture = await studio.png();</pre>
       const sketches = new WeakMap();
       /** The drawings hidden from view: a view, not an edit (back on another chart, with a tool taken, or any selected). */
       let drawingsHidden = false;
-      function hideDrawings(/** @type {boolean} */ hidden) {
+      /** The drawings hidden or shown again (`tell`: by a key or ⌘K, said where the drawing tools don't show it). */
+      function hideDrawings(/** @type {boolean} */ hidden, tell = false) {
         drawingsHidden = hidden;
         if (hidden) chooseDrawings([]);
         renderBelt();
         repaintDrawings();
+        renderLayers();
+        if (hidden && tell && $("belt").hidden) toast(`${plural(chart.drawings?.length ?? 0, "drawing")} hidden`, { label: "Show", run: () => hideDrawings(false) });
+      }
+      /** The drawings shown again (a tool taken, one selected): the panel's row says so too. */
+      function revealDrawings() {
+        if (!drawingsHidden) return;
+        drawingsHidden = false;
+        renderLayers();
       }
       /** The drawings as shown: the chart's (a look's, while one shows) as last built, one being drawn or moved in its place. */
       function drawingsShown() {
@@ -11430,10 +11462,16 @@ const picture = await studio.png();</pre>
       /** The drawings as last built. @type {Drawing[]} */
       let shownDrawings = [];
 
-      function setTool(/** @type {DrawingKind | ""} */ kind) {
+      /**
+       * The tool in hand kept after each drawing (`kept`, by a double-click on it): drawn again and again, till esc;
+       * else one drawing, and the chart pans again. Text is one at a time (its typing takes the keys).
+       */
+      let toolKept = false;
+      function setTool(/** @type {DrawingKind | ""} */ kind, kept = false) {
+        toolKept = Boolean(kind) && kept && kind !== "text";
         // A tool in hand, nothing's selected: the belt shows what it'll draw (and the drawings, if hidden).
         if (kind) chooseDrawings([]);
-        if (kind) drawingsHidden = false;
+        if (kind) revealDrawings();
         tool = kind;
         selectingArea = false;
         placing = moving = draft = boxing = null;
@@ -11461,7 +11499,7 @@ const picture = await studio.png();</pre>
        */
       function chooseDrawings(/** @type {Iterable<string>} */ ids) {
         const next = new Set(ids);
-        if (next.size) drawingsHidden = false;
+        if (next.size) revealDrawings();
         if (next.size && tool) setTool("");
         if (next.size && selectingArea) setSelectingArea(false);
         if (next.size === chosen.size && [...next].every((id) => chosen.has(id))) return;
@@ -11503,7 +11541,7 @@ const picture = await studio.png();</pre>
         const pressed = (/** @type {string} */ each) => (each === "cursor" ? !tool && !selectingArea : each === "select" ? selectingArea : tool === each);
         const tools = BELT_TOOLS.map((each) => {
           const { name, tip = name, key, kbd, icon } = beltTool(each);
-          return `<button type="button" class="cap" id="belt-${each}" data-tool="${each}" aria-pressed="${pressed(each)}" aria-label="${name}" data-tip="${escape(tip)}" data-kbd="${kbd}">${icon}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
+          return `<button type="button" class="cap ${each === tool && toolKept ? "kept" : ""}" id="belt-${each}" data-tool="${each}" aria-pressed="${pressed(each)}" aria-label="${name}${each === tool && toolKept ? ", kept" : ""}" data-tip="${escape(tip)}" data-kbd="${kbd}">${icon}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
         }).join("") + (chart.drawings?.length ? `<i class="belt-rule"></i><button type="button" class="cap" id="belt-hide" data-belt="hide" aria-pressed="${drawingsHidden}" aria-label="${drawingsHidden ? "Show the drawings" : "Hide the drawings"}" data-tip="${drawingsHidden ? "Show the drawings" : "Hide the drawings: the chart as it is, without them"}" data-kbd="⇧ H">${drawingsHidden ? ICONS.eyeOff : ICONS.eye}</button>` : "");
         const button = (/** @type {string} */ part, /** @type {string} */ label, /** @type {string} */ body, menu = true, kbd = "") => `<button type="button" class="cap" id="belt-${part}" data-belt="${part}" ${menu ? 'aria-haspopup="menu"' : ""} aria-label="${escape(label)}" data-tip="${escape(label)}" ${kbd ? `data-kbd="${kbd}"` : ""}>${body}</button>`;
         // Each look shown as the first drawing that has it has it; set, it's set on each that has it.
@@ -11531,7 +11569,7 @@ const picture = await studio.png();</pre>
             button("remove", drawings.length > 1 ? `Remove ${drawings.length} drawings` : "Remove", ICONS.trash, false, "⌫"),
           ] : []),
         ].join("");
-        const how = selectingArea ? "Drag a box around drawings to select them" : tool && (placing?.clicks ? `${capitalize(CLICK)} its ${BOXES.has(tool) ? "other corner" : "other end"}` : TOOLS[tool].tip);
+        const how = selectingArea ? "Drag a box around drawings to select them" : tool && (placing?.clicks ? `${capitalize(CLICK)} its ${BOXES.has(tool) ? "other corner" : "other end"}` : toolKept ? `${TOOLS[tool].tip}, as many as you like` : TOOLS[tool].tip);
         // With drawings selected, only what's theirs: the tools come back as they're let go (esc, a click away).
         const html = `<button type="button" class="grip" id="belt-grip" aria-label="Move the drawing tools" data-tip="Drag it to any side of the chart">${ICONS.grip}</button>
           ${drawings.length ? "" : `<div class="belt-tools" role="group" aria-label="Tools">${tools}</div>`}
@@ -11547,11 +11585,11 @@ const picture = await studio.png();</pre>
             belt.classList.remove("keys");
             return renderBelt();
           }
-          placeBelt();
+          placeBelt(false, true);
           if (was) reshapeBelt(was);
           return;
         }
-        placeBelt();
+        placeBelt(false, true);
       }
       /** The belt from its last shape to this one (its place, its size), what's in it coming in: no jump. */
       function reshapeBelt(/** @type {DOMRect} */ was) {
@@ -11577,7 +11615,8 @@ const picture = await studio.png();</pre>
         placeBelt(true);
       }
       /** The belt where it's docked: on its side of the plot, along it where it was left, inside it (along the top or foot, it wraps). */
-      function placeBelt(glide = false) {
+      /** `stay`: what's in it changed, its tools where they were (it grows or shrinks from there, inside the plot). */
+      function placeBelt(glide = false, stay = false) {
         const belt = $("belt"), plot = belt.hidden || belt.classList.contains("held") ? null : plotBox();
         if (!plot) return;
         // Measured at rest: a glide still going ends where it was going.
@@ -11606,8 +11645,9 @@ const picture = await studio.png();</pre>
         belt.style.maxWidth = up ? "" : `${plot.width - 16}px`;
         const width = belt.offsetWidth, height = belt.offsetHeight;
         const along = (/** @type {number} */ from, /** @type {number} */ room, /** @type {number} */ size) => clamp(from + prefs.belt.at * room - size / 2, from + 8, from + room - size - 8);
-        const left = up ? (side === "left" ? plot.left + 10 : plot.left + plot.width - width - 10) : along(plot.left, plot.width, width);
-        const top = up ? along(plot.top, plot.height, height) : side === "top" ? plot.top + 10 : plot.top + plot.height - height - 10;
+        const was = { left: parseFloat(belt.style.left), top: parseFloat(belt.style.top) }, kept = stay && belt.dataset.dock === side;
+        const left = up ? (side === "left" ? plot.left + 10 : plot.left + plot.width - width - 10) : kept && Number.isFinite(was.left) ? clamp(was.left, plot.left + 8, plot.left + plot.width - width - 8) : along(plot.left, plot.width, width);
+        const top = up ? (kept && Number.isFinite(was.top) ? clamp(was.top, plot.top + 8, plot.top + plot.height - height - 8) : along(plot.top, plot.height, height)) : side === "top" ? plot.top + 10 : plot.top + plot.height - height - 10;
         belt.dataset.dock = side;
         if (glide && !reduced.matches) belt.animate({ left: [belt.style.left, `${left}px`], top: [belt.style.top, `${top}px`] }, { duration: MOTION.small, easing: MOTION.ease });
         Object.assign(belt.style, { left: `${left}px`, top: `${top}px` });
@@ -11723,6 +11763,8 @@ const picture = await studio.png();</pre>
         const button = closest(event, "button");
         if (!button) return;
         const { tool: each, belt: part = "" } = button.dataset, drawings = [...chosen], drawing = chosen.size === 1 ? drawingById(drawings[0]) : undefined, look = lookFor(part);
+        // (Its second click, a double-click: the tool kept in hand, for several; text, one at a time.)
+        if (each && event.detail === 2 && Object.hasOwn(TOOLS, each) && each !== "text") return setTool(/** @type {DrawingKind} */ (each), true);
         if (each) return pickTool(each);
         if (part === "hide") return hideDrawings(!drawingsHidden);
         if (!look) return;
@@ -12117,9 +12159,10 @@ const picture = await studio.png();</pre>
           Object.assign(placing, { clicks: true, held: false });
           return renderBelt();
         }
-        const { host, stroke } = placing, kind = tool;
+        const { host, stroke } = placing, kind = tool, again = toolKept;
         let drawing = draft;
-        setTool("");
+        // (Kept, the tool's in hand again for the next one.)
+        setTool(again ? kind : "", again);
         if (kind === "text") {
           // (Its middle where the click was.)
           const point = pointFrom(at, host, { free: true });
@@ -12238,7 +12281,8 @@ const picture = await studio.png();</pre>
           return notice(`A chart holds up to ${MAX_DRAWINGS} drawings`);
         }
         commit((doc) => (doc.drawings ??= []).push(...drawings), { redraw: "none" });
-        chooseDrawings(drawings.map((drawing) => drawing.id));
+        // (Selected, unless a tool's kept in hand: the next one's drawn.)
+        if (!toolKept) chooseDrawings(drawings.map((drawing) => drawing.id));
       }
       const addDrawing = (/** @type {Drawing} */ drawing) => addDrawings([drawing]);
       function removeDrawings(/** @type {string[]} */ ids) {
@@ -12744,7 +12788,15 @@ const picture = await studio.png();</pre>
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on: what the chart's mark does, its range, its layers' looks, the view it was left at and how much the chart shows. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => [layer.type, layer.base, layer.colorBelow, layer.dash, layer.fill, layer.opacity, layer.levels, layer.baseLine]), doc.panes.map((pane) => [pane.stack, pane.reverse]), leftView(doc.id), Math.round(mostBars() / 200)]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => [layer.type, layer.base, layer.colorBelow, layer.dash, layer.fill, layer.opacity, layer.levels, layer.baseLine]), doc.panes.map((pane) => [pane.stack, pane.reverse]), leftView(doc.id), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0]);
+      /**
+       * How many bars a chart's preview shows at most (its data at `index`): all of them at a day or coarser (Max there is
+       * the whole history); finer, as many as fit the chart's width at four a pixel.
+       */
+      function previewBars(/** @type {Chart} */ doc, index = doc.index) {
+        const width = view.timeScale().width();
+        return FINE.has(doc.index) && width ? ((width / MIN_BAR_SPACING) * INTERVAL_DAYS[doc.index]) / INTERVAL_DAYS[index] : Infinity;
+      }
       /**
        * The drawings kept: the recommended charts', then those of the charts edited last, within a budget (they're a cache: drawn
        * again when missing, they never crowd out the charts themselves).
@@ -12989,7 +13041,7 @@ const picture = await studio.png();</pre>
           if (!/^(recommended|preset):/.test(doc.id) && chartById(doc.id) !== doc) return null;
           // (A website chart let go meanwhile, out of the last looked at: its drawing isn't kept either.)
           if (doc.id.startsWith("preset:") && !presetDocs.has(Number(doc.id.slice(7)))) return null;
-          const drawn = { key, ...previewOf(copy, data, index === doc.index ? mostBars() : (mostBars() * INTERVAL_DAYS[doc.index]) / INTERVAL_DAYS[index]) };
+          const drawn = { key, ...previewOf(copy, data, previewBars(doc, index)) };
           previews.set(doc.id, drawn);
           clearTimeout(previewsTimer);
           previewsTimer = setTimeout(savePreviews, 1000);
@@ -12999,10 +13051,11 @@ const picture = await studio.png();</pre>
       }
       /** A website chart's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
       const previewIndex = (doc) => (INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf("week1") || doc.layers.some((layer) => runsWindow(layer.formula ?? "")) ? doc.index : "week1");
-      /** A tile's plot: the chart drawn, "Empty" for an empty one, a shimmer until it's drawn. @param {Chart} doc */
+      /** A tile's plot: the chart drawn, a blank box for an empty one, a shimmer until it's drawn. @param {Chart} doc */
       function plotHtml(doc) {
         const drawn = previews.get(doc.id);
-        if (!doc.layers.length) return `<span class="tile-plot empty">Empty</span>`;
+        // (An empty one's box, blank: its legend's line says so.)
+        if (!doc.layers.length) return `<span class="tile-plot blank"></span>`;
         return `<span class="tile-plot ${drawn ? "" : "pending"}" data-plot="${doc.id}">${drawn ? previewSvg(drawn, `tile-plot-${doc.id}`) : ""}</span>`;
       }
       /** A chart in the grid, as its own card: title and interval, its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
@@ -13010,7 +13063,7 @@ const picture = await studio.png();</pre>
         const title = escape(titleOf(doc)), on = picked.has(doc.id);
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
         return `<div class="tile ${on ? "picked" : ""}" data-home-card="${doc.id}">
-            <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span><span class="tile-index">${INTERVAL_LABEL[doc.index]}</span></span><span class="tile-legend">${legend || "No layers yet"}</span>${plotHtml(doc)}</button>
+            <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span><span class="tile-index">${INTERVAL_LABEL[doc.index]}</span></span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
             <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button>
             <input type="checkbox" class="pick-check tile-check" style="--tick:${escape(tickOn("ink"))}" aria-label="Select ${title}" ${on ? "checked" : ""} />
           </div>`;
@@ -13060,6 +13113,8 @@ const picture = await studio.png();</pre>
       const gridHeadHtml = (/** @type {Folder} */ folder, /** @type {number} */ count) => `<div class="grid-folder ${folder.closed ? "closed" : ""}" data-grid-folder="${folder.id}"><button type="button" class="grid-folder-toggle" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}"><span class="folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="name">${escape(folder.name)}</span><span class="folder-count">${count}</span></button><button type="button" class="cap small" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button></div>`;
       function renderHome() {
         if (!home) return;
+        // (No charts left: nothing to filter; the filter, hidden, let go of what it had.)
+        if (!library.charts.length && !library.folders.length) $("home-filter").value = "";
         const shown = filtered(), query = $("home-filter").value.trim(), sections = sectionsOf(shown, query);
         // Only what's shown stays picked: the bar acts on what can be seen.
         const ids = new Set(sections.flatMap((section) => section.docs).map((doc) => doc.id));
@@ -13089,7 +13144,9 @@ const picture = await studio.png();</pre>
         visible.forEach((doc, i) => drawnTiles.set(doc.id, html[i]));
         $("home-none").hidden = shown.length > 0;
         $("home-foot").hidden = !library.charts.length && !asideCount();
-        $("home-none").innerHTML = query ? `No charts match “${escape(query)}”` : `<p>No charts yet. A new chart, or one of the website's, is yours once you change it (or keep it).</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`;
+        // (No charts at all: nothing to filter, select, or put in a folder; only how to have one.)
+        $("home-intro").hidden = $("home-tools").hidden = !library.charts.length && !library.folders.length;
+        $("home-none").innerHTML = query ? `No charts match “${escape(query)}”` : `<p>No charts yet. A new chart, or one of the website's, is yours once you keep it.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`;
         if (focused) tileOpen(focused)?.focus({ preventScroll: true });
         renderPicked();
         schedulePreviews();
@@ -13640,8 +13697,10 @@ const picture = await studio.png();</pre>
             <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
           </div>`)(keys.indexOf(doc));
         const list = [
-          ...(previewing ? [`<div class="preview-slot" data-preview-row><span class="preview-caption">Preview</span><div class="chart-row preview ${previewing === current ? "active" : ""}">
-            <button type="button" class="nav-item chart-item" data-open-chart="${previewing.id}" data-tip="${escape(titleOf(previewing))}: a preview, not in your charts (a change, or Keep, adds it)" ${previewing === current ? 'aria-current="page"' : ""}>${chartMark(previewing)}<span class="label">${escape(titleOf(previewing))}</span></button>
+          ...(previewing && !previewing.layers.length ? [`<div class="preview-slot" data-preview-row><div class="chart-row preview ${previewing === current ? "active" : ""}">
+            <button type="button" class="nav-item chart-item" data-open-chart="${previewing.id}" data-tip="A new chart: in your charts once something's in it" ${previewing === current ? 'aria-current="page"' : ""}>${chartMark(previewing)}<span class="label">New chart</span></button>
+          </div></div>`] : previewing ? [`<div class="preview-slot" data-preview-row><span class="preview-caption">Preview</span><div class="chart-row preview ${previewing === current ? "active" : ""}">
+            <button type="button" class="nav-item chart-item" data-open-chart="${previewing.id}" data-tip="${escape(titleOf(previewing))}: a preview, not in your charts (Keep, or editing it, adds it)" ${previewing === current ? 'aria-current="page"' : ""}>${chartMark(previewing)}<span class="label">${escape(titleOf(previewing))}</span></button>
             ${previewing !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" aria-label="Close the preview" data-tip="Close the preview">${ICONS.close}</button>` : ""}
           </div></div>`] : []),
           ...sideItems().map((item) => {
@@ -13661,9 +13720,9 @@ const picture = await studio.png();</pre>
         }
         if (home) $("all-charts").setAttribute("aria-current", "page");
         else $("all-charts").removeAttribute("aria-current");
-        $("preview-note").hidden = !previewing || previewing !== chart;
-        // (An empty one has nothing to keep: a new chart is yours once something's in it.)
-        $("keep").hidden = !chart.layers.length;
+        // (A new chart, empty, has nothing to keep, nor anything ⋯ does: it's yours once something's in it; its Cancel takes it back.)
+        $("preview-note").hidden = !previewing || previewing !== chart || !chart.layers.length;
+        $("chart-more").hidden = !home && chart === previewing && !chart.layers.length;
         // The phone bar's Add, in the grid, makes a chart (there's none open to add to).
         /** @type {HTMLElement} */ ($("mobile-add").querySelector(".label")).textContent = home ? "New chart" : "Add";
         if (home) $("mobile-charts").setAttribute("aria-current", "page");
@@ -13982,10 +14041,11 @@ const picture = await studio.png();</pre>
           else if (pick === "delete") deleteFolder(id);
         }, point);
       }
-      /** The preview's menu (a right-click on it): into your charts, or let go of. */
+      /** The preview's menu (a right-click on it, the header's ⋯): into your charts, or let go of; on a phone, Export too. */
       function previewMenu(/** @type {HTMLElement} */ anchor, point = undefined) {
+        if (!previewing?.layers.length) return;
         const closes = previewing !== chart || Boolean(previousChart());
-        showMenu(anchor, `${previewing?.layers.length ? `<button type="button" data-pick="keep">${ICONS.keep}Keep<span>Into your charts</span></button>` : ""}${closes ? `<button type="button" data-pick="close">${ICONS.close}Close the preview</button>` : ""}`, ({ pick }) => (pick === "keep" ? keepPreview() : pick === "close" ? closePreview() : undefined), point);
+        showMenu(anchor, `<button type="button" data-pick="keep">${ICONS.keep}Keep<span>Into your charts</span></button>${phone.matches && anchor.id === "chart-more" ? `<button type="button" data-pick="export" aria-haspopup="menu">${ICONS.download}Export<span>Image, data</span></button>` : ""}${closes ? `<div class="menu-rule"></div><button type="button" data-pick="close">${ICONS.close}Close the preview</button>` : ""}`, ({ pick }) => (pick === "keep" ? keepPreview() : pick === "export" ? $("export").click() : pick === "close" ? closePreview() : undefined), point);
       }
       /** A chart's menu (`renameHere`: its title renamed where it shows instead, as the header's is). */
       function chartMenu(anchor, id, point = null, renameHere = /** @type {(() => void) | null} */ (null)) {
@@ -14513,7 +14573,7 @@ const picture = await studio.png();</pre>
       });
 
       $("new-chart").addEventListener("click", newChart);
-      $("keep").addEventListener("click", () => chart.layers.length && keepPreview());
+      $("keep").addEventListener("click", () => keepPreview());
       $("chart-more").addEventListener("click", (event) => {
         const button = /** @type {HTMLElement} */ (event.currentTarget);
         if (chart === previewing) return previewMenu(button);
@@ -14815,11 +14875,11 @@ const picture = await studio.png();</pre>
       /** A pane's chip: its scale, and its stack (a 100% one's scale is its own). @param {Pane} pane */
       const paneChip = (pane) => `${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].chip}${pane.stack ? " · Stacked" : ""}`}${pane.reverse ? " · Rev" : ""}`;
       /** An edit to one pane, by its id: its scale (a mode), its stack ("" for none). @param {string} id @param {(pane: Pane) => void} edit */
-      const editPane = (id, edit) => commit((doc) => {
+      const editPane = (id, edit, look = false) => commit((doc) => {
         const pane = doc.panes.find((item) => item.id === id);
         if (pane) edit(pane);
-      });
-      const setPaneMode = (id, mode) => editPane(id, (pane) => (pane.mode = mode));
+      }, { look });
+      const setPaneMode = (id, mode) => editPane(id, (pane) => (pane.mode = mode), true);
       const setPaneStack = (id, stack) => editPane(id, (pane) => (stack ? (pane.stack = stack) : delete pane.stack));
       const setPaneReverse = (id, reverse) => editPane(id, (pane) => (reverse ? (pane.reverse = true) : delete pane.reverse));
       /** A pane's two orders, named as it draws them: [reverse, its name, its short name]. @param {Pane} pane */
@@ -14912,10 +14972,14 @@ const picture = await studio.png();</pre>
         requestAnimationFrame(() => /** @type {HTMLElement | null | undefined} */ (only ? document.querySelector("#empty [data-action='add-series']") : all$("#layer-list .pane-scale")[Math.max(0, Math.min(at, chart.panes.length - 1))])?.focus());
       }
 
-      /** What's marked on the chart besides its layers: the halvings, shown or not (as a layer, by its eye; the row the same). */
+      /**
+       * What's marked on the chart besides its layers: the halvings, and the drawings there are, each shown or not (as a
+       * layer, by its eye; the row the same).
+       */
       function markersHtml() {
         // (The past ones on the chart; the next, what it can't say otherwise.)
         const on = Boolean(chart.halvings), next = nextHalving(), years = Number.isFinite(next) ? `${ordinal(Math.floor(liveHeight / HALVING_BLOCKS) + 1)} ≈ ${monthYear(next)}` : "Every 210,000 blocks";
+        const count = chart.drawings?.length ?? 0, drawn = !drawingsHidden;
         return `<section class="markers"><div class="markers-head"><span>Markers</span></div>
           <div class="layer-row marker-row ${on ? "" : "hidden"}">
             <button type="button" class="row-main" data-markers="halvings" aria-pressed="${on}" data-tip="${on ? "Hide" : "Show"} the halvings">
@@ -14923,7 +14987,14 @@ const picture = await studio.png();</pre>
               <span class="row-text"><span class="name">Halvings</span><span class="sub">${years}</span></span>
             </button>
             <button type="button" class="cap small" data-markers="halvings-eye" aria-label="${on ? "Hide" : "Show"} the halvings" data-tip="${on ? "Hide" : "Show"}">${on ? ICONS.eye : ICONS.eyeOff}</button>
-          </div></section>`;
+          </div>${count ? `
+          <div class="layer-row marker-row ${drawn ? "" : "hidden"}">
+            <button type="button" class="row-main" data-markers="drawings" aria-pressed="${drawn}" data-tip="${drawn ? "Hide" : "Show"} the drawings" data-kbd="⇧ H">
+              <span class="letter marker-mark">${ICONS.draw}</span>
+              <span class="row-text"><span class="name">Drawings</span><span class="sub">${plural(count, "drawing")}</span></span>
+            </button>
+            <button type="button" class="cap small" data-markers="drawings-eye" aria-label="${drawn ? "Hide" : "Show"} the drawings" data-tip="${drawn ? "Hide" : "Show"}">${drawn ? ICONS.eye : ICONS.eyeOff}</button>
+          </div>` : ""}</section>`;
       }
       function fullOn() {
         return /** @type {HTMLElement} */ (document.querySelector(".app")).hasAttribute("data-full");
@@ -14965,12 +15036,12 @@ const picture = await studio.png();</pre>
       // Escape is the page's: it does here what it does, and goes no further, so a browser's own full screen (macOS's,
       // ⌃⌘F) doesn't leave with it; a dialog's own, as ever. (One a page asked for is the browser's to leave, see setFull.)
       window.addEventListener("keydown", (event) => event.key === "Escape" && !document.querySelector("dialog[open]") && event.preventDefault(), true);
-      const toggleHalvings = () => commit((doc) => (doc.halvings ? delete doc.halvings : (doc.halvings = true)));
+      const toggleHalvings = () => commit((doc) => (doc.halvings ? delete doc.halvings : (doc.halvings = true)), { look: true });
       /** How a chart's legends show: none, still, or (the default, "") following the pointer to the line it's on. */
       const LEGENDS = /** @type {const} */ ([["off", "Off", "No legend over the panes", "None"], ["still", "Still", "A legend over each pane, staying where you leave it", "Where you leave it"], ["", "Follows", "A legend over each pane, scrolling to the line you point at", "To the line you point at"]]);
       /** The legend's setting, under the markers: its name, and the three ways across from it, as a pane's head has its scale. */
       const legendHtml = () => `<section class="markers legend-setting"><div class="markers-head"><span>Legend</span><div class="tabs" role="group" aria-label="Legend">${LEGENDS.map(([id, text, tip]) => `<button type="button" data-legend="${id}" aria-pressed="${(chart.legend ?? "") === id}" data-tip="${tip}">${text}</button>`).join("")}</div></div></section>`;
-      const setLegend = (/** @type {string} */ mode) => (chart.legend ?? "") !== mode && commit((doc) => (mode === "off" || mode === "still" ? (doc.legend = mode) : delete doc.legend));
+      const setLegend = (/** @type {string} */ mode) => (chart.legend ?? "") !== mode && commit((doc) => (mode === "off" || mode === "still" ? (doc.legend = mode) : delete doc.legend), { look: true });
       function renderLayers() {
         const list = $("layer-list");
         const focus = focusKey(list);
@@ -15178,7 +15249,7 @@ const picture = await studio.png();</pre>
       /** Hides layers, in one step; all hidden already, shows them. @param {string[]} ids */
       function hideLayers(ids) {
         const hide = chart.layers.some((layer) => ids.includes(layer.id) && !layer.hidden);
-        commit((doc) => doc.layers.forEach((layer) => ids.includes(layer.id) && (layer.hidden = hide || undefined)));
+        commit((doc) => doc.layers.forEach((layer) => ids.includes(layer.id) && (layer.hidden = hide || undefined)), { look: true });
       }
       /** A layer alone in its pane: shown, the others there hidden; alone already, every one there shown again. */
       function soloLayer(/** @type {string} */ id) {
@@ -15187,7 +15258,7 @@ const picture = await studio.png();</pre>
         // (The only one in its pane: shown or hidden, as a click does.)
         if (!chart.layers.some((other) => other.pane === layer.pane && other.id !== id)) return toggleHidden(id);
         const alone = !layer.hidden && chart.layers.every((other) => other.pane !== layer.pane || other.id === id || other.hidden);
-        commit((doc) => doc.layers.forEach((other) => other.pane === layer.pane && (other.hidden = alone || other.id === id ? undefined : true)));
+        commit((doc) => doc.layers.forEach((other) => other.pane === layer.pane && (other.hidden = alone || other.id === id ? undefined : true)), { look: true });
       }
       /** Whether a layer is the only one shown in its pane (beside others hidden). */
       const aloneInPane = (/** @type {Layer} */ layer) => !layer.hidden && chart.layers.some((other) => other.pane === layer.pane && other.id !== layer.id) && chart.layers.every((other) => other.pane !== layer.pane || other.id === layer.id || other.hidden);
@@ -16350,7 +16421,9 @@ const picture = await studio.png();</pre>
       });
 
       /** Hides a layer, or shows it again. */
-      const toggleHidden = (id) => editById(id, (layer) => (layer.hidden = !layer.hidden || undefined));
+      const toggleHidden = (id) => editById(id, (layer) => (layer.hidden = !layer.hidden || undefined), { look: true });
+      /** Every layer shown again. */
+      const showEvery = () => commit((doc) => doc.layers.forEach((layer) => delete layer.hidden), { look: true });
       /**
        * A line across (a level, by index, or a baseline's "base"), and its color and style unless set: a level its layer's
        * color in long dashes, a base gray in sparse dots.
@@ -16475,7 +16548,7 @@ const picture = await studio.png();</pre>
           return folderActions(more, /** @type {string} */ (more.dataset.folderMenu), { x: event.clientX, y: event.clientY });
         }
         const previewRow = closest(event, "[data-preview-row]");
-        if (previewRow) {
+        if (previewRow && previewing?.layers.length) {
           event.preventDefault();
           return previewMenu(/** @type {HTMLElement} */ (previewRow.querySelector("[data-open-chart]")), { x: event.clientX, y: event.clientY });
         }
@@ -17138,8 +17211,8 @@ const picture = await studio.png();</pre>
         return /** @type {Command[]} */ ([
           { title: "Add a series", text: "Search every series, or browse them by topic.", words: "add series catalog browse explore folders metric data", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
           { title: "New chart", text: "A blank chart, to start from series, a website chart or a file.", words: "create blank empty", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
-          ...(previewing && previewing === chart && !home && chart.layers.length ? [{ title: "Keep this chart", text: "A preview: into your charts as it is (a change keeps it too).", words: "keep save preview add charts", icon: "keep", run: () => keepPreview(), suggested: true }] : []),
-          ...(previewing && (previewing !== chart || previousChart()) ? [{ title: "Close the preview", text: `${titleOf(previewing)}: not in your charts, let go of.`, words: "close preview discard dismiss", icon: "close", run: closePreview }] : []),
+          ...(previewing && previewing === chart && !home && chart.layers.length ? [{ title: "Keep this chart", text: "A preview: into your charts as it is (editing it keeps it too; looking at it, its scale, interval or layers hidden, doesn't).", words: "keep save preview add charts", icon: "keep", run: () => keepPreview(), suggested: true }] : []),
+          ...(previewing?.layers.length && (previewing !== chart || previousChart()) ? [{ title: "Close the preview", text: `${titleOf(previewing)}: not in your charts, let go of.`, words: "close preview discard dismiss", icon: "close", run: closePreview }] : []),
           { title: "New folder", text: "For charts that go together, named at once.", words: "create folder group organize", icon: "folderAdd", run: () => (home && ($("home-filter").value = ""), newFolder()), anywhere: true },
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
           ...library.folders.map((folder) => ({ title: folder.name, text: `A folder: ${plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart")}.`, words: `folder ${folder.name}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })),
@@ -17158,16 +17231,17 @@ const picture = await studio.png();</pre>
           { title: "Import charts", text: "A chart's file, several exported together, or all of them from anywhere else.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           // A choice among a few (a theme, an interval, a scale, a legend): each, the one in effect ticked (typed, it says so).
           ...THEMES.map(([id, name, icon, text, words]) => ({ title: `Theme: ${name}`, text, words: `theme appearance mode ${words}`, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
-          ...(empty ? [] : RANGES.map(([id, label], i) => ({ id, label, i })).filter(({ id }) => presetFits(id)).map(({ id, label, i }) => ({ title: `Show the ${PERIODS[id]}`, text: id === "max" ? "As far back as fits on the screen, the price scales back on auto: all of history, at a coarse enough interval." : "Change the visible range.", words: `range period time ${label} ${id === "max" ? "max all history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
+          ...(empty ? [] : RANGES.map(([id, label], i) => ({ id, label, i })).filter(({ id }) => presetFits(id)).map(({ id, label, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", words: `range period time ${label} ${id === "max" ? "max all whole history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.filter((id) => supported(id)).map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: `Redraw every layer at ${INTERVAL_LABEL[id]}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", ...(id === chart.index ? { current: true } : { run: () => switchInterval(id) }) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string, string][]} */ ([[1, "Logarithmic scale", "log logarithmic"], [0, "Linear scale", "linear"]]).map(([mode, title, words]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: `${words} scale axis`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
           ...(empty ? [] : [
             { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", words: "draw drawing belt toolbar tools annotate", icon: "draw", run: toggleBelt },
             ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, words: "draw drawing tool cancel end", icon: tool, kbd: "esc", run: () => setTool("") }] : []),
-            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: `${TOOLS[kind].tip}; esc to stop.`, words: `draw drawing annotate annotation ${TOOLS[kind].name} ${TOOLS[kind].noun}${kind === "ruler" ? " measure measuring distance difference percent" : ""}`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => setTool(kind) })),
+            ...(tool && tool !== "text" && !toolKept ? [{ title: "Keep drawing", text: `The ${TOOLS[tool].noun} in hand after each one: draw several, till esc (as a double-click on its tool does).`, words: "keep hold several many more again pin lock tool draw", icon: tool, run: () => setTool(tool, true) }] : []),
+            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: kind === "text" ? `${TOOLS[kind].tip}.` : `${TOOLS[kind].tip}: one, then the chart pans again (to draw several, ${TOUCH ? "tap its tool twice" : "double-click its tool"}, or Keep drawing).`, words: `draw drawing annotate annotation ${TOOLS[kind].name} ${TOOLS[kind].noun}${kind === "ruler" ? " measure measuring distance difference percent" : ""}`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => setTool(kind) })),
             { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, words: "select drawings box marquee pick several", icon: "select", kbd: "D S", run: () => setSelectingArea(true) },
             ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, words: "drawing tools belt toolbar dock move side top bottom left right", icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", () => /** @type {const} */ (["top", "bottom", "left", "right"]).map((side) => ({ key: side, label: capitalize(side), current: prefs.belt.dock === side, run: () => dockBelt(side) })))) }] : []),
-            ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", words: "drawings annotations hide show visible clean", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden) }] : []),
+            ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", words: "drawings annotations hide show visible clean", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden, true) }] : []),
             ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, confirm: true, run: clearDrawings }] : []),
           ]),
           ...(((layers) => !layers.length ? [] : ((n, hide) => [
@@ -17211,10 +17285,10 @@ const picture = await studio.png();</pre>
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
           { title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") },
           ...(isDraft(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo, a moment after.", words: "remove trash", icon: "trash", danger: true, confirm: true, run: () => deleteChart(chart) }]),
-          ...(chart.layers.some((layer) => layer.hidden) ? [{ title: "Show every layer", text: "The hidden ones too.", words: "unhide visible all", icon: "eye", run: () => commit((doc) => doc.layers.forEach((layer) => delete layer.hidden)) }] : []),
+          ...(chart.layers.some((layer) => layer.hidden) ? [{ title: "Show every layer", text: "The hidden ones too.", words: "unhide visible all", icon: "eye", run: showEvery }] : []),
           ...(chart.panes.length > 1 ? [
-            { title: "Equal pane heights", text: "Every pane as tall as the others.", words: "resize panes even same size", icon: "pane", run: () => commit((doc) => doc.panes.forEach((pane) => (pane.size = 1))) },
-            { title: "Reset pane heights", text: "The first one tall, the others shorter, as at first.", words: "resize panes default size", icon: "pane", run: () => commit((doc) => doc.panes.forEach((pane) => delete pane.size)) },
+            { title: "Equal pane heights", text: "Every pane as tall as the others.", words: "resize panes even same size", icon: "pane", run: () => commit((doc) => doc.panes.forEach((pane) => (pane.size = 1)), { quiet: true }) },
+            { title: "Reset pane heights", text: "The first one tall, the others shorter, as at first.", words: "resize panes default size", icon: "pane", run: () => commit((doc) => doc.panes.forEach((pane) => delete pane.size), { quiet: true }) },
           ] : []),
         ]).filter((command) => !home || command.anywhere);
       }
@@ -18228,7 +18302,7 @@ const picture = await studio.png();</pre>
             ...(any ? [
               { key: "interval", icon: ICONS.recent, label: "Interval", aside: CADENCE[chart.index], group: "Chart", page: intervalPage },
               { key: "go-to", icon: ICONS.calendar, label: "Go to a date", aside: "A year, a month, a day", kbd: "G", group: "Chart", page: datePage },
-              { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalize(PERIODS[shownRange()]) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => RANGES.filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalize(PERIODS[id]), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
+              { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalize(periodOf(shownRange())) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => RANGES.filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalize(periodOf(id)), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
               { key: "legend", icon: ICONS.legend, label: "Legend", aside: LEGENDS.find(([id]) => id === (chart.legend ?? ""))?.[1], words: "legend names values strip caption hide show off still follow scroll pointer hover", group: "Chart", page: () => choicePage("Legend", () => LEGENDS.map(([id, text, , aside]) => ({ key: id || "follows", icon: ICONS.legend, label: text, aside, current: (chart.legend ?? "") === id, run: () => setLegend(id) }))) },
               { key: "layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), group: "In it", page: layersPage },
               { key: "panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), group: "In it", page: panesPage },
@@ -18254,7 +18328,7 @@ const picture = await studio.png();</pre>
         { kind: "row", key: "add-series", icon: ICONS.plus, label: "Add a series", kbd: "A", verb: "Add", group: "Add", leads: true, stay: true, run: () => openPalette({ add: true }) },
         { kind: "row", key: "add-formula", icon: ICONS.formula, label: "Add a formula", kbd: "F", verb: "Add", group: "Add", leads: true, stay: true, run: addFormula },
         ...(cloudable() ? [{ kind: "row", key: "add-cloud", icon: ICONS.cloud, label: "Add a cloud", group: "Add", page: () => cloudPage() }] : []),
-        ...(chart.layers.some((layer) => layer.hidden) ? [{ kind: "row", key: "show-all", icon: ICONS.eye, label: "Show every layer", verb: "Show", group: "Add", stay: true, run: () => commit((doc) => doc.layers.forEach((layer) => delete layer.hidden)) }] : []),
+        ...(chart.layers.some((layer) => layer.hidden) ? [{ kind: "row", key: "show-all", icon: ICONS.eye, label: "Show every layer", verb: "Show", group: "Add", stay: true, run: showEvery }] : []),
       ] });
       /** A layer row's ⌘K: what's changed most, the rest a ↵ away on its page. */
       const QUICK = new Set(["series", "formula", "between", "name", "type", "color", "pane", "hide", "duplicate", "remove"]);
@@ -18997,14 +19071,14 @@ const picture = await studio.png();</pre>
       }
       function renderRanges() {
         $("ranges").innerHTML = RANGES.map(([id, text], i) => {
-          const fits = presetFits(id), tip = fits ? capitalize(PERIODS[id]) : `More than fits at ${INTERVAL_LABEL[chart.index]}`;
+          const fits = presetFits(id), tip = fits ? capitalize(periodOf(id)) : `More than fits at ${INTERVAL_LABEL[chart.index]}`;
           return `<button type="button" data-range="${id}" aria-pressed="${presetShown && shownRange() === id}" aria-label="${text}: ${tip.toLowerCase()}" data-tip="${tip}" ${fits ? `data-kbd="${i + 1}"` : 'aria-disabled="true"'}>${text}</button>`;
         }).join("");
       }
       /** Another interval for the open chart: its view kept first, so the new one opens on the same time (on its preset, if it showed one). */
       function switchInterval(/** @type {string} */ index) {
         saveView();
-        commit((doc) => (doc.index = index));
+        commit((doc) => (doc.index = index), { look: true });
       }
       /** A preset is a view: no rebuild, the chart glides there. */
       function setRange(range) {
@@ -19325,7 +19399,7 @@ const picture = await studio.png();</pre>
        * letters: as `validate` reads a chart file.
        */
       function fromSketch(/** @type {any} */ input) {
-        if (!input || typeof input !== "object" || !Array.isArray(input.layers)) throw new Error("A chart has layers");
+        if (!input || typeof input !== "object" || !Array.isArray(input.layers)) throw new Error("it lists no layers");
         const layers = input.layers.filter((/** @type {any} */ layer) => layer && typeof layer === "object").slice(0, MAX_LAYERS);
         const number = (/** @type {any} */ value) => (Number.isInteger(value) ? value : typeof value === "string" && /^\d{1,3}$/.test(value) ? Number(value) : null);
         // (As many panes as given, or as the layers' numbers ask, whichever's more.)
@@ -19958,6 +20032,9 @@ const picture = await studio.png();</pre>
         $("interval").setAttribute("aria-label", `Interval: ${CADENCE[chart.index] ?? chart.index}`);
         renderRanges();
         $("empty").hidden = chart.layers.length > 0;
+        const unseen = chart.layers.length > 0 && chart.layers.every((layer) => layer.hidden);
+        $("all-hidden").hidden = !unseen;
+        $("chart").classList.toggle("unseen", unseen);
         // A new chart, empty, can be left with Escape (or Cancel), for the chart before it: taken back.
         const back = chart.layers.length ? null : previousChart();
         $("leave-empty").hidden = !isDraft(chart) || (!back && !backToHome());
@@ -19994,7 +20071,8 @@ const picture = await studio.png();</pre>
         if (folderToggle) return toggleFolder(/** @type {string} */ (folderToggle.dataset.folderToggle));
         const tick = closest(event, "[data-pick-layer]");
         if (tick) return pickLayer(/** @type {string} */ (tick.dataset.pickLayer), event.shiftKey);
-        if (closest(event, "[data-markers]")) return toggleHalvings();
+        const marker = closest(event, "[data-markers]");
+        if (marker) return marker.dataset.markers?.startsWith("drawings") ? hideDrawings(!drawingsHidden) : toggleHalvings();
         const legendMode = closest(event, "[data-legend]");
         if (legendMode) return setLegend(/** @type {string} */ (legendMode.dataset.legend));
         const paneEye = closest(event, "[data-pane-eye]");
@@ -20034,6 +20112,7 @@ const picture = await studio.png();</pre>
         else if (action === "toggle-panel") togglePanel();
         else if (action === "shortcuts") showShortcuts();
         else if (action === "theme") themeMenu(target);
+        else if (action === "show-every") showEvery();
         else if (action === "retry-all") {
           for (const name of seriesIn(chart)) {
             forget(name, chart.index);
@@ -20200,7 +20279,7 @@ const picture = await studio.png();</pre>
         } else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && event.shiftKey) extendPicks(event.key === "ArrowDown" ? 1 : -1);
         else if (event.key === "ArrowDown" || event.key === "ArrowUp") selectBy(event.key === "ArrowDown" ? 1 : -1);
         else if ((event.key === "Backspace" || event.key === "Delete") && (chosen.size || layerPicks.size || selected)) chosen.size ? removeDrawings([...chosen]) : layerPicks.size ? layersBatch("remove") : removeLayer(selected);
-        else if (key === "h" && event.shiftKey && chart.drawings?.length) hideDrawings(!drawingsHidden);
+        else if (key === "h" && event.shiftKey && chart.drawings?.length) hideDrawings(!drawingsHidden, true);
         else if (key === "h" && !event.shiftKey && layerPicks.size) layersBatch("hide");
         else if (key === "h" && !event.shiftKey && layerById(selected)) toggleHidden(selected);
         else if (key === "l" && chart.layers.length) toggleLog(scalePane().id);
@@ -20487,7 +20566,7 @@ const picture = await studio.png();</pre>
       /** Drawings a written link had that couldn't be read (no layer, a time not a date, too few points): told. */
       let lostDrawings = 0;
       /**
-       * The chart a link carries in the URL's hash, if any (the hash is cleared either way): as JSON as one writes it (see
+       * The chart a link carries in the URL's hash, if any (left there: see linkInUrl): as JSON as one writes it (see
        * the guide, the "About" section: "{" first, as typed or URL-encoded), else compressed (older links, and the longest).
        * A chart already kept is the one opened, at the link's window (or its range, the link having none).
        */
@@ -20496,8 +20575,8 @@ const picture = await studio.png();</pre>
         const shared = key ? params.get(key) : null;
         if (!shared) return null;
         picturing = key === "image";
-        // (A picture's kept while it shows: reloaded, the picture again.)
-        if (!picturing) history.replaceState(history.state, "", location.pathname);
+        // (The link stays in the address bar: a chart read from it, written as linkInUrl writes it, or cleared; one that
+        // can't be read, as it is, to be put right there.)
         // (Written, it runs to the end, read as it is: a "+" in a formula a plus, an "&" in a name, part of it.)
         return linked(new RegExp(`(?:^|&)${key}=(.*)$`, "s").exec(hash)?.[1] ?? "", shared, run);
       }
@@ -20508,6 +20587,8 @@ const picture = await studio.png();</pre>
       function linkInUrl() {
         if (picturing) return;
         const doc = chart && chart === previewing && !home && chart.layers.length ? chart : null, written = doc ? JSON.stringify(toSketch(doc)) : "";
+        // (A link that couldn't be read stays as it was, to be put right, until another chart's opened.)
+        if (location.hash && location.hash === brokenLink) return;
         const put = (/** @type {string} */ hash) => location.hash !== hash && history.replaceState(history.state, "", `${location.pathname}${location.search}${hash}`);
         // (A long one compressed, as Copy link writes it: once it's ready, if it's still the chart shown.)
         if (written.length >= 60_000) return void shareLink(doc).then((link) => chart === doc && previewing === doc && !picturing && put(link.slice(link.indexOf("#"))));
@@ -20524,6 +20605,7 @@ const picture = await studio.png();</pre>
         try {
           lostDrawings = 0;
           const doc = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? fromWritten(written) : await fromLink(shared);
+          if (!doc.layers.length) throw new Error("it lists no layers");
           if (run !== linkRun) return null;
           const twin = library.charts.find((other) => sameChart(other, doc));
           if (twin) {
@@ -20536,12 +20618,14 @@ const picture = await studio.png();</pre>
             spans.delete(`${twin.id}@${twin.index}`);
           }
           const lost = lostDrawings ? `; ${plural(lostDrawings, "drawing")} couldn't be read` : "";
-          if (!picturing) toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: change it, or keep it, to have it in your charts${lost}`);
+          if (!picturing) toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: Keep it to have it in your charts${lost}`);
           return twin ?? doc;
         } catch (error) {
           // (Written by hand, why: to tell whoever wrote it; a newer link meanwhile, nothing.)
           if (run !== linkRun) return null;
-          linkError = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? `That link's chart couldn't be read: ${/** @type {Error} */ (error).message}` : "That link doesn't contain a chart";
+          // (Plain words first, the reader's own after: whoever wrote it can find the spot.)
+          linkError = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written) ? `That link's chart couldn't be read: ${error instanceof SyntaxError ? `its JSON is broken (${error.message})` : /** @type {Error} */ (error).message}` : "That link doesn't contain a chart";
+          if (shared !== null) brokenLink = location.hash;
           notice(linkError);
           return null;
         }
