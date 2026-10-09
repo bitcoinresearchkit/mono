@@ -3,7 +3,7 @@ use std::{
     iter::repeat_n,
 };
 
-use bitview_primitives::{TxInIndex, TxOutIndex};
+use bitview_primitives::{Index40, TxInIndex, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
 use tempfile::tempfile_in;
@@ -12,7 +12,7 @@ use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, Stamp, VecInde
 
 use super::Vecs;
 
-// Bound the working output range to 512 MiB, independent of chain length.
+// Bound the working output range to 320 MiB, independent of chain length.
 pub(super) const RANGE_LEN: usize = 1 << 26;
 const RECORD_LEN: usize = size_of::<u64>();
 
@@ -86,7 +86,8 @@ fn build_ranges(
         file.rewind()?;
         let mut remaining = file.metadata()?.len() as usize;
         let len = range_len.min(output_end - range * range_len);
-        vecs.txin_index.extend(repeat_n(TxInIndex::UNSPENT, len));
+        vecs.txin_index
+            .extend(repeat_n(Index40::new(TxInIndex::UNSPENT), len));
         let values = vecs.txin_index.pushed_mut();
 
         // Records retain input order, including last-write-wins for duplicates.
@@ -95,7 +96,8 @@ fn build_ranges(
             file.read_exact(&mut records[..len])?;
             for record in records[..len].as_chunks::<RECORD_LEN>().0 {
                 let record = u64::from_le_bytes(*record);
-                values[(record & mask) as usize] = TxInIndex::new(record >> range_bits);
+                values[(record & mask) as usize] =
+                    Index40::new(TxInIndex::new(record >> range_bits));
             }
             remaining -= len;
         }

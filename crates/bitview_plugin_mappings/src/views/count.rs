@@ -5,20 +5,20 @@ use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, CheckedSub, Cursor, Formattable, ReadableBoxedVec,
-    ReadableCloneableVec, ReadableVec, SparseRead, TypedVec, VecIndex, VecValue, Version,
-    short_type_name,
+    AnyExportableVec, AnyVec, Cursor, Formattable, ReadableBoxedVec, ReadableCloneableVec,
+    ReadableVec, SparseRead, TypedVec, VecIndex, VecValue, Version, short_type_name,
 };
 
 use super::terminal_len::TerminalLen;
 
 /// Per-item count derived by subtracting adjacent values in one first-index
-/// source. Range reads borrow source chunks and carry their shared boundary.
+/// source, whose values widen to `u64` (index types or their packed forms).
+/// Range reads borrow source chunks and carry their shared boundary.
 #[derive(Clone)]
 pub struct LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex,
+    S: VecValue,
 {
     name: Arc<str>,
     base_version: Version,
@@ -29,8 +29,7 @@ where
 impl<I, S> LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex + CheckedSub + Default,
-    Count: From<S>,
+    S: VecValue + Copy + Into<u64>,
 {
     pub(crate) fn new<TI, TT>(
         name: &str,
@@ -51,8 +50,8 @@ where
     }
 
     #[inline(always)]
-    fn count(current: S, next: S) -> Count {
-        Count::from(next.checked_sub(current).unwrap_or_default())
+    fn count(current: impl Into<u64>, next: impl Into<u64>) -> Count {
+        Count::from(next.into().saturating_sub(current.into()))
     }
 
     fn for_each_input(&self, from: usize, to: usize, mut each: impl FnMut(Option<Count>, &[S])) {
@@ -61,7 +60,7 @@ where
         if from >= to {
             return;
         }
-        let terminal = (to == len).then(|| S::from(self.terminal_len.get()));
+        let terminal = (to == len).then(|| self.terminal_len.get() as u64);
         let mut previous = None;
         self.first_indexes
             .for_each_chunk_at(from, (to + 1).min(len), &mut |_, boundaries| {
@@ -107,7 +106,7 @@ where
 impl<I, S> AnyVec for LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex,
+    S: VecValue,
 {
     fn version(&self) -> Version {
         self.base_version + self.first_indexes.version() + self.terminal_len.version()
@@ -141,7 +140,7 @@ where
 impl<I, S> TypedVec for LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex,
+    S: VecValue,
 {
     type I = I;
     type T = Count;
@@ -150,8 +149,7 @@ where
 impl<I, S> ReadableVec<I, Count> for LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex + CheckedSub + Default,
-    Count: From<S>,
+    S: VecValue + Copy + Into<u64>,
 {
     fn cursor_chunk_size(&self) -> usize {
         self.first_indexes.cursor_chunk_size()
@@ -202,7 +200,7 @@ where
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<Count>) {
         let len = self.len();
-        let terminal = S::from(self.terminal_len.get());
+        let terminal = self.terminal_len.get() as u64;
         let indices = &indices[..indices.partition_point(|&i| i < len)];
         if indices.len() > 1
             && indices.windows(2).all(|pair| pair[1] == pair[0] + 1)
@@ -221,7 +219,7 @@ where
             out.extend((0..indices.len()).map(|slot| {
                 Self::count(
                     values.current(slot),
-                    values.previous(slot).unwrap_or(terminal),
+                    values.previous(slot).map_or(terminal, Into::into),
                 )
             }));
             return;
@@ -248,7 +246,7 @@ where
                 let Some(next) = first_indexes.get(index + 1) else {
                     continue;
                 };
-                next
+                next.into()
             } else {
                 terminal
             };
@@ -262,8 +260,8 @@ where
 impl<I, S> Traversable for LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex + CheckedSub + Default,
-    Count: From<S> + Formattable + Serialize + JsonSchema,
+    S: VecValue + Copy + Into<u64>,
+    Count: Formattable + Serialize + JsonSchema,
 {
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         iter::once(self as &dyn AnyExportableVec)

@@ -76,3 +76,36 @@ fn date_labels_start_their_buckets() {
         }
     }
 }
+
+/// 5-byte indexes: values below `2^40 - 1` and the `UNSPENT` sentinel round-trip,
+/// serialize as the plain index and store as 5 little-endian bytes.
+#[test]
+fn index40_round_trips() {
+    use crate::{Index40, TxInIndex};
+
+    for value in [
+        TxInIndex::new(0),
+        TxInIndex::new((1 << 40) - 2),
+        TxInIndex::UNSPENT,
+    ] {
+        let packed = Index40::new(value);
+        assert_eq!(packed.get(), value);
+        assert_eq!(
+            serde_json::to_string(&packed).unwrap(),
+            serde_json::to_string(&value).unwrap()
+        );
+    }
+    assert!(serde_json::from_str::<Index40<TxInIndex>>("1099511627775").is_err());
+    assert_eq!(size_of::<Index40<TxInIndex>>(), 5);
+
+    #[cfg(feature = "storage")]
+    {
+        use vecdb::Bytes;
+        let packed = Index40::new(TxInIndex::new(0x01_0203_0405));
+        assert_eq!(packed.to_bytes(), [5, 4, 3, 2, 1]);
+        assert_eq!(
+            Index40::<TxInIndex>::from_bytes(&[5, 4, 3, 2, 1]).unwrap(),
+            packed
+        );
+    }
+}

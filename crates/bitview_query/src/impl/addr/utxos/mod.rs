@@ -84,10 +84,10 @@ impl Query {
 
         for (tx_index, vout) in outpoints {
             let txid = txid_reader.try_get(tx_index).data()?;
-            let first = first_txout_index_reader.try_get(tx_index).data()?;
+            let first = first_txout_index_reader.try_get(tx_index).data()?.get();
             let next_tx = tx_index.incremented();
             let next = if next_tx < lengths.tx_index {
-                first_txout_index_reader.try_get(next_tx).data()?
+                first_txout_index_reader.try_get(next_tx).data()?.get()
             } else {
                 lengths.txout_index
             };

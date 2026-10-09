@@ -1,6 +1,6 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::TxOutIndex;
+use bitview_primitives::{Index40, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
 use rayon::prelude::{
@@ -101,10 +101,10 @@ impl Vecs {
             .into_par_iter()
             .enumerate()
             .map(|(offset, tx_index)| {
-                let out_start = first_txout_index.get(tx_index);
+                let out_start = first_txout_index.get(tx_index).get();
                 let out_end = first_txout_index
                     .try_get(tx_index.incremented())
-                    .unwrap_or_else(|| TxOutIndex::from(output_len));
+                    .map_or_else(|| TxOutIndex::from(output_len), Index40::get);
                 let coinbase_tag = coinbase_tags.get_at(min + offset);
 
                 (*out_start..*out_end)

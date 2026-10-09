@@ -99,7 +99,7 @@ impl Vecs {
             .first_txout_index
             .range_cursor_at(start_tx, target_tx);
         let mut first_txin = txin_starts.next().unwrap().to_usize();
-        let mut first_txout = txout_starts.next().unwrap().to_usize();
+        let mut first_txout = txout_starts.next().unwrap().get().to_usize();
         let input_len = indexer.vecs().inputs.outpoint.len();
         let output_len = indexer.vecs().outputs.value.len();
 
@@ -129,7 +129,7 @@ impl Vecs {
                     .map_or(input_len, |index| index.to_usize());
                 let next_txout = txout_starts
                     .next()
-                    .map_or(output_len, |index| index.to_usize());
+                    .map_or(output_len, |index| index.get().to_usize());
                 let inputs = next_txin.saturating_sub(first_txin);
                 let outputs = next_txout.saturating_sub(first_txout);
                 let consolidation = is_consolidation(inputs, outputs);

@@ -66,9 +66,8 @@ pub fn feed_blocks_with<IM: StorageMode>(
         return Err(Error::Internal("Incomplete oracle block boundaries"));
     }
 
-    // Cursor avoids per-block PcoVec page decompression for the
-    // tx-indexed first_txout_index lookup. Accessed tx_index values
-    // are strictly increasing across blocks, so it only advances forward.
+    // Forward cursor for the tx-indexed first_txout_index lookup: accessed
+    // tx_index values are strictly increasing across blocks.
     let mut txout_cursor = indexer.vecs().transactions.first_txout_index.cursor();
 
     // Reusable buffers: avoid per-block allocation. `tx_starts` holds the
@@ -119,7 +118,7 @@ pub fn feed_blocks_with<IM: StorageMode>(
         )?);
         tx_starts.clear();
         txout_cursor.for_each(tx_count, |txout_index| {
-            tx_starts.push(txout_index.to_usize());
+            tx_starts.push(txout_index.get().to_usize());
         });
         if tx_starts.len() != tx_count
             || tx_starts

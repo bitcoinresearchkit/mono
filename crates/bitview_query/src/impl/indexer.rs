@@ -85,10 +85,11 @@ impl Query {
                         {
                             return None;
                         }
-                        let first_txout: TxOutIndex = first_txout_reader.try_get(prev_tx_index)?;
+                        let first_txout: TxOutIndex =
+                            first_txout_reader.try_get(prev_tx_index)?.get();
                         let next_tx = prev_tx_index.incremented();
                         let next_txout = if next_tx < safe.tx_index {
-                            first_txout_reader.try_get(next_tx)?
+                            first_txout_reader.try_get(next_tx)?.get()
                         } else {
                             safe.txout_index
                         };

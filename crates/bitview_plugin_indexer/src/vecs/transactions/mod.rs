@@ -1,11 +1,11 @@
-use bitview_primitives::{Boolean, Bytes32, TxInIndex, TxOutIndex, TxVersion};
+use bitview_primitives::{Boolean, Bytes32, Index40, TxInIndex, TxOutIndex, TxVersion};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{BlkPosition, Height, RawLockTime, SigOps, TxIndex, Txid, Version, Weight};
 use rayon::prelude::*;
 use vecdb::{
-    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode,
-    WritableVec,
+    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, LazyVec, PcoVec,
+    ReadableCloneableVec, Rw, Stamp, StorageMode, WritableVec,
 };
 
 pub mod features;
@@ -67,11 +67,15 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     /// inputs in preceding blocks; at `tx_index`, it identifies the
     /// transaction's first input.
     pub first_txin_index: M::Stored<PcoVec<TxIndex, TxInIndex>>,
+    /// Stored in 5 bytes per transaction; series readers see `first_txout_index_view`.
+    #[traversable(hidden)]
+    pub first_txout_index: M::Stored<BytesVec<TxIndex, Index40<TxOutIndex>>>,
     /// Global zero-based transaction-output index in canonical blockchain
     /// order. At `height`, this is where the block begins and equals the number
     /// of outputs in preceding blocks; at `tx_index`, it identifies the
     /// transaction's first output.
-    pub first_txout_index: M::Stored<BytesVec<TxIndex, TxOutIndex>>,
+    #[traversable(rename = "first_txout_index")]
+    pub first_txout_index_view: LazyVec<TxIndex, TxOutIndex, TxIndex, Index40<TxOutIndex>>,
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<TxIndex, BlkPosition>>,
 }
@@ -80,7 +84,7 @@ impl TransactionsVecs {
     pub fn split_for_finalize(
         &mut self,
     ) -> (
-        &mut BytesVec<TxIndex, TxOutIndex>,
+        &mut BytesVec<TxIndex, Index40<TxOutIndex>>,
         &mut PcoVec<TxIndex, TxInIndex>,
         TxMetadataVecs<'_>,
     ) {
@@ -135,6 +139,12 @@ impl TransactionsVecs {
             total_sigop_cost,
             is_explicitly_rbf,
             first_txin_index,
+            first_txout_index_view: LazyVec::init(
+                "first_txout_index",
+                Version::ZERO,
+                first_txout_index.read_only_boxed_clone(),
+                |_, index| index.get(),
+            ),
             first_txout_index,
             position,
         })

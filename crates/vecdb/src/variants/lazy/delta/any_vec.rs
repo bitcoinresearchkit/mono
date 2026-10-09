@@ -25,6 +25,12 @@ where
         self.source.len().min(self.window_starts.len())
     }
 
+    /// A view of a mutable source changes with it.
+    #[inline]
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable() || self.window_starts.is_mutable()
+    }
+
     #[inline]
     fn value_type_to_size_of(&self) -> usize {
         size_of::<T>()

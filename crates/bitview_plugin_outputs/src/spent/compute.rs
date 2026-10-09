@@ -1,7 +1,7 @@
 use std::iter::repeat_n;
 
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{TxInIndex, TxOutIndex};
+use bitview_primitives::{Index40, TxInIndex, TxOutIndex};
 use brk_error::Result;
 use brk_exit::{Exit, ExitGuard};
 use brk_types::Height;
@@ -130,7 +130,7 @@ impl Vecs {
             // rollback data for a reorg truncation has been saved.
             let len = self.txin_index.len();
             self.txin_index.extend(repeat_n(
-                TxInIndex::UNSPENT,
+                Index40::new(TxInIndex::UNSPENT),
                 batch_txout_index.saturating_sub(len),
             ));
 
@@ -151,7 +151,7 @@ impl Vecs {
             txin_index_to_txout_index
                 .try_for_each_range_at(txin_start, txin_end, |txout_index: TxOutIndex| {
                     if !txout_index.is_coinbase() {
-                        let txin_index = TxInIndex::from(j);
+                        let txin_index = Index40::new(TxInIndex::from(j));
                         let index = txout_index.to_usize();
                         if index < stored_len {
                             stored_updates.push((txout_index, txin_index));

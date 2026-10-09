@@ -283,7 +283,7 @@ impl Vecs {
                         values::sum(&block.txin_starts, input_end, &mut block.input_values),
                     );
                     output_values.for_each_range_at(
-                        output_starts[0].to_usize(),
+                        output_starts[0].get().to_usize(),
                         output_end,
                         values::sum(&output_starts, output_end, &mut block.output_values),
                     );

@@ -143,11 +143,11 @@ impl Query {
 
         let mut children_of = |tx: TxIndex| -> Result<SmallVec<[TxIndex; 2]>> {
             let position = tx.to_usize();
-            let first = usize::from(first_txout.try_get_at(position).data()?);
+            let first = usize::from(first_txout.try_get_at(position).data()?.get());
             let count = u64::from(output_count.get(position).data()?) as usize;
             let mut children = SmallVec::new();
             for output in first..first + count {
-                let input = spent.try_get_at(output).data()?;
+                let input = spent.try_get_at(output).data()?.get();
                 if input.is_unspent() {
                     continue;
                 }

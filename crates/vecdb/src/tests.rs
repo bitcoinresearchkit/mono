@@ -644,8 +644,8 @@ mod recovery {
 
 mod update_many {
     use crate::{
-        AnyStoredVec, BytesVec, Database, ImportOptions, ImportableVec, MutableVec, Result, Stamp,
-        Version, WritableVec,
+        AnyStoredVec, AnyVec, BytesVec, Database, ImportOptions, ImportableVec, LazyVec,
+        MutableVec, ReadableCloneableVec, Result, Stamp, Version, WritableVec,
     };
     use tempfile::tempdir;
 
@@ -675,6 +675,14 @@ mod update_many {
             assert_eq!(vec.collect_holed(), expected);
             vec.stamped_write_with_changes(Stamp::from(2))?;
             assert_eq!(vec.collect_holed(), expected);
+            // Views of a mutable vector are mutable too: the API must not cache them as final.
+            let view = LazyVec::<usize, u32, usize, u32>::init(
+                "view",
+                Version::ZERO,
+                vec.read_only_boxed_clone(),
+                |_, value| value,
+            );
+            assert!(view.is_mutable());
 
             vec.rollback()?;
             assert_eq!(vec.stamp(), Stamp::from(1));

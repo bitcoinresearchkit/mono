@@ -8,7 +8,9 @@ pub use processed::ProcessedOutputData;
 
 use bitcoin::{Script, constants::WITNESS_SCALE_FACTOR};
 use bitview_cohort::ByAddrType;
-use bitview_primitives::{AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, TxOutIndex, TypeIndex};
+use bitview_primitives::{
+    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, Index40, TxOutIndex, TypeIndex,
+};
 use brk_error::Result;
 use brk_store::Store;
 use brk_types::{AddrBytes, OutPoint, OutputType, Sats, SigOps, TxIndex, Unit, Vout};
@@ -76,7 +78,7 @@ pub fn executed_legacy_sigops_for_output(
 pub fn finalize_outputs(
     txs: &[ComputedTx],
     lengths: &mut Lengths,
-    first_txout_index: &mut BytesVec<TxIndex, TxOutIndex>,
+    first_txout_index: &mut BytesVec<TxIndex, Index40<TxOutIndex>>,
     outputs: &mut OutputsVecs,
     addrs: &mut AddrsVecs,
     scripts: &mut ScriptsVecs,
@@ -111,7 +113,7 @@ pub fn finalize_outputs(
             let sats = Sats::from(txout.value);
 
             if vout.is_zero() {
-                first_txout_index.debug_checked_push(tx_index, txout_index);
+                first_txout_index.debug_checked_push(tx_index, Index40::new(txout_index));
             }
 
             let type_index = match data {

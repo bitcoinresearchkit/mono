@@ -12,7 +12,7 @@ A workspace-wide refactor: one job per crate, typed series values, a typed error
 composition model, and many correctness fixes.
 
 **Upgrading:** a node upgrading from v0.12.2 rebuilds once. VecDB headers moved to version 3 (they record the value
-size), so every stored vector resets; the indexer reindexes (indexer version 36) and every plugin recomputes. Nothing
+size), so every stored vector resets; the indexer reindexes (indexer version 37) and every plugin recomputes. Nothing
 has to be deleted by hand.
 
 ### Breaking Changes
@@ -305,6 +305,10 @@ has to be deleted by hand.
 - The mempool resolves inputs that spend confirmed outputs through the unspent-output store first (one lookup, the
   txid check, the value and the address bytes), falling back to the parent transaction: at startup its first two
   resolutions take 0.65-0.74 s and 2.3-2.4 s instead of 1.0-1.1 s and 3.3 s (about 12,000 and 18,500 inputs)
+- Each transaction's first output index and each output's spending input are stored in 5 bytes instead of 8
+  (`Index40`, indexes below 2^40, the unspent marker kept): at 970,536 blocks (1,455,732,334 transactions,
+  3,961,283,106 outputs) that is 16.25 GB less on disk and in the page cache. Series values and value types are
+  unchanged
 - The age bands' exact `u128` inputs (cap, capitalized cap, peak regret, capitalized cap in profit and in loss), read
   only in height ranges, are stored zstd-compressed: 486 MB instead of 1,786 MB at 970,536 blocks
 

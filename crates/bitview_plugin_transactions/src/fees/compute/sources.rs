@@ -1,5 +1,5 @@
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{TxInIndex, TxOutIndex};
+use bitview_primitives::{Index40, TxInIndex, TxOutIndex};
 use brk_types::{Height, OutPoint, Sats, TxIndex, Weight};
 use vecdb::{Budgeted, BytesVec, OverflowVec, PcoVec};
 
@@ -10,7 +10,7 @@ pub(super) struct Sources<'a> {
     pub block_inputs: &'a PcoVec<Height, TxInIndex, Budgeted>,
     pub block_outputs: &'a PcoVec<Height, TxOutIndex, Budgeted>,
     pub tx_inputs: &'a PcoVec<TxIndex, TxInIndex>,
-    pub tx_outputs: &'a BytesVec<TxIndex, TxOutIndex>,
+    pub tx_outputs: &'a BytesVec<TxIndex, Index40<TxOutIndex>>,
     pub weights: &'a PcoVec<TxIndex, Weight>,
     pub outpoints: &'a PcoVec<TxInIndex, OutPoint>,
     pub values: &'a OverflowVec<TxOutIndex, Sats>,

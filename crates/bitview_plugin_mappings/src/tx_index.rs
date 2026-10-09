@@ -1,5 +1,5 @@
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{TxInIndex, TxOutIndex};
+use bitview_primitives::{Index40, TxInIndex, TxOutIndex};
 use bitview_traversable::Traversable;
 use brk_types::{TxIndex, Txid, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
@@ -17,7 +17,7 @@ pub struct Vecs {
     /// transaction's single input.
     pub input_count: LazyIndexCountVec<TxIndex, TxInIndex>,
     /// Number of outputs in the indexed transaction.
-    pub output_count: LazyIndexCountVec<TxIndex, TxOutIndex>,
+    pub output_count: LazyIndexCountVec<TxIndex, Index40<TxOutIndex>>,
 }
 
 impl Vecs {

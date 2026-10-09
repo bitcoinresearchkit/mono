@@ -124,14 +124,20 @@ impl Query {
         }
         let first_txout_vec = &self.indexer().vecs().transactions.first_txout_index;
         let first_txout_reader = first_txout_vec.reader();
-        let first = first_txout_reader.try_get(tx_index).ok_or(Error::Internal(
-            "resolve_tx_outputs: first txout index past data",
-        ))?;
+        let first = first_txout_reader
+            .try_get(tx_index)
+            .ok_or(Error::Internal(
+                "resolve_tx_outputs: first txout index past data",
+            ))?
+            .get();
         let next_tx = tx_index.incremented();
         let next = if next_tx < safe.tx_index {
-            first_txout_reader.try_get(next_tx).ok_or(Error::Internal(
-                "resolve_tx_outputs: next first txout index past data",
-            ))?
+            first_txout_reader
+                .try_get(next_tx)
+                .ok_or(Error::Internal(
+                    "resolve_tx_outputs: next first txout index past data",
+                ))?
+                .get()
         } else {
             safe.txout_index
         };

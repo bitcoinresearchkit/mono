@@ -30,7 +30,7 @@ impl Vecs {
             CoinbasePolicy::Include,
             |first_tx| {
                 let mut starts = txs.first_txout_index.range_cursor_at(first_tx, txid_len);
-                iter::from_fn(move || starts.next().map(|index| index.to_usize()))
+                iter::from_fn(move || starts.next().map(|index| index.get().to_usize()))
             },
             |first_entry| {
                 let mut types = types.range_cursor_at(first_entry, entries_len);

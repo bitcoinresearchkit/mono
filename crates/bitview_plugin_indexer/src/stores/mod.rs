@@ -2,7 +2,7 @@ use std::{fs, ops::Range, path::Path, time::Instant};
 
 use bitview_cohort::{AddrTypeId, ByAddrType};
 use bitview_primitives::{
-    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, BlockHashPrefix, TxOutIndex, TypeIndex,
+    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, BlockHashPrefix, Index40, TxOutIndex, TypeIndex,
 };
 use brk_error::{Error, OptionData, Result};
 use brk_store::{AnyStore, Kind, PendingIngest, Store, open_database};
@@ -394,10 +394,16 @@ impl Stores {
         let rollback_end = vecs.outputs.output_type.len();
 
         let starting_tx_index = starting_lengths.tx_index;
-        let first_txout_indexes = vecs.transactions.first_txout_index.collect_range_at(
-            starting_tx_index.to_usize(),
-            vecs.transactions.first_txout_index.len(),
-        );
+        let first_txout_indexes = vecs
+            .transactions
+            .first_txout_index
+            .collect_range_at(
+                starting_tx_index.to_usize(),
+                vecs.transactions.first_txout_index.len(),
+            )
+            .into_iter()
+            .map(Index40::get)
+            .collect::<Vec<_>>();
 
         if !valid_rollback_boundaries(&first_txout_indexes, rollback_start, rollback_end) {
             return Err(Error::Internal("Invalid rollback output boundaries"));

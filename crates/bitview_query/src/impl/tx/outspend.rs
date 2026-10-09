@@ -90,7 +90,8 @@ impl Query {
         for index in 0..output_count {
             let txin_index = txin_index_reader
                 .try_get(first_txout + Vout::from(index))
-                .data()?;
+                .data()?
+                .get();
 
             if txin_index.is_unspent() || txin_index >= bound.txin_index {
                 continue;
