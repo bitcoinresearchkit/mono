@@ -41,7 +41,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// not price direction.
     pub volatility: VolatilityVecs,
     range: RangeVecs<M>,
+    #[traversable(flatten)]
     pub moving_average: MovingAverageVecs<M>,
+    #[traversable(flatten)]
     technical: TechnicalVecs<M>,
 }
 

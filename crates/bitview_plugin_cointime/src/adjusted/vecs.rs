@@ -5,7 +5,12 @@ use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    /// Cointime-adjusted supply inflation rate: trailing 365-day circulating supply growth divided by starting supply, multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created. Returns NaN while starting supply is at most 50 BTC. Higher values combine faster supply growth with a larger active-to-vaulted holding-time ratio.
+    /// Cointime-adjusted supply inflation rate: the scheduled annual issuance
+    /// over the circulating supply, multiplied by `liveliness / (1 - liveliness)`,
+    /// the ratio of active to vaulted supply. Liveliness is cumulative coinblocks
+    /// destroyed divided by cumulative coinblocks created. NaN while the supply
+    /// is at most 50 BTC. Higher values combine faster issuance with a larger
+    /// active-to-vaulted holding-time ratio.
     pub inflation_rate: PercentPerBlock<PartsPerMillionSigned32, M>,
     /// Cointime-adjusted native transaction velocity: trailing 365-day transfer
     /// volume in satoshis divided by all-chain supply at the represented block,

@@ -5,14 +5,14 @@ use bitview_plugin_cointime::Vecs as CointimeVecs;
 use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
-use bitview_primitives::PartsPerMillionSigned64;
+use bitview_primitives::{Halving, PartsPerMillionSigned64};
 use bitview_vecs::{
-    LazyFiatPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight, LazySpotValuePerBlock,
-    LazyWindowStartVec, LazyWindowVec,
+    LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
+    LazySpotValuePerBlock, LazyWindowStartVec, LazyWindowVec,
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{ReadableCloneableVec, ReadableVec};
+use vecdb::{Ident, ReadableCloneableVec, ReadableVec};
 
 use crate::{STORAGE, Vecs, burned, velocity};
 
@@ -30,24 +30,28 @@ impl Vecs {
         let version = STORAGE.schema_version();
         let supply_metrics = &holders.cohorts.all.supply.total;
 
-        let circulating =
-            LazySpotValuePerBlock::identity("circulating_supply", version, supply_metrics);
+        let circulating = LazyPerBlock::from_lazy::<Ident, Sats>(
+            "circulating_supply",
+            version,
+            &supply_metrics.btc,
+        );
 
         let burned = burned::Vecs::import(&db, version, mappings)?;
 
-        let inflation_version = version + Version::TWO;
-        let inflation_source = LazyWindowVec::<Height, Sats, PartsPerMillionSigned64>::new(
+        // Scheduled annual issuance (the block's scheduled subsidy x 52,560 blocks) over the
+        // supply: the reciprocal of stock-to-flow.
+        let inflation_version = version + Version::new(3);
+        let inflation_source = all_chain.with_supply(
             "inflation_rate_ppm_source",
             inflation_version,
             &supply_metrics.sats.height,
-            window_starts._1y,
-            false,
-            |current, previous, _| {
-                if previous <= Sats::FIFTY_BTC {
-                    PartsPerMillionSigned64::from(f64::NAN)
+            |height, _, supply| {
+                PartsPerMillionSigned64::from(if supply <= Sats::FIFTY_BTC {
+                    f64::NAN
                 } else {
-                    PartsPerMillionSigned64::from(f64::from(current) / f64::from(previous) - 1.0)
-                }
+                    Halving::from(height).subsidy().as_u128() as f64 * 52_560.0
+                        / supply.as_u128() as f64
+                })
             },
         );
         let inflation_rate = LazyPercentPerBlock::from_height_source(

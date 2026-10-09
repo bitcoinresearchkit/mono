@@ -12,25 +12,25 @@ impl Vecs {
         let _24h = LazyPerBlock::from_resolutions::<TimesSqrt<1>>(
             "price_volatility_24h",
             version + v2,
-            &returns.sd_24h._24h.sd,
+            &returns.daily.sd._24h,
         );
 
         let _1w = LazyPerBlock::from_resolutions::<TimesSqrt<7>>(
             "price_volatility_1w",
             version + v2,
-            &returns.sd_24h._1w.sd,
+            &returns.daily.sd._1w,
         );
 
         let _1m = LazyPerBlock::from_resolutions::<TimesSqrt<30>>(
             "price_volatility_1m",
             version + v2,
-            &returns.sd_24h._1m.sd,
+            &returns.daily.sd._1m,
         );
 
         let _1y = LazyPerBlock::from_resolutions::<TimesSqrt<365>>(
             "price_volatility_1y",
             version + v2,
-            &returns.sd_24h._1y.sd,
+            &returns.daily.sd._1y,
         );
 
         Self(Windows {

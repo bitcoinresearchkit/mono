@@ -1,5 +1,5 @@
 use bitview_compute::ComputeRollingStats;
-use bitview_plugin_blocks::{CountVecs, DifficultyVecs, LookbackVecs, ONE_TERA_HASH};
+use bitview_plugin_blocks::{CountVecs, DifficultyVecs, LookbackVecs};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Float32, Hashrate, PartsPerMillionSigned32};
 use bitview_transforms::RatioDiffFloat32;
@@ -15,13 +15,15 @@ fn estimated_network_hash_rate(block_count_24h: f64, difficulty_hash_rate: f64) 
     (block_count_24h / TARGET_BLOCKS_PER_DAY_F64) * difficulty_hash_rate
 }
 
+const ONE_PETA_HASH: f64 = 1_000_000_000_000_000.0;
+
 #[inline]
-fn reward_per_ths(reward_24h: f64, hash_rate: f64) -> Float32 {
-    let hash_rate_ths = hash_rate / ONE_TERA_HASH;
-    if hash_rate_ths == 0.0 {
+fn reward_per_phs(reward_24h: f64, hash_rate: f64) -> Float32 {
+    let hash_rate_phs = hash_rate / ONE_PETA_HASH;
+    if hash_rate_phs == 0.0 {
         Float32::NAN
     } else {
-        Float32::from(reward_24h / hash_rate_ths)
+        Float32::from(reward_24h / hash_rate_phs)
     }
 }
 
@@ -78,35 +80,35 @@ impl Vecs {
             exit,
         )?;
 
-        self.price.ths.height.compute_transform2(
+        self.price.block.height.compute_transform2(
             starting_height,
             coinbase_usd_24h_sum,
             &self.rate.block.height,
             |(i, coinbase_sum, hashrate, ..)| {
                 (
                     i,
-                    reward_per_ths(f64::from(coinbase_sum), f64::from(hashrate)),
+                    reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate)),
                 )
             },
             exit,
         )?;
 
-        self.value.ths.height.compute_transform2(
+        self.value.block.height.compute_transform2(
             starting_height,
             coinbase_sats_24h_sum,
             &self.rate.block.height,
             |(i, coinbase_sum, hashrate, ..)| {
                 (
                     i,
-                    reward_per_ths(f64::from(coinbase_sum), f64::from(hashrate)),
+                    reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate)),
                 )
             },
             exit,
         )?;
 
         for (min_vec, src_vec) in [
-            (&mut self.price.ths_min.height, &self.price.ths.height),
-            (&mut self.value.ths_min.height, &self.value.ths.height),
+            (&mut self.price.atl.height, &self.price.block.height),
+            (&mut self.value.atl.height, &self.value.block.height),
         ] {
             min_vec.compute_all_time_low(starting_height, src_vec, exit, true)?;
         }
@@ -115,8 +117,8 @@ impl Vecs {
             .rebound
             .compute_binary::<Float32, Float32, RatioDiffFloat32<PartsPerMillionSigned32>>(
                 starting_height,
-                &self.price.phs.height,
-                &self.price.phs_min.height,
+                &self.price.block.height,
+                &self.price.atl.height,
                 exit,
             )?;
 
@@ -124,8 +126,8 @@ impl Vecs {
             .rebound
             .compute_binary::<Float32, Float32, RatioDiffFloat32<PartsPerMillionSigned32>>(
                 starting_height,
-                &self.value.phs.height,
-                &self.value.phs_min.height,
+                &self.value.block.height,
+                &self.value.atl.height,
                 exit,
             )?;
 

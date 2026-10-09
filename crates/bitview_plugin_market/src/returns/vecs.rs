@@ -1,7 +1,7 @@
-use bitview_collections::{ByLookbackPeriod, Windows};
+use bitview_collections::ByLookbackPeriod;
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPercentPerBlock, StdDevPerBlock};
+use bitview_vecs::{LazyPercentPerBlock, RollingAvgSd};
 use vecdb::{Rw, StorageMode};
 
 use super::Cagr;
@@ -18,8 +18,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// 1`. Positive values are annualized gains and negative values are
     /// annualized losses.
     pub cagr: Cagr,
-    /// Arithmetic mean and population standard deviation of per-block
-    /// trailing-24-hour spot-price returns over a trailing
-    /// monotonic-time window.
-    pub sd_24h: Windows<StdDevPerBlock<M>>,
+    /// Arithmetic mean and population standard deviation of the per-block
+    /// trailing-24-hour spot-price return over a trailing monotonic-time window.
+    pub daily: RollingAvgSd<M>,
 }

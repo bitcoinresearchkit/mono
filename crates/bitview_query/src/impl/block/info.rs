@@ -431,7 +431,7 @@ impl Query {
         let input_volumes = plugins
             .transactions
             .volume
-            .transfer_volume
+            .value
             .block
             .sats
             .collect_range_at(begin, end);
@@ -441,6 +441,8 @@ impl Query {
             .mining
             .rewards
             .output_volume
+            .block
+            .sats
             .collect_range_at(begin, end);
 
         // Bulk read effective fee rate distribution (accounts for CPFP)

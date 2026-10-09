@@ -1,10 +1,11 @@
 use bitview_plugin_blocks::LookbackVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::{PriceRatio, Ratio};
 use bitview_transforms::CentsTimesTenths;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, LazyPriceWithRatioPerBlock, LazySmaVec, Price};
 use brk_types::{Cents, Height, Version};
-use vecdb::ReadableCloneableVec;
+use vecdb::{Ident, ReadableCloneableVec};
 
 #[derive(Clone, Traversable)]
 pub struct SmaVecs {
@@ -51,6 +52,10 @@ pub struct SmaVecs {
     /// The 350-day simple moving average multiplied by two.
     #[traversable(wrap = "350d", rename = "x2")]
     pub _350d_x2: Price<LazyPerBlock<Cents, Cents>>,
+    /// Mayer Multiple: Bitcoin spot price divided by its 200-day simple moving
+    /// average, the name analysts use for that ratio.
+    #[traversable(wrap = "200d", rename = "mayer_multiple")]
+    pub mayer_multiple: LazyPerBlock<Ratio, Ratio>,
 }
 
 const VERSION: Version = Version::ONE;
@@ -95,6 +100,11 @@ impl SmaVecs {
             version,
             &_200d.cents,
         );
+        let mayer_multiple = LazyPerBlock::from_lazy::<Ident, PriceRatio>(
+            "mayer_multiple",
+            version,
+            &_200d.relative.ratio,
+        );
         let _350d_x2 = Price::from_lazy_cents_source::<CentsTimesTenths<20>, _>(
             "price_sma_350d_x2",
             version,
@@ -122,6 +132,7 @@ impl SmaVecs {
             _200d_x2_4,
             _200d_x0_8,
             _350d_x2,
+            mayer_multiple,
         }
     }
 }

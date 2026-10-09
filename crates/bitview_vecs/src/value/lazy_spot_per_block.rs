@@ -54,6 +54,29 @@ impl LazySpotValuePerBlock {
     where
         V: ReadableCloneableVec<Height, Sats> + ?Sized,
     {
+        Self::from_sats_source_named(
+            name,
+            &format!("{name}_usd"),
+            version,
+            source,
+            indexes,
+            spot_price,
+        )
+    }
+
+    /// Like [`Self::from_sats_source`], with the USD series under its own name (e.g. market cap
+    /// for the circulating supply).
+    pub fn from_sats_source_named<V>(
+        name: &str,
+        usd_name: &str,
+        version: Version,
+        source: &V,
+        indexes: &IndexSources,
+        spot_price: &impl ReadableCloneableVec<Height, Cents>,
+    ) -> Self
+    where
+        V: ReadableCloneableVec<Height, Sats> + ?Sized,
+    {
         let sats = LazyPerBlock::from_height_source::<Ident>(
             &format!("{name}_sats"),
             version,
@@ -71,12 +94,8 @@ impl LazySpotValuePerBlock {
                 <Convert as UnaryTransform<Cents, Dollars>>::apply(SatsToCents::apply(sats, spot))
             },
         );
-        let usd = LazyPerBlock::from_height_source::<Ident>(
-            &format!("{name}_usd"),
-            version,
-            &usd_source,
-            indexes,
-        );
+        let usd =
+            LazyPerBlock::from_height_source::<Ident>(usd_name, version, &usd_source, indexes);
 
         Self { btc, sats, usd }
     }

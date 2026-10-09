@@ -20,11 +20,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Estimated miner revenue over the trailing 24-hour window, with each
     /// coinbase output valued in USD at its block's spot price, divided by the
     /// represented block's estimated network hash rate. It estimates daily USD
-    /// revenue per unit of mining hash rate, before costs.
+    /// revenue per PH/s of mining hash rate, before costs.
     pub price: HashPriceValueVecs<M>,
     /// Coinbase output value in satoshis over the trailing 24-hour window,
     /// divided by the represented block's estimated network hash rate. It
-    /// estimates daily bitcoin revenue per unit of mining hash rate, before
+    /// estimates daily revenue in satoshis per PH/s of mining hash rate, before
     /// costs.
     pub value: HashPriceValueVecs<M>,
 }

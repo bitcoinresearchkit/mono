@@ -1,6 +1,8 @@
 mod lazy_block;
 mod lazy_cumulative_per_block;
 mod lazy_per_block_cumulative_rolling;
+mod lazy_rolling_avg_amount_from_height;
+mod lazy_rolling_avgs_amount_from_height;
 mod lazy_rolling_sum_amount_from_height;
 mod lazy_rolling_sums_amount_from_height;
 mod lazy_spot_per_block;
@@ -18,6 +20,8 @@ mod spot_price;
 pub use lazy_block::LazyValueBlock;
 pub use lazy_cumulative_per_block::LazyCumulativeValuePerBlock;
 pub use lazy_per_block_cumulative_rolling::LazyValuePerBlockCumulativeRolling;
+pub use lazy_rolling_avg_amount_from_height::LazyRollingAvgAmountFromHeight;
+pub use lazy_rolling_avgs_amount_from_height::LazyRollingAvgsAmountFromHeight;
 pub use lazy_rolling_sum_amount_from_height::LazyRollingSumAmountFromHeight;
 pub use lazy_rolling_sums_amount_from_height::LazyRollingSumsAmountFromHeight;
 pub use lazy_spot_per_block::LazySpotValuePerBlock;

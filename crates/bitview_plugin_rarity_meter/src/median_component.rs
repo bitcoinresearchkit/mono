@@ -12,7 +12,7 @@ use crate::Component;
 #[derive(Traversable)]
 pub struct MedianComponent<M: StorageMode = Rw> {
     /// Median creation price from the existing weighted cost-basis age.
-    #[traversable(flatten, rename = "usd")]
+    #[traversable(flatten, rename = "block")]
     pub price: Price<LazyPerBlock<Cents>>,
     /// Spot price divided by the median creation price.
     #[traversable(flatten, rename = "ratio")]

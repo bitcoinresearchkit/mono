@@ -65,7 +65,10 @@ impl Vecs {
             .min(inscription_counts.len())
             .min(total_fees.len());
         let start_height = prepare_computed(
-            [self.fees.stored_mut(), &mut self.fee_share.fixed.height],
+            [
+                &mut self.fees.cumulative.sats.height as &mut dyn AnyStoredVec,
+                &mut self.fee_share.fixed.height,
+            ],
             version,
             starting_height.to_usize().min(end_height),
             exit,
@@ -75,6 +78,13 @@ impl Vecs {
         }
 
         let end_tx = inscriptions.len().min(fees.len());
+        let mut cumulative = self
+            .fees
+            .cumulative
+            .sats
+            .height
+            .collect_last()
+            .unwrap_or_default();
         let mut block_start = first_tx.collect_one_at(start_height).unwrap().to_usize();
         let mut inscriptions = inscriptions.cursor();
         let mut total_fees = total_fees.cursor();
@@ -102,7 +112,8 @@ impl Vecs {
                     }
                 });
             }
-            self.fees.push_block(inscribed);
+            cumulative += inscribed;
+            self.fees.cumulative.sats.height.push(cumulative);
             self.fee_share
                 .fixed
                 .height
@@ -118,7 +129,7 @@ impl Vecs {
 
     fn write_fees(&mut self, exit: &Exit) -> Result<()> {
         let _lock = exit.lock();
-        self.fees.write()?;
+        self.fees.cumulative.sats.height.write()?;
         self.fee_share.fixed.height.write()?;
         Ok(())
     }

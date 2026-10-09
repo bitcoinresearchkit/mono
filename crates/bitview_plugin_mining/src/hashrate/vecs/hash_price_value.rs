@@ -1,26 +1,17 @@
 use bitview_primitives::{Float32, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlock, PerBlock, PercentPerBlock};
+use bitview_vecs::{PerBlock, PercentPerBlock};
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct HashPriceValueVecs<M: StorageMode = Rw> {
-    /// Reported per TH/s, where one TH/s is 10^12 hashes per second.
-    pub ths: PerBlock<Float32, M>,
-    /// Running all-time minimum of the per-TH/s series, where one TH/s is 10^12
-    /// hashes per second. Zero values are excluded; returns zero until the
-    /// first nonzero value exists.
-    pub ths_min: PerBlock<Float32, M>,
-    /// Reported per PH/s, where one PH/s is 10^15 hashes per second; exactly
-    /// 1,000 times the corresponding per-TH/s series.
-    pub phs: LazyPerBlock<Float32>,
-    /// Running all-time minimum of the per-PH/s series, where one PH/s is 10^15
-    /// hashes per second. It is exactly 1,000 times the corresponding per-TH/s
-    /// minimum and returns zero until the first nonzero value exists.
-    pub phs_min: LazyPerBlock<Float32>,
-    /// Per-PH/s value at the represented block divided by its running nonzero
-    /// all-time minimum, minus one. Zero marks the historical floor and positive
-    /// values measure the rebound above it. Returns zero before a nonzero
-    /// minimum exists.
+    /// Per PH/s of hash rate per day, where one PH/s is 10^15 hashes per second.
+    pub block: PerBlock<Float32, M>,
+    /// Running all-time low of the per-PH/s series. Zero values are excluded;
+    /// returns zero until the first nonzero value exists.
+    pub atl: PerBlock<Float32, M>,
+    /// Per-PH/s value at the represented block divided by its running all-time
+    /// low, minus one. Zero marks the historical floor and positive values
+    /// measure the rebound above it. Returns zero before a nonzero low exists.
     pub rebound: PercentPerBlock<PartsPerMillionSigned32, M>,
 }

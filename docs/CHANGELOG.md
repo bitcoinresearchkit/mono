@@ -57,7 +57,7 @@ has to be deleted by hand.
   prices (were their `.usd` child), shares (were `.percent`), BTC changes over a window (were `.btc`). Prices in sats
   per USD (`*_price_sats` and every other price's `_sats`) are gone; `sats_per_dollar` replaces `price_sats`. About
   18,300 fewer series. Two placements change besides: the entry cohorts' 24-hour SOPR is `realized.sopr.24h` (was
-  `realized.sopr.raw`), and market cap stays at `supply.market_cap.usd` beside its `delta`
+  `realized.sopr.raw`), and market cap stays at `supply.market_cap` beside its `delta`
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
 - One word per concept in paths and ids: `avg` for a mean (was `average`), `median` for the 50th percentile in every
   percentile set (was `pct50`), unpadded percentiles (`pct5`, was `pct05`; the rarity bands' price ids `pct1`, `pct2`,
@@ -67,6 +67,23 @@ has to be deleted by hand.
   and `cumulative`, about 4,200 fewer series. Distributions (block size, fees per block, ...) keep `avg` beside
   `min`, `max` and the percentiles. Per-block averages without a sum (address activity counts, block interval) sit
   under `avg` (were the window keys directly under the series)
+- A series with derived siblings (a price beside its `ratio`, a USD value beside its `delta`) sits under `block` (was
+  `usd`): `market.sma.200d.block`, `holders.sth.realized.cap.block`, `supply.market_cap.block`
+- Market: moving averages, RSI, MACD and Pi Cycle sit at the root (`market.sma.200d`, `market.rsi.1w`; were under
+  `moving_average` and `technical`); the 24-hour return's statistics are `market.returns.daily.{avg, sd}.<window>` (were
+  `sd_24h.<window>.{sma, sd}`; ids `price_return_24h_avg_*`, were `_sma_*`); the all-time high's years copies are gone
+  (`days_since`, `max_days_between` stay); `mayer_multiple` names the 200-day SMA ratio
+- Mining: hash price and hash value are per PH/s only, as `mining.hashrate.{price, value}.{block, atl, rebound}` (were
+  per TH/s and PH/s with `*_min`); `fees.share`/`subsidy.share` (were `dominance`); output volume is a BTC and USD flow
+  with sums and cumulative (was sats per block)
+- Transactions: `tx_per_second` (was `tx_per_sec`); inscription fees are BTC and USD (were sats); the transaction
+  volume (input value of non-coinbase transactions) is `transactions.volume.value`, id `tx_volume` (was
+  `transfer_volume` with ids `transfer_volume_bis*`): the holders' `all` cohort's `transfer_volume` is a different
+  quantity (spent UTXO value)
+- Shared ids: `circulating_supply` (UTXO history, holders' `all` and supply), `market_cap` (holders' `all` supply in
+  USD and supply), `utxo_count` (UTXO history and holders' `all`).
+  `utxo_history.supply` is `circulating_supply` in BTC (was `unspent_sats` in sats); `supply.circulating` is BTC only,
+  its USD value being `supply.market_cap`
 - `TxStatus` omits `block_height`, `block_hash` and `block_time` until confirmed, like Esplora (they were sent as
   `null`)
 - Script payload series (`p2pkh_bytes`, `p2tr_bytes`, ...) are lowercase hex strings (were the Rust debug form
@@ -190,20 +207,21 @@ has to be deleted by hand.
 - `bitview_transforms`: `Convert` replaces `SatsToBitcoin`, `SatsSignedToBitcoin`, `CentsUnsignedToDollars`,
   `CentsSignedToDollars` and `OhlcCentsToDollars`; `Quotient<P>` the `Ratio{Cents,Sats,Count,Bytes,CentsSignedCents}`
   transforms; `RelativeChange<P>` `RatioDiff{Cents,Dollars}`. `bitview_vecs`: `Percent*` types hold the fixed-point
-  storage and a percent view (no ratio view), `Ratio*` types the storage and a ratio view; both name the storage
-  `fixed` (was `ppm`), and `RatioPerBlock::import` takes the full name (`import_ppm` is gone). `RatioRollingWindows`,
-  `LazyRatioRollingWindows` and `BoundedPercentPerBlock` are new, and `StdDevPerBlock` is in percent.
-  `LazySpotValuePerBlock` is a `SpotValue` (BTC, sats and USD, no cents); `LazyValuePerBlock` (use
-  `LazySpotValuePerBlock::identity`), `LazyValue`, `LazyValueDerivedResolutions` and `SpotValueSource` are gone. Flow
-  types (`PerBlockCumulativeRolling`, `LazyPerBlockCumulativeRolling`, value and fiat cumulatives) expose a window
-  `sum` field (no `average`, no `rolling` field or `Deref` to rolling totals); `RollingAmountTotals`,
-  `LazyFiatPerBlockCumulativeRolling`, the `LazyRollingAvg*Amount*`/`LazyRollingAvgFiatFromHeight` types and the
-  `AvgCentsToUsd`/`AvgSatsToBtc` transforms are gone. `PercentileId::{Pct5, Median}` (were
-  `Pct05`/`Pct50`) with `suffix()`; `RarityPercentileId::Median` (was `Pct50`), `price_suffix` is gone.
-  `FiatType`/`AmountType` lose their conversion types,
-  `FixedRatio` its transform types, and the `PerBlockRollingAverage` family is gone; `Quantity` names a unit's mean
-  (`Fract`) and total (`Sum`) types. `bitview_collections::Percent` is `PercentViews` (storage and percent); value
-  types lose their unused `Div<usize>` impls (`FeeRate` keeps it)
+  storage and a percent view (no ratio view), `Ratio*` types the storage and a ratio view; both name the storage `fixed`
+  (was `ppm`), and `RatioPerBlock::import` takes the full name (`import_ppm` is gone). `RatioRollingWindows`,
+  `LazyRatioRollingWindows` and `BoundedPercentPerBlock` are new. `LazySpotValuePerBlock` is a `SpotValue` (BTC, sats
+  and USD, no cents); `LazyValuePerBlock` (use `LazySpotValuePerBlock::identity`), `LazyValue`,
+  `LazyValueDerivedResolutions` and `SpotValueSource` are gone. Flow types (`PerBlockCumulativeRolling`,
+  `LazyPerBlockCumulativeRolling`, value and fiat cumulatives) expose a window `sum` field (no `average`, no `rolling`
+  field or `Deref` to rolling totals); `RollingAmountTotals`, `LazyFiatPerBlockCumulativeRolling` and
+  `LazyRollingAvgFiatFromHeight` are gone (`ValuePerBlockFull`, a distribution, keeps its `avg`). `RollingAvgSd`
+  replaces `StdDevPerBlock` (mean and standard deviation per window, stat-first).
+  `LazySpotValuePerBlock::from_sats_source_named` names the USD series. `Halving::subsidy` gives the scheduled subsidy;
+  `bitview_plugin_blocks::ONE_TERA_HASH` and `ThsToPhs` are gone. `PercentileId::{Pct5, Median}` (were `Pct05`/`Pct50`)
+  with `suffix()`; `RarityPercentileId::Median` (was `Pct50`), `price_suffix` is gone. `FiatType`/`AmountType` lose
+  their conversion types, `FixedRatio` its transform types, and the `PerBlockRollingAverage` family is gone; `Quantity`
+  names a unit's mean (`Fract`) and total (`Sum`) types. `bitview_collections::Percent` is `PercentViews` (storage and
+  percent); value types lose their unused `Div<usize>` impls (`FeeRate` keeps it)
 - `brk_rpc::ConnectArgs` (node data dir, blocks dir, RPC endpoint and credentials, resolved like Bitcoin Core) with
   `client()` is shared by bitviewd, blk and mmpl; `Client::default_url`, `Client::default_bitcoin_path`, `get_block`,
   `get_block_hash` and configurable retries are removed
@@ -274,6 +292,10 @@ has to be deleted by hand.
 - True range and its two-week sum are exact cents (the sum drifted as an f32 running sum)
 - Puell Multiple uses daily issuance, as defined: the trailing 24-hour subsidy in USD over its 365-day daily mean
   (the 365-day sum over 365). It was the block's subsidy over its 365-day per-block mean
+- The inflation rate is the scheduled annual issuance over the supply (the block's scheduled subsidy times 52,560
+  blocks), the reciprocal of stock-to-flow, which uses the scheduled subsidy too (was the derived one, zero for a block
+  whose miner claimed nothing); it was the trailing 365-day supply change, which lagged a halving by up to a year (that
+  change remains the supply's 1-year `delta.rate`). Cointime's adjusted inflation follows
 - The year10 `timestamp` series were wrong (2019/2029)
 - Cointime's consumed coin days resume within their sources' length
 - Every replayed distribution output (age, addresses, UTXOs) carries its dependency versions (price, timestamps,

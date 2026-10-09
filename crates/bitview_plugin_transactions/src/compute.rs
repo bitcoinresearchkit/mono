@@ -53,7 +53,7 @@ impl ComputePlugin for Vecs {
             &inputs.value,
             mappings,
             &self.size,
-            &mut self.volume.transfer_volume.cumulative.sats.height,
+            &mut self.volume.value.cumulative.sats.height,
             exit,
         )?;
 
@@ -65,7 +65,12 @@ impl ComputePlugin for Vecs {
 
         self.policy.compute(indexer, mappings, &self.fees, exit)?;
 
-        self.volume.transfer_volume.compute_cents(
+        self.volume.value.compute_cents(
+            indexer.safe_lengths().height,
+            &prices.spot.cents.height,
+            exit,
+        )?;
+        self.inscription.fees.compute_cents(
             indexer.safe_lengths().height,
             &prices.spot.cents.height,
             exit,

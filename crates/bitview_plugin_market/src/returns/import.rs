@@ -1,9 +1,9 @@
-use bitview_collections::{ByLookbackPeriod, Windows};
+use bitview_collections::ByLookbackPeriod;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_transforms::RelativeChange;
-use bitview_vecs::{LazyPercentPerBlock, LazyWindowVec, StdDevPerBlock};
+use bitview_vecs::{LazyPercentPerBlock, LazyWindowVec, RollingAvgSd};
 use brk_error::{Error, Result};
 use brk_types::{Dollars, Height, Version};
 use vecdb::{BinaryTransform, Database, ReadableCloneableVec};
@@ -41,23 +41,12 @@ impl Vecs {
 
         let cagr = Cagr::new(version, &periods);
 
-        let mut days_iter = Windows::<()>::DAYS.iter();
-        let sd_24h = Windows::try_from_fn(|suffix| {
-            let days = *days_iter.next().unwrap();
-            StdDevPerBlock::import(
-                db,
-                "price_return_24h",
-                suffix,
-                days,
-                version + Version::ONE,
-                mappings,
-            )
-        })?;
+        let daily = RollingAvgSd::import(db, "price_return_24h", version + Version::ONE, mappings)?;
 
         Ok(Vecs {
             periods,
             cagr,
-            sd_24h,
+            daily,
         })
     }
 }

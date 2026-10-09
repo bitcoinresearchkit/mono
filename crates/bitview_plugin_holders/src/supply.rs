@@ -28,13 +28,25 @@ impl Supply {
         windows: &Windows<&LazyWindowStartVec>,
         spot: &ReadableBoxedVec<Height, Cents>,
     ) -> Self {
-        let total = LazySpotValuePerBlock::from_sats_source(
-            &id.metric_name("supply"),
-            v,
-            &c.supply,
-            mappings,
-            spot,
-        );
+        // All unspent outputs are the circulating supply, and their value is the market cap.
+        let total = if id == AgeAggregateId::All {
+            LazySpotValuePerBlock::from_sats_source_named(
+                "circulating_supply",
+                "market_cap",
+                v,
+                &c.supply,
+                mappings,
+                spot,
+            )
+        } else {
+            LazySpotValuePerBlock::from_sats_source(
+                &id.metric_name("supply"),
+                v,
+                &c.supply,
+                mappings,
+                spot,
+            )
+        };
         let in_profit = LazySpotValuePerBlock::from_sats_source(
             &id.metric_name("supply_in_profit"),
             v,

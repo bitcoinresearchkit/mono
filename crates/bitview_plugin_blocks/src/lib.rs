@@ -28,7 +28,6 @@ use weight::Vecs as WeightVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("blocks"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
-pub const ONE_TERA_HASH: f64 = 1_000_000_000_000.0;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

@@ -21,14 +21,14 @@ impl Vecs {
     ) -> Result<Self> {
         let v = version + Version::TWO;
         Ok(Vecs {
-            transfer_volume: ValuePerBlockCumulativeRolling::import(
+            value: ValuePerBlockCumulativeRolling::import(
                 db,
-                "transfer_volume_bis",
+                "tx_volume",
                 version,
                 mappings,
                 window_starts,
             )?,
-            tx_per_sec: LazyPerSecondWindows::new("tx_per_sec", v, tx_count_sums),
+            tx_per_second: LazyPerSecondWindows::new("tx_per_second", v, tx_count_sums),
         })
     }
 }

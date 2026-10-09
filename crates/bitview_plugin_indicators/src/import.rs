@@ -4,7 +4,7 @@ use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
-use bitview_primitives::{BasisPoints32, Days, Float32, Years};
+use bitview_primitives::{BasisPoints32, Days, Float32, Halving, Years};
 use bitview_vecs::{LazyPerBlock, LazyRatioPerBlock, PerBlock, RatioPerBlock};
 use brk_error::Result;
 use brk_types::{Bitcoin, Cents, Sats, Version};
@@ -32,7 +32,7 @@ impl Vecs {
         let nvt_source = all_chain.with_market_cap(
             "nvt_bps_source",
             bps_version,
-            &transactions.volume.transfer_volume.sum._24h.cents.height,
+            &transactions.volume.value.sum._24h.cents.height,
             |_, volume, market_cap| Self::market_ratio(market_cap, volume),
         );
         let nvt = LazyRatioPerBlock::from_height_source("nvt", bps_version, &nvt_source, mappings);
@@ -121,7 +121,7 @@ impl Vecs {
             "stock_to_flow_source",
             v,
             &mining.rewards.subsidy.block.sats,
-            |_, subsidy, supply| Self::stock_to_flow(supply, subsidy),
+            |height, _, supply| Self::stock_to_flow(supply, Halving::from(height).subsidy()),
         );
         let stock_to_flow =
             LazyPerBlock::from_height_source::<Ident>("stock_to_flow", v, &stock_source, mappings);

@@ -4,8 +4,7 @@ use bitview_vecs::{
     LazyPercentCumulativeRolling, LazyRatioRollingWindows, ValuePerBlockCumulative,
     ValuePerBlockCumulativeRolling, ValuePerBlockFull,
 };
-use brk_types::{Height, Sats};
-use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
+use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -21,23 +20,22 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// transactions.
     pub fees: ValuePerBlockFull<M>,
     /// Sum of the output values of the block's non-coinbase transactions,
-    /// equivalently their total input value minus transaction fees. Reported
-    /// in satoshis.
-    pub output_volume: M::Stored<EagerVec<PcoVec<Height, Sats>>>,
+    /// equivalently their total input value minus transaction fees.
+    pub output_volume: ValuePerBlockCumulativeRolling<M>,
     /// Portion of the available block reward not assigned to coinbase outputs:
     /// scheduled subsidy plus transaction fees minus coinbase output value.
     pub unclaimed: ValuePerBlockCumulative<M>,
     /// Transaction fees divided by coinbase output value. Cumulative variants
     /// use cumulative totals; rolling variants use totals within the trailing
     /// window. Larger values mean fees supplied more of the miner revenue.
-    #[traversable(wrap = "fees", rename = "dominance")]
-    pub fee_dominance: LazyPercentCumulativeRolling<PartsPerMillion32>,
-    /// One minus fee dominance, equivalently the derived subsidy component
+    #[traversable(wrap = "fees", rename = "share")]
+    pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
+    /// One minus the fee share, equivalently the derived subsidy component
     /// divided by coinbase output value. Cumulative variants use cumulative
     /// totals; rolling variants use totals within the trailing window. Larger
     /// values mean the derived subsidy supplied more of the miner revenue.
-    #[traversable(wrap = "subsidy", rename = "dominance")]
-    pub subsidy_dominance: LazyPercentCumulativeRolling<PartsPerMillion32>,
+    #[traversable(wrap = "subsidy", rename = "share")]
+    pub subsidy_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
     /// Total transaction fees in the trailing window divided by the total
     /// derived subsidy component in the same window. Values above one mean fees
     /// exceeded the derived subsidy; values below one mean the reverse.

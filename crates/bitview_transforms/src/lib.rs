@@ -7,10 +7,12 @@ mod ratio;
 
 pub use arithmetic::{
     BlockCountTarget, BlocksToDays, CountPerSecond, DaysToYears, DifficultyToHashrate, MaskSats,
-    OneMinusPpm, ThsToPhs, TimesSqrt, WeightToVSize,
+    OneMinusPpm, TimesSqrt, WeightToVSize,
 };
 pub use convert::Convert;
-pub use currency::{CentsTimesTenths, CentsUnsignedToSats, SatsToCents};
+pub use currency::{
+    AvgCentsToUsd, AvgSatsToBtc, CentsTimesTenths, CentsUnsignedToSats, SatsToCents,
+};
 pub use ohlc::{OhlcCentsToHighCents, OhlcCentsToLowCents};
 pub use ratio::{
     BoundedOdds, BoundedToRatio, Cagr, FixedToPercent, FixedToRatio, MvrvToNupl, PriceTimesRatio,

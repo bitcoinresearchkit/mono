@@ -11,9 +11,10 @@ use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight, LazySpotValuePerBlock,
+    LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
+    LazySpotValuePerBlock,
 };
-use brk_types::{Cents, CentsSigned, Version};
+use brk_types::{Bitcoin, Cents, CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("supply"), Version::new(10));
@@ -24,19 +25,19 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    /// Total value of all unspent transaction outputs in the UTXO set.
-    circulating: LazySpotValuePerBlock,
+    /// Total value of all unspent transaction outputs in the UTXO set; its USD
+    /// value is the market cap.
+    circulating: LazyPerBlock<Bitcoin, Bitcoin>,
     /// Cumulative provably unspendable supply from the genesis subsidy,
     /// `OP_RETURN` output values, and unclaimed block rewards.
     burned: burned::Vecs<M>,
-    /// Change in circulating supply from the first block in the trailing
-    /// 365-day monotonic-time window through the represented block, divided by
-    /// the starting supply. Returns NaN while the starting supply is at most 50
-    /// BTC.
+    /// Scheduled annual issuance over the circulating supply: the represented
+    /// block's scheduled subsidy times 52,560 blocks, divided by the supply. The
+    /// reciprocal of stock-to-flow. NaN while the supply is at most 50 BTC.
     pub inflation_rate: LazyPercentPerBlock<PartsPerMillionSigned64>,
     pub velocity: velocity::Vecs,
     /// Circulating supply valued at the represented block's Bitcoin spot price.
-    #[traversable(wrap = "market_cap", rename = "usd")]
+    #[traversable(wrap = "market_cap", rename = "block")]
     market_cap: LazyFiatPerBlock<Cents>,
     /// Absolute and relative change in market capitalization from the first
     /// block in each supported trailing monotonic-time window.

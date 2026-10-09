@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign},
 };
 
-use brk_types::{BLOCKS_PER_HALVING, CheckedSub, Height};
+use brk_types::{BLOCKS_PER_HALVING, CheckedSub, Height, Sats};
 use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -92,6 +92,16 @@ impl VecdbCheckedSub for Halving {
 }
 
 impl Halving {
+    /// Bitcoin Core's `GetBlockSubsidy` for blocks in this halving epoch: 50 BTC shifted right
+    /// once per halving.
+    pub fn subsidy(self) -> Sats {
+        Sats::from(
+            u64::from(Sats::FIFTY_BTC)
+                .checked_shr(u32::from(self.0))
+                .unwrap_or(0),
+        )
+    }
+
     pub(crate) fn index_name() -> &'static str {
         "halving"
     }

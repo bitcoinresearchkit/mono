@@ -24,7 +24,7 @@ API. Supports pagination, range queries, and multiple output formats.
 // Series queries use a cheap resolve phase before formatting.
 let selection = SeriesSelection::from((
     Index::Height,
-    SeriesName::from("supply"),
+    SeriesName::from("circulating_supply"),
     DataRangeFormat::default(),
 ));
 let resolved = query.resolve(selection, usize::MAX)?;

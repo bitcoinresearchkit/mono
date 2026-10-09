@@ -7,7 +7,6 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{CheckedSub, Height, Sats};
 use rayon::join;
-use vecdb::VecIndex;
 
 use super::Vecs;
 
@@ -17,18 +16,15 @@ fn derived_subsidy(height: Height, coinbase: Sats, fees: Sats) -> Sats {
         .unwrap_or_else(|| panic!("coinbase {coinbase:?} < fees {fees:?} at {height:?}"))
 }
 
-/// Bitcoin Core's `GetBlockSubsidy`: 50 BTC shifted right once per halving.
-fn scheduled_subsidy(height: Height) -> Sats {
-    let halvings = Halving::from(height).to_usize() as u32;
-    Sats::from(
-        u64::from(Sats::FIFTY_BTC)
-            .checked_shr(halvings)
-            .unwrap_or(0),
-    )
+fn output_volume(height: Height, input_volume: Sats, fees: Sats) -> Sats {
+    input_volume
+        .checked_sub(fees)
+        .unwrap_or_else(|| panic!("input volume {input_volume:?} < fees {fees:?} at {height:?}"))
 }
 
 fn unclaimed_rewards(height: Height, subsidy: Sats) -> Sats {
-    scheduled_subsidy(height)
+    Halving::from(height)
+        .subsidy()
         .checked_sub(subsidy)
         .unwrap_or_else(|| panic!("derived subsidy {subsidy:?} exceeds schedule at {height:?}"))
 }
@@ -78,10 +74,12 @@ impl Vecs {
             exit,
         )?;
 
-        self.output_volume.compute_subtract(
+        self.output_volume.compute_from_pair(
             starting_height,
-            &transactions.volume.transfer_volume.block.sats,
+            &prices.spot.cents.height,
+            &transactions.volume.value.block.sats,
             &self.fees.block.sats,
+            output_volume,
             exit,
         )?;
 

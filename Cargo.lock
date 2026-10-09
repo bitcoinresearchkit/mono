@@ -1182,6 +1182,7 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_mappings",
  "bitview_primitives",
+ "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
