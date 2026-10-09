@@ -305,6 +305,8 @@ has to be deleted by hand.
 - The mempool resolves inputs that spend confirmed outputs through the unspent-output store first (one lookup, the
   txid check, the value and the address bytes), falling back to the parent transaction: at startup its first two
   resolutions take 0.65-0.74 s and 2.3-2.4 s instead of 1.0-1.1 s and 3.3 s (about 12,000 and 18,500 inputs)
+- The age bands' exact `u128` inputs (cap, capitalized cap, peak regret, capitalized cap in profit and in loss), read
+  only in height ranges, are stored zstd-compressed: 486 MB instead of 1,786 MB at 970,536 blocks
 
 #### `brk_reader`
 

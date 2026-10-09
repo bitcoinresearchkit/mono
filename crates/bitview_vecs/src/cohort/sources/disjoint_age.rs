@@ -4,23 +4,25 @@ use brk_error::Result;
 use brk_types::{Height, Version};
 
 use vecdb::{
-    AnyStoredVec, BytesVec, BytesVecValue, Database, ImportableVec, Rw, StorageMode, WritableVec,
+    AnyStoredVec, Database, ImportableVec, Rw, StorageMode, WritableVec, ZstdVec, ZstdVecValue,
 };
 
 /// Exact raw inputs for disjoint age bands.
+///
+/// Zstd: u128 values that pco cannot encode, read only sequentially.
 #[derive(Traversable)]
-pub struct DisjointAgeSources<T: BytesVecValue, M: StorageMode = Rw> {
-    pub age: AgeRange<M::Stored<BytesVec<Height, T>>>,
+pub struct DisjointAgeSources<T: ZstdVecValue, M: StorageMode = Rw> {
+    pub age: AgeRange<M::Stored<ZstdVec<Height, T>>>,
 }
 
-impl<T: BytesVecValue + Copy> DisjointAgeSources<T> {
+impl<T: ZstdVecValue + Copy> DisjointAgeSources<T> {
     pub fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Ok(Self {
             age: AgeRange::try_new(|id| {
-                BytesVec::import(
+                ZstdVec::import(
                     db,
                     &CohortContext::Utxo.metric_name(id, name),
-                    version + Version::ONE,
+                    version + Version::TWO,
                 )
             })?,
         })

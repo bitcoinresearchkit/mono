@@ -445,6 +445,9 @@ mod truncation {
 
     #[cfg(feature = "pco")]
     instantiate_for!(pco, crate::PcoVec<usize, u32>);
+
+    #[cfg(feature = "zstd")]
+    instantiate_for!(zstd, crate::ZstdVec<usize, u32>);
 }
 
 mod recovery {
@@ -557,6 +560,14 @@ mod recovery {
         let _serial = crate::tests::serial();
         check_recovery::<PcoVec<usize, u64>>(Compute::Batched);
         check_recovery::<PcoVec<usize, u64, Budgeted>>(Compute::Batched);
+    }
+
+    #[cfg(feature = "zstd")]
+    #[test]
+    fn zstd_batched_recovery() {
+        let _serial = crate::tests::serial();
+        check_recovery::<crate::ZstdVec<usize, u64>>(Compute::Batched);
+        check_recovery::<crate::ZstdVec<usize, u64, Budgeted>>(Compute::Batched);
     }
 
     #[test]
@@ -978,5 +989,12 @@ mod source_ranges {
     fn pco_source_ranges() {
         let _serial = crate::tests::serial();
         check_source::<PcoVec<usize, u64, Budgeted>>();
+    }
+
+    #[cfg(feature = "zstd")]
+    #[test]
+    fn zstd_source_ranges() {
+        let _serial = crate::tests::serial();
+        check_source::<crate::ZstdVec<usize, u64, Budgeted>>();
     }
 }

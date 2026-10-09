@@ -16,11 +16,11 @@ brk_exit = { workspace = true }
 rangeindex = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }
 brk_error = { workspace = true, features = ["vecdb"] }
-bitview_traversable = { workspace = true }
+bitview_traversable = { workspace = true, features = ["zstd"] }
 brk_types = { workspace = true, features = ["storage"] }
 derive_more = { workspace = true }
 rayon = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }
-vecdb = { workspace = true }
+vecdb = { workspace = true, features = ["zstd"] }
