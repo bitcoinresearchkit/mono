@@ -171,6 +171,13 @@ impl CohortMetrics<Rw> {
         realized.cap_raw.push_age(&AgeRange::from_fn(|id| {
             id.select(age_range).realized.cap_raw()
         }));
+        realized.push_prices(&AgeRange::from_fn(|id| {
+            let state = id.select(age_range);
+            state
+                .realized
+                .cap_raw()
+                .realized_price(state.supply_value())
+        }));
         realized
             .capitalized_cap_raw
             .push_age(&AgeRange::from_fn(|id| {

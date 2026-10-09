@@ -1,12 +1,14 @@
-use bitview_cohort::CreationCohorts;
+use bitview_cohort::{AgeRange, CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::CentsSquaredSats;
 use bitview_traversable::Traversable;
-use bitview_vecs::{DisjointAgeSources, LazyWindowStartVec};
+use bitview_vecs::{
+    CachedSeries, DisjointAgeSources, LazyPerBlock, LazyWindowStartVec, Price, import_cached,
+};
 use brk_error::Result;
-use brk_types::{CentsSats, Version};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
+use brk_types::{Cents, CentsSats, Height, Version};
+use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 
 use super::{
     CumulativeNetRealizedByCohort, CumulativeRealizedByCohort, CumulativeValueDestroyedByCohort,
@@ -20,6 +22,14 @@ pub struct RealizedVecs<M: StorageMode = Rw> {
     /// output's BTC value multiplied by Bitcoin's spot price when that output
     /// was created.
     pub cap: RealizedCapByCohort<M>,
+    /// Realized price of a disjoint age band: realized cap divided by supply,
+    /// the satoshi-weighted mean Bitcoin spot price at which its unspent
+    /// outputs were created. Zero while the band holds no supply.
+    #[traversable(wrap = "price", rename = "age")]
+    pub price: AgeRange<Price<LazyPerBlock<Cents>>>,
+    /// Reported in cents per BTC.
+    #[traversable(hidden)]
+    pub price_cents: AgeRange<CachedSeries<Height, Cents, M>>,
     /// Profit realized by outputs from a creation cohort: spending
     /// value minus creation-date value, counted only for profitable spends.
     pub profit: CumulativeRealizedByCohort<M>,
@@ -60,6 +70,21 @@ impl RealizedVecs {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Box<Self>> {
         let cap_raw = DisjointAgeSources::import(db, "cap_raw", version)?;
+        let price_cents = AgeRange::try_new(|id| {
+            import_cached(
+                db,
+                &CohortContext::Utxo.metric_name(id, "realized_price_cents"),
+                version,
+            )
+        })?;
+        let price = AgeRange::from_fn(|id| {
+            Price::from_height_source(
+                &CohortContext::Utxo.metric_name(id.cohort(), "realized_price"),
+                version,
+                id.select(&price_cents),
+                mappings,
+            )
+        });
         let capitalized_cap_raw = DisjointAgeSources::import(db, "capitalized_cap_raw", version)?;
         let cap = RealizedCapByCohort::import(db, "realized_cap", version, mappings)?;
         let profit = CumulativeRealizedByCohort::import(
@@ -87,6 +112,8 @@ impl RealizedVecs {
 
         Ok(Box::new(Self {
             cap,
+            price,
+            price_cents,
             profit,
             loss,
             net_pnl,
@@ -116,8 +143,21 @@ impl RealizedVecs {
             .push_block(cohort_values.map(|values| values.value_destroyed));
     }
 
+    /// Each band's realized price, from its exact raw product (as the aggregated cohorts').
+    #[inline(always)]
+    pub fn push_prices(&mut self, prices: &AgeRange<Cents>) {
+        for (target, &price) in self.price_cents.iter_mut().zip(prices.iter()) {
+            target.push(price);
+        }
+    }
+
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.cap.stored.stored_vecs_mut().collect::<Vec<_>>();
+        vecs.extend(
+            self.price_cents
+                .iter_mut()
+                .map(|vec| vec as &mut dyn AnyStoredVec),
+        );
         vecs.extend(self.profit.stored.stored_vecs_mut());
         vecs.extend(self.loss.stored.stored_vecs_mut());
         vecs.extend(self.net_pnl.stored.stored_vecs_mut());
