@@ -1,6 +1,6 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyWindowStartVec, PerBlockAggregated};
+use bitview_vecs::{LazyWindowStartVec, PerBlockFullFromCumulative};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
@@ -14,15 +14,13 @@ impl Vecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        Ok(Vecs {
-            total: PerBlockAggregated::import(
-                db,
-                "output_count",
-                version,
-                &mappings.output_count_source(),
-                mappings,
-                window_starts,
-            )?,
-        })
+        Ok(Self(PerBlockFullFromCumulative::import(
+            db,
+            "output_count",
+            version,
+            &mappings.output_count_source(),
+            mappings,
+            window_starts,
+        )?))
     }
 }

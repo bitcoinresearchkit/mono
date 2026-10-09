@@ -143,6 +143,7 @@ impl DefaultPlugins {
                                 OpReturnDependencies {
                                     indexer,
                                     fees: &self.transactions.fees,
+                                    price: self.price.as_ref(),
                                 },
                                 context,
                             )

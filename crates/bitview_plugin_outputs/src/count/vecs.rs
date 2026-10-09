@@ -1,10 +1,12 @@
 use bitview_primitives::Count32;
 use bitview_traversable::Traversable;
-use bitview_vecs::PerBlockAggregated;
+use bitview_vecs::PerBlockFullFromCumulative;
+use derive_more::{Deref, DerefMut};
 use vecdb::{Rw, StorageMode};
 
-#[derive(Traversable)]
-pub struct Vecs<M: StorageMode = Rw> {
+#[derive(Deref, DerefMut, Traversable)]
+pub struct Vecs<M: StorageMode = Rw>(
     /// Number of transaction outputs, including coinbase outputs.
-    pub total: PerBlockAggregated<Count32, M>,
-}
+    #[traversable(flatten)]
+    pub PerBlockFullFromCumulative<Count32, M>,
+);

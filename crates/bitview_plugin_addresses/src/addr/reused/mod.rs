@@ -18,9 +18,9 @@
 
 use bitview_cohort::ByAddrType;
 use bitview_collections::Windows;
-use bitview_plugin_inputs::ByTypeVecs as InputsByTypeVecs;
+use bitview_plugin_inputs::Vecs as InputsVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_plugin_outputs::ByTypeVecs;
+use bitview_plugin_outputs::Vecs as OutputsVecs;
 use bitview_primitives::{Count, Lengths};
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
@@ -72,8 +72,8 @@ impl ReusedAddrVecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
         spot_price: &ReadableBoxedVec<Height, Cents>,
-        outputs_by_type: &ByTypeVecs,
-        inputs_by_type: &InputsByTypeVecs,
+        outputs: &OutputsVecs,
+        inputs: &InputsVecs,
         active_addr_cumulative: &impl ReadableCloneableVec<Height, Count>,
         all_supply: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
@@ -84,8 +84,8 @@ impl ReusedAddrVecs {
             version,
             mappings,
             window_starts,
-            outputs_by_type,
-            inputs_by_type,
+            outputs,
+            inputs,
             active_addr_cumulative,
         )?;
         let supply = AddrSupplyVecs::import(db, name, version, mappings, spot_price)?;

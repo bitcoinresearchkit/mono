@@ -1,4 +1,3 @@
-mod aggregated;
 mod cumulative_average;
 mod cumulative_rolling;
 mod distribution;
@@ -15,7 +14,6 @@ mod std_dev;
 mod stored;
 mod type_counts;
 
-pub use aggregated::PerBlockAggregated;
 pub use cumulative_average::PerBlockCumulativeAverage;
 pub use cumulative_rolling::PerBlockCumulativeRolling;
 pub use distribution::PerBlockDistribution;

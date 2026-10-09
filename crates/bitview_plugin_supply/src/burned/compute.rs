@@ -23,7 +23,7 @@ impl Vecs {
         self.total.compute_from_pair(
             starting_height,
             &prices.spot.cents.height,
-            &outputs.value.op_return.block.sats,
+            &outputs.value.op_return_value.block.sats,
             &mining.rewards.unclaimed.block.sats,
             |height, op_return, unclaimed| {
                 let genesis = if height.to_usize() == 0 {

@@ -33,7 +33,7 @@ use tower_http::{
     normalize_path::{NormalizePath, NormalizePathLayer},
 };
 use tower_layer::Layer;
-use tracing::{info, warn};
+use tracing::info;
 
 use api::*;
 use cache::{CacheParams, CacheStrategy};
@@ -241,9 +241,10 @@ fn log_shared_series(shared: &[SharedSeries]) {
                     series.name, series.served_by, series.served_by
                 );
             } else {
-                warn!(
+                tracing::warn!(
                     "Series {} from {plugin} has another value type than {}'s and is left out",
-                    series.name, series.served_by
+                    series.name,
+                    series.served_by
                 );
             }
         }

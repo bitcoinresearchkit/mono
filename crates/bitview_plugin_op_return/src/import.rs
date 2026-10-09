@@ -4,7 +4,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Bytes;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
-use brk_types::{Height, Sats, Version};
+use brk_types::{Height, Sats};
 use vecdb::ReadableCloneableVec;
 
 use crate::{
@@ -32,22 +32,19 @@ impl Vecs {
             block_size,
             chain_fees,
         )?;
-        let breakdown_version = version + Version::ONE;
         let total_data = total.data_bytes_source();
-        let by_kind = KindBreakdownVecs::import(
+        let protocols = KindBreakdownVecs::import(
             &db,
-            "op_return",
-            breakdown_version,
+            version,
             mappings,
             window_starts,
             total_data,
             block_size,
             chain_fees,
         )?;
-        let policy = PolicyBreakdownVecs::import(
+        let policies = PolicyBreakdownVecs::import(
             &db,
-            "op_return_policy",
-            breakdown_version,
+            version,
             mappings,
             window_starts,
             total_data,
@@ -58,8 +55,8 @@ impl Vecs {
         let this = Self {
             db,
             total,
-            by_kind,
-            policy,
+            protocols,
+            policies,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

@@ -15,7 +15,7 @@ impl Vecs {
         let txid_len = txs.txid.len();
         let entries_len = types.len();
         compute_type_counts(
-            self.output_count_stored
+            self.count_stored
                 .iter_typed_mut()
                 .zip(self.tx_count_stored.iter_mut())
                 .map(|((kind, entries), txs)| (kind, entries, txs)),

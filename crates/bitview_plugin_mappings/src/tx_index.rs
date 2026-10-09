@@ -30,13 +30,13 @@ impl Vecs {
                 |index, _| index,
             ),
             input_count: LazyIndexCountVec::new(
-                "input_count",
+                "tx_input_count",
                 version,
                 &indexer.vecs().transactions.first_txin_index,
                 &indexer.vecs().inputs.outpoint,
             ),
             output_count: LazyIndexCountVec::new(
-                "output_count",
+                "tx_output_count",
                 version,
                 &indexer.vecs().transactions.first_txout_index,
                 &indexer.vecs().outputs.value,

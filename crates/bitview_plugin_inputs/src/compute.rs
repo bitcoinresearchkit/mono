@@ -30,7 +30,7 @@ impl ComputePlugin for Vecs {
             value,
             origins,
             count,
-            by_type,
+            types,
             ..
         } = self;
         let (value_result, rest_result) = join(
@@ -47,7 +47,7 @@ impl ComputePlugin for Vecs {
             },
             || {
                 count.compute(indexer, blocks, exit)?;
-                by_type.compute(indexer, exit)
+                types.compute(indexer, exit)
             },
         );
         value_result?;

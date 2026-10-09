@@ -8,7 +8,7 @@ mod import;
 mod spent;
 mod value;
 
-pub use by_type::Vecs as ByTypeVecs;
+pub use by_type::{OutputTypeVecs, Vecs as TypesVecs};
 pub use correction::overwritten_output;
 pub use dependencies::Dependencies;
 pub use has::HasOutputs;
@@ -20,6 +20,7 @@ use brk_types::Version;
 use statedb::Creations;
 use vecdb::{Database, Rw, StorageMode};
 
+use by_type::SpendableOutputCount;
 use count::Vecs as CountVecs;
 use spent::Vecs as SpentVecs;
 use value::Vecs as ValueVecs;
@@ -37,8 +38,14 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub spent: SpentVecs<M>,
     pub count: CountVecs<M>,
     /// Transaction-output rate, including coinbase outputs.
-    per_sec: LazyPerSecondWindows,
-    pub by_type: ByTypeVecs<M>,
+    per_second: LazyPerSecondWindows,
+    /// Number of transaction outputs excluding `OP_RETURN` outputs, which are
+    /// provably unspendable.
+    pub spendable_count: SpendableOutputCount,
+    /// Transaction outputs by locking-script type, including coinbase outputs
+    /// and coinbase transactions.
+    pub types: TypesVecs<M>,
+    #[traversable(flatten)]
     pub value: ValueVecs<M>,
 }
 

@@ -421,8 +421,8 @@ impl Query {
             .block
             .sats
             .collect_range_at(begin, end);
-        let input_counts = plugins.inputs.count.sum.collect_range_at(begin, end);
-        let output_counts = plugins.outputs.count.total.sum.collect_range_at(begin, end);
+        let input_counts = plugins.inputs.count.block.collect_range_at(begin, end);
+        let output_counts = plugins.outputs.count.block.collect_range_at(begin, end);
         let utxo_set_sizes = plugins
             .utxo_history
             .count
@@ -556,7 +556,7 @@ impl Query {
                 let size = u64::from(*sizes[i]);
                 let total_fees = fee_sats[i];
                 let subsidy = subsidy_sats[i];
-                let total_inputs = (*input_counts[i]).saturating_sub(1);
+                let total_inputs = *input_counts[i];
                 let total_outputs = *output_counts[i];
                 let vsize = weight.to_vbytes_ceil();
                 let total_fees_u64 = u64::from(total_fees);

@@ -1377,7 +1377,7 @@ pub mod tree {
         funded: SeriesPattern37<FundedAddrData> = "funded_*_data",
         extended_empty: SeriesPattern38<EmptyAddrData> = "extended_empty_*_data",
     } }
-    shape! { Type<A> at "series().utxos.realized.cap.type_" {
+    shape! { CapType<A> at "series().utxos.realized.cap.type_" {
         p2pk65: SeriesPattern2<A> = "p2pk65_*",
         p2pk33: SeriesPattern2<A> = "p2pk33_*",
         p2pkh: SeriesPattern2<A> = "p2pkh_*",
@@ -1615,9 +1615,9 @@ pub mod tree {
         identity: SeriesPattern23<TxInIndex> = "*",
     } }
     shape! { MappingsTxIndex at "series().mappings.tx_index" {
-        identity: SeriesPattern22<TxIndex> = "tx_index",
-        input_count: SeriesPattern22<Count> = "input_*",
-        output_count: SeriesPattern22<Count> = "output_*",
+        identity: SeriesPattern22<TxIndex> = "*_index",
+        input_count: SeriesPattern22<Count> = "*_input_count",
+        output_count: SeriesPattern22<Count> = "*_output_count",
     } }
     shape! { MappingsYear10 at "series().mappings.year10" {
         date: SeriesPattern18<Date> = "*",
@@ -1766,7 +1766,7 @@ pub mod tree {
         month6: MappingsMonth6 = "*",
         year1: MappingsYear1 = "*",
         year10: MappingsYear10 = "*",
-        tx_index: MappingsTxIndex = "count",
+        tx_index: MappingsTxIndex = "tx",
         txin_index: TxinIndex = "txin_index",
         txout_index: TxoutIndex = "txout_index",
         timestamp: MappingsTimestamp = "timestamp",
@@ -2274,53 +2274,12 @@ pub mod tree {
         price: HashratePrice = "*_price",
         value: HashratePrice = "*_value",
     } }
-    shape! { FeeShare at "series().op_return.total.fee_share" {
+    shape! { Share at "series().op_return.fees.share" {
         cumulative: SeriesPattern2<Option<Percent>> = "*",
         _24h: SeriesPattern2<Option<Percent>> = "*_24h",
         _1w: SeriesPattern2<Option<Percent>> = "*_1w",
         _1m: SeriesPattern2<Option<Percent>> = "*_1m",
         _1y: SeriesPattern2<Option<Percent>> = "*_1y",
-    } }
-    shape! { OutputsByTypeTxShare at "series().outputs.by_type.tx_share" {
-        p2pk65: FeeShare = "*_p2pk65_output",
-        p2pk33: FeeShare = "*_p2pk33_output",
-        p2pkh: FeeShare = "*_p2pkh_output",
-        p2ms: FeeShare = "*_p2ms_output",
-        p2sh: FeeShare = "*_p2sh_output",
-        p2wpkh: FeeShare = "*_p2wpkh_output",
-        p2wsh: FeeShare = "*_p2wsh_output",
-        p2tr: FeeShare = "*_p2tr_output",
-        p2a: FeeShare = "*_p2a_output",
-        unknown: FeeShare = "*_unknown_outputs_output",
-        empty: FeeShare = "*_empty_outputs_output",
-        op_return: FeeShare = "*_op_return_output",
-    } }
-    shape! { OutputShare at "series().outputs.by_type.output_share" {
-        p2pk65: FeeShare = "p2pk65_*",
-        p2pk33: FeeShare = "p2pk33_*",
-        p2pkh: FeeShare = "p2pkh_*",
-        p2ms: FeeShare = "p2ms_*",
-        p2sh: FeeShare = "p2sh_*",
-        p2wpkh: FeeShare = "p2wpkh_*",
-        p2wsh: FeeShare = "p2wsh_*",
-        p2tr: FeeShare = "p2tr_*",
-        p2a: FeeShare = "p2a_*",
-        unknown: FeeShare = "unknown_outputs_*",
-        empty: FeeShare = "empty_outputs_*",
-        op_return: FeeShare = "op_return_*",
-    } }
-    shape! { InputsByTypeTxShare at "series().inputs.by_type.tx_share" {
-        p2pk65: FeeShare = "*_p2pk65_prevout",
-        p2pk33: FeeShare = "*_p2pk33_prevout",
-        p2pkh: FeeShare = "*_p2pkh_prevout",
-        p2ms: FeeShare = "*_p2ms_prevout",
-        p2sh: FeeShare = "*_p2sh_prevout",
-        p2wpkh: FeeShare = "*_p2wpkh_prevout",
-        p2wsh: FeeShare = "*_p2wsh_prevout",
-        p2tr: FeeShare = "*_p2tr_prevout",
-        p2a: FeeShare = "*_p2a_prevout",
-        unknown: FeeShare = "*_unknown_outputs_prevout",
-        empty: FeeShare = "*_empty_outputs_prevout",
     } }
     shape! { HodledOrLost at "series().supply.hodled_or_lost" {
         btc: SeriesPattern2<Option<Bitcoin>> = "*",
@@ -2380,28 +2339,31 @@ pub mod tree {
         awake: Awake = "*_awake",
         dormant: Dormant = "*_dormant_supply",
     } }
-    shape! { Sum at "series().addresses.transfer_volume._0sats.sum" {
+    shape! { Sum at "series().op_return.fees.sum" {
         _24h: HodledOrLost = "*_24h",
         _1w: HodledOrLost = "*_1w",
         _1m: HodledOrLost = "*_1m",
         _1y: HodledOrLost = "*_1y",
     } }
-    shape! { Block at "series().supply.burned.block" {
+    shape! { Block at "series().op_return.fees.block" {
         btc: SeriesPattern21<Option<Bitcoin>> = "*",
         usd: SeriesPattern21<Option<Dollars>> = "*_usd",
     } }
-    shape! { Burned at "series().supply.burned" {
+    shape! { OpReturnFees at "series().op_return.fees" {
+        block: Block = "*_fees",
+        cumulative: HodledOrLost = "*_fees_cumulative",
+        sum: Sum = "*_fees_sum",
+        share: Share = "*_fee_share",
+    } }
+    shape! { OpReturnValue at "series().outputs.op_return_value" {
         block: Block = "*",
         cumulative: HodledOrLost = "*_cumulative",
-    } }
-    shape! { OutputsValue at "series().outputs.value" {
-        op_return: Burned = "*",
     } }
     shape! { Subsidy at "series().mining.rewards.subsidy" {
         block: Block = "*",
         cumulative: HodledOrLost = "*_cumulative",
         sum: Sum = "*_sum",
-        share: FeeShare = "*_share",
+        share: Share = "*_share",
     } }
     shape! { TransferVolume0sats at "series().addresses.transfer_volume._0sats" {
         block: Block = "*",
@@ -2474,43 +2436,27 @@ pub mod tree {
         _14y: SeriesPattern21<Height> = "*_14y_ago",
         _26y: SeriesPattern21<Height> = "*_26y_ago",
     } }
-    shape! { PerSec<A> at "series().inputs.per_sec" {
+    shape! { InputsPerSecond<A> at "series().inputs.per_second" {
         _24h: SeriesPattern2<A> = "*_24h",
         _1w: SeriesPattern2<A> = "*_1w",
         _1m: SeriesPattern2<A> = "*_1m",
         _1y: SeriesPattern2<A> = "*_1y",
     } }
-    shape! { FeesAscribe at "series().op_return.by_kind.fees.ascribe" {
-        block: SeriesPattern21<Sats> = "*_fees",
-        cumulative: SeriesPattern2<Sats> = "*_fees_cumulative",
-        sum: PerSec<Sats> = "*_fees_sum",
-        fee_share: FeeShare = "*_fee_share",
-    } }
-    shape! { DataBytesAscribe at "series().op_return.by_kind.data_bytes.ascribe" {
+    shape! { MultipleDataBytes at "series().op_return.policies.multiple.data_bytes" {
         block: SeriesPattern21<Bytes> = "*_data_bytes",
         cumulative: SeriesPattern2<Bytes> = "*_data_bytes_cumulative",
-        sum: PerSec<Bytes> = "*_data_bytes_sum",
-        data_share: SeriesPattern2<Option<Percent>> = "*_data_share",
+        sum: InputsPerSecond<Bytes> = "*_data_bytes_sum",
+        share: SeriesPattern2<Option<Percent>> = "*_data_share",
         chain_share: SeriesPattern2<Option<Percent>> = "*_chain_share",
     } }
-    shape! { Rolling<A> at "series().inputs.count.rolling" {
-        sum: PerSec<Count> = "*_sum",
-        avg: PerSec<Option<CountFract>> = "*_avg",
-        min: PerSec<A> = "*_min",
-        max: PerSec<A> = "*_max",
-        pct10: PerSec<A> = "*_pct10",
-        pct25: PerSec<A> = "*_pct25",
-        median: PerSec<A> = "*_median",
-        pct75: PerSec<A> = "*_pct75",
-        pct90: PerSec<A> = "*_pct90",
-    } }
-    shape! { InputsCount<A> at "series().inputs.count" {
-        sum: SeriesPattern21<Count> = "*_sum",
-        cumulative: SeriesPattern2<Count> = "*_cumulative",
-        rolling: Rolling<A> = "*",
+    shape! { OpReturnDataBytes at "series().op_return.data_bytes" {
+        block: SeriesPattern21<Bytes> = "*_data_bytes",
+        cumulative: SeriesPattern2<Bytes> = "*_data_bytes_cumulative",
+        sum: InputsPerSecond<Bytes> = "*_data_bytes_sum",
+        chain_share: SeriesPattern2<Option<Percent>> = "*_chain_share",
     } }
     shape! { DeltaAll<A> at "series().addresses.delta.all" {
-        absolute: PerSec<A> = "*",
+        absolute: InputsPerSecond<A> = "*",
         rate: AllRate = "*",
     } }
     shape! { Supply0sats at "series().addresses.supply._0sats" {
@@ -2540,7 +2486,7 @@ pub mod tree {
     shape! { NetPnl at "series().entry.discount.realized.net_pnl" {
         block: SeriesPattern21<Option<Dollars>> = "*",
         cumulative: SeriesPattern2<Option<Dollars>> = "*_cumulative",
-        sum: PerSec<Option<Dollars>> = "*_sum",
+        sum: InputsPerSecond<Option<Dollars>> = "*_sum",
         delta: DeltaAll<Option<Dollars>> = "*_delta",
     } }
     shape! { MarketCap<A, B> at "series().supply.market_cap" {
@@ -2549,16 +2495,16 @@ pub mod tree {
     } }
     shape! { Supply at "series().supply" {
         circulating: SeriesPattern2<Option<Bitcoin>> = "circulating_*",
-        burned: Burned = "unspendable_*",
+        burned: OpReturnValue = "unspendable_*",
         inflation_rate: SeriesPattern2<Option<Percent>> = "inflation_rate",
         velocity: Velocity = "velocity",
         market_cap: MarketCap<Option<Dollars>, Option<Dollars>> = "market_cap",
-        market_minus_realized_cap_growth_rate: PerSec<Option<Percent>> = "market_minus_realized_cap_growth_rate",
+        market_minus_realized_cap_growth_rate: InputsPerSecond<Option<Percent>> = "market_minus_realized_cap_growth_rate",
         hodled_or_lost: HodledOrLost = "hodled_or_lost_*",
     } }
     shape! { Daily at "series().market.returns.daily" {
-        avg: PerSec<Option<Percent>> = "*_avg",
-        sd: PerSec<Option<Percent>> = "*_sd",
+        avg: InputsPerSecond<Option<Percent>> = "*_avg",
+        sd: InputsPerSecond<Option<Percent>> = "*_sd",
     } }
     shape! { Returns at "series().market.returns" {
         periods: MarketLookback<Option<Percent>> = "*_return",
@@ -2569,7 +2515,7 @@ pub mod tree {
         ath: Ath = "*",
         lookback: MarketLookback<Option<Dollars>> = "*_past",
         returns: Returns = "*",
-        volatility: PerSec<Option<Percent>> = "*_volatility",
+        volatility: InputsPerSecond<Option<Percent>> = "*_volatility",
         range: Range = "*",
         sma: MarketSma = "*_sma",
         ema: Ema = "*_ema",
@@ -2579,7 +2525,7 @@ pub mod tree {
     } }
     shape! { Volume at "series().transactions.volume" {
         value: TransferVolume0sats = "*_volume",
-        tx_per_second: PerSec<Option<PerSecond>> = "*_per_second",
+        tx_per_second: InputsPerSecond<Option<PerSecond>> = "*_per_second",
     } }
     shape! { RewardsFees at "series().mining.rewards.fees" {
         block: Block = "*",
@@ -2593,15 +2539,15 @@ pub mod tree {
         median: Sum = "*_median",
         pct75: Sum = "*_pct75",
         pct90: Sum = "*_pct90",
-        share: FeeShare = "fee_share",
-        to_subsidy: PerSec<Option<Ratio>> = "fee_to_subsidy",
+        share: Share = "fee_share",
+        to_subsidy: InputsPerSecond<Option<Ratio>> = "fee_to_subsidy",
     } }
     shape! { Rewards at "series().mining.rewards" {
         coinbase: TransferVolume0sats = "*",
         subsidy: Subsidy = "subsidy",
         fees: RewardsFees = "fees",
         output_volume: TransferVolume0sats = "output_volume",
-        unclaimed: Burned = "unclaimed_rewards",
+        unclaimed: OpReturnValue = "unclaimed_rewards",
     } }
     shape! { Mining at "series().mining" {
         rewards: Rewards = "*",
@@ -2609,153 +2555,131 @@ pub mod tree {
     } }
     shape! { BlocksSize<A, B, C> at "series().blocks.size" {
         cumulative: SeriesPattern2<A> = "*_cumulative",
-        sum: PerSec<A> = "*_sum",
-        avg: PerSec<B> = "*_avg",
-        min: PerSec<C> = "*_min",
-        max: PerSec<C> = "*_max",
-        pct10: PerSec<C> = "*_pct10",
-        pct25: PerSec<C> = "*_pct25",
-        median: PerSec<C> = "*_median",
-        pct75: PerSec<C> = "*_pct75",
-        pct90: PerSec<C> = "*_pct90",
+        sum: InputsPerSecond<A> = "*_sum",
+        avg: InputsPerSecond<B> = "*_avg",
+        min: InputsPerSecond<C> = "*_min",
+        max: InputsPerSecond<C> = "*_max",
+        pct10: InputsPerSecond<C> = "*_pct10",
+        pct25: InputsPerSecond<C> = "*_pct25",
+        median: InputsPerSecond<C> = "*_median",
+        pct75: InputsPerSecond<C> = "*_pct75",
+        pct90: InputsPerSecond<C> = "*_pct90",
     } }
     shape! { Vbytes<A, B, C> at "series().blocks.vbytes" {
         block: SeriesPattern21<A> = "*",
         cumulative: SeriesPattern2<A> = "*_cumulative",
-        sum: PerSec<A> = "*_sum",
-        avg: PerSec<B> = "*_avg",
-        min: PerSec<C> = "*_min",
-        max: PerSec<C> = "*_max",
-        pct10: PerSec<C> = "*_pct10",
-        pct25: PerSec<C> = "*_pct25",
-        median: PerSec<C> = "*_median",
-        pct75: PerSec<C> = "*_pct75",
-        pct90: PerSec<C> = "*_pct90",
+        sum: InputsPerSecond<A> = "*_sum",
+        avg: InputsPerSecond<B> = "*_avg",
+        min: InputsPerSecond<C> = "*_min",
+        max: InputsPerSecond<C> = "*_max",
+        pct10: InputsPerSecond<C> = "*_pct10",
+        pct25: InputsPerSecond<C> = "*_pct25",
+        median: InputsPerSecond<C> = "*_median",
+        pct75: InputsPerSecond<C> = "*_pct75",
+        pct90: InputsPerSecond<C> = "*_pct90",
     } }
     shape! { Interval<A, B> at "series().blocks.interval" {
         block: SeriesPattern21<A> = "*",
-        avg: PerSec<B> = "*_avg",
+        avg: InputsPerSecond<B> = "*_avg",
     } }
     shape! { CoinblocksDestroyed<A> at "series().age.coinblocks_destroyed" {
         block: SeriesPattern21<A> = "*",
         cumulative: SeriesPattern2<A> = "*_cumulative",
-        sum: PerSec<A> = "*_sum",
+        sum: InputsPerSecond<A> = "*_sum",
     } }
-    shape! { PolicyDataBytes<A> at "series().op_return.policy.data_bytes" {
-        pre_v30_standard: A = "op_return_policy_pre_v30_standard_*",
-        pre_v30_nonstandard: A = "op_return_policy_pre_v30_nonstandard_*",
-        oversized: A = "op_return_policy_oversized_*",
-        multiple: A = "op_return_policy_multiple_*",
-    } }
-    shape! { ByKindDataBytes<A> at "series().op_return.by_kind.data_bytes" {
-        runes: A = "op_return_runes_*",
-        veri_block: A = "op_return_veri_block_*",
-        omni: A = "op_return_omni_*",
-        stacks: A = "op_return_stacks_*",
-        blockstack: A = "op_return_blockstack_*",
-        colu: A = "op_return_colu_*",
-        open_assets: A = "op_return_open_assets_*",
-        komodo: A = "op_return_komodo_*",
-        coin_spark: A = "op_return_coin_spark_*",
-        poet: A = "op_return_poet_*",
-        docproof: A = "op_return_docproof_*",
-        open_timestamps: A = "op_return_open_timestamps_*",
-        factom: A = "op_return_factom_*",
-        eternity_wall: A = "op_return_eternity_wall_*",
-        memo: A = "op_return_memo_*",
-        bitproof: A = "op_return_bitproof_*",
-        ascribe: A = "op_return_ascribe_*",
-        stampery: A = "op_return_stampery_*",
-        epobc: A = "op_return_epobc_*",
-        bare_hash: A = "op_return_bare_hash_*",
-        text: A = "op_return_text_*",
-        empty: A = "op_return_empty_*",
-        unknown: A = "op_return_unknown_*",
-    } }
-    shape! { ByKind<A, B, C, D> at "series().op_return.by_kind" {
-        output_count: A = "output_*",
-        data_bytes: B = "",
-        tx_count: A = "tx_*",
-        tx_vsize: C = "tx_vsize",
-        fees: D = "",
-    } }
-    shape! { OpReturnTotal at "series().op_return.total" {
-        data_bytes: CoinblocksDestroyed<Bytes> = "*_data_bytes",
+    shape! { Multiple at "series().op_return.policies.multiple" {
+        output_count: CoinblocksDestroyed<Count> = "*_output_count",
+        data_bytes: MultipleDataBytes = "*",
         tx_count: CoinblocksDestroyed<Count> = "*_tx_count",
         tx_vsize: CoinblocksDestroyed<VSize> = "*_tx_vsize",
-        fees: CoinblocksDestroyed<Sats> = "*_fees",
-        chain_share: SeriesPattern2<Option<Percent>> = "*_chain_share",
-        fee_share: FeeShare = "*_fee_share",
+        fees: OpReturnFees = "*",
+    } }
+    shape! { Policies at "series().op_return.policies" {
+        pre_v30_standard: Multiple = "*_pre_v30_standard",
+        pre_v30_nonstandard: Multiple = "*_pre_v30_nonstandard",
+        oversized: Multiple = "*_oversized",
+        multiple: Multiple = "*_multiple",
+    } }
+    shape! { Protocols at "series().op_return.protocols" {
+        runes: Multiple = "*_runes",
+        veri_block: Multiple = "*_veri_block",
+        omni: Multiple = "*_omni",
+        stacks: Multiple = "*_stacks",
+        blockstack: Multiple = "*_blockstack",
+        colu: Multiple = "*_colu",
+        open_assets: Multiple = "*_open_assets",
+        komodo: Multiple = "*_komodo",
+        coin_spark: Multiple = "*_coin_spark",
+        poet: Multiple = "*_poet",
+        docproof: Multiple = "*_docproof",
+        open_timestamps: Multiple = "*_open_timestamps",
+        factom: Multiple = "*_factom",
+        eternity_wall: Multiple = "*_eternity_wall",
+        memo: Multiple = "*_memo",
+        bitproof: Multiple = "*_bitproof",
+        ascribe: Multiple = "*_ascribe",
+        stampery: Multiple = "*_stampery",
+        epobc: Multiple = "*_epobc",
+        bare_hash: Multiple = "*_bare_hash",
+        text: Multiple = "*_text",
+        empty: Multiple = "*_empty",
+        unknown: Multiple = "*_unknown",
     } }
     shape! { OpReturn at "series().op_return" {
-        total: OpReturnTotal = "op_return",
-        by_kind: ByKind<ByKindDataBytes<CoinblocksDestroyed<Count>>, ByKindDataBytes<DataBytesAscribe>, ByKindDataBytes<CoinblocksDestroyed<VSize>>, ByKindDataBytes<FeesAscribe>> = "*",
-        policy: ByKind<PolicyDataBytes<CoinblocksDestroyed<Count>>, PolicyDataBytes<DataBytesAscribe>, PolicyDataBytes<CoinblocksDestroyed<VSize>>, PolicyDataBytes<FeesAscribe>> = "*",
+        output_count: CoinblocksDestroyed<Count> = "*_output_count",
+        data_bytes: OpReturnDataBytes = "*",
+        tx_count: CoinblocksDestroyed<Count> = "*_tx_count",
+        tx_vsize: CoinblocksDestroyed<VSize> = "*_tx_vsize",
+        fees: OpReturnFees = "*",
+        protocols: Protocols = "*",
+        policies: Policies = "*",
     } }
-    shape! { OutputsByTypeTxCount at "series().outputs.by_type.tx_count" {
-        all: CoinblocksDestroyed<Count> = "*_bis",
-        p2pk65: CoinblocksDestroyed<Count> = "*_with_p2pk65_output",
-        p2pk33: CoinblocksDestroyed<Count> = "*_with_p2pk33_output",
-        p2pkh: CoinblocksDestroyed<Count> = "*_with_p2pkh_output",
-        p2ms: CoinblocksDestroyed<Count> = "*_with_p2ms_output",
-        p2sh: CoinblocksDestroyed<Count> = "*_with_p2sh_output",
-        p2wpkh: CoinblocksDestroyed<Count> = "*_with_p2wpkh_output",
-        p2wsh: CoinblocksDestroyed<Count> = "*_with_p2wsh_output",
-        p2tr: CoinblocksDestroyed<Count> = "*_with_p2tr_output",
-        p2a: CoinblocksDestroyed<Count> = "*_with_p2a_output",
-        unknown: CoinblocksDestroyed<Count> = "*_with_unknown_outputs_output",
-        empty: CoinblocksDestroyed<Count> = "*_with_empty_outputs_output",
-        op_return: CoinblocksDestroyed<Count> = "*_with_op_return_output",
+    shape! { TypesEmpty at "series().inputs.types.empty" {
+        count: CoinblocksDestroyed<Count> = "*_count",
+        share: Share = "*_share",
+        tx_count: CoinblocksDestroyed<Count> = "*_tx_count",
+        tx_share: Share = "*_tx_share",
     } }
-    shape! { OutputCount at "series().outputs.by_type.output_count" {
-        all: CoinblocksDestroyed<Count> = "*_bis",
-        p2pk65: CoinblocksDestroyed<Count> = "p2pk65_*",
-        p2pk33: CoinblocksDestroyed<Count> = "p2pk33_*",
-        p2pkh: CoinblocksDestroyed<Count> = "p2pkh_*",
-        p2ms: CoinblocksDestroyed<Count> = "p2ms_*",
-        p2sh: CoinblocksDestroyed<Count> = "p2sh_*",
-        p2wpkh: CoinblocksDestroyed<Count> = "p2wpkh_*",
-        p2wsh: CoinblocksDestroyed<Count> = "p2wsh_*",
-        p2tr: CoinblocksDestroyed<Count> = "p2tr_*",
-        p2a: CoinblocksDestroyed<Count> = "p2a_*",
-        unknown: CoinblocksDestroyed<Count> = "unknown_outputs_*",
-        empty: CoinblocksDestroyed<Count> = "empty_outputs_*",
-        op_return: CoinblocksDestroyed<Count> = "op_return_*",
+    shape! { OutputsTypes at "series().outputs.types" {
+        p2pk65: TypesEmpty = "p2pk65_*",
+        p2pk33: TypesEmpty = "p2pk33_*",
+        p2pkh: TypesEmpty = "p2pkh_*",
+        p2ms: TypesEmpty = "p2ms_*",
+        p2sh: TypesEmpty = "p2sh_*",
+        p2wpkh: TypesEmpty = "p2wpkh_*",
+        p2wsh: TypesEmpty = "p2wsh_*",
+        p2tr: TypesEmpty = "p2tr_*",
+        p2a: TypesEmpty = "p2a_*",
+        unknown: TypesEmpty = "unknown_*",
+        empty: TypesEmpty = "empty_*",
+        op_return: TypesEmpty = "op_return_*",
     } }
-    shape! { OutputsByType at "series().outputs.by_type" {
-        output_count: OutputCount = "*_count",
-        spendable_output_count: CoinblocksDestroyed<Count> = "spendable_*_count",
-        output_share: OutputShare = "*_share",
-        tx_count: OutputsByTypeTxCount = "tx_count",
-        tx_share: OutputsByTypeTxShare = "tx_share_with",
+    shape! { Outputs at "series().outputs" {
+        spent: Spent = "txin_index",
+        count: Vbytes<Count, Option<CountFract>, Count32> = "*_count",
+        per_second: InputsPerSecond<Option<PerSecond>> = "outputs_per_second",
+        spendable_count: CoinblocksDestroyed<Count> = "spendable_*_count",
+        types: OutputsTypes = "*",
+        op_return_value: OpReturnValue = "op_return_value",
     } }
-    shape! { InputsByTypeTxCount at "series().inputs.by_type.tx_count" {
-        all: CoinblocksDestroyed<Count> = "non_coinbase_*",
-        p2pk65: CoinblocksDestroyed<Count> = "*_with_p2pk65_prevout",
-        p2pk33: CoinblocksDestroyed<Count> = "*_with_p2pk33_prevout",
-        p2pkh: CoinblocksDestroyed<Count> = "*_with_p2pkh_prevout",
-        p2ms: CoinblocksDestroyed<Count> = "*_with_p2ms_prevout",
-        p2sh: CoinblocksDestroyed<Count> = "*_with_p2sh_prevout",
-        p2wpkh: CoinblocksDestroyed<Count> = "*_with_p2wpkh_prevout",
-        p2wsh: CoinblocksDestroyed<Count> = "*_with_p2wsh_prevout",
-        p2tr: CoinblocksDestroyed<Count> = "*_with_p2tr_prevout",
-        p2a: CoinblocksDestroyed<Count> = "*_with_p2a_prevout",
-        unknown: CoinblocksDestroyed<Count> = "*_with_unknown_outputs_prevout",
-        empty: CoinblocksDestroyed<Count> = "*_with_empty_outputs_prevout",
+    shape! { InputsTypes at "series().inputs.types" {
+        p2pk65: TypesEmpty = "p2pk65_*",
+        p2pk33: TypesEmpty = "p2pk33_*",
+        p2pkh: TypesEmpty = "p2pkh_*",
+        p2ms: TypesEmpty = "p2ms_*",
+        p2sh: TypesEmpty = "p2sh_*",
+        p2wpkh: TypesEmpty = "p2wpkh_*",
+        p2wsh: TypesEmpty = "p2wsh_*",
+        p2tr: TypesEmpty = "p2tr_*",
+        p2a: TypesEmpty = "p2a_*",
+        unknown: TypesEmpty = "unknown_*",
+        empty: TypesEmpty = "empty_*",
     } }
-    shape! { InputCount at "series().inputs.by_type.input_count" {
-        all: CoinblocksDestroyed<Count> = "input_*_bis",
-        p2pk65: CoinblocksDestroyed<Count> = "p2pk65_prevout_*",
-        p2pk33: CoinblocksDestroyed<Count> = "p2pk33_prevout_*",
-        p2pkh: CoinblocksDestroyed<Count> = "p2pkh_prevout_*",
-        p2ms: CoinblocksDestroyed<Count> = "p2ms_prevout_*",
-        p2sh: CoinblocksDestroyed<Count> = "p2sh_prevout_*",
-        p2wpkh: CoinblocksDestroyed<Count> = "p2wpkh_prevout_*",
-        p2wsh: CoinblocksDestroyed<Count> = "p2wsh_prevout_*",
-        p2tr: CoinblocksDestroyed<Count> = "p2tr_prevout_*",
-        p2a: CoinblocksDestroyed<Count> = "p2a_prevout_*",
-        unknown: CoinblocksDestroyed<Count> = "unknown_outputs_prevout_*",
-        empty: CoinblocksDestroyed<Count> = "empty_outputs_prevout_*",
+    shape! { Inputs at "series().inputs" {
+        value: SeriesPattern23<Sats> = "value",
+        count: Vbytes<Count, Option<CountFract>, Count16> = "*_count",
+        per_second: InputsPerSecond<Option<PerSecond>> = "inputs_per_second",
+        types: InputsTypes = "*",
     } }
     shape! { AvgBalance<A> at "series().addresses.avg_balance" {
         all: A = "*",
@@ -2770,12 +2694,12 @@ pub mod tree {
     } }
     shape! { Events at "series().addresses.respent.events" {
         output_to_reused_addr_count: AvgBalance<CoinblocksDestroyed<Count>> = "output_to_*_count",
-        output_to_reused_addr_share: AvgBalance<FeeShare> = "output_to_*_share",
-        spendable_output_to_reused_addr_share: FeeShare = "spendable_output_to_*_share",
+        output_to_reused_addr_share: AvgBalance<Share> = "output_to_*_share",
+        spendable_output_to_reused_addr_share: Share = "spendable_output_to_*_share",
         input_from_reused_addr_count: AvgBalance<CoinblocksDestroyed<Count>> = "input_from_*_count",
-        input_from_reused_addr_share: AvgBalance<FeeShare> = "input_from_*_share",
+        input_from_reused_addr_share: AvgBalance<Share> = "input_from_*_share",
         active_reused_addr_count: Interval<Count, Option<CountFract>> = "active_*_count",
-        active_reused_addr_share: FeeShare = "active_*_share",
+        active_reused_addr_share: Share = "active_*_share",
     } }
     shape! { Respent at "series().addresses.respent" {
         count: ExposedCount = "*_count",
@@ -2854,7 +2778,7 @@ pub mod tree {
         _10k_btc_to_100k_btc: A = "utxos_10k_btc_to_100k_btc_*",
         over_100k_btc: A = "utxos_over_100k_btc_*",
     } }
-    shape! { InputShare<A> at "series().inputs.by_type.input_share" {
+    shape! { TransferVolumeType<A> at "series().utxos.activity.transfer_volume.type_" {
         p2pk65: A = "p2pk65_*",
         p2pk33: A = "p2pk33_*",
         p2pkh: A = "p2pkh_*",
@@ -2867,48 +2791,36 @@ pub mod tree {
         unknown: A = "unknown_outputs_*",
         empty: A = "empty_outputs_*",
     } }
-    shape! { InputsByType at "series().inputs.by_type" {
-        input_count: InputCount = "*",
-        input_share: InputShare<FeeShare> = "prevout_share",
-        tx_count: InputsByTypeTxCount = "tx_*",
-        tx_share: InputsByTypeTxShare = "tx_share_with",
-    } }
-    shape! { Inputs at "series().inputs" {
-        value: SeriesPattern23<Sats> = "value",
-        count: InputsCount<Count16> = "input_*",
-        per_sec: PerSec<Option<PerSecond>> = "inputs_per_sec",
-        by_type: InputsByType = "*",
-    } }
     shape! { AvgAmount at "series().utxos.outputs.avg_amount" {
         all: HodledOrLost = "*",
-        by_type: InputShare<HodledOrLost> = "*",
+        by_type: TransferVolumeType<HodledOrLost> = "*",
     } }
     shape! { UtxosActivityTransferVolume<A, B> at "series().utxos.activity.transfer_volume" {
         utxo_amount: A = "*",
         type_: B = "*",
     } }
     shape! { UtxosRealized at "series().utxos.realized" {
-        cap: UtxosActivityTransferVolume<CapUtxoAmount<Option<Dollars>>, Type<Option<Dollars>>> = "*_cap",
-        price: UtxosActivityTransferVolume<CapUtxoAmount<Option<Dollars>>, Type<Option<Dollars>>> = "*_price",
-        profit: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<Option<Dollars>>>, InputShare<CoinblocksDestroyed<Option<Dollars>>>> = "*_profit",
-        loss: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<Option<Dollars>>>, InputShare<CoinblocksDestroyed<Option<Dollars>>>> = "*_loss",
+        cap: UtxosActivityTransferVolume<CapUtxoAmount<Option<Dollars>>, CapType<Option<Dollars>>> = "*_cap",
+        price: UtxosActivityTransferVolume<CapUtxoAmount<Option<Dollars>>, CapType<Option<Dollars>>> = "*_price",
+        profit: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<Option<Dollars>>>, TransferVolumeType<CoinblocksDestroyed<Option<Dollars>>>> = "*_profit",
+        loss: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<Option<Dollars>>>, TransferVolumeType<CoinblocksDestroyed<Option<Dollars>>>> = "*_loss",
     } }
     shape! { UtxosActivity at "series().utxos.activity" {
-        transfer_volume: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<TransferVolume0sats>, InputShare<TransferVolume0sats>> = "*",
+        transfer_volume: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<TransferVolume0sats>, TransferVolumeType<TransferVolume0sats>> = "*",
     } }
     shape! { UtxosOutputs at "series().utxos.outputs" {
         avg_amount: AvgAmount = "avg_*_amount",
-        unspent_count: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<MarketCap<Count, CountSigned>>, InputShare<MarketCap<Count, CountSigned>>> = "*_count",
-        spent_count: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<Count>>, InputShare<CoinblocksDestroyed<Count>>> = "spent_*_count",
+        unspent_count: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<MarketCap<Count, CountSigned>>, TransferVolumeType<MarketCap<Count, CountSigned>>> = "*_count",
+        spent_count: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<Count>>, TransferVolumeType<CoinblocksDestroyed<Count>>> = "spent_*_count",
     } }
     shape! { UtxosSupplyTotal at "series().utxos.supply.total" {
         utxo_amount: TotalUtxoAmount = "*",
-        type_: InputShare<HodledOrLost> = "supply",
+        type_: TransferVolumeType<HodledOrLost> = "supply",
     } }
     shape! { UtxosSupply at "series().utxos.supply" {
         total: UtxosSupplyTotal = "utxos",
-        delta: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<DeltaAll<Option<Bitcoin>>>, InputShare<DeltaAll<Option<Bitcoin>>>> = "*_delta",
-        dominance: UtxosActivityTransferVolume<CapUtxoAmount<Option<Percent>>, Type<Option<Percent>>> = "*_dominance",
+        delta: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<DeltaAll<Option<Bitcoin>>>, TransferVolumeType<DeltaAll<Option<Bitcoin>>>> = "*_delta",
+        dominance: UtxosActivityTransferVolume<CapUtxoAmount<Option<Percent>>, CapType<Option<Percent>>> = "*_dominance",
     } }
     shape! { Utxos at "series().utxos" {
         supply: UtxosSupply = "*",
@@ -2934,17 +2846,17 @@ pub mod tree {
         coindays_destroyed: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_destroyed",
     } }
     shape! { AdjustedSopr at "series().holders.all.ratios.adjusted_sopr" {
-        ratio: PerSec<Option<Ratio>> = "*_adjusted_sopr",
+        ratio: InputsPerSecond<Option<Ratio>> = "*_adjusted_sopr",
         transfer_volume: CoinblocksDestroyed<Option<Dollars>> = "*_adj_value_created",
         value_destroyed: CoinblocksDestroyed<Option<Dollars>> = "*_adj_value_destroyed",
     } }
     shape! { Ratios at "series().holders.all.ratios" {
         adjusted_sopr: AdjustedSopr = "*",
-        dormancy: PerSec<Option<Days>> = "*_dormancy",
+        dormancy: InputsPerSecond<Option<Days>> = "*_dormancy",
         sopr: SeriesPattern2<Option<Ratio>> = "*_sopr_24h",
         sopr_ratio_extended: SoprRatioExtended = "*_sopr",
-        sell_side_risk_ratio: PerSec<Option<Ratio>> = "*_sell_side_risk_ratio",
-        profit_to_loss_ratio: PerSec<Option<Ratio>> = "*_realized_profit_to_loss_ratio",
+        sell_side_risk_ratio: InputsPerSecond<Option<Ratio>> = "*_sell_side_risk_ratio",
+        profit_to_loss_ratio: InputsPerSecond<Option<Ratio>> = "*_realized_profit_to_loss_ratio",
     } }
     shape! { AllRealized at "series().holders.all.realized" {
         cap: MarketCap<Option<Dollars>, Option<Dollars>> = "*_realized_cap",
@@ -3178,7 +3090,7 @@ pub mod tree {
     } }
     shape! { Antpool at "series().pools.major.antpool" {
         blocks_mined: CoinblocksDestroyed<Count> = "*_blocks_mined",
-        dominance: FeeShare = "*_dominance",
+        dominance: Share = "*_dominance",
         rewards: TransferVolume0sats = "*_rewards",
     } }
     shape! { Major at "series().pools.major" {
@@ -3210,7 +3122,7 @@ pub mod tree {
         major: Major = "unknown",
         minor: Minor = "blockfills",
     } }
-    shape! { CointimeValue at "series().cointime.value" {
+    shape! { Value at "series().cointime.value" {
         destroyed: CoinblocksDestroyed<Option<Float64>> = "*_destroyed",
         created: CoinblocksDestroyed<Option<Float64>> = "*_created",
         stored: CoinblocksDestroyed<Option<Float64>> = "*_stored",
@@ -3353,7 +3265,7 @@ pub mod tree {
         over_6m_awake_price: CapitalizedPrice = "over_6m_*_price",
         over_6m_awake_capitalized_price: CapitalizedPrice = "over_6m_*_capitalized_price",
         supply: CointimeSupply = "supply",
-        value: CointimeValue = "cointime_value",
+        value: Value = "cointime_value",
         cap: Cap = "cap",
         prices: CointimePrices = "price",
         adjusted: Adjusted = "cointime_adj",
@@ -3364,6 +3276,9 @@ pub mod tree {
         v2: CoinblocksDestroyed<Count> = "*_v2",
         v3: CoinblocksDestroyed<Count> = "*_v3",
         other: CoinblocksDestroyed<Count> = "*_other_version",
+    } }
+    shape! { Sigops at "series().transactions.sigops" {
+        total: CoinblocksDestroyed<SigOps64> = "*",
     } }
     shape! { PolicyCount at "series().transactions.policy.count" {
         nonstandard: CoinblocksDestroyed<Count> = "*",
@@ -3412,25 +3327,15 @@ pub mod tree {
     shape! { TransactionsFeatures at "series().transactions.features" {
         count: TransactionsFeaturesCount = "*",
     } }
-    shape! { OutputsCount<A> at "series().outputs.count" {
-        total: A = "*",
-    } }
-    shape! { Outputs at "series().outputs" {
-        spent: Spent = "txin_index",
-        count: OutputsCount<InputsCount<Count32>> = "*_count",
-        per_sec: PerSec<Option<PerSecond>> = "outputs_per_sec",
-        by_type: OutputsByType = "*",
-        value: OutputsValue = "op_return_value",
-    } }
     shape! { Transactions at "series().transactions" {
-        count: OutputsCount<Vbytes<Count, Option<CountFract>, Count16>> = "*_count",
+        count: Vbytes<Count, Option<CountFract>, Count16> = "*_count",
         features: TransactionsFeatures = "*_count",
         size: TransactionsSize = "*",
         fees: TransactionsFees = "fee",
         inscription: Inscription = "inscription",
         patterns: Patterns = "is",
         policy: Policy = "nonstandard",
-        sigops: OutputsCount<CoinblocksDestroyed<SigOps64>> = "total_sigop_cost",
+        sigops: Sigops = "total_sigop_cost",
         versions: Versions = "*",
         volume: Volume = "*",
     } }
@@ -3641,10 +3546,10 @@ pub mod tree {
         utxos: Utxos = "supply",
         addresses: Addresses = "addr",
         supply: Supply = "supply",
-        inputs: Inputs = "count",
+        inputs: Inputs = "input",
         outputs: Outputs = "output",
         utxo_history: UtxoHistory = "circulating_supply",
-        op_return: OpReturn = "count",
+        op_return: OpReturn = "op_return",
     } }
 }
 pub use tree::SeriesTree;

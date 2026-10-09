@@ -29,13 +29,8 @@ impl Vecs {
         let policy = policy::Vecs::import(&db, version, mappings, window_starts)?;
         let sigops = sigops::Vecs::import(&db, version, mappings, window_starts)?;
         let versions = versions::Vecs::import(&db, version, mappings, window_starts)?;
-        let volume = volume::Vecs::import(
-            &db,
-            version,
-            mappings,
-            window_starts,
-            &count.total.rolling.sum,
-        )?;
+        let volume =
+            volume::Vecs::import(&db, version, mappings, window_starts, &count.rolling.sum)?;
 
         let this = Self {
             db,

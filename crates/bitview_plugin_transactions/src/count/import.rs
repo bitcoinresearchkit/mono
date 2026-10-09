@@ -14,15 +14,13 @@ impl Vecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        Ok(Vecs {
-            total: PerBlockFullFromCumulative::import(
-                db,
-                "tx_count",
-                version,
-                &mappings.transaction_count_source(),
-                mappings,
-                window_starts,
-            )?,
-        })
+        Ok(Self(PerBlockFullFromCumulative::import(
+            db,
+            "tx_count",
+            version,
+            &mappings.transaction_count_source(),
+            mappings,
+            window_starts,
+        )?))
     }
 }

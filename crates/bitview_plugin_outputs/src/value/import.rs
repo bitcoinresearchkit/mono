@@ -9,7 +9,12 @@ use super::Vecs;
 impl Vecs {
     pub(crate) fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
         Ok(Vecs {
-            op_return: ValuePerBlockCumulative::import(db, "op_return_value", version, mappings)?,
+            op_return_value: ValuePerBlockCumulative::import(
+                db,
+                "op_return_value",
+                version,
+                mappings,
+            )?,
         })
     }
 }

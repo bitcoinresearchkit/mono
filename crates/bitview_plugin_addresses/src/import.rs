@@ -1,9 +1,9 @@
 use bitview_collections::Windows;
 use bitview_distribution::RealizedCaps;
 use bitview_plugin::ImportContext;
-use bitview_plugin_inputs::ByTypeVecs;
+use bitview_plugin_inputs::Vecs as InputsVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_plugin_outputs::ByTypeVecs as OutputsByTypeVecs;
+use bitview_plugin_outputs::Vecs as OutputsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
@@ -26,8 +26,8 @@ impl Vecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
         prices: &PriceVecs,
-        inputs_by_type: &ByTypeVecs,
-        outputs_by_type: &OutputsByTypeVecs,
+        inputs: &InputsVecs,
+        outputs: &OutputsVecs,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 20_000_000)?;
@@ -70,8 +70,8 @@ impl Vecs {
             mappings,
             window_starts,
             &spot_price,
-            outputs_by_type,
-            inputs_by_type,
+            outputs,
+            inputs,
             addr_activity.active_cumulative(),
             all_supply,
         )?;
@@ -82,8 +82,8 @@ impl Vecs {
             mappings,
             window_starts,
             &spot_price,
-            outputs_by_type,
-            inputs_by_type,
+            outputs,
+            inputs,
             addr_activity.active_cumulative(),
             all_supply,
         )?;

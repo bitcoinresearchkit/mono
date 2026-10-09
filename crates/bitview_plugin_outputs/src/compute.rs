@@ -35,25 +35,25 @@ impl ComputePlugin for Vecs {
             db,
             value,
             count,
-            by_type,
+            types,
             spent,
             ..
         } = self;
 
         let exit = context.exit();
         count.compute(indexer, blocks, exit)?;
-        let (fiat, types) = join(
+        let (fiat, counts) = join(
             || {
-                value.op_return.compute_cents(
+                value.op_return_value.compute_cents(
                     indexer.safe_lengths().height,
                     &price.spot.cents.height,
                     exit,
                 )
             },
-            || by_type.compute(indexer, exit),
+            || types.compute(indexer, exit),
         );
         fiat?;
-        types?;
+        counts?;
         let lock = spent.compute(indexer, exit)?;
         db.run_bg(move |db| {
             let _lock = lock;
@@ -75,7 +75,7 @@ impl Vecs {
         self.db.sync_bg_tasks()?;
         let outputs = &indexer.vecs().outputs;
         value::compute_sats(
-            &mut self.value.op_return.cumulative.sats.height,
+            &mut self.value.op_return_value.cumulative.sats.height,
             &mut self.creations,
             start..end,
             &outputs.first_txout_index,

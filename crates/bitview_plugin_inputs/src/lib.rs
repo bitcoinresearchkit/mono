@@ -7,7 +7,7 @@ mod import;
 mod origins;
 mod value;
 
-pub use by_type::Vecs as ByTypeVecs;
+pub use by_type::{InputTypeVecs, Vecs as TypesVecs};
 pub use count::Vecs as CountVecs;
 pub use dependencies::Dependencies;
 pub use has::HasInputs;
@@ -38,9 +38,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// because they have no previous output.
     pub value: M::Stored<PcoVec<TxInIndex, Sats>>,
     pub count: CountVecs<M>,
-    /// Transaction-input rate, including one coinbase input per block.
-    per_sec: LazyPerSecondWindows,
-    pub by_type: ByTypeVecs<M>,
+    /// Transaction-input rate, excluding coinbase inputs.
+    per_second: LazyPerSecondWindows,
+    /// Transaction inputs by the locking-script type of the output they spend,
+    /// excluding coinbase inputs and coinbase transactions.
+    pub types: TypesVecs<M>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

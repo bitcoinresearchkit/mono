@@ -114,6 +114,7 @@ impl Batch {
                     carrier_index += 1;
                 }
 
+                total.output_count += 1;
                 total.data_bytes += bytes;
                 by_kind[kind_index].output_count += 1;
                 by_kind[kind_index].data_bytes += bytes;
@@ -122,9 +123,9 @@ impl Batch {
 
             carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
             target.total.push(total);
-            target.by_kind.push(by_kind);
+            target.protocols.push(by_kind);
             target
-                .policy
+                .policies
                 .push(OpReturnPolicyId::from_fn(|id| *policy.get(id)));
         }
 

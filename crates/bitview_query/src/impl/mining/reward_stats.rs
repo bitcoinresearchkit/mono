@@ -24,7 +24,7 @@ impl Query {
 
         let coinbase_vec = &plugins.mining.rewards.coinbase.cumulative.sats.height;
         let fee_vec = &plugins.mining.rewards.fees.cumulative.sats.height;
-        let tx_count_vec = &plugins.transactions.count.total.cumulative.height;
+        let tx_count_vec = &plugins.transactions.count.cumulative.height;
 
         let end = end_block.to_usize() + 1;
 

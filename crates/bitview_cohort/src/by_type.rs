@@ -11,6 +11,26 @@ use super::{CohortId, SpendableType, UnspendableType};
 use bitview_traversable::Traversable;
 
 pub(crate) const OP_RETURN: &str = "op_return";
+
+/// The type's member key, its word in per-entry series ids (`empty_output_count`);
+/// type cohort names qualify `empty` and `unknown` instead (`empty_outputs_supply`).
+pub const fn type_key(output_type: OutputType) -> &'static str {
+    match output_type {
+        OutputType::P2PK65 => "p2pk65",
+        OutputType::P2PK33 => "p2pk33",
+        OutputType::P2PKH => "p2pkh",
+        OutputType::P2MS => "p2ms",
+        OutputType::P2SH => "p2sh",
+        OutputType::OpReturn => OP_RETURN,
+        OutputType::P2WPKH => "p2wpkh",
+        OutputType::P2WSH => "p2wsh",
+        OutputType::P2TR => "p2tr",
+        OutputType::P2A => "p2a",
+        OutputType::Empty => "empty",
+        OutputType::Unknown => "unknown",
+    }
+}
+
 #[derive(Default, Clone, Debug)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ByType<T> {
@@ -21,6 +41,15 @@ pub struct ByType<T> {
 }
 
 impl<T> ByType<T> {
+    pub fn from_type(mut create: impl FnMut(OutputType) -> T) -> Self {
+        Self {
+            spendable: SpendableType::from_fn(|kind| create(kind.output_type())),
+            unspendable: UnspendableType {
+                op_return: create(OutputType::OpReturn),
+            },
+        }
+    }
+
     pub fn map_with_id<U>(&self, mut map: impl FnMut(CohortId, &T) -> U) -> ByType<U> {
         ByType {
             spendable: self.spendable.map_with_id(&mut map),

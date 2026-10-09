@@ -18,7 +18,11 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        let Dependencies { indexer, fees } = dependencies;
+        let Dependencies {
+            indexer,
+            fees,
+            price,
+        } = dependencies;
         let exit = context.exit();
 
         let starting_lengths = indexer.safe_lengths();
@@ -53,6 +57,12 @@ impl ComputePlugin for Vecs {
                 self.write()?;
             }
         }
+
+        let prices = &price.spot.cents.height;
+        let height = starting_lengths.height;
+        self.total.compute_cents(height, prices, exit)?;
+        self.protocols.compute_cents(height, prices, exit)?;
+        self.policies.compute_cents(height, prices, exit)?;
 
         Ok(())
     }

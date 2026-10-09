@@ -15,7 +15,7 @@ impl Vecs {
         let starting_height = indexer.safe_lengths().height;
 
         let window_starts = lookback.window_starts();
-        self.total.compute(starting_height, &window_starts, exit)?;
+        self.0.compute(starting_height, &window_starts, exit)?;
 
         Ok(())
     }

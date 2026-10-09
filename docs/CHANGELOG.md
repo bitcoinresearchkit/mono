@@ -80,6 +80,25 @@ has to be deleted by hand.
   volume (input value of non-coinbase transactions) is `transactions.volume.value`, id `tx_volume` (was
   `transfer_volume` with ids `transfer_volume_bis*`): the holders' `all` cohort's `transfer_volume` is a different
   quantity (spent UTXO value)
+- Transaction, input and output counts have one shape: `transactions.count`, `inputs.count` and `outputs.count` hold
+  `block`, `cumulative` and the window statistics directly (were under `total` and `rolling`, with the block's count at
+  `inputs.count.sum` and `outputs.count.total.sum`). The block counts are ids `input_count` and `output_count` (were `input_count_sum`,
+  `output_count_sum`); the per-transaction counts are `tx_input_count` and `tx_output_count` (were `input_count`,
+  `output_count`). Input counts exclude coinbase inputs, like Bitcoin Core's `getblockstats` (were one more per
+  block). Rates are `inputs_per_second` and `outputs_per_second` (were `_per_sec`)
+- Input and output types are member-first: `outputs.types.<type>.{count, share, tx_count, tx_share}` and the same
+  under `inputs.types` (were `by_type.<metric>.<type>`), with ids `p2tr_output_count`, `p2tr_output_share`,
+  `p2tr_output_tx_count`, `p2tr_output_tx_share` and `p2tr_input_*` (were `tx_count_with_p2tr_output`,
+  `p2tr_prevout_count`, `tx_share_with_p2tr_prevout`, ...); `empty` and `unknown` drop `_outputs` in these ids. Input
+  shares divide by non-coinbase inputs (were all inputs, coinbase included), as does the reused-address input share.
+  The `all` members (`output_count_bis`, `input_count_bis`, `tx_count_bis`, `non_coinbase_tx_count`) are gone.
+  `outputs.spendable_count` and `outputs.op_return_value` sit at the outputs root (were under `by_type` and `value`)
+- OP_RETURN is member-first: `op_return.protocols.<protocol>.*` and `op_return.policies.<policy>.*` (were
+  `by_kind.<metric>.<kind>` and `policy.<metric>.<policy>`), with the totals at the root (were under `total`). A
+  member's shares are `data_bytes.share`, `data_bytes.chain_share` and `fees.share` (were `data_share` and
+  `fee_share`); the totals' `chain_share` and `fee_share` moved under `data_bytes` and `fees`. Fees are BTC and USD
+  (were sats). The totals gain `output_count` (id `op_return_output_count`, shared with outputs). Policy ids drop
+  `policy_` (`op_return_oversized_tx_count`, was `op_return_policy_oversized_tx_count`)
 - Shared ids: `circulating_supply` (UTXO history, holders' `all` and supply), `market_cap` (holders' `all` supply in
   USD and supply), `utxo_count` (UTXO history and holders' `all`).
   `utxo_history.supply` is `circulating_supply` in BTC (was `unspent_sats` in sats); `supply.circulating` is BTC only,

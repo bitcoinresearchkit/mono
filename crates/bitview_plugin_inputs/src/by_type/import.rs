@@ -1,17 +1,17 @@
-use bitview_cohort::SpendableType;
+use bitview_cohort::{SpendableType, type_key};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::Count;
-use bitview_vecs::{CountTotal, LazyWindowStartVec, import_cached};
+use bitview_primitives::{Count, PartsPerMillion32};
+use bitview_transforms::Quotient;
+use bitview_vecs::{
+    LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling, LazyWindowStartVec, import_cached,
+};
 use brk_error::Result;
 use brk_types::{Height, Version};
-use vecdb::Database;
+use vecdb::{Database, LazyVec, ReadableCloneableVec};
 
-use super::{Vecs, WithInputTypes};
-
-fn without_coinbase(height: Height, total: Count) -> Count {
-    total - Count::from(height.incremented())
-}
+use super::{InputTypeVecs, Vecs};
+use crate::count::without_coinbase;
 
 impl Vecs {
     pub(crate) fn import(
@@ -19,35 +19,16 @@ impl Vecs {
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
+        inputs: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
         let version = version + Version::TWO;
-        let input_count_stored = SpendableType::try_new(|id| {
+        let count_stored = SpendableType::try_new(|id| {
             import_cached(
                 db,
                 &format!("{}_prevout_count_cumulative", id.name()),
                 version,
             )
         })?;
-        let input_count = WithInputTypes::from_cumulative_sources(
-            CountTotal::from_source(
-                "input_count_bis",
-                version,
-                &mappings.input_count_source(),
-                mappings,
-                window_starts,
-            ),
-            |name| format!("{name}_prevout_count"),
-            version,
-            &input_count_stored,
-            mappings,
-            window_starts,
-        );
-        let input_share = input_count.lazy_shares(
-            version,
-            |name| format!("{name}_prevout_share"),
-            window_starts,
-            mappings,
-        );
         let tx_count_stored = SpendableType::try_new(|id| {
             import_cached(
                 db,
@@ -55,34 +36,66 @@ impl Vecs {
                 version,
             )
         })?;
-        let tx_count = WithInputTypes::from_cumulative_sources(
-            CountTotal::from_transformed_source(
-                "non_coinbase_tx_count",
+        // Coinbase transactions spend no outputs.
+        let txs = LazyVec::init(
+            "non_coinbase_tx_count_cumulative_source",
+            version,
+            mappings.transaction_count_source().read_only_boxed_clone(),
+            without_coinbase,
+        );
+        let version = version + Version::ONE;
+        let types = SpendableType::from_fn(|kind| {
+            let output_type = kind.output_type();
+            let key = type_key(output_type);
+            let count = LazyPerBlockCumulativeRolling::from_cumulative_source(
+                &format!("{key}_input_count"),
                 version,
-                &mappings.transaction_count_source(),
-                without_coinbase,
-                mappings,
+                count_stored.get(output_type),
                 window_starts,
-            ),
-            |name| format!("tx_count_with_{name}_prevout"),
-            version,
-            &tx_count_stored,
-            mappings,
-            window_starts,
-        );
-        let tx_share = tx_count.lazy_shares(
-            version,
-            |name| format!("tx_share_with_{name}_prevout"),
-            window_starts,
-            mappings,
-        );
+                mappings,
+            );
+            let share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
+                Count,
+                Count,
+                Quotient<PartsPerMillion32>,
+            >(
+                &format!("{key}_input_share"),
+                version,
+                &count.cumulative.height,
+                inputs,
+                window_starts,
+                mappings,
+            );
+            let tx_count = LazyPerBlockCumulativeRolling::from_cumulative_source(
+                &format!("{key}_input_tx_count"),
+                version,
+                tx_count_stored.get(output_type),
+                window_starts,
+                mappings,
+            );
+            let tx_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
+                Count,
+                Count,
+                Quotient<PartsPerMillion32>,
+            >(
+                &format!("{key}_input_tx_share"),
+                version,
+                &tx_count.cumulative.height,
+                &txs,
+                window_starts,
+                mappings,
+            );
+            InputTypeVecs {
+                count,
+                share,
+                tx_count,
+                tx_share,
+            }
+        });
 
         Ok(Self {
-            input_count,
-            input_share,
-            tx_count,
-            tx_share,
-            input_count_stored,
+            types,
+            count_stored,
             tx_count_stored,
         })
     }

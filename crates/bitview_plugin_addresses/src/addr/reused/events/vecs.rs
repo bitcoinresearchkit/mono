@@ -1,8 +1,8 @@
 use bitview_cohort::{AddrTypeId, ByAddrType, WithAddrTypes};
 use bitview_collections::Windows;
-use bitview_plugin_inputs::ByTypeVecs as InputsByTypeVecs;
+use bitview_plugin_inputs::Vecs as InputsVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_plugin_outputs::ByTypeVecs;
+use bitview_plugin_outputs::Vecs as OutputsVecs;
 use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
@@ -30,8 +30,7 @@ use super::state::AddrTypeToAddrEventCount;
 /// an address ever sees is excluded. Every subsequent output counts,
 /// matching the standard "% of outputs to previously-used addresses"
 /// reuse ratio reported by external sources. `output_to_reused_addr_share`
-/// uses `bitview_plugin_outputs::ByTypeVecs::output_count` (all 12 output types) as
-/// denominator. `spendable_output_to_reused_addr_share` uses the
+/// uses all transaction outputs (`outputs.count`) as denominator. `spendable_output_to_reused_addr_share` uses the
 /// op_return-excluded 11-type aggregate (`spendable_output_count`).
 ///
 /// `input_from_reused_addr_count`: every input spending from an address
@@ -42,9 +41,8 @@ use super::state::AddrTypeToAddrEventCount;
 /// This is a *stable-predicate* signal about the sending address, not
 /// an output-level repeat event: the first spend from a reused address
 /// counts just as much as the tenth. Denominator
-/// (`input_from_reused_addr_share`): `bitview_plugin_inputs::ByTypeVecs::input_count` (11
-/// spendable types, where `p2ms`, `unknown`, `empty` count as true
-/// negatives).
+/// (`input_from_reused_addr_share`): all non-coinbase transaction inputs
+/// (`inputs.count`; `p2ms`, `unknown` and `empty` count as true negatives).
 ///
 /// `active_reused_addr_count` / `active_reused_addr_share`: block-level
 /// *address* signals (single aggregate, not per-type).
@@ -92,6 +90,28 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
 }
 
 impl AddrEventsVecs {
+    fn count_share(
+        name: &str,
+        version: Version,
+        numerator: &impl ReadableCloneableVec<Height, Count>,
+        denominator: &impl ReadableCloneableVec<Height, Count>,
+        window_starts: &Windows<&LazyWindowStartVec>,
+        mappings: &MappingsVecs,
+    ) -> LazyPercentCumulativeRolling<PartsPerMillion32> {
+        LazyPercentCumulativeRolling::from_cumulative_ratio::<
+            Count,
+            Count,
+            Quotient<PartsPerMillion32>,
+        >(
+            name,
+            version,
+            numerator,
+            denominator,
+            window_starts,
+            mappings,
+        )
+    }
+
     fn event_shares(
         name: &str,
         version: Version,
@@ -124,8 +144,8 @@ impl AddrEventsVecs {
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        outputs_by_type: &ByTypeVecs,
-        inputs_by_type: &InputsByTypeVecs,
+        outputs: &OutputsVecs,
+        inputs: &InputsVecs,
         active_addr_cumulative: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
         let import_count = |name: &str| -> Result<_> {
@@ -148,16 +168,17 @@ impl AddrEventsVecs {
 
         let output_to_reused_addr_count = import_count(&format!("output_to_{name}_addr_count"))?;
         let output_share_name = format!("output_to_{name}_addr_share");
-        let output_denominators = outputs_by_type.output_count.addr_type_counts();
+        let output_denominators = outputs.types.addr_type_counts();
         let output_to_reused_addr_share = Self::event_shares(
             &output_share_name,
             version,
             mappings,
             window_starts,
-            outputs_by_type.output_count.lazy_share(
+            Self::count_share(
                 &output_share_name,
                 version,
                 &output_to_reused_addr_count.all.cumulative.height,
+                &outputs.count.cumulative.height,
                 window_starts,
                 mappings,
             ),
@@ -165,31 +186,27 @@ impl AddrEventsVecs {
             &output_denominators,
         );
         let spendable_share_name = format!("spendable_output_to_{name}_addr_share");
-        let spendable_output_to_reused_addr_share =
-            LazyPercentCumulativeRolling::from_cumulative_ratio::<
-                Count,
-                Count,
-                Quotient<PartsPerMillion32>,
-            >(
-                &spendable_share_name,
-                version,
-                &output_to_reused_addr_count.all.cumulative.height,
-                outputs_by_type.spendable_output_count.cumulative_source(),
-                window_starts,
-                mappings,
-            );
+        let spendable_output_to_reused_addr_share = Self::count_share(
+            &spendable_share_name,
+            version,
+            &output_to_reused_addr_count.all.cumulative.height,
+            outputs.spendable_count.cumulative_source(),
+            window_starts,
+            mappings,
+        );
         let input_from_reused_addr_count = import_count(&format!("input_from_{name}_addr_count"))?;
         let input_share_name = format!("input_from_{name}_addr_share");
-        let input_denominators = inputs_by_type.input_count.addr_type_counts();
+        let input_denominators = inputs.types.addr_type_counts();
         let input_from_reused_addr_share = Self::event_shares(
             &input_share_name,
             version,
             mappings,
             window_starts,
-            inputs_by_type.input_count.lazy_share(
+            Self::count_share(
                 &input_share_name,
                 version,
                 &input_from_reused_addr_count.all.cumulative.height,
+                &inputs.count.cumulative.height,
                 window_starts,
                 mappings,
             ),

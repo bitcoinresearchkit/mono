@@ -5,7 +5,7 @@ use bitview_vecs::{LazyPerSecondWindows, LazyWindowStartVec};
 use brk_error::Result;
 use vecdb::{ImportableVec, PcoVec};
 
-use super::{ByTypeVecs, CountVecs, STORAGE, Vecs};
+use super::{CountVecs, STORAGE, TypesVecs, Vecs};
 use crate::OriginSpends;
 
 impl Vecs {
@@ -19,8 +19,15 @@ impl Vecs {
 
         let value = PcoVec::import(&db, "value", version)?;
         let count = CountVecs::import(&db, version, mappings, window_starts)?;
-        let per_sec = LazyPerSecondWindows::new("inputs_per_sec", version, &count.rolling.sum);
-        let by_type = ByTypeVecs::import(&db, version, mappings, window_starts)?;
+        let per_second =
+            LazyPerSecondWindows::new("inputs_per_second", version, &count.rolling.sum);
+        let types = TypesVecs::import(
+            &db,
+            version,
+            mappings,
+            window_starts,
+            &count.cumulative.height,
+        )?;
 
         let origins = OriginSpends::open(db.path())?;
         let this = Self {
@@ -28,8 +35,8 @@ impl Vecs {
             db,
             value,
             count,
-            per_sec,
-            by_type,
+            per_second,
+            types,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

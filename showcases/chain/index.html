@@ -3205,8 +3205,8 @@
           { key: "sighash:all", series: count.sighashAll.block }, { key: "sighash:none", series: count.sighashNone.block }, { key: "sighash:single", series: count.sighashSingle.block },
           { key: "sighash:default", series: count.sighashDefault.block }, { key: "sighash:anyone_can_pay", series: count.sighashAnyoneCanPay.block },
           { key: "policy:nonstandard", series: tx.policy.count.nonstandard.block },
-          ...OP_RETURN_KINDS.map(([, kind, path]) => ({ key: `op_return:${kind}`, series: opReturn.byKind.txCount[path].block })),
-          ...OP_RETURN_POLICIES.map(([, policy, path]) => ({ key: `op_return_policy:${policy}`, series: opReturn.policy.txCount[path].block })),
+          ...OP_RETURN_KINDS.map(([, kind, path]) => ({ key: `op_return:${kind}`, series: opReturn.protocols[path].txCount.block })),
+          ...OP_RETURN_POLICIES.map(([, policy, path]) => ({ key: `op_return_policy:${policy}`, series: opReturn.policies[path].txCount.block })),
         ];
 
         const memberships = new Map([

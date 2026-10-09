@@ -3,44 +3,77 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillion32;
 use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPercentCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling};
-use brk_types::{Height, Sats, Version};
-use derive_more::{Deref, DerefMut};
-use vecdb::{ReadableCloneableVec, Rw, StorageMode};
+use bitview_vecs::{
+    LazyPercentCumulativeRolling, LazyWindowStartVec, ValuePerBlockCumulativeRolling,
+};
+use brk_error::Result;
+use brk_exit::Exit;
+use brk_types::{Cents, Height, Sats, Version};
+use vecdb::{
+    AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
+};
 
-#[derive(Deref, DerefMut, Traversable)]
+#[derive(Traversable)]
 pub struct FeesSeries<M: StorageMode = Rw> {
-    #[deref]
-    #[deref_mut]
     #[traversable(flatten)]
-    pub fees: PerBlockCumulativeRolling<Sats, M>,
-    /// Fees of transactions in a breakdown bucket divided by all transaction
-    /// fees over the same cumulative or trailing window.
-    pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
+    pub fees: ValuePerBlockCumulativeRolling<M>,
+    /// These fees divided by all transaction fees over the same cumulative or
+    /// trailing window.
+    pub share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }
 
 impl FeesSeries {
-    pub fn new(
+    pub fn import(
+        db: &Database,
         prefix: &str,
         version: Version,
-        fees: PerBlockCumulativeRolling<Sats>,
         chain_fees: &impl ReadableCloneableVec<Height, Sats>,
         window_starts: &Windows<&LazyWindowStartVec>,
         mappings: &MappingsVecs,
-    ) -> Self {
-        let fee_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
+    ) -> Result<Self> {
+        let fees = ValuePerBlockCumulativeRolling::import(
+            db,
+            &format!("{prefix}_fees"),
+            version,
+            mappings,
+            window_starts,
+        )?;
+        let share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
             Sats,
             Sats,
             Quotient<PartsPerMillion32>,
         >(
             &format!("{prefix}_fee_share"),
             version,
-            fees.cumulative.resolutions.height_source(),
+            fees.cumulative.sats.resolutions.height_source(),
             chain_fees,
             window_starts,
             mappings,
         );
 
-        Self { fees, fee_share }
+        Ok(Self { fees, share })
+    }
+
+    pub fn len(&self) -> usize {
+        self.fees.cumulative.sats.height.len()
+    }
+
+    pub fn push_block(&mut self, value: Sats) {
+        let cumulative = &mut self.fees.cumulative.sats.height;
+        let last = cumulative.collect_last().unwrap_or_default();
+        cumulative.push(last + value);
+    }
+
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+        &mut self.fees.cumulative.sats.height
+    }
+
+    pub fn compute_cents(
+        &mut self,
+        max_from: Height,
+        price_cents: &impl ReadableVec<Height, Cents>,
+        exit: &Exit,
+    ) -> Result<()> {
+        self.fees.compute_cents(max_from, price_cents, exit)
     }
 }
