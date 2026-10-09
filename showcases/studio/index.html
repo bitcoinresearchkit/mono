@@ -6,10 +6,12 @@
   It opens as a preview. Layers are a series (exact name), a formula of other layers by letter (A, B... in order), or a
   cloud between layers; drawings, panes and a date window are written the same way. As an image: Export, then Open
   image (the chart's picture alone, in a tab of its own). From a script in the page: studio.open(chart), then
-  await studio.ready() and await studio.png() (its picture, 1200 by 760, a PNG data URL; studio.png({ part: 0 }) for
-  it in parts of 45,000 characters); #image= in place of #chart= is a page of that picture alone. Series names are the
-  live API's: how to find them, https://bitview.space/llms.txt. The full reference is the "About Studio's links"
-  section at the start of the page's main.
+  await studio.ready() and await studio.png({ width: 1200, height: 760, scale: 2 }): its picture, a PNG data URL, in
+  one result. If your tool says the output was too long and saved it to a file, decode the base64 from that file.
+  Only if long output gets cut off and nothing is saved: the same options with part: 0, then 1, 2 and on. #image= in
+  place of #chart= is a page of that picture alone (a screenshot of it, the last resort). Series names are the live
+  API's: how to find them, https://bitview.space/llms.txt. The full reference is the "About Studio's links" section at
+  the start of the page's main.
 -->
 <html lang="en">
   <head>
@@ -304,10 +306,6 @@
             max-height: 100%;
             border-radius: var(--radius-md);
             cursor: pointer;
-
-            &[hidden] {
-              display: none;
-            }
           }
 
           img {
@@ -329,6 +327,11 @@
         white-space: nowrap;
       }
 
+      /* Hidden is hidden, whatever a class's display says (a button's inline-flex, a grid). */
+      [hidden] {
+        display: none !important;
+      }
+
       /* Words for a screen reader alone (what the chart shows, the values read along it). */
       .vh {
         position: absolute;
@@ -346,10 +349,6 @@
         border-radius: var(--radius-sm);
         pointer-events: none;
 
-        &[hidden] {
-          display: none;
-        }
-
         &:focus-visible {
           outline-offset: -2px;
         }
@@ -365,10 +364,6 @@
         color: var(--soft);
         background: var(--press);
         font: 510 11px/1 var(--sans);
-
-        &[hidden] {
-          display: none;
-        }
 
         /* ⇧ and ↵ drawn (see drawKeys), in line with the rest; their glyphs kept for a screen reader. */
         &:has(.key) {
@@ -1746,21 +1741,12 @@
         gap: 4px;
       }
 
-      /* A preview: kept by its Keep (or by editing it). A new chart, empty: no ⋯ (nothing it does there). */
-      #chart-more[hidden] {
-        display: none;
-      }
-
       .preview-note {
         display: inline-flex;
         align-items: center;
         gap: 8px;
         margin-right: 6px;
         white-space: nowrap;
-
-        &[hidden] {
-          display: none;
-        }
 
         .preview-said {
           color: var(--muted);
@@ -2017,10 +2003,6 @@
         inset: 0;
         z-index: 4;
         margin: auto;
-
-        &[hidden] {
-          display: none;
-        }
       }
 
       /* The time axis: a label cut by the plot's left edge fades into it (as a strip's edges do). */
@@ -2229,10 +2211,6 @@
         box-shadow: var(--pop);
         transition: opacity var(--fade);
         animation: belt-in var(--dur-small) var(--ease);
-
-        &[hidden] {
-          display: none;
-        }
 
         &.busy {
           opacity: 0.4;
@@ -2498,10 +2476,6 @@
         background: color-mix(in srgb, var(--ink) 6%, transparent);
         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 45%, transparent);
         pointer-events: none;
-
-        &[hidden] {
-          display: none;
-        }
       }
 
       /* A text being typed on the chart: where it's drawn, as it's drawn, its box sized to it by script. */
@@ -2531,10 +2505,6 @@
         &[data-back="solid"] {
           background: var(--c);
         }
-
-        &[hidden] {
-          display: none;
-        }
       }
 
       .stage-foot {
@@ -2545,10 +2515,6 @@
         height: 44px;
         padding: 0 10px;
         box-shadow: inset 0 1px 0 var(--line);
-
-        &[hidden] {
-          display: none;
-        }
       }
 
       /* Ranges of one width: the foot's pieces fall on whole pixels. */
@@ -2575,10 +2541,6 @@
           background: linear-gradient(90deg, transparent, var(--ink), transparent);
           animation: progress 1.1s var(--ease) infinite;
         }
-
-        &[hidden] {
-          display: none;
-        }
       }
 
       @keyframes progress {
@@ -2600,10 +2562,6 @@
         place-content: center;
         justify-items: center;
         gap: 14px;
-
-        &[hidden] {
-          display: none;
-        }
 
         svg {
           width: min(380px, 70%);
@@ -2664,10 +2622,6 @@
         padding: 32px 20px;
         place-items: center;
         background: radial-gradient(60% 50% at 50% 0%, light-dark(transparent, rgb(255 255 255 / 0.03)), transparent 70%), var(--card);
-
-        &[hidden] {
-          display: none;
-        }
       }
 
       /* "Start a chart" and "All charts": one title, one lead under it. */
@@ -2712,10 +2666,6 @@
             gap: 2px;
             margin-left: auto;
             margin-right: -9px;
-
-            .btn[hidden] {
-              display: none;
-            }
           }
         }
       }
@@ -3493,10 +3443,6 @@
           padding: 7px 12px;
           color: var(--muted);
           font-size: 12px;
-
-          &[hidden] {
-            display: none;
-          }
         }
       }
 
@@ -3506,10 +3452,6 @@
         margin: 0;
         padding: 4px;
         list-style: none;
-
-        &[hidden] {
-          display: none;
-        }
 
         li {
           display: flex;
@@ -3558,10 +3500,6 @@
         color: var(--soft);
         font-size: 12px;
         line-height: 1.5;
-
-        &[hidden] {
-          display: none;
-        }
 
         .call-sig {
           overflow-x: auto;
@@ -4397,10 +4335,6 @@
           &:disabled {
             cursor: default;
           }
-
-          &[hidden] {
-            display: none;
-          }
         }
 
         input {
@@ -4461,10 +4395,6 @@
         border-bottom: 1px solid var(--line);
         padding: 0 10px;
         white-space: nowrap;
-
-        &[hidden] {
-          display: none;
-        }
 
         i {
           flex-shrink: 0;
@@ -4856,10 +4786,6 @@
             background: var(--hover);
           }
         }
-
-        [hidden] {
-          display: none;
-        }
       }
 
       /* Touch has no keys: every key shown, and the hint about them, goes; the buttons stay. The shortcuts sheet, opened
@@ -5028,10 +4954,6 @@
         background: var(--raise);
         box-shadow: var(--pop);
         animation: menu var(--dur-small) var(--ease);
-
-        &[hidden] {
-          display: none;
-        }
 
         > button {
           display: flex;
@@ -5244,10 +5166,6 @@
           animation: none;
         }
 
-        &[hidden] {
-          display: none;
-        }
-
         &:not(:has(kbd)) {
           padding-right: 9px;
         }
@@ -5370,10 +5288,6 @@
       .home-tools {
         display: flex;
         gap: 8px;
-
-        &[hidden] {
-          display: none;
-        }
 
         /* (It gives the room the tools need, down to a phone's.) */
         .home-filter {
@@ -5598,10 +5512,6 @@
         color: var(--muted);
         font-size: 13px;
         text-align: center;
-
-        &[hidden] {
-          display: none;
-        }
 
         p {
           margin: 0;
@@ -5964,11 +5874,6 @@
         background: var(--raise);
         box-shadow: var(--pop);
         animation: rise var(--dur-small) var(--ease);
-
-        &[hidden],
-        [hidden] {
-          display: none;
-        }
 
         :is([data-batch="delete"], [data-layers-batch="remove"]):hover {
           color: var(--danger);
@@ -7279,7 +7184,7 @@
           <ul>
             <li>A chart is a link: https://studio.bitview.space/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.</li>
             <li>Its picture alone: the same link with #image= in place of #chart=, a page that is, once drawn, that picture (with only screenshots to work with, take one of it).</li>
-            <li>From a script in the page: await studio.open(chart); await studio.ready(); await studio.png(), its picture as a PNG data URL (see "From a script").</li>
+            <li>From a script in the page: await studio.open(chart); await studio.ready(); await studio.png({ width: 1200, height: 760, scale: 2 }), its picture as a PNG data URL, in one result (see "From a script").</li>
           </ul>
           <h2>Opening a chart from a link</h2>
           <p>A link carries a whole chart: https://studio.bitview.space/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
@@ -7327,8 +7232,8 @@
           <p>For a script run in the page (a browser's console, an assistant driving a browser), window.studio:</p>
           <ul>
             <li>await studio.open(chart): a chart as a link writes it (an object, or its JSON), opened as its link opens it; rejected with why if it can't be read.</li>
-            <li>await studio.ready(): once the chart open is drawn whole (its data in, its reveal and fades done: a screenshot then shows all of it); rejected with why not (no chart, no layers, still loading after a minute). In a tab that's shown, in a window of some size: a browser draws nothing out of sight.</li>
-            <li>await studio.png(options): its picture, as Export makes it (its title, legends and dates), as a data URL, the same whatever the window. Options, each if wanted: width and height, in CSS pixels (1200 and 760 if none); scale, 1 or 2 (pixels for each, 1 if none); type, "image/png" (if none), "image/webp" or "image/jpeg", with quality, 0 to 1 (0.9 if none); part, 0, 1 and so on: the picture in parts, each {part, parts, mime, base64}, partSize characters of its base64 (45000 if none: each part, all told, under 50,000); part 0 makes the picture of the chart as it is, the others are from that same picture, however long after: join their base64, "data:" + mime + ";base64," before it. Sizes, at 1200 by 760, for a chart of a few lines: a PNG about 130,000 to 160,000 characters (three or four parts), a WebP about 50,000, a JPEG about 100,000; at scale 2, about 330,000, 130,000 and 270,000.</li>
+            <li>await studio.ready(): once the chart open is drawn whole (its data in, its reveal and fades at their end: a screenshot then shows all of it); rejected with why not (no chart, no layers, still loading after a minute).</li>
+            <li>await studio.png(options): its picture, as Export makes it (its title, legends and dates), as a data URL ("data:image/png;base64," and its base64), in one result, the same whatever the window. If your tool says the output was too long and saved it to a file, decode the base64 from that file: that's the picture, no need to retype it. Options, each if wanted: width and height, in CSS pixels (1200 and 760 if none); scale, 1 or 2 (pixels for each, 1 if none); type, "image/png" (if none), "image/webp" or "image/jpeg", with quality, 0 to 1 (0.9 if none); part, only if long output gets cut off and nothing is saved: 0, 1 and so on, each call with part 0's options, the picture in parts, each {part, parts, mime, base64}, partSize characters of its base64 (45000 if none: each part, all told, under 50,000); part 0 makes the picture of the chart as it is, the others are from that same picture, however long after: join their base64, "data:" + mime + ";base64," before it. Sizes, at 1200 by 760, for a chart of a few lines: a PNG about 130,000 to 160,000 characters (three or four parts), a WebP about 50,000, a JPEG about 100,000; at scale 2, about 330,000, 130,000 and 270,000.</li>
             <li>studio.chart(): the chart open, as a link writes it.</li>
             <li>await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.</li>
             <li>await studio.search(words): series names for those words, the best first, as Studio's search finds them, only those it can chart (by date; words as people say them do: "200 day moving average", "transaction count"). Its catalog is in the page: no web access needed.</li>
@@ -7336,9 +7241,10 @@
           <p>What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or max.</p>
           <pre>await studio.open({"title": "Cost basis", "layers": [{"series": "price"}, {"series": "realized_price"}]});
 await studio.ready();
-const picture = await studio.png();
-// or read in parts of 45,000 characters: { part: 0, parts: 3, mime: "image/png", base64: "…" }, then { part: 1 }…
-const first = await studio.png({ part: 0 });</pre>
+const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
+// One result: "data:image/png;base64,…". Saved to a file by your tool as too long? Decode the base64 from that file.
+// Only if long output is cut off and nothing is saved: the same options with part: 0, then part: 1, 2…
+// ({ part, parts, mime, base64 } each; at scale 2, a PNG is six to eight).</pre>
           <h2>Changing a chart</h2>
           <p>A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link) is written the same way, URL-encoded only where a link needs it (%20 spaces, %22 quotes, %7B %7D braces, %5B %5D brackets, %2B a plus, which a link would read as a space): it's the chart as whoever copied it has it now, their own changes in it. Read it, change it, write it back (only one past what a browser opens, about a megabyte, is compressed instead: it opens, but can't be read). Its "view", if any, is where it was zoomed and scrolled: keep it, change it, or leave it out to show the chart's "range".</p>
           <h2>Series names</h2>
@@ -10991,13 +10897,19 @@ const first = await studio.png({ part: 0 });</pre>
         wasCloses.clear();
         kept.clear();
         showDrawings(doc);
-        requestAnimationFrame(() => {
-          // (Mid-drag, the panes as they were: their legends kept, their contents written again.)
-          if (holding && legends().length === chart.panes.length) updateLegends();
-          else placeLegends();
-          updateValues();
-        });
+        legendsDue = true;
+        requestAnimationFrame(layOutLegends);
         relayout();
+      }
+      /** Whether the chart's legends wait for their frame, the chart laid out (a picture made before it places them). */
+      let legendsDue = false;
+      function layOutLegends() {
+        if (!legendsDue) return;
+        legendsDue = false;
+        // (Mid-drag, the panes as they were: their legends kept, their contents written again.)
+        if (holding && legends().length === chart.panes.length) updateLegends();
+        else placeLegends();
+        updateValues();
       }
 
       /**
@@ -22107,6 +22019,8 @@ const first = await studio.png({ part: 0 });</pre>
             capturing = false;
             repaintDrawings();
           }
+          // (A tab drawing no frames: its legends still to place, the chart's, not the one before.)
+          layOutLegends();
           scale = shot.width / width;
           // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
           const hovered = hoverTime;
@@ -23266,8 +23180,8 @@ const first = await studio.png({ part: 0 });</pre>
 
       /**
        * The chart open (or opening: failing as a script's open failed) drawn whole, with what data it has (its reveal and
-       * fades done), and the fonts its picture writes in, all within `ms`; else why not: at once for what can't change (no
-       * chart, no layers).
+       * fades at their end), and the fonts its picture writes in, all within `ms`; else why not: at once for what can't
+       * change (no chart, no layers).
        */
       async function settle(ms = 60_000) {
         // (The time given for all of it: the chart's way there and the fonts too.)
@@ -23279,13 +23193,17 @@ const first = await studio.png({ part: 0 });</pre>
           if (!left()) throw new Error("The chart is still loading");
           await new Promise((done) => setTimeout(done, Math.min(50, left())));
         }
-        // (Its reveal, the page's crossfade to it, its legends' fades over too: a screenshot then shows it whole. Every
-        // motion that ends; those that don't, a live dot's, go on.)
-        const animating = () => document.getAnimations().filter((motion) => motion.playState === "running" && Number.isFinite(Number(motion.effect?.getComputedTiming().endTime)));
-        // (Out of sight, none moves: none to wait for, and the picture's drawn when it's made.)
-        for (let k = 0; k < 3 && !document.hidden && animating().length; k++) if ((await Promise.race([Promise.all(animating().map((motion) => motion.finished.catch(() => {}))), late()])) === LATE) throw new Error("The chart is still loading");
-        // (Drawn on its next frame; a tab out of sight has none: its picture's drawn when it's made.)
+        // (Its reveal, the page's crossfade to it, its legends' fades, the chart's own wipe: each at its end now. A script
+        // asking wants the chart as it stays, and a tab drawing no frames (out of sight, a pane not shown) would never
+        // move them. Those that don't end, a live dot's, go on. Again after a frame: what an end started.)
+        const ended = () => {
+          for (const motion of document.getAnimations()) if (motion.playState === "running" && Number.isFinite(Number(motion.effect?.getComputedTiming().endTime))) motion.finish();
+          endReveal();
+        };
+        ended();
+        // (Drawn on its next frame, where there are frames: a picture's drawn when it's made.)
         await new Promise((done) => (requestAnimationFrame(() => done(undefined)), setTimeout(done, Math.min(100, left()))));
+        ended();
       }
       /**
        * Studio for scripts run in the page (a console, an assistant driving a browser): a chart opened as its link opens
