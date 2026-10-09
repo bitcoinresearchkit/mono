@@ -1,5 +1,5 @@
-// Studio as one file, for bitview.space: `node showcases/studio/build.mjs [out]` (out: dist/index.html, beside this),
-// and its guide as llms.txt beside it.
+// Studio as one file, for bitview.space: `node showcases/studio/build.mjs [out]` (out: dist/index.html, beside this).
+// Its guide for assistants is in it: its "About Studio's links", the page's own text.
 //
 // index.html stays as it is, the repo's: it imports the modules beside it and the client this code builds (it's the
 // version a server ships with itself, always in step). The file made here is served on its own, updated whenever, so
@@ -236,21 +236,3 @@ mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, html);
 console.log(`${relative(process.cwd(), out)}: ${(Buffer.byteLength(html) / 1024).toFixed(0)} KB`);
 
-// The guide beside the page, as markdown (llms.txt, which the page's head points to): its "About Studio's links"
-// section, word for word, so the two never drift. Served with the page, or the head points nowhere.
-const about = /<section id="about"[^>]*>([\s\S]*?)<\/section>/.exec(html)?.[1];
-if (!about) throw new Error("No guide (the about section) in index.html");
-const plain = (fragment) => fragment.replace(/<[^>]+>/g, "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-const line = (fragment) => plain(fragment).replace(/\s+/g, " ").trim();
-const markdown = about
-  .replace(/<pre>([\s\S]*?)<\/pre>/g, (_, code) => `\n\`\`\`\n${plain(code).trim()}\n\`\`\`\n`)
-  .replace(/<h1>([\s\S]*?)<\/h1>/g, (_, text) => `\n# ${line(text)}\n`)
-  .replace(/<h2>([\s\S]*?)<\/h2>/g, (_, text) => `\n## ${line(text)}\n`)
-  .replace(/<li>([\s\S]*?)<\/li>/g, (_, text) => `- ${line(text)}\n`)
-  .replace(/<p>([\s\S]*?)(?:<\/p>|(?=\n\s*<(?:pre|ul|h\d)))/g, (_, text) => `\n${line(text)}\n`)
-  .replace(/<\/?ul>/g, "\n")
-  .split("\n").map((text) => text.replace(/^ +/, "")).join("\n")
-  .replace(/\n{3,}/g, "\n\n").replace(/(?<=^- [^\n]*)\n\n(?=- )/gm, "\n").trim();
-const guide = join(dirname(out), "llms.txt");
-writeFileSync(guide, `${markdown}\n`);
-console.log(`${relative(process.cwd(), guide)}: the guide, ${(Buffer.byteLength(markdown) / 1024).toFixed(0)} KB (serve it beside the page)`);

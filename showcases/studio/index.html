@@ -6,16 +6,16 @@
   It opens as a preview. Layers are a series (exact name), a formula of other layers by letter (A, B... in order), or a
   cloud between layers; drawings, panes and a date window are written the same way. As an image: Export, then Open
   image (the chart's picture alone, in a tab of its own). From a script in the page: studio.open(chart), then
-  await studio.ready() and await studio.png() (its picture, a PNG data URL); #image= in place of #chart= is a page of
-  that picture alone. Series names are the live API's: how to find them, https://bitview.space/llms.txt. The full
-  reference is the "About Studio's links" section at the start of the page's main, and llms.txt beside this page.
+  await studio.ready() and await studio.png() (its picture, 1200 by 760, a PNG data URL; studio.png({ part: 0 }) for
+  it in parts of 45,000 characters); #image= in place of #chart= is a page of that picture alone. Series names are the
+  live API's: how to find them, https://bitview.space/llms.txt. The full reference is the "About Studio's links"
+  section at the start of the page's main.
 -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link: a chart is a link, #chart= and its JSON (llms.txt says how, and how to have its picture)." />
-    <link rel="alternate" type="text/markdown" href="llms.txt" title="About Studio's links: charts as JSON, their pictures" />
+    <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link: a chart is a link, #chart= and its JSON (this page's text says how, and how to have its picture)." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <link rel="apple-touch-icon" href="data:image/png;base64,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" />
     <title>Bitview Studio</title>
@@ -2366,6 +2366,20 @@
         background: var(--line-strong);
       }
 
+      /* A select's dropdown of colors: Bitview's, ten to a row across its width (five, by touch: see below). */
+      .color-drop {
+        padding: 4px 4px 2px;
+
+        .swatch-grid {
+          grid-template-columns: repeat(10, minmax(0, 1fr));
+
+          button {
+            width: auto;
+            height: 30px;
+          }
+        }
+      }
+
       /* Bitview's colors, a grid of swatches: the one in use ringed. */
       .swatch-grid {
         display: grid;
@@ -2703,7 +2717,13 @@
         color: var(--muted);
         font-size: 12px;
 
-        a {
+        /* (The guide's, here: a button, set as a link in words.) */
+        button {
+          border: 0;
+          padding: 0;
+          background: none;
+          font: inherit;
+          cursor: pointer;
           color: var(--soft);
           white-space: nowrap;
           text-decoration: underline;
@@ -4744,6 +4764,45 @@
       }
 
       /* Grouped by what they act on, each action read first and its keys across from it. */
+      /* How links work: the guide, to read: a column of text, its examples set apart. */
+      .guide-body {
+        padding: 0 20px 20px;
+        color: var(--text);
+        font-size: 13px;
+        line-height: 20px;
+
+        h2 {
+          margin: 18px 0 6px;
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 590;
+        }
+
+        p,
+        ul {
+          margin: 0 0 8px;
+        }
+
+        ul {
+          padding-left: 18px;
+        }
+
+        li {
+          margin: 3px 0;
+        }
+
+        pre {
+          overflow-x: auto;
+          margin: 8px 0;
+          border-radius: var(--radius-md);
+          padding: 10px 12px;
+          background: var(--field);
+          box-shadow: inset 0 0 0 1px var(--line);
+          font: 12px/18px var(--mono);
+          white-space: pre-wrap;
+        }
+      }
+
       .shortcuts {
         width: min(780px, calc(100vw - 32px));
         max-height: min(760px, calc(100dvh - 96px));
@@ -6443,7 +6502,7 @@
 
         /* (Five to a row, four rows: each wide enough to aim at.) */
         .swatch-grid,
-        .color-box .swatch-grid {
+        :is(.color-box, .color-drop) .swatch-grid {
           grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 4px;
 
@@ -6724,7 +6783,7 @@
       <main id="main" class="card" style="--i: 2">
         <section id="about" class="about" aria-label="About Studio's links">
           <h1>Bitview Studio</h1>
-          <p>Charts of Bitcoin's on-chain data from bitview.space, drawn in the browser (with JavaScript on). This guide is also at https://studio.bitview.space/llms.txt.</p>
+          <p>Charts of Bitcoin's on-chain data from bitview.space, drawn in the browser (with JavaScript on).</p>
           <h2>In short</h2>
           <ul>
             <li>A chart is a link: https://studio.bitview.space/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.</li>
@@ -6772,13 +6831,13 @@
           <p>"drawings": [{"kind": "trend", "layer": "A", "points": [["2021-04-14", 64000], ["2021-11-10", 69000]]}]: each on a layer (by its letter, on its scale), its points each a date and a value. Kinds: trend (a line through two points), hline and vline (a line across, or down, through one point: an hline's date and a vline's value can be any), rect and ellipse (by two corners), ruler (a measure between two points), text (at one point, with its "text": up to 500 characters, centered there, "\n" for a new line) and brush (a free stroke, up to 300 points). Up to 100 drawings.</p>
           <p>Each can have a "color" (yellow if none), "width" (0.5 to 5, by halves; 1.5 if none), "dash" and "opacity", as a layer's; a ruler is drawn in its own colors and lines (no opacity, width or dash), a text without width or dash. A trend line can have "extend" (right, or both) or "arrow": true (not both). A trend, hline or vline can have a "label" (up to 80 characters) and where along it ("at", 0 to 1: 0.5 for a trend, 1 for an hline, 0 for a vline if none). A text or a line's label can have a "size" (11, 13, 16 or 22) and a "back" (outline, soft, soft-outline or solid).</p>
           <h2>As a picture</h2>
-          <p>A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), the chart as the page lays it out; from a link, https://studio.bitview.space/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (the download button in the chart's header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy as image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
+          <p>A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), at a size of its own; from a link, https://studio.bitview.space/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (the download button in the chart's header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy as image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
           <h2>From a script</h2>
           <p>For a script run in the page (a browser's console, an assistant driving a browser), window.studio:</p>
           <ul>
             <li>await studio.open(chart): a chart as a link writes it (an object, or its JSON), opened as its link opens it; rejected with why if it can't be read.</li>
-            <li>await studio.ready(): once the chart open is drawn, its data in; rejected with why not (no chart, no layers, still loading after a minute). In a tab that's shown, in a window of some size: a browser draws nothing out of sight.</li>
-            <li>await studio.png(): its picture, as Export makes it (its title, legends and dates), as a data:image/png;base64 URL: a long string, one to save or show, not to print.</li>
+            <li>await studio.ready(): once the chart open is drawn whole (its data in, its reveal and fades done: a screenshot then shows all of it); rejected with why not (no chart, no layers, still loading after a minute). In a tab that's shown, in a window of some size: a browser draws nothing out of sight.</li>
+            <li>await studio.png(options): its picture, as Export makes it (its title, legends and dates), as a data URL, the same whatever the window. Options, each if wanted: width and height, in CSS pixels (1200 and 760 if none); scale, 1 or 2 (pixels for each, 1 if none); type, "image/png" (if none), "image/webp" or "image/jpeg", with quality, 0 to 1 (0.9 if none); part, 0, 1 and so on: the picture in parts, each {part, parts, mime, base64}, partSize characters of its base64 (45000 if none: each part, all told, under 50,000); part 0 makes the picture of the chart as it is, the others are from that same picture, however long after: join their base64, "data:" + mime + ";base64," before it. Sizes, at 1200 by 760, for a chart of a few lines: a PNG about 130,000 to 160,000 characters (three or four parts), a WebP about 50,000, a JPEG about 100,000; at scale 2, about 330,000, 130,000 and 270,000.</li>
             <li>studio.chart(): the chart open, as a link writes it.</li>
             <li>await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.</li>
             <li>await studio.search(words): series names for those words, the best first, as Studio's search finds them, only those it can chart (by date; words as people say them do: "200 day moving average", "transaction count"). Its catalog is in the page: no web access needed.</li>
@@ -6786,7 +6845,9 @@
           <p>What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or max.</p>
           <pre>await studio.open({"title": "Cost basis", "layers": [{"series": "price"}, {"series": "realized_price"}]});
 await studio.ready();
-const picture = await studio.png();</pre>
+const picture = await studio.png();
+// or read in parts of 45,000 characters: { part: 0, parts: 3, mime: "image/png", base64: "…" }, then { part: 1 }…
+const first = await studio.png({ part: 0 });</pre>
           <h2>Changing a chart</h2>
           <p>A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link) is written the same way, URL-encoded only where a link needs it (%20 spaces, %22 quotes, %7B %7D braces, %5B %5D brackets, %2B a plus, which a link would read as a space): it's the chart as whoever copied it has it now, their own changes in it. Read it, change it, write it back (only one past what a browser opens, about a megabyte, is compressed instead: it opens, but can't be read). Its "view", if any, is where it was zoomed and scrolled: keep it, change it, or leave it out to show the chart's "range".</p>
           <h2>Series names</h2>
@@ -6853,7 +6914,7 @@ const picture = await studio.png();</pre>
                     <div id="templates" class="templates strip"></div>
                   </div>
                   <div class="keys"><button class="btn ghost small keys-sheet" type="button" data-action="shortcuts"><span data-icon="keyboard"></span>Shortcuts<kbd>?</kbd></button><div class="keys-actions"><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div></div>
-                  <p class="links-note">Every chart is also a link, to share, or to have an assistant write. <a href="llms.txt" target="_blank" rel="noopener">How links work</a></p>
+                  <p class="links-note">Every chart is also a link, to share, or to have an assistant write. <button type="button" data-action="guide">How links work</button></p>
                 </div>
               </div>
             </div>
@@ -6963,6 +7024,14 @@ const picture = await studio.png();</pre>
       </div>
     </dialog>
 
+    <dialog id="guide" class="shortcuts guide" aria-label="How links work" tabindex="-1">
+      <div class="dialog-head">
+        <h2>How links work</h2>
+        <span class="spacer"></span>
+        <button class="cap small" type="button" data-action="close-guide" aria-label="Close" data-icon="close"></button>
+      </div>
+      <div id="guide-body" class="guide-body"></div>
+    </dialog>
     <dialog id="shortcuts" class="shortcuts" aria-label="Shortcuts" tabindex="-1">
       <div class="dialog-head">
         <h2>Shortcuts</h2>
@@ -10350,7 +10419,7 @@ const picture = await studio.png();</pre>
           // A side shows in every pane once any layer uses it: the plots line up, and the chart library needs it so.
           // A stack sits on its floor (a band's height is its value): no margin under it. (Folded, a pane's scale reads
           // nothing: it has nothing shown.)
-          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), textColor: folded.has(pane.id) ? "transparent" : css("--chart-text"), scaleMargins: { top: 0.17, bottom: pane.stack ? 0 : 0.08 }, ...(keep ? {} : { mode: paneMode(pane), autoScale: true }) });
+          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), textColor: folded.has(pane.id) ? "transparent" : css("--chart-text"), scaleMargins: marginsOf(doc, pane, i), ...(keep ? {} : { mode: paneMode(pane), autoScale: true }) });
         });
         // (Mid-drag, panes of the same shape keep their sizes: no need to measure them again.)
         if (!(holding && drawnPanes === panesShape)) sizePanes(doc);
@@ -10613,6 +10682,7 @@ const picture = await studio.png();</pre>
         updateLegends();
         for (const legend of legends()) if (scrolled.get(legend.dataset.pane)) legend.scrollLeft = /** @type {number} */ (scrolled.get(legend.dataset.pane));
         sizePanes();
+        marginsSet = "";
         relayout();
       }
       /**
@@ -11102,10 +11172,31 @@ const picture = await studio.png();</pre>
           placeBelt();
           placePlotKeys();
           if (chart && drawnChart === chart.id) sizePanes();
+          fitMargins();
         });
       }
       /** The chart's height, as last laid out. */
       let chartHeight = 0;
+      /**
+       * A pane's margins: over its lines, room for its legend (the legend's height, from the pane's: a share of the pane,
+       * on a log scale a span of decades, would grow with it); under them, a little (none under a stack: it sits on its
+       * floor). @param {Chart} doc @param {Pane} pane @param {number} i
+       */
+      function marginsOf(doc, pane, i) {
+        const height = view.panes()[i]?.getHeight() || chartHeight / Math.max(1, doc.panes.length) || 400;
+        const legend = /** @type {HTMLElement | null} */ ($("chart").querySelector(`.legend[data-pane="${pane.id}"]`));
+        const room = doc.legend === "off" || !legend ? 14 : legend.offsetTop + legend.offsetHeight + 10;
+        return { top: clamp(room / height, 0.03, 0.35), bottom: pane.stack ? 0 : clamp(14 / height, 0.02, 0.08) };
+      }
+      /** The panes' margins again, where a size has changed (theirs, a legend's): only those that changed. */
+      let marginsSet = "";
+      function fitMargins() {
+        if (!chart || drawnChart !== chart.id) return;
+        const all = chart.panes.map((pane, i) => marginsOf(chart, pane, i)), key = JSON.stringify(all.map(({ top, bottom }) => [top.toFixed(3), bottom.toFixed(3)]));
+        if (key === marginsSet) return;
+        marginsSet = key;
+        all.forEach((margins, i) => ["left", "right"].forEach((side) => view.priceScale(side, i).applyOptions({ scaleMargins: margins })));
+      }
       const resized = new ResizeObserver((entries) => {
         for (const entry of entries) if (entry.target === $("chart")) chartHeight = entry.contentRect.height;
         relayout();
@@ -11122,6 +11213,7 @@ const picture = await studio.png();</pre>
         const sizes = chart.panes.map((_, i) => Math.round(panes[i].getStretchFactor() * 100) / 100);
         if (sizes.every((size, i) => folded.has(chart.panes[i].id) || size === Math.round((chart.panes[i].size ?? defaultSize(i)) * 100) / 100)) return;
         commit((doc) => doc.panes.forEach((pane, i) => !folded.has(pane.id) && (pane.size = sizes[i])), { redraw: "none", quiet: true });
+        fitMargins();
       }, 0));
 
       /**
@@ -12652,7 +12744,10 @@ const picture = await studio.png();</pre>
         event.stopPropagation();
         // (At its edge, an arrow stays.)
         const swatches = all$("button", grid), at = swatches.indexOf(target), columns = getComputedStyle(grid).gridTemplateColumns.split(" ").length;
-        swatches[at + step * (event.key === "ArrowUp" || event.key === "ArrowDown" ? columns : 1)]?.focus();
+        const next = swatches[at + step * (event.key === "ArrowUp" || event.key === "ArrowDown" ? columns : 1)];
+        // (Past its foot, in a menu: the menu's next row, its Custom.)
+        if (next) next.focus();
+        else if (event.key === "ArrowDown") /** @type {HTMLElement | undefined} */ (all$("#menu button").find((button) => grid.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING && !grid.contains(button)))?.focus();
       }, true);
       // The width's or the opacity's slider, in its popover: scrubbed or stepped by keys as the layers panel's, one undo
       // step a drag.
@@ -16782,15 +16877,16 @@ const picture = await studio.png();</pre>
         });
       }
       /**
-       * A color from a select: Bitview's colors by name, then Custom (any other: the surface, a page of its own), then what
-       * else picks it (`extra`, its picks to `onExtra`). One is ticked: colored otherwise (`borrowed`: by its levels, from
+       * A color from a select, its dropdown: Bitview's colors (a grid, at a glance), then Custom (any other: the surface, a
+       * page of its own), then what else picks it (`extra`, its picks to `onExtra`). One is ticked: colored otherwise (`borrowed`: by its levels, from
        * another), none of the colors. Back from Custom, `again` opens it as things are then (a pick there redraws it).
        */
       function colorMenu(/** @type {HTMLElement} */ anchor, /** @type {string} */ current, /** @type {string} */ target, /** @type {(color: string) => void} */ apply, extra = "", /** @type {(picked: DOMStringMap) => void} */ onExtra = () => {}, borrowed = false, again = () => colorMenu(anchor, current, target, apply, extra, onExtra, borrowed)) {
         const own = !borrowed && !SWATCHES.includes(current);
-        const row = (/** @type {string} */ color) => `<button type="button" data-pick-color="${escape(color)}" aria-checked="${!borrowed && color === current}">${tick(!borrowed && color === current)}<i class="swatch" style="--c:${escape(cssColor(color))}"></i>${escape(colorName(color))}</button>`;
+        // (A dropdown as wide as its select, under it: Bitview's colors at a glance, each named on hover.)
+        const colors = `<div class="color-drop" style="width: ${Math.max(232, Math.round(anchor.getBoundingClientRect().width) - 8)}px">${swatchGrid(borrowed ? "" : current)}</div><div class="menu-rule"></div>`;
         const custom = `<button type="button" data-pick-custom="1" aria-checked="${own}" aria-haspopup="menu">${tick(own)}<i class="swatch" style="${own ? `--c:${escape(cssColor(current))}` : "background: conic-gradient(from 90deg, #f43f5e, #f59e0b, #84cc16, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f43f5e)"}"></i>Custom${own ? `<span>${escape(ink(current))}</span>` : ""}</button>`;
-        showMenu(anchor, `${SWATCHES.map(row).join("")}${custom}${extra}`, (hit) => {
+        showMenu(anchor, `${colors}${custom}${extra}`, (hit) => {
           if (hit.pickCustom) colorPane(anchor, current, target, again, borrowed);
           else if (hit.pickColor && (hit.pickColor !== current || borrowed)) apply(hit.pickColor);
           else if (!hit.pickColor) onExtra(hit);
@@ -18500,7 +18596,7 @@ const picture = await studio.png();</pre>
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           ...(TOUCH ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
           ...(TOUCH ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, words: "single key keys keyboard shortcuts letters hotkeys accessibility disable enable turn", icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
-          { title: "How links work", text: "A chart is a link: what one holds, and how to write it by hand or have an assistant write it (the guide, in a tab of its own).", words: "about guide docs documentation help link links json api script assistant ai llms", icon: "link", run: () => window.open("llms.txt", "_blank", "noopener"), anywhere: true },
+          { title: "How links work", text: "A chart is a link: what one holds, and how to write it by hand or have an assistant write it (the guide, here).", words: "about guide docs documentation help link links json api script assistant ai llms", icon: "link", run: showGuide, anywhere: true },
           toastUndo?.mark === revision || (!home && edits.past.length) ? { title: "Undo", text: toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", words: "revert back", icon: "undo", anywhere: true },
           // The charts picked in the grid: what its bar does.
           ...(home && picked.size ? [
@@ -21089,36 +21185,75 @@ const picture = await studio.png();</pre>
        * the view's dates and the date of the values the legends show. None where the browser would give noise for it.
        * @returns {Promise<HTMLCanvasElement>}
        */
-      async function chartImage() {
+      async function chartImage(/** @type {{ width?: number, height?: number, scale?: number }} */ size = {}) {
         if (!canvasReadable()) throw new Error(UNREADABLE);
-        if (!$("chart").clientWidth || !$("chart").clientHeight) throw new Error("The chart has no room: the window is of no size");
         const PAD = 28, HEAD = 60, FOOT = 40;
-        // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
-        capturing = true;
-        repaintDrawings();
-        let shot;
+        // Laid out as its picture while it's read: at its size (a script's, whatever the window; else as shown), its panes
+        // sized to it, its legends wrapped as the picture writes them and room made over the lines for them, drawn at once
+        // (no frame waited for: a tab out of sight has none); then exactly as it was (its zoom, its size, its margins).
+        const element = $("chart"), wrapper = /** @type {HTMLElement} */ (element.firstElementChild), sized = Boolean(size.width && size.height);
+        const style = element.getAttribute("style"), wrapped = [wrapper.style.width, wrapper.style.height], logical = view.timeScale().getVisibleLogicalRange(), heightWas = chartHeight;
+        const width = sized ? /** @type {number} */ (size.width) - PAD * 2 : element.clientWidth, height = sized ? /** @type {number} */ (size.height) - HEAD - FOOT : element.clientHeight;
+        if (!width || !height) throw new Error("The chart has no room: the window is of no size");
+        const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
+        let shot, pieces, scale = 1, dates, axisHeight = 0, leftWidth = 0;
         try {
-          shot = view.takeScreenshot(true, false);
-        } finally {
-          capturing = false;
+          if (sized) Object.assign(element.style, { right: "auto", bottom: "auto", width: `${width}px`, height: `${height}px` });
+          for (const [legend] of strips) Object.assign(legend.style, { flexWrap: "wrap", overflow: "visible", rowGap: "2px" });
+          view.applyOptions({ autoSize: false });
+          view.resize(width, height, true);
+          chartHeight = height;
+          sizePanes();
+          if (sized && resolved && drawnChart === chart.id) {
+            fitSpacing(chart, resolved.times.length);
+            if (presetShown) applyRange(chart, resolved);
+            else if (logical) view.timeScale().setVisibleLogicalRange(logical);
+          }
+          marginsSet = "";
+          fitMargins();
+          view.resize(width, height, true);
+          // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
+          capturing = true;
           repaintDrawings();
-        }
-        const scale = shot.width / $("chart").clientWidth;
-        // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
-        const hovered = hoverTime;
-        hoverTime = null;
-        updateReadout();
-        let pieces;
-        try {
-          pieces = measureLegends(scale);
-        } finally {
-          hoverTime = hovered;
+          try {
+            shot = view.takeScreenshot(true, false);
+          } finally {
+            capturing = false;
+            repaintDrawings();
+          }
+          scale = shot.width / width;
+          // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
+          const hovered = hoverTime;
+          hoverTime = null;
           updateReadout();
+          try {
+            pieces = measureLegends(scale);
+          } finally {
+            hoverTime = hovered;
+            updateReadout();
+          }
+          // (Its dates and its axes' size, as the shot has them.)
+          dates = viewDates();
+          axisHeight = view.timeScale().height();
+          leftWidth = view.priceScale("left").width();
+        } finally {
+          for (const [legend, saved] of strips) legend.style.cssText = saved;
+          if (style === null) element.removeAttribute("style");
+          else element.setAttribute("style", style);
+          chartHeight = heightWas;
+          // (The chart library's own frame back to its container's size, and following it again.)
+          view.resize(element.clientWidth, element.clientHeight, true);
+          [wrapper.style.width, wrapper.style.height] = wrapped;
+          view.applyOptions({ autoSize: true });
+          sizePanes();
+          if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
+          if (sized && logical) view.timeScale().setVisibleLogicalRange(logical);
+          marginsSet = "";
+          fitMargins();
         }
-        // (The theme's colors too, as the shot has them, and its axes' size: all read before the marks load, while another
-        // chart, theme or size may come.)
-        const dates = viewDates(), title = titleOf(chart), cadence = CADENCE[chart.index], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
-        const axisHeight = view.timeScale().height(), leftWidth = view.priceScale("left").width();
+        // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
+        // size may come.)
+        const title = titleOf(chart), cadence = CADENCE[chart.index], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
         await drawMarks(pieces);
         const px = (n) => Math.round(n * scale);
         const font = (weight, size) => `${weight} ${px(size)}px ${sans}`;
@@ -21181,7 +21316,15 @@ const picture = await studio.png();</pre>
         const full = [cadence, dates.span, dates.values].filter(Boolean).join(" · "), short = [cadence, dates.values || dates.span].join(" · ");
         context.textAlign = "right";
         context.fillText(context.measureText(full).width < canvas.width - pad - at - px(24) ? full : short, canvas.width - pad, baseline);
-        return canvas;
+        // At the scale asked for (a script's): the screen's density made that, smoothly.
+        if (!sized || !size.scale || (Math.abs(canvas.width - /** @type {number} */ (size.width) * size.scale) < 1 && Math.abs(canvas.height - /** @type {number} */ (size.height) * size.scale) < 1)) return canvas;
+        const out = document.createElement("canvas");
+        out.width = Math.round(/** @type {number} */ (size.width) * size.scale);
+        out.height = Math.round(/** @type {number} */ (size.height) * size.scale);
+        const resampled = /** @type {CanvasRenderingContext2D} */ (out.getContext("2d"));
+        resampled.imageSmoothingQuality = "high";
+        resampled.drawImage(canvas, 0, 0, out.width, out.height);
+        return out;
       }
       /** The view's dates, as the foot says them, and the date of the values the legends show (the view's last point). */
       function viewDates() {
@@ -21415,6 +21558,12 @@ const picture = await studio.png();</pre>
         }, toastFor);
       }
 
+      /** How links work: the page's guide (what an assistant reads in it), in a dialog of its own, opening on itself. */
+      function showGuide() {
+        $("guide-body").innerHTML = $("about").innerHTML.replace(/<h1>[\s\S]*?<\/h1>/, "");
+        $("guide").showModal();
+        $("guide").focus();
+      }
       /** The shortcuts sheet opens on itself, not on a ringed close button. */
       function showShortcuts() {
         renderSingleKeys();
@@ -21575,6 +21724,8 @@ const picture = await studio.png();</pre>
         else if (action === "draw") toggleBelt();
         else if (action === "close-palette") dismissPalette();
         else if (action === "close-shortcuts") $("shortcuts").close();
+        else if (action === "close-guide") $("guide").close();
+        else if (action === "guide") showGuide();
         else if (action === "close-sheet") {
           delete document.body.dataset.sheet;
           document.body.removeAttribute("data-peek");
@@ -22171,7 +22322,10 @@ const picture = await studio.png();</pre>
         $("picture-open").hidden = true;
         $("picture-note").hidden = false;
         try {
-          const url = await studio.png();
+          // (The chart as the window lays it out: a link's picture, across it.)
+          await studio.ready();
+          const at = navigations, url = (await chartImage()).toDataURL("image/png");
+          if (at !== navigations) throw new Error("Another chart was opened meanwhile");
           if (run !== pictureRun || !picturing) return;
           image.src = url;
           image.alt = `${titleOf(chart)}. ${chartFacts()}`;
@@ -22221,8 +22375,9 @@ const picture = await studio.png();</pre>
       window.addEventListener("keydown", (event) => document.body.hasAttribute("data-picture") && !(/** @type {Element} */ (event.target)).closest?.("#picture") && event.stopImmediatePropagation(), true);
 
       /**
-       * The chart open (or opening: failing as a script's open failed) drawn, with what data it has, and the fonts its
-       * picture writes in, all within `ms`; else why not: at once for what can't change (no chart, no layers).
+       * The chart open (or opening: failing as a script's open failed) drawn whole, with what data it has (its reveal and
+       * fades done), and the fonts its picture writes in, all within `ms`; else why not: at once for what can't change (no
+       * chart, no layers).
        */
       async function settle(ms = 60_000) {
         // (The time given for all of it: the chart's way there and the fonts too.)
@@ -22234,6 +22389,11 @@ const picture = await studio.png();</pre>
           if (!left()) throw new Error("The chart is still loading");
           await new Promise((done) => setTimeout(done, Math.min(50, left())));
         }
+        // (Its reveal, the page's crossfade to it, its legends' fades over too: a screenshot then shows it whole. Every
+        // motion that ends; those that don't, a live dot's, go on.)
+        const animating = () => document.getAnimations().filter((motion) => motion.playState === "running" && Number.isFinite(Number(motion.effect?.getComputedTiming().endTime)));
+        // (Out of sight, none moves: none to wait for, and the picture's drawn when it's made.)
+        for (let k = 0; k < 3 && !document.hidden && animating().length; k++) if ((await Promise.race([Promise.all(animating().map((motion) => motion.finished.catch(() => {}))), late()])) === LATE) throw new Error("The chart is still loading");
         // (Drawn on its next frame; a tab out of sight has none: its picture's drawn when it's made.)
         await new Promise((done) => (requestAnimationFrame(() => done(undefined)), setTimeout(done, Math.min(100, left()))));
       }
@@ -22241,6 +22401,8 @@ const picture = await studio.png();</pre>
        * Studio for scripts run in the page (a console, an assistant driving a browser): a chart opened as its link opens
        * it, waited for, its picture as Export makes it; the guide says the same ("From a script").
        */
+      /** The picture a script last had (see png): made once for the chart as it was, read again in parts. @type {{ key: string, wanted: string, url: string } | null} */
+      let picture = null;
       const studio = Object.freeze({
         /** A chart as a link writes it (an object, or its JSON): opened as its link would be; done once it's the one open. */
         open(/** @type {object | string} */ sketch) {
@@ -22263,12 +22425,40 @@ const picture = await studio.png();</pre>
             throw new Error(`The chart has no data${why.length ? ` (${why.join("; ")})` : ""}`);
           }
         },
-        /** Its picture as Export makes it (title, legends, dates), a PNG data URL: none if another chart opens meanwhile. */
-        async png() {
+        /**
+         * Its picture as Export makes it (title, legends, dates), as a data URL: `width` and `height` in CSS pixels (1200 by
+         * 760 if none, whatever the window), `scale` 1 or 2 (1 if none), a `type` (PNG, WebP or JPEG) and its
+         * `quality`; with `part`, that part of its base64 (`partSize` characters, 45,000 if none: with the rest, under 50,000) as { part, parts, mime,
+         * base64 }, part 0 made for the chart as it is, the others from that same picture. None if another chart opens
+         * meanwhile.
+         */
+        async png(/** @type {{ width?: number, height?: number, scale?: number, type?: string, quality?: number, part?: number, partSize?: number }} */ options = {}) {
+          const bounded = (/** @type {unknown} */ value, /** @type {string} */ name, /** @type {number} */ low, /** @type {number} */ high) => {
+            if (typeof value !== "number" || !(value >= low && value <= high)) throw new Error(`${name}: ${low} to ${high}`);
+            return value;
+          };
+          const width = Math.round(bounded(options.width ?? 1200, "width", 320, 4000)), height = Math.round(bounded(options.height ?? 760, "height", 240, 4000));
+          const scale = options.scale ?? 1;
+          if (scale !== 1 && scale !== 2) throw new Error("scale: 1 or 2");
+          const type = options.type ?? "image/png", quality = bounded(options.quality ?? 0.9, "quality", 0.01, 1), partSize = Math.round(bounded(options.partSize ?? 45_000, "partSize", 1000, 1e8));
+          if (!["image/png", "image/webp", "image/jpeg"].includes(type)) throw new Error('type: "image/png", "image/webp" or "image/jpeg"');
           await studio.ready();
-          const at = navigations, url = (await chartImage()).toDataURL("image/png");
-          if (at !== navigations) throw new Error("Another chart was opened meanwhile");
-          return url;
+          // (Made once for the chart as it is now: its drawing, its live price, its view, the theme, the size asked for.)
+          const wanted = JSON.stringify([width, height, scale, type, quality]), key = JSON.stringify([contentOf(chart), chart.id, drawVersion, liveMoves, view.timeScale().getVisibleLogicalRange(), light, wanted]);
+          // (A part after the first: from the picture made with it, whatever's moved since, a live price each second; one
+          // asked for otherwise, none.)
+          if (options.part !== undefined && options.part !== 0) {
+            if (picture?.wanted !== wanted) throw new Error("Read part 0 first, with the same options");
+          } else if (picture?.key !== key) {
+            const at = navigations, url = (await chartImage({ width, height, scale })).toDataURL(type, quality);
+            if (at !== navigations) throw new Error("Another chart was opened meanwhile");
+            picture = { key, wanted, url };
+          }
+          if (options.part === undefined) return picture.url;
+          const { url } = picture, mime = url.slice(5, url.indexOf(";")), base64 = url.slice(url.indexOf(",") + 1), parts = Math.ceil(base64.length / partSize);
+          if (!Number.isInteger(options.part) || /** @type {number} */ (options.part) < 0 || /** @type {number} */ (options.part) >= parts) throw new Error(`part: 0 to ${parts - 1}`);
+          const part = /** @type {number} */ (options.part);
+          return { part, parts, mime, base64: base64.slice(part * partSize, (part + 1) * partSize) };
         },
         /** The chart open, as a link writes it: a copy (changing it changes nothing here; open it to). */
         chart: () => structuredClone(toSketch(chart)),
