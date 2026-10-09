@@ -2,13 +2,13 @@ use bitview_cohort::AgeAggregate;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazyFixedRatioPerBlock, import_cached};
+use bitview_vecs::{CachedSeries, LazyPercentPerBlock, import_cached};
 use brk_error::Result;
 use brk_types::{Height, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 #[derive(Traversable)]
 pub(crate) struct DensitySources<M: StorageMode = Rw> {
-    pub series: AgeAggregate<LazyFixedRatioPerBlock<PartsPerMillion32>>,
+    pub series: AgeAggregate<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(hidden)]
     stored: AgeAggregate<CachedSeries<Height, PartsPerMillion32, M>>,
 }
@@ -18,7 +18,7 @@ impl DensitySources {
             import_cached(db, &id.metric_name(&format!("{metric}_ppm")), v)
         })?;
         let series = AgeAggregate::from_fn(|id| {
-            LazyFixedRatioPerBlock::from_height_source(
+            LazyPercentPerBlock::from_height_source(
                 &id.metric_name(metric),
                 v,
                 id.select(&stored),

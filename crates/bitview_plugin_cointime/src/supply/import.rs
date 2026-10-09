@@ -1,6 +1,6 @@
 use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{BoundedRatioPerBlock, LazySpotValuePerBlock};
+use bitview_vecs::{BoundedPercentPerBlock, LazySpotValuePerBlock};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec};
@@ -18,7 +18,7 @@ impl Vecs {
     ) -> Result<Self> {
         Ok(Vecs {
             base: LazyBaseVecs::new(version, mappings, spot_price, activity, all_chain),
-            active_supply_in_loss_share: BoundedRatioPerBlock::import(
+            active_supply_in_loss_share: BoundedPercentPerBlock::import(
                 db,
                 "cointime_supply_in_loss_share",
                 version + Version::ONE,

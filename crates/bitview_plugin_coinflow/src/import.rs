@@ -3,7 +3,7 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_transforms::BoundedToRatio;
+use bitview_transforms::{BoundedToRatio, FixedToPercent};
 use bitview_urpd::Metrics as UrpdMetrics;
 use bitview_vecs::{
     CachedSeries, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
@@ -97,7 +97,7 @@ impl AggregateVecs {
                 spot_price,
             ),
         };
-        let supply_in_loss_share = LazyPerBlock::from_height_source::<BoundedToRatio>(
+        let supply_in_loss_share = LazyPerBlock::from_height_source::<FixedToPercent>(
             &metric_name("coinflow_supply_in_loss_share"),
             version,
             aggregate.select(&sources.supply_in_loss_share),

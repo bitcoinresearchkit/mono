@@ -7,12 +7,9 @@ mod import;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::{Days, PartsPerMillion32, PartsPerMillion64, Ratio, Years};
+use bitview_primitives::{BasisPoints32, Days, PartsPerMillion32, PartsPerMillion64, Ratio, Years};
 use bitview_traversable::Traversable;
-use bitview_vecs::{
-    BasisPointsPerBlock, FixedRatioPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock,
-    RatioPerBlock,
-};
+use bitview_vecs::{LazyPerBlock, LazyRatioPerBlock, PerBlock, RatioPerBlock};
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -29,16 +26,16 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// divided by its trailing 365-day per-block arithmetic mean. Values above
     /// one mean current subsidy revenue is above its one-year average; values
     /// below one mean it is below average.
-    puell_multiple: BasisPointsPerBlock<M>,
+    puell_multiple: RatioPerBlock<BasisPoints32, M>,
     /// Network Value to Transactions ratio: market capitalization divided by
     /// trailing-24-hour transfer volume, both valued in USD. Returns zero when
     /// the ratio is not finite. Larger values mean the network's market value
     /// is high relative to the on-chain value transferred in the last day.
-    nvt: LazyBasisPointsPerBlock,
+    nvt: LazyRatioPerBlock<BasisPoints32>,
     /// Approximate Gini coefficient of UTXO-held supply, derived from the
     /// Lorenz curve across ordered UTXO-amount cohorts. Zero means equal
     /// distribution; larger values mean greater concentration.
-    gini: FixedRatioPerBlock<PartsPerMillion32, M>,
+    gini: RatioPerBlock<PartsPerMillion32, M>,
     /// Realized HODL ratio: realized capitalization of 1-day-to-1-week-old
     /// UTXOs divided by that of 1-to-2-year-old UTXOs. Returns zero when the
     /// ratio is not finite. Larger values mean more creation-date capital sits
@@ -48,7 +45,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// USD value of derived block subsidies. Returns zero when the ratio is not
     /// finite. Larger values mean Bitcoin's market value is higher relative to
     /// the historical issuance value assigned to miners.
-    thermo_cap_multiple: LazyBasisPointsPerBlock,
+    thermo_cap_multiple: LazyRatioPerBlock<BasisPoints32>,
     /// Trailing 24-hour coin days destroyed divided by all-chain supply in BTC
     /// at the represented block. Larger values mean more accumulated holding
     /// time was consumed by spending relative to the supply. Returns zero when

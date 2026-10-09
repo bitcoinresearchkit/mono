@@ -15,7 +15,7 @@ pub struct MedianComponent<M: StorageMode = Rw> {
     #[traversable(flatten, rename = "usd")]
     pub price: Price<LazyPerBlock<Cents>>,
     /// Spot price divided by the median creation price.
-    #[traversable(flatten)]
+    #[traversable(flatten, rename = "ratio")]
     pub relative: RatioPerBlock<PriceRatio, M>,
     #[traversable(flatten)]
     pub component: Component<M>,
@@ -31,7 +31,7 @@ impl MedianComponent {
     ) -> Result<Self> {
         Ok(Self {
             price: Price::from_height_source(name, version, source, indexes),
-            relative: RatioPerBlock::import(db, name, version, indexes)?,
+            relative: RatioPerBlock::import(db, &format!("{name}_ratio"), version, indexes)?,
             component: Component::import(db, name, version, indexes, source)?,
         })
     }
@@ -42,7 +42,7 @@ impl MedianComponent {
         spot: &impl ReadableVec<Height, Cents>,
         exit: &Exit,
     ) -> Result<()> {
-        self.relative.ppm.height.compute_transform2(
+        self.relative.fixed.height.compute_transform2(
             starting_lengths.height,
             spot,
             &self.price.cents.height,

@@ -27,7 +27,7 @@ impl Vecs {
             vaulted: FiatPerBlock::import(db, "vaulted_cap", version, mappings)?,
             active: FiatPerBlock::import(db, "active_cap", version, mappings)?,
             cointime: FiatPerBlock::import(db, "cointime_cap", version + Version::ONE, mappings)?,
-            aviv: RatioPerBlock::import(db, "aviv", version, mappings)?,
+            aviv: RatioPerBlock::import(db, "aviv_ratio", version, mappings)?,
         })
     }
 }

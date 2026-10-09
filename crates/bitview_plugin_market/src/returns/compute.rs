@@ -15,18 +15,13 @@ impl Vecs {
     ) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
 
-        let _24h_price_return_ratio = &self.periods._24h.ratio.height;
+        let _24h_price_return = &self.periods._24h.percent.height;
 
         self.sd_24h
             .as_mut_array()
             .into_par_iter()
             .try_for_each(|sd| {
-                sd.compute_all(
-                    &blocks.lookback,
-                    &starting_lengths,
-                    exit,
-                    _24h_price_return_ratio,
-                )
+                sd.compute_all(&blocks.lookback, &starting_lengths, exit, _24h_price_return)
             })
     }
 }

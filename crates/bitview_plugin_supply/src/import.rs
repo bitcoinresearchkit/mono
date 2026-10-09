@@ -7,12 +7,12 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_vecs::{
-    LazyFiatPerBlock, LazyFixedRatioPerBlock, LazyPerBlock, LazyRollingDeltasFiatFromHeight,
-    LazySpotValuePerBlock, LazyValuePerBlock, LazyWindowStartVec, LazyWindowVec,
+    LazyFiatPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight, LazySpotValuePerBlock,
+    LazyWindowStartVec, LazyWindowVec,
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{Ident, ReadableCloneableVec, ReadableVec};
+use vecdb::{ReadableCloneableVec, ReadableVec};
 
 use crate::{STORAGE, Vecs, burned, velocity};
 
@@ -31,7 +31,7 @@ impl Vecs {
         let supply_metrics = &holders.cohorts.all.supply.total;
 
         let circulating =
-            LazyValuePerBlock::spot_identity("circulating_supply", supply_metrics, version);
+            LazySpotValuePerBlock::identity("circulating_supply", version, supply_metrics);
 
         let burned = burned::Vecs::import(&db, version, mappings)?;
 
@@ -50,7 +50,7 @@ impl Vecs {
                 }
             },
         );
-        let inflation_rate = LazyFixedRatioPerBlock::from_height_source(
+        let inflation_rate = LazyPercentPerBlock::from_height_source(
             "inflation_rate",
             inflation_version,
             &inflation_source,
@@ -60,8 +60,12 @@ impl Vecs {
         // Velocity
         let velocity = velocity::Vecs::new(version, mappings, all_chain, transactions)?;
 
-        // Market cap - lazy fiat (cents + usd) from distribution supply
-        let market_cap = LazyFiatPerBlock::from_lazy("market_cap", version, &supply_metrics.cents);
+        let market_cap = LazyFiatPerBlock::from_cents_source(
+            "market_cap",
+            version,
+            holders.all_market_cap(),
+            mappings,
+        );
 
         // Market cap delta (change + rate across 4 windows)
         let market_cap_delta = LazyRollingDeltasFiatFromHeight::new(
@@ -84,7 +88,7 @@ impl Vecs {
                     realized_cap,
                     starts.read_only_boxed_clone(),
                 );
-                LazyPerBlock::from_height_source::<Ident>(&name, growth_version, &source, mappings)
+                LazyPercentPerBlock::from_height_source(&name, growth_version, &source, mappings)
             });
 
         let hodled_or_lost = LazySpotValuePerBlock::identity(

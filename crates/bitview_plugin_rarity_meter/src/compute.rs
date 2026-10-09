@@ -43,7 +43,7 @@ impl ComputePlugin for Vecs {
                     &realized.profit.sum._24h.usd.height,
                     &realized.loss.sum._24h.usd.height,
                     &realized.peak_regret.sum._24h.usd.height,
-                    &metrics.ratios.sell_side_risk_ratio._24h.percent.height,
+                    &metrics.ratios.sell_side_risk_ratio._24h.ratio.height,
                     exit,
                 )
             },

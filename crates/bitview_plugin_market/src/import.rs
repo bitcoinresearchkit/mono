@@ -29,7 +29,7 @@ impl Vecs {
         let moving_average =
             moving_average::Vecs::import(&db, version, mappings, blocks, spot_price)?;
         let technical =
-            technical::Vecs::import(&db, version, mappings, &returns.periods._24h.ratio)?;
+            technical::Vecs::import(&db, version, mappings, &returns.periods._24h.percent)?;
 
         let this = Self {
             db,

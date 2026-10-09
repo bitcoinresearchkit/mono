@@ -1,7 +1,7 @@
 use bitview_cohort::{ByTerm, Term, UTXOAggregate, UTXOAggregateId};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::BoundedRatio;
-use bitview_transforms::BoundedToRatio;
+use bitview_transforms::FixedToPercent;
 use bitview_vecs::{
     CachedSeries, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
     LazySpotValuePerBlock, PerBlock, import_cached,
@@ -200,7 +200,7 @@ impl CohortVecs {
                     mappings,
                     spot_price,
                 ),
-                supply_in_loss_share: LazyPerBlock::from_height_source::<BoundedToRatio>(
+                supply_in_loss_share: LazyPerBlock::from_height_source::<FixedToPercent>(
                     &metric_name("awake_supply_in_loss_share"),
                     version,
                     &supply_in_loss_share,

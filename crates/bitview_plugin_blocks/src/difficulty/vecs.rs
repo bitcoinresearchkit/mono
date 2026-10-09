@@ -1,6 +1,6 @@
 use bitview_primitives::{Count, Days, Difficulty, Epoch, Hashrate, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFixedRatioPerBlock, LazyPerBlock, Resolutions};
+use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Resolutions};
 use brk_types::Height;
 use vecdb::LazyVec;
 
@@ -19,7 +19,7 @@ pub struct Vecs {
     /// represented-block difficulty divided by lookback difficulty, minus one.
     /// Positive values mean difficulty increased and negative values mean it
     /// decreased. Unavailable for the first 2,016 blocks.
-    pub(crate) adjustment: LazyFixedRatioPerBlock<PartsPerMillionSigned32>,
+    pub(crate) adjustment: LazyPercentPerBlock<PartsPerMillionSigned32>,
     /// Zero-based difficulty epoch number, equal to block height divided by
     /// 2,016 and rounded down.
     pub(crate) epoch: LazyPerBlock<Epoch>,

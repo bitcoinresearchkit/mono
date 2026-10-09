@@ -68,7 +68,7 @@ impl Component {
             let price = component_price.price_for_ratio(
                 &format!("{name}_{suffix}"),
                 version,
-                &ratio.ppm.height,
+                &ratio.fixed.height,
                 mappings,
             );
             Band { ratio, price }

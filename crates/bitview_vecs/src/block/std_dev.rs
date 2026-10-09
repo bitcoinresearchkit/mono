@@ -1,5 +1,5 @@
 use bitview_compute::ComputeRollingStats;
-use bitview_primitives::{Lengths, Ratio};
+use bitview_primitives::{Lengths, Percent};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -12,10 +12,10 @@ use crate::{IndexSources, Lookback, PerBlock};
 pub struct StdDevPerBlock<M: StorageMode = Rw> {
     #[traversable(skip)]
     days: usize,
-    /// Arithmetic mean of the source ratios in a trailing window.
-    sma: PerBlock<Ratio, M>,
-    /// Population standard deviation of the source ratios in a trailing window.
-    pub sd: PerBlock<Ratio, M>,
+    /// Arithmetic mean of the source percentages in a trailing window.
+    sma: PerBlock<Percent, M>,
+    /// Population standard deviation of the source percentages in a trailing window.
+    pub sd: PerBlock<Percent, M>,
 }
 
 impl StdDevPerBlock {
@@ -27,7 +27,7 @@ impl StdDevPerBlock {
         parent_version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let version = parent_version + Version::new(3);
+        let version = parent_version + Version::new(4);
         let p = if period.is_empty() {
             String::new()
         } else {
@@ -45,7 +45,7 @@ impl StdDevPerBlock {
         lookback: &impl Lookback,
         starting_lengths: &Lengths,
         exit: &Exit,
-        source: &impl ReadableVec<Height, Ratio>,
+        source: &impl ReadableVec<Height, Percent>,
     ) -> Result<()> {
         let window_starts = lookback.start_vec(self.days);
 

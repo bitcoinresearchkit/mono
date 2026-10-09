@@ -5,7 +5,7 @@ use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
 
-use crate::{IndexSources, LazyFixedRatioCumulativeRolling, LazyPerBlockCumulativeRolling};
+use crate::{IndexSources, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling};
 
 /// Total-count views used by their breakdowns, without a separate retained cache.
 #[derive(Clone, Traversable)]
@@ -55,8 +55,8 @@ impl CountTotal {
         numerator: &impl ReadableCloneableVec<Height, Count>,
         windows: &Windows<&impl ReadableCloneableVec<Height, Height>>,
         indexes: &IndexSources,
-    ) -> LazyFixedRatioCumulativeRolling<PartsPerMillion32> {
-        LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
+    ) -> LazyPercentCumulativeRolling<PartsPerMillion32> {
+        LazyPercentCumulativeRolling::from_cumulative_ratio::<
             Count,
             Count,
             Quotient<PartsPerMillion32>,

@@ -1,35 +1,35 @@
 use bitview_collections::{ByLookbackPeriod, LOOKBACK_PERIOD_DAYS, LOOKBACK_PERIOD_NAMES};
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyFixedRatioPerBlock;
+use bitview_vecs::LazyPercentPerBlock;
 use brk_types::Version;
 
 /// Annualized spot-price returns over trailing periods of at least two years.
 #[derive(Clone, Traversable)]
 pub struct Cagr {
     /// Uses a trailing 730-day period.
-    pub _2y: LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
+    pub _2y: LazyPercentPerBlock<PartsPerMillionSigned64>,
     /// Uses a trailing 1,095-day period.
-    pub _3y: LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
+    pub _3y: LazyPercentPerBlock<PartsPerMillionSigned64>,
     /// Uses a trailing 1,460-day period.
-    pub _4y: LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
+    pub _4y: LazyPercentPerBlock<PartsPerMillionSigned64>,
     /// Uses a trailing 1,825-day period.
-    pub _5y: LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
+    pub _5y: LazyPercentPerBlock<PartsPerMillionSigned64>,
     /// Uses a trailing 2,190-day period.
-    pub _6y: LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
+    pub _6y: LazyPercentPerBlock<PartsPerMillionSigned64>,
     /// Uses a trailing 2,920-day period.
-    pub _8y: LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
+    pub _8y: LazyPercentPerBlock<PartsPerMillionSigned64>,
     /// Uses a trailing 3,650-day period.
-    pub _10y: LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
+    pub _10y: LazyPercentPerBlock<PartsPerMillionSigned64>,
 }
 
 impl Cagr {
     pub(super) fn new(
         version: Version,
-        periods: &ByLookbackPeriod<LazyFixedRatioPerBlock<PartsPerMillionSigned64>>,
+        periods: &ByLookbackPeriod<LazyPercentPerBlock<PartsPerMillionSigned64>>,
     ) -> Self {
         let create = |name, days: u32, source| {
-            LazyFixedRatioPerBlock::from_lazy_cagr(
+            LazyPercentPerBlock::from_lazy_cagr(
                 &format!("price_cagr_{name}"),
                 version,
                 (days / 365) as u8,

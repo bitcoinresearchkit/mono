@@ -2,62 +2,13 @@ use bitview_compute::WeightedCohortState;
 use bitview_primitives::BoundedRatio;
 use bitview_transforms::{Convert, SatsToCents};
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
-use vecdb::{BinaryTransform, Ident, ReadableBoxedVec, ReadableCloneableVec};
+use vecdb::{BinaryTransform, Ident, ReadableCloneableVec, UnaryTransform};
 
-use crate::{
-    DerivedResolutions, IndexSources, LazyIndexedVec, LazyPerBlock, ReadableResolutions, Value,
-};
+use crate::{IndexSources, LazyIndexedVec, LazyPerBlock, SpotValue};
 
-/// Fully lazy point-in-time value backed by one sats source.
-pub type LazySpotValuePerBlock = Value<
-    LazyPerBlock<Sats>,
-    LazyPerBlock<Cents>,
-    LazyPerBlock<Bitcoin, Sats>,
-    LazyPerBlock<Dollars, Cents>,
->;
-
-pub trait SpotValueSource {
-    type SatsResolutions: ReadableResolutions<Sats>;
-    type CentsResolutions: ReadableResolutions<Cents>;
-    type DollarsResolutions: ReadableResolutions<Dollars>;
-
-    fn sats_height(&self) -> ReadableBoxedVec<Height, Sats>;
-    fn cents_height(&self) -> ReadableBoxedVec<Height, Cents>;
-    fn usd_height(&self) -> ReadableBoxedVec<Height, Dollars>;
-    fn sats_resolutions(&self) -> &Self::SatsResolutions;
-    fn cents_resolutions(&self) -> &Self::CentsResolutions;
-    fn usd_resolutions(&self) -> &Self::DollarsResolutions;
-}
-
-impl SpotValueSource for LazySpotValuePerBlock {
-    type SatsResolutions = DerivedResolutions<Sats>;
-    type CentsResolutions = DerivedResolutions<Cents>;
-    type DollarsResolutions = DerivedResolutions<Dollars, Cents>;
-
-    fn sats_height(&self) -> ReadableBoxedVec<Height, Sats> {
-        self.sats.height.read_only_boxed_clone()
-    }
-
-    fn cents_height(&self) -> ReadableBoxedVec<Height, Cents> {
-        self.cents.height.read_only_boxed_clone()
-    }
-
-    fn usd_height(&self) -> ReadableBoxedVec<Height, Dollars> {
-        self.usd.height.read_only_boxed_clone()
-    }
-
-    fn sats_resolutions(&self) -> &Self::SatsResolutions {
-        &self.sats.resolutions
-    }
-
-    fn cents_resolutions(&self) -> &Self::CentsResolutions {
-        &self.cents.resolutions
-    }
-
-    fn usd_resolutions(&self) -> &Self::DollarsResolutions {
-        &self.usd.resolutions
-    }
-}
+/// Fully lazy point-in-time value backed by one sats source; USD is sats at the spot price.
+pub type LazySpotValuePerBlock =
+    SpotValue<LazyPerBlock<Sats>, LazyPerBlock<Bitcoin, Sats>, LazyPerBlock<Dollars>>;
 
 impl LazySpotValuePerBlock {
     /// A lazy weighted stock from shared age-cohort inputs. Retains the historical
@@ -87,23 +38,10 @@ impl LazySpotValuePerBlock {
         let sats =
             LazyPerBlock::from_lazy::<Ident, Sats>(&format!("{name}_sats"), version, &source.sats);
         let btc = LazyPerBlock::from_lazy::<Convert, Sats>(name, version, &source.sats);
-        let cents = LazyPerBlock::from_lazy::<Ident, Cents>(
-            &format!("{name}_cents"),
-            version,
-            &source.cents,
-        );
-        let usd = LazyPerBlock::from_lazy::<Convert, Cents>(
-            &format!("{name}_usd"),
-            version,
-            &source.cents,
-        );
+        let usd =
+            LazyPerBlock::from_lazy::<Ident, Dollars>(&format!("{name}_usd"), version, &source.usd);
 
-        Self {
-            btc,
-            sats,
-            usd,
-            cents,
-        }
+        Self { btc, sats, usd }
     }
 
     pub fn from_sats_source<V>(
@@ -122,47 +60,24 @@ impl LazySpotValuePerBlock {
             source,
             indexes,
         );
-        Self::from_sats(name, version, sats, indexes, spot_price)
-    }
-
-    fn from_sats(
-        name: &str,
-        version: Version,
-        sats: LazyPerBlock<Sats>,
-        indexes: &IndexSources,
-        spot_price: &impl ReadableCloneableVec<Height, Cents>,
-    ) -> Self {
-        let cents_source = LazyIndexedVec::new(
-            &format!("{name}_cents_source"),
+        let btc = LazyPerBlock::from_lazy::<Convert, Sats>(name, version, &sats);
+        // Exact cents first, so dollars match the stored cents-backed values elsewhere.
+        let usd_source = LazyIndexedVec::new(
+            &format!("{name}_usd_source"),
             version,
             &sats.height,
             spot_price,
-            |_, sats, spot| SatsToCents::apply(sats, spot),
+            |_, sats, spot| {
+                <Convert as UnaryTransform<Cents, Dollars>>::apply(SatsToCents::apply(sats, spot))
+            },
         );
-        let cents = LazyPerBlock::from_height_source::<Ident>(
-            &format!("{name}_cents"),
+        let usd = LazyPerBlock::from_height_source::<Ident>(
+            &format!("{name}_usd"),
             version,
-            &cents_source,
+            &usd_source,
             indexes,
         );
-        Self::from_sats_and_cents(name, version, sats, cents)
-    }
 
-    fn from_sats_and_cents(
-        name: &str,
-        version: Version,
-        sats: LazyPerBlock<Sats>,
-        cents: LazyPerBlock<Cents>,
-    ) -> Self {
-        let btc = LazyPerBlock::from_lazy::<Convert, Sats>(name, version, &sats);
-        let usd =
-            LazyPerBlock::from_lazy::<Convert, Cents>(&format!("{name}_usd"), version, &cents);
-
-        Self {
-            btc,
-            sats,
-            usd,
-            cents,
-        }
+        Self { btc, sats, usd }
     }
 }

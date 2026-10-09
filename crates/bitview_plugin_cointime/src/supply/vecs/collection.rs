@@ -2,7 +2,7 @@ use bitview_traversable::Traversable;
 use derive_more::{Deref, DerefMut};
 use vecdb::{Rw, StorageMode};
 
-use bitview_vecs::BoundedRatioPerBlock;
+use bitview_vecs::BoundedPercentPerBlock;
 
 use super::LazyBaseVecs;
 
@@ -16,5 +16,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// multiplied by wakefulness divided by the sum of total supply multiplied
     /// by wakefulness. Returns NaN when the weighted supply is zero.
     #[traversable(wrap = "active/in_loss", rename = "share")]
-    pub active_supply_in_loss_share: BoundedRatioPerBlock<M>,
+    pub active_supply_in_loss_share: BoundedPercentPerBlock<M>,
 }

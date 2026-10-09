@@ -10,7 +10,7 @@ use crate::{Fiat, FiatType, IndexSources, LazyPerBlock};
 pub type LazyFiatPerBlock<C> = Fiat<LazyPerBlock<C>, LazyPerBlock<Dollars, C>>;
 
 impl<C: FiatType> LazyFiatPerBlock<C> {
-    pub fn from_lazy(name: &str, version: Version, source: &LazyPerBlock<C>) -> Self
+    pub(crate) fn from_lazy(name: &str, version: Version, source: &LazyPerBlock<C>) -> Self
     where
         C: NumericValue,
     {

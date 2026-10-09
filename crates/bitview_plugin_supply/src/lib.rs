@@ -11,8 +11,7 @@ use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlock, LazyFixedRatioPerBlock, LazyPerBlock, LazyRollingDeltasFiatFromHeight,
-    LazySpotValuePerBlock, LazyValuePerBlock,
+    LazyFiatPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight, LazySpotValuePerBlock,
 };
 use brk_types::{Cents, CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
@@ -26,7 +25,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
 
     /// Total value of all unspent transaction outputs in the UTXO set.
-    circulating: LazyValuePerBlock,
+    circulating: LazySpotValuePerBlock,
     /// Cumulative provably unspendable supply from the genesis subsidy,
     /// `OP_RETURN` output values, and unclaimed block rewards.
     burned: burned::Vecs<M>,
@@ -34,7 +33,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// 365-day monotonic-time window through the represented block, divided by
     /// the starting supply. Returns NaN while the starting supply is at most 50
     /// BTC.
-    pub inflation_rate: LazyFixedRatioPerBlock<PartsPerMillionSigned64>,
+    pub inflation_rate: LazyPercentPerBlock<PartsPerMillionSigned64>,
     pub velocity: velocity::Vecs,
     /// Circulating supply valued at the represented block's Bitcoin spot price.
     #[traversable(wrap = "market_cap", rename = "usd")]
@@ -49,7 +48,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// value grew faster than this creation-date capital base; negative values
     /// mean it grew more slowly. A component with a zero starting value
     /// contributes zero growth.
-    market_minus_realized_cap_growth_rate: Windows<LazyPerBlock<PartsPerMillionSigned64>>,
+    market_minus_realized_cap_growth_rate: Windows<LazyPercentPerBlock<PartsPerMillionSigned64>>,
     /// Circulating supply multiplied by cointime vaultedness, which is one
     /// minus liveliness, and valued at the represented block's Bitcoin spot
     /// price. Liveliness is cumulative coinblocks destroyed divided by

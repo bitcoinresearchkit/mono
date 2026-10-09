@@ -1,4 +1,4 @@
-use bitview_primitives::{BoundedRatio, Ratio64};
+use bitview_primitives::{BoundedRatio, Percent};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazySpotValuePerBlock,
@@ -14,7 +14,7 @@ pub struct AwakeVecs {
     /// multiplied by wakefulness divided by the sum of total supply multiplied
     /// by wakefulness. Returns NaN when the weighted supply is zero.
     #[traversable(wrap = "supply/in_loss", rename = "share")]
-    pub supply_in_loss_share: LazyPerBlock<Ratio64, BoundedRatio>,
+    pub supply_in_loss_share: LazyPerBlock<Percent, BoundedRatio>,
     /// Sum of creation-date USD value multiplied by wakefulness across a set of
     /// UTXO age ranges. Creation-date value is each unspent output's BTC value
     /// multiplied by Bitcoin's spot price when it was created.

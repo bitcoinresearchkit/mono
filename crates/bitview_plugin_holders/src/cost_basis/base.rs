@@ -1,7 +1,7 @@
 use bitview_collections::ByPercentile;
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFixedRatioPerBlock, LazyPerBlock, Price};
+use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Price};
 use brk_types::Cents;
 
 use super::CostBasisSide;
@@ -25,5 +25,5 @@ pub struct CostBasis {
     pub per_dollar: ByPercentile<Price<LazyPerBlock<Cents>>>,
     /// Share of that cohort's unspent supply with a creation price within 5%
     /// above or below the represented block's spot price.
-    pub supply_density: LazyFixedRatioPerBlock<PartsPerMillion32>,
+    pub supply_density: LazyPercentPerBlock<PartsPerMillion32>,
 }

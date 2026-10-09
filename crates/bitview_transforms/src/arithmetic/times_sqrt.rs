@@ -1,4 +1,4 @@
-use bitview_primitives::Ratio;
+use bitview_primitives::Percent;
 use vecdb::UnaryTransform;
 
 pub struct TimesSqrt<const DAYS: u16>;
@@ -13,9 +13,9 @@ impl<const DAYS: u16> TimesSqrt<DAYS> {
     };
 }
 
-impl<const DAYS: u16> UnaryTransform<Ratio, Ratio> for TimesSqrt<DAYS> {
+impl<const DAYS: u16> UnaryTransform<Percent, Percent> for TimesSqrt<DAYS> {
     #[inline(always)]
-    fn apply(value: Ratio) -> Ratio {
-        Ratio::new(*value * Self::FACTOR)
+    fn apply(value: Percent) -> Percent {
+        Percent::new(*value * Self::FACTOR)
     }
 }

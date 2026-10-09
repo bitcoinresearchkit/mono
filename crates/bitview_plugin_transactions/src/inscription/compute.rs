@@ -65,7 +65,7 @@ impl Vecs {
             .min(inscription_counts.len())
             .min(total_fees.len());
         let start_height = prepare_computed(
-            [self.fees.stored_mut(), &mut self.fee_share.ppm.height],
+            [self.fees.stored_mut(), &mut self.fee_share.fixed.height],
             version,
             starting_height.to_usize().min(end_height),
             exit,
@@ -104,7 +104,7 @@ impl Vecs {
             }
             self.fees.push_block(inscribed);
             self.fee_share
-                .ppm
+                .fixed
                 .height
                 .push(Quotient::<PartsPerMillion32>::apply(inscribed, total));
             block_start = block_end;
@@ -119,7 +119,7 @@ impl Vecs {
     fn write_fees(&mut self, exit: &Exit) -> Result<()> {
         let _lock = exit.lock();
         self.fees.write()?;
-        self.fee_share.ppm.height.write()?;
+        self.fee_share.fixed.height.write()?;
         Ok(())
     }
 }

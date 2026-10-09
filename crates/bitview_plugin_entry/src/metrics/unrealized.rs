@@ -52,7 +52,7 @@ impl UnrealizedMetrics {
             nupl: LazyRatioPerBlock::from_lazy_source::<MvrvToNupl, PriceRatio>(
                 &name("nupl"),
                 version,
-                &price.relative.ppm,
+                &price.relative.fixed,
             ),
         }
     }

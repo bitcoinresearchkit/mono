@@ -6,15 +6,15 @@ use brk_types::Version;
 use derive_more::{Deref, DerefMut};
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::{FixedRatioPerBlock, IndexSources};
+use crate::{IndexSources, RatioPerBlock};
 
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct FixedRatioRollingWindows<B: FixedRatio, M: StorageMode = Rw>(
-    pub Windows<FixedRatioPerBlock<B, M>>,
+pub struct RatioRollingWindows<R: FixedRatio, M: StorageMode = Rw>(
+    pub Windows<RatioPerBlock<R, M>>,
 );
 
-impl<B: FixedRatio> FixedRatioRollingWindows<B> {
+impl<R: FixedRatio> RatioRollingWindows<R> {
     pub fn import(
         db: &Database,
         name: &str,
@@ -22,12 +22,7 @@ impl<B: FixedRatio> FixedRatioRollingWindows<B> {
         indexes: &IndexSources,
     ) -> Result<Self> {
         Ok(Self(Windows::try_from_fn(|suffix| {
-            FixedRatioPerBlock::import(
-                db,
-                &format!("{name}_{suffix}"),
-                version + Version::ONE,
-                indexes,
-            )
+            RatioPerBlock::import(db, &format!("{name}_{suffix}"), version, indexes)
         })?))
     }
 }

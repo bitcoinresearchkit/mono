@@ -8,17 +8,17 @@ use vecdb::{
     BinaryTransform, DeltaAvg, LazyDeltaVec, ReadableCloneableVec, ReverseOperands, UnaryTransform,
 };
 
-use crate::{IndexSources, LazyFixedRatioPerBlock, LazyRollingRatioVec};
+use crate::{IndexSources, LazyPercentPerBlock, LazyRollingRatioVec};
 
 /// Fully lazy rolling percent windows — 4 windows (24h, 1w, 1m, 1y),
-/// each with lazy PPM + lazy ratio/percent float views.
+/// each with lazy fixed-point values and a lazy percent view.
 ///
 /// No stored vecs. All values are derived from one source.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyFixedRatioRollingWindows<B: FixedRatio>(pub Windows<LazyFixedRatioPerBlock<B>>);
+pub struct LazyPercentRollingWindows<B: FixedRatio>(pub Windows<LazyPercentPerBlock<B>>);
 
-impl<B: FixedRatio> LazyFixedRatioRollingWindows<B> {
+impl<B: FixedRatio> LazyPercentRollingWindows<B> {
     pub(crate) fn from_cumulative_ratio<S, D, F>(
         name: &str,
         version: Version,
@@ -42,7 +42,7 @@ impl<B: FixedRatio> LazyFixedRatioRollingWindows<B> {
         )
     }
 
-    pub fn from_cumulative_ratio_with_numerator<S, D, F>(
+    pub(crate) fn from_cumulative_ratio_with_numerator<S, D, F>(
         name: &str,
         version: Version,
         numerator: &impl ReadableCloneableVec<Height, S>,
@@ -87,7 +87,7 @@ impl<B: FixedRatio> LazyFixedRatioRollingWindows<B> {
                 operand,
                 *window_start,
             );
-            LazyFixedRatioPerBlock::from_height_source(&full_name, version, &ratio, indexes)
+            LazyPercentPerBlock::from_height_source(&full_name, version, &ratio, indexes)
         }))
     }
 
@@ -114,7 +114,7 @@ impl<B: FixedRatio> LazyFixedRatioRollingWindows<B> {
                 operand,
             );
 
-            LazyFixedRatioPerBlock::from_height_source(&full_name, version, &average, indexes)
+            LazyPercentPerBlock::from_height_source(&full_name, version, &average, indexes)
         }))
     }
 
@@ -124,7 +124,7 @@ impl<B: FixedRatio> LazyFixedRatioRollingWindows<B> {
         source: &Self,
     ) -> Self {
         Self(source.0.map_with_suffix(|suffix, source_window| {
-            LazyFixedRatioPerBlock::from_lazy_fixed_ratio::<F>(
+            LazyPercentPerBlock::from_lazy_percent::<F>(
                 &format!("{name}_{suffix}"),
                 version,
                 source_window,

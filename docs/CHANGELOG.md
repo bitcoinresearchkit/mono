@@ -41,16 +41,23 @@ has to be deleted by hand.
 - Stored per-block distributions use narrow per-block types (block size `Bytes32`, weight `Weight`, transaction and
   input counts `Count16`, output counts `Count32`); cumulatives and sums stay wide. Block interval is `Seconds`
 - Typed values as nullable exactly where the JSON can hold `null`: a period without blocks (date resolutions; height,
-  halving and epoch never) or a type's own undefined value (non-finite floats, and the `Cents`, `PartsPerMillion*`,
-  `BasisPoints32`, `PriceRatio` and `BoundedRatio` sentinels). CSV writes undefined sentinel integers as empty cells
-  (was the raw sentinel, e.g. `18446744073709551615`)
+  halving and epoch never) or a type's own undefined value (non-finite floats and the `FeeRate` sentinel); CSV
+  writes undefined values as empty cells
 - One unit per quantity: the `_cents` copies of USD series and the `_sats` copies of BTC amounts are gone from the API
-  and the clients (they stay the exact storage; the USD and BTC series print the same values exactly). A price or USD
-  value left with one unit is the series itself: `price.spot`, `price.split.close`, `price.ohlc`,
-  `cohorts.realized.cap.age.<band>`, ... (were their `.usd` child), and BTC changes over a window drop their `.btc`.
-  Prices in sats per USD (`*_price_sats` and every other price's `_sats`) are gone; `sats_per_dollar` replaces
-  `price_sats`. About 12,800 fewer series. Two placements change besides: the entry cohorts' 24-hour SOPR is
-  `realized.sopr.24h` (was `realized.sopr.raw`), and market cap stays at `supply.market_cap.usd` beside its `delta`
+  and the clients (they stay the exact storage; the USD and BTC series print the same values exactly); the true range
+  is in USD too (was cents). Unitless numbers have one form, the one they are read in: shares, rates and changes in
+  percent; ratios (spot ÷ price, SOPR, MVRV, NUPL, NVT, liveliness, Gini, sell-side risk, every `X_to_Y`) as a
+  ratio; `ppm`/`bps` stay internal. Return deviations and volatility, the Cointime and Coinflow in-loss shares and
+  the Bedrock loss thresholds (which drop their `_ratio` suffix) are in percent (were decimals), as is
+  `market_minus_realized_cap_growth_rate` (was raw ppm); Gini, sell-side risk, `fees.to_subsidy` and the holders'
+  `*_to_mcap`, `*_to_rcap`, `*_to_own_mcap`, `*_to_own_gross_pnl` and `realized_cap_to_own_mcap` keep only their
+  ratio, and the rarity meter's seller-exhaustion thresholds follow sell-side risk into a ratio (were percent). A share
+  with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`.
+  A node left with one unit is the series itself: `price.spot`, `price.split.close`, `price.ohlc`, realized caps and
+  prices (were their `.usd` child), shares (were `.percent`), BTC changes over a window (were `.btc`). Prices in sats
+  per USD (`*_price_sats` and every other price's `_sats`) are gone; `sats_per_dollar` replaces `price_sats`. About
+  18,300 fewer series. Two placements change besides: the entry cohorts' 24-hour SOPR is `realized.sopr.24h` (was
+  `realized.sopr.raw`), and market cap stays at `supply.market_cap.usd` beside its `delta`
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
 - `TxStatus` omits `block_height`, `block_hash` and `block_time` until confirmed, like Esplora (they were sent as
   `null`)
@@ -58,7 +65,7 @@ has to be deleted by hand.
   `U8x20([..])`), and `outpoint` values are `{"tx_index": N, "vout": M}` objects (were a `"tx_index: N, vout: M"`
   string; a CSV cell holds the same object); schemas match, so the Rust client decodes them
 - `active_reused_addr_share` and `active_respent_addr_share` take the shape of the other address-event shares: a
-  fixed-point share with ppm, ratio and percent views, all time and per window, computed from the per-block counts
+  share in percent, all time and per window, computed from the per-block counts
   summed over the window. They were a stored per-block percentage with rolling averages of it, where a near-empty
   block weighed as much as a full one: the bare name now holds the all-time share (was the block's), windows are
   `_24h`, `_1w`, ... (were `_average_24h`, ...), and the per-block value is gone
@@ -167,11 +174,16 @@ has to be deleted by hand.
   `compute_expanding_sd` and `compute_sma` are removed
 - `bitview_transforms`: `Convert` replaces `SatsToBitcoin`, `SatsSignedToBitcoin`, `CentsUnsignedToDollars`,
   `CentsSignedToDollars` and `OhlcCentsToDollars`; `Quotient<P>` the `Ratio{Cents,Sats,Count,Bytes,CentsSignedCents}`
-  transforms; `RelativeChange<P>` `RatioDiff{Cents,Dollars}`. `bitview_vecs`: `Percent*` families are `FixedRatio*`,
-  `FiatType`/`AmountType` lose their conversion types, `FixedRatio` its transform types, and the
-  `PerBlockRollingAverage` family is gone; `Quantity` names a unit's mean (`Fract`) and total (`Sum`) types.
-  `bitview_collections::Percent` is `FixedRatioViews`; value types lose their unused `Div<usize>` impls (`FeeRate`
-  keeps it)
+  transforms; `RelativeChange<P>` `RatioDiff{Cents,Dollars}`. `bitview_vecs`: `Percent*` types hold the fixed-point
+  storage and a percent view (no ratio view), `Ratio*` types the storage and a ratio view; both name the storage
+  `fixed` (was `ppm`), and `RatioPerBlock::import` takes the full name (`import_ppm` is gone). `RatioRollingWindows`,
+  `LazyRatioRollingWindows` and `BoundedPercentPerBlock` are new, and `StdDevPerBlock` is in percent.
+  `LazySpotValuePerBlock` is a `SpotValue` (BTC, sats and USD, no cents); `LazyValuePerBlock` (use
+  `LazySpotValuePerBlock::identity`), `LazyValue`, `LazyValueDerivedResolutions` and `SpotValueSource` are gone.
+  `FiatType`/`AmountType` lose their conversion types,
+  `FixedRatio` its transform types, and the `PerBlockRollingAverage` family is gone; `Quantity` names a unit's mean
+  (`Fract`) and total (`Sum`) types. `bitview_collections::Percent` is `PercentViews` (storage and percent); value
+  types lose their unused `Div<usize>` impls (`FeeRate` keeps it)
 - `brk_rpc::ConnectArgs` (node data dir, blocks dir, RPC endpoint and credentials, resolved like Bitcoin Core) with
   `client()` is shared by bitviewd, blk and mmpl; `Client::default_url`, `Client::default_bitcoin_path`, `get_block`,
   `get_block_hash` and configurable retries are removed

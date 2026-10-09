@@ -38,7 +38,7 @@ impl Vecs {
             version + Version::new(4),
             mappings,
             &spot_price,
-            &supply.active_supply_in_loss_share.bounded,
+            &supply.active_supply_in_loss_share.fixed,
         )?;
         let value = value::Vecs::import(&db, v1, mappings, window_starts)?;
         let cap = cap::Vecs::import(&db, version + Version::TWO, mappings, subsidy_cents)?;

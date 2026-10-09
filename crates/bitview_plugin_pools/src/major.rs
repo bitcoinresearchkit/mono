@@ -6,9 +6,7 @@ use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::{PartsPerMillion32, PoolSlug};
 use bitview_transforms::MaskSats;
 use bitview_traversable::Traversable;
-use bitview_vecs::{
-    LazyFixedRatioRollingWindows, LazyWindowStartVec, ValuePerBlockCumulativeRolling,
-};
+use bitview_vecs::{LazyPercentRollingWindows, LazyWindowStartVec, ValuePerBlockCumulativeRolling};
 use brk_error::Result;
 use brk_exit::Exit;
 use derive_more::{Deref, DerefMut};
@@ -31,7 +29,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// pool: pool block count divided by total chain block count in that
     /// window.
     #[traversable(rename = "dominance")]
-    pub dominance_rolling: LazyFixedRatioRollingWindows<PartsPerMillion32>,
+    pub dominance_rolling: LazyPercentRollingWindows<PartsPerMillion32>,
 }
 
 impl Vecs {
@@ -55,7 +53,7 @@ impl Vecs {
             window_starts,
         )?;
 
-        let dominance_rolling = LazyFixedRatioRollingWindows::from_cumulative_average(
+        let dominance_rolling = LazyPercentRollingWindows::from_cumulative_average(
             &suffix("dominance"),
             version,
             &base.blocks_mined.cumulative.height,

@@ -1,5 +1,6 @@
 use bitview_cohort::AgeRangeId;
 use bitview_compute::resolve_cohort_weight;
+use bitview_primitives::BoundedRatio;
 use brk_types::{Height, Sats};
 use vecdb::{ReadableVec, StorageMode};
 
@@ -10,5 +11,10 @@ impl<M: StorageMode> Vecs<M> {
     pub fn urpd_weight(&self, age: AgeRangeId, height: Height, supply: Sats) -> Option<f64> {
         let sources = self.age_range.urpd_weight_sources();
         resolve_cohort_weight(age.select(&sources).collect_one(height), supply)
+    }
+
+    /// All-supply in-loss share at full precision, for models calibrating on it.
+    pub fn all_supply_in_loss_share(&self) -> &impl ReadableVec<Height, BoundedRatio> {
+        &self.aggregate_sources.supply_in_loss_share.all
     }
 }

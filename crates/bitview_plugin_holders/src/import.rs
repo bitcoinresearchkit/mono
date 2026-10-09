@@ -7,7 +7,7 @@ use bitview_plugin_price::Vecs as Price;
 use bitview_transforms::SatsToCents;
 use bitview_vecs::{LazyIndexedVec, LazyWindowStartVec};
 use brk_error::Result;
-use brk_types::{Height, Sats};
+use brk_types::{Cents, Height, Sats};
 use vecdb::{BinaryTransform, ReadableBoxedVec, ReadableCloneableVec};
 
 use crate::{STORAGE, Vecs, cost_basis::CostBasisVecs, metrics::Metrics};
@@ -58,5 +58,8 @@ impl Vecs {
     }
     pub fn all_supply(&self) -> &ReadableBoxedVec<Height, Sats> {
         &self.all_supply
+    }
+    pub fn all_market_cap(&self) -> &ReadableBoxedVec<Height, Cents> {
+        &self.all_market_cap
     }
 }

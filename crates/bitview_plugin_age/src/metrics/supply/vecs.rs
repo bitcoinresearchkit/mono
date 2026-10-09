@@ -5,7 +5,7 @@ use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFixedRatioPerBlock, LazyRollingDeltasAmountFromHeight, LazyValuePerBlockCumulativeRolling,
+    LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight, LazyValuePerBlockCumulativeRolling,
     LazyWindowStartVec, PerBlockCumulativeRolling, SatsCents,
 };
 use brk_error::Result;
@@ -40,7 +40,7 @@ pub struct SupplyVecs<M: StorageMode = Rw> {
         LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
     >,
     /// Share of all unspent supply held by a creation cohort.
-    pub dominance: CreationCohorts<LazyFixedRatioPerBlock<PartsPerMillion32>>,
+    pub dominance: CreationCohorts<LazyPercentPerBlock<PartsPerMillion32>>,
 }
 
 impl SupplyVecs {

@@ -1,8 +1,8 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{FixedRatioPerBlock, LazyLookbackVec, LazyPerBlock, PerBlock, Price};
+use bitview_vecs::{FiatPerBlock, LazyFiatPerBlock, LazyLookbackVec, PercentPerBlock, Price};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, Ident, ReadableCloneableVec};
+use vecdb::{Database, ReadableCloneableVec};
 
 use super::{Vecs, price_min_max_vecs::PriceMinMaxVecs};
 
@@ -39,19 +39,19 @@ impl Vecs {
                 _1m: Price::import(db, "price_max_1m", version + v1, mappings)?,
                 _1y: Price::import(db, "price_max_1y", version + v1, mappings)?,
             },
-            true_range: LazyPerBlock::from_height_source::<Ident>(
+            true_range: LazyFiatPerBlock::from_cents_source(
                 "price_true_range",
                 v,
                 &true_range_source,
                 mappings,
             ),
-            true_range_sum_2w: PerBlock::import(
+            true_range_sum_2w: FiatPerBlock::import(
                 db,
                 "price_true_range_sum_2w",
                 version + Version::TWO,
                 mappings,
             )?,
-            choppiness_index_2w: FixedRatioPerBlock::import(
+            choppiness_index_2w: PercentPerBlock::import(
                 db,
                 "price_choppiness_index_2w",
                 version + v1,

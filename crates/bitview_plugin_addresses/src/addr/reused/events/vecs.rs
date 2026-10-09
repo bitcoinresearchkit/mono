@@ -7,7 +7,7 @@ use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFixedRatioCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeAverage,
+    LazyPercentCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeAverage,
     PerBlockCumulativeRolling,
 };
 use brk_error::Result;
@@ -69,11 +69,10 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
     pub output_to_reused_addr_count: WithAddrTypes<PerBlockCumulativeRolling<Count, M>>,
     /// Share of outputs classified by an address-event rule, using
     /// the matching output type as denominator.
-    pub output_to_reused_addr_share:
-        WithAddrTypes<LazyFixedRatioCumulativeRolling<PartsPerMillion32>>,
+    pub output_to_reused_addr_share: WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     /// Share of spendable outputs classified by an address-event
     /// rule; `OP_RETURN` outputs are excluded from the denominator.
-    pub spendable_output_to_reused_addr_share: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
+    pub spendable_output_to_reused_addr_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
     /// Inputs spending from addresses that satisfied an address predicate
     /// before that input: more than one prior lifetime receive for reuse, or
     /// more than one prior lifetime spend for respending. Multiple qualifying
@@ -82,14 +81,14 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
     /// Share of inputs spending from addresses that satisfy an address
     /// predicate, using the matching input type as denominator.
     pub input_from_reused_addr_share:
-        WithAddrTypes<LazyFixedRatioCumulativeRolling<PartsPerMillion32>>,
+        WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     /// Distinct active addresses in the represented block that satisfy the
     /// address predicate after that block's events.
     pub active_reused_addr_count: PerBlockCumulativeAverage<Count, M>,
     /// Share of distinct active addresses that satisfy an address predicate
     /// after their block's events, counted per block (an address active in
     /// two blocks counts twice).
-    pub active_reused_addr_share: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
+    pub active_reused_addr_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }
 
 impl AddrEventsVecs {
@@ -98,12 +97,12 @@ impl AddrEventsVecs {
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        all: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
+        all: LazyPercentCumulativeRolling<PartsPerMillion32>,
         numerators: &ByAddrType<PerBlockCumulativeRolling<Count>>,
         denominators: &ByAddrType<impl ReadableCloneableVec<Height, Count>>,
-    ) -> WithAddrTypes<LazyFixedRatioCumulativeRolling<PartsPerMillion32>> {
+    ) -> WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>> {
         let by_addr_type = AddrTypeId::series(|id, type_name| {
-            LazyFixedRatioCumulativeRolling::from_cumulative_ratio_with_numerator::<
+            LazyPercentCumulativeRolling::from_cumulative_ratio_with_numerator::<
                 Count,
                 Count,
                 Quotient<PartsPerMillion32>,
@@ -167,7 +166,7 @@ impl AddrEventsVecs {
         );
         let spendable_share_name = format!("spendable_output_to_{name}_addr_share");
         let spendable_output_to_reused_addr_share =
-            LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
+            LazyPercentCumulativeRolling::from_cumulative_ratio::<
                 Count,
                 Count,
                 Quotient<PartsPerMillion32>,
@@ -205,7 +204,7 @@ impl AddrEventsVecs {
             mappings,
             window_starts,
         )?;
-        let active_reused_addr_share = LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
+        let active_reused_addr_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
             Count,
             Count,
             Quotient<PartsPerMillion32>,

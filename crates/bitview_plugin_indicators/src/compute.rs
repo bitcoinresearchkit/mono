@@ -45,7 +45,7 @@ impl ComputePlugin for Vecs {
 
         let compute_puell = || {
             puell_multiple
-                .bps
+                .fixed
                 .compute_binary::<Dollars, Dollars, RatioDollars<BasisPoints32>>(
                     starting_height,
                     &subsidy.block.usd,
@@ -55,7 +55,7 @@ impl ComputePlugin for Vecs {
         };
         let compute_gini = || gini::compute(gini, utxos, starting_height, exit);
         let compute_rhodl = || {
-            rhodl_ratio.ppm.height.compute_transform3(
+            rhodl_ratio.fixed.height.compute_transform3(
                 starting_height,
                 &realized_cap._1d_to_1w.usd.height,
                 &realized_cap._1y_to_18m.usd.height,
@@ -89,7 +89,7 @@ impl ComputePlugin for Vecs {
                         let pct_in_profit = profit_sats.as_u128() as f64 / total;
                         (
                             height,
-                            Ratio::new((pct_in_profit * f64::from(volatility)) as f32),
+                            Ratio::new((pct_in_profit * f64::from(volatility) / 100.0) as f32),
                         )
                     }
                 },

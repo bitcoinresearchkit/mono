@@ -1,14 +1,14 @@
 use bitview_cohort::AmountRange;
 use bitview_plugin_utxos::Vecs as UtxosVecs;
 use bitview_primitives::{Count, PartsPerMillion32};
-use bitview_vecs::FixedRatioPerBlock;
+use bitview_vecs::RatioPerBlock;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, Version};
 use vecdb::{AnyVec, ReadableVec, WritableVec};
 
 pub fn compute(
-    gini: &mut FixedRatioPerBlock<PartsPerMillion32>,
+    gini: &mut RatioPerBlock<PartsPerMillion32>,
     utxos: &UtxosVecs,
     starting_height: Height,
     exit: &Exit,
@@ -34,7 +34,7 @@ pub fn compute(
             .chain(counts.iter().map(AnyVec::version)),
     );
     let batch_size = 4096;
-    gini.ppm.height.compute_batched_to(
+    gini.fixed.height.compute_batched_to(
         starting_height,
         end,
         version,

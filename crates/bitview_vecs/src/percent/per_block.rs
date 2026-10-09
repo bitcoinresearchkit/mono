@@ -1,7 +1,7 @@
-use bitview_collections::FixedRatioViews;
+use bitview_collections::PercentViews;
 use bitview_compute::{ComputeDrawdown, FixedRatio};
-use bitview_primitives::{Percent, Ratio};
-use bitview_transforms::{FixedToPercent, FixedToRatio};
+use bitview_primitives::Percent;
+use bitview_transforms::FixedToPercent;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -13,32 +13,25 @@ use vecdb::{
 
 use crate::{IndexSources, LazyPerBlock, PerBlock};
 
-/// Fixed-point storage with lazy ratio and percentage float views.
+/// Fixed-point storage and its one public view, as a percentage.
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct FixedRatioPerBlock<B: FixedRatio, M: StorageMode = Rw>(
-    pub FixedRatioViews<PerBlock<B, M>, LazyPerBlock<Ratio, B>, LazyPerBlock<Percent, B>>,
+pub struct PercentPerBlock<B: FixedRatio, M: StorageMode = Rw>(
+    pub PercentViews<PerBlock<B, M>, LazyPerBlock<Percent, B>>,
 );
 
-impl<B: FixedRatio> FixedRatioPerBlock<B> {
+impl<B: FixedRatio> PercentPerBlock<B> {
     pub fn import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let ppm = PerBlock::import(db, &format!("{name}_{}", B::SUFFIX), version, indexes)?;
+        let fixed = PerBlock::import(db, &format!("{name}_{}", B::SUFFIX), version, indexes)?;
 
-        let ratio =
-            LazyPerBlock::from_resolutions::<FixedToRatio>(&format!("{name}_ratio"), version, &ppm);
+        let percent = LazyPerBlock::from_resolutions::<FixedToPercent>(name, version, &fixed);
 
-        let percent = LazyPerBlock::from_resolutions::<FixedToPercent>(name, version, &ppm);
-
-        Ok(Self(FixedRatioViews {
-            ppm,
-            ratio,
-            percent,
-        }))
+        Ok(Self(PercentViews { fixed, percent }))
     }
 
     pub fn compute_binary<S1T, S2T, F>(
@@ -53,7 +46,7 @@ impl<B: FixedRatio> FixedRatioPerBlock<B> {
         S2T: VecValue,
         F: BinaryTransform<S1T, S2T, B>,
     {
-        self.ppm
+        self.fixed
             .compute_binary::<S1T, S2T, F>(max_from, source1, source2, exit)
     }
 
@@ -70,7 +63,7 @@ impl<B: FixedRatio> FixedRatioPerBlock<B> {
         f64: From<C> + From<A>,
         EagerVec<PcoVec<Height, B, Budgeted>>: ComputeDrawdown<Height>,
     {
-        self.ppm
+        self.fixed
             .height
             .compute_drawdown(max_from, current, ath, exit)
     }

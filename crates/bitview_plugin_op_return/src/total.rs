@@ -4,7 +4,7 @@ use bitview_primitives::{Bytes, Count, PartsPerMillion32};
 use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFixedRatioCumulativeRolling, LazyFixedRatioPerBlock, LazyWindowStartVec,
+    LazyPercentCumulativeRolling, LazyPercentPerBlock, LazyWindowStartVec,
     PerBlockCumulativeRolling,
 };
 use brk_error::Result;
@@ -29,10 +29,10 @@ pub struct Total<M: StorageMode = Rw> {
     pub fees: PerBlockCumulativeRolling<Sats, M>,
     /// Cumulative `OP_RETURN` data bytes divided by cumulative serialized block
     /// bytes through the represented block.
-    pub chain_share: LazyFixedRatioPerBlock<PartsPerMillion32>,
+    pub chain_share: LazyPercentPerBlock<PartsPerMillion32>,
     /// Fees of transactions carrying `OP_RETURN` divided by all transaction
     /// fees over the same cumulative or trailing window.
-    pub fee_share: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
+    pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }
 
 impl Total {
@@ -98,9 +98,9 @@ impl Total {
         data_bytes: &PerBlockCumulativeRolling<Bytes>,
         block_size: &impl ReadableCloneableVec<Height, Bytes>,
         mappings: &MappingsVecs,
-    ) -> LazyFixedRatioPerBlock<PartsPerMillion32> {
+    ) -> LazyPercentPerBlock<PartsPerMillion32> {
         let data_bytes = data_bytes.cumulative.height.read_only_clone();
-        LazyFixedRatioPerBlock::from_ratio::<Bytes, Bytes, Quotient<PartsPerMillion32>>(
+        LazyPercentPerBlock::from_ratio::<Bytes, Bytes, Quotient<PartsPerMillion32>>(
             &format!("{prefix}_chain_share"),
             version,
             &data_bytes,
@@ -116,12 +116,8 @@ impl Total {
         chain_fees: &impl ReadableCloneableVec<Height, Sats>,
         window_starts: &Windows<&LazyWindowStartVec>,
         mappings: &MappingsVecs,
-    ) -> LazyFixedRatioCumulativeRolling<PartsPerMillion32> {
-        LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
-            Sats,
-            Sats,
-            Quotient<PartsPerMillion32>,
-        >(
+    ) -> LazyPercentCumulativeRolling<PartsPerMillion32> {
+        LazyPercentCumulativeRolling::from_cumulative_ratio::<Sats, Sats, Quotient<PartsPerMillion32>>(
             &format!("{prefix}_fee_share"),
             version,
             &fees.cumulative.height,

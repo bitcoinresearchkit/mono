@@ -1,15 +1,15 @@
 mod lazy_amount_from_height;
 mod lazy_fiat_from_height;
-mod lazy_fixed_ratio_from_height;
 mod lazy_from_height;
+mod lazy_percent_from_height;
 mod lazy_windows_amount_from_height;
 mod lazy_windows_fiat_from_height;
 mod lazy_windows_from_height;
 
 pub use lazy_amount_from_height::LazyDeltaAmountFromHeight;
 pub use lazy_fiat_from_height::LazyDeltaFiatFromHeight;
-pub use lazy_fixed_ratio_from_height::LazyDeltaFixedRatioFromHeight;
 pub use lazy_from_height::LazyDeltaFromHeight;
+pub use lazy_percent_from_height::LazyDeltaPercentFromHeight;
 pub use lazy_windows_amount_from_height::LazyRollingDeltasAmountFromHeight;
 pub use lazy_windows_fiat_from_height::LazyRollingDeltasFiatFromHeight;
 pub use lazy_windows_from_height::LazyRollingDeltasFromHeight;

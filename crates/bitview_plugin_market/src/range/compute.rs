@@ -53,16 +53,16 @@ impl Vecs {
         }
 
         // 2w rolling sum of true range
-        self.true_range_sum_2w.height.compute_rolling_sum(
+        self.true_range_sum_2w.cents.height.compute_rolling_sum(
             starting_height,
             blocks.lookback.start_vec(14),
-            &self.true_range.height,
+            &self.true_range.cents.height,
             exit,
         )?;
 
-        self.choppiness_index_2w.ppm.height.compute_transform4(
+        self.choppiness_index_2w.fixed.height.compute_transform4(
             starting_height,
-            &self.true_range_sum_2w.height,
+            &self.true_range_sum_2w.cents.height,
             &self.max._2w.cents.height,
             &self.min._2w.cents.height,
             blocks.lookback.start_vec(14),

@@ -20,7 +20,7 @@ where
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub(crate) resolutions: Box<DerivedResolutions<T, S1T>>,
+    resolutions: Box<DerivedResolutions<T, S1T>>,
 }
 
 impl<T, S1T> LazyPerBlock<T, S1T>

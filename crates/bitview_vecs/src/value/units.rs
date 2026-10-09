@@ -15,3 +15,15 @@ pub struct Value<S, C, B, U> {
     #[traversable(hidden)]
     pub cents: C,
 }
+
+/// A Bitcoin amount valued at the spot price: BTC and USD, with sats as its exact storage.
+#[derive(Clone, Traversable)]
+pub struct SpotValue<S, B, U> {
+    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
+    pub btc: B,
+    /// Reported in satoshis.
+    #[traversable(hidden)]
+    pub sats: S,
+    /// Reported in US dollars.
+    pub usd: U,
+}

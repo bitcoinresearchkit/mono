@@ -1,6 +1,6 @@
 use bitview_collections::WindowsTo1m;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillionSigned64, Ratio};
+use bitview_primitives::{PartsPerMillionSigned64, Percent};
 use bitview_vecs::{LazyPerBlock, PerBlock, RatioPerBlock};
 use brk_error::Result;
 use brk_types::Version;
@@ -35,16 +35,16 @@ impl Vecs {
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
-        returns: &LazyPerBlock<Ratio, PartsPerMillionSigned64>,
+        returns: &LazyPerBlock<Percent, PartsPerMillionSigned64>,
     ) -> Result<Self> {
         let v = version + VERSION;
 
         let rsi = WindowsTo1m::try_from_fn(|tf| {
-            rsi_chain::RsiChain::import(db, tf, v + Version::TWO, mappings, returns)
+            rsi_chain::RsiChain::import(db, tf, v + Version::new(3), mappings, returns)
         })?;
         let macd = WindowsTo1m::try_from_fn(|tf| import_macd(db, tf, v, mappings))?;
 
-        let pi_cycle = RatioPerBlock::import_ppm(db, "pi_cycle", v, mappings)?;
+        let pi_cycle = RatioPerBlock::import(db, "pi_cycle", v, mappings)?;
 
         Ok(Vecs {
             rsi,

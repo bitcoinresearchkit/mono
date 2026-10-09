@@ -14,7 +14,7 @@ and reader primitives; `bitview_compute` supplies stateful/range algorithms;
 - `resolutions`: composition of a height source into time and chain resolutions.
 - `block`, `tx`: metric families organized by their source index.
 - `rolling`: rolling and delta compositions.
-- `value`, `fiat`, `fixed_ratio`, `ratio`: unit-specific compositions.
+- `value`, `fiat`, `percent`, `ratio`: unit-specific compositions.
 - `cohort`: cohort sources, aggregates, and typed count breakdowns.
 
 Modules are private; the crate root exposes the supported types. Files are

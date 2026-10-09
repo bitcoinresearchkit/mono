@@ -24,7 +24,7 @@ impl Vecs {
             age,
             holders,
         } = dependencies;
-        let inflation_rate = &inflation_rate.ppm.height;
+        let inflation_rate = &inflation_rate.fixed.height;
         let velocity_native = &velocity_native.height;
         let velocity_fiat = &velocity_fiat.height;
         let exit = context.exit();
@@ -41,7 +41,7 @@ impl Vecs {
                     indexer,
                     age,
                     &mut self.age_range,
-                    &mut self.supply.active_supply_in_loss_share.bounded,
+                    &mut self.supply.active_supply_in_loss_share.fixed,
                     exit,
                 )
             },

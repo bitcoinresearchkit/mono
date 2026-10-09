@@ -12,14 +12,16 @@ const PRICE_RATIO_VERSION: Version = Version::new(5);
 
 /// Fully lazy variant of `RatioPerBlock` derived from one per-block source.
 #[derive(Clone, Traversable)]
+#[traversable(merge)]
 pub struct LazyRatioPerBlock<R, S = R>
 where
     R: FixedRatio,
     S: NumericValue + JsonSchema,
 {
-    /// Unitless ratio in parts per million; 1,000,000 represents 1.0.
-    pub ppm: LazyPerBlock<R, S>,
-    /// Unitless decimal ratio derived as parts per million divided by 1,000,000.
+    /// Fixed-point storage: parts per million (1,000,000 represents 1.0) or basis points.
+    #[traversable(hidden)]
+    pub fixed: LazyPerBlock<R, S>,
+    /// As a ratio.
     pub ratio: LazyPerBlock<Ratio, R>,
 }
 
@@ -58,11 +60,11 @@ where
         F: UnaryTransform<S, R>,
         S2T: ComputedVecValue + JsonSchema,
     {
-        let ppm =
+        let fixed =
             LazyPerBlock::from_lazy::<F, S2T>(&format!("{name}_{}", R::SUFFIX), version, source);
-        let ratio = LazyPerBlock::from_lazy::<FixedToRatio, S>(name, version, &ppm);
+        let ratio = LazyPerBlock::from_lazy::<FixedToRatio, S>(name, version, &fixed);
 
-        Self { ppm, ratio }
+        Self { fixed, ratio }
     }
 }
 
@@ -79,14 +81,14 @@ where
     where
         V: ReadableCloneableVec<Height, R> + ?Sized,
     {
-        let ppm = LazyPerBlock::from_height_source::<Ident>(
+        let fixed = LazyPerBlock::from_height_source::<Ident>(
             &format!("{name}_{}", R::SUFFIX),
             version,
             source,
             indexes,
         );
-        let ratio = LazyPerBlock::from_lazy::<FixedToRatio, R>(name, version, &ppm);
+        let ratio = LazyPerBlock::from_lazy::<FixedToRatio, R>(name, version, &fixed);
 
-        Self { ppm, ratio }
+        Self { fixed, ratio }
     }
 }

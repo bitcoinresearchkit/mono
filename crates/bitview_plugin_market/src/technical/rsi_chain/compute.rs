@@ -34,7 +34,7 @@ impl RsiChain {
             exit,
         )?;
 
-        self.rsi.ppm.height.compute_transform2(
+        self.rsi.fixed.height.compute_transform2(
             starting_height,
             &self.average_gain.height,
             &self.average_loss.height,
@@ -47,19 +47,19 @@ impl RsiChain {
         )?;
 
         compute_rolling_extrema_from_starts(
-            &mut self.rsi_min.ppm.height,
-            &mut self.rsi_max.ppm.height,
+            &mut self.rsi_min.fixed.height,
+            &mut self.rsi_max.fixed.height,
             starting_height,
             ws_rma,
-            &self.rsi.ppm.height,
+            &self.rsi.fixed.height,
             exit,
         )?;
 
-        self.stoch_rsi.ppm.height.compute_transform3(
+        self.stoch_rsi.fixed.height.compute_transform3(
             starting_height,
-            &self.rsi.ppm.height,
-            &self.rsi_min.ppm.height,
-            &self.rsi_max.ppm.height,
+            &self.rsi.fixed.height,
+            &self.rsi_min.fixed.height,
+            &self.rsi_max.fixed.height,
             |(h, r, mn, mx, ..)| {
                 let range = f64::from(*mx) - f64::from(*mn);
                 let stoch = if range == 0.0 {
@@ -72,17 +72,17 @@ impl RsiChain {
             exit,
         )?;
 
-        self.stoch_rsi_k.ppm.height.compute_rolling_average(
+        self.stoch_rsi_k.fixed.height.compute_rolling_average(
             starting_height,
             ws_sma,
-            &self.stoch_rsi.ppm.height,
+            &self.stoch_rsi.fixed.height,
             exit,
         )?;
 
-        self.stoch_rsi_d.ppm.height.compute_rolling_average(
+        self.stoch_rsi_d.fixed.height.compute_rolling_average(
             starting_height,
             ws_sma,
-            &self.stoch_rsi_k.ppm.height,
+            &self.stoch_rsi_k.fixed.height,
             exit,
         )?;
 

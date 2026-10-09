@@ -1,4 +1,4 @@
-use bitview_primitives::{BoundedRatio, Ratio64};
+use bitview_primitives::{BoundedRatio, Percent};
 use bitview_traversable::Traversable;
 use brk_types::Cents;
 
@@ -20,7 +20,7 @@ pub struct AggregateVecs {
     /// the sum of total supply multiplied by that probability. Returns NaN
     /// when the weighted supply is zero.
     #[traversable(wrap = "supply/mobile/in_loss", rename = "share")]
-    pub supply_in_loss_share: LazyPerBlock<Ratio64, BoundedRatio>,
+    pub supply_in_loss_share: LazyPerBlock<Percent, BoundedRatio>,
     /// Sum of creation-date USD value multiplied by remaining-lifetime spending
     /// probability across a set of UTXO age ranges. Creation-date value is each
     /// unspent output's BTC value multiplied by Bitcoin's spot price when it was

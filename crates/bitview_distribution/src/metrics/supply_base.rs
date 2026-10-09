@@ -5,8 +5,8 @@ use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
 use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFixedRatioPerBlock, LazyIndexedVec, LazyRollingDeltasAmountFromHeight,
-    LazySpotValuePerBlock, LazyWindowStartVec,
+    LazyIndexedVec, LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock,
+    LazyWindowStartVec,
 };
 use brk_types::{Height, Sats, SatsSigned, Version};
 use vecdb::{BinaryTransform, ReadableCloneableVec};
@@ -16,7 +16,7 @@ pub struct SupplyBase {
     total: LazySpotValuePerBlock,
     pub delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
     #[traversable(rename = "dominance")]
-    pub dominance: LazyFixedRatioPerBlock<PartsPerMillion32>,
+    pub dominance: LazyPercentPerBlock<PartsPerMillion32>,
 }
 
 impl SupplyBase {
@@ -38,7 +38,7 @@ impl SupplyBase {
             |_, supply, all_supply| Quotient::<PartsPerMillion32>::apply(supply, all_supply),
         );
         let dominance =
-            LazyFixedRatioPerBlock::from_height_source(&dominance_name, version, &source, mappings);
+            LazyPercentPerBlock::from_height_source(&dominance_name, version, &source, mappings);
 
         Self::from_parts(
             context,
@@ -56,7 +56,7 @@ impl SupplyBase {
         cohort: CohortId,
         version: Version,
         total: LazySpotValuePerBlock,
-        dominance: LazyFixedRatioPerBlock<PartsPerMillion32>,
+        dominance: LazyPercentPerBlock<PartsPerMillion32>,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Self {

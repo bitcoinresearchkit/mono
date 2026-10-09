@@ -3,7 +3,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_transforms::RelativeChange;
-use bitview_vecs::{LazyFixedRatioPerBlock, LazyWindowVec, StdDevPerBlock};
+use bitview_vecs::{LazyPercentPerBlock, LazyWindowVec, StdDevPerBlock};
 use brk_error::{Error, Result};
 use brk_types::{Dollars, Height, Version};
 use vecdb::{BinaryTransform, Database, ReadableCloneableVec};
@@ -31,7 +31,7 @@ impl Vecs {
                         RelativeChange::<PartsPerMillionSigned64>::apply(current, past)
                     },
                 );
-                Ok::<_, Error>(LazyFixedRatioPerBlock::from_height_source(
+                Ok::<_, Error>(LazyPercentPerBlock::from_height_source(
                     &metric_name,
                     version,
                     &source,

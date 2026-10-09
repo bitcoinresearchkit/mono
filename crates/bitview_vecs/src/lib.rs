@@ -10,7 +10,7 @@
 mod block;
 mod cohort;
 mod fiat;
-mod fixed_ratio;
+mod percent;
 mod ratio;
 mod resolutions;
 mod rolling;
@@ -22,7 +22,7 @@ mod views;
 pub use block::*;
 pub use cohort::*;
 pub use fiat::*;
-pub use fixed_ratio::*;
+pub use percent::*;
 pub use ratio::*;
 pub use resolutions::*;
 pub use rolling::*;

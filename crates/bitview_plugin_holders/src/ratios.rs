@@ -5,7 +5,7 @@ use bitview_primitives::{Days, PartsPerMillion32, Ratio};
 use bitview_transforms::{Quotient, RatioCentsOrOne};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    FixedRatioRollingWindows, LazyWindowStartVec, PerBlock, RollingWindows, RollingWindowsFrom1w,
+    LazyWindowStartVec, PerBlock, RatioRollingWindows, RollingWindows, RollingWindowsFrom1w,
 };
 use brk_error::Result;
 use brk_exit::Exit;
@@ -21,7 +21,7 @@ pub struct Ratios<M: StorageMode = Rw> {
     pub dormancy: RollingWindows<Days, M>,
     pub sopr: PerBlock<Ratio, M>,
     pub sopr_ratio_extended: RollingWindowsFrom1w<Ratio, M>,
-    pub sell_side_risk_ratio: FixedRatioRollingWindows<PartsPerMillion32, M>,
+    pub sell_side_risk_ratio: RatioRollingWindows<PartsPerMillion32, M>,
     pub profit_to_loss_ratio: RollingWindows<Ratio, M>,
 }
 impl Ratios {
@@ -43,7 +43,7 @@ impl Ratios {
                 v,
                 mappings,
             )?,
-            sell_side_risk_ratio: FixedRatioRollingWindows::import(
+            sell_side_risk_ratio: RatioRollingWindows::import(
                 db,
                 &id.metric_name("sell_side_risk_ratio"),
                 v,
@@ -123,12 +123,14 @@ impl Ratios {
             .into_iter()
             .zip(realized.gross_pnl.sum.as_array())
         {
-            target.compute_binary::<_, _, Quotient<PartsPerMillion32>>(
-                from,
-                &pnl.cents.height,
-                &realized.cap.cents.height,
-                exit,
-            )?;
+            target
+                .fixed
+                .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
+                    from,
+                    &pnl.cents.height,
+                    &realized.cap.cents.height,
+                    exit,
+                )?;
         }
         for ((target, profit), loss) in self
             .profit_to_loss_ratio
@@ -165,7 +167,7 @@ impl Ratios {
             self.sell_side_risk_ratio
                 .as_mut_array()
                 .into_iter()
-                .map(|v| &mut v.ppm.height as &mut dyn AnyStoredVec),
+                .map(|v| &mut v.fixed.height as &mut dyn AnyStoredVec),
         );
         result.extend(
             self.profit_to_loss_ratio

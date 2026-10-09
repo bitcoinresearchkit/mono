@@ -3,7 +3,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillion32;
 use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazyFixedRatioPerBlock, import_cached};
+use bitview_vecs::{CachedSeries, LazyPercentPerBlock, import_cached};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, Version};
@@ -20,9 +20,9 @@ use super::vecs::AddrSupplyVecs;
 /// - Per-type: type's category supply / type's total supply
 #[derive(Traversable)]
 pub struct AddrSupplyShareVecs<M: StorageMode = Rw> {
-    pub all: LazyFixedRatioPerBlock<PartsPerMillion32>,
+    pub all: LazyPercentPerBlock<PartsPerMillion32>,
     #[traversable(flatten)]
-    pub by_addr_type: ByAddrType<LazyFixedRatioPerBlock<PartsPerMillion32>>,
+    pub by_addr_type: ByAddrType<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(hidden)]
     ppm: ByAddrType<CachedSeries<Height, PartsPerMillion32, M>>,
 }
@@ -37,7 +37,7 @@ impl AddrSupplyShareVecs {
         all_supply: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
         let name = format!("{name}_addr_supply_share");
-        let all = LazyFixedRatioPerBlock::from_ratio::<Sats, Sats, Quotient<PartsPerMillion32>>(
+        let all = LazyPercentPerBlock::from_ratio::<Sats, Sats, Quotient<PartsPerMillion32>>(
             &name,
             version,
             &supply.all.sats.height,
@@ -52,7 +52,7 @@ impl AddrSupplyShareVecs {
             )
         })?;
         let by_addr_type = AddrTypeId::series(|id, type_name| {
-            LazyFixedRatioPerBlock::from_height_source(
+            LazyPercentPerBlock::from_height_source(
                 &format!("{type_name}_{name}"),
                 version,
                 id.select(&ppm),

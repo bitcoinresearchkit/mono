@@ -5,7 +5,7 @@ use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{DeltaChange, ReadableCloneableVec, VecValue};
 
-use crate::{IndexSources, LazyDeltaFixedRatioFromHeight, LazyDeltaFromHeight};
+use crate::{IndexSources, LazyDeltaFromHeight, LazyDeltaPercentFromHeight};
 
 #[derive(Clone, Traversable)]
 pub struct LazyRollingDeltasFromHeight<S, C, B>
@@ -20,7 +20,7 @@ where
     /// Relative change from the start of a trailing window through the
     /// represented block, divided by the starting value. Returns zero when the
     /// starting value is zero.
-    rate: Windows<LazyDeltaFixedRatioFromHeight<S, B>>,
+    rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
 }
 
 impl<S, C, B> LazyRollingDeltasFromHeight<S, C, B>
@@ -47,7 +47,7 @@ where
                     indexes,
                 );
 
-                let rate = LazyDeltaFixedRatioFromHeight::from_source(
+                let rate = LazyDeltaPercentFromHeight::from_source(
                     &name,
                     version,
                     source,

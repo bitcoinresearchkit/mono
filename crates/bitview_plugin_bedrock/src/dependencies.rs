@@ -4,7 +4,7 @@ use bitview_plugin_cointime::Vecs as CointimeVecs;
 use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillion32, Ratio64};
+use bitview_primitives::{BoundedRatio, PartsPerMillion32};
 use bitview_urpd::ReplayInputs;
 use brk_types::Height;
 use vecdb::ReadableVec;
@@ -28,18 +28,18 @@ impl Dependencies<'_> {
             .all
             .relative
             .supply_in_loss_share
-            .ppm
+            .fixed
             .height
     }
-    pub(crate) fn cointime_loss_share(&self) -> &impl ReadableVec<Height, Ratio64> {
+    pub(crate) fn cointime_loss_share(&self) -> &impl ReadableVec<Height, BoundedRatio> {
         &self
             .cointime
             .supply
             .active_supply_in_loss_share
-            .ratio
+            .fixed
             .height
     }
-    pub(crate) fn coinflow_loss_share(&self) -> &impl ReadableVec<Height, Ratio64> {
-        &self.coinflow.all.supply_in_loss_share.height
+    pub(crate) fn coinflow_loss_share(&self) -> &impl ReadableVec<Height, BoundedRatio> {
+        self.coinflow.all_supply_in_loss_share()
     }
 }

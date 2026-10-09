@@ -1,6 +1,6 @@
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, IndexSources, LazyFixedRatioPerBlock, import_cached};
+use bitview_vecs::{CachedSeries, IndexSources, LazyPercentPerBlock, import_cached};
 use brk_error::Result;
 use brk_types::{Height, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
@@ -10,7 +10,7 @@ use super::SupplyDensity;
 #[derive(Traversable)]
 pub struct DensitySeries<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub series: SupplyDensity<LazyFixedRatioPerBlock<PartsPerMillion32>>,
+    pub series: SupplyDensity<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(hidden)]
     pub stored: SupplyDensity<CachedSeries<Height, PartsPerMillion32, M>>,
 }
@@ -26,7 +26,7 @@ impl DensitySeries {
             import_cached(db, &format!("{name}{suffix}_ppm"), version)
         })?;
         let view = |source: &CachedSeries<Height, PartsPerMillion32>, suffix| {
-            LazyFixedRatioPerBlock::from_height_source(
+            LazyPercentPerBlock::from_height_source(
                 &format!("{name}{suffix}"),
                 version,
                 source,

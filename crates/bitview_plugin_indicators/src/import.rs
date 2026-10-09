@@ -5,10 +5,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::{BasisPoints32, Days, Float32, Years};
-use bitview_vecs::{
-    BasisPointsPerBlock, FixedRatioPerBlock, LazyBasisPointsPerBlock, LazyPerBlock, PerBlock,
-    RatioPerBlock,
-};
+use bitview_vecs::{LazyPerBlock, LazyRatioPerBlock, PerBlock, RatioPerBlock};
 use brk_error::Result;
 use brk_types::{Bitcoin, Cents, Sats, Version};
 use vecdb::{Ident, unlikely};
@@ -30,8 +27,7 @@ impl Vecs {
         let v = STORAGE.schema_version();
 
         let bps_version = v + Version::ONE;
-        let puell_multiple =
-            BasisPointsPerBlock::import(&db, "puell_multiple", bps_version, mappings)?;
+        let puell_multiple = RatioPerBlock::import(&db, "puell_multiple", bps_version, mappings)?;
         let nvt_source = all_chain.with_market_cap(
             "nvt_bps_source",
             bps_version,
@@ -45,10 +41,9 @@ impl Vecs {
                 .height,
             |_, volume, market_cap| Self::market_ratio(market_cap, volume),
         );
-        let nvt =
-            LazyBasisPointsPerBlock::from_height_source("nvt", bps_version, &nvt_source, mappings);
-        let gini = FixedRatioPerBlock::import(&db, "gini", v, mappings)?;
-        let rhodl_ratio = RatioPerBlock::import_ppm(&db, "rhodl_ratio", v, mappings)?;
+        let nvt = LazyRatioPerBlock::from_height_source("nvt", bps_version, &nvt_source, mappings);
+        let gini = RatioPerBlock::import(&db, "gini", v, mappings)?;
+        let rhodl_ratio = RatioPerBlock::import(&db, "rhodl_ratio", v, mappings)?;
         let thermo_source = all_chain.with_market_cap(
             "thermo_cap_multiple_bps_source",
             bps_version,
@@ -61,7 +56,7 @@ impl Vecs {
                 .height_source(),
             |_, thermo_cap, market_cap| Self::market_ratio(market_cap, thermo_cap),
         );
-        let thermo_cap_multiple = LazyBasisPointsPerBlock::from_height_source(
+        let thermo_cap_multiple = LazyRatioPerBlock::from_height_source(
             "thermo_cap_multiple",
             bps_version,
             &thermo_source,
@@ -136,7 +131,8 @@ impl Vecs {
         );
         let stock_to_flow =
             LazyPerBlock::from_height_source::<Ident>("stock_to_flow", v, &stock_source, mappings);
-        let seller_exhaustion = PerBlock::import(&db, "seller_exhaustion", v, mappings)?;
+        let seller_exhaustion =
+            PerBlock::import(&db, "seller_exhaustion", v + Version::ONE, mappings)?;
 
         let this = Self {
             db,
