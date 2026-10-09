@@ -28,9 +28,9 @@ pub struct PoolDetail {
     #[serde(rename = "reportedHashrate")]
     pub reported_hashrate: Option<u128>,
 
-    /// Total reward earned by this pool (sats, all time; None for minor pools)
+    /// Total reward earned by this pool: coinbase output value of every block it mined (sats)
     #[serde(rename = "totalReward")]
-    pub total_reward: Option<Sats>,
+    pub total_reward: Sats,
 }
 
 /// Pool information for detail view

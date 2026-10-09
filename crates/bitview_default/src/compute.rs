@@ -302,14 +302,8 @@ impl DefaultPlugins {
                 let mining = tx_mining_op_return.join().unwrap()?;
                 let pools = scope.spawn(|| {
                     timed(Phase::Compute, POOLS_ID, || {
-                        self.pools.compute(
-                            PoolsDependencies {
-                                indexer,
-                                price: &self.price,
-                                mining,
-                            },
-                            context,
-                        )
+                        self.pools
+                            .compute(PoolsDependencies { indexer, mining }, context)
                     })
                 });
                 timed(Phase::Compute, SUPPLY_ID, || {

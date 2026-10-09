@@ -7468,7 +7468,8 @@
                 "pool",
                 "blockCount",
                 "blockShare",
-                "estimatedHashrate"
+                "estimatedHashrate",
+                "totalReward"
               ],
               "type": "object",
               "properties": {
@@ -7507,12 +7508,9 @@
                   "format": "uint128"
                 },
                 "totalReward": {
-                  "anyOf": [
+                  "allOf": [
                     {
                       "$ref": "#/$defs/Sats"
-                    },
-                    {
-                      "type": "null"
                     }
                   ]
                 }

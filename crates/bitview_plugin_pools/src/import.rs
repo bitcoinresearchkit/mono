@@ -3,18 +3,22 @@ use std::collections::BTreeMap;
 use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{POOL_ATTRIBUTION_VERSION, pools};
+use bitview_primitives::{Hashrate, POOL_ATTRIBUTION_VERSION, pools};
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
-use vecdb::{BytesVec, ImportableVec, Version};
+use brk_types::Height;
+use vecdb::{BytesVec, ImportableVec, ReadableCloneableVec, Version};
 
-use crate::{STORAGE, Vecs, major, minor, pool_heights::PoolHeights};
+use crate::{STORAGE, Vecs, pool::PoolVecs, pool_heights::PoolHeights};
 
 impl Vecs {
+    /// `network` holds the network hash-rate estimates matching the pool windows (24 hours,
+    /// then its 1-week, 1-month and 1-year averages).
     pub fn import(
         context: ImportContext<'_>,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
+        network: &Windows<&impl ReadableCloneableVec<Height, Hashrate>>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
         let pools = pools();
@@ -23,43 +27,26 @@ impl Vecs {
             STORAGE.schema_version() + POOL_ATTRIBUTION_VERSION + Version::new(pools.len() as u32);
 
         let pool = BytesVec::import(&db, "pool", version)?;
-        let pool_heights = PoolHeights::build(&pool);
-
-        let mut major_map = BTreeMap::new();
-        let mut minor_map = BTreeMap::new();
-
-        for pool in pools.iter() {
-            if pool.slug.is_major() {
-                major_map.insert(
+        let heights = PoolHeights::build(&pool);
+        let by_slug = pools
+            .iter()
+            .map(|pool| {
+                let vecs = PoolVecs::new(
                     pool.slug,
-                    major::Vecs::import(
-                        &db,
-                        pool.slug,
-                        pool_heights.clone(),
-                        version,
-                        mappings,
-                        window_starts,
-                    )?,
+                    &heights,
+                    version,
+                    mappings,
+                    window_starts,
+                    network,
                 );
-            } else {
-                minor_map.insert(
-                    pool.slug,
-                    minor::Vecs::new(
-                        pool.slug,
-                        pool_heights.clone(),
-                        version,
-                        mappings,
-                        window_starts,
-                    ),
-                );
-            }
-        }
+                (pool.slug, vecs)
+            })
+            .collect::<BTreeMap<_, _>>();
 
         let this = Self {
             pool,
-            heights: pool_heights,
-            major: major_map,
-            minor: minor_map,
+            heights,
+            by_slug,
             pools,
             db,
         };

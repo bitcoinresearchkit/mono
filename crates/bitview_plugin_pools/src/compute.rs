@@ -1,11 +1,10 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
+use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_primitives::{Index40, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
-use rayon::prelude::{
-    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
-};
+use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use tracing::warn;
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, VecIndex, Version, WritableVec};
 
@@ -23,24 +22,76 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        let Dependencies {
-            indexer,
-            price: prices,
-            mining,
-        } = dependencies;
+        let Dependencies { indexer, mining } = dependencies;
         let exit = context.exit();
 
         self.compute_pool(indexer, exit)?;
-
-        self.major
-            .par_iter_mut()
-            .try_for_each(|(_, vecs)| vecs.compute(indexer, prices, mining, exit))?;
-
+        self.fill_rewards(mining);
         Ok(())
     }
 }
 
 impl Vecs {
+    /// Folds every new block's coinbase and fees into its pool's running totals.
+    fn fill_rewards(&self, mining: &MiningVecs) {
+        let rewards = &mining.rewards;
+        let version = rewards.coinbase.block.sats.version()
+            + rewards.coinbase.block.cents.version()
+            + rewards.fees.block.sats.version()
+            + rewards.fees.block.cents.version();
+        let to = [
+            self.pool.len(),
+            rewards.coinbase.block.sats.len(),
+            rewards.coinbase.block.cents.len(),
+            rewards.fees.block.sats.len(),
+            rewards.fees.block.cents.len(),
+        ]
+        .into_iter()
+        .min()
+        .unwrap_or_default();
+        // A shorter source re-fills from its end, so no stale total survives.
+        let from = self.heights.totals_start(version).min(to);
+        let columns = [
+            rewards
+                .coinbase
+                .block
+                .sats
+                .collect_range_at(from, to)
+                .into_iter()
+                .map(u64::from)
+                .collect::<Vec<_>>(),
+            rewards
+                .coinbase
+                .block
+                .cents
+                .collect_range_at(from, to)
+                .into_iter()
+                .map(u64::from)
+                .collect(),
+            rewards
+                .fees
+                .block
+                .sats
+                .collect_range_at(from, to)
+                .into_iter()
+                .map(u64::from)
+                .collect(),
+            rewards
+                .fees
+                .block
+                .cents
+                .collect_range_at(from, to)
+                .into_iter()
+                .map(u64::from)
+                .collect(),
+        ];
+        let len = columns.iter().map(Vec::len).min().unwrap_or_default();
+        let blocks = (0..len)
+            .map(|index| columns.each_ref().map(|column| column[index]))
+            .collect::<Vec<_>>();
+        self.heights.fill_totals(from, &blocks, version);
+    }
+
     fn compute_pool(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
 

@@ -1,3 +1,4 @@
+use bitview_collections::Windows;
 use std::{thread, time::Instant};
 
 use bitview_plugin::{ImportContext, Plugin};
@@ -103,12 +104,6 @@ impl DefaultPlugins {
                     })
                 })?;
 
-                let pools_handle = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, POOLS_ID, || {
-                        Ok(Box::new(Pools::import(context, &mappings, &window_starts)?))
-                    })
-                })?;
-
                 let mining = mining_handle.join().unwrap()?;
                 let block_size = blocks.size.size.cumulative_source();
                 let chain_fees = mining
@@ -131,10 +126,25 @@ impl DefaultPlugins {
                         })
                     })
                 }?;
+                // Pool hash rates read mining's network estimates; the import itself is light.
+                let pools = timed(Phase::Import, POOLS_ID, || -> Result<_> {
+                    let rate = &mining.hashrate.rate;
+                    let network = Windows {
+                        _24h: &rate.block.height,
+                        _1w: &rate.sma._1w.height,
+                        _1m: &rate.sma._1m.height,
+                        _1y: &rate.sma._1y.height,
+                    };
+                    Ok(Box::new(Pools::import(
+                        context,
+                        &mappings,
+                        &window_starts,
+                        &network,
+                    )?))
+                })?;
                 let inputs = inputs_handle.join().unwrap()?;
                 let outputs = outputs_handle.join().unwrap()?;
                 let transactions = transactions_handle.join().unwrap()?;
-                let pools = pools_handle.join().unwrap()?;
                 let op_return = op_return_handle.join().unwrap()?;
 
                 Ok((inputs, outputs, mining, transactions, pools, op_return))

@@ -75,7 +75,8 @@ has to be deleted by hand.
   (`days_since`, `max_days_between` stay); `mayer_multiple` names the 200-day SMA ratio
 - Mining: hash price and hash value are per PH/s only, as `mining.hashrate.{price, value}.{block, atl, rebound}` (were
   per TH/s and PH/s with `*_min`); `fees.share`/`subsidy.share` (were `dominance`); output volume is a BTC and USD flow
-  with sums and cumulative (was sats per block)
+  with sums and cumulative (was sats per block); the network hash-rate ids say `hashrate` like every other one
+  (`hashrate`, `hashrate_sma_1w`, `hashrate_ath`, `hashrate_drawdown`; were `hash_rate*`)
 - Transactions: `tx_per_second` (was `tx_per_sec`); inscription fees are BTC and USD (were sats); the transaction
   volume (input value of non-coinbase transactions) is `transactions.volume.value`, id `tx_volume` (was
   `transfer_volume` with ids `transfer_volume_bis*`): the holders' `all` cohort's `transfer_volume` is a different
@@ -99,6 +100,13 @@ has to be deleted by hand.
   `fee_share`); the totals' `chain_share` and `fee_share` moved under `data_bytes` and `fees`. Fees are BTC and USD
   (were sats). The totals gain `output_count` (id `op_return_output_count`, shared with outputs). Policy ids drop
   `policy_` (`op_return_oversized_tx_count`, was `op_return_policy_oversized_tx_count`)
+- Pools have one shape, every pool alike, at `pools.<slug>` (were `pools.major.<slug>` for 22 pools with rewards and
+  `pools.minor.<slug>` for the rest): `blocks_mined` (cumulative and window sums; the per-block 0/1 and the major
+  pools' per-block `<slug>_rewards` are gone), `share`
+  (all time and per window; was `dominance`), `rewards` (BTC and USD, cumulative and window sums), `fees_per_block`
+  (fees of the pool's blocks per block it mined, per window, BTC and USD; empty when it mined none) and `hashrate` (its
+  window share of blocks times the network hash-rate estimate). All are read from in-memory per-pool running totals: the pools plugin stores only the
+  per-block attribution (`pool`). `GET /api/v1/mining/pool/{slug}` reports `totalReward` for every pool
 - Shared ids: `circulating_supply` (UTXO set, holders' `all` and supply), `market_cap` (holders' `all` supply in USD
   and supply), `utxo_count` (UTXO set and holders' `all`).
   `utxo_set.supply` is `circulating_supply` in BTC (was `unspent_sats` in sats); `supply.circulating` is BTC only,
@@ -307,11 +315,15 @@ has to be deleted by hand.
 
 #### `bitview_website`
 
+- `crates/bitview_primitives/pools.sh` refreshes the pool logos with the pool list; DMND and Noderunners have logos
+
 - A folder URL serves the folder's own `index.html` (`/folder/`)
 
 ### Bug Fixes
 
 #### Series values (recomputed on upgrade)
+
+- Block-to-pool attribution follows mempool's current `pools-v2.json` (a new Foundry USA payout address)
 
 - Exponential averages store their exact state. At the tip every block resumed from the stored output, and the price
   EMAs truncated to whole cents: the 200-day EMA settled about $72 low and the 4-year one about $500, and nodes

@@ -57,16 +57,9 @@ impl Query {
         // Range count = cumulative(end) - cumulative(start - 1).
         for (pool_id, cumulative) in plugins
             .pools
-            .major
+            .by_slug
             .iter()
             .map(|(id, v)| (id, &v.blocks_mined.cumulative.height))
-            .chain(
-                plugins
-                    .pools
-                    .minor
-                    .iter()
-                    .map(|(id, v)| (id, &v.blocks_mined.cumulative.height)),
-            )
         {
             let count_at_end: u64 = *cumulative.collect_one(current_height).data()?;
 
@@ -124,10 +117,8 @@ impl Query {
     /// Per-pool detail: lifetime block count plus 24h and 1w windowed counts,
     /// each as a share of network blocks in the same window. The 24h share is
     /// also used to weight the current 1-day network hashrate into a per-pool
-    /// `estimated_hashrate`. `total_reward` is `Some` only for major pools
-    /// (minor pools don't track per-pool reward sums); under stamp lag on a
-    /// major pool's reward vec this errors rather than silently reporting
-    /// `None`.
+    /// `estimated_hashrate`. `total_reward` is the coinbase value of every block
+    /// the pool mined.
     pub fn pool_detail(&self, slug: PoolSlug) -> Result<PoolDetail> {
         let _guard = self.read_publication()?;
         let plugins = self.plugins();
@@ -137,23 +128,10 @@ impl Query {
         let pools_list = pools();
         let pool = pools_list.get(slug);
 
-        let cumulative = plugins
-            .pools
-            .major
-            .get(&slug)
-            .map(|v| &v.blocks_mined.cumulative.height)
-            .or_else(|| {
-                plugins
-                    .pools
-                    .minor
-                    .get(&slug)
-                    .map(|v| &v.blocks_mined.cumulative.height)
-            })
-            .ok_or_else(|| {
-                Error::Internal(
-                    "pool slug present in static list but missing from major/minor maps",
-                )
-            })?;
+        let vecs = plugins.pools.by_slug.get(&slug).ok_or(Error::Internal(
+            "pool slug present in static list but missing from pools",
+        ))?;
+        let cumulative = &vecs.blocks_mined.cumulative.height;
 
         let total_all: u64 = *cumulative.collect_one(current_height).data()?;
 
@@ -180,19 +158,13 @@ impl Query {
         let network_hr = self.hashrate_at(current_height)?;
         let estimated_hashrate = (share_24h * network_hr as f64) as u128;
 
-        let total_reward = if let Some(major) = plugins.pools.major.get(&slug) {
-            Some(
-                major
-                    .rewards
-                    .cumulative
-                    .sats
-                    .height
-                    .collect_one(current_height)
-                    .data()?,
-            )
-        } else {
-            None
-        };
+        let total_reward = vecs
+            .rewards
+            .cumulative
+            .sats
+            .height
+            .collect_one(current_height)
+            .data()?;
 
         Ok(PoolDetail {
             pool: PoolDetailInfo::from(pool),
@@ -305,12 +277,9 @@ impl Query {
     }
 
     /// Reads the pool's daily-cumulative blocks-mined vec over the half-open
-    /// day range `[start_day, end_day)`. Major pools nest under `.base`
-    /// (additional derived computations), minor pools don't, so the slug is
-    /// looked up in both maps. Errors `Internal` if the slug is in neither
-    /// map: this can only fire on a static-pool-list / indexer-map mismatch
-    /// since both callers guarantee the slug is in the static list, so the
-    /// route layer never reaches a user-driven not-found path here.
+    /// day range `[start_day, end_day)`. Errors `Internal` if the slug has no
+    /// series: both callers guarantee it is in the static pool list, so this
+    /// only fires on a list/plugin mismatch, never on user input.
     fn pool_daily_cumulative(
         &self,
         slug: PoolSlug,
@@ -318,23 +287,16 @@ impl Query {
         end_day: usize,
     ) -> Result<Vec<Option<Count>>> {
         let plugins = self.plugins();
-        let cumulative = plugins
+        let cumulative = &plugins
             .pools
-            .major
+            .by_slug
             .get(&slug)
-            .map(|v| &v.base.blocks_mined.cumulative.day1)
-            .or_else(|| {
-                plugins
-                    .pools
-                    .minor
-                    .get(&slug)
-                    .map(|v| &v.blocks_mined.cumulative.day1)
-            })
-            .ok_or_else(|| {
-                Error::Internal(
-                    "pool slug present in static list but missing from major/minor maps",
-                )
-            })?;
+            .ok_or(Error::Internal(
+                "pool slug present in static list but missing from pools",
+            ))?
+            .blocks_mined
+            .cumulative
+            .day1;
         let values = cumulative.collect_range_at(start_day, end_day);
         if end_day.checked_sub(start_day) != Some(values.len()) {
             return Err(Error::Internal("Incomplete pool cumulative window"));

@@ -9,19 +9,16 @@ repository.workspace = true
 
 [dependencies]
 bitview_primitives = { workspace = true, features = ["storage"] }
-bitview_transforms = { workspace = true }
 bitview_collections = { workspace = true, features = ["storage"] }
 bitview_vecs = { workspace = true }
 brk_exit = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_mining = { workspace = true }
-bitview_plugin_price = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
 bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
-derive_more = { workspace = true }
 parking_lot = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }

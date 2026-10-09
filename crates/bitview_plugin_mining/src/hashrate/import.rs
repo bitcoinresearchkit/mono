@@ -16,15 +16,15 @@ impl Vecs {
 
         Ok(Vecs {
             rate: RateVecs {
-                block: PerBlock::import(db, "hash_rate", version + v5, mappings)?,
+                block: PerBlock::import(db, "hashrate", version + v5, mappings)?,
                 sma: HashRateSmaVecs {
-                    _1w: PerBlock::import(db, "hash_rate_sma_1w", version, mappings)?,
-                    _1m: PerBlock::import(db, "hash_rate_sma_1m", version, mappings)?,
-                    _2m: PerBlock::import(db, "hash_rate_sma_2m", version, mappings)?,
-                    _1y: PerBlock::import(db, "hash_rate_sma_1y", version, mappings)?,
+                    _1w: PerBlock::import(db, "hashrate_sma_1w", version, mappings)?,
+                    _1m: PerBlock::import(db, "hashrate_sma_1m", version, mappings)?,
+                    _2m: PerBlock::import(db, "hashrate_sma_2m", version, mappings)?,
+                    _1y: PerBlock::import(db, "hashrate_sma_1y", version, mappings)?,
                 },
-                ath: PerBlock::import(db, "hash_rate_ath", version, mappings)?,
-                drawdown: PercentPerBlock::import(db, "hash_rate_drawdown", version, mappings)?,
+                ath: PerBlock::import(db, "hashrate_ath", version, mappings)?,
+                drawdown: PercentPerBlock::import(db, "hashrate_drawdown", version, mappings)?,
             },
             price: HashPriceValueVecs {
                 block: PerBlock::import(db, "hash_price", version + v8, mappings)?,

@@ -5,7 +5,7 @@
 - Version: `v0.12.2`
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
-- Metrics: 17661
+- Metrics: 21459
 - Operations: 100
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
@@ -1880,7 +1880,7 @@ curl -s "https://bitview.space/version"
 - `blockShare`: `PoolBlockShares` (required) — Pool's share of total blocks for different time periods
 - `estimatedHashrate`: `integer` (required) — Estimated hashrate based on blocks mined (H/s)
 - `reportedHashrate`: `integer | null` — Self-reported hashrate (if available, H/s)
-- `totalReward`: `Sats | null` — Total reward earned by this pool (sats, all time; None for minor pools)
+- `totalReward`: `Sats` (required) — Total reward earned by this pool: coinbase output value of every block it mined (sats)
 
 ### `PoolDetailInfo`
 

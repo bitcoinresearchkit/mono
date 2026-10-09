@@ -18,7 +18,7 @@ pub struct LazyRollingSumsAmountFromHeight(
 );
 
 impl LazyRollingSumsAmountFromHeight {
-    pub(crate) fn new(
+    pub fn new(
         name: &str,
         version: Version,
         cumulative_sats: &impl ReadableCloneableVec<Height, Sats>,

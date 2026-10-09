@@ -501,6 +501,7 @@ dependencies = [
 name = "bitview_default"
 version = "0.12.2"
 dependencies = [
+ "bitview_collections",
  "bitview_plugin",
  "bitview_plugin_addresses",
  "bitview_plugin_age",
@@ -1033,15 +1034,12 @@ dependencies = [
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_mining",
- "bitview_plugin_price",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
  "brk_exit",
  "brk_types",
- "derive_more",
  "parking_lot",
  "rayon",
  "rustc-hash",

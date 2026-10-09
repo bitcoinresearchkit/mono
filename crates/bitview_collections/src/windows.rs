@@ -37,6 +37,20 @@ impl<A> Windows<A> {
         [&mut self._24h, &mut self._1w, &mut self._1m, &mut self._1y]
     }
 
+    /// Pairs two window sets member by member.
+    pub fn zip_with_suffix<B, C>(
+        &self,
+        other: &Windows<B>,
+        mut f: impl FnMut(&str, &A, &B) -> C,
+    ) -> Windows<C> {
+        Windows {
+            _24h: f(Self::SUFFIXES[0], &self._24h, &other._24h),
+            _1w: f(Self::SUFFIXES[1], &self._1w, &other._1w),
+            _1m: f(Self::SUFFIXES[2], &self._1m, &other._1m),
+            _1y: f(Self::SUFFIXES[3], &self._1y, &other._1y),
+        }
+    }
+
     pub fn map_with_suffix<B>(&self, mut f: impl FnMut(&str, &A) -> B) -> Windows<B> {
         Windows {
             _24h: f(Self::SUFFIXES[0], &self._24h),
