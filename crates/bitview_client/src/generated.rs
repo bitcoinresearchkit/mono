@@ -2151,6 +2151,10 @@ pub mod tree {
         _1m: SeriesPattern1<A> = "*_1m",
         _1y: SeriesPattern1<A> = "*_1y",
     } }
+    shape! { NewAll at "series().addresses.new.all" {
+        block: SeriesPattern20<Count> = "*",
+        sum: InputsPerSecond<Count> = "*_sum",
+    } }
     shape! { DeltaAll<A> at "series().addresses.delta.all" {
         absolute: InputsPerSecond<A> = "*",
         rate: AllRate = "*",
@@ -2178,12 +2182,6 @@ pub mod tree {
         total: AvgBalanceAll = "*",
         delta: DeltaAll<Option<Bitcoin>> = "*_delta",
         dominance: SeriesPattern1<Option<Percent>> = "*_dominance",
-    } }
-    shape! { NetPnl at "series().entry.discount.realized.net_pnl" {
-        block: SeriesPattern20<Option<Dollars>> = "*",
-        cumulative: SeriesPattern1<Option<Dollars>> = "*_cumulative",
-        sum: InputsPerSecond<Option<Dollars>> = "*_sum",
-        delta: DeltaAll<Option<Dollars>> = "*_delta",
     } }
     shape! { MarketCap<A, B> at "series().supply.market_cap" {
         block: SeriesPattern1<A> = "*",
@@ -2533,7 +2531,7 @@ pub mod tree {
         price: Ema12d = "*_realized_price",
         profit: CoinblocksDestroyed<Option<Dollars>> = "*_realized_profit",
         loss: CoinblocksDestroyed<Option<Dollars>> = "*_realized_loss",
-        net_pnl: NetPnl = "*_net_realized_pnl",
+        net_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_net_realized_pnl",
         sopr: Sopr = "*",
         mvrv: SeriesPattern1<Option<Ratio>> = "*_mvrv",
     } }
@@ -2560,7 +2558,7 @@ pub mod tree {
         capitalized_price: Ema12d = "*_capitalized_price",
         profit: CoinblocksDestroyed<Option<Dollars>> = "*_realized_profit",
         loss: CoinblocksDestroyed<Option<Dollars>> = "*_realized_loss",
-        net_pnl: NetPnl = "*_net_realized_pnl",
+        net_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_net_realized_pnl",
         value_destroyed: CoinblocksDestroyed<Option<Dollars>> = "*_value_destroyed",
         gross_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_realized_gross_pnl",
         peak_regret: CoinblocksDestroyed<Option<Dollars>> = "*_realized_peak_regret",
@@ -2695,7 +2693,7 @@ pub mod tree {
         empty: AddressesEmpty<Count> = "empty_*_count",
         activity: AddressesActivity = "addrs",
         total: AddressesEmpty<Count> = "total_*_count",
-        new: AvgBalance<CoinblocksDestroyed<Count>> = "new_*_count",
+        new: AvgBalance<NewAll> = "new_*_count",
         reused: Respent = "reused_*",
         respent: Respent = "respent_*",
         exposed: Exposed = "exposed_*",
@@ -2811,7 +2809,7 @@ pub mod tree {
         price: RealizedPrice = "old_*_price",
         profit: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedClass<CoinblocksDestroyed<Option<Dollars>>>> = "*_profit",
         loss: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedClass<CoinblocksDestroyed<Option<Dollars>>>> = "*_loss",
-        net_pnl: CoindaysDestroyed<CoindaysCreated<NetPnl>, CoindaysDestroyedEpoch<NetPnl>, CoindaysDestroyedClass<NetPnl>> = "net_*_pnl",
+        net_pnl: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedClass<CoinblocksDestroyed<Option<Dollars>>>> = "net_*_pnl",
         value_destroyed: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedClass<CoinblocksDestroyed<Option<Dollars>>>> = "value_destroyed",
     } }
     shape! { AgeActivityTransferVolume at "series().age.activity.transfer_volume" {
@@ -3112,7 +3110,6 @@ pub mod tree {
         month6: SeriesPattern20<Month6> = "month6",
         year1: SeriesPattern20<Year1> = "year1",
         year10: SeriesPattern20<Year10> = "year10",
-        tx_index_count: SeriesPattern20<Count> = "tx_index_count",
     } }
     shape! { AddrOpReturn at "series().mappings.addr.op_return" {
         identity: SeriesPattern25<OpReturnIndex> = "*",

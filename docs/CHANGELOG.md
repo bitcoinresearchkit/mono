@@ -173,6 +173,11 @@ has to be deleted by hand.
 - Supply density has one shape everywhere, `cost_basis.supply_density.{total, in_profit, in_loss}` (holders had the
   total only), the total under the base id (`sth_supply_density`; Cointime's and Coinflow's were `..._total`)
 - Holders' adjusted-SOPR inputs are `adjusted_value_created` and `adjusted_value_destroyed` (were `adj_value_*`)
+- Three duplicates are gone. `realized.net_pnl.delta` in the holders, age and entry cohorts (ids
+  `*net_realized_pnl_delta_*`): the window's change of the cumulative net PnL, which is `realized.net_pnl.sum`
+  without the window's first block, and its rate, that change divided by the cumulative at the window's start.
+  `addresses.new.<type>.cumulative` (ids `new_addr_count_cumulative`, ...) equals `addresses.total`.
+  `mappings.height.tx_index_count` equals `transactions.count.block` (`tx_count`)
 - Shared ids: `circulating_supply` (UTXO set, holders' `all` and supply), `market_cap` (holders' `all` supply in USD
   and supply), `utxo_count` (UTXO set and holders' `all`).
   `utxo_set.supply` is `circulating_supply` in BTC (was `unspent_sats` in sats); `supply.circulating` is BTC only,
@@ -329,7 +334,8 @@ has to be deleted by hand.
   `Date::into_jiff`; `bitview_compute` `walk_blocks` and `BlockAggregate` (`CoinbasePolicy` moved to `bitview_vecs`);
   `bitview_catalog` `TreeBranch::{source, field_types, field_suffixes}`, `TreeNode::{with_source, with_field_suffixes}`
   and `#[traversable(field_suffixes)]`
-- Gone with the tree changes: `bitview_vecs::ConstantVecs`, `bitview_transforms::BlockCountTarget`,
+- Gone with the tree changes: `bitview_vecs::{ConstantVecs, LazyFiatPerBlockCumulativeWithSumsAndDeltas}`,
+  `LazyPerBlockCumulativeRolling::from_lazy_source`, `bitview_transforms::BlockCountTarget`,
   `bitview_plugin_blocks::CountVecs` (`blocks.count` is the count itself), the transactions plugin's `volume` struct
   (`volume` is the value, `per_second` its sibling) and the mining rewards' `output_volume`; renamed fields
   `difficulty.value` (now `block`), Cointime's `reserve_risk.value` (now `block`) and `value.vocdd` (now
@@ -416,6 +422,8 @@ has to be deleted by hand.
 #### Series values (recomputed on upgrade)
 
 - Block-to-pool attribution follows mempool's current `pools-v2.json` (a new Foundry USA payout address)
+- The holders' 30-day net realized PnL relatives (`*net_pnl_change_1m_to_mcap`, `*net_pnl_change_1m_to_rcap`) sum
+  the whole window (they left out its first block)
 
 - Exponential averages store their exact state. At the tip every block resumed from the stored output, and the price
   EMAs truncated to whole cents: the 200-day EMA settled about $72 low and the 4-year one about $500, and nodes

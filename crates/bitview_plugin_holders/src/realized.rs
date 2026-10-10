@@ -4,9 +4,8 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{PartsPerMillionSigned64, PriceRatio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlockCumulativeWithSums, LazyFiatPerBlockCumulativeWithSumsAndDeltas,
-    LazyFiatPerBlockWithDeltas, LazyPerBlock, LazyPriceWithRatioPerBlock, LazyRatioPerBlock,
-    LazyWindowStartVec, Price,
+    LazyFiatPerBlockCumulativeWithSums, LazyFiatPerBlockWithDeltas, LazyPerBlock,
+    LazyPriceWithRatioPerBlock, LazyRatioPerBlock, LazyWindowStartVec, Price,
 };
 use brk_types::{Cents, CentsSigned, Height, Version};
 use vecdb::ReadableBoxedVec;
@@ -21,11 +20,7 @@ pub struct Realized {
     pub capitalized_price: LazyPriceWithRatioPerBlock,
     pub profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
     pub loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
-    pub net_pnl: LazyFiatPerBlockCumulativeWithSumsAndDeltas<
-        CentsSigned,
-        CentsSigned,
-        PartsPerMillionSigned64,
-    >,
+    pub net_pnl: LazyFiatPerBlockCumulativeWithSums<CentsSigned>,
     pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
     pub gross_pnl: LazyFiatPerBlockCumulativeWithSums<Cents>,
     pub peak_regret: LazyFiatPerBlockCumulativeWithSums<Cents>,
@@ -71,11 +66,10 @@ impl Realized {
             mappings,
             windows,
         );
-        let net_pnl = LazyFiatPerBlockCumulativeWithSumsAndDeltas::from_cumulative_cents_source(
+        let net_pnl = LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
             &id.metric_name("net_realized_pnl"),
             v,
             &c.net_pnl,
-            v,
             mappings,
             windows,
         );

@@ -28,30 +28,6 @@ impl<T> LazyPerBlockCumulativeRolling<T>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
-    fn from_cumulative(
-        name: &str,
-        version: Version,
-        cumulative: LazyPerBlock<T>,
-        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
-        indexes: &IndexSources,
-    ) -> Self {
-        let source = &cumulative.height;
-        let block = LazyPreviousDeltaVec::new(name, version, source);
-        let sum = LazyRollingSumsFromHeight::new(
-            &format!("{name}_sum"),
-            version,
-            source,
-            window_starts,
-            indexes,
-        );
-
-        Self {
-            block,
-            cumulative,
-            sum,
-        }
-    }
-
     pub fn from_cumulative_source<V>(
         name: &str,
         version: Version,
@@ -68,20 +44,20 @@ where
             source,
             indexes,
         );
+        let source = &cumulative.height;
+        let block = LazyPreviousDeltaVec::new(name, version, source);
+        let sum = LazyRollingSumsFromHeight::new(
+            &format!("{name}_sum"),
+            version,
+            source,
+            window_starts,
+            indexes,
+        );
 
-        Self::from_cumulative(name, version, cumulative, window_starts, indexes)
-    }
-
-    pub fn from_lazy_source(
-        name: &str,
-        version: Version,
-        source: &LazyPerBlock<T>,
-        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
-        indexes: &IndexSources,
-    ) -> Self {
-        let cumulative =
-            LazyPerBlock::from_lazy::<Ident, T>(&format!("{name}_cumulative"), version, source);
-
-        Self::from_cumulative(name, version, cumulative, window_starts, indexes)
+        Self {
+            block,
+            cumulative,
+            sum,
+        }
     }
 }

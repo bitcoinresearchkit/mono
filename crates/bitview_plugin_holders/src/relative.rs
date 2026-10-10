@@ -270,7 +270,7 @@ impl Metrics {
             .net_pnl_change_1m_to_mcap
             .compute_binary::<_, _, Quotient<PartsPerMillionSigned64>>(
                 from,
-                &realized.net_pnl.delta.absolute._1m.cents.height,
+                &realized.net_pnl.sum._1m.cents.height,
                 all_market_cap,
                 exit,
             )?;
@@ -278,7 +278,7 @@ impl Metrics {
             .net_pnl_change_1m_to_rcap
             .compute_binary::<_, _, Quotient<PartsPerMillionSigned64>>(
                 from,
-                &realized.net_pnl.delta.absolute._1m.cents.height,
+                &realized.net_pnl.sum._1m.cents.height,
                 &c.cap,
                 exit,
             )?;

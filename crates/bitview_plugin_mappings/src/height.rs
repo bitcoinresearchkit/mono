@@ -56,7 +56,9 @@ pub struct Vecs {
     /// Zero-based ten-year UTC period containing the block's monotonic timestamp,
     /// with 2009 through 2018 equal to 0.
     pub year10: RangeMapLookupVec<Height, Year10>,
-    /// Number of transactions in the indexed block, including coinbase.
+    /// Number of transactions in the indexed block, including coinbase. Hidden:
+    /// the public series is `transactions.count` (`tx_count`).
+    #[traversable(hidden)]
     pub tx_index_count: LazyPreviousDeltaVec<Height, Count>,
 }
 

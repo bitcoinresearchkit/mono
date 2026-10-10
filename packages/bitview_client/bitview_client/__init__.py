@@ -4192,6 +4192,11 @@ class InputsPerSecond(_Node, Generic[A]):
     _1y: SeriesPattern1[A] = _at(SeriesPattern1, '*_1y')
 
 
+class NewAll(_Node):
+    block: SeriesPattern20[Count] = _at(SeriesPattern20, '*')
+    sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_sum')
+
+
 class DeltaAll(_Node, Generic[A]):
     absolute: InputsPerSecond[A] = _at(InputsPerSecond, '*')
     rate: AllRate = _at(AllRate, '*')
@@ -4223,13 +4228,6 @@ class Supply0sats(_Node):
     total: AvgBalanceAll = _at(AvgBalanceAll, '*')
     delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
     dominance: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_dominance')
-
-
-class NetPnl(_Node):
-    block: SeriesPattern20[Optional[Dollars]] = _at(SeriesPattern20, '*')
-    cumulative: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cumulative')
-    sum: InputsPerSecond[Optional[Dollars]] = _at(InputsPerSecond, '*_sum')
-    delta: DeltaAll[Optional[Dollars]] = _at(DeltaAll, '*_delta')
 
 
 class MarketCap(_Node, Generic[A, B]):
@@ -4603,7 +4601,7 @@ class DiscountRealized(_Node):
     price: Ema12d = _at(Ema12d, '*_realized_price')
     profit: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_profit')
     loss: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_loss')
-    net_pnl: NetPnl = _at(NetPnl, '*_net_realized_pnl')
+    net_pnl: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_net_realized_pnl')
     sopr: Sopr = _at(Sopr, '*')
     mvrv: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mvrv')
 
@@ -4634,7 +4632,7 @@ class AllRealized(_Node):
     capitalized_price: Ema12d = _at(Ema12d, '*_capitalized_price')
     profit: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_profit')
     loss: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_loss')
-    net_pnl: NetPnl = _at(NetPnl, '*_net_realized_pnl')
+    net_pnl: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_net_realized_pnl')
     value_destroyed: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_value_destroyed')
     gross_pnl: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_gross_pnl')
     peak_regret: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_peak_regret')
@@ -4784,7 +4782,7 @@ class Addresses(_Node):
     empty: AddressesEmpty[Count] = _at(AddressesEmpty, 'empty_*_count')
     activity: AddressesActivity = _at(AddressesActivity, 'addrs')
     total: AddressesEmpty[Count] = _at(AddressesEmpty, 'total_*_count')
-    new: AvgBalance[CoinblocksDestroyed[Count]] = _at((AvgBalance, CoinblocksDestroyed), 'new_*_count')
+    new: AvgBalance[NewAll] = _at((AvgBalance, NewAll), 'new_*_count')
     reused: Respent = _at(Respent, 'reused_*')
     respent: Respent = _at(Respent, 'respent_*')
     exposed: Exposed = _at(Exposed, 'exposed_*')
@@ -4915,7 +4913,7 @@ class AgeRealized(_Node):
     price: RealizedPrice = _at(RealizedPrice, 'old_*_price')
     profit: CoindaysDestroyed[CoindaysCreated[CoinblocksDestroyed[Optional[Dollars]]], CoindaysDestroyedEpoch[CoinblocksDestroyed[Optional[Dollars]]], CoindaysDestroyedClass[CoinblocksDestroyed[Optional[Dollars]]]] = _at((CoindaysDestroyed, (CoindaysCreated, CoinblocksDestroyed), (CoindaysDestroyedEpoch, CoinblocksDestroyed), (CoindaysDestroyedClass, CoinblocksDestroyed)), '*_profit')
     loss: CoindaysDestroyed[CoindaysCreated[CoinblocksDestroyed[Optional[Dollars]]], CoindaysDestroyedEpoch[CoinblocksDestroyed[Optional[Dollars]]], CoindaysDestroyedClass[CoinblocksDestroyed[Optional[Dollars]]]] = _at((CoindaysDestroyed, (CoindaysCreated, CoinblocksDestroyed), (CoindaysDestroyedEpoch, CoinblocksDestroyed), (CoindaysDestroyedClass, CoinblocksDestroyed)), '*_loss')
-    net_pnl: CoindaysDestroyed[CoindaysCreated[NetPnl], CoindaysDestroyedEpoch[NetPnl], CoindaysDestroyedClass[NetPnl]] = _at((CoindaysDestroyed, (CoindaysCreated, NetPnl), (CoindaysDestroyedEpoch, NetPnl), (CoindaysDestroyedClass, NetPnl)), 'net_*_pnl')
+    net_pnl: CoindaysDestroyed[CoindaysCreated[CoinblocksDestroyed[Optional[Dollars]]], CoindaysDestroyedEpoch[CoinblocksDestroyed[Optional[Dollars]]], CoindaysDestroyedClass[CoinblocksDestroyed[Optional[Dollars]]]] = _at((CoindaysDestroyed, (CoindaysCreated, CoinblocksDestroyed), (CoindaysDestroyedEpoch, CoinblocksDestroyed), (CoindaysDestroyedClass, CoinblocksDestroyed)), 'net_*_pnl')
     value_destroyed: CoindaysDestroyed[CoindaysCreated[CoinblocksDestroyed[Optional[Dollars]]], CoindaysDestroyedEpoch[CoinblocksDestroyed[Optional[Dollars]]], CoindaysDestroyedClass[CoinblocksDestroyed[Optional[Dollars]]]] = _at((CoindaysDestroyed, (CoindaysCreated, CoinblocksDestroyed), (CoindaysDestroyedEpoch, CoinblocksDestroyed), (CoindaysDestroyedClass, CoinblocksDestroyed)), 'value_destroyed')
 
 
@@ -5264,7 +5262,6 @@ class MappingsHeight(_Node):
     month6: SeriesPattern20[Month6] = _at(SeriesPattern20, 'month6')
     year1: SeriesPattern20[Year1] = _at(SeriesPattern20, 'year1')
     year10: SeriesPattern20[Year10] = _at(SeriesPattern20, 'year10')
-    tx_index_count: SeriesPattern20[Count] = _at(SeriesPattern20, 'tx_index_count')
 
 
 class AddrOpReturn(_Node):

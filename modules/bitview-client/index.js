@@ -4778,6 +4778,17 @@ const _InputsPerSecond = _s({
 });
 
 /**
+ * @typedef {{
+ *   block: SeriesPattern20<Count>,
+ *   sum: InputsPerSecond<Count>,
+ * }} NewAll
+ */
+const _NewAll = _s({
+  block: [_i20, '*'],
+  sum: [_InputsPerSecond, '*_sum'],
+});
+
+/**
  * @template A
  * @typedef {{
  *   absolute: InputsPerSecond<A>,
@@ -4847,21 +4858,6 @@ const _Supply0sats = _s({
   total: [_AvgBalanceAll, '*'],
   delta: [_DeltaAll, '*_delta'],
   dominance: [_i1, '*_dominance'],
-});
-
-/**
- * @typedef {{
- *   block: SeriesPattern20<?Dollars>,
- *   cumulative: SeriesPattern1<?Dollars>,
- *   sum: InputsPerSecond<?Dollars>,
- *   delta: DeltaAll<?Dollars>,
- * }} NetPnl
- */
-const _NetPnl = _s({
-  block: [_i20, '*'],
-  cumulative: [_i1, '*_cumulative'],
-  sum: [_InputsPerSecond, '*_sum'],
-  delta: [_DeltaAll, '*_delta'],
 });
 
 /**
@@ -5632,7 +5628,7 @@ const _Sopr = _s({
  *   price: Ema12d,
  *   profit: CoinblocksDestroyed<?Dollars>,
  *   loss: CoinblocksDestroyed<?Dollars>,
- *   netPnl: NetPnl,
+ *   netPnl: CoinblocksDestroyed<?Dollars>,
  *   sopr: Sopr,
  *   mvrv: SeriesPattern1<?Ratio>,
  * }} DiscountRealized
@@ -5642,7 +5638,7 @@ const _DiscountRealized = _s({
   price: [_Ema12d, '*_realized_price'],
   profit: [_CoinblocksDestroyed, '*_realized_profit'],
   loss: [_CoinblocksDestroyed, '*_realized_loss'],
-  netPnl: [_NetPnl, '*_net_realized_pnl'],
+  netPnl: [_CoinblocksDestroyed, '*_net_realized_pnl'],
   sopr: [_Sopr, '*'],
   mvrv: [_i1, '*_mvrv'],
 });
@@ -5697,7 +5693,7 @@ const _Ratios = _s({
  *   capitalizedPrice: Ema12d,
  *   profit: CoinblocksDestroyed<?Dollars>,
  *   loss: CoinblocksDestroyed<?Dollars>,
- *   netPnl: NetPnl,
+ *   netPnl: CoinblocksDestroyed<?Dollars>,
  *   valueDestroyed: CoinblocksDestroyed<?Dollars>,
  *   grossPnl: CoinblocksDestroyed<?Dollars>,
  *   peakRegret: CoinblocksDestroyed<?Dollars>,
@@ -5710,7 +5706,7 @@ const _AllRealized = _s({
   capitalizedPrice: [_Ema12d, '*_capitalized_price'],
   profit: [_CoinblocksDestroyed, '*_realized_profit'],
   loss: [_CoinblocksDestroyed, '*_realized_loss'],
-  netPnl: [_NetPnl, '*_net_realized_pnl'],
+  netPnl: [_CoinblocksDestroyed, '*_net_realized_pnl'],
   valueDestroyed: [_CoinblocksDestroyed, '*_value_destroyed'],
   grossPnl: [_CoinblocksDestroyed, '*_realized_gross_pnl'],
   peakRegret: [_CoinblocksDestroyed, '*_realized_peak_regret'],
@@ -6014,7 +6010,7 @@ const _Funded = _s({
  *   empty: AddressesEmpty<Count>,
  *   activity: AddressesActivity,
  *   total: AddressesEmpty<Count>,
- *   new: AvgBalance<CoinblocksDestroyed<Count>>,
+ *   new: AvgBalance<NewAll>,
  *   reused: Respent,
  *   respent: Respent,
  *   exposed: Exposed,
@@ -6034,7 +6030,7 @@ const _Addresses = _s({
   empty: [_AddressesEmpty, 'empty_*_count'],
   activity: [_AddressesActivity, 'addrs'],
   total: [_AddressesEmpty, 'total_*_count'],
-  new: [(c, b) => _AvgBalance(c, b, _CoinblocksDestroyed), 'new_*_count'],
+  new: [(c, b) => _AvgBalance(c, b, _NewAll), 'new_*_count'],
   reused: [_Respent, 'reused_*'],
   respent: [_Respent, 'respent_*'],
   exposed: [_Exposed, 'exposed_*'],
@@ -6310,7 +6306,7 @@ const _AgeUnrealized = _s({
  *   price: RealizedPrice,
  *   profit: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedClass<CoinblocksDestroyed<?Dollars>>>,
  *   loss: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedClass<CoinblocksDestroyed<?Dollars>>>,
- *   netPnl: CoindaysDestroyed<CoindaysCreated<NetPnl>, CoindaysDestroyedEpoch<NetPnl>, CoindaysDestroyedClass<NetPnl>>,
+ *   netPnl: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedClass<CoinblocksDestroyed<?Dollars>>>,
  *   valueDestroyed: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedClass<CoinblocksDestroyed<?Dollars>>>,
  * }} AgeRealized
  */
@@ -6319,7 +6315,7 @@ const _AgeRealized = _s({
   price: [_RealizedPrice, 'old_*_price'],
   profit: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedEpoch(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedClass(c, b, _CoinblocksDestroyed)), '*_profit'],
   loss: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedEpoch(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedClass(c, b, _CoinblocksDestroyed)), '*_loss'],
-  netPnl: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _NetPnl), (c, b) => _CoindaysDestroyedEpoch(c, b, _NetPnl), (c, b) => _CoindaysDestroyedClass(c, b, _NetPnl)), 'net_*_pnl'],
+  netPnl: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedEpoch(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedClass(c, b, _CoinblocksDestroyed)), 'net_*_pnl'],
   valueDestroyed: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedEpoch(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedClass(c, b, _CoinblocksDestroyed)), 'value_destroyed'],
 });
 
@@ -7045,7 +7041,6 @@ const _MappingsEpoch = _s({
  *   month6: SeriesPattern20<Month6>,
  *   year1: SeriesPattern20<Year1>,
  *   year10: SeriesPattern20<Year10>,
- *   txIndexCount: SeriesPattern20<Count>,
  * }} MappingsHeight
  */
 const _MappingsHeight = _s({
@@ -7064,7 +7059,6 @@ const _MappingsHeight = _s({
   month6: [_i20, 'month6'],
   year1: [_i20, 'year1'],
   year10: [_i20, 'year10'],
-  txIndexCount: [_i20, 'tx_index_count'],
 });
 
 /**

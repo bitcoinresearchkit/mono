@@ -19,7 +19,7 @@ where
 {
     /// Absolute change from the start of a trailing window through the
     /// represented block.
-    pub absolute: Windows<LazyDeltaFiatFromHeight<S, C>>,
+    absolute: Windows<LazyDeltaFiatFromHeight<S, C>>,
     /// Relative change from the start of a trailing window through the
     /// represented block, divided by the starting value. Returns zero when the
     /// starting value is zero.

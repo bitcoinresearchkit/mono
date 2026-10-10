@@ -1,9 +1,8 @@
 use bitview_cohort::{CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFiatPerBlockCumulativeWithSumsAndDeltas, LazyWindowStartVec};
+use bitview_vecs::{LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec};
 use brk_error::Result;
 use brk_types::{CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
@@ -13,13 +12,7 @@ use crate::metrics::CumulativeCreationSources;
 #[derive(Traversable)]
 pub struct CumulativeNetRealizedByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: CreationCohorts<
-        LazyFiatPerBlockCumulativeWithSumsAndDeltas<
-            CentsSigned,
-            CentsSigned,
-            PartsPerMillionSigned64,
-        >,
-    >,
+    pub cohorts: CreationCohorts<LazyFiatPerBlockCumulativeWithSums<CentsSigned>>,
     #[traversable(hidden)]
     pub stored: CumulativeCreationSources<CentsSigned, M>,
 }
@@ -40,11 +33,10 @@ impl CumulativeNetRealizedByCohort {
                 .stored
                 .get(cohort_id)
                 .expect("supported net realized cohort");
-            LazyFiatPerBlockCumulativeWithSumsAndDeltas::from_cumulative_cents_source(
+            LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &name,
                 version,
                 source,
-                Version::new(5),
                 mappings,
                 window_starts,
             )

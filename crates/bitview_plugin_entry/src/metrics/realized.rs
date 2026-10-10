@@ -4,9 +4,8 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{PartsPerMillionSigned64, PriceRatio, Ratio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlockCumulativeWithSums, LazyFiatPerBlockCumulativeWithSumsAndDeltas,
-    LazyFiatPerBlockWithDeltas, LazyPerBlock, LazyPriceWithRatioPerBlock, LazyWindowStartVec,
-    PerBlock,
+    LazyFiatPerBlockCumulativeWithSums, LazyFiatPerBlockWithDeltas, LazyPerBlock,
+    LazyPriceWithRatioPerBlock, LazyWindowStartVec, PerBlock,
 };
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Height, Version};
@@ -25,11 +24,7 @@ pub struct RealizedMetrics<M: StorageMode = Rw> {
     /// Loss realized by outputs spent from this cohort.
     loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Realized profit minus realized loss.
-    net_pnl: LazyFiatPerBlockCumulativeWithSumsAndDeltas<
-        CentsSigned,
-        CentsSigned,
-        PartsPerMillionSigned64,
-    >,
+    net_pnl: LazyFiatPerBlockCumulativeWithSums<CentsSigned>,
     /// Spending value divided by creation-date value over the trailing 24 hours.
     #[traversable(wrap = "sopr", rename = "24h")]
     pub(crate) sopr: PerBlock<Ratio, M>,
@@ -88,11 +83,10 @@ impl RealizedMetrics {
                 windows,
             ),
             loss,
-            net_pnl: LazyFiatPerBlockCumulativeWithSumsAndDeltas::from_cumulative_cents_source(
+            net_pnl: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &name("net_realized_pnl"),
                 version,
                 sources.realized_net_pnl.cumulative_source(),
-                Version::ONE,
                 mappings,
                 windows,
             ),

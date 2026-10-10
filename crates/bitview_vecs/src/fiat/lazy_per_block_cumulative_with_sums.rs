@@ -15,7 +15,7 @@ pub struct LazyFiatPerBlockCumulativeWithSums<C: FiatType> {
     block: LazyFiatBlock<C>,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
-    pub(crate) cumulative: LazyFiatPerBlock<C>,
+    cumulative: LazyFiatPerBlock<C>,
     pub sum: LazyRollingSumsFiatFromHeight<C>,
 }
 
