@@ -1,4 +1,4 @@
-use bitview_cohort::CohortId;
+use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_distribution::{families::Supply, metrics::CohortSupply};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
@@ -36,10 +36,11 @@ impl SupplyVecs {
         spot_price: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
+        let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         Ok(Self {
             base: CohortSupply::import(
                 db,
-                cohort,
+                &name("supply"),
                 version,
                 mappings,
                 window_starts,
@@ -48,13 +49,12 @@ impl SupplyVecs {
             )?,
             in_profit: Supply::import(
                 db,
-                cohort,
-                "supply_in_profit",
+                &name("supply_in_profit"),
                 version,
                 mappings,
                 spot_price,
             )?,
-            in_loss: Supply::import(db, cohort, "supply_in_loss", version, mappings, spot_price)?,
+            in_loss: Supply::import(db, &name("supply_in_loss"), version, mappings, spot_price)?,
         })
     }
 

@@ -22,25 +22,17 @@ impl Query {
         type_index: TypeIndex,
     ) -> Result<AddrStats> {
         let plugins = self.plugins();
-        let state = plugins
-            .addresses
-            .addr_state
-            .get_once(output_type, type_index)?;
+        let state = plugins.addresses.state.get_once(output_type, type_index)?;
 
         let (addr_data, is_funded) = match state.decode() {
             DecodedAddrState::Funded(index) => {
-                let data = plugins
-                    .addresses
-                    .addr_state
-                    .funded
-                    .collect_one(index)
-                    .data()?;
+                let data = plugins.addresses.state.funded.collect_one(index).data()?;
                 (data, true)
             }
             DecodedAddrState::ExtendedEmpty(index) => {
                 let data = plugins
                     .addresses
-                    .addr_state
+                    .state
                     .extended_empty
                     .collect_one(index)
                     .data()?

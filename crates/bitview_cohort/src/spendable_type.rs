@@ -8,11 +8,12 @@ use serde::{Deserialize, Serialize};
 
 use super::{CohortId, CohortName};
 
+/// Spendable output types as analytics count them: P2PK is one type whatever its key's size
+/// (the indexer stores 33- and 65-byte keys apart).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum SpendableTypeId {
-    P2PK65,
-    P2PK33,
+    P2PK,
     P2PKH,
     P2MS,
     P2SH,
@@ -24,28 +25,29 @@ pub enum SpendableTypeId {
     Empty,
 }
 
-const SPENDABLE_TYPE_COUNT: usize = 11;
-
-const SPENDABLE_TYPE_IDS: [SpendableTypeId; SPENDABLE_TYPE_COUNT] = [
-    SpendableTypeId::P2PK65,
-    SpendableTypeId::P2PK33,
-    SpendableTypeId::P2PKH,
-    SpendableTypeId::P2MS,
-    SpendableTypeId::P2SH,
-    SpendableTypeId::P2WPKH,
-    SpendableTypeId::P2WSH,
-    SpendableTypeId::P2TR,
-    SpendableTypeId::P2A,
-    SpendableTypeId::Unknown,
-    SpendableTypeId::Empty,
-];
-
 impl SpendableTypeId {
+    pub const ALL: &'static [Self] = &[
+        Self::P2PK,
+        Self::P2PKH,
+        Self::P2MS,
+        Self::P2SH,
+        Self::P2WPKH,
+        Self::P2WSH,
+        Self::P2TR,
+        Self::P2A,
+        Self::Unknown,
+        Self::Empty,
+    ];
+
+    #[inline]
+    pub const fn index(self) -> usize {
+        self as usize
+    }
+
     #[inline]
     pub fn select<T>(self, values: &SpendableType<T>) -> &T {
         match self {
-            Self::P2PK65 => &values.p2pk65,
-            Self::P2PK33 => &values.p2pk33,
+            Self::P2PK => &values.p2pk,
             Self::P2PKH => &values.p2pkh,
             Self::P2MS => &values.p2ms,
             Self::P2SH => &values.p2sh,
@@ -59,10 +61,9 @@ impl SpendableTypeId {
     }
 
     #[inline]
-    fn select_mut<T>(self, values: &mut SpendableType<T>) -> &mut T {
+    pub fn select_mut<T>(self, values: &mut SpendableType<T>) -> &mut T {
         match self {
-            Self::P2PK65 => &mut values.p2pk65,
-            Self::P2PK33 => &mut values.p2pk33,
+            Self::P2PK => &mut values.p2pk,
             Self::P2PKH => &mut values.p2pkh,
             Self::P2MS => &mut values.p2ms,
             Self::P2SH => &mut values.p2sh,
@@ -75,10 +76,11 @@ impl SpendableTypeId {
         }
     }
 
-    pub(crate) const fn from_output_type(value: OutputType) -> Option<Self> {
+    /// `None` for OP_RETURN, the one unspendable type.
+    #[inline]
+    pub const fn from_output_type(value: OutputType) -> Option<Self> {
         match value {
-            OutputType::P2PK65 => Some(Self::P2PK65),
-            OutputType::P2PK33 => Some(Self::P2PK33),
+            OutputType::P2PK65 | OutputType::P2PK33 => Some(Self::P2PK),
             OutputType::P2PKH => Some(Self::P2PKH),
             OutputType::P2MS => Some(Self::P2MS),
             OutputType::P2SH => Some(Self::P2SH),
@@ -92,31 +94,32 @@ impl SpendableTypeId {
         }
     }
 
-    pub const fn output_type(self) -> OutputType {
+    /// The type's member key, the word per-entry series ids build on (`p2pk_output_count`,
+    /// `empty_output_count`); type cohort names spell out `empty_output` and `unknown_output`
+    /// (`empty_output_supply`).
+    pub const fn key(self) -> &'static str {
         match self {
-            Self::P2PK65 => OutputType::P2PK65,
-            Self::P2PK33 => OutputType::P2PK33,
-            Self::P2PKH => OutputType::P2PKH,
-            Self::P2MS => OutputType::P2MS,
-            Self::P2SH => OutputType::P2SH,
-            Self::P2WPKH => OutputType::P2WPKH,
-            Self::P2WSH => OutputType::P2WSH,
-            Self::P2TR => OutputType::P2TR,
-            Self::P2A => OutputType::P2A,
-            Self::Unknown => OutputType::Unknown,
-            Self::Empty => OutputType::Empty,
+            Self::P2PK => "p2pk",
+            Self::P2PKH => "p2pkh",
+            Self::P2MS => "p2ms",
+            Self::P2SH => "p2sh",
+            Self::P2WPKH => "p2wpkh",
+            Self::P2WSH => "p2wsh",
+            Self::P2TR => "p2tr",
+            Self::P2A => "p2a",
+            Self::Unknown => "unknown",
+            Self::Empty => "empty",
         }
     }
-}
 
-impl SpendableTypeId {
-    pub const ALL: &'static [Self] = &SPENDABLE_TYPE_IDS;
+    pub const fn cohort(self) -> CohortId {
+        CohortId::Type(self)
+    }
 }
 
 /// Spendable type names
 pub const SPENDABLE_TYPE_NAMES: SpendableType<CohortName> = SpendableType {
-    p2pk65: CohortName::new("p2pk65", "P2PK65", "Pay to Public Key (65 bytes)"),
-    p2pk33: CohortName::new("p2pk33", "P2PK33", "Pay to Public Key (33 bytes)"),
+    p2pk: CohortName::new("p2pk", "P2PK", "Pay to Public Key"),
     p2pkh: CohortName::new("p2pkh", "P2PKH", "Pay to Public Key Hash"),
     p2ms: CohortName::new("p2ms", "P2MS", "Pay to Multisig"),
     p2sh: CohortName::new("p2sh", "P2SH", "Pay to Script Hash"),
@@ -131,10 +134,8 @@ pub const SPENDABLE_TYPE_NAMES: SpendableType<CohortName> = SpendableType {
 #[derive(Default, Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct SpendableType<T> {
-    /// Uses pay-to-public-key outputs with a 65-byte key field.
-    p2pk65: T,
-    /// Uses pay-to-public-key outputs with a 33-byte key field.
-    p2pk33: T,
+    /// Uses pay-to-public-key outputs, with a 33- or 65-byte key.
+    p2pk: T,
     /// Uses pay-to-public-key-hash outputs.
     p2pkh: T,
     /// Uses bare pay-to-multisig outputs.
@@ -156,8 +157,7 @@ pub struct SpendableType<T> {
 }
 
 impl_cohort_collection!(SpendableTypeId for SpendableType {
-    P2PK65 => p2pk65,
-    P2PK33 => p2pk33,
+    P2PK => p2pk,
     P2PKH => p2pkh,
     P2MS => p2ms,
     P2SH => p2sh,
@@ -171,17 +171,18 @@ impl_cohort_collection!(SpendableTypeId for SpendableType {
 
 impl<T> SpendableType<T> {
     pub fn new(mut create: impl FnMut(CohortId) -> T) -> Self {
-        Self::from_fn(|kind| create(CohortId::Type(kind.output_type())))
+        Self::from_fn(|kind| create(kind.cohort()))
     }
 
     pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
-        Self::try_from_fn(|kind| create(CohortId::Type(kind.output_type())))
+        Self::try_from_fn(|kind| create(kind.cohort()))
     }
 
     pub fn map_with_id<U>(&self, mut map: impl FnMut(CohortId, &T) -> U) -> SpendableType<U> {
-        SpendableType::from_fn(|kind| map(CohortId::Type(kind.output_type()), kind.select(self)))
+        SpendableType::from_fn(|kind| map(kind.cohort(), kind.select(self)))
     }
 
+    /// The member holding `output_type`; P2PK's 33- and 65-byte keys share one.
     pub fn get(&self, output_type: OutputType) -> &T {
         SpendableTypeId::from_output_type(output_type)
             .expect("spendable output type")
@@ -194,18 +195,12 @@ impl<T> SpendableType<T> {
             .select_mut(self)
     }
 
-    pub fn iter_typed(&self) -> impl Iterator<Item = (OutputType, &T)> {
-        SpendableTypeId::ALL
-            .iter()
-            .map(|id| id.output_type())
-            .zip(self.iter())
+    pub fn iter_typed(&self) -> impl Iterator<Item = (SpendableTypeId, &T)> {
+        SpendableTypeId::ALL.iter().copied().zip(self.iter())
     }
 
-    pub fn iter_typed_mut(&mut self) -> impl Iterator<Item = (OutputType, &mut T)> {
-        SpendableTypeId::ALL
-            .iter()
-            .map(|id| id.output_type())
-            .zip(self.iter_mut())
+    pub fn iter_typed_mut(&mut self) -> impl Iterator<Item = (SpendableTypeId, &mut T)> {
+        SpendableTypeId::ALL.iter().copied().zip(self.iter_mut())
     }
 }
 
@@ -216,8 +211,7 @@ where
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         Self {
-            p2pk65: self.p2pk65 + rhs.p2pk65,
-            p2pk33: self.p2pk33 + rhs.p2pk33,
+            p2pk: self.p2pk + rhs.p2pk,
             p2pkh: self.p2pkh + rhs.p2pkh,
             p2ms: self.p2ms + rhs.p2ms,
             p2sh: self.p2sh + rhs.p2sh,
@@ -236,8 +230,7 @@ where
     T: AddAssign,
 {
     fn add_assign(&mut self, rhs: Self) {
-        self.p2pk65 += rhs.p2pk65;
-        self.p2pk33 += rhs.p2pk33;
+        self.p2pk += rhs.p2pk;
         self.p2pkh += rhs.p2pkh;
         self.p2ms += rhs.p2ms;
         self.p2sh += rhs.p2sh;

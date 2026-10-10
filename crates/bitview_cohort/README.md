@@ -90,7 +90,7 @@ let age = AgeRangeId::From9MTo1Y;
 let names = AgeRange::from_fn(|id| CohortContext::Utxo.metric_name(id.cohort(), "supply"));
 assert_eq!(age.select(&names), "utxos_9m_to_1y_old_supply");
 
-// Naming adds utxos_/addrs_ only for age and amount cohorts, and omits all_.
+// Naming adds utxos_/balance_ only for age and amount cohorts, and omits all_.
 assert_eq!(CohortContext::Utxo.full_name(age.cohort()), "utxos_9m_to_1y_old");
 ```
 

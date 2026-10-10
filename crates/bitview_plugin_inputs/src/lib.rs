@@ -42,7 +42,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     per_second: LazyPerSecondWindows,
     /// Transaction inputs by the locking-script type of the output they spend,
     /// excluding coinbase inputs and coinbase transactions.
-    pub types: TypesVecs<M>,
+    types: TypesVecs<M>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

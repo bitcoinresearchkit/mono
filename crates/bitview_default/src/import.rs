@@ -199,9 +199,6 @@ impl DefaultPlugins {
                 &mappings,
                 &window_starts,
                 &price,
-                &inputs,
-                &outputs,
-                &utxo_set.supply.read_only_boxed_clone(),
             )?))
         })?;
 

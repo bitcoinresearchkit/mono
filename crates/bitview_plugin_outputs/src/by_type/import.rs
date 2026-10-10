@@ -1,4 +1,4 @@
-use bitview_cohort::{ByType, type_key};
+use bitview_cohort::ByType;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, PartsPerMillion32};
@@ -20,28 +20,28 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let version = version + Version::TWO;
-        let count_stored = ByType::try_new(|id| {
+        let count_stored = ByType::try_from_fn(|kind| {
             import_cached(
                 db,
-                &format!("{}_output_count_cumulative", id.name()),
+                &format!("{}_output_count_cumulative", kind.key()),
                 version,
             )
         })?;
-        let tx_count_stored = ByType::try_new(|id| {
+        let tx_count_stored = ByType::try_from_fn(|kind| {
             import_cached(
                 db,
-                &format!("tx_count_with_{}_output_cumulative", id.name()),
+                &format!("tx_count_with_{}_output_cumulative", kind.key()),
                 version,
             )
         })?;
         let outputs = mappings.output_count_source();
         let txs = mappings.transaction_count_source();
-        let types = ByType::from_type(|output_type| {
-            let key = type_key(output_type);
+        let types = ByType::from_fn(|kind| {
+            let key = kind.key();
             let count = LazyPerBlockCumulativeRolling::from_cumulative_source(
                 &format!("{key}_output_count"),
                 version,
-                count_stored.get(output_type),
+                kind.select(&count_stored),
                 window_starts,
                 mappings,
             );
@@ -60,7 +60,7 @@ impl Vecs {
             let tx_count = LazyPerBlockCumulativeRolling::from_cumulative_source(
                 &format!("{key}_output_tx_count"),
                 version,
-                tx_count_stored.get(output_type),
+                kind.select(&tx_count_stored),
                 window_starts,
                 mappings,
             );

@@ -13,8 +13,7 @@ impl UTXOStates {
     }
 
     pub fn receive_details(&mut self, received: &Transacted, price: Cents) {
-        for (ty, state) in self.type_.iter_typed_mut() {
-            let supply = received.by_type.get(ty);
+        for (state, supply) in self.type_.iter_mut().zip(received.by_type.iter()) {
             if supply.utxo_count > 0 {
                 state.receive_utxo(supply, price);
             }

@@ -41,8 +41,7 @@ impl SupplyMetrics {
         );
         Self {
             change: SupplyChange::new(
-                CohortContext::Utxo,
-                id,
+                &name("supply"),
                 version,
                 &total,
                 all_supply,

@@ -41,10 +41,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     per_second: LazyPerSecondWindows,
     /// Number of transaction outputs excluding `OP_RETURN` outputs, which are
     /// provably unspendable.
-    pub spendable_count: SpendableOutputCount,
+    spendable_count: SpendableOutputCount,
     /// Transaction outputs by locking-script type, including coinbase outputs
     /// and coinbase transactions.
-    pub types: TypesVecs<M>,
+    types: TypesVecs<M>,
     #[traversable(flatten)]
     pub value: ValueVecs<M>,
 }

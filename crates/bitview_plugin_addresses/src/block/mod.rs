@@ -6,7 +6,7 @@ mod outputs;
 mod received;
 mod tx_indexes;
 pub use cache::{AddrCache, AddrTypeLookup};
-pub use cohort::{TransferAddressCache, process_received, process_sent};
+pub use cohort::{TransferAddressCache, process_lost, process_received, process_sent};
 pub use inputs::process_inputs;
 pub use outputs::process_outputs;
 pub use received::Received;

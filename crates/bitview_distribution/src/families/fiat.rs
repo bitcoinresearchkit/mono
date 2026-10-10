@@ -1,4 +1,3 @@
-use bitview_cohort::{CohortContext, CohortId};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, FiatType, LazyFiatPerBlock};
@@ -8,7 +7,7 @@ use vecdb::{AnyStoredVec, Database, PcoVecValue, Rw, StorageMode, WritableVec};
 
 use super::import_stored;
 
-/// One cohort's fiat amount, stored in cents as `{metric}_cents` and shown in every fiat unit.
+/// One cohort's fiat amount, stored in cents as `{name}_cents` and shown in every fiat unit.
 #[derive(Traversable)]
 pub struct Fiat<C: FiatType + PcoVecValue = Cents, M: StorageMode = Rw> {
     #[traversable(flatten)]
@@ -20,18 +19,12 @@ pub struct Fiat<C: FiatType + PcoVecValue = Cents, M: StorageMode = Rw> {
 impl<C: FiatType + PcoVecValue> Fiat<C> {
     pub fn import(
         db: &Database,
-        cohort: CohortId,
-        metric: &str,
+        name: &str,
         version: Version,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
-        let stored = import_stored(db, cohort, &format!("{metric}_cents"), version)?;
-        let value = LazyFiatPerBlock::from_cents_source(
-            &CohortContext::Utxo.metric_name(cohort, metric),
-            version,
-            &stored,
-            mappings,
-        );
+        let stored = import_stored(db, &format!("{name}_cents"), version)?;
+        let value = LazyFiatPerBlock::from_cents_source(name, version, &stored, mappings);
         Ok(Self { value, stored })
     }
 

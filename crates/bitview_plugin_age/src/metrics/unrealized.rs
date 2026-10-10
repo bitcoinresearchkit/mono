@@ -1,4 +1,4 @@
-use bitview_cohort::CohortId;
+use bitview_cohort::{CohortContext, CohortId};
 use bitview_distribution::families::Fiat;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -30,22 +30,21 @@ impl UnrealizedVecs {
         version: Version,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
+        let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         Ok(Self {
             profit: Fiat::import(
                 db,
-                cohort,
-                "unrealized_profit",
+                &name("unrealized_profit"),
                 version + Version::ONE,
                 mappings,
             )?,
             loss: Fiat::import(
                 db,
-                cohort,
-                "unrealized_loss",
+                &name("unrealized_loss"),
                 version + Version::ONE,
                 mappings,
             )?,
-            net_pnl: Fiat::import(db, cohort, "net_unrealized_pnl", version, mappings)?,
+            net_pnl: Fiat::import(db, &name("net_unrealized_pnl"), version, mappings)?,
         })
     }
 

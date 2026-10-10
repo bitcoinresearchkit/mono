@@ -1,6 +1,6 @@
-use bitview_cohort::CohortId;
+use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
-use bitview_distribution::families::{CumulativeCount, UnspentOutputCount};
+use bitview_distribution::families::{CountWithDeltas, CumulativeCount};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
 use bitview_traversable::Traversable;
@@ -12,7 +12,7 @@ use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 #[derive(Traversable)]
 pub struct OutputsVecs<M: StorageMode = Rw> {
     /// Number of transaction outputs that are unspent at the represented block.
-    pub unspent_count: UnspentOutputCount<M>,
+    pub unspent_count: CountWithDeltas<M>,
     /// Number of the cohort's outputs spent in each block.
     pub spent_count: CumulativeCount<Count, M>,
 }
@@ -25,18 +25,18 @@ impl OutputsVecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
+        let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         Ok(Self {
-            unspent_count: UnspentOutputCount::import(
+            unspent_count: CountWithDeltas::import(
                 db,
-                cohort,
+                &name("utxo_count"),
                 version,
                 mappings,
                 window_starts,
             )?,
             spent_count: CumulativeCount::import(
                 db,
-                cohort,
-                "spent_utxo_count",
+                &name("spent_utxo_count"),
                 version + Version::ONE,
                 mappings,
                 window_starts,

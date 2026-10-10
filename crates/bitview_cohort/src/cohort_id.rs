@@ -1,8 +1,6 @@
-use brk_types::OutputType;
-
 use crate::{
     AgeRangeId, AmountRangeId, CLASS_NAMES, ClassId, CohortName, ENTRY_NAMES, EPOCH_NAMES,
-    EntryPrice, EpochId, OP_RETURN, SPENDABLE_TYPE_NAMES, TERM_NAMES, Term,
+    EntryPrice, EpochId, OP_RETURN, SPENDABLE_TYPE_NAMES, SpendableTypeId, TERM_NAMES, Term,
 };
 
 /// Canonical name for the cohort containing every UTXO.
@@ -18,7 +16,8 @@ pub enum CohortId {
     Epoch(EpochId),
     Class(ClassId),
     Entry(EntryPrice),
-    Type(OutputType),
+    Type(SpendableTypeId),
+    OpReturn,
 }
 
 impl CohortId {
@@ -35,8 +34,8 @@ impl CohortId {
             Self::Epoch(epoch) => epoch.select(&EPOCH_NAMES).id,
             Self::Class(class) => class.select(&CLASS_NAMES).id,
             Self::Entry(entry) => entry.select(&ENTRY_NAMES).id,
-            Self::Type(OutputType::OpReturn) => OP_RETURN,
-            Self::Type(output_type) => SPENDABLE_TYPE_NAMES.get(output_type).id,
+            Self::Type(kind) => kind.select(&SPENDABLE_TYPE_NAMES).id,
+            Self::OpReturn => OP_RETURN,
         }
     }
 }

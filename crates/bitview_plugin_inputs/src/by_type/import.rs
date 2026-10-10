@@ -1,4 +1,4 @@
-use bitview_cohort::{SpendableType, type_key};
+use bitview_cohort::SpendableType;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, PartsPerMillion32};
@@ -22,17 +22,17 @@ impl Vecs {
         inputs: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
         let version = version + Version::TWO;
-        let count_stored = SpendableType::try_new(|id| {
+        let count_stored = SpendableType::try_from_fn(|kind| {
             import_cached(
                 db,
-                &format!("{}_prevout_count_cumulative", id.name()),
+                &format!("{}_prevout_count_cumulative", kind.key()),
                 version,
             )
         })?;
-        let tx_count_stored = SpendableType::try_new(|id| {
+        let tx_count_stored = SpendableType::try_from_fn(|kind| {
             import_cached(
                 db,
-                &format!("tx_count_with_{}_prevout_cumulative", id.name()),
+                &format!("tx_count_with_{}_prevout_cumulative", kind.key()),
                 version,
             )
         })?;
@@ -45,12 +45,11 @@ impl Vecs {
         );
         let version = version + Version::ONE;
         let types = SpendableType::from_fn(|kind| {
-            let output_type = kind.output_type();
-            let key = type_key(output_type);
+            let key = kind.key();
             let count = LazyPerBlockCumulativeRolling::from_cumulative_source(
                 &format!("{key}_input_count"),
                 version,
-                count_stored.get(output_type),
+                kind.select(&count_stored),
                 window_starts,
                 mappings,
             );
@@ -69,7 +68,7 @@ impl Vecs {
             let tx_count = LazyPerBlockCumulativeRolling::from_cumulative_source(
                 &format!("{key}_input_tx_count"),
                 version,
-                tx_count_stored.get(output_type),
+                kind.select(&tx_count_stored),
                 window_starts,
                 mappings,
             );

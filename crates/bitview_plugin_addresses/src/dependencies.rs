@@ -1,20 +1,14 @@
-use std::sync::mpsc::Receiver;
-
-use bitview_cohort::ByAddrType;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::TxInIndex;
-use brk_types::{Height, Sats, Version};
-use vecdb::{AnyVec, PcoVec, ReadableBoxedVec};
+use brk_types::{Sats, Version};
+use vecdb::{AnyVec, PcoVec};
 
 pub struct Dependencies<'a> {
     pub indexer: &'a Indexer,
     pub mappings: &'a MappingsVecs,
     pub input_values: &'a PcoVec<TxInIndex, Sats>,
-    /// Per-type supply, sent once utxos has computed it: only the shares and average
-    /// balances derived after the block loop read it, so the loop runs alongside UTXOs.
-    pub type_supply: Receiver<ByAddrType<ReadableBoxedVec<Height, Sats>>>,
     pub price: &'a PriceVecs,
 }
 

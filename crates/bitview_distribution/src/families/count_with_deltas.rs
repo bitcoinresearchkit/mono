@@ -1,4 +1,3 @@
-use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
@@ -10,26 +9,26 @@ use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 
 use super::import_stored;
 
-/// One cohort's unspent output count, stored as `utxo_count`.
+/// A count, stored under its name, with its change over each trailing window.
 #[derive(Traversable)]
-pub struct UnspentOutputCount<M: StorageMode = Rw> {
+pub struct CountWithDeltas<M: StorageMode = Rw> {
     #[traversable(flatten)]
     count: LazyPerBlockWithDeltas<Count, CountSigned, PartsPerMillionSigned64>,
     #[traversable(hidden)]
     pub stored: CachedSeries<Height, Count, M>,
 }
 
-impl UnspentOutputCount {
+impl CountWithDeltas {
     pub fn import(
         db: &Database,
-        cohort: CohortId,
+        name: &str,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let stored = import_stored(db, cohort, "utxo_count", version)?;
+        let stored = import_stored(db, name, version)?;
         let count = LazyPerBlockWithDeltas::from_height_source(
-            &CohortContext::Utxo.metric_name(cohort, "utxo_count"),
+            name,
             version,
             &stored,
             Version::TWO,

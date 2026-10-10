@@ -5,7 +5,6 @@ mod dependencies;
 mod import;
 mod metrics;
 mod state;
-mod type_sources;
 
 pub use dependencies::Dependencies;
 

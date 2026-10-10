@@ -1,61 +1,49 @@
+use bitview_cohort::{AddressType, AddressTypeId};
 use brk_types::{Height, OutputType};
 
-use crate::addr::{
-    AddrTypeToActivityCounts, AddrTypeToAddrCount, AddrVecs, ExposedAddrState, ReusedAddrState,
-    add_type_delta,
-};
+use super::{MemberState, delta::ShardDelta};
+use crate::addr::AddressVecs;
 
-/// Runtime state for the address metrics pipeline.
+/// The address metrics' running state, one member per address type.
 #[derive(Debug, Default, Clone)]
-pub struct AddrMetricsState {
-    pub funded: AddrTypeToAddrCount,
-    pub empty: AddrTypeToAddrCount,
-    pub activity: AddrTypeToActivityCounts,
-    pub reused: ReusedAddrState,
-    pub respent: ReusedAddrState,
-    pub exposed: ExposedAddrState,
-}
+pub struct AddrMetricsState(pub AddressType<MemberState>);
 
 impl AddrMetricsState {
+    /// The counters at the start of `height`, from the members' stored series.
+    pub fn restore(types: &AddressType<AddressVecs>, height: Height) -> Self {
+        let Some(previous) = height.decremented() else {
+            return Self::default();
+        };
+        Self(AddressType::from_fn(|id| {
+            id.select(types)
+                .restore(previous)
+                .expect("address metrics stored through the resume height")
+        }))
+    }
+
     #[inline]
     pub fn reset_per_block(&mut self) {
-        self.activity.reset();
-        self.reused.reset_per_block();
-        self.respent.reset_per_block();
+        self.0.iter_mut().for_each(MemberState::reset_per_block);
     }
 
-    /// Adds the change to `output_type`'s values of a shard that started from `base`.
-    pub fn add_type_delta(&mut self, shard: &Self, base: &Self, output_type: OutputType) {
-        let Self {
-            funded,
-            empty,
-            activity,
-            reused,
-            respent,
-            exposed,
-        } = shard;
-        add_type_delta(&mut self.funded, funded, &base.funded, output_type);
-        add_type_delta(&mut self.empty, empty, &base.empty, output_type);
-        add_type_delta(&mut self.activity, activity, &base.activity, output_type);
-        self.reused
-            .add_type_delta(reused, &base.reused, output_type);
-        self.respent
-            .add_type_delta(respent, &base.respent, output_type);
-        self.exposed
-            .add_type_delta(exposed, &base.exposed, output_type);
-    }
-}
-
-impl From<(&AddrVecs, Height)> for AddrMetricsState {
+    /// The member `output_type`'s addresses update; `None` for P2A, not an address type.
     #[inline]
-    fn from((vecs, starting_height): (&AddrVecs, Height)) -> Self {
-        Self {
-            funded: AddrTypeToAddrCount::from((&vecs.funded.counts, starting_height)),
-            empty: AddrTypeToAddrCount::from((&vecs.empty, starting_height)),
-            activity: AddrTypeToActivityCounts::default(),
-            reused: ReusedAddrState::from((&vecs.reused, starting_height)),
-            respent: ReusedAddrState::from((&vecs.respent, starting_height)),
-            exposed: ExposedAddrState::from((&vecs.exposed, starting_height)),
+    pub fn member_mut(&mut self, output_type: OutputType) -> Option<&mut MemberState> {
+        self.0.get_mut(output_type)
+    }
+
+    /// Adds the change to one member's values of a shard that started from `base`.
+    pub fn add_member_delta(&mut self, shard: &Self, base: &Self, id: AddressTypeId) {
+        id.select_mut(&mut self.0)
+            .add_delta(*id.select(&shard.0), *id.select(&base.0));
+    }
+
+    /// Every address type together.
+    pub fn all(&self) -> MemberState {
+        let mut all = MemberState::default();
+        for member in self.0.iter() {
+            all += *member;
         }
+        all
     }
 }

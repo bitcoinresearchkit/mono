@@ -1,4 +1,4 @@
-use bitview_cohort::CohortId;
+use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_distribution::families::{CumulativeCount, CumulativeValue};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
@@ -37,9 +37,10 @@ impl ActivityVecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
+        let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let version = version + Version::ONE;
         let value = |metric: &str| {
-            CumulativeValue::import(db, cohort, metric, version, mappings, window_starts)
+            CumulativeValue::import(db, &name(metric), version, mappings, window_starts)
         };
         Ok(Self {
             transfer_volume: value("transfer_volume")?,
@@ -47,8 +48,7 @@ impl ActivityVecs {
             transfer_volume_in_loss: value("transfer_volume_in_loss")?,
             coindays_destroyed: CumulativeCount::import(
                 db,
-                cohort,
-                "coindays_destroyed",
+                &name("coindays_destroyed"),
                 version,
                 mappings,
                 window_starts,

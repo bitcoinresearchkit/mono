@@ -1,3 +1,4 @@
+use bitview_cohort::{AddressType, AmountRange};
 use bitview_distribution::replay::validate_outputs;
 use brk_error::Result;
 use brk_types::{Height, Version};
@@ -6,18 +7,37 @@ use vecdb::{AnyStoredVec, Stamp};
 
 use crate::{
     Vecs,
+    addr::AddressVecs,
+    balance::BalanceVecs,
     state::{AddrStates, MinimalRealizedState, RealizedOps},
 };
 
 impl Vecs {
+    /// Every height-indexed vec the block loop writes.
+    pub(crate) fn loop_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+        loop_vecs(&mut self.all, &mut self.types, &mut self.balances)
+    }
+
     /// Every vec the block loop writes and checkpoints.
-    pub(crate) fn par_iter_stateful_mut(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        self.addr_state
-            .par_iter_mut()
-            .chain(self.addrs.par_iter_stateful_height_mut())
-            .chain(self.balances.par_iter_vecs_mut())
+    pub(crate) fn stateful_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+        let Self {
+            all,
+            types,
+            balances,
+            state,
+            ..
+        } = self;
+        let mut vecs = loop_vecs(all, types, balances);
+        vecs.extend(state.par_iter_mut().collect::<Vec<_>>());
+        vecs
+    }
+
+    /// Restart the metrics from the first block.
+    pub(crate) fn reset_metrics(&mut self) -> Result<()> {
+        self.loop_vecs_mut()
+            .into_iter()
+            .try_for_each(|v| v.any_truncate_if_needed_at(0))?;
+        Ok(())
     }
 
     /// `None` after a version change, else the height every height-indexed
@@ -25,22 +45,17 @@ impl Vecs {
     pub(crate) fn validate_state(&mut self, version: Version) -> Result<Option<usize>> {
         let caps_changed = self.caps.validate(version)?;
         let state_changed = self
-            .addr_state
+            .state
             .par_iter_mut()
             .map(|v| v.any_validate_computed_version_or_reset(version))
             .try_reduce(|| false, |a, b| Ok(a || b))?;
-        let outputs = validate_outputs(
-            self.addrs
-                .par_iter_stateful_height_mut()
-                .chain(self.balances.par_iter_vecs_mut()),
-            version,
-        )?;
+        let outputs = validate_outputs(self.loop_vecs_mut().into_par_iter(), version)?;
         Ok(outputs.filter(|_| !caps_changed && !state_changed))
     }
 
     pub(crate) fn rollback_state(&mut self, start: usize) -> Result<usize> {
         let stamp = Stamp::from(Height::from(start));
-        let mut stamps = self.addr_state.rollback_before(stamp)?;
+        let mut stamps = self.state.rollback_before(stamp)?;
         stamps.push(self.caps.rollback_before(stamp)?);
         let recovered = usize::from(Height::from(stamps[0]).incremented());
         Ok(
@@ -81,4 +96,20 @@ impl Vecs {
         )?;
         Ok(())
     }
+}
+
+fn loop_vecs<'a>(
+    all: &'a mut AddressVecs,
+    types: &'a mut AddressType<AddressVecs>,
+    balances: &'a mut AmountRange<BalanceVecs>,
+) -> Vec<&'a mut dyn AnyStoredVec> {
+    let mut vecs: Vec<&mut dyn AnyStoredVec> = Vec::with_capacity(512);
+    vecs.extend(all.loop_vecs_mut());
+    for member in types.iter_mut() {
+        vecs.extend(member.loop_vecs_mut());
+    }
+    for band in balances.iter_mut() {
+        vecs.extend(band.vecs_mut());
+    }
+    vecs
 }

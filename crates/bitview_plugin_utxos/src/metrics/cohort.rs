@@ -1,7 +1,7 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_distribution::{
-    families::{CumulativeCount, CumulativeFiat, CumulativeValue, Fiat, UnspentOutputCount},
+    families::{CountWithDeltas, CumulativeCount, CumulativeFiat, CumulativeValue, Fiat},
     metrics::CohortSupply,
     state::{MinimalRealizedState, UTXOCohortState},
 };
@@ -33,7 +33,7 @@ pub struct CohortVecs<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct OutputsVecs<M: StorageMode = Rw> {
     /// Number of transaction outputs that are unspent at the represented block.
-    pub unspent_count: UnspentOutputCount<M>,
+    pub unspent_count: CountWithDeltas<M>,
     /// Number of the cohort's outputs spent in each block.
     pub spent_count: CumulativeCount<Count, M>,
 }
@@ -76,27 +76,41 @@ impl CohortVecs {
         spot: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
+        let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let flow_version = version + Version::ONE;
         let price_version = version + Version::ONE;
         let price_cents = import_cached(
             db,
-            &CohortContext::Utxo.metric_name(cohort, "realized_price_cents"),
+            &name("realized_price_cents"),
             price_version + Version::TWO,
         )?;
         let price = Price::from_height_source(
-            &CohortContext::Utxo.metric_name(cohort, "realized_price"),
+            &name("realized_price"),
             price_version,
             &price_cents,
             mappings,
         );
         Ok(Self {
-            supply: CohortSupply::import(db, cohort, version, mappings, windows, spot, all_supply)?,
+            supply: CohortSupply::import(
+                db,
+                &name("supply"),
+                version,
+                mappings,
+                windows,
+                spot,
+                all_supply,
+            )?,
             outputs: OutputsVecs {
-                unspent_count: UnspentOutputCount::import(db, cohort, version, mappings, windows)?,
+                unspent_count: CountWithDeltas::import(
+                    db,
+                    &name("utxo_count"),
+                    version,
+                    mappings,
+                    windows,
+                )?,
                 spent_count: CumulativeCount::import(
                     db,
-                    cohort,
-                    "spent_utxo_count",
+                    &name("spent_utxo_count"),
                     version + Version::ONE,
                     mappings,
                     windows,
@@ -105,29 +119,26 @@ impl CohortVecs {
             activity: ActivityVecs {
                 transfer_volume: CumulativeValue::import(
                     db,
-                    cohort,
-                    "transfer_volume",
+                    &name("transfer_volume"),
                     flow_version,
                     mappings,
                     windows,
                 )?,
             },
             realized: RealizedVecs {
-                cap: Fiat::import(db, cohort, "realized_cap", version, mappings)?,
+                cap: Fiat::import(db, &name("realized_cap"), version, mappings)?,
                 price,
                 price_cents,
                 profit: CumulativeFiat::import(
                     db,
-                    cohort,
-                    "realized_profit",
+                    &name("realized_profit"),
                     flow_version,
                     mappings,
                     windows,
                 )?,
                 loss: CumulativeFiat::import(
                     db,
-                    cohort,
-                    "realized_loss",
+                    &name("realized_loss"),
                     flow_version,
                     mappings,
                     windows,

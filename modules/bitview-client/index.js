@@ -3296,9 +3296,9 @@ const _TrueMarketMean = _s({
  *   block: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Ratio>,
  *   mvrv: SeriesPattern1<?Ratio>,
- * }} Active
+ * }} PricesActive
  */
-const _Active = _s({
+const _PricesActive = _s({
   block: [_i1, '*_price'],
   ratio: [_i1, '*_price_ratio'],
   mvrv: [_i1, '*_mvrv'],
@@ -3306,17 +3306,17 @@ const _Active = _s({
 
 /**
  * @typedef {{
- *   vaulted: Active,
- *   active: Active,
+ *   vaulted: PricesActive,
+ *   active: PricesActive,
  *   trueMarketMean: TrueMarketMean,
- *   cointime: Active,
+ *   cointime: PricesActive,
  * }} CointimePrices
  */
 const _CointimePrices = _s({
-  vaulted: [_Active, '*'],
-  active: [_Active, 'active'],
+  vaulted: [_PricesActive, '*'],
+  active: [_PricesActive, 'active'],
   trueMarketMean: [_TrueMarketMean, 'true_market_mean'],
-  cointime: [_Active, 'cointime'],
+  cointime: [_PricesActive, 'cointime'],
 });
 
 /**
@@ -3635,80 +3635,6 @@ const _Total = _s({
 });
 
 /**
- * @template A
- * @typedef {{
- *   all: SeriesPattern1<A>,
- *   p2pk65: SeriesPattern1<A>,
- *   p2pk33: SeriesPattern1<A>,
- *   p2pkh: SeriesPattern1<A>,
- *   p2sh: SeriesPattern1<A>,
- *   p2wpkh: SeriesPattern1<A>,
- *   p2wsh: SeriesPattern1<A>,
- *   p2tr: SeriesPattern1<A>,
- *   p2a: SeriesPattern1<A>,
- * }} AddressesEmpty
- */
-const _AddressesEmpty = _s({
-  all: [_i1, '*'],
-  p2pk65: [_i1, 'p2pk65_*'],
-  p2pk33: [_i1, 'p2pk33_*'],
-  p2pkh: [_i1, 'p2pkh_*'],
-  p2sh: [_i1, 'p2sh_*'],
-  p2wpkh: [_i1, 'p2wpkh_*'],
-  p2wsh: [_i1, 'p2wsh_*'],
-  p2tr: [_i1, 'p2tr_*'],
-  p2a: [_i1, 'p2a_*'],
-});
-
-/**
- * @typedef {{
- *   funded: AddressesEmpty<Count>,
- *   total: AddressesEmpty<Count>,
- * }} ExposedCount
- */
-const _ExposedCount = _s({
-  funded: [_AddressesEmpty, '*'],
-  total: [_AddressesEmpty, 'total_*'],
-});
-
-/**
- * @typedef {{
- *   _0sats: SeriesPattern1<?Dollars>,
- *   _1satTo10sats: SeriesPattern1<?Dollars>,
- *   _10satsTo100sats: SeriesPattern1<?Dollars>,
- *   _100satsTo1kSats: SeriesPattern1<?Dollars>,
- *   _1kSatsTo10kSats: SeriesPattern1<?Dollars>,
- *   _10kSatsTo100kSats: SeriesPattern1<?Dollars>,
- *   _100kSatsTo1mSats: SeriesPattern1<?Dollars>,
- *   _1mSatsTo10mSats: SeriesPattern1<?Dollars>,
- *   _10mSatsTo1btc: SeriesPattern1<?Dollars>,
- *   _1btcTo10btc: SeriesPattern1<?Dollars>,
- *   _10btcTo100btc: SeriesPattern1<?Dollars>,
- *   _100btcTo1kBtc: SeriesPattern1<?Dollars>,
- *   _1kBtcTo10kBtc: SeriesPattern1<?Dollars>,
- *   _10kBtcTo100kBtc: SeriesPattern1<?Dollars>,
- *   over100kBtc: SeriesPattern1<?Dollars>,
- * }} RealizedCap
- */
-const _RealizedCap = _s({
-  _0sats: [_i1, 'addrs_0sats_*'],
-  _1satTo10sats: [_i1, 'addrs_1sat_to_10sats_*'],
-  _10satsTo100sats: [_i1, 'addrs_10sats_to_100sats_*'],
-  _100satsTo1kSats: [_i1, 'addrs_100sats_to_1k_sats_*'],
-  _1kSatsTo10kSats: [_i1, 'addrs_1k_sats_to_10k_sats_*'],
-  _10kSatsTo100kSats: [_i1, 'addrs_10k_sats_to_100k_sats_*'],
-  _100kSatsTo1mSats: [_i1, 'addrs_100k_sats_to_1m_sats_*'],
-  _1mSatsTo10mSats: [_i1, 'addrs_1m_sats_to_10m_sats_*'],
-  _10mSatsTo1btc: [_i1, 'addrs_10m_sats_to_1btc_*'],
-  _1btcTo10btc: [_i1, 'addrs_1btc_to_10btc_*'],
-  _10btcTo100btc: [_i1, 'addrs_10btc_to_100btc_*'],
-  _100btcTo1kBtc: [_i1, 'addrs_100btc_to_1k_btc_*'],
-  _1kBtcTo10kBtc: [_i1, 'addrs_1k_btc_to_10k_btc_*'],
-  _10kBtcTo100kBtc: [_i1, 'addrs_10k_btc_to_100k_btc_*'],
-  over100kBtc: [_i1, 'addrs_over_100k_btc_*'],
-});
-
-/**
  * @typedef {{
  *   p2a: SeriesPattern26<AddrState>,
  *   p2pk33: SeriesPattern28<AddrState>,
@@ -3737,6 +3663,63 @@ const _State = _s({
 
 /**
  * @typedef {{
+ *   funded: SeriesPattern1<Count>,
+ *   total: SeriesPattern1<Count>,
+ * }} ExposedCount
+ */
+const _ExposedCount = _s({
+  funded: [_i1, '*_exposed_address_count'],
+  total: [_i1, '*_total_exposed_address_count'],
+});
+
+/**
+ * @typedef {{
+ *   funded: SeriesPattern1<Count>,
+ *   total: SeriesPattern1<Count>,
+ * }} RespentCount
+ */
+const _RespentCount = _s({
+  funded: [_i1, '*_respent_address_count'],
+  total: [_i1, '*_total_respent_address_count'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   share: SeriesPattern1<?Percent>,
+ * }} ExposedSupply
+ */
+const _ExposedSupply = _s({
+  btc: [_i1, '*'],
+  usd: [_i1, '*_usd'],
+  share: [_i1, '*_share'],
+});
+
+/**
+ * @typedef {{
+ *   count: ExposedCount,
+ *   supply: ExposedSupply,
+ * }} Exposed
+ */
+const _Exposed = _s({
+  count: [_ExposedCount, '*'],
+  supply: [_ExposedSupply, '*_exposed_address_supply'],
+});
+
+/**
+ * @typedef {{
+ *   funded: SeriesPattern1<Count>,
+ *   total: SeriesPattern1<Count>,
+ * }} ReusedCount
+ */
+const _ReusedCount = _s({
+  funded: [_i1, '*_reused_address_count'],
+  total: [_i1, '*_total_reused_address_count'],
+});
+
+/**
+ * @typedef {{
  *   profit: SeriesPattern1<?Dollars>,
  *   loss: SeriesPattern1<?Dollars>,
  *   netPnl: SeriesPattern1<?Dollars>,
@@ -3754,9 +3737,9 @@ const _Classes2009Unrealized = _s({
  *   _1w: SeriesPattern1<?Percent>,
  *   _1m: SeriesPattern1<?Percent>,
  *   _1y: SeriesPattern1<?Percent>,
- * }} AllRate
+ * }} DeltaRate
  */
-const _AllRate = _s({
+const _DeltaRate = _s({
   _24h: [_i1, '*_24h_rate'],
   _1w: [_i1, '*_1w_rate'],
   _1m: [_i1, '*_1m_rate'],
@@ -4236,33 +4219,33 @@ const _TransactionsSize = _s({
  * @typedef {{
  *   btc: SeriesPattern1<?Bitcoin>,
  *   usd: SeriesPattern1<?Dollars>,
- * }} AvgAmount
+ * }} AvgBalance
  */
-const _AvgAmount = _s({
+const _AvgBalance = _s({
   btc: [_i1, '*'],
   usd: [_i1, '*_usd'],
 });
 
 /**
  * @typedef {{
- *   vaulted: AvgAmount,
- *   hodledOrLost: AvgAmount,
- *   active: AvgAmount,
+ *   vaulted: AvgBalance,
+ *   hodledOrLost: AvgBalance,
+ *   active: AvgBalance,
  * }} CointimeSupply
  */
 const _CointimeSupply = _s({
-  vaulted: [_AvgAmount, 'vaulted_*'],
-  hodledOrLost: [_AvgAmount, 'hodled_or_lost_*'],
-  active: [_AvgAmount, 'active_*'],
+  vaulted: [_AvgBalance, 'vaulted_*'],
+  hodledOrLost: [_AvgBalance, 'hodled_or_lost_*'],
+  active: [_AvgBalance, 'active_*'],
 });
 
 /**
  * @typedef {{
- *   supply: AvgAmount,
+ *   supply: AvgBalance,
  * }} Immobile
  */
 const _Immobile = _s({
-  supply: [_AvgAmount, '*'],
+  supply: [_AvgBalance, '*'],
 });
 
 /**
@@ -4306,65 +4289,27 @@ const _CointimeCohortsAll = _s({
 
 /**
  * @typedef {{
- *   all: AvgAmount,
- *   p2pk65: AvgAmount,
- *   p2pk33: AvgAmount,
- *   p2pkh: AvgAmount,
- *   p2sh: AvgAmount,
- *   p2wpkh: AvgAmount,
- *   p2wsh: AvgAmount,
- *   p2tr: AvgAmount,
- *   p2a: AvgAmount,
- *   share: AddressesEmpty<?Percent>,
- * }} ExposedSupply
- */
-const _ExposedSupply = _s({
-  all: [_AvgAmount, '*'],
-  p2pk65: [_AvgAmount, 'p2pk65_*'],
-  p2pk33: [_AvgAmount, 'p2pk33_*'],
-  p2pkh: [_AvgAmount, 'p2pkh_*'],
-  p2sh: [_AvgAmount, 'p2sh_*'],
-  p2wpkh: [_AvgAmount, 'p2wpkh_*'],
-  p2wsh: [_AvgAmount, 'p2wsh_*'],
-  p2tr: [_AvgAmount, 'p2tr_*'],
-  p2a: [_AvgAmount, 'p2a_*'],
-  share: [_AddressesEmpty, '*_share'],
-});
-
-/**
- * @typedef {{
- *   count: ExposedCount,
- *   supply: ExposedSupply,
- * }} Exposed
- */
-const _Exposed = _s({
-  count: [_ExposedCount, '*_count'],
-  supply: [_ExposedSupply, '*_supply'],
-});
-
-/**
- * @typedef {{
- *   _24h: AvgAmount,
- *   _1w: AvgAmount,
- *   _1m: AvgAmount,
- *   _1y: AvgAmount,
+ *   _24h: AvgBalance,
+ *   _1w: AvgBalance,
+ *   _1m: AvgBalance,
+ *   _1y: AvgBalance,
  * }} Sum
  */
 const _Sum = _s({
-  _24h: [_AvgAmount, '*_24h'],
-  _1w: [_AvgAmount, '*_1w'],
-  _1m: [_AvgAmount, '*_1m'],
-  _1y: [_AvgAmount, '*_1y'],
+  _24h: [_AvgBalance, '*_24h'],
+  _1w: [_AvgBalance, '*_1w'],
+  _1m: [_AvgBalance, '*_1m'],
+  _1y: [_AvgBalance, '*_1y'],
 });
 
 /**
  * @typedef {{
- *   cumulative: AvgAmount,
+ *   cumulative: AvgBalance,
  *   sum: Sum,
  * }} AaopoolRewards
  */
 const _AaopoolRewards = _s({
-  cumulative: [_AvgAmount, '*_cumulative'],
+  cumulative: [_AvgBalance, '*_cumulative'],
   sum: [_Sum, '*_sum'],
 });
 
@@ -4382,14 +4327,14 @@ const _Block = _s({
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgAmount,
+ *   cumulative: AvgBalance,
  *   sum: Sum,
  *   chainShare: SeriesPattern1<?Percent>,
  * }} InscriptionFees
  */
 const _InscriptionFees = _s({
   block: [_Block, '*_fees'],
-  cumulative: [_AvgAmount, '*_fees_cumulative'],
+  cumulative: [_AvgBalance, '*_fees_cumulative'],
   sum: [_Sum, '*_fees_sum'],
   chainShare: [_i1, '*_fee_chain_share'],
 });
@@ -4397,29 +4342,29 @@ const _InscriptionFees = _s({
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgAmount,
+ *   cumulative: AvgBalance,
  *   sum: Sum,
  * }} OpReturnValue
  */
 const _OpReturnValue = _s({
   block: [_Block, '*'],
-  cumulative: [_AvgAmount, '*_cumulative'],
+  cumulative: [_AvgBalance, '*_cumulative'],
   sum: [_Sum, '*_sum'],
 });
 
 /**
  * @typedef {{
  *   transferVolume: OpReturnValue,
- * }} Amounts0satsActivity
+ * }} Balances0satsActivity
  */
-const _Amounts0satsActivity = _s({
+const _Balances0satsActivity = _s({
   transferVolume: [_OpReturnValue, '*'],
 });
 
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgAmount,
+ *   cumulative: AvgBalance,
  *   sum: Sum,
  *   inProfit: OpReturnValue,
  *   inLoss: OpReturnValue,
@@ -4427,7 +4372,7 @@ const _Amounts0satsActivity = _s({
  */
 const _TransferVolume = _s({
   block: [_Block, '*'],
-  cumulative: [_AvgAmount, '*_cumulative'],
+  cumulative: [_AvgBalance, '*_cumulative'],
   sum: [_Sum, '*_sum'],
   inProfit: [_OpReturnValue, '*_in_profit'],
   inLoss: [_OpReturnValue, '*_in_loss'],
@@ -4462,14 +4407,14 @@ const _ChainShare = _s({
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgAmount,
+ *   cumulative: AvgBalance,
  *   sum: Sum,
  *   chainShare: ChainShare,
  * }} OpReturnFees
  */
 const _OpReturnFees = _s({
   block: [_Block, '*_fees'],
-  cumulative: [_AvgAmount, '*_fees_cumulative'],
+  cumulative: [_AvgBalance, '*_fees_cumulative'],
   sum: [_Sum, '*_fees_sum'],
   chainShare: [_ChainShare, '*_fee_chain_share'],
 });
@@ -4477,14 +4422,14 @@ const _OpReturnFees = _s({
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgAmount,
+ *   cumulative: AvgBalance,
  *   sum: Sum,
  *   share: ChainShare,
  * }} Subsidy
  */
 const _Subsidy = _s({
   block: [_Block, '*'],
-  cumulative: [_AvgAmount, '*_cumulative'],
+  cumulative: [_AvgBalance, '*_cumulative'],
   sum: [_Sum, '*_sum'],
   share: [_ChainShare, '*_share'],
 });
@@ -4541,9 +4486,9 @@ const _InputsPerSecond = _s({
  * @typedef {{
  *   block: SeriesPattern20<Count>,
  *   sum: InputsPerSecond<Count>,
- * }} NewAll
+ * }} New
  */
-const _NewAll = _s({
+const _New = _s({
   block: [_i20, '*'],
   sum: [_InputsPerSecond, '*_sum'],
 });
@@ -4552,84 +4497,84 @@ const _NewAll = _s({
  * @template A
  * @typedef {{
  *   absolute: InputsPerSecond<A>,
- *   rate: AllRate,
- * }} DeltaAll
+ *   rate: DeltaRate,
+ * }} Delta
  */
-const _DeltaAll = _s({
+const _Delta = _s({
   absolute: [_InputsPerSecond, '*'],
-  rate: [_AllRate, '*'],
+  rate: [_DeltaRate, '*'],
 });
 
 /**
  * @typedef {{
- *   total: AvgAmount,
- *   inProfit: AvgAmount,
- *   inLoss: AvgAmount,
- *   delta: DeltaAll<?Bitcoin>,
+ *   total: AvgBalance,
+ *   inProfit: AvgBalance,
+ *   inLoss: AvgBalance,
+ *   delta: Delta<?Bitcoin>,
  * }} LthSupply
  */
 const _LthSupply = _s({
-  total: [_AvgAmount, '*'],
-  inProfit: [_AvgAmount, '*_in_profit'],
-  inLoss: [_AvgAmount, '*_in_loss'],
-  delta: [_DeltaAll, '*_delta'],
+  total: [_AvgBalance, '*'],
+  inProfit: [_AvgBalance, '*_in_profit'],
+  inLoss: [_AvgBalance, '*_in_loss'],
+  delta: [_Delta, '*_delta'],
 });
 
 /**
  * @typedef {{
  *   total: Total,
- *   inProfit: AvgAmount,
- *   inLoss: AvgAmount,
- *   delta: DeltaAll<?Bitcoin>,
+ *   inProfit: AvgBalance,
+ *   inLoss: AvgBalance,
+ *   delta: Delta<?Bitcoin>,
  * }} AllSupply
  */
 const _AllSupply = _s({
   total: [_Total, 'circulating_*'],
-  inProfit: [_AvgAmount, '*_in_profit'],
-  inLoss: [_AvgAmount, '*_in_loss'],
-  delta: [_DeltaAll, '*_delta'],
+  inProfit: [_AvgBalance, '*_in_profit'],
+  inLoss: [_AvgBalance, '*_in_loss'],
+  delta: [_Delta, '*_delta'],
 });
 
 /**
  * @typedef {{
- *   total: AvgAmount,
- *   delta: DeltaAll<?Bitcoin>,
+ *   total: AvgBalance,
+ *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
- * }} Supply0sats
+ * }} Balances0satsSupply
  */
-const _Supply0sats = _s({
-  total: [_AvgAmount, '*'],
-  delta: [_DeltaAll, '*_delta'],
+const _Balances0satsSupply = _s({
+  total: [_AvgBalance, '*'],
+  delta: [_Delta, '*_delta'],
   share: [_i1, '*_share'],
 });
 
 /**
  * @typedef {{
- *   total: AvgAmount,
- *   delta: DeltaAll<?Bitcoin>,
+ *   total: AvgBalance,
+ *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: AvgAmount,
- *   inLoss: AvgAmount,
+ *   inProfit: AvgBalance,
+ *   inLoss: AvgBalance,
  * }} RookieSupply
  */
 const _RookieSupply = _s({
-  total: [_AvgAmount, '*'],
-  delta: [_DeltaAll, '*_delta'],
+  total: [_AvgBalance, '*'],
+  delta: [_Delta, '*_delta'],
   share: [_i1, '*_share'],
-  inProfit: [_AvgAmount, '*_in_profit'],
-  inLoss: [_AvgAmount, '*_in_loss'],
+  inProfit: [_AvgBalance, '*_in_profit'],
+  inLoss: [_AvgBalance, '*_in_loss'],
 });
 
 /**
  * @template A, B
  * @typedef {{
  *   block: SeriesPattern1<A>,
- *   delta: DeltaAll<B>,
- * }} MarketCap
+ *   delta: Delta<B>,
+ * }} Funded
  */
-const _MarketCap = _s({
+const _Funded = _s({
   block: [_i1, '*'],
-  delta: [_DeltaAll, '*_delta'],
+  delta: [_Delta, '*_delta'],
 });
 
 /**
@@ -4638,7 +4583,7 @@ const _MarketCap = _s({
  *   burned: OpReturnValue,
  *   inflationRate: SeriesPattern1<?Percent>,
  *   velocity: Velocity,
- *   marketCap: MarketCap<?Dollars, ?Dollars>,
+ *   marketCap: Funded<?Dollars, ?Dollars>,
  *   marketMinusRealizedCapGrowthRate: InputsPerSecond<?Percent>,
  * }} Supply
  */
@@ -4647,26 +4592,35 @@ const _Supply = _s({
   burned: [_OpReturnValue, 'burned'],
   inflationRate: [_i1, 'inflation_*'],
   velocity: [_Velocity, 'velocity'],
-  marketCap: [_MarketCap, 'market_cap'],
+  marketCap: [_Funded, 'market_cap'],
   marketMinusRealizedCapGrowthRate: [_InputsPerSecond, 'market_minus_realized_cap_growth_*'],
 });
 
 /**
  * @typedef {{
- *   total: AvgAmount,
- *   delta: DeltaAll<?Bitcoin>,
+ *   unspentCount: Funded<Count, CountSigned>,
+ * }} Balances0satsOutputs
+ */
+const _Balances0satsOutputs = _s({
+  unspentCount: [_Funded, '*'],
+});
+
+/**
+ * @typedef {{
+ *   total: AvgBalance,
+ *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: AvgAmount,
- *   inLoss: AvgAmount,
+ *   inProfit: AvgBalance,
+ *   inLoss: AvgBalance,
  *   matured: OpReturnValue,
  * }} Ranges10yTo12ySupply
  */
 const _Ranges10yTo12ySupply = _s({
-  total: [_AvgAmount, '*_supply'],
-  delta: [_DeltaAll, '*_supply_delta'],
+  total: [_AvgBalance, '*_supply'],
+  delta: [_Delta, '*_supply_delta'],
   share: [_i1, '*_supply_share'],
-  inProfit: [_AvgAmount, '*_supply_in_profit'],
-  inLoss: [_AvgAmount, '*_supply_in_loss'],
+  inProfit: [_AvgBalance, '*_supply_in_profit'],
+  inLoss: [_AvgBalance, '*_supply_in_loss'],
   matured: [_OpReturnValue, '*_matured_supply'],
 });
 
@@ -5125,7 +5079,7 @@ const _OpReturnDataBytes = _s({
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgAmount,
+ *   cumulative: AvgBalance,
  *   sum: Sum,
  *   avg: Sum,
  *   min: Sum,
@@ -5141,7 +5095,7 @@ const _OpReturnDataBytes = _s({
  */
 const _RewardsFees = _s({
   block: [_Block, '*'],
-  cumulative: [_AvgAmount, '*_cumulative'],
+  cumulative: [_AvgBalance, '*_cumulative'],
   sum: [_Sum, '*_sum'],
   avg: [_Sum, '*_avg'],
   min: [_Sum, '*_min'],
@@ -5252,6 +5206,23 @@ const _Interval = _s({
 });
 
 /**
+ * @typedef {{
+ *   reactivated: Interval<Count, ?CountFract>,
+ *   sending: Interval<Count, ?CountFract>,
+ *   receiving: Interval<Count, ?CountFract>,
+ *   bidirectional: Interval<Count, ?CountFract>,
+ *   active: Interval<Count, ?CountFract>,
+ * }} AddressesActivity
+ */
+const _AddressesActivity = _s({
+  reactivated: [_Interval, '*_reactivated_address_count'],
+  sending: [_Interval, '*_sending_address_count'],
+  receiving: [_Interval, '*_receiving_address_count'],
+  bidirectional: [_Interval, '*_bidirectional_address_count'],
+  active: [_Interval, '*_active_address_count'],
+});
+
+/**
  * @template A
  * @typedef {{
  *   block: SeriesPattern20<A>,
@@ -5348,7 +5319,7 @@ const _Sopr = _s({
 
 /**
  * @typedef {{
- *   cap: MarketCap<?Dollars, ?Dollars>,
+ *   cap: Funded<?Dollars, ?Dollars>,
  *   price: Ema12d,
  *   profit: CoinblocksDestroyed<?Dollars>,
  *   loss: CoinblocksDestroyed<?Dollars>,
@@ -5358,7 +5329,7 @@ const _Sopr = _s({
  * }} RookieRealized
  */
 const _RookieRealized = _s({
-  cap: [_MarketCap, '*_realized_cap'],
+  cap: [_Funded, '*_realized_cap'],
   price: [_Ema12d, '*_realized_price'],
   profit: [_CoinblocksDestroyed, '*_realized_profit'],
   loss: [_CoinblocksDestroyed, '*_realized_loss'],
@@ -5401,7 +5372,7 @@ const _Ratios = _s({
 
 /**
  * @typedef {{
- *   cap: MarketCap<?Dollars, ?Dollars>,
+ *   cap: Funded<?Dollars, ?Dollars>,
  *   price: SeriesPattern1<?Dollars>,
  *   capitalizedPrice: Ema12d,
  *   profit: CoinblocksDestroyed<?Dollars>,
@@ -5414,7 +5385,7 @@ const _Ratios = _s({
  * }} AllRealized
  */
 const _AllRealized = _s({
-  cap: [_MarketCap, '*_realized_cap'],
+  cap: [_Funded, '*_realized_cap'],
   price: [_i1, '*_realized_price'],
   capitalizedPrice: [_Ema12d, '*_capitalized_price'],
   profit: [_CoinblocksDestroyed, '*_realized_profit'],
@@ -5444,201 +5415,155 @@ const _AllActivity = _s({
 });
 
 /**
+ * @typedef {{
+ *   cap: SeriesPattern1<?Dollars>,
+ *   profit: CoinblocksDestroyed<?Dollars>,
+ *   loss: CoinblocksDestroyed<?Dollars>,
+ * }} Balances0satsRealized
+ */
+const _Balances0satsRealized = _s({
+  cap: [_i1, '*_cap'],
+  profit: [_CoinblocksDestroyed, '*_profit'],
+  loss: [_CoinblocksDestroyed, '*_loss'],
+});
+
+/**
+ * @typedef {{
+ *   addressCount: Funded<Count, CountSigned>,
+ *   supply: Balances0satsSupply,
+ *   outputs: Balances0satsOutputs,
+ *   activity: Balances0satsActivity,
+ *   realized: Balances0satsRealized,
+ * }} Balances0sats
+ */
+const _Balances0sats = _s({
+  addressCount: [_Funded, '*_address_count'],
+  supply: [_Balances0satsSupply, '*_supply'],
+  outputs: [_Balances0satsOutputs, '*_utxo_count'],
+  activity: [_Balances0satsActivity, '*_transfer_volume'],
+  realized: [_Balances0satsRealized, '*_realized'],
+});
+
+/**
  * @template A
  * @typedef {{
- *   all: A,
- *   p2pk65: A,
- *   p2pk33: A,
- *   p2pkh: A,
- *   p2sh: A,
- *   p2wpkh: A,
- *   p2wsh: A,
- *   p2tr: A,
- *   p2a: A,
- * }} AvgBalance
+ *   count: A,
+ *   share: ChainShare,
+ * }} EventsActive
  */
 /** @type {_Make} */
-const _AvgBalance = (c, b, f0) => _n(c, b, {
-  all: [f0, '*'],
-  p2pk65: [f0, 'p2pk65_*'],
-  p2pk33: [f0, 'p2pk33_*'],
-  p2pkh: [f0, 'p2pkh_*'],
-  p2sh: [f0, 'p2sh_*'],
-  p2wpkh: [f0, 'p2wpkh_*'],
-  p2wsh: [f0, 'p2wsh_*'],
-  p2tr: [f0, 'p2tr_*'],
-  p2a: [f0, 'p2a_*'],
+const _EventsActive = (c, b, f0) => _n(c, b, {
+  count: [f0, '*_count'],
+  share: [_ChainShare, '*_share'],
 });
 
 /**
  * @typedef {{
- *   outputToReusedAddrCount: AvgBalance<CoinblocksDestroyed<Count>>,
- *   outputToReusedAddrShare: AvgBalance<ChainShare>,
- *   spendableOutputToReusedAddrShare: ChainShare,
- *   inputFromReusedAddrCount: AvgBalance<CoinblocksDestroyed<Count>>,
- *   inputFromReusedAddrShare: AvgBalance<ChainShare>,
- *   activeReusedAddrCount: Interval<Count, ?CountFract>,
- *   activeReusedAddrShare: ChainShare,
- * }} Events
+ *   outputs: EventsActive<CoinblocksDestroyed<Count>>,
+ *   inputs: EventsActive<CoinblocksDestroyed<Count>>,
+ *   active: EventsActive<Interval<Count, ?CountFract>>,
+ * }} RespentEvents
  */
-const _Events = _s({
-  outputToReusedAddrCount: [(c, b) => _AvgBalance(c, b, _CoinblocksDestroyed), 'output_to_*_count'],
-  outputToReusedAddrShare: [(c, b) => _AvgBalance(c, b, _ChainShare), 'output_to_*_share'],
-  spendableOutputToReusedAddrShare: [_ChainShare, 'spendable_output_to_*_share'],
-  inputFromReusedAddrCount: [(c, b) => _AvgBalance(c, b, _CoinblocksDestroyed), 'input_from_*_count'],
-  inputFromReusedAddrShare: [(c, b) => _AvgBalance(c, b, _ChainShare), 'input_from_*_share'],
-  activeReusedAddrCount: [_Interval, 'active_*_count'],
-  activeReusedAddrShare: [_ChainShare, 'active_*_share'],
+const _RespentEvents = _s({
+  outputs: [(c, b) => _EventsActive(c, b, _CoinblocksDestroyed), '*_output_to_respent_address'],
+  inputs: [(c, b) => _EventsActive(c, b, _CoinblocksDestroyed), '*_input_from_respent_address'],
+  active: [(c, b) => _EventsActive(c, b, _Interval), '*_active_respent_address'],
 });
 
 /**
  * @typedef {{
- *   count: ExposedCount,
- *   events: Events,
+ *   count: RespentCount,
  *   supply: ExposedSupply,
+ *   events: RespentEvents,
  * }} Respent
  */
 const _Respent = _s({
-  count: [_ExposedCount, '*_count'],
-  events: [_Events, '*'],
-  supply: [_ExposedSupply, '*_supply'],
+  count: [_RespentCount, '*'],
+  supply: [_ExposedSupply, '*_respent_address_supply'],
+  events: [_RespentEvents, '*'],
 });
 
 /**
  * @typedef {{
- *   reactivated: AvgBalance<Interval<Count, ?CountFract>>,
- *   sending: AvgBalance<Interval<Count, ?CountFract>>,
- *   receiving: AvgBalance<Interval<Count, ?CountFract>>,
- *   bidirectional: AvgBalance<Interval<Count, ?CountFract>>,
- *   active: AvgBalance<Interval<Count, ?CountFract>>,
- * }} AddressesActivity
+ *   outputs: EventsActive<CoinblocksDestroyed<Count>>,
+ *   inputs: EventsActive<CoinblocksDestroyed<Count>>,
+ *   active: EventsActive<Interval<Count, ?CountFract>>,
+ * }} ReusedEvents
  */
-const _AddressesActivity = _s({
-  reactivated: [(c, b) => _AvgBalance(c, b, _Interval), 'reactivated_*'],
-  sending: [(c, b) => _AvgBalance(c, b, _Interval), 'sending_*'],
-  receiving: [(c, b) => _AvgBalance(c, b, _Interval), 'receiving_*'],
-  bidirectional: [(c, b) => _AvgBalance(c, b, _Interval), 'bidirectional_*'],
-  active: [(c, b) => _AvgBalance(c, b, _Interval), 'active_*'],
+const _ReusedEvents = _s({
+  outputs: [(c, b) => _EventsActive(c, b, _CoinblocksDestroyed), '*_output_to_reused_address'],
+  inputs: [(c, b) => _EventsActive(c, b, _CoinblocksDestroyed), '*_input_from_reused_address'],
+  active: [(c, b) => _EventsActive(c, b, _Interval), '*_active_reused_address'],
 });
 
 /**
- * @template A
  * @typedef {{
- *   _0sats: A,
- *   _1satTo10sats: A,
- *   _10satsTo100sats: A,
- *   _100satsTo1kSats: A,
- *   _1kSatsTo10kSats: A,
- *   _10kSatsTo100kSats: A,
- *   _100kSatsTo1mSats: A,
- *   _1mSatsTo10mSats: A,
- *   _10mSatsTo1btc: A,
- *   _1btcTo10btc: A,
- *   _10btcTo100btc: A,
- *   _100btcTo1kBtc: A,
- *   _1kBtcTo10kBtc: A,
- *   _10kBtcTo100kBtc: A,
- *   over100kBtc: A,
- * }} RealizedLoss
+ *   count: ReusedCount,
+ *   supply: ExposedSupply,
+ *   events: ReusedEvents,
+ * }} Reused
  */
-/** @type {_Make} */
-const _RealizedLoss = (c, b, f0) => _n(c, b, {
-  _0sats: [f0, 'addrs_0sats_*'],
-  _1satTo10sats: [f0, 'addrs_1sat_to_10sats_*'],
-  _10satsTo100sats: [f0, 'addrs_10sats_to_100sats_*'],
-  _100satsTo1kSats: [f0, 'addrs_100sats_to_1k_sats_*'],
-  _1kSatsTo10kSats: [f0, 'addrs_1k_sats_to_10k_sats_*'],
-  _10kSatsTo100kSats: [f0, 'addrs_10k_sats_to_100k_sats_*'],
-  _100kSatsTo1mSats: [f0, 'addrs_100k_sats_to_1m_sats_*'],
-  _1mSatsTo10mSats: [f0, 'addrs_1m_sats_to_10m_sats_*'],
-  _10mSatsTo1btc: [f0, 'addrs_10m_sats_to_1btc_*'],
-  _1btcTo10btc: [f0, 'addrs_1btc_to_10btc_*'],
-  _10btcTo100btc: [f0, 'addrs_10btc_to_100btc_*'],
-  _100btcTo1kBtc: [f0, 'addrs_100btc_to_1k_btc_*'],
-  _1kBtcTo10kBtc: [f0, 'addrs_1k_btc_to_10k_btc_*'],
-  _10kBtcTo100kBtc: [f0, 'addrs_10k_btc_to_100k_btc_*'],
-  over100kBtc: [f0, 'addrs_over_100k_btc_*'],
+const _Reused = _s({
+  count: [_ReusedCount, '*'],
+  supply: [_ExposedSupply, '*_reused_address_supply'],
+  events: [_ReusedEvents, '*'],
 });
 
 /**
  * @typedef {{
- *   all: SeriesPattern1<Count>,
- *   p2pk65: SeriesPattern1<Count>,
- *   p2pk33: SeriesPattern1<Count>,
- *   p2pkh: SeriesPattern1<Count>,
- *   p2sh: SeriesPattern1<Count>,
- *   p2wpkh: SeriesPattern1<Count>,
- *   p2wsh: SeriesPattern1<Count>,
- *   p2tr: SeriesPattern1<Count>,
- *   p2a: SeriesPattern1<Count>,
- *   balance: RealizedLoss<MarketCap<Count, CountSigned>>,
- * }} Funded
- */
-const _Funded = _s({
-  all: [_i1, '*'],
-  p2pk65: [_i1, 'p2pk65_*'],
-  p2pk33: [_i1, 'p2pk33_*'],
-  p2pkh: [_i1, 'p2pkh_*'],
-  p2sh: [_i1, 'p2sh_*'],
-  p2wpkh: [_i1, 'p2wpkh_*'],
-  p2wsh: [_i1, 'p2wsh_*'],
-  p2tr: [_i1, 'p2tr_*'],
-  p2a: [_i1, 'p2a_*'],
-  balance: [(c, b) => _RealizedLoss(c, b, _MarketCap), '*'],
-});
-
-/**
- * @typedef {{
- *   state: State,
- *   supply: RealizedLoss<Supply0sats>,
- *   utxoCount: RealizedLoss<MarketCap<Count, CountSigned>>,
- *   transferVolume: RealizedLoss<OpReturnValue>,
- *   realizedCap: RealizedCap,
- *   realizedProfit: RealizedLoss<CoinblocksDestroyed<?Dollars>>,
- *   realizedLoss: RealizedLoss<CoinblocksDestroyed<?Dollars>>,
- *   funded: Funded,
- *   empty: AddressesEmpty<Count>,
+ *   funded: Funded<Count, CountSigned>,
+ *   empty: SeriesPattern1<Count>,
+ *   total: SeriesPattern1<Count>,
+ *   new: New,
  *   activity: AddressesActivity,
- *   total: AddressesEmpty<Count>,
- *   new: AvgBalance<NewAll>,
- *   reused: Respent,
+ *   avgBalance: AvgBalance,
+ *   reused: Reused,
  *   respent: Respent,
  *   exposed: Exposed,
- *   delta: AvgBalance<DeltaAll<CountSigned>>,
- *   avgBalance: AvgBalance<AvgAmount>,
- * }} Addresses
+ * }} P2pk
  */
-const _Addresses = _s({
-  state: [_State, '*'],
-  supply: [(c, b) => _RealizedLoss(c, b, _Supply0sats), 'supply'],
-  utxoCount: [(c, b) => _RealizedLoss(c, b, _MarketCap), 'utxo_count'],
-  transferVolume: [(c, b) => _RealizedLoss(c, b, _OpReturnValue), 'transfer_volume'],
-  realizedCap: [_RealizedCap, 'realized_cap'],
-  realizedProfit: [(c, b) => _RealizedLoss(c, b, _CoinblocksDestroyed), 'realized_profit'],
-  realizedLoss: [(c, b) => _RealizedLoss(c, b, _CoinblocksDestroyed), 'realized_loss'],
-  funded: [_Funded, '*_count'],
-  empty: [_AddressesEmpty, 'empty_*_count'],
-  activity: [_AddressesActivity, 'addrs'],
-  total: [_AddressesEmpty, 'total_*_count'],
-  new: [(c, b) => _AvgBalance(c, b, _NewAll), 'new_*_count'],
-  reused: [_Respent, 'reused_*'],
-  respent: [_Respent, 'respent_*'],
-  exposed: [_Exposed, 'exposed_*'],
-  delta: [(c, b) => _AvgBalance(c, b, _DeltaAll), '*_count'],
-  avgBalance: [(c, b) => _AvgBalance(c, b, _AvgAmount), 'avg_*_amount'],
+const _P2pk = _s({
+  funded: [_Funded, '*_address_count'],
+  empty: [_i1, '*_empty_address_count'],
+  total: [_i1, '*_total_address_count'],
+  new: [_New, '*_new_address_count'],
+  activity: [_AddressesActivity, '*'],
+  avgBalance: [_AvgBalance, '*_avg_address_balance'],
+  reused: [_Reused, '*'],
+  respent: [_Respent, '*'],
+  exposed: [_Exposed, '*'],
 });
 
 /**
  * @typedef {{
- *   unspentCount: MarketCap<Count, CountSigned>,
+ *   p2pk: P2pk,
+ *   p2pkh: P2pk,
+ *   p2sh: P2pk,
+ *   p2wpkh: P2pk,
+ *   p2wsh: P2pk,
+ *   p2tr: P2pk,
+ * }} AddressesTypes
+ */
+const _AddressesTypes = _s({
+  p2pk: [_P2pk, '*'],
+  p2pkh: [_P2pk, 'p2pkh'],
+  p2sh: [_P2pk, 'p2sh'],
+  p2wpkh: [_P2pk, 'p2wpkh'],
+  p2wsh: [_P2pk, 'p2wsh'],
+  p2tr: [_P2pk, 'p2tr'],
+});
+
+/**
+ * @typedef {{
+ *   unspentCount: Funded<Count, CountSigned>,
  *   spentCount: CoinblocksDestroyed<Count>,
- *   avgAmount: AvgAmount,
+ *   avgAmount: AvgBalance,
  * }} EmptyOutputs
  */
 const _EmptyOutputs = _s({
-  unspentCount: [_MarketCap, '*_utxo_count'],
+  unspentCount: [_Funded, '*_utxo_count'],
   spentCount: [_CoinblocksDestroyed, '*_spent_utxo_count'],
-  avgAmount: [_AvgAmount, '*_avg_utxo_amount'],
+  avgAmount: [_AvgBalance, '*_avg_utxo_amount'],
 });
 
 /**
@@ -5718,12 +5643,12 @@ const _Ranges10yTo12yActivity = _s({
 
 /**
  * @typedef {{
- *   unspentCount: MarketCap<Count, CountSigned>,
+ *   unspentCount: Funded<Count, CountSigned>,
  *   spentCount: CoinblocksDestroyed<Count>,
  * }} RookieOutputs
  */
 const _RookieOutputs = _s({
-  unspentCount: [_MarketCap, '*_utxo_count'],
+  unspentCount: [_Funded, '*_utxo_count'],
   spentCount: [_CoinblocksDestroyed, '*_spent_utxo_count'],
 });
 
@@ -5778,24 +5703,23 @@ const _Holders = (c, b, f0, f1) => _n(c, b, {
 /**
  * @template A
  * @typedef {{
- *   supply: Supply0sats,
+ *   supply: Balances0satsSupply,
  *   outputs: A,
- *   activity: Amounts0satsActivity,
+ *   activity: Balances0satsActivity,
  *   realized: Amounts0satsRealized,
  * }} Amounts0sats
  */
 /** @type {_Make} */
 const _Amounts0sats = (c, b, f0) => _n(c, b, {
-  supply: [_Supply0sats, '*_supply'],
+  supply: [_Balances0satsSupply, '*_supply'],
   outputs: [f0, '*'],
-  activity: [_Amounts0satsActivity, '*_transfer_volume'],
+  activity: [_Balances0satsActivity, '*_transfer_volume'],
   realized: [_Amounts0satsRealized, '*_realized'],
 });
 
 /**
  * @typedef {{
- *   p2pk65: Amounts0sats<EmptyOutputs>,
- *   p2pk33: Amounts0sats<EmptyOutputs>,
+ *   p2pk: Amounts0sats<EmptyOutputs>,
  *   p2pkh: Amounts0sats<EmptyOutputs>,
  *   p2ms: Amounts0sats<EmptyOutputs>,
  *   p2sh: Amounts0sats<EmptyOutputs>,
@@ -5808,8 +5732,7 @@ const _Amounts0sats = (c, b, f0) => _n(c, b, {
  * }} UtxosTypes
  */
 const _UtxosTypes = _s({
-  p2pk65: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2pk65'],
-  p2pk33: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2pk33'],
+  p2pk: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2pk'],
   p2pkh: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2pkh'],
   p2ms: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2ms'],
   p2sh: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2sh'],
@@ -5822,53 +5745,86 @@ const _UtxosTypes = _s({
 });
 
 /**
+ * @template A
  * @typedef {{
- *   _0sats: Amounts0sats<RookieOutputs>,
- *   _1satTo10sats: Amounts0sats<RookieOutputs>,
- *   _10satsTo100sats: Amounts0sats<RookieOutputs>,
- *   _100satsTo1kSats: Amounts0sats<RookieOutputs>,
- *   _1kSatsTo10kSats: Amounts0sats<RookieOutputs>,
- *   _10kSatsTo100kSats: Amounts0sats<RookieOutputs>,
- *   _100kSatsTo1mSats: Amounts0sats<RookieOutputs>,
- *   _1mSatsTo10mSats: Amounts0sats<RookieOutputs>,
- *   _10mSatsTo1btc: Amounts0sats<RookieOutputs>,
- *   _1btcTo10btc: Amounts0sats<RookieOutputs>,
- *   _10btcTo100btc: Amounts0sats<RookieOutputs>,
- *   _100btcTo1kBtc: Amounts0sats<RookieOutputs>,
- *   _1kBtcTo10kBtc: Amounts0sats<RookieOutputs>,
- *   _10kBtcTo100kBtc: Amounts0sats<RookieOutputs>,
- *   over100kBtc: Amounts0sats<RookieOutputs>,
- * }} Amounts
+ *   _0sats: A,
+ *   _1satTo10sats: A,
+ *   _10satsTo100sats: A,
+ *   _100satsTo1kSats: A,
+ *   _1kSatsTo10kSats: A,
+ *   _10kSatsTo100kSats: A,
+ *   _100kSatsTo1mSats: A,
+ *   _1mSatsTo10mSats: A,
+ *   _10mSatsTo1btc: A,
+ *   _1btcTo10btc: A,
+ *   _10btcTo100btc: A,
+ *   _100btcTo1kBtc: A,
+ *   _1kBtcTo10kBtc: A,
+ *   _10kBtcTo100kBtc: A,
+ *   over100kBtc: A,
+ * }} Balances
  */
-const _Amounts = _s({
-  _0sats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_0sats'],
-  _1satTo10sats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_1sat_to_10sats'],
-  _10satsTo100sats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_10sats_to_100sats'],
-  _100satsTo1kSats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_100sats_to_1k_sats'],
-  _1kSatsTo10kSats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_1k_sats_to_10k_sats'],
-  _10kSatsTo100kSats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_10k_sats_to_100k_sats'],
-  _100kSatsTo1mSats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_100k_sats_to_1m_sats'],
-  _1mSatsTo10mSats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_1m_sats_to_10m_sats'],
-  _10mSatsTo1btc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_10m_sats_to_1btc'],
-  _1btcTo10btc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_1btc_to_10btc'],
-  _10btcTo100btc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_10btc_to_100btc'],
-  _100btcTo1kBtc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_100btc_to_1k_btc'],
-  _1kBtcTo10kBtc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_1k_btc_to_10k_btc'],
-  _10kBtcTo100kBtc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_10k_btc_to_100k_btc'],
-  over100kBtc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_over_100k_btc'],
+/** @type {_Make} */
+const _Balances = (c, b, f0) => _n(c, b, {
+  _0sats: [f0, '*_0sats'],
+  _1satTo10sats: [f0, '*_1sat_to_10sats'],
+  _10satsTo100sats: [f0, '*_10sats_to_100sats'],
+  _100satsTo1kSats: [f0, '*_100sats_to_1k_sats'],
+  _1kSatsTo10kSats: [f0, '*_1k_sats_to_10k_sats'],
+  _10kSatsTo100kSats: [f0, '*_10k_sats_to_100k_sats'],
+  _100kSatsTo1mSats: [f0, '*_100k_sats_to_1m_sats'],
+  _1mSatsTo10mSats: [f0, '*_1m_sats_to_10m_sats'],
+  _10mSatsTo1btc: [f0, '*_10m_sats_to_1btc'],
+  _1btcTo10btc: [f0, '*_1btc_to_10btc'],
+  _10btcTo100btc: [f0, '*_10btc_to_100btc'],
+  _100btcTo1kBtc: [f0, '*_100btc_to_1k_btc'],
+  _1kBtcTo10kBtc: [f0, '*_1k_btc_to_10k_btc'],
+  _10kBtcTo100kBtc: [f0, '*_10k_btc_to_100k_btc'],
+  over100kBtc: [f0, '*_over_100k_btc'],
 });
 
 /**
  * @typedef {{
- *   amounts: Amounts,
+ *   funded: Funded<Count, CountSigned>,
+ *   empty: SeriesPattern1<Count>,
+ *   total: SeriesPattern1<Count>,
+ *   new: New,
+ *   activity: AddressesActivity,
+ *   avgBalance: AvgBalance,
+ *   reused: Reused,
+ *   respent: Respent,
+ *   exposed: Exposed,
+ *   types: AddressesTypes,
+ *   balances: Balances<Balances0sats>,
+ *   state: State,
+ * }} Addresses
+ */
+const _Addresses = _s({
+  funded: [_Funded, '*_count'],
+  empty: [_i1, 'empty_*_count'],
+  total: [_i1, 'total_*_count'],
+  new: [_New, 'new_*_count'],
+  activity: [_AddressesActivity, ''],
+  avgBalance: [_AvgBalance, 'avg_*_balance'],
+  reused: [_Reused, ''],
+  respent: [_Respent, ''],
+  exposed: [_Exposed, ''],
+  types: [_AddressesTypes, 'p2pk'],
+  balances: [(c, b) => _Balances(c, b, _Balances0sats), 'balance'],
+  state: [_State, '*'],
+});
+
+/**
+ * @typedef {{
+ *   amounts: Balances<Amounts0sats<RookieOutputs>>,
  *   types: UtxosTypes,
- *   avgAmount: AvgAmount,
+ *   avgAmount: AvgBalance,
  * }} Utxos
  */
 const _Utxos = _s({
-  amounts: [_Amounts, '*'],
+  amounts: [(c, b) => _Balances(c, b, (c, b) => _Amounts0sats(c, b, _RookieOutputs)), '*'],
   types: [_UtxosTypes, 'output'],
-  avgAmount: [_AvgAmount, 'avg_utxo_amount'],
+  avgAmount: [_AvgBalance, 'avg_utxo_amount'],
 });
 
 /**
@@ -6370,8 +6326,7 @@ const _TypesEmpty = _s({
 
 /**
  * @typedef {{
- *   p2pk65: TypesEmpty,
- *   p2pk33: TypesEmpty,
+ *   p2pk: TypesEmpty,
  *   p2pkh: TypesEmpty,
  *   p2ms: TypesEmpty,
  *   p2sh: TypesEmpty,
@@ -6385,8 +6340,7 @@ const _TypesEmpty = _s({
  * }} OutputsTypes
  */
 const _OutputsTypes = _s({
-  p2pk65: [_TypesEmpty, 'p2pk65_*'],
-  p2pk33: [_TypesEmpty, 'p2pk33_*'],
+  p2pk: [_TypesEmpty, 'p2pk_*'],
   p2pkh: [_TypesEmpty, 'p2pkh_*'],
   p2ms: [_TypesEmpty, 'p2ms_*'],
   p2sh: [_TypesEmpty, 'p2sh_*'],
@@ -6420,8 +6374,7 @@ const _Outputs = _s({
 
 /**
  * @typedef {{
- *   p2pk65: TypesEmpty,
- *   p2pk33: TypesEmpty,
+ *   p2pk: TypesEmpty,
  *   p2pkh: TypesEmpty,
  *   p2ms: TypesEmpty,
  *   p2sh: TypesEmpty,
@@ -6434,8 +6387,7 @@ const _Outputs = _s({
  * }} InputsTypes
  */
 const _InputsTypes = _s({
-  p2pk65: [_TypesEmpty, 'p2pk65_*'],
-  p2pk33: [_TypesEmpty, 'p2pk33_*'],
+  p2pk: [_TypesEmpty, 'p2pk_*'],
   p2pkh: [_TypesEmpty, 'p2pkh_*'],
   p2ms: [_TypesEmpty, 'p2ms_*'],
   p2sh: [_TypesEmpty, 'p2sh_*'],
@@ -7392,7 +7344,7 @@ const _SeriesTree = _s({
   market: [_Market, 'price'],
   age: [_Age, 'utxos'],
   utxos: [_Utxos, 'utxos'],
-  addresses: [_Addresses, 'addr'],
+  addresses: [_Addresses, 'address'],
   holders: [(c, b) => _Holders(c, b, (c, b) => _HoldersAll(c, b, _AllSupply), (c, b) => _HoldersAll(c, b, _LthSupply)), 'utxos'],
   entry: [_Entry, 'veteran'],
   supply: [_Supply, 'rate'],
@@ -7765,15 +7717,10 @@ class BitviewClient extends BitviewClientBase {
   });
 
   SPENDABLE_TYPE_NAMES = /** @type {const} */ ({
-    "p2pk65": {
-      "id": "p2pk65",
-      "short": "P2PK65",
-      "long": "Pay to Public Key (65 bytes)"
-    },
-    "p2pk33": {
-      "id": "p2pk33",
-      "short": "P2PK33",
-      "long": "Pay to Public Key (33 bytes)"
+    "p2pk": {
+      "id": "p2pk",
+      "short": "P2PK",
+      "long": "Pay to Public Key"
     },
     "p2pkh": {
       "id": "p2pkh",

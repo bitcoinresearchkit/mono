@@ -1,4 +1,4 @@
-use bitview_cohort::CohortId;
+use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_distribution::{
     families::{CumulativeFiat, Fiat},
@@ -39,37 +39,34 @@ impl RealizedVecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
+        let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let flow_version = version + Version::ONE;
         Ok(Self {
-            cap: Fiat::import(db, cohort, "realized_cap", version, mappings)?,
+            cap: Fiat::import(db, &name("realized_cap"), version, mappings)?,
             profit: CumulativeFiat::import(
                 db,
-                cohort,
-                "realized_profit",
+                &name("realized_profit"),
                 flow_version,
                 mappings,
                 window_starts,
             )?,
             loss: CumulativeFiat::import(
                 db,
-                cohort,
-                "realized_loss",
+                &name("realized_loss"),
                 flow_version,
                 mappings,
                 window_starts,
             )?,
             net_pnl: CumulativeFiat::import(
                 db,
-                cohort,
-                "net_realized_pnl",
+                &name("net_realized_pnl"),
                 flow_version,
                 mappings,
                 window_starts,
             )?,
             value_destroyed: CumulativeFiat::import(
                 db,
-                cohort,
-                "value_destroyed",
+                &name("value_destroyed"),
                 flow_version,
                 mappings,
                 window_starts,

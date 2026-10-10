@@ -1,10 +1,10 @@
 use bitview_cohort::AmountRangeId;
 use bitview_primitives::TypeIndex;
-use brk_types::Cents;
+use brk_types::{Cents, OutputType};
 use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{AddrReceivePreState, AddrReceiveStatus, AddrTypeMetricsState},
+    addr::{AddrReceivePreState, AddrReceiveStatus, MemberState},
     block::Received,
     state::CohortLog,
 };
@@ -17,9 +17,9 @@ pub fn process_received(
     cohorts: &mut CohortLog,
     lookup: &mut AddrTypeLookup<'_>,
     price: Cents,
-    metrics: &mut AddrTypeMetricsState<'_>,
+    output_type: OutputType,
+    mut metrics: Option<&mut MemberState>,
 ) {
-    let output_type = metrics.output_type();
     for (type_index, recv) in received {
         let (addr_data, status) = lookup.get_or_create_for_receive(type_index);
         let pre = AddrReceivePreState::capture(addr_data, output_type);
@@ -48,6 +48,10 @@ pub fn process_received(
             }
         }
 
-        metrics.on_receive_applied(status, addr_data, &pre, recv.output_count);
+        if let Some(metrics) = metrics.as_deref_mut() {
+            metrics.supply += recv.total_value;
+            metrics.outputs += u64::from(recv.output_count);
+            metrics.on_receive_applied(output_type, status, addr_data, &pre, recv.output_count);
+        }
     }
 }

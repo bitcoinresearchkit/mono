@@ -108,12 +108,6 @@ where
         Ok(())
     }
 
-    pub fn reset(&mut self) -> Result<()> {
-        self.last_cumulative = None;
-        self.cumulative.reset()?;
-        Ok(())
-    }
-
     /// The stored running total the views derive from.
     pub fn cumulative_source(&self) -> &CachedSeries<Height, T> {
         &self.cumulative

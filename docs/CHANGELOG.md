@@ -133,6 +133,30 @@ has to be deleted by hand.
   `supply.matured`, `activity.coindays_created` (was `age.coindays_created.<range>`) and `realized.price`; UTXO
   amounts and types `realized.price`; types `outputs.avg_amount`, the mean over every type being `utxos.avg_amount`
   (was `utxos.outputs.avg_amount.all`). Ids are unchanged
+- P2PK is one output type in every type family: `outputs.types.p2pk`, `inputs.types.p2pk`, `utxos.types.p2pk` and
+  `addresses.types.p2pk` count the 33- and 65-byte keys as one type (ids `p2pk_*`; were `p2pk33_*` and `p2pk65_*`):
+  counts and amounts add up, a transaction with both counts once, and shares and averages divide the combined
+  values. The indexer and the address lookups keep both. P2A is no longer an address type: `addresses.types` lists p2pk, p2pkh, p2sh, p2wpkh,
+  p2wsh and p2tr, and the address totals and balance bands leave P2A out (one fixed anyone-can-spend script: its
+  counts were 0 or 1 and its reuse counted every anchor output)
+- Addresses are member-first: the root holds every address type together, `addresses.types.<type>` each type and
+  `addresses.balances.<band>` each balance band (were metric-first: `addresses.funded.<type>`,
+  `addresses.supply.<band>`, ...). A type holds `funded` (with its window `delta`; was `addresses.delta`), `empty`,
+  `total`, `new`, `activity`, `avg_balance`, `reused`, `respent` and `exposed`, reuse events under
+  `events.{outputs, inputs, active}.{count, share}` (were `events.output_to_reused_addr_count`, ...); a band holds
+  `address_count`, `supply`, `outputs.unspent_count`, `activity.transfer_volume` and `realized.{cap, profit, loss}`
+- Address ids spell `address` out and say what they count: `address_count`, `empty_address_count`,
+  `total_address_count`, `new_address_count`, `sending_address_count` (was `sending_addrs`), ...,
+  `avg_address_balance` (was `avg_addr_amount`), `reused_address_supply`, `output_to_reused_address_count`, ...; the
+  funded count's window change is `address_count_delta_24h` (was `addr_count_24h`); balance bands' ids start with
+  `balance_` (`balance_1btc_to_10btc_supply`; were `addrs_`); `address_state`, `funded_address_data` and
+  `extended_empty_address_data` (were `addr_state`, ...)
+- Each address type divides by its own: reused, respent and exposed supply shares and the average balance use the
+  supply its addresses hold (all addresses used circulating supply, which includes outputs without an address),
+  output and input event shares the outputs and inputs of its addresses (all addresses used every output, or every
+  non-coinbase input); `spendable_output_to_reused_addr_share` is gone (a second denominator). Balance bands' supply
+  share divides by the supply all addresses hold (was circulating supply). Active reused and respent counts and shares
+  exist per address type too (were for all addresses only)
 - Entry cohorts sit at `entry.rookie` and `entry.veteran`, like their ids (were `entry.premium` and
   `entry.discount`), and the clients' `ENTRY_NAMES` keys follow. The empty and unknown output-type cohorts' ids say
   `empty_output_` and `unknown_output_` (`empty_output_supply`, `unknown_output_realized_cap`, ...; were
@@ -205,7 +229,7 @@ has to be deleted by hand.
 - Script payload series (`p2pkh_bytes`, `p2tr_bytes`, ...) are lowercase hex strings (were the Rust debug form
   `U8x20([..])`), and `outpoint` values are `{"tx_index": N, "vout": M}` objects (were a `"tx_index: N, vout: M"`
   string; a CSV cell holds the same object); schemas match, so the Rust client decodes them
-- `active_reused_addr_share` and `active_respent_addr_share` take the shape of the other address-event shares: a
+- `active_reused_address_share` and `active_respent_address_share` take the shape of the other address-event shares: a
   share in percent, all time and per window, computed from the per-block counts
   summed over the window. They were a stored per-block percentage with rolling averages of it, where a near-empty
   block weighed as much as a full one: the bare name now holds the all-time share (was the block's), windows are
@@ -353,16 +377,26 @@ has to be deleted by hand.
   `bitview_catalog` `TreeBranch::{source, field_types, field_suffixes}`, `TreeNode::{with_source, with_field_suffixes}`
   and `#[traversable(field_suffixes)]`
 - Members first in the cohort libraries: `bitview_distribution::families` are one-cohort types (`Supply`, `Fiat`,
-  `CumulativeFiat`, `CumulativeValue`, `CumulativeCount`, `UnspentOutputCount`; were `SupplyByCohort`,
-  `SupplyTotal`, `FiatByCohort`, `CumulativeRealizedByCohort`, `CumulativeValueByCohort`, `SpentOutputCount` over a
-  cohort group), `metrics::SupplyBase` is `SupplyChange` (delta and share) and `CohortSupply` (with the stored
+  `CumulativeFiat`, `CumulativeValue`, `CumulativeCount`, `CountWithDeltas`, each taking the cohort's series name;
+  were `SupplyByCohort`, `SupplyTotal`, `FiatByCohort`, `CumulativeRealizedByCohort`, `CumulativeValueByCohort`,
+  `SpentOutputCount` over a cohort group), `metrics::SupplyBase` is `SupplyChange` (delta and share) and `CohortSupply` (with the stored
   total), and `bitview_vecs::CumulativeSource` is one running total. Gone: `bitview_cohort::{CohortGroup,
   cohort_group, CreationCohorts, UtxoGroups}`, `bitview_vecs::{CohortSources, CumulativeCohortSources,
   CumulativeCohortValueSources, DisjointAgeSources}` and `bitview_urpd::AgeBoundsMetrics`. `ByEpoch::try_new` and
   `Class::try_new` are public; `ByEntry` and `EntryPrice` name their members `rookie`/`Rookie` and
   `veteran`/`Veteran` (were `premium` and `discount`). A `Traversable` struct whose only visible field is a
   flattened view is that view, a single-unit leaf included
-- Gone with the tree changes: `bitview_vecs::{ConstantVecs, LazyFiatPerBlockCumulativeWithSumsAndDeltas}`,
+- Analytics type families: `bitview_cohort::{AddressType, AddressTypeId}` are the six address types;
+  `SpendableTypeId::{P2PK65, P2PK33}` are `P2PK`, and `output_type()` gives way to `key()` and `cohort()`;
+  `CohortId::Type` takes a `SpendableTypeId` and `CohortId::OpReturn` is new; `ByType::{from_type, try_new}` are
+  `from_fn` and `try_from_fn` over the new `OutputTypeId`, `type_key` is `OutputTypeId::key`;
+  `CohortContext::Addr` is `Balance`; `bitview_vecs::compute_type_counts` counts per member slot. Outputs' and
+  Inputs' `addr_type_counts` and UTXOs' `type_supply` are gone; `bitview_plugin_addresses::Vecs::import` no longer
+  takes the outputs, inputs or supply, nor its `Dependencies` the per-type supply; `SupplyChange::new` and `CohortSupply::import` take the
+  supply series name
+- Gone with the tree changes: `bitview_vecs::{ConstantVecs, LazyFiatPerBlockCumulativeWithSumsAndDeltas,
+  AmountSources, AmountValueSources, LazyPerBlockCumulativeAverage}`, `PerBlockCumulativeAverage::reset`,
+  `bitview_cohort::WithAddrTypes`,
   `LazyPerBlockCumulativeRolling::from_lazy_source`, `bitview_transforms::BlockCountTarget`,
   `bitview_plugin_blocks::CountVecs` (`blocks.count` is the count itself), the transactions plugin's `volume` struct
   (`volume` is the value, `per_second` its sibling) and the mining rewards' `output_volume`; renamed fields
@@ -450,6 +484,10 @@ has to be deleted by hand.
 #### Series values (recomputed on upgrade)
 
 - Block-to-pool attribution follows mempool's current `pools-v2.json` (a new Foundry USA payout address)
+- The two BIP30-overwritten coinbase outputs leave their P2PK addresses at 91,842 and 91,880, as if never received:
+  each address holds 50 BTC in one output (was 100 BTC in two) and no longer counts as reused, and the address
+  supply, balance bands, realized cap and supply shares follow; no spend, volume or realized profit and loss is
+  recorded
 - The holders' 30-day net realized PnL relatives (`*net_pnl_change_1m_to_mcap`, `*net_pnl_change_1m_to_rcap`) sum
   the whole window (they left out its first block)
 
@@ -549,8 +587,8 @@ has to be deleted by hand.
   so a block's projection reads mostly contiguous memory, and the cohort statistics come from one compact sweep. At
   970,056 blocks coinflow takes 169 s instead of 491, cointime 188 s instead of 494 and bedrock 19 s instead of 75,
   with identical outputs
-- `addresses` runs its block loop alongside `utxos` instead of after it: only the per-type
-  supply shares and average balances it derives afterwards wait for `utxos`. Computing every plugin over
+- `addresses` runs alongside `utxos` instead of after it, reading neither `utxos` nor `outputs`: each address type
+  tracks the supply its addresses hold and the outputs and inputs they move. Computing every plugin over
   an indexed 970,056-block chain takes 1417 s instead of 1543 s and peaks at 9.7 GiB instead of 10.7
 - `addresses` applies each 16-block batch in three steps: blocks are grouped by address in parallel,
   each address type's addresses are split by index into 8 shards and the 64 shards applied in parallel (each to its

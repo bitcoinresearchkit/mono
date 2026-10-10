@@ -3,6 +3,7 @@
 #[macro_use]
 mod macros;
 
+mod address_type;
 mod age;
 mod age_aggregate;
 mod age_range;
@@ -21,8 +22,8 @@ mod spendable_type;
 mod term;
 mod unspendable_type;
 mod utxo_all_and_sth;
-mod with_addr_types;
 
+pub use address_type::*;
 pub use age::Age;
 pub use age_aggregate::{AgeAggregate, AgeAggregateId};
 pub use age_range::*;
@@ -42,6 +43,5 @@ pub use term::Term;
 pub use unspendable_type::*;
 pub use utxo_all_and_sth::*;
 
-pub use with_addr_types::WithAddrTypes;
 mod age_crossings;
 pub use age_crossings::{for_each_age_crossing, for_each_age_cutoff};

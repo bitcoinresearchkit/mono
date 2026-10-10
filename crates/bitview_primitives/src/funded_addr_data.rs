@@ -249,6 +249,16 @@ impl FundedAddrData {
         ps
     }
 
+    /// Forgets a received output that left the set without a spend (a BIP30-overwritten
+    /// coinbase): the address holds as if it never received it.
+    pub fn forget_output(&mut self, amount: Sats, price: Cents) {
+        debug_assert!(self.utxo_count() > 0 && self.balance() >= amount);
+        self.received -= amount;
+        self.funded_txo_count -= 1;
+        self.realized_cap_raw
+            .subtract(CentsSats::from_price_sats(price, amount));
+    }
+
     /// Applies a spent output and returns its exact realized-cap delta.
     pub fn send(&mut self, amount: Sats, previous_price: Cents) -> ErrorResult<CentsSats> {
         if unlikely(self.balance() < amount) {

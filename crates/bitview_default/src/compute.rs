@@ -1,4 +1,4 @@
-use std::{sync::mpsc, thread, time::Duration};
+use std::{thread, time::Duration};
 
 use bitview_plugin::{ComputePlugin, Publication, UpdateContext};
 use bitview_plugin_addresses::{Dependencies as AddressesDependencies, ID as ADDRESSES_ID};
@@ -155,11 +155,8 @@ impl DefaultPlugins {
                 Ok(self.mining.as_ref())
             });
 
-            // Addresses' block loop runs alongside UTXOs: only the shares and average balances it
-            // derives afterwards wait for the per-type supply UTXOs sends once computed.
-            let (type_supply_tx, type_supply_rx) = mpsc::sync_channel(1);
+            // Addresses run alongside UTXOs: they read neither.
             let utxos = scope.spawn(|| -> Result<_> {
-                let type_supply = type_supply_tx;
                 timed(Phase::Compute, UTXOS_ID, || {
                     self.utxos.compute(
                         UtxosDependencies {
@@ -171,7 +168,6 @@ impl DefaultPlugins {
                         context,
                     )
                 })?;
-                let _ = type_supply.send(self.utxos.type_supply());
                 Ok(self.utxos.as_ref())
             });
             let addresses = scope.spawn(|| {
@@ -182,7 +178,6 @@ impl DefaultPlugins {
                             mappings: &self.mappings,
                             input_values: &self.inputs.value,
                             price: &self.price,
-                            type_supply: type_supply_rx,
                         },
                         context,
                     )

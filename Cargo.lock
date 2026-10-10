@@ -628,7 +628,6 @@ dependencies = [
  "bitview_distribution",
  "bitview_plugin",
  "bitview_plugin_indexer",
- "bitview_plugin_inputs",
  "bitview_plugin_mappings",
  "bitview_plugin_outputs",
  "bitview_plugin_price",
@@ -1404,7 +1403,6 @@ dependencies = [
 name = "bitview_vecs"
 version = "0.12.2"
 dependencies = [
- "bitview_cohort",
  "bitview_collections",
  "bitview_compute",
  "bitview_primitives",

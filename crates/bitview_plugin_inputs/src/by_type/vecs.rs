@@ -1,9 +1,9 @@
-use bitview_cohort::{ByAddrType, SpendableType};
+use bitview_cohort::SpendableType;
 use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling};
 use brk_types::Height;
-use vecdb::{LazyVec, Rw, StorageMode};
+use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -30,18 +30,4 @@ pub struct InputTypeVecs {
     /// divided by all non-coinbase transactions over the same cumulative or
     /// trailing window.
     pub(crate) tx_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
-}
-
-impl Vecs {
-    /// Cumulative input counts of the address types.
-    pub fn addr_type_counts(&self) -> ByAddrType<LazyVec<Height, Count, Height, Count>> {
-        ByAddrType::from_fn(|id| {
-            self.types
-                .get(id.output_type())
-                .count
-                .cumulative
-                .height
-                .clone()
-        })
-    }
 }

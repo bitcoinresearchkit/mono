@@ -3495,17 +3495,17 @@ class TrueMarketMean(_Node):
     aviv_nupl: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'aviv_nupl')
 
 
-class Active(_Node):
+class PricesActive(_Node):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_price')
     ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_price_ratio')
     mvrv: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mvrv')
 
 
 class CointimePrices(_Node):
-    vaulted: Active = _at(Active, '*')
-    active: Active = _at(Active, 'active')
+    vaulted: PricesActive = _at(PricesActive, '*')
+    active: PricesActive = _at(PricesActive, 'active')
     true_market_mean: TrueMarketMean = _at(TrueMarketMean, 'true_market_mean')
-    cointime: Active = _at(Active, 'cointime')
+    cointime: PricesActive = _at(PricesActive, 'cointime')
 
 
 class Caps(_Node):
@@ -3657,41 +3657,6 @@ class Total(_Node):
     usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'market_cap')
 
 
-class AddressesEmpty(_Node, Generic[A]):
-    all: SeriesPattern1[A] = _at(SeriesPattern1, '*')
-    p2pk65: SeriesPattern1[A] = _at(SeriesPattern1, 'p2pk65_*')
-    p2pk33: SeriesPattern1[A] = _at(SeriesPattern1, 'p2pk33_*')
-    p2pkh: SeriesPattern1[A] = _at(SeriesPattern1, 'p2pkh_*')
-    p2sh: SeriesPattern1[A] = _at(SeriesPattern1, 'p2sh_*')
-    p2wpkh: SeriesPattern1[A] = _at(SeriesPattern1, 'p2wpkh_*')
-    p2wsh: SeriesPattern1[A] = _at(SeriesPattern1, 'p2wsh_*')
-    p2tr: SeriesPattern1[A] = _at(SeriesPattern1, 'p2tr_*')
-    p2a: SeriesPattern1[A] = _at(SeriesPattern1, 'p2a_*')
-
-
-class ExposedCount(_Node):
-    funded: AddressesEmpty[Count] = _at(AddressesEmpty, '*')
-    total: AddressesEmpty[Count] = _at(AddressesEmpty, 'total_*')
-
-
-class RealizedCap(_Node):
-    _0sats: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_0sats_*')
-    _1sat_to_10sats: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_1sat_to_10sats_*')
-    _10sats_to_100sats: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_10sats_to_100sats_*')
-    _100sats_to_1k_sats: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_100sats_to_1k_sats_*')
-    _1k_sats_to_10k_sats: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_1k_sats_to_10k_sats_*')
-    _10k_sats_to_100k_sats: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_10k_sats_to_100k_sats_*')
-    _100k_sats_to_1m_sats: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_100k_sats_to_1m_sats_*')
-    _1m_sats_to_10m_sats: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_1m_sats_to_10m_sats_*')
-    _10m_sats_to_1btc: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_10m_sats_to_1btc_*')
-    _1btc_to_10btc: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_1btc_to_10btc_*')
-    _10btc_to_100btc: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_10btc_to_100btc_*')
-    _100btc_to_1k_btc: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_100btc_to_1k_btc_*')
-    _1k_btc_to_10k_btc: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_1k_btc_to_10k_btc_*')
-    _10k_btc_to_100k_btc: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_10k_btc_to_100k_btc_*')
-    over_100k_btc: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'addrs_over_100k_btc_*')
-
-
 class State(_Node):
     p2a: SeriesPattern26[AddrState] = _at(SeriesPattern26, '*_state')
     p2pk33: SeriesPattern28[AddrState] = _at(SeriesPattern28, '*_state')
@@ -3705,13 +3670,39 @@ class State(_Node):
     extended_empty: SeriesPattern37[EmptyAddrData] = _at(SeriesPattern37, 'extended_empty_*_data')
 
 
+class ExposedCount(_Node):
+    funded: SeriesPattern1[Count] = _at(SeriesPattern1, '*_exposed_address_count')
+    total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_exposed_address_count')
+
+
+class RespentCount(_Node):
+    funded: SeriesPattern1[Count] = _at(SeriesPattern1, '*_respent_address_count')
+    total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_respent_address_count')
+
+
+class ExposedSupply(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
+
+
+class Exposed(_Node):
+    count: ExposedCount = _at(ExposedCount, '*')
+    supply: ExposedSupply = _at(ExposedSupply, '*_exposed_address_supply')
+
+
+class ReusedCount(_Node):
+    funded: SeriesPattern1[Count] = _at(SeriesPattern1, '*_reused_address_count')
+    total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_reused_address_count')
+
+
 class Classes2009Unrealized(_Node):
     profit: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_unrealized_profit')
     loss: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_unrealized_loss')
     net_pnl: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_net_unrealized_pnl')
 
 
-class AllRate(_Node):
+class DeltaRate(_Node):
     _24h: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_24h_rate')
     _1w: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1w_rate')
     _1m: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1m_rate')
@@ -3937,19 +3928,19 @@ class TransactionsSize(_Node):
     weight: SizeWeight = _at(SizeWeight, '*_weight')
 
 
-class AvgAmount(_Node):
+class AvgBalance(_Node):
     btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
     usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
 
 
 class CointimeSupply(_Node):
-    vaulted: AvgAmount = _at(AvgAmount, 'vaulted_*')
-    hodled_or_lost: AvgAmount = _at(AvgAmount, 'hodled_or_lost_*')
-    active: AvgAmount = _at(AvgAmount, 'active_*')
+    vaulted: AvgBalance = _at(AvgBalance, 'vaulted_*')
+    hodled_or_lost: AvgBalance = _at(AvgBalance, 'hodled_or_lost_*')
+    active: AvgBalance = _at(AvgBalance, 'active_*')
 
 
 class Immobile(_Node):
-    supply: AvgAmount = _at(AvgAmount, '*')
+    supply: AvgBalance = _at(AvgBalance, '*')
 
 
 class CoinflowCohortsAll(_Node):
@@ -3970,33 +3961,15 @@ class CointimeCohortsAll(_Node):
     dormant: Immobile = _at(Immobile, '*_dormant_supply')
 
 
-class ExposedSupply(_Node):
-    all: AvgAmount = _at(AvgAmount, '*')
-    p2pk65: AvgAmount = _at(AvgAmount, 'p2pk65_*')
-    p2pk33: AvgAmount = _at(AvgAmount, 'p2pk33_*')
-    p2pkh: AvgAmount = _at(AvgAmount, 'p2pkh_*')
-    p2sh: AvgAmount = _at(AvgAmount, 'p2sh_*')
-    p2wpkh: AvgAmount = _at(AvgAmount, 'p2wpkh_*')
-    p2wsh: AvgAmount = _at(AvgAmount, 'p2wsh_*')
-    p2tr: AvgAmount = _at(AvgAmount, 'p2tr_*')
-    p2a: AvgAmount = _at(AvgAmount, 'p2a_*')
-    share: AddressesEmpty[Optional[Percent]] = _at(AddressesEmpty, '*_share')
-
-
-class Exposed(_Node):
-    count: ExposedCount = _at(ExposedCount, '*_count')
-    supply: ExposedSupply = _at(ExposedSupply, '*_supply')
-
-
 class Sum(_Node):
-    _24h: AvgAmount = _at(AvgAmount, '*_24h')
-    _1w: AvgAmount = _at(AvgAmount, '*_1w')
-    _1m: AvgAmount = _at(AvgAmount, '*_1m')
-    _1y: AvgAmount = _at(AvgAmount, '*_1y')
+    _24h: AvgBalance = _at(AvgBalance, '*_24h')
+    _1w: AvgBalance = _at(AvgBalance, '*_1w')
+    _1m: AvgBalance = _at(AvgBalance, '*_1m')
+    _1y: AvgBalance = _at(AvgBalance, '*_1y')
 
 
 class AaopoolRewards(_Node):
-    cumulative: AvgAmount = _at(AvgAmount, '*_cumulative')
+    cumulative: AvgBalance = _at(AvgBalance, '*_cumulative')
     sum: Sum = _at(Sum, '*_sum')
 
 
@@ -4007,24 +3980,24 @@ class Block(_Node):
 
 class InscriptionFees(_Node):
     block: Block = _at(Block, '*_fees')
-    cumulative: AvgAmount = _at(AvgAmount, '*_fees_cumulative')
+    cumulative: AvgBalance = _at(AvgBalance, '*_fees_cumulative')
     sum: Sum = _at(Sum, '*_fees_sum')
     chain_share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_fee_chain_share')
 
 
 class OpReturnValue(_Node):
     block: Block = _at(Block, '*')
-    cumulative: AvgAmount = _at(AvgAmount, '*_cumulative')
+    cumulative: AvgBalance = _at(AvgBalance, '*_cumulative')
     sum: Sum = _at(Sum, '*_sum')
 
 
-class Amounts0satsActivity(_Node):
+class Balances0satsActivity(_Node):
     transfer_volume: OpReturnValue = _at(OpReturnValue, '*')
 
 
 class TransferVolume(_Node):
     block: Block = _at(Block, '*')
-    cumulative: AvgAmount = _at(AvgAmount, '*_cumulative')
+    cumulative: AvgBalance = _at(AvgBalance, '*_cumulative')
     sum: Sum = _at(Sum, '*_sum')
     in_profit: OpReturnValue = _at(OpReturnValue, '*_in_profit')
     in_loss: OpReturnValue = _at(OpReturnValue, '*_in_loss')
@@ -4044,14 +4017,14 @@ class ChainShare(_Node):
 
 class OpReturnFees(_Node):
     block: Block = _at(Block, '*_fees')
-    cumulative: AvgAmount = _at(AvgAmount, '*_fees_cumulative')
+    cumulative: AvgBalance = _at(AvgBalance, '*_fees_cumulative')
     sum: Sum = _at(Sum, '*_fees_sum')
     chain_share: ChainShare = _at(ChainShare, '*_fee_chain_share')
 
 
 class Subsidy(_Node):
     block: Block = _at(Block, '*')
-    cumulative: AvgAmount = _at(AvgAmount, '*_cumulative')
+    cumulative: AvgBalance = _at(AvgBalance, '*_cumulative')
     sum: Sum = _at(Sum, '*_sum')
     share: ChainShare = _at(ChainShare, '*_share')
 
@@ -4078,47 +4051,47 @@ class InputsPerSecond(_Node, Generic[A]):
     _1y: SeriesPattern1[A] = _at(SeriesPattern1, '*_1y')
 
 
-class NewAll(_Node):
+class New(_Node):
     block: SeriesPattern20[Count] = _at(SeriesPattern20, '*')
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_sum')
 
 
-class DeltaAll(_Node, Generic[A]):
+class Delta(_Node, Generic[A]):
     absolute: InputsPerSecond[A] = _at(InputsPerSecond, '*')
-    rate: AllRate = _at(AllRate, '*')
+    rate: DeltaRate = _at(DeltaRate, '*')
 
 
 class LthSupply(_Node):
-    total: AvgAmount = _at(AvgAmount, '*')
-    in_profit: AvgAmount = _at(AvgAmount, '*_in_profit')
-    in_loss: AvgAmount = _at(AvgAmount, '*_in_loss')
-    delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
+    total: AvgBalance = _at(AvgBalance, '*')
+    in_profit: AvgBalance = _at(AvgBalance, '*_in_profit')
+    in_loss: AvgBalance = _at(AvgBalance, '*_in_loss')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
 
 
 class AllSupply(_Node):
     total: Total = _at(Total, 'circulating_*')
-    in_profit: AvgAmount = _at(AvgAmount, '*_in_profit')
-    in_loss: AvgAmount = _at(AvgAmount, '*_in_loss')
-    delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
+    in_profit: AvgBalance = _at(AvgBalance, '*_in_profit')
+    in_loss: AvgBalance = _at(AvgBalance, '*_in_loss')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
 
 
-class Supply0sats(_Node):
-    total: AvgAmount = _at(AvgAmount, '*')
-    delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
+class Balances0satsSupply(_Node):
+    total: AvgBalance = _at(AvgBalance, '*')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
 
 
 class RookieSupply(_Node):
-    total: AvgAmount = _at(AvgAmount, '*')
-    delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
+    total: AvgBalance = _at(AvgBalance, '*')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
-    in_profit: AvgAmount = _at(AvgAmount, '*_in_profit')
-    in_loss: AvgAmount = _at(AvgAmount, '*_in_loss')
+    in_profit: AvgBalance = _at(AvgBalance, '*_in_profit')
+    in_loss: AvgBalance = _at(AvgBalance, '*_in_loss')
 
 
-class MarketCap(_Node, Generic[A, B]):
+class Funded(_Node, Generic[A, B]):
     block: SeriesPattern1[A] = _at(SeriesPattern1, '*')
-    delta: DeltaAll[B] = _at(DeltaAll, '*_delta')
+    delta: Delta[B] = _at(Delta, '*_delta')
 
 
 class Supply(_Node):
@@ -4126,16 +4099,20 @@ class Supply(_Node):
     burned: OpReturnValue = _at(OpReturnValue, 'burned')
     inflation_rate: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, 'inflation_*')
     velocity: Velocity = _at(Velocity, 'velocity')
-    market_cap: MarketCap[Optional[Dollars], Optional[Dollars]] = _at(MarketCap, 'market_cap')
+    market_cap: Funded[Optional[Dollars], Optional[Dollars]] = _at(Funded, 'market_cap')
     market_minus_realized_cap_growth_rate: InputsPerSecond[Optional[Percent]] = _at(InputsPerSecond, 'market_minus_realized_cap_growth_*')
 
 
+class Balances0satsOutputs(_Node):
+    unspent_count: Funded[Count, CountSigned] = _at(Funded, '*')
+
+
 class Ranges10yTo12ySupply(_Node):
-    total: AvgAmount = _at(AvgAmount, '*_supply')
-    delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_supply_delta')
+    total: AvgBalance = _at(AvgBalance, '*_supply')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
-    in_profit: AvgAmount = _at(AvgAmount, '*_supply_in_profit')
-    in_loss: AvgAmount = _at(AvgAmount, '*_supply_in_loss')
+    in_profit: AvgBalance = _at(AvgBalance, '*_supply_in_profit')
+    in_loss: AvgBalance = _at(AvgBalance, '*_supply_in_loss')
     matured: OpReturnValue = _at(OpReturnValue, '*_matured_supply')
 
 
@@ -4363,7 +4340,7 @@ class OpReturnDataBytes(_Node):
 
 class RewardsFees(_Node):
     block: Block = _at(Block, '*')
-    cumulative: AvgAmount = _at(AvgAmount, '*_cumulative')
+    cumulative: AvgBalance = _at(AvgBalance, '*_cumulative')
     sum: Sum = _at(Sum, '*_sum')
     avg: Sum = _at(Sum, '*_avg')
     min: Sum = _at(Sum, '*_min')
@@ -4421,6 +4398,14 @@ class Interval(_Node, Generic[A, B]):
     avg: InputsPerSecond[B] = _at(InputsPerSecond, '*_avg')
 
 
+class AddressesActivity(_Node):
+    reactivated: Interval[Count, Optional[CountFract]] = _at(Interval, '*_reactivated_address_count')
+    sending: Interval[Count, Optional[CountFract]] = _at(Interval, '*_sending_address_count')
+    receiving: Interval[Count, Optional[CountFract]] = _at(Interval, '*_receiving_address_count')
+    bidirectional: Interval[Count, Optional[CountFract]] = _at(Interval, '*_bidirectional_address_count')
+    active: Interval[Count, Optional[CountFract]] = _at(Interval, '*_active_address_count')
+
+
 class CoinblocksDestroyed(_Node, Generic[A]):
     block: SeriesPattern20[A] = _at(SeriesPattern20, '*')
     cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
@@ -4466,7 +4451,7 @@ class Sopr(_Node):
 
 
 class RookieRealized(_Node):
-    cap: MarketCap[Optional[Dollars], Optional[Dollars]] = _at(MarketCap, '*_realized_cap')
+    cap: Funded[Optional[Dollars], Optional[Dollars]] = _at(Funded, '*_realized_cap')
     price: Ema12d = _at(Ema12d, '*_realized_price')
     profit: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_profit')
     loss: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_loss')
@@ -4491,7 +4476,7 @@ class Ratios(_Node):
 
 
 class AllRealized(_Node):
-    cap: MarketCap[Optional[Dollars], Optional[Dollars]] = _at(MarketCap, '*_realized_cap')
+    cap: Funded[Optional[Dollars], Optional[Dollars]] = _at(Funded, '*_realized_cap')
     price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_realized_price')
     capitalized_price: Ema12d = _at(Ema12d, '*_capitalized_price')
     profit: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_profit')
@@ -4511,97 +4496,74 @@ class AllActivity(_Node):
     coinyears_destroyed: SeriesPattern1[Optional[CoinYears]] = _at(SeriesPattern1, '*_coinyears_destroyed')
 
 
-class AvgBalance(_Node, Generic[A]):
-    all: A = _at(0, '*')
-    p2pk65: A = _at(0, 'p2pk65_*')
-    p2pk33: A = _at(0, 'p2pk33_*')
-    p2pkh: A = _at(0, 'p2pkh_*')
-    p2sh: A = _at(0, 'p2sh_*')
-    p2wpkh: A = _at(0, 'p2wpkh_*')
-    p2wsh: A = _at(0, 'p2wsh_*')
-    p2tr: A = _at(0, 'p2tr_*')
-    p2a: A = _at(0, 'p2a_*')
+class Balances0satsRealized(_Node):
+    cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cap')
+    profit: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_profit')
+    loss: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_loss')
 
 
-class Events(_Node):
-    output_to_reused_addr_count: AvgBalance[CoinblocksDestroyed[Count]] = _at((AvgBalance, CoinblocksDestroyed), 'output_to_*_count')
-    output_to_reused_addr_share: AvgBalance[ChainShare] = _at((AvgBalance, ChainShare), 'output_to_*_share')
-    spendable_output_to_reused_addr_share: ChainShare = _at(ChainShare, 'spendable_output_to_*_share')
-    input_from_reused_addr_count: AvgBalance[CoinblocksDestroyed[Count]] = _at((AvgBalance, CoinblocksDestroyed), 'input_from_*_count')
-    input_from_reused_addr_share: AvgBalance[ChainShare] = _at((AvgBalance, ChainShare), 'input_from_*_share')
-    active_reused_addr_count: Interval[Count, Optional[CountFract]] = _at(Interval, 'active_*_count')
-    active_reused_addr_share: ChainShare = _at(ChainShare, 'active_*_share')
+class Balances0sats(_Node):
+    address_count: Funded[Count, CountSigned] = _at(Funded, '*_address_count')
+    supply: Balances0satsSupply = _at(Balances0satsSupply, '*_supply')
+    outputs: Balances0satsOutputs = _at(Balances0satsOutputs, '*_utxo_count')
+    activity: Balances0satsActivity = _at(Balances0satsActivity, '*_transfer_volume')
+    realized: Balances0satsRealized = _at(Balances0satsRealized, '*_realized')
+
+
+class EventsActive(_Node, Generic[A]):
+    count: A = _at(0, '*_count')
+    share: ChainShare = _at(ChainShare, '*_share')
+
+
+class RespentEvents(_Node):
+    outputs: EventsActive[CoinblocksDestroyed[Count]] = _at((EventsActive, CoinblocksDestroyed), '*_output_to_respent_address')
+    inputs: EventsActive[CoinblocksDestroyed[Count]] = _at((EventsActive, CoinblocksDestroyed), '*_input_from_respent_address')
+    active: EventsActive[Interval[Count, Optional[CountFract]]] = _at((EventsActive, Interval), '*_active_respent_address')
 
 
 class Respent(_Node):
-    count: ExposedCount = _at(ExposedCount, '*_count')
-    events: Events = _at(Events, '*')
-    supply: ExposedSupply = _at(ExposedSupply, '*_supply')
+    count: RespentCount = _at(RespentCount, '*')
+    supply: ExposedSupply = _at(ExposedSupply, '*_respent_address_supply')
+    events: RespentEvents = _at(RespentEvents, '*')
 
 
-class AddressesActivity(_Node):
-    reactivated: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'reactivated_*')
-    sending: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'sending_*')
-    receiving: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'receiving_*')
-    bidirectional: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'bidirectional_*')
-    active: AvgBalance[Interval[Count, Optional[CountFract]]] = _at((AvgBalance, Interval), 'active_*')
+class ReusedEvents(_Node):
+    outputs: EventsActive[CoinblocksDestroyed[Count]] = _at((EventsActive, CoinblocksDestroyed), '*_output_to_reused_address')
+    inputs: EventsActive[CoinblocksDestroyed[Count]] = _at((EventsActive, CoinblocksDestroyed), '*_input_from_reused_address')
+    active: EventsActive[Interval[Count, Optional[CountFract]]] = _at((EventsActive, Interval), '*_active_reused_address')
 
 
-class RealizedLoss(_Node, Generic[A]):
-    _0sats: A = _at(0, 'addrs_0sats_*')
-    _1sat_to_10sats: A = _at(0, 'addrs_1sat_to_10sats_*')
-    _10sats_to_100sats: A = _at(0, 'addrs_10sats_to_100sats_*')
-    _100sats_to_1k_sats: A = _at(0, 'addrs_100sats_to_1k_sats_*')
-    _1k_sats_to_10k_sats: A = _at(0, 'addrs_1k_sats_to_10k_sats_*')
-    _10k_sats_to_100k_sats: A = _at(0, 'addrs_10k_sats_to_100k_sats_*')
-    _100k_sats_to_1m_sats: A = _at(0, 'addrs_100k_sats_to_1m_sats_*')
-    _1m_sats_to_10m_sats: A = _at(0, 'addrs_1m_sats_to_10m_sats_*')
-    _10m_sats_to_1btc: A = _at(0, 'addrs_10m_sats_to_1btc_*')
-    _1btc_to_10btc: A = _at(0, 'addrs_1btc_to_10btc_*')
-    _10btc_to_100btc: A = _at(0, 'addrs_10btc_to_100btc_*')
-    _100btc_to_1k_btc: A = _at(0, 'addrs_100btc_to_1k_btc_*')
-    _1k_btc_to_10k_btc: A = _at(0, 'addrs_1k_btc_to_10k_btc_*')
-    _10k_btc_to_100k_btc: A = _at(0, 'addrs_10k_btc_to_100k_btc_*')
-    over_100k_btc: A = _at(0, 'addrs_over_100k_btc_*')
+class Reused(_Node):
+    count: ReusedCount = _at(ReusedCount, '*')
+    supply: ExposedSupply = _at(ExposedSupply, '*_reused_address_supply')
+    events: ReusedEvents = _at(ReusedEvents, '*')
 
 
-class Funded(_Node):
-    all: SeriesPattern1[Count] = _at(SeriesPattern1, '*')
-    p2pk65: SeriesPattern1[Count] = _at(SeriesPattern1, 'p2pk65_*')
-    p2pk33: SeriesPattern1[Count] = _at(SeriesPattern1, 'p2pk33_*')
-    p2pkh: SeriesPattern1[Count] = _at(SeriesPattern1, 'p2pkh_*')
-    p2sh: SeriesPattern1[Count] = _at(SeriesPattern1, 'p2sh_*')
-    p2wpkh: SeriesPattern1[Count] = _at(SeriesPattern1, 'p2wpkh_*')
-    p2wsh: SeriesPattern1[Count] = _at(SeriesPattern1, 'p2wsh_*')
-    p2tr: SeriesPattern1[Count] = _at(SeriesPattern1, 'p2tr_*')
-    p2a: SeriesPattern1[Count] = _at(SeriesPattern1, 'p2a_*')
-    balance: RealizedLoss[MarketCap[Count, CountSigned]] = _at((RealizedLoss, MarketCap), '*')
+class P2pk(_Node):
+    funded: Funded[Count, CountSigned] = _at(Funded, '*_address_count')
+    empty: SeriesPattern1[Count] = _at(SeriesPattern1, '*_empty_address_count')
+    total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_address_count')
+    new: New = _at(New, '*_new_address_count')
+    activity: AddressesActivity = _at(AddressesActivity, '*')
+    avg_balance: AvgBalance = _at(AvgBalance, '*_avg_address_balance')
+    reused: Reused = _at(Reused, '*')
+    respent: Respent = _at(Respent, '*')
+    exposed: Exposed = _at(Exposed, '*')
 
 
-class Addresses(_Node):
-    state: State = _at(State, '*')
-    supply: RealizedLoss[Supply0sats] = _at((RealizedLoss, Supply0sats), 'supply')
-    utxo_count: RealizedLoss[MarketCap[Count, CountSigned]] = _at((RealizedLoss, MarketCap), 'utxo_count')
-    transfer_volume: RealizedLoss[OpReturnValue] = _at((RealizedLoss, OpReturnValue), 'transfer_volume')
-    realized_cap: RealizedCap = _at(RealizedCap, 'realized_cap')
-    realized_profit: RealizedLoss[CoinblocksDestroyed[Optional[Dollars]]] = _at((RealizedLoss, CoinblocksDestroyed), 'realized_profit')
-    realized_loss: RealizedLoss[CoinblocksDestroyed[Optional[Dollars]]] = _at((RealizedLoss, CoinblocksDestroyed), 'realized_loss')
-    funded: Funded = _at(Funded, '*_count')
-    empty: AddressesEmpty[Count] = _at(AddressesEmpty, 'empty_*_count')
-    activity: AddressesActivity = _at(AddressesActivity, 'addrs')
-    total: AddressesEmpty[Count] = _at(AddressesEmpty, 'total_*_count')
-    new: AvgBalance[NewAll] = _at((AvgBalance, NewAll), 'new_*_count')
-    reused: Respent = _at(Respent, 'reused_*')
-    respent: Respent = _at(Respent, 'respent_*')
-    exposed: Exposed = _at(Exposed, 'exposed_*')
-    delta: AvgBalance[DeltaAll[CountSigned]] = _at((AvgBalance, DeltaAll), '*_count')
-    avg_balance: AvgBalance[AvgAmount] = _at((AvgBalance, AvgAmount), 'avg_*_amount')
+class AddressesTypes(_Node):
+    p2pk: P2pk = _at(P2pk, '*')
+    p2pkh: P2pk = _at(P2pk, 'p2pkh')
+    p2sh: P2pk = _at(P2pk, 'p2sh')
+    p2wpkh: P2pk = _at(P2pk, 'p2wpkh')
+    p2wsh: P2pk = _at(P2pk, 'p2wsh')
+    p2tr: P2pk = _at(P2pk, 'p2tr')
 
 
 class EmptyOutputs(_Node):
-    unspent_count: MarketCap[Count, CountSigned] = _at(MarketCap, '*_utxo_count')
+    unspent_count: Funded[Count, CountSigned] = _at(Funded, '*_utxo_count')
     spent_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_spent_utxo_count')
-    avg_amount: AvgAmount = _at(AvgAmount, '*_avg_utxo_amount')
+    avg_amount: AvgBalance = _at(AvgBalance, '*_avg_utxo_amount')
 
 
 class Amounts0satsRealized(_Node):
@@ -4640,7 +4602,7 @@ class Ranges10yTo12yActivity(_Node):
 
 
 class RookieOutputs(_Node):
-    unspent_count: MarketCap[Count, CountSigned] = _at(MarketCap, '*_utxo_count')
+    unspent_count: Funded[Count, CountSigned] = _at(Funded, '*_utxo_count')
     spent_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_spent_utxo_count')
 
 
@@ -4666,15 +4628,14 @@ class Holders(_Node, Generic[A, B]):
 
 
 class Amounts0sats(_Node, Generic[A]):
-    supply: Supply0sats = _at(Supply0sats, '*_supply')
+    supply: Balances0satsSupply = _at(Balances0satsSupply, '*_supply')
     outputs: A = _at(0, '*')
-    activity: Amounts0satsActivity = _at(Amounts0satsActivity, '*_transfer_volume')
+    activity: Balances0satsActivity = _at(Balances0satsActivity, '*_transfer_volume')
     realized: Amounts0satsRealized = _at(Amounts0satsRealized, '*_realized')
 
 
 class UtxosTypes(_Node):
-    p2pk65: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2pk65')
-    p2pk33: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2pk33')
+    p2pk: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2pk')
     p2pkh: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2pkh')
     p2ms: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2ms')
     p2sh: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2sh')
@@ -4686,28 +4647,43 @@ class UtxosTypes(_Node):
     empty: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'empty_*')
 
 
-class Amounts(_Node):
-    _0sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_0sats')
-    _1sat_to_10sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_1sat_to_10sats')
-    _10sats_to_100sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_10sats_to_100sats')
-    _100sats_to_1k_sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_100sats_to_1k_sats')
-    _1k_sats_to_10k_sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_1k_sats_to_10k_sats')
-    _10k_sats_to_100k_sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_10k_sats_to_100k_sats')
-    _100k_sats_to_1m_sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_100k_sats_to_1m_sats')
-    _1m_sats_to_10m_sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_1m_sats_to_10m_sats')
-    _10m_sats_to_1btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_10m_sats_to_1btc')
-    _1btc_to_10btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_1btc_to_10btc')
-    _10btc_to_100btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_10btc_to_100btc')
-    _100btc_to_1k_btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_100btc_to_1k_btc')
-    _1k_btc_to_10k_btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_1k_btc_to_10k_btc')
-    _10k_btc_to_100k_btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_10k_btc_to_100k_btc')
-    over_100k_btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_over_100k_btc')
+class Balances(_Node, Generic[A]):
+    _0sats: A = _at(0, '*_0sats')
+    _1sat_to_10sats: A = _at(0, '*_1sat_to_10sats')
+    _10sats_to_100sats: A = _at(0, '*_10sats_to_100sats')
+    _100sats_to_1k_sats: A = _at(0, '*_100sats_to_1k_sats')
+    _1k_sats_to_10k_sats: A = _at(0, '*_1k_sats_to_10k_sats')
+    _10k_sats_to_100k_sats: A = _at(0, '*_10k_sats_to_100k_sats')
+    _100k_sats_to_1m_sats: A = _at(0, '*_100k_sats_to_1m_sats')
+    _1m_sats_to_10m_sats: A = _at(0, '*_1m_sats_to_10m_sats')
+    _10m_sats_to_1btc: A = _at(0, '*_10m_sats_to_1btc')
+    _1btc_to_10btc: A = _at(0, '*_1btc_to_10btc')
+    _10btc_to_100btc: A = _at(0, '*_10btc_to_100btc')
+    _100btc_to_1k_btc: A = _at(0, '*_100btc_to_1k_btc')
+    _1k_btc_to_10k_btc: A = _at(0, '*_1k_btc_to_10k_btc')
+    _10k_btc_to_100k_btc: A = _at(0, '*_10k_btc_to_100k_btc')
+    over_100k_btc: A = _at(0, '*_over_100k_btc')
+
+
+class Addresses(_Node):
+    funded: Funded[Count, CountSigned] = _at(Funded, '*_count')
+    empty: SeriesPattern1[Count] = _at(SeriesPattern1, 'empty_*_count')
+    total: SeriesPattern1[Count] = _at(SeriesPattern1, 'total_*_count')
+    new: New = _at(New, 'new_*_count')
+    activity: AddressesActivity = _at(AddressesActivity, '')
+    avg_balance: AvgBalance = _at(AvgBalance, 'avg_*_balance')
+    reused: Reused = _at(Reused, '')
+    respent: Respent = _at(Respent, '')
+    exposed: Exposed = _at(Exposed, '')
+    types: AddressesTypes = _at(AddressesTypes, 'p2pk')
+    balances: Balances[Balances0sats] = _at((Balances, Balances0sats), 'balance')
+    state: State = _at(State, '*')
 
 
 class Utxos(_Node):
-    amounts: Amounts = _at(Amounts, '*')
+    amounts: Balances[Amounts0sats[RookieOutputs]] = _at((Balances, (Amounts0sats, RookieOutputs)), '*')
     types: UtxosTypes = _at(UtxosTypes, 'output')
-    avg_amount: AvgAmount = _at(AvgAmount, 'avg_utxo_amount')
+    avg_amount: AvgBalance = _at(AvgBalance, 'avg_utxo_amount')
 
 
 class Rookie(_Node, Generic[A, B]):
@@ -4945,8 +4921,7 @@ class TypesEmpty(_Node):
 
 
 class OutputsTypes(_Node):
-    p2pk65: TypesEmpty = _at(TypesEmpty, 'p2pk65_*')
-    p2pk33: TypesEmpty = _at(TypesEmpty, 'p2pk33_*')
+    p2pk: TypesEmpty = _at(TypesEmpty, 'p2pk_*')
     p2pkh: TypesEmpty = _at(TypesEmpty, 'p2pkh_*')
     p2ms: TypesEmpty = _at(TypesEmpty, 'p2ms_*')
     p2sh: TypesEmpty = _at(TypesEmpty, 'p2sh_*')
@@ -4969,8 +4944,7 @@ class Outputs(_Node):
 
 
 class InputsTypes(_Node):
-    p2pk65: TypesEmpty = _at(TypesEmpty, 'p2pk65_*')
-    p2pk33: TypesEmpty = _at(TypesEmpty, 'p2pk33_*')
+    p2pk: TypesEmpty = _at(TypesEmpty, 'p2pk_*')
     p2pkh: TypesEmpty = _at(TypesEmpty, 'p2pkh_*')
     p2ms: TypesEmpty = _at(TypesEmpty, 'p2ms_*')
     p2sh: TypesEmpty = _at(TypesEmpty, 'p2sh_*')
@@ -5417,7 +5391,7 @@ class SeriesTree(_Node):
     market: Market = _at(Market, 'price')
     age: Age = _at(Age, 'utxos')
     utxos: Utxos = _at(Utxos, 'utxos')
-    addresses: Addresses = _at(Addresses, 'addr')
+    addresses: Addresses = _at(Addresses, 'address')
     holders: Holders[HoldersAll[AllSupply], HoldersAll[LthSupply]] = _at((Holders, (HoldersAll, AllSupply), (HoldersAll, LthSupply)), 'utxos')
     entry: Entry = _at(Entry, 'veteran')
     supply: Supply = _at(Supply, 'rate')
@@ -5788,15 +5762,10 @@ class BitviewClient(BitviewClientBase):
     }
 
     SPENDABLE_TYPE_NAMES = {
-      "p2pk65": {
-        "id": "p2pk65",
-        "short": "P2PK65",
-        "long": "Pay to Public Key (65 bytes)"
-      },
-      "p2pk33": {
-        "id": "p2pk33",
-        "short": "P2PK33",
-        "long": "Pay to Public Key (33 bytes)"
+      "p2pk": {
+        "id": "p2pk",
+        "short": "P2PK",
+        "long": "Pay to Public Key"
       },
       "p2pkh": {
         "id": "p2pkh",

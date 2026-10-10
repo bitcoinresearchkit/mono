@@ -1,4 +1,3 @@
-use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
@@ -22,16 +21,17 @@ pub struct SupplyChange {
 }
 
 impl SupplyChange {
+    /// `name` is the cohort's supply series name (`sth_supply`); the views add `_delta` and
+    /// `_share`.
     pub fn new(
-        context: CohortContext,
-        cohort: CohortId,
+        name: &str,
         version: Version,
         total: &LazySpotValuePerBlock,
         all_supply: &impl ReadableCloneableVec<Height, Sats>,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Self {
-        let share_name = context.metric_name(cohort, "supply_share");
+        let share_name = format!("{name}_share");
         let source = LazyIndexedVec::new(
             &format!("{share_name}_ppm_source"),
             version,
@@ -42,7 +42,7 @@ impl SupplyChange {
         let share =
             LazyPercentPerBlock::from_height_source(&share_name, version, &source, mappings);
         let delta = LazyRollingDeltasAmountFromHeight::new(
-            &context.metric_name(cohort, "supply_delta"),
+            &format!("{name}_delta"),
             version + Version::TWO,
             &total.sats.height,
             window_starts,

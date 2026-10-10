@@ -5,15 +5,15 @@ use super::CohortId;
 pub enum CohortContext {
     /// UTXO-based cohorts: uses "utxos_" prefix for age/amount cohorts.
     Utxo,
-    /// Address-based cohorts: uses "addrs_" prefix for amount cohorts.
-    Addr,
+    /// Address balance cohorts: uses "balance_" prefix for amount cohorts.
+    Balance,
 }
 
 impl CohortContext {
     pub(crate) fn prefix(&self) -> &'static str {
         match self {
             CohortContext::Utxo => "utxos",
-            CohortContext::Addr => "addrs",
+            CohortContext::Balance => "balance",
         }
     }
 

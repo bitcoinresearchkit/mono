@@ -29,7 +29,7 @@ where
     C: NumericValue + JsonSchema + From<f64>,
     B: FixedRatio + From<f64>,
 {
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         source: &impl ReadableCloneableVec<Height, S>,

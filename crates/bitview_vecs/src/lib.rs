@@ -3,12 +3,11 @@
 //! Storage and cache primitives come from vecdb; range algorithms come from
 //! bitview_compute and scalar operations from bitview_transforms. This crate
 //! owns metric layout, source caches, and view composition, using shapes from
-//! bitview_collections and bitview_cohort. Application composition supplies the
+//! bitview_collections. Application composition supplies the
 //! shared cache budget and owns its invalidation lifecycle.
 #![allow(clippy::type_complexity)]
 
 mod block;
-mod cohort;
 mod fiat;
 mod percent;
 mod ratio;
@@ -20,7 +19,6 @@ mod value;
 mod views;
 
 pub use block::*;
-pub use cohort::*;
 pub use fiat::*;
 pub use percent::*;
 pub use ratio::*;

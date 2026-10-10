@@ -47,7 +47,7 @@ pub struct AddrStateVecs<M: StorageMode = Rw> {
 impl AddrStateVecs {
     pub fn import(db: &Database, version: Version) -> Result<Self> {
         let primary = || {
-            ImportOptions::new(db, "addr_state", version)
+            ImportOptions::new(db, "address_state", version)
                 .with_saved_stamped_changes(SAVED_CHECKPOINTS)
         };
         let sidecar = |name, version| {
@@ -64,10 +64,13 @@ impl AddrStateVecs {
             p2wpkh: MutableVec::import_with(primary())?,
             p2wsh: MutableVec::import_with(primary())?,
             funded: OverflowVec::import_with(sidecar(
-                "funded_addr_data",
+                "funded_address_data",
                 version + FUNDED_DATA_VERSION,
             ))?,
-            extended_empty: OverflowVec::import_with(sidecar("extended_empty_addr_data", version))?,
+            extended_empty: OverflowVec::import_with(sidecar(
+                "extended_empty_address_data",
+                version,
+            ))?,
         })
     }
 

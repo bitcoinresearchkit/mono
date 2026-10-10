@@ -1,12 +1,14 @@
 # Addresses
 
-Owns address records, funded/empty counts, activity, reuse/exposure, and balance
-cohorts (supply, output counts, transfer volume, realized cap and profit/loss).
-Its complete `ComputePlugin::compute_state()` resumes or rolls back its own database
-and state. It reads completed output-type supply for address balance averages and ratios;
-global supply comes from UTXO Set. Average UTXO value belongs to UTXOs.
-Balance cohorts expose total realized cap without cap change/growth.
+Owns address records and the address metrics, members first: every address type together
+at the root, each type under `types` (P2PK one type; P2A, one fixed script, is not an
+address type), each balance band under `balances`. A member holds funded, empty, total and
+new counts, activity, the average balance, reuse, respending and exposure; a band holds its
+address count, supply, unspent outputs, transfer volume and realized cap and profit/loss.
+Each member also tracks the supply its addresses hold and the outputs and inputs they move,
+its shares' and average balance's denominators: the plugin reads the indexer, mappings,
+input values and prices, no other plugin's metrics.
+Its complete `ComputePlugin::compute_state()` resumes or rolls back its own database and
+state.
 
 This plugin stores its records and scalar checkpoints in `addresses`.
-Existing address metrics rebuild from indexed sources when upgrading from the
-combined Size plugin. Public series names stay the same.

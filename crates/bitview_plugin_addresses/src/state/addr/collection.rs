@@ -1,9 +1,8 @@
-use bitview_cohort::{AmountRange, AmountRangeId};
-use bitview_primitives::Count;
+use bitview_cohort::AmountRange;
 use brk_types::{Cents, Height};
 
 use super::AddrCohortState;
-use crate::{addr::FundedAddrCountsVecs, metrics::BalanceMetrics};
+use crate::balance::BalanceVecs;
 
 pub struct AddrStates {
     pub amount_range: AmountRange<AddrCohortState>,
@@ -16,38 +15,19 @@ impl AddrStates {
         }
     }
 
-    pub fn restore(
-        &mut self,
-        metrics: &BalanceMetrics,
-        funded: &FundedAddrCountsVecs,
-        height: Height,
-    ) -> Option<()> {
+    /// The bands' states at the end of the block before `height`.
+    pub fn restore(&mut self, balances: &AmountRange<BalanceVecs>, height: Height) -> Option<()> {
         let previous_height = height.decremented()?;
-
-        let supply = metrics.supply_source.checkpoint(previous_height)?;
-        let output_count = metrics.utxo_count.checkpoint(previous_height)?;
-        let addr_count = funded.balance.checkpoint(previous_height)?;
-
-        for amount in AmountRangeId::ALL {
-            let state = amount.select_mut(&mut self.amount_range);
-            state.inner.supply.value = *amount.select(&supply);
-            state.inner.supply.utxo_count = u64::from(*amount.select(&output_count));
-            state.addr_count = u64::from(*amount.select(&addr_count));
+        for (state, band) in self.amount_range.iter_mut().zip(balances.iter()) {
+            band.restore(state, previous_height)?;
         }
-
         Some(())
     }
 
-    pub fn push(
-        &self,
-        metrics: &mut BalanceMetrics,
-        funded: &mut FundedAddrCountsVecs,
-        height_price: Cents,
-    ) {
-        metrics.push(&self.amount_range, height_price);
-        funded.push_balance(AmountRange::from_fn(|amount| {
-            Count::from(amount.select(&self.amount_range).addr_count)
-        }));
+    pub fn push(&self, balances: &mut AmountRange<BalanceVecs>, height_price: Cents) {
+        for (band, state) in balances.iter_mut().zip(self.amount_range.iter()) {
+            band.push(state, height_price);
+        }
     }
 
     pub fn reset_block(&mut self) {

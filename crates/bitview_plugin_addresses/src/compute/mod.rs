@@ -4,11 +4,9 @@ mod write;
 pub use block_loop::process_chunk;
 pub use readers::{AddrReaders, Workspace};
 
-use bitview_cohort::AddrTypeId;
 use bitview_distribution::replay::{LiveState, tip_hash};
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use bitview_primitives::Lengths;
-use brk_error::{Error, Result};
+use brk_error::Result;
 use brk_types::Height;
 use vecdb::{AnyVec, Database, ReadableVec};
 
@@ -41,7 +39,7 @@ impl ComputePlugin for Vecs {
             usize::from(deps.indexer.safe_lengths().height)
                 .min(end)
                 .min(len)
-                .min(usize::from(self.addr_state.min_stamped_len()))
+                .min(usize::from(self.state.min_stamped_len()))
                 .min(caps_end)
         });
         let Dependencies {
@@ -49,7 +47,6 @@ impl ComputePlugin for Vecs {
             mappings,
             input_values,
             price,
-            type_supply,
         } = deps;
         let hash = tip_hash(indexer, start);
         let live = live.filter(|s| {
@@ -59,15 +56,13 @@ impl ComputePlugin for Vecs {
         let (mut addrs, mut prices) =
             live.map_or_else(|| (AddrStates::new(), Vec::new()), |s| (s.state, s.prices));
         if !reuse && start > 0 {
-            let current = usize::from(self.addr_state.max_stamped_len()).max(caps_end);
+            let current = usize::from(self.state.max_stamped_len()).max(caps_end);
             if start < current {
                 let _lock = exit.lock();
                 start = self.rollback_state(start)?;
             }
             if start > 0
-                && (addrs
-                    .restore(&self.balances, &self.addrs.funded, Height::from(start))
-                    .is_none()
+                && (addrs.restore(&self.balances, Height::from(start)).is_none()
                     || self.restore_caps(&mut addrs).is_none())
             {
                 start = 0;
@@ -75,9 +70,9 @@ impl ComputePlugin for Vecs {
         }
         if start == 0 {
             let _lock = exit.lock();
-            self.addr_state.reset()?;
+            self.state.reset()?;
             self.caps.reset()?;
-            self.addrs.reset_height()?;
+            self.reset_metrics()?;
             addrs = AddrStates::new();
         }
         prices.truncate(start);
@@ -99,40 +94,12 @@ impl ComputePlugin for Vecs {
                 exit,
             )?;
         }
-        let starting_lengths = Lengths {
-            height: Height::from(start),
-            ..Default::default()
-        };
-        // Derive address metrics from completed per-type sources.
-        let type_supply = type_supply
-            .recv()
-            .map_err(|_| Error::Internal("utxos sent no type supply"))?;
-        let type_supply_sats = AddrTypeId::series(|id, _| id.select(&type_supply));
-        self.addrs
-            .reused
-            .compute_rest(&starting_lengths, &type_supply_sats, exit)?;
-        self.addrs
-            .respent
-            .compute_rest(&starting_lengths, &type_supply_sats, exit)?;
-        self.addrs
-            .exposed
-            .compute_rest(&starting_lengths, &type_supply_sats, exit)?;
-
-        let type_funded_addr_counts =
-            AddrTypeId::series(|id, _| &id.select(&self.addrs.funded.counts.by_addr_type).height);
-        self.addrs.avg_balance.compute(
-            &type_supply_sats,
-            &type_funded_addr_counts,
-            starting_lengths.height,
-            exit,
-        )?;
-
-        self.addrs.total.compute(
-            starting_lengths.height,
-            &self.addrs.funded.counts,
-            &self.addrs.empty,
-            exit,
-        )?;
+        // Derive the rest from the members' completed series.
+        let from = Height::from(start);
+        self.all.compute(from, exit)?;
+        for member in self.types.iter_mut() {
+            member.compute(from, exit)?;
+        }
 
         self.live = Some(LiveState {
             end,

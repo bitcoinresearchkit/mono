@@ -1,11 +1,12 @@
 use std::ops::{ControlFlow, Range};
 
-use bitview_cohort::ByAddrType;
+use bitview_cohort::{AddressTypeId, ByAddrType};
 use bitview_distribution::readers::{BatchColumns, BlockBounds, index_range};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_plugin_outputs::overwritten_output;
 use bitview_primitives::{FundedAddrData, TypeIndex};
-use brk_error::Result;
+use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
 use rayon::prelude::*;
@@ -18,12 +19,21 @@ use crate::{
     Vecs,
     addr::{AddrMetricsState, SHARDS, SourcedAddrData},
     block::{
-        AddrTypeLookup, Received, TransferAddressCache, TxIndexes, process_inputs, process_outputs,
-        process_received, process_sent,
+        AddrTypeLookup, Received, TransferAddressCache, TxIndexes, process_inputs, process_lost,
+        process_outputs, process_received, process_sent,
     },
     compute::write::write,
     state::{AddrStates, CohortLog},
 };
+
+/// A BIP30-overwritten coinbase output, removed from its P2PK65 address without a spend.
+#[derive(Clone, Copy)]
+struct Lost {
+    height: usize,
+    type_index: TypeIndex,
+    value: Sats,
+    creation_price: Cents,
+}
 
 /// One address type's activity in one block, for one shard of its addresses.
 struct TypeBlock {
@@ -66,8 +76,40 @@ pub fn process_chunk(
         (end_usize + 1).min(height_to_first_tx_index.len()),
     );
 
+    let lost = blocks
+        .clone()
+        .filter_map(|height| {
+            let (origin, supply) = overwritten_output(Height::from(height))?;
+            Some((height, origin, supply.value))
+        })
+        .map(|(height, origin, value)| -> Result<Lost> {
+            let vecs = indexer.vecs();
+            let coinbase = vecs
+                .transactions
+                .first_tx_index
+                .collect_one(origin)
+                .data()?;
+            let output = vecs
+                .transactions
+                .first_txout_index
+                .collect_one(coinbase)
+                .data()?
+                .get();
+            debug_assert_eq!(
+                vecs.outputs.output_type.collect_one(output),
+                Some(OutputType::P2PK65)
+            );
+            Ok(Lost {
+                height,
+                type_index: vecs.outputs.type_index.collect_one(output).data()?,
+                value,
+                creation_price: prices[usize::from(origin)],
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+
     debug!("creating AddrReaders");
-    let vr = AddrReaders::new(&vecs.addr_state);
+    let vr = AddrReaders::new(&vecs.state);
     debug!("AddrReaders created");
 
     let Workspace {
@@ -130,7 +172,7 @@ pub fn process_chunk(
         "recovering addr metrics state from height {}",
         starting_height
     );
-    let mut state = AddrMetricsState::from((&vecs.addrs, starting_height));
+    let mut state = AddrMetricsState::restore(&vecs.types, starting_height);
     debug!("addr metrics state recovered");
 
     // Pre-truncate all stored vecs to starting_height (one-time).
@@ -138,9 +180,8 @@ pub fn process_chunk(
     {
         let _lock = exit.lock();
         let start = starting_height.to_usize();
-        vecs.balances
-            .par_iter_vecs_mut()
-            .chain(vecs.addrs.par_iter_height_mut())
+        vecs.loop_vecs_mut()
+            .into_par_iter()
             .try_for_each(|v| v.any_truncate_if_needed_at(start))?;
     }
 
@@ -184,7 +225,7 @@ pub fn process_chunk(
                 ),
             &first_addr_indexes,
             &vr,
-            &vecs.addr_state,
+            &vecs.state,
         );
 
         // Group each block's outputs and inputs by address, blocks in parallel.
@@ -255,7 +296,8 @@ pub fn process_chunk(
             .into_par_iter()
             .map(|((output_type, addrs), (blocks_type, blocks))| {
                 debug_assert_eq!(output_type, blocks_type);
-                process_shard(output_type, addrs, blocks, block_prices, base)
+                let first = batch.blocks.start;
+                process_shard(output_type, addrs, blocks, first, block_prices, base, &lost)
                     .map(|blocks| (output_type, blocks))
             })
             .collect::<Result<Vec<_>>>()?;
@@ -269,16 +311,19 @@ pub fn process_chunk(
             }
             state.clone_from(base);
             for (output_type, blocks) in &processed {
+                // P2A is not an address type: its addresses update only their own data.
+                let Some(id) = AddressTypeId::from_output_type(*output_type) else {
+                    continue;
+                };
                 let (cohorts, metrics) = &blocks[offset];
                 cohorts.apply_to(&mut addr_states.amount_range);
-                state.add_type_delta(metrics, base, *output_type);
+                state.add_member_delta(metrics, base, id);
             }
-            vecs.addrs.push_height(&state);
-            addr_states.push(
-                &mut vecs.balances,
-                &mut vecs.addrs.funded,
-                block_prices[offset],
-            );
+            vecs.all.push(&state.all());
+            for (member, member_state) in vecs.types.iter_mut().zip(state.0.iter()) {
+                member.push(member_state);
+            }
+            addr_states.push(&mut vecs.balances, block_prices[offset]);
             addr_states.reset_block();
         }
         if cache.len() >= MAX_CACHED_ADDRS {
@@ -290,7 +335,7 @@ pub fn process_chunk(
     drop(vr);
     let last_height = Height::from(next - 1);
     let _lock = exit.lock();
-    cache.flush_into(&mut vecs.addr_state)?;
+    cache.flush_into(&mut vecs.state)?;
     // Every write of the range nearest the tip keeps its changes, so a reorg can roll back across early flushes.
     write(vecs, addr_states, last_height, last_chunk)?;
     if !(last_chunk && next == end_usize) {
@@ -303,46 +348,71 @@ pub fn process_chunk(
 /// Apply one shard of an address type's blocks in order: per block its transaction counts,
 /// receives, then spends. Returns each block's cohort changes and the metrics after it, of
 /// which only this type's values are meaningful.
+#[allow(clippy::too_many_arguments)]
 fn process_shard(
     output_type: OutputType,
     addrs: &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>,
     blocks: Vec<TypeBlock>,
+    first_height: usize,
     prices: &[Cents],
     base: &AddrMetricsState,
+    lost: &[Lost],
 ) -> Result<Vec<(CohortLog, AddrMetricsState)>> {
+    let lost = lost
+        .iter()
+        .filter(|lost| output_type == OutputType::P2PK65 && addrs.contains_key(&lost.type_index))
+        .copied()
+        .collect::<Vec<_>>();
     let mut metrics = base.clone();
     let mut lookup = AddrTypeLookup::new(addrs);
     let mut transfers = TransferAddressCache::default();
     let mut processed = Vec::with_capacity(blocks.len());
     for (
-        TypeBlock {
-            received,
-            spends,
-            sent_txs,
-        },
-        &price,
-    ) in blocks.into_iter().zip(prices)
+        height,
+        (
+            TypeBlock {
+                received,
+                spends,
+                sent_txs,
+            },
+            &price,
+        ),
+    ) in (first_height..).zip(blocks.into_iter().zip(prices))
     {
         metrics.reset_per_block();
         lookup.update_tx_counts(&received, sent_txs);
         transfers.prepare(received.keys().copied());
         let mut cohorts = CohortLog::default();
-        let mut type_metrics = metrics.select(output_type);
+        // P2A is not an address type: its addresses update only their own data.
+        let mut member = metrics.member_mut(output_type);
         process_received(
             received,
             &mut cohorts,
             &mut lookup,
             price,
-            &mut type_metrics,
+            output_type,
+            member.as_deref_mut(),
         );
         process_sent(
             &spends,
             &mut cohorts,
             &mut lookup,
             price,
-            &mut type_metrics,
+            output_type,
+            member.as_deref_mut(),
             &mut transfers,
         )?;
+        for lost in lost.iter().filter(|lost| lost.height == height) {
+            process_lost(
+                lost.type_index,
+                lost.value,
+                lost.creation_price,
+                &mut cohorts,
+                &mut lookup,
+                output_type,
+                member.as_deref_mut(),
+            );
+        }
         processed.push((cohorts, metrics.clone()));
     }
     Ok(processed)
