@@ -29,31 +29,27 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     /// versions; 255 represents every other version. The series includes
     /// coinbase transactions. Use individual raw transaction data to inspect
     /// the original version when this value is 255.
+    #[traversable(rename = "version")]
     pub tx_version: M::Stored<PcoVec<TxIndex, TxVersion>>,
     /// Raw transaction `nLockTime`. Values below 500,000,000 represent block
     /// heights and values at or above it represent Unix timestamps; zero
     /// disables absolute locktime. This does not account for whether input
     /// sequence numbers make the locktime effective.
+    #[traversable(rename = "locktime")]
     pub raw_locktime: M::Stored<PcoVec<TxIndex, RawLockTime>>,
     /// BIP-141 transaction weight in weight units: non-witness bytes count as
-    /// four weight units and witness bytes count as one. The transaction-index
-    /// series gives each transaction's value. Distribution series count every
-    /// transaction equally and include coinbase, either in the represented
-    /// block or the six-block window ending there; time-period indexes take the
-    /// value from the period's final block.
+    /// four weight units and witness bytes count as one.
     pub weight: M::Stored<PcoVec<TxIndex, Weight>>,
-    /// Total serialized size in bytes, including witness data. At `tx_index`,
-    /// this is the byte length of the transaction's consensus serialization. At
-    /// `height`, this is the entire block: its 80-byte header, transaction-count
-    /// CompactSize, and every serialized transaction.
+    /// Serialized size in bytes, including witness data: the byte length of the
+    /// transaction's consensus serialization.
+    #[traversable(rename = "size")]
     pub total_size: M::Stored<PcoVec<TxIndex, Bytes32>>,
-    /// BIP-141 signature-operation cost. At `tx_index`, this is the indexed
-    /// transaction's cost; at `height`, it is the block total including
-    /// coinbase. Legacy scriptPubKey, scriptSig, and P2SH redeem-script sigops
-    /// cost four units; P2WPKH and P2WSH sigops cost one. This is a static count,
-    /// not the number of signatures executed. Tapscript sigops are excluded
-    /// because BIP-342 uses a separate per-input budget. The post-SegWit block
-    /// limit is 80,000 cost units.
+    /// BIP-141 signature-operation cost: legacy scriptPubKey, scriptSig, and
+    /// P2SH redeem-script sigops cost four units; P2WPKH and P2WSH sigops cost
+    /// one. This is a static count, not the number of signatures executed.
+    /// Tapscript sigops are excluded because BIP-342 uses a separate per-input
+    /// budget.
+    #[traversable(rename = "sigop_cost")]
     pub total_sigop_cost: M::Stored<PcoVec<TxIndex, SigOps>>,
     /// Whether at least one input has a sequence number below `0xfffffffe`, the
     /// explicit opt-in RBF signal defined by BIP 125. This is a mechanical
@@ -120,10 +116,10 @@ impl TransactionsVecs {
             first_tx_index = PcoVec::import(db, "first_tx_index", version),
             txid = BytesVec::import(db, "txid", version),
             tx_version = PcoVec::import(db, "tx_version", version),
-            raw_locktime = PcoVec::import(db, "raw_locktime", version),
+            raw_locktime = PcoVec::import(db, "tx_locktime", version),
             weight = PcoVec::import(db, "tx_weight", version),
-            total_size = PcoVec::import(db, "total_size", version),
-            total_sigop_cost = PcoVec::import(db, "total_sigop_cost", version),
+            total_size = PcoVec::import(db, "tx_size", version),
+            total_sigop_cost = PcoVec::import(db, "tx_sigop_cost", version),
             is_explicitly_rbf = PcoVec::import(db, "is_explicitly_rbf", version),
             first_txin_index = PcoVec::import(db, "first_txin_index", version),
             first_txout_index = BytesVec::import(db, "first_txout_index", version),

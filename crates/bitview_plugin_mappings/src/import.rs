@@ -9,7 +9,7 @@ use vecdb::{IndexVec, ReadableCloneableVec};
 
 use crate::{
     STORAGE, Vecs,
-    addr::Vecs as AddrVecs,
+    addr::{OutputVecs, Vecs as AddressesVecs},
     chain_counts::ChainCounts,
     height::Vecs as HeightVecs,
     height_lookup::HeightLookup,
@@ -25,7 +25,8 @@ impl Vecs {
         let db = STORAGE.open_database(context, 1_000_000)?;
         let version = STORAGE.schema_version();
 
-        let addr = AddrVecs::new(version, indexer);
+        let addresses = AddressesVecs::new(version, indexer);
+        let outputs = OutputVecs::new(version, indexer);
         let monotonic = Timestamps::import_monotonic(&db, version)?;
         let chain_counts = ChainCounts::new(version, indexer);
         let monotonic_source = monotonic.read_only_boxed_clone();
@@ -212,7 +213,8 @@ impl Vecs {
             sources,
             tx_heights: HeightLookup::init(&indexer.vecs().transactions.first_tx_index),
             output_heights: HeightLookup::init(&indexer.vecs().outputs.first_txout_index),
-            addr,
+            addresses,
+            outputs,
             height,
             epoch,
             halving,

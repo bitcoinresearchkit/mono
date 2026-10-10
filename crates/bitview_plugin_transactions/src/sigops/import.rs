@@ -17,7 +17,7 @@ impl Vecs {
         Ok(Vecs {
             total: PerBlockCumulativeRolling::import(
                 db,
-                "total_sigop_cost",
+                "block_sigop_cost",
                 version,
                 mappings,
                 window_starts,

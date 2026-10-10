@@ -46,7 +46,7 @@ impl ComputePlugin for Vecs {
         r3?;
         r4?;
 
-        self.sigops.compute(indexer, mappings, exit)?;
+        self.sigop_cost.compute(indexer, mappings, exit)?;
 
         self.fees.compute(
             indexer,

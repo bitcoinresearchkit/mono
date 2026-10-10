@@ -1,3 +1,4 @@
+mod block_rolling;
 mod compute;
 mod count;
 mod dependencies;

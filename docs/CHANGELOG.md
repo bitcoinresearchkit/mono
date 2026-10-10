@@ -12,7 +12,7 @@ A workspace-wide refactor: one job per crate, typed series values, a typed error
 composition model, and many correctness fixes.
 
 **Upgrading:** a node upgrading from v0.12.2 rebuilds once. VecDB headers moved to version 3 (they record the value
-size), so every stored vector resets; the indexer reindexes (indexer version 37) and every plugin recomputes. Nothing
+size), so every stored vector resets; the indexer reindexes (indexer version 38) and every plugin recomputes. Nothing
 has to be deleted by hand.
 
 ### Breaking Changes
@@ -105,6 +105,30 @@ has to be deleted by hand.
 - Blocks: difficulty is `blocks.difficulty.block` (was `.value`); `blocks.count` holds `block`, `cumulative` and the
   window sums directly (were under `total`) and the constant `blocks.count.target.<window>` series are gone;
   `blocks.lookback` (window-start heights, `height_<window>_ago`) leaves the tree
+- Block size, weight and virtual size: `blocks.size.block` (id `block_size`) and `blocks.weight.block` (`block_weight`)
+  sit beside their cumulative and rolling statistics (the per-block values were only the indexer's); virtual size is
+  `blocks.vsize`, ids `block_vsize`, `block_vsize_cumulative`, `block_vsize_median_24h`, ... (were `blocks.vbytes`,
+  `block_vbytes*`). The indexer's own columns lose their wraps: `indexer.blocks.size` (id `block_size`, was
+  `indexer.blocks.size.block` with id `total_size`), `indexer.blocks.weight` (was `.weight.block`),
+  `indexer.blocks.timestamp` (was `.time.timestamp`), and `segwit_tx_count` (was `segwit_txs`)
+- These per-transaction series take the `tx_` stem: `tx_size` at `indexer.transactions.size` (was `total_size`, the same id as
+  the block size), `tx_sigop_cost` at `.sigop_cost` (was `total_sigop_cost`), `tx_locktime` at `.locktime` (was
+  `raw_locktime`), `tx_version` at `.version` (was `.tx_version`) and `tx_fee` (was `fee`). The block sum of sigop cost
+  is `transactions.sigop_cost.{block, cumulative, sum}`, ids `block_sigop_cost`, `block_sigop_cost_cumulative`,
+  `block_sigop_cost_sum_<W>` (were `transactions.sigops.total`, `total_sigop_cost*`)
+- Per-transaction distributions put the statistic first, like the rolling ones: `transactions.size.vsize.median.{block,
+  _6b}` (were `vsize.block.median` and `vsize._6b.median`), ids `tx_vsize_median` and `tx_vsize_median_6b` (was
+  `tx_vsize_6b_median`); the same for `min`, `max` and the percentiles, and for weight, fees (`tx_fee_median`,
+  `tx_fee_median_6b`; were `fee_median`, `fee_6b_median`) and the effective fee rate
+- The indexer's per-block transaction counts take the `<kind>_tx_count` template: `explicitly_rbf_tx_count`,
+  `one_input_tx_count`, `one_output_tx_count`, `fake_pubkey_tx_count`, and per output type `p2pkh_tx_count`, ...,
+  `empty_tx_count` (transactions that create or spend that type, beside `outputs`' `p2pkh_output_tx_count` and
+  `inputs`' `p2pkh_input_tx_count`; were `tx_count_<kind>`). Its version and OP_RETURN counts leave the tree:
+  `transactions.versions` and `op_return.tx_count` publish them. The OP_RETURN protocol per output is
+  `indexer.op_return.protocol`, id `op_return_protocol` (was `kind`)
+- Mappings: address types sit at `mappings.addresses.<type>.{identity, address}` with ids `<type>_address` (were
+  `mappings.addr.<type>.{identity, addr}`, ids `<type>_addr`); the P2MS, empty, unknown and OP_RETURN output indexes
+  at `mappings.outputs.<type>.identity`
 - Supply and indicators: `supply.burned` is a flow with window sums, ids `burned`, `burned_cumulative`,
   `burned_sum_<window>` (were `unspendable_supply`, `unspendable_supply_cumulative`), and `outputs.op_return_value`
   gains window sums. `coindays_destroyed_supply_adjusted`, `coinyears_destroyed_supply_adjusted` and
@@ -373,6 +397,9 @@ has to be deleted by hand.
 
 #### Rust APIs
 
+- `bitview_vecs::TxDerivedDistribution` is statistic-first (`DistributionStats<TxWindows<PerBlock<T>>>`, each statistic
+  with `block` and `_6b`); `PerBlockDistribution` and `LazyDistribution` are removed. Readers of
+  `fees.fee.distribution.block.median` read `fees.fee.distribution.median.block`
 - `Cents::round_to_dollar(i32)` and `CentsCompact::round_to_dollar(i32)` are `round_to_significant(u32)`: significant
   digits of the amount in cents (were whole dollars, then digits); `bitview_urpd::COST_BASIS_PRICE_DIGITS` is a `u32`
   (4, was 5). `bitview_distribution::state::cost_basis::PRICE_INDEX_VERSION` is the price grid's version for a price
@@ -574,7 +601,7 @@ has to be deleted by hand.
   from rounded stored outputs (hash-rate SMAs, stochastic RSI and the price-return volatility chain to seller
   exhaustion)
 - Block weight totals and statistics are exact (they were derived from vbytes × 4, off by up to 3 WU per block);
-  block vbytes are weight / 4 rounded up, like Bitcoin Core (were rounded down)
+  block vsize is weight / 4 rounded up, like Bitcoin Core (was rounded down)
 - True range and its two-week sum are exact cents (the sum drifted as an f32 running sum)
 - Puell Multiple uses daily issuance, as defined: the trailing 24-hour subsidy in USD over its 365-day daily mean
   (the 365-day sum over 365). It was the block's subsidy over its 365-day per-block mean

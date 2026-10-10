@@ -701,6 +701,7 @@ name = "bitview_plugin_blocks"
 version = "0.12.2"
 dependencies = [
  "bitview_collections",
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
@@ -712,6 +713,7 @@ dependencies = [
  "brk_exit",
  "brk_types",
  "derive_more",
+ "schemars",
  "vecdb",
 ]
 

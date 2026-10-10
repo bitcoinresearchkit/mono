@@ -12,18 +12,23 @@ macro_rules! define_counts {
         #[derive(Traversable)]
         pub struct TransactionCountVecs<M: StorageMode = Rw> {
             /// Number of transactions in the block whose signed 32-bit Bitcoin
-            /// transaction version is exactly 1, including coinbase.
+            /// transaction version is exactly 1, including coinbase. Published by the
+            /// transactions plugin.
+            #[traversable(hidden)]
             pub v1: M::Stored<PcoVec<Height, Count16>>,
             /// Number of transactions in the block whose signed 32-bit Bitcoin
             /// transaction version is exactly 2, including coinbase.
+            #[traversable(hidden)]
             pub v2: M::Stored<PcoVec<Height, Count16>>,
             /// Number of transactions in the block whose signed 32-bit Bitcoin
             /// transaction version is exactly 3, including coinbase.
+            #[traversable(hidden)]
             pub v3: M::Stored<PcoVec<Height, Count16>>,
             /// Number of transactions in the block whose signed 32-bit Bitcoin
             /// transaction version is not 1, 2, or 3, including coinbase. This
             /// category combines every other value; use individual raw
             /// transaction data to inspect the original version.
+            #[traversable(hidden)]
             pub other_version: M::Stored<PcoVec<Height, Count16>>,
             /// Number of transactions in the block with at least one input
             /// sequence number below `0xfffffffe`, the explicit opt-in RBF
@@ -53,16 +58,16 @@ macro_rules! define_counts {
                     one_output,
                     $($($count,)?) +
                 ) = parallel_import! {
-                    v1 = PcoVec::import(db, "tx_count_v1", version),
-                    v2 = PcoVec::import(db, "tx_count_v2", version),
-                    v3 = PcoVec::import(db, "tx_count_v3", version),
-                    other_version = PcoVec::import(db, "tx_count_other_version", version),
-                    explicitly_rbf = PcoVec::import(db, "tx_count_explicitly_rbf", version),
-                    one_input = PcoVec::import(db, "tx_count_one_input", version),
-                    one_output = PcoVec::import(db, "tx_count_one_output", version),
+                    v1 = PcoVec::import(db, "v1_tx_count", version),
+                    v2 = PcoVec::import(db, "v2_tx_count", version),
+                    v3 = PcoVec::import(db, "v3_tx_count", version),
+                    other_version = PcoVec::import(db, "other_version_tx_count", version),
+                    explicitly_rbf = PcoVec::import(db, "explicitly_rbf_tx_count", version),
+                    one_input = PcoVec::import(db, "one_input_tx_count", version),
+                    one_output = PcoVec::import(db, "one_output_tx_count", version),
                     $($($count = PcoVec::import(
                         db,
-                        concat!("tx_count_", stringify!($count)),
+                        concat!(stringify!($count), "_tx_count"),
                         version,
                     ),)?) +
                 };

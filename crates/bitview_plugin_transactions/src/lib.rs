@@ -55,7 +55,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// node-specific settings. Modeled rules change after height 863,500 and at
     /// heights 905,000 and 921,000; coinbase is classified nonstandard.
     policy: PolicyVecs<M>,
-    sigops: SigopsVecs<M>,
+    sigop_cost: SigopsVecs<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit
     /// Bitcoin transaction version.
     versions: VersionsVecs<M>,

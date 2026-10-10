@@ -3817,7 +3817,7 @@ class MarketSma(_Node):
     _4y: Ema12d = _at(Ema12d, '*_4y')
 
 
-class Max(_Node):
+class RangeMax(_Node):
     _1w: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_1w')
     _2w: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_2w')
     _1m: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_1m')
@@ -3825,8 +3825,8 @@ class Max(_Node):
 
 
 class Range(_Node):
-    min: Max = _at(Max, '*_min')
-    max: Max = _at(Max, '*_max')
+    min: RangeMax = _at(RangeMax, '*_min')
+    max: RangeMax = _at(RangeMax, '*_max')
     true_range: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_true_range')
     true_range_sum_2w: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_true_range_sum_2w')
     choppiness_index_2w: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_choppiness_index_2w')
@@ -3912,39 +3912,39 @@ class MiningHashrate(_Node):
     value: HashratePrice = _at(HashratePrice, '*_value')
 
 
-class EffectiveFeeRate6b(_Node, Generic[A]):
-    min: SeriesPattern1[A] = _at(SeriesPattern1, '*_min')
-    max: SeriesPattern1[A] = _at(SeriesPattern1, '*_max')
-    pct10: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct10')
-    pct25: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct25')
-    median: SeriesPattern1[A] = _at(SeriesPattern1, '*_median')
-    pct75: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct75')
-    pct90: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct90')
+class EffectiveFeeRateMax(_Node, Generic[A]):
+    block: SeriesPattern1[A] = _at(SeriesPattern1, '*')
+    _6b: SeriesPattern1[A] = _at(SeriesPattern1, '*_6b')
 
 
 class SizeWeight(_Node):
-    block: EffectiveFeeRate6b[Weight] = _at(EffectiveFeeRate6b, '*')
-    _6b: EffectiveFeeRate6b[Weight] = _at(EffectiveFeeRate6b, '*_6b')
+    min: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_min')
+    max: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_max')
+    pct10: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_pct10')
+    pct25: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_pct25')
+    median: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_median')
+    pct75: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_pct75')
+    pct90: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_pct90')
 
 
-class Vsize6b(_Node):
-    min: SeriesPattern20[VSize] = _at(SeriesPattern20, '*_min')
-    max: SeriesPattern20[VSize] = _at(SeriesPattern20, '*_max')
-    pct10: SeriesPattern20[VSize] = _at(SeriesPattern20, '*_pct10')
-    pct25: SeriesPattern20[VSize] = _at(SeriesPattern20, '*_pct25')
-    median: SeriesPattern20[VSize] = _at(SeriesPattern20, '*_median')
-    pct75: SeriesPattern20[VSize] = _at(SeriesPattern20, '*_pct75')
-    pct90: SeriesPattern20[VSize] = _at(SeriesPattern20, '*_pct90')
+class VsizeMax(_Node):
+    block: SeriesPattern20[VSize] = _at(SeriesPattern20, '*')
+    _6b: SeriesPattern20[VSize] = _at(SeriesPattern20, '*_6b')
 
 
 class EffectiveFeeRate(_Node, Generic[A, B]):
     tx_index: SeriesPattern21[A] = _at(SeriesPattern21, '*')
-    block: B = _at(0, '*')
-    _6b: B = _at(0, '*_6b')
+    min: B = _at(0, '*_min')
+    max: B = _at(0, '*_max')
+    pct10: B = _at(0, '*_pct10')
+    pct25: B = _at(0, '*_pct25')
+    median: B = _at(0, '*_median')
+    pct75: B = _at(0, '*_pct75')
+    pct90: B = _at(0, '*_pct90')
 
 
 class TransactionsSize(_Node):
-    vsize: EffectiveFeeRate[VSize, Vsize6b] = _at((EffectiveFeeRate, Vsize6b), '*_vsize')
+    vsize: EffectiveFeeRate[VSize, VsizeMax] = _at((EffectiveFeeRate, VsizeMax), '*_vsize')
     weight: SizeWeight = _at(SizeWeight, '*_weight')
 
 
@@ -4453,31 +4453,18 @@ class DataBytes(_Node):
     chain_share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_chain_share')
 
 
-class BlocksSize(_Node, Generic[A, B, C]):
-    cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
-    sum: InputsPerSecond[A] = _at(InputsPerSecond, '*_sum')
-    avg: InputsPerSecond[B] = _at(InputsPerSecond, '*_avg')
-    min: InputsPerSecond[C] = _at(InputsPerSecond, '*_min')
-    max: InputsPerSecond[C] = _at(InputsPerSecond, '*_max')
-    pct10: InputsPerSecond[C] = _at(InputsPerSecond, '*_pct10')
-    pct25: InputsPerSecond[C] = _at(InputsPerSecond, '*_pct25')
-    median: InputsPerSecond[C] = _at(InputsPerSecond, '*_median')
-    pct75: InputsPerSecond[C] = _at(InputsPerSecond, '*_pct75')
-    pct90: InputsPerSecond[C] = _at(InputsPerSecond, '*_pct90')
-
-
-class Vbytes(_Node, Generic[A, B, C]):
+class BlocksSize(_Node, Generic[A, B, C, D]):
     block: SeriesPattern20[A] = _at(SeriesPattern20, '*')
-    cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
-    sum: InputsPerSecond[A] = _at(InputsPerSecond, '*_sum')
-    avg: InputsPerSecond[B] = _at(InputsPerSecond, '*_avg')
-    min: InputsPerSecond[C] = _at(InputsPerSecond, '*_min')
-    max: InputsPerSecond[C] = _at(InputsPerSecond, '*_max')
-    pct10: InputsPerSecond[C] = _at(InputsPerSecond, '*_pct10')
-    pct25: InputsPerSecond[C] = _at(InputsPerSecond, '*_pct25')
-    median: InputsPerSecond[C] = _at(InputsPerSecond, '*_median')
-    pct75: InputsPerSecond[C] = _at(InputsPerSecond, '*_pct75')
-    pct90: InputsPerSecond[C] = _at(InputsPerSecond, '*_pct90')
+    cumulative: SeriesPattern1[B] = _at(SeriesPattern1, '*_cumulative')
+    sum: InputsPerSecond[B] = _at(InputsPerSecond, '*_sum')
+    avg: InputsPerSecond[C] = _at(InputsPerSecond, '*_avg')
+    min: InputsPerSecond[D] = _at(InputsPerSecond, '*_min')
+    max: InputsPerSecond[D] = _at(InputsPerSecond, '*_max')
+    pct10: InputsPerSecond[D] = _at(InputsPerSecond, '*_pct10')
+    pct25: InputsPerSecond[D] = _at(InputsPerSecond, '*_pct25')
+    median: InputsPerSecond[D] = _at(InputsPerSecond, '*_median')
+    pct75: InputsPerSecond[D] = _at(InputsPerSecond, '*_pct75')
+    pct90: InputsPerSecond[D] = _at(InputsPerSecond, '*_pct90')
 
 
 class Interval(_Node, Generic[A, B]):
@@ -4906,10 +4893,6 @@ class Versions(_Node):
     other: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'other_version_*')
 
 
-class Sigops(_Node):
-    total: CoinblocksDestroyed[SigOps64] = _at(CoinblocksDestroyed, '*')
-
-
 class PolicyCount(_Node):
     nonstandard: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*')
 
@@ -4944,9 +4927,9 @@ class FeesCount(_Node):
 
 class TransactionsFees(_Node):
     count: FeesCount = _at(FeesCount, 'tx_count')
-    fee: EffectiveFeeRate[Sats, EffectiveFeeRate6b[Sats]] = _at((EffectiveFeeRate, EffectiveFeeRate6b), '*')
+    fee: EffectiveFeeRate[Sats, EffectiveFeeRateMax[Sats]] = _at((EffectiveFeeRate, EffectiveFeeRateMax), 'tx_*')
     fee_rate: SeriesPattern21[Optional[FeeRate]] = _at(SeriesPattern21, '*_rate')
-    effective_fee_rate: EffectiveFeeRate[Optional[FeeRate], EffectiveFeeRate6b[Optional[FeeRate]]] = _at((EffectiveFeeRate, EffectiveFeeRate6b), 'effective_*_rate')
+    effective_fee_rate: EffectiveFeeRate[Optional[FeeRate], EffectiveFeeRateMax[Optional[FeeRate]]] = _at((EffectiveFeeRate, EffectiveFeeRateMax), 'effective_*_rate')
     is_cpfp_parent: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_cpfp_parent')
     is_cpfp_child: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_cpfp_child')
 
@@ -4962,14 +4945,14 @@ class TransactionsFeatures(_Node):
 
 
 class Transactions(_Node):
-    count: Vbytes[Count, Optional[CountFract], Count16] = _at(Vbytes, '*_count')
+    count: BlocksSize[Count, Count, Optional[CountFract], Count16] = _at(BlocksSize, '*_count')
     features: TransactionsFeatures = _at(TransactionsFeatures, '*_count')
     size: TransactionsSize = _at(TransactionsSize, '*')
     fees: TransactionsFees = _at(TransactionsFees, 'fee')
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'is')
     policy: Policy = _at(Policy, 'nonstandard')
-    sigops: Sigops = _at(Sigops, 'total_sigop_cost')
+    sigop_cost: CoinblocksDestroyed[SigOps64] = _at(CoinblocksDestroyed, 'block_sigop_cost')
     versions: Versions = _at(Versions, '*_count')
     volume: OpReturnValue = _at(OpReturnValue, '*_volume')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, '*_per_second')
@@ -4998,7 +4981,7 @@ class OutputsTypes(_Node):
 
 class Outputs(_Node):
     spent: Spent = _at(Spent, 'txin_index')
-    count: Vbytes[Count, Optional[CountFract], Count32] = _at(Vbytes, '*_count')
+    count: BlocksSize[Count, Count, Optional[CountFract], Count32] = _at(BlocksSize, '*_count')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, 'outputs_per_second')
     spendable_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'spendable_*_count')
     types: OutputsTypes = _at(OutputsTypes, '*')
@@ -5020,7 +5003,7 @@ class InputsTypes(_Node):
 
 class Inputs(_Node):
     value: SeriesPattern22[Sats] = _at(SeriesPattern22, 'value')
-    count: Vbytes[Count, Optional[CountFract], Count16] = _at(Vbytes, '*_count')
+    count: BlocksSize[Count, Count, Optional[CountFract], Count16] = _at(BlocksSize, '*_count')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, 'inputs_per_second')
     types: InputsTypes = _at(InputsTypes, '*')
 
@@ -5028,9 +5011,9 @@ class Inputs(_Node):
 class Blocks(_Node):
     count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_count')
     interval: Interval[Seconds, Optional[SecondsFract]] = _at(Interval, '*_interval')
-    vbytes: Vbytes[VSize, Optional[VSizeFract], VSize] = _at(Vbytes, '*_vbytes')
-    size: BlocksSize[Bytes, Optional[BytesFract], Bytes32] = _at(BlocksSize, '*_size')
-    weight: BlocksSize[Weight64, Optional[WeightFract], Weight] = _at(BlocksSize, '*_weight')
+    vsize: BlocksSize[VSize, VSize, Optional[VSizeFract], VSize] = _at(BlocksSize, '*_vsize')
+    size: BlocksSize[Bytes32, Bytes, Optional[BytesFract], Bytes32] = _at(BlocksSize, '*_size')
+    weight: BlocksSize[Weight, Weight64, Optional[WeightFract], Weight] = _at(BlocksSize, '*_weight')
     fullness: SeriesPattern20[Optional[Percent]] = _at(SeriesPattern20, '*_fullness')
     difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
     halving: BlocksHalving = _at(BlocksHalving, 'halving')
@@ -5155,79 +5138,83 @@ class MappingsHeight(_Node):
     year10: SeriesPattern20[Year10] = _at(SeriesPattern20, 'year10')
 
 
-class AddrOpReturn(_Node):
+class OutputsOpReturn(_Node):
     identity: SeriesPattern25[OpReturnIndex] = _at(SeriesPattern25, '*')
 
 
-class AddrUnknown(_Node):
+class OutputsUnknown(_Node):
     identity: SeriesPattern35[UnknownOutputIndex] = _at(SeriesPattern35, '*')
 
 
-class AddrEmpty(_Node):
+class OutputsEmpty(_Node):
     identity: SeriesPattern24[EmptyOutputIndex] = _at(SeriesPattern24, '*')
 
 
-class AddrP2ms(_Node):
+class OutputsP2ms(_Node):
     identity: SeriesPattern27[P2MSOutputIndex] = _at(SeriesPattern27, '*')
 
 
-class AddrP2a(_Node):
-    identity: SeriesPattern26[P2AAddrIndex] = _at(SeriesPattern26, '*_index')
-    addr: SeriesPattern26[Addr] = _at(SeriesPattern26, '*')
+class MappingsOutputs(_Node):
+    p2ms: OutputsP2ms = _at(OutputsP2ms, 'p2ms_output_*')
+    empty: OutputsEmpty = _at(OutputsEmpty, 'empty_output_*')
+    unknown: OutputsUnknown = _at(OutputsUnknown, 'unknown_output_*')
+    op_return: OutputsOpReturn = _at(OutputsOpReturn, 'op_return_*')
 
 
-class AddrP2wsh(_Node):
-    identity: SeriesPattern34[P2WSHAddrIndex] = _at(SeriesPattern34, '*_index')
-    addr: SeriesPattern34[Addr] = _at(SeriesPattern34, '*')
+class MappingsAddressesP2a(_Node):
+    identity: SeriesPattern26[P2AAddrIndex] = _at(SeriesPattern26, '*_addr_index')
+    address: SeriesPattern26[Addr] = _at(SeriesPattern26, '*_address')
 
 
-class AddrP2wpkh(_Node):
-    identity: SeriesPattern33[P2WPKHAddrIndex] = _at(SeriesPattern33, '*_index')
-    addr: SeriesPattern33[Addr] = _at(SeriesPattern33, '*')
+class MappingsAddressesP2wsh(_Node):
+    identity: SeriesPattern34[P2WSHAddrIndex] = _at(SeriesPattern34, '*_addr_index')
+    address: SeriesPattern34[Addr] = _at(SeriesPattern34, '*_address')
 
 
-class AddrP2tr(_Node):
-    identity: SeriesPattern32[P2TRAddrIndex] = _at(SeriesPattern32, '*_index')
-    addr: SeriesPattern32[Addr] = _at(SeriesPattern32, '*')
+class MappingsAddressesP2wpkh(_Node):
+    identity: SeriesPattern33[P2WPKHAddrIndex] = _at(SeriesPattern33, '*_addr_index')
+    address: SeriesPattern33[Addr] = _at(SeriesPattern33, '*_address')
 
 
-class AddrP2sh(_Node):
-    identity: SeriesPattern31[P2SHAddrIndex] = _at(SeriesPattern31, '*_index')
-    addr: SeriesPattern31[Addr] = _at(SeriesPattern31, '*')
+class MappingsAddressesP2tr(_Node):
+    identity: SeriesPattern32[P2TRAddrIndex] = _at(SeriesPattern32, '*_addr_index')
+    address: SeriesPattern32[Addr] = _at(SeriesPattern32, '*_address')
 
 
-class AddrP2pkh(_Node):
-    identity: SeriesPattern30[P2PKHAddrIndex] = _at(SeriesPattern30, '*_index')
-    addr: SeriesPattern30[Addr] = _at(SeriesPattern30, '*')
+class MappingsAddressesP2sh(_Node):
+    identity: SeriesPattern31[P2SHAddrIndex] = _at(SeriesPattern31, '*_addr_index')
+    address: SeriesPattern31[Addr] = _at(SeriesPattern31, '*_address')
 
 
-class AddrP2pk65(_Node):
-    identity: SeriesPattern29[P2PK65AddrIndex] = _at(SeriesPattern29, '*_index')
-    addr: SeriesPattern29[Addr] = _at(SeriesPattern29, '*')
+class MappingsAddressesP2pkh(_Node):
+    identity: SeriesPattern30[P2PKHAddrIndex] = _at(SeriesPattern30, '*_addr_index')
+    address: SeriesPattern30[Addr] = _at(SeriesPattern30, '*_address')
 
 
-class AddrP2pk33(_Node):
-    identity: SeriesPattern28[P2PK33AddrIndex] = _at(SeriesPattern28, '*_index')
-    addr: SeriesPattern28[Addr] = _at(SeriesPattern28, '*')
+class MappingsAddressesP2pk65(_Node):
+    identity: SeriesPattern29[P2PK65AddrIndex] = _at(SeriesPattern29, '*_addr_index')
+    address: SeriesPattern29[Addr] = _at(SeriesPattern29, '*_address')
 
 
-class MappingsAddr(_Node):
-    p2pk33: AddrP2pk33 = _at(AddrP2pk33, 'p2pk33_*')
-    p2pk65: AddrP2pk65 = _at(AddrP2pk65, 'p2pk65_*')
-    p2pkh: AddrP2pkh = _at(AddrP2pkh, 'p2pkh_*')
-    p2sh: AddrP2sh = _at(AddrP2sh, 'p2sh_*')
-    p2tr: AddrP2tr = _at(AddrP2tr, 'p2tr_*')
-    p2wpkh: AddrP2wpkh = _at(AddrP2wpkh, 'p2wpkh_*')
-    p2wsh: AddrP2wsh = _at(AddrP2wsh, 'p2wsh_*')
-    p2a: AddrP2a = _at(AddrP2a, 'p2a_*')
-    p2ms: AddrP2ms = _at(AddrP2ms, 'p2ms_output_index')
-    empty: AddrEmpty = _at(AddrEmpty, 'empty_output_index')
-    unknown: AddrUnknown = _at(AddrUnknown, 'unknown_output_index')
-    op_return: AddrOpReturn = _at(AddrOpReturn, 'op_return_index')
+class MappingsAddressesP2pk33(_Node):
+    identity: SeriesPattern28[P2PK33AddrIndex] = _at(SeriesPattern28, '*_addr_index')
+    address: SeriesPattern28[Addr] = _at(SeriesPattern28, '*_address')
+
+
+class MappingsAddresses(_Node):
+    p2pk33: MappingsAddressesP2pk33 = _at(MappingsAddressesP2pk33, '*')
+    p2pk65: MappingsAddressesP2pk65 = _at(MappingsAddressesP2pk65, 'p2pk65')
+    p2pkh: MappingsAddressesP2pkh = _at(MappingsAddressesP2pkh, 'p2pkh')
+    p2sh: MappingsAddressesP2sh = _at(MappingsAddressesP2sh, 'p2sh')
+    p2tr: MappingsAddressesP2tr = _at(MappingsAddressesP2tr, 'p2tr')
+    p2wpkh: MappingsAddressesP2wpkh = _at(MappingsAddressesP2wpkh, 'p2wpkh')
+    p2wsh: MappingsAddressesP2wsh = _at(MappingsAddressesP2wsh, 'p2wsh')
+    p2a: MappingsAddressesP2a = _at(MappingsAddressesP2a, 'p2a')
 
 
 class Mappings(_Node):
-    addr: MappingsAddr = _at(MappingsAddr, 'addr')
+    addresses: MappingsAddresses = _at(MappingsAddresses, 'p2pk33')
+    outputs: MappingsOutputs = _at(MappingsOutputs, 'index')
     height: MappingsHeight = _at(MappingsHeight, 'minute10')
     epoch: MappingsEpoch = _at(MappingsEpoch, 'first_height')
     halving: MappingsHalving = _at(MappingsHalving, 'first_height')
@@ -5251,10 +5238,10 @@ class Mappings(_Node):
 
 
 class IndexerOpReturn(_Node):
-    first_index: SeriesPattern20[OpReturnIndex] = _at(SeriesPattern20, 'first_op_return_*')
-    to_tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, 'tx_*')
-    kind: SeriesPattern25[OpReturnKind] = _at(SeriesPattern25, 'kind')
-    post_op_return_bytes: SeriesPattern25[Bytes32] = _at(SeriesPattern25, 'op_return_post_op_return_bytes')
+    first_index: SeriesPattern20[OpReturnIndex] = _at(SeriesPattern20, 'first_*_index')
+    to_tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, 'tx_index')
+    protocol: SeriesPattern25[OpReturnKind] = _at(SeriesPattern25, '*_protocol')
+    post_op_return_bytes: SeriesPattern25[Bytes32] = _at(SeriesPattern25, '*_post_op_return_bytes')
 
 
 class ScriptsUnknown(_Node):
@@ -5280,55 +5267,55 @@ class Scripts(_Node):
     unknown: ScriptsUnknown = _at(ScriptsUnknown, '*')
 
 
-class AddressesP2a(_Node):
+class IndexerAddressesP2a(_Node):
     first_index: SeriesPattern20[P2AAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
     bytes: SeriesPattern26[P2ABytes] = _at(SeriesPattern26, '*_bytes')
 
 
-class AddressesP2tr(_Node):
+class IndexerAddressesP2tr(_Node):
     first_index: SeriesPattern20[P2TRAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
     bytes: SeriesPattern32[P2TRBytes] = _at(SeriesPattern32, '*_bytes')
 
 
-class AddressesP2wsh(_Node):
+class IndexerAddressesP2wsh(_Node):
     first_index: SeriesPattern20[P2WSHAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
     bytes: SeriesPattern34[P2WSHBytes] = _at(SeriesPattern34, '*_bytes')
 
 
-class AddressesP2wpkh(_Node):
+class IndexerAddressesP2wpkh(_Node):
     first_index: SeriesPattern20[P2WPKHAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
     bytes: SeriesPattern33[P2WPKHBytes] = _at(SeriesPattern33, '*_bytes')
 
 
-class AddressesP2sh(_Node):
+class IndexerAddressesP2sh(_Node):
     first_index: SeriesPattern20[P2SHAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
     bytes: SeriesPattern31[P2SHBytes] = _at(SeriesPattern31, '*_bytes')
 
 
-class AddressesP2pkh(_Node):
+class IndexerAddressesP2pkh(_Node):
     first_index: SeriesPattern20[P2PKHAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
     bytes: SeriesPattern30[P2PKHBytes] = _at(SeriesPattern30, '*_bytes')
 
 
-class AddressesP2pk33(_Node):
+class IndexerAddressesP2pk33(_Node):
     first_index: SeriesPattern20[P2PK33AddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
     bytes: SeriesPattern28[P2PK33Bytes] = _at(SeriesPattern28, '*_bytes')
 
 
-class AddressesP2pk65(_Node):
+class IndexerAddressesP2pk65(_Node):
     first_index: SeriesPattern20[P2PK65AddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
     bytes: SeriesPattern29[P2PK65Bytes] = _at(SeriesPattern29, '*_bytes')
 
 
 class IndexerAddresses(_Node):
-    p2pk65: AddressesP2pk65 = _at(AddressesP2pk65, '*')
-    p2pk33: AddressesP2pk33 = _at(AddressesP2pk33, 'p2pk33')
-    p2pkh: AddressesP2pkh = _at(AddressesP2pkh, 'p2pkh')
-    p2sh: AddressesP2sh = _at(AddressesP2sh, 'p2sh')
-    p2wpkh: AddressesP2wpkh = _at(AddressesP2wpkh, 'p2wpkh')
-    p2wsh: AddressesP2wsh = _at(AddressesP2wsh, 'p2wsh')
-    p2tr: AddressesP2tr = _at(AddressesP2tr, 'p2tr')
-    p2a: AddressesP2a = _at(AddressesP2a, 'p2a')
+    p2pk65: IndexerAddressesP2pk65 = _at(IndexerAddressesP2pk65, '*')
+    p2pk33: IndexerAddressesP2pk33 = _at(IndexerAddressesP2pk33, 'p2pk33')
+    p2pkh: IndexerAddressesP2pkh = _at(IndexerAddressesP2pkh, 'p2pkh')
+    p2sh: IndexerAddressesP2sh = _at(IndexerAddressesP2sh, 'p2sh')
+    p2wpkh: IndexerAddressesP2wpkh = _at(IndexerAddressesP2wpkh, 'p2wpkh')
+    p2wsh: IndexerAddressesP2wsh = _at(IndexerAddressesP2wsh, 'p2wsh')
+    p2tr: IndexerAddressesP2tr = _at(IndexerAddressesP2tr, 'p2tr')
+    p2a: IndexerAddressesP2a = _at(IndexerAddressesP2a, 'p2a')
 
 
 class IndexerOutputs(_Node):
@@ -5348,26 +5335,21 @@ class IndexerInputs(_Node):
 
 
 class FeaturesCount(_Node):
-    v1: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_v1')
-    v2: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_v2')
-    v3: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_v3')
-    other_version: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_other_version')
-    explicitly_rbf: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_explicitly_rbf')
-    one_input: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_one_input')
-    one_output: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_one_output')
-    p2pk: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_p2pk')
-    p2ms: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_p2ms')
-    p2pkh: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_p2pkh')
-    p2sh: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_p2sh')
-    p2wpkh: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_p2wpkh')
-    p2wsh: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_p2wsh')
-    p2tr: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_p2tr')
-    p2a: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_p2a')
-    op_return: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_op_return')
-    empty: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_empty')
-    unknown: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_unknown')
-    fake_pubkey: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_fake_pubkey')
-    fake_scripthash: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_fake_scripthash')
+    explicitly_rbf: SeriesPattern20[Count16] = _at(SeriesPattern20, 'explicitly_rbf_*')
+    one_input: SeriesPattern20[Count16] = _at(SeriesPattern20, 'one_input_*')
+    one_output: SeriesPattern20[Count16] = _at(SeriesPattern20, 'one_output_*')
+    p2pk: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2pk_*')
+    p2ms: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2ms_*')
+    p2pkh: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2pkh_*')
+    p2sh: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2sh_*')
+    p2wpkh: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2wpkh_*')
+    p2wsh: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2wsh_*')
+    p2tr: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2tr_*')
+    p2a: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2a_*')
+    empty: SeriesPattern20[Count16] = _at(SeriesPattern20, 'empty_*')
+    unknown: SeriesPattern20[Count16] = _at(SeriesPattern20, 'unknown_*')
+    fake_pubkey: SeriesPattern20[Count16] = _at(SeriesPattern20, 'fake_pubkey_*')
+    fake_scripthash: SeriesPattern20[Count16] = _at(SeriesPattern20, 'fake_scripthash_*')
 
 
 class IndexerTransactionsFeatures(_Node):
@@ -5398,32 +5380,24 @@ class IndexerTransactionsFeatures(_Node):
 class IndexerTransactions(_Node):
     first_tx_index: SeriesPattern20[TxIndex] = _at(SeriesPattern20, 'first_*_index')
     txid: SeriesPattern21[Txid] = _at(SeriesPattern21, 'txid')
-    tx_version: SeriesPattern21[TxVersion] = _at(SeriesPattern21, '*_version')
-    raw_locktime: SeriesPattern21[RawLockTime] = _at(SeriesPattern21, 'raw_locktime')
+    version: SeriesPattern21[TxVersion] = _at(SeriesPattern21, '*_version')
+    locktime: SeriesPattern21[RawLockTime] = _at(SeriesPattern21, '*_locktime')
     weight: SeriesPattern21[Weight] = _at(SeriesPattern21, '*_weight')
-    total_size: SeriesPattern21[Bytes32] = _at(SeriesPattern21, 'total_size')
-    total_sigop_cost: SeriesPattern21[SigOps] = _at(SeriesPattern21, 'total_sigop_cost')
+    size: SeriesPattern21[Bytes32] = _at(SeriesPattern21, '*_size')
+    sigop_cost: SeriesPattern21[SigOps] = _at(SeriesPattern21, '*_sigop_cost')
     is_explicitly_rbf: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_explicitly_rbf')
     first_txin_index: SeriesPattern21[TxInIndex] = _at(SeriesPattern21, 'first_txin_index')
     first_txout_index: SeriesPattern21[TxOutIndex] = _at(SeriesPattern21, 'first_txout_index')
     features: IndexerTransactionsFeatures = _at(IndexerTransactionsFeatures, 'has')
 
 
-class IndexerBlocksSize(_Node, Generic[A]):
-    block: SeriesPattern20[A] = _at(SeriesPattern20, '*')
-
-
-class Time(_Node):
-    timestamp: SeriesPattern20[Timestamp] = _at(SeriesPattern20, '*')
-
-
 class IndexerBlocks(_Node):
     blockhash: SeriesPattern20[BlockHash] = _at(SeriesPattern20, 'blockhash')
     coinbase_tag: SeriesPattern20[CoinbaseTag] = _at(SeriesPattern20, 'coinbase_tag')
-    time: Time = _at(Time, 'timestamp')
-    size: IndexerBlocksSize[Bytes32] = _at(IndexerBlocksSize, 'total_size')
-    weight: IndexerBlocksSize[Weight] = _at(IndexerBlocksSize, 'block_weight')
-    segwit_txs: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_txs')
+    timestamp: SeriesPattern20[Timestamp] = _at(SeriesPattern20, 'timestamp')
+    size: SeriesPattern20[Bytes32] = _at(SeriesPattern20, 'block_size')
+    weight: SeriesPattern20[Weight] = _at(SeriesPattern20, 'block_weight')
+    segwit_tx_count: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_tx_count')
     segwit_size: SeriesPattern20[Bytes32] = _at(SeriesPattern20, '*_size')
     segwit_weight: SeriesPattern20[Weight] = _at(SeriesPattern20, '*_weight')
 
@@ -5435,7 +5409,7 @@ class Indexer(_Node):
     outputs: IndexerOutputs = _at(IndexerOutputs, 'type')
     addresses: IndexerAddresses = _at(IndexerAddresses, 'p2pk65')
     scripts: Scripts = _at(Scripts, '*')
-    op_return: IndexerOpReturn = _at(IndexerOpReturn, '*')
+    op_return: IndexerOpReturn = _at(IndexerOpReturn, 'op_return')
 
 
 class SeriesTree(_Node):

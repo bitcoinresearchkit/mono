@@ -48,7 +48,7 @@ impl Vecs {
             inscription,
             patterns,
             policy,
-            sigops,
+            sigop_cost: sigops,
             versions,
             volume,
             per_second,

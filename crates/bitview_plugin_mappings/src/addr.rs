@@ -16,6 +16,7 @@ use vecdb::{LazyVec, ReadableCloneableVec};
 
 use self::{address::AddressVecs, identity::IdentityVecs};
 
+/// Address types: each address index and its textual address.
 #[derive(Clone, Traversable)]
 pub struct Vecs {
     /// P2PK-shaped outputs containing a 33-byte key field; the field is not
@@ -36,6 +37,11 @@ pub struct Vecs {
     pub p2wsh: AddressVecs<P2WSHAddrIndex, P2WSHBytes>,
     /// Pay-to-Anchor outputs matching `OP_1 PUSHBYTES_2 0x4e73`.
     pub p2a: AddressVecs<P2AAddrIndex, P2ABytes>,
+}
+
+/// Output types without an address: each index and the transaction that created it.
+#[derive(Clone, Traversable)]
+pub struct OutputVecs {
     /// Bare multisig outputs recognized by Bitcoin script parsing.
     pub p2ms: IdentityVecs<P2MSOutputIndex, TxIndex>,
     /// Outputs with an empty locking script.
@@ -56,8 +62,8 @@ impl Vecs {
                     indexer.vecs().addrs.p2pk33.bytes.read_only_boxed_clone(),
                     |index, _| index,
                 ),
-                addr: LazyVec::init(
-                    "p2pk33_addr",
+                address: LazyVec::init(
+                    "p2pk33_address",
                     version,
                     indexer.vecs().addrs.p2pk33.bytes.read_only_boxed_clone(),
                     |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
@@ -70,8 +76,8 @@ impl Vecs {
                     indexer.vecs().addrs.p2pk65.bytes.read_only_boxed_clone(),
                     |index, _| index,
                 ),
-                addr: LazyVec::init(
-                    "p2pk65_addr",
+                address: LazyVec::init(
+                    "p2pk65_address",
                     version,
                     indexer.vecs().addrs.p2pk65.bytes.read_only_boxed_clone(),
                     |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
@@ -84,8 +90,8 @@ impl Vecs {
                     indexer.vecs().addrs.p2pkh.bytes.read_only_boxed_clone(),
                     |index, _| index,
                 ),
-                addr: LazyVec::init(
-                    "p2pkh_addr",
+                address: LazyVec::init(
+                    "p2pkh_address",
                     version,
                     indexer.vecs().addrs.p2pkh.bytes.read_only_boxed_clone(),
                     |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
@@ -98,8 +104,8 @@ impl Vecs {
                     indexer.vecs().addrs.p2sh.bytes.read_only_boxed_clone(),
                     |index, _| index,
                 ),
-                addr: LazyVec::init(
-                    "p2sh_addr",
+                address: LazyVec::init(
+                    "p2sh_address",
                     version,
                     indexer.vecs().addrs.p2sh.bytes.read_only_boxed_clone(),
                     |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
@@ -112,8 +118,8 @@ impl Vecs {
                     indexer.vecs().addrs.p2tr.bytes.read_only_boxed_clone(),
                     |index, _| index,
                 ),
-                addr: LazyVec::init(
-                    "p2tr_addr",
+                address: LazyVec::init(
+                    "p2tr_address",
                     version,
                     indexer.vecs().addrs.p2tr.bytes.read_only_boxed_clone(),
                     |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
@@ -126,8 +132,8 @@ impl Vecs {
                     indexer.vecs().addrs.p2wpkh.bytes.read_only_boxed_clone(),
                     |index, _| index,
                 ),
-                addr: LazyVec::init(
-                    "p2wpkh_addr",
+                address: LazyVec::init(
+                    "p2wpkh_address",
                     version,
                     indexer.vecs().addrs.p2wpkh.bytes.read_only_boxed_clone(),
                     |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
@@ -140,8 +146,8 @@ impl Vecs {
                     indexer.vecs().addrs.p2wsh.bytes.read_only_boxed_clone(),
                     |index, _| index,
                 ),
-                addr: LazyVec::init(
-                    "p2wsh_addr",
+                address: LazyVec::init(
+                    "p2wsh_address",
                     version,
                     indexer.vecs().addrs.p2wsh.bytes.read_only_boxed_clone(),
                     |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
@@ -154,13 +160,20 @@ impl Vecs {
                     indexer.vecs().addrs.p2a.bytes.read_only_boxed_clone(),
                     |index, _| index,
                 ),
-                addr: LazyVec::init(
-                    "p2a_addr",
+                address: LazyVec::init(
+                    "p2a_address",
                     version,
                     indexer.vecs().addrs.p2a.bytes.read_only_boxed_clone(),
                     |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
                 ),
             },
+        }
+    }
+}
+
+impl OutputVecs {
+    pub fn new(version: Version, indexer: &Indexer) -> Self {
+        Self {
             p2ms: IdentityVecs {
                 identity: LazyVec::init(
                     "p2ms_output_index",

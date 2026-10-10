@@ -3981,9 +3981,9 @@ const _MarketSma = _s({
  *   _2w: SeriesPattern1<?Dollars>,
  *   _1m: SeriesPattern1<?Dollars>,
  *   _1y: SeriesPattern1<?Dollars>,
- * }} Max
+ * }} RangeMax
  */
-const _Max = _s({
+const _RangeMax = _s({
   _1w: [_i1, '*_1w'],
   _2w: [_i1, '*_2w'],
   _1m: [_i1, '*_1m'],
@@ -3992,16 +3992,16 @@ const _Max = _s({
 
 /**
  * @typedef {{
- *   min: Max,
- *   max: Max,
+ *   min: RangeMax,
+ *   max: RangeMax,
  *   trueRange: SeriesPattern1<?Dollars>,
  *   trueRangeSum2w: SeriesPattern1<?Dollars>,
  *   choppinessIndex2w: SeriesPattern1<?Percent>,
  * }} Range
  */
 const _Range = _s({
-  min: [_Max, '*_min'],
-  max: [_Max, '*_max'],
+  min: [_RangeMax, '*_min'],
+  max: [_RangeMax, '*_max'],
   trueRange: [_i1, '*_true_range'],
   trueRangeSum2w: [_i1, '*_true_range_sum_2w'],
   choppinessIndex2w: [_i1, '*_choppiness_index_2w'],
@@ -4179,80 +4179,80 @@ const _MiningHashrate = _s({
 /**
  * @template A
  * @typedef {{
- *   min: SeriesPattern1<A>,
- *   max: SeriesPattern1<A>,
- *   pct10: SeriesPattern1<A>,
- *   pct25: SeriesPattern1<A>,
- *   median: SeriesPattern1<A>,
- *   pct75: SeriesPattern1<A>,
- *   pct90: SeriesPattern1<A>,
- * }} EffectiveFeeRate6b
+ *   block: SeriesPattern1<A>,
+ *   _6b: SeriesPattern1<A>,
+ * }} EffectiveFeeRateMax
  */
-const _EffectiveFeeRate6b = _s({
-  min: [_i1, '*_min'],
-  max: [_i1, '*_max'],
-  pct10: [_i1, '*_pct10'],
-  pct25: [_i1, '*_pct25'],
-  median: [_i1, '*_median'],
-  pct75: [_i1, '*_pct75'],
-  pct90: [_i1, '*_pct90'],
+const _EffectiveFeeRateMax = _s({
+  block: [_i1, '*'],
+  _6b: [_i1, '*_6b'],
 });
 
 /**
  * @typedef {{
- *   block: EffectiveFeeRate6b<Weight>,
- *   _6b: EffectiveFeeRate6b<Weight>,
+ *   min: EffectiveFeeRateMax<Weight>,
+ *   max: EffectiveFeeRateMax<Weight>,
+ *   pct10: EffectiveFeeRateMax<Weight>,
+ *   pct25: EffectiveFeeRateMax<Weight>,
+ *   median: EffectiveFeeRateMax<Weight>,
+ *   pct75: EffectiveFeeRateMax<Weight>,
+ *   pct90: EffectiveFeeRateMax<Weight>,
  * }} SizeWeight
  */
 const _SizeWeight = _s({
-  block: [_EffectiveFeeRate6b, '*'],
-  _6b: [_EffectiveFeeRate6b, '*_6b'],
+  min: [_EffectiveFeeRateMax, '*_min'],
+  max: [_EffectiveFeeRateMax, '*_max'],
+  pct10: [_EffectiveFeeRateMax, '*_pct10'],
+  pct25: [_EffectiveFeeRateMax, '*_pct25'],
+  median: [_EffectiveFeeRateMax, '*_median'],
+  pct75: [_EffectiveFeeRateMax, '*_pct75'],
+  pct90: [_EffectiveFeeRateMax, '*_pct90'],
 });
 
 /**
  * @typedef {{
- *   min: SeriesPattern20<VSize>,
- *   max: SeriesPattern20<VSize>,
- *   pct10: SeriesPattern20<VSize>,
- *   pct25: SeriesPattern20<VSize>,
- *   median: SeriesPattern20<VSize>,
- *   pct75: SeriesPattern20<VSize>,
- *   pct90: SeriesPattern20<VSize>,
- * }} Vsize6b
+ *   block: SeriesPattern20<VSize>,
+ *   _6b: SeriesPattern20<VSize>,
+ * }} VsizeMax
  */
-const _Vsize6b = _s({
-  min: [_i20, '*_min'],
-  max: [_i20, '*_max'],
-  pct10: [_i20, '*_pct10'],
-  pct25: [_i20, '*_pct25'],
-  median: [_i20, '*_median'],
-  pct75: [_i20, '*_pct75'],
-  pct90: [_i20, '*_pct90'],
+const _VsizeMax = _s({
+  block: [_i20, '*'],
+  _6b: [_i20, '*_6b'],
 });
 
 /**
  * @template A, B
  * @typedef {{
  *   txIndex: SeriesPattern21<A>,
- *   block: B,
- *   _6b: B,
+ *   min: B,
+ *   max: B,
+ *   pct10: B,
+ *   pct25: B,
+ *   median: B,
+ *   pct75: B,
+ *   pct90: B,
  * }} EffectiveFeeRate
  */
 /** @type {_Make} */
 const _EffectiveFeeRate = (c, b, f0) => _n(c, b, {
   txIndex: [_i21, '*'],
-  block: [f0, '*'],
-  _6b: [f0, '*_6b'],
+  min: [f0, '*_min'],
+  max: [f0, '*_max'],
+  pct10: [f0, '*_pct10'],
+  pct25: [f0, '*_pct25'],
+  median: [f0, '*_median'],
+  pct75: [f0, '*_pct75'],
+  pct90: [f0, '*_pct90'],
 });
 
 /**
  * @typedef {{
- *   vsize: EffectiveFeeRate<VSize, Vsize6b>,
+ *   vsize: EffectiveFeeRate<VSize, VsizeMax>,
  *   weight: SizeWeight,
  * }} TransactionsSize
  */
 const _TransactionsSize = _s({
-  vsize: [(c, b) => _EffectiveFeeRate(c, b, _Vsize6b), '*_vsize'],
+  vsize: [(c, b) => _EffectiveFeeRate(c, b, _VsizeMax), '*_vsize'],
   weight: [_SizeWeight, '*_weight'],
 });
 
@@ -5318,50 +5318,22 @@ const _DataBytes = _s({
 });
 
 /**
- * @template A, B, C
+ * @template A, B, C, D
  * @typedef {{
- *   cumulative: SeriesPattern1<A>,
- *   sum: InputsPerSecond<A>,
- *   avg: InputsPerSecond<B>,
- *   min: InputsPerSecond<C>,
- *   max: InputsPerSecond<C>,
- *   pct10: InputsPerSecond<C>,
- *   pct25: InputsPerSecond<C>,
- *   median: InputsPerSecond<C>,
- *   pct75: InputsPerSecond<C>,
- *   pct90: InputsPerSecond<C>,
+ *   block: SeriesPattern20<A>,
+ *   cumulative: SeriesPattern1<B>,
+ *   sum: InputsPerSecond<B>,
+ *   avg: InputsPerSecond<C>,
+ *   min: InputsPerSecond<D>,
+ *   max: InputsPerSecond<D>,
+ *   pct10: InputsPerSecond<D>,
+ *   pct25: InputsPerSecond<D>,
+ *   median: InputsPerSecond<D>,
+ *   pct75: InputsPerSecond<D>,
+ *   pct90: InputsPerSecond<D>,
  * }} BlocksSize
  */
 const _BlocksSize = _s({
-  cumulative: [_i1, '*_cumulative'],
-  sum: [_InputsPerSecond, '*_sum'],
-  avg: [_InputsPerSecond, '*_avg'],
-  min: [_InputsPerSecond, '*_min'],
-  max: [_InputsPerSecond, '*_max'],
-  pct10: [_InputsPerSecond, '*_pct10'],
-  pct25: [_InputsPerSecond, '*_pct25'],
-  median: [_InputsPerSecond, '*_median'],
-  pct75: [_InputsPerSecond, '*_pct75'],
-  pct90: [_InputsPerSecond, '*_pct90'],
-});
-
-/**
- * @template A, B, C
- * @typedef {{
- *   block: SeriesPattern20<A>,
- *   cumulative: SeriesPattern1<A>,
- *   sum: InputsPerSecond<A>,
- *   avg: InputsPerSecond<B>,
- *   min: InputsPerSecond<C>,
- *   max: InputsPerSecond<C>,
- *   pct10: InputsPerSecond<C>,
- *   pct25: InputsPerSecond<C>,
- *   median: InputsPerSecond<C>,
- *   pct75: InputsPerSecond<C>,
- *   pct90: InputsPerSecond<C>,
- * }} Vbytes
- */
-const _Vbytes = _s({
   block: [_i20, '*'],
   cumulative: [_i1, '*_cumulative'],
   sum: [_InputsPerSecond, '*_sum'],
@@ -6289,15 +6261,6 @@ const _Versions = _s({
 
 /**
  * @typedef {{
- *   total: CoinblocksDestroyed<SigOps64>,
- * }} Sigops
- */
-const _Sigops = _s({
-  total: [_CoinblocksDestroyed, '*'],
-});
-
-/**
- * @typedef {{
  *   nonstandard: CoinblocksDestroyed<Count>,
  * }} PolicyCount
  */
@@ -6369,18 +6332,18 @@ const _FeesCount = _s({
 /**
  * @typedef {{
  *   count: FeesCount,
- *   fee: EffectiveFeeRate<Sats, EffectiveFeeRate6b<Sats>>,
+ *   fee: EffectiveFeeRate<Sats, EffectiveFeeRateMax<Sats>>,
  *   feeRate: SeriesPattern21<?FeeRate>,
- *   effectiveFeeRate: EffectiveFeeRate<?FeeRate, EffectiveFeeRate6b<?FeeRate>>,
+ *   effectiveFeeRate: EffectiveFeeRate<?FeeRate, EffectiveFeeRateMax<?FeeRate>>,
  *   isCpfpParent: SeriesPattern21<Boolean>,
  *   isCpfpChild: SeriesPattern21<Boolean>,
  * }} TransactionsFees
  */
 const _TransactionsFees = _s({
   count: [_FeesCount, 'tx_count'],
-  fee: [(c, b) => _EffectiveFeeRate(c, b, _EffectiveFeeRate6b), '*'],
+  fee: [(c, b) => _EffectiveFeeRate(c, b, _EffectiveFeeRateMax), 'tx_*'],
   feeRate: [_i21, '*_rate'],
-  effectiveFeeRate: [(c, b) => _EffectiveFeeRate(c, b, _EffectiveFeeRate6b), 'effective_*_rate'],
+  effectiveFeeRate: [(c, b) => _EffectiveFeeRate(c, b, _EffectiveFeeRateMax), 'effective_*_rate'],
   isCpfpParent: [_i21, 'is_cpfp_parent'],
   isCpfpChild: [_i21, 'is_cpfp_child'],
 });
@@ -6408,28 +6371,28 @@ const _TransactionsFeatures = _s({
 
 /**
  * @typedef {{
- *   count: Vbytes<Count, ?CountFract, Count16>,
+ *   count: BlocksSize<Count, Count, ?CountFract, Count16>,
  *   features: TransactionsFeatures,
  *   size: TransactionsSize,
  *   fees: TransactionsFees,
  *   inscription: Inscription,
  *   patterns: Patterns,
  *   policy: Policy,
- *   sigops: Sigops,
+ *   sigopCost: CoinblocksDestroyed<SigOps64>,
  *   versions: Versions,
  *   volume: OpReturnValue,
  *   perSecond: InputsPerSecond<?PerSecond>,
  * }} Transactions
  */
 const _Transactions = _s({
-  count: [_Vbytes, '*_count'],
+  count: [_BlocksSize, '*_count'],
   features: [_TransactionsFeatures, '*_count'],
   size: [_TransactionsSize, '*'],
   fees: [_TransactionsFees, 'fee'],
   inscription: [_Inscription, 'inscription'],
   patterns: [_Patterns, 'is'],
   policy: [_Policy, 'nonstandard'],
-  sigops: [_Sigops, 'total_sigop_cost'],
+  sigopCost: [_CoinblocksDestroyed, 'block_sigop_cost'],
   versions: [_Versions, '*_count'],
   volume: [_OpReturnValue, '*_volume'],
   perSecond: [_InputsPerSecond, '*_per_second'],
@@ -6482,7 +6445,7 @@ const _OutputsTypes = _s({
 /**
  * @typedef {{
  *   spent: Spent,
- *   count: Vbytes<Count, ?CountFract, Count32>,
+ *   count: BlocksSize<Count, Count, ?CountFract, Count32>,
  *   perSecond: InputsPerSecond<?PerSecond>,
  *   spendableCount: CoinblocksDestroyed<Count>,
  *   types: OutputsTypes,
@@ -6491,7 +6454,7 @@ const _OutputsTypes = _s({
  */
 const _Outputs = _s({
   spent: [_Spent, 'txin_index'],
-  count: [_Vbytes, '*_count'],
+  count: [_BlocksSize, '*_count'],
   perSecond: [_InputsPerSecond, 'outputs_per_second'],
   spendableCount: [_CoinblocksDestroyed, 'spendable_*_count'],
   types: [_OutputsTypes, '*'],
@@ -6528,14 +6491,14 @@ const _InputsTypes = _s({
 /**
  * @typedef {{
  *   value: SeriesPattern22<Sats>,
- *   count: Vbytes<Count, ?CountFract, Count16>,
+ *   count: BlocksSize<Count, Count, ?CountFract, Count16>,
  *   perSecond: InputsPerSecond<?PerSecond>,
  *   types: InputsTypes,
  * }} Inputs
  */
 const _Inputs = _s({
   value: [_i22, 'value'],
-  count: [_Vbytes, '*_count'],
+  count: [_BlocksSize, '*_count'],
   perSecond: [_InputsPerSecond, 'inputs_per_second'],
   types: [_InputsTypes, '*'],
 });
@@ -6544,9 +6507,9 @@ const _Inputs = _s({
  * @typedef {{
  *   count: CoinblocksDestroyed<Count>,
  *   interval: Interval<Seconds, ?SecondsFract>,
- *   vbytes: Vbytes<VSize, ?VSizeFract, VSize>,
- *   size: BlocksSize<Bytes, ?BytesFract, Bytes32>,
- *   weight: BlocksSize<Weight64, ?WeightFract, Weight>,
+ *   vsize: BlocksSize<VSize, VSize, ?VSizeFract, VSize>,
+ *   size: BlocksSize<Bytes32, Bytes, ?BytesFract, Bytes32>,
+ *   weight: BlocksSize<Weight, Weight64, ?WeightFract, Weight>,
  *   fullness: SeriesPattern20<?Percent>,
  *   difficulty: BlocksDifficulty,
  *   halving: BlocksHalving,
@@ -6555,7 +6518,7 @@ const _Inputs = _s({
 const _Blocks = _s({
   count: [_CoinblocksDestroyed, '*_count'],
   interval: [_Interval, '*_interval'],
-  vbytes: [_Vbytes, '*_vbytes'],
+  vsize: [_BlocksSize, '*_vsize'],
   size: [_BlocksSize, '*_size'],
   weight: [_BlocksSize, '*_weight'],
   fullness: [_i20, '*_fullness'],
@@ -6826,161 +6789,169 @@ const _MappingsHeight = _s({
 /**
  * @typedef {{
  *   identity: SeriesPattern25<OpReturnIndex>,
- * }} AddrOpReturn
+ * }} OutputsOpReturn
  */
-const _AddrOpReturn = _s({
+const _OutputsOpReturn = _s({
   identity: [_i25, '*'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern35<UnknownOutputIndex>,
- * }} AddrUnknown
+ * }} OutputsUnknown
  */
-const _AddrUnknown = _s({
+const _OutputsUnknown = _s({
   identity: [_i35, '*'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern24<EmptyOutputIndex>,
- * }} AddrEmpty
+ * }} OutputsEmpty
  */
-const _AddrEmpty = _s({
+const _OutputsEmpty = _s({
   identity: [_i24, '*'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern27<P2MSOutputIndex>,
- * }} AddrP2ms
+ * }} OutputsP2ms
  */
-const _AddrP2ms = _s({
+const _OutputsP2ms = _s({
   identity: [_i27, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern26<P2AAddrIndex>,
- *   addr: SeriesPattern26<Addr>,
- * }} AddrP2a
+ *   p2ms: OutputsP2ms,
+ *   empty: OutputsEmpty,
+ *   unknown: OutputsUnknown,
+ *   opReturn: OutputsOpReturn,
+ * }} MappingsOutputs
  */
-const _AddrP2a = _s({
-  identity: [_i26, '*_index'],
-  addr: [_i26, '*'],
+const _MappingsOutputs = _s({
+  p2ms: [_OutputsP2ms, 'p2ms_output_*'],
+  empty: [_OutputsEmpty, 'empty_output_*'],
+  unknown: [_OutputsUnknown, 'unknown_output_*'],
+  opReturn: [_OutputsOpReturn, 'op_return_*'],
+});
+
+/**
+ * @typedef {{
+ *   identity: SeriesPattern26<P2AAddrIndex>,
+ *   address: SeriesPattern26<Addr>,
+ * }} MappingsAddressesP2a
+ */
+const _MappingsAddressesP2a = _s({
+  identity: [_i26, '*_addr_index'],
+  address: [_i26, '*_address'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern34<P2WSHAddrIndex>,
- *   addr: SeriesPattern34<Addr>,
- * }} AddrP2wsh
+ *   address: SeriesPattern34<Addr>,
+ * }} MappingsAddressesP2wsh
  */
-const _AddrP2wsh = _s({
-  identity: [_i34, '*_index'],
-  addr: [_i34, '*'],
+const _MappingsAddressesP2wsh = _s({
+  identity: [_i34, '*_addr_index'],
+  address: [_i34, '*_address'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern33<P2WPKHAddrIndex>,
- *   addr: SeriesPattern33<Addr>,
- * }} AddrP2wpkh
+ *   address: SeriesPattern33<Addr>,
+ * }} MappingsAddressesP2wpkh
  */
-const _AddrP2wpkh = _s({
-  identity: [_i33, '*_index'],
-  addr: [_i33, '*'],
+const _MappingsAddressesP2wpkh = _s({
+  identity: [_i33, '*_addr_index'],
+  address: [_i33, '*_address'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern32<P2TRAddrIndex>,
- *   addr: SeriesPattern32<Addr>,
- * }} AddrP2tr
+ *   address: SeriesPattern32<Addr>,
+ * }} MappingsAddressesP2tr
  */
-const _AddrP2tr = _s({
-  identity: [_i32, '*_index'],
-  addr: [_i32, '*'],
+const _MappingsAddressesP2tr = _s({
+  identity: [_i32, '*_addr_index'],
+  address: [_i32, '*_address'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern31<P2SHAddrIndex>,
- *   addr: SeriesPattern31<Addr>,
- * }} AddrP2sh
+ *   address: SeriesPattern31<Addr>,
+ * }} MappingsAddressesP2sh
  */
-const _AddrP2sh = _s({
-  identity: [_i31, '*_index'],
-  addr: [_i31, '*'],
+const _MappingsAddressesP2sh = _s({
+  identity: [_i31, '*_addr_index'],
+  address: [_i31, '*_address'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern30<P2PKHAddrIndex>,
- *   addr: SeriesPattern30<Addr>,
- * }} AddrP2pkh
+ *   address: SeriesPattern30<Addr>,
+ * }} MappingsAddressesP2pkh
  */
-const _AddrP2pkh = _s({
-  identity: [_i30, '*_index'],
-  addr: [_i30, '*'],
+const _MappingsAddressesP2pkh = _s({
+  identity: [_i30, '*_addr_index'],
+  address: [_i30, '*_address'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern29<P2PK65AddrIndex>,
- *   addr: SeriesPattern29<Addr>,
- * }} AddrP2pk65
+ *   address: SeriesPattern29<Addr>,
+ * }} MappingsAddressesP2pk65
  */
-const _AddrP2pk65 = _s({
-  identity: [_i29, '*_index'],
-  addr: [_i29, '*'],
+const _MappingsAddressesP2pk65 = _s({
+  identity: [_i29, '*_addr_index'],
+  address: [_i29, '*_address'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern28<P2PK33AddrIndex>,
- *   addr: SeriesPattern28<Addr>,
- * }} AddrP2pk33
+ *   address: SeriesPattern28<Addr>,
+ * }} MappingsAddressesP2pk33
  */
-const _AddrP2pk33 = _s({
-  identity: [_i28, '*_index'],
-  addr: [_i28, '*'],
+const _MappingsAddressesP2pk33 = _s({
+  identity: [_i28, '*_addr_index'],
+  address: [_i28, '*_address'],
 });
 
 /**
  * @typedef {{
- *   p2pk33: AddrP2pk33,
- *   p2pk65: AddrP2pk65,
- *   p2pkh: AddrP2pkh,
- *   p2sh: AddrP2sh,
- *   p2tr: AddrP2tr,
- *   p2wpkh: AddrP2wpkh,
- *   p2wsh: AddrP2wsh,
- *   p2a: AddrP2a,
- *   p2ms: AddrP2ms,
- *   empty: AddrEmpty,
- *   unknown: AddrUnknown,
- *   opReturn: AddrOpReturn,
- * }} MappingsAddr
+ *   p2pk33: MappingsAddressesP2pk33,
+ *   p2pk65: MappingsAddressesP2pk65,
+ *   p2pkh: MappingsAddressesP2pkh,
+ *   p2sh: MappingsAddressesP2sh,
+ *   p2tr: MappingsAddressesP2tr,
+ *   p2wpkh: MappingsAddressesP2wpkh,
+ *   p2wsh: MappingsAddressesP2wsh,
+ *   p2a: MappingsAddressesP2a,
+ * }} MappingsAddresses
  */
-const _MappingsAddr = _s({
-  p2pk33: [_AddrP2pk33, 'p2pk33_*'],
-  p2pk65: [_AddrP2pk65, 'p2pk65_*'],
-  p2pkh: [_AddrP2pkh, 'p2pkh_*'],
-  p2sh: [_AddrP2sh, 'p2sh_*'],
-  p2tr: [_AddrP2tr, 'p2tr_*'],
-  p2wpkh: [_AddrP2wpkh, 'p2wpkh_*'],
-  p2wsh: [_AddrP2wsh, 'p2wsh_*'],
-  p2a: [_AddrP2a, 'p2a_*'],
-  p2ms: [_AddrP2ms, 'p2ms_output_index'],
-  empty: [_AddrEmpty, 'empty_output_index'],
-  unknown: [_AddrUnknown, 'unknown_output_index'],
-  opReturn: [_AddrOpReturn, 'op_return_index'],
+const _MappingsAddresses = _s({
+  p2pk33: [_MappingsAddressesP2pk33, '*'],
+  p2pk65: [_MappingsAddressesP2pk65, 'p2pk65'],
+  p2pkh: [_MappingsAddressesP2pkh, 'p2pkh'],
+  p2sh: [_MappingsAddressesP2sh, 'p2sh'],
+  p2tr: [_MappingsAddressesP2tr, 'p2tr'],
+  p2wpkh: [_MappingsAddressesP2wpkh, 'p2wpkh'],
+  p2wsh: [_MappingsAddressesP2wsh, 'p2wsh'],
+  p2a: [_MappingsAddressesP2a, 'p2a'],
 });
 
 /**
  * @typedef {{
- *   addr: MappingsAddr,
+ *   addresses: MappingsAddresses,
+ *   outputs: MappingsOutputs,
  *   height: MappingsHeight,
  *   epoch: MappingsEpoch,
  *   halving: MappingsHalving,
@@ -7004,7 +6975,8 @@ const _MappingsAddr = _s({
  * }} Mappings
  */
 const _Mappings = _s({
-  addr: [_MappingsAddr, 'addr'],
+  addresses: [_MappingsAddresses, 'p2pk33'],
+  outputs: [_MappingsOutputs, 'index'],
   height: [_MappingsHeight, 'minute10'],
   epoch: [_MappingsEpoch, 'first_height'],
   halving: [_MappingsHalving, 'first_height'],
@@ -7031,15 +7003,15 @@ const _Mappings = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern20<OpReturnIndex>,
  *   toTxIndex: SeriesPattern25<TxIndex>,
- *   kind: SeriesPattern25<OpReturnKind>,
+ *   protocol: SeriesPattern25<OpReturnKind>,
  *   postOpReturnBytes: SeriesPattern25<Bytes32>,
  * }} IndexerOpReturn
  */
 const _IndexerOpReturn = _s({
-  firstIndex: [_i20, 'first_op_return_*'],
-  toTxIndex: [_i25, 'tx_*'],
-  kind: [_i25, 'kind'],
-  postOpReturnBytes: [_i25, 'op_return_post_op_return_bytes'],
+  firstIndex: [_i20, 'first_*_index'],
+  toTxIndex: [_i25, 'tx_index'],
+  protocol: [_i25, '*_protocol'],
+  postOpReturnBytes: [_i25, '*_post_op_return_bytes'],
 });
 
 /**
@@ -7096,9 +7068,9 @@ const _Scripts = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern20<P2AAddrIndex>,
  *   bytes: SeriesPattern26<P2ABytes>,
- * }} AddressesP2a
+ * }} IndexerAddressesP2a
  */
-const _AddressesP2a = _s({
+const _IndexerAddressesP2a = _s({
   firstIndex: [_i20, 'first_*_addr_index'],
   bytes: [_i26, '*_bytes'],
 });
@@ -7107,9 +7079,9 @@ const _AddressesP2a = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern20<P2TRAddrIndex>,
  *   bytes: SeriesPattern32<P2TRBytes>,
- * }} AddressesP2tr
+ * }} IndexerAddressesP2tr
  */
-const _AddressesP2tr = _s({
+const _IndexerAddressesP2tr = _s({
   firstIndex: [_i20, 'first_*_addr_index'],
   bytes: [_i32, '*_bytes'],
 });
@@ -7118,9 +7090,9 @@ const _AddressesP2tr = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern20<P2WSHAddrIndex>,
  *   bytes: SeriesPattern34<P2WSHBytes>,
- * }} AddressesP2wsh
+ * }} IndexerAddressesP2wsh
  */
-const _AddressesP2wsh = _s({
+const _IndexerAddressesP2wsh = _s({
   firstIndex: [_i20, 'first_*_addr_index'],
   bytes: [_i34, '*_bytes'],
 });
@@ -7129,9 +7101,9 @@ const _AddressesP2wsh = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern20<P2WPKHAddrIndex>,
  *   bytes: SeriesPattern33<P2WPKHBytes>,
- * }} AddressesP2wpkh
+ * }} IndexerAddressesP2wpkh
  */
-const _AddressesP2wpkh = _s({
+const _IndexerAddressesP2wpkh = _s({
   firstIndex: [_i20, 'first_*_addr_index'],
   bytes: [_i33, '*_bytes'],
 });
@@ -7140,9 +7112,9 @@ const _AddressesP2wpkh = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern20<P2SHAddrIndex>,
  *   bytes: SeriesPattern31<P2SHBytes>,
- * }} AddressesP2sh
+ * }} IndexerAddressesP2sh
  */
-const _AddressesP2sh = _s({
+const _IndexerAddressesP2sh = _s({
   firstIndex: [_i20, 'first_*_addr_index'],
   bytes: [_i31, '*_bytes'],
 });
@@ -7151,9 +7123,9 @@ const _AddressesP2sh = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern20<P2PKHAddrIndex>,
  *   bytes: SeriesPattern30<P2PKHBytes>,
- * }} AddressesP2pkh
+ * }} IndexerAddressesP2pkh
  */
-const _AddressesP2pkh = _s({
+const _IndexerAddressesP2pkh = _s({
   firstIndex: [_i20, 'first_*_addr_index'],
   bytes: [_i30, '*_bytes'],
 });
@@ -7162,9 +7134,9 @@ const _AddressesP2pkh = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern20<P2PK33AddrIndex>,
  *   bytes: SeriesPattern28<P2PK33Bytes>,
- * }} AddressesP2pk33
+ * }} IndexerAddressesP2pk33
  */
-const _AddressesP2pk33 = _s({
+const _IndexerAddressesP2pk33 = _s({
   firstIndex: [_i20, 'first_*_addr_index'],
   bytes: [_i28, '*_bytes'],
 });
@@ -7173,34 +7145,34 @@ const _AddressesP2pk33 = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern20<P2PK65AddrIndex>,
  *   bytes: SeriesPattern29<P2PK65Bytes>,
- * }} AddressesP2pk65
+ * }} IndexerAddressesP2pk65
  */
-const _AddressesP2pk65 = _s({
+const _IndexerAddressesP2pk65 = _s({
   firstIndex: [_i20, 'first_*_addr_index'],
   bytes: [_i29, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   p2pk65: AddressesP2pk65,
- *   p2pk33: AddressesP2pk33,
- *   p2pkh: AddressesP2pkh,
- *   p2sh: AddressesP2sh,
- *   p2wpkh: AddressesP2wpkh,
- *   p2wsh: AddressesP2wsh,
- *   p2tr: AddressesP2tr,
- *   p2a: AddressesP2a,
+ *   p2pk65: IndexerAddressesP2pk65,
+ *   p2pk33: IndexerAddressesP2pk33,
+ *   p2pkh: IndexerAddressesP2pkh,
+ *   p2sh: IndexerAddressesP2sh,
+ *   p2wpkh: IndexerAddressesP2wpkh,
+ *   p2wsh: IndexerAddressesP2wsh,
+ *   p2tr: IndexerAddressesP2tr,
+ *   p2a: IndexerAddressesP2a,
  * }} IndexerAddresses
  */
 const _IndexerAddresses = _s({
-  p2pk65: [_AddressesP2pk65, '*'],
-  p2pk33: [_AddressesP2pk33, 'p2pk33'],
-  p2pkh: [_AddressesP2pkh, 'p2pkh'],
-  p2sh: [_AddressesP2sh, 'p2sh'],
-  p2wpkh: [_AddressesP2wpkh, 'p2wpkh'],
-  p2wsh: [_AddressesP2wsh, 'p2wsh'],
-  p2tr: [_AddressesP2tr, 'p2tr'],
-  p2a: [_AddressesP2a, 'p2a'],
+  p2pk65: [_IndexerAddressesP2pk65, '*'],
+  p2pk33: [_IndexerAddressesP2pk33, 'p2pk33'],
+  p2pkh: [_IndexerAddressesP2pkh, 'p2pkh'],
+  p2sh: [_IndexerAddressesP2sh, 'p2sh'],
+  p2wpkh: [_IndexerAddressesP2wpkh, 'p2wpkh'],
+  p2wsh: [_IndexerAddressesP2wsh, 'p2wsh'],
+  p2tr: [_IndexerAddressesP2tr, 'p2tr'],
+  p2a: [_IndexerAddressesP2a, 'p2a'],
 });
 
 /**
@@ -7239,10 +7211,6 @@ const _IndexerInputs = _s({
 
 /**
  * @typedef {{
- *   v1: SeriesPattern20<Count16>,
- *   v2: SeriesPattern20<Count16>,
- *   v3: SeriesPattern20<Count16>,
- *   otherVersion: SeriesPattern20<Count16>,
  *   explicitlyRbf: SeriesPattern20<Count16>,
  *   oneInput: SeriesPattern20<Count16>,
  *   oneOutput: SeriesPattern20<Count16>,
@@ -7254,7 +7222,6 @@ const _IndexerInputs = _s({
  *   p2wsh: SeriesPattern20<Count16>,
  *   p2tr: SeriesPattern20<Count16>,
  *   p2a: SeriesPattern20<Count16>,
- *   opReturn: SeriesPattern20<Count16>,
  *   empty: SeriesPattern20<Count16>,
  *   unknown: SeriesPattern20<Count16>,
  *   fakePubkey: SeriesPattern20<Count16>,
@@ -7262,26 +7229,21 @@ const _IndexerInputs = _s({
  * }} FeaturesCount
  */
 const _FeaturesCount = _s({
-  v1: [_i20, '*_v1'],
-  v2: [_i20, '*_v2'],
-  v3: [_i20, '*_v3'],
-  otherVersion: [_i20, '*_other_version'],
-  explicitlyRbf: [_i20, '*_explicitly_rbf'],
-  oneInput: [_i20, '*_one_input'],
-  oneOutput: [_i20, '*_one_output'],
-  p2pk: [_i20, '*_p2pk'],
-  p2ms: [_i20, '*_p2ms'],
-  p2pkh: [_i20, '*_p2pkh'],
-  p2sh: [_i20, '*_p2sh'],
-  p2wpkh: [_i20, '*_p2wpkh'],
-  p2wsh: [_i20, '*_p2wsh'],
-  p2tr: [_i20, '*_p2tr'],
-  p2a: [_i20, '*_p2a'],
-  opReturn: [_i20, '*_op_return'],
-  empty: [_i20, '*_empty'],
-  unknown: [_i20, '*_unknown'],
-  fakePubkey: [_i20, '*_fake_pubkey'],
-  fakeScripthash: [_i20, '*_fake_scripthash'],
+  explicitlyRbf: [_i20, 'explicitly_rbf_*'],
+  oneInput: [_i20, 'one_input_*'],
+  oneOutput: [_i20, 'one_output_*'],
+  p2pk: [_i20, 'p2pk_*'],
+  p2ms: [_i20, 'p2ms_*'],
+  p2pkh: [_i20, 'p2pkh_*'],
+  p2sh: [_i20, 'p2sh_*'],
+  p2wpkh: [_i20, 'p2wpkh_*'],
+  p2wsh: [_i20, 'p2wsh_*'],
+  p2tr: [_i20, 'p2tr_*'],
+  p2a: [_i20, 'p2a_*'],
+  empty: [_i20, 'empty_*'],
+  unknown: [_i20, 'unknown_*'],
+  fakePubkey: [_i20, 'fake_pubkey_*'],
+  fakeScripthash: [_i20, 'fake_scripthash_*'],
 });
 
 /**
@@ -7339,11 +7301,11 @@ const _IndexerTransactionsFeatures = _s({
  * @typedef {{
  *   firstTxIndex: SeriesPattern20<TxIndex>,
  *   txid: SeriesPattern21<Txid>,
- *   txVersion: SeriesPattern21<TxVersion>,
- *   rawLocktime: SeriesPattern21<RawLockTime>,
+ *   version: SeriesPattern21<TxVersion>,
+ *   locktime: SeriesPattern21<RawLockTime>,
  *   weight: SeriesPattern21<Weight>,
- *   totalSize: SeriesPattern21<Bytes32>,
- *   totalSigopCost: SeriesPattern21<SigOps>,
+ *   size: SeriesPattern21<Bytes32>,
+ *   sigopCost: SeriesPattern21<SigOps>,
  *   isExplicitlyRbf: SeriesPattern21<Boolean>,
  *   firstTxinIndex: SeriesPattern21<TxInIndex>,
  *   firstTxoutIndex: SeriesPattern21<TxOutIndex>,
@@ -7353,11 +7315,11 @@ const _IndexerTransactionsFeatures = _s({
 const _IndexerTransactions = _s({
   firstTxIndex: [_i20, 'first_*_index'],
   txid: [_i21, 'txid'],
-  txVersion: [_i21, '*_version'],
-  rawLocktime: [_i21, 'raw_locktime'],
+  version: [_i21, '*_version'],
+  locktime: [_i21, '*_locktime'],
   weight: [_i21, '*_weight'],
-  totalSize: [_i21, 'total_size'],
-  totalSigopCost: [_i21, 'total_sigop_cost'],
+  size: [_i21, '*_size'],
+  sigopCost: [_i21, '*_sigop_cost'],
   isExplicitlyRbf: [_i21, 'is_explicitly_rbf'],
   firstTxinIndex: [_i21, 'first_txin_index'],
   firstTxoutIndex: [_i21, 'first_txout_index'],
@@ -7365,32 +7327,13 @@ const _IndexerTransactions = _s({
 });
 
 /**
- * @template A
- * @typedef {{
- *   block: SeriesPattern20<A>,
- * }} IndexerBlocksSize
- */
-const _IndexerBlocksSize = _s({
-  block: [_i20, '*'],
-});
-
-/**
- * @typedef {{
- *   timestamp: SeriesPattern20<Timestamp>,
- * }} Time
- */
-const _Time = _s({
-  timestamp: [_i20, '*'],
-});
-
-/**
  * @typedef {{
  *   blockhash: SeriesPattern20<BlockHash>,
  *   coinbaseTag: SeriesPattern20<CoinbaseTag>,
- *   time: Time,
- *   size: IndexerBlocksSize<Bytes32>,
- *   weight: IndexerBlocksSize<Weight>,
- *   segwitTxs: SeriesPattern20<Count16>,
+ *   timestamp: SeriesPattern20<Timestamp>,
+ *   size: SeriesPattern20<Bytes32>,
+ *   weight: SeriesPattern20<Weight>,
+ *   segwitTxCount: SeriesPattern20<Count16>,
  *   segwitSize: SeriesPattern20<Bytes32>,
  *   segwitWeight: SeriesPattern20<Weight>,
  * }} IndexerBlocks
@@ -7398,10 +7341,10 @@ const _Time = _s({
 const _IndexerBlocks = _s({
   blockhash: [_i20, 'blockhash'],
   coinbaseTag: [_i20, 'coinbase_tag'],
-  time: [_Time, 'timestamp'],
-  size: [_IndexerBlocksSize, 'total_size'],
-  weight: [_IndexerBlocksSize, 'block_weight'],
-  segwitTxs: [_i20, '*_txs'],
+  timestamp: [_i20, 'timestamp'],
+  size: [_i20, 'block_size'],
+  weight: [_i20, 'block_weight'],
+  segwitTxCount: [_i20, '*_tx_count'],
   segwitSize: [_i20, '*_size'],
   segwitWeight: [_i20, '*_weight'],
 });
@@ -7424,7 +7367,7 @@ const _Indexer = _s({
   outputs: [_IndexerOutputs, 'type'],
   addresses: [_IndexerAddresses, 'p2pk65'],
   scripts: [_Scripts, '*'],
-  opReturn: [_IndexerOpReturn, '*'],
+  opReturn: [_IndexerOpReturn, 'op_return'],
 });
 
 /**
