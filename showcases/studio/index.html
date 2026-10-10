@@ -30,7 +30,7 @@
     <script>
       // Its manifest, made here (the page is one file): its name, its icons, opening where it's served, as an app.
       {
-        const here = location.origin + location.pathname, icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
+        const here = location.href.replace(/[?#].*$/, ""), icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
         // (Its launch screen in the theme it opens in: dark unless light is chosen, or the system's.)
         const theme = (() => { try { return JSON.parse(localStorage.getItem("bitview-studio:prefs") ?? "{}").theme; } catch { return undefined; } })();
         const ground = theme === "light" || (theme === "system" && matchMedia("(prefers-color-scheme: light)").matches) ? "#f6f6f7" : "#08090a";
@@ -645,7 +645,7 @@
         min-height: 0;
         overflow: hidden;
         padding: 10px 8px 8px;
-        transition: width var(--dur-layout) var(--ease-layout), margin-left var(--dur-layout) var(--ease-layout), margin-right var(--dur-layout) var(--ease-layout), visibility 0s;
+        transition: width var(--dur-layout) var(--ease-layout), margin-left var(--dur-layout) var(--ease-layout), margin-right var(--dur-layout) var(--ease-layout), box-shadow var(--dur-layout) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout), visibility 0s;
 
         /* Only the list gives way when the column runs out of room (and scrolls): every other row keeps its size. */
         > :not(.chart-list) {
@@ -1406,6 +1406,11 @@
       }
 
       @media (min-width: 761px) and (min-height: 501px) {
+        /* (Its own ground, the page's, always: going back to the rail, it slides over the card, not see-through.) */
+        .sidebar {
+          background: var(--app);
+        }
+
         /* Collapsed, pointed at a moment: the whole sidebar floats over the page, its column as narrow as the rail's
            (nothing under it moves), until the pointer leaves it; its toggle keeps it whole. */
         body[data-sidebar="collapsed"][data-side-peek] .sidebar {
@@ -1427,6 +1432,8 @@
           .live > :not(i) {
             opacity: 0;
             pointer-events: none;
+            /* (Going back to the rail, the words fade as it narrows.) */
+            transition: opacity var(--fade);
           }
 
           /* On the rail, the rule under New chart is short, at the same height: nothing moves. New chart, a square as
@@ -2811,7 +2818,7 @@
         min-height: 0;
         overflow: hidden;
         border-left: 1px solid var(--line);
-        transition: width var(--dur-layout) var(--ease-layout), border-width var(--dur-layout) var(--ease-layout);
+        transition: width var(--dur-layout) var(--ease-layout), border-width var(--dur-layout) var(--ease-layout), margin-left var(--dur-layout) var(--ease-layout), box-shadow var(--dur-layout) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
 
         > .panel-view {
           min-width: 299px;
@@ -2824,7 +2831,26 @@
           width: 0;
           border-left-width: 0;
           visibility: hidden;
-          transition: width var(--dur-layout) var(--ease-layout), border-width var(--dur-layout) var(--ease-layout), visibility 0s var(--dur-layout);
+          transition: width var(--dur-layout) var(--ease-layout), border-width var(--dur-layout) var(--ease-layout), margin-left var(--dur-layout) var(--ease-layout), box-shadow var(--dur-layout) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout), visibility 0s var(--dur-layout);
+        }
+
+        /* Closed, its button pointed at a moment: the panel floats over the chart's side, its width and its margin moving
+           together (nothing under it moves), until the pointer leaves it; its button keeps it. (Narrower, the panel
+           floats over the plot anyway.) */
+        @media (min-width: 1101px) {
+          /* (Its own ground, over the chart, always: going from floating, or kept, it slides over it, not under.) */
+          .panel {
+            position: relative;
+            z-index: 8;
+            background: var(--panel-ground);
+          }
+
+          body[data-panel="closed"][data-peek="float"] .panel {
+            margin-left: -300px;
+            border-left-width: 0;
+            border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+            box-shadow: var(--pop);
+          }
         }
 
         body[data-empty] .panel {
@@ -9431,7 +9457,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("panel-toggle").setAttribute("aria-pressed", String(state === "open"));
       }
       const panelShown = () => (phone.matches ? document.body.dataset.sheet === "panel" : document.body.dataset.panel === "open" || document.body.hasAttribute("data-peek"));
-      function togglePanel(open = !panelShown()) {
+      /** The closed panel floats, its button pointed at (pressed then, the button keeps it). */
+      const panelFloats = () => document.body.dataset.peek === "float";
+      function togglePanel(open = panelFloats() || !panelShown()) {
         if (!chart.layers.length) return;
         if (!open) stopCarrying();
         if (phone.matches) {
@@ -16804,7 +16832,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function deselect() {
         const was = selected, fromSettings = $("inspector").contains(document.activeElement);
         selected = "";
-        document.body.removeAttribute("data-peek");
+        // (A panel floating by its button stays: back to its list, under the pointer.)
+        if (!panelFloats()) document.body.removeAttribute("data-peek");
         refresh("none");
         if (fromSettings) /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`[data-select="${was}"]`))?.focus();
       }
@@ -20854,8 +20883,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Color's Custom isn't one: it's a page of the same popover.
        */
       const cascades = (/** @type {Element} */ button) => !phone.matches && button.getAttribute("aria-haspopup") === "menu" && !button.hasAttribute("data-pick-custom") && Boolean(button.closest("#menu"));
-      /** The row whose submenu is being asked for (while its menu's pick runs), the row one shows beside, the menu's pick, a pointer's wait to switch. */
+      /** The row whose submenu is being asked for (while its menu's pick runs), the row one shows beside, the menu's pick, a pointer's wait to switch (and what it waits on). */
       let cascadeRow = /** @type {HTMLElement | null} */ (null), subRow = /** @type {HTMLElement | null} */ (null), menuPick = /** @type {((data: DOMStringMap) => void) | null} */ (null), cascadeTimer = 0;
+      let cascadeWait = /** @type {{ row: Element | null, heading: boolean } | null} */ (null);
       function openCascade(/** @type {HTMLElement} */ row, focus = false) {
         if ($("menu").hidden || !$("menu").contains(row)) return;
         if (subRow !== row || $("submenu").hidden) {
@@ -20900,35 +20930,63 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The submenu gone (a wait to open one too); the focus in it, back on its row. */
       function hideSubmenu() {
         clearTimeout(cascadeTimer);
+        cascadeWait = null;
         const sub = $("submenu"), had = sub.contains(document.activeElement);
         sub.hidden = true;
         subRow?.removeAttribute("aria-expanded");
         if (had && subRow?.isConnected) subRow.focus({ preventScroll: true });
         subRow = null;
       }
-      // Pointed at: a row's submenu, after a moment (a pass over it opens none); heading for the one open, the rows crossed
-      // wait, and one stopped on (or the triangle left) switches it.
+      // Pointed at: a row's submenu, a moment after the pointer comes onto it (a pass over it opens none); one open, another
+      // row with one switches it at once (a gap, a rule or a row without one closes it a moment later: crossing a rule to
+      // the next doesn't close and open again). Heading for the open one, what's under the pointer waits while it's on its
+      // way (a moment, then as long as it still heads there), then shows its own; the triangle left switches at once.
       {
-        let last = { x: 0, y: 0 };
+        let last = { x: 0, y: 0 }, toward = false, headedAt = -Infinity;
         const inTriangle = (/** @type {number[]} */ [px, py], /** @type {number[][]} */ [[ax, ay], [bx, by], [cx, cy]]) => {
           const side = (/** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ x2, /** @type {number} */ y2) => (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
           const d1 = side(ax, ay, bx, by), d2 = side(bx, by, cx, cy), d3 = side(cx, cy, ax, ay);
           return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
         };
+        /** The wait done: the row under the pointer then shows its submenu, or none shows (still heading a moment ago, it waits on). */
+        const waited = () => {
+          if (cascadeWait?.heading && performance.now() - headedAt < 100) return void (cascadeTimer = window.setTimeout(waited, 100));
+          const row = cascadeWait?.row;
+          cascadeWait = null;
+          row && cascades(row) ? openCascade(/** @type {HTMLElement} */ (row)) : hideSubmenu();
+        };
         $("menu").addEventListener("pointermove", (event) => {
           if (event.pointerType !== "mouse" || phone.matches) return;
-          const row = /** @type {HTMLElement | null} */ (closest(event, "button:not(:disabled)")), sub = $("submenu");
-          const box = sub.hidden ? null : sub.getBoundingClientRect(), edge = box && (box.left >= last.x ? box.left : box.right);
-          const heading = Boolean(box && edge !== null && inTriangle([event.clientX, event.clientY], [[last.x, last.y], [edge, box.top], [edge, box.bottom]]));
-          last = { x: event.clientX, y: event.clientY };
-          clearTimeout(cascadeTimer);
-          if (row && row === subRow) return;
+          const row = /** @type {HTMLElement | null} */ (closest(event, "button:not(:disabled)")), sub = $("submenu"), at = [event.clientX, event.clientY];
+          // Heading for the open submenu: judged over a few pixels (a hand's tremor doesn't turn it), toward it and a row
+          // past each end (a curved path still counts).
+          const box = sub.hidden ? null : sub.getBoundingClientRect(), far = Math.hypot(at[0] - last.x, at[1] - last.y) >= 5;
+          if (!box) toward = false;
+          else if (far) {
+            const edge = box.left >= last.x ? box.left : box.right;
+            toward = inTriangle(at, [[last.x, last.y], [edge, box.top - 40], [edge, box.bottom + 40]]);
+          }
+          if (!box || far) last = { x: at[0], y: at[1] };
+          if (far && toward) headedAt = performance.now();
           const opens = row && cascades(row);
-          if (!opens && sub.hidden) return;
-          cascadeTimer = window.setTimeout(() => (opens ? openCascade(/** @type {HTMLElement} */ (row)) : hideSubmenu()), heading ? 300 : opens ? 140 : 200);
+          if ((row && row === subRow) || (!opens && sub.hidden)) return void (clearTimeout(cascadeTimer), (cascadeWait = null));
+          if (toward) {
+            // (On its way: the wait as it was, or begun, for what's under the pointer now.)
+            if (cascadeWait?.heading) return void (cascadeWait.row = row);
+            clearTimeout(cascadeTimer);
+            cascadeWait = { row, heading: true };
+            return void (cascadeTimer = window.setTimeout(waited, 300));
+          }
+          if (opens && !sub.hidden) return void (clearTimeout(cascadeTimer), (cascadeWait = null), openCascade(/** @type {HTMLElement} */ (row)));
+          // (A first submenu: a moment from coming onto its row. A gap or a row without one: a moment from the first, the
+          // open one closed then.)
+          if (cascadeWait && !cascadeWait.heading && (cascadeWait.row === row || !opens)) return void (cascadeWait.row = row);
+          clearTimeout(cascadeTimer);
+          cascadeWait = { row, heading: false };
+          cascadeTimer = window.setTimeout(waited, 100);
         });
         // (Left, for the submenu or anywhere: what it was about to do, it doesn't.)
-        for (const id of ["menu", "submenu"]) $(id).addEventListener(id === "menu" ? "pointerleave" : "pointerenter", () => clearTimeout(cascadeTimer));
+        for (const id of ["menu", "submenu"]) $(id).addEventListener(id === "menu" ? "pointerleave" : "pointerenter", () => (clearTimeout(cascadeTimer), (cascadeWait = null)));
       }
       $("submenu").addEventListener("keydown", (event) => {
         if (event.key === "ArrowLeft" || event.key === "Escape") {
@@ -20951,9 +21009,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const railed = () => document.body.dataset.sidebar === "collapsed" && !document.body.hasAttribute("data-side-peek");
       /** A menu shown by a pointer's resting (a closed folder's charts): it leaves the focus be, goes as the pointer does, and as a key's pressed (a tip's way). */
       let flyout = false;
-      // Hover to look, press to keep (with a mouse): the collapsed sidebar, pointed at a moment, floats whole over the page
-      // (its toggle keeps it); a closed folder's row, its charts beside it (pressed, it opens). Gone as the pointer goes,
-      // a moment after (time enough to cross to the flyout, right beside its row).
+      // Hover to look, press to keep (with a mouse): the collapsed sidebar's button, pointed at a moment, floats the sidebar
+      // whole over the page (the button keeps it), the closed panel's button the panel; a closed folder's row, its charts
+      // beside it (pressed, it opens). Gone as the pointer leaves what floats (and its button), a moment after (time
+      // enough to cross to the flyout, right beside its row).
       {
         let peekTimer = 0, flyTimer = 0, from = /** @type {HTMLElement | null} */ (null);
         const sidebar = $("sidebar"), peeking = () => document.body.hasAttribute("data-side-peek");
@@ -20964,15 +21023,41 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           clearTimeout(peekTimer);
           peekTimer = window.setTimeout(() => !sidebar.matches(":hover") && !sidebarMenu() && !sidebar.querySelector("input:focus") && delete document.body.dataset.sidePeek, 260);
         };
-        sidebar.addEventListener("pointerenter", (event) => {
+        $("sidebar-toggle").addEventListener("pointerenter", (event) => {
           clearTimeout(peekTimer);
           if (event.pointerType !== "mouse" || document.body.dataset.sidebar !== "collapsed" || peeking()) return;
-          peekTimer = window.setTimeout(() => (document.body.dataset.sidePeek = ""), 300);
+          peekTimer = window.setTimeout(() => document.body.dataset.sidebar === "collapsed" && (document.body.dataset.sidePeek = ""), 300);
         });
-        sidebar.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && unpeek());
+        // (Off the button before it floats: it doesn't. Back over it floating: it stays.)
+        $("sidebar-toggle").addEventListener("pointerleave", () => peeking() || clearTimeout(peekTimer));
+        sidebar.addEventListener("pointerenter", () => peeking() && clearTimeout(peekTimer));
+        sidebar.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && peeking() && unpeek());
         sidebar.addEventListener("focusout", () => peeking() && unpeek());
-        // (A menu opened from it closed with the pointer away: it folds too.)
-        new MutationObserver(() => $("menu").hidden && peeking() && unpeek()).observe($("menu"), { attributes: true, attributeFilter: ["hidden"] });
+        // The closed panel, by its button, the same.
+        let panelTimer = 0;
+        const panel = $("panel"), panelButton = $("panel-toggle");
+        const panelMenu = () => !$("menu").hidden && Boolean(ownerNow()?.closest("#panel"));
+        // (As the sidebar, and a key's focus in it too: hidden closed, focus there came while it floats; the rail shows,
+        // its focus maybe a key's from before.)
+        const unfloat = () => {
+          clearTimeout(panelTimer);
+          panelTimer = window.setTimeout(() => {
+            if (!panelFloats() || panel.matches(":hover") || panelButton.matches(":hover") || panelMenu() || panel.querySelector("input:focus, textarea:focus, :focus-visible")) return;
+            // (A layer picked in it goes with it: nothing stays picked out of sight.)
+            if (selected) deselect();
+            document.body.removeAttribute("data-peek");
+          }, 260);
+        };
+        panelButton.addEventListener("pointerenter", (event) => {
+          clearTimeout(panelTimer);
+          if (event.pointerType !== "mouse" || phone.matches || fullOn() || document.body.dataset.panel !== "closed" || document.body.hasAttribute("data-peek") || !chart.layers.length) return;
+          panelTimer = window.setTimeout(() => document.body.dataset.panel === "closed" && !document.body.hasAttribute("data-peek") && !fullOn() && chart.layers.length && (document.body.dataset.peek = "float"), 300);
+        });
+        for (const element of [panelButton, panel]) element.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && (panelFloats() ? unfloat() : clearTimeout(panelTimer)));
+        panel.addEventListener("pointerenter", () => panelFloats() && clearTimeout(panelTimer));
+        panel.addEventListener("focusout", () => panelFloats() && unfloat());
+        // (A menu opened from either closed with the pointer away: it folds too.)
+        new MutationObserver(() => $("menu").hidden && (peeking() && unpeek(), panelFloats() && unfloat())).observe($("menu"), { attributes: true, attributeFilter: ["hidden"] });
         const shut = () => {
           clearTimeout(flyTimer);
           if (from && flyout && ownerNow() === from) hideMenu();
@@ -21428,7 +21513,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const written = `${linkBase()}${linkText(doc)}`;
         return new URL(written).href.length <= 1_000_000 ? written : packedLink(doc);
       }
-      const linkBase = () => `${location.origin}${location.pathname}#chart=`;
+      /** The page's own address, its query and hash left out (from a file, its origin is "null": the address it is). */
+      const linkBase = () => `${location.href.replace(/[?#].*$/, "")}#chart=`;
       /** A chart's link compressed (a long one's; read the same as one written out). @param {Chart} doc */
       async function packedLink(doc) {
         const stream = new Blob([JSON.stringify(portable(doc))]).stream().pipeThrough(new CompressionStream("deflate-raw"));
