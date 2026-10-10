@@ -5944,6 +5944,7 @@
         }
 
         .sidebar,
+        #redo,
         #add,
         .card-head .divider,
         #panel-toggle {
@@ -5962,8 +5963,8 @@
           bottom: var(--bar-room);
         }
 
-        /* The header: the title, Undo (Keep in its place for a preview), Draw, Share (its icon), ⋯; "Saved" said
-           elsewhere, taking no room from the title. */
+        /* The header: the title, Undo (Keep in its place for a preview), Draw, Share (its icon), ⋯ (Redo in it); "Saved"
+           said elsewhere, taking no room from the title. */
         #saved,
         .head-actions:has(#preview-note:not([hidden])) #undo {
           display: none;
@@ -7199,6 +7200,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn small" type="button" data-tip="Keep puts it in your charts (so does editing it)">Keep</button></span>
             <span id="saved" class="saved"></span>
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
+            <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" disabled></button>
             <span class="divider"></span>
             <button id="draw-toggle" class="cap" type="button" aria-pressed="false" aria-label="Drawing tools" data-tip="Drawing tools" data-kbd="D" data-action="draw" data-icon="draw"></button>
             <button id="add" class="cap" type="button" aria-haspopup="dialog" aria-label="Add a layer" data-tip="Add a layer" data-kbd="A" data-icon="plus"></button>
@@ -20035,7 +20037,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const folderPage = (ids) => choicePage("Move to folder", () => folderChoices(ids));
       /**
        * A chart's actions, where they show (`where`): "row", its sidebar row's ⋯ or right-click; "head", the header's ⋯
-       * (it's the one open: renamed in its title; Redo first, the legend and Export too); "tile", its card's in the grid
+       * (it's the one open: renamed in its title; the legend and Export too; on a phone, Redo first: no room for it
+       * beside Undo); "tile", its card's in the grid
        * (on it alone: the picks as they are); "palette", ⌘K's row of it (opened with ↵, renamed on a page, moved with ⌥↑
        * and ⌥↓). A preview's: kept or let go of, not duplicated or deleted.
        * @param {string} id @param {"row" | "head" | "tile" | "palette"} where @returns {Action[]}
@@ -20043,12 +20046,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function chartActions(id, where = "palette") {
         const doc = chartById(id);
         if (!doc) return [];
-        const isPreview = doc === previewing, inPalette = where === "palette", tile = where === "tile", head = where === "head";
+        const isPreview = doc === previewing, inPalette = where === "palette", tile = where === "tile", head = where === "head", phoneHead = head && phone.matches;
         const leave = isPreview ? "" : outOf([id]), peers = inPalette && !isPreview ? (doc.folder ? library.charts.filter((other) => other.folder === doc.folder) : sideItems()) : [];
         /** (A card's acts on it alone, the picks as they are; elsewhere, as its row's.) */
         const act = (/** @type {string} */ kind) => () => (tile ? batch(kind === "download" ? "export" : kind, null, [id]) : chartPick(id, kind));
         return [
-          ...(head && edits.future.length ? [{ key: "redo", icon: ICONS.redo, label: "Redo", group: "redo", run: redo }] : []),
+          ...(phoneHead && edits.future.length ? [{ key: "redo", icon: ICONS.redo, label: "Redo", group: "redo", run: redo }] : []),
           ...(inPalette || tile ? [{ key: "open", icon: ICONS.next, label: "Open", kbd: inPalette ? "↵" : undefined, run: () => go(chartById(id)) }] : []),
           ...(tile && !picked.has(id) ? [{ key: "select", icon: ICONS.checkbox, label: "Select", run: () => pickChart(id) }] : []),
           ...(isPreview && doc.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Keep", aside: inPalette ? undefined : "Into your charts", run: () => keepPreview() }] : []),
@@ -21011,7 +21014,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let flyout = false;
       // Hover to look, press to keep (with a mouse): the collapsed sidebar's button, pointed at a moment, floats the sidebar
       // whole over the page (the button keeps it), the closed panel's button the panel; a closed folder's row, its charts
-      // beside it (pressed, it opens). Gone as the pointer leaves what floats (and its button), a moment after (time
+      // beside it (pressed, it opens); the chart's ⋯, its menu (pressed, kept). Gone as the pointer leaves what floats (and its button), a moment after (time
       // enough to cross to the flyout, right beside its row).
       {
         let peekTimer = 0, flyTimer = 0, from = /** @type {HTMLElement | null} */ (null);
@@ -21090,14 +21093,48 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         // (Pressed, or right-clicked, before it shows: it doesn't.)
         for (const type of ["pointerdown", "contextmenu"]) $("chart-list").addEventListener(type, () => clearTimeout(flyTimer), true);
-        $("menu").addEventListener("pointerenter", () => flyout && clearTimeout(flyTimer));
-        $("menu").addEventListener("pointerleave", (event) => {
-          if (!flyout || event.pointerType !== "mouse") return;
-          clearTimeout(flyTimer);
-          flyTimer = window.setTimeout(() => !$("menu").matches(":hover") && !from?.matches(":hover") && shut(), 260);
-        });
+        // (Over the menu or a submenu of it, it stays; off them and what opened it, it goes a moment later.)
+        for (const id of ["menu", "submenu"]) {
+          $(id).addEventListener("pointerenter", () => flyout && clearTimeout(flyTimer));
+          $(id).addEventListener("pointerleave", (event) => {
+            if (!flyout || event.pointerType !== "mouse") return;
+            clearTimeout(flyTimer);
+            flyTimer = window.setTimeout(() => !$("menu").matches(":hover") && !$("submenu").matches(":hover") && !from?.matches(":hover") && shut(), 260);
+          });
+        }
         // (Pressed, the folder opens: its flyout goes.)
         $("chart-list").addEventListener("click", (event) => closest(event, "[data-folder-toggle]") && shut(), true);
+        // The chart's ⋯ the same: pointed at a moment, its menu; pressed then, the menu's kept (a press with none shown
+        // opens it, as before).
+        const more = $("chart-more");
+        more.addEventListener("pointerenter", (event) => {
+          if (event.pointerType !== "mouse" || phone.matches) return;
+          // (A folder's flyout still showing, on its way out: it goes now, not left behind.)
+          if (flyout && from !== more) shut();
+          clearTimeout(flyTimer);
+          if (!$("menu").hidden) return;
+          flyTimer = window.setTimeout(() => {
+            if (!more.matches(":hover") || !$("menu").hidden || more.hidden) return;
+            shut();
+            from = more;
+            hideTip();
+            menuOf(more, chartActions(chart.id, "head"), null, "", { hover: true });
+          }, 250);
+        });
+        more.addEventListener("pointerleave", (event) => {
+          if (event.pointerType !== "mouse" || from !== more) return;
+          clearTimeout(flyTimer);
+          if (flyout) flyTimer = window.setTimeout(() => !$("menu").matches(":hover") && !$("submenu").matches(":hover") && !more.matches(":hover") && shut(), 260);
+        });
+        more.addEventListener("click", (event) => {
+          if (from === more || !flyout) clearTimeout(flyTimer);
+          if (from !== more || !flyout || ownerNow() !== more) return;
+          event.stopImmediatePropagation();
+          flyout = false;
+          from = null;
+          // (Kept, as a press opens one: the focus in it, for its keys.)
+          /** @type {HTMLElement | null} */ ($("menu").querySelector("button:not(:disabled)"))?.focus({ preventScroll: true });
+        }, true);
       }
       function hideMenu() {
         flyout = false;
@@ -21246,6 +21283,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {HTMLElement} */ (document.activeElement)?.blur();
       }, true);
       $("undo").addEventListener("click", undoLast);
+      $("redo").addEventListener("click", redo);
       /** Out of the open chart: its image (copied, opened, downloaded), its data, its file. @returns {Action[]} */
       const exportRows = () => /** @type {[string, string, string, string, string][]} */ ([["copy", "Copy as image", "", ICONS.copy, "Copy"], ["open", "Open image", "In a tab of its own", ICONS.link, "Open"], ["png", "Download image", "PNG", ICONS.image, "Download"], ["csv", "Download data", "CSV", ICONS.table, "Download"], ["json", "Download chart file", "JSON", ICONS.file, "Download"]]).map(([kind, label, note, icon, verb]) => ({ key: kind, icon, label, aside: note, verb, apart: kind === "csv", run: () => exportAs(kind) }));
       // The panel's adds, from the header (and the phone's bar): those made from layers too, once there are layers for one.
@@ -22113,7 +22151,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The item a shown tip describes (as its description, to a screen reader, where its label doesn't say it already). */
       let described = /** @type {HTMLElement | null} */ (null);
       function showTip(target) {
-        if (!target.isConnected) return;
+        if (!target.isConnected || (ownerNow() === target && !$("menu").hidden)) return;
         // The expanded sidebar says what its items do, and a tip repeating a label shown in full adds nothing:
         // only a name cut short, or hidden on the rail, needs one.
         const rail = railed() && Boolean(target.closest(".sidebar"));
@@ -22198,7 +22236,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       let toastTimer = 0;
       /** The toolbar's Undo: on while ⌘Z has something to undo (the chart's last edit, or a toast's Undo). */
-      const syncUndo = () => ($("undo").disabled = !edits.past.length && toastUndo?.mark !== revision);
+      /** Undo and Redo, each pressable or not (Redo beside it always: an undo, even long after, taken back at a glance; nothing moves under a second press). */
+      const syncUndo = () => (($("undo").disabled = !edits.past.length && toastUndo?.mark !== revision), ($("redo").disabled = !edits.future.length));
       /** A toast's Undo, which ⌘Z presses while it's up and nothing has changed since (a deleted chart comes back too). */
       let toastUndo = /** @type {{ press: () => void, mark: number } | null} */ (null);
       /** Something done, with its check; or (`done` false) something to know, without. @param {{ label: string, run: () => void }} [action] */
@@ -22457,7 +22496,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       document.addEventListener("keydown", (event) => {
         const mod = event.metaKey || event.ctrlKey;
         const key = event.key.toLowerCase();
-        if (flyout) hideMenu();
+        if (flyout) {
+          if (!mod && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+            event.preventDefault();
+            flyout = false;
+            const items = all$("button:not(:disabled)", $("menu"));
+            return void items[event.key === "ArrowDown" ? 0 : items.length - 1]?.focus();
+          }
+          hideMenu();
+          if (event.key === "Escape") return void event.preventDefault();
+        }
         if (mod && key === "k") {
           event.preventDefault();
           if (!$("palette").open) return openPalette({ resume: true });
