@@ -616,6 +616,10 @@ has to be deleted by hand.
 
 #### Compute and indexing
 
+- Transaction patterns (coinjoin, consolidation, batch payout) classify block ranges in parallel instead of one
+  thread walking every transaction. Recomputing them from block 0 to ~970,750 on a 16 GB Mac mini takes 50 s instead
+  of 201 s (the whole transactions plugin, with no other plugin computing: 260 s instead of 414 s), with identical
+  flags and counts
 - Per-block loops read their per-height inputs through cursors instead of point reads, each of which decoded a whole
   compressed page: the URPD metrics behind coinflow and cointime (supplies and weights per age range), bedrock
   (supplies, weights and loss shares) and inscription fees. At 300,000 blocks coinflow takes 4.4 s instead of 33 s

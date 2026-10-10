@@ -1,14 +1,21 @@
+use std::ops::Range;
+
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Boolean, Count, TxInIndex};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Sats;
+use brk_types::{Height, Sats};
+use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, PcoVec, ReadableVec, VecIndex, WritableVec};
 
 use super::{Vecs, coinjoin::Candidate};
 
 const WRITE_INTERVAL: usize = 10_000;
+/// Heights one parallel task classifies.
+const TASK_HEIGHTS: usize = 64;
+/// Heights per wave of tasks, bounding the flags held before they are pushed in order.
+const WAVE_HEIGHTS: usize = 1_024;
 
 impl Vecs {
     pub(crate) fn compute(
@@ -85,101 +92,48 @@ impl Vecs {
                     .height
                     .truncate_if_needed_at(start_height)?;
             }
-
-            // The same boundaries give us both counts and candidate detail ranges.
         }
-        let mut txin_starts = indexer
-            .vecs()
-            .transactions
-            .first_txin_index
-            .range_cursor_at(start_tx, target_tx);
-        let mut txout_starts = indexer
-            .vecs()
-            .transactions
-            .first_txout_index
-            .range_cursor_at(start_tx, target_tx);
-        let mut first_txin = txin_starts.next().unwrap().to_usize();
-        let mut first_txout = txout_starts.next().unwrap().get().to_usize();
-        let input_len = indexer.vecs().inputs.outpoint.len();
-        let output_len = indexer.vecs().outputs.value.len();
 
-        let mut input_value = input_values.cursor();
-        let mut input_type = indexer.vecs().inputs.output_type.cursor();
-        let mut input_type_index = indexer.vecs().inputs.type_index.cursor();
-        let output_value = indexer.vecs().outputs.value.reader();
-        let output_type = indexer.vecs().outputs.output_type.reader();
-        let output_type_index = indexer.vecs().outputs.type_index.reader();
-        let mut has_op_return = features.has_op_return.cursor();
-        let mut has_inscription = features.has_inscription.cursor();
-        let mut tx_count = mappings.height.tx_index_count.cursor();
-
-        tx_count.advance(start_height);
-
-        let mut candidate = Candidate::default();
-        let mut block_start = start_tx;
-        for height in start_height..target_height {
-            let block_end = block_start + u64::from(tx_count.next().unwrap()) as usize;
-            let mut coinjoin_count = 0;
-            let mut consolidation_count = 0;
-            let mut batch_payout_count = 0;
-
-            for tx_index in block_start..block_end {
-                let next_txin = txin_starts
-                    .next()
-                    .map_or(input_len, |index| index.to_usize());
-                let next_txout = txout_starts
-                    .next()
-                    .map_or(output_len, |index| index.get().to_usize());
-                let inputs = next_txin.saturating_sub(first_txin);
-                let outputs = next_txout.saturating_sub(first_txout);
-                let consolidation = is_consolidation(inputs, outputs);
-                let batch_payout = is_batch_payout(inputs, outputs, tx_index == block_start);
-                let coinjoin_candidate = is_coinjoin_candidate(inputs, outputs)
-                    && !has_op_return.get(tx_index).unwrap().is_true()
-                    && !has_inscription.get(tx_index).unwrap().is_true();
-                let coinjoin = coinjoin_candidate && {
-                    candidate.clear((inputs + outputs) / 2);
-                    (first_txin..next_txin).all(|index| {
-                        candidate.add(
-                            input_value.get(index).unwrap(),
-                            input_type.get(index).unwrap(),
-                            input_type_index.get(index).unwrap(),
-                        )
-                    }) && (first_txout..next_txout).all(|index| {
-                        candidate.add(
-                            output_value.get_at(index),
-                            output_type.get_at(index),
-                            output_type_index.get_at(index),
-                        )
-                    })
-                };
-                first_txin = next_txin;
-                first_txout = next_txout;
-
-                coinjoin_count += coinjoin as u64;
-                consolidation_count += consolidation as u64;
-                batch_payout_count += batch_payout as u64;
-                self.flags.is_coinjoin.push(Boolean::from(coinjoin));
-                self.flags
-                    .is_consolidation
-                    .push(Boolean::from(consolidation));
-                self.flags.is_batch_payout.push(Boolean::from(batch_payout));
+        let tx_counts = &mappings.height.tx_index_count;
+        let mut height = start_height;
+        while height < target_height {
+            let wave_end = (height + WAVE_HEIGHTS).min(target_height);
+            let tasks: Vec<Classified> = (height..wave_end)
+                .into_par_iter()
+                .step_by(TASK_HEIGHTS)
+                .map(|from| {
+                    classify(
+                        indexer,
+                        input_values,
+                        tx_counts,
+                        from..(from + TASK_HEIGHTS).min(wave_end),
+                    )
+                })
+                .collect();
+            for task in tasks {
+                for [coinjoin, consolidation, batch_payout] in task.flags {
+                    self.flags.is_coinjoin.push(Boolean::from(coinjoin));
+                    self.flags
+                        .is_consolidation
+                        .push(Boolean::from(consolidation));
+                    self.flags.is_batch_payout.push(Boolean::from(batch_payout));
+                }
+                for [coinjoin, consolidation, batch_payout] in task.counts {
+                    self.count.coinjoin.push_block(Count::from(coinjoin));
+                    self.count
+                        .consolidation
+                        .push_block(Count::from(consolidation));
+                    self.count
+                        .batch_payout
+                        .push_block(Count::from(batch_payout));
+                }
             }
-
-            self.count.coinjoin.push_block(Count::from(coinjoin_count));
-            self.count
-                .consolidation
-                .push_block(Count::from(consolidation_count));
-            self.count
-                .batch_payout
-                .push_block(Count::from(batch_payout_count));
-
-            if (height + 1).is_multiple_of(WRITE_INTERVAL) {
+            // A wave that passes a multiple of the interval writes, like the per-height loop did.
+            if wave_end / WRITE_INTERVAL > height / WRITE_INTERVAL {
                 let _lock = exit.lock();
                 self.write()?;
             }
-
-            block_start = block_end;
+            height = wave_end;
         }
 
         let _lock = exit.lock();
@@ -207,4 +161,101 @@ fn is_batch_payout(inputs: usize, outputs: usize, is_coinbase: bool) -> bool {
 
 fn is_coinjoin_candidate(inputs: usize, outputs: usize) -> bool {
     inputs >= 5 && outputs >= 5 && inputs < outputs * 5 && outputs < inputs * 5
+}
+
+/// One task's classified transactions (coinjoin, consolidation, batch payout) and per-block counts.
+struct Classified {
+    flags: Vec<[bool; 3]>,
+    counts: Vec<[u64; 3]>,
+}
+
+/// Classifies the transactions of `heights`, independently of other tasks.
+fn classify(
+    indexer: &Indexer,
+    input_values: &PcoVec<TxInIndex, Sats>,
+    tx_counts: &(impl ReadableVec<Height, Count> + Sync),
+    heights: Range<usize>,
+) -> Classified {
+    let vecs = indexer.vecs();
+    let features = &vecs.transaction_features;
+    let block_tx_counts = tx_counts.collect_range_at(heights.start, heights.end);
+    let start_tx = vecs
+        .transactions
+        .first_tx_index
+        .collect_one_at(heights.start)
+        .unwrap()
+        .to_usize();
+    let end_tx = start_tx
+        + block_tx_counts
+            .iter()
+            .map(|&n| u64::from(n) as usize)
+            .sum::<usize>();
+    let input_len = vecs.inputs.outpoint.len();
+    let output_len = vecs.outputs.value.len();
+    // One past the task's last transaction: the next one's first input and output, when it exists.
+    let txin_starts = vecs
+        .transactions
+        .first_txin_index
+        .collect_range_at(start_tx, end_tx + 1);
+    let txout_starts = vecs
+        .transactions
+        .first_txout_index
+        .collect_range_at(start_tx, end_tx + 1);
+    let has_op_return = features.has_op_return.collect_range_at(start_tx, end_tx);
+    let has_inscription = features.has_inscription.collect_range_at(start_tx, end_tx);
+
+    let mut input_value = input_values.cursor();
+    let mut input_type = vecs.inputs.output_type.cursor();
+    let mut input_type_index = vecs.inputs.type_index.cursor();
+    let output_value = vecs.outputs.value.reader();
+    let output_type = vecs.outputs.output_type.reader();
+    let output_type_index = vecs.outputs.type_index.reader();
+
+    let mut candidate = Candidate::default();
+    let mut flags = Vec::with_capacity(end_tx - start_tx);
+    let mut counts = Vec::with_capacity(block_tx_counts.len());
+    let mut offset = 0;
+    for tx_count in block_tx_counts {
+        let block_start = offset;
+        let block_end = offset + u64::from(tx_count) as usize;
+        let mut totals = [0u64; 3];
+        for tx in block_start..block_end {
+            let first_txin = txin_starts[tx].to_usize();
+            let first_txout = txout_starts[tx].get().to_usize();
+            let next_txin = txin_starts.get(tx + 1).map_or(input_len, |i| i.to_usize());
+            let next_txout = txout_starts
+                .get(tx + 1)
+                .map_or(output_len, |i| i.get().to_usize());
+            let inputs = next_txin.saturating_sub(first_txin);
+            let outputs = next_txout.saturating_sub(first_txout);
+            let consolidation = is_consolidation(inputs, outputs);
+            let batch_payout = is_batch_payout(inputs, outputs, tx == block_start);
+            let coinjoin_candidate = is_coinjoin_candidate(inputs, outputs)
+                && !has_op_return[tx].is_true()
+                && !has_inscription[tx].is_true();
+            let coinjoin = coinjoin_candidate && {
+                candidate.clear((inputs + outputs) / 2);
+                (first_txin..next_txin).all(|index| {
+                    candidate.add(
+                        input_value.get(index).unwrap(),
+                        input_type.get(index).unwrap(),
+                        input_type_index.get(index).unwrap(),
+                    )
+                }) && (first_txout..next_txout).all(|index| {
+                    candidate.add(
+                        output_value.get_at(index),
+                        output_type.get_at(index),
+                        output_type_index.get_at(index),
+                    )
+                })
+            };
+            totals[0] += u64::from(coinjoin);
+            totals[1] += u64::from(consolidation);
+            totals[2] += u64::from(batch_payout);
+            flags.push([coinjoin, consolidation, batch_payout]);
+        }
+        counts.push(totals);
+        offset = block_end;
+    }
+    Classified { flags, counts }
 }
