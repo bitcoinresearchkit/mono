@@ -29,7 +29,7 @@ macro_rules! with_transaction_features {
             has_p2a: P2A = 7, count: p2a, count_attr: doc = "Number of transactions in the block that create or, outside coinbase, spend at least one pay-to-Anchor output matching `OP_1 PUSHBYTES_2 0x4e73`.";
             /// Whether the transaction creates or, outside coinbase, spends at
             /// least one output whose locking script begins with `OP_RETURN`.
-            has_op_return: OP_RETURN = 8, count: op_return, count_attr: doc = "Number of transactions in the block that create or, outside coinbase, spend at least one output whose locking script begins with `OP_RETURN`.";
+            has_op_return: OP_RETURN = 8, count: op_return, count_attr: traversable(hidden);
             /// Whether the transaction creates or, outside coinbase, spends at
             /// least one output with an empty locking script.
             has_empty: EMPTY = 9, count: empty, count_attr: doc = "Number of transactions in the block that create or, outside coinbase, spend at least one output with an empty locking script.";

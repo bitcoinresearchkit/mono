@@ -19,6 +19,7 @@ pub struct OpReturnVecs<M: StorageMode = Rw> {
     /// non-empty pushed-data prefix, or from the full post-OP_RETURN byte count
     /// for length-based formats. `runes` is recognized from an immediate
     /// `OP_13`; unmatched payloads are `text`, `bare_hash`, or `unknown`.
+    #[traversable(rename = "protocol")]
     pub kind: M::Stored<PcoVec<OpReturnIndex, OpReturnKind>>,
     /// Number of serialized locking-script bytes after the initial
     /// `OP_RETURN` opcode, including push opcodes and push-length prefixes.
@@ -30,7 +31,7 @@ impl OpReturnVecs {
         let (first_index, to_tx_index, kind, post_op_return_bytes) = parallel_import! {
             first_index = PcoVec::import(db, "first_op_return_index", version),
             to_tx_index = PcoVec::import(db, "tx_index", version),
-            kind = PcoVec::import(db, "kind", version),
+            kind = PcoVec::import(db, "op_return_protocol", version),
             post_op_return_bytes =
                 PcoVec::import(db, "op_return_post_op_return_bytes", version),
         };

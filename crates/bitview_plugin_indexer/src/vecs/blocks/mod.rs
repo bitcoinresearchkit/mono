@@ -27,26 +27,23 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// Unix timestamp in seconds associated with the indexed block or time
     /// period. Block-header timestamps are not guaranteed to increase between
     /// consecutive heights.
-    #[traversable(wrap = "time")]
     pub timestamp: M::Stored<PcoVec<Height, Timestamp, Budgeted>>,
     /// Median of this block's timestamp and up to ten predecessors, choosing
     /// the upper middle for early even-length windows. Compressed on disk;
     /// response builders read bounded ranges without caching the full history.
     #[traversable(hidden)]
     pub median_time: M::Stored<PcoVec<Height, Timestamp>>,
-    /// Total serialized size in bytes, including witness data. At `tx_index`,
-    /// this is the byte length of the transaction's consensus serialization. At
-    /// `height`, this is the entire block: its 80-byte header, transaction-count
-    /// CompactSize, and every serialized transaction.
-    #[traversable(wrap = "size", rename = "block")]
+    /// Serialized block size in bytes, including witness data: its 80-byte header,
+    /// transaction-count CompactSize, and every serialized transaction.
+    #[traversable(rename = "size")]
     pub total: M::Stored<PcoVec<Height, Bytes32>>,
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one.
-    #[traversable(wrap = "weight", rename = "block")]
     pub weight: M::Stored<PcoVec<Height, Weight>>,
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<Height, BlkPosition>>,
     /// Number of non-coinbase transactions using SegWit serialization.
+    #[traversable(rename = "segwit_tx_count")]
     pub segwit_txs: M::Stored<PcoVec<Height, Count16>>,
     /// Combined total serialized size in bytes of the block's non-coinbase
     /// SegWit transactions; excludes block overhead and all other transactions.
@@ -76,10 +73,10 @@ impl BlocksVecs {
             difficulty = PcoVec::import(db, "difficulty", version),
             timestamp = PcoVec::import(db, "timestamp", version),
             median_time = PcoVec::import(db, "median_time", version),
-            total_size = PcoVec::import(db, "total_size", version),
+            total_size = PcoVec::import(db, "block_size", version),
             weight = PcoVec::import(db, "block_weight", version),
             position = PcoVec::import(db, "block_position", version),
-            segwit_txs = PcoVec::import(db, "segwit_txs", version),
+            segwit_txs = PcoVec::import(db, "segwit_tx_count", version),
             segwit_size = PcoVec::import(db, "segwit_size", version),
             segwit_weight = PcoVec::import(db, "segwit_weight", version),
         };

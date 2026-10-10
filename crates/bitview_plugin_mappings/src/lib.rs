@@ -32,7 +32,7 @@ use bitview_vecs::IndexSources;
 use brk_types::{Height, TxIndex, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
-use addr::Vecs as AddrVecs;
+use addr::{OutputVecs, Vecs as AddressesVecs};
 use chain_counts::ChainCounts;
 use height::Vecs as HeightVecs;
 use height_lookup::HeightLookup;
@@ -56,7 +56,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub tx_heights: HeightLookup<TxIndex>,
     #[traversable(skip)]
     pub output_heights: HeightLookup<TxOutIndex>,
-    addr: AddrVecs,
+    addresses: AddressesVecs,
+    outputs: OutputVecs,
     pub height: HeightVecs,
     pub epoch: ResolutionVecs<Epoch>,
     halving: ResolutionVecs<Halving>,

@@ -434,29 +434,24 @@ impl Query {
             prices.unwrap_or_else(|| plugins.price.spot.usd.height.collect_range_at(begin, end));
 
         // Bulk read effective fee rate distribution (accounts for CPFP)
-        let frd = &plugins
-            .transactions
-            .fees
-            .effective_fee_rate
-            .distribution
-            .block;
-        let fr_min = frd.min.height.collect_range_at(begin, end);
-        let fr_pct10 = frd.pct10.height.collect_range_at(begin, end);
-        let fr_pct25 = frd.pct25.height.collect_range_at(begin, end);
-        let fr_median = frd.median.height.collect_range_at(begin, end);
-        let fr_pct75 = frd.pct75.height.collect_range_at(begin, end);
-        let fr_pct90 = frd.pct90.height.collect_range_at(begin, end);
-        let fr_max = frd.max.height.collect_range_at(begin, end);
+        let frd = &plugins.transactions.fees.effective_fee_rate.distribution;
+        let fr_min = frd.min.block.height.collect_range_at(begin, end);
+        let fr_pct10 = frd.pct10.block.height.collect_range_at(begin, end);
+        let fr_pct25 = frd.pct25.block.height.collect_range_at(begin, end);
+        let fr_median = frd.median.block.height.collect_range_at(begin, end);
+        let fr_pct75 = frd.pct75.block.height.collect_range_at(begin, end);
+        let fr_pct90 = frd.pct90.block.height.collect_range_at(begin, end);
+        let fr_max = frd.max.block.height.collect_range_at(begin, end);
 
         // Bulk read fee amount distribution (sats)
-        let fad = &plugins.transactions.fees.fee.distribution.block;
-        let fa_min = fad.min.height.collect_range_at(begin, end);
-        let fa_pct10 = fad.pct10.height.collect_range_at(begin, end);
-        let fa_pct25 = fad.pct25.height.collect_range_at(begin, end);
-        let fa_median = fad.median.height.collect_range_at(begin, end);
-        let fa_pct75 = fad.pct75.height.collect_range_at(begin, end);
-        let fa_pct90 = fad.pct90.height.collect_range_at(begin, end);
-        let fa_max = fad.max.height.collect_range_at(begin, end);
+        let fad = &plugins.transactions.fees.fee.distribution;
+        let fa_min = fad.min.block.height.collect_range_at(begin, end);
+        let fa_pct10 = fad.pct10.block.height.collect_range_at(begin, end);
+        let fa_pct25 = fad.pct25.block.height.collect_range_at(begin, end);
+        let fa_median = fad.median.block.height.collect_range_at(begin, end);
+        let fa_pct75 = fad.pct75.block.height.collect_range_at(begin, end);
+        let fa_pct90 = fad.pct90.block.height.collect_range_at(begin, end);
+        let fa_max = fad.max.block.height.collect_range_at(begin, end);
 
         let timestamps = self.block_timestamps(begin, end);
         let median_times = indexer

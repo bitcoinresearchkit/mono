@@ -7,10 +7,10 @@ use brk_error::Result;
 use brk_types::{Height, VSize, Version, Weight};
 use vecdb::{Database, LazyVec, ReadableCloneableVec};
 
-use super::{Vecs, vecs::VBytes};
-use crate::WeightVecs;
+use super::{Vecs, vecs::VirtualSize};
+use crate::{WeightVecs, block_rolling::BlockRolling};
 
-fn block_vbytes(_: Height, weight: Weight) -> VSize {
+fn block_vsize(_: Height, weight: Weight) -> VSize {
     VSize::from(weight)
 }
 
@@ -23,15 +23,15 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
         weight: &WeightVecs,
     ) -> Result<Self> {
-        let vbytes = VBytes {
+        let vsize = VirtualSize {
             block: LazyVec::init(
-                "block_vbytes",
+                "block_vsize",
                 version,
                 indexer.vecs().blocks.weight.read_only_boxed_clone(),
-                block_vbytes,
+                block_vsize,
             ),
             rolling: LazyPerBlockRolling::from_rolling::<WeightToVSize>(
-                "block_vbytes",
+                "block_vsize",
                 version,
                 &weight.weight,
                 window_starts,
@@ -40,8 +40,13 @@ impl Vecs {
         };
 
         Ok(Self {
-            vbytes,
-            size: PerBlockRolling::import(db, "block_size", version, mappings, window_starts)?,
+            vsize,
+            size: BlockRolling::new(
+                "block_size",
+                version,
+                &indexer.vecs().blocks.total,
+                PerBlockRolling::import(db, "block_size", version, mappings, window_starts)?,
+            ),
         })
     }
 }

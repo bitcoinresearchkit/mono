@@ -5,27 +5,50 @@ use std::{
     time::{Duration, Instant},
 };
 
+use bitview_collections::DistributionStats;
 use bitview_compute::{ComputedVecValue, NumericValue, prepare_computed};
 use bitview_primitives::{Count, Lengths};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, TxIndex, VSize};
+use brk_types::{Height, TxIndex, VSize, get_weighted_percentiles};
+use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use tracing::info;
-use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, VecIndex, Version};
+use vecdb::{
+    AnyStoredVec, Budgeted, Database, EagerVec, PcoVec, ReadableVec, Rw, StorageMode, VecIndex,
+    Version, WritableVec,
+};
 
-use crate::{IndexSources, PerBlockDistribution};
+use crate::{IndexSources, PerBlock};
 
-#[derive(Traversable)]
-pub struct TxDerivedDistribution<T, M: StorageMode = Rw>
-where
-    T: ComputedVecValue + PartialOrd + JsonSchema,
-{
-    pub block: PerBlockDistribution<T, M>,
+/// A statistic for the represented block and for the six-block window ending there.
+#[derive(Clone, Traversable)]
+pub struct TxWindows<A> {
+    pub block: A,
     /// Uses the six-block window ending at the represented block.
-    pub(crate) _6b: PerBlockDistribution<T, M>,
+    pub(crate) _6b: A,
 }
+
+impl<A> TxWindows<A> {
+    fn get_mut(&mut self, six_blocks: bool) -> &mut A {
+        if six_blocks {
+            &mut self._6b
+        } else {
+            &mut self.block
+        }
+    }
+}
+
+/// Per-block distributions of a per-transaction value, statistic first: `{stat}.{block, _6b}`,
+/// ids `{name}_{stat}` and `{name}_{stat}_6b`.
+#[derive(Deref, DerefMut, Traversable)]
+#[traversable(transparent)]
+pub struct TxDerivedDistribution<T, M: StorageMode = Rw>(
+    pub DistributionStats<TxWindows<PerBlock<T, M>>>,
+)
+where
+    T: ComputedVecValue + PartialOrd + JsonSchema;
 
 impl<T> TxDerivedDistribution<T>
 where
@@ -37,10 +60,42 @@ where
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let block = PerBlockDistribution::import(db, name, version, indexes)?;
-        let _6b = PerBlockDistribution::import(db, &format!("{name}_6b"), version, indexes)?;
+        Ok(Self(DistributionStats::try_from_fn(|stat| -> Result<_> {
+            Ok(TxWindows {
+                block: PerBlock::import(db, &format!("{name}_{stat}"), version, indexes)?,
+                _6b: PerBlock::import(db, &format!("{name}_{stat}_6b"), version, indexes)?,
+            })
+        })?))
+    }
 
-        Ok(Self { block, _6b })
+    /// One window's statistics.
+    fn window(&mut self, six_blocks: bool) -> DistributionStats<&mut PerBlock<T>> {
+        let s = &mut self.0;
+        DistributionStats {
+            min: s.min.get_mut(six_blocks),
+            max: s.max.get_mut(six_blocks),
+            pct10: s.pct10.get_mut(six_blocks),
+            pct25: s.pct25.get_mut(six_blocks),
+            median: s.median.get_mut(six_blocks),
+            pct75: s.pct75.get_mut(six_blocks),
+            pct90: s.pct90.get_mut(six_blocks),
+        }
+    }
+
+    fn height_vecs_mut(&mut self) -> Vec<&mut EagerVec<PcoVec<Height, T, Budgeted>>> {
+        let s = &mut self.0;
+        [
+            &mut s.min,
+            &mut s.max,
+            &mut s.median,
+            &mut s.pct10,
+            &mut s.pct25,
+            &mut s.pct75,
+            &mut s.pct90,
+        ]
+        .into_iter()
+        .flat_map(|windows| [&mut windows.block.height, &mut windows._6b.height])
+        .collect()
     }
 
     pub fn derive_from(
@@ -89,7 +144,7 @@ where
                     }
                 });
             },
-            PerBlockDistribution::push_sorted,
+            push_sorted,
         )
     }
 
@@ -128,7 +183,7 @@ where
                     }
                 });
             },
-            PerBlockDistribution::push_weighted_sorted,
+            push_weighted_sorted,
         )
     }
 
@@ -144,18 +199,13 @@ where
         skip_count: usize,
         exit: &Exit,
         mut read: impl FnMut(Range<usize>, &mut Vec<U>),
-        push: impl Fn(&mut PerBlockDistribution<T>, &[U]),
+        push: impl Fn(DistributionStats<&mut PerBlock<T>>, &[U]),
     ) -> Result<()> {
         const WINDOW: usize = 6;
         let version = source_version + first_tx_index.version() + counts.version();
         let end = first_tx_index.len().min(counts.len());
-        let mut outputs = [self.block.height_vecs_mut(), self._6b.height_vecs_mut()];
-        let start = prepare_computed(
-            outputs.as_flattened_mut(),
-            version,
-            usize::from(max_from).min(end),
-            exit,
-        )?;
+        let mut outputs = self.height_vecs_mut();
+        let start = prepare_computed(&mut outputs, version, usize::from(max_from).min(end), exit)?;
         if start < end {
             let warmup = start.saturating_sub(WINDOW - 1);
             let mut first = first_tx_index.cursor();
@@ -184,8 +234,8 @@ where
                     &mut buffer,
                 );
                 if height >= start {
-                    push(&mut self.block, &block);
-                    push(&mut self._6b, &window);
+                    push(self.window(false), &block);
+                    push(self.window(true), &window);
                 }
                 // Reuse the expired block's allocation for the next block.
                 ring.push_back(mem::replace(&mut block, expired.unwrap_or_default()));
@@ -199,16 +249,67 @@ where
             }
         }
         let _lock = exit.lock();
-        for target in self
-            .block
-            .height_vecs_mut()
-            .into_iter()
-            .chain(self._6b.height_vecs_mut())
-        {
+        for target in self.height_vecs_mut() {
             target.write()?;
         }
         Ok(())
     }
+}
+
+fn push_sorted<T: NumericValue + JsonSchema>(
+    stats: DistributionStats<&mut PerBlock<T>>,
+    values: &[T],
+) {
+    if let (Some(&min), Some(&max)) = (values.first(), values.last()) {
+        stats.max.height.push(max);
+        stats.pct90.height.push(get_percentile(values, 0.90));
+        stats.pct75.height.push(get_percentile(values, 0.75));
+        stats.median.height.push(get_percentile(values, 0.50));
+        stats.pct25.height.push(get_percentile(values, 0.25));
+        stats.pct10.height.push(get_percentile(values, 0.10));
+        stats.min.height.push(min);
+    } else {
+        push_zeros(stats);
+    }
+}
+
+fn push_weighted_sorted<T: NumericValue + JsonSchema>(
+    stats: DistributionStats<&mut PerBlock<T>>,
+    values: &[(T, VSize)],
+) {
+    if let (Some(&(min, _)), Some(&(max, _))) = (values.first(), values.last()) {
+        stats.max.height.push(max);
+        let [pct10, pct25, median, pct75, pct90] =
+            get_weighted_percentiles(values, [0.10, 0.25, 0.50, 0.75, 0.90]);
+        stats.pct90.height.push(pct90);
+        stats.pct75.height.push(pct75);
+        stats.median.height.push(median);
+        stats.pct25.height.push(pct25);
+        stats.pct10.height.push(pct10);
+        stats.min.height.push(min);
+    } else {
+        push_zeros(stats);
+    }
+}
+
+fn push_zeros<T: NumericValue + JsonSchema>(stats: DistributionStats<&mut PerBlock<T>>) {
+    for vec in [
+        stats.min,
+        stats.max,
+        stats.pct10,
+        stats.pct25,
+        stats.median,
+        stats.pct75,
+        stats.pct90,
+    ] {
+        vec.height.push(T::from(0_usize));
+    }
+}
+
+/// A percentile of a non-empty sorted slice, nearest rank.
+fn get_percentile<T: Clone>(sorted: &[T], percentile: f64) -> T {
+    let index = ((sorted.len() - 1) as f64 * percentile).round() as usize;
+    sorted[index].clone()
 }
 
 /// Merge a sorted block and remove the expired multiset in one pass.

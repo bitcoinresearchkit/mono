@@ -16,16 +16,15 @@ impl Query {
             .transactions
             .fees
             .effective_fee_rate
-            .distribution
-            .block;
+            .distribution;
 
-        let min = bw.read(&frd.min.height)?;
-        let pct10 = bw.read(&frd.pct10.height)?;
-        let pct25 = bw.read(&frd.pct25.height)?;
-        let median = bw.read(&frd.median.height)?;
-        let pct75 = bw.read(&frd.pct75.height)?;
-        let pct90 = bw.read(&frd.pct90.height)?;
-        let max = bw.read(&frd.max.height)?;
+        let min = bw.read(&frd.min.block.height)?;
+        let pct10 = bw.read(&frd.pct10.block.height)?;
+        let pct25 = bw.read(&frd.pct25.block.height)?;
+        let median = bw.read(&frd.median.block.height)?;
+        let pct75 = bw.read(&frd.pct75.block.height)?;
+        let pct90 = bw.read(&frd.pct90.block.height)?;
+        let max = bw.read(&frd.max.block.height)?;
         drop(_guard);
 
         Ok(bw

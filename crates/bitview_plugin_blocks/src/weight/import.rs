@@ -8,6 +8,7 @@ use brk_types::{Height, Version, Weight};
 use vecdb::Database;
 
 use super::Vecs;
+use crate::block_rolling::BlockRolling;
 
 fn block_fullness(_: Height, weight: Weight) -> PartsPerMillion32 {
     PartsPerMillion32::from(weight.fullness())
@@ -21,7 +22,12 @@ impl Vecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let weight = PerBlockRolling::import(db, "block_weight", version, mappings, window_starts)?;
+        let weight = BlockRolling::new(
+            "block_weight",
+            version,
+            &indexer.vecs().blocks.weight,
+            PerBlockRolling::import(db, "block_weight", version, mappings, window_starts)?,
+        );
 
         let fullness = LazyPercentVec::from_indexed_source(
             "block_fullness",

@@ -37,7 +37,7 @@ impl Vecs {
             count,
             total: EagerVec::import(db, "fee_total", v)?,
             coinbase_value: EagerVec::import(db, "coinbase_value", v)?,
-            fee: PerTxDistribution::import(db, "fee", v, mappings)?,
+            fee: PerTxDistribution::import(db, "tx_fee", v, mappings)?,
             fee_rate: EagerVec::import(db, "fee_rate", v)?,
             effective_fee_rate: PerTxDistribution::import(db, "effective_fee_rate", v, mappings)?,
             cpfp_flags: CpfpFlags {
