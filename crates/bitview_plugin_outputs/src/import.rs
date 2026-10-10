@@ -28,7 +28,7 @@ impl Vecs {
             mappings,
             window_starts,
         );
-        let value = value::Vecs::import(&db, version, mappings)?;
+        let value = value::Vecs::import(&db, version, mappings, window_starts)?;
 
         let creations = Creations::open(db.path())?;
         let this = Self {

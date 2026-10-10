@@ -36,13 +36,6 @@ impl Vecs {
                 mappings,
                 window_starts,
             )?,
-            vocdd: PerBlockCumulativeRolling::import(
-                db,
-                "vocdd",
-                version + Version::ONE,
-                mappings,
-                window_starts,
-            )?,
         })
     }
 }

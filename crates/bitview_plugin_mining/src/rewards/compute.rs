@@ -16,12 +16,6 @@ fn derived_subsidy(height: Height, coinbase: Sats, fees: Sats) -> Sats {
         .unwrap_or_else(|| panic!("coinbase {coinbase:?} < fees {fees:?} at {height:?}"))
 }
 
-fn output_volume(height: Height, input_volume: Sats, fees: Sats) -> Sats {
-    input_volume
-        .checked_sub(fees)
-        .unwrap_or_else(|| panic!("input volume {input_volume:?} < fees {fees:?} at {height:?}"))
-}
-
 fn unclaimed_rewards(height: Height, subsidy: Sats) -> Sats {
     Halving::from(height)
         .subsidy()
@@ -71,15 +65,6 @@ impl Vecs {
             &self.coinbase.block.sats,
             &self.fees.block.sats,
             derived_subsidy,
-            exit,
-        )?;
-
-        self.output_volume.compute_from_pair(
-            starting_height,
-            &prices.spot.cents.height,
-            &transactions.volume.value.block.sats,
-            &self.fees.block.sats,
-            output_volume,
             exit,
         )?;
 

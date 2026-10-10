@@ -50,16 +50,16 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// at the represented block. Larger values mean more accumulated holding
     /// time was consumed by spending relative to the supply. Returns zero when
     /// supply is zero.
-    coindays_destroyed_supply_adj: LazyPerBlock<Days>,
+    coindays_destroyed_supply_adjusted: LazyPerBlock<Days>,
     /// Trailing 365-day coin years destroyed divided by all-chain supply in BTC
     /// at the represented block. Larger values mean more accumulated holding
     /// time was consumed by spending relative to the supply. Returns zero when
     /// supply is zero.
-    coinyears_destroyed_supply_adj: LazyPerBlock<Years>,
+    coinyears_destroyed_supply_adjusted: LazyPerBlock<Years>,
     dormancy: DormancyVecs,
     /// All-chain supply in satoshis at the represented block divided by that
-    /// block's scheduled subsidy annualized at 52,560 blocks. Returns
-    /// zero when the annualized flow is zero. The value approximates how many
+    /// block's scheduled subsidy annualized at 52,560 blocks. NaN when the
+    /// annualized flow is zero. The value approximates how many
     /// years of subsidy issuance at the represented block's rate would equal
     /// the current supply.
     stock_to_flow: LazyPerBlock<Years>,
@@ -70,7 +70,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// when little supply is in profit, recent volatility is low, or both;
     /// high values require both a profitable supply and volatile price. Returns
     /// zero when total supply is zero.
-    seller_exhaustion: PerBlock<Ratio, M>,
+    seller_exhaustion_constant: PerBlock<Ratio, M>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

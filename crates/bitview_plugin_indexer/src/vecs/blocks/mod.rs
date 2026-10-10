@@ -21,7 +21,7 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     pub coinbase_tag: M::Stored<BytesVec<Height, CoinbaseTag>>,
     /// Mining difficulty encoded by the block header, calculated as Bitcoin's
     /// maximum target divided by this block's proof-of-work target.
-    /// Public through the blocks plugin (`blocks.difficulty.value`, every index).
+    /// Public through the blocks plugin (`blocks.difficulty.block`, every index).
     #[traversable(hidden)]
     pub difficulty: M::Stored<PcoVec<Height, Difficulty, Budgeted>>,
     /// Unix timestamp in seconds associated with the indexed block or time

@@ -287,7 +287,6 @@ impl DefaultPlugins {
                         &mappings,
                         &window_starts,
                         &holders,
-                        &cointime,
                         &all_chain,
                         &transactions,
                     )?))

@@ -17,7 +17,7 @@ impl Vecs {
     ) -> Result<Self> {
         let price_past =
             ByLookbackPeriod::try_from_period(window_starts, |name, _days, window_starts| {
-                let metric_name = format!("price_past_{name}");
+                let metric_name = format!("price_{name}_ago");
                 let source = LazyWindowVec::<Height, Cents, Cents>::new(
                     &format!("{metric_name}_cents_source"),
                     version,

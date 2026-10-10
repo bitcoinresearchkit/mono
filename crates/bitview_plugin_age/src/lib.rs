@@ -35,7 +35,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub cohorts: CohortMetrics<M>,
     age_bounds: AgeBoundsMetrics<M>,
+    /// Coin days created in each UTXO age range: the range's supply held for
+    /// the block's duration, one coin day per BTC per day.
     pub coindays_created: AgeRange<PerBlockCumulativeRolling<CoinDays, M>>,
+    /// Coinblocks destroyed by each block: each spent output's BTC value
+    /// multiplied by the blocks it stayed unspent.
     pub coinblocks_destroyed: PerBlockCumulativeRolling<CoinBlocks, M>,
 }
 

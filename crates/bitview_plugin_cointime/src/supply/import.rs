@@ -27,14 +27,20 @@ impl Vecs {
             |_, liveliness, supply| supply * liveliness,
         );
 
+        let vaulted = LazySpotValuePerBlock::from_sats_source(
+            "vaulted_supply",
+            version,
+            &vaulted,
+            mappings,
+            spot_price,
+        );
         Self {
-            vaulted: LazySpotValuePerBlock::from_sats_source(
-                "vaulted_supply",
+            hodled_or_lost: LazySpotValuePerBlock::identity(
+                "hodled_or_lost_supply",
                 version,
                 &vaulted,
-                mappings,
-                spot_price,
             ),
+            vaulted,
             active: LazySpotValuePerBlock::from_sats_source(
                 "active_supply",
                 version,

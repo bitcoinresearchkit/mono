@@ -1,6 +1,7 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::FixedToPercent;
+use bitview_urpd::CostBasisVecs;
 use bitview_vecs::{
     CachedSeries, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
     LazySpotValuePerBlock, import_cached,
@@ -19,9 +20,9 @@ impl Vecs {
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let sources = Sources::import(db, version)?;
-        let cohorts = AgeAggregate::from_fn(|id| {
-            CohortVecs::new(id, version, &sources, mappings, spot_price)
-        });
+        let cohorts = AgeAggregate::try_from_fn(|id| {
+            CohortVecs::new(db, id, version, &sources, mappings, spot_price)
+        })?;
         Ok(Vecs { cohorts, sources })
     }
 }
@@ -57,14 +58,15 @@ fn import_aggregate<T: PcoVecValue>(
 
 impl CohortVecs {
     fn new(
+        db: &Database,
         id: AgeAggregateId,
         version: Version,
         sources: &Sources,
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
-    ) -> Self {
+    ) -> Result<Self> {
         let name = |metric: &str| id.metric_name(metric);
-        Self {
+        Ok(Self {
             mobile: MobileVecs {
                 supply: LazySpotValuePerBlock::from_sats_source(
                     &name("mobile_supply"),
@@ -99,6 +101,7 @@ impl CohortVecs {
                     mappings,
                     spot_price,
                 ),
+                cost_basis: CostBasisVecs::import(db, &name("mobile"), version, mappings)?,
             },
             immobile: ImmobileVecs {
                 supply: LazySpotValuePerBlock::from_sats_source(
@@ -109,6 +112,6 @@ impl CohortVecs {
                     spot_price,
                 ),
             },
-        }
+        })
     }
 }

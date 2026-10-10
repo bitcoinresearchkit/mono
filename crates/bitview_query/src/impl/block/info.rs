@@ -11,7 +11,7 @@ use bitcoin::{
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Lengths, PoolSlug, pools};
 use bitview_types::{BlockExtras, BlockHeader, BlockInfo, BlockInfoV1, BlockPool};
-use brk_types::{BlockHash, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, VSize};
+use brk_types::{BlockHash, CheckedSub, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, VSize};
 use vecdb::{ReadableVec, VecIndex};
 
 use crate::{Error, OptionData, Query, Result};
@@ -427,19 +427,11 @@ impl Query {
         let input_volumes = plugins
             .transactions
             .volume
-            .value
             .block
             .sats
             .collect_range_at(begin, end);
         let prices =
             prices.unwrap_or_else(|| plugins.price.spot.usd.height.collect_range_at(begin, end));
-        let output_volumes = plugins
-            .mining
-            .rewards
-            .output_volume
-            .block
-            .sats
-            .collect_range_at(begin, end);
 
         // Bulk read effective fee rate distribution (accounts for CPFP)
         let frd = &plugins
@@ -493,7 +485,6 @@ impl Query {
             utxo_set_sizes.len(),
             input_volumes.len(),
             prices.len(),
-            output_volumes.len(),
             fr_min.len(),
             fr_pct10.len(),
             fr_pct25.len(),
@@ -586,7 +577,10 @@ impl Query {
                 };
 
                 let total_input_amt = input_volumes[i];
-                let total_output_amt = output_volumes[i];
+                // Non-coinbase output value: input value minus fees.
+                let total_output_amt = total_input_amt
+                    .checked_sub(total_fees)
+                    .ok_or(Error::Internal("blocks_v1_range: fees exceed input volume"))?;
 
                 let extras = BlockExtras {
                     total_fees,

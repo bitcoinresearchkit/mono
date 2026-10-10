@@ -59,6 +59,19 @@ has to be deleted by hand.
   18,300 fewer series. Two placements change besides: the entry cohorts' 24-hour SOPR is `realized.sopr.24h` (was
   `realized.sopr.raw`), and market cap stays at `supply.market_cap` beside its `delta`
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
+- Rarity meter components are keyed by their reference series' id (`awake_realized_price`, `mobile_realized_price`,
+  `true_market_mean`, `cost_basis_per_coin_median`, `sth_awake_cost_basis_per_dollar_median`,
+  `utxos_under_4m_old_realized_price`; were `awake_price`, `coinflow_price`, `true_market_mean_price`,
+  `median_price_btc_weighted`, `sth_cointime_median_price_usd_weighted`, `under_4m_realized_price`), each percentile's
+  price is its `band` (ids `<component>_band_<pct>`, were `<component>_<pct>`), and a median component's reference
+  shares its source's id. Extremes are named by their input, `supply_in_loss`, `realized_profit_24h`,
+  `realized_loss_24h`, `realized_peak_regret_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`,
+  `capitulation`, `peak_regret`, `seller_exhaustion`), with `thresholds.{tail0_1, tail0_05, tail0_025}` and
+  `tail_share` (were `threshold_pct0_1`, ... and `tail`); the 0.025% threshold's id names its tail
+  (`rarity_meter_supply_in_loss_threshold_tail0_025`, was `rarity_meter_coins_in_loss_threshold`)
+- Bedrock's modes are `unweighted`, `awake` and `mobile` (were `raw`, `cointime`, `coinflow`; ids
+  `bedrock_awake_floor_pct95`, ...); each mode publishes `floor`, `cost_basis_above_floor` (the creation-price
+  percentiles of the supply at or above its 95th-percentile floor) and `supply_in_loss_share_threshold`
 - One word per concept in paths and ids: `avg` for a mean (was `average`), `median` for the 50th percentile in every
   percentile set (was `pct50`), unpadded percentiles (`pct5`, was `pct05`; the rarity bands' price ids `pct1`, `pct2`,
   `pct5`, were `pct01`, ...), and `block` for a node's own per-block series beside its derived children (was `base`)
@@ -72,15 +85,32 @@ has to be deleted by hand.
 - Market: moving averages, RSI, MACD and Pi Cycle sit at the root (`market.sma.200d`, `market.rsi.1w`; were under
   `moving_average` and `technical`); the 24-hour return's statistics are `market.returns.daily.{avg, sd}.<window>` (were
   `sd_24h.<window>.{sma, sd}`; ids `price_return_24h_avg_*`, were `_sma_*`); the all-time high's years copies are gone
-  (`days_since`, `max_days_between` stay); `mayer_multiple` names the 200-day SMA ratio
+  (`days_since`, `max_days_between` stay); `mayer_multiple` names the 200-day SMA ratio. RSI is
+  `market.rsi.<window>.block` (id `rsi_<window>`) beside `stochastic.{k, d}` (ids `stochastic_rsi_k_<window>`, were
+  `rsi_stoch_k_<window>`); MACD's fast and slow EMAs, intermediates of its line, leave the tree; lookback prices are
+  `price_<window>_ago` (were `price_past_<window>`)
 - Mining: hash price and hash value are per PH/s only, as `mining.hashrate.{price, value}.{block, atl, rebound}` (were
-  per TH/s and PH/s with `*_min`); `fees.share`/`subsidy.share` (were `dominance`); output volume is a BTC and USD flow
-  with sums and cumulative (was sats per block); the network hash-rate ids say `hashrate` like every other one
+  per TH/s and PH/s with `*_min`); `fees.share`/`subsidy.share` (were `dominance`); output volume leaves the tree (the
+  transaction volume minus fees, not a reward; the block endpoints still report it); unclaimed rewards gain window
+  sums; the network hash-rate ids say `hashrate` like every other one
   (`hashrate`, `hashrate_sma_1w`, `hashrate_ath`, `hashrate_drawdown`; were `hash_rate*`)
-- Transactions: `tx_per_second` (was `tx_per_sec`); inscription fees are BTC and USD (were sats); the transaction
-  volume (input value of non-coinbase transactions) is `transactions.volume.value`, id `tx_volume` (was
-  `transfer_volume` with ids `transfer_volume_bis*`): the holders' `all` cohort's `transfer_volume` is a different
-  quantity (spent UTXO value)
+- Transactions: `transactions.per_second` (id `tx_per_second`, was `tx_per_sec`); inscription fees are BTC and USD
+  (were sats); the transaction volume (input value of non-coinbase transactions) is `transactions.volume`, id
+  `tx_volume` (was `transfer_volume` with ids `transfer_volume_bis*`): the holders' `all` cohort's `transfer_volume` is
+  a different quantity (spent UTXO value). The transactions plugin's counts by version, feature, pattern, policy and
+  CPFP role share one id template, `<kind>_tx_count`: `v1_tx_count`, `other_version_tx_count`, `annex_tx_count`,
+  `dust_output_tx_count`, `coinjoin_tx_count`, `nonstandard_tx_count`, `cpfp_parent_tx_count`,
+  `inscription_tx_count` (were `tx_v1`, `tx_other_version`, `tx_count_annex`, `tx_count_dust_output`,
+  `coinjoin_count`, `nonstandard_count`, `cpfp_parent_count`, `tx_count_inscription`), and features sit at
+  `transactions.features.<feature>` (were under `features.count`). The inscription fee share is
+  `transactions.inscription.fees.chain_share`, id `inscription_fee_chain_share` (was `fee_share`; per block only)
+- Blocks: difficulty is `blocks.difficulty.block` (was `.value`); `blocks.count` holds `block`, `cumulative` and the
+  window sums directly (were under `total`) and the constant `blocks.count.target.<window>` series are gone;
+  `blocks.lookback` (window-start heights, `height_<window>_ago`) leaves the tree
+- Supply and indicators: `supply.burned` is a flow with window sums, ids `burned`, `burned_cumulative`,
+  `burned_sum_<window>` (were `unspendable_supply`, `unspendable_supply_cumulative`), and `outputs.op_return_value`
+  gains window sums. `coindays_destroyed_supply_adjusted`, `coinyears_destroyed_supply_adjusted` and
+  `indicators.dormancy.supply_adjusted` (were `_adj`); `seller_exhaustion_constant` (was `seller_exhaustion`)
 - Transaction, input and output counts have one shape: `transactions.count`, `inputs.count` and `outputs.count` hold
   `block`, `cumulative` and the window statistics directly (were under `total` and `rolling`, with the block's count at
   `inputs.count.sum` and `outputs.count.total.sum`). The block counts are ids `input_count` and `output_count` (were `input_count_sum`,
@@ -96,8 +126,11 @@ has to be deleted by hand.
   `outputs.spendable_count` and `outputs.op_return_value` sit at the outputs root (were under `by_type` and `value`)
 - OP_RETURN is member-first: `op_return.protocols.<protocol>.*` and `op_return.policies.<policy>.*` (were
   `by_kind.<metric>.<kind>` and `policy.<metric>.<policy>`), with the totals at the root (were under `total`). A
-  member's shares are `data_bytes.share`, `data_bytes.chain_share` and `fees.share` (were `data_share` and
-  `fee_share`); the totals' `chain_share` and `fee_share` moved under `data_bytes` and `fees`. Fees are BTC and USD
+  member's shares are `data_bytes.share` (of all OP_RETURN data), `data_bytes.chain_share` and `fees.chain_share` (of
+  the chain's block bytes and fees; ids `op_return_runes_data_chain_share`, `op_return_runes_fee_chain_share`; were
+  `data_share`, `chain_share` and `fee_share` beside `data_bytes` and `fees`); the totals' shares sit under their
+  quantity too (`op_return_data_chain_share`, `op_return_fee_chain_share`; were `op_return_chain_share`,
+  `op_return_fee_share`). Fees are BTC and USD
   (were sats). The totals gain `output_count` (id `op_return_output_count`, shared with outputs). Policy ids drop
   `policy_` (`op_return_oversized_tx_count`, was `op_return_policy_oversized_tx_count`)
 - Pools have one shape, every pool alike, at `pools.<slug>` (were `pools.major.<slug>` for 22 pools with rewards and
@@ -107,27 +140,39 @@ has to be deleted by hand.
   (fees of the pool's blocks per block it mined, per window, BTC and USD; empty when it mined none) and `hashrate` (its
   window share of blocks times the network hash-rate estimate). All are read from in-memory per-pool running totals: the pools plugin stores only the
   per-block attribution (`pool`). `GET /api/v1/mining/pool/{slug}` reports `totalReward` for every pool
-- Cointime and Coinflow are member-first. Every cohort (`all`, `sth`, `lth` and the age cutoffs `under_4m`,
-  `under_6m`, `over_4m`, `over_6m`, which had prices only and now have the same shape) sits at `cointime.<cohort>`
-  with `awake` (`supply` with `in_loss.share`, `realized_cap`, `realized_price`, `capitalized_price`), `dormant.supply`
-  and `cost_basis` (the weighted URPD percentiles and `supply_density`); Coinflow's cohorts have `mobile` and
-  `immobile` in their place. Age ranges are `cointime.age_ranges.<range>.{coindays_consumed, coindays_stored,
-  wakefulness, awake_to_dormant, supply.{awake, dormant}}` and `coinflow.age_ranges.<range>.{spending_rate,
-  spending_exposure, mobility, supply.{mobile, immobile}}`. They were `cointime.awake`, `cointime.<cohort>.awake`,
-  `cointime.urpd.<cohort>`, `coinflow.supply`, `coinflow.price`, ... and metric-first under `age_range`
+- Cointime and Coinflow are member-first. Their cohorts (`all`, `sth`, `lth` and the age cutoffs `under_4m`,
+  `under_6m`, `over_4m`, `over_6m`, which had prices only and now have the same shape) sit under `cohorts`:
+  `cointime.cohorts.<cohort>.awake` holds `supply` (with `in_loss.share`), `realized_cap`, `realized_price`,
+  `capitalized_price` and `cost_basis` (the wakefulness-weighted URPD percentiles, `supply_density` and
+  `capital_density`), beside `dormant.supply`; Coinflow's cohorts have `mobile` and `immobile` in their place. Age
+  ranges are `cointime.age_ranges.<range>.{coindays_created, coindays_consumed, coindays_stored, wakefulness,
+  awake_to_dormant, awake.supply, dormant.supply}` and `coinflow.age_ranges.<range>.{spending_rate,
+  spending_exposure, mobility, mobile.supply, immobile.supply}`. `cointime.cap` is `cointime.caps`; VOCDD sits in
+  `cointime.reserve_risk.vocdd` beside its median (was `cointime.value.vocdd`) and Reserve Risk itself is
+  `cointime.reserve_risk.block` (was `.value`); `hodled_or_lost_supply` sits at `cointime.supply.hodled_or_lost`,
+  beside the vaulted supply it names (was `supply.hodled_or_lost`). They were `cointime.awake`,
+  `cointime.<cohort>.awake`, `cointime.urpd.<cohort>`, `coinflow.supply`, `coinflow.price`, ... and metric-first under
+  `age_range`
 - Cointime and Coinflow names: the weighted realized capitalization and price are `realized_cap` and `realized_price`
   (ids `awake_realized_cap`, `awake_realized_price`, `mobile_realized_cap`, `mobile_realized_price`; were
   `awake_cap`, `awake_price`, `coinflow_cap`, `coinflow_price`), Coinflow's other cohort ids name the side
-  (`mobile_capitalized_price`, `mobile_supply_in_loss_share`, `sth_mobile_*`, `under_4m_mobile_*`; were
+  (`mobile_capitalized_price`, `mobile_supply_in_loss_share`, `sth_mobile_*`, `utxos_under_4m_old_mobile_*`; were
   `coinflow_capitalized_price`, ..., `under_4m_coinflow_price`), `liveliness_to_vaultedness` (was
   `activity_to_vaultedness` at `activity.ratio`), `awake_to_dormant` (was `wakefulness_to_dormancy`), the adjusted
   rates `cointime.adjusted.{inflation_rate, velocity.btc, velocity.usd}` with ids `cointime_adjusted_*` (were ids
   `cointime_adj_*`, keys `tx_velocity_native` and `tx_velocity_fiat`), and `supply.velocity.{btc, usd}` (were `native` and
   `fiat`). AVIV is `prices.true_market_mean.aviv` (id `aviv`; was `cap.aviv`, id `aviv_ratio`).
-  URPD `supply_density` sits under `cost_basis` (ids `cointime_supply_density_total`, ...; were
-  `cointime_urpd_all_supply_density_total`, ...). Gone: each age range's `dormancy` (one minus its wakefulness),
+  URPD ids name the weighted side (`awake_cost_basis_per_coin_median`, `sth_mobile_cost_basis_per_dollar_pct5`,
+  `awake_supply_density`; were `cointime_cost_basis_per_coin_median`, `sth_coinflow_cost_basis_per_dollar_pct5`,
+  `cointime_urpd_all_supply_density_total`). Gone: each age range's `dormancy` (one minus its wakefulness),
   `cointime.supply.active.in_loss.share` (the awake share under another name) and the URPD `capitalized_price` per
   cohort (a rounded copy of the exact awake or mobile `capitalized_price`)
+- The 4- and 6-month age cutoffs take the age ranges' frame in their ids, in holders, Cointime and Coinflow:
+  `utxos_under_4m_old_supply`, `utxos_over_6m_old_awake_realized_price` (were `under_4m_supply`,
+  `over_6m_awake_price`)
+- Supply density has one shape everywhere, `cost_basis.supply_density.{total, in_profit, in_loss}` (holders had the
+  total only), the total under the base id (`sth_supply_density`; Cointime's and Coinflow's were `..._total`)
+- Holders' adjusted-SOPR inputs are `adjusted_value_created` and `adjusted_value_destroyed` (were `adj_value_*`)
 - Shared ids: `circulating_supply` (UTXO set, holders' `all` and supply), `market_cap` (holders' `all` supply in USD
   and supply), `utxo_count` (UTXO set and holders' `all`).
   `utxo_set.supply` is `circulating_supply` in BTC (was `unspent_sats` in sats); `supply.circulating` is BTC only,
@@ -182,7 +227,7 @@ has to be deleted by hand.
   and `utxos.*`, `addrs.*` is `addresses.*`, `distribution_aggregated.cohorts.<c>` is `holders.<c>`,
   `distribution_entry.cohorts.<c>` is `entry.<c>`, the profitability bands are `profitability.*`, and the indexer's
   per-record data (`transactions.raw`, `inputs.raw`, `addrs.raw`, `scripts.raw`, block hashes, sizes, timestamps...)
-  is `indexer.*`. `difficulty` stays one series at `blocks.difficulty.value`
+  is `indexer.*`. `difficulty` stays one series at `blocks.difficulty.block`
 - Removed the `constants` plugin and its 18 `constant_*` series: chart reference lines are drawn client-side
 - Removed `brk_fetcher`, `brk_iterator` and the `brk` umbrella crate; depend on `brk_reader`, `brk_rpc` and
   `brk_types` directly
@@ -284,12 +329,21 @@ has to be deleted by hand.
   `Date::into_jiff`; `bitview_compute` `walk_blocks` and `BlockAggregate` (`CoinbasePolicy` moved to `bitview_vecs`);
   `bitview_catalog` `TreeBranch::{source, field_types, field_suffixes}`, `TreeNode::{with_source, with_field_suffixes}`
   and `#[traversable(field_suffixes)]`
+- Gone with the tree changes: `bitview_vecs::ConstantVecs`, `bitview_transforms::BlockCountTarget`,
+  `bitview_plugin_blocks::CountVecs` (`blocks.count` is the count itself), the transactions plugin's `volume` struct
+  (`volume` is the value, `per_second` its sibling) and the mining rewards' `output_volume`; renamed fields
+  `difficulty.value` (now `block`), Cointime's `reserve_risk.value` (now `block`) and `value.vocdd` (now
+  `reserve_risk.vocdd`)
+- `bitview_urpd::Metrics` is gone: a model owns a `CostBasisVecs` per cohort and a `Replay`, and calls
+  `compute_cost_basis`. `bitview_vecs::{Density, DensityVecs}` are new; `PriceIndex::density_range` is
+  `density_split` (the band's in-profit and in-loss halves); `bitview_plugin_supply::Vecs::import` no longer takes
+  Cointime
 - `bitview_compute::weighted_age_aggregates` returns an `AgeAggregate` (replaces `WeightedCohortAggregates`);
-  `bitview_urpd::Metrics::import` no longer takes the spot price. `AllChainSources::new` takes the all-chain realized
-  cap too (read with `realized_cap()`); `all_awake_supply_in_loss_share` (Cointime) and
-  `all_mobile_supply_in_loss_share` (Coinflow, was `all_supply_in_loss_share`) expose the full-precision loss shares.
-  `vecdb::EagerVec::compute_multiply`, `bitview_vecs::RatioPerBlock::compute_ratio` and
-  `bitview_cohort::{UTXOAggregate, UTXOAggregateId}` are removed, and `WeightedCohortState::merged` is crate-private
+  `AllChainSources::new` takes the all-chain realized cap too (read with `realized_cap()`);
+  `all_awake_supply_in_loss_share` (Cointime) and `all_mobile_supply_in_loss_share` (Coinflow, was
+  `all_supply_in_loss_share`) expose the full-precision loss shares. `vecdb::EagerVec::compute_multiply`,
+  `bitview_vecs::RatioPerBlock::compute_ratio` and `bitview_cohort::{UTXOAggregate, UTXOAggregateId}` are removed, and
+  `WeightedCohortState::merged` is crate-private
 - Renamed cohort families `UTXOCoreValues` → `CreationCohorts` and `UtxoValues` → `UtxoGroups`;
   `CentsSats::to_capitalized_cap` → `CentsSquaredSats::from_price_cents_sats`; views only mappings uses moved from
   `bitview_vecs` into the mappings plugin. `bitview_catalog` merge methods return values instead of `Option` and panic
@@ -317,6 +371,10 @@ has to be deleted by hand.
 - Each age band serves its realized price again (`utxos_<band>_old_realized_price`, USD, at
   `cohorts.realized.price.age.<band>`): the band's exact creation-price product over its supply, like the aggregated
   cohorts' realized price. Stored per band, so the age plugin replays from block 0 once
+- `capital_density` beside `supply_density` in holders, Cointime and Coinflow: the share of a cohort's invested
+  capital (satoshis times creation price) with a creation price within 5% of spot, split at spot. Cointime shows
+  `coinblocks_destroyed` and each age range's `coindays_created` beside their siblings (the age plugin's series, same
+  ids)
 - Cointime series from the paper: AVIV-NUPL (`aviv_nupl`, 1 - 1/AVIV), MVRVs of the active, vaulted and Cointime
   prices (`active_mvrv`, `vaulted_mvrv`, `cointime_mvrv`), the adjusted stock-to-flow (`cointime_adjusted_stock_to_flow`,
   one over the adjusted inflation rate), investorness and producerness (investor cap and thermocap over realized cap)
@@ -377,6 +435,8 @@ has to be deleted by hand.
   they add up to market cap (were realized cap times them), and AVIV is active cap over investor cap, spot over True
   Market Mean (was realized cap times liveliness over investor cap). The adjusted velocity is velocity over
   liveliness, the turnover of the active supply (was velocity times liveliness over vaultedness)
+- Stock-to-flow is NaN once the scheduled subsidy is zero, like Cointime's adjusted stock-to-flow (was 0)
+- Holders' supply density is NaN for an empty cohort, like Cointime's and Coinflow's (was 0)
 - Reserve Risk is time-weighted, like Glassnode's daily definition: the HODL bank accrues each block's opportunity
   cost times the time since the previous block in days, on monotonic timestamps (it added a full price per block,
   leaving Reserve Risk orders of magnitude below Glassnode's 0.0025 to 0.02). Its benchmark is the median over the last

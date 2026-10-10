@@ -34,7 +34,7 @@ impl ComputePlugin for Vecs {
             puell_multiple,
             gini,
             rhodl_ratio,
-            seller_exhaustion,
+            seller_exhaustion_constant,
             ..
         } = self;
         let subsidy = &mining.rewards.subsidy;
@@ -80,7 +80,7 @@ impl ComputePlugin for Vecs {
             )
         };
         let compute_seller_exhaustion = || {
-            seller_exhaustion.height.compute_transform3(
+            seller_exhaustion_constant.height.compute_transform3(
                 starting_height,
                 &supply.in_profit.sats.height,
                 &market.volatility._1m.height,

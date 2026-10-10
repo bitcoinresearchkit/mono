@@ -42,7 +42,7 @@ pub fn iter_difficulty_epochs(
         end_epoch.to_usize(),
         &plugins.mappings.epoch.first_height,
         &plugins.mappings.timestamp.epoch,
-        &plugins.blocks.difficulty.value.epoch,
+        &plugins.blocks.difficulty.block.epoch,
     )
 }
 

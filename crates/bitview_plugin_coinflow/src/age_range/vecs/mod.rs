@@ -1,5 +1,5 @@
 mod collection;
-mod supply;
+mod side;
 
 pub use collection::{RangeVecs, Vecs};
-pub use supply::SupplyVecs;
+pub use side::SideVecs;

@@ -6,8 +6,8 @@ mod ohlc;
 mod ratio;
 
 pub use arithmetic::{
-    BlockCountTarget, BlocksToDays, CountPerSecond, DaysToYears, DifficultyToHashrate, OneMinusPpm,
-    TimesSqrt, WeightToVSize,
+    BlocksToDays, CountPerSecond, DaysToYears, DifficultyToHashrate, OneMinusPpm, TimesSqrt,
+    WeightToVSize,
 };
 pub use convert::Convert;
 pub use currency::{

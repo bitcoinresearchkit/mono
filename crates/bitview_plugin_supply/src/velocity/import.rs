@@ -17,7 +17,7 @@ impl Vecs {
         all_chain: &AllChainSources,
         transactions: &TransactionsVecs,
     ) -> Result<Self> {
-        let volume = &transactions.volume.value.sum._1y;
+        let volume = &transactions.volume.sum._1y;
         let btc_source = all_chain.with_supply(
             "velocity_btc_source",
             version,

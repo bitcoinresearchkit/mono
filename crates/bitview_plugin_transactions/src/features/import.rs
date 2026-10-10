@@ -25,13 +25,13 @@ impl Vecs {
         };
         Ok(Vecs {
             count: CountVecs {
-                annex: import("tx_count_annex")?,
-                sighash_all: import("tx_count_sighash_all")?,
-                sighash_none: import("tx_count_sighash_none")?,
-                sighash_single: import("tx_count_sighash_single")?,
-                sighash_default: import("tx_count_sighash_default")?,
-                sighash_anyone_can_pay: import("tx_count_sighash_anyone_can_pay")?,
-                dust_output: import("tx_count_dust_output")?,
+                annex: import("annex_tx_count")?,
+                sighash_all: import("sighash_all_tx_count")?,
+                sighash_none: import("sighash_none_tx_count")?,
+                sighash_single: import("sighash_single_tx_count")?,
+                sighash_default: import("sighash_default_tx_count")?,
+                sighash_anyone_can_pay: import("sighash_anyone_can_pay_tx_count")?,
+                dust_output: import("dust_output_tx_count")?,
             },
         })
     }

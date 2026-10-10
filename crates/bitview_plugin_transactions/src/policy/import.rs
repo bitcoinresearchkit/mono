@@ -18,7 +18,7 @@ impl Vecs {
             count: CountVecs {
                 nonstandard: PerBlockCumulativeRolling::import(
                     db,
-                    "nonstandard_count",
+                    "nonstandard_tx_count",
                     version,
                     mappings,
                     window_starts,

@@ -6,15 +6,17 @@ use bitview_primitives::{
 };
 use brk_types::Cents;
 
-use super::density::SupplyDensity;
-use crate::ProjectedBucket;
+use bitview_vecs::Density;
+
+use crate::{COST_BASIS_PRICE_DIGITS, ProjectedBucket};
 
 const COHORTS: usize = AgeAggregateId::ALL.len();
 
-/// One block's statistics and supply density for one cohort.
+/// One block's statistics and densities for one cohort.
 pub(super) struct CohortBlock {
     pub cost_basis: CostBasisByPercentile,
-    pub density: SupplyDensity<PartsPerMillion32>,
+    pub supply_density: Density<PartsPerMillion32>,
+    pub capital_density: Density<PartsPerMillion32>,
 }
 
 /// One block's projected buckets in price order: each bucket's weighted sats per cohort, kept
@@ -54,26 +56,31 @@ impl MetricBuckets {
             self.prices.push(bucket.price);
             self.sats.push(sats);
         }
+        // Edges are rounded like the bucket prices (and holders' price index): the band takes
+        // the buckets of 95% and 105% of spot, and the spot bucket is in profit.
         self.band = spot.finite_inner().filter(|&p| p > 0).map(|spot| {
-            let spot = u128::from(spot);
-            let lower = self
-                .prices
-                .partition_point(|p| p.as_u128() * 100 < spot * 95);
-            let split = lower + self.prices[lower..].partition_point(|p| p.as_u128() <= spot);
-            let upper =
-                split + self.prices[split..].partition_point(|p| p.as_u128() * 100 <= spot * 105);
+            let bucket = |cents: f64| {
+                u128::from(Cents::from(cents as u64).round_to_dollar(COST_BASIS_PRICE_DIGITS))
+            };
+            let spot = spot as f64;
+            let (low, mid, high) = (bucket(spot * 0.95), bucket(spot), bucket(spot * 1.05));
+            let lower = self.prices.partition_point(|p| p.as_u128() < low);
+            let split = lower + self.prices[lower..].partition_point(|p| p.as_u128() <= mid);
+            let upper = split + self.prices[split..].partition_point(|p| p.as_u128() <= high);
             (lower..split, split..upper)
         });
     }
 
-    /// Every cohort's statistics and supply density from the last update.
+    /// Every cohort's statistics and densities from the last update.
     pub fn block(&self) -> AgeAggregate<CohortBlock> {
         AgeAggregate::from_fn(|id| {
             let cohort = id.index();
             let totals = self.totals[cohort];
+            let (supply_density, capital_density) = self.densities(cohort, totals);
             CohortBlock {
                 cost_basis: self.cost_basis(cohort, totals),
-                density: self.density(cohort, totals),
+                supply_density,
+                capital_density,
             }
         })
     }
@@ -118,17 +125,30 @@ impl MetricBuckets {
         }
     }
 
-    /// Weighted supply within 5% of spot, split at spot, over the buckets inside the band.
-    fn density(&self, cohort: usize, totals: Totals) -> SupplyDensity<PartsPerMillion32> {
+    /// Weighted supply and invested capital within 5% of spot, split at spot, over the buckets
+    /// inside the band.
+    fn densities(
+        &self,
+        cohort: usize,
+        totals: Totals,
+    ) -> (Density<PartsPerMillion32>, Density<PartsPerMillion32>) {
         let Some((profit, loss)) = &self.band else {
-            return SupplyDensity::NAN;
+            return (Density::NAN, Density::NAN);
         };
         let sum = |range: &Range<usize>| {
-            self.sats[range.clone()]
+            self.prices[range.clone()]
                 .iter()
-                .map(|row| u128::from(row[cohort]))
-                .sum()
+                .zip(&self.sats[range.clone()])
+                .fold((0_u128, 0_u128), |(sats, value), (price, row)| {
+                    let bucket = u128::from(row[cohort]);
+                    (sats + bucket, value + price.as_u128() * bucket)
+                })
         };
-        SupplyDensity::from_sums(totals.sats, sum(profit), sum(loss))
+        let (profit_sats, profit_value) = sum(profit);
+        let (loss_sats, loss_value) = sum(loss);
+        (
+            Density::from_sums(totals.sats, profit_sats, loss_sats),
+            Density::from_sums(totals.value, profit_value, loss_value),
+        )
     }
 }

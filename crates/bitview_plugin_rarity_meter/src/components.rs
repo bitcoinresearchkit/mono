@@ -23,50 +23,50 @@ pub struct Components<M: StorageMode = Rw> {
     pub capitalized_price: Component<M>,
     /// Rarity Meter component using the median creation price,
     /// weighted by BTC supply.
-    pub median_price_btc_weighted: MedianComponent<M>,
+    pub cost_basis_per_coin_median: MedianComponent<M>,
     /// Rarity Meter component using the median creation price,
     /// weighted by creation-date USD value.
-    pub median_price_usd_weighted: MedianComponent<M>,
+    pub cost_basis_per_dollar_median: MedianComponent<M>,
     /// Rarity Meter component using the median creation price of UTXOs
     /// younger than 150 days, weighted by BTC supply.
-    pub sth_median_price_btc_weighted: MedianComponent<M>,
+    pub sth_cost_basis_per_coin_median: MedianComponent<M>,
     /// Rarity Meter component using the median creation price of UTXOs
     /// younger than 150 days, weighted by creation-date USD value.
-    pub sth_median_price_usd_weighted: MedianComponent<M>,
+    pub sth_cost_basis_per_dollar_median: MedianComponent<M>,
     /// Rarity Meter component using the median creation price of UTXOs
     /// at least 150 days old, weighted by BTC supply.
-    pub lth_median_price_btc_weighted: MedianComponent<M>,
+    pub lth_cost_basis_per_coin_median: MedianComponent<M>,
     /// Rarity Meter component using the median creation price of UTXOs
     /// at least 150 days old, weighted by creation-date USD value.
-    pub lth_median_price_usd_weighted: MedianComponent<M>,
-    /// Rarity Meter component using the cointime-weighted median creation price,
+    pub lth_cost_basis_per_dollar_median: MedianComponent<M>,
+    /// Rarity Meter component using the awake (wakefulness-weighted) median creation price,
     /// weighted by BTC supply.
-    pub cointime_median_price_btc_weighted: MedianComponent<M>,
-    /// Rarity Meter component using the cointime-weighted median creation price,
+    pub awake_cost_basis_per_coin_median: MedianComponent<M>,
+    /// Rarity Meter component using the awake (wakefulness-weighted) median creation price,
     /// weighted by creation-date USD value.
-    pub cointime_median_price_usd_weighted: MedianComponent<M>,
-    /// Rarity Meter component using the coinflow-weighted median creation price,
+    pub awake_cost_basis_per_dollar_median: MedianComponent<M>,
+    /// Rarity Meter component using the mobile (mobility-weighted) median creation price,
     /// weighted by BTC supply.
-    pub coinflow_median_price_btc_weighted: MedianComponent<M>,
-    /// Rarity Meter component using the coinflow-weighted median creation price,
+    pub mobile_cost_basis_per_coin_median: MedianComponent<M>,
+    /// Rarity Meter component using the mobile (mobility-weighted) median creation price,
     /// weighted by creation-date USD value.
-    pub coinflow_median_price_usd_weighted: MedianComponent<M>,
-    /// STH cointime-weighted median creation price, per coin.
-    pub sth_cointime_median_price_btc_weighted: MedianComponent<M>,
-    /// STH cointime-weighted median creation price, per dollar.
-    pub sth_cointime_median_price_usd_weighted: MedianComponent<M>,
-    /// LTH cointime-weighted median creation price, per coin.
-    pub lth_cointime_median_price_btc_weighted: MedianComponent<M>,
-    /// LTH cointime-weighted median creation price, per dollar.
-    pub lth_cointime_median_price_usd_weighted: MedianComponent<M>,
-    /// STH coinflow-weighted median creation price, per coin.
-    pub sth_coinflow_median_price_btc_weighted: MedianComponent<M>,
-    /// STH coinflow-weighted median creation price, per dollar.
-    pub sth_coinflow_median_price_usd_weighted: MedianComponent<M>,
-    /// LTH coinflow-weighted median creation price, per coin.
-    pub lth_coinflow_median_price_btc_weighted: MedianComponent<M>,
-    /// LTH coinflow-weighted median creation price, per dollar.
-    pub lth_coinflow_median_price_usd_weighted: MedianComponent<M>,
+    pub mobile_cost_basis_per_dollar_median: MedianComponent<M>,
+    /// STH awake (wakefulness-weighted) median creation price, per coin.
+    pub sth_awake_cost_basis_per_coin_median: MedianComponent<M>,
+    /// STH awake (wakefulness-weighted) median creation price, per dollar.
+    pub sth_awake_cost_basis_per_dollar_median: MedianComponent<M>,
+    /// LTH awake (wakefulness-weighted) median creation price, per coin.
+    pub lth_awake_cost_basis_per_coin_median: MedianComponent<M>,
+    /// LTH awake (wakefulness-weighted) median creation price, per dollar.
+    pub lth_awake_cost_basis_per_dollar_median: MedianComponent<M>,
+    /// STH mobile (mobility-weighted) median creation price, per coin.
+    pub sth_mobile_cost_basis_per_coin_median: MedianComponent<M>,
+    /// STH mobile (mobility-weighted) median creation price, per dollar.
+    pub sth_mobile_cost_basis_per_dollar_median: MedianComponent<M>,
+    /// LTH mobile (mobility-weighted) median creation price, per coin.
+    pub lth_mobile_cost_basis_per_coin_median: MedianComponent<M>,
+    /// LTH mobile (mobility-weighted) median creation price, per dollar.
+    pub lth_mobile_cost_basis_per_dollar_median: MedianComponent<M>,
     /// Rarity Meter component using the satoshi-weighted mean creation price of
     /// UTXOs younger than 150 days as its reference.
     pub sth_realized_price: Component<M>,
@@ -81,22 +81,22 @@ pub struct Components<M: StorageMode = Rw> {
     pub lth_capitalized_price: Component<M>,
     /// Rarity Meter component using the satoshi-weighted mean creation price of
     /// UTXOs at least 180 days old as its reference.
-    pub over_6m_realized_price: Component<M>,
+    pub utxos_over_6m_old_realized_price: Component<M>,
     /// Rarity Meter component using the satoshi-weighted mean creation price of
     /// UTXOs at least 120 days old as its reference.
-    pub over_4m_realized_price: Component<M>,
+    pub utxos_over_4m_old_realized_price: Component<M>,
     /// Rarity Meter component using the satoshi-weighted mean creation price of
     /// UTXOs less than 120 days old as its reference.
-    pub under_4m_realized_price: Component<M>,
+    pub utxos_under_4m_old_realized_price: Component<M>,
     /// Rarity Meter component using the satoshi-weighted mean creation price of
     /// UTXOs less than 180 days old as its reference.
-    pub under_6m_realized_price: Component<M>,
+    pub utxos_under_6m_old_realized_price: Component<M>,
     /// Rarity Meter component using the value-weighted mean creation price of
     /// UTXOs less than 120 days old as its reference.
-    pub under_4m_capitalized_price: Component<M>,
+    pub utxos_under_4m_old_capitalized_price: Component<M>,
     /// Rarity Meter component using the value-weighted mean creation price of
     /// UTXOs less than 180 days old as its reference.
-    pub under_6m_capitalized_price: Component<M>,
+    pub utxos_under_6m_old_capitalized_price: Component<M>,
     /// Rarity Meter component using cointime vaulted price as its reference:
     /// realized price divided by one minus liveliness, where liveliness is
     /// cumulative coinblocks destroyed divided by cumulative coinblocks
@@ -110,18 +110,19 @@ pub struct Components<M: StorageMode = Rw> {
     /// reference: realized capitalization minus cumulative issuance-date
     /// subsidy value, divided by active supply; active supply is circulating
     /// supply multiplied by liveliness.
-    pub true_market_mean_price: Component<M>,
+    pub true_market_mean: Component<M>,
     /// Rarity Meter component using cointime price as its reference: the
     /// cumulative sum of spot price multiplied by coinblocks destroyed, divided
     /// by cumulative coinblocks stored.
     pub cointime_price: Component<M>,
-    /// Rarity Meter component using wakefulness-weighted mean creation price.
-    pub awake_price: Component<M>,
-    /// Rarity Meter component using coinflow price as its reference: realized
+    /// Rarity Meter component using the awake supply's realized price, its
+    /// wakefulness-weighted mean creation price.
+    pub awake_realized_price: Component<M>,
+    /// Rarity Meter component using the mobile supply's realized price: realized
     /// capitalization weighted by each UTXO age range's estimated eventual
     /// spending probability, divided by supply weighted by the same
     /// probability.
-    pub coinflow_price: Component<M>,
+    pub mobile_realized_price: Component<M>,
 }
 
 impl Components {
@@ -144,222 +145,234 @@ impl Components {
         Ok(Components {
             realized_price: import!("realized_price", utxos.all.realized.price),
             capitalized_price: import!("capitalized_price", utxos.all.realized.capitalized_price),
-            median_price_btc_weighted: MedianComponent::import(
+            cost_basis_per_coin_median: MedianComponent::import(
                 db,
-                "median_price_btc_weighted",
+                "cost_basis_per_coin_median",
                 version,
                 mappings,
                 &utxos.all.cost_basis.per_coin.median.cents.height,
             )?,
-            median_price_usd_weighted: MedianComponent::import(
+            cost_basis_per_dollar_median: MedianComponent::import(
                 db,
-                "median_price_usd_weighted",
+                "cost_basis_per_dollar_median",
                 version,
                 mappings,
                 &utxos.all.cost_basis.per_dollar.median.cents.height,
             )?,
-            sth_median_price_btc_weighted: MedianComponent::import(
+            sth_cost_basis_per_coin_median: MedianComponent::import(
                 db,
-                "sth_median_price_btc_weighted",
+                "sth_cost_basis_per_coin_median",
                 version,
                 mappings,
                 &utxos.sth.cost_basis.per_coin.median.cents.height,
             )?,
-            sth_median_price_usd_weighted: MedianComponent::import(
+            sth_cost_basis_per_dollar_median: MedianComponent::import(
                 db,
-                "sth_median_price_usd_weighted",
+                "sth_cost_basis_per_dollar_median",
                 version,
                 mappings,
                 &utxos.sth.cost_basis.per_dollar.median.cents.height,
             )?,
-            lth_median_price_btc_weighted: MedianComponent::import(
+            lth_cost_basis_per_coin_median: MedianComponent::import(
                 db,
-                "lth_median_price_btc_weighted",
+                "lth_cost_basis_per_coin_median",
                 version,
                 mappings,
                 &utxos.lth.cost_basis.per_coin.median.cents.height,
             )?,
-            lth_median_price_usd_weighted: MedianComponent::import(
+            lth_cost_basis_per_dollar_median: MedianComponent::import(
                 db,
-                "lth_median_price_usd_weighted",
+                "lth_cost_basis_per_dollar_median",
                 version,
                 mappings,
                 &utxos.lth.cost_basis.per_dollar.median.cents.height,
             )?,
-            cointime_median_price_btc_weighted: MedianComponent::import(
+            awake_cost_basis_per_coin_median: MedianComponent::import(
                 db,
-                "cointime_median_price_btc_weighted",
+                "awake_cost_basis_per_coin_median",
                 version,
                 mappings,
                 &cointime
-                    .urpd
+                    .aggregate
                     .cohorts
                     .all
+                    .awake
                     .cost_basis
                     .per_coin
                     .median
                     .cents
                     .height,
             )?,
-            cointime_median_price_usd_weighted: MedianComponent::import(
+            awake_cost_basis_per_dollar_median: MedianComponent::import(
                 db,
-                "cointime_median_price_usd_weighted",
+                "awake_cost_basis_per_dollar_median",
                 version,
                 mappings,
                 &cointime
-                    .urpd
+                    .aggregate
                     .cohorts
                     .all
+                    .awake
                     .cost_basis
                     .per_dollar
                     .median
                     .cents
                     .height,
             )?,
-            coinflow_median_price_btc_weighted: MedianComponent::import(
+            mobile_cost_basis_per_coin_median: MedianComponent::import(
                 db,
-                "coinflow_median_price_btc_weighted",
+                "mobile_cost_basis_per_coin_median",
                 version,
                 mappings,
                 &coinflow
-                    .urpd
+                    .aggregate
                     .cohorts
                     .all
+                    .mobile
                     .cost_basis
                     .per_coin
                     .median
                     .cents
                     .height,
             )?,
-            coinflow_median_price_usd_weighted: MedianComponent::import(
+            mobile_cost_basis_per_dollar_median: MedianComponent::import(
                 db,
-                "coinflow_median_price_usd_weighted",
+                "mobile_cost_basis_per_dollar_median",
                 version,
                 mappings,
                 &coinflow
-                    .urpd
+                    .aggregate
                     .cohorts
                     .all
+                    .mobile
                     .cost_basis
                     .per_dollar
                     .median
                     .cents
                     .height,
             )?,
-            sth_cointime_median_price_btc_weighted: MedianComponent::import(
+            sth_awake_cost_basis_per_coin_median: MedianComponent::import(
                 db,
-                "sth_cointime_median_price_btc_weighted",
+                "sth_awake_cost_basis_per_coin_median",
                 version,
                 mappings,
                 &cointime
-                    .urpd
+                    .aggregate
                     .cohorts
                     .sth
+                    .awake
                     .cost_basis
                     .per_coin
                     .median
                     .cents
                     .height,
             )?,
-            sth_cointime_median_price_usd_weighted: MedianComponent::import(
+            sth_awake_cost_basis_per_dollar_median: MedianComponent::import(
                 db,
-                "sth_cointime_median_price_usd_weighted",
+                "sth_awake_cost_basis_per_dollar_median",
                 version,
                 mappings,
                 &cointime
-                    .urpd
+                    .aggregate
                     .cohorts
                     .sth
+                    .awake
                     .cost_basis
                     .per_dollar
                     .median
                     .cents
                     .height,
             )?,
-            lth_cointime_median_price_btc_weighted: MedianComponent::import(
+            lth_awake_cost_basis_per_coin_median: MedianComponent::import(
                 db,
-                "lth_cointime_median_price_btc_weighted",
+                "lth_awake_cost_basis_per_coin_median",
                 version,
                 mappings,
                 &cointime
-                    .urpd
+                    .aggregate
                     .cohorts
                     .lth
+                    .awake
                     .cost_basis
                     .per_coin
                     .median
                     .cents
                     .height,
             )?,
-            lth_cointime_median_price_usd_weighted: MedianComponent::import(
+            lth_awake_cost_basis_per_dollar_median: MedianComponent::import(
                 db,
-                "lth_cointime_median_price_usd_weighted",
+                "lth_awake_cost_basis_per_dollar_median",
                 version,
                 mappings,
                 &cointime
-                    .urpd
+                    .aggregate
                     .cohorts
                     .lth
+                    .awake
                     .cost_basis
                     .per_dollar
                     .median
                     .cents
                     .height,
             )?,
-            sth_coinflow_median_price_btc_weighted: MedianComponent::import(
+            sth_mobile_cost_basis_per_coin_median: MedianComponent::import(
                 db,
-                "sth_coinflow_median_price_btc_weighted",
+                "sth_mobile_cost_basis_per_coin_median",
                 version,
                 mappings,
                 &coinflow
-                    .urpd
+                    .aggregate
                     .cohorts
                     .sth
+                    .mobile
                     .cost_basis
                     .per_coin
                     .median
                     .cents
                     .height,
             )?,
-            sth_coinflow_median_price_usd_weighted: MedianComponent::import(
+            sth_mobile_cost_basis_per_dollar_median: MedianComponent::import(
                 db,
-                "sth_coinflow_median_price_usd_weighted",
+                "sth_mobile_cost_basis_per_dollar_median",
                 version,
                 mappings,
                 &coinflow
-                    .urpd
+                    .aggregate
                     .cohorts
                     .sth
+                    .mobile
                     .cost_basis
                     .per_dollar
                     .median
                     .cents
                     .height,
             )?,
-            lth_coinflow_median_price_btc_weighted: MedianComponent::import(
+            lth_mobile_cost_basis_per_coin_median: MedianComponent::import(
                 db,
-                "lth_coinflow_median_price_btc_weighted",
+                "lth_mobile_cost_basis_per_coin_median",
                 version,
                 mappings,
                 &coinflow
-                    .urpd
+                    .aggregate
                     .cohorts
                     .lth
+                    .mobile
                     .cost_basis
                     .per_coin
                     .median
                     .cents
                     .height,
             )?,
-            lth_coinflow_median_price_usd_weighted: MedianComponent::import(
+            lth_mobile_cost_basis_per_dollar_median: MedianComponent::import(
                 db,
-                "lth_coinflow_median_price_usd_weighted",
+                "lth_mobile_cost_basis_per_dollar_median",
                 version,
                 mappings,
                 &coinflow
-                    .urpd
+                    .aggregate
                     .cohorts
                     .lth
+                    .mobile
                     .cost_basis
                     .per_dollar
                     .median
@@ -376,37 +389,40 @@ impl Components {
                 "lth_capitalized_price",
                 utxos.lth.realized.capitalized_price
             ),
-            over_6m_realized_price: import!("over_6m_realized_price", utxos.over_6m.realized.price),
-            over_4m_realized_price: import!("over_4m_realized_price", utxos.over_4m.realized.price),
-            under_4m_realized_price: import!(
-                "under_4m_realized_price",
+            utxos_over_6m_old_realized_price: import!(
+                "utxos_over_6m_old_realized_price",
+                utxos.over_6m.realized.price
+            ),
+            utxos_over_4m_old_realized_price: import!(
+                "utxos_over_4m_old_realized_price",
+                utxos.over_4m.realized.price
+            ),
+            utxos_under_4m_old_realized_price: import!(
+                "utxos_under_4m_old_realized_price",
                 utxos.under_4m.realized.price
             ),
-            under_6m_realized_price: import!(
-                "under_6m_realized_price",
+            utxos_under_6m_old_realized_price: import!(
+                "utxos_under_6m_old_realized_price",
                 utxos.under_6m.realized.price
             ),
-            under_4m_capitalized_price: import!(
-                "under_4m_capitalized_price",
+            utxos_under_4m_old_capitalized_price: import!(
+                "utxos_under_4m_old_capitalized_price",
                 utxos.under_4m.realized.capitalized_price
             ),
-            under_6m_capitalized_price: import!(
-                "under_6m_capitalized_price",
+            utxos_under_6m_old_capitalized_price: import!(
+                "utxos_under_6m_old_capitalized_price",
                 utxos.under_6m.realized.capitalized_price
             ),
             vaulted_price: import!("vaulted_price", cointime.prices.vaulted),
             active_price: import!("active_price", cointime.prices.active),
-            true_market_mean_price: import!(
-                "true_market_mean_price",
-                cointime.prices.true_market_mean
-            ),
+            true_market_mean: import!("true_market_mean", cointime.prices.true_market_mean),
             cointime_price: import!("cointime_price", cointime.prices.cointime),
-            awake_price: import!(
-                "awake_price",
+            awake_realized_price: import!(
+                "awake_realized_price",
                 cointime.aggregate.cohorts.all.awake.realized_price
             ),
-            coinflow_price: import!(
-                "coinflow_price",
+            mobile_realized_price: import!(
+                "mobile_realized_price",
                 coinflow.aggregate.cohorts.all.mobile.realized_price
             ),
         })
@@ -425,24 +441,24 @@ impl Components {
         let utxos = &holders.cohorts;
 
         [
-            &mut self.median_price_btc_weighted,
-            &mut self.median_price_usd_weighted,
-            &mut self.sth_median_price_btc_weighted,
-            &mut self.sth_median_price_usd_weighted,
-            &mut self.lth_median_price_btc_weighted,
-            &mut self.lth_median_price_usd_weighted,
-            &mut self.cointime_median_price_btc_weighted,
-            &mut self.cointime_median_price_usd_weighted,
-            &mut self.coinflow_median_price_btc_weighted,
-            &mut self.coinflow_median_price_usd_weighted,
-            &mut self.sth_cointime_median_price_btc_weighted,
-            &mut self.sth_cointime_median_price_usd_weighted,
-            &mut self.lth_cointime_median_price_btc_weighted,
-            &mut self.lth_cointime_median_price_usd_weighted,
-            &mut self.sth_coinflow_median_price_btc_weighted,
-            &mut self.sth_coinflow_median_price_usd_weighted,
-            &mut self.lth_coinflow_median_price_btc_weighted,
-            &mut self.lth_coinflow_median_price_usd_weighted,
+            &mut self.cost_basis_per_coin_median,
+            &mut self.cost_basis_per_dollar_median,
+            &mut self.sth_cost_basis_per_coin_median,
+            &mut self.sth_cost_basis_per_dollar_median,
+            &mut self.lth_cost_basis_per_coin_median,
+            &mut self.lth_cost_basis_per_dollar_median,
+            &mut self.awake_cost_basis_per_coin_median,
+            &mut self.awake_cost_basis_per_dollar_median,
+            &mut self.mobile_cost_basis_per_coin_median,
+            &mut self.mobile_cost_basis_per_dollar_median,
+            &mut self.sth_awake_cost_basis_per_coin_median,
+            &mut self.sth_awake_cost_basis_per_dollar_median,
+            &mut self.lth_awake_cost_basis_per_coin_median,
+            &mut self.lth_awake_cost_basis_per_dollar_median,
+            &mut self.sth_mobile_cost_basis_per_coin_median,
+            &mut self.sth_mobile_cost_basis_per_dollar_median,
+            &mut self.lth_mobile_cost_basis_per_coin_median,
+            &mut self.lth_mobile_cost_basis_per_dollar_median,
         ]
         .into_par_iter()
         .try_for_each(|median| median.compute(&starting_lengths, spot, exit))?;
@@ -473,23 +489,23 @@ impl Components {
                 &utxos.lth.realized.capitalized_price.relative.ratio.height,
             ),
             (
-                &mut self.over_6m_realized_price,
+                &mut self.utxos_over_6m_old_realized_price,
                 &utxos.over_6m.realized.mvrv.ratio.height,
             ),
             (
-                &mut self.over_4m_realized_price,
+                &mut self.utxos_over_4m_old_realized_price,
                 &utxos.over_4m.realized.mvrv.ratio.height,
             ),
             (
-                &mut self.under_4m_realized_price,
+                &mut self.utxos_under_4m_old_realized_price,
                 &utxos.under_4m.realized.mvrv.ratio.height,
             ),
             (
-                &mut self.under_6m_realized_price,
+                &mut self.utxos_under_6m_old_realized_price,
                 &utxos.under_6m.realized.mvrv.ratio.height,
             ),
             (
-                &mut self.under_4m_capitalized_price,
+                &mut self.utxos_under_4m_old_capitalized_price,
                 &utxos
                     .under_4m
                     .realized
@@ -499,7 +515,7 @@ impl Components {
                     .height,
             ),
             (
-                &mut self.under_6m_capitalized_price,
+                &mut self.utxos_under_6m_old_capitalized_price,
                 &utxos
                     .under_6m
                     .realized
@@ -517,7 +533,7 @@ impl Components {
                 &cointime.prices.active.relative.ratio.height,
             ),
             (
-                &mut self.true_market_mean_price,
+                &mut self.true_market_mean,
                 &cointime.prices.true_market_mean.relative.ratio.height,
             ),
             (
@@ -525,7 +541,7 @@ impl Components {
                 &cointime.prices.cointime.relative.ratio.height,
             ),
             (
-                &mut self.awake_price,
+                &mut self.awake_realized_price,
                 &cointime
                     .aggregate
                     .cohorts
@@ -537,7 +553,7 @@ impl Components {
                     .height,
             ),
             (
-                &mut self.coinflow_price,
+                &mut self.mobile_realized_price,
                 &coinflow
                     .aggregate
                     .cohorts

@@ -1,11 +1,11 @@
 use bitview_cohort::AgeRange;
 use bitview_primitives::{BoundedRatio, Float64, PerDay, Ratio64};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazyPerBlock, LazySpotValuePerBlock, PerBlock};
+use bitview_vecs::{CachedSeries, LazyPerBlock, PerBlock};
 use brk_types::Height;
 use vecdb::{ReadableVec, Rw, StorageMode};
 
-use super::SupplyVecs;
+use super::SideVecs;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -35,7 +35,10 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// one identifies supply likely to move eventually. The source is floored
     /// at bounded scale 4,294,967,294.
     pub mobility: LazyPerBlock<Ratio64, BoundedRatio>,
-    pub supply: SupplyVecs<LazySpotValuePerBlock>,
+    /// The range weighted by its mobility.
+    pub mobile: SideVecs,
+    /// The range weighted by one minus its mobility.
+    pub immobile: SideVecs,
     #[traversable(hidden)]
     pub mobility_source: CachedSeries<Height, BoundedRatio, M>,
 }

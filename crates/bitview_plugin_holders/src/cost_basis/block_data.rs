@@ -1,5 +1,6 @@
 use bitview_distribution::state::cost_basis::PercentileResult;
 use bitview_primitives::{PERCENTILES_LEN, PartsPerMillion32};
+use bitview_vecs::Density;
 use brk_types::Cents;
 
 #[derive(Clone)]
@@ -8,14 +9,16 @@ pub struct CostBasisBlockData {
     pub max: Cents,
     pub per_coin: [Cents; PERCENTILES_LEN],
     pub per_dollar: [Cents; PERCENTILES_LEN],
-    pub supply_density: PartsPerMillion32,
+    pub supply_density: Density<PartsPerMillion32>,
+    pub capital_density: Density<PartsPerMillion32>,
 }
 
 impl CostBasisBlockData {
     #[inline(always)]
     pub fn from_percentiles(
         percentiles: PercentileResult,
-        supply_density: PartsPerMillion32,
+        supply_density: Density<PartsPerMillion32>,
+        capital_density: Density<PartsPerMillion32>,
     ) -> Self {
         Self {
             min: percentiles.min_price,
@@ -23,6 +26,7 @@ impl CostBasisBlockData {
             per_coin: percentiles.sat_prices,
             per_dollar: percentiles.usd_prices,
             supply_density,
+            capital_density,
         }
     }
 }

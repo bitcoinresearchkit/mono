@@ -2,8 +2,6 @@ mod days_to_years;
 pub use days_to_years::DaysToYears;
 mod times_sqrt;
 pub use times_sqrt::TimesSqrt;
-mod block_count_target;
-pub use block_count_target::BlockCountTarget;
 mod blocks_to_days;
 mod count_per_second;
 mod difficulty_to_hashrate;

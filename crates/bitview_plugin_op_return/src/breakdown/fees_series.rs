@@ -17,9 +17,9 @@ use vecdb::{
 pub struct FeesSeries<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub fees: ValuePerBlockCumulativeRolling<M>,
-    /// These fees divided by all transaction fees over the same cumulative or
-    /// trailing window.
-    pub share: LazyPercentCumulativeRolling<PartsPerMillion32>,
+    /// These fees divided by all transaction fees in the chain over the same
+    /// cumulative or trailing window.
+    pub chain_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }
 
 impl FeesSeries {
@@ -38,12 +38,12 @@ impl FeesSeries {
             mappings,
             window_starts,
         )?;
-        let share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
+        let chain_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
             Sats,
             Sats,
             Quotient<PartsPerMillion32>,
         >(
-            &format!("{prefix}_fee_share"),
+            &format!("{prefix}_fee_chain_share"),
             version,
             fees.cumulative.sats.resolutions.height_source(),
             chain_fees,
@@ -51,7 +51,7 @@ impl FeesSeries {
             mappings,
         );
 
-        Ok(Self { fees, share })
+        Ok(Self { fees, chain_share })
     }
 
     pub fn len(&self) -> usize {

@@ -1,12 +1,14 @@
 use bitview_primitives::{BoundedRatio, Percent};
 use bitview_traversable::Traversable;
+use bitview_urpd::CostBasisVecs;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazySpotValuePerBlock,
 };
 use brk_types::Cents;
+use vecdb::{Rw, StorageMode};
 
-#[derive(Clone, Traversable)]
-pub struct MobileVecs {
+#[derive(Traversable)]
+pub struct MobileVecs<M: StorageMode = Rw> {
     /// Sum of supply multiplied by mobility across the cohort's UTXO age
     /// ranges. Each age-range contribution is rounded down to whole satoshis.
     pub supply: LazySpotValuePerBlock,
@@ -27,4 +29,7 @@ pub struct MobileVecs {
     /// sum(weight × creation price² × sats) / sum(weight × creation price × sats).
     /// Uses raw cost-basis moments; returns zero when weighted invested value is zero.
     pub capitalized_price: LazyPriceWithRatioPerBlock,
+    /// Mobility-weighted URPD: each unspent output weighted by its age range's
+    /// mobility, creation prices rounded to five significant digits.
+    pub cost_basis: CostBasisVecs<M>,
 }

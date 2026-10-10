@@ -12,7 +12,6 @@ use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
-    LazySpotValuePerBlock,
 };
 use brk_types::{Bitcoin, Cents, CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
@@ -28,8 +27,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Total value of all unspent transaction outputs in the UTXO set; its USD
     /// value is the market cap.
     circulating: LazyPerBlock<Bitcoin, Bitcoin>,
-    /// Cumulative provably unspendable supply from the genesis subsidy,
-    /// `OP_RETURN` output values, and unclaimed block rewards.
+    /// Value made provably unspendable: the genesis subsidy, `OP_RETURN` output
+    /// values and unclaimed block rewards.
     burned: burned::Vecs<M>,
     /// Scheduled annual issuance over the circulating supply: the represented
     /// block's scheduled subsidy times 52,560 blocks, divided by the supply. The
@@ -50,13 +49,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// mean it grew more slowly. A component with a zero starting value
     /// contributes zero growth.
     market_minus_realized_cap_growth_rate: Windows<LazyPercentPerBlock<PartsPerMillionSigned64>>,
-    /// Circulating supply multiplied by cointime vaultedness, which is one
-    /// minus liveliness, and valued at the represented block's Bitcoin spot
-    /// price. Liveliness is cumulative coinblocks destroyed divided by
-    /// cumulative coinblocks created, so this estimates the market value of
-    /// supply associated with holding time that remains stored rather than
-    /// consumed by spending.
-    hodled_or_lost: LazySpotValuePerBlock,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

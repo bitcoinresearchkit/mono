@@ -2,12 +2,12 @@ use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{LazyPerSecondWindows, LazyWindowStartVec, ValuePerBlockCumulativeRolling};
 use brk_error::Result;
+use brk_types::Version;
 
 use super::{
     STORAGE, Vecs, count, features, fees, inscription, patterns, policy, sigops, size, versions,
-    volume,
 };
 
 impl Vecs {
@@ -29,8 +29,15 @@ impl Vecs {
         let policy = policy::Vecs::import(&db, version, mappings, window_starts)?;
         let sigops = sigops::Vecs::import(&db, version, mappings, window_starts)?;
         let versions = versions::Vecs::import(&db, version, mappings, window_starts)?;
-        let volume =
-            volume::Vecs::import(&db, version, mappings, window_starts, &count.rolling.sum)?;
+        let volume = ValuePerBlockCumulativeRolling::import(
+            &db,
+            "tx_volume",
+            version,
+            mappings,
+            window_starts,
+        )?;
+        let per_second =
+            LazyPerSecondWindows::new("tx_per_second", version + Version::TWO, &count.rolling.sum);
 
         let this = Self {
             db,
@@ -44,6 +51,7 @@ impl Vecs {
             sigops,
             versions,
             volume,
+            per_second,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

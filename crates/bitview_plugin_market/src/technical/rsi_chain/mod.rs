@@ -38,6 +38,7 @@ pub struct RsiChain<M: StorageMode = Rw> {
     /// average gain and loss. The result ranges from 0% to 100%; values above
     /// 50% mean smoothed gains exceed losses, and values below 50% mean losses
     /// exceed gains. Returns 50% when both averages are zero.
+    #[traversable(rename = "block")]
     pub rsi: PercentPerBlock<PartsPerMillion32, M>,
     #[traversable(hidden)]
     rsi_min: PercentPerBlock<PartsPerMillion32, M>,
@@ -49,11 +50,13 @@ pub struct RsiChain<M: StorageMode = Rw> {
     /// base interval. Stochastic RSI locates RSI within its trailing RSI range,
     /// from 0% at the range minimum to 100% at the range maximum; this K line
     /// smooths that position.
+    #[traversable(wrap = "stochastic", rename = "k")]
     pub stoch_rsi_k: PercentPerBlock<PartsPerMillion32, M>,
     /// Signal line for Stochastic RSI: the simple moving average of its K line
     /// over three times the chain's base interval. K above D means the smoothed
     /// position of RSI within its recent range is rising relative to this
     /// slower signal; K below D means it is falling.
+    #[traversable(wrap = "stochastic", rename = "d")]
     pub stoch_rsi_d: PercentPerBlock<PartsPerMillion32, M>,
 }
 
@@ -98,8 +101,18 @@ impl RsiChain {
             rsi_min: percent_import!("min"),
             rsi_max: percent_import!("max"),
             stoch_rsi: percent_import!("stoch"),
-            stoch_rsi_k: percent_import!("stoch_k"),
-            stoch_rsi_d: percent_import!("stoch_d"),
+            stoch_rsi_k: PercentPerBlock::import(
+                db,
+                &format!("stochastic_rsi_k_{tf}"),
+                version,
+                mappings,
+            )?,
+            stoch_rsi_d: PercentPerBlock::import(
+                db,
+                &format!("stochastic_rsi_d_{tf}"),
+                version,
+                mappings,
+            )?,
         })
     }
 }

@@ -4,14 +4,14 @@ use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::{BoundedOdds, BoundedToRatio};
 use bitview_vecs::{
-    LazyPerBlock, LazySpotValuePerBlock, LazyWindowStartVec, PerBlockCumulativeRolling,
-    import_cached,
+    LazyPerBlock, LazyPerBlockCumulativeRolling, LazySpotValuePerBlock, LazyWindowStartVec,
+    PerBlockCumulativeRolling, import_cached,
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec};
 
-use super::{RangeVecs, SupplyVecs, Vecs};
+use super::{RangeVecs, SideVecs, Vecs};
 
 const VERSION: Version = Version::new(4);
 
@@ -47,6 +47,13 @@ impl Vecs {
                 .get(id.cohort())
                 .expect("age supply source");
             Ok(RangeVecs {
+                coindays_created: LazyPerBlockCumulativeRolling::from_cumulative_source(
+                    &name("coindays_created"),
+                    version,
+                    id.select(&age.coindays_created).cumulative_source(),
+                    window_starts,
+                    mappings,
+                ),
                 coindays_consumed: flow("coindays_consumed")?,
                 coindays_stored: flow("coindays_stored")?,
                 wakefulness: LazyPerBlock::from_height_source::<BoundedToRatio>(
@@ -61,8 +68,8 @@ impl Vecs {
                     &wakefulness_source,
                     mappings,
                 ),
-                supply: SupplyVecs {
-                    awake: LazySpotValuePerBlock::from_weighted_supply::<false>(
+                awake: SideVecs {
+                    supply: LazySpotValuePerBlock::from_weighted_supply::<false>(
                         &name("awake_supply"),
                         version,
                         supply,
@@ -70,7 +77,9 @@ impl Vecs {
                         mappings,
                         spot_price,
                     ),
-                    dormant: LazySpotValuePerBlock::from_weighted_supply::<true>(
+                },
+                dormant: SideVecs {
+                    supply: LazySpotValuePerBlock::from_weighted_supply::<true>(
                         &name("dormant_supply"),
                         version,
                         supply,

@@ -1,14 +1,13 @@
 use bitview_collections::Windows;
 use bitview_distribution::AllChainSources;
 use bitview_plugin::ImportContext;
-use bitview_plugin_cointime::Vecs as CointimeVecs;
 use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::{Halving, PartsPerMillionSigned64};
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
-    LazySpotValuePerBlock, LazyWindowStartVec, LazyWindowVec,
+    LazyWindowStartVec, LazyWindowVec,
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
@@ -22,7 +21,6 @@ impl Vecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
         holders: &HoldersVecs,
-        cointime: &CointimeVecs,
         all_chain: &AllChainSources,
         transactions: &TransactionsVecs,
     ) -> Result<Self> {
@@ -36,7 +34,7 @@ impl Vecs {
             &supply_metrics.btc,
         );
 
-        let burned = burned::Vecs::import(&db, version, mappings)?;
+        let burned = burned::Vecs::import(&db, version, mappings, window_starts)?;
 
         // Scheduled annual issuance (the block's scheduled subsidy x 52,560 blocks) over the
         // supply: the reciprocal of stock-to-flow.
@@ -95,12 +93,6 @@ impl Vecs {
                 LazyPercentPerBlock::from_height_source(&name, growth_version, &source, mappings)
             });
 
-        let hodled_or_lost = LazySpotValuePerBlock::identity(
-            "hodled_or_lost_supply",
-            version,
-            &cointime.supply.vaulted,
-        );
-
         let this = Self {
             db,
             circulating,
@@ -110,7 +102,6 @@ impl Vecs {
             market_cap,
             market_cap_delta,
             market_minus_realized_cap_growth_rate,
-            hodled_or_lost,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

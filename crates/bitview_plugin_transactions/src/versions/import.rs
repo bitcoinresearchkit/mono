@@ -24,10 +24,10 @@ impl Vecs {
             )
         };
         Ok(Vecs {
-            v1: import("tx_v1")?,
-            v2: import("tx_v2")?,
-            v3: import("tx_v3")?,
-            other: import("tx_other_version")?,
+            v1: import("v1_tx_count")?,
+            v2: import("v2_tx_count")?,
+            v3: import("v3_tx_count")?,
+            other: import("other_version_tx_count")?,
         })
     }
 }

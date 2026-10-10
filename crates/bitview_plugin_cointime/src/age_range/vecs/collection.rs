@@ -1,11 +1,13 @@
 use bitview_cohort::AgeRange;
 use bitview_primitives::{BoundedRatio, CoinDays, Ratio64};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazyPerBlock, LazySpotValuePerBlock, PerBlockCumulativeRolling};
+use bitview_vecs::{
+    CachedSeries, LazyPerBlock, LazyPerBlockCumulativeRolling, PerBlockCumulativeRolling,
+};
 use brk_types::Height;
 use vecdb::{ReadableVec, Rw, StorageMode};
 
-use super::SupplyVecs;
+use super::SideVecs;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -16,11 +18,17 @@ pub struct Vecs<M: StorageMode = Rw> {
 /// Cointime of one UTXO age range.
 #[derive(Traversable)]
 pub struct RangeVecs<M: StorageMode = Rw> {
+    /// Coin days created in the range: its supply held for the block's
+    /// duration (the age plugin's series).
+    pub coindays_created: LazyPerBlockCumulativeRolling<CoinDays>,
     /// Coin days destroyed by spent outputs, allocated across every age range
     /// the outputs traversed. The portion above a spent output's age-range
     /// lower bound remains in that range; each fully traversed younger range
     /// receives spent BTC multiplied by that range's duration. The allocation
-    /// preserves total coin days destroyed.
+    /// preserves total coin days destroyed. Unlike the age range's coin days
+    /// destroyed, which credit a spent output's whole age to the range it was
+    /// spent from, this takes coin days from the ranges where they were
+    /// created, so consumption never exceeds creation in any range.
     pub coindays_consumed: PerBlockCumulativeRolling<CoinDays, M>,
     /// Cumulative coin days created in the range minus cumulative coin days
     /// consumed from it.
@@ -34,7 +42,10 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// Awake supply divided by dormant supply, `wakefulness / (1 - wakefulness)`:
     /// above one, more of the range's holding time was consumed than stored.
     pub awake_to_dormant: LazyPerBlock<Ratio64, BoundedRatio>,
-    pub supply: SupplyVecs<LazySpotValuePerBlock>,
+    /// The range weighted by its wakefulness.
+    pub awake: SideVecs,
+    /// The range weighted by one minus its wakefulness.
+    pub dormant: SideVecs,
     #[traversable(hidden)]
     pub wakefulness_source: CachedSeries<Height, BoundedRatio, M>,
 }

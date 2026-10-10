@@ -32,7 +32,7 @@ impl Vecs {
         let nvt_source = all_chain.with_market_cap(
             "nvt_bps_source",
             bps_version,
-            &transactions.volume.value.sum._24h.cents.height,
+            &transactions.volume.sum._24h.cents.height,
             |_, volume, market_cap| Self::market_ratio(market_cap, volume),
         );
         let nvt = LazyRatioPerBlock::from_height_source("nvt", bps_version, &nvt_source, mappings);
@@ -59,26 +59,26 @@ impl Vecs {
 
         let activity = &holders.cohorts.all.activity;
         let cdd_source = all_chain.with_supply(
-            "coindays_destroyed_supply_adj_source",
+            "coindays_destroyed_supply_adjusted_source",
             v,
             &activity.coindays_destroyed.sum._24h.height,
             |_, cdd, supply| Days::new(Self::supply_adjusted(f64::from(cdd), supply)),
         );
-        let coindays_destroyed_supply_adj = LazyPerBlock::from_height_source::<Ident>(
-            "coindays_destroyed_supply_adj",
+        let coindays_destroyed_supply_adjusted = LazyPerBlock::from_height_source::<Ident>(
+            "coindays_destroyed_supply_adjusted",
             v,
             &cdd_source,
             mappings,
         );
         let cyd_version = v + COINYEARS_DESTROYED_SUPPLY_ADJ_VERSION;
         let cyd_source = all_chain.with_supply(
-            "coinyears_destroyed_supply_adj_source",
+            "coinyears_destroyed_supply_adjusted_source",
             cyd_version,
             &activity.coinyears_destroyed.height,
             |_, cyd, supply| Years::new(Self::supply_adjusted(f64::from(cyd), supply)),
         );
-        let coinyears_destroyed_supply_adj = LazyPerBlock::from_height_source::<Ident>(
-            "coinyears_destroyed_supply_adj",
+        let coinyears_destroyed_supply_adjusted = LazyPerBlock::from_height_source::<Ident>(
+            "coinyears_destroyed_supply_adjusted",
             cyd_version,
             &cyd_source,
             mappings,
@@ -92,7 +92,7 @@ impl Vecs {
             .resolutions
             .height_source();
         let dormancy_supply_source = all_chain.with_supply(
-            "dormancy_supply_adj_source",
+            "dormancy_supply_adjusted_source",
             v,
             dormancy_24h,
             |_, dormancy, supply| Float32::new(Self::supply_adjusted(f64::from(dormancy), supply)),
@@ -104,8 +104,8 @@ impl Vecs {
             |_, dormancy, supply| Self::dormancy_flow(dormancy, supply),
         );
         let dormancy = DormancyVecs {
-            supply_adj: LazyPerBlock::from_height_source::<Ident>(
-                "dormancy_supply_adj",
+            supply_adjusted: LazyPerBlock::from_height_source::<Ident>(
+                "dormancy_supply_adjusted",
                 v,
                 &dormancy_supply_source,
                 mappings,
@@ -125,8 +125,12 @@ impl Vecs {
         );
         let stock_to_flow =
             LazyPerBlock::from_height_source::<Ident>("stock_to_flow", v, &stock_source, mappings);
-        let seller_exhaustion =
-            PerBlock::import(&db, "seller_exhaustion", v + Version::ONE, mappings)?;
+        let seller_exhaustion_constant = PerBlock::import(
+            &db,
+            "seller_exhaustion_constant",
+            v + Version::ONE,
+            mappings,
+        )?;
 
         let this = Self {
             db,
@@ -135,11 +139,11 @@ impl Vecs {
             gini,
             rhodl_ratio,
             thermo_cap_multiple,
-            coindays_destroyed_supply_adj,
-            coinyears_destroyed_supply_adj,
+            coindays_destroyed_supply_adjusted,
+            coinyears_destroyed_supply_adjusted,
             dormancy,
             stock_to_flow,
-            seller_exhaustion,
+            seller_exhaustion_constant,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)
@@ -167,7 +171,7 @@ impl Vecs {
     fn stock_to_flow(supply: Sats, subsidy: Sats) -> Years {
         let annual_flow = subsidy.as_u128() as f64 * 52_560.0;
         if annual_flow == 0.0 {
-            Years::ZERO
+            Years::new(f32::NAN)
         } else {
             Years::new((supply.as_u128() as f64 / annual_flow) as f32)
         }

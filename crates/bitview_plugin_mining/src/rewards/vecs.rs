@@ -1,8 +1,8 @@
 use bitview_primitives::{PartsPerMillion32, PartsPerMillion64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyPercentCumulativeRolling, LazyRatioRollingWindows, ValuePerBlockCumulative,
-    ValuePerBlockCumulativeRolling, ValuePerBlockFull,
+    LazyPercentCumulativeRolling, LazyRatioRollingWindows, ValuePerBlockCumulativeRolling,
+    ValuePerBlockFull,
 };
 use vecdb::{Rw, StorageMode};
 
@@ -19,12 +19,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Sum of input value minus output value across the block's non-coinbase
     /// transactions.
     pub fees: ValuePerBlockFull<M>,
-    /// Sum of the output values of the block's non-coinbase transactions,
-    /// equivalently their total input value minus transaction fees.
-    pub output_volume: ValuePerBlockCumulativeRolling<M>,
     /// Portion of the available block reward not assigned to coinbase outputs:
     /// scheduled subsidy plus transaction fees minus coinbase output value.
-    pub unclaimed: ValuePerBlockCumulative<M>,
+    pub unclaimed: ValuePerBlockCumulativeRolling<M>,
     /// Transaction fees divided by coinbase output value. Cumulative variants
     /// use cumulative totals; rolling variants use totals within the trailing
     /// window. Larger values mean fees supplied more of the miner revenue.

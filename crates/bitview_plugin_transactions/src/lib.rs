@@ -13,7 +13,6 @@ mod policy;
 mod sigops;
 mod size;
 mod versions;
-mod volume;
 
 pub use dependencies::Dependencies;
 pub use fees::Vecs as FeesVecs;
@@ -21,6 +20,7 @@ pub use has::HasTransactions;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
+use bitview_vecs::{LazyPerSecondWindows, ValuePerBlockCumulativeRolling};
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -32,7 +32,6 @@ use policy::Vecs as PolicyVecs;
 use sigops::Vecs as SigopsVecs;
 use size::Vecs as UtxosVecs;
 use versions::Vecs as VersionsVecs;
-use volume::Vecs as VolumeVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("transactions"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
@@ -60,7 +59,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Counts every transaction, including coinbase, by its signed 32-bit
     /// Bitcoin transaction version.
     versions: VersionsVecs<M>,
-    pub volume: VolumeVecs<M>,
+    /// Sum of the input values of non-coinbase transactions. This equals their
+    /// total output value plus transaction fees and is not adjusted to estimate
+    /// economic payment volume.
+    pub volume: ValuePerBlockCumulativeRolling<M>,
+    /// Transaction rate, including coinbase transactions.
+    per_second: LazyPerSecondWindows,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

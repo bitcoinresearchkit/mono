@@ -87,12 +87,12 @@ impl Columns {
             )?,
             adjusted_volume: import_cached(
                 db,
-                &id.metric_name("adj_value_created_cumulative_cents"),
+                &id.metric_name("adjusted_value_created_cumulative_cents"),
                 version,
             )?,
             adjusted_value_destroyed: import_cached(
                 db,
-                &id.metric_name("adj_value_destroyed_cumulative_cents"),
+                &id.metric_name("adjusted_value_destroyed_cumulative_cents"),
                 version,
             )?,
             cdd: import_cached(

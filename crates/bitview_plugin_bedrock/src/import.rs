@@ -16,18 +16,21 @@ impl ModeVecs {
         mappings: &IndexSources,
     ) -> Result<Self> {
         let version = version + Version::new(3);
-        let supply_in_loss_threshold_stored = Percentiles::try_from_fn(|id| {
+        let supply_in_loss_share_threshold_stored = Percentiles::try_from_fn(|id| {
             import_cached(
                 db,
-                &format!("{name}_supply_in_loss_threshold_{}_bounded", id.suffix()),
+                &format!(
+                    "{name}_supply_in_loss_share_threshold_{}_bounded",
+                    id.suffix()
+                ),
                 version,
             )
         })?;
-        let supply_in_loss_threshold = Percentiles::from_fn(|id| {
+        let supply_in_loss_share_threshold = Percentiles::from_fn(|id| {
             LazyPerBlock::from_height_source::<FixedToPercent>(
-                &format!("{name}_supply_in_loss_threshold_{}", id.suffix()),
+                &format!("{name}_supply_in_loss_share_threshold_{}", id.suffix()),
                 version,
-                id.select(&supply_in_loss_threshold_stored),
+                id.select(&supply_in_loss_share_threshold_stored),
                 mappings,
             )
         });
@@ -43,9 +46,9 @@ impl ModeVecs {
             )
         });
         Ok(Self {
-            supply_in_loss_threshold,
+            supply_in_loss_share_threshold,
             prices,
-            supply_in_loss_threshold_stored,
+            supply_in_loss_share_threshold_stored,
             prices_stored,
         })
     }

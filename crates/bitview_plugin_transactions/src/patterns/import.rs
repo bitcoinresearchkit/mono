@@ -19,9 +19,9 @@ impl Vecs {
             |name| PerBlockCumulativeRolling::import(db, name, version, mappings, window_starts);
         Ok(Vecs {
             count: CountVecs {
-                coinjoin: count("coinjoin_count")?,
-                consolidation: count("consolidation_count")?,
-                batch_payout: count("batch_payout_count")?,
+                coinjoin: count("coinjoin_tx_count")?,
+                consolidation: count("consolidation_tx_count")?,
+                batch_payout: count("batch_payout_tx_count")?,
             },
             flags: Flags {
                 is_coinjoin: EagerVec::import(db, "is_coinjoin", version)?,

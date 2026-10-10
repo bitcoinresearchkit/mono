@@ -20,7 +20,7 @@ pub struct ValuePerBlockCumulative<M: StorageMode = Rw> {
 const VERSION: Version = Version::ONE;
 
 impl ValuePerBlockCumulative {
-    pub fn import(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,

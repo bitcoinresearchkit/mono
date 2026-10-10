@@ -19,7 +19,7 @@ impl Vecs {
         Ok(Vecs {
             count: PerBlockCumulativeRolling::import(
                 db,
-                "tx_count_inscription",
+                "inscription_tx_count",
                 version,
                 indexes,
                 window_starts,
@@ -31,7 +31,12 @@ impl Vecs {
                 indexes,
                 window_starts,
             )?,
-            fee_share: PercentPerBlock::import(db, "inscription_fee_share", version, indexes)?,
+            fee_share: PercentPerBlock::import(
+                db,
+                "inscription_fee_chain_share",
+                version,
+                indexes,
+            )?,
         })
     }
 }

@@ -117,17 +117,20 @@ impl<const N: usize> PriceIndex<N> {
         }
     }
 
-    /// Totals within the existing inclusive +-5 percent density interval.
-    pub fn density_range(&self, price: Cents) -> PriceTotals<N> {
-        let price = u64::from(price) as f64;
-        let low = self.before(Cents::from((price * 0.95) as u64));
+    /// Totals within the inclusive +-5 percent density interval, split at `price`: the buckets
+    /// through the spot bucket (in profit), then the ones above it (in loss).
+    pub fn density_split(&self, price: Cents) -> (PriceTotals<N>, PriceTotals<N>) {
+        let spot = u64::from(price) as f64;
+        let low = self.before(Cents::from((spot * 0.95) as u64));
+        let mid = self.tree.prefix_sum(cents_to_bucket(price));
         let high = self
             .tree
-            .prefix_sum(cents_to_bucket(Cents::from((price * 1.05) as u64)));
-        PriceTotals {
-            sats: array::from_fn(|i| high.sats[i] - low.sats[i]),
-            cap: array::from_fn(|i| high.cap[i] - low.cap[i]),
-        }
+            .prefix_sum(cents_to_bucket(Cents::from((spot * 1.05) as u64)));
+        let between = |from: &PriceTotals<N>, to: &PriceTotals<N>| PriceTotals {
+            sats: array::from_fn(|i| to.sats[i] - from.sats[i]),
+            cap: array::from_fn(|i| to.cap[i] - from.cap[i]),
+        };
+        (between(&low, &mid), between(&mid, &high))
     }
 
     pub fn percentiles<const QUERIES: usize>(

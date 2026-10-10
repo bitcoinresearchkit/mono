@@ -52,8 +52,8 @@ impl ComputePlugin for Vecs {
         extremes_result?;
 
         let local_components = [
-            &self.components.under_4m_realized_price,
-            &self.components.under_6m_realized_price,
+            &self.components.utxos_under_4m_old_realized_price,
+            &self.components.utxos_under_6m_old_realized_price,
             &self.components.sth_realized_price,
             &self.components.sth_capitalized_price,
         ];
@@ -62,63 +62,66 @@ impl ComputePlugin for Vecs {
         // matching the rarity meter's P0.1, P0.5, P1, P2, and P5 order.
         let bedrock_floors = [
             [
-                &bedrock.raw.floor.pct99_9.cents.height,
-                &bedrock.raw.floor.pct99_5.cents.height,
-                &bedrock.raw.floor.pct99.cents.height,
-                &bedrock.raw.floor.pct98.cents.height,
-                &bedrock.raw.floor.pct95.cents.height,
+                &bedrock.unweighted.floor.pct99_9.cents.height,
+                &bedrock.unweighted.floor.pct99_5.cents.height,
+                &bedrock.unweighted.floor.pct99.cents.height,
+                &bedrock.unweighted.floor.pct98.cents.height,
+                &bedrock.unweighted.floor.pct95.cents.height,
             ],
             [
-                &bedrock.cointime.floor.pct99_9.cents.height,
-                &bedrock.cointime.floor.pct99_5.cents.height,
-                &bedrock.cointime.floor.pct99.cents.height,
-                &bedrock.cointime.floor.pct98.cents.height,
-                &bedrock.cointime.floor.pct95.cents.height,
+                &bedrock.awake.floor.pct99_9.cents.height,
+                &bedrock.awake.floor.pct99_5.cents.height,
+                &bedrock.awake.floor.pct99.cents.height,
+                &bedrock.awake.floor.pct98.cents.height,
+                &bedrock.awake.floor.pct95.cents.height,
             ],
             [
-                &bedrock.coinflow.floor.pct99_9.cents.height,
-                &bedrock.coinflow.floor.pct99_5.cents.height,
-                &bedrock.coinflow.floor.pct99.cents.height,
-                &bedrock.coinflow.floor.pct98.cents.height,
-                &bedrock.coinflow.floor.pct95.cents.height,
+                &bedrock.mobile.floor.pct99_9.cents.height,
+                &bedrock.mobile.floor.pct99_5.cents.height,
+                &bedrock.mobile.floor.pct99.cents.height,
+                &bedrock.mobile.floor.pct98.cents.height,
+                &bedrock.mobile.floor.pct95.cents.height,
             ],
         ];
 
         let cycle_components = [
-            &self.components.over_4m_realized_price,
-            &self.components.over_6m_realized_price,
+            &self.components.utxos_over_4m_old_realized_price,
+            &self.components.utxos_over_6m_old_realized_price,
             &self.components.realized_price,
             &self.components.capitalized_price,
             &self.components.lth_realized_price,
             &self.components.lth_capitalized_price,
         ];
         let local_v2_components = [
-            &self.components.under_4m_realized_price,
-            &self.components.under_6m_realized_price,
-            &self.components.under_4m_capitalized_price,
-            &self.components.under_6m_capitalized_price,
+            &self.components.utxos_under_4m_old_realized_price,
+            &self.components.utxos_under_6m_old_realized_price,
+            &self.components.utxos_under_4m_old_capitalized_price,
+            &self.components.utxos_under_6m_old_capitalized_price,
             &self.components.sth_realized_price,
             &self.components.sth_capitalized_price,
-            &self.components.sth_median_price_btc_weighted.component,
-            &self.components.sth_median_price_usd_weighted.component,
+            &self.components.sth_cost_basis_per_coin_median.component,
+            &self.components.sth_cost_basis_per_dollar_median.component,
         ];
         let cycle_v2_components = [
             &self.components.realized_price,
             &self.components.capitalized_price,
-            &self.components.median_price_btc_weighted.component,
-            &self.components.median_price_usd_weighted.component,
-            &self.components.cointime_median_price_btc_weighted.component,
-            &self.components.cointime_median_price_usd_weighted.component,
-            &self.components.coinflow_median_price_btc_weighted.component,
-            &self.components.coinflow_median_price_usd_weighted.component,
-            &self.components.over_6m_realized_price,
-            &self.components.over_4m_realized_price,
+            &self.components.cost_basis_per_coin_median.component,
+            &self.components.cost_basis_per_dollar_median.component,
+            &self.components.awake_cost_basis_per_coin_median.component,
+            &self.components.awake_cost_basis_per_dollar_median.component,
+            &self.components.mobile_cost_basis_per_coin_median.component,
+            &self
+                .components
+                .mobile_cost_basis_per_dollar_median
+                .component,
+            &self.components.utxos_over_6m_old_realized_price,
+            &self.components.utxos_over_4m_old_realized_price,
             &self.components.vaulted_price,
             &self.components.active_price,
-            &self.components.true_market_mean_price,
+            &self.components.true_market_mean,
             &self.components.cointime_price,
-            &self.components.awake_price,
-            &self.components.coinflow_price,
+            &self.components.awake_realized_price,
+            &self.components.mobile_realized_price,
         ];
         let starting_height = indexer.safe_lengths().height;
         let jobs: [(

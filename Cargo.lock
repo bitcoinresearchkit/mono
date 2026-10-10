@@ -1129,7 +1129,6 @@ dependencies = [
  "bitview_collections",
  "bitview_distribution",
  "bitview_plugin",
- "bitview_plugin_cointime",
  "bitview_plugin_holders",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",

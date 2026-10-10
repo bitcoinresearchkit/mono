@@ -17,5 +17,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Fees of transactions containing a detected inscription divided by all
     /// transaction fees in the represented block. Zero when the block has no
     /// fees. Time-period indexes take the share from the period's final block.
+    #[traversable(wrap = "fees", rename = "chain_share")]
     pub fee_share: PercentPerBlock<PartsPerMillion32, M>,
 }

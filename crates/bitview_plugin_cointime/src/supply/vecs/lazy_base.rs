@@ -8,6 +8,8 @@ pub struct LazyBaseVecs {
     /// is cumulative coinblocks destroyed divided by cumulative coinblocks
     /// created.
     pub vaulted: LazySpotValuePerBlock,
+    /// HODLed or lost supply: the vaulted supply under its Glassnode name.
+    pub hodled_or_lost: LazySpotValuePerBlock,
     /// Circulating supply multiplied by cumulative coinblocks destroyed divided
     /// by cumulative coinblocks created.
     pub active: LazySpotValuePerBlock,

@@ -15,13 +15,16 @@ pub struct PriceBands<T> {
     /// supply would be in loss. Unavailable when the mode has no positive
     /// weighted supply or no historical threshold.
     pub floor: Percentiles<T>,
-    /// Additional creation-price level within the mode-weighted supply at or
-    /// above the mode's 95th-percentile floor. Unavailable when that floor or
-    /// the conditional supply subset is unavailable.
-    pub level: Levels<T>,
+    /// Creation-price percentiles of the mode-weighted supply at or above the
+    /// mode's 95th-percentile floor. Unavailable when that floor or the
+    /// conditional supply subset is unavailable.
+    pub cost_basis_above_floor: Levels<T>,
 }
 
-impl_named_row_formattable!(PriceBands { floor, level });
+impl_named_row_formattable!(PriceBands {
+    floor,
+    cost_basis_above_floor
+});
 
 impl<T> PriceBands<T> {
     pub fn try_from_fn<E>(mut create: impl FnMut(PriceBandId) -> Result<T, E>) -> Result<Self, E> {
@@ -33,12 +36,14 @@ impl<T> PriceBands<T> {
                 pct99_5: create(PriceBandId::FloorPct99_5)?,
                 pct99_9: create(PriceBandId::FloorPct99_9)?,
             },
-            level: Levels::try_from_fn(|id| create(id.into()))?,
+            cost_basis_above_floor: Levels::try_from_fn(|id| create(id.into()))?,
         })
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
-        self.floor.iter_mut().chain(self.level.iter_mut())
+        self.floor
+            .iter_mut()
+            .chain(self.cost_basis_above_floor.iter_mut())
     }
     pub fn from_fn(mut create: impl FnMut(PriceBandId) -> T) -> Self {
         Self {
@@ -49,7 +54,7 @@ impl<T> PriceBands<T> {
                 pct99_5: create(PriceBandId::FloorPct99_5),
                 pct99_9: create(PriceBandId::FloorPct99_9),
             },
-            level: Levels::from_fn(|id: LevelId| create(id.into())),
+            cost_basis_above_floor: Levels::from_fn(|id: LevelId| create(id.into())),
         }
     }
 }

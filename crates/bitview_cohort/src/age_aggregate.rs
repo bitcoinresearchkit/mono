@@ -69,11 +69,15 @@ impl AgeAggregateId {
         Self::ALL.iter().copied().find(|id| id.name() == name)
     }
 
+    /// The cohort's id for `metric`: bare for `all`, `sth_`/`lth_` for the terms, and the age
+    /// ranges' `utxos_<age>_old_` frame for the cutoffs (`utxos_under_4m_old_supply`).
     pub fn metric_name(self, metric: &str) -> String {
-        if self == Self::All {
-            metric.to_owned()
-        } else {
-            format!("{}_{metric}", self.name())
+        match self {
+            Self::All => metric.to_owned(),
+            Self::Sth | Self::Lth => format!("{}_{metric}", self.name()),
+            Self::Under4M | Self::Under6M | Self::Over4M | Self::Over6M => {
+                format!("utxos_{}_old_{metric}", self.name())
+            }
         }
     }
 }

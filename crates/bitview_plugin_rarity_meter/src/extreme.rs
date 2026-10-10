@@ -60,8 +60,8 @@ const SELLER_EXHAUSTION: Config = Config {
 
 /// Historical extremeness of one metric.
 ///
-/// `tail` is the represented observation's top- or bottom-tail share, the three
-/// `threshold` fields are the highlight boundaries, and `rank` is 0 through 3.
+/// `tail_share` is the represented observation's top- or bottom-tail share, the three
+/// `thresholds` are the highlight boundaries, and `rank` is 0 through 3.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Extreme<T, M: StorageMode = Rw>
 where
@@ -69,7 +69,6 @@ where
 {
     #[deref]
     #[deref_mut]
-    #[traversable(flatten)]
     /// Source values corresponding to rare historical tail probabilities before
     /// the represented observation. An upper-tail event is extreme at or above
     /// its boundary; a lower-tail event is extreme at or below it. The series'
@@ -79,7 +78,7 @@ where
     /// extreme as the represented source value in the configured upper or lower
     /// tail. A smaller percentage means a rarer observation. The represented
     /// observation is included in both numerator and denominator.
-    pub tail: PercentPerBlock<PartsPerMillion32, M>,
+    pub tail_share: PercentPerBlock<PartsPerMillion32, M>,
     /// Discrete extremeness rank, where a higher value means a rarer event: 3 at
     /// or beyond the 0.025% tail boundary, 2 at or beyond 0.05%, 1 at or beyond
     /// 0.1%, and 0 otherwise or while unavailable. The series' model determines
@@ -101,21 +100,16 @@ where
     ) -> Result<Self> {
         let version = version + Version::ONE;
         let thresholds = ThresholdVecs {
-            threshold_pct0_1: PerBlock::import(
+            tail0_1: PerBlock::import(db, &format!("{name}_threshold_tail0_1"), version, mappings)?,
+            tail0_05: PerBlock::import(
                 db,
-                &format!("{name}_threshold_pct0_1"),
+                &format!("{name}_threshold_tail0_05"),
                 version,
                 mappings,
             )?,
-            threshold_pct0_05: PerBlock::import(
+            tail0_025: PerBlock::import(
                 db,
-                &format!("{name}_threshold_pct0_05"),
-                version,
-                mappings,
-            )?,
-            threshold_pct0_025: PerBlock::import(
-                db,
-                &format!("{name}_threshold"),
+                &format!("{name}_threshold_tail0_025"),
                 version,
                 mappings,
             )?,
@@ -123,7 +117,12 @@ where
 
         Ok(Self {
             thresholds,
-            tail: PercentPerBlock::import(db, &format!("{name}_tail"), version, mappings)?,
+            tail_share: PercentPerBlock::import(
+                db,
+                &format!("{name}_tail_share"),
+                version,
+                mappings,
+            )?,
             rank: PerBlock::import(db, &format!("{name}_rank"), version, mappings)?,
             history: LiveHistory::new(),
         })
@@ -171,10 +170,10 @@ where
         let source_end = source.len();
         let start = prepare_computed(
             [
-                &mut self.thresholds.threshold_pct0_1.height as &mut dyn AnyStoredVec,
-                &mut self.thresholds.threshold_pct0_05.height,
-                &mut self.thresholds.threshold_pct0_025.height,
-                &mut self.tail.fixed.height,
+                &mut self.thresholds.tail0_1.height as &mut dyn AnyStoredVec,
+                &mut self.thresholds.tail0_05.height,
+                &mut self.thresholds.tail0_025.height,
+                &mut self.tail_share.fixed.height,
                 &mut self.rank.height,
             ],
             source.version(),
@@ -286,18 +285,18 @@ where
 
     fn push_state(&mut self, state: EventState) {
         self.thresholds
-            .threshold_pct0_1
+            .tail0_1
             .height
             .push(T::from(state.thresholds.pct0_1));
         self.thresholds
-            .threshold_pct0_05
+            .tail0_05
             .height
             .push(T::from(state.thresholds.pct0_05));
         self.thresholds
-            .threshold_pct0_025
+            .tail0_025
             .height
             .push(T::from(state.thresholds.pct0_025));
-        self.tail
+        self.tail_share
             .fixed
             .height
             .push(PartsPerMillion32::from(state.tail));
@@ -321,7 +320,7 @@ where
         for v in self.thresholds.iter_mut() {
             v.height.write()?;
         }
-        self.tail.fixed.height.write()?;
+        self.tail_share.fixed.height.write()?;
         self.rank.height.write()?;
         Ok(())
     }

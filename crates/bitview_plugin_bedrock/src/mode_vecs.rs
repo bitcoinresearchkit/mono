@@ -15,7 +15,7 @@ pub struct ModeVecs<M: StorageMode = Rw> {
     /// and the value is unavailable until its loss share exists and at least
     /// 52,560 prior block observations are available. Stored as a bounded share and
     /// exposed as a percentage. Calibration remains full precision.
-    pub supply_in_loss_threshold: Percentiles<LazyPerBlock<Percent, BoundedRatio>>,
+    pub supply_in_loss_share_threshold: Percentiles<LazyPerBlock<Percent, BoundedRatio>>,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
@@ -25,14 +25,14 @@ pub struct ModeVecs<M: StorageMode = Rw> {
     /// price when that output was created.
     pub prices: PriceBands<Price<LazyPerBlock<Cents>>>,
     #[traversable(hidden)]
-    pub supply_in_loss_threshold_stored: Percentiles<CachedSeries<Height, BoundedRatio, M>>,
+    pub supply_in_loss_share_threshold_stored: Percentiles<CachedSeries<Height, BoundedRatio, M>>,
     #[traversable(hidden)]
     pub prices_stored: PriceBands<CachedSeries<Height, Cents, M>>,
 }
 
 impl ModeVecs {
     pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.supply_in_loss_threshold_stored
+        self.supply_in_loss_share_threshold_stored
             .iter_mut()
             .map(|v| v as &mut dyn AnyStoredVec)
             .chain(
@@ -44,7 +44,7 @@ impl ModeVecs {
 
     pub(crate) fn push(&mut self, result: &ModeResult) {
         for id in LossPercentileId::ALL {
-            id.select_mut(&mut self.supply_in_loss_threshold_stored)
+            id.select_mut(&mut self.supply_in_loss_share_threshold_stored)
                 .push(*id.select(&result.supply_in_loss_threshold));
         }
         for &id in PriceBandId::ALL {

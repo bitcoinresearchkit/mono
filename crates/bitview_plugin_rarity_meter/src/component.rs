@@ -65,13 +65,13 @@ impl Component {
                 ratios.get(id),
                 mappings,
             );
-            let price = component_price.price_for_ratio(
-                &format!("{name}_{suffix}"),
+            let band = component_price.price_for_ratio(
+                &format!("{name}_band_{suffix}"),
                 version,
                 &ratio.fixed.height,
                 mappings,
             );
-            Band { ratio, price }
+            Band { ratio, band }
         });
 
         Ok(Component {
@@ -161,7 +161,7 @@ pub fn boundary_version(component: &Component) -> Version {
         .bands
         .boundary_refs()
         .into_iter()
-        .map(|band| band.price.cents.height.version())
+        .map(|band| band.band.cents.height.version())
         .sum()
 }
 
@@ -170,7 +170,7 @@ pub fn boundary_len(component: &Component) -> usize {
         .bands
         .boundary_refs()
         .into_iter()
-        .map(|band| band.price.cents.height.len())
+        .map(|band| band.band.cents.height.len())
         .min()
         .unwrap_or_default()
 }

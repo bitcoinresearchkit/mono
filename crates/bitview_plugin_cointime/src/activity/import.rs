@@ -4,7 +4,8 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{CoinBlocks, PartsPerMillion64};
 use bitview_transforms::{BoundedOdds, BoundedToRatio, Quotient};
 use bitview_vecs::{
-    LazyPerBlock, LazyRatioRollingWindows, LazyWindowStartVec, PerBlock, PerBlockCumulativeRolling,
+    LazyPerBlock, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows, LazyWindowStartVec,
+    PerBlock, PerBlockCumulativeRolling,
 };
 use brk_error::Result;
 use brk_types::Version;
@@ -83,8 +84,16 @@ impl Vecs {
             window_starts,
             mappings,
         );
+        let coinblocks_destroyed = LazyPerBlockCumulativeRolling::from_cumulative_source(
+            "coinblocks_destroyed",
+            version,
+            age.coinblocks_destroyed.cumulative_source(),
+            window_starts,
+            mappings,
+        );
         Ok(Vecs {
             coinblocks_created,
+            coinblocks_destroyed,
             coinblocks_stored: PerBlockCumulativeRolling::import(
                 db,
                 "coinblocks_stored",

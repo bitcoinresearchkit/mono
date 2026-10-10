@@ -6,7 +6,6 @@ mod columns;
 mod compute;
 mod cost_basis;
 mod data;
-mod density_sources;
 mod dependencies;
 mod has;
 mod import;

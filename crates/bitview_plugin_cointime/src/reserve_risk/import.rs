@@ -1,6 +1,7 @@
+use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Float64;
-use bitview_vecs::{LazyIndexedVec, LazyPerBlock};
+use bitview_vecs::{LazyIndexedVec, LazyPerBlock, LazyWindowStartVec, PerBlockCumulativeRolling};
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Height, Version};
 use vecdb::{Database, EagerVec, Ident, ImportableVec, ReadableBoxedVec};
@@ -12,6 +13,7 @@ impl Vecs {
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
+        window_starts: &Windows<&LazyWindowStartVec>,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let v1 = version + Version::TWO;
@@ -24,14 +26,21 @@ impl Vecs {
             |_, hodl_bank: Float64, spot| Float64::new(f64::from(Dollars::from(spot)) / *hodl_bank),
         );
         Ok(Vecs {
-            vocdd_median_1m: EagerVec::import(db, "vocdd_median_1m", v1)?,
-            hodl_bank,
-            value: LazyPerBlock::from_height_source::<Ident>(
+            block: LazyPerBlock::from_height_source::<Ident>(
                 "reserve_risk",
                 v1,
                 &value_source,
                 mappings,
             ),
+            hodl_bank,
+            vocdd: PerBlockCumulativeRolling::import(
+                db,
+                "vocdd",
+                version + Version::ONE,
+                mappings,
+                window_starts,
+            )?,
+            vocdd_median_1m: EagerVec::import(db, "vocdd_median_1m", v1)?,
         })
     }
 }

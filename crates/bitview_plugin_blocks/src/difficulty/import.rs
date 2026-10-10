@@ -66,8 +66,8 @@ impl Vecs {
         );
 
         Self {
-            value: Resolutions::from_source("difficulty", &difficulty_source, version, mappings),
-            value_height: LazyVec::init(
+            block: Resolutions::from_source("difficulty", &difficulty_source, version, mappings),
+            block_height: LazyVec::init(
                 "difficulty",
                 version,
                 difficulty_source.read_only_boxed_clone(),

@@ -19,21 +19,21 @@ pub struct Extremes<M: StorageMode = Rw> {
     /// means a rarer event. Uses all prior finite positive observations and
     /// requires 210,000 of them. Thresholds exclude the represented block; the
     /// reported tail share includes it as one observation.
-    pub coins_in_loss: Extreme<Bitcoin, M>,
+    pub supply_in_loss: Extreme<Bitcoin, M>,
     /// Measures how unusually large trailing-24-hour all-chain realized profit
     /// is in USD. Its upper-tail share is the fraction of accepted history at
     /// least this high, so a smaller share means rarer profit taking. Uses all
     /// prior finite observations and requires 210,000 of them. Thresholds
     /// exclude the represented block; the reported tail share includes it as
     /// one observation.
-    pub profit_taking: Extreme<Dollars, M>,
+    pub realized_profit_24h: Extreme<Dollars, M>,
     /// Measures how unusually large trailing-24-hour all-chain realized loss is
     /// in USD. Its upper-tail share is the fraction of accepted history at least
     /// this high, so a smaller share means rarer capitulation. Uses all prior
     /// finite observations and requires 210,000 of them. Thresholds exclude the
     /// represented block; the reported tail share includes it as one
     /// observation.
-    pub capitulation: Extreme<Dollars, M>,
+    pub realized_loss_24h: Extreme<Dollars, M>,
     /// Measures how unusually large trailing-24-hour all-chain realized peak
     /// regret is in USD. Peak regret is the value sellers forgo relative to each
     /// spent output's highest spot price from its creation block through its
@@ -42,7 +42,7 @@ pub struct Extremes<M: StorageMode = Rw> {
     /// finite observations and requires 210,000 of them. Thresholds exclude the
     /// represented block; the reported tail share includes it as one
     /// observation.
-    pub peak_regret: Extreme<Dollars, M>,
+    pub realized_peak_regret_24h: Extreme<Dollars, M>,
     /// Measures how unusually low the trailing-24-hour all-chain sell-side risk
     /// ratio is. That ratio is gross realized profit and loss divided by
     /// realized capitalization; unusually low values indicate little realized
@@ -52,7 +52,7 @@ pub struct Extremes<M: StorageMode = Rw> {
     /// finite positive observations and requires a full window. Thresholds
     /// exclude the represented block; the reported tail share includes it as
     /// one observation.
-    pub seller_exhaustion: Extreme<Ratio, M>,
+    pub sell_side_risk_ratio_24h: Extreme<Ratio, M>,
 }
 
 impl Extremes {
@@ -63,13 +63,28 @@ impl Extremes {
     ) -> Result<Self> {
         let version = parent_version + VERSION;
         Ok(Extremes {
-            coins_in_loss: Extreme::import(db, "rarity_meter_coins_in_loss", version, mappings)?,
-            profit_taking: Extreme::import(db, "rarity_meter_profit_taking", version, mappings)?,
-            capitulation: Extreme::import(db, "rarity_meter_capitulation", version, mappings)?,
-            peak_regret: Extreme::import(db, "rarity_meter_peak_regret", version, mappings)?,
-            seller_exhaustion: Extreme::import(
+            supply_in_loss: Extreme::import(db, "rarity_meter_supply_in_loss", version, mappings)?,
+            realized_profit_24h: Extreme::import(
                 db,
-                "rarity_meter_seller_exhaustion",
+                "rarity_meter_realized_profit_24h",
+                version,
+                mappings,
+            )?,
+            realized_loss_24h: Extreme::import(
+                db,
+                "rarity_meter_realized_loss_24h",
+                version,
+                mappings,
+            )?,
+            realized_peak_regret_24h: Extreme::import(
+                db,
+                "rarity_meter_realized_peak_regret_24h",
+                version,
+                mappings,
+            )?,
+            sell_side_risk_ratio_24h: Extreme::import(
+                db,
+                "rarity_meter_sell_side_risk_ratio_24h",
                 version + Version::ONE,
                 mappings,
             )?,
@@ -87,16 +102,19 @@ impl Extremes {
         seller_exhaustion: &impl ReadableVec<Height, Ratio>,
         exit: &Exit,
     ) -> Result<()> {
-        self.coins_in_loss
+        self.supply_in_loss
             .compute_coins_in_loss(indexer, coins_in_loss, exit)?;
-        self.profit_taking
+        self.realized_profit_24h
             .compute_realized(indexer, realized_profit, exit)?;
-        self.capitulation
+        self.realized_loss_24h
             .compute_realized(indexer, realized_loss, exit)?;
-        self.peak_regret
+        self.realized_peak_regret_24h
             .compute_realized(indexer, peak_regret, exit)?;
-        self.seller_exhaustion
-            .compute_seller_exhaustion(indexer, seller_exhaustion, exit)?;
+        self.sell_side_risk_ratio_24h.compute_seller_exhaustion(
+            indexer,
+            seller_exhaustion,
+            exit,
+        )?;
         Ok(())
     }
 }

@@ -4,7 +4,6 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_urpd::Metrics as UrpdMetrics;
 use bitview_vecs::{LazyWindowStartVec, PerBlock};
 use brk_error::Result;
 use brk_types::{Cents, Version};
@@ -36,7 +35,7 @@ impl Vecs {
         let aggregate =
             aggregate::Vecs::import(&db, version + Version::new(4), mappings, &spot_price)?;
         let value = value::Vecs::import(&db, v1, mappings, window_starts)?;
-        let cap = cap::Vecs::import(
+        let caps = cap::Vecs::import(
             &db,
             version + Version::TWO,
             mappings,
@@ -50,21 +49,21 @@ impl Vecs {
             mappings,
             &spot_price,
             all_chain,
-            cap.cointime.cents.resolutions.height_source(),
+            caps.cointime.cents.resolutions.height_source(),
         )?;
         let adjusted = adjusted::Vecs::import(&db, version, mappings)?;
-        let reserve_risk = reserve_risk::Vecs::import(&db, v1, mappings, &spot_price)?;
+        let reserve_risk =
+            reserve_risk::Vecs::import(&db, v1, mappings, window_starts, &spot_price)?;
 
-        let urpd = UrpdMetrics::import(&db, "cointime", version, mappings)?;
         let this = Self {
             db,
+            urpd_replay: Default::default(),
             activity,
             age_ranges,
-            urpd,
             aggregate,
             supply,
             value,
-            cap,
+            caps,
             prices,
             adjusted,
             reserve_risk,

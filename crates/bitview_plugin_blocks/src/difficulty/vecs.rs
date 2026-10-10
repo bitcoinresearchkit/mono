@@ -6,10 +6,14 @@ use vecdb::LazyVec;
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
-    pub value: Resolutions<Difficulty>,
-    /// The indexer's per-block difficulty: the height index of `value`, one series.
-    #[traversable(rename = "value")]
-    pub(crate) value_height: LazyVec<Height, Difficulty, Height, Difficulty>,
+    /// Mining difficulty encoded by the block header: Bitcoin's maximum target
+    /// divided by the block's proof-of-work target.
+    pub block: Resolutions<Difficulty>,
+    // The indexer's per-block difficulty: the height index of `block`, one series.
+    /// Mining difficulty encoded by the block header: Bitcoin's maximum target
+    /// divided by the block's proof-of-work target.
+    #[traversable(rename = "block")]
+    pub(crate) block_height: LazyVec<Height, Difficulty, Height, Difficulty>,
     /// Theoretical hash rate implied by difficulty at the ten-minute target:
     /// difficulty multiplied by 2^32 and divided by 600, in hashes per second.
     /// This is the rate expected to find one block every ten minutes at that

@@ -19,9 +19,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// consumed; negative values mean spending consumed more than was added.
     /// Reported in USD-block intervals.
     pub stored: PerBlockCumulativeRolling<Float64, M>,
-    /// Supply-adjusted value of coin days destroyed: spot price in USD
-    /// multiplied by the block's coin days destroyed and divided by circulating
-    /// supply in BTC. Reported in USD-days per BTC of circulating supply. Returns
-    /// zero when circulating supply is zero.
-    pub vocdd: PerBlockCumulativeRolling<Float64, M>,
 }

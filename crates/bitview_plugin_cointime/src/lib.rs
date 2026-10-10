@@ -20,7 +20,7 @@ pub use has::HasCointime;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
-use bitview_urpd::Metrics as UrpdMetrics;
+use bitview_urpd::Replay;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -41,6 +41,8 @@ pub const ID: PluginId = STORAGE.id();
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
+    #[traversable(skip)]
+    urpd_replay: M::WriteOnly<Replay>,
 
     /// Cointime measures how long bitcoin remains unspent. One coinblock is one
     /// BTC held for one block interval; spending destroys the coinblocks that
@@ -52,20 +54,15 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// coin days that spending has consumed; one minus wakefulness is the share
     /// still stored.
     pub age_ranges: AgeRangeVecs<M>,
-    // Cohort nodes merge the weighted aggregates (`awake`, `dormant`) with the
-    // wakefulness-weighted URPD statistics (`cost_basis`).
     /// Cointime-weighted cohort metrics use wakefulness—the share of an age
     /// range's accumulated coin days that has been consumed—to separate more
     /// economically active supply from more dormant supply.
     #[traversable(flatten)]
     pub aggregate: AggregateVecs<M>,
-    /// Wakefulness-weighted UTXO price distributions.
-    #[traversable(flatten)]
-    pub urpd: UrpdMetrics<M>,
     /// Cointime's active and vaulted supply estimates split circulating supply
     /// using liveliness, the cumulative share of created coinblocks that has
     /// been destroyed.
-    pub supply: SupplyVecs,
+    supply: SupplyVecs,
     /// Cointime value metrics assign the represented block's spot price to
     /// coinblocks created, destroyed, or stored. One coinblock is one BTC held
     /// for one block interval; spending destroys the coinblocks accumulated by
@@ -76,7 +73,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// capitalization (each unspent output's BTC value at Bitcoin's spot price
     /// when it was created) into investor and thermo. The Cointime
     /// capitalization values the supply from cumulative destroyed value.
-    cap: CapVecs<M>,
+    caps: CapVecs<M>,
     /// Cointime reference prices translate activity-adjusted capitalization or
     /// value into a price per BTC, each beside spot's ratio to it. They are
     /// model-derived benchmarks, not traded market prices.

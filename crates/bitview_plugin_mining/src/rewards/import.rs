@@ -4,7 +4,7 @@ use bitview_primitives::{PartsPerMillion32, PartsPerMillion64};
 use bitview_transforms::{OneMinusPpm, Quotient};
 use bitview_vecs::{
     LazyPercentCumulativeRolling, LazyRatioRollingWindows, LazyWindowStartVec,
-    ValuePerBlockCumulative, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
+    ValuePerBlockCumulativeRolling, ValuePerBlockFull,
 };
 use brk_error::Result;
 use brk_types::{Sats, Version};
@@ -70,14 +70,13 @@ impl Vecs {
             coinbase,
             subsidy,
             fees,
-            output_volume: ValuePerBlockCumulativeRolling::import(
+            unclaimed: ValuePerBlockCumulativeRolling::import(
                 db,
-                "output_volume",
-                version + Version::ONE,
+                "unclaimed_rewards",
+                version,
                 mappings,
                 window_starts,
             )?,
-            unclaimed: ValuePerBlockCumulative::import(db, "unclaimed_rewards", version, mappings)?,
             fee_share,
             subsidy_share,
             fee_to_subsidy,

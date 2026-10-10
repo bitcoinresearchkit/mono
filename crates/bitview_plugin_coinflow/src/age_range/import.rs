@@ -7,7 +7,7 @@ use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec};
 
-use super::{RangeVecs, SupplyVecs, Vecs};
+use super::{RangeVecs, SideVecs, Vecs};
 
 impl Vecs {
     pub(crate) fn import(
@@ -42,8 +42,8 @@ impl Vecs {
                     &mobility_source,
                     mappings,
                 ),
-                supply: SupplyVecs {
-                    mobile: LazySpotValuePerBlock::from_weighted_supply::<false>(
+                mobile: SideVecs {
+                    supply: LazySpotValuePerBlock::from_weighted_supply::<false>(
                         &name("mobile_supply"),
                         version,
                         supply,
@@ -51,7 +51,9 @@ impl Vecs {
                         mappings,
                         spot_price,
                     ),
-                    immobile: LazySpotValuePerBlock::from_weighted_supply::<true>(
+                },
+                immobile: SideVecs {
+                    supply: LazySpotValuePerBlock::from_weighted_supply::<true>(
                         &name("immobile_supply"),
                         version,
                         supply,

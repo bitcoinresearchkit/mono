@@ -15,9 +15,9 @@ impl ModeId {
 
     pub const fn name(self) -> &'static str {
         match self {
-            Self::Raw => "raw",
-            Self::Cointime => "cointime",
-            Self::Coinflow => "coinflow",
+            Self::Raw => "unweighted",
+            Self::Cointime => "awake",
+            Self::Coinflow => "mobile",
         }
     }
 

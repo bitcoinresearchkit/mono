@@ -5,5 +5,6 @@ use super::CountVecs;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    #[traversable(flatten)]
     pub count: CountVecs<M>,
 }

@@ -3,6 +3,7 @@ use std::iter;
 use bitview_cohort::AgeRange;
 use bitview_compute::{AgeBand, prepare_computed};
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_urpd::compute_cost_basis;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Timestamp, Version};
@@ -27,7 +28,12 @@ impl ComputePlugin for Vecs {
         self.compute_primary(dependencies, context.exit())?;
         let supplies = dependencies.age.cohorts.supply.total.age_supplies();
         let weights = self.age_ranges.urpd_weight_sources();
-        self.urpd.compute(
+        compute_cost_basis(
+            &mut self.urpd_replay,
+            self.aggregate
+                .cohorts
+                .as_array_mut()
+                .map(|cohort| &mut cohort.mobile.cost_basis),
             dependencies.age.cohorts.all_supply().version()
                 + dependencies.urpd.timestamps.version(),
             usize::from(dependencies.indexer.safe_lengths().height),

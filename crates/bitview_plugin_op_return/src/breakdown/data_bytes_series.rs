@@ -37,7 +37,7 @@ impl DataBytesSeries {
             mappings,
         );
         let chain_share = LazyPercentPerBlock::from_ratio::<Bytes, _, Quotient<PartsPerMillion32>>(
-            &format!("{prefix}_chain_share"),
+            &format!("{prefix}_data_chain_share"),
             version,
             data_bytes.cumulative.resolutions.height_source(),
             block_size,

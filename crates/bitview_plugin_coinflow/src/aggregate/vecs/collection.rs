@@ -6,8 +6,7 @@ use super::{CohortVecs, Sources};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    #[traversable(flatten)]
-    pub cohorts: AgeAggregate<CohortVecs>,
+    pub cohorts: AgeAggregate<CohortVecs<M>>,
     #[traversable(hidden)]
     pub sources: Sources<M>,
 }

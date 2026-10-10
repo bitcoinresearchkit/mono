@@ -1,4 +1,5 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_urpd::compute_cost_basis;
 use brk_error::Result;
 use rayon::join;
 use vecdb::{AnyVec, Database};
@@ -52,7 +53,7 @@ impl Vecs {
                     },
                     || {
                         self.value
-                            .compute(indexer, prices, age, holders, &self.activity, exit)
+                            .compute(indexer, prices, age, &self.activity, exit)
                     },
                 )
             },
@@ -62,7 +63,7 @@ impl Vecs {
         r2.1?;
 
         // Cap depends on activity + value
-        self.cap
+        self.caps
             .compute(indexer, holders, &self.activity, &self.value, exit)?;
 
         // Phase 4: pricing and reserve_risk are independent
@@ -73,13 +74,13 @@ impl Vecs {
                     holders,
                     &self.activity,
                     &self.supply,
-                    &self.cap,
+                    &self.caps,
                     exit,
                 )
             },
             || {
                 self.reserve_risk
-                    .compute(indexer, blocks, mappings, prices, &self.value, exit)
+                    .compute(indexer, blocks, mappings, prices, holders, exit)
             },
         );
         r3?;
@@ -104,7 +105,12 @@ impl ComputePlugin for Vecs {
         self.compute_primary(dependencies, context)?;
         let supplies = dependencies.age.cohorts.supply.total.age_supplies();
         let weights = self.age_ranges.urpd_weight_sources();
-        self.urpd.compute(
+        compute_cost_basis(
+            &mut self.urpd_replay,
+            self.aggregate
+                .cohorts
+                .as_array_mut()
+                .map(|cohort| &mut cohort.awake.cost_basis),
             dependencies.age.cohorts.all_supply().version()
                 + dependencies.urpd.timestamps.version(),
             usize::from(dependencies.indexer.safe_lengths().height),

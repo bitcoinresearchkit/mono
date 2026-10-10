@@ -1,8 +1,7 @@
-use crate::density_sources::DensitySources;
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{PerBlock, PercentilesVecs, Price};
+use bitview_vecs::{DensityVecs, PerBlock, PercentilesVecs, Price};
 use brk_error::Result;
 use brk_types::{Cents, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
@@ -34,7 +33,9 @@ pub struct CostBasisVecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub per_dollar_sources: AgeAggregate<PercentilesVecs<M>>,
     #[traversable(hidden)]
-    supply_density_source: DensitySources<M>,
+    supply_density_sources: AgeAggregate<DensityVecs<M>>,
+    #[traversable(hidden)]
+    capital_density_sources: AgeAggregate<DensityVecs<M>>,
 }
 
 impl CostBasisVecs {
@@ -70,8 +71,18 @@ impl CostBasisVecs {
             Self::import_percentiles(db, "cost_basis_per_coin", version, mappings)?;
         let per_dollar_sources =
             Self::import_percentiles(db, "cost_basis_per_dollar", version, mappings)?;
-        let supply_density_source =
-            DensitySources::import(db, "supply_density", aggregate_version, mappings)?;
+        let density_sources = |metric: &str| {
+            AgeAggregate::try_from_fn(|id| {
+                DensityVecs::import(
+                    db,
+                    &id.metric_name(metric),
+                    aggregate_version + Version::ONE,
+                    mappings,
+                )
+            })
+        };
+        let supply_density_sources = density_sources("supply_density")?;
+        let capital_density_sources = density_sources("capital_density")?;
         let cohorts = AgeAggregate::from_fn(|id| CostBasis {
             in_profit: CostBasisSide {
                 per_coin: Price::from_height_source(
@@ -115,7 +126,8 @@ impl CostBasisVecs {
             ),
             per_coin: id.select(&per_coin_sources).prices.clone(),
             per_dollar: id.select(&per_dollar_sources).prices.clone(),
-            supply_density: id.select(&supply_density_source.series).clone(),
+            supply_density: id.select(&supply_density_sources).series.clone(),
+            capital_density: id.select(&capital_density_sources).series.clone(),
         });
 
         Ok(Box::new(Self {
@@ -128,7 +140,8 @@ impl CostBasisVecs {
             max_source,
             per_coin_sources,
             per_dollar_sources,
-            supply_density_source,
+            supply_density_sources,
+            capital_density_sources,
         }))
     }
 
@@ -195,9 +208,13 @@ impl CostBasisVecs {
                 .height
                 .push(id.select(&cohort_values).max);
         }
-        self.supply_density_source.push(AgeAggregate::from_fn(|id| {
-            id.select(&cohort_values).supply_density
-        }));
+        for id in AgeAggregateId::ALL {
+            let values = id.select(&cohort_values);
+            id.select_mut(&mut self.supply_density_sources)
+                .push(&values.supply_density);
+            id.select_mut(&mut self.capital_density_sources)
+                .push(&values.capital_density);
+        }
         for id in AgeAggregateId::ALL {
             id.select_mut(&mut self.per_coin_sources)
                 .push(&id.select(&cohort_values).per_coin);
@@ -219,7 +236,12 @@ impl CostBasisVecs {
         .flat_map(|sources| sources.iter_mut())
         .map(|price| &mut price.cents.height as &mut dyn AnyStoredVec)
         .collect();
-        vecs.extend(self.supply_density_source.collect_vecs_mut());
+        vecs.extend(
+            self.supply_density_sources
+                .iter_mut()
+                .chain(self.capital_density_sources.iter_mut())
+                .flat_map(DensityVecs::stored_vecs_mut),
+        );
         vecs.extend(
             self.per_coin_sources
                 .iter_mut()

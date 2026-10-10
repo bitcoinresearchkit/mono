@@ -10,14 +10,15 @@ mod lookback;
 mod size;
 mod weight;
 
-pub use count::Vecs as CountVecs;
 pub use dependencies::Dependencies;
 pub use difficulty::Vecs as DifficultyVecs;
 pub use has::HasBlocks;
 pub use lookback::Vecs as LookbackVecs;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
+use bitview_vecs::LazyPerBlockCumulativeRolling;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -34,12 +35,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    pub count: CountVecs,
-    /// First block height inside this series' trailing duration, found from the
-    /// running maximum of block-header timestamps. A height exactly at the
-    /// cutoff is excluded; returns genesis height zero when less history
-    /// exists. Duration suffixes are fixed: `h` is 3,600 seconds, `d` is 24
-    /// hours, `w` is 7 days, `m` is 30 days, and `y` is 365 days.
+    /// Number of indexed blocks. The per-block value is one, the cumulative
+    /// count is height plus one because genesis is included, and rolling sums
+    /// count the blocks in each supported trailing window.
+    pub count: LazyPerBlockCumulativeRolling<Count>,
+    // First block height inside each trailing duration (from the running maximum of
+    // block-header timestamps): window starts for other plugins, not a public series.
+    #[traversable(hidden)]
     pub lookback: LookbackVecs,
     interval: IntervalVecs<M>,
     #[traversable(flatten)]

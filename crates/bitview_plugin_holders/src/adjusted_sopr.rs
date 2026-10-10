@@ -30,14 +30,14 @@ impl AdjustedSopr {
         Ok(Self {
             ratio: RollingWindows::import(db, &id.metric_name("adjusted_sopr"), v, mappings)?,
             transfer_volume: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
-                &id.metric_name("adj_value_created"),
+                &id.metric_name("adjusted_value_created"),
                 v,
                 &c.adjusted_volume,
                 mappings,
                 windows,
             ),
             value_destroyed: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
-                &id.metric_name("adj_value_destroyed"),
+                &id.metric_name("adjusted_value_destroyed"),
                 v,
                 &c.adjusted_value_destroyed,
                 mappings,

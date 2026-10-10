@@ -2,10 +2,10 @@ use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_compute::prepare_computed;
 use bitview_distribution::state::cost_basis::age_index;
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use bitview_primitives::PartsPerMillion32;
+use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Version};
+use brk_types::{Cents, Height, Version};
 use vecdb::{AnyStoredVec, AnyVec, Database, Stamp};
 
 use crate::{
@@ -76,7 +76,7 @@ impl ComputePlugin for Vecs {
                     AgeAggregate::from_fn(|id| UnrealizedData::new(spot, id.select(row)));
                 self.cost_basis.push_prices(&unrealized);
                 let total = live.index.totals();
-                let density = live.index.density_range(spot);
+                let (profit, loss) = live.index.density_split(spot);
                 let mut percentiles = live
                     .index
                     .percentiles::<{ AgeAggregateId::ALL.len() }>(|q, n| {
@@ -84,17 +84,31 @@ impl ComputePlugin for Vecs {
                     })
                     .into_iter();
                 self.cost_basis.push(AgeAggregate::from_fn(|id| {
-                    let sats = age_index::selected(id, &total).0;
-                    let density = if sats > 0 {
-                        PartsPerMillion32::from(
-                            age_index::selected(id, &density).0.max(0) as f64 / sats as f64,
+                    let (sats, cap) = age_index::selected(id, &total);
+                    let (profit_sats, profit_cap) = age_index::selected(id, &profit);
+                    let (loss_sats, loss_cap) = age_index::selected(id, &loss);
+                    let positive = |value: i128| value.max(0) as u128;
+                    // Without a positive spot there is no band, as in the URPD densities.
+                    let (supply_density, capital_density) = if spot > Cents::ZERO {
+                        (
+                            Density::from_sums(
+                                positive(sats.into()),
+                                positive(profit_sats.into()),
+                                positive(loss_sats.into()),
+                            ),
+                            Density::from_sums(
+                                positive(cap),
+                                positive(profit_cap),
+                                positive(loss_cap),
+                            ),
                         )
                     } else {
-                        PartsPerMillion32::ZERO
+                        (Density::NAN, Density::NAN)
                     };
                     CostBasisBlockData::from_percentiles(
                         percentiles.next().expect("one result per age filter"),
-                        density,
+                        supply_density,
+                        capital_density,
                     )
                 }));
                 for id in AgeAggregateId::ALL {

@@ -1,8 +1,9 @@
 use bitview_compute::ComputeRollingStats;
-use bitview_plugin_blocks::{CountVecs, DifficultyVecs, LookbackVecs};
+use bitview_plugin_blocks::{DifficultyVecs, LookbackVecs};
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{Float32, Hashrate, PartsPerMillionSigned32};
+use bitview_primitives::{Count, Float32, Hashrate, PartsPerMillionSigned32};
 use bitview_transforms::RatioDiffFloat32;
+use bitview_vecs::LazyPerBlockCumulativeRolling;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Dollars, Height, Sats, TARGET_BLOCKS_PER_DAY_F64};
@@ -32,7 +33,7 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        count_vecs: &CountVecs,
+        block_count: &LazyPerBlockCumulativeRolling<Count>,
         lookback: &LookbackVecs,
         difficulty_vecs: &DifficultyVecs,
         coinbase_sats_24h_sum: &impl ReadableVec<Height, Sats>,
@@ -43,7 +44,7 @@ impl Vecs {
 
         self.rate.block.height.compute_transform2(
             starting_height,
-            &count_vecs.total.sum._24h.height,
+            &block_count.sum._24h.height,
             &difficulty_vecs.hashrate.height,
             |(i, block_count_sum, difficulty_as_hash, ..)| {
                 (

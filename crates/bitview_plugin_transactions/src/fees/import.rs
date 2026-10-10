@@ -29,8 +29,8 @@ impl Vecs {
             )
         };
         let count = CountVecs {
-            cpfp_parent: count("cpfp_parent_count")?,
-            cpfp_child: count("cpfp_child_count")?,
+            cpfp_parent: count("cpfp_parent_tx_count")?,
+            cpfp_child: count("cpfp_child_tx_count")?,
         };
 
         Ok(Vecs {

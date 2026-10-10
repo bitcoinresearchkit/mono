@@ -1,12 +1,14 @@
 use bitview_primitives::{BoundedRatio, Percent};
 use bitview_traversable::Traversable;
+use bitview_urpd::CostBasisVecs;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazySpotValuePerBlock,
 };
 use brk_types::Cents;
+use vecdb::{Rw, StorageMode};
 
-#[derive(Clone, Traversable)]
-pub struct AwakeVecs {
+#[derive(Traversable)]
+pub struct AwakeVecs<M: StorageMode = Rw> {
     /// Sum of supply multiplied by wakefulness across the cohort's UTXO age
     /// ranges. Each age-range contribution is rounded down to whole satoshis.
     pub supply: LazySpotValuePerBlock,
@@ -27,4 +29,7 @@ pub struct AwakeVecs {
     /// sum(weight × creation price² × sats) / sum(weight × creation price × sats).
     /// Uses raw cost-basis moments; returns zero when weighted invested value is zero.
     pub capitalized_price: LazyPriceWithRatioPerBlock,
+    /// Wakefulness-weighted URPD: each unspent output weighted by its age
+    /// range's wakefulness, creation prices rounded to five significant digits.
+    pub cost_basis: CostBasisVecs<M>,
 }

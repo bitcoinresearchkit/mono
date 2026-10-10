@@ -33,16 +33,42 @@ mod compute;
 mod import;
 mod timing;
 
+/// Plugins in pipeline order, dependencies first: the first plugin publishing a shared id serves it.
 #[derive(PluginSet, Traversable)]
 pub struct DefaultPlugins<M: StorageMode = Rw> {
     #[plugin_set(has = bitview_plugin_indexer::HasIndexer<M>)]
     indexer: Box<Indexer<M>>,
+    #[plugin_set(has = bitview_plugin_mappings::HasMappings<M>)]
+    mappings: Box<Mappings<M>>,
+    #[plugin_set(has = bitview_plugin_price::HasPrice<M>)]
+    price: Box<Price<M>>,
     #[plugin_set(has = bitview_plugin_blocks::HasBlocks<M>)]
     blocks: Box<Blocks<M>>,
-    #[plugin_set(has = bitview_plugin_mining::HasMining<M>)]
-    mining: Box<Mining<M>>,
+    #[plugin_set(has = bitview_plugin_inputs::HasInputs<M>)]
+    inputs: Box<Inputs<M>>,
+    #[plugin_set(has = bitview_plugin_outputs::HasOutputs<M>)]
+    outputs: Box<Outputs<M>>,
     #[plugin_set(has = bitview_plugin_transactions::HasTransactions<M>)]
     transactions: Box<Transactions<M>>,
+    #[plugin_set(has = bitview_plugin_mining::HasMining<M>)]
+    mining: Box<Mining<M>>,
+    op_return: Box<OpReturn<M>>,
+    #[plugin_set(has = bitview_plugin_pools::HasPools<M>)]
+    pools: Box<Pools<M>>,
+    #[plugin_set(has = bitview_plugin_utxo_set::HasUtxoSet<M>)]
+    utxo_set: Box<UtxoSet<M>>,
+    market: Box<Market<M>>,
+    #[plugin_set(has = bitview_plugin_age::HasAge<M>)]
+    age: Box<Age<M>>,
+    utxos: Box<Utxos<M>>,
+    #[plugin_set(has = bitview_plugin_addresses::HasAddresses<M>)]
+    addresses: Box<Addresses<M>>,
+    #[plugin_set(has = bitview_plugin_holders::HasHolders<M>)]
+    holders: Box<Holders<M>>,
+    #[plugin_set(has = bitview_plugin_entry::HasEntry<M>)]
+    entry: Box<Entry<M>>,
+    supply: Box<Supply<M>>,
+    indicators: Box<Indicators<M>>,
     #[plugin_set(has = bitview_plugin_cointime::HasCointime<M>)]
     cointime: Box<Cointime<M>>,
     #[plugin_set(has = bitview_plugin_coinflow::HasCoinflow<M>)]
@@ -50,29 +76,4 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     bedrock: Box<Bedrock<M>>,
     capital_sentiment: Box<CapitalSentiment<M>>,
     rarity_meter: Box<RarityMeter<M>>,
-    #[plugin_set(has = bitview_plugin_mappings::HasMappings<M>)]
-    mappings: Box<Mappings<M>>,
-    indicators: Box<Indicators<M>>,
-    market: Box<Market<M>>,
-    #[plugin_set(has = bitview_plugin_pools::HasPools<M>)]
-    pools: Box<Pools<M>>,
-    #[plugin_set(has = bitview_plugin_price::HasPrice<M>)]
-    price: Box<Price<M>>,
-    #[plugin_set(has = bitview_plugin_age::HasAge<M>)]
-    age: Box<Age<M>>,
-    #[plugin_set(has = bitview_plugin_holders::HasHolders<M>)]
-    holders: Box<Holders<M>>,
-    #[plugin_set(has = bitview_plugin_entry::HasEntry<M>)]
-    entry: Box<Entry<M>>,
-    utxos: Box<Utxos<M>>,
-    #[plugin_set(has = bitview_plugin_addresses::HasAddresses<M>)]
-    addresses: Box<Addresses<M>>,
-    supply: Box<Supply<M>>,
-    #[plugin_set(has = bitview_plugin_inputs::HasInputs<M>)]
-    inputs: Box<Inputs<M>>,
-    #[plugin_set(has = bitview_plugin_outputs::HasOutputs<M>)]
-    outputs: Box<Outputs<M>>,
-    #[plugin_set(has = bitview_plugin_utxo_set::HasUtxoSet<M>)]
-    utxo_set: Box<UtxoSet<M>>,
-    op_return: Box<OpReturn<M>>,
 }
