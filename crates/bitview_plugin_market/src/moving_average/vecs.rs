@@ -1,6 +1,6 @@
 use bitview_primitives::CentsFract;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazyPriceWithRatioPerBlock};
+use bitview_vecs::{CachedSeries, PriceWithRatio};
 use brk_types::{Cents, Height};
 use vecdb::{Rw, StorageMode};
 
@@ -152,39 +152,18 @@ impl EmaPeriodId {
             Self::FourYears => &mut values._4y,
         }
     }
-
-    pub fn series<T>(mut create: impl FnMut(Self) -> T) -> EmaVecs<T> {
-        EmaVecs {
-            _1w: create(Self::OneWeek),
-            _8d: create(Self::EightDays),
-            _12d: create(Self::TwelveDays),
-            _13d: create(Self::ThirteenDays),
-            _21d: create(Self::TwentyOneDays),
-            _26d: create(Self::TwentySixDays),
-            _1m: create(Self::OneMonth),
-            _34d: create(Self::ThirtyFourDays),
-            _55d: create(Self::FiftyFiveDays),
-            _89d: create(Self::EightyNineDays),
-            _144d: create(Self::OneHundredFortyFourDays),
-            _200d: create(Self::TwoHundredDays),
-            _1y: create(Self::OneYear),
-            _2y: create(Self::TwoYears),
-            _200w: create(Self::TwoHundredWeeks),
-            _4y: create(Self::FourYears),
-        }
-    }
 }
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     /// Simple moving averages of block-level Bitcoin spot prices over trailing
     /// monotonic-time windows, including the represented block.
-    pub sma: SmaVecs,
+    pub sma: SmaVecs<M>,
     /// Exponential moving average of block-level Bitcoin spot price. At each
     /// block it recursively applies `alpha = 2 / (span + 1)`, where `span` is
     /// the number of blocks from the trailing period's monotonic-time start
     /// through the represented block.
-    pub(crate) ema: EmaVecs<LazyPriceWithRatioPerBlock>,
+    pub(crate) ema: EmaVecs<PriceWithRatio<M>>,
     #[traversable(hidden)]
     /// Exact exponential-average state in fractional cents; the views round it to whole cents.
     pub(crate) ema_stored: EmaVecs<CachedSeries<Height, CentsFract, M>>,

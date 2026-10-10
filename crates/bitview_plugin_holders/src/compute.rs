@@ -74,7 +74,6 @@ impl ComputePlugin for Vecs {
                 )?;
                 let unrealized =
                     AgeAggregate::from_fn(|id| UnrealizedData::new(spot, id.select(row)));
-                self.cost_basis.push_prices(&unrealized);
                 let total = live.index.totals();
                 let (profit, loss) = live.index.density_split(spot);
                 let mut percentiles = live
@@ -124,6 +123,7 @@ impl ComputePlugin for Vecs {
                 Height::from(start),
                 &self.all_supply,
                 &self.all_market_cap,
+                &deps.price.spot.cents.height,
                 context.exit(),
             )?;
         }

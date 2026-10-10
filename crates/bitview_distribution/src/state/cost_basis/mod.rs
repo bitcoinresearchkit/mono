@@ -10,7 +10,7 @@ mod data;
 mod unrealized;
 pub use core_realized_state::CoreRealizedState;
 pub use data::CostBasisData;
-pub use unrealized::{Accumulate, UnrealizedState, WithCapital, WithoutCapital};
+pub use unrealized::UnrealizedState;
 
 mod percentile_result;
 mod price_index;

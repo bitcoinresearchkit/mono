@@ -2,16 +2,14 @@ use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_distribution::{
     families::{CountWithDeltas, CumulativeCount, CumulativeFiat, CumulativeValue, Fiat},
-    metrics::CohortSupply,
+    metrics::{CohortCostBasis, CohortSupply},
     state::{MinimalRealizedState, UTXOCohortState},
 };
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
-use bitview_vecs::{
-    CachedSeries, LazyPerBlock, LazySpotValuePerBlock, LazyWindowStartVec, Price, import_cached,
-};
+use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, LazyWindowStartVec, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
@@ -28,6 +26,7 @@ pub struct CohortVecs<M: StorageMode = Rw> {
     pub outputs: OutputsVecs<M>,
     pub activity: ActivityVecs<M>,
     pub realized: RealizedVecs<M>,
+    pub cost_basis: CohortCostBasis<M>,
 }
 
 #[derive(Traversable)]
@@ -52,12 +51,6 @@ pub struct RealizedVecs<M: StorageMode = Rw> {
     /// output's BTC value multiplied by Bitcoin's spot price when that output
     /// was created.
     pub cap: Fiat<Cents, M>,
-    /// Realized price of the cohort: realized cap divided by supply. Zero while
-    /// the cohort holds no supply.
-    pub price: Price<LazyPerBlock<Cents>>,
-    /// Reported in cents per BTC.
-    #[traversable(hidden)]
-    price_cents: CachedSeries<Height, Cents, M>,
     /// Profit realized by the cohort's outputs: spending value minus
     /// creation-date value, counted only for profitable spends.
     pub profit: CumulativeFiat<Cents, M>,
@@ -78,18 +71,6 @@ impl CohortVecs {
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let flow_version = version + Version::ONE;
-        let price_version = version + Version::ONE;
-        let price_cents = import_cached(
-            db,
-            &name("realized_price_cents"),
-            price_version + Version::TWO,
-        )?;
-        let price = Price::from_height_source(
-            &name("realized_price"),
-            price_version,
-            &price_cents,
-            mappings,
-        );
         Ok(Self {
             supply: CohortSupply::import(
                 db,
@@ -127,8 +108,6 @@ impl CohortVecs {
             },
             realized: RealizedVecs {
                 cap: Fiat::import(db, &name("realized_cap"), version, mappings)?,
-                price,
-                price_cents,
                 profit: CumulativeFiat::import(
                     db,
                     &name("realized_profit"),
@@ -144,6 +123,7 @@ impl CohortVecs {
                     windows,
                 )?,
             },
+            cost_basis: CohortCostBasis::import(db, name, version + Version::ONE, mappings)?,
         })
     }
 
@@ -159,9 +139,9 @@ impl CohortVecs {
             .push_block(sent, SatsToCents::apply(sent, price));
         let realized = state.realized_block_data();
         self.realized.cap.push(realized.cap);
-        self.realized.price_cents.push(realized.price());
         self.realized.profit.push_block(realized.profit);
         self.realized.loss.push_block(realized.loss);
+        self.cost_basis.push(realized.price());
     }
 
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
@@ -173,9 +153,9 @@ impl CohortVecs {
             sats,
             cents,
             self.realized.cap.stored_mut(),
-            &mut self.realized.price_cents,
             self.realized.profit.stored_mut(),
             self.realized.loss.stored_mut(),
+            self.cost_basis.stored_mut(),
         ]
         .into_iter()
     }

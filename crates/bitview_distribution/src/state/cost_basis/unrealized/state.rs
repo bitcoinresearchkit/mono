@@ -8,8 +8,6 @@ pub struct UnrealizedState {
     pub supply_in_loss: Sats,
     pub unrealized_profit: Cents,
     pub unrealized_loss: Cents,
-    pub capitalized_cap_in_profit_raw: u128,
-    pub capitalized_cap_in_loss_raw: u128,
 }
 
 impl UnrealizedState {
@@ -18,8 +16,6 @@ impl UnrealizedState {
         supply_in_loss: Sats::ZERO,
         unrealized_profit: Cents::ZERO,
         unrealized_loss: Cents::ZERO,
-        capitalized_cap_in_profit_raw: 0,
-        capitalized_cap_in_loss_raw: 0,
     };
 }
 
@@ -30,7 +26,5 @@ impl AddAssign<&Self> for UnrealizedState {
         self.supply_in_loss += rhs.supply_in_loss;
         self.unrealized_profit += rhs.unrealized_profit;
         self.unrealized_loss += rhs.unrealized_loss;
-        self.capitalized_cap_in_profit_raw += rhs.capitalized_cap_in_profit_raw;
-        self.capitalized_cap_in_loss_raw += rhs.capitalized_cap_in_loss_raw;
     }
 }

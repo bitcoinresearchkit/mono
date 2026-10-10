@@ -39,6 +39,14 @@ impl Vecs {
                 )?;
         }
 
+        let from = starting_lengths.height;
+        self.sma.compute_ratios(from, close, exit)?;
+        for &period in EmaPeriodId::ALL {
+            period
+                .select_mut(&mut self.ema)
+                .compute_ratio(from, close, exit)?;
+        }
+
         Ok(())
     }
 }

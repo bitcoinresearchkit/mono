@@ -82,7 +82,7 @@ impl ComputePlugin for Vecs {
         let compute_seller_exhaustion = || {
             seller_exhaustion_constant.height.compute_transform3(
                 starting_height,
-                &supply.in_profit.sats.height,
+                &supply.in_profit.block.sats.height,
                 &market.volatility._1m.height,
                 supply_total_sats,
                 |(height, profit_sats, volatility, total_sats, ..)| {

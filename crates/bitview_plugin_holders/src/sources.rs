@@ -16,7 +16,7 @@ impl<'a> Sources<'a> {
     fn vectors(&self) -> impl Iterator<Item = &dyn AnyVec> {
         AgeRangeId::ALL.iter().flat_map(move |id| {
             let r = id.select(&self.age.ranges);
-            let vectors: [&dyn AnyVec; 24] = [
+            let vectors: [&dyn AnyVec; 22] = [
                 &r.supply.total.stored,
                 &r.outputs.unspent_count.stored,
                 r.outputs.spent_count.stored.cumulative_source(),
@@ -44,8 +44,6 @@ impl<'a> Sources<'a> {
                 &r.unrealized.loss.stored,
                 &r.supply.in_profit.stored,
                 &r.supply.in_loss.stored,
-                &r.raw.capitalized_cap_in_profit,
-                &r.raw.capitalized_cap_in_loss,
                 &r.raw.peak_regret,
             ];
             vectors
@@ -176,18 +174,6 @@ impl<'a> Sources<'a> {
             read(&r.supply.in_loss.stored, start, &mut band, |row, value| {
                 row.supply_loss = value
             })?;
-            read(
-                &r.raw.capitalized_cap_in_profit,
-                start,
-                &mut band,
-                |row, value| row.capitalized_profit = value,
-            )?;
-            read(
-                &r.raw.capitalized_cap_in_loss,
-                start,
-                &mut band,
-                |row, value| row.capitalized_loss = value,
-            )?;
             read(&r.raw.peak_regret, start, &mut band, |row, value| {
                 row.peak_regret_raw = value
             })?;

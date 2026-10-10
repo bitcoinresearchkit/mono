@@ -23,7 +23,7 @@ bands remain a separate optional plugin. Downstream plugins, including Rarity
 Meter, read these completed aggregate metrics instead of computing their own
 raw threshold prices.
 
-MVRV has one public ratio family, separate from the plain realized price. NUPL
+The realized price and MVRV are second ids for `cost_basis.per_coin.avg` and its spot ratio. NUPL
 has one stored fixed-point source, computed alongside the block's P&L from net
 unrealized profit/loss divided by the cohort market cap. Zero market cap produces
 zero. Negative-loss and half-supply presentation aliases are omitted.

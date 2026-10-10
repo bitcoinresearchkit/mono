@@ -25,7 +25,7 @@ Small implementation-only helpers stay private to their owner or family.
 ## Composition
 
 Larger families retain their components: `PriceWithRatio` owns a price and
-its lazy ratio; cumulative families share `RollingTotals`/`RollingAmountTotals`;
+its stored ratio (`PriceWithMvrv` adds the ratio's MVRV id); cumulative families share `RollingTotals`/`RollingAmountTotals`;
 `ValuePerBlockFull` adds distribution to the cumulative/rolling value family.
 Traversal flattening preserves the public field layout without copying those
 components' fields into every wrapper.

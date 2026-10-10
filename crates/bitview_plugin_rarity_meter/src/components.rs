@@ -143,49 +143,91 @@ impl Components {
         }
 
         Ok(Components {
-            realized_price: import!("realized_price", utxos.all.realized.price),
-            capitalized_price: import!("capitalized_price", utxos.all.realized.capitalized_price),
+            realized_price: import!("realized_price", utxos.all.cost_basis.per_coin.avg),
+            capitalized_price: import!("capitalized_price", utxos.all.cost_basis.per_dollar.avg),
             cost_basis_per_coin_median: MedianComponent::import(
                 db,
                 "cost_basis_per_coin_median",
                 version,
                 mappings,
-                &utxos.all.cost_basis.per_coin.median.cents.height,
+                &utxos
+                    .all
+                    .cost_basis
+                    .per_coin
+                    .percentiles
+                    .median
+                    .cents
+                    .height,
             )?,
             cost_basis_per_dollar_median: MedianComponent::import(
                 db,
                 "cost_basis_per_dollar_median",
                 version,
                 mappings,
-                &utxos.all.cost_basis.per_dollar.median.cents.height,
+                &utxos
+                    .all
+                    .cost_basis
+                    .per_dollar
+                    .percentiles
+                    .median
+                    .cents
+                    .height,
             )?,
             sth_cost_basis_per_coin_median: MedianComponent::import(
                 db,
                 "sth_cost_basis_per_coin_median",
                 version,
                 mappings,
-                &utxos.sth.cost_basis.per_coin.median.cents.height,
+                &utxos
+                    .sth
+                    .cost_basis
+                    .per_coin
+                    .percentiles
+                    .median
+                    .cents
+                    .height,
             )?,
             sth_cost_basis_per_dollar_median: MedianComponent::import(
                 db,
                 "sth_cost_basis_per_dollar_median",
                 version,
                 mappings,
-                &utxos.sth.cost_basis.per_dollar.median.cents.height,
+                &utxos
+                    .sth
+                    .cost_basis
+                    .per_dollar
+                    .percentiles
+                    .median
+                    .cents
+                    .height,
             )?,
             lth_cost_basis_per_coin_median: MedianComponent::import(
                 db,
                 "lth_cost_basis_per_coin_median",
                 version,
                 mappings,
-                &utxos.lth.cost_basis.per_coin.median.cents.height,
+                &utxos
+                    .lth
+                    .cost_basis
+                    .per_coin
+                    .percentiles
+                    .median
+                    .cents
+                    .height,
             )?,
             lth_cost_basis_per_dollar_median: MedianComponent::import(
                 db,
                 "lth_cost_basis_per_dollar_median",
                 version,
                 mappings,
-                &utxos.lth.cost_basis.per_dollar.median.cents.height,
+                &utxos
+                    .lth
+                    .cost_basis
+                    .per_dollar
+                    .percentiles
+                    .median
+                    .cents
+                    .height,
             )?,
             awake_cost_basis_per_coin_median: MedianComponent::import(
                 db,
@@ -199,6 +241,7 @@ impl Components {
                     .awake
                     .cost_basis
                     .per_coin
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -215,6 +258,7 @@ impl Components {
                     .awake
                     .cost_basis
                     .per_dollar
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -231,6 +275,7 @@ impl Components {
                     .mobile
                     .cost_basis
                     .per_coin
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -247,6 +292,7 @@ impl Components {
                     .mobile
                     .cost_basis
                     .per_dollar
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -263,6 +309,7 @@ impl Components {
                     .awake
                     .cost_basis
                     .per_coin
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -279,6 +326,7 @@ impl Components {
                     .awake
                     .cost_basis
                     .per_dollar
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -295,6 +343,7 @@ impl Components {
                     .awake
                     .cost_basis
                     .per_coin
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -311,6 +360,7 @@ impl Components {
                     .awake
                     .cost_basis
                     .per_dollar
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -327,6 +377,7 @@ impl Components {
                     .mobile
                     .cost_basis
                     .per_coin
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -343,6 +394,7 @@ impl Components {
                     .mobile
                     .cost_basis
                     .per_dollar
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -359,6 +411,7 @@ impl Components {
                     .mobile
                     .cost_basis
                     .per_coin
+                    .percentiles
                     .median
                     .cents
                     .height,
@@ -375,43 +428,44 @@ impl Components {
                     .mobile
                     .cost_basis
                     .per_dollar
+                    .percentiles
                     .median
                     .cents
                     .height,
             )?,
-            sth_realized_price: import!("sth_realized_price", utxos.sth.realized.price),
+            sth_realized_price: import!("sth_realized_price", utxos.sth.cost_basis.per_coin.avg),
             sth_capitalized_price: import!(
                 "sth_capitalized_price",
-                utxos.sth.realized.capitalized_price
+                utxos.sth.cost_basis.per_dollar.avg
             ),
-            lth_realized_price: import!("lth_realized_price", utxos.lth.realized.price),
+            lth_realized_price: import!("lth_realized_price", utxos.lth.cost_basis.per_coin.avg),
             lth_capitalized_price: import!(
                 "lth_capitalized_price",
-                utxos.lth.realized.capitalized_price
+                utxos.lth.cost_basis.per_dollar.avg
             ),
             utxos_over_6m_old_realized_price: import!(
                 "utxos_over_6m_old_realized_price",
-                utxos.over_6m.realized.price
+                utxos.over_6m.cost_basis.per_coin.avg
             ),
             utxos_over_4m_old_realized_price: import!(
                 "utxos_over_4m_old_realized_price",
-                utxos.over_4m.realized.price
+                utxos.over_4m.cost_basis.per_coin.avg
             ),
             utxos_under_4m_old_realized_price: import!(
                 "utxos_under_4m_old_realized_price",
-                utxos.under_4m.realized.price
+                utxos.under_4m.cost_basis.per_coin.avg
             ),
             utxos_under_6m_old_realized_price: import!(
                 "utxos_under_6m_old_realized_price",
-                utxos.under_6m.realized.price
+                utxos.under_6m.cost_basis.per_coin.avg
             ),
             utxos_under_4m_old_capitalized_price: import!(
                 "utxos_under_4m_old_capitalized_price",
-                utxos.under_4m.realized.capitalized_price
+                utxos.under_4m.cost_basis.per_dollar.avg
             ),
             utxos_under_6m_old_capitalized_price: import!(
                 "utxos_under_6m_old_capitalized_price",
-                utxos.under_6m.realized.capitalized_price
+                utxos.under_6m.cost_basis.per_dollar.avg
             ),
             vaulted_price: import!("vaulted_price", cointime.prices.vaulted),
             active_price: import!("active_price", cointime.prices.active),
@@ -419,11 +473,18 @@ impl Components {
             cointime_price: import!("cointime_price", cointime.prices.cointime),
             awake_realized_price: import!(
                 "awake_realized_price",
-                cointime.aggregate.cohorts.all.awake.realized_price
+                cointime.aggregate.cohorts.all.awake.cost_basis.per_coin.avg
             ),
             mobile_realized_price: import!(
                 "mobile_realized_price",
-                coinflow.aggregate.cohorts.all.mobile.realized_price
+                coinflow
+                    .aggregate
+                    .cohorts
+                    .all
+                    .mobile
+                    .cost_basis
+                    .per_coin
+                    .avg
             ),
         })
     }
@@ -466,50 +527,51 @@ impl Components {
         let jobs = [
             (
                 &mut self.realized_price,
-                &utxos.all.realized.mvrv.ratio.height,
+                &utxos.all.cost_basis.per_coin.avg.relative.ratio.height,
             ),
             (
                 &mut self.capitalized_price,
-                &utxos.all.realized.capitalized_price.relative.ratio.height,
+                &utxos.all.cost_basis.per_dollar.avg.relative.ratio.height,
             ),
             (
                 &mut self.sth_realized_price,
-                &utxos.sth.realized.mvrv.ratio.height,
+                &utxos.sth.cost_basis.per_coin.avg.relative.ratio.height,
             ),
             (
                 &mut self.sth_capitalized_price,
-                &utxos.sth.realized.capitalized_price.relative.ratio.height,
+                &utxos.sth.cost_basis.per_dollar.avg.relative.ratio.height,
             ),
             (
                 &mut self.lth_realized_price,
-                &utxos.lth.realized.mvrv.ratio.height,
+                &utxos.lth.cost_basis.per_coin.avg.relative.ratio.height,
             ),
             (
                 &mut self.lth_capitalized_price,
-                &utxos.lth.realized.capitalized_price.relative.ratio.height,
+                &utxos.lth.cost_basis.per_dollar.avg.relative.ratio.height,
             ),
             (
                 &mut self.utxos_over_6m_old_realized_price,
-                &utxos.over_6m.realized.mvrv.ratio.height,
+                &utxos.over_6m.cost_basis.per_coin.avg.relative.ratio.height,
             ),
             (
                 &mut self.utxos_over_4m_old_realized_price,
-                &utxos.over_4m.realized.mvrv.ratio.height,
+                &utxos.over_4m.cost_basis.per_coin.avg.relative.ratio.height,
             ),
             (
                 &mut self.utxos_under_4m_old_realized_price,
-                &utxos.under_4m.realized.mvrv.ratio.height,
+                &utxos.under_4m.cost_basis.per_coin.avg.relative.ratio.height,
             ),
             (
                 &mut self.utxos_under_6m_old_realized_price,
-                &utxos.under_6m.realized.mvrv.ratio.height,
+                &utxos.under_6m.cost_basis.per_coin.avg.relative.ratio.height,
             ),
             (
                 &mut self.utxos_under_4m_old_capitalized_price,
                 &utxos
                     .under_4m
-                    .realized
-                    .capitalized_price
+                    .cost_basis
+                    .per_dollar
+                    .avg
                     .relative
                     .ratio
                     .height,
@@ -518,8 +580,9 @@ impl Components {
                 &mut self.utxos_under_6m_old_capitalized_price,
                 &utxos
                     .under_6m
-                    .realized
-                    .capitalized_price
+                    .cost_basis
+                    .per_dollar
+                    .avg
                     .relative
                     .ratio
                     .height,
@@ -547,7 +610,9 @@ impl Components {
                     .cohorts
                     .all
                     .awake
-                    .realized_price
+                    .cost_basis
+                    .per_coin
+                    .avg
                     .relative
                     .ratio
                     .height,
@@ -559,7 +624,9 @@ impl Components {
                     .cohorts
                     .all
                     .mobile
-                    .realized_price
+                    .cost_basis
+                    .per_coin
+                    .avg
                     .relative
                     .ratio
                     .height,

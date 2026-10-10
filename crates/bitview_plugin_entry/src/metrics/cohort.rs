@@ -1,18 +1,20 @@
 use bitview_cohort::CohortId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_transforms::{RatioCentsOrOne, SatsToCents};
+use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, CentsSigned, Height, Sats, Version};
 use vecdb::{
-    AnyStoredVec, BinaryTransform, Database, ReadableBoxedVec, Rw, StorageMode, WritableVec,
+    AnyStoredVec, BinaryTransform, Database, ReadableBoxedVec, ReadableVec, Rw, StorageMode,
+    WritableVec,
 };
 
 use super::{
-    ActivityMetrics, OutputMetrics, RealizedMetrics, Sources, SupplyMetrics, UnrealizedMetrics,
+    ActivityMetrics, CostBasisMetrics, OutputMetrics, RealizedMetrics, Sources, SupplyMetrics,
+    UnrealizedMetrics,
 };
 use crate::live::CohortState;
 
@@ -23,6 +25,7 @@ pub struct CohortMetrics<M: StorageMode = Rw> {
     activity: ActivityMetrics,
     realized: RealizedMetrics<M>,
     unrealized: UnrealizedMetrics,
+    cost_basis: CostBasisMetrics<M>,
     #[traversable(hidden)]
     sources: Sources<M>,
 }
@@ -38,9 +41,10 @@ impl CohortMetrics {
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
         let sources = Sources::import(db, id, version)?;
-        let realized =
-            RealizedMetrics::import(db, id, version, &sources, mappings, windows, prices)?;
-        let unrealized = UnrealizedMetrics::new(id, version, &sources, &realized.price, mappings);
+        let realized = RealizedMetrics::import(db, id, version, &sources, mappings, windows)?;
+        let cost_basis = CostBasisMetrics::import(db, id, version, &sources, mappings)?;
+        let unrealized =
+            UnrealizedMetrics::new(id, version, &sources, &cost_basis.per_coin.avg, mappings);
         Ok(Self {
             supply: SupplyMetrics::new(
                 id, version, &sources, mappings, windows, prices, all_supply,
@@ -49,6 +53,7 @@ impl CohortMetrics {
             activity: ActivityMetrics::new(id, version, &sources, mappings, windows),
             realized,
             unrealized,
+            cost_basis,
             sources,
         })
     }
@@ -91,12 +96,14 @@ impl CohortMetrics {
         s.value_destroyed.push_block(realized.value_destroyed);
     }
 
-    pub(crate) fn compute_rest(&mut self, from: Height, exit: &Exit) -> Result<()> {
-        self.realized.sopr.compute_binary::<_, _, RatioCentsOrOne>(
-            from,
-            &self.activity.transfer_volume.sum._24h.cents.height,
-            &self.realized.value_destroyed.sum._24h.cents.height,
-            exit,
-        )
+    pub(crate) fn compute_rest(
+        &mut self,
+        from: Height,
+        spot: &impl ReadableVec<Height, Cents>,
+        exit: &Exit,
+    ) -> Result<()> {
+        self.realized
+            .compute(from, &self.activity.transfer_volume, exit)?;
+        self.cost_basis.compute(from, spot, exit)
     }
 }

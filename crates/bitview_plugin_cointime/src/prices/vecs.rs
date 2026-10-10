@@ -1,10 +1,8 @@
 use bitview_primitives::{PartsPerMillionSigned32, PriceRatio, Ratio};
 use bitview_traversable::Traversable;
+use bitview_vecs::{CachedSeries, LazyPerBlock, LazyRatioPerBlock, PriceWithMvrv, PriceWithRatio};
+use brk_types::{Cents, Height};
 use vecdb::{Rw, StorageMode};
-
-use bitview_vecs::{
-    LazyPerBlock, LazyPriceWithRatioPerBlock, LazyRatioPerBlock, PriceWithRatioPerBlock,
-};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -12,25 +10,17 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// cumulative coinblocks destroyed divided by cumulative coinblocks
     /// created. This raises realized price as a larger share of accumulated
     /// holding time is consumed rather than stored.
-    pub vaulted: PriceWithRatioPerBlock<M>,
-    /// Vaulted MVRV: spot price divided by vaulted price (the same series as
-    /// `vaulted.ratio`).
-    #[traversable(wrap = "vaulted", rename = "mvrv")]
-    pub(super) vaulted_mvrv: LazyPerBlock<Ratio, Ratio>,
+    pub vaulted: PriceWithMvrv<M>,
     /// Realized price divided by liveliness, where liveliness is cumulative
     /// coinblocks destroyed divided by cumulative coinblocks created.
     /// This raises realized price when little accumulated holding time has been
     /// consumed.
-    pub active: PriceWithRatioPerBlock<M>,
-    /// Active MVRV: spot price divided by active price (the same series as
-    /// `active.ratio`).
-    #[traversable(wrap = "active", rename = "mvrv")]
-    pub(super) active_mvrv: LazyPerBlock<Ratio, Ratio>,
+    pub active: PriceWithMvrv<M>,
     /// Investor capitalization, equal to realized capitalization minus the
     /// cumulative issuance-date USD value of the derived block-subsidy
     /// component, divided by active supply in BTC. Active supply is circulating
     /// supply multiplied by liveliness.
-    pub true_market_mean: PriceWithRatioPerBlock<M>,
+    pub true_market_mean: PriceWithRatio<M>,
     /// AVIV: active capitalization divided by investor capitalization, which
     /// equals spot price divided by True Market Mean (the same series as
     /// `true_market_mean.ratio`).
@@ -43,9 +33,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Cumulative cointime value destroyed divided by cumulative coinblocks
     /// stored, expressed as a price per BTC. It represents the average value
     /// destroyed for each unit of holding time that remains stored.
-    pub cointime: LazyPriceWithRatioPerBlock,
-    /// Cointime MVRV: spot price divided by Cointime price (the same series as
-    /// `cointime.ratio`).
-    #[traversable(wrap = "cointime", rename = "mvrv")]
-    pub(super) cointime_mvrv: LazyPerBlock<Ratio, Ratio>,
+    pub cointime: PriceWithMvrv<M>,
+    #[traversable(hidden)]
+    pub(super) vaulted_cents: CachedSeries<Height, Cents, M>,
+    #[traversable(hidden)]
+    pub(super) active_cents: CachedSeries<Height, Cents, M>,
+    #[traversable(hidden)]
+    pub(super) true_market_mean_cents: CachedSeries<Height, Cents, M>,
 }

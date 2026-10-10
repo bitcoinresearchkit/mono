@@ -47,7 +47,6 @@ impl Vecs {
             &db,
             version + Version::new(3),
             mappings,
-            &spot_price,
             all_chain,
             caps.cointime.cents.resolutions.height_source(),
         )?;

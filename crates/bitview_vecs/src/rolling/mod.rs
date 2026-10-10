@@ -9,7 +9,6 @@ mod lazy_per_second_windows;
 mod lazy_sum_from_height;
 mod lazy_sums_from_height;
 mod windows;
-mod windows_from_1w;
 
 pub use complete::RollingComplete;
 pub use delta::*;
@@ -22,6 +21,5 @@ pub use lazy_per_second_windows::LazyPerSecondWindows;
 pub use lazy_sum_from_height::LazyRollingSumFromHeight;
 pub use lazy_sums_from_height::LazyRollingSumsFromHeight;
 pub use windows::RollingWindows;
-pub use windows_from_1w::RollingWindowsFrom1w;
 mod totals;
 pub use totals::RollingTotals;

@@ -3,7 +3,7 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{PartsPerMillionSigned32, PriceRatio};
 use bitview_transforms::MvrvToNupl;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFiatPerBlock, LazyPriceWithRatioPerBlock, LazyRatioPerBlock};
+use bitview_vecs::{LazyFiatPerBlock, LazyRatioPerBlock, PriceWithRatio};
 use brk_types::{Cents, CentsSigned, Version};
 
 use super::Sources;
@@ -25,7 +25,7 @@ impl UnrealizedMetrics {
         id: CohortId,
         version: Version,
         sources: &Sources,
-        price: &LazyPriceWithRatioPerBlock,
+        price: &PriceWithRatio,
         mappings: &Mappings,
     ) -> Self {
         let name = |metric| CohortContext::Utxo.metric_name(id, metric);
@@ -49,7 +49,7 @@ impl UnrealizedMetrics {
                 &sources.unrealized_net_pnl,
                 mappings,
             ),
-            nupl: LazyRatioPerBlock::from_lazy_source::<MvrvToNupl, PriceRatio>(
+            nupl: LazyRatioPerBlock::from_resolutions::<MvrvToNupl>(
                 &name("nupl"),
                 version,
                 &price.relative.fixed,

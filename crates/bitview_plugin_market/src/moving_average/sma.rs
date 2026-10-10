@@ -3,46 +3,48 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PriceRatio, Ratio};
 use bitview_transforms::CentsTimesTenths;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlock, LazyPriceWithRatioPerBlock, LazySmaVec, Price};
+use bitview_vecs::{LazyPerBlock, LazySmaVec, Price, PriceWithRatio};
+use brk_error::Result;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Ident, ReadableCloneableVec};
+use vecdb::{Database, Ident, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
-#[derive(Clone, Traversable)]
-pub struct SmaVecs {
+#[derive(Traversable)]
+pub struct SmaVecs<M: StorageMode = Rw> {
     /// Uses a trailing 7-day monotonic-time window.
-    pub _1w: LazyPriceWithRatioPerBlock,
+    pub _1w: PriceWithRatio<M>,
     /// Uses a trailing 8-day monotonic-time window.
-    pub _8d: LazyPriceWithRatioPerBlock,
+    pub _8d: PriceWithRatio<M>,
     /// Uses a trailing 13-day monotonic-time window.
-    pub _13d: LazyPriceWithRatioPerBlock,
+    pub _13d: PriceWithRatio<M>,
     /// Uses a trailing 21-day monotonic-time window.
-    pub _21d: LazyPriceWithRatioPerBlock,
+    pub _21d: PriceWithRatio<M>,
     /// Uses a trailing 30-day monotonic-time window.
-    pub _1m: LazyPriceWithRatioPerBlock,
+    pub _1m: PriceWithRatio<M>,
     /// Uses a trailing 34-day monotonic-time window.
-    pub _34d: LazyPriceWithRatioPerBlock,
+    pub _34d: PriceWithRatio<M>,
     /// Uses a trailing 50-day monotonic-time window.
-    pub _50d: LazyPriceWithRatioPerBlock,
+    pub _50d: PriceWithRatio<M>,
     /// Uses a trailing 55-day monotonic-time window.
-    pub _55d: LazyPriceWithRatioPerBlock,
+    pub _55d: PriceWithRatio<M>,
     /// Uses a trailing 89-day monotonic-time window.
-    pub _89d: LazyPriceWithRatioPerBlock,
+    pub _89d: PriceWithRatio<M>,
     /// Uses a trailing 111-day monotonic-time window.
-    pub _111d: LazyPriceWithRatioPerBlock,
+    pub _111d: PriceWithRatio<M>,
     /// Uses a trailing 144-day monotonic-time window.
-    pub _144d: LazyPriceWithRatioPerBlock,
+    pub _144d: PriceWithRatio<M>,
     /// Uses a trailing 200-day monotonic-time window.
-    pub _200d: LazyPriceWithRatioPerBlock,
+    pub _200d: PriceWithRatio<M>,
     /// Uses a trailing 350-day monotonic-time window.
-    pub _350d: LazyPriceWithRatioPerBlock,
+    pub _350d: PriceWithRatio<M>,
     /// Uses a trailing 365-day monotonic-time window.
-    pub _1y: LazyPriceWithRatioPerBlock,
+    pub _1y: PriceWithRatio<M>,
     /// Uses a trailing 730-day monotonic-time window.
-    pub _2y: LazyPriceWithRatioPerBlock,
+    pub _2y: PriceWithRatio<M>,
     /// Uses a trailing 1,400-day monotonic-time window.
-    pub _200w: LazyPriceWithRatioPerBlock,
+    pub _200w: PriceWithRatio<M>,
     /// Uses a trailing 1,460-day monotonic-time window.
-    pub _4y: LazyPriceWithRatioPerBlock,
+    pub _4y: PriceWithRatio<M>,
     /// The 200-day simple moving average multiplied by 2.4.
     #[traversable(wrap = "200d", rename = "x2_4")]
     pub _200d_x2_4: Price<LazyPerBlock<Cents, Cents>>,
@@ -61,18 +63,19 @@ pub struct SmaVecs {
 const VERSION: Version = Version::ONE;
 
 impl SmaVecs {
-    pub fn new(
+    pub fn import(
+        db: &Database,
         version: Version,
         mappings: &MappingsVecs,
         lookback: &LookbackVecs,
-        spot_price: &impl ReadableCloneableVec<Height, Cents>,
         prefix_sum: &impl ReadableCloneableVec<Height, Cents>,
-    ) -> Self {
+    ) -> Result<Self> {
         let version = version + VERSION;
 
         macro_rules! sma {
             ($name:literal, $days:expr) => {
-                LazyPriceWithRatioPerBlock::from_height_source(
+                PriceWithRatio::import(
+                    db,
                     concat!("price_sma_", $name),
                     version,
                     &LazySmaVec::new(
@@ -82,8 +85,7 @@ impl SmaVecs {
                         lookback.start_vec($days).read_only_boxed_clone(),
                     ),
                     mappings,
-                    spot_price,
-                )
+                )?
             };
         }
 
@@ -111,7 +113,7 @@ impl SmaVecs {
             &_350d.cents,
         );
 
-        Self {
+        Ok(Self {
             _1w: sma!("1w", 7),
             _8d: sma!("8d", 8),
             _13d: sma!("13d", 13),
@@ -133,6 +135,37 @@ impl SmaVecs {
             _200d_x0_8,
             _350d_x2,
             mayer_multiple,
+        })
+    }
+
+    /// Spot divided by each average, stored.
+    pub(crate) fn compute_ratios(
+        &mut self,
+        from: Height,
+        spot: &impl ReadableVec<Height, Cents>,
+        exit: &Exit,
+    ) -> Result<()> {
+        for average in [
+            &mut self._1w,
+            &mut self._8d,
+            &mut self._13d,
+            &mut self._21d,
+            &mut self._1m,
+            &mut self._34d,
+            &mut self._50d,
+            &mut self._55d,
+            &mut self._89d,
+            &mut self._111d,
+            &mut self._144d,
+            &mut self._200d,
+            &mut self._350d,
+            &mut self._1y,
+            &mut self._2y,
+            &mut self._200w,
+            &mut self._4y,
+        ] {
+            average.compute_ratio(from, spot, exit)?;
         }
+        Ok(())
     }
 }

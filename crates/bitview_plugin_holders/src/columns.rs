@@ -38,11 +38,8 @@ pub(crate) struct Columns<M: StorageMode = Rw> {
     pub unrealized_net_pnl: CachedSeries<Height, CentsSigned, M>,
     pub nupl: CachedSeries<Height, PartsPerMillionSigned32, M>,
     pub unrealized_gross_pnl: CachedSeries<Height, Cents, M>,
-    pub invested_profit: CachedSeries<Height, Cents, M>,
-    pub invested_loss: CachedSeries<Height, Cents, M>,
-    pub pain: CachedSeries<Height, Cents, M>,
-    pub greed: CachedSeries<Height, Cents, M>,
-    pub sentiment: CachedSeries<Height, CentsSigned, M>,
+    pub cap_profit: CachedSeries<Height, Cents, M>,
+    pub cap_loss: CachedSeries<Height, Cents, M>,
     peak: M::WriteOnly<CumulativeState<Cents>>,
 }
 impl Columns {
@@ -129,15 +126,19 @@ impl Columns {
             unrealized_loss: import_cached(db, &id.metric_name("unrealized_loss_cents"), version)?,
             supply_profit: import_cached(db, &id.metric_name("supply_in_profit_sats"), version)?,
             supply_loss: import_cached(db, &id.metric_name("supply_in_loss_sats"), version)?,
-            price: import_cached(db, &id.metric_name("realized_price_cents"), version)?,
+            price: import_cached(
+                db,
+                &id.metric_name("cost_basis_per_coin_avg_cents"),
+                version,
+            )?,
             capitalized_price: import_cached(
                 db,
-                &id.metric_name("capitalized_price_cents"),
+                &id.metric_name("cost_basis_per_dollar_avg_cents"),
                 version,
             )?,
             gross_pnl: import_cached(
                 db,
-                &id.metric_name("realized_gross_pnl_cumulative_cents"),
+                &id.metric_name("gross_realized_pnl_cumulative_cents"),
                 version,
             )?,
             peak_regret: import_cached(
@@ -153,22 +154,15 @@ impl Columns {
             nupl: import_cached(db, &id.metric_name("nupl_ppm"), version + Version::ONE)?,
             unrealized_gross_pnl: import_cached(
                 db,
-                &id.metric_name("unrealized_gross_pnl_cents"),
+                &id.metric_name("gross_unrealized_pnl_cents"),
                 version,
             )?,
-            invested_profit: import_cached(
+            cap_profit: import_cached(
                 db,
-                &id.metric_name("invested_capital_in_profit_cents"),
+                &id.metric_name("realized_cap_in_profit_cents"),
                 version,
             )?,
-            invested_loss: import_cached(
-                db,
-                &id.metric_name("invested_capital_in_loss_cents"),
-                version,
-            )?,
-            pain: import_cached(db, &id.metric_name("pain_index_cents"), version)?,
-            greed: import_cached(db, &id.metric_name("greed_index_cents"), version)?,
-            sentiment: import_cached(db, &id.metric_name("net_sentiment_cents"), version)?,
+            cap_loss: import_cached(db, &id.metric_name("realized_cap_in_loss_cents"), version)?,
             peak: Default::default(),
         })
     }
@@ -218,12 +212,8 @@ impl Columns {
         self.nupl.push(unrealized.nupl);
         self.unrealized_gross_pnl
             .push(d.unrealized_profit + d.unrealized_loss);
-        self.invested_profit
-            .push(unrealized.invested_capital_in_profit);
-        self.invested_loss.push(unrealized.invested_capital_in_loss);
-        self.pain.push(unrealized.pain_index);
-        self.greed.push(unrealized.greed_index);
-        self.sentiment.push(unrealized.net_sentiment);
+        self.cap_profit.push(unrealized.cap_in_profit);
+        self.cap_loss.push(unrealized.cap_in_loss);
     }
     pub fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.peak = Default::default();
@@ -256,11 +246,8 @@ impl Columns {
             &mut self.unrealized_net_pnl,
             &mut self.nupl,
             &mut self.unrealized_gross_pnl,
-            &mut self.invested_profit,
-            &mut self.invested_loss,
-            &mut self.pain,
-            &mut self.greed,
-            &mut self.sentiment,
+            &mut self.cap_profit,
+            &mut self.cap_loss,
         ]
     }
 }

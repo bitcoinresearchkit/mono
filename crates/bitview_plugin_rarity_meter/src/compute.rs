@@ -39,11 +39,11 @@ impl ComputePlugin for Vecs {
             || {
                 self.extremes.compute(
                     indexer,
-                    &metrics.supply.in_loss.btc.height,
+                    &metrics.supply.in_loss.block.btc.height,
                     &realized.profit.sum._24h.usd.height,
                     &realized.loss.sum._24h.usd.height,
                     &realized.peak_regret.sum._24h.usd.height,
-                    &metrics.ratios.sell_side_risk_ratio._24h.ratio.height,
+                    &realized.sell_side_risk_ratio._24h.ratio.height,
                     exit,
                 )
             },

@@ -1,12 +1,12 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
+use bitview_distribution::metrics::CohortCostBasis;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{CentsSquaredSats, CoinDays};
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CachedSeries, LazyPerBlock, LazyValuePerBlockCumulativeRolling, LazyWindowStartVec,
-    PerBlockCumulativeRolling, Price, SatsCents, import_cached,
+    LazyValuePerBlockCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling, SatsCents,
 };
 use brk_error::Result;
 use brk_types::{Cents, CentsSats, Height, Sats, Version};
@@ -18,7 +18,7 @@ use vecdb::{
 use derive_more::{Deref, DerefMut};
 
 use super::CohortVecs;
-use crate::state::{RealizedState, UTXOCohortState, WithCapital};
+use crate::state::{RealizedState, UTXOCohortState};
 
 const MATURED_VERSION: Version = Version::new(5);
 
@@ -40,14 +40,7 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// duration, one coin day per BTC per day.
     #[traversable(wrap = "activity", rename = "coindays_created")]
     pub coindays_created: PerBlockCumulativeRolling<CoinDays, M>,
-    /// Realized price of the range: realized cap divided by supply, the
-    /// satoshi-weighted mean Bitcoin spot price at which its unspent outputs
-    /// were created. Zero while the range holds no supply.
-    #[traversable(wrap = "realized", rename = "price")]
-    price: Price<LazyPerBlock<Cents>>,
-    /// Reported in cents per BTC.
-    #[traversable(hidden)]
-    price_cents: CachedSeries<Height, Cents, M>,
+    cost_basis: CohortCostBasis<M>,
     #[traversable(hidden)]
     pub raw: RawSources<M>,
 }
@@ -67,10 +60,6 @@ pub struct RawSources<M: StorageMode = Rw> {
     pub capitalized_cap: M::Stored<ZstdVec<Height, CentsSquaredSats>>,
     /// Exact peak-regret product in this block.
     pub peak_regret: M::Stored<ZstdVec<Height, CentsSats>>,
-    /// The capitalized-cap product of the supply in profit.
-    pub capitalized_cap_in_profit: M::Stored<ZstdVec<Height, CentsSquaredSats>>,
-    /// The capitalized-cap product of the supply in loss.
-    pub capitalized_cap_in_loss: M::Stored<ZstdVec<Height, CentsSquaredSats>>,
 }
 
 impl RangeVecs {
@@ -118,33 +107,16 @@ impl RangeVecs {
             mappings,
             window_starts,
         )?;
-        let price_cents = import_cached(
+        let cost_basis = CohortCostBasis::import(
             db,
-            &CohortContext::Utxo.metric_name(cohort, "realized_price_cents"),
+            |metric| CohortContext::Utxo.metric_name(cohort, metric),
             version,
-        )?;
-        let price = Price::from_height_source(
-            &CohortContext::Utxo.metric_name(cohort, "realized_price"),
-            version,
-            &price_cents,
             mappings,
-        );
+        )?;
         let raw = RawSources {
             cap: import_raw(db, cohort, "cap_raw", version)?,
             capitalized_cap: import_raw(db, cohort, "capitalized_cap_raw", version)?,
             peak_regret: import_raw(db, cohort, "peak_regret_raw", version)?,
-            capitalized_cap_in_profit: import_raw(
-                db,
-                cohort,
-                "capitalized_cap_in_profit_raw",
-                version,
-            )?,
-            capitalized_cap_in_loss: import_raw(
-                db,
-                cohort,
-                "capitalized_cap_in_loss_raw",
-                version,
-            )?,
         };
         Ok(Self {
             cohort: CohortVecs::import(
@@ -159,8 +131,7 @@ impl RangeVecs {
             matured,
             matured_sources,
             coindays_created,
-            price,
-            price_cents,
+            cost_basis,
             raw,
         })
     }
@@ -177,14 +148,10 @@ impl RangeVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push(
-        &mut self,
-        state: &mut UTXOCohortState<RealizedState, WithCapital>,
-        price: Cents,
-    ) {
-        let profitability = self.cohort.push(state, price);
+    pub(crate) fn push(&mut self, state: &mut UTXOCohortState<RealizedState>, price: Cents) {
+        self.cohort.push(state, price);
         let realized = &state.realized;
-        self.price_cents
+        self.cost_basis
             .push(realized.cap_raw().realized_price(state.supply_value()));
         self.raw.cap.push(realized.cap_raw());
         self.raw
@@ -193,14 +160,6 @@ impl RangeVecs {
         self.raw
             .peak_regret
             .push(CentsSats::new(realized.peak_regret_raw()));
-        self.raw
-            .capitalized_cap_in_profit
-            .push(CentsSquaredSats::new(
-                profitability.capitalized_cap_in_profit_raw,
-            ));
-        self.raw.capitalized_cap_in_loss.push(CentsSquaredSats::new(
-            profitability.capitalized_cap_in_loss_raw,
-        ));
     }
 
     pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
@@ -208,19 +167,15 @@ impl RangeVecs {
             cap,
             capitalized_cap,
             peak_regret,
-            capitalized_cap_in_profit,
-            capitalized_cap_in_loss,
         } = &mut self.raw;
         self.cohort.stored_vecs_mut().chain([
             self.matured_sources.sats.stored_mut(),
             self.matured_sources.cents.stored_mut(),
             self.coindays_created.stored_mut(),
-            &mut self.price_cents as &mut dyn AnyStoredVec,
+            self.cost_basis.stored_mut(),
             cap as &mut dyn AnyStoredVec,
             capitalized_cap,
             peak_regret,
-            capitalized_cap_in_profit,
-            capitalized_cap_in_loss,
         ])
     }
 }

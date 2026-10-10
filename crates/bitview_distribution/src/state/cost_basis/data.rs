@@ -8,22 +8,18 @@ use brk_types::{Cents, Sats};
 use rustc_hash::FxHashMap;
 use vecdb::unlikely;
 
-use super::{Accumulate, CostBasisOps, UnrealizedState, unrealized::CachedUnrealizedState};
+use super::{CostBasisOps, UnrealizedState, unrealized::CachedUnrealizedState};
 use crate::state::pending::PendingDelta;
 
 /// Price distribution with deferred changes and cached unrealized analytics.
-///
-/// Generic over the accumulator `S`:
-/// - `WithCapital`: tracks all fields including invested capital + capitalized cap (128 bytes)
-/// - `WithoutCapital`: tracks only supply + unrealized profit/loss (64 bytes, 1 cache line)
-#[derive(Clone, Debug)]
-pub struct CostBasisData<S: Accumulate> {
+#[derive(Clone, Debug, Default)]
+pub struct CostBasisData {
     map: BTreeMap<CentsCompact, Sats>,
     pending: FxHashMap<CentsCompact, PendingDelta>,
-    cache: Option<CachedUnrealizedState<S>>,
+    cache: Option<CachedUnrealizedState>,
 }
 
-impl<S: Accumulate> CostBasisData<S> {
+impl CostBasisData {
     fn is_empty(&self) -> bool {
         self.pending.is_empty() && self.map.is_empty()
     }
@@ -64,7 +60,7 @@ impl<S: Accumulate> CostBasisData<S> {
     }
 }
 
-impl<S: Accumulate> CostBasisOps for CostBasisData<S> {
+impl CostBasisOps for CostBasisData {
     #[inline]
     fn increment(&mut self, price: Cents, sats: Sats) {
         self.pending
@@ -140,15 +136,5 @@ impl<S: Accumulate> CostBasisOps for CostBasisData<S> {
         self.map.clear();
         self.pending.clear();
         self.cache = None;
-    }
-}
-
-impl<S: Accumulate> Default for CostBasisData<S> {
-    fn default() -> Self {
-        Self {
-            map: BTreeMap::new(),
-            pending: FxHashMap::default(),
-            cache: None,
-        }
     }
 }

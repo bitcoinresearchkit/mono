@@ -1,9 +1,7 @@
 use bitview_primitives::{BoundedRatio, Percent};
 use bitview_traversable::Traversable;
 use bitview_urpd::CostBasisVecs;
-use bitview_vecs::{
-    LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazySpotValuePerBlock,
-};
+use bitview_vecs::{LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock};
 use brk_types::Cents;
 use vecdb::{Rw, StorageMode};
 
@@ -22,14 +20,7 @@ pub struct AwakeVecs<M: StorageMode = Rw> {
     /// supply. Creation-date value is each unspent output's BTC value
     /// multiplied by Bitcoin's spot price when it was created.
     pub realized_cap: LazyFiatPerBlock<Cents>,
-    /// Wakefulness-weighted mean creation price: awake realized capitalization
-    /// divided by awake supply in BTC. Returns zero when awake supply is zero.
-    pub realized_price: LazyPriceWithRatioPerBlock,
-    /// Creation price weighted by invested value and wakefulness:
-    /// sum(weight × creation price² × sats) / sum(weight × creation price × sats).
-    /// Uses raw cost-basis moments; returns zero when weighted invested value is zero.
-    pub capitalized_price: LazyPriceWithRatioPerBlock,
-    /// Wakefulness-weighted URPD: each unspent output weighted by its age
-    /// range's wakefulness, creation prices rounded to five significant digits.
+    /// Creation-price statistics of the awake supply: each unspent output weighted by its
+    /// age range's wakefulness.
     pub cost_basis: CostBasisVecs<M>,
 }

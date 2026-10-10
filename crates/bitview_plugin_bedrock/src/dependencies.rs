@@ -22,14 +22,7 @@ pub struct Dependencies<'a> {
 
 impl Dependencies<'_> {
     pub(crate) fn raw_loss_share(&self) -> &impl ReadableVec<Height, PartsPerMillion32> {
-        &self
-            .holders
-            .cohorts
-            .all
-            .relative
-            .supply_in_loss_share
-            .fixed
-            .height
+        &self.holders.cohorts.all.supply.in_loss.share.fixed.height
     }
     pub(crate) fn cointime_loss_share(&self) -> &impl ReadableVec<Height, BoundedRatio> {
         self.cointime.all_awake_supply_in_loss_share()

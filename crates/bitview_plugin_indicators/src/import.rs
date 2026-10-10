@@ -86,7 +86,7 @@ impl Vecs {
         let dormancy_24h = holders
             .cohorts
             .all
-            .ratios
+            .activity
             .dormancy
             ._24h
             .resolutions

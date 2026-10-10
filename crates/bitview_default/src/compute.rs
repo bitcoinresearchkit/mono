@@ -245,8 +245,9 @@ impl DefaultPlugins {
                 .holders
                 .cohorts
                 .all
-                .realized
-                .capitalized_price
+                .cost_basis
+                .per_dollar
+                .avg
                 .cents
                 .height
                 .read_only_boxed_clone();
@@ -272,6 +273,7 @@ impl DefaultPlugins {
                                 urpd,
                                 indexer,
                                 mappings: self.mappings.as_ref(),
+                                price: self.price.as_ref(),
                                 age: self.age.as_ref(),
                             },
                             context,

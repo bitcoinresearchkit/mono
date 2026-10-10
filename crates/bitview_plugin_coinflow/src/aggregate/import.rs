@@ -3,8 +3,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::FixedToPercent;
 use bitview_urpd::CostBasisVecs;
 use bitview_vecs::{
-    CachedSeries, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
-    LazySpotValuePerBlock, import_cached,
+    CachedSeries, LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock, import_cached,
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
@@ -87,21 +86,14 @@ impl CohortVecs {
                     id.select(&sources.mobile_realized_cap),
                     mappings,
                 ),
-                realized_price: LazyPriceWithRatioPerBlock::from_height_source(
-                    &name("mobile_realized_price"),
+                cost_basis: CostBasisVecs::import(
+                    db,
+                    &name("mobile"),
                     version,
+                    mappings,
                     id.select(&sources.mobile_realized_price),
-                    mappings,
-                    spot_price,
-                ),
-                capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
-                    &name("mobile_capitalized_price"),
-                    version,
                     id.select(&sources.mobile_capitalized_price),
-                    mappings,
-                    spot_price,
-                ),
-                cost_basis: CostBasisVecs::import(db, &name("mobile"), version, mappings)?,
+                )?,
             },
             immobile: ImmobileVecs {
                 supply: LazySpotValuePerBlock::from_sats_source(

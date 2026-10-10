@@ -1,14 +1,12 @@
-use bitview_compute::{ComputedVecValue, FixedRatio, NumericValue};
-use bitview_primitives::{PriceRatio, Ratio};
-use bitview_transforms::{FixedToRatio, price_ratio};
+use bitview_compute::{FixedRatio, NumericValue};
+use bitview_primitives::Ratio;
+use bitview_transforms::FixedToRatio;
 use bitview_traversable::Traversable;
-use brk_types::{Cents, Height, Version};
+use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{Ident, ReadableCloneableVec, UnaryTransform};
 
-use crate::{IndexSources, LazyIndexedVec, LazyPerBlock};
-
-const PRICE_RATIO_VERSION: Version = Version::new(5);
+use crate::{IndexSources, LazyPerBlock, Resolutions};
 
 /// Fully lazy variant of `RatioPerBlock` derived from one per-block source.
 #[derive(Clone, Traversable)]
@@ -22,28 +20,7 @@ where
     #[traversable(hidden)]
     pub fixed: LazyPerBlock<R, S>,
     /// As a ratio.
-    pub ratio: LazyPerBlock<Ratio, R>,
-}
-
-impl LazyRatioPerBlock<PriceRatio> {
-    /// Reuse the standard spot/reference-price ratio policy for a price source.
-    pub fn from_price_source(
-        name: &str,
-        version: Version,
-        price: &impl ReadableCloneableVec<Height, Cents>,
-        spot: &impl ReadableCloneableVec<Height, Cents>,
-        indexes: &IndexSources,
-    ) -> Self {
-        let version = version + PRICE_RATIO_VERSION;
-        let source = LazyIndexedVec::new(
-            &format!("{name}_ppm_source"),
-            version,
-            price,
-            spot,
-            |_, price, spot| price_ratio(spot, price),
-        );
-        Self::from_height_source(name, version, &source, indexes)
-    }
+    ratio: LazyPerBlock<Ratio, R>,
 }
 
 impl<R, S> LazyRatioPerBlock<R, S>
@@ -51,17 +28,13 @@ where
     R: FixedRatio,
     S: NumericValue + JsonSchema,
 {
-    pub fn from_lazy_source<F, S2T>(
-        name: &str,
-        version: Version,
-        source: &LazyPerBlock<S, S2T>,
-    ) -> Self
+    /// Transform one stored per-block source.
+    pub fn from_resolutions<F>(name: &str, version: Version, source: &Resolutions<S>) -> Self
     where
         F: UnaryTransform<S, R>,
-        S2T: ComputedVecValue + JsonSchema,
     {
         let fixed =
-            LazyPerBlock::from_lazy::<F, S2T>(&format!("{name}_{}", R::SUFFIX), version, source);
+            LazyPerBlock::from_resolutions::<F>(&format!("{name}_{}", R::SUFFIX), version, source);
         let ratio = LazyPerBlock::from_lazy::<FixedToRatio, S>(name, version, &fixed);
 
         Self { fixed, ratio }

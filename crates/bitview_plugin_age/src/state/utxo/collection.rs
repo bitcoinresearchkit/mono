@@ -8,13 +8,13 @@ use statedb::Amount;
 use super::{UTXOCohortState, UTXOTransientState};
 use crate::{
     compute::ComputeContext,
-    state::{CoreRealizedState, RealizedState, WithCapital, WithoutCapital, supply},
+    state::{CoreRealizedState, RealizedState, supply},
 };
 
 pub struct UTXOStates {
-    pub age_range: AgeRange<UTXOCohortState<RealizedState, WithCapital>>,
-    pub epoch: ByEpoch<UTXOCohortState<CoreRealizedState, WithoutCapital>>,
-    pub class: Class<UTXOCohortState<CoreRealizedState, WithoutCapital>>,
+    pub age_range: AgeRange<UTXOCohortState<RealizedState>>,
+    pub epoch: ByEpoch<UTXOCohortState<CoreRealizedState>>,
+    pub class: Class<UTXOCohortState<CoreRealizedState>>,
     pub transient: UTXOTransientState,
 }
 

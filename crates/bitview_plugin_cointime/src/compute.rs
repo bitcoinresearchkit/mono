@@ -69,14 +69,17 @@ impl Vecs {
         // Phase 4: pricing and reserve_risk are independent
         let (r3, r4) = join(
             || {
+                let from = indexer.safe_lengths().height;
                 self.prices.compute(
-                    indexer,
+                    from,
                     holders,
                     &self.activity,
                     &self.supply,
                     &self.caps,
                     exit,
-                )
+                )?;
+                self.prices
+                    .compute_ratios(from, &prices.spot.cents.height, exit)
             },
             || {
                 self.reserve_risk
@@ -118,6 +121,14 @@ impl ComputePlugin for Vecs {
             &supplies,
             context.exit(),
         )?;
+        let from = dependencies.indexer.safe_lengths().height;
+        let spot = &dependencies.price.spot.cents.height;
+        for cohort in self.aggregate.cohorts.iter_mut() {
+            cohort
+                .awake
+                .cost_basis
+                .compute_ratios(from, spot, context.exit())?;
+        }
         Ok(())
     }
 }

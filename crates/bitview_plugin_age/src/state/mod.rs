@@ -6,7 +6,7 @@ use brk_types::Sats;
 use statedb::Amount;
 
 pub use bitview_distribution::state::{
-    CoreRealizedState, RealizedOps, SendPrecomputed, UnrealizedState, WithCapital, WithoutCapital,
+    CoreRealizedState, RealizedOps, SendPrecomputed, UnrealizedState,
 };
 pub use cost_basis::RealizedState;
 pub use utxo::{UTXOCohortState, UTXOStates, tick_tock_next_block};

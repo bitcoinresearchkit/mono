@@ -29,8 +29,6 @@ pub(crate) struct Data {
     pub unrealized_loss: Cents,
     pub supply_profit: Sats,
     pub supply_loss: Sats,
-    pub capitalized_profit: CentsSquaredSats,
-    pub capitalized_loss: CentsSquaredSats,
     pub peak_regret_raw: CentsSats,
 }
 
@@ -59,8 +57,6 @@ impl AddAssign for Data {
         self.unrealized_loss += rhs.unrealized_loss;
         self.supply_profit += rhs.supply_profit;
         self.supply_loss += rhs.supply_loss;
-        self.capitalized_profit += rhs.capitalized_profit;
-        self.capitalized_loss += rhs.capitalized_loss;
         self.peak_regret_raw += rhs.peak_regret_raw;
     }
 }

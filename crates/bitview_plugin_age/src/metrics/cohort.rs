@@ -1,6 +1,6 @@
 use bitview_cohort::CohortId;
 use bitview_collections::Windows;
-use bitview_distribution::state::{Accumulate, RealizedOps};
+use bitview_distribution::state::RealizedOps;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
@@ -12,7 +12,7 @@ use super::{
     activity::ActivityVecs, outputs::OutputsVecs, realized::RealizedVecs, supply::SupplyVecs,
     unrealized::UnrealizedVecs,
 };
-use crate::state::{UTXOCohortState, UnrealizedState};
+use crate::state::UTXOCohortState;
 
 /// One creation cohort: an age range, a halving epoch or a creation year.
 #[derive(Traversable)]
@@ -51,13 +51,9 @@ impl CohortVecs {
         })
     }
 
-    /// Writes the block's values and returns the cohort's profitability at `price`.
+    /// Writes the block's values, with the cohort's profitability at `price`.
     #[inline(always)]
-    pub(crate) fn push<R: RealizedOps, S: Accumulate>(
-        &mut self,
-        state: &mut UTXOCohortState<R, S>,
-        price: Cents,
-    ) -> UnrealizedState {
+    pub(crate) fn push<R: RealizedOps>(&mut self, state: &mut UTXOCohortState<R>, price: Cents) {
         let profitability = state.compute_unrealized_state(price);
         self.supply.push(state.supply_value(), &profitability);
         self.unrealized.push(&profitability);
@@ -65,7 +61,6 @@ impl CohortVecs {
         self.activity
             .push(state.transfer_volume(), state.core_activity(), price);
         self.realized.push(&state.realized_block_data());
-        profitability
     }
 
     pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {

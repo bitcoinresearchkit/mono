@@ -33,9 +33,9 @@ impl ComputePlugin for Vecs {
 
         let spot = &prices.spot.cents.height;
         let sma = &moving_average.sma._1y.cents.height;
-        let all = &holders.cohorts.all.realized.capitalized_price.cents.height;
-        let sth = &holders.cohorts.sth.realized.capitalized_price.cents.height;
-        let lth = &holders.cohorts.lth.realized.capitalized_price.cents.height;
+        let all = &holders.cohorts.all.cost_basis.per_dollar.avg.cents.height;
+        let sth = &holders.cohorts.sth.cost_basis.per_dollar.avg.cents.height;
+        let lth = &holders.cohorts.lth.cost_basis.per_dollar.avg.cents.height;
 
         compute_series(
             &mut self.phase_code.height,

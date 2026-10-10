@@ -25,15 +25,7 @@ impl Vecs {
         let spot = price.spot.cents.height.read_only_boxed_clone();
         let cost_basis = CostBasisVecs::import(&db, version, mappings)?;
         let cohorts = AgeAggregate::try_from_fn(|id| {
-            Metrics::import(
-                &db,
-                id,
-                version,
-                mappings,
-                windows,
-                &spot,
-                id.select(&cost_basis.cohorts).clone(),
-            )
+            Metrics::import(&db, id, version, mappings, windows, &spot, &cost_basis)
         })?;
         let all_market_cap = LazyIndexedVec::new(
             "aggregate_market_cap_source",

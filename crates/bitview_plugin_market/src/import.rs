@@ -26,8 +26,7 @@ impl Vecs {
         let returns = returns::Vecs::import(&db, version, mappings, &window_starts, prices)?;
         let volatility = volatility::Vecs::new(version, &returns);
         let range = range::Vecs::import(&db, version, mappings, spot_price)?;
-        let moving_average =
-            moving_average::Vecs::import(&db, version, mappings, blocks, spot_price)?;
+        let moving_average = moving_average::Vecs::import(&db, version, mappings, blocks)?;
         let technical =
             technical::Vecs::import(&db, version, mappings, &returns.periods._24h.percent)?;
 

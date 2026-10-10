@@ -41,6 +41,14 @@ impl ComputePlugin for Vecs {
             &supplies,
             context.exit(),
         )?;
+        let from = dependencies.indexer.safe_lengths().height;
+        let spot = &dependencies.price.spot.cents.height;
+        for cohort in self.aggregate.cohorts.iter_mut() {
+            cohort
+                .mobile
+                .cost_basis
+                .compute_ratios(from, spot, context.exit())?;
+        }
         Ok(())
     }
 }
@@ -51,6 +59,7 @@ impl Vecs {
             indexer,
             urpd: _,
             mappings,
+            price: _,
             age,
         } = dependencies;
         let starting_lengths = indexer.safe_lengths();

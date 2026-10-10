@@ -14,8 +14,11 @@ use crate::columns::Columns;
 
 #[derive(Traversable)]
 pub struct AdjustedSopr<M: StorageMode = Rw> {
+    #[traversable(flatten)]
     pub ratio: RollingWindows<Ratio, M>,
-    pub transfer_volume: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    /// Spend-time value of the outputs it keeps (spent an hour or more after creation).
+    pub value_created: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    /// Creation-time value of the outputs it keeps (spent an hour or more after creation).
     pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
 }
 impl AdjustedSopr {
@@ -29,7 +32,7 @@ impl AdjustedSopr {
     ) -> Result<Self> {
         Ok(Self {
             ratio: RollingWindows::import(db, &id.metric_name("adjusted_sopr"), v, mappings)?,
-            transfer_volume: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
+            value_created: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &id.metric_name("adjusted_value_created"),
                 v,
                 &c.adjusted_volume,
@@ -50,7 +53,7 @@ impl AdjustedSopr {
             .ratio
             .as_mut_array()
             .into_iter()
-            .zip(self.transfer_volume.sum.as_array())
+            .zip(self.value_created.sum.as_array())
             .zip(self.value_destroyed.sum.as_array())
         {
             target.compute_binary::<_, _, RatioCentsOrOne>(
@@ -62,11 +65,10 @@ impl AdjustedSopr {
         }
         Ok(())
     }
-    pub(crate) fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.ratio
             .as_mut_array()
             .into_iter()
             .map(|v| &mut v.height as &mut dyn AnyStoredVec)
-            .collect()
     }
 }
