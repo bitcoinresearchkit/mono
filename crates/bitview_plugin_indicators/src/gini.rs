@@ -13,25 +13,20 @@ pub fn compute(
     starting_height: Height,
     exit: &Exit,
 ) -> Result<()> {
-    let supplies = &utxos.cohorts.supply.total.stored.cohorts.utxo_amount;
-    let counts = &utxos
-        .cohorts
-        .outputs
-        .unspent_count
-        .stored
-        .cohorts
-        .utxo_amount;
+    let amounts = &utxos.cohorts.amounts;
+    let supplies = &AmountRange::from_fn(|id| &id.select(amounts).supply.total.stored);
+    let counts = &AmountRange::from_fn(|id| &id.select(amounts).outputs.unspent_count.stored);
     let end = supplies
         .iter()
-        .map(AnyVec::len)
-        .chain(counts.iter().map(AnyVec::len))
+        .map(|v| v.len())
+        .chain(counts.iter().map(|v| v.len()))
         .min()
         .unwrap_or_default();
     let version = Version::combine_all(
         supplies
             .iter()
-            .map(AnyVec::version)
-            .chain(counts.iter().map(AnyVec::version)),
+            .map(|v| v.version())
+            .chain(counts.iter().map(|v| v.version())),
     );
     let batch_size = 4096;
     gini.fixed.height.compute_batched_to(

@@ -116,14 +116,14 @@ impl ComputePlugin for Vecs {
             ctx.last_height = Height::from(next - 1);
             replay_origins(
                 &mut OriginTargets {
-                    cohorts: &mut self.cohorts,
-                    coindays_created: &mut self.coindays_created,
+                    ranges: &mut self.ranges,
+                    epochs: &mut self.epochs,
+                    classes: &mut self.classes,
                     coinblocks_destroyed: &mut self.coinblocks_destroyed,
                 },
                 &mut states,
                 &ctx,
                 &mut cursor,
-                |height, states| self.age_bounds.push_block(height, states.bounds_entries()),
             )?;
             self.save(cursor.state().len(), next == end, exit)?;
             from = next;
@@ -143,10 +143,14 @@ impl ComputePlugin for Vecs {
 impl Vecs {
     /// Every output the replay writes: one dependency version, one resume height.
     fn outputs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = self.cohorts.collect_vecs_mut();
-        vecs.extend(self.coindays_created.iter_mut().map(|v| v.stored_mut()));
+        let mut vecs: Vec<&mut dyn AnyStoredVec> = Vec::with_capacity(1024);
+        for range in self.ranges.iter_mut() {
+            vecs.extend(range.stored_vecs_mut());
+        }
+        for cohort in self.epochs.iter_mut().chain(self.classes.iter_mut()) {
+            vecs.extend(cohort.stored_vecs_mut());
+        }
         vecs.push(self.coinblocks_destroyed.stored_mut());
-        vecs.extend(self.age_bounds.stored_vecs_mut());
         vecs
     }
 

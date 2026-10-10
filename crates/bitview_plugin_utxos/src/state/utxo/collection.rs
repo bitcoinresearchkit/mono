@@ -20,19 +20,22 @@ impl UTXOStates {
 
     pub fn restore(&mut self, metrics: &CohortMetrics, height: Height) -> Option<()> {
         let previous = height.decremented()?;
-        for ((state, supply), count) in self
+        for (state, cohort) in self
             .amount_range
             .iter_mut()
-            .zip(metrics.supply.total.cohorts.utxo_amount.iter())
-            .zip(metrics.outputs.unspent_count.cohorts.utxo_amount.iter())
+            .zip(metrics.amounts.iter())
             .chain(
                 self.type_
                     .iter_mut()
-                    .zip(metrics.supply.total.cohorts.type_.iter())
-                    .zip(metrics.outputs.unspent_count.cohorts.type_.iter()),
+                    .zip(metrics.types.iter().map(|types| &types.cohort)),
             )
         {
-            Self::restore_one(state, &supply.sats.height, &count.height, previous)?;
+            Self::restore_one(
+                state,
+                &cohort.supply.total.stored,
+                &cohort.outputs.unspent_count.stored,
+                previous,
+            )?;
         }
         Some(())
     }

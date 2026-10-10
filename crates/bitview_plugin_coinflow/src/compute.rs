@@ -26,7 +26,7 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<()> {
         self.compute_primary(dependencies, context.exit())?;
-        let supplies = dependencies.age.cohorts.supply.total.age_supplies();
+        let supplies = dependencies.age.age_supplies();
         let weights = self.age_ranges.urpd_weight_sources();
         compute_cost_basis(
             &mut self.urpd_replay,
@@ -34,8 +34,7 @@ impl ComputePlugin for Vecs {
                 .cohorts
                 .as_array_mut()
                 .map(|cohort| &mut cohort.mobile.cost_basis),
-            dependencies.age.cohorts.all_supply().version()
-                + dependencies.urpd.timestamps.version(),
+            dependencies.age.all_supply().version() + dependencies.urpd.timestamps.version(),
             usize::from(dependencies.indexer.safe_lengths().height),
             dependencies.urpd,
             &weights,
@@ -56,14 +55,17 @@ impl Vecs {
         } = dependencies;
         let starting_lengths = indexer.safe_lengths();
         let transfer_volumes = AgeRange::from_fn(|id| {
-            &id.select(&age.cohorts.activity.transfer_volume.cohorts.age)
+            &id.select(&age.ranges)
+                .activity
+                .transfer_volume
+                .value
                 .cumulative
                 .sats
                 .height
         });
         let accounting = age.accounting_sources();
         let coindays_created =
-            AgeRange::from_fn(|id| &id.select(&age.coindays_created).cumulative.height);
+            AgeRange::from_fn(|id| &id.select(&age.ranges).coindays_created.cumulative.height);
 
         let timestamps = &mappings.timestamp.monotonic;
 

@@ -1,6 +1,6 @@
 use bitview_cohort::{AmountRange, CohortContext};
 use bitview_collections::Windows;
-use bitview_distribution::metrics::SupplyBase;
+use bitview_distribution::metrics::SupplyChange;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
 use bitview_transforms::SatsToCents;
@@ -17,9 +17,17 @@ use vecdb::{AnyStoredVec, BinaryTransform, Database, ReadableBoxedVec, Rw, Stora
 
 use crate::state::{AddrCohortState, RealizedOps};
 
+/// A balance band's supply, its change over each window and its share of all supply.
+#[derive(Clone, Traversable)]
+pub struct BalanceSupply {
+    total: LazySpotValuePerBlock,
+    #[traversable(flatten)]
+    change: SupplyChange,
+}
+
 #[derive(Traversable)]
 pub struct BalanceMetrics<M: StorageMode = Rw> {
-    pub supply: AmountRange<SupplyBase>,
+    pub supply: AmountRange<BalanceSupply>,
     #[traversable(hidden)]
     pub supply_source: AmountSources<Sats, LazySpotValuePerBlock, M>,
     pub utxo_count: AmountSources<
@@ -61,15 +69,19 @@ impl BalanceMetrics {
             },
         )?;
         let supply = AmountRange::from_fn(|id| {
-            SupplyBase::new(
-                CohortContext::Addr,
-                id.cohort(),
-                balance_version,
-                id.select(&supply_source.series).clone(),
-                all_supply,
-                mappings,
-                windows,
-            )
+            let total = id.select(&supply_source.series).clone();
+            BalanceSupply {
+                change: SupplyChange::new(
+                    CohortContext::Addr,
+                    id.cohort(),
+                    balance_version,
+                    &total,
+                    all_supply,
+                    mappings,
+                    windows,
+                ),
+                total,
+            }
         });
         let utxo_count = AmountSources::import(
             db,

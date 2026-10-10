@@ -1,6 +1,6 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
-use bitview_distribution::metrics::SupplyBase;
+use bitview_distribution::metrics::SupplyChange;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazySpotValuePerBlock, LazyWindowStartVec};
@@ -11,8 +11,10 @@ use super::Sources;
 
 #[derive(Clone, Traversable)]
 pub struct SupplyMetrics {
+    /// Supply: amount of bitcoin held in the cohort's unspent transaction outputs.
+    total: LazySpotValuePerBlock,
     #[traversable(flatten)]
-    base: SupplyBase,
+    change: SupplyChange,
     /// Unspent supply whose creation price is at or below current spot price.
     in_profit: LazySpotValuePerBlock,
     /// Unspent supply whose creation price is above current spot price.
@@ -38,15 +40,16 @@ impl SupplyMetrics {
             prices,
         );
         Self {
-            base: SupplyBase::new(
+            change: SupplyChange::new(
                 CohortContext::Utxo,
                 id,
                 version,
-                total,
+                &total,
                 all_supply,
                 mappings,
                 windows,
             ),
+            total,
             in_profit: LazySpotValuePerBlock::from_sats_source(
                 &name("supply_in_profit"),
                 version,

@@ -10,7 +10,7 @@ pub const COMPUTE_VERSION: Version = Version::ONE;
 
 /// Rounding precision for UTXO cost basis prices (5 significant digits in dollars).
 pub const COST_BASIS_PRICE_DIGITS: i32 = 5;
-pub use metrics::{CostBasisVecs, bounds::AgeBoundsMetrics, compute_cost_basis};
+pub use metrics::{CostBasisVecs, compute_cost_basis};
 pub use projected_bucket::ProjectedBucket;
 
 mod origin_urpd;

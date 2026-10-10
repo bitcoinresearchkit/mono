@@ -1,33 +1,46 @@
-use bitview_cohort::{CohortContext, CohortGroup};
+use bitview_cohort::{CohortContext, CohortId};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CohortSources, FiatType, LazyFiatPerBlock};
+use bitview_vecs::{CachedSeries, FiatType, LazyFiatPerBlock};
 use brk_error::Result;
-use brk_types::{Cents, Version};
-use vecdb::{Database, PcoVecValue, Rw, StorageMode};
+use brk_types::{Cents, Height, Version};
+use vecdb::{AnyStoredVec, Database, PcoVecValue, Rw, StorageMode, WritableVec};
 
-/// A fiat amount per cohort, stored in cents as `{metric}_cents` and shown in every fiat unit.
+use super::import_stored;
+
+/// One cohort's fiat amount, stored in cents as `{metric}_cents` and shown in every fiat unit.
 #[derive(Traversable)]
-pub struct FiatByCohort<G: CohortGroup, C: FiatType + PcoVecValue = Cents, M: StorageMode = Rw> {
+pub struct Fiat<C: FiatType + PcoVecValue = Cents, M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: G::Of<LazyFiatPerBlock<C>>,
+    pub value: LazyFiatPerBlock<C>,
     #[traversable(hidden)]
-    pub stored: CohortSources<G, C, M>,
+    pub stored: CachedSeries<Height, C, M>,
 }
 
-impl<G: CohortGroup, C: FiatType + PcoVecValue> FiatByCohort<G, C> {
+impl<C: FiatType + PcoVecValue> Fiat<C> {
     pub fn import(
         db: &Database,
+        cohort: CohortId,
         metric: &str,
         version: Version,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
-        let stored = CohortSources::import(db, &format!("{metric}_cents"), version)?;
-        let cohorts = G::new(|cohort_id| {
-            let name = CohortContext::Utxo.metric_name(cohort_id, metric);
-            let source = stored.get(cohort_id).expect("fiat cohort source");
-            LazyFiatPerBlock::from_cents_source(&name, version, source, mappings)
-        });
-        Ok(Self { cohorts, stored })
+        let stored = import_stored(db, cohort, &format!("{metric}_cents"), version)?;
+        let value = LazyFiatPerBlock::from_cents_source(
+            &CohortContext::Utxo.metric_name(cohort, metric),
+            version,
+            &stored,
+            mappings,
+        );
+        Ok(Self { value, stored })
+    }
+
+    #[inline(always)]
+    pub fn push(&mut self, value: C) {
+        self.stored.push(value);
+    }
+
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+        &mut self.stored
     }
 }

@@ -1,5 +1,4 @@
 //! Derive, store and expose per-block URPD metrics.
-pub(super) mod bounds;
 mod compute;
 mod cost_basis;
 mod metric_buckets;

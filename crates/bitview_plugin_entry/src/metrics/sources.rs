@@ -6,7 +6,7 @@ use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
-use super::CumulativeSource;
+use bitview_vecs::CumulativeSource;
 
 #[derive(Traversable)]
 pub(crate) struct Sources<M: StorageMode = Rw> {

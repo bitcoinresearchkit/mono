@@ -40,7 +40,7 @@ impl ComputePlugin for Vecs {
         } = dependencies;
 
         let cointime_wakefulness = cointime.age_ranges.urpd_weight_sources();
-        let age_supplies = age.cohorts.supply.total.age_supplies();
+        let age_supplies = age.age_supplies();
         let coinflow_mobility = coinflow.age_ranges.urpd_weight_sources();
         let raw_loss_share = dependencies.raw_loss_share();
         let cointime_loss_share = dependencies.cointime_loss_share();
@@ -48,7 +48,7 @@ impl ComputePlugin for Vecs {
         let source_version = Version::combine_all(
             iter::once(mappings.timestamp.monotonic.version() + URPD_COMPUTE_VERSION)
                 .chain(iter::once(urpd.prices.version()))
-                .chain(iter::once(age.cohorts.all_supply().version()))
+                .chain(iter::once(age.all_supply().version()))
                 .chain(iter::once(raw_loss_share.version()))
                 .chain(iter::once(cointime_loss_share.version()))
                 .chain(iter::once(coinflow_loss_share.version()))

@@ -11,7 +11,6 @@ repository.workspace = true
 bitview_primitives = { workspace = true, features = ["storage"] }
 statedb = { workspace = true }
 bitview_distribution = { workspace = true }
-bitview_urpd = { workspace = true }
 bitview_transforms = { workspace = true }
 bitview_collections = { workspace = true, features = ["storage"] }
 bitview_vecs = { workspace = true }
@@ -23,6 +22,7 @@ bitview_plugin_price = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }
 brk_error = { workspace = true, features = ["vecdb"] }
 bitview_traversable = { workspace = true }
+derive_more = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 rayon = { workspace = true }
 tracing = { workspace = true }

@@ -17,20 +17,17 @@ pub struct AccountingSources<'a> {
 
 impl Vecs {
     pub fn accounting_sources(&self) -> AccountingSources<'_> {
+        let ranges = &self.ranges;
         AccountingSources {
             supplies: AgeRange::from_fn(|id| {
-                &id.select(&self.cohorts.supply.total.cohorts.age)
-                    .sats
-                    .height as _
+                &id.select(ranges).supply.total.value.sats.height as _
             }),
             loss_supplies: AgeRange::from_fn(|id| {
-                &id.select(&self.cohorts.supply.in_loss.cohorts.age)
-                    .sats
-                    .height as _
+                &id.select(ranges).supply.in_loss.value.sats.height as _
             }),
-            cap_raw: AgeRange::from_fn(|id| id.select(&self.cohorts.realized.cap_raw.age) as _),
+            cap_raw: AgeRange::from_fn(|id| &id.select(ranges).raw.cap as _),
             capitalized_cap_raw: AgeRange::from_fn(|id| {
-                id.select(&self.cohorts.realized.capitalized_cap_raw.age) as _
+                &id.select(ranges).raw.capitalized_cap as _
             }),
         }
     }

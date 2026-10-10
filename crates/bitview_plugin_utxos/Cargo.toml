@@ -22,6 +22,7 @@ bitview_cohort = { workspace = true, features = ["storage"] }
 brk_error = { workspace = true, features = ["vecdb"] }
 bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
+derive_more = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 rayon = { workspace = true }
 tracing = { workspace = true }

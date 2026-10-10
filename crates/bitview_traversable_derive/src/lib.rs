@@ -595,6 +595,19 @@ fn build_where_clause(
 }
 
 fn generate_field_traversals(infos: &[FieldInfo], merge: bool) -> ProcMacro2TokenStream {
+    // A struct whose only visible field is a flattened view is that view, a leaf included
+    // (stored sources beside it stay hidden).
+    let mut visible = infos.iter().filter(|i| !i.hidden);
+    if !merge
+        && let (Some(only), None) = (visible.next(), visible.next())
+        && matches!(only.attr, FieldAttr::Flatten)
+        && only.rename.is_none()
+        && !only.is_option
+    {
+        let field_name = only.name;
+        return quote! { self.#field_name.to_tree_node() };
+    }
+
     // Process all fields in declaration order (interleaving normal and flatten)
     // so that struct field order determines tree key order.
     let field_operations: Vec<_> = infos

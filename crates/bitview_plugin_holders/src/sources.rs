@@ -14,84 +14,39 @@ impl<'a> Sources<'a> {
         Self { age }
     }
     fn vectors(&self) -> impl Iterator<Item = &dyn AnyVec> {
-        let c = &self.age.cohorts;
         AgeRangeId::ALL.iter().flat_map(move |id| {
+            let r = id.select(&self.age.ranges);
             let vectors: [&dyn AnyVec; 24] = [
-                c.supply.total.stored.get(id.cohort()).unwrap(),
-                c.outputs.unspent_count.stored.get(id.cohort()).unwrap(),
-                c.outputs
-                    .spent_count
-                    .stored
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
-                c.activity
-                    .transfer_volume
-                    .stored
-                    .sats
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
-                c.activity
-                    .transfer_volume
-                    .stored
-                    .cents
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
-                c.activity
+                &r.supply.total.stored,
+                &r.outputs.unspent_count.stored,
+                r.outputs.spent_count.stored.cumulative_source(),
+                r.activity.transfer_volume.sats.cumulative_source(),
+                r.activity.transfer_volume.cents.cumulative_source(),
+                r.activity
                     .transfer_volume_in_profit
-                    .stored
                     .sats
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
-                c.activity
+                    .cumulative_source(),
+                r.activity
                     .transfer_volume_in_profit
-                    .stored
                     .cents
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
-                c.activity
-                    .transfer_volume_in_loss
-                    .stored
-                    .sats
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
-                c.activity
-                    .transfer_volume_in_loss
-                    .stored
-                    .cents
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
-                c.activity
-                    .coindays_destroyed
-                    .stored
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
-                c.realized.cap.stored.get(id.cohort()).unwrap(),
-                id.select(&c.realized.cap_raw.age),
-                id.select(&c.realized.capitalized_cap_raw.age),
-                c.realized.profit.stored.stored.get(id.cohort()).unwrap(),
-                c.realized.loss.stored.stored.get(id.cohort()).unwrap(),
-                c.realized.net_pnl.stored.stored.get(id.cohort()).unwrap(),
-                c.realized
-                    .value_destroyed
-                    .stored
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
-                c.unrealized.profit.stored.get(id.cohort()).unwrap(),
-                c.unrealized.loss.stored.get(id.cohort()).unwrap(),
-                c.supply.in_profit.stored.get(id.cohort()).unwrap(),
-                c.supply.in_loss.stored.get(id.cohort()).unwrap(),
-                id.select(&c.unrealized.capitalized_cap_in_profit_raw.age),
-                id.select(&c.unrealized.capitalized_cap_in_loss_raw.age),
-                id.select(&c.realized.peak_regret_raw.age),
+                    .cumulative_source(),
+                r.activity.transfer_volume_in_loss.sats.cumulative_source(),
+                r.activity.transfer_volume_in_loss.cents.cumulative_source(),
+                r.activity.coindays_destroyed.stored.cumulative_source(),
+                &r.realized.cap.stored,
+                &r.raw.cap,
+                &r.raw.capitalized_cap,
+                r.realized.profit.stored.cumulative_source(),
+                r.realized.loss.stored.cumulative_source(),
+                r.realized.net_pnl.stored.cumulative_source(),
+                r.realized.value_destroyed.stored.cumulative_source(),
+                &r.unrealized.profit.stored,
+                &r.unrealized.loss.stored,
+                &r.supply.in_profit.stored,
+                &r.supply.in_loss.stored,
+                &r.raw.capitalized_cap_in_profit,
+                &r.raw.capitalized_cap_in_loss,
+                &r.raw.peak_regret,
             ];
             vectors
         })
@@ -104,204 +59,138 @@ impl<'a> Sources<'a> {
     }
     pub fn collect(&self, start: usize, end: usize) -> Result<Vec<AgeAggregate<Data>>> {
         let mut result = vec![AgeAggregate::<Data>::default(); end - start];
-        let c = &self.age.cohorts;
         for &id in AgeRangeId::ALL {
+            let r = id.select(&self.age.ranges);
             let mut band = vec![Data::default(); end - start];
+            read(&r.supply.total.stored, start, &mut band, |row, value| {
+                row.supply = value
+            })?;
             read(
-                c.supply.total.stored.get(id.cohort()).unwrap(),
-                start,
-                &mut band,
-                |row, value| row.supply = value,
-            )?;
-            read(
-                c.outputs.unspent_count.stored.get(id.cohort()).unwrap(),
+                &r.outputs.unspent_count.stored,
                 start,
                 &mut band,
                 |row, value| row.count = value,
             )?;
             read(
-                c.outputs
-                    .spent_count
-                    .stored
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
+                r.outputs.spent_count.stored.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.spent_count = value,
             )?;
             read(
-                c.activity
-                    .transfer_volume
-                    .stored
-                    .sats
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
+                r.activity.transfer_volume.sats.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.volume_sats = value,
             )?;
             read(
-                c.activity
-                    .transfer_volume
-                    .stored
-                    .cents
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
+                r.activity.transfer_volume.cents.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.volume_cents = value,
             )?;
             read(
-                c.activity
+                r.activity
                     .transfer_volume_in_profit
-                    .stored
                     .sats
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
+                    .cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.volume_profit_sats = value,
             )?;
             read(
-                c.activity
+                r.activity
                     .transfer_volume_in_profit
-                    .stored
                     .cents
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
+                    .cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.volume_profit_cents = value,
             )?;
             read(
-                c.activity
-                    .transfer_volume_in_loss
-                    .stored
-                    .sats
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
+                r.activity.transfer_volume_in_loss.sats.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.volume_loss_sats = value,
             )?;
             read(
-                c.activity
-                    .transfer_volume_in_loss
-                    .stored
-                    .cents
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
+                r.activity.transfer_volume_in_loss.cents.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.volume_loss_cents = value,
             )?;
             read(
-                c.activity
-                    .coindays_destroyed
-                    .stored
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
+                r.activity.coindays_destroyed.stored.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.cdd = value,
             )?;
+            read(&r.realized.cap.stored, start, &mut band, |row, value| {
+                row.cap = value
+            })?;
+            read(&r.raw.cap, start, &mut band, |row, value| {
+                row.cap_raw = value
+            })?;
+            read(&r.raw.capitalized_cap, start, &mut band, |row, value| {
+                row.capitalized_cap_raw = value
+            })?;
             read(
-                c.realized.cap.stored.get(id.cohort()).unwrap(),
-                start,
-                &mut band,
-                |row, value| row.cap = value,
-            )?;
-            read(
-                id.select(&c.realized.cap_raw.age),
-                start,
-                &mut band,
-                |row, value| row.cap_raw = value,
-            )?;
-            read(
-                id.select(&c.realized.capitalized_cap_raw.age),
-                start,
-                &mut band,
-                |row, value| row.capitalized_cap_raw = value,
-            )?;
-            read(
-                c.realized.profit.stored.stored.get(id.cohort()).unwrap(),
+                r.realized.profit.stored.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.profit = value,
             )?;
             read(
-                c.realized.loss.stored.stored.get(id.cohort()).unwrap(),
+                r.realized.loss.stored.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.loss = value,
             )?;
             read(
-                c.realized.net_pnl.stored.stored.get(id.cohort()).unwrap(),
+                r.realized.net_pnl.stored.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.net_pnl = value,
             )?;
             read(
-                c.realized
-                    .value_destroyed
-                    .stored
-                    .stored
-                    .get(id.cohort())
-                    .unwrap(),
+                r.realized.value_destroyed.stored.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.value_destroyed = value,
             )?;
             read(
-                c.unrealized.profit.stored.get(id.cohort()).unwrap(),
+                &r.unrealized.profit.stored,
                 start,
                 &mut band,
                 |row, value| row.unrealized_profit = value,
             )?;
+            read(&r.unrealized.loss.stored, start, &mut band, |row, value| {
+                row.unrealized_loss = value
+            })?;
             read(
-                c.unrealized.loss.stored.get(id.cohort()).unwrap(),
-                start,
-                &mut band,
-                |row, value| row.unrealized_loss = value,
-            )?;
-            read(
-                c.supply.in_profit.stored.get(id.cohort()).unwrap(),
+                &r.supply.in_profit.stored,
                 start,
                 &mut band,
                 |row, value| row.supply_profit = value,
             )?;
+            read(&r.supply.in_loss.stored, start, &mut band, |row, value| {
+                row.supply_loss = value
+            })?;
             read(
-                c.supply.in_loss.stored.get(id.cohort()).unwrap(),
-                start,
-                &mut band,
-                |row, value| row.supply_loss = value,
-            )?;
-            read(
-                id.select(&c.unrealized.capitalized_cap_in_profit_raw.age),
+                &r.raw.capitalized_cap_in_profit,
                 start,
                 &mut band,
                 |row, value| row.capitalized_profit = value,
             )?;
             read(
-                id.select(&c.unrealized.capitalized_cap_in_loss_raw.age),
+                &r.raw.capitalized_cap_in_loss,
                 start,
                 &mut band,
                 |row, value| row.capitalized_loss = value,
             )?;
-            read(
-                id.select(&c.realized.peak_regret_raw.age),
-                start,
-                &mut band,
-                |row, value| row.peak_regret_raw = value,
-            )?;
+            read(&r.raw.peak_regret, start, &mut band, |row, value| {
+                row.peak_regret_raw = value
+            })?;
             if id != AgeRangeId::Under1H {
                 for row in &mut band {
                     row.adjusted_volume = row.volume_cents;

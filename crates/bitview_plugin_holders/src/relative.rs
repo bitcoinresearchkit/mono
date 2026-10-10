@@ -12,7 +12,7 @@ use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
 use crate::metrics::Metrics;
 #[derive(Traversable)]
 pub struct Relative<M: StorageMode = Rw> {
-    pub supply_dominance: PercentPerBlock<PartsPerMillion32, M>,
+    pub supply_share: PercentPerBlock<PartsPerMillion32, M>,
     pub supply_in_profit_share: PercentPerBlock<PartsPerMillion32, M>,
     pub supply_in_loss_share: PercentPerBlock<PartsPerMillion32, M>,
     pub unrealized_profit_to_mcap: RatioPerBlock<PartsPerMillion32, M>,
@@ -36,9 +36,9 @@ impl Relative {
         mappings: &Mappings,
     ) -> Result<Self> {
         Ok(Self {
-            supply_dominance: PercentPerBlock::import(
+            supply_share: PercentPerBlock::import(
                 db,
-                &id.metric_name("supply_dominance"),
+                &id.metric_name("supply_share"),
                 v,
                 mappings,
             )?,
@@ -130,7 +130,7 @@ impl Relative {
     }
     pub(crate) fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         vec![
-            &mut self.supply_dominance.fixed.height,
+            &mut self.supply_share.fixed.height,
             &mut self.supply_in_profit_share.fixed.height,
             &mut self.supply_in_loss_share.fixed.height,
             &mut self.unrealized_profit_to_mcap.fixed.height,
@@ -166,7 +166,7 @@ impl Metrics {
             ..
         } = self;
         relative
-            .supply_dominance
+            .supply_share
             .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from, &c.supply, all_supply, exit,
             )?;

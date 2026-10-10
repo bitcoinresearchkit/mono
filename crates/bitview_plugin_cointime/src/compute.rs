@@ -103,7 +103,7 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<()> {
         self.compute_primary(dependencies, context)?;
-        let supplies = dependencies.age.cohorts.supply.total.age_supplies();
+        let supplies = dependencies.age.age_supplies();
         let weights = self.age_ranges.urpd_weight_sources();
         compute_cost_basis(
             &mut self.urpd_replay,
@@ -111,8 +111,7 @@ impl ComputePlugin for Vecs {
                 .cohorts
                 .as_array_mut()
                 .map(|cohort| &mut cohort.awake.cost_basis),
-            dependencies.age.cohorts.all_supply().version()
-                + dependencies.urpd.timestamps.version(),
+            dependencies.age.all_supply().version() + dependencies.urpd.timestamps.version(),
             usize::from(dependencies.indexer.safe_lengths().height),
             dependencies.urpd,
             &weights,

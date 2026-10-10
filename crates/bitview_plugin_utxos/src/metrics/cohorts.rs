@@ -1,24 +1,29 @@
-use super::{ActivityVecs, OutputsVecs, RealizedVecs, SupplyVecs};
-use crate::state::UTXOStates;
-use bitview_cohort::UtxoGroups;
 use bitview_cohort::{AmountRange, SpendableType};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::SatsToCents;
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, LazyWindowStartVec, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use rayon::prelude::*;
-use vecdb::BinaryTransform;
-use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
+
+use super::{CohortVecs, TypeVecs};
+use crate::state::UTXOStates;
+
+/// UTXO cohorts, members first: amount ranges and spendable output types.
 #[derive(Traversable)]
 pub struct CohortMetrics<M: StorageMode = Rw> {
-    pub supply: Box<SupplyVecs<M>>,
-    pub outputs: Box<OutputsVecs<M>>,
-    pub activity: Box<ActivityVecs<M>>,
-    pub realized: Box<RealizedVecs<M>>,
+    pub amounts: Box<AmountRange<CohortVecs<M>>>,
+    pub types: Box<SpendableType<TypeVecs<M>>>,
+    /// Mean unspent output value across every spendable type, calculated from
+    /// the same block's supply and count.
+    pub avg_amount: LazySpotValuePerBlock,
+    #[traversable(hidden)]
+    avg_amount_sats: CachedSeries<Height, Sats, M>,
 }
+
 impl CohortMetrics {
     pub fn import(
         db: &Database,
@@ -28,62 +33,51 @@ impl CohortMetrics {
         spot: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
+        let amounts = Box::new(AmountRange::try_new(|cohort| {
+            CohortVecs::import(db, cohort, version, mappings, windows, spot, all_supply)
+        })?);
+        let types = Box::new(SpendableType::try_new(|cohort| {
+            TypeVecs::import(db, cohort, version, mappings, windows, spot, all_supply)
+        })?);
+        let avg_amount_sats = import_cached(db, "avg_utxo_amount_sats", version)?;
+        let avg_amount = LazySpotValuePerBlock::from_sats_source(
+            "avg_utxo_amount",
+            version,
+            &avg_amount_sats,
+            mappings,
+            spot,
+        );
         Ok(Self {
-            supply: SupplyVecs::import(db, version, mappings, windows, spot, all_supply)?,
-            outputs: OutputsVecs::import(db, version, mappings, windows, spot)?,
-            activity: ActivityVecs::import(db, version, mappings, windows)?,
-            realized: RealizedVecs::import(db, version, mappings, windows)?,
+            amounts,
+            types,
+            avg_amount,
+            avg_amount_sats,
         })
     }
+
     pub fn push(&mut self, states: &UTXOStates, price: Cents) {
-        let supply = UtxoGroups {
-            utxo_amount: AmountRange::from_fn(|id| id.select(&states.amount_range).supply_value()),
-            type_: SpendableType::from_fn(|id| id.select(&states.type_).supply_value()),
-        };
-        let counts = UtxoGroups {
-            utxo_amount: AmountRange::from_fn(|id| id.select(&states.amount_range).output_counts()),
-            type_: SpendableType::from_fn(|id| id.select(&states.type_).output_counts()),
-        };
-        let sent = UtxoGroups {
-            utxo_amount: AmountRange::from_fn(|id| {
-                id.select(&states.amount_range).transfer_volume()
-            }),
-            type_: SpendableType::from_fn(|id| id.select(&states.type_).transfer_volume()),
-        };
-        let realized = UtxoGroups {
-            utxo_amount: AmountRange::from_fn(|id| {
-                id.select(&states.amount_range).realized_block_data()
-            }),
-            type_: SpendableType::from_fn(|id| id.select(&states.type_).realized_block_data()),
-        };
-        self.outputs.avg_amount.push(&supply.type_, &counts.type_);
-        self.supply.total.stored.push(&supply);
-        self.outputs.push(counts.map(|v| v.0), counts.map(|v| v.1));
-        self.activity
-            .transfer_volume
-            .push_block(&sent, &sent.map(|v| SatsToCents::apply(*v, price)));
-        self.realized.cap.stored.push(&realized.map(|v| v.cap));
-        self.realized
-            .price
-            .stored
-            .push(&realized.map(|v| v.price()));
-        self.realized
-            .profit
-            .stored
-            .push_block(realized.map(|v| v.profit));
-        self.realized
-            .loss
-            .stored
-            .push_block(realized.map(|v| v.loss));
+        for (vecs, state) in self.amounts.iter_mut().zip(states.amount_range.iter()) {
+            vecs.push(state, price);
+        }
+        let mut supply = Sats::ZERO;
+        let mut count = 0u64;
+        for (vecs, state) in self.types.iter_mut().zip(states.type_.iter()) {
+            vecs.push(state, price);
+            supply += state.supply_value();
+            count += u64::from(state.output_counts().0);
+        }
+        self.avg_amount_sats.push(supply / Count::from(count));
     }
 
     pub fn par_iter_vecs_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        self.supply
-            .stored_vecs_mut()
-            .chain(self.outputs.stored_vecs_mut())
-            .chain(self.activity.stored_vecs_mut())
-            .chain(self.realized.stored_vecs_mut())
-            .collect::<Vec<_>>()
-            .into_par_iter()
+        let mut vecs: Vec<&mut dyn AnyStoredVec> = Vec::with_capacity(512);
+        for cohort in self.amounts.iter_mut() {
+            vecs.extend(cohort.stored_vecs_mut());
+        }
+        for cohort in self.types.iter_mut() {
+            vecs.extend(cohort.stored_vecs_mut());
+        }
+        vecs.push(&mut self.avg_amount_sats);
+        vecs.into_par_iter()
     }
 }

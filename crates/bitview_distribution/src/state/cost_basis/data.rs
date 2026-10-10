@@ -24,11 +24,6 @@ pub struct CostBasisData<S: Accumulate> {
 }
 
 impl<S: Accumulate> CostBasisData<S> {
-    pub(crate) fn map(&self) -> &BTreeMap<CentsCompact, Sats> {
-        debug_assert!(self.pending.is_empty());
-        &self.map
-    }
-
     fn is_empty(&self) -> bool {
         self.pending.is_empty() && self.map.is_empty()
     }

@@ -39,18 +39,12 @@ impl Vecs {
             };
             let wakefulness_source =
                 import_cached(db, &name("wakefulness_bounded_source"), version)?;
-            let supply = age
-                .cohorts
-                .supply
-                .total
-                .stored
-                .get(id.cohort())
-                .expect("age supply source");
+            let supply = &id.select(&age.ranges).supply.total.stored;
             Ok(RangeVecs {
                 coindays_created: LazyPerBlockCumulativeRolling::from_cumulative_source(
                     &name("coindays_created"),
                     version,
-                    id.select(&age.coindays_created).cumulative_source(),
+                    id.select(&age.ranges).coindays_created.cumulative_source(),
                     window_starts,
                     mappings,
                 ),

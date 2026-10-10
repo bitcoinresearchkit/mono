@@ -11,55 +11,36 @@ use bitview_vecs::{
 use brk_types::{Height, Sats, SatsSigned, Version};
 use vecdb::{BinaryTransform, ReadableCloneableVec};
 
+/// A cohort's supply change over each trailing window and its share of all supply.
 #[derive(Clone, Traversable)]
-pub struct SupplyBase {
-    total: LazySpotValuePerBlock,
-    pub delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
-    #[traversable(rename = "dominance")]
-    pub dominance: LazyPercentPerBlock<PartsPerMillion32>,
+pub struct SupplyChange {
+    /// Change in the cohort's supply over a trailing window, with the relative
+    /// change measured against the window's starting value.
+    delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
+    /// Share of all unspent supply held by the cohort.
+    share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 
-impl SupplyBase {
+impl SupplyChange {
     pub fn new(
         context: CohortContext,
         cohort: CohortId,
         version: Version,
-        total: LazySpotValuePerBlock,
+        total: &LazySpotValuePerBlock,
         all_supply: &impl ReadableCloneableVec<Height, Sats>,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Self {
-        let dominance_name = context.metric_name(cohort, "supply_dominance");
+        let share_name = context.metric_name(cohort, "supply_share");
         let source = LazyIndexedVec::new(
-            &format!("{dominance_name}_ppm_source"),
+            &format!("{share_name}_ppm_source"),
             version,
             &total.sats.height,
             all_supply,
             |_, supply, all_supply| Quotient::<PartsPerMillion32>::apply(supply, all_supply),
         );
-        let dominance =
-            LazyPercentPerBlock::from_height_source(&dominance_name, version, &source, mappings);
-
-        Self::from_parts(
-            context,
-            cohort,
-            version,
-            total,
-            dominance,
-            mappings,
-            window_starts,
-        )
-    }
-
-    fn from_parts(
-        context: CohortContext,
-        cohort: CohortId,
-        version: Version,
-        total: LazySpotValuePerBlock,
-        dominance: LazyPercentPerBlock<PartsPerMillion32>,
-        mappings: &MappingsVecs,
-        window_starts: &Windows<&LazyWindowStartVec>,
-    ) -> Self {
+        let share =
+            LazyPercentPerBlock::from_height_source(&share_name, version, &source, mappings);
         let delta = LazyRollingDeltasAmountFromHeight::new(
             &context.metric_name(cohort, "supply_delta"),
             version + Version::TWO,
@@ -67,11 +48,6 @@ impl SupplyBase {
             window_starts,
             mappings,
         );
-
-        Self {
-            total,
-            delta,
-            dominance,
-        }
+        Self { delta, share }
     }
 }

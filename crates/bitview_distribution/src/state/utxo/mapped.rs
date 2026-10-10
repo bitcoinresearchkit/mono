@@ -1,7 +1,4 @@
-use std::collections::BTreeMap;
-
-use bitview_primitives::CentsCompact;
-use brk_types::{Cents, Sats};
+use brk_types::Cents;
 use derive_more::{Deref, DerefMut};
 
 use super::UTXOCohortState as CommonCohort;
@@ -25,9 +22,5 @@ impl<R: RealizedOps, S: Accumulate> MappedUTXOCohortState<R, S> {
 
     pub fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
         self.cost_basis.compute_unrealized_state(height_price)
-    }
-
-    pub fn cost_basis_map(&self) -> &BTreeMap<CentsCompact, Sats> {
-        self.cost_basis.map()
     }
 }

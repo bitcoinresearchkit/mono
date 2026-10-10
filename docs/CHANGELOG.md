@@ -124,6 +124,20 @@ has to be deleted by hand.
   shares divide by non-coinbase inputs (were all inputs, coinbase included), as does the reused-address input share.
   The `all` members (`output_count_bis`, `input_count_bis`, `tx_count_bis`, `non_coinbase_tx_count`) are gone.
   `outputs.spendable_count` and `outputs.op_return_value` sit at the outputs root (were under `by_type` and `value`)
+- Age and UTXO cohorts are member-first: `age.ranges.<range>`, `age.epochs.<epoch>`, `age.classes.<year>`,
+  `utxos.amounts.<band>` and `utxos.types.<type>` each hold `supply.{total, delta, share}`,
+  `outputs.{unspent_count, spent_count}`, `activity.transfer_volume`, `realized.{cap, profit, loss}` and, in age,
+  `supply.{in_profit, in_loss}`, `activity.{transfer_volume.{in_profit, in_loss}, coindays_destroyed}`,
+  `realized.{net_pnl, value_destroyed}` and `unrealized.{profit, loss, net_pnl}` (were metric-first:
+  `age.supply.total.age.<range>`, `utxos.realized.cap.utxo_amount.<band>`, ...). Age ranges also hold
+  `supply.matured`, `activity.coindays_created` (was `age.coindays_created.<range>`) and `realized.price`; UTXO
+  amounts and types `realized.price`; types `outputs.avg_amount`, the mean over every type being `utxos.avg_amount`
+  (was `utxos.outputs.avg_amount.all`). Ids are unchanged
+- A cohort's share of all supply is `supply.share` in age, UTXO, entry and address cohorts (ids `*_supply_share`;
+  were `supply.dominance`, ids `*_supply_dominance`), and `relative.supply_share` in the holders' cohorts (ids
+  `sth_supply_share`, ...; were `supply_dominance`)
+- `age.age_bounds` is gone: its `utxos_urpd_<cohort>_cost_basis_{min,max}` were copies of the holders'
+  `cost_basis.{min, max}` rounded to five significant digits
 - OP_RETURN is member-first: `op_return.protocols.<protocol>.*` and `op_return.policies.<policy>.*` (were
   `by_kind.<metric>.<kind>` and `policy.<metric>.<policy>`), with the totals at the root (were under `total`). A
   member's shares are `data_bytes.share` (of all OP_RETURN data), `data_bytes.chain_share` and `fees.chain_share` (of
@@ -334,6 +348,15 @@ has to be deleted by hand.
   `Date::into_jiff`; `bitview_compute` `walk_blocks` and `BlockAggregate` (`CoinbasePolicy` moved to `bitview_vecs`);
   `bitview_catalog` `TreeBranch::{source, field_types, field_suffixes}`, `TreeNode::{with_source, with_field_suffixes}`
   and `#[traversable(field_suffixes)]`
+- Members first in the cohort libraries: `bitview_distribution::families` are one-cohort types (`Supply`, `Fiat`,
+  `CumulativeFiat`, `CumulativeValue`, `CumulativeCount`, `UnspentOutputCount`; were `SupplyByCohort`,
+  `SupplyTotal`, `FiatByCohort`, `CumulativeRealizedByCohort`, `CumulativeValueByCohort`, `SpentOutputCount` over a
+  cohort group), `metrics::SupplyBase` is `SupplyChange` (delta and share) and `CohortSupply` (with the stored
+  total), and `bitview_vecs::CumulativeSource` is one running total. Gone: `bitview_cohort::{CohortGroup,
+  cohort_group, CreationCohorts, UtxoGroups}`, `bitview_vecs::{CohortSources, CumulativeCohortSources,
+  CumulativeCohortValueSources, DisjointAgeSources}` and `bitview_urpd::AgeBoundsMetrics`. `ByEpoch::try_new` and
+  `Class::try_new` are public. A `Traversable` struct whose only visible field is a flattened view is that view, a
+  single-unit leaf included
 - Gone with the tree changes: `bitview_vecs::{ConstantVecs, LazyFiatPerBlockCumulativeWithSumsAndDeltas}`,
   `LazyPerBlockCumulativeRolling::from_lazy_source`, `bitview_transforms::BlockCountTarget`,
   `bitview_plugin_blocks::CountVecs` (`blocks.count` is the count itself), the transactions plugin's `volume` struct

@@ -3441,7 +3441,7 @@ const _DiscountUnrealized = _s({
 
 /**
  * @typedef {{
- *   supplyDominance: SeriesPattern1<?Percent>,
+ *   supplyShare: SeriesPattern1<?Percent>,
  *   supplyInProfitShare: SeriesPattern1<?Percent>,
  *   supplyInLossShare: SeriesPattern1<?Percent>,
  *   unrealizedProfitToMcap: SeriesPattern1<?Ratio>,
@@ -3459,7 +3459,7 @@ const _DiscountUnrealized = _s({
  * }} Relative
  */
 const _Relative = _s({
-  supplyDominance: [_i1, '*_supply_dominance'],
+  supplyShare: [_i1, '*_supply_share'],
   supplyInProfitShare: [_i1, '*_supply_in_profit_share'],
   supplyInLossShare: [_i1, '*_supply_in_loss_share'],
   unrealizedProfitToMcap: [_i1, '*_unrealized_profit_to_mcap'],
@@ -3627,9 +3627,9 @@ const _AllUnrealized = _s({
  * @typedef {{
  *   btc: SeriesPattern1<?Bitcoin>,
  *   usd: SeriesPattern1<?Dollars>,
- * }} AllSupplyTotal
+ * }} Total
  */
-const _AllSupplyTotal = _s({
+const _Total = _s({
   btc: [_i1, '*'],
   usd: [_i1, 'market_cap'],
 });
@@ -3736,228 +3736,16 @@ const _State = _s({
 });
 
 /**
- * @template A
  * @typedef {{
- *   p2pk65: SeriesPattern1<A>,
- *   p2pk33: SeriesPattern1<A>,
- *   p2pkh: SeriesPattern1<A>,
- *   p2ms: SeriesPattern1<A>,
- *   p2sh: SeriesPattern1<A>,
- *   p2wpkh: SeriesPattern1<A>,
- *   p2wsh: SeriesPattern1<A>,
- *   p2tr: SeriesPattern1<A>,
- *   p2a: SeriesPattern1<A>,
- *   unknown: SeriesPattern1<A>,
- *   empty: SeriesPattern1<A>,
- * }} CapType
+ *   profit: SeriesPattern1<?Dollars>,
+ *   loss: SeriesPattern1<?Dollars>,
+ *   netPnl: SeriesPattern1<?Dollars>,
+ * }} Classes2009Unrealized
  */
-const _CapType = _s({
-  p2pk65: [_i1, 'p2pk65_*'],
-  p2pk33: [_i1, 'p2pk33_*'],
-  p2pkh: [_i1, 'p2pkh_*'],
-  p2ms: [_i1, 'p2ms_*'],
-  p2sh: [_i1, 'p2sh_*'],
-  p2wpkh: [_i1, 'p2wpkh_*'],
-  p2wsh: [_i1, 'p2wsh_*'],
-  p2tr: [_i1, 'p2tr_*'],
-  p2a: [_i1, 'p2a_*'],
-  unknown: [_i1, 'unknown_outputs_*'],
-  empty: [_i1, 'empty_outputs_*'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   _0sats: SeriesPattern1<A>,
- *   _1satTo10sats: SeriesPattern1<A>,
- *   _10satsTo100sats: SeriesPattern1<A>,
- *   _100satsTo1kSats: SeriesPattern1<A>,
- *   _1kSatsTo10kSats: SeriesPattern1<A>,
- *   _10kSatsTo100kSats: SeriesPattern1<A>,
- *   _100kSatsTo1mSats: SeriesPattern1<A>,
- *   _1mSatsTo10mSats: SeriesPattern1<A>,
- *   _10mSatsTo1btc: SeriesPattern1<A>,
- *   _1btcTo10btc: SeriesPattern1<A>,
- *   _10btcTo100btc: SeriesPattern1<A>,
- *   _100btcTo1kBtc: SeriesPattern1<A>,
- *   _1kBtcTo10kBtc: SeriesPattern1<A>,
- *   _10kBtcTo100kBtc: SeriesPattern1<A>,
- *   over100kBtc: SeriesPattern1<A>,
- * }} CapUtxoAmount
- */
-const _CapUtxoAmount = _s({
-  _0sats: [_i1, 'utxos_0sats_*'],
-  _1satTo10sats: [_i1, 'utxos_1sat_to_10sats_*'],
-  _10satsTo100sats: [_i1, 'utxos_10sats_to_100sats_*'],
-  _100satsTo1kSats: [_i1, 'utxos_100sats_to_1k_sats_*'],
-  _1kSatsTo10kSats: [_i1, 'utxos_1k_sats_to_10k_sats_*'],
-  _10kSatsTo100kSats: [_i1, 'utxos_10k_sats_to_100k_sats_*'],
-  _100kSatsTo1mSats: [_i1, 'utxos_100k_sats_to_1m_sats_*'],
-  _1mSatsTo10mSats: [_i1, 'utxos_1m_sats_to_10m_sats_*'],
-  _10mSatsTo1btc: [_i1, 'utxos_10m_sats_to_1btc_*'],
-  _1btcTo10btc: [_i1, 'utxos_1btc_to_10btc_*'],
-  _10btcTo100btc: [_i1, 'utxos_10btc_to_100btc_*'],
-  _100btcTo1kBtc: [_i1, 'utxos_100btc_to_1k_btc_*'],
-  _1kBtcTo10kBtc: [_i1, 'utxos_1k_btc_to_10k_btc_*'],
-  _10kBtcTo100kBtc: [_i1, 'utxos_10k_btc_to_100k_btc_*'],
-  over100kBtc: [_i1, 'utxos_over_100k_btc_*'],
-});
-
-/**
- * @typedef {{
- *   min: SeriesPattern1<?Dollars>,
- *   max: SeriesPattern1<?Dollars>,
- * }} AgeBoundsAll
- */
-const _AgeBoundsAll = _s({
-  min: [_i1, '*_min'],
-  max: [_i1, '*_max'],
-});
-
-/**
- * @typedef {{
- *   all: AgeBoundsAll,
- *   sth: AgeBoundsAll,
- *   lth: AgeBoundsAll,
- *   under4m: AgeBoundsAll,
- *   under6m: AgeBoundsAll,
- *   over4m: AgeBoundsAll,
- *   over6m: AgeBoundsAll,
- * }} AgeBounds
- */
-const _AgeBounds = _s({
-  all: [_AgeBoundsAll, '*_all_cost_basis'],
-  sth: [_AgeBoundsAll, '*_sth_cost_basis'],
-  lth: [_AgeBoundsAll, '*_lth_cost_basis'],
-  under4m: [_AgeBoundsAll, '*_under_4m_cost_basis'],
-  under6m: [_AgeBoundsAll, '*_under_6m_cost_basis'],
-  over4m: [_AgeBoundsAll, '*_over_4m_cost_basis'],
-  over6m: [_AgeBoundsAll, '*_over_6m_cost_basis'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   _2009: SeriesPattern1<A>,
- *   _2010: SeriesPattern1<A>,
- *   _2011: SeriesPattern1<A>,
- *   _2012: SeriesPattern1<A>,
- *   _2013: SeriesPattern1<A>,
- *   _2014: SeriesPattern1<A>,
- *   _2015: SeriesPattern1<A>,
- *   _2016: SeriesPattern1<A>,
- *   _2017: SeriesPattern1<A>,
- *   _2018: SeriesPattern1<A>,
- *   _2019: SeriesPattern1<A>,
- *   _2020: SeriesPattern1<A>,
- *   _2021: SeriesPattern1<A>,
- *   _2022: SeriesPattern1<A>,
- *   _2023: SeriesPattern1<A>,
- *   _2024: SeriesPattern1<A>,
- *   _2025: SeriesPattern1<A>,
- *   _2026: SeriesPattern1<A>,
- * }} CapClass
- */
-const _CapClass = _s({
-  _2009: [_i1, 'class_2009_*'],
-  _2010: [_i1, 'class_2010_*'],
-  _2011: [_i1, 'class_2011_*'],
-  _2012: [_i1, 'class_2012_*'],
-  _2013: [_i1, 'class_2013_*'],
-  _2014: [_i1, 'class_2014_*'],
-  _2015: [_i1, 'class_2015_*'],
-  _2016: [_i1, 'class_2016_*'],
-  _2017: [_i1, 'class_2017_*'],
-  _2018: [_i1, 'class_2018_*'],
-  _2019: [_i1, 'class_2019_*'],
-  _2020: [_i1, 'class_2020_*'],
-  _2021: [_i1, 'class_2021_*'],
-  _2022: [_i1, 'class_2022_*'],
-  _2023: [_i1, 'class_2023_*'],
-  _2024: [_i1, 'class_2024_*'],
-  _2025: [_i1, 'class_2025_*'],
-  _2026: [_i1, 'class_2026_*'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   _0: SeriesPattern1<A>,
- *   _1: SeriesPattern1<A>,
- *   _2: SeriesPattern1<A>,
- *   _3: SeriesPattern1<A>,
- *   _4: SeriesPattern1<A>,
- * }} CapEpoch
- */
-const _CapEpoch = _s({
-  _0: [_i1, 'epoch_0_*'],
-  _1: [_i1, 'epoch_1_*'],
-  _2: [_i1, 'epoch_2_*'],
-  _3: [_i1, 'epoch_3_*'],
-  _4: [_i1, 'epoch_4_*'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   under1h: SeriesPattern1<A>,
- *   _1hTo1d: SeriesPattern1<A>,
- *   _1dTo1w: SeriesPattern1<A>,
- *   _1wTo1m: SeriesPattern1<A>,
- *   _1mTo2m: SeriesPattern1<A>,
- *   _2mTo3m: SeriesPattern1<A>,
- *   _3mTo4m: SeriesPattern1<A>,
- *   _4mTo5m: SeriesPattern1<A>,
- *   _5mTo6m: SeriesPattern1<A>,
- *   _6mTo9m: SeriesPattern1<A>,
- *   _9mTo1y: SeriesPattern1<A>,
- *   _1yTo18m: SeriesPattern1<A>,
- *   _18mTo2y: SeriesPattern1<A>,
- *   _2yTo3y: SeriesPattern1<A>,
- *   _3yTo4y: SeriesPattern1<A>,
- *   _4yTo5y: SeriesPattern1<A>,
- *   _5yTo6y: SeriesPattern1<A>,
- *   _6yTo7y: SeriesPattern1<A>,
- *   _7yTo8y: SeriesPattern1<A>,
- *   _8yTo10y: SeriesPattern1<A>,
- *   _10yTo12y: SeriesPattern1<A>,
- *   _12yTo15y: SeriesPattern1<A>,
- *   over15y: SeriesPattern1<A>,
- * }} CapAge
- */
-const _CapAge = _s({
-  under1h: [_i1, 'utxos_under_1h_*'],
-  _1hTo1d: [_i1, 'utxos_1h_to_1d_*'],
-  _1dTo1w: [_i1, 'utxos_1d_to_1w_*'],
-  _1wTo1m: [_i1, 'utxos_1w_to_1m_*'],
-  _1mTo2m: [_i1, 'utxos_1m_to_2m_*'],
-  _2mTo3m: [_i1, 'utxos_2m_to_3m_*'],
-  _3mTo4m: [_i1, 'utxos_3m_to_4m_*'],
-  _4mTo5m: [_i1, 'utxos_4m_to_5m_*'],
-  _5mTo6m: [_i1, 'utxos_5m_to_6m_*'],
-  _6mTo9m: [_i1, 'utxos_6m_to_9m_*'],
-  _9mTo1y: [_i1, 'utxos_9m_to_1y_*'],
-  _1yTo18m: [_i1, 'utxos_1y_to_18m_*'],
-  _18mTo2y: [_i1, 'utxos_18m_to_2y_*'],
-  _2yTo3y: [_i1, 'utxos_2y_to_3y_*'],
-  _3yTo4y: [_i1, 'utxos_3y_to_4y_*'],
-  _4yTo5y: [_i1, 'utxos_4y_to_5y_*'],
-  _5yTo6y: [_i1, 'utxos_5y_to_6y_*'],
-  _6yTo7y: [_i1, 'utxos_6y_to_7y_*'],
-  _7yTo8y: [_i1, 'utxos_7y_to_8y_*'],
-  _8yTo10y: [_i1, 'utxos_8y_to_10y_*'],
-  _10yTo12y: [_i1, 'utxos_10y_to_12y_*'],
-  _12yTo15y: [_i1, 'utxos_12y_to_15y_*'],
-  over15y: [_i1, 'utxos_over_15y_*'],
-});
-
-/**
- * @typedef {{
- *   age: CapAge<?Dollars>,
- * }} RealizedPrice
- */
-const _RealizedPrice = _s({
-  age: [_CapAge, '*'],
+const _Classes2009Unrealized = _s({
+  profit: [_i1, '*_unrealized_profit'],
+  loss: [_i1, '*_unrealized_loss'],
+  netPnl: [_i1, '*_net_unrealized_pnl'],
 });
 
 /**
@@ -4448,33 +4236,33 @@ const _TransactionsSize = _s({
  * @typedef {{
  *   btc: SeriesPattern1<?Bitcoin>,
  *   usd: SeriesPattern1<?Dollars>,
- * }} AvgBalanceAll
+ * }} AvgAmount
  */
-const _AvgBalanceAll = _s({
+const _AvgAmount = _s({
   btc: [_i1, '*'],
   usd: [_i1, '*_usd'],
 });
 
 /**
  * @typedef {{
- *   vaulted: AvgBalanceAll,
- *   hodledOrLost: AvgBalanceAll,
- *   active: AvgBalanceAll,
+ *   vaulted: AvgAmount,
+ *   hodledOrLost: AvgAmount,
+ *   active: AvgAmount,
  * }} CointimeSupply
  */
 const _CointimeSupply = _s({
-  vaulted: [_AvgBalanceAll, 'vaulted_*'],
-  hodledOrLost: [_AvgBalanceAll, 'hodled_or_lost_*'],
-  active: [_AvgBalanceAll, 'active_*'],
+  vaulted: [_AvgAmount, 'vaulted_*'],
+  hodledOrLost: [_AvgAmount, 'hodled_or_lost_*'],
+  active: [_AvgAmount, 'active_*'],
 });
 
 /**
  * @typedef {{
- *   supply: AvgBalanceAll,
+ *   supply: AvgAmount,
  * }} Immobile
  */
 const _Immobile = _s({
-  supply: [_AvgBalanceAll, '*'],
+  supply: [_AvgAmount, '*'],
 });
 
 /**
@@ -4518,28 +4306,28 @@ const _CointimeCohortsAll = _s({
 
 /**
  * @typedef {{
- *   all: AvgBalanceAll,
- *   p2pk65: AvgBalanceAll,
- *   p2pk33: AvgBalanceAll,
- *   p2pkh: AvgBalanceAll,
- *   p2sh: AvgBalanceAll,
- *   p2wpkh: AvgBalanceAll,
- *   p2wsh: AvgBalanceAll,
- *   p2tr: AvgBalanceAll,
- *   p2a: AvgBalanceAll,
+ *   all: AvgAmount,
+ *   p2pk65: AvgAmount,
+ *   p2pk33: AvgAmount,
+ *   p2pkh: AvgAmount,
+ *   p2sh: AvgAmount,
+ *   p2wpkh: AvgAmount,
+ *   p2wsh: AvgAmount,
+ *   p2tr: AvgAmount,
+ *   p2a: AvgAmount,
  *   share: AddressesEmpty<?Percent>,
  * }} ExposedSupply
  */
 const _ExposedSupply = _s({
-  all: [_AvgBalanceAll, '*'],
-  p2pk65: [_AvgBalanceAll, 'p2pk65_*'],
-  p2pk33: [_AvgBalanceAll, 'p2pk33_*'],
-  p2pkh: [_AvgBalanceAll, 'p2pkh_*'],
-  p2sh: [_AvgBalanceAll, 'p2sh_*'],
-  p2wpkh: [_AvgBalanceAll, 'p2wpkh_*'],
-  p2wsh: [_AvgBalanceAll, 'p2wsh_*'],
-  p2tr: [_AvgBalanceAll, 'p2tr_*'],
-  p2a: [_AvgBalanceAll, 'p2a_*'],
+  all: [_AvgAmount, '*'],
+  p2pk65: [_AvgAmount, 'p2pk65_*'],
+  p2pk33: [_AvgAmount, 'p2pk33_*'],
+  p2pkh: [_AvgAmount, 'p2pkh_*'],
+  p2sh: [_AvgAmount, 'p2sh_*'],
+  p2wpkh: [_AvgAmount, 'p2wpkh_*'],
+  p2wsh: [_AvgAmount, 'p2wsh_*'],
+  p2tr: [_AvgAmount, 'p2tr_*'],
+  p2a: [_AvgAmount, 'p2a_*'],
   share: [_AddressesEmpty, '*_share'],
 });
 
@@ -4556,64 +4344,27 @@ const _Exposed = _s({
 
 /**
  * @typedef {{
- *   _0sats: AvgBalanceAll,
- *   _1satTo10sats: AvgBalanceAll,
- *   _10satsTo100sats: AvgBalanceAll,
- *   _100satsTo1kSats: AvgBalanceAll,
- *   _1kSatsTo10kSats: AvgBalanceAll,
- *   _10kSatsTo100kSats: AvgBalanceAll,
- *   _100kSatsTo1mSats: AvgBalanceAll,
- *   _1mSatsTo10mSats: AvgBalanceAll,
- *   _10mSatsTo1btc: AvgBalanceAll,
- *   _1btcTo10btc: AvgBalanceAll,
- *   _10btcTo100btc: AvgBalanceAll,
- *   _100btcTo1kBtc: AvgBalanceAll,
- *   _1kBtcTo10kBtc: AvgBalanceAll,
- *   _10kBtcTo100kBtc: AvgBalanceAll,
- *   over100kBtc: AvgBalanceAll,
- * }} TotalUtxoAmount
- */
-const _TotalUtxoAmount = _s({
-  _0sats: [_AvgBalanceAll, '*_0sats_supply'],
-  _1satTo10sats: [_AvgBalanceAll, '*_1sat_to_10sats_supply'],
-  _10satsTo100sats: [_AvgBalanceAll, '*_10sats_to_100sats_supply'],
-  _100satsTo1kSats: [_AvgBalanceAll, '*_100sats_to_1k_sats_supply'],
-  _1kSatsTo10kSats: [_AvgBalanceAll, '*_1k_sats_to_10k_sats_supply'],
-  _10kSatsTo100kSats: [_AvgBalanceAll, '*_10k_sats_to_100k_sats_supply'],
-  _100kSatsTo1mSats: [_AvgBalanceAll, '*_100k_sats_to_1m_sats_supply'],
-  _1mSatsTo10mSats: [_AvgBalanceAll, '*_1m_sats_to_10m_sats_supply'],
-  _10mSatsTo1btc: [_AvgBalanceAll, '*_10m_sats_to_1btc_supply'],
-  _1btcTo10btc: [_AvgBalanceAll, '*_1btc_to_10btc_supply'],
-  _10btcTo100btc: [_AvgBalanceAll, '*_10btc_to_100btc_supply'],
-  _100btcTo1kBtc: [_AvgBalanceAll, '*_100btc_to_1k_btc_supply'],
-  _1kBtcTo10kBtc: [_AvgBalanceAll, '*_1k_btc_to_10k_btc_supply'],
-  _10kBtcTo100kBtc: [_AvgBalanceAll, '*_10k_btc_to_100k_btc_supply'],
-  over100kBtc: [_AvgBalanceAll, '*_over_100k_btc_supply'],
-});
-
-/**
- * @typedef {{
- *   _24h: AvgBalanceAll,
- *   _1w: AvgBalanceAll,
- *   _1m: AvgBalanceAll,
- *   _1y: AvgBalanceAll,
+ *   _24h: AvgAmount,
+ *   _1w: AvgAmount,
+ *   _1m: AvgAmount,
+ *   _1y: AvgAmount,
  * }} Sum
  */
 const _Sum = _s({
-  _24h: [_AvgBalanceAll, '*_24h'],
-  _1w: [_AvgBalanceAll, '*_1w'],
-  _1m: [_AvgBalanceAll, '*_1m'],
-  _1y: [_AvgBalanceAll, '*_1y'],
+  _24h: [_AvgAmount, '*_24h'],
+  _1w: [_AvgAmount, '*_1w'],
+  _1m: [_AvgAmount, '*_1m'],
+  _1y: [_AvgAmount, '*_1y'],
 });
 
 /**
  * @typedef {{
- *   cumulative: AvgBalanceAll,
+ *   cumulative: AvgAmount,
  *   sum: Sum,
  * }} AaopoolRewards
  */
 const _AaopoolRewards = _s({
-  cumulative: [_AvgBalanceAll, '*_cumulative'],
+  cumulative: [_AvgAmount, '*_cumulative'],
   sum: [_Sum, '*_sum'],
 });
 
@@ -4631,14 +4382,14 @@ const _Block = _s({
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgBalanceAll,
+ *   cumulative: AvgAmount,
  *   sum: Sum,
  *   chainShare: SeriesPattern1<?Percent>,
  * }} InscriptionFees
  */
 const _InscriptionFees = _s({
   block: [_Block, '*_fees'],
-  cumulative: [_AvgBalanceAll, '*_fees_cumulative'],
+  cumulative: [_AvgAmount, '*_fees_cumulative'],
   sum: [_Sum, '*_fees_sum'],
   chainShare: [_i1, '*_fee_chain_share'],
 });
@@ -4646,28 +4397,37 @@ const _InscriptionFees = _s({
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgBalanceAll,
+ *   cumulative: AvgAmount,
  *   sum: Sum,
  * }} OpReturnValue
  */
 const _OpReturnValue = _s({
   block: [_Block, '*'],
-  cumulative: [_AvgBalanceAll, '*_cumulative'],
+  cumulative: [_AvgAmount, '*_cumulative'],
   sum: [_Sum, '*_sum'],
 });
 
 /**
  * @typedef {{
+ *   transferVolume: OpReturnValue,
+ * }} Amounts0satsActivity
+ */
+const _Amounts0satsActivity = _s({
+  transferVolume: [_OpReturnValue, '*'],
+});
+
+/**
+ * @typedef {{
  *   block: Block,
- *   cumulative: AvgBalanceAll,
+ *   cumulative: AvgAmount,
  *   sum: Sum,
  *   inProfit: OpReturnValue,
  *   inLoss: OpReturnValue,
- * }} DiscountActivityTransferVolume
+ * }} TransferVolume
  */
-const _DiscountActivityTransferVolume = _s({
+const _TransferVolume = _s({
   block: [_Block, '*'],
-  cumulative: [_AvgBalanceAll, '*_cumulative'],
+  cumulative: [_AvgAmount, '*_cumulative'],
   sum: [_Sum, '*_sum'],
   inProfit: [_OpReturnValue, '*_in_profit'],
   inLoss: [_OpReturnValue, '*_in_loss'],
@@ -4702,14 +4462,14 @@ const _ChainShare = _s({
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgBalanceAll,
+ *   cumulative: AvgAmount,
  *   sum: Sum,
  *   chainShare: ChainShare,
  * }} OpReturnFees
  */
 const _OpReturnFees = _s({
   block: [_Block, '*_fees'],
-  cumulative: [_AvgBalanceAll, '*_fees_cumulative'],
+  cumulative: [_AvgAmount, '*_fees_cumulative'],
   sum: [_Sum, '*_fees_sum'],
   chainShare: [_ChainShare, '*_fee_chain_share'],
 });
@@ -4717,14 +4477,14 @@ const _OpReturnFees = _s({
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgBalanceAll,
+ *   cumulative: AvgAmount,
  *   sum: Sum,
  *   share: ChainShare,
  * }} Subsidy
  */
 const _Subsidy = _s({
   block: [_Block, '*'],
-  cumulative: [_AvgBalanceAll, '*_cumulative'],
+  cumulative: [_AvgAmount, '*_cumulative'],
   sum: [_Sum, '*_sum'],
   share: [_ChainShare, '*_share'],
 });
@@ -4802,62 +4562,62 @@ const _DeltaAll = _s({
 
 /**
  * @typedef {{
- *   total: AvgBalanceAll,
- *   delta: DeltaAll<?Bitcoin>,
- *   dominance: SeriesPattern1<?Percent>,
- *   inProfit: AvgBalanceAll,
- *   inLoss: AvgBalanceAll,
- * }} DiscountSupply
- */
-const _DiscountSupply = _s({
-  total: [_AvgBalanceAll, '*'],
-  delta: [_DeltaAll, '*_delta'],
-  dominance: [_i1, '*_dominance'],
-  inProfit: [_AvgBalanceAll, '*_in_profit'],
-  inLoss: [_AvgBalanceAll, '*_in_loss'],
-});
-
-/**
- * @typedef {{
- *   total: AvgBalanceAll,
- *   inProfit: AvgBalanceAll,
- *   inLoss: AvgBalanceAll,
+ *   total: AvgAmount,
+ *   inProfit: AvgAmount,
+ *   inLoss: AvgAmount,
  *   delta: DeltaAll<?Bitcoin>,
  * }} LthSupply
  */
 const _LthSupply = _s({
-  total: [_AvgBalanceAll, '*'],
-  inProfit: [_AvgBalanceAll, '*_in_profit'],
-  inLoss: [_AvgBalanceAll, '*_in_loss'],
+  total: [_AvgAmount, '*'],
+  inProfit: [_AvgAmount, '*_in_profit'],
+  inLoss: [_AvgAmount, '*_in_loss'],
   delta: [_DeltaAll, '*_delta'],
 });
 
 /**
  * @typedef {{
- *   total: AllSupplyTotal,
- *   inProfit: AvgBalanceAll,
- *   inLoss: AvgBalanceAll,
+ *   total: Total,
+ *   inProfit: AvgAmount,
+ *   inLoss: AvgAmount,
  *   delta: DeltaAll<?Bitcoin>,
  * }} AllSupply
  */
 const _AllSupply = _s({
-  total: [_AllSupplyTotal, 'circulating_*'],
-  inProfit: [_AvgBalanceAll, '*_in_profit'],
-  inLoss: [_AvgBalanceAll, '*_in_loss'],
+  total: [_Total, 'circulating_*'],
+  inProfit: [_AvgAmount, '*_in_profit'],
+  inLoss: [_AvgAmount, '*_in_loss'],
   delta: [_DeltaAll, '*_delta'],
 });
 
 /**
  * @typedef {{
- *   total: AvgBalanceAll,
+ *   total: AvgAmount,
  *   delta: DeltaAll<?Bitcoin>,
- *   dominance: SeriesPattern1<?Percent>,
+ *   share: SeriesPattern1<?Percent>,
  * }} Supply0sats
  */
 const _Supply0sats = _s({
-  total: [_AvgBalanceAll, '*'],
+  total: [_AvgAmount, '*'],
   delta: [_DeltaAll, '*_delta'],
-  dominance: [_i1, '*_dominance'],
+  share: [_i1, '*_share'],
+});
+
+/**
+ * @typedef {{
+ *   total: AvgAmount,
+ *   delta: DeltaAll<?Bitcoin>,
+ *   share: SeriesPattern1<?Percent>,
+ *   inProfit: AvgAmount,
+ *   inLoss: AvgAmount,
+ * }} DiscountSupply
+ */
+const _DiscountSupply = _s({
+  total: [_AvgAmount, '*'],
+  delta: [_DeltaAll, '*_delta'],
+  share: [_i1, '*_share'],
+  inProfit: [_AvgAmount, '*_in_profit'],
+  inLoss: [_AvgAmount, '*_in_loss'],
 });
 
 /**
@@ -4889,6 +4649,25 @@ const _Supply = _s({
   velocity: [_Velocity, 'velocity'],
   marketCap: [_MarketCap, 'market_cap'],
   marketMinusRealizedCapGrowthRate: [_InputsPerSecond, 'market_minus_realized_cap_growth_*'],
+});
+
+/**
+ * @typedef {{
+ *   total: AvgAmount,
+ *   delta: DeltaAll<?Bitcoin>,
+ *   share: SeriesPattern1<?Percent>,
+ *   inProfit: AvgAmount,
+ *   inLoss: AvgAmount,
+ *   matured: OpReturnValue,
+ * }} Ranges10yTo12ySupply
+ */
+const _Ranges10yTo12ySupply = _s({
+  total: [_AvgAmount, '*_supply'],
+  delta: [_DeltaAll, '*_supply_delta'],
+  share: [_i1, '*_supply_share'],
+  inProfit: [_AvgAmount, '*_supply_in_profit'],
+  inLoss: [_AvgAmount, '*_supply_in_loss'],
+  matured: [_OpReturnValue, '*_matured_supply'],
 });
 
 /**
@@ -5346,7 +5125,7 @@ const _OpReturnDataBytes = _s({
 /**
  * @typedef {{
  *   block: Block,
- *   cumulative: AvgBalanceAll,
+ *   cumulative: AvgAmount,
  *   sum: Sum,
  *   avg: Sum,
  *   min: Sum,
@@ -5362,7 +5141,7 @@ const _OpReturnDataBytes = _s({
  */
 const _RewardsFees = _s({
   block: [_Block, '*'],
-  cumulative: [_AvgBalanceAll, '*_cumulative'],
+  cumulative: [_AvgAmount, '*_cumulative'],
   sum: [_Sum, '*_sum'],
   avg: [_Sum, '*_avg'],
   min: [_Sum, '*_min'],
@@ -5536,61 +5315,6 @@ const _CointimeAgeRanges10yTo12y = _s({
 });
 
 /**
- * @template A
- * @typedef {{
- *   under1h: A,
- *   _1hTo1d: A,
- *   _1dTo1w: A,
- *   _1wTo1m: A,
- *   _1mTo2m: A,
- *   _2mTo3m: A,
- *   _3mTo4m: A,
- *   _4mTo5m: A,
- *   _5mTo6m: A,
- *   _6mTo9m: A,
- *   _9mTo1y: A,
- *   _1yTo18m: A,
- *   _18mTo2y: A,
- *   _2yTo3y: A,
- *   _3yTo4y: A,
- *   _4yTo5y: A,
- *   _5yTo6y: A,
- *   _6yTo7y: A,
- *   _7yTo8y: A,
- *   _8yTo10y: A,
- *   _10yTo12y: A,
- *   _12yTo15y: A,
- *   over15y: A,
- * }} CoindaysCreated
- */
-/** @type {_Make} */
-const _CoindaysCreated = (c, b, f0) => _n(c, b, {
-  under1h: [f0, 'utxos_under_1h_*'],
-  _1hTo1d: [f0, 'utxos_1h_to_1d_*'],
-  _1dTo1w: [f0, 'utxos_1d_to_1w_*'],
-  _1wTo1m: [f0, 'utxos_1w_to_1m_*'],
-  _1mTo2m: [f0, 'utxos_1m_to_2m_*'],
-  _2mTo3m: [f0, 'utxos_2m_to_3m_*'],
-  _3mTo4m: [f0, 'utxos_3m_to_4m_*'],
-  _4mTo5m: [f0, 'utxos_4m_to_5m_*'],
-  _5mTo6m: [f0, 'utxos_5m_to_6m_*'],
-  _6mTo9m: [f0, 'utxos_6m_to_9m_*'],
-  _9mTo1y: [f0, 'utxos_9m_to_1y_*'],
-  _1yTo18m: [f0, 'utxos_1y_to_18m_*'],
-  _18mTo2y: [f0, 'utxos_18m_to_2y_*'],
-  _2yTo3y: [f0, 'utxos_2y_to_3y_*'],
-  _3yTo4y: [f0, 'utxos_3y_to_4y_*'],
-  _4yTo5y: [f0, 'utxos_4y_to_5y_*'],
-  _5yTo6y: [f0, 'utxos_5y_to_6y_*'],
-  _6yTo7y: [f0, 'utxos_6y_to_7y_*'],
-  _7yTo8y: [f0, 'utxos_7y_to_8y_*'],
-  _8yTo10y: [f0, 'utxos_8y_to_10y_*'],
-  _10yTo12y: [f0, 'utxos_10y_to_12y_*'],
-  _12yTo15y: [f0, 'utxos_12y_to_15y_*'],
-  over15y: [f0, 'utxos_over_15y_*'],
-});
-
-/**
  * @typedef {{
  *   coinblocksCreated: CoinblocksDestroyed<?CoinBlocks>,
  *   coinblocksDestroyed: CoinblocksDestroyed<?CoinBlocks>,
@@ -5641,17 +5365,6 @@ const _DiscountRealized = _s({
   netPnl: [_CoinblocksDestroyed, '*_net_realized_pnl'],
   sopr: [_Sopr, '*'],
   mvrv: [_i1, '*_mvrv'],
-});
-
-/**
- * @typedef {{
- *   transferVolume: DiscountActivityTransferVolume,
- *   coindaysDestroyed: CoinblocksDestroyed<?CoinDays>,
- * }} DiscountActivity
- */
-const _DiscountActivity = _s({
-  transferVolume: [_DiscountActivityTransferVolume, '*_transfer_volume'],
-  coindaysDestroyed: [_CoinblocksDestroyed, '*_coindays_destroyed'],
 });
 
 /**
@@ -5728,129 +5441,6 @@ const _AllActivity = _s({
   transferVolumeInLoss: [_OpReturnValue, '*_transfer_volume_in_loss'],
   coindaysDestroyed: [_CoinblocksDestroyed, '*_coindays_destroyed'],
   coinyearsDestroyed: [_i1, '*_coinyears_destroyed'],
-});
-
-/**
- * @typedef {{
- *   unspentCount: MarketCap<Count, CountSigned>,
- *   spentCount: CoinblocksDestroyed<Count>,
- * }} DiscountOutputs
- */
-const _DiscountOutputs = _s({
-  unspentCount: [_MarketCap, '*_utxo_count'],
-  spentCount: [_CoinblocksDestroyed, '*_spent_utxo_count'],
-});
-
-/**
- * @typedef {{
- *   supply: DiscountSupply,
- *   outputs: DiscountOutputs,
- *   activity: DiscountActivity,
- *   realized: DiscountRealized,
- *   unrealized: DiscountUnrealized,
- * }} Discount
- */
-const _Discount = _s({
-  supply: [_DiscountSupply, '*_supply'],
-  outputs: [_DiscountOutputs, '*'],
-  activity: [_DiscountActivity, '*'],
-  realized: [_DiscountRealized, '*'],
-  unrealized: [_DiscountUnrealized, '*'],
-});
-
-/**
- * @typedef {{
- *   discount: Discount,
- *   premium: Discount,
- * }} Entry
- */
-const _Entry = _s({
-  discount: [_Discount, '*'],
-  premium: [_Discount, 'rookie'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   supply: A,
- *   outputs: DiscountOutputs,
- *   activity: AllActivity,
- *   realized: AllRealized,
- *   unrealized: AllUnrealized,
- *   costBasis: AllCostBasis,
- *   ratios: Ratios,
- *   relative: Relative,
- * }} HoldersAll
- */
-/** @type {_Make} */
-const _HoldersAll = (c, b, f0) => _n(c, b, {
-  supply: [f0, '*_supply'],
-  outputs: [_DiscountOutputs, '*'],
-  activity: [_AllActivity, '*'],
-  realized: [_AllRealized, '*'],
-  unrealized: [_AllUnrealized, '*'],
-  costBasis: [_AllCostBasis, '*'],
-  ratios: [_Ratios, '*'],
-  relative: [_Relative, '*'],
-});
-
-/**
- * @template A, B
- * @typedef {{
- *   all: A,
- *   sth: B,
- *   lth: B,
- *   under4m: B,
- *   under6m: B,
- *   over4m: B,
- *   over6m: B,
- * }} Holders
- */
-/** @type {_Make} */
-const _Holders = (c, b, f0, f1) => _n(c, b, {
-  all: [f0, ''],
-  sth: [f1, 'sth'],
-  lth: [f1, 'lth'],
-  under4m: [f1, '*_under_4m_old'],
-  under6m: [f1, '*_under_6m_old'],
-  over4m: [f1, '*_over_4m_old'],
-  over6m: [f1, '*_over_6m_old'],
-});
-
-/**
- * @typedef {{
- *   ageRanges: CoindaysCreated<CoinflowAgeRanges10yTo12y>,
- *   cohorts: Holders<CoinflowCohortsAll, CoinflowCohortsAll>,
- * }} Coinflow
- */
-const _Coinflow = _s({
-  ageRanges: [(c, b) => _CoindaysCreated(c, b, _CoinflowAgeRanges10yTo12y), '*'],
-  cohorts: [(c, b) => _Holders(c, b, _CoinflowCohortsAll, _CoinflowCohortsAll), 'utxos'],
-});
-
-/**
- * @typedef {{
- *   activity: CointimeActivity,
- *   ageRanges: CoindaysCreated<CointimeAgeRanges10yTo12y>,
- *   cohorts: Holders<CointimeCohortsAll, CointimeCohortsAll>,
- *   supply: CointimeSupply,
- *   value: Value,
- *   caps: Caps,
- *   prices: CointimePrices,
- *   adjusted: Adjusted,
- *   reserveRisk: ReserveRisk,
- * }} Cointime
- */
-const _Cointime = _s({
-  activity: [_CointimeActivity, 'coinblocks'],
-  ageRanges: [(c, b) => _CoindaysCreated(c, b, _CointimeAgeRanges10yTo12y), 'old'],
-  cohorts: [(c, b) => _Holders(c, b, _CointimeCohortsAll, _CointimeCohortsAll), 'utxos'],
-  supply: [_CointimeSupply, 'supply'],
-  value: [_Value, '*_value'],
-  caps: [_Caps, 'cap'],
-  prices: [_CointimePrices, 'vaulted'],
-  adjusted: [_Adjusted, '*_adjusted'],
-  reserveRisk: [_ReserveRisk, 'vocdd'],
 });
 
 /**
@@ -6015,7 +5605,7 @@ const _Funded = _s({
  *   respent: Respent,
  *   exposed: Exposed,
  *   delta: AvgBalance<DeltaAll<CountSigned>>,
- *   avgBalance: AvgBalance<AvgBalanceAll>,
+ *   avgBalance: AvgBalance<AvgAmount>,
  * }} Addresses
  */
 const _Addresses = _s({
@@ -6035,368 +5625,462 @@ const _Addresses = _s({
   respent: [_Respent, 'respent_*'],
   exposed: [_Exposed, 'exposed_*'],
   delta: [(c, b) => _AvgBalance(c, b, _DeltaAll), '*_count'],
-  avgBalance: [(c, b) => _AvgBalance(c, b, _AvgBalanceAll), 'avg_*_amount'],
+  avgBalance: [(c, b) => _AvgBalance(c, b, _AvgAmount), 'avg_*_amount'],
+});
+
+/**
+ * @typedef {{
+ *   unspentCount: MarketCap<Count, CountSigned>,
+ *   spentCount: CoinblocksDestroyed<Count>,
+ *   avgAmount: AvgAmount,
+ * }} EmptyOutputs
+ */
+const _EmptyOutputs = _s({
+  unspentCount: [_MarketCap, '*_utxo_count'],
+  spentCount: [_CoinblocksDestroyed, '*_spent_utxo_count'],
+  avgAmount: [_AvgAmount, '*_avg_utxo_amount'],
+});
+
+/**
+ * @typedef {{
+ *   cap: SeriesPattern1<?Dollars>,
+ *   price: SeriesPattern1<?Dollars>,
+ *   profit: CoinblocksDestroyed<?Dollars>,
+ *   loss: CoinblocksDestroyed<?Dollars>,
+ * }} Amounts0satsRealized
+ */
+const _Amounts0satsRealized = _s({
+  cap: [_i1, '*_cap'],
+  price: [_i1, '*_price'],
+  profit: [_CoinblocksDestroyed, '*_profit'],
+  loss: [_CoinblocksDestroyed, '*_loss'],
+});
+
+/**
+ * @typedef {{
+ *   cap: SeriesPattern1<?Dollars>,
+ *   profit: CoinblocksDestroyed<?Dollars>,
+ *   loss: CoinblocksDestroyed<?Dollars>,
+ *   netPnl: CoinblocksDestroyed<?Dollars>,
+ *   valueDestroyed: CoinblocksDestroyed<?Dollars>,
+ * }} Classes2009Realized
+ */
+const _Classes2009Realized = _s({
+  cap: [_i1, '*_realized_cap'],
+  profit: [_CoinblocksDestroyed, '*_realized_profit'],
+  loss: [_CoinblocksDestroyed, '*_realized_loss'],
+  netPnl: [_CoinblocksDestroyed, '*_net_realized_pnl'],
+  valueDestroyed: [_CoinblocksDestroyed, '*_value_destroyed'],
+});
+
+/**
+ * @typedef {{
+ *   transferVolume: TransferVolume,
+ *   coindaysDestroyed: CoinblocksDestroyed<?CoinDays>,
+ * }} DiscountActivity
+ */
+const _DiscountActivity = _s({
+  transferVolume: [_TransferVolume, '*_transfer_volume'],
+  coindaysDestroyed: [_CoinblocksDestroyed, '*_coindays_destroyed'],
+});
+
+/**
+ * @typedef {{
+ *   cap: SeriesPattern1<?Dollars>,
+ *   profit: CoinblocksDestroyed<?Dollars>,
+ *   loss: CoinblocksDestroyed<?Dollars>,
+ *   netPnl: CoinblocksDestroyed<?Dollars>,
+ *   valueDestroyed: CoinblocksDestroyed<?Dollars>,
+ *   price: SeriesPattern1<?Dollars>,
+ * }} Ranges10yTo12yRealized
+ */
+const _Ranges10yTo12yRealized = _s({
+  cap: [_i1, '*_realized_cap'],
+  profit: [_CoinblocksDestroyed, '*_realized_profit'],
+  loss: [_CoinblocksDestroyed, '*_realized_loss'],
+  netPnl: [_CoinblocksDestroyed, '*_net_realized_pnl'],
+  valueDestroyed: [_CoinblocksDestroyed, '*_value_destroyed'],
+  price: [_i1, '*_realized_price'],
+});
+
+/**
+ * @typedef {{
+ *   transferVolume: TransferVolume,
+ *   coindaysDestroyed: CoinblocksDestroyed<?CoinDays>,
+ *   coindaysCreated: CoinblocksDestroyed<?CoinDays>,
+ * }} Ranges10yTo12yActivity
+ */
+const _Ranges10yTo12yActivity = _s({
+  transferVolume: [_TransferVolume, '*_transfer_volume'],
+  coindaysDestroyed: [_CoinblocksDestroyed, '*_coindays_destroyed'],
+  coindaysCreated: [_CoinblocksDestroyed, '*_coindays_created'],
+});
+
+/**
+ * @typedef {{
+ *   unspentCount: MarketCap<Count, CountSigned>,
+ *   spentCount: CoinblocksDestroyed<Count>,
+ * }} DiscountOutputs
+ */
+const _DiscountOutputs = _s({
+  unspentCount: [_MarketCap, '*_utxo_count'],
+  spentCount: [_CoinblocksDestroyed, '*_spent_utxo_count'],
 });
 
 /**
  * @template A
  * @typedef {{
- *   _0sats: A,
- *   _1satTo10sats: A,
- *   _10satsTo100sats: A,
- *   _100satsTo1kSats: A,
- *   _1kSatsTo10kSats: A,
- *   _10kSatsTo100kSats: A,
- *   _100kSatsTo1mSats: A,
- *   _1mSatsTo10mSats: A,
- *   _10mSatsTo1btc: A,
- *   _1btcTo10btc: A,
- *   _10btcTo100btc: A,
- *   _100btcTo1kBtc: A,
- *   _1kBtcTo10kBtc: A,
- *   _10kBtcTo100kBtc: A,
- *   over100kBtc: A,
- * }} TransferVolumeUtxoAmount
+ *   supply: A,
+ *   outputs: DiscountOutputs,
+ *   activity: AllActivity,
+ *   realized: AllRealized,
+ *   unrealized: AllUnrealized,
+ *   costBasis: AllCostBasis,
+ *   ratios: Ratios,
+ *   relative: Relative,
+ * }} HoldersAll
  */
 /** @type {_Make} */
-const _TransferVolumeUtxoAmount = (c, b, f0) => _n(c, b, {
-  _0sats: [f0, 'utxos_0sats_*'],
-  _1satTo10sats: [f0, 'utxos_1sat_to_10sats_*'],
-  _10satsTo100sats: [f0, 'utxos_10sats_to_100sats_*'],
-  _100satsTo1kSats: [f0, 'utxos_100sats_to_1k_sats_*'],
-  _1kSatsTo10kSats: [f0, 'utxos_1k_sats_to_10k_sats_*'],
-  _10kSatsTo100kSats: [f0, 'utxos_10k_sats_to_100k_sats_*'],
-  _100kSatsTo1mSats: [f0, 'utxos_100k_sats_to_1m_sats_*'],
-  _1mSatsTo10mSats: [f0, 'utxos_1m_sats_to_10m_sats_*'],
-  _10mSatsTo1btc: [f0, 'utxos_10m_sats_to_1btc_*'],
-  _1btcTo10btc: [f0, 'utxos_1btc_to_10btc_*'],
-  _10btcTo100btc: [f0, 'utxos_10btc_to_100btc_*'],
-  _100btcTo1kBtc: [f0, 'utxos_100btc_to_1k_btc_*'],
-  _1kBtcTo10kBtc: [f0, 'utxos_1k_btc_to_10k_btc_*'],
-  _10kBtcTo100kBtc: [f0, 'utxos_10k_btc_to_100k_btc_*'],
-  over100kBtc: [f0, 'utxos_over_100k_btc_*'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   p2pk65: A,
- *   p2pk33: A,
- *   p2pkh: A,
- *   p2ms: A,
- *   p2sh: A,
- *   p2wpkh: A,
- *   p2wsh: A,
- *   p2tr: A,
- *   p2a: A,
- *   unknown: A,
- *   empty: A,
- * }} TransferVolumeType
- */
-/** @type {_Make} */
-const _TransferVolumeType = (c, b, f0) => _n(c, b, {
-  p2pk65: [f0, 'p2pk65_*'],
-  p2pk33: [f0, 'p2pk33_*'],
-  p2pkh: [f0, 'p2pkh_*'],
-  p2ms: [f0, 'p2ms_*'],
-  p2sh: [f0, 'p2sh_*'],
-  p2wpkh: [f0, 'p2wpkh_*'],
-  p2wsh: [f0, 'p2wsh_*'],
-  p2tr: [f0, 'p2tr_*'],
-  p2a: [f0, 'p2a_*'],
-  unknown: [f0, 'unknown_outputs_*'],
-  empty: [f0, 'empty_outputs_*'],
-});
-
-/**
- * @typedef {{
- *   all: AvgBalanceAll,
- *   byType: TransferVolumeType<AvgBalanceAll>,
- * }} AvgAmount
- */
-const _AvgAmount = _s({
-  all: [_AvgBalanceAll, '*'],
-  byType: [(c, b) => _TransferVolumeType(c, b, _AvgBalanceAll), '*'],
+const _HoldersAll = (c, b, f0) => _n(c, b, {
+  supply: [f0, '*_supply'],
+  outputs: [_DiscountOutputs, '*'],
+  activity: [_AllActivity, '*'],
+  realized: [_AllRealized, '*'],
+  unrealized: [_AllUnrealized, '*'],
+  costBasis: [_AllCostBasis, '*'],
+  ratios: [_Ratios, '*'],
+  relative: [_Relative, '*'],
 });
 
 /**
  * @template A, B
  * @typedef {{
- *   utxoAmount: A,
- *   type: B,
- * }} UtxosActivityTransferVolume
+ *   all: A,
+ *   sth: B,
+ *   lth: B,
+ *   under4m: B,
+ *   under6m: B,
+ *   over4m: B,
+ *   over6m: B,
+ * }} Holders
  */
 /** @type {_Make} */
-const _UtxosActivityTransferVolume = (c, b, f0, f1) => _n(c, b, {
-  utxoAmount: [f0, '*'],
-  type: [f1, '*'],
+const _Holders = (c, b, f0, f1) => _n(c, b, {
+  all: [f0, ''],
+  sth: [f1, 'sth'],
+  lth: [f1, 'lth'],
+  under4m: [f1, '*_under_4m_old'],
+  under6m: [f1, '*_under_6m_old'],
+  over4m: [f1, '*_over_4m_old'],
+  over6m: [f1, '*_over_6m_old'],
 });
 
 /**
+ * @template A
  * @typedef {{
- *   cap: UtxosActivityTransferVolume<CapUtxoAmount<?Dollars>, CapType<?Dollars>>,
- *   price: UtxosActivityTransferVolume<CapUtxoAmount<?Dollars>, CapType<?Dollars>>,
- *   profit: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<?Dollars>>, TransferVolumeType<CoinblocksDestroyed<?Dollars>>>,
- *   loss: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<?Dollars>>, TransferVolumeType<CoinblocksDestroyed<?Dollars>>>,
- * }} UtxosRealized
+ *   supply: Supply0sats,
+ *   outputs: A,
+ *   activity: Amounts0satsActivity,
+ *   realized: Amounts0satsRealized,
+ * }} Amounts0sats
  */
-const _UtxosRealized = _s({
-  cap: [(c, b) => _UtxosActivityTransferVolume(c, b, _CapUtxoAmount, _CapType), '*_cap'],
-  price: [(c, b) => _UtxosActivityTransferVolume(c, b, _CapUtxoAmount, _CapType), '*_price'],
-  profit: [(c, b) => _UtxosActivityTransferVolume(c, b, (c, b) => _TransferVolumeUtxoAmount(c, b, _CoinblocksDestroyed), (c, b) => _TransferVolumeType(c, b, _CoinblocksDestroyed)), '*_profit'],
-  loss: [(c, b) => _UtxosActivityTransferVolume(c, b, (c, b) => _TransferVolumeUtxoAmount(c, b, _CoinblocksDestroyed), (c, b) => _TransferVolumeType(c, b, _CoinblocksDestroyed)), '*_loss'],
+/** @type {_Make} */
+const _Amounts0sats = (c, b, f0) => _n(c, b, {
+  supply: [_Supply0sats, '*_supply'],
+  outputs: [f0, '*'],
+  activity: [_Amounts0satsActivity, '*_transfer_volume'],
+  realized: [_Amounts0satsRealized, '*_realized'],
 });
 
 /**
  * @typedef {{
- *   transferVolume: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<OpReturnValue>, TransferVolumeType<OpReturnValue>>,
- * }} UtxosActivity
+ *   p2pk65: Amounts0sats<EmptyOutputs>,
+ *   p2pk33: Amounts0sats<EmptyOutputs>,
+ *   p2pkh: Amounts0sats<EmptyOutputs>,
+ *   p2ms: Amounts0sats<EmptyOutputs>,
+ *   p2sh: Amounts0sats<EmptyOutputs>,
+ *   p2wpkh: Amounts0sats<EmptyOutputs>,
+ *   p2wsh: Amounts0sats<EmptyOutputs>,
+ *   p2tr: Amounts0sats<EmptyOutputs>,
+ *   p2a: Amounts0sats<EmptyOutputs>,
+ *   unknown: Amounts0sats<EmptyOutputs>,
+ *   empty: Amounts0sats<EmptyOutputs>,
+ * }} UtxosTypes
  */
-const _UtxosActivity = _s({
-  transferVolume: [(c, b) => _UtxosActivityTransferVolume(c, b, (c, b) => _TransferVolumeUtxoAmount(c, b, _OpReturnValue), (c, b) => _TransferVolumeType(c, b, _OpReturnValue)), '*'],
+const _UtxosTypes = _s({
+  p2pk65: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2pk65'],
+  p2pk33: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2pk33'],
+  p2pkh: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2pkh'],
+  p2ms: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2ms'],
+  p2sh: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2sh'],
+  p2wpkh: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2wpkh'],
+  p2wsh: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2wsh'],
+  p2tr: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2tr'],
+  p2a: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2a'],
+  unknown: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'unknown_*'],
+  empty: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'empty_*'],
 });
 
 /**
  * @typedef {{
+ *   _0sats: Amounts0sats<DiscountOutputs>,
+ *   _1satTo10sats: Amounts0sats<DiscountOutputs>,
+ *   _10satsTo100sats: Amounts0sats<DiscountOutputs>,
+ *   _100satsTo1kSats: Amounts0sats<DiscountOutputs>,
+ *   _1kSatsTo10kSats: Amounts0sats<DiscountOutputs>,
+ *   _10kSatsTo100kSats: Amounts0sats<DiscountOutputs>,
+ *   _100kSatsTo1mSats: Amounts0sats<DiscountOutputs>,
+ *   _1mSatsTo10mSats: Amounts0sats<DiscountOutputs>,
+ *   _10mSatsTo1btc: Amounts0sats<DiscountOutputs>,
+ *   _1btcTo10btc: Amounts0sats<DiscountOutputs>,
+ *   _10btcTo100btc: Amounts0sats<DiscountOutputs>,
+ *   _100btcTo1kBtc: Amounts0sats<DiscountOutputs>,
+ *   _1kBtcTo10kBtc: Amounts0sats<DiscountOutputs>,
+ *   _10kBtcTo100kBtc: Amounts0sats<DiscountOutputs>,
+ *   over100kBtc: Amounts0sats<DiscountOutputs>,
+ * }} Amounts
+ */
+const _Amounts = _s({
+  _0sats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_0sats'],
+  _1satTo10sats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_1sat_to_10sats'],
+  _10satsTo100sats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_10sats_to_100sats'],
+  _100satsTo1kSats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_100sats_to_1k_sats'],
+  _1kSatsTo10kSats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_1k_sats_to_10k_sats'],
+  _10kSatsTo100kSats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_10k_sats_to_100k_sats'],
+  _100kSatsTo1mSats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_100k_sats_to_1m_sats'],
+  _1mSatsTo10mSats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_1m_sats_to_10m_sats'],
+  _10mSatsTo1btc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_10m_sats_to_1btc'],
+  _1btcTo10btc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_1btc_to_10btc'],
+  _10btcTo100btc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_10btc_to_100btc'],
+  _100btcTo1kBtc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_100btc_to_1k_btc'],
+  _1kBtcTo10kBtc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_1k_btc_to_10k_btc'],
+  _10kBtcTo100kBtc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_10k_btc_to_100k_btc'],
+  over100kBtc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_over_100k_btc'],
+});
+
+/**
+ * @typedef {{
+ *   amounts: Amounts,
+ *   types: UtxosTypes,
  *   avgAmount: AvgAmount,
- *   unspentCount: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<MarketCap<Count, CountSigned>>, TransferVolumeType<MarketCap<Count, CountSigned>>>,
- *   spentCount: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<Count>>, TransferVolumeType<CoinblocksDestroyed<Count>>>,
- * }} UtxosOutputs
- */
-const _UtxosOutputs = _s({
-  avgAmount: [_AvgAmount, 'avg_*_amount'],
-  unspentCount: [(c, b) => _UtxosActivityTransferVolume(c, b, (c, b) => _TransferVolumeUtxoAmount(c, b, _MarketCap), (c, b) => _TransferVolumeType(c, b, _MarketCap)), '*_count'],
-  spentCount: [(c, b) => _UtxosActivityTransferVolume(c, b, (c, b) => _TransferVolumeUtxoAmount(c, b, _CoinblocksDestroyed), (c, b) => _TransferVolumeType(c, b, _CoinblocksDestroyed)), 'spent_*_count'],
-});
-
-/**
- * @typedef {{
- *   utxoAmount: TotalUtxoAmount,
- *   type: TransferVolumeType<AvgBalanceAll>,
- * }} UtxosSupplyTotal
- */
-const _UtxosSupplyTotal = _s({
-  utxoAmount: [_TotalUtxoAmount, '*'],
-  type: [(c, b) => _TransferVolumeType(c, b, _AvgBalanceAll), 'supply'],
-});
-
-/**
- * @typedef {{
- *   total: UtxosSupplyTotal,
- *   delta: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<DeltaAll<?Bitcoin>>, TransferVolumeType<DeltaAll<?Bitcoin>>>,
- *   dominance: UtxosActivityTransferVolume<CapUtxoAmount<?Percent>, CapType<?Percent>>,
- * }} UtxosSupply
- */
-const _UtxosSupply = _s({
-  total: [_UtxosSupplyTotal, 'utxos'],
-  delta: [(c, b) => _UtxosActivityTransferVolume(c, b, (c, b) => _TransferVolumeUtxoAmount(c, b, _DeltaAll), (c, b) => _TransferVolumeType(c, b, _DeltaAll)), '*_delta'],
-  dominance: [(c, b) => _UtxosActivityTransferVolume(c, b, _CapUtxoAmount, _CapType), '*_dominance'],
-});
-
-/**
- * @typedef {{
- *   supply: UtxosSupply,
- *   outputs: UtxosOutputs,
- *   activity: UtxosActivity,
- *   realized: UtxosRealized,
  * }} Utxos
  */
 const _Utxos = _s({
-  supply: [_UtxosSupply, '*'],
-  outputs: [_UtxosOutputs, 'utxo'],
-  activity: [_UtxosActivity, 'transfer_volume'],
-  realized: [_UtxosRealized, 'realized'],
+  amounts: [_Amounts, '*'],
+  types: [_UtxosTypes, 'outputs'],
+  avgAmount: [_AvgAmount, 'avg_utxo_amount'],
+});
+
+/**
+ * @template A, B
+ * @typedef {{
+ *   supply: DiscountSupply,
+ *   outputs: DiscountOutputs,
+ *   activity: DiscountActivity,
+ *   realized: A,
+ *   unrealized: B,
+ * }} Discount
+ */
+/** @type {_Make} */
+const _Discount = (c, b, f0, f1) => _n(c, b, {
+  supply: [_DiscountSupply, '*_supply'],
+  outputs: [_DiscountOutputs, '*'],
+  activity: [_DiscountActivity, '*'],
+  realized: [f0, '*'],
+  unrealized: [f1, '*'],
+});
+
+/**
+ * @typedef {{
+ *   discount: Discount<DiscountRealized, DiscountUnrealized>,
+ *   premium: Discount<DiscountRealized, DiscountUnrealized>,
+ * }} Entry
+ */
+const _Entry = _s({
+  discount: [(c, b) => _Discount(c, b, _DiscountRealized, _DiscountUnrealized), '*'],
+  premium: [(c, b) => _Discount(c, b, _DiscountRealized, _DiscountUnrealized), 'rookie'],
+});
+
+/**
+ * @typedef {{
+ *   _2009: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2010: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2011: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2012: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2013: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2014: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2015: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2016: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2017: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2018: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2019: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2020: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2021: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2022: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2023: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2024: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2025: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2026: Discount<Classes2009Realized, Classes2009Unrealized>,
+ * }} Classes
+ */
+const _Classes = _s({
+  _2009: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2009'],
+  _2010: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2010'],
+  _2011: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2011'],
+  _2012: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2012'],
+  _2013: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2013'],
+  _2014: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2014'],
+  _2015: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2015'],
+  _2016: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2016'],
+  _2017: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2017'],
+  _2018: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2018'],
+  _2019: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2019'],
+  _2020: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2020'],
+  _2021: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2021'],
+  _2022: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2022'],
+  _2023: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2023'],
+  _2024: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2024'],
+  _2025: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2025'],
+  _2026: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2026'],
+});
+
+/**
+ * @typedef {{
+ *   _0: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _1: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _3: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _4: Discount<Classes2009Realized, Classes2009Unrealized>,
+ * }} Epochs
+ */
+const _Epochs = _s({
+  _0: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_0'],
+  _1: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_1'],
+  _2: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2'],
+  _3: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_3'],
+  _4: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_4'],
+});
+
+/**
+ * @typedef {{
+ *   supply: Ranges10yTo12ySupply,
+ *   outputs: DiscountOutputs,
+ *   activity: Ranges10yTo12yActivity,
+ *   realized: Ranges10yTo12yRealized,
+ *   unrealized: Classes2009Unrealized,
+ * }} Ranges10yTo12y
+ */
+const _Ranges10yTo12y = _s({
+  supply: [_Ranges10yTo12ySupply, '*'],
+  outputs: [_DiscountOutputs, '*'],
+  activity: [_Ranges10yTo12yActivity, '*'],
+  realized: [_Ranges10yTo12yRealized, '*'],
+  unrealized: [_Classes2009Unrealized, '*'],
 });
 
 /**
  * @template A
  * @typedef {{
- *   _2009: A,
- *   _2010: A,
- *   _2011: A,
- *   _2012: A,
- *   _2013: A,
- *   _2014: A,
- *   _2015: A,
- *   _2016: A,
- *   _2017: A,
- *   _2018: A,
- *   _2019: A,
- *   _2020: A,
- *   _2021: A,
- *   _2022: A,
- *   _2023: A,
- *   _2024: A,
- *   _2025: A,
- *   _2026: A,
- * }} CoindaysDestroyedClass
+ *   under1h: A,
+ *   _1hTo1d: A,
+ *   _1dTo1w: A,
+ *   _1wTo1m: A,
+ *   _1mTo2m: A,
+ *   _2mTo3m: A,
+ *   _3mTo4m: A,
+ *   _4mTo5m: A,
+ *   _5mTo6m: A,
+ *   _6mTo9m: A,
+ *   _9mTo1y: A,
+ *   _1yTo18m: A,
+ *   _18mTo2y: A,
+ *   _2yTo3y: A,
+ *   _3yTo4y: A,
+ *   _4yTo5y: A,
+ *   _5yTo6y: A,
+ *   _6yTo7y: A,
+ *   _7yTo8y: A,
+ *   _8yTo10y: A,
+ *   _10yTo12y: A,
+ *   _12yTo15y: A,
+ *   over15y: A,
+ * }} Ranges
  */
 /** @type {_Make} */
-const _CoindaysDestroyedClass = (c, b, f0) => _n(c, b, {
-  _2009: [f0, 'class_2009_*'],
-  _2010: [f0, 'class_2010_*'],
-  _2011: [f0, 'class_2011_*'],
-  _2012: [f0, 'class_2012_*'],
-  _2013: [f0, 'class_2013_*'],
-  _2014: [f0, 'class_2014_*'],
-  _2015: [f0, 'class_2015_*'],
-  _2016: [f0, 'class_2016_*'],
-  _2017: [f0, 'class_2017_*'],
-  _2018: [f0, 'class_2018_*'],
-  _2019: [f0, 'class_2019_*'],
-  _2020: [f0, 'class_2020_*'],
-  _2021: [f0, 'class_2021_*'],
-  _2022: [f0, 'class_2022_*'],
-  _2023: [f0, 'class_2023_*'],
-  _2024: [f0, 'class_2024_*'],
-  _2025: [f0, 'class_2025_*'],
-  _2026: [f0, 'class_2026_*'],
+const _Ranges = (c, b, f0) => _n(c, b, {
+  under1h: [f0, '*_under_1h_old'],
+  _1hTo1d: [f0, '*_1h_to_1d_old'],
+  _1dTo1w: [f0, '*_1d_to_1w_old'],
+  _1wTo1m: [f0, '*_1w_to_1m_old'],
+  _1mTo2m: [f0, '*_1m_to_2m_old'],
+  _2mTo3m: [f0, '*_2m_to_3m_old'],
+  _3mTo4m: [f0, '*_3m_to_4m_old'],
+  _4mTo5m: [f0, '*_4m_to_5m_old'],
+  _5mTo6m: [f0, '*_5m_to_6m_old'],
+  _6mTo9m: [f0, '*_6m_to_9m_old'],
+  _9mTo1y: [f0, '*_9m_to_1y_old'],
+  _1yTo18m: [f0, '*_1y_to_18m_old'],
+  _18mTo2y: [f0, '*_18m_to_2y_old'],
+  _2yTo3y: [f0, '*_2y_to_3y_old'],
+  _3yTo4y: [f0, '*_3y_to_4y_old'],
+  _4yTo5y: [f0, '*_4y_to_5y_old'],
+  _5yTo6y: [f0, '*_5y_to_6y_old'],
+  _6yTo7y: [f0, '*_6y_to_7y_old'],
+  _7yTo8y: [f0, '*_7y_to_8y_old'],
+  _8yTo10y: [f0, '*_8y_to_10y_old'],
+  _10yTo12y: [f0, '*_10y_to_12y_old'],
+  _12yTo15y: [f0, '*_12y_to_15y_old'],
+  over15y: [f0, '*_over_15y_old'],
 });
 
 /**
- * @template A
  * @typedef {{
- *   _0: A,
- *   _1: A,
- *   _2: A,
- *   _3: A,
- *   _4: A,
- * }} CoindaysDestroyedEpoch
+ *   ageRanges: Ranges<CoinflowAgeRanges10yTo12y>,
+ *   cohorts: Holders<CoinflowCohortsAll, CoinflowCohortsAll>,
+ * }} Coinflow
  */
-/** @type {_Make} */
-const _CoindaysDestroyedEpoch = (c, b, f0) => _n(c, b, {
-  _0: [f0, 'epoch_0_*'],
-  _1: [f0, 'epoch_1_*'],
-  _2: [f0, 'epoch_2_*'],
-  _3: [f0, 'epoch_3_*'],
-  _4: [f0, 'epoch_4_*'],
+const _Coinflow = _s({
+  ageRanges: [(c, b) => _Ranges(c, b, _CoinflowAgeRanges10yTo12y), '*'],
+  cohorts: [(c, b) => _Holders(c, b, _CoinflowCohortsAll, _CoinflowCohortsAll), '*'],
 });
 
 /**
- * @template A, B, C
  * @typedef {{
- *   age: A,
- *   epoch: B,
- *   class: C,
- * }} CoindaysDestroyed
+ *   activity: CointimeActivity,
+ *   ageRanges: Ranges<CointimeAgeRanges10yTo12y>,
+ *   cohorts: Holders<CointimeCohortsAll, CointimeCohortsAll>,
+ *   supply: CointimeSupply,
+ *   value: Value,
+ *   caps: Caps,
+ *   prices: CointimePrices,
+ *   adjusted: Adjusted,
+ *   reserveRisk: ReserveRisk,
+ * }} Cointime
  */
-/** @type {_Make} */
-const _CoindaysDestroyed = (c, b, f0, f1, f2) => _n(c, b, {
-  age: [f0, 'old_*'],
-  epoch: [f1, '*'],
-  class: [f2, '*'],
+const _Cointime = _s({
+  activity: [_CointimeActivity, 'coinblocks'],
+  ageRanges: [(c, b) => _Ranges(c, b, _CointimeAgeRanges10yTo12y), '*'],
+  cohorts: [(c, b) => _Holders(c, b, _CointimeCohortsAll, _CointimeCohortsAll), '*'],
+  supply: [_CointimeSupply, 'supply'],
+  value: [_Value, 'cointime_value'],
+  caps: [_Caps, 'cap'],
+  prices: [_CointimePrices, 'vaulted'],
+  adjusted: [_Adjusted, 'cointime_adjusted'],
+  reserveRisk: [_ReserveRisk, 'vocdd'],
 });
 
 /**
  * @typedef {{
- *   profit: CoindaysDestroyed<CapAge<?Dollars>, CapEpoch<?Dollars>, CapClass<?Dollars>>,
- *   loss: CoindaysDestroyed<CapAge<?Dollars>, CapEpoch<?Dollars>, CapClass<?Dollars>>,
- *   netPnl: CoindaysDestroyed<CapAge<?Dollars>, CapEpoch<?Dollars>, CapClass<?Dollars>>,
- * }} AgeUnrealized
- */
-const _AgeUnrealized = _s({
-  profit: [(c, b) => _CoindaysDestroyed(c, b, _CapAge, _CapEpoch, _CapClass), '*_profit'],
-  loss: [(c, b) => _CoindaysDestroyed(c, b, _CapAge, _CapEpoch, _CapClass), '*_loss'],
-  netPnl: [(c, b) => _CoindaysDestroyed(c, b, _CapAge, _CapEpoch, _CapClass), 'net_*_pnl'],
-});
-
-/**
- * @typedef {{
- *   cap: CoindaysDestroyed<CapAge<?Dollars>, CapEpoch<?Dollars>, CapClass<?Dollars>>,
- *   price: RealizedPrice,
- *   profit: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedClass<CoinblocksDestroyed<?Dollars>>>,
- *   loss: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedClass<CoinblocksDestroyed<?Dollars>>>,
- *   netPnl: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedClass<CoinblocksDestroyed<?Dollars>>>,
- *   valueDestroyed: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<?Dollars>>, CoindaysDestroyedClass<CoinblocksDestroyed<?Dollars>>>,
- * }} AgeRealized
- */
-const _AgeRealized = _s({
-  cap: [(c, b) => _CoindaysDestroyed(c, b, _CapAge, _CapEpoch, _CapClass), '*_cap'],
-  price: [_RealizedPrice, 'old_*_price'],
-  profit: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedEpoch(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedClass(c, b, _CoinblocksDestroyed)), '*_profit'],
-  loss: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedEpoch(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedClass(c, b, _CoinblocksDestroyed)), '*_loss'],
-  netPnl: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedEpoch(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedClass(c, b, _CoinblocksDestroyed)), 'net_*_pnl'],
-  valueDestroyed: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedEpoch(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedClass(c, b, _CoinblocksDestroyed)), 'value_destroyed'],
-});
-
-/**
- * @typedef {{
- *   age: CoindaysCreated<OpReturnValue>,
- *   epoch: CoindaysDestroyedEpoch<OpReturnValue>,
- *   class: CoindaysDestroyedClass<OpReturnValue>,
- *   inProfit: CoindaysDestroyed<CoindaysCreated<OpReturnValue>, CoindaysDestroyedEpoch<OpReturnValue>, CoindaysDestroyedClass<OpReturnValue>>,
- *   inLoss: CoindaysDestroyed<CoindaysCreated<OpReturnValue>, CoindaysDestroyedEpoch<OpReturnValue>, CoindaysDestroyedClass<OpReturnValue>>,
- * }} AgeActivityTransferVolume
- */
-const _AgeActivityTransferVolume = _s({
-  age: [(c, b) => _CoindaysCreated(c, b, _OpReturnValue), 'old_*'],
-  epoch: [(c, b) => _CoindaysDestroyedEpoch(c, b, _OpReturnValue), '*'],
-  class: [(c, b) => _CoindaysDestroyedClass(c, b, _OpReturnValue), '*'],
-  inProfit: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _OpReturnValue), (c, b) => _CoindaysDestroyedEpoch(c, b, _OpReturnValue), (c, b) => _CoindaysDestroyedClass(c, b, _OpReturnValue)), '*_in_profit'],
-  inLoss: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _OpReturnValue), (c, b) => _CoindaysDestroyedEpoch(c, b, _OpReturnValue), (c, b) => _CoindaysDestroyedClass(c, b, _OpReturnValue)), '*_in_loss'],
-});
-
-/**
- * @typedef {{
- *   transferVolume: AgeActivityTransferVolume,
- *   coindaysDestroyed: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<?CoinDays>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<?CoinDays>>, CoindaysDestroyedClass<CoinblocksDestroyed<?CoinDays>>>,
- * }} AgeActivity
- */
-const _AgeActivity = _s({
-  transferVolume: [_AgeActivityTransferVolume, '*'],
-  coindaysDestroyed: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedEpoch(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedClass(c, b, _CoinblocksDestroyed)), 'coindays_destroyed'],
-});
-
-/**
- * @typedef {{
- *   unspentCount: CoindaysDestroyed<CoindaysCreated<MarketCap<Count, CountSigned>>, CoindaysDestroyedEpoch<MarketCap<Count, CountSigned>>, CoindaysDestroyedClass<MarketCap<Count, CountSigned>>>,
- *   spentCount: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Count>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Count>>, CoindaysDestroyedClass<CoinblocksDestroyed<Count>>>,
- * }} AgeOutputs
- */
-const _AgeOutputs = _s({
-  unspentCount: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _MarketCap), (c, b) => _CoindaysDestroyedEpoch(c, b, _MarketCap), (c, b) => _CoindaysDestroyedClass(c, b, _MarketCap)), '*'],
-  spentCount: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedEpoch(c, b, _CoinblocksDestroyed), (c, b) => _CoindaysDestroyedClass(c, b, _CoinblocksDestroyed)), 'spent_*'],
-});
-
-/**
- * @typedef {{
- *   total: CoindaysDestroyed<CoindaysCreated<AvgBalanceAll>, CoindaysDestroyedEpoch<AvgBalanceAll>, CoindaysDestroyedClass<AvgBalanceAll>>,
- *   matured: CoindaysCreated<OpReturnValue>,
- *   inProfit: CoindaysDestroyed<CoindaysCreated<AvgBalanceAll>, CoindaysDestroyedEpoch<AvgBalanceAll>, CoindaysDestroyedClass<AvgBalanceAll>>,
- *   inLoss: CoindaysDestroyed<CoindaysCreated<AvgBalanceAll>, CoindaysDestroyedEpoch<AvgBalanceAll>, CoindaysDestroyedClass<AvgBalanceAll>>,
- *   delta: CoindaysDestroyed<CoindaysCreated<DeltaAll<?Bitcoin>>, CoindaysDestroyedEpoch<DeltaAll<?Bitcoin>>, CoindaysDestroyedClass<DeltaAll<?Bitcoin>>>,
- *   dominance: CoindaysDestroyed<CapAge<?Percent>, CapEpoch<?Percent>, CapClass<?Percent>>,
- * }} AgeSupply
- */
-const _AgeSupply = _s({
-  total: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _AvgBalanceAll), (c, b) => _CoindaysDestroyedEpoch(c, b, _AvgBalanceAll), (c, b) => _CoindaysDestroyedClass(c, b, _AvgBalanceAll)), '*'],
-  matured: [(c, b) => _CoindaysCreated(c, b, _OpReturnValue), 'old_matured_*'],
-  inProfit: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _AvgBalanceAll), (c, b) => _CoindaysDestroyedEpoch(c, b, _AvgBalanceAll), (c, b) => _CoindaysDestroyedClass(c, b, _AvgBalanceAll)), '*_in_profit'],
-  inLoss: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _AvgBalanceAll), (c, b) => _CoindaysDestroyedEpoch(c, b, _AvgBalanceAll), (c, b) => _CoindaysDestroyedClass(c, b, _AvgBalanceAll)), '*_in_loss'],
-  delta: [(c, b) => _CoindaysDestroyed(c, b, (c, b) => _CoindaysCreated(c, b, _DeltaAll), (c, b) => _CoindaysDestroyedEpoch(c, b, _DeltaAll), (c, b) => _CoindaysDestroyedClass(c, b, _DeltaAll)), '*_delta'],
-  dominance: [(c, b) => _CoindaysDestroyed(c, b, _CapAge, _CapEpoch, _CapClass), '*_dominance'],
-});
-
-/**
- * @typedef {{
- *   supply: AgeSupply,
- *   outputs: AgeOutputs,
- *   activity: AgeActivity,
- *   realized: AgeRealized,
- *   unrealized: AgeUnrealized,
- *   ageBounds: AgeBounds,
- *   coindaysCreated: CoindaysCreated<CoinblocksDestroyed<?CoinDays>>,
+ *   ranges: Ranges<Ranges10yTo12y>,
+ *   epochs: Epochs,
+ *   classes: Classes,
  *   coinblocksDestroyed: CoinblocksDestroyed<?CoinBlocks>,
  * }} Age
  */
 const _Age = _s({
-  supply: [_AgeSupply, '*'],
-  outputs: [_AgeOutputs, 'utxo_count'],
-  activity: [_AgeActivity, 'transfer_volume'],
-  realized: [_AgeRealized, 'realized'],
-  unrealized: [_AgeUnrealized, 'unrealized'],
-  ageBounds: [_AgeBounds, 'utxos_urpd'],
-  coindaysCreated: [(c, b) => _CoindaysCreated(c, b, _CoinblocksDestroyed), 'old_coindays_created'],
+  ranges: [(c, b) => _Ranges(c, b, _Ranges10yTo12y), '*'],
+  epochs: [_Epochs, 'epoch'],
+  classes: [_Classes, 'class'],
   coinblocksDestroyed: [_CoinblocksDestroyed, 'coinblocks_destroyed'],
 });
 
@@ -7706,15 +7390,15 @@ const _SeriesTree = _s({
   pools: [_Pools, 'pool'],
   utxoSet: [_UtxoSet2, 'circulating_supply'],
   market: [_Market, 'price'],
-  age: [_Age, 'supply'],
-  utxos: [_Utxos, 'supply'],
+  age: [_Age, 'utxos'],
+  utxos: [_Utxos, 'utxos'],
   addresses: [_Addresses, 'addr'],
   holders: [(c, b) => _Holders(c, b, (c, b) => _HoldersAll(c, b, _AllSupply), (c, b) => _HoldersAll(c, b, _LthSupply)), 'utxos'],
   entry: [_Entry, 'veteran'],
   supply: [_Supply, 'rate'],
   indicators: [_Indicators, 'destroyed_supply_adjusted'],
-  cointime: [_Cointime, 'cointime'],
-  coinflow: [_Coinflow, 'old'],
+  cointime: [_Cointime, 'utxos'],
+  coinflow: [_Coinflow, 'utxos'],
   bedrock: [_Bedrock, 'bedrock'],
   capitalSentiment: [_CapitalSentiment, 'capital_sentiment'],
   rarityMeter: [_RarityMeter, 'rarity_meter'],

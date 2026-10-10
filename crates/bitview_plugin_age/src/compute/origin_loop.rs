@@ -11,7 +11,6 @@ pub fn replay_origins(
     states: &mut UTXOStates,
     ctx: &ComputeContext<'_>,
     cursor: &mut Cursor<'_>,
-    mut on_block: impl FnMut(Height, &UTXOStates),
 ) -> Result<()> {
     for h in usize::from(ctx.starting_height)..=usize::from(ctx.last_height) {
         let height = Height::from(h);
@@ -23,13 +22,13 @@ pub fn replay_origins(
         let spent = diff.spent();
         let lost = diff.correction();
         let created = supply(diff.created);
-        vecs.cohorts.supply.push_maturation(&tick.matured, price);
-        for (target, value) in vecs
-            .coindays_created
+        for ((range, &matured), &coindays_created) in vecs
+            .ranges
             .iter_mut()
+            .zip(tick.matured.iter())
             .zip(tick.coindays_created.iter())
         {
-            target.push_block(*value);
+            range.push_tick(matured, coindays_created, price);
         }
         states.receive_origins(created, height, timestamp, price);
         let satblocks =
@@ -43,14 +42,9 @@ pub fn replay_origins(
 
         states.apply_pending();
 
-        vecs.cohorts.push_supply_and_unrealized(states, price);
-        vecs.cohorts.push_outputs(states);
-        vecs.cohorts.push_activity(states, price);
-        vecs.cohorts.push_realized(states);
+        vecs.push(states, price);
 
         states.reset_block();
-
-        on_block(height, states);
     }
 
     Ok(())

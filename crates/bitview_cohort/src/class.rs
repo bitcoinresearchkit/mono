@@ -98,7 +98,7 @@ impl<T> Class<T> {
         Self::from_fn(|id| create(id.cohort()))
     }
 
-    pub(crate) fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
+    pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
         Self::try_from_fn(|id| create(id.cohort()))
     }
 

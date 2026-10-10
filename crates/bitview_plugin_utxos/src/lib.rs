@@ -4,7 +4,6 @@ mod compute;
 mod dependencies;
 mod import;
 mod metrics;
-mod sources;
 mod state;
 mod type_sources;
 

@@ -17,16 +17,22 @@ impl Vecs {
     pub(crate) fn compute(&mut self, indexer: &Indexer, age: &AgeVecs, exit: &Exit) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
         let transfer_volumes = AgeRange::from_fn(|id| {
-            &id.select(&age.cohorts.activity.transfer_volume.cohorts.age)
+            &id.select(&age.ranges)
+                .activity
+                .transfer_volume
+                .value
                 .block
                 .sats
         });
         let coindays_destroyed = AgeRange::from_fn(|id| {
-            &id.select(&age.cohorts.activity.coindays_destroyed.cohorts.age)
+            &id.select(&age.ranges)
+                .activity
+                .coindays_destroyed
+                .value
                 .block
         });
         let coindays_created =
-            AgeRange::from_fn(|id| &id.select(&age.coindays_created).cumulative.height);
+            AgeRange::from_fn(|id| &id.select(&age.ranges).coindays_created.cumulative.height);
 
         self.compute_consumed(
             starting_height,

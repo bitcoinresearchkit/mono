@@ -43,19 +43,5 @@ pub use unspendable_type::*;
 pub use utxo_all_and_sth::*;
 
 pub use with_addr_types::WithAddrTypes;
-mod utxo_groups;
-pub use utxo_groups::UtxoGroups;
-
 mod age_crossings;
 pub use age_crossings::{for_each_age_crossing, for_each_age_cutoff};
-
-mod creation_cohorts;
-pub use creation_cohorts::CreationCohorts;
-
-/// Cohort-group markers, kept off the root: the client glob-imports this crate and
-/// `bitview_types`, whose `Utxo` would become ambiguous (workspace builds unify the
-/// `storage` feature).
-#[cfg(feature = "storage")]
-pub mod cohort_group;
-#[cfg(feature = "storage")]
-pub use cohort_group::CohortGroup;

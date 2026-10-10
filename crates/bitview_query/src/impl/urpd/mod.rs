@@ -132,7 +132,10 @@ impl Query {
             }
             let plugins = self.plugins();
             let supply = age
-                .select(&plugins.age.cohorts.supply.total.cohorts.age)
+                .select(&plugins.age.ranges)
+                .supply
+                .total
+                .value
                 .sats
                 .height
                 .collect_one(height)

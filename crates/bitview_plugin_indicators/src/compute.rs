@@ -38,7 +38,7 @@ impl ComputePlugin for Vecs {
             ..
         } = self;
         let subsidy = &mining.rewards.subsidy;
-        let realized_cap = &age.cohorts.realized.cap.cohorts.age;
+        let ranges = &age.ranges;
         let supply = &holders.cohorts.all.supply;
         let supply_total_sats = &supply.total.sats.height;
 
@@ -61,9 +61,9 @@ impl ComputePlugin for Vecs {
         let compute_rhodl = || {
             rhodl_ratio.fixed.height.compute_transform3(
                 starting_height,
-                &realized_cap._1d_to_1w.usd.height,
-                &realized_cap._1y_to_18m.usd.height,
-                &realized_cap._18m_to_2y.usd.height,
+                &ranges._1d_to_1w.realized.cap.value.usd.height,
+                &ranges._1y_to_18m.realized.cap.value.usd.height,
+                &ranges._18m_to_2y.realized.cap.value.usd.height,
                 |(height, young_cap, year1_cap, month18_cap, ..)| {
                     let denominator = year1_cap + month18_cap;
                     let ratio = f64::from(young_cap) / f64::from(denominator);

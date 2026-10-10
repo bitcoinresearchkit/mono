@@ -1594,7 +1594,7 @@ pub mod tree {
         nupl: SeriesPattern1<Option<Ratio>> = "*_nupl",
     } }
     shape! { Relative at "series().holders.all.relative" {
-        supply_dominance: SeriesPattern1<Option<Percent>> = "*_supply_dominance",
+        supply_share: SeriesPattern1<Option<Percent>> = "*_supply_share",
         supply_in_profit_share: SeriesPattern1<Option<Percent>> = "*_supply_in_profit_share",
         supply_in_loss_share: SeriesPattern1<Option<Percent>> = "*_supply_in_loss_share",
         unrealized_profit_to_mcap: SeriesPattern1<Option<Ratio>> = "*_unrealized_profit_to_mcap",
@@ -1673,7 +1673,7 @@ pub mod tree {
         net_sentiment: SeriesPattern1<Option<Dollars>> = "*_net_sentiment",
         nupl: SeriesPattern1<Option<Ratio>> = "*_nupl",
     } }
-    shape! { AllSupplyTotal at "series().holders.all.supply.total" {
+    shape! { Total at "series().holders.all.supply.total" {
         btc: SeriesPattern1<Option<Bitcoin>> = "*",
         usd: SeriesPattern1<Option<Dollars>> = "market_cap",
     } }
@@ -1721,103 +1721,10 @@ pub mod tree {
         funded: SeriesPattern36<FundedAddrData> = "funded_*_data",
         extended_empty: SeriesPattern37<EmptyAddrData> = "extended_empty_*_data",
     } }
-    shape! { CapType<A> at "series().utxos.realized.cap.type_" {
-        p2pk65: SeriesPattern1<A> = "p2pk65_*",
-        p2pk33: SeriesPattern1<A> = "p2pk33_*",
-        p2pkh: SeriesPattern1<A> = "p2pkh_*",
-        p2ms: SeriesPattern1<A> = "p2ms_*",
-        p2sh: SeriesPattern1<A> = "p2sh_*",
-        p2wpkh: SeriesPattern1<A> = "p2wpkh_*",
-        p2wsh: SeriesPattern1<A> = "p2wsh_*",
-        p2tr: SeriesPattern1<A> = "p2tr_*",
-        p2a: SeriesPattern1<A> = "p2a_*",
-        unknown: SeriesPattern1<A> = "unknown_outputs_*",
-        empty: SeriesPattern1<A> = "empty_outputs_*",
-    } }
-    shape! { CapUtxoAmount<A> at "series().utxos.realized.cap.utxo_amount" {
-        _0sats: SeriesPattern1<A> = "utxos_0sats_*",
-        _1sat_to_10sats: SeriesPattern1<A> = "utxos_1sat_to_10sats_*",
-        _10sats_to_100sats: SeriesPattern1<A> = "utxos_10sats_to_100sats_*",
-        _100sats_to_1k_sats: SeriesPattern1<A> = "utxos_100sats_to_1k_sats_*",
-        _1k_sats_to_10k_sats: SeriesPattern1<A> = "utxos_1k_sats_to_10k_sats_*",
-        _10k_sats_to_100k_sats: SeriesPattern1<A> = "utxos_10k_sats_to_100k_sats_*",
-        _100k_sats_to_1m_sats: SeriesPattern1<A> = "utxos_100k_sats_to_1m_sats_*",
-        _1m_sats_to_10m_sats: SeriesPattern1<A> = "utxos_1m_sats_to_10m_sats_*",
-        _10m_sats_to_1btc: SeriesPattern1<A> = "utxos_10m_sats_to_1btc_*",
-        _1btc_to_10btc: SeriesPattern1<A> = "utxos_1btc_to_10btc_*",
-        _10btc_to_100btc: SeriesPattern1<A> = "utxos_10btc_to_100btc_*",
-        _100btc_to_1k_btc: SeriesPattern1<A> = "utxos_100btc_to_1k_btc_*",
-        _1k_btc_to_10k_btc: SeriesPattern1<A> = "utxos_1k_btc_to_10k_btc_*",
-        _10k_btc_to_100k_btc: SeriesPattern1<A> = "utxos_10k_btc_to_100k_btc_*",
-        over_100k_btc: SeriesPattern1<A> = "utxos_over_100k_btc_*",
-    } }
-    shape! { AgeBoundsAll at "series().age.age_bounds.all" {
-        min: SeriesPattern1<Option<Dollars>> = "*_min",
-        max: SeriesPattern1<Option<Dollars>> = "*_max",
-    } }
-    shape! { AgeBounds at "series().age.age_bounds" {
-        all: AgeBoundsAll = "*_all_cost_basis",
-        sth: AgeBoundsAll = "*_sth_cost_basis",
-        lth: AgeBoundsAll = "*_lth_cost_basis",
-        under_4m: AgeBoundsAll = "*_under_4m_cost_basis",
-        under_6m: AgeBoundsAll = "*_under_6m_cost_basis",
-        over_4m: AgeBoundsAll = "*_over_4m_cost_basis",
-        over_6m: AgeBoundsAll = "*_over_6m_cost_basis",
-    } }
-    shape! { CapClass<A> at "series().age.realized.cap.class" {
-        _2009: SeriesPattern1<A> = "class_2009_*",
-        _2010: SeriesPattern1<A> = "class_2010_*",
-        _2011: SeriesPattern1<A> = "class_2011_*",
-        _2012: SeriesPattern1<A> = "class_2012_*",
-        _2013: SeriesPattern1<A> = "class_2013_*",
-        _2014: SeriesPattern1<A> = "class_2014_*",
-        _2015: SeriesPattern1<A> = "class_2015_*",
-        _2016: SeriesPattern1<A> = "class_2016_*",
-        _2017: SeriesPattern1<A> = "class_2017_*",
-        _2018: SeriesPattern1<A> = "class_2018_*",
-        _2019: SeriesPattern1<A> = "class_2019_*",
-        _2020: SeriesPattern1<A> = "class_2020_*",
-        _2021: SeriesPattern1<A> = "class_2021_*",
-        _2022: SeriesPattern1<A> = "class_2022_*",
-        _2023: SeriesPattern1<A> = "class_2023_*",
-        _2024: SeriesPattern1<A> = "class_2024_*",
-        _2025: SeriesPattern1<A> = "class_2025_*",
-        _2026: SeriesPattern1<A> = "class_2026_*",
-    } }
-    shape! { CapEpoch<A> at "series().age.realized.cap.epoch" {
-        _0: SeriesPattern1<A> = "epoch_0_*",
-        _1: SeriesPattern1<A> = "epoch_1_*",
-        _2: SeriesPattern1<A> = "epoch_2_*",
-        _3: SeriesPattern1<A> = "epoch_3_*",
-        _4: SeriesPattern1<A> = "epoch_4_*",
-    } }
-    shape! { CapAge<A> at "series().age.realized.cap.age" {
-        under_1h: SeriesPattern1<A> = "utxos_under_1h_*",
-        _1h_to_1d: SeriesPattern1<A> = "utxos_1h_to_1d_*",
-        _1d_to_1w: SeriesPattern1<A> = "utxos_1d_to_1w_*",
-        _1w_to_1m: SeriesPattern1<A> = "utxos_1w_to_1m_*",
-        _1m_to_2m: SeriesPattern1<A> = "utxos_1m_to_2m_*",
-        _2m_to_3m: SeriesPattern1<A> = "utxos_2m_to_3m_*",
-        _3m_to_4m: SeriesPattern1<A> = "utxos_3m_to_4m_*",
-        _4m_to_5m: SeriesPattern1<A> = "utxos_4m_to_5m_*",
-        _5m_to_6m: SeriesPattern1<A> = "utxos_5m_to_6m_*",
-        _6m_to_9m: SeriesPattern1<A> = "utxos_6m_to_9m_*",
-        _9m_to_1y: SeriesPattern1<A> = "utxos_9m_to_1y_*",
-        _1y_to_18m: SeriesPattern1<A> = "utxos_1y_to_18m_*",
-        _18m_to_2y: SeriesPattern1<A> = "utxos_18m_to_2y_*",
-        _2y_to_3y: SeriesPattern1<A> = "utxos_2y_to_3y_*",
-        _3y_to_4y: SeriesPattern1<A> = "utxos_3y_to_4y_*",
-        _4y_to_5y: SeriesPattern1<A> = "utxos_4y_to_5y_*",
-        _5y_to_6y: SeriesPattern1<A> = "utxos_5y_to_6y_*",
-        _6y_to_7y: SeriesPattern1<A> = "utxos_6y_to_7y_*",
-        _7y_to_8y: SeriesPattern1<A> = "utxos_7y_to_8y_*",
-        _8y_to_10y: SeriesPattern1<A> = "utxos_8y_to_10y_*",
-        _10y_to_12y: SeriesPattern1<A> = "utxos_10y_to_12y_*",
-        _12y_to_15y: SeriesPattern1<A> = "utxos_12y_to_15y_*",
-        over_15y: SeriesPattern1<A> = "utxos_over_15y_*",
-    } }
-    shape! { RealizedPrice at "series().age.realized.price" {
-        age: CapAge<Option<Dollars>> = "*",
+    shape! { Classes2009Unrealized at "series().age.classes._2009.unrealized" {
+        profit: SeriesPattern1<Option<Dollars>> = "*_unrealized_profit",
+        loss: SeriesPattern1<Option<Dollars>> = "*_unrealized_loss",
+        net_pnl: SeriesPattern1<Option<Dollars>> = "*_net_unrealized_pnl",
     } }
     shape! { AllRate at "series().addresses.delta.all.rate" {
         _24h: SeriesPattern1<Option<Percent>> = "*_24h_rate",
@@ -2018,17 +1925,17 @@ pub mod tree {
         vsize: EffectiveFeeRate<VSize, Vsize6b> = "*_vsize",
         weight: SizeWeight = "*_weight",
     } }
-    shape! { AvgBalanceAll at "series().addresses.avg_balance.all" {
+    shape! { AvgAmount at "series().utxos.avg_amount" {
         btc: SeriesPattern1<Option<Bitcoin>> = "*",
         usd: SeriesPattern1<Option<Dollars>> = "*_usd",
     } }
     shape! { CointimeSupply at "series().cointime.supply" {
-        vaulted: AvgBalanceAll = "vaulted_*",
-        hodled_or_lost: AvgBalanceAll = "hodled_or_lost_*",
-        active: AvgBalanceAll = "active_*",
+        vaulted: AvgAmount = "vaulted_*",
+        hodled_or_lost: AvgAmount = "hodled_or_lost_*",
+        active: AvgAmount = "active_*",
     } }
     shape! { Immobile at "series().coinflow.age_ranges._10y_to_12y.immobile" {
-        supply: AvgBalanceAll = "*",
+        supply: AvgAmount = "*",
     } }
     shape! { CoinflowCohortsAll at "series().coinflow.cohorts.all" {
         mobile: Mobile = "*_mobile",
@@ -2046,46 +1953,29 @@ pub mod tree {
         dormant: Immobile = "*_dormant_supply",
     } }
     shape! { ExposedSupply at "series().addresses.exposed.supply" {
-        all: AvgBalanceAll = "*",
-        p2pk65: AvgBalanceAll = "p2pk65_*",
-        p2pk33: AvgBalanceAll = "p2pk33_*",
-        p2pkh: AvgBalanceAll = "p2pkh_*",
-        p2sh: AvgBalanceAll = "p2sh_*",
-        p2wpkh: AvgBalanceAll = "p2wpkh_*",
-        p2wsh: AvgBalanceAll = "p2wsh_*",
-        p2tr: AvgBalanceAll = "p2tr_*",
-        p2a: AvgBalanceAll = "p2a_*",
+        all: AvgAmount = "*",
+        p2pk65: AvgAmount = "p2pk65_*",
+        p2pk33: AvgAmount = "p2pk33_*",
+        p2pkh: AvgAmount = "p2pkh_*",
+        p2sh: AvgAmount = "p2sh_*",
+        p2wpkh: AvgAmount = "p2wpkh_*",
+        p2wsh: AvgAmount = "p2wsh_*",
+        p2tr: AvgAmount = "p2tr_*",
+        p2a: AvgAmount = "p2a_*",
         share: AddressesEmpty<Option<Percent>> = "*_share",
     } }
     shape! { Exposed at "series().addresses.exposed" {
         count: ExposedCount = "*_count",
         supply: ExposedSupply = "*_supply",
     } }
-    shape! { TotalUtxoAmount at "series().utxos.supply.total.utxo_amount" {
-        _0sats: AvgBalanceAll = "*_0sats_supply",
-        _1sat_to_10sats: AvgBalanceAll = "*_1sat_to_10sats_supply",
-        _10sats_to_100sats: AvgBalanceAll = "*_10sats_to_100sats_supply",
-        _100sats_to_1k_sats: AvgBalanceAll = "*_100sats_to_1k_sats_supply",
-        _1k_sats_to_10k_sats: AvgBalanceAll = "*_1k_sats_to_10k_sats_supply",
-        _10k_sats_to_100k_sats: AvgBalanceAll = "*_10k_sats_to_100k_sats_supply",
-        _100k_sats_to_1m_sats: AvgBalanceAll = "*_100k_sats_to_1m_sats_supply",
-        _1m_sats_to_10m_sats: AvgBalanceAll = "*_1m_sats_to_10m_sats_supply",
-        _10m_sats_to_1btc: AvgBalanceAll = "*_10m_sats_to_1btc_supply",
-        _1btc_to_10btc: AvgBalanceAll = "*_1btc_to_10btc_supply",
-        _10btc_to_100btc: AvgBalanceAll = "*_10btc_to_100btc_supply",
-        _100btc_to_1k_btc: AvgBalanceAll = "*_100btc_to_1k_btc_supply",
-        _1k_btc_to_10k_btc: AvgBalanceAll = "*_1k_btc_to_10k_btc_supply",
-        _10k_btc_to_100k_btc: AvgBalanceAll = "*_10k_btc_to_100k_btc_supply",
-        over_100k_btc: AvgBalanceAll = "*_over_100k_btc_supply",
-    } }
     shape! { Sum at "series().op_return.fees.sum" {
-        _24h: AvgBalanceAll = "*_24h",
-        _1w: AvgBalanceAll = "*_1w",
-        _1m: AvgBalanceAll = "*_1m",
-        _1y: AvgBalanceAll = "*_1y",
+        _24h: AvgAmount = "*_24h",
+        _1w: AvgAmount = "*_1w",
+        _1m: AvgAmount = "*_1m",
+        _1y: AvgAmount = "*_1y",
     } }
     shape! { AaopoolRewards at "series().pools.aaopool.rewards" {
-        cumulative: AvgBalanceAll = "*_cumulative",
+        cumulative: AvgAmount = "*_cumulative",
         sum: Sum = "*_sum",
     } }
     shape! { Block at "series().op_return.fees.block" {
@@ -2094,18 +1984,21 @@ pub mod tree {
     } }
     shape! { InscriptionFees at "series().transactions.inscription.fees" {
         block: Block = "*_fees",
-        cumulative: AvgBalanceAll = "*_fees_cumulative",
+        cumulative: AvgAmount = "*_fees_cumulative",
         sum: Sum = "*_fees_sum",
         chain_share: SeriesPattern1<Option<Percent>> = "*_fee_chain_share",
     } }
     shape! { OpReturnValue at "series().outputs.op_return_value" {
         block: Block = "*",
-        cumulative: AvgBalanceAll = "*_cumulative",
+        cumulative: AvgAmount = "*_cumulative",
         sum: Sum = "*_sum",
     } }
-    shape! { DiscountActivityTransferVolume at "series().entry.discount.activity.transfer_volume" {
+    shape! { Amounts0satsActivity at "series().utxos.amounts._0sats.activity" {
+        transfer_volume: OpReturnValue = "*",
+    } }
+    shape! { TransferVolume at "series().entry.discount.activity.transfer_volume" {
         block: Block = "*",
-        cumulative: AvgBalanceAll = "*_cumulative",
+        cumulative: AvgAmount = "*_cumulative",
         sum: Sum = "*_sum",
         in_profit: OpReturnValue = "*_in_profit",
         in_loss: OpReturnValue = "*_in_loss",
@@ -2122,13 +2015,13 @@ pub mod tree {
     } }
     shape! { OpReturnFees at "series().op_return.fees" {
         block: Block = "*_fees",
-        cumulative: AvgBalanceAll = "*_fees_cumulative",
+        cumulative: AvgAmount = "*_fees_cumulative",
         sum: Sum = "*_fees_sum",
         chain_share: ChainShare = "*_fee_chain_share",
     } }
     shape! { Subsidy at "series().mining.rewards.subsidy" {
         block: Block = "*",
-        cumulative: AvgBalanceAll = "*_cumulative",
+        cumulative: AvgAmount = "*_cumulative",
         sum: Sum = "*_sum",
         share: ChainShare = "*_share",
     } }
@@ -2159,29 +2052,29 @@ pub mod tree {
         absolute: InputsPerSecond<A> = "*",
         rate: AllRate = "*",
     } }
-    shape! { DiscountSupply at "series().entry.discount.supply" {
-        total: AvgBalanceAll = "*",
-        delta: DeltaAll<Option<Bitcoin>> = "*_delta",
-        dominance: SeriesPattern1<Option<Percent>> = "*_dominance",
-        in_profit: AvgBalanceAll = "*_in_profit",
-        in_loss: AvgBalanceAll = "*_in_loss",
-    } }
     shape! { LthSupply at "series().holders.lth.supply" {
-        total: AvgBalanceAll = "*",
-        in_profit: AvgBalanceAll = "*_in_profit",
-        in_loss: AvgBalanceAll = "*_in_loss",
+        total: AvgAmount = "*",
+        in_profit: AvgAmount = "*_in_profit",
+        in_loss: AvgAmount = "*_in_loss",
         delta: DeltaAll<Option<Bitcoin>> = "*_delta",
     } }
     shape! { AllSupply at "series().holders.all.supply" {
-        total: AllSupplyTotal = "circulating_*",
-        in_profit: AvgBalanceAll = "*_in_profit",
-        in_loss: AvgBalanceAll = "*_in_loss",
+        total: Total = "circulating_*",
+        in_profit: AvgAmount = "*_in_profit",
+        in_loss: AvgAmount = "*_in_loss",
         delta: DeltaAll<Option<Bitcoin>> = "*_delta",
     } }
     shape! { Supply0sats at "series().addresses.supply._0sats" {
-        total: AvgBalanceAll = "*",
+        total: AvgAmount = "*",
         delta: DeltaAll<Option<Bitcoin>> = "*_delta",
-        dominance: SeriesPattern1<Option<Percent>> = "*_dominance",
+        share: SeriesPattern1<Option<Percent>> = "*_share",
+    } }
+    shape! { DiscountSupply at "series().entry.discount.supply" {
+        total: AvgAmount = "*",
+        delta: DeltaAll<Option<Bitcoin>> = "*_delta",
+        share: SeriesPattern1<Option<Percent>> = "*_share",
+        in_profit: AvgAmount = "*_in_profit",
+        in_loss: AvgAmount = "*_in_loss",
     } }
     shape! { MarketCap<A, B> at "series().supply.market_cap" {
         block: SeriesPattern1<A> = "*",
@@ -2194,6 +2087,14 @@ pub mod tree {
         velocity: Velocity = "velocity",
         market_cap: MarketCap<Option<Dollars>, Option<Dollars>> = "market_cap",
         market_minus_realized_cap_growth_rate: InputsPerSecond<Option<Percent>> = "market_minus_realized_cap_growth_*",
+    } }
+    shape! { Ranges10yTo12ySupply at "series().age.ranges._10y_to_12y.supply" {
+        total: AvgAmount = "*_supply",
+        delta: DeltaAll<Option<Bitcoin>> = "*_supply_delta",
+        share: SeriesPattern1<Option<Percent>> = "*_supply_share",
+        in_profit: AvgAmount = "*_supply_in_profit",
+        in_loss: AvgAmount = "*_supply_in_loss",
+        matured: OpReturnValue = "*_matured_supply",
     } }
     shape! { Daily at "series().market.returns.daily" {
         avg: InputsPerSecond<Option<Percent>> = "*_avg",
@@ -2411,7 +2312,7 @@ pub mod tree {
     } }
     shape! { RewardsFees at "series().mining.rewards.fees" {
         block: Block = "*",
-        cumulative: AvgBalanceAll = "*_cumulative",
+        cumulative: AvgAmount = "*_cumulative",
         sum: Sum = "*_sum",
         avg: Sum = "*_avg",
         min: Sum = "*_min",
@@ -2488,31 +2389,6 @@ pub mod tree {
         awake: Immobile = "*_awake_supply",
         dormant: Immobile = "*_dormant_supply",
     } }
-    shape! { CoindaysCreated<A> at "series().age.coindays_created" {
-        under_1h: A = "utxos_under_1h_*",
-        _1h_to_1d: A = "utxos_1h_to_1d_*",
-        _1d_to_1w: A = "utxos_1d_to_1w_*",
-        _1w_to_1m: A = "utxos_1w_to_1m_*",
-        _1m_to_2m: A = "utxos_1m_to_2m_*",
-        _2m_to_3m: A = "utxos_2m_to_3m_*",
-        _3m_to_4m: A = "utxos_3m_to_4m_*",
-        _4m_to_5m: A = "utxos_4m_to_5m_*",
-        _5m_to_6m: A = "utxos_5m_to_6m_*",
-        _6m_to_9m: A = "utxos_6m_to_9m_*",
-        _9m_to_1y: A = "utxos_9m_to_1y_*",
-        _1y_to_18m: A = "utxos_1y_to_18m_*",
-        _18m_to_2y: A = "utxos_18m_to_2y_*",
-        _2y_to_3y: A = "utxos_2y_to_3y_*",
-        _3y_to_4y: A = "utxos_3y_to_4y_*",
-        _4y_to_5y: A = "utxos_4y_to_5y_*",
-        _5y_to_6y: A = "utxos_5y_to_6y_*",
-        _6y_to_7y: A = "utxos_6y_to_7y_*",
-        _7y_to_8y: A = "utxos_7y_to_8y_*",
-        _8y_to_10y: A = "utxos_8y_to_10y_*",
-        _10y_to_12y: A = "utxos_10y_to_12y_*",
-        _12y_to_15y: A = "utxos_12y_to_15y_*",
-        over_15y: A = "utxos_over_15y_*",
-    } }
     shape! { CointimeActivity at "series().cointime.activity" {
         coinblocks_created: CoinblocksDestroyed<Option<CoinBlocks>> = "*_created",
         coinblocks_destroyed: CoinblocksDestroyed<Option<CoinBlocks>> = "*_destroyed",
@@ -2534,10 +2410,6 @@ pub mod tree {
         net_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_net_realized_pnl",
         sopr: Sopr = "*",
         mvrv: SeriesPattern1<Option<Ratio>> = "*_mvrv",
-    } }
-    shape! { DiscountActivity at "series().entry.discount.activity" {
-        transfer_volume: DiscountActivityTransferVolume = "*_transfer_volume",
-        coindays_destroyed: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_destroyed",
     } }
     shape! { AdjustedSopr at "series().holders.all.ratios.adjusted_sopr" {
         ratio: InputsPerSecond<Option<Ratio>> = "*_sopr",
@@ -2570,55 +2442,6 @@ pub mod tree {
         transfer_volume_in_loss: OpReturnValue = "*_transfer_volume_in_loss",
         coindays_destroyed: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_destroyed",
         coinyears_destroyed: SeriesPattern1<Option<CoinYears>> = "*_coinyears_destroyed",
-    } }
-    shape! { DiscountOutputs at "series().entry.discount.outputs" {
-        unspent_count: MarketCap<Count, CountSigned> = "*_utxo_count",
-        spent_count: CoinblocksDestroyed<Count> = "*_spent_utxo_count",
-    } }
-    shape! { Discount at "series().entry.discount" {
-        supply: DiscountSupply = "*_supply",
-        outputs: DiscountOutputs = "*",
-        activity: DiscountActivity = "*",
-        realized: DiscountRealized = "*",
-        unrealized: DiscountUnrealized = "*",
-    } }
-    shape! { Entry at "series().entry" {
-        discount: Discount = "*",
-        premium: Discount = "rookie",
-    } }
-    shape! { HoldersAll<A> at "series().holders.all" {
-        supply: A = "*_supply",
-        outputs: DiscountOutputs = "*",
-        activity: AllActivity = "*",
-        realized: AllRealized = "*",
-        unrealized: AllUnrealized = "*",
-        cost_basis: AllCostBasis = "*",
-        ratios: Ratios = "*",
-        relative: Relative = "*",
-    } }
-    shape! { Holders<A, B> at "series().holders" {
-        all: A = "",
-        sth: B = "sth",
-        lth: B = "lth",
-        under_4m: B = "*_under_4m_old",
-        under_6m: B = "*_under_6m_old",
-        over_4m: B = "*_over_4m_old",
-        over_6m: B = "*_over_6m_old",
-    } }
-    shape! { Coinflow at "series().coinflow" {
-        age_ranges: CoindaysCreated<CoinflowAgeRanges10yTo12y> = "*",
-        cohorts: Holders<CoinflowCohortsAll, CoinflowCohortsAll> = "utxos",
-    } }
-    shape! { Cointime at "series().cointime" {
-        activity: CointimeActivity = "coinblocks",
-        age_ranges: CoindaysCreated<CointimeAgeRanges10yTo12y> = "old",
-        cohorts: Holders<CointimeCohortsAll, CointimeCohortsAll> = "utxos",
-        supply: CointimeSupply = "supply",
-        value: Value = "*_value",
-        caps: Caps = "cap",
-        prices: CointimePrices = "vaulted",
-        adjusted: Adjusted = "*_adjusted",
-        reserve_risk: ReserveRisk = "vocdd",
     } }
     shape! { AvgBalance<A> at "series().addresses.avg_balance" {
         all: A = "*",
@@ -2698,151 +2521,196 @@ pub mod tree {
         respent: Respent = "respent_*",
         exposed: Exposed = "exposed_*",
         delta: AvgBalance<DeltaAll<CountSigned>> = "*_count",
-        avg_balance: AvgBalance<AvgBalanceAll> = "avg_*_amount",
+        avg_balance: AvgBalance<AvgAmount> = "avg_*_amount",
     } }
-    shape! { TransferVolumeUtxoAmount<A> at "series().utxos.activity.transfer_volume.utxo_amount" {
-        _0sats: A = "utxos_0sats_*",
-        _1sat_to_10sats: A = "utxos_1sat_to_10sats_*",
-        _10sats_to_100sats: A = "utxos_10sats_to_100sats_*",
-        _100sats_to_1k_sats: A = "utxos_100sats_to_1k_sats_*",
-        _1k_sats_to_10k_sats: A = "utxos_1k_sats_to_10k_sats_*",
-        _10k_sats_to_100k_sats: A = "utxos_10k_sats_to_100k_sats_*",
-        _100k_sats_to_1m_sats: A = "utxos_100k_sats_to_1m_sats_*",
-        _1m_sats_to_10m_sats: A = "utxos_1m_sats_to_10m_sats_*",
-        _10m_sats_to_1btc: A = "utxos_10m_sats_to_1btc_*",
-        _1btc_to_10btc: A = "utxos_1btc_to_10btc_*",
-        _10btc_to_100btc: A = "utxos_10btc_to_100btc_*",
-        _100btc_to_1k_btc: A = "utxos_100btc_to_1k_btc_*",
-        _1k_btc_to_10k_btc: A = "utxos_1k_btc_to_10k_btc_*",
-        _10k_btc_to_100k_btc: A = "utxos_10k_btc_to_100k_btc_*",
-        over_100k_btc: A = "utxos_over_100k_btc_*",
+    shape! { EmptyOutputs at "series().utxos.types.empty.outputs" {
+        unspent_count: MarketCap<Count, CountSigned> = "*_utxo_count",
+        spent_count: CoinblocksDestroyed<Count> = "*_spent_utxo_count",
+        avg_amount: AvgAmount = "*_avg_utxo_amount",
     } }
-    shape! { TransferVolumeType<A> at "series().utxos.activity.transfer_volume.type_" {
-        p2pk65: A = "p2pk65_*",
-        p2pk33: A = "p2pk33_*",
-        p2pkh: A = "p2pkh_*",
-        p2ms: A = "p2ms_*",
-        p2sh: A = "p2sh_*",
-        p2wpkh: A = "p2wpkh_*",
-        p2wsh: A = "p2wsh_*",
-        p2tr: A = "p2tr_*",
-        p2a: A = "p2a_*",
-        unknown: A = "unknown_outputs_*",
-        empty: A = "empty_outputs_*",
+    shape! { Amounts0satsRealized at "series().utxos.amounts._0sats.realized" {
+        cap: SeriesPattern1<Option<Dollars>> = "*_cap",
+        price: SeriesPattern1<Option<Dollars>> = "*_price",
+        profit: CoinblocksDestroyed<Option<Dollars>> = "*_profit",
+        loss: CoinblocksDestroyed<Option<Dollars>> = "*_loss",
     } }
-    shape! { AvgAmount at "series().utxos.outputs.avg_amount" {
-        all: AvgBalanceAll = "*",
-        by_type: TransferVolumeType<AvgBalanceAll> = "*",
+    shape! { Classes2009Realized at "series().age.classes._2009.realized" {
+        cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
+        profit: CoinblocksDestroyed<Option<Dollars>> = "*_realized_profit",
+        loss: CoinblocksDestroyed<Option<Dollars>> = "*_realized_loss",
+        net_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_net_realized_pnl",
+        value_destroyed: CoinblocksDestroyed<Option<Dollars>> = "*_value_destroyed",
     } }
-    shape! { UtxosActivityTransferVolume<A, B> at "series().utxos.activity.transfer_volume" {
-        utxo_amount: A = "*",
-        type_: B = "*",
+    shape! { DiscountActivity at "series().entry.discount.activity" {
+        transfer_volume: TransferVolume = "*_transfer_volume",
+        coindays_destroyed: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_destroyed",
     } }
-    shape! { UtxosRealized at "series().utxos.realized" {
-        cap: UtxosActivityTransferVolume<CapUtxoAmount<Option<Dollars>>, CapType<Option<Dollars>>> = "*_cap",
-        price: UtxosActivityTransferVolume<CapUtxoAmount<Option<Dollars>>, CapType<Option<Dollars>>> = "*_price",
-        profit: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<Option<Dollars>>>, TransferVolumeType<CoinblocksDestroyed<Option<Dollars>>>> = "*_profit",
-        loss: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<Option<Dollars>>>, TransferVolumeType<CoinblocksDestroyed<Option<Dollars>>>> = "*_loss",
+    shape! { Ranges10yTo12yRealized at "series().age.ranges._10y_to_12y.realized" {
+        cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
+        profit: CoinblocksDestroyed<Option<Dollars>> = "*_realized_profit",
+        loss: CoinblocksDestroyed<Option<Dollars>> = "*_realized_loss",
+        net_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_net_realized_pnl",
+        value_destroyed: CoinblocksDestroyed<Option<Dollars>> = "*_value_destroyed",
+        price: SeriesPattern1<Option<Dollars>> = "*_realized_price",
     } }
-    shape! { UtxosActivity at "series().utxos.activity" {
-        transfer_volume: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<OpReturnValue>, TransferVolumeType<OpReturnValue>> = "*",
+    shape! { Ranges10yTo12yActivity at "series().age.ranges._10y_to_12y.activity" {
+        transfer_volume: TransferVolume = "*_transfer_volume",
+        coindays_destroyed: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_destroyed",
+        coindays_created: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_created",
     } }
-    shape! { UtxosOutputs at "series().utxos.outputs" {
-        avg_amount: AvgAmount = "avg_*_amount",
-        unspent_count: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<MarketCap<Count, CountSigned>>, TransferVolumeType<MarketCap<Count, CountSigned>>> = "*_count",
-        spent_count: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<CoinblocksDestroyed<Count>>, TransferVolumeType<CoinblocksDestroyed<Count>>> = "spent_*_count",
+    shape! { DiscountOutputs at "series().entry.discount.outputs" {
+        unspent_count: MarketCap<Count, CountSigned> = "*_utxo_count",
+        spent_count: CoinblocksDestroyed<Count> = "*_spent_utxo_count",
     } }
-    shape! { UtxosSupplyTotal at "series().utxos.supply.total" {
-        utxo_amount: TotalUtxoAmount = "*",
-        type_: TransferVolumeType<AvgBalanceAll> = "supply",
+    shape! { HoldersAll<A> at "series().holders.all" {
+        supply: A = "*_supply",
+        outputs: DiscountOutputs = "*",
+        activity: AllActivity = "*",
+        realized: AllRealized = "*",
+        unrealized: AllUnrealized = "*",
+        cost_basis: AllCostBasis = "*",
+        ratios: Ratios = "*",
+        relative: Relative = "*",
     } }
-    shape! { UtxosSupply at "series().utxos.supply" {
-        total: UtxosSupplyTotal = "utxos",
-        delta: UtxosActivityTransferVolume<TransferVolumeUtxoAmount<DeltaAll<Option<Bitcoin>>>, TransferVolumeType<DeltaAll<Option<Bitcoin>>>> = "*_delta",
-        dominance: UtxosActivityTransferVolume<CapUtxoAmount<Option<Percent>>, CapType<Option<Percent>>> = "*_dominance",
+    shape! { Holders<A, B> at "series().holders" {
+        all: A = "",
+        sth: B = "sth",
+        lth: B = "lth",
+        under_4m: B = "*_under_4m_old",
+        under_6m: B = "*_under_6m_old",
+        over_4m: B = "*_over_4m_old",
+        over_6m: B = "*_over_6m_old",
+    } }
+    shape! { Amounts0sats<A> at "series().utxos.amounts._0sats" {
+        supply: Supply0sats = "*_supply",
+        outputs: A = "*",
+        activity: Amounts0satsActivity = "*_transfer_volume",
+        realized: Amounts0satsRealized = "*_realized",
+    } }
+    shape! { UtxosTypes at "series().utxos.types" {
+        p2pk65: Amounts0sats<EmptyOutputs> = "p2pk65",
+        p2pk33: Amounts0sats<EmptyOutputs> = "p2pk33",
+        p2pkh: Amounts0sats<EmptyOutputs> = "p2pkh",
+        p2ms: Amounts0sats<EmptyOutputs> = "p2ms",
+        p2sh: Amounts0sats<EmptyOutputs> = "p2sh",
+        p2wpkh: Amounts0sats<EmptyOutputs> = "p2wpkh",
+        p2wsh: Amounts0sats<EmptyOutputs> = "p2wsh",
+        p2tr: Amounts0sats<EmptyOutputs> = "p2tr",
+        p2a: Amounts0sats<EmptyOutputs> = "p2a",
+        unknown: Amounts0sats<EmptyOutputs> = "unknown_*",
+        empty: Amounts0sats<EmptyOutputs> = "empty_*",
+    } }
+    shape! { Amounts at "series().utxos.amounts" {
+        _0sats: Amounts0sats<DiscountOutputs> = "*_0sats",
+        _1sat_to_10sats: Amounts0sats<DiscountOutputs> = "*_1sat_to_10sats",
+        _10sats_to_100sats: Amounts0sats<DiscountOutputs> = "*_10sats_to_100sats",
+        _100sats_to_1k_sats: Amounts0sats<DiscountOutputs> = "*_100sats_to_1k_sats",
+        _1k_sats_to_10k_sats: Amounts0sats<DiscountOutputs> = "*_1k_sats_to_10k_sats",
+        _10k_sats_to_100k_sats: Amounts0sats<DiscountOutputs> = "*_10k_sats_to_100k_sats",
+        _100k_sats_to_1m_sats: Amounts0sats<DiscountOutputs> = "*_100k_sats_to_1m_sats",
+        _1m_sats_to_10m_sats: Amounts0sats<DiscountOutputs> = "*_1m_sats_to_10m_sats",
+        _10m_sats_to_1btc: Amounts0sats<DiscountOutputs> = "*_10m_sats_to_1btc",
+        _1btc_to_10btc: Amounts0sats<DiscountOutputs> = "*_1btc_to_10btc",
+        _10btc_to_100btc: Amounts0sats<DiscountOutputs> = "*_10btc_to_100btc",
+        _100btc_to_1k_btc: Amounts0sats<DiscountOutputs> = "*_100btc_to_1k_btc",
+        _1k_btc_to_10k_btc: Amounts0sats<DiscountOutputs> = "*_1k_btc_to_10k_btc",
+        _10k_btc_to_100k_btc: Amounts0sats<DiscountOutputs> = "*_10k_btc_to_100k_btc",
+        over_100k_btc: Amounts0sats<DiscountOutputs> = "*_over_100k_btc",
     } }
     shape! { Utxos at "series().utxos" {
-        supply: UtxosSupply = "*",
-        outputs: UtxosOutputs = "utxo",
-        activity: UtxosActivity = "transfer_volume",
-        realized: UtxosRealized = "realized",
+        amounts: Amounts = "*",
+        types: UtxosTypes = "outputs",
+        avg_amount: AvgAmount = "avg_utxo_amount",
     } }
-    shape! { CoindaysDestroyedClass<A> at "series().age.activity.coindays_destroyed.class" {
-        _2009: A = "class_2009_*",
-        _2010: A = "class_2010_*",
-        _2011: A = "class_2011_*",
-        _2012: A = "class_2012_*",
-        _2013: A = "class_2013_*",
-        _2014: A = "class_2014_*",
-        _2015: A = "class_2015_*",
-        _2016: A = "class_2016_*",
-        _2017: A = "class_2017_*",
-        _2018: A = "class_2018_*",
-        _2019: A = "class_2019_*",
-        _2020: A = "class_2020_*",
-        _2021: A = "class_2021_*",
-        _2022: A = "class_2022_*",
-        _2023: A = "class_2023_*",
-        _2024: A = "class_2024_*",
-        _2025: A = "class_2025_*",
-        _2026: A = "class_2026_*",
+    shape! { Discount<A, B> at "series().entry.discount" {
+        supply: DiscountSupply = "*_supply",
+        outputs: DiscountOutputs = "*",
+        activity: DiscountActivity = "*",
+        realized: A = "*",
+        unrealized: B = "*",
     } }
-    shape! { CoindaysDestroyedEpoch<A> at "series().age.activity.coindays_destroyed.epoch" {
-        _0: A = "epoch_0_*",
-        _1: A = "epoch_1_*",
-        _2: A = "epoch_2_*",
-        _3: A = "epoch_3_*",
-        _4: A = "epoch_4_*",
+    shape! { Entry at "series().entry" {
+        discount: Discount<DiscountRealized, DiscountUnrealized> = "*",
+        premium: Discount<DiscountRealized, DiscountUnrealized> = "rookie",
     } }
-    shape! { CoindaysDestroyed<A, B, C> at "series().age.activity.coindays_destroyed" {
-        age: A = "old_*",
-        epoch: B = "*",
-        class: C = "*",
+    shape! { Classes at "series().age.classes" {
+        _2009: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2009",
+        _2010: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2010",
+        _2011: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2011",
+        _2012: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2012",
+        _2013: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2013",
+        _2014: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2014",
+        _2015: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2015",
+        _2016: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2016",
+        _2017: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2017",
+        _2018: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2018",
+        _2019: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2019",
+        _2020: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2020",
+        _2021: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2021",
+        _2022: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2022",
+        _2023: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2023",
+        _2024: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2024",
+        _2025: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2025",
+        _2026: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2026",
     } }
-    shape! { AgeUnrealized at "series().age.unrealized" {
-        profit: CoindaysDestroyed<CapAge<Option<Dollars>>, CapEpoch<Option<Dollars>>, CapClass<Option<Dollars>>> = "*_profit",
-        loss: CoindaysDestroyed<CapAge<Option<Dollars>>, CapEpoch<Option<Dollars>>, CapClass<Option<Dollars>>> = "*_loss",
-        net_pnl: CoindaysDestroyed<CapAge<Option<Dollars>>, CapEpoch<Option<Dollars>>, CapClass<Option<Dollars>>> = "net_*_pnl",
+    shape! { Epochs at "series().age.epochs" {
+        _0: Discount<Classes2009Realized, Classes2009Unrealized> = "*_0",
+        _1: Discount<Classes2009Realized, Classes2009Unrealized> = "*_1",
+        _2: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2",
+        _3: Discount<Classes2009Realized, Classes2009Unrealized> = "*_3",
+        _4: Discount<Classes2009Realized, Classes2009Unrealized> = "*_4",
     } }
-    shape! { AgeRealized at "series().age.realized" {
-        cap: CoindaysDestroyed<CapAge<Option<Dollars>>, CapEpoch<Option<Dollars>>, CapClass<Option<Dollars>>> = "*_cap",
-        price: RealizedPrice = "old_*_price",
-        profit: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedClass<CoinblocksDestroyed<Option<Dollars>>>> = "*_profit",
-        loss: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedClass<CoinblocksDestroyed<Option<Dollars>>>> = "*_loss",
-        net_pnl: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedClass<CoinblocksDestroyed<Option<Dollars>>>> = "net_*_pnl",
-        value_destroyed: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Option<Dollars>>>, CoindaysDestroyedClass<CoinblocksDestroyed<Option<Dollars>>>> = "value_destroyed",
+    shape! { Ranges10yTo12y at "series().age.ranges._10y_to_12y" {
+        supply: Ranges10yTo12ySupply = "*",
+        outputs: DiscountOutputs = "*",
+        activity: Ranges10yTo12yActivity = "*",
+        realized: Ranges10yTo12yRealized = "*",
+        unrealized: Classes2009Unrealized = "*",
     } }
-    shape! { AgeActivityTransferVolume at "series().age.activity.transfer_volume" {
-        age: CoindaysCreated<OpReturnValue> = "old_*",
-        epoch: CoindaysDestroyedEpoch<OpReturnValue> = "*",
-        class: CoindaysDestroyedClass<OpReturnValue> = "*",
-        in_profit: CoindaysDestroyed<CoindaysCreated<OpReturnValue>, CoindaysDestroyedEpoch<OpReturnValue>, CoindaysDestroyedClass<OpReturnValue>> = "*_in_profit",
-        in_loss: CoindaysDestroyed<CoindaysCreated<OpReturnValue>, CoindaysDestroyedEpoch<OpReturnValue>, CoindaysDestroyedClass<OpReturnValue>> = "*_in_loss",
+    shape! { Ranges<A> at "series().age.ranges" {
+        under_1h: A = "*_under_1h_old",
+        _1h_to_1d: A = "*_1h_to_1d_old",
+        _1d_to_1w: A = "*_1d_to_1w_old",
+        _1w_to_1m: A = "*_1w_to_1m_old",
+        _1m_to_2m: A = "*_1m_to_2m_old",
+        _2m_to_3m: A = "*_2m_to_3m_old",
+        _3m_to_4m: A = "*_3m_to_4m_old",
+        _4m_to_5m: A = "*_4m_to_5m_old",
+        _5m_to_6m: A = "*_5m_to_6m_old",
+        _6m_to_9m: A = "*_6m_to_9m_old",
+        _9m_to_1y: A = "*_9m_to_1y_old",
+        _1y_to_18m: A = "*_1y_to_18m_old",
+        _18m_to_2y: A = "*_18m_to_2y_old",
+        _2y_to_3y: A = "*_2y_to_3y_old",
+        _3y_to_4y: A = "*_3y_to_4y_old",
+        _4y_to_5y: A = "*_4y_to_5y_old",
+        _5y_to_6y: A = "*_5y_to_6y_old",
+        _6y_to_7y: A = "*_6y_to_7y_old",
+        _7y_to_8y: A = "*_7y_to_8y_old",
+        _8y_to_10y: A = "*_8y_to_10y_old",
+        _10y_to_12y: A = "*_10y_to_12y_old",
+        _12y_to_15y: A = "*_12y_to_15y_old",
+        over_15y: A = "*_over_15y_old",
     } }
-    shape! { AgeActivity at "series().age.activity" {
-        transfer_volume: AgeActivityTransferVolume = "*",
-        coindays_destroyed: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Option<CoinDays>>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Option<CoinDays>>>, CoindaysDestroyedClass<CoinblocksDestroyed<Option<CoinDays>>>> = "coindays_destroyed",
+    shape! { Coinflow at "series().coinflow" {
+        age_ranges: Ranges<CoinflowAgeRanges10yTo12y> = "*",
+        cohorts: Holders<CoinflowCohortsAll, CoinflowCohortsAll> = "*",
     } }
-    shape! { AgeOutputs at "series().age.outputs" {
-        unspent_count: CoindaysDestroyed<CoindaysCreated<MarketCap<Count, CountSigned>>, CoindaysDestroyedEpoch<MarketCap<Count, CountSigned>>, CoindaysDestroyedClass<MarketCap<Count, CountSigned>>> = "*",
-        spent_count: CoindaysDestroyed<CoindaysCreated<CoinblocksDestroyed<Count>>, CoindaysDestroyedEpoch<CoinblocksDestroyed<Count>>, CoindaysDestroyedClass<CoinblocksDestroyed<Count>>> = "spent_*",
-    } }
-    shape! { AgeSupply at "series().age.supply" {
-        total: CoindaysDestroyed<CoindaysCreated<AvgBalanceAll>, CoindaysDestroyedEpoch<AvgBalanceAll>, CoindaysDestroyedClass<AvgBalanceAll>> = "*",
-        matured: CoindaysCreated<OpReturnValue> = "old_matured_*",
-        in_profit: CoindaysDestroyed<CoindaysCreated<AvgBalanceAll>, CoindaysDestroyedEpoch<AvgBalanceAll>, CoindaysDestroyedClass<AvgBalanceAll>> = "*_in_profit",
-        in_loss: CoindaysDestroyed<CoindaysCreated<AvgBalanceAll>, CoindaysDestroyedEpoch<AvgBalanceAll>, CoindaysDestroyedClass<AvgBalanceAll>> = "*_in_loss",
-        delta: CoindaysDestroyed<CoindaysCreated<DeltaAll<Option<Bitcoin>>>, CoindaysDestroyedEpoch<DeltaAll<Option<Bitcoin>>>, CoindaysDestroyedClass<DeltaAll<Option<Bitcoin>>>> = "*_delta",
-        dominance: CoindaysDestroyed<CapAge<Option<Percent>>, CapEpoch<Option<Percent>>, CapClass<Option<Percent>>> = "*_dominance",
+    shape! { Cointime at "series().cointime" {
+        activity: CointimeActivity = "coinblocks",
+        age_ranges: Ranges<CointimeAgeRanges10yTo12y> = "*",
+        cohorts: Holders<CointimeCohortsAll, CointimeCohortsAll> = "*",
+        supply: CointimeSupply = "supply",
+        value: Value = "cointime_value",
+        caps: Caps = "cap",
+        prices: CointimePrices = "vaulted",
+        adjusted: Adjusted = "cointime_adjusted",
+        reserve_risk: ReserveRisk = "vocdd",
     } }
     shape! { Age at "series().age" {
-        supply: AgeSupply = "*",
-        outputs: AgeOutputs = "utxo_count",
-        activity: AgeActivity = "transfer_volume",
-        realized: AgeRealized = "realized",
-        unrealized: AgeUnrealized = "unrealized",
-        age_bounds: AgeBounds = "utxos_urpd",
-        coindays_created: CoindaysCreated<CoinblocksDestroyed<Option<CoinDays>>> = "old_coindays_created",
+        ranges: Ranges<Ranges10yTo12y> = "*",
+        epochs: Epochs = "epoch",
+        classes: Classes = "class",
         coinblocks_destroyed: CoinblocksDestroyed<Option<CoinBlocks>> = "coinblocks_destroyed",
     } }
     shape! { Multiple at "series().op_return.policies.multiple" {
@@ -3370,15 +3238,15 @@ pub mod tree {
         pools: Pools = "pool",
         utxo_set: UtxoSet2 = "circulating_supply",
         market: Market = "price",
-        age: Age = "supply",
-        utxos: Utxos = "supply",
+        age: Age = "utxos",
+        utxos: Utxos = "utxos",
         addresses: Addresses = "addr",
         holders: Holders<HoldersAll<AllSupply>, HoldersAll<LthSupply>> = "utxos",
         entry: Entry = "veteran",
         supply: Supply = "rate",
         indicators: Indicators = "destroyed_supply_adjusted",
-        cointime: Cointime = "cointime",
-        coinflow: Coinflow = "old",
+        cointime: Cointime = "utxos",
+        coinflow: Coinflow = "utxos",
         bedrock: Bedrock = "bedrock",
         capital_sentiment: CapitalSentiment = "capital_sentiment",
         rarity_meter: RarityMeter = "rarity_meter",
