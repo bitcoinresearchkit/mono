@@ -1,6 +1,9 @@
-use bitview_cohort::{AddressType, AmountRange};
+use bitview_cohort::AddressType;
 use bitview_collections::Windows;
-use bitview_distribution::RealizedCaps;
+use bitview_distribution::{
+    RealizedCaps,
+    metrics::{CapitalViews, ShareTotals, SupplyViews},
+};
 use bitview_plugin::ImportContext as PluginImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
@@ -11,7 +14,7 @@ use vecdb::ReadableCloneableVec;
 use crate::{
     SAVED_CHECKPOINTS, STORAGE, Vecs,
     addr::{AddrStateVecs, AddressVecs, ImportContext},
-    balance::BalanceVecs,
+    balance::Balances,
 };
 
 impl Vecs {
@@ -20,6 +23,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         windows: &Windows<&LazyWindowStartVec>,
         prices: &PriceVecs,
+        totals: ShareTotals<'_>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let caps = RealizedCaps::import(&db, SAVED_CHECKPOINTS)?;
@@ -37,15 +41,32 @@ impl Vecs {
             AddressVecs::import(&ctx, &format!("{}_", id.key()))
         })?);
         let address_supply = all.supply().read_only_boxed_clone();
-        let balances = Box::new(AmountRange::try_new(|cohort| {
-            BalanceVecs::import(&ctx, cohort, &address_supply)
-        })?);
+        let balances = Box::new(Balances::import(&ctx, &address_supply)?);
+        let supply = SupplyViews::new(
+            "address_supply",
+            version,
+            all.supply(),
+            totals.supply,
+            &spot,
+            mappings,
+            windows,
+        );
+        let capital = CapitalViews::new(
+            |metric| format!("address_{metric}"),
+            version,
+            &balances.capital,
+            totals.capital,
+            mappings,
+            windows,
+        );
         let state = AddrStateVecs::import(&db, version)?;
         let this = Self {
             db,
             live: None,
             caps,
             all,
+            supply,
+            capital,
             types,
             balances,
             state,

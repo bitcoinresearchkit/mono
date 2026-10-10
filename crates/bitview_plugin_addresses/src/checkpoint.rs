@@ -1,4 +1,4 @@
-use bitview_cohort::{AddressType, AmountRange};
+use bitview_cohort::AddressType;
 use bitview_distribution::replay::validate_outputs;
 use brk_error::Result;
 use brk_types::{Height, Version};
@@ -8,7 +8,7 @@ use vecdb::{AnyStoredVec, Stamp};
 use crate::{
     Vecs,
     addr::AddressVecs,
-    balance::BalanceVecs,
+    balance::Balances,
     state::{AddrStates, MinimalRealizedState, RealizedOps},
 };
 
@@ -101,15 +101,13 @@ impl Vecs {
 fn loop_vecs<'a>(
     all: &'a mut AddressVecs,
     types: &'a mut AddressType<AddressVecs>,
-    balances: &'a mut AmountRange<BalanceVecs>,
+    balances: &'a mut Balances,
 ) -> Vec<&'a mut dyn AnyStoredVec> {
     let mut vecs: Vec<&mut dyn AnyStoredVec> = Vec::with_capacity(512);
     vecs.extend(all.loop_vecs_mut());
     for member in types.iter_mut() {
         vecs.extend(member.loop_vecs_mut());
     }
-    for band in balances.iter_mut() {
-        vecs.extend(band.vecs_mut());
-    }
+    vecs.extend(balances.vecs_mut());
     vecs
 }

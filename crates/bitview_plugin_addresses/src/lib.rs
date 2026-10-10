@@ -13,7 +13,8 @@ mod state;
 pub use dependencies::Dependencies;
 pub use has::HasAddresses;
 
-use bitview_cohort::{AddressType, AmountRange, AmountRangeId};
+use bitview_cohort::{AddressType, AmountRangeId};
+use bitview_distribution::metrics::{CapitalViews, SupplyViews};
 use bitview_distribution::{RealizedCaps, replay::LiveState};
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
@@ -22,7 +23,7 @@ use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use addr::{AddrStateVecs, AddressVecs};
-use balance::BalanceVecs;
+use balance::Balances;
 use state::AddrStates;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("addresses"), Version::new(47));
@@ -41,8 +42,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
     #[traversable(flatten)]
     all: Box<AddressVecs<M>>,
+    /// All addresses together.
+    supply: SupplyViews,
+    /// All addresses together.
+    capital: CapitalViews,
     types: Box<AddressType<AddressVecs<M>>>,
-    balances: Box<AmountRange<BalanceVecs<M>>>,
+    balances: Box<Balances<M>>,
     pub state: AddrStateVecs<M>,
 }
 

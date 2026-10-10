@@ -33,7 +33,7 @@ impl<'a> Sources<'a> {
                 r.activity.transfer_volume_in_loss.sats.cumulative_source(),
                 r.activity.transfer_volume_in_loss.cents.cumulative_source(),
                 r.activity.coindays_destroyed.stored.cumulative_source(),
-                &r.realized.cap.stored,
+                &r.capital.stored,
                 &r.raw.cap,
                 &r.raw.capitalized_cap,
                 r.realized.profit.stored.cumulative_source(),
@@ -123,7 +123,7 @@ impl<'a> Sources<'a> {
                 &mut band,
                 |row, value| row.cdd = value,
             )?;
-            read(&r.realized.cap.stored, start, &mut band, |row, value| {
+            read(&r.capital.stored, start, &mut band, |row, value| {
                 row.cap = value
             })?;
             read(&r.raw.cap, start, &mut band, |row, value| {

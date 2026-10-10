@@ -1,12 +1,11 @@
 use bitview_collections::Windows;
-use bitview_distribution::RealizedCaps;
+use bitview_distribution::{RealizedCaps, metrics::ShareTotals};
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
-use brk_types::{Height, Sats};
-use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
+use vecdb::ReadableCloneableVec;
 
 use crate::{SAVED_CHECKPOINTS, STORAGE, Vecs, metrics::CohortMetrics};
 impl Vecs {
@@ -15,7 +14,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         windows: &Windows<&LazyWindowStartVec>,
         prices: &PriceVecs,
-        all_supply: &ReadableBoxedVec<Height, Sats>,
+        totals: ShareTotals<'_>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let caps = RealizedCaps::import(&db, SAVED_CHECKPOINTS)?;
@@ -25,7 +24,7 @@ impl Vecs {
             mappings,
             windows,
             &prices.spot.cents.height.read_only_boxed_clone(),
-            all_supply,
+            totals,
         )?;
         let this = Self {
             db,

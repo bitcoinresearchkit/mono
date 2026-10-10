@@ -22,7 +22,7 @@ use vecdb::{Database, PcoVecValue};
 
 use bitview_vecs::{CachedSeries, import_cached};
 
-fn import_stored<T: PcoVecValue>(
+pub(crate) fn import_stored<T: PcoVecValue>(
     db: &Database,
     name: &str,
     version: Version,

@@ -81,6 +81,12 @@ impl CohortVecs {
                     id.select(&sources.awake_supply_in_loss_share),
                     mappings,
                 ),
+                capital: LazyFiatPerBlock::from_cents_source(
+                    &name("awake_capital"),
+                    version,
+                    id.select(&sources.awake_realized_cap),
+                    mappings,
+                ),
                 realized_cap: LazyFiatPerBlock::from_cents_source(
                     &name("awake_realized_cap"),
                     version,

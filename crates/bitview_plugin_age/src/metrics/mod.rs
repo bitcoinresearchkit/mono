@@ -1,4 +1,5 @@
 mod activity;
+mod capital;
 mod cohort;
 mod outputs;
 mod range;

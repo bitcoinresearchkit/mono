@@ -1,9 +1,6 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
-use bitview_distribution::{
-    families::{CumulativeFiat, Fiat},
-    metrics::RealizedBlockData,
-};
+use bitview_distribution::{families::CumulativeFiat, metrics::RealizedBlockData};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
@@ -13,10 +10,6 @@ use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct RealizedVecs<M: StorageMode = Rw> {
-    /// Creation-date value of the cohort's unspent outputs: the sum of each
-    /// output's BTC value multiplied by Bitcoin's spot price when that output
-    /// was created.
-    pub cap: Fiat<Cents, M>,
     /// Profit realized by the cohort's outputs: spending value minus
     /// creation-date value, counted only for profitable spends.
     pub profit: CumulativeFiat<Cents, M>,
@@ -42,7 +35,6 @@ impl RealizedVecs {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let flow_version = version + Version::ONE;
         Ok(Self {
-            cap: Fiat::import(db, &name("realized_cap"), version, mappings)?,
             profit: CumulativeFiat::import(
                 db,
                 &name("realized_profit"),
@@ -76,16 +68,14 @@ impl RealizedVecs {
 
     #[inline(always)]
     pub fn push(&mut self, values: &RealizedBlockData) {
-        self.cap.push(values.cap);
         self.profit.push_block(values.profit);
         self.loss.push_block(values.loss);
         self.net_pnl.push_block(values.net_pnl);
         self.value_destroyed.push_block(values.value_destroyed);
     }
 
-    pub fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 5] {
+    pub fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 4] {
         [
-            self.cap.stored_mut(),
             self.profit.stored_mut(),
             self.loss.stored_mut(),
             self.net_pnl.stored_mut(),

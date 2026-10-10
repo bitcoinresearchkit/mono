@@ -1,10 +1,11 @@
 use bitview_cohort::{ByEntry, CohortId};
 use bitview_collections::Windows;
+use bitview_distribution::metrics::ShareTotals;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
-use brk_types::{Cents, Height, Sats};
+use brk_types::{Cents, Height};
 use vecdb::ReadableBoxedVec;
 
 use crate::{STORAGE, Vecs, metrics::CohortMetrics};
@@ -15,7 +16,7 @@ impl Vecs {
         mappings: &Mappings,
         windows: &Windows<&LazyWindowStartVec>,
         prices: &ReadableBoxedVec<Height, Cents>,
-        all_supply: &ReadableBoxedVec<Height, Sats>,
+        totals: ShareTotals<'_>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
         let cohorts = ByEntry::try_from_fn(|id| {
@@ -26,7 +27,7 @@ impl Vecs {
                 mappings,
                 windows,
                 prices,
-                all_supply,
+                totals,
             )
         })?;
         STORAGE.finalize_database(&db)?;

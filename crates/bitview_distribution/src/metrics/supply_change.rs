@@ -16,14 +16,15 @@ pub struct SupplyChange {
     /// Change in the cohort's supply over a trailing window, with the relative
     /// change measured against the window's starting value.
     delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
-    /// Share of all unspent supply held by the cohort.
+    /// The cohort's share of the supply it is part of: all unspent outputs', or for address
+    /// balance bands, all addresses'.
     share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 
 impl SupplyChange {
     /// `name` is the cohort's supply series name (`sth_supply`); the views add `_delta` and
     /// `_share`.
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         total: &LazySpotValuePerBlock,

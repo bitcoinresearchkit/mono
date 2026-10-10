@@ -502,6 +502,7 @@ name = "bitview_default"
 version = "0.12.2"
 dependencies = [
  "bitview_collections",
+ "bitview_distribution",
  "bitview_plugin",
  "bitview_plugin_addresses",
  "bitview_plugin_age",

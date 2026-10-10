@@ -1,10 +1,10 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillion32, PartsPerMillion64};
+use bitview_primitives::PartsPerMillion32;
 use bitview_transforms::{OneMinusPpm, Quotient};
 use bitview_vecs::{
-    LazyPercentCumulativeRolling, LazyRatioRollingWindows, LazyWindowStartVec,
-    ValuePerBlockCumulativeRolling, ValuePerBlockFull,
+    LazyPercentCumulativeRolling, LazyWindowStartVec, ValuePerBlockCumulativeRolling,
+    ValuePerBlockFull,
 };
 use brk_error::Result;
 use brk_types::{Sats, Version};
@@ -53,19 +53,6 @@ impl Vecs {
             version,
             &fee_share,
         );
-        let fee_to_subsidy = LazyRatioRollingWindows::from_cumulative_ratio_with_numerator::<
-            Sats,
-            Sats,
-            Quotient<PartsPerMillion64>,
-        >(
-            "fee_to_subsidy",
-            version + Version::ONE,
-            fees_source,
-            subsidy.cumulative.sats.resolutions.height_source(),
-            window_starts,
-            mappings,
-        );
-
         Ok(Vecs {
             coinbase,
             subsidy,
@@ -79,7 +66,6 @@ impl Vecs {
             )?,
             fee_share,
             subsidy_share,
-            fee_to_subsidy,
         })
     }
 }

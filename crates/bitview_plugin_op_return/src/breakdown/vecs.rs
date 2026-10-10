@@ -28,14 +28,12 @@ pub struct BucketVecs<M: StorageMode = Rw> {
 }
 
 impl BucketVecs {
-    #[allow(clippy::too_many_arguments)]
     fn import(
         db: &Database,
         prefix: &str,
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        total_data: &impl ReadableCloneableVec<Height, Bytes>,
         block_size: &impl ReadableCloneableVec<Height, Bytes>,
         chain_fees: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
@@ -56,7 +54,6 @@ impl BucketVecs {
                 prefix,
                 version,
                 import!("data_bytes")?,
-                total_data,
                 block_size,
                 mappings,
             ),
@@ -102,13 +99,11 @@ macro_rules! impl_breakdown {
         pub type $name<M = Rw> = $group<BucketVecs<M>>;
 
         impl $name {
-            #[allow(clippy::too_many_arguments)]
             pub fn import(
                 db: &Database,
                 version: Version,
                 mappings: &MappingsVecs,
                 window_starts: &Windows<&LazyWindowStartVec>,
-                total_data: &impl ReadableCloneableVec<Height, Bytes>,
                 block_size: &impl ReadableCloneableVec<Height, Bytes>,
                 chain_fees: &impl ReadableCloneableVec<Height, Sats>,
             ) -> Result<Self> {
@@ -120,7 +115,6 @@ macro_rules! impl_breakdown {
                         version,
                         mappings,
                         window_starts,
-                        total_data,
                         block_size,
                         chain_fees,
                     )

@@ -80,6 +80,12 @@ impl CohortVecs {
                     id.select(&sources.mobile_supply_in_loss_share),
                     mappings,
                 ),
+                capital: LazyFiatPerBlock::from_cents_source(
+                    &name("mobile_capital"),
+                    version,
+                    id.select(&sources.mobile_realized_cap),
+                    mappings,
+                ),
                 realized_cap: LazyFiatPerBlock::from_cents_source(
                     &name("mobile_realized_cap"),
                     version,

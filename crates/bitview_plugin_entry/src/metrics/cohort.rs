@@ -1,26 +1,28 @@
 use bitview_cohort::CohortId;
 use bitview_collections::Windows;
+use bitview_distribution::metrics::ShareTotals;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, CentsSigned, Height, Sats, Version};
+use brk_types::{Cents, CentsSigned, Height, Version};
 use vecdb::{
     AnyStoredVec, BinaryTransform, Database, ReadableBoxedVec, ReadableVec, Rw, StorageMode,
     WritableVec,
 };
 
 use super::{
-    ActivityMetrics, CostBasisMetrics, OutputMetrics, RealizedMetrics, Sources, SupplyMetrics,
-    UnrealizedMetrics,
+    ActivityMetrics, CapitalMetrics, CostBasisMetrics, OutputMetrics, RealizedMetrics, Sources,
+    SupplyMetrics, UnrealizedMetrics,
 };
 use crate::live::CohortState;
 
 #[derive(Traversable)]
 pub struct CohortMetrics<M: StorageMode = Rw> {
     supply: SupplyMetrics,
+    capital: CapitalMetrics,
     outputs: OutputMetrics,
     activity: ActivityMetrics,
     realized: RealizedMetrics<M>,
@@ -38,7 +40,7 @@ impl CohortMetrics {
         mappings: &Mappings,
         windows: &Windows<&LazyWindowStartVec>,
         prices: &ReadableBoxedVec<Height, Cents>,
-        all_supply: &ReadableBoxedVec<Height, Sats>,
+        totals: ShareTotals<'_>,
     ) -> Result<Self> {
         let sources = Sources::import(db, id, version)?;
         let realized = RealizedMetrics::import(db, id, version, &sources, mappings, windows)?;
@@ -47,8 +49,15 @@ impl CohortMetrics {
             UnrealizedMetrics::new(id, version, &sources, &cost_basis.per_coin.avg, mappings);
         Ok(Self {
             supply: SupplyMetrics::new(
-                id, version, &sources, mappings, windows, prices, all_supply,
+                id,
+                version,
+                &sources,
+                mappings,
+                windows,
+                prices,
+                totals.supply,
             ),
+            capital: CapitalMetrics::new(id, version, &sources, mappings, windows, totals.capital),
             outputs: OutputMetrics::new(id, version, &sources, mappings, windows),
             activity: ActivityMetrics::new(id, version, &sources, mappings, windows),
             realized,
@@ -74,6 +83,9 @@ impl CohortMetrics {
         s.supply_in_loss.push(unrealized.supply_in_loss);
         s.unspent_count.push(unspent);
         s.realized_cap.push(realized.cap);
+        let (capital_in_profit, capital_in_loss) = unrealized.capital_split(price);
+        s.capital_in_profit.push(capital_in_profit);
+        s.capital_in_loss.push(capital_in_loss);
         s.realized_price.push(realized.price());
         s.unrealized_profit.push(unrealized.unrealized_profit);
         s.unrealized_loss.push(unrealized.unrealized_loss);

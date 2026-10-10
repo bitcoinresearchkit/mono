@@ -6,7 +6,7 @@ use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, Stamp};
+use vecdb::{AnyStoredVec, AnyVec, Database, ReadableCloneableVec, Stamp};
 
 use crate::{
     Dependencies, Vecs, cost_basis::CostBasisBlockData, live::LiveState, sources::Sources,
@@ -118,11 +118,12 @@ impl ComputePlugin for Vecs {
             self.save(next, false, context.exit())?;
         }
         drop(cursor);
+        let all_capital = self.cohorts.all.capital_cents().read_only_boxed_clone();
         for metrics in self.cohorts.iter_mut() {
             metrics.compute_rest(
                 Height::from(start),
                 &self.all_supply,
-                &self.all_market_cap,
+                &all_capital,
                 &deps.price.spot.cents.height,
                 context.exit(),
             )?;

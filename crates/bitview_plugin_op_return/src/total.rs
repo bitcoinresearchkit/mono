@@ -75,10 +75,6 @@ impl Total {
         })
     }
 
-    pub fn data_bytes_source(&self) -> &(impl ReadableCloneableVec<Height, Bytes> + use<>) {
-        self.data_bytes.cumulative_source()
-    }
-
     pub fn len(&self) -> usize {
         self.output_count
             .block

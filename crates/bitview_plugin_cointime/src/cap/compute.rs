@@ -19,7 +19,7 @@ impl Vecs {
         exit: &Exit,
     ) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
-        let realized_cap_cents = &holders.cohorts.all.realized.cap.cents.height;
+        let realized_cap_cents = &holders.cohorts.all.capital.total.cents.height;
         let circulating_supply = &holders.cohorts.all.supply.total.btc.height;
 
         self.investor.cents.height.compute_subtract(

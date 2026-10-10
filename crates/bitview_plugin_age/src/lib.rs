@@ -16,8 +16,8 @@ use bitview_cohort::{AgeRange, ByEpoch, Class};
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::CoinBlocks;
 use bitview_traversable::Traversable;
-use bitview_vecs::PerBlockCumulativeRolling;
-use brk_types::{Height, Sats, Version};
+use bitview_vecs::{CachedSeries, PerBlockCumulativeRolling};
+use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, ReadableBoxedVec, ReadableVec, Rw, StorageMode};
 
 use live::LiveState;
@@ -34,6 +34,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     live: M::WriteOnly<Option<LiveState>>,
     #[traversable(skip)]
     all_supply: ReadableBoxedVec<Height, Sats>,
+    /// The capital of every age range together, each cohort's capital share's denominator.
+    #[traversable(hidden)]
+    all_capital: CachedSeries<Height, Cents, M>,
     pub ranges: Box<AgeRange<RangeVecs<M>>>,
     epochs: Box<ByEpoch<CohortVecs<M>>>,
     classes: Box<Class<CohortVecs<M>>>,
@@ -55,6 +58,11 @@ impl<M: StorageMode> Vecs<M> {
     /// The total supply each cohort's share divides.
     pub fn all_supply(&self) -> &ReadableBoxedVec<Height, Sats> {
         &self.all_supply
+    }
+
+    /// The capital of every age range together: all unspent outputs at their creation price.
+    pub fn all_capital(&self) -> &CachedSeries<Height, Cents, M> {
+        &self.all_capital
     }
 
     /// Each age range's supply in sats.

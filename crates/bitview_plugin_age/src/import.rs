@@ -2,10 +2,11 @@ use std::thread;
 
 use bitview_cohort::{AgeRange, ByEpoch, Class};
 use bitview_collections::Windows;
+use bitview_distribution::metrics::ShareTotals;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling};
+use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, import_cached};
 use brk_error::Result;
 use brk_types::{Height, Sats, Version};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
@@ -25,8 +26,13 @@ impl Vecs {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let version = STORAGE.schema_version();
         let spot = prices.spot.cents.height.read_only_boxed_clone();
-        let cohort =
-            |id| CohortVecs::import(&db, id, version, mappings, windows, &spot, all_supply);
+        let all_capital = import_cached(&db, "capital_cents", version + Version::TWO)?;
+        let capital = all_capital.read_only_boxed_clone();
+        let totals = ShareTotals {
+            supply: all_supply,
+            capital: &capital,
+        };
+        let cohort = |id| CohortVecs::import(&db, id, version, mappings, windows, &spot, totals);
         // Age ranges and the other families import independently.
         let (ranges, (epochs, classes)) = thread::scope(|scope| -> Result<_> {
             let others = thread::Builder::new()
@@ -38,15 +44,7 @@ impl Vecs {
                     ))
                 })?;
             let ranges = Box::new(AgeRange::try_from_fn(|id| {
-                RangeVecs::import(
-                    &db,
-                    id.cohort(),
-                    version,
-                    mappings,
-                    windows,
-                    &spot,
-                    all_supply,
-                )
+                RangeVecs::import(&db, id.cohort(), version, mappings, windows, &spot, totals)
             })?);
             Ok((ranges, others.join().unwrap()?))
         })?;
@@ -62,6 +60,7 @@ impl Vecs {
             db,
             live: None,
             all_supply: all_supply.read_only_boxed_clone(),
+            all_capital,
             ranges,
             epochs,
             classes,

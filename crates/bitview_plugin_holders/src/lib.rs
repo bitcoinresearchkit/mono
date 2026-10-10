@@ -2,6 +2,7 @@
 
 mod activity;
 mod adjusted_sopr;
+mod capital;
 mod columns;
 mod compute;
 mod cost_basis;

@@ -32,13 +32,11 @@ impl Vecs {
             block_size,
             chain_fees,
         )?;
-        let total_data = total.data_bytes_source();
         let protocols = KindBreakdownVecs::import(
             &db,
             version,
             mappings,
             window_starts,
-            total_data,
             block_size,
             chain_fees,
         )?;
@@ -47,7 +45,6 @@ impl Vecs {
             version,
             mappings,
             window_starts,
-            total_data,
             block_size,
             chain_fees,
         )?;

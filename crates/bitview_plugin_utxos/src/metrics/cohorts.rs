@@ -1,5 +1,6 @@
 use bitview_cohort::{AmountRange, SpendableType};
 use bitview_collections::Windows;
+use bitview_distribution::metrics::ShareTotals;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
 use bitview_traversable::Traversable;
@@ -31,13 +32,13 @@ impl CohortMetrics {
         mappings: &MappingsVecs,
         windows: &Windows<&LazyWindowStartVec>,
         spot: &ReadableBoxedVec<Height, Cents>,
-        all_supply: &ReadableBoxedVec<Height, Sats>,
+        totals: ShareTotals<'_>,
     ) -> Result<Self> {
         let amounts = Box::new(AmountRange::try_new(|cohort| {
-            CohortVecs::import(db, cohort, version, mappings, windows, spot, all_supply)
+            CohortVecs::import(db, cohort, version, mappings, windows, spot, totals)
         })?);
         let types = Box::new(SpendableType::try_new(|cohort| {
-            TypeVecs::import(db, cohort, version, mappings, windows, spot, all_supply)
+            TypeVecs::import(db, cohort, version, mappings, windows, spot, totals)
         })?);
         let avg_amount_sats = import_cached(db, "avg_utxo_amount_sats", version)?;
         let avg_amount = LazySpotValuePerBlock::from_sats_source(

@@ -120,6 +120,7 @@ impl ComputePlugin for Vecs {
                     epochs: &mut self.epochs,
                     classes: &mut self.classes,
                     coinblocks_destroyed: &mut self.coinblocks_destroyed,
+                    all_capital: &mut self.all_capital,
                 },
                 &mut states,
                 &ctx,
@@ -151,6 +152,7 @@ impl Vecs {
             vecs.extend(cohort.stored_vecs_mut());
         }
         vecs.push(self.coinblocks_destroyed.stored_mut());
+        vecs.push(&mut self.all_capital);
         vecs
     }
 

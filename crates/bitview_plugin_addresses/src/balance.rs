@@ -1,14 +1,18 @@
-use bitview_cohort::{CohortContext, CohortId};
+use bitview_cohort::{AmountRange, CohortContext, CohortId};
 use bitview_distribution::{
-    families::{CountWithDeltas, CumulativeFiat, CumulativeValue, Fiat},
-    metrics::CohortSupply,
+    families::{CountWithDeltas, CumulativeFiat, CumulativeValue},
+    metrics::{CohortCapital, CohortSupply, ShareTotals},
 };
 use bitview_primitives::Count;
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
+use bitview_vecs::{CachedSeries, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{AnyStoredVec, BinaryTransform, ReadableBoxedVec, ReadableVec, Rw, StorageMode};
+use vecdb::{
+    AnyStoredVec, BinaryTransform, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw,
+    StorageMode, WritableVec,
+};
 
 use crate::{
     addr::ImportContext,
@@ -22,6 +26,7 @@ pub struct BalanceVecs<M: StorageMode = Rw> {
     /// Funded addresses whose balance falls in the band.
     pub address_count: CountWithDeltas<M>,
     pub supply: CohortSupply<M>,
+    pub capital: CohortCapital<M>,
     pub outputs: BalanceOutputs<M>,
     pub activity: BalanceActivity<M>,
     pub realized: BalanceRealized<M>,
@@ -43,8 +48,6 @@ pub struct BalanceActivity<M: StorageMode = Rw> {
 
 #[derive(Traversable)]
 pub struct BalanceRealized<M: StorageMode = Rw> {
-    /// Creation-date value of the band's unspent outputs.
-    pub cap: Fiat<Cents, M>,
     /// Profit realized by the band's spends: spending value minus creation-date
     /// value, counted only for profitable spends.
     pub profit: CumulativeFiat<Cents, M>,
@@ -54,12 +57,11 @@ pub struct BalanceRealized<M: StorageMode = Rw> {
 }
 
 impl BalanceVecs {
-    /// `address_supply` is the supply all addresses hold, the band supply's share
-    /// denominator.
+    /// `totals` are the supply and capital all addresses hold, the band's share denominators.
     pub fn import(
         ctx: &ImportContext<'_>,
         cohort: CohortId,
-        address_supply: &ReadableBoxedVec<Height, Sats>,
+        totals: ShareTotals<'_>,
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Balance.metric_name(cohort, metric);
         let version = ctx.version + Version::ONE;
@@ -79,7 +81,15 @@ impl BalanceVecs {
                 ctx.mappings,
                 ctx.windows,
                 ctx.spot,
-                address_supply,
+                totals.supply,
+            )?,
+            capital: CohortCapital::import(
+                ctx.db,
+                name,
+                version,
+                ctx.mappings,
+                ctx.windows,
+                totals.capital,
             )?,
             outputs: BalanceOutputs {
                 unspent_count: CountWithDeltas::import(
@@ -100,7 +110,6 @@ impl BalanceVecs {
                 )?,
             },
             realized: BalanceRealized {
-                cap: Fiat::import(ctx.db, &name("realized_cap"), version, ctx.mappings)?,
                 profit: CumulativeFiat::import(
                     ctx.db,
                     &name("realized_profit"),
@@ -130,7 +139,7 @@ impl BalanceVecs {
         self.activity
             .transfer_volume
             .push_block(inner.sent, SatsToCents::apply(inner.sent, price));
-        self.realized.cap.push(inner.realized.cap());
+        self.capital.push(inner.realized.cap());
         self.realized.profit.push_block(inner.realized.profit());
         self.realized.loss.push_block(inner.realized.loss());
     }
@@ -152,10 +161,57 @@ impl BalanceVecs {
             self.outputs.unspent_count.stored_mut(),
             sats,
             cents,
-            self.realized.cap.stored_mut(),
+            self.capital.stored_mut(),
             self.realized.profit.stored_mut(),
             self.realized.loss.stored_mut(),
         ]
         .into_iter()
+    }
+}
+
+/// The balance bands and the capital all addresses hold: the address root's capital and the bands'
+/// capital share denominator.
+#[derive(Traversable)]
+pub struct Balances<M: StorageMode = Rw> {
+    #[traversable(flatten)]
+    pub bands: AmountRange<BalanceVecs<M>>,
+    #[traversable(hidden)]
+    pub capital: CachedSeries<Height, Cents, M>,
+}
+
+impl Balances {
+    /// `address_supply` is the supply all addresses hold, the bands' supply share denominator.
+    pub fn import(
+        ctx: &ImportContext<'_>,
+        address_supply: &ReadableBoxedVec<Height, Sats>,
+    ) -> Result<Self> {
+        let capital = import_cached(ctx.db, "address_capital_cents", ctx.version + Version::TWO)?;
+        let address_capital = capital.read_only_boxed_clone();
+        let totals = ShareTotals {
+            supply: address_supply,
+            capital: &address_capital,
+        };
+        Ok(Self {
+            bands: AmountRange::try_new(|cohort| BalanceVecs::import(ctx, cohort, totals))?,
+            capital,
+        })
+    }
+
+    /// Writes each band's values and the capital they hold together.
+    #[inline(always)]
+    pub fn push(&mut self, states: &AmountRange<AddrCohortState>, price: Cents) {
+        let mut capital = Cents::ZERO;
+        for (band, state) in self.bands.iter_mut().zip(states.iter()) {
+            band.push(state, price);
+            capital += state.inner.realized.cap();
+        }
+        self.capital.push(capital);
+    }
+
+    pub fn vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.bands
+            .iter_mut()
+            .flat_map(BalanceVecs::vecs_mut)
+            .chain([&mut self.capital as &mut dyn AnyStoredVec])
     }
 }

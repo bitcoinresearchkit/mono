@@ -10,6 +10,7 @@ readme = "README.md"
 
 [dependencies]
 bitview_collections = { workspace = true }
+bitview_distribution = { workspace = true }
 bitview_urpd = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_addresses = { workspace = true }

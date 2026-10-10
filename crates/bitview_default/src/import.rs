@@ -1,6 +1,7 @@
 use bitview_collections::Windows;
 use std::{thread, time::Instant};
 
+use bitview_distribution::metrics::ShareTotals;
 use bitview_plugin::{ImportContext, Plugin};
 use bitview_plugin_addresses::{ID as ADDRESSES_ID, Vecs as Addresses};
 use bitview_plugin_age::{ID as AGE_ID, Vecs as Age};
@@ -183,13 +184,19 @@ impl DefaultPlugins {
             Ok((age, market))
         })?;
 
+        let all_supply = utxo_set.supply.read_only_boxed_clone();
+        let all_capital = age.all_capital().read_only_boxed_clone();
+        let totals = ShareTotals {
+            supply: &all_supply,
+            capital: &all_capital,
+        };
         let utxos = timed(Phase::Import, UTXOS_ID, || -> Result<_> {
             Ok(Box::new(Utxos::import(
                 context,
                 &mappings,
                 &window_starts,
                 &price,
-                &utxo_set.supply.read_only_boxed_clone(),
+                totals,
             )?))
         })?;
 
@@ -199,6 +206,7 @@ impl DefaultPlugins {
                 &mappings,
                 &window_starts,
                 &price,
+                totals,
             )?))
         })?;
 
@@ -252,7 +260,7 @@ impl DefaultPlugins {
                             &mappings,
                             &window_starts,
                             &price.spot.cents.height.read_only_boxed_clone(),
-                            holders.all_supply(),
+                            totals,
                         )?))
                     })
                 })?;

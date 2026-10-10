@@ -11,7 +11,7 @@ use super::import_stored;
 #[derive(Traversable)]
 pub struct Fiat<C: FiatType + PcoVecValue = Cents, M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub value: LazyFiatPerBlock<C>,
+    value: LazyFiatPerBlock<C>,
     #[traversable(hidden)]
     pub stored: CachedSeries<Height, C, M>,
 }

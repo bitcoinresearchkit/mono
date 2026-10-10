@@ -6,7 +6,6 @@ mod velocity;
 
 pub use dependencies::Dependencies;
 
-use bitview_collections::Windows;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
@@ -43,13 +42,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// block in each supported trailing monotonic-time window.
     #[traversable(wrap = "market_cap", rename = "delta")]
     market_cap_delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
-    /// Market-cap growth rate minus realized-cap growth rate over a
-    /// trailing monotonic-time window. Realized cap values each unspent output
-    /// at Bitcoin's spot price when it was created. Positive values mean market
-    /// value grew faster than this creation-date capital base; negative values
-    /// mean it grew more slowly. A component with a zero starting value
-    /// contributes zero growth.
-    market_minus_realized_cap_growth_rate: Windows<LazyPercentPerBlock<PartsPerMillionSigned64>>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

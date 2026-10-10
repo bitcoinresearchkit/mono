@@ -323,7 +323,8 @@ pub fn process_chunk(
             for (member, member_state) in vecs.types.iter_mut().zip(state.0.iter()) {
                 member.push(member_state);
             }
-            addr_states.push(&mut vecs.balances, block_prices[offset]);
+            vecs.balances
+                .push(&addr_states.amount_range, block_prices[offset]);
             addr_states.reset_block();
         }
         if cache.len() >= MAX_CACHED_ADDRS {

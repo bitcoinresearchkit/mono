@@ -1,8 +1,8 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_distribution::{
-    families::{CountWithDeltas, CumulativeCount, CumulativeFiat, CumulativeValue, Fiat},
-    metrics::{CohortCostBasis, CohortSupply},
+    families::{CountWithDeltas, CumulativeCount, CumulativeFiat, CumulativeValue},
+    metrics::{CohortCapital, CohortCostBasis, CohortSupply, ShareTotals},
     state::{MinimalRealizedState, UTXOCohortState},
 };
 use bitview_plugin_mappings::Vecs as MappingsVecs;
@@ -23,6 +23,7 @@ type State = UTXOCohortState<MinimalRealizedState, ()>;
 #[derive(Traversable)]
 pub struct CohortVecs<M: StorageMode = Rw> {
     pub supply: CohortSupply<M>,
+    pub capital: CohortCapital<M>,
     pub outputs: OutputsVecs<M>,
     pub activity: ActivityVecs<M>,
     pub realized: RealizedVecs<M>,
@@ -47,10 +48,6 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
 
 #[derive(Traversable)]
 pub struct RealizedVecs<M: StorageMode = Rw> {
-    /// Creation-date value of the cohort's unspent outputs: the sum of each
-    /// output's BTC value multiplied by Bitcoin's spot price when that output
-    /// was created.
-    pub cap: Fiat<Cents, M>,
     /// Profit realized by the cohort's outputs: spending value minus
     /// creation-date value, counted only for profitable spends.
     pub profit: CumulativeFiat<Cents, M>,
@@ -67,7 +64,7 @@ impl CohortVecs {
         mappings: &MappingsVecs,
         windows: &Windows<&LazyWindowStartVec>,
         spot: &ReadableBoxedVec<Height, Cents>,
-        all_supply: &ReadableBoxedVec<Height, Sats>,
+        totals: ShareTotals<'_>,
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let flow_version = version + Version::ONE;
@@ -79,8 +76,9 @@ impl CohortVecs {
                 mappings,
                 windows,
                 spot,
-                all_supply,
+                totals.supply,
             )?,
+            capital: CohortCapital::import(db, name, version, mappings, windows, totals.capital)?,
             outputs: OutputsVecs {
                 unspent_count: CountWithDeltas::import(
                     db,
@@ -107,7 +105,6 @@ impl CohortVecs {
                 )?,
             },
             realized: RealizedVecs {
-                cap: Fiat::import(db, &name("realized_cap"), version, mappings)?,
                 profit: CumulativeFiat::import(
                     db,
                     &name("realized_profit"),
@@ -138,7 +135,7 @@ impl CohortVecs {
             .transfer_volume
             .push_block(sent, SatsToCents::apply(sent, price));
         let realized = state.realized_block_data();
-        self.realized.cap.push(realized.cap);
+        self.capital.push(realized.cap);
         self.realized.profit.push_block(realized.profit);
         self.realized.loss.push_block(realized.loss);
         self.cost_basis.push(realized.price());
@@ -152,7 +149,7 @@ impl CohortVecs {
             self.outputs.spent_count.stored_mut(),
             sats,
             cents,
-            self.realized.cap.stored_mut(),
+            self.capital.stored_mut(),
             self.realized.profit.stored_mut(),
             self.realized.loss.stored_mut(),
             self.cost_basis.stored_mut(),
@@ -184,7 +181,7 @@ impl TypeVecs {
         mappings: &MappingsVecs,
         windows: &Windows<&LazyWindowStartVec>,
         spot: &ReadableBoxedVec<Height, Cents>,
-        all_supply: &ReadableBoxedVec<Height, Sats>,
+        totals: ShareTotals<'_>,
     ) -> Result<Self> {
         let name = cohort.name();
         let avg_amount_sats = import_cached(db, &format!("{name}_avg_utxo_amount_sats"), version)?;
@@ -196,7 +193,7 @@ impl TypeVecs {
             spot,
         );
         Ok(Self {
-            cohort: CohortVecs::import(db, cohort, version, mappings, windows, spot, all_supply)?,
+            cohort: CohortVecs::import(db, cohort, version, mappings, windows, spot, totals)?,
             avg_amount,
             avg_amount_sats,
         })

@@ -7,11 +7,11 @@ use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::{Halving, PartsPerMillionSigned64};
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
-    LazyWindowStartVec, LazyWindowVec,
+    LazyWindowStartVec,
 };
 use brk_error::Result;
-use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{Ident, ReadableCloneableVec, ReadableVec};
+use brk_types::{Sats, Version};
+use vecdb::Ident;
 
 use crate::{STORAGE, Vecs, burned, velocity};
 
@@ -78,21 +78,6 @@ impl Vecs {
             mappings,
         );
 
-        let growth_version = version + Version::new(3);
-        let realized_cap = &holders.cohorts.all.realized.cap.cents.height;
-        let market_minus_realized_cap_growth_rate =
-            window_starts.map_with_suffix(|suffix, starts| {
-                let name = format!("market_minus_realized_cap_growth_rate_{suffix}");
-                let source = Self::market_minus_realized_cap_growth(
-                    all_chain,
-                    &format!("{name}_source"),
-                    growth_version,
-                    realized_cap,
-                    starts.read_only_boxed_clone(),
-                );
-                LazyPercentPerBlock::from_height_source(&name, growth_version, &source, mappings)
-            });
-
         let this = Self {
             db,
             circulating,
@@ -101,44 +86,8 @@ impl Vecs {
             velocity,
             market_cap,
             market_cap_delta,
-            market_minus_realized_cap_growth_rate,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)
-    }
-
-    fn market_minus_realized_cap_growth(
-        all_chain: &AllChainSources,
-        name: &str,
-        version: Version,
-        realized_cap: &impl ReadableCloneableVec<Height, Cents>,
-        window_starts: impl ReadableVec<Height, Height> + Clone + 'static,
-    ) -> LazyWindowVec<Height, (Cents, Cents), PartsPerMillionSigned64> {
-        let caps = all_chain.with_market_cap(
-            &format!("{name}_caps"),
-            Version::ZERO,
-            realized_cap,
-            |_, realized, market| (realized, market),
-        );
-
-        LazyWindowVec::new(
-            name,
-            version,
-            &caps,
-            &window_starts,
-            false,
-            |current, previous, _| {
-                let growth = |current: Cents, previous: Cents| {
-                    if previous == Cents::ZERO {
-                        0.0
-                    } else {
-                        (f64::from(current) - f64::from(previous)) / f64::from(previous)
-                    }
-                };
-                PartsPerMillionSigned64::from(
-                    growth(current.1, previous.1) - growth(current.0, previous.0),
-                )
-            },
-        )
     }
 }

@@ -1,6 +1,6 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
-use bitview_distribution::metrics::CohortCostBasis;
+use bitview_distribution::metrics::{CohortCostBasis, ShareTotals};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{CentsSquaredSats, CoinDays};
 use bitview_transforms::SatsToCents;
@@ -71,7 +71,7 @@ impl RangeVecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
         spot_price: &ReadableBoxedVec<Height, Cents>,
-        all_supply: &ReadableBoxedVec<Height, Sats>,
+        totals: ShareTotals<'_>,
     ) -> Result<Self> {
         let full_name = CohortContext::Utxo.full_name(cohort);
         let matured_version = version + MATURED_VERSION;
@@ -126,7 +126,7 @@ impl RangeVecs {
                 mappings,
                 window_starts,
                 spot_price,
-                all_supply,
+                totals,
             )?,
             matured,
             matured_sources,
@@ -147,9 +147,14 @@ impl RangeVecs {
         self.coindays_created.push_block(coindays_created);
     }
 
+    /// Returns the range's capital.
     #[inline(always)]
-    pub(crate) fn push(&mut self, state: &mut UTXOCohortState<RealizedState>, price: Cents) {
-        self.cohort.push(state, price);
+    pub(crate) fn push(
+        &mut self,
+        state: &mut UTXOCohortState<RealizedState>,
+        price: Cents,
+    ) -> Cents {
+        let capital = self.cohort.push(state, price);
         let realized = &state.realized;
         self.cost_basis
             .push(realized.cap_raw().realized_price(state.supply_value()));
@@ -160,6 +165,7 @@ impl RangeVecs {
         self.raw
             .peak_regret
             .push(CentsSats::new(realized.peak_regret_raw()));
+        capital
     }
 
     pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {

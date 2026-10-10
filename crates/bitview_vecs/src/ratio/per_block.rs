@@ -3,9 +3,8 @@ use bitview_primitives::Ratio;
 use bitview_transforms::FixedToRatio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_exit::Exit;
-use brk_types::{Height, Version};
-use vecdb::{BinaryTransform, Database, ReadableVec, Rw, StorageMode, VecValue};
+use brk_types::Version;
+use vecdb::{Database, Rw, StorageMode};
 
 use crate::{IndexSources, LazyPerBlock, PerBlock};
 
@@ -36,21 +35,5 @@ impl<R: FixedRatio> RatioPerBlock<R> {
         let ratio = LazyPerBlock::from_resolutions::<FixedToRatio>(name, v, &fixed);
 
         Ok(Self { fixed, ratio })
-    }
-
-    pub fn compute_binary<S1T, S2T, F>(
-        &mut self,
-        max_from: Height,
-        source1: &impl ReadableVec<Height, S1T>,
-        source2: &impl ReadableVec<Height, S2T>,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        S1T: VecValue,
-        S2T: VecValue,
-        F: BinaryTransform<S1T, S2T, R>,
-    {
-        self.fixed
-            .compute_binary::<S1T, S2T, F>(max_from, source1, source2, exit)
     }
 }

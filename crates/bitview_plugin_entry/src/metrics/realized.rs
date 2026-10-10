@@ -1,12 +1,12 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::{PartsPerMillionSigned64, Ratio};
+use bitview_primitives::Ratio;
 use bitview_transforms::RatioCentsOrOne;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlockCumulativeWithSums, LazyFiatPerBlockWithDeltas,
-    LazyValuePerBlockCumulativeRolling, LazyWindowStartVec, RollingWindows,
+    LazyFiatPerBlockCumulativeWithSums, LazyValuePerBlockCumulativeRolling, LazyWindowStartVec,
+    RollingWindows,
 };
 use brk_error::Result;
 use brk_exit::Exit;
@@ -17,8 +17,6 @@ use super::Sources;
 
 #[derive(Traversable)]
 pub struct RealizedMetrics<M: StorageMode = Rw> {
-    /// Creation-date value of this cohort's unspent outputs.
-    cap: LazyFiatPerBlockWithDeltas<Cents, CentsSigned, PartsPerMillionSigned64>,
     /// Profit realized by outputs spent from this cohort.
     profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Loss realized by outputs spent from this cohort.
@@ -52,14 +50,6 @@ impl RealizedMetrics {
             )
         };
         Ok(Self {
-            cap: LazyFiatPerBlockWithDeltas::from_cents_source(
-                &name("realized_cap"),
-                version,
-                &sources.realized_cap,
-                Version::TWO,
-                mappings,
-                windows,
-            ),
             profit: flow(
                 "realized_profit",
                 sources.realized_profit.cumulative_source(),

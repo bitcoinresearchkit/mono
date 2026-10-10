@@ -1554,13 +1554,12 @@ pub mod tree {
         investorness: SeriesPattern1<Option<Percent>> = "investorness",
         producerness: SeriesPattern1<Option<Percent>> = "producerness",
     } }
+    shape! { MobileCapital at "series().coinflow.cohorts.all.mobile.capital" {
+        total: SeriesPattern1<Option<Dollars>> = "*_capital",
+        realized_cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
+    } }
     shape! { SupplyInLoss at "series().coinflow.cohorts.all.mobile.supply.in_loss" {
         share: SeriesPattern1<Option<Percent>> = "*",
-    } }
-    shape! { MobileSupply at "series().coinflow.cohorts.all.mobile.supply" {
-        btc: SeriesPattern1<Option<Bitcoin>> = "*",
-        usd: SeriesPattern1<Option<Dollars>> = "*_usd",
-        in_loss: SupplyInLoss = "*_in_loss_share",
     } }
     shape! { Dormancy at "series().indicators.dormancy" {
         supply_adjusted: SeriesPattern1<Option<Float32>> = "*_supply_adjusted",
@@ -1637,13 +1636,8 @@ pub mod tree {
         net_pnl: SeriesPattern1<Option<Dollars>> = "*_net_unrealized_pnl",
         gross_pnl: SeriesPattern1<Option<Dollars>> = "*_gross_unrealized_pnl",
         nupl: SeriesPattern1<Option<Ratio>> = "*_nupl",
-        profit_to_market_cap: SeriesPattern1<Option<Ratio>> = "*_unrealized_profit_to_market_cap",
-        loss_to_market_cap: SeriesPattern1<Option<Ratio>> = "*_unrealized_loss_to_market_cap",
-        profit_to_own_market_cap: SeriesPattern1<Option<Ratio>> = "*_unrealized_profit_to_own_market_cap",
-        loss_to_own_market_cap: SeriesPattern1<Option<Ratio>> = "*_unrealized_loss_to_own_market_cap",
-        net_pnl_to_gross_pnl: SeriesPattern1<Option<Ratio>> = "*_net_unrealized_pnl_to_gross_pnl",
     } }
-    shape! { CapInLoss at "series().holders.all.realized.cap.in_loss" {
+    shape! { CapitalInLoss at "series().holders.all.capital.in_loss" {
         block: SeriesPattern1<Option<Dollars>> = "*",
         share: SeriesPattern1<Option<Percent>> = "*_share",
     } }
@@ -1696,7 +1690,7 @@ pub mod tree {
         loss: SeriesPattern1<Option<Dollars>> = "*_unrealized_loss",
         net_pnl: SeriesPattern1<Option<Dollars>> = "*_net_unrealized_pnl",
     } }
-    shape! { DeltaRate at "series().addresses.funded.delta.rate" {
+    shape! { DeltaRate at "series().addresses.capital.delta.rate" {
         _24h: SeriesPattern1<Option<Percent>> = "*_24h_rate",
         _1w: SeriesPattern1<Option<Percent>> = "*_1w_rate",
         _1m: SeriesPattern1<Option<Percent>> = "*_1m_rate",
@@ -1764,11 +1758,6 @@ pub mod tree {
         per_dollar: PerDollar = "*",
         supply_density: CapitalDensity = "*_supply_density",
         capital_density: CapitalDensity = "*_capital_density",
-    } }
-    shape! { Mobile at "series().coinflow.cohorts.all.mobile" {
-        supply: MobileSupply = "*_supply",
-        realized_cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
-        cost_basis: MobileCostBasis = "*",
     } }
     shape! { AllCostBasis at "series().holders.all.cost_basis" {
         per_coin: AllCostBasisPerCoin = "*",
@@ -1939,6 +1928,15 @@ pub mod tree {
         hodled_or_lost: AvgBalance = "hodled_or_lost_*",
         active: AvgBalance = "active_*",
     } }
+    shape! { MobileSupply at "series().coinflow.cohorts.all.mobile.supply" {
+        total: AvgBalance = "*",
+        in_loss: SupplyInLoss = "*_in_loss_share",
+    } }
+    shape! { Mobile at "series().coinflow.cohorts.all.mobile" {
+        supply: MobileSupply = "*_supply",
+        capital: MobileCapital = "*",
+        cost_basis: MobileCostBasis = "*",
+    } }
     shape! { Immobile at "series().coinflow.age_ranges._10y_to_12y.immobile" {
         supply: AvgBalance = "*",
     } }
@@ -2008,11 +2006,35 @@ pub mod tree {
         sum: Sum = "*_fees_sum",
         chain_share: ChainShare = "*_fee_chain_share",
     } }
+    shape! { RewardsFees at "series().mining.rewards.fees" {
+        block: Block = "*",
+        cumulative: AvgBalance = "*_cumulative",
+        sum: Sum = "*_sum",
+        avg: Sum = "*_avg",
+        min: Sum = "*_min",
+        max: Sum = "*_max",
+        pct10: Sum = "*_pct10",
+        pct25: Sum = "*_pct25",
+        median: Sum = "*_median",
+        pct75: Sum = "*_pct75",
+        pct90: Sum = "*_pct90",
+        share: ChainShare = "fee_share",
+    } }
     shape! { Subsidy at "series().mining.rewards.subsidy" {
         block: Block = "*",
         cumulative: AvgBalance = "*_cumulative",
         sum: Sum = "*_sum",
         share: ChainShare = "*_share",
+    } }
+    shape! { MiningRewards at "series().mining.rewards" {
+        coinbase: OpReturnValue = "*",
+        subsidy: Subsidy = "subsidy",
+        fees: RewardsFees = "fees",
+        unclaimed: OpReturnValue = "unclaimed_rewards",
+    } }
+    shape! { Mining at "series().mining" {
+        rewards: MiningRewards = "*",
+        hashrate: MiningHashrate = "hash",
     } }
     shape! { BlocksHalving at "series().blocks.halving" {
         epoch: SeriesPattern1<Halving> = "*_epoch",
@@ -2037,7 +2059,7 @@ pub mod tree {
         block: SeriesPattern20<Count> = "*",
         sum: InputsPerSecond<Count> = "*_sum",
     } }
-    shape! { Delta<A> at "series().addresses.funded.delta" {
+    shape! { Delta<A> at "series().addresses.capital.delta" {
         absolute: InputsPerSecond<A> = "*",
         rate: DeltaRate = "*",
     } }
@@ -2048,11 +2070,13 @@ pub mod tree {
         in_loss: ExposedSupply = "*_in_loss",
         delta: Delta<Option<Bitcoin>> = "*_delta",
     } }
-    shape! { Cap at "series().holders.all.realized.cap" {
-        block: SeriesPattern1<Option<Dollars>> = "*",
-        delta: Delta<Option<Dollars>> = "*_delta",
-        in_profit: CapInLoss = "*_in_profit",
-        in_loss: CapInLoss = "*_in_loss",
+    shape! { AllCapital at "series().holders.all.capital" {
+        total: SeriesPattern1<Option<Dollars>> = "*_capital",
+        realized_cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
+        share: SeriesPattern1<Option<Percent>> = "*_capital_share",
+        in_profit: CapitalInLoss = "*_capital_in_profit",
+        in_loss: CapitalInLoss = "*_capital_in_loss",
+        delta: Delta<Option<Dollars>> = "*_capital_delta",
     } }
     shape! { AllSupply at "series().holders.all.supply" {
         total: Total = "circulating_*",
@@ -2061,7 +2085,13 @@ pub mod tree {
         in_loss: ExposedSupply = "*_in_loss",
         delta: Delta<Option<Bitcoin>> = "*_delta",
     } }
-    shape! { Balances0satsSupply at "series().addresses.balances._0sats.supply" {
+    shape! { AddressesCapital at "series().addresses.capital" {
+        total: SeriesPattern1<Option<Dollars>> = "*_capital",
+        realized_cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
+        delta: Delta<Option<Dollars>> = "*_capital_delta",
+        share: SeriesPattern1<Option<Percent>> = "*_capital_share",
+    } }
+    shape! { AddressesSupply at "series().addresses.supply" {
         total: AvgBalance = "*",
         delta: Delta<Option<Bitcoin>> = "*_delta",
         share: SeriesPattern1<Option<Percent>> = "*_share",
@@ -2078,15 +2108,22 @@ pub mod tree {
         delta: Delta<B> = "*_delta",
     } }
     shape! { Supply at "series().supply" {
-        circulating: SeriesPattern1<Option<Bitcoin>> = "circulating_supply",
+        circulating: SeriesPattern1<Option<Bitcoin>> = "*",
         burned: OpReturnValue = "burned",
-        inflation_rate: SeriesPattern1<Option<Percent>> = "inflation_*",
+        inflation_rate: SeriesPattern1<Option<Percent>> = "inflation_rate",
         velocity: Velocity = "velocity",
         market_cap: Funded<Option<Dollars>, Option<Dollars>> = "market_cap",
-        market_minus_realized_cap_growth_rate: InputsPerSecond<Option<Percent>> = "market_minus_realized_cap_growth_*",
     } }
     shape! { Balances0satsOutputs at "series().addresses.balances._0sats.outputs" {
         unspent_count: Funded<Count, CountSigned> = "*",
+    } }
+    shape! { RookieCapital at "series().entry.rookie.capital" {
+        total: SeriesPattern1<Option<Dollars>> = "*_capital",
+        realized_cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
+        delta: Delta<Option<Dollars>> = "*_capital_delta",
+        share: SeriesPattern1<Option<Percent>> = "*_capital_share",
+        in_profit: SeriesPattern1<Option<Dollars>> = "*_capital_in_profit",
+        in_loss: SeriesPattern1<Option<Dollars>> = "*_capital_in_loss",
     } }
     shape! { Ranges10yTo12ySupply at "series().age.ranges._10y_to_12y.supply" {
         total: AvgBalance = "*_supply",
@@ -2297,43 +2334,11 @@ pub mod tree {
         noderunners: Aaopool = "noderunners",
         dmnd: Aaopool = "dmnd",
     } }
-    shape! { MultipleDataBytes at "series().op_return.policies.multiple.data_bytes" {
-        block: SeriesPattern20<Bytes> = "*_bytes",
-        cumulative: SeriesPattern1<Bytes> = "*_bytes_cumulative",
-        sum: InputsPerSecond<Bytes> = "*_bytes_sum",
-        share: SeriesPattern1<Option<Percent>> = "*_share",
-        chain_share: SeriesPattern1<Option<Percent>> = "*_chain_share",
-    } }
-    shape! { OpReturnDataBytes at "series().op_return.data_bytes" {
+    shape! { DataBytes at "series().op_return.data_bytes" {
         block: SeriesPattern20<Bytes> = "*_bytes",
         cumulative: SeriesPattern1<Bytes> = "*_bytes_cumulative",
         sum: InputsPerSecond<Bytes> = "*_bytes_sum",
         chain_share: SeriesPattern1<Option<Percent>> = "*_chain_share",
-    } }
-    shape! { RewardsFees at "series().mining.rewards.fees" {
-        block: Block = "*",
-        cumulative: AvgBalance = "*_cumulative",
-        sum: Sum = "*_sum",
-        avg: Sum = "*_avg",
-        min: Sum = "*_min",
-        max: Sum = "*_max",
-        pct10: Sum = "*_pct10",
-        pct25: Sum = "*_pct25",
-        median: Sum = "*_median",
-        pct75: Sum = "*_pct75",
-        pct90: Sum = "*_pct90",
-        share: ChainShare = "fee_share",
-        to_subsidy: InputsPerSecond<Option<Ratio>> = "fee_to_subsidy",
-    } }
-    shape! { MiningRewards at "series().mining.rewards" {
-        coinbase: OpReturnValue = "*",
-        subsidy: Subsidy = "subsidy",
-        fees: RewardsFees = "fees",
-        unclaimed: OpReturnValue = "unclaimed_rewards",
-    } }
-    shape! { Mining at "series().mining" {
-        rewards: MiningRewards = "*",
-        hashrate: MiningHashrate = "hash",
     } }
     shape! { BlocksSize<A, B, C> at "series().blocks.size" {
         cumulative: SeriesPattern1<A> = "*_cumulative",
@@ -2406,7 +2411,6 @@ pub mod tree {
         concurrent_liveliness: InputsPerSecond<Option<Ratio>> = "concurrent_liveliness",
     } }
     shape! { RookieRealized at "series().entry.rookie.realized" {
-        cap: Funded<Option<Dollars>, Option<Dollars>> = "*_realized_cap",
         profit: CoinblocksDestroyed<Option<Dollars>> = "*_realized_profit",
         loss: CoinblocksDestroyed<Option<Dollars>> = "*_realized_loss",
         net_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_net_realized_pnl",
@@ -2422,12 +2426,9 @@ pub mod tree {
         value_destroyed: CoinblocksDestroyed<Option<Dollars>> = "*_value_destroyed",
     } }
     shape! { AllRealized at "series().holders.all.realized" {
-        cap: Cap = "*_realized_cap",
         profit: CoinblocksDestroyed<Option<Dollars>> = "*_realized_profit",
         loss: CoinblocksDestroyed<Option<Dollars>> = "*_realized_loss",
         net_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_net_realized_pnl",
-        net_pnl_1m_to_market_cap: SeriesPattern1<Option<Ratio>> = "*_net_realized_pnl_1m_to_market_cap",
-        net_pnl_1m_to_realized_cap: SeriesPattern1<Option<Ratio>> = "*_net_realized_pnl_1m_to_realized_cap",
         gross_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_gross_realized_pnl",
         profit_to_loss: InputsPerSecond<Option<Ratio>> = "*_realized_profit_to_loss",
         value_destroyed: CoinblocksDestroyed<Option<Dollars>> = "*_value_destroyed",
@@ -2491,13 +2492,13 @@ pub mod tree {
         avg_amount: AvgBalance = "*_avg_utxo_amount",
     } }
     shape! { Balances0satsRealized at "series().addresses.balances._0sats.realized" {
-        cap: SeriesPattern1<Option<Dollars>> = "*_cap",
         profit: CoinblocksDestroyed<Option<Dollars>> = "*_profit",
         loss: CoinblocksDestroyed<Option<Dollars>> = "*_loss",
     } }
     shape! { Balances0sats at "series().addresses.balances._0sats" {
         address_count: Funded<Count, CountSigned> = "*_address_count",
-        supply: Balances0satsSupply = "*_supply",
+        supply: AddressesSupply = "*_supply",
+        capital: AddressesCapital = "*",
         outputs: Balances0satsOutputs = "*_utxo_count",
         activity: Balances0satsActivity = "*_transfer_volume",
         realized: Balances0satsRealized = "*_realized",
@@ -2507,7 +2508,6 @@ pub mod tree {
         coindays_destroyed: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_destroyed",
     } }
     shape! { Classes2009Realized at "series().age.classes._2009.realized" {
-        cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
         profit: CoinblocksDestroyed<Option<Dollars>> = "*_realized_profit",
         loss: CoinblocksDestroyed<Option<Dollars>> = "*_realized_loss",
         net_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_net_realized_pnl",
@@ -2522,17 +2522,18 @@ pub mod tree {
         unspent_count: Funded<Count, CountSigned> = "*_utxo_count",
         spent_count: CoinblocksDestroyed<Count> = "*_spent_utxo_count",
     } }
-    shape! { Rookie<A, B, C, D, E> at "series().entry.rookie" {
+    shape! { Rookie<A, B, C, D, E, F> at "series().entry.rookie" {
         supply: A = "*_supply",
+        capital: B = "*",
         outputs: RookieOutputs = "*",
-        activity: B = "*",
-        realized: C = "*",
-        unrealized: D = "*",
-        cost_basis: E = "*",
+        activity: C = "*",
+        realized: D = "*",
+        unrealized: E = "*",
+        cost_basis: F = "*",
     } }
     shape! { Entry at "series().entry" {
-        veteran: Rookie<RookieSupply, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis<RookieCostBasisPerCoin>> = "*",
-        rookie: Rookie<RookieSupply, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis<RookieCostBasisPerCoin>> = "rookie",
+        veteran: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis<RookieCostBasisPerCoin>> = "*",
+        rookie: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis<RookieCostBasisPerCoin>> = "rookie",
     } }
     shape! { Holders<A, B> at "series().holders" {
         all: A = "",
@@ -2544,7 +2545,8 @@ pub mod tree {
         over_6m: B = "*_over_6m_old",
     } }
     shape! { Amounts0sats<A> at "series().utxos.amounts._0sats" {
-        supply: Balances0satsSupply = "*_supply",
+        supply: AddressesSupply = "*_supply",
+        capital: AddressesCapital = "*",
         outputs: A = "*",
         activity: Balances0satsActivity = "*_transfer_volume",
         realized: Balances0satsRealized = "*_realized",
@@ -2589,6 +2591,8 @@ pub mod tree {
         reused: Reused = "",
         respent: Respent = "",
         exposed: Exposed = "",
+        supply: AddressesSupply = "*_supply",
+        capital: AddressesCapital = "*",
         types: AddressesTypes = "p2pk",
         balances: Balances<Balances0sats> = "balance",
         state: State = "*",
@@ -2600,6 +2604,7 @@ pub mod tree {
     } }
     shape! { Classes2009 at "series().age.classes._2009" {
         supply: RookieSupply = "*_supply",
+        capital: RookieCapital = "*",
         outputs: RookieOutputs = "*",
         activity: RookieActivity = "*",
         realized: Classes2009Realized = "*",
@@ -2634,6 +2639,7 @@ pub mod tree {
     } }
     shape! { Ranges10yTo12y at "series().age.ranges._10y_to_12y" {
         supply: Ranges10yTo12ySupply = "*",
+        capital: RookieCapital = "*",
         outputs: RookieOutputs = "*",
         activity: Ranges10yTo12yActivity = "*",
         realized: Classes2009Realized = "*",
@@ -2688,7 +2694,7 @@ pub mod tree {
     } }
     shape! { Multiple at "series().op_return.policies.multiple" {
         output_count: CoinblocksDestroyed<Count> = "*_output_count",
-        data_bytes: MultipleDataBytes = "*_data",
+        data_bytes: DataBytes = "*_data",
         tx_count: CoinblocksDestroyed<Count> = "*_tx_count",
         tx_vsize: CoinblocksDestroyed<VSize> = "*_tx_vsize",
         fees: OpReturnFees = "*",
@@ -2726,7 +2732,7 @@ pub mod tree {
     } }
     shape! { OpReturn at "series().op_return" {
         output_count: CoinblocksDestroyed<Count> = "*_output_count",
-        data_bytes: OpReturnDataBytes = "*_data",
+        data_bytes: DataBytes = "*_data",
         tx_count: CoinblocksDestroyed<Count> = "*_tx_count",
         tx_vsize: CoinblocksDestroyed<VSize> = "*_tx_vsize",
         fees: OpReturnFees = "*",
@@ -3212,9 +3218,9 @@ pub mod tree {
         age: Age = "utxos",
         utxos: Utxos = "utxos",
         addresses: Addresses = "address",
-        holders: Holders<Rookie<AllSupply, AllActivity, AllRealized, AllUnrealized, AllCostBasis>, Rookie<LthSupply, AllActivity, AllRealized, AllUnrealized, AllCostBasis>> = "utxos",
+        holders: Holders<Rookie<AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>, Rookie<LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>> = "utxos",
         entry: Entry = "veteran",
-        supply: Supply = "rate",
+        supply: Supply = "circulating_supply",
         indicators: Indicators = "destroyed_supply_adjusted",
         cointime: Cointime = "utxos",
         coinflow: Coinflow = "utxos",

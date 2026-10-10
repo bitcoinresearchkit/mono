@@ -1,8 +1,7 @@
-use bitview_primitives::{PartsPerMillion32, PartsPerMillion64};
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyPercentCumulativeRolling, LazyRatioRollingWindows, ValuePerBlockCumulativeRolling,
-    ValuePerBlockFull,
+    LazyPercentCumulativeRolling, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
 };
 use vecdb::{Rw, StorageMode};
 
@@ -33,9 +32,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// values mean the derived subsidy supplied more of the miner revenue.
     #[traversable(wrap = "subsidy", rename = "share")]
     pub subsidy_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
-    /// Total transaction fees in the trailing window divided by the total
-    /// derived subsidy component in the same window. Values above one mean fees
-    /// exceeded the derived subsidy; values below one mean the reverse.
-    #[traversable(wrap = "fees", rename = "to_subsidy")]
-    pub fee_to_subsidy: LazyRatioRollingWindows<PartsPerMillion64>,
 }
