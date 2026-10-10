@@ -9,16 +9,16 @@ impl EntryPrice {
     #[inline]
     pub const fn from_is_discount(is_discount: bool) -> Self {
         if is_discount {
-            Self::Discount
+            Self::Veteran
         } else {
-            Self::Premium
+            Self::Rookie
         }
     }
 }
 
 pub const ENTRY_NAMES: ByEntry<CohortName> = ByEntry {
-    discount: CohortName::new("veteran", "Veteran", "Veteran Coins"),
-    premium: CohortName::new("rookie", "Rookie", "Rookie Coins"),
+    veteran: CohortName::new("veteran", "Veteran", "Veteran Coins"),
+    rookie: CohortName::new("rookie", "Rookie", "Rookie Coins"),
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
@@ -28,17 +28,17 @@ pub struct ByEntry<T> {
     /// all-chain capitalized price, the mean creation price of all unspent
     /// outputs weighted by each output's creation-date USD value. A zero
     /// capitalized price also selects this cohort.
-    pub discount: T,
+    pub veteran: T,
     /// Uses UTXOs created when spot price was above the previous block's all-chain
     /// capitalized price, the mean creation price of all unspent outputs
     /// weighted by each output's creation-date USD value.
-    pub premium: T,
+    pub rookie: T,
 }
 
 define_cohort_id!(
     EntryPrice for ByEntry {
-        Discount => discount,
-        Premium => premium,
+        Veteran => veteran,
+        Rookie => rookie,
     }
 );
 

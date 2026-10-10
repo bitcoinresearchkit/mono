@@ -3430,9 +3430,9 @@ const _Adjusted = _s({
  *   loss: SeriesPattern1<?Dollars>,
  *   netPnl: SeriesPattern1<?Dollars>,
  *   nupl: SeriesPattern1<?Ratio>,
- * }} DiscountUnrealized
+ * }} RookieUnrealized
  */
-const _DiscountUnrealized = _s({
+const _RookieUnrealized = _s({
   profit: [_i1, '*_unrealized_profit'],
   loss: [_i1, '*_unrealized_loss'],
   netPnl: [_i1, '*_net_unrealized_pnl'],
@@ -4610,9 +4610,9 @@ const _Supply0sats = _s({
  *   share: SeriesPattern1<?Percent>,
  *   inProfit: AvgAmount,
  *   inLoss: AvgAmount,
- * }} DiscountSupply
+ * }} RookieSupply
  */
-const _DiscountSupply = _s({
+const _RookieSupply = _s({
   total: [_AvgAmount, '*'],
   delta: [_DeltaAll, '*_delta'],
   share: [_i1, '*_share'],
@@ -5355,9 +5355,9 @@ const _Sopr = _s({
  *   netPnl: CoinblocksDestroyed<?Dollars>,
  *   sopr: Sopr,
  *   mvrv: SeriesPattern1<?Ratio>,
- * }} DiscountRealized
+ * }} RookieRealized
  */
-const _DiscountRealized = _s({
+const _RookieRealized = _s({
   cap: [_MarketCap, '*_realized_cap'],
   price: [_Ema12d, '*_realized_price'],
   profit: [_CoinblocksDestroyed, '*_realized_profit'],
@@ -5677,9 +5677,9 @@ const _Classes2009Realized = _s({
  * @typedef {{
  *   transferVolume: TransferVolume,
  *   coindaysDestroyed: CoinblocksDestroyed<?CoinDays>,
- * }} DiscountActivity
+ * }} RookieActivity
  */
-const _DiscountActivity = _s({
+const _RookieActivity = _s({
   transferVolume: [_TransferVolume, '*_transfer_volume'],
   coindaysDestroyed: [_CoinblocksDestroyed, '*_coindays_destroyed'],
 });
@@ -5720,9 +5720,9 @@ const _Ranges10yTo12yActivity = _s({
  * @typedef {{
  *   unspentCount: MarketCap<Count, CountSigned>,
  *   spentCount: CoinblocksDestroyed<Count>,
- * }} DiscountOutputs
+ * }} RookieOutputs
  */
-const _DiscountOutputs = _s({
+const _RookieOutputs = _s({
   unspentCount: [_MarketCap, '*_utxo_count'],
   spentCount: [_CoinblocksDestroyed, '*_spent_utxo_count'],
 });
@@ -5731,7 +5731,7 @@ const _DiscountOutputs = _s({
  * @template A
  * @typedef {{
  *   supply: A,
- *   outputs: DiscountOutputs,
+ *   outputs: RookieOutputs,
  *   activity: AllActivity,
  *   realized: AllRealized,
  *   unrealized: AllUnrealized,
@@ -5743,7 +5743,7 @@ const _DiscountOutputs = _s({
 /** @type {_Make} */
 const _HoldersAll = (c, b, f0) => _n(c, b, {
   supply: [f0, '*_supply'],
-  outputs: [_DiscountOutputs, '*'],
+  outputs: [_RookieOutputs, '*'],
   activity: [_AllActivity, '*'],
   realized: [_AllRealized, '*'],
   unrealized: [_AllUnrealized, '*'],
@@ -5823,39 +5823,39 @@ const _UtxosTypes = _s({
 
 /**
  * @typedef {{
- *   _0sats: Amounts0sats<DiscountOutputs>,
- *   _1satTo10sats: Amounts0sats<DiscountOutputs>,
- *   _10satsTo100sats: Amounts0sats<DiscountOutputs>,
- *   _100satsTo1kSats: Amounts0sats<DiscountOutputs>,
- *   _1kSatsTo10kSats: Amounts0sats<DiscountOutputs>,
- *   _10kSatsTo100kSats: Amounts0sats<DiscountOutputs>,
- *   _100kSatsTo1mSats: Amounts0sats<DiscountOutputs>,
- *   _1mSatsTo10mSats: Amounts0sats<DiscountOutputs>,
- *   _10mSatsTo1btc: Amounts0sats<DiscountOutputs>,
- *   _1btcTo10btc: Amounts0sats<DiscountOutputs>,
- *   _10btcTo100btc: Amounts0sats<DiscountOutputs>,
- *   _100btcTo1kBtc: Amounts0sats<DiscountOutputs>,
- *   _1kBtcTo10kBtc: Amounts0sats<DiscountOutputs>,
- *   _10kBtcTo100kBtc: Amounts0sats<DiscountOutputs>,
- *   over100kBtc: Amounts0sats<DiscountOutputs>,
+ *   _0sats: Amounts0sats<RookieOutputs>,
+ *   _1satTo10sats: Amounts0sats<RookieOutputs>,
+ *   _10satsTo100sats: Amounts0sats<RookieOutputs>,
+ *   _100satsTo1kSats: Amounts0sats<RookieOutputs>,
+ *   _1kSatsTo10kSats: Amounts0sats<RookieOutputs>,
+ *   _10kSatsTo100kSats: Amounts0sats<RookieOutputs>,
+ *   _100kSatsTo1mSats: Amounts0sats<RookieOutputs>,
+ *   _1mSatsTo10mSats: Amounts0sats<RookieOutputs>,
+ *   _10mSatsTo1btc: Amounts0sats<RookieOutputs>,
+ *   _1btcTo10btc: Amounts0sats<RookieOutputs>,
+ *   _10btcTo100btc: Amounts0sats<RookieOutputs>,
+ *   _100btcTo1kBtc: Amounts0sats<RookieOutputs>,
+ *   _1kBtcTo10kBtc: Amounts0sats<RookieOutputs>,
+ *   _10kBtcTo100kBtc: Amounts0sats<RookieOutputs>,
+ *   over100kBtc: Amounts0sats<RookieOutputs>,
  * }} Amounts
  */
 const _Amounts = _s({
-  _0sats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_0sats'],
-  _1satTo10sats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_1sat_to_10sats'],
-  _10satsTo100sats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_10sats_to_100sats'],
-  _100satsTo1kSats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_100sats_to_1k_sats'],
-  _1kSatsTo10kSats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_1k_sats_to_10k_sats'],
-  _10kSatsTo100kSats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_10k_sats_to_100k_sats'],
-  _100kSatsTo1mSats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_100k_sats_to_1m_sats'],
-  _1mSatsTo10mSats: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_1m_sats_to_10m_sats'],
-  _10mSatsTo1btc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_10m_sats_to_1btc'],
-  _1btcTo10btc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_1btc_to_10btc'],
-  _10btcTo100btc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_10btc_to_100btc'],
-  _100btcTo1kBtc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_100btc_to_1k_btc'],
-  _1kBtcTo10kBtc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_1k_btc_to_10k_btc'],
-  _10kBtcTo100kBtc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_10k_btc_to_100k_btc'],
-  over100kBtc: [(c, b) => _Amounts0sats(c, b, _DiscountOutputs), '*_over_100k_btc'],
+  _0sats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_0sats'],
+  _1satTo10sats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_1sat_to_10sats'],
+  _10satsTo100sats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_10sats_to_100sats'],
+  _100satsTo1kSats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_100sats_to_1k_sats'],
+  _1kSatsTo10kSats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_1k_sats_to_10k_sats'],
+  _10kSatsTo100kSats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_10k_sats_to_100k_sats'],
+  _100kSatsTo1mSats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_100k_sats_to_1m_sats'],
+  _1mSatsTo10mSats: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_1m_sats_to_10m_sats'],
+  _10mSatsTo1btc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_10m_sats_to_1btc'],
+  _1btcTo10btc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_1btc_to_10btc'],
+  _10btcTo100btc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_10btc_to_100btc'],
+  _100btcTo1kBtc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_100btc_to_1k_btc'],
+  _1kBtcTo10kBtc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_1k_btc_to_10k_btc'],
+  _10kBtcTo100kBtc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_10k_btc_to_100k_btc'],
+  over100kBtc: [(c, b) => _Amounts0sats(c, b, _RookieOutputs), '*_over_100k_btc'],
 });
 
 /**
@@ -5867,104 +5867,104 @@ const _Amounts = _s({
  */
 const _Utxos = _s({
   amounts: [_Amounts, '*'],
-  types: [_UtxosTypes, 'outputs'],
+  types: [_UtxosTypes, 'output'],
   avgAmount: [_AvgAmount, 'avg_utxo_amount'],
 });
 
 /**
  * @template A, B
  * @typedef {{
- *   supply: DiscountSupply,
- *   outputs: DiscountOutputs,
- *   activity: DiscountActivity,
+ *   supply: RookieSupply,
+ *   outputs: RookieOutputs,
+ *   activity: RookieActivity,
  *   realized: A,
  *   unrealized: B,
- * }} Discount
+ * }} Rookie
  */
 /** @type {_Make} */
-const _Discount = (c, b, f0, f1) => _n(c, b, {
-  supply: [_DiscountSupply, '*_supply'],
-  outputs: [_DiscountOutputs, '*'],
-  activity: [_DiscountActivity, '*'],
+const _Rookie = (c, b, f0, f1) => _n(c, b, {
+  supply: [_RookieSupply, '*_supply'],
+  outputs: [_RookieOutputs, '*'],
+  activity: [_RookieActivity, '*'],
   realized: [f0, '*'],
   unrealized: [f1, '*'],
 });
 
 /**
  * @typedef {{
- *   discount: Discount<DiscountRealized, DiscountUnrealized>,
- *   premium: Discount<DiscountRealized, DiscountUnrealized>,
+ *   veteran: Rookie<RookieRealized, RookieUnrealized>,
+ *   rookie: Rookie<RookieRealized, RookieUnrealized>,
  * }} Entry
  */
 const _Entry = _s({
-  discount: [(c, b) => _Discount(c, b, _DiscountRealized, _DiscountUnrealized), '*'],
-  premium: [(c, b) => _Discount(c, b, _DiscountRealized, _DiscountUnrealized), 'rookie'],
+  veteran: [(c, b) => _Rookie(c, b, _RookieRealized, _RookieUnrealized), '*'],
+  rookie: [(c, b) => _Rookie(c, b, _RookieRealized, _RookieUnrealized), 'rookie'],
 });
 
 /**
  * @typedef {{
- *   _2009: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2010: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2011: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2012: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2013: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2014: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2015: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2016: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2017: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2018: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2019: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2020: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2021: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2022: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2023: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2024: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2025: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2026: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _2009: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2010: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2011: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2012: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2013: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2014: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2015: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2016: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2017: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2018: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2019: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2020: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2021: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2022: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2023: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2024: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2025: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2026: Rookie<Classes2009Realized, Classes2009Unrealized>,
  * }} Classes
  */
 const _Classes = _s({
-  _2009: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2009'],
-  _2010: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2010'],
-  _2011: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2011'],
-  _2012: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2012'],
-  _2013: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2013'],
-  _2014: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2014'],
-  _2015: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2015'],
-  _2016: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2016'],
-  _2017: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2017'],
-  _2018: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2018'],
-  _2019: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2019'],
-  _2020: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2020'],
-  _2021: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2021'],
-  _2022: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2022'],
-  _2023: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2023'],
-  _2024: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2024'],
-  _2025: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2025'],
-  _2026: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2026'],
+  _2009: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2009'],
+  _2010: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2010'],
+  _2011: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2011'],
+  _2012: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2012'],
+  _2013: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2013'],
+  _2014: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2014'],
+  _2015: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2015'],
+  _2016: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2016'],
+  _2017: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2017'],
+  _2018: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2018'],
+  _2019: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2019'],
+  _2020: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2020'],
+  _2021: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2021'],
+  _2022: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2022'],
+  _2023: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2023'],
+  _2024: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2024'],
+  _2025: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2025'],
+  _2026: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2026'],
 });
 
 /**
  * @typedef {{
- *   _0: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _1: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _2: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _3: Discount<Classes2009Realized, Classes2009Unrealized>,
- *   _4: Discount<Classes2009Realized, Classes2009Unrealized>,
+ *   _0: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _1: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _2: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _3: Rookie<Classes2009Realized, Classes2009Unrealized>,
+ *   _4: Rookie<Classes2009Realized, Classes2009Unrealized>,
  * }} Epochs
  */
 const _Epochs = _s({
-  _0: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_0'],
-  _1: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_1'],
-  _2: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2'],
-  _3: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_3'],
-  _4: [(c, b) => _Discount(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_4'],
+  _0: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_0'],
+  _1: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_1'],
+  _2: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_2'],
+  _3: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_3'],
+  _4: [(c, b) => _Rookie(c, b, _Classes2009Realized, _Classes2009Unrealized), '*_4'],
 });
 
 /**
  * @typedef {{
  *   supply: Ranges10yTo12ySupply,
- *   outputs: DiscountOutputs,
+ *   outputs: RookieOutputs,
  *   activity: Ranges10yTo12yActivity,
  *   realized: Ranges10yTo12yRealized,
  *   unrealized: Classes2009Unrealized,
@@ -5972,7 +5972,7 @@ const _Epochs = _s({
  */
 const _Ranges10yTo12y = _s({
   supply: [_Ranges10yTo12ySupply, '*'],
-  outputs: [_DiscountOutputs, '*'],
+  outputs: [_RookieOutputs, '*'],
   activity: [_Ranges10yTo12yActivity, '*'],
   realized: [_Ranges10yTo12yRealized, '*'],
   unrealized: [_Classes2009Unrealized, '*'],
@@ -7752,12 +7752,12 @@ class BitviewClient extends BitviewClientBase {
   });
 
   ENTRY_NAMES = /** @type {const} */ ({
-    "discount": {
+    "veteran": {
       "id": "veteran",
       "short": "Veteran",
       "long": "Veteran Coins"
     },
-    "premium": {
+    "rookie": {
       "id": "rookie",
       "short": "Rookie",
       "long": "Rookie Coins"
@@ -7811,12 +7811,12 @@ class BitviewClient extends BitviewClientBase {
       "long": "Pay to Anchor"
     },
     "unknown": {
-      "id": "unknown_outputs",
+      "id": "unknown_output",
       "short": "Unknown",
       "long": "Unknown Output Type"
     },
     "empty": {
-      "id": "empty_outputs",
+      "id": "empty_output",
       "short": "Empty",
       "long": "Empty Output"
     }

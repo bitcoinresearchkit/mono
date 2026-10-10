@@ -124,8 +124,8 @@ pub const SPENDABLE_TYPE_NAMES: SpendableType<CohortName> = SpendableType {
     p2wsh: CohortName::new("p2wsh", "P2WSH", "Pay to Witness Script Hash"),
     p2tr: CohortName::new("p2tr", "P2TR", "Pay to Taproot"),
     p2a: CohortName::new("p2a", "P2A", "Pay to Anchor"),
-    unknown: CohortName::new("unknown_outputs", "Unknown", "Unknown Output Type"),
-    empty: CohortName::new("empty_outputs", "Empty", "Empty Output"),
+    unknown: CohortName::new("unknown_output", "Unknown", "Unknown Output Type"),
+    empty: CohortName::new("empty_output", "Empty", "Empty Output"),
 };
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize, JsonSchema)]

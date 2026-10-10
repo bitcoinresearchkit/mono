@@ -2,8 +2,8 @@
 
 Price-defined UTXO cohorts, part of `bitview_default`.
 Creation-block spot price at or below the previous block's all-chain capitalized
-price selects discount (Veteran); a higher price selects premium (Rookie).
-A zero anchor selects discount. Membership stays fixed for the output's lifetime.
+price selects veteran (bought at a discount); a higher price selects rookie
+(bought at a premium). A zero anchor selects veteran. Membership stays fixed for the output's lifetime.
 
 Run after Holders, supplying its completed all-chain capitalized-price series plus
 the published UTXO set, block prices and monotonic timestamps. The plugin consumes
@@ -15,5 +15,5 @@ published anchor series. Only validated append updates reuse resident state.
 Accounting, cost-basis maps and scalar metric views are shared libraries. Age
 contains no entry classifications, entry state or entry recovery boundary.
 
-The catalog exposes `entry.discount` and `entry.premium`, as `veteran_*` and
+The catalog exposes `entry.veteran` and `entry.rookie`, as `veteran_*` and
 `rookie_*` series.

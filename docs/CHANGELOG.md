@@ -133,6 +133,10 @@ has to be deleted by hand.
   `supply.matured`, `activity.coindays_created` (was `age.coindays_created.<range>`) and `realized.price`; UTXO
   amounts and types `realized.price`; types `outputs.avg_amount`, the mean over every type being `utxos.avg_amount`
   (was `utxos.outputs.avg_amount.all`). Ids are unchanged
+- Entry cohorts sit at `entry.rookie` and `entry.veteran`, like their ids (were `entry.premium` and
+  `entry.discount`), and the clients' `ENTRY_NAMES` keys follow. The empty and unknown output-type cohorts' ids say
+  `empty_output_` and `unknown_output_` (`empty_output_supply`, `unknown_output_realized_cap`, ...; were
+  `empty_outputs_` and `unknown_outputs_`)
 - A cohort's share of all supply is `supply.share` in age, UTXO, entry and address cohorts (ids `*_supply_share`;
   were `supply.dominance`, ids `*_supply_dominance`), and `relative.supply_share` in the holders' cohorts (ids
   `sth_supply_share`, ...; were `supply_dominance`)
@@ -355,8 +359,9 @@ has to be deleted by hand.
   total), and `bitview_vecs::CumulativeSource` is one running total. Gone: `bitview_cohort::{CohortGroup,
   cohort_group, CreationCohorts, UtxoGroups}`, `bitview_vecs::{CohortSources, CumulativeCohortSources,
   CumulativeCohortValueSources, DisjointAgeSources}` and `bitview_urpd::AgeBoundsMetrics`. `ByEpoch::try_new` and
-  `Class::try_new` are public. A `Traversable` struct whose only visible field is a flattened view is that view, a
-  single-unit leaf included
+  `Class::try_new` are public; `ByEntry` and `EntryPrice` name their members `rookie`/`Rookie` and
+  `veteran`/`Veteran` (were `premium` and `discount`). A `Traversable` struct whose only visible field is a
+  flattened view is that view, a single-unit leaf included
 - Gone with the tree changes: `bitview_vecs::{ConstantVecs, LazyFiatPerBlockCumulativeWithSumsAndDeltas}`,
   `LazyPerBlockCumulativeRolling::from_lazy_source`, `bitview_transforms::BlockCountTarget`,
   `bitview_plugin_blocks::CountVecs` (`blocks.count` is the count itself), the transactions plugin's `volume` struct
@@ -399,7 +404,7 @@ has to be deleted by hand.
   all-chain capitalized price (`veteran_*`, discount) or above it (`rookie_*`, premium), served and in the generated
   clients. Computing them from block 0 takes about 50 s at 970,536 blocks on a 16 GB Mac mini
 - Each age band serves its realized price again (`utxos_<band>_old_realized_price`, USD, at
-  `cohorts.realized.price.age.<band>`): the band's exact creation-price product over its supply, like the aggregated
+  `age.ranges.<band>.realized.price`): the band's exact creation-price product over its supply, like the aggregated
   cohorts' realized price. Stored per band, so the age plugin replays from block 0 once
 - `capital_density` beside `supply_density` in holders, Cointime and Coinflow: the share of a cohort's invested
   capital (satoshis times creation price) with a creation price within 5% of spot, split at spot. Cointime shows

@@ -3557,7 +3557,7 @@ class Adjusted(_Node):
     velocity: Velocity = _at(Velocity, '*_velocity')
 
 
-class DiscountUnrealized(_Node):
+class RookieUnrealized(_Node):
     profit: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_unrealized_profit')
     loss: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_unrealized_loss')
     net_pnl: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_net_unrealized_pnl')
@@ -4108,7 +4108,7 @@ class Supply0sats(_Node):
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
 
 
-class DiscountSupply(_Node):
+class RookieSupply(_Node):
     total: AvgAmount = _at(AvgAmount, '*')
     delta: DeltaAll[Optional[Bitcoin]] = _at(DeltaAll, '*_delta')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
@@ -4465,7 +4465,7 @@ class Sopr(_Node):
     value_destroyed: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_value_destroyed')
 
 
-class DiscountRealized(_Node):
+class RookieRealized(_Node):
     cap: MarketCap[Optional[Dollars], Optional[Dollars]] = _at(MarketCap, '*_realized_cap')
     price: Ema12d = _at(Ema12d, '*_realized_price')
     profit: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_profit')
@@ -4619,7 +4619,7 @@ class Classes2009Realized(_Node):
     value_destroyed: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_value_destroyed')
 
 
-class DiscountActivity(_Node):
+class RookieActivity(_Node):
     transfer_volume: TransferVolume = _at(TransferVolume, '*_transfer_volume')
     coindays_destroyed: CoinblocksDestroyed[Optional[CoinDays]] = _at(CoinblocksDestroyed, '*_coindays_destroyed')
 
@@ -4639,14 +4639,14 @@ class Ranges10yTo12yActivity(_Node):
     coindays_created: CoinblocksDestroyed[Optional[CoinDays]] = _at(CoinblocksDestroyed, '*_coindays_created')
 
 
-class DiscountOutputs(_Node):
+class RookieOutputs(_Node):
     unspent_count: MarketCap[Count, CountSigned] = _at(MarketCap, '*_utxo_count')
     spent_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_spent_utxo_count')
 
 
 class HoldersAll(_Node, Generic[A]):
     supply: A = _at(0, '*_supply')
-    outputs: DiscountOutputs = _at(DiscountOutputs, '*')
+    outputs: RookieOutputs = _at(RookieOutputs, '*')
     activity: AllActivity = _at(AllActivity, '*')
     realized: AllRealized = _at(AllRealized, '*')
     unrealized: AllUnrealized = _at(AllUnrealized, '*')
@@ -4687,74 +4687,74 @@ class UtxosTypes(_Node):
 
 
 class Amounts(_Node):
-    _0sats: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_0sats')
-    _1sat_to_10sats: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_1sat_to_10sats')
-    _10sats_to_100sats: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_10sats_to_100sats')
-    _100sats_to_1k_sats: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_100sats_to_1k_sats')
-    _1k_sats_to_10k_sats: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_1k_sats_to_10k_sats')
-    _10k_sats_to_100k_sats: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_10k_sats_to_100k_sats')
-    _100k_sats_to_1m_sats: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_100k_sats_to_1m_sats')
-    _1m_sats_to_10m_sats: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_1m_sats_to_10m_sats')
-    _10m_sats_to_1btc: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_10m_sats_to_1btc')
-    _1btc_to_10btc: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_1btc_to_10btc')
-    _10btc_to_100btc: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_10btc_to_100btc')
-    _100btc_to_1k_btc: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_100btc_to_1k_btc')
-    _1k_btc_to_10k_btc: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_1k_btc_to_10k_btc')
-    _10k_btc_to_100k_btc: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_10k_btc_to_100k_btc')
-    over_100k_btc: Amounts0sats[DiscountOutputs] = _at((Amounts0sats, DiscountOutputs), '*_over_100k_btc')
+    _0sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_0sats')
+    _1sat_to_10sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_1sat_to_10sats')
+    _10sats_to_100sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_10sats_to_100sats')
+    _100sats_to_1k_sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_100sats_to_1k_sats')
+    _1k_sats_to_10k_sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_1k_sats_to_10k_sats')
+    _10k_sats_to_100k_sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_10k_sats_to_100k_sats')
+    _100k_sats_to_1m_sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_100k_sats_to_1m_sats')
+    _1m_sats_to_10m_sats: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_1m_sats_to_10m_sats')
+    _10m_sats_to_1btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_10m_sats_to_1btc')
+    _1btc_to_10btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_1btc_to_10btc')
+    _10btc_to_100btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_10btc_to_100btc')
+    _100btc_to_1k_btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_100btc_to_1k_btc')
+    _1k_btc_to_10k_btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_1k_btc_to_10k_btc')
+    _10k_btc_to_100k_btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_10k_btc_to_100k_btc')
+    over_100k_btc: Amounts0sats[RookieOutputs] = _at((Amounts0sats, RookieOutputs), '*_over_100k_btc')
 
 
 class Utxos(_Node):
     amounts: Amounts = _at(Amounts, '*')
-    types: UtxosTypes = _at(UtxosTypes, 'outputs')
+    types: UtxosTypes = _at(UtxosTypes, 'output')
     avg_amount: AvgAmount = _at(AvgAmount, 'avg_utxo_amount')
 
 
-class Discount(_Node, Generic[A, B]):
-    supply: DiscountSupply = _at(DiscountSupply, '*_supply')
-    outputs: DiscountOutputs = _at(DiscountOutputs, '*')
-    activity: DiscountActivity = _at(DiscountActivity, '*')
+class Rookie(_Node, Generic[A, B]):
+    supply: RookieSupply = _at(RookieSupply, '*_supply')
+    outputs: RookieOutputs = _at(RookieOutputs, '*')
+    activity: RookieActivity = _at(RookieActivity, '*')
     realized: A = _at(0, '*')
     unrealized: B = _at(1, '*')
 
 
 class Entry(_Node):
-    discount: Discount[DiscountRealized, DiscountUnrealized] = _at((Discount, DiscountRealized, DiscountUnrealized), '*')
-    premium: Discount[DiscountRealized, DiscountUnrealized] = _at((Discount, DiscountRealized, DiscountUnrealized), 'rookie')
+    veteran: Rookie[RookieRealized, RookieUnrealized] = _at((Rookie, RookieRealized, RookieUnrealized), '*')
+    rookie: Rookie[RookieRealized, RookieUnrealized] = _at((Rookie, RookieRealized, RookieUnrealized), 'rookie')
 
 
 class Classes(_Node):
-    _2009: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2009')
-    _2010: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2010')
-    _2011: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2011')
-    _2012: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2012')
-    _2013: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2013')
-    _2014: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2014')
-    _2015: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2015')
-    _2016: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2016')
-    _2017: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2017')
-    _2018: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2018')
-    _2019: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2019')
-    _2020: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2020')
-    _2021: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2021')
-    _2022: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2022')
-    _2023: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2023')
-    _2024: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2024')
-    _2025: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2025')
-    _2026: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2026')
+    _2009: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2009')
+    _2010: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2010')
+    _2011: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2011')
+    _2012: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2012')
+    _2013: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2013')
+    _2014: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2014')
+    _2015: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2015')
+    _2016: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2016')
+    _2017: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2017')
+    _2018: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2018')
+    _2019: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2019')
+    _2020: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2020')
+    _2021: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2021')
+    _2022: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2022')
+    _2023: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2023')
+    _2024: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2024')
+    _2025: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2025')
+    _2026: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2026')
 
 
 class Epochs(_Node):
-    _0: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_0')
-    _1: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_1')
-    _2: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_2')
-    _3: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_3')
-    _4: Discount[Classes2009Realized, Classes2009Unrealized] = _at((Discount, Classes2009Realized, Classes2009Unrealized), '*_4')
+    _0: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_0')
+    _1: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_1')
+    _2: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_2')
+    _3: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_3')
+    _4: Rookie[Classes2009Realized, Classes2009Unrealized] = _at((Rookie, Classes2009Realized, Classes2009Unrealized), '*_4')
 
 
 class Ranges10yTo12y(_Node):
     supply: Ranges10yTo12ySupply = _at(Ranges10yTo12ySupply, '*')
-    outputs: DiscountOutputs = _at(DiscountOutputs, '*')
+    outputs: RookieOutputs = _at(RookieOutputs, '*')
     activity: Ranges10yTo12yActivity = _at(Ranges10yTo12yActivity, '*')
     realized: Ranges10yTo12yRealized = _at(Ranges10yTo12yRealized, '*')
     unrealized: Classes2009Unrealized = _at(Classes2009Unrealized, '*')
@@ -5775,12 +5775,12 @@ class BitviewClient(BitviewClientBase):
     }
 
     ENTRY_NAMES = {
-      "discount": {
+      "veteran": {
         "id": "veteran",
         "short": "Veteran",
         "long": "Veteran Coins"
       },
-      "premium": {
+      "rookie": {
         "id": "rookie",
         "short": "Rookie",
         "long": "Rookie Coins"
@@ -5834,12 +5834,12 @@ class BitviewClient(BitviewClientBase):
         "long": "Pay to Anchor"
       },
       "unknown": {
-        "id": "unknown_outputs",
+        "id": "unknown_output",
         "short": "Unknown",
         "long": "Unknown Output Type"
       },
       "empty": {
-        "id": "empty_outputs",
+        "id": "empty_output",
         "short": "Empty",
         "long": "Empty Output"
       }

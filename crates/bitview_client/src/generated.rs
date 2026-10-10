@@ -1587,7 +1587,7 @@ pub mod tree {
         stock_to_flow: SeriesPattern1<Option<Years>> = "*_stock_to_flow",
         velocity: Velocity = "*_velocity",
     } }
-    shape! { DiscountUnrealized at "series().entry.discount.unrealized" {
+    shape! { RookieUnrealized at "series().entry.rookie.unrealized" {
         profit: SeriesPattern1<Option<Dollars>> = "*_unrealized_profit",
         loss: SeriesPattern1<Option<Dollars>> = "*_unrealized_loss",
         net_pnl: SeriesPattern1<Option<Dollars>> = "*_net_unrealized_pnl",
@@ -1996,7 +1996,7 @@ pub mod tree {
     shape! { Amounts0satsActivity at "series().utxos.amounts._0sats.activity" {
         transfer_volume: OpReturnValue = "*",
     } }
-    shape! { TransferVolume at "series().entry.discount.activity.transfer_volume" {
+    shape! { TransferVolume at "series().entry.rookie.activity.transfer_volume" {
         block: Block = "*",
         cumulative: AvgAmount = "*_cumulative",
         sum: Sum = "*_sum",
@@ -2069,7 +2069,7 @@ pub mod tree {
         delta: DeltaAll<Option<Bitcoin>> = "*_delta",
         share: SeriesPattern1<Option<Percent>> = "*_share",
     } }
-    shape! { DiscountSupply at "series().entry.discount.supply" {
+    shape! { RookieSupply at "series().entry.rookie.supply" {
         total: AvgAmount = "*",
         delta: DeltaAll<Option<Bitcoin>> = "*_delta",
         share: SeriesPattern1<Option<Percent>> = "*_share",
@@ -2398,11 +2398,11 @@ pub mod tree {
         liveliness_to_vaultedness: SeriesPattern1<Option<Ratio64>> = "liveliness_to_vaultedness",
         concurrent_liveliness: InputsPerSecond<Option<Ratio>> = "concurrent_liveliness",
     } }
-    shape! { Sopr at "series().entry.discount.realized.sopr" {
+    shape! { Sopr at "series().entry.rookie.realized.sopr" {
         _24h: SeriesPattern1<Option<Ratio>> = "*_sopr_24h",
         value_destroyed: CoinblocksDestroyed<Option<Dollars>> = "*_value_destroyed",
     } }
-    shape! { DiscountRealized at "series().entry.discount.realized" {
+    shape! { RookieRealized at "series().entry.rookie.realized" {
         cap: MarketCap<Option<Dollars>, Option<Dollars>> = "*_realized_cap",
         price: Ema12d = "*_realized_price",
         profit: CoinblocksDestroyed<Option<Dollars>> = "*_realized_profit",
@@ -2541,7 +2541,7 @@ pub mod tree {
         net_pnl: CoinblocksDestroyed<Option<Dollars>> = "*_net_realized_pnl",
         value_destroyed: CoinblocksDestroyed<Option<Dollars>> = "*_value_destroyed",
     } }
-    shape! { DiscountActivity at "series().entry.discount.activity" {
+    shape! { RookieActivity at "series().entry.rookie.activity" {
         transfer_volume: TransferVolume = "*_transfer_volume",
         coindays_destroyed: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_destroyed",
     } }
@@ -2558,13 +2558,13 @@ pub mod tree {
         coindays_destroyed: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_destroyed",
         coindays_created: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_created",
     } }
-    shape! { DiscountOutputs at "series().entry.discount.outputs" {
+    shape! { RookieOutputs at "series().entry.rookie.outputs" {
         unspent_count: MarketCap<Count, CountSigned> = "*_utxo_count",
         spent_count: CoinblocksDestroyed<Count> = "*_spent_utxo_count",
     } }
     shape! { HoldersAll<A> at "series().holders.all" {
         supply: A = "*_supply",
-        outputs: DiscountOutputs = "*",
+        outputs: RookieOutputs = "*",
         activity: AllActivity = "*",
         realized: AllRealized = "*",
         unrealized: AllUnrealized = "*",
@@ -2601,68 +2601,68 @@ pub mod tree {
         empty: Amounts0sats<EmptyOutputs> = "empty_*",
     } }
     shape! { Amounts at "series().utxos.amounts" {
-        _0sats: Amounts0sats<DiscountOutputs> = "*_0sats",
-        _1sat_to_10sats: Amounts0sats<DiscountOutputs> = "*_1sat_to_10sats",
-        _10sats_to_100sats: Amounts0sats<DiscountOutputs> = "*_10sats_to_100sats",
-        _100sats_to_1k_sats: Amounts0sats<DiscountOutputs> = "*_100sats_to_1k_sats",
-        _1k_sats_to_10k_sats: Amounts0sats<DiscountOutputs> = "*_1k_sats_to_10k_sats",
-        _10k_sats_to_100k_sats: Amounts0sats<DiscountOutputs> = "*_10k_sats_to_100k_sats",
-        _100k_sats_to_1m_sats: Amounts0sats<DiscountOutputs> = "*_100k_sats_to_1m_sats",
-        _1m_sats_to_10m_sats: Amounts0sats<DiscountOutputs> = "*_1m_sats_to_10m_sats",
-        _10m_sats_to_1btc: Amounts0sats<DiscountOutputs> = "*_10m_sats_to_1btc",
-        _1btc_to_10btc: Amounts0sats<DiscountOutputs> = "*_1btc_to_10btc",
-        _10btc_to_100btc: Amounts0sats<DiscountOutputs> = "*_10btc_to_100btc",
-        _100btc_to_1k_btc: Amounts0sats<DiscountOutputs> = "*_100btc_to_1k_btc",
-        _1k_btc_to_10k_btc: Amounts0sats<DiscountOutputs> = "*_1k_btc_to_10k_btc",
-        _10k_btc_to_100k_btc: Amounts0sats<DiscountOutputs> = "*_10k_btc_to_100k_btc",
-        over_100k_btc: Amounts0sats<DiscountOutputs> = "*_over_100k_btc",
+        _0sats: Amounts0sats<RookieOutputs> = "*_0sats",
+        _1sat_to_10sats: Amounts0sats<RookieOutputs> = "*_1sat_to_10sats",
+        _10sats_to_100sats: Amounts0sats<RookieOutputs> = "*_10sats_to_100sats",
+        _100sats_to_1k_sats: Amounts0sats<RookieOutputs> = "*_100sats_to_1k_sats",
+        _1k_sats_to_10k_sats: Amounts0sats<RookieOutputs> = "*_1k_sats_to_10k_sats",
+        _10k_sats_to_100k_sats: Amounts0sats<RookieOutputs> = "*_10k_sats_to_100k_sats",
+        _100k_sats_to_1m_sats: Amounts0sats<RookieOutputs> = "*_100k_sats_to_1m_sats",
+        _1m_sats_to_10m_sats: Amounts0sats<RookieOutputs> = "*_1m_sats_to_10m_sats",
+        _10m_sats_to_1btc: Amounts0sats<RookieOutputs> = "*_10m_sats_to_1btc",
+        _1btc_to_10btc: Amounts0sats<RookieOutputs> = "*_1btc_to_10btc",
+        _10btc_to_100btc: Amounts0sats<RookieOutputs> = "*_10btc_to_100btc",
+        _100btc_to_1k_btc: Amounts0sats<RookieOutputs> = "*_100btc_to_1k_btc",
+        _1k_btc_to_10k_btc: Amounts0sats<RookieOutputs> = "*_1k_btc_to_10k_btc",
+        _10k_btc_to_100k_btc: Amounts0sats<RookieOutputs> = "*_10k_btc_to_100k_btc",
+        over_100k_btc: Amounts0sats<RookieOutputs> = "*_over_100k_btc",
     } }
     shape! { Utxos at "series().utxos" {
         amounts: Amounts = "*",
-        types: UtxosTypes = "outputs",
+        types: UtxosTypes = "output",
         avg_amount: AvgAmount = "avg_utxo_amount",
     } }
-    shape! { Discount<A, B> at "series().entry.discount" {
-        supply: DiscountSupply = "*_supply",
-        outputs: DiscountOutputs = "*",
-        activity: DiscountActivity = "*",
+    shape! { Rookie<A, B> at "series().entry.rookie" {
+        supply: RookieSupply = "*_supply",
+        outputs: RookieOutputs = "*",
+        activity: RookieActivity = "*",
         realized: A = "*",
         unrealized: B = "*",
     } }
     shape! { Entry at "series().entry" {
-        discount: Discount<DiscountRealized, DiscountUnrealized> = "*",
-        premium: Discount<DiscountRealized, DiscountUnrealized> = "rookie",
+        veteran: Rookie<RookieRealized, RookieUnrealized> = "*",
+        rookie: Rookie<RookieRealized, RookieUnrealized> = "rookie",
     } }
     shape! { Classes at "series().age.classes" {
-        _2009: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2009",
-        _2010: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2010",
-        _2011: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2011",
-        _2012: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2012",
-        _2013: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2013",
-        _2014: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2014",
-        _2015: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2015",
-        _2016: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2016",
-        _2017: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2017",
-        _2018: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2018",
-        _2019: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2019",
-        _2020: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2020",
-        _2021: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2021",
-        _2022: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2022",
-        _2023: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2023",
-        _2024: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2024",
-        _2025: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2025",
-        _2026: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2026",
+        _2009: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2009",
+        _2010: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2010",
+        _2011: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2011",
+        _2012: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2012",
+        _2013: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2013",
+        _2014: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2014",
+        _2015: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2015",
+        _2016: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2016",
+        _2017: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2017",
+        _2018: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2018",
+        _2019: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2019",
+        _2020: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2020",
+        _2021: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2021",
+        _2022: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2022",
+        _2023: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2023",
+        _2024: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2024",
+        _2025: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2025",
+        _2026: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2026",
     } }
     shape! { Epochs at "series().age.epochs" {
-        _0: Discount<Classes2009Realized, Classes2009Unrealized> = "*_0",
-        _1: Discount<Classes2009Realized, Classes2009Unrealized> = "*_1",
-        _2: Discount<Classes2009Realized, Classes2009Unrealized> = "*_2",
-        _3: Discount<Classes2009Realized, Classes2009Unrealized> = "*_3",
-        _4: Discount<Classes2009Realized, Classes2009Unrealized> = "*_4",
+        _0: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_0",
+        _1: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_1",
+        _2: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_2",
+        _3: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_3",
+        _4: Rookie<Classes2009Realized, Classes2009Unrealized> = "*_4",
     } }
     shape! { Ranges10yTo12y at "series().age.ranges._10y_to_12y" {
         supply: Ranges10yTo12ySupply = "*",
-        outputs: DiscountOutputs = "*",
+        outputs: RookieOutputs = "*",
         activity: Ranges10yTo12yActivity = "*",
         realized: Ranges10yTo12yRealized = "*",
         unrealized: Classes2009Unrealized = "*",

@@ -12,8 +12,9 @@ use bitview_traversable::Traversable;
 
 pub(crate) const OP_RETURN: &str = "op_return";
 
-/// The type's member key, its word in per-entry series ids (`empty_output_count`);
-/// type cohort names qualify `empty` and `unknown` instead (`empty_outputs_supply`).
+/// The type's member key (`empty`), the word per-entry series ids build on
+/// (`empty_output_count`); type cohort names spell out `empty_output` and `unknown_output`
+/// (`empty_output_supply`).
 pub const fn type_key(output_type: OutputType) -> &'static str {
     match output_type {
         OutputType::P2PK65 => "p2pk65",
