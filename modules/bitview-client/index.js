@@ -3424,6 +3424,28 @@ const _Adjusted = _s({
 
 /**
  * @typedef {{
+ *   netPnl: SeriesPattern1<?Dollars>,
+ * }} Loss0To10PercentUnrealized
+ */
+const _Loss0To10PercentUnrealized = _s({
+  netPnl: [_i1, '*'],
+});
+
+/**
+ * @typedef {{
+ *   total: SeriesPattern1<?Dollars>,
+ *   realizedCap: SeriesPattern1<?Dollars>,
+ *   share: SeriesPattern1<?Percent>,
+ * }} Loss0To10PercentCapital
+ */
+const _Loss0To10PercentCapital = _s({
+  total: [_i1, '*_capital'],
+  realizedCap: [_i1, '*_realized_cap'],
+  share: [_i1, '*_capital_share'],
+});
+
+/**
+ * @typedef {{
  *   profit: SeriesPattern1<?Dollars>,
  *   loss: SeriesPattern1<?Dollars>,
  *   netPnl: SeriesPattern1<?Dollars>,
@@ -4327,6 +4349,87 @@ const _CoinflowAgeRanges10yTo12y = _s({
 const _CointimeCohortsAll = _s({
   awake: [_Mobile, '*_awake'],
   dormant: [_Immobile, '*_dormant_supply'],
+});
+
+/**
+ * @typedef {{
+ *   total: AvgBalance,
+ *   share: SeriesPattern1<?Percent>,
+ * }} Loss0To10PercentSupply
+ */
+const _Loss0To10PercentSupply = _s({
+  total: [_AvgBalance, '*'],
+  share: [_i1, '*_share'],
+});
+
+/**
+ * @typedef {{
+ *   supply: Loss0To10PercentSupply,
+ *   capital: Loss0To10PercentCapital,
+ *   unrealized: Loss0To10PercentUnrealized,
+ * }} Loss0To10Percent
+ */
+const _Loss0To10Percent = _s({
+  supply: [_Loss0To10PercentSupply, '*_supply'],
+  capital: [_Loss0To10PercentCapital, '*'],
+  unrealized: [_Loss0To10PercentUnrealized, '*_net_unrealized_pnl'],
+});
+
+/**
+ * @typedef {{
+ *   profitOver1000Percent: Loss0To10Percent,
+ *   profit500To1000Percent: Loss0To10Percent,
+ *   profit300To500Percent: Loss0To10Percent,
+ *   profit200To300Percent: Loss0To10Percent,
+ *   profit100To200Percent: Loss0To10Percent,
+ *   profit90To100Percent: Loss0To10Percent,
+ *   profit80To90Percent: Loss0To10Percent,
+ *   profit70To80Percent: Loss0To10Percent,
+ *   profit60To70Percent: Loss0To10Percent,
+ *   profit50To60Percent: Loss0To10Percent,
+ *   profit40To50Percent: Loss0To10Percent,
+ *   profit30To40Percent: Loss0To10Percent,
+ *   profit20To30Percent: Loss0To10Percent,
+ *   profit10To20Percent: Loss0To10Percent,
+ *   profit0To10Percent: Loss0To10Percent,
+ *   loss0To10Percent: Loss0To10Percent,
+ *   loss10To20Percent: Loss0To10Percent,
+ *   loss20To30Percent: Loss0To10Percent,
+ *   loss30To40Percent: Loss0To10Percent,
+ *   loss40To50Percent: Loss0To10Percent,
+ *   loss50To60Percent: Loss0To10Percent,
+ *   loss60To70Percent: Loss0To10Percent,
+ *   loss70To80Percent: Loss0To10Percent,
+ *   loss80To90Percent: Loss0To10Percent,
+ *   loss90To100Percent: Loss0To10Percent,
+ * }} ProfitabilityAll
+ */
+const _ProfitabilityAll = _s({
+  profitOver1000Percent: [_Loss0To10Percent, '*_profit_over_1000_percent'],
+  profit500To1000Percent: [_Loss0To10Percent, '*_profit_500_to_1000_percent'],
+  profit300To500Percent: [_Loss0To10Percent, '*_profit_300_to_500_percent'],
+  profit200To300Percent: [_Loss0To10Percent, '*_profit_200_to_300_percent'],
+  profit100To200Percent: [_Loss0To10Percent, '*_profit_100_to_200_percent'],
+  profit90To100Percent: [_Loss0To10Percent, '*_profit_90_to_100_percent'],
+  profit80To90Percent: [_Loss0To10Percent, '*_profit_80_to_90_percent'],
+  profit70To80Percent: [_Loss0To10Percent, '*_profit_70_to_80_percent'],
+  profit60To70Percent: [_Loss0To10Percent, '*_profit_60_to_70_percent'],
+  profit50To60Percent: [_Loss0To10Percent, '*_profit_50_to_60_percent'],
+  profit40To50Percent: [_Loss0To10Percent, '*_profit_40_to_50_percent'],
+  profit30To40Percent: [_Loss0To10Percent, '*_profit_30_to_40_percent'],
+  profit20To30Percent: [_Loss0To10Percent, '*_profit_20_to_30_percent'],
+  profit10To20Percent: [_Loss0To10Percent, '*_profit_10_to_20_percent'],
+  profit0To10Percent: [_Loss0To10Percent, '*_profit_0_to_10_percent'],
+  loss0To10Percent: [_Loss0To10Percent, '*_loss_0_to_10_percent'],
+  loss10To20Percent: [_Loss0To10Percent, '*_loss_10_to_20_percent'],
+  loss20To30Percent: [_Loss0To10Percent, '*_loss_20_to_30_percent'],
+  loss30To40Percent: [_Loss0To10Percent, '*_loss_30_to_40_percent'],
+  loss40To50Percent: [_Loss0To10Percent, '*_loss_40_to_50_percent'],
+  loss50To60Percent: [_Loss0To10Percent, '*_loss_50_to_60_percent'],
+  loss60To70Percent: [_Loss0To10Percent, '*_loss_60_to_70_percent'],
+  loss70To80Percent: [_Loss0To10Percent, '*_loss_70_to_80_percent'],
+  loss80To90Percent: [_Loss0To10Percent, '*_loss_80_to_90_percent'],
+  loss90To100Percent: [_Loss0To10Percent, '*_loss_90_to_100_percent'],
 });
 
 /**
@@ -7342,6 +7445,7 @@ const _Indexer = _s({
  *   addresses: Addresses,
  *   holders: Holders<Rookie<AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>, Rookie<LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>>,
  *   entry: Entry,
+ *   profitability: Holders<ProfitabilityAll, ProfitabilityAll>,
  *   supply: Supply,
  *   indicators: Indicators,
  *   cointime: Cointime,
@@ -7369,6 +7473,7 @@ const _SeriesTree = _s({
   addresses: [_Addresses, 'address'],
   holders: [(c, b) => _Holders(c, b, (c, b) => _Rookie(c, b, _AllSupply, _AllCapital, _AllActivity, _AllRealized, _AllUnrealized, _AllCostBasis), (c, b) => _Rookie(c, b, _LthSupply, _AllCapital, _AllActivity, _AllRealized, _AllUnrealized, _AllCostBasis)), 'utxos'],
   entry: [_Entry, 'veteran'],
+  profitability: [(c, b) => _Holders(c, b, _ProfitabilityAll, _ProfitabilityAll), 'utxos'],
   supply: [_Supply, 'circulating_supply'],
   indicators: [_Indicators, 'destroyed_supply_adjusted'],
   cointime: [_Cointime, 'utxos'],
@@ -7988,128 +8093,128 @@ class BitviewClient extends BitviewClientBase {
   });
 
   PROFITABILITY_RANGE_NAMES = /** @type {const} */ ({
-    "over1000pctInProfit": {
-      "id": "utxos_over_1000pct_in_profit",
+    "profitOver1000Percent": {
+      "id": "profit_over_1000_percent",
       "short": "+>1000%",
       "long": "Over 1000% in Profit"
     },
-    "_500pctTo1000pctInProfit": {
-      "id": "utxos_500pct_to_1000pct_in_profit",
+    "profit500To1000Percent": {
+      "id": "profit_500_to_1000_percent",
       "short": "+500-1000%",
       "long": "500-1000% in Profit"
     },
-    "_300pctTo500pctInProfit": {
-      "id": "utxos_300pct_to_500pct_in_profit",
+    "profit300To500Percent": {
+      "id": "profit_300_to_500_percent",
       "short": "+300-500%",
       "long": "300-500% in Profit"
     },
-    "_200pctTo300pctInProfit": {
-      "id": "utxos_200pct_to_300pct_in_profit",
+    "profit200To300Percent": {
+      "id": "profit_200_to_300_percent",
       "short": "+200-300%",
       "long": "200-300% in Profit"
     },
-    "_100pctTo200pctInProfit": {
-      "id": "utxos_100pct_to_200pct_in_profit",
+    "profit100To200Percent": {
+      "id": "profit_100_to_200_percent",
       "short": "+100-200%",
       "long": "100-200% in Profit"
     },
-    "_90pctTo100pctInProfit": {
-      "id": "utxos_90pct_to_100pct_in_profit",
+    "profit90To100Percent": {
+      "id": "profit_90_to_100_percent",
       "short": "+90-100%",
       "long": "90-100% in Profit"
     },
-    "_80pctTo90pctInProfit": {
-      "id": "utxos_80pct_to_90pct_in_profit",
+    "profit80To90Percent": {
+      "id": "profit_80_to_90_percent",
       "short": "+80-90%",
       "long": "80-90% in Profit"
     },
-    "_70pctTo80pctInProfit": {
-      "id": "utxos_70pct_to_80pct_in_profit",
+    "profit70To80Percent": {
+      "id": "profit_70_to_80_percent",
       "short": "+70-80%",
       "long": "70-80% in Profit"
     },
-    "_60pctTo70pctInProfit": {
-      "id": "utxos_60pct_to_70pct_in_profit",
+    "profit60To70Percent": {
+      "id": "profit_60_to_70_percent",
       "short": "+60-70%",
       "long": "60-70% in Profit"
     },
-    "_50pctTo60pctInProfit": {
-      "id": "utxos_50pct_to_60pct_in_profit",
+    "profit50To60Percent": {
+      "id": "profit_50_to_60_percent",
       "short": "+50-60%",
       "long": "50-60% in Profit"
     },
-    "_40pctTo50pctInProfit": {
-      "id": "utxos_40pct_to_50pct_in_profit",
+    "profit40To50Percent": {
+      "id": "profit_40_to_50_percent",
       "short": "+40-50%",
       "long": "40-50% in Profit"
     },
-    "_30pctTo40pctInProfit": {
-      "id": "utxos_30pct_to_40pct_in_profit",
+    "profit30To40Percent": {
+      "id": "profit_30_to_40_percent",
       "short": "+30-40%",
       "long": "30-40% in Profit"
     },
-    "_20pctTo30pctInProfit": {
-      "id": "utxos_20pct_to_30pct_in_profit",
+    "profit20To30Percent": {
+      "id": "profit_20_to_30_percent",
       "short": "+20-30%",
       "long": "20-30% in Profit"
     },
-    "_10pctTo20pctInProfit": {
-      "id": "utxos_10pct_to_20pct_in_profit",
+    "profit10To20Percent": {
+      "id": "profit_10_to_20_percent",
       "short": "+10-20%",
       "long": "10-20% in Profit"
     },
-    "_0pctTo10pctInProfit": {
-      "id": "utxos_0pct_to_10pct_in_profit",
+    "profit0To10Percent": {
+      "id": "profit_0_to_10_percent",
       "short": "+0-10%",
       "long": "0-10% in Profit"
     },
-    "_0pctTo10pctInLoss": {
-      "id": "utxos_0pct_to_10pct_in_loss",
+    "loss0To10Percent": {
+      "id": "loss_0_to_10_percent",
       "short": "-0-10%",
       "long": "0-10% in Loss"
     },
-    "_10pctTo20pctInLoss": {
-      "id": "utxos_10pct_to_20pct_in_loss",
+    "loss10To20Percent": {
+      "id": "loss_10_to_20_percent",
       "short": "-10-20%",
       "long": "10-20% in Loss"
     },
-    "_20pctTo30pctInLoss": {
-      "id": "utxos_20pct_to_30pct_in_loss",
+    "loss20To30Percent": {
+      "id": "loss_20_to_30_percent",
       "short": "-20-30%",
       "long": "20-30% in Loss"
     },
-    "_30pctTo40pctInLoss": {
-      "id": "utxos_30pct_to_40pct_in_loss",
+    "loss30To40Percent": {
+      "id": "loss_30_to_40_percent",
       "short": "-30-40%",
       "long": "30-40% in Loss"
     },
-    "_40pctTo50pctInLoss": {
-      "id": "utxos_40pct_to_50pct_in_loss",
+    "loss40To50Percent": {
+      "id": "loss_40_to_50_percent",
       "short": "-40-50%",
       "long": "40-50% in Loss"
     },
-    "_50pctTo60pctInLoss": {
-      "id": "utxos_50pct_to_60pct_in_loss",
+    "loss50To60Percent": {
+      "id": "loss_50_to_60_percent",
       "short": "-50-60%",
       "long": "50-60% in Loss"
     },
-    "_60pctTo70pctInLoss": {
-      "id": "utxos_60pct_to_70pct_in_loss",
+    "loss60To70Percent": {
+      "id": "loss_60_to_70_percent",
       "short": "-60-70%",
       "long": "60-70% in Loss"
     },
-    "_70pctTo80pctInLoss": {
-      "id": "utxos_70pct_to_80pct_in_loss",
+    "loss70To80Percent": {
+      "id": "loss_70_to_80_percent",
       "short": "-70-80%",
       "long": "70-80% in Loss"
     },
-    "_80pctTo90pctInLoss": {
-      "id": "utxos_80pct_to_90pct_in_loss",
+    "loss80To90Percent": {
+      "id": "loss_80_to_90_percent",
       "short": "-80-90%",
       "long": "80-90% in Loss"
     },
-    "_90pctTo100pctInLoss": {
-      "id": "utxos_90pct_to_100pct_in_loss",
+    "loss90To100Percent": {
+      "id": "loss_90_to_100_percent",
       "short": "-90-100%",
       "long": "90-100% in Loss"
     }

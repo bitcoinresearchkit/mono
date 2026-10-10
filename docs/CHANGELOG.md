@@ -243,6 +243,16 @@ has to be deleted by hand.
   capital all addresses hold, and their share of all; a type's would repeat `utxos.types.<type>`; the address supply
   counts the genesis output's 50 BTC, which the UTXO set leaves out, so its share reads a hair above 100% in the first
   years)
+- Profitability bands are filter-first, each band a subset of the cohort node: `profitability.<filter>.<band>`
+  (filters `all`, `sth`, `lth` and the new age cutoffs `under_4m`, `under_6m`, `over_4m`, `over_6m`; were metric-first
+  over all, STH and LTH) holds `supply.{total, share}`, `capital.{total, realized_cap, share}` and
+  `unrealized.net_pnl`. Band keys start with their side and spell percent out (`profit_over_1000_percent`,
+  `profit_10_to_20_percent`, `loss_0_to_10_percent`, ...; were `_10pct_to_20pct_in_profit`, ...), and ids lead with
+  the filter like every cohort (`sth_profit_10_to_20_percent_supply`,
+  `utxos_under_4m_old_loss_0_to_10_percent_capital`, `profit_10_to_20_percent_net_unrealized_pnl` for all; were
+  `utxos_10pct_to_20pct_in_profit_sth_supply`, ...). Net unrealized profit or loss is signed (was a magnitude,
+  positive in loss bands too); shares are of the band's filter, so a filter's bands add up to 100%. Per-band NUPL and
+  supply deltas are gone (NUPL is `net_pnl` over `supply.total` in USD): 1,225 series
 - Mean creation prices sit with the other creation-price statistics, each name analysts use beside its descriptive
   series, in holders, entry, age ranges, UTXO cohorts, Cointime and Coinflow: `cost_basis.per_coin.avg` with its jargon
   `realized_price` and, where they exist, `avg.{ratio, mvrv}` and `median_realized_price` beside the percentiles;
@@ -435,7 +445,7 @@ has to be deleted by hand.
   series name
 - Gone with the tree changes: `bitview_vecs::{ConstantVecs, LazyFiatPerBlockCumulativeWithSumsAndDeltas,
   AmountSources, AmountValueSources, LazyPerBlockCumulativeAverage}`, `PerBlockCumulativeAverage::reset`,
-  `bitview_cohort::WithAddrTypes`,
+  `bitview_cohort::WithAddrTypes`, `bitview_compute::LazySpotValuePerBlockWithDeltas`,
   `LazyPerBlockCumulativeRolling::from_lazy_source`, `bitview_transforms::BlockCountTarget`,
   `bitview_plugin_blocks::CountVecs` (`blocks.count` is the count itself), the transactions plugin's `volume` struct
   (`volume` is the value, `per_second` its sibling) and the mining rewards' `output_volume`; renamed fields
@@ -704,9 +714,8 @@ has to be deleted by hand.
 #### Workspace
 
 - Kept only critical low-level tests (storage invariants in rawdb, vecdb, statedb, brk_store and brk_types, scalar and
-  bindgen-model checks, and a client typed-paths check) and the `with_profitability`, website and
-  `examples/custom_plugin` examples; the JS/Python client and quickmatch parity suites are gone; the byteview and
-  lsm-tree forks drop repetitive tests
+  bindgen-model checks, and a client typed-paths check) and the website and `examples/custom_plugin` examples; the
+  JS/Python client and quickmatch parity suites are gone; the byteview and lsm-tree forks drop repetitive tests
 - Plugin crates other than the indexer follow one skeleton; distribution plugins share their cohort
   families and replay scaffold
 - `cargo bindgen`, `cargo api` (series tree, OpenAPI, error responses and typed client paths) and `cargo surface`

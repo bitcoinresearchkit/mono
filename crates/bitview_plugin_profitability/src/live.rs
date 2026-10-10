@@ -7,11 +7,12 @@ use crate::bucket::Bucket;
 /// Writer-owned derived state, retained only after the complete update succeeds.
 pub(crate) type LiveState = AgeIndexLive<(Version, Version, (u64, u64))>;
 
-pub(crate) fn ranges(index: &PriceIndex<4>, spot: Cents) -> ProfitabilityRange<Bucket> {
+/// Each band's supply and capital at `spot`, and the filters' totals.
+pub(crate) fn ranges(index: &PriceIndex<4>, spot: Cents) -> (ProfitabilityRange<Bucket>, Bucket) {
     let mut result = ProfitabilityRange::default();
     let total = index.totals();
     if total.sats[0] <= 0 {
-        return result;
+        return (result, Bucket::default());
     }
     let mut previous = PriceTotals::default();
     for (i, boundary) in compute_profitability_boundaries(spot)
@@ -26,5 +27,5 @@ pub(crate) fn ranges(index: &PriceIndex<4>, spot: Cents) -> ProfitabilityRange<B
         .last()
         .unwrap()
         .select_mut(&mut result) = Bucket::between(previous, total);
-    result
+    (result, Bucket::between(PriceTotals::default(), total))
 }

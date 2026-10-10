@@ -22,6 +22,7 @@ use bitview_plugin_op_return::{ID as OP_RETURN_ID, Vecs as OpReturn};
 use bitview_plugin_outputs::{ID as OUTPUTS_ID, Vecs as Outputs};
 use bitview_plugin_pools::{ID as POOLS_ID, Vecs as Pools};
 use bitview_plugin_price::{ID as PRICE_ID, Vecs as Price};
+use bitview_plugin_profitability::{ID as PROFITABILITY_ID, Vecs as Profitability};
 use bitview_plugin_rarity_meter::{ID as RARITY_METER_ID, Vecs as RarityMeter};
 use bitview_plugin_supply::{ID as SUPPLY_ID, Vecs as Supply};
 use bitview_plugin_transactions::{ID as TRANSACTIONS_ID, Vecs as Transactions};
@@ -221,7 +222,7 @@ impl DefaultPlugins {
         })?;
         let all_chain = holders.all_chain_sources();
 
-        let (cointime, coinflow, bedrock, capital_sentiment, indicators, entry) =
+        let (cointime, coinflow, bedrock, capital_sentiment, indicators, entry, profitability) =
             thread::scope(|scope| -> Result<_> {
                 let cointime = big_thread().spawn_scoped(scope, || -> Result<_> {
                     timed(Phase::Import, COINTIME_ID, || {
@@ -264,6 +265,15 @@ impl DefaultPlugins {
                         )?))
                     })
                 })?;
+                let profitability = big_thread().spawn_scoped(scope, || -> Result<_> {
+                    timed(Phase::Import, PROFITABILITY_ID, || {
+                        Ok(Box::new(Profitability::import(
+                            context,
+                            &mappings,
+                            &price.spot.cents.height.read_only_boxed_clone(),
+                        )?))
+                    })
+                })?;
                 let indicators = timed(Phase::Import, INDICATORS_ID, || -> Result<_> {
                     Ok(Box::new(Indicators::import(
                         context,
@@ -281,6 +291,7 @@ impl DefaultPlugins {
                     capital_sentiment.join().unwrap()?,
                     indicators,
                     entry.join().unwrap()?,
+                    profitability.join().unwrap()?,
                 ))
             })?;
 
@@ -319,6 +330,7 @@ impl DefaultPlugins {
             age,
             holders,
             entry,
+            profitability,
             utxos,
             addresses,
             supply,

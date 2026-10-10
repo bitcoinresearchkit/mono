@@ -16,5 +16,5 @@ realized-price ratios, SOPR, MVRV, NUPL or presentation-only loss/supply aliases
 
 Age owns no address state and stores no URPD files. Block-based URPD models and
 queries reconstruct distributions through `bitview_urpd`. Entry-price
-classification and detailed percentage-profitability bands belong to their
-separate optional plugins.
+classification and detailed percentage-profitability bands belong to the Entry
+and Profitability plugins.

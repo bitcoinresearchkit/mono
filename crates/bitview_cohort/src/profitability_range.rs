@@ -23,31 +23,31 @@ const PROFITABILITY_BOUNDARY_COUNT: usize = 24;
 pub fn compute_profitability_boundaries(spot: Cents) -> [Cents; PROFITABILITY_BOUNDARY_COUNT] {
     let s = spot.as_u128();
     // Divisors in ascending boundary order (ascending price):
-    // over_1000pct_in_profit: price < spot/11          → boundary at spot*100/1100 = spot/11
-    // 500pct_to_1000pct_in_profit: spot/11 ≤ p < spot/6   → boundary at spot*100/600  = spot/6
-    // 300pct_to_500pct_in_profit: spot/6 ≤ p < spot/4     → boundary at spot*100/400  = spot/4
-    // 200pct_to_300pct_in_profit: spot/4 ≤ p < spot/3     → boundary at spot*100/300  = spot/3
-    // 100pct_to_200pct_in_profit: spot/3 ≤ p < spot/2     → boundary at spot*100/200  = spot/2
-    // 90pct_to_100pct_in_profit: spot/2 ≤ p < spot*100/190 → boundary at spot*100/190
-    // 80pct_to_90pct_in_profit:                            → boundary at spot*100/180
-    // 70pct_to_80pct_in_profit:                            → boundary at spot*100/170
-    // 60pct_to_70pct_in_profit:                            → boundary at spot*100/160
-    // 50pct_to_60pct_in_profit:                            → boundary at spot*100/150
-    // 40pct_to_50pct_in_profit:                            → boundary at spot*100/140
-    // 30pct_to_40pct_in_profit:                            → boundary at spot*100/130
-    // 20pct_to_30pct_in_profit:                            → boundary at spot*100/120
-    // 10pct_to_20pct_in_profit:                            → boundary at spot*100/110
-    // 0pct_to_10pct_in_profit:                             → boundary at spot (= spot*100/100)
-    // 0pct_to_10pct_in_loss: spot ≤ p < spot*100/90    → boundary at spot*100/90
-    // 10pct_to_20pct_in_loss:                          → boundary at spot*100/80
-    // 20pct_to_30pct_in_loss:                          → boundary at spot*100/70
-    // 30pct_to_40pct_in_loss:                          → boundary at spot*100/60
-    // 40pct_to_50pct_in_loss:                          → boundary at spot*100/50 = spot*2
-    // 50pct_to_60pct_in_loss:                          → boundary at spot*100/40 = spot*5/2
-    // 60pct_to_70pct_in_loss:                          → boundary at spot*100/30 = spot*10/3
-    // 70pct_to_80pct_in_loss:                          → boundary at spot*100/20 = spot*5
-    // 80pct_to_90pct_in_loss:                          → boundary at spot*100/10 = spot*10
-    // 90pct_to_100pct_in_loss: spot*10 ≤ p              (no upper boundary)
+    // profit_over_1000_percent: price < spot/11          → boundary at spot*100/1100 = spot/11
+    // profit_500_to_1000_percent: spot/11 ≤ p < spot/6   → boundary at spot*100/600  = spot/6
+    // profit_300_to_500_percent: spot/6 ≤ p < spot/4     → boundary at spot*100/400  = spot/4
+    // profit_200_to_300_percent: spot/4 ≤ p < spot/3     → boundary at spot*100/300  = spot/3
+    // profit_100_to_200_percent: spot/3 ≤ p < spot/2     → boundary at spot*100/200  = spot/2
+    // profit_90_to_100_percent: spot/2 ≤ p < spot*100/190 → boundary at spot*100/190
+    // profit_80_to_90_percent:                            → boundary at spot*100/180
+    // profit_70_to_80_percent:                            → boundary at spot*100/170
+    // profit_60_to_70_percent:                            → boundary at spot*100/160
+    // profit_50_to_60_percent:                            → boundary at spot*100/150
+    // profit_40_to_50_percent:                            → boundary at spot*100/140
+    // profit_30_to_40_percent:                            → boundary at spot*100/130
+    // profit_20_to_30_percent:                            → boundary at spot*100/120
+    // profit_10_to_20_percent:                            → boundary at spot*100/110
+    // profit_0_to_10_percent:                             → boundary at spot (= spot*100/100)
+    // loss_0_to_10_percent: spot ≤ p < spot*100/90    → boundary at spot*100/90
+    // loss_10_to_20_percent:                          → boundary at spot*100/80
+    // loss_20_to_30_percent:                          → boundary at spot*100/70
+    // loss_30_to_40_percent:                          → boundary at spot*100/60
+    // loss_40_to_50_percent:                          → boundary at spot*100/50 = spot*2
+    // loss_50_to_60_percent:                          → boundary at spot*100/40 = spot*5/2
+    // loss_60_to_70_percent:                          → boundary at spot*100/30 = spot*10/3
+    // loss_70_to_80_percent:                          → boundary at spot*100/20 = spot*5
+    // loss_80_to_90_percent:                          → boundary at spot*100/10 = spot*10
+    // loss_90_to_100_percent: spot*10 ≤ p              (no upper boundary)
     let divisors: [u128; PROFITABILITY_BOUNDARY_COUNT] = [
         1100, // >1000% profit upper bound (spot/11)
         600,  // 500-1000% profit upper bound (spot/6)
@@ -84,128 +84,88 @@ pub fn compute_profitability_boundaries(spot: Cents) -> [Cents; PROFITABILITY_BO
 
 /// Profitability range names (25 ranges, from most profitable to most in loss)
 pub const PROFITABILITY_RANGE_NAMES: ProfitabilityRange<CohortName> = ProfitabilityRange {
-    over_1000pct_in_profit: CohortName::new(
-        "utxos_over_1000pct_in_profit",
+    profit_over_1000_percent: CohortName::new(
+        "profit_over_1000_percent",
         "+>1000%",
         "Over 1000% in Profit",
     ),
-    _500pct_to_1000pct_in_profit: CohortName::new(
-        "utxos_500pct_to_1000pct_in_profit",
+    profit_500_to_1000_percent: CohortName::new(
+        "profit_500_to_1000_percent",
         "+500-1000%",
         "500-1000% in Profit",
     ),
-    _300pct_to_500pct_in_profit: CohortName::new(
-        "utxos_300pct_to_500pct_in_profit",
+    profit_300_to_500_percent: CohortName::new(
+        "profit_300_to_500_percent",
         "+300-500%",
         "300-500% in Profit",
     ),
-    _200pct_to_300pct_in_profit: CohortName::new(
-        "utxos_200pct_to_300pct_in_profit",
+    profit_200_to_300_percent: CohortName::new(
+        "profit_200_to_300_percent",
         "+200-300%",
         "200-300% in Profit",
     ),
-    _100pct_to_200pct_in_profit: CohortName::new(
-        "utxos_100pct_to_200pct_in_profit",
+    profit_100_to_200_percent: CohortName::new(
+        "profit_100_to_200_percent",
         "+100-200%",
         "100-200% in Profit",
     ),
-    _90pct_to_100pct_in_profit: CohortName::new(
-        "utxos_90pct_to_100pct_in_profit",
+    profit_90_to_100_percent: CohortName::new(
+        "profit_90_to_100_percent",
         "+90-100%",
         "90-100% in Profit",
     ),
-    _80pct_to_90pct_in_profit: CohortName::new(
-        "utxos_80pct_to_90pct_in_profit",
+    profit_80_to_90_percent: CohortName::new(
+        "profit_80_to_90_percent",
         "+80-90%",
         "80-90% in Profit",
     ),
-    _70pct_to_80pct_in_profit: CohortName::new(
-        "utxos_70pct_to_80pct_in_profit",
+    profit_70_to_80_percent: CohortName::new(
+        "profit_70_to_80_percent",
         "+70-80%",
         "70-80% in Profit",
     ),
-    _60pct_to_70pct_in_profit: CohortName::new(
-        "utxos_60pct_to_70pct_in_profit",
+    profit_60_to_70_percent: CohortName::new(
+        "profit_60_to_70_percent",
         "+60-70%",
         "60-70% in Profit",
     ),
-    _50pct_to_60pct_in_profit: CohortName::new(
-        "utxos_50pct_to_60pct_in_profit",
+    profit_50_to_60_percent: CohortName::new(
+        "profit_50_to_60_percent",
         "+50-60%",
         "50-60% in Profit",
     ),
-    _40pct_to_50pct_in_profit: CohortName::new(
-        "utxos_40pct_to_50pct_in_profit",
+    profit_40_to_50_percent: CohortName::new(
+        "profit_40_to_50_percent",
         "+40-50%",
         "40-50% in Profit",
     ),
-    _30pct_to_40pct_in_profit: CohortName::new(
-        "utxos_30pct_to_40pct_in_profit",
+    profit_30_to_40_percent: CohortName::new(
+        "profit_30_to_40_percent",
         "+30-40%",
         "30-40% in Profit",
     ),
-    _20pct_to_30pct_in_profit: CohortName::new(
-        "utxos_20pct_to_30pct_in_profit",
+    profit_20_to_30_percent: CohortName::new(
+        "profit_20_to_30_percent",
         "+20-30%",
         "20-30% in Profit",
     ),
-    _10pct_to_20pct_in_profit: CohortName::new(
-        "utxos_10pct_to_20pct_in_profit",
+    profit_10_to_20_percent: CohortName::new(
+        "profit_10_to_20_percent",
         "+10-20%",
         "10-20% in Profit",
     ),
-    _0pct_to_10pct_in_profit: CohortName::new(
-        "utxos_0pct_to_10pct_in_profit",
-        "+0-10%",
-        "0-10% in Profit",
-    ),
-    _0pct_to_10pct_in_loss: CohortName::new(
-        "utxos_0pct_to_10pct_in_loss",
-        "-0-10%",
-        "0-10% in Loss",
-    ),
-    _10pct_to_20pct_in_loss: CohortName::new(
-        "utxos_10pct_to_20pct_in_loss",
-        "-10-20%",
-        "10-20% in Loss",
-    ),
-    _20pct_to_30pct_in_loss: CohortName::new(
-        "utxos_20pct_to_30pct_in_loss",
-        "-20-30%",
-        "20-30% in Loss",
-    ),
-    _30pct_to_40pct_in_loss: CohortName::new(
-        "utxos_30pct_to_40pct_in_loss",
-        "-30-40%",
-        "30-40% in Loss",
-    ),
-    _40pct_to_50pct_in_loss: CohortName::new(
-        "utxos_40pct_to_50pct_in_loss",
-        "-40-50%",
-        "40-50% in Loss",
-    ),
-    _50pct_to_60pct_in_loss: CohortName::new(
-        "utxos_50pct_to_60pct_in_loss",
-        "-50-60%",
-        "50-60% in Loss",
-    ),
-    _60pct_to_70pct_in_loss: CohortName::new(
-        "utxos_60pct_to_70pct_in_loss",
-        "-60-70%",
-        "60-70% in Loss",
-    ),
-    _70pct_to_80pct_in_loss: CohortName::new(
-        "utxos_70pct_to_80pct_in_loss",
-        "-70-80%",
-        "70-80% in Loss",
-    ),
-    _80pct_to_90pct_in_loss: CohortName::new(
-        "utxos_80pct_to_90pct_in_loss",
-        "-80-90%",
-        "80-90% in Loss",
-    ),
-    _90pct_to_100pct_in_loss: CohortName::new(
-        "utxos_90pct_to_100pct_in_loss",
+    profit_0_to_10_percent: CohortName::new("profit_0_to_10_percent", "+0-10%", "0-10% in Profit"),
+    loss_0_to_10_percent: CohortName::new("loss_0_to_10_percent", "-0-10%", "0-10% in Loss"),
+    loss_10_to_20_percent: CohortName::new("loss_10_to_20_percent", "-10-20%", "10-20% in Loss"),
+    loss_20_to_30_percent: CohortName::new("loss_20_to_30_percent", "-20-30%", "20-30% in Loss"),
+    loss_30_to_40_percent: CohortName::new("loss_30_to_40_percent", "-30-40%", "30-40% in Loss"),
+    loss_40_to_50_percent: CohortName::new("loss_40_to_50_percent", "-40-50%", "40-50% in Loss"),
+    loss_50_to_60_percent: CohortName::new("loss_50_to_60_percent", "-50-60%", "50-60% in Loss"),
+    loss_60_to_70_percent: CohortName::new("loss_60_to_70_percent", "-60-70%", "60-70% in Loss"),
+    loss_70_to_80_percent: CohortName::new("loss_70_to_80_percent", "-70-80%", "70-80% in Loss"),
+    loss_80_to_90_percent: CohortName::new("loss_80_to_90_percent", "-80-90%", "80-90% in Loss"),
+    loss_90_to_100_percent: CohortName::new(
+        "loss_90_to_100_percent",
         "-90-100%",
         "90-100% in Loss",
     ),
@@ -220,119 +180,113 @@ impl ProfitabilityRange<CohortName> {
 /// 25 profitability range buckets ordered from most profitable to most in loss.
 ///
 /// During the k-way merge (ascending price order), the cursor starts at bucket 0
-/// (over_1000pct_in_profit, lowest cost basis) and advances as price crosses each boundary.
+/// (profit_over_1000_percent, lowest cost basis) and advances as price crosses each boundary.
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ProfitabilityRange<T> {
     /// Uses UTXOs whose represented-block spot price is more than 1,000% above
     /// creation price.
-    over_1000pct_in_profit: T,
+    profit_over_1000_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 500% and no
     /// more than 1,000% above creation price.
-    _500pct_to_1000pct_in_profit: T,
+    profit_500_to_1000_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 300% and no
     /// more than 500% above creation price.
-    _300pct_to_500pct_in_profit: T,
+    profit_300_to_500_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 200% and no
     /// more than 300% above creation price.
-    _200pct_to_300pct_in_profit: T,
+    profit_200_to_300_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 100% and no
     /// more than 200% above creation price.
-    _100pct_to_200pct_in_profit: T,
+    profit_100_to_200_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 90% and no
     /// more than 100% above creation price.
-    _90pct_to_100pct_in_profit: T,
+    profit_90_to_100_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 80% and no
     /// more than 90% above creation price.
-    _80pct_to_90pct_in_profit: T,
+    profit_80_to_90_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 70% and no
     /// more than 80% above creation price.
-    _70pct_to_80pct_in_profit: T,
+    profit_70_to_80_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 60% and no
     /// more than 70% above creation price.
-    _60pct_to_70pct_in_profit: T,
+    profit_60_to_70_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 50% and no
     /// more than 60% above creation price.
-    _50pct_to_60pct_in_profit: T,
+    profit_50_to_60_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 40% and no
     /// more than 50% above creation price.
-    _40pct_to_50pct_in_profit: T,
+    profit_40_to_50_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 30% and no
     /// more than 40% above creation price.
-    _30pct_to_40pct_in_profit: T,
+    profit_30_to_40_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 20% and no
     /// more than 30% above creation price.
-    _20pct_to_30pct_in_profit: T,
+    profit_20_to_30_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 10% and no
     /// more than 20% above creation price.
-    _10pct_to_20pct_in_profit: T,
+    profit_10_to_20_percent: T,
     /// Uses UTXOs whose represented-block spot price is above creation price by
     /// no more than 10%.
-    pub _0pct_to_10pct_in_profit: T,
+    profit_0_to_10_percent: T,
     /// Uses UTXOs whose represented-block spot price equals creation price or
     /// is less than 10% below it.
-    _0pct_to_10pct_in_loss: T,
+    loss_0_to_10_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 10% and less
     /// than 20% below creation price.
-    _10pct_to_20pct_in_loss: T,
+    loss_10_to_20_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 20% and less
     /// than 30% below creation price.
-    _20pct_to_30pct_in_loss: T,
+    loss_20_to_30_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 30% and less
     /// than 40% below creation price.
-    _30pct_to_40pct_in_loss: T,
+    loss_30_to_40_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 40% and less
     /// than 50% below creation price.
-    _40pct_to_50pct_in_loss: T,
+    loss_40_to_50_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 50% and less
     /// than 60% below creation price.
-    _50pct_to_60pct_in_loss: T,
+    loss_50_to_60_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 60% and less
     /// than 70% below creation price.
-    _60pct_to_70pct_in_loss: T,
+    loss_60_to_70_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 70% and less
     /// than 80% below creation price.
-    _70pct_to_80pct_in_loss: T,
+    loss_70_to_80_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 80% and less
     /// than 90% below creation price.
-    _80pct_to_90pct_in_loss: T,
+    loss_80_to_90_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 90% below
     /// creation price.
-    _90pct_to_100pct_in_loss: T,
+    loss_90_to_100_percent: T,
 }
 
 define_cohort_id!(
     ProfitabilityRangeId for ProfitabilityRange {
-        Over1000PctInProfit => over_1000pct_in_profit,
-        From500PctTo1000PctInProfit => _500pct_to_1000pct_in_profit,
-        From300PctTo500PctInProfit => _300pct_to_500pct_in_profit,
-        From200PctTo300PctInProfit => _200pct_to_300pct_in_profit,
-        From100PctTo200PctInProfit => _100pct_to_200pct_in_profit,
-        From90PctTo100PctInProfit => _90pct_to_100pct_in_profit,
-        From80PctTo90PctInProfit => _80pct_to_90pct_in_profit,
-        From70PctTo80PctInProfit => _70pct_to_80pct_in_profit,
-        From60PctTo70PctInProfit => _60pct_to_70pct_in_profit,
-        From50PctTo60PctInProfit => _50pct_to_60pct_in_profit,
-        From40PctTo50PctInProfit => _40pct_to_50pct_in_profit,
-        From30PctTo40PctInProfit => _30pct_to_40pct_in_profit,
-        From20PctTo30PctInProfit => _20pct_to_30pct_in_profit,
-        From10PctTo20PctInProfit => _10pct_to_20pct_in_profit,
-        From0PctTo10PctInProfit => _0pct_to_10pct_in_profit,
-        From0PctTo10PctInLoss => _0pct_to_10pct_in_loss,
-        From10PctTo20PctInLoss => _10pct_to_20pct_in_loss,
-        From20PctTo30PctInLoss => _20pct_to_30pct_in_loss,
-        From30PctTo40PctInLoss => _30pct_to_40pct_in_loss,
-        From40PctTo50PctInLoss => _40pct_to_50pct_in_loss,
-        From50PctTo60PctInLoss => _50pct_to_60pct_in_loss,
-        From60PctTo70PctInLoss => _60pct_to_70pct_in_loss,
-        From70PctTo80PctInLoss => _70pct_to_80pct_in_loss,
-        From80PctTo90PctInLoss => _80pct_to_90pct_in_loss,
-        From90PctTo100PctInLoss => _90pct_to_100pct_in_loss,
+        ProfitOver1000Percent => profit_over_1000_percent,
+        Profit500To1000Percent => profit_500_to_1000_percent,
+        Profit300To500Percent => profit_300_to_500_percent,
+        Profit200To300Percent => profit_200_to_300_percent,
+        Profit100To200Percent => profit_100_to_200_percent,
+        Profit90To100Percent => profit_90_to_100_percent,
+        Profit80To90Percent => profit_80_to_90_percent,
+        Profit70To80Percent => profit_70_to_80_percent,
+        Profit60To70Percent => profit_60_to_70_percent,
+        Profit50To60Percent => profit_50_to_60_percent,
+        Profit40To50Percent => profit_40_to_50_percent,
+        Profit30To40Percent => profit_30_to_40_percent,
+        Profit20To30Percent => profit_20_to_30_percent,
+        Profit10To20Percent => profit_10_to_20_percent,
+        Profit0To10Percent => profit_0_to_10_percent,
+        Loss0To10Percent => loss_0_to_10_percent,
+        Loss10To20Percent => loss_10_to_20_percent,
+        Loss20To30Percent => loss_20_to_30_percent,
+        Loss30To40Percent => loss_30_to_40_percent,
+        Loss40To50Percent => loss_40_to_50_percent,
+        Loss50To60Percent => loss_50_to_60_percent,
+        Loss60To70Percent => loss_60_to_70_percent,
+        Loss70To80Percent => loss_70_to_80_percent,
+        Loss80To90Percent => loss_80_to_90_percent,
+        Loss90To100Percent => loss_90_to_100_percent,
     }
 );
-
-impl ProfitabilityRangeId {
-    pub const fn is_profit(self) -> bool {
-        (self as usize) < Self::From0PctTo10PctInLoss as usize
-    }
-}

@@ -1,37 +1,129 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId, ProfitabilityRange, ProfitabilityRangeId};
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::PartsPerMillionSigned32;
+use bitview_primitives::PartsPerMillion32;
+use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CachedSeries, LazyFiatPerBlock, LazyRatioPerBlock, LazySpotValuePerBlockWithDeltas,
-    LazyWindowStartVec, import_cached,
+    CachedSeries, LazyFiatPerBlock, LazyPercentPerBlock, LazySpotValuePerBlock, import_cached,
 };
 use brk_error::Result;
-use brk_types::{Cents, CentsSats, Height, Sats, Version};
+use brk_types::{Cents, CentsSats, CentsSigned, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, PcoVecValue, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
 use crate::bucket::Bucket;
 
-type Sources<T, M> = ProfitabilityRange<AgeAggregate<CachedSeries<Height, T, M>>>;
+type Bands<T, M> = AgeAggregate<ProfitabilityRange<CachedSeries<Height, T, M>>>;
+type Totals<T, M> = AgeAggregate<CachedSeries<Height, T, M>>;
 
-/// The same profitability metric layout for all seven age filters.
+/// The 25 profitability bands under each of the seven age filters.
 #[derive(Traversable)]
 pub struct Metrics<M: StorageMode = Rw> {
-    supply: ProfitabilityRange<AgeAggregate<LazySpotValuePerBlockWithDeltas>>,
-    realized_cap: ProfitabilityRange<AgeAggregate<LazyFiatPerBlock<Cents>>>,
-    /// Absolute profit or loss, according to the represented profitability band.
-    unrealized_pnl: ProfitabilityRange<AgeAggregate<LazyFiatPerBlock<Cents>>>,
-    /// Signed net unrealized P&L divided by the cohort's own market cap.
-    nupl: ProfitabilityRange<AgeAggregate<LazyRatioPerBlock<PartsPerMillionSigned32>>>,
+    #[traversable(flatten)]
+    terms: AgeAggregate<ProfitabilityRange<Band>>,
     #[traversable(hidden)]
-    supply_stored: Sources<Sats, M>,
+    supply_stored: Bands<Sats, M>,
     #[traversable(hidden)]
-    cap_stored: Sources<Cents, M>,
+    capital_stored: Bands<Cents, M>,
     #[traversable(hidden)]
-    pnl_stored: Sources<Cents, M>,
+    net_pnl_stored: Bands<CentsSigned, M>,
+    /// Each filter's supply and capital, the denominators of its bands' shares.
     #[traversable(hidden)]
-    nupl_stored: Sources<PartsPerMillionSigned32, M>,
+    supply_total: Totals<Sats, M>,
+    #[traversable(hidden)]
+    capital_total: Totals<Cents, M>,
+}
+
+/// One band of one age filter: the subset of the cohort node that a band carries.
+#[derive(Clone, Traversable)]
+struct Band {
+    supply: BandSupply,
+    capital: BandCapital,
+    unrealized: BandUnrealized,
+}
+
+#[derive(Clone, Traversable)]
+struct BandSupply {
+    /// Supply: amount of bitcoin held in the band's unspent transaction outputs.
+    total: LazySpotValuePerBlock,
+    /// The band's share of its age filter's supply; a filter's bands add up to 100%.
+    share: LazyPercentPerBlock<PartsPerMillion32>,
+}
+
+#[derive(Clone, Traversable)]
+struct BandCapital {
+    /// Capital: the band's unspent outputs valued at Bitcoin's spot price when each was created.
+    total: LazyFiatPerBlock<Cents>,
+    /// Realized cap: the capital, under its jargon name.
+    realized_cap: LazyFiatPerBlock<Cents>,
+    /// The band's share of its age filter's capital; a filter's bands add up to 100%.
+    share: LazyPercentPerBlock<PartsPerMillion32>,
+}
+
+#[derive(Clone, Traversable)]
+struct BandUnrealized {
+    /// Net unrealized profit and loss: the supply's market value minus its capital, positive in
+    /// profit and negative in loss.
+    net_pnl: LazyFiatPerBlock<CentsSigned>,
+}
+
+/// A band's stored series and its filter's totals.
+struct BandSources<'a> {
+    supply: &'a CachedSeries<Height, Sats>,
+    capital: &'a CachedSeries<Height, Cents>,
+    net_pnl: &'a CachedSeries<Height, CentsSigned>,
+    supply_total: &'a CachedSeries<Height, Sats>,
+    capital_total: &'a CachedSeries<Height, Cents>,
+}
+
+impl Band {
+    fn new(
+        name: impl Fn(&str) -> String,
+        version: Version,
+        sources: BandSources<'_>,
+        mappings: &Mappings,
+        spot: &ReadableBoxedVec<Height, Cents>,
+    ) -> Self {
+        let fiat = |metric: &str| {
+            LazyFiatPerBlock::from_cents_source(&name(metric), version, sources.capital, mappings)
+        };
+        Self {
+            supply: BandSupply {
+                total: LazySpotValuePerBlock::from_sats_source(
+                    &name("supply"),
+                    version,
+                    sources.supply,
+                    mappings,
+                    spot,
+                ),
+                share: LazyPercentPerBlock::from_ratio::<Sats, Sats, Quotient<PartsPerMillion32>>(
+                    &name("supply_share"),
+                    version,
+                    sources.supply,
+                    sources.supply_total,
+                    mappings,
+                ),
+            },
+            capital: BandCapital {
+                total: fiat("capital"),
+                realized_cap: fiat("realized_cap"),
+                share: LazyPercentPerBlock::from_ratio::<Cents, Cents, Quotient<PartsPerMillion32>>(
+                    &name("capital_share"),
+                    version,
+                    sources.capital,
+                    sources.capital_total,
+                    mappings,
+                ),
+            },
+            unrealized: BandUnrealized {
+                net_pnl: LazyFiatPerBlock::from_cents_source(
+                    &name("net_unrealized_pnl"),
+                    version,
+                    sources.net_pnl,
+                    mappings,
+                ),
+            },
+        }
+    }
 }
 
 impl Metrics {
@@ -39,152 +131,115 @@ impl Metrics {
         db: &Database,
         version: Version,
         mappings: &Mappings,
-        windows: &Windows<&LazyWindowStartVec>,
         spot: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Box<Self>> {
-        let supply_stored = Self::import_sources(db, "supply_sats", version)?;
-        let cap_stored = Self::import_sources(db, "realized_cap_cents", version)?;
-        let pnl_stored = Self::import_sources(db, "unrealized_pnl_cents", version)?;
-        let nupl_stored = Self::import_sources(db, "nupl_ppm", version)?;
-        let supply = Self::series(&supply_stored, "supply", |name, source| {
-            LazySpotValuePerBlockWithDeltas::from_sats_source(
-                name, version, source, mappings, windows, spot,
-            )
-        });
-        let realized_cap = Self::series(&cap_stored, "realized_cap", |name, source| {
-            LazyFiatPerBlock::from_cents_source(name, version, source, mappings)
-        });
-        let unrealized_pnl = Self::series(&pnl_stored, "unrealized_pnl", |name, source| {
-            LazyFiatPerBlock::from_cents_source(name, version, source, mappings)
-        });
-        let nupl = Self::series(&nupl_stored, "nupl", |name, source| {
-            LazyRatioPerBlock::from_height_source(name, version, source, mappings)
+        let supply_stored = Self::import_bands(db, "supply_sats", version)?;
+        let capital_stored = Self::import_bands(db, "realized_cap_cents", version)?;
+        let net_pnl_stored = Self::import_bands(db, "net_unrealized_pnl_cents", version)?;
+        let supply_total = Self::import_totals(db, "profitability_supply_sats", version)?;
+        let capital_total = Self::import_totals(db, "profitability_capital_cents", version)?;
+        let terms = AgeAggregate::from_fn(|term| {
+            ProfitabilityRange::from_fn(|band| {
+                let band_name = band.select(ProfitabilityRange::names()).id;
+                Band::new(
+                    |metric| term.metric_name(&format!("{band_name}_{metric}")),
+                    version,
+                    BandSources {
+                        supply: band.select(term.select(&supply_stored)),
+                        capital: band.select(term.select(&capital_stored)),
+                        net_pnl: band.select(term.select(&net_pnl_stored)),
+                        supply_total: term.select(&supply_total),
+                        capital_total: term.select(&capital_total),
+                    },
+                    mappings,
+                    spot,
+                )
+            })
         });
         Ok(Box::new(Self {
-            supply,
-            realized_cap,
-            unrealized_pnl,
-            nupl,
+            terms,
             supply_stored,
-            cap_stored,
-            pnl_stored,
-            nupl_stored,
+            capital_stored,
+            net_pnl_stored,
+            supply_total,
+            capital_total,
         }))
     }
 
-    fn import_sources<T: PcoVecValue>(
+    fn import_bands<T: PcoVecValue>(
         db: &Database,
         metric: &str,
         version: Version,
-    ) -> Result<Sources<T, Rw>> {
-        ProfitabilityRange::try_from_fn(|band| {
-            let name = band.select(ProfitabilityRange::names()).id;
-            AgeAggregate::try_from_fn(|filter| {
-                import_cached(db, &Self::metric_name(name, filter, metric), version)
+    ) -> Result<Bands<T, Rw>> {
+        AgeAggregate::try_from_fn(|term| {
+            ProfitabilityRange::try_from_fn(|band| {
+                let band_name = band.select(ProfitabilityRange::names()).id;
+                import_cached(
+                    db,
+                    &term.metric_name(&format!("{band_name}_{metric}")),
+                    version,
+                )
             })
         })
     }
 
-    fn series<T: PcoVecValue, S>(
-        sources: &Sources<T, Rw>,
+    fn import_totals<T: PcoVecValue>(
+        db: &Database,
         metric: &str,
-        mut build: impl FnMut(&str, &CachedSeries<Height, T>) -> S,
-    ) -> ProfitabilityRange<AgeAggregate<S>> {
-        ProfitabilityRange::from_fn(|band| {
-            let name = band.select(ProfitabilityRange::names()).id;
-            AgeAggregate::from_fn(|filter| {
-                build(
-                    &Self::metric_name(name, filter, metric),
-                    filter.select(band.select(sources)),
-                )
-            })
-        })
+        version: Version,
+    ) -> Result<Totals<T, Rw>> {
+        AgeAggregate::try_from_fn(|term| import_cached(db, &term.metric_name(metric), version))
     }
 
-    fn metric_name(band: &str, filter: AgeAggregateId, metric: &str) -> String {
-        if filter == AgeAggregateId::All {
-            format!("{band}_{metric}")
-        } else {
-            format!("{band}_{}_{metric}", filter.name())
-        }
-    }
-
-    pub(crate) fn push(&mut self, spot: Cents, values: &ProfitabilityRange<Bucket>) {
-        for &band in ProfitabilityRangeId::ALL {
-            let bucket = band.select(values);
-            let pnl = AgeAggregate::from_fn(|filter| {
-                Self::pnl(
-                    spot,
-                    *filter.select(&bucket.cap),
-                    *filter.select(&bucket.supply),
-                    band.is_profit(),
-                )
-            });
-            let nupl = AgeAggregate::from_fn(|filter| {
-                Self::nupl(
-                    spot,
-                    *filter.select(&bucket.cap),
-                    *filter.select(&bucket.supply),
-                )
-            });
-            Self::push_filter(band.select_mut(&mut self.supply_stored), &bucket.supply);
-            Self::push_filter(band.select_mut(&mut self.cap_stored), &bucket.cap);
-            Self::push_filter(band.select_mut(&mut self.pnl_stored), &pnl);
-            Self::push_filter(band.select_mut(&mut self.nupl_stored), &nupl);
-        }
-    }
-
-    fn push_filter<T: PcoVecValue + Copy>(
-        target: &mut AgeAggregate<CachedSeries<Height, T>>,
-        values: &AgeAggregate<T>,
+    pub(crate) fn push(
+        &mut self,
+        spot: Cents,
+        bands: &ProfitabilityRange<Bucket>,
+        totals: &Bucket,
     ) {
-        for (target, &value) in target.iter_mut().zip(values.iter()) {
-            target.push(value);
+        for &term in AgeAggregateId::ALL {
+            for &band in ProfitabilityRangeId::ALL {
+                let bucket = band.select(bands);
+                let supply = *term.select(&bucket.supply);
+                let capital = *term.select(&bucket.cap);
+                band.select_mut(term.select_mut(&mut self.supply_stored))
+                    .push(supply);
+                band.select_mut(term.select_mut(&mut self.capital_stored))
+                    .push(capital);
+                band.select_mut(term.select_mut(&mut self.net_pnl_stored))
+                    .push(Self::net_pnl(spot, capital, supply));
+            }
+            term.select_mut(&mut self.supply_total)
+                .push(*term.select(&totals.supply));
+            term.select_mut(&mut self.capital_total)
+                .push(*term.select(&totals.cap));
         }
     }
 
     pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.supply_stored
-            .iter_mut()
-            .flat_map(|v| v.iter_mut())
-            .map(|v| v as &mut dyn AnyStoredVec)
-            .chain(
-                self.cap_stored
-                    .iter_mut()
-                    .flat_map(|v| v.iter_mut())
-                    .map(|v| v as &mut dyn AnyStoredVec),
-            )
-            .chain(
-                self.pnl_stored
-                    .iter_mut()
-                    .flat_map(|v| v.iter_mut())
-                    .map(|v| v as &mut dyn AnyStoredVec),
-            )
-            .chain(
-                self.nupl_stored
-                    .iter_mut()
-                    .flat_map(|v| v.iter_mut())
-                    .map(|v| v as &mut dyn AnyStoredVec),
-            )
+        fn bands<T: PcoVecValue>(
+            bands: &mut Bands<T, Rw>,
+        ) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+            bands
+                .iter_mut()
+                .flat_map(|term| term.iter_mut())
+                .map(|v| v as &mut dyn AnyStoredVec)
+        }
+        fn totals<T: PcoVecValue>(
+            totals: &mut Totals<T, Rw>,
+        ) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+            totals.iter_mut().map(|v| v as &mut dyn AnyStoredVec)
+        }
+        bands(&mut self.supply_stored)
+            .chain(bands(&mut self.capital_stored))
+            .chain(bands(&mut self.net_pnl_stored))
+            .chain(totals(&mut self.supply_total))
+            .chain(totals(&mut self.capital_total))
     }
 
-    fn pnl(spot: Cents, cap: Cents, supply: Sats, profit: bool) -> Cents {
+    /// The supply's market value at `spot` minus its capital.
+    fn net_pnl(spot: Cents, capital: Cents, supply: Sats) -> CentsSigned {
         let market = CentsSats::from_price_sats(spot, supply).to_cents_rounded();
-        if profit {
-            market.saturating_sub(cap)
-        } else {
-            cap.saturating_sub(market)
-        }
-    }
-
-    fn nupl(spot: Cents, cap: Cents, supply: Sats) -> PartsPerMillionSigned32 {
-        let spot = spot.as_u128();
-        let supply = supply.as_u128();
-        if spot == 0 || supply == 0 {
-            PartsPerMillionSigned32::ZERO
-        } else {
-            let price = cap.as_u128() * Sats::ONE_BTC_U128 / supply;
-            PartsPerMillionSigned32::from((spot as f64 - price as f64) / spot as f64)
-        }
+        CentsSigned::new(market.inner() as i64 - capital.inner() as i64)
     }
 }

@@ -32,6 +32,7 @@ bitview_plugin_op_return = { workspace = true }
 bitview_plugin_outputs = { workspace = true }
 bitview_plugin_pools = { workspace = true }
 bitview_plugin_price = { workspace = true }
+bitview_plugin_profitability = { workspace = true }
 bitview_plugin_rarity_meter = { workspace = true }
 bitview_plugin_supply = { workspace = true }
 bitview_plugin_transactions = { workspace = true }

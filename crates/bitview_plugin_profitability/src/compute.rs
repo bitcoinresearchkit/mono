@@ -62,7 +62,8 @@ impl ComputePlugin for Vecs {
                 &live.timestamps,
                 &mut live.crossings,
             )?;
-            self.metrics.push(spot, &ranges(&live.index, spot));
+            let (bands, totals) = ranges(&live.index, spot);
+            self.metrics.push(spot, &bands, &totals);
             if (h + 1).is_multiple_of(10_000) || h + 1 == end {
                 self.save(h + 1, context.exit())?;
             }

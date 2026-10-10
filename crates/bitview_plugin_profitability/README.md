@@ -1,8 +1,10 @@
 # Profitability
 
-Optional percentage-profit/loss bands for all, STH, LTH, under 4m, under 6m,
-over 4m, and over 6m. Each of the 25 bands exposes supply, creation-value cap,
-unrealized profit/loss, and NUPL through the same layout.
+Profit and loss bands of the UTXO set: 25 bands from over 1000% in profit to
+90-100% in loss, under each of seven age filters (all, STH, LTH, under 4m,
+under 6m, over 4m, over 6m), at `profitability.<filter>.<band>`. Each band
+publishes its supply and capital, each with its share of the filter's total (a
+filter's bands add up to 100%), and its signed net unrealized profit or loss.
 
 The plugin consumes the published UTXO Set, block prices, and monotonic timestamps.
 It owns one complete `ComputePlugin::compute_state()`, its database, and a resident
@@ -16,11 +18,10 @@ and restarts rebuild from History's closest snapshot plus diffs. Only fixed-widt
 metric series are persisted here; History remains the source of unspent state.
 Writes use the project exit guard. Crash recovery is outside the project contract.
 
-This crate is absent from `DefaultPlugins`. Compose it explicitly as in
-`examples/with_profitability.rs`. Its series are registered under this plugin's
-identity and are absent when the plugin is omitted. Basic profit/loss, cost-basis
-percentiles, and density live in Holders. Age no longer creates or maintains detailed profitability-band series.
+`DefaultPlugins` composes it beside Entry, Coinflow and Cointime. Basic
+profit/loss, cost-basis percentiles, and density live in Holders.
 
-The existing price-grid precision and all/STH/LTH band rounding are preserved.
-The additional filters use the same grid, cutoff definitions, and complementary
-cap rounding. NUPL is exposed for every filter, including zero-supply buckets.
+Creation prices sit on the shared price index's grid: whole dollars to five
+significant digits, so bands are coarse while the spot price is under about $100
+and collapse into one while it is under $1. Complementary filters (LTH, over 4m,
+over 6m) are their totals minus the young side, before cents rounding.

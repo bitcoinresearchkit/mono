@@ -22,6 +22,9 @@ use bitview_plugin_op_return::{Dependencies as OpReturnDependencies, ID as OP_RE
 use bitview_plugin_outputs::{Dependencies as OutputsDependencies, ID as OUTPUTS_ID};
 use bitview_plugin_pools::{Dependencies as PoolsDependencies, ID as POOLS_ID};
 use bitview_plugin_price::{Dependencies as PriceDependencies, ID as PRICE_ID};
+use bitview_plugin_profitability::{
+    Dependencies as ProfitabilityDependencies, ID as PROFITABILITY_ID,
+};
 use bitview_plugin_rarity_meter::{Dependencies as RarityMeterDependencies, ID as RARITY_METER_ID};
 use bitview_plugin_supply::{Dependencies as SupplyDependencies, ID as SUPPLY_ID};
 use bitview_plugin_transactions::{
@@ -239,8 +242,8 @@ impl DefaultPlugins {
                 prices: &self.price.spot.cents.height,
                 timestamps: &self.mappings.timestamp.monotonic,
             };
-            let entry_prices = self.price.spot.cents.height.read_only_boxed_clone();
-            let entry_timestamps = self.mappings.timestamp.monotonic.read_only_boxed_clone();
+            let prices = self.price.spot.cents.height.read_only_boxed_clone();
+            let timestamps = self.mappings.timestamp.monotonic.read_only_boxed_clone();
             let capitalized_price = self
                 .holders
                 .cohorts
@@ -258,9 +261,22 @@ impl DefaultPlugins {
                             EntryDependencies {
                                 history: &history,
                                 from: indexer.safe_lengths().height,
-                                prices: &entry_prices,
-                                timestamps: &entry_timestamps,
+                                prices: &prices,
+                                timestamps: &timestamps,
                                 capitalized_price: &capitalized_price,
+                            },
+                            context,
+                        )
+                    })
+                });
+                let profitability = scope.spawn(|| {
+                    timed(Phase::Compute, PROFITABILITY_ID, || {
+                        self.profitability.compute(
+                            ProfitabilityDependencies {
+                                history: &history,
+                                from: indexer.safe_lengths().height,
+                                prices: &prices,
+                                timestamps: &timestamps,
                             },
                             context,
                         )
@@ -379,6 +395,7 @@ impl DefaultPlugins {
                 })?;
                 pools.join().unwrap()?;
                 entry.join().unwrap()?;
+                profitability.join().unwrap()?;
                 Ok(())
             })?;
             Ok(())

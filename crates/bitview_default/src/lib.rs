@@ -20,6 +20,7 @@ use bitview_plugin_op_return::Vecs as OpReturn;
 use bitview_plugin_outputs::Vecs as Outputs;
 use bitview_plugin_pools::Vecs as Pools;
 use bitview_plugin_price::Vecs as Price;
+use bitview_plugin_profitability::Vecs as Profitability;
 use bitview_plugin_rarity_meter::Vecs as RarityMeter;
 use bitview_plugin_supply::Vecs as Supply;
 use bitview_plugin_transactions::Vecs as Transactions;
@@ -67,6 +68,8 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     holders: Box<Holders<M>>,
     #[plugin_set(has = bitview_plugin_entry::HasEntry<M>)]
     entry: Box<Entry<M>>,
+    #[plugin_set(has = bitview_plugin_profitability::HasProfitability<M>)]
+    profitability: Box<Profitability<M>>,
     supply: Box<Supply<M>>,
     indicators: Box<Indicators<M>>,
     #[plugin_set(has = bitview_plugin_cointime::HasCointime<M>)]

@@ -1586,6 +1586,14 @@ pub mod tree {
         stock_to_flow: SeriesPattern1<Option<Years>> = "*_stock_to_flow",
         velocity: Velocity = "*_velocity",
     } }
+    shape! { Loss0To10PercentUnrealized at "series().profitability.all.loss_0_to_10_percent.unrealized" {
+        net_pnl: SeriesPattern1<Option<Dollars>> = "*",
+    } }
+    shape! { Loss0To10PercentCapital at "series().profitability.all.loss_0_to_10_percent.capital" {
+        total: SeriesPattern1<Option<Dollars>> = "*_capital",
+        realized_cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
+        share: SeriesPattern1<Option<Percent>> = "*_capital_share",
+    } }
     shape! { RookieUnrealized at "series().entry.rookie.unrealized" {
         profit: SeriesPattern1<Option<Dollars>> = "*_unrealized_profit",
         loss: SeriesPattern1<Option<Dollars>> = "*_unrealized_loss",
@@ -1954,6 +1962,42 @@ pub mod tree {
     shape! { CointimeCohortsAll at "series().cointime.cohorts.all" {
         awake: Mobile = "*_awake",
         dormant: Immobile = "*_dormant_supply",
+    } }
+    shape! { Loss0To10PercentSupply at "series().profitability.all.loss_0_to_10_percent.supply" {
+        total: AvgBalance = "*",
+        share: SeriesPattern1<Option<Percent>> = "*_share",
+    } }
+    shape! { Loss0To10Percent at "series().profitability.all.loss_0_to_10_percent" {
+        supply: Loss0To10PercentSupply = "*_supply",
+        capital: Loss0To10PercentCapital = "*",
+        unrealized: Loss0To10PercentUnrealized = "*_net_unrealized_pnl",
+    } }
+    shape! { ProfitabilityAll at "series().profitability.all" {
+        profit_over_1000_percent: Loss0To10Percent = "*_profit_over_1000_percent",
+        profit_500_to_1000_percent: Loss0To10Percent = "*_profit_500_to_1000_percent",
+        profit_300_to_500_percent: Loss0To10Percent = "*_profit_300_to_500_percent",
+        profit_200_to_300_percent: Loss0To10Percent = "*_profit_200_to_300_percent",
+        profit_100_to_200_percent: Loss0To10Percent = "*_profit_100_to_200_percent",
+        profit_90_to_100_percent: Loss0To10Percent = "*_profit_90_to_100_percent",
+        profit_80_to_90_percent: Loss0To10Percent = "*_profit_80_to_90_percent",
+        profit_70_to_80_percent: Loss0To10Percent = "*_profit_70_to_80_percent",
+        profit_60_to_70_percent: Loss0To10Percent = "*_profit_60_to_70_percent",
+        profit_50_to_60_percent: Loss0To10Percent = "*_profit_50_to_60_percent",
+        profit_40_to_50_percent: Loss0To10Percent = "*_profit_40_to_50_percent",
+        profit_30_to_40_percent: Loss0To10Percent = "*_profit_30_to_40_percent",
+        profit_20_to_30_percent: Loss0To10Percent = "*_profit_20_to_30_percent",
+        profit_10_to_20_percent: Loss0To10Percent = "*_profit_10_to_20_percent",
+        profit_0_to_10_percent: Loss0To10Percent = "*_profit_0_to_10_percent",
+        loss_0_to_10_percent: Loss0To10Percent = "*_loss_0_to_10_percent",
+        loss_10_to_20_percent: Loss0To10Percent = "*_loss_10_to_20_percent",
+        loss_20_to_30_percent: Loss0To10Percent = "*_loss_20_to_30_percent",
+        loss_30_to_40_percent: Loss0To10Percent = "*_loss_30_to_40_percent",
+        loss_40_to_50_percent: Loss0To10Percent = "*_loss_40_to_50_percent",
+        loss_50_to_60_percent: Loss0To10Percent = "*_loss_50_to_60_percent",
+        loss_60_to_70_percent: Loss0To10Percent = "*_loss_60_to_70_percent",
+        loss_70_to_80_percent: Loss0To10Percent = "*_loss_70_to_80_percent",
+        loss_80_to_90_percent: Loss0To10Percent = "*_loss_80_to_90_percent",
+        loss_90_to_100_percent: Loss0To10Percent = "*_loss_90_to_100_percent",
     } }
     shape! { Sum at "series().op_return.fees.sum" {
         _24h: AvgBalance = "*_24h",
@@ -3220,6 +3264,7 @@ pub mod tree {
         addresses: Addresses = "address",
         holders: Holders<Rookie<AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>, Rookie<LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>> = "utxos",
         entry: Entry = "veteran",
+        profitability: Holders<ProfitabilityAll, ProfitabilityAll> = "utxos",
         supply: Supply = "circulating_supply",
         indicators: Indicators = "destroyed_supply_adjusted",
         cointime: Cointime = "utxos",

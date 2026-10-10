@@ -1,7 +1,7 @@
 # Distribution
 
 Shared accounting, price maps, price indexes and metric helpers used by Age,
-Holders, UTXOs, Addresses, Entry and the optional Profitability plugin. This library
+Holders, UTXOs, Addresses, Entry and Profitability. This library
 owns no database, producer or pipeline loop. Shared column readers and exact
 scalar-checkpoint mechanics are composed into each plugin; every checkpoint
 instance belongs to its plugin. Plugins own their derived state and recovery.

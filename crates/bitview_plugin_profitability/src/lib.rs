@@ -19,7 +19,8 @@ use vecdb::{Database, Rw, StorageMode};
 
 use live::LiveState;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("profitability"), Version::TWO);
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("profitability"), Version::new(3));
+pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

@@ -19,7 +19,7 @@ writes restore the canonical state. Incomplete derived ratios are repaired
 without replaying the history index.
 
 No URPD distributions or address state are stored here. Detailed profitability
-bands remain a separate optional plugin. Downstream plugins, including Rarity
+bands live in the Profitability plugin. Downstream plugins, including Rarity
 Meter, read these completed aggregate metrics instead of computing their own
 raw threshold prices.
 
