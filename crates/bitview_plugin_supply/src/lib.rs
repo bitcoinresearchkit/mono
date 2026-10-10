@@ -28,7 +28,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// value is the market cap.
     circulating: LazyPerBlock<Bitcoin, Bitcoin>,
     /// Value made provably unspendable: the genesis subsidy, `OP_RETURN` output
-    /// values and unclaimed block rewards.
+    /// values, unclaimed block rewards and the two coinbase outputs that BIP30
+    /// duplicates overwrote (blocks 91812 and 91722, at 91842 and 91880).
     burned: burned::Vecs<M>,
     /// Scheduled annual issuance over the circulating supply: the represented
     /// block's scheduled subsidy times 52,560 blocks, divided by the supply. The

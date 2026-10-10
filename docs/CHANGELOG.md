@@ -334,6 +334,7 @@ has to be deleted by hand.
   (`volume` is the value, `per_second` its sibling) and the mining rewards' `output_volume`; renamed fields
   `difficulty.value` (now `block`), Cointime's `reserve_risk.value` (now `block`) and `value.vocdd` (now
   `reserve_risk.vocdd`)
+- `statedb::BlockDiff` exposes `spent()` and `correction()` (the BIP30-overwritten output) beside `removed()`
 - `bitview_urpd::Metrics` is gone: a model owns a `CostBasisVecs` per cohort and a `Replay`, and calls
   `compute_cost_basis`. `bitview_vecs::{Density, DensityVecs}` are new; `PriceIndex::density_range` is
   `density_split` (the band's in-profit and in-loss halves); `bitview_plugin_supply::Vecs::import` no longer takes
@@ -435,6 +436,12 @@ has to be deleted by hand.
   they add up to market cap (were realized cap times them), and AVIV is active cap over investor cap, spot over True
   Market Mean (was realized cap times liveliness over investor cap). The adjusted velocity is velocity over
   liveliness, the turnover of the active supply (was velocity times liveliness over vaultedness)
+- The two coinbase outputs that BIP30 duplicates overwrote (blocks 91812 and 91722, overwritten at 91842 and 91880)
+  leave the age, holders, entry and UTXO cohorts without counting as spends: supply, UTXO count and realized cap drop
+  as before, with no transfer volume, spent output, coin days destroyed, value destroyed or realized profit and loss
+  (at 91842 the cohorts showed 50 BTC of transfer volume for it). Coinblocks destroyed leave them out too (9,400
+  fewer from 91880 on), which moves Cointime's liveliness and everything built on it very slightly. `supply.burned`
+  counts the two outputs (it left out 100 BTC from 91880 on)
 - Stock-to-flow is NaN once the scheduled subsidy is zero, like Cointime's adjusted stock-to-flow (was 0)
 - Holders' supply density is NaN for an empty cohort, like Cointime's and Coinflow's (was 0)
 - Reserve Risk is time-weighted, like Glassnode's daily definition: the HODL bank accrues each block's opportunity

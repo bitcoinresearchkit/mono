@@ -20,7 +20,8 @@ pub fn replay_origins(
 
         let tick = tick_tock_next_block(states, cursor.state().amounts(), ctx, timestamp);
         let diff = cursor.advance()?.expect("validated origin range");
-        let spent = diff.removed();
+        let spent = diff.spent();
+        let lost = diff.correction();
         let created = supply(diff.created);
         vecs.cohorts.supply.push_maturation(&tick.matured, price);
         for (target, value) in vecs
@@ -36,6 +37,9 @@ pub fn replay_origins(
         vecs.coinblocks_destroyed.push_block(CoinBlocks::from(
             satblocks as f64 / Sats::ONE_BTC_U128 as f64,
         ));
+        if let Some((origin, amount)) = lost {
+            states.lose_origin(Height::new(origin), supply(amount), height, ctx);
+        }
 
         states.apply_pending();
 

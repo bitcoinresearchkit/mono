@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mining::Vecs as MiningVecs;
-use bitview_plugin_outputs::Vecs as OutputsVecs;
+use bitview_plugin_outputs::{Vecs as OutputsVecs, overwritten_output};
 use bitview_plugin_price::Vecs as PriceVecs;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -31,7 +31,10 @@ impl Vecs {
                 } else {
                     Sats::ZERO
                 };
-                genesis + op_return + unclaimed
+                // A BIP30 duplicate coinbase made the output it overwrote unspendable.
+                let overwritten =
+                    overwritten_output(height).map_or(Sats::ZERO, |(_, lost)| lost.value);
+                genesis + op_return + unclaimed + overwritten
             },
             exit,
         )?;

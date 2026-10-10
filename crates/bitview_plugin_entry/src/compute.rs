@@ -121,7 +121,7 @@ impl ComputePlugin for Vecs {
             live.cohorts
                 .get_mut(live.entries[h])
                 .receive_utxo(&supply(diff.created), price);
-            for (origin, amount) in diff.removed() {
+            for (origin, amount) in diff.spent() {
                 let origin = origin as usize;
                 let age = Age::new(live.timestamps[h], live.timestamps[origin]);
                 live.cohorts.get_mut(live.entries[origin]).send_utxo(
@@ -131,6 +131,16 @@ impl ComputePlugin for Vecs {
                     price,
                     age,
                 );
+            }
+            // A BIP30-overwritten coinbase leaves the set without being spent.
+            if let Some((origin, amount)) = diff.correction() {
+                let origin = origin as usize;
+                live.cohorts
+                    .get_mut(live.entries[origin])
+                    .decrement_snapshot(&CostBasisSnapshot::from_utxo(
+                        live.prices[origin],
+                        &supply(amount),
+                    ));
             }
             for (target, state) in self.cohorts.iter_mut().zip(live.cohorts.iter_mut()) {
                 state.apply_pending();

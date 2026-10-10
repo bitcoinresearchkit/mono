@@ -3,7 +3,7 @@ use std::ops::{ControlFlow, Range};
 use super::write::write;
 use crate::{
     Vecs,
-    block::{DetailedSpends, normalize_supply},
+    block::{DetailedSpends, normalize_supply, remove_overwritten},
     state::{Transacted, UTXOStates},
 };
 use bitview_distribution::readers::{BatchColumns, BlockBounds, Columns};
@@ -57,9 +57,10 @@ pub fn process_chunk(
             {
                 detailed.add(value, ty, prices[usize::from(origin)], price);
             }
-            normalize_supply(Height::from(height), &mut transacted, &mut detailed, prices);
+            normalize_supply(Height::from(height), &mut transacted);
             states.receive_details(&transacted, price);
             detailed.apply(states);
+            remove_overwritten(Height::from(height), states, prices);
             vecs.cohorts.push(states, price);
             states
                 .type_

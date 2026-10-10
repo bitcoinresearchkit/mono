@@ -23,7 +23,7 @@ use vecdb::{Database, Rw, StorageMode};
 use live::LiveState;
 use metrics::CohortMetrics;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("age"), Version::new(47));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("age"), Version::new(48));
 pub const ID: PluginId = STORAGE.id();
 
 /// Age-derived metrics and resident state, independent of address state.

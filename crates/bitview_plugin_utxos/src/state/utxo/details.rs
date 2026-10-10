@@ -1,6 +1,17 @@
 use crate::state::{Transacted, UTXOStates};
-use brk_types::Cents;
+use bitview_primitives::{CostBasisSnapshot, SupplyState};
+use brk_types::{Cents, OutputType};
 impl UTXOStates {
+    /// Removes an output that left the set without being spent: supply and realized cap drop,
+    /// with no spend, volume or realized profit and loss.
+    pub fn lose(&mut self, ty: OutputType, lost: &SupplyState, price: Cents) {
+        let snapshot = CostBasisSnapshot::from_utxo(price, lost);
+        self.type_.get_mut(ty).decrement_snapshot(&snapshot);
+        self.amount_range
+            .get_mut(lost.value)
+            .decrement_snapshot(&snapshot);
+    }
+
     pub fn receive_details(&mut self, received: &Transacted, price: Cents) {
         for (ty, state) in self.type_.iter_typed_mut() {
             let supply = received.by_type.get(ty);

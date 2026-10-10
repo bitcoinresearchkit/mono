@@ -18,7 +18,7 @@ impl Vecs {
             total: ValuePerBlockCumulativeRolling::import(
                 db,
                 "burned",
-                version,
+                version + Version::ONE,
                 mappings,
                 window_starts,
             )?,

@@ -66,6 +66,33 @@ impl UTXOStates {
         }
         satblocks
     }
+
+    /// Removes an output that left the set without being spent (a BIP30-overwritten coinbase):
+    /// supply, realized cap and cost basis drop, with no spend, volume, coin days or realized
+    /// profit and loss.
+    pub fn lose_origin(
+        &mut self,
+        receive_height: Height,
+        lost: SupplyState,
+        height: Height,
+        ctx: &ComputeContext<'_>,
+    ) {
+        let origin = usize::from(receive_height);
+        let origin_timestamp = ctx.height_to_timestamp[origin];
+        let age = Age::new(
+            ctx.height_to_timestamp[usize::from(height)],
+            origin_timestamp,
+        );
+        let snapshot = CostBasisSnapshot::from_utxo(ctx.height_to_price[origin], &lost);
+        self.age_range.get_mut(age).decrement_snapshot(&snapshot);
+        if let Some(v) = self.epoch.mut_vec_from_height(receive_height) {
+            v.decrement_snapshot(&snapshot);
+        }
+        if let Some(v) = self.class.mut_vec_from_timestamp(origin_timestamp) {
+            v.decrement_snapshot(&snapshot);
+        }
+    }
+
     pub fn receive_origins(
         &mut self,
         supply: SupplyState,

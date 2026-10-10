@@ -19,7 +19,7 @@ use vecdb::{Database, Rw, StorageMode};
 use live::LiveState;
 use metrics::CohortMetrics;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("entry"), Version::ONE);
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("entry"), Version::TWO);
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
