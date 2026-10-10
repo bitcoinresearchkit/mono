@@ -45,10 +45,10 @@ struct TypeBlock {
 }
 
 /// Flush the address cache early once it holds this many addresses (checked after each batch):
-/// it bounds the cache's tables (about 57 bytes a slot) however busy the chain gets. An
-/// addresses-only run to 970,056 blocks peaked at 7.6 GiB with a third fewer flushes than a 16M
-/// bound.
-const MAX_CACHED_ADDRS: usize = 32_000_000;
+/// it bounds the cache's tables (about 57 bytes a slot) however busy the chain gets. Run alone to
+/// ~970,750 blocks (16 GB Mac mini, external SSD), the plugin takes 556 s and peaks at 8.4 GiB;
+/// 32M takes 552 s and 9.8 GiB, 16M 632 s and 7.2 GiB.
+const MAX_CACHED_ADDRS: usize = 24_000_000;
 
 /// Process `blocks` until the address cache is full, flush, and return the next height.
 #[allow(clippy::too_many_arguments)]

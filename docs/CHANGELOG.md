@@ -641,9 +641,10 @@ has to be deleted by hand.
   the next batch's columns while the current batch is processed, for `utxos` too
 - Pushes onto stored vectors check that the vector is still writable only in debug builds (6.7 ns per push instead
   of 7.1)
-- `addresses` flushes its address cache every 10,000 blocks or once it holds 32 million addresses,
+- `addresses` flushes its address cache every 10,000 blocks or once it holds 24 million addresses,
   whichever comes first, and each of its tables then keeps room only for what it just held, so the cache follows the
-  chain's activity instead of its busiest past: an addresses-only run to 970,056 blocks peaks at 7.6 GiB
+  chain's activity instead of its busiest past: run alone to ~970,750 blocks on a 16 GB Mac mini it takes 556 s and
+  peaks at 8.4 GiB (32 million: 552 s, 9.8 GiB; 16 million: 632 s, 7.2 GiB)
 - Coinflow, cointime and bedrock replay their per-block URPD in parallel 5,000-block segments, each from its nearest
   history snapshot, with results handed back in block order. The URPD histogram keeps one supply column per age range
   so a block's projection reads mostly contiguous memory, and the cohort statistics come from one compact sweep. At
