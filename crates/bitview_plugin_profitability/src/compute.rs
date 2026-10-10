@@ -1,5 +1,5 @@
 use bitview_compute::prepare_computed;
-use bitview_distribution::state::cost_basis::age_index::advance;
+use bitview_distribution::state::cost_basis::{PRICE_INDEX_VERSION, age_index::advance};
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use brk_exit::Exit;
@@ -26,6 +26,7 @@ impl ComputePlugin for Vecs {
             deps.history.versions(),
         );
         let base_version = Version::ONE
+            + PRICE_INDEX_VERSION
             + version.0
             + version.1
             + Version::from(version.2.0 as u32)

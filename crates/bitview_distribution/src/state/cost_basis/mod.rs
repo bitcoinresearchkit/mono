@@ -16,7 +16,7 @@ mod percentile_result;
 mod price_index;
 mod price_totals;
 pub use percentile_result::PercentileResult;
-pub use price_index::PriceIndex;
+pub use price_index::{PRICE_INDEX_VERSION, PriceIndex};
 pub use price_totals::PriceTotals;
 
 pub mod age_index;

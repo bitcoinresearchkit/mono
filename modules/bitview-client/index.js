@@ -1517,7 +1517,8 @@ undefined one (e.g. NaN).
  * A single bucket in a URPD snapshot.
  *
  * @typedef {Object} UrpdBucket
- * @property {Dollars} priceFloor - Lower bound of the bucket, in USD. Equals the exact realized price for `Raw`.
+ * @property {Dollars} priceFloor - The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its
+coins' creation prices round to (four significant digits of the price in cents).
  * @property {Bitcoin} supply - Supply held with a last-move price inside this bucket, in BTC.
  * @property {Dollars} realizedCap - Realized cap contribution in USD: sum of `realized_price * supply` over the coins in this bucket.
  * @property {Dollars} unrealizedPnl - Unrealized P&L in USD against the close on the snapshot date: `close * supply - realized_cap`. Can be negative.

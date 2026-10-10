@@ -31,7 +31,8 @@ impl OriginUrpd {
         {
             return Err(Error::Internal("invalid origin price/timestamp coverage"));
         }
-        let rounded = |p: Cents| CentsCompact::from(p).round_to_dollar(COST_BASIS_PRICE_DIGITS);
+        let rounded =
+            |p: Cents| CentsCompact::from(p).round_to_significant(COST_BASIS_PRICE_DIGITS);
         let mut slots = FxHashMap::default();
         let origin_buckets: Vec<_> = prices
             .iter()
@@ -76,7 +77,7 @@ impl OriginUrpd {
             return Err(Error::Internal("invalid origin price"));
         }
         for &price in prices {
-            let price = CentsCompact::from(price).round_to_dollar(COST_BASIS_PRICE_DIGITS);
+            let price = CentsCompact::from(price).round_to_significant(COST_BASIS_PRICE_DIGITS);
             let slot = match self
                 .prices
                 .binary_search_by_key(&price, |&(price, _)| price)

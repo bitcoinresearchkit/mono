@@ -1746,7 +1746,7 @@ class UrpdBucket(TypedDict):
     A single bucket in a URPD snapshot.
 
     Attributes:
-        price_floor: Lower bound of the bucket, in USD. Equals the exact realized price for `Raw`.
+        price_floor: The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its coins' creation prices round to (four significant digits of the price in cents).
         supply: Supply held with a last-move price inside this bucket, in BTC.
         realized_cap: Realized cap contribution in USD: sum of `realized_price * supply` over the coins in this bucket.
         unrealized_pnl: Unrealized P&L in USD against the close on the snapshot date: `close * supply - realized_cap`. Can be negative.

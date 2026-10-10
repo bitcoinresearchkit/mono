@@ -373,6 +373,10 @@ has to be deleted by hand.
 
 #### Rust APIs
 
+- `Cents::round_to_dollar(i32)` and `CentsCompact::round_to_dollar(i32)` are `round_to_significant(u32)`: significant
+  digits of the amount in cents (were whole dollars, then digits); `bitview_urpd::COST_BASIS_PRICE_DIGITS` is a `u32`
+  (4, was 5). `bitview_distribution::state::cost_basis::PRICE_INDEX_VERSION` is the price grid's version for a price
+  index's owner
 - `bitview_vecs::Price` is the USD series over its cents (the derived sats-per-USD field and type parameter are
   gone; `SpotPrice::sats_per_dollar` builds the one public sats view); `OHLCSats`, `DollarsToSatsFract` and
   `OhlcCentsToSats` are removed. `#[traversable(flatten, rename = "...")]` names a flattened leaf. A catalog key that is
@@ -547,6 +551,16 @@ has to be deleted by hand.
 
 #### Series values (recomputed on upgrade)
 
+- Creation prices in cost-basis statistics are rounded to four significant digits of the price in cents (were whole
+  dollars, then five digits: under $10,000 that is fewer than five, and under $1 every coin was at $0 or $1): exact
+  cents under $100, then steps of at most 0.1% (10 cents to $1,000, $1 to $10,000, $10 to $100,000, $100 above; were
+  $1 up to $100,000 and $10 above), so a price is at most 0.05% off. Changed: holders' cost-basis percentiles, `min`,
+  `max`, supply and capital density; the profitability bands (at block 100,000 all supply sat in one loss band);
+  Cointime's, Coinflow's and Bedrock's URPD statistics (Bedrock's floors now appear in 2010, when supply rounded to $0
+  kept them empty); Rarity Meter's components that read them; and the URPD API's buckets. Most of the change is before
+  2013; today's percentiles move by up to $5 under $100,000 and up to $50 above. The ±5% density band's edges round to
+  the nearest cent (were truncated). Five digits made those plugins' recompute 3.3 times slower; four make it 11%
+  faster than whole dollars, with a 46,001-bucket price index (was 190,001)
 - Block-to-pool attribution follows mempool's current `pools-v2.json` (a new Foundry USA payout address)
 - The two BIP30-overwritten coinbase outputs leave their P2PK addresses at 91,842 and 91,880, as if never received:
   each address holds 50 BTC in one output (was 100 BTC in two) and no longer counts as reused, and the address

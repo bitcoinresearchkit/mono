@@ -2,10 +2,14 @@ use std::array;
 
 use bitview_compute::{FenwickNode, FenwickTree};
 use bitview_primitives::{CentsCompact, PERCENTILES, PERCENTILES_LEN};
-use bitview_urpd::COST_BASIS_PRICE_DIGITS;
-use brk_types::Cents;
+use bitview_urpd::{COMPUTE_VERSION, COST_BASIS_PRICE_DIGITS};
+use brk_types::{Cents, Version};
 
 use super::{PercentileResult, PriceTotals};
+
+/// Changes with the price grid, shared with the URPD: a price index's owner adds it to the
+/// version of what it computes from the index.
+pub const PRICE_INDEX_VERSION: Version = COMPUTE_VERSION;
 
 /// A derived price index. Owners choose only the filters their queries require.
 #[derive(Clone)]
@@ -14,50 +18,46 @@ pub struct PriceIndex<const N: usize> {
     totals: PriceTotals<N>,
 }
 
-// Tier boundaries for 5-significant-digit dollar bucketing.
-// Matches the rounding used by `Cents::round_to_dollar(5)`.
-const TIER0_COUNT: usize = 100_000; // $0-$99,999 exact dollars
-const TIER1_COUNT: usize = 90_000; // $100,000-$999,990 step $10
-const OVERFLOW: usize = 1; // $1,000,000+ clamped to last bucket
+// Bucket mapping: `COST_BASIS_PRICE_DIGITS` significant digits of the price in cents, as
+// `Cents::round_to_significant` rounds. With 4 digits: exact cents under $100, then 9,000 buckets
+// per decade (10 cents, $1, $10, $100) up to $1,000,000; higher prices share the last bucket.
+const DIGITS: u32 = COST_BASIS_PRICE_DIGITS;
+/// Buckets under 10^DIGITS cents, one per cent.
+const EXACT: usize = 10usize.pow(DIGITS);
+/// Buckets in each decade above `EXACT`.
+const PER_DECADE: usize = 9 * 10usize.pow(DIGITS - 1);
+/// The decade of $1,000,000 (10^8 cents), the overflow bucket's price.
+const MAX_LOG10: u32 = 8;
 
-const TIER1_START: usize = TIER0_COUNT;
-
-/// Total number of buckets.
-const TREE_SIZE: usize = TIER0_COUNT + TIER1_COUNT + OVERFLOW; // 190,001
-
-// ---------------------------------------------------------------------------
-// Bucket mapping: 5-significant-digit dollar precision
-// Uses Cents::round_to_dollar(5) for rounding, then maps rounded dollars
-// to a flat bucket index across two tiers.
-// ---------------------------------------------------------------------------
-
-/// Prices >= $1M are clamped to the last bucket.
-#[inline]
-fn dollars_to_bucket(dollars: u64) -> usize {
-    if dollars < 100_000 {
-        dollars as usize
-    } else if dollars < 1_000_000 {
-        TIER1_START + ((dollars - 100_000) / 10) as usize
-    } else {
-        TREE_SIZE - 1 // overflow bucket for $1M+
-    }
-}
+/// Total number of buckets (46,001 with 4 digits).
+const TREE_SIZE: usize = EXACT + (MAX_LOG10 - DIGITS) as usize * PER_DECADE + 1;
 
 #[inline]
 fn bucket_to_cents(bucket: usize) -> Cents {
-    let dollars: u64 = if bucket < TIER1_START {
-        bucket as u64
-    } else if bucket < TREE_SIZE - 1 {
-        100_000 + (bucket - TIER1_START) as u64 * 10
-    } else {
-        1_000_000
-    };
-    Cents::from(dollars * 100)
+    if bucket < EXACT {
+        return Cents::from(bucket as u64);
+    }
+    if bucket >= TREE_SIZE - 1 {
+        return Cents::from(10u64.pow(MAX_LOG10));
+    }
+    let decade = (bucket - EXACT) / PER_DECADE;
+    let offset = (bucket - EXACT) % PER_DECADE;
+    Cents::from((offset as u64 + 10u64.pow(DIGITS - 1)) * 10u64.pow(decade as u32 + 1))
 }
 
 #[inline]
 fn cents_to_bucket(price: Cents) -> usize {
-    dollars_to_bucket(u64::from(price.round_to_dollar(COST_BASIS_PRICE_DIGITS)) / 100)
+    let cents = u64::from(price.round_to_significant(DIGITS));
+    match cents.checked_ilog10() {
+        Some(log10) if log10 >= MAX_LOG10 => TREE_SIZE - 1,
+        Some(log10) if log10 >= DIGITS => {
+            let step = 10u64.pow(log10 - DIGITS + 1);
+            EXACT
+                + (log10 - DIGITS) as usize * PER_DECADE
+                + (cents / step - 10u64.pow(DIGITS - 1)) as usize
+        }
+        _ => cents as usize,
+    }
 }
 
 impl<const N: usize> Default for PriceIndex<N> {
@@ -121,11 +121,11 @@ impl<const N: usize> PriceIndex<N> {
     /// through the spot bucket (in profit), then the ones above it (in loss).
     pub fn density_split(&self, price: Cents) -> (PriceTotals<N>, PriceTotals<N>) {
         let spot = u64::from(price) as f64;
-        let low = self.before(Cents::from((spot * 0.95) as u64));
+        let low = self.before(Cents::from((spot * 0.95).round() as u64));
         let mid = self.tree.prefix_sum(cents_to_bucket(price));
         let high = self
             .tree
-            .prefix_sum(cents_to_bucket(Cents::from((spot * 1.05) as u64)));
+            .prefix_sum(cents_to_bucket(Cents::from((spot * 1.05).round() as u64)));
         let between = |from: &PriceTotals<N>, to: &PriceTotals<N>| PriceTotals {
             sats: array::from_fn(|i| to.sats[i] - from.sats[i]),
             cap: array::from_fn(|i| to.cap[i] - from.cap[i]),

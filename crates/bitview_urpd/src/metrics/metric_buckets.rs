@@ -60,7 +60,9 @@ impl MetricBuckets {
         // the buckets of 95% and 105% of spot, and the spot bucket is in profit.
         self.band = spot.finite_inner().filter(|&p| p > 0).map(|spot| {
             let bucket = |cents: f64| {
-                u128::from(Cents::from(cents as u64).round_to_dollar(COST_BASIS_PRICE_DIGITS))
+                u128::from(
+                    Cents::from(cents.round() as u64).round_to_significant(COST_BASIS_PRICE_DIGITS),
+                )
             };
             let spot = spot as f64;
             let (low, mid, high) = (bucket(spot * 0.95), bucket(spot), bucket(spot * 1.05));
