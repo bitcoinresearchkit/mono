@@ -13,7 +13,7 @@ pub struct MobileVecs<M: StorageMode = Rw> {
     pub supply: LazySpotValuePerBlock,
     /// Share of mobile supply that is in loss: the sum of supply in loss
     /// multiplied by mobility divided by the sum of total supply multiplied by
-    /// mobility. Returns NaN when the weighted supply is zero.
+    /// mobility. Null when the weighted supply is zero.
     #[traversable(wrap = "supply/in_loss", rename = "share")]
     pub supply_in_loss_share: LazyPerBlock<Percent, BoundedRatio>,
     /// Sum of creation-date USD value multiplied by mobility across the

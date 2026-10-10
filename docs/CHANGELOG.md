@@ -51,7 +51,7 @@ has to be deleted by hand.
   loss thresholds (which drop their `_ratio` suffix) are in percent (were decimals); Gini and sell-side risk keep only
   their ratio, and the rarity meter's seller-exhaustion thresholds follow sell-side risk into a ratio (were percent). A
   share with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`. A node left with one unit is
-  the series itself: `price.spot`, `price.split.close`, `price.ohlc`, realized caps and prices (were their `.usd`
+  the series itself: `price.spot`, `price.close`, `price.ohlc`, realized caps and prices (were their `.usd`
   child), shares (were `.percent`), BTC changes over a window (were `.btc`). Prices in sats per USD (`*_price_sats` and
   every other price's `_sats`) are gone; `sats_per_dollar` replaces `price_sats`. About 18,300 fewer series. Two
   placements change besides: the entry cohorts' 24-hour SOPR is `realized.sopr.24h` (was `realized.sopr.raw`), and
@@ -126,6 +126,20 @@ has to be deleted by hand.
   `inputs`' `p2pkh_input_tx_count`; were `tx_count_<kind>`). Its version and OP_RETURN counts leave the tree:
   `transactions.versions` and `op_return.tx_count` publish them. The OP_RETURN protocol per output is
   `indexer.op_return.protocol`, id `op_return_protocol` (was `kind`)
+- Ids that were index names say what they map: `spent_txout_index` (an input's spent output, was `txout_index`),
+  `input_tx_index` (was `tx_index`), `spending_txin_index` (an output's spending input, was `txin_index`),
+  `empty_output_tx_index`, `p2ms_output_tx_index`, `unknown_output_tx_index` and `op_return_tx_index` (were `tx_index`,
+  at `.tx_index`, was `.to_tx_index`); per-output and per-input values are `output_value` and `input_value` (were both
+  `value`)
+- Address balance bands' address count sits at `funded` like the root's and types' (was `address_count`; ids
+  unchanged); the per-transaction vsize distributions (`tx_vsize_median`, ...) have every index like their weight and
+  fee siblings; prices are `price.{open, high, low, close}` (were under `price.split`)
+- Gone, as duplicates or one division of published series: `market.returns.daily.sd` (`price_return_24h_sd_<W>` is
+  `volatility` divided by the square root of the window's days) and the average UTXO amount (`avg_utxo_amount*`, `<type>_avg_utxo_amount*`: supply over UTXO count)
+- Descriptions: per-block values no longer claim time-period indexes they don't have; the holders' realized,
+  unrealized, activity and output series say what they measure (coin years destroyed: trailing 365-day coin days
+  destroyed in coin-years); undefined values are described as null; absolute deltas no longer mention a relative
+  change; the address state lookups are described
 - Mappings: address types sit at `mappings.addresses.<type>.{identity, address}` with ids `<type>_address` (were
   `mappings.addr.<type>.{identity, addr}`, ids `<type>_addr`); the P2MS, empty, unknown and OP_RETURN output indexes
   at `mappings.outputs.<type>.identity`
@@ -153,8 +167,7 @@ has to be deleted by hand.
   `realized.{net_pnl, value_destroyed}` and `unrealized.{profit, loss, net_pnl}` (were metric-first:
   `age.supply.total.age.<range>`, `utxos.realized.cap.utxo_amount.<band>`, ...). Age ranges also hold `supply.matured`,
   `activity.coindays_created` (was `age.coindays_created.<range>`) and `cost_basis.per_coin.{avg, realized_price}`; UTXO
-  amounts and types `cost_basis.per_coin.{avg, realized_price}`; types `outputs.avg_amount`, the mean over every type
-  being `utxos.avg_amount` (was `utxos.outputs.avg_amount.all`). Ids are unchanged, but for the `cost_basis` and
+  amounts and types `cost_basis.per_coin.{avg, realized_price}`. Ids are unchanged, but for the `cost_basis` and
   `capital` ones (below)
 - P2PK is one output type in every type family: `outputs.types.p2pk`, `inputs.types.p2pk`, `utxos.types.p2pk` and
   `addresses.types.p2pk` count the 33- and 65-byte keys as one type (ids `p2pk_*`; were `p2pk33_*` and `p2pk65_*`):
@@ -191,8 +204,8 @@ has to be deleted by hand.
 - OP_RETURN is member-first: `op_return.protocols.<protocol>.*` and `op_return.policies.<policy>.*` (were
   `by_kind.<metric>.<kind>` and `policy.<metric>.<policy>`), with the totals at the root (were under `total`). A
   member's shares are `data_bytes.chain_share` and `fees.chain_share` (of the chain's block bytes and fees; ids
-  `op_return_runes_data_chain_share`, `op_return_runes_fee_chain_share`; were `chain_share` and `fee_share` beside
-  `data_bytes` and `fees`); the totals' shares sit under their quantity too (`op_return_data_chain_share`,
+  `op_return_runes_data_bytes_chain_share`, `op_return_runes_fee_chain_share`; were `chain_share` and `fee_share` beside
+  `data_bytes` and `fees`); the totals' shares sit under their quantity too (`op_return_data_bytes_chain_share`,
   `op_return_fee_chain_share`; were `op_return_chain_share`, `op_return_fee_share`). Fees are BTC and USD (were sats).
   The totals gain `output_count` (id `op_return_output_count`, shared with outputs). Policy ids drop `policy_`
   (`op_return_oversized_tx_count`, was `op_return_policy_oversized_tx_count`)
@@ -268,15 +281,14 @@ has to be deleted by hand.
   counts the genesis output's 50 BTC, which the UTXO set leaves out, so its share reads a hair above 100% in the first
   years)
 - Profitability bands are filter-first, each band a subset of the cohort node: `profitability.<filter>.<band>`
-  (filters `all`, `sth`, `lth` and the new age cutoffs `under_4m`, `under_6m`, `over_4m`, `over_6m`; were metric-first
-  over all, STH and LTH) holds `supply.{total, share}`, `capital.{total, realized_cap, share}` and
-  `unrealized.net_pnl`. Band keys start with their side and spell percent out (`profit_over_1000_percent`,
+  (filters `all`, `sth`, `lth`; were metric-first) holds `supply.{total, share}`, `capital.{total, realized_cap,
+  share}` and `unrealized.net_pnl`. Band keys start with their side and spell percent out (`profit_over_1000_percent`,
   `profit_10_to_20_percent`, `loss_0_to_10_percent`, ...; were `_10pct_to_20pct_in_profit`, ...), and ids lead with
-  the filter like every cohort (`sth_profit_10_to_20_percent_supply`,
-  `utxos_under_4m_old_loss_0_to_10_percent_capital`, `profit_10_to_20_percent_net_unrealized_pnl` for all; were
-  `utxos_10pct_to_20pct_in_profit_sth_supply`, ...). Net unrealized profit or loss is signed (was a magnitude,
-  positive in loss bands too); shares are of the band's filter, so a filter's bands add up to 100%. Per-band NUPL and
-  supply deltas are gone (NUPL is `net_pnl` over `supply.total` in USD): 1,225 series
+  the filter like every cohort (`sth_profit_10_to_20_percent_supply`, `lth_loss_0_to_10_percent_capital`,
+  `profit_10_to_20_percent_net_unrealized_pnl` for all; were `utxos_10pct_to_20pct_in_profit_sth_supply`, ...). Net
+  unrealized profit or loss is signed (was a magnitude, positive in loss bands too); shares are of the band's filter,
+  so a filter's bands add up to 100%. Per-band NUPL and supply deltas are gone (NUPL is `net_pnl` over `supply.total`
+  in USD): 525 series
 - Mean creation prices sit with the other creation-price statistics, each name analysts use beside its descriptive
   series, in holders, entry, age ranges, UTXO cohorts, Cointime and Coinflow: `cost_basis.per_coin.avg` with its jargon
   `realized_price` and, where they exist, `avg.{ratio, mvrv}` and `median_realized_price` beside the percentiles;
@@ -318,7 +330,7 @@ has to be deleted by hand.
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
 - Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One
-  unit per quantity": `client.series().price.split.close.by.day1()`), and type names change: each repeated structure
+  unit per quantity": `client.series().price.close.by.day1()`), and type names change: each repeated structure
   is one generic type named after its path (`Blocks`, `Interval<A, B>`, `SeriesTree`; Rust types live in
   `bitview_client::tree`)
   instead of `SeriesTree_Blocks`, `_1m1w1y24hPattern6<T>` or `CatalogOhlc<T0, T1, T2>`. Tree children materialize on

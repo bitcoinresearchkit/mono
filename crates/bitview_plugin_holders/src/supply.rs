@@ -20,9 +20,9 @@ pub struct Supply<M: StorageMode = Rw> {
     pub total: LazySpotValuePerBlock,
     /// Share of all unspent supply.
     pub share: PercentPerBlock<PartsPerMillion32, M>,
-    /// Supply in profit: acquisition price is at or below the current spot price.
+    /// Supply in profit: creation price at or below the spot price.
     pub in_profit: Part<LazySpotValuePerBlock, M>,
-    /// Supply in loss: acquisition price is above the current spot price.
+    /// Supply in loss: creation price above the spot price.
     pub in_loss: Part<LazySpotValuePerBlock, M>,
     pub delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
 }

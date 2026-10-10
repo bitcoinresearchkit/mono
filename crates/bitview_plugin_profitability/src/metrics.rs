@@ -1,4 +1,4 @@
-use bitview_cohort::{AgeAggregate, AgeAggregateId, ProfitabilityRange, ProfitabilityRangeId};
+use bitview_cohort::{ProfitabilityRange, ProfitabilityRangeId};
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::PartsPerMillion32;
 use bitview_transforms::Quotient;
@@ -10,16 +10,19 @@ use brk_error::Result;
 use brk_types::{Cents, CentsSats, CentsSigned, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, PcoVecValue, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
-use crate::bucket::Bucket;
+use crate::{
+    bucket::Bucket,
+    terms::{TERMS, Terms},
+};
 
-type Bands<T, M> = AgeAggregate<ProfitabilityRange<CachedSeries<Height, T, M>>>;
-type Totals<T, M> = AgeAggregate<CachedSeries<Height, T, M>>;
+type Bands<T, M> = Terms<ProfitabilityRange<CachedSeries<Height, T, M>>>;
+type Totals<T, M> = Terms<CachedSeries<Height, T, M>>;
 
-/// The 25 profitability bands under each of the seven age filters.
+/// The 25 profitability bands for all, short-term and long-term holders.
 #[derive(Traversable)]
 pub struct Metrics<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    terms: AgeAggregate<ProfitabilityRange<Band>>,
+    terms: Terms<ProfitabilityRange<Band>>,
     #[traversable(hidden)]
     supply_stored: Bands<Sats, M>,
     #[traversable(hidden)]
@@ -138,18 +141,18 @@ impl Metrics {
         let net_pnl_stored = Self::import_bands(db, "net_unrealized_pnl_cents", version)?;
         let supply_total = Self::import_totals(db, "profitability_supply_sats", version)?;
         let capital_total = Self::import_totals(db, "profitability_capital_cents", version)?;
-        let terms = AgeAggregate::from_fn(|term| {
+        let terms = Terms::from_fn(|term| {
             ProfitabilityRange::from_fn(|band| {
                 let band_name = band.select(ProfitabilityRange::names()).id;
                 Band::new(
                     |metric| term.metric_name(&format!("{band_name}_{metric}")),
                     version,
                     BandSources {
-                        supply: band.select(term.select(&supply_stored)),
-                        capital: band.select(term.select(&capital_stored)),
-                        net_pnl: band.select(term.select(&net_pnl_stored)),
-                        supply_total: term.select(&supply_total),
-                        capital_total: term.select(&capital_total),
+                        supply: band.select(supply_stored.select(term)),
+                        capital: band.select(capital_stored.select(term)),
+                        net_pnl: band.select(net_pnl_stored.select(term)),
+                        supply_total: supply_total.select(term),
+                        capital_total: capital_total.select(term),
                     },
                     mappings,
                     spot,
@@ -171,7 +174,7 @@ impl Metrics {
         metric: &str,
         version: Version,
     ) -> Result<Bands<T, Rw>> {
-        AgeAggregate::try_from_fn(|term| {
+        Terms::try_from_fn(|term| {
             ProfitabilityRange::try_from_fn(|band| {
                 let band_name = band.select(ProfitabilityRange::names()).id;
                 import_cached(
@@ -188,7 +191,7 @@ impl Metrics {
         metric: &str,
         version: Version,
     ) -> Result<Totals<T, Rw>> {
-        AgeAggregate::try_from_fn(|term| import_cached(db, &term.metric_name(metric), version))
+        Terms::try_from_fn(|term| import_cached(db, &term.metric_name(metric), version))
     }
 
     pub(crate) fn push(
@@ -197,21 +200,23 @@ impl Metrics {
         bands: &ProfitabilityRange<Bucket>,
         totals: &Bucket,
     ) {
-        for &term in AgeAggregateId::ALL {
+        for term in TERMS {
             for &band in ProfitabilityRangeId::ALL {
                 let bucket = band.select(bands);
                 let supply = *term.select(&bucket.supply);
                 let capital = *term.select(&bucket.cap);
-                band.select_mut(term.select_mut(&mut self.supply_stored))
+                band.select_mut(self.supply_stored.select_mut(term))
                     .push(supply);
-                band.select_mut(term.select_mut(&mut self.capital_stored))
+                band.select_mut(self.capital_stored.select_mut(term))
                     .push(capital);
-                band.select_mut(term.select_mut(&mut self.net_pnl_stored))
+                band.select_mut(self.net_pnl_stored.select_mut(term))
                     .push(Self::net_pnl(spot, capital, supply));
             }
-            term.select_mut(&mut self.supply_total)
+            self.supply_total
+                .select_mut(term)
                 .push(*term.select(&totals.supply));
-            term.select_mut(&mut self.capital_total)
+            self.capital_total
+                .select_mut(term)
                 .push(*term.select(&totals.cap));
         }
     }

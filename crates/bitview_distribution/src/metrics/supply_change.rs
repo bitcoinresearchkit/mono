@@ -13,8 +13,7 @@ use vecdb::{BinaryTransform, ReadableCloneableVec};
 /// A cohort's supply change over each trailing window and its share of all supply.
 #[derive(Clone, Traversable)]
 pub struct SupplyChange {
-    /// Change in the cohort's supply over a trailing window, with the relative
-    /// change measured against the window's starting value.
+    /// Change in the cohort's supply over a trailing window.
     delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
     /// The cohort's share of the supply it is part of: all unspent outputs', or for address
     /// balance bands, all addresses'.

@@ -1909,22 +1909,18 @@ pub mod tree {
         pct75: EffectiveFeeRateMax<Weight> = "*_pct75",
         pct90: EffectiveFeeRateMax<Weight> = "*_pct90",
     } }
-    shape! { VsizeMax at "series().transactions.size.vsize.max" {
-        block: SeriesPattern20<VSize> = "*",
-        _6b: SeriesPattern20<VSize> = "*_6b",
-    } }
-    shape! { EffectiveFeeRate<A, B> at "series().transactions.fees.effective_fee_rate" {
+    shape! { EffectiveFeeRate<A> at "series().transactions.fees.effective_fee_rate" {
         tx_index: SeriesPattern21<A> = "*",
-        min: B = "*_min",
-        max: B = "*_max",
-        pct10: B = "*_pct10",
-        pct25: B = "*_pct25",
-        median: B = "*_median",
-        pct75: B = "*_pct75",
-        pct90: B = "*_pct90",
+        min: EffectiveFeeRateMax<A> = "*_min",
+        max: EffectiveFeeRateMax<A> = "*_max",
+        pct10: EffectiveFeeRateMax<A> = "*_pct10",
+        pct25: EffectiveFeeRateMax<A> = "*_pct25",
+        median: EffectiveFeeRateMax<A> = "*_median",
+        pct75: EffectiveFeeRateMax<A> = "*_pct75",
+        pct90: EffectiveFeeRateMax<A> = "*_pct90",
     } }
     shape! { TransactionsSize at "series().transactions.size" {
-        vsize: EffectiveFeeRate<VSize, VsizeMax> = "*_vsize",
+        vsize: EffectiveFeeRate<VSize> = "*_vsize",
         weight: SizeWeight = "*_weight",
     } }
     shape! { AvgBalance at "series().addresses.avg_balance" {
@@ -1998,6 +1994,11 @@ pub mod tree {
         loss_70_to_80_percent: Loss0To10Percent = "*_loss_70_to_80_percent",
         loss_80_to_90_percent: Loss0To10Percent = "*_loss_80_to_90_percent",
         loss_90_to_100_percent: Loss0To10Percent = "*_loss_90_to_100_percent",
+    } }
+    shape! { Profitability at "series().profitability" {
+        all: ProfitabilityAll = "",
+        sth: ProfitabilityAll = "*",
+        lth: ProfitabilityAll = "lth",
     } }
     shape! { Sum at "series().op_return.fees.sum" {
         _24h: AvgBalance = "*_24h",
@@ -2178,13 +2179,12 @@ pub mod tree {
         matured: OpReturnValue = "*_matured_supply",
     } }
     shape! { Daily at "series().market.returns.daily" {
-        avg: InputsPerSecond<Option<Percent>> = "*_avg",
-        sd: InputsPerSecond<Option<Percent>> = "*_sd",
+        avg: InputsPerSecond<Option<Percent>> = "*",
     } }
     shape! { Returns at "series().market.returns" {
         periods: Periods = "*_return",
         cagr: Cagr = "*_cagr",
-        daily: Daily = "*_return_24h",
+        daily: Daily = "*_return_24h_avg",
     } }
     shape! { Market at "series().market" {
         ath: Ath = "*",
@@ -2379,9 +2379,9 @@ pub mod tree {
         dmnd: Aaopool = "dmnd",
     } }
     shape! { DataBytes at "series().op_return.data_bytes" {
-        block: SeriesPattern20<Bytes> = "*_bytes",
-        cumulative: SeriesPattern1<Bytes> = "*_bytes_cumulative",
-        sum: InputsPerSecond<Bytes> = "*_bytes_sum",
+        block: SeriesPattern20<Bytes> = "*",
+        cumulative: SeriesPattern1<Bytes> = "*_cumulative",
+        sum: InputsPerSecond<Bytes> = "*_sum",
         chain_share: SeriesPattern1<Option<Percent>> = "*_chain_share",
     } }
     shape! { BlocksSize<A, B, C, D> at "series().blocks.size" {
@@ -2518,17 +2518,12 @@ pub mod tree {
         p2wsh: P2pk = "p2wsh",
         p2tr: P2pk = "p2tr",
     } }
-    shape! { EmptyOutputs at "series().utxos.types.empty.outputs" {
-        unspent_count: Funded<Count, CountSigned> = "*_utxo_count",
-        spent_count: CoinblocksDestroyed<Count> = "*_spent_utxo_count",
-        avg_amount: AvgBalance = "*_avg_utxo_amount",
-    } }
     shape! { Balances0satsRealized at "series().addresses.balances._0sats.realized" {
         profit: CoinblocksDestroyed<Option<Dollars>> = "*_profit",
         loss: CoinblocksDestroyed<Option<Dollars>> = "*_loss",
     } }
     shape! { Balances0sats at "series().addresses.balances._0sats" {
-        address_count: Funded<Count, CountSigned> = "*_address_count",
+        funded: Funded<Count, CountSigned> = "*_address_count",
         supply: AddressesSupply = "*_supply",
         capital: AddressesCapital = "*",
         outputs: Balances0satsOutputs = "*_utxo_count",
@@ -2576,25 +2571,25 @@ pub mod tree {
         over_4m: B = "*_over_4m_old",
         over_6m: B = "*_over_6m_old",
     } }
-    shape! { Amounts0sats<A> at "series().utxos.amounts._0sats" {
+    shape! { Amounts0sats at "series().utxos.amounts._0sats" {
         supply: AddressesSupply = "*_supply",
         capital: AddressesCapital = "*",
-        outputs: A = "*",
+        outputs: RookieOutputs = "*",
         activity: Balances0satsActivity = "*_transfer_volume",
         realized: Balances0satsRealized = "*_realized",
         cost_basis: RookieCostBasis<Ranges10yTo12yCostBasisPerCoin> = "*",
     } }
     shape! { UtxosTypes at "series().utxos.types" {
-        p2pk: Amounts0sats<EmptyOutputs> = "p2pk",
-        p2pkh: Amounts0sats<EmptyOutputs> = "p2pkh",
-        p2ms: Amounts0sats<EmptyOutputs> = "p2ms",
-        p2sh: Amounts0sats<EmptyOutputs> = "p2sh",
-        p2wpkh: Amounts0sats<EmptyOutputs> = "p2wpkh",
-        p2wsh: Amounts0sats<EmptyOutputs> = "p2wsh",
-        p2tr: Amounts0sats<EmptyOutputs> = "p2tr",
-        p2a: Amounts0sats<EmptyOutputs> = "p2a",
-        unknown: Amounts0sats<EmptyOutputs> = "unknown_*",
-        empty: Amounts0sats<EmptyOutputs> = "empty_*",
+        p2pk: Amounts0sats = "p2pk",
+        p2pkh: Amounts0sats = "p2pkh",
+        p2ms: Amounts0sats = "p2ms",
+        p2sh: Amounts0sats = "p2sh",
+        p2wpkh: Amounts0sats = "p2wpkh",
+        p2wsh: Amounts0sats = "p2wsh",
+        p2tr: Amounts0sats = "p2tr",
+        p2a: Amounts0sats = "p2a",
+        unknown: Amounts0sats = "unknown_*",
+        empty: Amounts0sats = "empty_*",
     } }
     shape! { Balances<A> at "series().addresses.balances" {
         _0sats: A = "*_0sats",
@@ -2630,9 +2625,8 @@ pub mod tree {
         state: State = "*",
     } }
     shape! { Utxos at "series().utxos" {
-        amounts: Balances<Amounts0sats<RookieOutputs>> = "*",
+        amounts: Balances<Amounts0sats> = "*",
         types: UtxosTypes = "output",
-        avg_amount: AvgBalance = "avg_utxo_amount",
     } }
     shape! { Classes2009 at "series().age.classes._2009" {
         supply: RookieSupply = "*_supply",
@@ -2726,7 +2720,7 @@ pub mod tree {
     } }
     shape! { Multiple at "series().op_return.policies.multiple" {
         output_count: CoinblocksDestroyed<Count> = "*_output_count",
-        data_bytes: DataBytes = "*_data",
+        data_bytes: DataBytes = "*_data_bytes",
         tx_count: CoinblocksDestroyed<Count> = "*_tx_count",
         tx_vsize: CoinblocksDestroyed<VSize> = "*_tx_vsize",
         fees: OpReturnFees = "*",
@@ -2764,7 +2758,7 @@ pub mod tree {
     } }
     shape! { OpReturn at "series().op_return" {
         output_count: CoinblocksDestroyed<Count> = "*_output_count",
-        data_bytes: DataBytes = "*_data",
+        data_bytes: DataBytes = "*_data_bytes",
         tx_count: CoinblocksDestroyed<Count> = "*_tx_count",
         tx_vsize: CoinblocksDestroyed<VSize> = "*_tx_vsize",
         fees: OpReturnFees = "*",
@@ -2805,9 +2799,9 @@ pub mod tree {
     } }
     shape! { TransactionsFees at "series().transactions.fees" {
         count: FeesCount = "tx_count",
-        fee: EffectiveFeeRate<Sats, EffectiveFeeRateMax<Sats>> = "tx_*",
+        fee: EffectiveFeeRate<Sats> = "tx_*",
         fee_rate: SeriesPattern21<Option<FeeRate>> = "*_rate",
-        effective_fee_rate: EffectiveFeeRate<Option<FeeRate>, EffectiveFeeRateMax<Option<FeeRate>>> = "effective_*_rate",
+        effective_fee_rate: EffectiveFeeRate<Option<FeeRate>> = "effective_*_rate",
         is_cpfp_parent: SeriesPattern21<Boolean> = "is_cpfp_parent",
         is_cpfp_child: SeriesPattern21<Boolean> = "is_cpfp_child",
     } }
@@ -2853,7 +2847,7 @@ pub mod tree {
         op_return: TypesEmpty = "op_return_*",
     } }
     shape! { Outputs at "series().outputs" {
-        spent: Spent = "txin_index",
+        spent: Spent = "spending_txin_index",
         count: BlocksSize<Count, Count, Option<CountFract>, Count32> = "*_count",
         per_second: InputsPerSecond<Option<PerSecond>> = "outputs_per_second",
         spendable_count: CoinblocksDestroyed<Count> = "spendable_*_count",
@@ -2873,7 +2867,7 @@ pub mod tree {
         empty: TypesEmpty = "empty_*",
     } }
     shape! { Inputs at "series().inputs" {
-        value: SeriesPattern22<Sats> = "value",
+        value: SeriesPattern22<Sats> = "*_value",
         count: BlocksSize<Count, Count, Option<CountFract>, Count16> = "*_count",
         per_second: InputsPerSecond<Option<PerSecond>> = "inputs_per_second",
         types: InputsTypes = "*",
@@ -2888,14 +2882,11 @@ pub mod tree {
         difficulty: BlocksDifficulty = "difficulty",
         halving: BlocksHalving = "halving",
     } }
-    shape! { Split at "series().price.split" {
+    shape! { Price at "series().price" {
         open: SeriesPattern3<Option<Dollars>> = "*_open",
         high: SeriesPattern3<Option<Dollars>> = "*_high",
         low: SeriesPattern3<Option<Dollars>> = "*_low",
         close: SeriesPattern4<Option<Dollars>> = "*_close",
-    } }
-    shape! { Price at "series().price" {
-        split: Split = "*",
         ohlc: SeriesPattern3<OHLCDollars> = "*_ohlc",
         spot: SeriesPattern1<Option<Dollars>> = "*",
         sats_per_dollar: SeriesPattern1<Sats> = "sats_per_dollar",
@@ -3071,28 +3062,28 @@ pub mod tree {
     } }
     shape! { IndexerOpReturn at "series().indexer.op_return" {
         first_index: SeriesPattern20<OpReturnIndex> = "first_*_index",
-        to_tx_index: SeriesPattern25<TxIndex> = "tx_index",
+        tx_index: SeriesPattern25<TxIndex> = "*_tx_index",
         protocol: SeriesPattern25<OpReturnKind> = "*_protocol",
         post_op_return_bytes: SeriesPattern25<Bytes32> = "*_post_op_return_bytes",
     } }
     shape! { ScriptsUnknown at "series().indexer.scripts.unknown" {
-        first_index: SeriesPattern20<UnknownOutputIndex> = "first_unknown_output_*",
-        to_tx_index: SeriesPattern35<TxIndex> = "tx_*",
-        legacy_sigops: SeriesPattern35<SigOps> = "unknown_legacy_sigops",
+        first_index: SeriesPattern20<UnknownOutputIndex> = "first_*_output_index",
+        tx_index: SeriesPattern35<TxIndex> = "*_output_tx_index",
+        legacy_sigops: SeriesPattern35<SigOps> = "*_legacy_sigops",
     } }
     shape! { ScriptsP2ms at "series().indexer.scripts.p2ms" {
-        first_index: SeriesPattern20<P2MSOutputIndex> = "first_p2ms_output_*",
-        to_tx_index: SeriesPattern27<TxIndex> = "tx_*",
-        legacy_sigops: SeriesPattern27<SigOps> = "p2ms_legacy_sigops",
+        first_index: SeriesPattern20<P2MSOutputIndex> = "first_*_output_index",
+        tx_index: SeriesPattern27<TxIndex> = "*_output_tx_index",
+        legacy_sigops: SeriesPattern27<SigOps> = "*_legacy_sigops",
     } }
     shape! { ScriptsEmpty at "series().indexer.scripts.empty" {
-        first_index: SeriesPattern20<EmptyOutputIndex> = "first_empty_output_*",
-        to_tx_index: SeriesPattern24<TxIndex> = "tx_*",
+        first_index: SeriesPattern20<EmptyOutputIndex> = "first_*_index",
+        tx_index: SeriesPattern24<TxIndex> = "*_tx_index",
     } }
     shape! { Scripts at "series().indexer.scripts" {
         empty: ScriptsEmpty = "*",
-        p2ms: ScriptsP2ms = "*",
-        unknown: ScriptsUnknown = "*",
+        p2ms: ScriptsP2ms = "p2ms",
+        unknown: ScriptsUnknown = "unknown",
     } }
     shape! { IndexerAddressesP2a at "series().indexer.addresses.p2a" {
         first_index: SeriesPattern20<P2AAddrIndex> = "first_*_addr_index",
@@ -3138,15 +3129,15 @@ pub mod tree {
     } }
     shape! { IndexerOutputs at "series().indexer.outputs" {
         first_txout_index: SeriesPattern20<TxOutIndex> = "first_txout_index",
-        value: SeriesPattern23<Sats> = "value",
-        output_type: SeriesPattern23<OutputType> = "output_*",
-        type_index: SeriesPattern23<TypeIndex> = "*_index",
+        value: SeriesPattern23<Sats> = "*_value",
+        output_type: SeriesPattern23<OutputType> = "*_type",
+        type_index: SeriesPattern23<TypeIndex> = "type_index",
     } }
     shape! { IndexerInputs at "series().indexer.inputs" {
         first_txin_index: SeriesPattern20<TxInIndex> = "first_txin_*",
         outpoint: SeriesPattern22<OutPoint> = "outpoint",
-        txout_index: SeriesPattern22<TxOutIndex> = "txout_*",
-        tx_index: SeriesPattern22<TxIndex> = "tx_*",
+        txout_index: SeriesPattern22<TxOutIndex> = "spent_txout_*",
+        tx_index: SeriesPattern22<TxIndex> = "input_tx_*",
         output_type: SeriesPattern22<OutputType> = "output_type",
         type_index: SeriesPattern22<TypeIndex> = "type_*",
     } }
@@ -3217,14 +3208,14 @@ pub mod tree {
     shape! { Indexer at "series().indexer" {
         blocks: IndexerBlocks = "segwit",
         transactions: IndexerTransactions = "tx",
-        inputs: IndexerInputs = "*",
-        outputs: IndexerOutputs = "type",
+        inputs: IndexerInputs = "index",
+        outputs: IndexerOutputs = "*",
         addresses: IndexerAddresses = "p2pk65",
-        scripts: Scripts = "*",
+        scripts: Scripts = "empty_*",
         op_return: IndexerOpReturn = "op_return",
     } }
     shape! { SeriesTree at "series()" {
-        indexer: Indexer = "index",
+        indexer: Indexer = "output",
         mappings: Mappings = "date",
         price: Price = "price",
         blocks: Blocks = "block",
@@ -3241,7 +3232,7 @@ pub mod tree {
         addresses: Addresses = "address",
         holders: Holders<Rookie<AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>, Rookie<LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>> = "utxos",
         entry: Entry = "veteran",
-        profitability: Holders<ProfitabilityAll, ProfitabilityAll> = "utxos",
+        profitability: Profitability = "sth",
         supply: Supply = "circulating_supply",
         indicators: Indicators = "destroyed_supply_adjusted",
         cointime: Cointime = "utxos",

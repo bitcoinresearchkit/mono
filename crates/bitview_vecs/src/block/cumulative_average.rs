@@ -20,8 +20,7 @@ pub struct PerBlockCumulativeAverage<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
-    /// Value for the represented block. At time-period indexes, the value is
-    /// taken from the period's final block.
+    /// Value for the represented block.
     block: LazyPreviousDeltaVec<Height, T>,
     #[traversable(hidden)]
     cumulative: CachedSeries<Height, T, M>,

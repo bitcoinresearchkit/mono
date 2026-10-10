@@ -12,6 +12,8 @@ use crate::{IndexSources, LazyPercentPerBlock, LazyPercentRollingWindows};
 /// level, so consumers see `{ cumulative, 24h, 1w, 1m, 1y }`.
 #[derive(Clone, Traversable)]
 pub struct LazyPercentCumulativeRolling<B: FixedRatio> {
+    /// Numerator and denominator accumulated from the first block through the
+    /// represented block.
     #[traversable(flatten)]
     cumulative: LazyPercentPerBlock<B>,
     #[traversable(flatten)]

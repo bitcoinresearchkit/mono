@@ -18,7 +18,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// 1`. Positive values are annualized gains and negative values are
     /// annualized losses.
     pub cagr: Cagr,
-    /// Arithmetic mean and population standard deviation of the per-block
-    /// trailing-24-hour spot-price return over a trailing monotonic-time window.
+    /// Per-block trailing-24-hour spot-price returns over a trailing monotonic-time
+    /// window. Their standard deviation times the square root of the window's days
+    /// is `volatility`.
     pub daily: RollingAvgSd<M>,
 }

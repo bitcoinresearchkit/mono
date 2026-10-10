@@ -17,7 +17,7 @@ impl Vecs {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let version = STORAGE.schema_version();
 
-        let value = PcoVec::import(&db, "value", version)?;
+        let value = PcoVec::import(&db, "input_value", version)?;
         let count = CountVecs::import(&db, version, mappings, window_starts)?;
         let per_second =
             LazyPerSecondWindows::new("inputs_per_second", version, &count.rolling.sum);

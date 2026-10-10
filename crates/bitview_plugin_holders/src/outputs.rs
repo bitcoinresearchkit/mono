@@ -10,7 +10,9 @@ use crate::columns::Columns;
 
 #[derive(Clone, Traversable)]
 pub struct Outputs {
+    /// Number of transaction outputs that are unspent at the represented block.
     pub unspent_count: LazyPerBlockWithDeltas<Count, CountSigned, PartsPerMillionSigned64>,
+    /// Number of the cohort's outputs spent in each block.
     pub spent_count: LazyPerBlockCumulativeRolling<Count>,
 }
 impl Outputs {

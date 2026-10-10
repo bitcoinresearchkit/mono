@@ -24,6 +24,7 @@ use crate::{
 #[derive(Traversable)]
 pub struct BalanceVecs<M: StorageMode = Rw> {
     /// Funded addresses whose balance falls in the band.
+    #[traversable(rename = "funded")]
     pub address_count: CountWithDeltas<M>,
     pub supply: CohortSupply<M>,
     pub capital: CohortCapital<M>,

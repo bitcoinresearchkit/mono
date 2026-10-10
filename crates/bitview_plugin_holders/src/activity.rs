@@ -17,6 +17,9 @@ use crate::columns::Columns;
 
 #[derive(Traversable)]
 pub struct Activity<M: StorageMode = Rw> {
+    /// Value of the cohort's outputs spent in each block. BTC representations use
+    /// the spent output value; USD representations value it at the spending
+    /// block's spot price.
     pub transfer_volume: LazyValuePerBlockCumulativeRolling,
     /// Transfer volume of outputs spent in profit.
     #[traversable(wrap = "transfer_volume", rename = "in_profit")]
@@ -26,6 +29,8 @@ pub struct Activity<M: StorageMode = Rw> {
     pub transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling,
     /// Coin days destroyed (CDD): spent coin amounts multiplied by their age in days.
     pub coindays_destroyed: LazyPerBlockCumulativeRolling<CoinDays>,
+    /// Coin years destroyed (CYD): coin days destroyed over the trailing 365
+    /// days, in coin-years.
     pub coinyears_destroyed: LazyPerBlock<CoinYears, CoinDays>,
     /// Dormancy: coin days destroyed per spent coin over the window, the average age in days
     /// of the coins spent.

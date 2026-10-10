@@ -18,15 +18,9 @@ pub struct InputsVecs<M: StorageMode = Rw> {
     /// zero-based output position within that transaction. Coinbase inputs use
     /// the maximum of each component (`tx_index: 4294967295, vout: 65535`).
     pub outpoint: M::Stored<PcoVec<TxInIndex, OutPoint>>,
-    /// Global zero-based transaction-output index in canonical blockchain order.
-    /// At `txout_index`, this is the identity value; at `txin_index`, it
-    /// identifies the previous output spent by the input, with `u64::MAX`
-    /// representing a coinbase input.
+    /// The output the input spends, `u64::MAX` for a coinbase input.
     pub txout_index: M::Stored<PcoVec<TxInIndex, TxOutIndex>>,
-    /// Global zero-based index of a transaction in canonical blockchain order.
-    /// At `tx_index`, this is the identity value; at `txin_index`, it identifies
-    /// the transaction containing the input; at type-specific output indexes,
-    /// it identifies the transaction containing that output.
+    /// The transaction containing the input.
     pub tx_index: M::Stored<PcoVec<TxInIndex, TxIndex>>,
     /// BRK locking-script classification of an output. At `txout_index`, this
     /// classifies the indexed output; at `txin_index`, it classifies the
@@ -45,8 +39,8 @@ impl InputsVecs {
         let (first_txin_index, outpoint, txout_index, tx_index, output_type, type_index) = parallel_import! {
             first_txin_index = PcoVec::import(db, "first_txin_index", version),
             outpoint = PcoVec::import(db, "outpoint", version),
-            txout_index = PcoVec::import(db, "txout_index", version),
-            tx_index = PcoVec::import(db, "tx_index", version),
+            txout_index = PcoVec::import(db, "spent_txout_index", version),
+            tx_index = PcoVec::import(db, "input_tx_index", version),
             output_type = PcoVec::import(db, "output_type", version),
             type_index = PcoVec::import(db, "type_index", version),
         };

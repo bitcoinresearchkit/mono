@@ -15,7 +15,9 @@ use crate::{IndexSources, Lookback, PerBlock};
 pub struct RollingAvgSd<M: StorageMode = Rw> {
     /// Arithmetic mean of the per-block values in the trailing window.
     avg: Windows<PerBlock<Percent, M>>,
-    /// Population standard deviation of the per-block values in the trailing window.
+    /// Population standard deviation of the per-block values in the trailing window;
+    /// volatility series scale it.
+    #[traversable(hidden)]
     pub sd: Windows<PerBlock<Percent, M>>,
 }
 

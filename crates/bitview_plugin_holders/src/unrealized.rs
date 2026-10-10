@@ -9,9 +9,18 @@ use crate::columns::Columns;
 
 #[derive(Clone, Traversable)]
 pub struct Unrealized {
+    /// Unrealized profit of the cohort's unspent outputs: market value at the
+    /// represented block minus creation-date value, summed where spot is above
+    /// creation price.
     pub profit: LazyFiatPerBlock<Cents>,
+    /// Unrealized loss of the cohort's unspent outputs: creation-date value
+    /// minus market value at the represented block, summed where spot is below
+    /// creation price.
     pub loss: LazyFiatPerBlock<Cents>,
+    /// Net unrealized profit and loss of the cohort: unrealized profit minus
+    /// unrealized loss.
     pub net_pnl: LazyFiatPerBlock<CentsSigned>,
+    /// Gross unrealized profit and loss: unrealized profit plus unrealized loss.
     pub gross_pnl: LazyFiatPerBlock<Cents>,
     /// Net unrealized profit/loss (NUPL): net unrealized profit and loss divided by the
     /// cohort's market cap.

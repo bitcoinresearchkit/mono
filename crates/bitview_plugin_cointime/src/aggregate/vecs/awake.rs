@@ -13,7 +13,7 @@ pub struct AwakeVecs<M: StorageMode = Rw> {
     pub supply: LazySpotValuePerBlock,
     /// Share of awake supply that is in loss: the sum of supply in loss
     /// multiplied by wakefulness divided by the sum of total supply multiplied
-    /// by wakefulness. Returns NaN when the weighted supply is zero.
+    /// by wakefulness. Null when the weighted supply is zero.
     #[traversable(wrap = "supply/in_loss", rename = "share")]
     pub supply_in_loss_share: LazyPerBlock<Percent, BoundedRatio>,
     /// Sum of creation-date USD value multiplied by wakefulness across the

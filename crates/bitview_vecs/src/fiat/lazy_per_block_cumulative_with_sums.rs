@@ -10,8 +10,7 @@ use crate::{
 
 #[derive(Clone, Traversable)]
 pub struct LazyFiatPerBlockCumulativeWithSums<C: FiatType> {
-    /// Value for the represented block. At time-period indexes, the value is
-    /// taken from the period's final block.
+    /// Value for the represented block.
     block: LazyFiatBlock<C>,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.

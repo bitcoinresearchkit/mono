@@ -24,11 +24,7 @@ impl UTXOStates {
             .amount_range
             .iter_mut()
             .zip(metrics.amounts.iter())
-            .chain(
-                self.type_
-                    .iter_mut()
-                    .zip(metrics.types.iter().map(|types| &types.cohort)),
-            )
+            .chain(self.type_.iter_mut().zip(metrics.types.iter()))
         {
             Self::restore_one(
                 state,

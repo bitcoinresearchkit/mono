@@ -30,7 +30,6 @@ fn main() -> bitview_client::Result<()> {
     let prices = client
         .series()
         .price
-        .split
         .close
         .by
         .day1()

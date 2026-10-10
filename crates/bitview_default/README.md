@@ -16,8 +16,8 @@ canonical origin state. UTXOs runs alongside Outputs, History and Age; Addresses
 then consumes UTXOs’s completed output-type sources in its own complete update.
 Holders consumes Age’s completed disjoint accounting and canonical History
 for the seven overlapping age filters; Entry then classifies outputs by creation
-price against its all-chain capitalized price, and Profitability splits the
-same seven filters into percentage profit/loss bands. Cointime and Coinflow
+price against its all-chain capitalized price, and Profitability splits all,
+short-term and long-term holders into percentage profit/loss bands. Cointime and Coinflow
 compute their scalar and URPD metrics before Bedrock consumes their completed
 sources. These models share replay and metric algorithms in `bitview_urpd`; each
 owns its resumable replay state. No per-block URPD distributions are persisted.

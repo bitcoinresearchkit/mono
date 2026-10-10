@@ -30,6 +30,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// price series for each supported time period. Heights before 340,000 use
     /// baked historical exchange prices; later heights use an on-chain oracle
     /// that estimates price from round-USD transaction-output patterns.
+    #[traversable(flatten)]
     split: SplitPrice,
     /// Open-high-low-close (OHLC) candles formed from block-level Bitcoin spot
     /// prices within each supported time period. Heights before 340,000 use
