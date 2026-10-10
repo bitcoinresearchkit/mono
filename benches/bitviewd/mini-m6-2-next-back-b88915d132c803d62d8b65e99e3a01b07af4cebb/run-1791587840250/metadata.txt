@@ -1,0 +1,15 @@
+version=0.12.2
+profile=release
+hostname=minis-Mac-Mini-2.local
+cpu=Apple M6
+ram_bytes=17179869184
+target_os=macos
+target_arch=aarch64
+parallelism=12
+started_at_unix=1791587840
+chain_height=970688
+revision=b88915d132c803d62d8b65e99e3a01b07af4cebb
+dirty=false
+blocks_path=/Volumes/External/bitcoin/blocks
+data_path=/Volumes/External/perf-20261010/full
+cache_budget=2147483648
