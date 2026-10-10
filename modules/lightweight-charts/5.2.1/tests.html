@@ -1,0 +1,206 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>lightweight-charts 5.2.1, patched: checks</title>
+<style>
+  body { margin: 16px; background: #111; color: #ddd; font: 13px/1.5 ui-monospace, monospace; }
+  .c { display: inline-block; width: 900px; height: 520px; }
+  .fail { color: #f66; }
+</style>
+<!-- The patches of PATCHES.md, checked (serve the repo and open this page; the result is written below, and as
+     window.result once done): the log scale's marks over thousands of ranges, then the patched library drawing exactly
+     what the unpatched one does (5.2.1 as published, from unpkg) through series of operations, picture by picture
+     (the plot only: log marks differ, as patched; horizontal grid lines off, price scales one width). -->
+<pre id="out">Running…</pre>
+<div id="a" class="c"></div><div id="b" class="c"></div>
+<script type="module">
+  import * as A from "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs";
+  import * as B from "./dist/lightweight-charts.standalone.production.mjs";
+  const lines = [], say = (text) => (lines.push(text), (document.getElementById("out").textContent = lines.join("\n")));
+
+  // 1. Log marks: the method's own code (from the patched file), on a mock scale mapping prices as the library's log
+  // does, over hand-picked and random ranges: it ends, fast; marks in the range and its margins, a mark's height apart,
+  // round at their step, no duplicates.
+  const lib = await (await fetch("./dist/lightweight-charts.standalone.production.mjs")).text();
+  const i0 = lib.indexOf("bvLogMarks(t,n,s,e,r){"), i1 = lib.indexOf("return!!u&&(h.length=u,!0)}", i0) + "return!!u&&(h.length=u,!0)}".length;
+  const method = new Function("t", "n", "s", "e", "r", lib.slice(i0 + "bvLogMarks(t,n,s,e,r)".length, i1));
+const GAP = 28;
+// Labels as pages write them: unformatted (the least move none), two decimals (a least move of 0.01, the library's
+// default), three significant figures (Studio's, its least move 1e-9).
+const FORMATS = [{ Fl: 0, ro: (v) => String(v) }, { Fl: 100, ro: (v) => v.toFixed(2) }, { Fl: 1e9, ro: (v) => { const p = Math.floor(Math.log10(Math.abs(v))), t = Math.floor(p / 3), m = v / 10 ** (3 * t); return `${m.toPrecision(3)}e${3 * t}`; } }];
+let FORMAT = FORMATS[0];
+function run(bottom, top, H, Nl = 1e-4, margin = 7, gap = GAP) {
+  const lg = (v) => Math.log10(v + Nl), L0 = lg(bottom), L1 = lg(top);
+  const self = { $l: [], Fl: FORMAT.Fl, Yl: () => gap, Ki: { $t: () => H, so: (vs) => vs.map(FORMAT.ro), ho: () => true }, ql: (v) => ((L1 - lg(v)) / (L1 - L0)) * (H - 1) };
+  const t0 = performance.now();
+  const used = method.call(self, null, top, bottom, margin, H - 1 - margin);
+  return { used, marks: self.$l.map((m) => ({ ...m })), ms: performance.now() - t0 };
+}
+// (Round at its step: a multiple of the power of ten under the least gap between marks.)
+const round = (v, step) => { const q = v / 10 ** (Math.floor(Math.log10(step)) - 1); return Math.abs(q - Math.round(q)) < 1e-6 * Math.max(1, q); };
+let worst = 0, fails = 0, cases = 0, fallbacks = 0, few = 0;
+const failures = [];
+const check = (bottom, top, H, Nl, why) => {
+  cases++;
+  let res;
+  try { res = run(bottom, top, H, Nl); } catch (error) { fails++; failures.push(`${why} [${bottom}, ${top}] H${H}: threw ${error.message}`); return; }
+  worst = Math.max(worst, res.ms);
+  if (res.ms > 5) failures.push(`${why} [${bottom}, ${top}] H${H}: slow ${res.ms.toFixed(1)} ms`);
+  if (!res.used) { fallbacks++; return; }
+  const m = res.marks, bad = [], local = (k) => Math.min(k ? m[k - 1].no - m[k].no : Infinity, k < m.length - 1 ? m[k].no - m[k + 1].no : Infinity, top - bottom, m[k].no);
+  for (let k = 0; k < m.length; k++) {
+    if (!(m[k].no >= bottom && m[k].no <= top)) bad.push(`out of range ${m[k].no}`);
+    if (!(m[k].Vl >= 7 && m[k].Vl <= H - 8)) bad.push(`out of margins ${m[k].Vl.toFixed(1)}`);
+    if (!round(m[k].no, local(k))) bad.push(`not round ${m[k].no}`);
+    if (k && !(m[k].no < m[k - 1].no)) bad.push(`order/dup ${m[k - 1].no} ${m[k].no}`);
+    if (k && Math.abs(m[k].Vl - m[k - 1].Vl) < GAP) bad.push(`too close ${m[k - 1].no} ${m[k].no}`);
+    if (k && m[k].eo === m[k - 1].eo) bad.push(`written alike ${m[k - 1].no} ${m[k].no} "${m[k].eo}"`);
+    if (FORMAT.Fl && m[k].no < (1 - 1e-9) / FORMAT.Fl) bad.push(`under the least move ${m[k].no}`);
+  }
+  // (A view a few marks tall that shows none, though round values would fit: too few.)
+  if (m.length < 2 && H / GAP >= 4 && (Math.log10(top / bottom) > 0.0001)) few++, failures.length < 40 && failures.push(`${why} [${bottom}, ${top}] H${H}: only ${m.length} marks`);
+  if (bad.length) { fails++; failures.length < 40 && failures.push(`${why} [${bottom}, ${top}] H${H}: ${bad.slice(0, 3).join("; ")}`); }
+};
+// Hand-picked edges.
+const edges = [[0.006935, 487918], [15000, 140000], [52000, 125000], [53000, 92000], [82300, 82400], [82300, 82300.01], [1, 1 + 1e-9], [1e-9, 1e-8], [1e-12, 1e30], [1e-300, 1e300], [0.5, 2], [0.99, 1.01], [9.99, 10.01], [99999, 100001], [1, 10], [1, 100], [0.0001, 0.0002], [3e20, 1e22], [1e-6, 5e5], [0, 10], [-10, 10], [-5, -1], [5, 5], [NaN, 10], [1, Infinity], [1e-320, 1]];
+for (const format of FORMATS) {
+FORMAT = format;
+for (const [b, t] of edges) for (const H of [40, 120, 300, 760, 1600]) for (const Nl of [1e-4, 1e-8]) check(b, t, H, Nl, `edge (${format.Fl})`);
+// Random ranges: decades from -12 to 22, spans from a millionth of a decade to 30 decades, heights 30 to 2000.
+let markSeed = 7;
+const markRnd = () => ((markSeed = (markSeed * 16807) % 2147483647) / 2147483647);
+for (let k = 0; k < 20000; k++) {
+  const start = -12 + 34 * markRnd(), span = 10 ** (-6 + 7.5 * markRnd()), H = Math.round(30 + 1970 * markRnd());
+  check(10 ** start, 10 ** (start + span), H, markRnd() < 0.5 ? 1e-4 : 10 ** -(4 + Math.floor(12 * markRnd())), `random (${format.Fl})`);
+}
+}
+FORMAT = FORMATS[0];
+for (const [b, t] of [[1, 10], [100, 110], [0.001, 1e6]]) { cases++; const t0 = performance.now(), res = run(b, t, 300, 1e-4, 7, 0); if (res.used || performance.now() - t0 > 5) (fails++, failures.push(`no gap [${b}, ${t}]: ${res.used ? "marked" : "slow"}`)); }
+
+  say(`Log marks: ${cases} ranges, ${fails} failing, ${fallbacks} left to the library's marks; slowest ${worst.toFixed(2)} ms`);
+  for (const f of failures.filter((x) => !/only \d marks/.test(x)).slice(0, 10)) say(`  ✗ ${f}`);
+
+  // 2. The same pictures: each scenario's steps run on both, the plots compared.
+const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+let seed = 11;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const day = (i) => 1262304000 + i * 86400;
+function walk(n, start, vol, { gaps = 0, negative = false, colors = false } = {}) {
+  const out = []; let v = start;
+  for (let i = 0; i < n; i++) {
+    v = negative ? v + (rnd() - 0.5) * vol : Math.max(1e-9, v * (1 + (rnd() - 0.48) * vol));
+    if (gaps && rnd() < gaps) { out.push({ time: day(i) }); continue; }
+    const p = { time: day(i), value: v };
+    if (colors && rnd() < 0.3) p.color = rnd() < 0.5 ? "#e33" : "#3e3";
+    out.push(p);
+  }
+  return out;
+}
+function ohlc(n, start, vol) {
+  const out = []; let c = start;
+  for (let i = 0; i < n; i++) { const o = c; c = Math.max(1e-6, c * (1 + (rnd() - 0.48) * vol)); const h = Math.max(o, c) * (1 + rnd() * vol), l = Math.min(o, c) * (1 - rnd() * vol); out.push({ time: day(i), open: o, high: h, low: l, close: c, ...(rnd() < 0.1 ? { color: "#ff0", wickColor: "#0ff", borderColor: "#f0f" } : {}) }); }
+  return out;
+}
+const scenarios = [];
+const scenario = (name, build) => scenarios.push({ name, build });
+// Each build(L, el) makes a chart and returns its steps: [name, fn(chart, series)] run in order.
+const base = (L, el, extra = {}) => { const c = L.createChart(el, { width: 900, height: 520, layout: { background: { color: "#111" }, textColor: "#ccc", attributionLogo: false }, grid: { horzLines: { visible: false }, vertLines: { visible: false } }, ...extra, rightPriceScale: { entireTextOnly: true, minimumWidth: 90, ...extra.rightPriceScale }, leftPriceScale: { minimumWidth: 90, ...extra.leftPriceScale } }); window.__charts.push(c); return c; };
+const pan = (c, steps, from, to, width) => Array.from({ length: steps }, (_, k) => [`pan ${k}`, () => { const x = from + ((to - from) * k) / (steps - 1); c.timeScale().setVisibleLogicalRange({ from: x, to: x + width }); }]);
+for (const mode of [0, 1, 2, 3]) for (const invert of [false, true]) {
+  scenario(`lines mode ${mode}${invert ? " inverted" : ""}`, (L, el) => {
+    seed = 11 + mode * 7 + (invert ? 1 : 0);
+    const c = base(L, el, { rightPriceScale: { mode, invertScale: invert, entireTextOnly: true } });
+    const s1 = c.addSeries(L.LineSeries, { color: "#fff", lineWidth: 2 }); s1.setData(walk(3000, 100, 0.03, { gaps: 0.02, colors: true }));
+    const s2 = c.addSeries(L.LineSeries, { color: "#f80", lineType: 1, lineStyle: 2 }); s2.setData(walk(3000, 80, 0.02));
+    const s3 = c.addSeries(L.LineSeries, { color: "#08f", lineType: 2, pointMarkersVisible: true }); s3.setData(walk(400, 120, 0.05));
+    const s4 = c.addSeries(L.AreaSeries, { lineColor: "#0f8", topColor: "#0f84", bottomColor: "#0f80" }); s4.setData(walk(3000, 90, 0.025));
+    const later = walk(2900, 50, 0.02);
+    return [["full", () => c.timeScale().fitContent()], ...pan(c, 14, 0, 2200, 600),
+      ["restyle mid-pan", () => s1.applyOptions({ color: "#ccc", lineWidth: 1 })], ...pan(c, 6, 2200, 2400, 600),
+      ...cross(c, s1, 6, 2250, 2550), ["no cross", () => c.clearCrosshairPosition()],
+      ["append", () => s1.update({ time: day(3000), value: 140 })], ["replace last", () => s1.update({ time: day(3000), value: 60 })],
+      ["margins", () => c.priceScale("right").applyOptions({ scaleMargins: { top: 0.3, bottom: 0.2 } })], ...pan(c, 4, 2400, 2500, 500),
+      ["resize", () => c.resize(900, 380)], ...pan(c, 4, 2500, 2600, 400),
+      ["setData", () => s2.setData(later)], ...pan(c, 4, 2000, 2100, 700),
+      ["hide one", () => s4.applyOptions({ visible: false })], ["show", () => s4.applyOptions({ visible: true })],
+      ["manual range", () => { c.priceScale("right").setAutoScale(false); }], ...pan(c, 5, 1000, 1400, 800),
+      ["auto again", () => c.priceScale("right").setAutoScale(true)], ...pan(c, 3, 100, 300, 2000)];
+  });
+}
+scenario("baseline and histogram", (L, el) => {
+  seed = 99;
+  const c = base(L, el);
+  const s1 = c.addSeries(L.BaselineSeries, { baseValue: { type: "price", price: 0 } }); s1.setData(walk(3000, 0, 2, { negative: true, gaps: 0.01 }));
+  const s2 = c.addSeries(L.HistogramSeries, { color: "#888", base: 0 }, 1); s2.setData(walk(3000, 0, 3, { negative: true, colors: true }));
+  return [["full", () => c.timeScale().fitContent()], ...pan(c, 10, 0, 2000, 900), ["restyle", () => s2.applyOptions({ color: "#a3f" })], ...pan(c, 5, 2000, 2400, 300), ["base moved", () => s1.applyOptions({ baseValue: { type: "price", price: 5 } })], ...pan(c, 3, 100, 500, 1500)];
+});
+for (const mode of [0, 1]) scenario(`candles and bars mode ${mode}`, (L, el) => {
+  seed = 123 + mode;
+  const c = base(L, el, { rightPriceScale: { mode, entireTextOnly: true } });
+  const s1 = c.addSeries(L.CandlestickSeries, {}); s1.setData(ohlc(2500, 30000, 0.03));
+  const s2 = c.addSeries(L.BarSeries, { thinBars: false }, 1); s2.setData(ohlc(2500, 1, 0.05));
+  return [["full", () => c.timeScale().fitContent()], ...cross(c, s1, 4, 100, 2400), ...pan(c, 12, 0, 2200, 200), ...cross(c, s2, 4, 2210, 2390), ["restyle", () => s1.applyOptions({ upColor: "#0a0", downColor: "#a00" })], ...pan(c, 4, 2200, 2300, 150),
+    ["append", () => s1.update({ time: day(2500), open: 30000, high: 31000, low: 29000, close: 30500 })], ["replace", () => s1.update({ time: day(2500), open: 30000, high: 36000, low: 20000, close: 21000 })], ...pan(c, 4, 2300, 2450, 60)];
+});
+scenario("conflation", (L, el) => {
+  seed = 7;
+  const c = base(L, el, { timeScale: { enableConflation: true, minBarSpacing: 0.01 } });
+  const s1 = c.addSeries(L.LineSeries, { color: "#fff" }); s1.setData(walk(20000, 100, 0.01, { colors: true }));
+  const s2 = c.addSeries(L.CandlestickSeries, {}, 1); s2.setData(ohlc(20000, 100, 0.02));
+  return [["full", () => c.timeScale().fitContent()], ...pan(c, 6, 0, 15000, 5000), ["restyle", () => s1.applyOptions({ color: "#f0f" })], ...pan(c, 4, 15000, 15200, 3000), ["zoom in", () => c.timeScale().setVisibleLogicalRange({ from: 19000, to: 19300 })], ["restyle 2", () => s1.applyOptions({ color: "#ff0" })]];
+});
+const cross = (c, s, steps, from, to) => Array.from({ length: steps }, (_, k) => [`cross ${k}`, () => c.setCrosshairPosition(100 + k, day(Math.round(from + ((to - from) * k) / Math.max(1, steps - 1))), s)]);
+const jump = (c, name, from, to) => [name, () => c.timeScale().setVisibleLogicalRange({ from, to })];
+scenario("jumps, zooms, past the end", (L, el) => {
+  seed = 31;
+  const c = base(L, el);
+  const s1 = c.addSeries(L.LineSeries, { color: "#fff" }); s1.setData(walk(4000, 100, 0.02, { gaps: 0.05 }));
+  const s2 = c.addSeries(L.CandlestickSeries, {}); s2.setData(ohlc(4000, 90, 0.02));
+  return [jump(c, "a", 0, 500), jump(c, "far right", 3200, 3700), jump(c, "far left", 10, 510), jump(c, "overlap", 300, 800), jump(c, "zoom in", 500, 560), jump(c, "zoom out", 0, 4000),
+    jump(c, "past the end", 3800, 4600), jump(c, "before the start", -300, 200), jump(c, "beyond", 5000, 5500), jump(c, "back", 3000, 3500), ...cross(c, s1, 5, 3050, 3450), ...pan(c, 6, 3000, 3200, 500), ...cross(c, s2, 4, 3250, 3600),
+    ["price range held", () => c.priceScale("right").setAutoScale(false)], jump(c, "held: far left", 100, 600), jump(c, "held: far right", 3300, 3800), jump(c, "held: overlap", 3000, 3500), jump(c, "held: zoom out", 0, 4000), jump(c, "held: zoom in", 1000, 1100), jump(c, "held: past the end", 3900, 4400), ...pan(c, 5, 2000, 2600, 300)];
+});
+scenario("modes switched mid-pan", (L, el) => {
+  seed = 41;
+  const c = base(L, el);
+  const s1 = c.addSeries(L.LineSeries, { color: "#fff" }); s1.setData(walk(3000, 100, 0.03));
+  const s2 = c.addSeries(L.BarSeries, {}); s2.setData(ohlc(3000, 100, 0.03));
+  const ps = c.priceScale("right");
+  return [["full", () => c.timeScale().fitContent()], ...pan(c, 3, 0, 300, 600), ["log", () => ps.applyOptions({ mode: 1 })], ...pan(c, 3, 300, 600, 600), ["percent", () => ps.applyOptions({ mode: 2 })], ...pan(c, 3, 600, 900, 600),
+    ["indexed", () => ps.applyOptions({ mode: 3 })], ...pan(c, 3, 900, 1200, 600), ["linear", () => ps.applyOptions({ mode: 0 })], ...pan(c, 3, 1200, 1500, 600), ["inverted", () => ps.applyOptions({ invertScale: true })], ...pan(c, 3, 1500, 1800, 600),
+    ["upright", () => ps.applyOptions({ invertScale: false })], ["to the left scale", () => s1.applyOptions({ priceScaleId: "left" })], ...pan(c, 3, 1800, 2100, 600), ["to an overlay", () => s1.applyOptions({ priceScaleId: "" })], ...pan(c, 3, 2100, 2400, 600),
+    ["back right", () => s1.applyOptions({ priceScaleId: "right" })], ...pan(c, 3, 2400, 2600, 400)];
+});
+scenario("log under one, gaps, edge marks", (L, el) => {
+  seed = 51;
+  const c = base(L, el, { rightPriceScale: { mode: 1, ensureEdgeTickMarksVisible: true, entireTextOnly: true } });
+  const small = walk(3000, 0.5, 0.004); const s1 = c.addSeries(L.LineSeries, { color: "#fff" }); s1.setData(small);
+  const hole = walk(3000, 2, 0.01).map((p, i) => (i > 1000 && i < 2000 ? { time: p.time } : p)); const s2 = c.addSeries(L.LineSeries, { color: "#f80" }, 1); s2.setData(hole);
+  const tiny = walk(3000, 1e-7, 0.05); const s3 = c.addSeries(L.AreaSeries, { lineColor: "#0f8", topColor: "#0f84", bottomColor: "#0f80" }, 2); s3.setData(tiny);
+  c.panes()[1].priceScale("right").applyOptions({ mode: 1 }); c.panes()[2].priceScale("right").applyOptions({ mode: 1 });
+  return [["full", () => c.timeScale().fitContent()], ...pan(c, 8, 0, 2400, 600), jump(c, "in the hole", 1200, 1500), ...pan(c, 4, 1200, 1400, 300), jump(c, "narrow", 2000, 2010), jump(c, "wide", 0, 3000)];
+});
+const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.width, a.height).data, y = b.getContext("2d").getImageData(0, 0, b.width, b.height).data; if (x.length !== y.length) return -1; let n = 0; for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) n++; return n; };
+
+  window.__charts = [];
+  const plot = (c) => { const s = c.takeScreenshot(), w = s.width - Math.ceil(c.priceScale("right").width() * devicePixelRatio) - Math.ceil(c.priceScale("left").width() * devicePixelRatio); return s.getContext("2d").getImageData(Math.ceil(c.priceScale("left").width() * devicePixelRatio), 0, w, s.height).data; };
+  const differ = (x, y) => { if (x.length !== y.length) return -1; let n = 0; for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) n++; return n; };
+  let steps = 0, bad = 0;
+  for (const sc of scenarios) {
+    document.getElementById("a").innerHTML = ""; document.getElementById("b").innerHTML = "";
+    const sa = sc.build(A, document.getElementById("a")), sb = sc.build(B, document.getElementById("b"));
+    let first = "", wrong = 0;
+    for (let k = 0; k < sa.length; k++) {
+      sa[k][1](); sb[k][1](); await frames();
+      let d = differ(plot(window.__charts[0]), plot(window.__charts[1]));
+      // (A difference that is a frame's timing goes; one that stays is real.)
+      for (let again = 0; d !== 0 && again < 3; again++) { await frames(); d = differ(plot(window.__charts[0]), plot(window.__charts[1])); }
+      steps++;
+      if (d !== 0) (wrong++, (first ||= `${sa[k][0]} (${d})`));
+    }
+    bad += wrong;
+    window.__charts[0].remove(); window.__charts[1].remove(); window.__charts = [];
+    say(`${wrong ? "✗" : "✓"} ${sc.name}: ${sa.length - wrong}/${sa.length} the same${first ? `, first differing: ${first}` : ""}`);
+  }
+  say(`Pictures: ${steps - bad} of ${steps} steps the same`);
+  window.result = { marks: fails, pictures: bad };
+</script>
