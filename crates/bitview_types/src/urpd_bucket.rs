@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 /// A single bucket in a URPD snapshot.
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct UrpdBucket {
-    /// Lower bound of the bucket, in USD. Equals the exact realized price for `Raw`.
+    /// The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its
+    /// coins' creation prices round to (four significant digits of the price in cents).
     pub price_floor: Dollars,
     /// Supply held with a last-move price inside this bucket, in BTC.
     pub supply: Bitcoin,

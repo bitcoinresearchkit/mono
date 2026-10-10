@@ -33,7 +33,7 @@ pub struct PerCoin<M: StorageMode = Rw> {
     pub avg: PriceWithMvrv<M>,
     /// Realized price: the weighted mean.
     pub realized_price: Price<LazyPerBlock<Cents>>,
-    /// From the URPD, creation prices rounded to five significant digits.
+    /// From the URPD, creation prices rounded to four significant digits of the price in cents.
     #[traversable(flatten)]
     pub percentiles: PercentilesVecs<M>,
     /// Median realized price: the weighted median, from the URPD.
@@ -47,7 +47,7 @@ pub struct PerDollar<M: StorageMode = Rw> {
     pub avg: PriceWithRatio<M>,
     /// Capitalized price: the weighted mean.
     pub capitalized_price: Price<LazyPerBlock<Cents>>,
-    /// From the URPD, creation prices rounded to five significant digits.
+    /// From the URPD, creation prices rounded to four significant digits of the price in cents.
     #[traversable(flatten)]
     pub percentiles: PercentilesVecs<M>,
 }

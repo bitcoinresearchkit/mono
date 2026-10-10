@@ -1,6 +1,6 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_compute::prepare_computed;
-use bitview_distribution::state::cost_basis::age_index;
+use bitview_distribution::state::cost_basis::{PRICE_INDEX_VERSION, age_index};
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_vecs::Density;
 use brk_error::Result;
@@ -29,6 +29,7 @@ impl ComputePlugin for Vecs {
             sources.version(),
         );
         let base_version = Version::ONE
+            + PRICE_INDEX_VERSION
             + version.0
             + version.1
             + version.3

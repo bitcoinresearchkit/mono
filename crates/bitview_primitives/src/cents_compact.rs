@@ -73,27 +73,28 @@ impl CentsCompact {
         }
     }
 
-    /// Round to nearest dollar, then apply N significant digits.
-    /// E.g., 12345 (= $123.45) → 12300 (= $123.00) with 5 digits
-    /// E.g., 1234567 (= $12345.67) → 1234600 (= $12346.00) with 5 digits
+    /// Rounds half up to `digits` significant digits of the amount in cents; amounts under
+    /// 10^`digits` cents stay exact. With 5 digits, 12345 (= $123.45) stays and 1234567
+    /// (= $12,345.67) becomes 1234600 (= $12,346.00).
     #[inline]
-    pub fn round_to_dollar(self, digits: i32) -> Self {
+    pub fn round_to_significant(self, digits: u32) -> Self {
         if unlikely(self.is_nan()) {
             return Self::NAN;
         }
-
-        // Round to nearest dollar (nearest 100 cents)
-        let dollars = (self.0 as u64 + 50) / 100;
-        // Apply significant digit rounding to dollars, then convert back to cents
-        let ilog10 = dollars.checked_ilog10().unwrap_or(0) as i32;
-        let rounded_dollars = if ilog10 >= digits {
-            let log_diff = ilog10 - digits + 1;
-            let pow = 10u64.pow(log_diff as u32);
-            ((dollars + pow / 2) / pow) * pow
-        } else {
-            dollars
-        };
-        Self::from_finite_u64(rounded_dollars * 100)
+        let cents = self.0 as u64;
+        match cents.checked_ilog10() {
+            Some(ilog10) if ilog10 >= digits => {
+                let pow = 10u64.pow(ilog10 - digits + 1);
+                let up = (cents + pow / 2) / pow * pow;
+                // Rounding up past the compact range rounds down instead.
+                Self::from_finite_u64(if up < u32::MAX as u64 {
+                    up
+                } else {
+                    cents / pow * pow
+                })
+            }
+            _ => self,
+        }
     }
 
     #[inline]

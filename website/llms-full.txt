@@ -2111,7 +2111,7 @@ curl -s "https://bitview.space/version"
 
 ### `UrpdBucket`
 
-- `price_floor`: `Dollars` (required) — Lower bound of the bucket, in USD. Equals the exact realized price for `Raw`.
+- `price_floor`: `Dollars` (required) — The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its coins' creation prices round to (four significant digits of the price in cents).
 - `supply`: `Bitcoin` (required) — Supply held with a last-move price inside this bucket, in BTC.
 - `realized_cap`: `Dollars` (required) — Realized cap contribution in USD: sum of `realized_price * supply` over the coins in this bucket.
 - `unrealized_pnl`: `Dollars` (required) — Unrealized P&L in USD against the close on the snapshot date: `close * supply - realized_cap`. Can be negative.

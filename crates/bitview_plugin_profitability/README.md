@@ -21,7 +21,7 @@ Writes use the project exit guard. Crash recovery is outside the project contrac
 `DefaultPlugins` composes it beside Entry, Coinflow and Cointime. Basic
 profit/loss, cost-basis percentiles, and density live in Holders.
 
-Creation prices sit on the shared price index's grid: whole dollars to five
-significant digits, so bands are coarse while the spot price is under about $100
-and collapse into one while it is under $1. Complementary filters (LTH, over 4m,
-over 6m) are their totals minus the young side, before cents rounding.
+Creation prices sit on the shared price index's grid, four significant digits of
+the price in cents (exact under $100, at most 0.05% off above), and band
+boundaries are whole cents. Complementary filters (LTH, over 4m, over 6m) are their totals minus the
+young side, before cents rounding.
