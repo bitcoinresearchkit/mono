@@ -53,7 +53,7 @@ capitalized prices require summed raw capitalized cap and raw realized cap.
 Profitability exposes only the 25 disjoint `ProfitabilityRange` bands, ordered
 from most profitable to most in loss (`profit_over_1000_percent` ...
 `profit_0_to_10_percent`, `loss_0_to_10_percent` ... `loss_90_to_100_percent`),
-under each of the seven age filters. Each band publishes its supply and capital,
+for all, short-term and long-term holders. Each band publishes its supply and capital,
 each with its share of the filter's total, and its signed net unrealized profit
 or loss.
 

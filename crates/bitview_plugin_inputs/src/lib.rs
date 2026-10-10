@@ -32,10 +32,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     pub origins: M::WriteOnly<OriginSpends>,
 
-    /// Value in satoshis of the indexed transaction output. At `txout_index`,
-    /// this is the output's value; at `txin_index`, it is the value of the
-    /// previous output spent by the input. Coinbase inputs use `Sats::MAX`
-    /// because they have no previous output.
+    /// Value of the output the input spends, in satoshis; `Sats::MAX` for a coinbase
+    /// input, which spends none.
     pub value: M::Stored<PcoVec<TxInIndex, Sats>>,
     pub count: CountVecs<M>,
     /// Transaction-input rate, excluding coinbase inputs.

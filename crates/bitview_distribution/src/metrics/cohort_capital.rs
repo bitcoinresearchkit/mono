@@ -26,8 +26,7 @@ pub struct CapitalViews {
     pub total: LazyFiatPerBlock<Cents>,
     /// Realized cap: the capital, under its jargon name.
     realized_cap: LazyFiatPerBlock<Cents>,
-    /// Change in the cohort's capital over a trailing window, with the relative change measured
-    /// against the window's starting value.
+    /// Change in the cohort's capital over a trailing window.
     delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
     /// The cohort's share of the capital it is part of: all unspent outputs', or for address
     /// balance bands, all addresses'.

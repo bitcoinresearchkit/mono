@@ -58,7 +58,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     coinyears_destroyed_supply_adjusted: LazyPerBlock<Years>,
     dormancy: DormancyVecs,
     /// All-chain supply in satoshis at the represented block divided by that
-    /// block's scheduled subsidy annualized at 52,560 blocks. NaN when the
+    /// block's scheduled subsidy annualized at 52,560 blocks. Null when the
     /// annualized flow is zero. The value approximates how many
     /// years of subsidy issuance at the represented block's rate would equal
     /// the current supply.

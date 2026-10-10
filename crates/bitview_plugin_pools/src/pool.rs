@@ -24,7 +24,7 @@ pub struct PoolVecs {
     /// spot price.
     pub rewards: Rewards,
     /// Transaction fees per block the pool mined over a trailing window: the fees of its blocks
-    /// in the window divided by their number; empty when it mined none.
+    /// in the window divided by their number; null when it mined none.
     fees_per_block: Windows<FeesPerBlock>,
     /// Estimated hash rate over a trailing window, in hashes per second: the pool's share of the
     /// window's blocks times the network hash-rate estimate for the same window.
@@ -54,7 +54,9 @@ pub struct Rewards {
 
 #[derive(Clone, Traversable)]
 pub struct FeesPerBlock {
+    /// In BTC.
     pub btc: LazyPerBlock<Bitcoin>,
+    /// In US dollars, each block's fees valued at its spot price.
     pub usd: LazyPerBlock<Dollars>,
 }
 

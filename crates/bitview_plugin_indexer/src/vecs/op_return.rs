@@ -10,10 +10,8 @@ pub struct OpReturnVecs<M: StorageMode = Rw> {
     /// Zero-based OP_RETURN-output index at which the indexed block begins,
     /// equal to the number of OP_RETURN outputs in all preceding blocks.
     pub first_index: M::Stored<PcoVec<Height, OpReturnIndex>>,
-    /// Global zero-based index of a transaction in canonical blockchain order.
-    /// At `tx_index`, this is the identity value; at `txin_index`, it identifies
-    /// the transaction containing the input; at type-specific output indexes,
-    /// it identifies the transaction containing that output.
+    /// The transaction containing the `OP_RETURN` output.
+    #[traversable(rename = "tx_index")]
     pub to_tx_index: M::Stored<PcoVec<OpReturnIndex, TxIndex>>,
     /// Heuristic classification of the indexed OP_RETURN output from the first
     /// non-empty pushed-data prefix, or from the full post-OP_RETURN byte count
@@ -30,7 +28,7 @@ impl OpReturnVecs {
     pub fn import(db: &Database, version: Version) -> Result<Self> {
         let (first_index, to_tx_index, kind, post_op_return_bytes) = parallel_import! {
             first_index = PcoVec::import(db, "first_op_return_index", version),
-            to_tx_index = PcoVec::import(db, "tx_index", version),
+            to_tx_index = PcoVec::import(db, "op_return_tx_index", version),
             kind = PcoVec::import(db, "op_return_protocol", version),
             post_op_return_bytes =
                 PcoVec::import(db, "op_return_post_op_return_bytes", version),

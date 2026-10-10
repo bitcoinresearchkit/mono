@@ -36,7 +36,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// long flag.
     is_short: LazyPerBlock<Boolean, Boolean>,
     /// Per-block Capital Sentiment phase describing whether spot is above or below
-    /// the value-weighted mean acquisition prices of all, short-term-holder
+    /// the value-weighted mean creation prices of all, short-term-holder
     /// (STH), and long-term-holder (LTH) unspent supply. Being above more of
     /// these capitalized-price benchmarks indicates a stronger market
     /// structure; their ordering distinguishes early, established, and weakening

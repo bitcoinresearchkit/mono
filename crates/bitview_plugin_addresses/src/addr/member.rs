@@ -76,8 +76,7 @@ pub struct StoredCount<M: StorageMode = Rw> {
 
 #[derive(Clone, Traversable)]
 pub struct NewAddressCount {
-    /// Value for the represented block. At time-period indexes, the value is
-    /// taken from the period's final block.
+    /// Value for the represented block.
     pub block: LazyPreviousDeltaVec<Height, Count>,
     pub sum: LazyRollingSumsFromHeight<Count>,
 }

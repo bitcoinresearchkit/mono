@@ -15,8 +15,7 @@ pub struct PerBlockFullFromCumulative<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema + Quantity,
 {
-    /// Value for the represented block. At time-period indexes, the value is
-    /// taken from the period's final block.
+    /// Value for the represented block.
     pub block: LazyPreviousDeltaVec<Height, T::Sum>,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.

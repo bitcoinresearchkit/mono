@@ -15,7 +15,7 @@ impl Vecs {
         )?;
         Ok(Vecs {
             txin_index_view: LazyVec::init(
-                "txin_index",
+                "spending_txin_index",
                 Version::ZERO,
                 txin_index.read_only_boxed_clone(),
                 |_, index| index.get(),

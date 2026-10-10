@@ -38,7 +38,7 @@ tx = client.get_tx(
 
 # Typed, chainable series access.
 prices = (
-    client.series.price.split.close.by.day1()
+    client.series.price.close.by.day1()
     .tail(30)
     .fetch()
 )

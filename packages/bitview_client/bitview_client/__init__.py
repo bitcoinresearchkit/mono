@@ -3927,24 +3927,19 @@ class SizeWeight(_Node):
     pct90: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_pct90')
 
 
-class VsizeMax(_Node):
-    block: SeriesPattern20[VSize] = _at(SeriesPattern20, '*')
-    _6b: SeriesPattern20[VSize] = _at(SeriesPattern20, '*_6b')
-
-
-class EffectiveFeeRate(_Node, Generic[A, B]):
+class EffectiveFeeRate(_Node, Generic[A]):
     tx_index: SeriesPattern21[A] = _at(SeriesPattern21, '*')
-    min: B = _at(0, '*_min')
-    max: B = _at(0, '*_max')
-    pct10: B = _at(0, '*_pct10')
-    pct25: B = _at(0, '*_pct25')
-    median: B = _at(0, '*_median')
-    pct75: B = _at(0, '*_pct75')
-    pct90: B = _at(0, '*_pct90')
+    min: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_min')
+    max: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_max')
+    pct10: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_pct10')
+    pct25: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_pct25')
+    median: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_median')
+    pct75: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_pct75')
+    pct90: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_pct90')
 
 
 class TransactionsSize(_Node):
-    vsize: EffectiveFeeRate[VSize, VsizeMax] = _at((EffectiveFeeRate, VsizeMax), '*_vsize')
+    vsize: EffectiveFeeRate[VSize] = _at(EffectiveFeeRate, '*_vsize')
     weight: SizeWeight = _at(SizeWeight, '*_weight')
 
 
@@ -4029,6 +4024,12 @@ class ProfitabilityAll(_Node):
     loss_70_to_80_percent: Loss0To10Percent = _at(Loss0To10Percent, '*_loss_70_to_80_percent')
     loss_80_to_90_percent: Loss0To10Percent = _at(Loss0To10Percent, '*_loss_80_to_90_percent')
     loss_90_to_100_percent: Loss0To10Percent = _at(Loss0To10Percent, '*_loss_90_to_100_percent')
+
+
+class Profitability(_Node):
+    all: ProfitabilityAll = _at(ProfitabilityAll, '')
+    sth: ProfitabilityAll = _at(ProfitabilityAll, '*')
+    lth: ProfitabilityAll = _at(ProfitabilityAll, 'lth')
 
 
 class Sum(_Node):
@@ -4240,14 +4241,13 @@ class Ranges10yTo12ySupply(_Node):
 
 
 class Daily(_Node):
-    avg: InputsPerSecond[Optional[Percent]] = _at(InputsPerSecond, '*_avg')
-    sd: InputsPerSecond[Optional[Percent]] = _at(InputsPerSecond, '*_sd')
+    avg: InputsPerSecond[Optional[Percent]] = _at(InputsPerSecond, '*')
 
 
 class Returns(_Node):
     periods: Periods = _at(Periods, '*_return')
     cagr: Cagr = _at(Cagr, '*_cagr')
-    daily: Daily = _at(Daily, '*_return_24h')
+    daily: Daily = _at(Daily, '*_return_24h_avg')
 
 
 class Market(_Node):
@@ -4447,9 +4447,9 @@ class Pools(_Node):
 
 
 class DataBytes(_Node):
-    block: SeriesPattern20[Bytes] = _at(SeriesPattern20, '*_bytes')
-    cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_bytes_cumulative')
-    sum: InputsPerSecond[Bytes] = _at(InputsPerSecond, '*_bytes_sum')
+    block: SeriesPattern20[Bytes] = _at(SeriesPattern20, '*')
+    cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_cumulative')
+    sum: InputsPerSecond[Bytes] = _at(InputsPerSecond, '*_sum')
     chain_share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_chain_share')
 
 
@@ -4606,19 +4606,13 @@ class AddressesTypes(_Node):
     p2tr: P2pk = _at(P2pk, 'p2tr')
 
 
-class EmptyOutputs(_Node):
-    unspent_count: Funded[Count, CountSigned] = _at(Funded, '*_utxo_count')
-    spent_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_spent_utxo_count')
-    avg_amount: AvgBalance = _at(AvgBalance, '*_avg_utxo_amount')
-
-
 class Balances0satsRealized(_Node):
     profit: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_profit')
     loss: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_loss')
 
 
 class Balances0sats(_Node):
-    address_count: Funded[Count, CountSigned] = _at(Funded, '*_address_count')
+    funded: Funded[Count, CountSigned] = _at(Funded, '*_address_count')
     supply: AddressesSupply = _at(AddressesSupply, '*_supply')
     capital: AddressesCapital = _at(AddressesCapital, '*')
     outputs: Balances0satsOutputs = _at(Balances0satsOutputs, '*_utxo_count')
@@ -4674,26 +4668,26 @@ class Holders(_Node, Generic[A, B]):
     over_6m: B = _at(1, '*_over_6m_old')
 
 
-class Amounts0sats(_Node, Generic[A]):
+class Amounts0sats(_Node):
     supply: AddressesSupply = _at(AddressesSupply, '*_supply')
     capital: AddressesCapital = _at(AddressesCapital, '*')
-    outputs: A = _at(0, '*')
+    outputs: RookieOutputs = _at(RookieOutputs, '*')
     activity: Balances0satsActivity = _at(Balances0satsActivity, '*_transfer_volume')
     realized: Balances0satsRealized = _at(Balances0satsRealized, '*_realized')
     cost_basis: RookieCostBasis[Ranges10yTo12yCostBasisPerCoin] = _at((RookieCostBasis, Ranges10yTo12yCostBasisPerCoin), '*')
 
 
 class UtxosTypes(_Node):
-    p2pk: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2pk')
-    p2pkh: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2pkh')
-    p2ms: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2ms')
-    p2sh: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2sh')
-    p2wpkh: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2wpkh')
-    p2wsh: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2wsh')
-    p2tr: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2tr')
-    p2a: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'p2a')
-    unknown: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'unknown_*')
-    empty: Amounts0sats[EmptyOutputs] = _at((Amounts0sats, EmptyOutputs), 'empty_*')
+    p2pk: Amounts0sats = _at(Amounts0sats, 'p2pk')
+    p2pkh: Amounts0sats = _at(Amounts0sats, 'p2pkh')
+    p2ms: Amounts0sats = _at(Amounts0sats, 'p2ms')
+    p2sh: Amounts0sats = _at(Amounts0sats, 'p2sh')
+    p2wpkh: Amounts0sats = _at(Amounts0sats, 'p2wpkh')
+    p2wsh: Amounts0sats = _at(Amounts0sats, 'p2wsh')
+    p2tr: Amounts0sats = _at(Amounts0sats, 'p2tr')
+    p2a: Amounts0sats = _at(Amounts0sats, 'p2a')
+    unknown: Amounts0sats = _at(Amounts0sats, 'unknown_*')
+    empty: Amounts0sats = _at(Amounts0sats, 'empty_*')
 
 
 class Balances(_Node, Generic[A]):
@@ -4732,9 +4726,8 @@ class Addresses(_Node):
 
 
 class Utxos(_Node):
-    amounts: Balances[Amounts0sats[RookieOutputs]] = _at((Balances, (Amounts0sats, RookieOutputs)), '*')
+    amounts: Balances[Amounts0sats] = _at((Balances, Amounts0sats), '*')
     types: UtxosTypes = _at(UtxosTypes, 'output')
-    avg_amount: AvgBalance = _at(AvgBalance, 'avg_utxo_amount')
 
 
 class Classes2009(_Node):
@@ -4837,7 +4830,7 @@ class Age(_Node):
 
 class Multiple(_Node):
     output_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_output_count')
-    data_bytes: DataBytes = _at(DataBytes, '*_data')
+    data_bytes: DataBytes = _at(DataBytes, '*_data_bytes')
     tx_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_tx_count')
     tx_vsize: CoinblocksDestroyed[VSize] = _at(CoinblocksDestroyed, '*_tx_vsize')
     fees: OpReturnFees = _at(OpReturnFees, '*')
@@ -4878,7 +4871,7 @@ class Protocols(_Node):
 
 class OpReturn(_Node):
     output_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_output_count')
-    data_bytes: DataBytes = _at(DataBytes, '*_data')
+    data_bytes: DataBytes = _at(DataBytes, '*_data_bytes')
     tx_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_tx_count')
     tx_vsize: CoinblocksDestroyed[VSize] = _at(CoinblocksDestroyed, '*_tx_vsize')
     fees: OpReturnFees = _at(OpReturnFees, '*')
@@ -4927,9 +4920,9 @@ class FeesCount(_Node):
 
 class TransactionsFees(_Node):
     count: FeesCount = _at(FeesCount, 'tx_count')
-    fee: EffectiveFeeRate[Sats, EffectiveFeeRateMax[Sats]] = _at((EffectiveFeeRate, EffectiveFeeRateMax), 'tx_*')
+    fee: EffectiveFeeRate[Sats] = _at(EffectiveFeeRate, 'tx_*')
     fee_rate: SeriesPattern21[Optional[FeeRate]] = _at(SeriesPattern21, '*_rate')
-    effective_fee_rate: EffectiveFeeRate[Optional[FeeRate], EffectiveFeeRateMax[Optional[FeeRate]]] = _at((EffectiveFeeRate, EffectiveFeeRateMax), 'effective_*_rate')
+    effective_fee_rate: EffectiveFeeRate[Optional[FeeRate]] = _at(EffectiveFeeRate, 'effective_*_rate')
     is_cpfp_parent: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_cpfp_parent')
     is_cpfp_child: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_cpfp_child')
 
@@ -4980,7 +4973,7 @@ class OutputsTypes(_Node):
 
 
 class Outputs(_Node):
-    spent: Spent = _at(Spent, 'txin_index')
+    spent: Spent = _at(Spent, 'spending_txin_index')
     count: BlocksSize[Count, Count, Optional[CountFract], Count32] = _at(BlocksSize, '*_count')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, 'outputs_per_second')
     spendable_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'spendable_*_count')
@@ -5002,7 +4995,7 @@ class InputsTypes(_Node):
 
 
 class Inputs(_Node):
-    value: SeriesPattern22[Sats] = _at(SeriesPattern22, 'value')
+    value: SeriesPattern22[Sats] = _at(SeriesPattern22, '*_value')
     count: BlocksSize[Count, Count, Optional[CountFract], Count16] = _at(BlocksSize, '*_count')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, 'inputs_per_second')
     types: InputsTypes = _at(InputsTypes, '*')
@@ -5019,15 +5012,11 @@ class Blocks(_Node):
     halving: BlocksHalving = _at(BlocksHalving, 'halving')
 
 
-class Split(_Node):
+class Price(_Node):
     open: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_open')
     high: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_high')
     low: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_low')
     close: SeriesPattern4[Optional[Dollars]] = _at(SeriesPattern4, '*_close')
-
-
-class Price(_Node):
-    split: Split = _at(Split, '*')
     ohlc: SeriesPattern3[OHLCDollars] = _at(SeriesPattern3, '*_ohlc')
     spot: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     sats_per_dollar: SeriesPattern1[Sats] = _at(SeriesPattern1, 'sats_per_dollar')
@@ -5239,32 +5228,32 @@ class Mappings(_Node):
 
 class IndexerOpReturn(_Node):
     first_index: SeriesPattern20[OpReturnIndex] = _at(SeriesPattern20, 'first_*_index')
-    to_tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, 'tx_index')
+    tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, '*_tx_index')
     protocol: SeriesPattern25[OpReturnKind] = _at(SeriesPattern25, '*_protocol')
     post_op_return_bytes: SeriesPattern25[Bytes32] = _at(SeriesPattern25, '*_post_op_return_bytes')
 
 
 class ScriptsUnknown(_Node):
-    first_index: SeriesPattern20[UnknownOutputIndex] = _at(SeriesPattern20, 'first_unknown_output_*')
-    to_tx_index: SeriesPattern35[TxIndex] = _at(SeriesPattern35, 'tx_*')
-    legacy_sigops: SeriesPattern35[SigOps] = _at(SeriesPattern35, 'unknown_legacy_sigops')
+    first_index: SeriesPattern20[UnknownOutputIndex] = _at(SeriesPattern20, 'first_*_output_index')
+    tx_index: SeriesPattern35[TxIndex] = _at(SeriesPattern35, '*_output_tx_index')
+    legacy_sigops: SeriesPattern35[SigOps] = _at(SeriesPattern35, '*_legacy_sigops')
 
 
 class ScriptsP2ms(_Node):
-    first_index: SeriesPattern20[P2MSOutputIndex] = _at(SeriesPattern20, 'first_p2ms_output_*')
-    to_tx_index: SeriesPattern27[TxIndex] = _at(SeriesPattern27, 'tx_*')
-    legacy_sigops: SeriesPattern27[SigOps] = _at(SeriesPattern27, 'p2ms_legacy_sigops')
+    first_index: SeriesPattern20[P2MSOutputIndex] = _at(SeriesPattern20, 'first_*_output_index')
+    tx_index: SeriesPattern27[TxIndex] = _at(SeriesPattern27, '*_output_tx_index')
+    legacy_sigops: SeriesPattern27[SigOps] = _at(SeriesPattern27, '*_legacy_sigops')
 
 
 class ScriptsEmpty(_Node):
-    first_index: SeriesPattern20[EmptyOutputIndex] = _at(SeriesPattern20, 'first_empty_output_*')
-    to_tx_index: SeriesPattern24[TxIndex] = _at(SeriesPattern24, 'tx_*')
+    first_index: SeriesPattern20[EmptyOutputIndex] = _at(SeriesPattern20, 'first_*_index')
+    tx_index: SeriesPattern24[TxIndex] = _at(SeriesPattern24, '*_tx_index')
 
 
 class Scripts(_Node):
     empty: ScriptsEmpty = _at(ScriptsEmpty, '*')
-    p2ms: ScriptsP2ms = _at(ScriptsP2ms, '*')
-    unknown: ScriptsUnknown = _at(ScriptsUnknown, '*')
+    p2ms: ScriptsP2ms = _at(ScriptsP2ms, 'p2ms')
+    unknown: ScriptsUnknown = _at(ScriptsUnknown, 'unknown')
 
 
 class IndexerAddressesP2a(_Node):
@@ -5320,16 +5309,16 @@ class IndexerAddresses(_Node):
 
 class IndexerOutputs(_Node):
     first_txout_index: SeriesPattern20[TxOutIndex] = _at(SeriesPattern20, 'first_txout_index')
-    value: SeriesPattern23[Sats] = _at(SeriesPattern23, 'value')
-    output_type: SeriesPattern23[OutputType] = _at(SeriesPattern23, 'output_*')
-    type_index: SeriesPattern23[TypeIndex] = _at(SeriesPattern23, '*_index')
+    value: SeriesPattern23[Sats] = _at(SeriesPattern23, '*_value')
+    output_type: SeriesPattern23[OutputType] = _at(SeriesPattern23, '*_type')
+    type_index: SeriesPattern23[TypeIndex] = _at(SeriesPattern23, 'type_index')
 
 
 class IndexerInputs(_Node):
     first_txin_index: SeriesPattern20[TxInIndex] = _at(SeriesPattern20, 'first_txin_*')
     outpoint: SeriesPattern22[OutPoint] = _at(SeriesPattern22, 'outpoint')
-    txout_index: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, 'txout_*')
-    tx_index: SeriesPattern22[TxIndex] = _at(SeriesPattern22, 'tx_*')
+    txout_index: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, 'spent_txout_*')
+    tx_index: SeriesPattern22[TxIndex] = _at(SeriesPattern22, 'input_tx_*')
     output_type: SeriesPattern22[OutputType] = _at(SeriesPattern22, 'output_type')
     type_index: SeriesPattern22[TypeIndex] = _at(SeriesPattern22, 'type_*')
 
@@ -5405,15 +5394,15 @@ class IndexerBlocks(_Node):
 class Indexer(_Node):
     blocks: IndexerBlocks = _at(IndexerBlocks, 'segwit')
     transactions: IndexerTransactions = _at(IndexerTransactions, 'tx')
-    inputs: IndexerInputs = _at(IndexerInputs, '*')
-    outputs: IndexerOutputs = _at(IndexerOutputs, 'type')
+    inputs: IndexerInputs = _at(IndexerInputs, 'index')
+    outputs: IndexerOutputs = _at(IndexerOutputs, '*')
     addresses: IndexerAddresses = _at(IndexerAddresses, 'p2pk65')
-    scripts: Scripts = _at(Scripts, '*')
+    scripts: Scripts = _at(Scripts, 'empty_*')
     op_return: IndexerOpReturn = _at(IndexerOpReturn, 'op_return')
 
 
 class SeriesTree(_Node):
-    indexer: Indexer = _at(Indexer, 'index')
+    indexer: Indexer = _at(Indexer, 'output')
     mappings: Mappings = _at(Mappings, 'date')
     price: Price = _at(Price, 'price')
     blocks: Blocks = _at(Blocks, 'block')
@@ -5430,7 +5419,7 @@ class SeriesTree(_Node):
     addresses: Addresses = _at(Addresses, 'address')
     holders: Holders[Rookie[AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis], Rookie[LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis]] = _at((Holders, (Rookie, AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis), (Rookie, LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis)), 'utxos')
     entry: Entry = _at(Entry, 'veteran')
-    profitability: Holders[ProfitabilityAll, ProfitabilityAll] = _at((Holders, ProfitabilityAll, ProfitabilityAll), 'utxos')
+    profitability: Profitability = _at(Profitability, 'sth')
     supply: Supply = _at(Supply, 'circulating_supply')
     indicators: Indicators = _at(Indicators, 'destroyed_supply_adjusted')
     cointime: Cointime = _at(Cointime, 'utxos')

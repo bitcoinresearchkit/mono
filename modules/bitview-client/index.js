@@ -4210,49 +4210,37 @@ const _SizeWeight = _s({
 });
 
 /**
- * @typedef {{
- *   block: SeriesPattern20<VSize>,
- *   _6b: SeriesPattern20<VSize>,
- * }} VsizeMax
- */
-const _VsizeMax = _s({
-  block: [_i20, '*'],
-  _6b: [_i20, '*_6b'],
-});
-
-/**
- * @template A, B
+ * @template A
  * @typedef {{
  *   txIndex: SeriesPattern21<A>,
- *   min: B,
- *   max: B,
- *   pct10: B,
- *   pct25: B,
- *   median: B,
- *   pct75: B,
- *   pct90: B,
+ *   min: EffectiveFeeRateMax<A>,
+ *   max: EffectiveFeeRateMax<A>,
+ *   pct10: EffectiveFeeRateMax<A>,
+ *   pct25: EffectiveFeeRateMax<A>,
+ *   median: EffectiveFeeRateMax<A>,
+ *   pct75: EffectiveFeeRateMax<A>,
+ *   pct90: EffectiveFeeRateMax<A>,
  * }} EffectiveFeeRate
  */
-/** @type {_Make} */
-const _EffectiveFeeRate = (c, b, f0) => _n(c, b, {
+const _EffectiveFeeRate = _s({
   txIndex: [_i21, '*'],
-  min: [f0, '*_min'],
-  max: [f0, '*_max'],
-  pct10: [f0, '*_pct10'],
-  pct25: [f0, '*_pct25'],
-  median: [f0, '*_median'],
-  pct75: [f0, '*_pct75'],
-  pct90: [f0, '*_pct90'],
+  min: [_EffectiveFeeRateMax, '*_min'],
+  max: [_EffectiveFeeRateMax, '*_max'],
+  pct10: [_EffectiveFeeRateMax, '*_pct10'],
+  pct25: [_EffectiveFeeRateMax, '*_pct25'],
+  median: [_EffectiveFeeRateMax, '*_median'],
+  pct75: [_EffectiveFeeRateMax, '*_pct75'],
+  pct90: [_EffectiveFeeRateMax, '*_pct90'],
 });
 
 /**
  * @typedef {{
- *   vsize: EffectiveFeeRate<VSize, VsizeMax>,
+ *   vsize: EffectiveFeeRate<VSize>,
  *   weight: SizeWeight,
  * }} TransactionsSize
  */
 const _TransactionsSize = _s({
-  vsize: [(c, b) => _EffectiveFeeRate(c, b, _VsizeMax), '*_vsize'],
+  vsize: [_EffectiveFeeRate, '*_vsize'],
   weight: [_SizeWeight, '*_weight'],
 });
 
@@ -4431,6 +4419,19 @@ const _ProfitabilityAll = _s({
   loss70To80Percent: [_Loss0To10Percent, '*_loss_70_to_80_percent'],
   loss80To90Percent: [_Loss0To10Percent, '*_loss_80_to_90_percent'],
   loss90To100Percent: [_Loss0To10Percent, '*_loss_90_to_100_percent'],
+});
+
+/**
+ * @typedef {{
+ *   all: ProfitabilityAll,
+ *   sth: ProfitabilityAll,
+ *   lth: ProfitabilityAll,
+ * }} Profitability
+ */
+const _Profitability = _s({
+  all: [_ProfitabilityAll, ''],
+  sth: [_ProfitabilityAll, '*'],
+  lth: [_ProfitabilityAll, 'lth'],
 });
 
 /**
@@ -4885,12 +4886,10 @@ const _Ranges10yTo12ySupply = _s({
 /**
  * @typedef {{
  *   avg: InputsPerSecond<?Percent>,
- *   sd: InputsPerSecond<?Percent>,
  * }} Daily
  */
 const _Daily = _s({
-  avg: [_InputsPerSecond, '*_avg'],
-  sd: [_InputsPerSecond, '*_sd'],
+  avg: [_InputsPerSecond, '*'],
 });
 
 /**
@@ -4903,7 +4902,7 @@ const _Daily = _s({
 const _Returns = _s({
   periods: [_Periods, '*_return'],
   cagr: [_Cagr, '*_cagr'],
-  daily: [_Daily, '*_return_24h'],
+  daily: [_Daily, '*_return_24h_avg'],
 });
 
 /**
@@ -5311,9 +5310,9 @@ const _Pools = _s({
  * }} DataBytes
  */
 const _DataBytes = _s({
-  block: [_i20, '*_bytes'],
-  cumulative: [_i1, '*_bytes_cumulative'],
-  sum: [_InputsPerSecond, '*_bytes_sum'],
+  block: [_i20, '*'],
+  cumulative: [_i1, '*_cumulative'],
+  sum: [_InputsPerSecond, '*_sum'],
   chainShare: [_i1, '*_chain_share'],
 });
 
@@ -5649,19 +5648,6 @@ const _AddressesTypes = _s({
 
 /**
  * @typedef {{
- *   unspentCount: Funded<Count, CountSigned>,
- *   spentCount: CoinblocksDestroyed<Count>,
- *   avgAmount: AvgBalance,
- * }} EmptyOutputs
- */
-const _EmptyOutputs = _s({
-  unspentCount: [_Funded, '*_utxo_count'],
-  spentCount: [_CoinblocksDestroyed, '*_spent_utxo_count'],
-  avgAmount: [_AvgBalance, '*_avg_utxo_amount'],
-});
-
-/**
- * @typedef {{
  *   profit: CoinblocksDestroyed<?Dollars>,
  *   loss: CoinblocksDestroyed<?Dollars>,
  * }} Balances0satsRealized
@@ -5673,7 +5659,7 @@ const _Balances0satsRealized = _s({
 
 /**
  * @typedef {{
- *   addressCount: Funded<Count, CountSigned>,
+ *   funded: Funded<Count, CountSigned>,
  *   supply: AddressesSupply,
  *   capital: AddressesCapital,
  *   outputs: Balances0satsOutputs,
@@ -5682,7 +5668,7 @@ const _Balances0satsRealized = _s({
  * }} Balances0sats
  */
 const _Balances0sats = _s({
-  addressCount: [_Funded, '*_address_count'],
+  funded: [_Funded, '*_address_count'],
   supply: [_AddressesSupply, '*_supply'],
   capital: [_AddressesCapital, '*'],
   outputs: [_Balances0satsOutputs, '*_utxo_count'],
@@ -5798,21 +5784,19 @@ const _Holders = (c, b, f0, f1) => _n(c, b, {
 });
 
 /**
- * @template A
  * @typedef {{
  *   supply: AddressesSupply,
  *   capital: AddressesCapital,
- *   outputs: A,
+ *   outputs: RookieOutputs,
  *   activity: Balances0satsActivity,
  *   realized: Balances0satsRealized,
  *   costBasis: RookieCostBasis<Ranges10yTo12yCostBasisPerCoin>,
  * }} Amounts0sats
  */
-/** @type {_Make} */
-const _Amounts0sats = (c, b, f0) => _n(c, b, {
+const _Amounts0sats = _s({
   supply: [_AddressesSupply, '*_supply'],
   capital: [_AddressesCapital, '*'],
-  outputs: [f0, '*'],
+  outputs: [_RookieOutputs, '*'],
   activity: [_Balances0satsActivity, '*_transfer_volume'],
   realized: [_Balances0satsRealized, '*_realized'],
   costBasis: [(c, b) => _RookieCostBasis(c, b, _Ranges10yTo12yCostBasisPerCoin), '*'],
@@ -5820,29 +5804,29 @@ const _Amounts0sats = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   p2pk: Amounts0sats<EmptyOutputs>,
- *   p2pkh: Amounts0sats<EmptyOutputs>,
- *   p2ms: Amounts0sats<EmptyOutputs>,
- *   p2sh: Amounts0sats<EmptyOutputs>,
- *   p2wpkh: Amounts0sats<EmptyOutputs>,
- *   p2wsh: Amounts0sats<EmptyOutputs>,
- *   p2tr: Amounts0sats<EmptyOutputs>,
- *   p2a: Amounts0sats<EmptyOutputs>,
- *   unknown: Amounts0sats<EmptyOutputs>,
- *   empty: Amounts0sats<EmptyOutputs>,
+ *   p2pk: Amounts0sats,
+ *   p2pkh: Amounts0sats,
+ *   p2ms: Amounts0sats,
+ *   p2sh: Amounts0sats,
+ *   p2wpkh: Amounts0sats,
+ *   p2wsh: Amounts0sats,
+ *   p2tr: Amounts0sats,
+ *   p2a: Amounts0sats,
+ *   unknown: Amounts0sats,
+ *   empty: Amounts0sats,
  * }} UtxosTypes
  */
 const _UtxosTypes = _s({
-  p2pk: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2pk'],
-  p2pkh: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2pkh'],
-  p2ms: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2ms'],
-  p2sh: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2sh'],
-  p2wpkh: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2wpkh'],
-  p2wsh: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2wsh'],
-  p2tr: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2tr'],
-  p2a: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'p2a'],
-  unknown: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'unknown_*'],
-  empty: [(c, b) => _Amounts0sats(c, b, _EmptyOutputs), 'empty_*'],
+  p2pk: [_Amounts0sats, 'p2pk'],
+  p2pkh: [_Amounts0sats, 'p2pkh'],
+  p2ms: [_Amounts0sats, 'p2ms'],
+  p2sh: [_Amounts0sats, 'p2sh'],
+  p2wpkh: [_Amounts0sats, 'p2wpkh'],
+  p2wsh: [_Amounts0sats, 'p2wsh'],
+  p2tr: [_Amounts0sats, 'p2tr'],
+  p2a: [_Amounts0sats, 'p2a'],
+  unknown: [_Amounts0sats, 'unknown_*'],
+  empty: [_Amounts0sats, 'empty_*'],
 });
 
 /**
@@ -5921,15 +5905,13 @@ const _Addresses = _s({
 
 /**
  * @typedef {{
- *   amounts: Balances<Amounts0sats<RookieOutputs>>,
+ *   amounts: Balances<Amounts0sats>,
  *   types: UtxosTypes,
- *   avgAmount: AvgBalance,
  * }} Utxos
  */
 const _Utxos = _s({
-  amounts: [(c, b) => _Balances(c, b, (c, b) => _Amounts0sats(c, b, _RookieOutputs)), '*'],
+  amounts: [(c, b) => _Balances(c, b, _Amounts0sats), '*'],
   types: [_UtxosTypes, 'output'],
-  avgAmount: [_AvgBalance, 'avg_utxo_amount'],
 });
 
 /**
@@ -6149,7 +6131,7 @@ const _Age = _s({
  */
 const _Multiple = _s({
   outputCount: [_CoinblocksDestroyed, '*_output_count'],
-  dataBytes: [_DataBytes, '*_data'],
+  dataBytes: [_DataBytes, '*_data_bytes'],
   txCount: [_CoinblocksDestroyed, '*_tx_count'],
   txVsize: [_CoinblocksDestroyed, '*_tx_vsize'],
   fees: [_OpReturnFees, '*'],
@@ -6236,7 +6218,7 @@ const _Protocols = _s({
  */
 const _OpReturn = _s({
   outputCount: [_CoinblocksDestroyed, '*_output_count'],
-  dataBytes: [_DataBytes, '*_data'],
+  dataBytes: [_DataBytes, '*_data_bytes'],
   txCount: [_CoinblocksDestroyed, '*_tx_count'],
   txVsize: [_CoinblocksDestroyed, '*_tx_vsize'],
   fees: [_OpReturnFees, '*'],
@@ -6332,18 +6314,18 @@ const _FeesCount = _s({
 /**
  * @typedef {{
  *   count: FeesCount,
- *   fee: EffectiveFeeRate<Sats, EffectiveFeeRateMax<Sats>>,
+ *   fee: EffectiveFeeRate<Sats>,
  *   feeRate: SeriesPattern21<?FeeRate>,
- *   effectiveFeeRate: EffectiveFeeRate<?FeeRate, EffectiveFeeRateMax<?FeeRate>>,
+ *   effectiveFeeRate: EffectiveFeeRate<?FeeRate>,
  *   isCpfpParent: SeriesPattern21<Boolean>,
  *   isCpfpChild: SeriesPattern21<Boolean>,
  * }} TransactionsFees
  */
 const _TransactionsFees = _s({
   count: [_FeesCount, 'tx_count'],
-  fee: [(c, b) => _EffectiveFeeRate(c, b, _EffectiveFeeRateMax), 'tx_*'],
+  fee: [_EffectiveFeeRate, 'tx_*'],
   feeRate: [_i21, '*_rate'],
-  effectiveFeeRate: [(c, b) => _EffectiveFeeRate(c, b, _EffectiveFeeRateMax), 'effective_*_rate'],
+  effectiveFeeRate: [_EffectiveFeeRate, 'effective_*_rate'],
   isCpfpParent: [_i21, 'is_cpfp_parent'],
   isCpfpChild: [_i21, 'is_cpfp_child'],
 });
@@ -6453,7 +6435,7 @@ const _OutputsTypes = _s({
  * }} Outputs
  */
 const _Outputs = _s({
-  spent: [_Spent, 'txin_index'],
+  spent: [_Spent, 'spending_txin_index'],
   count: [_BlocksSize, '*_count'],
   perSecond: [_InputsPerSecond, 'outputs_per_second'],
   spendableCount: [_CoinblocksDestroyed, 'spendable_*_count'],
@@ -6497,7 +6479,7 @@ const _InputsTypes = _s({
  * }} Inputs
  */
 const _Inputs = _s({
-  value: [_i22, 'value'],
+  value: [_i22, '*_value'],
   count: [_BlocksSize, '*_count'],
   perSecond: [_InputsPerSecond, 'inputs_per_second'],
   types: [_InputsTypes, '*'],
@@ -6532,25 +6514,16 @@ const _Blocks = _s({
  *   high: SeriesPattern3<?Dollars>,
  *   low: SeriesPattern3<?Dollars>,
  *   close: SeriesPattern4<?Dollars>,
- * }} Split
- */
-const _Split = _s({
-  open: [_i3, '*_open'],
-  high: [_i3, '*_high'],
-  low: [_i3, '*_low'],
-  close: [_i4, '*_close'],
-});
-
-/**
- * @typedef {{
- *   split: Split,
  *   ohlc: SeriesPattern3<OHLCDollars>,
  *   spot: SeriesPattern1<?Dollars>,
  *   satsPerDollar: SeriesPattern1<Sats>,
  * }} Price
  */
 const _Price = _s({
-  split: [_Split, '*'],
+  open: [_i3, '*_open'],
+  high: [_i3, '*_high'],
+  low: [_i3, '*_low'],
+  close: [_i4, '*_close'],
   ohlc: [_i3, '*_ohlc'],
   spot: [_i1, '*'],
   satsPerDollar: [_i1, 'sats_per_dollar'],
@@ -7002,14 +6975,14 @@ const _Mappings = _s({
 /**
  * @typedef {{
  *   firstIndex: SeriesPattern20<OpReturnIndex>,
- *   toTxIndex: SeriesPattern25<TxIndex>,
+ *   txIndex: SeriesPattern25<TxIndex>,
  *   protocol: SeriesPattern25<OpReturnKind>,
  *   postOpReturnBytes: SeriesPattern25<Bytes32>,
  * }} IndexerOpReturn
  */
 const _IndexerOpReturn = _s({
   firstIndex: [_i20, 'first_*_index'],
-  toTxIndex: [_i25, 'tx_index'],
+  txIndex: [_i25, '*_tx_index'],
   protocol: [_i25, '*_protocol'],
   postOpReturnBytes: [_i25, '*_post_op_return_bytes'],
 });
@@ -7017,38 +6990,38 @@ const _IndexerOpReturn = _s({
 /**
  * @typedef {{
  *   firstIndex: SeriesPattern20<UnknownOutputIndex>,
- *   toTxIndex: SeriesPattern35<TxIndex>,
+ *   txIndex: SeriesPattern35<TxIndex>,
  *   legacySigops: SeriesPattern35<SigOps>,
  * }} ScriptsUnknown
  */
 const _ScriptsUnknown = _s({
-  firstIndex: [_i20, 'first_unknown_output_*'],
-  toTxIndex: [_i35, 'tx_*'],
-  legacySigops: [_i35, 'unknown_legacy_sigops'],
+  firstIndex: [_i20, 'first_*_output_index'],
+  txIndex: [_i35, '*_output_tx_index'],
+  legacySigops: [_i35, '*_legacy_sigops'],
 });
 
 /**
  * @typedef {{
  *   firstIndex: SeriesPattern20<P2MSOutputIndex>,
- *   toTxIndex: SeriesPattern27<TxIndex>,
+ *   txIndex: SeriesPattern27<TxIndex>,
  *   legacySigops: SeriesPattern27<SigOps>,
  * }} ScriptsP2ms
  */
 const _ScriptsP2ms = _s({
-  firstIndex: [_i20, 'first_p2ms_output_*'],
-  toTxIndex: [_i27, 'tx_*'],
-  legacySigops: [_i27, 'p2ms_legacy_sigops'],
+  firstIndex: [_i20, 'first_*_output_index'],
+  txIndex: [_i27, '*_output_tx_index'],
+  legacySigops: [_i27, '*_legacy_sigops'],
 });
 
 /**
  * @typedef {{
  *   firstIndex: SeriesPattern20<EmptyOutputIndex>,
- *   toTxIndex: SeriesPattern24<TxIndex>,
+ *   txIndex: SeriesPattern24<TxIndex>,
  * }} ScriptsEmpty
  */
 const _ScriptsEmpty = _s({
-  firstIndex: [_i20, 'first_empty_output_*'],
-  toTxIndex: [_i24, 'tx_*'],
+  firstIndex: [_i20, 'first_*_index'],
+  txIndex: [_i24, '*_tx_index'],
 });
 
 /**
@@ -7060,8 +7033,8 @@ const _ScriptsEmpty = _s({
  */
 const _Scripts = _s({
   empty: [_ScriptsEmpty, '*'],
-  p2ms: [_ScriptsP2ms, '*'],
-  unknown: [_ScriptsUnknown, '*'],
+  p2ms: [_ScriptsP2ms, 'p2ms'],
+  unknown: [_ScriptsUnknown, 'unknown'],
 });
 
 /**
@@ -7185,9 +7158,9 @@ const _IndexerAddresses = _s({
  */
 const _IndexerOutputs = _s({
   firstTxoutIndex: [_i20, 'first_txout_index'],
-  value: [_i23, 'value'],
-  outputType: [_i23, 'output_*'],
-  typeIndex: [_i23, '*_index'],
+  value: [_i23, '*_value'],
+  outputType: [_i23, '*_type'],
+  typeIndex: [_i23, 'type_index'],
 });
 
 /**
@@ -7203,8 +7176,8 @@ const _IndexerOutputs = _s({
 const _IndexerInputs = _s({
   firstTxinIndex: [_i20, 'first_txin_*'],
   outpoint: [_i22, 'outpoint'],
-  txoutIndex: [_i22, 'txout_*'],
-  txIndex: [_i22, 'tx_*'],
+  txoutIndex: [_i22, 'spent_txout_*'],
+  txIndex: [_i22, 'input_tx_*'],
   outputType: [_i22, 'output_type'],
   typeIndex: [_i22, 'type_*'],
 });
@@ -7363,10 +7336,10 @@ const _IndexerBlocks = _s({
 const _Indexer = _s({
   blocks: [_IndexerBlocks, 'segwit'],
   transactions: [_IndexerTransactions, 'tx'],
-  inputs: [_IndexerInputs, '*'],
-  outputs: [_IndexerOutputs, 'type'],
+  inputs: [_IndexerInputs, 'index'],
+  outputs: [_IndexerOutputs, '*'],
   addresses: [_IndexerAddresses, 'p2pk65'],
-  scripts: [_Scripts, '*'],
+  scripts: [_Scripts, 'empty_*'],
   opReturn: [_IndexerOpReturn, 'op_return'],
 });
 
@@ -7389,7 +7362,7 @@ const _Indexer = _s({
  *   addresses: Addresses,
  *   holders: Holders<Rookie<AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>, Rookie<LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>>,
  *   entry: Entry,
- *   profitability: Holders<ProfitabilityAll, ProfitabilityAll>,
+ *   profitability: Profitability,
  *   supply: Supply,
  *   indicators: Indicators,
  *   cointime: Cointime,
@@ -7400,7 +7373,7 @@ const _Indexer = _s({
  * }} SeriesTree
  */
 const _SeriesTree = _s({
-  indexer: [_Indexer, 'index'],
+  indexer: [_Indexer, 'output'],
   mappings: [_Mappings, 'date'],
   price: [_Price, 'price'],
   blocks: [_Blocks, 'block'],
@@ -7417,7 +7390,7 @@ const _SeriesTree = _s({
   addresses: [_Addresses, 'address'],
   holders: [(c, b) => _Holders(c, b, (c, b) => _Rookie(c, b, _AllSupply, _AllCapital, _AllActivity, _AllRealized, _AllUnrealized, _AllCostBasis), (c, b) => _Rookie(c, b, _LthSupply, _AllCapital, _AllActivity, _AllRealized, _AllUnrealized, _AllCostBasis)), 'utxos'],
   entry: [_Entry, 'veteran'],
-  profitability: [(c, b) => _Holders(c, b, _ProfitabilityAll, _ProfitabilityAll), 'utxos'],
+  profitability: [_Profitability, 'sth'],
   supply: [_Supply, 'circulating_supply'],
   indicators: [_Indicators, 'destroyed_supply_adjusted'],
   cointime: [_Cointime, 'utxos'],

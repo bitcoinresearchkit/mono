@@ -36,8 +36,7 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// Wakefulness: cumulative coin days consumed from the range divided by
     /// cumulative coin days created in it. Higher values mean more of the
     /// holding time accumulated in the range has been consumed by spending.
-    /// The source is floored at bounded scale 4,294,967,294; cumulative coin-day
-    /// inputs remain full precision.
+    /// Precise to about one part in four billion.
     pub wakefulness: LazyPerBlock<Ratio64, BoundedRatio>,
     /// Awake supply divided by dormant supply, `wakefulness / (1 - wakefulness)`:
     /// above one, more of the range's holding time was consumed than stored.

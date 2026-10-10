@@ -37,9 +37,9 @@ impl ScriptsVecs {
             first_empty_output_index = PcoVec::import(db, "first_empty_output_index", version),
             first_p2ms_output_index = PcoVec::import(db, "first_p2ms_output_index", version),
             first_unknown_output_index = PcoVec::import(db, "first_unknown_output_index", version),
-            empty_output_index_to_tx_index = PcoVec::import(db, "tx_index", version),
-            p2ms_output_index_to_tx_index = PcoVec::import(db, "tx_index", version),
-            unknown_output_index_to_tx_index = PcoVec::import(db, "tx_index", version),
+            empty_output_index_to_tx_index = PcoVec::import(db, "empty_output_tx_index", version),
+            p2ms_output_index_to_tx_index = PcoVec::import(db, "p2ms_output_tx_index", version),
+            unknown_output_index_to_tx_index = PcoVec::import(db, "unknown_output_tx_index", version),
             p2ms_legacy_sigops = BytesVec::import(db, "p2ms_legacy_sigops", version),
             unknown_legacy_sigops = BytesVec::import(db, "unknown_legacy_sigops", version),
         };

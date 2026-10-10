@@ -32,8 +32,8 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// spent, one minus exp of negative spending exposure. Nonpositive or NaN
     /// exposure returns zero; positive results are capped just below one. A
     /// value near zero identifies supply unlikely to move, while a value near
-    /// one identifies supply likely to move eventually. The source is floored
-    /// at bounded scale 4,294,967,294.
+    /// one identifies supply likely to move eventually. Precise to about one part
+    /// in four billion.
     pub mobility: LazyPerBlock<Ratio64, BoundedRatio>,
     /// The range weighted by its mobility.
     pub mobile: SideVecs,

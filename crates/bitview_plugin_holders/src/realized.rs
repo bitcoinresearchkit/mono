@@ -16,14 +16,23 @@ use crate::{activity::Activity, adjusted_sopr::AdjustedSopr, columns::Columns};
 
 #[derive(Traversable)]
 pub struct Realized<M: StorageMode = Rw> {
+    /// Profit realized by the cohort's outputs: spending value minus
+    /// creation-date value, counted only for profitable spends.
     pub profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    /// Loss realized by the cohort's outputs: creation-date value minus
+    /// spending value, counted only for losing spends.
     pub loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    /// Net realized profit and loss of the cohort's outputs when spent:
+    /// realized profit minus realized loss.
     pub net_pnl: LazyFiatPerBlockCumulativeWithSums<CentsSigned>,
+    /// Gross realized profit and loss: realized profit plus realized loss.
     pub gross_pnl: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Realized profit divided by realized loss over the window.
     pub profit_to_loss: RollingWindows<Ratio, M>,
     /// Creation-time value of the outputs spent.
     pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    /// Peak regret: the value sellers forgo relative to each spent output's
+    /// highest spot price from its creation block through its spending block.
     pub peak_regret: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Spent output profit ratio (SOPR): spend-time value of the outputs spent over the
     /// window divided by their creation-time value.

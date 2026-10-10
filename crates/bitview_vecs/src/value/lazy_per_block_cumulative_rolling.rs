@@ -9,8 +9,7 @@ use crate::{
 
 #[derive(Clone, Traversable)]
 pub struct LazyValuePerBlockCumulativeRolling {
-    /// Value for the represented block. At time-period indexes, the value is
-    /// taken from the period's final block.
+    /// Value for the represented block.
     pub block: LazyValueBlock,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.

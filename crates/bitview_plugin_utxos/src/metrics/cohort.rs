@@ -9,13 +9,10 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, LazyWindowStartVec, import_cached};
+use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
-use brk_types::{Cents, Height, Sats, Version};
-use derive_more::{Deref, DerefMut};
-use vecdb::{
-    AnyStoredVec, BinaryTransform, Database, ReadableBoxedVec, Rw, StorageMode, WritableVec,
-};
+use brk_types::{Cents, Height, Version};
+use vecdb::{AnyStoredVec, BinaryTransform, Database, ReadableBoxedVec, Rw, StorageMode};
 
 type State = UTXOCohortState<MinimalRealizedState, ()>;
 
@@ -155,60 +152,5 @@ impl CohortVecs {
             self.cost_basis.stored_mut(),
         ]
         .into_iter()
-    }
-}
-
-/// One spendable output type: a UTXO cohort plus its mean unspent output value.
-#[derive(Deref, DerefMut, Traversable)]
-pub struct TypeVecs<M: StorageMode = Rw> {
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    pub cohort: CohortVecs<M>,
-    /// Mean unspent output value, calculated from the same block's supply and
-    /// count.
-    #[traversable(wrap = "outputs", rename = "avg_amount")]
-    pub avg_amount: LazySpotValuePerBlock,
-    #[traversable(hidden)]
-    avg_amount_sats: CachedSeries<Height, Sats, M>,
-}
-
-impl TypeVecs {
-    pub fn import(
-        db: &Database,
-        cohort: CohortId,
-        version: Version,
-        mappings: &MappingsVecs,
-        windows: &Windows<&LazyWindowStartVec>,
-        spot: &ReadableBoxedVec<Height, Cents>,
-        totals: ShareTotals<'_>,
-    ) -> Result<Self> {
-        let name = cohort.name();
-        let avg_amount_sats = import_cached(db, &format!("{name}_avg_utxo_amount_sats"), version)?;
-        let avg_amount = LazySpotValuePerBlock::from_sats_source(
-            &format!("{name}_avg_utxo_amount"),
-            version,
-            &avg_amount_sats,
-            mappings,
-            spot,
-        );
-        Ok(Self {
-            cohort: CohortVecs::import(db, cohort, version, mappings, windows, spot, totals)?,
-            avg_amount,
-            avg_amount_sats,
-        })
-    }
-
-    #[inline(always)]
-    pub fn push(&mut self, state: &State, price: Cents) {
-        self.cohort.push(state, price);
-        let (unspent, _) = state.output_counts();
-        self.avg_amount_sats.push(state.supply_value() / unspent);
-    }
-
-    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.cohort
-            .stored_vecs_mut()
-            .chain([&mut self.avg_amount_sats as &mut dyn AnyStoredVec])
     }
 }

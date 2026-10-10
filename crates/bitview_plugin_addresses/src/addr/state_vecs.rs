@@ -32,15 +32,43 @@ const FUNDED_DATA_VERSION: Version = Version::new(3);
 /// shared sidecars.
 #[derive(Traversable)]
 pub struct AddrStateVecs<M: StorageMode = Rw> {
+    /// Each address's state, one four-byte record per address index: a funded
+    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
+    /// or an empty address's lifetime totals inline.
     pub p2a: M::Stored<MutableVec<BytesVec<P2AAddrIndex, AddrState>>>,
+    /// Each address's state, one four-byte record per address index: a funded
+    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
+    /// or an empty address's lifetime totals inline.
     pub p2pk33: M::Stored<MutableVec<BytesVec<P2PK33AddrIndex, AddrState>>>,
+    /// Each address's state, one four-byte record per address index: a funded
+    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
+    /// or an empty address's lifetime totals inline.
     pub p2pk65: M::Stored<MutableVec<BytesVec<P2PK65AddrIndex, AddrState>>>,
+    /// Each address's state, one four-byte record per address index: a funded
+    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
+    /// or an empty address's lifetime totals inline.
     pub p2pkh: M::Stored<MutableVec<BytesVec<P2PKHAddrIndex, AddrState>>>,
+    /// Each address's state, one four-byte record per address index: a funded
+    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
+    /// or an empty address's lifetime totals inline.
     pub p2sh: M::Stored<MutableVec<BytesVec<P2SHAddrIndex, AddrState>>>,
+    /// Each address's state, one four-byte record per address index: a funded
+    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
+    /// or an empty address's lifetime totals inline.
     pub p2tr: M::Stored<MutableVec<BytesVec<P2TRAddrIndex, AddrState>>>,
+    /// Each address's state, one four-byte record per address index: a funded
+    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
+    /// or an empty address's lifetime totals inline.
     pub p2wpkh: M::Stored<MutableVec<BytesVec<P2WPKHAddrIndex, AddrState>>>,
+    /// Each address's state, one four-byte record per address index: a funded
+    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
+    /// or an empty address's lifetime totals inline.
     pub p2wsh: M::Stored<MutableVec<BytesVec<P2WSHAddrIndex, AddrState>>>,
+    /// Funded addresses' data (received, sent, capital and transaction and output counts), by
+    /// the slot their state points to.
     pub funded: M::Stored<OverflowVec<FundedAddrIndex, FundedAddrData>>,
+    /// Empty addresses' lifetime totals that do not fit inline in their state, by
+    /// the slot their state points to.
     pub extended_empty: M::Stored<OverflowVec<ExtendedEmptyAddrIndex, EmptyAddrData>>,
 }
 

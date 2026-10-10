@@ -46,7 +46,7 @@ impl Density<PartsPerMillion32> {
         in_loss: PartsPerMillion32::NAN,
     };
 
-    /// Shares of `total` in the band's profit and loss halves; NaN when `total` is zero.
+    /// Shares of `total` in the band's profit and loss halves; null when `total` is zero.
     pub fn from_sums(total: u128, profit: u128, loss: u128) -> Self {
         if total == 0 {
             return Self::NAN;
