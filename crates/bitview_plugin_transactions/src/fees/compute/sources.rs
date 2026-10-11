@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Index40, TxInIndex, TxOutIndex};
-use brk_types::{Height, OutPoint, Sats, TxIndex, Weight};
+use brk_types::{Height, OutPoint, Sats, TxIndex, Weight32};
 use vecdb::{Budgeted, BytesVec, OverflowVec, PcoVec};
 
 /// Only the raw columns needed by the fee pass; no indexer lifecycle state.
@@ -11,7 +11,7 @@ pub(super) struct Sources<'a> {
     pub block_outputs: &'a PcoVec<Height, TxOutIndex, Budgeted>,
     pub tx_inputs: &'a PcoVec<TxIndex, TxInIndex>,
     pub tx_outputs: &'a BytesVec<TxIndex, Index40<TxOutIndex>>,
-    pub weights: &'a PcoVec<TxIndex, Weight>,
+    pub weights: &'a PcoVec<TxIndex, Weight32>,
     pub outpoints: &'a PcoVec<TxInIndex, OutPoint>,
     pub values: &'a OverflowVec<TxOutIndex, Sats>,
 }

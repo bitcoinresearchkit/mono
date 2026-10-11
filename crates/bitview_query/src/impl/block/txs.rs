@@ -3,7 +3,7 @@ use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use bitview_types::BlockTxIndex;
 use brk_types::{
-    BlkPosition, Height, OutPoint, OutputType, RawLockTime, Sats, SigOps, Transaction, TxIn,
+    BlkPosition, Height, OutPoint, OutputType, RawLockTime, Sats, SigOps32, Transaction, TxIn,
     TxIndex, TxOut, TxStatus, Txid, Vout, Weight,
 };
 use rustc_hash::FxHashMap;
@@ -115,7 +115,7 @@ impl Query {
             tx_index: TxIndex,
             txid: Txid,
             total_size: Bytes32,
-            total_sigop_cost: SigOps,
+            total_sigop_cost: SigOps32,
             status: TxStatus,
             decoded: BitcoinTransaction,
             first_txin_index: TxInIndex,
@@ -133,7 +133,7 @@ impl Query {
 
             let txid: Txid = txids.try_get_at(idx).data()?;
             let total_size: Bytes32 = total_size_cursor.get(idx).data()?;
-            let total_sigop_cost: SigOps = sigops_cursor.get(idx).data()?;
+            let total_sigop_cost: SigOps32 = sigops_cursor.get(idx).data()?;
             let first_txin_index: TxInIndex = first_txin_cursor.get(idx).data()?;
             let position: BlkPosition = position_cursor.get(idx).data()?;
 
@@ -298,7 +298,7 @@ impl Query {
                 lock_time: RawLockTime::from(dtx.decoded.lock_time),
                 total_size: *dtx.total_size as usize,
                 weight,
-                total_sigop_cost: dtx.total_sigop_cost,
+                total_sigop_cost: dtx.total_sigop_cost.into(),
                 fee: Sats::ZERO,
                 input,
                 output,

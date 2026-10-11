@@ -19,11 +19,15 @@ impl Query {
         let bw = BlockWindow::new_at(self, time_period, tip)?;
 
         let block_sizes: Vec<Bytes> = bw
-            .read(&blocks.total)?
+            .read(&*blocks.total)?
             .into_iter()
             .map(Bytes::from)
             .collect();
-        let block_weights: Vec<Weight> = bw.read(&blocks.weight)?;
+        let block_weights: Vec<Weight> = bw
+            .read(&*blocks.weight)?
+            .into_iter()
+            .map(Weight::from)
+            .collect();
         drop(pin);
 
         let (sizes, weights) = bw

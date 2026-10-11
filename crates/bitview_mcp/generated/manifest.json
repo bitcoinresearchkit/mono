@@ -329,7 +329,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -594,7 +594,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Witness": {
               "items": {
@@ -712,7 +712,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -977,7 +977,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Witness": {
               "items": {
@@ -1202,7 +1202,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -1467,7 +1467,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Witness": {
               "items": {
@@ -1571,7 +1571,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -1836,7 +1836,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Witness": {
               "items": {
@@ -2169,7 +2169,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -2911,7 +2911,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -3227,7 +3227,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -3492,7 +3492,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Witness": {
               "items": {
@@ -4104,7 +4104,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -4254,7 +4254,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -4420,7 +4420,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -5008,7 +5008,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -5612,7 +5612,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -5855,7 +5855,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Txid": {
               "type": "string"
@@ -5868,7 +5868,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -8510,7 +8510,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -9295,7 +9295,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -12005,7 +12005,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -12270,7 +12270,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Witness": {
               "items": {

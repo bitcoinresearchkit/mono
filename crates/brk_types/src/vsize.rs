@@ -10,7 +10,7 @@ use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{CheckedSub, Weight};
+use crate::{CheckedSub, Weight, Weight32};
 
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
@@ -69,10 +69,17 @@ impl From<VSize> for u64 {
     }
 }
 
+impl From<Weight32> for VSize {
+    #[inline]
+    fn from(weight: Weight32) -> Self {
+        Self::from(Weight::from(weight))
+    }
+}
+
 impl From<Weight> for VSize {
     #[inline]
     fn from(weight: Weight) -> Self {
-        Self(weight.to_vbytes_ceil())
+        Self(u64::from(weight).div_ceil(4))
     }
 }
 

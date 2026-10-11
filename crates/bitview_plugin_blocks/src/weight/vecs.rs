@@ -1,7 +1,7 @@
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPercentVec;
-use brk_types::Weight;
+use brk_types::Weight32;
 use vecdb::{Rw, StorageMode};
 
 use crate::block_rolling::BlockRolling;
@@ -10,9 +10,9 @@ use crate::block_rolling::BlockRolling;
 pub struct Vecs<M: StorageMode = Rw> {
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one.
-    pub weight: BlockRolling<Weight, M>,
+    pub weight: BlockRolling<Weight32, M>,
     /// Block weight as a share of the 4,000,000-weight-unit consensus limit.
     /// 100% means the block reached the limit; lower values indicate unused
     /// weight capacity.
-    pub fullness: LazyPercentVec<PartsPerMillion32, Weight>,
+    pub fullness: LazyPercentVec<PartsPerMillion32, Weight32>,
 }

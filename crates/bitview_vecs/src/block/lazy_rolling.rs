@@ -28,7 +28,7 @@ where
     T: NumericValue + JsonSchema + Quantity<Sum = T> + 'static,
     S1T: NumericValue + JsonSchema + Quantity,
 {
-    pub fn from_rolling<F: UnaryTransform<S1T, T> + UnaryTransform<S1T::Sum, T>>(
+    pub fn from_rolling<F: UnaryTransform<S1T::Sum, T>>(
         name: &str,
         version: Version,
         source: &PerBlockRolling<S1T>,

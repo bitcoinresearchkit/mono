@@ -1,7 +1,7 @@
 use bitview_primitives::{EmptyOutputIndex, P2MSOutputIndex, TypeIndex, UnknownOutputIndex};
-use bitview_traversable::Traversable;
+use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
-use brk_types::{Height, OutputType, SigOps, Version};
+use brk_types::{Height, OutputType, SigOps32, Version};
 use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec,
@@ -40,8 +40,9 @@ impl ScriptsVecs {
             empty_output_index_to_tx_index = PcoVec::import(db, "empty_output_tx_index", version),
             p2ms_output_index_to_tx_index = PcoVec::import(db, "p2ms_output_tx_index", version),
             unknown_output_index_to_tx_index = PcoVec::import(db, "unknown_output_tx_index", version),
-            p2ms_legacy_sigops = BytesVec::import(db, "p2ms_legacy_sigops", version),
-            unknown_legacy_sigops = BytesVec::import(db, "unknown_legacy_sigops", version),
+            p2ms_legacy_sigops = BytesVec::import(db, "p2ms_legacy_sigops", version).map(Compact::new),
+            unknown_legacy_sigops =
+                BytesVec::import(db, "unknown_legacy_sigops", version).map(Compact::new),
         };
         Ok(Self {
             empty: ScriptTypeVecs {
@@ -103,9 +104,9 @@ impl ScriptsVecs {
             &mut self.unknown.first_index,
             &mut self.empty.to_tx_index,
             &mut self.p2ms.to_tx_index,
-            &mut self.p2ms.legacy_sigops,
+            &mut *self.p2ms.legacy_sigops,
             &mut self.unknown.to_tx_index,
-            &mut self.unknown.legacy_sigops,
+            &mut *self.unknown.legacy_sigops,
         ]
         .into_par_iter()
     }
@@ -117,9 +118,9 @@ impl ScriptsVecs {
             &self.unknown.first_index,
             &self.empty.to_tx_index,
             &self.p2ms.to_tx_index,
-            &self.p2ms.legacy_sigops,
+            &*self.p2ms.legacy_sigops,
             &self.unknown.to_tx_index,
-            &self.unknown.legacy_sigops,
+            &*self.unknown.legacy_sigops,
         ]
         .into_iter()
     }
@@ -129,9 +130,9 @@ impl ScriptsVecs {
         output_type: OutputType,
         type_index: TypeIndex,
         readers: &ScriptReaders,
-    ) -> Option<SigOps> {
+    ) -> Option<SigOps32> {
         match output_type {
-            OutputType::P2PK65 | OutputType::P2PK33 | OutputType::P2PKH => Some(SigOps::new(4)),
+            OutputType::P2PK65 | OutputType::P2PK33 | OutputType::P2PKH => Some(SigOps32::new(4)),
             OutputType::P2MS => self
                 .p2ms
                 .legacy_sigops
@@ -140,7 +141,7 @@ impl ScriptsVecs {
                 .unknown
                 .legacy_sigops
                 .get_append_only(type_index.into(), &readers.unknown_legacy_sigops),
-            _ => Some(SigOps::ZERO),
+            _ => Some(SigOps32::ZERO),
         }
     }
 }

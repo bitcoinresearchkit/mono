@@ -2,7 +2,7 @@ use bitcoin::{
     Amount, Script, Transaction, TxIn, TxOut, WitnessVersion, constants::WITNESS_SCALE_FACTOR,
     policy::MAX_STANDARD_TX_SIGOPS_COST, taproot::LeafVersion,
 };
-use brk_types::{Height, OutputType, SigOps};
+use brk_types::{Height, OutputType, SigOps32};
 
 use super::{super::ComputedTx, input, sigops::ComputedSigOps};
 use crate::{TxFeatureFlags, processor::txout::ProcessedOutput};
@@ -210,6 +210,6 @@ pub fn is_standard_unknown_witness(script: &Script) -> bool {
         .is_some_and(|version| version != WitnessVersion::V0)
 }
 
-pub fn has_too_many_bare_multisig_keys(sigops: SigOps) -> bool {
+pub fn has_too_many_bare_multisig_keys(sigops: SigOps32) -> bool {
     u32::from(sigops) > MAX_STANDARD_BARE_MULTISIG_SIGOP_COST
 }

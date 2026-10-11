@@ -22,11 +22,14 @@ where
     T: vecdb::VecValue,
 {
     pub fn new(stored: V) -> Self {
-        let view = LazyVec::transformed::<Widen>(
-            stored.name(),
-            Version::ZERO,
-            stored.read_only_boxed_clone(),
-        );
+        let name = stored.name().to_string();
+        Self::named(stored, &name)
+    }
+
+    /// Publishes the series under `name` rather than the storage name.
+    pub fn named(stored: V, name: &str) -> Self {
+        let view =
+            LazyVec::transformed::<Widen>(name, Version::ZERO, stored.read_only_boxed_clone());
         Self { stored, view }
     }
 }

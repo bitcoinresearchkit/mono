@@ -4,9 +4,9 @@ use bitview_primitives::{
     BasisPoints32, Bytes, Bytes32, BytesFract, CentsFract, CoinBlocks, CoinDays, Count, Count16,
     Count32, CountFract, Float64, PartsPerMillion32, PartsPerMillion64, PartsPerMillionSigned32,
     PartsPerMillionSigned64, Percent, Percent64, PriceRatio, SatsFract, Seconds, SecondsFract,
-    SigOps64, SigOpsFract, VSizeFract, Weight64, WeightFract,
+    SigOpsFract, VSizeFract, WeightFract,
 };
-use brk_types::{Cents, CentsSigned, Sats, VSize, Weight};
+use brk_types::{Cents, CentsSigned, Sats, SigOps, VSize, Weight, Weight32};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{CheckedSub, Formattable, PcoVecValue};
@@ -64,19 +64,19 @@ impl Quantity for VSize {
     type Sum = VSize;
 }
 
-impl Quantity for Weight64 {
-    type Fract = WeightFract;
-    type Sum = Weight64;
-}
-
 impl Quantity for Weight {
     type Fract = WeightFract;
-    type Sum = Weight64;
+    type Sum = Weight;
 }
 
-impl Quantity for SigOps64 {
+impl Quantity for Weight32 {
+    type Fract = WeightFract;
+    type Sum = Weight;
+}
+
+impl Quantity for SigOps {
     type Fract = SigOpsFract;
-    type Sum = SigOps64;
+    type Sum = SigOps;
 }
 
 impl Quantity for Seconds {

@@ -42,7 +42,8 @@ impl Query {
             .transactions
             .total_sigop_cost
             .collect_one(seed)
-            .data()?;
+            .data()?
+            .into();
         drop(read);
         drop(publication);
 
@@ -69,7 +70,7 @@ impl Query {
             .iter()
             .map(|(index, parents)| {
                 let position = index.to_usize();
-                let weight = weight.get(position).data()?;
+                let weight = Weight::from(weight.get(position).data()?);
                 Ok(Member {
                     txid: txid.get(*index),
                     fee: fee.get(position).data()?,
@@ -95,7 +96,7 @@ impl Query {
                 Ok(CpfpEntry {
                     txid: txid.get(*index),
                     fee: fee.get(position).data()?,
-                    weight: weight.get(position).data()?,
+                    weight: weight.get(position).data()?.into(),
                 })
             })
             .collect()

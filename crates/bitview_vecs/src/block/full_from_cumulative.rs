@@ -69,7 +69,6 @@ where
         exit: &Exit,
     ) -> Result<()>
     where
-        T: From<f64> + Default + Copy + Ord,
         f64: From<T::Sum>,
     {
         self.rolling.compute(max_from, windows, &self.block, exit)

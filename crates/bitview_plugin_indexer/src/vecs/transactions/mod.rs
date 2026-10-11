@@ -1,11 +1,13 @@
-use bitview_primitives::{Bytes32, Index40, TxInIndex, TxOutIndex, TxVersion};
-use bitview_traversable::Traversable;
+use bitview_primitives::{Bytes, Bytes32, Index40, TxInIndex, TxOutIndex, TxVersion};
+use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
-use brk_types::{BlkPosition, Height, RawLockTime, SigOps, TxIndex, Txid, Version, Weight};
+use brk_types::{
+    BlkPosition, Height, RawLockTime, SigOps, SigOps32, TxIndex, Txid, Version, Weight, Weight32,
+};
 use rayon::prelude::*;
 use vecdb::{
-    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, LazyVec, PcoVec,
-    ReadableCloneableVec, Rw, Stamp, StorageMode, WritableVec,
+    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode,
+    WritableVec,
 };
 
 pub mod features;
@@ -41,32 +43,29 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     pub raw_locktime: M::Stored<PcoVec<TxIndex, RawLockTime>>,
     /// BIP-141 transaction weight in weight units: non-witness bytes count as
     /// four weight units and witness bytes count as one.
-    pub weight: M::Stored<PcoVec<TxIndex, Weight>>,
+    pub weight: Compact<PcoVec<TxIndex, Weight32>, Weight, M>,
     /// Serialized size in bytes, including witness data: the byte length of the
     /// transaction's consensus serialization.
     #[traversable(rename = "size")]
-    pub total_size: M::Stored<PcoVec<TxIndex, Bytes32>>,
+    pub total_size: Compact<PcoVec<TxIndex, Bytes32>, Bytes, M>,
     /// BIP-141 signature-operation cost: legacy scriptPubKey, scriptSig, and
     /// P2SH redeem-script sigops cost four units; P2WPKH and P2WSH sigops cost
     /// one. This is a static count, not the number of signatures executed.
     /// Tapscript sigops are excluded because BIP-342 uses a separate per-input
     /// budget.
     #[traversable(rename = "sigop_cost")]
-    pub total_sigop_cost: M::Stored<PcoVec<TxIndex, SigOps>>,
+    pub total_sigop_cost: Compact<PcoVec<TxIndex, SigOps32>, SigOps, M>,
     /// Global zero-based transaction-input index in canonical blockchain order.
     /// At `height`, this is where the block begins and equals the number of
     /// inputs in preceding blocks; at `tx_index`, it identifies the
     /// transaction's first input.
     pub first_txin_index: M::Stored<PcoVec<TxIndex, TxInIndex>>,
-    /// Stored in 5 bytes per transaction; series readers see `first_txout_index_view`.
-    #[traversable(hidden)]
-    pub first_txout_index: M::Stored<BytesVec<TxIndex, Index40<TxOutIndex>>>,
     /// Global zero-based transaction-output index in canonical blockchain
     /// order. At `height`, this is where the block begins and equals the number
     /// of outputs in preceding blocks; at `tx_index`, it identifies the
     /// transaction's first output.
-    #[traversable(rename = "first_txout_index")]
-    pub first_txout_index_view: LazyVec<TxIndex, TxOutIndex, TxIndex, Index40<TxOutIndex>>,
+    // Stored in 5 bytes per transaction.
+    pub first_txout_index: Compact<BytesVec<TxIndex, Index40<TxOutIndex>>, TxOutIndex, M>,
     pub features: TransactionFeaturesVecs<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit
     /// Bitcoin transaction version.
@@ -84,7 +83,7 @@ impl TransactionsVecs {
         TxMetadataVecs<'_>,
     ) {
         (
-            &mut self.first_txout_index,
+            &mut *self.first_txout_index,
             &mut self.first_txin_index,
             TxMetadataVecs {
                 tx_version: &mut self.tx_version,
@@ -118,11 +117,11 @@ impl TransactionsVecs {
             txid = BytesVec::import(db, "txid", version),
             tx_version = PcoVec::import(db, "tx_version", version),
             raw_locktime = PcoVec::import(db, "tx_locktime", version),
-            weight = PcoVec::import(db, "tx_weight", version),
-            total_size = PcoVec::import(db, "tx_size", version),
-            total_sigop_cost = PcoVec::import(db, "tx_sigop_cost", version),
+            weight = PcoVec::import(db, "tx_weight", version).map(Compact::new),
+            total_size = PcoVec::import(db, "tx_size", version).map(Compact::new),
+            total_sigop_cost = PcoVec::import(db, "tx_sigop_cost", version).map(Compact::new),
             first_txin_index = PcoVec::import(db, "first_txin_index", version),
-            first_txout_index = BytesVec::import(db, "first_txout_index", version),
+            first_txout_index = BytesVec::import(db, "first_txout_index", version).map(Compact::new),
             features = TransactionFeaturesVecs::import(db, version),
             versions = VersionCountVecs::import(db, version),
             position = PcoVec::import(db, "tx_position", version),
@@ -136,12 +135,6 @@ impl TransactionsVecs {
             total_size,
             total_sigop_cost,
             first_txin_index,
-            first_txout_index_view: LazyVec::init(
-                "first_txout_index",
-                Version::ZERO,
-                first_txout_index.read_only_boxed_clone(),
-                |_, index| index.get(),
-            ),
             first_txout_index,
             features,
             versions,
@@ -178,11 +171,11 @@ impl TransactionsVecs {
             &mut self.txid,
             &mut self.tx_version,
             &mut self.raw_locktime,
-            &mut self.weight,
-            &mut self.total_size,
-            &mut self.total_sigop_cost,
+            &mut *self.weight,
+            &mut *self.total_size,
+            &mut *self.total_sigop_cost,
             &mut self.first_txin_index,
-            &mut self.first_txout_index,
+            &mut *self.first_txout_index,
             &mut self.position,
         ]
         .into_par_iter()
@@ -196,11 +189,11 @@ impl TransactionsVecs {
             &self.txid,
             &self.tx_version,
             &self.raw_locktime,
-            &self.weight,
-            &self.total_size,
-            &self.total_sigop_cost,
+            &*self.weight,
+            &*self.total_size,
+            &*self.total_sigop_cost,
             &self.first_txin_index,
-            &self.first_txout_index,
+            &*self.first_txout_index,
             &self.position,
         ]
         .into_iter()

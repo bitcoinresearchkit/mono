@@ -1,8 +1,7 @@
+use bitview_traversable::Compact;
 use brk_error::Result;
 use brk_types::Version;
-use vecdb::{
-    BytesVec, Database, ImportOptions, ImportableVec, LazyVec, MutableVec, ReadableCloneableVec,
-};
+use vecdb::{BytesVec, Database, ImportOptions, ImportableVec, MutableVec};
 
 use super::Vecs;
 
@@ -14,13 +13,7 @@ impl Vecs {
                 .with_saved_stamped_changes(10),
         )?;
         Ok(Vecs {
-            txin_index_view: LazyVec::init(
-                "spending_txin_index",
-                Version::ZERO,
-                txin_index.read_only_boxed_clone(),
-                |_, index| index.get(),
-            ),
-            txin_index,
+            txin_index: Compact::named(txin_index, "spending_txin_index"),
         })
     }
 }

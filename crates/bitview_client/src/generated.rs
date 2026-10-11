@@ -1078,9 +1078,6 @@ impl SeriesValue for Boolean {
 impl SeriesValue for Bytes {
     type Nullable = Option<Bytes>;
 }
-impl SeriesValue for Bytes32 {
-    type Nullable = Option<Bytes32>;
-}
 impl SeriesValue for CapitalSentimentPhase {
     type Nullable = Option<CapitalSentimentPhase>;
 }
@@ -1089,12 +1086,6 @@ impl SeriesValue for CoinbaseTag {
 }
 impl SeriesValue for Count {
     type Nullable = Option<Count>;
-}
-impl SeriesValue for Count16 {
-    type Nullable = Option<Count16>;
-}
-impl SeriesValue for Count32 {
-    type Nullable = Option<Count32>;
 }
 impl SeriesValue for CountSigned {
     type Nullable = Option<CountSigned>;
@@ -1237,9 +1228,6 @@ impl SeriesValue for Seconds {
 impl SeriesValue for SigOps {
     type Nullable = Option<SigOps>;
 }
-impl SeriesValue for SigOps64 {
-    type Nullable = Option<SigOps64>;
-}
 impl SeriesValue for Timestamp {
     type Nullable = Option<Timestamp>;
 }
@@ -1272,9 +1260,6 @@ impl SeriesValue for Week1 {
 }
 impl SeriesValue for Weight {
     type Nullable = Option<Weight>;
-}
-impl SeriesValue for Weight64 {
-    type Nullable = Option<Weight64>;
 }
 impl SeriesValue for Year1 {
     type Nullable = Option<Year1>;
@@ -2411,18 +2396,18 @@ pub mod tree {
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: InputsPerSecond<Count> = "*_tx_count_sum",
     } }
-    shape! { BlocksSize<A, B, C, D> at "series().blocks.size" {
+    shape! { BlocksSize<A, B> at "series().blocks.size" {
         block: SeriesPattern20<A> = "*",
-        cumulative: SeriesPattern1<B> = "*_cumulative",
-        sum: InputsPerSecond<B> = "*_sum",
-        avg: InputsPerSecond<C> = "*_avg",
-        min: InputsPerSecond<D> = "*_min",
-        max: InputsPerSecond<D> = "*_max",
-        pct10: InputsPerSecond<D> = "*_pct10",
-        pct25: InputsPerSecond<D> = "*_pct25",
-        median: InputsPerSecond<D> = "*_median",
-        pct75: InputsPerSecond<D> = "*_pct75",
-        pct90: InputsPerSecond<D> = "*_pct90",
+        cumulative: SeriesPattern1<A> = "*_cumulative",
+        sum: InputsPerSecond<A> = "*_sum",
+        avg: InputsPerSecond<B> = "*_avg",
+        min: InputsPerSecond<A> = "*_min",
+        max: InputsPerSecond<A> = "*_max",
+        pct10: InputsPerSecond<A> = "*_pct10",
+        pct25: InputsPerSecond<A> = "*_pct25",
+        median: InputsPerSecond<A> = "*_median",
+        pct75: InputsPerSecond<A> = "*_pct75",
+        pct90: InputsPerSecond<A> = "*_pct90",
     } }
     shape! { Interval<A, B> at "series().blocks.interval" {
         block: SeriesPattern20<A> = "*",
@@ -2819,7 +2804,7 @@ pub mod tree {
     } }
     shape! { Outputs at "series().outputs" {
         spent: Spent = "spending_txin_index",
-        count: BlocksSize<Count, Count, Option<CountFract>, Count32> = "*_count",
+        count: BlocksSize<Count, Option<CountFract>> = "*_count",
         per_second: InputsPerSecond<Option<PerSecond>> = "outputs_per_second",
         spendable_count: CoinblocksDestroyed<Count> = "spendable_*_count",
         types: OutputsTypes = "*",
@@ -2839,16 +2824,16 @@ pub mod tree {
     } }
     shape! { Inputs at "series().inputs" {
         value: SeriesPattern22<Sats> = "*_value",
-        count: BlocksSize<Count, Count, Option<CountFract>, Count16> = "*_count",
+        count: BlocksSize<Count, Option<CountFract>> = "*_count",
         per_second: InputsPerSecond<Option<PerSecond>> = "inputs_per_second",
         types: InputsTypes = "*",
     } }
     shape! { Blocks at "series().blocks" {
         count: CoinblocksDestroyed<Count> = "*_count",
         interval: Interval<Seconds, Option<SecondsFract>> = "*_interval",
-        vsize: BlocksSize<VSize, VSize, Option<VSizeFract>, VSize> = "*_vsize",
-        size: BlocksSize<Bytes32, Bytes, Option<BytesFract>, Bytes32> = "*_size",
-        weight: BlocksSize<Weight, Weight64, Option<WeightFract>, Weight> = "*_weight",
+        vsize: BlocksSize<VSize, Option<VSizeFract>> = "*_vsize",
+        size: BlocksSize<Bytes, Option<BytesFract>> = "*_size",
+        weight: BlocksSize<Weight, Option<WeightFract>> = "*_weight",
         fullness: SeriesPattern20<Option<Percent>> = "*_fullness",
         difficulty: BlocksDifficulty = "difficulty",
         halving: BlocksHalving = "halving",
@@ -3035,7 +3020,7 @@ pub mod tree {
         first_index: SeriesPattern20<OpReturnIndex> = "first_*_index",
         tx_index: SeriesPattern25<TxIndex> = "*_tx_index",
         protocol: SeriesPattern25<OpReturnKind> = "*_protocol",
-        post_op_return_bytes: SeriesPattern25<Bytes32> = "*_post_op_return_bytes",
+        post_op_return_bytes: SeriesPattern25<Bytes> = "*_post_op_return_bytes",
     } }
     shape! { ScriptsUnknown at "series().indexer.scripts.unknown" {
         first_index: SeriesPattern20<UnknownOutputIndex> = "first_*_output_index",
@@ -3155,14 +3140,14 @@ pub mod tree {
         one_output: OneInput = "one_output_tx_count",
     } }
     shape! { Transactions at "series().transactions" {
-        count: BlocksSize<Count, Count, Option<CountFract>, Count16> = "*_count",
+        count: BlocksSize<Count, Option<CountFract>> = "*_count",
         features: TransactionsFeatures = "sighash",
         size: TransactionsSize = "*",
         fees: TransactionsFees = "fee",
         inscription: Inscription = "inscription",
         patterns: Patterns = "coinjoin",
         policy: Policy = "nonstandard",
-        sigop_cost: CoinblocksDestroyed<SigOps64> = "block_sigop_cost",
+        sigop_cost: CoinblocksDestroyed<SigOps> = "block_sigop_cost",
         versions: Versions<CoinblocksDestroyed<Count>> = "*_count",
         volume: OpReturnValue = "*_volume",
         per_second: InputsPerSecond<Option<PerSecond>> = "*_per_second",
@@ -3199,7 +3184,7 @@ pub mod tree {
         version: SeriesPattern21<TxVersion> = "*_version",
         locktime: SeriesPattern21<RawLockTime> = "*_locktime",
         weight: SeriesPattern21<Weight> = "*_weight",
-        size: SeriesPattern21<Bytes32> = "*_size",
+        size: SeriesPattern21<Bytes> = "*_size",
         sigop_cost: SeriesPattern21<SigOps> = "*_sigop_cost",
         first_txin_index: SeriesPattern21<TxInIndex> = "first_txin_index",
         first_txout_index: SeriesPattern21<TxOutIndex> = "first_txout_index",
@@ -3210,10 +3195,10 @@ pub mod tree {
         blockhash: SeriesPattern20<BlockHash> = "blockhash",
         coinbase_tag: SeriesPattern20<CoinbaseTag> = "coinbase_tag",
         timestamp: SeriesPattern20<Timestamp> = "timestamp",
-        size: SeriesPattern20<Bytes32> = "block_size",
+        size: SeriesPattern20<Bytes> = "block_size",
         weight: SeriesPattern20<Weight> = "block_weight",
         segwit_tx_count: SeriesPattern20<Count> = "*_tx_count",
-        segwit_size: SeriesPattern20<Bytes32> = "*_size",
+        segwit_size: SeriesPattern20<Bytes> = "*_size",
         segwit_weight: SeriesPattern20<Weight> = "*_weight",
     } }
     shape! { Indexer at "series().indexer" {

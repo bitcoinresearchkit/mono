@@ -13,7 +13,7 @@ use bitview_primitives::{
 };
 use brk_error::Result;
 use brk_store::Store;
-use brk_types::{AddrBytes, OutPoint, OutputType, Sats, SigOps, TxIndex, Unit, Vout};
+use brk_types::{AddrBytes, OutPoint, OutputType, Sats, SigOps32, TxIndex, Unit, Vout};
 use vecdb::{BytesVec, WritableVec, likely};
 
 use super::{BlockProcessor, transaction::ComputedTx};
@@ -63,8 +63,8 @@ impl<'a> BlockProcessor<'a> {
 pub fn executed_legacy_sigops_for_output(
     output_type: OutputType,
     script_pubkey: &Script,
-) -> SigOps {
-    SigOps::from(
+) -> SigOps32 {
+    SigOps32::from(
         match output_type {
             OutputType::P2PKH | OutputType::P2PK33 | OutputType::P2PK65 => 1,
             OutputType::P2MS | OutputType::Unknown => script_pubkey.count_sigops(),

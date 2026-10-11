@@ -15,7 +15,7 @@ impl Vecs {
         self.weight.compute(
             indexer.safe_lengths().height,
             &lookback.window_starts(),
-            &indexer.vecs().blocks.weight,
+            &*indexer.vecs().blocks.weight,
             exit,
         )
     }

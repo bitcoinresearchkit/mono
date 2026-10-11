@@ -7,7 +7,7 @@ use bitview_plugin_transactions::FeesVecs;
 use bitview_primitives::{
     Bytes, Bytes32, OP_RETURN_KIND_COUNT, OpReturnIndex, OpReturnKind, OpReturnPolicyId,
 };
-use brk_types::{Sats, TxIndex, VSize, Weight};
+use brk_types::{Sats, TxIndex, VSize, Weight32};
 use rayon::join;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
@@ -19,7 +19,7 @@ pub struct Batch {
     tx_indexes: Vec<TxIndex>,
     kinds: Vec<OpReturnKind>,
     post_op_return_bytes: Vec<Bytes32>,
-    weights: Vec<Weight>,
+    weights: Vec<Weight32>,
     fees: Vec<Sats>,
 }
 

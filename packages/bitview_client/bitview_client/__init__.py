@@ -46,7 +46,8 @@ Bitcoin = float
 PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "btccom", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd"]
 # Fee rate stored in milli-sat/vB and exposed as sat/vB.
 FeeRate = float
-# Weight in weight units (WU). Max block weight is 4,000,000 WU.
+# Weight in weight units (WU): non-witness bytes count four and witness bytes one. A block holds
+# at most 4,000,000 WU; sums over many blocks use the full 64 bits.
 Weight = int
 # Block height
 Height = int
@@ -67,12 +68,8 @@ NextBlockHash = int
 OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return", "v0_p2wpkh", "v0_p2wsh", "v1_p2tr", "anchor", "empty", "unknown"]
 # Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
 RawLockTime = int
-# BIP-141 sigop cost. The block-level budget is 80,000, so a `u32`
-# fits a single tx's count with room to spare.
-#
-# Witness sigops count as 1; legacy and P2SH-redeem sigops count as 4.
-# Five vbytes per sigop is the policy adjustment Core applies in
-# `nSigOpCost` to discourage sigop-heavy txs (`max(weight/4, sigops*5)`).
+# BIP-141 signature-operation cost: legacy and P2SH-redeem sigops count four and witness sigops
+# one. Sums over many transactions or blocks use the full 64 bits.
 SigOps = int
 # Index of the output being spent in the previous transaction
 Vout = int
@@ -107,8 +104,6 @@ BlockTemplateDiffEntry = Union[int, "Transaction"]
 Boolean = bool
 # A size in bytes.
 Bytes = int
-# A size in bytes that fits 32 bits (under 4 GiB), such as a block or transaction size.
-Bytes32 = int
 # A mean size in bytes.
 BytesFract = float
 # Investor phase from the Capital Sentiment model.
@@ -141,10 +136,6 @@ CoinYears = float
 CoinbaseTag = str
 # A number of things.
 Count = int
-# A number of things that fits 16 bits (at most 65,535), such as transactions per block.
-Count16 = int
-# A number of things that fits 32 bits, such as outputs per block.
-Count32 = int
 # A mean number of things.
 CountFract = float
 # A change in a number of things.
@@ -281,8 +272,6 @@ SecondsFract = float
 # Deserialization permits at most 32 normalized names and 2,048 decoded input
 # string bytes. For arrays, the byte budget is shared by their string values.
 SeriesList = str
-# BIP-141 signature-operation cost with enough range for cumulative and rolling totals.
-SigOps64 = int
 # Time period for mining statistics.
 #
 # Used to specify the lookback window for pool statistics, hashrate calculations,
@@ -318,8 +307,6 @@ VSizeFract = float
 Version = int
 # Index of a week.
 Week1 = int
-# Weight in weight units with enough range for cumulative and rolling totals.
-Weight64 = int
 # A mean weight in weight units.
 WeightFract = float
 # Index of a year.
@@ -4485,18 +4472,18 @@ class Annex(_Node):
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
 
 
-class BlocksSize(_Node, Generic[A, B, C, D]):
+class BlocksSize(_Node, Generic[A, B]):
     block: SeriesPattern20[A] = _at(SeriesPattern20, '*')
-    cumulative: SeriesPattern1[B] = _at(SeriesPattern1, '*_cumulative')
-    sum: InputsPerSecond[B] = _at(InputsPerSecond, '*_sum')
-    avg: InputsPerSecond[C] = _at(InputsPerSecond, '*_avg')
-    min: InputsPerSecond[D] = _at(InputsPerSecond, '*_min')
-    max: InputsPerSecond[D] = _at(InputsPerSecond, '*_max')
-    pct10: InputsPerSecond[D] = _at(InputsPerSecond, '*_pct10')
-    pct25: InputsPerSecond[D] = _at(InputsPerSecond, '*_pct25')
-    median: InputsPerSecond[D] = _at(InputsPerSecond, '*_median')
-    pct75: InputsPerSecond[D] = _at(InputsPerSecond, '*_pct75')
-    pct90: InputsPerSecond[D] = _at(InputsPerSecond, '*_pct90')
+    cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
+    sum: InputsPerSecond[A] = _at(InputsPerSecond, '*_sum')
+    avg: InputsPerSecond[B] = _at(InputsPerSecond, '*_avg')
+    min: InputsPerSecond[A] = _at(InputsPerSecond, '*_min')
+    max: InputsPerSecond[A] = _at(InputsPerSecond, '*_max')
+    pct10: InputsPerSecond[A] = _at(InputsPerSecond, '*_pct10')
+    pct25: InputsPerSecond[A] = _at(InputsPerSecond, '*_pct25')
+    median: InputsPerSecond[A] = _at(InputsPerSecond, '*_median')
+    pct75: InputsPerSecond[A] = _at(InputsPerSecond, '*_pct75')
+    pct90: InputsPerSecond[A] = _at(InputsPerSecond, '*_pct90')
 
 
 class Interval(_Node, Generic[A, B]):
@@ -4941,7 +4928,7 @@ class OutputsTypes(_Node):
 
 class Outputs(_Node):
     spent: Spent = _at(Spent, 'spending_txin_index')
-    count: BlocksSize[Count, Count, Optional[CountFract], Count32] = _at(BlocksSize, '*_count')
+    count: BlocksSize[Count, Optional[CountFract]] = _at(BlocksSize, '*_count')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, 'outputs_per_second')
     spendable_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'spendable_*_count')
     types: OutputsTypes = _at(OutputsTypes, '*')
@@ -4963,7 +4950,7 @@ class InputsTypes(_Node):
 
 class Inputs(_Node):
     value: SeriesPattern22[Sats] = _at(SeriesPattern22, '*_value')
-    count: BlocksSize[Count, Count, Optional[CountFract], Count16] = _at(BlocksSize, '*_count')
+    count: BlocksSize[Count, Optional[CountFract]] = _at(BlocksSize, '*_count')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, 'inputs_per_second')
     types: InputsTypes = _at(InputsTypes, '*')
 
@@ -4971,9 +4958,9 @@ class Inputs(_Node):
 class Blocks(_Node):
     count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_count')
     interval: Interval[Seconds, Optional[SecondsFract]] = _at(Interval, '*_interval')
-    vsize: BlocksSize[VSize, VSize, Optional[VSizeFract], VSize] = _at(BlocksSize, '*_vsize')
-    size: BlocksSize[Bytes32, Bytes, Optional[BytesFract], Bytes32] = _at(BlocksSize, '*_size')
-    weight: BlocksSize[Weight, Weight64, Optional[WeightFract], Weight] = _at(BlocksSize, '*_weight')
+    vsize: BlocksSize[VSize, Optional[VSizeFract]] = _at(BlocksSize, '*_vsize')
+    size: BlocksSize[Bytes, Optional[BytesFract]] = _at(BlocksSize, '*_size')
+    weight: BlocksSize[Weight, Optional[WeightFract]] = _at(BlocksSize, '*_weight')
     fullness: SeriesPattern20[Optional[Percent]] = _at(SeriesPattern20, '*_fullness')
     difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
     halving: BlocksHalving = _at(BlocksHalving, 'halving')
@@ -5197,7 +5184,7 @@ class IndexerOpReturn(_Node):
     first_index: SeriesPattern20[OpReturnIndex] = _at(SeriesPattern20, 'first_*_index')
     tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, '*_tx_index')
     protocol: SeriesPattern25[OpReturnKind] = _at(SeriesPattern25, '*_protocol')
-    post_op_return_bytes: SeriesPattern25[Bytes32] = _at(SeriesPattern25, '*_post_op_return_bytes')
+    post_op_return_bytes: SeriesPattern25[Bytes] = _at(SeriesPattern25, '*_post_op_return_bytes')
 
 
 class ScriptsUnknown(_Node):
@@ -5338,14 +5325,14 @@ class TransactionsFeatures(_Node):
 
 
 class Transactions(_Node):
-    count: BlocksSize[Count, Count, Optional[CountFract], Count16] = _at(BlocksSize, '*_count')
+    count: BlocksSize[Count, Optional[CountFract]] = _at(BlocksSize, '*_count')
     features: TransactionsFeatures = _at(TransactionsFeatures, 'sighash')
     size: TransactionsSize = _at(TransactionsSize, '*')
     fees: TransactionsFees = _at(TransactionsFees, 'fee')
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'coinjoin')
     policy: Policy = _at(Policy, 'nonstandard')
-    sigop_cost: CoinblocksDestroyed[SigOps64] = _at(CoinblocksDestroyed, 'block_sigop_cost')
+    sigop_cost: CoinblocksDestroyed[SigOps] = _at(CoinblocksDestroyed, 'block_sigop_cost')
     versions: Versions[CoinblocksDestroyed[Count]] = _at((Versions, CoinblocksDestroyed), '*_count')
     volume: OpReturnValue = _at(OpReturnValue, '*_volume')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, '*_per_second')
@@ -5384,7 +5371,7 @@ class IndexerTransactions(_Node):
     version: SeriesPattern21[TxVersion] = _at(SeriesPattern21, '*_version')
     locktime: SeriesPattern21[RawLockTime] = _at(SeriesPattern21, '*_locktime')
     weight: SeriesPattern21[Weight] = _at(SeriesPattern21, '*_weight')
-    size: SeriesPattern21[Bytes32] = _at(SeriesPattern21, '*_size')
+    size: SeriesPattern21[Bytes] = _at(SeriesPattern21, '*_size')
     sigop_cost: SeriesPattern21[SigOps] = _at(SeriesPattern21, '*_sigop_cost')
     first_txin_index: SeriesPattern21[TxInIndex] = _at(SeriesPattern21, 'first_txin_index')
     first_txout_index: SeriesPattern21[TxOutIndex] = _at(SeriesPattern21, 'first_txout_index')
@@ -5396,10 +5383,10 @@ class IndexerBlocks(_Node):
     blockhash: SeriesPattern20[BlockHash] = _at(SeriesPattern20, 'blockhash')
     coinbase_tag: SeriesPattern20[CoinbaseTag] = _at(SeriesPattern20, 'coinbase_tag')
     timestamp: SeriesPattern20[Timestamp] = _at(SeriesPattern20, 'timestamp')
-    size: SeriesPattern20[Bytes32] = _at(SeriesPattern20, 'block_size')
+    size: SeriesPattern20[Bytes] = _at(SeriesPattern20, 'block_size')
     weight: SeriesPattern20[Weight] = _at(SeriesPattern20, 'block_weight')
     segwit_tx_count: SeriesPattern20[Count] = _at(SeriesPattern20, '*_tx_count')
-    segwit_size: SeriesPattern20[Bytes32] = _at(SeriesPattern20, '*_size')
+    segwit_size: SeriesPattern20[Bytes] = _at(SeriesPattern20, '*_size')
     segwit_weight: SeriesPattern20[Weight] = _at(SeriesPattern20, '*_weight')
 
 

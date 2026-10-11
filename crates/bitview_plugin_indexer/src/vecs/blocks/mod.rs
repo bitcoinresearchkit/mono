@@ -1,7 +1,9 @@
-use bitview_primitives::{Bytes32, Difficulty};
-use bitview_traversable::Traversable;
+use bitview_primitives::{Bytes, Bytes32, Difficulty};
+use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
-use brk_types::{BlkPosition, BlockHash, CoinbaseTag, Height, Timestamp, Version, Weight};
+use brk_types::{
+    BlkPosition, BlockHash, CoinbaseTag, Height, Timestamp, Version, Weight, Weight32,
+};
 use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp,
@@ -39,20 +41,20 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// transaction-count CompactSize, and every serialized transaction. Value for the represented
     /// block.
     #[traversable(rename = "size")]
-    pub total: M::Stored<PcoVec<Height, Bytes32>>,
+    pub total: Compact<PcoVec<Height, Bytes32>, Bytes, M>,
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one. Value for the represented block.
-    pub weight: M::Stored<PcoVec<Height, Weight>>,
+    pub weight: Compact<PcoVec<Height, Weight32>, Weight, M>,
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<Height, BlkPosition>>,
     /// Non-coinbase transactions using SegWit serialization. Value for the represented block.
     pub segwit_tx_count: BlockCount<M>,
     /// Combined total serialized size in bytes of the block's non-coinbase
     /// SegWit transactions; excludes block overhead and all other transactions.
-    pub segwit_size: M::Stored<PcoVec<Height, Bytes32>>,
+    pub segwit_size: Compact<PcoVec<Height, Bytes32>, Bytes, M>,
     /// Combined BIP-141 weight in weight units of the block's non-coinbase
     /// SegWit transactions; excludes block overhead and all other transactions.
-    pub segwit_weight: M::Stored<PcoVec<Height, Weight>>,
+    pub segwit_weight: Compact<PcoVec<Height, Weight32>, Weight, M>,
 }
 
 impl BlocksVecs {
@@ -75,12 +77,12 @@ impl BlocksVecs {
             difficulty = PcoVec::import(db, "difficulty", version),
             timestamp = PcoVec::import(db, "timestamp", version),
             median_time = PcoVec::import(db, "median_time", version),
-            total_size = PcoVec::import(db, "block_size", version),
-            weight = PcoVec::import(db, "block_weight", version),
+            total_size = PcoVec::import(db, "block_size", version).map(Compact::new),
+            weight = PcoVec::import(db, "block_weight", version).map(Compact::new),
             position = PcoVec::import(db, "block_position", version),
             segwit_tx_count = block_count(db, "segwit_tx_count", version),
-            segwit_size = PcoVec::import(db, "segwit_size", version),
-            segwit_weight = PcoVec::import(db, "segwit_weight", version),
+            segwit_size = PcoVec::import(db, "segwit_size", version).map(Compact::new),
+            segwit_weight = PcoVec::import(db, "segwit_weight", version).map(Compact::new),
         };
         let mut this = Self {
             blockhash,
@@ -137,12 +139,12 @@ impl BlocksVecs {
             &mut self.difficulty,
             &mut self.timestamp,
             &mut self.median_time,
-            &mut self.total,
-            &mut self.weight,
+            &mut *self.total,
+            &mut *self.weight,
             &mut self.position,
             &mut *self.segwit_tx_count,
-            &mut self.segwit_size,
-            &mut self.segwit_weight,
+            &mut *self.segwit_size,
+            &mut *self.segwit_weight,
         ]
         .into_par_iter()
     }
@@ -154,12 +156,12 @@ impl BlocksVecs {
             &self.difficulty,
             &self.timestamp,
             &self.median_time,
-            &self.total,
-            &self.weight,
+            &*self.total,
+            &*self.weight,
             &self.position,
             &*self.segwit_tx_count,
-            &self.segwit_size,
-            &self.segwit_weight,
+            &*self.segwit_size,
+            &*self.segwit_weight,
         ]
         .into_iter()
     }

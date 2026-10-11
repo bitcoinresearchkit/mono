@@ -1,5 +1,5 @@
-use bitview_traversable::Traversable;
-use brk_types::{Height, SigOps, TxIndex};
+use bitview_traversable::{Compact, Traversable};
+use brk_types::{Height, SigOps, SigOps32, TxIndex};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{BytesVec, Formattable, PcoVec, PcoVecValue, Rw, StorageMode, VecIndex};
@@ -19,5 +19,5 @@ pub struct ScriptTypeWithSigOpsVecs<
     /// script using accurate multisig counting. Each `CHECKSIG` costs four;
     /// `CHECKMULTISIG` costs four times a preceding `OP_1` through `OP_16`, or
     /// 80 when no such key-count opcode precedes it.
-    pub legacy_sigops: M::Stored<BytesVec<I, SigOps>>,
+    pub legacy_sigops: Compact<BytesVec<I, SigOps32>, SigOps, M>,
 }

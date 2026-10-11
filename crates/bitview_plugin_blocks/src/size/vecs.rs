@@ -1,7 +1,7 @@
 use bitview_primitives::Bytes32;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPerBlockRolling;
-use brk_types::{Height, VSize, Weight};
+use brk_types::{Height, VSize, Weight32};
 use vecdb::{LazyVec, Rw, StorageMode};
 
 use crate::block_rolling::BlockRolling;
@@ -21,7 +21,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 #[derive(Clone, Traversable)]
 pub(super) struct VirtualSize {
     /// Value for the represented block.
-    pub(super) block: LazyVec<Height, VSize, Height, Weight>,
+    pub(super) block: LazyVec<Height, VSize, Height, Weight32>,
     #[traversable(flatten)]
-    pub(super) rolling: LazyPerBlockRolling<VSize, Weight>,
+    pub(super) rolling: LazyPerBlockRolling<VSize, Weight32>,
 }

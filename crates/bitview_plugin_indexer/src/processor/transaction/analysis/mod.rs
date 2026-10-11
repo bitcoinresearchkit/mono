@@ -6,7 +6,7 @@ pub mod policy;
 pub mod sigops;
 
 use bitcoin::Sequence;
-use brk_types::{OutputType, SigOps};
+use brk_types::{OutputType, SigOps32};
 use rayon::prelude::*;
 use vecdb::{likely, unlikely};
 
@@ -15,7 +15,7 @@ use crate::TxFeatureFlags;
 use crate::processor::{BlockProcessor, txin::InputSource, txout::ProcessedOutput};
 
 pub struct TransactionAnalysis {
-    pub total_sigop_cost: SigOps,
+    pub total_sigop_cost: SigOps32,
     pub features: TxFeatureFlags,
 }
 
@@ -89,7 +89,7 @@ impl BlockProcessor<'_> {
 pub fn resolved_output_facts(
     source: &InputSource,
     txouts: &[ProcessedOutput],
-) -> (OutputType, SigOps) {
+) -> (OutputType, SigOps32) {
     match source {
         InputSource::PreviousBlock {
             output_type,

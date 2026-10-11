@@ -1,14 +1,14 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_primitives::Count;
 use brk_error::Result;
-use brk_types::Weight;
+use brk_types::Weight32;
 use vecdb::{Database, ReadableVec, VecIndex};
 
 use super::{Dependencies, Vecs};
 
 const NEAR_FULL_WEIGHT: u32 = 3_600_000;
 
-fn next_streak(weight: Weight, previous: Count) -> Count {
+fn next_streak(weight: Weight32, previous: Count) -> Count {
     if u32::from(weight) >= NEAR_FULL_WEIGHT {
         previous + Count::new(1)
     } else {

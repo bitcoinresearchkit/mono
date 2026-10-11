@@ -1,6 +1,6 @@
 use bitview_primitives::TxOutIndex;
 use brk_error::{Error, Result};
-use brk_types::{OutPoint, SigOps, TxIndex, Txid, TxidPrefix, Vout};
+use brk_types::{OutPoint, SigOps32, TxIndex, Txid, TxidPrefix, Vout};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use tracing::error;
@@ -69,7 +69,7 @@ impl InputResolver {
                                 .legacy_sigops(output_type, type_index, &processor.readers.scripts)
                                 .ok_or(Error::Internal("Missing legacy_sigops"))?
                         } else {
-                            SigOps::ZERO
+                            SigOps32::ZERO
                         };
 
                         *resolved = InputSource::PreviousBlock {

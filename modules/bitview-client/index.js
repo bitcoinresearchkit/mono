@@ -352,11 +352,6 @@ prior template's transactions or a full transaction body.
  * @typedef {number} Bytes
  */
 /**
- * A size in bytes that fits 32 bits (under 4 GiB), such as a block or transaction size.
- *
- * @typedef {number} Bytes32
- */
-/**
  * A mean size in bytes.
  *
  * @typedef {number} BytesFract
@@ -411,16 +406,6 @@ prior template's transactions or a full transaction body.
  * A number of things.
  *
  * @typedef {number} Count
- */
-/**
- * A number of things that fits 16 bits (at most 65,535), such as transactions per block.
- *
- * @typedef {number} Count16
- */
-/**
- * A number of things that fits 32 bits, such as outputs per block.
- *
- * @typedef {number} Count32
  */
 /**
  * A mean number of things.
@@ -1301,19 +1286,10 @@ undefined one (e.g. NaN).
  * @property {Format=} format - Format of the output
  */
 /**
- * BIP-141 sigop cost. The block-level budget is 80,000, so a `u32`
- * fits a single tx's count with room to spare.
- *
- * Witness sigops count as 1; legacy and P2SH-redeem sigops count as 4.
- * Five vbytes per sigop is the policy adjustment Core applies in
- * `nSigOpCost` to discourage sigop-heavy txs (`max(weight/4, sigops*5)`).
+ * BIP-141 signature-operation cost: legacy and P2SH-redeem sigops count four and witness sigops
+ * one. Sums over many transactions or blocks use the full 64 bits.
  *
  * @typedef {number} SigOps
- */
-/**
- * BIP-141 signature-operation cost with enough range for cumulative and rolling totals.
- *
- * @typedef {number} SigOps64
  */
 /**
  * Sync status of the indexer
@@ -1648,14 +1624,10 @@ coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 
  * @typedef {number} Week1
  */
 /**
- * Weight in weight units (WU). Max block weight is 4,000,000 WU.
+ * Weight in weight units (WU): non-witness bytes count four and witness bytes one. A block holds
+ * at most 4,000,000 WU; sums over many blocks use the full 64 bits.
  *
  * @typedef {number} Weight
- */
-/**
- * Weight in weight units with enough range for cumulative and rolling totals.
- *
- * @typedef {number} Weight64
  */
 /**
  * A mean weight in weight units.
@@ -5386,19 +5358,19 @@ const _Annex = _s({
 });
 
 /**
- * @template A, B, C, D
+ * @template A, B
  * @typedef {{
  *   block: SeriesPattern20<A>,
- *   cumulative: SeriesPattern1<B>,
- *   sum: InputsPerSecond<B>,
- *   avg: InputsPerSecond<C>,
- *   min: InputsPerSecond<D>,
- *   max: InputsPerSecond<D>,
- *   pct10: InputsPerSecond<D>,
- *   pct25: InputsPerSecond<D>,
- *   median: InputsPerSecond<D>,
- *   pct75: InputsPerSecond<D>,
- *   pct90: InputsPerSecond<D>,
+ *   cumulative: SeriesPattern1<A>,
+ *   sum: InputsPerSecond<A>,
+ *   avg: InputsPerSecond<B>,
+ *   min: InputsPerSecond<A>,
+ *   max: InputsPerSecond<A>,
+ *   pct10: InputsPerSecond<A>,
+ *   pct25: InputsPerSecond<A>,
+ *   median: InputsPerSecond<A>,
+ *   pct75: InputsPerSecond<A>,
+ *   pct90: InputsPerSecond<A>,
  * }} BlocksSize
  */
 const _BlocksSize = _s({
@@ -6357,7 +6329,7 @@ const _OutputsTypes = _s({
 /**
  * @typedef {{
  *   spent: Spent,
- *   count: BlocksSize<Count, Count, ?CountFract, Count32>,
+ *   count: BlocksSize<Count, ?CountFract>,
  *   perSecond: InputsPerSecond<?PerSecond>,
  *   spendableCount: CoinblocksDestroyed<Count>,
  *   types: OutputsTypes,
@@ -6403,7 +6375,7 @@ const _InputsTypes = _s({
 /**
  * @typedef {{
  *   value: SeriesPattern22<Sats>,
- *   count: BlocksSize<Count, Count, ?CountFract, Count16>,
+ *   count: BlocksSize<Count, ?CountFract>,
  *   perSecond: InputsPerSecond<?PerSecond>,
  *   types: InputsTypes,
  * }} Inputs
@@ -6419,9 +6391,9 @@ const _Inputs = _s({
  * @typedef {{
  *   count: CoinblocksDestroyed<Count>,
  *   interval: Interval<Seconds, ?SecondsFract>,
- *   vsize: BlocksSize<VSize, VSize, ?VSizeFract, VSize>,
- *   size: BlocksSize<Bytes32, Bytes, ?BytesFract, Bytes32>,
- *   weight: BlocksSize<Weight, Weight64, ?WeightFract, Weight>,
+ *   vsize: BlocksSize<VSize, ?VSizeFract>,
+ *   size: BlocksSize<Bytes, ?BytesFract>,
+ *   weight: BlocksSize<Weight, ?WeightFract>,
  *   fullness: SeriesPattern20<?Percent>,
  *   difficulty: BlocksDifficulty,
  *   halving: BlocksHalving,
@@ -6907,7 +6879,7 @@ const _Mappings = _s({
  *   firstIndex: SeriesPattern20<OpReturnIndex>,
  *   txIndex: SeriesPattern25<TxIndex>,
  *   protocol: SeriesPattern25<OpReturnKind>,
- *   postOpReturnBytes: SeriesPattern25<Bytes32>,
+ *   postOpReturnBytes: SeriesPattern25<Bytes>,
  * }} IndexerOpReturn
  */
 const _IndexerOpReturn = _s({
@@ -7215,14 +7187,14 @@ const _TransactionsFeatures = _s({
 
 /**
  * @typedef {{
- *   count: BlocksSize<Count, Count, ?CountFract, Count16>,
+ *   count: BlocksSize<Count, ?CountFract>,
  *   features: TransactionsFeatures,
  *   size: TransactionsSize,
  *   fees: TransactionsFees,
  *   inscription: Inscription,
  *   patterns: Patterns,
  *   policy: Policy,
- *   sigopCost: CoinblocksDestroyed<SigOps64>,
+ *   sigopCost: CoinblocksDestroyed<SigOps>,
  *   versions: Versions<CoinblocksDestroyed<Count>>,
  *   volume: OpReturnValue,
  *   perSecond: InputsPerSecond<?PerSecond>,
@@ -7304,7 +7276,7 @@ const _IndexerTransactionsFeatures = _s({
  *   version: SeriesPattern21<TxVersion>,
  *   locktime: SeriesPattern21<RawLockTime>,
  *   weight: SeriesPattern21<Weight>,
- *   size: SeriesPattern21<Bytes32>,
+ *   size: SeriesPattern21<Bytes>,
  *   sigopCost: SeriesPattern21<SigOps>,
  *   firstTxinIndex: SeriesPattern21<TxInIndex>,
  *   firstTxoutIndex: SeriesPattern21<TxOutIndex>,
@@ -7331,10 +7303,10 @@ const _IndexerTransactions = _s({
  *   blockhash: SeriesPattern20<BlockHash>,
  *   coinbaseTag: SeriesPattern20<CoinbaseTag>,
  *   timestamp: SeriesPattern20<Timestamp>,
- *   size: SeriesPattern20<Bytes32>,
+ *   size: SeriesPattern20<Bytes>,
  *   weight: SeriesPattern20<Weight>,
  *   segwitTxCount: SeriesPattern20<Count>,
- *   segwitSize: SeriesPattern20<Bytes32>,
+ *   segwitSize: SeriesPattern20<Bytes>,
  *   segwitWeight: SeriesPattern20<Weight>,
  * }} IndexerBlocks
  */

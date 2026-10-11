@@ -1,5 +1,5 @@
 use bitcoin::{Script, TxIn, TxOut, constants::WITNESS_SCALE_FACTOR};
-use brk_types::{OutputType, SigOps};
+use brk_types::{OutputType, SigOps32};
 
 use crate::processor::txout::ProcessedOutput;
 
@@ -26,7 +26,7 @@ impl Accumulator {
     pub fn scan_input(
         &mut self,
         prev_kind: OutputType,
-        prev_legacy_sigops: SigOps,
+        prev_legacy_sigops: SigOps32,
         facts: &input::Facts<'_>,
     ) {
         if !facts.script_sig.push_only {
@@ -100,13 +100,13 @@ impl Accumulator {
 
     pub fn finish(self) -> ComputedSigOps {
         ComputedSigOps {
-            total: SigOps::from(
+            total: SigOps32::from(
                 self.legacy
                     .saturating_mul(WITNESS_SCALE_FACTOR)
                     .saturating_add(self.redeem.saturating_mul(WITNESS_SCALE_FACTOR))
                     .saturating_add(self.witness),
             ),
-            executed_legacy: SigOps::from(self.executed_legacy),
+            executed_legacy: SigOps32::from(self.executed_legacy),
         }
     }
 }

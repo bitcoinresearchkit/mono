@@ -15,14 +15,14 @@ use crate::{IndexSources, LazyRollingDistribution, RollingComplete};
 pub struct LazyRollingComplete<T, S1T>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
-    S1T: ComputedVecValue + JsonSchema,
+    S1T: ComputedVecValue + JsonSchema + Quantity,
 {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
     rolling: RollingTotals<T>,
     #[traversable(flatten)]
-    distribution: LazyRollingDistribution<T, S1T>,
+    distribution: LazyRollingDistribution<T, S1T::Sum>,
 }
 
 impl<T, S1T> LazyRollingComplete<T, S1T>
@@ -30,7 +30,7 @@ where
     T: NumericValue + JsonSchema + Quantity<Sum = T> + 'static,
     S1T: NumericValue + JsonSchema + Quantity,
 {
-    pub(crate) fn from_rolling_complete<F: UnaryTransform<S1T, T>>(
+    pub(crate) fn from_rolling_complete<F: UnaryTransform<S1T::Sum, T>>(
         name: &str,
         version: Version,
         cumulative: &impl ReadableCloneableVec<Height, T>,

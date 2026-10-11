@@ -92,7 +92,7 @@ pub fn feed_blocks_with<IM: StorageMode>(
         // Necessary serialization bounds, deliberately looser than full
         // consensus validation: at least 10 base bytes per transaction and
         // 9 per output, each costing four weight units.
-        if next_first_tx_index > total_txs || tx_count >= u32::from(Weight::MAX_BLOCK) as usize / 40
+        if next_first_tx_index > total_txs || tx_count >= u64::from(Weight::MAX_BLOCK) as usize / 40
         {
             return Err(Error::Internal(
                 "Oracle block transaction count exceeds bounds",
@@ -109,7 +109,7 @@ pub fn feed_blocks_with<IM: StorageMode>(
         let block_outputs = out_end
             .checked_sub(block_out_start)
             .ok_or(Error::Internal("Invalid oracle block output boundaries"))?;
-        if out_end > total_outputs || block_outputs > u32::from(Weight::MAX_BLOCK) as usize / 36 {
+        if out_end > total_outputs || block_outputs > u64::from(Weight::MAX_BLOCK) as usize / 36 {
             return Err(Error::Internal("Oracle block output count exceeds bounds"));
         }
 

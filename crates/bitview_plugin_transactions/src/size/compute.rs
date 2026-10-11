@@ -18,7 +18,7 @@ impl Vecs {
             mappings,
             &starting_lengths,
             &indexer.vecs().transactions.first_tx_index,
-            &indexer.vecs().transactions.weight,
+            indexer.vecs().transactions.weight.view(),
             exit,
         )?;
 

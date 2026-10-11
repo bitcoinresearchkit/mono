@@ -4,13 +4,13 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::WeightToVSize;
 use bitview_vecs::{LazyPerBlockRolling, LazyWindowStartVec, PerBlockRolling};
 use brk_error::Result;
-use brk_types::{Height, VSize, Version, Weight};
+use brk_types::{Height, VSize, Version, Weight32};
 use vecdb::{Database, LazyVec, ReadableCloneableVec};
 
 use super::{Vecs, vecs::VirtualSize};
 use crate::{WeightVecs, block_rolling::BlockRolling};
 
-fn block_vsize(_: Height, weight: Weight) -> VSize {
+fn block_vsize(_: Height, weight: Weight32) -> VSize {
     VSize::from(weight)
 }
 
@@ -42,8 +42,6 @@ impl Vecs {
         Ok(Self {
             vsize,
             size: BlockRolling::new(
-                "block_size",
-                version,
                 &indexer.vecs().blocks.total,
                 PerBlockRolling::import(db, "block_size", version, mappings, window_starts)?,
             ),

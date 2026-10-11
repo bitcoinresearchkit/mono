@@ -72,6 +72,20 @@ where
     }
 }
 
+/// An index read back from its 40-bit storage.
+macro_rules! index_from_index40 {
+    ($($index:ty),+) => {$(
+        impl From<Index40<$index>> for $index {
+            #[inline(always)]
+            fn from(value: Index40<$index>) -> Self {
+                value.get()
+            }
+        }
+    )+};
+}
+
+index_from_index40!(crate::TxInIndex, crate::TxOutIndex);
+
 impl<T> Debug for Index40<T>
 where
     T: From<u64> + Debug,

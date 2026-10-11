@@ -11,7 +11,9 @@ use bitcoin::{
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Lengths, PoolSlug, pools};
 use bitview_types::{BlockExtras, BlockHeader, BlockInfo, BlockInfoV1, BlockPool};
-use brk_types::{BlockHash, CheckedSub, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, VSize};
+use brk_types::{
+    BlockHash, CheckedSub, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, VSize, Weight,
+};
 use vecdb::{ReadableVec, VecIndex};
 
 use crate::{Error, OptionData, Query, Result};
@@ -333,7 +335,7 @@ impl Query {
                 merkle_root: header.merkle_root,
                 tx_count,
                 size: u64::from(*sizes[i]),
-                weight: weights[i],
+                weight: weights[i].into(),
                 previous_block_hash: header.previous_block_hash,
                 median_time: median_times[i],
             });
@@ -534,7 +536,7 @@ impl Query {
                     total_size: coinbase_total_size,
                 } = Self::parse_coinbase_from_read(blk)?;
 
-                let weight = weights[i];
+                let weight = Weight::from(weights[i]);
                 let size = u64::from(*sizes[i]);
                 let total_fees = fee_sats[i];
                 let subsidy = subsidy_sats[i];
@@ -627,7 +629,7 @@ impl Query {
                     ],
                     segwit_total_txs: u32::from(*segwit_txs[i]),
                     segwit_total_size: u64::from(*segwit_sizes[i]),
-                    segwit_total_weight: segwit_weights[i],
+                    segwit_total_weight: segwit_weights[i].into(),
                     header: raw_header.to_lower_hex_string(),
                     utxo_set_change: total_outputs as i64 - total_inputs as i64,
                     utxo_set_size: *utxo_set_sizes[i],

@@ -15,7 +15,9 @@ impl Vecs {
         indexer: &Indexer,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
-        let weight = TxDerivedDistribution::import(db, "tx_weight", version, mappings)?;
+        // Version one: statistics moved from the stored `Weight32` to the wide `Weight`.
+        let weight =
+            TxDerivedDistribution::import(db, "tx_weight", version + Version::ONE, mappings)?;
 
         let tx_index_to_vsize = LazyVec::transformed::<WeightToVSize>(
             "tx_vsize",

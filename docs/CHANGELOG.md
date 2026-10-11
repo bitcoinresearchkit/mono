@@ -33,13 +33,15 @@ has to be deleted by hand.
 #### API: series and responses
 
 - Typed every series value by what it measures, replacing the representation-named `Stored*` types (none is left):
-  `Boolean`, `Score`, `Rank`, `Count`/`Count16`/`Count32`/`CountSigned`, `Bytes`/`Bytes32`, `VSize`, `Weight`,
-  `SigOps64`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`, `VSizeFract`,
+  `Boolean`, `Score`, `Rank`, `Count`/`CountSigned`, `Bytes`, `VSize`, `Weight`, `SigOps`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`, `VSizeFract`,
   `WeightFract`, `SigOpsFract`, `SecondsFract`, `SatsFract`, `CentsFract`), coin days/blocks/years, `Days`/`Years`,
   `Hashrate`, `Difficulty`, `PerDay`, `PerSecond`, and the generic `Float32`/`Float64`. MACD
   series are `Dollars`. Values keep their JSON form (numbers; `Boolean` stays a boolean); client type names change
-- Stored per-block distributions use narrow per-block types (block size `Bytes32`, weight `Weight`, transaction and
-  input counts `Count16`, output counts `Count32`); cumulatives and sums stay wide. Block interval is `Seconds`
+- Every series has its quantity's type: per-block values and their statistics are `Count`, `Bytes`, `Weight` and
+  `SigOps` like their sums (the indexer's narrow storage forms `Count16`, `Bytes32`, `Weight32`, `SigOps32` and the
+  5-byte indexes stay internal, published through views), so block size and weight, transaction, input and output
+  counts and per-transaction weight read one type across `block`, `cumulative`, `sum` and the distribution statistics
+  (recomputed on upgrade). Block interval is `Seconds`
 - Typed values as nullable exactly where the JSON can hold `null`: a period without blocks (date resolutions; height,
   halving and epoch never) or a type's own undefined value (non-finite floats and the `FeeRate` sentinel); CSV
   writes undefined values as empty cells
@@ -423,6 +425,11 @@ has to be deleted by hand.
 
 #### Rust APIs
 
+- `brk_types`: `Weight` is the 64-bit weight and `SigOps` the 64-bit sigop cost (were `Weight64` and `SigOps64` in
+  `bitview_primitives`); their 32-bit storage forms are `Weight32` and `SigOps32` (were `Weight` and `SigOps`). The
+  REST types use the wide ones (`Transaction.weight` and `.total_sigop_cost`, CPFP entries, block info and weight
+  entries; JSON unchanged), and the methods (`MAX_BLOCK`, `from_sizes`, `fullness`, `adjust_vsize`) moved to them
+- `bitview_traversable::Compact<V, T>`: a vec stored in a compact type and published as a wider one under its id
 - `bitview_vecs::TxDerivedDistribution` is statistic-first (`DistributionStats<TxWindows<PerBlock<T>>>`, each statistic
   with `block` and `_6b`); `PerBlockDistribution` and `LazyDistribution` are removed. Readers of
   `fees.fee.distribution.block.median` read `fees.fee.distribution.median.block`

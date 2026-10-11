@@ -45,6 +45,7 @@ mod recommended_fees;
 mod sats;
 mod sats_signed;
 mod sigops;
+mod sigops32;
 mod store_value;
 mod timestamp;
 mod tx;
@@ -61,6 +62,7 @@ mod vin;
 mod vout;
 mod vsize;
 mod weight;
+mod weight32;
 mod witness;
 
 pub use addr::*;
@@ -102,6 +104,7 @@ pub use recommended_fees::*;
 pub use sats::*;
 pub use sats_signed::*;
 pub use sigops::*;
+pub use sigops32::*;
 pub use store_value::*;
 pub use timestamp::*;
 pub use tx::*;
@@ -118,6 +121,7 @@ pub use vin::*;
 pub use vout::*;
 pub use vsize::*;
 pub use weight::*;
+pub use weight32::*;
 pub use witness::*;
 
 #[cfg(test)]

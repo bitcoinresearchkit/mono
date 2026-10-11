@@ -1,5 +1,5 @@
 use bitview_traversable::Traversable;
-use brk_types::{VSize, Weight};
+use brk_types::{VSize, Weight, Weight32};
 use vecdb::{Rw, StorageMode};
 
 use bitview_vecs::{LazyPerTxDistributionTransformed, TxDerivedDistribution};
@@ -12,7 +12,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// equally and include coinbase, either in the represented block or the
     /// six-block window ending there; time-period indexes take the value from
     /// the period's final block.
-    pub vsize: LazyPerTxDistributionTransformed<VSize, Weight, Weight>,
+    pub vsize: LazyPerTxDistributionTransformed<VSize, Weight32, Weight>,
     /// BIP-141 transaction weight in weight units: non-witness bytes count as
     /// four weight units and witness bytes count as one. Distribution series
     /// count every transaction equally and include coinbase, either in the

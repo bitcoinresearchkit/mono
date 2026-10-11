@@ -21,7 +21,7 @@ pub(crate) fn block_count(
     let total_source = IndexVec::new(
         "block_count_cumulative_source",
         version + Version::ONE,
-        indexer.vecs().blocks.weight.read_only_clone(),
+        (*indexer.vecs().blocks.weight).read_only_clone(),
         cumulative_block_count,
     );
     LazyPerBlockCumulativeRolling::from_cumulative_source(

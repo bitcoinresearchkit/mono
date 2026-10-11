@@ -1,6 +1,6 @@
-use bitview_primitives::SigOps64;
 use bitview_traversable::Traversable;
 use bitview_vecs::PerBlockCumulativeRolling;
+use brk_types::SigOps;
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
@@ -12,5 +12,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// BIP-342 uses a separate per-input budget. The post-SegWit block limit is
     /// 80,000 cost units.
     #[traversable(flatten)]
-    pub total: PerBlockCumulativeRolling<SigOps64, M>,
+    pub total: PerBlockCumulativeRolling<SigOps, M>,
 }

@@ -1,5 +1,5 @@
 use bitview_primitives::{AddrHash, TypeIndex};
-use brk_types::{OutputType, SigOps};
+use brk_types::{OutputType, SigOps32};
 
 use super::op_return;
 
@@ -14,7 +14,7 @@ pub enum ProcessedOutputData {
 #[derive(Clone, Copy)]
 pub struct ProcessedOutput {
     pub output_type: OutputType,
-    pub legacy_sigops: SigOps,
+    pub legacy_sigops: SigOps32,
     pub data: ProcessedOutputData,
 }
 

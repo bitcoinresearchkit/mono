@@ -3,7 +3,7 @@
 
 use std::ops::{Div, Mul};
 
-use brk_types::{Cents, Height, Sats, SigOps, TxIndex, Weight};
+use brk_types::{Cents, Height, Sats, TxIndex};
 
 use crate::{TxInIndex, TxOutIndex, scalar::scalar};
 
@@ -170,16 +170,6 @@ scalar! {
     int Seconds(u32)
 }
 
-scalar! {
-    /// Weight in weight units with enough range for cumulative and rolling totals.
-    int Weight64(u64)
-}
-
-scalar! {
-    /// BIP-141 signature-operation cost with enough range for cumulative and rolling totals.
-    int SigOps64(u64)
-}
-
 impl From<Count32> for Count {
     #[inline]
     fn from(value: Count32) -> Self {
@@ -205,20 +195,6 @@ impl From<Percent> for Percent64 {
     #[inline]
     fn from(value: Percent) -> Self {
         Self(f64::from(value.0))
-    }
-}
-
-impl From<Weight> for Weight64 {
-    #[inline]
-    fn from(value: Weight) -> Self {
-        Self(u64::from(value))
-    }
-}
-
-impl From<SigOps> for SigOps64 {
-    #[inline]
-    fn from(value: SigOps) -> Self {
-        Self(u64::from(u32::from(value)))
     }
 }
 

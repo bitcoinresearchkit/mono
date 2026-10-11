@@ -1,5 +1,5 @@
-use bitview_primitives::{Bytes32, OpReturnIndex, OpReturnKind};
-use bitview_traversable::Traversable;
+use bitview_primitives::{Bytes, Bytes32, OpReturnIndex, OpReturnKind};
+use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{Height, TxIndex, Version};
 use rayon::prelude::*;
@@ -21,7 +21,7 @@ pub struct OpReturnVecs<M: StorageMode = Rw> {
     pub kind: M::Stored<PcoVec<OpReturnIndex, OpReturnKind>>,
     /// Number of serialized locking-script bytes after the initial
     /// `OP_RETURN` opcode, including push opcodes and push-length prefixes.
-    pub post_op_return_bytes: M::Stored<PcoVec<OpReturnIndex, Bytes32>>,
+    pub post_op_return_bytes: Compact<PcoVec<OpReturnIndex, Bytes32>, Bytes, M>,
 }
 
 impl OpReturnVecs {
@@ -31,7 +31,7 @@ impl OpReturnVecs {
             to_tx_index = PcoVec::import(db, "op_return_tx_index", version),
             kind = PcoVec::import(db, "op_return_protocol", version),
             post_op_return_bytes =
-                PcoVec::import(db, "op_return_post_op_return_bytes", version),
+                PcoVec::import(db, "op_return_post_op_return_bytes", version).map(Compact::new),
         };
         Ok(Self {
             first_index,
@@ -63,7 +63,7 @@ impl OpReturnVecs {
             &mut self.first_index as &mut dyn AnyStoredVec,
             &mut self.to_tx_index,
             &mut self.kind,
-            &mut self.post_op_return_bytes,
+            &mut *self.post_op_return_bytes,
         ]
         .into_par_iter()
     }
@@ -73,7 +73,7 @@ impl OpReturnVecs {
             &self.first_index as &dyn AnyStoredVec,
             &self.to_tx_index,
             &self.kind,
-            &self.post_op_return_bytes,
+            &*self.post_op_return_bytes,
         ]
         .into_iter()
     }
