@@ -21,10 +21,11 @@ impl Vecs {
         let version = STORAGE.schema_version();
 
         let count = count::Vecs::import(&db, version, mappings, window_starts)?;
-        let features = features::Vecs::import(&db, version, mappings, window_starts)?;
+        let features = features::Vecs::import(&db, version, indexer, mappings, window_starts)?;
         let size = size::Vecs::import(&db, version, indexer, mappings)?;
         let fees = fees::Vecs::import(&db, version, mappings, window_starts)?;
-        let inscription = inscription::Vecs::import(&db, version, mappings, window_starts)?;
+        let inscription =
+            inscription::Vecs::import(&db, version, indexer, mappings, window_starts)?;
         let patterns = patterns::Vecs::import(&db, version, mappings, window_starts)?;
         let policy = policy::Vecs::import(&db, version, mappings, window_starts)?;
         let sigops = sigops::Vecs::import(&db, version, mappings, window_starts)?;

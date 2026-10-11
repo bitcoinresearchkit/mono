@@ -31,8 +31,11 @@ use vecdb::ZstdVec;
 #[cfg(feature = "zstd")]
 use vecdb::ZstdVecValue;
 
+mod compact;
+
 pub use bitview_catalog::{SeriesLeaf, SeriesLeafWithSchema, TreeBranch, TreeNode};
 pub use bitview_primitives::Index;
+pub use compact::Compact;
 pub use indexmap::IndexMap;
 pub use vecdb::{AnyExportableVec, ReadOnlyClone, Ro, Rw, StorageMode};
 

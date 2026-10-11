@@ -393,7 +393,7 @@ impl Query {
         let segwit_txs = indexer
             .vecs()
             .blocks
-            .segwit_txs
+            .segwit_tx_count
             .collect_range_at(begin, end);
         let segwit_sizes = indexer
             .vecs()

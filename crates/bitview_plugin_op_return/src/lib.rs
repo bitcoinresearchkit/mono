@@ -10,6 +10,7 @@ mod total;
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_plugin_indexer::FlagView;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
@@ -25,8 +26,10 @@ pub const ID: PluginId = STORAGE.id();
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
-    /// Metrics across every `OP_RETURN` output and every transaction carrying
-    /// at least one such output.
+    /// Transactions that create at least one output whose locking script begins with `OP_RETURN`.
+    /// Whether the transaction is one of them.
+    flag: FlagView,
+    // Metrics across every `OP_RETURN` output and every transaction carrying at least one such output.
     #[traversable(flatten)]
     total: Total<M>,
     /// Metrics by detected `OP_RETURN` payload protocol. Output bytes belong

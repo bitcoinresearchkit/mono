@@ -5,7 +5,8 @@ use brk_error::Result;
 use brk_types::Version;
 use vecdb::{Database, EagerVec, ImportableVec};
 
-use super::{CountVecs, Flags, Vecs};
+use super::Vecs;
+use crate::flagged::Flagged;
 
 impl Vecs {
     pub(crate) fn import(
@@ -15,19 +16,22 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
-        let count =
-            |name| PerBlockCumulativeRolling::import(db, name, version, mappings, window_starts);
+        let pattern = |flag, count| -> Result<_> {
+            Ok(Flagged {
+                flag: EagerVec::import(db, flag, version)?,
+                count: PerBlockCumulativeRolling::import(
+                    db,
+                    count,
+                    version,
+                    mappings,
+                    window_starts,
+                )?,
+            })
+        };
         Ok(Vecs {
-            count: CountVecs {
-                coinjoin: count("coinjoin_tx_count")?,
-                consolidation: count("consolidation_tx_count")?,
-                batch_payout: count("batch_payout_tx_count")?,
-            },
-            flags: Flags {
-                is_coinjoin: EagerVec::import(db, "is_coinjoin", version)?,
-                is_consolidation: EagerVec::import(db, "is_consolidation", version)?,
-                is_batch_payout: EagerVec::import(db, "is_batch_payout", version)?,
-            },
+            coinjoin: pattern("is_coinjoin", "coinjoin_tx_count")?,
+            consolidation: pattern("is_consolidation", "consolidation_tx_count")?,
+            batch_payout: pattern("is_batch_payout", "batch_payout_tx_count")?,
         })
     }
 }

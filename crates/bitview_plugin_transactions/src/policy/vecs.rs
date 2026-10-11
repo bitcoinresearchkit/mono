@@ -1,16 +1,10 @@
-use bitview_primitives::Boolean;
 use bitview_traversable::Traversable;
-use brk_types::TxIndex;
-use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
+use vecdb::{Rw, StorageMode};
 
-mod count;
-
-pub use count::CountVecs;
+use crate::flagged::Classified;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    pub count: CountVecs<M>,
-    /// Whether the indexed transaction is classified as nonstandard under this
-    /// approximation.
-    pub is_nonstandard: M::Stored<EagerVec<PcoVec<TxIndex, Boolean>>>,
+    /// Transactions classified as nonstandard under this approximation.
+    pub nonstandard: Classified<M>,
 }

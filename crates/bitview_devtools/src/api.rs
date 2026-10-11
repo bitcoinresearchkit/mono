@@ -1,11 +1,14 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    io,
+};
 
 use aide::axum::ApiRouter;
 use bitview_bindgen::client_paths;
 use bitview_catalog::{TreeNode, extract_json_type};
 use bitview_query::Vecs;
 use bitview_server::{ApiRoutes, finish_openapi};
-use brk_error::Result;
+use brk_error::{Error, Result};
 
 use crate::{AllPlugins, Snapshot, errors::render_errors};
 
@@ -15,7 +18,7 @@ use crate::{AllPlugins, Snapshot, errors::render_errors};
 pub fn render_api(plugins: &AllPlugins) -> Result<Vec<Snapshot>> {
     let defaults = Vecs::build(&plugins.defaults);
     let all = Vecs::build(plugins);
-
+    check_value_types(&all)?;
     let mut leaves = Leaves::default();
     let default_lines = leaves.lines(defaults.catalog());
     let all_lines = leaves.lines(all.catalog());
@@ -115,6 +118,26 @@ fn section(out: &mut String, title: &str, lines: impl Iterator<Item = impl AsRef
         out.push_str(line.as_ref());
         out.push('\n');
     }
+}
+
+/// Fails when an id is published with more than one value type: a duplicate at the same index
+/// loses its path, and one at other indexes would give the id two types. Open compositions only
+/// report it; in our own, it is a bug.
+fn check_value_types(all: &Vecs) -> Result<()> {
+    let ids = all
+        .shared_series()
+        .iter()
+        .filter(|shared| shared.also.iter().any(|(_, matches)| !matches))
+        .map(|shared| shared.name.as_str())
+        .chain(all.value_type_conflicts().iter().copied())
+        .collect::<BTreeSet<_>>();
+    if ids.is_empty() {
+        return Ok(());
+    }
+    Err(Error::from(io::Error::other(format!(
+        "ids published with different value types: {}",
+        ids.into_iter().collect::<Vec<_>>().join(", ")
+    ))))
 }
 
 #[derive(Default)]

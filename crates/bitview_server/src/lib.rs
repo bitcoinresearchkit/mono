@@ -121,7 +121,8 @@ impl Server {
 
         config.website.log();
         #[cfg(feature = "series")]
-        query.sync(|q| log_shared_series(q.vecs().shared_series()));
+        query
+            .sync(|q| log_shared_series(q.vecs().shared_series(), q.vecs().value_type_conflicts()));
 
         Ok(Self {
             app: app(query, config).await?,
@@ -236,7 +237,7 @@ pub fn finish_openapi<S: Clone + Send + Sync + 'static>(
 
 /// A composition may publish one id from several plugins: say which plugin serves it.
 #[cfg(feature = "series")]
-fn log_shared_series(shared: &[SharedSeries]) {
+fn log_shared_series(shared: &[SharedSeries], value_type_conflicts: &[&str]) {
     for series in shared {
         for (plugin, matches) in &series.also {
             if *matches {
@@ -252,5 +253,8 @@ fn log_shared_series(shared: &[SharedSeries]) {
                 );
             }
         }
+    }
+    for series in value_type_conflicts {
+        tracing::warn!("Series {series} is published with more than one value type");
     }
 }

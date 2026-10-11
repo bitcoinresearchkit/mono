@@ -43,6 +43,8 @@ pub struct SharedSeries {
 pub struct Vecs<'a> {
     by_series: FxHashMap<&'a str, Series<'a>>,
     shared: Vec<SharedSeries>,
+    /// Ids whose accepted copies hold more than one value type (at different indexes).
+    value_type_conflicts: Vec<&'a str>,
     series_names: Vec<&'a str>,
     indexes: Vec<IndexInfo>,
     counts: SeriesCount,
@@ -99,6 +101,7 @@ impl<'a> Vecs<'a> {
             shared,
             collided,
             excluded,
+            value_type_conflicts,
         } = builder.resolve();
         // A shared id keeps its serving plugin's description, a copy left out documents nothing,
         // and an id spanning plugins through different indexes must be described alike.
@@ -213,6 +216,7 @@ impl<'a> Vecs<'a> {
         Self {
             by_series,
             shared,
+            value_type_conflicts,
             series_names,
             indexes,
             counts,
@@ -227,6 +231,12 @@ impl<'a> Vecs<'a> {
     /// Ids published by more than one plugin of this composition.
     pub fn shared_series(&self) -> &[SharedSeries] {
         &self.shared
+    }
+
+    /// Ids whose published copies hold more than one value type: compositions are open, so this
+    /// is reported rather than refused.
+    pub fn value_type_conflicts(&self) -> &[&'a str] {
+        &self.value_type_conflicts
     }
 
     pub fn series_names(&self) -> &[&'a str] {
@@ -336,6 +346,8 @@ struct Resolution<'a> {
     collided: FxHashSet<&'a str>,
     /// Plugins that lost an id: (id, plugin).
     excluded: FxHashSet<(&'a str, &'a str)>,
+    /// Ids whose accepted registrations hold more than one value type.
+    value_type_conflicts: Vec<&'a str>,
 }
 
 struct Registration<'a> {
@@ -427,6 +439,14 @@ impl<'a> Builder<'a> {
                     resolution.excluded.insert((name, db));
                 }
                 start = end;
+            }
+            let value_types = positions
+                .iter()
+                .filter(|&&position| accepted[position])
+                .map(|&position| registrations[position].vec.value_type_to_string())
+                .collect::<FxHashSet<_>>();
+            if value_types.len() > 1 {
+                resolution.value_type_conflicts.push(name);
             }
             if !others.is_empty() {
                 resolution.collided.insert(name);

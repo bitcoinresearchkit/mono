@@ -4453,6 +4453,38 @@ class DataBytes(_Node):
     chain_share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_chain_share')
 
 
+class TransactionsFeaturesExplicitlyRbf(_Node):
+    flag: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_*')
+    block: SeriesPattern20[Count] = _at(SeriesPattern20, '*_tx_count')
+    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
+    sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
+
+
+class Policy(_Node):
+    nonstandard: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, '*')
+
+
+class Patterns(_Node):
+    coinjoin: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, '*')
+    consolidation: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, 'consolidation')
+    batch_payout: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, 'batch_payout')
+
+
+class TransactionsFees(_Node):
+    fee: EffectiveFeeRate[Sats] = _at(EffectiveFeeRate, 'tx_*')
+    fee_rate: SeriesPattern21[Optional[FeeRate]] = _at(SeriesPattern21, '*_rate')
+    effective_fee_rate: EffectiveFeeRate[Optional[FeeRate]] = _at(EffectiveFeeRate, 'effective_*_rate')
+    cpfp_parent: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, 'cpfp_parent')
+    cpfp_child: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, 'cpfp_child')
+
+
+class Annex(_Node):
+    flag: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'has_*')
+    block: SeriesPattern20[Count] = _at(SeriesPattern20, '*_tx_count')
+    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
+    sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
+
+
 class BlocksSize(_Node, Generic[A, B, C, D]):
     block: SeriesPattern20[A] = _at(SeriesPattern20, '*')
     cumulative: SeriesPattern1[B] = _at(SeriesPattern1, '*_cumulative')
@@ -4870,6 +4902,7 @@ class Protocols(_Node):
 
 
 class OpReturn(_Node):
+    flag: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'has_*')
     output_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_output_count')
     data_bytes: DataBytes = _at(DataBytes, '*_data_bytes')
     tx_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_tx_count')
@@ -4879,76 +4912,10 @@ class OpReturn(_Node):
     policies: Policies = _at(Policies, '*')
 
 
-class Versions(_Node):
-    v1: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'v1_*')
-    v2: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'v2_*')
-    v3: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'v3_*')
-    other: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'other_version_*')
-
-
-class PolicyCount(_Node):
-    nonstandard: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*')
-
-
-class Policy(_Node):
-    count: PolicyCount = _at(PolicyCount, '*_tx_count')
-    is_nonstandard: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_*')
-
-
-class PatternsCount(_Node):
-    coinjoin: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'coinjoin_*')
-    consolidation: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'consolidation_*')
-    batch_payout: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'batch_payout_*')
-
-
-class Patterns(_Node):
-    count: PatternsCount = _at(PatternsCount, 'tx_count')
-    is_coinjoin: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_coinjoin')
-    is_consolidation: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_consolidation')
-    is_batch_payout: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_batch_payout')
-
-
 class Inscription(_Node):
+    flag: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'has_*')
     count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_tx_count')
     fees: InscriptionFees = _at(InscriptionFees, '*')
-
-
-class FeesCount(_Node):
-    cpfp_parent: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'cpfp_parent_*')
-    cpfp_child: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'cpfp_child_*')
-
-
-class TransactionsFees(_Node):
-    count: FeesCount = _at(FeesCount, 'tx_count')
-    fee: EffectiveFeeRate[Sats] = _at(EffectiveFeeRate, 'tx_*')
-    fee_rate: SeriesPattern21[Optional[FeeRate]] = _at(SeriesPattern21, '*_rate')
-    effective_fee_rate: EffectiveFeeRate[Optional[FeeRate]] = _at(EffectiveFeeRate, 'effective_*_rate')
-    is_cpfp_parent: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_cpfp_parent')
-    is_cpfp_child: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_cpfp_child')
-
-
-class TransactionsFeatures(_Node):
-    annex: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'annex_*')
-    sighash_all: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'sighash_all_*')
-    sighash_none: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'sighash_none_*')
-    sighash_single: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'sighash_single_*')
-    sighash_default: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'sighash_default_*')
-    sighash_anyone_can_pay: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'sighash_anyone_can_pay_*')
-    dust_output: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'dust_output_*')
-
-
-class Transactions(_Node):
-    count: BlocksSize[Count, Count, Optional[CountFract], Count16] = _at(BlocksSize, '*_count')
-    features: TransactionsFeatures = _at(TransactionsFeatures, '*_count')
-    size: TransactionsSize = _at(TransactionsSize, '*')
-    fees: TransactionsFees = _at(TransactionsFees, 'fee')
-    inscription: Inscription = _at(Inscription, 'inscription')
-    patterns: Patterns = _at(Patterns, 'is')
-    policy: Policy = _at(Policy, 'nonstandard')
-    sigop_cost: CoinblocksDestroyed[SigOps64] = _at(CoinblocksDestroyed, 'block_sigop_cost')
-    versions: Versions = _at(Versions, '*_count')
-    volume: OpReturnValue = _at(OpReturnValue, '*_volume')
-    per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, '*_per_second')
 
 
 class TypesEmpty(_Node):
@@ -5323,47 +5290,92 @@ class IndexerInputs(_Node):
     type_index: SeriesPattern22[TypeIndex] = _at(SeriesPattern22, 'type_*')
 
 
-class FeaturesCount(_Node):
-    explicitly_rbf: SeriesPattern20[Count16] = _at(SeriesPattern20, 'explicitly_rbf_*')
-    one_input: SeriesPattern20[Count16] = _at(SeriesPattern20, 'one_input_*')
-    one_output: SeriesPattern20[Count16] = _at(SeriesPattern20, 'one_output_*')
-    p2pk: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2pk_*')
-    p2ms: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2ms_*')
-    p2pkh: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2pkh_*')
-    p2sh: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2sh_*')
-    p2wpkh: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2wpkh_*')
-    p2wsh: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2wsh_*')
-    p2tr: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2tr_*')
-    p2a: SeriesPattern20[Count16] = _at(SeriesPattern20, 'p2a_*')
-    empty: SeriesPattern20[Count16] = _at(SeriesPattern20, 'empty_*')
-    unknown: SeriesPattern20[Count16] = _at(SeriesPattern20, 'unknown_*')
-    fake_pubkey: SeriesPattern20[Count16] = _at(SeriesPattern20, 'fake_pubkey_*')
-    fake_scripthash: SeriesPattern20[Count16] = _at(SeriesPattern20, 'fake_scripthash_*')
+class OneInput(_Node):
+    block: SeriesPattern20[Count] = _at(SeriesPattern20, '*')
+
+
+class Versions(_Node, Generic[A]):
+    v1: A = _at(0, 'v1_*')
+    v2: A = _at(0, 'v2_*')
+    v3: A = _at(0, 'v3_*')
+    other: A = _at(0, 'other_version_*')
+
+
+class IndexerTransactionsFeaturesExplicitlyRbf(_Node):
+    flag: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_*')
+    block: SeriesPattern20[Count] = _at(SeriesPattern20, '*_tx_count')
+
+
+class FeaturesEmpty(_Node):
+    flag: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'has_*')
+    block: SeriesPattern20[Count] = _at(SeriesPattern20, '*_tx_count')
+
+
+class TransactionsFeatures(_Node):
+    p2pk: FeaturesEmpty = _at(FeaturesEmpty, 'p2pk')
+    p2ms: FeaturesEmpty = _at(FeaturesEmpty, 'p2ms')
+    p2pkh: FeaturesEmpty = _at(FeaturesEmpty, 'p2pkh')
+    p2sh: FeaturesEmpty = _at(FeaturesEmpty, 'p2sh')
+    p2wpkh: FeaturesEmpty = _at(FeaturesEmpty, 'p2wpkh')
+    p2wsh: FeaturesEmpty = _at(FeaturesEmpty, 'p2wsh')
+    p2tr: Annex = _at(Annex, 'p2tr')
+    p2a: FeaturesEmpty = _at(FeaturesEmpty, 'p2a')
+    empty: FeaturesEmpty = _at(FeaturesEmpty, 'empty')
+    unknown: FeaturesEmpty = _at(FeaturesEmpty, 'unknown')
+    fake_pubkey: FeaturesEmpty = _at(FeaturesEmpty, 'fake_pubkey')
+    fake_scripthash: FeaturesEmpty = _at(FeaturesEmpty, 'fake_scripthash')
+    segwit: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'segwit_tx_count')
+    annex: Annex = _at(Annex, 'annex')
+    sighash_all: Annex = _at(Annex, '*_all')
+    sighash_none: Annex = _at(Annex, '*_none')
+    sighash_single: Annex = _at(Annex, '*_single')
+    sighash_default: Annex = _at(Annex, '*_default')
+    sighash_anyone_can_pay: Annex = _at(Annex, '*_anyone_can_pay')
+    explicitly_rbf: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, 'explicitly_rbf')
+    dust_output: Annex = _at(Annex, 'dust_output')
+    one_input: OneInput = _at(OneInput, 'one_input_tx_count')
+    one_output: OneInput = _at(OneInput, 'one_output_tx_count')
+
+
+class Transactions(_Node):
+    count: BlocksSize[Count, Count, Optional[CountFract], Count16] = _at(BlocksSize, '*_count')
+    features: TransactionsFeatures = _at(TransactionsFeatures, 'sighash')
+    size: TransactionsSize = _at(TransactionsSize, '*')
+    fees: TransactionsFees = _at(TransactionsFees, 'fee')
+    inscription: Inscription = _at(Inscription, 'inscription')
+    patterns: Patterns = _at(Patterns, 'coinjoin')
+    policy: Policy = _at(Policy, 'nonstandard')
+    sigop_cost: CoinblocksDestroyed[SigOps64] = _at(CoinblocksDestroyed, 'block_sigop_cost')
+    versions: Versions[CoinblocksDestroyed[Count]] = _at((Versions, CoinblocksDestroyed), '*_count')
+    volume: OpReturnValue = _at(OpReturnValue, '*_volume')
+    per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, '*_per_second')
 
 
 class IndexerTransactionsFeatures(_Node):
-    count: FeaturesCount = _at(FeaturesCount, 'tx_count')
-    has_p2pk: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_p2pk')
-    has_p2ms: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_p2ms')
-    has_p2pkh: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_p2pkh')
-    has_p2sh: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_p2sh')
-    has_p2wpkh: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_p2wpkh')
-    has_p2wsh: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_p2wsh')
-    has_p2tr: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_p2tr')
-    has_p2a: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_p2a')
-    has_op_return: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_op_return')
-    has_empty: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_empty')
-    has_unknown: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_unknown')
-    has_fake_pubkey: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_fake_pubkey')
-    has_fake_scripthash: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_fake_scripthash')
-    has_inscription: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_inscription')
-    has_annex: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_annex')
-    has_sighash_all: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_sighash_all')
-    has_sighash_none: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_sighash_none')
-    has_sighash_single: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_sighash_single')
-    has_sighash_default: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_sighash_default')
-    has_sighash_anyone_can_pay: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_sighash_anyone_can_pay')
-    has_dust_output: SeriesPattern21[Boolean] = _at(SeriesPattern21, '*_dust_output')
+    p2pk: FeaturesEmpty = _at(FeaturesEmpty, 'p2pk')
+    p2ms: FeaturesEmpty = _at(FeaturesEmpty, 'p2ms')
+    p2pkh: FeaturesEmpty = _at(FeaturesEmpty, 'p2pkh')
+    p2sh: FeaturesEmpty = _at(FeaturesEmpty, 'p2sh')
+    p2wpkh: FeaturesEmpty = _at(FeaturesEmpty, 'p2wpkh')
+    p2wsh: FeaturesEmpty = _at(FeaturesEmpty, 'p2wsh')
+    p2tr: FeaturesEmpty = _at(FeaturesEmpty, 'p2tr')
+    p2a: FeaturesEmpty = _at(FeaturesEmpty, 'p2a')
+    op_return: FeaturesEmpty = _at(FeaturesEmpty, 'op_return')
+    empty: FeaturesEmpty = _at(FeaturesEmpty, 'empty')
+    unknown: FeaturesEmpty = _at(FeaturesEmpty, 'unknown')
+    fake_pubkey: FeaturesEmpty = _at(FeaturesEmpty, 'fake_pubkey')
+    fake_scripthash: FeaturesEmpty = _at(FeaturesEmpty, 'fake_scripthash')
+    inscription: FeaturesEmpty = _at(FeaturesEmpty, 'inscription')
+    annex: FeaturesEmpty = _at(FeaturesEmpty, 'annex')
+    sighash_all: FeaturesEmpty = _at(FeaturesEmpty, '*_all')
+    sighash_none: FeaturesEmpty = _at(FeaturesEmpty, '*_none')
+    sighash_single: FeaturesEmpty = _at(FeaturesEmpty, '*_single')
+    sighash_default: FeaturesEmpty = _at(FeaturesEmpty, '*_default')
+    sighash_anyone_can_pay: FeaturesEmpty = _at(FeaturesEmpty, '*_anyone_can_pay')
+    explicitly_rbf: IndexerTransactionsFeaturesExplicitlyRbf = _at(IndexerTransactionsFeaturesExplicitlyRbf, 'explicitly_rbf')
+    dust_output: FeaturesEmpty = _at(FeaturesEmpty, 'dust_output')
+    one_input: OneInput = _at(OneInput, 'one_input_tx_count')
+    one_output: OneInput = _at(OneInput, 'one_output_tx_count')
 
 
 class IndexerTransactions(_Node):
@@ -5374,10 +5386,10 @@ class IndexerTransactions(_Node):
     weight: SeriesPattern21[Weight] = _at(SeriesPattern21, '*_weight')
     size: SeriesPattern21[Bytes32] = _at(SeriesPattern21, '*_size')
     sigop_cost: SeriesPattern21[SigOps] = _at(SeriesPattern21, '*_sigop_cost')
-    is_explicitly_rbf: SeriesPattern21[Boolean] = _at(SeriesPattern21, 'is_explicitly_rbf')
     first_txin_index: SeriesPattern21[TxInIndex] = _at(SeriesPattern21, 'first_txin_index')
     first_txout_index: SeriesPattern21[TxOutIndex] = _at(SeriesPattern21, 'first_txout_index')
-    features: IndexerTransactionsFeatures = _at(IndexerTransactionsFeatures, 'has')
+    features: IndexerTransactionsFeatures = _at(IndexerTransactionsFeatures, 'sighash')
+    versions: Versions[OneInput] = _at((Versions, OneInput), '*_count')
 
 
 class IndexerBlocks(_Node):
@@ -5386,7 +5398,7 @@ class IndexerBlocks(_Node):
     timestamp: SeriesPattern20[Timestamp] = _at(SeriesPattern20, 'timestamp')
     size: SeriesPattern20[Bytes32] = _at(SeriesPattern20, 'block_size')
     weight: SeriesPattern20[Weight] = _at(SeriesPattern20, 'block_weight')
-    segwit_tx_count: SeriesPattern20[Count16] = _at(SeriesPattern20, '*_tx_count')
+    segwit_tx_count: SeriesPattern20[Count] = _at(SeriesPattern20, '*_tx_count')
     segwit_size: SeriesPattern20[Bytes32] = _at(SeriesPattern20, '*_size')
     segwit_weight: SeriesPattern20[Weight] = _at(SeriesPattern20, '*_weight')
 

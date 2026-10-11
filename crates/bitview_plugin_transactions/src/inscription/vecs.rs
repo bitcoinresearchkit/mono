@@ -3,11 +3,15 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{PerBlockCumulativeRolling, PercentPerBlock, ValuePerBlockCumulativeRolling};
 use vecdb::{Rw, StorageMode};
 
+use bitview_plugin_indexer::FlagView;
+
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    /// Counts transactions containing at least one Taproot script-path input
-    /// whose tapscript contains the Ordinals envelope prefix
-    /// `OP_0 OP_IF PUSH 'ord'`.
+    /// Transactions where at least one Taproot script-path input contains the Ordinals envelope
+    /// prefix `OP_0 OP_IF PUSH 'ord'` in its tapscript. Whether the transaction is one of them.
+    pub flag: FlagView,
+    /// Transactions where at least one Taproot script-path input contains the Ordinals envelope
+    /// prefix `OP_0 OP_IF PUSH 'ord'` in its tapscript.
     pub count: PerBlockCumulativeRolling<Count, M>,
     /// Sum of the full transaction fees for transactions whose
     /// Taproot scripts contain a detected Ordinals envelope. Each transaction

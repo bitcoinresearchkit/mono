@@ -1,4 +1,4 @@
-use bitview_primitives::{Boolean, TxVersion};
+use bitview_primitives::TxVersion;
 use brk_error::{Error, Result};
 use brk_store::Store;
 use brk_types::{Height, TxIndex, Txid, TxidPrefix};
@@ -13,8 +13,7 @@ use super::{
     txout::{self, BlockAddresses, ProcessedOutput},
 };
 use crate::{
-    TransactionCounts, TransactionFeaturesVecs, TxMetadataVecs, constants::DUPLICATE_TXIDS,
-    stores::TransactionStoresMut,
+    TransactionCounts, TxMetadataVecs, constants::DUPLICATE_TXIDS, stores::TransactionStoresMut,
 };
 
 pub mod analysis;
@@ -120,7 +119,6 @@ impl<'a> BlockProcessor<'a> {
         let addrs = &mut self.vecs.addrs;
         let scripts = &mut self.vecs.scripts;
         let op_return = &mut self.vecs.op_return;
-        let transaction_features = &mut self.vecs.transaction_features;
         let height = self.height;
 
         let TransactionStoresMut {
@@ -169,7 +167,6 @@ impl<'a> BlockProcessor<'a> {
                     transaction_analyses,
                     txid_prefixes,
                     &mut tx_metadata,
-                    transaction_features,
                 )
             },
         );
@@ -182,7 +179,6 @@ pub fn store_tx_metadata(
     transaction_analyses: Vec<TransactionAnalysis>,
     store: &mut Store<TxidPrefix, TxIndex>,
     md: &mut TxMetadataVecs<'_>,
-    features: &mut TransactionFeaturesVecs,
 ) {
     debug_assert_eq!(txs.len(), transaction_analyses.len());
     let mut counts = TransactionCounts::default();
@@ -201,15 +197,10 @@ pub fn store_tx_metadata(
             .debug_checked_push(ct.tx_index, ct.total_size.into());
         md.total_sigop_cost
             .debug_checked_push(ct.tx_index, analysis.total_sigop_cost);
-        md.is_explicitly_rbf
-            .debug_checked_push(ct.tx_index, Boolean::from(analysis.explicitly_rbf));
-        counts.add_base(
-            ct.tx.input.len(),
-            ct.tx.output.len(),
-            tx_version,
-            analysis.explicitly_rbf,
-        );
-        features.push_and_count(analysis.features, &mut counts);
+        counts.add_base(ct.tx.input.len(), ct.tx.output.len(), tx_version);
+        md.features
+            .push_and_count(ct.tx_index, analysis.features, &mut counts);
     }
-    features.count.push(height, counts);
+    md.features.push_counts(height, &counts);
+    md.versions.push(height, &counts);
 }

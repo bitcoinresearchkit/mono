@@ -13,8 +13,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// rolling sums and averages are taken from them, so they can differ from
     /// summed per-block values by less than one vbyte per block.
     pub(super) vsize: VirtualSize,
-    /// Total serialized block size in bytes, including the header,
-    /// transaction-count CompactSize, and witness data.
+    /// Serialized block size in bytes, including witness data: its 80-byte header,
+    /// transaction-count CompactSize, and every serialized transaction.
     pub size: BlockRolling<Bytes32, M>,
 }
 

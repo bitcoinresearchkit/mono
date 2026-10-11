@@ -114,12 +114,14 @@ impl DefaultPlugins {
                     .cumulative_sats_source()
                     .read_only_boxed_clone();
                 let op_return_handle = {
+                    let indexer = &indexer;
                     let mappings = &mappings;
                     let window_starts = &window_starts;
                     big_thread().spawn_scoped(scope, move || -> Result<_> {
                         timed(Phase::Import, OP_RETURN_ID, || {
                             Ok(Box::new(OpReturn::import(
                                 context,
+                                indexer,
                                 mappings,
                                 window_starts,
                                 block_size,
