@@ -1,19 +1,13 @@
-use bitview_primitives::Boolean;
+use bitview_primitives::{Boolean, Count};
 use bitview_traversable::Traversable;
-use bitview_vecs::PerTxDistribution;
+use bitview_vecs::{PerBlockCumulativeRolling, PerTxDistribution};
 use brk_types::{FeeRate, Height, Sats, TxIndex};
-use derive_more::{Deref, DerefMut};
 use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
 
-mod count;
-mod cpfp_flags;
+use crate::flagged::Classified;
 
-pub use count::CountVecs;
-pub use cpfp_flags::CpfpFlags;
-
-#[derive(Deref, DerefMut, Traversable)]
+#[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    pub(crate) count: CountVecs<M>,
     /// Coinbase output sum retained from the fee pass for mining rewards.
     #[traversable(hidden)]
     pub coinbase_value: M::Stored<EagerVec<PcoVec<Height, Sats>>>,
@@ -41,8 +35,32 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// size, either in the represented block or the six-block window ending
     /// there; time-period indexes take the value from the period's final block.
     pub effective_fee_rate: PerTxDistribution<FeeRate, M>,
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    pub(crate) cpfp_flags: CpfpFlags<M::Stored<EagerVec<PcoVec<TxIndex, Boolean>>>>,
+    /// Child-pays-for-parent (CPFP) parents: transactions whose Single Fee Linearization (SFL)
+    /// effective fee rate is higher than their raw fee rate because same-block descendants raise
+    /// the rate at which their SFL chunk is evaluated.
+    pub(crate) cpfp_parent: Classified<M>,
+    /// Child-pays-for-parent (CPFP) children: transactions whose Single Fee Linearization (SFL)
+    /// effective fee rate is lower than their raw fee rate because their fee raises the rate at
+    /// which a same-block ancestor-closed SFL chunk is evaluated.
+    pub(crate) cpfp_child: Classified<M>,
+}
+
+impl Vecs {
+    fn cpfp_roles_mut(&mut self) -> [&mut Classified<Rw>; 2] {
+        [&mut self.cpfp_parent, &mut self.cpfp_child]
+    }
+
+    pub(super) fn cpfp_flags_mut(
+        &mut self,
+    ) -> impl Iterator<Item = &mut EagerVec<PcoVec<TxIndex, Boolean>>> {
+        self.cpfp_roles_mut().into_iter().map(|role| &mut role.flag)
+    }
+
+    pub(super) fn cpfp_counts_mut(
+        &mut self,
+    ) -> impl Iterator<Item = &mut PerBlockCumulativeRolling<Count>> {
+        self.cpfp_roles_mut()
+            .into_iter()
+            .map(|role| &mut role.count)
+    }
 }

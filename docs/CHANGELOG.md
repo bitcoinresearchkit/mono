@@ -123,8 +123,7 @@ has to be deleted by hand.
 - The indexer's per-block transaction counts take the `<kind>_tx_count` template: `explicitly_rbf_tx_count`,
   `one_input_tx_count`, `one_output_tx_count`, `fake_pubkey_tx_count`, and per output type `p2pkh_tx_count`, ...,
   `empty_tx_count` (transactions that create or spend that type, beside `outputs`' `p2pkh_output_tx_count` and
-  `inputs`' `p2pkh_input_tx_count`; were `tx_count_<kind>`). Its version and OP_RETURN counts leave the tree:
-  `transactions.versions` and `op_return.tx_count` publish them. The OP_RETURN protocol per output is
+  `inputs`' `p2pkh_input_tx_count`; were `tx_count_<kind>`). The OP_RETURN protocol per output is
   `indexer.op_return.protocol`, id `op_return_protocol` (was `kind`)
 - Ids that were index names say what they map: `spent_txout_index` (an input's spent output, was `txout_index`),
   `input_tx_index` (was `tx_index`), `spending_txin_index` (an output's spending input, was `txin_index`),
@@ -140,6 +139,21 @@ has to be deleted by hand.
   unrealized, activity and output series say what they measure (coin years destroyed: trailing 365-day coin days
   destroyed in coin-years); undefined values are described as null; absolute deltas no longer mention a relative
   change; the address state lookups are described
+- Transaction features, patterns, policy and CPFP roles are member-first: each is one node holding its
+  per-transaction `flag` beside its per-block count, `transactions.features.p2tr.{flag, block, cumulative, sum}` (the
+  flags and most counts were the indexer's only), `transactions.patterns.coinjoin.{flag, block, cumulative, sum}` (were
+  `patterns.is_coinjoin` and `patterns.count.coinjoin`), likewise `transactions.policy.nonstandard` and
+  `transactions.fees.cpfp_parent`/`cpfp_child`; `transactions.inscription.flag` and `op_return.flag` (`has_op_return`).
+  SegWit, single-input and single-output transactions have counts only (`transactions.features.segwit`, `one_input`,
+  `one_output`). The indexer's columns take the same shape: `indexer.transactions.features.<feature>.{flag, block}`
+  (were `has_<feature>` and `count.<feature>`; the inscription, annex, SIGHASH and dust counts were hidden),
+  `is_explicitly_rbf` at `indexer.transactions.features.explicitly_rbf.flag` (was `transactions.raw.is_explicitly_rbf`),
+  and the version counts at `indexer.transactions.versions.<version>.block` (were `count.v1`, ...,
+  `count.other_version`). Flag ids unchanged; where the indexer and a plugin publish one id, both paths serve the same
+  series with the same description. Per-block feature and version counts are `Count` (were `StoredU64`; stored as
+  `Count16`). SegWit, Taproot and explicit-RBF counts gain windows: `segwit_tx_count_cumulative`,
+  `segwit_tx_count_sum_<window>`, likewise `p2tr_tx_count` and `explicitly_rbf_tx_count`. Every per-block value of a
+  windowed series is described as "Value for the represented block." (some had no per-block wording)
 - Mappings: address types sit at `mappings.addresses.<type>.{identity, address}` with ids `<type>_address` (were
   `mappings.addr.<type>.{identity, addr}`, ids `<type>_addr`); the P2MS, empty, unknown and OP_RETURN output indexes
   at `mappings.outputs.<type>.identity`

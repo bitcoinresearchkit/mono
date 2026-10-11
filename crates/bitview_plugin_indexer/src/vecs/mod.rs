@@ -36,8 +36,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
     pub blocks: BlocksVecs<M>,
     pub transactions: TransactionsVecs<M>,
-    #[traversable(wrap = "transactions", rename = "features")]
-    pub transaction_features: TransactionFeaturesVecs<M>,
     pub inputs: InputsVecs<M>,
     pub outputs: OutputsVecs<M>,
     #[traversable(rename = "addresses")]
@@ -53,19 +51,9 @@ impl Vecs {
         debug!("Setting min len...");
         db.set_min_len(PAGE_SIZE * 60_000_000)?;
 
-        let (
-            blocks,
-            transactions,
-            transaction_features,
-            inputs,
-            outputs,
-            addrs,
-            scripts,
-            op_return,
-        ) = parallel_import! {
+        let (blocks, transactions, inputs, outputs, addrs, scripts, op_return) = parallel_import! {
             blocks = BlocksVecs::import(&db, version),
             transactions = TransactionsVecs::import(&db, version),
-            transaction_features = TransactionFeaturesVecs::import(&db, version),
             inputs = InputsVecs::import(&db, version),
             outputs = OutputsVecs::import(&db, version),
             addrs = AddrsVecs::import(&db, version),
@@ -77,7 +65,6 @@ impl Vecs {
             db,
             blocks,
             transactions,
-            transaction_features,
             inputs,
             outputs,
             addrs,
@@ -99,12 +86,6 @@ impl Vecs {
 
         self.transactions
             .truncate(starting_lengths.height, starting_lengths.tx_index, stamp)?;
-
-        self.transaction_features.truncate(
-            starting_lengths.height,
-            starting_lengths.tx_index,
-            stamp,
-        )?;
 
         self.inputs
             .truncate(starting_lengths.height, starting_lengths.txin_index, stamp)?;
@@ -199,7 +180,6 @@ impl Vecs {
         self.blocks
             .par_iter_mut_any()
             .chain(self.transactions.par_iter_mut_any())
-            .chain(self.transaction_features.par_iter_mut_any())
             .chain(self.inputs.par_iter_mut_any())
             .chain(self.outputs.par_iter_mut_any())
             .chain(self.addrs.par_iter_mut_any())
@@ -211,7 +191,6 @@ impl Vecs {
         self.blocks
             .iter_any()
             .chain(self.transactions.iter_any())
-            .chain(self.transaction_features.iter_any())
             .chain(self.inputs.iter_any())
             .chain(self.outputs.iter_any())
             .chain(self.addrs.iter_any())

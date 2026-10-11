@@ -2384,6 +2384,33 @@ pub mod tree {
         sum: InputsPerSecond<Bytes> = "*_sum",
         chain_share: SeriesPattern1<Option<Percent>> = "*_chain_share",
     } }
+    shape! { TransactionsFeaturesExplicitlyRbf at "series().transactions.features.explicitly_rbf" {
+        flag: SeriesPattern21<Boolean> = "is_*",
+        block: SeriesPattern20<Count> = "*_tx_count",
+        cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
+        sum: InputsPerSecond<Count> = "*_tx_count_sum",
+    } }
+    shape! { Policy at "series().transactions.policy" {
+        nonstandard: TransactionsFeaturesExplicitlyRbf = "*",
+    } }
+    shape! { Patterns at "series().transactions.patterns" {
+        coinjoin: TransactionsFeaturesExplicitlyRbf = "*",
+        consolidation: TransactionsFeaturesExplicitlyRbf = "consolidation",
+        batch_payout: TransactionsFeaturesExplicitlyRbf = "batch_payout",
+    } }
+    shape! { TransactionsFees at "series().transactions.fees" {
+        fee: EffectiveFeeRate<Sats> = "tx_*",
+        fee_rate: SeriesPattern21<Option<FeeRate>> = "*_rate",
+        effective_fee_rate: EffectiveFeeRate<Option<FeeRate>> = "effective_*_rate",
+        cpfp_parent: TransactionsFeaturesExplicitlyRbf = "cpfp_parent",
+        cpfp_child: TransactionsFeaturesExplicitlyRbf = "cpfp_child",
+    } }
+    shape! { Annex at "series().transactions.features.annex" {
+        flag: SeriesPattern21<Boolean> = "has_*",
+        block: SeriesPattern20<Count> = "*_tx_count",
+        cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
+        sum: InputsPerSecond<Count> = "*_tx_count_sum",
+    } }
     shape! { BlocksSize<A, B, C, D> at "series().blocks.size" {
         block: SeriesPattern20<A> = "*",
         cumulative: SeriesPattern1<B> = "*_cumulative",
@@ -2757,6 +2784,7 @@ pub mod tree {
         unknown: Multiple = "*_unknown",
     } }
     shape! { OpReturn at "series().op_return" {
+        flag: SeriesPattern21<Boolean> = "has_*",
         output_count: CoinblocksDestroyed<Count> = "*_output_count",
         data_bytes: DataBytes = "*_data_bytes",
         tx_count: CoinblocksDestroyed<Count> = "*_tx_count",
@@ -2765,67 +2793,10 @@ pub mod tree {
         protocols: Protocols = "*",
         policies: Policies = "*",
     } }
-    shape! { Versions at "series().transactions.versions" {
-        v1: CoinblocksDestroyed<Count> = "v1_*",
-        v2: CoinblocksDestroyed<Count> = "v2_*",
-        v3: CoinblocksDestroyed<Count> = "v3_*",
-        other: CoinblocksDestroyed<Count> = "other_version_*",
-    } }
-    shape! { PolicyCount at "series().transactions.policy.count" {
-        nonstandard: CoinblocksDestroyed<Count> = "*",
-    } }
-    shape! { Policy at "series().transactions.policy" {
-        count: PolicyCount = "*_tx_count",
-        is_nonstandard: SeriesPattern21<Boolean> = "is_*",
-    } }
-    shape! { PatternsCount at "series().transactions.patterns.count" {
-        coinjoin: CoinblocksDestroyed<Count> = "coinjoin_*",
-        consolidation: CoinblocksDestroyed<Count> = "consolidation_*",
-        batch_payout: CoinblocksDestroyed<Count> = "batch_payout_*",
-    } }
-    shape! { Patterns at "series().transactions.patterns" {
-        count: PatternsCount = "tx_count",
-        is_coinjoin: SeriesPattern21<Boolean> = "*_coinjoin",
-        is_consolidation: SeriesPattern21<Boolean> = "*_consolidation",
-        is_batch_payout: SeriesPattern21<Boolean> = "*_batch_payout",
-    } }
     shape! { Inscription at "series().transactions.inscription" {
+        flag: SeriesPattern21<Boolean> = "has_*",
         count: CoinblocksDestroyed<Count> = "*_tx_count",
         fees: InscriptionFees = "*",
-    } }
-    shape! { FeesCount at "series().transactions.fees.count" {
-        cpfp_parent: CoinblocksDestroyed<Count> = "cpfp_parent_*",
-        cpfp_child: CoinblocksDestroyed<Count> = "cpfp_child_*",
-    } }
-    shape! { TransactionsFees at "series().transactions.fees" {
-        count: FeesCount = "tx_count",
-        fee: EffectiveFeeRate<Sats> = "tx_*",
-        fee_rate: SeriesPattern21<Option<FeeRate>> = "*_rate",
-        effective_fee_rate: EffectiveFeeRate<Option<FeeRate>> = "effective_*_rate",
-        is_cpfp_parent: SeriesPattern21<Boolean> = "is_cpfp_parent",
-        is_cpfp_child: SeriesPattern21<Boolean> = "is_cpfp_child",
-    } }
-    shape! { TransactionsFeatures at "series().transactions.features" {
-        annex: CoinblocksDestroyed<Count> = "annex_*",
-        sighash_all: CoinblocksDestroyed<Count> = "sighash_all_*",
-        sighash_none: CoinblocksDestroyed<Count> = "sighash_none_*",
-        sighash_single: CoinblocksDestroyed<Count> = "sighash_single_*",
-        sighash_default: CoinblocksDestroyed<Count> = "sighash_default_*",
-        sighash_anyone_can_pay: CoinblocksDestroyed<Count> = "sighash_anyone_can_pay_*",
-        dust_output: CoinblocksDestroyed<Count> = "dust_output_*",
-    } }
-    shape! { Transactions at "series().transactions" {
-        count: BlocksSize<Count, Count, Option<CountFract>, Count16> = "*_count",
-        features: TransactionsFeatures = "*_count",
-        size: TransactionsSize = "*",
-        fees: TransactionsFees = "fee",
-        inscription: Inscription = "inscription",
-        patterns: Patterns = "is",
-        policy: Policy = "nonstandard",
-        sigop_cost: CoinblocksDestroyed<SigOps64> = "block_sigop_cost",
-        versions: Versions = "*_count",
-        volume: OpReturnValue = "*_volume",
-        per_second: InputsPerSecond<Option<PerSecond>> = "*_per_second",
     } }
     shape! { TypesEmpty at "series().inputs.types.empty" {
         count: CoinblocksDestroyed<Count> = "*_count",
@@ -3141,46 +3112,86 @@ pub mod tree {
         output_type: SeriesPattern22<OutputType> = "output_type",
         type_index: SeriesPattern22<TypeIndex> = "type_*",
     } }
-    shape! { FeaturesCount at "series().indexer.transactions.features.count" {
-        explicitly_rbf: SeriesPattern20<Count16> = "explicitly_rbf_*",
-        one_input: SeriesPattern20<Count16> = "one_input_*",
-        one_output: SeriesPattern20<Count16> = "one_output_*",
-        p2pk: SeriesPattern20<Count16> = "p2pk_*",
-        p2ms: SeriesPattern20<Count16> = "p2ms_*",
-        p2pkh: SeriesPattern20<Count16> = "p2pkh_*",
-        p2sh: SeriesPattern20<Count16> = "p2sh_*",
-        p2wpkh: SeriesPattern20<Count16> = "p2wpkh_*",
-        p2wsh: SeriesPattern20<Count16> = "p2wsh_*",
-        p2tr: SeriesPattern20<Count16> = "p2tr_*",
-        p2a: SeriesPattern20<Count16> = "p2a_*",
-        empty: SeriesPattern20<Count16> = "empty_*",
-        unknown: SeriesPattern20<Count16> = "unknown_*",
-        fake_pubkey: SeriesPattern20<Count16> = "fake_pubkey_*",
-        fake_scripthash: SeriesPattern20<Count16> = "fake_scripthash_*",
+    shape! { OneInput at "series().transactions.features.one_input" {
+        block: SeriesPattern20<Count> = "*",
+    } }
+    shape! { Versions<A> at "series().transactions.versions" {
+        v1: A = "v1_*",
+        v2: A = "v2_*",
+        v3: A = "v3_*",
+        other: A = "other_version_*",
+    } }
+    shape! { IndexerTransactionsFeaturesExplicitlyRbf at "series().indexer.transactions.features.explicitly_rbf" {
+        flag: SeriesPattern21<Boolean> = "is_*",
+        block: SeriesPattern20<Count> = "*_tx_count",
+    } }
+    shape! { FeaturesEmpty at "series().transactions.features.empty" {
+        flag: SeriesPattern21<Boolean> = "has_*",
+        block: SeriesPattern20<Count> = "*_tx_count",
+    } }
+    shape! { TransactionsFeatures at "series().transactions.features" {
+        p2pk: FeaturesEmpty = "p2pk",
+        p2ms: FeaturesEmpty = "p2ms",
+        p2pkh: FeaturesEmpty = "p2pkh",
+        p2sh: FeaturesEmpty = "p2sh",
+        p2wpkh: FeaturesEmpty = "p2wpkh",
+        p2wsh: FeaturesEmpty = "p2wsh",
+        p2tr: Annex = "p2tr",
+        p2a: FeaturesEmpty = "p2a",
+        empty: FeaturesEmpty = "empty",
+        unknown: FeaturesEmpty = "unknown",
+        fake_pubkey: FeaturesEmpty = "fake_pubkey",
+        fake_scripthash: FeaturesEmpty = "fake_scripthash",
+        segwit: CoinblocksDestroyed<Count> = "segwit_tx_count",
+        annex: Annex = "annex",
+        sighash_all: Annex = "*_all",
+        sighash_none: Annex = "*_none",
+        sighash_single: Annex = "*_single",
+        sighash_default: Annex = "*_default",
+        sighash_anyone_can_pay: Annex = "*_anyone_can_pay",
+        explicitly_rbf: TransactionsFeaturesExplicitlyRbf = "explicitly_rbf",
+        dust_output: Annex = "dust_output",
+        one_input: OneInput = "one_input_tx_count",
+        one_output: OneInput = "one_output_tx_count",
+    } }
+    shape! { Transactions at "series().transactions" {
+        count: BlocksSize<Count, Count, Option<CountFract>, Count16> = "*_count",
+        features: TransactionsFeatures = "sighash",
+        size: TransactionsSize = "*",
+        fees: TransactionsFees = "fee",
+        inscription: Inscription = "inscription",
+        patterns: Patterns = "coinjoin",
+        policy: Policy = "nonstandard",
+        sigop_cost: CoinblocksDestroyed<SigOps64> = "block_sigop_cost",
+        versions: Versions<CoinblocksDestroyed<Count>> = "*_count",
+        volume: OpReturnValue = "*_volume",
+        per_second: InputsPerSecond<Option<PerSecond>> = "*_per_second",
     } }
     shape! { IndexerTransactionsFeatures at "series().indexer.transactions.features" {
-        count: FeaturesCount = "tx_count",
-        has_p2pk: SeriesPattern21<Boolean> = "*_p2pk",
-        has_p2ms: SeriesPattern21<Boolean> = "*_p2ms",
-        has_p2pkh: SeriesPattern21<Boolean> = "*_p2pkh",
-        has_p2sh: SeriesPattern21<Boolean> = "*_p2sh",
-        has_p2wpkh: SeriesPattern21<Boolean> = "*_p2wpkh",
-        has_p2wsh: SeriesPattern21<Boolean> = "*_p2wsh",
-        has_p2tr: SeriesPattern21<Boolean> = "*_p2tr",
-        has_p2a: SeriesPattern21<Boolean> = "*_p2a",
-        has_op_return: SeriesPattern21<Boolean> = "*_op_return",
-        has_empty: SeriesPattern21<Boolean> = "*_empty",
-        has_unknown: SeriesPattern21<Boolean> = "*_unknown",
-        has_fake_pubkey: SeriesPattern21<Boolean> = "*_fake_pubkey",
-        has_fake_scripthash: SeriesPattern21<Boolean> = "*_fake_scripthash",
-        has_inscription: SeriesPattern21<Boolean> = "*_inscription",
-        has_annex: SeriesPattern21<Boolean> = "*_annex",
-        has_sighash_all: SeriesPattern21<Boolean> = "*_sighash_all",
-        has_sighash_none: SeriesPattern21<Boolean> = "*_sighash_none",
-        has_sighash_single: SeriesPattern21<Boolean> = "*_sighash_single",
-        has_sighash_default: SeriesPattern21<Boolean> = "*_sighash_default",
-        has_sighash_anyone_can_pay: SeriesPattern21<Boolean> = "*_sighash_anyone_can_pay",
-        has_dust_output: SeriesPattern21<Boolean> = "*_dust_output",
+        p2pk: FeaturesEmpty = "p2pk",
+        p2ms: FeaturesEmpty = "p2ms",
+        p2pkh: FeaturesEmpty = "p2pkh",
+        p2sh: FeaturesEmpty = "p2sh",
+        p2wpkh: FeaturesEmpty = "p2wpkh",
+        p2wsh: FeaturesEmpty = "p2wsh",
+        p2tr: FeaturesEmpty = "p2tr",
+        p2a: FeaturesEmpty = "p2a",
+        op_return: FeaturesEmpty = "op_return",
+        empty: FeaturesEmpty = "empty",
+        unknown: FeaturesEmpty = "unknown",
+        fake_pubkey: FeaturesEmpty = "fake_pubkey",
+        fake_scripthash: FeaturesEmpty = "fake_scripthash",
+        inscription: FeaturesEmpty = "inscription",
+        annex: FeaturesEmpty = "annex",
+        sighash_all: FeaturesEmpty = "*_all",
+        sighash_none: FeaturesEmpty = "*_none",
+        sighash_single: FeaturesEmpty = "*_single",
+        sighash_default: FeaturesEmpty = "*_default",
+        sighash_anyone_can_pay: FeaturesEmpty = "*_anyone_can_pay",
+        explicitly_rbf: IndexerTransactionsFeaturesExplicitlyRbf = "explicitly_rbf",
+        dust_output: FeaturesEmpty = "dust_output",
+        one_input: OneInput = "one_input_tx_count",
+        one_output: OneInput = "one_output_tx_count",
     } }
     shape! { IndexerTransactions at "series().indexer.transactions" {
         first_tx_index: SeriesPattern20<TxIndex> = "first_*_index",
@@ -3190,10 +3201,10 @@ pub mod tree {
         weight: SeriesPattern21<Weight> = "*_weight",
         size: SeriesPattern21<Bytes32> = "*_size",
         sigop_cost: SeriesPattern21<SigOps> = "*_sigop_cost",
-        is_explicitly_rbf: SeriesPattern21<Boolean> = "is_explicitly_rbf",
         first_txin_index: SeriesPattern21<TxInIndex> = "first_txin_index",
         first_txout_index: SeriesPattern21<TxOutIndex> = "first_txout_index",
-        features: IndexerTransactionsFeatures = "has",
+        features: IndexerTransactionsFeatures = "sighash",
+        versions: Versions<OneInput> = "*_count",
     } }
     shape! { IndexerBlocks at "series().indexer.blocks" {
         blockhash: SeriesPattern20<BlockHash> = "blockhash",
@@ -3201,7 +3212,7 @@ pub mod tree {
         timestamp: SeriesPattern20<Timestamp> = "timestamp",
         size: SeriesPattern20<Bytes32> = "block_size",
         weight: SeriesPattern20<Weight> = "block_weight",
-        segwit_tx_count: SeriesPattern20<Count16> = "*_tx_count",
+        segwit_tx_count: SeriesPattern20<Count> = "*_tx_count",
         segwit_size: SeriesPattern20<Bytes32> = "*_size",
         segwit_weight: SeriesPattern20<Weight> = "*_weight",
     } }

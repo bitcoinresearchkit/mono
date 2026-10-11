@@ -25,7 +25,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let features = &indexer.vecs().transaction_features;
+        let features = &indexer.vecs().transactions.features;
         let version = mappings.tx_index.input_count.version()
             + mappings.tx_index.output_count.version()
             + indexer.vecs().transactions.first_tx_index.version()
@@ -37,16 +37,16 @@ impl Vecs {
             + indexer.vecs().outputs.value.version()
             + indexer.vecs().outputs.output_type.version()
             + indexer.vecs().outputs.type_index.version()
-            + features.has_op_return.version()
-            + features.has_inscription.version()
+            + features.op_return.flag.version()
+            + features.inscription.flag.version()
             + mappings.height.tx_index_count.version();
 
         {
             let _lock = exit.lock();
-            for target in self.flags.iter_mut() {
+            for target in self.flags_mut() {
                 target.validate_computed_version_or_reset(version)?;
             }
-            for target in self.count.iter_mut() {
+            for target in self.counts_mut() {
                 target
                     .cumulative
                     .height
@@ -57,15 +57,13 @@ impl Vecs {
         let target_tx = mappings.tx_index.input_count.len();
         let target_height = mappings.height.tx_index_count.len();
         let tx_len = self
-            .flags
-            .iter_mut()
+            .flags_mut()
             .map(|v| v.len())
             .min()
             .unwrap_or_default()
             .min(starting_lengths.tx_index.to_usize());
         let count_len = self
-            .count
-            .iter_mut()
+            .counts_mut()
             .map(|v| v.cumulative.height.len())
             .min()
             .unwrap_or_default()
@@ -83,10 +81,10 @@ impl Vecs {
         let start_tx = first_tx.collect_one_at(start_height).unwrap().to_usize();
         {
             let _lock = exit.lock();
-            for target in self.flags.iter_mut() {
+            for target in self.flags_mut() {
                 target.truncate_if_needed_at(start_tx)?;
             }
-            for target in self.count.iter_mut() {
+            for target in self.counts_mut() {
                 target
                     .cumulative
                     .height
@@ -112,19 +110,17 @@ impl Vecs {
                 .collect();
             for task in tasks {
                 for [coinjoin, consolidation, batch_payout] in task.flags {
-                    self.flags.is_coinjoin.push(Boolean::from(coinjoin));
-                    self.flags
-                        .is_consolidation
-                        .push(Boolean::from(consolidation));
-                    self.flags.is_batch_payout.push(Boolean::from(batch_payout));
+                    self.coinjoin.flag.push(Boolean::from(coinjoin));
+                    self.consolidation.flag.push(Boolean::from(consolidation));
+                    self.batch_payout.flag.push(Boolean::from(batch_payout));
                 }
                 for [coinjoin, consolidation, batch_payout] in task.counts {
-                    self.count.coinjoin.push_block(Count::from(coinjoin));
-                    self.count
-                        .consolidation
+                    self.coinjoin.count.push_block(Count::from(coinjoin));
+                    self.consolidation
+                        .count
                         .push_block(Count::from(consolidation));
-                    self.count
-                        .batch_payout
+                    self.batch_payout
+                        .count
                         .push_block(Count::from(batch_payout));
                 }
             }
@@ -141,10 +137,10 @@ impl Vecs {
     }
 
     fn write(&mut self) -> Result<()> {
-        for target in self.flags.iter_mut() {
+        for target in self.flags_mut() {
             target.write()?;
         }
-        for target in self.count.iter_mut() {
+        for target in self.counts_mut() {
             target.cumulative.height.write()?;
         }
         Ok(())
@@ -177,7 +173,7 @@ fn classify(
     heights: Range<usize>,
 ) -> Classified {
     let vecs = indexer.vecs();
-    let features = &vecs.transaction_features;
+    let features = &vecs.transactions.features;
     let block_tx_counts = tx_counts.collect_range_at(heights.start, heights.end);
     let start_tx = vecs
         .transactions
@@ -201,8 +197,8 @@ fn classify(
         .transactions
         .first_txout_index
         .collect_range_at(start_tx, end_tx + 1);
-    let has_op_return = features.has_op_return.collect_range_at(start_tx, end_tx);
-    let has_inscription = features.has_inscription.collect_range_at(start_tx, end_tx);
+    let has_op_return = features.op_return.flag.collect_range_at(start_tx, end_tx);
+    let has_inscription = features.inscription.flag.collect_range_at(start_tx, end_tx);
 
     let mut input_value = input_values.cursor();
     let mut input_type = vecs.inputs.output_type.cursor();

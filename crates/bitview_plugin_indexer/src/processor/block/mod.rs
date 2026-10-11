@@ -72,7 +72,7 @@ impl BlockProcessor<'_> {
         let blocks = &mut self.vecs.blocks;
         blocks.total.debug_checked_push(h, total_size.into());
         blocks.weight.debug_checked_push(h, weight.into());
-        blocks.segwit_txs.debug_checked_push(h, sw_txs.into());
+        blocks.segwit_tx_count.debug_checked_push(h, sw_txs.into());
         blocks.segwit_size.debug_checked_push(h, sw_size.into());
         blocks.segwit_weight.debug_checked_push(h, sw_weight.into());
     }

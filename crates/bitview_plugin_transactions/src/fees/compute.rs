@@ -109,10 +109,10 @@ impl Vecs {
             self.effective_fee_rate
                 .tx_index
                 .validate_computed_version_or_reset(cpfp_version)?;
-            for target in self.cpfp_flags.iter_mut() {
+            for target in self.cpfp_flags_mut() {
                 target.validate_computed_version_or_reset(cpfp_version)?;
             }
-            for target in self.count.iter_mut() {
+            for target in self.cpfp_counts_mut() {
                 target.validate_computed_version_or_reset(cpfp_version)?;
             }
         }
@@ -138,16 +138,14 @@ impl Vecs {
         let rate_start = resume(self.fee_rate.len()).min(limit);
         let cpfp_start = resume(
             self.effective_fee_rate.tx_index.len().min(
-                self.cpfp_flags
-                    .iter_mut()
+                self.cpfp_flags_mut()
                     .map(|v| v.len())
                     .min()
                     .unwrap_or_default(),
             ),
         )
         .min(
-            self.count
-                .iter_mut()
+            self.cpfp_counts_mut()
                 .map(|v| v.cumulative.height.len())
                 .min()
                 .unwrap_or_default(),
@@ -171,10 +169,10 @@ impl Vecs {
             self.effective_fee_rate
                 .tx_index
                 .truncate_if_needed_at(to_tx(cpfp_start))?;
-            for target in self.cpfp_flags.iter_mut() {
+            for target in self.cpfp_flags_mut() {
                 target.truncate_if_needed_at(to_tx(cpfp_start))?;
             }
-            for target in self.count.iter_mut() {
+            for target in self.cpfp_counts_mut() {
                 target.truncate_if_needed_at(cpfp_start)?;
             }
             self.total.truncate_if_needed_at(monetary_start)?;
@@ -335,15 +333,13 @@ impl Vecs {
                     }
                     if height + offset >= cpfp_start {
                         self.effective_fee_rate.tx_index.push(effective);
-                        self.cpfp_flags
-                            .is_cpfp_parent
-                            .push(Boolean::from(is_parent));
-                        self.cpfp_flags.is_cpfp_child.push(Boolean::from(is_child));
+                        self.cpfp_parent.flag.push(Boolean::from(is_parent));
+                        self.cpfp_child.flag.push(Boolean::from(is_child));
                     }
                 }
                 if height + offset >= cpfp_start {
-                    self.count.cpfp_parent.push_block(Count::from(parent_count));
-                    self.count.cpfp_child.push_block(Count::from(child_count));
+                    self.cpfp_parent.count.push_block(Count::from(parent_count));
+                    self.cpfp_child.count.push_block(Count::from(child_count));
                 }
                 if height + offset >= monetary_start {
                     self.coinbase_value.push(block.output_values[0]);
@@ -386,10 +382,10 @@ impl Vecs {
         self.total.write()?;
         self.fee_rate.write()?;
         self.effective_fee_rate.tx_index.write()?;
-        for target in self.cpfp_flags.iter_mut() {
+        for target in self.cpfp_flags_mut() {
             target.write()?;
         }
-        for target in self.count.iter_mut() {
+        for target in self.cpfp_counts_mut() {
             target.write()?;
         }
         self.coinbase_value.write()?;

@@ -1,4 +1,5 @@
 use bitview_collections::Windows;
+use bitview_plugin_indexer::Indexer;
 use bitview_vecs::{
     IndexSources, PerBlockCumulativeRolling, PercentPerBlock, ValuePerBlockCumulativeRolling,
 };
@@ -12,11 +13,13 @@ impl Vecs {
     pub(crate) fn import(
         db: &Database,
         version: Version,
+        indexer: &Indexer,
         indexes: &IndexSources,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
         Ok(Vecs {
+            flag: indexer.vecs().transactions.features.inscription.flag_view(),
             count: PerBlockCumulativeRolling::import(
                 db,
                 "inscription_tx_count",

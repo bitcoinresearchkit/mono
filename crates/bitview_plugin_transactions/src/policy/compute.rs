@@ -20,30 +20,32 @@ impl Vecs {
         fees: &fees::Vecs,
         exit: &Exit,
     ) -> Result<()> {
-        let features = &indexer.vecs().transaction_features;
+        let features = &indexer.vecs().transactions.features;
         let version = features.is_unconditionally_nonstandard.version()
-            + features.has_dust_output.version()
+            + features.dust_output.flag.version()
             + fees.fee.tx_index.version()
             + indexer.vecs().transactions.first_tx_index.version()
             + mappings.height.tx_index_count.version();
         {
             let _lock = exit.lock();
-            self.is_nonstandard
+            self.nonstandard
+                .flag
                 .validate_computed_version_or_reset(version)?;
-            self.count
-                .nonstandard
+            self.nonstandard
+                .count
                 .validate_computed_version_or_reset(version)?;
         }
         let starting_lengths = indexer.safe_lengths();
         let target_tx = fees.fee.tx_index.len();
         let target_height = mappings.height.tx_index_count.len();
         let tx_len = self
-            .is_nonstandard
+            .nonstandard
+            .flag
             .len()
             .min(starting_lengths.tx_index.to_usize());
         let count_len = self
-            .count
             .nonstandard
+            .count
             .cumulative
             .height
             .len()
@@ -60,14 +62,15 @@ impl Vecs {
         let start_tx = first_tx.collect_one_at(start_height).unwrap().to_usize();
         {
             let _lock = exit.lock();
-            self.is_nonstandard.truncate_if_needed_at(start_tx)?;
-            self.count.nonstandard.truncate_if_needed_at(start_height)?;
+            self.nonstandard.flag.truncate_if_needed_at(start_tx)?;
+            self.nonstandard.count.truncate_if_needed_at(start_height)?;
         }
         let mut unconditional = features
             .is_unconditionally_nonstandard
             .range_cursor_at(start_tx, target_tx);
         let mut has_dust = features
-            .has_dust_output
+            .dust_output
+            .flag
             .range_cursor_at(start_tx, target_tx);
         let mut fee = fees.fee.tx_index.cursor();
         let mut tx_count = mappings.height.tx_index_count.cursor();
@@ -85,22 +88,22 @@ impl Vecs {
                 let nonstandard =
                     raw || (dust && dust_is_nonstandard(height, || fee.get(tx_index).unwrap()));
                 count += nonstandard as u64;
-                self.is_nonstandard.push(Boolean::from(nonstandard));
+                self.nonstandard.flag.push(Boolean::from(nonstandard));
             }
-            self.count.nonstandard.push_block(Count::from(count));
+            self.nonstandard.count.push_block(Count::from(count));
 
             if (height + 1).is_multiple_of(WRITE_INTERVAL) {
                 let _lock = exit.lock();
-                self.is_nonstandard.write()?;
-                self.count.nonstandard.write()?;
+                self.nonstandard.flag.write()?;
+                self.nonstandard.count.write()?;
             }
 
             block_start = block_end;
         }
 
         let _lock = exit.lock();
-        self.is_nonstandard.write()?;
-        self.count.nonstandard.write()?;
+        self.nonstandard.flag.write()?;
+        self.nonstandard.count.write()?;
         Ok(())
     }
 }

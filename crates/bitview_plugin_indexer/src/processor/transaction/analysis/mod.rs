@@ -16,13 +16,12 @@ use crate::processor::{BlockProcessor, txin::InputSource, txout::ProcessedOutput
 
 pub struct TransactionAnalysis {
     pub total_sigop_cost: SigOps,
-    pub explicitly_rbf: bool,
     pub features: TxFeatureFlags,
 }
 
 #[inline(always)]
-pub fn record_explicit_rbf_signal(explicitly_rbf: &mut bool, sequence: Sequence) {
-    *explicitly_rbf |= sequence.is_rbf();
+pub fn record_explicit_rbf_signal(flags: &mut TxFeatureFlags, sequence: Sequence) {
+    flags.insert(TxFeatureFlags::EXPLICITLY_RBF * u32::from(sequence.is_rbf()));
 }
 
 impl BlockProcessor<'_> {
@@ -48,17 +47,16 @@ impl BlockProcessor<'_> {
 
                 let mut sigops = sigops::Accumulator::new(track_executed_legacy);
                 let mut flags = TxFeatureFlags::default();
-                let mut explicitly_rbf = false;
                 let mut output_scanner = output::Scanner::default();
                 let mut policy = policy::Accumulator::new(self.height);
 
                 if unlikely(is_coinbase) {
                     let input = &tx.tx.input[0];
-                    record_explicit_rbf_signal(&mut explicitly_rbf, input.sequence);
+                    record_explicit_rbf_signal(&mut flags, input.sequence);
                     sigops.scan_coinbase_input(input);
                 } else {
                     for (input, source) in tx.tx.input.iter().zip(tx_inputs) {
-                        record_explicit_rbf_signal(&mut explicitly_rbf, input.sequence);
+                        record_explicit_rbf_signal(&mut flags, input.sequence);
                         let (output_type, legacy_sigops) = resolved_output_facts(source, txouts);
                         let facts = input::analyze(input, output_type, &mut flags);
                         sigops.scan_input(output_type, legacy_sigops, &facts);
@@ -81,7 +79,6 @@ impl BlockProcessor<'_> {
 
                 TransactionAnalysis {
                     total_sigop_cost: sigops.total,
-                    explicitly_rbf,
                     features: flags,
                 }
             })

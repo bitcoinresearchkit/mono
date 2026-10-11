@@ -36,7 +36,7 @@ use state::State;
 use stores::Stores;
 use vecs::{
     AddrsVecs, InputsVecs, OpReturnVecs, OutputsVecs, ScriptsVecs, TransactionCounts,
-    TransactionFeaturesVecs, TxFeatureFlags, TxMetadataVecs, Vecs,
+    TxFeatureFlags, TxMetadataVecs, Vecs,
 };
 
 mod constants;
@@ -55,6 +55,7 @@ pub use has::HasIndexer;
 
 pub use safe_lengths::SafeLengths;
 pub use stores::UtxoKey;
+pub use vecs::{BlockCount, FeatureVecs, FlagView};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indexer"), VERSION);
 const EXPORT_HEIGHT_INTERVAL: usize = 100;

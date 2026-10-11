@@ -1,5 +1,6 @@
 use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
+use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Bytes;
 use bitview_vecs::LazyWindowStartVec;
@@ -16,6 +17,7 @@ use crate::{
 impl Vecs {
     pub fn import(
         context: ImportContext<'_>,
+        indexer: &Indexer,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
         block_size: &impl ReadableCloneableVec<Height, Bytes>,
@@ -49,8 +51,11 @@ impl Vecs {
             chain_fees,
         )?;
 
+        let flag = indexer.vecs().transactions.features.op_return.flag_view();
+
         let this = Self {
             db,
+            flag,
             total,
             protocols,
             policies,

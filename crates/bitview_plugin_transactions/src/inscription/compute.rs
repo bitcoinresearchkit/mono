@@ -22,10 +22,10 @@ impl Vecs {
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
-        let features = &indexer.vecs().transaction_features;
+        let features = &indexer.vecs().transactions.features;
         self.count.compute_cumulative_transformed(
             starting_height,
-            &features.count.inscription,
+            &*features.inscription.block,
             Count::from,
             exit,
         )?;
@@ -33,8 +33,8 @@ impl Vecs {
             starting_height,
             &indexer.vecs().transactions.first_tx_index,
             &mappings.height.tx_index_count,
-            &features.count.inscription,
-            &features.has_inscription,
+            &*features.inscription.block,
+            &features.inscription.flag,
             &fees.fee.tx_index,
             &fees.total,
             exit,

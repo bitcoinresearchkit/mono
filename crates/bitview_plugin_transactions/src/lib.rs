@@ -5,6 +5,7 @@ mod count;
 mod dependencies;
 mod features;
 mod fees;
+mod flagged;
 mod has;
 mod import;
 mod inscription;

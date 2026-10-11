@@ -5317,6 +5317,75 @@ const _DataBytes = _s({
 });
 
 /**
+ * @typedef {{
+ *   flag: SeriesPattern21<Boolean>,
+ *   block: SeriesPattern20<Count>,
+ *   cumulative: SeriesPattern1<Count>,
+ *   sum: InputsPerSecond<Count>,
+ * }} TransactionsFeaturesExplicitlyRbf
+ */
+const _TransactionsFeaturesExplicitlyRbf = _s({
+  flag: [_i21, 'is_*'],
+  block: [_i20, '*_tx_count'],
+  cumulative: [_i1, '*_tx_count_cumulative'],
+  sum: [_InputsPerSecond, '*_tx_count_sum'],
+});
+
+/**
+ * @typedef {{
+ *   nonstandard: TransactionsFeaturesExplicitlyRbf,
+ * }} Policy
+ */
+const _Policy = _s({
+  nonstandard: [_TransactionsFeaturesExplicitlyRbf, '*'],
+});
+
+/**
+ * @typedef {{
+ *   coinjoin: TransactionsFeaturesExplicitlyRbf,
+ *   consolidation: TransactionsFeaturesExplicitlyRbf,
+ *   batchPayout: TransactionsFeaturesExplicitlyRbf,
+ * }} Patterns
+ */
+const _Patterns = _s({
+  coinjoin: [_TransactionsFeaturesExplicitlyRbf, '*'],
+  consolidation: [_TransactionsFeaturesExplicitlyRbf, 'consolidation'],
+  batchPayout: [_TransactionsFeaturesExplicitlyRbf, 'batch_payout'],
+});
+
+/**
+ * @typedef {{
+ *   fee: EffectiveFeeRate<Sats>,
+ *   feeRate: SeriesPattern21<?FeeRate>,
+ *   effectiveFeeRate: EffectiveFeeRate<?FeeRate>,
+ *   cpfpParent: TransactionsFeaturesExplicitlyRbf,
+ *   cpfpChild: TransactionsFeaturesExplicitlyRbf,
+ * }} TransactionsFees
+ */
+const _TransactionsFees = _s({
+  fee: [_EffectiveFeeRate, 'tx_*'],
+  feeRate: [_i21, '*_rate'],
+  effectiveFeeRate: [_EffectiveFeeRate, 'effective_*_rate'],
+  cpfpParent: [_TransactionsFeaturesExplicitlyRbf, 'cpfp_parent'],
+  cpfpChild: [_TransactionsFeaturesExplicitlyRbf, 'cpfp_child'],
+});
+
+/**
+ * @typedef {{
+ *   flag: SeriesPattern21<Boolean>,
+ *   block: SeriesPattern20<Count>,
+ *   cumulative: SeriesPattern1<Count>,
+ *   sum: InputsPerSecond<Count>,
+ * }} Annex
+ */
+const _Annex = _s({
+  flag: [_i21, 'has_*'],
+  block: [_i20, '*_tx_count'],
+  cumulative: [_i1, '*_tx_count_cumulative'],
+  sum: [_InputsPerSecond, '*_tx_count_sum'],
+});
+
+/**
  * @template A, B, C, D
  * @typedef {{
  *   block: SeriesPattern20<A>,
@@ -6207,6 +6276,7 @@ const _Protocols = _s({
 
 /**
  * @typedef {{
+ *   flag: SeriesPattern21<Boolean>,
  *   outputCount: CoinblocksDestroyed<Count>,
  *   dataBytes: DataBytes,
  *   txCount: CoinblocksDestroyed<Count>,
@@ -6217,6 +6287,7 @@ const _Protocols = _s({
  * }} OpReturn
  */
 const _OpReturn = _s({
+  flag: [_i21, 'has_*'],
   outputCount: [_CoinblocksDestroyed, '*_output_count'],
   dataBytes: [_DataBytes, '*_data_bytes'],
   txCount: [_CoinblocksDestroyed, '*_tx_count'],
@@ -6228,156 +6299,15 @@ const _OpReturn = _s({
 
 /**
  * @typedef {{
- *   v1: CoinblocksDestroyed<Count>,
- *   v2: CoinblocksDestroyed<Count>,
- *   v3: CoinblocksDestroyed<Count>,
- *   other: CoinblocksDestroyed<Count>,
- * }} Versions
- */
-const _Versions = _s({
-  v1: [_CoinblocksDestroyed, 'v1_*'],
-  v2: [_CoinblocksDestroyed, 'v2_*'],
-  v3: [_CoinblocksDestroyed, 'v3_*'],
-  other: [_CoinblocksDestroyed, 'other_version_*'],
-});
-
-/**
- * @typedef {{
- *   nonstandard: CoinblocksDestroyed<Count>,
- * }} PolicyCount
- */
-const _PolicyCount = _s({
-  nonstandard: [_CoinblocksDestroyed, '*'],
-});
-
-/**
- * @typedef {{
- *   count: PolicyCount,
- *   isNonstandard: SeriesPattern21<Boolean>,
- * }} Policy
- */
-const _Policy = _s({
-  count: [_PolicyCount, '*_tx_count'],
-  isNonstandard: [_i21, 'is_*'],
-});
-
-/**
- * @typedef {{
- *   coinjoin: CoinblocksDestroyed<Count>,
- *   consolidation: CoinblocksDestroyed<Count>,
- *   batchPayout: CoinblocksDestroyed<Count>,
- * }} PatternsCount
- */
-const _PatternsCount = _s({
-  coinjoin: [_CoinblocksDestroyed, 'coinjoin_*'],
-  consolidation: [_CoinblocksDestroyed, 'consolidation_*'],
-  batchPayout: [_CoinblocksDestroyed, 'batch_payout_*'],
-});
-
-/**
- * @typedef {{
- *   count: PatternsCount,
- *   isCoinjoin: SeriesPattern21<Boolean>,
- *   isConsolidation: SeriesPattern21<Boolean>,
- *   isBatchPayout: SeriesPattern21<Boolean>,
- * }} Patterns
- */
-const _Patterns = _s({
-  count: [_PatternsCount, 'tx_count'],
-  isCoinjoin: [_i21, '*_coinjoin'],
-  isConsolidation: [_i21, '*_consolidation'],
-  isBatchPayout: [_i21, '*_batch_payout'],
-});
-
-/**
- * @typedef {{
+ *   flag: SeriesPattern21<Boolean>,
  *   count: CoinblocksDestroyed<Count>,
  *   fees: InscriptionFees,
  * }} Inscription
  */
 const _Inscription = _s({
+  flag: [_i21, 'has_*'],
   count: [_CoinblocksDestroyed, '*_tx_count'],
   fees: [_InscriptionFees, '*'],
-});
-
-/**
- * @typedef {{
- *   cpfpParent: CoinblocksDestroyed<Count>,
- *   cpfpChild: CoinblocksDestroyed<Count>,
- * }} FeesCount
- */
-const _FeesCount = _s({
-  cpfpParent: [_CoinblocksDestroyed, 'cpfp_parent_*'],
-  cpfpChild: [_CoinblocksDestroyed, 'cpfp_child_*'],
-});
-
-/**
- * @typedef {{
- *   count: FeesCount,
- *   fee: EffectiveFeeRate<Sats>,
- *   feeRate: SeriesPattern21<?FeeRate>,
- *   effectiveFeeRate: EffectiveFeeRate<?FeeRate>,
- *   isCpfpParent: SeriesPattern21<Boolean>,
- *   isCpfpChild: SeriesPattern21<Boolean>,
- * }} TransactionsFees
- */
-const _TransactionsFees = _s({
-  count: [_FeesCount, 'tx_count'],
-  fee: [_EffectiveFeeRate, 'tx_*'],
-  feeRate: [_i21, '*_rate'],
-  effectiveFeeRate: [_EffectiveFeeRate, 'effective_*_rate'],
-  isCpfpParent: [_i21, 'is_cpfp_parent'],
-  isCpfpChild: [_i21, 'is_cpfp_child'],
-});
-
-/**
- * @typedef {{
- *   annex: CoinblocksDestroyed<Count>,
- *   sighashAll: CoinblocksDestroyed<Count>,
- *   sighashNone: CoinblocksDestroyed<Count>,
- *   sighashSingle: CoinblocksDestroyed<Count>,
- *   sighashDefault: CoinblocksDestroyed<Count>,
- *   sighashAnyoneCanPay: CoinblocksDestroyed<Count>,
- *   dustOutput: CoinblocksDestroyed<Count>,
- * }} TransactionsFeatures
- */
-const _TransactionsFeatures = _s({
-  annex: [_CoinblocksDestroyed, 'annex_*'],
-  sighashAll: [_CoinblocksDestroyed, 'sighash_all_*'],
-  sighashNone: [_CoinblocksDestroyed, 'sighash_none_*'],
-  sighashSingle: [_CoinblocksDestroyed, 'sighash_single_*'],
-  sighashDefault: [_CoinblocksDestroyed, 'sighash_default_*'],
-  sighashAnyoneCanPay: [_CoinblocksDestroyed, 'sighash_anyone_can_pay_*'],
-  dustOutput: [_CoinblocksDestroyed, 'dust_output_*'],
-});
-
-/**
- * @typedef {{
- *   count: BlocksSize<Count, Count, ?CountFract, Count16>,
- *   features: TransactionsFeatures,
- *   size: TransactionsSize,
- *   fees: TransactionsFees,
- *   inscription: Inscription,
- *   patterns: Patterns,
- *   policy: Policy,
- *   sigopCost: CoinblocksDestroyed<SigOps64>,
- *   versions: Versions,
- *   volume: OpReturnValue,
- *   perSecond: InputsPerSecond<?PerSecond>,
- * }} Transactions
- */
-const _Transactions = _s({
-  count: [_BlocksSize, '*_count'],
-  features: [_TransactionsFeatures, '*_count'],
-  size: [_TransactionsSize, '*'],
-  fees: [_TransactionsFees, 'fee'],
-  inscription: [_Inscription, 'inscription'],
-  patterns: [_Patterns, 'is'],
-  policy: [_Policy, 'nonstandard'],
-  sigopCost: [_CoinblocksDestroyed, 'block_sigop_cost'],
-  versions: [_Versions, '*_count'],
-  volume: [_OpReturnValue, '*_volume'],
-  perSecond: [_InputsPerSecond, '*_per_second'],
 });
 
 /**
@@ -7184,90 +7114,187 @@ const _IndexerInputs = _s({
 
 /**
  * @typedef {{
- *   explicitlyRbf: SeriesPattern20<Count16>,
- *   oneInput: SeriesPattern20<Count16>,
- *   oneOutput: SeriesPattern20<Count16>,
- *   p2pk: SeriesPattern20<Count16>,
- *   p2ms: SeriesPattern20<Count16>,
- *   p2pkh: SeriesPattern20<Count16>,
- *   p2sh: SeriesPattern20<Count16>,
- *   p2wpkh: SeriesPattern20<Count16>,
- *   p2wsh: SeriesPattern20<Count16>,
- *   p2tr: SeriesPattern20<Count16>,
- *   p2a: SeriesPattern20<Count16>,
- *   empty: SeriesPattern20<Count16>,
- *   unknown: SeriesPattern20<Count16>,
- *   fakePubkey: SeriesPattern20<Count16>,
- *   fakeScripthash: SeriesPattern20<Count16>,
- * }} FeaturesCount
+ *   block: SeriesPattern20<Count>,
+ * }} OneInput
  */
-const _FeaturesCount = _s({
-  explicitlyRbf: [_i20, 'explicitly_rbf_*'],
-  oneInput: [_i20, 'one_input_*'],
-  oneOutput: [_i20, 'one_output_*'],
-  p2pk: [_i20, 'p2pk_*'],
-  p2ms: [_i20, 'p2ms_*'],
-  p2pkh: [_i20, 'p2pkh_*'],
-  p2sh: [_i20, 'p2sh_*'],
-  p2wpkh: [_i20, 'p2wpkh_*'],
-  p2wsh: [_i20, 'p2wsh_*'],
-  p2tr: [_i20, 'p2tr_*'],
-  p2a: [_i20, 'p2a_*'],
-  empty: [_i20, 'empty_*'],
-  unknown: [_i20, 'unknown_*'],
-  fakePubkey: [_i20, 'fake_pubkey_*'],
-  fakeScripthash: [_i20, 'fake_scripthash_*'],
+const _OneInput = _s({
+  block: [_i20, '*'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   v1: A,
+ *   v2: A,
+ *   v3: A,
+ *   other: A,
+ * }} Versions
+ */
+/** @type {_Make} */
+const _Versions = (c, b, f0) => _n(c, b, {
+  v1: [f0, 'v1_*'],
+  v2: [f0, 'v2_*'],
+  v3: [f0, 'v3_*'],
+  other: [f0, 'other_version_*'],
 });
 
 /**
  * @typedef {{
- *   count: FeaturesCount,
- *   hasP2pk: SeriesPattern21<Boolean>,
- *   hasP2ms: SeriesPattern21<Boolean>,
- *   hasP2pkh: SeriesPattern21<Boolean>,
- *   hasP2sh: SeriesPattern21<Boolean>,
- *   hasP2wpkh: SeriesPattern21<Boolean>,
- *   hasP2wsh: SeriesPattern21<Boolean>,
- *   hasP2tr: SeriesPattern21<Boolean>,
- *   hasP2a: SeriesPattern21<Boolean>,
- *   hasOpReturn: SeriesPattern21<Boolean>,
- *   hasEmpty: SeriesPattern21<Boolean>,
- *   hasUnknown: SeriesPattern21<Boolean>,
- *   hasFakePubkey: SeriesPattern21<Boolean>,
- *   hasFakeScripthash: SeriesPattern21<Boolean>,
- *   hasInscription: SeriesPattern21<Boolean>,
- *   hasAnnex: SeriesPattern21<Boolean>,
- *   hasSighashAll: SeriesPattern21<Boolean>,
- *   hasSighashNone: SeriesPattern21<Boolean>,
- *   hasSighashSingle: SeriesPattern21<Boolean>,
- *   hasSighashDefault: SeriesPattern21<Boolean>,
- *   hasSighashAnyoneCanPay: SeriesPattern21<Boolean>,
- *   hasDustOutput: SeriesPattern21<Boolean>,
+ *   flag: SeriesPattern21<Boolean>,
+ *   block: SeriesPattern20<Count>,
+ * }} IndexerTransactionsFeaturesExplicitlyRbf
+ */
+const _IndexerTransactionsFeaturesExplicitlyRbf = _s({
+  flag: [_i21, 'is_*'],
+  block: [_i20, '*_tx_count'],
+});
+
+/**
+ * @typedef {{
+ *   flag: SeriesPattern21<Boolean>,
+ *   block: SeriesPattern20<Count>,
+ * }} FeaturesEmpty
+ */
+const _FeaturesEmpty = _s({
+  flag: [_i21, 'has_*'],
+  block: [_i20, '*_tx_count'],
+});
+
+/**
+ * @typedef {{
+ *   p2pk: FeaturesEmpty,
+ *   p2ms: FeaturesEmpty,
+ *   p2pkh: FeaturesEmpty,
+ *   p2sh: FeaturesEmpty,
+ *   p2wpkh: FeaturesEmpty,
+ *   p2wsh: FeaturesEmpty,
+ *   p2tr: Annex,
+ *   p2a: FeaturesEmpty,
+ *   empty: FeaturesEmpty,
+ *   unknown: FeaturesEmpty,
+ *   fakePubkey: FeaturesEmpty,
+ *   fakeScripthash: FeaturesEmpty,
+ *   segwit: CoinblocksDestroyed<Count>,
+ *   annex: Annex,
+ *   sighashAll: Annex,
+ *   sighashNone: Annex,
+ *   sighashSingle: Annex,
+ *   sighashDefault: Annex,
+ *   sighashAnyoneCanPay: Annex,
+ *   explicitlyRbf: TransactionsFeaturesExplicitlyRbf,
+ *   dustOutput: Annex,
+ *   oneInput: OneInput,
+ *   oneOutput: OneInput,
+ * }} TransactionsFeatures
+ */
+const _TransactionsFeatures = _s({
+  p2pk: [_FeaturesEmpty, 'p2pk'],
+  p2ms: [_FeaturesEmpty, 'p2ms'],
+  p2pkh: [_FeaturesEmpty, 'p2pkh'],
+  p2sh: [_FeaturesEmpty, 'p2sh'],
+  p2wpkh: [_FeaturesEmpty, 'p2wpkh'],
+  p2wsh: [_FeaturesEmpty, 'p2wsh'],
+  p2tr: [_Annex, 'p2tr'],
+  p2a: [_FeaturesEmpty, 'p2a'],
+  empty: [_FeaturesEmpty, 'empty'],
+  unknown: [_FeaturesEmpty, 'unknown'],
+  fakePubkey: [_FeaturesEmpty, 'fake_pubkey'],
+  fakeScripthash: [_FeaturesEmpty, 'fake_scripthash'],
+  segwit: [_CoinblocksDestroyed, 'segwit_tx_count'],
+  annex: [_Annex, 'annex'],
+  sighashAll: [_Annex, '*_all'],
+  sighashNone: [_Annex, '*_none'],
+  sighashSingle: [_Annex, '*_single'],
+  sighashDefault: [_Annex, '*_default'],
+  sighashAnyoneCanPay: [_Annex, '*_anyone_can_pay'],
+  explicitlyRbf: [_TransactionsFeaturesExplicitlyRbf, 'explicitly_rbf'],
+  dustOutput: [_Annex, 'dust_output'],
+  oneInput: [_OneInput, 'one_input_tx_count'],
+  oneOutput: [_OneInput, 'one_output_tx_count'],
+});
+
+/**
+ * @typedef {{
+ *   count: BlocksSize<Count, Count, ?CountFract, Count16>,
+ *   features: TransactionsFeatures,
+ *   size: TransactionsSize,
+ *   fees: TransactionsFees,
+ *   inscription: Inscription,
+ *   patterns: Patterns,
+ *   policy: Policy,
+ *   sigopCost: CoinblocksDestroyed<SigOps64>,
+ *   versions: Versions<CoinblocksDestroyed<Count>>,
+ *   volume: OpReturnValue,
+ *   perSecond: InputsPerSecond<?PerSecond>,
+ * }} Transactions
+ */
+const _Transactions = _s({
+  count: [_BlocksSize, '*_count'],
+  features: [_TransactionsFeatures, 'sighash'],
+  size: [_TransactionsSize, '*'],
+  fees: [_TransactionsFees, 'fee'],
+  inscription: [_Inscription, 'inscription'],
+  patterns: [_Patterns, 'coinjoin'],
+  policy: [_Policy, 'nonstandard'],
+  sigopCost: [_CoinblocksDestroyed, 'block_sigop_cost'],
+  versions: [(c, b) => _Versions(c, b, _CoinblocksDestroyed), '*_count'],
+  volume: [_OpReturnValue, '*_volume'],
+  perSecond: [_InputsPerSecond, '*_per_second'],
+});
+
+/**
+ * @typedef {{
+ *   p2pk: FeaturesEmpty,
+ *   p2ms: FeaturesEmpty,
+ *   p2pkh: FeaturesEmpty,
+ *   p2sh: FeaturesEmpty,
+ *   p2wpkh: FeaturesEmpty,
+ *   p2wsh: FeaturesEmpty,
+ *   p2tr: FeaturesEmpty,
+ *   p2a: FeaturesEmpty,
+ *   opReturn: FeaturesEmpty,
+ *   empty: FeaturesEmpty,
+ *   unknown: FeaturesEmpty,
+ *   fakePubkey: FeaturesEmpty,
+ *   fakeScripthash: FeaturesEmpty,
+ *   inscription: FeaturesEmpty,
+ *   annex: FeaturesEmpty,
+ *   sighashAll: FeaturesEmpty,
+ *   sighashNone: FeaturesEmpty,
+ *   sighashSingle: FeaturesEmpty,
+ *   sighashDefault: FeaturesEmpty,
+ *   sighashAnyoneCanPay: FeaturesEmpty,
+ *   explicitlyRbf: IndexerTransactionsFeaturesExplicitlyRbf,
+ *   dustOutput: FeaturesEmpty,
+ *   oneInput: OneInput,
+ *   oneOutput: OneInput,
  * }} IndexerTransactionsFeatures
  */
 const _IndexerTransactionsFeatures = _s({
-  count: [_FeaturesCount, 'tx_count'],
-  hasP2pk: [_i21, '*_p2pk'],
-  hasP2ms: [_i21, '*_p2ms'],
-  hasP2pkh: [_i21, '*_p2pkh'],
-  hasP2sh: [_i21, '*_p2sh'],
-  hasP2wpkh: [_i21, '*_p2wpkh'],
-  hasP2wsh: [_i21, '*_p2wsh'],
-  hasP2tr: [_i21, '*_p2tr'],
-  hasP2a: [_i21, '*_p2a'],
-  hasOpReturn: [_i21, '*_op_return'],
-  hasEmpty: [_i21, '*_empty'],
-  hasUnknown: [_i21, '*_unknown'],
-  hasFakePubkey: [_i21, '*_fake_pubkey'],
-  hasFakeScripthash: [_i21, '*_fake_scripthash'],
-  hasInscription: [_i21, '*_inscription'],
-  hasAnnex: [_i21, '*_annex'],
-  hasSighashAll: [_i21, '*_sighash_all'],
-  hasSighashNone: [_i21, '*_sighash_none'],
-  hasSighashSingle: [_i21, '*_sighash_single'],
-  hasSighashDefault: [_i21, '*_sighash_default'],
-  hasSighashAnyoneCanPay: [_i21, '*_sighash_anyone_can_pay'],
-  hasDustOutput: [_i21, '*_dust_output'],
+  p2pk: [_FeaturesEmpty, 'p2pk'],
+  p2ms: [_FeaturesEmpty, 'p2ms'],
+  p2pkh: [_FeaturesEmpty, 'p2pkh'],
+  p2sh: [_FeaturesEmpty, 'p2sh'],
+  p2wpkh: [_FeaturesEmpty, 'p2wpkh'],
+  p2wsh: [_FeaturesEmpty, 'p2wsh'],
+  p2tr: [_FeaturesEmpty, 'p2tr'],
+  p2a: [_FeaturesEmpty, 'p2a'],
+  opReturn: [_FeaturesEmpty, 'op_return'],
+  empty: [_FeaturesEmpty, 'empty'],
+  unknown: [_FeaturesEmpty, 'unknown'],
+  fakePubkey: [_FeaturesEmpty, 'fake_pubkey'],
+  fakeScripthash: [_FeaturesEmpty, 'fake_scripthash'],
+  inscription: [_FeaturesEmpty, 'inscription'],
+  annex: [_FeaturesEmpty, 'annex'],
+  sighashAll: [_FeaturesEmpty, '*_all'],
+  sighashNone: [_FeaturesEmpty, '*_none'],
+  sighashSingle: [_FeaturesEmpty, '*_single'],
+  sighashDefault: [_FeaturesEmpty, '*_default'],
+  sighashAnyoneCanPay: [_FeaturesEmpty, '*_anyone_can_pay'],
+  explicitlyRbf: [_IndexerTransactionsFeaturesExplicitlyRbf, 'explicitly_rbf'],
+  dustOutput: [_FeaturesEmpty, 'dust_output'],
+  oneInput: [_OneInput, 'one_input_tx_count'],
+  oneOutput: [_OneInput, 'one_output_tx_count'],
 });
 
 /**
@@ -7279,10 +7306,10 @@ const _IndexerTransactionsFeatures = _s({
  *   weight: SeriesPattern21<Weight>,
  *   size: SeriesPattern21<Bytes32>,
  *   sigopCost: SeriesPattern21<SigOps>,
- *   isExplicitlyRbf: SeriesPattern21<Boolean>,
  *   firstTxinIndex: SeriesPattern21<TxInIndex>,
  *   firstTxoutIndex: SeriesPattern21<TxOutIndex>,
  *   features: IndexerTransactionsFeatures,
+ *   versions: Versions<OneInput>,
  * }} IndexerTransactions
  */
 const _IndexerTransactions = _s({
@@ -7293,10 +7320,10 @@ const _IndexerTransactions = _s({
   weight: [_i21, '*_weight'],
   size: [_i21, '*_size'],
   sigopCost: [_i21, '*_sigop_cost'],
-  isExplicitlyRbf: [_i21, 'is_explicitly_rbf'],
   firstTxinIndex: [_i21, 'first_txin_index'],
   firstTxoutIndex: [_i21, 'first_txout_index'],
-  features: [_IndexerTransactionsFeatures, 'has'],
+  features: [_IndexerTransactionsFeatures, 'sighash'],
+  versions: [(c, b) => _Versions(c, b, _OneInput), '*_count'],
 });
 
 /**
@@ -7306,7 +7333,7 @@ const _IndexerTransactions = _s({
  *   timestamp: SeriesPattern20<Timestamp>,
  *   size: SeriesPattern20<Bytes32>,
  *   weight: SeriesPattern20<Weight>,
- *   segwitTxCount: SeriesPattern20<Count16>,
+ *   segwitTxCount: SeriesPattern20<Count>,
  *   segwitSize: SeriesPattern20<Bytes32>,
  *   segwitWeight: SeriesPattern20<Weight>,
  * }} IndexerBlocks

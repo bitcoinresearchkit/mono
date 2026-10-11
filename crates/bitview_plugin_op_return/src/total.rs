@@ -22,8 +22,7 @@ pub struct Total<M: StorageMode = Rw> {
     /// bytes through the represented block.
     #[traversable(wrap = "data_bytes")]
     pub chain_share: LazyPercentPerBlock<PartsPerMillion32>,
-    /// Number of transactions containing at least one `OP_RETURN` output; each
-    /// transaction is counted once regardless of how many such outputs it has.
+    /// Transactions that create at least one output whose locking script begins with `OP_RETURN`.
     pub tx_count: PerBlockCumulativeRolling<Count, M>,
     /// Sum of the full virtual sizes of transactions containing at least one
     /// `OP_RETURN` output; each transaction is included once.

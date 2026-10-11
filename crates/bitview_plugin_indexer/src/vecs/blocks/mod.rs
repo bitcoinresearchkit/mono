@@ -1,4 +1,4 @@
-use bitview_primitives::{Bytes32, Count16, Difficulty};
+use bitview_primitives::{Bytes32, Difficulty};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{BlkPosition, BlockHash, CoinbaseTag, Height, Timestamp, Version, Weight};
@@ -9,6 +9,8 @@ use vecdb::{
 };
 
 pub mod median_time;
+
+use super::transactions::features::{BlockCount, block_count};
 
 #[derive(Traversable)]
 pub struct BlocksVecs<M: StorageMode = Rw> {
@@ -34,17 +36,17 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub median_time: M::Stored<PcoVec<Height, Timestamp>>,
     /// Serialized block size in bytes, including witness data: its 80-byte header,
-    /// transaction-count CompactSize, and every serialized transaction.
+    /// transaction-count CompactSize, and every serialized transaction. Value for the represented
+    /// block.
     #[traversable(rename = "size")]
     pub total: M::Stored<PcoVec<Height, Bytes32>>,
     /// BIP-141 block weight in weight units: non-witness bytes count as four
-    /// weight units and witness bytes count as one.
+    /// weight units and witness bytes count as one. Value for the represented block.
     pub weight: M::Stored<PcoVec<Height, Weight>>,
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<Height, BlkPosition>>,
-    /// Number of non-coinbase transactions using SegWit serialization.
-    #[traversable(rename = "segwit_tx_count")]
-    pub segwit_txs: M::Stored<PcoVec<Height, Count16>>,
+    /// Non-coinbase transactions using SegWit serialization. Value for the represented block.
+    pub segwit_tx_count: BlockCount<M>,
     /// Combined total serialized size in bytes of the block's non-coinbase
     /// SegWit transactions; excludes block overhead and all other transactions.
     pub segwit_size: M::Stored<PcoVec<Height, Bytes32>>,
@@ -64,7 +66,7 @@ impl BlocksVecs {
             total,
             weight,
             position,
-            segwit_txs,
+            segwit_tx_count,
             segwit_size,
             segwit_weight,
         ) = parallel_import! {
@@ -76,7 +78,7 @@ impl BlocksVecs {
             total_size = PcoVec::import(db, "block_size", version),
             weight = PcoVec::import(db, "block_weight", version),
             position = PcoVec::import(db, "block_position", version),
-            segwit_txs = PcoVec::import(db, "segwit_tx_count", version),
+            segwit_tx_count = block_count(db, "segwit_tx_count", version),
             segwit_size = PcoVec::import(db, "segwit_size", version),
             segwit_weight = PcoVec::import(db, "segwit_weight", version),
         };
@@ -89,7 +91,7 @@ impl BlocksVecs {
             total,
             weight,
             position,
-            segwit_txs,
+            segwit_tx_count,
             segwit_size,
             segwit_weight,
         };
@@ -119,7 +121,7 @@ impl BlocksVecs {
         self.total.truncate_if_needed_with_stamp(height, stamp)?;
         self.weight.truncate_if_needed_with_stamp(height, stamp)?;
         self.position.truncate_if_needed_with_stamp(height, stamp)?;
-        self.segwit_txs
+        self.segwit_tx_count
             .truncate_if_needed_with_stamp(height, stamp)?;
         self.segwit_size
             .truncate_if_needed_with_stamp(height, stamp)?;
@@ -138,7 +140,7 @@ impl BlocksVecs {
             &mut self.total,
             &mut self.weight,
             &mut self.position,
-            &mut self.segwit_txs,
+            &mut *self.segwit_tx_count,
             &mut self.segwit_size,
             &mut self.segwit_weight,
         ]
@@ -155,7 +157,7 @@ impl BlocksVecs {
             &self.total,
             &self.weight,
             &self.position,
-            &self.segwit_txs,
+            &*self.segwit_tx_count,
             &self.segwit_size,
             &self.segwit_weight,
         ]
