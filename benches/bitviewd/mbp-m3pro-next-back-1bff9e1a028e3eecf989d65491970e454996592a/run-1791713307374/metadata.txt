@@ -1,0 +1,15 @@
+version=0.12.2
+profile=release
+hostname=k.local
+cpu=Apple M3 Pro
+ram_bytes=38654705664
+target_os=macos
+target_arch=aarch64
+parallelism=12
+started_at_unix=1791713307
+chain_height=970905
+revision=1bff9e1a028e3eecf989d65491970e454996592a
+dirty=false
+blocks_path=/Users/k/Library/Application Support/Bitcoin/blocks
+data_path=/Users/k/.bitview
+cache_budget=2147483648
