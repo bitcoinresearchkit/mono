@@ -3118,7 +3118,7 @@
               height: 24px;
 
               @media (pointer: coarse) {
-                height: 28px;
+                height: 32px;
               }
             }
           }
@@ -6200,6 +6200,27 @@
             transition: transform var(--dur-panel) var(--ease), opacity var(--dur-panel) var(--ease), visibility 0s var(--dur-panel);
           }
         }
+
+        /* A tablet upright: the panel a sheet across the card's foot, the chart above it whole, every year and its axis
+           in sight while a layer's changed (as a phone's half sheet; closed by its ×); away, it slides down. */
+        @media (min-width: 761px) and (min-height: 501px) and (orientation: portrait) {
+          .panel {
+            top: auto;
+            left: 8px;
+            bottom: 8px;
+            width: auto;
+            height: 44dvh;
+          }
+
+          body:is([data-panel="open"], [data-peek]) .stage {
+            padding-bottom: calc(44dvh + 8px);
+          }
+
+          body[data-panel="closed"]:not([data-peek]) .panel {
+            width: auto;
+            transform: translateY(24px);
+          }
+        }
       }
 
       /* Only on phones, under their sheets (below). */
@@ -6352,7 +6373,8 @@
           max-width: none;
         }
 
-        /* The layers (and a layer's settings): a sheet from the foot, over a dimmed page; its handle drags it away. */
+        /* The layers (and a layer's settings): a sheet from the foot (half, the chart above it live; whole, over a dimmed
+           page), or a column at the side on a phone on its side; its handle drags it. */
         .panel {
           --panel-ground: var(--raise);
           position: fixed;
@@ -6406,11 +6428,6 @@
 
           body[data-sheet="panel"] .panel {
             transition: transform var(--dur-panel) var(--ease), height var(--dur-panel) var(--ease);
-          }
-
-          body[data-sheet]:not([data-sheet-size="full"]) .scrim {
-            opacity: 0;
-            pointer-events: none;
           }
 
           /* (The chart in what the half sheet leaves, every pane in sight: what's changed in it shows as it's changed; the
@@ -6536,6 +6553,13 @@
         body[data-sheet] .scrim {
           opacity: 1;
           pointer-events: auto;
+        }
+
+        /* The sheet half (upright) or a column (on its side): the chart beside it live and undimmed, a change in it
+           seen as it's made; whole, the page behind dimmed. */
+        body[data-sheet]:not([data-sheet-size="full"]) .scrim {
+          opacity: 0;
+          pointer-events: none;
         }
 
         .sheet-close {
@@ -6749,8 +6773,19 @@
 
         /* Typing by touch (the keyboard up, the page as short as it leaves): the bars out of the way of the field. */
         @media (pointer: coarse) {
-          body:has(:is(input:not([type="checkbox"], [type="range"], [type="color"]), textarea, [contenteditable="true"]):focus) :is(.mobile-bar, .pick-bar) {
-            display: none;
+          body:has(:is(input:not([type="checkbox"], [type="range"], [type="color"]), textarea, [contenteditable="true"]):focus) {
+            :is(.mobile-bar, .pick-bar) {
+              display: none;
+            }
+
+            /* (Their room given to the chart, a gap kept over the keys; with the sheet up, its room kept, the foot's given.) */
+            &:not([data-sheet="panel"]) .card {
+              padding-bottom: 8px;
+            }
+
+            &[data-sheet="panel"] .stage-foot {
+              display: none;
+            }
           }
         }
 
@@ -6932,14 +6967,35 @@
             bottom: calc(12px + env(safe-area-inset-bottom));
           }
 
-          .panel,
+          /* (The column as wide as leaves the chart 280px beside it: 300 to 480.) */
+          :root {
+            --column: clamp(300px, 100vw - 366px - env(safe-area-inset-left), 480px);
+          }
+
+          .panel {
+            left: auto;
+            width: var(--column);
+          }
+
           .menu.as-sheet {
             left: auto;
             width: min(480px, 100%);
           }
 
+          /* (Never dimmed on its side, one made whole upright and turned too: the chart beside it live.) */
+          body[data-sheet] .scrim {
+            opacity: 0;
+            pointer-events: none;
+          }
+
           .panel {
             padding-bottom: env(safe-area-inset-bottom);
+          }
+
+          /* (The chart beside the column, in what it leaves, as above the upright half sheet: its latest values and its
+             axis in sight while they're changed.) */
+          body[data-sheet="panel"] .card {
+            padding-right: var(--column);
           }
 
           /* (Nothing over the sheet's foot there but a selection's bar: room for it while it shows.) */
@@ -7124,7 +7180,7 @@
           height: 36px;
         }
 
-        /* (Five to a row, four rows: each wide enough to aim at.) */
+        /* (Five to a row, four rows: each wide enough to aim at; across a phone's sheet, each a square in its fifth.) */
         .swatch-grid,
         .color-drop .swatch-grid {
           grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -7136,10 +7192,22 @@
           }
         }
 
+        .menu.as-sheet .color-drop .swatch-grid button {
+          justify-self: center;
+          width: 44px;
+          height: 36px;
+        }
+
         .pane-scale,
         .source-pick,
         .more {
-          min-height: 28px;
+          min-height: 32px;
+        }
+
+        /* (A help's summary, a link set in words: tall enough to hit, their words where they were.) */
+        :is(.help > summary, .links-note button) {
+          padding-block: 7px;
+          margin-block: -7px;
         }
 
         /* Pane and marker heads leave the rules clear. */
@@ -7899,8 +7967,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const phone = matchMedia("(max-width: 760px), (max-height: 500px)");
       /** A phone held upright (its sheet at half height first). */
       const heldUpright = matchMedia("not all and (max-height: 500px) and (min-width: 568px)");
-      /** Whether a phone's sheet is whole: on its side, always; upright, dragged up. */
-      const sheetWhole = () => !heldUpright.matches || document.body.dataset.sheetSize === "full";
+      /** Whether a phone's sheet is whole (the page behind it dimmed, out of reach): upright, dragged up; on its side, a column beside the chart, never. */
+      const sheetWhole = () => heldUpright.matches && document.body.dataset.sheetSize === "full";
       /** A device of fingers (no hover): its words "tap", not "click". */
       const TOUCH = matchMedia("(hover: none)").matches, CLICK = TOUCH ? "tap" : "click";
       const tablet = matchMedia("(max-width: 1100px)");
@@ -10033,9 +10101,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         applyPanel();
       }
       applyPanel();
-      // A phone's sheet takes the focus as it opens, and gives it back to what opened it as it closes. Whole (on its side,
-      // or dragged up), it's modal: what's behind it can't be reached, by Tab or a screen reader (the tab bar isn't behind
-      // it: it floats over it, live); at half height, the chart above stays live.
+      // A phone's sheet takes the focus as it opens, and gives it back to what opened it as it closes. Whole (dragged up),
+      // it's modal: what's behind it can't be reached, by Tab or a screen reader (the tab bar isn't behind it: it floats
+      // over it, live); at half height, or a column on its side, the chart beside stays live.
       {
         let opener = /** @type {Element | null} */ (null), shown = false, wasModal = false;
         const sheetModal = () => {
@@ -15983,33 +16051,40 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /**
        * A sheet dragged by its top, one pointer at a time: `grab`, a press there starts it (or not); `move`, how far it's
-       * gone down (up, less than 0); `release`, let go there (its speed in px/ms); `back`, its look as it was, first thing
+       * gone down (up, less than 0); `release`, let go there (its speed as it's let go, in px/ms); `back`, its look as it was, first thing
        * on a release and on its own when the system takes the pointer mid-way (a cancel isn't a release where it was).
        * @param {HTMLElement} element
        * @param {{ grab: (event: PointerEvent) => boolean, move: (by: number) => void, release: (by: number, speed: number) => void, back: () => void }} how
        */
       function dragSheet(element, { grab, move, release, back }) {
-        let pull = /** @type {{ y: number, at: number, pointer: number } | null} */ (null);
+        let pull = /** @type {{ y: number, pointer: number, trail: { y: number, at: number }[] } | null} */ (null);
         element.addEventListener("pointerdown", (event) => {
           if (pull || !grab(event)) return;
-          pull = { y: event.clientY, at: performance.now(), pointer: event.pointerId };
+          pull = { y: event.clientY, pointer: event.pointerId, trail: [{ y: event.clientY, at: performance.now() }] };
           element.setPointerCapture(event.pointerId);
         });
-        element.addEventListener("pointermove", (event) => event.pointerId === pull?.pointer && move(event.clientY - pull.y));
+        element.addEventListener("pointermove", (event) => {
+          if (event.pointerId !== pull?.pointer) return;
+          const now = performance.now();
+          pull.trail = [...pull.trail.filter((point) => now - point.at <= 100), { y: event.clientY, at: now }];
+          move(event.clientY - pull.y);
+        });
         element.addEventListener("pointerup", (event) => {
           if (event.pointerId !== pull?.pointer) return;
-          const by = event.clientY - pull.y, speed = by / Math.max(1, performance.now() - pull.at);
+          // (Its speed as it's let go: over its last tenth of a second; held still that long, none.)
+          const now = performance.now(), past = pull.trail.find((point) => now - point.at <= 100) ?? { y: event.clientY, at: now };
+          const by = event.clientY - pull.y, speed = (event.clientY - past.y) / Math.max(1, now - past.at);
           pull = null;
           back();
           release(by, speed);
         });
         for (const type of ["pointercancel", "lostpointercapture"]) element.addEventListener(type, (event) => event.pointerId === pull?.pointer && ((pull = null), back()));
       }
-      /** Whether a sheet dragged down goes: past a third of its height, or flicked (24px down at 0.6px a millisecond). */
+      /** Whether a sheet dragged down goes: past a third of its height, or flicked (24px down, let go at 0.6px a millisecond). */
       const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @type {number} */ height) => by > height / 3 || (by > 24 && speed > 0.6);
-      // A phone's sheet (the layers), by its top (the handle, the head): upright, dragged up it's whole, dragged down half
-      // again, then it goes (from whole, far enough, at once); its handle tapped, half or whole. On its side (a column,
-      // whole), dragged down it goes. Past a third of the way, or flicked, it moves on; less, it comes back.
+      // A phone's sheet (the layers), by its top (the handle, the head): upright, it stops whole, at half, or goes: let go,
+      // at the stop nearest, a flick one stop on its way; its handle tapped, half or whole. On its side (a column beside
+      // the chart), dragged down past a third, or flicked, it goes; less, it comes back.
       {
         const sheet = $("panel"), scrim = $("scrim");
         let height = 0, handle = false;
@@ -16022,20 +16097,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return true;
           },
           move: (by) => {
-            // (Up, half: it grows, as far as whole.)
-            if (by < 0 && !sheetWhole()) return void (sheet.style.height = `${Math.min(height - by, innerHeight * 0.88)}px`);
+            // (Up, half: it grows, as far as whole; on its side, a column, it doesn't.)
+            if (by < 0 && heldUpright.matches && !sheetWhole()) return void (sheet.style.height = `${Math.min(height - by, innerHeight * 0.88)}px`);
             const down = Math.max(0, by);
             sheet.style.transform = `translateY(${down}px)`;
             if (sheetWhole()) scrim.style.opacity = String(1 - down / sheet.offsetHeight);
           },
           back: () => (sheet.style.transition = sheet.style.transform = sheet.style.height = scrim.style.transition = scrim.style.opacity = ""),
           release: (by, speed) => {
-            const up = by < -40 || (by < -16 && speed < -0.6), down = sheetGoes(by, speed, height), tap = handle && Math.abs(by) < 4;
-            if (!heldUpright.matches) return void (down && scrim.click());
-            const whole = sheetWhole();
-            if (!whole && (up || tap)) document.body.dataset.sheetSize = "full";
-            else if (whole && (tap || (down && by < height * 0.6))) delete document.body.dataset.sheetSize;
-            else if (down) scrim.click();
+            // (On its side, a column: down far enough, or flicked, it goes.)
+            if (!heldUpright.matches) return void (sheetGoes(by, speed, height) && scrim.click());
+            // Its handle tapped: half or whole. Flicked (let go moving), one stop on its way, as every sheet goes on a flick;
+            // else the stop nearest where it's let go (a slow drag most of the way to half lands there).
+            if (handle && Math.abs(by) < 4) return void (sheetWhole() ? delete document.body.dataset.sheetSize : (document.body.dataset.sheetSize = "full"));
+            const stops = [innerHeight * 0.88, innerHeight * 0.56, 0], flick = Math.abs(by) > 16 && Math.abs(speed) > 0.6 ? Math.sign(speed) : 0;
+            const nearest = stops.reduce((near, each, i) => (Math.abs(each - (height - by)) < Math.abs(stops[near] - (height - by)) ? i : near), 0);
+            const stop = flick ? clamp((sheetWhole() ? 0 : 1) + flick, 0, 2) : nearest;
+            if (stop === 0) document.body.dataset.sheetSize = "full";
+            else if (stop === 1) delete document.body.dataset.sheetSize;
+            else scrim.click();
           },
         });
       }
@@ -18417,7 +18497,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function colorMenu(/** @type {HTMLElement} */ anchor, /** @type {string} */ current, /** @type {string} */ target, /** @type {(color: string) => void} */ apply, extra = "", /** @type {(picked: DOMStringMap) => void} */ onExtra = () => {}, borrowed = false, again = () => colorMenu(anchor, current, target, apply, extra, onExtra, borrowed), title = "") {
         const own = !borrowed && !SWATCHES.includes(current);
         // (A dropdown as wide as its select, under it: Bitview's colors at a glance, each named on hover.)
-        const colors = `<div class="color-drop" style="width: ${Math.max(232, Math.round(anchor.getBoundingClientRect().width) - 8)}px">${swatchGrid(borrowed ? "" : current)}</div><div class="menu-rule"></div>`;
+        // (A phone's sheet, its width: the swatches across it.)
+        const colors = `<div class="color-drop"${phone.matches ? "" : ` style="width: ${Math.max(232, Math.round(anchor.getBoundingClientRect().width) - 8)}px"`}>${swatchGrid(borrowed ? "" : current)}</div><div class="menu-rule"></div>`;
         const custom = `<button type="button" data-pick-custom="1" aria-checked="${own}" aria-haspopup="menu">${tick(own)}<i class="swatch" style="${own ? `--c:${escape(cssColor(current))}` : "background: conic-gradient(from 90deg, #f43f5e, #f59e0b, #84cc16, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f43f5e)"}"></i>Custom${own ? `<span>${escape(ink(current))}</span>` : ""}</button>`;
         // (A phone's sheet says what it's the color of: one of several, which.)
         showMenu(anchor, `${title && phone.matches ? `<div class="menu-group">${escape(title)}</div>` : ""}${colors}${custom}${extra}`, (hit) => {
