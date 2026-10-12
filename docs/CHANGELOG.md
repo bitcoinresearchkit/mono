@@ -793,7 +793,8 @@ has to be deleted by hand.
   reads (small reads went through the memory map, one page fault at a time) and builds the batch's per-block
   histograms in parallel, with the same prices: 43 s instead of 106 s over 971,095 blocks. The compute branches wait
   only for `price`, not `inputs` (only the UTXO set reads its spends), so they start 66 s earlier: computing every
-  plugin over the indexed chain on a 16 GB Mac mini takes 955 s instead of 1,084 s
+  plugin over the indexed chain on a 16 GB Mac mini takes 955 s instead of 1,084 s, and a full sync of 971,136 blocks
+  5,199 s instead of 5,315 s
 - Calendar dates from timestamps use integer civil-from-days arithmetic instead of a time-zone conversion, and
   `holders` and `profitability` map each origin height's price to its index bucket once instead of on every update
 - The mempool resolves inputs that spend confirmed outputs through the unspent-output store first (one lookup, which
