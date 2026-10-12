@@ -60,6 +60,23 @@ fn cents_to_bucket(price: Cents) -> usize {
     }
 }
 
+/// A price with its bucket, mapped once: an origin height's price is added and removed many times.
+#[derive(Clone, Copy)]
+pub struct BucketedPrice {
+    price: CentsCompact,
+    bucket: u32,
+}
+
+impl From<CentsCompact> for BucketedPrice {
+    #[inline]
+    fn from(price: CentsCompact) -> Self {
+        Self {
+            price,
+            bucket: cents_to_bucket(price.into()) as u32,
+        }
+    }
+}
+
 impl<const N: usize> Default for PriceIndex<N> {
     fn default() -> Self {
         Self {
@@ -83,9 +100,9 @@ impl<const N: usize> PriceIndex<N> {
         }
     }
 
-    pub(crate) fn add_raw(&mut self, price: CentsCompact, sats: i64, filters: [bool; N]) {
-        let delta = Self::delta(price, sats, filters);
-        self.tree.add_raw(cents_to_bucket(price.into()), &delta);
+    pub(crate) fn add_raw(&mut self, price: BucketedPrice, sats: i64, filters: [bool; N]) {
+        let delta = Self::delta(price.price, sats, filters);
+        self.tree.add_raw(price.bucket as usize, &delta);
         self.totals.add_assign(&delta);
     }
 
@@ -94,12 +111,12 @@ impl<const N: usize> PriceIndex<N> {
     }
 
     #[inline]
-    pub(crate) fn add(&mut self, price: CentsCompact, sats: i64, filters: [bool; N]) {
+    pub(crate) fn add(&mut self, price: BucketedPrice, sats: i64, filters: [bool; N]) {
         if sats == 0 {
             return;
         }
-        let delta = Self::delta(price, sats, filters);
-        self.tree.add(cents_to_bucket(price.into()), &delta);
+        let delta = Self::delta(price.price, sats, filters);
+        self.tree.add(price.bucket as usize, &delta);
         self.totals.add_assign(&delta);
     }
 

@@ -789,6 +789,13 @@ has to be deleted by hand.
   the value in `Sats`' compact form, and a value of 2^31 sats or more in a small overflow store. A full sync of
   971,095 blocks on a 16 GB Mac mini takes 5,315 s instead of 5,498 s (inputs 78 s instead of 339 s, indexing 4,239 s
   instead of 4,208 s; 4,506 s with 25-byte entries) and peaks at 11.38 GiB
+- `price` reads each 1,000-block batch's per-transaction first outputs, output values and types in three large range
+  reads (small reads went through the memory map, one page fault at a time) and builds the batch's per-block
+  histograms in parallel, with the same prices: 43 s instead of 106 s over 971,095 blocks. The compute branches wait
+  only for `price`, not `inputs` (only the UTXO set reads its spends), so they start 66 s earlier: computing every
+  plugin over the indexed chain on a 16 GB Mac mini takes 955 s instead of 1,084 s
+- Calendar dates from timestamps use integer civil-from-days arithmetic instead of a time-zone conversion, and
+  `holders` and `profitability` map each origin height's price to its index bucket once instead of on every update
 - The mempool resolves inputs that spend confirmed outputs through the unspent-output store first (one lookup, which
   carries the value, the txid check and the address bytes), falling back to the parent transaction: at startup its first two
   resolutions take 0.65-0.74 s and 2.3-2.4 s instead of 1.0-1.1 s and 3.3 s (about 12,000 and 18,500 inputs)

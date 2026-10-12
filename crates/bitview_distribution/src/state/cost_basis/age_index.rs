@@ -7,14 +7,14 @@ use brk_types::{Cents, Height, Timestamp};
 use statedb::{Cursor, Reader, State};
 use vecdb::ReadableVec;
 
-use super::{PriceIndex, PriceTotals};
+use super::{BucketedPrice, PriceIndex, PriceTotals};
 
 /// Writer-owned age-filtered price index, retained only after a complete update
 /// succeeds. Canonical origins remain owned by the history.
 pub struct AgeIndexLive<V> {
     pub origins: State,
     pub index: PriceIndex<4>,
-    pub prices: Vec<CentsCompact>,
+    pub prices: Vec<BucketedPrice>,
     pub timestamps: Vec<Timestamp>,
     pub crossings: [usize; 3],
     version: V,
@@ -59,8 +59,10 @@ impl<V: PartialEq> AgeIndexLive<V> {
         if spot.iter().any(|p| p.is_nan()) {
             return Err(Error::NotFound("invalid age-index price history".into()));
         }
-        live.prices
-            .extend(spot.iter().copied().map(CentsCompact::from));
+        live.prices.extend(
+            spot.iter()
+                .map(|&price| BucketedPrice::from(CentsCompact::from(price))),
+        );
         live.timestamps
             .extend(timestamps.collect_range_at(live.timestamps.len(), end));
         if live.prices.len() != end || live.timestamps.len() != end {
@@ -93,7 +95,7 @@ fn filters(current: Timestamp, origin: Timestamp) -> [bool; 4] {
 fn restore(
     index: &mut PriceIndex<4>,
     origins: &State,
-    prices: &[CentsCompact],
+    prices: &[BucketedPrice],
     timestamps: &[Timestamp],
 ) {
     index.reset();
@@ -114,7 +116,7 @@ fn restore(
 pub fn advance(
     index: &mut PriceIndex<4>,
     cursor: &mut Cursor<'_>,
-    prices: &[CentsCompact],
+    prices: &[BucketedPrice],
     timestamps: &[Timestamp],
     crossings: &mut [usize; 3],
 ) -> Result<()> {

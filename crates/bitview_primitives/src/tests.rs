@@ -109,3 +109,23 @@ fn index40_round_trips() {
         );
     }
 }
+
+/// The integer conversion agrees with jiff's UTC date across the whole `u32` timestamp range.
+#[test]
+fn date_from_timestamp_matches_jiff() {
+    use brk_types::Timestamp;
+    use jiff::{Timestamp as JiffTimestamp, tz::TimeZone};
+
+    use crate::Date;
+
+    let mut seconds = 0_u64;
+    while seconds <= u64::from(u32::MAX) {
+        let timestamp = Timestamp::new(seconds as u32);
+        let zoned = JiffTimestamp::from_second(seconds as i64)
+            .unwrap()
+            .to_zoned(TimeZone::UTC);
+        let expected = Date::new(zoned.year() as u16, zoned.month() as u8, zoned.day() as u8);
+        assert_eq!(Date::from(timestamp), expected, "at {seconds}");
+        seconds += 86_399;
+    }
+}

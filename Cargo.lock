@@ -1060,6 +1060,7 @@ dependencies = [
  "brk_exit",
  "brk_oracle",
  "brk_types",
+ "rayon",
  "tracing",
  "vecdb",
 ]

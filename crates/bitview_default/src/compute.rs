@@ -73,27 +73,23 @@ impl DefaultPlugins {
                 self.blocks.compute(BlocksDependencies { indexer }, context)
             })?;
 
-            let (inputs_result, prices_result) = join(
-                || {
-                    timed(Phase::Compute, INPUTS_ID, || {
-                        self.inputs.compute(
-                            InputsDependencies {
-                                mappings: self.mappings.as_ref(),
-                                indexer,
-                                blocks: self.blocks.as_ref(),
-                            },
-                            context,
-                        )
-                    })
-                },
-                || {
-                    timed(Phase::Compute, PRICE_ID, || {
-                        self.price.compute(PriceDependencies { indexer }, context)
-                    })
-                },
-            );
-            inputs_result?;
-            prices_result?;
+            // Only the UTXO set reads inputs' spends: everything before it runs alongside.
+            let inputs = scope.spawn(|| -> Result<_> {
+                timed(Phase::Compute, INPUTS_ID, || {
+                    self.inputs.compute(
+                        InputsDependencies {
+                            mappings: self.mappings.as_ref(),
+                            indexer,
+                            blocks: self.blocks.as_ref(),
+                        },
+                        context,
+                    )
+                })?;
+                Ok(self.inputs.as_ref())
+            });
+            timed(Phase::Compute, PRICE_ID, || {
+                self.price.compute(PriceDependencies { indexer }, context)
+            })?;
 
             // Market, UTXOs, Addresses, Outputs → History → Age → Holders, and Transactions →
             // Mining + OP_RETURN are independent complete-plugin branches.
@@ -195,11 +191,12 @@ impl DefaultPlugins {
                 )
             })?;
             let creations = &self.outputs.creations;
+            let inputs = inputs.join().unwrap()?;
 
             timed(Phase::Compute, UTXO_SET_ID, || {
                 self.utxo_set.compute(
                     UtxoSetDependencies {
-                        spends: self.inputs.origins.spends(),
+                        spends: inputs.origins.spends(),
                         creations,
                         from: indexer.safe_lengths().height,
                         end: creations.end(),
@@ -208,9 +205,7 @@ impl DefaultPlugins {
                 )
             })?;
 
-            let history = self
-                .utxo_set
-                .reader(self.inputs.origins.spends(), creations)?;
+            let history = self.utxo_set.reader(inputs.origins.spends(), creations)?;
             timed(Phase::Compute, AGE_ID, || {
                 self.age.compute(
                     AgeDependencies {
