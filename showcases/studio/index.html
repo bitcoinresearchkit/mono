@@ -16,7 +16,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link: a chart is a link, #chart= and its JSON (this page's text says how, and how to have its picture)." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <link rel="apple-touch-icon" href="data:image/png;base64,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" />
@@ -173,10 +173,25 @@
         overscroll-behavior: none;
       }
 
-      /* A finger's: no grey flash on a tap, and no wait for a second (a double tap doesn't zoom a control). */
-      :is(button, a, input, textarea, [role="button"]) {
+      /* A finger's: no grey flash on a tap (over a whole list either); a control's, no wait for a second (a double tap
+         doesn't zoom one). No zoom of the page by a pinch either (the chart's zoomed by its own; an app's page isn't:
+         installed, nothing would zoom it back): the viewport's user-scalable (Android's), and, as iOS ignores that, no
+         page zoom where a pinch starts but on what holds and drags its rows (a touch-action on the page's root hands a
+         held row's drag to the scroll). */
+      html {
         -webkit-tap-highlight-color: transparent;
+      }
+
+      :is(button, a, input, textarea, [role="button"]) {
         touch-action: manipulation;
+      }
+
+      #chart {
+        touch-action: none;
+      }
+
+      :is(.card-head, .stage-foot, .mobile-bar, .pick-bar, .menu, .palette) {
+        touch-action: pan-x pan-y;
       }
 
       body {
@@ -4031,6 +4046,18 @@
           }
         }
 
+        /* (A finger's, every hex field's, a popover's too: tall enough, its type 16, so a phone doesn't zoom in to it.) */
+        @media (pointer: coarse) {
+          .hex-box {
+            height: 40px;
+          }
+
+          .hex {
+            font-size: 16px;
+            line-height: 40px;
+          }
+        }
+
         /* (Cut short when long: the hex keeps its room.) */
         .color-now {
           flex: none;
@@ -4278,14 +4305,9 @@
             padding-right: 10px;
           }
 
-          /* (A finger's: tall enough, its type 16, so a phone doesn't zoom in to it.) */
+          /* (A finger's, as every hex field: see .hex-field.) */
           @media (pointer: coarse) {
             height: 40px;
-
-            .hex {
-              font-size: 16px;
-              line-height: 40px;
-            }
           }
         }
       }
@@ -5853,6 +5875,42 @@
         &.drop-after::after {
           right: -7px;
         }
+
+        /* (A grid of one column: above it or below it, a line across.) */
+        &.drop-down {
+          &.drop-before::before,
+          &.drop-after::after {
+            inset: auto 8px;
+            width: auto;
+            height: 2px;
+          }
+
+          &.drop-before::before {
+            top: -7px;
+          }
+
+          &.drop-after::after {
+            bottom: -7px;
+          }
+        }
+      }
+
+      /* While something's carried, the bars over the lists' foot (a selection's; upright, the tabs) fade out of its way and
+         let it through (a row there is landed on, the edge there scrolls the list), and back after. */
+      :is(.pick-bar, .mobile-bar) {
+        transition: opacity var(--dur-small) var(--ease);
+      }
+
+      body.carrying .pick-bar {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      @media not all and (max-height: 500px) and (min-width: 568px) {
+        body.carrying .mobile-bar {
+          opacity: 0;
+          pointer-events: none;
+        }
       }
 
       .tile-open {
@@ -6377,8 +6435,16 @@
           }
         }
 
-        /* (Pinch and pan move the chart: the navigator, a sliver of 17 years at a finger's width, is left out.) */
+        /* The navigator, upright, a row of its own over the interval and the ranges, the screen's width: a whole history
+           crossed in one drag (pinch and pan for the detail). */
         .navigator {
+          order: -1;
+          flex: 1 0 100%;
+          height: 24px;
+        }
+
+        /* (Not over a half sheet: the chart above it, small then, has its room.) */
+        body[data-sheet="panel"]:not([data-sheet-size="full"]) .navigator {
           display: none;
         }
 
@@ -6591,11 +6657,18 @@
           font-size: 15px;
         }
 
-        /* Its top drags it (the views below scroll on their own). */
+        /* Its top drags it (the views below scroll on their own): held, no text selected, no callout (a field there, its
+           own). */
         .panel,
         .panel-head,
         .inspector-head {
           touch-action: none;
+        }
+
+        :is(.panel-head, .inspector-head) :not(input, textarea) {
+          user-select: none;
+          -webkit-user-select: none;
+          -webkit-touch-callout: none;
         }
 
         .scrim {
@@ -6745,9 +6818,11 @@
         }
 
         .stage-foot {
-          height: 42px;
+          flex-wrap: wrap;
+          height: auto;
+          /* (One gap both ways: the navigator over its row as far as the interval is beside the ranges.) */
           gap: 8px;
-          padding: 0 12px;
+          padding: 3px 12px;
           box-shadow: none;
 
           #ranges {
@@ -6955,8 +7030,13 @@
             left: calc(var(--rail) + env(safe-area-inset-left));
           }
 
-          /* (Its ranges their own width there: the foot's whole width would stretch each across a screen.) */
+          /* (One row there, as on a wide screen: the ranges their own width (the foot's whole would stretch each across a
+             screen), the navigator in what's left, to none where nothing is (the layers' column beside).) */
           .stage-foot {
+            flex-wrap: nowrap;
+            height: 42px;
+            padding-block: 0;
+
             #ranges {
               flex: none;
             }
@@ -6965,6 +7045,13 @@
               flex: none;
               width: 38px;
             }
+          }
+
+          .navigator {
+            order: 0;
+            flex: 1 1 0;
+            min-width: 0;
+            height: 28px;
           }
 
           /* (The tabs a rail there, a selection's bar floating over the foot: the rail stays.) */
@@ -7720,7 +7807,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <div id="picture" class="picture"><p id="picture-note">Drawing the chart…</p><button id="picture-leave" class="btn small" type="button" hidden>Open Studio</button><a id="picture-open" class="picture-open" data-tip="Open the chart" hidden><img id="picture-img" alt="" /></a></div>
         <header class="card-head">
           <div class="head-title">
-            <input id="title" class="title" aria-label="Chart title" placeholder="Untitled chart" maxlength="120" spellcheck="false" autocomplete="off" />
+            <input id="title" class="title" aria-label="Chart title" enterkeyhint="done" placeholder="Untitled chart" maxlength="120" spellcheck="false" autocomplete="off" />
           </div>
           <div class="head-actions">
             <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn small" type="button" data-tip="Keep puts it in your charts, as it is" data-kbd="⌘ S">Keep</button></span>
@@ -7821,7 +7908,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <div id="home-tools" class="home-tools">
               <label class="home-filter">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
-                <input id="home-filter" aria-label="Filter charts" autocomplete="off" spellcheck="false" />
+                <input id="home-filter" aria-label="Filter charts" enterkeyhint="search" autocomplete="off" spellcheck="false" />
                 <span id="home-count" class="home-count"></span>
               </label>
               <button id="home-new-folder" class="cap field-cap" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
@@ -10028,6 +10115,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (over <= 0) return { from, to };
         return keep === "to" ? { from: from + over, to } : keep === "from" ? { from, to: to - over } : { from: from + over / 2, to: to - over / 2 };
       }
+      /**
+       * A view as the chart holds it on its data (ON_DATA, by the chart's own rule): moved back on the side it's past; null,
+       * on it already. For where a move is going (a glide, a jump): the chart holds the steps there, not past.
+       * @param {{ from: number, to: number }} range
+       */
+      function ontoData(range) {
+        const scale = view.timeScale(), now = scale.getVisibleLogicalRange(), bars = resolved?.times.length ?? 0;
+        if (!now || !bars) return null;
+        // (Its data ends where the chart counts it: its last bar with a value, its view's end less its offset; gaps past.)
+        const last = Math.round(now.to - scale.scrollPosition());
+        const least = Math.min(Math.max(2, ON_DATA * (range.to - range.from + 1)), bars);
+        const shift = Math.min(0, last + 1 - least - range.from) + Math.max(0, least - 1 - range.to);
+        return shift ? { from: range.from + shift, to: range.to + shift } : null;
+      }
       /** The first of sorted times at or after a time (their count, past the last). @param {ArrayLike<number>} times @param {number} time */
       function lowerBound(times, time) {
         let lo = 0, hi = times.length;
@@ -11036,6 +11137,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const baseOf = (layer) => layer.base ?? 0;
 
       const RIGHT_OFFSET = 6;
+      /**
+       * The least of the view its data keeps (a share of its width, all of the data when it holds less): a pan, a fling,
+       * a zoom stops there, held by the chart itself as it moves (patch 13 of lightweight-charts), never a frame past it.
+       */
+      const ON_DATA = 1 / 6;
       /** The farthest the chart zooms out: four points a pixel (lightweight-charts' default, two), still smooth to pan. */
       const MIN_BAR_SPACING = 0.25;
       /**
@@ -11085,9 +11191,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (The pane's order, as chosen, holds under the pointer too: its drawings are found as they're drawn.)
           hoveredSeriesOnTop: false,
           crosshair: { mode: LC.CrosshairMode.Normal, vertLine: { ...line, ...colors.crosshair.vertLine }, horzLine: { ...line, ...colors.crosshair.horzLine, style: LC.LineStyle.LargeDashed } },
+          // (A finger's crosshair, held then dragged, gone as it's lifted, the latest values back, as a phone's charts do: else it
+          // stayed, its values for a date long left, and the next drag moved it rather than the chart.)
+          trackingMode: { exitMode: LC.TrackingModeExitMode.OnTouchEnd },
           rightPriceScale: scale,
           leftPriceScale: { ...scale },
-          timeScale: { borderVisible: false, rightOffset: RIGHT_OFFSET, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, lockVisibleTimeRangeOnResize: true, allowBoldLabels: false },
+          timeScale: { borderVisible: false, rightOffset: RIGHT_OFFSET, minVisibleDataRatio: ON_DATA, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, lockVisibleTimeRangeOnResize: true, allowBoldLabels: false },
           localization: { locale: "en-US", timeFormatter: (time) => dateLabel(Number(time), FINE.has(chart.index)), percentageFormatter: (value) => axisLabel(value, "%") },
         };
       }
@@ -11828,6 +11937,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         stopGlide();
         if (!(target.from < target.to)) return;
         target = within(target);
+        target = ontoData(target) ?? target;
         const from = view.timeScale().getVisibleLogicalRange();
         // Mid-rebuild (an interval swapping its data) the chart can report no window, or an inverted one: jump instead.
         if (!from || !(from.from < from.to) || reduced.matches) return view.timeScale().setVisibleLogicalRange(target);
@@ -12520,6 +12630,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (lensAt) lookAt(lensAt);
           // A preset showing shows as much of it as the new width fits.
           const width = view.timeScale().width();
+          // (A drawing placed by taps, its first made: it starts over, its pane moved from under it (the screen turned,
+          // the sidebar went); its second, else, would land as if it hadn't. Said once the belt's placed: its toast by it.)
+          const restarted = width !== laidWidth && Boolean(placing?.clicks && draft);
+          if (restarted) {
+            placing = draft = null;
+            repaintDrawings();
+            renderBelt();
+          }
           if (width !== laidWidth) {
             laidWidth = width;
             if (chart && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
@@ -12528,6 +12646,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           drawOverview();
           placeBelt();
+          if (restarted) notice(`The chart moved: ${CLICK} the drawing's first point again`);
           placePlotKeys();
           if (chart && drawnChart === chart.id) sizePanes();
           fitMargins();
@@ -12702,7 +12821,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function drawOverview() {
         const canvas = overviewBase;
         const rect = $("overview").getBoundingClientRect();
-        // (Not shown, a phone's: nothing to draw.)
+        // (Not shown, or no room for it (a phone on its side, the layers beside): nothing to draw.)
         if (!rect.width) return;
         const ratio = (overviewRatio = devicePixelRatio || 1);
         canvas.width = Math.max(1, Math.round(rect.width * ratio));
@@ -12757,7 +12876,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         placeBrush();
       }
       /** The navigator's window at its least, in pixels: wide enough to take hold of, however short the view. */
-      const BRUSH_MIN = 24;
+      // (By touch, a window a finger holds, and its edges grips one takes: wider.)
+      const BRUSH_MIN = TOUCH ? 36 : 24;
       $("navigator").style.setProperty("--brush-min", `${BRUSH_MIN}px`);
       /** The window's edges as shown, in pixels of a strip `width` wide: no narrower than `min`, within the strip. */
       function brushSpan(/** @type {number} */ left, /** @type {number} */ right, /** @type {number} */ width, min = BRUSH_MIN) {
@@ -12768,7 +12888,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function brushOn(/** @type {DOMRect} */ rect, /** @type {number} */ n, /** @type {{ from: number, to: number }} */ range) {
         const span = overviewSpan(n), perPixel = (span.to - span.from) / rect.width, px = (/** @type {number} */ at) => clamp((at - span.from) / perPixel, 0, rect.width);
         const [left, right] = brushSpan(px(range.from), px(range.to), rect.width);
-        return { span, perPixel, left, right, grip: Math.min(8, (right - left) / 4) };
+        return { span, perPixel, left, right, grip: Math.min(TOUCH ? 14 : 8, (right - left) / 4) };
       }
       function placeBrush() {
         const brush = $("brush");
@@ -13003,6 +13123,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Jump: center the same window where the person clicked (and drag on from there).
           const half = (range.to - range.from) / 2;
           start = within({ from: at(x) - half, to: at(x) + half });
+          start = ontoData(start) ?? start;
           view.timeScale().setVisibleLogicalRange(start);
         }
         brushDrag = { mode, x, perPixel: (n - 1) / rect.width, range: start };
@@ -15991,6 +16112,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function nameInPlace(host, { className, value, placeholder, max, label, top, apply, back, find }) {
         const input = document.createElement("input");
+        input.enterKeyHint = "done";
         Object.assign(input, { className, value, placeholder, maxLength: max, spellcheck: false, autocomplete: "off" });
         input.setAttribute("aria-label", label);
         if (top !== undefined) input.style.top = `${top}px`;
@@ -17093,7 +17215,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   pick?: (id: string) => void, picking?: () => boolean, unpick?: () => void, refuse?: (event: PointerEvent) => boolean, still?: () => boolean, sticky?: boolean,
        *   label: (id: string) => string, landing: (x: number, y: number, ids: string[]) => Landing | null | undefined,
        *   land: (ids: string[], at: Landing, y: number) => void, lift?: () => void, settle?: () => void }} how
-       * @typedef {{ item: HTMLElement, after: boolean } | { zone: HTMLElement }} Landing
+       * @typedef {{ item: HTMLElement, after: boolean, down?: boolean } | { zone: HTMLElement }} Landing `down`: before or after it is above or below it (a grid of one column)
        */
       function dragToReorder(list, how) {
         /** @type {{ id: string, x: number, y: number, at: [number, number], pointer: number, touch: boolean, held: boolean, began: boolean, timer: number, touched: EventTarget | null } | null} */
@@ -17104,7 +17226,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let drag = null;
         /** The item an id names now (the list may have been drawn anew since the press). */
         const itemNamed = (/** @type {string} */ id) => all$(how.item, list).find((element) => how.idOf(element) === id);
-        const unmark = () => [list, ...all$(".drop-before, .drop-after, .drop-target", list)].forEach((element) => element.classList.remove("drop-before", "drop-after", "drop-target"));
+        const unmark = () => [list, ...all$(".drop-before, .drop-after, .drop-target", list)].forEach((element) => element.classList.remove("drop-before", "drop-after", "drop-down", "drop-target"));
         const endDrag = (landed = false) => {
           const unpick = Boolean(press?.began && drag && !landed);
           if (press) clearTimeout(press.timer);
@@ -17145,7 +17267,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (marked && sameLanding(at, drag.at) && (!at || ("item" in at ? at.item : at.zone).isConnected)) return;
           unmark();
           drag.at = at;
-          if (at && "item" in at) at.item.classList.add(at.after ? "drop-after" : "drop-before");
+          if (at && "item" in at) at.item.classList.add(at.after ? "drop-after" : "drop-before", ...(at.down ? ["drop-down"] : []));
           else if (at && "zone" in at) at.zone.classList.add("drop-target");
         };
         /** The list scrolled while the pointer's near its edge, faster the nearer. */
@@ -17399,8 +17521,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return box ? { zone: /** @type {HTMLElement} */ (box.querySelector("[data-grid-folder]")) } : under?.closest("#home-grid") ? { zone: $("home-grid") } : undefined;
           }
           if (ids.includes(/** @type {string} */ (tile.dataset.homeCard))) return null;
-          const box = tile.getBoundingClientRect();
-          return { item: tile, after: x > box.left + box.width / 2 };
+          // (Beside it, in a grid of columns; above or below it, in one of one: a phone's, upright.)
+          const box = tile.getBoundingClientRect(), down = getComputedStyle(/** @type {HTMLElement} */ (tile.parentElement)).gridTemplateColumns.split(" ").length < 2;
+          return down ? { item: tile, after: y > box.top + box.height / 2, down } : { item: tile, after: x > box.left + box.width / 2 };
         },
         land: (ids, at) => {
           if ("zone" in at) moveToFolder(ids, at.zone.dataset.gridFolder || null);
@@ -18314,14 +18437,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <div class="inspector-head">
             <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
             ${letterChip(layer)}
-            <input id="label" class="label-input" maxlength="120" value="${escape(layer.label ?? "")}" placeholder="${escape(labelOf({ ...layer, label: "" }))}" aria-label="Layer name" spellcheck="false" />
+            <input id="label" class="label-input" maxlength="120" enterkeyhint="done" value="${escape(layer.label ?? "")}" placeholder="${escape(labelOf({ ...layer, label: "" }))}" aria-label="Layer name" spellcheck="false" />
             <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
           </div>
           ${sourceSection}
           <section>
             <h3>Style</h3>
             ${layer.from ? "" : `<div class="field"><span>Type<span class="color-now">${escape(TYPES.find(([type]) => type === layer.type)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${layer.type === type}" aria-label="${text}" ${type === "candles" && !result?.ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`}
-            ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<span class="number-field"><input id="base" class="number-input" aria-label="Base" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(fieldUnit(unit))}</span></span></span></div>` : ""}
+            ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<span class="number-field"><input id="base" class="number-input" aria-label="Base" enterkeyhint="done" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(fieldUnit(unit))}</span></span></span></div>` : ""}
             ${colorPicker(layer)}
             <div class="field"><span>Opacity${resetFor("opacity", layer)}</span>${slider("opacity", layer)}</div>
             ${layer.type !== "histogram" && layer.type !== "cloud" ? `<div class="field"><span>Width${resetFor("width", layer)}</span>${slider("width", layer, layer.type === "candles" ? "The line candles turn into, zoomed out" : layer.type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>` : ""}
@@ -18332,7 +18455,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ${layer.type === "area" ? `<div class="field"><span>Fill</span><div class="tabs" role="group" aria-label="Fill">${[["below", "Below", "Filled from the line down"], ["above", "Above", "Filled from the line up"]].map(([fill, text, tip]) => `<button type="button" data-fill="${fill}" aria-pressed="${(layer.fill ?? "below") === fill}" data-tip="${tip}">${text}</button>`).join("")}</div></div>` : ""}
             ${layer.type === "cloud" ? "" : `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${Boolean(layer.priceLine) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`}
             ${layer.from ? "" : `<div class="field"><span>Levels${layer.byLevels ? '<span class="color-now">Colors the line</span>' : ""}<button type="button" class="reset" data-action="add-level" aria-label="Add a level" data-tip="Add a level, at a round value over the latest">${ICONS.plus}</button></span>${layer.byLevels ? `<span class="level under"><button type="button" id="color-select-under" class="cap small" data-color-select="under" aria-haspopup="menu" aria-label="Under its levels: ${escape(colorName(layer.color))}" data-tip="Under its levels"><i class="swatch" style="--c:${escape(cssColor(layer.color))}"></i></button><i class="cap small spacer" aria-hidden="true"></i><span class="under-label">Under ${escape(format(Math.min(...(layer.levels ?? []).map((level) => level.value)), unitFor(layer, result)))}</span></span>` : ""}${(layer.levels ?? []).map((level, i) => {
-              return `<span class="level">${lineButtons(layer, i, `Level ${i + 1}`)}<span class="number-field"><input id="level-${i}" class="number-input" aria-label="Level ${i + 1}" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /><span class="unit">${escape(fieldUnit(unit))}</span></span><button type="button" class="cap small" data-remove-level="${i}" aria-label="Remove level ${i + 1}" data-tip="Remove the level">${ICONS.trash}</button></span>`;
+              return `<span class="level">${lineButtons(layer, i, `Level ${i + 1}`)}<span class="number-field"><input id="level-${i}" class="number-input" enterkeyhint="done" aria-label="Level ${i + 1}" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /><span class="unit">${escape(fieldUnit(unit))}</span></span><button type="button" class="cap small" data-remove-level="${i}" aria-label="Remove level ${i + 1}" data-tip="Remove the level">${ICONS.trash}</button></span>`;
             }).join("")}</div>`}
           </section>
           <section>
@@ -18451,8 +18574,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         addEventListener("blur", stop);
       }
       /**
+       * A press that picks by `move`, as `track` has it; by touch (in what scrolls, a sheet), as a finger on a page means:
+       * a tap picks where it's lifted, a drag clearly across picks along it, a drag up or down scrolls (the browser's) and
+       * picks nothing (a slider scrolled past keeps its value).
+       */
+      function pickPress(event, element, cursor, move) {
+        if (event.pointerType !== "touch") return track(event, element, cursor, move);
+        const pointer = event.pointerId;
+        const off = () => {
+          removeEventListener("pointermove", moved);
+          removeEventListener("pointerup", up);
+          removeEventListener("pointercancel", off);
+        };
+        const moved = (/** @type {PointerEvent} */ next) => {
+          const dx = next.clientX - event.clientX, dy = next.clientY - event.clientY;
+          if (next.pointerId !== pointer || Math.hypot(dx, dy) < 10) return;
+          off();
+          // (Clearly across: an arc as a scroll begins, or a slant, is a scroll.)
+          if (Math.abs(dx) > 2 * Math.abs(dy)) track(next, element, cursor, move);
+        };
+        const up = (/** @type {PointerEvent} */ next) => next.pointerId === pointer && (off(), move(next));
+        addEventListener("pointermove", moved);
+        addEventListener("pointerup", up);
+        addEventListener("pointercancel", off);
+      }
+      /**
        * Sliders' pointer and keys, wherever they are (the panel's, the belt's popover's): a press scrubs from stop to stop
-       * (one undo step a drag), the arrows and Page Up and Down step, Home and End go to the ends; off its stops (a value
+       * (one undo step a drag; by touch, as pickPress has it), the arrows and Page Up and Down step, Home and End go to the ends; off its stops (a value
        * set otherwise), a step goes to the nearest stop that way. `valueOf` reads a slider's value now; `set` sets it.
        * @param {HTMLElement} host @param {{ valueOf: (id: string) => number | undefined, set: (id: string, value: number) => void }} how
        */
@@ -18461,7 +18609,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const element = closest(event, ".stepper");
           if (event.button !== 0 || !element || !SLIDERS[element.id]) return;
           const id = element.id;
-          track(event, element, "scrubbing", (point) => {
+          pickPress(event, element, "scrubbing", (point) => {
             const value = stopAt(id, point.clientX);
             if (value !== undefined) set(id, value);
           });
@@ -18991,30 +19139,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (event.key === "ArrowUp" || event.key === "ArrowDown") pickPoint(name, u, t - sign * steps * 0.02);
         else pickPoint(name, u + (sign * steps * HUES) / 360, t);
       }, true);
-      // A surface picks under the pointer, wherever it is (the inspector, a popover). By touch, in a sheet that scrolls, as
-      // a finger on a page means: a tap picks, a drag across picks along it, a drag up or down scrolls (the browser's).
+      // A surface picks under the pointer, wherever it is (the inspector, a popover); by touch, as pickPress has it.
       document.addEventListener("pointerdown", (event) => {
         const plane = closest(event, ".plane");
         if (event.button !== 0 || !plane) return;
-        const name = /** @type {string} */ (plane.dataset.plane), along = (/** @type {PointerEvent} */ point) => pickAt(name, point.clientX, point.clientY);
-        if (event.pointerType !== "touch") return track(event, plane, "picking", along);
-        const pointer = event.pointerId;
-        const off = () => {
-          removeEventListener("pointermove", move);
-          removeEventListener("pointerup", up);
-          removeEventListener("pointercancel", off);
-        };
-        const move = (/** @type {PointerEvent} */ next) => {
-          const dx = next.clientX - event.clientX, dy = next.clientY - event.clientY;
-          if (next.pointerId !== pointer || Math.hypot(dx, dy) < 10) return;
-          off();
-          // (Clearly across: an arc as a scroll begins, or a slant, is a scroll.)
-          if (Math.abs(dx) > 2 * Math.abs(dy)) track(next, plane, "picking", along);
-        };
-        const up = (/** @type {PointerEvent} */ next) => next.pointerId === pointer && (off(), along(next));
-        addEventListener("pointermove", move);
-        addEventListener("pointerup", up);
-        addEventListener("pointercancel", off);
+        const name = /** @type {string} */ (plane.dataset.plane);
+        pickPress(event, plane, "picking", (/** @type {PointerEvent} */ point) => pickAt(name, point.clientX, point.clientY));
       });
       /** What went wrong with a series layer, and the way out: another interval, its day's series, or a retry. */
       function errorBox(result, /** @type {string} */ name) {
@@ -20488,6 +20618,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether the last thing done was by keys, not a pointer (a touch device's keyboard: ⌘K by keys, its field takes them). */
       let byKeys = false;
       addEventListener("keydown", () => (byKeys = true), true);
+      // (A touch heard at all, as WebKit needs to show a control pressed, :active, under a finger.)
+      addEventListener("touchstart", () => {}, { passive: true });
       addEventListener("pointerdown", () => (byKeys = false), true);
       /** A pane's number, as the panel counts them (from 1). */
       const paneNumber = (/** @type {string} */ id) => chart.panes.findIndex((pane) => pane.id === id) + 1;
@@ -22423,7 +22555,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!option) return;
           at = [event.clientX, event.clientY];
           rowHeld = false;
+          // (The result held, as it was: one replaced under the finger meanwhile (a search's later answer) is let go.)
+          const held = palette.items[Number(option.dataset.option)];
           rowHold = window.setTimeout(() => {
+            if (!option.isConnected || palette.items[Number(option.dataset.option)] !== held) return;
             palette.active = Number(option.dataset.option);
             if (actionsFor(palette.items[palette.active]).length < 2) return;
             rowHeld = true;
@@ -24076,8 +24211,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toastUndo = undoes ? { press, mark: revision } : null;
         toastRedo = redoes ? { press, mark: revision } : null;
         syncUndo();
-        // Above the chart's foot; in the grid, above its bar (or its foot), centered on it; the layers' bar showing on a
-        // phone's sheet, above it.
+        placeToast(host);
+        element.classList.add("visible");
+        // Up long enough to read (longer for more words, an Undo or a notice the longest), and while it's pointed at or
+        // focused: then its time starts again.
+        toastFor = Math.max(action ? 6000 : done ? 2600 : 4500, 1500 + text.length * 55);
+        hideToastLater();
+      }
+      /**
+       * Where the toast shows: above the chart's foot; in the grid, above its bar (or its foot), centered on it; the
+       * layers' bar showing on a phone's sheet, above it. Again as the screen changes while it's up (a turn): measured
+       * once, it stayed where the old layout had it, off the new one.
+       */
+      function placeToast(/** @type {Element} */ host = /** @type {HTMLElement} */ ($("toast").parentElement)) {
+        const element = $("toast");
         const layersBar = $("layers-bar"), sheetBar = document.body.dataset.sheet === "panel" && !layersBar.hidden ? layersBar.getBoundingClientRect() : null;
         const frame = sheetBar ?? (home ? $("home") : $("stage-foot")).getBoundingClientRect();
         const belt = $("belt"), beltTop = !home && !belt.hidden && belt.dataset.dock === "bottom" ? belt.getBoundingClientRect().top : Infinity;
@@ -24090,13 +24237,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         element.style.left = center ? `${center}px` : "";
         // (Centered off the window's middle, as wide as fits on both sides of it.)
         element.style.maxWidth = center ? `${2 * Math.min(center, innerWidth - center) - 24}px` : "";
-        element.classList.add("visible");
-        // Up long enough to read (longer for more words, an Undo or a notice the longest), and while it's pointed at or
-        // focused: then its time starts again.
-        toastFor = Math.max(action ? 6000 : done ? 2600 : 4500, 1500 + text.length * 55);
-        hideToastLater();
       }
       let toastFor = 0;
+      addEventListener("resize", () => $("toast").classList.contains("visible") && placeToast());
       /** The toast up put away at once: what it said no longer true (an undo, a redo, a keep). */
       function hideToast() {
         clearTimeout(toastTimer);

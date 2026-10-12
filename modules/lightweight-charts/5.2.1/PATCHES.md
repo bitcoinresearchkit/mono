@@ -6,7 +6,7 @@ then open `tests.html` (served from the repo) and check it says 0 failing and ev
 
 The plots draw exactly what the library does, but for the log marks (1, 12) and the rounded bars (7, only where a radius
 is set); the axes' tags are rounded (6), the time axis's labels fade before its ends (10), a price axis's tags stay inside
-its pane (11). The rest (2–5, 8, 9) draw the same, faster. `tests.html` runs the patched file and 5.2.1 as published side by side through every
+its pane (11). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9) draw the same, faster. `tests.html` runs the patched file and 5.2.1 as published side by side through every
 series type, every price scale mode (inverted too), pans, jumps, zooms, the crosshair, restyles, live updates, new data,
 resizes, margins, moves between scales, a held price range and conflation, and compares their plots pixel for pixel, the
 axes left out (713 steps).
@@ -201,3 +201,21 @@ under the price's least move (the format's `minMove`), zero or below, now go, as
 - A load of 96,000 points × 3 series (a fine interval's history, at its most): 108 → 88 ms.
 - A restyle (a spotlight's): 14.5 → 5 ms.
 - Mullvad (Firefox), 40 layers at Max: the longest frame of a pan 167–200 → 83–100 ms.
+
+## 13. The view kept on its data (an option)
+
+`minVisibleDataRatio` on the time scale: the least share of the view's width its data keeps, 0 to 1 (unset or 0, the
+library's two bars). The library holds every move to its least bars as it makes it (a pan, a fling's frames, a zoom, a
+resize, new data, a view the page sets), so a view never shows past it, not even a frame; all of the data, where it
+holds fewer bars than that share. (A page can't: a view it sets from its range-change handler is applied a frame later,
+and a fling's frame, applied as the chart paints, shows past it first.)
+
+- `class zi` (the time scale): `od()` (the least right offset) and `_d()` (the most) take `bvLeast()` for the library's
+  two bars (`Math.min(2,this.Yu.length)`), not where `fixLeftEdge` holds the whole view, as before; `bvLeast()` added
+  after `_d()`; `minVisibleDataRatio:0` in the time scale's defaults; its options applied (`vr()`), a share given holds
+  the view to it at once (`this.Rc()`, the offset's correction).
+
+`tests.html`: unset, the pictures (views put past either end among them) are 5.2.1's; set (a sixth, a half, the whole
+view; 3,000 points, 40, 5), views put far past either end, offsets past them and a zoom out at the start keep that share
+on the data (all of it, 5 points), a view on the data stays as put, and one past the end with none set takes the share as
+it's given. Checked in Studio (a phone): flings and drags against either end never paint past it.

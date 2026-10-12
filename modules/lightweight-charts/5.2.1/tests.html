@@ -10,7 +10,7 @@
      window.result once done): the log scale's marks over thousands of ranges, then the patched library drawing exactly
      what the unpatched one does (5.2.1 as published, from unpkg) through series of operations, picture by picture
      (the plot only, its axes left out: log marks and the axes' tags differ, as patched; horizontal grid lines off, price
-     scales one width). -->
+     scales one width), rounded corners, and the view kept on its data. -->
 <pre id="out">Running…</pre>
 <div id="a" class="c"></div><div id="b" class="c"></div>
 <script type="module">
@@ -304,5 +304,50 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`Rounded corners: ${cornerChecks} checks, ${corners.length} failing`);
   for (const f of corners.slice(0, 10)) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length };
+
+  // 4. The view kept on its data (patch 13, the patched library alone): with a share set, views put past either end, a
+  // pan's offset and a zoom out keep that share of the view's bars on the data (all of it, when it holds fewer); views
+  // on it stay as put; given later, it holds at once. (Unset, the library's two bars: the jumps past the end above, the
+  // same as published.)
+  const kept = [];
+  let keptChecks = 0;
+  for (const [n, share] of [[3000, 1 / 6], [3000, 0.5], [3000, 1], [40, 1 / 6], [5, 1 / 6]]) {
+    document.getElementById("a").innerHTML = ""; window.__charts = [];
+    seed = 81;
+    const c = base(B, document.getElementById("a"), { timeScale: { minVisibleDataRatio: share } });
+    c.addSeries(B.LineSeries, { color: "#fff" }).setData(walk(n, 100, 0.02));
+    let ts = c.timeScale();
+    const at = (what) => `${n} points, a share of ${share.toFixed(2)}, ${what}`;
+    const check = async (what, put, stays) => {
+      put(); await frames();
+      const r = ts.getVisibleLogicalRange(), bars = r.to - r.from + 1, least = Math.min(Math.max(2, share * bars), n);
+      keptChecks++;
+      if (r.to < least - 1 - 1e-6 || r.from > n - least + 1e-6) kept.push(at(`${what}: ${r.from.toFixed(2)} to ${r.to.toFixed(2)}, under ${least.toFixed(2)} bars on the data`));
+      if (stays && (Math.abs(r.from - stays.from) > 1e-6 || Math.abs(r.to - stays.to) > 1e-6)) kept.push(at(`${what}: moved to ${r.from.toFixed(2)} to ${r.to.toFixed(2)}`));
+    };
+    const on = { from: Math.max(0, n - 30), to: n - 1 };
+    await check("on it", () => ts.setVisibleLogicalRange(on), on);
+    await check("far past the end", () => ts.setVisibleLogicalRange({ from: n + 500, to: n + 1100 }));
+    await check("far before the start", () => ts.setVisibleLogicalRange({ from: -2000, to: -1400 }));
+    await check("past the end by an offset", () => ts.scrollToPosition(5000, false));
+    await check("before the start by an offset", () => ts.scrollToPosition(-5000, false));
+    await check("zoomed out at the start", () => ts.applyOptions({ barSpacing: 0.6 }));
+    await check("the end, zoomed in", () => ts.setVisibleLogicalRange({ from: n - 20, to: n + 40 }));
+    c.remove(); window.__charts = [];
+    // (None set, a view past the end, then the share given: it holds at once.)
+    document.getElementById("a").innerHTML = "";
+    seed = 81;
+    const late = base(B, document.getElementById("a"));
+    late.addSeries(B.LineSeries, { color: "#fff" }).setData(walk(n, 100, 0.02));
+    late.timeScale().setVisibleLogicalRange({ from: n + 500, to: n + 1100 }); await frames();
+    ts = late.timeScale();
+    const before = ts.getVisibleLogicalRange();
+    keptChecks++;
+    if (n - before.from > 2.5) kept.push(at(`none set, past the end: ${(n - before.from).toFixed(2)} bars on the data, not the library's two`));
+    await check("given later", () => late.applyOptions({ timeScale: { minVisibleDataRatio: share } }));
+    late.remove(); window.__charts = [];
+  }
+  say(`The view on its data: ${keptChecks} checks, ${kept.length} failing`);
+  for (const f of kept.slice(0, 10)) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length };
 </script>
