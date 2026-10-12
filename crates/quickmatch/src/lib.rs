@@ -9,12 +9,13 @@ pub use config::*;
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct ItemId(u32);
 
-type RankedItem = (ItemId, usize, usize, ItemId);
+type RankedItem = (ItemId, usize, usize, usize, ItemId);
 
 fn ranked_item_order(a: &RankedItem, b: &RankedItem) -> Ordering {
     b.1.cmp(&a.1) // fuzzy score, desc
-        .then(a.2.cmp(&b.2)) // match position, asc
-        .then(a.3.cmp(&b.3)) // item length then text, asc
+        .then(b.2.cmp(&a.2)) // query words matched whole, desc ("1" holds "1" before "13")
+        .then(a.3.cmp(&b.3)) // match position, asc
+        .then(a.4.cmp(&b.4)) // item length then text, asc
 }
 
 fn select_and_sort(bucket: &mut [RankedItem], take: usize) {
@@ -409,7 +410,7 @@ impl<'a> QuickMatch<'a> {
     }
 
     /// Bucket by matched-word count, then sort each needed bucket by fuzzy
-    /// score, match position, and length.
+    /// score, words matched whole, match position, and length.
     fn rank<const EXACT_WORDS: bool>(
         &self,
         candidates: impl IntoIterator<Item = (ItemId, usize)>,
@@ -419,13 +420,13 @@ impl<'a> QuickMatch<'a> {
         min_matched: usize,
     ) -> Vec<(u32, u32)> {
         let candidates = candidates.into_iter().filter_map(|(item, fuzzy)| {
-            let (matched, position) = word_match(self.item(item), query_words, sep, EXACT_WORDS);
-            (matched >= min_matched).then_some((item, fuzzy, matched, position))
+            let (matched, whole, position) = word_match(self.item(item), query_words, sep, EXACT_WORDS);
+            (matched >= min_matched).then_some((item, fuzzy, matched, whole, position))
         });
         let mut buckets: Vec<Vec<RankedItem>> = vec![vec![]; query_words.len() + 1];
 
-        for (item, fuzzy, matched, position) in candidates {
-            buckets[matched].push((item, fuzzy, position, self.item_rank[item.0 as usize]));
+        for (item, fuzzy, matched, whole, position) in candidates {
+            buckets[matched].push((item, fuzzy, whole, position, self.item_rank[item.0 as usize]));
         }
 
         let mut results = Vec::with_capacity(limit);
@@ -564,37 +565,40 @@ fn past(query_word: &str, item_word: &str) -> bool {
 }
 
 /// Matches query words in any order against item words or adjacent joined pairs.
-/// Returns the matched count and earliest item position, or the item's word
-/// count when nothing matches.
-fn word_match(item: &str, query_words: &[&str], sep: &[bool; 256], exact: bool) -> (usize, usize) {
+/// Returns the matched count, how many of them match a word whole (or a joined
+/// pair whole: not a prefix, nor a plural), and the earliest item position (the
+/// item's word count when nothing matches).
+fn word_match(item: &str, query_words: &[&str], sep: &[bool; 256], exact: bool) -> (usize, usize, usize) {
     let mut matched = 0;
+    let mut whole = 0;
     let mut first_position = words(item, sep).count();
     for qw in query_words {
         let mut previous: Option<&str> = None;
+        let mut found = false;
         for (position, iw) in words(item, sep).enumerate() {
-            let joined = previous.is_some_and(|pw| {
-                qw.len() > pw.len()
-                    && qw.starts_with(pw)
-                    && if exact {
-                        iw == &qw[pw.len()..]
-                    } else {
-                        iw.starts_with(&qw[pw.len()..])
-                    }
-            });
+            let rest = previous.filter(|pw| qw.len() > pw.len() && qw.starts_with(pw)).map(|pw| &qw[pw.len()..]);
+            let joined = rest.is_some_and(|rest| if exact { iw == rest } else { iw.starts_with(rest) });
             if (if exact {
                 iw == *qw
             } else {
                 iw.starts_with(*qw) || past(qw, iw)
             }) || joined
             {
-                matched += 1;
-                first_position = first_position.min(if joined { position - 1 } else { position });
-                break;
+                if !found {
+                    found = true;
+                    matched += 1;
+                    first_position = first_position.min(if joined { position - 1 } else { position });
+                }
+                // (Held only as a prefix so far: a word further on may hold it whole.)
+                if iw == *qw || rest == Some(iw) {
+                    whole += 1;
+                    break;
+                }
             }
             previous = Some(iw);
         }
     }
-    (matched, first_position)
+    (matched, whole, first_position)
 }
 
 /// A query word not in the index, checked against candidates: whether it's a

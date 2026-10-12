@@ -23,8 +23,9 @@ copies the input array and configuration.
 
 Query words match in any order, including prefixes and joined adjacent words; a word of four letters or more also matches one a letter shorter (a plural, "prices" for "price").
 Bounded adjacent-letter corrections run before the trigram fallback and must match whole indexed words.
-Results sort by matched-word count, fuzzy score, first match position, item
-length, then text. Identical items tie-break by original ID.
+Results sort by matched-word count, fuzzy score, how many query words match a
+word whole (not only as a prefix or a plural: "1" holds "1" before "13"), first
+match position, item length, then text. Identical items tie-break by original ID.
 `matchesExactWithIdsAndMatchedWords(query, config)` matches whole words only,
 with no prefixes or typos. Set `unionFallback` to `false` to require every query word: one the index doesn't hold and that is no typo of anything leaves no results.
 The best-tier method returns only results with the highest matched-word count,

@@ -217,31 +217,39 @@ export class QuickMatch {
    * `wordMatch` for item `idx`, read from its indexed words; a query that
    * splits words differently from the index reads the item itself.
    * @private @param {number} idx @param {string[]} qwords @param {Uint8Array} sep @param {boolean} exact
-   * @returns {[number, number]}
+   * @returns {[number, number, number]}
    */
   _wordMatch(idx, qwords, sep, exact) {
     if (sep !== this._sepLookup) return wordMatch(this.items[idx], qwords, sep, exact);
     const words = this._words, ids = this._itemWords;
     const from = this._itemOffsets[idx], to = this._itemOffsets[idx + 1];
-    let matched = 0;
+    let matched = 0, whole = 0;
     let position = to - from;
     for (const qw of qwords) {
+      let found = false;
       for (let k = from; k < to; k++) {
         const word = words[ids[k]];
-        let joined = false;
+        let joined = false, rest = -1;
         if (k > from) {
-          const previous = words[ids[k - 1]], rest = qw.length - previous.length;
-          joined = rest > 0 && qw.startsWith(previous)
-            && (exact ? word.length === rest : word.length >= rest) && word.startsWith(qw.slice(previous.length));
+          const previous = words[ids[k - 1]];
+          rest = qw.length > previous.length && qw.startsWith(previous) ? qw.length - previous.length : -1;
+          joined = rest > 0 && (exact ? word.length === rest : word.length >= rest) && word.startsWith(qw.slice(qw.length - rest));
         }
         if ((exact ? word === qw : word.startsWith(qw) || past(qw, word)) || joined) {
-          matched++;
-          position = Math.min(position, joined ? k - from - 1 : k - from);
-          break;
+          if (!found) {
+            found = true;
+            matched++;
+            position = Math.min(position, joined ? k - from - 1 : k - from);
+          }
+          // (Held only as a prefix so far: a word further on may hold it whole.)
+          if (word === qw || (joined && word.length === rest)) {
+            whole++;
+            break;
+          }
         }
       }
     }
-    return [matched, position];
+    return [matched, whole, position];
   }
 
   /**
@@ -491,14 +499,14 @@ export class QuickMatch {
    */
   _rank(indices, minScore, qwords, sep, limit, bestOnly, exactWords = false) {
     const { items, _scores: scores } = this;
-    /** @type {[number, number][][]} */
+    /** @type {[number, number, number][][]} */
     const buckets = Array.from({ length: qwords.length + 1 }, () => []);
 
     for (let i = 0; i < indices.length; i++) {
       const idx = indices[i];
       if (minScore !== null && scores[idx] < minScore) continue;
-      const [matched, position] = this._wordMatch(idx, qwords, sep, exactWords);
-      buckets[matched].push([idx, position]);
+      const [matched, whole, position] = this._wordMatch(idx, qwords, sep, exactWords);
+      buckets[matched].push([idx, whole, position]);
     }
 
     /** @type {[number, number][]} */
@@ -507,8 +515,9 @@ export class QuickMatch {
       const bucket = buckets[ps];
       if (!bucket.length) continue;
       bucket.sort(
-        ([a, pa], [b, pb]) =>
+        ([a, wa, pa], [b, wb, pb]) =>
           scores[b] - scores[a] ||
+          wb - wa || // query words matched whole, desc ("1" holds "1" before "13")
           pa - pb ||
           items[a].length - items[b].length ||
           (items[a] < items[b] ? -1 : items[a] > items[b] ? 1 : a - b), // item text, asc (total order)
@@ -663,8 +672,9 @@ function bsearch(arr, val) {
 /**
  * @param {string} item @param {string[]} qwords @param {Uint8Array} sep
  * @param {boolean} [exact] Require whole words when validating typo corrections.
- * @returns {[number, number]} Query words matched in any order (including
- *   joined adjacent words), and the first matching item-word position.
+ * @returns {[number, number, number]} Query words matched in any order (including
+ *   joined adjacent words), how many of them match a word (or a joined pair)
+ *   whole, not a prefix nor a plural, and the first matching item-word position.
  */
 function wordMatch(item, qwords, sep, exact = false) {
   const words = [];
@@ -674,21 +684,29 @@ function wordMatch(item, qwords, sep, exact = false) {
     if (i > start) words.push(item.slice(start, i));
     start = i + 1;
   }
-  let matched = 0;
+  let matched = 0, whole = 0;
   let position = words.length;
   for (const qw of qwords) {
+    let found = false;
     for (let i = 0; i < words.length; i++) {
       const previous = words[i - 1];
-      const joined = previous !== undefined && qw.length > previous.length
-        && qw.startsWith(previous) && (exact ? words[i] === qw.slice(previous.length) : words[i].startsWith(qw.slice(previous.length)));
+      const rest = previous !== undefined && qw.length > previous.length && qw.startsWith(previous) ? qw.slice(previous.length) : null;
+      const joined = rest !== null && (exact ? words[i] === rest : words[i].startsWith(rest));
       if ((exact ? words[i] === qw : words[i].startsWith(qw) || past(qw, words[i])) || joined) {
-        matched++;
-        position = Math.min(position, joined ? i - 1 : i);
-        break;
+        if (!found) {
+          found = true;
+          matched++;
+          position = Math.min(position, joined ? i - 1 : i);
+        }
+        // (Held only as a prefix so far: a word further on may hold it whole.)
+        if (words[i] === qw || words[i] === rest) {
+          whole++;
+          break;
+        }
       }
     }
   }
-  return [matched, position];
+  return [matched, whole, position];
 }
 
 /** Whether a query word runs one letter past an item word's end (four letters or more): a plural, a slip there. @param {string} qw @param {string} word */

@@ -71,7 +71,7 @@ Queries go through three matching stages:
 2. **Compound match** — adjacent words are indexed as compounds, so `hashrate` finds `hash_rate`
 3. **Trigram fallback** — unknown words are matched via character trigrams for fuzzy/typo tolerance; each one of three letters or more must then be a typo of a run of the item's adjacent words (one word, or several joined): within one edit of the whole run (a swap counts as one; two from seven letters), or, from five letters, within one edit of the run's start
 
-Query words match in any order, including prefixes and joined adjacent words; a word of four letters or more also matches one a letter shorter (a plural, "prices" for "price"). Bounded adjacent-letter corrections run before the trigram fallback and must match whole indexed words. Results rank by matched-word count, fuzzy score, first match position, item length, text, then original index.
+Query words match in any order, including prefixes and joined adjacent words; a word of four letters or more also matches one a letter shorter (a plural, "prices" for "price"). Bounded adjacent-letter corrections run before the trigram fallback and must match whole indexed words. Results rank by matched-word count, fuzzy score, how many query words match a word whole (not only as a prefix or a plural: "1" holds "1" before "13"), first match position, item length, text, then original index.
 
 ## Config
 
