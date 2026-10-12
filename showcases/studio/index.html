@@ -6325,7 +6325,7 @@
         :root {
           --bar-h: 58px;
           --bar-y: max(12px, calc(env(safe-area-inset-bottom) - 8px));
-          --bar-room: calc(var(--bar-y) + var(--bar-h) + 12px);
+          --bar-room: calc(var(--bar-y) + var(--bar-h) + 8px);
         }
 
         /* Over the tab bar, not on it. */
@@ -6413,8 +6413,9 @@
           visibility: hidden;
         }
 
+        /* (The header as an iOS bar is tall: its 36px controls and 4px about them.) */
         .card-head {
-          padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
+          padding: calc(4px + env(safe-area-inset-top)) 12px 4px;
         }
 
         .title {
@@ -6732,7 +6733,13 @@
 
         /* The chart's foot across its width, in line with the page: its interval, then its ranges sharing the rest (the
            navigator, a sliver at this width, is left out); the tab bar right under it. */
+        /* (Its 36px controls, 3px about them, a focus ring's room; the plot's dates 4px above, not 8.) */
+        .chart {
+          inset: 0 0 4px;
+        }
+
         .stage-foot {
+          height: 42px;
           gap: 8px;
           padding: 0 12px;
           box-shadow: none;
@@ -6861,8 +6868,8 @@
         }
 
         /* A phone on its side (wide as well as short: an upright one with its keyboard up stays upright): the capsule
-           stands at the left (the chart has the height's whole), the header and the foot slimmer; sheets and menus a
-           column on the right, not the screen's width. */
+           stands at the left (the chart has the height's whole); sheets and menus a column on the right, not the screen's
+           width. */
         @media (max-height: 500px) and (min-width: 568px) {
           /* (The card to the screen's edges, the insets its own room: no strip of the page's ground at either side; full
              screen and the grid keep clear of them too.) */
@@ -6988,14 +6995,6 @@
             width: auto;
             max-width: calc(100% - 24px);
             translate: -50% 0;
-          }
-
-          .card-head {
-            padding: 6px 12px;
-          }
-
-          .stage-foot {
-            height: 40px;
           }
 
           .toast {
