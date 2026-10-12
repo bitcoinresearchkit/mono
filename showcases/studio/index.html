@@ -7026,27 +7026,28 @@
             pointer-events: none;
           }
 
-          .panel {
-            padding-bottom: env(safe-area-inset-bottom);
-          }
-
           /* (The chart beside the column, in what it leaves, as above the upright half sheet: its latest values and its
              axis in sight while they're changed.) */
           body[data-sheet="panel"] .card {
             padding-right: var(--column);
           }
 
-          /* (Nothing over the sheet's foot there but a selection's bar: room for it while it shows.) */
+          /* (Nothing over the sheet's foot there but a selection's bar: room for it while it shows. Its lists to the
+             screen's foot, the home indicator's room the end of their scroll, as ⌘K's: none cut short above it.) */
           #inspector::after {
-            height: 12px;
+            height: calc(12px + env(safe-area-inset-bottom));
           }
 
           .panel .layer-list {
-            padding-bottom: 12px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
 
             &:has(+ .layers-bar:not([hidden])) {
-              padding-bottom: calc(var(--bar-h) + 22px);
+              padding-bottom: calc(var(--bar-h) + 22px + env(safe-area-inset-bottom));
             }
+          }
+
+          .panel .layers-bar {
+            bottom: calc(12px + env(safe-area-inset-bottom));
           }
 
           /* (At the right, the left inset is the capsule's, not theirs.) */
@@ -7169,7 +7170,8 @@
         }
 
         /* ⌘K a sheet, as every sheet here: from the foot, its top rounded and a gap above it (the page dimmed behind), its
-           handle dragging it away. */
+           handle dragging it away. Its list to the screen's foot, the home indicator's room the end of its scroll: rows go
+           on under it, none cut short above an empty strip. */
         .palette {
           width: 100vw;
           max-width: none;
@@ -7177,8 +7179,13 @@
           max-height: none;
           margin: auto 0 0;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-          padding: 7px env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+          padding: 7px env(safe-area-inset-right) 0 env(safe-area-inset-left);
           animation: rise var(--dur-panel) var(--ease);
+        }
+
+        .palette-list {
+          padding-bottom: calc(6px + env(safe-area-inset-bottom));
+          scroll-padding-bottom: calc(6px + env(safe-area-inset-bottom));
         }
 
         /* A sheet's handle, a menu's and ⌘K's, as the layers sheet's: dragged down, it goes (no scroll takes the drag). */
@@ -7657,7 +7664,7 @@
             <li>"colors": 1 or 4 on bars: their one color; or four: above and below their base, each side's own where a bar grows from it ("color", "colorBelow"), fainter where it fades back toward it ("colorFading" above, "colorBelowFading" below; each side's own, fainter, if none). Unset, their two: "color" above, "colorBelow" under. 1 on a trend with a "colorBelow": its one color, that second kept.</li>
             <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc).</li>
             <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths (1 if none; a cloud's 0.2, solid at 1).</li>
-            <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value; "baseLine": {"color": "gray", "dash": 4}, that base's line.</li>
+            <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line.</li>
             <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional).</li>
             <li>"priceLine": true: a line across at its latest value.</li>
             <li>"format": how its values read: usd, btc, sats, percent, ratio, count or number (by its unit if none).</li>
@@ -8042,6 +8049,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A device of fingers (no hover): its words "tap", not "click". */
       const TOUCH = matchMedia("(hover: none)").matches, CLICK = TOUCH ? "tap" : "click";
       const tablet = matchMedia("(max-width: 1100px)");
+      /** The build this page is (the build writes it in: its commit and when; "here" for the repo's own page), to tell which one runs. */
+      const BUILD = "here, from the repo";
       /** A Mac's keys (⌘, ⌥), else a PC's (Ctrl, Alt): as shortcuts are written. */
       const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
       /**
@@ -8332,6 +8341,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A layer's second color: a baseline's or bars' under their base (red, unset; bars of one color, theirs); a trend's on a support (its own, unset). */
       const belowOf = (layer) => ((layer.type === "histogram" || layer.type === "trend") && layer.colors === 1 ? layer.color : layer.colorBelow ?? (layer.type === "trend" ? layer.color : "red"));
+      /** A layer's type set (by either way to): one made a baseline starts as the website draws one, green above its base and red below. */
+      const retype = (/** @type {Layer} */ layer, /** @type {Layer["type"]} */ type) => {
+        if (type === "baseline" && layer.type !== "baseline") (layer.color = "green"), (layer.colorBelow = undefined);
+        layer.type = type;
+      };
       /** OKLCH to sRGB: its chroma lowered until it fits, so hue and lightness hold. @returns {string} */
       function oklchToHex(l, c, h) {
         let chroma = c, rgb = oklchToLinear(l, chroma, h);
@@ -9229,7 +9243,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const told = presetLooks.get(name), type = known.get(name)?.type ?? "", unit = type ? unitOf(name, type) : units.get(name);
         const color = told?.color ?? (catalogIndex?.get(name)?.startsWith("price.") ? "ink" : unit === "usd" || unit === "cents" ? "green" : unit === "btc" || unit === "sats" ? "orange" : "");
         const look = told?.type ?? (isOhlc(name) ? "candles" : "");
-        return { ...(look && look !== "line" ? { type: look } : {}), ...(color && !used.has(color) ? { color } : {}) };
+        return { ...(look && look !== "line" ? { type: look } : {}), ...(told?.base ? { base: told.base } : {}), ...(color && !used.has(color) ? { color } : {}) };
       }
       /** Whether Bitview says a series is open-high-low-close (its type, as known: asked for already). */
       const isOhlc = (/** @type {string} */ name) => /^OHLC/.test(known.get(name)?.type ?? "");
@@ -11001,6 +11015,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const alpha = (color, a) => `${color}${Math.round(a * 255).toString(16).padStart(2, "0")}`;
       /** The unit a layer displays in: its chosen format, else its data's. */
       const unitFor = (layer, result) => (layer.format ? layer.format : result?.unit ?? (layer.series ? units.get(layer.series) : "number") ?? "number");
+      /** A baseline's or bars' base: its own, else zero (as the website's). @param {Layer} layer */
+      const baseOf = (layer) => layer.base ?? 0;
 
       const RIGHT_OFFSET = 6;
       /** The farthest the chart zooms out: four points a pixel (lightweight-charts' default, two), still smooth to pan. */
@@ -11430,7 +11446,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
         // alone, and a color or a width scrubbed stays smooth however many points there are. (A stack's bands and bars,
         // their colors in their points, are set again whole.)
-        const layerShape = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", layer.base ?? 0, modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse)]);
+        const layerShape = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", baseOf(layer), modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse)]);
         /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
         const kept = new Map();
         doc.layers.forEach((layer, i) => {
@@ -11447,7 +11463,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const linesAcross = (layer, pane, format, op, base) => {
           // (None in a 100% stack: a layer's levels are its own values', not shares.)
           if (shares.has(layer.pane)) return;
-          const values = [...(layer.levels ?? []).map((level, i) => ({ key: String(i), value: level.value })), ...(base && layer.type === "baseline" ? [{ key: "base", value: layer.base ?? 0 }] : [])];
+          const values = [...(layer.levels ?? []).map((level, i) => ({ key: String(i), value: level.value })), ...(base && layer.type === "baseline" ? [{ key: "base", value: baseOf(layer) }] : [])];
           for (const { key, value } of values) {
             const { color, dash } = lineLook(layer, key);
             across.push({ layer, mode: modeOf(doc, layer), pane, format, value, color: op < 1 ? alpha(ink(color), op) : ink(color), dash });
@@ -11512,8 +11528,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const radius = dotRadius(layer.width);
             const [kind, options] = layer.type === "dots" ? [LC.LineSeries, { ...common, ...paint, ...marker, lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: radius }]
               : layer.type === "area" ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, invertFilledArea: layer.fill === "above" }]
-              : layer.type === "histogram" ? [LC.HistogramSeries, { ...common, ...paint, base: layer.base ?? 0, cornerRadius: stack ? 0 : BAR_CORNER }]
-              : layer.type === "baseline" ? [LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: "price", price: layer.base ?? 0 } }]
+              : layer.type === "histogram" ? [LC.HistogramSeries, { ...common, ...paint, base: baseOf(layer), cornerRadius: stack ? 0 : BAR_CORNER }]
+              : layer.type === "baseline" ? [LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: "price", price: baseOf(layer) } }]
               : [LC.LineSeries, { ...common, ...paint, ...marker, ...line, ...(layer.type === "trend" ? (dated ? { priceLineColor: "", crosshairMarkerBackgroundColor: "" } : { priceLineColor: color, crosshairMarkerBackgroundColor: color }) : {}) }];
             series = again ?? tracked(view.addSeries(/** @type {any} */ (kind), options, pane));
             if (again) series.applyOptions(lookOf(options));
@@ -11559,7 +11575,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (paintWith) paintedPoints.set(layer.id, { points, faint: false, paintWith });
             if (layer.type === "histogram" && !paintAt && layer.colors !== 1) {
               // Bars below their base take the second color, each its own (the rest take the series').
-              const tint = alpha(under, 0.75 * op), from = layer.base ?? 0;
+              const tint = alpha(under, 0.75 * op), from = baseOf(layer);
               const bars = points.map((point) => ("value" in point && point.value < from ? { ...point, color: tint } : point));
               if (bars.some((point) => "color" in point)) barsBelow.set(layer.id, { points: bars, color: tint, faded: faded({ color: tint }).color, faint: false });
               setRows(series, bars);
@@ -12070,7 +12086,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // Bars of four colors (MACD's): each side's own, fainter where a bar falls back toward the base from the one before.
         if (layer.type === "histogram" && layer.colors === 4 && values) {
-          const base = layer.base ?? 0, fallsAbove = fadingOf(layer, false), fallsBelow = fadingOf(layer, true);
+          const base = baseOf(layer), fallsAbove = fadingOf(layer, false), fallsBelow = fadingOf(layer, true);
           return (i) => {
             const value = values[i];
             if (!Number.isFinite(value)) return null;
@@ -12081,7 +12097,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           };
         }
         if (!values || ink(top) === ink(under)) return null;
-        const base = layer.base ?? 0;
+        const base = baseOf(layer);
         if (layer.type === "baseline" || layer.type === "histogram") return (i) => (!Number.isFinite(values[i]) ? null : values[i] < base ? under : top);
         if (layer.type === "trend" && result?.sides) return (i) => (/** @type {Uint8Array} */ (result.sides)[i] === 1 ? under : result.sides?.[i] ? top : null);
         return null;
@@ -15261,8 +15277,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const all = gapped(data.results.get(layer.id)?.shown, data.results.get(layer.id)), values = all && start ? Array.prototype.slice.call(all, start) : all, highAll = stacked.get(layer.id)?.values, high = highAll && start ? Array.prototype.slice.call(highAll, start) : highAll, bars = layer.type === "histogram" && modeOf(doc, layer) === 0;
           // (A chart's mark is its lines: a cloud, a range, isn't one.)
           if (!values || layer.type === "cloud") continue;
-          own.set(layer.id, shapeOf(values, modeOf(doc, layer), bars, layer.base ?? 0));
-          shapes.set(layer.id, high ? shapeOf(high, modeOf(doc, layer), bars, layer.base ?? 0) : own.get(layer.id));
+          const base = baseOf(layer);
+          own.set(layer.id, shapeOf(values, modeOf(doc, layer), bars, base));
+          shapes.set(layer.id, high ? shapeOf(high, modeOf(doc, layer), bars, base) : own.get(layer.id));
         }
         // Up to three lines, first pane first; each pane with one gets a band as tall as on the chart.
         const groups = [];
@@ -15285,14 +15302,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const on = layers.filter((layer) => layer.side === side).map((layer) => ({ layer, shape: shapes.get(layer.id) }));
             // Bars' base is in their scale, as on the chart.
             // (A stack's, its foot too, on a linear scale: one layer alone, a 100% one, is a line at its top.)
-            const bases = on.filter(({ layer }) => (layer.type === "histogram" || pane.stack) && modeOf(doc, layer) === 0).map(({ layer, shape }) => shape.scale(pane.stack ? 0 : layer.base ?? 0)).filter(Number.isFinite);
+            const bases = on.filter(({ layer }) => (layer.type === "histogram" || pane.stack) && modeOf(doc, layer) === 0).map(({ layer, shape }) => shape.scale(pane.stack ? 0 : baseOf(layer))).filter(Number.isFinite);
             const lo = Math.min(...on.map(({ shape }) => shape.lo), ...bases), hi = Math.max(...on.map(({ shape }) => shape.hi), ...bases);
             if (!Number.isFinite(lo)) continue;
             for (const { layer, shape } of on) {
               const ys = place(shape.points, lo, hi, band.bottom, band.height);
               // Drawn as its type: a baseline's colors and bars part at its base (where the scale has none, under it all).
               const kind = { area: "area", baseline: "baseline", histogram: modeOf(doc, layer) === 0 ? "bars" : undefined, dots: "dots" }[layer.type];
-              const level = place([shape.scale(layer.base ?? 0)], lo, hi, band.bottom, band.height)[0] ?? band.bottom;
+              const level = place([shape.scale(baseOf(layer))], lo, hi, band.bottom, band.height)[0] ?? band.bottom;
               // An area fills down to its band's foot, or up to its top where it's filled above.
               const edge = layer.fill === "above" ? Math.min(1, band.bottom + band.height + gap / 2) : Math.max(0, band.bottom - gap / 2);
               // (Painted date by date: each point's color, its bucket's last date's.)
@@ -15309,7 +15326,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const [id, { points, scale }] of own) {
           const there = points.filter((value) => value !== null);
           if (there.length < 2) continue;
-          const layer = doc.layers.find((item) => item.id === id), level = layer && PAIRS[layer.type] ? scale(layer.base ?? 0) : NaN;
+          const layer = doc.layers.find((item) => item.id === id), level = layer && PAIRS[layer.type] ? scale(baseOf(layer)) : NaN;
           // Bars' range takes in their base: each one's height is its distance from it.
           const range = layer?.type === "histogram" && modeOf(doc, layer) === 0 && Number.isFinite(level) ? [...there, level] : there;
           marks[id] = place(points, Math.min(...range), Math.max(...range));
@@ -15507,7 +15524,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 }
                 return under <= over ? /** @type {[number, number]} */ ([under, over]) : null;
               }) : null;
-              return { layer, mode, scaled, values, bars: layer.type === "histogram" && mode === 0, base: layer.base ?? 0, level: scaled(layer.base ?? 0), points: band ? band.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, stack: stacked.has(layer.id) };
+              // (Where a baseline's colors and bars part, as opposed to the base a percent or indexed scale counts from.)
+              const parts = baseOf(layer);
+              return { layer, mode, scaled, values, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: band ? band.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, stack: stacked.has(layer.id) };
             });
             // A stack's layers, sampled at the same points, every one's highs and lows: each is the sum of those under it,
             // so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
@@ -15534,7 +15553,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const inPane = (value) => clamp(value, paneTop, paneBottom);
             const drawLayer = ({ layer, scaled, bars, base, level, points, band }) => {
               // (None in a 100% stack: a layer's levels are its own values', not shares.)
-              const across = pane.stack === "percent" ? [] : [...(layer.levels ?? []).map((item, i) => [String(i), item.value]), ...(layer.type === "baseline" ? [["base", layer.base ?? 0]] : [])];
+              const across = pane.stack === "percent" ? [] : [...(layer.levels ?? []).map((item, i) => [String(i), item.value]), ...(layer.type === "baseline" ? [["base", base]] : [])];
               for (const [key, value] of across) {
                 const yAt = y(scaled(value)), { color, dash } = lineLook(layer, key), [, , length, gap] = dashOf(dash);
                 if (yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) });
@@ -17477,18 +17496,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The website's charts, once read; each one's words (its title and place, lowercased) for the search. */
       // (A page built without them knows at once: no waiting cards.)
       /**
-       * Each series' look as the website's charts draw it (its color, its type): the one they give it most, for a series
+       * Each series' look as the website's charts draw it (its color, its type, a baseline's base): the one they give it most, for a series
        * added on its own to start as the website draws it. @param {Preset[]} list @returns {Map<string, Partial<Layer>>}
        */
       function looksOf(list) {
         const counts = new Map();
         for (const preset of list) for (const layer of [...preset.a, ...preset.b]) {
-          const each = counts.get(layer.s) ?? new Map(), key = `${layer.c ?? ""}|${layer.k ?? "line"}`;
+          const each = counts.get(layer.s) ?? new Map(), key = `${layer.c ?? ""}|${layer.k ?? "line"}|${layer.z ?? ""}`;
           counts.set(layer.s, each.set(key, (each.get(key) ?? 0) + 1));
         }
         return new Map([...counts].map(([name, each]) => {
-          const [color, type] = [...each].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0].split("|");
-          return [name, { ...(color ? { color } : {}), type }];
+          const [color, type, base] = [...each].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0].split("|");
+          return [name, { ...(color ? { color } : {}), type, ...(base ? { base: Number(base) } : {}) }];
         }));
       }
       /** See looksOf: empty till the website's charts are read. */
@@ -18262,6 +18281,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <section>
             <h3>Style</h3>
             ${layer.from ? "" : `<div class="field"><span>Type<span class="color-now">${escape(TYPES.find(([type]) => type === layer.type)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${layer.type === type}" aria-label="${text}" ${type === "candles" && !result?.ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`}
+            ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<span class="number-field"><input id="base" class="number-input" aria-label="Base" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(fieldUnit(unit))}</span></span></span></div>` : ""}
             ${colorPicker(layer)}
             <div class="field"><span>Opacity${resetFor("opacity", layer)}</span>${slider("opacity", layer)}</div>
             ${layer.type !== "histogram" && layer.type !== "cloud" ? `<div class="field"><span>Width${resetFor("width", layer)}</span>${slider("width", layer, layer.type === "candles" ? "The line candles turn into, zoomed out" : layer.type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>` : ""}
@@ -18271,7 +18291,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </div></div>` : ""}
             ${layer.type === "area" ? `<div class="field"><span>Fill</span><div class="tabs" role="group" aria-label="Fill">${[["below", "Below", "Filled from the line down"], ["above", "Above", "Filled from the line up"]].map(([fill, text, tip]) => `<button type="button" data-fill="${fill}" aria-pressed="${(layer.fill ?? "below") === fill}" data-tip="${tip}">${text}</button>`).join("")}</div></div>` : ""}
             ${layer.type === "cloud" ? "" : `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${Boolean(layer.priceLine) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`}
-            ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<span class="number-field"><input id="base" class="number-input" aria-label="Base" type="text" autocomplete="off" spellcheck="false" value="${layer.base ?? 0}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(fieldUnit(unit))}</span></span></span></div>` : ""}
             ${layer.from ? "" : `<div class="field"><span>Levels${layer.byLevels ? '<span class="color-now">Colors the line</span>' : ""}<button type="button" class="reset" data-action="add-level" aria-label="Add a level" data-tip="Add a level, at a round value over the latest">${ICONS.plus}</button></span>${layer.byLevels ? `<span class="level under"><button type="button" id="color-select-under" class="cap small" data-color-select="under" aria-haspopup="menu" aria-label="Under its levels: ${escape(colorName(layer.color))}" data-tip="Under its levels"><i class="swatch" style="--c:${escape(cssColor(layer.color))}"></i></button><i class="cap small spacer" aria-hidden="true"></i><span class="under-label">Under ${escape(format(Math.min(...(layer.levels ?? []).map((level) => level.value)), unitFor(layer, result)))}</span></span>` : ""}${(layer.levels ?? []).map((level, i) => {
               return `<span class="level">${lineButtons(layer, i, `Level ${i + 1}`)}<span class="number-field"><input id="level-${i}" class="number-input" aria-label="Level ${i + 1}" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /><span class="unit">${escape(fieldUnit(unit))}</span></span><button type="button" class="cap small" data-remove-level="${i}" aria-label="Remove level ${i + 1}" data-tip="Remove the level">${ICONS.trash}</button></span>`;
             }).join("")}</div>`}
@@ -18314,7 +18333,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const DEFAULTS = {
         opacity: { is: (layer) => layer.opacity === undefined, set: (layer) => (layer.opacity = undefined), text: (layer) => `${Math.round(defaultOpacity(layer) * 100)}%`, focus: "#opacity" },
         width: { is: (layer) => layer.width === 1.5, set: (layer) => (layer.width = 1.5), text: "1.5px", focus: "#width" },
-        base: { is: (layer) => (layer.base ?? 0) === 0, set: (layer) => (layer.base = undefined), text: "0", focus: "#base" },
+        base: { is: (layer) => baseOf(layer) === 0, set: (layer) => (layer.base = undefined), text: "0", focus: "#base" },
         format: { is: (layer) => !layer.format, set: (layer) => (layer.format = undefined), text: "Automatic", focus: "#format" },
       };
       const resetFor = (key, layer) => ((text) => (DEFAULTS[key].is(layer) ? "" : `<button type="button" class="reset" data-reset="${key}" aria-label="Reset to ${text}" data-tip="Reset to ${text}">${ICONS.undo}</button>`))(typeof DEFAULTS[key].text === "function" ? DEFAULTS[key].text(layer) : DEFAULTS[key].text);
@@ -19481,7 +19500,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           suggestHere();
         } else if (target.id === "base") {
           const base = readNumber(target.value);
-          if (Number.isFinite(base)) editLayer((layer) => (layer.base = base), { coalesce: `base:${selected}` });
+          if (Number.isFinite(base)) editLayer((layer) => (layer.base = base || undefined), { coalesce: `base:${selected}` });
         } else if (target.id.startsWith("level-")) {
           const i = Number(target.id.slice(6)), level = readNumber(target.value);
           if (Number.isFinite(level)) editLayer((layer) => layer.levels?.[i] && (layer.levels[i].value = level), { coalesce: `level:${i}:${selected}` });
@@ -19593,7 +19612,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "color-mode") menuOf(button, colorModeChoices(selected));
         else if (action === "color-from") menuOf(button, fromChoices(selected));
         else if (type && button.getAttribute("aria-disabled") === "true") notice(/** @type {string} */ (button.dataset.tip));
-        else if (type) editLayer((layer) => (layer.type = type));
+        else if (type) editLayer((layer) => retype(layer, /** @type {Layer["type"]} */ (type)));
         else if (button.dataset.cloudOf) {
           const member = button.dataset.cloudOf;
           editLayer((layer) => (layer.from = fromOf(chart, toggleMember(layer.from ?? [], member), layer.type === "cloud")));
@@ -20598,6 +20617,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty && !fullOn() ? [] : [{ title: fullOn() ? "Exit full screen" : "Full screen", text: "The chart alone, on the whole screen.", words: "fullscreen full screen focus maximize expand zen present", icon: fullOn() ? "shrink" : "expand", kbd: "⇧F", run: () => setFull() }]),
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your charts, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
+          { title: "Studio's version", text: `Built ${BUILD}.`, words: "about version build release updated date commit", icon: "recent", run: () => notice(`Bitview Studio, built ${BUILD}`), anywhere: true },
           ...(TOUCH ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
           ...(TOUCH ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, words: "single key keys keyboard shortcuts letters hotkeys accessibility disable enable turn", icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
           { title: "How links work", text: "A chart is a link: what one holds, and how to write it by hand or have an assistant write it (the guide, here).", words: "about guide docs documentation help link links json api script assistant ai llms", icon: "link", run: showGuide, anywhere: true },
@@ -21866,7 +21886,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               { key: "raw", icon: ICONS.link, label: "Open the raw data", aside: "As JSON, in a new tab", verb: "Open", group: first, run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") },
             ] : []),
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
-            { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => (item.type = type)) }))) },
+            { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => retype(item, type)) }))) },
+            ...(pair ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
+            ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
             ...((COLOR_MODES[layer.type] ?? []).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(layer, colorModeOf(layer)), words: `colors color way ${(COLOR_MODES[layer.type] ?? []).map((mode) => /** @type {Record<string, string>} */ (MODE_WORDS)[mode] + (mode === "sides" && layer.type === "trend" ? " resistance support" : "")).join(" ")}`, group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
             ...colorSlots(layer).map(([key, label]) => (key === "from"
               ? { key: "color-from", icon: source ? letterChip(source) : ICONS.series, label: "Colors from", aside: source ? labelOf(source) : "", group: "Style", page: () => choicePage("Colors from", () => fromChoices(id), lookOfChoice) }
@@ -21879,8 +21901,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ] : []),
             ...(layer.type === "area" ? [{ key: "fill", icon: glyph("area"), label: "Fill", aside: layer.fill === "above" ? "From the line up" : "From the line down", verb: layer.fill === "above" ? "Fill down" : "Fill up", group: "Style", stay: true, run: set((item) => (item.fill = item.fill === "above" ? undefined : "above")) }] : []),
             { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? "On" : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)), choices: () => [true, false].map((on) => ({ key: on ? "on" : "off", icon: dashGlyph(2, 2), label: on ? "On" : "Off", current: Boolean(now().priceLine) === on, run: set((item) => (item.priceLine = on || undefined)) })) },
-            ...(pair ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(layer.base ?? 0, unit), group: "Style", page: () => numberPage({ title: "Base", value: String(layer.base ?? 0), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n === 0 ? undefined : n)) }) }] : []),
-            ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
             { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? plural(layer.levels.length, "level") : "None", group: "Style", page: () => levelsPage(id) },
             { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => paneChoices([id])) },
             { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")), choices: () => /** @type {const} */ (["left", "right"]).map((side) => ({ key: side, icon: ICONS.axis, label: capitalize(side), current: (now().side === "left" ? "left" : "right") === side, run: set((item) => (item.side = side)) })) },

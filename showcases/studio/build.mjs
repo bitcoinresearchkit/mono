@@ -21,8 +21,16 @@ const SERVER = "https://bitview.space";
 const CLIENT = "/scripts/modules/bitview-client/index.js";
 const HERE = dirname(fileURLToPath(import.meta.url)), SHOWCASES = join(HERE, "..");
 const out = process.argv[2] ?? join(HERE, "dist", "index.html");
+/** What the page is built from, each file by its own place (no link followed) and as it was read. @type {Map<string, Buffer>} */
+const inputs = new Map([[realpathSync(fileURLToPath(import.meta.url)), readFileSync(fileURLToPath(import.meta.url))]]);
+/** A file the page is built from, read (and kept, as read, to tell whether the commit has it so). */
+const input = (/** @type {string} */ path, /** @type {BufferEncoding | undefined} */ encoding) => {
+  const bytes = readFileSync(path);
+  inputs.set(realpathSync(path), bytes);
+  return encoding ? bytes.toString(encoding) : bytes;
+};
 
-let html = readFileSync(join(HERE, "index.html"), "utf8");
+let html = String(input(join(HERE, "index.html"), "utf8"));
 /** Replaces what must be there exactly once (the page changed under the build otherwise). */
 function replaceOnce(from, to) {
   const found = typeof from === "string" ? html.split(from).length - 1 : (html.match(new RegExp(from.source, "g")) ?? []).length;
@@ -50,10 +58,10 @@ function sandboxed(script, readable) {
     throw new Error(said || (error.signal ? `stopped (${error.signal})` : "it failed"));
   }
 }
-const inlined = (path) => dataUrl("text/javascript", readFileSync(join(SHOWCASES, path)));
+const inlined = (path) => dataUrl("text/javascript", input(join(SHOWCASES, path)));
 
 // The fonts.
-for (const font of ["InterVariable.woff2", "Lilex.woff2"]) replaceOnce(`url("../fonts/${font}")`, `url("${dataUrl("font/woff2", readFileSync(join(SHOWCASES, "fonts", font)))}")`);
+for (const font of ["InterVariable.woff2", "Lilex.woff2"]) replaceOnce(`url("../fonts/${font}")`, `url("${dataUrl("font/woff2", input(join(SHOWCASES, "fonts", font)))}")`);
 
 // The modules bitview.space doesn't serve, or serves older; the search's worker takes the same one.
 const quickmatch = inlined("modules/quickmatch-js/src/index.js");
@@ -143,7 +151,7 @@ const checks = realpathSync(mkdtempSync(join(tmpdir(), "bitview-client-")));
 try {
   // (Both beside each other there: what the sandbox reads is that folder alone. Unread, the repo's own stands in for
   // the server's, so the date check still checks itself.)
-  writeFileSync(join(checks, "repo.mjs"), readFileSync(join(SHOWCASES, "modules/bitview-client/index.js")));
+  writeFileSync(join(checks, "repo.mjs"), input(join(SHOWCASES, "modules/bitview-client/index.js")));
   let read = true;
   try {
     const page = await fetchText("/");
@@ -170,7 +178,7 @@ if (served) {
 // (Unread, the page trusts the server's own client: a patch for no client in particular would outlive the one it was for.)
 if (served?.differs) {
   if (/\.(?:dates|dateEntries|toDateMap)\(\)/.test(html)) throw new Error("The page dates points through a response's helpers: the replaced two don't cover it");
-  const source = readFileSync(join(SHOWCASES, "modules/bitview-client/index.js"), "utf8");
+  const source = String(input(join(SHOWCASES, "modules/bitview-client/index.js"), "utf8"));
   const from = source.indexOf("// Date conversion constants and helpers"), to = source.indexOf("/**\n * Wrap raw series data");
   if (from < 0 || to < from) throw new Error("This repo's client's date helpers moved: the build can't find them");
   // (Only while the client that needed them is the one live: one released since dates its server's points itself.)
@@ -213,7 +221,9 @@ try {
     await Promise.all(next.map((target) => take(target)));
   };
   await take("scripts/options/partial.js", true);
-  const presetsJs = join(HERE, "presets.js");
+  // (presets.js as it's read for the version: that copy is the one run.)
+  const presetsJs = join(copy, "presets.mjs");
+  writeFileSync(presetsJs, input(join(HERE, "presets.js")));
   const { json, value: presets } = sandboxed(`const { websitePresets } = await import(${JSON.stringify(pathToFileURL(presetsJs).href)}); process.stdout.write(JSON.stringify(await websitePresets(${JSON.stringify(pathToFileURL(`${copy}/`).href)})));`, [copy, presetsJs]);
   const packed = gzipSync(json, { level: 9 }).toString("base64");
   replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip">${packed}</script>`);
@@ -226,6 +236,24 @@ try {
   rmSync(copy, { recursive: true, force: true });
 }
 
+// The build it is, to tell which one runs (⌘K's "Studio's version"): its commit, a "+" when anything it was built from
+// isn't, byte for byte as read, what the commit holds there (changed, or not in it at all); and when, as the page writes
+// dates.
+{
+  const root = realpathSync(execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: HERE }).toString().trim());
+  const commit = execFileSync("git", ["rev-parse", "--short=9", "HEAD"], { cwd: HERE }).toString().trim();
+  const committed = (/** @type {string} */ path, /** @type {Buffer} */ bytes) => {
+    const at = relative(root, path);
+    try {
+      return !at.startsWith("..") && execFileSync("git", ["show", `HEAD:${at}`], { cwd: root, maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] }).equals(bytes);
+    } catch {
+      return false;
+    }
+  };
+  const changed = [...inputs].every(([path, bytes]) => committed(path, bytes)) ? "" : "+";
+  const [, day, month, year, time] = new Date().toUTCString().split(" ");
+  replaceOnce(`const BUILD = "here, from the repo";`, `const BUILD = ${JSON.stringify(`${Number(day)} ${month} ${year}, ${time.slice(0, 5)} UTC (${commit}${changed})`)};`);
+}
 const left = html.match(/["'(]\.\.\/(?:modules|fonts)\/[^"')]*/g);
 if (left?.length) throw new Error(`Still relative: ${left.join(", ")}`);
 // Each of the page's scripts as it's written now, parsed (what the build put in can't break it: a name declared twice
@@ -248,4 +276,13 @@ try {
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, html);
 console.log(`${relative(process.cwd(), out)}: ${(Buffer.byteLength(html) / 1024).toFixed(0)} KB`);
+
+// The page built, on the preview (studio-next.bitview.space; see deploy.mjs): a build elsewhere (an out given), not.
+if (!process.argv[2]) {
+  try {
+    await (await import("./deploy.mjs")).deploy("next", true);
+  } catch (error) {
+    console.warn(`Preview not deployed: ${/** @type {Error} */ (error).message.split("\n")[0]}`);
+  }
+}
 

@@ -68,8 +68,9 @@ export async function websitePresets(base) {
       // (A series without days, by block only, the Studio can't show.)
       const series = seriesOf(blueprint.series), s = series?.name;
       if (!s || (series.by && !("day1" in series.by))) continue;
-      // (Uncolored, as the website draws it: its unit's color, dollars green, the rest bitcoin's orange.)
-      const [c, c2] = Array.isArray(blueprint.colors) ? blueprint.colors.map(colorOf) : Array.isArray(blueprint.color) ? blueprint.color.map(colorOf) : [colorOf(blueprint.color ?? (blueprint.unit === Unit.usd ? colors.usd : colors.bitcoin))];
+      // (Uncolored, as the website draws it: a baseline green above and red below, anything else its unit's color, dollars
+      // green, the rest bitcoin's orange.)
+      const [c, c2] = Array.isArray(blueprint.colors) ? blueprint.colors.map(colorOf) : Array.isArray(blueprint.color) ? blueprint.color.map(colorOf) : !blueprint.color && blueprint.type === "Baseline" ? colors.bi.p1.map(colorOf) : [colorOf(blueprint.color ?? (blueprint.unit === Unit.usd ? colors.usd : colors.bitcoin))];
       /** @type {PresetLayer} */
       const layer = { s };
       const k = TYPES[/** @type {keyof typeof TYPES} */ (blueprint.type ?? "Line")];
