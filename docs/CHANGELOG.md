@@ -613,8 +613,14 @@ has to be deleted by hand.
   progress height, and host name, CPU and RAM; every row is flushed as written, so a killed run keeps its data
 - `bitviewd_bench_visualizer` draws one `dashboard.svg` per run (plugin timeline, height, memory, CPU, I/O and
   page-in rates, data-directory size, time per plugin, size per component, with the bootstrap cycles shaded) and a
-  `compare.svg` across complete runs. It finds runs at any depth and reads old recordings by column name. The
-  previous charts covered only the first seconds of each run and skipped nested runs
+  `compare.svg` per machine across its complete runs. It reads old recordings by column name. The previous charts
+  covered only the first seconds of each run and skipped nested runs
+- Benchmarks are filed by hardware and code: `bitviewd_bench` writes `<bitviewdir>/benches/<machine>/<revision>/`,
+  the layout of the workspace's `benches/` (was `benches/bitviewd/run-<ms>/`, renamed by hand). The machine comes
+  from the CPU, the RAM and the data directory's storage (`apple-m6-16gb-external-tb`; `internal`, `external-tb`
+  for Thunderbolt or USB4, `external-usb`), recorded with the drive model for the data and blocks directories; the
+  revision is the tag at HEAD or the short commit (`-dirty` with local
+  changes); a rerun of a revision on a machine replaces it, and one benchmark runs per data directory at a time
 
 #### `vecdb` and `rawdb`
 

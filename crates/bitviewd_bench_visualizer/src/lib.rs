@@ -4,6 +4,7 @@ mod format;
 
 use std::{
     error::Error,
+    fs,
     path::{Path, PathBuf},
 };
 
@@ -17,7 +18,7 @@ pub struct Visualizer {
 }
 
 impl Visualizer {
-    /// `root` is a Bitview data directory (or the workspace) holding `benches/bitviewd/`.
+    /// `root` is a Bitview data directory (or the workspace) holding `benches/<machine>/`.
     pub fn new(root: impl AsRef<Path>) -> Self {
         Self {
             root: root.as_ref().to_path_buf(),
@@ -32,26 +33,43 @@ impl Visualizer {
         Ok(Self::new(workspace))
     }
 
-    /// One `dashboard.svg` per run, and `compare.svg` across complete runs.
+    /// One `dashboard.svg` per run, and per machine a `compare.svg` across its complete runs.
     pub fn generate(&self) -> Result {
-        let dir = self.root.join("benches").join("bitviewd");
+        let dir = self.root.join("benches");
         if !dir.exists() {
             return Err(format!("{} does not exist", dir.display()).into());
         }
-        let runs = data::discover(&dir)?;
-        for run in &runs {
-            let output = run.path.join("dashboard.svg");
-            dashboard(run, &output)?;
-            println!("Generated: {}", output.display());
-        }
-        let complete = runs.iter().filter(|run| run.complete()).collect::<Vec<_>>();
-        if !complete.is_empty() {
-            let output = dir.join("compare.svg");
-            compare(&complete, &output)?;
-            println!("Generated: {}", output.display());
+        for entry in fs::read_dir(&dir)? {
+            let machine = entry?.path();
+            if machine.is_dir() {
+                generate_machine(&machine)?;
+            }
         }
         Ok(())
     }
+}
+
+/// One machine's directory: a `dashboard.svg` per run and `compare.svg` across its complete runs.
+fn generate_machine(dir: &Path) -> Result {
+    let runs = data::discover(dir)?;
+    for run in &runs {
+        let output = run.path.join("dashboard.svg");
+        dashboard(run, &output)?;
+        println!("Generated: {}", output.display());
+    }
+    let complete = runs.iter().filter(|run| run.complete()).collect::<Vec<_>>();
+    let output = dir.join("compare.svg");
+    if complete.is_empty() {
+        // A replaced run may have been the last complete one.
+        if output.exists() {
+            fs::remove_file(&output)?;
+        }
+    } else {
+        let machine = dir.file_name().unwrap_or_default().to_string_lossy();
+        compare(&machine, &complete, &output)?;
+        println!("Generated: {}", output.display());
+    }
+    Ok(())
 }
 
 enum Panel {
@@ -113,12 +131,13 @@ fn summary(run: &Run) -> Vec<String> {
         meta("hostname").map(|host| format!("host {host}")),
         meta("cpu").map(|cpu| format!("cpu {cpu}")),
         bytes("ram_bytes").map(|ram| format!("ram {ram}")),
+        meta("storage").map(|storage| format!("storage {storage}")),
         meta("parallelism").map(|cores| format!("{cores} cores")),
         meta("revision").map(|revision| {
             let dirty = meta("dirty").is_some_and(|dirty| dirty == "true");
             format!(
                 "revision {}{}",
-                revision.get(..7).unwrap_or(revision),
+                revision.get(..9).unwrap_or(revision),
                 if dirty { " (dirty)" } else { "" }
             )
         }),
@@ -317,7 +336,7 @@ fn dashboard(run: &Run, output: &Path) -> Result {
     draw(&panels, output, Some(run), &axis, &cycles)
 }
 
-fn compare(runs: &[&Run], output: &Path) -> Result {
+fn compare(machine: &str, runs: &[&Run], output: &Path) -> Result {
     let charted = runs.len().saturating_sub(COMPARED_LINES);
     let axis = TimeAxis::new(
         runs[charted..]
@@ -342,7 +361,10 @@ fn compare(runs: &[&Run], output: &Path) -> Result {
     };
 
     let mut panels = vec![Panel::Header(
-        format!("bitviewd benchmarks: {} complete runs", runs.len()),
+        format!(
+            "bitviewd benchmarks on {machine}: {} complete runs",
+            runs.len()
+        ),
         vec![format!(
             "Charts show the {} most recent; times are from bootstrap start.",
             runs.len().min(COMPARED_LINES)

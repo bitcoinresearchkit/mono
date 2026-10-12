@@ -1,10 +1,10 @@
 <svg width="2400" height="5164" viewBox="0 0 2400 5164" xmlns="http://www.w3.org/2000/svg">
 <rect x="0" y="0" width="2400" height="5164" opacity="1" fill="#121218" stroke="none"/>
 <text x="30" y="22" dy="0.76em" text-anchor="start" font-family="monospace" font-size="27.419354838709676" opacity="1" fill="#E6E6F0">
-mini-m6-2-next-back-b88915d (2026-10-09 23:17)
+e578863bf (2026-10-09 23:17)
 </text>
 <text x="30" y="74" dy="0.76em" text-anchor="start" font-family="monospace" font-size="16.935483870967744" opacity="0.7" fill="#E6E6F0">
-host minis-Mac-Mini-2.local · cpu Apple M6 · ram 16.0 GiB · 12 cores · revision b88915d · release build · cache 2.0 GiB
+host minis-Mac-Mini-2.local · cpu Apple M6 · ram 16.0 GiB · 12 cores · revision e578863bf · release build · cache 2.0 GiB
 </text>
 <text x="30" y="104" dy="0.76em" text-anchor="start" font-family="monospace" font-size="16.935483870967744" opacity="0.7" fill="#E6E6F0">
 complete in 1h32 · chain height 970688 · peak footprint 12.2 GiB · read 5.0 TiB / written 1.2 TiB · data dir 287.9 GiB

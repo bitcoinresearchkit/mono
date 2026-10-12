@@ -11,12 +11,12 @@ To chart the runs in a Bitview data directory, pass the path used for
 cargo run --release -p bitviewd_bench_visualizer -- /Volumes/External/bitview
 ```
 
-With no argument, it charts the workspace's `benches/bitviewd/` collection. The
+With no argument, it charts the workspace's `benches/` collection. The
 equivalent API call is `Visualizer::new(bitviewdir).generate()?`.
 
-Every directory below `benches/bitviewd/` that holds a `memory.csv` is a run,
-at any depth (`<machine-branch-commit>/run-<ms>/` included). Files are read by
-column name, so runs recorded by older recorders chart what they have.
+Each directory of `benches/` is a machine (`apple-m6-16gb-external-tb`), and every directory
+below it that holds a `memory.csv` is one of its runs (`<revision>/`). Files are
+read by column name, so runs recorded by older recorders chart what they have.
 
 ## Charts
 
@@ -27,7 +27,8 @@ column name, so runs recorded by older recorders chart what they have.
   - the indexed height and memory (footprint, peak, resident, swap);
   - CPU cores busy, disk read and write rates, and page-ins;
   - the data-directory size, time per plugin, and the final size per component.
-- `compare.svg`: complete runs side by side.
+- `<machine>/compare.svg`: the machine's complete runs side by side (runs of
+  different hardware do not compare).
   - A summary table lists every run.
   - Height, memory, CPU and I/O charts show the six most recent.
   - A table gives compute time per plugin and run.

@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    fs::{self, File},
     io::{Error as IoError, ErrorKind},
     mem,
     path::{Path, PathBuf},
@@ -9,7 +9,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
-    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant},
 };
 
 use brk_error::{Error, Result};
@@ -54,6 +54,8 @@ const DISK_INTERVAL: Duration = Duration::from_secs(60);
 
 struct Inner {
     path: PathBuf,
+    /// Held for the run: a second benchmark on the data directory must not replace this report.
+    _lock: File,
     disk: Arc<Mutex<DiskMonitor>>,
     run: Mutex<RunMonitor>,
     trace: Arc<TraceMonitor>,
@@ -77,15 +79,23 @@ impl Benchmark {
         chain_height: Height,
         cache_budget: usize,
     ) -> Result<Self> {
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
         let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .and_then(Path::parent)
             .ok_or(Error::Internal("Invalid benchmark crate path"))?;
-        let runs = data_path.join("benches").join("bitviewd");
-        fs::create_dir_all(&runs)?;
-        let path = runs.join(format!("run-{timestamp}"));
-        fs::create_dir(&path)?;
+        let reports = data_path.join("benches");
+        fs::create_dir_all(&reports)?;
+        let lock = File::create(reports.join(".lock"))?;
+        lock.try_lock()
+            .map_err(|_| Error::Internal("Another benchmark is running on this data directory"))?;
+        // One run per machine and revision: a rerun replaces the previous one.
+        let path = reports
+            .join(metadata::machine(data_path))
+            .join(metadata::revision(workspace));
+        if path.exists() {
+            fs::remove_dir_all(&path)?;
+        }
+        fs::create_dir_all(&path)?;
 
         metadata::write(
             &path,
@@ -104,12 +114,13 @@ impl Benchmark {
         Ok(Self(Arc::new(Inner {
             disk: Arc::new(Mutex::new(DiskMonitor::new(
                 data_path,
-                &runs,
+                &reports,
                 &path.join("disk.csv"),
             )?)),
             run: Mutex::new(RunMonitor::new(&path.join("run.csv"))?),
             trace,
             path,
+            _lock: lock,
             stop: Arc::new(AtomicBool::new(false)),
             state: Mutex::new(State::Ready),
         })))

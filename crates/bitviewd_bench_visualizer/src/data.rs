@@ -278,15 +278,6 @@ fn read(root: &Path, path: PathBuf) -> Result<Run> {
     let started_at = meta
         .get("started_at_unix")
         .and_then(|value| value.parse().ok())
-        .or_else(|| {
-            relative
-                .file_name()?
-                .to_str()?
-                .strip_prefix("run-")?
-                .parse::<u64>()
-                .ok()
-                .map(|ms| ms / 1_000)
-        })
         .unwrap_or(0);
     let label = label(relative, started_at);
 
@@ -317,24 +308,12 @@ fn read(root: &Path, path: PathBuf) -> Result<Run> {
     })
 }
 
-/// The run's directories with 40-hex commits shortened, plus its start time, which tells apart
-/// runs of one commit.
+/// The run's path below its machine (its revision), plus its start time.
 fn label(relative: &Path, started_at: u64) -> String {
-    let hash = |part: &str| part.len() == 40 && part.bytes().all(|byte| byte.is_ascii_hexdigit());
-    let parts = relative
-        .iter()
-        .filter_map(|part| part.to_str())
-        .map(|part| match part.rsplit_once('-') {
-            Some((head, commit)) if hash(commit) => format!("{head}-{}", &commit[..7]),
-            _ if hash(part) => part[..7].to_owned(),
-            _ => part.to_owned(),
-        })
-        .filter(|part| !part.starts_with("run-") || relative.iter().count() == 1)
-        .collect::<Vec<_>>();
-    let name = if parts.is_empty() {
+    let name = if relative.as_os_str().is_empty() {
         "run".to_owned()
     } else {
-        parts.join("/")
+        relative.display().to_string()
     };
     if started_at == 0 {
         name
