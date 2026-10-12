@@ -20,7 +20,6 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         let Dependencies {
             indexer,
-            inputs,
             mappings,
             blocks,
             price: prices,
@@ -50,7 +49,6 @@ impl ComputePlugin for Vecs {
 
         self.fees.compute(
             indexer,
-            &inputs.value,
             mappings,
             &self.size,
             &mut self.volume.cumulative.sats.height,
@@ -60,8 +58,7 @@ impl ComputePlugin for Vecs {
         self.inscription
             .compute(indexer, mappings, &self.fees, exit)?;
 
-        self.patterns
-            .compute(indexer, &inputs.value, mappings, exit)?;
+        self.patterns.compute(indexer, mappings, exit)?;
 
         self.policy.compute(indexer, mappings, &self.fees, exit)?;
 

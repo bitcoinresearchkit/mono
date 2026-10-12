@@ -2,12 +2,12 @@ use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Boolean, Count, TxInIndex};
+use bitview_primitives::{Boolean, Count};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Sats};
+use brk_types::Height;
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, PcoVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 
 use super::{Vecs, coinjoin::Candidate};
 
@@ -21,7 +21,6 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        input_values: &PcoVec<TxInIndex, Sats>,
         mappings: &MappingsVecs,
         exit: &Exit,
     ) -> Result<()> {
@@ -31,7 +30,7 @@ impl Vecs {
             + indexer.vecs().transactions.first_tx_index.version()
             + indexer.vecs().transactions.first_txin_index.version()
             + indexer.vecs().transactions.first_txout_index.version()
-            + input_values.version()
+            + indexer.vecs().inputs.value.version()
             + indexer.vecs().inputs.output_type.version()
             + indexer.vecs().inputs.type_index.version()
             + indexer.vecs().outputs.value.version()
@@ -102,7 +101,6 @@ impl Vecs {
                 .map(|from| {
                     classify(
                         indexer,
-                        input_values,
                         tx_counts,
                         from..(from + TASK_HEIGHTS).min(wave_end),
                     )
@@ -168,7 +166,6 @@ struct Classified {
 /// Classifies the transactions of `heights`, independently of other tasks.
 fn classify(
     indexer: &Indexer,
-    input_values: &PcoVec<TxInIndex, Sats>,
     tx_counts: &(impl ReadableVec<Height, Count> + Sync),
     heights: Range<usize>,
 ) -> Classified {
@@ -200,7 +197,7 @@ fn classify(
     let has_op_return = features.op_return.flag.collect_range_at(start_tx, end_tx);
     let has_inscription = features.inscription.flag.collect_range_at(start_tx, end_tx);
 
-    let mut input_value = input_values.cursor();
+    let mut input_value = vecs.inputs.value.cursor();
     let mut input_type = vecs.inputs.output_type.cursor();
     let mut input_type_index = vecs.inputs.type_index.cursor();
     let output_value = vecs.outputs.value.reader();

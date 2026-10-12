@@ -1,7 +1,7 @@
 use bitview_primitives::{TxInIndex, TxOutIndex, TypeIndex};
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{Height, OutPoint, OutputType, TxIndex, Version};
+use brk_types::{Height, OutPoint, OutputType, Sats, TxIndex, Version};
 use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, Budgeted, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec,
@@ -32,17 +32,21 @@ pub struct InputsVecs<M: StorageMode = Rw> {
     /// distinct addresses, while other types index outputs in canonical order.
     /// Coinbase inputs use `u32::MAX`.
     pub type_index: M::Stored<PcoVec<TxInIndex, TypeIndex>>,
+    /// Value of the output the input spends, in satoshis; `Sats::MAX` for a coinbase
+    /// input, which spends none.
+    pub value: M::Stored<PcoVec<TxInIndex, Sats>>,
 }
 
 impl InputsVecs {
     pub fn import(db: &Database, version: Version) -> Result<Self> {
-        let (first_txin_index, outpoint, txout_index, tx_index, output_type, type_index) = parallel_import! {
+        let (first_txin_index, outpoint, txout_index, tx_index, output_type, type_index, value) = parallel_import! {
             first_txin_index = PcoVec::import(db, "first_txin_index", version),
             outpoint = PcoVec::import(db, "outpoint", version),
             txout_index = PcoVec::import(db, "spent_txout_index", version),
             tx_index = PcoVec::import(db, "input_tx_index", version),
             output_type = PcoVec::import(db, "output_type", version),
             type_index = PcoVec::import(db, "type_index", version),
+            value = PcoVec::import(db, "input_value", version),
         };
         Ok(Self {
             first_txin_index,
@@ -51,6 +55,7 @@ impl InputsVecs {
             tx_index,
             output_type,
             type_index,
+            value,
         })
     }
 
@@ -67,6 +72,8 @@ impl InputsVecs {
             .truncate_if_needed_with_stamp(txin_index, stamp)?;
         self.type_index
             .truncate_if_needed_with_stamp(txin_index, stamp)?;
+        self.value
+            .truncate_if_needed_with_stamp(txin_index, stamp)?;
         Ok(())
     }
 
@@ -78,6 +85,7 @@ impl InputsVecs {
             &mut self.tx_index,
             &mut self.output_type,
             &mut self.type_index,
+            &mut self.value,
         ]
         .into_par_iter()
     }
@@ -90,6 +98,7 @@ impl InputsVecs {
             &self.tx_index,
             &self.output_type,
             &self.type_index,
+            &self.value,
         ]
         .into_iter()
     }

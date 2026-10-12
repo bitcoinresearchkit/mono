@@ -17,14 +17,10 @@ pub(super) struct TxInReaders<'a, const WITH_INDEXES: bool> {
 }
 
 impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
-    pub(super) fn new(
-        indexer: &'a Indexer,
-        input_values: &'a PcoVec<TxInIndex, Sats>,
-        output_heights: &'a HeightMap<TxOutIndex>,
-    ) -> Self {
+    pub(super) fn new(indexer: &'a Indexer, output_heights: &'a HeightMap<TxOutIndex>) -> Self {
         let inputs = &indexer.vecs().inputs;
         Self {
-            input_values: input_values.cursor(),
+            input_values: inputs.value.cursor(),
             references: inputs.txout_index.cursor(),
             output_types: inputs.output_type.cursor(),
             type_indexes: inputs.type_index.cursor(),

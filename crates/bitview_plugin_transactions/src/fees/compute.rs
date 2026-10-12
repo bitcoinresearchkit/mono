@@ -6,14 +6,14 @@ use std::time::{Duration, Instant};
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::{HeightMap, Vecs as MappingsVecs};
-use bitview_primitives::{Boolean, Count, Lengths, TxInIndex};
+use bitview_primitives::{Boolean, Count, Lengths};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, TxIndex};
 use rayon::{join, prelude::*};
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, Error as VecError, PcoVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, VecIndex, WritableVec};
 
 use super::{super::size, Vecs};
 use block::Block;
@@ -25,7 +25,6 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        input_values: &PcoVec<TxInIndex, Sats>,
         mappings: &MappingsVecs,
         size_vecs: &size::Vecs,
         transfer_volume: &mut CachedSeries<Height, Sats>,
@@ -36,7 +35,6 @@ impl Vecs {
         self.compute_fees(
             Sources::from(indexer),
             starting_lengths,
-            input_values,
             &mappings.tx_heights.read(),
             &mappings.height.tx_index_count,
             transfer_volume,
@@ -76,13 +74,16 @@ impl Vecs {
         &mut self,
         raw: Sources<'_>,
         starting_lengths: Lengths,
-        input_values: &PcoVec<TxInIndex, Sats>,
         tx_heights: &HeightMap<TxIndex>,
         tx_counts: &impl ReadableVec<Height, Count>,
         transfer_volume: &mut CachedSeries<Height, Sats>,
         exit: &Exit,
     ) -> Result<()> {
-        let output_values = raw.values;
+        let Sources {
+            input_values,
+            output_values,
+            ..
+        } = raw;
         let monetary_version = input_values.version()
             + output_values.version()
             + raw.tx_outputs.version()

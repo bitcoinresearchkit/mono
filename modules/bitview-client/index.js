@@ -6374,14 +6374,12 @@ const _InputsTypes = _s({
 
 /**
  * @typedef {{
- *   value: SeriesPattern22<Sats>,
  *   count: BlocksSize<Count, ?CountFract>,
  *   perSecond: InputsPerSecond<?PerSecond>,
  *   types: InputsTypes,
  * }} Inputs
  */
 const _Inputs = _s({
-  value: [_i22, '*_value'],
   count: [_BlocksSize, '*_count'],
   perSecond: [_InputsPerSecond, 'inputs_per_second'],
   types: [_InputsTypes, '*'],
@@ -7073,6 +7071,7 @@ const _IndexerOutputs = _s({
  *   txIndex: SeriesPattern22<TxIndex>,
  *   outputType: SeriesPattern22<OutputType>,
  *   typeIndex: SeriesPattern22<TypeIndex>,
+ *   value: SeriesPattern22<Sats>,
  * }} IndexerInputs
  */
 const _IndexerInputs = _s({
@@ -7082,6 +7081,7 @@ const _IndexerInputs = _s({
   txIndex: [_i22, 'input_tx_*'],
   outputType: [_i22, 'output_type'],
   typeIndex: [_i22, 'type_*'],
+  value: [_i22, 'input_value'],
 });
 
 /**

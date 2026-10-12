@@ -1144,7 +1144,6 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_blocks",
  "bitview_plugin_indexer",
- "bitview_plugin_inputs",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_primitives",

@@ -4,7 +4,7 @@ use brk_types::Height;
 use rayon::join;
 use vecdb::{AnyVec, Database};
 
-use super::{Vecs, value};
+use super::Vecs;
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
@@ -27,17 +27,14 @@ impl ComputePlugin for Vecs {
         let exit = context.exit();
 
         let Vecs {
-            value,
             origins,
             count,
             types,
             ..
         } = self;
-        let (value_result, rest_result) = join(
+        let (origins_result, rest_result) = join(
             || {
-                value::compute(
-                    value,
-                    origins,
+                origins.compute(
                     indexer,
                     mappings,
                     indexer.safe_lengths().height,
@@ -50,7 +47,7 @@ impl ComputePlugin for Vecs {
                 types.compute(indexer, exit)
             },
         );
-        value_result?;
+        origins_result?;
         rest_result?;
 
         Ok(())

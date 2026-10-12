@@ -1,14 +1,12 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_primitives::TxInIndex;
-use brk_types::{Sats, Version};
-use vecdb::{AnyVec, PcoVec};
+use brk_types::Version;
+use vecdb::AnyVec;
 
 pub struct Dependencies<'a> {
     pub indexer: &'a Indexer,
     pub mappings: &'a MappingsVecs,
-    pub input_values: &'a PcoVec<TxInIndex, Sats>,
     pub price: &'a PriceVecs,
 }
 
@@ -18,7 +16,7 @@ impl Dependencies<'_> {
         Version::ONE
             + Version::combine_all([
                 self.price.spot.cents.height.version(),
-                self.input_values.version(),
+                v.inputs.value.version(),
                 v.outputs.first_txout_index.version(),
                 v.inputs.first_txin_index.version(),
                 v.outputs.value.version(),

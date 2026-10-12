@@ -1,6 +1,6 @@
 use bitview_primitives::TxOutIndex;
 use brk_error::{Error, Result};
-use brk_types::{OutPoint, SigOps32, TxIndex, Txid, TxidPrefix, Vout};
+use brk_types::{OutPoint, Sats, SigOps32, TxIndex, Txid, TxidPrefix, Vout};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use tracing::error;
@@ -46,11 +46,13 @@ impl InputResolver {
                         outpoint,
                         txout_offset,
                         txout_index,
+                        value,
                     } => {
                         *resolved = InputSource::SameBlock {
                             outpoint,
                             txout_offset,
                             txout_index,
+                            value,
                         };
                         Ok(())
                     }
@@ -78,6 +80,7 @@ impl InputResolver {
                             output_type,
                             legacy_sigops,
                             type_index,
+                            value: utxo.value(),
                         };
                         Ok(())
                     }
@@ -124,6 +127,7 @@ impl InputResolver {
                         outpoint: OutPoint::new(tx_index, vout),
                         txout_offset,
                         txout_index: block_first_txout_index + TxOutIndex::from(txout_offset),
+                        value: Sats::from(tx.tx.output[usize::from(vout)].value),
                     });
                 } else {
                     self.inputs.push(UnresolvedInput::PreviousBlock {
@@ -147,5 +151,6 @@ enum UnresolvedInput {
         outpoint: OutPoint,
         txout_offset: usize,
         txout_index: TxOutIndex,
+        value: Sats,
     },
 }

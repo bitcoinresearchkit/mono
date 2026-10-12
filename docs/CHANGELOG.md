@@ -12,7 +12,7 @@ A workspace-wide refactor: one job per crate, typed series values, a typed error
 composition model, and many correctness fixes.
 
 **Upgrading:** a node upgrading from v0.12.2 rebuilds once. VecDB headers moved to version 3 (they record the value
-size), so every stored vector resets; the indexer reindexes (indexer version 38) and every plugin recomputes. Nothing
+size), so every stored vector resets; the indexer reindexes (indexer version 41) and every plugin recomputes. Nothing
 has to be deleted by hand.
 
 ### Breaking Changes
@@ -145,6 +145,9 @@ has to be deleted by hand.
   `empty_output_tx_index`, `p2ms_output_tx_index`, `unknown_output_tx_index` and `op_return_tx_index` (were `tx_index`,
   at `.tx_index`, was `.to_tx_index`); per-output and per-input values are `output_value` and `input_value` (were both
   `value`)
+- `input_value` is the indexer's, at `indexer.inputs.value` (was `inputs.value`): the indexer writes each input's spent
+  value as it resolves the input (the unspent-output store carries the value), so `transactions` no longer depends on
+  `inputs`. The indexer reindexes (version 41)
 - Address balance bands' address count sits at `funded` like the root's and types' (was `address_count`; ids
   unchanged); the per-transaction vsize distributions (`tx_vsize_median`, ...) have every index like their weight and
   fee siblings; prices are `price.{open, high, low, close}` (were under `price.split`)
@@ -775,8 +778,8 @@ has to be deleted by hand.
   instead of a transaction-ID lookup and three reads of the output vectors. Indexing 970,536 blocks on a 16 GB Mac
   mini takes 4,421 s instead of 7,109 s (850,000 to 900,000 in half the time) and peaks 0.7 GiB higher, with the
   same series
-- The mempool resolves inputs that spend confirmed outputs through the unspent-output store first (one lookup, the
-  txid check, the value and the address bytes), falling back to the parent transaction: at startup its first two
+- The mempool resolves inputs that spend confirmed outputs through the unspent-output store first (one lookup, which
+  carries the value, the txid check and the address bytes), falling back to the parent transaction: at startup its first two
   resolutions take 0.65-0.74 s and 2.3-2.4 s instead of 1.0-1.1 s and 3.3 s (about 12,000 and 18,500 inputs)
 - Each transaction's first output index and each output's spending input are stored in 5 bytes instead of 8
   (`Index40`, indexes below 2^40, the unspent marker kept): at 970,536 blocks (1,455,732,334 transactions,

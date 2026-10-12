@@ -31,8 +31,8 @@ impl Query {
             let type_index_reader = indexer.vecs().outputs.type_index.reader();
             let value_reader = indexer.vecs().outputs.value.reader();
             let addr_readers = indexer.vecs().addrs.addr_readers();
-            // A confirmed unspent output with an address or empty script: a UTXO-store lookup, the txid
-            // check, its value and address bytes.
+            // A confirmed unspent output with an address or empty script: a UTXO-store lookup (which
+            // carries the value), the txid check and its address bytes.
             let unspent = |txid: Txid, vout: Vout| -> Option<TxOut> {
                 let utxo = indexer
                     .stores()
@@ -58,7 +58,7 @@ impl Query {
                         .get(output_type, type_index)?
                         .to_script_pubkey()
                 };
-                Some(TxOut::from((script_pubkey, value_reader.try_get(txout)?)))
+                Some(TxOut::from((script_pubkey, utxo.value())))
             };
             let mut resolved = FxHashMap::default();
             // The rest (misses: unknown, unsafe or spent-above-safe parents; P2MS and unknown scripts) go

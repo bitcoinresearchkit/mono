@@ -13,7 +13,7 @@ use bitview_primitives::{TxInIndex, TxOutIndex, TypeIndex};
 use brk_error::Result;
 use brk_types::{Height, OutputType, Sats};
 use rayon::join;
-use vecdb::{AnyVec, PcoVec, ReadableVec, VecIndex};
+use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use tx_in::TxInReaders;
 use tx_out::TxOutReaders;
@@ -128,14 +128,10 @@ pub struct Columns<'a, const WITH_INDEXES: bool> {
 }
 
 impl<'a, const WITH_INDEXES: bool> Columns<'a, WITH_INDEXES> {
-    pub fn new(
-        indexer: &'a Indexer,
-        input_values: &'a PcoVec<TxInIndex, Sats>,
-        output_heights: &'a HeightMap<TxOutIndex>,
-    ) -> Self {
+    pub fn new(indexer: &'a Indexer, output_heights: &'a HeightMap<TxOutIndex>) -> Self {
         Self {
             outputs: TxOutReaders::new(indexer),
-            inputs: TxInReaders::new(indexer, input_values, output_heights),
+            inputs: TxInReaders::new(indexer, output_heights),
         }
     }
 

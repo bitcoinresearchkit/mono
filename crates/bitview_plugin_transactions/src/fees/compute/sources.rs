@@ -13,7 +13,8 @@ pub(super) struct Sources<'a> {
     pub tx_outputs: &'a BytesVec<TxIndex, Index40<TxOutIndex>>,
     pub weights: &'a PcoVec<TxIndex, Weight32>,
     pub outpoints: &'a PcoVec<TxInIndex, OutPoint>,
-    pub values: &'a OverflowVec<TxOutIndex, Sats>,
+    pub input_values: &'a PcoVec<TxInIndex, Sats>,
+    pub output_values: &'a OverflowVec<TxOutIndex, Sats>,
 }
 
 impl<'a> From<&'a Indexer> for Sources<'a> {
@@ -27,7 +28,8 @@ impl<'a> From<&'a Indexer> for Sources<'a> {
             tx_outputs: &raw.transactions.first_txout_index,
             weights: &raw.transactions.weight,
             outpoints: &raw.inputs.outpoint,
-            values: &raw.outputs.value,
+            input_values: &raw.inputs.value,
+            output_values: &raw.outputs.value,
         }
     }
 }

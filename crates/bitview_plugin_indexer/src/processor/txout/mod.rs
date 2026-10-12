@@ -199,7 +199,7 @@ pub fn finalize_outputs(
             if !output_type.is_unspendable() {
                 utxos.insert(
                     UtxoKey::new(txid_prefix, vout),
-                    Utxo::new(tx_index, txout_index, output_type, type_index),
+                    Utxo::new(tx_index, txout_index, output_type, type_index, sats),
                 );
             }
 

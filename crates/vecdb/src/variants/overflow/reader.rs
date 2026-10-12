@@ -47,19 +47,10 @@ where
         decode::<T>(compact, |index| self.overflow.get_at(index))
     }
 
-    /// Returns the persisted value at `index`.
-    ///
-    /// # Panics
-    /// Panics if `index >= stored_len()`.
-    #[inline(always)]
-    pub fn get(&self, index: I) -> T {
-        self.get_at(index.to_usize())
-    }
-
     /// Returns the persisted value at raw `index`.
     ///
     /// # Panics
-    /// Panics if `index >= stored_len()`.
+    /// Panics if `index` is not persisted.
     #[inline(always)]
     pub fn get_at(&self, index: usize) -> T {
         self.decode(self.compact.get_at(index))
@@ -77,12 +68,6 @@ where
         self.compact
             .try_get_at(index)
             .map(|compact| self.decode(compact))
-    }
-
-    /// Returns the number of persisted values.
-    #[inline(always)]
-    pub fn stored_len(&self) -> usize {
-        self.compact.stored_len()
     }
 
     #[inline(always)]

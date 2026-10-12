@@ -1,9 +1,7 @@
 use bitview_distribution::readers::Columns;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::HeightMap;
-use bitview_primitives::{TxInIndex, TxOutIndex};
-use brk_types::Sats;
-use vecdb::PcoVec;
+use bitview_primitives::TxOutIndex;
 
 use crate::block::AddrCache;
 
@@ -15,13 +13,9 @@ pub struct Workspace<'a> {
 }
 
 impl<'a> Workspace<'a> {
-    pub fn new(
-        indexer: &'a Indexer,
-        values: &'a PcoVec<TxInIndex, Sats>,
-        heights: &'a HeightMap<TxOutIndex>,
-    ) -> Self {
+    pub fn new(indexer: &'a Indexer, heights: &'a HeightMap<TxOutIndex>) -> Self {
         Self {
-            columns: Columns::new(indexer, values, heights),
+            columns: Columns::new(indexer, heights),
             addresses: AddrCache::default(),
         }
     }

@@ -1,5 +1,5 @@
 use bitview_primitives::{TxOutIndex, TypeIndex};
-use brk_types::{OutputType, StoreValue, TxIndex, TxidPrefix, Vout};
+use brk_types::{OutputType, Sats, StoreValue, TxIndex, TxidPrefix, Vout};
 use vecdb::Bytes;
 
 /// Key of an unspent output: the creating transaction's txid prefix, then the output's vout.
@@ -30,10 +30,10 @@ impl StoreValue for UtxoKey {
     }
 }
 
-/// What resolving an input needs about the output it spends, packed (17 bytes, no padding: the pending map
-/// holds millions of them between saves).
+/// What resolving an input needs about the output it spends, its value included, packed (25 bytes, no padding:
+/// the pending map holds millions of them between saves).
 #[derive(Debug, Clone, Copy)]
-pub struct Utxo([u8; 17]);
+pub struct Utxo([u8; 25]);
 
 impl Utxo {
     #[inline]
@@ -42,12 +42,14 @@ impl Utxo {
         txout_index: TxOutIndex,
         output_type: OutputType,
         type_index: TypeIndex,
+        value: Sats,
     ) -> Self {
-        let mut bytes = [0; 17];
+        let mut bytes = [0; 25];
         bytes[..4].copy_from_slice(&u32::from(tx_index).to_be_bytes());
         bytes[4..12].copy_from_slice(&u64::from(txout_index).to_be_bytes());
         bytes[12] = output_type as u8;
-        bytes[13..].copy_from_slice(&u32::from(type_index).to_be_bytes());
+        bytes[13..17].copy_from_slice(&u32::from(type_index).to_be_bytes());
+        bytes[17..].copy_from_slice(&u64::from(value).to_be_bytes());
         Self(bytes)
     }
 
@@ -68,12 +70,17 @@ impl Utxo {
 
     #[inline]
     pub fn type_index(&self) -> TypeIndex {
-        TypeIndex::from(u32::from_be_bytes(self.0[13..].try_into().unwrap()))
+        TypeIndex::from(u32::from_be_bytes(self.0[13..17].try_into().unwrap()))
+    }
+
+    #[inline]
+    pub fn value(&self) -> Sats {
+        Sats::from(u64::from_be_bytes(self.0[17..].try_into().unwrap()))
     }
 }
 
 impl StoreValue for Utxo {
-    type Bytes = [u8; 17];
+    type Bytes = [u8; 25];
 
     #[inline]
     fn to_store_bytes(&self) -> Self::Bytes {

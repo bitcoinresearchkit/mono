@@ -45,7 +45,6 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             indexer,
             mappings,
-            input_values,
             price,
         } = deps;
         let hash = tip_hash(indexer, start);
@@ -78,7 +77,7 @@ impl ComputePlugin for Vecs {
         prices.truncate(start);
         prices.extend(price.spot.cents.height.collect_range_at(prices.len(), end));
         let output_heights = mappings.output_heights.read();
-        let mut workspace = Workspace::new(indexer, input_values, &output_heights);
+        let mut workspace = Workspace::new(indexer, &output_heights);
         let mut from = start;
         while from < end {
             let to = (from + 10_000).min(end);

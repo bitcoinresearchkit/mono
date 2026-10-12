@@ -1,5 +1,5 @@
 use bitview_primitives::{TxOutIndex, TypeIndex};
-use brk_types::{OutPoint, OutputType, SigOps32};
+use brk_types::{OutPoint, OutputType, Sats, SigOps32};
 
 #[derive(Debug, Clone, Copy)]
 pub enum InputSource {
@@ -10,10 +10,12 @@ pub enum InputSource {
         output_type: OutputType,
         legacy_sigops: SigOps32,
         type_index: TypeIndex,
+        value: Sats,
     },
     SameBlock {
         outpoint: OutPoint,
         txout_offset: usize,
         txout_index: TxOutIndex,
+        value: Sats,
     },
 }

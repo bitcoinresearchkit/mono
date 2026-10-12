@@ -454,6 +454,7 @@ impl Stores {
         let mut output_types = vecs.inputs.output_type.cursor();
         let mut type_indexes = vecs.inputs.type_index.cursor();
         let mut spending_tx_indexes = vecs.inputs.tx_index.cursor();
+        let mut values = vecs.inputs.value.cursor();
 
         for index in start..end {
             let outpoint = outpoints.get(index).data()?;
@@ -472,6 +473,7 @@ impl Stores {
                         txout_indexes.get(index).data()?,
                         output_type,
                         type_index,
+                        values.get(index).data()?,
                     ),
                 );
             }

@@ -117,7 +117,6 @@ impl DefaultPlugins {
                     self.transactions.compute(
                         TransactionsDependencies {
                             indexer,
-                            inputs: self.inputs.as_ref(),
                             mappings: self.mappings.as_ref(),
                             blocks: self.blocks.as_ref(),
                             price: self.price.as_ref(),
@@ -165,7 +164,6 @@ impl DefaultPlugins {
                         UtxosDependencies {
                             indexer,
                             mappings: &self.mappings,
-                            input_values: &self.inputs.value,
                             price: &self.price,
                         },
                         context,
@@ -179,7 +177,6 @@ impl DefaultPlugins {
                         AddressesDependencies {
                             indexer,
                             mappings: &self.mappings,
-                            input_values: &self.inputs.value,
                             price: &self.price,
                         },
                         context,

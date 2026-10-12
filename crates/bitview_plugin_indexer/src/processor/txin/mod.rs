@@ -8,7 +8,7 @@ use bitcoin::Transaction;
 use bitview_cohort::ByAddrType;
 use bitview_primitives::{AddrIndexOutPoint, AddrIndexTxIndex, TxInIndex, TxOutIndex, TypeIndex};
 use brk_store::Store;
-use brk_types::{OutPoint, OutputType, TxIndex, Txid, TxidPrefix, Unit, Vin, Vout};
+use brk_types::{OutPoint, OutputType, Sats, TxIndex, Txid, TxidPrefix, Unit, Vin, Vout};
 use vecdb::{PcoVec, WritableVec, unlikely};
 
 use super::txout::ProcessedOutput;
@@ -43,24 +43,27 @@ pub fn finalize_inputs(
             let block_txin_index = input_offset + vin;
             let txin_index = base_txin_index + TxInIndex::from(block_txin_index);
             let vin = Vin::from(vin);
-            let (outpoint, txout_index, output_type, type_index) = match input_source {
+            let (outpoint, txout_index, output_type, type_index, value) = match input_source {
                 InputSource::PreviousBlock {
                     outpoint,
                     txout_index,
                     output_type,
                     legacy_sigops: _,
                     type_index,
-                } => (*outpoint, *txout_index, *output_type, *type_index),
+                    value,
+                } => (*outpoint, *txout_index, *output_type, *type_index, *value),
                 InputSource::Coinbase => (
                     OutPoint::COINBASE,
                     TxOutIndex::COINBASE,
                     OutputType::Unknown,
                     TypeIndex::COINBASE,
+                    Sats::MAX,
                 ),
                 InputSource::SameBlock {
                     outpoint,
                     txout_offset,
                     txout_index,
+                    value,
                 } => {
                     let output = &txouts[*txout_offset];
                     (
@@ -68,6 +71,7 @@ pub fn finalize_inputs(
                         *txout_index,
                         output.output_type,
                         output.resolved_type_index(),
+                        *value,
                     )
                 }
             };
@@ -94,6 +98,7 @@ pub fn finalize_inputs(
                 .output_type
                 .debug_checked_push(txin_index, output_type);
             inputs.type_index.debug_checked_push(txin_index, type_index);
+            inputs.value.debug_checked_push(txin_index, value);
 
             if unlikely(!output_type.is_addr()) {
                 continue;

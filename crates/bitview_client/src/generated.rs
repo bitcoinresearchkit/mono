@@ -2824,7 +2824,6 @@ pub mod tree {
         empty: TypesEmpty = "empty_*",
     } }
     shape! { Inputs at "series().inputs" {
-        value: SeriesPattern22<Sats> = "*_value",
         count: BlocksSize<Count, Option<CountFract>> = "*_count",
         per_second: InputsPerSecond<Option<PerSecond>> = "inputs_per_second",
         types: InputsTypes = "*",
@@ -3097,6 +3096,7 @@ pub mod tree {
         tx_index: SeriesPattern22<TxIndex> = "input_tx_*",
         output_type: SeriesPattern22<OutputType> = "output_type",
         type_index: SeriesPattern22<TypeIndex> = "type_*",
+        value: SeriesPattern22<Sats> = "input_value",
     } }
     shape! { OneInput at "series().transactions.features.one_input" {
         block: SeriesPattern20<Count> = "*",

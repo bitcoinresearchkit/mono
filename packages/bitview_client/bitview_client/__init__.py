@@ -4949,7 +4949,6 @@ class InputsTypes(_Node):
 
 
 class Inputs(_Node):
-    value: SeriesPattern22[Sats] = _at(SeriesPattern22, '*_value')
     count: BlocksSize[Count, Optional[CountFract]] = _at(BlocksSize, '*_count')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, 'inputs_per_second')
     types: InputsTypes = _at(InputsTypes, '*')
@@ -5275,6 +5274,7 @@ class IndexerInputs(_Node):
     tx_index: SeriesPattern22[TxIndex] = _at(SeriesPattern22, 'input_tx_*')
     output_type: SeriesPattern22[OutputType] = _at(SeriesPattern22, 'output_type')
     type_index: SeriesPattern22[TypeIndex] = _at(SeriesPattern22, 'type_*')
+    value: SeriesPattern22[Sats] = _at(SeriesPattern22, 'input_value')
 
 
 class OneInput(_Node):
