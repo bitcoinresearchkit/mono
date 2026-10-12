@@ -113,7 +113,7 @@ pub enum Error {
     UnindexableDate,
 
     #[error("The provided address appears to be invalid")]
-    InvalidAddr,
+    InvalidAddress,
 
     #[error("Invalid network")]
     InvalidNetwork,

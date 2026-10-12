@@ -8,18 +8,18 @@ const COUNT_BITS: u32 = 21;
 const COUNT_MASK: u32 = (1 << COUNT_BITS) - 1;
 const OVERFLOW_TAG: u64 = 1 << 63;
 
-/// Compact inline storage used by `OverflowVec<_, FundedAddrData>`.
+/// Compact inline storage used by `OverflowVec<_, FundedAddressData>`.
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
-pub struct FundedAddrDataCompact {
+pub struct FundedAddressDataCompact {
     received: u64,
     sent: u64,
     realized_cap_raw: u64,
     counts: u64,
 }
 
-impl FundedAddrDataCompact {
+impl FundedAddressDataCompact {
     #[inline(always)]
     pub(crate) fn new(
         received: u64,
@@ -95,7 +95,7 @@ impl FundedAddrDataCompact {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for FundedAddrDataCompact {
+impl Bytes for FundedAddressDataCompact {
     type Array = [u8; 32];
 
     const IS_NATIVE_LAYOUT: bool = cfg!(target_endian = "little");

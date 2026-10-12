@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 ///
 #[derive(Debug, Default, Clone, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-pub struct AddrMempoolStats {
+pub struct AddressMempoolStats {
     /// Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
     pub balance_delta: SatsSigned,
 
@@ -35,7 +35,7 @@ pub struct AddrMempoolStats {
     pub tx_count: u32,
 }
 
-impl AddrMempoolStats {
+impl AddressMempoolStats {
     pub fn receiving(&mut self, txout: &TxOut) {
         self.balance_delta += SatsSigned::from(txout.value);
         self.funded_txo_count += 1;

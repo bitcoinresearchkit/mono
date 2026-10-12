@@ -1,6 +1,6 @@
 use bitview_primitives::AddrHash;
-use bitview_types::AddrHashPrefixMatches;
-use brk_types::{Addr, OutputType};
+use bitview_types::AddressHashPrefixMatches;
+use brk_types::{Address, OutputType};
 
 use crate::{Error, Query, Result};
 
@@ -11,7 +11,7 @@ impl Query {
         &self,
         addr_type: OutputType,
         prefix: &str,
-    ) -> Result<AddrHashPrefixMatches> {
+    ) -> Result<AddressHashPrefixMatches> {
         if !addr_type.is_addr() {
             return Err(Error::UnsupportedType(addr_type.to_string()));
         }
@@ -32,7 +32,7 @@ impl Query {
 
             let script = addr_readers.script_pubkey(addr_type, type_index);
             addresses.push(
-                Addr::try_from((&script, addr_type))
+                Address::try_from((&script, addr_type))
                     .map_err(|_| Error::Internal("stored script is not an address"))?,
             );
 
@@ -48,7 +48,7 @@ impl Query {
         {
             let script = addr_readers.script_pubkey(addr_type, type_index);
             addresses.push(
-                Addr::try_from((&script, addr_type))
+                Address::try_from((&script, addr_type))
                     .map_err(|_| Error::Internal("stored script is not an address"))?,
             );
         }
@@ -56,8 +56,8 @@ impl Query {
         let truncated = addresses.len() > ADDR_HASH_PREFIX_MATCH_LIMIT;
         addresses.truncate(ADDR_HASH_PREFIX_MATCH_LIMIT);
 
-        Ok(AddrHashPrefixMatches {
-            addr_type,
+        Ok(AddressHashPrefixMatches {
+            address_type: addr_type,
             prefix: prefix.text,
             truncated,
             addresses,

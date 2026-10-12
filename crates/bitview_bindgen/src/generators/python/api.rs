@@ -96,13 +96,13 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
 
     def get_address_payload_hash_prefix_matches(
         self,
-        addr_type: OutputType,
+        address_type: OutputType,
         payload: Union[bytes, bytearray, memoryview],
         nibbles: int,
-    ) -> AddrHashPrefixMatches:
-        """Fetch address hash-prefix matches from raw payload bytes matching addr_type length."""
-        _validate_address_payload_for_type(addr_type, payload)
-        return self.get_address_hash_prefix_matches(addr_type, address_payload_hash_prefix(payload, nibbles))
+    ) -> AddressHashPrefixMatches:
+        """Fetch address hash-prefix matches from raw payload bytes matching address_type length."""
+        _validate_address_payload_for_type(address_type, payload)
+        return self.get_address_hash_prefix_matches(address_type, address_payload_hash_prefix(payload, nibbles))
 
 "#);
     // Generate API methods

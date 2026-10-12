@@ -11,7 +11,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address information",
         description: "Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -24,7 +24,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address confirmed transactions",
         description: "Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -37,7 +37,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address confirmed transactions (paginated)",
         description: "Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
             Parameter { api_name: "after_txid", name: "after-txid", required: true, value_name: "Txid", repeatable: false, description: Some("Last txid from the previous page (return transactions strictly older than this)") },
         ],
         query_parameters: &[
@@ -47,11 +47,11 @@ pub static COMMANDS: &[Command] = &[
     Command {
         name: "get-address-hash-prefix-matches",
         method: "GET",
-        path: "/api/address/hash-prefix/{addr_type}/{prefix}",
+        path: "/api/address/hash-prefix/{address_type}/{prefix}",
         summary: "Address hash-prefix matches",
         description: "Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.",
         path_parameters: &[
-            Parameter { api_name: "addr_type", name: "addr-type", required: true, value_name: "OutputType", repeatable: false, description: None },
+            Parameter { api_name: "address_type", name: "address-type", required: true, value_name: "OutputType", repeatable: false, description: None },
             Parameter { api_name: "prefix", name: "prefix", required: true, value_name: "string", repeatable: false, description: Some("First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw\naddress payload bytes.") },
         ],
         query_parameters: &[
@@ -65,7 +65,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address mempool transactions",
         description: "Get unconfirmed transactions for an address from the mempool, newest first (up to 50).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -78,7 +78,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address transactions",
         description: "Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -91,7 +91,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address UTXOs",
         description: "Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],

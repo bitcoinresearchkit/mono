@@ -5,7 +5,7 @@ use std::collections::hash_map::Entry;
 use bitview_cohort::ByAddrType;
 use bitview_primitives::{AddrHash, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{AddrBytes, OutputType, TxIndex, Vout};
+use brk_types::{AddressBytes, OutputType, TxIndex, Vout};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use tracing::error;
@@ -108,7 +108,7 @@ impl BlockAddresses {
                     continue;
                 };
                 let addr_bytes =
-                    AddrBytes::try_from((&txout.script_pubkey, output.output_type)).unwrap();
+                    AddressBytes::try_from((&txout.script_pubkey, output.output_type)).unwrap();
 
                 let prev_addrbytes = processor
                     .vecs

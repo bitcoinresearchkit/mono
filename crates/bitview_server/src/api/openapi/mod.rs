@@ -59,7 +59,7 @@ All errors return structured JSON with a consistent format:
 ```
 
 - **`type`**: Error category, following the status — `invalid_request` (4xx other than 404), `not_found` (404), `unavailable` (503), `timeout` (504), or `internal` (other 5xx); see the `ErrorType` schema
-- **`code`**: Machine-readable error code (e.g. `invalid_addr`, `series_not_found`, `weight_exceeded`); see the `ErrorCode` schema
+- **`code`**: Machine-readable error code (e.g. `invalid_address`, `series_not_found`, `weight_exceeded`); see the `ErrorCode` schema
 - **`message`**: Human-readable description
 - **`doc_url`**: Link to API documentation
 

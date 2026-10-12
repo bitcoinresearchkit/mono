@@ -8,7 +8,7 @@ use brk_types::{Cents, CentsSats, OutputType, Sats};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
-use crate::{EmptyAddrData, unlikely};
+use crate::{EmptyAddressData, unlikely};
 
 #[cfg(feature = "storage")]
 use vecdb::Result;
@@ -17,7 +17,7 @@ use vecdb::Result;
 use vecdb::{Bytes, Formattable, OverflowVecValue, Version};
 
 #[cfg(feature = "storage")]
-use crate::FundedAddrDataCompact;
+use crate::FundedAddressDataCompact;
 
 const CENTS_SATS_96_LIMIT: u128 = 1_u128 << 96;
 
@@ -118,7 +118,7 @@ impl<'de> Deserialize<'de> for CentsSats96 {
 /// Kept compact because one value is stored for every funded address.
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[repr(C)]
-pub struct FundedAddrData {
+pub struct FundedAddressData {
     /// Satoshis received by this address
     pub received: Sats,
     /// Satoshis sent by this address
@@ -133,7 +133,7 @@ pub struct FundedAddrData {
     pub spent_txo_count: u32,
 }
 
-impl FundedAddrData {
+impl FundedAddressData {
     pub fn balance(&self) -> Sats {
         (u64::from(self.received) - u64::from(self.sent)).into()
     }
@@ -272,16 +272,16 @@ impl FundedAddrData {
     }
 }
 
-impl From<EmptyAddrData> for FundedAddrData {
+impl From<EmptyAddressData> for FundedAddressData {
     #[inline]
-    fn from(value: EmptyAddrData) -> Self {
+    fn from(value: EmptyAddressData) -> Self {
         Self::from(&value)
     }
 }
 
-impl From<&EmptyAddrData> for FundedAddrData {
+impl From<&EmptyAddressData> for FundedAddressData {
     #[inline]
-    fn from(value: &EmptyAddrData) -> Self {
+    fn from(value: &EmptyAddressData) -> Self {
         Self {
             received: value.transfered,
             sent: value.transfered,
@@ -293,7 +293,7 @@ impl From<&EmptyAddrData> for FundedAddrData {
     }
 }
 
-impl Display for FundedAddrData {
+impl Display for FundedAddressData {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
             f,
@@ -309,7 +309,7 @@ impl Display for FundedAddrData {
 }
 
 #[cfg(feature = "storage")]
-impl Formattable for FundedAddrData {
+impl Formattable for FundedAddressData {
     fn write_to(&self, buf: &mut Vec<u8>) {
         use std::io::Write;
         write!(buf, "{self}").unwrap();
@@ -333,7 +333,7 @@ impl Formattable for FundedAddrData {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for FundedAddrData {
+impl Bytes for FundedAddressData {
     type Array = [u8; size_of::<Self>()];
 
     fn to_bytes(&self) -> Self::Array {
@@ -360,14 +360,14 @@ impl Bytes for FundedAddrData {
 }
 
 #[cfg(feature = "storage")]
-impl OverflowVecValue for FundedAddrData {
-    type Compact = FundedAddrDataCompact;
+impl OverflowVecValue for FundedAddressData {
+    type Compact = FundedAddressDataCompact;
 
     const VERSION: Version = Version::ONE;
 
     #[inline(always)]
     fn to_compact(&self) -> Option<Self::Compact> {
-        FundedAddrDataCompact::new(
+        FundedAddressDataCompact::new(
             self.received.into(),
             self.sent.into(),
             self.realized_cap_raw().into(),
@@ -398,6 +398,6 @@ impl OverflowVecValue for FundedAddrData {
 
     #[inline(always)]
     fn from_overflow_index(index: usize) -> Self::Compact {
-        FundedAddrDataCompact::from_overflow_index(index)
+        FundedAddressDataCompact::from_overflow_index(index)
     }
 }

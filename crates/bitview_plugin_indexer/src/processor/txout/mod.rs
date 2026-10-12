@@ -13,7 +13,7 @@ use bitview_primitives::{
 };
 use brk_error::Result;
 use brk_store::Store;
-use brk_types::{AddrBytes, OutPoint, OutputType, Sats, SigOps32, TxIndex, Unit, Vout};
+use brk_types::{AddressBytes, OutPoint, OutputType, Sats, SigOps32, TxIndex, Unit, Vout};
 use vecdb::{BytesVec, WritableVec, likely};
 
 use super::{BlockProcessor, transaction::ComputedTx};
@@ -131,7 +131,7 @@ pub fn finalize_outputs(
                             .get_mut_unwrap(addr_type)
                             .insert(addr_hash, ti);
                         let addr_bytes =
-                            AddrBytes::try_from((&txout.script_pubkey, addr_type)).unwrap();
+                            AddressBytes::try_from((&txout.script_pubkey, addr_type)).unwrap();
                         addrs.push_bytes_if_needed(ti, addr_bytes);
 
                         ti

@@ -8,7 +8,7 @@ use std::{
 };
 
 use brk_mempool::Cycle;
-use brk_types::{Addr, AddrBytes, BlockHash, NextBlockHash, RecommendedFees, Txid};
+use brk_types::{Address, AddressBytes, BlockHash, NextBlockHash, RecommendedFees, Txid};
 use rustc_hash::FxHashSet;
 use serde_json::to_writer;
 
@@ -74,16 +74,16 @@ impl Emitter {
         out.flush()
     }
 
-    /// Render an `AddrBytes` and emit it via `make_event`. Unrenderable
+    /// Render an `AddressBytes` and emit it via `make_event`. Unrenderable
     /// bytes (e.g. exotic non-standard scripts) drop a one-line warning
     /// to stderr - the event stream stays clean for downstream `jq`.
     fn emit_addr<W: Write>(
         out: &mut W,
         t: f64,
-        bytes: &AddrBytes,
-        make_event: fn(f64, Addr) -> Event,
+        bytes: &AddressBytes,
+        make_event: fn(f64, Address) -> Event,
     ) -> io::Result<()> {
-        match Addr::try_from(bytes) {
+        match Address::try_from(bytes) {
             Ok(addr) => write_line(out, &make_event(t, addr)),
             Err(e) => {
                 eprintln!("mmpl: skipping addr event: {e}");

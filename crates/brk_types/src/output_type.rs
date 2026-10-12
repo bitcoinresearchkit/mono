@@ -19,7 +19,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::AddrBytes;
+use crate::AddressBytes;
 
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable, Pco};
@@ -224,18 +224,18 @@ impl From<AddressType> for OutputType {
     }
 }
 
-impl From<&AddrBytes> for OutputType {
+impl From<&AddressBytes> for OutputType {
     #[inline]
-    fn from(bytes: &AddrBytes) -> Self {
+    fn from(bytes: &AddressBytes) -> Self {
         match bytes {
-            AddrBytes::P2PK65(_) => Self::P2PK65,
-            AddrBytes::P2PK33(_) => Self::P2PK33,
-            AddrBytes::P2PKH(_) => Self::P2PKH,
-            AddrBytes::P2SH(_) => Self::P2SH,
-            AddrBytes::P2WPKH(_) => Self::P2WPKH,
-            AddrBytes::P2WSH(_) => Self::P2WSH,
-            AddrBytes::P2TR(_) => Self::P2TR,
-            AddrBytes::P2A(_) => Self::P2A,
+            AddressBytes::P2PK65(_) => Self::P2PK65,
+            AddressBytes::P2PK33(_) => Self::P2PK33,
+            AddressBytes::P2PKH(_) => Self::P2PKH,
+            AddressBytes::P2SH(_) => Self::P2SH,
+            AddressBytes::P2WPKH(_) => Self::P2WPKH,
+            AddressBytes::P2WSH(_) => Self::P2WSH,
+            AddressBytes::P2TR(_) => Self::P2TR,
+            AddressBytes::P2A(_) => Self::P2A,
         }
     }
 }

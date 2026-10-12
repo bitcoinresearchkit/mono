@@ -6,12 +6,13 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, de::Error as DeError};
 
 use crate::{
-    Date, Day1, Day3, EmptyAddrIndex, EmptyOutputIndex, Epoch, ExtendedEmptyAddrIndex,
-    FundedAddrIndex, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3, Month6,
-    OpReturnIndex, P2AAddrIndex, P2MSOutputIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex,
-    P2SHAddrIndex, P2TRAddrIndex, P2WPKHAddrIndex, P2WSHAddrIndex, TxInIndex, TxOutIndex,
-    UnknownOutputIndex, Week1, Year1, Year10, hour1::HOUR1_INTERVAL, hour4::HOUR4_INTERVAL,
-    hour12::HOUR12_INTERVAL, minute10::MINUTE10_INTERVAL, minute30::MINUTE30_INTERVAL,
+    Date, Day1, Day3, EmptyAddressIndex, EmptyOutputIndex, Epoch, ExtendedEmptyAddressIndex,
+    FundedAddressIndex, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3, Month6,
+    OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex, P2PK65AddressIndex,
+    P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex, P2WSHAddressIndex,
+    TxInIndex, TxOutIndex, UnknownOutputIndex, Week1, Year1, Year10, hour1::HOUR1_INTERVAL,
+    hour4::HOUR4_INTERVAL, hour12::HOUR12_INTERVAL, minute10::MINUTE10_INTERVAL,
+    minute30::MINUTE30_INTERVAL,
 };
 
 /// 2009-01-01 00:00:00 UTC — epoch for fixed-interval time indexes.
@@ -49,32 +50,32 @@ pub enum Index {
     EmptyOutputIndex,
     #[serde(rename = "op_return_index")]
     OpReturnIndex,
-    #[serde(rename = "p2a_addr_index")]
-    P2AAddrIndex,
+    #[serde(rename = "p2a_address_index")]
+    P2AAddressIndex,
     #[serde(rename = "p2ms_output_index")]
     P2MSOutputIndex,
-    #[serde(rename = "p2pk33_addr_index")]
-    P2PK33AddrIndex,
-    #[serde(rename = "p2pk65_addr_index")]
-    P2PK65AddrIndex,
-    #[serde(rename = "p2pkh_addr_index")]
-    P2PKHAddrIndex,
-    #[serde(rename = "p2sh_addr_index")]
-    P2SHAddrIndex,
-    #[serde(rename = "p2tr_addr_index")]
-    P2TRAddrIndex,
-    #[serde(rename = "p2wpkh_addr_index")]
-    P2WPKHAddrIndex,
-    #[serde(rename = "p2wsh_addr_index")]
-    P2WSHAddrIndex,
+    #[serde(rename = "p2pk33_address_index")]
+    P2PK33AddressIndex,
+    #[serde(rename = "p2pk65_address_index")]
+    P2PK65AddressIndex,
+    #[serde(rename = "p2pkh_address_index")]
+    P2PKHAddressIndex,
+    #[serde(rename = "p2sh_address_index")]
+    P2SHAddressIndex,
+    #[serde(rename = "p2tr_address_index")]
+    P2TRAddressIndex,
+    #[serde(rename = "p2wpkh_address_index")]
+    P2WPKHAddressIndex,
+    #[serde(rename = "p2wsh_address_index")]
+    P2WSHAddressIndex,
     #[serde(rename = "unknown_output_index")]
     UnknownOutputIndex,
-    #[serde(rename = "funded_addr_index")]
-    FundedAddrIndex,
-    #[serde(rename = "empty_addr_index")]
-    EmptyAddrIndex,
-    #[serde(rename = "extended_empty_addr_index")]
-    ExtendedEmptyAddrIndex,
+    #[serde(rename = "funded_address_index")]
+    FundedAddressIndex,
+    #[serde(rename = "empty_address_index")]
+    EmptyAddressIndex,
+    #[serde(rename = "extended_empty_address_index")]
+    ExtendedEmptyAddressIndex,
 }
 
 /// How the trailing edge of an [`Index`] mutates over time. Drives the series
@@ -89,8 +90,8 @@ pub enum CacheClass {
     /// addr). Stable count must be looked up via the indexer's
     /// `first_X_index[tip - 6]` mapping.
     Entity,
-    /// Retroactively mutable: no immutable region (`FundedAddrIndex`,
-    /// `EmptyAddrIndex`).
+    /// Retroactively mutable: no immutable region (`FundedAddressIndex`,
+    /// `EmptyAddressIndex`).
     Mutable,
 }
 
@@ -118,19 +119,19 @@ impl Index {
             Self::TxOutIndex,
             Self::EmptyOutputIndex,
             Self::OpReturnIndex,
-            Self::P2AAddrIndex,
+            Self::P2AAddressIndex,
             Self::P2MSOutputIndex,
-            Self::P2PK33AddrIndex,
-            Self::P2PK65AddrIndex,
-            Self::P2PKHAddrIndex,
-            Self::P2SHAddrIndex,
-            Self::P2TRAddrIndex,
-            Self::P2WPKHAddrIndex,
-            Self::P2WSHAddrIndex,
+            Self::P2PK33AddressIndex,
+            Self::P2PK65AddressIndex,
+            Self::P2PKHAddressIndex,
+            Self::P2SHAddressIndex,
+            Self::P2TRAddressIndex,
+            Self::P2WPKHAddressIndex,
+            Self::P2WSHAddressIndex,
             Self::UnknownOutputIndex,
-            Self::FundedAddrIndex,
-            Self::EmptyAddrIndex,
-            Self::ExtendedEmptyAddrIndex,
+            Self::FundedAddressIndex,
+            Self::EmptyAddressIndex,
+            Self::ExtendedEmptyAddressIndex,
         ]
     }
 
@@ -157,19 +158,19 @@ impl Index {
             Self::TxOutIndex => TxOutIndex::index_aliases(),
             Self::EmptyOutputIndex => EmptyOutputIndex::index_aliases(),
             Self::OpReturnIndex => OpReturnIndex::index_aliases(),
-            Self::P2AAddrIndex => P2AAddrIndex::index_aliases(),
+            Self::P2AAddressIndex => P2AAddressIndex::index_aliases(),
             Self::P2MSOutputIndex => P2MSOutputIndex::index_aliases(),
-            Self::P2PK33AddrIndex => P2PK33AddrIndex::index_aliases(),
-            Self::P2PK65AddrIndex => P2PK65AddrIndex::index_aliases(),
-            Self::P2PKHAddrIndex => P2PKHAddrIndex::index_aliases(),
-            Self::P2SHAddrIndex => P2SHAddrIndex::index_aliases(),
-            Self::P2TRAddrIndex => P2TRAddrIndex::index_aliases(),
-            Self::P2WPKHAddrIndex => P2WPKHAddrIndex::index_aliases(),
-            Self::P2WSHAddrIndex => P2WSHAddrIndex::index_aliases(),
+            Self::P2PK33AddressIndex => P2PK33AddressIndex::index_aliases(),
+            Self::P2PK65AddressIndex => P2PK65AddressIndex::index_aliases(),
+            Self::P2PKHAddressIndex => P2PKHAddressIndex::index_aliases(),
+            Self::P2SHAddressIndex => P2SHAddressIndex::index_aliases(),
+            Self::P2TRAddressIndex => P2TRAddressIndex::index_aliases(),
+            Self::P2WPKHAddressIndex => P2WPKHAddressIndex::index_aliases(),
+            Self::P2WSHAddressIndex => P2WSHAddressIndex::index_aliases(),
             Self::UnknownOutputIndex => UnknownOutputIndex::index_aliases(),
-            Self::FundedAddrIndex => FundedAddrIndex::index_aliases(),
-            Self::EmptyAddrIndex => EmptyAddrIndex::index_aliases(),
-            Self::ExtendedEmptyAddrIndex => ExtendedEmptyAddrIndex::index_aliases(),
+            Self::FundedAddressIndex => FundedAddressIndex::index_aliases(),
+            Self::EmptyAddressIndex => EmptyAddressIndex::index_aliases(),
+            Self::ExtendedEmptyAddressIndex => ExtendedEmptyAddressIndex::index_aliases(),
         }
     }
 
@@ -196,19 +197,19 @@ impl Index {
             Self::TxOutIndex => TxOutIndex::index_name(),
             Self::EmptyOutputIndex => EmptyOutputIndex::index_name(),
             Self::OpReturnIndex => OpReturnIndex::index_name(),
-            Self::P2AAddrIndex => P2AAddrIndex::index_name(),
+            Self::P2AAddressIndex => P2AAddressIndex::index_name(),
             Self::P2MSOutputIndex => P2MSOutputIndex::index_name(),
-            Self::P2PK33AddrIndex => P2PK33AddrIndex::index_name(),
-            Self::P2PK65AddrIndex => P2PK65AddrIndex::index_name(),
-            Self::P2PKHAddrIndex => P2PKHAddrIndex::index_name(),
-            Self::P2SHAddrIndex => P2SHAddrIndex::index_name(),
-            Self::P2TRAddrIndex => P2TRAddrIndex::index_name(),
-            Self::P2WPKHAddrIndex => P2WPKHAddrIndex::index_name(),
-            Self::P2WSHAddrIndex => P2WSHAddrIndex::index_name(),
+            Self::P2PK33AddressIndex => P2PK33AddressIndex::index_name(),
+            Self::P2PK65AddressIndex => P2PK65AddressIndex::index_name(),
+            Self::P2PKHAddressIndex => P2PKHAddressIndex::index_name(),
+            Self::P2SHAddressIndex => P2SHAddressIndex::index_name(),
+            Self::P2TRAddressIndex => P2TRAddressIndex::index_name(),
+            Self::P2WPKHAddressIndex => P2WPKHAddressIndex::index_name(),
+            Self::P2WSHAddressIndex => P2WSHAddressIndex::index_name(),
             Self::UnknownOutputIndex => UnknownOutputIndex::index_name(),
-            Self::FundedAddrIndex => FundedAddrIndex::index_name(),
-            Self::EmptyAddrIndex => EmptyAddrIndex::index_name(),
-            Self::ExtendedEmptyAddrIndex => ExtendedEmptyAddrIndex::index_name(),
+            Self::FundedAddressIndex => FundedAddressIndex::index_name(),
+            Self::EmptyAddressIndex => EmptyAddressIndex::index_name(),
+            Self::ExtendedEmptyAddressIndex => ExtendedEmptyAddressIndex::index_name(),
         }
     }
 
@@ -230,19 +231,19 @@ impl Index {
             | Self::TxOutIndex
             | Self::EmptyOutputIndex
             | Self::OpReturnIndex
-            | Self::P2AAddrIndex
+            | Self::P2AAddressIndex
             | Self::P2MSOutputIndex
-            | Self::P2PK33AddrIndex
-            | Self::P2PK65AddrIndex
-            | Self::P2PKHAddrIndex
-            | Self::P2SHAddrIndex
-            | Self::P2TRAddrIndex
-            | Self::P2WPKHAddrIndex
-            | Self::P2WSHAddrIndex
+            | Self::P2PK33AddressIndex
+            | Self::P2PK65AddressIndex
+            | Self::P2PKHAddressIndex
+            | Self::P2SHAddressIndex
+            | Self::P2TRAddressIndex
+            | Self::P2WPKHAddressIndex
+            | Self::P2WSHAddressIndex
             | Self::UnknownOutputIndex => CacheClass::Entity,
-            Self::FundedAddrIndex | Self::EmptyAddrIndex | Self::ExtendedEmptyAddrIndex => {
-                CacheClass::Mutable
-            }
+            Self::FundedAddressIndex
+            | Self::EmptyAddressIndex
+            | Self::ExtendedEmptyAddressIndex => CacheClass::Mutable,
         }
     }
 

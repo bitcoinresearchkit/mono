@@ -1,13 +1,13 @@
 use std::iter;
 
 use bitview_primitives::{
-    AddrHash, P2AAddrIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex,
-    P2TRAddrIndex, P2WPKHAddrIndex, P2WSHAddrIndex, TypeIndex,
+    AddrHash, P2AAddressIndex, P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex,
+    P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex, P2WSHAddressIndex, TypeIndex,
 };
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{
-    AddrBytes, Height, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes,
+    AddressBytes, Height, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes,
     P2TRBytes, P2WPKHBytes, P2WSHBytes, Version,
 };
 use rayon::prelude::*;
@@ -26,22 +26,22 @@ pub use addr_type::AddrTypeVecs;
 pub struct AddrsVecs<M: StorageMode = Rw> {
     /// P2PK-shaped outputs containing a 65-byte key field; the field is not
     /// required to be a valid uncompressed public key.
-    pub p2pk65: AddrTypeVecs<P2PK65AddrIndex, P2PK65Bytes, M>,
+    pub p2pk65: AddrTypeVecs<P2PK65AddressIndex, P2PK65Bytes, M>,
     /// P2PK-shaped outputs containing a 33-byte key field; the field is not
     /// required to be a valid compressed public key.
-    pub p2pk33: AddrTypeVecs<P2PK33AddrIndex, P2PK33Bytes, M>,
+    pub p2pk33: AddrTypeVecs<P2PK33AddressIndex, P2PK33Bytes, M>,
     /// Pay-to-public-key-hash outputs.
-    pub p2pkh: AddrTypeVecs<P2PKHAddrIndex, P2PKHBytes, M>,
+    pub p2pkh: AddrTypeVecs<P2PKHAddressIndex, P2PKHBytes, M>,
     /// Pay-to-script-hash outputs.
-    pub p2sh: AddrTypeVecs<P2SHAddrIndex, P2SHBytes, M>,
+    pub p2sh: AddrTypeVecs<P2SHAddressIndex, P2SHBytes, M>,
     /// Version-0 pay-to-witness-public-key-hash outputs.
-    pub p2wpkh: AddrTypeVecs<P2WPKHAddrIndex, P2WPKHBytes, M>,
+    pub p2wpkh: AddrTypeVecs<P2WPKHAddressIndex, P2WPKHBytes, M>,
     /// Version-0 pay-to-witness-script-hash outputs.
-    pub p2wsh: AddrTypeVecs<P2WSHAddrIndex, P2WSHBytes, M>,
+    pub p2wsh: AddrTypeVecs<P2WSHAddressIndex, P2WSHBytes, M>,
     /// Pay-to-Taproot outputs.
-    pub p2tr: AddrTypeVecs<P2TRAddrIndex, P2TRBytes, M>,
+    pub p2tr: AddrTypeVecs<P2TRAddressIndex, P2TRBytes, M>,
     /// Pay-to-Anchor outputs matching `OP_1 PUSHBYTES_2 0x4e73`.
-    pub p2a: AddrTypeVecs<P2AAddrIndex, P2ABytes, M>,
+    pub p2a: AddrTypeVecs<P2AAddressIndex, P2ABytes, M>,
 }
 
 impl AddrsVecs {
@@ -64,14 +64,14 @@ impl AddrsVecs {
             p2tr_bytes,
             p2a_bytes,
         ) = parallel_import! {
-            first_p2pk65_addr_index = PcoVec::import(db, "first_p2pk65_addr_index", version),
-            first_p2pk33_addr_index = PcoVec::import(db, "first_p2pk33_addr_index", version),
-            first_p2pkh_addr_index = PcoVec::import(db, "first_p2pkh_addr_index", version),
-            first_p2sh_addr_index = PcoVec::import(db, "first_p2sh_addr_index", version),
-            first_p2wpkh_addr_index = PcoVec::import(db, "first_p2wpkh_addr_index", version),
-            first_p2wsh_addr_index = PcoVec::import(db, "first_p2wsh_addr_index", version),
-            first_p2tr_addr_index = PcoVec::import(db, "first_p2tr_addr_index", version),
-            first_p2a_addr_index = PcoVec::import(db, "first_p2a_addr_index", version),
+            first_p2pk65_addr_index = PcoVec::import(db, "first_p2pk65_address_index", version),
+            first_p2pk33_addr_index = PcoVec::import(db, "first_p2pk33_address_index", version),
+            first_p2pkh_addr_index = PcoVec::import(db, "first_p2pkh_address_index", version),
+            first_p2sh_addr_index = PcoVec::import(db, "first_p2sh_address_index", version),
+            first_p2wpkh_addr_index = PcoVec::import(db, "first_p2wpkh_address_index", version),
+            first_p2wsh_addr_index = PcoVec::import(db, "first_p2wsh_address_index", version),
+            first_p2tr_addr_index = PcoVec::import(db, "first_p2tr_address_index", version),
+            first_p2a_addr_index = PcoVec::import(db, "first_p2a_address_index", version),
             p2pk65_bytes = BytesVec::import(db, "p2pk65_bytes", version),
             p2pk33_bytes = BytesVec::import(db, "p2pk33_bytes", version),
             p2pkh_bytes = BytesVec::import(db, "p2pkh_bytes", version),
@@ -121,14 +121,14 @@ impl AddrsVecs {
     pub fn truncate(
         &mut self,
         height: Height,
-        p2pk65_addr_index: P2PK65AddrIndex,
-        p2pk33_addr_index: P2PK33AddrIndex,
-        p2pkh_addr_index: P2PKHAddrIndex,
-        p2sh_addr_index: P2SHAddrIndex,
-        p2wpkh_addr_index: P2WPKHAddrIndex,
-        p2wsh_addr_index: P2WSHAddrIndex,
-        p2tr_addr_index: P2TRAddrIndex,
-        p2a_addr_index: P2AAddrIndex,
+        p2pk65_addr_index: P2PK65AddressIndex,
+        p2pk33_addr_index: P2PK33AddressIndex,
+        p2pkh_addr_index: P2PKHAddressIndex,
+        p2sh_addr_index: P2SHAddressIndex,
+        p2wpkh_addr_index: P2WPKHAddressIndex,
+        p2wsh_addr_index: P2WSHAddressIndex,
+        p2tr_addr_index: P2TRAddressIndex,
+        p2a_addr_index: P2AAddressIndex,
         stamp: Stamp,
     ) -> Result<()> {
         self.p2pk65
@@ -233,62 +233,68 @@ impl AddrsVecs {
         addr_type: OutputType,
         type_index: TypeIndex,
         readers: &AddrReaders,
-    ) -> Option<AddrBytes> {
+    ) -> Option<AddressBytes> {
         match addr_type {
             OutputType::P2PK65 => self
                 .p2pk65
                 .bytes
                 .get_append_only(type_index.into(), &readers.p2pk65)
-                .map(AddrBytes::from),
+                .map(AddressBytes::from),
             OutputType::P2PK33 => self
                 .p2pk33
                 .bytes
                 .get_append_only(type_index.into(), &readers.p2pk33)
-                .map(AddrBytes::from),
+                .map(AddressBytes::from),
             OutputType::P2PKH => self
                 .p2pkh
                 .bytes
                 .get_append_only(type_index.into(), &readers.p2pkh)
-                .map(AddrBytes::from),
+                .map(AddressBytes::from),
             OutputType::P2SH => self
                 .p2sh
                 .bytes
                 .get_append_only(type_index.into(), &readers.p2sh)
-                .map(AddrBytes::from),
+                .map(AddressBytes::from),
             OutputType::P2WPKH => self
                 .p2wpkh
                 .bytes
                 .get_append_only(type_index.into(), &readers.p2wpkh)
-                .map(AddrBytes::from),
+                .map(AddressBytes::from),
             OutputType::P2WSH => self
                 .p2wsh
                 .bytes
                 .get_append_only(type_index.into(), &readers.p2wsh)
-                .map(AddrBytes::from),
+                .map(AddressBytes::from),
             OutputType::P2TR => self
                 .p2tr
                 .bytes
                 .get_append_only(type_index.into(), &readers.p2tr)
-                .map(AddrBytes::from),
+                .map(AddressBytes::from),
             OutputType::P2A => self
                 .p2a
                 .bytes
                 .get_append_only(type_index.into(), &readers.p2a)
-                .map(AddrBytes::from),
+                .map(AddressBytes::from),
             _ => unreachable!("get_bytes_by_type called with non-address type"),
         }
     }
 
-    pub fn push_bytes_if_needed(&mut self, index: TypeIndex, bytes: AddrBytes) {
+    pub fn push_bytes_if_needed(&mut self, index: TypeIndex, bytes: AddressBytes) {
         match bytes {
-            AddrBytes::P2PK65(bytes) => self.p2pk65.bytes.debug_checked_push(index.into(), bytes),
-            AddrBytes::P2PK33(bytes) => self.p2pk33.bytes.debug_checked_push(index.into(), bytes),
-            AddrBytes::P2PKH(bytes) => self.p2pkh.bytes.debug_checked_push(index.into(), bytes),
-            AddrBytes::P2SH(bytes) => self.p2sh.bytes.debug_checked_push(index.into(), bytes),
-            AddrBytes::P2WPKH(bytes) => self.p2wpkh.bytes.debug_checked_push(index.into(), bytes),
-            AddrBytes::P2WSH(bytes) => self.p2wsh.bytes.debug_checked_push(index.into(), bytes),
-            AddrBytes::P2TR(bytes) => self.p2tr.bytes.debug_checked_push(index.into(), bytes),
-            AddrBytes::P2A(bytes) => self.p2a.bytes.debug_checked_push(index.into(), bytes),
+            AddressBytes::P2PK65(bytes) => {
+                self.p2pk65.bytes.debug_checked_push(index.into(), bytes)
+            }
+            AddressBytes::P2PK33(bytes) => {
+                self.p2pk33.bytes.debug_checked_push(index.into(), bytes)
+            }
+            AddressBytes::P2PKH(bytes) => self.p2pkh.bytes.debug_checked_push(index.into(), bytes),
+            AddressBytes::P2SH(bytes) => self.p2sh.bytes.debug_checked_push(index.into(), bytes),
+            AddressBytes::P2WPKH(bytes) => {
+                self.p2wpkh.bytes.debug_checked_push(index.into(), bytes)
+            }
+            AddressBytes::P2WSH(bytes) => self.p2wsh.bytes.debug_checked_push(index.into(), bytes),
+            AddressBytes::P2TR(bytes) => self.p2tr.bytes.debug_checked_push(index.into(), bytes),
+            AddressBytes::P2A(bytes) => self.p2a.bytes.debug_checked_push(index.into(), bytes),
         };
     }
 
@@ -307,7 +313,7 @@ impl AddrsVecs {
                         let reader = $addr.bytes.reader();
                         Ok(Box::new(std::iter::from_fn(move || {
                             reader.try_get(index).map(|typedbytes| {
-                                let bytes = AddrBytes::from(typedbytes);
+                                let bytes = AddressBytes::from(typedbytes);
                                 index.increment();
                                 AddrHash::from(&bytes)
                             })

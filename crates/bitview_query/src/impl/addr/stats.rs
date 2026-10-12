@@ -1,13 +1,13 @@
 use bitview_primitives::{DecodedAddrState, TypeIndex};
-use bitview_types::{AddrChainStats, AddrStats};
-use brk_types::{Addr, AddrBytes, Dollars, OutputType, Sats};
+use bitview_types::{AddressChainStats, AddressStats};
+use brk_types::{Address, AddressBytes, Dollars, OutputType, Sats};
 use vecdb::ReadableVec;
 
 use super::parse_addr;
 use crate::{Error, OptionData, Query, Result};
 
 impl Query {
-    pub fn addr(&self, addr: Addr) -> Result<AddrStats> {
+    pub fn addr(&self, addr: Address) -> Result<AddressStats> {
         let bytes = parse_addr(&addr)?;
         let _guard = self.read_publication()?;
         let (output_type, type_index) = self.resolve_addr_bytes(&bytes)?;
@@ -16,11 +16,11 @@ impl Query {
 
     fn addr_stats(
         &self,
-        addr: Addr,
-        bytes: AddrBytes,
+        addr: Address,
+        bytes: AddressBytes,
         output_type: OutputType,
         type_index: TypeIndex,
-    ) -> Result<AddrStats> {
+    ) -> Result<AddressStats> {
         let plugins = self.plugins();
         let state = plugins.addresses.state.get_once(output_type, type_index)?;
 
@@ -62,10 +62,10 @@ impl Query {
             Dollars::default()
         };
 
-        Ok(AddrStats {
-            addr,
-            addr_type: output_type,
-            chain_stats: AddrChainStats {
+        Ok(AddressStats {
+            address: addr,
+            address_type: output_type,
+            chain_stats: AddressChainStats {
                 balance: chain_balance,
                 type_index,
                 funded_txo_count: addr_data.funded_txo_count,

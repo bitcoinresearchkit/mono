@@ -15,7 +15,7 @@ pub type Result<T> = StdResult<T, Error>;
 pub enum Error {
     // The request cannot be answered as asked.
     #[error("The provided address appears to be invalid")]
-    InvalidAddr,
+    InvalidAddress,
     #[error("Invalid network")]
     InvalidNetwork,
     #[error("{0}")]
@@ -33,7 +33,7 @@ pub enum Error {
 
     // Nothing to answer with.
     #[error("Address not found in the blockchain (no transaction history)")]
-    UnknownAddr,
+    UnknownAddress,
     #[error("Failed to find the TXID in the blockchain")]
     UnknownTxid,
     #[error("{0}")]
@@ -74,7 +74,7 @@ impl From<brk_error::Error> for Error {
         use brk_error::Error as Lower;
         match error {
             Lower::StateUpdating => Self::StateUpdating,
-            Lower::InvalidAddr => Self::InvalidAddr,
+            Lower::InvalidAddress => Self::InvalidAddress,
             Lower::InvalidNetwork => Self::InvalidNetwork,
             Lower::UnindexableDate => Self::UnindexableDate,
             error => Self::Lower(error),

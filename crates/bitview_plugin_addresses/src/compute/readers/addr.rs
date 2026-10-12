@@ -1,7 +1,7 @@
 use bitview_primitives::{
-    AddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex,
-    P2AAddrIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex,
-    P2WPKHAddrIndex, P2WSHAddrIndex, TypeIndex,
+    AddressState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
+    FundedAddressIndex, P2AAddressIndex, P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex,
+    P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex, P2WSHAddressIndex, TypeIndex,
 };
 use brk_types::OutputType;
 use vecdb::{BytesVecReader, OverflowVecReader};
@@ -10,16 +10,16 @@ use crate::addr::AddrStateVecs;
 
 /// Cached readers for address indexes and stateful address data.
 pub struct AddrReaders {
-    p2a: BytesVecReader<P2AAddrIndex, AddrState>,
-    p2pk33: BytesVecReader<P2PK33AddrIndex, AddrState>,
-    p2pk65: BytesVecReader<P2PK65AddrIndex, AddrState>,
-    p2pkh: BytesVecReader<P2PKHAddrIndex, AddrState>,
-    p2sh: BytesVecReader<P2SHAddrIndex, AddrState>,
-    p2tr: BytesVecReader<P2TRAddrIndex, AddrState>,
-    p2wpkh: BytesVecReader<P2WPKHAddrIndex, AddrState>,
-    p2wsh: BytesVecReader<P2WSHAddrIndex, AddrState>,
-    funded: OverflowVecReader<FundedAddrIndex, FundedAddrData>,
-    extended_empty: OverflowVecReader<ExtendedEmptyAddrIndex, EmptyAddrData>,
+    p2a: BytesVecReader<P2AAddressIndex, AddressState>,
+    p2pk33: BytesVecReader<P2PK33AddressIndex, AddressState>,
+    p2pk65: BytesVecReader<P2PK65AddressIndex, AddressState>,
+    p2pkh: BytesVecReader<P2PKHAddressIndex, AddressState>,
+    p2sh: BytesVecReader<P2SHAddressIndex, AddressState>,
+    p2tr: BytesVecReader<P2TRAddressIndex, AddressState>,
+    p2wpkh: BytesVecReader<P2WPKHAddressIndex, AddressState>,
+    p2wsh: BytesVecReader<P2WSHAddressIndex, AddressState>,
+    funded: OverflowVecReader<FundedAddressIndex, FundedAddressData>,
+    extended_empty: OverflowVecReader<ExtendedEmptyAddressIndex, EmptyAddressData>,
 }
 
 impl AddrReaders {
@@ -43,7 +43,7 @@ impl AddrReaders {
         vecs: &AddrStateVecs,
         addr_type: OutputType,
         type_index: TypeIndex,
-    ) -> AddrState {
+    ) -> AddressState {
         let state = match addr_type {
             OutputType::P2A => vecs.p2a.get_with_reader(type_index.into(), &self.p2a),
             OutputType::P2PK33 => vecs.p2pk33.get_with_reader(type_index.into(), &self.p2pk33),
@@ -59,7 +59,11 @@ impl AddrReaders {
     }
 
     #[inline]
-    pub fn funded_data(&self, vecs: &AddrStateVecs, index: FundedAddrIndex) -> FundedAddrData {
+    pub fn funded_data(
+        &self,
+        vecs: &AddrStateVecs,
+        index: FundedAddressIndex,
+    ) -> FundedAddressData {
         vecs.funded.get_with_reader(index, &self.funded).unwrap()
     }
 
@@ -67,8 +71,8 @@ impl AddrReaders {
     pub fn extended_empty_data(
         &self,
         vecs: &AddrStateVecs,
-        index: ExtendedEmptyAddrIndex,
-    ) -> EmptyAddrData {
+        index: ExtendedEmptyAddressIndex,
+    ) -> EmptyAddressData {
         vecs.extended_empty
             .get_with_reader(index, &self.extended_empty)
             .unwrap()

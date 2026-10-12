@@ -240,30 +240,30 @@ def _validate_hash_prefix_nibbles(nibbles: int) -> None:
         raise ValueError("Expected hash-prefix length from 1 to 16 hex nibbles")
 
 
-def _address_payload_lengths(addr_type: OutputType) -> Tuple[int, ...]:
-    if addr_type == "p2a":
+def _address_payload_lengths(address_type: OutputType) -> Tuple[int, ...]:
+    if address_type == "p2a":
         return (2,)
-    if addr_type == "p2pk33":
+    if address_type == "p2pk33":
         return (33,)
-    if addr_type == "p2pk65":
+    if address_type == "p2pk65":
         return (65,)
-    if addr_type in ("p2pkh", "p2sh", "p2wpkh"):
+    if address_type in ("p2pkh", "p2sh", "p2wpkh"):
         return (20,)
-    if addr_type in ("p2wsh", "p2tr"):
+    if address_type in ("p2wsh", "p2tr"):
         return (32,)
-    raise ValueError(f"Unsupported address type for address payload hash-prefix: {addr_type}")
+    raise ValueError(f"Unsupported address type for address payload hash-prefix: {address_type}")
 
 
-def _validate_address_payload_for_type(addr_type: OutputType, payload: Union[bytes, bytearray, memoryview]) -> None:
+def _validate_address_payload_for_type(address_type: OutputType, payload: Union[bytes, bytearray, memoryview]) -> None:
     length = len(bytes(payload))
-    expected = _address_payload_lengths(addr_type)
+    expected = _address_payload_lengths(address_type)
     if length not in expected:
         joined = " or ".join(str(value) for value in expected)
-        raise ValueError(f"Expected {addr_type} address payload length {joined} bytes")
+        raise ValueError(f"Expected {address_type} address payload length {joined} bytes")
 
 
 def address_payload_hash_prefix(payload: Union[bytes, bytearray, memoryview], nibbles: int) -> str:
-    """Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{addr_type}/{prefix}`."""
+    """Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{address_type}/{prefix}`."""
     _validate_hash_prefix_nibbles(nibbles)
     return f"{_rapid_hash_v3(payload):016x}"[:nibbles]
 

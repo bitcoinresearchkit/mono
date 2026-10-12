@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use bitview_primitives::FundedAddrData;
+use bitview_primitives::FundedAddressData;
 use brk_types::{OutputType, Sats};
 
 use super::{AddrReceivePreState, AddrReceiveStatus, AddrSendPreState, delta::ShardDelta};
@@ -67,7 +67,7 @@ impl MemberState {
         &mut self,
         output_type: OutputType,
         status: AddrReceiveStatus,
-        addr_data: &FundedAddrData,
+        addr_data: &FundedAddressData,
         pre: &AddrReceivePreState,
         output_count: u32,
     ) {
@@ -93,7 +93,7 @@ impl MemberState {
     pub fn on_output_lost(
         &mut self,
         output_type: OutputType,
-        addr_data: &FundedAddrData,
+        addr_data: &FundedAddressData,
         pre: &AddrSendPreState,
     ) {
         debug_assert!(addr_data.is_funded());
@@ -131,7 +131,7 @@ impl MemberState {
     pub fn on_send_applied(
         &mut self,
         output_type: OutputType,
-        addr_data: &FundedAddrData,
+        addr_data: &FundedAddressData,
         pre: &AddrSendPreState,
         is_first_encounter: bool,
         also_received: bool,
@@ -185,7 +185,7 @@ impl ReuseState {
     #[inline]
     fn on_receive_as_reused(
         &mut self,
-        addr_data: &FundedAddrData,
+        addr_data: &FundedAddressData,
         pre: &AddrReceivePreState,
         output_count: u32,
     ) {
@@ -212,7 +212,7 @@ impl ReuseState {
     #[inline]
     fn on_receive_as_respent(
         &mut self,
-        addr_data: &FundedAddrData,
+        addr_data: &FundedAddressData,
         pre: &AddrReceivePreState,
         output_count: u32,
     ) {
@@ -233,7 +233,7 @@ impl ReuseState {
     #[inline]
     fn on_send_as_reused(
         &mut self,
-        addr_data: &FundedAddrData,
+        addr_data: &FundedAddressData,
         pre: &AddrSendPreState,
         is_first_encounter: bool,
         also_received: bool,
@@ -258,7 +258,7 @@ impl ReuseState {
     #[inline]
     fn on_send_as_respent(
         &mut self,
-        addr_data: &FundedAddrData,
+        addr_data: &FundedAddressData,
         pre: &AddrSendPreState,
         is_first_encounter: bool,
         also_received: bool,
@@ -296,7 +296,7 @@ impl ExposedState {
     fn on_receive(
         &mut self,
         output_type: OutputType,
-        addr_data: &FundedAddrData,
+        addr_data: &FundedAddressData,
         pre: &AddrReceivePreState,
         status: AddrReceiveStatus,
     ) {
@@ -317,7 +317,7 @@ impl ExposedState {
     fn on_send(
         &mut self,
         output_type: OutputType,
-        addr_data: &FundedAddrData,
+        addr_data: &FundedAddressData,
         pre: &AddrSendPreState,
         will_be_empty: bool,
     ) {

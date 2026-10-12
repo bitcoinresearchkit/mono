@@ -57,18 +57,18 @@ pub type Result<T> = std::result::Result<T, BitviewError>;
 /// BRK address type and raw payload bytes used by the hash-prefix index.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AddressPayload {
-    pub addr_type: OutputType,
+    pub address_type: OutputType,
     pub payload: Vec<u8>,
 }
 
 /// BRK address type and leading hex nibbles of the address-payload hash.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AddressHashPrefix {
-    pub addr_type: OutputType,
+    pub address_type: OutputType,
     pub prefix: String,
 }
 
-/// Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{addr_type}/{prefix}`.
+/// Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{address_type}/{prefix}`.
 pub fn address_payload_hash_prefix(payload: &[u8], nibbles: usize) -> Result<String> {
     if payload.is_empty() {
         return Err(BitviewError::new("Expected a non-empty address payload"));
@@ -86,8 +86,8 @@ pub fn address_payload_hash_prefix(payload: &[u8], nibbles: usize) -> Result<Str
     Ok(format!("{:016x}", rapidhash::v3::rapidhash_v3(payload))[..nibbles].to_string())
 }
 
-fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> Result<()> {
-    let expected: &[usize] = match addr_type {
+fn validate_address_payload_for_type(address_type: OutputType, payload: &[u8]) -> Result<()> {
+    let expected: &[usize] = match address_type {
         OutputType::P2A => &[2],
         OutputType::P2PK33 => &[33],
         OutputType::P2PK65 => &[65],
@@ -95,7 +95,7 @@ fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> R
         OutputType::P2WSH | OutputType::P2TR => &[32],
         OutputType::P2MS | OutputType::OpReturn | OutputType::Empty | OutputType::Unknown => {
             return Err(BitviewError::new(format!(
-                "Unsupported address type for address payload hash-prefix: {addr_type:?}"
+                "Unsupported address type for address payload hash-prefix: {address_type:?}"
             )));
         }
     };
@@ -107,7 +107,7 @@ fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> R
             .collect::<Vec<_>>()
             .join(" or ");
         return Err(BitviewError::new(format!(
-            "Expected {addr_type} address payload length {joined} bytes"
+            "Expected {address_type} address payload length {joined} bytes"
         )));
     }
 
@@ -119,11 +119,12 @@ pub fn decode_address_payload(address: &str) -> Result<AddressPayload> {
     if address.is_empty() {
         return Err(BitviewError::new("Expected an address string"));
     }
-    let addr_bytes = AddrBytes::from_str(address).map_err(|e| BitviewError::new(e.to_string()))?;
-    let addr_type = OutputType::from(&addr_bytes);
+    let addr_bytes =
+        AddressBytes::from_str(address).map_err(|e| BitviewError::new(e.to_string()))?;
+    let address_type = OutputType::from(&addr_bytes);
 
     Ok(AddressPayload {
-        addr_type,
+        address_type,
         payload: addr_bytes.as_slice().to_vec(),
     })
 }
@@ -132,7 +133,7 @@ pub fn decode_address_payload(address: &str) -> Result<AddressPayload> {
 pub fn address_hash_prefix(address: &str, nibbles: usize) -> Result<AddressHashPrefix> {
     let decoded = decode_address_payload(address)?;
     Ok(AddressHashPrefix {
-        addr_type: decoded.addr_type,
+        address_type: decoded.address_type,
         prefix: address_payload_hash_prefix(&decoded.payload, nibbles)?,
     })
 }
@@ -748,18 +749,18 @@ const _I22: &[Index] = &[Index::TxInIndex];
 const _I23: &[Index] = &[Index::TxOutIndex];
 const _I24: &[Index] = &[Index::EmptyOutputIndex];
 const _I25: &[Index] = &[Index::OpReturnIndex];
-const _I26: &[Index] = &[Index::P2AAddrIndex];
+const _I26: &[Index] = &[Index::P2AAddressIndex];
 const _I27: &[Index] = &[Index::P2MSOutputIndex];
-const _I28: &[Index] = &[Index::P2PK33AddrIndex];
-const _I29: &[Index] = &[Index::P2PK65AddrIndex];
-const _I30: &[Index] = &[Index::P2PKHAddrIndex];
-const _I31: &[Index] = &[Index::P2SHAddrIndex];
-const _I32: &[Index] = &[Index::P2TRAddrIndex];
-const _I33: &[Index] = &[Index::P2WPKHAddrIndex];
-const _I34: &[Index] = &[Index::P2WSHAddrIndex];
+const _I28: &[Index] = &[Index::P2PK33AddressIndex];
+const _I29: &[Index] = &[Index::P2PK65AddressIndex];
+const _I30: &[Index] = &[Index::P2PKHAddressIndex];
+const _I31: &[Index] = &[Index::P2SHAddressIndex];
+const _I32: &[Index] = &[Index::P2TRAddressIndex];
+const _I33: &[Index] = &[Index::P2WPKHAddressIndex];
+const _I34: &[Index] = &[Index::P2WSHAddressIndex];
 const _I35: &[Index] = &[Index::UnknownOutputIndex];
-const _I36: &[Index] = &[Index::FundedAddrIndex];
-const _I37: &[Index] = &[Index::ExtendedEmptyAddrIndex];
+const _I36: &[Index] = &[Index::FundedAddressIndex];
+const _I37: &[Index] = &[Index::ExtendedEmptyAddressIndex];
 
 #[inline]
 fn _ep<T: DeserializeOwned>(
@@ -972,40 +973,40 @@ accessor! { SeriesPattern25, SeriesPattern25By, _I25, T {
     plain op_return_index: OpReturnIndex -> T,
 } }
 accessor! { SeriesPattern26, SeriesPattern26By, _I26, T {
-    plain p2a_addr_index: P2AAddrIndex -> T,
+    plain p2a_address_index: P2AAddressIndex -> T,
 } }
 accessor! { SeriesPattern27, SeriesPattern27By, _I27, T {
     plain p2ms_output_index: P2MSOutputIndex -> T,
 } }
 accessor! { SeriesPattern28, SeriesPattern28By, _I28, T {
-    plain p2pk33_addr_index: P2PK33AddrIndex -> T,
+    plain p2pk33_address_index: P2PK33AddressIndex -> T,
 } }
 accessor! { SeriesPattern29, SeriesPattern29By, _I29, T {
-    plain p2pk65_addr_index: P2PK65AddrIndex -> T,
+    plain p2pk65_address_index: P2PK65AddressIndex -> T,
 } }
 accessor! { SeriesPattern30, SeriesPattern30By, _I30, T {
-    plain p2pkh_addr_index: P2PKHAddrIndex -> T,
+    plain p2pkh_address_index: P2PKHAddressIndex -> T,
 } }
 accessor! { SeriesPattern31, SeriesPattern31By, _I31, T {
-    plain p2sh_addr_index: P2SHAddrIndex -> T,
+    plain p2sh_address_index: P2SHAddressIndex -> T,
 } }
 accessor! { SeriesPattern32, SeriesPattern32By, _I32, T {
-    plain p2tr_addr_index: P2TRAddrIndex -> T,
+    plain p2tr_address_index: P2TRAddressIndex -> T,
 } }
 accessor! { SeriesPattern33, SeriesPattern33By, _I33, T {
-    plain p2wpkh_addr_index: P2WPKHAddrIndex -> T,
+    plain p2wpkh_address_index: P2WPKHAddressIndex -> T,
 } }
 accessor! { SeriesPattern34, SeriesPattern34By, _I34, T {
-    plain p2wsh_addr_index: P2WSHAddrIndex -> T,
+    plain p2wsh_address_index: P2WSHAddressIndex -> T,
 } }
 accessor! { SeriesPattern35, SeriesPattern35By, _I35, T {
     plain unknown_output_index: UnknownOutputIndex -> T,
 } }
 accessor! { SeriesPattern36, SeriesPattern36By, _I36, T {
-    plain funded_addr_index: FundedAddrIndex -> T,
+    plain funded_address_index: FundedAddressIndex -> T,
 } }
 accessor! { SeriesPattern37, SeriesPattern37By, _I37, T {
-    plain extended_empty_addr_index: ExtendedEmptyAddrIndex -> T,
+    plain extended_empty_address_index: ExtendedEmptyAddressIndex -> T,
 } }
 
 /// A series value type, as a type parameter of the leaf accessors.
@@ -1063,11 +1064,11 @@ macro_rules! shape {
         }
     };
 }
-impl SeriesValue for Addr {
-    type Nullable = Option<Addr>;
+impl SeriesValue for Address {
+    type Nullable = Option<Address>;
 }
-impl SeriesValue for AddrState {
-    type Nullable = Option<AddrState>;
+impl SeriesValue for AddressState {
+    type Nullable = Option<AddressState>;
 }
 impl SeriesValue for BlockHash {
     type Nullable = Option<BlockHash>;
@@ -1099,8 +1100,8 @@ impl SeriesValue for Day1 {
 impl SeriesValue for Day3 {
     type Nullable = Option<Day3>;
 }
-impl SeriesValue for EmptyAddrData {
-    type Nullable = Option<EmptyAddrData>;
+impl SeriesValue for EmptyAddressData {
+    type Nullable = Option<EmptyAddressData>;
 }
 impl SeriesValue for EmptyOutputIndex {
     type Nullable = Option<EmptyOutputIndex>;
@@ -1108,8 +1109,8 @@ impl SeriesValue for EmptyOutputIndex {
 impl SeriesValue for Epoch {
     type Nullable = Option<Epoch>;
 }
-impl SeriesValue for FundedAddrData {
-    type Nullable = Option<FundedAddrData>;
+impl SeriesValue for FundedAddressData {
+    type Nullable = Option<FundedAddressData>;
 }
 impl SeriesValue for Halving {
     type Nullable = Option<Halving>;
@@ -1156,8 +1157,8 @@ impl SeriesValue for OutPoint {
 impl SeriesValue for OutputType {
     type Nullable = Option<OutputType>;
 }
-impl SeriesValue for P2AAddrIndex {
-    type Nullable = Option<P2AAddrIndex>;
+impl SeriesValue for P2AAddressIndex {
+    type Nullable = Option<P2AAddressIndex>;
 }
 impl SeriesValue for P2ABytes {
     type Nullable = Option<P2ABytes>;
@@ -1165,44 +1166,44 @@ impl SeriesValue for P2ABytes {
 impl SeriesValue for P2MSOutputIndex {
     type Nullable = Option<P2MSOutputIndex>;
 }
-impl SeriesValue for P2PK33AddrIndex {
-    type Nullable = Option<P2PK33AddrIndex>;
+impl SeriesValue for P2PK33AddressIndex {
+    type Nullable = Option<P2PK33AddressIndex>;
 }
 impl SeriesValue for P2PK33Bytes {
     type Nullable = Option<P2PK33Bytes>;
 }
-impl SeriesValue for P2PK65AddrIndex {
-    type Nullable = Option<P2PK65AddrIndex>;
+impl SeriesValue for P2PK65AddressIndex {
+    type Nullable = Option<P2PK65AddressIndex>;
 }
 impl SeriesValue for P2PK65Bytes {
     type Nullable = Option<P2PK65Bytes>;
 }
-impl SeriesValue for P2PKHAddrIndex {
-    type Nullable = Option<P2PKHAddrIndex>;
+impl SeriesValue for P2PKHAddressIndex {
+    type Nullable = Option<P2PKHAddressIndex>;
 }
 impl SeriesValue for P2PKHBytes {
     type Nullable = Option<P2PKHBytes>;
 }
-impl SeriesValue for P2SHAddrIndex {
-    type Nullable = Option<P2SHAddrIndex>;
+impl SeriesValue for P2SHAddressIndex {
+    type Nullable = Option<P2SHAddressIndex>;
 }
 impl SeriesValue for P2SHBytes {
     type Nullable = Option<P2SHBytes>;
 }
-impl SeriesValue for P2TRAddrIndex {
-    type Nullable = Option<P2TRAddrIndex>;
+impl SeriesValue for P2TRAddressIndex {
+    type Nullable = Option<P2TRAddressIndex>;
 }
 impl SeriesValue for P2TRBytes {
     type Nullable = Option<P2TRBytes>;
 }
-impl SeriesValue for P2WPKHAddrIndex {
-    type Nullable = Option<P2WPKHAddrIndex>;
+impl SeriesValue for P2WPKHAddressIndex {
+    type Nullable = Option<P2WPKHAddressIndex>;
 }
 impl SeriesValue for P2WPKHBytes {
     type Nullable = Option<P2WPKHBytes>;
 }
-impl SeriesValue for P2WSHAddrIndex {
-    type Nullable = Option<P2WSHAddrIndex>;
+impl SeriesValue for P2WSHAddressIndex {
+    type Nullable = Option<P2WSHAddressIndex>;
 }
 impl SeriesValue for P2WSHBytes {
     type Nullable = Option<P2WSHBytes>;
@@ -1639,16 +1640,16 @@ pub mod tree {
         usd: SeriesPattern1<Option<Dollars>> = "market_cap",
     } }
     shape! { State at "series().addresses.state" {
-        p2a: SeriesPattern26<AddrState> = "*_state",
-        p2pk33: SeriesPattern28<AddrState> = "*_state",
-        p2pk65: SeriesPattern29<AddrState> = "*_state",
-        p2pkh: SeriesPattern30<AddrState> = "*_state",
-        p2sh: SeriesPattern31<AddrState> = "*_state",
-        p2tr: SeriesPattern32<AddrState> = "*_state",
-        p2wpkh: SeriesPattern33<AddrState> = "*_state",
-        p2wsh: SeriesPattern34<AddrState> = "*_state",
-        funded: SeriesPattern36<FundedAddrData> = "funded_*_data",
-        extended_empty: SeriesPattern37<EmptyAddrData> = "extended_empty_*_data",
+        p2a: SeriesPattern26<AddressState> = "*_state",
+        p2pk33: SeriesPattern28<AddressState> = "*_state",
+        p2pk65: SeriesPattern29<AddressState> = "*_state",
+        p2pkh: SeriesPattern30<AddressState> = "*_state",
+        p2sh: SeriesPattern31<AddressState> = "*_state",
+        p2tr: SeriesPattern32<AddressState> = "*_state",
+        p2wpkh: SeriesPattern33<AddressState> = "*_state",
+        p2wsh: SeriesPattern34<AddressState> = "*_state",
+        funded: SeriesPattern36<FundedAddressData> = "funded_*_data",
+        extended_empty: SeriesPattern37<EmptyAddressData> = "extended_empty_*_data",
     } }
     shape! { ExposedCount at "series().addresses.exposed.count" {
         funded: SeriesPattern1<Count> = "*_exposed_address_count",
@@ -2951,49 +2952,49 @@ pub mod tree {
         op_return: OutputsOpReturn = "op_return_*",
     } }
     shape! { MappingsAddressesP2a at "series().mappings.addresses.p2a" {
-        identity: SeriesPattern26<P2AAddrIndex> = "*_addr_index",
-        address: SeriesPattern26<Addr> = "*_address",
+        identity: SeriesPattern26<P2AAddressIndex> = "*_index",
+        address: SeriesPattern26<Address> = "*",
     } }
     shape! { MappingsAddressesP2wsh at "series().mappings.addresses.p2wsh" {
-        identity: SeriesPattern34<P2WSHAddrIndex> = "*_addr_index",
-        address: SeriesPattern34<Addr> = "*_address",
+        identity: SeriesPattern34<P2WSHAddressIndex> = "*_index",
+        address: SeriesPattern34<Address> = "*",
     } }
     shape! { MappingsAddressesP2wpkh at "series().mappings.addresses.p2wpkh" {
-        identity: SeriesPattern33<P2WPKHAddrIndex> = "*_addr_index",
-        address: SeriesPattern33<Addr> = "*_address",
+        identity: SeriesPattern33<P2WPKHAddressIndex> = "*_index",
+        address: SeriesPattern33<Address> = "*",
     } }
     shape! { MappingsAddressesP2tr at "series().mappings.addresses.p2tr" {
-        identity: SeriesPattern32<P2TRAddrIndex> = "*_addr_index",
-        address: SeriesPattern32<Addr> = "*_address",
+        identity: SeriesPattern32<P2TRAddressIndex> = "*_index",
+        address: SeriesPattern32<Address> = "*",
     } }
     shape! { MappingsAddressesP2sh at "series().mappings.addresses.p2sh" {
-        identity: SeriesPattern31<P2SHAddrIndex> = "*_addr_index",
-        address: SeriesPattern31<Addr> = "*_address",
+        identity: SeriesPattern31<P2SHAddressIndex> = "*_index",
+        address: SeriesPattern31<Address> = "*",
     } }
     shape! { MappingsAddressesP2pkh at "series().mappings.addresses.p2pkh" {
-        identity: SeriesPattern30<P2PKHAddrIndex> = "*_addr_index",
-        address: SeriesPattern30<Addr> = "*_address",
+        identity: SeriesPattern30<P2PKHAddressIndex> = "*_index",
+        address: SeriesPattern30<Address> = "*",
     } }
     shape! { MappingsAddressesP2pk65 at "series().mappings.addresses.p2pk65" {
-        identity: SeriesPattern29<P2PK65AddrIndex> = "*_addr_index",
-        address: SeriesPattern29<Addr> = "*_address",
+        identity: SeriesPattern29<P2PK65AddressIndex> = "*_index",
+        address: SeriesPattern29<Address> = "*",
     } }
     shape! { MappingsAddressesP2pk33 at "series().mappings.addresses.p2pk33" {
-        identity: SeriesPattern28<P2PK33AddrIndex> = "*_addr_index",
-        address: SeriesPattern28<Addr> = "*_address",
+        identity: SeriesPattern28<P2PK33AddressIndex> = "*_index",
+        address: SeriesPattern28<Address> = "*",
     } }
     shape! { MappingsAddresses at "series().mappings.addresses" {
-        p2pk33: MappingsAddressesP2pk33 = "*",
-        p2pk65: MappingsAddressesP2pk65 = "p2pk65",
-        p2pkh: MappingsAddressesP2pkh = "p2pkh",
-        p2sh: MappingsAddressesP2sh = "p2sh",
-        p2tr: MappingsAddressesP2tr = "p2tr",
-        p2wpkh: MappingsAddressesP2wpkh = "p2wpkh",
-        p2wsh: MappingsAddressesP2wsh = "p2wsh",
-        p2a: MappingsAddressesP2a = "p2a",
+        p2pk33: MappingsAddressesP2pk33 = "p2pk33_*",
+        p2pk65: MappingsAddressesP2pk65 = "p2pk65_*",
+        p2pkh: MappingsAddressesP2pkh = "p2pkh_*",
+        p2sh: MappingsAddressesP2sh = "p2sh_*",
+        p2tr: MappingsAddressesP2tr = "p2tr_*",
+        p2wpkh: MappingsAddressesP2wpkh = "p2wpkh_*",
+        p2wsh: MappingsAddressesP2wsh = "p2wsh_*",
+        p2a: MappingsAddressesP2a = "p2a_*",
     } }
     shape! { Mappings at "series().mappings" {
-        addresses: MappingsAddresses = "p2pk33",
+        addresses: MappingsAddresses = "address",
         outputs: MappingsOutputs = "index",
         height: MappingsHeight = "minute10",
         epoch: MappingsEpoch = "first_height",
@@ -3042,35 +3043,35 @@ pub mod tree {
         unknown: ScriptsUnknown = "unknown",
     } }
     shape! { IndexerAddressesP2a at "series().indexer.addresses.p2a" {
-        first_index: SeriesPattern20<P2AAddrIndex> = "first_*_addr_index",
+        first_index: SeriesPattern20<P2AAddressIndex> = "first_*_address_index",
         bytes: SeriesPattern26<P2ABytes> = "*_bytes",
     } }
     shape! { IndexerAddressesP2tr at "series().indexer.addresses.p2tr" {
-        first_index: SeriesPattern20<P2TRAddrIndex> = "first_*_addr_index",
+        first_index: SeriesPattern20<P2TRAddressIndex> = "first_*_address_index",
         bytes: SeriesPattern32<P2TRBytes> = "*_bytes",
     } }
     shape! { IndexerAddressesP2wsh at "series().indexer.addresses.p2wsh" {
-        first_index: SeriesPattern20<P2WSHAddrIndex> = "first_*_addr_index",
+        first_index: SeriesPattern20<P2WSHAddressIndex> = "first_*_address_index",
         bytes: SeriesPattern34<P2WSHBytes> = "*_bytes",
     } }
     shape! { IndexerAddressesP2wpkh at "series().indexer.addresses.p2wpkh" {
-        first_index: SeriesPattern20<P2WPKHAddrIndex> = "first_*_addr_index",
+        first_index: SeriesPattern20<P2WPKHAddressIndex> = "first_*_address_index",
         bytes: SeriesPattern33<P2WPKHBytes> = "*_bytes",
     } }
     shape! { IndexerAddressesP2sh at "series().indexer.addresses.p2sh" {
-        first_index: SeriesPattern20<P2SHAddrIndex> = "first_*_addr_index",
+        first_index: SeriesPattern20<P2SHAddressIndex> = "first_*_address_index",
         bytes: SeriesPattern31<P2SHBytes> = "*_bytes",
     } }
     shape! { IndexerAddressesP2pkh at "series().indexer.addresses.p2pkh" {
-        first_index: SeriesPattern20<P2PKHAddrIndex> = "first_*_addr_index",
+        first_index: SeriesPattern20<P2PKHAddressIndex> = "first_*_address_index",
         bytes: SeriesPattern30<P2PKHBytes> = "*_bytes",
     } }
     shape! { IndexerAddressesP2pk33 at "series().indexer.addresses.p2pk33" {
-        first_index: SeriesPattern20<P2PK33AddrIndex> = "first_*_addr_index",
+        first_index: SeriesPattern20<P2PK33AddressIndex> = "first_*_address_index",
         bytes: SeriesPattern28<P2PK33Bytes> = "*_bytes",
     } }
     shape! { IndexerAddressesP2pk65 at "series().indexer.addresses.p2pk65" {
-        first_index: SeriesPattern20<P2PK65AddrIndex> = "first_*_addr_index",
+        first_index: SeriesPattern20<P2PK65AddressIndex> = "first_*_address_index",
         bytes: SeriesPattern29<P2PK65Bytes> = "*_bytes",
     } }
     shape! { IndexerAddresses at "series().indexer.addresses" {
@@ -3316,16 +3317,16 @@ impl BitviewClient {
         ))
     }
 
-    /// Fetch address hash-prefix matches from raw payload bytes matching `addr_type` length.
+    /// Fetch address hash-prefix matches from raw payload bytes matching `address_type` length.
     pub fn get_address_payload_hash_prefix_matches(
         &self,
-        addr_type: OutputType,
+        address_type: OutputType,
         payload: &[u8],
         nibbles: usize,
-    ) -> Result<AddrHashPrefixMatches> {
-        validate_address_payload_for_type(addr_type, payload)?;
+    ) -> Result<AddressHashPrefixMatches> {
+        validate_address_payload_for_type(address_type, payload)?;
         let prefix = address_payload_hash_prefix(payload, nibbles)?;
-        self.get_address_hash_prefix_matches(addr_type, &prefix)
+        self.get_address_hash_prefix_matches(address_type, &prefix)
     }
 
     /// Fetch address hash-prefix matches for a mainnet Bitcoin address.
@@ -3333,9 +3334,9 @@ impl BitviewClient {
         &self,
         address: &str,
         nibbles: usize,
-    ) -> Result<AddrHashPrefixMatches> {
+    ) -> Result<AddressHashPrefixMatches> {
         let hashed = address_hash_prefix(address, nibbles)?;
-        self.get_address_hash_prefix_matches(hashed.addr_type, &hashed.prefix)
+        self.get_address_hash_prefix_matches(hashed.address_type, &hashed.prefix)
     }
 
     /// Health check
@@ -3735,14 +3736,14 @@ impl BitviewClient {
     ///
     /// Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.
     ///
-    /// Endpoint: `GET /api/address/hash-prefix/{addr_type}/{prefix}`
+    /// Endpoint: `GET /api/address/hash-prefix/{address_type}/{prefix}`
     pub fn get_address_hash_prefix_matches(
         &self,
-        addr_type: OutputType,
+        address_type: OutputType,
         prefix: &str,
-    ) -> Result<AddrHashPrefixMatches> {
+    ) -> Result<AddressHashPrefixMatches> {
         self.base
-            .get_json(&format!("/api/address/hash-prefix/{addr_type}/{prefix}"))
+            .get_json(&format!("/api/address/hash-prefix/{address_type}/{prefix}"))
     }
 
     /// Address information
@@ -3752,7 +3753,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*
     ///
     /// Endpoint: `GET /api/address/{address}`
-    pub fn get_address(&self, address: Addr) -> Result<AddrStats> {
+    pub fn get_address(&self, address: Address) -> Result<AddressStats> {
         self.base.get_json(&format!("/api/address/{address}"))
     }
 
@@ -3763,7 +3764,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
     ///
     /// Endpoint: `GET /api/address/{address}/txs`
-    pub fn get_address_txs(&self, address: Addr) -> Result<Vec<Transaction>> {
+    pub fn get_address_txs(&self, address: Address) -> Result<Vec<Transaction>> {
         self.base.get_json(&format!("/api/address/{address}/txs"))
     }
 
@@ -3774,7 +3775,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
     ///
     /// Endpoint: `GET /api/address/{address}/txs/chain`
-    pub fn get_address_confirmed_txs(&self, address: Addr) -> Result<Vec<Transaction>> {
+    pub fn get_address_confirmed_txs(&self, address: Address) -> Result<Vec<Transaction>> {
         self.base
             .get_json(&format!("/api/address/{address}/txs/chain"))
     }
@@ -3788,7 +3789,7 @@ impl BitviewClient {
     /// Endpoint: `GET /api/address/{address}/txs/chain/{after_txid}`
     pub fn get_address_confirmed_txs_after(
         &self,
-        address: Addr,
+        address: Address,
         after_txid: Txid,
     ) -> Result<Vec<Transaction>> {
         self.base
@@ -3802,7 +3803,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
     ///
     /// Endpoint: `GET /api/address/{address}/txs/mempool`
-    pub fn get_address_mempool_txs(&self, address: Addr) -> Result<Vec<Transaction>> {
+    pub fn get_address_mempool_txs(&self, address: Address) -> Result<Vec<Transaction>> {
         self.base
             .get_json(&format!("/api/address/{address}/txs/mempool"))
     }
@@ -3814,7 +3815,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
     ///
     /// Endpoint: `GET /api/address/{address}/utxo`
-    pub fn get_address_utxos(&self, address: Addr) -> Result<Vec<Utxo>> {
+    pub fn get_address_utxos(&self, address: Address) -> Result<Vec<Utxo>> {
         self.base.get_json(&format!("/api/address/{address}/utxo"))
     }
 
@@ -3825,7 +3826,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
     ///
     /// Endpoint: `GET /api/v1/validate-address/{address}`
-    pub fn validate_address(&self, address: &str) -> Result<AddrValidation> {
+    pub fn validate_address(&self, address: &str) -> Result<AddressValidation> {
         self.base
             .get_json(&format!("/api/v1/validate-address/{address}"))
     }

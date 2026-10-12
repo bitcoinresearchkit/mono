@@ -1,5 +1,5 @@
 use bitview_primitives::{AddrHash, TypeIndex};
-use brk_types::{Addr, AddrBytes, OutputType};
+use brk_types::{Address, AddressBytes, OutputType};
 
 use super::parse_addr;
 use crate::{Error, Query, Result};
@@ -9,21 +9,24 @@ impl Query {
         if self.indexer().publication().try_read().is_none() {
             Error::StateUpdating
         } else {
-            Error::UnknownAddr
+            Error::UnknownAddress
         }
     }
 
-    pub(crate) fn resolve_addr(&self, addr: &Addr) -> Result<(OutputType, TypeIndex)> {
+    pub(crate) fn resolve_addr(&self, addr: &Address) -> Result<(OutputType, TypeIndex)> {
         let bytes = parse_addr(addr)?;
         self.resolve_addr_bytes(&bytes)
     }
-    pub(crate) fn resolve_addr_bytes(&self, bytes: &AddrBytes) -> Result<(OutputType, TypeIndex)> {
+    pub(crate) fn resolve_addr_bytes(
+        &self,
+        bytes: &AddressBytes,
+    ) -> Result<(OutputType, TypeIndex)> {
         self.find_addr_bytes(bytes)?
             .ok_or_else(|| self.missing_addr())
     }
     pub(crate) fn find_addr_bytes(
         &self,
-        bytes: &AddrBytes,
+        bytes: &AddressBytes,
     ) -> Result<Option<(OutputType, TypeIndex)>> {
         let output_type = OutputType::from(bytes);
         let hash = AddrHash::from(bytes);

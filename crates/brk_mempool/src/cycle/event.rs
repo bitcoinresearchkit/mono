@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use brk_types::{AddrBytes, BlockHash, Height, MempoolInfo};
+use brk_types::{AddressBytes, BlockHash, Height, MempoolInfo};
 
 use crate::{
     Snapshot,
@@ -18,9 +18,9 @@ pub struct Cycle {
     pub removed: Vec<TxRemoved>,
     /// Addresses that went from 0 → 1+ live mempool txs this cycle.
     /// Same-cycle enter-then-leave is collapsed (no event in either list).
-    pub addr_enters: Vec<AddrBytes>,
+    pub addr_enters: Vec<AddressBytes>,
     /// Addresses that went from 1+ → 0 live mempool txs this cycle.
-    pub addr_leaves: Vec<AddrBytes>,
+    pub addr_leaves: Vec<AddressBytes>,
     /// Latest confirmed block. Compare to the prior cycle's `tip_hash`
     /// to detect a new block.
     pub tip_hash: BlockHash,

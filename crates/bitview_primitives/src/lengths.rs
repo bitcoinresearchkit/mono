@@ -1,9 +1,9 @@
 use brk_types::{Height, OutputType, TxIndex};
 
 use crate::{
-    EmptyOutputIndex, OpReturnIndex, P2AAddrIndex, P2MSOutputIndex, P2PK33AddrIndex,
-    P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex, P2WPKHAddrIndex, P2WSHAddrIndex,
-    TxInIndex, TxOutIndex, TypeIndex, UnknownOutputIndex,
+    EmptyOutputIndex, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
+    P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex,
+    P2WSHAddressIndex, TxInIndex, TxOutIndex, TypeIndex, UnknownOutputIndex,
 };
 
 /// Pipeline-wide length/count snapshot.
@@ -16,14 +16,14 @@ pub struct Lengths {
     pub height: Height,
     pub op_return_index: OpReturnIndex,
     pub p2ms_output_index: P2MSOutputIndex,
-    pub p2pk33_addr_index: P2PK33AddrIndex,
-    pub p2pk65_addr_index: P2PK65AddrIndex,
-    pub p2pkh_addr_index: P2PKHAddrIndex,
-    pub p2sh_addr_index: P2SHAddrIndex,
-    pub p2tr_addr_index: P2TRAddrIndex,
-    pub p2wpkh_addr_index: P2WPKHAddrIndex,
-    pub p2wsh_addr_index: P2WSHAddrIndex,
-    pub p2a_addr_index: P2AAddrIndex,
+    pub p2pk33_addr_index: P2PK33AddressIndex,
+    pub p2pk65_addr_index: P2PK65AddressIndex,
+    pub p2pkh_addr_index: P2PKHAddressIndex,
+    pub p2sh_addr_index: P2SHAddressIndex,
+    pub p2tr_addr_index: P2TRAddressIndex,
+    pub p2wpkh_addr_index: P2WPKHAddressIndex,
+    pub p2wsh_addr_index: P2WSHAddressIndex,
+    pub p2a_addr_index: P2AAddressIndex,
     pub tx_index: TxIndex,
     pub txin_index: TxInIndex,
     pub txout_index: TxOutIndex,

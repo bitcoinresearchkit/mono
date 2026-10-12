@@ -1,7 +1,7 @@
-use bitview_primitives::FundedAddrData;
+use bitview_primitives::FundedAddressData;
 use brk_types::{OutputType, Sats};
 
-/// Snapshot of [`FundedAddrData`] taken before a spend mutates it.
+/// Snapshot of [`FundedAddressData`] taken before a spend mutates it.
 #[derive(Debug)]
 pub struct AddrSendPreState {
     pub was_reused: bool,
@@ -14,7 +14,7 @@ pub struct AddrSendPreState {
 
 impl AddrSendPreState {
     #[inline]
-    pub fn capture(addr_data: &FundedAddrData, output_type: OutputType) -> Self {
+    pub fn capture(addr_data: &FundedAddressData, output_type: OutputType) -> Self {
         Self {
             was_reused: addr_data.is_reused(),
             was_respent: addr_data.is_respent(),

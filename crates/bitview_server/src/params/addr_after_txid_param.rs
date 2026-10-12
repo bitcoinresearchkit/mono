@@ -1,13 +1,13 @@
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use brk_types::{Addr, Txid};
+use brk_types::{Address, Txid};
 
 /// Bitcoin address + last-seen txid path parameters (Esplora-style pagination)
 #[derive(Deserialize, JsonSchema)]
-pub struct AddrAfterTxidParam {
+pub struct AddressAfterTxidParam {
     #[serde(rename = "address")]
-    pub addr: Addr,
+    pub addr: Address,
 
     /// Last txid from the previous page (return transactions strictly older than this)
     pub after_txid: Txid,

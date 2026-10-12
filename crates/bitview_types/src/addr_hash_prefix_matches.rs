@@ -1,11 +1,11 @@
-use brk_types::{Addr, OutputType};
+use brk_types::{Address, OutputType};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-pub struct AddrHashPrefixMatches {
-    pub addr_type: OutputType,
+pub struct AddressHashPrefixMatches {
+    pub address_type: OutputType,
     pub prefix: String,
     pub truncated: bool,
-    pub addresses: Vec<Addr>,
+    pub addresses: Vec<Address>,
 }

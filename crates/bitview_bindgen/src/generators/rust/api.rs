@@ -75,17 +75,17 @@ impl BitviewClient {{
     )
     .unwrap();
 
-    output.push_str(r#"    /// Fetch address hash-prefix matches from raw payload bytes matching `addr_type` length.
-    pub fn get_address_payload_hash_prefix_matches(&self, addr_type: OutputType, payload: &[u8], nibbles: usize) -> Result<AddrHashPrefixMatches> {
-        validate_address_payload_for_type(addr_type, payload)?;
+    output.push_str(r#"    /// Fetch address hash-prefix matches from raw payload bytes matching `address_type` length.
+    pub fn get_address_payload_hash_prefix_matches(&self, address_type: OutputType, payload: &[u8], nibbles: usize) -> Result<AddressHashPrefixMatches> {
+        validate_address_payload_for_type(address_type, payload)?;
         let prefix = address_payload_hash_prefix(payload, nibbles)?;
-        self.get_address_hash_prefix_matches(addr_type, &prefix)
+        self.get_address_hash_prefix_matches(address_type, &prefix)
     }
 
     /// Fetch address hash-prefix matches for a mainnet Bitcoin address.
-    pub fn get_address_hash_prefix_matches_for_address(&self, address: &str, nibbles: usize) -> Result<AddrHashPrefixMatches> {
+    pub fn get_address_hash_prefix_matches_for_address(&self, address: &str, nibbles: usize) -> Result<AddressHashPrefixMatches> {
         let hashed = address_hash_prefix(address, nibbles)?;
-        self.get_address_hash_prefix_matches(hashed.addr_type, &hashed.prefix)
+        self.get_address_hash_prefix_matches(hashed.address_type, &hashed.prefix)
     }
 
 "#);

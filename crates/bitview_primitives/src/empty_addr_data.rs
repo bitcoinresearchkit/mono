@@ -4,7 +4,7 @@ use brk_types::Sats;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::FundedAddrData;
+use crate::FundedAddressData;
 
 #[cfg(feature = "storage")]
 use vecdb::Result as VecdbResult;
@@ -15,7 +15,7 @@ use vecdb::{Bytes, Formattable, OverflowVecValue, Version};
 /// Data of an empty address
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[repr(C)]
-pub struct EmptyAddrData {
+pub struct EmptyAddressData {
     /// Total transaction count
     pub tx_count: u32,
     /// Total funded/spent transaction output count (equal since address is empty)
@@ -24,16 +24,16 @@ pub struct EmptyAddrData {
     pub transfered: Sats,
 }
 
-impl From<FundedAddrData> for EmptyAddrData {
+impl From<FundedAddressData> for EmptyAddressData {
     #[inline]
-    fn from(value: FundedAddrData) -> Self {
+    fn from(value: FundedAddressData) -> Self {
         Self::from(&value)
     }
 }
 
-impl From<&FundedAddrData> for EmptyAddrData {
+impl From<&FundedAddressData> for EmptyAddressData {
     #[inline]
-    fn from(value: &FundedAddrData) -> Self {
+    fn from(value: &FundedAddressData) -> Self {
         debug_assert_eq!(
             value.sent, value.received,
             "address is not empty: {value:?}"
@@ -46,7 +46,7 @@ impl From<&FundedAddrData> for EmptyAddrData {
     }
 }
 
-impl Display for EmptyAddrData {
+impl Display for EmptyAddressData {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
@@ -57,7 +57,7 @@ impl Display for EmptyAddrData {
 }
 
 #[cfg(feature = "storage")]
-impl Formattable for EmptyAddrData {
+impl Formattable for EmptyAddressData {
     fn write_to(&self, buf: &mut Vec<u8>) {
         use std::io::Write;
         write!(buf, "{self}").unwrap();
@@ -81,7 +81,7 @@ impl Formattable for EmptyAddrData {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for EmptyAddrData {
+impl Bytes for EmptyAddressData {
     type Array = [u8; size_of::<Self>()];
 
     fn to_bytes(&self) -> Self::Array {
@@ -102,7 +102,7 @@ impl Bytes for EmptyAddrData {
 }
 
 #[cfg(feature = "storage")]
-impl OverflowVecValue for EmptyAddrData {
+impl OverflowVecValue for EmptyAddressData {
     type Compact = u64;
 
     const VERSION: Version = Version::ONE;

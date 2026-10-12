@@ -6,13 +6,13 @@
 /**
  * Bitcoin address string
  *
- * @typedef {string} Addr
+ * @typedef {string} Address
  */
 /**
  * Bitcoin address + last-seen txid path parameters (Esplora-style pagination)
  *
- * @typedef {Object} AddrAfterTxidParam
- * @property {Addr} address
+ * @typedef {Object} AddressAfterTxidParam
+ * @property {Address} address
  * @property {Txid} afterTxid - Last txid from the previous page (return transactions strictly older than this)
  */
 /**
@@ -20,7 +20,7 @@
  *
  * Based on mempool.space's format with type_index extension.
  *
- * @typedef {Object} AddrChainStats
+ * @typedef {Object} AddressChainStats
  * @property {Sats} balance - Current confirmed balance in satoshis
  * @property {number} fundedTxoCount - Total number of transaction outputs that funded this address
  * @property {Sats} fundedTxoSum - Total amount in satoshis received by this address across all funded outputs
@@ -31,15 +31,15 @@
  * @property {Dollars} realizedPrice - Realized price (average cost basis) in USD
  */
 /**
- * @typedef {Object} AddrHashPrefixMatches
- * @property {OutputType} addrType
+ * @typedef {Object} AddressHashPrefixMatches
+ * @property {OutputType} addressType
  * @property {string} prefix
  * @property {boolean} truncated
- * @property {Addr[]} addresses
+ * @property {Address[]} addresses
  */
 /**
- * @typedef {Object} AddrHashPrefixParam
- * @property {OutputType} addrType
+ * @typedef {Object} AddressHashPrefixParam
+ * @property {OutputType} addressType
  * @property {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
 address payload bytes.
  */
@@ -48,7 +48,7 @@ address payload bytes.
  *
  * Based on mempool.space's format.
  *
- * @typedef {Object} AddrMempoolStats
+ * @typedef {Object} AddressMempoolStats
  * @property {SatsSigned} balanceDelta - Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
  * @property {number} fundedTxoCount - Number of unconfirmed transaction outputs funding this address
  * @property {Sats} fundedTxoSum - Total amount in satoshis being received in unconfirmed transactions
@@ -59,8 +59,8 @@ address payload bytes.
 /**
  * Bitcoin address path parameter
  *
- * @typedef {Object} AddrParam
- * @property {Addr} address
+ * @typedef {Object} AddressParam
+ * @property {Address} address
  */
 /**
  * Four-byte primary state stored for every address.
@@ -69,22 +69,22 @@ address payload bytes.
  * bits select an inline layout or a sidecar, whose index occupies the lower 30
  * bits.
  *
- * @typedef {number} AddrState
+ * @typedef {number} AddressState
  */
 /**
  * Address information compatible with mempool.space API format.
  *
- * @typedef {Object} AddrStats
- * @property {Addr} address - Bitcoin address string
- * @property {OutputType} addrType - BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
- * @property {AddrChainStats} chainStats - Statistics for confirmed transactions on the blockchain
- * @property {AddrMempoolStats} mempoolStats - Statistics for unconfirmed transactions in the mempool
+ * @typedef {Object} AddressStats
+ * @property {Address} address - Bitcoin address string
+ * @property {OutputType} addressType - BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
+ * @property {AddressChainStats} chainStats - Statistics for confirmed transactions on the blockchain
+ * @property {AddressMempoolStats} mempoolStats - Statistics for unconfirmed transactions in the mempool
  * @property {Sats} balance - Total current balance in satoshis, including pending (unconfirmed) mempool changes
  */
 /**
  * Address validation result
  *
- * @typedef {Object} AddrValidation
+ * @typedef {Object} AddressValidation
  * @property {boolean} isvalid - Whether the address is valid
  * @property {?string=} address - The validated address
  * @property {?string=} scriptPubKey - The scriptPubKey in hex
@@ -571,7 +571,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Data of an empty address
  *
- * @typedef {Object} EmptyAddrData
+ * @typedef {Object} EmptyAddressData
  * @property {number} txCount - Total transaction count
  * @property {number} fundedTxoCount - Total funded/spent transaction output count (equal since address is empty)
  * @property {Sats} transfered - Total satoshis transferred
@@ -595,7 +595,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Machine-readable error code.
  *
- * @typedef {("not_found"|"invalid_addr"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_addr"|"unknown_txid"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode
+ * @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_address"|"unknown_txid"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode
  */
 /**
  * @typedef {Object} ErrorDetail
@@ -641,7 +641,7 @@ ancestors and no descendants (matches mempool.space).
  *
  * Kept compact because one value is stored for every funded address.
  *
- * @typedef {Object} FundedAddrData
+ * @typedef {Object} FundedAddressData
  * @property {Sats} received - Satoshis received by this address
  * @property {Sats} sent - Satoshis sent by this address
  * @property {number} realizedCapRaw - The realized capitalization: Σ(price × sats)
@@ -752,7 +752,7 @@ ancestors and no descendants (matches mempool.space).
  * Aggregation dimension for querying series. Includes time-based (date, week, month, year),
  * block-based (height, tx_index), and address/output type indexes.
  *
- * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving"|"epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_output_index"|"op_return_index"|"p2a_addr_index"|"p2ms_output_index"|"p2pk33_addr_index"|"p2pk65_addr_index"|"p2pkh_addr_index"|"p2sh_addr_index"|"p2tr_addr_index"|"p2wpkh_addr_index"|"p2wsh_addr_index"|"unknown_output_index"|"funded_addr_index"|"empty_addr_index"|"extended_empty_addr_index")} Index
+ * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving"|"epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_output_index"|"op_return_index"|"p2a_address_index"|"p2ms_output_index"|"p2pk33_address_index"|"p2pk65_address_index"|"p2pkh_address_index"|"p2sh_address_index"|"p2tr_address_index"|"p2wpkh_address_index"|"p2wsh_address_index"|"unknown_output_index"|"funded_address_index"|"empty_address_index"|"extended_empty_address_index")} Index
  */
 /**
  * Information about an available index and its query aliases
@@ -884,7 +884,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Index of a P2A (pay-to-anchor) address.
  *
- * @typedef {TypeIndex} P2AAddrIndex
+ * @typedef {TypeIndex} P2AAddressIndex
  */
 /**
  * The 2-byte witness program of a P2A (pay-to-anchor) output.
@@ -899,7 +899,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Index of a P2PK address with a compressed (33-byte) public key.
  *
- * @typedef {TypeIndex} P2PK33AddrIndex
+ * @typedef {TypeIndex} P2PK33AddressIndex
  */
 /**
  * A compressed (33-byte) public key.
@@ -909,7 +909,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Index of a P2PK address with an uncompressed (65-byte) public key.
  *
- * @typedef {TypeIndex} P2PK65AddrIndex
+ * @typedef {TypeIndex} P2PK65AddressIndex
  */
 /**
  * An uncompressed (65-byte) public key.
@@ -919,7 +919,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Index of a P2PKH address.
  *
- * @typedef {TypeIndex} P2PKHAddrIndex
+ * @typedef {TypeIndex} P2PKHAddressIndex
  */
 /**
  * The 20-byte public key hash of a P2PKH output.
@@ -929,7 +929,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Index of a P2SH address.
  *
- * @typedef {TypeIndex} P2SHAddrIndex
+ * @typedef {TypeIndex} P2SHAddressIndex
  */
 /**
  * The 20-byte script hash of a P2SH output.
@@ -939,7 +939,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Index of a P2TR (taproot) address.
  *
- * @typedef {TypeIndex} P2TRAddrIndex
+ * @typedef {TypeIndex} P2TRAddressIndex
  */
 /**
  * The 32-byte output key of a P2TR output.
@@ -949,7 +949,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Index of a P2WPKH address.
  *
- * @typedef {TypeIndex} P2WPKHAddrIndex
+ * @typedef {TypeIndex} P2WPKHAddressIndex
  */
 /**
  * The 20-byte public key hash of a P2WPKH output.
@@ -959,7 +959,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Index of a P2WSH address.
  *
- * @typedef {TypeIndex} P2WSHAddrIndex
+ * @typedef {TypeIndex} P2WSHAddressIndex
  */
 /**
  * The 32-byte script hash of a P2WSH output.
@@ -1385,7 +1385,7 @@ undefined one (e.g. NaN).
  * @property {string} scriptpubkey - Script pubkey (locking script), encoded as hexadecimal.
  * @property {string} scriptpubkeyAsm - Script pubkey in assembly format.
  * @property {OutputTypeNormalized} scriptpubkeyType - Esplora/mempool.space script type.
- * @property {Addr=} scriptpubkeyAddress - Bitcoin address, omitted for scripts without an address.
+ * @property {Address=} scriptpubkeyAddress - Bitcoin address, omitted for scripts without an address.
  * @property {Sats} value - Value of the output in satoshis.
  */
 /**
@@ -1596,7 +1596,7 @@ coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 
  * @typedef {number} VSizeFract
  */
 /**
- * @typedef {Object} ValidateAddrParam
+ * @typedef {Object} ValidateAddressParam
  * @property {string} address - Bitcoin address to validate (can be any string)
  */
 /**
@@ -2485,9 +2485,9 @@ function _validateHashPrefixNibbles(nibbles) {
   }
 }
 
-/** @param {OutputType} addrType @returns {number[]} */
-function _addressPayloadLengths(addrType) {
-  switch (addrType) {
+/** @param {OutputType} addressType @returns {number[]} */
+function _addressPayloadLengths(addressType) {
+  switch (addressType) {
     case "p2a": return [2];
     case "p2pk33": return [33];
     case "p2pk65": return [65];
@@ -2497,24 +2497,24 @@ function _addressPayloadLengths(addrType) {
     case "p2wsh":
     case "p2tr": return [32];
     default:
-      throw new Error(`Unsupported address type for address payload hash-prefix: ${addrType}`);
+      throw new Error(`Unsupported address type for address payload hash-prefix: ${addressType}`);
   }
 }
 
 /**
- * @param {OutputType} addrType
+ * @param {OutputType} addressType
  * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload
  */
-function _validateAddressPayloadForType(addrType, payload) {
+function _validateAddressPayloadForType(addressType, payload) {
   const length = _asUint8Array(payload).length;
-  const expected = _addressPayloadLengths(addrType);
+  const expected = _addressPayloadLengths(addressType);
   if (!expected.includes(length)) {
-    throw new Error(`Expected ${addrType} address payload length ${expected.join(" or ")} bytes`);
+    throw new Error(`Expected ${addressType} address payload length ${expected.join(" or ")} bytes`);
   }
 }
 
 /**
- * Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{addr_type}/{prefix}`.
+ * Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{address_type}/{prefix}`.
  * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw address payload bytes
  * @param {number} nibbles - Prefix length from 1 to 16 hex nibbles
  * @returns {string}
@@ -2551,18 +2551,18 @@ const _i22 = /** @type {const} */ (["txin_index"]);
 const _i23 = /** @type {const} */ (["txout_index"]);
 const _i24 = /** @type {const} */ (["empty_output_index"]);
 const _i25 = /** @type {const} */ (["op_return_index"]);
-const _i26 = /** @type {const} */ (["p2a_addr_index"]);
+const _i26 = /** @type {const} */ (["p2a_address_index"]);
 const _i27 = /** @type {const} */ (["p2ms_output_index"]);
-const _i28 = /** @type {const} */ (["p2pk33_addr_index"]);
-const _i29 = /** @type {const} */ (["p2pk65_addr_index"]);
-const _i30 = /** @type {const} */ (["p2pkh_addr_index"]);
-const _i31 = /** @type {const} */ (["p2sh_addr_index"]);
-const _i32 = /** @type {const} */ (["p2tr_addr_index"]);
-const _i33 = /** @type {const} */ (["p2wpkh_addr_index"]);
-const _i34 = /** @type {const} */ (["p2wsh_addr_index"]);
+const _i28 = /** @type {const} */ (["p2pk33_address_index"]);
+const _i29 = /** @type {const} */ (["p2pk65_address_index"]);
+const _i30 = /** @type {const} */ (["p2pkh_address_index"]);
+const _i31 = /** @type {const} */ (["p2sh_address_index"]);
+const _i32 = /** @type {const} */ (["p2tr_address_index"]);
+const _i33 = /** @type {const} */ (["p2wpkh_address_index"]);
+const _i34 = /** @type {const} */ (["p2wsh_address_index"]);
 const _i35 = /** @type {const} */ (["unknown_output_index"]);
-const _i36 = /** @type {const} */ (["funded_addr_index"]);
-const _i37 = /** @type {const} */ (["extended_empty_addr_index"]);
+const _i36 = /** @type {const} */ (["funded_address_index"]);
+const _i37 = /** @type {const} */ (["extended_empty_address_index"]);
 
 /**
  * Generic series pattern factory.
@@ -2615,18 +2615,18 @@ function _mp(client, name, indexes) {
 /** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern23 */
 /** @template T @typedef {{ name: string, by: { readonly empty_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern24 */
 /** @template T @typedef {{ name: string, by: { readonly op_return_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern25 */
-/** @template T @typedef {{ name: string, by: { readonly p2a_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern26 */
+/** @template T @typedef {{ name: string, by: { readonly p2a_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern26 */
 /** @template T @typedef {{ name: string, by: { readonly p2ms_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern27 */
-/** @template T @typedef {{ name: string, by: { readonly p2pk33_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern28 */
-/** @template T @typedef {{ name: string, by: { readonly p2pk65_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern29 */
-/** @template T @typedef {{ name: string, by: { readonly p2pkh_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern30 */
-/** @template T @typedef {{ name: string, by: { readonly p2sh_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern31 */
-/** @template T @typedef {{ name: string, by: { readonly p2tr_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern32 */
-/** @template T @typedef {{ name: string, by: { readonly p2wpkh_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern33 */
-/** @template T @typedef {{ name: string, by: { readonly p2wsh_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern34 */
+/** @template T @typedef {{ name: string, by: { readonly p2pk33_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern28 */
+/** @template T @typedef {{ name: string, by: { readonly p2pk65_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern29 */
+/** @template T @typedef {{ name: string, by: { readonly p2pkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern30 */
+/** @template T @typedef {{ name: string, by: { readonly p2sh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern31 */
+/** @template T @typedef {{ name: string, by: { readonly p2tr_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern32 */
+/** @template T @typedef {{ name: string, by: { readonly p2wpkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern33 */
+/** @template T @typedef {{ name: string, by: { readonly p2wsh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern34 */
 /** @template T @typedef {{ name: string, by: { readonly unknown_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern35 */
-/** @template T @typedef {{ name: string, by: { readonly funded_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern36 */
-/** @template T @typedef {{ name: string, by: { readonly extended_empty_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern37 */
+/** @template T @typedef {{ name: string, by: { readonly funded_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern36 */
+/** @template T @typedef {{ name: string, by: { readonly extended_empty_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern37 */
 
 // Series tree
 
@@ -3561,16 +3561,16 @@ const _Total = _s({
 
 /**
  * @typedef {{
- *   p2a: SeriesPattern26<AddrState>,
- *   p2pk33: SeriesPattern28<AddrState>,
- *   p2pk65: SeriesPattern29<AddrState>,
- *   p2pkh: SeriesPattern30<AddrState>,
- *   p2sh: SeriesPattern31<AddrState>,
- *   p2tr: SeriesPattern32<AddrState>,
- *   p2wpkh: SeriesPattern33<AddrState>,
- *   p2wsh: SeriesPattern34<AddrState>,
- *   funded: SeriesPattern36<FundedAddrData>,
- *   extendedEmpty: SeriesPattern37<EmptyAddrData>,
+ *   p2a: SeriesPattern26<AddressState>,
+ *   p2pk33: SeriesPattern28<AddressState>,
+ *   p2pk65: SeriesPattern29<AddressState>,
+ *   p2pkh: SeriesPattern30<AddressState>,
+ *   p2sh: SeriesPattern31<AddressState>,
+ *   p2tr: SeriesPattern32<AddressState>,
+ *   p2wpkh: SeriesPattern33<AddressState>,
+ *   p2wsh: SeriesPattern34<AddressState>,
+ *   funded: SeriesPattern36<FundedAddressData>,
+ *   extendedEmpty: SeriesPattern37<EmptyAddressData>,
  * }} State
  */
 const _State = _s({
@@ -6714,90 +6714,90 @@ const _MappingsOutputs = _s({
 
 /**
  * @typedef {{
- *   identity: SeriesPattern26<P2AAddrIndex>,
- *   address: SeriesPattern26<Addr>,
+ *   identity: SeriesPattern26<P2AAddressIndex>,
+ *   address: SeriesPattern26<Address>,
  * }} MappingsAddressesP2a
  */
 const _MappingsAddressesP2a = _s({
-  identity: [_i26, '*_addr_index'],
-  address: [_i26, '*_address'],
+  identity: [_i26, '*_index'],
+  address: [_i26, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern34<P2WSHAddrIndex>,
- *   address: SeriesPattern34<Addr>,
+ *   identity: SeriesPattern34<P2WSHAddressIndex>,
+ *   address: SeriesPattern34<Address>,
  * }} MappingsAddressesP2wsh
  */
 const _MappingsAddressesP2wsh = _s({
-  identity: [_i34, '*_addr_index'],
-  address: [_i34, '*_address'],
+  identity: [_i34, '*_index'],
+  address: [_i34, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern33<P2WPKHAddrIndex>,
- *   address: SeriesPattern33<Addr>,
+ *   identity: SeriesPattern33<P2WPKHAddressIndex>,
+ *   address: SeriesPattern33<Address>,
  * }} MappingsAddressesP2wpkh
  */
 const _MappingsAddressesP2wpkh = _s({
-  identity: [_i33, '*_addr_index'],
-  address: [_i33, '*_address'],
+  identity: [_i33, '*_index'],
+  address: [_i33, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern32<P2TRAddrIndex>,
- *   address: SeriesPattern32<Addr>,
+ *   identity: SeriesPattern32<P2TRAddressIndex>,
+ *   address: SeriesPattern32<Address>,
  * }} MappingsAddressesP2tr
  */
 const _MappingsAddressesP2tr = _s({
-  identity: [_i32, '*_addr_index'],
-  address: [_i32, '*_address'],
+  identity: [_i32, '*_index'],
+  address: [_i32, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern31<P2SHAddrIndex>,
- *   address: SeriesPattern31<Addr>,
+ *   identity: SeriesPattern31<P2SHAddressIndex>,
+ *   address: SeriesPattern31<Address>,
  * }} MappingsAddressesP2sh
  */
 const _MappingsAddressesP2sh = _s({
-  identity: [_i31, '*_addr_index'],
-  address: [_i31, '*_address'],
+  identity: [_i31, '*_index'],
+  address: [_i31, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern30<P2PKHAddrIndex>,
- *   address: SeriesPattern30<Addr>,
+ *   identity: SeriesPattern30<P2PKHAddressIndex>,
+ *   address: SeriesPattern30<Address>,
  * }} MappingsAddressesP2pkh
  */
 const _MappingsAddressesP2pkh = _s({
-  identity: [_i30, '*_addr_index'],
-  address: [_i30, '*_address'],
+  identity: [_i30, '*_index'],
+  address: [_i30, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern29<P2PK65AddrIndex>,
- *   address: SeriesPattern29<Addr>,
+ *   identity: SeriesPattern29<P2PK65AddressIndex>,
+ *   address: SeriesPattern29<Address>,
  * }} MappingsAddressesP2pk65
  */
 const _MappingsAddressesP2pk65 = _s({
-  identity: [_i29, '*_addr_index'],
-  address: [_i29, '*_address'],
+  identity: [_i29, '*_index'],
+  address: [_i29, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern28<P2PK33AddrIndex>,
- *   address: SeriesPattern28<Addr>,
+ *   identity: SeriesPattern28<P2PK33AddressIndex>,
+ *   address: SeriesPattern28<Address>,
  * }} MappingsAddressesP2pk33
  */
 const _MappingsAddressesP2pk33 = _s({
-  identity: [_i28, '*_addr_index'],
-  address: [_i28, '*_address'],
+  identity: [_i28, '*_index'],
+  address: [_i28, '*'],
 });
 
 /**
@@ -6813,14 +6813,14 @@ const _MappingsAddressesP2pk33 = _s({
  * }} MappingsAddresses
  */
 const _MappingsAddresses = _s({
-  p2pk33: [_MappingsAddressesP2pk33, '*'],
-  p2pk65: [_MappingsAddressesP2pk65, 'p2pk65'],
-  p2pkh: [_MappingsAddressesP2pkh, 'p2pkh'],
-  p2sh: [_MappingsAddressesP2sh, 'p2sh'],
-  p2tr: [_MappingsAddressesP2tr, 'p2tr'],
-  p2wpkh: [_MappingsAddressesP2wpkh, 'p2wpkh'],
-  p2wsh: [_MappingsAddressesP2wsh, 'p2wsh'],
-  p2a: [_MappingsAddressesP2a, 'p2a'],
+  p2pk33: [_MappingsAddressesP2pk33, 'p2pk33_*'],
+  p2pk65: [_MappingsAddressesP2pk65, 'p2pk65_*'],
+  p2pkh: [_MappingsAddressesP2pkh, 'p2pkh_*'],
+  p2sh: [_MappingsAddressesP2sh, 'p2sh_*'],
+  p2tr: [_MappingsAddressesP2tr, 'p2tr_*'],
+  p2wpkh: [_MappingsAddressesP2wpkh, 'p2wpkh_*'],
+  p2wsh: [_MappingsAddressesP2wsh, 'p2wsh_*'],
+  p2a: [_MappingsAddressesP2a, 'p2a_*'],
 });
 
 /**
@@ -6850,7 +6850,7 @@ const _MappingsAddresses = _s({
  * }} Mappings
  */
 const _Mappings = _s({
-  addresses: [_MappingsAddresses, 'p2pk33'],
+  addresses: [_MappingsAddresses, 'address'],
   outputs: [_MappingsOutputs, 'index'],
   height: [_MappingsHeight, 'minute10'],
   epoch: [_MappingsEpoch, 'first_height'],
@@ -6941,89 +6941,89 @@ const _Scripts = _s({
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2AAddrIndex>,
+ *   firstIndex: SeriesPattern20<P2AAddressIndex>,
  *   bytes: SeriesPattern26<P2ABytes>,
  * }} IndexerAddressesP2a
  */
 const _IndexerAddressesP2a = _s({
-  firstIndex: [_i20, 'first_*_addr_index'],
+  firstIndex: [_i20, 'first_*_address_index'],
   bytes: [_i26, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2TRAddrIndex>,
+ *   firstIndex: SeriesPattern20<P2TRAddressIndex>,
  *   bytes: SeriesPattern32<P2TRBytes>,
  * }} IndexerAddressesP2tr
  */
 const _IndexerAddressesP2tr = _s({
-  firstIndex: [_i20, 'first_*_addr_index'],
+  firstIndex: [_i20, 'first_*_address_index'],
   bytes: [_i32, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2WSHAddrIndex>,
+ *   firstIndex: SeriesPattern20<P2WSHAddressIndex>,
  *   bytes: SeriesPattern34<P2WSHBytes>,
  * }} IndexerAddressesP2wsh
  */
 const _IndexerAddressesP2wsh = _s({
-  firstIndex: [_i20, 'first_*_addr_index'],
+  firstIndex: [_i20, 'first_*_address_index'],
   bytes: [_i34, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2WPKHAddrIndex>,
+ *   firstIndex: SeriesPattern20<P2WPKHAddressIndex>,
  *   bytes: SeriesPattern33<P2WPKHBytes>,
  * }} IndexerAddressesP2wpkh
  */
 const _IndexerAddressesP2wpkh = _s({
-  firstIndex: [_i20, 'first_*_addr_index'],
+  firstIndex: [_i20, 'first_*_address_index'],
   bytes: [_i33, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2SHAddrIndex>,
+ *   firstIndex: SeriesPattern20<P2SHAddressIndex>,
  *   bytes: SeriesPattern31<P2SHBytes>,
  * }} IndexerAddressesP2sh
  */
 const _IndexerAddressesP2sh = _s({
-  firstIndex: [_i20, 'first_*_addr_index'],
+  firstIndex: [_i20, 'first_*_address_index'],
   bytes: [_i31, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2PKHAddrIndex>,
+ *   firstIndex: SeriesPattern20<P2PKHAddressIndex>,
  *   bytes: SeriesPattern30<P2PKHBytes>,
  * }} IndexerAddressesP2pkh
  */
 const _IndexerAddressesP2pkh = _s({
-  firstIndex: [_i20, 'first_*_addr_index'],
+  firstIndex: [_i20, 'first_*_address_index'],
   bytes: [_i30, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2PK33AddrIndex>,
+ *   firstIndex: SeriesPattern20<P2PK33AddressIndex>,
  *   bytes: SeriesPattern28<P2PK33Bytes>,
  * }} IndexerAddressesP2pk33
  */
 const _IndexerAddressesP2pk33 = _s({
-  firstIndex: [_i20, 'first_*_addr_index'],
+  firstIndex: [_i20, 'first_*_address_index'],
   bytes: [_i28, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2PK65AddrIndex>,
+ *   firstIndex: SeriesPattern20<P2PK65AddressIndex>,
  *   bytes: SeriesPattern29<P2PK65Bytes>,
  * }} IndexerAddressesP2pk65
  */
 const _IndexerAddressesP2pk65 = _s({
-  firstIndex: [_i20, 'first_*_addr_index'],
+  firstIndex: [_i20, 'first_*_address_index'],
   bytes: [_i29, '*_bytes'],
 });
 
@@ -7428,19 +7428,19 @@ class BitviewClient extends BitviewClientBase {
     "txout_index",
     "empty_output_index",
     "op_return_index",
-    "p2a_addr_index",
+    "p2a_address_index",
     "p2ms_output_index",
-    "p2pk33_addr_index",
-    "p2pk65_addr_index",
-    "p2pkh_addr_index",
-    "p2sh_addr_index",
-    "p2tr_addr_index",
-    "p2wpkh_addr_index",
-    "p2wsh_addr_index",
+    "p2pk33_address_index",
+    "p2pk65_address_index",
+    "p2pkh_address_index",
+    "p2sh_address_index",
+    "p2tr_address_index",
+    "p2wpkh_address_index",
+    "p2wsh_address_index",
     "unknown_output_index",
-    "funded_addr_index",
-    "empty_addr_index",
-    "extended_empty_addr_index"
+    "funded_address_index",
+    "empty_address_index",
+    "extended_empty_address_index"
   ]);
 
   POOL_ID_TO_POOL_NAME = /** @type {const} */ ({
@@ -8181,16 +8181,16 @@ class BitviewClient extends BitviewClientBase {
 
   /**
    * Fetch address hash-prefix matches from raw address payload bytes.
-   * @param {OutputType} addrType
-   * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw payload bytes matching addrType length
+   * @param {OutputType} addressType
+   * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw payload bytes matching addressType length
    * @param {number} nibbles
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddrHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddrHashPrefixMatches>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<AddressHashPrefixMatches>}
    */
-  getAddressPayloadHashPrefixMatches(addrType, payload, nibbles, options = {}) {
-    _validateAddressPayloadForType(addrType, payload);
+  getAddressPayloadHashPrefixMatches(addressType, payload, nibbles, options = {}) {
+    _validateAddressPayloadForType(addressType, payload);
     const prefix = addressPayloadHashPrefix(payload, nibbles);
-    return this.getAddressHashPrefixMatches(addrType, prefix, options);
+    return this.getAddressHashPrefixMatches(addressType, prefix, options);
   }
 
   /**
@@ -8638,16 +8638,16 @@ class BitviewClient extends BitviewClientBase {
    *
    * Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.
    *
-   * Endpoint: `GET /api/address/hash-prefix/{addr_type}/{prefix}`
+   * Endpoint: `GET /api/address/hash-prefix/{address_type}/{prefix}`
    *
-   * @param {OutputType} addr_type
+   * @param {OutputType} address_type
    * @param {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
 address payload bytes.
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddrHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddrHashPrefixMatches>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<AddressHashPrefixMatches>}
    */
-  async getAddressHashPrefixMatches(addr_type, prefix, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/hash-prefix/${addr_type}/${prefix}`;
+  async getAddressHashPrefixMatches(address_type, prefix, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/address/hash-prefix/${address_type}/${prefix}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8660,9 +8660,9 @@ address payload bytes.
    *
    * Endpoint: `GET /api/address/{address}`
    *
-   * @param {Addr} address
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddrStats) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddrStats>}
+   * @param {Address} address
+   * @param {{ signal?: AbortSignal, onValue?: (value: AddressStats) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<AddressStats>}
    */
   async getAddress(address, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/address/${address}`;
@@ -8678,7 +8678,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/address/{address}/txs`
    *
-   * @param {Addr} address
+   * @param {Address} address
    * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Transaction[]>}
    */
@@ -8696,7 +8696,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/address/{address}/txs/chain`
    *
-   * @param {Addr} address
+   * @param {Address} address
    * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Transaction[]>}
    */
@@ -8714,7 +8714,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/address/{address}/txs/chain/{after_txid}`
    *
-   * @param {Addr} address
+   * @param {Address} address
    * @param {Txid} after_txid - Last txid from the previous page (return transactions strictly older than this)
    * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Transaction[]>}
@@ -8733,7 +8733,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/address/{address}/txs/mempool`
    *
-   * @param {Addr} address
+   * @param {Address} address
    * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Transaction[]>}
    */
@@ -8751,7 +8751,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/address/{address}/utxo`
    *
-   * @param {Addr} address
+   * @param {Address} address
    * @param {{ signal?: AbortSignal, onValue?: (value: Utxo[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Utxo[]>}
    */
@@ -8770,8 +8770,8 @@ address payload bytes.
    * Endpoint: `GET /api/v1/validate-address/{address}`
    *
    * @param {string} address - Bitcoin address to validate (can be any string)
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddrValidation) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddrValidation>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: AddressValidation) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<AddressValidation>}
    */
   async validateAddress(address, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/validate-address/${address}`;

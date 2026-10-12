@@ -42,6 +42,12 @@ has to be deleted by hand.
   5-byte indexes stay internal, published through views), so block size and weight, transaction, input and output
   counts and per-transaction weight read one type across `block`, `cumulative`, `sum` and the distribution statistics
   (recomputed on upgrade). Block interval is `Seconds`
+- `address` is spelled out: the address indexes are `p2pkh_address_index`, ..., `funded_address_index`,
+  `empty_address_index` and `extended_empty_address_index` (were `*_addr_index`), with ids `first_<type>_address_index`
+  and `<type>_address_index`; value types `Address`, `AddressState`, `FundedAddressData`, `EmptyAddressData` and the
+  `*AddressIndex` types (were `Addr`, `AddrState`, ...). REST: the `Address*` schemas (were `Addr*`), the
+  `address_type` field and path parameter (was `addr_type`), and the error codes `invalid_address` and
+  `unknown_address` (were `invalid_addr`, `unknown_addr`). The indexer reindexes (version 40)
 - Undefined values are null instead of a made-up number: shares, ratios and relative changes over a zero denominator
   or base (supply, capital and fee shares, NUPL, NVT, thermo-cap multiple, RHODL, Puell, velocity, delta rates from a
   zero start, price returns and drawdown before a price exists), cost basis and realized or capitalized prices of

@@ -32,37 +32,37 @@ use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
     JsonSchema,
 )]
 #[cfg_attr(feature = "storage", derive(Pco))]
-pub struct ExtendedEmptyAddrIndex(TypeIndex);
+pub struct ExtendedEmptyAddressIndex(TypeIndex);
 
-impl From<TypeIndex> for ExtendedEmptyAddrIndex {
+impl From<TypeIndex> for ExtendedEmptyAddressIndex {
     #[inline(always)]
     fn from(value: TypeIndex) -> Self {
         Self(value)
     }
 }
 
-impl From<usize> for ExtendedEmptyAddrIndex {
+impl From<usize> for ExtendedEmptyAddressIndex {
     #[inline(always)]
     fn from(value: usize) -> Self {
         Self(TypeIndex::from(value))
     }
 }
 
-impl From<ExtendedEmptyAddrIndex> for usize {
+impl From<ExtendedEmptyAddressIndex> for usize {
     #[inline(always)]
-    fn from(value: ExtendedEmptyAddrIndex) -> Self {
+    fn from(value: ExtendedEmptyAddressIndex) -> Self {
         usize::from(value.0)
     }
 }
 
-impl From<ExtendedEmptyAddrIndex> for u32 {
+impl From<ExtendedEmptyAddressIndex> for u32 {
     #[inline(always)]
-    fn from(value: ExtendedEmptyAddrIndex) -> Self {
+    fn from(value: ExtendedEmptyAddressIndex) -> Self {
         u32::from(value.0)
     }
 }
 
-impl Add<usize> for ExtendedEmptyAddrIndex {
+impl Add<usize> for ExtendedEmptyAddressIndex {
     type Output = Self;
 
     #[inline(always)]
@@ -71,30 +71,30 @@ impl Add<usize> for ExtendedEmptyAddrIndex {
     }
 }
 
-impl CheckedSub for ExtendedEmptyAddrIndex {
+impl CheckedSub for ExtendedEmptyAddressIndex {
     #[inline(always)]
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         CheckedSub::checked_sub(self.0, rhs.0).map(Self)
     }
 }
 #[cfg(feature = "storage")]
-impl VecdbCheckedSub for ExtendedEmptyAddrIndex {
+impl VecdbCheckedSub for ExtendedEmptyAddressIndex {
     #[inline(always)]
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         CheckedSub::checked_sub(self, rhs)
     }
 }
 
-impl ExtendedEmptyAddrIndex {
+impl ExtendedEmptyAddressIndex {
     pub(crate) fn index_name() -> &'static str {
-        "extended_empty_addr_index"
+        "extended_empty_address_index"
     }
     pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["extendedemptyaddr", "extended_empty_addr_index"]
+        &["extendedemptyaddr", "extended_empty_address_index"]
     }
 }
 #[cfg(feature = "storage")]
-impl PrintableIndex for ExtendedEmptyAddrIndex {
+impl PrintableIndex for ExtendedEmptyAddressIndex {
     fn to_string() -> &'static str {
         Self::index_name()
     }
@@ -104,18 +104,18 @@ impl PrintableIndex for ExtendedEmptyAddrIndex {
 }
 
 #[cfg(feature = "storage")]
-impl VecIndex for ExtendedEmptyAddrIndex {
+impl VecIndex for ExtendedEmptyAddressIndex {
     const INITIAL_CAPACITY: usize = 1 << 30;
 }
 
-impl Display for ExtendedEmptyAddrIndex {
+impl Display for ExtendedEmptyAddressIndex {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         self.0.fmt(f)
     }
 }
 
 #[cfg(feature = "storage")]
-impl Formattable for ExtendedEmptyAddrIndex {
+impl Formattable for ExtendedEmptyAddressIndex {
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         self.0.write_to(buf);

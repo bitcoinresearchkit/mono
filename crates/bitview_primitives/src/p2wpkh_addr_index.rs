@@ -33,86 +33,86 @@ use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
     JsonSchema,
 )]
 #[cfg_attr(feature = "storage", derive(Pco))]
-pub struct P2WPKHAddrIndex(TypeIndex);
+pub struct P2WPKHAddressIndex(TypeIndex);
 
-impl From<TypeIndex> for P2WPKHAddrIndex {
+impl From<TypeIndex> for P2WPKHAddressIndex {
     #[inline]
     fn from(value: TypeIndex) -> Self {
         Self(value)
     }
 }
 
-impl From<P2WPKHAddrIndex> for TypeIndex {
+impl From<P2WPKHAddressIndex> for TypeIndex {
     #[inline]
-    fn from(value: P2WPKHAddrIndex) -> Self {
+    fn from(value: P2WPKHAddressIndex) -> Self {
         value.0
     }
 }
 
-impl From<P2WPKHAddrIndex> for u32 {
+impl From<P2WPKHAddressIndex> for u32 {
     #[inline]
-    fn from(value: P2WPKHAddrIndex) -> Self {
+    fn from(value: P2WPKHAddressIndex) -> Self {
         Self::from(*value)
     }
 }
 
-impl From<P2WPKHAddrIndex> for u64 {
+impl From<P2WPKHAddressIndex> for u64 {
     #[inline]
-    fn from(value: P2WPKHAddrIndex) -> Self {
+    fn from(value: P2WPKHAddressIndex) -> Self {
         Self::from(*value)
     }
 }
 
-impl From<P2WPKHAddrIndex> for usize {
+impl From<P2WPKHAddressIndex> for usize {
     #[inline]
-    fn from(value: P2WPKHAddrIndex) -> Self {
+    fn from(value: P2WPKHAddressIndex) -> Self {
         Self::from(*value)
     }
 }
 
-impl From<u32> for P2WPKHAddrIndex {
+impl From<u32> for P2WPKHAddressIndex {
     #[inline]
     fn from(value: u32) -> Self {
         Self(TypeIndex::from(value))
     }
 }
 
-impl From<usize> for P2WPKHAddrIndex {
+impl From<usize> for P2WPKHAddressIndex {
     #[inline]
     fn from(value: usize) -> Self {
         Self(TypeIndex::from(value))
     }
 }
 
-impl Add<usize> for P2WPKHAddrIndex {
+impl Add<usize> for P2WPKHAddressIndex {
     type Output = Self;
     fn add(self, rhs: usize) -> Self::Output {
         Self(*self + rhs)
     }
 }
 
-impl CheckedSub<P2WPKHAddrIndex> for P2WPKHAddrIndex {
+impl CheckedSub<P2WPKHAddressIndex> for P2WPKHAddressIndex {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         CheckedSub::checked_sub(self.0, rhs.0).map(Self)
     }
 }
 #[cfg(feature = "storage")]
-impl VecdbCheckedSub<P2WPKHAddrIndex> for P2WPKHAddrIndex {
+impl VecdbCheckedSub<P2WPKHAddressIndex> for P2WPKHAddressIndex {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         CheckedSub::checked_sub(self, rhs)
     }
 }
 
-impl P2WPKHAddrIndex {
+impl P2WPKHAddressIndex {
     pub(crate) fn index_name() -> &'static str {
-        "p2wpkh_addr_index"
+        "p2wpkh_address_index"
     }
     pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["wpkhaddr", "p2wpkhaddr", "p2wpkh_addr_index"]
+        &["wpkhaddr", "p2wpkhaddr", "p2wpkh_address_index"]
     }
 }
 #[cfg(feature = "storage")]
-impl PrintableIndex for P2WPKHAddrIndex {
+impl PrintableIndex for P2WPKHAddressIndex {
     fn to_string() -> &'static str {
         Self::index_name()
     }
@@ -122,18 +122,18 @@ impl PrintableIndex for P2WPKHAddrIndex {
 }
 
 #[cfg(feature = "storage")]
-impl VecIndex for P2WPKHAddrIndex {
+impl VecIndex for P2WPKHAddressIndex {
     const INITIAL_CAPACITY: usize = 500_000_000;
 }
 
-impl Display for P2WPKHAddrIndex {
+impl Display for P2WPKHAddressIndex {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         self.0.fmt(f)
     }
 }
 
 #[cfg(feature = "storage")]
-impl Formattable for P2WPKHAddrIndex {
+impl Formattable for P2WPKHAddressIndex {
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         self.0.write_to(buf);

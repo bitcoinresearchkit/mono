@@ -62,18 +62,18 @@ pub type Result<T> = std::result::Result<T, BitviewError>;
 /// BRK address type and raw payload bytes used by the hash-prefix index.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AddressPayload {{
-    pub addr_type: OutputType,
+    pub address_type: OutputType,
     pub payload: Vec<u8>,
 }}
 
 /// BRK address type and leading hex nibbles of the address-payload hash.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AddressHashPrefix {{
-    pub addr_type: OutputType,
+    pub address_type: OutputType,
     pub prefix: String,
 }}
 
-/// Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{{addr_type}}/{{prefix}}`.
+/// Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{{address_type}}/{{prefix}}`.
 pub fn address_payload_hash_prefix(payload: &[u8], nibbles: usize) -> Result<String> {{
     if payload.is_empty() {{
         return Err(BitviewError::new("Expected a non-empty address payload"));
@@ -87,15 +87,15 @@ pub fn address_payload_hash_prefix(payload: &[u8], nibbles: usize) -> Result<Str
     Ok(format!("{{:016x}}", rapidhash::v3::rapidhash_v3(payload))[..nibbles].to_string())
 }}
 
-fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> Result<()> {{
-    let expected: &[usize] = match addr_type {{
+fn validate_address_payload_for_type(address_type: OutputType, payload: &[u8]) -> Result<()> {{
+    let expected: &[usize] = match address_type {{
         OutputType::P2A => &[2],
         OutputType::P2PK33 => &[33],
         OutputType::P2PK65 => &[65],
         OutputType::P2PKH | OutputType::P2SH | OutputType::P2WPKH => &[20],
         OutputType::P2WSH | OutputType::P2TR => &[32],
         OutputType::P2MS | OutputType::OpReturn | OutputType::Empty | OutputType::Unknown => {{
-            return Err(BitviewError::new(format!("Unsupported address type for address payload hash-prefix: {{addr_type:?}}")));
+            return Err(BitviewError::new(format!("Unsupported address type for address payload hash-prefix: {{address_type:?}}")));
         }},
     }};
 
@@ -105,7 +105,7 @@ fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> R
             .map(ToString::to_string)
             .collect::<Vec<_>>()
             .join(" or ");
-        return Err(BitviewError::new(format!("Expected {{addr_type}} address payload length {{joined}} bytes")));
+        return Err(BitviewError::new(format!("Expected {{address_type}} address payload length {{joined}} bytes")));
     }}
 
     Ok(())
@@ -118,11 +118,11 @@ pub fn decode_address_payload(address: &str) -> Result<AddressPayload> {{
     if address.is_empty() {{
         return Err(BitviewError::new("Expected an address string"));
     }}
-    let addr_bytes = AddrBytes::from_str(address).map_err(|e| BitviewError::new(e.to_string()))?;
-    let addr_type = OutputType::from(&addr_bytes);
+    let addr_bytes = AddressBytes::from_str(address).map_err(|e| BitviewError::new(e.to_string()))?;
+    let address_type = OutputType::from(&addr_bytes);
 
     Ok(AddressPayload {{
-        addr_type,
+        address_type,
         payload: addr_bytes.as_slice().to_vec(),
     }})
 }}
@@ -131,7 +131,7 @@ pub fn decode_address_payload(address: &str) -> Result<AddressPayload> {{
 pub fn address_hash_prefix(address: &str, nibbles: usize) -> Result<AddressHashPrefix> {{
     let decoded = decode_address_payload(address)?;
     Ok(AddressHashPrefix {{
-        addr_type: decoded.addr_type,
+        address_type: decoded.address_type,
         prefix: address_payload_hash_prefix(&decoded.payload, nibbles)?,
     }})
 }}

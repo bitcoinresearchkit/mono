@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use brk_types::AddrBytes;
+use brk_types::AddressBytes;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use serde_json::from_str;
@@ -45,7 +45,7 @@ fn empty_pool(id: usize) -> Pool {
 #[derive(Debug)]
 pub struct Pools {
     pools: Vec<Pool>,
-    by_addr: FxHashMap<AddrBytes, PoolSlug>,
+    by_addr: FxHashMap<AddressBytes, PoolSlug>,
 }
 
 impl Pools {
@@ -58,7 +58,7 @@ impl Pools {
         })
     }
 
-    pub fn find_from_addr(&self, addr: &AddrBytes) -> Option<&Pool> {
+    pub fn find_from_addr(&self, addr: &AddressBytes) -> Option<&Pool> {
         self.by_addr.get(addr).map(|&slug| self.get(slug))
     }
 

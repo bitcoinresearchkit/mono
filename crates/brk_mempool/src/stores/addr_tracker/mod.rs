@@ -1,6 +1,6 @@
 use std::{collections::hash_map::Entry as MapEntry, sync::Arc};
 
-use brk_types::{AddrBytes, AddrMempoolStats, Transaction, TxOut, Txid};
+use brk_types::{AddressBytes, AddressMempoolStats, Transaction, TxOut, Txid};
 use rustc_hash::FxHashMap;
 
 use crate::cycle::AddrTransitions;
@@ -11,10 +11,10 @@ pub use addr_entry::AddrEntry;
 
 /// Frozen maps share address records; only changed records copy their txid sets.
 #[derive(Clone, Default)]
-pub struct AddrTracker(FxHashMap<AddrBytes, Arc<AddrEntry>>);
+pub struct AddrTracker(FxHashMap<AddressBytes, Arc<AddrEntry>>);
 
 impl AddrTracker {
-    pub fn get(&self, addr: &AddrBytes) -> Option<&AddrEntry> {
+    pub fn get(&self, addr: &AddressBytes) -> Option<&AddrEntry> {
         self.0.get(addr).map(Arc::as_ref)
     }
 
@@ -68,9 +68,9 @@ impl AddrTracker {
     fn apply_add(
         &mut self,
         transitions: &mut AddrTransitions,
-        bytes: AddrBytes,
+        bytes: AddressBytes,
         txid: &Txid,
-        update_stats: impl FnOnce(&mut AddrMempoolStats),
+        update_stats: impl FnOnce(&mut AddressMempoolStats),
     ) {
         match self.0.entry(bytes) {
             MapEntry::Occupied(mut occupied) => {
@@ -93,9 +93,9 @@ impl AddrTracker {
     fn apply_remove(
         &mut self,
         transitions: &mut AddrTransitions,
-        bytes: AddrBytes,
+        bytes: AddressBytes,
         txid: &Txid,
-        update_stats: impl FnOnce(&mut AddrMempoolStats),
+        update_stats: impl FnOnce(&mut AddressMempoolStats),
     ) {
         let MapEntry::Occupied(mut occupied) = self.0.entry(bytes) else {
             return;

@@ -14,20 +14,20 @@ For machine-readable tool construction, use [https://bitview.space/openapi.json]
 
 ### Address
 
-#### GET `/api/address/hash-prefix/{addr_type}/{prefix}`
+#### GET `/api/address/hash-prefix/{address_type}/{prefix}`
 
 Address hash-prefix matches
 
 Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.
 
 Parameters:
-- `addr_type` (path, OutputType, required)
+- `address_type` (path, OutputType, required)
 - `prefix` (path, string, required): First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
 
-Returns: JSON `AddrHashPrefixMatches`
+Returns: JSON `AddressHashPrefixMatches`
 
 ```bash
-curl -s "https://bitview.space/api/address/hash-prefix/<addr_type>/<prefix>"
+curl -s "https://bitview.space/api/address/hash-prefix/<address_type>/<prefix>"
 ```
 
 #### GET `/api/address/{address}`
@@ -37,9 +37,9 @@ Address information
 Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*
 
 Parameters:
-- `address` (path, Addr, required)
+- `address` (path, Address, required)
 
-Returns: JSON `AddrStats`
+Returns: JSON `AddressStats`
 
 ```bash
 curl -s "https://bitview.space/api/address/<address>"
@@ -52,7 +52,7 @@ Address transactions
 Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
 
 Parameters:
-- `address` (path, Addr, required)
+- `address` (path, Address, required)
 
 Returns: JSON `Transaction[]`
 
@@ -67,7 +67,7 @@ Address confirmed transactions
 Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
 
 Parameters:
-- `address` (path, Addr, required)
+- `address` (path, Address, required)
 
 Returns: JSON `Transaction[]`
 
@@ -82,7 +82,7 @@ Address confirmed transactions (paginated)
 Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
 
 Parameters:
-- `address` (path, Addr, required)
+- `address` (path, Address, required)
 - `after_txid` (path, Txid, required): Last txid from the previous page (return transactions strictly older than this)
 
 Returns: JSON `Transaction[]`
@@ -98,7 +98,7 @@ Address mempool transactions
 Get unconfirmed transactions for an address from the mempool, newest first (up to 50). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
 
 Parameters:
-- `address` (path, Addr, required)
+- `address` (path, Address, required)
 
 Returns: JSON `Transaction[]`
 
@@ -113,7 +113,7 @@ Address UTXOs
 Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
 
 Parameters:
-- `address` (path, Addr, required)
+- `address` (path, Address, required)
 
 Returns: JSON `Utxo[]`
 
@@ -1470,7 +1470,7 @@ Validate a Bitcoin address and get information about its type and scriptPubKey. 
 Parameters:
 - `address` (path, string, required): Bitcoin address to validate (can be any string)
 
-Returns: JSON `AddrValidation`
+Returns: JSON `AddressValidation`
 
 ```bash
 curl -s "https://bitview.space/api/v1/validate-address/<address>"
@@ -1492,11 +1492,11 @@ curl -s "https://bitview.space/version"
 
 ## Schemas
 
-### `Addr`
+### `Address`
 
 `string`
 
-### `AddrChainStats`
+### `AddressChainStats`
 
 - `balance`: `Sats` (required) — Current confirmed balance in satoshis
 - `funded_txo_count`: `integer` (required) — Total number of transaction outputs that funded this address
@@ -1507,14 +1507,14 @@ curl -s "https://bitview.space/version"
 - `type_index`: `TypeIndex` (required) — Index of this address within its type on the blockchain
 - `realized_price`: `Dollars` (required) — Realized price (average cost basis) in USD
 
-### `AddrHashPrefixMatches`
+### `AddressHashPrefixMatches`
 
-- `addr_type`: `OutputType` (required)
+- `address_type`: `OutputType` (required)
 - `prefix`: `string` (required)
 - `truncated`: `boolean` (required)
-- `addresses`: `Addr[]` (required)
+- `addresses`: `Address[]` (required)
 
-### `AddrMempoolStats`
+### `AddressMempoolStats`
 
 - `balance_delta`: `SatsSigned` (required) — Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
 - `funded_txo_count`: `integer` (required) — Number of unconfirmed transaction outputs funding this address
@@ -1523,15 +1523,15 @@ curl -s "https://bitview.space/version"
 - `spent_txo_sum`: `Sats` (required) — Total amount in satoshis being spent in unconfirmed transactions
 - `tx_count`: `integer` (required) — Number of unconfirmed transactions involving this address
 
-### `AddrStats`
+### `AddressStats`
 
-- `address`: `Addr` (required) — Bitcoin address string
-- `addr_type`: `OutputType` (required) — BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
-- `chain_stats`: `AddrChainStats` (required) — Statistics for confirmed transactions on the blockchain
-- `mempool_stats`: `AddrMempoolStats` (required) — Statistics for unconfirmed transactions in the mempool
+- `address`: `Address` (required) — Bitcoin address string
+- `address_type`: `OutputType` (required) — BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
+- `chain_stats`: `AddressChainStats` (required) — Statistics for confirmed transactions on the blockchain
+- `mempool_stats`: `AddressMempoolStats` (required) — Statistics for unconfirmed transactions in the mempool
 - `balance`: `Sats` (required) — Total current balance in satoshis, including pending (unconfirmed) mempool changes
 
-### `AddrValidation`
+### `AddressValidation`
 
 - `isvalid`: `boolean` (required) — Whether the address is valid
 - `address`: `string | null` — The validated address
@@ -1816,7 +1816,7 @@ curl -s "https://bitview.space/version"
 
 ### `Index`
 
-`minute10 | minute30 | hour1 | hour4 | hour12 | day1 | day3 | week1 | month1 | month3 | month6 | year1 | year10 | halving | epoch | height | tx_index | txin_index | txout_index | empty_output_index | op_return_index | p2a_addr_index | p2ms_output_index | p2pk33_addr_index | p2pk65_addr_index | p2pkh_addr_index | p2sh_addr_index | p2tr_addr_index | p2wpkh_addr_index | p2wsh_addr_index | unknown_output_index | funded_addr_index | empty_addr_index | extended_empty_addr_index`
+`minute10 | minute30 | hour1 | hour4 | hour12 | day1 | day3 | week1 | month1 | month3 | month6 | year1 | year10 | halving | epoch | height | tx_index | txin_index | txout_index | empty_output_index | op_return_index | p2a_address_index | p2ms_output_index | p2pk33_address_index | p2pk65_address_index | p2pkh_address_index | p2sh_address_index | p2tr_address_index | p2wpkh_address_index | p2wsh_address_index | unknown_output_index | funded_address_index | empty_address_index | extended_empty_address_index`
 
 ### `MempoolBlock`
 
@@ -2065,7 +2065,7 @@ curl -s "https://bitview.space/version"
 - `scriptpubkey`: `string` (required) — Script pubkey (locking script), encoded as hexadecimal.
 - `scriptpubkey_asm`: `string` (required) — Script pubkey in assembly format.
 - `scriptpubkey_type`: `OutputTypeNormalized` (required) — Esplora/mempool.space script type.
-- `scriptpubkey_address`: `Addr` — Bitcoin address, omitted for scripts without an address.
+- `scriptpubkey_address`: `Address` — Bitcoin address, omitted for scripts without an address.
 - `value`: `Sats` (required) — Value of the output in satoshis.
 
 ### `TxOutspend`

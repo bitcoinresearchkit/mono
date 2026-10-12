@@ -5,7 +5,7 @@ use bitview_distribution::readers::{BatchColumns, BlockBounds, index_range};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_outputs::overwritten_output;
-use bitview_primitives::{FundedAddrData, TypeIndex};
+use bitview_primitives::{FundedAddressData, TypeIndex};
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
@@ -352,7 +352,7 @@ pub fn process_chunk(
 #[allow(clippy::too_many_arguments)]
 fn process_shard(
     output_type: OutputType,
-    addrs: &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>,
+    addrs: &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>,
     blocks: Vec<TypeBlock>,
     first_height: usize,
     prices: &[Cents],

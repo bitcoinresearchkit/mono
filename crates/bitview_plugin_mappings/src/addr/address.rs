@@ -1,5 +1,5 @@
 use bitview_traversable::Traversable;
-use brk_types::Addr;
+use brk_types::Address;
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{Formattable, LazyVec, VecIndex, VecValue};
@@ -15,5 +15,5 @@ where
     pub identity: LazyVec<I, I, I, B>,
     /// Textual identifier reconstructed from the indexed locking script: raw
     /// public-key hex for P2PK, otherwise the standard mainnet Bitcoin address.
-    pub address: LazyVec<I, Addr, I, B>,
+    pub address: LazyVec<I, Address, I, B>,
 }

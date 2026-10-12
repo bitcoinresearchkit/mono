@@ -2,15 +2,17 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{body::Bytes, extract::Path, http::HeaderMap, response::Response};
 use bitview_primitives::BlockHashPrefix;
 use bitview_query::RepresentationId;
-use bitview_types::{AddrHashPrefixMatches, AddrStats, AddrValidation, Utxo};
-use brk_types::{Addr, Transaction, Txid, Version};
+use bitview_types::{AddressHashPrefixMatches, AddressStats, AddressValidation, Utxo};
+use brk_types::{Address, Transaction, Txid, Version};
 use serde_json::to_vec;
 
 use crate::{
     AppState, CacheParams, CacheStrategy, CdnCacheMode,
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
-    params::{AddrAfterTxidParam, AddrHashPrefixParam, AddrParam, Empty, ValidateAddrParam},
+    params::{
+        AddressAfterTxidParam, AddressHashPrefixParam, AddressParam, Empty, ValidateAddressParam,
+    },
     request_state::RequestState,
 };
 
@@ -30,7 +32,7 @@ impl AppState {
     async fn respond_addr_chain_txs(
         &self,
         headers: HeaderMap,
-        addr: Addr,
+        addr: Address,
         after_txid: Option<Txid>,
     ) -> Response {
         let mode = self.cdn_cache_mode;
@@ -54,22 +56,22 @@ impl AppState {
 impl AddrRoutes for ApiRouter<AppState> {
     fn add_addr_routes(self) -> Self {
         self.api_route(
-            "/api/address/hash-prefix/{addr_type}/{prefix}",
+            "/api/address/hash-prefix/{address_type}/{prefix}",
             get_with(async |
                 headers: HeaderMap,
-                Path(path): Path<AddrHashPrefixParam>,
+                Path(path): Path<AddressHashPrefixParam>,
                 _: Empty,
                 RequestState(state): RequestState
             | {
                 state.respond_json_content(&headers, move |q| {
-                    q.addr_hash_prefix_matches(path.addr_type, &path.prefix)
+                    q.addr_hash_prefix_matches(path.address_type, &path.prefix)
                 }).await
             }, |op| op
                 .id("get_address_hash_prefix_matches")
                 .addrs_tag()
                 .summary("Address hash-prefix matches")
                 .description("Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.")
-                .json_response::<AddrHashPrefixMatches>()
+                .json_response::<AddressHashPrefixMatches>()
                 .not_modified()
                 .bad_request()
                 .server_error()
@@ -79,7 +81,7 @@ impl AddrRoutes for ApiRouter<AppState> {
             "/api/address/{address}",
             get_with(async |
                 headers: HeaderMap,
-                Path(path): Path<AddrParam>,
+                Path(path): Path<AddressParam>,
                 _: Empty,
                 RequestState(state): RequestState
             | -> Result<Response> {
@@ -91,7 +93,7 @@ impl AddrRoutes for ApiRouter<AppState> {
                 .addrs_tag()
                 .summary("Address information")
                 .description("Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*")
-                .json_response::<AddrStats>()
+                .json_response::<AddressStats>()
                 .not_modified()
                 .bad_request()
                 .not_found()
@@ -102,7 +104,7 @@ impl AddrRoutes for ApiRouter<AppState> {
             "/api/address/{address}/txs",
             get_with(async |
                 headers: HeaderMap,
-                Path(path): Path<AddrParam>,
+                Path(path): Path<AddressParam>,
                 _: Empty,
                 RequestState(state): RequestState
             | -> Result<Response> {
@@ -123,7 +125,7 @@ impl AddrRoutes for ApiRouter<AppState> {
             "/api/address/{address}/txs/chain",
             get_with(async |
                 headers: HeaderMap,
-                Path(path): Path<AddrParam>,
+                Path(path): Path<AddressParam>,
                 _: Empty,
                 RequestState(state): RequestState
             | -> Result<Response> {
@@ -148,7 +150,7 @@ impl AddrRoutes for ApiRouter<AppState> {
             "/api/address/{address}/txs/chain/{after_txid}",
             get_with(async |
                 headers: HeaderMap,
-                Path(path): Path<AddrAfterTxidParam>,
+                Path(path): Path<AddressAfterTxidParam>,
                 _: Empty,
                 RequestState(state): RequestState
             | -> Result<Response> {
@@ -173,7 +175,7 @@ impl AddrRoutes for ApiRouter<AppState> {
             "/api/address/{address}/txs/mempool",
             get_with(async |
                 headers: HeaderMap,
-                Path(path): Path<AddrParam>,
+                Path(path): Path<AddressParam>,
                 _: Empty,
                 RequestState(state): RequestState
             | -> Result<Response> {
@@ -196,7 +198,7 @@ impl AddrRoutes for ApiRouter<AppState> {
             "/api/address/{address}/utxo",
             get_with(async |
                 headers: HeaderMap,
-                Path(path): Path<AddrParam>,
+                Path(path): Path<AddressParam>,
                 _: Empty,
                 RequestState(state): RequestState
             | -> Result<Response> {
@@ -217,26 +219,26 @@ impl AddrRoutes for ApiRouter<AppState> {
             "/api/v1/validate-address/{address}",
             get_with(async |
                 headers: HeaderMap,
-                Path(path): Path<ValidateAddrParam>,
+                Path(path): Path<ValidateAddressParam>,
                 _: Empty,
                 RequestState(state): RequestState
             | {
                 state.respond_json_immediate(&headers, CacheStrategy::Deploy, move || {
-                    AddrValidation::from_addr(&path.addr)
+                    AddressValidation::from_addr(&path.addr)
                 })
             }, |op| op
                 .id("validate_address")
                 .addrs_tag()
                 .summary("Validate address")
                 .description("Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*")
-                .json_response::<AddrValidation>()
+                .json_response::<AddressValidation>()
                 .not_modified()
             ),
         )
     }
 }
 
-async fn serve_txs(state: AppState, headers: HeaderMap, addr: Addr) -> Result<Response> {
+async fn serve_txs(state: AppState, headers: HeaderMap, addr: Address) -> Result<Response> {
     Ok(state
         .read_admitted(move |q| {
             let resolved = q.resolve_addr_txs(&addr, MEMPOOL_PAGE, CHAIN_PAGE, TXS_TOTAL_TARGET)?;
@@ -273,7 +275,7 @@ async fn serve_txs(state: AppState, headers: HeaderMap, addr: Addr) -> Result<Re
 
 /// Validate policy and select the representation in one admitted worker. Do not
 /// carry a publication guard across a second admission wait.
-async fn serve_utxos(state: AppState, headers: HeaderMap, addr: Addr) -> Result<Response> {
+async fn serve_utxos(state: AppState, headers: HeaderMap, addr: Address) -> Result<Response> {
     let max_utxos = state.max_utxos;
     Ok(state
         .read_admitted(move |q| {

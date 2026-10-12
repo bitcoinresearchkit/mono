@@ -1,5 +1,5 @@
 use bitview_cohort::ByAddrType;
-use bitview_primitives::{DecodedAddrState, FundedAddrData, TypeIndex};
+use bitview_primitives::{DecodedAddrState, FundedAddressData, TypeIndex};
 use brk_error::Result;
 use brk_types::OutputType;
 use rayon::prelude::*;
@@ -44,7 +44,7 @@ impl AddressKey {
         TypeIndex::from(self.0 as u32)
     }
 
-    fn load(self, vr: &AddrReaders, state: &AddrStateVecs) -> SourcedAddrData<FundedAddrData> {
+    fn load(self, vr: &AddrReaders, state: &AddrStateVecs) -> SourcedAddrData<FundedAddressData> {
         let addr_type = self.addr_type();
         let type_index = self.type_index();
 
@@ -68,11 +68,11 @@ impl AddressKey {
 /// place: their UTXO count tells funded and empty apart at flush.
 #[derive(Default)]
 pub struct AddrCache {
-    shards: [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>; SHARDS],
+    shards: [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddressData>>; SHARDS],
     /// Reusable scratch space for the unique addresses touched by one batch.
     addresses: Vec<AddressKey>,
     /// Reusable scratch space for their loaded sources (`None`: already cached).
-    sources: Vec<Option<SourcedAddrData<FundedAddrData>>>,
+    sources: Vec<Option<SourcedAddrData<FundedAddressData>>>,
 }
 
 impl AddrCache {
@@ -137,7 +137,7 @@ impl AddrCache {
     ) -> impl Iterator<
         Item = (
             OutputType,
-            &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddrData>>,
+            &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>,
         ),
     > {
         self.shards.iter_mut().flat_map(|shard| shard.iter_mut())

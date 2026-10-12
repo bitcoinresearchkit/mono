@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use bitview_plugin_indexer::SafeLengths;
-use brk_types::{Addr, BlockHash, Transaction};
+use brk_types::{Address, BlockHash, Transaction};
 
 use super::ResolvedAddrChainTxs;
 use crate::{Query, Result, r#impl::addr::parse_addr};
@@ -31,7 +31,7 @@ impl Query {
     /// immutable shared values; a prefix pin keeps selected chain rows stable.
     pub fn resolve_addr_txs(
         &self,
-        addr: &Addr,
+        addr: &Address,
         mempool_limit: usize,
         chain_floor: usize,
         total_target: usize,

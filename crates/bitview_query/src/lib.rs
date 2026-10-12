@@ -196,15 +196,30 @@ impl Query {
             safe.empty_output_index.into(),
         );
         bounds.set(Index::OpReturnIndex.name(), safe.op_return_index.into());
-        bounds.set(Index::P2AAddrIndex.name(), safe.p2a_addr_index.into());
+        bounds.set(Index::P2AAddressIndex.name(), safe.p2a_addr_index.into());
         bounds.set(Index::P2MSOutputIndex.name(), safe.p2ms_output_index.into());
-        bounds.set(Index::P2PK33AddrIndex.name(), safe.p2pk33_addr_index.into());
-        bounds.set(Index::P2PK65AddrIndex.name(), safe.p2pk65_addr_index.into());
-        bounds.set(Index::P2PKHAddrIndex.name(), safe.p2pkh_addr_index.into());
-        bounds.set(Index::P2SHAddrIndex.name(), safe.p2sh_addr_index.into());
-        bounds.set(Index::P2TRAddrIndex.name(), safe.p2tr_addr_index.into());
-        bounds.set(Index::P2WPKHAddrIndex.name(), safe.p2wpkh_addr_index.into());
-        bounds.set(Index::P2WSHAddrIndex.name(), safe.p2wsh_addr_index.into());
+        bounds.set(
+            Index::P2PK33AddressIndex.name(),
+            safe.p2pk33_addr_index.into(),
+        );
+        bounds.set(
+            Index::P2PK65AddressIndex.name(),
+            safe.p2pk65_addr_index.into(),
+        );
+        bounds.set(
+            Index::P2PKHAddressIndex.name(),
+            safe.p2pkh_addr_index.into(),
+        );
+        bounds.set(Index::P2SHAddressIndex.name(), safe.p2sh_addr_index.into());
+        bounds.set(Index::P2TRAddressIndex.name(), safe.p2tr_addr_index.into());
+        bounds.set(
+            Index::P2WPKHAddressIndex.name(),
+            safe.p2wpkh_addr_index.into(),
+        );
+        bounds.set(
+            Index::P2WSHAddressIndex.name(),
+            safe.p2wsh_addr_index.into(),
+        );
         bounds.set(
             Index::UnknownOutputIndex.name(),
             safe.unknown_output_index.into(),

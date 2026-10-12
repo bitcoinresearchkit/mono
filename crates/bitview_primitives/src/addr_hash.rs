@@ -6,7 +6,7 @@ use bitcoin::ScriptBuf;
 use brk_error::Error;
 use rapidhash::v3;
 
-use brk_types::{AddrBytes, OutputType, StoreValue};
+use brk_types::{AddressBytes, OutputType, StoreValue};
 
 #[derive(Debug, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "storage", derive(Bytes))]
@@ -18,9 +18,9 @@ impl AddrHash {
     }
 }
 
-impl From<&AddrBytes> for AddrHash {
+impl From<&AddressBytes> for AddrHash {
     #[inline]
-    fn from(addr_bytes: &AddrBytes) -> Self {
+    fn from(addr_bytes: &AddressBytes) -> Self {
         Self(v3::rapidhash_v3(addr_bytes.as_slice()))
     }
 }
@@ -42,7 +42,7 @@ impl StoreValue for AddrHash {
 impl AddrHash {
     #[inline]
     pub fn from_script(script: &ScriptBuf, output_type: OutputType) -> Result<Self, Error> {
-        Ok(Self::new(v3::rapidhash_v3(AddrBytes::script_payload(
+        Ok(Self::new(v3::rapidhash_v3(AddressBytes::script_payload(
             script,
             output_type,
         )?)))

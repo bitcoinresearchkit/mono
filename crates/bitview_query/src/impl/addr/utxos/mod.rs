@@ -2,7 +2,7 @@ use bitview_plugin::PublicationReadGuard;
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::TxOutIndex;
 use bitview_types::Utxo;
-use brk_types::{Addr, AddrBytes, BlockHash, Height, TxIndex, TxStatus, Vout};
+use brk_types::{Address, AddressBytes, BlockHash, Height, TxIndex, TxStatus, Vout};
 
 use crate::{Error, OptionData, Query, Result, r#impl::addr::parse_addr};
 
@@ -20,7 +20,11 @@ impl ResolvedAddrUtxos {
 }
 
 impl Query {
-    pub fn resolve_addr_utxos(&self, addr: &Addr, max_utxos: usize) -> Result<ResolvedAddrUtxos> {
+    pub fn resolve_addr_utxos(
+        &self,
+        addr: &Address,
+        max_utxos: usize,
+    ) -> Result<ResolvedAddrUtxos> {
         let addr = parse_addr(addr)?;
         let guard = self.read_publication()?;
         self.resolve_addr_utxos_guarded(&addr, guard, max_utxos)
@@ -28,7 +32,7 @@ impl Query {
 
     fn resolve_addr_utxos_guarded(
         &self,
-        addr: &AddrBytes,
+        addr: &AddressBytes,
         guard: PublicationReadGuard,
         max_utxos: usize,
     ) -> Result<ResolvedAddrUtxos> {

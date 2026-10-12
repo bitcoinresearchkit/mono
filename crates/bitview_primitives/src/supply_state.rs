@@ -11,7 +11,7 @@ use std::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::FundedAddrData;
+use crate::FundedAddressData;
 use brk_types::{CheckedSub, Sats};
 
 #[cfg(feature = "storage")]
@@ -73,9 +73,9 @@ impl SubAssign<&SupplyState> for SupplyState {
     }
 }
 
-impl From<&FundedAddrData> for SupplyState {
+impl From<&FundedAddressData> for SupplyState {
     #[inline]
-    fn from(value: &FundedAddrData) -> Self {
+    fn from(value: &FundedAddressData) -> Self {
         Self {
             utxo_count: value.utxo_count() as u64,
             value: value.balance(),

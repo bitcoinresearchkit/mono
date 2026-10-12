@@ -51,14 +51,14 @@ pub enum ErrorType {
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
     NotFound,
-    InvalidAddr,
+    InvalidAddress,
     InvalidNetwork,
     UnsupportedType,
     NoSeries,
     SeriesUnsupportedIndex,
     WeightExceeded,
     TooManyUtxos,
-    UnknownAddr,
+    UnknownAddress,
     UnknownTxid,
     OutOfRange,
     UnindexableDate,

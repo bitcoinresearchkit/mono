@@ -1,7 +1,7 @@
-use bitview_primitives::FundedAddrData;
+use bitview_primitives::FundedAddressData;
 use brk_types::{OutputType, Sats};
 
-/// Snapshot of [`FundedAddrData`] taken before a receive mutates it.
+/// Snapshot of [`FundedAddressData`] taken before a receive mutates it.
 #[derive(Debug)]
 pub struct AddrReceivePreState {
     pub was_funded: bool,
@@ -16,7 +16,7 @@ pub struct AddrReceivePreState {
 
 impl AddrReceivePreState {
     #[inline]
-    pub fn capture(addr_data: &FundedAddrData, output_type: OutputType) -> Self {
+    pub fn capture(addr_data: &FundedAddressData, output_type: OutputType) -> Self {
         Self {
             was_funded: addr_data.is_funded(),
             was_reused: addr_data.is_reused(),

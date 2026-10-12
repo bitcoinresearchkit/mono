@@ -10,7 +10,7 @@ use serde_json::json;
 
 #[cfg(feature = "schemars")]
 use crate::OutputTypeNormalized;
-use crate::{Addr, AddrBytes, OutputType, Sats};
+use crate::{Address, AddressBytes, OutputType, Sats};
 
 /// Transaction output
 #[derive(Debug, Clone, Deserialize)]
@@ -38,7 +38,7 @@ struct TxOutSchema {
     scriptpubkey_type: OutputTypeNormalized,
     /// Bitcoin address, omitted for scripts without an address.
     #[schemars(example = &"bc1q8vryck26jhuh0uqr2ttwj96szfnu4nwxfmu39y")]
-    scriptpubkey_address: Addr,
+    scriptpubkey_address: Address,
     /// Value of the output in satoshis.
     #[schemars(example = Sats::new(7782))]
     value: Sats,
@@ -66,12 +66,12 @@ impl JsonSchema for TxOut {
 }
 
 impl TxOut {
-    fn addr(&self) -> Option<Addr> {
-        Addr::try_from(&self.script_pubkey).ok()
+    fn addr(&self) -> Option<Address> {
+        Address::try_from(&self.script_pubkey).ok()
     }
 
-    pub fn addr_bytes(&self) -> Option<AddrBytes> {
-        AddrBytes::try_from(&self.script_pubkey).ok()
+    pub fn addr_bytes(&self) -> Option<AddressBytes> {
+        AddressBytes::try_from(&self.script_pubkey).ok()
     }
 
     pub fn type_(&self) -> OutputType {

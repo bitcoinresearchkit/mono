@@ -1,14 +1,16 @@
 use std::ops::{Deref, DerefMut};
 
-use bitview_primitives::{EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex};
+use bitview_primitives::{
+    EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData, FundedAddressIndex,
+};
 
 /// Address data and the persistent representation it came from.
 #[derive(Debug, Clone)]
 pub enum SourcedAddrData<T> {
     New(T),
-    FromFunded(FundedAddrIndex, T),
+    FromFunded(FundedAddressIndex, T),
     FromInlineEmpty(T),
-    FromExtendedEmpty(ExtendedEmptyAddrIndex, T),
+    FromExtendedEmpty(ExtendedEmptyAddressIndex, T),
 }
 
 impl<T> SourcedAddrData<T> {
@@ -49,9 +51,9 @@ impl<T> DerefMut for SourcedAddrData<T> {
     }
 }
 
-impl From<SourcedAddrData<FundedAddrData>> for SourcedAddrData<EmptyAddrData> {
+impl From<SourcedAddrData<FundedAddressData>> for SourcedAddrData<EmptyAddressData> {
     #[inline]
-    fn from(value: SourcedAddrData<FundedAddrData>) -> Self {
+    fn from(value: SourcedAddrData<FundedAddressData>) -> Self {
         value.map(Into::into)
     }
 }

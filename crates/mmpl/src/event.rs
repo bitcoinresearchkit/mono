@@ -4,7 +4,8 @@
 
 use brk_mempool::{Cycle, TxAdded, TxRemoval, TxRemoved};
 use brk_types::{
-    Addr, BlockHash, FeeRate, Height, NextBlockHash, RecommendedFees, Sats, Timestamp, Txid, VSize,
+    Address, BlockHash, FeeRate, Height, NextBlockHash, RecommendedFees, Sats, Timestamp, Txid,
+    VSize,
 };
 use serde::Serialize;
 
@@ -32,9 +33,9 @@ pub enum Event {
     },
     /// An address went 0 → 1+ live mempool txs this cycle. Same-cycle
     /// flip-flops are collapsed by the upstream tracker (no event).
-    AddrEnter { t: f64, addr: Addr },
+    AddrEnter { t: f64, addr: Address },
     /// An address went 1+ → 0 live mempool txs this cycle.
-    AddrLeave { t: f64, addr: Addr },
+    AddrLeave { t: f64, addr: Address },
     /// New confirmed block: bitcoind's chain tip moved since the last
     /// cycle. `height` is the tip's own height (one less than the next
     /// block being templated).
@@ -108,11 +109,11 @@ impl Event {
         }
     }
 
-    pub fn addr_enter(t: f64, addr: Addr) -> Self {
+    pub fn addr_enter(t: f64, addr: Address) -> Self {
         Self::AddrEnter { t, addr }
     }
 
-    pub fn addr_leave(t: f64, addr: Addr) -> Self {
+    pub fn addr_leave(t: f64, addr: Address) -> Self {
         Self::AddrLeave { t, addr }
     }
 

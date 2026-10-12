@@ -1,6 +1,7 @@
 use bitview_cohort::ByAddrType;
 use bitview_primitives::{
-    AddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex, TypeIndex,
+    AddressState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
+    FundedAddressIndex, TypeIndex,
 };
 use brk_types::OutputType;
 use vecdb::likely;
@@ -9,17 +10,17 @@ use crate::addr::{AddrTypeToTypeIndexMap, AddrTypeToVec, SourcedAddrData};
 
 /// Cached addresses sorted into the writes each persistent vector needs.
 pub struct AddrUpdates {
-    pub primaries: AddrTypeToVec<(TypeIndex, AddrState)>,
-    pub funded_updates: Vec<(FundedAddrIndex, FundedAddrData)>,
-    pub funded_pushes: Vec<(OutputType, TypeIndex, FundedAddrData)>,
-    pub funded_deletes: Vec<FundedAddrIndex>,
-    pub extended_updates: Vec<(ExtendedEmptyAddrIndex, EmptyAddrData)>,
-    pub extended_pushes: Vec<(OutputType, TypeIndex, EmptyAddrData)>,
-    pub extended_deletes: Vec<ExtendedEmptyAddrIndex>,
+    pub primaries: AddrTypeToVec<(TypeIndex, AddressState)>,
+    pub funded_updates: Vec<(FundedAddressIndex, FundedAddressData)>,
+    pub funded_pushes: Vec<(OutputType, TypeIndex, FundedAddressData)>,
+    pub funded_deletes: Vec<FundedAddressIndex>,
+    pub extended_updates: Vec<(ExtendedEmptyAddressIndex, EmptyAddressData)>,
+    pub extended_pushes: Vec<(OutputType, TypeIndex, EmptyAddressData)>,
+    pub extended_deletes: Vec<ExtendedEmptyAddressIndex>,
 }
 
 impl AddrUpdates {
-    pub fn stage(cache: &mut [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>]) -> Self {
+    pub fn stage(cache: &mut [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddressData>>]) -> Self {
         let capacities = ByAddrType::from_fn(|id| {
             cache
                 .iter()
@@ -53,7 +54,7 @@ impl AddrUpdates {
         &mut self,
         addr_type: OutputType,
         type_index: TypeIndex,
-        source: SourcedAddrData<FundedAddrData>,
+        source: SourcedAddrData<FundedAddressData>,
     ) {
         match source {
             SourcedAddrData::New(data) | SourcedAddrData::FromInlineEmpty(data) => {
@@ -74,7 +75,7 @@ impl AddrUpdates {
         &mut self,
         addr_type: OutputType,
         type_index: TypeIndex,
-        source: SourcedAddrData<EmptyAddrData>,
+        source: SourcedAddrData<EmptyAddressData>,
     ) {
         match source {
             SourcedAddrData::New(data) | SourcedAddrData::FromInlineEmpty(data) => {
@@ -85,7 +86,7 @@ impl AddrUpdates {
                 self.push_empty_state(addr_type, type_index, data);
             }
             SourcedAddrData::FromExtendedEmpty(index, data) => {
-                let state = AddrState::from_empty(&data);
+                let state = AddressState::from_empty(&data);
                 if likely(state.is_some()) {
                     self.extended_deletes.push(index);
                     self.primaries
@@ -103,9 +104,9 @@ impl AddrUpdates {
         &mut self,
         addr_type: OutputType,
         type_index: TypeIndex,
-        data: EmptyAddrData,
+        data: EmptyAddressData,
     ) {
-        let state = AddrState::from_empty(&data);
+        let state = AddressState::from_empty(&data);
         if likely(state.is_some()) {
             self.primaries
                 .get_mut_unwrap(addr_type)

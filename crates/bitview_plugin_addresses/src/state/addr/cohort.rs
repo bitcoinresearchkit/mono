@@ -1,5 +1,5 @@
 use bitview_cohort::{AmountRange, AmountRangeId};
-use bitview_primitives::{FundedAddrData, SupplyState};
+use bitview_primitives::{FundedAddressData, SupplyState};
 use brk_error::Result;
 use brk_types::{Cents, CentsSats, Sats};
 
@@ -82,7 +82,7 @@ enum Change {
 pub struct CohortLog(Vec<(AmountRangeId, Change)>);
 
 impl CohortLog {
-    pub fn add(&mut self, bucket: AmountRangeId, addr_data: &FundedAddrData) {
+    pub fn add(&mut self, bucket: AmountRangeId, addr_data: &FundedAddressData) {
         self.0.push((
             bucket,
             Change::Add {
@@ -92,7 +92,7 @@ impl CohortLog {
         ));
     }
 
-    pub fn subtract(&mut self, bucket: AmountRangeId, addr_data: &FundedAddrData) {
+    pub fn subtract(&mut self, bucket: AmountRangeId, addr_data: &FundedAddressData) {
         self.0.push((
             bucket,
             Change::Subtract {
@@ -105,7 +105,7 @@ impl CohortLog {
     pub fn receive_outputs(
         &mut self,
         bucket: AmountRangeId,
-        addr_data: &mut FundedAddrData,
+        addr_data: &mut FundedAddressData,
         value: Sats,
         price: Cents,
         output_count: u32,
@@ -126,7 +126,7 @@ impl CohortLog {
     pub fn send(
         &mut self,
         bucket: AmountRangeId,
-        addr_data: &mut FundedAddrData,
+        addr_data: &mut FundedAddressData,
         value: Sats,
         current_price: Cents,
         prev_price: Cents,

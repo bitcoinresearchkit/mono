@@ -1,11 +1,11 @@
 use bitcoin::hex::DisplayHex;
-use brk_types::{AddrBytes, OutputType};
+use brk_types::{AddressBytes, OutputType};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// Address validation result
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct AddrValidation {
+pub struct AddressValidation {
     /// Whether the address is valid
     #[schemars(example = true)]
     isvalid: bool,
@@ -45,7 +45,7 @@ pub struct AddrValidation {
     error: Option<String>,
 }
 
-impl AddrValidation {
+impl AddressValidation {
     /// Returns an invalid validation result with error detail
     fn invalid(error: String) -> Self {
         Self {
@@ -63,7 +63,7 @@ impl AddrValidation {
 
     /// Validate a Bitcoin address string and return details
     pub fn from_addr(addr: &str) -> Self {
-        let script = match AddrBytes::addr_to_script(addr) {
+        let script = match AddressBytes::addr_to_script(addr) {
             Ok(s) => s,
             Err(e) => return Self::invalid(e.to_string()),
         };

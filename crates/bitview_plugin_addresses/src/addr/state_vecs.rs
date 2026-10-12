@@ -2,9 +2,9 @@ use std::{thread, time::Instant};
 
 use bitview_cohort::ByAddrType;
 use bitview_primitives::{
-    AddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrData, FundedAddrIndex,
-    P2AAddrIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex,
-    P2WPKHAddrIndex, P2WSHAddrIndex, TypeIndex,
+    AddressState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
+    FundedAddressIndex, P2AAddressIndex, P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex,
+    P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex, P2WSHAddressIndex, TypeIndex,
 };
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
@@ -35,41 +35,41 @@ pub struct AddrStateVecs<M: StorageMode = Rw> {
     /// Each address's state, one four-byte record per address index: a funded
     /// address's slot in `funded`, an empty address's slot in `extended_empty`,
     /// or an empty address's lifetime totals inline.
-    pub p2a: M::Stored<MutableVec<BytesVec<P2AAddrIndex, AddrState>>>,
+    pub p2a: M::Stored<MutableVec<BytesVec<P2AAddressIndex, AddressState>>>,
     /// Each address's state, one four-byte record per address index: a funded
     /// address's slot in `funded`, an empty address's slot in `extended_empty`,
     /// or an empty address's lifetime totals inline.
-    pub p2pk33: M::Stored<MutableVec<BytesVec<P2PK33AddrIndex, AddrState>>>,
+    pub p2pk33: M::Stored<MutableVec<BytesVec<P2PK33AddressIndex, AddressState>>>,
     /// Each address's state, one four-byte record per address index: a funded
     /// address's slot in `funded`, an empty address's slot in `extended_empty`,
     /// or an empty address's lifetime totals inline.
-    pub p2pk65: M::Stored<MutableVec<BytesVec<P2PK65AddrIndex, AddrState>>>,
+    pub p2pk65: M::Stored<MutableVec<BytesVec<P2PK65AddressIndex, AddressState>>>,
     /// Each address's state, one four-byte record per address index: a funded
     /// address's slot in `funded`, an empty address's slot in `extended_empty`,
     /// or an empty address's lifetime totals inline.
-    pub p2pkh: M::Stored<MutableVec<BytesVec<P2PKHAddrIndex, AddrState>>>,
+    pub p2pkh: M::Stored<MutableVec<BytesVec<P2PKHAddressIndex, AddressState>>>,
     /// Each address's state, one four-byte record per address index: a funded
     /// address's slot in `funded`, an empty address's slot in `extended_empty`,
     /// or an empty address's lifetime totals inline.
-    pub p2sh: M::Stored<MutableVec<BytesVec<P2SHAddrIndex, AddrState>>>,
+    pub p2sh: M::Stored<MutableVec<BytesVec<P2SHAddressIndex, AddressState>>>,
     /// Each address's state, one four-byte record per address index: a funded
     /// address's slot in `funded`, an empty address's slot in `extended_empty`,
     /// or an empty address's lifetime totals inline.
-    pub p2tr: M::Stored<MutableVec<BytesVec<P2TRAddrIndex, AddrState>>>,
+    pub p2tr: M::Stored<MutableVec<BytesVec<P2TRAddressIndex, AddressState>>>,
     /// Each address's state, one four-byte record per address index: a funded
     /// address's slot in `funded`, an empty address's slot in `extended_empty`,
     /// or an empty address's lifetime totals inline.
-    pub p2wpkh: M::Stored<MutableVec<BytesVec<P2WPKHAddrIndex, AddrState>>>,
+    pub p2wpkh: M::Stored<MutableVec<BytesVec<P2WPKHAddressIndex, AddressState>>>,
     /// Each address's state, one four-byte record per address index: a funded
     /// address's slot in `funded`, an empty address's slot in `extended_empty`,
     /// or an empty address's lifetime totals inline.
-    pub p2wsh: M::Stored<MutableVec<BytesVec<P2WSHAddrIndex, AddrState>>>,
+    pub p2wsh: M::Stored<MutableVec<BytesVec<P2WSHAddressIndex, AddressState>>>,
     /// Funded addresses' data (received, sent, capital and transaction and output counts), by
     /// the slot their state points to.
-    pub funded: M::Stored<OverflowVec<FundedAddrIndex, FundedAddrData>>,
+    pub funded: M::Stored<OverflowVec<FundedAddressIndex, FundedAddressData>>,
     /// Empty addresses' lifetime totals that do not fit inline in their state, by
     /// the slot their state points to.
-    pub extended_empty: M::Stored<OverflowVec<ExtendedEmptyAddrIndex, EmptyAddrData>>,
+    pub extended_empty: M::Stored<OverflowVec<ExtendedEmptyAddressIndex, EmptyAddressData>>,
 }
 
 impl AddrStateVecs {
@@ -187,7 +187,7 @@ impl AddrStateVecs {
 
     pub fn apply_updates(
         &mut self,
-        cache: &mut [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>],
+        cache: &mut [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddressData>>],
     ) -> Result<()> {
         info!("Updating address state...");
         let started = Instant::now();
@@ -217,13 +217,13 @@ impl AddrStateVecs {
             &mut self.funded,
             funded_pushes,
             &mut primaries,
-            AddrState::from_funded,
+            AddressState::from_funded,
         );
         Self::insert_sidecar(
             &mut self.extended_empty,
             extended_pushes,
             &mut primaries,
-            AddrState::from_extended_empty,
+            AddressState::from_extended_empty,
         );
         self.update_primaries(primaries)?;
         info!("Updated address state in {:.2?}", started.elapsed());
@@ -233,8 +233,8 @@ impl AddrStateVecs {
     fn insert_sidecar<I, T>(
         sidecar: &mut OverflowVec<I, T>,
         values: Vec<(OutputType, TypeIndex, T)>,
-        primaries: &mut AddrTypeToVec<(TypeIndex, AddrState)>,
-        to_state: fn(I) -> AddrState,
+        primaries: &mut AddrTypeToVec<(TypeIndex, AddressState)>,
+        to_state: fn(I) -> AddressState,
     ) where
         I: VecIndex,
         T: OverflowVecValue,
@@ -251,7 +251,10 @@ impl AddrStateVecs {
         }
     }
 
-    fn update_primaries(&mut self, updates: AddrTypeToVec<(TypeIndex, AddrState)>) -> Result<()> {
+    fn update_primaries(
+        &mut self,
+        updates: AddrTypeToVec<(TypeIndex, AddressState)>,
+    ) -> Result<()> {
         let ByAddrType {
             p2a: u_p2a,
             p2pk33: u_p2pk33,
@@ -292,8 +295,8 @@ impl AddrStateVecs {
     }
 
     fn update_primary<I: VecIndex>(
-        vec: &mut MutableVec<BytesVec<I, AddrState>>,
-        mut updates: Vec<(TypeIndex, AddrState)>,
+        vec: &mut MutableVec<BytesVec<I, AddressState>>,
+        mut updates: Vec<(TypeIndex, AddressState)>,
     ) -> Result<()> {
         updates.sort_unstable_by_key(|(type_index, _)| *type_index);
         debug_assert!(
@@ -321,7 +324,7 @@ impl AddrStateVecs {
 }
 
 impl<M: StorageMode> AddrStateVecs<M> {
-    pub fn get_once(&self, addr_type: OutputType, type_index: TypeIndex) -> Result<AddrState> {
+    pub fn get_once(&self, addr_type: OutputType, type_index: TypeIndex) -> Result<AddressState> {
         match addr_type {
             OutputType::P2A => self.p2a.collect_one(type_index.into()),
             OutputType::P2PK33 => self.p2pk33.collect_one(type_index.into()),

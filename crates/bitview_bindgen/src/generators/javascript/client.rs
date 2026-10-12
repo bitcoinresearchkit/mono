@@ -834,9 +834,9 @@ function _validateHashPrefixNibbles(nibbles) {
   }
 }
 
-/** @param {OutputType} addrType @returns {number[]} */
-function _addressPayloadLengths(addrType) {
-  switch (addrType) {
+/** @param {OutputType} addressType @returns {number[]} */
+function _addressPayloadLengths(addressType) {
+  switch (addressType) {
     case "p2a": return [2];
     case "p2pk33": return [33];
     case "p2pk65": return [65];
@@ -846,24 +846,24 @@ function _addressPayloadLengths(addrType) {
     case "p2wsh":
     case "p2tr": return [32];
     default:
-      throw new Error(`Unsupported address type for address payload hash-prefix: ${addrType}`);
+      throw new Error(`Unsupported address type for address payload hash-prefix: ${addressType}`);
   }
 }
 
 /**
- * @param {OutputType} addrType
+ * @param {OutputType} addressType
  * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload
  */
-function _validateAddressPayloadForType(addrType, payload) {
+function _validateAddressPayloadForType(addressType, payload) {
   const length = _asUint8Array(payload).length;
-  const expected = _addressPayloadLengths(addrType);
+  const expected = _addressPayloadLengths(addressType);
   if (!expected.includes(length)) {
-    throw new Error(`Expected ${addrType} address payload length ${expected.join(" or ")} bytes`);
+    throw new Error(`Expected ${addressType} address payload length ${expected.join(" or ")} bytes`);
   }
 }
 
 /**
- * Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{addr_type}/{prefix}`.
+ * Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{address_type}/{prefix}`.
  * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw address payload bytes
  * @param {number} nibbles - Prefix length from 1 to 16 hex nibbles
  * @returns {string}

@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::TypeIndex;
-use brk_types::{Addr, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
+use brk_types::{Address, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
 
 use crate::{Query, Result};
 
@@ -24,7 +24,7 @@ impl Query {
     /// Resolve an address page once before body loading.
     pub fn resolve_addr_chain_txs(
         &self,
-        addr: &Addr,
+        addr: &Address,
         after_txid: Option<Txid>,
         limit: usize,
     ) -> Result<ResolvedAddrChainTxs> {

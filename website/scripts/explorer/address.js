@@ -84,7 +84,7 @@ export async function update(address, signal) {
       pendingUtxos.toLocaleString(),
       `${formatBtc(chain.fundedTxoSum)} BTC`,
       chain.txCount.toLocaleString(),
-      stats.addrType.replace(/^v\d+_/, "").toUpperCase(),
+      stats.addressType.replace(/^v\d+_/, "").toUpperCase(),
       chain.realizedPrice
         ? `$${Number(chain.realizedPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         : "N/A",

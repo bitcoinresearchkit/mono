@@ -20,7 +20,7 @@ T = TypeVar('T')
 # Type definitions
 
 # Bitcoin address string
-Addr = str
+Address = str
 # Transaction ID (hash)
 Txid = str
 # US Dollar amount
@@ -39,7 +39,7 @@ SatsSigned = int
 # Empty addresses with small lifetime totals are stored inline. The upper two
 # bits select an inline layout or a sidecar, whose index occupies the lower 30
 # bits.
-AddrState = int
+AddressState = int
 # Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
 Bitcoin = float
 # URL-friendly mining pool identifier
@@ -169,7 +169,7 @@ EmptyOutputIndex = TypeIndex
 # Index of a difficulty epoch (2,016 blocks).
 Epoch = int
 # Machine-readable error code.
-ErrorCode = Literal["not_found", "invalid_addr", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_addr", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
+ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_address", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
 # Error category, following the HTTP status: `invalid_request` (4xx other than 404),
 # `not_found` (404), `unavailable` (503; `Retry-After` when transient), `timeout` (504), `internal`
 # (other 5xx).
@@ -196,7 +196,7 @@ Hour12 = int
 Hour4 = int
 # Aggregation dimension for querying series. Includes time-based (date, week, month, year),
 # block-based (height, tx_index), and address/output type indexes.
-Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_addr_index", "p2ms_output_index", "p2pk33_addr_index", "p2pk65_addr_index", "p2pkh_addr_index", "p2sh_addr_index", "p2tr_addr_index", "p2wpkh_addr_index", "p2wsh_addr_index", "unknown_output_index", "funded_addr_index", "empty_addr_index", "extended_empty_addr_index"]
+Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_output_index", "funded_address_index", "empty_address_index", "extended_empty_address_index"]
 # Index of a 10-minute period.
 Minute10 = int
 # Index of a 30-minute period.
@@ -214,37 +214,37 @@ OpReturnIndex = TypeIndex
 # Protocol or format detected in an OP_RETURN output.
 OpReturnKind = Literal["runes", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "open_timestamps", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "epobc", "bare_hash", "text", "empty", "unknown"]
 # Index of a P2A (pay-to-anchor) address.
-P2AAddrIndex = TypeIndex
+P2AAddressIndex = TypeIndex
 # The 2-byte witness program of a P2A (pay-to-anchor) output.
 P2ABytes = str
 # Index of a P2MS (bare multisig) output.
 P2MSOutputIndex = TypeIndex
 # Index of a P2PK address with a compressed (33-byte) public key.
-P2PK33AddrIndex = TypeIndex
+P2PK33AddressIndex = TypeIndex
 # A compressed (33-byte) public key.
 P2PK33Bytes = str
 # Index of a P2PK address with an uncompressed (65-byte) public key.
-P2PK65AddrIndex = TypeIndex
+P2PK65AddressIndex = TypeIndex
 # An uncompressed (65-byte) public key.
 P2PK65Bytes = str
 # Index of a P2PKH address.
-P2PKHAddrIndex = TypeIndex
+P2PKHAddressIndex = TypeIndex
 # The 20-byte public key hash of a P2PKH output.
 P2PKHBytes = str
 # Index of a P2SH address.
-P2SHAddrIndex = TypeIndex
+P2SHAddressIndex = TypeIndex
 # The 20-byte script hash of a P2SH output.
 P2SHBytes = str
 # Index of a P2TR (taproot) address.
-P2TRAddrIndex = TypeIndex
+P2TRAddressIndex = TypeIndex
 # The 32-byte output key of a P2TR output.
 P2TRBytes = str
 # Index of a P2WPKH address.
-P2WPKHAddrIndex = TypeIndex
+P2WPKHAddressIndex = TypeIndex
 # The 20-byte public key hash of a P2WPKH output.
 P2WPKHBytes = str
 # Index of a P2WSH address.
-P2WSHAddrIndex = TypeIndex
+P2WSHAddressIndex = TypeIndex
 # The 32-byte script hash of a P2WSH output.
 P2WSHBytes = str
 # A fraction per day.
@@ -315,17 +315,17 @@ Year1 = int
 Year10 = int
 # A duration in years.
 Years = float
-class AddrAfterTxidParam(TypedDict):
+class AddressAfterTxidParam(TypedDict):
     """
     Bitcoin address + last-seen txid path parameters (Esplora-style pagination)
 
     Attributes:
         after_txid: Last txid from the previous page (return transactions strictly older than this)
     """
-    address: Addr
+    address: Address
     after_txid: Txid
 
-class AddrChainStats(TypedDict):
+class AddressChainStats(TypedDict):
     """
     Address statistics on the blockchain (confirmed transactions only)
     
@@ -350,21 +350,21 @@ class AddrChainStats(TypedDict):
     type_index: TypeIndex
     realized_price: Dollars
 
-class AddrHashPrefixMatches(TypedDict):
-    addr_type: OutputType
+class AddressHashPrefixMatches(TypedDict):
+    address_type: OutputType
     prefix: str
     truncated: bool
-    addresses: List[Addr]
+    addresses: List[Address]
 
-class AddrHashPrefixParam(TypedDict):
+class AddressHashPrefixParam(TypedDict):
     """
     Attributes:
         prefix: First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
     """
-    addr_type: OutputType
+    address_type: OutputType
     prefix: str
 
-class AddrMempoolStats(TypedDict):
+class AddressMempoolStats(TypedDict):
     """
     Address statistics in the mempool (unconfirmed transactions only)
     
@@ -385,33 +385,33 @@ class AddrMempoolStats(TypedDict):
     spent_txo_sum: Sats
     tx_count: int
 
-class AddrParam(TypedDict):
+class AddressParam(TypedDict):
     """
     Bitcoin address path parameter
     """
-    address: Addr
+    address: Address
 
-class AddrStats(TypedDict):
+class AddressStats(TypedDict):
     """
     Address information compatible with mempool.space API format.
 
     Attributes:
         address: Bitcoin address string
-        addr_type: BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
+        address_type: BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
         chain_stats: Statistics for confirmed transactions on the blockchain
         mempool_stats: Statistics for unconfirmed transactions in the mempool
         balance: Total current balance in satoshis, including pending (unconfirmed) mempool changes
     """
-    address: Addr
-    addr_type: OutputType
-    chain_stats: AddrChainStats
-    mempool_stats: AddrMempoolStats
+    address: Address
+    address_type: OutputType
+    chain_stats: AddressChainStats
+    mempool_stats: AddressMempoolStats
     balance: Sats
 
-class _AddrValidationRequired(TypedDict):
+class _AddressValidationRequired(TypedDict):
     isvalid: bool
 
-class AddrValidation(_AddrValidationRequired, total=False):
+class AddressValidation(_AddressValidationRequired, total=False):
     """
     Address validation result
 
@@ -771,7 +771,7 @@ class TxOut(_TxOutRequired, total=False):
         scriptpubkey_address: Bitcoin address, omitted for scripts without an address.
         value: Value of the output in satoshis.
     """
-    scriptpubkey_address: Addr
+    scriptpubkey_address: Address
 
 class _TxInRequired(TypedDict):
     txid: Txid
@@ -1085,7 +1085,7 @@ class DiskUsage(TypedDict):
     bitcoin_bytes: int
     ratio: float
 
-class EmptyAddrData(TypedDict):
+class EmptyAddressData(TypedDict):
     """
     Data of an empty address
 
@@ -1117,7 +1117,7 @@ class ErrorBody(TypedDict):
     """
     error: ErrorDetail
 
-class FundedAddrData(TypedDict):
+class FundedAddressData(TypedDict):
     """
     Data for a funded (non-empty) address with current balance.
     
@@ -1884,7 +1884,7 @@ class UtxoSetDiff(TypedDict):
     created: UtxoChanges
     spent: UtxoChanges
 
-class ValidateAddrParam(TypedDict):
+class ValidateAddressParam(TypedDict):
     """
     Attributes:
         address: Bitcoin address to validate (can be any string)
@@ -2087,30 +2087,30 @@ def _validate_hash_prefix_nibbles(nibbles: int) -> None:
         raise ValueError("Expected hash-prefix length from 1 to 16 hex nibbles")
 
 
-def _address_payload_lengths(addr_type: OutputType) -> Tuple[int, ...]:
-    if addr_type == "p2a":
+def _address_payload_lengths(address_type: OutputType) -> Tuple[int, ...]:
+    if address_type == "p2a":
         return (2,)
-    if addr_type == "p2pk33":
+    if address_type == "p2pk33":
         return (33,)
-    if addr_type == "p2pk65":
+    if address_type == "p2pk65":
         return (65,)
-    if addr_type in ("p2pkh", "p2sh", "p2wpkh"):
+    if address_type in ("p2pkh", "p2sh", "p2wpkh"):
         return (20,)
-    if addr_type in ("p2wsh", "p2tr"):
+    if address_type in ("p2wsh", "p2tr"):
         return (32,)
-    raise ValueError(f"Unsupported address type for address payload hash-prefix: {addr_type}")
+    raise ValueError(f"Unsupported address type for address payload hash-prefix: {address_type}")
 
 
-def _validate_address_payload_for_type(addr_type: OutputType, payload: Union[bytes, bytearray, memoryview]) -> None:
+def _validate_address_payload_for_type(address_type: OutputType, payload: Union[bytes, bytearray, memoryview]) -> None:
     length = len(bytes(payload))
-    expected = _address_payload_lengths(addr_type)
+    expected = _address_payload_lengths(address_type)
     if length not in expected:
         joined = " or ".join(str(value) for value in expected)
-        raise ValueError(f"Expected {addr_type} address payload length {joined} bytes")
+        raise ValueError(f"Expected {address_type} address payload length {joined} bytes")
 
 
 def address_payload_hash_prefix(payload: Union[bytes, bytearray, memoryview], nibbles: int) -> str:
-    """Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{addr_type}/{prefix}`."""
+    """Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{address_type}/{prefix}`."""
     _validate_hash_prefix_nibbles(nibbles)
     return f"{_rapid_hash_v3(payload):016x}"[:nibbles]
 
@@ -2623,18 +2623,18 @@ _i22 = ('txin_index',)
 _i23 = ('txout_index',)
 _i24 = ('empty_output_index',)
 _i25 = ('op_return_index',)
-_i26 = ('p2a_addr_index',)
+_i26 = ('p2a_address_index',)
 _i27 = ('p2ms_output_index',)
-_i28 = ('p2pk33_addr_index',)
-_i29 = ('p2pk65_addr_index',)
-_i30 = ('p2pkh_addr_index',)
-_i31 = ('p2sh_addr_index',)
-_i32 = ('p2tr_addr_index',)
-_i33 = ('p2wpkh_addr_index',)
-_i34 = ('p2wsh_addr_index',)
+_i28 = ('p2pk33_address_index',)
+_i29 = ('p2pk65_address_index',)
+_i30 = ('p2pkh_address_index',)
+_i31 = ('p2sh_address_index',)
+_i32 = ('p2tr_address_index',)
+_i33 = ('p2wpkh_address_index',)
+_i34 = ('p2wsh_address_index',)
 _i35 = ('unknown_output_index',)
-_i36 = ('funded_addr_index',)
-_i37 = ('extended_empty_addr_index',)
+_i36 = ('funded_address_index',)
+_i37 = ('extended_empty_address_index',)
 
 def _ep(c: BitviewClient, n: str, i: Index) -> SeriesEndpoint[Any]:
     return SeriesEndpoint(c, n, i)
@@ -3008,7 +3008,7 @@ class SeriesPattern25(Generic[T]):
 
 class _SeriesPattern26By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2a_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2a_addr_index')
+    def p2a_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2a_address_index')
 
 class SeriesPattern26(Generic[T]):
     by: _SeriesPattern26By[T]
@@ -3032,7 +3032,7 @@ class SeriesPattern27(Generic[T]):
 
 class _SeriesPattern28By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pk33_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pk33_addr_index')
+    def p2pk33_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pk33_address_index')
 
 class SeriesPattern28(Generic[T]):
     by: _SeriesPattern28By[T]
@@ -3044,7 +3044,7 @@ class SeriesPattern28(Generic[T]):
 
 class _SeriesPattern29By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pk65_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pk65_addr_index')
+    def p2pk65_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pk65_address_index')
 
 class SeriesPattern29(Generic[T]):
     by: _SeriesPattern29By[T]
@@ -3056,7 +3056,7 @@ class SeriesPattern29(Generic[T]):
 
 class _SeriesPattern30By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pkh_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pkh_addr_index')
+    def p2pkh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pkh_address_index')
 
 class SeriesPattern30(Generic[T]):
     by: _SeriesPattern30By[T]
@@ -3068,7 +3068,7 @@ class SeriesPattern30(Generic[T]):
 
 class _SeriesPattern31By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2sh_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2sh_addr_index')
+    def p2sh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2sh_address_index')
 
 class SeriesPattern31(Generic[T]):
     by: _SeriesPattern31By[T]
@@ -3080,7 +3080,7 @@ class SeriesPattern31(Generic[T]):
 
 class _SeriesPattern32By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2tr_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2tr_addr_index')
+    def p2tr_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2tr_address_index')
 
 class SeriesPattern32(Generic[T]):
     by: _SeriesPattern32By[T]
@@ -3092,7 +3092,7 @@ class SeriesPattern32(Generic[T]):
 
 class _SeriesPattern33By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2wpkh_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2wpkh_addr_index')
+    def p2wpkh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2wpkh_address_index')
 
 class SeriesPattern33(Generic[T]):
     by: _SeriesPattern33By[T]
@@ -3104,7 +3104,7 @@ class SeriesPattern33(Generic[T]):
 
 class _SeriesPattern34By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2wsh_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2wsh_addr_index')
+    def p2wsh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2wsh_address_index')
 
 class SeriesPattern34(Generic[T]):
     by: _SeriesPattern34By[T]
@@ -3128,7 +3128,7 @@ class SeriesPattern35(Generic[T]):
 
 class _SeriesPattern36By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def funded_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'funded_addr_index')
+    def funded_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'funded_address_index')
 
 class SeriesPattern36(Generic[T]):
     by: _SeriesPattern36By[T]
@@ -3140,7 +3140,7 @@ class SeriesPattern36(Generic[T]):
 
 class _SeriesPattern37By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def extended_empty_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'extended_empty_addr_index')
+    def extended_empty_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'extended_empty_address_index')
 
 class SeriesPattern37(Generic[T]):
     by: _SeriesPattern37By[T]
@@ -3624,16 +3624,16 @@ class Total(_Node):
 
 
 class State(_Node):
-    p2a: SeriesPattern26[AddrState] = _at(SeriesPattern26, '*_state')
-    p2pk33: SeriesPattern28[AddrState] = _at(SeriesPattern28, '*_state')
-    p2pk65: SeriesPattern29[AddrState] = _at(SeriesPattern29, '*_state')
-    p2pkh: SeriesPattern30[AddrState] = _at(SeriesPattern30, '*_state')
-    p2sh: SeriesPattern31[AddrState] = _at(SeriesPattern31, '*_state')
-    p2tr: SeriesPattern32[AddrState] = _at(SeriesPattern32, '*_state')
-    p2wpkh: SeriesPattern33[AddrState] = _at(SeriesPattern33, '*_state')
-    p2wsh: SeriesPattern34[AddrState] = _at(SeriesPattern34, '*_state')
-    funded: SeriesPattern36[FundedAddrData] = _at(SeriesPattern36, 'funded_*_data')
-    extended_empty: SeriesPattern37[EmptyAddrData] = _at(SeriesPattern37, 'extended_empty_*_data')
+    p2a: SeriesPattern26[AddressState] = _at(SeriesPattern26, '*_state')
+    p2pk33: SeriesPattern28[AddressState] = _at(SeriesPattern28, '*_state')
+    p2pk65: SeriesPattern29[AddressState] = _at(SeriesPattern29, '*_state')
+    p2pkh: SeriesPattern30[AddressState] = _at(SeriesPattern30, '*_state')
+    p2sh: SeriesPattern31[AddressState] = _at(SeriesPattern31, '*_state')
+    p2tr: SeriesPattern32[AddressState] = _at(SeriesPattern32, '*_state')
+    p2wpkh: SeriesPattern33[AddressState] = _at(SeriesPattern33, '*_state')
+    p2wsh: SeriesPattern34[AddressState] = _at(SeriesPattern34, '*_state')
+    funded: SeriesPattern36[FundedAddressData] = _at(SeriesPattern36, 'funded_*_data')
+    extended_empty: SeriesPattern37[EmptyAddressData] = _at(SeriesPattern37, 'extended_empty_*_data')
 
 
 class ExposedCount(_Node):
@@ -5105,58 +5105,58 @@ class MappingsOutputs(_Node):
 
 
 class MappingsAddressesP2a(_Node):
-    identity: SeriesPattern26[P2AAddrIndex] = _at(SeriesPattern26, '*_addr_index')
-    address: SeriesPattern26[Addr] = _at(SeriesPattern26, '*_address')
+    identity: SeriesPattern26[P2AAddressIndex] = _at(SeriesPattern26, '*_index')
+    address: SeriesPattern26[Address] = _at(SeriesPattern26, '*')
 
 
 class MappingsAddressesP2wsh(_Node):
-    identity: SeriesPattern34[P2WSHAddrIndex] = _at(SeriesPattern34, '*_addr_index')
-    address: SeriesPattern34[Addr] = _at(SeriesPattern34, '*_address')
+    identity: SeriesPattern34[P2WSHAddressIndex] = _at(SeriesPattern34, '*_index')
+    address: SeriesPattern34[Address] = _at(SeriesPattern34, '*')
 
 
 class MappingsAddressesP2wpkh(_Node):
-    identity: SeriesPattern33[P2WPKHAddrIndex] = _at(SeriesPattern33, '*_addr_index')
-    address: SeriesPattern33[Addr] = _at(SeriesPattern33, '*_address')
+    identity: SeriesPattern33[P2WPKHAddressIndex] = _at(SeriesPattern33, '*_index')
+    address: SeriesPattern33[Address] = _at(SeriesPattern33, '*')
 
 
 class MappingsAddressesP2tr(_Node):
-    identity: SeriesPattern32[P2TRAddrIndex] = _at(SeriesPattern32, '*_addr_index')
-    address: SeriesPattern32[Addr] = _at(SeriesPattern32, '*_address')
+    identity: SeriesPattern32[P2TRAddressIndex] = _at(SeriesPattern32, '*_index')
+    address: SeriesPattern32[Address] = _at(SeriesPattern32, '*')
 
 
 class MappingsAddressesP2sh(_Node):
-    identity: SeriesPattern31[P2SHAddrIndex] = _at(SeriesPattern31, '*_addr_index')
-    address: SeriesPattern31[Addr] = _at(SeriesPattern31, '*_address')
+    identity: SeriesPattern31[P2SHAddressIndex] = _at(SeriesPattern31, '*_index')
+    address: SeriesPattern31[Address] = _at(SeriesPattern31, '*')
 
 
 class MappingsAddressesP2pkh(_Node):
-    identity: SeriesPattern30[P2PKHAddrIndex] = _at(SeriesPattern30, '*_addr_index')
-    address: SeriesPattern30[Addr] = _at(SeriesPattern30, '*_address')
+    identity: SeriesPattern30[P2PKHAddressIndex] = _at(SeriesPattern30, '*_index')
+    address: SeriesPattern30[Address] = _at(SeriesPattern30, '*')
 
 
 class MappingsAddressesP2pk65(_Node):
-    identity: SeriesPattern29[P2PK65AddrIndex] = _at(SeriesPattern29, '*_addr_index')
-    address: SeriesPattern29[Addr] = _at(SeriesPattern29, '*_address')
+    identity: SeriesPattern29[P2PK65AddressIndex] = _at(SeriesPattern29, '*_index')
+    address: SeriesPattern29[Address] = _at(SeriesPattern29, '*')
 
 
 class MappingsAddressesP2pk33(_Node):
-    identity: SeriesPattern28[P2PK33AddrIndex] = _at(SeriesPattern28, '*_addr_index')
-    address: SeriesPattern28[Addr] = _at(SeriesPattern28, '*_address')
+    identity: SeriesPattern28[P2PK33AddressIndex] = _at(SeriesPattern28, '*_index')
+    address: SeriesPattern28[Address] = _at(SeriesPattern28, '*')
 
 
 class MappingsAddresses(_Node):
-    p2pk33: MappingsAddressesP2pk33 = _at(MappingsAddressesP2pk33, '*')
-    p2pk65: MappingsAddressesP2pk65 = _at(MappingsAddressesP2pk65, 'p2pk65')
-    p2pkh: MappingsAddressesP2pkh = _at(MappingsAddressesP2pkh, 'p2pkh')
-    p2sh: MappingsAddressesP2sh = _at(MappingsAddressesP2sh, 'p2sh')
-    p2tr: MappingsAddressesP2tr = _at(MappingsAddressesP2tr, 'p2tr')
-    p2wpkh: MappingsAddressesP2wpkh = _at(MappingsAddressesP2wpkh, 'p2wpkh')
-    p2wsh: MappingsAddressesP2wsh = _at(MappingsAddressesP2wsh, 'p2wsh')
-    p2a: MappingsAddressesP2a = _at(MappingsAddressesP2a, 'p2a')
+    p2pk33: MappingsAddressesP2pk33 = _at(MappingsAddressesP2pk33, 'p2pk33_*')
+    p2pk65: MappingsAddressesP2pk65 = _at(MappingsAddressesP2pk65, 'p2pk65_*')
+    p2pkh: MappingsAddressesP2pkh = _at(MappingsAddressesP2pkh, 'p2pkh_*')
+    p2sh: MappingsAddressesP2sh = _at(MappingsAddressesP2sh, 'p2sh_*')
+    p2tr: MappingsAddressesP2tr = _at(MappingsAddressesP2tr, 'p2tr_*')
+    p2wpkh: MappingsAddressesP2wpkh = _at(MappingsAddressesP2wpkh, 'p2wpkh_*')
+    p2wsh: MappingsAddressesP2wsh = _at(MappingsAddressesP2wsh, 'p2wsh_*')
+    p2a: MappingsAddressesP2a = _at(MappingsAddressesP2a, 'p2a_*')
 
 
 class Mappings(_Node):
-    addresses: MappingsAddresses = _at(MappingsAddresses, 'p2pk33')
+    addresses: MappingsAddresses = _at(MappingsAddresses, 'address')
     outputs: MappingsOutputs = _at(MappingsOutputs, 'index')
     height: MappingsHeight = _at(MappingsHeight, 'minute10')
     epoch: MappingsEpoch = _at(MappingsEpoch, 'first_height')
@@ -5211,42 +5211,42 @@ class Scripts(_Node):
 
 
 class IndexerAddressesP2a(_Node):
-    first_index: SeriesPattern20[P2AAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
+    first_index: SeriesPattern20[P2AAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
     bytes: SeriesPattern26[P2ABytes] = _at(SeriesPattern26, '*_bytes')
 
 
 class IndexerAddressesP2tr(_Node):
-    first_index: SeriesPattern20[P2TRAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
+    first_index: SeriesPattern20[P2TRAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
     bytes: SeriesPattern32[P2TRBytes] = _at(SeriesPattern32, '*_bytes')
 
 
 class IndexerAddressesP2wsh(_Node):
-    first_index: SeriesPattern20[P2WSHAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
+    first_index: SeriesPattern20[P2WSHAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
     bytes: SeriesPattern34[P2WSHBytes] = _at(SeriesPattern34, '*_bytes')
 
 
 class IndexerAddressesP2wpkh(_Node):
-    first_index: SeriesPattern20[P2WPKHAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
+    first_index: SeriesPattern20[P2WPKHAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
     bytes: SeriesPattern33[P2WPKHBytes] = _at(SeriesPattern33, '*_bytes')
 
 
 class IndexerAddressesP2sh(_Node):
-    first_index: SeriesPattern20[P2SHAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
+    first_index: SeriesPattern20[P2SHAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
     bytes: SeriesPattern31[P2SHBytes] = _at(SeriesPattern31, '*_bytes')
 
 
 class IndexerAddressesP2pkh(_Node):
-    first_index: SeriesPattern20[P2PKHAddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
+    first_index: SeriesPattern20[P2PKHAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
     bytes: SeriesPattern30[P2PKHBytes] = _at(SeriesPattern30, '*_bytes')
 
 
 class IndexerAddressesP2pk33(_Node):
-    first_index: SeriesPattern20[P2PK33AddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
+    first_index: SeriesPattern20[P2PK33AddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
     bytes: SeriesPattern28[P2PK33Bytes] = _at(SeriesPattern28, '*_bytes')
 
 
 class IndexerAddressesP2pk65(_Node):
-    first_index: SeriesPattern20[P2PK65AddrIndex] = _at(SeriesPattern20, 'first_*_addr_index')
+    first_index: SeriesPattern20[P2PK65AddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
     bytes: SeriesPattern29[P2PK65Bytes] = _at(SeriesPattern29, '*_bytes')
 
 
@@ -5455,19 +5455,19 @@ class BitviewClient(BitviewClientBase):
       "txout_index",
       "empty_output_index",
       "op_return_index",
-      "p2a_addr_index",
+      "p2a_address_index",
       "p2ms_output_index",
-      "p2pk33_addr_index",
-      "p2pk65_addr_index",
-      "p2pkh_addr_index",
-      "p2sh_addr_index",
-      "p2tr_addr_index",
-      "p2wpkh_addr_index",
-      "p2wsh_addr_index",
+      "p2pk33_address_index",
+      "p2pk65_address_index",
+      "p2pkh_address_index",
+      "p2sh_address_index",
+      "p2tr_address_index",
+      "p2wpkh_address_index",
+      "p2wsh_address_index",
       "unknown_output_index",
-      "funded_addr_index",
-      "empty_addr_index",
-      "extended_empty_addr_index"
+      "funded_address_index",
+      "empty_address_index",
+      "extended_empty_address_index"
     ]
 
     POOL_ID_TO_POOL_NAME = {
@@ -6193,13 +6193,13 @@ class BitviewClient(BitviewClientBase):
 
     def get_address_payload_hash_prefix_matches(
         self,
-        addr_type: OutputType,
+        address_type: OutputType,
         payload: Union[bytes, bytearray, memoryview],
         nibbles: int,
-    ) -> AddrHashPrefixMatches:
-        """Fetch address hash-prefix matches from raw payload bytes matching addr_type length."""
-        _validate_address_payload_for_type(addr_type, payload)
-        return self.get_address_hash_prefix_matches(addr_type, address_payload_hash_prefix(payload, nibbles))
+    ) -> AddressHashPrefixMatches:
+        """Fetch address hash-prefix matches from raw payload bytes matching address_type length."""
+        _validate_address_payload_for_type(address_type, payload)
+        return self.get_address_hash_prefix_matches(address_type, address_payload_hash_prefix(payload, nibbles))
 
     def get_health(self) -> Health:
         """Health check.
@@ -6448,15 +6448,15 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/v1/historical-price{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_address_hash_prefix_matches(self, addr_type: OutputType, prefix: str) -> AddrHashPrefixMatches:
+    def get_address_hash_prefix_matches(self, address_type: OutputType, prefix: str) -> AddressHashPrefixMatches:
         """Address hash-prefix matches.
 
         Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.
 
-        Endpoint: `GET /api/address/hash-prefix/{addr_type}/{prefix}`"""
-        return self.get_json(f'/api/address/hash-prefix/{addr_type}/{prefix}')
+        Endpoint: `GET /api/address/hash-prefix/{address_type}/{prefix}`"""
+        return self.get_json(f'/api/address/hash-prefix/{address_type}/{prefix}')
 
-    def get_address(self, address: Addr) -> AddrStats:
+    def get_address(self, address: Address) -> AddressStats:
         """Address information.
 
         Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR).
@@ -6466,7 +6466,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/address/{address}`"""
         return self.get_json(f'/api/address/{address}')
 
-    def get_address_txs(self, address: Addr) -> List[Transaction]:
+    def get_address_txs(self, address: Address) -> List[Transaction]:
         """Address transactions.
 
         Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
@@ -6476,7 +6476,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/address/{address}/txs`"""
         return self.get_json(f'/api/address/{address}/txs')
 
-    def get_address_confirmed_txs(self, address: Addr) -> List[Transaction]:
+    def get_address_confirmed_txs(self, address: Address) -> List[Transaction]:
         """Address confirmed transactions.
 
         Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
@@ -6486,7 +6486,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/address/{address}/txs/chain`"""
         return self.get_json(f'/api/address/{address}/txs/chain')
 
-    def get_address_confirmed_txs_after(self, address: Addr, after_txid: Txid) -> List[Transaction]:
+    def get_address_confirmed_txs_after(self, address: Address, after_txid: Txid) -> List[Transaction]:
         """Address confirmed transactions (paginated).
 
         Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).
@@ -6496,7 +6496,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/address/{address}/txs/chain/{after_txid}`"""
         return self.get_json(f'/api/address/{address}/txs/chain/{after_txid}')
 
-    def get_address_mempool_txs(self, address: Addr) -> List[Transaction]:
+    def get_address_mempool_txs(self, address: Address) -> List[Transaction]:
         """Address mempool transactions.
 
         Get unconfirmed transactions for an address from the mempool, newest first (up to 50).
@@ -6506,7 +6506,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/address/{address}/txs/mempool`"""
         return self.get_json(f'/api/address/{address}/txs/mempool')
 
-    def get_address_utxos(self, address: Addr) -> List[Utxo]:
+    def get_address_utxos(self, address: Address) -> List[Utxo]:
         """Address UTXOs.
 
         Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.
@@ -6516,7 +6516,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/address/{address}/utxo`"""
         return self.get_json(f'/api/address/{address}/utxo')
 
-    def validate_address(self, address: str) -> AddrValidation:
+    def validate_address(self, address: str) -> AddressValidation:
         """Validate address.
 
         Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses.

@@ -226,16 +226,16 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
 
   /**
    * Fetch address hash-prefix matches from raw address payload bytes.
-   * @param {OutputType} addrType
-   * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw payload bytes matching addrType length
+   * @param {OutputType} addressType
+   * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw payload bytes matching addressType length
    * @param {number} nibbles
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddrHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddrHashPrefixMatches>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<AddressHashPrefixMatches>}
    */
-  getAddressPayloadHashPrefixMatches(addrType, payload, nibbles, options = {}) {
-    _validateAddressPayloadForType(addrType, payload);
+  getAddressPayloadHashPrefixMatches(addressType, payload, nibbles, options = {}) {
+    _validateAddressPayloadForType(addressType, payload);
     const prefix = addressPayloadHashPrefix(payload, nibbles);
-    return this.getAddressHashPrefixMatches(addrType, prefix, options);
+    return this.getAddressHashPrefixMatches(addressType, prefix, options);
   }
 
 "##);

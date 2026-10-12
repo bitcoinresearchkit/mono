@@ -30,7 +30,7 @@ fn error_type(status: StatusCode) -> ErrorType {
 /// Every query error has a deliberate status: a new variant does not compile until it gets one.
 fn error_details(error: &QueryError) -> (StatusCode, ErrorCode) {
     match error {
-        QueryError::InvalidAddr => (StatusCode::BAD_REQUEST, ErrorCode::InvalidAddr),
+        QueryError::InvalidAddress => (StatusCode::BAD_REQUEST, ErrorCode::InvalidAddress),
         QueryError::InvalidNetwork => (StatusCode::BAD_REQUEST, ErrorCode::InvalidNetwork),
         QueryError::InvalidParam(_) => (StatusCode::BAD_REQUEST, ErrorCode::BadRequest),
         QueryError::UnsupportedType(_) => (StatusCode::BAD_REQUEST, ErrorCode::UnsupportedType),
@@ -40,7 +40,7 @@ fn error_details(error: &QueryError) -> (StatusCode, ErrorCode) {
         }
         QueryError::WeightExceeded { .. } => (StatusCode::BAD_REQUEST, ErrorCode::WeightExceeded),
         QueryError::TooManyUtxos { .. } => (StatusCode::BAD_REQUEST, ErrorCode::TooManyUtxos),
-        QueryError::UnknownAddr => (StatusCode::NOT_FOUND, ErrorCode::UnknownAddr),
+        QueryError::UnknownAddress => (StatusCode::NOT_FOUND, ErrorCode::UnknownAddress),
         QueryError::UnknownTxid => (StatusCode::NOT_FOUND, ErrorCode::UnknownTxid),
         QueryError::NotFound(_) => (StatusCode::NOT_FOUND, ErrorCode::NotFound),
         QueryError::OutOfRange(_) => (StatusCode::NOT_FOUND, ErrorCode::OutOfRange),
@@ -110,7 +110,7 @@ impl Error {
 
     fn cache_policy(&self) -> ErrorCachePolicy {
         match self.code {
-            ErrorCode::InvalidAddr | ErrorCode::InvalidNetwork => ErrorCachePolicy::Immutable,
+            ErrorCode::InvalidAddress | ErrorCode::InvalidNetwork => ErrorCachePolicy::Immutable,
             _ => match self.status {
                 StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND => ErrorCachePolicy::Revalidate,
                 _ => ErrorCachePolicy::NoStore,

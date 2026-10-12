@@ -31,60 +31,60 @@ use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
     JsonSchema,
 )]
 #[cfg_attr(feature = "storage", derive(Pco))]
-pub struct FundedAddrIndex(TypeIndex);
+pub struct FundedAddressIndex(TypeIndex);
 
-impl From<TypeIndex> for FundedAddrIndex {
+impl From<TypeIndex> for FundedAddressIndex {
     #[inline]
     fn from(value: TypeIndex) -> Self {
         Self(value)
     }
 }
 
-impl From<usize> for FundedAddrIndex {
+impl From<usize> for FundedAddressIndex {
     #[inline]
     fn from(value: usize) -> Self {
         Self(TypeIndex::from(value))
     }
 }
-impl From<FundedAddrIndex> for usize {
+impl From<FundedAddressIndex> for usize {
     #[inline]
-    fn from(value: FundedAddrIndex) -> Self {
+    fn from(value: FundedAddressIndex) -> Self {
         usize::from(value.0)
     }
 }
-impl From<FundedAddrIndex> for u32 {
+impl From<FundedAddressIndex> for u32 {
     #[inline]
-    fn from(value: FundedAddrIndex) -> Self {
+    fn from(value: FundedAddressIndex) -> Self {
         u32::from(value.0)
     }
 }
-impl Add<usize> for FundedAddrIndex {
+impl Add<usize> for FundedAddressIndex {
     type Output = Self;
     fn add(self, rhs: usize) -> Self::Output {
         Self(self.0 + rhs)
     }
 }
-impl CheckedSub<FundedAddrIndex> for FundedAddrIndex {
+impl CheckedSub<FundedAddressIndex> for FundedAddressIndex {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         CheckedSub::checked_sub(self.0, rhs.0).map(Self)
     }
 }
 #[cfg(feature = "storage")]
-impl VecdbCheckedSub<FundedAddrIndex> for FundedAddrIndex {
+impl VecdbCheckedSub<FundedAddressIndex> for FundedAddressIndex {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         CheckedSub::checked_sub(self, rhs)
     }
 }
-impl FundedAddrIndex {
+impl FundedAddressIndex {
     pub(crate) fn index_name() -> &'static str {
-        "funded_addr_index"
+        "funded_address_index"
     }
     pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["fundedaddr", "funded_addr_index"]
+        &["fundedaddr", "funded_address_index"]
     }
 }
 #[cfg(feature = "storage")]
-impl PrintableIndex for FundedAddrIndex {
+impl PrintableIndex for FundedAddressIndex {
     fn to_string() -> &'static str {
         Self::index_name()
     }
@@ -94,18 +94,18 @@ impl PrintableIndex for FundedAddrIndex {
 }
 
 #[cfg(feature = "storage")]
-impl VecIndex for FundedAddrIndex {
+impl VecIndex for FundedAddressIndex {
     const INITIAL_CAPACITY: usize = 70_000_000;
 }
 
-impl Display for FundedAddrIndex {
+impl Display for FundedAddressIndex {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         self.0.fmt(f)
     }
 }
 
 #[cfg(feature = "storage")]
-impl Formattable for FundedAddrIndex {
+impl Formattable for FundedAddressIndex {
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         self.0.write_to(buf);

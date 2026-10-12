@@ -3,13 +3,13 @@
 use std::{cmp::Reverse, collections::BinaryHeap, sync::Arc};
 
 use brk_error::Result;
-use brk_types::{AddrBytes, AddrMempoolStats, BlockHash, Transaction, TxidPrefix};
+use brk_types::{AddressBytes, AddressMempoolStats, BlockHash, Transaction, TxidPrefix};
 
 use crate::ReadOnlyState;
 
 impl ReadOnlyState {
     /// Statistics from a completed publication anchored to the requested chain.
-    pub fn addr_stats(&self, addr: &AddrBytes, tip: &BlockHash) -> Result<AddrMempoolStats> {
+    pub fn addr_stats(&self, addr: &AddressBytes, tip: &BlockHash) -> Result<AddressMempoolStats> {
         let state = self.pool()?;
         state.ensure_resolved_at(tip)?;
         Ok(state
@@ -24,7 +24,7 @@ impl ReadOnlyState {
     /// later prevout fills use copy-on-write and cannot mutate this selection.
     pub fn addr_txs(
         &self,
-        addr: &AddrBytes,
+        addr: &AddressBytes,
         limit: usize,
         tip: &BlockHash,
     ) -> Result<Vec<Arc<Transaction>>> {

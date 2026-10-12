@@ -317,14 +317,14 @@ impl Query {
                 .first_index
                 .collect_one(h)
                 .map(usize::from),
-            Index::P2AAddrIndex => v.addrs.p2a.first_index.collect_one(h).map(usize::from),
-            Index::P2PK33AddrIndex => v.addrs.p2pk33.first_index.collect_one(h).map(usize::from),
-            Index::P2PK65AddrIndex => v.addrs.p2pk65.first_index.collect_one(h).map(usize::from),
-            Index::P2PKHAddrIndex => v.addrs.p2pkh.first_index.collect_one(h).map(usize::from),
-            Index::P2SHAddrIndex => v.addrs.p2sh.first_index.collect_one(h).map(usize::from),
-            Index::P2TRAddrIndex => v.addrs.p2tr.first_index.collect_one(h).map(usize::from),
-            Index::P2WPKHAddrIndex => v.addrs.p2wpkh.first_index.collect_one(h).map(usize::from),
-            Index::P2WSHAddrIndex => v.addrs.p2wsh.first_index.collect_one(h).map(usize::from),
+            Index::P2AAddressIndex => v.addrs.p2a.first_index.collect_one(h).map(usize::from),
+            Index::P2PK33AddressIndex => v.addrs.p2pk33.first_index.collect_one(h).map(usize::from),
+            Index::P2PK65AddressIndex => v.addrs.p2pk65.first_index.collect_one(h).map(usize::from),
+            Index::P2PKHAddressIndex => v.addrs.p2pkh.first_index.collect_one(h).map(usize::from),
+            Index::P2SHAddressIndex => v.addrs.p2sh.first_index.collect_one(h).map(usize::from),
+            Index::P2TRAddressIndex => v.addrs.p2tr.first_index.collect_one(h).map(usize::from),
+            Index::P2WPKHAddressIndex => v.addrs.p2wpkh.first_index.collect_one(h).map(usize::from),
+            Index::P2WSHAddressIndex => v.addrs.p2wsh.first_index.collect_one(h).map(usize::from),
             _ => unreachable!("entity_index_at called for non-Entity Index: {index:?}"),
         }
     }

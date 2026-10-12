@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Based on mempool.space's format with type_index extension.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
-pub struct AddrChainStats {
+pub struct AddressChainStats {
     /// Current confirmed balance in satoshis
     pub balance: Sats,
 
