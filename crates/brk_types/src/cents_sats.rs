@@ -59,11 +59,11 @@ impl CentsSats {
         Cents::new(((self.0 + Sats::ONE_BTC_U128 / 2) / Sats::ONE_BTC_U128) as u64)
     }
 
-    /// Get the realized price (cents per BTC) given the sats amount.
+    /// The realized price (cents per BTC) given the sats amount; undefined (NaN) without sats.
     #[inline(always)]
     pub fn realized_price(self, sats: Sats) -> Cents {
         if sats.is_zero() {
-            return Cents::ZERO;
+            return Cents::NAN;
         }
         let result = self.0 / sats.as_u128();
         Cents::new(result.min(u32::MAX as u128) as u64)

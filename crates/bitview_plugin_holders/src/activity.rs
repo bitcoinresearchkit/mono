@@ -99,16 +99,7 @@ impl Activity {
                 from,
                 &cdd.height,
                 &volume.btc.height,
-                |(h, cdd, btc, _)| {
-                    (
-                        h,
-                        Days::new(if f64::from(btc) == 0.0 {
-                            0.0
-                        } else {
-                            (f64::from(cdd) / f64::from(btc)) as f32
-                        }),
-                    )
-                },
+                |(h, cdd, btc, _)| (h, Days::new((f64::from(cdd) / f64::from(btc)) as f32)),
                 exit,
             )?;
         }

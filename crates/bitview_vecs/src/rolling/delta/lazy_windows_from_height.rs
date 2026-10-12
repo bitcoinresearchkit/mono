@@ -18,8 +18,8 @@ where
     /// represented block.
     absolute: Windows<LazyDeltaFromHeight<S, C, DeltaChange>>,
     /// Relative change from the start of a trailing window through the
-    /// represented block, divided by the starting value. Returns zero when the
-    /// starting value is zero.
+    /// represented block, divided by the starting value. Undefined (null) when
+    /// the starting value is zero.
     rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
 }
 

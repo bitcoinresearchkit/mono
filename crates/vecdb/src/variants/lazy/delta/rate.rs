@@ -1,6 +1,7 @@
 use super::DeltaOp;
 
-/// Delta rate (growth): `(source[h] - source[start]) / source[start]` via f64.
+/// Delta rate (growth): `(source[h] - source[start]) / source[start]` via f64; undefined (NaN, or
+/// infinite) when the starting value is zero.
 #[derive(Clone, Copy)]
 pub struct DeltaRate;
 
@@ -11,12 +12,7 @@ where
 {
     #[inline]
     fn combine(current: S, ago: S, _count: usize) -> B {
-        let current_f: f64 = current.into();
-        let ago_f: f64 = ago.into();
-        if ago_f == 0.0 {
-            B::from(0.0)
-        } else {
-            B::from((current_f - ago_f) / ago_f)
-        }
+        let ago: f64 = ago.into();
+        B::from((current.into() - ago) / ago)
     }
 }

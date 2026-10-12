@@ -2,7 +2,7 @@ use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::Ratio;
-use bitview_transforms::RatioCentsOrOne;
+use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlockCumulativeWithSums, LazyValuePerBlockCumulativeRolling, LazyWindowStartVec,
@@ -83,7 +83,7 @@ impl RealizedMetrics {
             .zip(transfer_volume.sum.0.as_array())
             .zip(self.value_destroyed.sum.as_array())
         {
-            target.compute_binary::<_, _, RatioCentsOrOne>(
+            target.compute_binary::<_, _, Quotient<Ratio>>(
                 from,
                 &created.cents.height,
                 &destroyed.cents.height,

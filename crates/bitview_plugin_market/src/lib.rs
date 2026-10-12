@@ -24,7 +24,7 @@ use returns::Vecs as ReturnsVecs;
 use technical::Vecs as TechnicalVecs;
 use volatility::Vecs as VolatilityVecs;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("market"), Version::new(9));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("market"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]

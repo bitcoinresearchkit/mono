@@ -94,8 +94,8 @@ impl MetricBuckets {
             PERCENTILES.map(|percentile| (total * u128::from(percentile) / 100).saturating_sub(1))
         };
         let (coin_targets, dollar_targets) = (targets(totals.sats), targets(totals.value));
-        let mut per_coin = [Cents::default(); PERCENTILES_LEN];
-        let mut per_dollar = [Cents::default(); PERCENTILES_LEN];
+        let mut per_coin = [Cents::NAN; PERCENTILES_LEN];
+        let mut per_dollar = [Cents::NAN; PERCENTILES_LEN];
         let (mut coin, mut dollar) = (
             if totals.sats == 0 { PERCENTILES_LEN } else { 0 },
             if totals.value == 0 {

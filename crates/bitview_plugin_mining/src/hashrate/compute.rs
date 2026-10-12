@@ -2,7 +2,7 @@ use bitview_compute::ComputeRollingStats;
 use bitview_plugin_blocks::{DifficultyVecs, LookbackVecs};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Count, Float32, Hashrate, PartsPerMillionSigned32};
-use bitview_transforms::RatioDiffFloat32;
+use bitview_transforms::RelativeChange;
 use bitview_vecs::LazyPerBlockCumulativeRolling;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -116,7 +116,7 @@ impl Vecs {
 
         self.price
             .rebound
-            .compute_binary::<Float32, Float32, RatioDiffFloat32<PartsPerMillionSigned32>>(
+            .compute_binary::<Float32, Float32, RelativeChange<PartsPerMillionSigned32>>(
                 starting_height,
                 &self.price.block.height,
                 &self.price.atl.height,
@@ -125,7 +125,7 @@ impl Vecs {
 
         self.value
             .rebound
-            .compute_binary::<Float32, Float32, RatioDiffFloat32<PartsPerMillionSigned32>>(
+            .compute_binary::<Float32, Float32, RelativeChange<PartsPerMillionSigned32>>(
                 starting_height,
                 &self.value.block.height,
                 &self.value.atl.height,

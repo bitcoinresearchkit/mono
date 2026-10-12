@@ -12,7 +12,7 @@ use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 const STORAGE: PluginStorage =
-    PluginStorage::new(PluginId::new("capital_sentiment"), Version::new(15));
+    PluginStorage::new(PluginId::new("capital_sentiment"), Version::new(16));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]

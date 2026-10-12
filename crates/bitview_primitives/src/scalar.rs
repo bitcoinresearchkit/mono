@@ -151,12 +151,13 @@ macro_rules! scalar {
     ($(#[$meta:meta])* float $name:ident(f32)) => {
         $crate::scalar::scalar!(@float $(#[$meta])* $name(f32));
 
-        /// Narrowing; the value must fit `f32` (checked in dev builds).
+        /// Narrowing; a finite value must fit `f32` (checked in dev builds), a non-finite one is
+        /// undefined.
         impl From<f64> for $name {
             #[inline]
             fn from(value: f64) -> Self {
                 debug_assert!(
-                    value.is_nan() || (f32::MIN as f64..=f32::MAX as f64).contains(&value),
+                    !value.is_finite() || (f32::MIN as f64..=f32::MAX as f64).contains(&value),
                     "{value} doesn't fit {}",
                     stringify!($name)
                 );

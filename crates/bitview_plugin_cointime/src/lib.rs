@@ -34,7 +34,7 @@ use reserve_risk::Vecs as ReserveRiskVecs;
 use supply::Vecs as SupplyVecs;
 use value::Vecs as ValueVecs;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("cointime"), Version::new(9));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("cointime"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]

@@ -194,18 +194,18 @@ impl Columns {
         self.unrealized_loss.push(d.unrealized_loss);
         self.supply_profit.push(d.supply_profit);
         self.supply_loss.push(d.supply_loss);
-        self.price.push(Cents::new(
+        self.price.push(
             d.cap_raw
                 .as_u128()
                 .checked_div(d.supply.as_u128())
-                .unwrap_or_default() as u64,
-        ));
-        self.capitalized_price.push(Cents::new(
+                .map_or(Cents::NAN, |price| Cents::new(price as u64)),
+        );
+        self.capitalized_price.push(
             d.capitalized_cap_raw
                 .inner()
                 .checked_div(d.cap_raw.as_u128())
-                .unwrap_or_default() as u64,
-        ));
+                .map_or(Cents::NAN, |price| Cents::new(price as u64)),
+        );
         self.gross_pnl.push(d.profit + d.loss);
         self.peak_regret.push(peak);
         self.unrealized_net_pnl.push(unrealized.net_pnl);

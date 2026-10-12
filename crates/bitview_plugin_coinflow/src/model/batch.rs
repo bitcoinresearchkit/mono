@@ -74,7 +74,15 @@ impl PrimaryBatch {
         });
 
         PrimaryValues {
-            spending_rate: AgeRange::from_fn(|id| PerDay::from(*id.select(&hazards))),
+            // The fit reads an empty range's hazard as zero; published, it is undefined.
+            spending_rate: AgeRange::from_fn(|id| {
+                let created = f64::from(id.select(&self.coindays_created)[offset]);
+                PerDay::from(if created > 0.0 {
+                    *id.select(&hazards)
+                } else {
+                    f64::NAN
+                })
+            }),
             spending_exposure: AgeRange::from_fn(|id| Float64::from(*id.select(&exposures))),
             mobility: mobilities,
             cohorts,

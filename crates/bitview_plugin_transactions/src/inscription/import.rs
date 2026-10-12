@@ -34,10 +34,11 @@ impl Vecs {
                 indexes,
                 window_starts,
             )?,
+            // Version one: undefined (null) for blocks without fees (was zero).
             fee_share: PercentPerBlock::import(
                 db,
                 "inscription_fee_chain_share",
-                version,
+                version + Version::ONE,
                 indexes,
             )?,
         })

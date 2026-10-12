@@ -2,7 +2,7 @@ use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{PartsPerMillion32, Ratio};
-use bitview_transforms::{Quotient, RatioCentsOrOne};
+use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec, RatioRollingWindows, RollingWindows,
@@ -103,7 +103,7 @@ impl Realized {
             .zip(self.profit.sum.as_array())
             .zip(self.loss.sum.as_array())
         {
-            target.compute_binary::<_, _, RatioCentsOrOne>(
+            target.compute_binary::<_, _, Quotient<Ratio>>(
                 from,
                 &profit.cents.height,
                 &loss.cents.height,
@@ -117,7 +117,7 @@ impl Realized {
             .zip(activity.transfer_volume.sum.0.as_array())
             .zip(self.value_destroyed.sum.as_array())
         {
-            target.compute_binary::<_, _, RatioCentsOrOne>(
+            target.compute_binary::<_, _, Quotient<Ratio>>(
                 from,
                 &created.cents.height,
                 &destroyed.cents.height,

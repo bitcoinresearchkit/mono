@@ -2,7 +2,7 @@ use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::PartsPerMillion32;
-use bitview_transforms::RatioDollars;
+use bitview_transforms::Quotient;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Dollars;
@@ -54,7 +54,7 @@ impl Vecs {
 
         self.pi_cycle
             .fixed
-            .compute_binary::<Dollars, Dollars, RatioDollars<PartsPerMillion32>>(
+            .compute_binary::<Dollars, Dollars, Quotient<PartsPerMillion32>>(
                 starting_height,
                 &moving_average.sma._111d.usd.height,
                 &moving_average.sma._350d_x2.usd.height,

@@ -40,7 +40,7 @@ impl WeightedCapitalizedPrice {
             return Cents::NAN;
         }
         if self.denominator == WeightedSum::default() {
-            return Cents::ZERO;
+            return Cents::NAN;
         }
         // Find floor(numerator / denominator) without overflowing either raw
         // moment by multiplying it by the weight scale or the candidate price.

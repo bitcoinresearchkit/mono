@@ -72,7 +72,6 @@ impl WeightedCohortState {
 
         (self.weighted_cap.as_u128() * Sats::ONE_BTC_U128)
             .checked_div(self.weighted_supply.as_u128())
-            .map(Cents::from)
-            .unwrap_or(Cents::ZERO)
+            .map_or(Cents::NAN, Cents::from)
     }
 }

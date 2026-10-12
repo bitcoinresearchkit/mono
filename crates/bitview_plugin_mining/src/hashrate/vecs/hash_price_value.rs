@@ -12,6 +12,6 @@ pub struct HashPriceValueVecs<M: StorageMode = Rw> {
     pub atl: PerBlock<Float32, M>,
     /// Per-PH/s value at the represented block divided by its running all-time
     /// low, minus one. Zero marks the historical floor and positive values
-    /// measure the rebound above it. Returns zero before a nonzero low exists.
+    /// measure the rebound above it. Undefined (null) before a nonzero low exists.
     pub rebound: PercentPerBlock<PartsPerMillionSigned32, M>,
 }

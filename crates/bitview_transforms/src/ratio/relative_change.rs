@@ -2,21 +2,16 @@ use std::marker::PhantomData;
 
 use vecdb::BinaryTransform;
 
-/// `value / base - 1`, zero when the base is zero.
+/// `value / base - 1`: undefined (NaN, or infinite) when the base is zero.
 pub struct RelativeChange<P>(PhantomData<P>);
 
 impl<V, P> BinaryTransform<V, V, P> for RelativeChange<P>
 where
     V: Into<f64>,
-    P: From<f64> + Default,
+    P: From<f64>,
 {
     #[inline(always)]
     fn apply(value: V, base: V) -> P {
-        let base = base.into();
-        if base == 0.0 {
-            P::default()
-        } else {
-            P::from(value.into() / base - 1.0)
-        }
+        P::from(value.into() / base.into() - 1.0)
     }
 }

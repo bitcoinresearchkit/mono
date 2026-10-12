@@ -24,7 +24,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub true_range_sum_2w: FiatPerBlock<Cents, M>,
     /// Two-week Choppiness Index: base-10 logarithm of the trailing true-range
     /// sum divided by the two-week high-low range, divided by the base-10
-    /// logarithm of the number of blocks in the window. Returns zero when the
+    /// logarithm of the number of blocks in the window. Undefined (null) when the
     /// high-low range is zero or the window contains fewer than two blocks.
     /// Higher values mean price traveled a longer path relative to its net
     /// range and was therefore choppier; lower nonzero values mean a more

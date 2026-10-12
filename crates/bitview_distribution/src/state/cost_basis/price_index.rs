@@ -153,13 +153,23 @@ impl<const N: usize> PriceIndex<N> {
             (sats > 0 && cap > 0)
                 .then(|| PERCENTILES.map(|p| (cap * i128::from(p) / 100 - 1).max(0)))
         });
+        // Without supply (or capital) the prices are undefined.
+        let sat_defined = sat_targets.map(|targets| targets.is_some());
+        let usd_defined = usd_targets.map(|targets| targets.is_some());
         let sat_buckets = self.tree.kth_many(sat_targets, &|q, n| fields(q, n).0);
         let usd_buckets = self.tree.kth_many(usd_targets, &|q, n| fields(q, n).1);
+        let price = |defined: bool, bucket| {
+            if defined {
+                bucket_to_cents(bucket)
+            } else {
+                Cents::NAN
+            }
+        };
         array::from_fn(|q| PercentileResult {
-            min_price: bucket_to_cents(sat_buckets[q][0]),
-            max_price: bucket_to_cents(sat_buckets[q][PERCENTILES_LEN + 1]),
-            sat_prices: array::from_fn(|i| bucket_to_cents(sat_buckets[q][i + 1])),
-            usd_prices: array::from_fn(|i| bucket_to_cents(usd_buckets[q][i])),
+            min_price: price(sat_defined[q], sat_buckets[q][0]),
+            max_price: price(sat_defined[q], sat_buckets[q][PERCENTILES_LEN + 1]),
+            sat_prices: array::from_fn(|i| price(sat_defined[q], sat_buckets[q][i + 1])),
+            usd_prices: array::from_fn(|i| price(usd_defined[q], usd_buckets[q][i])),
         })
     }
 }

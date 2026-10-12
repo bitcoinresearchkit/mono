@@ -18,7 +18,7 @@ pub struct CohortCostBasis<M: StorageMode = Rw> {
 
 #[derive(Clone, Traversable)]
 struct PerCoin {
-    /// The weighted mean; zero while the cohort holds no supply.
+    /// The weighted mean; undefined (null) while the cohort holds no supply.
     avg: Price<LazyPerBlock<Cents>>,
     /// Realized price: realized cap divided by supply, the weighted mean.
     realized_price: Price<LazyPerBlock<Cents>>,

@@ -8,7 +8,7 @@ use bitview_primitives::{BasisPoints32, Days, Float32, Halving, Years};
 use bitview_vecs::{LazyPerBlock, LazyRatioPerBlock, PerBlock, RatioPerBlock};
 use brk_error::Result;
 use brk_types::{Bitcoin, Cents, Sats, Version};
-use vecdb::{Ident, unlikely};
+use vecdb::Ident;
 
 use crate::{STORAGE, Vecs, dormancy_vecs::DormancyVecs};
 
@@ -150,22 +150,12 @@ impl Vecs {
     }
 
     fn market_ratio(numerator: Cents, denominator: Cents) -> BasisPoints32 {
-        let ratio = f64::from(numerator) / f64::from(denominator);
-        if unlikely(!ratio.is_finite()) {
-            BasisPoints32::ZERO
-        } else {
-            BasisPoints32::from(ratio)
-        }
+        BasisPoints32::from(f64::from(numerator) / f64::from(denominator))
     }
 
-    /// The value per bitcoin of supply; zero without supply.
+    /// The value per bitcoin of supply; undefined (NaN) without supply.
     fn supply_adjusted(value: f64, supply: Sats) -> f32 {
-        let supply = f64::from(Bitcoin::from(supply));
-        if supply == 0.0 {
-            0.0
-        } else {
-            (value / supply) as f32
-        }
+        (value / f64::from(Bitcoin::from(supply))) as f32
     }
 
     fn stock_to_flow(supply: Sats, subsidy: Sats) -> Years {
@@ -178,11 +168,6 @@ impl Vecs {
     }
 
     fn dormancy_flow(dormancy: Days, supply: Sats) -> Float32 {
-        let dormancy = f64::from(dormancy);
-        if dormancy == 0.0 {
-            Float32::ZERO
-        } else {
-            Float32::new((f64::from(Bitcoin::from(supply)) / dormancy) as f32)
-        }
+        Float32::new((f64::from(Bitcoin::from(supply)) / f64::from(dormancy)) as f32)
     }
 }

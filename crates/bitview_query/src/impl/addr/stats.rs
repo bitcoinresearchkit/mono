@@ -53,7 +53,7 @@ impl Query {
             mempool_stats.funded_txo_sum,
             mempool_stats.spent_txo_sum,
         )?;
-        let realized_price = if is_funded {
+        let realized_price = if is_funded && !chain_balance.is_zero() {
             addr_data
                 .realized_cap_raw()
                 .realized_price(chain_balance)

@@ -216,7 +216,7 @@ where
                     }
                     let sum =
                         values.fold_range_at(prev_start.to_usize(), skip, 0.0, |sum, value| {
-                            sum + f64::from(value)
+                            sum + defined(f64::from(value))
                         });
                     (sum, prev_start)
                 } else {
@@ -228,15 +228,12 @@ where
 
                 for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
                     let i = skip + j;
-                    let value = f64::from(value);
-                    // A non-finite value would poison the running sum for good, unlike a resume.
-                    debug_assert!(value.is_finite(), "rolling average input must be finite");
-                    running_sum += value;
+                    running_sum += defined(f64::from(value));
 
                     if prev_start < start {
                         let n = start.to_usize() - prev_start.to_usize();
                         leaving.for_each(n, |v: A| {
-                            running_sum -= f64::from(v);
+                            running_sum -= defined(f64::from(v));
                         });
                         prev_start = start;
                     }
@@ -287,7 +284,7 @@ where
                     }
                     (
                         values.fold_range_at(prev_start.to_usize(), skip, 0.0, |sum, value| {
-                            let value = f64::from(value);
+                            let value = defined(f64::from(value));
                             sum + value * value
                         }),
                         prev_start,
@@ -307,15 +304,13 @@ where
                     .enumerate()
                 {
                     let i = skip + j;
-                    let val = f64::from(value);
-                    // A non-finite value would poison the running sum for good, unlike a resume.
-                    debug_assert!(val.is_finite(), "rolling SD input must be finite");
+                    let val = defined(f64::from(value));
                     running_sum_sq += val * val;
 
                     if prev_start < start {
                         let n = start.to_usize() - prev_start.to_usize();
                         leaving.for_each(n, |v: A| {
-                            let old = f64::from(v);
+                            let old = defined(f64::from(v));
                             running_sum_sq -= old * old;
                         });
                         prev_start = start;
@@ -501,4 +496,11 @@ where
         },
         exit,
     )
+}
+
+/// An undefined (non-finite) value counts as zero in a running sum, which it would otherwise
+/// poison for good.
+#[inline(always)]
+fn defined(value: f64) -> f64 {
+    if value.is_finite() { value } else { 0.0 }
 }

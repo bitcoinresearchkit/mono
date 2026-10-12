@@ -19,7 +19,7 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// Empirical daily spending hazard: cumulative transfer volume in BTC
     /// divided by cumulative coin days created in the range. It estimates the
     /// fraction of the range's supply spent per day; higher values indicate
-    /// faster turnover. Returns zero when cumulative coin days created is zero.
+    /// faster turnover. Undefined (null) when cumulative coin days created is zero.
     pub spending_rate: PerBlock<PerDay, M>,
     /// Estimated remaining-lifetime spending exposure. It integrates observed
     /// positive spending hazards from the range midpoint through subsequent

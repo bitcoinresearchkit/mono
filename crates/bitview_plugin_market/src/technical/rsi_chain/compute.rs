@@ -39,9 +39,8 @@ impl RsiChain {
             &self.average_gain.height,
             &self.average_loss.height,
             |(h, g, l, ..)| {
-                let sum = *g + *l;
-                let rsi = if sum == 0.0 { 0.5 } else { *g / sum };
-                (h, PartsPerMillion32::from(rsi))
+                // Undefined without any gain or loss.
+                (h, PartsPerMillion32::from(*g / (*g + *l)))
             },
             exit,
         )?;
@@ -61,13 +60,12 @@ impl RsiChain {
             &self.rsi_min.fixed.height,
             &self.rsi_max.fixed.height,
             |(h, r, mn, mx, ..)| {
+                // Undefined when the window's RSI did not move.
                 let range = f64::from(*mx) - f64::from(*mn);
-                let stoch = if range == 0.0 {
-                    PartsPerMillion32::ZERO
-                } else {
-                    PartsPerMillion32::from((f64::from(*r) - f64::from(*mn)) / range)
-                };
-                (h, stoch)
+                (
+                    h,
+                    PartsPerMillion32::from((f64::from(*r) - f64::from(*mn)) / range),
+                )
             },
             exit,
         )?;

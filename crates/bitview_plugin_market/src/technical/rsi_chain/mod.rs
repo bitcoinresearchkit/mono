@@ -37,7 +37,7 @@ pub struct RsiChain<M: StorageMode = Rw> {
     /// Wilder-smoothed average gain divided by the sum of Wilder-smoothed
     /// average gain and loss. The result ranges from 0% to 100%; values above
     /// 50% mean smoothed gains exceed losses, and values below 50% mean losses
-    /// exceed gains. Returns 50% when both averages are zero.
+    /// exceed gains. Undefined (null) when both averages are zero.
     #[traversable(rename = "block")]
     pub rsi: PercentPerBlock<PartsPerMillion32, M>,
     #[traversable(hidden)]

@@ -140,7 +140,9 @@ impl RarityMeterInner {
                     if height >= level_start {
                         let lower = RarityPercentileId::BOUNDARIES[..5]
                             .iter()
-                            .filter(|&&id| close < values[id as usize])
+                            .filter(|&&id| {
+                                !values[id as usize].is_nan() && close < values[id as usize]
+                            })
                             .count() as i8;
                         let upper = RarityPercentileId::BOUNDARIES[5..]
                             .iter()
@@ -388,10 +390,10 @@ impl RarityMeterInner {
                 lower_component_prices
                     .iter()
                     .map(|component| component[index][offset])
-                    .filter(|value| !value.is_nan())
                     .chain(values)
+                    .filter(|value| !value.is_nan())
                     .max()
-                    .expect("rarity meter component")
+                    .unwrap_or(Cents::NAN)
             } else {
                 values.min().expect("rarity meter component")
             }
@@ -419,7 +421,10 @@ impl RarityMeterInner {
     }
 
     fn score_at(price: Cents, bands: &[Vec<Cents>; 10], index: usize) -> i8 {
-        let lower = bands[..5].iter().filter(|band| price < band[index]).count() as i8;
+        let lower = bands[..5]
+            .iter()
+            .filter(|band| !band[index].is_nan() && price < band[index])
+            .count() as i8;
         let upper = bands[5..].iter().filter(|band| price > band[index]).count() as i8;
 
         upper - lower

@@ -12,12 +12,12 @@ pub struct RealizedBlockData {
 }
 
 impl RealizedBlockData {
-    /// Compute mean creation price only for consumers that publish it.
+    /// Compute mean creation price only for consumers that publish it; undefined (NaN) without
+    /// supply.
     pub fn price(&self) -> Cents {
         self.cap_raw
             .as_u128()
             .checked_div(self.supply.as_u128())
-            .map(|price| Cents::new(price as u64))
-            .unwrap_or_default()
+            .map_or(Cents::NAN, |price| Cents::new(price as u64))
     }
 }

@@ -42,6 +42,13 @@ has to be deleted by hand.
   5-byte indexes stay internal, published through views), so block size and weight, transaction, input and output
   counts and per-transaction weight read one type across `block`, `cumulative`, `sum` and the distribution statistics
   (recomputed on upgrade). Block interval is `Seconds`
+- Undefined values are null instead of a made-up number: shares, ratios and relative changes over a zero denominator
+  or base (supply, capital and fee shares, NUPL, NVT, thermo-cap multiple, RHODL, Puell, velocity, delta rates from a
+  zero start, price returns and drawdown before a price exists), cost basis and realized or capitalized prices of
+  empty cohorts, SOPR and the realized profit-to-loss ratio without value destroyed (were 1), RSI and stochastic RSI
+  without movement (were 50% and 0), choppiness, dormancy, supply-adjusted CDD/CYD, seller exhaustion, Gini and the
+  coinflow spending rate of empty ranges (all were 0). Rolling averages and standard deviations count an undefined
+  value as zero
 - Typed values as nullable exactly where the JSON can hold `null`: a period without blocks (date resolutions; height,
   halving and epoch never) or a type's own undefined value (non-finite floats and the `FeeRate` sentinel); CSV
   writes undefined values as empty cells
@@ -425,6 +432,9 @@ has to be deleted by hand.
 
 #### Rust APIs
 
+- `bitview_transforms::Quotient` and `RelativeChange` return NaN (or an infinity) for a zero denominator or base (were
+  zero); `RatioCentsOrOne`, `RatioDollars` and `RatioDiffFloat32` are removed (use `Quotient` and `RelativeChange`).
+  `CentsSats::realized_price` returns `Cents::NAN` without sats (was zero); `vecdb::DeltaRate` NaN from a zero start
 - `brk_types`: `Weight` is the 64-bit weight and `SigOps` the 64-bit sigop cost (were `Weight64` and `SigOps64` in
   `bitview_primitives`); their 32-bit storage forms are `Weight32` and `SigOps32` (were `Weight` and `SigOps`). The
   REST types use the wide ones (`Transaction.weight` and `.total_sigop_cost`, CPFP entries, block info and weight

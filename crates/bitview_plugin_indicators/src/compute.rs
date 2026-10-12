@@ -1,6 +1,6 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_primitives::{BasisPoints32, PartsPerMillion64, Ratio};
-use bitview_transforms::RatioDollars;
+use bitview_transforms::Quotient;
 use brk_error::Result;
 use rayon::join;
 use vecdb::{BinaryTransform, Database};
@@ -49,10 +49,7 @@ impl ComputePlugin for Vecs {
                 &subsidy.sum._24h.usd.height,
                 &subsidy.sum._1y.usd.height,
                 |(height, day, year, ..)| {
-                    (
-                        height,
-                        RatioDollars::<BasisPoints32>::apply(day * 365.0, year),
-                    )
+                    (height, Quotient::<BasisPoints32>::apply(day * 365.0, year))
                 },
                 exit,
             )
@@ -66,14 +63,9 @@ impl ComputePlugin for Vecs {
                 &ranges._18m_to_2y.capital.total.usd.height,
                 |(height, young_cap, year1_cap, month18_cap, ..)| {
                     let denominator = year1_cap + month18_cap;
-                    let ratio = f64::from(young_cap) / f64::from(denominator);
                     (
                         height,
-                        if ratio.is_finite() {
-                            PartsPerMillion64::from(ratio)
-                        } else {
-                            PartsPerMillion64::default()
-                        },
+                        PartsPerMillion64::from(f64::from(young_cap) / f64::from(denominator)),
                     )
                 },
                 exit,
@@ -86,16 +78,11 @@ impl ComputePlugin for Vecs {
                 &market.volatility._1m.height,
                 supply_total_sats,
                 |(height, profit_sats, volatility, total_sats, ..)| {
-                    let total = total_sats.as_u128() as f64;
-                    if total == 0.0 {
-                        (height, Ratio::new(0.0))
-                    } else {
-                        let pct_in_profit = profit_sats.as_u128() as f64 / total;
-                        (
-                            height,
-                            Ratio::new((pct_in_profit * f64::from(volatility) / 100.0) as f32),
-                        )
-                    }
+                    let pct_in_profit = profit_sats.as_u128() as f64 / total_sats.as_u128() as f64;
+                    (
+                        height,
+                        Ratio::new((pct_in_profit * f64::from(volatility) / 100.0) as f32),
+                    )
                 },
                 exit,
             )

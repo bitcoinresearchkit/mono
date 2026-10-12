@@ -79,7 +79,7 @@ use price_bands::PriceBands;
 use thresholds::Thresholds;
 use weighted::{WeightedModeId, WeightedModes};
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("bedrock"), Version::new(15));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("bedrock"), Version::new(16));
 pub const ID: PluginId = STORAGE.id();
 const WRITE_INTERVAL_BLOCKS: usize = 10_000;
 

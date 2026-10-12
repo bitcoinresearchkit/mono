@@ -15,7 +15,7 @@ use vecdb::{Database, Rw, StorageMode};
 
 use dormancy_vecs::DormancyVecs;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indicators"), Version::new(10));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indicators"), Version::new(11));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
@@ -28,7 +28,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// average; values below one mean it is below average.
     puell_multiple: RatioPerBlock<BasisPoints32, M>,
     /// Network Value to Transactions ratio: market capitalization divided by
-    /// trailing-24-hour transfer volume, both valued in USD. Returns zero when
+    /// trailing-24-hour transfer volume, both valued in USD. Undefined (null) when
     /// the ratio is not finite. Larger values mean the network's market value
     /// is high relative to the on-chain value transferred in the last day.
     nvt: LazyRatioPerBlock<BasisPoints32>,
@@ -37,23 +37,23 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// distribution; larger values mean greater concentration.
     gini: RatioPerBlock<PartsPerMillion32, M>,
     /// Realized HODL ratio: realized capitalization of 1-day-to-1-week-old
-    /// UTXOs divided by that of 1-to-2-year-old UTXOs. Returns zero when the
+    /// UTXOs divided by that of 1-to-2-year-old UTXOs. Undefined (null) when the
     /// ratio is not finite. Larger values mean more creation-date capital sits
     /// in the young cohort relative to the older cohort.
     rhodl_ratio: RatioPerBlock<PartsPerMillion64, M>,
     /// Market capitalization divided by thermo capitalization, the cumulative
-    /// USD value of derived block subsidies. Returns zero when the ratio is not
+    /// USD value of derived block subsidies. Undefined (null) when the ratio is not
     /// finite. Larger values mean Bitcoin's market value is higher relative to
     /// the historical issuance value assigned to miners.
     thermo_cap_multiple: LazyRatioPerBlock<BasisPoints32>,
     /// Trailing 24-hour coin days destroyed divided by all-chain supply in BTC
     /// at the represented block. Larger values mean more accumulated holding
-    /// time was consumed by spending relative to the supply. Returns zero when
+    /// time was consumed by spending relative to the supply. Undefined (null) when
     /// supply is zero.
     coindays_destroyed_supply_adjusted: LazyPerBlock<Days>,
     /// Trailing 365-day coin years destroyed divided by all-chain supply in BTC
     /// at the represented block. Larger values mean more accumulated holding
-    /// time was consumed by spending relative to the supply. Returns zero when
+    /// time was consumed by spending relative to the supply. Undefined (null) when
     /// supply is zero.
     coinyears_destroyed_supply_adjusted: LazyPerBlock<Years>,
     dormancy: DormancyVecs,
@@ -68,8 +68,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// per-block trailing-24-hour spot-price returns over the trailing 30-day
     /// monotonic-time window, scaled by the square root of 30. Low values occur
     /// when little supply is in profit, recent volatility is low, or both;
-    /// high values require both a profitable supply and volatile price. Returns
-    /// zero when total supply is zero.
+    /// high values require both a profitable supply and volatile price. Undefined (null)
+    /// when total supply is zero.
     seller_exhaustion_constant: PerBlock<Ratio, M>,
 }
 

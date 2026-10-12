@@ -61,7 +61,7 @@ fn gini_from_lorenz(
     let total_supply: u64 = supplies.iter().copied().map(u64::from).sum();
 
     if total_count == 0 || total_supply == 0 {
-        return PartsPerMillion32::ZERO;
+        return PartsPerMillion32::NAN;
     }
 
     let mut cumulative_supply = 0u64;

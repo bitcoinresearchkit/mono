@@ -104,11 +104,7 @@ fn push_block(
                     &block.capital_density,
                 );
             }
-            None => cohort.push(
-                &CostBasisByPercentile::default(),
-                &Density::NAN,
-                &Density::NAN,
-            ),
+            None => cohort.push(&CostBasisByPercentile::NAN, &Density::NAN, &Density::NAN),
         }
     }
 }
